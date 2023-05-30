@@ -73,10 +73,14 @@ func SeparateOwnerAndTeam(codeownersList []string) ([]string, []string) {
 	for _, codeowner := range codeownersList {
 
 		if len(codeowner) > 0 {
+
+			// We remove that @ sign from the codeowner because it's unnecessary for
+			// 	future checks -- they only need the username
 			if strings.Compare(codeowner[0:1], "@") == 0 {
 				codeowner = codeowner[1:]
 			}
 
+			// If the string contains '/' it must be a team, based on format. Otherwise, it's an individual user
 			if strings.Contains(codeowner, "/") {
 				codeOwnerTeams = append(codeOwnerTeams, codeowner)
 			} else {
@@ -90,9 +94,12 @@ func SeparateOwnerAndTeam(codeownersList []string) ([]string, []string) {
 
 // Removing duplicates has to be done manually in Golang
 func RemoveDuplicateString(duplicatesPresent []string) []string {
+
+	// Make a map with all keys initialized to false
 	allKeys := make(map[string]bool)
 	duplicatesRemoved := []string{}
 
+	// For each item in the list, add it and mark it "true" in the map, then skip it every time
 	for _, item := range duplicatesPresent {
 		if _, value := allKeys[item]; !value {
 			allKeys[item] = true
@@ -110,17 +117,23 @@ func ParseCodeownerBytes(codeownerBytes []byte) ([]Codeowners, error) {
 	return ScanAndParse(*scanner)
 }
 
+// ScanAndParse is the director function for handling the incoming codeowner contents
 func ScanAndParse(scanner bufio.Scanner) ([]Codeowners, error) {
 
+	// globMap maps each line using a key/value pair held by the Codeowners Data type.
+	//		It maps from the file type (e.g., *.js) to the users for that file type (e.g., @user1 @user2)
 	var globMap []Codeowners
 	var lineCounter int = 0
 
 	for scanner.Scan() {
 
+		// We handle the codeowners file line-by-line, as all rules should follow that format
 		nextLine := scanner.Text()
 		lineCounter++
 		globString, globString2, currFileUsers := ParseCodeownersLine(nextLine)
 
+		// If there are no users listed, that is a valid rule, but we return an empty string, and then the PR
+		//		handles that outside of the parser
 		if len(currFileUsers) > 0 {
 			if IsValidCodeownersLine(currFileUsers) {
 				newCodeowner := Codeowners{
@@ -168,7 +181,9 @@ func ScanAndParse(scanner bufio.Scanner) ([]Codeowners, error) {
 }
 
 // ParseCodeownersLine extracts two potential globbing rule strings and the owners associated with those rules for a given line
-// of a CODEOWNERS file.
+//
+//	of a CODEOWNERS file. Note that there are two potential globbing rules for the following situation, when we can't identify
+//	whether it's a file name or a subdirectory: /docs/github can be either /docs/github or /docs/github/**
 func ParseCodeownersLine(line string) (globString, globString2 string, currFileUsers []string) {
 	// strings.Fields() splits the string by whitespace
 	splitStrings := strings.Fields(line)
@@ -202,7 +217,7 @@ func ParseCodeownersLine(line string) (globString, globString2 string, currFileU
 					globString = "**/**/**"
 				}
 			} else if strings.Compare(globString[0:1], "/") == 0 {
-				globString = globString[1:] /*+ "**"*/
+				globString = globString[1:]
 			} else if strings.Compare(globString[0:1], "*") == 0 &&
 				strings.Compare(globString[1:2], "*") != 0 {
 				globString = "**/" + globString
