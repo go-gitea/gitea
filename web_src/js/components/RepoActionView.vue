@@ -680,14 +680,20 @@ export function ansiLogToHTML(line) {
   color: var(--color-console-fg);
 }
 
-.full.height > .action-view-right {
+.full.height .action-view-right {
   width: 100%;
   height: 100%;
   padding: 0;
+  border-radius: 0;
 }
 
-.full.height > .action-view-right > .job-step-container {
-  height: 100%;
+.full.height .job-info-header {
+  border-radius: 0;
+}
+
+.full.height .job-step-container {
+  height: calc(100% - 60px);
+  border-radius: 0;
 }
 
 .job-info-header {
