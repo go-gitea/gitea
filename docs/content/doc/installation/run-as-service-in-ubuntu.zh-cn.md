@@ -47,7 +47,7 @@ sudo apt install supervisor
 为 supervisor 配置日志路径：
 
 ```
-# assuming gitea is installed in /home/git/gitea/
+# 假设gitea安装在 /home/git/gitea/
 mkdir /home/git/gitea/log/supervisor
 ```
 
