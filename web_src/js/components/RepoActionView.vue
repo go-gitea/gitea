@@ -680,6 +680,34 @@ export function ansiLogToHTML(line) {
   color: var(--color-console-fg);
 }
 
+.action-view-right .ui.dropdown .menu {
+  background: var(--color-console-menu-bg);
+  border-color: var(--color-console-menu-border);
+}
+
+.action-view-right .ui.dropdown .menu > .item {
+  color: var(--color-console-fg);
+}
+
+.action-view-right .ui.dropdown .menu > .item:hover {
+  color: var(--color-console-fg);
+  background: var(--color-console-hover-bg);
+}
+
+.action-view-right .ui.dropdown .menu > .item:active {
+  color: var(--color-console-fg);
+  background: var(--color-console-active-bg);
+}
+
+.action-view-right .ui.dropdown .menu > .divider {
+  border-top-color: var(--color-console-menu-border);
+}
+
+.action-view-right .ui.pointing.dropdown > .menu:not(.hidden)::after {
+  background: var(--color-console-menu-bg);
+  box-shadow: -1px -1px 0 0 var(--color-console-menu-border);
+}
+
 /* selectors here are intentionally exact to only match fullscreen */
 
 .full.height > .action-view-right {
