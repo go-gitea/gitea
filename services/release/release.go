@@ -80,14 +80,15 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 			commits.HeadCommit = repository.CommitToPushCommit(commit)
 			commits.CompareURL = rel.Repo.ComposeCompareURL(git.EmptySHA, commit.ID.String())
 
+			refFullName := git.RefNameFromTag(rel.TagName)
 			notification.NotifyPushCommits(
 				ctx, rel.Publisher, rel.Repo,
 				&repository.PushUpdateOptions{
-					RefFullName: git.TagPrefix + rel.TagName,
+					RefFullName: refFullName,
 					OldCommitID: git.EmptySHA,
 					NewCommitID: commit.ID.String(),
 				}, commits)
-			notification.NotifyCreateRef(ctx, rel.Publisher, rel.Repo, "tag", git.TagPrefix+rel.TagName, commit.ID.String())
+			notification.NotifyCreateRef(ctx, rel.Publisher, rel.Repo, refFullName, commit.ID.String())
 			rel.CreatedUnix = timeutil.TimeStampNow()
 		}
 		commit, err := gitRepo.GetTagCommit(rel.TagName)
@@ -323,14 +324,15 @@ func DeleteReleaseByID(ctx context.Context, id int64, doer *user_model.User, del
 			return fmt.Errorf("git tag -d: %w", err)
 		}
 
+		refName := git.RefNameFromTag(rel.TagName)
 		notification.NotifyPushCommits(
 			ctx, doer, repo,
 			&repository.PushUpdateOptions{
-				RefFullName: git.TagPrefix + rel.TagName,
+				RefFullName: refName,
 				OldCommitID: rel.Sha1,
 				NewCommitID: git.EmptySHA,
 			}, repository.NewPushCommits())
-		notification.NotifyDeleteRef(ctx, doer, repo, "tag", git.TagPrefix+rel.TagName)
+		notification.NotifyDeleteRef(ctx, doer, repo, refName)
 
 		if err := repo_model.DeleteReleaseByID(ctx, id); err != nil {
 			return fmt.Errorf("DeleteReleaseByID: %w", err)
