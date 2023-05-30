@@ -60,12 +60,15 @@
   --color-secondary-alpha-90: #525767e1;
   --color-secondary-hover: var(--color-secondary-light-1);
   --color-secondary-active: var(--color-secondary-light-2);
-  /* console colors */
-  --color-console-fg: #ffffff;
+  /* console colors - used for actions console and console files */
+  --color-console-fg: #eeeff2;
+  --color-console-fg-subtle: #959cab;
   --color-console-bg: #262936;
-  --color-console-border: #ffffff16;
+  --color-console-border: #383c47;
   --color-console-hover-bg: #ffffff16;
-  --color-console-active-bg: #383c47;
+  --color-console-active-bg: #454a57;
+  --color-console-menu-bg: #383c47;
+  --color-console-menu-border: #5c6374;
   /* named colors */
   --color-red: #cc4848;
   --color-orange: #cc580c;
