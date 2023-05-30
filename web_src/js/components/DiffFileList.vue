@@ -12,9 +12,9 @@
       <span :class="['status', diffTypeToString(file.Type)]" :data-tooltip-content="diffTypeToString(file.Type)">&nbsp;</span>
       <a class="file gt-mono" :href="'#diff-' + file.NameHash">{{ file.Name }}</a>
     </li>
-    <li v-if="store.isIncomplete" id="diff-too-many-files-stats" class="gt-pt-2">
+    <li v-if="store.isIncomplete" class="gt-pt-2">
       <span class="file gt-df gt-ac gt-sb">{{ store.tooManyFilesMessage }}
-        <a :class="['ui', 'basic', 'tiny', 'button', store.isLoadingNewData ? 'disabled' : '']" id="diff-show-more-files-stats" @click.stop="loadMoreData">{{ store.showMoreMessage }}</a>
+        <a :class="['ui', 'basic', 'tiny', 'button', store.isLoadingNewData ? 'disabled' : '']" @click.stop="loadMoreData">{{ store.showMoreMessage }}</a>
       </span>
     </li>
   </ol>

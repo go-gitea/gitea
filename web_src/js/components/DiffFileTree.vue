@@ -4,8 +4,8 @@
     <div class="ui list">
       <DiffFileTreeItem v-for="item in fileTree" :key="item.name" :item="item"/>
     </div>
-    <div v-if="store.isIncomplete" id="diff-too-many-files-stats" class="gt-pt-2">
-      <a :class="['ui', 'basic', 'tiny', 'button', store.isLoadingNewData ? 'disabled' : '']" id="diff-show-more-files-stats" @click.stop="loadMoreData">{{ store.showMoreMessage }}</a>
+    <div v-if="store.isIncomplete" class="gt-pt-2">
+      <a :class="['ui', 'basic', 'tiny', 'button', store.isLoadingNewData ? 'disabled' : '']" @click.stop="loadMoreData">{{ store.showMoreMessage }}</a>
     </div>
   </div>
 </template>

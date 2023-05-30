@@ -121,7 +121,7 @@ function onShowMoreFiles() {
 
 export function loadMoreFiles(url) {
   const $target = $('a#diff-show-more-files');
-  if ($target.hasClass('disabled')) {
+  if ($target.hasClass('disabled') || pageData.diffFileInfo.isLoadingNewData) {
     return;
   }
 
