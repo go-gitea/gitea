@@ -70,7 +70,9 @@
           </div>
           <div class="job-info-header-right">
             <div class="ui top right pointing dropdown custom jump item" @click.stop="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
-              <SvgIcon name="octicon-gear" :size="18"/>
+              <button class="gt-p-3">
+                <SvgIcon name="octicon-gear" :size="18"/>
+              </button>
               <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
                 <a class="item" @click="toggleTimeDisplay('seconds')">
                   <span><SvgIcon v-show="timeVisible['log-time-seconds']" name="octicon-check"/></span>
@@ -663,11 +665,21 @@ export function ansiLogToHTML(line) {
 
 .action-view-right {
   flex: 1;
-  color: var(--color-secondary-dark-3);
+  color: var(--color-console-fg-secondary);
   max-height: 100%;
   width: 70%;
   display: flex;
   flex-direction: column;
+}
+
+.action-view-right button {
+  background: transparent;
+  border: none;
+  color: var(--color-console-fg-secondary);
+}
+
+.action-view-right button:hover {
+  color: var(--color-console-fg);
 }
 
 .full.height > .action-view-right {
@@ -684,7 +696,7 @@ export function ansiLogToHTML(line) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px;
+  padding: 0 12px;
   border-bottom: 1px solid var(--color-console-border);
   background-color: var(--color-console-bg);
   position: sticky;
@@ -701,7 +713,7 @@ export function ansiLogToHTML(line) {
 }
 
 .job-info-header .job-info-header-detail {
-  color: var(--color-secondary-dark-3);
+  color: var(--color-console-fg-secondary);
   font-size: 12px;
 }
 
@@ -798,6 +810,10 @@ export function ansiLogToHTML(line) {
   color: var(--color-grey-light);
   text-align: right;
   user-select: none;
+}
+
+.log-time-seconds {
+  padding-right: 2px;
 }
 
 .job-log-line .log-time,
