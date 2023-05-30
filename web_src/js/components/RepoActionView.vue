@@ -680,7 +680,7 @@ export function ansiLogToHTML(line) {
   color: var(--color-console-fg);
 }
 
-.full.height .action-view-right {
+.full.height > .action-view-right {
   width: 100%;
   height: 100%;
   padding: 0;
@@ -691,7 +691,7 @@ export function ansiLogToHTML(line) {
   border-radius: 0;
 }
 
-.full.height .job-step-container {
+full.height > .action-view-right > .job-step-container {
   height: calc(100% - 60px);
   border-radius: 0;
 }
