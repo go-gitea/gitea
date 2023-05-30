@@ -6,7 +6,7 @@
 			{{template "repo/issue/navbar" .}}
 			{{if and .CanWriteProjects .PageIsEditProject}}
 			<div class="ui right floated secondary menu">
-				<a class="ui green button" href="{{$.RepoLink}}/projects/new">{{.locale.Tr "repo.milestones.new"}}</a>
+				<a class="ui small green button" href="{{$.RepoLink}}/projects/new">{{.locale.Tr "repo.milestones.new"}}</a>
 			</div>
 			{{end}}
 		</div>

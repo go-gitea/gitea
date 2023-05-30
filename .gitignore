@@ -71,6 +71,7 @@ cpu.out
 /tests/e2e/test-artifacts
 /tests/e2e/test-snapshots
 /tests/*.ini
+/tests/**/*.git/**/*.sample
 /node_modules
 /yarn.lock
 /yarn-error.log

@@ -41,6 +41,7 @@ export function initRepoTopicBar() {
         viewDiv.children('.topic').remove();
         if (topics.length) {
           const topicArray = topics.split(',');
+          topicArray.sort();
           for (let i = 0; i < topicArray.length; i++) {
             const link = $('<a class="ui repo-topic large label topic"></a>');
             link.attr('href', `${appSubUrl}/explore/repos?q=${encodeURIComponent(topicArray[i])}&topic=1`);
@@ -57,12 +58,12 @@ export function initRepoTopicBar() {
           topicPrompts.formatPrompt = xhr.responseJSON.message;
 
           const {invalidTopics} = xhr.responseJSON;
-          const topicLables = topicDropdown.children('a.ui.label');
+          const topicLabels = topicDropdown.children('a.ui.label');
 
           for (const [index, value] of topics.split(',').entries()) {
             for (let i = 0; i < invalidTopics.length; i++) {
               if (invalidTopics[i] === value) {
-                topicLables.eq(index).removeClass('green').addClass('red');
+                topicLabels.eq(index).removeClass('green').addClass('red');
               }
             }
           }

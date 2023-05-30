@@ -11,7 +11,7 @@
 					{{template "base/alert" .}}
 					<div class="inline required field {{if .Err_OrgName}}error{{end}}">
 						<label for="org_name">{{.locale.Tr "org.org_name_holder"}}</label>
-						<input id="org_name" name="org_name" value="{{.org_name}}" autofocus required>
+						<input id="org_name" name="org_name" value="{{.org_name}}" autofocus required maxlength="40">
 						<span class="help">{{.locale.Tr "org.org_name_helper"}}</span>
 					</div>
 

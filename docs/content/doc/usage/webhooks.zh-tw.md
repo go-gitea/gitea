@@ -5,6 +5,8 @@ slug: "webhooks"
 weight: 30
 toc: false
 draft: false
+aliases:
+  - /zh-tw/webhooks
 menu:
   sidebar:
     parent: "usage"

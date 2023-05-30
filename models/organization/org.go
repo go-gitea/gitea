@@ -342,11 +342,15 @@ func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
 	// insert units for team
 	units := make([]TeamUnit, 0, len(unit.AllRepoUnitTypes))
 	for _, tp := range unit.AllRepoUnitTypes {
+		up := perm.AccessModeOwner
+		if tp == unit.TypeExternalTracker || tp == unit.TypeExternalWiki {
+			up = perm.AccessModeRead
+		}
 		units = append(units, TeamUnit{
 			OrgID:      org.ID,
 			TeamID:     t.ID,
 			Type:       tp,
-			AccessMode: perm.AccessModeOwner,
+			AccessMode: up,
 		})
 	}
 

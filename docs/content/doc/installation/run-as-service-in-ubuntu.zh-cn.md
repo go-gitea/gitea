@@ -5,6 +5,8 @@ slug: "linux-service"
 weight: 40
 toc: false
 draft: false
+aliases:
+  - /zh-cn/linux-service
 menu:
   sidebar:
     parent: "installation"

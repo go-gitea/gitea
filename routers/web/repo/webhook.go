@@ -67,7 +67,7 @@ type ownerRepoCtx struct {
 
 // getOwnerRepoCtx determines whether this is a repo, owner, or admin (both default and system) context.
 func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
-	if is, ok := ctx.Data["IsRepositoryWebhook"]; ok && is.(bool) {
+	if ctx.Data["PageIsRepoSettings"] == true {
 		return &ownerRepoCtx{
 			RepoID:      ctx.Repo.Repository.ID,
 			Link:        path.Join(ctx.Repo.RepoLink, "settings/hooks"),
@@ -76,7 +76,7 @@ func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 		}, nil
 	}
 
-	if is, ok := ctx.Data["IsOrganizationWebhook"]; ok && is.(bool) {
+	if ctx.Data["PageIsOrgSettings"] == true {
 		return &ownerRepoCtx{
 			OwnerID:     ctx.ContextUser.ID,
 			Link:        path.Join(ctx.Org.OrgLink, "settings/hooks"),
@@ -85,7 +85,7 @@ func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 		}, nil
 	}
 
-	if is, ok := ctx.Data["IsUserWebhook"]; ok && is.(bool) {
+	if ctx.Data["PageIsUserSettings"] == true {
 		return &ownerRepoCtx{
 			OwnerID:     ctx.Doer.ID,
 			Link:        path.Join(setting.AppSubURL, "/user/settings/hooks"),
@@ -94,12 +94,12 @@ func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 		}, nil
 	}
 
-	if ctx.Doer.IsAdmin {
+	if ctx.Data["PageIsAdmin"] == true {
 		return &ownerRepoCtx{
 			IsAdmin:         true,
 			IsSystemWebhook: ctx.Params(":configType") == "system-hooks",
 			Link:            path.Join(setting.AppSubURL, "/admin/hooks"),
-			LinkNew:         path.Join(setting.AppSubURL, "/admin/system-hooks"),
+			LinkNew:         path.Join(setting.AppSubURL, "/admin/", ctx.Params(":configType")),
 			NewTemplate:     tplAdminHookNew,
 		}, nil
 	}
@@ -160,26 +160,27 @@ func ParseHookEvent(form forms.WebhookForm) *webhook_module.HookEvent {
 		SendEverything: form.SendEverything(),
 		ChooseEvents:   form.ChooseEvents(),
 		HookEvents: webhook_module.HookEvents{
-			Create:               form.Create,
-			Delete:               form.Delete,
-			Fork:                 form.Fork,
-			Issues:               form.Issues,
-			IssueAssign:          form.IssueAssign,
-			IssueLabel:           form.IssueLabel,
-			IssueMilestone:       form.IssueMilestone,
-			IssueComment:         form.IssueComment,
-			Release:              form.Release,
-			Push:                 form.Push,
-			PullRequest:          form.PullRequest,
-			PullRequestAssign:    form.PullRequestAssign,
-			PullRequestLabel:     form.PullRequestLabel,
-			PullRequestMilestone: form.PullRequestMilestone,
-			PullRequestComment:   form.PullRequestComment,
-			PullRequestReview:    form.PullRequestReview,
-			PullRequestSync:      form.PullRequestSync,
-			Wiki:                 form.Wiki,
-			Repository:           form.Repository,
-			Package:              form.Package,
+			Create:                   form.Create,
+			Delete:                   form.Delete,
+			Fork:                     form.Fork,
+			Issues:                   form.Issues,
+			IssueAssign:              form.IssueAssign,
+			IssueLabel:               form.IssueLabel,
+			IssueMilestone:           form.IssueMilestone,
+			IssueComment:             form.IssueComment,
+			Release:                  form.Release,
+			Push:                     form.Push,
+			PullRequest:              form.PullRequest,
+			PullRequestAssign:        form.PullRequestAssign,
+			PullRequestLabel:         form.PullRequestLabel,
+			PullRequestMilestone:     form.PullRequestMilestone,
+			PullRequestComment:       form.PullRequestComment,
+			PullRequestReview:        form.PullRequestReview,
+			PullRequestSync:          form.PullRequestSync,
+			PullRequestReviewRequest: form.PullRequestReviewRequest,
+			Wiki:                     form.Wiki,
+			Repository:               form.Repository,
+			Package:                  form.Package,
 		},
 		BranchFilter: form.BranchFilter,
 	}

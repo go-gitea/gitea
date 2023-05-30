@@ -69,7 +69,7 @@ export function initRepoCloneLink() {
   });
 
   $inputLink.on('focus', () => {
-    $inputLink.select();
+    $inputLink.trigger('select');
   });
 }
 

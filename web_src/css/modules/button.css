@@ -1,0 +1,816 @@
+/* this contains override styles for buttons and related elements */
+
+.ui.button {
+  background: var(--color-button);
+  border: 1px solid var(--color-light-border);
+  color: var(--color-text);
+}
+
+/* a ghost button is a button without border */
+.button.button-ghost {
+  background: transparent;
+  border: none;
+  color: inherit;
+  margin: 0;
+  padding: 0;
+}
+
+.button.button-ghost:hover {
+  background: var(--color-hover);
+}
+
+.button.button-ghost:active {
+  background: var(--color-active);
+}
+
+.ui.button.button-link {
+  background: transparent;
+  border: none;
+  color: inherit;
+}
+
+.page-content .ui.button {
+  box-shadow: none !important;
+}
+
+.ui.button:focus,
+.ui.button:hover {
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+
+.ui.active.button,
+.ui.button:active,
+.ui.active.button:active,
+.ui.active.button:hover {
+  background: var(--color-active);
+  color: var(--color-text);
+}
+
+.ui.button.no-text .icon {
+  margin: 0 !important;
+}
+
+.ui.buttons .button:first-child {
+  border-left: 1px solid var(--color-light-border);
+}
+
+.ui.buttons .button + .button {
+  border-left: none;
+}
+
+.ui.button.button-link:hover {
+  color: var(--color-primary);
+}
+
+.two-toggle-buttons .button:not(.active):first-of-type {
+  border-right: none;
+}
+
+.two-toggle-buttons .button.active:last-of-type {
+  border-left: 1px solid var(--color-light-border);
+}
+
+.ui.labeled.button.disabled > .button,
+.ui.basic.buttons .button,
+.ui.basic.button {
+  color: var(--color-text-light);
+  background: var(--color-light);
+}
+
+.ui.basic.buttons .button:hover,
+.ui.basic.button:hover {
+  color: var(--color-text);
+  background: var(--color-hover);
+}
+
+.ui.basic.buttons .button:focus,
+.ui.basic.button:focus,
+.ui.basic.buttons .button:active,
+.ui.basic.button:active,
+.ui.basic.buttons .active.button,
+.ui.basic.active.button,
+.ui.basic.buttons .active.button:hover,
+.ui.basic.active.button:hover {
+  color: var(--color-text);
+  background: var(--color-active);
+}
+
+.ui.labeled.button > .label {
+  border-color: var(--color-light-border);
+}
+
+.ui.labeled.icon.buttons > .button > .icon,
+.ui.labeled.icon.button > .icon {
+  background: var(--color-hover);
+}
+
+/* primary */
+
+.ui.primary.labels .label,
+.ui.ui.ui.primary.label,
+.ui.primary.button,
+.ui.primary.buttons .button {
+  background: var(--color-primary);
+}
+
+.ui.primary.button:hover,
+.ui.primary.buttons .button:hover,
+.ui.primary.button:focus,
+.ui.primary.buttons .button:focus {
+  background: var(--color-primary-hover);
+}
+
+.ui.primary.button:active,
+.ui.primary.buttons .button:active {
+  background: var(--color-primary-active);
+}
+
+.ui.basic.primary.buttons .button,
+.ui.basic.primary.button {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.ui.basic.primary.buttons .button:hover,
+.ui.basic.primary.button:hover,
+.ui.basic.primary.buttons .button:focus,
+.ui.basic.primary.button:focus {
+  color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.ui.basic.primary.buttons .button:active,
+.ui.basic.primary.button:active {
+  color: var(--color-primary-active);
+  border-color: var(--color-primary-active);
+}
+
+/* secondary */
+
+.ui.secondary.labels .label,
+.ui.ui.ui.secondary.label,
+.ui.secondary.button,
+.ui.secondary.buttons .button {
+  background: var(--color-secondary);
+  color: var(--color-text);
+}
+
+.ui.secondary.button:hover,
+.ui.secondary.buttons .button:hover,
+.ui.secondary.button:focus,
+.ui.secondary.buttons .button:focus {
+  background: var(--color-secondary-dark-1);
+  color: var(--color-text);
+}
+
+.ui.secondary.button:active,
+.ui.secondary.buttons .button:active {
+  background: var(--color-secondary-dark-2);
+  color: var(--color-text);
+}
+
+.ui.basic.secondary.buttons .button,
+.ui.basic.secondary.button {
+  color: var(--color-secondary-dark-6) !important;
+}
+
+.ui.basic.secondary.buttons .button:hover,
+.ui.basic.secondary.button:hover,
+.ui.basic.secondary.buttons .button:active,
+.ui.basic.secondary.button:active {
+  color: var(--color-secondary-dark-8) !important;
+  border-color: var(--color-secondary-dark-1) !important;
+}
+
+.ui.basic.secondary.button:focus,
+.ui.basic.secondary.buttons .button:focus {
+  color: var(--color-secondary-dark-8) !important;
+  border-color: var(--color-secondary-dark-3) !important;
+}
+
+/* tertiary */
+
+.ui.tertiary.button {
+  color: var(--color-text-light);
+  border: none;
+}
+
+.ui.tertiary.button:hover {
+  color: var(--color-text);
+}
+
+.ui.tertiary.button:focus {
+  color: var(--color-text-dark);
+}
+
+/* red */
+
+.ui.red.labels .label,
+.ui.ui.ui.red.label,
+.ui.red.button,
+.ui.red.buttons .button {
+  background: var(--color-red);
+}
+
+.ui.red.button:hover,
+.ui.red.buttons .button:hover,
+.ui.red.button:focus,
+.ui.red.buttons .button:focus {
+  background: var(--color-red-dark-1);
+}
+
+.ui.red.button:active,
+.ui.red.buttons .button:active {
+  background: var(--color-red-dark-2);
+}
+
+.ui.basic.red.buttons .button,
+.ui.basic.red.button {
+  color: var(--color-red);
+  border-color: var(--color-red);
+}
+
+.ui.basic.red.buttons .button:hover,
+.ui.basic.red.button:hover,
+.ui.basic.red.buttons .button:focus,
+.ui.basic.red.button:focus {
+  color: var(--color-red-dark-1);
+  border-color: var(--color-red-dark-1);
+}
+
+.ui.basic.red.buttons .button:active,
+.ui.basic.red.button:active {
+  color: var(--color-red-dark-2);
+  border-color: var(--color-red-dark-2);
+}
+
+/* orange */
+
+.ui.orange.labels .label,
+.ui.ui.ui.orange.label,
+.ui.orange.button,
+.ui.orange.buttons .button {
+  background: var(--color-orange);
+}
+
+.ui.orange.button:hover,
+.ui.orange.buttons .button:hover,
+.ui.orange.button:focus,
+.ui.orange.buttons .button:focus {
+  background: var(--color-orange-dark-1);
+}
+
+.ui.orange.button:active,
+.ui.orange.buttons .button:active {
+  background: var(--color-orange-dark-2);
+}
+
+.ui.basic.orange.buttons .button,
+.ui.basic.orange.button {
+  color: var(--color-orange);
+  border-color: var(--color-orange);
+}
+
+.ui.basic.orange.buttons .button:hover,
+.ui.basic.orange.button:hover,
+.ui.basic.orange.buttons .button:focus,
+.ui.basic.orange.button:focus {
+  color: var(--color-orange-dark-1);
+  border-color: var(--color-orange-dark-1);
+}
+
+.ui.basic.orange.buttons .button:active,
+.ui.basic.orange.button:active {
+  color: var(--color-orange-dark-2);
+  border-color: var(--color-orange-dark-2);
+}
+
+/* yellow */
+
+.ui.yellow.labels .label,
+.ui.ui.ui.yellow.label,
+.ui.yellow.button,
+.ui.yellow.buttons .button {
+  background: var(--color-yellow);
+}
+
+.ui.yellow.button:hover,
+.ui.yellow.buttons .button:hover,
+.ui.yellow.button:focus,
+.ui.yellow.buttons .button:focus {
+  background: var(--color-yellow-dark-1);
+}
+
+.ui.yellow.button:active,
+.ui.yellow.buttons .button:active {
+  background: var(--color-yellow-dark-2);
+}
+
+.ui.basic.yellow.buttons .button,
+.ui.basic.yellow.button {
+  color: var(--color-yellow);
+  border-color: var(--color-yellow);
+}
+
+.ui.basic.yellow.buttons .button:hover,
+.ui.basic.yellow.button:hover,
+.ui.basic.yellow.buttons .button:focus,
+.ui.basic.yellow.button:focus {
+  color: var(--color-yellow-dark-1);
+  border-color: var(--color-yellow-dark-1);
+}
+
+.ui.basic.yellow.buttons .button:active,
+.ui.basic.yellow.button:active {
+  color: var(--color-yellow-dark-2);
+  border-color: var(--color-yellow-dark-2);
+}
+
+/* olive */
+
+.ui.olive.labels .label,
+.ui.ui.ui.olive.label,
+.ui.olive.button,
+.ui.olive.buttons .button {
+  background: var(--color-olive);
+}
+
+.ui.olive.button:hover,
+.ui.olive.buttons .button:hover,
+.ui.olive.button:focus,
+.ui.olive.buttons .button:focus {
+  background: var(--color-olive-dark-1);
+}
+
+.ui.olive.button:active,
+.ui.olive.buttons .button:active {
+  background: var(--color-olive-dark-2);
+}
+
+.ui.basic.olive.buttons .button,
+.ui.basic.olive.button {
+  color: var(--color-olive);
+  border-color: var(--color-olive);
+}
+
+.ui.basic.olive.buttons .button:hover,
+.ui.basic.olive.button:hover,
+.ui.basic.olive.buttons .button:focus,
+.ui.basic.olive.button:focus {
+  color: var(--color-olive-dark-1);
+  border-color: var(--color-olive-dark-1);
+}
+
+.ui.basic.olive.buttons .button:active,
+.ui.basic.olive.button:active {
+  color: var(--color-olive-dark-2);
+  border-color: var(--color-olive-dark-2);
+}
+
+/* green */
+
+.ui.green.labels .label,
+.ui.ui.ui.green.label,
+.ui.green.button,
+.ui.green.buttons .button {
+  background: var(--color-green);
+}
+
+.ui.green.button:hover,
+.ui.green.buttons .button:hover,
+.ui.green.button:focus,
+.ui.green.buttons .button:focus {
+  background: var(--color-green-dark-1);
+}
+
+.ui.green.button:active,
+.ui.green.buttons .button:active {
+  background: var(--color-green-dark-2);
+}
+
+.ui.basic.green.buttons .button,
+.ui.basic.green.button {
+  color: var(--color-green);
+  border-color: var(--color-green);
+}
+
+.ui.basic.green.buttons .button:hover,
+.ui.basic.green.button:hover,
+.ui.basic.green.buttons .button:focus,
+.ui.basic.green.button:focus {
+  color: var(--color-green-dark-1);
+  border-color: var(--color-green-dark-1);
+}
+
+.ui.basic.green.buttons .button:active,
+.ui.basic.green.button:active {
+  color: var(--color-green-dark-2);
+  border-color: var(--color-green-dark-2);
+}
+
+/* teal */
+
+.ui.teal.labels .label,
+.ui.ui.ui.teal.label,
+.ui.teal.button,
+.ui.teal.buttons .button {
+  background: var(--color-teal);
+}
+
+.ui.teal.button:hover,
+.ui.teal.buttons .button:hover,
+.ui.teal.button:focus,
+.ui.teal.buttons .button:focus {
+  background: var(--color-teal-dark-1);
+}
+
+.ui.teal.button:active,
+.ui.teal.buttons .button:active {
+  background: var(--color-teal-dark-2);
+}
+
+.ui.basic.teal.buttons .button,
+.ui.basic.teal.button {
+  color: var(--color-teal);
+  border-color: var(--color-teal);
+}
+
+.ui.basic.teal.buttons .button:hover,
+.ui.basic.teal.button:hover,
+.ui.basic.teal.buttons .button:focus,
+.ui.basic.teal.button:focus {
+  color: var(--color-teal-dark-1);
+  border-color: var(--color-teal-dark-1);
+}
+
+.ui.basic.teal.buttons .button:active,
+.ui.basic.teal.button:active {
+  color: var(--color-teal-dark-2);
+  border-color: var(--color-teal-dark-2);
+}
+
+/* blue */
+
+.ui.blue.labels .label,
+.ui.ui.ui.blue.label,
+.ui.blue.button,
+.ui.blue.buttons .button {
+  background: var(--color-blue);
+}
+
+.ui.blue.button:hover,
+.ui.blue.buttons .button:hover,
+.ui.blue.button:focus,
+.ui.blue.buttons .button:focus {
+  background: var(--color-blue-dark-1);
+}
+
+.ui.blue.button:active,
+.ui.blue.buttons .button:active {
+  background: var(--color-blue-dark-2);
+}
+
+.ui.basic.blue.buttons .button,
+.ui.basic.blue.button {
+  color: var(--color-blue);
+  border-color: var(--color-blue);
+}
+
+.ui.basic.blue.buttons .button:hover,
+.ui.basic.blue.button:hover,
+.ui.basic.blue.buttons .button:focus,
+.ui.basic.blue.button:focus {
+  color: var(--color-blue-dark-1);
+  border-color: var(--color-blue-dark-1);
+}
+
+.ui.basic.blue.buttons .button:active,
+.ui.basic.blue.button:active {
+  color: var(--color-blue-dark-2);
+  border-color: var(--color-blue-dark-2);
+}
+
+/* violet */
+
+.ui.violet.labels .label,
+.ui.ui.ui.violet.label,
+.ui.violet.button,
+.ui.violet.buttons .button {
+  background: var(--color-violet);
+}
+
+.ui.violet.button:hover,
+.ui.violet.buttons .button:hover,
+.ui.violet.button:focus,
+.ui.violet.buttons .button:focus {
+  background: var(--color-violet-dark-1);
+}
+
+.ui.violet.button:active,
+.ui.violet.buttons .button:active {
+  background: var(--color-violet-dark-2);
+}
+
+.ui.basic.violet.buttons .button,
+.ui.basic.violet.button {
+  color: var(--color-violet);
+  border-color: var(--color-violet);
+}
+
+.ui.basic.violet.buttons .button:hover,
+.ui.basic.violet.button:hover,
+.ui.basic.violet.buttons .button:focus,
+.ui.basic.violet.button:focus {
+  color: var(--color-violet-dark-1);
+  border-color: var(--color-violet-dark-1);
+}
+
+.ui.basic.violet.buttons .button:active,
+.ui.basic.violet.button:active {
+  color: var(--color-violet-dark-2);
+  border-color: var(--color-violet-dark-2);
+}
+
+/* purple */
+
+.ui.purple.labels .label,
+.ui.ui.ui.purple.label,
+.ui.purple.button,
+.ui.purple.buttons .button {
+  background: var(--color-purple);
+}
+
+.ui.purple.button:hover,
+.ui.purple.buttons .button:hover,
+.ui.purple.button:focus,
+.ui.purple.buttons .button:focus {
+  background: var(--color-purple-dark-1);
+}
+
+.ui.purple.button:active,
+.ui.purple.buttons .button:active {
+  background: var(--color-purple-dark-2);
+}
+
+.ui.basic.purple.buttons .button,
+.ui.basic.purple.button {
+  color: var(--color-purple);
+  border-color: var(--color-purple);
+}
+
+.ui.basic.purple.buttons .button:hover,
+.ui.basic.purple.button:hover,
+.ui.basic.purple.buttons .button:focus,
+.ui.basic.purple.button:focus {
+  color: var(--color-purple-dark-1);
+  border-color: var(--color-purple-dark-1);
+}
+
+.ui.basic.purple.buttons .button:active,
+.ui.basic.purple.button:active {
+  color: var(--color-purple-dark-2);
+  border-color: var(--color-purple-dark-2);
+}
+
+/* pink */
+
+.ui.pink.labels .label,
+.ui.ui.ui.pink.label,
+.ui.pink.button,
+.ui.pink.buttons .button {
+  background: var(--color-pink);
+}
+
+.ui.pink.button:hover,
+.ui.pink.buttons .button:hover,
+.ui.pink.button:focus,
+.ui.pink.buttons .button:focus {
+  background: var(--color-pink-dark-1);
+}
+
+.ui.pink.button:active,
+.ui.pink.buttons .button:active {
+  background: var(--color-pink-dark-2);
+}
+
+.ui.basic.pink.buttons .button,
+.ui.basic.pink.button {
+  color: var(--color-pink);
+  border-color: var(--color-pink);
+}
+
+.ui.basic.pink.buttons .button:hover,
+.ui.basic.pink.button:hover,
+.ui.basic.pink.buttons .button:focus,
+.ui.basic.pink.button:focus {
+  color: var(--color-pink-dark-1);
+  border-color: var(--color-pink-dark-1);
+}
+
+.ui.basic.pink.buttons .button:active,
+.ui.basic.pink.button:active {
+  color: var(--color-pink-dark-2);
+  border-color: var(--color-pink-dark-2);
+}
+
+/* brown */
+
+.ui.brown.labels .label,
+.ui.ui.ui.brown.label,
+.ui.brown.button,
+.ui.brown.buttons .button {
+  background: var(--color-brown);
+}
+
+.ui.brown.button:hover,
+.ui.brown.buttons .button:hover,
+.ui.brown.button:focus,
+.ui.brown.buttons .button:focus {
+  background: var(--color-brown-dark-1);
+}
+
+.ui.brown.button:active,
+.ui.brown.buttons .button:active {
+  background: var(--color-brown-dark-2);
+}
+
+.ui.basic.brown.buttons .button,
+.ui.basic.brown.button {
+  color: var(--color-brown);
+  border-color: var(--color-brown);
+}
+
+.ui.basic.brown.buttons .button:hover,
+.ui.basic.brown.button:hover,
+.ui.basic.brown.buttons .button:focus,
+.ui.basic.brown.button:focus {
+  color: var(--color-brown-dark-1);
+  border-color: var(--color-brown-dark-1);
+}
+
+.ui.basic.brown.buttons .button:active,
+.ui.basic.brown.button:active {
+  color: var(--color-brown-dark-2);
+  border-color: var(--color-brown-dark-2);
+}
+
+/* grey */
+
+.ui.grey.labels .label,
+.ui.ui.ui.grey.label,
+.ui.grey.button,
+.ui.grey.buttons .button {
+  background: var(--color-grey);
+}
+
+.ui.grey.button:hover,
+.ui.grey.buttons .button:hover,
+.ui.grey.button:focus,
+.ui.grey.buttons .button:focus {
+  background: var(--color-grey-dark-1);
+}
+
+.ui.grey.button:active,
+.ui.grey.buttons .button:active {
+  background: var(--color-grey-dark-2);
+}
+
+.ui.basic.grey.buttons .button,
+.ui.basic.grey.button {
+  color: var(--color-grey);
+  border-color: var(--color-grey);
+}
+
+.ui.basic.grey.buttons .button:hover,
+.ui.basic.grey.button:hover,
+.ui.basic.grey.buttons .button:focus,
+.ui.basic.grey.button:focus {
+  color: var(--color-grey-dark-1);
+  border-color: var(--color-grey-dark-1);
+}
+
+.ui.basic.grey.buttons .button:active,
+.ui.basic.grey.button:active {
+  color: var(--color-grey-dark-2);
+  border-color: var(--color-grey-dark-2);
+}
+
+/* black */
+
+.ui.black.labels .label,
+.ui.ui.ui.black.label,
+.ui.black.button,
+.ui.black.buttons .button {
+  background: var(--color-black);
+}
+
+.ui.black.button:hover,
+.ui.black.buttons .button:hover,
+.ui.black.button:focus,
+.ui.black.buttons .button:focus {
+  background: var(--color-black-dark-1);
+}
+
+.ui.black.button:active,
+.ui.black.buttons .button:active {
+  background: var(--color-black-dark-2);
+}
+
+.ui.basic.black.buttons .button,
+.ui.basic.black.button {
+  color: var(--color-black);
+  border-color: var(--color-black);
+}
+
+.ui.basic.black.buttons .button:hover,
+.ui.basic.black.button:hover,
+.ui.basic.black.buttons .button:focus,
+.ui.basic.black.button:focus {
+  color: var(--color-black-dark-1);
+  border-color: var(--color-black-dark-1);
+}
+
+.ui.basic.black.buttons .button:active,
+.ui.basic.black.button:active {
+  color: var(--color-black-dark-2);
+  border-color: var(--color-black-dark-2);
+}
+
+.ui.negative.buttons .button,
+.ui.negative.button {
+  background: var(--color-red);
+}
+
+.ui.negative.buttons .button:hover,
+.ui.negative.button:hover,
+.ui.negative.buttons .button:focus,
+.ui.negative.button:focus {
+  background: var(--color-red-dark-1);
+}
+
+.ui.negative.buttons .button:active,
+.ui.negative.button:active {
+  background: var(--color-red-dark-2);
+}
+
+/* negative */
+
+.ui.basic.negative.buttons .button,
+.ui.basic.negative.button {
+  color: var(--color-red);
+  border-color: var(--color-red);
+}
+
+.ui.basic.negative.buttons .button:hover,
+.ui.basic.negative.button:hover,
+.ui.basic.negative.buttons .button:focus,
+.ui.basic.negative.button:focus {
+  color: var(--color-red-dark-1);
+  border-color: var(--color-red-dark-1);
+}
+
+.ui.basic.negative.buttons .button:active,
+.ui.basic.negative.button:active {
+  color: var(--color-red-dark-2);
+  border-color: var(--color-red-dark-2);
+}
+
+/* positive */
+
+.ui.positive.buttons .button,
+.ui.positive.button {
+  background: var(--color-green);
+}
+
+.ui.positive.buttons .button:hover,
+.ui.positive.button:hover,
+.ui.positive.buttons .button:focus,
+.ui.positive.button:focus {
+  background: var(--color-green-dark-1);
+}
+
+.ui.positive.buttons .button:active,
+.ui.positive.button:active {
+  background: var(--color-green-dark-2);
+}
+
+.ui.basic.positive.buttons .button,
+.ui.basic.positive.button {
+  color: var(--color-green);
+  border-color: var(--color-green);
+}
+
+.ui.basic.positive.buttons .button:hover,
+.ui.basic.positive.button:hover,
+.ui.basic.positive.buttons .button:focus,
+.ui.basic.positive.button:focus {
+  color: var(--color-green-dark-1);
+  border-color: var(--color-green-dark-1);
+}
+
+.ui.basic.positive.buttons .button:active,
+.ui.basic.positive.button:active {
+  color: var(--color-green-dark-2);
+  border-color: var(--color-green-dark-2);
+}

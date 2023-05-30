@@ -2,14 +2,16 @@
 date: "2023-02-14T00:00:00+00:00"
 title: "Guidelines for Refactoring"
 slug: "guidelines-refactoring"
-weight: 20
+weight: 40
 toc: false
 draft: false
+aliases:
+  - /en-us/guidelines-refactoring
 menu:
   sidebar:
     parent: "contributing"
     name: "Guidelines for Refactoring"
-    weight: 20
+    weight: 40
     identifier: "guidelines-refactoring"
 ---
 

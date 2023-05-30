@@ -21,7 +21,7 @@
 						<a class="ui primary sha label toggle button show-panel" data-panel="#info-{{.ID}}">{{.UUID}}</a>
 						<div class="ui right">
 							<span class="text grey time">
-								{{.DeliveredString}}
+								{{TimeSince .Delivered.AsTime $.locale}}
 							</span>
 						</div>
 					</div>
@@ -37,7 +37,7 @@
 										<span class="ui red label">{{.ResponseInfo.Status}}</span>
 									{{end}}
 								{{else}}
-									<span class="ui label">N/A</span>
+									<span class="ui label">-</span>
 								{{end}}
 							</a>
 							{{if or $.Permission.IsAdmin $.IsOrganizationOwner $.PageIsAdmin $.PageIsUserSettings}}
@@ -59,7 +59,7 @@
 								<h5>{{$.locale.Tr "repo.settings.webhook.payload"}}</h5>
 								<pre class="webhook-info"><code class="json">{{.PayloadContent}}</code></pre>
 							{{else}}
-								N/A
+								-
 							{{end}}
 						</div>
 						<div class="ui bottom attached tab segment" data-tab="response-{{.ID}}">
@@ -70,7 +70,7 @@
 								<h5>{{$.locale.Tr "repo.settings.webhook.body"}}</h5>
 								<pre class="webhook-info"><code>{{.ResponseInfo.Body}}</code></pre>
 							{{else}}
-								N/A
+								-
 							{{end}}
 						</div>
 					</div>
