@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
@@ -74,7 +75,11 @@ func SetDefaultBranchPost(ctx *context.Context) {
 				}
 			}
 			if err := repo_model.UpdateDefaultBranch(repo); err != nil {
-				ctx.ServerError("SetDefaultBranch", err)
+				ctx.ServerError("UpdateDefaultBranch", err)
+				return
+			}
+			if err := repo_module.UpdateRepoLicenses(ctx, repo, ctx.Repo.GitRepo); err != nil {
+				ctx.ServerError("UpdateRepoLicenses", err)
 				return
 			}
 		}
