@@ -9,6 +9,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 )
 
 // IssuePinOrUnpin pin or unpin a Issue
@@ -19,12 +20,14 @@ func IssuePinOrUnpin(ctx *context.Context) {
 	err := issue.LoadRepo(ctx)
 	if err != nil {
 		ctx.Status(http.StatusInternalServerError)
+		log.Error(err.Error())
 		return
 	}
 
 	err = issue.PinOrUnpin(ctx, ctx.Doer)
 	if err != nil {
 		ctx.Status(http.StatusInternalServerError)
+		log.Error(err.Error())
 		return
 	}
 
@@ -33,9 +36,10 @@ func IssuePinOrUnpin(ctx *context.Context) {
 
 // IssueUnpin unpins a Issue
 func IssueUnpin(ctx *context.Context) {
-	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
+	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
-		ctx.Status(http.StatusNoContent)
+		ctx.Status(http.StatusInternalServerError)
+		log.Error(err.Error())
 		return
 	}
 
@@ -43,12 +47,15 @@ func IssueUnpin(ctx *context.Context) {
 	err = issue.LoadRepo(ctx)
 	if err != nil {
 		ctx.Status(http.StatusInternalServerError)
+		log.Error(err.Error())
 		return
 	}
 
 	err = issue.Unpin(ctx, ctx.Doer)
 	if err != nil {
 		ctx.Status(http.StatusInternalServerError)
+		log.Error(err.Error())
+		return
 	}
 
 	ctx.Status(http.StatusNoContent)
@@ -69,18 +76,21 @@ func IssuePinMove(ctx *context.Context) {
 	form := &movePinIssueForm{}
 	if err := json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
 		ctx.Status(http.StatusInternalServerError)
+		log.Error(err.Error())
 		return
 	}
 
 	issue, err := issues_model.GetIssueByID(ctx, form.ID)
 	if err != nil {
 		ctx.Status(http.StatusInternalServerError)
+		log.Error(err.Error())
 		return
 	}
 
 	err = issue.MovePin(ctx, form.Position)
 	if err != nil {
 		ctx.Status(http.StatusInternalServerError)
+		log.Error(err.Error())
 		return
 	}
 

@@ -301,4 +301,4 @@ You can try it out using [the online demo](https://try.gitea.io/).
 
 ## Integrated support
 
- Please visit [AWESOME GITEA] (https://gitea.com/gitea/awesome-gitea/) to get more third-party integrated support
+ Please visit [Awesome Gitea](https://gitea.com/gitea/awesome-gitea/) to get more third-party integrated support
