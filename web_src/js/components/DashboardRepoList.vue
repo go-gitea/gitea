@@ -464,7 +464,7 @@ const sfc = {
           }
           break;
       }
-      if (this.activeIndex === -1 || this.activeIndex > this.repoTypeCount - 1) {
+      if (this.activeIndex === -1 || (this.repoTypeCount > 0 && this.activeIndex > this.repoTypeCount - 1)) {
         this.activeIndex = 0;
       }
     }
