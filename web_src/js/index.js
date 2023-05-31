@@ -11,7 +11,6 @@ import {initHeatmap} from './features/heatmap.js';
 import {initImageDiff} from './features/imagediff.js';
 import {initRepoMigration} from './features/repo-migration.js';
 import {initRepoProject} from './features/repo-projects.js';
-import {initServiceWorker} from './features/serviceworker.js';
 import {initTableSort} from './features/tablesort.js';
 import {initAdminUserListSearchForm} from './features/admin/users.js';
 import {initAdminConfigs} from './features/admin/config.js';
@@ -116,7 +115,6 @@ onDomReady(() => {
   initImageDiff();
   initMarkupAnchors();
   initMarkupContent();
-  initServiceWorker();
   initSshKeyFormParser();
   initStopwatch();
   initTableSort();
