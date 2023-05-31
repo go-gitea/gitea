@@ -61,18 +61,11 @@
 				{{range $key := .OrderedOAuth2Names}}
 					{{$provider := index $.OAuth2Providers $key}}
 					<a class="{{$provider.Name}} ui compact button silenced gt-df gt-ac gt-jc oauth-login-link" href="{{AppSubUrl}}/user/oauth2/{{$key}}">
-						{{$svgName := printf "gitea-%s" $provider.Name}}
-						{{if eq $provider.Name "github"}}
-							{{svg "octicon-mark-github" 16 "gt-mr-3"}}
-							{{$provider.DisplayName}}
-						{{else if eq $provider.Name "gplus"}}
-							{{svg "gitea-google" 16 "gt-mr-3"}}
-							{{$provider.DisplayName}}
-						{{else if eq $provider.Name "openidConnect"}}
-							{{svg "gitea-openid" 16 "gt-mr-3"}}
+						{{if eq $provider.Name "openidConnect"}}
+							{{svg $provider.SvgName 16 "gt-mr-3"}}
 							{{$provider.DisplayName}} ({{$key}})
 						{{else}}
-							{{svg $svgName 16 "gt-mr-3"}}
+							{{svg $provider.SvgName 16 "gt-mr-3"}}
 							{{$provider.DisplayName}}
 						{{end}}
 					</a>
