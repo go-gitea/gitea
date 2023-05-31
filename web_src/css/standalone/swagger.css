@@ -1,12 +1,7 @@
-html {
-  box-sizing: border-box;
-  overflow-y: scroll;
-}
-
 *,
 *::before,
 *::after {
-  box-sizing: inherit;
+  box-sizing: border-box;
 }
 
 body {
@@ -24,8 +19,24 @@ body {
   align-items: center;
 }
 
+.swagger-back-link:hover {
+  text-decoration: underline;
+}
+
 .swagger-back-link svg {
   color: inherit;
   fill: currentcolor;
   margin-right: 0.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #1e1e1e;
+  }
+  .swagger-ui, .swagger-back-link {
+      filter: invert(88%) hue-rotate(180deg);
+  }
+  .swagger-ui .microlight {
+      filter: invert(100%) hue-rotate(180deg);
+  }
 }

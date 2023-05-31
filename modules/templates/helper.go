@@ -118,9 +118,6 @@ func NewFuncMap() template.FuncMap {
 		"CustomEmojis": func() map[string]string {
 			return setting.UI.CustomEmojisMap
 		},
-		"ThemeColorMetaTag": func() string {
-			return setting.UI.ThemeColorMetaTag
-		},
 		"MetaAuthor": func() string {
 			return setting.UI.Meta.Author
 		},
@@ -129,9 +126,6 @@ func NewFuncMap() template.FuncMap {
 		},
 		"MetaKeywords": func() string {
 			return setting.UI.Meta.Keywords
-		},
-		"UseServiceWorker": func() bool {
-			return setting.UI.UseServiceWorker
 		},
 		"EnableTimetracking": func() bool {
 			return setting.Service.EnableTimetracking

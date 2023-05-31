@@ -11,7 +11,7 @@
 	<title>Internal Server Error - {{AppName}}</title>
 	<link rel="icon" href="{{AssetUrlPrefix}}/img/favicon.svg" type="image/svg+xml">
 	<link rel="alternate icon" href="{{AssetUrlPrefix}}/img/favicon.png" type="image/png">
-	{{template "base/stylesheets" .}}
+	{{template "base/head_style" .}}
 </head>
 <body>
 	<div class="full height">
@@ -28,7 +28,7 @@
 		<div role="main" class="page-content status-page-500">
 			<p class="gt-mt-5 center"><img src="{{AssetUrlPrefix}}/img/500.png" alt="Internal Server Error"></p>
 			<div class="ui divider"></div>
-			<div class="ui container gt-mt-5">
+			<div class="ui container gt-my-5">
 				{{if .ErrorMsg}}
 					<p>{{.locale.Tr "error.occurred"}}:</p>
 					<pre class="gt-whitespace-pre-wrap gt-break-all">{{.ErrorMsg}}</pre>

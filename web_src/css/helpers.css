@@ -86,11 +86,11 @@ Gitea's private styles use `g-` prefix.
 .gt-float-left { float: left !important; }
 .gt-float-right { float: right !important; }
 
-.gt-font-light { font-weight: var(--font-weight-light) !important };
-.gt-font-normal { font-weight: var(--font-weight-normal) !important };
-.gt-font-medium { font-weight: var(--font-weight-medium) !important };
-.gt-font-semibold { font-weight: var(--font-weight-semibold) !important };
-.gt-font-bold { font-weight: var(--font-weight-bold) !important };
+.gt-font-light { font-weight: var(--font-weight-light) !important; }
+.gt-font-normal { font-weight: var(--font-weight-normal) !important; }
+.gt-font-medium { font-weight: var(--font-weight-medium) !important; }
+.gt-font-semibold { font-weight: var(--font-weight-semibold) !important; }
+.gt-font-bold { font-weight: var(--font-weight-bold) !important; }
 
 .gt-rounded { border-radius: var(--border-radius) !important; }
 .gt-rounded-top { border-radius: var(--border-radius) var(--border-radius) 0 0 !important; }

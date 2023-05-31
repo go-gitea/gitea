@@ -492,6 +492,7 @@ func registerRoutes(m *web.Route) {
 
 		m.Group("/actions", func() {
 			m.Get("", user_setting.RedirectToDefaultSetting)
+			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
 		}, actions.MustEnableActions)
 
@@ -823,13 +824,13 @@ func registerRoutes(m *web.Route) {
 				m.Get("/{id}", org.ViewProject)
 			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead))
 			m.Group("", func() { //nolint:dupl
-				m.Get("/new", org.NewProject)
+				m.Get("/new", org.RenderNewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
 				m.Group("/{id}", func() {
 					m.Post("", web.Bind(forms.EditProjectBoardForm{}), org.AddBoardToProjectPost)
 					m.Post("/delete", org.DeleteProject)
 
-					m.Get("/edit", org.EditProject)
+					m.Get("/edit", org.RenderEditProject)
 					m.Post("/edit", web.Bind(forms.CreateProjectForm{}), org.EditProjectPost)
 					m.Post("/{action:open|close}", org.ChangeProjectStatus)
 
@@ -1025,8 +1026,8 @@ func registerRoutes(m *web.Route) {
 			m.Post("/resolve_conversation", reqRepoIssuesOrPullsReader, repo.UpdateResolveConversation)
 			m.Post("/attachments", repo.UploadIssueAttachment)
 			m.Post("/attachments/remove", repo.DeleteAttachment)
-			m.Delete("/unpin/{id}", reqRepoAdmin, repo.IssueUnpin)
-			m.Post("/pin_move", reqRepoAdmin, repo.IssuePinMove)
+			m.Delete("/unpin/{index}", reqRepoAdmin, repo.IssueUnpin)
+			m.Post("/move_pin", reqRepoAdmin, repo.IssuePinMove)
 		}, context.RepoMustNotBeArchived())
 		m.Group("/comments/{id}", func() {
 			m.Post("", repo.UpdateCommentContent)
@@ -1158,13 +1159,13 @@ func registerRoutes(m *web.Route) {
 			m.Get("", repo.Projects)
 			m.Get("/{id}", repo.ViewProject)
 			m.Group("", func() { //nolint:dupl
-				m.Get("/new", repo.NewProject)
+				m.Get("/new", repo.RenderNewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), repo.NewProjectPost)
 				m.Group("/{id}", func() {
 					m.Post("", web.Bind(forms.EditProjectBoardForm{}), repo.AddBoardToProjectPost)
 					m.Post("/delete", repo.DeleteProject)
 
-					m.Get("/edit", repo.EditProject)
+					m.Get("/edit", repo.RenderEditProject)
 					m.Post("/edit", web.Bind(forms.CreateProjectForm{}), repo.EditProjectPost)
 					m.Post("/{action:open|close}", repo.ChangeProjectStatus)
 
