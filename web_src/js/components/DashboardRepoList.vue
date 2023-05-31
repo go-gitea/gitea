@@ -519,12 +519,7 @@ ul li:not(:last-child) {
   margin-right: 3px;
 }
 
-.feeds .list ul li.active,
-.feeds .list ul li.active .commit-status {
-  background: var(--color-active);
-}
-
-.feeds .list ul li.active .octicon-check {
-  background: transparent;
+.repo-owner-name-list li.active {
+  background: var(--color-hover);
 }
 </style>
