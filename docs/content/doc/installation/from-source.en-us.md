@@ -35,8 +35,7 @@ executable path, you will have to manage this yourself.
 
 **Note 2**: Go version {{< min-go-version >}} or higher is required. However, it is recommended to
 obtain the same version as our continuous integration, see the advice given in
-<a href='{{< relref "doc/development/hacking-on-gitea.en-us.md" >}}'>Hacking on
-Gitea</a>
+[Hacking on Gitea]({{< relref "doc/development/hacking-on-gitea.en-us.md" >}})
 
 **Table of Contents**
 

@@ -492,6 +492,7 @@ func registerRoutes(m *web.Route) {
 
 		m.Group("/actions", func() {
 			m.Get("", user_setting.RedirectToDefaultSetting)
+			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
 		}, actions.MustEnableActions)
 
@@ -1025,8 +1026,8 @@ func registerRoutes(m *web.Route) {
 			m.Post("/resolve_conversation", reqRepoIssuesOrPullsReader, repo.UpdateResolveConversation)
 			m.Post("/attachments", repo.UploadIssueAttachment)
 			m.Post("/attachments/remove", repo.DeleteAttachment)
-			m.Delete("/unpin/{id}", reqRepoAdmin, repo.IssueUnpin)
-			m.Post("/pin_move", reqRepoAdmin, repo.IssuePinMove)
+			m.Delete("/unpin/{index}", reqRepoAdmin, repo.IssueUnpin)
+			m.Post("/move_pin", reqRepoAdmin, repo.IssuePinMove)
 		}, context.RepoMustNotBeArchived())
 		m.Group("/comments/{id}", func() {
 			m.Post("", repo.UpdateCommentContent)

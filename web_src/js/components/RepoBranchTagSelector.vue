@@ -4,7 +4,7 @@
       <span class="text gt-df gt-ac gt-mr-2">
         <template v-if="release">{{ textReleaseCompare }}</template>
         <template v-else>
-          <svg-icon v-if="isViewTag" name="octicon-tag" />
+          <svg-icon v-if="isViewTag" name="octicon-tag"/>
           <svg-icon v-else name="octicon-git-branch"/>
           <strong ref="dropdownRefName" class="gt-ml-3">{{ refNameText }}</strong>
         </template>
