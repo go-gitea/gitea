@@ -463,6 +463,11 @@ const sfc = {
             this.changePage(this.page - 1);
           }
           break;
+        default:
+          if (this.activeIndex === -1) {
+            this.activeIndex = 0;
+          }
+          break;
       }
     }
   },
