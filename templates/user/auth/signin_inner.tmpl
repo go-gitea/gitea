@@ -55,26 +55,30 @@
 	{{if and .OrderedOAuth2Names .OAuth2Providers}}
 	<hr class="ui divider"/>
 	<div id="oauth2-login-navigator">
-		<div id="oauth2-login-navigator-inner" class="gt-df gt-jc">
-			<span class="gt-self-center gt-mr-3">{{.locale.Tr "sign_in_with"}}</span>
-			<div class="gt-df gt-fw gt-gap-4">
+		<div id="oauth2-login-navigator-inner" class="gt-df gt-fc gt-jc">
+			<span class="gt-self-center gt-mb-3 gt-mr-3">{{.locale.Tr "sign_in_with"}}</span>
+			<div class="gt-df gt-fc gt-fw gt-ac gt-gap-4">
 				{{range $key := .OrderedOAuth2Names}}
 					{{$provider := index $.OAuth2Providers $key}}
-					<a class="{{$provider.Name}} silenced oauth-login-link" href="{{AppSubUrl}}/user/oauth2/{{$key}}" data-tooltip-content="{{$provider.DisplayName}}{{if eq $provider.Name "openidConnect"}} ({{$key}}){{end}}">
+					<a class="{{$provider.Name}} ui compact button silenced gt-df gt-ac gt-jc oauth-login-link" href="{{AppSubUrl}}/user/oauth2/{{$key}}">
 						{{if eq $provider.Name "github"}}
-							{{svg "octicon-mark-github" 40}}
+							{{svg "octicon-mark-github" 16 "gt-mr-3"}}
+							{{$provider.Name}}
 						{{else if eq $provider.Name "gitlab"}}
-							{{svg "gitea-gitlab" 40}}
+							{{svg "gitea-gitlab" 16 "gt-mr-3"}}
+							{{$provider.Name}}
 						{{else if eq $provider.Name "openidConnect"}}
-							{{svg "gitea-openid" 40}}
+							{{svg "gitea-openid" 16 "gt-mr-3"}}
+							{{$provider.Name}}
 						{{else}}
 							<img
-								class="gt-object-contain"
-								width="40"
-								height="40"
+								class="gt-object-contain gt-mr-3"
+								width="16"
+								height="16"
 								alt="{{$provider.DisplayName}}{{if eq $provider.Name "openidConnect"}} ({{$key}}){{end}}"
 								src="{{AppSubUrl}}{{$provider.Image}}"
 							>
+							{{$provider.DisplayName}}{{if eq $provider.Name "openidConnect"}} ({{$key}}){{end}}
 						{{end}}
 					</a>
 				{{end}}
