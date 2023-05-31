@@ -60,14 +60,38 @@
 
       <div class="action-view-right">
         <div class="job-info-header">
-          <h3 class="job-info-header-title">
-            {{ currentJob.title }}
-          </h3>
-          <p class="job-info-header-detail">
-            {{ currentJob.detail }}
-          </p>
+          <div class="job-info-header-left">
+            <h3 class="job-info-header-title">
+              {{ currentJob.title }}
+            </h3>
+            <p class="job-info-header-detail">
+              {{ currentJob.detail }}
+            </p>
+          </div>
+          <div class="job-info-header-right">
+            <div class="ui top right pointing dropdown custom jump item" @click.stop="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
+              <button class="ui button button-ghost gt-p-3">
+                <SvgIcon name="octicon-gear" :size="18"/>
+              </button>
+              <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
+                <a class="item" @click="toggleTimeDisplay('seconds')">
+                  <i class="icon"><SvgIcon v-show="timeVisible['log-time-seconds']" name="octicon-check"/></i>
+                  {{ locale.showLogSeconds }}
+                </a>
+                <a class="item" @click="toggleTimeDisplay('stamp')">
+                  <i class="icon"><SvgIcon v-show="timeVisible['log-time-stamp']" name="octicon-check"/></i>
+                  {{ locale.showTimeStamps }}
+                </a>
+                <div class="divider"/>
+                <a class="item" @click="toggleFullScreen()">
+                  <i class="icon"><SvgIcon v-show="isFullScreen" name="octicon-check"/></i>
+                  {{ locale.showFullScreen }}
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="job-step-container">
+        <div class="job-step-container" ref="steps">
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
             <div class="job-step-summary" @click.stop="toggleStepLogs(i)" :class="currentJobStepsStates[i].expanded ? 'selected' : ''">
               <!-- If the job is done and the job step log is loaded for the first time, show the loading icon
@@ -81,7 +105,8 @@
               <span class="step-summary-duration">{{ jobStep.duration }}</span>
             </div>
 
-            <!-- the log elements could be a lot, do not use v-if to destroy/reconstruct the DOM -->
+            <!-- the log elements could be a lot, do not use v-if to destroy/reconstruct the DOM,
+            use native DOM elements for "log line" to improve performance, Vue is not suitable for managing so many reactive elements. -->
             <div class="job-step-logs" ref="logs" v-show="currentJobStepsStates[i].expanded"/>
           </div>
         </div>
@@ -95,6 +120,8 @@ import {SvgIcon} from '../svg.js';
 import ActionRunStatus from './ActionRunStatus.vue';
 import {createApp} from 'vue';
 import AnsiToHTML from 'ansi-to-html';
+import {toggleElem} from '../utils/dom.js';
+import {getCurrentLocale} from '../utils.js';
 
 const {csrfToken} = window.config;
 
@@ -121,6 +148,12 @@ const sfc = {
       currentJobStepsStates: [],
       artifacts: [],
       onHoverRerunIndex: -1,
+      menuVisible: false,
+      isFullScreen: false,
+      timeVisible: {
+        'log-time-stamp': false,
+        'log-time-seconds': false,
+      },
 
       // provided by backend
       run: {
@@ -173,6 +206,11 @@ const sfc = {
     // load job data and then auto-reload periodically
     this.loadJob();
     this.intervalID = setInterval(this.loadJob, 1000);
+    document.body.addEventListener('click', this.closeDropdown);
+  },
+
+  beforeUnmount() {
+    document.body.removeEventListener('click', this.closeDropdown);
   },
 
   unmounted() {
@@ -240,7 +278,7 @@ const sfc = {
       this.fetchPost(`${this.run.link}/approve`);
     },
 
-    createLogLine(line) {
+    createLogLine(line, startTime) {
       const div = document.createElement('div');
       div.classList.add('job-log-line');
       div._jobLogTime = line.timestamp;
@@ -250,21 +288,35 @@ const sfc = {
       lineNumber.textContent = line.index;
       div.append(lineNumber);
 
-      // TODO: Support displaying time optionally
+      // for "Show timestamps"
+      const logTimeStamp = document.createElement('span');
+      logTimeStamp.className = 'log-time-stamp';
+      const date = new Date(parseFloat(line.timestamp * 1000));
+      const timeStamp = date.toLocaleString(getCurrentLocale(), {timeZoneName: 'short'});
+      logTimeStamp.textContent = timeStamp;
+      toggleElem(logTimeStamp, this.timeVisible['log-time-stamp']);
+      // for "Show seconds"
+      const logTimeSeconds = document.createElement('span');
+      logTimeSeconds.className = 'log-time-seconds';
+      const seconds = Math.floor(parseFloat(line.timestamp) - parseFloat(startTime));
+      logTimeSeconds.textContent = `${seconds}s`;
+      toggleElem(logTimeSeconds, this.timeVisible['log-time-seconds']);
 
-      const logMessage = document.createElement('div');
+      const logMessage = document.createElement('span');
       logMessage.className = 'log-msg';
       logMessage.innerHTML = ansiLogToHTML(line.message);
+      div.append(logTimeStamp);
       div.append(logMessage);
+      div.append(logTimeSeconds);
 
       return div;
     },
 
-    appendLogs(stepIndex, logLines) {
+    appendLogs(stepIndex, logLines, startTime) {
       for (const line of logLines) {
         // TODO: group support: ##[group]GroupTitle , ##[endgroup]
         const el = this.getLogsContainer(stepIndex);
-        el.append(this.createLogLine(line));
+        el.append(this.createLogLine(line, startTime));
       }
     },
 
@@ -309,7 +361,7 @@ const sfc = {
         for (const logs of response.logs.stepsLog) {
           // save the cursor, it will be passed to backend next time
           this.currentJobStepsStates[logs.step].cursor = logs.cursor;
-          this.appendLogs(logs.step, logs.lines);
+          this.appendLogs(logs.step, logs.lines, logs.started);
         }
 
         if (this.run.done && this.intervalID) {
@@ -335,6 +387,46 @@ const sfc = {
 
     isDone(status) {
       return ['success', 'skipped', 'failure', 'cancelled'].includes(status);
+    },
+
+    closeDropdown() {
+      if (this.menuVisible) this.menuVisible = false;
+    },
+
+    // show at most one of log seconds and timestamp (can be both invisible)
+    toggleTimeDisplay(type) {
+      const toToggleTypes = [];
+      const other = type === 'seconds' ? 'stamp' : 'seconds';
+      this.timeVisible[`log-time-${type}`] = !this.timeVisible[`log-time-${type}`];
+      toToggleTypes.push(type);
+      if (this.timeVisible[`log-time-${type}`] && this.timeVisible[`log-time-${other}`]) {
+        this.timeVisible[`log-time-${other}`] = false;
+        toToggleTypes.push(other);
+      }
+      for (const toToggle of toToggleTypes) {
+        for (const el of this.$refs.steps.querySelectorAll(`.log-time-${toToggle}`)) {
+          toggleElem(el, this.timeVisible[`log-time-${toToggle}`]);
+        }
+      }
+    },
+
+    toggleFullScreen() {
+      this.isFullScreen = !this.isFullScreen;
+      const fullScreenEl = document.querySelector('.action-view-right');
+      const outerEl = document.querySelector('.full.height');
+      const actionBodyEl = document.querySelector('.action-view-body');
+      const headerEl = document.querySelector('.ui.main.menu');
+      const contentEl = document.querySelector('.page-content.repository');
+      const footerEl = document.querySelector('.page-footer');
+      toggleElem(headerEl, !this.isFullScreen);
+      toggleElem(contentEl, !this.isFullScreen);
+      toggleElem(footerEl, !this.isFullScreen);
+      // move .action-view-right to new parent
+      if (this.isFullScreen) {
+        outerEl.append(fullScreenEl);
+      } else {
+        actionBodyEl.append(fullScreenEl);
+      }
     }
   },
 };
@@ -360,6 +452,9 @@ export function initRepositoryActionView() {
       rerun: el.getAttribute('data-locale-rerun'),
       artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
       rerun_all: el.getAttribute('data-locale-rerun-all'),
+      showTimeStamps: el.getAttribute('data-locale-show-timestamps'),
+      showLogSeconds: el.getAttribute('data-locale-show-log-seconds'),
+      showFullScreen: el.getAttribute('data-locale-show-full-screen'),
       status: {
         unknown: el.getAttribute('data-locale-status-unknown'),
         waiting: el.getAttribute('data-locale-status-waiting'),
@@ -369,7 +464,7 @@ export function initRepositoryActionView() {
         cancelled: el.getAttribute('data-locale-status-cancelled'),
         skipped: el.getAttribute('data-locale-status-skipped'),
         blocked: el.getAttribute('data-locale-status-blocked'),
-      }
+      },
     }
   });
   view.mount(el);
@@ -567,21 +662,95 @@ export function ansiLogToHTML(line) {
 
 .action-view-right {
   flex: 1;
-  color: var(--color-secondary-dark-3);
+  color: var(--color-console-fg-subtle);
   max-height: 100%;
   width: 70%;
   display: flex;
   flex-direction: column;
 }
 
+/* begin fomantic button overrides */
+
+.action-view-right .ui.button,
+.action-view-right .ui.button:focus {
+  background: transparent;
+  color: var(--color-console-fg-subtle);
+}
+
+.action-view-right .ui.button:hover {
+  background: var(--color-console-hover-bg);
+  color: var(--color-console-fg);
+}
+
+.action-view-right .ui.button:active {
+  background: var(--color-console-active-bg);
+  color: var(--color-console-fg);
+}
+
+/* end fomantic button overrides */
+
+/* begin fomantic dropdown menu overrides */
+
+.action-view-right .ui.dropdown .menu {
+  background: var(--color-console-menu-bg);
+  border-color: var(--color-console-menu-border);
+}
+
+.action-view-right .ui.dropdown .menu > .item {
+  color: var(--color-console-fg);
+}
+
+.action-view-right .ui.dropdown .menu > .item:hover {
+  color: var(--color-console-fg);
+  background: var(--color-console-hover-bg);
+}
+
+.action-view-right .ui.dropdown .menu > .item:active {
+  color: var(--color-console-fg);
+  background: var(--color-console-active-bg);
+}
+
+.action-view-right .ui.dropdown .menu > .divider {
+  border-top-color: var(--color-console-menu-border);
+}
+
+.action-view-right .ui.pointing.dropdown > .menu:not(.hidden)::after {
+  background: var(--color-console-menu-bg);
+  box-shadow: -1px -1px 0 0 var(--color-console-menu-border);
+}
+
+/* end fomantic dropdown menu overrides */
+
+/* selectors here are intentionally exact to only match fullscreen */
+
+.full.height > .action-view-right {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border-radius: 0;
+}
+
+.full.height > .action-view-right > .job-info-header {
+  border-radius: 0;
+}
+
+.full.height > .action-view-right > .job-step-container {
+  height: calc(100% - 60px);
+  border-radius: 0;
+}
+
 .job-info-header {
-  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 12px;
   border-bottom: 1px solid var(--color-console-border);
   background-color: var(--color-console-bg);
   position: sticky;
   top: 0;
   border-radius: var(--border-radius) var(--border-radius) 0 0;
   height: 60px;
+  z-index: 1;
 }
 
 .job-info-header .job-info-header-title {
@@ -591,7 +760,7 @@ export function ansiLogToHTML(line) {
 }
 
 .job-info-header .job-info-header-detail {
-  color: var(--color-secondary-dark-3);
+  color: var(--color-console-fg-subtle);
   font-size: 12px;
 }
 
@@ -676,14 +845,20 @@ export function ansiLogToHTML(line) {
   background-color: var(--color-console-hover-bg);
 }
 
-.job-step-section .job-step-logs .job-log-line .line-num {
+/* class names 'log-time-seconds' and 'log-time-stamp' are used in the method toggleTimeDisplay */
+.job-log-line .line-num, .log-time-seconds {
   width: 48px;
   color: var(--color-grey-light);
   text-align: right;
   user-select: none;
 }
 
-.job-step-section .job-step-logs .job-log-line .log-time {
+.log-time-seconds {
+  padding-right: 2px;
+}
+
+.job-log-line .log-time,
+.log-time-stamp {
   color: var(--color-grey-light);
   margin-left: 10px;
   white-space: nowrap;
