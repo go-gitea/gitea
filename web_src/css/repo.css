@@ -1202,6 +1202,10 @@
   color: var(--color-red);
 }
 
+.repository .milestone.project-options.list > .item .operate {
+  margin-top: -20px;
+}
+
 .repository .milestone.list > .item .operate {
   margin-top: -15px;
 }

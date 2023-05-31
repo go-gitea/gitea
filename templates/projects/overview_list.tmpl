@@ -1,5 +1,6 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository projects">
-	<div class="ui container">
+
+	<div class="ui tabs">
 		{{if .CanWriteProjects}}
 			<div class="navbar">
 				<div class="ui right">
@@ -35,7 +36,7 @@
 				</div>
 			</div>
 		</div>
-		<div class="milestone list">
+		<div class="milestone project-options list">
 			{{range .Projects}}
 				<li class="item">
 					{{svg .IconName}} <a href="{{.Link}}">{{.Title}}</a>
@@ -52,7 +53,7 @@
 						</span>
 					</div>
 					{{if and $.CanWriteProjects (not $.Repository.IsArchived)}}
-					<div class="ui right operate project_options">
+					<div class="ui right operate">
 						<a href="{{$.Link}}/{{.ID}}/edit" data-id={{.ID}} data-title={{.Title}}>{{svg "octicon-pencil"}} {{$.locale.Tr "repo.issues.label_edit"}}</a>
 						{{if .IsClosed}}
 							<a class="link-action" href data-url="{{$.Link}}/{{.ID}}/open">{{svg "octicon-check"}} {{$.locale.Tr "repo.projects.open"}}</a>
