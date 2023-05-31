@@ -50,7 +50,7 @@ type ChangeRepoFile struct {
 	Options      *RepoFileOptions
 }
 
-// UpdateRepoFilesOptions holds the repository files update options
+// ChangeRepoFilesOptions holds the repository files update options
 type ChangeRepoFilesOptions struct {
 	LastCommitID string
 	OldBranch    string
@@ -159,7 +159,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		return nil, err
 	}
 
-	treePaths := []string{}
+	var treePaths []string
 	for _, file := range opts.Files {
 		// If FromTreePath is not set, set it to the opts.TreePath
 		if file.TreePath != "" && file.FromTreePath == "" {
@@ -302,7 +302,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 				return nil, err
 			}
 		default:
-			return nil, fmt.Errorf("Invalid file operation: %s %s, supported operations are create, update, delete", file.Operation, file.Options.treePath)
+			return nil, fmt.Errorf("invalid file operation: %s %s, supported operations are create, update, delete", file.Operation, file.Options.treePath)
 		}
 	}
 
@@ -334,16 +334,16 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		return nil, err
 	}
 
-	filesReponse, err := GetFilesResponseFromCommit(ctx, repo, commit, opts.NewBranch, treePaths)
+	filesResponse, err := GetFilesResponseFromCommit(ctx, repo, commit, opts.NewBranch, treePaths)
 	if err != nil {
 		return nil, err
 	}
 
 	if repo.IsEmpty {
-		_ = repo_model.UpdateRepositoryCols(ctx, &repo_model.Repository{ID: repo.ID, IsEmpty: false}, "is_empty")
+		_ = repo_model.UpdateRepositoryCols(ctx, &repo_model.Repository{ID: repo.ID, IsEmpty: false, DefaultBranch: opts.NewBranch}, "is_empty", "default_branch")
 	}
 
-	return filesReponse, nil
+	return filesResponse, nil
 }
 
 // handles the check for various issues for ChangeRepoFiles
@@ -437,7 +437,7 @@ func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRep
 	return nil
 }
 
-// handle creating or updating a file for ChangeRepoFiles
+// CreateOrUpdateFile handles creating or updating a file for ChangeRepoFiles
 func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file *ChangeRepoFile, contentStore *lfs.ContentStore, repoID int64, hasOldBranch bool) error {
 	// Get the two paths (might be the same if not moving) from the index if they exist
 	filesInIndex, err := t.LsFiles(file.TreePath, file.FromTreePath)
@@ -540,7 +540,7 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 		if !exist {
 			if err := contentStore.Put(lfsMetaObject.Pointer, strings.NewReader(file.Content)); err != nil {
 				if _, err2 := git_model.RemoveLFSMetaObjectByOid(ctx, repoID, lfsMetaObject.Oid); err2 != nil {
-					return fmt.Errorf("Error whilst removing failed inserted LFS object %s: %v (Prev Error: %w)", lfsMetaObject.Oid, err2, err)
+					return fmt.Errorf("unable to remove failed inserted LFS object %s: %v (Prev Error: %w)", lfsMetaObject.Oid, err2, err)
 				}
 				return err
 			}

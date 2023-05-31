@@ -47,6 +47,7 @@ cpu.out
 
 *.db
 *.log
+*.log.*.gz
 
 /gitea
 /gitea-vet
