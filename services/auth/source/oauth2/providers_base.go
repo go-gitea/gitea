@@ -24,7 +24,7 @@ func (b *BaseProvider) Image() string {
 	return "/assets/img/auth/" + b.name + ".png"
 }
 
-// Image returns svg name for this provider
+// SvgName returns svg name for this provider
 func (b *BaseProvider) SvgName() string {
 	if b.name == "github" {
 		return "octicon-mark-github"

@@ -61,13 +61,8 @@
 				{{range $key := .OrderedOAuth2Names}}
 					{{$provider := index $.OAuth2Providers $key}}
 					<a class="{{$provider.Name}} ui compact button silenced gt-df gt-ac gt-jc oauth-login-link" href="{{AppSubUrl}}/user/oauth2/{{$key}}">
-						{{if eq $provider.Name "openidConnect"}}
-							{{svg $provider.SvgName 16 "gt-mr-3"}}
-							{{$provider.DisplayName}} ({{$key}})
-						{{else}}
-							{{svg $provider.SvgName 16 "gt-mr-3"}}
-							{{$provider.DisplayName}}
-						{{end}}
+						{{svg $provider.SvgName 16 "gt-mr-3"}}
+						{{$provider.DisplayName}}{{if eq $provider.Name "openidConnect"}} ({{$key}}){{end}}
 					</a>
 				{{end}}
 			</div>
