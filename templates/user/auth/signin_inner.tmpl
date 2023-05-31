@@ -56,20 +56,59 @@
 	<hr class="ui divider"/>
 	<div id="oauth2-login-navigator">
 		<div id="oauth2-login-navigator-inner" class="gt-df gt-fc gt-jc">
-			<span class="gt-self-center gt-mb-3 gt-mr-3">{{.locale.Tr "sign_in_with"}}</span>
+			<span class="gt-self-center gt-mb-4">{{.locale.Tr "sign_in_with"}}</span>
 			<div class="gt-df gt-fc gt-fw gt-ac gt-gap-4">
 				{{range $key := .OrderedOAuth2Names}}
 					{{$provider := index $.OAuth2Providers $key}}
 					<a class="{{$provider.Name}} ui compact button silenced gt-df gt-ac gt-jc oauth-login-link" href="{{AppSubUrl}}/user/oauth2/{{$key}}">
 						{{if eq $provider.Name "github"}}
 							{{svg "octicon-mark-github" 16 "gt-mr-3"}}
-							{{$provider.Name}}
+							{{$provider.DisplayName}}
+						{{else if eq $provider.Name "azuread"}}
+							{{svg "gitea-azuread" 16 "gt-mr-3"}}
+							{{$provider.DisplayName}}
+						{{else if eq $provider.Name "azureadv2"}}
+							{{svg "gitea-azureadv2" 16 "gt-mr-3"}}
+							{{$provider.DisplayName}}
+						{{else if eq $provider.Name "bitbucket"}}
+							{{svg "gitea-bitbucket" 16 "gt-mr-3"}}
+							{{$provider.DisplayName}}
+						{{else if eq $provider.Name "discord"}}
+							{{svg "gitea-discord" 16 "gt-mr-3"}}
+							{{$provider.DisplayName}}
+						{{else if eq $provider.Name "dropbox"}}
+							{{svg "gitea-dropbox" 16 "gt-mr-3"}}
+							{{$provider.DisplayName}}
+						{{else if eq $provider.Name "facebook"}}
+							{{svg "gitea-facebook" 16 "gt-mr-3"}}
+							{{$provider.DisplayName}}
+						{{else if eq $provider.Name "gplus"}}
+							{{svg "gitea-google" 16 "gt-mr-3"}}
+							{{$provider.DisplayName}}
 						{{else if eq $provider.Name "gitlab"}}
 							{{svg "gitea-gitlab" 16 "gt-mr-3"}}
-							{{$provider.Name}}
+							{{$provider.DisplayName}}
+						{{else if eq $provider.Name "mastodon"}}
+							{{svg "gitea-mastodon" 16 "gt-mr-3"}}
+							{{$provider.DisplayName}}
+						{{else if eq $provider.Name "microsoftonline"}}
+							{{svg "gitea-microsoftonline" 16 "gt-mr-3"}}
+							{{$provider.DisplayName}}
+						{{else if eq $provider.Name "nextcloud"}}
+							{{svg "gitea-nextcloud" 16 "gt-mr-3"}}
+							{{$provider.DisplayName}}
+						{{else if eq $provider.Name "twitter"}}
+							{{svg "gitea-twitter" 16 "gt-mr-3"}}
+							{{$provider.DisplayName}}
+						{{else if eq $provider.Name "yandex"}}
+							{{svg "gitea-yandex" 16 "gt-mr-3"}}
+							{{$provider.DisplayName}}
 						{{else if eq $provider.Name "openidConnect"}}
 							{{svg "gitea-openid" 16 "gt-mr-3"}}
-							{{$provider.Name}}
+							{{$provider.DisplayName}}
+						{{else if eq $provider.Name "gitea"}}
+							{{svg "gitea-gitea" 16 "gt-mr-3"}}
+							{{$provider.DisplayName}}
 						{{else}}
 							<img
 								class="gt-object-contain gt-mr-3"
