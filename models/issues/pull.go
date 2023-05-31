@@ -890,7 +890,7 @@ func MergeBlockedByOutdatedBranch(protectBranch *git_model.ProtectedBranch, pr *
 	return protectBranch.BlockOnOutdatedBranch && pr.CommitsBehind > 0
 }
 
-func NotifyCodeOwners(ctx context.Context, pull *Issue, pr *PullRequest) error {
+func PullRequestCodeOwnersReview(ctx context.Context, pull *Issue, pr *PullRequest) error {
 	files := []string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}
 
 	if pr.IsWorkInProgress() {
