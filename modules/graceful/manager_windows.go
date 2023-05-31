@@ -50,7 +50,6 @@ type Manager struct {
 	shutdownRequested      chan struct{}
 
 	toRunAtShutdown  []func()
-	toRunAtHammer    []func()
 	toRunAtTerminate []func()
 }
 

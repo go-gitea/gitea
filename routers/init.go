@@ -198,7 +198,7 @@ func NormalRoutes(ctx context.Context) *web.Route {
 		// In Github, it uses ACTIONS_RUNTIME_URL=https://pipelines.actions.githubusercontent.com/fLgcSHkPGySXeIFrg8W8OBSfeg3b5Fls1A1CwX566g8PayEGlg/
 		// TODO: this prefix should be generated with a token string with runner ?
 		prefix = "/api/actions_pipeline"
-		r.Mount(prefix, actions_router.ArtifactsRoutes(ctx, prefix))
+		r.Mount(prefix, actions_router.ArtifactsRoutes(prefix))
 	}
 
 	return r

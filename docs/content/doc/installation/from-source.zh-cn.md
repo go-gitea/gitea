@@ -1,6 +1,6 @@
 ---
 date: "2016-12-01T16:00:00+02:00"
-title: "从源代码安装"
+title: "使用源代码安装"
 slug: "install-from-source"
 weight: 30
 toc: false
@@ -10,12 +10,12 @@ aliases:
 menu:
   sidebar:
     parent: "installation"
-    name: "从源代码安装"
+    name: "使用源代码安装"
     weight: 30
     identifier: "install-from-source"
 ---
 
-# 从源代码安装
+# 使用源代码安装
 
 首先你需要安装Golang，关于Golang的安装，参见[官方文档](https://golang.google.cn/doc/install)。
 
@@ -103,7 +103,3 @@ GOOS=linux GOARCH=arm64 make build
 ```bash
 CC=aarch64-unknown-linux-gnu-gcc GOOS=linux GOARCH=arm64 TAGS="bindata sqlite sqlite_unlock_notify" make build
 ```
-
-## 需要帮助?
-
-如果从本页中没有找到你需要的内容，请访问 [帮助页面]({{< relref "support.zh-cn.md" >}})

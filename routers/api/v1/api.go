@@ -149,7 +149,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 			if err != nil {
 				if user_model.IsErrUserNotExist(err) {
 					if redirectUserID, err := user_model.LookupUserRedirect(userName); err == nil {
-						context.RedirectToUser(ctx.Context, userName, redirectUserID)
+						context.RedirectToUser(ctx.Base, userName, redirectUserID)
 					} else if user_model.IsErrUserRedirectNotExist(err) {
 						ctx.NotFound("GetUserByName", err)
 					} else {
@@ -170,7 +170,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 			if repo_model.IsErrRepoNotExist(err) {
 				redirectRepoID, err := repo_model.LookupRedirect(owner.ID, repoName)
 				if err == nil {
-					context.RedirectToRepo(ctx.Context, redirectRepoID)
+					context.RedirectToRepo(ctx.Base, redirectRepoID)
 				} else if repo_model.IsErrRedirectNotExist(err) {
 					ctx.NotFound()
 				} else {
@@ -274,7 +274,7 @@ func reqToken(requiredScope auth_model.AccessTokenScope) func(ctx *context.APICo
 			ctx.Error(http.StatusForbidden, "reqToken", "token does not have required scope: "+requiredScope)
 			return
 		}
-		if ctx.Context.IsBasicAuth {
+		if ctx.IsBasicAuth {
 			ctx.CheckForOTP()
 			return
 		}
@@ -295,7 +295,7 @@ func reqExploreSignIn() func(ctx *context.APIContext) {
 
 func reqBasicAuth() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if !ctx.Context.IsBasicAuth {
+		if !ctx.IsBasicAuth {
 			ctx.Error(http.StatusUnauthorized, "reqBasicAuth", "auth required")
 			return
 		}
@@ -375,7 +375,7 @@ func reqAnyRepoReader() func(ctx *context.APIContext) {
 // reqOrgOwnership user should be an organization owner, or a site admin
 func reqOrgOwnership() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if ctx.Context.IsUserSiteAdmin() {
+		if ctx.IsUserSiteAdmin() {
 			return
 		}
 
@@ -407,7 +407,7 @@ func reqOrgOwnership() func(ctx *context.APIContext) {
 // reqTeamMembership user should be an team member, or a site admin
 func reqTeamMembership() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if ctx.Context.IsUserSiteAdmin() {
+		if ctx.IsUserSiteAdmin() {
 			return
 		}
 		if ctx.Org.Team == nil {
@@ -444,7 +444,7 @@ func reqTeamMembership() func(ctx *context.APIContext) {
 // reqOrgMembership user should be an organization member, or a site admin
 func reqOrgMembership() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if ctx.Context.IsUserSiteAdmin() {
+		if ctx.IsUserSiteAdmin() {
 			return
 		}
 
@@ -512,7 +512,7 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 				if organization.IsErrOrgNotExist(err) {
 					redirectUserID, err := user_model.LookupUserRedirect(ctx.Params(":org"))
 					if err == nil {
-						context.RedirectToUser(ctx.Context, ctx.Params(":org"), redirectUserID)
+						context.RedirectToUser(ctx.Base, ctx.Params(":org"), redirectUserID)
 					} else if user_model.IsErrUserRedirectNotExist(err) {
 						ctx.NotFound("GetOrgByName", err)
 					} else {
@@ -723,6 +723,8 @@ func Routes(ctx gocontext.Context) *web.Route {
 		m.Get("/gitignore/templates/{name}", misc.GetGitignoreTemplateInfo)
 		m.Get("/licenses", misc.ListLicenseTemplates)
 		m.Get("/licenses/{name}", misc.GetLicenseTemplateInfo)
+		m.Get("/label/templates", misc.ListLabelTemplates)
+		m.Get("/label/templates/{name}", misc.GetLabelTemplate)
 		m.Group("/settings", func() {
 			m.Get("/ui", settings.GetGeneralUISettings)
 			m.Get("/api", settings.GetGeneralAPISettings)
@@ -965,6 +967,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 				m.Group("/issues", func() {
 					m.Combo("").Get(repo.ListIssues).
 						Post(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, bind(api.CreateIssueOption{}), repo.CreateIssue)
+					m.Get("/pinned", repo.ListPinnedIssues)
 					m.Group("/comments", func() {
 						m.Get("", repo.ListRepoIssueComments)
 						m.Group("/{id}", func() {
@@ -1045,6 +1048,12 @@ func Routes(ctx gocontext.Context) *web.Route {
 							Get(repo.GetIssueBlocks).
 							Post(reqToken(auth_model.AccessTokenScopeRepo), bind(api.IssueMeta{}), repo.CreateIssueBlocking).
 							Delete(reqToken(auth_model.AccessTokenScopeRepo), bind(api.IssueMeta{}), repo.RemoveIssueBlocking)
+						m.Group("/pin", func() {
+							m.Combo("").
+								Post(reqToken(auth_model.AccessTokenScopeRepo), reqAdmin(), repo.PinIssue).
+								Delete(reqToken(auth_model.AccessTokenScopeRepo), reqAdmin(), repo.UnpinIssue)
+							m.Patch("/{position}", reqToken(auth_model.AccessTokenScopeRepo), reqAdmin(), repo.MoveIssuePin)
+						})
 					})
 				}, mustEnableIssuesOrPulls)
 				m.Group("/labels", func() {
@@ -1107,6 +1116,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 				m.Group("/pulls", func() {
 					m.Combo("").Get(repo.ListPullRequests).
 						Post(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, bind(api.CreatePullRequestOption{}), repo.CreatePullRequest)
+					m.Get("/pinned", repo.ListPinnedPullRequests)
 					m.Group("/{index}", func() {
 						m.Combo("").Get(repo.GetPullRequest).
 							Patch(reqToken(auth_model.AccessTokenScopeRepo), bind(api.EditPullRequestOption{}), repo.EditPullRequest)
@@ -1163,6 +1173,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 				m.Post("/diffpatch", reqRepoWriter(unit.TypeCode), reqToken(auth_model.AccessTokenScopeRepo), bind(api.ApplyDiffPatchFileOptions{}), repo.ApplyDiffPatch)
 				m.Group("/contents", func() {
 					m.Get("", repo.GetContentsList)
+					m.Post("", reqToken(auth_model.AccessTokenScopeRepo), bind(api.ChangeFilesOptions{}), reqRepoBranchWriter, repo.ChangeFiles)
 					m.Get("/*", repo.GetContents)
 					m.Group("/*", func() {
 						m.Post("", bind(api.CreateFileOptions{}), reqRepoBranchWriter, repo.CreateFile)
@@ -1184,6 +1195,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 				m.Get("/issue_config/validate", context.ReferencesGitRepo(), repo.ValidateIssueConfig)
 				m.Get("/languages", reqRepoReader(unit.TypeCode), repo.GetLanguages)
 				m.Get("/activities/feeds", repo.ListRepoActivityFeeds)
+				m.Get("/new_pin_allowed", repo.AreNewIssuePinsAllowed)
 			}, repoAssignment())
 		})
 

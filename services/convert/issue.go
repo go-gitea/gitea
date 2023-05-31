@@ -13,6 +13,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -46,6 +47,7 @@ func ToAPIIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
 		Comments:    issue.NumComments,
 		Created:     issue.CreatedUnix.AsTime(),
 		Updated:     issue.UpdatedUnix.AsTime(),
+		PinOrder:    issue.PinOrder,
 	}
 
 	if issue.Repo != nil {
@@ -237,4 +239,25 @@ func ToAPIMilestone(m *issues_model.Milestone) *api.Milestone {
 		apiMilestone.Deadline = m.DeadlineUnix.AsTimePtr()
 	}
 	return apiMilestone
+}
+
+// ToLabelTemplate converts Label to API format
+func ToLabelTemplate(label *label.Label) *api.LabelTemplate {
+	result := &api.LabelTemplate{
+		Name:        label.Name,
+		Exclusive:   label.Exclusive,
+		Color:       strings.TrimLeft(label.Color, "#"),
+		Description: label.Description,
+	}
+
+	return result
+}
+
+// ToLabelTemplateList converts list of Label to API format
+func ToLabelTemplateList(labels []*label.Label) []*api.LabelTemplate {
+	result := make([]*api.LabelTemplate, len(labels))
+	for i := range labels {
+		result[i] = ToLabelTemplate(labels[i])
+	}
+	return result
 }

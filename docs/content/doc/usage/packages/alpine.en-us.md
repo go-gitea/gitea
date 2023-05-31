@@ -1,7 +1,7 @@
 ---
 date: "2023-03-25T00:00:00+00:00"
-title: "Alpine Packages Repository"
-slug: "packages/alpine"
+title: "Alpine Package Registry"
+slug: "alpine"
 draft: false
 toc: false
 menu:
@@ -12,7 +12,7 @@ menu:
     identifier: "alpine"
 ---
 
-# Alpine Packages Repository
+# Alpine Package Registry
 
 Publish [Alpine](https://pkgs.alpinelinux.org/) packages for your user or organization.
 
