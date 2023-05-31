@@ -30,13 +30,13 @@ type Codeowners struct {
 func ParseCodeowners(changedFiles []string, codeownersContents []byte) ([]string, []string, error) {
 
 	// This calls the actual parser
-	globMap, err := ParseCodeownerBytes(codeownersContents)
+	codeownerMap, err := ParseCodeownerBytes(codeownersContents)
 
 	// We have to declare a new list of strings to be able to append all codeowners
 	//	As we get them file by file in the following for loop
 	var codeownersList []string
 	for _, file := range changedFiles {
-		codeownersList = append(codeownersList, GetOwners(globMap, file)...)
+		codeownersList = append(codeownersList, GetOwners(codeownerMap, file)...)
 	}
 	codeownerIndividuals, codeOwnerTeams := SeparateOwnerAndTeam(codeownersList)
 
@@ -48,13 +48,13 @@ func ParseCodeowners(changedFiles []string, codeownersContents []byte) ([]string
 
 // GetOwners returns the list of owners (including teams) for a single file. It matches from our globMap
 // to the changed files that it receives from the for loop in the ParseCodeowners function above.
-func GetOwners(globMap []Codeowners, file string) []string {
+func GetOwners(codeownerMap []Codeowners, file string) []string {
 
-	for i := len(globMap) - 1; i >= 0; i-- {
-		if glob.Globexp(globMap[i].glob).MatchString(file) {
-			fmt.Println("File:", file, "Result:", globMap[i])
+	for i := len(codeownerMap) - 1; i >= 0; i-- {
+		if glob.Globexp(codeownerMap[i].glob).MatchString(file) {
+			fmt.Println("File:", file, "Result:", codeownerMap[i])
 
-			return globMap[i].owners
+			return codeownerMap[i].owners
 		}
 	}
 	log.Trace("!!!Unmatched file: ", file)
@@ -122,7 +122,7 @@ func ScanAndParse(scanner bufio.Scanner) ([]Codeowners, error) {
 
 	// globMap maps each line using a key/value pair held by the Codeowners Data type.
 	//		It maps from the file type (e.g., *.js) to the users for that file type (e.g., @user1 @user2)
-	var globMap []Codeowners
+	var codeownerMap []Codeowners
 	var lineCounter int = 0
 
 	for scanner.Scan() {
@@ -141,7 +141,7 @@ func ScanAndParse(scanner bufio.Scanner) ([]Codeowners, error) {
 					owners: currFileUsers,
 				}
 
-				globMap = append(globMap, newCodeowner)
+				codeownerMap = append(codeownerMap, newCodeowner)
 
 				if globString2 != "" {
 					newCodeowner2 := Codeowners{
@@ -149,7 +149,7 @@ func ScanAndParse(scanner bufio.Scanner) ([]Codeowners, error) {
 						owners: currFileUsers,
 					}
 
-					globMap = append(globMap, newCodeowner2)
+					codeownerMap = append(codeownerMap, newCodeowner2)
 				}
 			} else {
 				log.Trace("Invalid syntax given on line " + fmt.Sprint(lineCounter) + ":" +
@@ -162,7 +162,7 @@ func ScanAndParse(scanner bufio.Scanner) ([]Codeowners, error) {
 				owners: []string{""},
 			}
 
-			globMap = append(globMap, newCodeowner)
+			codeownerMap = append(codeownerMap, newCodeowner)
 		}
 
 		log.Trace("Line number " + fmt.Sprint(lineCounter) + ":")
@@ -172,12 +172,12 @@ func ScanAndParse(scanner bufio.Scanner) ([]Codeowners, error) {
 
 	if scanner.Err() != nil {
 		log.Trace(scanner.Err().Error())
-		globMap = nil
-		return globMap, scanner.Err()
+		codeownerMap = nil
+		return codeownerMap, scanner.Err()
 	}
 
-	log.Trace("Parsed map from codeowners file: " + fmt.Sprint(globMap))
-	return globMap, scanner.Err()
+	log.Trace("Parsed map from codeowners file: " + fmt.Sprint(codeownerMap))
+	return codeownerMap, scanner.Err()
 }
 
 // ParseCodeownersLine extracts two potential globbing rule strings and the owners associated with those rules for a given line
@@ -185,6 +185,7 @@ func ScanAndParse(scanner bufio.Scanner) ([]Codeowners, error) {
 //	of a CODEOWNERS file. Note that there are two potential globbing rules for the following situation, when we can't identify
 //	whether it's a file name or a subdirectory: /docs/github can be either /docs/github or /docs/github/**
 func ParseCodeownersLine(line string) (globString, globString2 string, currFileUsers []string) {
+
 	// strings.Fields() splits the string by whitespace
 	splitStrings := strings.Fields(line)
 	var userStopIndex int
@@ -210,8 +211,7 @@ func ParseCodeownersLine(line string) (globString, globString2 string, currFileU
 
 			// Note the logic here for mapping from Codeowners format to our current globbing library
 			if len(globString) < 1 {
-				// Can we handle a situation where the only file type is /?
-				// I don't think so because I think that they would just have to use *
+				// This should only occur if the first character is '/', which we don't consider a valid rule
 			} else if len(globString) == 1 {
 				if strings.Compare(globString[0:1], "*") == 0 {
 					globString = "**/**/**"
