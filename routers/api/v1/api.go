@@ -1119,7 +1119,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 				m.Post("/diffpatch", reqRepoWriter(unit.TypeCode), reqToken(), bind(api.ApplyDiffPatchFileOptions{}), repo.ApplyDiffPatch)
 				m.Group("/contents", func() {
 					m.Get("", repo.GetContentsList)
-					m.Post("", reqToken(auth_model.AccessTokenScopeRepo), bind(api.ChangeFilesOptions{}), reqRepoBranchWriter, repo.ChangeFiles)
+					m.Post("", reqToken(), bind(api.ChangeFilesOptions{}), reqRepoBranchWriter, repo.ChangeFiles)
 					m.Get("/*", repo.GetContents)
 					m.Group("/*", func() {
 						m.Post("", bind(api.CreateFileOptions{}), reqRepoBranchWriter, repo.CreateFile)
