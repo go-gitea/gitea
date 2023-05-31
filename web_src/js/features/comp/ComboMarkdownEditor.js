@@ -190,6 +190,10 @@ class ComboMarkdownEditor {
     // EasyMDE's CSS should be loaded via webpack config, otherwise our own styles can not overwrite the default styles.
     const {default: EasyMDE} = await import(/* webpackChunkName: "easymde" */'easymde');
     const easyMDEOpt = {
+      autosave: {
+        enabled: true,
+        uniqueId: this.textarea.id
+      },
       autoDownloadFontAwesome: false,
       element: this.textarea,
       forceSync: true,
