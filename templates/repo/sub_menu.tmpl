@@ -28,13 +28,13 @@
 			{{range .LanguageStats}}
 			<div class="item gt-df gt-ac gt-jc">
 				<i class="color-icon gt-mr-3" style="background-color: {{.Color}}"></i>
-				<span class="gt-font-semibold gt-mr-3">
+				<a class="gt-font-semibold gt-mr-3" href="{{$.HomeLink}}?q=&sort=recentupdate&language={{.Language}}">
 					{{if eq .Language "other"}}
 						{{$.locale.Tr "repo.language_other"}}
 					{{else}}
 						{{.Language}}
 					{{end}}
-				</span>
+				</a>
 				{{.Percentage}}%
 			</div>
 			{{end}}

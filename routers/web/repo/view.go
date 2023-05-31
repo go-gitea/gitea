@@ -871,6 +871,7 @@ func renderLanguageStats(ctx *context.Context) {
 	}
 
 	ctx.Data["LanguageStats"] = langs
+	ctx.Data["HomeLink"] = ctx.ContextUser.HomeLink()
 }
 
 func renderRepoTopics(ctx *context.Context) {
