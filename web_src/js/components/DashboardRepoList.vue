@@ -524,10 +524,6 @@ ul li:not(:last-child) {
   background: var(--color-active);
 }
 
-.feeds .list ul li.active svg {
-  color: inherit;
-}
-
 .feeds .list ul li.active .octicon-check {
   background: transparent;
 }
