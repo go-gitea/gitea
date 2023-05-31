@@ -89,6 +89,10 @@ func Test_ConvertScopedAccessTokens(t *testing.T) {
 	err = ConvertScopedAccessTokens(x)
 	assert.NoError(t, err)
 
+	// migrate the scopes again (migration should be idempotent)
+	err = ConvertScopedAccessTokens(x)
+	assert.NoError(t, err)
+
 	tokens := make([]AccessToken, 0)
 	err = x.Find(&tokens)
 	assert.NoError(t, err)
