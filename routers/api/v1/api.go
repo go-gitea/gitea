@@ -750,11 +750,11 @@ func Routes(ctx gocontext.Context) *web.Route {
 				// deprecated, remove in 1.20, use /user-id/{user-id} instead
 				m.Group("/user/{username}", func() {
 					m.Get("", activitypub.Person)
-					m.Post("/inbox", activitypub.ReqHTTPSignature(), activitypub.PersonInbox) // TODO reqToken()?
+					m.Post("/inbox", activitypub.ReqHTTPSignature(), activitypub.PersonInbox)
 				}, context_service.UserAssignmentAPI())
 				m.Group("/user-id/{user-id}", func() {
 					m.Get("", activitypub.Person)
-					m.Post("/inbox", activitypub.ReqHTTPSignature(), activitypub.PersonInbox) // TODO reqToken()?
+					m.Post("/inbox", activitypub.ReqHTTPSignature(), activitypub.PersonInbox)
 				}, context_service.UserIDAssignmentAPI())
 			}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryActivityPub))
 		}
@@ -841,7 +841,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 			}, reqToken())
 			m.Combo("/emails").
 				Get(user.ListEmails).
-				Post(bind(api.CreateEmailOption{}), user.AddEmail). // TODO reqToken?
+				Post(bind(api.CreateEmailOption{}), user.AddEmail).
 				Delete(bind(api.DeleteEmailOption{}), user.DeleteEmail)
 
 			m.Get("/followers", user.ListMyFollowers)
@@ -849,7 +849,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 				m.Get("", user.ListMyFollowing)
 				m.Group("/{username}", func() {
 					m.Get("", user.CheckMyFollowing)
-					m.Put("", user.Follow) // TODO reqToken()?
+					m.Put("", user.Follow)
 					m.Delete("", user.Unfollow)
 				}, context_service.UserAssignmentAPI())
 			})
@@ -866,10 +866,10 @@ func Routes(ctx gocontext.Context) *web.Route {
 			m.Group("/applications", func() {
 				m.Combo("/oauth2").
 					Get(user.ListOauth2Applications).
-					Post(bind(api.CreateOAuth2ApplicationOptions{}), user.CreateOauth2Application) // TODO reqToken()?
+					Post(bind(api.CreateOAuth2ApplicationOptions{}), user.CreateOauth2Application)
 				m.Combo("/oauth2/{id}").
-					Delete(user.DeleteOauth2Application).                                            // TODO reqToken()?
-					Patch(bind(api.CreateOAuth2ApplicationOptions{}), user.UpdateOauth2Application). // TODO reqToken()?
+					Delete(user.DeleteOauth2Application).
+					Patch(bind(api.CreateOAuth2ApplicationOptions{}), user.UpdateOauth2Application).
 					Get(user.GetOauth2Application)
 			})
 
@@ -971,7 +971,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 						Put(reqAdmin(), repo.AddTeam).
 						Delete(reqAdmin(), repo.DeleteTeam)
 				}, reqToken())
-				m.Get("/raw/*", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFile) // TODO should these require a token?
+				m.Get("/raw/*", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFile)
 				m.Get("/media/*", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFileOrLFS)
 				m.Get("/archive/*", reqRepoReader(unit.TypeCode), repo.GetArchive)
 				m.Combo("/forks").Get(repo.ListForks).
@@ -979,7 +979,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 				m.Group("/branches", func() {
 					m.Get("", repo.ListBranches)
 					m.Get("/*", repo.GetBranch)
-					m.Delete("/*", reqToken(), reqRepoWriter(unit.TypeCode), repo.DeleteBranch) // TODO reqToken()?
+					m.Delete("/*", reqToken(), reqRepoWriter(unit.TypeCode), repo.DeleteBranch)
 					m.Post("", reqToken(), reqRepoWriter(unit.TypeCode), bind(api.CreateBranchRepoOption{}), repo.CreateBranch)
 				}, context.ReferencesGitRepo(), reqRepoReader(unit.TypeCode))
 				m.Group("/branch_protections", func() {
@@ -996,7 +996,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 					m.Get("/*", repo.GetTag)
 					m.Post("", reqToken(), reqRepoWriter(unit.TypeCode), bind(api.CreateTagOption{}), repo.CreateTag)
 					m.Delete("/*", reqToken(), repo.DeleteTag)
-				}, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true)) // TODO reqToken()?
+				}, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true))
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
 						Post(bind(api.CreateKeyOption{}), repo.CreateDeployKey)
@@ -1015,7 +1015,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 					m.Get("/revisions/{pageName}", repo.ListPageRevisions)
 					m.Post("/new", reqToken(), mustNotBeArchived, reqRepoWriter(unit.TypeWiki), bind(api.CreateWikiPageOptions{}), repo.NewWikiPage)
 					m.Get("/pages", repo.ListWikiPages)
-				}, mustEnableWiki) // TODO reqToken()?
+				}, mustEnableWiki)
 				m.Post("/markup", reqToken(), bind(api.MarkupOption{}), misc.Markup)
 				m.Post("/markdown", reqToken(), bind(api.MarkdownOption{}), misc.Markdown)
 				m.Post("/markdown/raw", reqToken(), misc.MarkdownRaw)

@@ -311,7 +311,7 @@ var accessTokenScopeMap = map[OldAccessTokenScope][]AccessTokenScope{
 	OldAccessTokenScopeAll:              {AccessTokenScopeAll},
 	OldAccessTokenScopeRepo:             {AccessTokenScopeDeleteRepository},
 	OldAccessTokenScopeRepoStatus:       {AccessTokenScopeWriteRepository},
-	OldAccessTokenScopePublicRepo:       {AccessTokenScopeDeleteRepository, AccessTokenScopePublicOnly},
+	OldAccessTokenScopePublicRepo:       {AccessTokenScopePublicOnly, AccessTokenScopeDeleteRepository},
 	OldAccessTokenScopeAdminOrg:         {AccessTokenScopeDeleteOrganization},
 	OldAccessTokenScopeWriteOrg:         {AccessTokenScopeWriteOrganization},
 	OldAccessTokenScopeReadOrg:          {AccessTokenScopeReadOrganization},
@@ -378,7 +378,7 @@ func ConvertScopedAccessTokens(x *xorm.Engine) error {
 		token.Scope = string(normScope)
 
 		// update the db entry with the new scope
-		if _, err := x.Cols("scope").Update(token); err != nil {
+		if _, err := x.Cols("scope").ID(token.ID).Update(token); err != nil {
 			return err
 		}
 	}
