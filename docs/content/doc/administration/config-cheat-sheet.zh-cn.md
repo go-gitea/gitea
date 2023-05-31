@@ -337,7 +337,7 @@ test01.xls: application/vnd.ms-excel; charset=binary
 ENABLED = false
 NEED_POSTPROCESS = true
 FILE_EXTENSIONS = .adoc,.asciidoc
-RENDER_COMMAND = "asciidoc --out-file=- -"
+RENDER_COMMAND = "asciidoctor --embedded --safe-mode=secure --out-file=- -"
 IS_INPUT_FILE = false
 ```
 

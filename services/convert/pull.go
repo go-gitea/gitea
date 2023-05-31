@@ -72,6 +72,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		Deadline:  apiIssue.Deadline,
 		Created:   pr.Issue.CreatedUnix.AsTimePtr(),
 		Updated:   pr.Issue.UpdatedUnix.AsTimePtr(),
+		PinOrder:  apiIssue.PinOrder,
 
 		AllowMaintainerEdit: pr.AllowMaintainerEdit,
 
@@ -86,6 +87,14 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			Ref:    fmt.Sprintf("%s%d/head", git.PullPrefix, pr.Index),
 			RepoID: -1,
 		},
+	}
+
+	if err = pr.LoadRequestedReviewers(ctx); err != nil {
+		log.Error("LoadRequestedReviewers[%d]: %v", pr.ID, err)
+		return nil
+	}
+	for _, reviewer := range pr.RequestedReviewers {
+		apiPullRequest.RequestedReviewers = append(apiPullRequest.RequestedReviewers, ToUser(ctx, reviewer, nil))
 	}
 
 	if pr.Issue.ClosedUnix != 0 {

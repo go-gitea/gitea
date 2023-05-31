@@ -1,7 +1,7 @@
 ---
 date: "2023-04-27T15:00:00+08:00"
 title: "Design of Gitea Actions"
-slug: "usage/actions/design"
+slug: "design"
 weight: 40
 draft: false
 toc: false

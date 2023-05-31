@@ -43,7 +43,7 @@ func convertPayloader(s PayloadConvertor, p api.Payloader, event webhook_module.
 	case webhook_module.HookEventPush:
 		return s.Push(p.(*api.PushPayload))
 	case webhook_module.HookEventPullRequest, webhook_module.HookEventPullRequestAssign, webhook_module.HookEventPullRequestLabel,
-		webhook_module.HookEventPullRequestMilestone, webhook_module.HookEventPullRequestSync:
+		webhook_module.HookEventPullRequestMilestone, webhook_module.HookEventPullRequestSync, webhook_module.HookEventPullRequestReviewRequest:
 		return s.PullRequest(p.(*api.PullRequestPayload))
 	case webhook_module.HookEventPullRequestReviewApproved, webhook_module.HookEventPullRequestReviewRejected, webhook_module.HookEventPullRequestReviewComment:
 		return s.Review(p.(*api.PullRequestPayload), event)
