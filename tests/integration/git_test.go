@@ -105,11 +105,11 @@ func testGit(t *testing.T, u *url.URL) {
 				defer tests.PrintCurrentTest(t)()
 				doCommitAndPush(t, littleSize, dstPath, "data-file-")
 				bigFileName := doCommitAndPush(t, bigSize, dstPath, "data-file-")
-				oldRepoSize := doGetRemoteRepoSize(t, forkedUserCtx)
+				oldRepoSize := doGetRemoteRepoSizeViaAPI(t, forkedUserCtx)
 				lastCommitID := doGetAddCommitID(t, dstPath, bigFileName)
 				doDeleteAndPush(t, dstPath, bigFileName)
 				doRebaseCommitAndPush(t, dstPath, lastCommitID)
-				newRepoSize := doGetRemoteRepoSize(t, forkedUserCtx)
+				newRepoSize := doGetRemoteRepoSizeViaAPI(t, forkedUserCtx)
 				assert.LessOrEqual(t, newRepoSize, oldRepoSize)
 				setting.SaveGlobalRepositorySetting(false, 0)
 			})
@@ -328,36 +328,8 @@ func lockFileTest(t *testing.T, filename, repoPath string) {
 	assert.NoError(t, err)
 }
 
-const notRegularFileMode = os.ModeSymlink | os.ModeNamedPipe | os.ModeSocket | os.ModeDevice | os.ModeCharDevice | os.ModeIrregular
-
-func doGetRemoteRepoSize(t *testing.T, ctx APITestContext) int64 {
-	dirPath := filepath.Join(setting.RepoRootPath, strings.ToLower(ctx.Username), strings.ToLower(ctx.Reponame)+".git")
-	return doCalculateRepoSize(t, dirPath)
-}
-
-func doCalculateRepoSize(t *testing.T, path string) int64 {
-	var size int64
-	err := filepath.WalkDir(path, func(_ string, info os.DirEntry, err error) error {
-		if err != nil {
-			if os.IsNotExist(err) { // ignore the error because the file maybe deleted during traversing.
-				return nil
-			}
-			return err
-		}
-		if info.IsDir() {
-			return nil
-		}
-		f, err := info.Info()
-		if err != nil {
-			return err
-		}
-		if (f.Mode() & notRegularFileMode) == 0 {
-			size += f.Size()
-		}
-		return err
-	})
-	assert.NoError(t, err)
-	return size
+func doGetRemoteRepoSizeViaAPI(t *testing.T, ctx APITestContext) int64 {
+	return doAPIGetRepositorySize(ctx, ctx.Username, ctx.Reponame)(t)
 }
 
 func doDeleteAndPush(t *testing.T, repoPath, filename string) {
