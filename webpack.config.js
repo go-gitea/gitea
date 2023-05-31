@@ -62,9 +62,6 @@ export default {
       fileURLToPath(new URL('web_src/js/standalone/swagger.js', import.meta.url)),
       fileURLToPath(new URL('web_src/css/standalone/swagger.css', import.meta.url)),
     ],
-    serviceworker: [
-      fileURLToPath(new URL('web_src/js/serviceworker.js', import.meta.url)),
-    ],
     'eventsource.sharedworker': [
       fileURLToPath(new URL('web_src/js/features/eventsource.sharedworker.js', import.meta.url)),
     ],
@@ -73,11 +70,7 @@ export default {
   devtool: false,
   output: {
     path: fileURLToPath(new URL('public', import.meta.url)),
-    filename: ({chunk}) => {
-      // serviceworker can only manage assets below it's script's directory so
-      // we have to put it in / instead of /js/
-      return chunk.name === 'serviceworker' ? '[name].js' : 'js/[name].js';
-    },
+    filename: () => 'js/[name].js',
     chunkFilename: ({chunk}) => {
       const language = (/monaco.*languages?_.+?_(.+?)_/.exec(chunk.id) || [])[1];
       return `js/${language ? `monaco-language-${language.toLowerCase()}` : `[name]`}.[contenthash:8].js`;

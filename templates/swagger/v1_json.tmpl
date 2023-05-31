@@ -4063,6 +4063,57 @@
             "$ref": "#/responses/notFound"
           }
         }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create or update multiple files in a repository",
+        "operationId": "repoChangeFiles",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ChangeFilesOptions"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/FilesResponse"
+          },
+          "403": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/error"
+          }
+        }
       }
     },
     "/repos/{owner}/{repo}/contents/{filepath}": {
@@ -15891,6 +15942,90 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ChangeFileOperation": {
+      "description": "ChangeFileOperation for creating, updating or deleting a file",
+      "type": "object",
+      "required": [
+        "operation",
+        "content"
+      ],
+      "properties": {
+        "content": {
+          "description": "content must be base64 encoded",
+          "type": "string",
+          "x-go-name": "Content"
+        },
+        "from_path": {
+          "description": "old path of the file to move",
+          "type": "string",
+          "x-go-name": "FromPath"
+        },
+        "operation": {
+          "description": "indicates what to do with the file",
+          "type": "string",
+          "enum": [
+            "create",
+            "update",
+            "delete"
+          ],
+          "x-go-name": "Operation"
+        },
+        "path": {
+          "description": "path to the existing or new file",
+          "type": "string",
+          "x-go-name": "Path"
+        },
+        "sha": {
+          "description": "sha is the SHA for the file that already exists, required for update, delete",
+          "type": "string",
+          "x-go-name": "SHA"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "ChangeFilesOptions": {
+      "description": "ChangeFilesOptions options for creating, updating or deleting multiple files\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
+      "type": "object",
+      "properties": {
+        "author": {
+          "$ref": "#/definitions/Identity"
+        },
+        "branch": {
+          "description": "branch (optional) to base this file from. if not given, the default branch is used",
+          "type": "string",
+          "x-go-name": "BranchName"
+        },
+        "committer": {
+          "$ref": "#/definitions/Identity"
+        },
+        "dates": {
+          "$ref": "#/definitions/CommitDateOptions"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ChangeFileOperation"
+          },
+          "x-go-name": "Files"
+        },
+        "message": {
+          "description": "message (optional) for the commit of this file. if not supplied, a default message will be used",
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "new_branch": {
+          "description": "new_branch (optional) will make a new branch from `branch` before creating the file",
+          "type": "string",
+          "x-go-name": "NewBranchName"
+        },
+        "signoff": {
+          "description": "Add a Signed-off-by trailer by the committer at the end of the commit log message.",
+          "type": "boolean",
+          "x-go-name": "Signoff"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "ChangedFile": {
       "description": "ChangedFile store information about files affected by the pull request",
       "type": "object",
@@ -18319,6 +18454,26 @@
         },
         "content": {
           "$ref": "#/definitions/ContentsResponse"
+        },
+        "verification": {
+          "$ref": "#/definitions/PayloadCommitVerification"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "FilesResponse": {
+      "description": "FilesResponse contains information about multiple files from a repo",
+      "type": "object",
+      "properties": {
+        "commit": {
+          "$ref": "#/definitions/FileCommitResponse"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ContentsResponse"
+          },
+          "x-go-name": "Files"
         },
         "verification": {
           "$ref": "#/definitions/PayloadCommitVerification"
@@ -21994,6 +22149,12 @@
       "description": "FileResponse",
       "schema": {
         "$ref": "#/definitions/FileResponse"
+      }
+    },
+    "FilesResponse": {
+      "description": "FilesResponse",
+      "schema": {
+        "$ref": "#/definitions/FilesResponse"
       }
     },
     "GPGKey": {
