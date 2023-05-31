@@ -15,7 +15,7 @@
 				{{"This CODEOWNERS file contains errors:"}}
 				<ul>
 					{{range $lineNum, $validationMessage := .CodeownersValidationErrors}}
-						<li> {{locale.Tr "codeowners.error"}} {{$lineNum}}: {{$validationMessage}}</li>
+						<li> Error on line {{$lineNum}}: {{$validationMessage}}</li>
 					{{end}}
 				</ul>
 			</div>

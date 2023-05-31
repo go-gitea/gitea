@@ -223,7 +223,7 @@ func AddCodeownerReviewers(ctx context.Context, pr *issues_model.PullRequest, re
 			return err
 		}
 
-		owners, teamOwners, err := ParseCodeowners(ctx, repo, pr.Issue.Poster, changedFiles, codeownersContents)
+		userOwners, teamOwners, err := ParseCodeowners(ctx, repo, pr.Issue.Poster, changedFiles, codeownersContents)
 		if err != nil {
 			log.Error("ParseCodeowners: %v", err)
 			return nil
@@ -232,20 +232,37 @@ func AddCodeownerReviewers(ctx context.Context, pr *issues_model.PullRequest, re
 		// Any errors at this point on should not cause the process to fail.
 		prAuthor := pr.Issue.Poster
 		isAdd := true
-		for _, userReviewer := range GetValidUserCodeownerReviewers(ctx, owners, repo, prAuthor, isAdd, pr.Issue) {
-			_, err := ReviewRequest(ctx, pr.Issue, prAuthor, userReviewer, isAdd)
+
+		for _, userOwner := range userOwners {
+			permDoer, err := access_model.GetUserRepoPermission(ctx, repo, prAuthor)
 			if err != nil {
-				log.Error("AddValidReviewers [repo_id: %d, issue_id: %d, pull_request_poster_user_id: %d, user_reviewer_id: %d]: "+
-					"Error adding user as a reviewer to the pull request: %v", repo.ID, pr.Issue.ID, prAuthor.ID, userReviewer.ID, err)
+				log.Error("models/perm/access/GetUserRepoPermission: %v", err)
+			} else {
+				err = IsValidReviewRequest(ctx, userOwner, prAuthor, isAdd, pr.Issue, &permDoer)
+				if err != nil {
+					log.Warn("IsValidReviewRequest: %v", err)
+				} else {
+				}
+				_, err := ReviewRequest(ctx, pr.Issue, prAuthor, userOwner, isAdd)
+				if err != nil {
+					log.Error("AddValidReviewers [repo_id: %d, issue_id: %d, pull_request_poster_user_id: %d, user_reviewer_id: %d]: "+
+						"Error adding user as a reviewer to the pull request: %v", repo.ID, pr.Issue.ID, prAuthor.ID, userOwner.ID, err)
+				}
 			}
 		}
-		for _, teamReviewer := range GetValidTeamCodeownerReviewers(ctx, teamOwners, repo, prAuthor, isAdd, pr.Issue) {
-			comment, err := TeamReviewRequest(ctx, pr.Issue, prAuthor, teamReviewer, isAdd)
-			comment.Content = "asdf"
+
+		for _, teamOwner := range teamOwners {
+			err := IsValidTeamReviewRequest(ctx, teamOwner, prAuthor, isAdd, pr.Issue)
 			if err != nil {
-				log.Error("AddValidReviewers [repo_id: %d, issue_id: %d, pull_request_poster_user_id: %d, team_reviewer_id: %d]: "+
-					"Error adding team as a reviewer to the pull request: %v", repo.ID, pr.Issue.ID, prAuthor.ID, teamReviewer.ID, err)
+				log.Warn("IsValidTeamReviewRequest: %v", err)
+			} else {
+				_, err := TeamReviewRequest(ctx, pr.Issue, prAuthor, teamOwner, isAdd)
+				if err != nil {
+					log.Error("AddValidReviewers [repo_id: %d, issue_id: %d, pull_request_poster_user_id: %d, team_reviewer_id: %d]: "+
+						"Error adding team as a reviewer to the pull request: %v", repo.ID, pr.Issue.ID, prAuthor.ID, teamOwner.ID, err)
+				}
 			}
+
 		}
 	}
 

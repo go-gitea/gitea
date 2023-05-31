@@ -643,7 +643,6 @@ func GetCodeownerValidationInfo(ctx *context.Context) {
 }
 
 func GetCodeownersOwnershipInfo(ctx *context.Context) {
-	ctx.Data["HasCodeowners"] = false
 	gitRepo, err := git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
 	defer gitRepo.Close()
 	if err == nil {
@@ -651,28 +650,18 @@ func GetCodeownersOwnershipInfo(ctx *context.Context) {
 		if err == nil {
 			codeownersContents, err := issue_service.GetCodeownersFileContents(ctx, commit, gitRepo)
 			if err == nil && codeownersContents != nil && len(codeownersContents) > 0 {
-				ownersNameOrEmail, teamOwnersFullName, err := issue_service.ParseCodeowners([]string{ctx.Repo.TreePath}, codeownersContents)
+				userOwners, teamOwners, err := issue_service.ParseCodeowners(ctx, ctx.Repo.Repository, ctx.Doer, []string{ctx.Repo.TreePath}, codeownersContents)
 				if err == nil {
-					codeowners := []string{}
-					for _, owner := range ownersNameOrEmail {
-						user, err := issue_service.GetUserByNameOrEmail(ctx, owner, ctx.Repo.Repository)
-						if err == nil {
-							if issue_service.UserHasWritePermissions(ctx, ctx.Repo.Repository, user) {
-								codeowners = append(codeowners, owner)
-							}
-						}
+					var codeowners []string
+					for _, userOwner := range userOwners {
+						codeowners = append(codeowners, userOwner.Name)
 					}
-					for _, teamOwner := range teamOwnersFullName {
-						team, err := issue_service.GetTeamFromFullName(ctx, teamOwner, ctx.Doer)
-						if err == nil && team != nil {
-							if issue_service.TeamHasWritePermissions(ctx, ctx.Repo.Repository, team) {
-								codeowners = append(codeowners, teamOwner)
-							}
-						}
+					for _, teamOwner := range teamOwners {
+						codeowners = append(codeowners, teamOwner.Name)
 					}
+
 					if err == nil && len(codeowners) > 0 {
-						ctx.Data["HasCodeowners"] = true
-						ctx.Data["Codeowners"] = "Owned by " + strings.Join(codeowners, ", ") + " (CODEOWNERS)"
+						ctx.Data["Codeowners"] = ctx.Locale.Tr("codeowners.codeownership", strings.Join(codeowners, ", "))
 					}
 				}
 			}

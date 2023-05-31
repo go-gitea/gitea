@@ -39,13 +39,12 @@ func ParseCodeowners(ctx context.Context, repo *repo_model.Repository, doer *use
 
 	// We have to declare a new list of strings to be able to append all codeowners
 	//	As we get them file by file in the following for loop
-	var users []*user_model.User
-	var teams []*organization_model.Team
+	users := []*user_model.User{}
+	teams := []*organization_model.Team{}
 	for _, file := range changedFiles {
 		newUsers, newTeams := GetOwners(codeownerMap, file)
-		users = append(users, newUsers)
-		teams = append(teams, newTeams)
-
+		users = append(users, newUsers...)
+		teams = append(teams, newTeams...)
 	}
 
 	users = RemoveDuplicateUsers(users)
@@ -76,7 +75,7 @@ func GetOwners(codeownerMap []Codeowners, file string) ([]*user_model.User, []*o
 		}
 	}
 	log.Trace("!!!Unmatched file: ", file)
-	return nil
+	return nil, nil
 }
 
 // SeparateOwnerAndTeam separates owners and teams based on format.
@@ -114,7 +113,7 @@ func SeparateOwnerAndTeam(codeownersList []string) ([]string, []string) {
 func RemoveDuplicateUsers(duplicatesPresent []*user_model.User) []*user_model.User {
 
 	// Make a map with all keys initialized to false
-	allKeys := make(map[string]bool)
+	allKeys := make(map[*user_model.User]bool)
 	duplicatesRemoved := []*user_model.User{}
 
 	// For each item in the list, add it and mark it "true" in the map, then skip it every time
@@ -132,8 +131,8 @@ func RemoveDuplicateUsers(duplicatesPresent []*user_model.User) []*user_model.Us
 func RemoveDuplicateTeams(duplicatesPresent []*organization_model.Team) []*organization_model.Team {
 
 	// Make a map with all keys initialized to false
-	allKeys := make(map[string]bool)
-	duplicatesRemoved := []organization_model.Team{}
+	allKeys := make(map[*organization_model.Team]bool)
+	duplicatesRemoved := []*organization_model.Team{}
 
 	// For each item in the list, add it and mark it "true" in the map, then skip it every time
 	for _, item := range duplicatesPresent {
@@ -322,31 +321,30 @@ func HasValidWritePermissions(ctx context.Context, repo *repo_model.Repository, 
 	for _, individual := range currIndividualOwners {
 		user, err := GetUserByNameOrEmail(ctx, individual, repo)
 		if err == nil {
-			if UserHasWritePermissions(user) {
+			if UserHasWritePermissions(ctx, repo, user) {
 				users = append(users, user)
 			} else {
-				return false
+				return nil, nil, false
 			}
 		} else {
-			return false
+			return nil, nil, false
 		}
 	}
 
 	for _, team := range currTeamOwners {
 		team, err := GetTeamFromFullName(ctx, team, doer)
 		if err == nil {
-			if TeamHasWritePermissions(team) {
+			if TeamHasWritePermissions(ctx, repo, team) {
 				teams = append(teams, team)
 			} else {
-				return false
+				return nil, nil, false
 			}
 		} else {
-			return false
+			return nil, nil, false
 		}
 	}
 
 	return users, teams, true
-
 }
 
 // GetCodeownersFileContents gets the CODEOWNERS file from the top level,'.gitea', or 'docs' directory of the
