@@ -248,12 +248,10 @@ func ParseCodeownersLine(line string) (globString, globString2 string, currFileU
 // IsValidCodeownersLine returns true if the given line of the CODEOWNERS file is valid syntactically (after the file pattern)
 func IsValidCodeownersLine(currFileUsers []string) bool {
 	for _, user := range currFileUsers {
-		if !glob.Globexp("@*").MatchString(user) {
-			if !glob.Globexp("@*/*").MatchString(user) {
-				if !glob.Globexp("*@*.*").MatchString(user) {
-					return false
-				}
-			}
+		if !glob.Globexp("@*").MatchString(user) &&
+			!glob.Globexp("@*/*").MatchString(user) &&
+			!glob.Globexp("*@*.*").MatchString(user) {
+			return false
 		}
 	}
 	return true
