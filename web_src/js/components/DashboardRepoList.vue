@@ -520,13 +520,15 @@ ul li:not(:last-child) {
 }
 
 .feeds .list ul li.active,
-.feeds .list ul li.active a:hover,
 .feeds .list ul li.active .commit-status {
-  background: var(--color-primary);
-  color: var(--color-primary-contrast) !important;
+  background: var(--color-active);
 }
 
 .feeds .list ul li.active svg {
   color: inherit;
+}
+
+.feeds .list ul li.active .octicon-check {
+  background: transparent;
 }
 </style>
