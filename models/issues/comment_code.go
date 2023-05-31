@@ -54,7 +54,7 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 	}
 	conds := opts.ToConds()
 
-	if !showOutdatedComments {
+	if !showOutdatedComments && review.ID == 0 {
 		conds = conds.And(builder.Eq{"invalidated": false})
 	}
 
