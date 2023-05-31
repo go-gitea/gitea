@@ -14,11 +14,6 @@
 						<a href="{{.RepoLink}}/tags">{{svg "octicon-tag"}} <b>{{.NumTags}}</b> {{.locale.TrN .NumTags "repo.tag" "repo.tags"}}</a>
 					</div>
 				{{end}}
-				<div class="item">
-					{{$fileSizeFormatted := FileSize .Repository.Size}}{{/* the formatted string is always "{val} {unit}" */}}
-					{{$fileSizeFields := StringUtils.Split $fileSizeFormatted " "}}
-					<span>{{svg "octicon-database"}} <b>{{.locale.PrettyNumber (index $fileSizeFields 0)}}</b> {{index $fileSizeFields 1}}</span>
-				</div>
 				{{if .Licenses}}
 					<div class="item">
 						<a href="{{.TreeLink}}/{{PathEscapeSegments .LicenseFileName}}">{{svg "octicon-law"}} <b>
@@ -30,6 +25,11 @@
 						</b></a>
 					</div>
 				{{end}}
+				<div class="item">
+					{{$fileSizeFormatted := FileSize .Repository.Size}}{{/* the formatted string is always "{val} {unit}" */}}
+					{{$fileSizeFields := StringUtils.Split $fileSizeFormatted " "}}
+					<span>{{svg "octicon-database"}} <b>{{.locale.PrettyNumber (index $fileSizeFields 0)}}</b> {{index $fileSizeFields 1}}</span>
+				</div>
 			{{end}}
 		</div>
 	</div>
