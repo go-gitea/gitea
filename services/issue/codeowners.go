@@ -23,38 +23,56 @@ import (
 )
 
 type Codeowners struct {
-	glob   string
-	owners []string
+	glob  string
+	users []*user_model.User
+	teams []*organization_model.Team
 }
 
-func ParseCodeowners(changedFiles []string, codeownersContents []byte) ([]string, []string, error) {
+var globalCodeownerMap []Codeowners
+var globalCodeownerIndividuals []Codeowners
+var globalCodeownerTeams []Codeowners
+
+func ParseCodeowners(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, changedFiles []string, codeownersContents []byte) ([]*user_model.User, []*organization_model.Team, error) {
 
 	// This calls the actual parser
-	codeownerMap, err := ParseCodeownerBytes(codeownersContents)
+	codeownerMap, err := ParseCodeownerBytes(ctx, repo, doer, codeownersContents)
 
 	// We have to declare a new list of strings to be able to append all codeowners
 	//	As we get them file by file in the following for loop
-	var codeownersList []string
+	var users []*user_model.User
+	var teams []*organization_model.Team
 	for _, file := range changedFiles {
-		codeownersList = append(codeownersList, GetOwners(codeownerMap, file)...)
+		newUsers, newTeams := GetOwners(codeownerMap, file)
+		users = append(users, newUsers)
+		teams = append(teams, newTeams)
+
 	}
-	codeownerIndividuals, codeOwnerTeams := SeparateOwnerAndTeam(codeownersList)
 
-	log.Trace("Final result of Codeowner Users: " + fmt.Sprint(codeownerIndividuals))
-	log.Trace("Final result of Codeowner Teams: " + fmt.Sprint(codeOwnerTeams))
+	users = RemoveDuplicateUsers(users)
+	teams = RemoveDuplicateTeams(teams)
 
-	return codeownerIndividuals, codeOwnerTeams, err
+	log.Trace("Final result of Codeowner Users: ")
+	for _, user := range users {
+		log.Trace(user.Name)
+	}
+
+	log.Trace("Final result of Codeowner Teams: ")
+	for _, team := range teams {
+		log.Trace(team.Name)
+	}
+
+	return users, teams, err
 }
 
 // GetOwners returns the list of owners (including teams) for a single file. It matches from our globMap
 // to the changed files that it receives from the for loop in the ParseCodeowners function above.
-func GetOwners(codeownerMap []Codeowners, file string) []string {
+func GetOwners(codeownerMap []Codeowners, file string) ([]*user_model.User, []*organization_model.Team) {
 
 	for i := len(codeownerMap) - 1; i >= 0; i-- {
 		if glob.Globexp(codeownerMap[i].glob).MatchString(file) {
 			fmt.Println("File:", file, "Result:", codeownerMap[i])
 
-			return codeownerMap[i].owners
+			return codeownerMap[i].users, codeownerMap[i].teams
 		}
 	}
 	log.Trace("!!!Unmatched file: ", file)
@@ -68,7 +86,7 @@ func SeparateOwnerAndTeam(codeownersList []string) ([]string, []string) {
 	codeownerIndividuals := []string{}
 	codeOwnerTeams := []string{}
 
-	codeownersList = RemoveDuplicateString(codeownersList)
+	// codeownersList = RemoveDuplicateString(codeownersList)
 
 	for _, codeowner := range codeownersList {
 
@@ -93,11 +111,11 @@ func SeparateOwnerAndTeam(codeownersList []string) ([]string, []string) {
 }
 
 // Removing duplicates has to be done manually in Golang
-func RemoveDuplicateString(duplicatesPresent []string) []string {
+func RemoveDuplicateUsers(duplicatesPresent []*user_model.User) []*user_model.User {
 
 	// Make a map with all keys initialized to false
 	allKeys := make(map[string]bool)
-	duplicatesRemoved := []string{}
+	duplicatesRemoved := []*user_model.User{}
 
 	// For each item in the list, add it and mark it "true" in the map, then skip it every time
 	for _, item := range duplicatesPresent {
@@ -110,15 +128,33 @@ func RemoveDuplicateString(duplicatesPresent []string) []string {
 	return duplicatesRemoved
 }
 
-func ParseCodeownerBytes(codeownerBytes []byte) ([]Codeowners, error) {
+// Removing duplicates has to be done manually in Golang
+func RemoveDuplicateTeams(duplicatesPresent []*organization_model.Team) []*organization_model.Team {
+
+	// Make a map with all keys initialized to false
+	allKeys := make(map[string]bool)
+	duplicatesRemoved := []organization_model.Team{}
+
+	// For each item in the list, add it and mark it "true" in the map, then skip it every time
+	for _, item := range duplicatesPresent {
+		if _, value := allKeys[item]; !value {
+			allKeys[item] = true
+			duplicatesRemoved = append(duplicatesRemoved, item)
+		}
+	}
+
+	return duplicatesRemoved
+}
+
+func ParseCodeownerBytes(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, codeownerBytes []byte) ([]Codeowners, error) {
 
 	// Create a new scanner to read from the byte array
 	scanner := bufio.NewScanner(strings.NewReader(string(codeownerBytes)))
-	return ScanAndParse(*scanner)
+	return ScanAndParse(ctx, repo, doer, *scanner)
 }
 
 // ScanAndParse is the director function for handling the incoming codeowner contents
-func ScanAndParse(scanner bufio.Scanner) ([]Codeowners, error) {
+func ScanAndParse(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, scanner bufio.Scanner) ([]Codeowners, error) {
 
 	// globMap maps each line using a key/value pair held by the Codeowners Data type.
 	//		It maps from the file type (e.g., *.js) to the users for that file type (e.g., @user1 @user2)
@@ -136,30 +172,43 @@ func ScanAndParse(scanner bufio.Scanner) ([]Codeowners, error) {
 		//		handles that outside of the parser
 		if len(currFileUsers) > 0 {
 			if IsValidCodeownersLine(currFileUsers) {
-				newCodeowner := Codeowners{
-					glob:   globString,
-					owners: currFileUsers,
-				}
+				users, teams, isValid := HasValidWritePermissions(ctx, repo, doer, currFileUsers)
+				if isValid {
 
-				codeownerMap = append(codeownerMap, newCodeowner)
-
-				if globString2 != "" {
-					newCodeowner2 := Codeowners{
-						glob:   globString2,
-						owners: currFileUsers,
+					newCodeowner := Codeowners{
+						glob:  globString,
+						users: users,
+						teams: teams,
 					}
 
-					codeownerMap = append(codeownerMap, newCodeowner2)
+					codeownerMap = append(codeownerMap, newCodeowner)
+
+					if globString2 != "" {
+						newCodeowner2 := Codeowners{
+							glob:  globString2,
+							users: users,
+							teams: teams,
+						}
+
+						codeownerMap = append(codeownerMap, newCodeowner2)
+					}
+				} else {
+					//error type1 (invalid permissions)
 				}
 			} else {
+
+				// fill in the error map with info
+				//error type 2 -- syntax error
+
 				log.Trace("Invalid syntax given on line " + fmt.Sprint(lineCounter) + ":" +
 					nextLine)
 			}
 		} else {
 
 			newCodeowner := Codeowners{
-				glob:   globString,
-				owners: []string{""},
+				glob:  globString,
+				users: []*user_model.User{},
+				teams: []*organization_model.Team{},
 			}
 
 			codeownerMap = append(codeownerMap, newCodeowner)
@@ -247,6 +296,7 @@ func ParseCodeownersLine(line string) (globString, globString2 string, currFileU
 
 // IsValidCodeownersLine returns true if the given line of the CODEOWNERS file is valid syntactically (after the file pattern)
 func IsValidCodeownersLine(currFileUsers []string) bool {
+
 	for _, user := range currFileUsers {
 		if !glob.Globexp("@*").MatchString(user) &&
 			!glob.Globexp("@*/*").MatchString(user) &&
@@ -254,7 +304,49 @@ func IsValidCodeownersLine(currFileUsers []string) bool {
 			return false
 		}
 	}
+
+	// Add checks here to validate users and teams (write permissions)
+	// That way, we can use the parser to validate everything except current PR users and simplify our code base a lot.
+	// Note that we have to change where we separate users and teams to here (which may actually be cleaner), in addition to
+	//		Removing that @ here instead of above
+
 	return true
+}
+
+func HasValidWritePermissions(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, currFileOwners []string) ([]*user_model.User, []*organization_model.Team, bool) {
+
+	currIndividualOwners, currTeamOwners := SeparateOwnerAndTeam(currFileOwners)
+	users := []*user_model.User{}
+	teams := []*organization_model.Team{}
+
+	for _, individual := range currIndividualOwners {
+		user, err := GetUserByNameOrEmail(ctx, individual, repo)
+		if err == nil {
+			if UserHasWritePermissions(user) {
+				users = append(users, user)
+			} else {
+				return false
+			}
+		} else {
+			return false
+		}
+	}
+
+	for _, team := range currTeamOwners {
+		team, err := GetTeamFromFullName(ctx, team, doer)
+		if err == nil {
+			if TeamHasWritePermissions(team) {
+				teams = append(teams, team)
+			} else {
+				return false
+			}
+		} else {
+			return false
+		}
+	}
+
+	return users, teams, true
+
 }
 
 // GetCodeownersFileContents gets the CODEOWNERS file from the top level,'.gitea', or 'docs' directory of the

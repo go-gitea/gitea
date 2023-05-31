@@ -223,7 +223,7 @@ func AddCodeownerReviewers(ctx context.Context, pr *issues_model.PullRequest, re
 			return err
 		}
 
-		owners, teamOwners, err := ParseCodeowners(changedFiles, codeownersContents)
+		owners, teamOwners, err := ParseCodeowners(ctx, repo, pr.Issue.Poster, changedFiles, codeownersContents)
 		if err != nil {
 			log.Error("ParseCodeowners: %v", err)
 			return nil
