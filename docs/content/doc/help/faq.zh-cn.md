@@ -19,7 +19,7 @@ menu:
 
 本页面包含一些常见问题和答案。
 
-有关更多帮助资源，请查看所有[支持选项]({{< relref "doc/help/support.zh-cn.md" >}})。
+有关更多帮助资源，请查看所有[支持选项]({{< relref "doc/help/seek-help.zh-cn.md" >}})。
 
 **目录**
 
@@ -410,7 +410,7 @@ SystemD 上的标准输出默认会写入日志记录中。您可以尝试使用
 
 类似地，Docker 上的标准输出可以使用`docker logs <container>`来查看。
 
-要收集日志以进行帮助和问题报告，请参阅[支持选项]({{< relref "doc/help/support.zh-cn.md" >}})。
+要收集日志以进行帮助和问题报告，请参阅[支持选项]({{< relref "doc/help/seek-help.zh-cn.md" >}})。
 
 ## 初始日志记录
 
