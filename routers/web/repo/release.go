@@ -82,7 +82,6 @@ func TagsList(ctx *context.Context) {
 }
 
 func releasesOrTags(ctx *context.Context, isTagList bool) {
-	ctx.Data["DefaultBranch"] = ctx.Repo.Repository.DefaultBranch
 	ctx.Data["IsViewBranch"] = false
 	ctx.Data["IsViewTag"] = true
 	// Disable the showCreateNewBranch form in the dropdown on this page.
@@ -236,7 +235,6 @@ func releasesOrTagsFeed(ctx *context.Context, isReleasesOnly bool, formatType st
 // SingleRelease renders a single release's page
 func SingleRelease(ctx *context.Context) {
 	ctx.Data["PageIsReleaseList"] = true
-	ctx.Data["DefaultBranch"] = ctx.Repo.Repository.DefaultBranch
 
 	writeAccess := ctx.Repo.CanWrite(unit.TypeReleases)
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
