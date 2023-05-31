@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitgraph"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/gitdiff"
 )
@@ -85,7 +86,11 @@ func Commits(ctx *context.Context) {
 	pager := context.NewPagination(int(commitsCount), pageSize, page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
-
+	ctx.Data["LicenseFileName"], err = repo_module.GetLicenseFileName(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
+	if err != nil {
+		ctx.ServerError("GetLicenseFileName", err)
+		return
+	}
 	ctx.HTML(http.StatusOK, tplCommits)
 }
 
@@ -203,6 +208,11 @@ func SearchCommits(ctx *context.Context) {
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["RefName"] = ctx.Repo.RefName
+	ctx.Data["LicenseFileName"], err = repo_module.GetLicenseFileName(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
+	if err != nil {
+		ctx.ServerError("GetLicenseFileName", err)
+		return
+	}
 	ctx.HTML(http.StatusOK, tplCommits)
 }
 
@@ -252,6 +262,11 @@ func FileHistory(ctx *context.Context) {
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
+	ctx.Data["LicenseFileName"], err = repo_module.GetLicenseFileName(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
+	if err != nil {
+		ctx.ServerError("GetLicenseFileName", err)
+		return
+	}
 	ctx.HTML(http.StatusOK, tplCommits)
 }
 

@@ -80,6 +80,12 @@ func Branches(ctx *context.Context) {
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
+	var err error
+	ctx.Data["LicenseFileName"], err = repo_module.GetLicenseFileName(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
+	if err != nil {
+		ctx.ServerError("GetLicenseFileName", err)
+		return
+	}
 	ctx.HTML(http.StatusOK, tplBranch)
 }
 
