@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"code.gitea.io/gitea/models/migrations/base"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type testCase struct {
