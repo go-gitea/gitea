@@ -1,0 +1,7 @@
+{{if .}}
+    <div class="file-info-entry">
+        <div data-tooltip-content="Owned by {{ StringUtils.Join . ", "}} (CODEOWNERS)">
+            {{svg "octicon-shield-lock"}}
+        </div>
+    </div>
+{{end}}

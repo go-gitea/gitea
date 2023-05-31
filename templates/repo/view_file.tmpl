@@ -9,13 +9,13 @@
 			<div class="text left gt-whitespace-pre">{{.FileWarning}}</div>
 		</div>
 	{{end}}
-	{{- if .HasCodeownersValidationErrors}}
+	{{- if .CodeownersValidationErrors}}
 		<div class="ui warning message">
 			<div class="text left">
 				{{"This CODEOWNERS file contains errors:"}}
 				<ul>
 					{{range $lineNum, $validationMessage := .CodeownersValidationErrors}}
-					<li>Error on line {{$lineNum}}: {{$validationMessage}}</li>
+						<li>Error on line {{$lineNum}}: {{$validationMessage}}</li>
 					{{end}}
 				</ul>
 			</div>

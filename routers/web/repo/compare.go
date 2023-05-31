@@ -34,6 +34,7 @@ import (
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
+	issue_service "code.gitea.io/gitea/services/issue"
 )
 
 const (
@@ -62,6 +63,32 @@ func setCompareContext(ctx *context.Context, before, head *git.Commit, headOwner
 	setPathsCompareContext(ctx, before, head, headOwner, headName)
 	setImageCompareContext(ctx)
 	setCsvCompareContext(ctx)
+
+	// Add Code owner file-owners map if applicable
+	ctx.Data["Codeowners"] = make(map[string][]string)
+	gitRepo, err := git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
+	defer gitRepo.Close()
+	if err == nil {
+		commit, err := gitRepo.GetCommit(ctx.Repo.CommitID)
+		if err == nil {
+			codeownersContents, err := issue_service.GetCodeownersFileContents(ctx, commit, gitRepo)
+			if err == nil && codeownersContents != nil && len(codeownersContents) > 0 {
+				changedFiles, err := gitRepo.GetFilesChangedBetween(before.ID.String(), head.ID.String())
+				if err == nil {
+					ctx.Data["Codeowners"] = GetCodeownerMap(ctx, changedFiles, codeownersContents)
+				}
+			}
+		}
+	}
+}
+
+// GetCodeownerMap gets a map of file paths to their code owners
+func GetCodeownerMap(ctx *context.Context, filePaths []string, codeownersContents []byte) (mapping map[string][]string) {
+	mapping = make(map[string][]string)
+	for _, filePath := range filePaths {
+		mapping[filePath] = GetFileCodeowners(ctx, filePath, codeownersContents)
+	}
+	return mapping
 }
 
 // SourceCommitURL creates a relative URL for a commit in the given repository

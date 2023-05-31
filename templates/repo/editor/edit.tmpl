@@ -3,7 +3,7 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
-		{{- if .HasCodeownersValidationErrors}}
+		{{- if .CodeownersValidationErrors}}
 			<div class="ui warning message">
 				<div class="text left">
 					{{"This CODEOWNERS file contains errors:"}}
