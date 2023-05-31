@@ -16,11 +16,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/nektos/act/pkg/model"
+
 	activities_model "code.gitea.io/gitea/models/activities"
 	admin_model "code.gitea.io/gitea/models/admin"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
+	issue_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -41,9 +44,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
 	issue_service "code.gitea.io/gitea/services/issue"
-	"code.gitea.io/gitea/services/pull"
-
-	"github.com/nektos/act/pkg/model"
 )
 
 const (
@@ -364,7 +364,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		}
 	} else if util.SliceContains([]string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}, ctx.Repo.TreePath) {
 		if data, err := blob.GetBlobContent(); err == nil {
-			_, warnings := pull.GetCodeOwnersFromContent(ctx, data)
+			_, warnings := issue_model.GetCodeOwnersFromContent(ctx, data)
 			if len(warnings) > 0 {
 				ctx.Data["FileWarning"] = strings.Join(warnings, "\n")
 			}

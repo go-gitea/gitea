@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
-	org_model "code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
@@ -125,31 +124,12 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 
 		_, _ = issue_service.CreateComment(ctx, ops)
 
-		if coRules, _, err := GetCodeOwners(ctx, repo, repo.DefaultBranch); err == nil && len(coRules) > 0 {
-			changedFiles, err := baseGitRepo.GetFilesChangedBetween(git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName())
-			if err != nil {
+		if !pr.IsWorkInProgress() {
+			if err := issues_model.NotifyCodeOwners(ctx, pull, pr); err != nil {
 				return err
 			}
-
-			uniqUsers := make(map[int64]*user_model.User)
-			for _, rule := range coRules {
-				for _, f := range changedFiles {
-					if (rule.Rule.MatchString(f) && !rule.Negative) || (!rule.Rule.MatchString(f) && rule.Negative) {
-						for _, u := range rule.Users {
-							uniqUsers[u.ID] = u
-						}
-					}
-				}
-			}
-
-			for _, u := range uniqUsers {
-				if u.ID != pull.Poster.ID {
-					if _, err := issues_model.AddReviewRequest(pull, u, pull.Poster); err != nil {
-						log.Warn("Failed add assignee user: %s to PR review: %s#%d", u.Name, pr.BaseRepo.Name, pr.ID)
-					}
-				}
-			}
 		}
+
 	}
 
 	return nil
@@ -864,176 +844,4 @@ func IsHeadEqualWithBranch(ctx context.Context, pr *issues_model.PullRequest, br
 		}
 	}
 	return baseCommit.HasPreviousCommit(headCommit.ID)
-}
-
-// GetCodeOwners returns the code owners configuration
-// Return empty slice if files missing
-// Return error on file system errors
-// We're trying to do the best we can when parsing a file.
-// Invalid lines are skipped. Non-existent users and groups too.
-func GetCodeOwners(ctx context.Context, repo *repo_model.Repository, branch string) ([]*CodeOwnerRule, []string, error) {
-	files := []string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}
-	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
-	if err != nil {
-		return nil, nil, err
-	}
-	defer closer.Close()
-
-	if !gitRepo.IsBranchExist(branch) {
-		return nil, nil, &git.ErrBranchNotExist{Name: branch}
-	}
-
-	commit, err := gitRepo.GetBranchCommit(branch)
-
-	var data string
-	for _, file := range files {
-		if blob, err := commit.GetBlobByPath(file); err == nil {
-			data, err = blob.GetBlobContent()
-			if err == nil {
-				break
-			}
-		}
-	}
-
-	rules, warnings := GetCodeOwnersFromContent(ctx, data)
-	return rules, warnings, nil
-}
-
-func GetCodeOwnersFromContent(ctx context.Context, data string) ([]*CodeOwnerRule, []string) {
-	if len(data) == 0 {
-		return nil, nil
-	}
-
-	rules := make([]*CodeOwnerRule, 0)
-	lines := strings.Split(data, "\n")
-	warnings := make([]string, 0)
-
-	for i, line := range lines {
-		tokens := tokenizeCodeOwnersLine(line)
-		if len(tokens) == 0 {
-			continue
-		} else if len(tokens) < 2 {
-			warnings = append(warnings, fmt.Sprintf("Line: %d: incorrect format", i+1))
-			continue
-		}
-		rule, wr := parseCodeOwnersLine(ctx, tokens)
-		for _, w := range wr {
-			warnings = append(warnings, fmt.Sprintf("Line: %d: %s", i+1, w))
-		}
-		if rule == nil {
-			continue
-		}
-
-		rules = append(rules, rule)
-	}
-
-	return rules, warnings
-}
-
-type CodeOwnerRule struct {
-	Rule     *regexp.Regexp
-	Negative bool
-	Users    []*user_model.User
-}
-
-func parseCodeOwnersLine(ctx context.Context, tokens []string) (*CodeOwnerRule, []string) {
-	var err error
-	rule := &CodeOwnerRule{
-		Users:    make([]*user_model.User, 0),
-		Negative: strings.HasPrefix(tokens[0], "!"),
-	}
-
-	warnings := make([]string, 0)
-
-	rule.Rule, err = regexp.Compile(fmt.Sprintf("^%s$", strings.TrimPrefix(tokens[0], "!")))
-	if err != nil {
-		warnings = append(warnings, fmt.Sprintf("incorrect codeowner regexp: %s", err))
-		return nil, warnings
-	}
-
-	for _, user := range tokens[1:] {
-		user = strings.TrimPrefix(user, "@")
-
-		// Only @org/team can contain slashes
-		if strings.Contains(user, "/") {
-			s := strings.Split(user, "/")
-			if len(s) != 2 {
-				warnings = append(warnings, fmt.Sprintf("incorrect codeowner group: %s", user))
-				continue
-			}
-			orgName := s[0]
-			teamName := s[1]
-
-			org, err := org_model.GetOrgByName(ctx, orgName)
-			if err != nil {
-				warnings = append(warnings, fmt.Sprintf("incorrect codeowner organization: %s", user))
-				continue
-			}
-			teams, err := org.LoadTeams()
-			if err != nil {
-				warnings = append(warnings, fmt.Sprintf("incorrect codeowner team: %s", user))
-				continue
-			}
-
-			for _, team := range teams {
-				if team.Name == teamName {
-					if err := team.LoadMembers(ctx); err != nil {
-						continue
-					}
-					rule.Users = append(rule.Users, team.Members...)
-				}
-			}
-		} else {
-			u, err := user_model.GetUserByName(ctx, user)
-			if err != nil {
-				warnings = append(warnings, fmt.Sprintf("incorrect codeowner user: %s", user))
-				continue
-			}
-			rule.Users = append(rule.Users, u)
-		}
-	}
-
-	if len(rule.Users) == 0 {
-		warnings = append(warnings, "no users matched")
-		return nil, warnings
-	}
-
-	return rule, warnings
-}
-
-func tokenizeCodeOwnersLine(line string) []string {
-	if len(line) == 0 {
-		return nil
-	}
-
-	line = strings.TrimSpace(line)
-	line = strings.ReplaceAll(line, "\t", " ")
-
-	tokens := make([]string, 0)
-
-	escape := false
-	token := ""
-	for _, char := range line {
-		if escape {
-			token += string(char)
-			escape = false
-		} else if string(char) == "\\" {
-			escape = true
-		} else if string(char) == "#" {
-			break
-		} else if string(char) == " " {
-			if len(token) > 0 {
-				tokens = append(tokens, token)
-				token = ""
-			}
-		} else {
-			token += string(char)
-		}
-	}
-
-	if len(token) > 0 {
-		tokens = append(tokens, token)
-	}
-
-	return tokens
 }
