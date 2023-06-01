@@ -4,17 +4,17 @@
 		{{template "user/overview/header" .}}
 		{{template "package/shared/list" .}}
 	{{else}}
-			<div class="ui container">
-				<div class="ui stackable grid">
-					{{template "user/overview/big_profile_avatar" .}}
-					<div class="ui twelve wide column">
-						{{template "user/overview/header_items" .}}
-						<div class="page-content repository projects">
-							{{template "package/shared/list" .}}
-						</div>
+		<div class="ui container">
+			<div class="ui stackable grid">
+				{{template "user/overview/big_profile_avatar" .}}
+				<div class="ui twelve wide column">
+					{{template "user/overview/header_items" .}}
+					<div class="page-content repository projects">
+						{{template "package/shared/list" .}}
 					</div>
 				</div>
 			</div>
+		</div>
 	{{end}}
 </div>
 {{template "base/footer" .}}
