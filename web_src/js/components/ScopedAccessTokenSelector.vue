@@ -65,7 +65,6 @@
 </template>
 
 <script>
-
 import {createApp} from 'vue';
 import {showElem} from '../utils/dom.js';
 
