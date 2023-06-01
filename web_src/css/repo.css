@@ -1616,12 +1616,6 @@
   margin-right: -4px;
 }
 
-.repository .diff-detail-box > div::after {
-  clear: both;
-  content: "";
-  display: block;
-}
-
 .repository .diff-detail-box .diff-detail-stats strong {
   margin-left: 0.25rem;
   margin-right: 0.25rem;
@@ -1658,12 +1652,10 @@
   height: 33px;
 }
 
-.repository .diff-detail-box .diff-detail-actions > * {
-  margin-right: 0;
-}
-
-.repository .diff-detail-box .diff-detail-actions > * + * {
-  margin-left: 0.25rem;
+.diff-detail-actions > *,
+.diff-detail-actions .button {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 
 @media (max-width: 480px) {
@@ -1728,9 +1720,12 @@
 .repository .diff-box .header:not(.resolved-placeholder) .button {
   padding: 8px 12px;
   flex: 0 0 auto;
-  margin-top: -8px;
-  margin-bottom: -8px;
   margin-right: 0;
+}
+
+.repository .diff-box .header:not(.resolved-placeholder) .button:has(svg) {
+  padding-top: 6px;
+  padding-bottom: 6px;
 }
 
 .repository .diff-box .resolved-placeholder {
@@ -3089,16 +3084,17 @@ tbody.commit-list {
   word-break: break-all;
 }
 
+.diff-file-header {
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
+}
+
 .diff-file-box[data-folded="true"] .diff-file-body {
   display: none;
 }
 
 .diff-file-box[data-folded="true"] .diff-file-header {
   border-radius: var(--border-radius) !important;
-}
-
-.diff-file-header-actions > * + * {
-  margin-left: 0.5rem !important;
 }
 
 .ui.attached.header.diff-file-header.sticky-2nd-row {
@@ -3119,13 +3115,13 @@ tbody.commit-list {
   }
 }
 
-.ui.attached.header.diff-file-header .diff-file-header-actions {
-  flex-shrink: 0;
-}
-
-.ui.attached.header.diff-file-header .diff-file-name {
+.diff-file-name {
   flex: auto;
   min-width: 100px;
+}
+
+.diff-file-name .ui.label {
+  margin-left: 0 !important;
 }
 
 .diff-stats-bar {
