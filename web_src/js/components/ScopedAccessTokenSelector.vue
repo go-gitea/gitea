@@ -88,8 +88,8 @@ const sfc = {
      * When entire category is toggled
      * @param {Event} event
      */
-    onCategoryInput(event) {
-      event.preventDefault();
+    onCategoryInput(e) {
+      e.preventDefault();
       this.deleteSelected = this.$refs.category.checked;
       this.writeSelected = this.$refs.category.checked;
       this.readSelected = this.$refs.category.checked;
