@@ -893,19 +893,32 @@ img.ui.avatar,
 .page-content .ui.ui.ui.container:not(.fluid) {
   width: 1280px;
   max-width: calc(100vw - 64px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ui.container.fluid.padded {
+  padding: 0 32px;
 }
 
 /* enable fluid page widths for medium size viewports */
 @media (min-width: 768px) and (max-width: 1200px) {
-  .ui.ui.ui.container:not(.fluid) {
-    width: calc(100vw - 64px);
+  .page-content .ui.ui.ui.container:not(.fluid) {
+    width: calc(100vw - 32px);
+    max-width: calc(100vw - 32px);
+  }
+  .ui.container.fluid.padded {
+    padding: 0 16px;
   }
 }
 
-@media only screen and (max-width: 767px) {
+@media (max-width: 767px) {
   .page-content .ui.ui.ui.container:not(.fluid) {
-    width: auto; /* copied from semantic css */
-    max-width: 100%;
+    width: calc(100vw - 16px);
+    max-width: calc(100vw - 16px);
+  }
+  .ui.container.fluid.padded {
+    padding: 0 8px;
   }
 }
 
@@ -1163,10 +1176,6 @@ img.ui.avatar,
 /* FIXME: this is a serious pollution, do not use this for "float: right" anymore */
 .ui.right:not(.action) {
   float: right;
-}
-
-.ui.container.fluid.padded {
-  padding: 0 32px;
 }
 
 .ui.form .ui.button {
@@ -1525,7 +1534,8 @@ img.ui.avatar,
 }
 
 @media (max-width: 767px) {
-  .not-mobile {
+  /* double selector so it wins over .gt-df etc */
+  .not-mobile.not-mobile {
     display: none !important;
   }
 }
@@ -1550,12 +1560,6 @@ img.ui.avatar,
   margin: 0;
   overflow: visible;
   clip: auto;
-}
-
-@media (min-width: 768px) and (max-width: 991px) {
-  .ui.container {
-    width: 95%;
-  }
 }
 
 .ui.menu.new-menu {
