@@ -1,5 +1,5 @@
 ---
-date: "2019-04-19:44:00+01:00"
+date: "2023-06-01T08:40:00+08:00"
 title: "OAuth2 provider"
 slug: "oauth2-provider"
 weight: 41
@@ -152,8 +152,8 @@ To achieve this, you have to provide a `code_verifier` for every authorization r
 
 Using this `code_verifier` string, a new one called `code_challenge` is created by using one of two methods:
 
-  - If you have the required functionality on your client, set `code_challenge` to be a URL-safe base64-encoded string of the SHA256 hash of `code_verifier`. In that case, your `code_challenge_method` becomes `S256`.
-  - If you are unable to do so, you can provide your `code_verifier` as a plain string to `code_challenge`. Then you have to set your `code_challenge_method` as `plain`.
+- If you have the required functionality on your client, set `code_challenge` to be a URL-safe base64-encoded string of the SHA256 hash of `code_verifier`. In that case, your `code_challenge_method` becomes `S256`.
+- If you are unable to do so, you can provide your `code_verifier` as a plain string to `code_challenge`. Then you have to set your `code_challenge_method` as `plain`.
 
 After you have generated this values, you can continue with your request.
 
@@ -163,9 +163,7 @@ After you have generated this values, you can continue with your request.
    https://[YOUR-GITEA-URL]/login/oauth/authorize?client_id=CLIENT_ID&redirect_uri=REDIRECT_URI&response_type=code&code_challenge_method=CODE_CHALLENGE_METHOD&code_challenge=CODE_CHALLENGE&state=STATE
    ```
 
-   The `CLIENT_ID` can be obtained by registering an application in the settings.
-   
-   The `STATE` is a random string that will be sent back to your application after the user authorizes. The `state` parameter is optional, but should be used to prevent CSRF attacks.
+   The `CLIENT_ID` can be obtained by registering an application in the settings. The `STATE` is a random string that will be sent back to your application after the user authorizes. The `state` parameter is optional, but should be used to prevent CSRF attacks.
 
    ![Authorization Page](/authorize.png)
 
