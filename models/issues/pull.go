@@ -981,14 +981,14 @@ func GetCodeOwnersFromContent(ctx context.Context, data string) ([]*CodeOwnerRul
 	warnings := make([]string, 0)
 
 	for i, line := range lines {
-		tokens := tokenizeCodeOwnersLine(line)
+		tokens := TokenizeCodeOwnersLine(line)
 		if len(tokens) == 0 {
 			continue
 		} else if len(tokens) < 2 {
 			warnings = append(warnings, fmt.Sprintf("Line: %d: incorrect format", i+1))
 			continue
 		}
-		rule, wr := parseCodeOwnersLine(ctx, tokens)
+		rule, wr := ParseCodeOwnersLine(ctx, tokens)
 		for _, w := range wr {
 			warnings = append(warnings, fmt.Sprintf("Line: %d: %s", i+1, w))
 		}
@@ -1009,7 +1009,7 @@ type CodeOwnerRule struct {
 	Teams    []*org_model.Team
 }
 
-func parseCodeOwnersLine(ctx context.Context, tokens []string) (*CodeOwnerRule, []string) {
+func ParseCodeOwnersLine(ctx context.Context, tokens []string) (*CodeOwnerRule, []string) {
 	var err error
 	rule := &CodeOwnerRule{
 		Users:    make([]*user_model.User, 0),
@@ -1064,15 +1064,15 @@ func parseCodeOwnersLine(ctx context.Context, tokens []string) (*CodeOwnerRule, 
 		}
 	}
 
-	if len(rule.Users) == 0 {
-		warnings = append(warnings, "no users matched")
+	if (len(rule.Users) == 0) && (len(rule.Teams) == 0) {
+		warnings = append(warnings, "no users/groups matched")
 		return nil, warnings
 	}
 
 	return rule, warnings
 }
 
-func tokenizeCodeOwnersLine(line string) []string {
+func TokenizeCodeOwnersLine(line string) []string {
 	if len(line) == 0 {
 		return nil
 	}
