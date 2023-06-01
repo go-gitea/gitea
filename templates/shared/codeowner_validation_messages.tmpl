@@ -1,0 +1,12 @@
+{{- if .ValidationErrorMessages}}
+    <div class="ui warning message">
+        <div class="text left">
+            {{ .ValidationHeader }}
+            <ul>
+                {{range $message := .ValidationErrorMessages}}
+                <li>{{ $message }}</li>
+                {{end}}
+            </ul>
+        </div>
+    </div>
+{{end}}
