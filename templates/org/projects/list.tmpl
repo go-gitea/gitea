@@ -1,5 +1,18 @@
 {{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository packages">
-	{{template "user/overview/projects" .}}
-</div>
+	<div role="main" aria-label="{{.Title}}" class="page-content user profile">
+		{{if .ContextUser.IsOrganization}}
+			{{template "user/overview/header" .}}
+			{{template "projects/list" .}}
+		{{else}}
+			<div class="ui container">
+				<div class="ui stackable grid">
+					{{template "user/overview/big_profile_avatar" .}}
+					<div class="ui twelve wide column">
+						{{template "user/overview/header_items" .}}
+						{{template "projects/overview_list" .}}
+					</div>
+				</div>
+			</div>
+		{{end}}
+  </div>
 {{template "base/footer" .}}
