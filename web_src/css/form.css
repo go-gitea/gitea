@@ -548,9 +548,3 @@ textarea:focus,
     width: 100% !important;
   }
 }
-
-/* semantic has background theme colors for .ui.facebook.button and .ui.twitter.button,
-so fill of paths needs to be light to be seen */
-.ui.facebook.button > svg path, .ui.twitter.button > svg path {
-  fill: var(--color-white);
-}
