@@ -53,11 +53,12 @@
 	{{end}}
 
 	{{if and .OrderedOAuth2Names .OAuth2Providers}}
-	<hr class="ui divider"/>
 	<div id="oauth2-login-navigator">
 		<div id="oauth2-login-navigator-inner" class="gt-df gt-fc gt-jc">
-			<span class="gt-self-center gt-mb-4">{{.locale.Tr "sign_in_with"}}</span>
-			<div class="gt-df gt-fc gt-fw gt-ac gt-gap-4">
+			<div class="ui horizontal divider">
+				{{.locale.Tr "sign_in_or"}}
+			</div>
+			<div class="gt-df gt-fc gt-fw gt-ac gt-gap-3">
 				{{range $key := .OrderedOAuth2Names}}
 					{{$provider := index $.OAuth2Providers $key}}
 					<a class="{{$provider.Name}} ui compact button silenced gt-df gt-ac gt-jc oauth-login-link" href="{{AppSubUrl}}/user/oauth2/{{$key}}">
