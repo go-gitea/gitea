@@ -4,6 +4,10 @@
 package user
 
 import (
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/markup/markdown"
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models/db"
@@ -36,7 +40,87 @@ const (
 
 // ListPackages displays a list of all packages of the context user
 func ListPackages(ctx *context.Context) {
+	// check view permissions
+	if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
+		ctx.NotFound("user", fmt.Errorf(ctx.ContextUser.Name))
+		return
+	}
+
+	// advertise feed via meta tag
+	ctx.Data["FeedURL"] = ctx.ContextUser.HomeLink()
+
+	// Show OpenID URIs
+	openIDs, err := user_model.GetUserOpenIDs(ctx.ContextUser.ID)
+	if err != nil {
+		ctx.ServerError("GetUserOpenIDs", err)
+		return
+	}
+
+	var isFollowing bool
+	if ctx.Doer != nil {
+		isFollowing = user_model.IsFollowing(ctx.Doer.ID, ctx.ContextUser.ID)
+	}
+
+	ctx.Data["ContextUser"] = ctx.ContextUser
+	ctx.Data["OpenIDs"] = openIDs
+	ctx.Data["IsFollowing"] = isFollowing
+
+	if len(ctx.ContextUser.Description) != 0 {
+		content, err := markdown.RenderString(&markup.RenderContext{
+			URLPrefix: ctx.Repo.RepoLink,
+			Metas:     map[string]string{"mode": "document"},
+			GitRepo:   ctx.Repo.GitRepo,
+			Ctx:       ctx,
+		}, ctx.ContextUser.Description)
+		if err != nil {
+			ctx.ServerError("RenderString", err)
+			return
+		}
+		ctx.Data["RenderedDescription"] = content
+	}
+	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
+	orgs, err := org_model.FindOrgs(org_model.FindOrgOptions{
+		UserID:         ctx.ContextUser.ID,
+		IncludePrivate: showPrivate,
+	})
+	if err != nil {
+		ctx.ServerError("FindOrgs", err)
+		return
+	}
+	ctx.Data["Orgs"] = orgs
+	ctx.Data["HasOrgsVisible"] = org_model.HasOrgsVisible(orgs, ctx.Doer)
+
+	badges, _, err := user_model.GetUserBadges(ctx, ctx.ContextUser)
+	if err != nil {
+		ctx.ServerError("GetUserBadges", err)
+		return
+	}
+	ctx.Data["Badges"] = badges
+
+	pagingNum := setting.UI.User.RepoPagingNum
 	page := ctx.FormInt("page")
+	_, numFollowers, err := user_model.GetUserFollowers(ctx, ctx.ContextUser, ctx.Doer, db.ListOptions{
+		PageSize: pagingNum,
+		Page:     page,
+	})
+	if err != nil {
+		ctx.ServerError("GetUserFollowers", err)
+		return
+	}
+	ctx.Data["NumFollowers"] = numFollowers
+	_, numFollowing, err := user_model.GetUserFollowing(ctx, ctx.ContextUser, ctx.Doer, db.ListOptions{
+		PageSize: pagingNum,
+		Page:     page,
+	})
+
+	if err != nil {
+		ctx.ServerError("GetUserFollowing", err)
+		return
+	}
+	ctx.Data["NumFollowing"] = numFollowing
+	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail && ctx.ContextUser.Email != "" && ctx.IsSigned && !ctx.ContextUser.KeepEmailPrivate
+	ctx.Data["EnableFeed"] = setting.Other.EnableFeed
+
 	if page <= 1 {
 		page = 1
 	}

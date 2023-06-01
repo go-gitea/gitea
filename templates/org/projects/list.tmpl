@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-	<div role="main" aria-label="{{.Title}}" class="page-content user profile">
+	<div role="main" aria-label="{{.Title}}" class="page-content {{if .ContextUser.IsOrganization}}repository packages{{else}}user profile{{end}}">
 		{{if .ContextUser.IsOrganization}}
 			{{template "user/overview/header" .}}
 			{{template "projects/list" .}}

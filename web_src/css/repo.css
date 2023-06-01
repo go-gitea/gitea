@@ -1921,6 +1921,11 @@
   padding-bottom: 100px;
 }
 
+.page-content .ui.ui.ui.container:not(.fluid) .empty {
+  padding-top: 70px;
+  padding-bottom: 100px;
+}
+
 .repository.packages .empty .svg {
   height: 48px;
 }

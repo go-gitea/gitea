@@ -1,6 +1,20 @@
 {{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository packages">
-	{{template "user/overview/header" .}}
-	{{template "package/shared/list" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content {{if .ContextUser.IsOrganization}}repository packages{{else}}user profile{{end}}">
+	{{if .ContextUser.IsOrganization}}
+		{{template "user/overview/header" .}}
+		{{template "package/shared/list" .}}
+	{{else}}
+			<div class="ui container">
+				<div class="ui stackable grid">
+					{{template "user/overview/big_profile_avatar" .}}
+					<div class="ui twelve wide column">
+						{{template "user/overview/header_items" .}}
+						<div class="page-content repository projects">
+							{{template "package/shared/list" .}}
+						</div>
+					</div>
+				</div>
+			</div>
+	{{end}}
 </div>
 {{template "base/footer" .}}
