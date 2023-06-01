@@ -120,30 +120,6 @@ func TestAccessTokenExchange(t *testing.T) {
 	assert.True(t, len(parsed.RefreshToken) > 10)
 }
 
-func TestAccessTokenExchangeWithoutSecret(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	// using pkce, secret not required
-	req := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
-		"grant_type":    "authorization_code",
-		"client_id":     "da7da3ba-9a13-4167-856f-3899de0b0138",
-		"redirect_uri":  "a",
-		"code":          "authcode",
-		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt",
-	})
-	resp := MakeRequest(t, req, http.StatusOK)
-	type response struct {
-		AccessToken  string `json:"access_token"`
-		TokenType    string `json:"token_type"`
-		ExpiresIn    int64  `json:"expires_in"`
-		RefreshToken string `json:"refresh_token"`
-	}
-	parsed := new(response)
-
-	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsed))
-	assert.True(t, len(parsed.AccessToken) > 10)
-	assert.True(t, len(parsed.RefreshToken) > 10)
-}
-
 func TestAccessTokenExchangeJSON(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	req := NewRequestWithJSON(t, "POST", "/login/oauth/access_token", map[string]string{
@@ -200,6 +176,21 @@ func TestAccessTokenExchangeWithInvalidCredentials(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsedError))
 	assert.Equal(t, "invalid_client", string(parsedError.ErrorCode))
 	assert.Equal(t, "cannot load client with client id: '???'", parsedError.ErrorDescription)
+
+	// invalid client secret
+	req = NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type":    "authorization_code",
+		"client_id":     "da7da3ba-9a13-4167-856f-3899de0b0138",
+		"client_secret": "???",
+		"redirect_uri":  "a",
+		"code":          "authcode",
+		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt",
+	})
+	resp = MakeRequest(t, req, http.StatusBadRequest)
+	parsedError = new(auth.AccessTokenError)
+	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsedError))
+	assert.Equal(t, "unauthorized_client", string(parsedError.ErrorCode))
+	assert.Equal(t, "invalid client secret", parsedError.ErrorDescription)
 
 	// invalid redirect uri
 	req = NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
@@ -269,7 +260,7 @@ func TestAccessTokenExchangeWithBasicAuth(t *testing.T) {
 	assert.True(t, len(parsed.AccessToken) > 10)
 	assert.True(t, len(parsed.RefreshToken) > 10)
 
-	// not use client secret, PKCE
+	// use wrong client_secret
 	req = NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
 		"grant_type":    "authorization_code",
 		"redirect_uri":  "a",
@@ -281,7 +272,7 @@ func TestAccessTokenExchangeWithBasicAuth(t *testing.T) {
 	parsedError := new(auth.AccessTokenError)
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsedError))
 	assert.Equal(t, "unauthorized_client", string(parsedError.ErrorCode))
-	assert.Equal(t, "client is not authorized", parsedError.ErrorDescription)
+	assert.Equal(t, "invalid client secret", parsedError.ErrorDescription)
 
 	// missing header
 	req = NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
