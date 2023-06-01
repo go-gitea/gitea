@@ -172,7 +172,6 @@ textarea:focus,
   text-align: center;
 }
 
-
 @media (min-width: 768px) {
   #create-page-form form {
     width: 800px !important;
@@ -548,4 +547,10 @@ textarea:focus,
   .new.org .ui.form .field input {
     width: 100% !important;
   }
+}
+
+/* semantic has background colors for .ui.facebook.button and .ui.facebook.twitter,
+so fill of paths needs to be light to be seen */
+.ui.facebook.button > svg path, .ui.facebook.twitter > svg path {
+  fill: var(--color-white);
 }
