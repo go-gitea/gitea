@@ -46,7 +46,6 @@ func MustEnableProjects(ctx *context.Context) {
 
 // Projects renders the home page of projects
 func Projects(ctx *context.Context) {
-
 	// check view permissions
 	if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
 		ctx.NotFound("user", fmt.Errorf(ctx.ContextUser.Name))
@@ -119,7 +118,6 @@ func Projects(ctx *context.Context) {
 		PageSize: pagingNum,
 		Page:     page,
 	})
-
 	if err != nil {
 		ctx.ServerError("GetUserFollowing", err)
 		return
