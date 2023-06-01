@@ -99,8 +99,8 @@ const sfc = {
      * When an individual level of category is toggled
      * @param {Event} event
      */
-    onIndividualInput(event) {
-      event.preventDefault();
+    onIndividualInput(e) {
+      e.preventDefault();
       if (this.$refs.delete.checked) {
         this.readSelected = true;
         this.writeSelected = true;
