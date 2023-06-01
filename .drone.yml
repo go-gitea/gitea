@@ -963,6 +963,12 @@ trigger:
       - docs/**
 
 steps:
+  - name: lint-docs
+    image: node:18
+    commands:
+      - make deps-frontend
+      - make lint-frontend
+
   - name: build-docs
     image: golang:1.20
     commands:
