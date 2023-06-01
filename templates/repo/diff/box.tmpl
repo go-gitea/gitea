@@ -113,6 +113,9 @@
 									{{if $file.IsVendored}}
 										<span class="ui label gt-ml-3">{{$.locale.Tr "repo.diff.vendored"}}</span>
 									{{end}}
+									<div class="gt-mx-3">
+										{{ template "shared/codeownershipinfo" (index $.CodeownersFileMap $file.Name) }}
+									</div>
 								</div>
 								<div class="diff-file-header-actions gt-df gt-ac">
 									{{if $showFileViewToggle}}

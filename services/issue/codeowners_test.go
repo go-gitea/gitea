@@ -8,7 +8,7 @@ import (
 )
 
 func TestParser(t *testing.T) {
-
+	// TODO: do this though
 	// 	/* This string acts as the codeowners file for our automated tests.
 	// 	It tests for multiple users, single users, teams, and emails*/
 	// 	codeownerString :=

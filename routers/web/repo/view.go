@@ -593,7 +593,6 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 }
 
 func GetCodeownerValidationInfo(ctx *context.Context) {
-	codeownersErrors := make(map[int]string)
 	var fileLines []string
 	contentsBytes, err := issue_service.GetCodeownersFileContents(ctx, ctx.Repo.Commit, ctx.Repo.GitRepo)
 	if err == nil {
@@ -601,47 +600,32 @@ func GetCodeownerValidationInfo(ctx *context.Context) {
 		for scanner.Scan() {
 			fileLines = append(fileLines, scanner.Text())
 		}
-	} // TODO: ERROR HANDLING THOUGH ALL THIS STUFF
-	// var fileLines []string = ctx.Data["FileContent"].([]string)
-	for i, line := range fileLines {
-		_, _, currFileOwners := issue_service.ParseCodeownersLine(line)
-		isValid := true
-		if len(currFileOwners) > 0 {
-			isValid = issue_service.IsValidCodeownersLine(currFileOwners)
-		}
-
-		if isValid {
-			invalidAccessOwners := []string{}
-			individuals, teams := issue_service.SeparateOwnerAndTeam(currFileOwners)
-			for _, individual := range individuals {
-				user, err := issue_service.GetUserByNameOrEmail(ctx, individual, ctx.Repo.Repository)
-				if err != nil || user == nil || !issue_service.UserHasWritePermissions(ctx, ctx.Repo.Repository, user) {
-					invalidAccessOwners = append(invalidAccessOwners, individual)
-				}
-			}
-			for _, teamName := range teams {
-				team, err := issue_service.GetTeamFromFullName(ctx, teamName, ctx.Doer)
-				if err != nil || team == nil || !issue_service.TeamHasWritePermissions(ctx, ctx.Repo.Repository, team) {
-					invalidAccessOwners = append(invalidAccessOwners, teamName)
-				}
-			}
-			if len(invalidAccessOwners) > 0 {
-				if len(invalidAccessOwners) == 1 {
-					codeownersErrors[i+1] = "make sure " + invalidAccessOwners[0] + " exists and has write access to the repository"
+	} // TODO: ERROR HANDLING THOUGH ALL THESE FRONT-END THINGS
+	_, _, validationErrors, err := issue_service.ParseCodeowners(ctx, ctx.Repo.Repository, ctx.Doer, []string{}, contentsBytes)
+	if len(validationErrors) > 0 {
+		ctx.Data["CodeownersValidationNotice"] = ctx.Locale.Tr("codeowners.error_notice")
+		validationMessages := []string{}
+		for lineNum, err := range validationErrors {
+			var message string
+			switch problem := err.(type) {
+			default:
+				// todo: idk
+			case *issue_service.InvalidSyntaxError:
+				message = ctx.Locale.Tr("codeowners.validation_message_syntax", lineNum)
+			case *issue_service.ExistenceAndPermissionError:
+				if len(problem.Owners()) > 1 {
+					message = ctx.Locale.Tr("codeowners.validation_message_permissions_plural", lineNum, strings.Join(problem.Owners(), ", "))
 				} else {
-					codeownersErrors[i+1] = "make sure " + strings.Join(invalidAccessOwners, ", ") + " all exist and have write access to the repository"
+					message = ctx.Locale.Tr("codeowners.validation_message_permissions_singular", lineNum, strings.Join(problem.Owners(), ", "))
 				}
 			}
-		} else {
-			codeownersErrors[i+1] = "make sure owners are formated like '@user', 'user@email.com', or '@org-name/team-name'"
+			validationMessages = append(validationMessages, message)
 		}
-	}
-	if len(codeownersErrors) > 0 {
-		ctx.Data["HasCodeownersValidationErrors"] = true
-		ctx.Data["CodeownersValidationErrors"] = codeownersErrors
+		ctx.Data["CodeownersValidationErrors"] = validationMessages
 	}
 }
 
+// GetCodeownersOwnershipInfo gets the ownership information for the current file
 func GetCodeownersOwnershipInfo(ctx *context.Context) {
 	gitRepo, err := git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
 	defer gitRepo.Close()
@@ -650,23 +634,27 @@ func GetCodeownersOwnershipInfo(ctx *context.Context) {
 		if err == nil {
 			codeownersContents, err := issue_service.GetCodeownersFileContents(ctx, commit, gitRepo)
 			if err == nil && codeownersContents != nil && len(codeownersContents) > 0 {
-				userOwners, teamOwners, err := issue_service.ParseCodeowners(ctx, ctx.Repo.Repository, ctx.Doer, []string{ctx.Repo.TreePath}, codeownersContents)
-				if err == nil {
-					var codeowners []string
-					for _, userOwner := range userOwners {
-						codeowners = append(codeowners, userOwner.Name)
-					}
-					for _, teamOwner := range teamOwners {
-						codeowners = append(codeowners, teamOwner.Name)
-					}
-
-					if err == nil && len(codeowners) > 0 {
-						ctx.Data["Codeowners"] = ctx.Locale.Tr("codeowners.codeownership", strings.Join(codeowners, ", "))
-					}
+				codeowners, err := GetFileCodeowners(ctx, ctx.Repo.TreePath, codeownersContents)
+				if err == nil && len(codeowners) > 0 {
+					ctx.Data["Codeowners"] = ctx.Locale.Tr("codeowners.codeownership", strings.Join(codeowners, ", "))
 				}
 			}
 		}
 	}
+}
+
+// GetFileCodeowners gets the codeowners for the given file path and CODEOWNERS file contents
+func GetFileCodeowners(ctx *context.Context, filePath string, codeownersContents []byte) (codeowners []string, err error) {
+	userOwners, teamOwners, _, err := issue_service.ParseCodeowners(ctx, ctx.Repo.Repository, ctx.Doer, []string{filePath}, codeownersContents)
+	if err == nil {
+		for _, userOwner := range userOwners {
+			codeowners = append(codeowners, userOwner.Name)
+		}
+		for _, teamOwner := range teamOwners {
+			codeowners = append(codeowners, teamOwner.Name)
+		}
+	}
+	return codeowners, err
 }
 
 func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input io.Reader) (escaped *charset.EscapeStatus, output string, err error) {

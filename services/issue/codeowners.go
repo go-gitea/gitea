@@ -28,14 +28,38 @@ type Codeowners struct {
 	teams []*organization_model.Team
 }
 
+type InvalidSyntaxError struct {
+	owners []string
+}
+
+type ExistenceAndPermissionError struct {
+	owners []string
+}
+
+func (e *InvalidSyntaxError) Error() string {
+	return fmt.Sprintf("owners: %v", e.owners)
+}
+
+func (e *ExistenceAndPermissionError) Error() string {
+	return fmt.Sprintf("owners: %v", e.owners)
+}
+
+func (e *ExistenceAndPermissionError) Owners() []string {
+	return e.owners
+}
+
 var globalCodeownerMap []Codeowners
 var globalCodeownerIndividuals []Codeowners
 var globalCodeownerTeams []Codeowners
 
-func ParseCodeowners(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, changedFiles []string, codeownersContents []byte) ([]*user_model.User, []*organization_model.Team, error) {
+func ParseCodeowners(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, changedFiles []string, codeownersContents []byte) (
+	userOwners []*user_model.User,
+	teamOwners []*organization_model.Team,
+	validationErrors map[int]error,
+	err error) {
 
 	// This calls the actual parser
-	codeownerMap, err := ParseCodeownerBytes(ctx, repo, doer, codeownersContents)
+	codeownerMap, validationErrors, err := ParseCodeownerBytes(ctx, repo, doer, codeownersContents)
 
 	// We have to declare a new list of strings to be able to append all codeowners
 	//	As we get them file by file in the following for loop
@@ -60,7 +84,7 @@ func ParseCodeowners(ctx context.Context, repo *repo_model.Repository, doer *use
 		log.Trace(team.Name)
 	}
 
-	return users, teams, err
+	return users, teams, validationErrors, err
 }
 
 // GetOwners returns the list of owners (including teams) for a single file. It matches from our globMap
@@ -79,13 +103,10 @@ func GetOwners(codeownerMap []Codeowners, file string) ([]*user_model.User, []*o
 }
 
 // SeparateOwnerAndTeam separates owners and teams based on format.
-// Note that it also calls RemoveDuplicateString to remove duplicates
 func SeparateOwnerAndTeam(codeownersList []string) ([]string, []string) {
 
 	codeownerIndividuals := []string{}
 	codeOwnerTeams := []string{}
-
-	// codeownersList = RemoveDuplicateString(codeownersList)
 
 	for _, codeowner := range codeownersList {
 
@@ -145,7 +166,7 @@ func RemoveDuplicateTeams(duplicatesPresent []*organization_model.Team) []*organ
 	return duplicatesRemoved
 }
 
-func ParseCodeownerBytes(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, codeownerBytes []byte) ([]Codeowners, error) {
+func ParseCodeownerBytes(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, codeownerBytes []byte) ([]Codeowners, map[int]error, error) {
 
 	// Create a new scanner to read from the byte array
 	scanner := bufio.NewScanner(strings.NewReader(string(codeownerBytes)))
@@ -153,11 +174,12 @@ func ParseCodeownerBytes(ctx context.Context, repo *repo_model.Repository, doer 
 }
 
 // ScanAndParse is the director function for handling the incoming codeowner contents
-func ScanAndParse(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, scanner bufio.Scanner) ([]Codeowners, error) {
+func ScanAndParse(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, scanner bufio.Scanner) ([]Codeowners, map[int]error, error) {
 
-	// globMap maps each line using a key/value pair held by the Codeowners Data type.
+	// codeownerMap maps each line using a key/value pair held by the Codeowners Data type.
 	//		It maps from the file type (e.g., *.js) to the users for that file type (e.g., @user1 @user2)
 	var codeownerMap []Codeowners
+	validationErrors := make(map[int]error)
 	var lineCounter int = 0
 
 	for scanner.Scan() {
@@ -165,13 +187,13 @@ func ScanAndParse(ctx context.Context, repo *repo_model.Repository, doer *user_m
 		// We handle the codeowners file line-by-line, as all rules should follow that format
 		nextLine := scanner.Text()
 		lineCounter++
-		globString, globString2, currFileUsers := ParseCodeownersLine(nextLine)
+		globString, globString2, currFileOwnerCandidates := ParseCodeownersLine(nextLine)
 
 		// If there are no users listed, that is a valid rule, but we return an empty string, and then the PR
 		//		handles that outside of the parser
-		if len(currFileUsers) > 0 {
-			if IsValidCodeownersLine(currFileUsers) {
-				users, teams, isValid := HasValidWritePermissions(ctx, repo, doer, currFileUsers)
+		if len(currFileOwnerCandidates) > 0 {
+			if IsValidCodeownersLineSyntax(currFileOwnerCandidates) {
+				users, teams, isValid := HasValidWritePermissions(ctx, repo, doer, currFileOwnerCandidates)
 				if isValid {
 
 					newCodeowner := Codeowners{
@@ -192,15 +214,16 @@ func ScanAndParse(ctx context.Context, repo *repo_model.Repository, doer *user_m
 						codeownerMap = append(codeownerMap, newCodeowner2)
 					}
 				} else {
-					//error type1 (invalid permissions)
+					validationErrors[lineCounter] = &ExistenceAndPermissionError{
+						owners: currFileOwnerCandidates,
+					}
+					log.Trace("Invalid user/team/email given on line " + fmt.Sprint(lineCounter) + ":" + nextLine)
 				}
 			} else {
-
-				// fill in the error map with info
-				//error type 2 -- syntax error
-
-				log.Trace("Invalid syntax given on line " + fmt.Sprint(lineCounter) + ":" +
-					nextLine)
+				validationErrors[lineCounter] = &InvalidSyntaxError{
+					owners: currFileOwnerCandidates,
+				}
+				log.Trace("Invalid syntax given on line " + fmt.Sprint(lineCounter) + ":" + nextLine)
 			}
 		} else {
 
@@ -214,18 +237,17 @@ func ScanAndParse(ctx context.Context, repo *repo_model.Repository, doer *user_m
 		}
 
 		log.Trace("Line number " + fmt.Sprint(lineCounter) + ":")
-		log.Trace("Parsed as Glob string: " + globString + "," + globString2 +
-			"Users: " + fmt.Sprint(currFileUsers))
+		log.Trace("Parsed as Glob string: " + globString + "," + globString2 + " Users: " + fmt.Sprint(currFileOwnerCandidates))
 	}
 
 	if scanner.Err() != nil {
 		log.Trace(scanner.Err().Error())
 		codeownerMap = nil
-		return codeownerMap, scanner.Err()
+		return codeownerMap, validationErrors, scanner.Err()
 	}
 
 	log.Trace("Parsed map from codeowners file: " + fmt.Sprint(codeownerMap))
-	return codeownerMap, scanner.Err()
+	return codeownerMap, validationErrors, scanner.Err()
 }
 
 // ParseCodeownersLine extracts two potential globbing rule strings and the owners associated with those rules for a given line
@@ -293,10 +315,10 @@ func ParseCodeownersLine(line string) (globString, globString2 string, currFileU
 	return globString, globString2, currFileUsers
 }
 
-// IsValidCodeownersLine returns true if the given line of the CODEOWNERS file is valid syntactically (after the file pattern)
-func IsValidCodeownersLine(currFileUsers []string) bool {
+// IsValidCodeownersLineSyntax returns true if the given line of the CODEOWNERS file is valid syntactically (after the file pattern)
+func IsValidCodeownersLineSyntax(currFileOwnerCandidates []string) bool {
 
-	for _, user := range currFileUsers {
+	for _, user := range currFileOwnerCandidates {
 		if !glob.Globexp("@*").MatchString(user) &&
 			!glob.Globexp("@*/*").MatchString(user) &&
 			!glob.Globexp("*@*.*").MatchString(user) {
