@@ -25,6 +25,7 @@ jobs:
       - run: make lint-backend
         env:
           TAGS: bindata sqlite sqlite_unlock_notify
+
   lint-go-windows:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
@@ -41,6 +42,7 @@ jobs:
           TAGS: bindata sqlite sqlite_unlock_notify
           GOOS: windows
           GOARCH: amd64
+
   lint-go-gogit:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
@@ -55,6 +57,7 @@ jobs:
       - run: make lint-go
         env:
           TAGS: bindata gogit sqlite sqlite_unlock_notify
+
   checks-backend:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
@@ -67,6 +70,7 @@ jobs:
           check-latest: true
       - run: make deps-backend deps-tools
       - run: make --always-make checks-backend # ensure the "go-licenses" make target runs
+
   frontend:
     if: needs.files-changed.outputs.frontend == 'true'
     needs: files-changed
@@ -79,6 +83,7 @@ jobs:
       - run: make deps-frontend
       - run: make lint-frontend
       - run: make checks-frontend
+
   backend:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
@@ -113,3 +118,25 @@ jobs:
         env:
           GOOS: linux
           GOARCH: 386
+
+  docs:
+    if: needs.files-changed.outputs.docs == 'true'
+    needs: files-changed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 20
+      - run: make deps-frontend
+      - run: make lint-md
+      - run: make docs # test if build could succeed
+
+  actions:
+    if: needs.files-changed.outputs.actions == 'true'
+    needs: files-changed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+      - run: make lint-actions

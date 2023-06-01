@@ -60,7 +60,7 @@ export function parseUrl(str) {
 }
 
 // return current locale chosen by user
-function getCurrentLocale() {
+export function getCurrentLocale() {
   return document.documentElement.lang;
 }
 
