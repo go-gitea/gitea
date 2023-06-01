@@ -1,7 +1,7 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_20 //nolint
+package v1_20 // nolint
 
 import (
 	"sort"
@@ -67,11 +67,11 @@ func Test_ConvertScopedAccessTokens(t *testing.T) {
 	}
 
 	x, deferable := base.PrepareTestEnv(t, 0, new(AccessToken))
+	defer deferable()
 	if x == nil || t.Failed() {
-		defer deferable()
+		t.Skip()
 		return
 	}
-	defer deferable()
 
 	// verify that no fixtures were loaded
 	count, err := x.Count(&AccessToken{})
