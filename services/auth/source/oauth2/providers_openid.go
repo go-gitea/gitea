@@ -29,7 +29,7 @@ func (o *OpenIDProvider) Image() string {
 	return "/assets/img/auth/openid_connect.svg"
 }
 
-func (b *OpenIDProvider) SvgName() string {
+func (o *OpenIDProvider) SvgName() string {
 	return "gitea-openid"
 }
 
