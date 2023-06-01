@@ -93,13 +93,13 @@ For public clients, a redirect URI of a loopback IP address such as `http://127.
 
 **Note:** This example does not use PKCE.
 
-1. Redirect to user to the authorization endpoint in order to get their consent for accessing the resources:
+1. Redirect the user to the authorization endpoint in order to get their consent for accessing the resources:
 
    ```curl
    https://[YOUR-GITEA-URL]/login/oauth/authorize?client_id=CLIENT_ID&redirect_uri=REDIRECT_URI&response_type=code&state=STATE
    ```
 
-   The `CLIENT_ID` can be obtained by registering an application in the settings. The `STATE` is a random string that will be send back to your application after the user authorizes. The `state` parameter is optional but should be used to prevent CSRF attacks.
+   The `CLIENT_ID` can be obtained by registering an application in the settings. The `STATE` is a random string that will be sent back to your application after the user authorizes. The `state` parameter is optional, but should be used to prevent CSRF attacks.
 
    ![Authorization Page](/authorize.png)
 
@@ -109,7 +109,7 @@ For public clients, a redirect URI of a loopback IP address such as `http://127.
    https://[REDIRECT_URI]?code=RETURNED_CODE&state=STATE
    ```
 
-2. Using the provided `code` from the redirect, you can request a new application and refresh token. The access token endpoints accepts POST requests with `application/json` and `application/x-www-form-urlencoded` body, for example:
+2. Using the provided `code` from the redirect, you can request a new application and refresh token. The access token endpoint accepts POST requests with `application/json` and `application/x-www-form-urlencoded` body, for example:
 
    ```curl
    POST https://[YOUR-GITEA-URL]/login/oauth/access_token
@@ -136,7 +136,7 @@ For public clients, a redirect URI of a loopback IP address such as `http://127.
    }
    ```
 
-   The `CLIENT_SECRET` is the unique secret code generated for this application. Please note that the secret will only be visible after you created/registered the application with Gitea and cannot be recovered. If you lose the secret you must regenerate the secret via the application's settings.
+   The `CLIENT_SECRET` is the unique secret code generated for this application. Please note that the secret will only be visible after you created/registered the application with Gitea and cannot be recovered. If you lose the secret, you must regenerate the secret via the application's settings.
 
    The `REDIRECT_URI` in the `access_token` request must match the `REDIRECT_URI` in the `authorize` request.
 
@@ -146,16 +146,18 @@ For public clients, a redirect URI of a loopback IP address such as `http://127.
 
 PKCE (Proof Key for Code Exchange) is an extension to the OAuth flow which allows for a secure credential exchange without the requirement to provide a client secret.
 
+**Note**: Please ensure you have registered your OAuth application as a public client.
+
 To achieve this, you have to provide a `code_verifier` for every authorization request. A `code_verifier` has to be a random string with a minimum length of 43 characters and a maximum length of 128 characters. It can contain alphanumeric characters as well as the characters `-`, `.`, `_`  and `~`.
 
 Using this `code_verifier` string, a new one called `code_challenge` is created by using one of two methods:
 
-  - If you have the required functionality on your client, set `code_challenge` to be an URL-safe base64-encoded string of the SHA256 hash of `code_verifier`. In that case, your `code_challenge_method` becomes `S256`.
+  - If you have the required functionality on your client, set `code_challenge` to be a URL-safe base64-encoded string of the SHA256 hash of `code_verifier`. In that case, your `code_challenge_method` becomes `S256`.
   - If you are unable to do so, you can provide your `code_verifier` as a plain string to `code_challenge`. Then you have to set your `code_challenge_method` as `plain`.
 
 After you have generated this values, you can continue with your request.
 
-1. Redirect to user to the authorization endpoint in order to get their consent for accessing the resources:
+1. Redirect the user to the authorization endpoint in order to get their consent for accessing the resources:
 
    ```curl
    https://[YOUR-GITEA-URL]/login/oauth/authorize?client_id=CLIENT_ID&redirect_uri=REDIRECT_URI&response_type=code&code_challenge_method=CODE_CHALLENGE_METHOD&code_challenge=CODE_CHALLENGE&state=STATE
@@ -163,7 +165,7 @@ After you have generated this values, you can continue with your request.
 
    The `CLIENT_ID` can be obtained by registering an application in the settings.
    
-   The `STATE` is a random string that will be send back to your application after the user authorizes. The `state` parameter is optional but should be used to prevent CSRF attacks.
+   The `STATE` is a random string that will be sent back to your application after the user authorizes. The `state` parameter is optional, but should be used to prevent CSRF attacks.
 
    ![Authorization Page](/authorize.png)
 
@@ -173,7 +175,7 @@ After you have generated this values, you can continue with your request.
    https://[REDIRECT_URI]?code=RETURNED_CODE&state=STATE
    ```
 
-2. Using the provided `code` from the redirect, you can request a new application and refresh token. The access token endpoints accepts POST requests with `application/json` and `application/x-www-form-urlencoded` body, for example:
+2. Using the provided `code` from the redirect, you can request a new application and refresh token. The access token endpoint accepts POST requests with `application/json` and `application/x-www-form-urlencoded` body, for example:
 
    ```curl
    POST https://[YOUR-GITEA-URL]/login/oauth/access_token

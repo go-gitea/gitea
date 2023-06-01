@@ -753,7 +753,7 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 		})
 		return
 	}
-	if form.CodeVerifier == "" && !app.ValidateClientSecret([]byte(form.ClientSecret)) {
+	if !app.ConfidentialClient && !app.ValidateClientSecret([]byte(form.ClientSecret)) {
 		errorDescription := "invalid client secret"
 		if form.ClientSecret == "" {
 			errorDescription = "invalid empty client secret"
