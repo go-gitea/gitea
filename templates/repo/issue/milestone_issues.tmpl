@@ -3,7 +3,7 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		<div class="gt-df">
-			<h1>{{.Milestone.Name}}</h1>
+			<h1 class="gt-mb-3">{{.Milestone.Name}}</h1>
 			{{if not .Repository.IsArchived}}
 				<div class="text right gt-f1">
 					{{if or .CanWriteIssues .CanWritePulls}}
