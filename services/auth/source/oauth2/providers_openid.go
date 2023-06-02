@@ -26,7 +26,7 @@ func (o *OpenIDProvider) DisplayName() string {
 
 // Image returns an image path for this provider
 func (o *OpenIDProvider) Image() string {
-	return "/assets/img/auth/openid_connect.svg"
+	return "/assets/img/svg/gitea-openid.svg"
 }
 
 func (o *OpenIDProvider) SvgName() string {
