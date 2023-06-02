@@ -414,10 +414,6 @@ a.silenced:hover {
   text-decoration: none;
 }
 
-a.no-underline:hover {
-  text-decoration: none;
-}
-
 .delete-button,
 .delete-button:hover {
   color: var(--color-red);
