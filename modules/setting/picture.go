@@ -42,11 +42,7 @@ func loadAvatarsFrom(rootCfg ConfigProvider) error {
 	// Specifically default PATH to AVATAR_UPLOAD_PATH
 	avatarSec.Key("PATH").MustString(sec.Key("AVATAR_UPLOAD_PATH").String())
 
-	var err error
-	Avatar.Storage, err = getStorage(rootCfg, "avatars", avatarSec, storageType)
-	if err != nil {
-		return err
-	}
+	Avatar.Storage = getStorage(rootCfg, "avatars", storageType, avatarSec)
 
 	Avatar.MaxWidth = sec.Key("AVATAR_MAX_WIDTH").MustInt(4096)
 	Avatar.MaxHeight = sec.Key("AVATAR_MAX_HEIGHT").MustInt(4096)
@@ -94,14 +90,9 @@ func loadRepoAvatarFrom(rootCfg ConfigProvider) error {
 	repoAvatarSec := rootCfg.Section("repo-avatar")
 	storageType := sec.Key("REPOSITORY_AVATAR_STORAGE_TYPE").MustString("")
 	// Specifically default PATH to AVATAR_UPLOAD_PATH
-	repoAvatarSec.Key("PATH").MustString(
-		sec.Key("REPOSITORY_AVATAR_UPLOAD_PATH").String())
+	repoAvatarSec.Key("PATH").MustString(sec.Key("REPOSITORY_AVATAR_UPLOAD_PATH").String())
 
-	var err error
-	RepoAvatar.Storage, err = getStorage(rootCfg, "repo-avatars", repoAvatarSec, storageType)
-	if err != nil {
-		return err
-	}
+	RepoAvatar.Storage = getStorage(rootCfg, "repo-avatars", storageType, repoAvatarSec)
 
 	RepoAvatar.Fallback = sec.Key("REPOSITORY_AVATAR_FALLBACK").MustString("none")
 	RepoAvatar.FallbackImage = sec.Key("REPOSITORY_AVATAR_FALLBACK_IMAGE").MustString(AppSubURL + "/assets/img/repo_default.png")

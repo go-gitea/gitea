@@ -15,7 +15,6 @@ func loadRepoArchiveFrom(rootCfg ConfigProvider) error {
 		return fmt.Errorf("mapto repoarchive failed: %v", err)
 	}
 
-	var err error
-	RepoArchive.Storage, err = getStorage(rootCfg, "repo-archive", sec, "")
-	return err
+	RepoArchive.Storage = getStorage(rootCfg, "repo-archive", "", sec)
+	return nil
 }

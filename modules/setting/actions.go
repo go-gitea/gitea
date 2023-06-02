@@ -27,16 +27,12 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 	}
 
 	// don't support to read configuration from [actions]
-	var err error
-	Actions.LogStorage, err = getStorage(rootCfg, "actions_log", nil, "")
-	if err != nil {
-		return err
-	}
+	Actions.LogStorage = getStorage(rootCfg, "actions_log", "", nil)
 
 	actionsSec := rootCfg.Section("actions.artifacts")
 	storageType := actionsSec.Key("STORAGE_TYPE").MustString("")
 
-	Actions.ArtifactStorage, err = getStorage(rootCfg, "actions_artifacts", actionsSec, storageType)
+	Actions.ArtifactStorage = getStorage(rootCfg, "actions_artifacts", storageType, actionsSec)
 
-	return err
+	return nil
 }

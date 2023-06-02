@@ -57,10 +57,7 @@ func loadPackagesFrom(rootCfg ConfigProvider) error {
 		return fmt.Errorf("failed to map Packages settings: %v", err)
 	}
 
-	Packages.Storage, err = getStorage(rootCfg, "packages", sec, "")
-	if err != nil {
-		return fmt.Errorf("failed to get storage: %v", err)
-	}
+	Packages.Storage = getStorage(rootCfg, "packages", "", sec)
 
 	appURL, _ := url.Parse(AppURL)
 	Packages.RegistryHost = appURL.Host

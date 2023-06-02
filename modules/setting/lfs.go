@@ -37,11 +37,7 @@ func loadLFSFrom(rootCfg ConfigProvider) error {
 	deprecatedSetting(rootCfg, "server", "LFS_CONTENT_PATH", "lfs", "PATH", "v1.19.0")
 	lfsSec.Key("PATH").MustString(sec.Key("LFS_CONTENT_PATH").String())
 
-	var err error
-	LFS.Storage, err = getStorage(rootCfg, "lfs", lfsSec, "")
-	if err != nil {
-		return err
-	}
+	LFS.Storage = getStorage(rootCfg, "lfs", "", lfsSec)
 
 	// Rest of LFS service settings
 	if LFS.LocksPagingNum == 0 {
