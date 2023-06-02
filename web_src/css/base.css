@@ -74,12 +74,15 @@
   --color-secondary-alpha-90: #dededee1;
   --color-secondary-hover: var(--color-secondary-dark-1);
   --color-secondary-active: var(--color-secondary-dark-2);
-  /* console colors */
-  --color-console-fg: #ffffff;
-  --color-console-bg: #252a2f;
-  --color-console-border: #ffffff16;
+  /* console colors - used for actions console and console files */
+  --color-console-fg: #eeeff2;
+  --color-console-fg-subtle: #959cab;
+  --color-console-bg: #262936;
+  --color-console-border: #383c47;
   --color-console-hover-bg: #ffffff16;
-  --color-console-active-bg: #353a3f;
+  --color-console-active-bg: #454a57;
+  --color-console-menu-bg: #383c47;
+  --color-console-menu-border: #5c6374;
   /* named colors */
   --color-red: #db2828;
   --color-orange: #f2711c;
@@ -553,7 +556,7 @@ a.label,
   color: var(--color-text-light-3);
 }
 
-.ui.menu .item::before {
+.ui.menu .item::before, .ui.vertical.menu .item::before {
   background: var(--color-secondary);
 }
 
@@ -603,6 +606,7 @@ a.label,
 .ui.dropdown .menu .active.item {
   color: var(--color-text);
   background: var(--color-active);
+  border-radius: 0;
   font-weight: var(--font-weight-normal);
 }
 
@@ -847,6 +851,7 @@ a.label,
 
 .ui.table > thead > tr > th {
   background: var(--color-box-header);
+  border-color: var(--color-secondary);
   color: var(--color-text);
 }
 
@@ -888,19 +893,32 @@ img.ui.avatar,
 .page-content .ui.ui.ui.container:not(.fluid) {
   width: 1280px;
   max-width: calc(100vw - 64px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ui.container.fluid.padded {
+  padding: 0 32px;
 }
 
 /* enable fluid page widths for medium size viewports */
 @media (min-width: 768px) and (max-width: 1200px) {
-  .ui.ui.ui.container:not(.fluid) {
-    width: calc(100vw - 64px);
+  .page-content .ui.ui.ui.container:not(.fluid) {
+    width: calc(100vw - 32px);
+    max-width: calc(100vw - 32px);
+  }
+  .ui.container.fluid.padded {
+    padding: 0 16px;
   }
 }
 
-@media only screen and (max-width: 767px) {
+@media (max-width: 767px) {
   .page-content .ui.ui.ui.container:not(.fluid) {
-    width: auto; /* copied from semantic css */
-    max-width: 100%;
+    width: calc(100vw - 16px);
+    max-width: calc(100vw - 16px);
+  }
+  .ui.container.fluid.padded {
+    padding: 0 8px;
   }
 }
 
@@ -934,18 +952,6 @@ img.ui.avatar,
 .following.bar #navbar {
   width: 100vw;
   min-height: 52px;
-  padding: 0 16px;
-}
-
-@media (max-width: 767px) {
-  .following.bar #navbar {
-    padding-left: 4px;
-    padding-right: 0;
-  }
-}
-
-.following.bar #navbar .brand {
-  margin: 0;
 }
 
 .following.bar #navbar .dropdown .avatar {
@@ -1158,10 +1164,6 @@ img.ui.avatar,
 /* FIXME: this is a serious pollution, do not use this for "float: right" anymore */
 .ui.right:not(.action) {
   float: right;
-}
-
-.ui.container.fluid.padded {
-  padding: 0 32px;
 }
 
 .ui.form .ui.button {
@@ -1520,7 +1522,8 @@ img.ui.avatar,
 }
 
 @media (max-width: 767px) {
-  .not-mobile {
+  /* double selector so it wins over .gt-df etc */
+  .not-mobile.not-mobile {
     display: none !important;
   }
 }
@@ -1545,12 +1548,6 @@ img.ui.avatar,
   margin: 0;
   overflow: visible;
   clip: auto;
-}
-
-@media (min-width: 768px) and (max-width: 991px) {
-  .ui.container {
-    width: 95%;
-  }
 }
 
 .ui.menu.new-menu {

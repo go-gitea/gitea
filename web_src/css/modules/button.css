@@ -55,7 +55,11 @@
   border-left: 1px solid var(--color-light-border);
 }
 
-.ui.buttons .button + .button {
+.ui.buttons .button:first-child:has(+ .button.active) {
+  border-right: none !important;
+}
+
+.ui.buttons .button + .button:not(.active) {
   border-left: none;
 }
 
