@@ -7,8 +7,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/log"
-
-	"gopkg.in/ini.v1"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // This file implements the static LocaleStore that will not watch for changes
@@ -47,14 +46,10 @@ func (store *localeStore) AddLocaleByIni(langName, langDesc string, source, more
 	l := &locale{store: store, langName: langName, idxToMsgMap: make(map[int]string)}
 	store.localeMap[l.langName] = l
 
-	iniFile, err := ini.LoadSources(ini.LoadOptions{
-		IgnoreInlineComment:         true,
-		UnescapeValueCommentSymbols: true,
-	}, source, moreSource)
+	iniFile, err := setting.NewConfigProviderForLocale(source, moreSource)
 	if err != nil {
 		return fmt.Errorf("unable to load ini: %w", err)
 	}
-	iniFile.BlockMode = false
 
 	for _, section := range iniFile.Sections() {
 		for _, key := range section.Keys() {

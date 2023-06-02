@@ -952,18 +952,6 @@ img.ui.avatar,
 .following.bar #navbar {
   width: 100vw;
   min-height: 52px;
-  padding: 0 16px;
-}
-
-@media (max-width: 767px) {
-  .following.bar #navbar {
-    padding-left: 4px;
-    padding-right: 0;
-  }
-}
-
-.following.bar #navbar .brand {
-  margin: 0;
 }
 
 .following.bar #navbar .dropdown .avatar {
