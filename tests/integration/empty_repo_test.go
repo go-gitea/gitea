@@ -137,4 +137,10 @@ func TestEmptyRepoAddFileByAPI(t *testing.T) {
 	req = NewRequest(t, "GET", "/user30/empty/src/branch/new_branch/new-file.txt")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	assert.Contains(t, resp.Body.String(), "newly-added-api-file")
+
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/user30/empty?token=%s", token))
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	var apiRepo api.Repository
+	DecodeJSON(t, resp, &apiRepo)
+	assert.Equal(t, "new_branch", apiRepo.DefaultBranch)
 }

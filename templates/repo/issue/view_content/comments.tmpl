@@ -87,9 +87,7 @@
 					</div>
 					{{$reactions := .Reactions.GroupByType}}
 					{{if $reactions}}
-						<div class="ui attached segment reactions" role="note">
-							{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
-						</div>
+						{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
 					{{end}}
 				</div>
 			</div>
@@ -479,9 +477,7 @@
 						</div>
 						{{$reactions := .Reactions.GroupByType}}
 						{{if $reactions}}
-							<div class="ui attached segment reactions">
-									{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
-							</div>
+							{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
 						{{end}}
 					</div>
 				</div>
@@ -603,9 +599,7 @@
 														</div>
 														{{$reactions := .Reactions.GroupByType}}
 														{{if $reactions}}
-															<div class="ui attached segment reactions">
-																{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
-															</div>
+															{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
 														{{end}}
 													</div>
 												</div>
