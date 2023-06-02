@@ -56,7 +56,7 @@ func TestAPIUnpinIssue(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeDeleteIssue)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
 	// Pin the Issue
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/pin?token=%s",

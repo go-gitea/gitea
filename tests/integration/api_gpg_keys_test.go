@@ -21,8 +21,8 @@ type makeRequestFunc func(testing.TB, *http.Request, int) *httptest.ResponseReco
 func TestGPGKeys(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeDeleteRepository)
-	tokenWithGPGKeyScope := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeDeleteRepository, auth_model.AccessTokenScopeDeleteUser)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	tokenWithGPGKeyScope := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
 	tt := []struct {
 		name        string

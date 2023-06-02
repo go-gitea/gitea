@@ -23,7 +23,7 @@ func TestAPIStar(t *testing.T) {
 
 	session := loginUser(t, user)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
-	tokenWithUserScope := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeDeleteUser, auth_model.AccessTokenScopeDeleteRepository)
+	tokenWithUserScope := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
 
 	t.Run("Star", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()

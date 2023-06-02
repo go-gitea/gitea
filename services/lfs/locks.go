@@ -294,7 +294,7 @@ func UnLockHandler(ctx *context.Context) {
 	}
 	repository.MustOwner(ctx)
 
-	context.CheckRepoScopedToken(ctx, repository, auth_model.Delete)
+	context.CheckRepoScopedToken(ctx, repository, auth_model.Write)
 	if ctx.Written() {
 		return
 	}

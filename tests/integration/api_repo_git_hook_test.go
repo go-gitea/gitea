@@ -168,7 +168,7 @@ func TestAPIDeleteGitHook(t *testing.T) {
 
 	// user1 is an admin user
 	session := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeDeleteRepository)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/hooks/git/pre-receive?token=%s",
 		owner.Name, repo.Name, token)

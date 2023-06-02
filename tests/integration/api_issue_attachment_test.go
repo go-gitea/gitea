@@ -133,7 +133,7 @@ func TestAPIDeleteIssueAttachment(t *testing.T) {
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, repoOwner.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeDeleteIssue)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assets/%d?token=%s",
 		repoOwner.Name, repo.Name, issue.Index, attachment.ID, token)
 

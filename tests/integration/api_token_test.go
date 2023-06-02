@@ -211,7 +211,7 @@ func TestAPIDeniesPermissionBasedOnTokenScope(t *testing.T) {
 			[]permission{
 				{
 					auth_model.AccessTokenScopeCategoryPackage,
-					auth_model.Delete,
+					auth_model.Write,
 				},
 			},
 		},
@@ -241,7 +241,7 @@ func TestAPIDeniesPermissionBasedOnTokenScope(t *testing.T) {
 			[]permission{
 				{
 					auth_model.AccessTokenScopeCategoryRepository,
-					auth_model.Delete,
+					auth_model.Write,
 				},
 			},
 		},
@@ -393,7 +393,7 @@ func TestAPIDeniesPermissionBasedOnTokenScope(t *testing.T) {
 			[]permission{
 				{
 					auth_model.AccessTokenScopeCategoryUser,
-					auth_model.Delete,
+					auth_model.Write,
 				},
 			},
 		},
@@ -472,7 +472,7 @@ func runTestCase(t *testing.T, testCase *requiredScopeTestCase, user *user_model
 			// For permissions, Delete > Write > Read > NoAccess.  So we need to
 			// find the minimum required, and only grant permission up to but
 			// not including the minimum required.
-			minRequiredLevel := auth_model.Delete
+			minRequiredLevel := auth_model.Write
 			categoryIsRequired := false
 			for _, requiredPermission := range testCase.requiredPermissions {
 				if requiredPermission.category != category {
@@ -483,14 +483,12 @@ func runTestCase(t *testing.T, testCase *requiredScopeTestCase, user *user_model
 					minRequiredLevel = requiredPermission.level
 				}
 			}
-			unauthorizedLevel := auth_model.Delete
+			unauthorizedLevel := auth_model.Write
 			if categoryIsRequired {
 				if minRequiredLevel == auth_model.Read {
 					unauthorizedLevel = auth_model.NoAccess
 				} else if minRequiredLevel == auth_model.Write {
 					unauthorizedLevel = auth_model.Read
-				} else if minRequiredLevel == auth_model.Delete {
-					unauthorizedLevel = auth_model.Write
 				} else {
 					assert.Failf(t, "Invalid test case", "Unknown access token scope level: %v", minRequiredLevel)
 					return

@@ -38,11 +38,11 @@ func Test_ConvertScopedAccessTokens(t *testing.T) {
 	tests := []testCase{
 		{
 			createOldTokenScope(OldAccessTokenScopeRepo, OldAccessTokenScopeUserFollow),
-			createNewTokenScope(AccessTokenScopeDeleteRepository, AccessTokenScopeWriteUser),
+			createNewTokenScope(AccessTokenScopeWriteRepository, AccessTokenScopeWriteUser),
 		},
 		{
 			createOldTokenScope(OldAccessTokenScopeUser, OldAccessTokenScopeWritePackage, OldAccessTokenScopeSudo),
-			createNewTokenScope(AccessTokenScopeDeleteAdmin, AccessTokenScopeWritePackage, AccessTokenScopeDeleteUser),
+			createNewTokenScope(AccessTokenScopeWriteAdmin, AccessTokenScopeWritePackage, AccessTokenScopeWriteUser),
 		},
 		{
 			createOldTokenScope(),

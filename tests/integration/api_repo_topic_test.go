@@ -60,7 +60,7 @@ func TestAPIRepoTopic(t *testing.T) {
 	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 
 	// Get user2's token
-	token2 := getUserToken(t, user2.Name, auth_model.AccessTokenScopeDeleteRepository)
+	token2 := getUserToken(t, user2.Name, auth_model.AccessTokenScopeWriteRepository)
 
 	// Test read topics using login
 	url := fmt.Sprintf("/api/v1/repos/%s/%s/topics", user2.Name, repo2.Name)

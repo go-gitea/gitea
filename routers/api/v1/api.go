@@ -256,10 +256,8 @@ func tokenRequiresScopes(requiredScopeCategories ...auth_model.AccessTokenScopeC
 
 		// use the http method to determine the access level
 		requiredScopeLevel := auth_model.Read
-		if ctx.Req.Method == "POST" || ctx.Req.Method == "PUT" || ctx.Req.Method == "PATCH" {
+		if ctx.Req.Method == "POST" || ctx.Req.Method == "PUT" || ctx.Req.Method == "PATCH" || ctx.Req.Method == "DELETE" {
 			requiredScopeLevel = auth_model.Write
-		} else if ctx.Req.Method == "DELETE" {
-			requiredScopeLevel = auth_model.Delete
 		}
 
 		// get the required scope for the given access level and category

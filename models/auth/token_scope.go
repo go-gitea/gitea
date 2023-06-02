@@ -45,52 +45,42 @@ const (
 	NoAccess AccessTokenScopeLevel = iota
 	Read
 	Write
-	Delete
 )
 
 // AccessTokenScope represents the scope for an access token.
 type AccessTokenScope string
 
-// for all categories, delete implies write, write implies read
+// for all categories, write implies read
 const (
 	AccessTokenScopeAll        AccessTokenScope = "all"
 	AccessTokenScopePublicOnly AccessTokenScope = "public-only" // limited to public orgs/repos
 
-	AccessTokenScopeReadActivityPub   AccessTokenScope = "read:activitypub"
-	AccessTokenScopeWriteActivityPub  AccessTokenScope = "write:activitypub"
-	AccessTokenScopeDeleteActivityPub AccessTokenScope = "delete:activitypub"
+	AccessTokenScopeReadActivityPub  AccessTokenScope = "read:activitypub"
+	AccessTokenScopeWriteActivityPub AccessTokenScope = "write:activitypub"
 
-	AccessTokenScopeReadAdmin   AccessTokenScope = "read:admin"
-	AccessTokenScopeWriteAdmin  AccessTokenScope = "write:admin"
-	AccessTokenScopeDeleteAdmin AccessTokenScope = "delete:admin"
+	AccessTokenScopeReadAdmin  AccessTokenScope = "read:admin"
+	AccessTokenScopeWriteAdmin AccessTokenScope = "write:admin"
 
-	AccessTokenScopeReadMisc   AccessTokenScope = "read:misc"
-	AccessTokenScopeWriteMisc  AccessTokenScope = "write:misc"
-	AccessTokenScopeDeleteMisc AccessTokenScope = "delete:misc"
+	AccessTokenScopeReadMisc  AccessTokenScope = "read:misc"
+	AccessTokenScopeWriteMisc AccessTokenScope = "write:misc"
 
-	AccessTokenScopeReadNotification   AccessTokenScope = "read:notification"
-	AccessTokenScopeWriteNotification  AccessTokenScope = "write:notification"
-	AccessTokenScopeDeleteNotification AccessTokenScope = "delete:notification"
+	AccessTokenScopeReadNotification  AccessTokenScope = "read:notification"
+	AccessTokenScopeWriteNotification AccessTokenScope = "write:notification"
 
-	AccessTokenScopeReadOrganization   AccessTokenScope = "read:organization"
-	AccessTokenScopeWriteOrganization  AccessTokenScope = "write:organization"
-	AccessTokenScopeDeleteOrganization AccessTokenScope = "delete:organization"
+	AccessTokenScopeReadOrganization  AccessTokenScope = "read:organization"
+	AccessTokenScopeWriteOrganization AccessTokenScope = "write:organization"
 
-	AccessTokenScopeReadPackage   AccessTokenScope = "read:package"
-	AccessTokenScopeWritePackage  AccessTokenScope = "write:package"
-	AccessTokenScopeDeletePackage AccessTokenScope = "delete:package"
+	AccessTokenScopeReadPackage  AccessTokenScope = "read:package"
+	AccessTokenScopeWritePackage AccessTokenScope = "write:package"
 
-	AccessTokenScopeReadIssue   AccessTokenScope = "read:issue"
-	AccessTokenScopeWriteIssue  AccessTokenScope = "write:issue"
-	AccessTokenScopeDeleteIssue AccessTokenScope = "delete:issue"
+	AccessTokenScopeReadIssue  AccessTokenScope = "read:issue"
+	AccessTokenScopeWriteIssue AccessTokenScope = "write:issue"
 
-	AccessTokenScopeReadRepository   AccessTokenScope = "read:repository"
-	AccessTokenScopeWriteRepository  AccessTokenScope = "write:repository"
-	AccessTokenScopeDeleteRepository AccessTokenScope = "delete:repository"
+	AccessTokenScopeReadRepository  AccessTokenScope = "read:repository"
+	AccessTokenScopeWriteRepository AccessTokenScope = "write:repository"
 
-	AccessTokenScopeReadUser   AccessTokenScope = "read:user"
-	AccessTokenScopeWriteUser  AccessTokenScope = "write:user"
-	AccessTokenScopeDeleteUser AccessTokenScope = "delete:user"
+	AccessTokenScopeReadUser  AccessTokenScope = "read:user"
+	AccessTokenScopeWriteUser AccessTokenScope = "write:user"
 )
 
 // accessTokenScopeBitmap represents a bitmap of access token scopes.
@@ -99,48 +89,39 @@ type accessTokenScopeBitmap uint64
 // Bitmap of each scope, including the child scopes.
 const (
 	// AccessTokenScopeAllBits is the bitmap of all access token scopes
-	accessTokenScopeAllBits accessTokenScopeBitmap = accessTokenScopeDeleteActivityPubBits |
-		accessTokenScopeDeleteAdminBits | accessTokenScopeDeleteMiscBits | accessTokenScopeDeleteNotificationBits |
-		accessTokenScopeDeleteOrganizationBits | accessTokenScopeDeletePackageBits | accessTokenScopeDeleteIssueBits |
-		accessTokenScopeDeleteRepositoryBits | accessTokenScopeDeleteUserBits
+	accessTokenScopeAllBits accessTokenScopeBitmap = accessTokenScopeWriteActivityPubBits |
+		accessTokenScopeWriteAdminBits | accessTokenScopeWriteMiscBits | accessTokenScopeWriteNotificationBits |
+		accessTokenScopeWriteOrganizationBits | accessTokenScopeWritePackageBits | accessTokenScopeWriteIssueBits |
+		accessTokenScopeWriteRepositoryBits | accessTokenScopeWriteUserBits
 
 	accessTokenScopePublicOnlyBits accessTokenScopeBitmap = 1 << iota
 
-	accessTokenScopeReadActivityPubBits   accessTokenScopeBitmap = 1 << iota
-	accessTokenScopeWriteActivityPubBits  accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadActivityPubBits
-	accessTokenScopeDeleteActivityPubBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeWriteActivityPubBits
+	accessTokenScopeReadActivityPubBits  accessTokenScopeBitmap = 1 << iota
+	accessTokenScopeWriteActivityPubBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadActivityPubBits
 
-	accessTokenScopeReadAdminBits   accessTokenScopeBitmap = 1 << iota
-	accessTokenScopeWriteAdminBits  accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadAdminBits
-	accessTokenScopeDeleteAdminBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeWriteAdminBits
+	accessTokenScopeReadAdminBits  accessTokenScopeBitmap = 1 << iota
+	accessTokenScopeWriteAdminBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadAdminBits
 
-	accessTokenScopeReadMiscBits   accessTokenScopeBitmap = 1 << iota
-	accessTokenScopeWriteMiscBits  accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadMiscBits
-	accessTokenScopeDeleteMiscBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeWriteMiscBits
+	accessTokenScopeReadMiscBits  accessTokenScopeBitmap = 1 << iota
+	accessTokenScopeWriteMiscBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadMiscBits
 
-	accessTokenScopeReadNotificationBits   accessTokenScopeBitmap = 1 << iota
-	accessTokenScopeWriteNotificationBits  accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadNotificationBits
-	accessTokenScopeDeleteNotificationBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeWriteNotificationBits
+	accessTokenScopeReadNotificationBits  accessTokenScopeBitmap = 1 << iota
+	accessTokenScopeWriteNotificationBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadNotificationBits
 
-	accessTokenScopeReadOrganizationBits   accessTokenScopeBitmap = 1 << iota
-	accessTokenScopeWriteOrganizationBits  accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadOrganizationBits
-	accessTokenScopeDeleteOrganizationBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeWriteOrganizationBits
+	accessTokenScopeReadOrganizationBits  accessTokenScopeBitmap = 1 << iota
+	accessTokenScopeWriteOrganizationBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadOrganizationBits
 
-	accessTokenScopeReadPackageBits   accessTokenScopeBitmap = 1 << iota
-	accessTokenScopeWritePackageBits  accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadPackageBits
-	accessTokenScopeDeletePackageBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeWritePackageBits
+	accessTokenScopeReadPackageBits  accessTokenScopeBitmap = 1 << iota
+	accessTokenScopeWritePackageBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadPackageBits
 
-	accessTokenScopeReadIssueBits   accessTokenScopeBitmap = 1 << iota
-	accessTokenScopeWriteIssueBits  accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadIssueBits
-	accessTokenScopeDeleteIssueBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeWriteIssueBits
+	accessTokenScopeReadIssueBits  accessTokenScopeBitmap = 1 << iota
+	accessTokenScopeWriteIssueBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadIssueBits
 
-	accessTokenScopeReadRepositoryBits   accessTokenScopeBitmap = 1 << iota
-	accessTokenScopeWriteRepositoryBits  accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadRepositoryBits
-	accessTokenScopeDeleteRepositoryBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeWriteRepositoryBits
+	accessTokenScopeReadRepositoryBits  accessTokenScopeBitmap = 1 << iota
+	accessTokenScopeWriteRepositoryBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadRepositoryBits
 
-	accessTokenScopeReadUserBits   accessTokenScopeBitmap = 1 << iota
-	accessTokenScopeWriteUserBits  accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadUserBits
-	accessTokenScopeDeleteUserBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeWriteUserBits
+	accessTokenScopeReadUserBits  accessTokenScopeBitmap = 1 << iota
+	accessTokenScopeWriteUserBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadUserBits
 
 	// The current implementation only supports up to 64 token scopes.
 	// If we need to support > 64 scopes,
@@ -151,48 +132,39 @@ const (
 // The order is important: parent scope must precede child scopes.
 var allAccessTokenScopes = []AccessTokenScope{
 	AccessTokenScopePublicOnly,
-	AccessTokenScopeDeleteActivityPub, AccessTokenScopeWriteActivityPub, AccessTokenScopeReadActivityPub,
-	AccessTokenScopeDeleteAdmin, AccessTokenScopeWriteAdmin, AccessTokenScopeReadAdmin,
-	AccessTokenScopeDeleteMisc, AccessTokenScopeWriteMisc, AccessTokenScopeReadMisc,
-	AccessTokenScopeDeleteNotification, AccessTokenScopeWriteNotification, AccessTokenScopeReadNotification,
-	AccessTokenScopeDeleteOrganization, AccessTokenScopeWriteOrganization, AccessTokenScopeReadOrganization,
-	AccessTokenScopeDeletePackage, AccessTokenScopeWritePackage, AccessTokenScopeReadPackage,
-	AccessTokenScopeDeleteIssue, AccessTokenScopeWriteIssue, AccessTokenScopeReadIssue,
-	AccessTokenScopeDeleteRepository, AccessTokenScopeWriteRepository, AccessTokenScopeReadRepository,
-	AccessTokenScopeDeleteUser, AccessTokenScopeWriteUser, AccessTokenScopeReadUser,
+	AccessTokenScopeWriteActivityPub, AccessTokenScopeReadActivityPub,
+	AccessTokenScopeWriteAdmin, AccessTokenScopeReadAdmin,
+	AccessTokenScopeWriteMisc, AccessTokenScopeReadMisc,
+	AccessTokenScopeWriteNotification, AccessTokenScopeReadNotification,
+	AccessTokenScopeWriteOrganization, AccessTokenScopeReadOrganization,
+	AccessTokenScopeWritePackage, AccessTokenScopeReadPackage,
+	AccessTokenScopeWriteIssue, AccessTokenScopeReadIssue,
+	AccessTokenScopeWriteRepository, AccessTokenScopeReadRepository,
+	AccessTokenScopeWriteUser, AccessTokenScopeReadUser,
 }
 
 // allAccessTokenScopeBits contains all access token scopes.
 var allAccessTokenScopeBits = map[AccessTokenScope]accessTokenScopeBitmap{
-	AccessTokenScopeAll:                accessTokenScopeAllBits,
-	AccessTokenScopePublicOnly:         accessTokenScopePublicOnlyBits,
-	AccessTokenScopeReadActivityPub:    accessTokenScopeReadActivityPubBits,
-	AccessTokenScopeWriteActivityPub:   accessTokenScopeWriteActivityPubBits,
-	AccessTokenScopeDeleteActivityPub:  accessTokenScopeDeleteActivityPubBits,
-	AccessTokenScopeReadAdmin:          accessTokenScopeReadAdminBits,
-	AccessTokenScopeWriteAdmin:         accessTokenScopeWriteAdminBits,
-	AccessTokenScopeDeleteAdmin:        accessTokenScopeDeleteAdminBits,
-	AccessTokenScopeReadMisc:           accessTokenScopeReadMiscBits,
-	AccessTokenScopeWriteMisc:          accessTokenScopeWriteMiscBits,
-	AccessTokenScopeDeleteMisc:         accessTokenScopeDeleteMiscBits,
-	AccessTokenScopeReadNotification:   accessTokenScopeReadNotificationBits,
-	AccessTokenScopeWriteNotification:  accessTokenScopeWriteNotificationBits,
-	AccessTokenScopeDeleteNotification: accessTokenScopeDeleteNotificationBits,
-	AccessTokenScopeReadOrganization:   accessTokenScopeReadOrganizationBits,
-	AccessTokenScopeWriteOrganization:  accessTokenScopeWriteOrganizationBits,
-	AccessTokenScopeDeleteOrganization: accessTokenScopeDeleteOrganizationBits,
-	AccessTokenScopeReadPackage:        accessTokenScopeReadPackageBits,
-	AccessTokenScopeWritePackage:       accessTokenScopeWritePackageBits,
-	AccessTokenScopeDeletePackage:      accessTokenScopeDeletePackageBits,
-	AccessTokenScopeReadIssue:          accessTokenScopeReadIssueBits,
-	AccessTokenScopeWriteIssue:         accessTokenScopeWriteIssueBits,
-	AccessTokenScopeDeleteIssue:        accessTokenScopeDeleteIssueBits,
-	AccessTokenScopeReadRepository:     accessTokenScopeReadRepositoryBits,
-	AccessTokenScopeWriteRepository:    accessTokenScopeWriteRepositoryBits,
-	AccessTokenScopeDeleteRepository:   accessTokenScopeDeleteRepositoryBits,
-	AccessTokenScopeReadUser:           accessTokenScopeReadUserBits,
-	AccessTokenScopeWriteUser:          accessTokenScopeWriteUserBits,
-	AccessTokenScopeDeleteUser:         accessTokenScopeDeleteUserBits,
+	AccessTokenScopeAll:               accessTokenScopeAllBits,
+	AccessTokenScopePublicOnly:        accessTokenScopePublicOnlyBits,
+	AccessTokenScopeReadActivityPub:   accessTokenScopeReadActivityPubBits,
+	AccessTokenScopeWriteActivityPub:  accessTokenScopeWriteActivityPubBits,
+	AccessTokenScopeReadAdmin:         accessTokenScopeReadAdminBits,
+	AccessTokenScopeWriteAdmin:        accessTokenScopeWriteAdminBits,
+	AccessTokenScopeReadMisc:          accessTokenScopeReadMiscBits,
+	AccessTokenScopeWriteMisc:         accessTokenScopeWriteMiscBits,
+	AccessTokenScopeReadNotification:  accessTokenScopeReadNotificationBits,
+	AccessTokenScopeWriteNotification: accessTokenScopeWriteNotificationBits,
+	AccessTokenScopeReadOrganization:  accessTokenScopeReadOrganizationBits,
+	AccessTokenScopeWriteOrganization: accessTokenScopeWriteOrganizationBits,
+	AccessTokenScopeReadPackage:       accessTokenScopeReadPackageBits,
+	AccessTokenScopeWritePackage:      accessTokenScopeWritePackageBits,
+	AccessTokenScopeReadIssue:         accessTokenScopeReadIssueBits,
+	AccessTokenScopeWriteIssue:        accessTokenScopeWriteIssueBits,
+	AccessTokenScopeReadRepository:    accessTokenScopeReadRepositoryBits,
+	AccessTokenScopeWriteRepository:   accessTokenScopeWriteRepositoryBits,
+	AccessTokenScopeReadUser:          accessTokenScopeReadUserBits,
+	AccessTokenScopeWriteUser:         accessTokenScopeWriteUserBits,
 }
 
 // readAccessTokenScopes maps a scope category to the read permission scope
@@ -218,17 +190,6 @@ var accessTokenScopes = map[AccessTokenScopeLevel]map[AccessTokenScopeCategory]A
 		AccessTokenScopeCategoryIssue:        AccessTokenScopeWriteIssue,
 		AccessTokenScopeCategoryRepository:   AccessTokenScopeWriteRepository,
 		AccessTokenScopeCategoryUser:         AccessTokenScopeWriteUser,
-	},
-	Delete: {
-		AccessTokenScopeCategoryActivityPub:  AccessTokenScopeDeleteActivityPub,
-		AccessTokenScopeCategoryAdmin:        AccessTokenScopeDeleteAdmin,
-		AccessTokenScopeCategoryMisc:         AccessTokenScopeDeleteMisc,
-		AccessTokenScopeCategoryNotification: AccessTokenScopeDeleteNotification,
-		AccessTokenScopeCategoryOrganization: AccessTokenScopeDeleteOrganization,
-		AccessTokenScopeCategoryPackage:      AccessTokenScopeDeletePackage,
-		AccessTokenScopeCategoryIssue:        AccessTokenScopeDeleteIssue,
-		AccessTokenScopeCategoryRepository:   AccessTokenScopeDeleteRepository,
-		AccessTokenScopeCategoryUser:         AccessTokenScopeDeleteUser,
 	},
 }
 
@@ -261,9 +222,9 @@ func GetScopeLevelFromAccessMode(mode perm.AccessMode) AccessTokenScopeLevel {
 	case perm.AccessModeWrite:
 		return Write
 	case perm.AccessModeAdmin:
-		return Delete
+		return Write
 	case perm.AccessModeOwner:
-		return Delete
+		return Write
 	default:
 		return NoAccess
 	}
@@ -382,7 +343,7 @@ func (bitmap accessTokenScopeBitmap) toScope() AccessTokenScope {
 	scope := AccessTokenScope(strings.Join(scopes, ","))
 	scope = AccessTokenScope(strings.ReplaceAll(
 		string(scope),
-		"delete:activitypub,delete:admin,delete:misc,delete:notification,delete:organization,delete:package,delete:issue,delete:repository,delete:user",
+		"write:activitypub,write:admin,write:misc,write:notification,write:organization,write:package,write:issue,write:repository,write:user",
 		"all",
 	))
 	return scope

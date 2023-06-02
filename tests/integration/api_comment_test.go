@@ -170,7 +170,7 @@ func TestAPIDeleteComment(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-	token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeDeleteIssue)
+	token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeWriteIssue)
 	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/comments/%d?token=%s",
 		repoOwner.Name, repo.Name, comment.ID, token)
 	MakeRequest(t, req, http.StatusNoContent)

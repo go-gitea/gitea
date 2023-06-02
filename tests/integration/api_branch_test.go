@@ -70,13 +70,13 @@ func testAPIEditBranchProtection(t *testing.T, branchName string, body *api.Bran
 }
 
 func testAPIDeleteBranchProtection(t *testing.T, branchName string, expectedHTTPStatus int) {
-	token := getUserToken(t, "user2", auth_model.AccessTokenScopeDeleteRepository)
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
 	req := NewRequestf(t, "DELETE", "/api/v1/repos/user2/repo1/branch_protections/%s?token=%s", branchName, token)
 	MakeRequest(t, req, expectedHTTPStatus)
 }
 
 func testAPIDeleteBranch(t *testing.T, branchName string, expectedHTTPStatus int) {
-	token := getUserToken(t, "user2", auth_model.AccessTokenScopeDeleteRepository)
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
 	req := NewRequestf(t, "DELETE", "/api/v1/repos/user2/repo1/branches/%s?token=%s", branchName, token)
 	MakeRequest(t, req, expectedHTTPStatus)
 }

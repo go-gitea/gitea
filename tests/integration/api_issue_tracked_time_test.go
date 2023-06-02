@@ -71,7 +71,7 @@ func TestAPIDeleteTrackedTime(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	session := loginUser(t, user2.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeDeleteIssue)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
 	// Deletion not allowed
 	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/times/%d?token=%s", user2.Name, issue2.Repo.Name, issue2.Index, time6.ID, token)
