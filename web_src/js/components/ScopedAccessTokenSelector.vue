@@ -8,7 +8,7 @@
           class="scope-checkbox scoped-access-token-input"
           type="checkbox"
           name="scope"
-          :value="'delete:' + category"
+          :value="'write:' + category"
           @input="onCategoryInput"
         >
         {{ category }}
@@ -20,7 +20,7 @@
           <input
             ref="read"
             v-model="readSelected"
-            :disabled="categorySelected || writeSelected"
+            :disabled="disableIndividual || writeSelected"
             class="scope-checkbox scoped-access-token-input"
             type="checkbox"
             name="scope"
@@ -35,7 +35,7 @@
           <input
             ref="write"
             v-model="writeSelected"
-            :disabled="categorySelected"
+            :disabled="disableIndividual"
             class="scope-checkbox scoped-access-token-input"
             type="checkbox"
             name="scope"
@@ -43,21 +43,6 @@
             @input="onIndividualInput"
           >
           write:{{ category }}
-        </label>
-      </div>
-      <div class="inline field">
-        <label class="checkbox-label">
-          <input
-            ref="delete"
-            v-model="deleteSelected"
-            :disabled="categorySelected"
-            class="scope-checkbox scoped-access-token-input"
-            type="checkbox"
-            name="scope"
-            :value="'delete:' + category"
-            @input="onIndividualInput"
-          >
-          delete:{{ category }}
         </label>
       </div>
     </div>
@@ -78,37 +63,33 @@ const sfc = {
 
   data: () => ({
     categorySelected: false,
+    disableIndividual: false,
     readSelected: false,
     writeSelected: false,
-    deleteSelected: false,
   }),
 
   methods: {
     /**
      * When entire category is toggled
-     * @param {Event} event
+     * @param {Event} e
      */
     onCategoryInput(e) {
       e.preventDefault();
-      this.deleteSelected = this.$refs.category.checked;
+      this.disableIndividual = this.$refs.category.checked;
       this.writeSelected = this.$refs.category.checked;
       this.readSelected = this.$refs.category.checked;
     },
 
     /**
      * When an individual level of category is toggled
-     * @param {Event} event
+     * @param {Event} e
      */
     onIndividualInput(e) {
       e.preventDefault();
-      if (this.$refs.delete.checked) {
-        this.readSelected = true;
-        this.writeSelected = true;
-        this.categorySelected = true;
-      }
       if (this.$refs.write.checked) {
         this.readSelected = true;
       }
+      this.categorySelected = this.$refs.write.checked;
     },
   }
 };
