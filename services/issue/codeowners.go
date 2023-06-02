@@ -1,3 +1,6 @@
+// Copyright 2023 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package issue
 
 import (
@@ -8,10 +11,7 @@ import (
 	"fmt"
 	"strings"
 
-	"gopkg.in/godo.v2/glob"
-
 	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
 	organization_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -20,6 +20,8 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+
+	"gopkg.in/godo.v2/glob"
 )
 
 type Codeowners struct {
@@ -48,17 +50,14 @@ func (e *ExistenceAndPermissionError) Owners() []string {
 	return e.owners
 }
 
-var globalCodeownerMap []Codeowners
-var globalCodeownerIndividuals []Codeowners
-var globalCodeownerTeams []Codeowners
-
+// ParseCodeowners parses the given CODEOWNERS file contents and returns all Users and Teams who own any of the changed files and any
+// validationErrors, which maps line numbers to the error (InvalidSyntaxError or ExistenceAndPermissionError)
 func ParseCodeowners(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, changedFiles []string, codeownersContents []byte) (
 	userOwners []*user_model.User,
 	teamOwners []*organization_model.Team,
 	validationErrors map[int]error,
-	err error) {
-
-	// This calls the actual parser
+	err error,
+) {
 	codeownerMap, validationErrors, err := ParseCodeownerBytes(ctx, repo, doer, codeownersContents)
 
 	// We have to declare a new list of strings to be able to append all codeowners
@@ -66,9 +65,9 @@ func ParseCodeowners(ctx context.Context, repo *repo_model.Repository, doer *use
 	users := []*user_model.User{}
 	teams := []*organization_model.Team{}
 	for _, file := range changedFiles {
-		newUsers, newTeams := GetOwners(codeownerMap, file)
-		users = append(users, newUsers...)
-		teams = append(teams, newTeams...)
+		ownerUsers, ownerTeams := GetOwners(codeownerMap, file)
+		users = append(users, ownerUsers...)
+		teams = append(teams, ownerTeams...)
 	}
 
 	users = RemoveDuplicateUsers(users)
@@ -87,29 +86,25 @@ func ParseCodeowners(ctx context.Context, repo *repo_model.Repository, doer *use
 	return users, teams, validationErrors, err
 }
 
-// GetOwners returns the list of owners (including teams) for a single file. It matches from our globMap
+// GetOwners returns the list of owners (including teams) for a single file. It matches from our codeownersMap
 // to the changed files that it receives from the for loop in the ParseCodeowners function above.
 func GetOwners(codeownerMap []Codeowners, file string) ([]*user_model.User, []*organization_model.Team) {
-
 	for i := len(codeownerMap) - 1; i >= 0; i-- {
 		if glob.Globexp(codeownerMap[i].glob).MatchString(file) {
-			fmt.Println("File:", file, "Result:", codeownerMap[i])
-
+			log.Trace("Codeowner file mappping. File: %s, Ownership map: %v", file, codeownerMap[i])
 			return codeownerMap[i].users, codeownerMap[i].teams
 		}
 	}
-	log.Trace("!!!Unmatched file: ", file)
+	log.Trace("Unmatched codeowners file: ", file)
 	return nil, nil
 }
 
 // SeparateOwnerAndTeam separates owners and teams based on format.
 func SeparateOwnerAndTeam(codeownersList []string) ([]string, []string) {
-
 	codeownerIndividuals := []string{}
 	codeOwnerTeams := []string{}
 
 	for _, codeowner := range codeownersList {
-
 		if len(codeowner) > 0 {
 
 			// We remove that @ sign from the codeowner because it's unnecessary for
@@ -132,7 +127,6 @@ func SeparateOwnerAndTeam(codeownersList []string) ([]string, []string) {
 
 // Removing duplicates has to be done manually in Golang
 func RemoveDuplicateUsers(duplicatesPresent []*user_model.User) []*user_model.User {
-
 	// Make a map with all keys initialized to false
 	allKeys := make(map[*user_model.User]bool)
 	duplicatesRemoved := []*user_model.User{}
@@ -150,7 +144,6 @@ func RemoveDuplicateUsers(duplicatesPresent []*user_model.User) []*user_model.Us
 
 // Removing duplicates has to be done manually in Golang
 func RemoveDuplicateTeams(duplicatesPresent []*organization_model.Team) []*organization_model.Team {
-
 	// Make a map with all keys initialized to false
 	allKeys := make(map[*organization_model.Team]bool)
 	duplicatesRemoved := []*organization_model.Team{}
@@ -167,7 +160,6 @@ func RemoveDuplicateTeams(duplicatesPresent []*organization_model.Team) []*organ
 }
 
 func ParseCodeownerBytes(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, codeownerBytes []byte) ([]Codeowners, map[int]error, error) {
-
 	// Create a new scanner to read from the byte array
 	scanner := bufio.NewScanner(strings.NewReader(string(codeownerBytes)))
 	return ScanAndParse(ctx, repo, doer, *scanner)
@@ -175,12 +167,11 @@ func ParseCodeownerBytes(ctx context.Context, repo *repo_model.Repository, doer 
 
 // ScanAndParse is the director function for handling the incoming codeowner contents
 func ScanAndParse(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, scanner bufio.Scanner) ([]Codeowners, map[int]error, error) {
-
-	// codeownerMap maps each line using a key/value pair held by the Codeowners Data type.
-	//		It maps from the file type (e.g., *.js) to the users for that file type (e.g., @user1 @user2)
+	// codeownerMap maps each line using a key/value pair held by the Codeowners struct.
+	// It maps from the file type (e.g., *.js) to the users for that file type (e.g., @user1 @user2)
 	var codeownerMap []Codeowners
 	validationErrors := make(map[int]error)
-	var lineCounter int = 0
+	var lineCounter int
 
 	for scanner.Scan() {
 
@@ -255,13 +246,11 @@ func ScanAndParse(ctx context.Context, repo *repo_model.Repository, doer *user_m
 //	of a CODEOWNERS file. Note that there are two potential globbing rules for the following situation, when we can't identify
 //	whether it's a file name or a subdirectory: /docs/github can be either /docs/github or /docs/github/**
 func ParseCodeownersLine(line string) (globString, globString2 string, currFileUsers []string) {
-
 	// strings.Fields() splits the string by whitespace
 	splitStrings := strings.Fields(line)
 	var userStopIndex int
 
 	for i := 0; i < len(splitStrings); i++ {
-
 		// The first two checks here handle comments
 		if strings.Compare(splitStrings[i], "#") == 0 {
 			break
@@ -317,7 +306,6 @@ func ParseCodeownersLine(line string) (globString, globString2 string, currFileU
 
 // IsValidCodeownersLineSyntax returns true if the given line of the CODEOWNERS file is valid syntactically (after the file pattern)
 func IsValidCodeownersLineSyntax(currFileOwnerCandidates []string) bool {
-
 	for _, user := range currFileOwnerCandidates {
 		if !glob.Globexp("@*").MatchString(user) &&
 			!glob.Globexp("@*/*").MatchString(user) &&
@@ -335,7 +323,6 @@ func IsValidCodeownersLineSyntax(currFileOwnerCandidates []string) bool {
 }
 
 func HasValidWritePermissions(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, currFileOwners []string) ([]*user_model.User, []*organization_model.Team, bool) {
-
 	currIndividualOwners, currTeamOwners := SeparateOwnerAndTeam(currFileOwners)
 	users := []*user_model.User{}
 	teams := []*organization_model.Team{}
@@ -401,7 +388,7 @@ func GetCodeownersFileContents(ctx context.Context, commit *git.Commit, gitRepo 
 func IsCodeownersWithinSizeLimit(contentBytes []byte) error {
 	byteLimit := 3 * 1024 * 1024 // 3 MB limit, per GitHub specs
 	if len(contentBytes) >= byteLimit {
-		return errors.New(fmt.Sprintf("CODEOWNERS file exceeds size limit. Is %d bytes but must be under %d", len(contentBytes), byteLimit))
+		return fmt.Errorf("CODEOWNERS file exceeds size limit. Is %d bytes but must be under %d", len(contentBytes), byteLimit)
 	}
 	return nil
 }
@@ -418,26 +405,26 @@ func GetCodeownersGitTreeEntry(commit *git.Commit, directoryOptions []string) *g
 }
 
 // GetValidUserCodeownerReviewers gets the Users that actually exist, are authorized to review the pull request, and have explicit write permissions for the repo
-func GetValidUserCodeownerReviewers(ctx context.Context, userNamesOrEmails []string, repo *repo_model.Repository, doer *user_model.User, isAdd bool, issue *issues_model.Issue) (reviewers []*user_model.User) {
-	reviewers = []*user_model.User{}
+// func GetValidUserCodeownerReviewers(ctx context.Context, userNamesOrEmails []string, repo *repo_model.Repository, doer *user_model.User, isAdd bool, issue *issues_model.Issue) (reviewers []*user_model.User) {
+// 	reviewers = []*user_model.User{}
 
-	permDoer, err := access_model.GetUserRepoPermission(ctx, repo, doer)
-	if err != nil {
-		log.Error("models/perm/access/GetUserRepoPermission: %v", err)
-		return reviewers // empty
-	}
+// 	permDoer, err := access_model.GetUserRepoPermission(ctx, repo, doer)
+// 	if err != nil {
+// 		log.Error("models/perm/access/GetUserRepoPermission: %v", err)
+// 		return reviewers // empty
+// 	}
 
-	for _, nameOrEmail := range userNamesOrEmails {
-		reviewer, err := GetUserByNameOrEmail(ctx, nameOrEmail, repo)
-		if reviewer != nil && err == nil {
-			err = IsValidUserCodeowner(err, ctx, reviewer, doer, isAdd, issue, permDoer, repo)
-			if err == nil {
-				reviewers = append(reviewers, reviewer)
-			}
-		}
-	}
-	return reviewers
-}
+// 	for _, nameOrEmail := range userNamesOrEmails {
+// 		reviewer, err := GetUserByNameOrEmail(ctx, nameOrEmail, repo)
+// 		if reviewer != nil && err == nil {
+// 			err = IsValidUserCodeowner(ctx, reviewer, doer, isAdd, issue, permDoer, repo)
+// 			if err == nil {
+// 				reviewers = append(reviewers, reviewer)
+// 			}
+// 		}
+// 	}
+// 	return reviewers
+// }
 
 // GetUserByNameOrEmail gets the user by either its name or email depending on the format of the input
 func GetUserByNameOrEmail(ctx context.Context, nameOrEmail string, repo *repo_model.Repository) (*user_model.User, error) {
@@ -457,58 +444,58 @@ func GetUserByNameOrEmail(ctx context.Context, nameOrEmail string, repo *repo_mo
 	return reviewer, err
 }
 
-// GetValidTeamCodeownerReviewers gets the Teams that actually exist, are authorized to review the pull request, and have explicit write permissions for the repo
-func GetValidTeamCodeownerReviewers(ctx context.Context, fullTeamNames []string, repo *repo_model.Repository, doer *user_model.User, isAdd bool, issue *issues_model.Issue) (teamReviewers []*organization_model.Team) {
-	teamReviewers = []*organization_model.Team{}
-	if repo.Owner.IsOrganization() {
-		for _, fullTeamName := range fullTeamNames {
-			teamReviewer, err := GetTeamFromFullName(ctx, fullTeamName, doer)
-			if err != nil {
-				log.Info("GetTeamFromFullName [repo_id: %d, full_team_name: %s]: error finding the team [%v]", repo.ID, fullTeamName, err)
-			} else if teamReviewer == nil {
-				log.Info("GetTeamFromFullName [repo_id: %d, full_team_name: %s]: no error returned, but the team was nil (could not be found)", repo.ID, fullTeamName)
-			} else {
-				err = IsValidTeamCodeowner(ctx, teamReviewer, doer, isAdd, issue, repo)
-				if err == nil {
-					teamReviewers = append(teamReviewers, teamReviewer)
-				}
-			}
-		}
-	}
-	return teamReviewers
-}
+// // GetValidTeamCodeownerReviewers gets the Teams that actually exist, are authorized to review the pull request, and have explicit write permissions for the repo
+// func GetValidTeamCodeownerReviewers(ctx context.Context, fullTeamNames []string, repo *repo_model.Repository, doer *user_model.User, isAdd bool, issue *issues_model.Issue) (teamReviewers []*organization_model.Team) {
+// 	teamReviewers = []*organization_model.Team{}
+// 	if repo.Owner.IsOrganization() {
+// 		for _, fullTeamName := range fullTeamNames {
+// 			teamReviewer, err := GetTeamFromFullName(ctx, fullTeamName, doer)
+// 			if err != nil {
+// 				log.Info("GetTeamFromFullName [repo_id: %d, full_team_name: %s]: error finding the team [%v]", repo.ID, fullTeamName, err)
+// 			} else if teamReviewer == nil {
+// 				log.Info("GetTeamFromFullName [repo_id: %d, full_team_name: %s]: no error returned, but the team was nil (could not be found)", repo.ID, fullTeamName)
+// 			} else {
+// 				err = IsValidTeamCodeowner(ctx, teamReviewer, doer, isAdd, issue, repo)
+// 				if err == nil {
+// 					teamReviewers = append(teamReviewers, teamReviewer)
+// 				}
+// 			}
+// 		}
+// 	}
+// 	return teamReviewers
+// }
 
 // IsValidUserCodeowner returns an error if the user is not eligible to be a codeowner for the given repository (must be an eligible reviewer
 // and have explcit write permissions). Nil if valid.
-func IsValidUserCodeowner(err error, ctx context.Context, reviewer *user_model.User, doer *user_model.User, isAdd bool, issue *issues_model.Issue, permDoer access_model.Permission, repo *repo_model.Repository) error {
-	err = IsValidReviewRequest(ctx, reviewer, doer, isAdd, issue, &permDoer)
-	if err == nil {
-		if UserHasWritePermissions(ctx, repo, reviewer) {
-			return nil
-		} else {
-			log.Info("IsValidUserCodeowner [repo_id: %d, user_id: %d]: user reviewer does not have write permissions and cannot be a codeowner", repo.ID, reviewer.ID)
-		}
-	} else {
-		log.Info("IsValidUserCodeowner [repo_id: %d, user_id: %d]: user reviewer is not a valid review request", repo.ID, reviewer.ID)
-	}
-	return errors.New(fmt.Sprintf("User %s is not a valid codeowner in the given repository", reviewer.Name))
-}
+// func IsValidUserCodeowner(ctx context.Context, reviewer, doer *user_model.User, isAdd bool, issue *issues_model.Issue, permDoer access_model.Permission, repo *repo_model.Repository) error {
+// 	err := IsValidReviewRequest(ctx, reviewer, doer, isAdd, issue, &permDoer)
+// 	if err == nil {
+// 		if UserHasWritePermissions(ctx, repo, reviewer) {
+// 			return nil
+// 		} else {
+// 			log.Info("IsValidUserCodeowner [repo_id: %d, user_id: %d]: user reviewer does not have write permissions and cannot be a codeowner", repo.ID, reviewer.ID)
+// 		}
+// 	} else {
+// 		log.Info("IsValidUserCodeowner [repo_id: %d, user_id: %d]: user reviewer is not a valid review request", repo.ID, reviewer.ID)
+// 	}
+// 	return errors.New(fmt.Sprintf("User %s is not a valid codeowner in the given repository", reviewer.Name))
+// }
 
 // IsValidTeamCodeowner returns an error if the team is not eligible to be a codeowner for the given repository (must be an eligible reviewer
 // and have explcit write permissions). Nil if valid.
-func IsValidTeamCodeowner(ctx context.Context, teamReviewer *organization_model.Team, doer *user_model.User, isAdd bool, issue *issues_model.Issue, repo *repo_model.Repository) error {
-	err := IsValidTeamReviewRequest(ctx, teamReviewer, doer, isAdd, issue)
-	if err == nil {
-		if TeamHasWritePermissions(ctx, repo, teamReviewer) {
-			return nil
-		} else {
-			log.Info("IsValidTeamCodeowner [repo_id: %d, team_id: %d]: team reviewer does not have write permissions and cannot be a codeowner", repo.ID, teamReviewer.ID)
-		}
-	} else {
-		log.Info("IsValidTeamCodeowner [repo_id: %d, team_id: %d]: team reviewer is not a valid review request", repo.ID, teamReviewer.ID)
-	}
-	return errors.New(fmt.Sprintf("Team %s is not a valid codeowner in the given repository", teamReviewer.Name))
-}
+// func IsValidTeamCodeowner(ctx context.Context, teamReviewer *organization_model.Team, doer *user_model.User, isAdd bool, issue *issues_model.Issue, repo *repo_model.Repository) error {
+// 	err := IsValidTeamReviewRequest(ctx, teamReviewer, doer, isAdd, issue)
+// 	if err == nil {
+// 		if TeamHasWritePermissions(ctx, repo, teamReviewer) {
+// 			return nil
+// 		} else {
+// 			log.Info("IsValidTeamCodeowner [repo_id: %d, team_id: %d]: team reviewer does not have write permissions and cannot be a codeowner", repo.ID, teamReviewer.ID)
+// 		}
+// 	} else {
+// 		log.Info("IsValidTeamCodeowner [repo_id: %d, team_id: %d]: team reviewer is not a valid review request", repo.ID, teamReviewer.ID)
+// 	}
+// 	return errors.New(fmt.Sprintf("Team %s is not a valid codeowner in the given repository", teamReviewer.Name))
+// }
 
 // GetTeamFromFullName gets the team given its full name ('{organizationName}/{teamName}'). Nil if not found.
 func GetTeamFromFullName(ctx context.Context, fullTeamName string, doer *user_model.User) (*organization_model.Team, error) {
@@ -562,7 +549,6 @@ func UserHasWritePermissions(ctx context.Context, repo *repo_model.Repository, u
 func TeamHasWritePermissions(ctx context.Context, repo *repo_model.Repository, team *organization_model.Team) bool {
 	if organization_model.HasTeamRepo(ctx, team.OrgID, team.ID, repo.ID) {
 		return team.UnitAccessMode(ctx, unit.TypeCode) == perm.AccessModeWrite
-	} else {
-		return false
 	}
+	return false
 }

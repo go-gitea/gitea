@@ -1,36 +1,40 @@
+// Copyright 2023 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package issue
 
 import (
 	// "fmt"
 	"testing"
+	// "code.gitea.io/gitea/models/db"
+	// repo_model "code.gitea.io/gitea/models/repo"
+	// user_model "code.gitea.io/gitea/models/user"
 	// "code.gitea.io/gitea/modules/log"
 	// "github.com/stretchr/testify/assert"
 )
 
-func TestParser(t *testing.T) {
-	// TODO: do this though
+func TestCodeownerParser(t *testing.T) {
 	// 	/* This string acts as the codeowners file for our automated tests.
 	// 	It tests for multiple users, single users, teams, and emails*/
-	// 	codeownerString :=
-	// 		"* @globalUser\n" +
-	// 			"*.txt @user1 @user2 \n" +
-	// 			"docs/ @user2 @user3 user4@gmail.com @ORG/user8\n" +
-	// 			"/docs/ @user3\n" +
-	// 			"/docs/maintain/ @user7\n" +
-	// 			"/docs/github @user10\n" +
-	// 			"logs @user9\n" +
-	// 			"logs/ @user11\n" +
-	// 			"**/apps user@user12.org\n" +
-	// 			"/build/logs/ @ORG/user13\n" +
-	// 			"/fakeFolder/DoesntExist.txt @noUserPresent\n" + // no user present should not be a reviewer
-	// 			"/nouser/nofile @user14 @org/user15\n" + // user14 should not be a reviewer
-	// 			"json/folder/ @jsonUser\n" + // jsonuser should NOT be a reviewer
-	// 			"*.json\n" +
-	// 			"* everyUserEndsHere\n" +
-	// 			"*.json thisisnotauser\n" // these bottom two lines should be skipped, and the above line should be used (invalid syntax)
+	// 	codeownerString := "* @globalUser\n" +
+	// 		"*.txt @user1 @user2 \n" +
+	// 		"docs/ @user2 @user3 user4@gmail.com @ORG/user8\n" +
+	// 		"/docs/ @user3\n" +
+	// 		"/docs/maintain/ @user7\n" +
+	// 		"/docs/github @user10\n" +
+	// 		"logs @user9\n" +
+	// 		"logs/ @user11\n" +
+	// 		"**/apps user@user12.org\n" +
+	// 		"/build/logs/ @ORG/user13\n" +
+	// 		"/fakeFolder/DoesntExist.txt @noUserPresent\n" + // no user present should not be a reviewer
+	// 		"/nouser/nofile @user14 @org/user15\n" + // user14 should not be a reviewer
+	// 		"json/folder/ @jsonUser\n" + // jsonuser should NOT be a reviewer
+	// 		"*.json\n" +
+	// 		"* everyUserEndsHere\n" +
+	// 		"*.json thisisnotauser\n" // these bottom two lines should be skipped, and the above line should be used (invalid syntax)
 
 	// 	/* Each of the following is formatted such that the initial user's name
-	// 	(the one they should match) with is contained somehwere in the file name. */
+	// 	(the one they should match) with is contained somewhere in the file name. */
 	// 	files := []string{
 	// 		"user1.txt",
 	// 		"properties/user1/prop.txt",
@@ -55,11 +59,13 @@ func TestParser(t *testing.T) {
 	// 	}
 
 	// 	codeownerBytes := []byte(codeownerString)
-	// 	codeownerIndividuals, codeownerTeams, err := ParseCodeowners(files, codeownerBytes)
+	// 	repo := repo_model.Repository{} // Make "mock" or pull from test repos they already have
+	// 	doer := user_model.User{}       // Make "mock" or pull from test repos they already have
+	// 	codeownerUsers, codeownerTeams, _, err := ParseCodeowners(db.DefaultContext, &repo, &doer, files, codeownerBytes)
 
 	// 	assert.NoError(t, err)
 
-	// 	codeownerIndividualsTest := []string{
+	// 	expectedUserNames := []string{
 	// 		"user1",
 	// 		"user2",
 	// 		"user3",
@@ -71,21 +77,28 @@ func TestParser(t *testing.T) {
 	// 		"globalUser",
 	// 	}
 
-	// 	codeownerTeamsTest := []string{
+	// 	expectedTeamNames := []string{
 	// 		"ORG/user8",
 	// 		"ORG/user13",
 	// 	}
 
-	// 	codeownerIndividualsAccurate := compareLists(codeownerIndividuals, codeownerIndividualsTest)
-	// 	codeownerTeamsAccurate := compareLists(codeownerTeams, codeownerTeamsTest)
+	// 	actualUserNames := []string{}
+	// 	actualTeamNames := []string{}
+	// 	for _, user := range codeownerUsers {
+	// 		actualUserNames = append(actualUserNames, user.Name)
+	// 	}
+	// 	for _, team := range codeownerTeams {
+	// 		actualTeamNames = append(actualTeamNames, team.Name)
+	// 	}
+
+	// 	codeownerIndividualsAccurate := compareLists(actualUserNames, expectedUserNames)
+	// 	codeownerTeamsAccurate := compareLists(actualTeamNames, expectedTeamNames)
 
 	// 	assert.True(t, codeownerIndividualsAccurate)
 	// 	assert.True(t, codeownerTeamsAccurate)
-
 	// }
 
-	// func compareLists(list1 []string, list2 []string) bool {
-
+	// func compareLists(list1, list2 []string) bool {
 	// 	if len(list1) != len(list2) {
 	// 		return false
 	// 	}

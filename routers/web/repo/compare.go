@@ -63,32 +63,39 @@ func setCompareContext(ctx *context.Context, before, head *git.Commit, headOwner
 	setPathsCompareContext(ctx, before, head, headOwner, headName)
 	setImageCompareContext(ctx)
 	setCsvCompareContext(ctx)
-	setCodeownersContext(ctx, ctx.Repo.CommitID, before.ID.String(), head.ID.String())
+	err := setCodeownersContext(ctx, ctx.Repo.CommitID, before.ID.String(), head.ID.String())
+	if err != nil {
+		log.Warn("setCodeownersContext: %v", err)
+	}
 }
 
 // setCodeownersContext gets a map of file paths to their code owners using the CODEOWNERS in the base branch and puts it in the context data
-func setCodeownersContext(ctx *context.Context, baseCommitId, beforeCommitId, headCommitId string) {
-	mapping := make(map[string]string)
+func setCodeownersContext(ctx *context.Context, baseCommitID, beforeCommitID, headCommitID string) error {
 	gitRepo, err := git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
+	if err != nil {
+		return err
+	}
 	defer gitRepo.Close()
+
+	mapping := make(map[string]string)
+	baseCommit, err := gitRepo.GetCommit(baseCommitID)
 	if err == nil {
-		baseCommit, err := gitRepo.GetCommit(baseCommitId)
-		if err == nil {
-			codeownersContents, err := issue_service.GetCodeownersFileContents(ctx, baseCommit, gitRepo)
-			if err == nil && codeownersContents != nil && len(codeownersContents) > 0 {
-				changedFiles, err := gitRepo.GetFilesChangedBetween(beforeCommitId, headCommitId)
-				if err == nil {
-					for _, filePath := range changedFiles {
-						codeowners, err := GetFileCodeowners(ctx, filePath, codeownersContents)
-						if err == nil && len(codeowners) > 0 {
-							mapping[filePath] = ctx.Locale.Tr("codeowners.codeownership", strings.Join(codeowners, ", "))
-						}
+		codeownersContents, err := issue_service.GetCodeownersFileContents(ctx, baseCommit, gitRepo)
+		if err == nil && codeownersContents != nil && len(codeownersContents) > 0 {
+			changedFiles, err := gitRepo.GetFilesChangedBetween(beforeCommitID, headCommitID)
+			if err == nil {
+				for _, filePath := range changedFiles {
+					codeowners, err := GetFileCodeowners(ctx, filePath, codeownersContents)
+					if err == nil && len(codeowners) > 0 {
+						mapping[filePath] = ctx.Locale.Tr("codeowners.codeownership", strings.Join(codeowners, ", "))
 					}
 				}
 			}
 		}
 	}
+
 	ctx.Data["CodeownersFileMap"] = mapping
+	return nil
 }
 
 // SourceCommitURL creates a relative URL for a commit in the given repository
@@ -806,7 +813,10 @@ func CompareDiff(ctx *context.Context) {
 
 	// Want to display codeownership of changed files if there are any to display
 	if ctx.Data["PageIsComparePull"] == true && !nothingToCompare {
-		setCodeownersContext(ctx, ci.CompareInfo.BaseCommitID, beforeCommitID, afterCommitID)
+		err := setCodeownersContext(ctx, ci.CompareInfo.BaseCommitID, beforeCommitID, afterCommitID)
+		if err != nil {
+			log.Warn("setCodeownersContext: %v", err)
+		}
 	}
 
 	separator := "..."

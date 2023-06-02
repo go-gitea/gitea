@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"bufio"
 	"bytes"
 	gocontext "context"
 	"encoding/base64"
@@ -384,7 +383,10 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["IsDisplayingSource"] = isDisplayingSource
 	ctx.Data["IsDisplayingRendered"] = isDisplayingRendered
 
-	GetCodeownersOwnershipInfo(ctx)
+	err = SetCodeownersOwnershipInfo(ctx)
+	if err != nil {
+		log.Warn("SetCodeownersOwnershipInfo: %v", err)
+	}
 
 	isTextSource := fInfo.isTextFile || isDisplayingSource
 	ctx.Data["IsTextSource"] = isTextSource
@@ -586,22 +588,26 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_have_write_access")
 	}
 
-	ctx.Data["HasCodeownersValidationErrors"] = false
 	if entry.Name() == "CODEOWNERS" {
-		GetCodeownerValidationInfo(ctx)
+		err := SetCodeownerValidationInfo(ctx)
+		if err != nil {
+			log.Warn("GetCodeownerValidationInfo: %v", err)
+		}
 	}
 }
 
-func GetCodeownerValidationInfo(ctx *context.Context) {
-	var fileLines []string
+// SetCodeownerValidationInfo gets the validation information for the current file (assumes is "CODEOWNERS") and sets the context data accordingly
+func SetCodeownerValidationInfo(ctx *context.Context) error {
 	contentsBytes, err := issue_service.GetCodeownersFileContents(ctx, ctx.Repo.Commit, ctx.Repo.GitRepo)
-	if err == nil {
-		scanner := bufio.NewScanner(strings.NewReader(string(contentsBytes)))
-		for scanner.Scan() {
-			fileLines = append(fileLines, scanner.Text())
-		}
-	} // TODO: ERROR HANDLING THOUGH ALL THESE FRONT-END THINGS
+	if err != nil {
+		return err
+	}
+
 	_, _, validationErrors, err := issue_service.ParseCodeowners(ctx, ctx.Repo.Repository, ctx.Doer, []string{}, contentsBytes)
+	if err != nil {
+		return err
+	}
+
 	if len(validationErrors) > 0 {
 		ctx.Data["CodeownersValidationNotice"] = ctx.Locale.Tr("codeowners.error_notice")
 		validationMessages := []string{}
@@ -609,7 +615,7 @@ func GetCodeownerValidationInfo(ctx *context.Context) {
 			var message string
 			switch problem := err.(type) {
 			default:
-				// todo: idk
+				return fmt.Errorf("CODEOWNERS validation error was not of type InvalidSyntaxError or ExistenceAndPermissionError [validation_error: %v]", problem)
 			case *issue_service.InvalidSyntaxError:
 				message = ctx.Locale.Tr("codeowners.validation_message_syntax", lineNum)
 			case *issue_service.ExistenceAndPermissionError:
@@ -623,24 +629,30 @@ func GetCodeownerValidationInfo(ctx *context.Context) {
 		}
 		ctx.Data["CodeownersValidationErrors"] = validationMessages
 	}
+
+	return nil
 }
 
-// GetCodeownersOwnershipInfo gets the ownership information for the current file
-func GetCodeownersOwnershipInfo(ctx *context.Context) {
+// SetCodeownersOwnershipInfo gets the ownership information for the current file and sets the context data accordingly
+func SetCodeownersOwnershipInfo(ctx *context.Context) error {
 	gitRepo, err := git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
+	if err != nil {
+		return err
+	}
 	defer gitRepo.Close()
+
+	commit, err := gitRepo.GetCommit(ctx.Repo.CommitID)
 	if err == nil {
-		commit, err := gitRepo.GetCommit(ctx.Repo.CommitID)
-		if err == nil {
-			codeownersContents, err := issue_service.GetCodeownersFileContents(ctx, commit, gitRepo)
-			if err == nil && codeownersContents != nil && len(codeownersContents) > 0 {
-				codeowners, err := GetFileCodeowners(ctx, ctx.Repo.TreePath, codeownersContents)
-				if err == nil && len(codeowners) > 0 {
-					ctx.Data["Codeowners"] = ctx.Locale.Tr("codeowners.codeownership", strings.Join(codeowners, ", "))
-				}
+		codeownersContents, err := issue_service.GetCodeownersFileContents(ctx, commit, gitRepo)
+		if err == nil && codeownersContents != nil && len(codeownersContents) > 0 {
+			codeowners, err := GetFileCodeowners(ctx, ctx.Repo.TreePath, codeownersContents)
+			if err == nil && len(codeowners) > 0 {
+				ctx.Data["Codeowners"] = ctx.Locale.Tr("codeowners.codeownership", strings.Join(codeowners, ", "))
 			}
 		}
 	}
+
+	return nil
 }
 
 // GetFileCodeowners gets the codeowners for the given file path and CODEOWNERS file contents

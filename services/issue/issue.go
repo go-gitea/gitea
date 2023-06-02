@@ -193,15 +193,15 @@ func AddAssigneeIfNotAssigned(ctx context.Context, issue *issues_model.Issue, do
 	return nil
 }
 
-// AddCodeownerReviewers gets all the codeowners of the files changed in the pull request (as outlined in the base repository's
-// CODEOWNERS file) and requests them for review if they exist and are eligibl to do so. Codeowners can be users or teams.
+// AddCodeownerReviewers gets all the code owners of the files changed in the pull request (as outlined in the base repository's
+// CODEOWNERS file) and requests them for review if they exist and are eligible to do so.
 func AddCodeownerReviewers(ctx context.Context, pr *issues_model.PullRequest, repo *repo_model.Repository) (err error) {
 	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
-	defer gitRepo.Close()
 	if err != nil {
 		log.Error("git.OpenRepository: %v", err)
 		return err
 	}
+	defer gitRepo.Close()
 
 	commit, err := gitRepo.GetCommit(pr.BaseBranch)
 	if err != nil {
@@ -242,11 +242,11 @@ func AddCodeownerReviewers(ctx context.Context, pr *issues_model.PullRequest, re
 				if err != nil {
 					log.Warn("IsValidReviewRequest: %v", err)
 				} else {
-				}
-				_, err := ReviewRequest(ctx, pr.Issue, prAuthor, userOwner, isAdd)
-				if err != nil {
-					log.Error("AddValidReviewers [repo_id: %d, issue_id: %d, pull_request_poster_user_id: %d, user_reviewer_id: %d]: "+
-						"Error adding user as a reviewer to the pull request: %v", repo.ID, pr.Issue.ID, prAuthor.ID, userOwner.ID, err)
+					_, err := ReviewRequest(ctx, pr.Issue, prAuthor, userOwner, isAdd)
+					if err != nil {
+						log.Error("AddValidReviewers [repo_id: %d, issue_id: %d, pull_request_poster_user_id: %d, user_reviewer_id: %d]: "+
+							"Error adding user as a reviewer to the pull request: %v", repo.ID, pr.Issue.ID, prAuthor.ID, userOwner.ID, err)
+					}
 				}
 			}
 		}

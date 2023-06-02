@@ -160,7 +160,10 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
 	ctx.Data["Editorconfig"] = GetEditorConfig(ctx, treePath)
 
-	GetCodeownerValidationInfo(ctx)
+	err := SetCodeownerValidationInfo(ctx)
+	if err != nil {
+		log.Warn("GetCodeownerValidationInfo: %v", err)
+	}
 
 	ctx.HTML(http.StatusOK, tplEditFile)
 }
