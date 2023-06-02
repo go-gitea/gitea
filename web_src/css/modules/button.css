@@ -106,7 +106,7 @@
 .ui.basic.buttons .button:focus,
 .ui.basic.button:focus {
   color: var(--color-text-light);
-  background: var(--color-light);
+  background: var(--color-button);
 }
 
 .ui.basic.buttons .button:hover,

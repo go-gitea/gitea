@@ -58,9 +58,9 @@
   --color-secondary-alpha-70: #525767b3;
   --color-secondary-alpha-80: #525767cc;
   --color-secondary-alpha-90: #525767e1;
-  --color-secondary-button: var(--color-secondary-dark-3);
-  --color-secondary-hover: var(--color-secondary-dark-2);
-  --color-secondary-active: var(--color-secondary-dark-1);
+  --color-secondary-button: var(--color-secondary-dark-4);
+  --color-secondary-hover: var(--color-secondary-dark-3);
+  --color-secondary-active: var(--color-secondary-dark-2);
   /* console colors - used for actions console and console files */
   --color-console-fg: #eeeff2;
   --color-console-fg-subtle: #959cab;
@@ -192,7 +192,7 @@
   --color-card: #2e323e;
   --color-markup-table-row: #ffffff06;
   --color-markup-code-block: #ffffff16;
-  --color-button: #353846;
+  --color-button: #2e323c;
   --color-code-bg: #2a2e3a;
   --color-code-sidebar-bg: #2e323e;
   --color-shadow: #00000060;
