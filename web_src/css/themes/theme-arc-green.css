@@ -164,9 +164,9 @@
   --color-orange-badge-hover-bg: #f2711c4d;
   --color-git: #f05133;
   /* target-based colors */
-  --color-body: #373b47;
-  --color-box-header: #404652;
-  --color-box-body: #2a2e3a;
+  --color-body: #303440;
+  --color-box-header: #353945;
+  --color-box-body: #272c37;
   --color-box-body-highlight: #353945;
   --color-text-dark: #dbe0ea;
   --color-text: #cbd0da;
@@ -177,7 +177,7 @@
   --color-footer: #2e323e;
   --color-timeline: #4c525e;
   --color-input-text: #dfe3ec;
-  --color-input-background: #232933;
+  --color-input-background: #262b36;
   --color-input-toggle-background: #454a57;
   --color-input-border: #454a57;
   --color-input-border-hover: #454a57;
@@ -188,11 +188,11 @@
   --color-light-border: #ffffff28;
   --color-hover: #ffffff19;
   --color-active: #ffffff24;
-  --color-menu: #2e323e;
-  --color-card: #2e323e;
+  --color-menu: #262b36;
+  --color-card: #262b36;
   --color-markup-table-row: #ffffff06;
   --color-markup-code-block: #ffffff16;
-  --color-button: #2e323c;
+  --color-button: #262b36;
   --color-code-bg: #2a2e3a;
   --color-code-sidebar-bg: #2e323e;
   --color-shadow: #00000060;
@@ -208,7 +208,7 @@
   --color-reaction-active-bg: var(--color-primary-light-5);
   --color-tooltip-text: #ffffff;
   --color-tooltip-bg: #000000f0;
-  --color-header-bar: #2e323e;
+  --color-header-bar: #272c37;
   --color-label-text: #dfe3ec;
   --color-label-bg: #7c84974b;
   --color-label-hover-bg: #7c8497a0;

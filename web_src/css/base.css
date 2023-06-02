@@ -191,7 +191,7 @@
   --color-footer: #ffffff;
   --color-timeline: #ececec;
   --color-input-text: #212121;
-  --color-input-background: #ffffff;
+  --color-input-background: #f8f8f8;
   --color-input-toggle-background: #dedede;
   --color-input-border: #dedede;
   --color-input-border-hover: #dedede;
@@ -201,9 +201,9 @@
   --color-light-mimic-enabled: rgba(0, 0, 0, calc(6 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #0000001d;
   --color-hover: #00000014;
-  --color-active: #0000001e;
-  --color-menu: #ffffff;
-  --color-card: #ffffff;
+  --color-active: #0000001b;
+  --color-menu: #f8f8f8;
+  --color-card: #f8f8f8;
   --color-markup-table-row: #00000008;
   --color-markup-code-block: #00000010;
   --color-button: #f8f8f8;
@@ -680,7 +680,7 @@ a.label,
 }
 
 .ui.menu .dropdown.item .menu {
-  background: var(--color-menu);
+  background: var(--color-body);
 }
 
 .ui.menu .ui.dropdown .menu > .item {
@@ -2013,7 +2013,7 @@ a.ui.ui.ui.basic.primary.label:hover {
 
 .ui.basic.labels .label,
 .ui.basic.label {
-  background: var(--color-light);
+  background: var(--color-button);
   border-color: var(--color-light-border);
   color: var(--color-text-light);
 }

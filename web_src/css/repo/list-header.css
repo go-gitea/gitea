@@ -28,9 +28,15 @@
 
 .small-menu-items {
   min-height: 35.4px !important; /* match .small.button in height */
+  background: none !important;
 }
 
 .small-menu-items .item {
+  background: var(--color-menu) !important;
   padding-top: 6px !important;
   padding-bottom: 6px !important;
+}
+
+.small-menu-items .item.active {
+  background: var(--color-active) !important;
 }
