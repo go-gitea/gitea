@@ -64,6 +64,10 @@ Start tests based on the database container
 TEST_MSSQL_HOST=localhost:1433 TEST_MSSQL_DBNAME=gitea_test TEST_MSSQL_USERNAME=sa TEST_MSSQL_PASSWORD=MwantsaSecurePassword1 make test-e2e-mssql
 ```
 
+## Debug
+
+Set `PLAYWRIGHT_DEBUG=1` to enable [visual debugging](https://playwright.dev/docs/debug#run-in-debug-mode-1).
+
 ## Running individual tests
 
 Example command to run `example.test.e2e.js` test file:

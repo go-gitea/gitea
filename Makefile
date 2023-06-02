@@ -606,8 +606,6 @@ playwright: $(PLAYWRIGHT_DIR)
 
 .PHONY: test-e2e%
 test-e2e%: TEST_TYPE ?= e2e
-	# Clear display env variable. Otherwise, chromium tests can fail.
-	DISPLAY=
 
 .PHONY: test-e2e
 test-e2e: test-e2e-sqlite
