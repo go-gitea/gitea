@@ -54,16 +54,20 @@
 
 	{{if and .OrderedOAuth2Names .OAuth2Providers}}
 	<div id="oauth2-login-navigator">
-		<div id="oauth2-login-navigator-inner" class="gt-df gt-fc gt-jc">
+		<div class="gt-df gt-fc gt-jc">
 			<div class="ui horizontal divider">
 				{{.locale.Tr "sign_in_or"}}
 			</div>
-			<div class="gt-df gt-fc gt-fw gt-ac gt-gap-3">
+			<div id="oauth2-login-navigator-inner" class="gt-df gt-fc gt-fw gt-ac gt-gap-3">
 				{{range $key := .OrderedOAuth2Names}}
 					{{$provider := index $.OAuth2Providers $key}}
-					<a class="{{$provider.Name}} ui compact button silenced gt-df gt-ac gt-jc oauth-login-link" href="{{AppSubUrl}}/user/oauth2/{{$key}}">
-						{{svg $provider.SvgName 16 "gt-mr-3"}}
-						{{$provider.DisplayName}}{{if eq $provider.Name "openidConnect"}} ({{$key}}){{end}}
+					<a class="{{$provider.Name}} ui compact button silenced gt-df gt-ac gt-jc gt-py-3 oauth-login-link" href="{{AppSubUrl}}/user/oauth2/{{$key}}">
+						{{svg $provider.SvgName 24 "gt-mr-3"}}
+						{{$name := $provider.DisplayName}}
+						{{if eq $provider.Name "openidConnect"}}
+							{{$name = $key}}
+						{{end}}
+						{{$.locale.Tr "sign_in_with_provider" $name}}
 					</a>
 				{{end}}
 			</div>
