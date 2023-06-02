@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/json"
 	base "code.gitea.io/gitea/modules/migration"
 
 	"github.com/stretchr/testify/assert"
@@ -468,4 +469,50 @@ func TestGitlabGetReviews(t *testing.T) {
 		assert.NoError(t, err)
 		assertReviewsEqual(t, []*base.Review{&review}, rvs)
 	}
+}
+
+func TestAwardsToReactions(t *testing.T) {
+	downloader := &GitlabDownloader{}
+	// yes gitlab can have duplicated reactions (https://gitlab.com/jaywink/socialhome/-/issues/24)
+	testResponse := `
+[
+  {
+    "name": "thumbsup",
+    "user": {
+      "id": 1241334,
+      "username": "lafriks"
+    }
+  },
+  {
+    "name": "thumbsup",
+    "user": {
+      "id": 1241334,
+      "username": "lafriks"
+    }
+  },
+  {
+    "name": "thumbsup",
+    "user": {
+      "id": 4575606,
+      "username": "real6543"
+    }
+  }
+]
+`
+	var awards []*gitlab.AwardEmoji
+	assert.NoError(t, json.Unmarshal([]byte(testResponse), &awards))
+
+	reactions := downloader.awardsToReactions(awards)
+	assert.EqualValues(t, []*base.Reaction{
+		{
+			UserName: "lafriks",
+			UserID:   1241334,
+			Content:  "thumbsup",
+		},
+		{
+			UserName: "real6543",
+			UserID:   4575606,
+			Content:  "thumbsup",
+		},
+	}, reactions)
 }
