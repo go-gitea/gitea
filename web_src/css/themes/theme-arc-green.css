@@ -164,10 +164,10 @@
   --color-orange-badge-hover-bg: #f2711c4d;
   --color-git: #f05133;
   /* target-based colors */
-  --color-body: #303440;
-  --color-box-header: #353945;
+  --color-body: #2e323e;
+  --color-box-header: #333743;
   --color-box-body: #252a36;
-  --color-box-body-highlight: #353945;
+  --color-box-body-highlight: #303440;
   --color-text-dark: #dbe0ea;
   --color-text: #cbd0da;
   --color-text-light: #bbbfca;
