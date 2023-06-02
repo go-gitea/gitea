@@ -194,7 +194,7 @@
   --color-input-background: #ffffff;
   --color-input-toggle-background: #dedede;
   --color-input-border: #dedede;
-  --color-input-border-hover: #cecece;
+  --color-input-border-hover: #dedede;
   --color-navbar: #f8f8f8;
   --color-navbar-transparent: #f8f8f800;
   --color-light: #00000006;
@@ -504,12 +504,16 @@ a.label,
   border-right-color: transparent;
 }
 
+.ui.action.input:not([class*="left action"]) > input {
+  border-right: none;
+}
+
 .ui.action.input:not([class*="left action"]) > input:hover {
-  border-right-color: transparent;
+  border-right: none;
 }
 
 .ui.action.input:not([class*="left action"]) > input:focus {
-  border-right-color: var(--color-primary);
+  border-right: 1px solid var(--color-primary);
 }
 
 /* fix button enlarged vertically by svg icon */
