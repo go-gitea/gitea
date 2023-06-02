@@ -28,7 +28,7 @@
 
 .small-menu-items {
   min-height: 35.4px !important; /* match .small.button in height */
-  background: none !important;
+  background: none !important; /* fomantic sets a color here which does not play well with active transparent color on the item, so unset and set the colors on the item */
 }
 
 .small-menu-items .item {
