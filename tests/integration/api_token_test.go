@@ -469,7 +469,7 @@ func runTestCase(t *testing.T, testCase *requiredScopeTestCase, user *user_model
 		// Create a token with all scopes NOT required by the endpoint.
 		var unauthorizedScopes []auth_model.AccessTokenScope
 		for _, category := range auth_model.AllAccessTokenScopeCategories {
-			// For permissions, Delete > Write > Read > NoAccess.  So we need to
+			// For permissions, Write > Read > NoAccess.  So we need to
 			// find the minimum required, and only grant permission up to but
 			// not including the minimum required.
 			minRequiredLevel := auth_model.Write
