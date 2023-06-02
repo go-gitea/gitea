@@ -116,6 +116,22 @@ func ListUploadedArtifactsByRunID(ctx context.Context, runID int64) ([]*ActionAr
 	return arts, db.GetEngine(ctx).Where("run_id=? AND status=?", runID, ArtifactStatusUploadConfirmed).Find(&arts)
 }
 
+// ActionArtifactMeta is the meta data of an artifact
+type ActionArtifactMeta struct {
+	ArtifactName string
+	FileSize     int64
+}
+
+// ListUploadedArtifactsMeta returns all uploaded artifacts meta of a run
+func ListUploadedArtifactsMeta(ctx context.Context, runID int64) ([]*ActionArtifactMeta, error) {
+	arts := make([]*ActionArtifactMeta, 0, 10)
+	return arts, db.GetEngine(ctx).Table("action_artifact").
+		Where("run_id=? AND status=?", runID, ArtifactStatusUploadConfirmed).
+		GroupBy("artifact_name").
+		Select("artifact_name, sum(file_size) as file_size").
+		Find(&arts)
+}
+
 // ListArtifactsByRepoID returns all artifacts of a repo
 func ListArtifactsByRepoID(ctx context.Context, repoID int64) ([]*ActionArtifact, error) {
 	arts := make([]*ActionArtifact, 0, 10)
