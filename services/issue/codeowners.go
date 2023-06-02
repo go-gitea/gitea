@@ -1,3 +1,6 @@
+// Copyright 2023 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package issue
 
 import (
@@ -8,10 +11,7 @@ import (
 	"fmt"
 	"strings"
 
-	"gopkg.in/godo.v2/glob"
-
 	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
 	organization_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -20,62 +20,86 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+
+	"gopkg.in/godo.v2/glob"
 )
 
-type Codeowners struct {
-	glob   string
+type CodeownerRule struct {
+	glob  string                     // Glob pattern for matching files to owners
+	users []*user_model.User         // Users designated as owners of files matching the glob pattern
+	teams []*organization_model.Team // Teams designated as owners of files matching the glob pattern
+}
+
+type InvalidSyntaxError struct {
 	owners []string
 }
 
-func ParseCodeowners(changedFiles []string, codeownersContents []byte) ([]string, []string, error) {
-
-	// This calls the actual parser
-	codeownerMap, err := ParseCodeownerBytes(codeownersContents)
-
-	// We have to declare a new list of strings to be able to append all codeowners
-	//	As we get them file by file in the following for loop
-	var codeownersList []string
-	for _, file := range changedFiles {
-		codeownersList = append(codeownersList, GetOwners(codeownerMap, file)...)
-	}
-	codeownerIndividuals, codeOwnerTeams := SeparateOwnerAndTeam(codeownersList)
-
-	log.Trace("Final result of Codeowner Users: " + fmt.Sprint(codeownerIndividuals))
-	log.Trace("Final result of Codeowner Teams: " + fmt.Sprint(codeOwnerTeams))
-
-	return codeownerIndividuals, codeOwnerTeams, err
+func (e *InvalidSyntaxError) Error() string {
+	return fmt.Sprintf("owners: %v", e.owners)
 }
 
-// GetOwners returns the list of owners (including teams) for a single file. It matches from our globMap
-// to the changed files that it receives from the for loop in the ParseCodeowners function above.
-func GetOwners(codeownerMap []Codeowners, file string) []string {
+type ExistenceAndPermissionError struct {
+	owners []string
+}
 
+func (e *ExistenceAndPermissionError) Error() string {
+	return fmt.Sprintf("owners: %v", e.owners)
+}
+
+func (e *ExistenceAndPermissionError) Owners() []string {
+	return e.owners
+}
+
+// ParseCodeowners parses the given CODEOWNERS file contents and returns all Users and Teams with write permissions (who own any of the changed files) and any
+// validationErrors, which maps line numbers to the error (InvalidSyntaxError or ExistenceAndPermissionError)
+func ParseCodeowners(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, changedFiles []string, codeownersContents []byte) (
+	userOwners []*user_model.User,
+	teamOwners []*organization_model.Team,
+	validationErrors map[int]error,
+	err error,
+) {
+	scanner := bufio.NewScanner(strings.NewReader(string(codeownersContents)))
+	codeownerMap, validationErrors, err := ScanAndParseCodeowners(ctx, repo, doer, *scanner)
+
+	for _, file := range changedFiles {
+		users, teams := GetOwners(codeownerMap, file)
+		userOwners = append(userOwners, users...)
+		teamOwners = append(teamOwners, teams...)
+	}
+	userOwners = RemoveDuplicateUsers(userOwners)
+	teamOwners = RemoveDuplicateTeams(teamOwners)
+
+	log.Trace("Final result of Codeowner Users: ")
+	for _, user := range userOwners {
+		log.Trace(user.Name)
+	}
+
+	log.Trace("Final result of Codeowner Teams: ")
+	for _, team := range teamOwners {
+		log.Trace(team.Name)
+	}
+
+	return userOwners, teamOwners, validationErrors, err
+}
+
+// GetOwners returns the list of owners for a single file given the defined codeownership rules in codeownerMap
+func GetOwners(codeownerMap []CodeownerRule, file string) ([]*user_model.User, []*organization_model.Team) {
 	for i := len(codeownerMap) - 1; i >= 0; i-- {
 		if glob.Globexp(codeownerMap[i].glob).MatchString(file) {
-			fmt.Println("File:", file, "Result:", codeownerMap[i])
-
-			return codeownerMap[i].owners
+			log.Trace("Codeowner file mappping. File: %s, Ownership map: %v", file, codeownerMap[i])
+			return codeownerMap[i].users, codeownerMap[i].teams
 		}
 	}
-	log.Trace("!!!Unmatched file: ", file)
-	return nil
+	log.Trace("Unmatched codeowners file: ", file)
+	return nil, nil
 }
 
-// SeparateOwnerAndTeam separates owners and teams based on format.
-// Note that it also calls RemoveDuplicateString to remove duplicates
-func SeparateOwnerAndTeam(codeownersList []string) ([]string, []string) {
-
-	codeownerIndividuals := []string{}
-	codeOwnerTeams := []string{}
-
-	codeownersList = RemoveDuplicateString(codeownersList)
-
+// SeparateOwnerAndTeam separates user name/email and team names (org/team-name) based on format
+func SeparateOwnerAndTeam(codeownersList []string) (codeownerIndividuals, codeOwnerTeams []string) {
 	for _, codeowner := range codeownersList {
-
 		if len(codeowner) > 0 {
 
-			// We remove that @ sign from the codeowner because it's unnecessary for
-			// 	future checks -- they only need the username
+			// We remove that @ sign from the codeowner because it's unnecessary for future checks -- they only need the username
 			if strings.Compare(codeowner[0:1], "@") == 0 {
 				codeowner = codeowner[1:]
 			}
@@ -92,12 +116,11 @@ func SeparateOwnerAndTeam(codeownersList []string) ([]string, []string) {
 	return codeownerIndividuals, codeOwnerTeams
 }
 
-// Removing duplicates has to be done manually in Golang
-func RemoveDuplicateString(duplicatesPresent []string) []string {
-
+// RemoveDuplicateUsers returns a list without any duplicate users
+func RemoveDuplicateUsers(duplicatesPresent []*user_model.User) []*user_model.User {
 	// Make a map with all keys initialized to false
-	allKeys := make(map[string]bool)
-	duplicatesRemoved := []string{}
+	allKeys := make(map[*user_model.User]bool)
+	duplicatesRemoved := []*user_model.User{}
 
 	// For each item in the list, add it and mark it "true" in the map, then skip it every time
 	for _, item := range duplicatesPresent {
@@ -110,88 +133,97 @@ func RemoveDuplicateString(duplicatesPresent []string) []string {
 	return duplicatesRemoved
 }
 
-func ParseCodeownerBytes(codeownerBytes []byte) ([]Codeowners, error) {
+// RemoveDuplicateTeams returns a list without any duplicate teams
+func RemoveDuplicateTeams(duplicatesPresent []*organization_model.Team) []*organization_model.Team {
+	// Make a map with all keys initialized to false
+	allKeys := make(map[*organization_model.Team]bool)
+	duplicatesRemoved := []*organization_model.Team{}
 
-	// Create a new scanner to read from the byte array
-	scanner := bufio.NewScanner(strings.NewReader(string(codeownerBytes)))
-	return ScanAndParse(*scanner)
+	// For each item in the list, add it and mark it "true" in the map, then skip it every time
+	for _, item := range duplicatesPresent {
+		if _, value := allKeys[item]; !value {
+			allKeys[item] = true
+			duplicatesRemoved = append(duplicatesRemoved, item)
+		}
+	}
+
+	return duplicatesRemoved
 }
 
-// ScanAndParse is the director function for handling the incoming codeowner contents
-func ScanAndParse(scanner bufio.Scanner) ([]Codeowners, error) {
-
-	// globMap maps each line using a key/value pair held by the Codeowners Data type.
-	//		It maps from the file type (e.g., *.js) to the users for that file type (e.g., @user1 @user2)
-	var codeownerMap []Codeowners
-	var lineCounter int = 0
+// ScanAndParseCodeowners parses the CODEOWNERS contents and extracts the rules/patterns and their associated user/teams along with any validation errors
+func ScanAndParseCodeowners(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, scanner bufio.Scanner) (codeownerRules []CodeownerRule, validationErrors map[int]error, err error) {
+	validationErrors = make(map[int]error)
+	var lineCounter int
 
 	for scanner.Scan() {
-
-		// We handle the codeowners file line-by-line, as all rules should follow that format
-		nextLine := scanner.Text()
+		curLine := scanner.Text()
 		lineCounter++
-		globString, globString2, currFileUsers := ParseCodeownersLine(nextLine)
+		globString, globString2, curLineOwnerCandidates := ParseCodeownersLine(curLine)
 
-		// If there are no users listed, that is a valid rule, but we return an empty string, and then the PR
-		//		handles that outside of the parser
-		if len(currFileUsers) > 0 {
-			if IsValidCodeownersLine(currFileUsers) {
-				newCodeowner := Codeowners{
-					glob:   globString,
-					owners: currFileUsers,
-				}
-
-				codeownerMap = append(codeownerMap, newCodeowner)
-
-				if globString2 != "" {
-					newCodeowner2 := Codeowners{
-						glob:   globString2,
-						owners: currFileUsers,
+		// If there are no users/teams listed, that is a valid rule, but we return empty user/team lists
+		if len(curLineOwnerCandidates) == 0 {
+			newCodeownerRule := CodeownerRule{
+				glob:  globString,
+				users: []*user_model.User{},
+				teams: []*organization_model.Team{},
+			}
+			codeownerRules = append(codeownerRules, newCodeownerRule)
+		} else {
+			if IsValidCodeownersLineSyntax(curLineOwnerCandidates) {
+				users, teams, usersAndTeamsExistWithCorrectPermissions := GetUsersAndTeamsWithWritePermissions(ctx, repo, doer, curLineOwnerCandidates)
+				if usersAndTeamsExistWithCorrectPermissions {
+					newCodeownerRule := CodeownerRule{
+						glob:  globString,
+						users: users,
+						teams: teams,
 					}
 
-					codeownerMap = append(codeownerMap, newCodeowner2)
+					codeownerRules = append(codeownerRules, newCodeownerRule)
+
+					if globString2 != "" {
+						newCodeownersRule2 := CodeownerRule{
+							glob:  globString2,
+							users: users,
+							teams: teams,
+						}
+
+						codeownerRules = append(codeownerRules, newCodeownersRule2)
+					}
+				} else {
+					validationErrors[lineCounter] = &ExistenceAndPermissionError{
+						owners: curLineOwnerCandidates,
+					}
+					log.Trace("Invalid user/team/email given on line " + fmt.Sprint(lineCounter) + ":" + curLine)
 				}
 			} else {
-				log.Trace("Invalid syntax given on line " + fmt.Sprint(lineCounter) + ":" +
-					nextLine)
+				validationErrors[lineCounter] = &InvalidSyntaxError{
+					owners: curLineOwnerCandidates,
+				}
+				log.Trace("Invalid syntax given on line " + fmt.Sprint(lineCounter) + ":" + curLine)
 			}
-		} else {
-
-			newCodeowner := Codeowners{
-				glob:   globString,
-				owners: []string{""},
-			}
-
-			codeownerMap = append(codeownerMap, newCodeowner)
 		}
 
 		log.Trace("Line number " + fmt.Sprint(lineCounter) + ":")
-		log.Trace("Parsed as Glob string: " + globString + "," + globString2 +
-			"Users: " + fmt.Sprint(currFileUsers))
+		log.Trace("Parsed as Glob string: " + globString + "," + globString2 + " Users: " + fmt.Sprint(curLineOwnerCandidates))
 	}
 
 	if scanner.Err() != nil {
 		log.Trace(scanner.Err().Error())
-		codeownerMap = nil
-		return codeownerMap, scanner.Err()
+		return nil, validationErrors, scanner.Err()
 	}
 
-	log.Trace("Parsed map from codeowners file: " + fmt.Sprint(codeownerMap))
-	return codeownerMap, scanner.Err()
+	log.Trace("Parsed map from codeowners file: " + fmt.Sprint(codeownerRules))
+	return codeownerRules, validationErrors, nil
 }
 
 // ParseCodeownersLine extracts two potential globbing rule strings and the owners associated with those rules for a given line
-//
-//	of a CODEOWNERS file. Note that there are two potential globbing rules for the following situation, when we can't identify
-//	whether it's a file name or a subdirectory: /docs/github can be either /docs/github or /docs/github/**
+// of a CODEOWNERS file. Note that there are two potential globbing rules for the following situation, when we can't identify
+// whether it's a file name or a subdirectory: /docs/github can be either /docs/github or /docs/github/**
 func ParseCodeownersLine(line string) (globString, globString2 string, currFileUsers []string) {
-
-	// strings.Fields() splits the string by whitespace
 	splitStrings := strings.Fields(line)
 	var userStopIndex int
 
 	for i := 0; i < len(splitStrings); i++ {
-
 		// The first two checks here handle comments
 		if strings.Compare(splitStrings[i], "#") == 0 {
 			break
@@ -245,9 +277,9 @@ func ParseCodeownersLine(line string) (globString, globString2 string, currFileU
 	return globString, globString2, currFileUsers
 }
 
-// IsValidCodeownersLine returns true if the given line of the CODEOWNERS file is valid syntactically (after the file pattern)
-func IsValidCodeownersLine(currFileUsers []string) bool {
-	for _, user := range currFileUsers {
+// IsValidCodeownersLineSyntax returns true if the given line of the CODEOWNERS file (after the file pattern) is valid syntactically
+func IsValidCodeownersLineSyntax(currFileOwnerCandidates []string) bool {
+	for _, user := range currFileOwnerCandidates {
 		if !glob.Globexp("@*").MatchString(user) &&
 			!glob.Globexp("@*/*").MatchString(user) &&
 			!glob.Globexp("*@*.*").MatchString(user) {
@@ -257,13 +289,44 @@ func IsValidCodeownersLine(currFileUsers []string) bool {
 	return true
 }
 
+// GetUsersAndTeamsWithWritePermissions gets the Users and Teams from the given array of owner candidates (emails, usernames, and team names).
+// Returns nil arrays and false if any Users/Teams are not found or do not have write permissions for the given repository.
+func GetUsersAndTeamsWithWritePermissions(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, ownerCandidates []string) (users []*user_model.User, teams []*organization_model.Team, isValidLine bool) {
+	currIndividualOwners, currTeamOwners := SeparateOwnerAndTeam(ownerCandidates)
+
+	for _, individual := range currIndividualOwners {
+		user, err := GetUserByNameOrEmail(ctx, individual, repo)
+		if err == nil {
+			if UserHasWritePermissions(ctx, repo, user) {
+				users = append(users, user)
+			} else {
+				return nil, nil, false
+			}
+		} else {
+			return nil, nil, false
+		}
+	}
+
+	for _, team := range currTeamOwners {
+		team, err := GetTeamFromFullName(ctx, team, doer)
+		if err == nil {
+			if TeamHasWritePermissions(ctx, repo, team) {
+				teams = append(teams, team)
+			} else {
+				return nil, nil, false
+			}
+		} else {
+			return nil, nil, false
+		}
+	}
+
+	return users, teams, true
+}
+
 // GetCodeownersFileContents gets the CODEOWNERS file from the top level,'.gitea', or 'docs' directory of the
 // given repository. It uses whichever is found first if there are multiple (there should not be)
 func GetCodeownersFileContents(ctx context.Context, commit *git.Commit, gitRepo *git.Repository) ([]byte, error) {
-	// Accepted directories to search for the CODEOWNERS file
-	possibleDirectories := []string{"", ".gitea/", "docs/"}
-
-	entry := GetCodeownersGitTreeEntry(commit, possibleDirectories)
+	entry := GetCodeownersGitTreeEntry(commit)
 	if entry == nil {
 		return nil, nil
 	}
@@ -279,23 +342,27 @@ func GetCodeownersFileContents(ctx context.Context, commit *git.Commit, gitRepo 
 			return nil, err
 		}
 		return contentBytes, nil
+	} else {
+		log.Warn("GetCodeownersFileContents [commit_id: %d, git_tree_entry_id: %d]: CODEOWNERS file found is not a regular file", commit.ID, entry.ID)
+		return nil, nil
 	}
-	log.Warn("GetCodeownersFileContents [commit_id: %d, git_tree_entry_id: %d]: CODEOWNERS file found is not a regular file", commit.ID, entry.ID)
-
-	return nil, nil
 }
 
+// TODO: Move to within parse function and create custom error type. Then can be used by calling function to handle error how it needs to.
 // IsCodeownersWithinSizeLimit returns an error if the file is too big. Nil if acceptable.
 func IsCodeownersWithinSizeLimit(contentBytes []byte) error {
 	byteLimit := 3 * 1024 * 1024 // 3 MB limit, per GitHub specs
 	if len(contentBytes) >= byteLimit {
-		return errors.New(fmt.Sprintf("CODEOWNERS file exceeds size limit. Is %d bytes but must be under %d", len(contentBytes), byteLimit))
+		return fmt.Errorf("CODEOWNERS file exceeds size limit. Is %d bytes but must be under %d", len(contentBytes), byteLimit)
 	}
 	return nil
 }
 
-// GetCodeownersGitTreeEntry gets the git tree entry of the CODEOWNERS file, given an array of directories to search in. Nil if not found.
-func GetCodeownersGitTreeEntry(commit *git.Commit, directoryOptions []string) *git.TreeEntry {
+// GetCodeownersGitTreeEntry gets the git tree entry of the CODEOWNERS file. Nil if not found in an accepted location.
+func GetCodeownersGitTreeEntry(commit *git.Commit) *git.TreeEntry {
+	// Accepted directories to search for the CODEOWNERS file
+	directoryOptions := []string{"", ".gitea/", "docs/"}
+
 	for _, dir := range directoryOptions {
 		entry, _ := commit.GetTreeEntryByPath(dir + "CODEOWNERS")
 		if entry != nil {
@@ -303,28 +370,6 @@ func GetCodeownersGitTreeEntry(commit *git.Commit, directoryOptions []string) *g
 		}
 	}
 	return nil
-}
-
-// GetValidUserCodeownerReviewers gets the Users that actually exist, are authorized to review the pull request, and have explicit write permissions for the repo
-func GetValidUserCodeownerReviewers(ctx context.Context, userNamesOrEmails []string, repo *repo_model.Repository, doer *user_model.User, isAdd bool, issue *issues_model.Issue) (reviewers []*user_model.User) {
-	reviewers = []*user_model.User{}
-
-	permDoer, err := access_model.GetUserRepoPermission(ctx, repo, doer)
-	if err != nil {
-		log.Error("models/perm/access/GetUserRepoPermission: %v", err)
-		return reviewers // empty
-	}
-
-	for _, nameOrEmail := range userNamesOrEmails {
-		reviewer, err := GetUserByNameOrEmail(ctx, nameOrEmail, repo)
-		if reviewer != nil && err == nil {
-			err = IsValidUserCodeowner(err, ctx, reviewer, doer, isAdd, issue, permDoer, repo)
-			if err == nil {
-				reviewers = append(reviewers, reviewer)
-			}
-		}
-	}
-	return reviewers
 }
 
 // GetUserByNameOrEmail gets the user by either its name or email depending on the format of the input
@@ -343,59 +388,6 @@ func GetUserByNameOrEmail(ctx context.Context, nameOrEmail string, repo *repo_mo
 		}
 	}
 	return reviewer, err
-}
-
-// GetValidTeamCodeownerReviewers gets the Teams that actually exist, are authorized to review the pull request, and have explicit write permissions for the repo
-func GetValidTeamCodeownerReviewers(ctx context.Context, fullTeamNames []string, repo *repo_model.Repository, doer *user_model.User, isAdd bool, issue *issues_model.Issue) (teamReviewers []*organization_model.Team) {
-	teamReviewers = []*organization_model.Team{}
-	if repo.Owner.IsOrganization() {
-		for _, fullTeamName := range fullTeamNames {
-			teamReviewer, err := GetTeamFromFullName(ctx, fullTeamName, doer)
-			if err != nil {
-				log.Info("GetTeamFromFullName [repo_id: %d, full_team_name: %s]: error finding the team [%v]", repo.ID, fullTeamName, err)
-			} else if teamReviewer == nil {
-				log.Info("GetTeamFromFullName [repo_id: %d, full_team_name: %s]: no error returned, but the team was nil (could not be found)", repo.ID, fullTeamName)
-			} else {
-				err = IsValidTeamCodeowner(ctx, teamReviewer, doer, isAdd, issue, repo)
-				if err == nil {
-					teamReviewers = append(teamReviewers, teamReviewer)
-				}
-			}
-		}
-	}
-	return teamReviewers
-}
-
-// IsValidUserCodeowner returns an error if the user is not eligible to be a codeowner for the given repository (must be an eligible reviewer
-// and have explcit write permissions). Nil if valid.
-func IsValidUserCodeowner(err error, ctx context.Context, reviewer *user_model.User, doer *user_model.User, isAdd bool, issue *issues_model.Issue, permDoer access_model.Permission, repo *repo_model.Repository) error {
-	err = IsValidReviewRequest(ctx, reviewer, doer, isAdd, issue, &permDoer)
-	if err == nil {
-		if UserHasWritePermissions(ctx, repo, reviewer) {
-			return nil
-		} else {
-			log.Info("IsValidUserCodeowner [repo_id: %d, user_id: %d]: user reviewer does not have write permissions and cannot be a codeowner", repo.ID, reviewer.ID)
-		}
-	} else {
-		log.Info("IsValidUserCodeowner [repo_id: %d, user_id: %d]: user reviewer is not a valid review request", repo.ID, reviewer.ID)
-	}
-	return errors.New(fmt.Sprintf("User %s is not a valid codeowner in the given repository", reviewer.Name))
-}
-
-// IsValidTeamCodeowner returns an error if the team is not eligible to be a codeowner for the given repository (must be an eligible reviewer
-// and have explcit write permissions). Nil if valid.
-func IsValidTeamCodeowner(ctx context.Context, teamReviewer *organization_model.Team, doer *user_model.User, isAdd bool, issue *issues_model.Issue, repo *repo_model.Repository) error {
-	err := IsValidTeamReviewRequest(ctx, teamReviewer, doer, isAdd, issue)
-	if err == nil {
-		if TeamHasWritePermissions(ctx, repo, teamReviewer) {
-			return nil
-		} else {
-			log.Info("IsValidTeamCodeowner [repo_id: %d, team_id: %d]: team reviewer does not have write permissions and cannot be a codeowner", repo.ID, teamReviewer.ID)
-		}
-	} else {
-		log.Info("IsValidTeamCodeowner [repo_id: %d, team_id: %d]: team reviewer is not a valid review request", repo.ID, teamReviewer.ID)
-	}
-	return errors.New(fmt.Sprintf("Team %s is not a valid codeowner in the given repository", teamReviewer.Name))
 }
 
 // GetTeamFromFullName gets the team given its full name ('{organizationName}/{teamName}'). Nil if not found.
@@ -450,7 +442,6 @@ func UserHasWritePermissions(ctx context.Context, repo *repo_model.Repository, u
 func TeamHasWritePermissions(ctx context.Context, repo *repo_model.Repository, team *organization_model.Team) bool {
 	if organization_model.HasTeamRepo(ctx, team.OrgID, team.ID, repo.ID) {
 		return team.UnitAccessMode(ctx, unit.TypeCode) == perm.AccessModeWrite
-	} else {
-		return false
 	}
+	return false
 }

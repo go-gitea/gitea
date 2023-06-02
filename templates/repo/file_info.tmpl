@@ -1,5 +1,5 @@
 <div class="file-info text grey normal gt-mono">
-	{{ template "shared/codeownershipinfo" .Codeowners}}
+	{{template "shared/codeownership_info_icon" .Codeowners}}
 	{{if .FileIsSymlink}}
 		<div class="file-info-entry">
 			{{.locale.Tr "repo.symbolic_link"}}

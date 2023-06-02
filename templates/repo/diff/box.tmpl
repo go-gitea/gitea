@@ -106,7 +106,6 @@
 											{{template "repo/diff/stats" dict "file" . "root" $}}
 										{{end}}
 									</div>
-									{{ template "shared/codeownershipinfo" (index $.Codeowners $file.Name) }}
 									<span class="file gt-mono"><a class="muted file-link" title="{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}" href="#diff-{{$file.NameHash}}">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}</a>{{if .IsLFSFile}} ({{$.locale.Tr "repo.stored_lfs"}}){{end}}</span>
 									{{if $file.IsGenerated}}
 										<span class="ui label gt-ml-3">{{$.locale.Tr "repo.diff.generated"}}</span>
@@ -114,6 +113,9 @@
 									{{if $file.IsVendored}}
 										<span class="ui label gt-ml-3">{{$.locale.Tr "repo.diff.vendored"}}</span>
 									{{end}}
+									<div class="gt-mx-3">
+										{{template "shared/codeownership_info_icon" (index $.CodeownersFileMap $file.Name)}}
+									</div>
 								</div>
 								<div class="diff-file-header-actions gt-df gt-ac">
 									{{if $showFileViewToggle}}

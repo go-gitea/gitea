@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"bufio"
 	"bytes"
 	gocontext "context"
 	"encoding/base64"
@@ -384,7 +383,10 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["IsDisplayingSource"] = isDisplayingSource
 	ctx.Data["IsDisplayingRendered"] = isDisplayingRendered
 
-	GetCodeownersOwnershipInfo(ctx)
+	err = SetCodeownersOwnershipInfo(ctx)
+	if err != nil {
+		log.Warn("SetCodeownersOwnershipInfo: %v", err)
+	}
 
 	isTextSource := fInfo.isTextFile || isDisplayingSource
 	ctx.Data["IsTextSource"] = isTextSource
@@ -586,103 +588,85 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_have_write_access")
 	}
 
-	ctx.Data["HasCodeownersValidationErrors"] = false
 	if entry.Name() == "CODEOWNERS" {
-		GetCodeownerValidationInfo(ctx)
+		err := SetCodeownerValidationInfo(ctx)
+		if err != nil {
+			log.Warn("GetCodeownerValidationInfo: %v", err)
+		}
 	}
 }
 
-// GetCodeownerValidationInfo gets the validation error information for the CODEOWNERS file and sets it in the context data
-func GetCodeownerValidationInfo(ctx *context.Context) {
-	codeownersErrors := make(map[int]string)
-	var fileLines []string
+// SetCodeownerValidationInfo gets the validation information for the current file (assumes is "CODEOWNERS") and sets the context data accordingly
+func SetCodeownerValidationInfo(ctx *context.Context) error {
 	contentsBytes, err := issue_service.GetCodeownersFileContents(ctx, ctx.Repo.Commit, ctx.Repo.GitRepo)
-	if err == nil {
-		scanner := bufio.NewScanner(strings.NewReader(string(contentsBytes)))
-		for scanner.Scan() {
-			fileLines = append(fileLines, scanner.Text())
-		}
+	if err != nil {
+		return err
 	}
-	for i, line := range fileLines {
-		_, _, currFileOwners := issue_service.ParseCodeownersLine(line)
-		isValid := true
-		if len(currFileOwners) > 0 {
-			isValid = issue_service.IsValidCodeownersLine(currFileOwners)
-		}
 
-		if isValid {
-			invalidAccessOwners := []string{}
-			individuals, teams := issue_service.SeparateOwnerAndTeam(currFileOwners)
-			for _, individual := range individuals {
-				user, err := issue_service.GetUserByNameOrEmail(ctx, individual, ctx.Repo.Repository)
-				if err != nil || user == nil || !issue_service.UserHasWritePermissions(ctx, ctx.Repo.Repository, user) {
-					invalidAccessOwners = append(invalidAccessOwners, individual)
-				}
-			}
-			for _, teamName := range teams {
-				team, err := issue_service.GetTeamFromFullName(ctx, teamName, ctx.Doer)
-				if err != nil || team == nil || !issue_service.TeamHasWritePermissions(ctx, ctx.Repo.Repository, team) {
-					invalidAccessOwners = append(invalidAccessOwners, teamName)
-				}
-			}
-			if len(invalidAccessOwners) > 0 {
-				if len(invalidAccessOwners) == 1 {
-					codeownersErrors[i+1] = "make sure " + invalidAccessOwners[0] + " exists and has write access to the repository"
+	_, _, validationErrors, err := issue_service.ParseCodeowners(ctx, ctx.Repo.Repository, ctx.Doer, []string{}, contentsBytes)
+	if err != nil {
+		return err
+	}
+
+	if len(validationErrors) > 0 {
+		ctx.Data["CodeownersValidationNotice"] = ctx.Locale.Tr("codeowners.error_notice")
+		validationMessages := []string{}
+		for lineNum, err := range validationErrors {
+			var message string
+			switch problem := err.(type) {
+			default:
+				return fmt.Errorf("CODEOWNERS validation error was not of type InvalidSyntaxError or ExistenceAndPermissionError [validation_error: %v]", problem)
+			case *issue_service.InvalidSyntaxError:
+				message = ctx.Locale.Tr("codeowners.validation_message_syntax", lineNum)
+			case *issue_service.ExistenceAndPermissionError:
+				if len(problem.Owners()) > 1 {
+					message = ctx.Locale.Tr("codeowners.validation_message_permissions_plural", lineNum, strings.Join(problem.Owners(), ", "))
 				} else {
-					codeownersErrors[i+1] = "make sure " + strings.Join(invalidAccessOwners, ", ") + " all exist and have write access to the repository"
+					message = ctx.Locale.Tr("codeowners.validation_message_permissions_singular", lineNum, strings.Join(problem.Owners(), ", "))
 				}
 			}
-		} else {
-			codeownersErrors[i+1] = "make sure owners are formated like '@user', 'user@email.com', or '@org-name/team-name'"
+			validationMessages = append(validationMessages, message)
 		}
+		ctx.Data["CodeownersValidationErrors"] = validationMessages
 	}
-	if len(codeownersErrors) > 0 {
-		ctx.Data["CodeownersValidationErrors"] = codeownersErrors
-	}
+
+	return nil
 }
 
-// GetCodeownersOwnershipInfo gets the ownership information for the current file
-func GetCodeownersOwnershipInfo(ctx *context.Context) {
+// SetCodeownersOwnershipInfo gets the ownership information for the current file and sets the context data accordingly
+func SetCodeownersOwnershipInfo(ctx *context.Context) error {
 	gitRepo, err := git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
+	if err != nil {
+		return err
+	}
 	defer gitRepo.Close()
+
+	commit, err := gitRepo.GetCommit(ctx.Repo.CommitID)
 	if err == nil {
-		commit, err := gitRepo.GetCommit(ctx.Repo.CommitID)
-		if err == nil {
-			codeownersContents, err := issue_service.GetCodeownersFileContents(ctx, commit, gitRepo)
-			if err == nil && codeownersContents != nil && len(codeownersContents) > 0 {
-				filePath := ctx.Repo.TreePath
-				codeowners := GetFileCodeowners(ctx, filePath, codeownersContents)
-				if err == nil && len(codeowners) > 0 {
-					ctx.Data["Codeowners"] = codeowners
-				}
+		codeownersContents, err := issue_service.GetCodeownersFileContents(ctx, commit, gitRepo)
+		if err == nil && codeownersContents != nil && len(codeownersContents) > 0 {
+			codeowners, err := GetFileCodeowners(ctx, ctx.Repo.TreePath, codeownersContents)
+			if err == nil && len(codeowners) > 0 {
+				ctx.Data["Codeowners"] = ctx.Locale.Tr("codeowners.codeownership", strings.Join(codeowners, ", "))
 			}
 		}
 	}
+
+	return nil
 }
 
 // GetFileCodeowners gets the codeowners for the given file path and CODEOWNERS file contents
-func GetFileCodeowners(ctx *context.Context, filePath string, codeownersContents []byte) []string {
-	ownersNameOrEmail, teamOwnersFullName, err := issue_service.ParseCodeowners([]string{filePath}, codeownersContents)
-	codeowners := []string{}
+func GetFileCodeowners(ctx *context.Context, filePath string, codeownersContents []byte) (codeowners []string, err error) {
+	userOwners, teamOwners, _, err := issue_service.ParseCodeowners(ctx, ctx.Repo.Repository, ctx.Doer, []string{filePath}, codeownersContents)
 	if err == nil {
-		for _, owner := range ownersNameOrEmail {
-			user, err := issue_service.GetUserByNameOrEmail(ctx, owner, ctx.Repo.Repository)
-			if err == nil {
-				if issue_service.UserHasWritePermissions(ctx, ctx.Repo.Repository, user) {
-					codeowners = append(codeowners, owner)
-				}
-			}
+		for _, userOwner := range userOwners {
+			codeowners = append(codeowners, userOwner.Name)
 		}
-		for _, teamOwner := range teamOwnersFullName {
-			team, err := issue_service.GetTeamFromFullName(ctx, teamOwner, ctx.Doer)
-			if err == nil && team != nil {
-				if issue_service.TeamHasWritePermissions(ctx, ctx.Repo.Repository, team) {
-					codeowners = append(codeowners, teamOwner)
-				}
-			}
+		for _, teamOwner := range teamOwners {
+			codeowners = append(codeowners, teamOwner.Name)
 		}
 	}
-	return codeowners
+	return codeowners, err
 }
 
 func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input io.Reader) (escaped *charset.EscapeStatus, output string, err error) {
