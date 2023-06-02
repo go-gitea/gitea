@@ -20,29 +20,28 @@
 				</div>
 			{{end}}
 		</div>
-		<div class="ui one column stackable grid">
-			<div class="column markup content">
-					{{.Milestone.RenderedContent|Str2html}}
-			</div>
+		{{if .Milestone.RenderedContent}}
+		<div class="markup content gt-mb-4">
+				{{.Milestone.RenderedContent|Str2html}}
 		</div>
-		<div class="ui one column stackable grid">
-			<div class="column">
-				{{$closedDate:= TimeSinceUnix .Milestone.ClosedDateUnix $.locale}}
-				{{if .IsClosed}}
-					{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.closed" $closedDate | Safe}}
-				{{else}}
-					{{svg "octicon-calendar"}}
-					{{if .Milestone.DeadlineString}}
-						<span {{if .IsOverdue}}class="overdue"{{end}}>{{DateTime "short" .Milestone.DeadlineString}}</span>
+		{{end}}
+		<div class="gt-df gt-fc gt-gap-3">
+			<progress class="milestone-progress-big" value="{{.Milestone.Completeness}}" max="100"></progress>
+			<div class="gt-df gt-gap-4">
+				<div classs="gt-df gt-ac">
+					{{$closedDate:= TimeSinceUnix .Milestone.ClosedDateUnix $.locale}}
+					{{if .IsClosed}}
+						{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.closed" $closedDate | Safe}}
 					{{else}}
-						{{$.locale.Tr "repo.milestones.no_due_date"}}
+						{{svg "octicon-calendar"}}
+						{{if .Milestone.DeadlineString}}
+							<span {{if .IsOverdue}}class="overdue"{{end}}>{{DateTime "short" .Milestone.DeadlineString}}</span>
+						{{else}}
+							{{$.locale.Tr "repo.milestones.no_due_date"}}
+						{{end}}
 					{{end}}
-				{{end}}
-				&nbsp;
-				<div class="gt-df gt-ac">
-					<strong class="gt-mr-3">{{.locale.Tr "repo.milestones.completeness" .Milestone.Completeness}}</strong>
-					<progress value="{{.Milestone.Completeness}}" max="100"></progress>
 				</div>
+				<div class="gt-mr-3">{{.locale.Tr "repo.milestones.completeness" .Milestone.Completeness | Safe}}</div>
 			</div>
 		</div>
 		<div class="ui divider"></div>
