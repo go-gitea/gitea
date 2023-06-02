@@ -39,7 +39,10 @@
 					{{end}}
 				{{end}}
 				&nbsp;
-				<b>{{.locale.Tr "repo.milestones.completeness" .Milestone.Completeness}}</b>
+				<div class="gt-df gt-ac">
+					<b class="gt-mr-3">{{.locale.Tr "repo.milestones.completeness" .Milestone.Completeness}}</b>
+					<progress value="{{.Milestone.Completeness}}" max="100"></progress>
+				</div>
 			</div>
 		</div>
 		<div class="ui divider"></div>
