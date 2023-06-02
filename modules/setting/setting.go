@@ -201,7 +201,7 @@ func Init(opts *Options) {
 		opts.CustomConf = CustomConf
 	}
 	var err error
-	CfgProvider, err = newConfigProviderFromFile(opts)
+	CfgProvider, err = NewConfigProviderFromFile(opts)
 	if err != nil {
 		log.Fatal("Init[%v]: %v", opts, err)
 	}

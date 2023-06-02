@@ -25,16 +25,16 @@
 		</div>
 		{{if .AccountLinks}}
 			{{range $loginSource, $provider := .AccountLinks}}
-				<div class="item">
-					<div class="right floated content">
-							<button class="ui red tiny button delete-button" data-modal-id="delete-account-link" data-url="{{AppSubUrl}}/user/settings/security/account_link" data-id="{{$loginSource.ID}}">
-								{{$.locale.Tr "settings.delete_key"}}
-							</button>
+				<div class="item gt-df gt-ac">
+					<div class="gt-f1">
+						<span data-tooltip-content="{{$provider}}">
+							{{$loginSource.Name}}
+							{{if $loginSource.IsActive}}<span class="text primary">{{$.locale.Tr "repo.settings.active"}}</span>{{end}}
+						</span>
 					</div>
-					<div class="content">
-						<strong>{{$provider}}</strong>
-						{{if $loginSource.IsActive}}<span class="text red">{{$.locale.Tr "repo.settings.active"}}</span>{{end}}
-					</div>
+					<button class="ui red tiny button delete-button" data-modal-id="delete-account-link" data-url="{{AppSubUrl}}/user/settings/security/account_link" data-id="{{$loginSource.ID}}">
+						{{$.locale.Tr "settings.delete_key"}}
+					</button>
 				</div>
 			{{end}}
 		{{end}}
