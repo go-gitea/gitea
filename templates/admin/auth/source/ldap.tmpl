@@ -106,7 +106,7 @@
 		</div>
 		<div class="field">
 			<label>{{.locale.Tr "admin.auths.map_group_to_team"}}</label>
-			<input name="group_team_map" value="{{.group_team_map}}" placeholder='e.g. {"cn=my-group,cn=groups,dc=example,dc=org": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}'>
+			<textarea name="group_team_map" rows="5" placeholder='e.g. {"cn=my-group,cn=groups,dc=example,dc=org": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}'>{{.group_team_map}}</textarea>
 		</div>
 		<div class="ui checkbox">
 			<label>{{.locale.Tr "admin.auths.map_group_to_team_removal"}}</label>

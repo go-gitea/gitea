@@ -26,6 +26,7 @@ import octiconEye from '../../public/img/svg/octicon-eye.svg';
 import octiconFile from '../../public/img/svg/octicon-file.svg';
 import octiconFileDirectoryFill from '../../public/img/svg/octicon-file-directory-fill.svg';
 import octiconFilter from '../../public/img/svg/octicon-filter.svg';
+import octiconGear from '../../public/img/svg/octicon-gear.svg';
 import octiconGitBranch from '../../public/img/svg/octicon-git-branch.svg';
 import octiconGitMerge from '../../public/img/svg/octicon-git-merge.svg';
 import octiconGitPullRequest from '../../public/img/svg/octicon-git-pull-request.svg';
@@ -94,6 +95,7 @@ const svgs = {
   'octicon-file': octiconFile,
   'octicon-file-directory-fill': octiconFileDirectoryFill,
   'octicon-filter': octiconFilter,
+  'octicon-gear': octiconGear,
   'octicon-git-branch': octiconGitBranch,
   'octicon-git-merge': octiconGitMerge,
   'octicon-git-pull-request': octiconGitPullRequest,
@@ -132,7 +134,7 @@ const svgs = {
   'octicon-tag': octiconTag,
   'octicon-triangle-down': octiconTriangleDown,
   'octicon-x': octiconX,
-  'octicon-x-circle-fill': octiconXCircleFill
+  'octicon-x-circle-fill': octiconXCircleFill,
 };
 
 // TODO: use a more general approach to access SVG icons.

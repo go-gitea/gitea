@@ -9,7 +9,7 @@
 				{{.CsrfTokenHtml}}
 				<div class="field {{if .Err_UserName}}error{{end}}">
 					<label for="user_name">{{.locale.Tr "username"}}</label>
-					<input id="user_name" name="user_name" value="{{.User.Name}}" autofocus {{if not .User.IsLocal}}disabled{{end}}>
+					<input id="user_name" name="user_name" value="{{.User.Name}}" autofocus {{if not .User.IsLocal}}disabled{{end}} maxlength="40">
 				</div>
 				<!-- Types and name -->
 				<div class="inline required field {{if .Err_LoginType}}error{{end}}">
@@ -59,7 +59,7 @@
 				</div>
 				<div class="field {{if .Err_FullName}}error{{end}}">
 					<label for="full_name">{{.locale.Tr "settings.full_name"}}</label>
-					<input id="full_name" name="full_name" value="{{.User.FullName}}">
+					<input id="full_name" name="full_name" value="{{.User.FullName}}" maxlength="100">
 				</div>
 				<div class="required field {{if .Err_Email}}error{{end}}">
 					<label for="email">{{.locale.Tr "email"}}</label>
@@ -72,18 +72,18 @@
 				</div>
 				<div class="field {{if .Err_Website}}error{{end}}">
 					<label for="website">{{.locale.Tr "settings.website"}}</label>
-					<input id="website" name="website" type="url" value="{{.User.Website}}" placeholder="e.g. http://mydomain.com or https://mydomain.com">
+					<input id="website" name="website" type="url" value="{{.User.Website}}" placeholder="e.g. http://mydomain.com or https://mydomain.com" maxlength="255">
 				</div>
 				<div class="field {{if .Err_Location}}error{{end}}">
 					<label for="location">{{.locale.Tr "settings.location"}}</label>
-					<input id="location" name="location" value="{{.User.Location}}">
+					<input id="location" name="location" value="{{.User.Location}}" maxlength="50">
 				</div>
 
 				<div class="ui divider"></div>
 
 				<div class="inline field {{if .Err_MaxRepoCreation}}error{{end}}">
 					<label for="max_repo_creation">{{.locale.Tr "admin.users.max_repo_creation"}}</label>
-					<input id="max_repo_creation" name="max_repo_creation" type="number" value="{{.User.MaxRepoCreation}}">
+					<input id="max_repo_creation" name="max_repo_creation" type="number" min="-1" value="{{.User.MaxRepoCreation}}">
 					<p class="help">{{.locale.Tr "admin.users.max_repo_creation_desc"}}</p>
 				</div>
 
@@ -166,7 +166,7 @@
 						<label>{{.locale.Tr "settings.lookup_avatar_by_mail"}}</label>
 					</div>
 				</div>
-				<div class="field {{if .Err_Gravatar}}error{{end}}">
+				<div class="field gt-pl-4 {{if .Err_Gravatar}}error{{end}}">
 					<label for="gravatar">Avatar {{.locale.Tr "email"}}</label>
 					<input id="gravatar" name="gravatar" value="{{.User.AvatarEmail}}">
 				</div>
@@ -179,9 +179,9 @@
 					</div>
 				</div>
 
-				<div class="inline field">
+				<div class="inline field gt-pl-4">
 					<label for="avatar">{{.locale.Tr "settings.choose_new_avatar"}}</label>
-					<input name="avatar" type="file" >
+					<input name="avatar" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
 				</div>
 
 				<div class="field">
@@ -197,17 +197,17 @@
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "settings.delete_account_title"}}
 	</div>
-	<div class="content">
-		<p>{{.locale.Tr "settings.delete_account_desc"}}</p>
-	</div>
 	<form class="ui form" method="POST" action="{{.Link}}/delete">
-		{{$.CsrfTokenHtml}}
-		<div class="field">
-			<div class="ui checkbox">
-				<label for="purge">{{.locale.Tr "admin.users.purge"}}</label>
-				<input name="purge" type="checkbox">
+		<div class="content">
+			<p>{{.locale.Tr "settings.delete_account_desc"}}</p>
+			{{$.CsrfTokenHtml}}
+			<div class="field">
+				<div class="ui checkbox">
+					<label for="purge">{{.locale.Tr "admin.users.purge"}}</label>
+					<input name="purge" type="checkbox">
+				</div>
+				<p class="help">{{.locale.Tr "admin.users.purge_help"}}</p>
 			</div>
-			<p class="help">{{.locale.Tr "admin.users.purge_help"}}</p>
 		</div>
 		{{template "base/modal_actions_confirm" .}}
 	</form>

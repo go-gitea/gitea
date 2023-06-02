@@ -297,7 +297,7 @@ func ArchiveRepository(request *ArchiveRequest) (*repo_model.RepoArchiver, error
 
 var archiverQueue *queue.WorkerPoolQueue[*ArchiveRequest]
 
-// Init initlize archive
+// Init initializes archiver
 func Init() error {
 	handler := func(items ...*ArchiveRequest) []*ArchiveRequest {
 		for _, archiveReq := range items {
@@ -309,12 +309,11 @@ func Init() error {
 		return nil
 	}
 
-	archiverQueue = queue.CreateUniqueQueue("repo-archive", handler)
+	archiverQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "repo-archive", handler)
 	if archiverQueue == nil {
-		return errors.New("unable to create codes indexer queue")
+		return errors.New("unable to create repo-archive queue")
 	}
-
-	go graceful.GetManager().RunWithShutdownFns(archiverQueue.Run)
+	go graceful.GetManager().RunWithCancel(archiverQueue)
 
 	return nil
 }
