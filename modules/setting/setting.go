@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"time"
@@ -210,6 +211,15 @@ func Init(opts *Options) {
 	}
 }
 
+func mustLoad(cfg ConfigProvider, fn func(ConfigProvider) error) {
+	err := fn(cfg)
+	if err != nil {
+		ptr := reflect.ValueOf(fn).Pointer()
+		fi := runtime.FuncForPC(ptr)
+		log.Fatal("%s failed: %v", fi.Name(), err)
+	}
+}
+
 // loadCommonSettingsFrom loads common configurations from a configuration provider.
 func loadCommonSettingsFrom(cfg ConfigProvider) {
 	// WARNING: don't change the sequence except you know what you are doing.
@@ -222,16 +232,12 @@ func loadCommonSettingsFrom(cfg ConfigProvider) {
 
 	loadOAuth2From(cfg)
 	loadSecurityFrom(cfg)
-	if err := loadAttachmentFrom(cfg); err != nil {
-		log.Fatal("loadAttachmentFrom: %v", err)
-	}
+	mustLoad(cfg, loadAttachmentFrom)
 	loadLFSFrom(cfg)
 	loadTimeFrom(cfg)
 	loadRepositoryFrom(cfg)
 	loadPictureFrom(cfg)
-	if err := loadPackagesFrom(cfg); err != nil {
-		log.Fatal("loadPackagesFrom: %v", err)
-	}
+	mustLoad(cfg, loadPackagesFrom)
 	loadActionsFrom(cfg)
 	loadUIFrom(cfg)
 	loadAdminFrom(cfg)
