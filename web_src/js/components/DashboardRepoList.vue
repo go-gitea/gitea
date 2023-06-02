@@ -17,7 +17,7 @@
       </h4>
       <div class="ui attached segment repos-search">
         <div class="ui fluid right action left icon input" :class="{loading: isLoading}">
-          <input @input="changeReposFilter(reposFilter)" v-model="searchQuery" ref="search" :placeholder="textSearchRepos">
+          <input @input="changeReposFilter(reposFilter)" v-model="searchQuery" ref="search" @keydown="reposFilterKeyControl" :placeholder="textSearchRepos">
           <i class="icon gt-df gt-ac gt-jc"><svg-icon name="octicon-search" :size="16"/></i>
           <div class="ui dropdown icon button" :title="textFilter">
             <i class="icon gt-df gt-ac gt-jc gt-m-0"><svg-icon name="octicon-filter" :size="16"/></i>
@@ -70,7 +70,7 @@
       </div>
       <div v-if="repos.length" class="ui attached table segment gt-rounded-bottom">
         <ul class="repo-owner-name-list">
-          <li class="gt-df gt-ac" v-for="repo in repos" :key="repo.id">
+          <li class="gt-df gt-ac" v-for="repo, index in repos" :class="{'active': index === activeIndex}" :key="repo.id">
             <a class="repo-list-link muted gt-df gt-ac gt-f1" :href="repo.link">
               <svg-icon :name="repoIcon(repo)" :size="16" class-name="repo-list-icon"/>
               <div class="text truncate">{{ repo.full_name }}</div>
@@ -215,6 +215,7 @@ const sfc = {
 
       subUrl: appSubUrl,
       ...pageData.dashboardRepoList,
+      activeIndex: -1, // don't select anything at load, first cursor down will select
     };
   },
 
@@ -429,6 +430,43 @@ const sfc = {
 
     statusColor(status) {
       return commitStatus[status].color;
+    },
+
+    reposFilterKeyControl(e) {
+      switch (e.key) {
+        case 'Enter':
+          document.querySelector('.repo-owner-name-list li.active a')?.click();
+          break;
+        case 'ArrowUp':
+          if (this.activeIndex > 0) {
+            this.activeIndex--;
+          } else if (this.page > 1) {
+            this.changePage(this.page - 1);
+            this.activeIndex = this.searchLimit - 1;
+          }
+          break;
+        case 'ArrowDown':
+          if (this.activeIndex < this.repos.length - 1) {
+            this.activeIndex++;
+          } else if (this.page < this.finalPage) {
+            this.activeIndex = 0;
+            this.changePage(this.page + 1);
+          }
+          break;
+        case 'ArrowRight':
+          if (this.page < this.finalPage) {
+            this.changePage(this.page + 1);
+          }
+          break;
+        case 'ArrowLeft':
+          if (this.page > 1) {
+            this.changePage(this.page - 1);
+          }
+          break;
+      }
+      if (this.activeIndex === -1 || this.activeIndex > this.repos.length - 1) {
+        this.activeIndex = 0;
+      }
     }
   },
 };
@@ -479,5 +517,9 @@ ul li:not(:last-child) {
   min-width: 14px;
   margin-left: 1px;
   margin-right: 3px;
+}
+
+.repo-owner-name-list li.active {
+  background: var(--color-hover);
 }
 </style>
