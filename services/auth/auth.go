@@ -92,7 +92,7 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 	middleware.SetLocaleCookie(resp, user.Language, 0)
 
 	// Clear whatever CSRF has right now, force to generate a new one
-	if ctx := gitea_context.GetContext(req); ctx != nil {
+	if ctx := gitea_context.GetWebContext(req); ctx != nil {
 		ctx.Csrf.DeleteCookie(ctx)
 	}
 }

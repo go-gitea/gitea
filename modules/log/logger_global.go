@@ -10,7 +10,7 @@ import (
 
 // FallbackErrorf is the last chance to show an error if the logger has internal errors
 func FallbackErrorf(format string, args ...any) {
-	_, _ = fmt.Fprintf(os.Stderr, format+"\n", args)
+	_, _ = fmt.Fprintf(os.Stderr, format+"\n", args...)
 }
 
 func GetLevel() Level {

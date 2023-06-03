@@ -2,16 +2,18 @@ name: docker-dryrun
 
 on:
   pull_request:
-    paths-ignore:
-      - "docs/**"
-      - "*.md"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
+  files-changed:
+    uses: ./.github/workflows/files-changed.yml
+
   docker-dryrun:
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.frontend == 'true'
+    needs: files-changed
     runs-on: ubuntu-latest
     steps:
       - uses: docker/setup-buildx-action@v2

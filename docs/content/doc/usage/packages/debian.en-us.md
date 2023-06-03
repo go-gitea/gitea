@@ -1,7 +1,7 @@
 ---
 date: "2023-01-07T00:00:00+00:00"
-title: "Debian Packages Repository"
-slug: "packages/debian"
+title: "Debian Package Registry"
+slug: "debian"
 draft: false
 toc: false
 menu:
@@ -12,7 +12,7 @@ menu:
     identifier: "debian"
 ---
 
-# Debian Packages Repository
+# Debian Package Registry
 
 Publish [Debian](https://www.debian.org/distrib/packages) packages for your user or organization.
 

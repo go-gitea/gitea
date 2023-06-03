@@ -153,6 +153,13 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, gitRepo *git.Reposi
 		}
 	}
 
+	// If the Issue is pinned, we should unpin it before deletion to avoid problems with other pinned Issues
+	if issue.IsPinned() {
+		if err := issue.Unpin(ctx, doer); err != nil {
+			return err
+		}
+	}
+
 	notification.NotifyDeleteIssue(ctx, doer, issue)
 
 	return nil
@@ -199,7 +206,7 @@ func GetRefEndNamesAndURLs(issues []*issues_model.Issue, repoLink string) (map[i
 	issueRefURLs := make(map[int64]string, len(issues))
 	for _, issue := range issues {
 		if issue.Ref != "" {
-			issueRefEndNames[issue.ID] = git.RefEndName(issue.Ref)
+			issueRefEndNames[issue.ID] = git.RefName(issue.Ref).ShortName()
 			issueRefURLs[issue.ID] = git.RefURL(repoLink, issue.Ref)
 		}
 	}
