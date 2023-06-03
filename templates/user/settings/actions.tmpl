@@ -2,6 +2,8 @@
 	<div class="user-setting-content">
 	{{if eq .PageType "secrets"}}
 		{{template "shared/secrets/add_list" .}}
+	{{else if eq .PageType "runners"}}
+		{{template "shared/actions/runner_list" .}}
 	{{end}}
 	</div>
 

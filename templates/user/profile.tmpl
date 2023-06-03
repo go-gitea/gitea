@@ -2,7 +2,7 @@
 <div role="main" aria-label="{{.Title}}" class="page-content user profile">
 	<div class="ui container">
 		<div class="ui stackable grid">
-			<div class="ui five wide column">
+			<div class="ui four wide column">
 				<div class="ui card">
 					<div id="profile-avatar" class="content gt-df">
 					{{if eq .SignedUserID .ContextUser.ID}}
@@ -120,8 +120,8 @@
 					</div>
 				</div>
 			</div>
-			<div class="ui eleven wide column">
-				<div class="ui secondary stackable pointing tight menu">
+			<div class="ui twelve wide column">
+				<div class="gt-mb-4 gt-df">
 					{{template "user/overview/header" .}}
 				</div>
 

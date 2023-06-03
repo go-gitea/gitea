@@ -53,7 +53,7 @@
 				</div>
 				<div class="required field {{if .Err_UserName}}error{{end}}">
 					<label for="user_name">{{.locale.Tr "username"}}</label>
-					<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required>
+					<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required maxlength="40">
 				</div>
 				<div class="required field {{if .Err_Email}}error{{end}}">
 					<label for="email">{{.locale.Tr "email"}}</label>
