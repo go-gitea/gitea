@@ -11,11 +11,11 @@
 		<div class="ui top attached header comment-header gt-df gt-ac gt-sb">
 			<div class="comment-header-left gt-df gt-ac">
 				{{if .OriginalAuthor}}
-					<span class="text black gt-bold gt-mr-2">
+					<span class="text black gt-font-semibold gt-mr-2">
 						{{svg (MigrationIcon $.root.Repository.GetOriginalURLHostname)}}
 						{{.OriginalAuthor}}
 					</span>
-					<span class="text grey">
+					<span class="text grey muted-links">
 						{{$.root.locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr | Safe}}
 					</span>
 					<span class="text migrate">
@@ -24,7 +24,7 @@
 						{{end}}
 					</span>
 				{{else}}
-					<span class="text grey">
+					<span class="text grey muted-links">
 						{{template "shared/user/namelink" .Poster}}
 						{{$.root.locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr | Safe}}
 					</span>
@@ -59,9 +59,7 @@
 		</div>
 		{{$reactions := .Reactions.GroupByType}}
 		{{if $reactions}}
-			<div class="ui attached segment reactions">
 			{{template "repo/issue/view_content/reactions" dict "ctxData" $.root "ActionURL" (printf "%s/comments/%d/reactions" $.root.RepoLink .ID) "Reactions" $reactions}}
-			</div>
 		{{end}}
 	</div>
 </div>

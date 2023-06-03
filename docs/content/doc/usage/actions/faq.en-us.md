@@ -1,7 +1,7 @@
 ---
 date: "2023-04-27T15:00:00+08:00"
 title: "Frequently Asked Questions of Gitea Actions"
-slug: "usage/actions/faq"
+slug: "faq"
 weight: 100
 draft: false
 toc: false

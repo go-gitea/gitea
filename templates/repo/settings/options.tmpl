@@ -67,14 +67,44 @@
 
 		</div>
 
-		{{if .MirrorsEnabled}}
+
+		{{/* These variables exist to make the logic in the Settings window easier to comprehend and are not used later on. */}}
+		{{$newMirrorsPartiallyEnabled := or (not .DisableNewPullMirrors) (not .DisableNewPushMirrors)}}
+		{{/* .Repository.IsMirror is not always reliable if the repository is not actively acting as a mirror because of errors. */}}
+		{{$showMirrorSettings := or $newMirrorsPartiallyEnabled .Repository.IsMirror .PullMirror .PushMirrors}}
+		{{$newMirrorsEntirelyEnabled := and (not .DisableNewPullMirrors) (not .DisableNewPushMirrors)}}
+		{{$onlyNewPushMirrorsEnabled := and (not .DisableNewPushMirrors) .DisableNewPullMirrors}}
+		{{$onlyNewPullMirrorsEnabled := and .DisableNewPushMirrors (not .DisableNewPullMirrors)}}
+		{{$existingPushMirror := or .Repository.IsMirror .PushMirrors}}
+		{{$modifyBrokenPullMirror := and .Repository.IsMirror (not .PullMirror)}}
+		{{$isWorkingPullMirror := .PullMirror}}
+
+		{{if $showMirrorSettings}}
 			<h4 class="ui top attached header">
 				{{.locale.Tr "repo.settings.mirror_settings"}}
 			</h4>
 			<div class="ui attached segment">
-				{{$.locale.Tr "repo.settings.mirror_settings.docs" | Safe}}
+				{{if $newMirrorsEntirelyEnabled}}
+					{{$.locale.Tr "repo.settings.mirror_settings.docs"}}
+					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pushing-to<ing-to-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br><br>
+					{{$.locale.Tr "repo.settings.mirror_settings.docs.pull_mirror_instructions"}}
+					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pulling-from-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br>
+				{{else if $onlyNewPushMirrorsEnabled}}
+					{{$.locale.Tr "repo.settings.mirror_settings.docs.disabled_pull_mirror.instructions"}}
+					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pulling-from-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br>
+				{{else if $onlyNewPullMirrorsEnabled}}
+					{{$.locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.instructions"}}
+					{{$.locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.pull_mirror_warning"}}
+					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pulling-from-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br><br>
+					{{$.locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.info"}}
+					{{if $existingPushMirror}}
+						{{$.locale.Tr "repo.settings.mirror_settings.docs.can_still_use"}}
+					{{end}}
+				{{else}}
+					{{$.locale.Tr "repo.settings.mirror_settings.docs.no_new_mirrors"}} {{$.locale.Tr "repo.settings.mirror_settings.docs.can_still_use"}}<br>
+				{{end}}
 				<table class="ui table">
-					{{if or .Repository.IsMirror .PushMirrors}}
+					{{if $existingPushMirror}}
 					<thead>
 						<tr>
 							<th style="width:40%">{{$.locale.Tr "repo.settings.mirror_settings.mirrored_repository"}}</th>
@@ -84,7 +114,7 @@
 						</tr>
 					</thead>
 					{{end}}
-					{{if and .Repository.IsMirror (not .PullMirror)}}
+					{{if $modifyBrokenPullMirror}}
 						{{/* even if a repo is a pull mirror (IsMirror=true), the PullMirror might still be nil if the mirror migration is broken */}}
 						<tbody>
 							<tr>
@@ -93,7 +123,7 @@
 								</td>
 							</tr>
 						</tbody>
-					{{else if .PullMirror}}
+					{{else if $isWorkingPullMirror}}
 					<tbody>
 						<tr>
 							<td>{{(MirrorRemoteAddress $.Context .Repository .PullMirror.GetRemoteName false).Address}}</td>
@@ -300,7 +330,7 @@
 							<label>{{.locale.Tr "repo.settings.use_external_wiki"}}</label>
 						</div>
 					</div>
-					<div class="field {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalWiki)}}disabled{{end}}" id="external_wiki_box">
+					<div class="field gt-pl-4 {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalWiki)}}disabled{{end}}" id="external_wiki_box">
 						<label for="external_wiki_url">{{.locale.Tr "repo.settings.external_wiki_url"}}</label>
 						<input id="external_wiki_url" name="external_wiki_url" type="url" value="{{(.Repository.MustGetUnit $.Context $.UnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL}}">
 						<p class="help">{{.locale.Tr "repo.settings.external_wiki_url_desc"}}</p>
@@ -332,7 +362,7 @@
 							<label>{{.locale.Tr "repo.settings.use_internal_issue_tracker"}}</label>
 						</div>
 					</div>
-					<div class="field {{if (.Repository.UnitEnabled $.Context $.UnitTypeExternalTracker)}}disabled{{end}}" id="internal_issue_box">
+					<div class="field gt-pl-4 {{if (.Repository.UnitEnabled $.Context $.UnitTypeExternalTracker)}}disabled{{end}}" id="internal_issue_box">
 						{{if .Repository.CanEnableTimetracker}}
 							<div class="field">
 								<div class="ui checkbox">
@@ -368,7 +398,7 @@
 							<label>{{.locale.Tr "repo.settings.use_external_issue_tracker"}}</label>
 						</div>
 					</div>
-					<div class="field {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalTracker)}}disabled{{end}}" id="external_issue_box">
+					<div class="field gt-pl-4 {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalTracker)}}disabled{{end}}" id="external_issue_box">
 						<div class="field">
 							<label for="external_tracker_url">{{.locale.Tr "repo.settings.external_tracker_url"}}</label>
 							<input id="external_tracker_url" name="external_tracker_url" type="url" value="{{(.Repository.MustGetUnit $.Context $.UnitTypeExternalTracker).ExternalTrackerConfig.ExternalTrackerURL}}">
@@ -826,7 +856,7 @@
 					</div>
 					<div class="required field">
 						<label for="repo_name">{{.locale.Tr "repo.repo_name"}}</label>
-						<input id="repo_name" name="repo_name" required>
+						<input id="repo_name" name="repo_name" required maxlength="100">
 					</div>
 
 					<div class="text right actions">

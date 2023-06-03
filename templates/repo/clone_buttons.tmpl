@@ -1,11 +1,11 @@
 <!-- there is always at least one button (by context/repo.go) -->
 {{if $.CloneButtonShowHTTPS}}
-	<button class="ui basic small compact clone button gt-no-transition" id="repo-clone-https" data-link="{{$.CloneButtonOriginLink.HTTPS}}">
+	<button class="ui small compact clone button gt-no-transition" id="repo-clone-https" data-link="{{$.CloneButtonOriginLink.HTTPS}}">
 		HTTPS
 	</button>
 {{end}}
 {{if $.CloneButtonShowSSH}}
-	<button class="ui basic small compact clone button gt-no-transition" id="repo-clone-ssh" data-link="{{$.CloneButtonOriginLink.SSH}}">
+	<button class="ui small compact clone button gt-no-transition" id="repo-clone-ssh" data-link="{{$.CloneButtonOriginLink.SSH}}">
 		SSH
 	</button>
 {{end}}

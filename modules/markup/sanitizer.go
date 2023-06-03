@@ -22,7 +22,10 @@ type Sanitizer struct {
 	init             sync.Once
 }
 
-var sanitizer = &Sanitizer{}
+var (
+	sanitizer     = &Sanitizer{}
+	allowAllRegex = regexp.MustCompile(".+")
+)
 
 // NewSanitizer initializes sanitizer with allowed attributes based on settings.
 // Multiple calls to this function will only create one instance of Sanitizer during
@@ -74,6 +77,8 @@ func createDefaultPolicy() *bluemonday.Policy {
 	// Custom URL-Schemes
 	if len(setting.Markdown.CustomURLSchemes) > 0 {
 		policy.AllowURLSchemes(setting.Markdown.CustomURLSchemes...)
+	} else {
+		policy.AllowURLSchemesMatching(allowAllRegex)
 	}
 
 	// Allow classes for anchors
@@ -127,7 +132,7 @@ func createDefaultPolicy() *bluemonday.Policy {
 		"div", "ins", "del", "sup", "sub", "p", "ol", "ul", "table", "thead", "tbody", "tfoot", "blockquote",
 		"dl", "dt", "dd", "kbd", "q", "samp", "var", "hr", "ruby", "rt", "rp", "li", "tr", "td", "th", "s", "strike", "summary",
 		"details", "caption", "figure", "figcaption",
-		"abbr", "bdo", "cite", "dfn", "mark", "small", "span", "time", "wbr",
+		"abbr", "bdo", "cite", "dfn", "mark", "small", "span", "time", "video", "wbr",
 	}
 
 	policy.AllowAttrs(generalSafeAttrs...).OnElements(generalSafeElements...)
