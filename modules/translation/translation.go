@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation/i18n"
+	"code.gitea.io/gitea/modules/util"
 
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
@@ -37,10 +38,12 @@ type LangType struct {
 }
 
 var (
-	lock          *sync.RWMutex
+	lock *sync.RWMutex
+
+	allLangs   []*LangType
+	allLangMap map[string]*LangType
+
 	matcher       language.Matcher
-	allLangs      []*LangType
-	allLangMap    map[string]*LangType
 	supportedTags []language.Tag
 )
 
@@ -241,5 +244,18 @@ func (l *locale) TrN(cnt any, key1, keyN string, args ...any) string {
 
 func (l *locale) PrettyNumber(v any) string {
 	// TODO: this mechanism is not good enough, the complete solution is to switch the translation system to ICU message format
+	if s, ok := v.(string); ok {
+		if num, err := util.ToInt64(s); err == nil {
+			v = num
+		} else if num, err := util.ToFloat64(s); err == nil {
+			v = num
+		}
+	}
 	return l.msgPrinter.Sprintf("%v", number.Decimal(v))
+}
+
+func init() {
+	// prepare a default matcher, especially for tests
+	supportedTags = []language.Tag{language.English}
+	matcher = language.NewMatcher(supportedTags)
 }

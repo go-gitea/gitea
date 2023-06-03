@@ -4,6 +4,66 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.19.3](https://github.com/go-gitea/gitea/releases/tag/1.19.3) - 2023-05-03
+
+* SECURITY
+  * Use golang 1.20.4 to fix CVE-2023-24539, CVE-2023-24540, and CVE-2023-29400
+* ENHANCEMENTS
+  * Enable whitespace rendering on selection in Monaco (#24444) (#24485)
+  * Improve milestone filter on issues page (#22423) (#24440)
+* BUGFIXES
+  * Fix api error message if fork exists (#24487) (#24493)
+  * Fix user-cards format (#24428) (#24431)
+  * Fix incorrect CurrentUser check for docker rootless (#24435)
+  * Getting the tag list does not require being signed in (#24413) (#24416)
+
+## [1.19.2](https://github.com/go-gitea/gitea/releases/tag/1.19.2) - 2023-04-26
+
+* SECURITY
+  * Require repo scope for PATs for private repos and basic authentication (#24362) (#24364)
+  * Only delete secrets belonging to its owner (#24284) (#24286)
+* API
+  * Fix typo in API route (#24310) (#24332)
+  * Fix access token issue on some public endpoints (#24194) (#24259)
+* ENHANCEMENTS
+  * Fix broken clone script on an empty archived repo (#24339) (#24348)
+  * Fix Monaco IOS keyboard button (#24341) (#24347)
+  * Don't set meta `theme-color` by default (#24340) (#24346)
+  * Wrap too long push mirror addresses (#21120) (#24334)
+  * Add --font-weight-bold and set previous bold to 601 (#24307) (#24331)
+  * Unify nightly naming across binaries and docker images (#24116) (#24308)
+  * Fix footer display (#24251) (#24269)
+  * Fix label color, fix divider in dropdown (#24215) (#24244)
+  * Vertical widths of containers removed (#24184) (#24211)
+  * Use correct locale key for forks page (#24172) (#24175)
+  * Sort repo topic labels by name (#24123) (#24153)
+  * Highlight selected file in the PR file tree (#23947) (#24126)
+* BUGFIXES
+  * Fix auth check bug (#24382) (#24387)
+  * Add tags list for repos whose release setting is disabled (#23465) (#24369)
+  * Fix wrong error info in RepoRefForAPI (#24344) (#24351)
+  * Fix no edit/close/delete button in org repo project view page (#24349)
+  * Respect the REGISTER_MANUAL_CONFIRM setting when registering via OIDC (#24035) (#24333)
+  * Remove org users who belong to no teams (#24247) (#24313)
+  * Fix bug when deleting wiki with no code write permission (#24274) (#24295)
+  * Handle canceled workflow as a warning instead of a fail (#24282) (#24292)
+  * Load reviewer for comments when dismissing a review (#24281) (#24288)
+  * Show commit history for closed/merged PRs (#24238) (#24261)
+  * Fix owner team access mode value in team_unit table (#24224)
+  * Fix issue attachment handling (#24202) (#24221)
+  * Fix incorrect CORS default values (#24206) (#24217)
+  * Fix template error in pull request with deleted head repo (#24192) (#24216)
+  * Don't list root repository on compare page if pulls not allowed (#24183) (#24210)
+  * Fix calReleaseNumCommitsBehind (#24148) (#24197)
+  * Fix Org edit page bugs: renaming detection, maxlength (#24161) (#24171)
+  * Update redis library to support redis v7 (#24114) (#24156)
+  * Use 1.18's aria role for dropdown menus (#24144) (#24155)
+  * Fix 2-dot direct compare to use the right base commit (#24133) (#24150)
+  * Fix incorrect server error content in RunnersList (#24118) (#24121)
+  * Fix mismatch between hook events and github event types (#24048) (#24091)
+* BUILD
+  * Support converting varchar to nvarchar for mssql database (#24105) (#24168)
+
 ## [1.19.1](https://github.com/go-gitea/gitea/releases/tag/v1.19.1) - 2023-04-12
 
 * BREAKING

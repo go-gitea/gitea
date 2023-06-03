@@ -201,27 +201,18 @@ func InitFull(ctx context.Context) (err error) {
 	return syncGitConfig()
 }
 
-func enableReflogs() error {
-	if err := configSet("core.logAllRefUpdates", "true"); err != nil {
-		return err
-	}
-	err := configSet("gc.reflogExpire", fmt.Sprintf("%d", setting.Git.Reflog.Expiration))
-	return err
-}
-
-func disableReflogs() error {
-	if err := configUnsetAll("core.logAllRefUpdates", "true"); err != nil {
-		return err
-	} else if err := configUnsetAll("gc.reflogExpire", ""); err != nil {
-		return err
-	}
-	return nil
-}
-
 // syncGitConfig only modifies gitconfig, won't change global variables (otherwise there will be data-race problem)
 func syncGitConfig() (err error) {
 	if err = os.MkdirAll(HomeDir(), os.ModePerm); err != nil {
 		return fmt.Errorf("unable to prepare git home directory %s, err: %w", HomeDir(), err)
+	}
+
+	// first, write user's git config options to git config file
+	// user config options could be overwritten by builtin values later, because if a value is builtin, it must have some special purposes
+	for k, v := range setting.GitConfig.Options {
+		if err = configSet(strings.ToLower(k), v); err != nil {
+			return err
+		}
 	}
 
 	// Git requires setting user.name and user.email in order to commit changes - old comment: "if they're not set just add some defaults"
@@ -239,16 +230,6 @@ func syncGitConfig() (err error) {
 	// Set git some configurations - these must be set to these values for gitea to work correctly
 	if err := configSet("core.quotePath", "false"); err != nil {
 		return err
-	}
-
-	if setting.Git.Reflog.Enabled {
-		if err := enableReflogs(); err != nil {
-			return err
-		}
-	} else {
-		if err := disableReflogs(); err != nil {
-			return err
-		}
 	}
 
 	if CheckGitVersionAtLeast("2.10") == nil {

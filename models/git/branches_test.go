@@ -88,12 +88,12 @@ func TestFindRenamedBranch(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	branch, exist, err := git_model.FindRenamedBranch(db.DefaultContext, 1, "dev")
 	assert.NoError(t, err)
-	assert.Equal(t, true, exist)
+	assert.True(t, exist)
 	assert.Equal(t, "master", branch.To)
 
 	_, exist, err = git_model.FindRenamedBranch(db.DefaultContext, 1, "unknow")
 	assert.NoError(t, err)
-	assert.Equal(t, false, exist)
+	assert.False(t, exist)
 }
 
 func TestRenameBranch(t *testing.T) {
@@ -115,7 +115,7 @@ func TestRenameBranch(t *testing.T) {
 		return nil
 	}))
 
-	assert.Equal(t, true, _isDefault)
+	assert.True(t, _isDefault)
 	repo1 = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	assert.Equal(t, "main", repo1.DefaultBranch)
 

@@ -5,6 +5,8 @@ slug: "upgrade-from-gogs"
 weight: 101
 toc: false
 draft: false
+aliases:
+  - /zh-tw/upgrade-from-gogs
 menu:
   sidebar:
     parent: "installation"

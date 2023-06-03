@@ -5,6 +5,8 @@ slug: "install-from-package"
 weight: 20
 toc: false
 draft: false
+aliases:
+  - /en-us/install-from-package
 menu:
   sidebar:
     parent: "installation"
@@ -22,7 +24,7 @@ menu:
 ## macOS
 
 Currently, the only supported method of installation on MacOS is [Homebrew](http://brew.sh/).
-Following the [deployment from binary]({{< relref "from-binary.en-us.md" >}}) guide may work,
+Following the [deployment from binary]({{< relref "doc/installation/from-binary.en-us.md" >}}) guide may work,
 but is not supported. To install Gitea via `brew`:
 
 ```
@@ -85,7 +87,7 @@ There is a [Gitea](https://chocolatey.org/packages/gitea) package for Windows by
 choco install gitea
 ```
 
-Or follow the [deployment from binary]({{< relref "from-binary.en-us.md" >}}) guide.
+Or follow the [deployment from binary]({{< relref "doc/installation/from-binary.en-us.md" >}}) guide.
 
 ## FreeBSD
 

@@ -2,41 +2,96 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository issue-list">
 	{{template "repo/header" .}}
 	<div class="ui container">
-		<div class="ui three column grid issue-list-headers">
-			<div class="column">
-				{{template "repo/issue/navbar" .}}
-			</div>
-			<div class="column center aligned">
-				{{template "repo/issue/search" .}}
-			</div>
-			{{if not .Repository.IsArchived}}
-				<div class="column right aligned">
-					{{if .PageIsIssueList}}
-						<a class="ui green button" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{.locale.Tr "repo.issues.new"}}</a>
-					{{else}}
-						<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.Repository.Link}}/compare/{{.Repository.DefaultBranch | PathEscapeSegments}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | PathEscapeSegments}}{{end}}">{{.locale.Tr "repo.pulls.new"}}</a>
+
+	{{if .PinnedIssues}}
+		<div id="issue-pins" {{if .IsRepoAdmin}}data-is-repo-admin{{end}}>
+			{{range .PinnedIssues}}
+				<div class="pinned-issue-card gt-word-break" data-move-url="{{$.Link}}/move_pin" data-issue-id="{{.ID}}">
+					{{if eq $.Project.CardType 1}}
+						<div class="card-attachment-images">
+							{{range (index $.issuesAttachmentMap .ID)}}
+								<img src="{{.DownloadURL}}" alt="{{.Name}}">
+							{{end}}
+						</div>
+					{{end}}
+					<div class="content gt-p-0">
+						<div class="header gt-df gt-items-start">
+							<div class="pinned-issue-icon">
+								{{template "shared/issueicon" .}}
+							</div>
+							<a class="pinned-issue-title muted issue-title" href="{{.Link}}">{{.Title | RenderEmoji $.Context | RenderCodeBlock}}</a>
+							{{if $.IsRepoAdmin}}
+								<a role="button" class="pinned-issue-unpin muted gt-df gt-ac" data-tooltip-content={{$.locale.Tr "repo.issues.unpin_issue"}} data-issue-id="{{.ID}}" data-unpin-url="{{$.Link}}/unpin/{{.Index}}">
+									{{svg "octicon-x" 16}}
+								</a>
+							{{end}}
+						</div>
+						<div class="meta gt-my-2">
+							<span class="text light grey">
+								#{{.Index}}
+								{{$timeStr := TimeSinceUnix .GetLastEventTimestamp $.locale}}
+								{{if .OriginalAuthor}}
+									{{$.locale.Tr .GetLastEventLabelFake $timeStr (.OriginalAuthor|Escape) | Safe}}
+								{{else if gt .Poster.ID 0}}
+									{{$.locale.Tr .GetLastEventLabel $timeStr (.Poster.HomeLink|Escape) (.Poster.GetDisplayName | Escape) | Safe}}
+								{{else}}
+									{{$.locale.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
+								{{end}}
+							</span>
+						</div>
+						{{- if .MilestoneID}}
+						<div class="meta gt-my-2">
+							<a class="milestone" href="{{$.RepoLink}}/milestone/{{.MilestoneID}}">
+								{{svg "octicon-milestone" 16 "gt-mr-2 gt-vm"}}
+								<span class="gt-vm">{{.Milestone.Name}}</span>
+							</a>
+						</div>
+						{{- end}}
+					</div>
+
+					{{if or .Labels .Assignees}}
+					<div class="extra content labels-list gt-p-0 gt-pt-2">
+						{{range .Labels}}
+							<a href="{{$.RepoLink}}/issues?labels={{.ID}}">{{RenderLabel $.Context .}}</a>
+						{{end}}
+						<div class="right floated">
+							{{range .Assignees}}
+								<a href="{{.HomeLink}}" data-tooltip-content="{{$.locale.Tr "repo.projects.column.assigned_to"}} {{.Name}}">{{avatar $.Context . 28 "mini gt-mr-3"}}</a>
+							{{end}}
+						</div>
+					</div>
 					{{end}}
 				</div>
+			{{end}}
+		</div>
+	{{end}}
+
+		<div class="list-header">
+			{{template "repo/issue/navbar" .}}
+			{{template "repo/issue/search" .}}
+			{{if not .Repository.IsArchived}}
+				{{if .PageIsIssueList}}
+					<a class="ui small green button" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{.locale.Tr "repo.issues.new"}}</a>
+				{{else}}
+					<a class="ui small green button new-pr-button{{if not .PullRequestCtx.Allowed}} disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.Repository.Link}}/compare/{{.Repository.DefaultBranch | PathEscapeSegments}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | PathEscapeSegments}}{{end}}">{{.locale.Tr "repo.pulls.new"}}</a>
+				{{end}}
 			{{else}}
 				{{if not .PageIsIssueList}}
-					<div class="column right aligned">
-						<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.PullRequestCtx.BaseRepo.DefaultBranch | PathEscapeSegments}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | PathEscapeSegments}}{{end}}">{{$.locale.Tr "action.compare_commits_general"}}</a>
-					</div>
+					<a class="ui small green small button{{if not .PullRequestCtx.Allowed}} disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.PullRequestCtx.BaseRepo.DefaultBranch | PathEscapeSegments}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | PathEscapeSegments}}{{end}}">{{$.locale.Tr "action.compare_commits_general"}}</a>
 				{{end}}
 			{{end}}
 		</div>
-		<div class="ui divider"></div>
-		<div id="issue-filters" class="ui stackable grid">
-			<div class="six wide column">
+		<div id="issue-filters" class="issue-list-toolbar">
+			<div class="issue-list-toolbar-left">
 				{{if $.CanWriteIssuesOrPulls}}
-					<input type="checkbox" autocomplete="off" class="issue-checkbox-all gt-vm gt-mr-4" title="{{.locale.Tr "repo.issues.action_check_all"}}">
+					<input type="checkbox" autocomplete="off" class="issue-checkbox-all gt-mr-4" title="{{.locale.Tr "repo.issues.action_check_all"}}">
 				{{end}}
 				{{template "repo/issue/openclose" .}}
 			</div>
-			<div class="ten wide right aligned column">
+			<div class="issue-list-toolbar-right">
 				<div class="ui secondary filter stackable menu labels">
 					<!-- Label -->
-					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item label-filter" style="margin-left: auto">
+					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item label-filter">
 						<span class="text">
 							{{.locale.Tr "repo.issues.filter_label"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -47,6 +102,7 @@
 								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_label"}}">
 							</div>
 							<span class="info">{{.locale.Tr "repo.issues.filter_label_exclude" | Safe}}</span>
+							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels=0&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_label_select_no_label"}}</a>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_label_no_select"}}</a>
 							{{$previousExclusiveScope := "_no_scope"}}
 							{{range .Labels}}
@@ -61,7 +117,7 @@
 					</div>
 
 					<!-- Milestone -->
-					<div class="ui {{if not .Milestones}}disabled{{end}} dropdown jump item">
+					<div class="ui {{if not (or .OpenMilestones .ClosedMilestones)}}disabled{{end}} dropdown jump item">
 						<span class="text">
 							{{.locale.Tr "repo.issues.filter_milestone"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -71,9 +127,28 @@
 								<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_milestone"}}">
 							</div>
-							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_milestone_no_select"}}</a>
-							{{range .Milestones}}
-								<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID .ID}}active selected{{end}}{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.ID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.Name}}</a>
+							<div class="divider"></div>
+							<a class="{{if not $.MilestoneID}}active selected {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone=0&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_milestone_all"}}</a>
+							<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID -1}}active selected {{end}}{{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone=-1&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_milestone_none"}}</a>
+							{{if .OpenMilestones}}
+								<div class="divider"></div>
+								<div class="header">{{.locale.Tr "repo.issues.filter_milestone_open"}}</div>
+								{{range .OpenMilestones}}
+								<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID .ID}}active selected {{end}}{{end}}item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.ID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">
+									{{svg "octicon-milestone" 16 "mr-2"}}
+									{{.Name}}
+								</a>
+								{{end}}
+							{{end}}
+							{{if .ClosedMilestones}}
+								<div class="divider"></div>
+								<div class="header">{{.locale.Tr "repo.issues.filter_milestone_closed"}}</div>
+								{{range .ClosedMilestones}}
+								<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID .ID}}active selected {{end}}{{end}}item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.ID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">
+									{{svg "octicon-milestone" 16 "mr-2"}}
+									{{.Name}}
+								</a>
+								{{end}}
 							{{end}}
 						</div>
 					</div>
@@ -146,6 +221,7 @@
 								<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
 								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_assignee"}}">
 							</div>
+							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee=-1&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_assginee_no_assignee"}}</a>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_assginee_no_select"}}</a>
 							{{range .Assignees}}
 								<a class="{{if eq $.AssigneeID .ID}}active selected{{end}} item gt-df" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{.ID}}&poster={{$.PosterID}}">
@@ -176,7 +252,7 @@
 					{{end}}
 
 					<!-- Sort -->
-					<div class="ui dropdown downward type jump item">
+					<div class="list-header-sort ui small dropdown downward type jump item">
 						<span class="text">
 							{{.locale.Tr "repo.issues.filter_sort"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -195,22 +271,19 @@
 				</div>
 			</div>
 		</div>
-		<div id="issue-actions" class="ui stackable grid gt-hidden">
-			<div class="six wide column">
+
+		<div id="issue-actions" class="issue-list-toolbar gt-hidden">
+			<div class="issue-list-toolbar-left">
 				{{template "repo/issue/openclose" .}}
 			</div>
-			{{/* Ten wide does not cope well and makes the columns stack.
-			This seems to be related to jQuery's hide/show: in fact, switching
-			issue-actions and issue-filters and having this ten wide will show
-			this one correctly, but not the other one. */}}
-			<div class="nine wide right aligned right floated column">
+			<div class="issue-list-toolbar-right">
 				<div class="ui secondary filter stackable menu">
 					{{if not .Repository.IsArchived}}
 					<!-- Action Button -->
 					{{if .IsShowClosed}}
-						<button class="ui green active basic button issue-action" data-action="open" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.locale.Tr "repo.issues.action_open"}}</button>
+						<button class="ui green active basic button issue-action gt-ml-auto" data-action="open" data-url="{{$.RepoLink}}/issues/status">{{.locale.Tr "repo.issues.action_open"}}</button>
 					{{else}}
-						<button class="ui red active basic button issue-action" data-action="close" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.locale.Tr "repo.issues.action_close"}}</button>
+						<button class="ui red active basic button issue-action gt-ml-auto" data-action="close" data-url="{{$.RepoLink}}/issues/status">{{.locale.Tr "repo.issues.action_close"}}</button>
 					{{end}}
 					<!-- Labels -->
 					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item">
@@ -219,6 +292,9 @@
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						</span>
 						<div class="menu">
+							<div class="item issue-action" data-action="clear" data-url="{{$.RepoLink}}/issues/labels">
+								{{.locale.Tr "repo.issues.new.clear_labels"}}
+							</div>
 							{{$previousExclusiveScope := "_no_scope"}}
 							{{range .Labels}}
 								{{$exclusiveScope := .ExclusiveScope}}
@@ -227,14 +303,14 @@
 								{{end}}
 								{{$previousExclusiveScope = $exclusiveScope}}
 								<div class="item issue-action" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
-									{{if contain $.SelLabelIDs .ID}}{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}} {{RenderLabel $.Context .}}
+									{{if SliceUtils.Contains $.SelLabelIDs .ID}}{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}} {{RenderLabel $.Context .}}
 								</div>
 							{{end}}
 						</div>
 					</div>
 
 					<!-- Milestone -->
-					<div class="ui {{if not .Milestones}}disabled{{end}} dropdown jump item">
+					<div class="ui {{if not (or .OpenMilestones .ClosedMilestones)}}disabled{{end}} dropdown jump item">
 						<span class="text">
 							{{.locale.Tr "repo.issues.action_milestone"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -243,10 +319,23 @@
 							<div class="item issue-action" data-element-id="0" data-url="{{$.Link}}/milestone">
 							{{.locale.Tr "repo.issues.action_milestone_no_select"}}
 							</div>
-							{{range .Milestones}}
-								<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/milestone">
-									{{.Name}}
-								</div>
+							{{if .OpenMilestones}}
+								<div class="divider"></div>
+								<div class="header">{{.locale.Tr "repo.issues.filter_milestone_open"}}</div>
+								{{range .OpenMilestones}}
+									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/milestone">
+										{{.Name}}
+									</div>
+								{{end}}
+							{{end}}
+							{{if .ClosedMilestones}}
+								<div class="divider"></div>
+								<div class="header">{{.locale.Tr "repo.issues.filter_milestone_open"}}</div>
+								{{range .ClosedMilestones}}
+									<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/milestone">
+										{{.Name}}
+									</div>
+								{{end}}
 							{{end}}
 						</div>
 					</div>
@@ -293,6 +382,9 @@
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						</span>
 						<div class="menu">
+							<div class="item issue-action" data-action="clear" data-url="{{$.Link}}/assignee">
+								{{.locale.Tr "repo.issues.new.clear_assignees"}}
+							</div>
 							<div class="item issue-action" data-element-id="0" data-url="{{$.Link}}/assignee">
 								{{.locale.Tr "repo.issues.action_assignee_no_select"}}
 							</div>

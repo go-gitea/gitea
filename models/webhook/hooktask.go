@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	gouuid "github.com/google/uuid"
@@ -40,15 +41,14 @@ type HookResponse struct {
 
 // HookTask represents a hook task.
 type HookTask struct {
-	ID              int64  `xorm:"pk autoincr"`
-	HookID          int64  `xorm:"index"`
-	UUID            string `xorm:"unique"`
-	api.Payloader   `xorm:"-"`
-	PayloadContent  string `xorm:"LONGTEXT"`
-	EventType       webhook_module.HookEventType
-	IsDelivered     bool
-	Delivered       int64
-	DeliveredString string `xorm:"-"`
+	ID             int64  `xorm:"pk autoincr"`
+	HookID         int64  `xorm:"index"`
+	UUID           string `xorm:"unique"`
+	api.Payloader  `xorm:"-"`
+	PayloadContent string `xorm:"LONGTEXT"`
+	EventType      webhook_module.HookEventType
+	IsDelivered    bool
+	Delivered      timeutil.TimeStampNano
 
 	// History info.
 	IsSucceed       bool
@@ -75,8 +75,6 @@ func (t *HookTask) BeforeUpdate() {
 
 // AfterLoad updates the webhook object upon setting a column
 func (t *HookTask) AfterLoad() {
-	t.DeliveredString = time.Unix(0, t.Delivered).Format("2006-01-02 15:04:05 MST")
-
 	if len(t.RequestContent) == 0 {
 		return
 	}
@@ -115,12 +113,17 @@ func HookTasks(hookID int64, page int) ([]*HookTask, error) {
 // CreateHookTask creates a new hook task,
 // it handles conversion from Payload to PayloadContent.
 func CreateHookTask(ctx context.Context, t *HookTask) (*HookTask, error) {
-	data, err := t.Payloader.JSONPayload()
-	if err != nil {
-		return nil, err
-	}
 	t.UUID = gouuid.New().String()
-	t.PayloadContent = string(data)
+	if t.Payloader != nil {
+		data, err := t.Payloader.JSONPayload()
+		if err != nil {
+			return nil, err
+		}
+		t.PayloadContent = string(data)
+	}
+	if t.Delivered == 0 {
+		t.Delivered = timeutil.TimeStampNanoNow()
+	}
 	return t, db.Insert(ctx, t)
 }
 
@@ -161,13 +164,11 @@ func ReplayHookTask(ctx context.Context, hookID int64, uuid string) (*HookTask, 
 		}
 	}
 
-	newTask := &HookTask{
-		UUID:           gouuid.New().String(),
+	return CreateHookTask(ctx, &HookTask{
 		HookID:         task.HookID,
 		PayloadContent: task.PayloadContent,
 		EventType:      task.EventType,
-	}
-	return newTask, db.Insert(ctx, newTask)
+	})
 }
 
 // FindUndeliveredHookTaskIDs will find the next 100 undelivered hook tasks with ID greater than the provided lowerID

@@ -5,6 +5,8 @@ slug: "customizing-gitea"
 weight: 100
 toc: false
 draft: false
+aliases:
+  - /zh-cn/customizing-gitea
 menu:
   sidebar:
     parent: "administration"

@@ -29,6 +29,14 @@ func init() {
 	}
 }
 
+func IsWorkflow(path string) bool {
+	if (!strings.HasSuffix(path, ".yaml")) && (!strings.HasSuffix(path, ".yml")) {
+		return false
+	}
+
+	return strings.HasPrefix(path, ".gitea/workflows") || strings.HasPrefix(path, ".github/workflows")
+}
+
 func ListWorkflows(commit *git.Commit) (git.Entries, error) {
 	tree, err := commit.SubTree(".gitea/workflows")
 	if _, ok := err.(git.ErrNotExist); ok {
@@ -196,7 +204,7 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 			if err != nil {
 				break
 			}
-			if !workflowpattern.Skip(patterns, []string{refName.ShortName()}, &workflowpattern.EmptyTraceWriter{}) {
+			if !workflowpattern.Skip(patterns, []string{refName.BranchName()}, &workflowpattern.EmptyTraceWriter{}) {
 				matchTimes++
 			}
 		case "branches-ignore":
@@ -208,7 +216,7 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 			if err != nil {
 				break
 			}
-			if !workflowpattern.Filter(patterns, []string{refName.ShortName()}, &workflowpattern.EmptyTraceWriter{}) {
+			if !workflowpattern.Filter(patterns, []string{refName.BranchName()}, &workflowpattern.EmptyTraceWriter{}) {
 				matchTimes++
 			}
 		case "tags":
@@ -220,7 +228,7 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 			if err != nil {
 				break
 			}
-			if !workflowpattern.Skip(patterns, []string{refName.ShortName()}, &workflowpattern.EmptyTraceWriter{}) {
+			if !workflowpattern.Skip(patterns, []string{refName.TagName()}, &workflowpattern.EmptyTraceWriter{}) {
 				matchTimes++
 			}
 		case "tags-ignore":
@@ -232,7 +240,7 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 			if err != nil {
 				break
 			}
-			if !workflowpattern.Filter(patterns, []string{refName.ShortName()}, &workflowpattern.EmptyTraceWriter{}) {
+			if !workflowpattern.Filter(patterns, []string{refName.TagName()}, &workflowpattern.EmptyTraceWriter{}) {
 				matchTimes++
 			}
 		case "paths":

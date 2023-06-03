@@ -486,6 +486,16 @@ var migrations = []Migration{
 	// v253 -> v254
 	NewMigration("Fix ExternalTracker and ExternalWiki accessMode in owner and admin team", v1_20.FixExternalTrackerAndExternalWikiAccessModeInOwnerAndAdminTeam),
 	// v254 -> v255
+	NewMigration("Add ActionTaskOutput table", v1_20.AddActionTaskOutputTable),
+	// v255 -> v256
+	NewMigration("Add ArchivedUnix Column", v1_20.AddArchivedUnixToRepository),
+	// v256 -> v257
+	NewMigration("Add is_internal column to package", v1_20.AddIsInternalColumnToPackage),
+	// v257 -> v258
+	NewMigration("Add Actions Artifact table", v1_20.CreateActionArtifactTable),
+	// v258 -> v259
+	NewMigration("Add PinOrder Column", v1_20.AddPinOrderToIssue),
+	// v259 -> v260
 	NewMigration("Add TimeEstimate to issue table", v1_20.AddTimeEstimateColumnToIssueTable),
 	NewMigration("Add TimeTracked, TimeEstimate to comment table", v1_20.AddColumnsToCommentTable),
 }

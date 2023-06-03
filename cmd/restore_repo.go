@@ -51,8 +51,7 @@ func runRestoreRepository(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setting.InitProviderFromExistingFile()
-	setting.LoadCommonSettings()
+	setting.Init(&setting.Options{})
 	var units []string
 	if s := c.String("units"); s != "" {
 		units = strings.Split(s, ",")

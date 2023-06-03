@@ -7,19 +7,12 @@ import (
 	"xorm.io/xorm"
 )
 
-func AddTimeEstimateColumnToIssueTable(x *xorm.Engine) error {
-	type Issue struct {
-		TimeEstimate int64 `xorm:"NOT NULL DEFAULT 0"`
+func AddActionTaskOutputTable(x *xorm.Engine) error {
+	type ActionTaskOutput struct {
+		ID          int64
+		TaskID      int64  `xorm:"INDEX UNIQUE(task_id_output_key)"`
+		OutputKey   string `xorm:"VARCHAR(255) UNIQUE(task_id_output_key)"`
+		OutputValue string `xorm:"MEDIUMTEXT"`
 	}
-
-	return x.Sync(new(Issue))
-}
-
-func AddColumnsToCommentTable(x *xorm.Engine) error {
-	type Comment struct {
-		TimeTracked  int64 `xorm:"NOT NULL DEFAULT 0"`
-		TimeEstimate int64 `xorm:"NOT NULL DEFAULT 0"`
-	}
-
-	return x.Sync(new(Comment))
+	return x.Sync(new(ActionTaskOutput))
 }

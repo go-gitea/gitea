@@ -219,7 +219,7 @@ func InitiateUploadBlob(ctx *context.Context) {
 
 	digest := ctx.FormTrim("digest")
 	if digest != "" {
-		buf, err := packages_module.CreateHashedBufferFromReader(ctx.Req.Body, 32*1024*1024)
+		buf, err := packages_module.CreateHashedBufferFromReader(ctx.Req.Body)
 		if err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
@@ -538,7 +538,7 @@ func UploadManifest(ctx *context.Context) {
 	}
 
 	maxSize := maxManifestSize + 1
-	buf, err := packages_module.CreateHashedBufferFromReader(&io.LimitedReader{R: ctx.Req.Body, N: int64(maxSize)}, maxSize)
+	buf, err := packages_module.CreateHashedBufferFromReaderWithSize(&io.LimitedReader{R: ctx.Req.Body, N: int64(maxSize)}, maxSize)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

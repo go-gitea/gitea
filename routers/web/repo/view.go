@@ -24,6 +24,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/container"
@@ -39,6 +40,9 @@ import (
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
+	issue_service "code.gitea.io/gitea/services/issue"
+
+	"github.com/nektos/act/pkg/model"
 )
 
 const (
@@ -63,7 +67,7 @@ func findReadmeFileInEntries(ctx *context.Context, entries []*git.TreeEntry, try
 	// 1. Markdown files - with and without localisation - e.g. README.en-us.md or README.md
 	// 2. Txt files - e.g. README.txt
 	// 3. No extension - e.g. README
-	exts := append(localizedExtensions(".md", ctx.Language()), ".txt", "") // sorted by priority
+	exts := append(localizedExtensions(".md", ctx.Locale.Language()), ".txt", "") // sorted by priority
 	extCount := len(exts)
 	readmeFiles := make([]*git.TreeEntry, extCount+1)
 
@@ -152,16 +156,6 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	if ctx.Repo.TreePath != "" {
 		ctx.Data["HideRepoInfo"] = true
 		ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefName)
-	}
-
-	// Check permission to add or upload new file.
-	if ctx.Repo.CanWrite(unit_model.TypeCode) && ctx.Repo.IsViewBranch {
-		ctx.Data["CanAddFile"] = !ctx.Repo.Repository.IsArchived
-		ctx.Data["CanUploadFile"] = setting.Repository.Upload.Enabled && !ctx.Repo.Repository.IsArchived
-	}
-
-	if ctx.Written() {
-		return
 	}
 
 	subfolder, readmeFile, err := findReadmeFileInEntries(ctx, entries, true)
@@ -353,10 +347,19 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		if editorconfigErr != nil {
 			ctx.Data["FileError"] = strings.TrimSpace(editorconfigErr.Error())
 		}
-	} else if ctx.Repo.IsIssueConfig(ctx.Repo.TreePath) {
-		_, issueConfigErr := ctx.Repo.GetIssueConfig(ctx.Repo.TreePath, ctx.Repo.Commit)
+	} else if issue_service.IsTemplateConfig(ctx.Repo.TreePath) {
+		_, issueConfigErr := issue_service.GetTemplateConfig(ctx.Repo.GitRepo, ctx.Repo.TreePath, ctx.Repo.Commit)
 		if issueConfigErr != nil {
 			ctx.Data["FileError"] = strings.TrimSpace(issueConfigErr.Error())
+		}
+	} else if actions.IsWorkflow(ctx.Repo.TreePath) {
+		content, err := actions.GetContentFromEntry(entry)
+		if err != nil {
+			log.Error("actions.GetContentFromEntry: %v", err)
+		}
+		_, workFlowErr := model.ReadWorkflow(bytes.NewReader(content))
+		if workFlowErr != nil {
+			ctx.Data["FileError"] = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", workFlowErr.Error())
 		}
 	}
 
@@ -705,10 +708,17 @@ func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
 
 // Home render repository home page
 func Home(ctx *context.Context) {
-	if setting.EnableFeed {
+	if setting.Other.EnableFeed {
 		isFeed, _, showFeedType := feed.GetFeedType(ctx.Params(":reponame"), ctx.Req)
 		if isFeed {
-			feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
+			switch {
+			case ctx.Link == fmt.Sprintf("%s.%s", ctx.Repo.RepoLink, showFeedType):
+				feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
+			case ctx.Repo.TreePath == "":
+				feed.ShowBranchFeed(ctx, ctx.Repo.Repository, showFeedType)
+			case ctx.Repo.TreePath != "":
+				feed.ShowFileFeed(ctx, ctx.Repo.Repository, showFeedType)
+			}
 			return
 		}
 	}
@@ -868,21 +878,25 @@ func renderRepoTopics(ctx *context.Context) {
 
 func renderCode(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
+	ctx.Data["RepositoryUploadEnabled"] = setting.Repository.Upload.Enabled
 
-	if ctx.Repo.Repository.IsEmpty {
-		reallyEmpty := true
+	if ctx.Repo.Commit == nil || ctx.Repo.Repository.IsEmpty || ctx.Repo.Repository.IsBroken() {
+		showEmpty := true
 		var err error
 		if ctx.Repo.GitRepo != nil {
-			reallyEmpty, err = ctx.Repo.GitRepo.IsEmpty()
+			showEmpty, err = ctx.Repo.GitRepo.IsEmpty()
 			if err != nil {
-				ctx.ServerError("GitRepo.IsEmpty", err)
-				return
+				log.Error("GitRepo.IsEmpty: %v", err)
+				ctx.Repo.Repository.Status = repo_model.RepositoryBroken
+				showEmpty = true
+				ctx.Flash.Error(ctx.Tr("error.occurred"), true)
 			}
 		}
-		if reallyEmpty {
+		if showEmpty {
 			ctx.HTML(http.StatusOK, tplRepoEMPTY)
 			return
 		}
+
 		// the repo is not really empty, so we should update the modal in database
 		// such problem may be caused by:
 		// 1) an error occurs during pushing/receiving.  2) the user replaces an empty git repo manually
@@ -898,6 +912,14 @@ func renderCode(ctx *context.Context) {
 			ctx.ServerError("UpdateRepoSize", err)
 			return
 		}
+
+		// the repo's IsEmpty has been updated, redirect to this page to make sure middlewares can get the correct values
+		link := ctx.Link
+		if ctx.Req.URL.RawQuery != "" {
+			link += "?" + ctx.Req.URL.RawQuery
+		}
+		ctx.Redirect(link)
+		return
 	}
 
 	title := ctx.Repo.Repository.Owner.Name + "/" + ctx.Repo.Repository.Name
@@ -927,11 +949,9 @@ func renderCode(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.Repo.Repository.IsEmpty {
-		checkCitationFile(ctx, entry)
-		if ctx.Written() {
-			return
-		}
+	checkCitationFile(ctx, entry)
+	if ctx.Written() {
+		return
 	}
 
 	renderLanguageStats(ctx)

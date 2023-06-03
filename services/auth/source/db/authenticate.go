@@ -32,7 +32,7 @@ func Authenticate(user *user_model.User, login, password string) (*user_model.Us
 	}
 
 	// WARN: DON'T check user.IsActive, that will be checked on reqSign so that
-	// user could be hint to resend confirm email.
+	// user could be hinted to resend confirm email.
 	if user.ProhibitLogin {
 		return nil, user_model.ErrUserProhibitLogin{
 			UID:  user.ID,

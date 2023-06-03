@@ -44,7 +44,7 @@
 						{{$packagesUrl := URLJoin .Owner.HomeLink "-" "packages"}}
 						<p>{{.locale.Tr "packages.empty.repo" $packagesUrl | Safe}}</p>
 					{{end}}
-					<p>{{.locale.Tr "packages.empty.documentation" | Safe}}</p>
+					<p>{{.locale.Tr "packages.empty.documentation" "https://docs.gitea.io/en-us/usage/packages/overview/" | Safe}}</p>
 				</div>
 			{{else}}
 				<p>{{.locale.Tr "packages.filter.no_result"}}</p>

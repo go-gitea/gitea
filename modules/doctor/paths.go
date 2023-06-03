@@ -66,8 +66,7 @@ func checkConfigurationFiles(ctx context.Context, logger log.Logger, autofix boo
 		return err
 	}
 
-	setting.InitProviderFromExistingFile()
-	setting.LoadCommonSettings()
+	setting.Init(&setting.Options{})
 
 	configurationFiles := []configurationFile{
 		{"Configuration File Path", setting.CustomConf, false, true, false},
@@ -106,7 +105,7 @@ func isWritableDir(path string) error {
 		return err
 	}
 	if err := os.Remove(tmpFile.Name()); err != nil {
-		fmt.Printf("Warning: can't remove temporary file: '%s'\n", tmpFile.Name())
+		fmt.Printf("Warning: can't remove temporary file: '%s'\n", tmpFile.Name()) //nolint:forbidigo
 	}
 	tmpFile.Close()
 	return nil

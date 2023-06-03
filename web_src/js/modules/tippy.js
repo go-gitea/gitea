@@ -1,5 +1,7 @@
 import tippy from 'tippy.js';
 
+const visibleInstances = new Set();
+
 export function createTippy(target, opts = {}) {
   const instance = tippy(target, {
     appendTo: document.body,
@@ -9,6 +11,21 @@ export function createTippy(target, opts = {}) {
     interactiveBorder: 20,
     ignoreAttributes: true,
     maxWidth: 500, // increase over default 350px
+    onHide: (instance) => {
+      visibleInstances.delete(instance);
+    },
+    onDestroy: (instance) => {
+      visibleInstances.delete(instance);
+    },
+    onShow: (instance) => {
+      // hide other tooltip instances so only one tooltip shows at a time
+      for (const visibleInstance of visibleInstances) {
+        if (visibleInstance.props.role === 'tooltip') {
+          visibleInstance.hide();
+        }
+      }
+      visibleInstances.add(instance);
+    },
     arrow: `<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`,
     ...(opts?.role && {theme: opts.role}),
     ...opts,
@@ -41,10 +58,17 @@ function attachTooltip(target, content = null) {
   content = content ?? target.getAttribute('data-tooltip-content');
   if (!content) return null;
 
+  // when element has a clipboard target, we update the tooltip after copy
+  // in which case it is undesirable to automatically hide it on click as
+  // it would momentarily flash the tooltip out and in.
+  const hasClipboardTarget = target.hasAttribute('data-clipboard-target');
+  const hideOnClick = !hasClipboardTarget;
+
   const props = {
     content,
     delay: 100,
     role: 'tooltip',
+    hideOnClick,
     placement: target.getAttribute('data-tooltip-placement') || 'top-start',
     ...(target.getAttribute('data-tooltip-interactive') === 'true' ? {interactive: true, aria: {content: 'describedby', expanded: false}} : {}),
   };

@@ -7,7 +7,7 @@
 				{{template "base/alert" .}}
 				<div class="home">
 					<div class="ui stackable middle very relaxed page grid">
-						<div id="repo_migrating" class="sixteen wide center aligned centered column" task="{{.MigrateTask.ID}}">
+						<div id="repo_migrating" class="sixteen wide center aligned centered column" data-migrating-task-id="{{.MigrateTask.ID}}">
 							<div>
 								<img src="{{AssetUrlPrefix}}/img/loading.png">
 							</div>
@@ -32,10 +32,14 @@
 								{{end}}
 								<p id="repo_migrating_failed_error"></p>
 							</div>
-							{{if and .Failed .Permission.IsAdmin}}
+							{{if .Permission.IsAdmin}}
 								<div class="ui divider"></div>
 								<div class="item">
+									{{if .Failed}}
 									<button class="ui basic red show-modal button" data-modal="#delete-repo-modal">{{.locale.Tr "repo.settings.delete"}}</button>
+									{{else}}
+									<button class="ui basic red show-modal button" data-modal="#cancel-repo-modal">{{.locale.Tr "cancel"}}</button>
+									{{end}}
 								</div>
 							{{end}}
 						</div>
@@ -45,12 +49,13 @@
 		</div>
 	</div>
 </div>
+
 <div class="ui small modal" id="delete-repo-modal">
 	<div class="header">
 		{{.locale.Tr "repo.settings.delete"}}
 	</div>
 	<div class="content">
-		<div class="ui warning message text left">
+		<div class="ui warning message">
 			{{.locale.Tr "repo.settings.delete_notices_1" | Safe}}<br>
 			{{.locale.Tr "repo.settings.delete_notices_2" .Repository.FullName | Safe}}
 			{{if .Repository.NumForks}}<br>
@@ -78,4 +83,18 @@
 		</form>
 	</div>
 </div>
+
+<div class="ui g-modal-confirm modal" id="cancel-repo-modal">
+	<div class="header">
+		{{.locale.Tr "repo.migrate.cancel_migrating_title"}}
+	</div>
+	<form action="{{.Link}}/settings/migrate/cancel" method="post">
+		{{.CsrfTokenHtml}}
+		<div class="content">
+			{{.locale.Tr "repo.migrate.cancel_migrating_confirm"}}
+		</div>
+		{{template "base/modal_actions_confirm" .}}
+	</form>
+</div>
+
 {{template "base/footer" .}}

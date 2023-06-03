@@ -5,6 +5,8 @@ slug: "command-line"
 weight: 1
 toc: false
 draft: false
+aliases:
+  - /en-us/command-line
 menu:
   sidebar:
     parent: "administration"
@@ -223,7 +225,7 @@ Admin operations:
         - `--synchronize-users`: Enable user synchronization.
         - `--page-size value`: Search page size.
       - Examples:
-        - `gitea admin auth add-ldap --name ldap --security-protocol unencrypted --host mydomain.org --port 389 --user-search-base "ou=Users,dc=mydomain,dc=org" --user-filter "(&(objectClass=posixAccount)(uid=%s))" --email-attribute mail`
+        - `gitea admin auth add-ldap --name ldap --security-protocol unencrypted --host mydomain.org --port 389 --user-search-base "ou=Users,dc=mydomain,dc=org" --user-filter "(&(objectClass=posixAccount)(|(uid=%[1]s)(mail=%[1]s)))" --email-attribute mail`
     - `update-ldap`: Update existing LDAP (via Bind DN) authentication source
       - Options:
         - `--id value`: ID of authentication source. Required.

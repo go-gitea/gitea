@@ -11,7 +11,6 @@ import {initHeatmap} from './features/heatmap.js';
 import {initImageDiff} from './features/imagediff.js';
 import {initRepoMigration} from './features/repo-migration.js';
 import {initRepoProject} from './features/repo-projects.js';
-import {initServiceWorker} from './features/serviceworker.js';
 import {initTableSort} from './features/tablesort.js';
 import {initAdminUserListSearchForm} from './features/admin/users.js';
 import {initAdminConfigs} from './features/admin/config.js';
@@ -21,6 +20,7 @@ import {initRepoIssueContentHistory} from './features/repo-issue-content.js';
 import {initStopwatch} from './features/stopwatch.js';
 import {initFindFileInRepo} from './features/repo-findfile.js';
 import {initCommentContent, initMarkupContent} from './markup/content.js';
+import {initPdfViewer} from './render/pdf.js';
 
 import {initUserAuthLinkAccountView, initUserAuthOauth2} from './features/user-auth.js';
 import {
@@ -30,7 +30,7 @@ import {
   initRepoIssueWipTitle,
   initRepoPullRequestMergeInstruction,
   initRepoPullRequestAllowMaintainerEdit,
-  initRepoPullRequestReview, initRepoIssueSidebarList,
+  initRepoPullRequestReview, initRepoIssueSidebarList
 } from './features/repo-issue.js';
 import {
   initRepoEllipsisButton,
@@ -81,6 +81,7 @@ import {initGlobalTooltips} from './modules/tippy.js';
 import {initGiteaFomantic} from './modules/fomantic.js';
 import {onDomReady} from './utils/dom.js';
 import {initRepoIssueList} from './features/repo-issue-list.js';
+import {initCommonIssueListQuickGoto} from './features/common-issue-list.js';
 
 // Init Gitea's Fomantic settings
 initGiteaFomantic();
@@ -98,6 +99,7 @@ onDomReady(() => {
   initGlobalLinkActions();
 
   initCommonOrganization();
+  initCommonIssueListQuickGoto();
 
   initCompSearchUserBox();
   initCompWebHookEditor();
@@ -113,7 +115,6 @@ onDomReady(() => {
   initImageDiff();
   initMarkupAnchors();
   initMarkupContent();
-  initServiceWorker();
   initSshKeyFormParser();
   initStopwatch();
   initTableSort();
@@ -175,4 +176,5 @@ onDomReady(() => {
   initUserAuthWebAuthnRegister();
   initUserSettings();
   initRepoDiffView();
+  initPdfViewer();
 });

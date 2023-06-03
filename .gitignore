@@ -47,6 +47,7 @@ cpu.out
 
 *.db
 *.log
+*.log.*.gz
 
 /gitea
 /gitea-vet
@@ -71,12 +72,12 @@ cpu.out
 /tests/e2e/test-artifacts
 /tests/e2e/test-snapshots
 /tests/*.ini
+/tests/**/*.git/**/*.sample
 /node_modules
 /yarn.lock
 /yarn-error.log
 /npm-debug.log*
 /public/js
-/public/serviceworker.js
 /public/css
 /public/fonts
 /public/img/webpack

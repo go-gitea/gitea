@@ -5,6 +5,8 @@ slug: "faq"
 weight: 5
 toc: false
 draft: false
+aliases:
+  - /en-us/faq
 menu:
   sidebar:
     parent: "help"
@@ -17,7 +19,7 @@ menu:
 
 This page contains some common questions and answers.
 
-For more help resources, check all [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}}).
+For more help resources, check all [Support Options]({{< relref "doc/help/support.en-us.md" >}}).
 
 **Table of Contents**
 
@@ -134,7 +136,7 @@ A "login prohibited" user is a user that is not allowed to log in to Gitea anymo
 
 ## Setting up logging
 
-- [Official Docs]({{< relref "doc/administration/logging-documentation.en-us.md" >}})
+- [Official Docs]({{< relref "doc/administration/logging-config.en-us.md" >}})
 
 ## What is Swagger?
 
@@ -408,7 +410,7 @@ Stdout on systemd goes to the journal by default. Try using `journalctl`, `journ
 
 Similarly, stdout on docker can be viewed using `docker logs <container>`.
 
-To collect logs for help and issue report, see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}}).
+To collect logs for help and issue report, see [Support Options]({{< relref "doc/help/support.en-us.md" >}}).
 
 ## Initial logging
 

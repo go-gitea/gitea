@@ -23,15 +23,16 @@ var Indexer = struct {
 	IssueIndexerName string
 	StartupTimeout   time.Duration
 
-	RepoIndexerEnabled bool
-	RepoType           string
-	RepoPath           string
-	RepoConnStr        string
-	RepoIndexerName    string
-	MaxIndexerFileSize int64
-	IncludePatterns    []glob.Glob
-	ExcludePatterns    []glob.Glob
-	ExcludeVendored    bool
+	RepoIndexerEnabled   bool
+	RepoIndexerRepoTypes []string
+	RepoType             string
+	RepoPath             string
+	RepoConnStr          string
+	RepoIndexerName      string
+	MaxIndexerFileSize   int64
+	IncludePatterns      []glob.Glob
+	ExcludePatterns      []glob.Glob
+	ExcludeVendored      bool
 }{
 	IssueType:        "bleve",
 	IssuePath:        "indexers/issues.bleve",
@@ -39,13 +40,14 @@ var Indexer = struct {
 	IssueConnAuth:    "",
 	IssueIndexerName: "gitea_issues",
 
-	RepoIndexerEnabled: false,
-	RepoType:           "bleve",
-	RepoPath:           "indexers/repos.bleve",
-	RepoConnStr:        "",
-	RepoIndexerName:    "gitea_codes",
-	MaxIndexerFileSize: 1024 * 1024,
-	ExcludeVendored:    true,
+	RepoIndexerEnabled:   false,
+	RepoIndexerRepoTypes: []string{"sources", "forks", "mirrors", "templates"},
+	RepoType:             "bleve",
+	RepoPath:             "indexers/repos.bleve",
+	RepoConnStr:          "",
+	RepoIndexerName:      "gitea_codes",
+	MaxIndexerFileSize:   1024 * 1024,
+	ExcludeVendored:      true,
 }
 
 func loadIndexerFrom(rootCfg ConfigProvider) {
@@ -70,16 +72,8 @@ func loadIndexerFrom(rootCfg ConfigProvider) {
 
 	Indexer.IssueIndexerName = sec.Key("ISSUE_INDEXER_NAME").MustString(Indexer.IssueIndexerName)
 
-	// The following settings are deprecated and can be overridden by settings in [queue] or [queue.issue_indexer]
-	// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
-	// if these are removed, the warning will not be shown
-	deprecatedSetting(rootCfg, "indexer", "ISSUE_INDEXER_QUEUE_TYPE", "queue.issue_indexer", "TYPE", "v1.19.0")
-	deprecatedSetting(rootCfg, "indexer", "ISSUE_INDEXER_QUEUE_DIR", "queue.issue_indexer", "DATADIR", "v1.19.0")
-	deprecatedSetting(rootCfg, "indexer", "ISSUE_INDEXER_QUEUE_CONN_STR", "queue.issue_indexer", "CONN_STR", "v1.19.0")
-	deprecatedSetting(rootCfg, "indexer", "ISSUE_INDEXER_QUEUE_BATCH_NUMBER", "queue.issue_indexer", "BATCH_LENGTH", "v1.19.0")
-	deprecatedSetting(rootCfg, "indexer", "UPDATE_BUFFER_LEN", "queue.issue_indexer", "LENGTH", "v1.19.0")
-
 	Indexer.RepoIndexerEnabled = sec.Key("REPO_INDEXER_ENABLED").MustBool(false)
+	Indexer.RepoIndexerRepoTypes = strings.Split(sec.Key("REPO_INDEXER_REPO_TYPES").MustString("sources,forks,mirrors,templates"), ",")
 	Indexer.RepoType = sec.Key("REPO_INDEXER_TYPE").MustString("bleve")
 	Indexer.RepoPath = filepath.ToSlash(sec.Key("REPO_INDEXER_PATH").MustString(filepath.ToSlash(filepath.Join(AppDataPath, "indexers/repos.bleve"))))
 	if !filepath.IsAbs(Indexer.RepoPath) {

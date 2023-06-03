@@ -299,6 +299,6 @@ You can try it out using [the online demo](https://try.gitea.io/).
   - [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
   - [github.com/denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb)
 
-## Software and Service Support
+## Integrated support
 
-- [Drone](https://github.com/drone/drone) (CI)
+ Please visit [Awesome Gitea](https://gitea.com/gitea/awesome-gitea/) to get more third-party integrated support

@@ -1,0 +1,38 @@
+{{/*
+Template Attributes:
+* locale
+
+Two buttons (negative, positive):
+* ModalButtonTypes: "yes" (default) or "confirm"
+* ModalButtonColors: "green" (default) / "blue" / "yellow"
+* ModalButtonCancelText
+* ModalButtonOkText
+
+Single danger button (GitHub-like):
+* ModalButtonDangerText "This action will destroy your data"
+
+The ".ok.button" and ".cancel.button" selectors are also used by Fomantic Modal internally
+*/}}
+<div class="actions">
+	{{if .ModalButtonDangerText}}
+		<button class="ui danger red ok button">{{.ModalButtonDangerText}}</button>
+	{{else}}
+		{{$textNegitive := .locale.Tr "modal.no"}}
+		{{$textPositive := .locale.Tr "modal.yes"}}
+		{{if eq .ModalButtonTypes "confirm"}}
+			{{$textNegitive = .locale.Tr "modal.cancel"}}
+			{{$textPositive = .locale.Tr "modal.confirm"}}
+		{{end}}
+		{{if .ModalButtonCancelText}}{{$textNegitive = .ModalButtonCancelText}}{{end}}
+		{{if .ModalButtonOkText}}{{$textPositive = .ModalButtonOkText}}{{end}}
+
+		{{$stylePositive := "green"}}
+		{{if eq .ModalButtonColors "blue"}}
+			{{$stylePositive = "blue"}}
+		{{else if eq .ModalButtonColors "yellow"}}
+			{{$stylePositive = "yellow"}}
+		{{end}}
+		<button class="ui secondary basic cancel button">{{svg "octicon-x"}} {{$textNegitive}}</button>
+		<button class="ui {{$stylePositive}} ok button">{{svg "octicon-check"}} {{$textPositive}}</button>
+	{{end}}
+</div>

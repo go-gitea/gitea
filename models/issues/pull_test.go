@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -74,6 +75,34 @@ func TestPullRequestsNewest(t *testing.T) {
 	}
 }
 
+func TestLoadRequestedReviewers(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
+	assert.NoError(t, pull.LoadIssue(db.DefaultContext))
+	issue := pull.Issue
+	assert.NoError(t, issue.LoadRepo(db.DefaultContext))
+	assert.Len(t, pull.RequestedReviewers, 0)
+
+	user1, err := user_model.GetUserByID(db.DefaultContext, 1)
+	assert.NoError(t, err)
+
+	comment, err := issues_model.AddReviewRequest(issue, user1, &user_model.User{})
+	assert.NoError(t, err)
+	assert.NotNil(t, comment)
+
+	assert.NoError(t, pull.LoadRequestedReviewers(db.DefaultContext))
+	assert.Len(t, pull.RequestedReviewers, 1)
+
+	comment, err = issues_model.RemoveReviewRequest(issue, user1, &user_model.User{})
+	assert.NoError(t, err)
+	assert.NotNil(t, comment)
+
+	pull.RequestedReviewers = nil
+	assert.NoError(t, pull.LoadRequestedReviewers(db.DefaultContext))
+	assert.Empty(t, pull.RequestedReviewers)
+}
+
 func TestPullRequestsOldest(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	prs, count, err := issues_model.PullRequests(1, &issues_model.PullRequestsOptions{
@@ -109,16 +138,16 @@ func TestHasUnmergedPullRequestsByHeadInfo(t *testing.T) {
 
 	exist, err := issues_model.HasUnmergedPullRequestsByHeadInfo(db.DefaultContext, 1, "branch2")
 	assert.NoError(t, err)
-	assert.Equal(t, true, exist)
+	assert.True(t, exist)
 
 	exist, err = issues_model.HasUnmergedPullRequestsByHeadInfo(db.DefaultContext, 1, "not_exist_branch")
 	assert.NoError(t, err)
-	assert.Equal(t, false, exist)
+	assert.False(t, exist)
 }
 
 func TestGetUnmergedPullRequestsByHeadInfo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(1, "branch2", false)
+	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(1, "branch2")
 	assert.NoError(t, err)
 	assert.Len(t, prs, 1)
 	for _, pr := range prs {

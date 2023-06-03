@@ -11,6 +11,8 @@ import (
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewReleasePost(t *testing.T) {
@@ -60,5 +62,50 @@ func TestNewReleasePost(t *testing.T) {
 			Note:        testCase.Form.Content,
 		}, unittest.Cond("is_draft=?", len(testCase.Form.Draft) > 0))
 		ctx.Repo.GitRepo.Close()
+	}
+}
+
+func TestNewReleasesList(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	ctx := test.MockContext(t, "user2/repo-release/releases")
+	test.LoadUser(t, ctx, 2)
+	test.LoadRepo(t, ctx, 57)
+	test.LoadGitRepo(t, ctx)
+	t.Cleanup(func() { ctx.Repo.GitRepo.Close() })
+
+	Releases(ctx)
+	releases := ctx.Data["Releases"].([]*repo_model.Release)
+	type computedFields struct {
+		NumCommitsBehind int64
+		TargetBehind     string
+	}
+	expectedComputation := map[string]computedFields{
+		"v1.0": {
+			NumCommitsBehind: 3,
+			TargetBehind:     "main",
+		},
+		"v1.1": {
+			NumCommitsBehind: 1,
+			TargetBehind:     "main",
+		},
+		"v2.0": {
+			NumCommitsBehind: 0,
+			TargetBehind:     "main",
+		},
+		"non-existing-target-branch": {
+			NumCommitsBehind: 1,
+			TargetBehind:     "main",
+		},
+		"empty-target-branch": {
+			NumCommitsBehind: 1,
+			TargetBehind:     "main",
+		},
+	}
+	for _, r := range releases {
+		actual := computedFields{
+			NumCommitsBehind: r.NumCommitsBehind,
+			TargetBehind:     r.TargetBehind,
+		}
+		assert.Equal(t, expectedComputation[r.TagName], actual, "wrong computed fields for %s: %#v", r.TagName, r)
 	}
 }
