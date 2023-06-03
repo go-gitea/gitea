@@ -380,6 +380,11 @@ func (u *User) SetPassword(passwd string) (err error) {
 		return nil
 	}
 
+	// Invalidate all authentication tokens for this user.
+	if err := auth.DeleteAuthTokenByUser(db.DefaultContext, u.ID); err != nil {
+		return err
+	}
+
 	if u.Salt, err = GetUserSalt(); err != nil {
 		return err
 	}

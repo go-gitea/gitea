@@ -4,16 +4,14 @@
 package context
 
 import (
-	"encoding/hex"
 	"net/http"
 	"strings"
 
+	auth_model "code.gitea.io/gitea/models/auth"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web/middleware"
-
-	"github.com/minio/sha256-simd"
-	"golang.org/x/crypto/pbkdf2"
 )
 
 const CookieNameFlash = "gitea_flash"
@@ -46,41 +44,13 @@ func (ctx *Context) GetSiteCookie(name string) string {
 	return middleware.GetSiteCookie(ctx.Req, name)
 }
 
-// GetSuperSecureCookie returns given cookie value from request header with secret string.
-func (ctx *Context) GetSuperSecureCookie(secret, name string) (string, bool) {
-	val := ctx.GetSiteCookie(name)
-	return ctx.CookieDecrypt(secret, val)
-}
-
-// CookieDecrypt returns given value from with secret string.
-func (ctx *Context) CookieDecrypt(secret, val string) (string, bool) {
-	if val == "" {
-		return "", false
-	}
-
-	text, err := hex.DecodeString(val)
+// SetLTACookie will generate a LTA token and add it as an cookie.
+func (ctx *Context) SetLTACookie(u *user_model.User) error {
+	days := 86400 * setting.LogInRememberDays
+	lookup, validator, err := auth_model.GenerateAuthToken(ctx, u.ID, timeutil.TimeStampNow().Add(int64(days)))
 	if err != nil {
-		return "", false
+		return err
 	}
-
-	key := pbkdf2.Key([]byte(secret), []byte(secret), 1000, 16, sha256.New)
-	text, err = util.AESGCMDecrypt(key, text)
-	return string(text), err == nil
-}
-
-// SetSuperSecureCookie sets given cookie value to response header with secret string.
-func (ctx *Context) SetSuperSecureCookie(secret, name, value string, maxAge int) {
-	text := ctx.CookieEncrypt(secret, value)
-	ctx.SetSiteCookie(name, text, maxAge)
-}
-
-// CookieEncrypt encrypts a given value using the provided secret
-func (ctx *Context) CookieEncrypt(secret, value string) string {
-	key := pbkdf2.Key([]byte(secret), []byte(secret), 1000, 16, sha256.New)
-	text, err := util.AESGCMEncrypt(key, []byte(value))
-	if err != nil {
-		panic("error encrypting cookie: " + err.Error())
-	}
-
-	return hex.EncodeToString(text)
+	ctx.SetSiteCookie(setting.CookieRememberName, lookup+":"+validator, days)
+	return nil
 }
