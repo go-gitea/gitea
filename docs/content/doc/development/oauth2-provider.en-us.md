@@ -40,7 +40,7 @@ At the moment Gitea only supports the [**Authorization Code Grant**](https://too
 - [Proof Key for Code Exchange (PKCE)](https://tools.ietf.org/html/rfc7636)
 - [OpenID Connect (OIDC)](https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth)
 
-To use the Authorization Code Grant as a third party application it is required to register a new application via the "Settings" (`/user/settings/applications`) section of the settings.
+To use the Authorization Code Grant as a third party application it is required to register a new application via the "Settings" (`/user/settings/applications`) section of the settings. To test or debug you use the web-tool https://oauthdebugger.com/.
 
 ## Scopes
 
