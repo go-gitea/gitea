@@ -35,7 +35,9 @@ type GothProvider interface {
 	GothProviderCreator
 }
 
-// ImagedProvider provide an overridden image setting for the provider
+// ImagedProvider provide an overridden image setting for the provider.
+// It wraps a GothProvider and the "image" could be set by the AuthSource's IconURL field.
+// Users could set the image on the Auth Source Edit page.
 type ImagedProvider struct {
 	GothProvider
 	image string
@@ -44,14 +46,6 @@ type ImagedProvider struct {
 // Image returns the image path for this provider
 func (i *ImagedProvider) Image() string {
 	return i.image
-}
-
-// NewImagedProvider is a constructor function for the ImagedProvider
-func NewImagedProvider(image string, provider GothProvider) *ImagedProvider {
-	return &ImagedProvider{
-		GothProvider: provider,
-		image:        image,
-	}
 }
 
 // Providers contains the map of registered OAuth2 providers in Gitea (based on goth)
@@ -98,7 +92,7 @@ func GetActiveOAuth2Providers() ([]string, map[string]Provider, error) {
 	for _, source := range authSources {
 		prov := gothProviders[source.Cfg.(*Source).Provider]
 		if source.Cfg.(*Source).IconURL != "" {
-			prov = &ImagedProvider{prov, source.Cfg.(*Source).IconURL}
+			prov = &ImagedProvider{GothProvider: prov, image: source.Cfg.(*Source).IconURL}
 		}
 		providers[source.Name] = prov
 		orderedKeys = append(orderedKeys, source.Name)

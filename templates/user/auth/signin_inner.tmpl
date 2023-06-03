@@ -61,7 +61,7 @@
 			<div id="oauth2-login-navigator-inner" class="gt-df gt-fc gt-fw gt-ac gt-gap-3">
 				{{range $key := .OrderedOAuth2Names}}
 					{{$provider := index $.OAuth2Providers $key}}
-					<a class="{{$provider.Name}} ui compact button silenced gt-df gt-ac gt-jc gt-py-3 oauth-login-link" href="{{AppSubUrl}}/user/oauth2/{{$key}}">
+					<a class="{{$provider.Name}} ui button gt-df gt-ac gt-jc gt-py-3 oauth-login-link" href="{{AppSubUrl}}/user/oauth2/{{$key}}">
 						{{svg $provider.SvgName 24 "gt-mr-3"}}
 						{{$name := $provider.DisplayName}}
 						{{if eq $provider.Name "openidConnect"}}
