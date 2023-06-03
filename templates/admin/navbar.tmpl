@@ -53,6 +53,9 @@
 		<div class="item">
 			{{.locale.Tr "admin.monitor"}}
 			<div class="menu">
+				<a class="{{if .PageIsAdminMonitorStats}}active {{end}}item" href="{{AppSubUrl}}/admin/monitor/stats">
+					{{.locale.Tr "admin.monitor.stats"}}
+				</a>
 				<a class="{{if .PageIsAdminMonitorCron}}active {{end}}item" href="{{AppSubUrl}}/admin/monitor/cron">
 					{{.locale.Tr "admin.monitor.cron"}}
 				</a>
