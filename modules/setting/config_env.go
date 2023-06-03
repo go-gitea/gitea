@@ -10,8 +10,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
-
-	"gopkg.in/ini.v1"
 )
 
 const escapeRegexpString = "_0[xX](([0-9a-fA-F][0-9a-fA-F])+)_"
@@ -89,7 +87,7 @@ func decodeEnvironmentKey(prefixGitea, suffixFile, envKey string) (ok bool, sect
 	return ok, section, key, useFileValue
 }
 
-func EnvironmentToConfig(cfg *ini.File, prefixGitea, suffixFile string, envs []string) (changed bool) {
+func EnvironmentToConfig(cfg ConfigProvider, prefixGitea, suffixFile string, envs []string) (changed bool) {
 	for _, kv := range envs {
 		idx := strings.IndexByte(kv, '=')
 		if idx < 0 {
