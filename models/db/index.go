@@ -71,10 +71,35 @@ func postgresGetNextResourceIndex(ctx context.Context, tableName string, groupID
 	return strconv.ParseInt(string(res[0]["max_index"]), 10, 64)
 }
 
+func mysqlGetNextResourceIndex(ctx context.Context, tableName string, groupID int64) (int64, error) {
+	var idx int64
+	// start a transaction to lock the mysql thread so that LAST_INSERT_ID return the correct value
+	return idx, WithTx(ctx, func(ctx context.Context) error {
+		if _, err := GetEngine(ctx).Exec(fmt.Sprintf("INSERT INTO %s (group_id, max_index) "+
+			"VALUES (?,LAST_INSERT_ID(1)) ON DUPLICATE KEY UPDATE max_index = LAST_INSERT_ID(max_index+1)",
+			// if LAST_INSERT_ID(expr) is used, next time when use LAST_INSERT_ID(), it will be given the expr value
+			tableName), groupID); err != nil {
+			return err
+		}
+
+		_, err := GetEngine(ctx).SQL("SELECT LAST_INSERT_ID()").Get(&idx)
+		if err != nil {
+			return err
+		}
+		if idx == 0 {
+			return errors.New("cannot get the correct index")
+		}
+		return nil
+	})
+}
+
 // GetNextResourceIndex generates a resource index, it must run in the same transaction where the resource is created
 func GetNextResourceIndex(ctx context.Context, tableName string, groupID int64) (int64, error) {
-	if setting.Database.Type.IsPostgreSQL() {
+	switch {
+	case setting.Database.Type.IsPostgreSQL():
 		return postgresGetNextResourceIndex(ctx, tableName, groupID)
+	case setting.Database.Type.IsMySQL():
+		return mysqlGetNextResourceIndex(ctx, tableName, groupID)
 	}
 
 	e := GetEngine(ctx)
