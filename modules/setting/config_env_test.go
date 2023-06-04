@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/ini.v1"
 )
 
 func TestDecodeEnvSectionKey(t *testing.T) {
@@ -71,15 +70,15 @@ func TestDecodeEnvironmentKey(t *testing.T) {
 }
 
 func TestEnvironmentToConfig(t *testing.T) {
-	cfg := ini.Empty()
+	cfg, _ := NewConfigProviderFromData("")
 
 	changed := EnvironmentToConfig(cfg, "GITEA__", "__FILE", nil)
 	assert.False(t, changed)
 
-	cfg, err := ini.Load([]byte(`
+	cfg, err := NewConfigProviderFromData(`
 [sec]
 key = old
-`))
+`)
 	assert.NoError(t, err)
 
 	changed = EnvironmentToConfig(cfg, "GITEA__", "__FILE", []string{"GITEA__sec__key=new"})

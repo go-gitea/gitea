@@ -9,10 +9,8 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/urfave/cli"
-	"gopkg.in/ini.v1"
 )
 
 // EnvironmentPrefix environment variables prefixed with this represent ini values to write
@@ -97,19 +95,10 @@ func runEnvironmentToIni(c *cli.Context) error {
 	providedWorkPath := c.String("work-path")
 	setting.SetCustomPathAndConf(providedCustom, providedConf, providedWorkPath)
 
-	cfg := ini.Empty()
-	confFileExists, err := util.IsFile(setting.CustomConf)
+	cfg, err := setting.NewConfigProviderFromFile(&setting.Options{CustomConf: setting.CustomConf, AllowEmpty: true})
 	if err != nil {
-		log.Fatal("Unable to check if %s is a file. Error: %v", setting.CustomConf, err)
+		log.Fatal("Failed to load custom conf '%s': %v", setting.CustomConf, err)
 	}
-	if confFileExists {
-		if err := cfg.Append(setting.CustomConf); err != nil {
-			log.Fatal("Failed to load custom conf '%s': %v", setting.CustomConf, err)
-		}
-	} else {
-		log.Warn("Custom config '%s' not found, ignore this if you're running first time", setting.CustomConf)
-	}
-	cfg.NameMapper = ini.SnackCase
 
 	prefixGitea := c.String("prefix") + "__"
 	suffixFile := "__FILE"
