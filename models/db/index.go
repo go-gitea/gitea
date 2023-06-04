@@ -76,13 +76,13 @@ func mysqlGetNextResourceIndex(ctx context.Context, tableName string, groupID in
 	// start a transaction to lock the mysql thread so that LAST_INSERT_ID return the correct value
 	return idx, WithTx(ctx, func(ctx context.Context) error {
 		if _, err := GetEngine(ctx).Exec(fmt.Sprintf("INSERT INTO %s (group_id, max_index) "+
-			"VALUES (?,LAST_INSERT_ID(1)) ON DUPLICATE KEY UPDATE max_index = LAST_INSERT_ID(max_index+1)",
+			"VALUES (?,1) ON DUPLICATE KEY UPDATE max_index = max_index+1",
 			// if LAST_INSERT_ID(expr) is used, next time when use LAST_INSERT_ID(), it will be given the expr value
 			tableName), groupID); err != nil {
 			return err
 		}
 
-		_, err := GetEngine(ctx).SQL("SELECT LAST_INSERT_ID()").Get(&idx)
+		_, err := GetEngine(ctx).SQL(fmt.Sprintf("SELECT max_index FROM %s WHERE group_id = ?", tableName), groupID).Get(&idx)
 		if err != nil {
 			return err
 		}

@@ -69,13 +69,14 @@ func mysqlGetCommitStatusIndex(ctx context.Context, repoID int64, sha string) (i
 	// start a transaction to lock the mysql thread so that LAST_INSERT_ID return the correct value
 	return idx, db.WithTx(ctx, func(ctx context.Context) error {
 		if _, err := db.GetEngine(ctx).Exec("INSERT INTO `commit_status_index` (repo_id, sha, max_index) "+
-			"VALUES (?,?,LAST_INSERT_ID(1)) ON DUPLICATE KEY UPDATE max_index = LAST_INSERT_ID(max_index+1)",
+			"VALUES (?,?,1) ON DUPLICATE KEY UPDATE max_index = max_index+1",
 			// if LAST_INSERT_ID(expr) is used, next time when use LAST_INSERT_ID(), it will be given the expr value
 			repoID, sha); err != nil {
 			return err
 		}
 
-		_, err := db.GetEngine(ctx).SQL("SELECT LAST_INSERT_ID()").Get(&idx)
+		_, err := db.GetEngine(ctx).SQL("SELECT max_index FROM `commit_status_index` WHERE repo_id = ? AND sha = ?",
+			repoID, sha).Get(&idx)
 		if err != nil {
 			return err
 		}
