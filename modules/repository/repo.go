@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"path"
 	"strings"
 	"time"
@@ -27,7 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"gopkg.in/ini.v1" //nolint:depguard
+	config "github.com/go-git/go-git/v5/config"
 )
 
 /*
@@ -241,15 +242,25 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 // cleanUpMigrateGitConfig removes mirror info which prevents "push --all".
 // This also removes possible user credentials.
 func cleanUpMigrateGitConfig(configPath string) error {
-	cfg, err := ini.Load(configPath) // FIXME: the ini package doesn't really work with git config files
+	f, err := os.Open(configPath)
 	if err != nil {
 		return fmt.Errorf("open config file: %w", err)
 	}
-	cfg.DeleteSection("remote \"origin\"")
-	if err = cfg.SaveToIndent(configPath, "\t"); err != nil {
-		return fmt.Errorf("save config file: %w", err)
+	cfg, err := config.ReadConfig(f)
+	if err != nil {
+		f.Close()
+		return fmt.Errorf("read config: %w", err)
 	}
-	return nil
+	delete(cfg.Remotes, "origin")
+	bs, err := cfg.Marshal()
+	if err != nil {
+		f.Close()
+		return fmt.Errorf("marshal config file: %w", err)
+	}
+
+	stat, _ := f.Stat()
+	f.Close()
+	return os.WriteFile(configPath, bs, stat.Mode())
 }
 
 // CleanUpMigrateInfo finishes migrating repository and/or wiki with things that don't need to be done for mirrors.
