@@ -538,8 +538,8 @@ func registerRoutes(m *web.Route) {
 
 	// ***** START: Admin *****
 	m.Group("/admin", func() {
-		m.Get("", adminReq, admin.Dashboard)
-		m.Post("", adminReq, web.Bind(forms.AdminDashboardForm{}), admin.DashboardPost)
+		m.Get("", admin.Dashboard)
+		m.Post("", web.Bind(forms.AdminDashboardForm{}), admin.DashboardPost)
 
 		m.Group("/config", func() {
 			m.Get("", admin.Config)
@@ -548,6 +548,7 @@ func registerRoutes(m *web.Route) {
 		})
 
 		m.Group("/monitor", func() {
+			m.Get("/stats", admin.MonitorStats)
 			m.Get("/cron", admin.CronTasks)
 			m.Get("/stacktrace", admin.Stacktrace)
 			m.Post("/stacktrace/cancel/{pid}", admin.StacktraceCancel)
