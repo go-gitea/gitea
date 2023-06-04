@@ -16,8 +16,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nektos/act/pkg/model"
-
 	activities_model "code.gitea.io/gitea/models/activities"
 	admin_model "code.gitea.io/gitea/models/admin"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -44,6 +42,8 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
 	issue_service "code.gitea.io/gitea/services/issue"
+
+	"github.com/nektos/act/pkg/model"
 )
 
 const (
@@ -369,7 +369,6 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				ctx.Data["FileWarning"] = strings.Join(warnings, "\n")
 			}
 		}
-
 	}
 
 	isDisplayingSource := ctx.FormString("display") == "source"
