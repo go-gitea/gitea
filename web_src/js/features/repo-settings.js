@@ -1,5 +1,7 @@
 import $ from 'jquery';
+import {minimatch} from 'minimatch';
 import {createMonaco} from './codeeditor.js';
+import {onInputDebounce, toggleElem} from '../utils/dom.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -81,4 +83,26 @@ export function initRepoSettingBranches() {
     const $target = $($(this).attr('data-target'));
     if (this.checked) $target.addClass('disabled'); // only disable, do not auto enable
   });
+
+  // show the `Matched` mark for the status checks that match the pattern
+  const markMatchedStatusChecks = () => {
+    const patterns = (document.getElementById('status_check_contexts').value || '').split(/[\r\n]+/);
+    const validPatterns = patterns.map((item) => item.trim()).filter(Boolean);
+    const marks = document.getElementsByClassName('status-check-matched-mark');
+
+    for (const el of marks) {
+      let matched = false;
+      const statusCheck = el.getAttribute('data-status-check');
+      for (const pattern of validPatterns) {
+        if (minimatch(statusCheck, pattern)) {
+          matched = true;
+          break;
+        }
+      }
+
+      toggleElem(el, matched);
+    }
+  };
+  markMatchedStatusChecks();
+  document.getElementById('status_check_contexts').addEventListener('input', onInputDebounce(markMatchedStatusChecks));
 }

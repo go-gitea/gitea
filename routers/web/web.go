@@ -112,6 +112,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 	routes.RouteMethods("/avatars/*", "GET, HEAD", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
 	routes.RouteMethods("/repo-avatars/*", "GET, HEAD", storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 	routes.RouteMethods("/apple-touch-icon.png", "GET, HEAD", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
+	routes.RouteMethods("/apple-touch-icon-precomposed.png", "GET, HEAD", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
 	routes.RouteMethods("/favicon.ico", "GET, HEAD", misc.StaticRedirect("/assets/img/favicon.png"))
 
 	_ = templates.HTMLRenderer()
@@ -491,6 +492,7 @@ func registerRoutes(m *web.Route) {
 
 		m.Group("/actions", func() {
 			m.Get("", user_setting.RedirectToDefaultSetting)
+			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
 		}, actions.MustEnableActions)
 
@@ -536,8 +538,8 @@ func registerRoutes(m *web.Route) {
 
 	// ***** START: Admin *****
 	m.Group("/admin", func() {
-		m.Get("", adminReq, admin.Dashboard)
-		m.Post("", adminReq, web.Bind(forms.AdminDashboardForm{}), admin.DashboardPost)
+		m.Get("", admin.Dashboard)
+		m.Post("", web.Bind(forms.AdminDashboardForm{}), admin.DashboardPost)
 
 		m.Group("/config", func() {
 			m.Get("", admin.Config)
@@ -546,6 +548,7 @@ func registerRoutes(m *web.Route) {
 		})
 
 		m.Group("/monitor", func() {
+			m.Get("/stats", admin.MonitorStats)
 			m.Get("/cron", admin.CronTasks)
 			m.Get("/stacktrace", admin.Stacktrace)
 			m.Post("/stacktrace/cancel/{pid}", admin.StacktraceCancel)
@@ -822,13 +825,13 @@ func registerRoutes(m *web.Route) {
 				m.Get("/{id}", org.ViewProject)
 			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead))
 			m.Group("", func() { //nolint:dupl
-				m.Get("/new", org.NewProject)
+				m.Get("/new", org.RenderNewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
 				m.Group("/{id}", func() {
 					m.Post("", web.Bind(forms.EditProjectBoardForm{}), org.AddBoardToProjectPost)
 					m.Post("/delete", org.DeleteProject)
 
-					m.Get("/edit", org.EditProject)
+					m.Get("/edit", org.RenderEditProject)
 					m.Post("/edit", web.Bind(forms.CreateProjectForm{}), org.EditProjectPost)
 					m.Post("/{action:open|close}", org.ChangeProjectStatus)
 
@@ -986,6 +989,7 @@ func registerRoutes(m *web.Route) {
 				m.Post("/deadline", web.Bind(structs.EditDeadlineOption{}), repo.UpdateIssueDeadline)
 				m.Post("/watch", repo.IssueWatch)
 				m.Post("/ref", repo.UpdateIssueRef)
+				m.Post("/pin", reqRepoAdmin, repo.IssuePinOrUnpin)
 				m.Post("/viewed-files", repo.UpdateViewedFiles)
 				m.Group("/dependency", func() {
 					m.Post("/add", repo.AddDependency)
@@ -1023,6 +1027,8 @@ func registerRoutes(m *web.Route) {
 			m.Post("/resolve_conversation", reqRepoIssuesOrPullsReader, repo.UpdateResolveConversation)
 			m.Post("/attachments", repo.UploadIssueAttachment)
 			m.Post("/attachments/remove", repo.DeleteAttachment)
+			m.Delete("/unpin/{index}", reqRepoAdmin, repo.IssueUnpin)
+			m.Post("/move_pin", reqRepoAdmin, repo.IssuePinMove)
 		}, context.RepoMustNotBeArchived())
 		m.Group("/comments/{id}", func() {
 			m.Post("", repo.UpdateCommentContent)
@@ -1154,13 +1160,13 @@ func registerRoutes(m *web.Route) {
 			m.Get("", repo.Projects)
 			m.Get("/{id}", repo.ViewProject)
 			m.Group("", func() { //nolint:dupl
-				m.Get("/new", repo.NewProject)
+				m.Get("/new", repo.RenderNewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), repo.NewProjectPost)
 				m.Group("/{id}", func() {
 					m.Post("", web.Bind(forms.EditProjectBoardForm{}), repo.AddBoardToProjectPost)
 					m.Post("/delete", repo.DeleteProject)
 
-					m.Get("/edit", repo.EditProject)
+					m.Get("/edit", repo.RenderEditProject)
 					m.Post("/edit", web.Bind(forms.CreateProjectForm{}), repo.EditProjectPost)
 					m.Post("/{action:open|close}", repo.ChangeProjectStatus)
 
@@ -1191,6 +1197,8 @@ func registerRoutes(m *web.Route) {
 				})
 				m.Post("/cancel", reqRepoActionsWriter, actions.Cancel)
 				m.Post("/approve", reqRepoActionsWriter, actions.Approve)
+				m.Post("/artifacts", actions.ArtifactsView)
+				m.Get("/artifacts/{id}", actions.ArtifactsDownloadView)
 				m.Post("/rerun", reqRepoActionsWriter, actions.RerunAll)
 			})
 		}, reqRepoActionsReader, actions.MustEnableActions)
@@ -1402,7 +1410,7 @@ func registerRoutes(m *web.Route) {
 	}
 
 	m.NotFound(func(w http.ResponseWriter, req *http.Request) {
-		ctx := context.GetContext(req)
+		ctx := context.GetWebContext(req)
 		ctx.NotFound("", nil)
 	})
 }

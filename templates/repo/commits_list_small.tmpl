@@ -15,7 +15,7 @@
 
 		{{$commitLink:= printf "%s/commit/%s" $.comment.Issue.PullRequest.BaseRepo.Link (PathEscape .ID.String)}}
 
-		<span class="ui float right shabox">
+		<span class="ui float right shabox gt-df gt-ac">
 			{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses "root" $.root}}
 			{{$class := "ui sha label"}}
 			{{if .Signature}}
@@ -32,7 +32,7 @@
 					{{$class = (printf "%s%s" $class " isWarning")}}
 				{{end}}
 			{{end}}
-			<a href="{{$commitLink}}" rel="nofollow" class="{{$class}}">
+			<a href="{{$commitLink}}" rel="nofollow" class="gt-ml-3 {{$class}}">
 				<span class="shortsha">{{ShortSha .ID.String}}</span>
 				{{if .Signature}}
 					{{template "repo/shabox_badge" dict "root" $.root "verification" .Verification}}

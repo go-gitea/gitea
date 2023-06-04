@@ -32,7 +32,7 @@
 }
 
 .admin dl.admin-dl-horizontal dt {
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-semibold);
   width: 220px;
   margin-right: 5px;
   overflow: hidden;

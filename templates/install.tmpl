@@ -322,6 +322,10 @@
 							<label for="admin_name">{{.locale.Tr "install.admin_name"}}</label>
 							<input id="admin_name" name="admin_name" value="{{.admin_name}}">
 						</div>
+						<div class="inline field {{if .Err_AdminEmail}}error{{end}}">
+							<label for="admin_email">{{.locale.Tr "install.admin_email"}}</label>
+							<input id="admin_email" name="admin_email" type="email" value="{{.admin_email}}">
+						</div>
 						<div class="inline field {{if .Err_AdminPasswd}}error{{end}}">
 							<label for="admin_passwd">{{.locale.Tr "install.admin_password"}}</label>
 							<input id="admin_passwd" name="admin_passwd" type="password" autocomplete="new-password" value="{{.admin_passwd}}">
@@ -329,10 +333,6 @@
 						<div class="inline field {{if .Err_AdminPasswd}}error{{end}}">
 							<label for="admin_confirm_passwd">{{.locale.Tr "install.confirm_password"}}</label>
 							<input id="admin_confirm_passwd" name="admin_confirm_passwd" autocomplete="new-password" type="password" value="{{.admin_confirm_passwd}}">
-						</div>
-						<div class="inline field {{if .Err_AdminEmail}}error{{end}}">
-							<label for="admin_email">{{.locale.Tr "install.admin_email"}}</label>
-							<input id="admin_email" name="admin_email" type="email" value="{{.admin_email}}">
 						</div>
 					</details>
 

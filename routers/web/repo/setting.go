@@ -64,6 +64,7 @@ func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["ForcePrivate"] = setting.Repository.ForcePrivate
 	ctx.Data["MirrorsEnabled"] = setting.Mirror.Enabled
+	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["DisableNewPushMirrors"] = setting.Mirror.DisableNewPush
 	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
 	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
@@ -108,6 +109,7 @@ func SettingsPost(ctx *context.Context) {
 
 	ctx.Data["ForcePrivate"] = setting.Repository.ForcePrivate
 	ctx.Data["MirrorsEnabled"] = setting.Mirror.Enabled
+	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["DisableNewPushMirrors"] = setting.Mirror.DisableNewPush
 	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
 	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
@@ -198,6 +200,15 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
+		pullMirror, err := repo_model.GetMirrorByRepoID(ctx, ctx.Repo.Repository.ID)
+		if err == repo_model.ErrMirrorNotExist {
+			ctx.NotFound("", nil)
+			return
+		}
+		if err != nil {
+			ctx.ServerError("GetMirrorByRepoID", err)
+			return
+		}
 		// This section doesn't require repo_name/RepoName to be set in the form, don't show it
 		// as an error on the UI for this action
 		ctx.Data["Err_RepoName"] = nil
@@ -209,15 +220,15 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		ctx.Repo.Mirror.EnablePrune = form.EnablePrune
-		ctx.Repo.Mirror.Interval = interval
-		ctx.Repo.Mirror.ScheduleNextUpdate()
-		if err := repo_model.UpdateMirror(ctx, ctx.Repo.Mirror); err != nil {
+		pullMirror.EnablePrune = form.EnablePrune
+		pullMirror.Interval = interval
+		pullMirror.ScheduleNextUpdate()
+		if err := repo_model.UpdateMirror(ctx, pullMirror); err != nil {
 			ctx.ServerError("UpdateMirror", err)
 			return
 		}
 
-		u, err := git.GetRemoteURL(ctx, ctx.Repo.Repository.RepoPath(), ctx.Repo.Mirror.GetRemoteName())
+		u, err := git.GetRemoteURL(ctx, ctx.Repo.Repository.RepoPath(), pullMirror.GetRemoteName())
 		if err != nil {
 			ctx.Data["Err_MirrorAddress"] = true
 			handleSettingRemoteAddrError(ctx, err, form)
@@ -237,7 +248,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := mirror_service.UpdateAddress(ctx, ctx.Repo.Mirror, address); err != nil {
+		if err := mirror_service.UpdateAddress(ctx, pullMirror, address); err != nil {
 			ctx.ServerError("UpdateAddress", err)
 			return
 		}
@@ -259,9 +270,9 @@ func SettingsPost(ctx *context.Context) {
 			}
 		}
 
-		ctx.Repo.Mirror.LFS = form.LFS
-		ctx.Repo.Mirror.LFSEndpoint = form.LFSEndpoint
-		if err := repo_model.UpdateMirror(ctx, ctx.Repo.Mirror); err != nil {
+		pullMirror.LFS = form.LFS
+		pullMirror.LFSEndpoint = form.LFSEndpoint
+		if err := repo_model.UpdateMirror(ctx, pullMirror); err != nil {
 			ctx.ServerError("UpdateMirror", err)
 			return
 		}
