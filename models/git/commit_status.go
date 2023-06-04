@@ -108,24 +108,7 @@ func GetNextCommitStatusIndex(ctx context.Context, repoID int64, sha string) (in
 	}
 	if affected == 0 {
 		// this slow path is only for the first time of creating a resource index
-		var errIns error
-		for i := 0; i < 5; i++ {
-			// in case mysql deadlock occurs, retry for a few times
-			// Error 1213 (40001): Deadlock found when trying to get lock; try restarting transaction
-			// To reproduce:
-			// * txn1: truncate commit_status_index; begin; update commit_status_index set max_index=max_index+1 where sha='xxx' and repo_id=1;
-			// * txn2: begin; update commit_status_index set max_index=max_index+1 where sha='xxx' and repo_id=1;
-			// * txn1: insert into `commit_status_index` (repo_id, sha, max_index) values (1, 'xxx', 0);
-			// * txn2: insert into `commit_status_index` (repo_id, sha, max_index) values (1, 'xxx', 0); -- then deadlock
-			// * then txn1 can commit, txn2 can retry and commit
-			_, errIns = e.Exec("INSERT INTO `commit_status_index` (repo_id, sha, max_index) VALUES (?, ?, 0)", repoID, sha)
-			if errIns != nil && strings.Contains(errIns.Error(), "Deadlock") {
-				continue
-			} else {
-				break
-			}
-		}
-
+		_, errIns := e.Exec("INSERT INTO `commit_status_index` (repo_id, sha, max_index) VALUES (?, ?, 0)", repoID, sha)
 		res, err = e.Exec("UPDATE `commit_status_index` SET max_index=max_index+1 WHERE repo_id=? AND sha=?", repoID, sha)
 		if err != nil {
 			return 0, fmt.Errorf("update2 failed: %w", err)
