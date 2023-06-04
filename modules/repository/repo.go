@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
-	"path"
 	"strings"
 	"time"
 
@@ -27,8 +25,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-
-	config "github.com/go-git/go-git/v5/config"
 )
 
 /*
@@ -241,26 +237,11 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 
 // cleanUpMigrateGitConfig removes mirror info which prevents "push --all".
 // This also removes possible user credentials.
-func cleanUpMigrateGitConfig(configPath string) error {
-	f, err := os.Open(configPath)
-	if err != nil {
-		return fmt.Errorf("open config file: %w", err)
-	}
-	cfg, err := config.ReadConfig(f)
-	if err != nil {
-		f.Close()
-		return fmt.Errorf("read config: %w", err)
-	}
-	delete(cfg.Remotes, "origin")
-	bs, err := cfg.Marshal()
-	if err != nil {
-		f.Close()
-		return fmt.Errorf("marshal config file: %w", err)
-	}
-
-	stat, _ := f.Stat()
-	f.Close()
-	return os.WriteFile(configPath, bs, stat.Mode())
+func cleanUpMigrateGitConfig(ctx context.Context, repoPath string) error {
+	cmd := git.NewCommand(ctx, "remote", "rm", "origin")
+	return cmd.Run(&git.RunOpts{
+		Dir: repoPath,
+	})
 }
 
 // CleanUpMigrateInfo finishes migrating repository and/or wiki with things that don't need to be done for mirrors.
@@ -281,7 +262,7 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 	}
 
 	if repo.HasWiki() {
-		if err := cleanUpMigrateGitConfig(path.Join(repo.WikiPath(), "config")); err != nil {
+		if err := cleanUpMigrateGitConfig(ctx, repo.WikiPath()); err != nil {
 			return repo, fmt.Errorf("cleanUpMigrateGitConfig (wiki): %w", err)
 		}
 	}
