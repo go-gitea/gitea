@@ -239,9 +239,17 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 // This also removes possible user credentials.
 func cleanUpMigrateGitConfig(ctx context.Context, repoPath string) error {
 	cmd := git.NewCommand(ctx, "remote", "rm", "origin")
-	return cmd.Run(&git.RunOpts{
+	// if the origin does not exist
+	stdout, _, err := cmd.RunStdString(&git.RunOpts{
 		Dir: repoPath,
 	})
+	if err != nil {
+		return err
+	}
+	if strings.HasPrefix(stdout, "fatal: No such remote") || stdout == "" {
+		return nil
+	}
+	return errors.New(stdout)
 }
 
 // CleanUpMigrateInfo finishes migrating repository and/or wiki with things that don't need to be done for mirrors.
