@@ -171,10 +171,28 @@ func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook
 
 	// Avoid sending "0 new commits" to non-integration relevant webhooks (e.g. slack, discord, etc.).
 	// Integration webhooks (e.g. drone) still receive the required data.
+	/** old code Commits
 	if pushEvent, ok := p.(*api.PushPayload); ok &&
 		w.Type != webhook_module.GITEA && w.Type != webhook_module.GOGS &&
 		len(pushEvent.Commits) == 0 {
 		return nil
+	}
+	*/
+
+	/**
+	 * new code Commits
+	 * @date 2023.06.04 23:55
+	 */
+	pushEvent, ok := p.(*api.PushPayload)
+	if ok {
+		// 字符串查找 有则返回true
+		if w.Type != webhook_module.GITEA && w.Type != webhook_module.GOGS &&
+			len(pushEvent.Commits) == 0 {
+			return nil
+		} else if w.CommitFilter != "" && !strings.Contains(pushEvent.Commits[0].Message, w.CommitFilter) {
+			log.Info("Commit message %q doesn't match commit filter %q, skipping", pushEvent.Commits[0].Message, w.CommitFilter)
+			return nil
+		}
 	}
 
 	// If payload has no associated branch (e.g. it's a new tag, issue, etc.),

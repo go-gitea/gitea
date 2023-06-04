@@ -252,6 +252,7 @@ type WebhookForm struct {
 	Package                  bool
 	Active                   bool
 	BranchFilter             string `binding:"GlobPattern"`
+	CommitFilter             string
 	AuthorizationHeader      string
 }
 

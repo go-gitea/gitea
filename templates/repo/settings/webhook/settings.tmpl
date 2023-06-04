@@ -258,6 +258,13 @@
 	<span class="help">{{.locale.Tr "repo.settings.branch_filter_desc" | Str2html}}</span>
 </div>
 
+<!-- Commit filter 提交内容过滤 -->
+<div class="field">
+	<label for="commit_filter">{{.locale.Tr "repo.settings.commit_filter"}}</label>
+	<input name="commit_filter" type="text" tabindex="0" value="{{or .Webhook.CommitFilter "*"}}">
+	<span class="help">{{.locale.Tr "repo.settings.commit_filter_desc" | Str2html}}</span>
+</div>
+
 <!-- Authorization Header -->
 <div class="field{{if eq .HookType "matrix"}} required{{end}}">
 	<label for="authorization_header">{{.locale.Tr "repo.settings.authorization_header"}}</label>

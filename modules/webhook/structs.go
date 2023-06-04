@@ -34,6 +34,6 @@ type HookEvent struct {
 	SendEverything bool   `json:"send_everything"`
 	ChooseEvents   bool   `json:"choose_events"`
 	BranchFilter   string `json:"branch_filter"`
-
-	HookEvents `json:"events"`
+	CommitFilter   string `json:"commit_filter"`
+	HookEvents     `json:"events"`
 }

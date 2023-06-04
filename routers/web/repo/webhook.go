@@ -183,6 +183,7 @@ func ParseHookEvent(form forms.WebhookForm) *webhook_module.HookEvent {
 			Package:                  form.Package,
 		},
 		BranchFilter: form.BranchFilter,
+		CommitFilter: form.CommitFilter,
 	}
 }
 
