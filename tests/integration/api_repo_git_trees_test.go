@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -28,7 +29,7 @@ func TestAPIReposGitTrees(t *testing.T) {
 
 	// Login as User2.
 	session := loginUser(t, user2.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
 	// Test a public repo that anyone can GET the tree of
 	for _, ref := range [...]string{

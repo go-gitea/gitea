@@ -44,42 +44,43 @@ To use the Authorization Code Grant as a third party application it is required 
 
 ## Scopes
 
-Gitea supports the following scopes for tokens:
+Gitea supports scoped access tokens, which allow users the ability to restrict tokens to operate only on selected url routes. Scopes are grouped by high-level API routes, and further refined to the following:
 
-| Name | Description |
-| ---- | ----------- |
-| **(no scope)** | Grants read-only access to public user profile and public repositories. |
-| **repo** | Full control over all repositories. |
-| &nbsp;&nbsp;&nbsp; **repo:status** | Grants read/write access to commit status in all repositories. |
-| &nbsp;&nbsp;&nbsp; **public_repo** | Grants read/write access to public repositories only. |
-| **admin:repo_hook** | Grants access to repository hooks of all repositories. This is included in the `repo` scope. |
-| &nbsp;&nbsp;&nbsp; **write:repo_hook** | Grants read/write access to repository hooks |
-| &nbsp;&nbsp;&nbsp; **read:repo_hook** | Grants read-only access to repository hooks |
-| **admin:org** | Grants full access to organization settings |
-| &nbsp;&nbsp;&nbsp; **write:org** | Grants read/write access to organization settings |
-| &nbsp;&nbsp;&nbsp; **read:org** | Grants read-only access to organization settings |
-| **admin:public_key** | Grants full access for managing public keys |
-| &nbsp;&nbsp;&nbsp; **write:public_key** | Grant read/write access to public keys |
-| &nbsp;&nbsp;&nbsp; **read:public_key** | Grant read-only access to public keys |
-| **admin:org_hook** | Grants full access to organizational-level hooks |
-| **admin:user_hook** | Grants full access to user-level hooks |
-| **notification** | Grants full access to notifications |
-| **user** | Grants full access to user profile info |
-| &nbsp;&nbsp;&nbsp; **read:user** | Grants read access to user's profile |
-| &nbsp;&nbsp;&nbsp; **user:email** | Grants read access to user's email addresses |
-| &nbsp;&nbsp;&nbsp; **user:follow** | Grants access to follow/un-follow a user |
-| **delete_repo** | Grants access to delete repositories as an admin |
-| **package** | Grants full access to hosted packages |
-| &nbsp;&nbsp;&nbsp; **write:package** | Grants read/write access to packages |
-| &nbsp;&nbsp;&nbsp; **read:package** | Grants read access to packages |
-| &nbsp;&nbsp;&nbsp; **delete:package** | Grants delete access to packages |
-| **admin:gpg_key** | Grants full access for managing GPG keys |
-| &nbsp;&nbsp;&nbsp; **write:gpg_key** | Grants read/write access to GPG keys |
-| &nbsp;&nbsp;&nbsp; **read:gpg_key** | Grants read-only access to GPG keys |
-| **admin:application** | Grants full access to manage applications |
-| &nbsp;&nbsp;&nbsp; **write:application** | Grants read/write access for managing applications |
-| &nbsp;&nbsp;&nbsp; **read:application** | Grants read access for managing applications |
-| **sudo** | Allows to perform actions as the site admin. |
+- `read`: `GET` routes
+- `write`: `POST`, `PUT`, `PATCH`, and `DELETE` routes (in addition to `GET`)
+
+Gitea token scopes are as follows:
+
+| Name | Description                                                                                                                                      |
+| ---- |--------------------------------------------------------------------------------------------------------------------------------------------------|
+| **(no scope)** | Not supported. A scope is required even for public repositories.                                                                                 |
+| **activitypub** | `activitypub` API routes: ActivityPub related operations.                                                                                        |
+| &nbsp;&nbsp;&nbsp; **read:activitypub** | Grants read access for ActivityPub operations.                                                                                                   |
+| &nbsp;&nbsp;&nbsp; **write:activitypub** | Grants read/write/delete access for ActivityPub operations.                                                                                      |
+| **admin** | `/admin/*` API routes: Site-wide administrative operations (hidden for non-admin accounts).                                                      |
+| &nbsp;&nbsp;&nbsp; **read:admin** | Grants read access for admin operations, such as getting cron jobs or registered user emails.                                                    |
+| &nbsp;&nbsp;&nbsp; **write:admin** | Grants read/write/delete access for admin operations, such as running cron jobs or updating user accounts.                                              |                                                         |
+| **issue** | `issues/*`, `labels/*`, `milestones/*` API routes: Issue-related operations.                                                                     |
+| &nbsp;&nbsp;&nbsp; **read:issue** | Grants read access for issues operations, such as getting issue comments, issue attachments, and milestones.                                     |
+| &nbsp;&nbsp;&nbsp; **write:issue** | Grants read/write/delete access for issues operations, such as posting or editing an issue comment or attachment, and updating milestones.              |
+| **misc** | miscellaneous and settings top-level API routes.                                                                                                 |
+| &nbsp;&nbsp;&nbsp; **read:misc** | Grants read access to miscellaneous operations, such as getting label and gitignore templates.                                                   |
+| &nbsp;&nbsp;&nbsp; **write:misc** | Grants read/write/delete access to miscellaneous operations, such as markup utility operations.                                                         |
+| **notification** | `notification/*` API routes: user notification operations.                                                                                       |
+| &nbsp;&nbsp;&nbsp; **read:notification** | Grants read access to user notifications, such as which notifications users are subscribed to and read new notifications.                        |
+| &nbsp;&nbsp;&nbsp; **write:notification** | Grants read/write/delete access to user notifications, such as marking notifications as read.                                                           |
+| **organization** | `orgs/*` and `teams/*` API routes: Organization and team management operations.                                                                  |
+| &nbsp;&nbsp;&nbsp; **read:organization** | Grants read access to org and team status, such as listing all orgs a user has visibility to, teams, and team members.                           |
+| &nbsp;&nbsp;&nbsp; **write:organization** | Grants read/write/delete access to org and team status, such as creating and updating teams and updating org settings.                                  |
+| **package** | `/packages/*` API routes: Packages operations                                                                                                    |
+| &nbsp;&nbsp;&nbsp; **read:package** | Grants read access to package operations, such as reading and downloading available packages.                                                    |
+| &nbsp;&nbsp;&nbsp; **write:package** | Grants read/write/delete access to package operations. Currently the same as `read:package`.                                                            |
+| **repository** | `/repos/*` API routes except `/repos/issues/*`: Repository file, pull-request, and release operations.                                           |
+| &nbsp;&nbsp;&nbsp; **read:repository** | Grants read access to repository operations, such as getting repository files, releases, collaborators.                                          |
+| &nbsp;&nbsp;&nbsp; **write:repository** | Grants read/write/delete access to repository operations, such as getting updating repository files, creating pull requests, updating collaborators.    |
+| **user** | `/user/*` and `/users/*` API routes: User-related operations.                                                                                    |
+| &nbsp;&nbsp;&nbsp; **read:user** | Grants read access to user operations, such as getting user repo subscriptions and user settings.                                                |
+| &nbsp;&nbsp;&nbsp; **write:user** | Grants read/write/delete access to user operations, such as updating user repo subscriptions, followed users, and user settings.                        |
 
 ## Client types
 
