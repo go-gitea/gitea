@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -123,10 +124,10 @@ func CheckCreateRepository(doer, u *user_model.User, name string, overwriteOrAdo
 		return ErrRepoAlreadyExist{u.Name, name}
 	}
 
-	repoPath := RepoPath(u.Name, name)
-	isExist, err := util.IsExist(repoPath)
+	repoRelPath := storage.RepoRelPath(u.Name, name)
+	isExist, err := storage.IsExist(repoRelPath)
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+		log.Error("Unable to check if %s exists. Error: %v", repoRelPath, err)
 		return err
 	}
 	if !overwriteOrAdopt && isExist {
@@ -154,19 +155,20 @@ func ChangeRepositoryName(doer *user_model.User, repo *Repository, newRepoName s
 		return ErrRepoAlreadyExist{repo.Owner.Name, newRepoName}
 	}
 
-	newRepoPath := RepoPath(repo.Owner.Name, newRepoName)
-	if err = util.Rename(repo.RepoPath(), newRepoPath); err != nil {
+	repoRelPath := storage.RepoRelPath(repo.OwnerName, repo.Name)
+	newRepoRelPath := storage.RepoRelPath(repo.Owner.Name, newRepoName)
+	if err = storage.Rename(repoRelPath, newRepoRelPath); err != nil {
 		return fmt.Errorf("rename repository directory: %w", err)
 	}
 
-	wikiPath := repo.WikiPath()
-	isExist, err := util.IsExist(wikiPath)
+	wikiRelPath := storage.WikiRelPath(repo.OwnerName, repo.Name)
+	isExist, err := storage.IsExist(wikiRelPath)
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", wikiPath, err)
+		log.Error("Unable to check if %s exists. Error: %v", wikiRelPath, err)
 		return err
 	}
 	if isExist {
-		if err = util.Rename(wikiPath, WikiPath(repo.Owner.Name, newRepoName)); err != nil {
+		if err = storage.Rename(wikiRelPath, storage.WikiRelPath(repo.Owner.Name, newRepoName)); err != nil {
 			return fmt.Errorf("rename repository wiki: %w", err)
 		}
 	}

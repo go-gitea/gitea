@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	git_storage "code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -279,7 +280,7 @@ func GetArchive(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	repoPath := repo_model.RepoPath(ctx.Params(":username"), ctx.Params(":reponame"))
+	repoPath := git_storage.RepoPath(ctx.Params(":username"), ctx.Params(":reponame"))
 	if ctx.Repo.GitRepo == nil {
 		gitRepo, err := git.OpenRepository(ctx, repoPath)
 		if err != nil {

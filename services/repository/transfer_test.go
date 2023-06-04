@@ -14,9 +14,9 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/notification/action"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -42,10 +42,10 @@ func TestTransferOwnership(t *testing.T) {
 	transferredRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 	assert.EqualValues(t, 2, transferredRepo.OwnerID)
 
-	exist, err := util.IsExist(repo_model.RepoPath("user3", "repo3"))
+	exist, err := storage.IsExist(storage.RepoRelPath("user3", "repo3"))
 	assert.NoError(t, err)
 	assert.False(t, exist)
-	exist, err = util.IsExist(repo_model.RepoPath("user2", "repo3"))
+	exist, err = storage.IsExist(storage.RepoRelPath("user2", "repo3"))
 	assert.NoError(t, err)
 	assert.True(t, exist)
 	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{

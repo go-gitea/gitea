@@ -9,7 +9,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/url"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -897,11 +896,6 @@ func GetInactiveUsers(ctx context.Context, olderThan time.Duration) ([]*User, er
 	return users, db.GetEngine(ctx).
 		Where(cond).
 		Find(&users)
-}
-
-// UserPath returns the path absolute path of user repositories.
-func UserPath(userName string) string { //revive:disable-line:exported
-	return filepath.Join(setting.RepoRootPath, strings.ToLower(userName))
 }
 
 // GetUserByID returns the user object by given ID if exists.

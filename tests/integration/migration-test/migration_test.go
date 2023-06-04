@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/testlogger"
@@ -63,10 +64,10 @@ func initMigrationTest(t *testing.T) func() {
 
 	unittest.InitSettings()
 
-	assert.True(t, len(setting.RepoRootPath) != 0)
-	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
-	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
-	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
+	assert.True(t, storage.IsConfigured())
+	assert.NoError(t, storage.RemoveAll(""))
+	assert.NoError(t, storage.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), ""))
+	ownerDirs, err := storage.ReadDir("")
 	if err != nil {
 		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
 	}
@@ -74,15 +75,12 @@ func initMigrationTest(t *testing.T) func() {
 		if !ownerDir.Type().IsDir() {
 			continue
 		}
-		repoDirs, err := os.ReadDir(filepath.Join(setting.RepoRootPath, ownerDir.Name()))
+		repoDirs, err := storage.ReadDir(ownerDir.Name())
 		if err != nil {
 			assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
 		}
 		for _, repoDir := range repoDirs {
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0o755)
+			storage.MakeRepoDir(storage.RepoRelPath(ownerDir.Name(), repoDir.Name()))
 		}
 	}
 

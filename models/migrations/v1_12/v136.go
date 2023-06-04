@@ -6,11 +6,10 @@ package v1_12 //nolint
 import (
 	"fmt"
 	"math"
-	"path/filepath"
-	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -85,8 +84,8 @@ func AddCommitDivergenceToPulls(x *xorm.Engine) error {
 				log.Error("Missing base repo with id %d for PR ID %d", pr.BaseRepoID, pr.ID)
 				continue
 			}
-			userPath := filepath.Join(setting.RepoRootPath, strings.ToLower(baseRepo.OwnerName))
-			repoPath := filepath.Join(userPath, strings.ToLower(baseRepo.Name)+".git")
+
+			repoPath := storage.RepoPath(baseRepo.OwnerName, baseRepo.Name)
 
 			gitRefName := fmt.Sprintf("refs/pull/%d/head", pr.Index)
 

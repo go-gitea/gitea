@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -302,9 +303,9 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 
 	r.URL.Path = strings.ToLower(r.URL.Path) // blue: In case some repo name has upper case name
 
-	dir := repo_model.RepoPath(username, reponame)
+	dir := storage.RepoPath(username, reponame)
 	if isWiki {
-		dir = repo_model.RepoPath(username, wikiRepoName)
+		dir = storage.RepoPath(username, wikiRepoName)
 	}
 
 	return &serviceHandler{cfg, w, r, dir, cfg.Env}

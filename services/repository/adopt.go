@@ -16,6 +16,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -54,10 +55,10 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts repo_mo
 	}
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		repoPath := repo_model.RepoPath(u.Name, repo.Name)
-		isExist, err := util.IsExist(repoPath)
+		repoRelPath := storage.RepoRelPath(u.Name, repo.Name)
+		isExist, err := storage.IsExist(repoRelPath)
 		if err != nil {
-			log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+			log.Error("Unable to check if %s exists. Error: %v", repoRelPath, err)
 			return err
 		}
 		if !isExist {
@@ -70,7 +71,7 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts repo_mo
 		if err := repo_module.CreateRepositoryByExample(ctx, doer, u, repo, true, false); err != nil {
 			return err
 		}
-		if err := adoptRepository(ctx, repoPath, doer, repo, opts); err != nil {
+		if err := adoptRepository(ctx, storage.LocalPath(repoRelPath), doer, repo, opts); err != nil {
 			return fmt.Errorf("createDelegateHooks: %w", err)
 		}
 		if err := repo_module.CheckDaemonExportOK(ctx, repo); err != nil {
@@ -84,6 +85,7 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts repo_mo
 			}
 		}
 
+		repoPath := storage.LocalPath(repoRelPath)
 		if stdout, _, err := git.NewCommand(ctx, "update-server-info").
 			SetDescription(fmt.Sprintf("CreateRepository(git update-server-info): %s", repoPath)).
 			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
@@ -193,10 +195,10 @@ func DeleteUnadoptedRepository(ctx context.Context, doer, u *user_model.User, re
 		return err
 	}
 
-	repoPath := repo_model.RepoPath(u.Name, repoName)
-	isExist, err := util.IsExist(repoPath)
+	repoRelPath := storage.RepoRelPath(u.Name, repoName)
+	isExist, err := storage.IsExist(repoRelPath)
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+		log.Error("Unable to check if %s exists. Error: %v", repoRelPath, err)
 		return err
 	}
 	if !isExist {
@@ -215,7 +217,7 @@ func DeleteUnadoptedRepository(ctx context.Context, doer, u *user_model.User, re
 		}
 	}
 
-	return util.RemoveAll(repoPath)
+	return storage.RemoveAll(repoRelPath)
 }
 
 type unadoptedRepositories struct {

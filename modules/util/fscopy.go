@@ -1,7 +1,7 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package unittest
+package util
 
 import (
 	"errors"
@@ -9,8 +9,6 @@ import (
 	"os"
 	"path"
 	"strings"
-
-	"code.gitea.io/gitea/modules/util"
 )
 
 // Copy copies file from source to target path.
@@ -64,7 +62,7 @@ func Copy(src, dest string) error {
 func CopyDir(srcPath, destPath string, filters ...func(filePath string) bool) error {
 	// Check if target directory exists.
 	if _, err := os.Stat(destPath); !errors.Is(err, os.ErrNotExist) {
-		return util.NewAlreadyExistErrorf("file or directory already exists: %s", destPath)
+		return NewAlreadyExistErrorf("file or directory already exists: %s", destPath)
 	}
 
 	err := os.MkdirAll(destPath, os.ModePerm)
@@ -73,7 +71,7 @@ func CopyDir(srcPath, destPath string, filters ...func(filePath string) bool) er
 	}
 
 	// Gather directory info.
-	infos, err := util.StatDir(srcPath, true)
+	infos, err := StatDir(srcPath, true)
 	if err != nil {
 		return err
 	}

@@ -4,14 +4,11 @@
 package setting
 
 import (
-	"path/filepath"
-
 	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git/storage"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -28,7 +25,6 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	action := ctx.FormString("action")
 
 	ctxUser := ctx.Doer
-	root := user_model.UserPath(ctxUser.LowerName)
 
 	// check not a repo
 	has, err := repo_model.IsRepositoryModelExist(ctx, ctxUser, dir)
@@ -37,7 +33,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 		return
 	}
 
-	isDir, err := util.IsDir(filepath.Join(root, dir+".git"))
+	isDir, err := storage.IsDir(storage.RepoRelPath(ctxUser.LowerName, dir))
 	if err != nil {
 		ctx.ServerError("IsDir", err)
 		return

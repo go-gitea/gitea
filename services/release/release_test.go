@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/services/attachment"
 
 	"github.com/stretchr/testify/assert"
@@ -30,7 +31,7 @@ func TestRelease_Create(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	repoPath := repo_model.RepoPath(user.Name, repo.Name)
+	repoPath := storage.RepoPath(user.Name, repo.Name)
 
 	gitRepo, err := git.OpenRepository(git.DefaultContext, repoPath)
 	assert.NoError(t, err)
@@ -136,7 +137,7 @@ func TestRelease_Update(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	repoPath := repo_model.RepoPath(user.Name, repo.Name)
+	repoPath := storage.RepoPath(user.Name, repo.Name)
 
 	gitRepo, err := git.OpenRepository(git.DefaultContext, repoPath)
 	assert.NoError(t, err)
@@ -279,7 +280,7 @@ func TestRelease_createTag(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	repoPath := repo_model.RepoPath(user.Name, repo.Name)
+	repoPath := storage.RepoPath(user.Name, repo.Name)
 
 	gitRepo, err := git.OpenRepository(git.DefaultContext, repoPath)
 	assert.NoError(t, err)

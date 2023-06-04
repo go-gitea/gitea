@@ -20,12 +20,12 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 
 	"gopkg.in/ini.v1" //nolint:depguard
 )
@@ -54,8 +54,6 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	repo *repo_model.Repository, opts migration.MigrateOptions,
 	httpTransport *http.Transport,
 ) (*repo_model.Repository, error) {
-	repoPath := repo_model.RepoPath(u.Name, opts.RepoName)
-
 	if u.IsOrganization() {
 		t, err := organization.OrgFromUser(u).GetOwnerTeam(ctx)
 		if err != nil {
@@ -69,10 +67,12 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	migrateTimeout := time.Duration(setting.Git.Timeout.Migrate) * time.Second
 
 	var err error
-	if err = util.RemoveAll(repoPath); err != nil {
-		return repo, fmt.Errorf("Failed to remove %s: %w", repoPath, err)
+	repoRelPath := storage.RepoRelPath(u.Name, opts.RepoName)
+	if err = storage.RemoveAll(repoRelPath); err != nil {
+		return repo, fmt.Errorf("Failed to remove %s: %w", repoRelPath, err)
 	}
 
+	repoPath := storage.LocalPath(repoRelPath)
 	if err = git.Clone(ctx, opts.CloneAddr, repoPath, git.CloneRepoOptions{
 		Mirror:        true,
 		Quiet:         true,
@@ -90,12 +90,14 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	}
 
 	if opts.Wiki {
-		wikiPath := repo_model.WikiPath(u.Name, opts.RepoName)
+		wikiRelPath := storage.WikiRelPath(u.Name, opts.RepoName)
 		wikiRemotePath := WikiRemoteURL(ctx, opts.CloneAddr)
 		if len(wikiRemotePath) > 0 {
-			if err := util.RemoveAll(wikiPath); err != nil {
-				return repo, fmt.Errorf("Failed to remove %s: %w", wikiPath, err)
+			if err := storage.RemoveAll(wikiRelPath); err != nil {
+				return repo, fmt.Errorf("Failed to remove %s: %w", wikiRelPath, err)
 			}
+
+			wikiPath := storage.LocalPath(wikiRelPath)
 
 			if err := git.Clone(ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
 				Mirror:        true,
@@ -105,8 +107,8 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 				SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 			}); err != nil {
 				log.Warn("Clone wiki: %v", err)
-				if err := util.RemoveAll(wikiPath); err != nil {
-					return repo, fmt.Errorf("Failed to remove %s: %w", wikiPath, err)
+				if err := storage.RemoveAll(wikiRelPath); err != nil {
+					return repo, fmt.Errorf("Failed to remove %s: %w", wikiRelPath, err)
 				}
 			} else {
 				if err := git.WriteCommitGraph(ctx, wikiPath); err != nil {

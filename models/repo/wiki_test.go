@@ -4,12 +4,11 @@
 package repo_test
 
 import (
-	"path/filepath"
 	"testing"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/git/storage"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -25,14 +24,13 @@ func TestRepository_WikiCloneLink(t *testing.T) {
 
 func TestWikiPath(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	expected := filepath.Join(setting.RepoRootPath, "user2/repo1.wiki.git")
-	assert.Equal(t, expected, repo_model.WikiPath("user2", "repo1"))
+	assert.Equal(t, "user2/repo1.wiki.git", storage.WikiRelPath("user2", "repo1"))
 }
 
 func TestRepository_WikiPath(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	expected := filepath.Join(setting.RepoRootPath, "user2/repo1.wiki.git")
+	expected := storage.LocalPath("user2/repo1.wiki.git")
 	assert.Equal(t, expected, repo.WikiPath())
 }
 

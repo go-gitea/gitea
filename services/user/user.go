@@ -19,10 +19,10 @@ import (
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/eventsource"
+	git_storage "code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/agit"
 	"code.gitea.io/gitea/services/packages"
 	container_service "code.gitea.io/gitea/services/packages/container"
@@ -101,7 +101,7 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string) err
 	}
 
 	// Do not fail if directory does not exist
-	if err = util.Rename(user_model.UserPath(oldUserName), user_model.UserPath(newUserName)); err != nil && !os.IsNotExist(err) {
+	if err = git_storage.Rename(git_storage.UserRelPath(oldUserName), git_storage.UserRelPath(newUserName)); err != nil && !os.IsNotExist(err) {
 		u.Name = oldUserName
 		u.LowerName = strings.ToLower(oldUserName)
 		return fmt.Errorf("rename user directory: %w", err)
@@ -110,7 +110,7 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string) err
 	if err = committer.Commit(); err != nil {
 		u.Name = oldUserName
 		u.LowerName = strings.ToLower(oldUserName)
-		if err2 := util.Rename(user_model.UserPath(newUserName), user_model.UserPath(oldUserName)); err2 != nil && !os.IsNotExist(err2) {
+		if err2 := git_storage.Rename(git_storage.UserRelPath(newUserName), git_storage.UserRelPath(oldUserName)); err2 != nil && !os.IsNotExist(err2) {
 			log.Critical("Unable to rollback directory change during failed username change from: %s to: %s. DB Error: %v. Filesystem Error: %v", oldUserName, newUserName, err, err2)
 			return fmt.Errorf("failed to rollback directory change during failed username change from: %s to: %s. DB Error: %w. Filesystem Error: %v", oldUserName, newUserName, err, err2)
 		}
@@ -273,8 +273,8 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 
 	// Note: There are something just cannot be roll back,
 	//	so just keep error logs of those operations.
-	path := user_model.UserPath(u.Name)
-	if err := util.RemoveAll(path); err != nil {
+	path := git_storage.UserRelPath(u.Name)
+	if err := git_storage.RemoveAll(path); err != nil {
 		err = fmt.Errorf("Failed to RemoveAll %s: %w", path, err)
 		_ = system_model.CreateNotice(ctx, system_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
 		return err

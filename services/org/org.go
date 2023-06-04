@@ -12,9 +12,8 @@ import (
 	org_model "code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
+	git_storage "code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/util"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
@@ -52,9 +51,8 @@ func DeleteOrganization(org *org_model.Organization) error {
 	// FIXME: system notice
 	// Note: There are something just cannot be roll back,
 	//	so just keep error logs of those operations.
-	path := user_model.UserPath(org.Name)
-
-	if err := util.RemoveAll(path); err != nil {
+	path := git_storage.UserRelPath(org.Name)
+	if err := git_storage.RemoveAll(path); err != nil {
 		return fmt.Errorf("failed to RemoveAll %s: %w", path, err)
 	}
 

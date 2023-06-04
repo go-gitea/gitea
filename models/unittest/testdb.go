@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -17,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
+	git_storage "code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
@@ -139,17 +141,17 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 		fatalTestError("models.Init: %v\n", err)
 	}
 
-	if err = util.RemoveAll(repoRootPath); err != nil {
-		fatalTestError("util.RemoveAll: %v\n", err)
+	if err = git_storage.RemoveAll(""); err != nil {
+		fatalTestError("git_storage.RemoveAll: %v\n", err)
 	}
-	if err = CopyDir(filepath.Join(testOpts.GiteaRootPath, "tests", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
-		fatalTestError("util.CopyDir: %v\n", err)
+	if err = git_storage.CopyDir(filepath.Join(testOpts.GiteaRootPath, "tests", "gitea-repositories-meta"), ""); err != nil {
+		fatalTestError("git_storage.CopyDir: %v\n", err)
 	}
 
 	if err = git.InitFull(context.Background()); err != nil {
 		fatalTestError("git.Init: %v\n", err)
 	}
-	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
+	ownerDirs, err := git_storage.ReadDir("")
 	if err != nil {
 		fatalTestError("unable to read the new repo root: %v\n", err)
 	}
@@ -157,15 +159,14 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 		if !ownerDir.Type().IsDir() {
 			continue
 		}
-		repoDirs, err := os.ReadDir(filepath.Join(setting.RepoRootPath, ownerDir.Name()))
+		repoDirs, err := git_storage.ReadDir(ownerDir.Name())
 		if err != nil {
 			fatalTestError("unable to read the new repo root: %v\n", err)
 		}
 		for _, repoDir := range repoDirs {
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0o755)
+			if err := git_storage.MakeRepoDir(path.Join(ownerDir.Name(), repoDir.Name())); err != nil {
+				fatalTestError("create directories failed: %v\n", err)
+			}
 		}
 	}
 
@@ -183,7 +184,7 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 		}
 	}
 
-	if err = util.RemoveAll(repoRootPath); err != nil {
+	if err = git_storage.RemoveAll(""); err != nil {
 		fatalTestError("util.RemoveAll: %v\n", err)
 	}
 	if err = util.RemoveAll(appDataPath); err != nil {
@@ -230,22 +231,20 @@ func PrepareTestDatabase() error {
 // by tests that use the above MainTest(..) function.
 func PrepareTestEnv(t testing.TB) {
 	assert.NoError(t, PrepareTestDatabase())
-	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
+	assert.NoError(t, git_storage.RemoveAll(""))
 	metaPath := filepath.Join(giteaRoot, "tests", "gitea-repositories-meta")
-	assert.NoError(t, CopyDir(metaPath, setting.RepoRootPath))
-	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
+	assert.NoError(t, git_storage.CopyDir(metaPath, ""))
+	ownerDirs, err := git_storage.ReadDir("")
 	assert.NoError(t, err)
 	for _, ownerDir := range ownerDirs {
 		if !ownerDir.Type().IsDir() {
 			continue
 		}
-		repoDirs, err := os.ReadDir(filepath.Join(setting.RepoRootPath, ownerDir.Name()))
+		repoDirs, err := git_storage.ReadDir(ownerDir.Name())
 		assert.NoError(t, err)
 		for _, repoDir := range repoDirs {
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0o755)
+			err = git_storage.MakeRepoDir(path.Join(ownerDir.Name(), repoDir.Name()))
+			assert.NoError(t, err)
 		}
 	}
 

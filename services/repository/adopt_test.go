@@ -4,13 +4,12 @@
 package repository
 
 import (
-	"os"
 	"path"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/git/storage"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -68,7 +67,7 @@ func TestListUnadoptedRepositories_ListOptions(t *testing.T) {
 	username := "user2"
 	unadoptedList := []string{path.Join(username, "unadopted1"), path.Join(username, "unadopted2")}
 	for _, unadopted := range unadoptedList {
-		_ = os.Mkdir(path.Join(setting.RepoRootPath, unadopted+".git"), 0o755)
+		_ = storage.MakeRepoDir(unadopted)
 	}
 
 	opts := db.ListOptions{Page: 1, PageSize: 1}

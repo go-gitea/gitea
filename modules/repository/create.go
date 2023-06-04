@@ -23,6 +23,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -45,14 +46,14 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 		}
 	}
 
-	repoPath := repo_model.RepoPath(u.Name, repo.Name)
-	isExist, err := util.IsExist(repoPath)
+	repoRelPath := storage.RepoRelPath(u.Name, repo.Name)
+	isExist, err := storage.IsExist(repoRelPath)
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+		log.Error("Unable to check if %s exists. Error: %v", repoRelPath, err)
 		return err
 	}
 	if !overwriteOrAdopt && isExist {
-		log.Error("Files already exist in %s and we are not going to adopt or delete.", repoPath)
+		log.Error("Files already exist in %s and we are not going to adopt or delete.", repoRelPath)
 		return repo_model.ErrRepoFilesAlreadyExist{
 			Uname: u.Name,
 			Name:  repo.Name,
@@ -226,10 +227,10 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 			return nil
 		}
 
-		repoPath := repo_model.RepoPath(u.Name, repo.Name)
-		isExist, err := util.IsExist(repoPath)
+		repoRelPath := storage.RepoRelPath(u.Name, repo.Name)
+		isExist, err := storage.IsExist(repoRelPath)
 		if err != nil {
-			log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+			log.Error("Unable to check if %s exists. Error: %v", repoRelPath, err)
 			return err
 		}
 		if isExist {
@@ -240,15 +241,17 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 			//
 			// Previously Gitea would just delete and start afresh - this was naughty.
 			// So we will now fail and delegate to other functionality to adopt or delete
-			log.Error("Files already exist in %s and we are not going to adopt or delete.", repoPath)
+			log.Error("Files already exist in %s and we are not going to adopt or delete.", repoRelPath)
 			return repo_model.ErrRepoFilesAlreadyExist{
 				Uname: u.Name,
 				Name:  repo.Name,
 			}
 		}
 
+		repoPath := storage.LocalPath(repoRelPath)
+
 		if err = initRepository(ctx, repoPath, doer, repo, opts); err != nil {
-			if err2 := util.RemoveAll(repoPath); err2 != nil {
+			if err2 := storage.RemoveAll(repoRelPath); err2 != nil {
 				log.Error("initRepository: %v", err)
 				return fmt.Errorf(
 					"delete repo directory %s/%s failed(2): %v", u.Name, repo.Name, err2)

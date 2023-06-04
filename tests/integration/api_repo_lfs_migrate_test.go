@@ -5,12 +5,12 @@ package integration
 
 import (
 	"net/http"
-	"path"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -34,7 +34,7 @@ func TestAPIRepoLFSMigrateLocal(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
 
 	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate?token="+token, &api.MigrateRepoOptions{
-		CloneAddr:   path.Join(setting.RepoRootPath, "migration/lfs-test.git"),
+		CloneAddr:   storage.LocalPath("migration/lfs-test.git"),
 		RepoOwnerID: user.ID,
 		RepoName:    "lfs-test-local",
 		LFS:         true,

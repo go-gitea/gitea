@@ -9,13 +9,13 @@ import (
 	"html/template"
 	"net"
 	"net/url"
-	"path/filepath"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
@@ -469,14 +469,9 @@ func (repo *Repository) IsGenerated() bool {
 	return repo.TemplateID != 0
 }
 
-// RepoPath returns repository path by given user and repository name.
-func RepoPath(userName, repoName string) string { //revive:disable-line:exported
-	return filepath.Join(user_model.UserPath(userName), strings.ToLower(repoName)+".git")
-}
-
 // RepoPath returns the repository path
 func (repo *Repository) RepoPath() string {
-	return RepoPath(repo.OwnerName, repo.Name)
+	return storage.RepoPath(repo.OwnerName, repo.Name)
 }
 
 // Link returns the repository relative url
@@ -730,7 +725,7 @@ func IsRepositoryModelOrDirExist(ctx context.Context, u *user_model.User, repoNa
 	if err != nil {
 		return false, err
 	}
-	isDir, err := util.IsDir(RepoPath(u.Name, repoName))
+	isDir, err := storage.IsDir(storage.RepoRelPath(u.Name, repoName))
 	return has || isDir, err
 }
 

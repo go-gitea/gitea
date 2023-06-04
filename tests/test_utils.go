@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
+	git_storage "code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -190,9 +191,9 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 	assert.NoError(t, unittest.LoadFixtures())
 
 	// load git repo fixtures
-	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
-	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
-	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
+	assert.NoError(t, git_storage.RemoveAll(""))
+	assert.NoError(t, git_storage.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), ""))
+	ownerDirs, err := git_storage.ReadDir("")
 	if err != nil {
 		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
 	}
@@ -200,15 +201,12 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 		if !ownerDir.Type().IsDir() {
 			continue
 		}
-		repoDirs, err := os.ReadDir(filepath.Join(setting.RepoRootPath, ownerDir.Name()))
+		repoDirs, err := git_storage.ReadDir(ownerDir.Name())
 		if err != nil {
 			assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
 		}
 		for _, repoDir := range repoDirs {
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0o755)
+			assert.NoError(t, git_storage.MakeRepoDir(git_storage.RepoRelPath(ownerDir.Name(), repoDir.Name())))
 		}
 	}
 

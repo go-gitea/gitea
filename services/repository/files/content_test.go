@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/storage"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 
@@ -236,7 +236,7 @@ func TestGetBlobBySHA(t *testing.T) {
 	ctx.SetParams(":id", "1")
 	ctx.SetParams(":sha", sha)
 
-	gitRepo, err := git.OpenRepository(ctx, repo_model.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name))
+	gitRepo, err := git.OpenRepository(ctx, storage.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name))
 	if err != nil {
 		t.Fail()
 	}

@@ -25,6 +25,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/storage"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
@@ -242,7 +243,7 @@ func TestCantMergeConflict(t *testing.T) {
 			BaseBranch: "base",
 		})
 
-		gitRepo, err := git.OpenRepository(git.DefaultContext, repo_model.RepoPath(user1.Name, repo1.Name))
+		gitRepo, err := git.OpenRepository(git.DefaultContext, storage.RepoPath(user1.Name, repo1.Name))
 		assert.NoError(t, err)
 
 		err = pull.Merge(context.Background(), pr, user1, gitRepo, repo_model.MergeStyleMerge, "", "CONFLICT", false)
@@ -271,7 +272,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 			OwnerID: user1.ID,
 			Name:    "repo1",
 		})
-		path := repo_model.RepoPath(user1.Name, repo1.Name)
+		path := storage.RepoPath(user1.Name, repo1.Name)
 
 		err := git.NewCommand(git.DefaultContext, "read-tree", "--empty").Run(&git.RunOpts{Dir: path})
 		assert.NoError(t, err)

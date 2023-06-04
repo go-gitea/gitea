@@ -12,11 +12,11 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/auth"
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	mc "code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -291,7 +291,7 @@ func ReferencesGitRepo(allowEmpty ...bool) func(ctx *APIContext) (cancel context
 
 		// For API calls.
 		if ctx.Repo.GitRepo == nil {
-			repoPath := repo_model.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+			repoPath := storage.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 			gitRepo, err := git.OpenRepository(ctx, repoPath)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "RepoRef Invalid repo "+repoPath, err)

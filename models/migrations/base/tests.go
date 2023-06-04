@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/testlogger"
@@ -35,9 +36,9 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 	ourSkip := 2
 	ourSkip += skip
 	deferFn := testlogger.PrintCurrentTest(t, ourSkip)
-	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
-	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
-	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
+	assert.NoError(t, storage.RemoveAll(""))
+	assert.NoError(t, storage.CopyDir(filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), ""))
+	ownerDirs, err := storage.ReadDir("")
 	if err != nil {
 		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
 	}
@@ -45,15 +46,12 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 		if !ownerDir.Type().IsDir() {
 			continue
 		}
-		repoDirs, err := os.ReadDir(filepath.Join(setting.RepoRootPath, ownerDir.Name()))
+		repoDirs, err := storage.ReadDir(ownerDir.Name())
 		if err != nil {
 			assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
 		}
 		for _, repoDir := range repoDirs {
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0o755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0o755)
+			assert.NoError(t, storage.MakeRepoDir(path.Join(ownerDir.Name(), repoDir.Name())))
 		}
 	}
 
@@ -160,7 +158,7 @@ func MainTest(m *testing.M) {
 
 	exitStatus := m.Run()
 
-	if err := removeAllWithRetry(setting.RepoRootPath); err != nil {
+	if err := storage.RemoveAll(""); err != nil {
 		fmt.Fprintf(os.Stderr, "os.RemoveAll: %v\n", err)
 	}
 	if err := removeAllWithRetry(tmpDataPath); err != nil {
