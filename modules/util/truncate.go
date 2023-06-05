@@ -40,7 +40,7 @@ func SplitStringAtByteN(input string, n int) (left, right string) {
 }
 
 // SplitTrimSpace splits the string at given separator and trims leading and trailing space
-func SplitTrimSpace(input string, sep string) []string {
+func SplitTrimSpace(input, sep string) []string {
 	// replace CRLF with LF
 	input = strings.ReplaceAll(input, "\r\n", "\n")
 
