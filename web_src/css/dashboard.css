@@ -23,12 +23,6 @@
   justify-content: space-between;
 }
 
-.dashboard.feeds .filter.menu .item .text,
-.dashboard.issues .filter.menu .item .text {
-  height: 16px;
-  vertical-align: middle;
-}
-
 .dashboard.feeds .filter.menu .item .text.truncate,
 .dashboard.issues .filter.menu .item .text.truncate {
   width: 75%;

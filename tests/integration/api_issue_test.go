@@ -30,7 +30,7 @@ func TestAPIListIssues(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadIssue)
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/issues", owner.Name, repo.Name))
 
 	link.RawQuery = url.Values{"token": {token}, "state": {"all"}}.Encode()
@@ -81,7 +81,7 @@ func TestAPICreateIssue(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID})
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues?state=all&token=%s", owner.Name, repoBefore.Name, token)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{
 		Body:     body,
@@ -117,7 +117,7 @@ func TestAPIEditIssue(t *testing.T) {
 	assert.Equal(t, api.StateOpen, issueBefore.State())
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
 	// update values of issue
 	issueState := "closed"
@@ -171,7 +171,7 @@ func TestAPIEditIssue(t *testing.T) {
 func TestAPISearchIssues(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	token := getUserToken(t, "user2")
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadIssue)
 
 	// as this API was used in the frontend, it uses UI page size
 	expectedIssueCount := 16 // from the fixtures
@@ -180,7 +180,7 @@ func TestAPISearchIssues(t *testing.T) {
 	}
 
 	link, _ := url.Parse("/api/v1/repos/issues/search")
-	query := url.Values{"token": {getUserToken(t, "user1")}}
+	query := url.Values{"token": {getUserToken(t, "user1", auth_model.AccessTokenScopeReadIssue)}}
 	var apiIssues []*api.Issue
 
 	link.RawQuery = query.Encode()
@@ -278,7 +278,7 @@ func TestAPISearchIssuesWithLabels(t *testing.T) {
 	}
 
 	link, _ := url.Parse("/api/v1/repos/issues/search")
-	query := url.Values{"token": {getUserToken(t, "user1")}}
+	query := url.Values{"token": {getUserToken(t, "user1", auth_model.AccessTokenScopeReadIssue)}}
 	var apiIssues []*api.Issue
 
 	link.RawQuery = query.Encode()

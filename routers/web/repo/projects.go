@@ -27,10 +27,9 @@ import (
 )
 
 const (
-	tplProjects           base.TplName = "repo/projects/list"
-	tplProjectsNew        base.TplName = "repo/projects/new"
-	tplProjectsView       base.TplName = "repo/projects/view"
-	tplGenericProjectsNew base.TplName = "user/project"
+	tplProjects     base.TplName = "repo/projects/list"
+	tplProjectsNew  base.TplName = "repo/projects/new"
+	tplProjectsView base.TplName = "repo/projects/view"
 )
 
 // MustEnableProjects check if projects are enabled in settings
@@ -121,12 +120,13 @@ func Projects(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplProjects)
 }
 
-// NewProject render creating a project page
-func NewProject(ctx *context.Context) {
+// RenderNewProject render creating a project page
+func RenderNewProject(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
 	ctx.Data["BoardTypes"] = project_model.GetBoardConfig()
 	ctx.Data["CardTypes"] = project_model.GetCardConfig()
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
+	ctx.Data["CancelLink"] = ctx.Repo.Repository.Link() + "/projects"
 	ctx.HTML(http.StatusOK, tplProjectsNew)
 }
 
@@ -136,10 +136,7 @@ func NewProjectPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
 
 	if ctx.HasError() {
-		ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
-		ctx.Data["BoardTypes"] = project_model.GetBoardConfig()
-		ctx.Data["CardTypes"] = project_model.GetCardConfig()
-		ctx.HTML(http.StatusOK, tplProjectsNew)
+		RenderNewProject(ctx)
 		return
 	}
 
@@ -211,8 +208,8 @@ func DeleteProject(ctx *context.Context) {
 	})
 }
 
-// EditProject allows a project to be edited
-func EditProject(ctx *context.Context) {
+// RenderEditProject allows a project to be edited
+func RenderEditProject(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.edit")
 	ctx.Data["PageIsEditProjects"] = true
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
@@ -237,6 +234,7 @@ func EditProject(ctx *context.Context) {
 	ctx.Data["content"] = p.Description
 	ctx.Data["card_type"] = p.CardType
 	ctx.Data["redirect"] = ctx.FormString("redirect")
+	ctx.Data["CancelLink"] = fmt.Sprintf("%s/projects/%d", ctx.Repo.Repository.Link(), p.ID)
 
 	ctx.HTML(http.StatusOK, tplProjectsNew)
 }
@@ -244,17 +242,20 @@ func EditProject(ctx *context.Context) {
 // EditProjectPost response for editing a project
 func EditProjectPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateProjectForm)
+	projectID := ctx.ParamsInt64(":id")
+
 	ctx.Data["Title"] = ctx.Tr("repo.projects.edit")
 	ctx.Data["PageIsEditProjects"] = true
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 	ctx.Data["CardTypes"] = project_model.GetCardConfig()
+	ctx.Data["CancelLink"] = fmt.Sprintf("%s/projects/%d", ctx.Repo.Repository.Link(), projectID)
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplProjectsNew)
 		return
 	}
 
-	p, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
+	p, err := project_model.GetProjectByID(ctx, projectID)
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("", nil)
