@@ -169,6 +169,39 @@ docker run \
 如前所述，如果要在主机上直接运行Job，可以将其移除。
 需要明确的是，这里的 "主机" 实际上指的是当前运行 Act Runner的容器，而不是主机机器本身。
 
+### 当您使用 Docker 镜像启动 Runner，如何配置 Cache
+
+如果你不打算在工作流中使用 `actions/cache`，你可以忽略本段。
+
+如果您在使用 `actions/cache` 时没有进行额外的配置，将会返回以下错误信息：
+> Failed to restore: getCacheEntry failed: connect ETIMEDOUT <ip>:<port>
+
+这个错误的原因是 runner 容器和作业容器位于不同的网络中，因此作业容器无法访问 runner 容器。
+因此，配置 cache 动作以确保其正常运行是非常重要的。请按照以下步骤操作：
+
+- 1.获取 Runner 容器所在主机的 LAN（本地局域网） IP 地址。
+- 2.获取一个 Runner 容器所在主机的空闲端口号。
+- 3.在配置文件中如下配置：
+
+```yaml
+cache:
+enabled: true
+dir: ""
+# 使用步骤 1. 获取的 LAN IP
+host: "192.168.8.17" 
+# 使用步骤 2. 获取的端口号
+port: 8088         
+```
+
+- 4.启动容器时, 将 Cache 端口映射至主机。
+
+```bash
+docker run \
+  --name gitea-docker-runner \
+  -p 8088:8088 \ 
+  -d gitea/act_runner:nightly
+```
+
 ### 标签
 
 Runner的标签用于确定Runner可以运行哪些Job以及如何运行它们。

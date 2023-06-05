@@ -172,6 +172,40 @@ It is because the act runner will run jobs in docker containers, so it needs to 
 As mentioned, you can remove it if you want to run jobs in the host directly.
 To be clear, the "host" actually means the container which is running the act runner now, instead of the host machine.
 
+### Configuring cache when starting a Runner using docker image
+
+If you do not intend to use `actions/cache` in workflow, you can ignore this section.
+
+If you use `actions/cache` without any additional configuration, it will return the following error:
+> Failed to restore: getCacheEntry failed: connect ETIMEDOUT <ip>:<port>
+
+The error occurs because the runner container and job container are on different networks, so the job container cannot access the runner container.
+
+Therefore, it is essential to configure the cache action to ensure its proper functioning. Follow these steps:
+
+- 1.Obtain the LAN IP address of the host machine where the runner container is running.
+- 2.Find an available port number on the host machine where the runner container is running.
+- 3.Configure the following settings in the configuration file:
+
+```yaml
+cache:
+  enabled: true
+  dir: ""
+  # Use the LAN IP obtained in step 1
+  host: "192.168.8.17"
+  # Use the port number obtained in step 2
+  port: 8088
+```
+
+- 4.When starting the container, map the cache port to the host machine:
+
+```bash
+docker run \
+  --name gitea-docker-runner \
+  -p 8088:8088 \
+  -d gitea/act_runner:nightly
+```
+
 ### Labels
 
 The labels of a runner are used to determine which jobs the runner can run, and how to run them.
