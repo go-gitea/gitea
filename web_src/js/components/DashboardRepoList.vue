@@ -17,7 +17,7 @@
       </h4>
       <div class="ui attached segment repos-search">
         <div class="ui fluid right action left icon input" :class="{loading: isLoading}">
-          <input @input="changeReposFilter(reposFilter)" v-model="searchQuery" ref="search" @keydown="reposFilterKeyControl" :placeholder="textSearchRepos">
+          <input class="repos-search-input" @input="changeReposFilter(reposFilter)" v-model="searchQuery" ref="search" @keydown="reposFilterKeyControl" :placeholder="textSearchRepos">
           <i class="icon gt-df gt-ac gt-jc"><svg-icon name="octicon-search" :size="16"/></i>
           <div class="ui dropdown icon button" :title="textFilter">
             <i class="icon gt-df gt-ac gt-jc gt-m-0"><svg-icon name="octicon-filter" :size="16"/></i>
@@ -521,5 +521,14 @@ ul li:not(:last-child) {
 
 .repo-owner-name-list li.active {
   background: var(--color-hover);
+}
+
+/* prevent mobile safari zoom in on <input> by setting 16px font size */
+/* https://stackoverflow.com/questions/2989263 */
+/* https://stackoverflow.com/questions/30102792 */
+@supports (-webkit-touch-callout: none) {
+  .repos-search-input {
+    font-size: 16px;
+  }
 }
 </style>
