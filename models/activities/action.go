@@ -255,7 +255,6 @@ func (a *Action) GetRepoName() string {
 
 // GetRepoComposeMetas get the metas of the action repository.
 func (a *Action) GetRepoComposeMetas() map[string]string {
-	a.loadRepo(db.DefaultContext)
 	return a.Repo.ComposeMetas()
 }
 
