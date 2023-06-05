@@ -29,10 +29,6 @@ func (o *OpenIDProvider) Image() string {
 	return "/assets/img/svg/gitea-openid.svg"
 }
 
-func (o *OpenIDProvider) SvgName() string {
-	return "gitea-openid"
-}
-
 // CreateGothProvider creates a GothProvider from this Provider
 func (o *OpenIDProvider) CreateGothProvider(providerName, callbackURL string, source *Source) (goth.Provider, error) {
 	scopes := setting.OAuth2Client.OpenIDConnectScopes

@@ -20,7 +20,6 @@ type Provider interface {
 	Name() string
 	DisplayName() string
 	Image() string
-	SvgName() string
 	CustomURLSettings() *CustomURLSettings
 }
 

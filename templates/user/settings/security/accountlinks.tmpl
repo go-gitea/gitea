@@ -8,7 +8,7 @@
 					{{range $key := .OrderedOAuth2Names}}
 						{{$provider := index $.OAuth2Providers $key}}
 						<a class="item" href="{{AppSubUrl}}/user/oauth2/{{$key}}">
-							{{svg $provider.SvgName 20 "gt-mr-3"}}
+							<img class="gt-mr-3" width="20" height="20" src="{{AppSubUrl}}{{$provider.Image}}" alt="{{$provider.DisplayName}}">
 							{{$provider.DisplayName}}
 						</a>
 					{{end}}
