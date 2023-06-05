@@ -28,6 +28,17 @@
   margin: 0 !important;
 }
 
+.delete-button,
+.delete-button:hover {
+  color: var(--color-red);
+}
+
+/* try to match button with no icons in height */
+.icon-button {
+  padding-top: 7.42px !important;
+  padding-bottom: 7.42px !important;
+}
+
 /* a ghost button is a button without border with background hover/active effect */
 
 .button.button-ghost {

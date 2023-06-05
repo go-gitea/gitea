@@ -414,11 +414,6 @@ a.silenced:hover {
   text-decoration: none;
 }
 
-.delete-button,
-.delete-button:hover {
-  color: var(--color-red);
-}
-
 a.label,
 .repository-menu a,
 .ui.search .results a,
@@ -459,12 +454,6 @@ a.label,
   padding: 2px 4px;
   border-radius: 6px;
   background-color: var(--color-markup-code-block);
-}
-
-/* try to match button with no icons in height */
-.icon-button {
-  padding-top: 7.42px !important;
-  padding-bottom: 7.42px !important;
 }
 
 .ui.divider:not(.vertical,.horizontal) {
