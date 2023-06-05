@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -164,7 +163,7 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 			fatalTestError("unable to read the new repo root: %v\n", err)
 		}
 		for _, repoDir := range repoDirs {
-			if err := git_storage.MakeRepoDir(path.Join(ownerDir.Name(), repoDir.Name())); err != nil {
+			if err := git_storage.MakeRepoDir(git_storage.RepoRelPath(ownerDir.Name(), repoDir.Name())); err != nil {
 				fatalTestError("create directories failed: %v\n", err)
 			}
 		}
@@ -243,7 +242,7 @@ func PrepareTestEnv(t testing.TB) {
 		repoDirs, err := git_storage.ReadDir(ownerDir.Name())
 		assert.NoError(t, err)
 		for _, repoDir := range repoDirs {
-			err = git_storage.MakeRepoDir(path.Join(ownerDir.Name(), repoDir.Name()))
+			err = git_storage.MakeRepoDir(git_storage.RepoRelPath(ownerDir.Name(), repoDir.Name()))
 			assert.NoError(t, err)
 		}
 	}

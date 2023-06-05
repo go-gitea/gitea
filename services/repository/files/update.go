@@ -148,7 +148,10 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		opts.NewBranch = opts.OldBranch
 	}
 
+	fmt.Println("1----", repo.RepoPath())
+
 	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
+	fmt.Println("2---", err)
 	if err != nil {
 		return nil, err
 	}
@@ -263,6 +266,8 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		}
 	}
 
+	fmt.Println("3---")
+
 	if hasOldBranch {
 		// Get the commit of the original branch
 		commit, err := t.GetBranchCommit(opts.OldBranch)
@@ -294,8 +299,10 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		switch file.Operation {
 		case "create", "update":
 			if err := CreateOrUpdateFile(ctx, t, file, contentStore, repo.ID, hasOldBranch); err != nil {
+				fmt.Println("4---")
 				return nil, err
 			}
+			fmt.Println("5---")
 		case "delete":
 			// Remove the file from the index
 			if err := t.RemoveFilesFromIndex(file.TreePath); err != nil {
@@ -335,6 +342,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	}
 
 	filesResponse, err := GetFilesResponseFromCommit(ctx, repo, commit, opts.NewBranch, treePaths)
+	fmt.Println("6---", err)
 	if err != nil {
 		return nil, err
 	}

@@ -51,7 +51,7 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 			assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
 		}
 		for _, repoDir := range repoDirs {
-			assert.NoError(t, storage.MakeRepoDir(path.Join(ownerDir.Name(), repoDir.Name())))
+			assert.NoError(t, storage.MakeRepoDir(storage.RepoRelPath(ownerDir.Name(), repoDir.Name())))
 		}
 	}
 

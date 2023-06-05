@@ -65,7 +65,7 @@ func TestCheckUnadoptedRepositories(t *testing.T) {
 func TestListUnadoptedRepositories_ListOptions(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	username := "user2"
-	unadoptedList := []string{path.Join(username, "unadopted1"), path.Join(username, "unadopted2")}
+	unadoptedList := []string{path.Join(username, "unadopted1.git"), path.Join(username, "unadopted2.git")}
 	for _, unadopted := range unadoptedList {
 		_ = storage.MakeRepoDir(unadopted)
 	}
