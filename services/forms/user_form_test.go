@@ -112,12 +112,12 @@ func TestNewAccessTokenForm_GetScope(t *testing.T) {
 		expectedErr error
 	}{
 		{
-			form:  NewAccessTokenForm{Name: "test", Scope: []string{"repo"}},
-			scope: "repo",
+			form:  NewAccessTokenForm{Name: "test", Scope: []string{"read:repository"}},
+			scope: "read:repository",
 		},
 		{
-			form:  NewAccessTokenForm{Name: "test", Scope: []string{"repo", "user"}},
-			scope: "repo,user",
+			form:  NewAccessTokenForm{Name: "test", Scope: []string{"read:repository", "write:user"}},
+			scope: "read:repository,write:user",
 		},
 	}
 
