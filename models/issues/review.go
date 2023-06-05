@@ -266,7 +266,8 @@ func (opts *FindReviewOptions) toCond() builder.Cond {
 // FindReviews returns reviews passing FindReviewOptions
 func FindReviews(ctx context.Context, opts FindReviewOptions) ([]*Review, error) {
 	reviews := make([]*Review, 0, 10)
-	sess := db.GetEngine(ctx).Where(opts.toCond())
+	cond := opts.toCond()
+	sess := db.GetEngine(ctx).Where(cond)
 	if opts.Page > 0 {
 		sess = db.SetSessionPagination(sess, &opts)
 	}
@@ -274,6 +275,7 @@ func FindReviews(ctx context.Context, opts FindReviewOptions) ([]*Review, error)
 		sess.In("id", builder.
 			Select("max ( id ) ").
 			From("review").
+			Where(cond).
 			GroupBy("reviewer_id"))
 	}
 	return reviews, sess.
