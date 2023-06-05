@@ -64,6 +64,7 @@ Gitea's private styles use `g-` prefix.
 .gt-break-all { word-break: break-all !important; }
 .gt-content-center { align-content: center !important; }
 .gt-cursor-default { cursor: default !important; }
+.gt-cursor-pointer { cursor: pointer !important; }
 .gt-invisible { visibility: hidden !important; }
 .gt-items-start { align-items: flex-start !important; }
 .gt-pointer-events-none { pointer-events: none !important; }
@@ -86,11 +87,11 @@ Gitea's private styles use `g-` prefix.
 .gt-float-left { float: left !important; }
 .gt-float-right { float: right !important; }
 
-.gt-font-light { font-weight: var(--font-weight-light) !important };
-.gt-font-normal { font-weight: var(--font-weight-normal) !important };
-.gt-font-medium { font-weight: var(--font-weight-medium) !important };
-.gt-font-semibold { font-weight: var(--font-weight-semibold) !important };
-.gt-font-bold { font-weight: var(--font-weight-bold) !important };
+.gt-font-light { font-weight: var(--font-weight-light) !important; }
+.gt-font-normal { font-weight: var(--font-weight-normal) !important; }
+.gt-font-medium { font-weight: var(--font-weight-medium) !important; }
+.gt-font-semibold { font-weight: var(--font-weight-semibold) !important; }
+.gt-font-bold { font-weight: var(--font-weight-bold) !important; }
 
 .gt-rounded { border-radius: var(--border-radius) !important; }
 .gt-rounded-top { border-radius: var(--border-radius) var(--border-radius) 0 0 !important; }

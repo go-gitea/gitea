@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -64,10 +65,10 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 
 	// Get user2's token
 	session := loginUser(t, user2.Name)
-	token2 := getTokenForLoggedInUser(t, session)
+	token2 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 	// Get user4's token
 	session = loginUser(t, user4.Name)
-	token4 := getTokenForLoggedInUser(t, session)
+	token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
 	// Make a new branch in repo1
 	newBranch := "test_branch"

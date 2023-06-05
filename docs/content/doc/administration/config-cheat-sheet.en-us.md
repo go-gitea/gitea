@@ -141,6 +141,7 @@ In addition there is _`StaticRootPath`_ which can be set as a built-in at build 
 ### Repository - Issue (`repository.issue`)
 
 - `LOCK_REASONS`: **Too heated,Off-topic,Resolved,Spam**: A list of reasons why a Pull Request or Issue can be locked
+- `MAX_PINNED`: **3**: Maximum number of pinned Issues per Repo. Set to 0 to disable pinning Issues.
 
 ### Repository - Upload (`repository.upload`)
 
@@ -220,7 +221,6 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `SHOW_USER_EMAIL`: **true**: Whether the email of the user should be shown in the Explore Users page.
 - `THEMES`:  **auto,gitea,arc-green**: All available themes. Allow users select personalized themes.
   regardless of the value of `DEFAULT_THEME`.
-- `THEME_COLOR_META_TAG`: **\<empty\>**: Value of `theme-color` meta tag, used by some mobile browsers for chrome and out-of-viewport areas. Default is unset which uses body color.
 - `MAX_DISPLAY_FILE_SIZE`: **8388608**: Max size of files to be displayed (default is 8MiB)
 - `REACTIONS`: All available reactions users can choose on issues/prs and comments
     Values can be emoji alias (:smile:) or a unicode emoji.
@@ -230,7 +230,6 @@ The following configuration set `Content-Type: application/vnd.android.package-a
     add it to this config.
 - `DEFAULT_SHOW_FULL_NAME`: **false**: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 - `SEARCH_REPO_DESCRIPTION`: **true**: Whether to search within description at repository search on explore page.
-- `USE_SERVICE_WORKER`: **false**: Whether to enable a Service Worker to cache frontend assets.
 - `ONLY_SHOW_RELEVANT_REPOS`: **false** Whether to only show relevant repos on the explore page when no keyword is specified and default sorting is used.
     A repo is considered irrelevant if it's a fork or if it has no metadata (no description, no icon, no topic).
 
@@ -465,6 +464,7 @@ relation to port exhaustion.
 - `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: Index file used for issue search; available when ISSUE_INDEXER_TYPE is bleve and elasticsearch. Relative paths will be made absolute against _`AppWorkPath`_.
 
 - `REPO_INDEXER_ENABLED`: **false**: Enables code search (uses a lot of disk space, about 6 times more than the repository size).
+- `REPO_INDEXER_REPO_TYPES`: **sources,forks,mirrors,templates**: Repo indexer units. The items to index could be `sources`, `forks`, `mirrors`, `templates` or any combination of them separated by a comma. If empty then it defaults to `sources` only, as if you'd like to disable fully please see `REPO_INDEXER_ENABLED`.
 - `REPO_INDEXER_TYPE`: **bleve**: Code search engine type, could be `bleve` or `elasticsearch`.
 - `REPO_INDEXER_PATH`: **indexers/repos.bleve**: Index file used for code search.
 - `REPO_INDEXER_CONN_STR`: ****: Code indexer connection string, available when `REPO_INDEXER_TYPE` is elasticsearch. i.e. http://elastic:changeme@localhost:9200
@@ -1063,17 +1063,14 @@ Default templates for project boards:
 - `PULL`: **300**: Git pull from internal repositories timeout seconds.
 - `GC`: **60**: Git repository GC timeout seconds.
 
-### Git - Reflog settings (`git.reflog`)
-
-- `ENABLED`: **true** Set to true to enable Git to write changes to reflogs in each repo.
-- `EXPIRATION`: **90** Reflog entry lifetime, in days. Entries are removed opportunistically by Git.
-
 ### Git - Config options (`git.config`)
 
 The key/value pairs in this section will be used as git config.
 This section only does "set" config, a removed config key from this section won't be removed from git config automatically. The format is `some.configKey = value`.
 
 - `diff.algorithm`: **histogram**
+- `core.logAllRefUpdates`: **true**
+- `gc.reflogExpire`: **90**
 
 ## Metrics (`metrics`)
 
