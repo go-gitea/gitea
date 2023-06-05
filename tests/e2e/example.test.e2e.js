@@ -16,32 +16,32 @@ test('Load Homepage', async ({page}) => {
 test('Test Register Form', async ({page}, workerInfo) => {
   const response = await page.goto('/user/sign_up');
   await expect(response?.status()).toBe(200); // Status OK
-  await page.type('input[name=user_name]', `e2e-test-${workerInfo.workerIndex}`);
-  await page.type('input[name=email]', `e2e-test-${workerInfo.workerIndex}@test.com`);
-  await page.type('input[name=password]', 'test123');
-  await page.type('input[name=retype]', 'test123');
-  await page.click('form button.ui.green.button:visible');
+  await page.locator('input#user_name').fill(`e2e-test-${workerInfo.workerIndex}`);
+  await page.locator('input#email').fill(`e2e-test-${workerInfo.workerIndex}@test.com`);
+  await page.locator('input#password').fill('test123');
+  await page.locator('input#retype').fill('test123');
+  await page.locator('form button.ui.green.button:visible').click();
   // Make sure we routed to the home page. Else login failed.
   await expect(page.url()).toBe(`${workerInfo.project.use.baseURL}/`);
   await expect(page.locator('.dashboard-navbar span>img.ui.avatar')).toBeVisible();
   await expect(page.locator('.ui.positive.message.flash-success')).toHaveText('Account was successfully created.');
 
-  save_visual(page);
+  await save_visual(page);
 });
 
 test('Test Login Form', async ({page}, workerInfo) => {
   const response = await page.goto('/user/login');
   await expect(response?.status()).toBe(200); // Status OK
 
-  await page.type('input[name=user_name]', `user2`);
-  await page.type('input[name=password]', `password`);
-  await page.click('form button.ui.green.button:visible');
+  await page.locator('input#user_name').fill('user2');
+  await page.locator('input#password').fill('password');
+  await page.locator('form button.ui.green.button:visible').click();
 
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState();
 
   await expect(page.url()).toBe(`${workerInfo.project.use.baseURL}/`);
 
-  save_visual(page);
+  await save_visual(page);
 });
 
 test('Test Logged In User', async ({browser}, workerInfo) => {
@@ -53,5 +53,5 @@ test('Test Logged In User', async ({browser}, workerInfo) => {
   // Make sure we routed to the home page. Else login failed.
   await expect(page.url()).toBe(`${workerInfo.project.use.baseURL}/`);
 
-  save_visual(page);
+  await save_visual(page);
 });
