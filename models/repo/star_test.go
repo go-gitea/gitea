@@ -64,7 +64,7 @@ func TestClearRepoStars(t *testing.T) {
 	assert.NoError(t, repo_model.ClearRepoStars(db.DefaultContext, repoID))
 	unittest.AssertNotExistsBean(t, &repo_model.Star{UID: userID, RepoID: repoID})
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	gazers, err := repo_model.GetStargazers(repo, db.ListOptions{Page: 0})
 	assert.NoError(t, err)
 	assert.Len(t, gazers, 0)
