@@ -27,7 +27,7 @@ for (const path of glob('web_src/css/themes/*.css')) {
 }
 
 const isProduction = env.NODE_ENV !== 'development';
-const sourceMapEnabled = env.ENABLE_SOURCEMAP === 'true' ? true : !isProduction;
+const sourceMapEnabled = env.ENABLE_SOURCEMAP === 'true' || !isProduction;
 
 const filterCssImport = (url, ...args) => {
   const cssFile = args[1] || args[0]; // resourcePath is 2nd argument for url and 3rd for import
