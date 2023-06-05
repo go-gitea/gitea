@@ -48,7 +48,7 @@ func NewSimpleProvider(name, displayName string, scopes []string, newFn SimplePr
 	}
 }
 
-var _ (GothProvider) = &SimpleProvider{}
+var _ GothProvider = &SimpleProvider{}
 
 func init() {
 	RegisterGothProvider(

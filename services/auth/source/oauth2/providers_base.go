@@ -3,6 +3,8 @@
 
 package oauth2
 
+import "code.gitea.io/gitea/modules/setting"
+
 // BaseProvider represents a common base for Provider
 type BaseProvider struct {
 	name        string
@@ -19,14 +21,14 @@ func (b *BaseProvider) DisplayName() string {
 	return b.displayName
 }
 
-// Image returns an image path for this provider
+// IconURL returns an icon path for this provider
 // Use svg for default image icons, providers_openid has its own Image function
-func (b *BaseProvider) Image() string {
+func (b *BaseProvider) IconURL() string {
 	name := b.name
 	if b.name == "gplus" {
 		name = "google"
 	}
-	return "/assets/img/auth/" + name + ".svg"
+	return setting.AppSubURL + "/assets/img/auth/" + name + ".svg"
 }
 
 // CustomURLSettings returns the custom url settings for this provider
@@ -34,4 +36,4 @@ func (b *BaseProvider) CustomURLSettings() *CustomURLSettings {
 	return nil
 }
 
-var _ (Provider) = &BaseProvider{}
+var _ Provider = &BaseProvider{}
