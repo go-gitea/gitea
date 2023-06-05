@@ -70,7 +70,7 @@ But you cannot delete or transfer this repository if you are not that repository
 
 ## Organization Repository
 
-Different from individual repositories, the owner of organization repositories are the owner team of this organization.
+For individual repositories, the owner is the user who created it. For organization repositories, the owners are the members of the owner team on this organization. All the permissions depends on the team permission settings.
 
 ### Owner Team
 
