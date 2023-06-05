@@ -5,6 +5,8 @@ slug: "install-from-source"
 weight: 30
 toc: false
 draft: false
+aliases:
+  - /fr-fr/install-from-source
 menu:
   sidebar:
     parent: "installation"

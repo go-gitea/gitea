@@ -47,7 +47,7 @@ func SignInOpenID(ctx *context.Context) {
 	if len(redirectTo) > 0 {
 		middleware.SetRedirectToCookie(ctx.Resp, redirectTo)
 	} else {
-		redirectTo = ctx.GetCookie("redirect_to")
+		redirectTo = ctx.GetSiteCookie("redirect_to")
 	}
 
 	if isSucceed {

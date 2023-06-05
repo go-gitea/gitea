@@ -27,7 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"gopkg.in/ini.v1"
+	"gopkg.in/ini.v1" //nolint:depguard
 )
 
 /*
@@ -200,7 +200,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 				mirrorModel.Interval = 0
 				mirrorModel.NextUpdateUnix = 0
 			} else if parsedInterval < setting.Mirror.MinInterval {
-				err := fmt.Errorf("Interval %s is set below Minimum Interval of %s", parsedInterval, setting.Mirror.MinInterval)
+				err := fmt.Errorf("interval %s is set below Minimum Interval of %s", parsedInterval, setting.Mirror.MinInterval)
 				log.Error("Interval: %s is too frequent", opts.MirrorInterval)
 				return repo, err
 			} else {
@@ -217,6 +217,15 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		if err = UpdateRepository(ctx, repo, false); err != nil {
 			return nil, err
 		}
+
+		// this is necessary for sync local tags from remote
+		configName := fmt.Sprintf("remote.%s.fetch", mirrorModel.GetRemoteName())
+		if stdout, _, err := git.NewCommand(ctx, "config").
+			AddOptionValues("--add", configName, `+refs/tags/*:refs/tags/*`).
+			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
+			log.Error("MigrateRepositoryGitData(git config --add <remote> +refs/tags/*:refs/tags/*) in %v: Stdout: %s\nError: %v", repo, stdout, err)
+			return repo, fmt.Errorf("error in MigrateRepositoryGitData(git config --add <remote> +refs/tags/*:refs/tags/*): %w", err)
+		}
 	} else {
 		if err = UpdateRepoSize(ctx, repo); err != nil {
 			log.Error("Failed to update size for repository: %v", err)
@@ -232,7 +241,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 // cleanUpMigrateGitConfig removes mirror info which prevents "push --all".
 // This also removes possible user credentials.
 func cleanUpMigrateGitConfig(configPath string) error {
-	cfg, err := ini.Load(configPath)
+	cfg, err := ini.Load(configPath) // FIXME: the ini package doesn't really work with git config files
 	if err != nil {
 		return fmt.Errorf("open config file: %w", err)
 	}

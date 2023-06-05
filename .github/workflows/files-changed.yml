@@ -1,0 +1,53 @@
+name: files-changed
+
+on:
+  workflow_call:
+    outputs:
+      backend:
+        description: "whether backend files changed"
+        value: ${{ jobs.detect.outputs.backend }}
+      frontend:
+        description: "whether frontend files changed"
+        value: ${{ jobs.detect.outputs.frontend }}
+      docs:
+        description: "whether docs files changed"
+        value: ${{ jobs.detect.outputs.docs }}
+      actions:
+        description: "whether actions files changed"
+        value: ${{ jobs.detect.outputs.actions }}
+
+jobs:
+  detect:
+    name: detect which files changed
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    # Map a step output to a job output
+    outputs:
+      backend: ${{ steps.changes.outputs.backend }}
+      frontend: ${{ steps.changes.outputs.frontend }}
+      docs: ${{ steps.changes.outputs.docs }}
+      actions: ${{ steps.changes.outputs.actions }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            backend:
+              - "**/*.go"
+              - "**/*.tmpl"
+              - "go.mod"
+              - "go.sum"
+
+            frontend:
+              - "**/*.js"
+              - "web_src/**"
+              - "package.json"
+              - "package-lock.json"
+
+            docs:
+              - "**/*.md"
+              - "docs/**"
+
+            actions:
+              - ".github/workflows/*"

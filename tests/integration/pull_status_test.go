@@ -64,7 +64,7 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 			api.CommitStatusWarning: "gitea-exclamation",
 		}
 
-		testCtx := NewAPITestContext(t, "user1", "repo1", auth_model.AccessTokenScopeRepo)
+		testCtx := NewAPITestContext(t, "user1", "repo1", auth_model.AccessTokenScopeWriteRepository)
 
 		// Update commit status, and check if icon is updated as well
 		for _, status := range statusList {

@@ -86,11 +86,22 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		return err
 	}
 	defer t.Close()
-	if err := t.Clone(opts.OldBranch); err != nil {
-		return err
+
+	hasOldBranch := true
+	if err = t.Clone(opts.OldBranch); err != nil {
+		if !git.IsErrBranchNotExist(err) || !repo.IsEmpty {
+			return err
+		}
+		if err = t.Init(); err != nil {
+			return err
+		}
+		hasOldBranch = false
+		opts.LastCommitID = ""
 	}
-	if err := t.SetDefaultIndex(); err != nil {
-		return err
+	if hasOldBranch {
+		if err = t.SetDefaultIndex(); err != nil {
+			return err
+		}
 	}
 
 	var filename2attribute2info map[string]map[string]string

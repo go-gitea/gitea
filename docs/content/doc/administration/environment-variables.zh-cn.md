@@ -5,6 +5,8 @@ slug: "environment-variables"
 weight: 10
 toc: false
 draft: false
+aliases:
+  - /zh-cn/environment-variables
 menu:
   sidebar:
     parent: "administration"

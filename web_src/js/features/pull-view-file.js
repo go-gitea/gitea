@@ -4,6 +4,8 @@ const {csrfToken, pageData} = window.config;
 const prReview = pageData.prReview || {};
 const viewedStyleClass = 'viewed-file-checked-form';
 const viewedCheckboxSelector = '.viewed-file-form'; // Selector under which all "Viewed" checkbox forms can be found
+const expandFilesBtnSelector = '#expand-files-btn';
+const collapseFilesBtnSelector = '#collapse-files-btn';
 
 
 // Refreshes the summary of viewed files if present
@@ -36,7 +38,7 @@ export function initViewedCheckboxListenerFor() {
     // The checkbox consists of a div containing the real checkbox with its label and the CSRF token,
     // hence the actual checkbox first has to be found
     const checkbox = form.querySelector('input[type=checkbox]');
-    checkbox.addEventListener('change', function() {
+    checkbox.addEventListener('input', function() {
       // Mark the file as viewed visually - will especially change the background
       if (this.checked) {
         form.classList.add(viewedStyleClass);
@@ -49,7 +51,7 @@ export function initViewedCheckboxListenerFor() {
       // Update viewed-files summary and remove "has changed" label if present
       refreshViewedFilesSummary();
       const hasChangedLabel = form.parentNode.querySelector('.changed-since-last-review');
-      hasChangedLabel?.parentNode.removeChild(hasChangedLabel);
+      hasChangedLabel?.remove();
 
       // Unfortunately, actual forms cause too many problems, hence another approach is needed
       const files = {};
@@ -69,3 +71,21 @@ export function initViewedCheckboxListenerFor() {
     });
   }
 }
+
+export function initExpandAndCollapseFilesButton() {
+  // expand btn
+  document.querySelector(expandFilesBtnSelector)?.addEventListener('click', () => {
+    for (const box of document.querySelectorAll('.file-content[data-folded="true"]')) {
+      setFileFolding(box, box.querySelector('.fold-file'), false);
+    }
+  });
+  // collapse btn, need to exclude the div of “show more”
+  document.querySelector(collapseFilesBtnSelector)?.addEventListener('click', () => {
+    for (const box of document.querySelectorAll('.file-content:not([data-folded="true"])')) {
+      if (box.getAttribute('id') === 'diff-incomplete') continue;
+      setFileFolding(box, box.querySelector('.fold-file'), true);
+    }
+  });
+}
+
+

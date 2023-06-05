@@ -36,7 +36,7 @@ type ActionRun struct {
 	TriggerUser       *user_model.User       `xorm:"-"`
 	Ref               string
 	CommitSHA         string
-	IsForkPullRequest bool
+	IsForkPullRequest bool  // If this is triggered by a PR from a forked repository or an untrusted user, we need to check if it is approved and limit permissions when running the workflow.
 	NeedApproval      bool  // may need approval if it's a fork pull request
 	ApprovedBy        int64 `xorm:"index"` // who approved
 	Event             webhook_module.HookEventType
@@ -70,7 +70,7 @@ func (run *ActionRun) Link() string {
 // RefLink return the url of run's ref
 func (run *ActionRun) RefLink() string {
 	refName := git.RefName(run.Ref)
-	if refName.RefGroup() == "pull" {
+	if refName.IsPull() {
 		return run.Repo.Link() + "/pulls/" + refName.ShortName()
 	}
 	return git.RefURL(run.Repo.Link(), run.Ref)
@@ -79,7 +79,7 @@ func (run *ActionRun) RefLink() string {
 // PrettyRef return #id for pull ref or ShortName for others
 func (run *ActionRun) PrettyRef() string {
 	refName := git.RefName(run.Ref)
-	if refName.RefGroup() == "pull" {
+	if refName.IsPull() {
 		return "#" + strings.TrimSuffix(strings.TrimPrefix(run.Ref, git.PullPrefix), "/head")
 	}
 	return refName.ShortName()

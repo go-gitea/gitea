@@ -1,10 +1,12 @@
 ---
 date: "2023-03-04T19:00:00+00:00"
-title: "Usage: Labels"
+title: "Labels"
 slug: "labels"
 weight: 13
 toc: false
 draft: false
+aliases:
+  - /en-us/labels
 menu:
   sidebar:
     parent: "usage"
@@ -25,7 +27,7 @@ For organizations, you can define organization-wide labels that are shared with 
 
 Labels have a mandatory name, a mandatory color, an optional description, and must either be exclusive or not (see `Scoped Labels` below).
 
-When you create a repository, you can ensure certain labels exist by using the `Issue Labels` option. This option lists a number of available label sets that are [configured globally on your instance](../customizing-gitea/#labels). Its contained labels will all be created as well while creating the repository.
+When you create a repository, you can ensure certain labels exist by using the `Issue Labels` option. This option lists a number of available label sets that are [configured globally on your instance](../administration/customizing-gitea/#labels). Its contained labels will all be created as well while creating the repository.
 
 ## Scoped Labels
 

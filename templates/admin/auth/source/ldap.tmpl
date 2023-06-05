@@ -44,7 +44,7 @@
 	</div>
 	<div class="required field">
 		<label for="filter">{{.locale.Tr "admin.auths.filter"}}</label>
-		<input id="filter" name="filter" value="{{.filter}}" placeholder="e.g. (&(objectClass=posixAccount)(uid=%s))">
+		<input id="filter" name="filter" value="{{.filter}}" placeholder="e.g. (&(objectClass=posixAccount)(|(uid=%[1]s)(mail=%[1]s)))">
 	</div>
 	<div class="field">
 		<label for="admin_filter">{{.locale.Tr "admin.auths.admin_filter"}}</label>
@@ -106,7 +106,7 @@
 		</div>
 		<div class="field">
 			<label>{{.locale.Tr "admin.auths.map_group_to_team"}}</label>
-			<input name="group_team_map" value="{{.group_team_map}}" placeholder='e.g. {"cn=my-group,cn=groups,dc=example,dc=org": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}'>
+			<textarea name="group_team_map" rows="5" placeholder='e.g. {"cn=my-group,cn=groups,dc=example,dc=org": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}'>{{.group_team_map}}</textarea>
 		</div>
 		<div class="ui checkbox">
 			<label>{{.locale.Tr "admin.auths.map_group_to_team_removal"}}</label>

@@ -7,11 +7,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	ini "gopkg.in/ini.v1"
 )
 
 func Test_loadMailerFrom(t *testing.T) {
-	iniFile := ini.Empty()
 	kases := map[string]*Mailer{
 		"smtp.mydomain.com": {
 			SMTPAddr: "smtp.mydomain.com",
@@ -28,13 +26,13 @@ func Test_loadMailerFrom(t *testing.T) {
 	}
 	for host, kase := range kases {
 		t.Run(host, func(t *testing.T) {
-			iniFile.DeleteSection("mailer")
-			sec := iniFile.Section("mailer")
+			cfg, _ := NewConfigProviderFromData("")
+			sec := cfg.Section("mailer")
 			sec.NewKey("ENABLED", "true")
 			sec.NewKey("HOST", host)
 
 			// Check mailer setting
-			loadMailerFrom(iniFile)
+			loadMailerFrom(cfg)
 
 			assert.EqualValues(t, kase.SMTPAddr, MailService.SMTPAddr)
 			assert.EqualValues(t, kase.SMTPPort, MailService.SMTPPort)

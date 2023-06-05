@@ -5,7 +5,6 @@
 package install
 
 import (
-	goctx "context"
 	"fmt"
 	"net/http"
 	"os"
@@ -36,7 +35,6 @@ import (
 	"code.gitea.io/gitea/services/forms"
 
 	"gitea.com/go-chi/session"
-	"gopkg.in/ini.v1"
 )
 
 const (
@@ -53,34 +51,32 @@ func getSupportedDbTypeNames() (dbTypeNames []map[string]string) {
 	return dbTypeNames
 }
 
-// Init prepare for rendering installation page
-func Init(ctx goctx.Context) func(next http.Handler) http.Handler {
-	_, rnd := templates.HTMLRenderer(ctx)
+// Contexter prepare for rendering installation page
+func Contexter() func(next http.Handler) http.Handler {
+	rnd := templates.HTMLRenderer()
 	dbTypeNames := getSupportedDbTypeNames()
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			locale := middleware.Locale(resp, req)
-			startTime := time.Now()
-			ctx := context.Context{
-				Resp:    context.NewResponse(resp),
+			base, baseCleanUp := context.NewBaseContext(resp, req)
+			ctx := &context.Context{
+				Base:    base,
 				Flash:   &middleware.Flash{},
-				Locale:  locale,
 				Render:  rnd,
 				Session: session.GetSession(req),
-				Data: map[string]interface{}{
-					"locale":        locale,
-					"Title":         locale.Tr("install.install"),
-					"PageIsInstall": true,
-					"DbTypeNames":   dbTypeNames,
-					"AllLangs":      translation.AllLangs(),
-					"PageStartTime": startTime,
-
-					"PasswordHashAlgorithms": hash.RecommendedHashAlgorithms,
-				},
 			}
-			defer ctx.Close()
+			defer baseCleanUp()
 
-			ctx.Req = context.WithContext(req, &ctx)
+			ctx.AppendContextValue(context.WebContextKey, ctx)
+			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
+			ctx.Data.MergeFrom(middleware.ContextData{
+				"locale":        ctx.Locale,
+				"Title":         ctx.Locale.Tr("install.install"),
+				"PageIsInstall": true,
+				"DbTypeNames":   dbTypeNames,
+				"AllLangs":      translation.AllLangs(),
+
+				"PasswordHashAlgorithms": hash.RecommendedHashAlgorithms,
+			})
 			next.ServeHTTP(resp, ctx.Req)
 		})
 	}
@@ -251,15 +247,8 @@ func SubmitInstall(ctx *context.Context) {
 	ctx.Data["CurDbType"] = form.DbType
 
 	if ctx.HasError() {
-		if ctx.HasValue("Err_SMTPUser") {
-			ctx.Data["Err_SMTP"] = true
-		}
-		if ctx.HasValue("Err_AdminName") ||
-			ctx.HasValue("Err_AdminPasswd") ||
-			ctx.HasValue("Err_AdminEmail") {
-			ctx.Data["Err_Admin"] = true
-		}
-
+		ctx.Data["Err_SMTP"] = ctx.Data["Err_SMTPUser"] != nil
+		ctx.Data["Err_Admin"] = ctx.Data["Err_AdminName"] != nil || ctx.Data["Err_AdminPasswd"] != nil || ctx.Data["Err_AdminEmail"] != nil
 		ctx.HTML(http.StatusOK, tplInstall)
 		return
 	}
@@ -381,17 +370,11 @@ func SubmitInstall(ctx *context.Context) {
 	}
 
 	// Save settings.
-	cfg := ini.Empty()
-	isFile, err := util.IsFile(setting.CustomConf)
+	cfg, err := setting.NewConfigProviderFromFile(&setting.Options{CustomConf: setting.CustomConf, AllowEmpty: true})
 	if err != nil {
-		log.Error("Unable to check if %s is a file. Error: %v", setting.CustomConf, err)
+		log.Error("Failed to load custom conf '%s': %v", setting.CustomConf, err)
 	}
-	if isFile {
-		// Keeps custom settings if there is already something.
-		if err = cfg.Append(setting.CustomConf); err != nil {
-			log.Error("Failed to load custom conf '%s': %v", setting.CustomConf, err)
-		}
-	}
+
 	cfg.Section("database").Key("DB_TYPE").SetValue(setting.Database.Type.String())
 	cfg.Section("database").Key("HOST").SetValue(setting.Database.Host)
 	cfg.Section("database").Key("NAME").SetValue(setting.Database.Name)
@@ -559,7 +542,7 @@ func SubmitInstall(ctx *context.Context) {
 		}
 
 		days := 86400 * setting.LogInRememberDays
-		ctx.SetCookie(setting.CookieUserName, u.Name, days)
+		ctx.SetSiteCookie(setting.CookieUserName, u.Name, days)
 
 		ctx.SetSuperSecureCookie(base.EncodeMD5(u.Rands+u.Passwd),
 			setting.CookieRememberName, u.Name, days)

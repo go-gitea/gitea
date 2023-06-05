@@ -20,28 +20,28 @@ IMPORT := code.gitea.io/gitea
 
 GO ?= go
 SHASUM ?= shasum -a 256
-HAS_GO = $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
+HAS_GO := $(shell hash $(GO) > /dev/null 2>&1 && echo yes)
 COMMA := ,
 
 XGO_VERSION := go-1.20.x
 
-AIR_PACKAGE ?= github.com/cosmtrek/air@v1.40.4
-EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.6.0
-ERRCHECK_PACKAGE ?= github.com/kisielk/errcheck@v1.6.2
-GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.4.0
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.51.2
-GXZ_PAGAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.10
+AIR_PACKAGE ?= github.com/cosmtrek/air@v1.43.0
+EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.7.0
+GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.5.0
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.52.2
+GXZ_PAGAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.11
 MISSPELL_PACKAGE ?= github.com/client9/misspell/cmd/misspell@v0.3.4
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.30.4
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
-GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1.5.0
+GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1.6.0
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@latest
+ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@latest
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
 DOCKER_REF := $(DOCKER_IMAGE):$(DOCKER_TAG)
 
-ifeq ($(HAS_GO), GO)
+ifeq ($(HAS_GO), yes)
 	GOPATH ?= $(shell $(GO) env GOPATH)
 	export PATH := $(GOPATH)/bin:$(PATH)
 
@@ -97,6 +97,11 @@ else
 	endif
 endif
 
+# if version = "main" then update version to "nightly"
+ifeq ($(VERSION),main)
+	VERSION := main-nightly
+endif
+
 LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
 
 LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64
@@ -109,7 +114,7 @@ FOMANTIC_WORK_DIR := web_src/fomantic
 WEBPACK_SOURCES := $(shell find web_src/js web_src/css -type f)
 WEBPACK_CONFIGS := webpack.config.js
 WEBPACK_DEST := public/js/index.js public/css/index.css
-WEBPACK_DEST_ENTRIES := public/js public/css public/fonts public/img/webpack public/serviceworker.js
+WEBPACK_DEST_ENTRIES := public/js public/css public/fonts public/img/webpack
 
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
 BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
@@ -135,7 +140,7 @@ GO_DIRS := build cmd models modules routers services tests
 WEB_DIRS := web_src/js web_src/css
 
 GO_SOURCES := $(wildcard *.go)
-GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go" -not -path modules/options/bindata.go -not -path modules/public/bindata.go -not -path modules/templates/bindata.go)
+GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go" ! -path modules/options/bindata.go ! -path modules/public/bindata.go ! -path modules/templates/bindata.go)
 GO_SOURCES += $(GENERATED_GO_DEST)
 GO_SOURCES_NO_BINDATA := $(GO_SOURCES)
 
@@ -194,8 +199,21 @@ help:
 	@echo " - deps-backend                     install backend dependencies"
 	@echo " - deps-tools                       install tool dependencies"
 	@echo " - lint                             lint everything"
+	@echo " - lint-fix                         lint everything and fix issues"
+	@echo " - lint-actions                     lint action workflow files"
 	@echo " - lint-frontend                    lint frontend files"
+	@echo " - lint-frontend-fix                lint frontend files and fix issues"
 	@echo " - lint-backend                     lint backend files"
+	@echo " - lint-backend-fix                 lint backend files and fix issues"
+	@echo " - lint-go                          lint go files"
+	@echo " - lint-go-fix                      lint go files and fix issues"
+	@echo " - lint-go-vet                      lint go files with vet"
+	@echo " - lint-js                          lint js files"
+	@echo " - lint-js-fix                      lint js files and fix issues"
+	@echo " - lint-css                         lint css files"
+	@echo " - lint-css-fix                     lint css files and fix issues"
+	@echo " - lint-md                          lint markdown files"
+	@echo " - lint-swagger                     lint swagger files"
 	@echo " - checks                           run various consistency checks"
 	@echo " - checks-frontend                  check frontend files"
 	@echo " - checks-backend                   check backend files"
@@ -213,9 +231,7 @@ help:
 	@echo " - generate-manpage                 generate manpage"
 	@echo " - generate-swagger                 generate the swagger spec from code comments"
 	@echo " - swagger-validate                 check if the swagger spec is valid"
-	@echo " - golangci-lint                    run golangci-lint linter"
 	@echo " - go-licenses                      regenerate go licenses"
-	@echo " - vet                              examines Go source code and reports suspicious constructs"
 	@echo " - tidy                             run go mod tidy"
 	@echo " - test[\#TestSpecificName]    	    run unit test"
 	@echo " - test-sqlite[\#TestSpecificName]  run integration test for sqlite"
@@ -269,8 +285,12 @@ clean:
 fmt:
 	GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
 	$(eval TEMPLATES := $(shell find templates -type f -name '*.tmpl'))
-	@# strip whitespace after '{{' and before `}}` unless there is only whitespace before it
-	@$(SED_INPLACE) -e 's/{{[ 	]\{1,\}/{{/g' -e '/^[ 	]\{1,\}}}/! s/[ 	]\{1,\}}}/}}/g' $(TEMPLATES)
+	@# strip whitespace after '{{' or '(' and before '}}' or ')' unless there is only
+	@# whitespace before it
+	@$(SED_INPLACE) \
+		-e 's/{{[ 	]\{1,\}/{{/g' -e '/^[ 	]\{1,\}}}/! s/[ 	]\{1,\}}}/}}/g' \
+	  -e 's/([ 	]\{1,\}/(/g' -e '/^[ 	]\{1,\})/! s/[ 	]\{1,\})/)/g' \
+	  $(TEMPLATES)
 
 .PHONY: fmt-check
 fmt-check: fmt
@@ -284,12 +304,6 @@ fmt-check: fmt
 .PHONY: misspell-check
 misspell-check:
 	go run $(MISSPELL_PACKAGE) -error $(GO_DIRS) $(WEB_DIRS)
-
-.PHONY: vet
-vet:
-	@echo "Running go vet..."
-	@GOOS= GOARCH= $(GO) build code.gitea.io/gitea-vet
-	@$(GO) vet -vettool=gitea-vet $(GO_PACKAGES)
 
 .PHONY: $(TAGS_EVIDENCE)
 $(TAGS_EVIDENCE):
@@ -323,11 +337,6 @@ swagger-validate:
 	$(GO) run $(SWAGGER_PACKAGE) validate './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
 
-.PHONY: errcheck
-errcheck:
-	@echo "Running errcheck..."
-	$(GO) run $(ERRCHECK_PACKAGE) $(GO_PACKAGES)
-
 .PHONY: checks
 checks: checks-frontend checks-backend
 
@@ -340,23 +349,81 @@ checks-backend: tidy-check swagger-check fmt-check misspell-check swagger-valida
 .PHONY: lint
 lint: lint-frontend lint-backend
 
+.PHONY: lint-fix
+lint-fix: lint-frontend-fix lint-backend-fix
+
 .PHONY: lint-frontend
-lint-frontend: node_modules
-	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js docs/assets/js tests/e2e
-	npx stylelint --color --max-warnings=0 web_src/css
-	npx spectral lint -q -F hint $(SWAGGER_SPEC)
-	npx markdownlint docs *.md
+lint-frontend: lint-js lint-css lint-md lint-swagger
+
+.PHONY: lint-frontend-fix
+lint-frontend-fix: lint-js-fix lint-css-fix lint-md lint-swagger
 
 .PHONY: lint-backend
-lint-backend: golangci-lint vet editorconfig-checker
+lint-backend: lint-go lint-go-vet lint-editorconfig
+
+.PHONY: lint-backend-fix
+lint-backend-fix: lint-go-fix lint-go-vet lint-editorconfig
+
+.PHONY: lint-js
+lint-js: node_modules
+	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js docs/assets/js tests/e2e
+
+.PHONY: lint-js-fix
+lint-js-fix: node_modules
+	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js docs/assets/js tests/e2e --fix
+
+.PHONY: lint-css
+lint-css: node_modules
+	npx stylelint --color --max-warnings=0 web_src/css web_src/js/components/*.vue
+
+.PHONY: lint-css-fix
+lint-css-fix: node_modules
+	npx stylelint --color --max-warnings=0 web_src/css web_src/js/components/*.vue --fix
+
+.PHONY: lint-swagger
+lint-swagger: node_modules
+	npx spectral lint -q -F hint $(SWAGGER_SPEC)
+
+.PHONY: lint-md
+lint-md: node_modules
+	npx markdownlint docs *.md
+
+.PHONY: lint-go
+lint-go:
+	$(GO) run $(GOLANGCI_LINT_PACKAGE) run
+
+.PHONY: lint-go-fix
+lint-go-fix:
+	$(GO) run $(GOLANGCI_LINT_PACKAGE) run --fix
+
+# workaround step for the lint-go-windows CI task because 'go run' can not
+# have distinct GOOS/GOARCH for its build and run steps
+.PHONY: lint-go-windows
+lint-go-windows:
+	@GOOS= GOARCH= $(GO) install $(GOLANGCI_LINT_PACKAGE)
+	golangci-lint run
+
+.PHONY: lint-go-vet
+lint-go-vet:
+	@echo "Running go vet..."
+	@GOOS= GOARCH= $(GO) build code.gitea.io/gitea-vet
+	@$(GO) vet -vettool=gitea-vet $(GO_PACKAGES)
+
+.PHONY: lint-editorconfig
+lint-editorconfig:
+	$(GO) run $(EDITORCONFIG_CHECKER_PACKAGE) templates .github/workflows
+
+.PHONY: lint-actions
+lint-actions:
+	$(GO) run $(ACTIONLINT_PACKAGE)
 
 .PHONY: watch
 watch:
-	bash build/watch.sh
+	@bash build/watch.sh
 
 .PHONY: watch-frontend
 watch-frontend: node-check node_modules
-	rm -rf $(WEBPACK_DEST_ENTRIES)
+	@rm -rf $(WEBPACK_DEST_ENTRIES)
 	NODE_ENV=development npx webpack --watch --progress
 
 .PHONY: watch-backend
@@ -747,7 +814,7 @@ generate-go: $(TAGS_PREREQ)
 
 .PHONY: security-check
 security-check:
-	go run $(GOVULNCHECK_PACKAGE) -v ./...
+	go run $(GOVULNCHECK_PACKAGE) ./...
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
@@ -839,7 +906,6 @@ deps-backend:
 deps-tools:
 	$(GO) install $(AIR_PACKAGE)
 	$(GO) install $(EDITORCONFIG_CHECKER_PACKAGE)
-	$(GO) install $(ERRCHECK_PACKAGE)
 	$(GO) install $(GOFUMPT_PACKAGE)
 	$(GO) install $(GOLANGCI_LINT_PACKAGE)
 	$(GO) install $(GXZ_PAGAGE)
@@ -848,6 +914,7 @@ deps-tools:
 	$(GO) install $(XGO_PACKAGE)
 	$(GO) install $(GO_LICENSES_PACKAGE)
 	$(GO) install $(GOVULNCHECK_PACKAGE)
+	$(GO) install $(ACTIONLINT_PACKAGE)
 
 node_modules: package-lock.json
 	npm install --no-save
@@ -937,21 +1004,6 @@ generate-manpage:
 	@./gitea docs --man > man/man1/gitea.1
 	@gzip -9 man/man1/gitea.1 && echo man/man1/gitea.1.gz created
 	@#TODO A small script that formats config-cheat-sheet.en-us.md nicely for use as a config man page
-
-.PHONY: golangci-lint
-golangci-lint:
-	$(GO) run $(GOLANGCI_LINT_PACKAGE) run
-
-# workaround step for the lint-backend-windows CI task because 'go run' can not
-# have distinct GOOS/GOARCH for its build and run steps
-.PHONY: golangci-lint-windows
-golangci-lint-windows:
-	@GOOS= GOARCH= $(GO) install $(GOLANGCI_LINT_PACKAGE)
-	golangci-lint run
-
-.PHONY: editorconfig-checker
-editorconfig-checker:
-	$(GO) run $(EDITORCONFIG_CHECKER_PACKAGE) templates
 
 .PHONY: docker
 docker:

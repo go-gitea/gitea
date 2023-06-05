@@ -16,18 +16,30 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/yuin/goldmark/ast"
+)
+
+type RenderMetaMode string
+
+const (
+	RenderMetaAsDetails RenderMetaMode = "details" // default
+	RenderMetaAsNone    RenderMetaMode = "none"
+	RenderMetaAsTable   RenderMetaMode = "table"
 )
 
 type ProcessorHelper struct {
 	IsUsernameMentionable func(ctx context.Context, username string) bool
+
+	ElementDir string // the direction of the elements, eg: "ltr", "rtl", "auto", default to no direction attribute
 }
 
-var processorHelper ProcessorHelper
+var DefaultProcessorHelper ProcessorHelper
 
 // Init initialize regexps for markdown parsing
 func Init(ph *ProcessorHelper) {
 	if ph != nil {
-		processorHelper = *ph
+		DefaultProcessorHelper = *ph
 	}
 
 	NewSanitizer()
@@ -63,7 +75,8 @@ type RenderContext struct {
 	GitRepo          *git.Repository
 	ShaExistCache    map[string]bool
 	cancelFn         func()
-	TableOfContents  []Header
+	SidebarTocNode   ast.Node
+	RenderMetaAs     RenderMetaMode
 	InStandalonePage bool // used by external render. the router "/org/repo/render/..." will output the rendered content in a standalone page
 }
 

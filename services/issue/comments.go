@@ -16,8 +16,8 @@ import (
 )
 
 // CreateComment creates comment of issue or commit.
-func CreateComment(opts *issues_model.CreateCommentOptions) (comment *issues_model.Comment, err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func CreateComment(ctx context.Context, opts *issues_model.CreateCommentOptions) (comment *issues_model.Comment, err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func CreateRefComment(doer *user_model.User, repo *repo_model.Repository, issue 
 		return nil
 	}
 
-	_, err = CreateComment(&issues_model.CreateCommentOptions{
+	_, err = CreateComment(db.DefaultContext, &issues_model.CreateCommentOptions{
 		Type:      issues_model.CommentTypeCommitRef,
 		Doer:      doer,
 		Repo:      repo,
@@ -66,7 +66,7 @@ func CreateRefComment(doer *user_model.User, repo *repo_model.Repository, issue 
 
 // CreateIssueComment creates a plain issue comment.
 func CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content string, attachments []string) (*issues_model.Comment, error) {
-	comment, err := CreateComment(&issues_model.CreateCommentOptions{
+	comment, err := CreateComment(ctx, &issues_model.CreateCommentOptions{
 		Type:        issues_model.CommentTypeComment,
 		Doer:        doer,
 		Repo:        repo,
@@ -90,8 +90,7 @@ func CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_m
 
 // UpdateComment updates information of comment.
 func UpdateComment(ctx context.Context, c *issues_model.Comment, doer *user_model.User, oldContent string) error {
-	needsContentHistory := c.Content != oldContent &&
-		(c.Type == issues_model.CommentTypeComment || c.Type == issues_model.CommentTypeReview || c.Type == issues_model.CommentTypeCode)
+	needsContentHistory := c.Content != oldContent && c.Type.HasContentSupport()
 	if needsContentHistory {
 		hasContentHistory, err := issues_model.HasIssueContentHistory(ctx, c.IssueID, c.ID)
 		if err != nil {

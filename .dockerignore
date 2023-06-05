@@ -76,7 +76,6 @@ cpu.out
 /yarn-error.log
 /npm-debug.log*
 /public/js
-/public/serviceworker.js
 /public/css
 /public/fonts
 /public/img/webpack

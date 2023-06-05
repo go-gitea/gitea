@@ -1,10 +1,12 @@
 ---
 date: "2017-01-01T16:00:00+02:00"
-title: "Usage: Backup and Restore"
+title: "Backup and Restore"
 slug: "backup-and-restore"
 weight: 11
 toc: false
 draft: false
+aliases:
+  - /en-us/backup-and-restore
 menu:
   sidebar:
     parent: "administration"

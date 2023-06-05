@@ -51,13 +51,3 @@
 .dropzone .dz-preview:hover .dz-image img {
   filter: opacity(0.5) !important;
 }
-
-.dropzone-attachments .divider {
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-}
-
-.dropzone-attachments .grid,
-.dropzone-attachments .thumbnails {
-  padding: .5rem 1rem;
-}
