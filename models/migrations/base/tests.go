@@ -37,7 +37,7 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 	ourSkip += skip
 	deferFn := testlogger.PrintCurrentTest(t, ourSkip)
 	assert.NoError(t, storage.RemoveAll(""))
-	assert.NoError(t, storage.CopyDir(filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), ""))
+	assert.NoError(t, storage.UploadDir(filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), ""))
 	ownerDirs, err := storage.ReadDir("")
 	if err != nil {
 		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)

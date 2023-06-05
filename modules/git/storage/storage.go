@@ -24,15 +24,13 @@ type Storage interface {
 	MakeRepoDir(repoRelPath string) error
 	RemoveAll(path string) error
 	ReadDir(owner string) ([]fs.DirEntry, error)
-	CopyDir(source, target string) error
+	UploadDir(localSource, targetRelPath string) error
 	Rename(oldPath, newPath string) error
 }
 
 type LocalSingleStorage struct {
 	repoRootPath string
 }
-
-var _ Storage = &LocalSingleStorage{}
 
 func (l *LocalSingleStorage) absPath(relPath string) string {
 	return filepath.Join(l.repoRootPath, relPath)
@@ -48,11 +46,11 @@ func (l *LocalSingleStorage) CheckStats() error {
 }
 
 func (l *LocalSingleStorage) IsExist(path string) (bool, error) {
-	return util.IsExist(path)
+	return util.IsExist(l.absPath(path))
 }
 
 func (l *LocalSingleStorage) IsDir(path string) (bool, error) {
-	return util.IsDir(path)
+	return util.IsDir(l.absPath(path))
 }
 
 func (l *LocalSingleStorage) MakeDir(dir string, perm os.FileMode) error {
@@ -76,18 +74,25 @@ func (l *LocalSingleStorage) ReadDir(owner string) ([]fs.DirEntry, error) {
 	return os.ReadDir(l.absPath(owner))
 }
 
-func (l *LocalSingleStorage) CopyDir(source, target string) error {
-	return util.CopyDir(source, l.absPath(target))
+func (l *LocalSingleStorage) UploadDir(localSource, targetRelPath string) error {
+	return util.CopyDir(localSource, l.absPath(targetRelPath))
 }
 
 func (l *LocalSingleStorage) Rename(oldPath, newPath string) error {
 	return util.Rename(l.absPath(oldPath), l.absPath(newPath))
 }
 
-func getStorage() Storage {
-	return &LocalSingleStorage{
+var storage Storage
+
+func Init() error {
+	storage = &LocalSingleStorage{
 		repoRootPath: setting.RepoRootPath,
 	}
+	return nil
+}
+
+func getStorage() Storage {
+	return storage
 }
 
 func IsConfigured() bool {
@@ -122,8 +127,8 @@ func ReadDir(owner string) ([]fs.DirEntry, error) {
 	return getStorage().ReadDir(owner)
 }
 
-func CopyDir(source, target string) error {
-	return getStorage().CopyDir(source, target)
+func UploadDir(source, target string) error {
+	return getStorage().UploadDir(source, target)
 }
 
 func Rename(oldPath, newPath string) error {

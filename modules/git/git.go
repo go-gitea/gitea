@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/git/storage"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -153,6 +154,10 @@ func InitSimple(ctx context.Context) error {
 		return err
 	}
 
+	if err := storage.Init(); err != nil {
+		return err
+	}
+
 	DefaultContext = ctx
 	globalCommandArgs = nil
 
@@ -166,10 +171,6 @@ func InitSimple(ctx context.Context) error {
 // InitFull initializes git module with version check and change global variables, sync gitconfig.
 // It should only be called once at the beginning of the program initialization (TestMain/GlobalInitInstalled) as this code makes unsynchronized changes to variables.
 func InitFull(ctx context.Context) (err error) {
-	if err = checkInit(); err != nil {
-		return err
-	}
-
 	if err = InitSimple(ctx); err != nil {
 		return
 	}

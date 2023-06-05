@@ -140,16 +140,17 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 		fatalTestError("models.Init: %v\n", err)
 	}
 
-	if err = git_storage.RemoveAll(""); err != nil {
-		fatalTestError("git_storage.RemoveAll: %v\n", err)
-	}
-	if err = git_storage.CopyDir(filepath.Join(testOpts.GiteaRootPath, "tests", "gitea-repositories-meta"), ""); err != nil {
-		fatalTestError("git_storage.CopyDir: %v\n", err)
-	}
-
 	if err = git.InitFull(context.Background()); err != nil {
 		fatalTestError("git.Init: %v\n", err)
 	}
+
+	if err = git_storage.RemoveAll(""); err != nil {
+		fatalTestError("git_storage.RemoveAll: %v\n", err)
+	}
+	if err = git_storage.UploadDir(filepath.Join(testOpts.GiteaRootPath, "tests", "gitea-repositories-meta"), ""); err != nil {
+		fatalTestError("git_storage.CopyDir: %v\n", err)
+	}
+
 	ownerDirs, err := git_storage.ReadDir("")
 	if err != nil {
 		fatalTestError("unable to read the new repo root: %v\n", err)
@@ -232,7 +233,7 @@ func PrepareTestEnv(t testing.TB) {
 	assert.NoError(t, PrepareTestDatabase())
 	assert.NoError(t, git_storage.RemoveAll(""))
 	metaPath := filepath.Join(giteaRoot, "tests", "gitea-repositories-meta")
-	assert.NoError(t, git_storage.CopyDir(metaPath, ""))
+	assert.NoError(t, git_storage.UploadDir(metaPath, ""))
 	ownerDirs, err := git_storage.ReadDir("")
 	assert.NoError(t, err)
 	for _, ownerDir := range ownerDirs {

@@ -4,7 +4,6 @@
 package files
 
 import (
-	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
@@ -15,12 +14,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
-
-func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", "..", ".."),
-	})
-}
 
 func getExpectedReadmeContentsResponse() *api.ContentsResponse {
 	treePath := "README.md"

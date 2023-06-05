@@ -5,6 +5,7 @@ package test
 
 import (
 	gocontext "context"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -142,6 +143,7 @@ func LoadUser(t *testing.T, ctx gocontext.Context, userID int64) {
 func LoadGitRepo(t *testing.T, ctx *context.Context) {
 	assert.NoError(t, ctx.Repo.Repository.LoadOwner(ctx))
 	var err error
+	fmt.Printf("----%v\n", ctx.Repo.Repository.RepoPath())
 	ctx.Repo.GitRepo, err = git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
 	assert.NoError(t, err)
 }

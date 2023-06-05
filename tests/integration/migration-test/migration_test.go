@@ -64,6 +64,8 @@ func initMigrationTest(t *testing.T) func() {
 
 	unittest.InitSettings()
 
+	assert.NoError(t, git.InitFull(context.Background()))
+
 	assert.True(t, storage.IsConfigured())
 	assert.NoError(t, storage.RemoveAll(""))
 	assert.NoError(t, storage.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), ""))
@@ -84,7 +86,6 @@ func initMigrationTest(t *testing.T) func() {
 		}
 	}
 
-	assert.NoError(t, git.InitFull(context.Background()))
 	setting.LoadDBSetting()
 	setting.InitLoggersForTest()
 	return deferFn
