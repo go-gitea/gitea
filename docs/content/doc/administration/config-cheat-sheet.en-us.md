@@ -141,7 +141,7 @@ In addition there is _`StaticRootPath`_ which can be set as a built-in at build 
 ### Repository - Issue (`repository.issue`)
 
 - `LOCK_REASONS`: **Too heated,Off-topic,Resolved,Spam**: A list of reasons why a Pull Request or Issue can be locked
-- `MAX_PINNED`: **3**: Maximum number of pinned Issues. Set to 0 to disable pinning Issues.
+- `MAX_PINNED`: **3**: Maximum number of pinned Issues per Repo. Set to 0 to disable pinning Issues.
 
 ### Repository - Upload (`repository.upload`)
 
@@ -230,7 +230,6 @@ The following configuration set `Content-Type: application/vnd.android.package-a
     add it to this config.
 - `DEFAULT_SHOW_FULL_NAME`: **false**: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 - `SEARCH_REPO_DESCRIPTION`: **true**: Whether to search within description at repository search on explore page.
-- `USE_SERVICE_WORKER`: **false**: Whether to enable a Service Worker to cache frontend assets.
 - `ONLY_SHOW_RELEVANT_REPOS`: **false** Whether to only show relevant repos on the explore page when no keyword is specified and default sorting is used.
     A repo is considered irrelevant if it's a fork or if it has no metadata (no description, no icon, no topic).
 

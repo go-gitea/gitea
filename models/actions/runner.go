@@ -69,7 +69,11 @@ func (r *ActionRunner) BelongsToOwnerType() types.OwnerType {
 		return types.OwnerTypeRepository
 	}
 	if r.OwnerID != 0 {
-		return types.OwnerTypeOrganization
+		if r.Owner.Type == user_model.UserTypeOrganization {
+			return types.OwnerTypeOrganization
+		} else if r.Owner.Type == user_model.UserTypeIndividual {
+			return types.OwnerTypeIndividual
+		}
 	}
 	return types.OwnerTypeSystemGlobal
 }

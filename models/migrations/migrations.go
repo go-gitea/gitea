@@ -496,6 +496,8 @@ var migrations = []Migration{
 	// v258 -> v259
 	NewMigration("Add PinOrder Column", v1_20.AddPinOrderToIssue),
 	// v259 -> v260
+  NewMigration("Convert scoped access tokens", v1_20.ConvertScopedAccessTokens),
+  // v260 -> v261
 	NewMigration("Drop column NumFollowers and NumFollowing on User", v1_20.DropColumnNumFollowersAndNumFollowingOnUser),
 }
 

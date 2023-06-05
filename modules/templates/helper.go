@@ -127,9 +127,6 @@ func NewFuncMap() template.FuncMap {
 		"MetaKeywords": func() string {
 			return setting.UI.Meta.Keywords
 		},
-		"UseServiceWorker": func() bool {
-			return setting.UI.UseServiceWorker
-		},
 		"EnableTimetracking": func() bool {
 			return setting.Service.EnableTimetracking
 		},
