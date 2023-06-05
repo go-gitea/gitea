@@ -169,7 +169,7 @@ docker run \
 如前所述，如果要在主机上直接运行Job，可以将其移除。
 需要明确的是，这里的 "主机" 实际上指的是当前运行 Act Runner的容器，而不是主机机器本身。
 
-### 当你使用 Docker 镜像启动 Runner，如何配置 Cache
+### 当您使用 Docker 镜像启动 Runner，如何配置 Cache
 当您使用 Docker 镜像启动 Runner，如果不进行以下配置，cache action 将无法正常工作。
 1. 获取 Runner 容器所在主机的 LAN（本地局域网） IP 地址。
 2. 获取一个 Runner 容器所在主机的空闲端口号。
