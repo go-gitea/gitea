@@ -173,10 +173,13 @@ As mentioned, you can remove it if you want to run jobs in the host directly.
 To be clear, the "host" actually means the container which is running the act runner now, instead of the host machine.
 
 ### Configuring cache when starting a Runner with Docker image
+
 When starting a runner using a Docker image, it is essential to configure the cache action to ensure its proper functioning. Follow these steps:
-1. Obtain the LAN IP address of the host machine where the runner container is located.
-2. Find an available port number on the host machine where the runner container is running.
-3. Configure the following settings in the configuration file:
+
+- 1.Obtain the LAN IP address of the host machine where the runner container is located.
+- 2.Find an available port number on the host machine where the runner container is running.
+- 3.Configure the following settings in the configuration file:
+
 ```yaml
 cache:
   enabled: true
@@ -185,9 +188,10 @@ cache:
   host: "192.168.8.17"
   # Use the port number obtained in step 2
   port: 8088
-
 ```
-4. When starting the container, map the cache port to the host machine:
+
+- 4.When starting the container, map the cache port to the host machine:
+
 ```bash
 docker run \
   --name gitea-docker-runner \

@@ -170,10 +170,13 @@ docker run \
 需要明确的是，这里的 "主机" 实际上指的是当前运行 Act Runner的容器，而不是主机机器本身。
 
 ### 当您使用 Docker 镜像启动 Runner，如何配置 Cache
+
 当您使用 Docker 镜像启动 Runner，如果不进行以下配置，cache action 将无法正常工作。
-1. 获取 Runner 容器所在主机的 LAN（本地局域网） IP 地址。
-2. 获取一个 Runner 容器所在主机的空闲端口号。
-3. 在配置文件中如下配置：
+
+- 1.获取 Runner 容器所在主机的 LAN（本地局域网） IP 地址。
+- 2.获取一个 Runner 容器所在主机的空闲端口号。
+- 3.在配置文件中如下配置：
+
 ```yaml
 cache:
 enabled: true
@@ -183,7 +186,9 @@ host: "192.168.8.17"
 # 使用步骤 2. 获取的端口号
 port: 8088         
 ```
-4. 启动容器时, 将 Cache 端口映射至主机。
+
+- 4.启动容器时, 将 Cache 端口映射至主机。
+
 ```bash
 docker run \
   --name gitea-docker-runner \
