@@ -172,11 +172,18 @@ It is because the act runner will run jobs in docker containers, so it needs to 
 As mentioned, you can remove it if you want to run jobs in the host directly.
 To be clear, the "host" actually means the container which is running the act runner now, instead of the host machine.
 
-### Configuring cache when starting a Runner with Docker image
+### Configuring cache when starting a Runner using docker image
 
-When starting a runner using a Docker image, it is essential to configure the cache action to ensure its proper functioning. Follow these steps:
+If you do not intend to use `actions/cache` in workflow, you can ignore this section.
 
-- 1.Obtain the LAN IP address of the host machine where the runner container is located.
+If you use `actions/cache` without any additional configuration, it will return the following error:
+> Failed to restore: getCacheEntry failed: connect ETIMEDOUT <ip>:<port>
+
+The error occurs because the runner container and job container are on different networks, so the job container cannot access the runner container.
+
+Therefore, it is essential to configure the cache action to ensure its proper functioning. Follow these steps:
+
+- 1.Obtain the LAN IP address of the host machine where the runner container is running.
 - 2.Find an available port number on the host machine where the runner container is running.
 - 3.Configure the following settings in the configuration file:
 
