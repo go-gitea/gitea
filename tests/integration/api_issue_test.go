@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -104,6 +106,49 @@ func TestAPICreateIssue(t *testing.T) {
 	repoAfter := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	assert.Equal(t, repoBefore.NumIssues+1, repoAfter.NumIssues)
 	assert.Equal(t, repoBefore.NumClosedIssues, repoAfter.NumClosedIssues)
+}
+
+func TestAPICreateIssueParallel(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	const body, title = "apiTestBody", "apiTestTitle"
+
+	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID})
+
+	session := loginUser(t, owner.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues?state=all&token=%s", owner.Name, repoBefore.Name, token)
+
+	var wg sync.WaitGroup
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func(parentT *testing.T, i int) {
+			parentT.Run(fmt.Sprintf("ParallelCreateIssue_%d", i), func(t *testing.T) {
+				newTitle := title + strconv.Itoa(i)
+				newBody := body + strconv.Itoa(i)
+				req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{
+					Body:     newBody,
+					Title:    newTitle,
+					Assignee: owner.Name,
+				})
+				resp := MakeRequest(t, req, http.StatusCreated)
+				var apiIssue api.Issue
+				DecodeJSON(t, resp, &apiIssue)
+				assert.Equal(t, newBody, apiIssue.Body)
+				assert.Equal(t, newTitle, apiIssue.Title)
+
+				unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{
+					RepoID:     repoBefore.ID,
+					AssigneeID: owner.ID,
+					Content:    newBody,
+					Title:      newTitle,
+				})
+
+				wg.Done()
+			})
+		}(t, i)
+	}
+	wg.Wait()
 }
 
 func TestAPIEditIssue(t *testing.T) {
