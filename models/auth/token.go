@@ -112,6 +112,15 @@ func NewAccessToken(t *AccessToken) error {
 	return err
 }
 
+// DisplayPublicOnly whether to display this as a public-only token.
+func (t *AccessToken) DisplayPublicOnly() bool {
+	publicOnly, err := t.Scope.PublicOnly()
+	if err != nil {
+		return false
+	}
+	return publicOnly
+}
+
 func getAccessTokenIDFromCache(token string) int64 {
 	if successfulAccessTokenCache == nil {
 		return 0
