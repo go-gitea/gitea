@@ -10,17 +10,16 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/routers"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNodeinfo(t *testing.T) {
 	setting.Federation.Enabled = true
-	c = routers.NormalRoutes()
+	setNormalRoutes()
 	defer func() {
 		setting.Federation.Enabled = false
-		c = routers.NormalRoutes()
+		setNormalRoutes()
 	}()
 
 	onGiteaRun(t, func(*testing.T, *url.URL) {

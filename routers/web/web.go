@@ -104,7 +104,7 @@ func ctxDataSet(args ...any) func(ctx *context.Context) {
 }
 
 // Routes returns all web routes
-func Routes() *web.Route {
+func Routes(middlewares ...any) *web.Route {
 	routes := web.NewRoute()
 
 	routes.Head("/", misc.DummyOK) // for health check - doesn't need to be passed through gzip handler
@@ -161,6 +161,7 @@ func Routes() *web.Route {
 	mid = append(mid, user.GetNotificationCount)
 	mid = append(mid, repo.GetActiveStopwatch)
 	mid = append(mid, goGet)
+	mid = append(mid, middlewares...)
 
 	others := web.NewRoute()
 	others.Use(mid...)

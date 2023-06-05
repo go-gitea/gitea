@@ -14,7 +14,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/activitypub"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/routers"
 
 	ap "github.com/go-ap/activitypub"
 	"github.com/stretchr/testify/assert"
@@ -22,10 +21,10 @@ import (
 
 func TestActivityPubPerson(t *testing.T) {
 	setting.Federation.Enabled = true
-	c = routers.NormalRoutes()
+	setNormalRoutes()
 	defer func() {
 		setting.Federation.Enabled = false
-		c = routers.NormalRoutes()
+		setNormalRoutes()
 	}()
 
 	onGiteaRun(t, func(*testing.T, *url.URL) {
@@ -60,10 +59,10 @@ func TestActivityPubPerson(t *testing.T) {
 
 func TestActivityPubMissingPerson(t *testing.T) {
 	setting.Federation.Enabled = true
-	c = routers.NormalRoutes()
+	setNormalRoutes()
 	defer func() {
 		setting.Federation.Enabled = false
-		c = routers.NormalRoutes()
+		setNormalRoutes()
 	}()
 
 	onGiteaRun(t, func(*testing.T, *url.URL) {
@@ -75,10 +74,10 @@ func TestActivityPubMissingPerson(t *testing.T) {
 
 func TestActivityPubPersonInbox(t *testing.T) {
 	setting.Federation.Enabled = true
-	c = routers.NormalRoutes()
+	setNormalRoutes()
 	defer func() {
 		setting.Federation.Enabled = false
-		c = routers.NormalRoutes()
+		setNormalRoutes()
 	}()
 
 	srv := httptest.NewServer(c)

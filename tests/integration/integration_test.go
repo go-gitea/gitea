@@ -40,7 +40,19 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
-var c *web.Route
+var (
+	c                  *web.Route
+	testMiddlewareHook func(*gitea_context.Context)
+)
+
+func setNormalRoutes() {
+	middlewareHook := func(ctx *gitea_context.Context) {
+		if testMiddlewareHook != nil {
+			testMiddlewareHook(ctx)
+		}
+	}
+	c = routers.NormalRoutes(middlewareHook)
+}
 
 type NilResponseRecorder struct {
 	httptest.ResponseRecorder
@@ -87,8 +99,7 @@ func TestMain(m *testing.M) {
 	defer cancel()
 
 	tests.InitTest(true)
-	c = routers.NormalRoutes()
-
+	setNormalRoutes()
 	// integration test settings...
 	if setting.CfgProvider != nil {
 		testingCfg := setting.CfgProvider.Section("integration-tests")
