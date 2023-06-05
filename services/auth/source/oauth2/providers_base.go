@@ -3,10 +3,6 @@
 
 package oauth2
 
-import (
-	"code.gitea.io/gitea/modules/util"
-)
-
 // BaseProvider represents a common base for Provider
 type BaseProvider struct {
 	name        string
@@ -24,19 +20,13 @@ func (b *BaseProvider) DisplayName() string {
 }
 
 // Image returns an image path for this provider
+// Use svg for default image icons
 func (b *BaseProvider) Image() string {
-	suffix := ".png"
 	name := b.name
-	// names of providers that have svg as their default images
-	// providers_openid has its own Image() function
-	defaultSvgProviderNames := []string{"azuread", "azureadv2", "bitbucket", "discord", "dropbox", "facebook", "gitea", "github", "gitlab", "gplus", "mastodon", "microsoftonline", "nextcloud", "twitter", "yandex"}
-	if util.SliceContainsString(defaultSvgProviderNames, b.name) {
-		suffix = ".svg"
-		if b.name == "gplus" {
-			name = "google"
-		}
+	if b.name == "gplus" {
+		name = "google"
 	}
-	return "/assets/img/auth/" + name + suffix
+	return "/assets/img/auth/" + name + ".svg"
 }
 
 // CustomURLSettings returns the custom url settings for this provider
