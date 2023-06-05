@@ -66,7 +66,7 @@ TEST_MSSQL_HOST=localhost:1433 TEST_MSSQL_DBNAME=gitea_test TEST_MSSQL_USERNAME=
 
 ## Debug
 
-Set `PLAYWRIGHT_DEBUG=1` to enable [visual debugging](https://playwright.dev/docs/debug#run-in-debug-mode-1).
+Set the environment variable `PLAYWRIGHT_DEBUG` to enable [visual debugging](https://playwright.dev/docs/debug#run-in-debug-mode-1).
 
 ## Running individual tests
 
