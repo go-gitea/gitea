@@ -17,6 +17,9 @@
 			<div class="text grey meta">
 				{{if .Org.Location}}<div class="item">{{svg "octicon-location"}} <span>{{.Org.Location}}</span></div>{{end}}
 				{{if .Org.Website}}<div class="item">{{svg "octicon-link"}} <a target="_blank" rel="noopener noreferrer me" href="{{.Org.Website}}">{{.Org.Website}}</a></div>{{end}}
+				{{if $.IsSigned}}
+					{{if .Org.Email}}<div class="item">{{svg "octicon-mail"}} <a href="mailto:{{.Org.Email}}">{{.Org.Email}}</a></div>{{end}}
+				{{end}}
 			</div>
 		</div>
 		<div class="right stackable menu">

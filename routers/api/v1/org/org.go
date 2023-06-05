@@ -299,7 +299,15 @@ func Get(ctx *context.APIContext) {
 		ctx.NotFound("HasOrgOrUserVisible", nil)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToOrganization(ctx, ctx.Org.Organization))
+
+	org := convert.ToOrganization(ctx, ctx.Org.Organization)
+
+	// Don't show Mail, when User is not logged in
+	if ctx.Doer == nil {
+		org.EMail = ""
+	}
+
+	ctx.JSON(http.StatusOK, org)
 }
 
 // Edit change an organization's information

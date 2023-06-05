@@ -101,6 +101,7 @@ func SettingsPost(ctx *context.Context) {
 	}
 
 	org.FullName = form.FullName
+	org.Email = form.Email
 	org.Description = form.Description
 	org.Website = form.Website
 	org.Location = form.Location

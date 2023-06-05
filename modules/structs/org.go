@@ -8,6 +8,7 @@ type Organization struct {
 	ID                        int64  `json:"id"`
 	Name                      string `json:"name"`
 	FullName                  string `json:"full_name"`
+	EMail                     string `json:"email"`
 	AvatarURL                 string `json:"avatar_url"`
 	Description               string `json:"description"`
 	Website                   string `json:"website"`
