@@ -1,9 +1,10 @@
 import {encodeURLEncodedBase64, decodeURLEncodedBase64} from '../utils.js';
+import {showElem, hideElem} from '../utils/dom.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
 export async function initUserAuthWebAuthn() {
-  document.getElementById('webauthn-error')?.classList.add('gt-hidden');
+  hideElem('#webauthn-error');
 
   const elPrompt = document.querySelector('.user.signin.webauthn-prompt');
   if (!elPrompt) {
@@ -131,8 +132,7 @@ function webAuthnError(errorType, message) {
     }
   }
 
-  const elWebauthnError = document.getElementById('webauthn-error');
-  elWebauthnError.classList.remove('gt-hidden');
+  showElem('#webauthn-error');
 }
 
 function detectWebAuthnSupport() {
@@ -159,7 +159,7 @@ export function initUserAuthWebAuthnRegister() {
     return;
   }
 
-  document.getElementById('webauthn-error')?.classList.add('gt-hidden');
+  hideElem('#webauthn-error');
 
   elRegister.addEventListener('click', (e) => {
     e.preventDefault();
