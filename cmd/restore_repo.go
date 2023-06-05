@@ -1,14 +1,11 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cmd
 
 import (
-	"errors"
-	"net/http"
+	"strings"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -54,20 +51,18 @@ func runRestoreRepository(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setting.LoadFromExisting()
-
-	statusCode, errStr := private.RestoreRepo(
+	setting.Init(&setting.Options{})
+	var units []string
+	if s := c.String("units"); s != "" {
+		units = strings.Split(s, ",")
+	}
+	extra := private.RestoreRepo(
 		ctx,
 		c.String("repo_dir"),
 		c.String("owner_name"),
 		c.String("repo_name"),
-		c.StringSlice("units"),
+		units,
 		c.Bool("validation"),
 	)
-	if statusCode == http.StatusOK {
-		return nil
-	}
-
-	log.Fatal("Failed to restore repository: %v", errStr)
-	return errors.New(errStr)
+	return handleCliResponseExtra(extra)
 }

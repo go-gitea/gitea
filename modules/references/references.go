@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package references
 
@@ -36,9 +35,12 @@ var (
 	// issueAlphanumericPattern matches string that references to an alphanumeric issue, e.g. ABC-1234
 	issueAlphanumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([A-Z]{1,10}-[1-9][0-9]*)(?:\s|$|\)|\]|:|\.(\s|$))`)
 	// crossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
-	// e.g. gogits/gogs#12345
+	// e.g. org/repo#12345
 	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+[#!][0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
-	// spaceTrimmedPattern let's us find the trailing space
+	// crossReferenceCommitPattern matches a string that references a commit in a different repository
+	// e.g. go-gitea/gitea@d8a994ef, go-gitea/gitea@d8a994ef243349f321568f9e36d5c3f444b99cae (7-40 characters)
+	crossReferenceCommitPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+)@([0-9a-f]{7,40})(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
+	// spaceTrimmedPattern let's find the trailing space
 	spaceTrimmedPattern = regexp.MustCompile(`(?:.*[0-9a-zA-Z-_])\s`)
 	// timeLogPattern matches string for time tracking
 	timeLogPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@([0-9]+([\.,][0-9]+)?(w|d|m|h))+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
@@ -93,6 +95,7 @@ type RenderizableReference struct {
 	Issue          string
 	Owner          string
 	Name           string
+	CommitSha      string
 	IsPull         bool
 	RefLocation    *RefSpan
 	Action         XRefAction
@@ -351,6 +354,21 @@ func FindRenderizableReferenceNumeric(content string, prOnly bool) (bool, *Rende
 	}
 }
 
+// FindRenderizableCommitCrossReference returns the first unvalidated commit cross reference found in a string.
+func FindRenderizableCommitCrossReference(content string) (bool, *RenderizableReference) {
+	m := crossReferenceCommitPattern.FindStringSubmatchIndex(content)
+	if len(m) < 8 {
+		return false, nil
+	}
+
+	return true, &RenderizableReference{
+		Owner:       content[m[2]:m[3]],
+		Name:        content[m[4]:m[5]],
+		CommitSha:   content[m[6]:m[7]],
+		RefLocation: &RefSpan{Start: m[2], End: m[7]},
+	}
+}
+
 // FindRenderizableReferenceRegexp returns the first regexp unvalidated references found in a string.
 func FindRenderizableReferenceRegexp(content string, pattern *regexp.Regexp) (bool, *RenderizableReference) {
 	match := pattern.FindStringSubmatchIndex(content)
@@ -379,7 +397,7 @@ func FindRenderizableReferenceAlphanumeric(content string) (bool, *RenderizableR
 	action, location := findActionKeywords([]byte(content), match[2])
 
 	return true, &RenderizableReference{
-		Issue:          string(content[match[2]:match[3]]),
+		Issue:          content[match[2]:match[3]],
 		RefLocation:    &RefSpan{Start: match[2], End: match[3]},
 		Action:         action,
 		ActionLocation: location,
@@ -506,7 +524,7 @@ func getCrossReference(content []byte, start, end int, fromLink, prOnly bool) *r
 	}
 	repo := string(content[start : start+sep])
 	issue := string(content[start+sep+1 : end])
-	index, err := strconv.ParseInt(string(issue), 10, 64)
+	index, err := strconv.ParseInt(issue, 10, 64)
 	if err != nil {
 		return nil
 	}

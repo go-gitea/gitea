@@ -1,14 +1,11 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package httpcache
 
 import (
-	"encoding/base64"
-	"fmt"
+	"io"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -16,51 +13,31 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-// AddCacheControlToHeader adds suitable cache-control headers to response
-func AddCacheControlToHeader(h http.Header, d time.Duration) {
+// SetCacheControlInHeader sets suitable cache-control headers in the response
+func SetCacheControlInHeader(h http.Header, maxAge time.Duration, additionalDirectives ...string) {
+	directives := make([]string, 0, 2+len(additionalDirectives))
+
+	// "max-age=0 + must-revalidate" (aka "no-cache") is preferred instead of "no-store"
+	// because browsers may restore some input fields after navigate-back / reload a page.
 	if setting.IsProd {
-		h.Set("Cache-Control", "private, max-age="+strconv.Itoa(int(d.Seconds())))
-	} else {
-		h.Set("Cache-Control", "no-store")
-		// to remind users they are using non-prod setting.
-		// some users may be confused by "Cache-Control: no-store" in their setup if they did wrong to `RUN_MODE` in `app.ini`.
-		h.Add("X-Gitea-Debug", "RUN_MODE="+setting.RunMode)
-		h.Add("X-Gitea-Debug", "CacheControl=no-store")
-	}
-}
-
-// generateETag generates an ETag based on size, filename and file modification time
-func generateETag(fi os.FileInfo) string {
-	etag := fmt.Sprint(fi.Size()) + fi.Name() + fi.ModTime().UTC().Format(http.TimeFormat)
-	return `"` + base64.StdEncoding.EncodeToString([]byte(etag)) + `"`
-}
-
-// HandleTimeCache handles time-based caching for a HTTP request
-func HandleTimeCache(req *http.Request, w http.ResponseWriter, fi os.FileInfo) (handled bool) {
-	return HandleGenericTimeCache(req, w, fi.ModTime())
-}
-
-// HandleGenericTimeCache handles time-based caching for a HTTP request
-func HandleGenericTimeCache(req *http.Request, w http.ResponseWriter, lastModified time.Time) (handled bool) {
-	AddCacheControlToHeader(w.Header(), setting.StaticCacheTime)
-
-	ifModifiedSince := req.Header.Get("If-Modified-Since")
-	if ifModifiedSince != "" {
-		t, err := time.Parse(http.TimeFormat, ifModifiedSince)
-		if err == nil && lastModified.Unix() <= t.Unix() {
-			w.WriteHeader(http.StatusNotModified)
-			return true
+		if maxAge == 0 {
+			directives = append(directives, "max-age=0", "private", "must-revalidate")
+		} else {
+			directives = append(directives, "private", "max-age="+strconv.Itoa(int(maxAge.Seconds())))
 		}
+	} else {
+		directives = append(directives, "max-age=0", "private", "must-revalidate")
+
+		// to remind users they are using non-prod setting.
+		h.Set("X-Gitea-Debug", "RUN_MODE="+setting.RunMode)
 	}
 
-	w.Header().Set("Last-Modified", lastModified.Format(http.TimeFormat))
-	return false
+	h.Set("Cache-Control", strings.Join(append(directives, additionalDirectives...), ", "))
 }
 
-// HandleFileETagCache handles ETag-based caching for a HTTP request
-func HandleFileETagCache(req *http.Request, w http.ResponseWriter, fi os.FileInfo) (handled bool) {
-	etag := generateETag(fi)
-	return HandleGenericETagCache(req, w, etag)
+func ServeContentWithCacheControl(w http.ResponseWriter, req *http.Request, name string, modTime time.Time, content io.ReadSeeker) {
+	SetCacheControlInHeader(w.Header(), setting.StaticCacheTime)
+	http.ServeContent(w, req, name, modTime, content)
 }
 
 // HandleGenericETagCache handles ETag-based caching for a HTTP request.
@@ -73,7 +50,7 @@ func HandleGenericETagCache(req *http.Request, w http.ResponseWriter, etag strin
 			return true
 		}
 	}
-	AddCacheControlToHeader(w.Header(), setting.StaticCacheTime)
+	SetCacheControlInHeader(w.Header(), setting.StaticCacheTime)
 	return false
 }
 
@@ -117,6 +94,6 @@ func HandleGenericETagTimeCache(req *http.Request, w http.ResponseWriter, etag s
 			}
 		}
 	}
-	AddCacheControlToHeader(w.Header(), setting.StaticCacheTime)
+	SetCacheControlInHeader(w.Header(), setting.StaticCacheTime)
 	return false
 }

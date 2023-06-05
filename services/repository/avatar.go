@@ -1,14 +1,11 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
 import (
 	"context"
-	"crypto/md5"
 	"fmt"
-	"image/png"
 	"io"
 	"strconv"
 	"strings"
@@ -22,18 +19,18 @@ import (
 
 // UploadAvatar saves custom avatar for repository.
 // FIXME: split uploads to different subdirs in case we have massive number of repos.
-func UploadAvatar(repo *repo_model.Repository, data []byte) error {
-	m, err := avatar.Prepare(data)
+func UploadAvatar(ctx context.Context, repo *repo_model.Repository, data []byte) error {
+	avatarData, err := avatar.ProcessAvatarImage(data)
 	if err != nil {
 		return err
 	}
 
-	newAvatar := fmt.Sprintf("%d-%x", repo.ID, md5.Sum(data))
+	newAvatar := avatar.HashAvatar(repo.ID, data)
 	if repo.Avatar == newAvatar { // upload the same picture
 		return nil
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -45,21 +42,19 @@ func UploadAvatar(repo *repo_model.Repository, data []byte) error {
 	// Then repo will be removed - only it avatar file will be removed
 	repo.Avatar = newAvatar
 	if err := repo_model.UpdateRepositoryCols(ctx, repo, "avatar"); err != nil {
-		return fmt.Errorf("UploadAvatar: Update repository avatar: %v", err)
+		return fmt.Errorf("UploadAvatar: Update repository avatar: %w", err)
 	}
 
 	if err := storage.SaveFrom(storage.RepoAvatars, repo.CustomAvatarRelativePath(), func(w io.Writer) error {
-		if err := png.Encode(w, *m); err != nil {
-			log.Error("Encode: %v", err)
-		}
+		_, err := w.Write(avatarData)
 		return err
 	}); err != nil {
-		return fmt.Errorf("UploadAvatar %s failed: Failed to remove old repo avatar %s: %v", repo.RepoPath(), newAvatar, err)
+		return fmt.Errorf("UploadAvatar %s failed: Failed to remove old repo avatar %s: %w", repo.RepoPath(), newAvatar, err)
 	}
 
 	if len(oldAvatarPath) > 0 {
 		if err := storage.RepoAvatars.Delete(oldAvatarPath); err != nil {
-			return fmt.Errorf("UploadAvatar: Failed to remove old repo avatar %s: %v", oldAvatarPath, err)
+			return fmt.Errorf("UploadAvatar: Failed to remove old repo avatar %s: %w", oldAvatarPath, err)
 		}
 	}
 
@@ -67,7 +62,7 @@ func UploadAvatar(repo *repo_model.Repository, data []byte) error {
 }
 
 // DeleteAvatar deletes the repos's custom avatar.
-func DeleteAvatar(repo *repo_model.Repository) error {
+func DeleteAvatar(ctx context.Context, repo *repo_model.Repository) error {
 	// Avatar not exists
 	if len(repo.Avatar) == 0 {
 		return nil
@@ -76,7 +71,7 @@ func DeleteAvatar(repo *repo_model.Repository) error {
 	avatarPath := repo.CustomAvatarRelativePath()
 	log.Trace("DeleteAvatar[%d]: %s", repo.ID, avatarPath)
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -84,11 +79,11 @@ func DeleteAvatar(repo *repo_model.Repository) error {
 
 	repo.Avatar = ""
 	if err := repo_model.UpdateRepositoryCols(ctx, repo, "avatar"); err != nil {
-		return fmt.Errorf("DeleteAvatar: Update repository avatar: %v", err)
+		return fmt.Errorf("DeleteAvatar: Update repository avatar: %w", err)
 	}
 
 	if err := storage.RepoAvatars.Delete(avatarPath); err != nil {
-		return fmt.Errorf("DeleteAvatar: Failed to remove %s: %v", avatarPath, err)
+		return fmt.Errorf("DeleteAvatar: Failed to remove %s: %w", avatarPath, err)
 	}
 
 	return committer.Commit()
@@ -96,7 +91,7 @@ func DeleteAvatar(repo *repo_model.Repository) error {
 
 // RemoveRandomAvatars removes the randomly generated avatars that were created for repositories
 func RemoveRandomAvatars(ctx context.Context) error {
-	return repo_model.IterateRepository(func(repository *repo_model.Repository) error {
+	return db.Iterate(ctx, nil, func(ctx context.Context, repository *repo_model.Repository) error {
 		select {
 		case <-ctx.Done():
 			return db.ErrCancelledf("before random avatars removed for %s", repository.FullName())
@@ -104,7 +99,7 @@ func RemoveRandomAvatars(ctx context.Context) error {
 		}
 		stringifiedID := strconv.FormatInt(repository.ID, 10)
 		if repository.Avatar == stringifiedID {
-			return DeleteAvatar(repository)
+			return DeleteAvatar(ctx, repository)
 		}
 		return nil
 	})

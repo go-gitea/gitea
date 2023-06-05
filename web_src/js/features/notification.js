@@ -1,9 +1,33 @@
 import $ from 'jquery';
 
-const {appSubUrl, csrfToken, notificationSettings} = window.config;
+const {appSubUrl, csrfToken, notificationSettings, assetVersionEncoded} = window.config;
 let notificationSequenceNumber = 0;
 
 export function initNotificationsTable() {
+  const table = document.getElementById('notification_table');
+  if (!table) return;
+
+  // when page restores from bfcache, delete previously clicked items
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) { // page was restored from bfcache
+      const table = document.getElementById('notification_table');
+      const unreadCountEl = document.querySelector('.notifications-unread-count');
+      let unreadCount = parseInt(unreadCountEl.textContent);
+      for (const item of table.querySelectorAll('.notifications-item[data-remove="true"]')) {
+        item.remove();
+        unreadCount -= 1;
+      }
+      unreadCountEl.textContent = unreadCount;
+    }
+  });
+
+  // mark clicked unread links for deletion on bfcache restore
+  for (const link of table.querySelectorAll('.notifications-item[data-status="1"] .notifications-link')) {
+    link.addEventListener('click', (e) => {
+      e.target.closest('.notifications-item').setAttribute('data-remove', 'true');
+    });
+  }
+
   $('#notification_table .button').on('click', function () {
     (async () => {
       const data = await updateNotification(
@@ -28,14 +52,10 @@ async function receiveUpdateCount(event) {
   try {
     const data = JSON.parse(event.data);
 
-    const notificationCount = document.querySelector('.notification_count');
-    if (data.Count > 0) {
-      notificationCount.classList.remove('hidden');
-    } else {
-      notificationCount.classList.add('hidden');
+    for (const count of document.querySelectorAll('.notification_count')) {
+      count.classList.toggle('gt-hidden', data.Count === 0);
+      count.textContent = `${data.Count}`;
     }
-
-    notificationCount.textContent = `${data.Count}`;
     await updateNotificationTable();
   } catch (error) {
     console.error(error, event);
@@ -49,14 +69,24 @@ export function initNotificationCount() {
     return;
   }
 
-  if (notificationSettings.EventSourceUpdateTime > 0 && !!window.EventSource && window.SharedWorker) {
+  let usingPeriodicPoller = false;
+  const startPeriodicPoller = (timeout, lastCount) => {
+    if (timeout <= 0 || !Number.isFinite(timeout)) return;
+    usingPeriodicPoller = true;
+    lastCount = lastCount ?? notificationCount.text();
+    setTimeout(async () => {
+      await updateNotificationCountWithCallback(startPeriodicPoller, timeout, lastCount);
+    }, timeout);
+  };
+
+  if (notificationSettings.EventSourceUpdateTime > 0 && window.EventSource && window.SharedWorker) {
     // Try to connect to the event source via the shared worker first
-    const worker = new SharedWorker(`${__webpack_public_path__}js/eventsource.sharedworker.js`, 'notification-worker');
+    const worker = new SharedWorker(`${__webpack_public_path__}js/eventsource.sharedworker.js?v=${assetVersionEncoded}`, 'notification-worker');
     worker.addEventListener('error', (event) => {
-      console.error(event);
+      console.error('worker error', event);
     });
     worker.port.addEventListener('messageerror', () => {
-      console.error('Unable to deserialize message');
+      console.error('unable to deserialize message');
     });
     worker.port.postMessage({
       type: 'start',
@@ -64,13 +94,16 @@ export function initNotificationCount() {
     });
     worker.port.addEventListener('message', (event) => {
       if (!event.data || !event.data.type) {
-        console.error(event);
+        console.error('unknown worker message event', event);
         return;
       }
       if (event.data.type === 'notification-count') {
         const _promise = receiveUpdateCount(event.data);
+      } else if (event.data.type === 'no-event-source') {
+        // browser doesn't support EventSource, falling back to periodic poller
+        if (!usingPeriodicPoller) startPeriodicPoller(notificationSettings.MinTimeout);
       } else if (event.data.type === 'error') {
-        console.error(event.data);
+        console.error('worker port event error', event.data);
       } else if (event.data.type === 'logout') {
         if (event.data.data !== 'here') {
           return;
@@ -88,7 +121,7 @@ export function initNotificationCount() {
       }
     });
     worker.port.addEventListener('error', (e) => {
-      console.error(e);
+      console.error('worker port error', e);
     });
     worker.port.start();
     window.addEventListener('beforeunload', () => {
@@ -101,17 +134,7 @@ export function initNotificationCount() {
     return;
   }
 
-  if (notificationSettings.MinTimeout <= 0) {
-    return;
-  }
-
-  const fn = (timeout, lastCount) => {
-    setTimeout(() => {
-      const _promise = updateNotificationCountWithCallback(fn, timeout, lastCount);
-    }, timeout);
-  };
-
-  fn(notificationSettings.MinTimeout, notificationCount.text());
+  startPeriodicPoller(notificationSettings.MinTimeout);
 }
 
 async function updateNotificationCountWithCallback(callback, timeout, lastCount) {
@@ -166,9 +189,9 @@ async function updateNotificationCount() {
 
   const notificationCount = $('.notification_count');
   if (data.new === 0) {
-    notificationCount.addClass('hidden');
+    notificationCount.addClass('gt-hidden');
   } else {
-    notificationCount.removeClass('hidden');
+    notificationCount.removeClass('gt-hidden');
   }
 
   notificationCount.text(`${data.new}`);

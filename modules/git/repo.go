@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -59,7 +58,7 @@ func (repo *Repository) parsePrettyFormatLogToList(logs []byte) ([]*Commit, erro
 
 // IsRepoURLAccessible checks if given repository URL is accessible.
 func IsRepoURLAccessible(ctx context.Context, url string) bool {
-	_, _, err := NewCommand(ctx, "ls-remote", "-q", "-h", url, "HEAD").RunStdString(nil)
+	_, _, err := NewCommand(ctx, "ls-remote", "-q", "-h").AddDynamicArguments(url, "HEAD").RunStdString(nil)
 	return err == nil
 }
 
@@ -81,7 +80,7 @@ func InitRepository(ctx context.Context, repoPath string, bare bool) error {
 // IsEmpty Check if repository is empty.
 func (repo *Repository) IsEmpty() (bool, error) {
 	var errbuf, output strings.Builder
-	if err := NewCommand(repo.Ctx, "show-ref", "--head", "^HEAD$").
+	if err := NewCommand(repo.Ctx).AddOptionFormat("--git-dir=%s", repo.Path).AddArguments("show-ref", "--head", "^HEAD$").
 		Run(&RunOpts{
 			Dir:    repo.Path,
 			Stdout: &output,
@@ -90,7 +89,7 @@ func (repo *Repository) IsEmpty() (bool, error) {
 		if err.Error() == "exit status 1" && errbuf.String() == "" {
 			return true, nil
 		}
-		return true, fmt.Errorf("check empty: %v - %s", err, errbuf.String())
+		return true, fmt.Errorf("check empty: %w - %s", err, errbuf.String())
 	}
 
 	return strings.TrimSpace(output.String()) == "", nil
@@ -112,13 +111,11 @@ type CloneRepoOptions struct {
 
 // Clone clones original repository to target path.
 func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
-	cargs := make([]string, len(globalCommandArgs))
-	copy(cargs, globalCommandArgs)
-	return CloneWithArgs(ctx, from, to, cargs, opts)
+	return CloneWithArgs(ctx, globalCommandArgs, from, to, opts)
 }
 
 // CloneWithArgs original repository to target path.
-func CloneWithArgs(ctx context.Context, from, to string, args []string, opts CloneRepoOptions) (err error) {
+func CloneWithArgs(ctx context.Context, args TrustedCmdArgs, from, to string, opts CloneRepoOptions) (err error) {
 	toDir := path.Dir(to)
 	if err = os.MkdirAll(toDir, os.ModePerm); err != nil {
 		return err
@@ -144,15 +141,15 @@ func CloneWithArgs(ctx context.Context, from, to string, args []string, opts Clo
 		cmd.AddArguments("--no-checkout")
 	}
 	if opts.Depth > 0 {
-		cmd.AddArguments("--depth", strconv.Itoa(opts.Depth))
+		cmd.AddArguments("--depth").AddDynamicArguments(strconv.Itoa(opts.Depth))
 	}
 	if opts.Filter != "" {
-		cmd.AddArguments("--filter", opts.Filter)
+		cmd.AddArguments("--filter").AddDynamicArguments(opts.Filter)
 	}
 	if len(opts.Branch) > 0 {
-		cmd.AddArguments("-b", opts.Branch)
+		cmd.AddArguments("-b").AddDynamicArguments(opts.Branch)
 	}
-	cmd.AddArguments("--", from, to)
+	cmd.AddDashesAndList(from, to)
 
 	if strings.Contains(from, "://") && strings.Contains(from, "@") {
 		cmd.SetDescription(fmt.Sprintf("clone branch %s from %s to %s (shared: %t, mirror: %t, depth: %d)", opts.Branch, util.SanitizeCredentialURLs(from), to, opts.Shared, opts.Mirror, opts.Depth))
@@ -166,10 +163,8 @@ func CloneWithArgs(ctx context.Context, from, to string, args []string, opts Clo
 
 	envs := os.Environ()
 	u, err := url.Parse(from)
-	if err == nil && (strings.EqualFold(u.Scheme, "http") || strings.EqualFold(u.Scheme, "https")) {
-		if proxy.Match(u.Host) {
-			envs = append(envs, fmt.Sprintf("https_proxy=%s", proxy.GetProxyURL()))
-		}
+	if err == nil {
+		envs = proxy.EnvWithProxy(u)
 	}
 
 	stderr := new(bytes.Buffer)
@@ -203,58 +198,33 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	if opts.Mirror {
 		cmd.AddArguments("--mirror")
 	}
-	cmd.AddArguments("--", opts.Remote)
+	remoteBranchArgs := []string{opts.Remote}
 	if len(opts.Branch) > 0 {
-		cmd.AddArguments(opts.Branch)
+		remoteBranchArgs = append(remoteBranchArgs, opts.Branch)
 	}
+	cmd.AddDashesAndList(remoteBranchArgs...)
+
 	if strings.Contains(opts.Remote, "://") && strings.Contains(opts.Remote, "@") {
 		cmd.SetDescription(fmt.Sprintf("push branch %s to %s (force: %t, mirror: %t)", opts.Branch, util.SanitizeCredentialURLs(opts.Remote), opts.Force, opts.Mirror))
 	} else {
 		cmd.SetDescription(fmt.Sprintf("push branch %s to %s (force: %t, mirror: %t)", opts.Branch, opts.Remote, opts.Force, opts.Mirror))
 	}
-	var outbuf, errbuf strings.Builder
 
-	if opts.Timeout == 0 {
-		opts.Timeout = -1
-	}
-
-	err := cmd.Run(&RunOpts{
-		Env:     opts.Env,
-		Timeout: opts.Timeout,
-		Dir:     repoPath,
-		Stdout:  &outbuf,
-		Stderr:  &errbuf,
-	})
+	stdout, stderr, err := cmd.RunStdString(&RunOpts{Env: opts.Env, Timeout: opts.Timeout, Dir: repoPath})
 	if err != nil {
-		if strings.Contains(errbuf.String(), "non-fast-forward") {
-			return &ErrPushOutOfDate{
-				StdOut: outbuf.String(),
-				StdErr: errbuf.String(),
-				Err:    err,
-			}
-		} else if strings.Contains(errbuf.String(), "! [remote rejected]") {
-			err := &ErrPushRejected{
-				StdOut: outbuf.String(),
-				StdErr: errbuf.String(),
-				Err:    err,
-			}
+		if strings.Contains(stderr, "non-fast-forward") {
+			return &ErrPushOutOfDate{StdOut: stdout, StdErr: stderr, Err: err}
+		} else if strings.Contains(stderr, "! [remote rejected]") {
+			err := &ErrPushRejected{StdOut: stdout, StdErr: stderr, Err: err}
 			err.GenerateMessage()
 			return err
-		} else if strings.Contains(errbuf.String(), "matches more than one") {
-			err := &ErrMoreThanOne{
-				StdOut: outbuf.String(),
-				StdErr: errbuf.String(),
-				Err:    err,
-			}
-			return err
+		} else if strings.Contains(stderr, "matches more than one") {
+			return &ErrMoreThanOne{StdOut: stdout, StdErr: stderr, Err: err}
 		}
+		return fmt.Errorf("push failed: %w - %s\n%s", err, stderr, stdout)
 	}
 
-	if errbuf.Len() > 0 && err != nil {
-		return fmt.Errorf("%v - %s", err, errbuf.String())
-	}
-
-	return err
+	return nil
 }
 
 // GetLatestCommitTime returns time for latest commit in repository (across all branches)
@@ -274,35 +244,28 @@ type DivergeObject struct {
 	Behind int
 }
 
-func checkDivergence(ctx context.Context, repoPath, baseBranch, targetBranch string) (int, error) {
-	branches := fmt.Sprintf("%s..%s", baseBranch, targetBranch)
-	cmd := NewCommand(ctx, "rev-list", "--count", branches)
+// GetDivergingCommits returns the number of commits a targetBranch is ahead or behind a baseBranch
+func GetDivergingCommits(ctx context.Context, repoPath, baseBranch, targetBranch string) (do DivergeObject, err error) {
+	cmd := NewCommand(ctx, "rev-list", "--count", "--left-right").
+		AddDynamicArguments(baseBranch + "..." + targetBranch)
 	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
 	if err != nil {
-		return -1, err
+		return do, err
 	}
-	outInteger, errInteger := strconv.Atoi(strings.Trim(stdout, "\n"))
-	if errInteger != nil {
-		return -1, errInteger
-	}
-	return outInteger, nil
-}
-
-// GetDivergingCommits returns the number of commits a targetBranch is ahead or behind a baseBranch
-func GetDivergingCommits(ctx context.Context, repoPath, baseBranch, targetBranch string) (DivergeObject, error) {
-	// $(git rev-list --count master..feature) commits ahead of master
-	ahead, errorAhead := checkDivergence(ctx, repoPath, baseBranch, targetBranch)
-	if errorAhead != nil {
-		return DivergeObject{}, errorAhead
+	left, right, found := strings.Cut(strings.Trim(stdout, "\n"), "\t")
+	if !found {
+		return do, fmt.Errorf("git rev-list output is missing a tab: %q", stdout)
 	}
 
-	// $(git rev-list --count feature..master) commits behind master
-	behind, errorBehind := checkDivergence(ctx, repoPath, targetBranch, baseBranch)
-	if errorBehind != nil {
-		return DivergeObject{}, errorBehind
+	do.Behind, err = strconv.Atoi(left)
+	if err != nil {
+		return do, err
 	}
-
-	return DivergeObject{ahead, behind}, nil
+	do.Ahead, err = strconv.Atoi(right)
+	if err != nil {
+		return do, err
+	}
+	return do, nil
 }
 
 // CreateBundle create bundle content to the target path
@@ -319,7 +282,7 @@ func (repo *Repository) CreateBundle(ctx context.Context, commit string, out io.
 		return err
 	}
 
-	_, _, err = NewCommand(ctx, "reset", "--soft", commit).RunStdString(&RunOpts{Dir: tmp, Env: env})
+	_, _, err = NewCommand(ctx, "reset", "--soft").AddDynamicArguments(commit).RunStdString(&RunOpts{Dir: tmp, Env: env})
 	if err != nil {
 		return err
 	}
@@ -330,7 +293,7 @@ func (repo *Repository) CreateBundle(ctx context.Context, commit string, out io.
 	}
 
 	tmpFile := filepath.Join(tmp, "bundle")
-	_, _, err = NewCommand(ctx, "bundle", "create", tmpFile, "bundle", "HEAD").RunStdString(&RunOpts{Dir: tmp, Env: env})
+	_, _, err = NewCommand(ctx, "bundle", "create").AddDynamicArguments(tmpFile, "bundle", "HEAD").RunStdString(&RunOpts{Dir: tmp, Env: env})
 	if err != nil {
 		return err
 	}

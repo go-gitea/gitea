@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package admin
 
@@ -25,7 +24,7 @@ func TestNewUserPost_MustChangePassword(t *testing.T) {
 	u := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 		IsAdmin: true,
 		ID:      2,
-	}).(*user_model.User)
+	})
 
 	ctx.Doer = u
 
@@ -62,7 +61,7 @@ func TestNewUserPost_MustChangePasswordFalse(t *testing.T) {
 	u := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 		IsAdmin: true,
 		ID:      2,
-	}).(*user_model.User)
+	})
 
 	ctx.Doer = u
 
@@ -99,7 +98,7 @@ func TestNewUserPost_InvalidEmail(t *testing.T) {
 	u := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 		IsAdmin: true,
 		ID:      2,
-	}).(*user_model.User)
+	})
 
 	ctx.Doer = u
 
@@ -129,7 +128,7 @@ func TestNewUserPost_VisibilityDefaultPublic(t *testing.T) {
 	u := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 		IsAdmin: true,
 		ID:      2,
-	}).(*user_model.User)
+	})
 
 	ctx.Doer = u
 
@@ -167,7 +166,7 @@ func TestNewUserPost_VisibilityPrivate(t *testing.T) {
 	u := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 		IsAdmin: true,
 		ID:      2,
-	}).(*user_model.User)
+	})
 
 	ctx.Doer = u
 

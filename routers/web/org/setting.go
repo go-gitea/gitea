@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package org
 
@@ -23,7 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/services/forms"
-	"code.gitea.io/gitea/services/org"
+	org_service "code.gitea.io/gitea/services/org"
 	repo_service "code.gitea.io/gitea/services/repository"
 	user_service "code.gitea.io/gitea/services/user"
 )
@@ -46,6 +45,7 @@ func Settings(ctx *context.Context) {
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
 	ctx.Data["RepoAdminChangeTeamAccess"] = ctx.Org.Organization.RepoAdminChangeTeamAccess
+	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.HTML(http.StatusOK, tplSettingsOptions)
 }
 
@@ -66,28 +66,26 @@ func SettingsPost(ctx *context.Context) {
 	nameChanged := org.Name != form.Name
 
 	// Check if organization name has been changed.
-	if org.LowerName != strings.ToLower(form.Name) {
-		isExist, err := user_model.IsUserExist(ctx, org.ID, form.Name)
-		if err != nil {
-			ctx.ServerError("IsUserExist", err)
-			return
-		} else if isExist {
+	if nameChanged {
+		err := org_service.RenameOrganization(ctx, org, form.Name)
+		switch {
+		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Data["OrgName"] = true
 			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tplSettingsOptions, &form)
 			return
-		} else if err = user_model.ChangeUserName(org.AsUser(), form.Name); err != nil {
-			switch {
-			case db.IsErrNameReserved(err):
-				ctx.Data["OrgName"] = true
-				ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplSettingsOptions, &form)
-			case db.IsErrNamePatternNotAllowed(err):
-				ctx.Data["OrgName"] = true
-				ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplSettingsOptions, &form)
-			default:
-				ctx.ServerError("ChangeUserName", err)
-			}
+		case db.IsErrNameReserved(err):
+			ctx.Data["OrgName"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplSettingsOptions, &form)
+			return
+		case db.IsErrNamePatternNotAllowed(err):
+			ctx.Data["OrgName"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplSettingsOptions, &form)
+			return
+		case err != nil:
+			ctx.ServerError("org_service.RenameOrganization", err)
 			return
 		}
+
 		// reset ctx.org.OrgLink with new name
 		ctx.Org.OrgLink = setting.AppSubURL + "/org/" + url.PathEscape(form.Name)
 		log.Trace("Organization name changed: %s -> %s", org.Name, form.Name)
@@ -127,7 +125,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 		for _, repo := range repos {
 			repo.OwnerName = org.Name
-			if err := repo_service.UpdateRepository(repo, true); err != nil {
+			if err := repo_service.UpdateRepository(ctx, repo, true); err != nil {
 				ctx.ServerError("UpdateRepository", err)
 				return
 			}
@@ -179,7 +177,7 @@ func SettingsDelete(ctx *context.Context) {
 			return
 		}
 
-		if err := org.DeleteOrganization(ctx.Org.Organization); err != nil {
+		if err := org_service.DeleteOrganization(ctx.Org.Organization); err != nil {
 			if models.IsErrUserOwnRepos(err) {
 				ctx.Flash.Error(ctx.Tr("form.org_still_own_repo"))
 				ctx.Redirect(ctx.Org.OrgLink + "/settings/delete")
@@ -208,9 +206,9 @@ func Webhooks(ctx *context.Context) {
 	ctx.Data["BaseLinkNew"] = ctx.Org.OrgLink + "/settings/hooks"
 	ctx.Data["Description"] = ctx.Tr("org.settings.hooks_desc")
 
-	ws, err := webhook.ListWebhooksByOpts(ctx, &webhook.ListWebhookOptions{OrgID: ctx.Org.Organization.ID})
+	ws, err := webhook.ListWebhooksByOpts(ctx, &webhook.ListWebhookOptions{OwnerID: ctx.Org.Organization.ID})
 	if err != nil {
-		ctx.ServerError("GetWebhooksByOrgId", err)
+		ctx.ServerError("ListWebhooksByOpts", err)
 		return
 	}
 
@@ -220,8 +218,8 @@ func Webhooks(ctx *context.Context) {
 
 // DeleteWebhook response for delete webhook
 func DeleteWebhook(ctx *context.Context) {
-	if err := webhook.DeleteWebhookByOrgID(ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
-		ctx.Flash.Error("DeleteWebhookByOrgID: " + err.Error())
+	if err := webhook.DeleteWebhookByOwnerID(ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
+		ctx.Flash.Error("DeleteWebhookByOwnerID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
@@ -236,7 +234,6 @@ func Labels(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.labels")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsOrgSettingsLabels"] = true
-	ctx.Data["RequireTribute"] = true
-	ctx.Data["LabelTemplates"] = repo_module.LabelTemplates
+	ctx.Data["LabelTemplateFiles"] = repo_module.LabelTemplateFiles
 	ctx.HTML(http.StatusOK, tplSettingsLabels)
 }

@@ -1,7 +1,6 @@
 // Copyright 2019 Yusuke Inuzuka
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 // Most of what follows is a subtly changed version of github.com/yuin/goldmark/extension/footnote.go
 
@@ -203,9 +202,8 @@ func (b *footnoteBlockParser) Open(parent ast.Node, reader text.Reader, pc parse
 		return nil, parser.NoChildren
 	}
 	open := pos + 1
-	closes := 0
 	closure := util.FindClosure(line[pos+1:], '[', ']', false, false) //nolint
-	closes = pos + 1 + closure
+	closes := pos + 1 + closure
 	next := closes + 1
 	if closure > -1 {
 		if next >= len(line) || line[next] != ':' {

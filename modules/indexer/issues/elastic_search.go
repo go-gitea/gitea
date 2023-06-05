@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -23,20 +22,11 @@ var _ Indexer = &ElasticSearchIndexer{}
 
 // ElasticSearchIndexer implements Indexer interface
 type ElasticSearchIndexer struct {
-	client               *elastic.Client
-	indexerName          string
-	available            bool
-	availabilityCallback func(bool)
-	stopTimer            chan struct{}
-	lock                 sync.RWMutex
-}
-
-type elasticLogger struct {
-	log.LevelLogger
-}
-
-func (l elasticLogger) Printf(format string, args ...interface{}) {
-	_ = l.Log(2, l.GetLevel(), format, args...)
+	client      *elastic.Client
+	indexerName string
+	available   bool
+	stopTimer   chan struct{}
+	lock        sync.RWMutex
 }
 
 // NewElasticSearchIndexer creates a new elasticsearch indexer
@@ -48,15 +38,10 @@ func NewElasticSearchIndexer(url, indexerName string) (*ElasticSearchIndexer, er
 		elastic.SetGzip(false),
 	}
 
-	logger := elasticLogger{log.GetLogger(log.DEFAULT)}
-
-	if logger.GetLevel() == log.TRACE || logger.GetLevel() == log.DEBUG {
-		opts = append(opts, elastic.SetTraceLog(logger))
-	} else if logger.GetLevel() == log.ERROR || logger.GetLevel() == log.CRITICAL || logger.GetLevel() == log.FATAL {
-		opts = append(opts, elastic.SetErrorLog(logger))
-	} else if logger.GetLevel() == log.INFO || logger.GetLevel() == log.WARN {
-		opts = append(opts, elastic.SetInfoLog(logger))
-	}
+	logger := log.GetLogger(log.DEFAULT)
+	opts = append(opts, elastic.SetTraceLog(&log.PrintfLogger{Logf: logger.Trace}))
+	opts = append(opts, elastic.SetInfoLog(&log.PrintfLogger{Logf: logger.Info}))
+	opts = append(opts, elastic.SetErrorLog(&log.PrintfLogger{Logf: logger.Error}))
 
 	client, err := elastic.NewClient(opts...)
 	if err != nil {
@@ -137,13 +122,6 @@ func (b *ElasticSearchIndexer) Init() (bool, error) {
 		return false, nil
 	}
 	return true, nil
-}
-
-// SetAvailabilityChangeCallback sets callback that will be triggered when availability changes
-func (b *ElasticSearchIndexer) SetAvailabilityChangeCallback(callback func(bool)) {
-	b.lock.Lock()
-	defer b.lock.Unlock()
-	b.availabilityCallback = callback
 }
 
 // Ping checks if elastic is available
@@ -306,8 +284,4 @@ func (b *ElasticSearchIndexer) setAvailability(available bool) {
 	}
 
 	b.available = available
-	if b.availabilityCallback != nil {
-		// Call the callback from within the lock to ensure that the ordering remains correct
-		b.availabilityCallback(b.available)
-	}
 }

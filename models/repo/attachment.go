@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -14,21 +13,23 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // Attachment represent a attachment of issue/comment/release.
 type Attachment struct {
-	ID            int64  `xorm:"pk autoincr"`
-	UUID          string `xorm:"uuid UNIQUE"`
-	RepoID        int64  `xorm:"INDEX"`           // this should not be zero
-	IssueID       int64  `xorm:"INDEX"`           // maybe zero when creating
-	ReleaseID     int64  `xorm:"INDEX"`           // maybe zero when creating
-	UploaderID    int64  `xorm:"INDEX DEFAULT 0"` // Notice: will be zero before this column added
-	CommentID     int64
-	Name          string
-	DownloadCount int64              `xorm:"DEFAULT 0"`
-	Size          int64              `xorm:"DEFAULT 0"`
-	CreatedUnix   timeutil.TimeStamp `xorm:"created"`
+	ID                int64  `xorm:"pk autoincr"`
+	UUID              string `xorm:"uuid UNIQUE"`
+	RepoID            int64  `xorm:"INDEX"`           // this should not be zero
+	IssueID           int64  `xorm:"INDEX"`           // maybe zero when creating
+	ReleaseID         int64  `xorm:"INDEX"`           // maybe zero when creating
+	UploaderID        int64  `xorm:"INDEX DEFAULT 0"` // Notice: will be zero before this column added
+	CommentID         int64
+	Name              string
+	DownloadCount     int64              `xorm:"DEFAULT 0"`
+	Size              int64              `xorm:"DEFAULT 0"`
+	CreatedUnix       timeutil.TimeStamp `xorm:"created"`
+	CustomDownloadURL string             `xorm:"-"`
 }
 
 func init() {
@@ -39,7 +40,7 @@ func init() {
 func (a *Attachment) IncreaseDownloadCount() error {
 	// Update download count.
 	if _, err := db.GetEngine(db.DefaultContext).Exec("UPDATE `attachment` SET download_count=download_count+1 WHERE id=?", a.ID); err != nil {
-		return fmt.Errorf("increase attachment count: %v", err)
+		return fmt.Errorf("increase attachment count: %w", err)
 	}
 
 	return nil
@@ -57,6 +58,10 @@ func (a *Attachment) RelativePath() string {
 
 // DownloadURL returns the download url of the attached file
 func (a *Attachment) DownloadURL() string {
+	if a.CustomDownloadURL != "" {
+		return a.CustomDownloadURL
+	}
+
 	return setting.AppURL + "attachments/" + url.PathEscape(a.UUID)
 }
 
@@ -81,6 +86,10 @@ func IsErrAttachmentNotExist(err error) bool {
 
 func (err ErrAttachmentNotExist) Error() string {
 	return fmt.Sprintf("attachment does not exist [id: %d, uuid: %s]", err.ID, err.UUID)
+}
+
+func (err ErrAttachmentNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // GetAttachmentByID returns attachment by given id
@@ -117,15 +126,30 @@ func GetAttachmentsByUUIDs(ctx context.Context, uuids []string) ([]*Attachment, 
 	return attachments, db.GetEngine(ctx).In("uuid", uuids).Find(&attachments)
 }
 
-// ExistAttachmentsByUUID returns true if attachment is exist by given UUID
-func ExistAttachmentsByUUID(uuid string) (bool, error) {
-	return db.GetEngine(db.DefaultContext).Where("`uuid`=?", uuid).Exist(new(Attachment))
+// ExistAttachmentsByUUID returns true if attachment exists with the given UUID
+func ExistAttachmentsByUUID(ctx context.Context, uuid string) (bool, error) {
+	return db.GetEngine(ctx).Where("`uuid`=?", uuid).Exist(new(Attachment))
 }
 
 // GetAttachmentsByIssueID returns all attachments of an issue.
 func GetAttachmentsByIssueID(ctx context.Context, issueID int64) ([]*Attachment, error) {
 	attachments := make([]*Attachment, 0, 10)
 	return attachments, db.GetEngine(ctx).Where("issue_id = ? AND comment_id = 0", issueID).Find(&attachments)
+}
+
+// GetAttachmentsByIssueIDImagesLatest returns the latest image attachments of an issue.
+func GetAttachmentsByIssueIDImagesLatest(ctx context.Context, issueID int64) ([]*Attachment, error) {
+	attachments := make([]*Attachment, 0, 5)
+	return attachments, db.GetEngine(ctx).Where(`issue_id = ? AND (name like '%.apng'
+		OR name like '%.avif'
+		OR name like '%.bmp'
+		OR name like '%.gif'
+		OR name like '%.jpg'
+		OR name like '%.jpeg'
+		OR name like '%.jxl'
+		OR name like '%.png'
+		OR name like '%.svg'
+		OR name like '%.webp')`, issueID).Desc("comment_id").Limit(5).Find(&attachments)
 }
 
 // GetAttachmentsByCommentID returns all attachments if comment by given ID.
@@ -221,42 +245,20 @@ func UpdateAttachment(ctx context.Context, atta *Attachment) error {
 }
 
 // DeleteAttachmentsByRelease deletes all attachments associated with the given release.
-func DeleteAttachmentsByRelease(releaseID int64) error {
-	_, err := db.GetEngine(db.DefaultContext).Where("release_id = ?", releaseID).Delete(&Attachment{})
+func DeleteAttachmentsByRelease(ctx context.Context, releaseID int64) error {
+	_, err := db.GetEngine(ctx).Where("release_id = ?", releaseID).Delete(&Attachment{})
 	return err
 }
 
-// IterateAttachment iterates attachments; it should not be used when Gitea is servicing users.
-func IterateAttachment(f func(attach *Attachment) error) error {
-	var start int
-	const batchSize = 100
-	for {
-		attachments := make([]*Attachment, 0, batchSize)
-		if err := db.GetEngine(db.DefaultContext).Limit(batchSize, start).Find(&attachments); err != nil {
-			return err
-		}
-		if len(attachments) == 0 {
-			return nil
-		}
-		start += len(attachments)
-
-		for _, attach := range attachments {
-			if err := f(attach); err != nil {
-				return err
-			}
-		}
-	}
-}
-
 // CountOrphanedAttachments returns the number of bad attachments
-func CountOrphanedAttachments() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where("(issue_id > 0 and issue_id not in (select id from issue)) or (release_id > 0 and release_id not in (select id from `release`))").
+func CountOrphanedAttachments(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).Where("(issue_id > 0 and issue_id not in (select id from issue)) or (release_id > 0 and release_id not in (select id from `release`))").
 		Count(new(Attachment))
 }
 
 // DeleteOrphanedAttachments delete all bad attachments
-func DeleteOrphanedAttachments() error {
-	_, err := db.GetEngine(db.DefaultContext).Where("(issue_id > 0 and issue_id not in (select id from issue)) or (release_id > 0 and release_id not in (select id from `release`))").
+func DeleteOrphanedAttachments(ctx context.Context) error {
+	_, err := db.GetEngine(ctx).Where("(issue_id > 0 and issue_id not in (select id from issue)) or (release_id > 0 and release_id not in (select id from `release`))").
 		Delete(new(Attachment))
 	return err
 }

@@ -1,16 +1,17 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
-package organization
+package organization_test
 
 import (
 	"fmt"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -36,9 +37,9 @@ func TestUserIsPublicMember(t *testing.T) {
 }
 
 func testUserIsPublicMember(t *testing.T, uid, orgID int64, expected bool) {
-	user, err := user_model.GetUserByID(uid)
+	user, err := user_model.GetUserByID(db.DefaultContext, uid)
 	assert.NoError(t, err)
-	is, err := IsPublicMembership(orgID, user.ID)
+	is, err := organization.IsPublicMembership(orgID, user.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, is)
 }
@@ -64,9 +65,9 @@ func TestIsUserOrgOwner(t *testing.T) {
 }
 
 func testIsUserOrgOwner(t *testing.T, uid, orgID int64, expected bool) {
-	user, err := user_model.GetUserByID(uid)
+	user, err := user_model.GetUserByID(db.DefaultContext, uid)
 	assert.NoError(t, err)
-	is, err := IsOrganizationOwner(db.DefaultContext, orgID, user.ID)
+	is, err := organization.IsOrganizationOwner(db.DefaultContext, orgID, user.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, is)
 }
@@ -84,14 +85,14 @@ func TestUserListIsPublicMember(t *testing.T) {
 		{22, map[int64]bool{}},
 	}
 	for _, v := range tt {
-		t.Run(fmt.Sprintf("IsPublicMemberOfOrdIg%d", v.orgid), func(t *testing.T) {
+		t.Run(fmt.Sprintf("IsPublicMemberOfOrgId%d", v.orgid), func(t *testing.T) {
 			testUserListIsPublicMember(t, v.orgid, v.expected)
 		})
 	}
 }
 
 func testUserListIsPublicMember(t *testing.T, orgID int64, expected map[int64]bool) {
-	org, err := GetOrgByID(db.DefaultContext, orgID)
+	org, err := organization.GetOrgByID(db.DefaultContext, orgID)
 	assert.NoError(t, err)
 	_, membersIsPublic, err := org.GetMembers()
 	assert.NoError(t, err)
@@ -111,16 +112,43 @@ func TestUserListIsUserOrgOwner(t *testing.T) {
 		{22, map[int64]bool{}},          // No member
 	}
 	for _, v := range tt {
-		t.Run(fmt.Sprintf("IsUserOrgOwnerOfOrdIg%d", v.orgid), func(t *testing.T) {
+		t.Run(fmt.Sprintf("IsUserOrgOwnerOfOrgId%d", v.orgid), func(t *testing.T) {
 			testUserListIsUserOrgOwner(t, v.orgid, v.expected)
 		})
 	}
 }
 
 func testUserListIsUserOrgOwner(t *testing.T, orgID int64, expected map[int64]bool) {
-	org, err := GetOrgByID(db.DefaultContext, orgID)
+	org, err := organization.GetOrgByID(db.DefaultContext, orgID)
 	assert.NoError(t, err)
 	members, _, err := org.GetMembers()
 	assert.NoError(t, err)
-	assert.Equal(t, expected, IsUserOrgOwner(members, orgID))
+	assert.Equal(t, expected, organization.IsUserOrgOwner(members, orgID))
+}
+
+func TestAddOrgUser(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	testSuccess := func(orgID, userID int64, isPublic bool) {
+		org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: orgID})
+		expectedNumMembers := org.NumMembers
+		if !unittest.BeanExists(t, &organization.OrgUser{OrgID: orgID, UID: userID}) {
+			expectedNumMembers++
+		}
+		assert.NoError(t, organization.AddOrgUser(orgID, userID))
+		ou := &organization.OrgUser{OrgID: orgID, UID: userID}
+		unittest.AssertExistsAndLoadBean(t, ou)
+		assert.Equal(t, isPublic, ou.IsPublic)
+		org = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: orgID})
+		assert.EqualValues(t, expectedNumMembers, org.NumMembers)
+	}
+
+	setting.Service.DefaultOrgMemberVisible = false
+	testSuccess(3, 5, false)
+	testSuccess(3, 5, false)
+	testSuccess(6, 2, false)
+
+	setting.Service.DefaultOrgMemberVisible = true
+	testSuccess(6, 3, true)
+
+	unittest.CheckConsistencyFor(t, &user_model.User{}, &organization.Team{})
 }

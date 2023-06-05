@@ -1,12 +1,10 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
 import (
 	"context"
-	"os"
 	"path"
 	"path/filepath"
 	"testing"
@@ -14,12 +12,10 @@ import (
 
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	_ "code.gitea.io/gitea/models"
 
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/ini.v1"
 )
 
 func TestMain(m *testing.M) {
@@ -30,25 +26,20 @@ func TestMain(m *testing.M) {
 
 func TestBleveSearchIssues(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	setting.Cfg = ini.Empty()
+	setting.CfgProvider, _ = setting.NewConfigProviderFromData("")
 
-	tmpIndexerDir, err := os.MkdirTemp("", "issues-indexer")
-	if err != nil {
-		assert.Fail(t, "Unable to create temporary directory: %v", err)
-		return
-	}
+	tmpIndexerDir := t.TempDir()
 
-	setting.Cfg.Section("queue.issue_indexer").Key("DATADIR").MustString(path.Join(tmpIndexerDir, "issues.queue"))
+	setting.CfgProvider.Section("queue.issue_indexer").Key("DATADIR").MustString(path.Join(tmpIndexerDir, "issues.queue"))
 
 	oldIssuePath := setting.Indexer.IssuePath
 	setting.Indexer.IssuePath = path.Join(tmpIndexerDir, "issues.queue")
 	defer func() {
 		setting.Indexer.IssuePath = oldIssuePath
-		util.RemoveAll(tmpIndexerDir)
 	}()
 
 	setting.Indexer.IssueType = "bleve"
-	setting.NewQueueService()
+	setting.LoadQueueSettings()
 	InitIssueIndexer(true)
 	defer func() {
 		indexer := holder.get()

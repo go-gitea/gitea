@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package db
 
@@ -39,6 +38,7 @@ type Engine interface {
 	Count(...interface{}) (int64, error)
 	Decr(column string, arg ...interface{}) *xorm.Session
 	Delete(...interface{}) (int64, error)
+	Truncate(...interface{}) (int64, error)
 	Exec(...interface{}) (sql.Result, error)
 	Find(interface{}, ...interface{}) error
 	Get(beans ...interface{}) (bool, error)
@@ -47,7 +47,7 @@ type Engine interface {
 	Incr(column string, arg ...interface{}) *xorm.Session
 	Insert(...interface{}) (int64, error)
 	Iterate(interface{}, xorm.IterFunc) error
-	Join(joinOperator string, tablename interface{}, condition string, args ...interface{}) *xorm.Session
+	Join(joinOperator string, tablename, condition interface{}, args ...interface{}) *xorm.Session
 	SQL(interface{}, ...interface{}) *xorm.Session
 	Where(interface{}, ...interface{}) *xorm.Session
 	Asc(colNames ...string) *xorm.Session
@@ -101,12 +101,12 @@ func newXORMEngine() (*xorm.Engine, error) {
 
 	var engine *xorm.Engine
 
-	if setting.Database.UsePostgreSQL && len(setting.Database.Schema) > 0 {
+	if setting.Database.Type.IsPostgreSQL() && len(setting.Database.Schema) > 0 {
 		// OK whilst we sort out our schema issues - create a schema aware postgres
 		registerPostgresSchemaDriver()
 		engine, err = xorm.NewEngine("postgresschema", connStr)
 	} else {
-		engine, err = xorm.NewEngine(setting.Database.Type, connStr)
+		engine, err = xorm.NewEngine(setting.Database.Type.String(), connStr)
 	}
 
 	if err != nil {
@@ -130,7 +130,7 @@ func SyncAllTables() error {
 func InitEngine(ctx context.Context) error {
 	xormEngine, err := newXORMEngine()
 	if err != nil {
-		return fmt.Errorf("failed to connect to database: %v", err)
+		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 
 	xormEngine.SetMapper(names.GonicMapper{})
@@ -189,16 +189,16 @@ func InitEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.Engine)
 	// However, we should think carefully about should we support re-install on an installed instance,
 	// as there may be other problems due to secret reinitialization.
 	if err = migrateFunc(x); err != nil {
-		return fmt.Errorf("migrate: %v", err)
+		return fmt.Errorf("migrate: %w", err)
 	}
 
 	if err = SyncAllTables(); err != nil {
-		return fmt.Errorf("sync database struct error: %v", err)
+		return fmt.Errorf("sync database struct error: %w", err)
 	}
 
 	for _, initFunc := range initFuncs {
 		if err := initFunc(); err != nil {
-			return fmt.Errorf("initFunc failed: %v", err)
+			return fmt.Errorf("initFunc failed: %w", err)
 		}
 	}
 
@@ -225,7 +225,7 @@ func NamesToBean(names ...string) ([]interface{}, error) {
 	for _, name := range names {
 		bean, ok := beanMap[strings.ToLower(strings.TrimSpace(name))]
 		if !ok {
-			return nil, fmt.Errorf("No table found that matches: %s", name)
+			return nil, fmt.Errorf("no table found that matches: %s", name)
 		}
 		if !gotBean[bean] {
 			beans = append(beans, bean)
@@ -285,5 +285,14 @@ func DeleteAllRecords(tableName string) error {
 // GetMaxID will return max id of the table
 func GetMaxID(beanOrTableName interface{}) (maxID int64, err error) {
 	_, err = x.Select("MAX(id)").Table(beanOrTableName).Get(&maxID)
-	return
+	return maxID, err
+}
+
+func SetLogSQL(ctx context.Context, on bool) {
+	e := GetEngine(ctx)
+	if x, ok := e.(*xorm.Engine); ok {
+		x.ShowSQL(on)
+	} else if sess, ok := e.(*xorm.Session); ok {
+		sess.Engine().ShowSQL(on)
+	}
 }

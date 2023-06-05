@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package mailer
 
@@ -8,7 +7,6 @@ import (
 	"bytes"
 	"context"
 
-	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -24,8 +22,8 @@ const (
 	tplNewReleaseMail base.TplName = "release"
 )
 
-// MailNewRelease send new release notify to all all repo watchers.
-func MailNewRelease(ctx context.Context, rel *models.Release) {
+// MailNewRelease send new release notify to all repo watchers.
+func MailNewRelease(ctx context.Context, rel *repo_model.Release) {
 	if setting.MailService == nil {
 		// No mail service configured
 		return
@@ -37,7 +35,7 @@ func MailNewRelease(ctx context.Context, rel *models.Release) {
 		return
 	}
 
-	recipients, err := user_model.GetMaileableUsersByIDs(watcherIDList, false)
+	recipients, err := user_model.GetMaileableUsersByIDs(ctx, watcherIDList, false)
 	if err != nil {
 		log.Error("user_model.GetMaileableUsersByIDs: %v", err)
 		return
@@ -55,7 +53,7 @@ func MailNewRelease(ctx context.Context, rel *models.Release) {
 	}
 }
 
-func mailNewRelease(ctx context.Context, lang string, tos []string, rel *models.Release) {
+func mailNewRelease(ctx context.Context, lang string, tos []string, rel *repo_model.Release) {
 	locale := translation.NewLocale(lang)
 
 	var err error
@@ -75,7 +73,7 @@ func mailNewRelease(ctx context.Context, lang string, tos []string, rel *models.
 		"Subject":  subject,
 		"Language": locale.Language(),
 		// helper
-		"i18n":      locale,
+		"locale":    locale,
 		"Str2html":  templates.Str2html,
 		"DotEscape": templates.DotEscape,
 	}
@@ -91,7 +89,7 @@ func mailNewRelease(ctx context.Context, lang string, tos []string, rel *models.
 	publisherName := rel.Publisher.DisplayName()
 	relURL := "<" + rel.HTMLURL() + ">"
 	for _, to := range tos {
-		msg := NewMessageFrom([]string{to}, publisherName, setting.MailService.FromEmail, subject, mailBody.String())
+		msg := NewMessageFrom(to, publisherName, setting.MailService.FromEmail, subject, mailBody.String())
 		msg.Info = subject
 		msg.SetHeader("Message-ID", relURL)
 		msgs = append(msgs, msg)

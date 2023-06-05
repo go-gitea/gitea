@@ -1,5 +1,5 @@
 name: gitea
-summary:  Gitea - A painless self-hosted Git service
+summary: Gitea - A painless self-hosted Git service
 description: |
   The goal of this project is to make the easiest, fastest, and most painless
   way of setting up a self-hosted Git service. With Go, this can be done with
@@ -39,13 +39,12 @@ apps:
     command: usr/bin/sqlite3
 
 parts:
-
   gitea:
     plugin: make
     source: .
     stage-packages: [ git, sqlite3, openssh-client ]
-    build-packages: [ git, libpam0g-dev, libsqlite3-dev]
-    build-snaps: [ go, node/14/stable ]
+    build-packages: [ git, libpam0g-dev, libsqlite3-dev, build-essential]
+    build-snaps: [ go, node/20/stable ]
     build-environment:
       - LDFLAGS: ""
     override-pull: |

@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package doctor
 
@@ -30,10 +29,9 @@ import (
 func iterateRepositories(ctx context.Context, each func(*repo_model.Repository) error) error {
 	err := db.Iterate(
 		ctx,
-		new(repo_model.Repository),
 		builder.Gt{"id": 0},
-		func(idx int, bean interface{}) error {
-			return each(bean.(*repo_model.Repository))
+		func(ctx context.Context, bean *repo_model.Repository) error {
+			return each(bean)
 		},
 	)
 	return err
@@ -43,7 +41,7 @@ func checkScriptType(ctx context.Context, logger log.Logger, autofix bool) error
 	path, err := exec.LookPath(setting.ScriptType)
 	if err != nil {
 		logger.Critical("ScriptType \"%q\" is not on the current PATH. Error: %v", setting.ScriptType, err)
-		return fmt.Errorf("ScriptType \"%q\" is not on the current PATH. Error: %v", setting.ScriptType, err)
+		return fmt.Errorf("ScriptType \"%q\" is not on the current PATH. Error: %w", setting.ScriptType, err)
 	}
 	logger.Info("ScriptType %s is on the current PATH at %s", setting.ScriptType, path)
 	return nil
@@ -54,13 +52,13 @@ func checkHooks(ctx context.Context, logger log.Logger, autofix bool) error {
 		results, err := repository.CheckDelegateHooks(repo.RepoPath())
 		if err != nil {
 			logger.Critical("Unable to check delegate hooks for repo %-v. ERROR: %v", repo, err)
-			return fmt.Errorf("Unable to check delegate hooks for repo %-v. ERROR: %v", repo, err)
+			return fmt.Errorf("Unable to check delegate hooks for repo %-v. ERROR: %w", repo, err)
 		}
 		if len(results) > 0 && autofix {
 			logger.Warn("Regenerated hooks for %s", repo.FullName())
 			if err := repository.CreateDelegateHooks(repo.RepoPath()); err != nil {
 				logger.Critical("Unable to recreate delegate hooks for %-v. ERROR: %v", repo, err)
-				return fmt.Errorf("Unable to recreate delegate hooks for %-v. ERROR: %v", repo, err)
+				return fmt.Errorf("Unable to recreate delegate hooks for %-v. ERROR: %w", repo, err)
 			}
 		}
 		for _, result := range results {
@@ -143,7 +141,7 @@ func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) err
 		if owner, has := cache.Get(repo.OwnerID); has {
 			repo.Owner = owner.(*user_model.User)
 		} else {
-			if err := repo.GetOwner(ctx); err != nil {
+			if err := repo.LoadOwner(ctx); err != nil {
 				return err
 			}
 			cache.Add(repo.OwnerID, repo.Owner)
@@ -189,6 +187,71 @@ func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) err
 	return nil
 }
 
+func checkCommitGraph(ctx context.Context, logger log.Logger, autofix bool) error {
+	numRepos := 0
+	numNeedUpdate := 0
+	numWritten := 0
+	if err := iterateRepositories(ctx, func(repo *repo_model.Repository) error {
+		numRepos++
+
+		commitGraphExists := func() (bool, error) {
+			// Check commit-graph exists
+			commitGraphFile := path.Join(repo.RepoPath(), `objects/info/commit-graph`)
+			isExist, err := util.IsExist(commitGraphFile)
+			if err != nil {
+				logger.Error("Unable to check if %s exists. Error: %v", commitGraphFile, err)
+				return false, err
+			}
+
+			if !isExist {
+				commitGraphsDir := path.Join(repo.RepoPath(), `objects/info/commit-graphs`)
+				isExist, err = util.IsExist(commitGraphsDir)
+				if err != nil {
+					logger.Error("Unable to check if %s exists. Error: %v", commitGraphsDir, err)
+					return false, err
+				}
+			}
+			return isExist, nil
+		}
+
+		isExist, err := commitGraphExists()
+		if err != nil {
+			return err
+		}
+		if !isExist {
+			numNeedUpdate++
+			if autofix {
+				if err := git.WriteCommitGraph(ctx, repo.RepoPath()); err != nil {
+					logger.Error("Unable to write commit-graph in %s. Error: %v", repo.FullName(), err)
+					return err
+				}
+				isExist, err := commitGraphExists()
+				if err != nil {
+					return err
+				}
+				if isExist {
+					numWritten++
+					logger.Info("Commit-graph written:    %s", repo.FullName())
+				} else {
+					logger.Warn("No commit-graph written: %s", repo.FullName())
+				}
+			}
+		}
+		return nil
+	}); err != nil {
+		logger.Critical("Unable to checkCommitGraph: %v", err)
+		return err
+	}
+
+	if autofix {
+		logger.Info("Wrote commit-graph files for %d of %d repositories.", numWritten, numRepos)
+	} else {
+		logger.Info("Checked %d repositories, %d without commit-graphs.", numRepos, numNeedUpdate)
+	}
+
+	return nil
+}
+
 func init() {
 	Register(&Check{
 		Title:     "Check if SCRIPT_TYPE is available",
@@ -224,5 +287,12 @@ func init() {
 		IsDefault: false,
 		Run:       checkDaemonExport,
 		Priority:  8,
+	})
+	Register(&Check{
+		Title:     "Check commit-graphs",
+		Name:      "check-commit-graphs",
+		IsDefault: false,
+		Run:       checkCommitGraph,
+		Priority:  9,
 	})
 }

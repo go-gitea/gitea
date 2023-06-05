@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package doctor
 
@@ -10,7 +9,6 @@ import (
 	"os"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -29,7 +27,7 @@ func checkConfigurationFile(logger log.Logger, autofix bool, fileOpts configurat
 		if os.IsNotExist(err) && autofix && fileOpts.IsDirectory {
 			if err := os.MkdirAll(fileOpts.Path, 0o777); err != nil {
 				logger.Error("    Directory does not exist and could not be created. ERROR: %v", err)
-				return fmt.Errorf("Configuration directory: \"%q\" does not exist and could not be created. ERROR: %v", fileOpts.Path, err)
+				return fmt.Errorf("Configuration directory: \"%q\" does not exist and could not be created. ERROR: %w", fileOpts.Path, err)
 			}
 			fi, err = os.Stat(fileOpts.Path)
 		}
@@ -37,7 +35,7 @@ func checkConfigurationFile(logger log.Logger, autofix bool, fileOpts configurat
 	if err != nil {
 		if fileOpts.Required {
 			logger.Error("    Is REQUIRED but is not accessible. ERROR: %v", err)
-			return fmt.Errorf("Configuration file \"%q\" is not accessible but is required. Error: %v", fileOpts.Path, err)
+			return fmt.Errorf("Configuration file \"%q\" is not accessible but is required. Error: %w", fileOpts.Path, err)
 		}
 		logger.Warn("    NOTICE: is not accessible (Error: %v)", err)
 		// this is a non-critical error
@@ -46,14 +44,14 @@ func checkConfigurationFile(logger log.Logger, autofix bool, fileOpts configurat
 
 	if fileOpts.IsDirectory && !fi.IsDir() {
 		logger.Error("    ERROR: not a directory")
-		return fmt.Errorf("Configuration directory \"%q\" is not a directory. Error: %v", fileOpts.Path, err)
+		return fmt.Errorf("Configuration directory \"%q\" is not a directory. Error: %w", fileOpts.Path, err)
 	} else if !fileOpts.IsDirectory && !fi.Mode().IsRegular() {
 		logger.Error("    ERROR: not a regular file")
-		return fmt.Errorf("Configuration file \"%q\" is not a regular file. Error: %v", fileOpts.Path, err)
+		return fmt.Errorf("Configuration file \"%q\" is not a regular file. Error: %w", fileOpts.Path, err)
 	} else if fileOpts.Writable {
 		if err := isWritableDir(fileOpts.Path); err != nil {
 			logger.Error("    ERROR: is required to be writable but is not writable: %v", err)
-			return fmt.Errorf("Configuration file \"%q\" is required to be writable but is not. Error: %v", fileOpts.Path, err)
+			return fmt.Errorf("Configuration file \"%q\" is required to be writable but is not. Error: %w", fileOpts.Path, err)
 		}
 	}
 	return nil
@@ -68,7 +66,7 @@ func checkConfigurationFiles(ctx context.Context, logger log.Logger, autofix boo
 		return err
 	}
 
-	setting.LoadFromExisting()
+	setting.Init(&setting.Options{})
 
 	configurationFiles := []configurationFile{
 		{"Configuration File Path", setting.CustomConf, false, true, false},
@@ -76,10 +74,10 @@ func checkConfigurationFiles(ctx context.Context, logger log.Logger, autofix boo
 		{"Data Root Path", setting.AppDataPath, true, true, true},
 		{"Custom File Root Path", setting.CustomPath, true, false, false},
 		{"Work directory", setting.AppWorkPath, true, true, false},
-		{"Log Root Path", setting.LogRootPath, true, true, true},
+		{"Log Root Path", setting.Log.RootPath, true, true, true},
 	}
 
-	if options.IsDynamic() {
+	if !setting.HasBuiltinBindata {
 		configurationFiles = append(configurationFiles, configurationFile{"Static File Root Path", setting.StaticRootPath, true, true, false})
 	}
 
@@ -107,7 +105,7 @@ func isWritableDir(path string) error {
 		return err
 	}
 	if err := os.Remove(tmpFile.Name()); err != nil {
-		fmt.Printf("Warning: can't remove temporary file: '%s'\n", tmpFile.Name())
+		fmt.Printf("Warning: can't remove temporary file: '%s'\n", tmpFile.Name()) //nolint:forbidigo
 	}
 	tmpFile.Close()
 	return nil

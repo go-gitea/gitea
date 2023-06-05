@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package ssh
 
@@ -11,6 +10,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -74,11 +74,20 @@ func sessionHandler(session ssh.Session) {
 	ctx, cancel := context.WithCancel(session.Context())
 	defer cancel()
 
+	gitProtocol := ""
+	for _, env := range session.Environ() {
+		if strings.HasPrefix(env, "GIT_PROTOCOL=") {
+			_, gitProtocol, _ = strings.Cut(env, "=")
+			break
+		}
+	}
+
 	cmd := exec.CommandContext(ctx, setting.AppPath, args...)
 	cmd.Env = append(
 		os.Environ(),
 		"SSH_ORIGINAL_COMMAND="+command,
 		"SKIP_MINWINSVC=1",
+		"GIT_PROTOCOL="+gitProtocol,
 	)
 
 	stdout, err := cmd.StdoutPipe()
@@ -142,10 +151,14 @@ func sessionHandler(session ssh.Session) {
 	// Wait for the command to exit and log any errors we get
 	err = cmd.Wait()
 	if err != nil {
-		log.Error("SSH: Wait: %v", err)
+		// Cannot use errors.Is here because ExitError doesn't implement Is
+		// Thus errors.Is will do equality test NOT type comparison
+		if _, ok := err.(*exec.ExitError); !ok {
+			log.Error("SSH: Wait: %v", err)
+		}
 	}
 
-	if err := session.Exit(getExitStatusFromError(err)); err != nil {
+	if err := session.Exit(getExitStatusFromError(err)); err != nil && !errors.Is(err, io.EOF) {
 		log.Error("Session failed to exit. %s", err)
 	}
 }
@@ -210,9 +223,7 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 			// validate the cert for this principal
 			if err := c.CheckCert(principal, cert); err != nil {
 				// User is presenting an invalid certificate - STOP any further processing
-				if log.IsError() {
-					log.Error("Invalid Certificate KeyID %s with Signature Fingerprint %s presented for Principal: %s from %s", cert.KeyId, gossh.FingerprintSHA256(cert.SignatureKey), principal, ctx.RemoteAddr())
-				}
+				log.Error("Invalid Certificate KeyID %s with Signature Fingerprint %s presented for Principal: %s from %s", cert.KeyId, gossh.FingerprintSHA256(cert.SignatureKey), principal, ctx.RemoteAddr())
 				log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
 
 				return false
@@ -226,10 +237,8 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 			return true
 		}
 
-		if log.IsWarn() {
-			log.Warn("From %s Fingerprint: %s is a certificate, but no valid principals found", ctx.RemoteAddr(), gossh.FingerprintSHA256(key))
-			log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
-		}
+		log.Warn("From %s Fingerprint: %s is a certificate, but no valid principals found", ctx.RemoteAddr(), gossh.FingerprintSHA256(key))
+		log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
 		return false
 	}
 
@@ -240,10 +249,8 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 	pkey, err := asymkey_model.SearchPublicKeyByContent(ctx, strings.TrimSpace(string(gossh.MarshalAuthorizedKey(key))))
 	if err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
-			if log.IsWarn() {
-				log.Warn("Unknown public key: %s from %s", gossh.FingerprintSHA256(key), ctx.RemoteAddr())
-				log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
-			}
+			log.Warn("Unknown public key: %s from %s", gossh.FingerprintSHA256(key), ctx.RemoteAddr())
+			log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
 			return false
 		}
 		log.Error("SearchPublicKeyByContent: %v", err)

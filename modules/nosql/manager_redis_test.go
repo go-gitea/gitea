@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package nosql
 
@@ -23,6 +22,24 @@ func TestRedisPasswordOpt(t *testing.T) {
 	opts := getRedisOptions(uri)
 
 	if opts.Password != "password" {
+		t.Fail()
+	}
+}
+
+func TestSkipVerifyOpt(t *testing.T) {
+	uri, _ := url.Parse("rediss://myredis/0?skipverify=true")
+	tlsConfig := getRedisTLSOptions(uri)
+
+	if !tlsConfig.InsecureSkipVerify {
+		t.Fail()
+	}
+}
+
+func TestInsecureSkipVerifyOpt(t *testing.T) {
+	uri, _ := url.Parse("rediss://myredis/0?insecureskipverify=true")
+	tlsConfig := getRedisTLSOptions(uri)
+
+	if !tlsConfig.InsecureSkipVerify {
 		t.Fail()
 	}
 }

@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import {hideElem, showElem} from '../utils/dom.js';
 
 export function initUserSettings() {
   if ($('.user.settings.profile').length > 0) {
@@ -6,11 +7,11 @@ export function initUserSettings() {
       const $prompt = $('#name-change-prompt');
       const $prompt_redirect = $('#name-change-redirect-prompt');
       if ($(this).val().toString().toLowerCase() !== $(this).data('name').toString().toLowerCase()) {
-        $prompt.show();
-        $prompt_redirect.show();
+        showElem($prompt);
+        showElem($prompt_redirect);
       } else {
-        $prompt.hide();
-        $prompt_redirect.hide();
+        hideElem($prompt);
+        hideElem($prompt_redirect);
       }
     });
   }

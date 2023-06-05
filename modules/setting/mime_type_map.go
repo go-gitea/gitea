@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
@@ -15,8 +14,8 @@ var MimeTypeMap = struct {
 	Map:     map[string]string{},
 }
 
-func newMimeTypeMap() {
-	sec := Cfg.Section("repository.mimetype_mapping")
+func loadMimeTypeMapFrom(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("repository.mimetype_mapping")
 	keys := sec.Keys()
 	m := make(map[string]string, len(keys))
 	for _, key := range keys {

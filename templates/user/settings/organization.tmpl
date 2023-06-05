@@ -1,13 +1,10 @@
-{{template "base/head" .}}
-<div class="page-content user settings organization">
-	{{template "user/settings/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings organization")}}
+	<div class="user-setting-content">
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "settings.orgs"}}
+			{{.locale.Tr "settings.orgs"}}
 			{{if .SignedUser.CanCreateOrganization}}
 			<div class="ui right">
-				<a class="ui primary tiny button" href="{{AppSubUrl}}/org/create">{{.i18n.Tr "admin.orgs.new_orga"}}</a>
+				<a class="ui primary tiny button" href="{{AppSubUrl}}/org/create">{{.locale.Tr "admin.orgs.new_orga"}}</a>
 			</div>
 			{{end}}
 		</h4>
@@ -17,12 +14,16 @@
 					{{range .Orgs}}
 					<div class="item">
 						<div class="right floated content">
-							<form method="post" action="{{.OrganisationLink}}/members/action/leave">
+							<form>
 								{{$.CsrfTokenHtml}}
-								<button type="submit" class="ui primary small button" name="uid" value="{{.ID}}">{{$.i18n.Tr "org.members.leave"}}</button>
+								<button class="ui red button delete-button" data-modal-id="leave-organization"
+												data-url="{{.OrganisationLink}}/members/action/leave" data-datauid="{{$.SignedUser.ID}}"
+												data-name="{{$.SignedUser.DisplayName}}"
+												data-data-organization-name="{{.DisplayName}}">{{$.locale.Tr "org.members.leave"}}
+								</button>
 							</form>
 						</div>
-						{{avatar . 28 "mini"}}
+						{{avatar $.Context . 28 "mini"}}
 						<div class="content">
 								<a href="{{.HomeLink}}">{{.Name}}</a>
 						</div>
@@ -31,9 +32,19 @@
 				</div>
 				{{template "base/paginate" .}}
 			{{else}}
-				{{.i18n.Tr "settings.orgs_none"}}
+				{{.locale.Tr "settings.orgs_none"}}
 			{{end}}
 		</div>
 	</div>
+
+<div class="ui g-modal-confirm delete modal" id="leave-organization">
+	<div class="header">
+		{{$.locale.Tr "org.members.leave"}}
+	</div>
+	<div class="content">
+		<p>{{$.locale.Tr "org.members.leave.detail" `<span class="dataOrganizationName"></span>` | Safe}}</p>
+	</div>
+	{{template "base/modal_actions_confirm" .}}
 </div>
-{{template "base/footer" .}}
+
+{{template "user/settings/layout_footer" .}}

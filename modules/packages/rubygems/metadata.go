@@ -1,29 +1,28 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package rubygems
 
 import (
 	"archive/tar"
 	"compress/gzip"
-	"errors"
 	"io"
 	"regexp"
 	"strings"
 
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 var (
 	// ErrMissingMetadataFile indicates a missing metadata.gz file
-	ErrMissingMetadataFile = errors.New("Metadata file is missing")
+	ErrMissingMetadataFile = util.NewInvalidArgumentErrorf("metadata.gz file is missing")
 	// ErrInvalidName indicates an invalid id in the metadata.gz file
-	ErrInvalidName = errors.New("Metadata file contains an invalid name")
+	ErrInvalidName = util.NewInvalidArgumentErrorf("package name is invalid")
 	// ErrInvalidVersion indicates an invalid version in the metadata.gz file
-	ErrInvalidVersion = errors.New("Metadata file contains an invalid version")
+	ErrInvalidVersion = util.NewInvalidArgumentErrorf("package version is invalid")
 )
 
 var versionMatcher = regexp.MustCompile(`\A[0-9]+(?:\.[0-9a-zA-Z]+)*(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?\z`)
@@ -80,7 +79,6 @@ type gemspec struct {
 		VersionRequirements requirement `yaml:"version_requirements"`
 	} `yaml:"dependencies"`
 	Description    string        `yaml:"description"`
-	Email          string        `yaml:"email"`
 	Executables    []string      `yaml:"executables"`
 	Extensions     []interface{} `yaml:"extensions"`
 	ExtraRdocFiles []string      `yaml:"extra_rdoc_files"`
@@ -121,7 +119,7 @@ func (r requirement) AsVersionRequirement() []VersionRequirement {
 		if !ok {
 			continue
 		}
-		vm, ok := req[1].(map[interface{}]interface{})
+		vm, ok := req[1].(map[string]interface{})
 		if !ok {
 			continue
 		}

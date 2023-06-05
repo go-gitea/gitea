@@ -1,15 +1,13 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package security
 
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/auth"
+	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -24,9 +22,8 @@ const (
 
 // Security render change user's password page and 2FA
 func Security(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings.security")
 	ctx.Data["PageIsSettingsSecurity"] = true
-	ctx.Data["RequireU2F"] = true
 
 	if ctx.FormString("openid.return_to") != "" {
 		settingsOpenIDVerify(ctx)
@@ -57,21 +54,21 @@ func DeleteAccountLink(ctx *context.Context) {
 }
 
 func loadSecurityData(ctx *context.Context) {
-	enrolled, err := auth.HasTwoFactorByUID(ctx.Doer.ID)
+	enrolled, err := auth_model.HasTwoFactorByUID(ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("SettingsTwoFactor", err)
 		return
 	}
 	ctx.Data["TOTPEnrolled"] = enrolled
 
-	credentials, err := auth.GetWebAuthnCredentialsByUID(ctx.Doer.ID)
+	credentials, err := auth_model.GetWebAuthnCredentialsByUID(ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("GetWebAuthnCredentialsByUID", err)
 		return
 	}
 	ctx.Data["WebAuthnCredentials"] = credentials
 
-	tokens, err := models.ListAccessTokens(models.ListAccessTokensOptions{UserID: ctx.Doer.ID})
+	tokens, err := auth_model.ListAccessTokens(auth_model.ListAccessTokensOptions{UserID: ctx.Doer.ID})
 	if err != nil {
 		ctx.ServerError("ListAccessTokens", err)
 		return
@@ -85,9 +82,9 @@ func loadSecurityData(ctx *context.Context) {
 	}
 
 	// map the provider display name with the AuthSource
-	sources := make(map[*auth.Source]string)
+	sources := make(map[*auth_model.Source]string)
 	for _, externalAccount := range accountLinks {
-		if authSource, err := auth.GetSourceByID(externalAccount.LoginSourceID); err == nil {
+		if authSource, err := auth_model.GetSourceByID(externalAccount.LoginSourceID); err == nil {
 			var providerDisplayName string
 
 			type DisplayNamed interface {

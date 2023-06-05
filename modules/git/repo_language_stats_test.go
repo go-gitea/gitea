@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 //go:build !gogit
 
@@ -30,4 +29,18 @@ func TestRepository_GetLanguageStats(t *testing.T) {
 		"Python": 134,
 		"Java":   112,
 	}, stats)
+}
+
+func TestMergeLanguageStats(t *testing.T) {
+	assert.EqualValues(t, map[string]int64{
+		"PHP":    1,
+		"python": 10,
+		"JAVA":   700,
+	}, mergeLanguageStats(map[string]int64{
+		"PHP":    1,
+		"python": 10,
+		"Java":   100,
+		"java":   200,
+		"JAVA":   400,
+	}))
 }

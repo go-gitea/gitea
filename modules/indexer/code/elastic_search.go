@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package code
 
@@ -43,20 +42,11 @@ var _ Indexer = &ElasticSearchIndexer{}
 
 // ElasticSearchIndexer implements Indexer interface
 type ElasticSearchIndexer struct {
-	client               *elastic.Client
-	indexerAliasName     string
-	available            bool
-	availabilityCallback func(bool)
-	stopTimer            chan struct{}
-	lock                 sync.RWMutex
-}
-
-type elasticLogger struct {
-	log.Logger
-}
-
-func (l elasticLogger) Printf(format string, args ...interface{}) {
-	_ = l.Logger.Log(2, l.Logger.GetLevel(), format, args...)
+	client           *elastic.Client
+	indexerAliasName string
+	available        bool
+	stopTimer        chan struct{}
+	lock             sync.RWMutex
 }
 
 // NewElasticSearchIndexer creates a new elasticsearch indexer
@@ -68,15 +58,11 @@ func NewElasticSearchIndexer(url, indexerName string) (*ElasticSearchIndexer, bo
 		elastic.SetGzip(false),
 	}
 
-	logger := elasticLogger{log.GetLogger(log.DEFAULT)}
+	logger := log.GetLogger(log.DEFAULT)
 
-	if logger.GetLevel() == log.TRACE || logger.GetLevel() == log.DEBUG {
-		opts = append(opts, elastic.SetTraceLog(logger))
-	} else if logger.GetLevel() == log.ERROR || logger.GetLevel() == log.CRITICAL || logger.GetLevel() == log.FATAL {
-		opts = append(opts, elastic.SetErrorLog(logger))
-	} else if logger.GetLevel() == log.INFO || logger.GetLevel() == log.WARN {
-		opts = append(opts, elastic.SetInfoLog(logger))
-	}
+	opts = append(opts, elastic.SetTraceLog(&log.PrintfLogger{Logf: logger.Trace}))
+	opts = append(opts, elastic.SetInfoLog(&log.PrintfLogger{Logf: logger.Info}))
+	opts = append(opts, elastic.SetErrorLog(&log.PrintfLogger{Logf: logger.Error}))
 
 	client, err := elastic.NewClient(opts...)
 	if err != nil {
@@ -199,13 +185,6 @@ func (b *ElasticSearchIndexer) init() (bool, error) {
 	return exists, nil
 }
 
-// SetAvailabilityChangeCallback sets callback that will be triggered when availability changes
-func (b *ElasticSearchIndexer) SetAvailabilityChangeCallback(callback func(bool)) {
-	b.lock.Lock()
-	defer b.lock.Unlock()
-	b.availabilityCallback = callback
-}
-
 // Ping checks if elastic is available
 func (b *ElasticSearchIndexer) Ping() bool {
 	b.lock.RLock()
@@ -223,12 +202,12 @@ func (b *ElasticSearchIndexer) addUpdate(ctx context.Context, batchWriter git.Wr
 	var err error
 	if !update.Sized {
 		var stdout string
-		stdout, _, err = git.NewCommand(ctx, "cat-file", "-s", update.BlobSha).RunStdString(&git.RunOpts{Dir: repo.RepoPath()})
+		stdout, _, err = git.NewCommand(ctx, "cat-file", "-s").AddDynamicArguments(update.BlobSha).RunStdString(&git.RunOpts{Dir: repo.RepoPath()})
 		if err != nil {
 			return nil, err
 		}
 		if size, err = strconv.ParseInt(strings.TrimSpace(stdout), 10, 64); err != nil {
-			return nil, fmt.Errorf("misformatted git cat-file output: %v", err)
+			return nil, fmt.Errorf("misformatted git cat-file output: %w", err)
 		}
 	}
 
@@ -284,7 +263,7 @@ func (b *ElasticSearchIndexer) Index(ctx context.Context, repo *repo_model.Repos
 	reqs := make([]elastic.BulkableRequest, 0)
 	if len(changes.Updates) > 0 {
 		// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
-		if err := git.EnsureValidGitRepository(git.DefaultContext, repo.RepoPath()); err != nil {
+		if err := git.EnsureValidGitRepository(ctx, repo.RepoPath()); err != nil {
 			log.Error("Unable to open git repo: %s for %-v: %v", repo.RepoPath(), repo, err)
 			return err
 		}
@@ -348,7 +327,7 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 		// FIXME: There is no way to get the position the keyword on the content currently on the same request.
 		// So we get it from content, this may made the query slower. See
 		// https://discuss.elastic.co/t/fetching-position-of-keyword-in-matched-document/94291
-		var startIndex, endIndex int = -1, -1
+		var startIndex, endIndex int
 		c, ok := hit.Highlight["content"]
 		if ok && len(c) > 0 {
 			// FIXME: Since the highlighting content will include <em> and </em> for the keywords,
@@ -530,8 +509,4 @@ func (b *ElasticSearchIndexer) setAvailability(available bool) {
 	}
 
 	b.available = available
-	if b.availabilityCallback != nil {
-		// Call the callback from within the lock to ensure that the ordering remains correct
-		b.availabilityCallback(b.available)
-	}
 }

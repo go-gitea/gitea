@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migrations
 
@@ -107,7 +106,20 @@ func NewCodebaseDownloader(ctx context.Context, projectURL *url.URL, project, re
 		commitMap: make(map[string]string),
 	}
 
+	log.Trace("Create Codebase downloader. BaseURL: %s Project: %s RepoName: %s", baseURL, project, repoName)
 	return downloader
+}
+
+// String implements Stringer
+func (d *CodebaseDownloader) String() string {
+	return fmt.Sprintf("migration from codebase server %s %s/%s", d.baseURL, d.project, d.repoName)
+}
+
+func (d *CodebaseDownloader) LogString() string {
+	if d == nil {
+		return "<CodebaseDownloader nil>"
+	}
+	return fmt.Sprintf("<CodebaseDownloader %s %s/%s>", d.baseURL, d.project, d.repoName)
 }
 
 // FormatCloneURL add authentication into remote URLs
@@ -451,8 +463,8 @@ func (d *CodebaseDownloader) GetPullRequests(page, perPage int) ([]*base.PullReq
 				Value int64  `xml:",chardata"`
 				Type  string `xml:"type,attr"`
 			} `xml:"id"`
-			SourceRef string `xml:"source-ref"`
-			TargetRef string `xml:"target-ref"`
+			SourceRef string `xml:"source-ref"` // NOTE: from the documentation these are actually just branches NOT full refs
+			TargetRef string `xml:"target-ref"` // NOTE: from the documentation these are actually just branches NOT full refs
 			Subject   string `xml:"subject"`
 			Status    string `xml:"status"`
 			UserID    struct {
@@ -564,6 +576,9 @@ func (d *CodebaseDownloader) GetPullRequests(page, perPage int) ([]*base.PullReq
 				Comments: comments[1:],
 			},
 		})
+
+		// SECURITY: Ensure that the PR is safe
+		_ = CheckAndEnsureSafePR(pullRequests[len(pullRequests)-1], d.baseURL.String(), d)
 	}
 
 	return pullRequests, true, nil

@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package console
 
@@ -33,9 +32,6 @@ func (Renderer) Name() string {
 	return MarkupName
 }
 
-// NeedPostProcess implements markup.Renderer
-func (Renderer) NeedPostProcess() bool { return false }
-
 // Extensions implements markup.Renderer
 func (Renderer) Extensions() []string {
 	return []string{".sh-session"}
@@ -46,11 +42,6 @@ func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return []setting.MarkupSanitizerRule{
 		{Element: "span", AllowAttr: "class", Regexp: regexp.MustCompile(`^term-((fg[ix]?|bg)\d+|container)$`)},
 	}
-}
-
-// SanitizerDisabled disabled sanitize if return true
-func (Renderer) SanitizerDisabled() bool {
-	return false
 }
 
 // CanRender implements markup.RendererContentDetector

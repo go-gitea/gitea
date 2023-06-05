@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
@@ -37,22 +36,25 @@ var (
 		DisableHTTPGit                          bool
 		AccessControlAllowOrigin                string
 		UseCompatSSHURI                         bool
+		GoGetCloneURLProtocol                   string
 		DefaultCloseIssuesViaCommitsInAnyBranch bool
 		EnablePushCreateUser                    bool
 		EnablePushCreateOrg                     bool
 		DisabledRepoUnits                       []string
 		DefaultRepoUnits                        []string
+		DefaultForkRepoUnits                    []string
 		PrefixArchiveFiles                      bool
 		DisableMigrations                       bool
 		DisableStars                            bool `ini:"DISABLE_STARS"`
 		DefaultBranch                           string
 		AllowAdoptionOfUnadoptedRepositories    bool
 		AllowDeleteOfUnadoptedRepositories      bool
+		DisableDownloadSourceArchives           bool
+		AllowForkWithoutMaximumLimit            bool
 
 		// Repository editor settings
 		Editor struct {
-			LineWrapExtensions   []string
-			PreviewableFileModes []string
+			LineWrapExtensions []string
 		} `ini:"-"`
 
 		// Repository upload settings
@@ -82,11 +84,13 @@ var (
 			DefaultMergeMessageOfficialApproversOnly bool
 			PopulateSquashCommentWithCommitMessages  bool
 			AddCoCommitterTrailers                   bool
+			TestConflictingPatchesWithGitApply       bool
 		} `ini:"repository.pull-request"`
 
 		// Issue Setting
 		Issue struct {
 			LockReasons []string
+			MaxPinned   int
 		} `ini:"repository.issue"`
 
 		Release struct {
@@ -155,18 +159,18 @@ var (
 		EnablePushCreateOrg:                     false,
 		DisabledRepoUnits:                       []string{},
 		DefaultRepoUnits:                        []string{},
+		DefaultForkRepoUnits:                    []string{},
 		PrefixArchiveFiles:                      true,
 		DisableMigrations:                       false,
 		DisableStars:                            false,
 		DefaultBranch:                           "main",
+		AllowForkWithoutMaximumLimit:            true,
 
 		// Repository editor settings
 		Editor: struct {
-			LineWrapExtensions   []string
-			PreviewableFileModes []string
+			LineWrapExtensions []string
 		}{
-			LineWrapExtensions:   strings.Split(".txt,.md,.markdown,.mdown,.mkd,", ","),
-			PreviewableFileModes: []string{"markdown"},
+			LineWrapExtensions: strings.Split(".txt,.md,.markdown,.mdown,.mkd,.livemd,", ","),
 		},
 
 		// Repository upload settings
@@ -204,6 +208,7 @@ var (
 			DefaultMergeMessageOfficialApproversOnly bool
 			PopulateSquashCommentWithCommitMessages  bool
 			AddCoCommitterTrailers                   bool
+			TestConflictingPatchesWithGitApply       bool
 		}{
 			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
 			// Same as GitHub. See
@@ -223,8 +228,10 @@ var (
 		// Issue settings
 		Issue: struct {
 			LockReasons []string
+			MaxPinned   int
 		}{
 			LockReasons: strings.Split("Too heated,Off-topic,Spam,Resolved", ","),
+			MaxPinned:   3,
 		},
 
 		Release: struct {
@@ -264,16 +271,16 @@ var (
 	}{}
 )
 
-func newRepository() {
+func loadRepositoryFrom(rootCfg ConfigProvider) {
 	var err error
 	// Determine and create root git repository path.
-	sec := Cfg.Section("repository")
+	sec := rootCfg.Section("repository")
 	Repository.DisableHTTPGit = sec.Key("DISABLE_HTTP_GIT").MustBool()
 	Repository.UseCompatSSHURI = sec.Key("USE_COMPAT_SSH_URI").MustBool()
+	Repository.GoGetCloneURLProtocol = sec.Key("GO_GET_CLONE_URL_PROTOCOL").MustString("https")
 	Repository.MaxCreationLimit = sec.Key("MAX_CREATION_LIMIT").MustInt(-1)
 	Repository.DefaultBranch = sec.Key("DEFAULT_BRANCH").MustString(Repository.DefaultBranch)
 	RepoRootPath = sec.Key("ROOT").MustString(path.Join(AppDataPath, "gitea-repositories"))
-	forcePathSeparator(RepoRootPath)
 	if !filepath.IsAbs(RepoRootPath) {
 		RepoRootPath = filepath.Join(AppWorkPath, RepoRootPath)
 	} else {
@@ -289,20 +296,24 @@ func newRepository() {
 		log.Warn("SCRIPT_TYPE %q is not on the current PATH. Are you sure that this is the correct SCRIPT_TYPE?", ScriptType)
 	}
 
-	if err = Cfg.Section("repository").MapTo(&Repository); err != nil {
+	if err = sec.MapTo(&Repository); err != nil {
 		log.Fatal("Failed to map Repository settings: %v", err)
-	} else if err = Cfg.Section("repository.editor").MapTo(&Repository.Editor); err != nil {
+	} else if err = rootCfg.Section("repository.editor").MapTo(&Repository.Editor); err != nil {
 		log.Fatal("Failed to map Repository.Editor settings: %v", err)
-	} else if err = Cfg.Section("repository.upload").MapTo(&Repository.Upload); err != nil {
+	} else if err = rootCfg.Section("repository.upload").MapTo(&Repository.Upload); err != nil {
 		log.Fatal("Failed to map Repository.Upload settings: %v", err)
-	} else if err = Cfg.Section("repository.local").MapTo(&Repository.Local); err != nil {
+	} else if err = rootCfg.Section("repository.local").MapTo(&Repository.Local); err != nil {
 		log.Fatal("Failed to map Repository.Local settings: %v", err)
-	} else if err = Cfg.Section("repository.pull-request").MapTo(&Repository.PullRequest); err != nil {
+	} else if err = rootCfg.Section("repository.pull-request").MapTo(&Repository.PullRequest); err != nil {
 		log.Fatal("Failed to map Repository.PullRequest settings: %v", err)
 	}
 
-	if !Cfg.Section("packages").Key("ENABLED").MustBool(true) {
+	if !rootCfg.Section("packages").Key("ENABLED").MustBool(Packages.Enabled) {
 		Repository.DisabledRepoUnits = append(Repository.DisabledRepoUnits, "repo.packages")
+	}
+
+	if !rootCfg.Section("actions").Key("ENABLED").MustBool(Actions.Enabled) {
+		Repository.DisabledRepoUnits = append(Repository.DisabledRepoUnits, "repo.actions")
 	}
 
 	// Handle default trustmodel settings
@@ -348,5 +359,5 @@ func newRepository() {
 		Repository.Upload.TempPath = path.Join(AppWorkPath, Repository.Upload.TempPath)
 	}
 
-	RepoArchive.Storage = getStorage("repo-archive", "", nil)
+	RepoArchive.Storage = getStorage(rootCfg, "repo-archive", "", nil)
 }

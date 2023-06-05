@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -9,7 +8,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
@@ -24,6 +22,8 @@ type SearchUserOptions struct {
 	Keyword       string
 	Type          UserType
 	UID           int64
+	LoginName     string // this option should be used only for admin user
+	SourceID      int64  // this option should be used only for admin user
 	OrderBy       db.SearchOrderBy
 	Visible       []structs.VisibleType
 	Actor         *User // The user doing the search
@@ -58,34 +58,17 @@ func (opts *SearchUserOptions) toSearchQueryBase() *xorm.Session {
 		cond = cond.And(builder.In("visibility", opts.Visible))
 	}
 
-	if opts.Actor != nil {
-		var exprCond builder.Cond = builder.Expr("org_user.org_id = `user`.id")
-
-		// If Admin - they see all users!
-		if !opts.Actor.IsAdmin {
-			// Force visibility for privacy
-			var accessCond builder.Cond
-			if !opts.Actor.IsRestricted {
-				accessCond = builder.Or(
-					builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.Actor.ID}, builder.Eq{"visibility": structs.VisibleTypePrivate}))),
-					builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
-			} else {
-				// restricted users only see orgs they are a member of
-				accessCond = builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.Actor.ID})))
-			}
-			// Don't forget about self
-			accessCond = accessCond.Or(builder.Eq{"id": opts.Actor.ID})
-			cond = cond.And(accessCond)
-		}
-
-	} else {
-		// Force visibility for privacy
-		// Not logged in - only public users
-		cond = cond.And(builder.In("visibility", structs.VisibleTypePublic))
-	}
+	cond = cond.And(BuildCanSeeUserCondition(opts.Actor))
 
 	if opts.UID > 0 {
 		cond = cond.And(builder.Eq{"id": opts.UID})
+	}
+
+	if opts.SourceID > 0 {
+		cond = cond.And(builder.Eq{"login_source": opts.SourceID})
+	}
+	if opts.LoginName != "" {
+		cond = cond.And(builder.Eq{"login_name": opts.LoginName})
 	}
 
 	if !opts.IsActive.IsNone() {
@@ -130,7 +113,7 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 	defer sessCount.Close()
 	count, err := sessCount.Count(new(User))
 	if err != nil {
-		return nil, 0, fmt.Errorf("Count: %v", err)
+		return nil, 0, fmt.Errorf("Count: %w", err)
 	}
 
 	if len(opts.OrderBy) == 0 {
@@ -149,24 +132,25 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 	return users, count, sessQuery.Find(&users)
 }
 
-// IterateUser iterate users
-func IterateUser(f func(user *User) error) error {
-	var start int
-	batchSize := setting.Database.IterateBufferSize
-	for {
-		users := make([]*User, 0, batchSize)
-		if err := db.GetEngine(db.DefaultContext).Limit(batchSize, start).Find(&users); err != nil {
-			return err
-		}
-		if len(users) == 0 {
-			return nil
-		}
-		start += len(users)
-
-		for _, user := range users {
-			if err := f(user); err != nil {
-				return err
+// BuildCanSeeUserCondition creates a condition which can be used to restrict results to users/orgs the actor can see
+func BuildCanSeeUserCondition(actor *User) builder.Cond {
+	if actor != nil {
+		// If Admin - they see all users!
+		if !actor.IsAdmin {
+			// Users can see an organization they are a member of
+			cond := builder.In("`user`.id", builder.Select("org_id").From("org_user").Where(builder.Eq{"uid": actor.ID}))
+			if !actor.IsRestricted {
+				// Not-Restricted users can see public and limited users/organizations
+				cond = cond.Or(builder.In("`user`.visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
 			}
+			// Don't forget about self
+			return cond.Or(builder.Eq{"`user`.id": actor.ID})
 		}
+
+		return nil
 	}
+
+	// Force visibility for privacy
+	// Not logged in - only public users
+	return builder.In("`user`.visibility", structs.VisibleTypePublic)
 }

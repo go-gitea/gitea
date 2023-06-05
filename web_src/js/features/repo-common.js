@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 
 const {csrfToken} = window.config;
 
@@ -44,8 +45,6 @@ export function initRepoArchiveLinks() {
 }
 
 export function initRepoCloneLink() {
-  const defaultGitProtocol = 'https'; // ssh or https
-
   const $repoCloneSsh = $('#repo-clone-ssh');
   const $repoCloneHttps = $('#repo-clone-https');
   const $inputLink = $('#repo-clone-url');
@@ -54,45 +53,23 @@ export function initRepoCloneLink() {
     return;
   }
 
-  const updateUi = () => {
-    let isSSH = (localStorage.getItem('repo-clone-protocol') || defaultGitProtocol) === 'ssh';
-    // there must be at least one clone button (by context/repo.go). if no ssh, then there must be https.
-    if (isSSH && $repoCloneSsh.length === 0) {
-      isSSH = false;
-    } else if (!isSSH && $repoCloneHttps.length === 0) {
-      isSSH = true;
-    }
-    const cloneLink = (isSSH ? $repoCloneSsh : $repoCloneHttps).attr('data-link');
-    $inputLink.val(cloneLink);
-    if (isSSH) {
-      $repoCloneSsh.addClass('primary');
-      $repoCloneHttps.removeClass('primary');
-    } else {
-      $repoCloneSsh.removeClass('primary');
-      $repoCloneHttps.addClass('primary');
-    }
-    // the empty repo guide
-    $('.quickstart .empty-repo-guide .clone-url').text(cloneLink);
-  };
-  updateUi();
-
+  // restore animation after first init
   setTimeout(() => {
-    // restore animation after first init
-    $repoCloneSsh.removeClass('no-transition');
-    $repoCloneHttps.removeClass('no-transition');
+    $repoCloneSsh.removeClass('gt-no-transition');
+    $repoCloneHttps.removeClass('gt-no-transition');
   }, 100);
 
   $repoCloneSsh.on('click', () => {
     localStorage.setItem('repo-clone-protocol', 'ssh');
-    updateUi();
+    window.updateCloneStates();
   });
   $repoCloneHttps.on('click', () => {
     localStorage.setItem('repo-clone-protocol', 'https');
-    updateUi();
+    window.updateCloneStates();
   });
 
-  $inputLink.on('click', () => {
-    $inputLink.select();
+  $inputLink.on('focus', () => {
+    $inputLink.trigger('select');
   });
 }
 
@@ -100,8 +77,8 @@ export function initRepoCommonBranchOrTagDropdown(selector) {
   $(selector).each(function () {
     const $dropdown = $(this);
     $dropdown.find('.reference.column').on('click', function () {
-      $dropdown.find('.scrolling.reference-list-menu').hide();
-      $($(this).data('target')).show();
+      hideElem($dropdown.find('.scrolling.reference-list-menu'));
+      showElem($($(this).data('target')));
       return false;
     });
   });
@@ -126,7 +103,7 @@ export function initRepoCommonLanguageStats() {
   if ($('.language-stats').length > 0) {
     $('.language-stats').on('click', (e) => {
       e.preventDefault();
-      $('.language-stats-details, .repository-menu').slideToggle();
+      toggleElem($('.language-stats-details, .repository-menu'));
     });
   }
 }

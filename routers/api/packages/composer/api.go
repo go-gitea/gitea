@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package composer
 
@@ -76,7 +75,7 @@ type PackageVersionMetadata struct {
 	Dist    Dist      `json:"dist"`
 }
 
-// Dist contains package download informations
+// Dist contains package download information
 type Dist struct {
 	Type     string `json:"type"`
 	URL      string `json:"url"`
@@ -88,7 +87,7 @@ func createPackageMetadataResponse(registryURL string, pds []*packages_model.Pac
 
 	for _, pd := range pds {
 		packageType := ""
-		for _, pvp := range pd.Properties {
+		for _, pvp := range pd.VersionProperties {
 			if pvp.Name == composer_module.TypeProperty {
 				packageType = pvp.Value
 				break
@@ -99,7 +98,7 @@ func createPackageMetadataResponse(registryURL string, pds []*packages_model.Pac
 			Name:     pd.Package.Name,
 			Version:  pd.Version.Version,
 			Type:     packageType,
-			Created:  time.Unix(int64(pd.Version.CreatedUnix), 0),
+			Created:  pd.Version.CreatedUnix.AsLocalTime(),
 			Metadata: pd.Metadata.(*composer_module.Metadata),
 			Dist: Dist{
 				Type:     "zip",

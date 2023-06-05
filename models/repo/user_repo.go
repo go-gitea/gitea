@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -10,14 +9,16 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"xorm.io/builder"
 )
 
 // GetStarredRepos returns the repos starred by a particular user
-func GetStarredRepos(userID int64, private bool, listOptions db.ListOptions) ([]*Repository, error) {
-	sess := db.GetEngine(db.DefaultContext).Where("star.uid=?", userID).
+func GetStarredRepos(ctx context.Context, userID int64, private bool, listOptions db.ListOptions) ([]*Repository, error) {
+	sess := db.GetEngine(ctx).
+		Where("star.uid=?", userID).
 		Join("LEFT", "star", "`repository`.id=`star`.repo_id")
 	if !private {
 		sess = sess.And("is_private=?", false)
@@ -35,8 +36,9 @@ func GetStarredRepos(userID int64, private bool, listOptions db.ListOptions) ([]
 }
 
 // GetWatchedRepos returns the repos watched by a particular user
-func GetWatchedRepos(userID int64, private bool, listOptions db.ListOptions) ([]*Repository, int64, error) {
-	sess := db.GetEngine(db.DefaultContext).Where("watch.user_id=?", userID).
+func GetWatchedRepos(ctx context.Context, userID int64, private bool, listOptions db.ListOptions) ([]*Repository, int64, error) {
+	sess := db.GetEngine(ctx).
+		Where("watch.user_id=?", userID).
 		And("`watch`.mode<>?", WatchModeDont).
 		Join("LEFT", "watch", "`repository`.id=`watch`.repo_id")
 	if !private {
@@ -59,7 +61,7 @@ func GetWatchedRepos(userID int64, private bool, listOptions db.ListOptions) ([]
 // GetRepoAssignees returns all users that have write access and can be assigned to issues
 // of the repository,
 func GetRepoAssignees(ctx context.Context, repo *Repository) (_ []*user_model.User, err error) {
-	if err = repo.GetOwner(ctx); err != nil {
+	if err = repo.LoadOwner(ctx); err != nil {
 		return nil, err
 	}
 
@@ -83,37 +85,19 @@ func GetRepoAssignees(ctx context.Context, repo *Repository) (_ []*user_model.Us
 		return nil, err
 	}
 
-	uidMap := map[int64]bool{}
-	i := 0
-	for _, uid := range userIDs {
-		if uidMap[uid] {
-			continue
-		}
-		uidMap[uid] = true
-		userIDs[i] = uid
-		i++
-	}
-	userIDs = userIDs[:i]
-	userIDs = append(userIDs, additionalUserIDs...)
-
-	for _, uid := range additionalUserIDs {
-		if uidMap[uid] {
-			continue
-		}
-		userIDs[i] = uid
-		i++
-	}
-	userIDs = userIDs[:i]
+	uniqueUserIDs := make(container.Set[int64])
+	uniqueUserIDs.AddMultiple(userIDs...)
+	uniqueUserIDs.AddMultiple(additionalUserIDs...)
 
 	// Leave a seat for owner itself to append later, but if owner is an organization
 	// and just waste 1 unit is cheaper than re-allocate memory once.
-	users := make([]*user_model.User, 0, len(userIDs)+1)
+	users := make([]*user_model.User, 0, len(uniqueUserIDs)+1)
 	if len(userIDs) > 0 {
-		if err = e.In("id", userIDs).Find(&users); err != nil {
+		if err = e.In("id", uniqueUserIDs.Values()).OrderBy(user_model.GetOrderByName()).Find(&users); err != nil {
 			return nil, err
 		}
 	}
-	if !repo.Owner.IsOrganization() && !uidMap[repo.OwnerID] {
+	if !repo.Owner.IsOrganization() && !uniqueUserIDs.Contains(repo.OwnerID) {
 		users = append(users, repo.Owner)
 	}
 
@@ -127,7 +111,7 @@ func GetRepoAssignees(ctx context.Context, repo *Repository) (_ []*user_model.Us
 // TODO: may be we should have a busy choice for users to block review request to them.
 func GetReviewers(ctx context.Context, repo *Repository, doerID, posterID int64) ([]*user_model.User, error) {
 	// Get the owner of the repository - this often already pre-cached and if so saves complexity for the following queries
-	if err := repo.GetOwner(ctx); err != nil {
+	if err := repo.LoadOwner(ctx); err != nil {
 		return nil, err
 	}
 
@@ -168,5 +152,28 @@ func GetReviewers(ctx context.Context, repo *Repository, doerID, posterID int64)
 	}
 
 	users := make([]*user_model.User, 0, 8)
-	return users, db.GetEngine(ctx).Where(cond).OrderBy("name").Find(&users)
+	return users, db.GetEngine(ctx).Where(cond).OrderBy(user_model.GetOrderByName()).Find(&users)
+}
+
+// GetIssuePostersWithSearch returns users with limit of 30 whose username started with prefix that have authored an issue/pull request for the given repository
+// If isShowFullName is set to true, also include full name prefix search
+func GetIssuePostersWithSearch(ctx context.Context, repo *Repository, isPull bool, search string, isShowFullName bool) ([]*user_model.User, error) {
+	users := make([]*user_model.User, 0, 30)
+	var prefixCond builder.Cond = builder.Like{"name", search + "%"}
+	if isShowFullName {
+		prefixCond = prefixCond.Or(builder.Like{"full_name", "%" + search + "%"})
+	}
+
+	cond := builder.In("`user`.id",
+		builder.Select("poster_id").From("issue").Where(
+			builder.Eq{"repo_id": repo.ID}.
+				And(builder.Eq{"is_pull": isPull}),
+		).GroupBy("poster_id")).And(prefixCond)
+
+	return users, db.GetEngine(ctx).
+		Where(cond).
+		Cols("id", "name", "full_name", "avatar", "avatar_email", "use_custom_avatar").
+		OrderBy("name").
+		Limit(30).
+		Find(&users)
 }

@@ -1,7 +1,6 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // Copyright 2017 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package markup
 
@@ -45,6 +44,18 @@ func Test_Sanitizer(t *testing.T) {
 		`<input type="checkbox" disabled=""/>unchecked`, `<input type="checkbox" disabled=""/>unchecked`,
 		`<span class="emoji dropdown">NAUGHTY</span>`, `<span>NAUGHTY</span>`,
 		`<span class="emoji">contents</span>`, `<span class="emoji">contents</span>`,
+
+		// Color property
+		`<span style="color: red">Hello World</span>`, `<span style="color: red">Hello World</span>`,
+		`<p style="color: red">Hello World</p>`, `<p style="color: red">Hello World</p>`,
+		`<code style="color: red">Hello World</code>`, `<code>Hello World</code>`,
+		`<span style="bad-color: red">Hello World</span>`, `<span>Hello World</span>`,
+		`<p style="bad-color: red">Hello World</p>`, `<p>Hello World</p>`,
+		`<code style="bad-color: red">Hello World</code>`, `<code>Hello World</code>`,
+
+		// URLs
+		`[my custom URL scheme](cbthunderlink://somebase64string)`, `[my custom URL scheme](cbthunderlink://somebase64string)`,
+		`[my custom URL scheme](matrix:roomid/psumPMeAfzgAeQpXMG:feneas.org?action=join)`, `[my custom URL scheme](matrix:roomid/psumPMeAfzgAeQpXMG:feneas.org?action=join)`,
 	}
 
 	for i := 0; i < len(testCases); i += 2 {
@@ -55,7 +66,7 @@ func Test_Sanitizer(t *testing.T) {
 func TestSanitizeNonEscape(t *testing.T) {
 	descStr := "<scrİpt>&lt;script&gt;alert(document.domain)&lt;/script&gt;</scrİpt>"
 
-	output := template.HTML(Sanitize(string(descStr)))
+	output := template.HTML(Sanitize(descStr))
 	if strings.Contains(string(output), "<script>") {
 		t.Errorf("un-escaped <script> in output: %q", output)
 	}

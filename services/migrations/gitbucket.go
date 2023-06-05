@@ -1,14 +1,15 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migrations
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"strings"
 
+	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/structs"
 )
@@ -32,11 +33,16 @@ func (f *GitBucketDownloaderFactory) New(ctx context.Context, opts base.MigrateO
 		return nil, err
 	}
 
-	baseURL := u.Scheme + "://" + u.Host
 	fields := strings.Split(u.Path, "/")
-	oldOwner := fields[1]
-	oldName := strings.TrimSuffix(fields[2], ".git")
+	if len(fields) < 2 {
+		return nil, fmt.Errorf("invalid path: %s", u.Path)
+	}
+	baseURL := u.Scheme + "://" + u.Host + strings.TrimSuffix(strings.Join(fields[:len(fields)-2], "/"), "/git")
 
+	oldOwner := fields[len(fields)-2]
+	oldName := strings.TrimSuffix(fields[len(fields)-1], ".git")
+
+	log.Trace("Create GitBucket downloader. BaseURL: %s RepoOwner: %s RepoName: %s", baseURL, oldOwner, oldName)
 	return NewGitBucketDownloader(ctx, baseURL, opts.AuthUsername, opts.AuthPassword, opts.AuthToken, oldOwner, oldName), nil
 }
 
@@ -51,10 +57,23 @@ type GitBucketDownloader struct {
 	*GithubDownloaderV3
 }
 
+// String implements Stringer
+func (g *GitBucketDownloader) String() string {
+	return fmt.Sprintf("migration from gitbucket server %s %s/%s", g.baseURL, g.repoOwner, g.repoName)
+}
+
+func (g *GitBucketDownloader) LogString() string {
+	if g == nil {
+		return "<GitBucketDownloader nil>"
+	}
+	return fmt.Sprintf("<GitBucketDownloader %s %s/%s>", g.baseURL, g.repoOwner, g.repoName)
+}
+
 // NewGitBucketDownloader creates a GitBucket downloader
 func NewGitBucketDownloader(ctx context.Context, baseURL, userName, password, token, repoOwner, repoName string) *GitBucketDownloader {
 	githubDownloader := NewGithubDownloaderV3(ctx, baseURL, userName, password, token, repoOwner, repoName)
 	githubDownloader.SkipReactions = true
+	githubDownloader.SkipReviews = true
 	return &GitBucketDownloader{
 		githubDownloader,
 	}

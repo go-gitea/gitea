@@ -2,7 +2,7 @@
 import imageminZopfli from 'imagemin-zopfli';
 import {optimize} from 'svgo';
 import {fabric} from 'fabric';
-import {readFile, writeFile} from 'fs/promises';
+import {readFile, writeFile} from 'node:fs/promises';
 
 function exit(err) {
   if (err) console.error(err);

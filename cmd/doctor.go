@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cmd
 
@@ -8,11 +7,13 @@ import (
 	"fmt"
 	golog "log"
 	"os"
+	"path/filepath"
 	"strings"
 	"text/tabwriter"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
+	migrate_base "code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/modules/doctor"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -81,22 +82,25 @@ You should back-up your database before doing this and ensure that your database
 }
 
 func runRecreateTable(ctx *cli.Context) error {
-	// Redirect the default golog to here
-	golog.SetFlags(0)
-	golog.SetPrefix("")
-	golog.SetOutput(log.NewLoggerAsWriter("INFO", log.GetLogger(log.DEFAULT)))
-
-	setting.LoadFromExisting()
-	setting.InitDBConfig()
-
-	setting.EnableXORMLog = ctx.Bool("debug")
-	setting.Database.LogSQL = ctx.Bool("debug")
-	setting.Cfg.Section("log").Key("XORM").SetValue(",")
-
-	setting.NewXORMLogService(!ctx.Bool("debug"))
 	stdCtx, cancel := installSignals()
 	defer cancel()
 
+	// Redirect the default golog to here
+	golog.SetFlags(0)
+	golog.SetPrefix("")
+	golog.SetOutput(log.LoggerToWriter(log.GetLogger(log.DEFAULT).Info))
+
+	debug := ctx.Bool("debug")
+	setting.Init(&setting.Options{})
+	setting.LoadDBSetting()
+
+	if debug {
+		setting.InitSQLLoggersForCli(log.DEBUG)
+	} else {
+		setting.InitSQLLoggersForCli(log.INFO)
+	}
+
+	setting.Database.LogSQL = debug
 	if err := db.InitEngine(stdCtx); err != nil {
 		fmt.Println(err)
 		fmt.Println("Check if you are using the right config file. You can use a --config directive to specify one.")
@@ -113,7 +117,7 @@ func runRecreateTable(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	recreateTables := migrations.RecreateTables(beans...)
+	recreateTables := migrate_base.RecreateTables(beans...)
 
 	return db.InitEngineWithMigration(stdCtx, func(x *xorm.Engine) error {
 		if err := migrations.EnsureUpToDate(x); err != nil {
@@ -123,37 +127,49 @@ func runRecreateTable(ctx *cli.Context) error {
 	})
 }
 
-func runDoctor(ctx *cli.Context) error {
+func setupDoctorDefaultLogger(ctx *cli.Context, colorize bool) {
 	// Silence the default loggers
-	log.DelNamedLogger("console")
-	log.DelNamedLogger(log.DEFAULT)
+	setupConsoleLogger(log.FATAL, log.CanColorStderr, os.Stderr)
 
-	stdCtx, cancel := installSignals()
-	defer cancel()
-
-	// Now setup our own
 	logFile := ctx.String("log-file")
 	if !ctx.IsSet("log-file") {
 		logFile = "doctor.log"
 	}
+
+	if len(logFile) == 0 {
+		// if no doctor log-file is set, do not show any log from default logger
+		return
+	}
+
+	if logFile == "-" {
+		setupConsoleLogger(log.TRACE, colorize, os.Stdout)
+	} else {
+		logFile, _ = filepath.Abs(logFile)
+		writeMode := log.WriterMode{Level: log.TRACE, WriterOption: log.WriterFileOption{FileName: logFile}}
+		writer, err := log.NewEventWriter("console-to-file", "file", writeMode)
+		if err != nil {
+			log.FallbackErrorf("unable to create file log writer: %v", err)
+			return
+		}
+		log.GetManager().GetLogger(log.DEFAULT).RemoveAllWriters().AddWriters(writer)
+	}
+}
+
+func runDoctor(ctx *cli.Context) error {
+	stdCtx, cancel := installSignals()
+	defer cancel()
 
 	colorize := log.CanColorStdout
 	if ctx.IsSet("color") {
 		colorize = ctx.Bool("color")
 	}
 
-	if len(logFile) == 0 {
-		log.NewLogger(1000, "doctor", "console", fmt.Sprintf(`{"level":"NONE","stacktracelevel":"NONE","colorize":%t}`, colorize))
-	} else if logFile == "-" {
-		log.NewLogger(1000, "doctor", "console", fmt.Sprintf(`{"level":"trace","stacktracelevel":"NONE","colorize":%t}`, colorize))
-	} else {
-		log.NewLogger(1000, "doctor", "file", fmt.Sprintf(`{"filename":%q,"level":"trace","stacktracelevel":"NONE"}`, logFile))
-	}
+	setupDoctorDefaultLogger(ctx, colorize)
 
-	// Finally redirect the default golog to here
+	// Finally redirect the default golang's log to here
 	golog.SetFlags(0)
 	golog.SetPrefix("")
-	golog.SetOutput(log.NewLoggerAsWriter("INFO", log.GetLogger(log.DEFAULT)))
+	golog.SetOutput(log.LoggerToWriter(log.GetLogger(log.DEFAULT).Info))
 
 	if ctx.IsSet("list") {
 		w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
@@ -201,17 +217,5 @@ func runDoctor(ctx *cli.Context) error {
 		}
 	}
 
-	// Now we can set up our own logger to return information about what the doctor is doing
-	if err := log.NewNamedLogger("doctorouter",
-		1000,
-		"console",
-		"console",
-		fmt.Sprintf(`{"level":"INFO","stacktracelevel":"NONE","colorize":%t,"flags":-1}`, colorize)); err != nil {
-		fmt.Println(err)
-		return err
-	}
-
-	logger := log.GetLogger("doctorouter")
-	defer logger.Close()
-	return doctor.RunChecks(stdCtx, logger, ctx.Bool("fix"), checks)
+	return doctor.RunChecks(stdCtx, colorize, ctx.Bool("fix"), checks)
 }

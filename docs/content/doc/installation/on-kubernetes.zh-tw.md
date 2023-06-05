@@ -2,14 +2,16 @@
 date: "2020-03-19T19:27:00+02:00"
 title: "在 Kubernetes 安裝"
 slug: "install-on-kubernetes"
-weight: 10
+weight: 80
 toc: false
 draft: false
+aliases:
+  - /zh-tw/install-on-kubernetes
 menu:
   sidebar:
     parent: "installation"
     name: "Kubernetes"
-    weight: 50
+    weight: 80
     identifier: "install-on-kubernetes"
 ---
 
@@ -26,7 +28,7 @@ helm install gitea gitea-charts/gitea
 
 若您想自訂安裝（包括使用 kubernetes ingress），請前往完整的 [Gitea helm chart configuration details](https://gitea.com/gitea/helm-chart/)
 
-##運行狀況檢查終端節點
+## 運行狀況檢查終端節點
 
 Gitea 附帶了一個運行狀況檢查端點 `/api/healthz`，你可以像這樣在 kubernetes 中配置它:
 

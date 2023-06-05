@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package nosql
 
@@ -14,7 +13,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 )
 
 var replacer = strings.NewReplacer("_", "", "-", "")
@@ -65,7 +64,7 @@ func (m *Manager) GetRedisClient(connection string) (client redis.UniversalClien
 	if recovered != nil {
 		panic(recovered)
 	}
-	return
+	return client
 }
 
 func (m *Manager) getRedisClient(connection string) redis.UniversalClient {
@@ -194,10 +193,6 @@ func getRedisOptions(uri *url.URL) *redis.UniversalOptions {
 			opts.MinIdleConns, _ = strconv.Atoi(v[0])
 		case "pooltimeout":
 			opts.PoolTimeout = valToTimeDuration(v)
-		case "idletimeout":
-			opts.IdleTimeout = valToTimeDuration(v)
-		case "idlecheckfrequency":
-			opts.IdleCheckFrequency = valToTimeDuration(v)
 		case "maxredirects":
 			opts.MaxRedirects, _ = strconv.Atoi(v[0])
 		case "readonly":
@@ -245,7 +240,7 @@ func getRedisTLSOptions(uri *url.URL) *tls.Config {
 
 	if len(skipverify) > 0 {
 		skipverify, err := strconv.ParseBool(skipverify)
-		if err != nil {
+		if err == nil {
 			tlsConfig.InsecureSkipVerify = skipverify
 		}
 	}
@@ -254,7 +249,7 @@ func getRedisTLSOptions(uri *url.URL) *tls.Config {
 
 	if len(insecureskipverify) > 0 {
 		insecureskipverify, err := strconv.ParseBool(insecureskipverify)
-		if err != nil {
+		if err == nil {
 			tlsConfig.InsecureSkipVerify = insecureskipverify
 		}
 	}

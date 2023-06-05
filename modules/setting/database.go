@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
@@ -28,7 +27,7 @@ var (
 
 	// Database holds the database settings
 	Database = struct {
-		Type              string
+		Type              DatabaseType
 		Host              string
 		Name              string
 		User              string
@@ -39,43 +38,34 @@ var (
 		LogSQL            bool
 		Charset           string
 		Timeout           int // seconds
-		UseSQLite3        bool
-		UseMySQL          bool
-		UseMSSQL          bool
-		UsePostgreSQL     bool
+		SQLiteJournalMode string
 		DBConnectRetries  int
 		DBConnectBackoff  time.Duration
 		MaxIdleConns      int
 		MaxOpenConns      int
 		ConnMaxLifetime   time.Duration
 		IterateBufferSize int
+		AutoMigration     bool
 	}{
 		Timeout:           500,
 		IterateBufferSize: 50,
 	}
 )
 
-// InitDBConfig loads the database settings
-func InitDBConfig() {
-	sec := Cfg.Section("database")
-	Database.Type = sec.Key("DB_TYPE").String()
-	defaultCharset := "utf8"
-	Database.UseMySQL = false
-	Database.UseSQLite3 = false
-	Database.UsePostgreSQL = false
-	Database.UseMSSQL = false
+// LoadDBSetting loads the database settings
+func LoadDBSetting() {
+	loadDBSetting(CfgProvider)
+}
 
-	switch Database.Type {
-	case "sqlite3":
-		Database.UseSQLite3 = true
-	case "mysql":
-		Database.UseMySQL = true
+func loadDBSetting(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("database")
+	Database.Type = DatabaseType(sec.Key("DB_TYPE").String())
+	defaultCharset := "utf8"
+
+	if Database.Type.IsMySQL() {
 		defaultCharset = "utf8mb4"
-	case "postgres":
-		Database.UsePostgreSQL = true
-	case "mssql":
-		Database.UseMSSQL = true
 	}
+
 	Database.Host = sec.Key("HOST").String()
 	Database.Name = sec.Key("NAME").String()
 	Database.User = sec.Key("USER").String()
@@ -85,14 +75,16 @@ func InitDBConfig() {
 	Database.Schema = sec.Key("SCHEMA").String()
 	Database.SSLMode = sec.Key("SSL_MODE").MustString("disable")
 	Database.Charset = sec.Key("CHARSET").In(defaultCharset, []string{"utf8", "utf8mb4"})
-	if Database.UseMySQL && defaultCharset != "utf8mb4" {
+	if Database.Type.IsMySQL() && defaultCharset != "utf8mb4" {
 		log.Error("Deprecated database mysql charset utf8 support, please use utf8mb4 or convert utf8 to utf8mb4.")
 	}
 
 	Database.Path = sec.Key("PATH").MustString(filepath.Join(AppDataPath, "gitea.db"))
 	Database.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
+	Database.SQLiteJournalMode = sec.Key("SQLITE_JOURNAL_MODE").MustString("")
+
 	Database.MaxIdleConns = sec.Key("MAX_IDLE_CONNS").MustInt(2)
-	if Database.UseMySQL {
+	if Database.Type.IsMySQL() {
 		Database.ConnMaxLifetime = sec.Key("CONN_MAX_LIFETIME").MustDuration(3 * time.Second)
 	} else {
 		Database.ConnMaxLifetime = sec.Key("CONN_MAX_LIFETIME").MustDuration(0)
@@ -100,14 +92,15 @@ func InitDBConfig() {
 	Database.MaxOpenConns = sec.Key("MAX_OPEN_CONNS").MustInt(0)
 
 	Database.IterateBufferSize = sec.Key("ITERATE_BUFFER_SIZE").MustInt(50)
-	Database.LogSQL = sec.Key("LOG_SQL").MustBool(true)
+	Database.LogSQL = sec.Key("LOG_SQL").MustBool(false)
 	Database.DBConnectRetries = sec.Key("DB_RETRIES").MustInt(10)
 	Database.DBConnectBackoff = sec.Key("DB_RETRY_BACKOFF").MustDuration(3 * time.Second)
+	Database.AutoMigration = sec.Key("AUTO_MIGRATION").MustBool(true)
 }
 
 // DBConnStr returns database connection string
 func DBConnStr() (string, error) {
-	connStr := ""
+	var connStr string
 	Param := "?"
 	if strings.Contains(Database.Name, Param) {
 		Param = "&"
@@ -134,9 +127,14 @@ func DBConnStr() (string, error) {
 			return "", errors.New("this binary version does not build support for SQLite3")
 		}
 		if err := os.MkdirAll(path.Dir(Database.Path), os.ModePerm); err != nil {
-			return "", fmt.Errorf("Failed to create directories: %v", err)
+			return "", fmt.Errorf("Failed to create directories: %w", err)
 		}
-		connStr = fmt.Sprintf("file:%s?cache=shared&mode=rwc&_busy_timeout=%d&_txlock=immediate", Database.Path, Database.Timeout)
+		journalMode := ""
+		if Database.SQLiteJournalMode != "" {
+			journalMode = "&_journal_mode=" + Database.SQLiteJournalMode
+		}
+		connStr = fmt.Sprintf("file:%s?cache=shared&mode=rwc&_busy_timeout=%d&_txlock=immediate%s",
+			Database.Path, Database.Timeout, journalMode)
 	default:
 		return "", fmt.Errorf("Unknown database type: %s", Database.Type)
 	}
@@ -156,6 +154,12 @@ func parsePostgreSQLHostPort(info string) (string, string) {
 	} else if len(info) > 0 {
 		host = info
 	}
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	if port == "" {
+		port = "5432"
+	}
 	return host, port
 }
 
@@ -168,11 +172,12 @@ func getPostgreSQLConnectionString(dbHost, dbUser, dbPasswd, dbName, dbParam, db
 		connStr = fmt.Sprintf("postgres://%s:%s@%s:%s/%s%ssslmode=%s",
 			url.PathEscape(dbUser), url.PathEscape(dbPasswd), host, port, dbName, dbParam, dbsslMode)
 	}
-	return
+	return connStr
 }
 
 // ParseMSSQLHostPort splits the host into host and port
 func ParseMSSQLHostPort(info string) (string, string) {
+	// the default port "0" might be related to MSSQL's dynamic port, maybe it should be double-confirmed in the future
 	host, port := "127.0.0.1", "0"
 	if strings.Contains(info, ":") {
 		host = strings.Split(info, ":")[0]
@@ -183,5 +188,33 @@ func ParseMSSQLHostPort(info string) (string, string) {
 	} else if len(info) > 0 {
 		host = info
 	}
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	if port == "" {
+		port = "0"
+	}
 	return host, port
+}
+
+type DatabaseType string
+
+func (t DatabaseType) String() string {
+	return string(t)
+}
+
+func (t DatabaseType) IsSQLite3() bool {
+	return t == "sqlite3"
+}
+
+func (t DatabaseType) IsMySQL() bool {
+	return t == "mysql"
+}
+
+func (t DatabaseType) IsMSSQL() bool {
+	return t == "mssql"
+}
+
+func (t DatabaseType) IsPostgreSQL() bool {
+	return t == "postgres"
 }

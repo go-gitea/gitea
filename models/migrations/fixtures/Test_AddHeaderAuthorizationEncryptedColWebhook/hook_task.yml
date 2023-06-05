@@ -1,0 +1,8 @@
+# unsafe payload
+- id: 1
+  hook_id: 1
+  payload_content: '{"homeserver_url":"https://matrix.example.com","room_id":"roomID","access_token":"s3cr3t","message_type":1}'
+# safe payload
+- id: 2
+  hook_id: 2
+  payload_content: '{"homeserver_url":"https://matrix.example.com","room_id":"roomID","message_type":1}'

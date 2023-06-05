@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package process
 
@@ -120,7 +119,7 @@ func (pm *Manager) ProcessStacktraces(flat, noSystem bool) ([]*Process, int, int
 
 	// We cannot use the pm.ProcessMap here because we will release the mutex ...
 	processMap := map[IDType]*Process{}
-	processCount := 0
+	var processCount int
 
 	// Lock the manager
 	pm.mutex.Lock()

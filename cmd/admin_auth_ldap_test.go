@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cmd
 
@@ -858,6 +857,36 @@ func TestUpdateLdapBindDn(t *testing.T) {
 			},
 			errMsg: "Invalid authentication type. expected: LDAP (via BindDN), actual: OAuth2",
 		},
+		// case 24
+		{
+			args: []string{
+				"ldap-test",
+				"--id", "24",
+				"--name", "ldap (via Bind DN) flip 'active' and 'user sync' attributes",
+				"--active",
+				"--disable-synchronize-users",
+			},
+			id: 24,
+			existingAuthSource: &auth.Source{
+				Type:          auth.LDAP,
+				IsActive:      false,
+				IsSyncEnabled: true,
+				Cfg: &ldap.Source{
+					Name:    "ldap (via Bind DN) flip 'active' and 'user sync' attributes",
+					Enabled: true,
+				},
+			},
+			authSource: &auth.Source{
+				Type:          auth.LDAP,
+				Name:          "ldap (via Bind DN) flip 'active' and 'user sync' attributes",
+				IsActive:      true,
+				IsSyncEnabled: false,
+				Cfg: &ldap.Source{
+					Name:    "ldap (via Bind DN) flip 'active' and 'user sync' attributes",
+					Enabled: true,
+				},
+			},
+		},
 	}
 
 	for n, c := range cases {
@@ -1220,6 +1249,33 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				Cfg:  &ldap.Source{},
 			},
 			errMsg: "Invalid authentication type. expected: LDAP (simple auth), actual: PAM",
+		},
+		// case 20
+		{
+			args: []string{
+				"ldap-test",
+				"--id", "20",
+				"--name", "ldap (simple auth) flip 'active' attribute",
+				"--active",
+			},
+			id: 20,
+			existingAuthSource: &auth.Source{
+				Type:     auth.DLDAP,
+				IsActive: false,
+				Cfg: &ldap.Source{
+					Name:    "ldap (simple auth) flip 'active' attribute",
+					Enabled: true,
+				},
+			},
+			authSource: &auth.Source{
+				Type:     auth.DLDAP,
+				Name:     "ldap (simple auth) flip 'active' attribute",
+				IsActive: true,
+				Cfg: &ldap.Source{
+					Name:    "ldap (simple auth) flip 'active' attribute",
+					Enabled: true,
+				},
+			},
 		},
 	}
 

@@ -2,9 +2,11 @@
 date: "2016-12-01T16:00:00+02:00"
 title: "Installation from source"
 slug: "install-from-source"
-weight: 10
+weight: 30
 toc: false
 draft: false
+aliases:
+  - /en-us/install-from-source
 menu:
   sidebar:
     parent: "installation"
@@ -33,8 +35,7 @@ executable path, you will have to manage this yourself.
 
 **Note 2**: Go version {{< min-go-version >}} or higher is required. However, it is recommended to
 obtain the same version as our continuous integration, see the advice given in
-<a href='{{< relref "doc/developers/hacking-on-gitea.en-us.md" >}}'>Hacking on
-Gitea</a>
+[Hacking on Gitea]({{< relref "doc/development/hacking-on-gitea.en-us.md" >}})
 
 **Table of Contents**
 
@@ -87,27 +88,26 @@ To build from source, the following programs must be present on the system:
 
 - `go` {{< min-go-version >}} or higher, see [here](https://golang.org/dl/)
 - `node` {{< min-node-version >}} or higher with `npm`, see [here](https://nodejs.org/en/download/)
-- `make`, see <a href='{{< relref "doc/developers/hacking-on-gitea.en-us.md" >}}#installing-make'>here</a>
+- `make`, see [here]({{< relref "doc/development/hacking-on-gitea.en-us.md" >}}#installing-make)
 
 Various [make tasks](https://github.com/go-gitea/gitea/blob/main/Makefile)
 are provided to keep the build process as simple as possible.
 
 Depending on requirements, the following build tags can be included.
 
-- `bindata`: Build a single monolithic binary, with all assets included.
+- `bindata`: Build a single monolithic binary, with all assets included. Required for production build.
 - `sqlite sqlite_unlock_notify`: Enable support for a
   [SQLite3](https://sqlite.org/) database. Suggested only for tiny
   installations.
 - `pam`: Enable support for PAM (Linux Pluggable Authentication Modules). Can
   be used to authenticate local users or extend authentication to methods
   available to PAM.
-* `gogit`: (EXPERIMENTAL) Use go-git variants of Git commands.
+- `gogit`: (EXPERIMENTAL) Use go-git variants of Git commands.
 
-Bundling assets into the binary using the `bindata` build tag is recommended for
-production deployments. It is possible to serve the static assets directly via a reverse proxy,
-but in most cases it is not necessary, and assets should still be bundled in the binary.
-You may want to exclude bindata while developing/testing Gitea.
-To include assets, add the `bindata` tag:
+Bundling all assets (JS/CSS/templates, etc) into the binary. Using the `bindata` build tag is required for
+production deployments. You could exclude `bindata` when you are developing/testing Gitea or able to separate the assets correctly.
+
+To include all assets, use the `bindata` tag:
 
 ```bash
 TAGS="bindata" make build
@@ -144,11 +144,11 @@ launched manually from command line, it can be killed by pressing `Ctrl + C`.
 
 ## Changing default paths
 
-Gitea will search for a number of things from the `CustomPath`. By default this is
+Gitea will search for a number of things from the _`CustomPath`_. By default this is
 the `custom/` directory in the current working directory when running Gitea. It will also
-look for its configuration file `CustomConf` in `$CustomPath/conf/app.ini`, and will use the
-current working directory as the relative base path `AppWorkPath` for a number configurable
-values. Finally the static files will be served from `StaticRootPath` which defaults to the `AppWorkPath`.
+look for its configuration file _`CustomConf`_ in `$(CustomPath)/conf/app.ini`, and will use the
+current working directory as the relative base path _`AppWorkPath`_ for a number configurable
+values. Finally the static files will be served from _`StaticRootPath`_ which defaults to the _`AppWorkPath`_.
 
 These values, although useful when developing, may conflict with downstream users preferences.
 
@@ -156,11 +156,11 @@ One option is to use a script file to shadow the `gitea` binary and create an ap
 environment before running Gitea. However, when building you can change these defaults
 using the `LDFLAGS` environment variable for `make`. The appropriate settings are as follows
 
-- To set the `CustomPath` use `LDFLAGS="-X \"code.gitea.io/gitea/modules/setting.CustomPath=custom-path\""`
-- For `CustomConf` you should use `-X \"code.gitea.io/gitea/modules/setting.CustomConf=conf.ini\"`
-- For `AppWorkPath` you should use `-X \"code.gitea.io/gitea/modules/setting.AppWorkPath=working-path\"`
-- For `StaticRootPath` you should use `-X \"code.gitea.io/gitea/modules/setting.StaticRootPath=static-root-path\"`
-- To change the default PID file location use `-X \"code.gitea.io/gitea/modules/setting.PIDFile=/run/gitea.pid\"`
+- To set the _`CustomPath`_ use `LDFLAGS="-X \"code.gitea.io/gitea/modules/setting.CustomPath=custom-path\""`
+- For _`CustomConf`_ you should use `-X \"code.gitea.io/gitea/modules/setting.CustomConf=conf.ini\"`
+- For _`AppWorkPath`_ you should use `-X \"code.gitea.io/gitea/modules/setting.AppWorkPath=working-path\"`
+- For _`StaticRootPath`_ you should use `-X \"code.gitea.io/gitea/modules/setting.StaticRootPath=static-root-path\"`
+- To change the default PID file location use `-X \"code.gitea.io/gitea/cmd.PIDFile=/run/gitea.pid\"`
 
 Add as many of the strings with their preceding `-X` to the `LDFLAGS` variable and run `make build`
 with the appropriate `TAGS` as above.
@@ -194,3 +194,13 @@ LDFLAGS="-linkmode external -extldflags '-static' $LDFLAGS" TAGS="netgo osusergo
 ```
 
 This can be combined with `CC`, `GOOS`, and `GOARCH` as above.
+
+### Adding bash/zsh autocompletion (from 1.19)
+
+A script to enable bash-completion can be found at [`contrib/autocompletion/bash_autocomplete`](https://raw.githubusercontent.com/go-gitea/gitea/main/contrib/autocompletion/bash_autocomplete). This should be altered as appropriate and can be `source` in your `.bashrc`
+or copied as `/usr/share/bash-completion/completions/gitea`.
+
+Similarly, a script for zsh-completion can be found at [`contrib/autocompletion/zsh_autocomplete`](https://raw.githubusercontent.com/go-gitea/gitea/main/contrib/autocompletion/zsh_autocomplete). This can be copied to `/usr/share/zsh/_gitea` or sourced within your
+`.zshrc`.
+
+YMMV and these scripts may need further improvement.

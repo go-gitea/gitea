@@ -1,7 +1,6 @@
 // Copyright 2019 The Gitea Authors.
 // All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package pull
 
@@ -12,14 +11,46 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
 
+	"github.com/gobwas/glob"
 	"github.com/pkg/errors"
 )
 
 // MergeRequiredContextsCommitStatus returns a commit status state for given required contexts
 func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus, requiredContexts []string) structs.CommitStatusState {
-	if len(requiredContexts) == 0 {
+	// matchedCount is the number of `CommitStatus.Context` that match any context of `requiredContexts`
+	matchedCount := 0
+	returnedStatus := structs.CommitStatusSuccess
+
+	if len(requiredContexts) > 0 {
+		requiredContextsGlob := make(map[string]glob.Glob, len(requiredContexts))
+		for _, ctx := range requiredContexts {
+			if gp, err := glob.Compile(ctx); err != nil {
+				log.Error("glob.Compile %s failed. Error: %v", ctx, err)
+			} else {
+				requiredContextsGlob[ctx] = gp
+			}
+		}
+
+		for _, commitStatus := range commitStatuses {
+			var targetStatus structs.CommitStatusState
+			for _, gp := range requiredContextsGlob {
+				if gp.Match(commitStatus.Context) {
+					targetStatus = commitStatus.State
+					matchedCount++
+					break
+				}
+			}
+
+			if targetStatus != "" && targetStatus.NoBetterThan(returnedStatus) {
+				returnedStatus = targetStatus
+			}
+		}
+	}
+
+	if matchedCount == 0 {
 		status := git_model.CalcCommitStatus(commitStatuses)
 		if status != nil {
 			return status.State
@@ -27,28 +58,6 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus,
 		return structs.CommitStatusSuccess
 	}
 
-	returnedStatus := structs.CommitStatusSuccess
-	for _, ctx := range requiredContexts {
-		var targetStatus structs.CommitStatusState
-		for _, commitStatus := range commitStatuses {
-			if commitStatus.Context == ctx {
-				targetStatus = commitStatus.State
-				break
-			}
-		}
-
-		if targetStatus == "" {
-			targetStatus = structs.CommitStatusPending
-			commitStatuses = append(commitStatuses, &git_model.CommitStatus{
-				State:       targetStatus,
-				Context:     ctx,
-				Description: "Pending",
-			})
-		}
-		if targetStatus.NoBetterThan(returnedStatus) {
-			returnedStatus = targetStatus
-		}
-	}
 	return returnedStatus
 }
 
@@ -84,10 +93,11 @@ func IsCommitStatusContextSuccess(commitStatuses []*git_model.CommitStatus, requ
 
 // IsPullCommitStatusPass returns if all required status checks PASS
 func IsPullCommitStatusPass(ctx context.Context, pr *issues_model.PullRequest) (bool, error) {
-	if err := pr.LoadProtectedBranchCtx(ctx); err != nil {
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+	if err != nil {
 		return false, errors.Wrap(err, "GetLatestCommitStatus")
 	}
-	if pr.ProtectedBranch == nil || !pr.ProtectedBranch.EnableStatusCheck {
+	if pb == nil || !pb.EnableStatusCheck {
 		return true, nil
 	}
 
@@ -101,7 +111,7 @@ func IsPullCommitStatusPass(ctx context.Context, pr *issues_model.PullRequest) (
 // GetPullRequestCommitStatusState returns pull request merged commit status state
 func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullRequest) (structs.CommitStatusState, error) {
 	// Ensure HeadRepo is loaded
-	if err := pr.LoadHeadRepoCtx(ctx); err != nil {
+	if err := pr.LoadHeadRepo(ctx); err != nil {
 		return "", errors.Wrap(err, "LoadHeadRepo")
 	}
 
@@ -129,7 +139,7 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullR
 		return "", err
 	}
 
-	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
+	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return "", errors.Wrap(err, "LoadBaseRepo")
 	}
 
@@ -138,12 +148,13 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullR
 		return "", errors.Wrap(err, "GetLatestCommitStatus")
 	}
 
-	if err := pr.LoadProtectedBranchCtx(ctx); err != nil {
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+	if err != nil {
 		return "", errors.Wrap(err, "LoadProtectedBranch")
 	}
 	var requiredContexts []string
-	if pr.ProtectedBranch != nil {
-		requiredContexts = pr.ProtectedBranch.StatusCheckContexts
+	if pb != nil {
+		requiredContexts = pb.StatusCheckContexts
 	}
 
 	return MergeRequiredContextsCommitStatus(commitStatuses, requiredContexts), nil

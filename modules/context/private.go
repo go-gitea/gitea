@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package context
 
@@ -16,8 +15,10 @@ import (
 
 // PrivateContext represents a context for private routes
 type PrivateContext struct {
-	*Context
+	*Base
 	Override context.Context
+
+	Repo *Repository
 }
 
 // Deadline is part of the interface for context.Context and we pass this to the request context
@@ -25,7 +26,7 @@ func (ctx *PrivateContext) Deadline() (deadline time.Time, ok bool) {
 	if ctx.Override != nil {
 		return ctx.Override.Deadline()
 	}
-	return ctx.Req.Context().Deadline()
+	return ctx.Base.Deadline()
 }
 
 // Done is part of the interface for context.Context and we pass this to the request context
@@ -33,7 +34,7 @@ func (ctx *PrivateContext) Done() <-chan struct{} {
 	if ctx.Override != nil {
 		return ctx.Override.Done()
 	}
-	return ctx.Req.Context().Done()
+	return ctx.Base.Done()
 }
 
 // Err is part of the interface for context.Context and we pass this to the request context
@@ -41,15 +42,10 @@ func (ctx *PrivateContext) Err() error {
 	if ctx.Override != nil {
 		return ctx.Override.Err()
 	}
-	return ctx.Req.Context().Err()
+	return ctx.Base.Err()
 }
 
 var privateContextKey interface{} = "default_private_context"
-
-// WithPrivateContext set up private context in request
-func WithPrivateContext(req *http.Request, ctx *PrivateContext) *http.Request {
-	return req.WithContext(context.WithValue(req.Context(), privateContextKey, ctx))
-}
 
 // GetPrivateContext returns a context for Private routes
 func GetPrivateContext(req *http.Request) *PrivateContext {
@@ -60,16 +56,11 @@ func GetPrivateContext(req *http.Request) *PrivateContext {
 func PrivateContexter() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			ctx := &PrivateContext{
-				Context: &Context{
-					Resp: NewResponse(w),
-					Data: map[string]interface{}{},
-				},
-			}
-			defer ctx.Close()
+			base, baseCleanUp := NewBaseContext(w, req)
+			ctx := &PrivateContext{Base: base}
+			defer baseCleanUp()
+			ctx.Base.AppendContextValue(privateContextKey, ctx)
 
-			ctx.Req = WithPrivateContext(req, ctx)
-			ctx.Data["Context"] = ctx
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})
 	}
@@ -82,5 +73,5 @@ func PrivateContexter() func(http.Handler) http.Handler {
 func OverrideContext(ctx *PrivateContext) (cancel context.CancelFunc) {
 	// We now need to override the request context as the base for our work because even if the request is cancelled we have to continue this work
 	ctx.Override, _, cancel = process.GetManager().AddTypedContext(graceful.GetManager().HammerContext(), fmt.Sprintf("PrivateContext: %s", ctx.Req.RequestURI), process.RequestProcessType, true)
-	return
+	return cancel
 }

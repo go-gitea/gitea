@@ -1,39 +1,71 @@
-<div class="ui secondary pointing tabular top attached borderless menu stackable new-menu navbar">
-	<div class="new-menu-inner">
-		<a class="{{if .PageIsAdminDashboard}}active{{end}} item" href="{{AppSubUrl}}/admin">
-			{{.i18n.Tr "admin.dashboard"}}
+<div class="four wide column">
+	<div class="ui fluid vertical menu">
+		<div class="header item">{{.locale.Tr "settings"}}</div>
+		<a class="{{if .PageIsAdminDashboard}}active {{end}}item" href="{{AppSubUrl}}/admin">
+			{{.locale.Tr "admin.dashboard"}}
 		</a>
-		<a class="{{if .PageIsAdminUsers}}active{{end}} item" href="{{AppSubUrl}}/admin/users">
-			{{.i18n.Tr "admin.users"}}
+		<a class="{{if .PageIsAdminUsers}}active {{end}}item" href="{{AppSubUrl}}/admin/users">
+			{{.locale.Tr "admin.users"}}
 		</a>
-		<a class="{{if .PageIsAdminOrganizations}}active{{end}} item" href="{{AppSubUrl}}/admin/orgs">
-			{{.i18n.Tr "admin.organizations"}}
+		<a class="{{if .PageIsAdminOrganizations}}active {{end}}item" href="{{AppSubUrl}}/admin/orgs">
+			{{.locale.Tr "admin.organizations"}}
 		</a>
-		<a class="{{if .PageIsAdminRepositories}}active{{end}} item" href="{{AppSubUrl}}/admin/repos">
-			{{.i18n.Tr "admin.repositories"}}
+		<a class="{{if .PageIsAdminRepositories}}active {{end}}item" href="{{AppSubUrl}}/admin/repos">
+			{{.locale.Tr "admin.repositories"}}
 		</a>
-		<a class="{{if .PageIsAdminPackages}}active{{end}} item" href="{{AppSubUrl}}/admin/packages">
-			{{.i18n.Tr "packages.title"}}
-		</a>
-		{{if not DisableWebhooks}}
-			<a class="{{if or .PageIsAdminDefaultHooks .PageIsAdminSystemHooks}}active{{end}} item" href="{{AppSubUrl}}/admin/hooks">
-				{{.i18n.Tr "admin.hooks"}}
+		{{if .EnablePackages}}
+			<a class="{{if .PageIsAdminPackages}}active {{end}}item" href="{{AppSubUrl}}/admin/packages">
+				{{.locale.Tr "packages.title"}}
 			</a>
 		{{end}}
-		<a class="{{if .PageIsAdminAuthentications}}active{{end}} item" href="{{AppSubUrl}}/admin/auths">
-			{{.i18n.Tr "admin.authentication"}}
+		{{if not DisableWebhooks}}
+			<a class="{{if or .PageIsAdminDefaultHooks .PageIsAdminSystemHooks}}active {{end}}item" href="{{AppSubUrl}}/admin/hooks">
+				{{.locale.Tr "admin.hooks"}}
+			</a>
+		{{end}}
+		<a class="{{if .PageIsAdminAuthentications}}active {{end}}item" href="{{AppSubUrl}}/admin/auths">
+			{{.locale.Tr "admin.authentication"}}
 		</a>
-		<a class="{{if .PageIsAdminEmails}}active{{end}} item" href="{{AppSubUrl}}/admin/emails">
-			{{.i18n.Tr "admin.emails"}}
+		<a class="{{if .PageIsAdminEmails}}active {{end}}item" href="{{AppSubUrl}}/admin/emails">
+			{{.locale.Tr "admin.emails"}}
 		</a>
-		<a class="{{if .PageIsAdminConfig}}active{{end}} item" href="{{AppSubUrl}}/admin/config">
-			{{.i18n.Tr "admin.config"}}
+		{{if .EnableOAuth2}}
+			<a class="{{if .PageIsAdminApplications}}active {{end}}item" href="{{AppSubUrl}}/admin/applications">
+				{{.locale.Tr "settings.applications"}}
+			</a>
+		{{end}}
+		{{if .EnableActions}}
+		<div class="item">
+			{{.locale.Tr "actions.actions"}}
+			<div class="menu">
+				<a class="{{if .PageIsSharedSettingsRunners}}active {{end}}item" href="{{AppSubUrl}}/admin/actions/runners">
+					{{.locale.Tr "actions.runners"}}
+				</a>
+			</div>
+		</div>
+		{{end}}
+		<a class="{{if .PageIsAdminConfig}}active {{end}}item" href="{{AppSubUrl}}/admin/config">
+			{{.locale.Tr "admin.config"}}
 		</a>
-		<a class="{{if .PageIsAdminNotices}}active{{end}} item" href="{{AppSubUrl}}/admin/notices">
-			{{.i18n.Tr "admin.notices"}}
+		<a class="{{if .PageIsAdminNotices}}active {{end}}item" href="{{AppSubUrl}}/admin/notices">
+			{{.locale.Tr "admin.notices"}}
 		</a>
-		<a class="{{if .PageIsAdminMonitor}}active{{end}} item" href="{{AppSubUrl}}/admin/monitor">
-			{{.i18n.Tr "admin.monitor"}}
-		</a>
+		<div class="item">
+			{{.locale.Tr "admin.monitor"}}
+			<div class="menu">
+				<a class="{{if .PageIsAdminMonitorStats}}active {{end}}item" href="{{AppSubUrl}}/admin/monitor/stats">
+					{{.locale.Tr "admin.monitor.stats"}}
+				</a>
+				<a class="{{if .PageIsAdminMonitorCron}}active {{end}}item" href="{{AppSubUrl}}/admin/monitor/cron">
+					{{.locale.Tr "admin.monitor.cron"}}
+				</a>
+				<a class="{{if .PageIsAdminMonitorQueue}}active {{end}}item" href="{{AppSubUrl}}/admin/monitor/queue">
+					{{.locale.Tr "admin.monitor.queues"}}
+				</a>
+				<a class="{{if .PageIsAdminMonitorStacktrace}}active {{end}}item" href="{{AppSubUrl}}/admin/monitor/stacktrace">
+					{{.locale.Tr "admin.monitor.stacktrace"}}
+				</a>
+			</div>
+		</div>
 	</div>
 </div>

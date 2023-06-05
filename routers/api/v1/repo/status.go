@@ -1,6 +1,5 @@
 // Copyright 2017 Gitea. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -10,10 +9,10 @@ import (
 
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
@@ -57,7 +56,7 @@ func NewCommitStatus(ctx *context.APIContext) {
 		return
 	}
 	status := &git_model.CommitStatus{
-		State:       api.CommitStatusState(form.State),
+		State:       form.State,
 		TargetURL:   form.TargetURL,
 		Description: form.Description,
 		Context:     form.Context,
@@ -67,7 +66,7 @@ func NewCommitStatus(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToCommitStatus(status))
+	ctx.JSON(http.StatusCreated, convert.ToCommitStatus(ctx, status))
 }
 
 // GetCommitStatuses returns all statuses for any given commit hash
@@ -184,23 +183,24 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 		ctx.Error(http.StatusBadRequest, "ref/sha not given", nil)
 		return
 	}
+	sha = utils.MustConvertToSHA1(ctx.Base, ctx.Repo, sha)
 	repo := ctx.Repo.Repository
 
 	listOptions := utils.GetListOptions(ctx)
 
-	statuses, maxResults, err := git_model.GetCommitStatuses(repo, sha, &git_model.CommitStatusOptions{
+	statuses, maxResults, err := git_model.GetCommitStatuses(ctx, repo, sha, &git_model.CommitStatusOptions{
 		ListOptions: listOptions,
 		SortType:    ctx.FormTrim("sort"),
 		State:       ctx.FormTrim("state"),
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetCommitStatuses", fmt.Errorf("GetCommitStatuses[%s, %s, %d]: %v", repo.FullName(), sha, ctx.FormInt("page"), err))
+		ctx.Error(http.StatusInternalServerError, "GetCommitStatuses", fmt.Errorf("GetCommitStatuses[%s, %s, %d]: %w", repo.FullName(), sha, ctx.FormInt("page"), err))
 		return
 	}
 
 	apiStatuses := make([]*api.CommitStatus, 0, len(statuses))
 	for _, status := range statuses {
-		apiStatuses = append(apiStatuses, convert.ToCommitStatus(status))
+		apiStatuses = append(apiStatuses, convert.ToCommitStatus(ctx, status))
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
@@ -255,7 +255,7 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 
 	statuses, count, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetLatestCommitStatus", fmt.Errorf("GetLatestCommitStatus[%s, %s]: %v", repo.FullName(), sha, err))
+		ctx.Error(http.StatusInternalServerError, "GetLatestCommitStatus", fmt.Errorf("GetLatestCommitStatus[%s, %s]: %w", repo.FullName(), sha, err))
 		return
 	}
 
@@ -264,7 +264,7 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 		return
 	}
 
-	combiStatus := convert.ToCombinedStatus(statuses, convert.ToRepo(repo, ctx.Repo.AccessMode))
+	combiStatus := convert.ToCombinedStatus(ctx, statuses, convert.ToRepo(ctx, repo, ctx.Repo.AccessMode))
 
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, combiStatus)

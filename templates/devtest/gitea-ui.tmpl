@@ -1,0 +1,84 @@
+{{template "base/head" .}}
+<div class="page-content devtest ui container">
+	<div>
+		<h1>Button</h1>
+		<div>
+			Style:
+			<label><input type="checkbox" name="button-style-compact" value="compact">compact</label>
+			<label><input type="radio" name="button-style-size" value="">(normal)</label>
+			<label><input type="radio" name="button-style-size" value="tiny">tiny</label>
+			<label><input type="radio" name="button-style-size" value="mini">mini</label>
+		</div>
+		<div>
+			State:
+			<label><input type="checkbox" name="button-state-disabled" value="disabled">disabled</label>
+		</div>
+		<div id="devtest-button-samples">
+			<div>
+				<button class="ui primary button">Primary</button>
+				<button class="ui secondary button">Secondary</button>
+				<button class="ui basic secondary button">Basic Secondary</button>
+				<button class="ui red button">Red</button>
+				<button class="ui basic red button">Basic Red</button>
+			</div>
+			<div>This is a <button class="ui button button-ghost">Ghost</button> button</div>
+		</div>
+		<script type="module">
+			const $buttons = $('#devtest-button-samples').find('button');
+
+			const $buttonStyles = $('input[name*="button-style"]');
+			$buttonStyles.on('click', () => $buttonStyles.map((_ ,el) => $buttons.toggleClass(el.value, el.checked)));
+
+			const $buttonStates = $('input[name*="button-state"]');
+			$buttonStates.on('click', () => $buttonStates.map((_ ,el) => $buttons.prop(el.value, el.checked)));
+		</script>
+	</div>
+
+	<div>
+		<h1>Tooltip</h1>
+		<div><span data-tooltip-content="test tooltip">text with tooltip</span></div>
+		<div><span data-tooltip-content="test tooltip" data-tooltip-interactive="true">text with interactive tooltip</span></div>
+	</div>
+
+	<div>
+		<h1>GiteaOriginUrl</h1>
+		<div><gitea-origin-url data-url="test/url"></gitea-origin-url></div>
+		<div><gitea-origin-url data-url="/test/url"></gitea-origin-url></div>
+	</div>
+
+	<div>
+		<h1>LocaleNumber</h1>
+		<div>{{.locale.PrettyNumber 1}}</div>
+		<div>{{.locale.PrettyNumber 12}}</div>
+		<div>{{.locale.PrettyNumber 123}}</div>
+		<div>{{.locale.PrettyNumber 1234}}</div>
+		<div>{{.locale.PrettyNumber 12345}}</div>
+		<div>{{.locale.PrettyNumber 123456}}</div>
+		<div>{{.locale.PrettyNumber 1234567}}</div>
+	</div>
+
+	<div>
+		<h1>TimeSince</h1>
+		<div>Now: {{TimeSince .TimeNow $.locale}}</div>
+		<div>5s past: {{TimeSince .TimePast5s $.locale}}</div>
+		<div>5s future: {{TimeSince .TimeFuture5s $.locale}}</div>
+		<div>2m past: {{TimeSince .TimePast2m $.locale}}</div>
+		<div>2m future: {{TimeSince .TimeFuture2m $.locale}}</div>
+		<div>1y past: {{TimeSince .TimePast1y $.locale}}</div>
+		<div>1y future: {{TimeSince .TimeFuture1y $.locale}}</div>
+	</div>
+
+	<div>
+		<h1>ComboMarkdownEditor</h1>
+		<div>ps: no JS code attached, so just a layout</div>
+		{{template "shared/combomarkdowneditor" .}}
+	</div>
+
+	<style>
+		h1 {
+			margin: 0;
+			padding: 10px 0;
+		}
+	</style>
+</div>
+{{template "base/footer" .}}

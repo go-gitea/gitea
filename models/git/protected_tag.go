@@ -1,10 +1,10 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
 import (
+	"context"
 	"regexp"
 	"strings"
 
@@ -57,25 +57,25 @@ func (pt *ProtectedTag) matchString(name string) bool {
 }
 
 // InsertProtectedTag inserts a protected tag to database
-func InsertProtectedTag(pt *ProtectedTag) error {
-	_, err := db.GetEngine(db.DefaultContext).Insert(pt)
+func InsertProtectedTag(ctx context.Context, pt *ProtectedTag) error {
+	_, err := db.GetEngine(ctx).Insert(pt)
 	return err
 }
 
 // UpdateProtectedTag updates the protected tag
-func UpdateProtectedTag(pt *ProtectedTag) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(pt.ID).AllCols().Update(pt)
+func UpdateProtectedTag(ctx context.Context, pt *ProtectedTag) error {
+	_, err := db.GetEngine(ctx).ID(pt.ID).AllCols().Update(pt)
 	return err
 }
 
 // DeleteProtectedTag deletes a protected tag by ID
-func DeleteProtectedTag(pt *ProtectedTag) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(pt.ID).Delete(&ProtectedTag{})
+func DeleteProtectedTag(ctx context.Context, pt *ProtectedTag) error {
+	_, err := db.GetEngine(ctx).ID(pt.ID).Delete(&ProtectedTag{})
 	return err
 }
 
 // IsUserAllowedModifyTag returns true if the user is allowed to modify the tag
-func IsUserAllowedModifyTag(pt *ProtectedTag, userID int64) (bool, error) {
+func IsUserAllowedModifyTag(ctx context.Context, pt *ProtectedTag, userID int64) (bool, error) {
 	if base.Int64sContains(pt.AllowlistUserIDs, userID) {
 		return true, nil
 	}
@@ -84,7 +84,7 @@ func IsUserAllowedModifyTag(pt *ProtectedTag, userID int64) (bool, error) {
 		return false, nil
 	}
 
-	in, err := organization.IsUserInTeams(db.DefaultContext, userID, pt.AllowlistTeamIDs)
+	in, err := organization.IsUserInTeams(ctx, userID, pt.AllowlistTeamIDs)
 	if err != nil {
 		return false, err
 	}
@@ -92,15 +92,15 @@ func IsUserAllowedModifyTag(pt *ProtectedTag, userID int64) (bool, error) {
 }
 
 // GetProtectedTags gets all protected tags of the repository
-func GetProtectedTags(repoID int64) ([]*ProtectedTag, error) {
+func GetProtectedTags(ctx context.Context, repoID int64) ([]*ProtectedTag, error) {
 	tags := make([]*ProtectedTag, 0)
-	return tags, db.GetEngine(db.DefaultContext).Find(&tags, &ProtectedTag{RepoID: repoID})
+	return tags, db.GetEngine(ctx).Find(&tags, &ProtectedTag{RepoID: repoID})
 }
 
 // GetProtectedTagByID gets the protected tag with the specific id
-func GetProtectedTagByID(id int64) (*ProtectedTag, error) {
+func GetProtectedTagByID(ctx context.Context, id int64) (*ProtectedTag, error) {
 	tag := new(ProtectedTag)
-	has, err := db.GetEngine(db.DefaultContext).ID(id).Get(tag)
+	has, err := db.GetEngine(ctx).ID(id).Get(tag)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +112,7 @@ func GetProtectedTagByID(id int64) (*ProtectedTag, error) {
 
 // IsUserAllowedToControlTag checks if a user can control the specific tag.
 // It returns true if the tag name is not protected or the user is allowed to control it.
-func IsUserAllowedToControlTag(tags []*ProtectedTag, tagName string, userID int64) (bool, error) {
+func IsUserAllowedToControlTag(ctx context.Context, tags []*ProtectedTag, tagName string, userID int64) (bool, error) {
 	isAllowed := true
 	for _, tag := range tags {
 		err := tag.EnsureCompiledPattern()
@@ -124,7 +124,7 @@ func IsUserAllowedToControlTag(tags []*ProtectedTag, tagName string, userID int6
 			continue
 		}
 
-		isAllowed, err = IsUserAllowedModifyTag(tag, userID)
+		isAllowed, err = IsUserAllowedModifyTag(ctx, tag, userID)
 		if err != nil {
 			return false, err
 		}

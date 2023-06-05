@@ -1,16 +1,18 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package markup_test
 
 import (
+	"context"
 	"io"
+	"os"
 	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	. "code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -22,17 +24,27 @@ import (
 var localMetas = map[string]string{
 	"user":     "gogits",
 	"repo":     "gogs",
-	"repoPath": "../../integrations/gitea-repositories-meta/user13/repo11.git/",
+	"repoPath": "../../tests/gitea-repositories-meta/user13/repo11.git/",
+}
+
+func TestMain(m *testing.M) {
+	setting.Init(&setting.Options{
+		AllowEmpty: true,
+	})
+	if err := git.InitSimple(context.Background()); err != nil {
+		log.Fatal("git init failed, err: %v", err)
+	}
+	os.Exit(m.Run())
 }
 
 func TestRender_Commits(t *testing.T) {
 	setting.AppURL = TestAppURL
 	test := func(input, expected string) {
 		buffer, err := RenderString(&RenderContext{
-			Ctx:       git.DefaultContext,
-			Filename:  ".md",
-			URLPrefix: TestRepoURL,
-			Metas:     localMetas,
+			Ctx:          git.DefaultContext,
+			RelativePath: ".md",
+			URLPrefix:    TestRepoURL,
+			Metas:        localMetas,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
@@ -80,9 +92,10 @@ func TestRender_CrossReferences(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer, err := RenderString(&RenderContext{
-			Filename:  "a.md",
-			URLPrefix: setting.AppSubURL,
-			Metas:     localMetas,
+			Ctx:          git.DefaultContext,
+			RelativePath: "a.md",
+			URLPrefix:    setting.AppSubURL,
+			Metas:        localMetas,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
@@ -124,8 +137,9 @@ func TestRender_links(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer, err := RenderString(&RenderContext{
-			Filename:  "a.md",
-			URLPrefix: TestRepoURL,
+			Ctx:          git.DefaultContext,
+			RelativePath: "a.md",
+			URLPrefix:    TestRepoURL,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
@@ -223,8 +237,9 @@ func TestRender_email(t *testing.T) {
 
 	test := func(input, expected string) {
 		res, err := RenderString(&RenderContext{
-			Filename:  "a.md",
-			URLPrefix: TestRepoURL,
+			Ctx:          git.DefaultContext,
+			RelativePath: "a.md",
+			URLPrefix:    TestRepoURL,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(res))
@@ -281,8 +296,9 @@ func TestRender_emoji(t *testing.T) {
 	test := func(input, expected string) {
 		expected = strings.ReplaceAll(expected, "&", "&amp;")
 		buffer, err := RenderString(&RenderContext{
-			Filename:  "a.md",
-			URLPrefix: TestRepoURL,
+			Ctx:          git.DefaultContext,
+			RelativePath: "a.md",
+			URLPrefix:    TestRepoURL,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
@@ -327,7 +343,7 @@ func TestRender_emoji(t *testing.T) {
 		`<p>Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span><span class="emoji" aria-label="grinning face with smiling eyes">😄</span> 2 emoji next to each other</p>`)
 	test(
 		"😎🤪🔐🤑❓",
-		`<p><span class="emoji" aria-label="smiling face with sunglasses">😎</span><span class="emoji" aria-label="zany face">🤪</span><span class="emoji" aria-label="locked with key">🔐</span><span class="emoji" aria-label="money-mouth face">🤑</span><span class="emoji" aria-label="question mark">❓</span></p>`)
+		`<p><span class="emoji" aria-label="smiling face with sunglasses">😎</span><span class="emoji" aria-label="zany face">🤪</span><span class="emoji" aria-label="locked with key">🔐</span><span class="emoji" aria-label="money-mouth face">🤑</span><span class="emoji" aria-label="red question mark">❓</span></p>`)
 
 	// should match nothing
 	test(
@@ -344,11 +360,13 @@ func TestRender_ShortLinks(t *testing.T) {
 
 	test := func(input, expected, expectedWiki string) {
 		buffer, err := markdown.RenderString(&RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: tree,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 		buffer, err = markdown.RenderString(&RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: TestRepoURL,
 			Metas:     localMetas,
 			IsWiki:    true,
@@ -450,12 +468,14 @@ func TestRender_RelativeImages(t *testing.T) {
 
 	test := func(input, expected, expectedWiki string) {
 		buffer, err := markdown.RenderString(&RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: tree,
 			Metas:     localMetas,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 		buffer, err = markdown.RenderString(&RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: TestRepoURL,
 			Metas:     localMetas,
 			IsWiki:    true,
@@ -490,6 +510,7 @@ func Test_ParseClusterFuzz(t *testing.T) {
 
 	var res strings.Builder
 	err := PostProcess(&RenderContext{
+		Ctx:       git.DefaultContext,
 		URLPrefix: "https://example.com",
 		Metas:     localMetas,
 	}, strings.NewReader(data), &res)
@@ -500,6 +521,7 @@ func Test_ParseClusterFuzz(t *testing.T) {
 
 	res.Reset()
 	err = PostProcess(&RenderContext{
+		Ctx:       git.DefaultContext,
 		URLPrefix: "https://example.com",
 		Metas:     localMetas,
 	}, strings.NewReader(data), &res)
@@ -520,6 +542,7 @@ func TestIssue16020(t *testing.T) {
 
 	var res strings.Builder
 	err := PostProcess(&RenderContext{
+		Ctx:       git.DefaultContext,
 		URLPrefix: "https://example.com",
 		Metas:     localMetas,
 	}, strings.NewReader(data), &res)
@@ -536,6 +559,7 @@ func BenchmarkEmojiPostprocess(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		var res strings.Builder
 		err := PostProcess(&RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: "https://example.com",
 			Metas:     localMetas,
 		}, strings.NewReader(data), &res)
@@ -546,6 +570,7 @@ func BenchmarkEmojiPostprocess(b *testing.B) {
 func TestFuzz(t *testing.T) {
 	s := "t/l/issues/8#/../../a"
 	renderContext := RenderContext{
+		Ctx:       git.DefaultContext,
 		URLPrefix: "https://example.com/go-gitea/gitea",
 		Metas: map[string]string{
 			"user": "go-gitea",
@@ -563,10 +588,11 @@ func TestIssue18471(t *testing.T) {
 
 	var res strings.Builder
 	err := PostProcess(&RenderContext{
+		Ctx:       git.DefaultContext,
 		URLPrefix: "https://example.com",
 		Metas:     localMetas,
 	}, strings.NewReader(data), &res)
 
 	assert.NoError(t, err)
-	assert.Equal(t, res.String(), "<a href=\"http://domain/org/repo/compare/783b039...da951ce\" class=\"compare\"><code class=\"nohighlight\">783b039...da951ce</code></a>")
+	assert.Equal(t, "<a href=\"http://domain/org/repo/compare/783b039...da951ce\" class=\"compare\"><code class=\"nohighlight\">783b039...da951ce</code></a>", res.String())
 }

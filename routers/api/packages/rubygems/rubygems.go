@@ -1,12 +1,12 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package rubygems
 
 import (
 	"compress/gzip"
 	"compress/zlib"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	rubygems_module "code.gitea.io/gitea/modules/packages/rubygems"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
@@ -37,11 +38,12 @@ func EnumeratePackages(ctx *context.Context) {
 	enumeratePackages(ctx, "specs.4.8", packages)
 }
 
-// EnumeratePackagesLatest serves the list of the lastest version of every package
+// EnumeratePackagesLatest serves the list of the latest version of every package
 func EnumeratePackagesLatest(ctx *context.Context) {
 	pvs, _, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
-		OwnerID: ctx.Package.Owner.ID,
-		Type:    packages_model.TypeRubyGems,
+		OwnerID:    ctx.Package.Owner.ID,
+		Type:       packages_model.TypeRubyGems,
+		IsInternal: util.OptionalBoolFalse,
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -75,7 +77,9 @@ func enumeratePackages(ctx *context.Context, filename string, pvs []*packages_mo
 		})
 	}
 
-	ctx.SetServeHeaders(filename + ".gz")
+	ctx.SetServeHeaders(&context.ServeHeaderOptions{
+		Filename: filename + ".gz",
+	})
 
 	zw := gzip.NewWriter(ctx.Resp)
 	defer zw.Close()
@@ -113,7 +117,9 @@ func ServePackageSpecification(ctx *context.Context) {
 		return
 	}
 
-	ctx.SetServeHeaders(filename)
+	ctx.SetServeHeaders(&context.ServeHeaderOptions{
+		Filename: filename,
+	})
 
 	zw := zlib.NewWriter(ctx.Resp)
 	defer zw.Close()
@@ -186,7 +192,10 @@ func DownloadPackageFile(ctx *context.Context) {
 	}
 	defer s.Close()
 
-	ctx.ServeStream(s, pf.Name)
+	ctx.ServeContent(s, &context.ServeHeaderOptions{
+		Filename:     pf.Name,
+		LastModified: pf.CreatedUnix.AsLocalTime(),
+	})
 }
 
 // UploadPackageFile adds a file to the package. If the package does not exist, it gets created.
@@ -200,7 +209,7 @@ func UploadPackageFile(ctx *context.Context) {
 		defer upload.Close()
 	}
 
-	buf, err := packages_module.CreateHashedBufferFromReader(upload, 32*1024*1024)
+	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -209,7 +218,11 @@ func UploadPackageFile(ctx *context.Context) {
 
 	rp, err := rubygems_module.ParsePackageMetaData(buf)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		if errors.Is(err, util.ErrInvalidArgument) {
+			apiError(ctx, http.StatusBadRequest, err)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
 		return
 	}
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
@@ -240,16 +253,20 @@ func UploadPackageFile(ctx *context.Context) {
 			PackageFileInfo: packages_service.PackageFileInfo{
 				Filename: filename,
 			},
-			Data:   buf,
-			IsLead: true,
+			Creator: ctx.Doer,
+			Data:    buf,
+			IsLead:  true,
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrDuplicatePackageVersion {
+		switch err {
+		case packages_model.ErrDuplicatePackageVersion:
 			apiError(ctx, http.StatusBadRequest, err)
-			return
+		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			apiError(ctx, http.StatusForbidden, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
 		}
-		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -289,6 +306,7 @@ func getVersionsByFilename(ctx *context.Context, filename string) ([]*packages_m
 		OwnerID:         ctx.Package.Owner.ID,
 		Type:            packages_model.TypeRubyGems,
 		HasFileWithName: filename,
+		IsInternal:      util.OptionalBoolFalse,
 	})
 	return pvs, err
 }

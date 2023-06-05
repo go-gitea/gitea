@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package release
 
@@ -10,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -30,15 +28,15 @@ func TestMain(m *testing.M) {
 func TestRelease_Create(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	repoPath := repo_model.RepoPath(user.Name, repo.Name)
 
 	gitRepo, err := git.OpenRepository(git.DefaultContext, repoPath)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
-	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
+	assert.NoError(t, CreateRelease(gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -52,7 +50,7 @@ func TestRelease_Create(t *testing.T) {
 		IsTag:        false,
 	}, nil, ""))
 
-	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
+	assert.NoError(t, CreateRelease(gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -66,7 +64,7 @@ func TestRelease_Create(t *testing.T) {
 		IsTag:        false,
 	}, nil, ""))
 
-	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
+	assert.NoError(t, CreateRelease(gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -80,7 +78,7 @@ func TestRelease_Create(t *testing.T) {
 		IsTag:        false,
 	}, nil, ""))
 
-	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
+	assert.NoError(t, CreateRelease(gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -94,7 +92,7 @@ func TestRelease_Create(t *testing.T) {
 		IsTag:        false,
 	}, nil, ""))
 
-	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
+	assert.NoError(t, CreateRelease(gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -108,14 +106,16 @@ func TestRelease_Create(t *testing.T) {
 		IsTag:        false,
 	}, nil, ""))
 
+	testPlayload := "testtest"
+
 	attach, err := attachment.NewAttachment(&repo_model.Attachment{
 		RepoID:     repo.ID,
 		UploaderID: user.ID,
 		Name:       "test.txt",
-	}, strings.NewReader("testtest"))
+	}, strings.NewReader(testPlayload), int64(len([]byte(testPlayload))))
 	assert.NoError(t, err)
 
-	release := models.Release{
+	release := repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -134,8 +134,8 @@ func TestRelease_Create(t *testing.T) {
 func TestRelease_Update(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	repoPath := repo_model.RepoPath(user.Name, repo.Name)
 
 	gitRepo, err := git.OpenRepository(git.DefaultContext, repoPath)
@@ -143,7 +143,7 @@ func TestRelease_Update(t *testing.T) {
 	defer gitRepo.Close()
 
 	// Test a changed release
-	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
+	assert.NoError(t, CreateRelease(gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -156,18 +156,18 @@ func TestRelease_Update(t *testing.T) {
 		IsPrerelease: false,
 		IsTag:        false,
 	}, nil, ""))
-	release, err := models.GetRelease(repo.ID, "v1.1.1")
+	release, err := repo_model.GetRelease(repo.ID, "v1.1.1")
 	assert.NoError(t, err)
 	releaseCreatedUnix := release.CreatedUnix
 	time.Sleep(2 * time.Second) // sleep 2 seconds to ensure a different timestamp
 	release.Note = "Changed note"
 	assert.NoError(t, UpdateRelease(user, gitRepo, release, nil, nil, nil))
-	release, err = models.GetReleaseByID(db.DefaultContext, release.ID)
+	release, err = repo_model.GetReleaseByID(db.DefaultContext, release.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
 
 	// Test a changed draft
-	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
+	assert.NoError(t, CreateRelease(gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -180,18 +180,18 @@ func TestRelease_Update(t *testing.T) {
 		IsPrerelease: false,
 		IsTag:        false,
 	}, nil, ""))
-	release, err = models.GetRelease(repo.ID, "v1.2.1")
+	release, err = repo_model.GetRelease(repo.ID, "v1.2.1")
 	assert.NoError(t, err)
 	releaseCreatedUnix = release.CreatedUnix
 	time.Sleep(2 * time.Second) // sleep 2 seconds to ensure a different timestamp
 	release.Title = "Changed title"
 	assert.NoError(t, UpdateRelease(user, gitRepo, release, nil, nil, nil))
-	release, err = models.GetReleaseByID(db.DefaultContext, release.ID)
+	release, err = repo_model.GetReleaseByID(db.DefaultContext, release.ID)
 	assert.NoError(t, err)
 	assert.Less(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
 
 	// Test a changed pre-release
-	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
+	assert.NoError(t, CreateRelease(gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -204,19 +204,19 @@ func TestRelease_Update(t *testing.T) {
 		IsPrerelease: true,
 		IsTag:        false,
 	}, nil, ""))
-	release, err = models.GetRelease(repo.ID, "v1.3.1")
+	release, err = repo_model.GetRelease(repo.ID, "v1.3.1")
 	assert.NoError(t, err)
 	releaseCreatedUnix = release.CreatedUnix
 	time.Sleep(2 * time.Second) // sleep 2 seconds to ensure a different timestamp
 	release.Title = "Changed title"
 	release.Note = "Changed note"
 	assert.NoError(t, UpdateRelease(user, gitRepo, release, nil, nil, nil))
-	release, err = models.GetReleaseByID(db.DefaultContext, release.ID)
+	release, err = repo_model.GetReleaseByID(db.DefaultContext, release.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
 
 	// Test create release
-	release = &models.Release{
+	release = &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -236,20 +236,21 @@ func TestRelease_Update(t *testing.T) {
 	tagName := release.TagName
 
 	assert.NoError(t, UpdateRelease(user, gitRepo, release, nil, nil, nil))
-	release, err = models.GetReleaseByID(db.DefaultContext, release.ID)
+	release, err = repo_model.GetReleaseByID(db.DefaultContext, release.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, tagName, release.TagName)
 
 	// Add new attachments
+	samplePayload := "testtest"
 	attach, err := attachment.NewAttachment(&repo_model.Attachment{
 		RepoID:     repo.ID,
 		UploaderID: user.ID,
 		Name:       "test.txt",
-	}, strings.NewReader("testtest"))
+	}, strings.NewReader(samplePayload), int64(len([]byte(samplePayload))))
 	assert.NoError(t, err)
 
 	assert.NoError(t, UpdateRelease(user, gitRepo, release, []string{attach.UUID}, nil, nil))
-	assert.NoError(t, models.GetReleaseAttachments(db.DefaultContext, release))
+	assert.NoError(t, repo_model.GetReleaseAttachments(db.DefaultContext, release))
 	assert.Len(t, release.Attachments, 1)
 	assert.EqualValues(t, attach.UUID, release.Attachments[0].UUID)
 	assert.EqualValues(t, release.ID, release.Attachments[0].ReleaseID)
@@ -260,7 +261,7 @@ func TestRelease_Update(t *testing.T) {
 		attach.UUID: "test2.txt",
 	}))
 	release.Attachments = nil
-	assert.NoError(t, models.GetReleaseAttachments(db.DefaultContext, release))
+	assert.NoError(t, repo_model.GetReleaseAttachments(db.DefaultContext, release))
 	assert.Len(t, release.Attachments, 1)
 	assert.EqualValues(t, attach.UUID, release.Attachments[0].UUID)
 	assert.EqualValues(t, release.ID, release.Attachments[0].ReleaseID)
@@ -269,15 +270,15 @@ func TestRelease_Update(t *testing.T) {
 	// delete the attachment
 	assert.NoError(t, UpdateRelease(user, gitRepo, release, nil, []string{attach.UUID}, nil))
 	release.Attachments = nil
-	assert.NoError(t, models.GetReleaseAttachments(db.DefaultContext, release))
+	assert.NoError(t, repo_model.GetReleaseAttachments(db.DefaultContext, release))
 	assert.Empty(t, release.Attachments)
 }
 
 func TestRelease_createTag(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	repoPath := repo_model.RepoPath(user.Name, repo.Name)
 
 	gitRepo, err := git.OpenRepository(git.DefaultContext, repoPath)
@@ -285,7 +286,7 @@ func TestRelease_createTag(t *testing.T) {
 	defer gitRepo.Close()
 
 	// Test a changed release
-	release := &models.Release{
+	release := &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -298,18 +299,18 @@ func TestRelease_createTag(t *testing.T) {
 		IsPrerelease: false,
 		IsTag:        false,
 	}
-	_, err = createTag(gitRepo, release, "")
+	_, err = createTag(db.DefaultContext, gitRepo, release, "")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, release.CreatedUnix)
 	releaseCreatedUnix := release.CreatedUnix
 	time.Sleep(2 * time.Second) // sleep 2 seconds to ensure a different timestamp
 	release.Note = "Changed note"
-	_, err = createTag(gitRepo, release, "")
+	_, err = createTag(db.DefaultContext, gitRepo, release, "")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
 
 	// Test a changed draft
-	release = &models.Release{
+	release = &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -322,17 +323,17 @@ func TestRelease_createTag(t *testing.T) {
 		IsPrerelease: false,
 		IsTag:        false,
 	}
-	_, err = createTag(gitRepo, release, "")
+	_, err = createTag(db.DefaultContext, gitRepo, release, "")
 	assert.NoError(t, err)
 	releaseCreatedUnix = release.CreatedUnix
 	time.Sleep(2 * time.Second) // sleep 2 seconds to ensure a different timestamp
 	release.Title = "Changed title"
-	_, err = createTag(gitRepo, release, "")
+	_, err = createTag(db.DefaultContext, gitRepo, release, "")
 	assert.NoError(t, err)
 	assert.Less(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
 
 	// Test a changed pre-release
-	release = &models.Release{
+	release = &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -345,21 +346,21 @@ func TestRelease_createTag(t *testing.T) {
 		IsPrerelease: true,
 		IsTag:        false,
 	}
-	_, err = createTag(gitRepo, release, "")
+	_, err = createTag(db.DefaultContext, gitRepo, release, "")
 	assert.NoError(t, err)
 	releaseCreatedUnix = release.CreatedUnix
 	time.Sleep(2 * time.Second) // sleep 2 seconds to ensure a different timestamp
 	release.Title = "Changed title"
 	release.Note = "Changed note"
-	_, err = createTag(gitRepo, release, "")
+	_, err = createTag(db.DefaultContext, gitRepo, release, "")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
 }
 
 func TestCreateNewTag(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
 	assert.NoError(t, CreateNewTag(git.DefaultContext, user, repo, "master", "v2.0",
 		"v2.0 is released \n\n BUGFIX: .... \n\n 123"))

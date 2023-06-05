@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 //go:build !gogit
 
@@ -9,7 +8,6 @@ package git
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"io"
 	"math"
 	"strings"
@@ -58,45 +56,26 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 
 	tree := commit.Tree
 
-	entries, err := tree.ListEntriesRecursive()
+	entries, err := tree.ListEntriesRecursiveWithSize()
 	if err != nil {
 		return nil, err
 	}
 
-	var checker *CheckAttributeReader
-
-	if CheckGitVersionAtLeast("1.7.8") == nil {
-		indexFilename, worktree, deleteTemporaryFile, err := repo.ReadTreeToTemporaryIndex(commitID)
-		if err == nil {
-			defer deleteTemporaryFile()
-			checker = &CheckAttributeReader{
-				Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language", "gitlab-language"},
-				Repo:       repo,
-				IndexFile:  indexFilename,
-				WorkTree:   worktree,
-			}
-			ctx, cancel := context.WithCancel(repo.Ctx)
-			if err := checker.Init(ctx); err != nil {
-				log.Error("Unable to open checker for %s. Error: %v", commitID, err)
-			} else {
-				go func() {
-					err = checker.Run()
-					if err != nil {
-						log.Error("Unable to open checker for %s. Error: %v", commitID, err)
-						cancel()
-					}
-				}()
-			}
-			defer func() {
-				_ = checker.Close()
-				cancel()
-			}()
-		}
-	}
+	checker, deferable := repo.CheckAttributeReader(commitID)
+	defer deferable()
 
 	contentBuf := bytes.Buffer{}
 	var content []byte
+
+	// sizes contains the current calculated size of all files by language
 	sizes := make(map[string]int64)
+	// by default we will only count the sizes of programming languages or markup languages
+	// unless they are explicitly set using linguist-language
+	includedLanguage := map[string]bool{}
+	// or if there's only one language in the repository
+	firstExcludedLanguage := ""
+	firstExcludedLanguageSize := int64(0)
+
 	for _, f := range entries {
 		select {
 		case <-repo.Ctx.Done():
@@ -136,6 +115,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 						language = group
 					}
 
+					// this language will always be added to the size
 					sizes[language] += f.Size()
 					continue
 				} else if language, has := attrs["gitlab-language"]; has && language != "unspecified" && language != "" {
@@ -150,6 +130,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 							language = group
 						}
 
+						// this language will always be added to the size
 						sizes[language] += f.Size()
 						continue
 					}
@@ -199,7 +180,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		// FIXME: Why can't we split this and the IsGenerated tests to avoid reading the blob unless absolutely necessary?
 		// - eg. do the all the detection tests using filename first before reading content.
 		language := analyze.GetCodeLanguage(f.Name(), content)
-		if language == enry.OtherLanguage || language == "" {
+		if language == "" {
 			continue
 		}
 
@@ -209,21 +190,27 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 			language = group
 		}
 
-		sizes[language] += f.Size()
+		included, checked := includedLanguage[language]
+		if !checked {
+			langType := enry.GetLanguageType(language)
+			included = langType == enry.Programming || langType == enry.Markup
+			includedLanguage[language] = included
+		}
+		if included {
+			sizes[language] += f.Size()
+		} else if len(sizes) == 0 && (firstExcludedLanguage == "" || firstExcludedLanguage == language) {
+			firstExcludedLanguage = language
+			firstExcludedLanguageSize += f.Size()
+		}
 		continue
 	}
 
-	// filter special languages unless they are the only language
-	if len(sizes) > 1 {
-		for language := range sizes {
-			langtype := enry.GetLanguageType(language)
-			if langtype != enry.Programming && langtype != enry.Markup {
-				delete(sizes, language)
-			}
-		}
+	// If there are no included languages add the first excluded language
+	if len(sizes) == 0 && firstExcludedLanguage != "" {
+		sizes[firstExcludedLanguage] = firstExcludedLanguageSize
 	}
 
-	return sizes, nil
+	return mergeLanguageStats(sizes), nil
 }
 
 func discardFull(rd *bufio.Reader, discard int64) error {

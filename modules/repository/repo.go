@@ -1,24 +1,23 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"path"
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -26,13 +25,11 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-
-	"gopkg.in/ini.v1"
 )
 
 /*
-	GitHub, GitLab, Gogs: *.wiki.git
-	BitBucket: *.git/wiki
+GitHub, GitLab, Gogs: *.wiki.git
+BitBucket: *.git/wiki
 */
 var commonWikiURLSuffixes = []string{".wiki.git", ".git/wiki"}
 
@@ -57,7 +54,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	repoPath := repo_model.RepoPath(u.Name, opts.RepoName)
 
 	if u.IsOrganization() {
-		t, err := organization.OrgFromUser(u).GetOwnerTeam()
+		t, err := organization.OrgFromUser(u).GetOwnerTeam(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -70,7 +67,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 
 	var err error
 	if err = util.RemoveAll(repoPath); err != nil {
-		return repo, fmt.Errorf("Failed to remove %s: %v", repoPath, err)
+		return repo, fmt.Errorf("Failed to remove %s: %w", repoPath, err)
 	}
 
 	if err = git.Clone(ctx, opts.CloneAddr, repoPath, git.CloneRepoOptions{
@@ -79,7 +76,10 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		Timeout:       migrateTimeout,
 		SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 	}); err != nil {
-		return repo, fmt.Errorf("Clone: %v", err)
+		if errors.Is(err, context.DeadlineExceeded) {
+			return repo, fmt.Errorf("Clone timed out. Consider increasing [git.timeout] MIGRATE in app.ini. Underlying Error: %w", err)
+		}
+		return repo, fmt.Errorf("Clone: %w", err)
 	}
 
 	if err := git.WriteCommitGraph(ctx, repoPath); err != nil {
@@ -91,7 +91,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		wikiRemotePath := WikiRemoteURL(ctx, opts.CloneAddr)
 		if len(wikiRemotePath) > 0 {
 			if err := util.RemoveAll(wikiPath); err != nil {
-				return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
+				return repo, fmt.Errorf("Failed to remove %s: %w", wikiPath, err)
 			}
 
 			if err := git.Clone(ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
@@ -103,7 +103,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			}); err != nil {
 				log.Warn("Clone wiki: %v", err)
 				if err := util.RemoveAll(wikiPath); err != nil {
-					return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
+					return repo, fmt.Errorf("Failed to remove %s: %w", wikiPath, err)
 				}
 			} else {
 				if err := git.WriteCommitGraph(ctx, wikiPath); err != nil {
@@ -118,25 +118,25 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	}
 
 	if err = CheckDaemonExportOK(ctx, repo); err != nil {
-		return repo, fmt.Errorf("checkDaemonExportOK: %v", err)
+		return repo, fmt.Errorf("checkDaemonExportOK: %w", err)
 	}
 
 	if stdout, _, err := git.NewCommand(ctx, "update-server-info").
 		SetDescription(fmt.Sprintf("MigrateRepositoryGitData(git update-server-info): %s", repoPath)).
 		RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
 		log.Error("MigrateRepositoryGitData(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
-		return repo, fmt.Errorf("error in MigrateRepositoryGitData(git update-server-info): %v", err)
+		return repo, fmt.Errorf("error in MigrateRepositoryGitData(git update-server-info): %w", err)
 	}
 
 	gitRepo, err := git.OpenRepository(ctx, repoPath)
 	if err != nil {
-		return repo, fmt.Errorf("OpenRepository: %v", err)
+		return repo, fmt.Errorf("OpenRepository: %w", err)
 	}
 	defer gitRepo.Close()
 
 	repo.IsEmpty, err = gitRepo.IsEmpty()
 	if err != nil {
-		return repo, fmt.Errorf("git.IsEmpty: %v", err)
+		return repo, fmt.Errorf("git.IsEmpty: %w", err)
 	}
 
 	if !repo.IsEmpty {
@@ -144,7 +144,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			// Try to get HEAD branch and set it as default branch.
 			headBranch, err := gitRepo.GetHEADBranch()
 			if err != nil {
-				return repo, fmt.Errorf("GetHEADBranch: %v", err)
+				return repo, fmt.Errorf("GetHEADBranch: %w", err)
 			}
 			if headBranch != nil {
 				repo.DefaultBranch = headBranch.Name
@@ -169,7 +169,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		}
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +197,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 				mirrorModel.Interval = 0
 				mirrorModel.NextUpdateUnix = 0
 			} else if parsedInterval < setting.Mirror.MinInterval {
-				err := fmt.Errorf("Interval %s is set below Minimum Interval of %s", parsedInterval, setting.Mirror.MinInterval)
+				err := fmt.Errorf("interval %s is set below Minimum Interval of %s", parsedInterval, setting.Mirror.MinInterval)
 				log.Error("Interval: %s is too frequent", opts.MirrorInterval)
 				return repo, err
 			} else {
@@ -207,12 +207,21 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		}
 
 		if err = repo_model.InsertMirror(ctx, &mirrorModel); err != nil {
-			return repo, fmt.Errorf("InsertOne: %v", err)
+			return repo, fmt.Errorf("InsertOne: %w", err)
 		}
 
 		repo.IsMirror = true
 		if err = UpdateRepository(ctx, repo, false); err != nil {
 			return nil, err
+		}
+
+		// this is necessary for sync local tags from remote
+		configName := fmt.Sprintf("remote.%s.fetch", mirrorModel.GetRemoteName())
+		if stdout, _, err := git.NewCommand(ctx, "config").
+			AddOptionValues("--add", configName, `+refs/tags/*:refs/tags/*`).
+			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
+			log.Error("MigrateRepositoryGitData(git config --add <remote> +refs/tags/*:refs/tags/*) in %v: Stdout: %s\nError: %v", repo, stdout, err)
+			return repo, fmt.Errorf("error in MigrateRepositoryGitData(git config --add <remote> +refs/tags/*:refs/tags/*): %w", err)
 		}
 	} else {
 		if err = UpdateRepoSize(ctx, repo); err != nil {
@@ -228,14 +237,14 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 
 // cleanUpMigrateGitConfig removes mirror info which prevents "push --all".
 // This also removes possible user credentials.
-func cleanUpMigrateGitConfig(configPath string) error {
-	cfg, err := ini.Load(configPath)
-	if err != nil {
-		return fmt.Errorf("open config file: %v", err)
-	}
-	cfg.DeleteSection("remote \"origin\"")
-	if err = cfg.SaveToIndent(configPath, "\t"); err != nil {
-		return fmt.Errorf("save config file: %v", err)
+func cleanUpMigrateGitConfig(ctx context.Context, repoPath string) error {
+	cmd := git.NewCommand(ctx, "remote", "rm", "origin")
+	// if the origin does not exist
+	_, stderr, err := cmd.RunStdString(&git.RunOpts{
+		Dir: repoPath,
+	})
+	if err != nil && !strings.HasPrefix(stderr, "fatal: No such remote") {
+		return err
 	}
 	return nil
 }
@@ -244,22 +253,22 @@ func cleanUpMigrateGitConfig(configPath string) error {
 func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo_model.Repository, error) {
 	repoPath := repo.RepoPath()
 	if err := createDelegateHooks(repoPath); err != nil {
-		return repo, fmt.Errorf("createDelegateHooks: %v", err)
+		return repo, fmt.Errorf("createDelegateHooks: %w", err)
 	}
 	if repo.HasWiki() {
 		if err := createDelegateHooks(repo.WikiPath()); err != nil {
-			return repo, fmt.Errorf("createDelegateHooks.(wiki): %v", err)
+			return repo, fmt.Errorf("createDelegateHooks.(wiki): %w", err)
 		}
 	}
 
 	_, _, err := git.NewCommand(ctx, "remote", "rm", "origin").RunStdString(&git.RunOpts{Dir: repoPath})
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
-		return repo, fmt.Errorf("CleanUpMigrateInfo: %v", err)
+		return repo, fmt.Errorf("CleanUpMigrateInfo: %w", err)
 	}
 
 	if repo.HasWiki() {
-		if err := cleanUpMigrateGitConfig(path.Join(repo.WikiPath(), "config")); err != nil {
-			return repo, fmt.Errorf("cleanUpMigrateGitConfig (wiki): %v", err)
+		if err := cleanUpMigrateGitConfig(ctx, repo.WikiPath()); err != nil {
+			return repo, fmt.Errorf("cleanUpMigrateGitConfig (wiki): %w", err)
 		}
 	}
 
@@ -276,15 +285,15 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) 
 		return pullMirrorReleaseSync(repo, gitRepo)
 	}
 
-	existingRelTags := make(map[string]struct{})
-	opts := models.FindReleasesOptions{
+	existingRelTags := make(container.Set[string])
+	opts := repo_model.FindReleasesOptions{
 		IncludeDrafts: true,
 		IncludeTags:   true,
 		ListOptions:   db.ListOptions{PageSize: 50},
 	}
 	for page := 1; ; page++ {
 		opts.Page = page
-		rels, err := models.GetReleasesByRepoID(repo.ID, opts)
+		rels, err := repo_model.GetReleasesByRepoID(gitRepo.Ctx, repo.ID, opts)
 		if err != nil {
 			return fmt.Errorf("unable to GetReleasesByRepoID in Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 		}
@@ -300,22 +309,22 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) 
 				return fmt.Errorf("unable to GetTagCommitID for %q in Repo[%d:%s/%s]: %w", rel.TagName, repo.ID, repo.OwnerName, repo.Name, err)
 			}
 			if git.IsErrNotExist(err) || commitID != rel.Sha1 {
-				if err := models.PushUpdateDeleteTag(repo, rel.TagName); err != nil {
+				if err := repo_model.PushUpdateDeleteTag(repo, rel.TagName); err != nil {
 					return fmt.Errorf("unable to PushUpdateDeleteTag: %q in Repo[%d:%s/%s]: %w", rel.TagName, repo.ID, repo.OwnerName, repo.Name, err)
 				}
 			} else {
-				existingRelTags[strings.ToLower(rel.TagName)] = struct{}{}
+				existingRelTags.Add(strings.ToLower(rel.TagName))
 			}
 		}
 	}
 
 	_, err := gitRepo.WalkReferences(git.ObjectTag, 0, 0, func(sha1, refname string) error {
 		tagName := strings.TrimPrefix(refname, git.TagPrefix)
-		if _, ok := existingRelTags[strings.ToLower(tagName)]; ok {
+		if existingRelTags.Contains(strings.ToLower(tagName)) {
 			return nil
 		}
 
-		if err := PushUpdateAddTag(repo, gitRepo, tagName, sha1, refname); err != nil {
+		if err := PushUpdateAddTag(db.DefaultContext, repo, gitRepo, tagName, sha1, refname); err != nil {
 			return fmt.Errorf("unable to PushUpdateAddTag: %q to Repo[%d:%s/%s]: %w", tagName, repo.ID, repo.OwnerName, repo.Name, err)
 		}
 
@@ -325,7 +334,7 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) 
 }
 
 // PushUpdateAddTag must be called for any push actions to add tag
-func PushUpdateAddTag(repo *repo_model.Repository, gitRepo *git.Repository, tagName, sha1, refname string) error {
+func PushUpdateAddTag(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, tagName, sha1, refname string) error {
 	tag, err := gitRepo.GetTagWithID(sha1, tagName)
 	if err != nil {
 		return fmt.Errorf("unable to GetTag: %w", err)
@@ -347,7 +356,7 @@ func PushUpdateAddTag(repo *repo_model.Repository, gitRepo *git.Repository, tagN
 	createdAt := time.Unix(1, 0)
 
 	if sig != nil {
-		author, err = user_model.GetUserByEmail(sig.Email)
+		author, err = user_model.GetUserByEmail(ctx, sig.Email)
 		if err != nil && !user_model.IsErrUserNotExist(err) {
 			return fmt.Errorf("unable to GetUserByEmail for %q: %w", sig.Email, err)
 		}
@@ -359,7 +368,7 @@ func PushUpdateAddTag(repo *repo_model.Repository, gitRepo *git.Repository, tagN
 		return fmt.Errorf("unable to get CommitsCount: %w", err)
 	}
 
-	rel := models.Release{
+	rel := repo_model.Release{
 		RepoID:       repo.ID,
 		TagName:      tagName,
 		LowerTagName: strings.ToLower(tagName),
@@ -372,7 +381,7 @@ func PushUpdateAddTag(repo *repo_model.Repository, gitRepo *git.Repository, tagN
 		rel.PublisherID = author.ID
 	}
 
-	return models.SaveOrUpdateTag(repo, &rel)
+	return repo_model.SaveOrUpdateTag(repo, &rel)
 }
 
 // StoreMissingLfsObjectsInRepository downloads missing LFS objects
@@ -391,7 +400,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 			defer content.Close()
 
-			_, err := git_model.NewLFSMetaObject(&git_model.LFSMetaObject{Pointer: p, RepositoryID: repo.ID})
+			_, err := git_model.NewLFSMetaObject(ctx, &git_model.LFSMetaObject{Pointer: p, RepositoryID: repo.ID})
 			if err != nil {
 				log.Error("Repo[%-v]: Error creating LFS meta object %-v: %v", repo, p, err)
 				return err
@@ -399,7 +408,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 			if err := contentStore.Put(p, content); err != nil {
 				log.Error("Repo[%-v]: Error storing content for LFS meta object %-v: %v", repo, p, err)
-				if _, err2 := git_model.RemoveLFSMetaObjectByOid(repo.ID, p.Oid); err2 != nil {
+				if _, err2 := git_model.RemoveLFSMetaObjectByOid(ctx, repo.ID, p.Oid); err2 != nil {
 					log.Error("Repo[%-v]: Error removing LFS meta object %-v: %v", repo, p, err2)
 				}
 				return err
@@ -418,7 +427,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 	var batch []lfs.Pointer
 	for pointerBlob := range pointerChan {
-		meta, err := git_model.GetLFSMetaObjectByOid(repo.ID, pointerBlob.Oid)
+		meta, err := git_model.GetLFSMetaObjectByOid(ctx, repo.ID, pointerBlob.Oid)
 		if err != nil && err != git_model.ErrLFSObjectNotExist {
 			log.Error("Repo[%-v]: Error querying LFS meta object %-v: %v", repo, pointerBlob.Pointer, err)
 			return err
@@ -438,7 +447,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 		if exist {
 			log.Trace("Repo[%-v]: LFS object %-v already present; creating meta object", repo, pointerBlob.Pointer)
-			_, err := git_model.NewLFSMetaObject(&git_model.LFSMetaObject{Pointer: pointerBlob.Pointer, RepositoryID: repo.ID})
+			_, err := git_model.NewLFSMetaObject(ctx, &git_model.LFSMetaObject{Pointer: pointerBlob.Pointer, RepositoryID: repo.ID})
 			if err != nil {
 				log.Error("Repo[%-v]: Error creating LFS meta object %-v: %v", repo, pointerBlob.Pointer, err)
 				return err
@@ -485,18 +494,18 @@ func pullMirrorReleaseSync(repo *repo_model.Repository, gitRepo *git.Repository)
 	if err != nil {
 		return fmt.Errorf("unable to GetTagInfos in pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 	}
-	err = db.WithTx(func(ctx context.Context) error {
+	err = db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		//
 		// clear out existing releases
 		//
-		if _, err := db.DeleteByBean(ctx, &models.Release{RepoID: repo.ID}); err != nil {
+		if _, err := db.DeleteByBean(ctx, &repo_model.Release{RepoID: repo.ID}); err != nil {
 			return fmt.Errorf("unable to clear releases for pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 		}
 		//
 		// make release set identical to upstream tags
 		//
 		for _, tag := range tags {
-			release := models.Release{
+			release := repo_model.Release{
 				RepoID:       repo.ID,
 				TagName:      tag.Name,
 				LowerTagName: strings.ToLower(tag.Name),

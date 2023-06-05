@@ -1,0 +1,9 @@
+# for matrix, the access_token has been moved to "header_authorization"
+-
+  id: 1
+  meta: '{"homeserver_url":"https://matrix.example.com","room_id":"roomID","message_type":1}'
+  header_authorization: "Bearer s3cr3t"
+-
+  id: 2
+  meta: ''
+  header_authorization: ""

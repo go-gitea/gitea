@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cron
 
@@ -13,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/sync"
+	"code.gitea.io/gitea/modules/translation"
 
 	"github.com/gogs/cron"
 )
@@ -30,6 +30,7 @@ func NewContext(original context.Context) {
 	_, _, finished := process.GetManager().AddTypedContext(graceful.GetManager().ShutdownContext(), "Service: Cron", process.SystemProcessType, true)
 	initBasicTasks()
 	initExtendedTasks()
+	initActionsTasks()
 
 	lock.Lock()
 	for _, task := range tasks {
@@ -63,7 +64,7 @@ type TaskTableRow struct {
 	task        *Task
 }
 
-func (t *TaskTableRow) FormatLastMessage(locale string) string {
+func (t *TaskTableRow) FormatLastMessage(locale translation.Locale) string {
 	if t.Status == "finished" {
 		return t.task.GetConfig().FormatMessage(locale, t.Name, t.Status, t.LastDoer)
 	}

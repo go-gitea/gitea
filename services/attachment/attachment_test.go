@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package attachment
 
@@ -26,7 +25,7 @@ func TestMain(m *testing.M) {
 func TestUploadAttachment(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
 	fPath := "./attachment_test.go"
 	f, err := os.Open(fPath)
@@ -37,7 +36,7 @@ func TestUploadAttachment(t *testing.T) {
 		RepoID:     1,
 		UploaderID: user.ID,
 		Name:       filepath.Base(fPath),
-	}, f)
+	}, f, -1)
 	assert.NoError(t, err)
 
 	attachment, err := repo_model.GetAttachmentByUUID(db.DefaultContext, attach.UUID)

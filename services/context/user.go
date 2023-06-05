@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package context
 
@@ -16,7 +15,7 @@ import (
 // UserAssignmentWeb returns a middleware to handle context-user assignment for web routes
 func UserAssignmentWeb() func(ctx *context.Context) {
 	return func(ctx *context.Context) {
-		userAssignment(ctx, func(status int, title string, obj interface{}) {
+		errorFn := func(status int, title string, obj interface{}) {
 			err, ok := obj.(error)
 			if !ok {
 				err = fmt.Errorf("%s", obj)
@@ -26,25 +25,47 @@ func UserAssignmentWeb() func(ctx *context.Context) {
 			} else {
 				ctx.ServerError(title, err)
 			}
-		})
+		}
+		ctx.ContextUser = userAssignment(ctx.Base, ctx.Doer, errorFn)
+	}
+}
+
+// UserIDAssignmentAPI returns a middleware to handle context-user assignment for api routes
+func UserIDAssignmentAPI() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		userID := ctx.ParamsInt64(":user-id")
+
+		if ctx.IsSigned && ctx.Doer.ID == userID {
+			ctx.ContextUser = ctx.Doer
+		} else {
+			var err error
+			ctx.ContextUser, err = user_model.GetUserByID(ctx, userID)
+			if err != nil {
+				if user_model.IsErrUserNotExist(err) {
+					ctx.Error(http.StatusNotFound, "GetUserByID", err)
+				} else {
+					ctx.Error(http.StatusInternalServerError, "GetUserByID", err)
+				}
+			}
+		}
 	}
 }
 
 // UserAssignmentAPI returns a middleware to handle context-user assignment for api routes
 func UserAssignmentAPI() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		userAssignment(ctx.Context, ctx.Error)
+		ctx.ContextUser = userAssignment(ctx.Base, ctx.Doer, ctx.Error)
 	}
 }
 
-func userAssignment(ctx *context.Context, errCb func(int, string, interface{})) {
+func userAssignment(ctx *context.Base, doer *user_model.User, errCb func(int, string, interface{})) (contextUser *user_model.User) {
 	username := ctx.Params(":username")
 
-	if ctx.IsSigned && ctx.Doer.LowerName == strings.ToLower(username) {
-		ctx.ContextUser = ctx.Doer
+	if doer != nil && doer.LowerName == strings.ToLower(username) {
+		contextUser = doer
 	} else {
 		var err error
-		ctx.ContextUser, err = user_model.GetUserByName(ctx, username)
+		contextUser, err = user_model.GetUserByName(ctx, username)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				if redirectUserID, err := user_model.LookupUserRedirect(username); err == nil {
@@ -59,4 +80,5 @@ func userAssignment(ctx *context.Context, errCb func(int, string, interface{})) 
 			}
 		}
 	}
+	return contextUser
 }

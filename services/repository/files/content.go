@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package files
 
@@ -16,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ContentType repo content type
@@ -101,6 +101,22 @@ func GetContentsOrList(ctx context.Context, repo *repo_model.Repository, treePat
 	return fileList, nil
 }
 
+// GetObjectTypeFromTreeEntry check what content is behind it
+func GetObjectTypeFromTreeEntry(entry *git.TreeEntry) ContentType {
+	switch {
+	case entry.IsDir():
+		return ContentTypeDir
+	case entry.IsSubModule():
+		return ContentTypeSubmodule
+	case entry.IsExecutable(), entry.IsRegular():
+		return ContentTypeRegular
+	case entry.IsLink():
+		return ContentTypeLink
+	default:
+		return ""
+	}
+}
+
 // GetContents gets the meta data on a file's contents. Ref can be a branch, commit or tag
 func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref string, forList bool) (*api.ContentsResponse, error) {
 	if ref == "" {
@@ -143,19 +159,30 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 		return nil, fmt.Errorf("no commit found for the ref [ref: %s]", ref)
 	}
 
-	selfURL, err := url.Parse(fmt.Sprintf("%s/contents/%s?ref=%s", repo.APIURL(), treePath, origRef))
+	selfURL, err := url.Parse(repo.APIURL() + "/contents/" + util.PathEscapeSegments(treePath) + "?ref=" + url.QueryEscape(origRef))
 	if err != nil {
 		return nil, err
 	}
 	selfURLString := selfURL.String()
 
+	err = gitRepo.AddLastCommitCache(repo.GetCommitsCountCacheKey(ref, refType != git.ObjectCommit), repo.FullName(), commitID)
+	if err != nil {
+		return nil, err
+	}
+
+	lastCommit, err := commit.GetCommitByPath(treePath)
+	if err != nil {
+		return nil, err
+	}
+
 	// All content types have these fields in populated
 	contentsResponse := &api.ContentsResponse{
-		Name: entry.Name(),
-		Path: treePath,
-		SHA:  entry.ID.String(),
-		Size: entry.Size(),
-		URL:  &selfURLString,
+		Name:          entry.Name(),
+		Path:          treePath,
+		SHA:           entry.ID.String(),
+		LastCommitSHA: lastCommit.ID.String(),
+		Size:          entry.Size(),
+		URL:           &selfURLString,
 		Links: &api.FileLinksResponse{
 			Self: &selfURLString,
 		},
@@ -187,11 +214,13 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 		if err != nil {
 			return nil, err
 		}
-		contentsResponse.SubmoduleGitURL = &submodule.URL
+		if submodule != nil && submodule.URL != "" {
+			contentsResponse.SubmoduleGitURL = &submodule.URL
+		}
 	}
 	// Handle links
 	if entry.IsRegular() || entry.IsLink() {
-		downloadURL, err := url.Parse(fmt.Sprintf("%s/raw/%s/%s/%s", repo.HTMLURL(), refType, ref, treePath))
+		downloadURL, err := url.Parse(repo.HTMLURL() + "/raw/" + url.PathEscape(string(refType)) + "/" + util.PathEscapeSegments(ref) + "/" + util.PathEscapeSegments(treePath))
 		if err != nil {
 			return nil, err
 		}
@@ -199,7 +228,7 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 		contentsResponse.DownloadURL = &downloadURLString
 	}
 	if !entry.IsSubModule() {
-		htmlURL, err := url.Parse(fmt.Sprintf("%s/src/%s/%s/%s", repo.HTMLURL(), refType, ref, treePath))
+		htmlURL, err := url.Parse(repo.HTMLURL() + "/src/" + url.PathEscape(string(refType)) + "/" + util.PathEscapeSegments(ref) + "/" + util.PathEscapeSegments(treePath))
 		if err != nil {
 			return nil, err
 		}
@@ -207,7 +236,7 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 		contentsResponse.HTMLURL = &htmlURLString
 		contentsResponse.Links.HTMLURL = &htmlURLString
 
-		gitURL, err := url.Parse(fmt.Sprintf("%s/git/blobs/%s", repo.APIURL(), entry.ID.String()))
+		gitURL, err := url.Parse(repo.APIURL() + "/git/blobs/" + url.PathEscape(entry.ID.String()))
 		if err != nil {
 			return nil, err
 		}

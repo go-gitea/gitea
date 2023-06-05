@@ -1,13 +1,14 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package container
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -16,15 +17,31 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	container_module "code.gitea.io/gitea/modules/packages/container"
-	"code.gitea.io/gitea/modules/packages/container/oci"
+	"code.gitea.io/gitea/modules/util"
 	packages_service "code.gitea.io/gitea/services/packages"
+
+	digest "github.com/opencontainers/go-digest"
+	oci "github.com/opencontainers/image-spec/specs-go/v1"
 )
+
+func isValidMediaType(mt string) bool {
+	return strings.HasPrefix(mt, "application/vnd.docker.") || strings.HasPrefix(mt, "application/vnd.oci.")
+}
+
+func isImageManifestMediaType(mt string) bool {
+	return strings.EqualFold(mt, oci.MediaTypeImageManifest) || strings.EqualFold(mt, "application/vnd.docker.distribution.manifest.v2+json")
+}
+
+func isImageIndexMediaType(mt string) bool {
+	return strings.EqualFold(mt, oci.MediaTypeImageIndex) || strings.EqualFold(mt, "application/vnd.docker.distribution.manifest.list.v2+json")
+}
 
 // manifestCreationInfo describes a manifest to create
 type manifestCreationInfo struct {
-	MediaType  oci.MediaType
+	MediaType  string
 	Owner      *user_model.User
 	Creator    *user_model.User
 	Image      string
@@ -34,12 +51,12 @@ type manifestCreationInfo struct {
 }
 
 func processManifest(mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (string, error) {
-	var schema oci.SchemaMediaBase
-	if err := json.NewDecoder(buf).Decode(&schema); err != nil {
+	var index oci.Index
+	if err := json.NewDecoder(buf).Decode(&index); err != nil {
 		return "", err
 	}
 
-	if schema.SchemaVersion != 2 {
+	if index.SchemaVersion != 2 {
 		return "", errUnsupported.WithMessage("Schema version is not supported")
 	}
 
@@ -47,19 +64,17 @@ func processManifest(mci *manifestCreationInfo, buf *packages_module.HashedBuffe
 		return "", err
 	}
 
-	if !mci.MediaType.IsValid() {
-		mci.MediaType = schema.MediaType
-		if !mci.MediaType.IsValid() {
+	if !isValidMediaType(mci.MediaType) {
+		mci.MediaType = index.MediaType
+		if !isValidMediaType(mci.MediaType) {
 			return "", errManifestInvalid.WithMessage("MediaType not recognized")
 		}
 	}
 
-	if mci.MediaType.IsImageManifest() {
-		d, err := processImageManifest(mci, buf)
-		return d, err
-	} else if mci.MediaType.IsImageIndex() {
-		d, err := processImageManifestIndex(mci, buf)
-		return d, err
+	if isImageManifestMediaType(mci.MediaType) {
+		return processImageManifest(mci, buf)
+	} else if isImageIndexMediaType(mci.MediaType) {
+		return processImageManifestIndex(mci, buf)
 	}
 	return "", errManifestInvalid
 }
@@ -77,7 +92,7 @@ func processImageManifest(mci *manifestCreationInfo, buf *packages_module.Hashed
 			return err
 		}
 
-		ctx, committer, err := db.TxContext()
+		ctx, committer, err := db.TxContext(db.DefaultContext)
 		if err != nil {
 			return err
 		}
@@ -166,6 +181,10 @@ func processImageManifest(mci *manifestCreationInfo, buf *packages_module.Hashed
 			return err
 		}
 
+		if err := notifyPackageCreate(mci.Creator, pv); err != nil {
+			return err
+		}
+
 		manifestDigest = digest
 
 		return nil
@@ -190,7 +209,7 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 			return err
 		}
 
-		ctx, committer, err := db.TxContext()
+		ctx, committer, err := db.TxContext(db.DefaultContext)
 		if err != nil {
 			return err
 		}
@@ -198,11 +217,11 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 
 		metadata := &container_module.Metadata{
 			Type:      container_module.TypeOCI,
-			MultiArch: make(map[string]string),
+			Manifests: make([]*container_module.Manifest, 0, len(index.Manifests)),
 		}
 
 		for _, manifest := range index.Manifests {
-			if !manifest.MediaType.IsImageManifest() {
+			if !isImageManifestMediaType(manifest.MediaType) {
 				return errManifestInvalid
 			}
 
@@ -214,7 +233,7 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 				}
 			}
 
-			_, err := container_model.GetContainerBlob(ctx, &container_model.BlobSearchOptions{
+			pfd, err := container_model.GetContainerBlob(ctx, &container_model.BlobSearchOptions{
 				OwnerID:    mci.Owner.ID,
 				Image:      mci.Image,
 				Digest:     string(manifest.Digest),
@@ -227,7 +246,18 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 				return err
 			}
 
-			metadata.MultiArch[platform] = string(manifest.Digest)
+			size, err := packages_model.CalculateFileSize(ctx, &packages_model.PackageFileSearchOptions{
+				VersionID: pfd.File.VersionID,
+			})
+			if err != nil {
+				return err
+			}
+
+			metadata.Manifests = append(metadata.Manifests, &container_module.Manifest{
+				Platform: platform,
+				Digest:   string(manifest.Digest),
+				Size:     size,
+			})
 		}
 
 		pv, err := createPackageAndVersion(ctx, mci, metadata)
@@ -255,6 +285,10 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 			return err
 		}
 
+		if err := notifyPackageCreate(mci.Creator, pv); err != nil {
+			return err
+		}
+
 		manifestDigest = digest
 
 		return nil
@@ -266,7 +300,19 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 	return manifestDigest, nil
 }
 
+func notifyPackageCreate(doer *user_model.User, pv *packages_model.PackageVersion) error {
+	pd, err := packages_model.GetPackageDescriptor(db.DefaultContext, pv)
+	if err != nil {
+		return err
+	}
+
+	notification.NotifyPackageCreate(db.DefaultContext, doer, pd)
+
+	return nil
+}
+
 func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, metadata *container_module.Metadata) (*packages_model.PackageVersion, error) {
+	created := true
 	p := &packages_model.Package{
 		OwnerID:   mci.Owner.ID,
 		Type:      packages_model.TypeContainer,
@@ -275,8 +321,17 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 	}
 	var err error
 	if p, err = packages_model.TryInsertPackage(ctx, p); err != nil {
-		if err != packages_model.ErrDuplicatePackage {
+		if err == packages_model.ErrDuplicatePackage {
+			created = false
+		} else {
 			log.Error("Error inserting package: %v", err)
+			return nil, err
+		}
+	}
+
+	if created {
+		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypePackage, p.ID, container_module.PropertyRepository, strings.ToLower(mci.Owner.LowerName+"/"+mci.Image)); err != nil {
+			log.Error("Error setting package property: %v", err)
 			return nil, err
 		}
 	}
@@ -302,6 +357,9 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 				return nil, err
 			}
 
+			// keep download count on overwrite
+			_pv.DownloadCount = pv.DownloadCount
+
 			if pv, err = packages_model.GetOrInsertVersion(ctx, _pv); err != nil {
 				log.Error("Error inserting package: %v", err)
 				return nil, err
@@ -312,14 +370,18 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 		}
 	}
 
+	if err := packages_service.CheckCountQuotaExceeded(ctx, mci.Creator, mci.Owner); err != nil {
+		return nil, err
+	}
+
 	if mci.IsTagged {
 		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestTagged, ""); err != nil {
 			log.Error("Error setting package version property: %v", err)
 			return nil, err
 		}
 	}
-	for _, digest := range metadata.MultiArch {
-		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestReference, digest); err != nil {
+	for _, manifest := range metadata.Manifests {
+		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestReference, manifest.Digest); err != nil {
 			log.Error("Error setting package version property: %v", err)
 			return nil, err
 		}
@@ -329,8 +391,8 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 }
 
 type blobReference struct {
-	Digest       oci.Digest
-	MediaType    oci.MediaType
+	Digest       digest.Digest
+	MediaType    string
 	Name         string
 	File         *packages_model.PackageFileDescriptor
 	ExpectedSize int64
@@ -364,7 +426,7 @@ func createFileFromBlobReference(ctx context.Context, pv, uploadVersion *package
 	}
 
 	props := map[string]string{
-		container_module.PropertyMediaType: string(ref.MediaType),
+		container_module.PropertyMediaType: ref.MediaType,
 		container_module.PropertyDigest:    string(ref.Digest),
 	}
 	for name, value := range props {
@@ -390,6 +452,15 @@ func createManifestBlob(ctx context.Context, mci *manifestCreationInfo, pv *pack
 		log.Error("Error inserting package blob: %v", err)
 		return nil, false, "", err
 	}
+	// FIXME: Workaround to be removed in v1.20
+	// https://github.com/go-gitea/gitea/issues/19586
+	if exists {
+		err = packages_module.NewContentStore().Has(packages_module.BlobHash256Key(pb.HashSHA256))
+		if err != nil && (errors.Is(err, util.ErrNotExist) || errors.Is(err, os.ErrNotExist)) {
+			log.Debug("Package registry inconsistent: blob %s does not exist on file system", pb.HashSHA256)
+			exists = false
+		}
+	}
 	if !exists {
 		contentStore := packages_module.NewContentStore()
 		if err := contentStore.Save(packages_module.BlobHash256Key(pb.HashSHA256), buf, buf.Size()); err != nil {
@@ -400,7 +471,7 @@ func createManifestBlob(ctx context.Context, mci *manifestCreationInfo, pv *pack
 
 	manifestDigest := digestFromHashSummer(buf)
 	err = createFileFromBlobReference(ctx, pv, nil, &blobReference{
-		Digest:       oci.Digest(manifestDigest),
+		Digest:       digest.Digest(manifestDigest),
 		MediaType:    mci.MediaType,
 		Name:         container_model.ManifestFilename,
 		File:         &packages_model.PackageFileDescriptor{Blob: pb},

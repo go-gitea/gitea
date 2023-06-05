@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -41,7 +40,7 @@ func IssueStopwatch(c *context.Context) {
 		c.Flash.Success(c.Tr("repo.issues.tracker_auto_close"))
 	}
 
-	url := issue.HTMLURL()
+	url := issue.Link()
 	c.Redirect(url, http.StatusSeeOther)
 }
 
@@ -73,7 +72,7 @@ func CancelStopwatch(c *context.Context) {
 		})
 	}
 
-	url := issue.HTMLURL()
+	url := issue.Link()
 	c.Redirect(url, http.StatusSeeOther)
 }
 
@@ -87,23 +86,13 @@ func GetActiveStopwatch(ctx *context.Context) {
 		return
 	}
 
-	_, sw, err := issues_model.HasUserStopwatch(ctx, ctx.Doer.ID)
+	_, sw, issue, err := issues_model.HasUserStopwatch(ctx, ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("HasUserStopwatch", err)
 		return
 	}
 
 	if sw == nil || sw.ID == 0 {
-		return
-	}
-
-	issue, err := issues_model.GetIssueByID(ctx, sw.IssueID)
-	if err != nil || issue == nil {
-		ctx.ServerError("GetIssueByID", err)
-		return
-	}
-	if err = issue.LoadRepo(ctx); err != nil {
-		ctx.ServerError("LoadRepo", err)
 		return
 	}
 

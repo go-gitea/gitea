@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -18,7 +17,7 @@ func GetUserByParamsName(ctx *context.APIContext, name string) *user_model.User 
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			if redirectUserID, err2 := user_model.LookupUserRedirect(username); err2 == nil {
-				context.RedirectToUser(ctx.Context, username, redirectUserID)
+				context.RedirectToUser(ctx.Base, username, redirectUserID)
 			} else {
 				ctx.NotFound("GetUserByName", err)
 			}

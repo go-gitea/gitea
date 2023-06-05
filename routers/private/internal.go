@@ -1,13 +1,11 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
-// Package private includes all internal routes. The package name internal is ideal but Golang is not allowed, so we use private as package name instead.
+// Package private contains all internal routes. The package name "internal" isn't usable because Golang reserves it for disabling cross-package usage.
 package private
 
 import (
 	"net/http"
-	"reflect"
 	"strings"
 
 	"code.gitea.io/gitea/modules/context"
@@ -17,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 
 	"gitea.com/go-chi/binding"
+	chi_middleware "github.com/go-chi/chi/v5/middleware"
 )
 
 // CheckInternalToken check internal token is set
@@ -24,6 +23,11 @@ func CheckInternalToken(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		tokens := req.Header.Get("Authorization")
 		fields := strings.SplitN(tokens, " ", 2)
+		if setting.InternalToken == "" {
+			log.Warn(`The INTERNAL_TOKEN setting is missing from the configuration file: %q, internal API can't work.`, setting.CustomConf)
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			return
+		}
 		if len(fields) != 2 || fields[0] != "Bearer" || fields[1] != setting.InternalToken {
 			log.Debug("Forbidden attempt to access internal url: Authorization header: %s", tokens)
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
@@ -34,16 +38,12 @@ func CheckInternalToken(next http.Handler) http.Handler {
 }
 
 // bind binding an obj to a handler
-func bind(obj interface{}) http.HandlerFunc {
-	tp := reflect.TypeOf(obj)
-	for tp.Kind() == reflect.Ptr {
-		tp = tp.Elem()
-	}
-	return web.Wrap(func(ctx *context.PrivateContext) {
-		theObj := reflect.New(tp).Interface() // create a new form obj for every request but not use obj directly
+func bind[T any](_ T) any {
+	return func(ctx *context.PrivateContext) {
+		theObj := new(T) // create a new form obj for every request but not use obj directly
 		binding.Bind(ctx.Req, theObj)
 		web.SetForm(ctx, theObj)
-	})
+	}
 }
 
 // Routes registers all internal APIs routes to web application.
@@ -52,6 +52,9 @@ func Routes() *web.Route {
 	r := web.NewRoute()
 	r.Use(context.PrivateContexter())
 	r.Use(CheckInternalToken)
+	// Log the real ip address of the request from SSH is really helpful for diagnosing sometimes.
+	// Since internal API will be sent only from Gitea sub commands and it's under control (checked by InternalToken), we can trust the headers.
+	r.Use(chi_middleware.RealIP)
 
 	r.Post("/ssh/authorized_keys", AuthorizedPublicKeyByContent)
 	r.Post("/ssh/{id}/update/{repoid}", UpdatePublicKeyInRepo)
@@ -64,15 +67,18 @@ func Routes() *web.Route {
 	r.Get("/serv/command/{keyid}/{owner}/{repo}", ServCommand)
 	r.Post("/manager/shutdown", Shutdown)
 	r.Post("/manager/restart", Restart)
+	r.Post("/manager/reload-templates", ReloadTemplates)
 	r.Post("/manager/flush-queues", bind(private.FlushOptions{}), FlushQueues)
 	r.Post("/manager/pause-logging", PauseLogging)
 	r.Post("/manager/resume-logging", ResumeLogging)
 	r.Post("/manager/release-and-reopen-logging", ReleaseReopenLogging)
+	r.Post("/manager/set-log-sql", SetLogSQL)
 	r.Post("/manager/add-logger", bind(private.LoggerOptions{}), AddLogger)
-	r.Post("/manager/remove-logger/{group}/{name}", RemoveLogger)
+	r.Post("/manager/remove-logger/{logger}/{writer}", RemoveLogger)
 	r.Get("/manager/processes", Processes)
 	r.Post("/mail/send", SendEmail)
 	r.Post("/restore_repo", RestoreRepo)
+	r.Post("/actions/generate_actions_runner_token", GenerateActionsRunnerToken)
 
 	return r
 }

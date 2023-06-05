@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package unittest
 
@@ -153,7 +152,7 @@ func init() {
 			Query()
 		assert.NoError(t, err)
 
-		assert.EqualValues(t, label.int("NumIssues"), len(issueLabels), "Unexpected number of issue for label id: %d", label.int("ID"))
+		assert.Len(t, issueLabels, label.int("NumIssues"), "Unexpected number of issue for label id: %d", label.int("ID"))
 
 		issueIDs := make([]int, len(issueLabels))
 		for i, issueLabel := range issueLabels {

@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -10,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -25,6 +25,10 @@ func (err ErrIssueStopwatchNotExist) Error() string {
 	return fmt.Sprintf("issue stopwatch doesn't exist[uid: %d, issue_id: %d", err.UserID, err.IssueID)
 }
 
+func (err ErrIssueStopwatchNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrIssueStopwatchAlreadyExist represents an error that stopwatch is already exist
 type ErrIssueStopwatchAlreadyExist struct {
 	UserID  int64
@@ -33,6 +37,10 @@ type ErrIssueStopwatchAlreadyExist struct {
 
 func (err ErrIssueStopwatchAlreadyExist) Error() string {
 	return fmt.Sprintf("issue stopwatch already exists[uid: %d, issue_id: %d", err.UserID, err.IssueID)
+}
+
+func (err ErrIssueStopwatchAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
 }
 
 // Stopwatch represents a stopwatch for time tracking.
@@ -63,7 +71,7 @@ func getStopwatch(ctx context.Context, userID, issueID int64) (sw *Stopwatch, ex
 		Where("user_id = ?", userID).
 		And("issue_id = ?", issueID).
 		Get(sw)
-	return
+	return sw, exists, err
 }
 
 // UserIDCount is a simple coalition of UserID and Count
@@ -125,12 +133,26 @@ func StopwatchExists(userID, issueID int64) bool {
 }
 
 // HasUserStopwatch returns true if the user has a stopwatch
-func HasUserStopwatch(ctx context.Context, userID int64) (exists bool, sw *Stopwatch, err error) {
-	sw = new(Stopwatch)
+func HasUserStopwatch(ctx context.Context, userID int64) (exists bool, sw *Stopwatch, issue *Issue, err error) {
+	type stopwatchIssueRepo struct {
+		Stopwatch       `xorm:"extends"`
+		Issue           `xorm:"extends"`
+		repo.Repository `xorm:"extends"`
+	}
+
+	swIR := new(stopwatchIssueRepo)
 	exists, err = db.GetEngine(ctx).
+		Table("stopwatch").
 		Where("user_id = ?", userID).
-		Get(sw)
-	return
+		Join("INNER", "issue", "issue.id = stopwatch.issue_id").
+		Join("INNER", "repository", "repository.id = issue.repo_id").
+		Get(swIR)
+	if exists {
+		sw = &swIR.Stopwatch
+		issue = &swIR.Issue
+		issue.Repo = &swIR.Repository
+	}
+	return exists, sw, issue, err
 }
 
 // FinishIssueStopwatchIfPossible if stopwatch exist then finish it otherwise ignore
@@ -189,7 +211,7 @@ func FinishIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 		return err
 	}
 
-	if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
+	if _, err := CreateComment(ctx, &CreateCommentOptions{
 		Doer:    user,
 		Issue:   issue,
 		Repo:    issue.Repo,
@@ -210,23 +232,18 @@ func CreateIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 	}
 
 	// if another stopwatch is running: stop it
-	exists, sw, err := HasUserStopwatch(ctx, user.ID)
+	exists, _, otherIssue, err := HasUserStopwatch(ctx, user.ID)
 	if err != nil {
 		return err
 	}
 	if exists {
-		issue, err := GetIssueByID(ctx, sw.IssueID)
-		if err != nil {
-			return err
-		}
-
-		if err := FinishIssueStopwatch(ctx, user, issue); err != nil {
+		if err := FinishIssueStopwatch(ctx, user, otherIssue); err != nil {
 			return err
 		}
 	}
 
 	// Create stopwatch
-	sw = &Stopwatch{
+	sw := &Stopwatch{
 		UserID:  user.ID,
 		IssueID: issue.ID,
 	}
@@ -239,7 +256,7 @@ func CreateIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 		return err
 	}
 
-	if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
+	if _, err := CreateComment(ctx, &CreateCommentOptions{
 		Doer:  user,
 		Issue: issue,
 		Repo:  issue.Repo,
@@ -253,7 +270,7 @@ func CreateIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 
 // CancelStopwatch removes the given stopwatch and logs it into issue's timeline.
 func CancelStopwatch(user *user_model.User, issue *Issue) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -280,7 +297,7 @@ func cancelStopwatch(ctx context.Context, user *user_model.User, issue *Issue) e
 			return err
 		}
 
-		if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
+		if _, err := CreateComment(ctx, &CreateCommentOptions{
 			Doer:  user,
 			Issue: issue,
 			Repo:  issue.Repo,

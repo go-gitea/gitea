@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package private
 
@@ -34,7 +33,7 @@ func Processes(ctx *context.PrivateContext) {
 
 	var processes []*process_module.Process
 	goroutineCount := int64(0)
-	processCount := 0
+	var processCount int
 	var err error
 	if stacktraces {
 		processes, processCount, goroutineCount, err = process_module.GetManager().ProcessStacktraces(flat, noSystem)

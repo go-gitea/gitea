@@ -1,11 +1,9 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package auth
 
 import (
-	"encoding/base32"
 	"errors"
 	"net/http"
 
@@ -18,8 +16,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/externalaccount"
 
-	"github.com/duo-labs/webauthn/protocol"
-	"github.com/duo-labs/webauthn/webauthn"
+	"github.com/go-webauthn/webauthn/protocol"
+	"github.com/go-webauthn/webauthn/webauthn"
 )
 
 var tplWebAuthn base.TplName = "user/auth/webauthn"
@@ -51,7 +49,7 @@ func WebAuthnLoginAssertion(ctx *context.Context) {
 		return
 	}
 
-	user, err := user_model.GetUserByID(idSess)
+	user, err := user_model.GetUserByID(ctx, idSess)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -67,10 +65,7 @@ func WebAuthnLoginAssertion(ctx *context.Context) {
 		return
 	}
 
-	// FIXME: DEPRECATED appid is deprecated and is planned to be removed in v1.18.0
-	assertion, sessionData, err := wa.WebAuthn.BeginLogin((*wa.User)(user), webauthn.WithAssertionExtensions(protocol.AuthenticationExtensions{
-		"appid": setting.U2F.AppID,
-	}))
+	assertion, sessionData, err := wa.WebAuthn.BeginLogin((*wa.User)(user))
 	if err != nil {
 		ctx.ServerError("webauthn.BeginLogin", err)
 		return
@@ -96,7 +91,7 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 	}()
 
 	// Load the user from the db
-	user, err := user_model.GetUserByID(idSess)
+	user, err := user_model.GetUserByID(ctx, idSess)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -132,7 +127,7 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 	}
 
 	// Success! Get the credential and update the sign count with the new value we received.
-	dbCred, err := auth.GetWebAuthnCredentialByCredID(user.ID, base32.HexEncoding.EncodeToString(cred.ID))
+	dbCred, err := auth.GetWebAuthnCredentialByCredID(user.ID, cred.ID)
 	if err != nil {
 		ctx.ServerError("GetWebAuthnCredentialByCredID", err)
 		return
@@ -158,13 +153,6 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 		redirect = setting.AppSubURL + "/"
 	}
 	_ = ctx.Session.Delete("twofaUid")
-
-	// Finally check if the appid extension was used:
-	if value, ok := parsedResponse.ClientExtensionResults["appid"]; ok {
-		if appid, ok := value.(bool); ok && appid {
-			ctx.Flash.Error(ctx.Tr("webauthn_u2f_deprecated", dbCred.Name))
-		}
-	}
 
 	ctx.JSON(http.StatusOK, map[string]string{"redirect": redirect})
 }

@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issue
 
@@ -21,9 +20,9 @@ func TestDeleteNotPassedAssignee(t *testing.T) {
 	// Fake issue with assignees
 	issue, err := issues_model.GetIssueWithAttrsByID(1)
 	assert.NoError(t, err)
-	assert.EqualValues(t, 1, len(issue.Assignees))
+	assert.Len(t, issue.Assignees, 1)
 
-	user1, err := user_model.GetUserByID(1) // This user is already assigned (see the definition in fixtures), so running  UpdateAssignee should unassign him
+	user1, err := user_model.GetUserByID(db.DefaultContext, 1) // This user is already assigned (see the definition in fixtures), so running  UpdateAssignee should unassign him
 	assert.NoError(t, err)
 
 	// Check if he got removed
@@ -32,12 +31,12 @@ func TestDeleteNotPassedAssignee(t *testing.T) {
 	assert.True(t, isAssigned)
 
 	// Clean everyone
-	err = DeleteNotPassedAssignee(issue, user1, []*user_model.User{})
+	err = DeleteNotPassedAssignee(db.DefaultContext, issue, user1, []*user_model.User{})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 0, len(issue.Assignees))
+	assert.Empty(t, issue.Assignees)
 
 	// Check they're gone
 	assert.NoError(t, issue.LoadAssignees(db.DefaultContext))
-	assert.EqualValues(t, 0, len(issue.Assignees))
+	assert.Empty(t, issue.Assignees)
 	assert.Empty(t, issue.Assignee)
 }

@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package markup
 
@@ -10,16 +9,39 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"sync"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/yuin/goldmark/ast"
 )
 
+type RenderMetaMode string
+
+const (
+	RenderMetaAsDetails RenderMetaMode = "details" // default
+	RenderMetaAsNone    RenderMetaMode = "none"
+	RenderMetaAsTable   RenderMetaMode = "table"
+)
+
+type ProcessorHelper struct {
+	IsUsernameMentionable func(ctx context.Context, username string) bool
+
+	ElementDir string // the direction of the elements, eg: "ltr", "rtl", "auto", default to no direction attribute
+}
+
+var DefaultProcessorHelper ProcessorHelper
+
 // Init initialize regexps for markdown parsing
-func Init() {
+func Init(ph *ProcessorHelper) {
+	if ph != nil {
+		DefaultProcessorHelper = *ph
+	}
+
 	NewSanitizer()
 	if len(setting.Markdown.CustomURLSchemes) > 0 {
 		CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
@@ -43,17 +65,19 @@ type Header struct {
 
 // RenderContext represents a render context
 type RenderContext struct {
-	Ctx             context.Context
-	Filename        string
-	Type            string
-	IsWiki          bool
-	URLPrefix       string
-	Metas           map[string]string
-	DefaultLink     string
-	GitRepo         *git.Repository
-	ShaExistCache   map[string]bool
-	cancelFn        func()
-	TableOfContents []Header
+	Ctx              context.Context
+	RelativePath     string // relative path from tree root of the branch
+	Type             string
+	IsWiki           bool
+	URLPrefix        string
+	Metas            map[string]string
+	DefaultLink      string
+	GitRepo          *git.Repository
+	ShaExistCache    map[string]bool
+	cancelFn         func()
+	SidebarTocNode   ast.Node
+	RenderMetaAs     RenderMetaMode
+	InStandalonePage bool // used by external render. the router "/org/repo/render/..." will output the rendered content in a standalone page
 }
 
 // Cancel runs any cleanup functions that have been registered for this Ctx
@@ -88,10 +112,22 @@ func (ctx *RenderContext) AddCancel(fn func()) {
 type Renderer interface {
 	Name() string // markup format name
 	Extensions() []string
-	NeedPostProcess() bool
 	SanitizerRules() []setting.MarkupSanitizerRule
-	SanitizerDisabled() bool
 	Render(ctx *RenderContext, input io.Reader, output io.Writer) error
+}
+
+// PostProcessRenderer defines an interface for renderers who need post process
+type PostProcessRenderer interface {
+	NeedPostProcess() bool
+}
+
+// PostProcessRenderer defines an interface for external renderers
+type ExternalRenderer interface {
+	// SanitizerDisabled disabled sanitize if return true
+	SanitizerDisabled() bool
+
+	// DisplayInIFrame represents whether render the content with an iframe
+	DisplayInIFrame() bool
 }
 
 // RendererContentDetector detects if the content can be rendered
@@ -142,7 +178,7 @@ func DetectRendererType(filename string, input io.Reader) string {
 func Render(ctx *RenderContext, input io.Reader, output io.Writer) error {
 	if ctx.Type != "" {
 		return renderByType(ctx, input, output)
-	} else if ctx.Filename != "" {
+	} else if ctx.RelativePath != "" {
 		return renderFile(ctx, input, output)
 	}
 	return errors.New("Render options both filename and type missing")
@@ -163,6 +199,27 @@ type nopCloser struct {
 
 func (nopCloser) Close() error { return nil }
 
+func renderIFrame(ctx *RenderContext, output io.Writer) error {
+	// set height="0" ahead, otherwise the scrollHeight would be max(150, realHeight)
+	// at the moment, only "allow-scripts" is allowed for sandbox mode.
+	// "allow-same-origin" should never be used, it leads to XSS attack, and it makes the JS in iframe can access parent window's config and CSRF token
+	// TODO: when using dark theme, if the rendered content doesn't have proper style, the default text color is black, which is not easy to read
+	_, err := io.WriteString(output, fmt.Sprintf(`
+<iframe src="%s/%s/%s/render/%s/%s"
+name="giteaExternalRender"
+onload="this.height=giteaExternalRender.document.documentElement.scrollHeight"
+width="100%%" height="0" scrolling="no" frameborder="0" style="overflow: hidden"
+sandbox="allow-scripts"
+></iframe>`,
+		setting.AppSubURL,
+		url.PathEscape(ctx.Metas["user"]),
+		url.PathEscape(ctx.Metas["repo"]),
+		ctx.Metas["BranchNameSubURL"],
+		url.PathEscape(ctx.RelativePath),
+	))
+	return err
+}
+
 func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
 	var wg sync.WaitGroup
 	var err error
@@ -175,7 +232,12 @@ func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Wr
 	var pr2 io.ReadCloser
 	var pw2 io.WriteCloser
 
-	if !renderer.SanitizerDisabled() {
+	var sanitizerDisabled bool
+	if r, ok := renderer.(ExternalRenderer); ok {
+		sanitizerDisabled = r.SanitizerDisabled()
+	}
+
+	if !sanitizerDisabled {
 		pr2, pw2 = io.Pipe()
 		defer func() {
 			_ = pr2.Close()
@@ -194,7 +256,7 @@ func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Wr
 
 	wg.Add(1)
 	go func() {
-		if renderer.NeedPostProcess() {
+		if r, ok := renderer.(PostProcessRenderer); ok && r.NeedPostProcess() {
 			err = PostProcess(ctx, pr, pw2)
 		} else {
 			_, err = io.Copy(pw2, pr)
@@ -234,13 +296,25 @@ type ErrUnsupportedRenderExtension struct {
 	Extension string
 }
 
+func IsErrUnsupportedRenderExtension(err error) bool {
+	_, ok := err.(ErrUnsupportedRenderExtension)
+	return ok
+}
+
 func (err ErrUnsupportedRenderExtension) Error() string {
 	return fmt.Sprintf("Unsupported render extension: %s", err.Extension)
 }
 
 func renderFile(ctx *RenderContext, input io.Reader, output io.Writer) error {
-	extension := strings.ToLower(filepath.Ext(ctx.Filename))
+	extension := strings.ToLower(filepath.Ext(ctx.RelativePath))
 	if renderer, ok := extRenderers[extension]; ok {
+		if r, ok := renderer.(ExternalRenderer); ok && r.DisplayInIFrame() {
+			if !ctx.InStandalonePage {
+				// for an external render, it could only output its content in a standalone page
+				// otherwise, a <iframe> should be outputted to embed the external rendered page
+				return renderIFrame(ctx, output)
+			}
+		}
 		return render(ctx, renderer, input, output)
 	}
 	return ErrUnsupportedRenderExtension{extension}
@@ -262,19 +336,10 @@ func IsMarkupFile(name, markup string) bool {
 	return false
 }
 
-// IsReadmeFile reports whether name looks like a README file
-// based on its name. If an extension is provided, it will strictly
-// match that extension.
-// Note that the '.' should be provided in ext, e.g ".md"
-func IsReadmeFile(name string, ext ...string) bool {
-	name = strings.ToLower(name)
-	if len(ext) > 0 {
-		return name == "readme"+ext[0]
+func PreviewableExtensions() []string {
+	extensions := make([]string, 0, len(extRenderers))
+	for extension := range extRenderers {
+		extensions = append(extensions, extension)
 	}
-	if len(name) < 6 {
-		return false
-	} else if len(name) == 6 {
-		return name == "readme"
-	}
-	return name[:7] == "readme."
+	return extensions
 }

@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package graceful
 
@@ -24,13 +23,19 @@ const (
 	stateTerminate
 )
 
-// There are three places that could inherit sockets:
+type RunCanceler interface {
+	Run()
+	Cancel()
+}
+
+// There are some places that could inherit sockets:
 //
 // * HTTP or HTTPS main listener
+// * HTTP or HTTPS install listener
 // * HTTP redirection fallback
-// * SSH
+// * Builtin SSH listener
 //
-// If you add an additional place you must increment this number
+// If you add a new place you must increment this number
 // and add a function to call manager.InformCleanup if it's not going to be used
 const numberOfServersToCreate = 4
 
@@ -55,46 +60,19 @@ func InitManager(ctx context.Context) {
 	})
 }
 
-// WithCallback is a runnable to call when the caller has finished
-type WithCallback func(callback func())
-
-// RunnableWithShutdownFns is a runnable with functions to run at shutdown and terminate
-// After the callback to atShutdown is called and is complete, the main function must return.
-// Similarly the callback function provided to atTerminate must return once termination is complete.
-// Please note that use of the atShutdown and atTerminate callbacks will create go-routines that will wait till their respective signals
-// - users must therefore be careful to only call these as necessary.
-type RunnableWithShutdownFns func(atShutdown, atTerminate func(func()))
-
-// RunWithShutdownFns takes a function that has both atShutdown and atTerminate callbacks
-// After the callback to atShutdown is called and is complete, the main function must return.
-// Similarly the callback function provided to atTerminate must return once termination is complete.
-// Please note that use of the atShutdown and atTerminate callbacks will create go-routines that will wait till their respective signals
-// - users must therefore be careful to only call these as necessary.
-func (g *Manager) RunWithShutdownFns(run RunnableWithShutdownFns) {
+// RunWithCancel helps to run a function with a custom context, the Cancel function will be called at shutdown
+// The Cancel function should stop the Run function in predictable time.
+func (g *Manager) RunWithCancel(rc RunCanceler) {
+	g.RunAtShutdown(context.Background(), rc.Cancel)
 	g.runningServerWaitGroup.Add(1)
 	defer g.runningServerWaitGroup.Done()
 	defer func() {
 		if err := recover(); err != nil {
-			log.Critical("PANIC during RunWithShutdownFns: %v\nStacktrace: %s", err, log.Stack(2))
+			log.Critical("PANIC during RunWithCancel: %v\nStacktrace: %s", err, log.Stack(2))
 			g.doShutdown()
 		}
 	}()
-	run(func(atShutdown func()) {
-		g.lock.Lock()
-		defer g.lock.Unlock()
-		g.toRunAtShutdown = append(g.toRunAtShutdown,
-			func() {
-				defer func() {
-					if err := recover(); err != nil {
-						log.Critical("PANIC during RunWithShutdownFns: %v\nStacktrace: %s", err, log.Stack(2))
-						g.doShutdown()
-					}
-				}()
-				atShutdown()
-			})
-	}, func(atTerminate func()) {
-		g.RunAtTerminate(atTerminate)
-	})
+	rc.Run()
 }
 
 // RunWithShutdownContext takes a function that has a context to watch for shutdown.
@@ -151,21 +129,6 @@ func (g *Manager) RunAtShutdown(ctx context.Context, shutdown func()) {
 		})
 }
 
-// RunAtHammer creates a go-routine to run the provided function at shutdown
-func (g *Manager) RunAtHammer(hammer func()) {
-	g.lock.Lock()
-	defer g.lock.Unlock()
-	g.toRunAtHammer = append(g.toRunAtHammer,
-		func() {
-			defer func() {
-				if err := recover(); err != nil {
-					log.Critical("PANIC during RunAtHammer: %v\nStacktrace: %s", err, log.Stack(2))
-				}
-			}()
-			hammer()
-		})
-}
-
 func (g *Manager) doShutdown() {
 	if !g.setStateTransition(stateRunning, stateShuttingDown) {
 		g.DoImmediateHammer()
@@ -206,9 +169,6 @@ func (g *Manager) doHammerTime(d time.Duration) {
 		g.hammerCtxCancel()
 		atHammerCtx := pprof.WithLabels(g.terminateCtx, pprof.Labels("graceful-lifecycle", "post-hammer"))
 		pprof.SetGoroutineLabels(atHammerCtx)
-		for _, fn := range g.toRunAtHammer {
-			go fn()
-		}
 	}
 	g.lock.Unlock()
 }
@@ -305,8 +265,9 @@ func (g *Manager) setState(st state) {
 	g.state = st
 }
 
-// InformCleanup tells the cleanup wait group that we have either taken a listener
-// or will not be taking a listener
+// InformCleanup tells the cleanup wait group that we have either taken a listener or will not be taking a listener.
+// At the moment the total number of servers (numberOfServersToCreate) are pre-defined as a const before global init,
+// so this function MUST be called if a server is not used.
 func (g *Manager) InformCleanup() {
 	g.createServerWaitGroup.Done()
 }

@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -10,8 +9,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strconv"
-	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 )
@@ -30,10 +27,10 @@ type CheckAttributeOpts struct {
 func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[string]string, error) {
 	env := []string{}
 
-	if len(opts.IndexFile) > 0 && CheckGitVersionAtLeast("1.7.8") == nil {
+	if len(opts.IndexFile) > 0 {
 		env = append(env, "GIT_INDEX_FILE="+opts.IndexFile)
 	}
-	if len(opts.WorkTree) > 0 && CheckGitVersionAtLeast("1.7.8") == nil {
+	if len(opts.WorkTree) > 0 {
 		env = append(env, "GIT_WORK_TREE="+opts.WorkTree)
 	}
 
@@ -44,32 +41,23 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 	stdOut := new(bytes.Buffer)
 	stdErr := new(bytes.Buffer)
 
-	cmdArgs := []string{"check-attr", "-z"}
+	cmd := NewCommand(repo.Ctx, "check-attr", "-z")
 
 	if opts.AllAttributes {
-		cmdArgs = append(cmdArgs, "-a")
+		cmd.AddArguments("-a")
 	} else {
 		for _, attribute := range opts.Attributes {
 			if attribute != "" {
-				cmdArgs = append(cmdArgs, attribute)
+				cmd.AddDynamicArguments(attribute)
 			}
 		}
 	}
 
-	// git check-attr --cached first appears in git 1.7.8
-	if opts.CachedOnly && CheckGitVersionAtLeast("1.7.8") == nil {
-		cmdArgs = append(cmdArgs, "--cached")
+	if opts.CachedOnly {
+		cmd.AddArguments("--cached")
 	}
 
-	cmdArgs = append(cmdArgs, "--")
-
-	for _, arg := range opts.Filenames {
-		if arg != "" {
-			cmdArgs = append(cmdArgs, arg)
-		}
-	}
-
-	cmd := NewCommand(repo.Ctx, cmdArgs...)
+	cmd.AddDashesAndList(opts.Filenames...)
 
 	if err := cmd.Run(&RunOpts{
 		Env:    env,
@@ -77,7 +65,7 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 		Stdout: stdOut,
 		Stderr: stdErr,
 	}); err != nil {
-		return nil, fmt.Errorf("failed to run check-attr: %v\n%s\n%s", err, stdOut.String(), stdErr.String())
+		return nil, fmt.Errorf("failed to run check-attr: %w\n%s\n%s", err, stdOut.String(), stdErr.String())
 	}
 
 	// FIXME: This is incorrect on versions < 1.8.5
@@ -123,19 +111,6 @@ type CheckAttributeReader struct {
 
 // Init initializes the CheckAttributeReader
 func (c *CheckAttributeReader) Init(ctx context.Context) error {
-	cmdArgs := []string{"check-attr", "--stdin", "-z"}
-
-	if len(c.IndexFile) > 0 && CheckGitVersionAtLeast("1.7.8") == nil {
-		cmdArgs = append(cmdArgs, "--cached")
-		c.env = append(c.env, "GIT_INDEX_FILE="+c.IndexFile)
-	}
-
-	if len(c.WorkTree) > 0 && CheckGitVersionAtLeast("1.7.8") == nil {
-		c.env = append(c.env, "GIT_WORK_TREE="+c.WorkTree)
-	}
-
-	c.env = append(c.env, "GIT_FLUSH=1")
-
 	if len(c.Attributes) == 0 {
 		lw := new(nulSeparatedAttributeWriter)
 		lw.attributes = make(chan attributeTriple)
@@ -146,11 +121,21 @@ func (c *CheckAttributeReader) Init(ctx context.Context) error {
 		return fmt.Errorf("no provided Attributes to check")
 	}
 
-	cmdArgs = append(cmdArgs, c.Attributes...)
-	cmdArgs = append(cmdArgs, "--")
-
 	c.ctx, c.cancel = context.WithCancel(ctx)
-	c.cmd = NewCommand(c.ctx, cmdArgs...)
+	c.cmd = NewCommand(c.ctx, "check-attr", "--stdin", "-z")
+
+	if len(c.IndexFile) > 0 {
+		c.cmd.AddArguments("--cached")
+		c.env = append(c.env, "GIT_INDEX_FILE="+c.IndexFile)
+	}
+
+	if len(c.WorkTree) > 0 {
+		c.env = append(c.env, "GIT_WORK_TREE="+c.WorkTree)
+	}
+
+	c.env = append(c.env, "GIT_FLUSH=1")
+
+	c.cmd.AddDynamicArguments(c.Attributes...)
 
 	var err error
 
@@ -160,17 +145,10 @@ func (c *CheckAttributeReader) Init(ctx context.Context) error {
 		return err
 	}
 
-	if CheckGitVersionAtLeast("1.8.5") == nil {
-		lw := new(nulSeparatedAttributeWriter)
-		lw.attributes = make(chan attributeTriple, 5)
-		lw.closed = make(chan struct{})
-		c.stdOut = lw
-	} else {
-		lw := new(lineSeparatedAttributeWriter)
-		lw.attributes = make(chan attributeTriple, 5)
-		lw.closed = make(chan struct{})
-		c.stdOut = lw
-	}
+	lw := new(nulSeparatedAttributeWriter)
+	lw.attributes = make(chan attributeTriple, 5)
+	lw.closed = make(chan struct{})
+	c.stdOut = lw
 	return nil
 }
 
@@ -199,8 +177,8 @@ func (c *CheckAttributeReader) Run() error {
 // CheckPath check attr for given path
 func (c *CheckAttributeReader) CheckPath(path string) (rs map[string]string, err error) {
 	defer func() {
-		if err != nil {
-			log.Error("CheckPath returns error: %v", err)
+		if err != nil && err != c.ctx.Err() {
+			log.Error("Unexpected error when checking path %s in %s. Error: %v", path, c.Repo.Path, err)
 		}
 	}()
 
@@ -305,98 +283,36 @@ func (wr *nulSeparatedAttributeWriter) Close() error {
 	return nil
 }
 
-type lineSeparatedAttributeWriter struct {
-	tmp        []byte
-	attributes chan attributeTriple
-	closed     chan struct{}
-}
-
-func (wr *lineSeparatedAttributeWriter) Write(p []byte) (n int, err error) {
-	l := len(p)
-
-	nlIdx := bytes.IndexByte(p, '\n')
-	for nlIdx >= 0 {
-		wr.tmp = append(wr.tmp, p[:nlIdx]...)
-
-		if len(wr.tmp) == 0 {
-			// This should not happen
-			if len(p) > nlIdx+1 {
-				wr.tmp = wr.tmp[:0]
-				p = p[nlIdx+1:]
-				nlIdx = bytes.IndexByte(p, '\n')
-				continue
-			} else {
-				return l, nil
-			}
-		}
-
-		working := attributeTriple{}
-		if wr.tmp[0] == '"' {
-			sb := new(strings.Builder)
-			remaining := string(wr.tmp[1:])
-			for len(remaining) > 0 {
-				rn, _, tail, err := strconv.UnquoteChar(remaining, '"')
-				if err != nil {
-					if len(remaining) > 2 && remaining[0] == '"' && remaining[1] == ':' && remaining[2] == ' ' {
-						working.Filename = sb.String()
-						wr.tmp = []byte(remaining[3:])
-						break
-					}
-					return l, fmt.Errorf("unexpected tail %s", string(remaining))
-				}
-				_, _ = sb.WriteRune(rn)
-				remaining = tail
-			}
-		} else {
-			idx := bytes.IndexByte(wr.tmp, ':')
-			if idx < 0 {
-				return l, fmt.Errorf("unexpected input %s", string(wr.tmp))
-			}
-			working.Filename = string(wr.tmp[:idx])
-			if len(wr.tmp) < idx+2 {
-				return l, fmt.Errorf("unexpected input %s", string(wr.tmp))
-			}
-			wr.tmp = wr.tmp[idx+2:]
-		}
-
-		idx := bytes.IndexByte(wr.tmp, ':')
-		if idx < 0 {
-			return l, fmt.Errorf("unexpected input %s", string(wr.tmp))
-		}
-
-		working.Attribute = string(wr.tmp[:idx])
-		if len(wr.tmp) < idx+2 {
-			return l, fmt.Errorf("unexpected input %s", string(wr.tmp))
-		}
-
-		working.Value = string(wr.tmp[idx+2:])
-
-		wr.attributes <- working
-		wr.tmp = wr.tmp[:0]
-		if len(p) > nlIdx+1 {
-			p = p[nlIdx+1:]
-			nlIdx = bytes.IndexByte(p, '\n')
-			continue
-		} else {
-			return l, nil
-		}
+// Create a check attribute reader for the current repository and provided commit ID
+func (repo *Repository) CheckAttributeReader(commitID string) (*CheckAttributeReader, context.CancelFunc) {
+	indexFilename, worktree, deleteTemporaryFile, err := repo.ReadTreeToTemporaryIndex(commitID)
+	if err != nil {
+		return nil, func() {}
 	}
 
-	wr.tmp = append(wr.tmp, p...)
-	return l, nil
-}
-
-func (wr *lineSeparatedAttributeWriter) ReadAttribute() <-chan attributeTriple {
-	return wr.attributes
-}
-
-func (wr *lineSeparatedAttributeWriter) Close() error {
-	select {
-	case <-wr.closed:
-		return nil
-	default:
+	checker := &CheckAttributeReader{
+		Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language", "gitlab-language"},
+		Repo:       repo,
+		IndexFile:  indexFilename,
+		WorkTree:   worktree,
 	}
-	close(wr.attributes)
-	close(wr.closed)
-	return nil
+	ctx, cancel := context.WithCancel(repo.Ctx)
+	if err := checker.Init(ctx); err != nil {
+		log.Error("Unable to open checker for %s. Error: %v", commitID, err)
+	} else {
+		go func() {
+			err := checker.Run()
+			if err != nil && err != ctx.Err() {
+				log.Error("Unable to open checker for %s. Error: %v", commitID, err)
+			}
+			cancel()
+		}()
+	}
+	deferable := func() {
+		_ = checker.Close()
+		cancel()
+		deleteTemporaryFile()
+	}
+
+	return checker, deferable
 }

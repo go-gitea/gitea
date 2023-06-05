@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 // Gitea (git with a cup of tea) is a painless self-hosted Git Service.
 package main // import "code.gitea.io/gitea"
@@ -18,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	// register supported doc types
+	_ "code.gitea.io/gitea/modules/markup/asciicast"
 	_ "code.gitea.io/gitea/modules/markup/console"
 	_ "code.gitea.io/gitea/modules/markup/csv"
 	_ "code.gitea.io/gitea/modules/markup/markdown"
@@ -75,6 +75,7 @@ arguments - which can alternatively be run by running the subcommand web.`
 		cmd.CmdDocs,
 		cmd.CmdDumpRepository,
 		cmd.CmdRestoreRepository,
+		cmd.CmdActions,
 	}
 	// Now adjust these commands to add our global configuration options
 
@@ -113,10 +114,14 @@ arguments - which can alternatively be run by running the subcommand web.`
 		setFlagsAndBeforeOnSubcommands(&app.Commands[i], defaultFlags, establishCustomPath)
 	}
 
+	app.EnableBashCompletion = true
+
 	err := app.Run(os.Args)
 	if err != nil {
 		log.Fatal("Failed to run app with %s: %v", os.Args, err)
 	}
+
+	log.GetManager().Close()
 }
 
 func setFlagsAndBeforeOnSubcommands(command *cli.Command, defaultFlags []cli.Flag, before cli.BeforeFunc) {
@@ -171,9 +176,9 @@ func setAppHelpTemplates() {
 }
 
 func adjustHelpTemplate(originalTemplate string) string {
-	overrided := ""
+	overridden := ""
 	if _, ok := os.LookupEnv("GITEA_CUSTOM"); ok {
-		overrided = "(GITEA_CUSTOM)"
+		overridden = "(GITEA_CUSTOM)"
 	}
 
 	return fmt.Sprintf(`%s
@@ -183,7 +188,7 @@ DEFAULT CONFIGURATION:
      AppPath:     %s
      AppWorkPath: %s
 
-`, originalTemplate, setting.CustomPath, overrided, setting.CustomConf, setting.AppPath, setting.AppWorkPath)
+`, originalTemplate, setting.CustomPath, overridden, setting.CustomConf, setting.AppPath, setting.AppWorkPath)
 }
 
 func formatBuiltWith() string {

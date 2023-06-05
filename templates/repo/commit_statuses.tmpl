@@ -1,14 +1,22 @@
-<a class="ui link commit-statuses-trigger">{{template "repo/commit_status" .Status}}</a>
-<div class="ui popup very wide fixed basic commit-statuses">
-	<div class="ui relaxed list divided">
+{{if .Statuses}}
+	{{if and (eq (len .Statuses) 1) .Status.TargetURL}}
+		<a class="gt-vm gt-tdn" data-tippy="commit-statuses" href="{{.Status.TargetURL}}">
+			{{template "repo/commit_status" .Status}}
+		</a>
+	{{else}}
+		<span class="gt-vm" data-tippy="commit-statuses" tabindex="0">
+			{{template "repo/commit_status" .Status}}
+		</span>
+	{{end}}
+	<div class="tippy-target ui relaxed list divided">
 		{{range .Statuses}}
-			<div class="ui item singular-status df">
-				<span>{{template "repo/commit_status" .}}</span>
-				<span class="ui f1">{{.Context}} <span class="text grey">{{.Description}}</span></span>
+			<div class="ui item singular-status gt-df">
+				{{template "repo/commit_status" .}}
+				<span class="ui gt-ml-3 gt-f1">{{.Context}} <span class="text grey">{{.Description}}</span></span>
 				{{if .TargetURL}}
-					<div class="ui"><a href="{{.TargetURL}}" target="_blank" rel="noopener noreferrer">{{$.root.i18n.Tr "repo.pulls.status_checks_details"}}</a></div>
+					<a class="gt-ml-3" href="{{.TargetURL}}" target="_blank" rel="noopener noreferrer">{{$.root.locale.Tr "repo.pulls.status_checks_details"}}</a>
 				{{end}}
 			</div>
 		{{end}}
 	</div>
-</div>
+{{end}}

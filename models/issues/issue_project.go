@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues
 
@@ -14,32 +13,28 @@ import (
 )
 
 // LoadProject load the project the issue was assigned to
-func (i *Issue) LoadProject() (err error) {
-	return i.loadProject(db.DefaultContext)
-}
-
-func (i *Issue) loadProject(ctx context.Context) (err error) {
-	if i.Project == nil {
+func (issue *Issue) LoadProject(ctx context.Context) (err error) {
+	if issue.Project == nil {
 		var p project_model.Project
 		if _, err = db.GetEngine(ctx).Table("project").
 			Join("INNER", "project_issue", "project.id=project_issue.project_id").
-			Where("project_issue.issue_id = ?", i.ID).
+			Where("project_issue.issue_id = ?", issue.ID).
 			Get(&p); err != nil {
 			return err
 		}
-		i.Project = &p
+		issue.Project = &p
 	}
-	return
+	return err
 }
 
 // ProjectID return project id if issue was assigned to one
-func (i *Issue) ProjectID() int64 {
-	return i.projectID(db.DefaultContext)
+func (issue *Issue) ProjectID() int64 {
+	return issue.projectID(db.DefaultContext)
 }
 
-func (i *Issue) projectID(ctx context.Context) int64 {
+func (issue *Issue) projectID(ctx context.Context) int64 {
 	var ip project_model.ProjectIssue
-	has, err := db.GetEngine(ctx).Where("issue_id=?", i.ID).Get(&ip)
+	has, err := db.GetEngine(ctx).Where("issue_id=?", issue.ID).Get(&ip)
 	if err != nil || !has {
 		return 0
 	}
@@ -47,13 +42,13 @@ func (i *Issue) projectID(ctx context.Context) int64 {
 }
 
 // ProjectBoardID return project board id if issue was assigned to one
-func (i *Issue) ProjectBoardID() int64 {
-	return i.projectBoardID(db.DefaultContext)
+func (issue *Issue) ProjectBoardID() int64 {
+	return issue.projectBoardID(db.DefaultContext)
 }
 
-func (i *Issue) projectBoardID(ctx context.Context) int64 {
+func (issue *Issue) projectBoardID(ctx context.Context) int64 {
 	var ip project_model.ProjectIssue
-	has, err := db.GetEngine(ctx).Where("issue_id=?", i.ID).Get(&ip)
+	has, err := db.GetEngine(ctx).Where("issue_id=?", issue.ID).Get(&ip)
 	if err != nil || !has {
 		return 0
 	}
@@ -61,13 +56,14 @@ func (i *Issue) projectBoardID(ctx context.Context) int64 {
 }
 
 // LoadIssuesFromBoard load issues assigned to this board
-func LoadIssuesFromBoard(b *project_model.Board) (IssueList, error) {
+func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board) (IssueList, error) {
 	issueList := make([]*Issue, 0, 10)
 
 	if b.ID != 0 {
-		issues, err := Issues(&IssuesOptions{
+		issues, err := Issues(ctx, &IssuesOptions{
 			ProjectBoardID: b.ID,
 			ProjectID:      b.ProjectID,
+			SortType:       "project-column-sorting",
 		})
 		if err != nil {
 			return nil, err
@@ -76,9 +72,10 @@ func LoadIssuesFromBoard(b *project_model.Board) (IssueList, error) {
 	}
 
 	if b.Default {
-		issues, err := Issues(&IssuesOptions{
+		issues, err := Issues(ctx, &IssuesOptions{
 			ProjectBoardID: -1, // Issues without ProjectBoardID
 			ProjectID:      b.ProjectID,
+			SortType:       "project-column-sorting",
 		})
 		if err != nil {
 			return nil, err
@@ -86,7 +83,7 @@ func LoadIssuesFromBoard(b *project_model.Board) (IssueList, error) {
 		issueList = append(issueList, issues...)
 	}
 
-	if err := IssueList(issueList).LoadComments(); err != nil {
+	if err := IssueList(issueList).LoadComments(ctx); err != nil {
 		return nil, err
 	}
 
@@ -94,10 +91,10 @@ func LoadIssuesFromBoard(b *project_model.Board) (IssueList, error) {
 }
 
 // LoadIssuesFromBoardList load issues assigned to the boards
-func LoadIssuesFromBoardList(bs project_model.BoardList) (map[int64]IssueList, error) {
+func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList) (map[int64]IssueList, error) {
 	issuesMap := make(map[int64]IssueList, len(bs))
 	for i := range bs {
-		il, err := LoadIssuesFromBoard(bs[i])
+		il, err := LoadIssuesFromBoard(ctx, bs[i])
 		if err != nil {
 			return nil, err
 		}
@@ -108,7 +105,7 @@ func LoadIssuesFromBoardList(bs project_model.BoardList) (map[int64]IssueList, e
 
 // ChangeProjectAssign changes the project associated with an issue
 func ChangeProjectAssign(issue *Issue, doer *user_model.User, newProjectID int64) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -124,16 +121,27 @@ func ChangeProjectAssign(issue *Issue, doer *user_model.User, newProjectID int64
 func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectID int64) error {
 	oldProjectID := issue.projectID(ctx)
 
-	if _, err := db.GetEngine(ctx).Where("project_issue.issue_id=?", issue.ID).Delete(&project_model.ProjectIssue{}); err != nil {
-		return err
-	}
-
 	if err := issue.LoadRepo(ctx); err != nil {
 		return err
 	}
 
+	// Only check if we add a new project and not remove it.
+	if newProjectID > 0 {
+		newProject, err := project_model.GetProjectByID(ctx, newProjectID)
+		if err != nil {
+			return err
+		}
+		if newProject.RepoID != issue.RepoID && newProject.OwnerID != issue.Repo.OwnerID {
+			return fmt.Errorf("issue's repository is not the same as project's repository")
+		}
+	}
+
+	if _, err := db.GetEngine(ctx).Where("project_issue.issue_id=?", issue.ID).Delete(&project_model.ProjectIssue{}); err != nil {
+		return err
+	}
+
 	if oldProjectID > 0 || newProjectID > 0 {
-		if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
+		if _, err := CreateComment(ctx, &CreateCommentOptions{
 			Type:         CommentTypeProject,
 			Doer:         doer,
 			Repo:         issue.Repo,
@@ -153,7 +161,7 @@ func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.U
 
 // MoveIssueAcrossProjectBoards move a card from one board to another
 func MoveIssueAcrossProjectBoards(issue *Issue, board *project_model.Board) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 //go:build windows
 
@@ -17,7 +16,7 @@ import (
 // Restart is not implemented for Windows based servers as they can't fork
 func Restart(ctx *context.PrivateContext) {
 	ctx.JSON(http.StatusNotImplemented, private.Response{
-		Err: "windows servers cannot be gracefully restarted - shutdown and restart manually",
+		UserMsg: "windows servers cannot be gracefully restarted - shutdown and restart manually",
 	})
 }
 

@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package notify
 
@@ -8,10 +7,10 @@ import (
 	"net/http"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // ListNotifications list users's notification threads
@@ -69,18 +68,18 @@ func ListNotifications(ctx *context.APIContext) {
 		return
 	}
 
-	totalCount, err := models.CountNotifications(opts)
+	totalCount, err := activities_model.CountNotifications(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
 
-	nl, err := models.GetNotifications(ctx, opts)
+	nl, err := activities_model.GetNotifications(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
-	err = nl.LoadAttributes()
+	err = nl.LoadAttributes(ctx)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -140,7 +139,7 @@ func ReadNotifications(ctx *context.APIContext) {
 			lastRead = tmpLastRead.Unix()
 		}
 	}
-	opts := &models.FindNotificationOptions{
+	opts := &activities_model.FindNotificationOptions{
 		UserID:            ctx.Doer.ID,
 		UpdatedBeforeUnix: lastRead,
 	}
@@ -148,7 +147,7 @@ func ReadNotifications(ctx *context.APIContext) {
 		statuses := ctx.FormStrings("status-types")
 		opts.Status = statusStringsToNotificationStatuses(statuses, []string{"unread"})
 	}
-	nl, err := models.GetNotifications(ctx, opts)
+	nl, err := activities_model.GetNotifications(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -156,18 +155,18 @@ func ReadNotifications(ctx *context.APIContext) {
 
 	targetStatus := statusStringToNotificationStatus(ctx.FormString("to-status"))
 	if targetStatus == 0 {
-		targetStatus = models.NotificationStatusRead
+		targetStatus = activities_model.NotificationStatusRead
 	}
 
 	changed := make([]*structs.NotificationThread, 0, len(nl))
 
 	for _, n := range nl {
-		notif, err := models.SetNotificationStatus(n.ID, ctx.Doer, targetStatus)
+		notif, err := activities_model.SetNotificationStatus(ctx, n.ID, ctx.Doer, targetStatus)
 		if err != nil {
 			ctx.InternalServerError(err)
 			return
 		}
-		_ = notif.LoadAttributes()
+		_ = notif.LoadAttributes(ctx)
 		changed = append(changed, convert.ToNotificationThread(notif))
 	}
 

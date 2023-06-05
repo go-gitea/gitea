@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package nosql
 
@@ -12,7 +11,7 @@ import (
 
 	"code.gitea.io/gitea/modules/process"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
@@ -75,5 +74,5 @@ func valToTimeDuration(vs []string) (result time.Duration) {
 			return
 		}
 	}
-	return
+	return result
 }

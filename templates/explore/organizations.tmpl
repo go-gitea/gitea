@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content explore users">
+<div role="main" aria-label="{{.Title}}" class="page-content explore users">
 	{{template "explore/navbar" .}}
 	<div class="ui container">
 		{{template "explore/search" .}}
@@ -7,12 +7,12 @@
 		<div class="ui user list">
 			{{range .Users}}
 				<div class="item">
-					{{avatar .}}
+					{{avatar $.Context .}}
 					<div class="content">
 						<span class="header">
 							<a href="{{.HomeLink}}">{{.Name}}</a> {{.FullName}}
 							{{if .Visibility.IsPrivate}}
-								<span class="ui basic label">{{$.i18n.Tr "repo.desc.private"}}</span>
+								<span class="ui basic label">{{$.locale.Tr "repo.desc.private"}}</span>
 							{{end}}
 						</span>
 						<div class="description">
@@ -23,12 +23,12 @@
 								{{svg "octicon-link"}}
 								<a href="{{.Website}}" rel="nofollow">{{.Website}}</a>
 							{{end}}
-							{{svg "octicon-clock"}} {{$.i18n.Tr "user.join_on"}} {{.CreatedUnix.FormatShort}}
+							{{svg "octicon-clock"}} {{$.locale.Tr "user.joined_on" (DateTime "short" .CreatedUnix) | Safe}}
 						</div>
 					</div>
 				</div>
 			{{else}}
-				<div>{{$.i18n.Tr "explore.org_no_results"}}</div>
+				<div>{{$.locale.Tr "explore.org_no_results"}}</div>
 			{{end}}
 		</div>
 

@@ -1,13 +1,13 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
-package auth
+package auth_test
 
 import (
 	"strings"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/json"
@@ -37,13 +37,13 @@ func (source *TestSource) ToDB() ([]byte, error) {
 func TestDumpAuthSource(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	authSourceSchema, err := db.TableInfo(new(Source))
+	authSourceSchema, err := db.TableInfo(new(auth_model.Source))
 	assert.NoError(t, err)
 
-	RegisterTypeConfig(OAuth2, new(TestSource))
+	auth_model.RegisterTypeConfig(auth_model.OAuth2, new(TestSource))
 
-	CreateSource(&Source{
-		Type:     OAuth2,
+	auth_model.CreateSource(&auth_model.Source{
+		Type:     auth_model.OAuth2,
 		Name:     "TestSource",
 		IsActive: false,
 		Cfg: &TestSource{

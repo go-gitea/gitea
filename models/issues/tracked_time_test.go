@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues_test
 
@@ -19,7 +18,7 @@ import (
 func TestAddTime(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user3, err := user_model.GetUserByID(3)
+	user3, err := user_model.GetUserByID(db.DefaultContext, 3)
 	assert.NoError(t, err)
 
 	issue1, err := issues_model.GetIssueByID(db.DefaultContext, 1)
@@ -32,11 +31,11 @@ func TestAddTime(t *testing.T) {
 	assert.Equal(t, int64(1), trackedTime.IssueID)
 	assert.Equal(t, int64(3661), trackedTime.Time)
 
-	tt := unittest.AssertExistsAndLoadBean(t, &issues_model.TrackedTime{UserID: 3, IssueID: 1}).(*issues_model.TrackedTime)
+	tt := unittest.AssertExistsAndLoadBean(t, &issues_model.TrackedTime{UserID: 3, IssueID: 1})
 	assert.Equal(t, int64(3661), tt.Time)
 
-	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{Type: issues_model.CommentTypeAddTimeManual, PosterID: 3, IssueID: 1}).(*issues_model.Comment)
-	assert.Equal(t, comment.Content, "1 hour 1 minute")
+	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{Type: issues_model.CommentTypeAddTimeManual, PosterID: 3, IssueID: 1})
+	assert.Equal(t, "1 hour 1 minute", comment.Content)
 }
 
 func TestGetTrackedTimes(t *testing.T) {

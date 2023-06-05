@@ -1,11 +1,9 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package lfs
 
 import (
-	"fmt"
 	"net/url"
 	"os"
 	"path"
@@ -13,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // DetermineEndpoint determines an endpoint from the clone url or uses the specified LFS url.
@@ -96,7 +95,7 @@ func endpointFromLocalPath(path string) *url.URL {
 		return nil
 	}
 
-	path = fmt.Sprintf("file://%s%s", slash, filepath.ToSlash(path))
+	path = "file://" + slash + util.PathEscapeSegments(filepath.ToSlash(path))
 
 	u, _ := url.Parse(path)
 

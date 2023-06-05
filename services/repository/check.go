@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
@@ -11,9 +10,9 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -23,30 +22,20 @@ import (
 	"xorm.io/builder"
 )
 
-// GitFsck calls 'git fsck' to check repository health.
-func GitFsck(ctx context.Context, timeout time.Duration, args []string) error {
+// GitFsckRepos calls 'git fsck' to check repository health.
+func GitFsckRepos(ctx context.Context, timeout time.Duration, args git.TrustedCmdArgs) error {
 	log.Trace("Doing: GitFsck")
 
 	if err := db.Iterate(
 		ctx,
-		new(repo_model.Repository),
 		builder.Expr("id>0 AND is_fsck_enabled=?", true),
-		func(idx int, bean interface{}) error {
-			repo := bean.(*repo_model.Repository)
+		func(ctx context.Context, repo *repo_model.Repository) error {
 			select {
 			case <-ctx.Done():
 				return db.ErrCancelledf("before fsck of %s", repo.FullName())
 			default:
 			}
-			log.Trace("Running health check on repository %v", repo)
-			repoPath := repo.RepoPath()
-			if err := git.Fsck(ctx, repoPath, timeout, args...); err != nil {
-				log.Warn("Failed to health check repository (%v): %v", repo, err)
-				if err = admin_model.CreateRepositoryNotice("Failed to health check repository (%s): %v", repo.FullName(), err); err != nil {
-					log.Error("CreateRepositoryNotice: %v", err)
-				}
-			}
-			return nil
+			return GitFsckRepo(ctx, repo, timeout, args)
 		},
 	); err != nil {
 		log.Trace("Error: GitFsck: %v", err)
@@ -57,48 +46,34 @@ func GitFsck(ctx context.Context, timeout time.Duration, args []string) error {
 	return nil
 }
 
+// GitFsckRepo calls 'git fsck' to check an individual repository's health.
+func GitFsckRepo(ctx context.Context, repo *repo_model.Repository, timeout time.Duration, args git.TrustedCmdArgs) error {
+	log.Trace("Running health check on repository %-v", repo)
+	repoPath := repo.RepoPath()
+	if err := git.Fsck(ctx, repoPath, timeout, args); err != nil {
+		log.Warn("Failed to health check repository (%-v): %v", repo, err)
+		if err = system_model.CreateRepositoryNotice("Failed to health check repository (%s): %v", repo.FullName(), err); err != nil {
+			log.Error("CreateRepositoryNotice: %v", err)
+		}
+	}
+	return nil
+}
+
 // GitGcRepos calls 'git gc' to remove unnecessary files and optimize the local repository
-func GitGcRepos(ctx context.Context, timeout time.Duration, args ...string) error {
+func GitGcRepos(ctx context.Context, timeout time.Duration, args git.TrustedCmdArgs) error {
 	log.Trace("Doing: GitGcRepos")
-	args = append([]string{"gc"}, args...)
 
 	if err := db.Iterate(
 		ctx,
-		new(repo_model.Repository),
 		builder.Gt{"id": 0},
-		func(idx int, bean interface{}) error {
-			repo := bean.(*repo_model.Repository)
+		func(ctx context.Context, repo *repo_model.Repository) error {
 			select {
 			case <-ctx.Done():
 				return db.ErrCancelledf("before GC of %s", repo.FullName())
 			default:
 			}
-			log.Trace("Running git gc on %v", repo)
-			command := git.NewCommand(ctx, args...).
-				SetDescription(fmt.Sprintf("Repository Garbage Collection: %s", repo.FullName()))
-			var stdout string
-			var err error
-			stdout, _, err = command.RunStdString(&git.RunOpts{Timeout: timeout, Dir: repo.RepoPath()})
-
-			if err != nil {
-				log.Error("Repository garbage collection failed for %v. Stdout: %s\nError: %v", repo, stdout, err)
-				desc := fmt.Sprintf("Repository garbage collection failed for %s. Stdout: %s\nError: %v", repo.RepoPath(), stdout, err)
-				if err = admin_model.CreateRepositoryNotice(desc); err != nil {
-					log.Error("CreateRepositoryNotice: %v", err)
-				}
-				return fmt.Errorf("Repository garbage collection failed in repo: %s: Error: %v", repo.FullName(), err)
-			}
-
-			// Now update the size of the repository
-			if err := repo_module.UpdateRepoSize(ctx, repo); err != nil {
-				log.Error("Updating size as part of garbage collection failed for %v. Stdout: %s\nError: %v", repo, stdout, err)
-				desc := fmt.Sprintf("Updating size as part of garbage collection failed for %s. Stdout: %s\nError: %v", repo.RepoPath(), stdout, err)
-				if err = admin_model.CreateRepositoryNotice(desc); err != nil {
-					log.Error("CreateRepositoryNotice: %v", err)
-				}
-				return fmt.Errorf("Updating size as part of garbage collection failed in repo: %s: Error: %v", repo.FullName(), err)
-			}
-
+			// we can ignore the error here because it will be logged in GitGCRepo
+			_ = GitGcRepo(ctx, repo, timeout, args)
 			return nil
 		},
 	); err != nil {
@@ -109,14 +84,43 @@ func GitGcRepos(ctx context.Context, timeout time.Duration, args ...string) erro
 	return nil
 }
 
-func gatherMissingRepoRecords(ctx context.Context) ([]*repo_model.Repository, error) {
+// GitGcRepo calls 'git gc' to remove unnecessary files and optimize the local repository
+func GitGcRepo(ctx context.Context, repo *repo_model.Repository, timeout time.Duration, args git.TrustedCmdArgs) error {
+	log.Trace("Running git gc on %-v", repo)
+	command := git.NewCommand(ctx, "gc").AddArguments(args...).
+		SetDescription(fmt.Sprintf("Repository Garbage Collection: %s", repo.FullName()))
+	var stdout string
+	var err error
+	stdout, _, err = command.RunStdString(&git.RunOpts{Timeout: timeout, Dir: repo.RepoPath()})
+
+	if err != nil {
+		log.Error("Repository garbage collection failed for %-v. Stdout: %s\nError: %v", repo, stdout, err)
+		desc := fmt.Sprintf("Repository garbage collection failed for %s. Stdout: %s\nError: %v", repo.RepoPath(), stdout, err)
+		if err := system_model.CreateRepositoryNotice(desc); err != nil {
+			log.Error("CreateRepositoryNotice: %v", err)
+		}
+		return fmt.Errorf("Repository garbage collection failed in repo: %s: Error: %w", repo.FullName(), err)
+	}
+
+	// Now update the size of the repository
+	if err := repo_module.UpdateRepoSize(ctx, repo); err != nil {
+		log.Error("Updating size as part of garbage collection failed for %-v. Stdout: %s\nError: %v", repo, stdout, err)
+		desc := fmt.Sprintf("Updating size as part of garbage collection failed for %s. Stdout: %s\nError: %v", repo.RepoPath(), stdout, err)
+		if err := system_model.CreateRepositoryNotice(desc); err != nil {
+			log.Error("CreateRepositoryNotice: %v", err)
+		}
+		return fmt.Errorf("Updating size as part of garbage collection failed in repo: %s: Error: %w", repo.FullName(), err)
+	}
+
+	return nil
+}
+
+func gatherMissingRepoRecords(ctx context.Context) (repo_model.RepositoryList, error) {
 	repos := make([]*repo_model.Repository, 0, 10)
 	if err := db.Iterate(
 		ctx,
-		new(repo_model.Repository),
 		builder.Gt{"id": 0},
-		func(idx int, bean interface{}) error {
-			repo := bean.(*repo_model.Repository)
+		func(ctx context.Context, repo *repo_model.Repository) error {
 			select {
 			case <-ctx.Done():
 				return db.ErrCancelledf("during gathering missing repo records before checking %s", repo.FullName())
@@ -135,7 +139,7 @@ func gatherMissingRepoRecords(ctx context.Context) ([]*repo_model.Repository, er
 		if strings.HasPrefix(err.Error(), "Aborted gathering missing repo") {
 			return nil, err
 		}
-		if err2 := admin_model.CreateRepositoryNotice("gatherMissingRepoRecords: %v", err); err2 != nil {
+		if err2 := system_model.CreateRepositoryNotice("gatherMissingRepoRecords: %v", err); err2 != nil {
 			log.Error("CreateRepositoryNotice: %v", err2)
 		}
 		return nil, err
@@ -162,8 +166,8 @@ func DeleteMissingRepositories(ctx context.Context, doer *user_model.User) error
 		}
 		log.Trace("Deleting %d/%d...", repo.OwnerID, repo.ID)
 		if err := models.DeleteRepository(doer, repo.OwnerID, repo.ID); err != nil {
-			log.Error("Failed to DeleteRepository %s [%d]: Error: %v", repo.FullName(), repo.ID, err)
-			if err2 := admin_model.CreateRepositoryNotice("Failed to DeleteRepository %s [%d]: Error: %v", repo.FullName(), repo.ID, err); err2 != nil {
+			log.Error("Failed to DeleteRepository %-v: Error: %v", repo, err)
+			if err2 := system_model.CreateRepositoryNotice("Failed to DeleteRepository %s [%d]: Error: %v", repo.FullName(), repo.ID, err); err2 != nil {
 				log.Error("CreateRepositoryNotice: %v", err)
 			}
 		}
@@ -191,7 +195,7 @@ func ReinitMissingRepositories(ctx context.Context) error {
 		log.Trace("Initializing %d/%d...", repo.OwnerID, repo.ID)
 		if err := git.InitRepository(ctx, repo.RepoPath(), true); err != nil {
 			log.Error("Unable (re)initialize repository %d at %s. Error: %v", repo.ID, repo.RepoPath(), err)
-			if err2 := admin_model.CreateRepositoryNotice("InitRepository [%d]: %v", repo.ID, err); err2 != nil {
+			if err2 := system_model.CreateRepositoryNotice("InitRepository [%d]: %v", repo.ID, err); err2 != nil {
 				log.Error("CreateRepositoryNotice: %v", err2)
 			}
 		}

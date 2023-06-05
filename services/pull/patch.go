@@ -1,7 +1,6 @@
 // Copyright 2019 The Gitea Authors.
 // All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package pull
 
@@ -15,13 +14,15 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
-	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gobwas/glob"
@@ -29,20 +30,20 @@ import (
 
 // DownloadDiffOrPatch will write the patch for the pr to the writer
 func DownloadDiffOrPatch(ctx context.Context, pr *issues_model.PullRequest, w io.Writer, patch, binary bool) error {
-	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
+	if err := pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("Unable to load base repository ID %d for pr #%d [%d]", pr.BaseRepoID, pr.Index, pr.ID)
 		return err
 	}
 
 	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo.RepoPath())
 	if err != nil {
-		return fmt.Errorf("OpenRepository: %v", err)
+		return fmt.Errorf("OpenRepository: %w", err)
 	}
 	defer closer.Close()
 
 	if err := gitRepo.GetDiffOrPatch(pr.MergeBase, pr.GetGitRefName(), w, patch, binary); err != nil {
 		log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
-		return fmt.Errorf("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
+		return fmt.Errorf("Unable to get patch file from %s to %s in %s Error: %w", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 	}
 	return nil
 }
@@ -52,49 +53,55 @@ var patchErrorSuffices = []string{
 	": patch does not apply",
 	": already exists in working directory",
 	"unrecognized input",
+	": No such file or directory",
+	": does not exist in index",
 }
 
 // TestPatch will test whether a simple patch will apply
 func TestPatch(pr *issues_model.PullRequest) error {
-	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("TestPatch: Repo[%d]#%d", pr.BaseRepoID, pr.Index))
+	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("TestPatch: %s", pr))
 	defer finished()
 
 	// Clone base repo.
-	tmpBasePath, err := createTemporaryRepo(ctx, pr)
+	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
 	if err != nil {
-		log.Error("CreateTemporaryPath: %v", err)
+		log.Error("createTemporaryRepoForPR %-v: %v", pr, err)
 		return err
 	}
-	defer func() {
-		if err := repo_module.RemoveTemporaryPath(tmpBasePath); err != nil {
-			log.Error("Merge: RemoveTemporaryPath: %s", err)
-		}
-	}()
+	defer cancel()
 
-	gitRepo, err := git.OpenRepository(ctx, tmpBasePath)
+	gitRepo, err := git.OpenRepository(ctx, prCtx.tmpBasePath)
 	if err != nil {
-		return fmt.Errorf("OpenRepository: %v", err)
+		return fmt.Errorf("OpenRepository: %w", err)
 	}
 	defer gitRepo.Close()
 
 	// 1. update merge base
-	pr.MergeBase, _, err = git.NewCommand(ctx, "merge-base", "--", "base", "tracking").RunStdString(&git.RunOpts{Dir: tmpBasePath})
+	pr.MergeBase, _, err = git.NewCommand(ctx, "merge-base", "--", "base", "tracking").RunStdString(&git.RunOpts{Dir: prCtx.tmpBasePath})
 	if err != nil {
 		var err2 error
 		pr.MergeBase, err2 = gitRepo.GetRefCommitID(git.BranchPrefix + "base")
 		if err2 != nil {
-			return fmt.Errorf("GetMergeBase: %v and can't find commit ID for base: %v", err, err2)
+			return fmt.Errorf("GetMergeBase: %v and can't find commit ID for base: %w", err, err2)
 		}
 	}
 	pr.MergeBase = strings.TrimSpace(pr.MergeBase)
+	if pr.HeadCommitID, err = gitRepo.GetRefCommitID(git.BranchPrefix + "tracking"); err != nil {
+		return fmt.Errorf("GetBranchCommitID: can't find commit ID for head: %w", err)
+	}
+
+	if pr.HeadCommitID == pr.MergeBase {
+		pr.Status = issues_model.PullRequestStatusAncestor
+		return nil
+	}
 
 	// 2. Check for conflicts
-	if conflicts, err := checkConflicts(ctx, pr, gitRepo, tmpBasePath); err != nil || conflicts || pr.Status == issues_model.PullRequestStatusEmpty {
+	if conflicts, err := checkConflicts(ctx, pr, gitRepo, prCtx.tmpBasePath); err != nil || conflicts || pr.Status == issues_model.PullRequestStatusEmpty {
 		return err
 	}
 
 	// 3. Check for protected files changes
-	if err = checkPullFilesProtection(pr, gitRepo); err != nil {
+	if err = checkPullFilesProtection(ctx, pr, gitRepo); err != nil {
 		return fmt.Errorf("pr.CheckPullFilesProtection(): %v", err)
 	}
 
@@ -116,6 +123,7 @@ func (e *errMergeConflict) Error() string {
 }
 
 func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, gitRepo *git.Repository) error {
+	log.Trace("Attempt to merge:\n%v", file)
 	switch {
 	case file.stage1 != nil && (file.stage2 == nil || file.stage3 == nil):
 		// 1. Deleted in one or both:
@@ -168,7 +176,7 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 		}
 
 		// Need to get the objects from the object db to attempt to merge
-		root, _, err := git.NewCommand(ctx, "unpack-file", file.stage1.sha).RunStdString(&git.RunOpts{Dir: tmpBasePath})
+		root, _, err := git.NewCommand(ctx, "unpack-file").AddDynamicArguments(file.stage1.sha).RunStdString(&git.RunOpts{Dir: tmpBasePath})
 		if err != nil {
 			return fmt.Errorf("unable to get root object: %s at path: %s for merging. Error: %w", file.stage1.sha, file.stage1.path, err)
 		}
@@ -177,7 +185,7 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 			_ = util.Remove(filepath.Join(tmpBasePath, root))
 		}()
 
-		base, _, err := git.NewCommand(ctx, "unpack-file", file.stage2.sha).RunStdString(&git.RunOpts{Dir: tmpBasePath})
+		base, _, err := git.NewCommand(ctx, "unpack-file").AddDynamicArguments(file.stage2.sha).RunStdString(&git.RunOpts{Dir: tmpBasePath})
 		if err != nil {
 			return fmt.Errorf("unable to get base object: %s at path: %s for merging. Error: %w", file.stage2.sha, file.stage2.path, err)
 		}
@@ -185,7 +193,7 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 		defer func() {
 			_ = util.Remove(base)
 		}()
-		head, _, err := git.NewCommand(ctx, "unpack-file", file.stage3.sha).RunStdString(&git.RunOpts{Dir: tmpBasePath})
+		head, _, err := git.NewCommand(ctx, "unpack-file").AddDynamicArguments(file.stage3.sha).RunStdString(&git.RunOpts{Dir: tmpBasePath})
 		if err != nil {
 			return fmt.Errorf("unable to get head object:%s at path: %s for merging. Error: %w", file.stage3.sha, file.stage3.path, err)
 		}
@@ -195,13 +203,13 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 		}()
 
 		// now git merge-file annoyingly takes a different order to the merge-tree ...
-		_, _, conflictErr := git.NewCommand(ctx, "merge-file", base, root, head).RunStdString(&git.RunOpts{Dir: tmpBasePath})
+		_, _, conflictErr := git.NewCommand(ctx, "merge-file").AddDynamicArguments(base, root, head).RunStdString(&git.RunOpts{Dir: tmpBasePath})
 		if conflictErr != nil {
 			return &errMergeConflict{file.stage2.path}
 		}
 
 		// base now contains the merged data
-		hash, _, err := git.NewCommand(ctx, "hash-object", "-w", "--path", file.stage2.path, base).RunStdString(&git.RunOpts{Dir: tmpBasePath})
+		hash, _, err := git.NewCommand(ctx, "hash-object", "-w", "--path").AddDynamicArguments(file.stage2.path, base).RunStdString(&git.RunOpts{Dir: tmpBasePath})
 		if err != nil {
 			return err
 		}
@@ -225,9 +233,9 @@ func AttemptThreeWayMerge(ctx context.Context, gitPath string, gitRepo *git.Repo
 	defer cancel()
 
 	// First we use read-tree to do a simple three-way merge
-	if _, _, err := git.NewCommand(ctx, "read-tree", "-m", base, ours, theirs).RunStdString(&git.RunOpts{Dir: gitPath}); err != nil {
+	if _, _, err := git.NewCommand(ctx, "read-tree", "-m").AddDynamicArguments(base, ours, theirs).RunStdString(&git.RunOpts{Dir: gitPath}); err != nil {
 		log.Error("Unable to run read-tree -m! Error: %v", err)
-		return false, nil, fmt.Errorf("unable to run read-tree -m! Error: %v", err)
+		return false, nil, fmt.Errorf("unable to run read-tree -m! Error: %w", err)
 	}
 
 	// Then we use git ls-files -u to list the unmerged files and collate the triples in unmergedfiles
@@ -277,23 +285,28 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 
 	// 2. AttemptThreeWayMerge first - this is much quicker than plain patch to base
 	description := fmt.Sprintf("PR[%d] %s/%s#%d", pr.ID, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Index)
-	conflict, _, err := AttemptThreeWayMerge(ctx,
+	conflict, conflictFiles, err := AttemptThreeWayMerge(ctx,
 		tmpBasePath, gitRepo, pr.MergeBase, "base", "tracking", description)
 	if err != nil {
 		return false, err
 	}
 
 	if !conflict {
+		// No conflicts detected so we need to check if the patch is empty...
+		// a. Write the newly merged tree and check the new tree-hash
 		var treeHash string
 		treeHash, _, err = git.NewCommand(ctx, "write-tree").RunStdString(&git.RunOpts{Dir: tmpBasePath})
 		if err != nil {
-			return false, err
+			lsfiles, _, _ := git.NewCommand(ctx, "ls-files", "-u").RunStdString(&git.RunOpts{Dir: tmpBasePath})
+			return false, fmt.Errorf("unable to write unconflicted tree: %w\n`git ls-files -u`:\n%s", err, lsfiles)
 		}
 		treeHash = strings.TrimSpace(treeHash)
 		baseTree, err := gitRepo.GetTree("base")
 		if err != nil {
 			return false, err
 		}
+
+		// b. compare the new tree-hash with the base tree hash
 		if treeHash == baseTree.ID.String() {
 			log.Debug("PullRequest[%d]: Patch is empty - ignoring", pr.ID)
 			pr.Status = issues_model.PullRequestStatusEmpty
@@ -302,13 +315,21 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 		return false, nil
 	}
 
-	// 3. OK read-tree has failed so we need to try a different thing - this might actually succeed where the above fails due to whitespace handling.
+	// 3. OK the three-way merge method has detected conflicts
+	// 3a. Are still testing with GitApply? If not set the conflict status and move on
+	if !setting.Repository.PullRequest.TestConflictingPatchesWithGitApply {
+		pr.Status = issues_model.PullRequestStatusConflict
+		pr.ConflictedFiles = conflictFiles
 
-	// 3a. Create a plain patch from head to base
+		log.Trace("Found %d files conflicted: %v", len(pr.ConflictedFiles), pr.ConflictedFiles)
+		return true, nil
+	}
+
+	// 3b. Create a plain patch from head to base
 	tmpPatchFile, err := os.CreateTemp("", "patch")
 	if err != nil {
 		log.Error("Unable to create temporary patch file! Error: %v", err)
-		return false, fmt.Errorf("unable to create temporary patch file! Error: %v", err)
+		return false, fmt.Errorf("unable to create temporary patch file! Error: %w", err)
 	}
 	defer func() {
 		_ = util.Remove(tmpPatchFile.Name())
@@ -317,17 +338,17 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	if err := gitRepo.GetDiffBinary(pr.MergeBase, "tracking", tmpPatchFile); err != nil {
 		tmpPatchFile.Close()
 		log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
-		return false, fmt.Errorf("unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
+		return false, fmt.Errorf("unable to get patch file from %s to %s in %s Error: %w", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 	}
 	stat, err := tmpPatchFile.Stat()
 	if err != nil {
 		tmpPatchFile.Close()
-		return false, fmt.Errorf("unable to stat patch file: %v", err)
+		return false, fmt.Errorf("unable to stat patch file: %w", err)
 	}
 	patchPath := tmpPatchFile.Name()
 	tmpPatchFile.Close()
 
-	// 3b. if the size of that patch is 0 - there can be no conflicts!
+	// 3c. if the size of that patch is 0 - there can be no conflicts!
 	if stat.Size() == 0 {
 		log.Debug("PullRequest[%d]: Patch is empty - ignoring", pr.ID)
 		pr.Status = issues_model.PullRequestStatusEmpty
@@ -339,27 +360,27 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	// 4. Read the base branch in to the index of the temporary repository
 	_, _, err = git.NewCommand(gitRepo.Ctx, "read-tree", "base").RunStdString(&git.RunOpts{Dir: tmpBasePath})
 	if err != nil {
-		return false, fmt.Errorf("git read-tree %s: %v", pr.BaseBranch, err)
+		return false, fmt.Errorf("git read-tree %s: %w", pr.BaseBranch, err)
 	}
 
 	// 5. Now get the pull request configuration to check if we need to ignore whitespace
-	prUnit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests)
+	prUnit, err := pr.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
 	if err != nil {
 		return false, err
 	}
 	prConfig := prUnit.PullRequestsConfig()
 
 	// 6. Prepare the arguments to apply the patch against the index
-	args := []string{"apply", "--check", "--cached"}
+	cmdApply := git.NewCommand(gitRepo.Ctx, "apply", "--check", "--cached")
 	if prConfig.IgnoreWhitespaceConflicts {
-		args = append(args, "--ignore-whitespace")
+		cmdApply.AddArguments("--ignore-whitespace")
 	}
 	is3way := false
 	if git.CheckGitVersionAtLeast("2.32.0") == nil {
-		args = append(args, "--3way")
+		cmdApply.AddArguments("--3way")
 		is3way = true
 	}
-	args = append(args, patchPath)
+	cmdApply.AddDynamicArguments(patchPath)
 
 	// 7. Prep the pipe:
 	//   - Here we could do the equivalent of:
@@ -372,7 +393,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	stderrReader, stderrWriter, err := os.Pipe()
 	if err != nil {
 		log.Error("Unable to open stderr pipe: %v", err)
-		return false, fmt.Errorf("unable to open stderr pipe: %v", err)
+		return false, fmt.Errorf("unable to open stderr pipe: %w", err)
 	}
 	defer func() {
 		_ = stderrReader.Close()
@@ -381,70 +402,70 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 
 	// 8. Run the check command
 	conflict = false
-	err = git.NewCommand(gitRepo.Ctx, args...).
-		Run(&git.RunOpts{
-			Dir:    tmpBasePath,
-			Stderr: stderrWriter,
-			PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
-				// Close the writer end of the pipe to begin processing
-				_ = stderrWriter.Close()
-				defer func() {
-					// Close the reader on return to terminate the git command if necessary
-					_ = stderrReader.Close()
-				}()
+	err = cmdApply.Run(&git.RunOpts{
+		Dir:    tmpBasePath,
+		Stderr: stderrWriter,
+		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
+			// Close the writer end of the pipe to begin processing
+			_ = stderrWriter.Close()
+			defer func() {
+				// Close the reader on return to terminate the git command if necessary
+				_ = stderrReader.Close()
+			}()
 
-				const prefix = "error: patch failed:"
-				const errorPrefix = "error: "
-				const threewayFailed = "Failed to perform three-way merge..."
-				const appliedPatchPrefix = "Applied patch to '"
-				const withConflicts = "' with conflicts."
+			const prefix = "error: patch failed:"
+			const errorPrefix = "error: "
+			const threewayFailed = "Failed to perform three-way merge..."
+			const appliedPatchPrefix = "Applied patch to '"
+			const withConflicts = "' with conflicts."
 
-				conflictMap := map[string]bool{}
+			conflicts := make(container.Set[string])
 
-				// Now scan the output from the command
-				scanner := bufio.NewScanner(stderrReader)
-				for scanner.Scan() {
-					line := scanner.Text()
-					if strings.HasPrefix(line, prefix) {
-						conflict = true
-						filepath := strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0])
-						conflictMap[filepath] = true
-					} else if is3way && line == threewayFailed {
-						conflict = true
-					} else if strings.HasPrefix(line, errorPrefix) {
-						conflict = true
-						for _, suffix := range patchErrorSuffices {
-							if strings.HasSuffix(line, suffix) {
-								filepath := strings.TrimSpace(strings.TrimSuffix(line[len(errorPrefix):], suffix))
-								if filepath != "" {
-									conflictMap[filepath] = true
-								}
-								break
+			// Now scan the output from the command
+			scanner := bufio.NewScanner(stderrReader)
+			for scanner.Scan() {
+				line := scanner.Text()
+				log.Trace("PullRequest[%d].testPatch: stderr: %s", pr.ID, line)
+				if strings.HasPrefix(line, prefix) {
+					conflict = true
+					filepath := strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0])
+					conflicts.Add(filepath)
+				} else if is3way && line == threewayFailed {
+					conflict = true
+				} else if strings.HasPrefix(line, errorPrefix) {
+					conflict = true
+					for _, suffix := range patchErrorSuffices {
+						if strings.HasSuffix(line, suffix) {
+							filepath := strings.TrimSpace(strings.TrimSuffix(line[len(errorPrefix):], suffix))
+							if filepath != "" {
+								conflicts.Add(filepath)
 							}
-						}
-					} else if is3way && strings.HasPrefix(line, appliedPatchPrefix) && strings.HasSuffix(line, withConflicts) {
-						conflict = true
-						filepath := strings.TrimPrefix(strings.TrimSuffix(line, withConflicts), appliedPatchPrefix)
-						if filepath != "" {
-							conflictMap[filepath] = true
+							break
 						}
 					}
-					// only list 10 conflicted files
-					if len(conflictMap) >= 10 {
-						break
+				} else if is3way && strings.HasPrefix(line, appliedPatchPrefix) && strings.HasSuffix(line, withConflicts) {
+					conflict = true
+					filepath := strings.TrimPrefix(strings.TrimSuffix(line, withConflicts), appliedPatchPrefix)
+					if filepath != "" {
+						conflicts.Add(filepath)
 					}
 				}
-
-				if len(conflictMap) > 0 {
-					pr.ConflictedFiles = make([]string, 0, len(conflictMap))
-					for key := range conflictMap {
-						pr.ConflictedFiles = append(pr.ConflictedFiles, key)
-					}
+				// only list 10 conflicted files
+				if len(conflicts) >= 10 {
+					break
 				}
+			}
 
-				return nil
-			},
-		})
+			if len(conflicts) > 0 {
+				pr.ConflictedFiles = make([]string, 0, len(conflicts))
+				for key := range conflicts {
+					pr.ConflictedFiles = append(pr.ConflictedFiles, key)
+				}
+			}
+
+			return nil
+		},
+	})
 
 	// 9. Check if the found conflictedfiles is non-zero, "err" could be non-nil, so we should ignore it if we found conflicts.
 	// Note: `"err" could be non-nil` is due that if enable 3-way merge, it doesn't return any error on found conflicts.
@@ -456,7 +477,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 			return true, nil
 		}
 	} else if err != nil {
-		return false, fmt.Errorf("git apply --check: %v", err)
+		return false, fmt.Errorf("git apply --check: %w", err)
 	}
 	return false, nil
 }
@@ -517,23 +538,23 @@ func CheckUnprotectedFiles(repo *git.Repository, oldCommitID, newCommitID string
 }
 
 // checkPullFilesProtection check if pr changed protected files and save results
-func checkPullFilesProtection(pr *issues_model.PullRequest, gitRepo *git.Repository) error {
+func checkPullFilesProtection(ctx context.Context, pr *issues_model.PullRequest, gitRepo *git.Repository) error {
 	if pr.Status == issues_model.PullRequestStatusEmpty {
 		pr.ChangedProtectedFiles = nil
 		return nil
 	}
 
-	if err := pr.LoadProtectedBranch(); err != nil {
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+	if err != nil {
 		return err
 	}
 
-	if pr.ProtectedBranch == nil {
+	if pb == nil {
 		pr.ChangedProtectedFiles = nil
 		return nil
 	}
 
-	var err error
-	pr.ChangedProtectedFiles, err = CheckFileProtection(gitRepo, pr.MergeBase, "tracking", pr.ProtectedBranch.GetProtectedFilePatterns(), 10, os.Environ())
+	pr.ChangedProtectedFiles, err = CheckFileProtection(gitRepo, pr.MergeBase, "tracking", pb.GetProtectedFilePatterns(), 10, os.Environ())
 	if err != nil && !models.IsErrFilePathProtected(err) {
 		return err
 	}

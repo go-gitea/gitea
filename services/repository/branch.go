@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
@@ -42,7 +41,7 @@ func CreateNewBranch(ctx context.Context, doer *user_model.User, repo *repo_mode
 		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
 			return err
 		}
-		return fmt.Errorf("Push: %v", err)
+		return fmt.Errorf("Push: %w", err)
 	}
 
 	return nil
@@ -52,6 +51,10 @@ func CreateNewBranch(ctx context.Context, doer *user_model.User, repo *repo_mode
 // returning at most limit branches, or all branches if limit is 0.
 func GetBranches(ctx context.Context, repo *repo_model.Repository, skip, limit int) ([]*git.Branch, int, error) {
 	return git.GetBranchesByPath(ctx, repo.RepoPath(), skip, limit)
+}
+
+func GetBranchCommitID(ctx context.Context, repo *repo_model.Repository, branch string) (string, error) {
+	return git.GetBranchCommitID(ctx, repo.RepoPath(), branch)
 }
 
 // checkBranchName validates branch name with existing repository branches
@@ -99,14 +102,14 @@ func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo 
 		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
 			return err
 		}
-		return fmt.Errorf("Push: %v", err)
+		return fmt.Errorf("Push: %w", err)
 	}
 
 	return nil
 }
 
 // RenameBranch rename a branch
-func RenameBranch(repo *repo_model.Repository, doer *user_model.User, gitRepo *git.Repository, from, to string) (string, error) {
+func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, gitRepo *git.Repository, from, to string) (string, error) {
 	if from == to {
 		return "target_exist", nil
 	}
@@ -119,7 +122,7 @@ func RenameBranch(repo *repo_model.Repository, doer *user_model.User, gitRepo *g
 		return "from_not_exist", nil
 	}
 
-	if err := git_model.RenameBranch(repo, from, to, func(isDefault bool) error {
+	if err := git_model.RenameBranch(ctx, repo, from, to, func(isDefault bool) error {
 		err2 := gitRepo.RenameBranch(from, to)
 		if err2 != nil {
 			return err2
@@ -136,36 +139,35 @@ func RenameBranch(repo *repo_model.Repository, doer *user_model.User, gitRepo *g
 	}); err != nil {
 		return "", err
 	}
-	refID, err := gitRepo.GetRefCommitID(git.BranchPrefix + to)
+	refNameTo := git.RefNameFromBranch(to)
+	refID, err := gitRepo.GetRefCommitID(refNameTo.String())
 	if err != nil {
 		return "", err
 	}
 
-	notification.NotifyDeleteRef(doer, repo, "branch", git.BranchPrefix+from)
-	notification.NotifyCreateRef(doer, repo, "branch", git.BranchPrefix+to, refID)
+	notification.NotifyDeleteRef(ctx, doer, repo, git.RefNameFromBranch(from))
+	notification.NotifyCreateRef(ctx, doer, repo, refNameTo, refID)
 
 	return "", nil
 }
 
 // enmuerates all branch related errors
 var (
-	ErrBranchIsDefault   = errors.New("branch is default")
-	ErrBranchIsProtected = errors.New("branch is protected")
+	ErrBranchIsDefault = errors.New("branch is default")
 )
 
 // DeleteBranch delete branch
-func DeleteBranch(doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, branchName string) error {
+func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, branchName string) error {
 	if branchName == repo.DefaultBranch {
 		return ErrBranchIsDefault
 	}
 
-	isProtected, err := git_model.IsProtectedBranch(repo.ID, branchName)
+	isProtected, err := git_model.IsBranchProtected(ctx, repo.ID, branchName)
 	if err != nil {
 		return err
 	}
-
 	if isProtected {
-		return ErrBranchIsProtected
+		return git_model.ErrBranchIsProtected
 	}
 
 	commit, err := gitRepo.GetBranchCommit(branchName)
@@ -186,7 +188,7 @@ func DeleteBranch(doer *user_model.User, repo *repo_model.Repository, gitRepo *g
 	// Don't return error below this
 	if err := PushUpdate(
 		&repo_module.PushUpdateOptions{
-			RefFullName:  git.BranchPrefix + branchName,
+			RefFullName:  git.RefNameFromBranch(branchName),
 			OldCommitID:  commit.ID.String(),
 			NewCommitID:  git.EmptySHA,
 			PusherID:     doer.ID,
@@ -197,7 +199,7 @@ func DeleteBranch(doer *user_model.User, repo *repo_model.Repository, gitRepo *g
 		log.Error("Update: %v", err)
 	}
 
-	if err := git_model.AddDeletedBranch(repo.ID, branchName, commit.ID.String(), doer.ID); err != nil {
+	if err := git_model.AddDeletedBranch(ctx, repo.ID, branchName, commit.ID.String(), doer.ID); err != nil {
 		log.Warn("AddDeletedBranch: %v", err)
 	}
 

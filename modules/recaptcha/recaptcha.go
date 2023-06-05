@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package recaptcha
 
@@ -37,7 +36,7 @@ func Verify(ctx context.Context, response string) (bool, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
 		util.URLJoin(setting.Service.RecaptchaURL, apiURL), strings.NewReader(post.Encode()))
 	if err != nil {
-		return false, fmt.Errorf("Failed to create CAPTCHA request: %v", err)
+		return false, fmt.Errorf("Failed to create CAPTCHA request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 

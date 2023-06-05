@@ -1,10 +1,10 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package helm
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -19,10 +19,11 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	helm_module "code.gitea.io/gitea/modules/packages/helm"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
 
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 func apiError(ctx *context.Context, status int, obj interface{}) {
@@ -39,8 +40,9 @@ func apiError(ctx *context.Context, status int, obj interface{}) {
 // Index generates the Helm charts index
 func Index(ctx *context.Context) {
 	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
-		OwnerID: ctx.Package.Owner.ID,
-		Type:    packages_model.TypeHelm,
+		OwnerID:    ctx.Package.Owner.ID,
+		Type:       packages_model.TypeHelm,
+		IsInternal: util.OptionalBoolFalse,
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -108,6 +110,7 @@ func DownloadPackageFile(ctx *context.Context) {
 			Value:      ctx.Params("package"),
 		},
 		HasFileWithName: filename,
+		IsInternal:      util.OptionalBoolFalse,
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -135,7 +138,10 @@ func DownloadPackageFile(ctx *context.Context) {
 	}
 	defer s.Close()
 
-	ctx.ServeStream(s, pf.Name)
+	ctx.ServeContent(s, &context.ServeHeaderOptions{
+		Filename:     pf.Name,
+		LastModified: pf.CreatedUnix.AsLocalTime(),
+	})
 }
 
 // UploadPackage creates a new package
@@ -149,7 +155,7 @@ func UploadPackage(ctx *context.Context) {
 		defer upload.Close()
 	}
 
-	buf, err := packages_module.CreateHashedBufferFromReader(upload, 32*1024*1024)
+	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -158,7 +164,11 @@ func UploadPackage(ctx *context.Context) {
 
 	metadata, err := helm_module.ParseChartArchive(buf)
 	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
+		if errors.Is(err, util.ErrInvalidArgument) {
+			apiError(ctx, http.StatusBadRequest, err)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
 		return
 	}
 
@@ -183,17 +193,21 @@ func UploadPackage(ctx *context.Context) {
 			PackageFileInfo: packages_service.PackageFileInfo{
 				Filename: createFilename(metadata),
 			},
+			Creator:           ctx.Doer,
 			Data:              buf,
 			IsLead:            true,
 			OverwriteExisting: true,
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrDuplicatePackageVersion {
+		switch err {
+		case packages_model.ErrDuplicatePackageVersion:
 			apiError(ctx, http.StatusConflict, err)
-			return
+		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			apiError(ctx, http.StatusForbidden, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
 		}
-		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 

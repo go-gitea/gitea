@@ -1,49 +1,43 @@
 import $ from 'jquery';
-import Vue from 'vue';
+import {createApp} from 'vue';
 import ContextPopup from '../components/ContextPopup.vue';
 import {parseIssueHref} from '../utils.js';
+import {createTippy} from '../modules/tippy.js';
 
-export default function initContextPopups() {
+export function initContextPopups() {
   const refIssues = $('.ref-issue');
-  if (!refIssues.length) return;
+  attachRefIssueContextPopup(refIssues);
+}
 
-  refIssues.each(function () {
-    if ($(this).hasClass('ref-external-issue')) {
+export function attachRefIssueContextPopup(refIssues) {
+  for (const refIssue of refIssues) {
+    if (refIssue.classList.contains('ref-external-issue')) {
       return;
     }
 
-    const {owner, repo, index} = parseIssueHref($(this).attr('href'));
+    const {owner, repo, index} = parseIssueHref(refIssue.getAttribute('href'));
     if (!owner) return;
 
     const el = document.createElement('div');
-    el.className = 'ui custom popup hidden';
-    el.innerHTML = '<div></div>';
-    this.parentNode.insertBefore(el, this.nextSibling);
+    refIssue.parentNode.insertBefore(el, refIssue.nextSibling);
 
-    const View = Vue.extend({
-      render: (createElement) => createElement(ContextPopup),
-    });
-
-    const view = new View();
+    const view = createApp(ContextPopup);
 
     try {
-      view.$mount(el.firstChild);
+      view.mount(el);
     } catch (err) {
       console.error(err);
       el.textContent = 'ContextPopup failed to load';
     }
 
-    $(this).popup({
-      variation: 'wide',
-      delay: {
-        show: 250
-      },
+    createTippy(refIssue, {
+      content: el,
+      placement: 'top-start',
+      interactive: true,
+      interactiveBorder: 5,
       onShow: () => {
-        view.$emit('load-context-popup', {owner, repo, index}, () => {
-          $(this).popup('reposition');
-        });
-      },
-      popup: $(el),
+        el.firstChild.dispatchEvent(new CustomEvent('ce-load-context-popup', {detail: {owner, repo, index}}));
+      }
     });
-  });
+  }
 }

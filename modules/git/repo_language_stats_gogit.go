@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 //go:build gogit
 
@@ -8,12 +7,10 @@ package git
 
 import (
 	"bytes"
-	"context"
 	"io"
 	"strings"
 
 	"code.gitea.io/gitea/modules/analyze"
-	"code.gitea.io/gitea/modules/log"
 
 	"github.com/go-enry/go-enry/v2"
 	"github.com/go-git/go-git/v5"
@@ -43,35 +40,18 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		return nil, err
 	}
 
-	var checker *CheckAttributeReader
+	checker, deferable := repo.CheckAttributeReader(commitID)
+	defer deferable()
 
-	if CheckGitVersionAtLeast("1.7.8") == nil {
-		indexFilename, workTree, deleteTemporaryFile, err := repo.ReadTreeToTemporaryIndex(commitID)
-		if err == nil {
-			defer deleteTemporaryFile()
-			checker = &CheckAttributeReader{
-				Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language", "gitlab-language"},
-				Repo:       repo,
-				IndexFile:  indexFilename,
-				WorkTree:   workTree,
-			}
-			ctx, cancel := context.WithCancel(DefaultContext)
-			if err := checker.Init(ctx); err != nil {
-				log.Error("Unable to open checker for %s. Error: %v", commitID, err)
-			} else {
-				go func() {
-					err = checker.Run()
-					if err != nil {
-						log.Error("Unable to open checker for %s. Error: %v", commitID, err)
-						cancel()
-					}
-				}()
-			}
-			defer cancel()
-		}
-	}
-
+	// sizes contains the current calculated size of all files by language
 	sizes := make(map[string]int64)
+	// by default we will only count the sizes of programming languages or markup languages
+	// unless they are explicitly set using linguist-language
+	includedLanguage := map[string]bool{}
+	// or if there's only one language in the repository
+	firstExcludedLanguage := ""
+	firstExcludedLanguageSize := int64(0)
+
 	err = tree.Files().ForEach(func(f *object.File) error {
 		if f.Size == 0 {
 			return nil
@@ -102,8 +82,8 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 						language = group
 					}
 
+					// this language will always be added to the size
 					sizes[language] += f.Size
-
 					return nil
 				} else if language, has := attrs["gitlab-language"]; has && language != "unspecified" && language != "" {
 					// strip off a ? if present
@@ -117,6 +97,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 							language = group
 						}
 
+						// this language will always be added to the size
 						sizes[language] += f.Size
 						return nil
 					}
@@ -151,7 +132,18 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 			language = group
 		}
 
-		sizes[language] += f.Size
+		included, checked := includedLanguage[language]
+		if !checked {
+			langtype := enry.GetLanguageType(language)
+			included = langtype == enry.Programming || langtype == enry.Markup
+			includedLanguage[language] = included
+		}
+		if included {
+			sizes[language] += f.Size
+		} else if len(sizes) == 0 && (firstExcludedLanguage == "" || firstExcludedLanguage == language) {
+			firstExcludedLanguage = language
+			firstExcludedLanguageSize += f.Size
+		}
 
 		return nil
 	})
@@ -159,17 +151,12 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		return nil, err
 	}
 
-	// filter special languages unless they are the only language
-	if len(sizes) > 1 {
-		for language := range sizes {
-			langtype := enry.GetLanguageType(language)
-			if langtype != enry.Programming && langtype != enry.Markup {
-				delete(sizes, language)
-			}
-		}
+	// If there are no included languages add the first excluded language
+	if len(sizes) == 0 && firstExcludedLanguage != "" {
+		sizes[firstExcludedLanguage] = firstExcludedLanguageSize
 	}
 
-	return sizes, nil
+	return mergeLanguageStats(sizes), nil
 }
 
 func readFile(f *object.File, limit int64) ([]byte, error) {

@@ -1,7 +1,6 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
 // Copyright 2016 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package organization
 
@@ -16,8 +15,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
-
-	"xorm.io/builder"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ___________
@@ -43,6 +41,10 @@ func (err ErrTeamAlreadyExist) Error() string {
 	return fmt.Sprintf("team already exists [org_id: %d, name: %s]", err.OrgID, err.Name)
 }
 
+func (err ErrTeamAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
 // ErrTeamNotExist represents a "TeamNotExist" error
 type ErrTeamNotExist struct {
 	OrgID  int64
@@ -58,6 +60,10 @@ func IsErrTeamNotExist(err error) bool {
 
 func (err ErrTeamNotExist) Error() string {
 	return fmt.Sprintf("team does not exist [org_id %d, team_id %d, name: %s]", err.OrgID, err.TeamID, err.Name)
+}
+
+func (err ErrTeamNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // OwnerTeamName return the owner team name
@@ -85,89 +91,18 @@ func init() {
 	db.RegisterModel(new(TeamUser))
 	db.RegisterModel(new(TeamRepo))
 	db.RegisterModel(new(TeamUnit))
+	db.RegisterModel(new(TeamInvite))
 }
 
-// SearchTeamOptions holds the search options
-type SearchTeamOptions struct {
-	db.ListOptions
-	UserID      int64
-	Keyword     string
-	OrgID       int64
-	IncludeDesc bool
-}
-
-// SearchTeam search for teams. Caller is responsible to check permissions.
-func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
-	if opts.Page <= 0 {
-		opts.Page = 1
-	}
-	if opts.PageSize == 0 {
-		// Default limit
-		opts.PageSize = 10
-	}
-
-	cond := builder.NewCond()
-
-	if len(opts.Keyword) > 0 {
-		lowerKeyword := strings.ToLower(opts.Keyword)
-		var keywordCond builder.Cond = builder.Like{"lower_name", lowerKeyword}
-		if opts.IncludeDesc {
-			keywordCond = keywordCond.Or(builder.Like{"LOWER(description)", lowerKeyword})
-		}
-		cond = cond.And(keywordCond)
-	}
-
-	cond = cond.And(builder.Eq{"org_id": opts.OrgID})
-
-	sess := db.GetEngine(db.DefaultContext)
-
-	count, err := sess.
-		Where(cond).
-		Count(new(Team))
-	if err != nil {
-		return nil, 0, err
-	}
-
-	sess = sess.Where(cond)
-	if opts.PageSize == -1 {
-		opts.PageSize = int(count)
-	} else {
-		sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
-	}
-
-	teams := make([]*Team, 0, opts.PageSize)
-	if err = sess.
-		OrderBy("lower_name").
-		Find(&teams); err != nil {
-		return nil, 0, err
-	}
-
-	return teams, count, nil
-}
-
-// ColorFormat provides a basic color format for a Team
-func (t *Team) ColorFormat(s fmt.State) {
+func (t *Team) LogString() string {
 	if t == nil {
-		log.ColorFprintf(s, "%d:%s (OrgID: %d) %-v",
-			log.NewColoredIDValue(0),
-			"<nil>",
-			log.NewColoredIDValue(0),
-			0)
-		return
+		return "<Team nil>"
 	}
-	log.ColorFprintf(s, "%d:%s (OrgID: %d) %-v",
-		log.NewColoredIDValue(t.ID),
-		t.Name,
-		log.NewColoredIDValue(t.OrgID),
-		t.AccessMode)
+	return fmt.Sprintf("<Team %d:%s OrgID=%d AccessMode=%s>", t.ID, t.Name, t.OrgID, t.AccessMode.LogString())
 }
 
-// GetUnits return a list of available units for a team
-func (t *Team) GetUnits() error {
-	return t.getUnits(db.DefaultContext)
-}
-
-func (t *Team) getUnits(ctx context.Context) (err error) {
+// LoadUnits load a list of available units for a team
+func (t *Team) LoadUnits(ctx context.Context) (err error) {
 	if t.Units != nil {
 		return nil
 	}
@@ -185,7 +120,7 @@ func (t *Team) GetUnitNames() (res []string) {
 	for _, u := range t.Units {
 		res = append(res, unit.Units[u.Type].NameKey)
 	}
-	return
+	return res
 }
 
 // GetUnitsMap returns the team units permissions
@@ -218,19 +153,19 @@ func (t *Team) IsMember(userID int64) bool {
 	return isMember
 }
 
-// GetRepositoriesCtx returns paginated repositories in team of organization.
-func (t *Team) GetRepositoriesCtx(ctx context.Context) (err error) {
+// LoadRepositories returns paginated repositories in team of organization.
+func (t *Team) LoadRepositories(ctx context.Context) (err error) {
 	if t.Repos != nil {
 		return nil
 	}
 	t.Repos, err = GetTeamRepositories(ctx, &SearchTeamRepoOptions{
 		TeamID: t.ID,
 	})
-	return
+	return err
 }
 
-// GetMembersCtx returns paginated members in team of organization.
-func (t *Team) GetMembersCtx(ctx context.Context) (err error) {
+// LoadMembers returns paginated members in team of organization.
+func (t *Team) LoadMembers(ctx context.Context) (err error) {
 	t.Members, err = GetTeamMembers(ctx, &SearchMembersOptions{
 		TeamID: t.ID,
 	})
@@ -238,19 +173,13 @@ func (t *Team) GetMembersCtx(ctx context.Context) (err error) {
 }
 
 // UnitEnabled returns if the team has the given unit type enabled
-func (t *Team) UnitEnabled(tp unit.Type) bool {
-	return t.UnitAccessMode(tp) > perm.AccessModeNone
+func (t *Team) UnitEnabled(ctx context.Context, tp unit.Type) bool {
+	return t.UnitAccessMode(ctx, tp) > perm.AccessModeNone
 }
 
 // UnitAccessMode returns if the team has the given unit type enabled
-// it is called in templates, should not be replaced by `UnitAccessModeCtx(ctx ...)`
-func (t *Team) UnitAccessMode(tp unit.Type) perm.AccessMode {
-	return t.UnitAccessModeCtx(db.DefaultContext, tp)
-}
-
-// UnitAccessModeCtx returns if the team has the given unit type enabled
-func (t *Team) UnitAccessModeCtx(ctx context.Context, tp unit.Type) perm.AccessMode {
-	if err := t.getUnits(ctx); err != nil {
+func (t *Team) UnitAccessMode(ctx context.Context, tp unit.Type) perm.AccessMode {
+	if err := t.LoadUnits(ctx); err != nil {
 		log.Warn("Error loading team (ID: %d) units: %s", t.ID, err.Error())
 	}
 
@@ -337,12 +266,8 @@ func GetTeamNamesByID(teamIDs []int64) ([]string, error) {
 	return teamNames, err
 }
 
-// GetRepoTeams gets the list of teams that has access to the repository
-func GetRepoTeams(ctx context.Context, repo *repo_model.Repository) (teams []*Team, err error) {
-	return teams, db.GetEngine(ctx).
-		Join("INNER", "team_repo", "team_repo.team_id = team.id").
-		Where("team.org_id = ?", repo.OwnerID).
-		And("team_repo.repo_id=?", repo.ID).
-		OrderBy("CASE WHEN name LIKE '" + OwnerTeamName + "' THEN '' ELSE name END").
-		Find(&teams)
+// IncrTeamRepoNum increases the number of repos for the given team by 1
+func IncrTeamRepoNum(ctx context.Context, teamID int64) error {
+	_, err := db.GetEngine(ctx).Incr("num_repos").ID(teamID).Update(new(Team))
+	return err
 }

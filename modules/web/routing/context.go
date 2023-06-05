@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package routing
 
@@ -25,7 +24,7 @@ func UpdateFuncInfo(ctx context.Context, funcInfo *FuncInfo) {
 	record.lock.Unlock()
 }
 
-// MarkLongPolling marks the reuqest is a long-polling request, and the logger may output different message for it
+// MarkLongPolling marks the request is a long-polling request, and the logger may output different message for it
 func MarkLongPolling(resp http.ResponseWriter, req *http.Request) {
 	record, ok := req.Context().Value(contextKey).(*requestRecord)
 	if !ok {

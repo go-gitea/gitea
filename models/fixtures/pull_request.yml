@@ -60,8 +60,8 @@
   head_repo_id: 1
   base_repo_id: 1
   head_branch: pr-to-update
-  base_branch: branch1
-  merge_base: 1234567890abcdef
+  base_branch: branch2
+  merge_base: 985f0301dba5e7b34be866819cd15ad3d8f508ee
   has_merged: false
 
 -

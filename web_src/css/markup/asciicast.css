@@ -1,0 +1,8 @@
+.asciinema-player-container {
+  width: 100%;
+  height: auto;
+}
+
+.asciinema-terminal {
+  overflow: hidden !important;
+}

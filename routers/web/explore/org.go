@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package explore
 
@@ -29,6 +28,10 @@ func Organizations(ctx *context.Context) {
 	visibleTypes := []structs.VisibleType{structs.VisibleTypePublic}
 	if ctx.Doer != nil {
 		visibleTypes = append(visibleTypes, structs.VisibleTypeLimited, structs.VisibleTypePrivate)
+	}
+
+	if ctx.FormString("sort") == "" {
+		ctx.SetFormString("sort", UserSearchDefaultSortType)
 	}
 
 	RenderUserSearch(ctx, &user_model.SearchUserOptions{

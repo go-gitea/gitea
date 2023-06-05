@@ -1,12 +1,12 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package webhook
 
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
 
 type (
@@ -54,7 +55,7 @@ type (
 		Wait      bool           `json:"wait"`
 		Content   string         `json:"content"`
 		Username  string         `json:"username"`
-		AvatarURL string         `json:"avatar_url"`
+		AvatarURL string         `json:"avatar_url,omitempty"`
 		TTS       bool           `json:"tts"`
 		Embeds    []DiscordEmbed `json:"embeds"`
 	}
@@ -111,7 +112,7 @@ var _ PayloadConvertor = &DiscordPayload{}
 // Create implements PayloadConvertor Create method
 func (d *DiscordPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 	// created tag/branch
-	refName := git.RefEndName(p.Ref)
+	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf("[%s] %s %s created", p.Repo.FullName, p.RefType, refName)
 
 	return d.createPayload(p.Sender, title, "", p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName), greenColor), nil
@@ -120,7 +121,7 @@ func (d *DiscordPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 // Delete implements PayloadConvertor Delete method
 func (d *DiscordPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
 	// deleted tag/branch
-	refName := git.RefEndName(p.Ref)
+	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf("[%s] %s %s deleted", p.Repo.FullName, p.RefType, refName)
 
 	return d.createPayload(p.Sender, title, "", p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName), redColor), nil
@@ -136,16 +137,16 @@ func (d *DiscordPayload) Fork(p *api.ForkPayload) (api.Payloader, error) {
 // Push implements PayloadConvertor Push method
 func (d *DiscordPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 	var (
-		branchName = git.RefEndName(p.Ref)
+		branchName = git.RefName(p.Ref).ShortName()
 		commitDesc string
 	)
 
 	var titleLink string
-	if len(p.Commits) == 1 {
+	if p.TotalCommits == 1 {
 		commitDesc = "1 new commit"
 		titleLink = p.Commits[0].URL
 	} else {
-		commitDesc = fmt.Sprintf("%d new commits", len(p.Commits))
+		commitDesc = fmt.Sprintf("%d new commits", p.TotalCommits)
 		titleLink = p.CompareURL
 	}
 	if titleLink == "" {
@@ -190,7 +191,7 @@ func (d *DiscordPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, 
 }
 
 // Review implements PayloadConvertor Review method
-func (d *DiscordPayload) Review(p *api.PullRequestPayload, event webhook_model.HookEventType) (api.Payloader, error) {
+func (d *DiscordPayload) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (api.Payloader, error) {
 	var text, title string
 	var color int
 	switch p.Action {
@@ -204,11 +205,11 @@ func (d *DiscordPayload) Review(p *api.PullRequestPayload, event webhook_model.H
 		text = p.Review.Content
 
 		switch event {
-		case webhook_model.HookEventPullRequestReviewApproved:
+		case webhook_module.HookEventPullRequestReviewApproved:
 			color = greenColor
-		case webhook_model.HookEventPullRequestReviewRejected:
+		case webhook_module.HookEventPullRequestReviewRejected:
 			color = redColor
-		case webhook_model.HookEventPullRequestComment:
+		case webhook_module.HookEventPullRequestReviewComment:
 			color = greyColor
 		default:
 			color = yellowColor
@@ -235,6 +236,19 @@ func (d *DiscordPayload) Repository(p *api.RepositoryPayload) (api.Payloader, er
 	return d.createPayload(p.Sender, title, "", url, color), nil
 }
 
+// Wiki implements PayloadConvertor Wiki method
+func (d *DiscordPayload) Wiki(p *api.WikiPayload) (api.Payloader, error) {
+	text, color, _ := getWikiPayloadInfo(p, noneLinkFormatter, false)
+	htmlLink := p.Repository.HTMLURL + "/wiki/" + url.PathEscape(p.Page)
+
+	var description string
+	if p.Action != api.HookWikiDeleted {
+		description = p.Comment
+	}
+
+	return d.createPayload(p.Sender, text, description, htmlLink, color), nil
+}
+
 // Release implements PayloadConvertor Release method
 func (d *DiscordPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 	text, color := getReleasePayloadInfo(p, noneLinkFormatter, false)
@@ -243,7 +257,7 @@ func (d *DiscordPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 }
 
 // GetDiscordPayload converts a discord webhook into a DiscordPayload
-func GetDiscordPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
+func GetDiscordPayload(p api.Payloader, event webhook_module.HookEventType, meta string) (api.Payloader, error) {
 	s := new(DiscordPayload)
 
 	discord := &DiscordMeta{}
@@ -256,14 +270,14 @@ func GetDiscordPayload(p api.Payloader, event webhook_model.HookEventType, meta 
 	return convertPayloader(s, p, event)
 }
 
-func parseHookPullRequestEventType(event webhook_model.HookEventType) (string, error) {
+func parseHookPullRequestEventType(event webhook_module.HookEventType) (string, error) {
 	switch event {
 
-	case webhook_model.HookEventPullRequestReviewApproved:
+	case webhook_module.HookEventPullRequestReviewApproved:
 		return "approved", nil
-	case webhook_model.HookEventPullRequestReviewRejected:
+	case webhook_module.HookEventPullRequestReviewRejected:
 		return "rejected", nil
-	case webhook_model.HookEventPullRequestComment:
+	case webhook_module.HookEventPullRequestReviewComment:
 		return "comment", nil
 
 	default:

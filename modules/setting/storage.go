@@ -1,21 +1,18 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
 import (
 	"path/filepath"
 	"reflect"
-
-	ini "gopkg.in/ini.v1"
 )
 
 // Storage represents configuration of storages
 type Storage struct {
 	Type        string
 	Path        string
-	Section     *ini.Section
+	Section     ConfigSection
 	ServeDirect bool
 }
 
@@ -31,9 +28,9 @@ func (s *Storage) MapTo(v interface{}) error {
 	return nil
 }
 
-func getStorage(name, typ string, targetSec *ini.Section) Storage {
+func getStorage(rootCfg ConfigProvider, name, typ string, targetSec ConfigSection) Storage {
 	const sectionName = "storage"
-	sec := Cfg.Section(sectionName)
+	sec := rootCfg.Section(sectionName)
 
 	// Global Defaults
 	sec.Key("MINIO_ENDPOINT").MustString("localhost:9000")
@@ -42,22 +39,24 @@ func getStorage(name, typ string, targetSec *ini.Section) Storage {
 	sec.Key("MINIO_BUCKET").MustString("gitea")
 	sec.Key("MINIO_LOCATION").MustString("us-east-1")
 	sec.Key("MINIO_USE_SSL").MustBool(false)
+	sec.Key("MINIO_INSECURE_SKIP_VERIFY").MustBool(false)
+	sec.Key("MINIO_CHECKSUM_ALGORITHM").MustString("default")
 
 	if targetSec == nil {
-		targetSec, _ = Cfg.NewSection(name)
+		targetSec, _ = rootCfg.NewSection(name)
 	}
 
 	var storage Storage
 	storage.Section = targetSec
 	storage.Type = typ
 
-	overrides := make([]*ini.Section, 0, 3)
-	nameSec, err := Cfg.GetSection(sectionName + "." + name)
+	overrides := make([]ConfigSection, 0, 3)
+	nameSec, err := rootCfg.GetSection(sectionName + "." + name)
 	if err == nil {
 		overrides = append(overrides, nameSec)
 	}
 
-	typeSec, err := Cfg.GetSection(sectionName + "." + typ)
+	typeSec, err := rootCfg.GetSection(sectionName + "." + typ)
 	if err == nil {
 		overrides = append(overrides, typeSec)
 		nextType := typeSec.Key("STORAGE_TYPE").String()

@@ -1,4 +1,4 @@
-export default async function createColorPicker($els) {
+export async function createColorPicker($els) {
   if (!$els || !$els.length) return;
 
   await Promise.all([

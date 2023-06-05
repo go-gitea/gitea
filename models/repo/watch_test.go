@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo_test
 
@@ -30,7 +29,7 @@ func TestIsWatching(t *testing.T) {
 func TestGetWatchers(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	watches, err := repo_model.GetWatchers(db.DefaultContext, repo.ID)
 	assert.NoError(t, err)
 	// One watchers are inactive, thus minus 1
@@ -47,7 +46,7 @@ func TestGetWatchers(t *testing.T) {
 func TestRepository_GetWatchers(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	watchers, err := repo_model.GetRepoWatchers(repo.ID, db.ListOptions{Page: 1})
 	assert.NoError(t, err)
 	assert.Len(t, watchers, repo.NumWatches)
@@ -55,7 +54,7 @@ func TestRepository_GetWatchers(t *testing.T) {
 		unittest.AssertExistsAndLoadBean(t, &repo_model.Watch{UserID: watcher.ID, RepoID: repo.ID})
 	}
 
-	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 9}).(*repo_model.Repository)
+	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 9})
 	watchers, err = repo_model.GetRepoWatchers(repo.ID, db.ListOptions{Page: 1})
 	assert.NoError(t, err)
 	assert.Len(t, watchers, 0)
@@ -64,7 +63,7 @@ func TestRepository_GetWatchers(t *testing.T) {
 func TestWatchIfAuto(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	watchers, err := repo_model.GetRepoWatchers(repo.ID, db.ListOptions{Page: 1})
 	assert.NoError(t, err)
 	assert.Len(t, watchers, repo.NumWatches)

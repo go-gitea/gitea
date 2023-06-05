@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package smtp
 
@@ -13,7 +12,6 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/mailer"
 )
 
 // Authenticate queries if the provided login/password is authenticates against the SMTP server
@@ -24,7 +22,7 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 		idx := strings.Index(userName, "@")
 		if idx == -1 {
 			return nil, user_model.ErrUserNotExist{Name: userName}
-		} else if !util.IsStringInSlice(userName[idx+1:], strings.Split(source.AllowedDomains, ","), true) {
+		} else if !util.SliceContainsString(strings.Split(source.AllowedDomains, ","), userName[idx+1:], true) {
 			return nil, user_model.ErrUserNotExist{Name: userName}
 		}
 	}
@@ -82,8 +80,6 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 	if err := user_model.CreateUser(user, overwriteDefault); err != nil {
 		return user, err
 	}
-
-	mailer.SendRegisterNotifyMail(user)
 
 	return user, nil
 }

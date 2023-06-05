@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package organization
 
@@ -38,7 +37,7 @@ type SearchTeamRepoOptions struct {
 }
 
 // GetRepositories returns paginated repositories in team of organization.
-func GetTeamRepositories(ctx context.Context, opts *SearchTeamRepoOptions) ([]*repo_model.Repository, error) {
+func GetTeamRepositories(ctx context.Context, opts *SearchTeamRepoOptions) (repo_model.RepositoryList, error) {
 	sess := db.GetEngine(ctx)
 	if opts.TeamID > 0 {
 		sess = sess.In("id",
@@ -55,7 +54,7 @@ func GetTeamRepositories(ctx context.Context, opts *SearchTeamRepoOptions) ([]*r
 		Find(&repos)
 }
 
-// AddTeamRepo addes a repo for an organization's team
+// AddTeamRepo adds a repo for an organization's team
 func AddTeamRepo(ctx context.Context, orgID, teamID, repoID int64) error {
 	_, err := db.GetEngine(ctx).Insert(&TeamRepo{
 		OrgID:  orgID,
@@ -81,5 +80,6 @@ func GetTeamsWithAccessToRepo(ctx context.Context, orgID, repoID int64, mode per
 		Join("INNER", "team_repo", "team_repo.team_id = team.id").
 		And("team_repo.org_id = ?", orgID).
 		And("team_repo.repo_id = ?", repoID).
+		OrderBy("name").
 		Find(&teams)
 }

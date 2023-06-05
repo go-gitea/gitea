@@ -2,9 +2,11 @@
 date: "2016-12-01T16:00:00+02:00"
 title: "原始碼安裝"
 slug: "install-from-source"
-weight: 10
+weight: 30
 toc: false
 draft: false
+aliases:
+  - /zh-tw/install-from-source
 menu:
   sidebar:
     parent: "installation"
@@ -26,7 +28,7 @@ go get -d -u code.gitea.io/gitea
 cd $GOPATH/src/code.gitea.io/gitea
 ```
 
-現在該決定您要編譯或安裝的 Gitea 版本，您有很多可以選擇。如果您想編譯 `master` 版本，你可以直接跳到[編譯章節](#build)，這是我們開發分支，雖然很穩定，但是不建議用在正式環境。
+現在該決定您要編譯或安裝的 Gitea 版本，您有很多可以選擇。如果您想編譯 `master` 版本，你可以直接跳到[編譯章節](#編譯)，這是我們開發分支，雖然很穩定，但是不建議用在正式環境。
 
 假如您想要編譯最新穩定版本，可以執行底下命令切換到正確版本:
 

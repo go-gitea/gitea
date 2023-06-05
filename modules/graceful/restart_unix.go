@@ -1,6 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
+
 // This code is heavily inspired by the archived gofacebook/gracenet/net.go handler
 
 //go:build !windows
@@ -12,9 +12,11 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 )
 
 var killParent sync.Once
@@ -69,11 +71,34 @@ func RestartProcess() (int, error) {
 	// Pass on the environment and replace the old count key with the new one.
 	var env []string
 	for _, v := range os.Environ() {
-		if !strings.HasPrefix(v, listenFDs+"=") {
+		if !strings.HasPrefix(v, listenFDsEnv+"=") {
 			env = append(env, v)
 		}
 	}
-	env = append(env, fmt.Sprintf("%s=%d", listenFDs, len(listeners)))
+	env = append(env, fmt.Sprintf("%s=%d", listenFDsEnv, len(listeners)))
+
+	if notifySocketAddr != "" {
+		env = append(env, fmt.Sprintf("%s=%s", notifySocketEnv, notifySocketAddr))
+	}
+
+	if watchdogTimeout != 0 {
+		watchdogStr := strconv.FormatInt(int64(watchdogTimeout/time.Millisecond), 10)
+		env = append(env, fmt.Sprintf("%s=%s", watchdogTimeoutEnv, watchdogStr))
+	}
+
+	sb := &strings.Builder{}
+	for i, unlink := range getActiveListenersToUnlink() {
+		if !unlink {
+			continue
+		}
+		_, _ = sb.WriteString(strconv.Itoa(i))
+		_, _ = sb.WriteString(",")
+	}
+	unlinkStr := sb.String()
+	if len(unlinkStr) > 0 {
+		unlinkStr = unlinkStr[:len(unlinkStr)-1]
+		env = append(env, fmt.Sprintf("%s=%s", unlinkFDsEnv, unlinkStr))
+	}
 
 	allFiles := append([]*os.File{os.Stdin, os.Stdout, os.Stderr}, files...)
 	process, err := os.StartProcess(argv0, os.Args, &os.ProcAttr{
@@ -84,5 +109,7 @@ func RestartProcess() (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return process.Pid, nil
+	processPid := process.Pid
+	_ = process.Release() // no wait, so release
+	return processPid, nil
 }

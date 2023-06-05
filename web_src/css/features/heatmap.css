@@ -1,0 +1,68 @@
+#user-heatmap {
+  width: 100%;
+  font-size: 9px;
+  position: relative;
+  min-height: 125px;
+}
+
+#user-heatmap text {
+  fill: currentcolor !important;
+}
+
+/* for the "Less" and "More" legend */
+#user-heatmap .vch__legend .vch__legend {
+  display: flex;
+  font-size: 11px;
+  align-items: center;
+  justify-content: right;
+}
+
+#user-heatmap .vch__legend .vch__legend div:first-child,
+#user-heatmap .vch__legend .vch__legend div:last-child {
+  display: inline-block;
+  padding: 0 5px;
+}
+
+/* move the "? contributions in the last ? months" text from top to bottom */
+#user-heatmap .total-contributions {
+  font-size: 11px;
+  position: absolute;
+  bottom: 0;
+  left: 25px;
+}
+
+@media (max-width: 1200px) {
+  #user-heatmap {
+    min-height: 105px;
+  }
+  #user-heatmap .total-contributions {
+    left: 21px;
+  }
+}
+
+@media (max-width: 1000px) {
+  #user-heatmap {
+    min-height: 80px;
+  }
+  #user-heatmap .total-contributions {
+    font-size: 10px;
+    left: 17px;
+    bottom: -4px;
+  }
+}
+
+.user.profile #user-heatmap {
+  min-height: 135px;
+}
+
+@media (max-width: 1200px) {
+  .user.profile #user-heatmap {
+    min-height: 115px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .user.profile #user-heatmap {
+    min-height: 90px;
+  }
+}

@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package util
 
@@ -224,11 +223,4 @@ func BenchmarkToUpper(b *testing.B) {
 func TestToTitleCase(t *testing.T) {
 	assert.Equal(t, ToTitleCase(`foo bar baz`), `Foo Bar Baz`)
 	assert.Equal(t, ToTitleCase(`FOO BAR BAZ`), `Foo Bar Baz`)
-}
-
-func TestDedent(t *testing.T) {
-	assert.Equal(t, Dedent(`
-		foo
-			bar
-	`), "foo\n\tbar")
 }

@@ -1,15 +1,13 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/auth"
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -23,7 +21,7 @@ const (
 
 // Applications render manage access token page
 func Applications(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings.applications")
 	ctx.Data["PageIsSettingsApplications"] = true
 
 	loadApplicationsData(ctx)
@@ -44,12 +42,18 @@ func ApplicationsPost(ctx *context.Context) {
 		return
 	}
 
-	t := &models.AccessToken{
-		UID:  ctx.Doer.ID,
-		Name: form.Name,
+	scope, err := form.GetScope()
+	if err != nil {
+		ctx.ServerError("GetScope", err)
+		return
+	}
+	t := &auth_model.AccessToken{
+		UID:   ctx.Doer.ID,
+		Name:  form.Name,
+		Scope: scope,
 	}
 
-	exist, err := models.AccessTokenByNameExists(t)
+	exist, err := auth_model.AccessTokenByNameExists(t)
 	if err != nil {
 		ctx.ServerError("AccessTokenByNameExists", err)
 		return
@@ -60,7 +64,7 @@ func ApplicationsPost(ctx *context.Context) {
 		return
 	}
 
-	if err := models.NewAccessToken(t); err != nil {
+	if err := auth_model.NewAccessToken(t); err != nil {
 		ctx.ServerError("NewAccessToken", err)
 		return
 	}
@@ -73,7 +77,7 @@ func ApplicationsPost(ctx *context.Context) {
 
 // DeleteApplication response for delete user access token
 func DeleteApplication(ctx *context.Context) {
-	if err := models.DeleteAccessTokenByID(ctx.FormInt64("id"), ctx.Doer.ID); err != nil {
+	if err := auth_model.DeleteAccessTokenByID(ctx.FormInt64("id"), ctx.Doer.ID); err != nil {
 		ctx.Flash.Error("DeleteAccessTokenByID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("settings.delete_token_success"))
@@ -85,20 +89,22 @@ func DeleteApplication(ctx *context.Context) {
 }
 
 func loadApplicationsData(ctx *context.Context) {
-	tokens, err := models.ListAccessTokens(models.ListAccessTokensOptions{UserID: ctx.Doer.ID})
+	ctx.Data["AccessTokenScopePublicOnly"] = auth_model.AccessTokenScopePublicOnly
+	tokens, err := auth_model.ListAccessTokens(auth_model.ListAccessTokensOptions{UserID: ctx.Doer.ID})
 	if err != nil {
 		ctx.ServerError("ListAccessTokens", err)
 		return
 	}
 	ctx.Data["Tokens"] = tokens
 	ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
+	ctx.Data["IsAdmin"] = ctx.Doer.IsAdmin
 	if setting.OAuth2.Enable {
-		ctx.Data["Applications"], err = auth.GetOAuth2ApplicationsByUserID(ctx, ctx.Doer.ID)
+		ctx.Data["Applications"], err = auth_model.GetOAuth2ApplicationsByUserID(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerError("GetOAuth2ApplicationsByUserID", err)
 			return
 		}
-		ctx.Data["Grants"], err = auth.GetOAuth2GrantsByUserID(ctx, ctx.Doer.ID)
+		ctx.Data["Grants"], err = auth_model.GetOAuth2GrantsByUserID(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerError("GetOAuth2GrantsByUserID", err)
 			return

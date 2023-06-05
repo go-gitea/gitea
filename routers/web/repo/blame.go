@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -13,7 +12,6 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -22,10 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-)
-
-const (
-	tplBlame base.TplName = "repo/home"
 )
 
 type blameRow struct {
@@ -40,7 +34,7 @@ type blameRow struct {
 	CommitMessage  string
 	CommitSince    gotemplate.HTML
 	Code           gotemplate.HTML
-	EscapeStatus   charset.EscapeStatus
+	EscapeStatus   *charset.EscapeStatus
 }
 
 // RefBlame render blame page
@@ -100,6 +94,8 @@ func RefBlame(ctx *context.Context) {
 	ctx.Data["FileName"] = blob.Name()
 
 	ctx.Data["NumLines"], err = blob.GetBlobLineCount()
+	ctx.Data["NumLinesSet"] = true
+
 	if err != nil {
 		ctx.NotFound("GetBlobLineCount", err)
 		return
@@ -139,7 +135,7 @@ func RefBlame(ctx *context.Context) {
 
 	renderBlame(ctx, blameParts, commitNames, previousCommits)
 
-	ctx.HTML(http.StatusOK, tplBlame)
+	ctx.HTML(http.StatusOK, tplRepoHome)
 }
 
 func processBlameParts(ctx *context.Context, blameParts []git.BlamePart) (map[string]*user_model.UserCommit, map[string]string) {
@@ -198,7 +194,7 @@ func processBlameParts(ctx *context.Context, blameParts []git.BlamePart) (map[st
 	}
 
 	// populate commit email addresses to later look up avatars.
-	for _, c := range user_model.ValidateCommitsWithEmails(commits) {
+	for _, c := range user_model.ValidateCommitsWithEmails(ctx, commits) {
 		commitNames[c.ID.String()] = c
 	}
 
@@ -235,7 +231,9 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 	}
 	lines := make([]string, 0)
 	rows := make([]*blameRow, 0)
-	escapeStatus := charset.EscapeStatus{}
+	escapeStatus := &charset.EscapeStatus{}
+
+	var lexerName string
 
 	i := 0
 	commitCnt := 0
@@ -255,13 +253,13 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 				commitCnt++
 
 				// User avatar image
-				commitSince := timeutil.TimeSinceUnix(timeutil.TimeStamp(commit.Author.When.Unix()), ctx.Locale.Language())
+				commitSince := timeutil.TimeSinceUnix(timeutil.TimeStamp(commit.Author.When.Unix()), ctx.Locale)
 
 				var avatar string
 				if commit.User != nil {
-					avatar = string(templates.Avatar(commit.User, 18, "mr-3"))
+					avatar = string(templates.Avatar(ctx, commit.User, 18, "gt-mr-3"))
 				} else {
-					avatar = string(templates.AvatarByEmail(commit.Author.Email, commit.Author.Name, 18, "mr-3"))
+					avatar = string(templates.AvatarByEmail(ctx, commit.Author.Email, commit.Author.Name, 18, "gt-mr-3"))
 				}
 
 				br.Avatar = gotemplate.HTML(avatar)
@@ -278,9 +276,15 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 				line += "\n"
 			}
 			fileName := fmt.Sprintf("%v", ctx.Data["FileName"])
-			line = highlight.Code(fileName, language, line)
+			line, lexerNameForLine := highlight.Code(fileName, language, line)
 
-			br.EscapeStatus, line = charset.EscapeControlString(line)
+			// set lexer name to the first detected lexer. this is certainly suboptimal and
+			// we should instead highlight the whole file at once
+			if lexerName == "" {
+				lexerName = lexerNameForLine
+			}
+
+			br.EscapeStatus, line = charset.EscapeControlHTML(line, ctx.Locale)
 			br.Code = gotemplate.HTML(line)
 			rows = append(rows, br)
 			escapeStatus = escapeStatus.Or(br.EscapeStatus)
@@ -290,4 +294,5 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 	ctx.Data["EscapeStatus"] = escapeStatus
 	ctx.Data["BlameRows"] = rows
 	ctx.Data["CommitCnt"] = commitCnt
+	ctx.Data["LexerName"] = lexerName
 }

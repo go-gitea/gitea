@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package conan
 
@@ -14,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	conan_model "code.gitea.io/gitea/models/packages/conan"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -33,20 +33,18 @@ const (
 	packageReferenceKey = "PackageReference"
 )
 
-type stringSet map[string]struct{}
-
 var (
-	recipeFileList = stringSet{
-		conanfileFile:       struct{}{},
-		"conanmanifest.txt": struct{}{},
-		"conan_sources.tgz": struct{}{},
-		"conan_export.tgz":  struct{}{},
-	}
-	packageFileList = stringSet{
-		conaninfoFile:       struct{}{},
-		"conanmanifest.txt": struct{}{},
-		"conan_package.tgz": struct{}{},
-	}
+	recipeFileList = container.SetOf(
+		conanfileFile,
+		"conanmanifest.txt",
+		"conan_sources.tgz",
+		"conan_export.tgz",
+	)
+	packageFileList = container.SetOf(
+		conaninfoFile,
+		"conanmanifest.txt",
+		"conan_package.tgz",
+	)
 )
 
 func jsonResponse(ctx *context.Context, status int, obj interface{}) {
@@ -268,7 +266,7 @@ func PackageUploadURLs(ctx *context.Context) {
 	)
 }
 
-func serveUploadURLs(ctx *context.Context, fileFilter stringSet, uploadURL string) {
+func serveUploadURLs(ctx *context.Context, fileFilter container.Set[string], uploadURL string) {
 	defer ctx.Req.Body.Close()
 
 	var files map[string]int64
@@ -279,7 +277,7 @@ func serveUploadURLs(ctx *context.Context, fileFilter stringSet, uploadURL strin
 
 	urls := make(map[string]string)
 	for file := range files {
-		if _, ok := fileFilter[file]; ok {
+		if fileFilter.Contains(file) {
 			urls[file] = fmt.Sprintf("%s/%s", uploadURL, file)
 		}
 	}
@@ -301,12 +299,12 @@ func UploadPackageFile(ctx *context.Context) {
 	uploadFile(ctx, packageFileList, pref.AsKey())
 }
 
-func uploadFile(ctx *context.Context, fileFilter stringSet, fileKey string) {
+func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey string) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 	pref := ctx.Data[packageReferenceKey].(*conan_module.PackageReference)
 
 	filename := ctx.Params("filename")
-	if _, ok := fileFilter[filename]; !ok {
+	if !fileFilter.Contains(filename) {
 		apiError(ctx, http.StatusBadRequest, nil)
 		return
 	}
@@ -320,7 +318,7 @@ func uploadFile(ctx *context.Context, fileFilter stringSet, fileKey string) {
 		defer upload.Close()
 	}
 
-	buf, err := packages_module.CreateHashedBufferFromReader(upload, 32*1024*1024)
+	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -342,16 +340,16 @@ func uploadFile(ctx *context.Context, fileFilter stringSet, fileKey string) {
 			Name:        rref.Name,
 			Version:     rref.Version,
 		},
-		SemverCompatible: true,
-		Creator:          ctx.Doer,
+		Creator: ctx.Doer,
 	}
 	pfci := &packages_service.PackageFileCreationInfo{
 		PackageFileInfo: packages_service.PackageFileInfo{
 			Filename:     strings.ToLower(filename),
 			CompositeKey: fileKey,
 		},
-		Data:   buf,
-		IsLead: isConanfileFile,
+		Creator: ctx.Doer,
+		Data:    buf,
+		IsLead:  isConanfileFile,
 		Properties: map[string]string{
 			conan_module.PropertyRecipeUser:     rref.User,
 			conan_module.PropertyRecipeChannel:  rref.Channel,
@@ -418,36 +416,39 @@ func uploadFile(ctx *context.Context, fileFilter stringSet, fileKey string) {
 		pfci,
 	)
 	if err != nil {
-		if err == packages_model.ErrDuplicatePackageFile {
+		switch err {
+		case packages_model.ErrDuplicatePackageFile:
 			apiError(ctx, http.StatusBadRequest, err)
-			return
+		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			apiError(ctx, http.StatusForbidden, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
 		}
-		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
 	ctx.Status(http.StatusCreated)
 }
 
-// DownloadRecipeFile serves the conent of the requested recipe file
+// DownloadRecipeFile serves the content of the requested recipe file
 func DownloadRecipeFile(ctx *context.Context) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
 	downloadFile(ctx, recipeFileList, rref.AsKey())
 }
 
-// DownloadPackageFile serves the conent of the requested package file
+// DownloadPackageFile serves the content of the requested package file
 func DownloadPackageFile(ctx *context.Context) {
 	pref := ctx.Data[packageReferenceKey].(*conan_module.PackageReference)
 
 	downloadFile(ctx, packageFileList, pref.AsKey())
 }
 
-func downloadFile(ctx *context.Context, fileFilter stringSet, fileKey string) {
+func downloadFile(ctx *context.Context, fileFilter container.Set[string], fileKey string) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
 	filename := ctx.Params("filename")
-	if _, ok := fileFilter[filename]; !ok {
+	if !fileFilter.Contains(filename) {
 		apiError(ctx, http.StatusBadRequest, nil)
 		return
 	}
@@ -475,7 +476,10 @@ func downloadFile(ctx *context.Context, fileFilter stringSet, fileKey string) {
 	}
 	defer s.Close()
 
-	ctx.ServeStream(s, pf.Name)
+	ctx.ServeContent(s, &context.ServeHeaderOptions{
+		Filename:     pf.Name,
+		LastModified: pf.CreatedUnix.AsLocalTime(),
+	})
 }
 
 // DeleteRecipeV1 deletes the requested recipe(s)
@@ -602,7 +606,7 @@ func DeletePackageV2(ctx *context.Context) {
 }
 
 func deleteRecipeOrPackage(apictx *context.Context, rref *conan_module.RecipeReference, ignoreRecipeRevision bool, pref *conan_module.PackageReference, ignorePackageRevision bool) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -644,10 +648,7 @@ func deleteRecipeOrPackage(apictx *context.Context, rref *conan_module.RecipeRef
 	}
 
 	for _, pf := range pfs {
-		if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeFile, pf.ID); err != nil {
-			return err
-		}
-		if err := packages_model.DeleteFileByID(ctx, pf.ID); err != nil {
+		if err := packages_service.DeletePackageFile(ctx, pf); err != nil {
 			return err
 		}
 	}
@@ -660,11 +661,7 @@ func deleteRecipeOrPackage(apictx *context.Context, rref *conan_module.RecipeRef
 	if !has {
 		versionDeleted = true
 
-		if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeVersion, pv.ID); err != nil {
-			return err
-		}
-
-		if err := packages_model.DeleteVersionByID(ctx, pv.ID); err != nil {
+		if err := packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
 			return err
 		}
 	}
@@ -674,7 +671,7 @@ func deleteRecipeOrPackage(apictx *context.Context, rref *conan_module.RecipeRef
 	}
 
 	if versionDeleted {
-		notification.NotifyPackageDelete(apictx.Doer, pd)
+		notification.NotifyPackageDelete(apictx, apictx.Doer, pd)
 	}
 
 	return nil
@@ -723,7 +720,7 @@ func listRevisions(ctx *context.Context, revisions []*conan_model.PropertyValue)
 
 	revs := make([]*revisionInfo, 0, len(revisions))
 	for _, rev := range revisions {
-		revs = append(revs, &revisionInfo{Revision: rev.Value, Time: time.Unix(int64(rev.CreatedUnix), 0)})
+		revs = append(revs, &revisionInfo{Revision: rev.Value, Time: rev.CreatedUnix.AsLocalTime()})
 	}
 
 	jsonResponse(ctx, http.StatusOK, &RevisionList{revs})
@@ -743,7 +740,7 @@ func LatestRecipeRevision(ctx *context.Context) {
 		return
 	}
 
-	jsonResponse(ctx, http.StatusOK, &revisionInfo{Revision: revision.Value, Time: time.Unix(int64(revision.CreatedUnix), 0)})
+	jsonResponse(ctx, http.StatusOK, &revisionInfo{Revision: revision.Value, Time: revision.CreatedUnix.AsLocalTime()})
 }
 
 // LatestPackageRevision gets the latest package revision
@@ -760,7 +757,7 @@ func LatestPackageRevision(ctx *context.Context) {
 		return
 	}
 
-	jsonResponse(ctx, http.StatusOK, &revisionInfo{Revision: revision.Value, Time: time.Unix(int64(revision.CreatedUnix), 0)})
+	jsonResponse(ctx, http.StatusOK, &revisionInfo{Revision: revision.Value, Time: revision.CreatedUnix.AsLocalTime()})
 }
 
 // ListRecipeRevisionFiles gets a list of all recipe revision files

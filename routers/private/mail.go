@@ -1,14 +1,15 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package private
 
 import (
+	stdCtx "context"
 	"fmt"
 	"net/http"
 	"strconv"
 
+	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
@@ -59,7 +60,7 @@ func SendEmail(ctx *context.PrivateContext) {
 			}
 		}
 	} else {
-		err := user_model.IterateUser(func(user *user_model.User) error {
+		err := db.Iterate(ctx, nil, func(ctx stdCtx.Context, user *user_model.User) error {
 			if len(user.Email) > 0 && user.IsActive {
 				emails = append(emails, user.Email)
 			}
@@ -80,7 +81,7 @@ func SendEmail(ctx *context.PrivateContext) {
 
 func sendEmail(ctx *context.PrivateContext, subject, message string, to []string) {
 	for _, email := range to {
-		msg := mailer.NewMessage([]string{email}, subject, message)
+		msg := mailer.NewMessage(email, subject, message)
 		mailer.SendAsync(msg)
 	}
 

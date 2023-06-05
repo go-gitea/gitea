@@ -1,15 +1,16 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package utils
 
 import (
+	gocontext "context"
 	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 )
 
 // ResolveRefOrSha resolve ref to sha if exist
@@ -19,6 +20,7 @@ func ResolveRefOrSha(ctx *context.APIContext, ref string) string {
 		return ""
 	}
 
+	sha := ref
 	// Search branches and tags
 	for _, refType := range []string{"heads", "tags"} {
 		refSHA, lastMethodName, err := searchRefCommitByType(ctx, refType, ref)
@@ -27,10 +29,21 @@ func ResolveRefOrSha(ctx *context.APIContext, ref string) string {
 			return ""
 		}
 		if refSHA != "" {
-			return refSHA
+			sha = refSHA
+			break
 		}
 	}
-	return ref
+
+	sha = MustConvertToSHA1(ctx, ctx.Repo, sha)
+
+	if ctx.Repo.GitRepo != nil {
+		err := ctx.Repo.GitRepo.AddLastCommitCache(ctx.Repo.Repository.GetCommitsCountCacheKey(ref, ref != sha), ctx.Repo.Repository.FullName(), sha)
+		if err != nil {
+			log.Error("Unable to get commits count for %s in %s. Error: %v", sha, ctx.Repo.Repository.FullName(), err)
+		}
+	}
+
+	return sha
 }
 
 // GetGitRefs return git references based on filter
@@ -54,4 +67,31 @@ func searchRefCommitByType(ctx *context.APIContext, refType, filter string) (str
 		return refs[0].Object.String(), "", nil // Return found SHA
 	}
 	return "", "", nil
+}
+
+// ConvertToSHA1 returns a full-length SHA1 from a potential ID string
+func ConvertToSHA1(ctx gocontext.Context, repo *context.Repository, commitID string) (git.SHA1, error) {
+	if len(commitID) == git.SHAFullLength && git.IsValidSHAPattern(commitID) {
+		sha1, err := git.NewIDFromString(commitID)
+		if err == nil {
+			return sha1, nil
+		}
+	}
+
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.Repository.RepoPath())
+	if err != nil {
+		return git.SHA1{}, fmt.Errorf("RepositoryFromContextOrOpen: %w", err)
+	}
+	defer closer.Close()
+
+	return gitRepo.ConvertToSHA1(commitID)
+}
+
+// MustConvertToSHA1 returns a full-length SHA1 string from a potential ID string, or returns origin input if it can't convert to SHA1
+func MustConvertToSHA1(ctx gocontext.Context, repo *context.Repository, commitID string) string {
+	sha, err := ConvertToSHA1(ctx, repo, commitID)
+	if err != nil {
+		return commitID
+	}
+	return sha.String()
 }

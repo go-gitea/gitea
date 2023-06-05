@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
@@ -12,10 +11,10 @@ import (
 
 	"code.gitea.io/gitea/models"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
@@ -31,9 +30,10 @@ const (
 
 // Account renders change user's password, user's email and user suicide page
 func Account(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings.account")
 	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.Doer.Email
+	ctx.Data["EnableNotifyMail"] = setting.Service.EnableNotifyMail
 
 	loadAccountData(ctx)
 
@@ -60,7 +60,7 @@ func AccountPost(ctx *context.Context) {
 	} else if form.Password != form.Retype {
 		ctx.Flash.Error(ctx.Tr("form.password_not_match"))
 	} else if !password.IsComplexEnough(form.Password) {
-		ctx.Flash.Error(password.BuildComplexityError(ctx))
+		ctx.Flash.Error(password.BuildComplexityError(ctx.Locale))
 	} else if pwned, err := password.IsPwned(ctx, form.Password); pwned || err != nil {
 		errMsg := ctx.Tr("auth.password_pwned")
 		if err != nil {
@@ -146,7 +146,7 @@ func EmailPost(ctx *context.Context) {
 				log.Error("Set cache(MailResendLimit) fail: %v", err)
 			}
 		}
-		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", address, timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())))
+		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", address, timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		return
 	}
@@ -155,7 +155,8 @@ func EmailPost(ctx *context.Context) {
 		preference := ctx.FormString("preference")
 		if !(preference == user_model.EmailNotificationsEnabled ||
 			preference == user_model.EmailNotificationsOnMention ||
-			preference == user_model.EmailNotificationsDisabled) {
+			preference == user_model.EmailNotificationsDisabled ||
+			preference == user_model.EmailNotificationsAndYourOwn) {
 			log.Error("Email notifications preference change returned unrecognized option %s: %s", preference, ctx.Doer.Name)
 			ctx.ServerError("SetEmailPreference", errors.New("option unrecognized"))
 			return
@@ -208,7 +209,7 @@ func EmailPost(ctx *context.Context) {
 				log.Error("Set cache(MailResendLimit) fail: %v", err)
 			}
 		}
-		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", email.Email, timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())))
+		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", email.Email, timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)))
 	} else {
 		ctx.Flash.Success(ctx.Tr("settings.add_email_success"))
 	}
@@ -247,7 +248,7 @@ func DeleteAccount(ctx *context.Context) {
 		return
 	}
 
-	if err := user.DeleteUser(ctx.Doer); err != nil {
+	if err := user.DeleteUser(ctx, ctx.Doer, false); err != nil {
 		switch {
 		case models.IsErrUserOwnRepos(err):
 			ctx.Flash.Error(ctx.Tr("form.still_own_repo"))

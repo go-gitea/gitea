@@ -1,14 +1,13 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package mailer
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -18,14 +17,14 @@ import (
 )
 
 // SendRepoTransferNotifyMail triggers a notification e-mail when a pending repository transfer was created
-func SendRepoTransferNotifyMail(doer, newOwner *user_model.User, repo *repo_model.Repository) error {
+func SendRepoTransferNotifyMail(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) error {
 	if setting.MailService == nil {
 		// No mail service configured
 		return nil
 	}
 
 	if newOwner.IsOrganization() {
-		users, err := organization.GetUsersWhoCanCreateOrgRepo(db.DefaultContext, newOwner.ID)
+		users, err := organization.GetUsersWhoCanCreateOrgRepo(ctx, newOwner.ID)
 		if err != nil {
 			return err
 		}
@@ -74,7 +73,7 @@ func sendRepoTransferNotifyMailPerLang(lang string, newOwner, doer *user_model.U
 		"Language":    locale.Language(),
 		"Destination": destination,
 		// helper
-		"i18n":      locale,
+		"locale":    locale,
 		"Str2html":  templates.Str2html,
 		"DotEscape": templates.DotEscape,
 	}
@@ -83,9 +82,12 @@ func sendRepoTransferNotifyMailPerLang(lang string, newOwner, doer *user_model.U
 		return err
 	}
 
-	msg := NewMessage(emails, subject, content.String())
-	msg.Info = fmt.Sprintf("UID: %d, repository pending transfer notification", newOwner.ID)
+	for _, to := range emails {
+		msg := NewMessage(to, subject, content.String())
+		msg.Info = fmt.Sprintf("UID: %d, repository pending transfer notification", newOwner.ID)
 
-	SendAsync(msg)
+		SendAsync(msg)
+	}
+
 	return nil
 }

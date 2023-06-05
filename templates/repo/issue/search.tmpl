@@ -1,11 +1,16 @@
-<form class="ui form ignore-dirty">
-	<div class="ui search fluid action input">
-		<input type="hidden" name="type" value="{{$.ViewType}}"/>
-		<input type="hidden" name="state" value="{{$.State}}"/>
-		<input type="hidden" name="labels" value="{{.SelectLabels}}"/>
-		<input type="hidden" name="milestone" value="{{$.MilestoneID}}"/>
-		<input type="hidden" name="assignee" value="{{$.AssigneeID}}"/>
-		<input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "explore.search"}}...">
-		<button class="ui primary button" type="submit">{{.i18n.Tr "explore.search"}}</button>
+<form class="list-header-search ui form ignore-dirty">
+	<div class="ui small search fluid action input">
+		<input type="hidden" name="type" value="{{$.ViewType}}">
+		<input type="hidden" name="state" value="{{$.State}}">
+		<input type="hidden" name="labels" value="{{.SelectLabels}}">
+		<input type="hidden" name="milestone" value="{{$.MilestoneID}}">
+		<input type="hidden" name="project" value="{{$.ProjectID}}">
+		<input type="hidden" name="assignee" value="{{$.AssigneeID}}">
+		<input type="hidden" name="poster" value="{{$.PosterID}}">
+		<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}..." maxlength="255">
+		{{if .PageIsIssueList}}
+			<button id="issue-list-quick-goto" class="ui small icon button gt-hidden" data-tooltip-content="{{.locale.Tr "explore.go_to"}}" data-repo-link="{{.RepoLink}}">{{svg "octicon-hash"}}</button>
+		{{end}}
+		<button class="ui small icon button" aria-label="{{.locale.Tr "explore.search"}}">{{svg "octicon-search"}}</button>
 	</div>
 </form>

@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
@@ -10,8 +9,6 @@ import (
 
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
-
-	ini "gopkg.in/ini.v1"
 )
 
 // LFS represents the configuration for Git LFS
@@ -26,29 +23,29 @@ var LFS = struct {
 	Storage
 }{}
 
-func newLFSService() {
-	sec := Cfg.Section("server")
+func loadLFSFrom(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("server")
 	if err := sec.MapTo(&LFS); err != nil {
 		log.Fatal("Failed to map LFS settings: %v", err)
 	}
 
-	lfsSec := Cfg.Section("lfs")
+	lfsSec := rootCfg.Section("lfs")
 	storageType := lfsSec.Key("STORAGE_TYPE").MustString("")
 
 	// Specifically default PATH to LFS_CONTENT_PATH
-	// FIXME: DEPRECATED to be removed in v1.18.0
-	deprecatedSetting("server", "LFS_CONTENT_PATH", "lfs", "PATH")
-	lfsSec.Key("PATH").MustString(
-		sec.Key("LFS_CONTENT_PATH").String())
+	// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
+	// if these are removed, the warning will not be shown
+	deprecatedSetting(rootCfg, "server", "LFS_CONTENT_PATH", "lfs", "PATH", "v1.19.0")
+	lfsSec.Key("PATH").MustString(sec.Key("LFS_CONTENT_PATH").String())
 
-	LFS.Storage = getStorage("lfs", storageType, lfsSec)
+	LFS.Storage = getStorage(rootCfg, "lfs", storageType, lfsSec)
 
 	// Rest of LFS service settings
 	if LFS.LocksPagingNum == 0 {
 		LFS.LocksPagingNum = 50
 	}
 
-	LFS.HTTPAuthExpiry = sec.Key("LFS_HTTP_AUTH_EXPIRY").MustDuration(20 * time.Minute)
+	LFS.HTTPAuthExpiry = sec.Key("LFS_HTTP_AUTH_EXPIRY").MustDuration(24 * time.Hour)
 
 	if LFS.StartServer {
 		LFS.JWTSecretBytes = make([]byte, 32)
@@ -62,9 +59,11 @@ func newLFSService() {
 			}
 
 			// Save secret
-			CreateOrAppendToCustomConf(func(cfg *ini.File) {
-				cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
-			})
+			sec.Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
+			if err := rootCfg.Save(); err != nil {
+				log.Fatal("Error saving JWT Secret for custom config: %v", err)
+				return
+			}
 		}
 	}
 }

@@ -1,15 +1,14 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package auth
 
 import (
 	"crypto/md5"
-	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base32"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -18,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
+	"github.com/minio/sha256-simd"
 	"github.com/pquerna/otp/totp"
 	"golang.org/x/crypto/pbkdf2"
 )
@@ -39,6 +39,11 @@ func IsErrTwoFactorNotEnrolled(err error) bool {
 
 func (err ErrTwoFactorNotEnrolled) Error() string {
 	return fmt.Sprintf("user not enrolled in 2FA [uid: %d]", err.UID)
+}
+
+// Unwrap unwraps this as a ErrNotExist err
+func (err ErrTwoFactorNotEnrolled) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // TwoFactor represents a two-factor authentication token.
@@ -74,7 +79,7 @@ func (t *TwoFactor) GenerateScratchToken() (string, error) {
 // HashToken return the hashable salt
 func HashToken(token, salt string) string {
 	tempHash := pbkdf2.Key([]byte(token), []byte(salt), 10000, 50, sha256.New)
-	return fmt.Sprintf("%x", tempHash)
+	return hex.EncodeToString(tempHash)
 }
 
 // VerifyScratchToken verifies if the specified scratch token is valid.

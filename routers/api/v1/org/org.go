@@ -1,23 +1,23 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package org
 
 import (
 	"net/http"
 
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/org"
 )
 
@@ -43,11 +43,11 @@ func listUserOrgs(ctx *context.APIContext, u *user_model.User) {
 
 	apiOrgs := make([]*api.Organization, len(orgs))
 	for i := range orgs {
-		apiOrgs[i] = convert.ToOrganization(orgs[i])
+		apiOrgs[i] = convert.ToOrganization(ctx, orgs[i])
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
-	ctx.SetTotalCountHeader(int64(maxResults))
+	ctx.SetTotalCountHeader(maxResults)
 	ctx.JSON(http.StatusOK, &apiOrgs)
 }
 
@@ -212,7 +212,7 @@ func GetAll(ctx *context.APIContext) {
 	}
 	orgs := make([]*api.Organization, len(publicOrgs))
 	for i := range publicOrgs {
-		orgs[i] = convert.ToOrganization(organization.OrgFromUser(publicOrgs[i]))
+		orgs[i] = convert.ToOrganization(ctx, organization.OrgFromUser(publicOrgs[i]))
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
@@ -275,7 +275,7 @@ func Create(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToOrganization(org))
+	ctx.JSON(http.StatusCreated, convert.ToOrganization(ctx, org))
 }
 
 // Get get an organization
@@ -299,7 +299,7 @@ func Get(ctx *context.APIContext) {
 		ctx.NotFound("HasOrgOrUserVisible", nil)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToOrganization(ctx.Org.Organization))
+	ctx.JSON(http.StatusOK, convert.ToOrganization(ctx, ctx.Org.Organization))
 }
 
 // Edit change an organization's information
@@ -345,7 +345,7 @@ func Edit(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToOrganization(org))
+	ctx.JSON(http.StatusOK, convert.ToOrganization(ctx, org))
 }
 
 // Delete an organization
@@ -370,4 +370,70 @@ func Delete(ctx *context.APIContext) {
 		return
 	}
 	ctx.Status(http.StatusNoContent)
+}
+
+func ListOrgActivityFeeds(ctx *context.APIContext) {
+	// swagger:operation GET /orgs/{org}/activities/feeds organization orgListActivityFeeds
+	// ---
+	// summary: List an organization's activity feeds
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the org
+	//   type: string
+	//   required: true
+	// - name: date
+	//   in: query
+	//   description: the date of the activities to be found
+	//   type: string
+	//   format: date
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ActivityFeedsList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	includePrivate := false
+	if ctx.IsSigned {
+		if ctx.Doer.IsAdmin {
+			includePrivate = true
+		} else {
+			org := organization.OrgFromUser(ctx.ContextUser)
+			isMember, err := org.IsOrgMember(ctx.Doer.ID)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
+				return
+			}
+			includePrivate = isMember
+		}
+	}
+
+	listOptions := utils.GetListOptions(ctx)
+
+	opts := activities_model.GetFeedsOptions{
+		RequestedUser:  ctx.ContextUser,
+		Actor:          ctx.Doer,
+		IncludePrivate: includePrivate,
+		Date:           ctx.FormString("date"),
+		ListOptions:    listOptions,
+	}
+
+	feeds, count, err := activities_model.GetFeeds(ctx, opts)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetFeeds", err)
+		return
+	}
+	ctx.SetTotalCountHeader(count)
+
+	ctx.JSON(http.StatusOK, convert.ToActivities(ctx, feeds, ctx.Doer))
 }

@@ -1,16 +1,16 @@
 {{template "base/head" .}}
-<div class="page-content repository commits">
+<div role="main" aria-label="{{.Title}}" class="page-content repository commits">
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "repo/sub_menu" .}}
-		<div class="ui secondary stackable menu mobile--margin-between-items">
-		{{template "repo/branch_dropdown" dict "root" .}}
-			<div class="fitted item">
+		<div class="repo-button-row gt-df gt-ac gt-sb gt-fw gt-mb-4 gt-mt-3">
+			<div class="gt-df gt-ac">
+				{{template "repo/branch_dropdown" dict "root" . "ContainerClasses" "gt-mr-2"}}
 				<a href="{{.RepoLink}}/graph" class="ui basic small compact button">
 					<span class="text">
 						{{svg "octicon-git-branch"}}
 					</span>
-					{{.i18n.Tr "repo.commit_graph"}}
+					{{.locale.Tr "repo.commit_graph"}}
 				</a>
 			</div>
 		</div>

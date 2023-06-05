@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package asymkey
 
@@ -33,7 +32,7 @@ type GPGKey struct {
 	OwnerID           int64              `xorm:"INDEX NOT NULL"`
 	KeyID             string             `xorm:"INDEX CHAR(16) NOT NULL"`
 	PrimaryKeyID      string             `xorm:"CHAR(16)"`
-	Content           string             `xorm:"TEXT NOT NULL"`
+	Content           string             `xorm:"MEDIUMTEXT NOT NULL"`
 	CreatedUnix       timeutil.TimeStamp `xorm:"created"`
 	ExpiredUnix       timeutil.TimeStamp
 	AddedUnix         timeutil.TimeStamp
@@ -61,6 +60,20 @@ func (key *GPGKey) AfterLoad(session *xorm.Session) {
 	if err != nil {
 		log.Error("Find Sub GPGkeys[%s]: %v", key.KeyID, err)
 	}
+}
+
+// PaddedKeyID show KeyID padded to 16 characters
+func (key *GPGKey) PaddedKeyID() string {
+	return PaddedKeyID(key.KeyID)
+}
+
+// PaddedKeyID show KeyID padded to 16 characters
+func PaddedKeyID(keyID string) string {
+	if len(keyID) > 15 {
+		return keyID
+	}
+	zeros := "0000000000000000"
+	return zeros[0:16-len(keyID)] + keyID
 }
 
 // ListGPGKeys returns a list of public keys belongs to given user.
@@ -217,7 +230,7 @@ func DeleteGPGKey(doer *user_model.User, id int64) (err error) {
 		if IsErrGPGKeyNotExist(err) {
 			return nil
 		}
-		return fmt.Errorf("GetPublicKeyByID: %v", err)
+		return fmt.Errorf("GetPublicKeyByID: %w", err)
 	}
 
 	// Check if user has access to delete this key.
@@ -225,7 +238,7 @@ func DeleteGPGKey(doer *user_model.User, id int64) (err error) {
 		return ErrGPGKeyAccessDenied{doer.ID, key.ID}
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

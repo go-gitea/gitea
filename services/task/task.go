@@ -1,13 +1,12 @@
 // Copyright 2019 Gitea. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package task
 
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/models"
+	admin_model "code.gitea.io/gitea/models/admin"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
@@ -24,10 +23,10 @@ import (
 )
 
 // taskQueue is a global queue of tasks
-var taskQueue queue.Queue
+var taskQueue *queue.WorkerPoolQueue[*admin_model.Task]
 
 // Run a task
-func Run(t *models.Task) error {
+func Run(t *admin_model.Task) error {
 	switch t.Type {
 	case structs.TaskTypeMigrateRepo:
 		return runMigrateTask(t)
@@ -38,20 +37,16 @@ func Run(t *models.Task) error {
 
 // Init will start the service to get all unfinished tasks and run them
 func Init() error {
-	taskQueue = queue.CreateQueue("task", handle, &models.Task{})
-
+	taskQueue = queue.CreateSimpleQueue(graceful.GetManager().ShutdownContext(), "task", handler)
 	if taskQueue == nil {
-		return fmt.Errorf("Unable to create Task Queue")
+		return fmt.Errorf("unable to create task queue")
 	}
-
-	go graceful.GetManager().RunWithShutdownFns(taskQueue.Run)
-
+	go graceful.GetManager().RunWithCancel(taskQueue)
 	return nil
 }
 
-func handle(data ...queue.Data) []queue.Data {
-	for _, datum := range data {
-		task := datum.(*models.Task)
+func handler(items ...*admin_model.Task) []*admin_model.Task {
+	for _, task := range items {
 		if err := Run(task); err != nil {
 			log.Error("Run task failed: %v", err)
 		}
@@ -70,7 +65,7 @@ func MigrateRepository(doer, u *user_model.User, opts base.MigrateOptions) error
 }
 
 // CreateMigrateTask creates a migrate task
-func CreateMigrateTask(doer, u *user_model.User, opts base.MigrateOptions) (*models.Task, error) {
+func CreateMigrateTask(doer, u *user_model.User, opts base.MigrateOptions) (*admin_model.Task, error) {
 	// encrypt credentials for persistence
 	var err error
 	opts.CloneAddrEncrypted, err = secret.EncryptSecret(setting.SecretKey, opts.CloneAddr)
@@ -93,19 +88,19 @@ func CreateMigrateTask(doer, u *user_model.User, opts base.MigrateOptions) (*mod
 		return nil, err
 	}
 
-	task := &models.Task{
+	task := &admin_model.Task{
 		DoerID:         doer.ID,
 		OwnerID:        u.ID,
 		Type:           structs.TaskTypeMigrateRepo,
-		Status:         structs.TaskStatusQueue,
+		Status:         structs.TaskStatusQueued,
 		PayloadContent: string(bs),
 	}
 
-	if err := models.CreateTask(task); err != nil {
+	if err := admin_model.CreateTask(task); err != nil {
 		return nil, err
 	}
 
-	repo, err := repo_module.CreateRepository(doer, u, models.CreateRepoOptions{
+	repo, err := repo_module.CreateRepository(doer, u, repo_module.CreateRepoOptions{
 		Name:           opts.RepoName,
 		Description:    opts.Description,
 		OriginalURL:    opts.OriginalURL,

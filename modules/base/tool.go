@@ -1,13 +1,11 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package base
 
 import (
 	"crypto/md5"
 	"crypto/sha1"
-	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
@@ -24,9 +22,9 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/dustin/go-humanize"
+	"github.com/minio/sha256-simd"
 )
 
 // EncodeMD5 encodes string to md5 hex value.
@@ -43,7 +41,7 @@ func EncodeSha1(str string) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-// EncodeSha256 string to sha1 hex value.
+// EncodeSha256 string to sha256 hex value.
 func EncodeSha256(str string) string {
 	h := sha256.New()
 	_, _ = h.Write([]byte(str))
@@ -143,61 +141,6 @@ func FileSize(s int64) string {
 	return humanize.IBytes(uint64(s))
 }
 
-// PrettyNumber produces a string form of the given number in base 10 with
-// commas after every three orders of magnitude
-func PrettyNumber(i interface{}) string {
-	return humanize.Comma(util.NumberIntoInt64(i))
-}
-
-// Subtract deals with subtraction of all types of number.
-func Subtract(left, right interface{}) interface{} {
-	var rleft, rright int64
-	var fleft, fright float64
-	isInt := true
-	switch v := left.(type) {
-	case int:
-		rleft = int64(v)
-	case int8:
-		rleft = int64(v)
-	case int16:
-		rleft = int64(v)
-	case int32:
-		rleft = int64(v)
-	case int64:
-		rleft = v
-	case float32:
-		fleft = float64(v)
-		isInt = false
-	case float64:
-		fleft = v
-		isInt = false
-	}
-
-	switch v := right.(type) {
-	case int:
-		rright = int64(v)
-	case int8:
-		rright = int64(v)
-	case int16:
-		rright = int64(v)
-	case int32:
-		rright = int64(v)
-	case int64:
-		rright = v
-	case float32:
-		fright = float64(v)
-		isInt = false
-	case float64:
-		fright = v
-		isInt = false
-	}
-
-	if isInt {
-		return rleft - rright
-	}
-	return fleft + float64(rleft) - (fright + float64(rright))
-}
-
 // EllipsisString returns a truncated short string,
 // it appends '...' in the end of the length of string is too large.
 func EllipsisString(str string, length int) string {
@@ -239,15 +182,6 @@ func Int64sToStrings(ints []int64) []string {
 		strs[i] = strconv.FormatInt(ints[i], 10)
 	}
 	return strs
-}
-
-// Int64sToMap converts a slice of int64 to a int64 map.
-func Int64sToMap(ints []int64) map[int64]bool {
-	m := make(map[int64]bool)
-	for _, i := range ints {
-		m[i] = true
-	}
-	return m
 }
 
 // Int64sContains returns if a int64 in a slice of int64

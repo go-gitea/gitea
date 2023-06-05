@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issues_test
 
@@ -8,20 +7,15 @@ import (
 	"path/filepath"
 	"testing"
 
-	_ "code.gitea.io/gitea/models"
 	issues_model "code.gitea.io/gitea/models/issues"
-	_ "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+
+	_ "code.gitea.io/gitea/models"
+	_ "code.gitea.io/gitea/models/repo"
 	_ "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func init() {
-	setting.SetCustomPathAndConf("", "", "")
-	setting.LoadForTest()
-}
 
 func TestFixturesAreConsistent(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())

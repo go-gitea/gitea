@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package forms
 
@@ -16,12 +15,13 @@ import (
 // NewBranchForm form for creating a new branch
 type NewBranchForm struct {
 	NewBranchName string `binding:"Required;MaxSize(100);GitRefName"`
+	CurrentPath   string
 	CreateTag     bool
 }
 
 // Validate validates the fields
 func (f *NewBranchForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -33,6 +33,6 @@ type RenameBranchForm struct {
 
 // Validate validates the fields
 func (f *RenameBranchForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

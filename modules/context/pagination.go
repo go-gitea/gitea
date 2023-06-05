@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package context
 
@@ -19,10 +18,11 @@ type Pagination struct {
 	urlParams []string
 }
 
-// NewPagination creates a new instance of the Pagination struct
-func NewPagination(total, page, issueNum, numPages int) *Pagination {
+// NewPagination creates a new instance of the Pagination struct.
+// "pagingNum" is "page size" or "limit", "current" is "page"
+func NewPagination(total, pagingNum, current, numPages int) *Pagination {
 	p := &Pagination{}
-	p.Paginater = paginator.New(total, page, issueNum, numPages)
+	p.Paginater = paginator.New(total, pagingNum, current, numPages)
 	return p
 }
 
@@ -52,7 +52,6 @@ func (p *Pagination) GetParams() template.URL {
 func (p *Pagination) SetDefaultParams(ctx *Context) {
 	p.AddParam(ctx, "sort", "SortType")
 	p.AddParam(ctx, "q", "Keyword")
-	p.AddParam(ctx, "tab", "TabName")
 	// do not add any more uncommon params here!
 	p.AddParam(ctx, "t", "queryType")
 }
