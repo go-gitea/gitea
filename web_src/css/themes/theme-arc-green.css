@@ -179,8 +179,8 @@
   --color-input-text: #dfe3ec;
   --color-input-background: #262b36;
   --color-input-toggle-background: #454a57;
-  --color-input-border: #454a57;
-  --color-input-border-hover: #454a57;
+  --color-input-border: var(--color-secondary);
+  --color-input-border-hover: var(--color-secondary);
   --color-navbar: #252935;
   --color-navbar-transparent: #272b3700;
   --color-light: #00000028;

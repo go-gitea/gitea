@@ -193,8 +193,8 @@
   --color-input-text: #212121;
   --color-input-background: #fafafa;
   --color-input-toggle-background: #dedede;
-  --color-input-border: #dedede;
-  --color-input-border-hover: #dedede;
+  --color-input-border: var(--color-secondary);
+  --color-input-border-hover: var(--color-secondary);
   --color-navbar: #f8f8f8;
   --color-navbar-transparent: #f8f8f800;
   --color-light: #00000006;
