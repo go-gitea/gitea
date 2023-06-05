@@ -5,6 +5,7 @@ package v1_20 //nolint
 
 import (
 	"fmt"
+	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -14,10 +15,11 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	"github.com/google/licensecheck"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
+
+	licenseclassifier "github.com/google/licenseclassifier/v2"
 )
 
 // Copy paste from models/repo.go because we cannot import models package
@@ -168,13 +170,40 @@ func detectLicenseByEntry(file *git.TreeEntry) ([]string, error) {
 	}
 
 	// check license
-	var licenses []string
-	cov := licensecheck.Scan(contentBuf)
-	for _, m := range cov.Match {
-		licenses = append(licenses, m.ID)
+	return detectLicense(contentBuf), nil
+}
+
+func detectLicense(buf []byte) []string {
+	if len(buf) == 0 {
+		return nil
 	}
 
-	return licenses, nil
+	var licenses []string
+	// TODO: load classfier in init
+	classifier := licenseclassifier.NewClassifier(.8)
+	licenseEntries, err := os.ReadDir("options/license")
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+
+	for _, le := range licenseEntries {
+		path := filepath.Join("options/license/" + le.Name())
+		b, err := os.ReadFile(path)
+		if err != nil {
+			fmt.Println(err)
+			return nil
+		}
+		classifier.AddContent("License", le.Name(), "license", b)
+	}
+
+	results := classifier.Match(buf)
+	for _, r := range results.Matches {
+		if r.MatchType == "License" {
+			licenses = append(licenses, r.Name)
+		}
+	}
+	return licenses
 }
 
 func AddRepositoryLicenses(x *xorm.Engine) error {

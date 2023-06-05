@@ -8,6 +8,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -16,7 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/google/licensecheck"
+	licenseclassifier "github.com/google/licenseclassifier/v2"
 )
 
 type licenseValues struct {
@@ -203,15 +206,45 @@ func detectLicenseByEntry(file *git.TreeEntry) ([]string, error) {
 	return detectLicense(contentBuf), nil
 }
 
+func ReadLicenseFile() ([]byte, error) {
+	fr, err := os.Open("licenses.db")
+	if err != nil {
+		return nil, fmt.Errorf("Can't open licenses.db: %w", err)
+	}
+	defer fr.Close()
+
+	return io.ReadAll(fr)
+}
+
 func detectLicense(buf []byte) []string {
 	if len(buf) == 0 {
 		return nil
 	}
 
 	var licenses []string
-	cov := licensecheck.Scan(buf)
-	for _, m := range cov.Match {
-		licenses = append(licenses, m.ID)
+	// TODO: load classfier in init
+	classifier := licenseclassifier.NewClassifier(.8)
+	licenseEntries, err := os.ReadDir("options/license")
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+
+	for _, le := range licenseEntries {
+		path := filepath.Join("options/license/" + le.Name())
+		b, err := os.ReadFile(path)
+		if err != nil {
+			fmt.Println(err)
+			return nil
+		}
+		classifier.AddContent("License", le.Name(), "license", b)
+	}
+
+	results := classifier.Match(buf)
+	for _, r := range results.Matches {
+		if r.MatchType == "License" {
+			licenses = append(licenses, r.Name)
+		}
 	}
 	return licenses
 }
