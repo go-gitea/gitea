@@ -240,10 +240,10 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 func cleanUpMigrateGitConfig(ctx context.Context, repoPath string) error {
 	cmd := git.NewCommand(ctx, "remote", "rm", "origin")
 	// if the origin does not exist
-	_, _, err := cmd.RunStdString(&git.RunOpts{
+	_, stderr, err := cmd.RunStdString(&git.RunOpts{
 		Dir: repoPath,
 	})
-	if err != nil && !strings.HasPrefix(err.Error(), "fatal: No such remote") {
+	if err != nil && !strings.HasPrefix(stderr, "fatal: No such remote") {
 		return err
 	}
 	return nil
