@@ -24,6 +24,7 @@ import (
 
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
@@ -33,6 +34,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
+	user_service "code.gitea.io/gitea/services/user"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/PuerkitoBio/goquery"
@@ -237,6 +239,21 @@ func emptyTestSession(t testing.TB) *TestSession {
 
 func getUserToken(t testing.TB, userName string, scope ...auth.AccessTokenScope) string {
 	return getTokenForLoggedInUser(t, loginUser(t, userName), scope...)
+}
+
+func createUser(t testing.TB, userName, email, password string) func() {
+	u := &user_model.User{
+		Name:               userName,
+		Email:              email,
+		Passwd:             password,
+		MustChangePassword: false,
+		LoginType:          auth.Plain,
+	}
+
+	assert.NoError(t, user_model.CreateUser(u, &user_model.CreateUserOverwriteOptions{}))
+	return func() {
+		assert.NoError(t, user_service.DeleteUser(context.Background(), u, true))
+	}
 }
 
 func loginUser(t testing.TB, userName string) *TestSession {
