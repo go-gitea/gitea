@@ -62,7 +62,8 @@ And there are some differences for permissions between individual repositories a
 For individual repositories, the creators are the only owners of repositories and have no limit to change anything of this
 repository or delete it. Repositories owners could add collaborators to help maintain the repositories. Collaborators could have `Read`, `Write` and `Admin` permissions.
 
-For a private repository, it's the same as anonymous visit a public repository. You can read all possible units of this repository. You can clone the code, post issues, reply issue comments, send a pull request and etc. With `Write` permission, you can push code to some branches of this repository if it's allowed by the branch protection rules. You can also change the wiki pages. With `Admin` permission, you can change the repository's settings.
+For a private repository, the experience is similar to visiting an anonymous public repository. You have access to all the available content within the repository, including the ability to clone the code, create issues, respond to issue comments, submit pull requests, and more. If you have 'Write' permission, you can push code to specific branches of the repository, provided it's permitted by the branch protection rules. Additionally, you can make changes to the wiki pages. With 'Admin' permission, you have the ability to modify the repository's settings.
+
 But you cannot delete or transfer this repository if you are not that repository's owner.
 
 ## Organization Repository
