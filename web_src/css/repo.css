@@ -3090,8 +3090,7 @@ tbody.commit-list {
 }
 
 .diff-file-header {
-  padding-top: 5px !important;
-  padding-bottom: 5px !important;
+  padding: 5px 8px !important;
 }
 
 .diff-file-box[data-folded="true"] .diff-file-body {
