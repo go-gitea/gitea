@@ -80,12 +80,10 @@
   background: transparent;
   border: none;
   color: var(--color-primary);
-  text-decoration: underline;
 }
 
 .button.button-link:active {
   background: transparent;
-  text-decoration: underline;
   color: var(--color-primary-active);
 }
 
