@@ -1225,6 +1225,11 @@
   height: 200px;
 }
 
+.milestone-progress-big {
+  width: min(420px, 96vw);
+  height: 10px;
+}
+
 .repository.compare.pull .show-form-container {
   text-align: left;
 }
