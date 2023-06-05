@@ -162,10 +162,12 @@ export default {
     }),
     new SourceMapDevToolPlugin({
       filename: '[file].[contenthash:8].map',
-      include: [
-        'js/index.js',
-        'css/index.css',
-      ],
+      ...(isProduction && {
+        include: [
+          'js/index.js',
+          'css/index.css',
+        ],
+      }),
     }),
     new MonacoWebpackPlugin({
       filename: 'js/monaco-[name].[contenthash:8].worker.js',
