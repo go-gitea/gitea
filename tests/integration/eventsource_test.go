@@ -60,7 +60,7 @@ func TestEventSourceManagerRun(t *testing.T) {
 	thread5 := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 5})
 	assert.NoError(t, thread5.LoadAttributes(db.DefaultContext))
 	session := loginUser(t, user2.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeNotification)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteNotification, auth_model.AccessTokenScopeWriteRepository)
 
 	var apiNL []api.NotificationThread
 

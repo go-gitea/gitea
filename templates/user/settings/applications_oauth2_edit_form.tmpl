@@ -39,8 +39,8 @@
 				<input id="application-name" value="{{.App.Name}}" name="application_name" required maxlength="255">
 			</div>
 			<div class="field {{if .Err_RedirectURI}}error{{end}}">
-				<label for="redirect-uri">{{.locale.Tr "settings.oauth2_redirect_uri"}}</label>
-				<input type="url" name="redirect_uri" value="{{.App.PrimaryRedirectURI}}" id="redirect-uri" required>
+				<label for="redirect-uris">{{.locale.Tr "settings.oauth2_redirect_uris"}}</label>
+				<textarea name="redirect_uris" id="redirect-uris" required>{{StringUtils.Join .App.RedirectURIs "\n"}}</textarea>
 			</div>
 			<div class="field ui checkbox {{if .Err_ConfidentialClient}}error{{end}}">
 				<label>{{.locale.Tr "settings.oauth2_confidential_client"}}</label>

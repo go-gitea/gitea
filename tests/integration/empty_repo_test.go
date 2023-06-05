@@ -117,7 +117,7 @@ func TestEmptyRepoAddFileByAPI(t *testing.T) {
 	assert.NoError(t, err)
 
 	session := loginUser(t, "user30")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 	url := fmt.Sprintf("/api/v1/repos/user30/empty/contents/new-file.txt?token=%s", token)
 	req := NewRequestWithJSON(t, "POST", url, &api.CreateFileOptions{
