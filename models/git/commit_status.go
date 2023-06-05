@@ -64,10 +64,32 @@ func postgresGetCommitStatusIndex(ctx context.Context, repoID int64, sha string)
 	return strconv.ParseInt(string(res[0]["max_index"]), 10, 64)
 }
 
+func mysqlGetCommitStatusIndex(ctx context.Context, repoID int64, sha string) (int64, error) {
+	if _, err := db.GetEngine(ctx).Exec("INSERT INTO `commit_status_index` (repo_id, sha, max_index) "+
+		"VALUES (?,?,1) ON DUPLICATE KEY UPDATE max_index = max_index+1",
+		repoID, sha); err != nil {
+		return 0, err
+	}
+
+	var idx int64
+	_, err := db.GetEngine(ctx).SQL("SELECT max_index FROM `commit_status_index` WHERE repo_id = ? AND sha = ?",
+		repoID, sha).Get(&idx)
+	if err != nil {
+		return 0, err
+	}
+	if idx == 0 {
+		return 0, errors.New("cannot get the correct index")
+	}
+	return idx, nil
+}
+
 // GetNextCommitStatusIndex retried 3 times to generate a resource index
 func GetNextCommitStatusIndex(ctx context.Context, repoID int64, sha string) (int64, error) {
-	if setting.Database.Type.IsPostgreSQL() {
+	switch {
+	case setting.Database.Type.IsPostgreSQL():
 		return postgresGetCommitStatusIndex(ctx, repoID, sha)
+	case setting.Database.Type.IsMySQL():
+		return mysqlGetCommitStatusIndex(ctx, repoID, sha)
 	}
 
 	e := db.GetEngine(ctx)
@@ -75,7 +97,7 @@ func GetNextCommitStatusIndex(ctx context.Context, repoID int64, sha string) (in
 	// try to update the max_index to next value, and acquire the write-lock for the record
 	res, err := e.Exec("UPDATE `commit_status_index` SET max_index=max_index+1 WHERE repo_id=? AND sha=?", repoID, sha)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("update failed: %w", err)
 	}
 	affected, err := res.RowsAffected()
 	if err != nil {
@@ -86,18 +108,18 @@ func GetNextCommitStatusIndex(ctx context.Context, repoID int64, sha string) (in
 		_, errIns := e.Exec("INSERT INTO `commit_status_index` (repo_id, sha, max_index) VALUES (?, ?, 0)", repoID, sha)
 		res, err = e.Exec("UPDATE `commit_status_index` SET max_index=max_index+1 WHERE repo_id=? AND sha=?", repoID, sha)
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("update2 failed: %w", err)
 		}
 		affected, err = res.RowsAffected()
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("RowsAffected failed: %w", err)
 		}
 		// if the update still can not update any records, the record must not exist and there must be some errors (insert error)
 		if affected == 0 {
 			if errIns == nil {
 				return 0, errors.New("impossible error when GetNextCommitStatusIndex, insert and update both succeeded but no record is updated")
 			}
-			return 0, errIns
+			return 0, fmt.Errorf("insert failed: %w", errIns)
 		}
 	}
 
@@ -105,7 +127,7 @@ func GetNextCommitStatusIndex(ctx context.Context, repoID int64, sha string) (in
 	var newIdx int64
 	has, err := e.SQL("SELECT max_index FROM `commit_status_index` WHERE repo_id=? AND sha=?", repoID, sha).Get(&newIdx)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("select failed: %w", err)
 	}
 	if !has {
 		return 0, errors.New("impossible error when GetNextCommitStatusIndex, upsert succeeded but no record can be selected")
