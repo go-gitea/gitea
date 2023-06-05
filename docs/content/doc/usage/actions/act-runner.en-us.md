@@ -177,7 +177,7 @@ To be clear, the "host" actually means the container which is running the act ru
 If you do not intend to use `actions/cache` in workflow, you can ignore this section.
 
 If you use `actions/cache` without any additional configuration, it will return the following error:
-> Failed to restore: getCacheEntry failed: connect ETIMEDOUT <ip>:<port>
+> Failed to restore: getCacheEntry failed: connect ETIMEDOUT IP:PORT
 
 The error occurs because the runner container and job container are on different networks, so the job container cannot access the runner container.
 
