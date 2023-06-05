@@ -64,13 +64,12 @@ export default {
       },
     },
 
-    // disabled because of https://github.com/go-gitea/gitea/issues/21355
-    // {
-    //   name: 'firefox',
-    //   use: {
-    //     ...devices['Desktop Firefox'],
-    //   },
-    // },
+    {
+      name: 'firefox',
+      use: {
+        ...devices['Desktop Firefox'],
+      },
+    },
 
     {
       name: 'webkit',
