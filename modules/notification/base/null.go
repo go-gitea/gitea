@@ -120,8 +120,8 @@ func (*NullNotifier) NotifyIssueChangeContent(ctx context.Context, doer *user_mo
 func (*NullNotifier) NotifyIssueChangeAssignee(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, assignee *user_model.User, removed bool, comment *issues_model.Comment) {
 }
 
-// NotifyPullReviewRequest places a place holder function
-func (*NullNotifier) NotifyPullReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
+// NotifyPullRequestReviewRequest places a place holder function
+func (*NullNotifier) NotifyPullRequestReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
 }
 
 // NotifyIssueClearLabels places a place holder function

@@ -6,7 +6,7 @@
 	{{if .PinnedIssues}}
 		<div id="issue-pins" {{if .IsRepoAdmin}}data-is-repo-admin{{end}}>
 			{{range .PinnedIssues}}
-				<div class="pinned-issue-card gt-word-break" data-move-url="{{$.Link}}/pin_move" data-issue-id="{{.ID}}">
+				<div class="pinned-issue-card gt-word-break" data-move-url="{{$.Link}}/move_pin" data-issue-id="{{.ID}}">
 					{{if eq $.Project.CardType 1}}
 						<div class="card-attachment-images">
 							{{range (index $.issuesAttachmentMap .ID)}}
@@ -21,7 +21,7 @@
 							</div>
 							<a class="pinned-issue-title muted issue-title" href="{{.Link}}">{{.Title | RenderEmoji $.Context | RenderCodeBlock}}</a>
 							{{if $.IsRepoAdmin}}
-								<a role="button" class="pinned-issue-unpin muted gt-df gt-ac" data-tooltip-content={{$.locale.Tr "repo.issues.unpin_issue"}} data-issue-id="{{.ID}}" data-unpin-url="{{$.Link}}/unpin/{{.ID}}">
+								<a role="button" class="pinned-issue-unpin muted gt-df gt-ac" data-tooltip-content={{$.locale.Tr "repo.issues.unpin_issue"}} data-issue-id="{{.ID}}" data-unpin-url="{{$.Link}}/unpin/{{.Index}}">
 									{{svg "octicon-x" 16}}
 								</a>
 							{{end}}
