@@ -28,7 +28,7 @@ func TestPackageNpm(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	token := fmt.Sprintf("Bearer %s", getTokenForLoggedInUser(t, loginUser(t, user.Name), auth_model.AccessTokenScopePackage))
+	token := fmt.Sprintf("Bearer %s", getTokenForLoggedInUser(t, loginUser(t, user.Name), auth_model.AccessTokenScopeWritePackage))
 
 	packageName := "@scope/test-package"
 	packageVersion := "1.0.1-pre"
