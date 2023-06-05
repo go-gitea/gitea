@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -26,7 +27,7 @@ func TestAPIUserSearchLoggedIn(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
 	session := loginUser(t, adminUsername)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
 	query := "user2"
 	req := NewRequestf(t, "GET", "/api/v1/users/search?token=%s&q=%s", token, query)
 	resp := MakeRequest(t, req, http.StatusOK)
@@ -65,7 +66,7 @@ func TestAPIUserSearchAdminLoggedInUserHidden(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
 	session := loginUser(t, adminUsername)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
 	query := "user31"
 	req := NewRequestf(t, "GET", "/api/v1/users/search?token=%s&q=%s", token, query)
 	req.SetBasicAuth(token, "x-oauth-basic")

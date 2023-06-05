@@ -35,7 +35,6 @@ import (
 	"code.gitea.io/gitea/services/forms"
 
 	"gitea.com/go-chi/session"
-	"gopkg.in/ini.v1"
 )
 
 const (
@@ -371,17 +370,11 @@ func SubmitInstall(ctx *context.Context) {
 	}
 
 	// Save settings.
-	cfg := ini.Empty()
-	isFile, err := util.IsFile(setting.CustomConf)
+	cfg, err := setting.NewConfigProviderFromFile(&setting.Options{CustomConf: setting.CustomConf, AllowEmpty: true})
 	if err != nil {
-		log.Error("Unable to check if %s is a file. Error: %v", setting.CustomConf, err)
+		log.Error("Failed to load custom conf '%s': %v", setting.CustomConf, err)
 	}
-	if isFile {
-		// Keeps custom settings if there is already something.
-		if err = cfg.Append(setting.CustomConf); err != nil {
-			log.Error("Failed to load custom conf '%s': %v", setting.CustomConf, err)
-		}
-	}
+
 	cfg.Section("database").Key("DB_TYPE").SetValue(setting.Database.Type.String())
 	cfg.Section("database").Key("HOST").SetValue(setting.Database.Host)
 	cfg.Section("database").Key("NAME").SetValue(setting.Database.Name)
