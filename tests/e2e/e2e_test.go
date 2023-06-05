@@ -75,7 +75,7 @@ func TestMain(m *testing.M) {
 
 // TestE2e should be the only test e2e necessary. It will collect all "*.test.e2e.js" files in this directory and build a test for each.
 func TestE2e(t *testing.T) {
-	browsers := []string{"chromium", "webkit", "Mobile Chrome", "Mobile Safari"}
+	browsers := []string{"chromium", "firefox", "webkit", "Mobile Chrome", "Mobile Safari"}
 
 	// Find the paths of all e2e test files in test test directory.
 	searchGlob := filepath.Join(filepath.Dir(setting.AppPath), "tests", "e2e", "*.test.e2e.js")
