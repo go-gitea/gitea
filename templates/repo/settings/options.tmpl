@@ -26,7 +26,7 @@
 				{{if not .Repository.IsFork}}
 					<div class="inline field">
 						<label>{{.locale.Tr "repo.visibility"}}</label>
-						<div class="ui checkbox">
+						<div class="ui checkbox{{if and (not .Repository.IsPrivate) (gt .Repository.NumStars 0)}} tooltip{{end}}" data-content="{{.locale.Tr "repo.stars_remove_warning"}}">
 							{{if .IsAdmin}}
 							<input name="private" type="checkbox" {{if .Repository.IsPrivate}}checked{{end}}>
 							{{else}}
