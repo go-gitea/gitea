@@ -182,6 +182,7 @@
   --color-input-border-hover: #505667;
   --color-navbar: #2a2e3a;
   --color-navbar-transparent: #2a2e3a00;
+  --color-navbar-hover: #434651;
   --color-light: #00000028;
   --color-light-mimic-enabled: rgba(0, 0, 0, calc(40 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #ffffff28;

@@ -196,6 +196,7 @@
   --color-input-border-hover: #cecece;
   --color-navbar: #f8f8f8;
   --color-navbar-transparent: #f8f8f800;
+  --color-navbar-hover: #ebebeb;
   --color-light: #00000006;
   --color-light-mimic-enabled: rgba(0, 0, 0, calc(6 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #0000001d;
@@ -974,6 +975,10 @@ img.ui.avatar,
 .following.bar #navbar {
   width: 100vw;
   min-height: 52px;
+}
+
+.following.bar #navbar a.item:hover {
+  background: var(--color-navbar-hover);
 }
 
 .following.bar #navbar .dropdown .avatar {
@@ -2129,19 +2134,26 @@ a.ui.basic.label:hover {
 }
 
 .notification_count {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   position: absolute;
-  left: 7px;
-  top: -9px;
-  min-width: 1.5em;
-  text-align: center;
+  left: 5px;
+  top: -8px;
+  min-width: 17px;
+  min-height: 17px;
   background: var(--color-primary);
   border: 2px solid var(--color-header-bar);
   color: var(--color-header-bar);
-  padding: 2.75px;
-  border-radius: 1em;
-  font-size: 11px;
+  border-radius: 17px;
+  padding: 0 3.5px;
+  font-size: 12px;
+  line-height: 12px;
   font-weight: var(--font-weight-bold);
-  line-height: .7;
+}
+
+.item:hover .notification_count {
+  border-color: var(--color-navbar-hover);;
 }
 
 .rss-icon {
