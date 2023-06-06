@@ -24,7 +24,7 @@
 
 <script>
 import {createApp} from 'vue';
-import {showElem} from '../utils/dom.js';
+import {hideElem, showElem} from '../utils/dom.js';
 
 const sfc = {
   props: {
@@ -77,14 +77,21 @@ const sfc = {
   methods: {
     onClickSubmit(e) {
       e.preventDefault();
+
+      const warningEl = document.getElementById('scoped-access-warning');
       // check that at least one scope has been selected
       for (const el of document.getElementsByClassName('scoped-access-token-input')) {
         if (el.value) {
+          // Hide the error if it was visible from previous attempt.
+          hideElem(warningEl);
+          // Submit the form.
           document.getElementById('scoped-access-form').submit();
+          // Don't show the warning.
+          return;
         }
       }
       // no scopes selected, show validation error
-      showElem(document.getElementById('scoped-access-warning'));
+      showElem(warningEl);
     }
   },
 };
