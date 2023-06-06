@@ -1,20 +1,24 @@
 details.toggleable-item summary {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 /* for specificity to outweigh the rule in base.css */
 .ui.menu details.toggleable-item {
-    user-select: none;
+  user-select: none;
 }
 
 details.toggleable-item summary::after {
-    transition: 0.2s;
-    content: '\203A'; /* chevron right */
-    font-size: 20px;
+  transition: transform 0.25s ease;
+  content: '';
+  width: 16px;
+  height: 16px;
+  mask-image: var(--octicon-chevron-right);
+  -webkit-mask-image: var(--octicon-chevron-right);
+  background: currentcolor;
 }
 
 details.toggleable-item[open] summary::after {
-    transform: rotate(90deg);
+  transform: rotate(90deg);
 }
