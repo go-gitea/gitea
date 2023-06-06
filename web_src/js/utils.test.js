@@ -2,7 +2,7 @@ import {expect, test} from 'vitest';
 import {
   basename, extname, isObject, stripTags, joinPaths, parseIssueHref,
   parseUrl, translateMonth, translateDay, blobToDataURI,
-  toAbsoluteUrl,
+  toAbsoluteUrl, encodeURLEncodedBase64, decodeURLEncodedBase64,
 } from './utils.js';
 
 test('basename', () => {
@@ -131,4 +131,10 @@ test('toAbsoluteUrl', () => {
   expect(toAbsoluteUrl('/user/repo')).toEqual('http://localhost:3000/user/repo');
 
   expect(() => toAbsoluteUrl('path')).toThrowError('unsupported');
+});
+
+test('encodeURLEncodedBase64, decodeURLEncodedBase64', () => {
+  expect(encodeURLEncodedBase64(decodeURLEncodedBase64('foo'))).toEqual('foo'); // No = padding
+  expect(encodeURLEncodedBase64(decodeURLEncodedBase64('a-minus'))).toEqual('a-minus');
+  expect(encodeURLEncodedBase64(decodeURLEncodedBase64('_underscorc'))).toEqual('_underscorc');
 });

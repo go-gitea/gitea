@@ -5,6 +5,7 @@
 				<h3 class="ui top attached header">
 				{{.locale.Tr "twofa"}}
 				</h3>
+				{{template "user/auth/webauthn_error" .}}
 				<div class="ui attached segment">
 					{{svg "octicon-key" 56}}
 					<h3>{{.locale.Tr "webauthn_insert_key"}}</h3>
@@ -18,5 +19,4 @@
 		</div>
 	</div>
 </div>
-{{template "user/auth/webauthn_error" .}}
 {{template "base/footer" .}}
