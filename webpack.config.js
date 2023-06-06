@@ -10,6 +10,7 @@ import {parse, dirname} from 'node:path';
 import webpack from 'webpack';
 import {fileURLToPath} from 'node:url';
 import {readFileSync} from 'node:fs';
+import {env} from 'node:process';
 
 const {EsbuildPlugin} = EsBuildLoader;
 const {SourceMapDevToolPlugin, DefinePlugin} = webpack;
@@ -25,7 +26,14 @@ for (const path of glob('web_src/css/themes/*.css')) {
   themes[parse(path).name] = [path];
 }
 
-const isProduction = process.env.NODE_ENV !== 'development';
+const isProduction = env.NODE_ENV !== 'development';
+
+let sourceMapEnabled;
+if ('ENABLE_SOURCEMAP' in env) {
+  sourceMapEnabled = env.ENABLE_SOURCEMAP === 'true';
+} else {
+  sourceMapEnabled = !isProduction;
+}
 
 const filterCssImport = (url, ...args) => {
   const cssFile = args[1] || args[0]; // resourcePath is 2nd argument for url and 3rd for import
@@ -122,7 +130,7 @@ export default {
           {
             loader: 'css-loader',
             options: {
-              sourceMap: true,
+              sourceMap: sourceMapEnabled,
               url: {filter: filterCssImport},
               import: {filter: filterCssImport},
             },
@@ -160,13 +168,9 @@ export default {
       filename: 'css/[name].css',
       chunkFilename: 'css/[name].[contenthash:8].css',
     }),
-    new SourceMapDevToolPlugin({
+    sourceMapEnabled && (new SourceMapDevToolPlugin({
       filename: '[file].[contenthash:8].map',
-      include: [
-        'js/index.js',
-        'css/index.css',
-      ],
-    }),
+    })),
     new MonacoWebpackPlugin({
       filename: 'js/monaco-[name].[contenthash:8].worker.js',
     }),
@@ -195,7 +199,7 @@ export default {
       emitError: true,
       allow: '(Apache-2.0 OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC OR CPAL-1.0 OR Unlicense OR EPL-1.0 OR EPL-2.0)',
     }) : new AddAssetPlugin('js/licenses.txt', `Licenses are disabled during development`),
-  ],
+  ].filter(Boolean),
   performance: {
     hints: false,
     maxEntrypointSize: Infinity,
