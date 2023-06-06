@@ -79,16 +79,16 @@
                   {{ locale.downloadLogs }}
                 </a>
                 <a class="item" @click="toggleTimeDisplay('seconds')">
-                  <i class="icon"><SvgIcon v-show="timeVisible['log-time-seconds']" name="octicon-check"/></i>
+                  <i class="icon"><SvgIcon :name="timeVisible['log-time-seconds'] ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
                   {{ locale.showLogSeconds }}
                 </a>
                 <a class="item" @click="toggleTimeDisplay('stamp')">
-                  <i class="icon"><SvgIcon v-show="timeVisible['log-time-stamp']" name="octicon-check"/></i>
+                  <i class="icon"><SvgIcon :name="timeVisible['log-time-stamp'] ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
                   {{ locale.showTimeStamps }}
                 </a>
                 <div class="divider"/>
                 <a class="item" @click="toggleFullScreen()">
-                  <i class="icon"><SvgIcon v-show="isFullScreen" name="octicon-check"/></i>
+                  <i class="icon"><SvgIcon :name="isFullScreen ? 'octicon-screen-normal' : 'octicon-screen-full'"/></i>
                   {{ locale.showFullScreen }}
                 </a>
               </div>
