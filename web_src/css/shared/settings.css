@@ -14,6 +14,11 @@ details.toggleable-item summary {
   padding: 0.92857143em 1.14285714em;
 }
 
+details.toggleable-item summary::marker, /* Chrome, Edge, Firefox */
+details.toggleable-item summary::-webkit-details-marker /* Safari */ {
+  display: none;
+}
+
 details.toggleable-item summary::after {
   transition: transform 0.25s ease;
   content: '';
