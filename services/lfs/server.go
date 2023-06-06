@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	auth_model "code.gitea.io/gitea/models/auth"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -423,7 +424,12 @@ func getAuthenticatedRepository(ctx *context.Context, rc *requestContext, requir
 		return nil
 	}
 
-	context.CheckRepoScopedToken(ctx, repository)
+	if requireWrite {
+		context.CheckRepoScopedToken(ctx, repository, auth_model.Write)
+	} else {
+		context.CheckRepoScopedToken(ctx, repository, auth_model.Read)
+	}
+
 	if ctx.Written() {
 		return nil
 	}

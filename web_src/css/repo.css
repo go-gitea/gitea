@@ -1225,6 +1225,11 @@
   height: 200px;
 }
 
+.milestone-progress-big {
+  width: min(420px, 96vw);
+  height: 10px;
+}
+
 .repository.compare.pull .show-form-container {
   text-align: left;
 }
@@ -2398,11 +2403,6 @@
   min-height: 50px !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
-}
-
-.settings .content > .header,
-.settings .content .segment {
-  box-shadow: 0 1px 2px 0 var(--color-box-header);
 }
 
 .settings.webhooks .list > .item:not(:first-child),
