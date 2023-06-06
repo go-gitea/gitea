@@ -1,15 +1,20 @@
-summary {
+details.toggleable-item summary {
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
-  
-summary::after {
+
+/* for specificity to outweigh the rule in base.css */
+.ui.menu details.toggleable-item {
+    user-select: none;
+}
+
+details.toggleable-item summary::after {
     transition: 0.2s;
     content: '\203A'; /* chevron right */
     font-size: 20px;
 }
 
-details[open] summary::after {
+details.toggleable-item[open] summary::after {
     transform: rotate(90deg);
 }
