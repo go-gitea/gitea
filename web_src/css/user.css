@@ -64,6 +64,15 @@
   margin-top: 25px;
 }
 
+.user.profile.packages .empty.list {
+  padding-top: 70px;
+  padding-bottom: 100px;
+}
+
+.user.profile.packages .search-input {
+  margin-top: 15px;
+}
+
 .user.profile .ui.repository.list .repo-title .labels {
   word-break: normal;
   flex-shrink: 0;

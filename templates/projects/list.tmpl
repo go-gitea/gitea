@@ -1,5 +1,5 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository projects">
-	<div class="ui container">
+	<div class="ui{{if .ContextUser.IsOrganization}} container{{end}}">
 		{{if .CanWriteProjects}}
 			<div class="navbar">
 				<div class="ui right">

@@ -1,24 +1,4 @@
-<!-- TODO: make template org and user can share -->
-{{if or (.IsPackagesPage) (.PageIsViewProjects)}}
-	{{with .ContextUser}}
-		<div class="ui container">
-		<div class="ui vertically grid head">
-			<div class="column">
-				<div class="ui header">
-					{{avatar $.Context . 100}}
-					<span class="text thin grey"><a href="{{.HomeLink}}">{{.DisplayName}}</a></span>
-					<span class="org-visibility">
-						{{if .Visibility.IsLimited}}<div class="ui medium basic horizontal label">{{$.locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
-						{{if .Visibility.IsPrivate}}<div class="ui medium basic horizontal label">{{$.locale.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
-					</span>
-				</div>
-			</div>
-		</div>
-	</div>
-	{{end}}
-{{end}}
-
-<div class="ui tabs container">
+<div class="ui tabs{{if or (.ContextUser.IsOrganization) (not .ctxData.PageIsViewProjects)}} container{{end}}">
 	<div class="ui secondary stackable pointing menu">
 		{{if .ProfileReadme}}
 		<a class='{{if or (eq .TabName "overview") (and (eq .TabName "") (not .IsPackagesPage) (not .PageIsViewProjects))}}active {{end}}item' href="{{.ContextUser.HomeLink}}?tab=overview">

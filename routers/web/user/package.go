@@ -36,6 +36,7 @@ const (
 
 // ListPackages displays a list of all packages of the context user
 func ListPackages(ctx *context.Context) {
+	shared_user.RenderProfileBigAvatar(ctx)
 	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1

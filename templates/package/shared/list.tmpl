@@ -1,6 +1,6 @@
-<div class="ui container">
+<div class="ui {{if .ContextUser.IsOrganization}} container{{end}}">
 	{{template "base/alert" .}}
-	<form class="ui form ignore-dirty">
+	<form class="ui form ignore-dirty search-input">
 		<div class="ui fluid action input">
 			<input name="q" value="{{.Query}}" placeholder="{{.locale.Tr "explore.search"}}..." autofocus>
 			<select class="ui dropdown" name="type">
@@ -37,7 +37,7 @@
 			</li>
 		{{else}}
 			{{if not .HasPackages}}
-				<div class="empty center">
+				<div class="empty list center">
 					{{svg "octicon-package" 32}}
 					<h2>{{.locale.Tr "packages.empty"}}</h2>
 					{{if and .Repository .CanWritePackages}}
