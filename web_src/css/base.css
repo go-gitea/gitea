@@ -194,7 +194,7 @@
   --color-input-background: #fafafa;
   --color-input-toggle-background: #dedede;
   --color-input-border: var(--color-secondary);
-  --color-input-border-hover: var(--color-secondary);
+  --color-input-border-hover: var(--color-secondary-dark-1);
   --color-navbar: #f8f8f8;
   --color-navbar-transparent: #f8f8f800;
   --color-light: #00000006;

@@ -180,7 +180,7 @@
   --color-input-background: #262b36;
   --color-input-toggle-background: #454a57;
   --color-input-border: var(--color-secondary);
-  --color-input-border-hover: var(--color-secondary);
+  --color-input-border-hover: var(--color-secondary-dark-1);
   --color-navbar: #252935;
   --color-navbar-transparent: #272b3700;
   --color-light: #00000028;
