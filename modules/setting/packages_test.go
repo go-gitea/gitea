@@ -91,7 +91,7 @@ func Test_PackageStorage3(t *testing.T) {
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 [packages]
 STORAGE_TYPE            = my_cfg
-MINIO_BASE_PATH = packages/
+MINIO_BASE_PATH = my_packages/
 SERVE_DIRECT = true
 
 [storage.my_cfg]
@@ -111,7 +111,7 @@ MINIO_SECRET_ACCESS_KEY = correct_key
 
 	assert.EqualValues(t, "minio", storage.Type)
 	assert.EqualValues(t, "gitea", storage.Section.Key("MINIO_BUCKET").String())
-	assert.EqualValues(t, "packages/", storage.Section.Key("MINIO_BASE_PATH").String())
+	assert.EqualValues(t, "my_packages/", storage.Section.Key("MINIO_BASE_PATH").String())
 	assert.True(t, storage.Section.Key("SERVE_DIRECT").MustBool(false))
 }
 
@@ -120,7 +120,7 @@ func Test_PackageStorage4(t *testing.T) {
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 [storage.packages]
 STORAGE_TYPE            = my_cfg
-MINIO_BASE_PATH = packages/
+MINIO_BASE_PATH = my_packages/
 SERVE_DIRECT = true
 
 [storage.my_cfg]
@@ -140,6 +140,6 @@ MINIO_SECRET_ACCESS_KEY = correct_key
 
 	assert.EqualValues(t, "minio", storage.Type)
 	assert.EqualValues(t, "gitea", storage.Section.Key("MINIO_BUCKET").String())
-	assert.EqualValues(t, "packages/", storage.Section.Key("MINIO_BASE_PATH").String())
-	assert.True(t, storage.Section.Key("SERVE_DIRECT").MustBool(false))
+	assert.EqualValues(t, "my_packages/", storage.Section.Key("MINIO_BASE_PATH").String())
+	assert.True(t, storage.ServeDirect)
 }

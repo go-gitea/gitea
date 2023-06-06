@@ -28,10 +28,10 @@ func (s *Storage) MapTo(v interface{}) error {
 	return nil
 }
 
-func getStorage(rootCfg ConfigProvider, name, typ string, targetSec ConfigSection) Storage {
-	const sectionName = "storage"
-	sec := rootCfg.Section(sectionName)
+const sectionName = "storage"
 
+func getDefaultStorageSec(rootCfg ConfigProvider) ConfigSection {
+	sec := rootCfg.Section(sectionName)
 	// Global Defaults
 	sec.Key("MINIO_ENDPOINT").MustString("localhost:9000")
 	sec.Key("MINIO_ACCESS_KEY_ID").MustString("")
@@ -41,7 +41,21 @@ func getStorage(rootCfg ConfigProvider, name, typ string, targetSec ConfigSectio
 	sec.Key("MINIO_USE_SSL").MustBool(false)
 	sec.Key("MINIO_INSECURE_SKIP_VERIFY").MustBool(false)
 	sec.Key("MINIO_CHECKSUM_ALGORITHM").MustString("default")
+	return sec
+}
 
+func getStorage(rootCfg ConfigProvider, name, typ string, targetSec ConfigSection) Storage {
+	defaultSec := getDefaultStorageSec(rootCfg)
+
+	overrides := make([]ConfigSection, 0, 3)
+	nameSec, err := rootCfg.GetSection(sectionName + "." + name)
+	if err == nil {
+		overrides = append(overrides, nameSec)
+	}
+
+	if targetSec == nil {
+		targetSec = nameSec
+	}
 	if targetSec == nil {
 		targetSec, _ = rootCfg.NewSection(name)
 	}
@@ -49,12 +63,6 @@ func getStorage(rootCfg ConfigProvider, name, typ string, targetSec ConfigSectio
 	var storage Storage
 	storage.Section = targetSec
 	storage.Type = typ
-
-	overrides := make([]ConfigSection, 0, 3)
-	nameSec, err := rootCfg.GetSection(sectionName + "." + name)
-	if err == nil {
-		overrides = append(overrides, nameSec)
-	}
 
 	typeSec, err := rootCfg.GetSection(sectionName + "." + typ)
 	if err == nil {
@@ -64,7 +72,7 @@ func getStorage(rootCfg ConfigProvider, name, typ string, targetSec ConfigSectio
 			storage.Type = nextType // Support custom STORAGE_TYPE
 		}
 	}
-	overrides = append(overrides, sec)
+	overrides = append(overrides, defaultSec)
 
 	for _, override := range overrides {
 		for _, key := range override.Keys() {
