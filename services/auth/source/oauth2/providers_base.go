@@ -22,7 +22,7 @@ func (b *BaseProvider) DisplayName() string {
 }
 
 // IconURL returns an icon path for this provider
-// Use svg for default image icons, providers_openid has its own Image function
+// Use svg for default icons, providers_openid has its own IconURL function
 func (b *BaseProvider) IconURL() string {
 	name := b.name
 	if b.name == "gplus" {
