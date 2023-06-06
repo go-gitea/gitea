@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // TrackedTime represents a time that was spent for a specific issue.
@@ -324,4 +325,53 @@ func GetTrackedTimeByID(id int64) (*TrackedTime, error) {
 		return nil, db.ErrNotExist{Resource: "tracked_time", ID: id}
 	}
 	return time, nil
+}
+
+// GetIssueTotalTrackedTime returns the total tracked time for issues by given conditions.
+func GetIssueTotalTrackedTime(opts *IssuesOptions, isClosed bool) (int64, error) {
+	if len(opts.IssueIDs) <= MaxQueryParameters {
+		return getIssueTotalTrackedTimeChunk(opts, isClosed, opts.IssueIDs)
+	}
+
+	// If too long a list of IDs is provided, we get the statistics in
+	// smaller chunks and get accumulates. Note: this could potentially
+	// get us invalid results. The alternative is to insert the list of
+	// ids in a temporary table and join from them.
+	var accum int64 = 0
+	for i := 0; i < len(opts.IssueIDs); {
+		chunk := i + MaxQueryParameters
+		if chunk > len(opts.IssueIDs) {
+			chunk = len(opts.IssueIDs)
+		}
+		time, err := getIssueTotalTrackedTimeChunk(opts, isClosed, opts.IssueIDs[i:chunk])
+		if err != nil {
+			return 0, err
+		}
+		accum += time
+		i = chunk
+	}
+	return accum, nil
+}
+
+func getIssueTotalTrackedTimeChunk(opts *IssuesOptions, isClosed bool, issueIDs []int64) (int64, error) {
+	sumSession := func(opts *IssuesOptions, issueIDs []int64) *xorm.Session {
+		sess := db.GetEngine(db.DefaultContext).
+			Table("tracked_time").
+			Where("tracked_time.deleted = ?", false).
+			Join("INNER", "issue", "tracked_time.issue_id = issue.id")
+
+		if len(issueIDs) > 0 {
+			sess.In("issue.id", issueIDs)
+		}
+
+		return applyIssueStatsOptions(sess, opts, nil)
+	}
+
+	type trackedTime struct {
+		Time int64
+	}
+
+	return sumSession(opts, issueIDs).
+		And("issue.is_closed = ?", isClosed).
+		SumInt(new(trackedTime), "tracked_time.time")
 }
