@@ -12,8 +12,10 @@ details.toggleable-item summary {
 details.toggleable-item summary::after {
   transition: transform 0.25s ease;
   content: '';
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
+  mask-size: cover;
+  -webkit-mask-size: cover;
   mask-image: var(--octicon-chevron-right);
   -webkit-mask-image: var(--octicon-chevron-right);
   background: currentcolor;
