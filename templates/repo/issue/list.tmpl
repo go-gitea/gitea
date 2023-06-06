@@ -83,7 +83,7 @@
 		</div>
 		<div id="issue-filters" class="issue-list-toolbar">
 			<div class="issue-list-toolbar-left">
-				{{if $.CanWriteIssuesOrPulls}}
+				{{if and ($.CanWriteIssuesOrPulls) (gt (len .Issues) 0)}}
 					<input type="checkbox" autocomplete="off" class="issue-checkbox-all gt-mr-4" title="{{.locale.Tr "repo.issues.action_check_all"}}">
 				{{end}}
 				{{template "repo/issue/openclose" .}}
