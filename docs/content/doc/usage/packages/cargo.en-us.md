@@ -1,6 +1,6 @@
 ---
 date: "2022-11-20T00:00:00+00:00"
-title: "Cargo Packages Repository"
+title: "Cargo Package Registry"
 slug: "cargo"
 weight: 5
 draft: false
@@ -13,7 +13,7 @@ menu:
     identifier: "cargo"
 ---
 
-# Cargo Packages Repository
+# Cargo Package Registry
 
 Publish [Cargo](https://doc.rust-lang.org/stable/cargo/) packages for your user or organization.
 
@@ -25,13 +25,13 @@ Publish [Cargo](https://doc.rust-lang.org/stable/cargo/) packages for your user 
 
 To work with the Cargo package registry, you need [Rust and Cargo](https://www.rust-lang.org/tools/install).
 
-Cargo stores informations about the available packages in a package index stored in a git repository.
+Cargo stores information about the available packages in a package index stored in a git repository.
 This repository is needed to work with the registry.
 The following section describes how to create it.
 
 ## Index Repository
 
-Cargo stores informations about the available packages in a package index stored in a git repository.
+Cargo stores information about the available packages in a package index stored in a git repository.
 In Gitea this repository has the special name `_cargo-index`.
 After a package was uploaded, its metadata is automatically written to the index.
 The content of this repository should not be manually modified.

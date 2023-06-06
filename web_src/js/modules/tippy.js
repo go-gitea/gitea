@@ -20,7 +20,7 @@ export function createTippy(target, opts = {}) {
     onShow: (instance) => {
       // hide other tooltip instances so only one tooltip shows at a time
       for (const visibleInstance of visibleInstances) {
-        if (visibleInstance.role === 'tooltip') {
+        if (visibleInstance.props.role === 'tooltip') {
           visibleInstance.hide();
         }
       }
@@ -58,10 +58,17 @@ function attachTooltip(target, content = null) {
   content = content ?? target.getAttribute('data-tooltip-content');
   if (!content) return null;
 
+  // when element has a clipboard target, we update the tooltip after copy
+  // in which case it is undesirable to automatically hide it on click as
+  // it would momentarily flash the tooltip out and in.
+  const hasClipboardTarget = target.hasAttribute('data-clipboard-target');
+  const hideOnClick = !hasClipboardTarget;
+
   const props = {
     content,
     delay: 100,
     role: 'tooltip',
+    hideOnClick,
     placement: target.getAttribute('data-tooltip-placement') || 'top-start',
     ...(target.getAttribute('data-tooltip-interactive') === 'true' ? {interactive: true, aria: {content: 'describedby', expanded: false}} : {}),
   };

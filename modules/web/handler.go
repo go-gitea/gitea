@@ -10,6 +10,7 @@ import (
 	"reflect"
 
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/web/routing"
 )
 
@@ -21,8 +22,12 @@ type ResponseStatusProvider interface {
 // TODO: decouple this from the context package, let the context package register these providers
 var argTypeProvider = map[reflect.Type]func(req *http.Request) ResponseStatusProvider{
 	reflect.TypeOf(&context.APIContext{}):     func(req *http.Request) ResponseStatusProvider { return context.GetAPIContext(req) },
-	reflect.TypeOf(&context.Context{}):        func(req *http.Request) ResponseStatusProvider { return context.GetContext(req) },
+	reflect.TypeOf(&context.Context{}):        func(req *http.Request) ResponseStatusProvider { return context.GetWebContext(req) },
 	reflect.TypeOf(&context.PrivateContext{}): func(req *http.Request) ResponseStatusProvider { return context.GetPrivateContext(req) },
+}
+
+func RegisterHandleTypeProvider[T any](fn func(req *http.Request) ResponseStatusProvider) {
+	argTypeProvider[reflect.TypeOf((*T)(nil)).Elem()] = fn
 }
 
 // responseWriter is a wrapper of http.ResponseWriter, to check whether the response has been written
@@ -78,7 +83,13 @@ func preCheckHandler(fn reflect.Value, argsIn []reflect.Value) {
 	}
 }
 
-func prepareHandleArgsIn(resp http.ResponseWriter, req *http.Request, fn reflect.Value) []reflect.Value {
+func prepareHandleArgsIn(resp http.ResponseWriter, req *http.Request, fn reflect.Value, fnInfo *routing.FuncInfo) []reflect.Value {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Error("unable to prepare handler arguments for %s: %v", fnInfo.String(), err)
+			panic(err)
+		}
+	}()
 	isPreCheck := req == nil
 
 	argsIn := make([]reflect.Value, fn.Type().NumIn())
@@ -155,7 +166,7 @@ func toHandlerProvider(handler any) func(next http.Handler) http.Handler {
 			}
 
 			// prepare the arguments for the handler and do pre-check
-			argsIn := prepareHandleArgsIn(resp, req, fn)
+			argsIn := prepareHandleArgsIn(resp, req, fn, funcInfo)
 			if req == nil {
 				preCheckHandler(fn, argsIn)
 				return // it's doing pre-check, just return
