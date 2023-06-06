@@ -10,17 +10,37 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/util"
 
 	licenseclassifier "github.com/google/licenseclassifier/v2"
 )
+
+var classifier *licenseclassifier.Classifier
+
+func init() {
+	// TODO: add threshold to app.ini
+	classifier = licenseclassifier.NewClassifier(.8)
+	licenseFiles, err := options.AssetFS().ListFiles("license", true)
+	if err != nil {
+		log.Error("init license classifier: %v", err)
+		return
+	}
+	for _, lf := range licenseFiles {
+		data, err := options.License(lf)
+		if err != nil {
+			log.Error("init license classifier: %v", err)
+			return
+		}
+		classifier.AddContent("License", lf, "license", data)
+	}
+}
 
 type licenseValues struct {
 	Owner string
@@ -220,31 +240,18 @@ func detectLicense(buf []byte) []string {
 	if len(buf) == 0 {
 		return nil
 	}
-
-	var licenses []string
-	// TODO: load classfier in init
-	classifier := licenseclassifier.NewClassifier(.8)
-	licenseEntries, err := os.ReadDir("options/license")
-	if err != nil {
-		fmt.Println(err)
+	if classifier == nil {
+		log.Error("detectLicense: license classifier is null.")
 		return nil
 	}
 
-	for _, le := range licenseEntries {
-		path := filepath.Join("options/license/" + le.Name())
-		b, err := os.ReadFile(path)
-		if err != nil {
-			fmt.Println(err)
-			return nil
-		}
-		classifier.AddContent("License", le.Name(), "license", b)
-	}
-
+	var licenses []string
 	results := classifier.Match(buf)
 	for _, r := range results.Matches {
 		if r.MatchType == "License" {
 			licenses = append(licenses, r.Name)
 		}
 	}
+	fmt.Println(licenses)
 	return licenses
 }
