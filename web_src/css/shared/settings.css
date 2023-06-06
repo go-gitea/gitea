@@ -1,0 +1,15 @@
+summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+  
+summary::after {
+    transition: 0.2s;
+    content: '\203A'; /* chevron right */
+    font-size: 20px;
+}
+
+details[open] summary::after {
+    transform: rotate(90deg);
+}
