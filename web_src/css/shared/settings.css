@@ -1,12 +1,17 @@
+details.toggleable-item {
+  user-select: none !important;
+  padding: 0 !important;
+}
+
+details.toggleable-item .menu {
+  margin: 4px 0 10px !important;
+}
+
 details.toggleable-item summary {
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-/* for specificity to outweigh the rule in base.css */
-.ui.menu details.toggleable-item {
-  user-select: none;
+  padding: 0.92857143em 1.14285714em;
 }
 
 details.toggleable-item summary::after {
@@ -19,6 +24,7 @@ details.toggleable-item summary::after {
   mask-image: var(--octicon-chevron-right);
   -webkit-mask-image: var(--octicon-chevron-right);
   background: currentcolor;
+  border: 1px solid var(--color-body); /* workaround https://bugzilla.mozilla.org/show_bug.cgi?id=1671784 */
 }
 
 details.toggleable-item[open] summary::after {

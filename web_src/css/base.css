@@ -535,7 +535,8 @@ a.label,
 }
 
 .ui.menu .dropdown.item:hover,
-.ui.menu a.item:hover {
+.ui.menu a.item:hover,
+.ui.menu details.item summary:hover {
   color: var(--color-text);
   background: var(--color-hover);
 }
