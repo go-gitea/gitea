@@ -493,9 +493,11 @@ var migrations = []Migration{
 	NewMigration("Add is_internal column to package", v1_20.AddIsInternalColumnToPackage),
 	// v257 -> v258
 	NewMigration("Add Actions Artifact table", v1_20.CreateActionArtifactTable),
-	// v258 -> v259
+	// v258 -> 259
 	NewMigration("Add PinOrder Column", v1_20.AddPinOrderToIssue),
-	// v259 -> v260
+	// v259 -> 260
+	NewMigration("Convert scoped access tokens", v1_20.ConvertScopedAccessTokens),
+	// v260 -> v261
 	NewMigration("Add TimeEstimate to issue table", v1_20.AddTimeEstimateColumnToIssueTable),
 	NewMigration("Add TimeTracked, TimeEstimate to comment table", v1_20.AddColumnsToCommentTable),
 }

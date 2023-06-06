@@ -3,6 +3,7 @@
 </h4>
 <div class="ui attached segment">
 	<p>{{.locale.Tr "settings.webauthn_desc" | Str2html}}</p>
+	{{template "user/auth/webauthn_error" .}}
 	<div class="ui key list">
 		{{range .WebAuthnCredentials}}
 			<div class="item">
@@ -28,7 +29,6 @@
 	</div>
 </div>
 
-{{template "user/auth/webauthn_error" .}}
 
 <div class="ui g-modal-confirm delete modal" id="delete-registration">
 	<div class="header">
