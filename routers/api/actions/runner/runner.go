@@ -57,8 +57,8 @@ func (s *Service) Register(
 	labels := req.Msg.Labels
 	// TODO: agent_labels should be not be used after Gitea 1.20 released.
 	// old version runner's agent_labels slice is not empty and labels slice is empty.
-	if len(req.Msg.AgentLabels) > 0 && len(req.Msg.Labels) == 0 {
-		labels = req.Msg.AgentLabels
+	if len(req.Msg.AgentLabels) > 0 && len(req.Msg.Labels) == 0 { //nolint
+		labels = req.Msg.AgentLabels //nolint
 	}
 
 	// create new runner

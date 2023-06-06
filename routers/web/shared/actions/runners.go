@@ -6,7 +6,6 @@ package actions
 import (
 	"errors"
 	"net/http"
-	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -176,10 +175,11 @@ func RunnerDeletePost(ctx *context.Context, runnerID int64,
 	})
 }
 
-func splitLabels(s string) []string {
-	labels := strings.Split(s, ",")
-	for i, v := range labels {
-		labels[i] = strings.TrimSpace(v)
-	}
-	return labels
-}
+// unused, so comment out
+// func splitLabels(s string) []string {
+// 	labels := strings.Split(s, ",")
+// 	for i, v := range labels {
+// 		labels[i] = strings.TrimSpace(v)
+// 	}
+// 	return labels
+// }
