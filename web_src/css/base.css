@@ -493,16 +493,13 @@ a.label,
   border-right-color: transparent;
 }
 
-.ui.action.input:not([class*="left action"]) > input {
-  border-right: none;
-}
-
+.ui.action.input:not([class*="left action"]) > input,
 .ui.action.input:not([class*="left action"]) > input:hover {
-  border-right: none;
+  border-right: 1px solid transparent;
 }
 
 .ui.action.input:not([class*="left action"]) > input:focus {
-  border-right: 1px solid var(--color-primary);
+  border-right-color: var(--color-primary);
 }
 
 /* fix button enlarged vertically by svg icon */
