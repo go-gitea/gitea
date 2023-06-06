@@ -37,7 +37,7 @@ type SearchTeamRepoOptions struct {
 }
 
 // GetRepositories returns paginated repositories in team of organization.
-func GetTeamRepositories(ctx context.Context, opts *SearchTeamRepoOptions) ([]*repo_model.Repository, error) {
+func GetTeamRepositories(ctx context.Context, opts *SearchTeamRepoOptions) (repo_model.RepositoryList, error) {
 	sess := db.GetEngine(ctx)
 	if opts.TeamID > 0 {
 		sess = sess.In("id",

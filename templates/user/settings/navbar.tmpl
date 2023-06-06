@@ -23,6 +23,9 @@
 		<div class="item">
 			{{.locale.Tr "actions.actions"}}
 			<div class="menu">
+				<a class="{{if .PageIsSharedSettingsRunners}}active {{end}}item" href="{{AppSubUrl}}/user/settings/actions/runners">
+					{{.locale.Tr "actions.runners"}}
+				</a>
 				<a class="{{if .PageIsSharedSettingsSecrets}}active {{end}}item" href="{{AppSubUrl}}/user/settings/actions/secrets">
 					{{.locale.Tr "secrets.secrets"}}
 				</a>
