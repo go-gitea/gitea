@@ -203,11 +203,16 @@ func UpdateUserTheme(u *User, themeName string) error {
 	return UpdateUserCols(db.DefaultContext, u, "theme")
 }
 
+// GetPlaceholderEmail returns an noreply email
+func (u *User) GetPlaceholderEmail() string {
+	return fmt.Sprintf("%s@%s", u.LowerName, setting.Service.NoReplyAddress)
+}
+
 // GetEmail returns an noreply email, if the user has set to keep his
 // email address private, otherwise the primary email address.
 func (u *User) GetEmail() string {
 	if u.KeepEmailPrivate {
-		return fmt.Sprintf("%s@%s", u.LowerName, setting.Service.NoReplyAddress)
+		return u.GetPlaceholderEmail()
 	}
 	return u.Email
 }
