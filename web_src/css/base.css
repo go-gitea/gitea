@@ -2152,7 +2152,7 @@ a.ui.basic.label:hover {
   font-weight: var(--font-weight-bold);
 }
 
-.item:hover .notification_count {
+.following.bar #navbar a.item:hover .notification_count {
   border-color: var(--color-header-bar-hover-bg);
 }
 
