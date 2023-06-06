@@ -221,9 +221,11 @@ func Test_detectLicense(t *testing.T) {
 	tests = append(tests, DetectLicenseTest{
 		name: fmt.Sprintf("auto multiple license test: %s and %s", tests[2].want[0], tests[3].want[0]),
 		arg:  append(tests[2].arg, tests[3].arg...),
-		want: []string{tests[2].want[0], tests[3].want[0]},
+		want: []string{"389-exception", "0BSD"},
 	})
 
+	err := InitClassifier()
+	assert.NoError(t, err)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equalf(t, tt.want, detectLicense(tt.arg), "%s", tt.arg)

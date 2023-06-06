@@ -23,21 +23,27 @@ import (
 var classifier *licenseclassifier.Classifier
 
 func init() {
+	err := InitClassifier()
+	if err != nil {
+		log.Error("initClassifier: %v", err)
+	}
+}
+
+func InitClassifier() error {
 	// TODO: add threshold to app.ini
-	classifier = licenseclassifier.NewClassifier(.8)
+	classifier = licenseclassifier.NewClassifier(.9)
 	licenseFiles, err := options.AssetFS().ListFiles("license", true)
 	if err != nil {
-		log.Error("init license classifier: %v", err)
-		return
+		return err
 	}
 	for _, lf := range licenseFiles {
 		data, err := options.License(lf)
 		if err != nil {
-			log.Error("init license classifier: %v", err)
-			return
+			return err
 		}
 		classifier.AddContent("License", lf, "license", data)
 	}
+	return nil
 }
 
 type licenseValues struct {
