@@ -5,7 +5,6 @@ package v1_20 //nolint
 
 import (
 	"fmt"
-	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -13,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -178,22 +178,22 @@ func detectLicense(buf []byte) []string {
 		return nil
 	}
 
-	var licenses []string
-	classifier := licenseclassifier.NewClassifier(.8)
-	licenseEntries, err := os.ReadDir("options/license")
+	classifier := licenseclassifier.NewClassifier(.9)
+	licenseFiles, err := options.AssetFS().ListFiles("license", true)
 	if err != nil {
+		log.Error("initClassifier: %v", err)
 		return nil
 	}
-
-	for _, le := range licenseEntries {
-		path := filepath.Join("options/license/" + le.Name())
-		b, err := os.ReadFile(path)
+	for _, lf := range licenseFiles {
+		data, err := options.License(lf)
 		if err != nil {
+			log.Error("initClassifier: %v", err)
 			return nil
 		}
-		classifier.AddContent("License", le.Name(), "license", b)
+		classifier.AddContent("License", lf, "license", data)
 	}
 
+	var licenses []string
 	results := classifier.Match(buf)
 	for _, r := range results.Matches {
 		if r.MatchType == "License" {
