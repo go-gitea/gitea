@@ -8,8 +8,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
-	"os"
 	"regexp"
 	"strings"
 
@@ -226,16 +224,7 @@ func detectLicenseByEntry(file *git.TreeEntry) ([]string, error) {
 	return detectLicense(contentBuf), nil
 }
 
-func ReadLicenseFile() ([]byte, error) {
-	fr, err := os.Open("licenses.db")
-	if err != nil {
-		return nil, fmt.Errorf("Can't open licenses.db: %w", err)
-	}
-	defer fr.Close()
-
-	return io.ReadAll(fr)
-}
-
+// detectLicense returns the licenses detected by the given content buff
 func detectLicense(buf []byte) []string {
 	if len(buf) == 0 {
 		return nil
@@ -252,6 +241,5 @@ func detectLicense(buf []byte) []string {
 			licenses = append(licenses, r.Name)
 		}
 	}
-	fmt.Println(licenses)
 	return licenses
 }
