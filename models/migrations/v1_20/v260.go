@@ -6,6 +6,7 @@ package v1_20 //nolint
 import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+
 	"xorm.io/xorm"
 )
 
