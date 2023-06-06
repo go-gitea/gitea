@@ -179,11 +179,9 @@ func detectLicense(buf []byte) []string {
 	}
 
 	var licenses []string
-	// TODO: load classfier in init
 	classifier := licenseclassifier.NewClassifier(.8)
 	licenseEntries, err := os.ReadDir("options/license")
 	if err != nil {
-		fmt.Println(err)
 		return nil
 	}
 
@@ -191,7 +189,6 @@ func detectLicense(buf []byte) []string {
 		path := filepath.Join("options/license/" + le.Name())
 		b, err := os.ReadFile(path)
 		if err != nil {
-			fmt.Println(err)
 			return nil
 		}
 		classifier.AddContent("License", le.Name(), "license", b)
