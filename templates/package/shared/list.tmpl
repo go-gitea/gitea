@@ -3,13 +3,19 @@
 	<form class="ui form ignore-dirty search-input">
 		<div class="ui fluid action input">
 			<input name="q" value="{{.Query}}" placeholder="{{.locale.Tr "explore.search"}}..." autofocus>
-			<select class="ui dropdown" name="type">
-				<option value="">{{.locale.Tr "packages.filter.type"}}</option>
-				<option value="all">{{.locale.Tr "packages.filter.type.all"}}</option>
-				{{range $type := .AvailableTypes}}
-				<option{{if eq $.PackageType $type}} selected="selected"{{end}} value="{{$type}}">{{$type.Name}}</option>
-				{{end}}
-			</select>
+			<div class="ui clearable dropdown selection">
+				<input name="type" type="hidden" value="{{$.PackageType}}">
+				{{svg "octicon-x" 14 "remove icon"}}
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				<div class="default text">{{.locale.Tr "packages.filter.type"}}</div>
+				<div class="menu">
+					{{range $type := .AvailableTypes}}
+						<div class="item" data-value="{{$type.Name}}">
+							{{$type.Name}}
+						</div>
+					{{end}}
+				</div>
+			</div>
 			<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
 		</div>
 	</form>
