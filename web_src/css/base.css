@@ -699,6 +699,11 @@ a.label,
   border: 1px solid var(--color-secondary);
 }
 
+.ui.info.message .header,
+.ui.blue.message .header {
+  color: var(--color-blue);
+}
+
 .ui.info.message,
 .ui.attached.info.message,
 .ui.blue.message,
@@ -706,6 +711,12 @@ a.label,
   background: var(--color-info-bg);
   color: var(--color-info-text);
   border-color: var(--color-info-border);
+}
+
+.ui.success.message .header,
+.ui.positive.message .header,
+.ui.green.message .header {
+  color: var(--color-green);
 }
 
 .ui.success.message,
@@ -717,6 +728,12 @@ a.label,
   border-color: var(--color-success-border);
 }
 
+.ui.error.message .header,
+.ui.negative.message .header,
+.ui.red.message .header {
+  color: var(--color-red);
+}
+
 .ui.error.message,
 .ui.attached.error.message,
 .ui.red.message,
@@ -726,6 +743,11 @@ a.label,
   background: var(--color-error-bg);
   color: var(--color-error-text);
   border-color: var(--color-error-border);
+}
+
+.ui.warning.message .header,
+.ui.yellow.message .header {
+  color: var(--color-yellow);
 }
 
 .ui.warning.message,
