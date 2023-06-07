@@ -27,6 +27,7 @@ MINIO_ENDPOINT = my_minio:9000
 	assert.EqualValues(t, "minio", Attachment.Storage.Type)
 	assert.EqualValues(t, "my_minio:9000", Attachment.Storage.MinioConfig.Endpoint)
 	assert.EqualValues(t, "gitea-attachment", Attachment.Storage.MinioConfig.Bucket)
+	assert.EqualValues(t, "attachments/", Attachment.Storage.MinioConfig.BasePath)
 }
 
 func Test_getStorageTypeSectionOverridesStorageSection(t *testing.T) {
@@ -47,6 +48,7 @@ MINIO_BUCKET = gitea
 
 	assert.EqualValues(t, "minio", Attachment.Storage.Type)
 	assert.EqualValues(t, "gitea-minio", Attachment.Storage.MinioConfig.Bucket)
+	assert.EqualValues(t, "attachments/", Attachment.Storage.MinioConfig.BasePath)
 }
 
 func Test_getStorageSpecificOverridesStorage(t *testing.T) {
@@ -68,6 +70,7 @@ STORAGE_TYPE = local
 
 	assert.EqualValues(t, "minio", Attachment.Storage.Type)
 	assert.EqualValues(t, "gitea-attachment", Attachment.Storage.MinioConfig.Bucket)
+	assert.EqualValues(t, "attachments/", Attachment.Storage.MinioConfig.BasePath)
 }
 
 func Test_getStorageGetDefaults(t *testing.T) {

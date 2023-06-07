@@ -19,7 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/web/routing"
 )
 
-func storageHandler(storageSetting setting.Storage, prefix string, objStore storage.ObjectStorage) func(next http.Handler) http.Handler {
+func storageHandler(storageSetting *setting.Storage, prefix string, objStore storage.ObjectStorage) func(next http.Handler) http.Handler {
 	prefix = strings.Trim(prefix, "/")
 	funcInfo := routing.GetFuncInfo(storageHandler, prefix)
 	return func(next http.Handler) http.Handler {

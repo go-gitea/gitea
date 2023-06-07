@@ -25,8 +25,7 @@ var LFS = struct {
 
 func loadLFSFrom(rootCfg ConfigProvider) error {
 	sec := rootCfg.Section("server")
-	err := sec.MapTo(&LFS)
-	if err != nil {
+	if err := sec.MapTo(&LFS); err != nil {
 		return fmt.Errorf("failed to map LFS settings: %v", err)
 	}
 
@@ -43,6 +42,7 @@ func loadLFSFrom(rootCfg ConfigProvider) error {
 			Path: lfsContentPath,
 		}
 	} else {
+		var err error
 		LFS.Storage, err = getStorage(rootCfg, "lfs", "", lfsSec)
 		if err != nil {
 			return err

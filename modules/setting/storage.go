@@ -12,11 +12,27 @@ import (
 // StorageType is a type of Storage
 type StorageType string
 
-// LocalStorageType is the type descriptor for local storage
-const LocalStorageType StorageType = "local"
+const (
+	// LocalStorageType is the type descriptor for local storage
+	LocalStorageType StorageType = "local"
+	// MinioStorageType is the type descriptor for minio storage
+	MinioStorageType StorageType = "minio"
+)
 
-// MinioStorageType is the type descriptor for minio storage
-const MinioStorageType StorageType = "minio"
+var storageTypes = []StorageType{
+	LocalStorageType,
+	MinioStorageType,
+}
+
+// IsValidStorageType returns true if the given storage type is valid
+func IsValidStorageType(storageType StorageType) bool {
+	for _, t := range storageTypes {
+		if t == storageType {
+			return true
+		}
+	}
+	return false
+}
 
 // MinioStorageConfig represents the configuration for a minio storage
 type MinioStorageConfig struct {
@@ -67,18 +83,18 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 		var err error
 		targetSec, err = rootCfg.GetSection(storageSectionName + "." + typ)
 		if err != nil {
-			if typ != "local" && typ != "minio" {
+			if !IsValidStorageType(StorageType(typ)) {
 				return nil, fmt.Errorf("get section via storage type %q failed: %v", typ, err)
 			}
 		}
 		if targetSec != nil {
 			targetType := targetSec.Key("STORAGE_TYPE").String()
 			if targetType == "" {
-				if typ != "local" && typ != "minio" {
+				if !IsValidStorageType(StorageType(typ)) {
 					return nil, fmt.Errorf("unknow storage type %q", typ)
 				}
 				targetSec.Key("STORAGE_TYPE").SetValue(typ)
-			} else if targetType != "local" && targetType != "minio" {
+			} else if !IsValidStorageType(StorageType(targetType)) {
 				return nil, fmt.Errorf("unknow storage type %q for section storage.%v", targetType, typ)
 			}
 		}
@@ -98,16 +114,20 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 		targetType := targetSec.Key("STORAGE_TYPE").String()
 		switch {
 		case targetType == "":
-			targetSec = getDefaultStorageSection(rootCfg)
+			if targetSec.Key("PATH").String() == "" {
+				targetSec = getDefaultStorageSection(rootCfg)
+			} else {
+				targetSec.Key("STORAGE_TYPE").SetValue("local")
+			}
 		default:
 			newTargetSec, _ := rootCfg.GetSection(storageSectionName + "." + targetType)
 			if newTargetSec == nil {
-				if targetType != "local" && targetType != "minio" {
+				if !IsValidStorageType(StorageType(targetType)) {
 					return nil, fmt.Errorf("invalid storage section %s.%q", storageSectionName, targetType)
 				}
 			} else {
 				targetSec = newTargetSec
-				if targetType == "local" || targetType == "minio" {
+				if IsValidStorageType(StorageType(targetType)) {
 					tp := targetSec.Key("STORAGE_TYPE").String()
 					if tp == "" {
 						targetSec.Key("STORAGE_TYPE").SetValue(targetType)
@@ -118,7 +138,7 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 	}
 
 	targetType := targetSec.Key("STORAGE_TYPE").String()
-	if targetType != "local" && targetType != "minio" {
+	if !IsValidStorageType(StorageType(targetType)) {
 		return nil, fmt.Errorf("invalid storage type %q", targetType)
 	}
 

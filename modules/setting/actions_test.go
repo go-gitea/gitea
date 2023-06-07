@@ -4,6 +4,7 @@
 package setting
 
 import (
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -20,6 +21,8 @@ func Test_getStorageInheritNameSectionTypeForActions(t *testing.T) {
 
 	assert.EqualValues(t, "minio", Actions.LogStorage.Type)
 	assert.EqualValues(t, "actions_log/", Actions.LogStorage.MinioConfig.BasePath)
+	assert.EqualValues(t, "minio", Actions.ArtifactStorage.Type)
+	assert.EqualValues(t, "actions_artifacts/", Actions.ArtifactStorage.MinioConfig.BasePath)
 
 	iniStr = `
 [storage.actions_log]
@@ -31,6 +34,8 @@ STORAGE_TYPE = minio
 
 	assert.EqualValues(t, "minio", Actions.LogStorage.Type)
 	assert.EqualValues(t, "actions_log/", Actions.LogStorage.MinioConfig.BasePath)
+	assert.EqualValues(t, "local", Actions.ArtifactStorage.Type)
+	assert.EqualValues(t, "actions_artifacts", filepath.Base(Actions.ArtifactStorage.Path))
 
 	iniStr = `
 [storage.actions_log]
@@ -45,4 +50,6 @@ STORAGE_TYPE = minio
 
 	assert.EqualValues(t, "minio", Actions.LogStorage.Type)
 	assert.EqualValues(t, "actions_log/", Actions.LogStorage.MinioConfig.BasePath)
+	assert.EqualValues(t, "local", Actions.ArtifactStorage.Type)
+	assert.EqualValues(t, "actions_artifacts", filepath.Base(Actions.ArtifactStorage.Path))
 }
