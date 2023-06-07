@@ -1,24 +1,25 @@
 <template>
-  <div v-for="category in categories" :key="category" class="field gt-pl-2 gt-pb-2">
+  <div v-for="category in categories" :key="category" class="field gt-pl-2 gt-pb-2 access-token-category">
     <label class="category-label" :for="'access-token-scope-' + category">
       {{ category }}
     </label>
-    <select
-      ref="select"
-      class="ui selection scoped-access-token-input"
-      name="scope"
-      :id="'access-token-scope-' + category"
-    >
-      <option value="">
-        {{ noAccessLabel }}
-      </option>
-      <option :value="'read:' + category">
-        {{ readLabel }}
-      </option>
-      <option :value="'write:' + category">
-        {{ writeLabel }}
-      </option>
-    </select>
+    <div class="access-token-select-wrapper">
+      <select
+        class="ui selection access-token-select"
+        name="scope"
+        :id="'access-token-scope-' + category"
+      >
+        <option value="">
+          {{ noAccessLabel }}
+        </option>
+        <option :value="'read:' + category">
+          {{ readLabel }}
+        </option>
+        <option :value="'write:' + category">
+          {{ writeLabel }}
+        </option>
+      </select>
+    </div>
   </div>
 </template>
 
@@ -80,7 +81,7 @@ const sfc = {
 
       const warningEl = document.getElementById('scoped-access-warning');
       // check that at least one scope has been selected
-      for (const el of document.getElementsByClassName('scoped-access-token-input')) {
+      for (const el of document.getElementsByClassName('access-token-select')) {
         if (el.value) {
           // Hide the error if it was visible from previous attempt.
           hideElem(warningEl);
@@ -110,3 +111,34 @@ export function initScopedAccessTokenCategories() {
 }
 
 </script>
+
+<style scoped>
+.access-token-select-wrapper {
+  position: relative;
+}
+
+/* ::before and ::after pseudo elements doesn't work on select elements, so we
+need to put it on the parent. */
+.access-token-select-wrapper::before {
+  position: absolute;
+  top: 12px;
+  right: 8px;
+  pointer-events: none;
+  display: inline-block;
+  content: '';
+  width: 14px;
+  height: 14px;
+  mask-size: cover;
+  -webkit-mask-size: cover;
+  mask-image: var(--octicon-chevron-down);
+  -webkit-mask-image: var(--octicon-chevron-down);
+  background: currentcolor;
+  border: 1px solid var(--color-body); /* workaround https://bugzilla.mozilla.org/show_bug.cgi?id=1671784 */
+}
+
+.ui.form .access-token-select {
+  appearance: none;
+  /* Increase padding for the chevron */
+  padding-right: 26px;
+}
+</style>
