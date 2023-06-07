@@ -422,3 +422,17 @@ func CheckRepoUnitUser(ctx context.Context, repo *repo_model.Repository, user *u
 
 	return perm.CanRead(unitType)
 }
+
+// CheckRepoUnitWriteUser check whether user could write the unit of this repository
+func CheckRepoUnitWriteUser(ctx context.Context, repo *repo_model.Repository, user *user_model.User, unitType unit.Type) bool {
+	if user != nil && user.IsAdmin {
+		return true
+	}
+	perm, err := GetUserRepoPermission(ctx, repo, user)
+	if err != nil {
+		log.Error("GetUserRepoPermission: %w", err)
+		return false
+	}
+
+	return perm.CanWrite(unitType)
+}

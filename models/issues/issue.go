@@ -457,10 +457,6 @@ func (issues IssueList) FilterValidByDoer(ctx context.Context, doer *user_model.
 		return nil, err
 	}
 
-	if err := repo_model.RepositoryList(repos).LoadOwners(ctx); err != nil {
-		return nil, err
-	}
-
 	validRepoIDs := make(container.Set[int64], len(repos))
 	for _, repo := range repos {
 		if access_model.CheckRepoUnitUser(ctx, repo, doer, unit.TypeIssues) {

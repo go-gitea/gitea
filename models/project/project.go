@@ -169,7 +169,7 @@ func (p *Project) IsOrganizationProject() bool {
 	return p.Type == TypeOrganization
 }
 
-func (pl ProjectList) GetOwnerIDs() []int64 {
+func (pl ProjectList) getOwnerIDs() []int64 {
 	ids := make(container.Set[int64], len(pl))
 	for _, p := range pl {
 		if p.OwnerID == 0 {
@@ -180,99 +180,129 @@ func (pl ProjectList) GetOwnerIDs() []int64 {
 	return ids.Values()
 }
 
-func (pl ProjectList) LoadOwners(ctx context.Context) error {
-	userIDs := pl.GetOwnerIDs()
-	users := make(map[int64]*user_model.User, len(userIDs))
+func (pl ProjectList) getRepoIDs() []int64 {
+	ids := make(container.Set[int64], len(pl))
+	for _, p := range pl {
+		if p.RepoID == 0 {
+			continue
+		}
+		ids.Add(p.RepoID)
+	}
+	return ids.Values()
+}
+
+func (pl ProjectList) LoadOwners(ctx context.Context) ([]*user_model.User, error) {
+	if len(pl) == 0 {
+		return nil, nil
+	}
+
+	userIDs := pl.getOwnerIDs()
+	usersMap := make(map[int64]*user_model.User, len(userIDs))
 	if err := db.GetEngine(ctx).
 		Where("id > 0").
 		In("id", userIDs).
-		Find(&users); err != nil {
-		return fmt.Errorf("find users: %w", err)
+		Find(&usersMap); err != nil {
+		return nil, fmt.Errorf("find users: %w", err)
 	}
 	for _, p := range pl {
 		if p.OwnerID > 0 && p.Owner == nil {
-			p.Owner = users[p.OwnerID]
+			p.Owner = usersMap[p.OwnerID]
 		}
 	}
-	return nil
+	users := make([]*user_model.User, 0, len(usersMap))
+	for _, u := range usersMap {
+		if u != nil {
+			users = append(users, u)
+		}
+	}
+	return users, nil
+}
+
+func (pl ProjectList) LoadRepositories(ctx context.Context) (repo_model.RepositoryList, error) {
+	if len(pl) == 0 {
+		return nil, nil
+	}
+
+	repoIDs := pl.getRepoIDs()
+	repos := make(map[int64]*repo_model.Repository, len(repoIDs))
+	if err := db.GetEngine(ctx).
+		In("id", repoIDs).
+		Find(&repos); err != nil {
+		return nil, fmt.Errorf("find repository: %w", err)
+	}
+	for _, p := range pl {
+		if p.RepoID > 0 && p.Repo == nil {
+			p.Repo = repos[p.RepoID]
+		}
+	}
+	return repo_model.ValuesRepository(repos), nil
 }
 
 func (pl ProjectList) FilterWritableByDoer(ctx context.Context, repo *repo_model.Repository, doer *user_model.User) (ProjectList, error) {
-	if err := pl.LoadOwners(ctx); err != nil {
+	// non-login user have no write permission
+	if doer == nil {
+		return nil, nil
+	}
+
+	// Check valid individual/organization projects
+	owners, err := pl.LoadOwners(ctx)
+	if err != nil {
 		return nil, err
+	}
+	validOwnerIDs := make(container.Set[int64], len(owners))
+	for _, owner := range owners {
+		if CheckUserUnitWriteDoer(ctx, owner, doer, unit.TypeProjects) {
+			validOwnerIDs.Add(owner.ID)
+		}
+	}
+
+	// Check valid repo projects
+	repos, err := pl.LoadRepositories(ctx)
+	if err != nil {
+		return nil, err
+	}
+	validRepoIDs := make(container.Set[int64], len(repos))
+	for _, repo := range repos {
+		if access_model.CheckRepoUnitWriteUser(ctx, repo, doer, unit.TypeProjects) {
+			validRepoIDs.Add(repo.ID)
+		}
 	}
 
 	projectList := pl[:0]
 	for _, p := range pl {
-		if canWriteByDoer, err := p.CanWriteByDoer(ctx, repo, doer); err != nil {
-			return nil, err
-		} else if canWriteByDoer {
+		if (p.RepoID > 0 && p.RepoID == repo.ID && validRepoIDs.Contains(p.RepoID)) ||
+			(p.OwnerID > 0 && p.OwnerID == repo.OwnerID && validOwnerIDs.Contains(p.OwnerID)) {
 			projectList = append(projectList, p)
 		}
 	}
 	return projectList, nil
 }
 
-// CanWriteByDoer return whether doer have write permission to the project in a repo
-func (p *Project) CanWriteByDoer(ctx context.Context, repo *repo_model.Repository, doer *user_model.User) (bool, error) {
-	if unit.TypeProjects.UnitGlobalDisabled() {
+// CheckUserUnitWriteDoer return whether doer have write permission to the individual/organization project
+func CheckUserUnitWriteDoer(ctx context.Context, user, doer *user_model.User, unitType unit.Type) bool {
+	if user == nil {
+		return false
+	}
+	if user.IsIndividual() && user.ID != doer.ID {
+		return false
+	}
+	if user.IsOrganization() && (*organization.Organization)(user).UnitPermission(ctx, doer, unitType) < perm.AccessModeWrite {
+		return false
+	}
+	return true
+}
+
+// CanWriteByDoer return whether doer have write permission to the project
+func (p Project) CanWriteByDoer(ctx context.Context, repo *repo_model.Repository, doer *user_model.User) (bool, error) {
+	var err error
+	projectList := ProjectList{&p}
+	projectList, err = projectList.FilterWritableByDoer(ctx, repo, doer)
+	if err != nil {
+		return false, err
+	}
+	if len(projectList) == 0 {
 		return false, nil
 	}
-
-	// non-login user have no write permission
-	if doer == nil {
-		return false, nil
-	}
-
-	if err := repo.LoadOwner(ctx); err != nil {
-		return false, fmt.Errorf("LoadOwner: %w", err)
-	}
-
-	if p.RepoID > 0 {
-		// repo projects
-		if p.RepoID != repo.ID {
-			return false, nil
-		}
-
-		if err := p.LoadRepo(ctx); err != nil {
-			return false, fmt.Errorf("LoadRepo: %w", err)
-		}
-		if perm, err := access_model.GetUserRepoPermission(ctx, p.Repo, doer); err != nil {
-			return false, err
-		} else if !perm.HasAccess() {
-			return false, nil
-		}
-
-		if !repo.UnitEnabled(ctx, unit.TypeProjects) {
-			return false, nil
-		}
-	} else {
-		// individual/org's project
-		if p.OwnerID != repo.OwnerID {
-			return false, nil
-		}
-
-		if repo.Owner.IsIndividual() && repo.Owner.ID != doer.ID {
-			return false, nil
-		}
-
-		if repo.Owner.IsOrganization() && repo.IsPrivate {
-			collaboration, err := repo_model.GetCollaboration(ctx, repo.ID, doer.ID)
-			if err != nil {
-				return false, fmt.Errorf("GetCollaboration: %w", err)
-			}
-			if collaboration == nil {
-				if (*organization.Organization)(repo.Owner).UnitPermission(ctx, doer, unit.TypeIssues) < perm.AccessModeWrite {
-					return false, nil
-				}
-			} else {
-				if collaboration.Mode < perm.AccessModeWrite {
-					return false, nil
-				}
-			}
-		}
-	}
-
 	return true, nil
 }
 
