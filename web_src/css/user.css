@@ -69,7 +69,8 @@
   padding-bottom: 100px;
 }
 
-.user.profile.packages .search-input {
+.user.profile.packages .search-input,
+.user.profile .code-search {
   margin-top: 15px;
 }
 

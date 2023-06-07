@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/routers/web/shared/user"
 )
 
 const (
@@ -19,17 +20,15 @@ const (
 
 // CodeSearch render user/organization code search page
 func CodeSearch(ctx *context.Context) {
+	user.RenderProfileBigAvatar(ctx)
 	if !setting.Indexer.RepoIndexerEnabled {
 		ctx.Redirect(ctx.ContextUser.HomeLink())
 		return
 	}
-
-	ctx.Data["IsProjectEnabled"] = true
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["Title"] = ctx.Tr("explore.code")
 	ctx.Data["ContextUser"] = ctx.ContextUser
-
 	language := ctx.FormTrim("l")
 	keyword := ctx.FormTrim("q")
 
