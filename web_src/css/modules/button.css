@@ -39,52 +39,22 @@
   padding-bottom: 7.42px !important;
 }
 
-/* a ghost button is a button without border with background hover/active effect */
+/* a plain button is a button without any opinionated styling */
 
-.button.button-ghost {
+.button.button-plain {
   background: transparent;
+  border-radius: var(--border-radius);
   border: none;
   color: inherit;
   margin: 0;
   padding: 0;
 }
 
-.button.button-ghost:focus {
-  background: transparent;
+.button.button-plain:hover,
+.button.button-plain:active,
+.button.button-plain:focus {
+  background: none;
   border: none;
-  color: inherit;
-}
-
-.button.button-ghost:hover {
-  background: var(--color-hover);
-  color: inherit;
-}
-
-.button.button-ghost:active {
-  background: var(--color-active);
-  color: inherit;
-}
-
-/* a link button is a button withour border with underline hover/active effect */
-
-.button.button-link {
-  background: transparent;
-  border: none;
-  color: inherit;
-  margin: 0;
-  padding: 0;
-}
-
-.button.button-link:focus,
-.button.button-link:hover {
-  background: transparent;
-  border: none;
-  color: var(--color-primary);
-}
-
-.button.button-link:active {
-  background: transparent;
-  color: var(--color-primary-active);
 }
 
 /* other button styles */

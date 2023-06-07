@@ -124,6 +124,14 @@ Gitea's private styles use `g-` prefix.
 
 .gt-text-white { color: var(--color-white) !important; }
 
+.gt-interact-fg { color: inherit !important; }
+.gt-interact-fg:hover { color: var(--color-primary) !important; }
+.gt-interact-fg:active { color: var(--color-primary-active) !important; }
+
+.gt-interact-bg { background: transparent !important; }
+.gt-interact-bg:hover { background: var(--color-hover) !important; }
+.gt-interact-bg:active { background: var(--color-active) !important; }
+
 .gt-m-0 { margin: 0 !important; }
 .gt-m-1 { margin: .125rem !important; }
 .gt-m-2 { margin: .25rem !important; }
