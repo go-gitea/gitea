@@ -46,8 +46,8 @@ type StatusInfo struct {
 	DisplayedStatus string
 }
 
-// GetStatuses returns a slice of statuses
-func (runs RunList) GetStatuses(ctx context.Context) []StatusInfo {
+// GetStatusInfos returns a slice of StatusInfo
+func (runs RunList) GetStatusInfos(ctx context.Context) []StatusInfo {
 	statuses := make(container.Set[int], len(runs))
 	statusInfos := make([]StatusInfo, 0, len(runs))
 	for _, run := range runs {

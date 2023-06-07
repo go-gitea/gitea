@@ -181,7 +181,7 @@ func List(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Actors"] = actors
-	statusInfos := allRuns.GetStatuses(ctx)
+	statusInfos := allRuns.GetStatusInfos(ctx)
 	ctx.Data["StatusInfos"] = statusInfos
 
 	pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
