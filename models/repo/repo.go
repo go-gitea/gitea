@@ -496,40 +496,8 @@ func (repo *Repository) IsOwnedBy(userID int64) bool {
 	return repo.OwnerID == userID
 }
 
-// TODO - DmitryFrolovTri Review every commented function and see if we need to reinstate it
-// func (repo *Repository) computeSize() (int64, error) {
-// 	size, err := util.GetDirectorySize(repo.RepoPath())
-// 	if err != nil {
-// 		return 0, fmt.Errorf("computeSize: %v", err)
-// 	}
-
-// 	objs, err := repo.GetLFSMetaObjects(repo.ID, -1, 0)
-// 	if err != nil {
-// 		return 0, fmt.Errorf("computeSize: GetLFSMetaObjects: %v", err)
-// 	}
-// 	for _, obj := range objs {
-// 		size += obj.Size
-// 	}
-
-// 	return size, nil
-// }
-
-// func (repo *Repository) updateSize(ctx context.Context Engine) error {
-// 	size, err := repo.computeSize()
-// 	if err != nil {
-// 		return fmt.Errorf("updateSize: %v", err)
-// 	}
-
-// 	repo.Size = size
-// 	_, err = e.ID(repo.ID).Cols("size").Update(repo)
-// 	return err
-// }
-
-// // UpdateSize updates the repository size, calculating it using util.GetDirectorySize
-// func (repo *Repository) UpdateSize(ctx DBContext) error {
-// 	return repo.updateSize(ctx.e)
-// }
-
+// GetActualSizeLimit returns repository size limit in bytes
+// or global repository limit setting if per repository size limit is not set
 func (repo *Repository) GetActualSizeLimit() int64 {
 	sizeLimit := repo.SizeLimit
 	if setting.RepoSizeLimit > 0 && sizeLimit == 0 {
@@ -538,7 +506,7 @@ func (repo *Repository) GetActualSizeLimit() int64 {
 	return sizeLimit
 }
 
-// RepoSizeIsOversized return if is over size limitation
+// RepoSizeIsOversized return true if is over size limitation
 func (repo *Repository) RepoSizeIsOversized(additionalSize int64) bool {
 	return setting.EnableSizeLimit && repo.GetActualSizeLimit() > 0 && repo.Size+additionalSize > repo.GetActualSizeLimit()
 }
