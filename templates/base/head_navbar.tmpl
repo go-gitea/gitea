@@ -1,4 +1,4 @@
-<nav class="ui container" id="navbar" aria-label="{{.locale.Tr "aria.navbar"}}">
+<nav class="ui container secondary stackable main menu" id="navbar" aria-label="{{.locale.Tr "aria.navbar"}}">
 	{{$notificationUnreadCount := 0}}
 	{{if .IsSigned}}
 		{{if .NotificationUnreadCount}}{{$notificationUnreadCount = call .NotificationUnreadCount}}{{end}}
