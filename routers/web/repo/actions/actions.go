@@ -134,6 +134,7 @@ func List(ctx *context.Context) {
 	if actorID > 0 || status > int(actions_model.StatusUnknown) {
 		ctx.Data["IsFiltered"] = true
 	}
+
 	opts := actions_model.FindRunOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
