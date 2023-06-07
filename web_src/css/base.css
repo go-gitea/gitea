@@ -222,8 +222,8 @@
   --color-reaction-active-bg: var(--color-primary-light-6);
   --color-tooltip-text: #ffffff;
   --color-tooltip-bg: #000000f0;
-  --color-header-bar: #ffffff;
-  --color-header-bar-hover-bg: #ebebeb;
+  --color-nav-bg: #ffffff;
+  --color-nav-hover-bg: #ebebeb;
   --color-label-text: #232323;
   --color-label-bg: #cacaca5b;
   --color-label-hover-bg: #cacacaa0;
@@ -950,7 +950,7 @@ img.ui.avatar,
 }
 
 .following.bar.light {
-  background: var(--color-header-bar);
+  background: var(--color-nav-bg);
   border-bottom: 1px solid var(--color-secondary);
 }
 
@@ -978,7 +978,7 @@ img.ui.avatar,
 }
 
 .following.bar #navbar a.item:hover {
-  background: var(--color-header-bar-hover-bg);
+  background: var(--color-nav-hover-bg);
 }
 
 .following.bar #navbar .dropdown .avatar {
@@ -2129,7 +2129,7 @@ a.ui.basic.label:hover {
   width: 13px;
   height: 13px;
   background: var(--color-primary);
-  border: 2px solid var(--color-header-bar);
+  border: 2px solid var(--color-nav-bg);
   border-radius: 100%;
 }
 
@@ -2143,8 +2143,8 @@ a.ui.basic.label:hover {
   min-width: 17px;
   min-height: 17px;
   background: var(--color-primary);
-  border: 2px solid var(--color-header-bar);
-  color: var(--color-header-bar);
+  border: 2px solid var(--color-nav-bg);
+  color: var(--color-nav-bg);
   border-radius: 17px;
   padding: 0 3.5px;
   font-size: 12px;
@@ -2153,7 +2153,7 @@ a.ui.basic.label:hover {
 }
 
 .following.bar #navbar a.item:hover .notification_count {
-  border-color: var(--color-header-bar-hover-bg);
+  border-color: var(--color-nav-hover-bg);
 }
 
 .rss-icon {
