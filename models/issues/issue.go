@@ -466,7 +466,7 @@ func (issues IssueList) FilterValidByDoer(ctx context.Context, doer *user_model.
 
 	issueList := issues[:0]
 	for _, issue := range issues {
-		if validRepoIDs.Contains(issue.Repo.ID) {
+		if validRepoIDs.Contains(issue.RepoID) {
 			issueList = append(issueList, issue)
 		}
 	}
