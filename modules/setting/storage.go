@@ -61,7 +61,7 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 		return nil, errors.New("no name for storage")
 	}
 
-	var targetSec ConfigSection = nil
+	var targetSec ConfigSection
 	if typ != "" {
 		var err error
 		targetSec, err = rootCfg.GetSection(storageSectionName + "." + typ)
@@ -83,13 +83,13 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 		}
 	}
 
-	packageNameSec, _ := rootCfg.GetSection(storageSectionName + "." + name)
+	storageNameSec, _ := rootCfg.GetSection(storageSectionName + "." + name)
 
 	if targetSec == nil {
 		targetSec = sec
 	}
 	if targetSec == nil {
-		targetSec = packageNameSec
+		targetSec = storageNameSec
 	}
 	if targetSec == nil {
 		targetSec = getDefaultStorageSection(rootCfg)
@@ -140,7 +140,7 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 		// extra config section will be read SERVE_DIRECT, PATH, MINIO_BASE_PATH to override the targetsec
 		extraConfigSec := sec
 		if extraConfigSec == nil {
-			extraConfigSec = packageNameSec
+			extraConfigSec = storageNameSec
 		}
 
 		if extraConfigSec != nil {
