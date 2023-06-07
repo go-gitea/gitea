@@ -59,10 +59,6 @@ func (issue *Issue) projectBoardID(ctx context.Context) int64 {
 
 // LoadIssuesFromBoard load issues assigned to this board
 func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user_model.User, isClosed util.OptionalBool) (IssueList, error) {
-	if unit.TypeIssues.UnitGlobalDisabled() {
-		return nil, nil
-	}
-
 	var issueList IssueList
 	if b.ID != 0 {
 		issues, err := Issues(ctx, &IssuesOptions{
@@ -107,6 +103,9 @@ func LoadIssuesFromBoard(ctx context.Context, b *project_model.Board, doer *user
 
 // LoadIssuesFromBoardList load issues assigned to the boards
 func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList, doer *user_model.User, isClosed util.OptionalBool) (map[int64]IssueList, error) {
+	if unit.TypeIssues.UnitGlobalDisabled() {
+		return nil, nil
+	}
 	issuesMap := make(map[int64]IssueList, len(bs))
 	for _, b := range bs {
 		il, err := LoadIssuesFromBoard(ctx, b, doer, isClosed)
