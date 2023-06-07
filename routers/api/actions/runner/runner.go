@@ -101,9 +101,9 @@ func (s *Service) FetchTask(
 	runner := GetRunner(ctx)
 
 	var task *runnerv1.Task
-	taskIndex := req.Msg.TaskIndex
-	cacheIndex := actions_model.ActionsTaskIndexCache.Get()
-	if req.Msg.TaskIndex != cacheIndex {
+	taskVersion := req.Msg.TaskVersion
+	cacheVersion := actions_model.ActionsTaskVersionCache.Get()
+	if req.Msg.TaskVersion != cacheVersion {
 		// if the task index in request is not equal to the index in cache,
 		// it means there are some tasks still not be assgined.
 		// try to pick a task for the runner that send the request.
@@ -112,12 +112,12 @@ func (s *Service) FetchTask(
 			return nil, status.Errorf(codes.Internal, "pick task: %v", err)
 		} else if ok {
 			task = t
-			taskIndex = cacheIndex
+			taskVersion = cacheVersion
 		}
 	}
 	res := connect.NewResponse(&runnerv1.FetchTaskResponse{
-		Task:      task,
-		TaskIndex: taskIndex,
+		Task:        task,
+		TaskVersion: taskVersion,
 	})
 	return res, nil
 }

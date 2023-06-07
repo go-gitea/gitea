@@ -55,27 +55,27 @@ func init() {
 	db.RegisterModel(new(ActionRunIndex))
 }
 
-var ActionsTaskIndexCache taskIndexCache
+var ActionsTaskVersionCache taskVersionCache
 
-type taskIndexCache struct {
+type taskVersionCache struct {
 	index int64
 	lock  sync.RWMutex
 }
 
-func (c *taskIndexCache) Get() int64 {
+func (c *taskVersionCache) Get() int64 {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	return c.index
 }
 
-func (c *taskIndexCache) Increase(num int64) {
+func (c *taskVersionCache) Increase(num int64) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	c.index += num
 }
 
-func (c *taskIndexCache) Init() {
-	// Using the count of tasks that not be assgined to any runner as the initial task index, when Gitea starts.
+func (c *taskVersionCache) Init() {
+	// Using the count of tasks that not be assgined to any runner as the initial task version when Gitea starts.
 	if count, err := db.GetEngine(db.DefaultContext).Where("task_id=? AND status=?", 0, StatusWaiting).Count(new(ActionRunJob)); err != nil {
 		log.Fatal("Init task index cache error: %v", err)
 	} else {
@@ -258,8 +258,8 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 		return err
 	}
 
-	// increase index in memory cache.
-	ActionsTaskIndexCache.Increase(int64(len(runJobs)))
+	// increase version in memory cache.
+	ActionsTaskVersionCache.Increase(int64(len(runJobs)))
 
 	return nil
 }

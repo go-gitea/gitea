@@ -202,7 +202,7 @@ func NormalRoutes(ctx context.Context) *web.Route {
 		r.Mount(prefix, actions_router.ArtifactsRoutes(prefix))
 
 		// init task index
-		actions_model.ActionsTaskIndexCache.Init()
+		actions_model.ActionsTaskVersionCache.Init()
 	}
 
 	return r
