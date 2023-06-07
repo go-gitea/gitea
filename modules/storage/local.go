@@ -18,12 +18,6 @@ import (
 
 var _ ObjectStorage = &LocalStorage{}
 
-// LocalStorageConfig represents the configuration for a local storage
-type LocalStorageConfig struct {
-	Path          string `ini:"PATH"`
-	TemporaryPath string `ini:"TEMPORARY_PATH"`
-}
-
 // LocalStorage represents a local files storage
 type LocalStorage struct {
 	ctx    context.Context
@@ -32,13 +26,7 @@ type LocalStorage struct {
 }
 
 // NewLocalStorage returns a local files
-func NewLocalStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error) {
-	configInterface, err := toConfig(LocalStorageConfig{}, cfg)
-	if err != nil {
-		return nil, err
-	}
-	config := configInterface.(LocalStorageConfig)
-
+func NewLocalStorage(ctx context.Context, config *setting.Storage) (ObjectStorage, error) {
 	if !filepath.IsAbs(config.Path) {
 		return nil, fmt.Errorf("LocalStorageConfig.Path should have been prepared by setting/storage.go and should be an absolute path, but not: %q", config.Path)
 	}

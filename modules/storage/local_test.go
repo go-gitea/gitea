@@ -57,5 +57,5 @@ func TestBuildLocalPath(t *testing.T) {
 
 func TestLocalStorageIterator(t *testing.T) {
 	dir := filepath.Join(os.TempDir(), "TestLocalStorageIteratorTestDir")
-	testStorageIterator(t, setting.LocalStorageType, LocalStorageConfig{Path: dir})
+	testStorageIterator(t, setting.LocalStorageType, &setting.Storage{Path: dir})
 }

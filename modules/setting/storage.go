@@ -34,9 +34,10 @@ type MinioStorageConfig struct {
 
 // Storage represents configuration of storages
 type Storage struct {
-	Type        StorageType        // local or minio
-	Path        string             // for local type
-	MinioConfig MinioStorageConfig // for minio type
+	Type          StorageType // local or minio
+	Path          string      // for local type
+	TemporaryPath string
+	MinioConfig   MinioStorageConfig // for minio type
 }
 
 const storageSectionName = "storage"

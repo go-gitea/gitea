@@ -72,11 +72,8 @@ func convertMinioErr(err error) error {
 }
 
 // NewMinioStorage returns a minio storage
-func NewMinioStorage(ctx context.Context, cfg any) (ObjectStorage, error) {
-	config, ok := cfg.(setting.MinioStorageConfig)
-	if !ok {
-		return nil, fmt.Errorf("config struct is not MinioStorageConfig but %#v", cfg)
-	}
+func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, error) {
+	config := cfg.MinioConfig
 	if config.ChecksumAlgorithm != "" && config.ChecksumAlgorithm != "default" && config.ChecksumAlgorithm != "md5" {
 		return nil, fmt.Errorf("invalid minio checksum algorithm: %s", config.ChecksumAlgorithm)
 	}

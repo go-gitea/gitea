@@ -187,22 +187,24 @@ func runMigrateStorage(ctx *cli.Context) error {
 		}
 		dstStorage, err = storage.NewLocalStorage(
 			stdCtx,
-			storage.LocalStorageConfig{
+			&setting.Storage{
 				Path: p,
 			})
 	case string(setting.MinioStorageType):
 		dstStorage, err = storage.NewMinioStorage(
 			stdCtx,
-			setting.MinioStorageConfig{
-				Endpoint:           ctx.String("minio-endpoint"),
-				AccessKeyID:        ctx.String("minio-access-key-id"),
-				SecretAccessKey:    ctx.String("minio-secret-access-key"),
-				Bucket:             ctx.String("minio-bucket"),
-				Location:           ctx.String("minio-location"),
-				BasePath:           ctx.String("minio-base-path"),
-				UseSSL:             ctx.Bool("minio-use-ssl"),
-				InsecureSkipVerify: ctx.Bool("minio-insecure-skip-verify"),
-				ChecksumAlgorithm:  ctx.String("minio-checksum-algorithm"),
+			&setting.Storage{
+				MinioConfig: setting.MinioStorageConfig{
+					Endpoint:           ctx.String("minio-endpoint"),
+					AccessKeyID:        ctx.String("minio-access-key-id"),
+					SecretAccessKey:    ctx.String("minio-secret-access-key"),
+					Bucket:             ctx.String("minio-bucket"),
+					Location:           ctx.String("minio-location"),
+					BasePath:           ctx.String("minio-base-path"),
+					UseSSL:             ctx.Bool("minio-use-ssl"),
+					InsecureSkipVerify: ctx.Bool("minio-insecure-skip-verify"),
+					ChecksumAlgorithm:  ctx.String("minio-checksum-algorithm"),
+				},
 			})
 	default:
 		return fmt.Errorf("unsupported storage type: %s", ctx.String("storage"))
