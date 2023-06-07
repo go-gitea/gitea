@@ -157,6 +157,8 @@ func List(ctx *context.Context) {
 		return
 	}
 
+	ctx.Data["Runs"] = runs
+
 	allRunsOpts := actions_model.FindRunOptions{
 		ListOptions: db.ListOptions{
 			ListAll: true,
@@ -175,9 +177,8 @@ func List(ctx *context.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
-
-	ctx.Data["Runs"] = runs
 	ctx.Data["Actors"] = actors
+
 	pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParamString("workflow", workflow)
