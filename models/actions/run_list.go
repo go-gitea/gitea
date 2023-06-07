@@ -41,6 +41,28 @@ func (runs RunList) GetRepoIDs() []int64 {
 	return ids.Values()
 }
 
+type StatusInfo struct {
+	Status          int
+	DisplayedStatus string
+}
+
+// GetStatuses returns a slice of statuses
+func (runs RunList) GetStatuses(ctx context.Context) []StatusInfo {
+	statuses := make(container.Set[int], len(runs))
+	statusInfos := make([]StatusInfo, 0, len(runs))
+	for _, run := range runs {
+		if statuses.Contains(int(run.Status)) {
+			continue
+		}
+		statuses.Add(int(run.Status))
+		statusInfos = append(statusInfos, StatusInfo{
+			Status:          int(run.Status),
+			DisplayedStatus: run.Status.String(),
+		})
+	}
+	return statusInfos
+}
+
 func (runs RunList) LoadTriggerUser(ctx context.Context) error {
 	userIDs := runs.GetUserIDs()
 	users := make(map[int64]*user_model.User, len(userIDs))
@@ -79,6 +101,7 @@ type FindRunOptions struct {
 	WorkflowFileName string
 	TriggerUserID    int64
 	Approved         bool // not util.OptionalBool, it works only when it's true
+	Status           Status
 }
 
 func (opts FindRunOptions) toConds() builder.Cond {
@@ -97,6 +120,9 @@ func (opts FindRunOptions) toConds() builder.Cond {
 	}
 	if opts.Approved {
 		cond = cond.And(builder.Gt{"approved_by": 0})
+	}
+	if opts.Status > StatusUnknown {
+		cond = cond.And(builder.Eq{"status": opts.Status})
 	}
 	return cond
 }

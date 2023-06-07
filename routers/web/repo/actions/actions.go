@@ -127,9 +127,11 @@ func List(ctx *context.Context) {
 
 	workflow := ctx.FormString("workflow")
 	actorID := ctx.FormInt64("actor")
+	status := ctx.FormInt("status")
 	ctx.Data["CurWorkflow"] = workflow
 	ctx.Data["CurActor"] = actorID
-	if actorID > 0 {
+	ctx.Data["CurStatus"] = status
+	if actorID > 0 || status > int(actions_model.StatusUnknown) {
 		ctx.Data["IsFiltered"] = true
 	}
 	opts := actions_model.FindRunOptions{
@@ -140,6 +142,7 @@ func List(ctx *context.Context) {
 		RepoID:           ctx.Repo.Repository.ID,
 		WorkflowFileName: workflow,
 		TriggerUserID:    actorID,
+		Status:           actions_model.Status(status),
 	}
 
 	runs, total, err := actions_model.FindRuns(ctx, opts)
@@ -178,11 +181,14 @@ func List(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Actors"] = actors
+	statusInfos := allRuns.GetStatuses(ctx)
+	ctx.Data["StatusInfos"] = statusInfos
 
 	pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParamString("workflow", workflow)
 	pager.AddParamString("actor", fmt.Sprint(actorID))
+	pager.AddParamString("status", fmt.Sprint(status))
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplListActions)
