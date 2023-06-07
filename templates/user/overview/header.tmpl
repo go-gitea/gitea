@@ -1,4 +1,4 @@
-<div class="ui tabs{{if or (.ContextUser.IsOrganization) (.ctxData.PageIsViewProjects) }} container{{end}}">
+<div class="ui tabs{{if or (.ContextUser.IsOrganization) (.ctxData.PageIsViewProjects)}} container{{end}}">
 	<div class="ui secondary stackable pointing menu">
 		{{if .ProfileReadme}}
 		<a class='{{if or (eq .TabName "overview") (and (eq .TabName "") (not .IsPackagesPage) (not .PageIsViewProjects))}}active {{end}}item' href="{{.ContextUser.HomeLink}}?tab=overview">
