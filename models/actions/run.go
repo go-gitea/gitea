@@ -58,20 +58,20 @@ func init() {
 var ActionsTaskVersionCache taskVersionCache
 
 type taskVersionCache struct {
-	index int64
-	lock  sync.RWMutex
+	version int64
+	lock    sync.RWMutex
 }
 
 func (c *taskVersionCache) Get() int64 {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
-	return c.index
+	return c.version
 }
 
 func (c *taskVersionCache) Increase(num int64) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	c.index += num
+	c.version += num
 }
 
 func (c *taskVersionCache) Init() {
@@ -79,7 +79,7 @@ func (c *taskVersionCache) Init() {
 	if count, err := db.GetEngine(db.DefaultContext).Where("task_id=? AND status=?", 0, StatusWaiting).Count(new(ActionRunJob)); err != nil {
 		log.Fatal("Init task index cache error: %v", err)
 	} else {
-		c.index = count
+		c.version = count
 	}
 }
 

@@ -104,7 +104,7 @@ func (s *Service) FetchTask(
 	taskVersion := req.Msg.TaskVersion
 	cacheVersion := actions_model.ActionsTaskVersionCache.Get()
 	if req.Msg.TaskVersion != cacheVersion {
-		// if the task index in request is not equal to the index in cache,
+		// if the task version in request is not equal to the version in cache,
 		// it means there are some tasks still not be assgined.
 		// try to pick a task for the runner that send the request.
 		if t, ok, err := pickTask(ctx, runner); err != nil {
