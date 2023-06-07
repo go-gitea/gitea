@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -55,5 +56,5 @@ func TestBuildLocalPath(t *testing.T) {
 
 func TestLocalStorageIterator(t *testing.T) {
 	dir := filepath.Join(os.TempDir(), "TestLocalStorageIteratorTestDir")
-	testStorageIterator(t, string(LocalStorageType), LocalStorageConfig{Path: dir})
+	testStorageIterator(t, setting.LocalStorageType, LocalStorageConfig{Path: dir})
 }

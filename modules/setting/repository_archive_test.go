@@ -20,7 +20,7 @@ STORAGE_TYPE = minio
 	assert.NoError(t, loadRepoArchiveFrom(cfg))
 
 	assert.EqualValues(t, "minio", RepoArchive.Storage.Type)
-	assert.EqualValues(t, "repo-archive/", cfg.Section("repo-archive").Key("MINIO_BASE_PATH").MustString(""))
+	assert.EqualValues(t, "repo-archive/", RepoArchive.Storage.MinioConfig.BasePath)
 
 	// we can also configure packages storage directly
 	iniStr = `
@@ -32,7 +32,7 @@ STORAGE_TYPE = minio
 	assert.NoError(t, loadRepoArchiveFrom(cfg))
 
 	assert.EqualValues(t, "minio", RepoArchive.Storage.Type)
-	assert.EqualValues(t, "repo-archive/", cfg.Section("repo-archive").Key("MINIO_BASE_PATH").MustString(""))
+	assert.EqualValues(t, "repo-archive/", RepoArchive.Storage.MinioConfig.BasePath)
 
 	// or we can indicate the storage type in the packages section
 	iniStr = `
@@ -47,7 +47,7 @@ STORAGE_TYPE = minio
 	assert.NoError(t, loadRepoArchiveFrom(cfg))
 
 	assert.EqualValues(t, "minio", RepoArchive.Storage.Type)
-	assert.EqualValues(t, "repo-archive/", cfg.Section("repo-archive").Key("MINIO_BASE_PATH").MustString(""))
+	assert.EqualValues(t, "repo-archive/", RepoArchive.Storage.MinioConfig.BasePath)
 
 	// or we can indicate the storage type  and minio base path in the packages section
 	iniStr = `
@@ -63,5 +63,49 @@ STORAGE_TYPE = minio
 	assert.NoError(t, loadRepoArchiveFrom(cfg))
 
 	assert.EqualValues(t, "minio", RepoArchive.Storage.Type)
-	assert.EqualValues(t, "my_archive/", cfg.Section("repo-archive").Key("MINIO_BASE_PATH").MustString(""))
+	assert.EqualValues(t, "my_archive/", RepoArchive.Storage.MinioConfig.BasePath)
+}
+
+func Test_RepoArchiveStorage(t *testing.T) {
+	iniStr := `
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[storage]
+STORAGE_TYPE            = minio
+MINIO_ENDPOINT          = s3.my-domain.net
+MINIO_BUCKET            = gitea
+MINIO_LOCATION          = homenet
+MINIO_USE_SSL           = true
+MINIO_ACCESS_KEY_ID     = correct_key
+MINIO_SECRET_ACCESS_KEY = correct_key
+`
+	cfg, err := NewConfigProviderFromData(iniStr)
+	assert.NoError(t, err)
+
+	assert.NoError(t, loadRepoArchiveFrom(cfg))
+	storage := RepoArchive.Storage
+
+	assert.EqualValues(t, "minio", storage.Type)
+	assert.EqualValues(t, "gitea", storage.MinioConfig.Bucket)
+
+	iniStr = `
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+[storage.repo-archive]
+STORAGE_TYPE = s3
+[storage.s3]
+STORAGE_TYPE            = minio
+MINIO_ENDPOINT          = s3.my-domain.net
+MINIO_BUCKET            = gitea
+MINIO_LOCATION          = homenet
+MINIO_USE_SSL           = true
+MINIO_ACCESS_KEY_ID     = correct_key
+MINIO_SECRET_ACCESS_KEY = correct_key
+`
+	cfg, err = NewConfigProviderFromData(iniStr)
+	assert.NoError(t, err)
+
+	assert.NoError(t, loadRepoArchiveFrom(cfg))
+	storage = RepoArchive.Storage
+
+	assert.EqualValues(t, "minio", storage.Type)
+	assert.EqualValues(t, "gitea", storage.MinioConfig.Bucket)
 }

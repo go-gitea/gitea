@@ -23,7 +23,7 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 	prefix = strings.Trim(prefix, "/")
 	funcInfo := routing.GetFuncInfo(storageHandler, prefix)
 	return func(next http.Handler) http.Handler {
-		if storageSetting.ServeDirect {
+		if storageSetting.MinioConfig.ServeDirect {
 			return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 				if req.Method != "GET" && req.Method != "HEAD" {
 					next.ServeHTTP(w, req)

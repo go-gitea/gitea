@@ -9,12 +9,17 @@ var RepoArchive = struct {
 	Storage *Storage
 }{}
 
-func loadRepoArchiveFrom(rootCfg ConfigProvider) error {
-	sec := rootCfg.Section("repo-archive")
+func loadRepoArchiveFrom(rootCfg ConfigProvider) (err error) {
+	sec, _ := rootCfg.GetSection("repo-archive")
+	if sec == nil {
+		RepoArchive.Storage, err = getStorage(rootCfg, "repo-archive", "", nil)
+		return err
+	}
+
 	if err := sec.MapTo(&RepoArchive); err != nil {
 		return fmt.Errorf("mapto repoarchive failed: %v", err)
 	}
 
-	RepoArchive.Storage = getStorage(rootCfg, "repo-archive", "", sec)
-	return nil
+	RepoArchive.Storage, err = getStorage(rootCfg, "repo-archive", "", sec)
+	return err
 }

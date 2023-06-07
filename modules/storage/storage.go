@@ -37,8 +37,7 @@ func IsErrInvalidConfiguration(err error) bool {
 	return ok
 }
 
-// Type is a type of Storage
-type Type string
+type Type = setting.StorageType
 
 // NewStorageFunc is a function that creates a storage
 type NewStorageFunc func(ctx context.Context, cfg interface{}) (ObjectStorage, error)
@@ -151,11 +150,11 @@ func Init() error {
 }
 
 // NewStorage takes a storage type and some config and returns an ObjectStorage or an error
-func NewStorage(typStr string, cfg interface{}) (ObjectStorage, error) {
+func NewStorage(typStr Type, cfg interface{}) (ObjectStorage, error) {
 	if len(typStr) == 0 {
-		typStr = string(LocalStorageType)
+		typStr = setting.LocalStorageType
 	}
-	fn, ok := storageMap[Type(typStr)]
+	fn, ok := storageMap[typStr]
 	if !ok {
 		return nil, fmt.Errorf("Unsupported storage type: %s", typStr)
 	}

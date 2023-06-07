@@ -12,13 +12,11 @@ import (
 	"path/filepath"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
 var _ ObjectStorage = &LocalStorage{}
-
-// LocalStorageType is the type descriptor for local storage
-const LocalStorageType Type = "local"
 
 // LocalStorageConfig represents the configuration for a local storage
 type LocalStorageConfig struct {
@@ -164,5 +162,5 @@ func (l *LocalStorage) IterateObjects(dirName string, fn func(path string, obj O
 }
 
 func init() {
-	RegisterStorageType(LocalStorageType, NewLocalStorage)
+	RegisterStorageType(setting.LocalStorageType, NewLocalStorage)
 }

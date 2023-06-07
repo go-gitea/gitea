@@ -179,7 +179,7 @@ func runMigrateStorage(ctx *cli.Context) error {
 	switch strings.ToLower(ctx.String("storage")) {
 	case "":
 		fallthrough
-	case string(storage.LocalStorageType):
+	case string(setting.LocalStorageType):
 		p := ctx.String("path")
 		if p == "" {
 			log.Fatal("Path must be given when storage is loal")
@@ -190,10 +190,10 @@ func runMigrateStorage(ctx *cli.Context) error {
 			storage.LocalStorageConfig{
 				Path: p,
 			})
-	case string(storage.MinioStorageType):
+	case string(setting.MinioStorageType):
 		dstStorage, err = storage.NewMinioStorage(
 			stdCtx,
-			storage.MinioStorageConfig{
+			setting.MinioStorageConfig{
 				Endpoint:           ctx.String("minio-endpoint"),
 				AccessKeyID:        ctx.String("minio-access-key-id"),
 				SecretAccessKey:    ctx.String("minio-secret-access-key"),

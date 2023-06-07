@@ -22,17 +22,21 @@ var (
 
 func loadActionsFrom(rootCfg ConfigProvider) error {
 	sec := rootCfg.Section("actions")
-	if err := sec.MapTo(&Actions); err != nil {
+	err := sec.MapTo(&Actions)
+	if err != nil {
 		return fmt.Errorf("failed to map Actions settings: %v", err)
 	}
 
 	// don't support to read configuration from [actions]
-	Actions.LogStorage = getStorage(rootCfg, "actions_log", "", nil)
+	Actions.LogStorage, err = getStorage(rootCfg, "actions_log", "", nil)
+	if err != nil {
+		return err
+	}
 
 	actionsSec := rootCfg.Section("actions.artifacts")
 	storageType := actionsSec.Key("STORAGE_TYPE").MustString("")
 
-	Actions.ArtifactStorage = getStorage(rootCfg, "actions_artifacts", storageType, actionsSec)
+	Actions.ArtifactStorage, err = getStorage(rootCfg, "actions_artifacts", storageType, actionsSec)
 
-	return nil
+	return err
 }

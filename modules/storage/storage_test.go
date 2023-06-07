@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func testStorageIterator(t *testing.T, typStr string, cfg interface{}) {
+func testStorageIterator(t *testing.T, typStr Type, cfg interface{}) {
 	l, err := NewStorage(typStr, cfg)
 	assert.NoError(t, err)
 

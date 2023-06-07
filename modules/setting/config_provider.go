@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -312,4 +313,23 @@ func NewConfigProviderForLocale(source any, others ...any) (ConfigProvider, erro
 
 func init() {
 	ini.PrettyFormat = false
+}
+
+// MustSectionKeyString to avoid use ini's MustString which will write data back to the ini's memory
+// this function is safe to be instead of ini's MustString
+func MustSectionKeyString(section ConfigSection, key string, defaults ...string) string {
+	v := section.Key(key).String()
+	if v == "" && len(defaults) > 0 {
+		return defaults[0]
+	}
+	return v
+}
+
+func MustSectionKeyBool(section ConfigSection, key string, defaults ...bool) bool {
+	v := section.Key(key).String()
+	if v == "" && len(defaults) > 0 {
+		return defaults[0]
+	}
+	b, _ := strconv.ParseBool(v)
+	return b
 }
