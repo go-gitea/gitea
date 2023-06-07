@@ -35,8 +35,7 @@ executable path, you will have to manage this yourself.
 
 **Note 2**: Go version {{< min-go-version >}} or higher is required. However, it is recommended to
 obtain the same version as our continuous integration, see the advice given in
-<a href='{{< relref "doc/development/hacking-on-gitea.en-us.md" >}}'>Hacking on
-Gitea</a>
+[Hacking on Gitea]({{< relref "doc/development/hacking-on-gitea.en-us.md" >}})
 
 **Table of Contents**
 
@@ -132,6 +131,8 @@ If pre-built frontend files are present it is possible to only build the backend
 ```bash
 TAGS="bindata" make backend
 ```
+
+Webpack source maps are by default enabled in development builds and disabled in production builds. They can be enabled by setting the `ENABLE_SOURCEMAP=true` environment variable.
 
 ## Test
 

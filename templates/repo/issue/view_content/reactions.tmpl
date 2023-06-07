@@ -1,5 +1,10 @@
+<div class="ui attached segment reactions" data-action-url="{{$.ActionURL}}">
 {{range $key, $value := .Reactions}}
-	<a class="ui label basic{{if $value.HasUser $.ctxData.SignedUserID}} primary{{end}}{{if not $.ctxData.IsSigned}} disabled{{end}}" data-title="{{$value.GetFirstUsers}}{{if gt ($value.GetMoreUserCount) 0}} {{$.ctxData.locale.Tr "repo.reactions_more" $value.GetMoreUserCount}}{{end}}" data-reaction-content="{{$key}}" data-action-url="{{$.ActionURL}}">
+	{{$hasReacted := $value.HasUser $.ctxData.SignedUserID}}
+	<a role="button" class="ui label basic{{if $hasReacted}} primary{{end}}{{if not $.ctxData.IsSigned}} disabled{{end}} comment-reaction-button"
+		data-tooltip-content="{{$value.GetFirstUsers}}{{if gt ($value.GetMoreUserCount) 0}} {{$.ctxData.locale.Tr "repo.reactions_more" $value.GetMoreUserCount}}{{end}}"
+		data-tooltip-placement="bottom-start"
+		data-reaction-content="{{$key}}" data-has-reacted="{{$hasReacted}}">
 		<span class="reaction">{{ReactionToEmoji $key}}</span>
 		<span class="reaction-count">{{len $value}}</span>
 	</a>
@@ -7,3 +12,4 @@
 {{if AllowedReactions}}
 	{{template "repo/issue/view_content/add_reaction" dict "ctxData" $.ctxData "ActionURL" .ActionURL}}
 {{end}}
+</div>

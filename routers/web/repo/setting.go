@@ -64,6 +64,7 @@ func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["ForcePrivate"] = setting.Repository.ForcePrivate
 	ctx.Data["MirrorsEnabled"] = setting.Mirror.Enabled
+	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["DisableNewPushMirrors"] = setting.Mirror.DisableNewPush
 	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
 	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
@@ -111,6 +112,7 @@ func SettingsPost(ctx *context.Context) {
 
 	ctx.Data["ForcePrivate"] = setting.Repository.ForcePrivate
 	ctx.Data["MirrorsEnabled"] = setting.Mirror.Enabled
+	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["DisableNewPushMirrors"] = setting.Mirror.DisableNewPush
 	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
 	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval

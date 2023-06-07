@@ -26,10 +26,9 @@ import (
 )
 
 const (
-	tplProjects           base.TplName = "org/projects/list"
-	tplProjectsNew        base.TplName = "org/projects/new"
-	tplProjectsView       base.TplName = "org/projects/view"
-	tplGenericProjectsNew base.TplName = "user/project"
+	tplProjects     base.TplName = "org/projects/list"
+	tplProjectsNew  base.TplName = "org/projects/new"
+	tplProjectsView base.TplName = "org/projects/view"
 )
 
 // MustEnableProjects check if projects are enabled in settings
@@ -125,14 +124,15 @@ func canWriteProjects(ctx *context.Context) bool {
 	return ctx.Doer != nil && ctx.ContextUser.ID == ctx.Doer.ID
 }
 
-// NewProject render creating a project page
-func NewProject(ctx *context.Context) {
+// RenderNewProject render creating a project page
+func RenderNewProject(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
 	ctx.Data["BoardTypes"] = project_model.GetBoardConfig()
 	ctx.Data["CardTypes"] = project_model.GetCardConfig()
 	ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)
 	ctx.Data["PageIsViewProjects"] = true
 	ctx.Data["HomeLink"] = ctx.ContextUser.HomeLink()
+	ctx.Data["CancelLink"] = ctx.ContextUser.HomeLink() + "/-/projects"
 	shared_user.RenderUserHeader(ctx)
 	ctx.HTML(http.StatusOK, tplProjectsNew)
 }
@@ -144,11 +144,7 @@ func NewProjectPost(ctx *context.Context) {
 	shared_user.RenderUserHeader(ctx)
 
 	if ctx.HasError() {
-		ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)
-		ctx.Data["PageIsViewProjects"] = true
-		ctx.Data["BoardTypes"] = project_model.GetBoardConfig()
-		ctx.Data["CardTypes"] = project_model.GetCardConfig()
-		ctx.HTML(http.StatusOK, tplProjectsNew)
+		RenderNewProject(ctx)
 		return
 	}
 
@@ -227,8 +223,8 @@ func DeleteProject(ctx *context.Context) {
 	})
 }
 
-// EditProject allows a project to be edited
-func EditProject(ctx *context.Context) {
+// RenderEditProject allows a project to be edited
+func RenderEditProject(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.edit")
 	ctx.Data["PageIsEditProjects"] = true
 	ctx.Data["PageIsViewProjects"] = true
@@ -257,6 +253,7 @@ func EditProject(ctx *context.Context) {
 	ctx.Data["redirect"] = ctx.FormString("redirect")
 	ctx.Data["HomeLink"] = ctx.ContextUser.HomeLink()
 	ctx.Data["card_type"] = p.CardType
+	ctx.Data["CancelLink"] = fmt.Sprintf("%s/-/projects/%d", ctx.ContextUser.HomeLink(), p.ID)
 
 	ctx.HTML(http.StatusOK, tplProjectsNew)
 }
@@ -264,11 +261,13 @@ func EditProject(ctx *context.Context) {
 // EditProjectPost response for editing a project
 func EditProjectPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateProjectForm)
+	projectID := ctx.ParamsInt64(":id")
 	ctx.Data["Title"] = ctx.Tr("repo.projects.edit")
 	ctx.Data["PageIsEditProjects"] = true
 	ctx.Data["PageIsViewProjects"] = true
 	ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)
 	ctx.Data["CardTypes"] = project_model.GetCardConfig()
+	ctx.Data["CancelLink"] = fmt.Sprintf("%s/-/projects/%d", ctx.ContextUser.HomeLink(), projectID)
 
 	shared_user.RenderUserHeader(ctx)
 
@@ -277,7 +276,7 @@ func EditProjectPost(ctx *context.Context) {
 		return
 	}
 
-	p, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
+	p, err := project_model.GetProjectByID(ctx, projectID)
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("", nil)

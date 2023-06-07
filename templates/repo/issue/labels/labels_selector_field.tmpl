@@ -6,7 +6,6 @@
 		{{end}}
 	</span>
 	<div class="filter menu" {{if .Issue}}data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/labels"{{else}}data-id="#label_ids"{{end}}>
-		<div class="header" style="text-transform: none;font-size:16px;">{{.locale.Tr "repo.issues.new.add_labels_title"}}</div>
 		{{if or .Labels .OrgLabels}}
 			<div class="ui icon search input">
 				<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
@@ -37,7 +36,7 @@
 				{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}</a>
 			{{end}}
 		{{else}}
-			<div class="header" style="text-transform: none;font-size:14px;">{{.locale.Tr "repo.issues.new.no_items"}}</div>
+			<div class="disabled item">{{.locale.Tr "repo.issues.new.no_items"}}</div>
 		{{end}}
 	</div>
 </div>

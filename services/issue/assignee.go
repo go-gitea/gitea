@@ -73,7 +73,7 @@ func ReviewRequest(ctx context.Context, issue *issues_model.Issue, doer, reviewe
 	}
 
 	if comment != nil {
-		notification.NotifyPullReviewRequest(ctx, doer, issue, reviewer, isAdd, comment)
+		notification.NotifyPullRequestReviewRequest(ctx, doer, issue, reviewer, isAdd, comment)
 	}
 
 	return comment, err
@@ -260,7 +260,7 @@ func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *use
 			continue
 		}
 		comment.AssigneeID = member.ID
-		notification.NotifyPullReviewRequest(ctx, doer, issue, member, isAdd, comment)
+		notification.NotifyPullRequestReviewRequest(ctx, doer, issue, member, isAdd, comment)
 	}
 
 	return comment, err

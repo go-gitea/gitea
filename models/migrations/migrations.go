@@ -495,6 +495,8 @@ var migrations = []Migration{
 	NewMigration("Add Actions Artifact table", v1_20.CreateActionArtifactTable),
 	// v258 -> 259
 	NewMigration("Add PinOrder Column", v1_20.AddPinOrderToIssue),
+	// v259 -> 260
+	NewMigration("Convert scoped access tokens", v1_20.ConvertScopedAccessTokens),
 	// to modify later
 	NewMigration("Add size limit on repository", v1_20.AddSizeLimitOnRepo),
 }

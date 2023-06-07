@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
@@ -58,7 +59,7 @@ func GetListLockHandler(ctx *context.Context) {
 	}
 	repository.MustOwner(ctx)
 
-	context.CheckRepoScopedToken(ctx, repository)
+	context.CheckRepoScopedToken(ctx, repository, auth_model.Read)
 	if ctx.Written() {
 		return
 	}
@@ -150,7 +151,7 @@ func PostLockHandler(ctx *context.Context) {
 	}
 	repository.MustOwner(ctx)
 
-	context.CheckRepoScopedToken(ctx, repository)
+	context.CheckRepoScopedToken(ctx, repository, auth_model.Write)
 	if ctx.Written() {
 		return
 	}
@@ -222,7 +223,7 @@ func VerifyLockHandler(ctx *context.Context) {
 	}
 	repository.MustOwner(ctx)
 
-	context.CheckRepoScopedToken(ctx, repository)
+	context.CheckRepoScopedToken(ctx, repository, auth_model.Read)
 	if ctx.Written() {
 		return
 	}
@@ -293,7 +294,7 @@ func UnLockHandler(ctx *context.Context) {
 	}
 	repository.MustOwner(ctx)
 
-	context.CheckRepoScopedToken(ctx, repository)
+	context.CheckRepoScopedToken(ctx, repository, auth_model.Write)
 	if ctx.Written() {
 		return
 	}

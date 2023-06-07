@@ -346,7 +346,7 @@ func TestAccessibleReposEnv_Repos(t *testing.T) {
 		assert.NoError(t, err)
 		repos, err := env.Repos(1, 100)
 		assert.NoError(t, err)
-		expectedRepos := make([]*repo_model.Repository, len(expectedRepoIDs))
+		expectedRepos := make(repo_model.RepositoryList, len(expectedRepoIDs))
 		for i, repoID := range expectedRepoIDs {
 			expectedRepos[i] = unittest.AssertExistsAndLoadBean(t,
 				&repo_model.Repository{ID: repoID})
@@ -365,7 +365,7 @@ func TestAccessibleReposEnv_MirrorRepos(t *testing.T) {
 		assert.NoError(t, err)
 		repos, err := env.MirrorRepos()
 		assert.NoError(t, err)
-		expectedRepos := make([]*repo_model.Repository, len(expectedRepoIDs))
+		expectedRepos := make(repo_model.RepositoryList, len(expectedRepoIDs))
 		for i, repoID := range expectedRepoIDs {
 			expectedRepos[i] = unittest.AssertExistsAndLoadBean(t,
 				&repo_model.Repository{ID: repoID})
