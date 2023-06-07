@@ -162,6 +162,7 @@ func List(ctx *context.Context) {
 
 	ctx.Data["Runs"] = runs
 
+	// Get all runs under the repo to get all actors and statuses
 	allRunsOpts := actions_model.FindRunOptions{
 		ListOptions: db.ListOptions{
 			ListAll: true,
@@ -181,6 +182,7 @@ func List(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Actors"] = actors
+
 	statusInfos := allRuns.GetStatusInfos(ctx)
 	ctx.Data["StatusInfos"] = statusInfos
 
