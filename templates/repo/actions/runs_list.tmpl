@@ -1,8 +1,8 @@
 <div class="issue list gt-m-0">
 	{{if and (eq (len .Runs) 0) $.IsFiltered }}
-	<div>{{.locale.Tr "actions.runs.no_results"}}</div>
+	<div class="gt-tc">{{.locale.Tr "actions.runs.no_results"}}</div>
 	{{else if eq (len .Runs) 0}}
-	<div>{{.locale.Tr "actions.runs.no_runs"}}</div>
+	<div class="gt-tc">{{.locale.Tr "actions.runs.no_runs"}}</div>
 	{{end}}
 	{{range .Runs}}
 		<li class="item gt-df gt-py-4">
