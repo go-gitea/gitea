@@ -25,6 +25,14 @@ func (runs RunList) GetUserIDs() []int64 {
 	return ids.Values()
 }
 
+// GetActors returns a slice of Actors
+func (runs RunList) GetActors(ctx context.Context) (map[int64]*user_model.User, error) {
+	actorIDs := runs.GetUserIDs()
+	actors := make(map[int64]*user_model.User, len(actorIDs))
+	err := db.GetEngine(ctx).In("id", actorIDs).Find(&actors)
+	return actors, err
+}
+
 func (runs RunList) GetRepoIDs() []int64 {
 	ids := make(container.Set[int64], len(runs))
 	for _, run := range runs {

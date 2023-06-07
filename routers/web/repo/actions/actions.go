@@ -5,6 +5,7 @@ package actions
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -125,8 +126,12 @@ func List(ctx *context.Context) {
 	}
 
 	workflow := ctx.FormString("workflow")
+	actorID := ctx.FormInt64("actor")
 	ctx.Data["CurWorkflow"] = workflow
-
+	ctx.Data["CurActor"] = actorID
+	if actorID > 0 {
+		ctx.Data["IsFiltered"] = true
+	}
 	opts := actions_model.FindRunOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
@@ -134,6 +139,7 @@ func List(ctx *context.Context) {
 		},
 		RepoID:           ctx.Repo.Repository.ID,
 		WorkflowFileName: workflow,
+		TriggerUserID:    actorID,
 	}
 
 	runs, total, err := actions_model.FindRuns(ctx, opts)
@@ -151,11 +157,31 @@ func List(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["Runs"] = runs
+	allRunsOpts := actions_model.FindRunOptions{
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		RepoID: ctx.Repo.Repository.ID,
+	}
 
+	allRuns, _, err := actions_model.FindRuns(ctx, allRunsOpts)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	actors, err := allRuns.GetActors(ctx)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	ctx.Data["Runs"] = runs
+	ctx.Data["Actors"] = actors
 	pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParamString("workflow", workflow)
+	pager.AddParamString("actor", fmt.Sprint(actorID))
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplListActions)
