@@ -135,7 +135,6 @@ need to put it on the parent. */
   /* Point the chevron down. */
   transform: rotate(90deg);
   background: currentcolor;
-  border: 1px solid var(--color-body); /* workaround https://bugzilla.mozilla.org/show_bug.cgi?id=1671784 */
 }
 
 .ui.form .access-token-select {
