@@ -117,7 +117,7 @@ export function initScopedAccessTokenCategories() {
   position: relative;
 }
 
-/* ::before and ::after pseudo elements doesn't work on select elements, so we
+/* ::before and ::after pseudo elements don't work on select elements, so we
 need to put it on the parent. */
 .access-token-select-wrapper::before {
   position: absolute;
@@ -130,8 +130,10 @@ need to put it on the parent. */
   height: 14px;
   mask-size: cover;
   -webkit-mask-size: cover;
-  mask-image: var(--octicon-chevron-down);
-  -webkit-mask-image: var(--octicon-chevron-down);
+  mask-image: var(--octicon-chevron-right);
+  -webkit-mask-image: var(--octicon-chevron-right);
+  /* Point the chevron down. */
+  transform: rotate(90deg);
   background: currentcolor;
   border: 1px solid var(--color-body); /* workaround https://bugzilla.mozilla.org/show_bug.cgi?id=1671784 */
 }
