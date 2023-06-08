@@ -20,7 +20,7 @@ func TestAccessTokenScope_Normalize(t *testing.T) {
 	tests := []scopeTestNormalize{
 		{"", "", nil},
 		{"write:misc,write:notification,read:package,write:notification,public-only", "public-only,write:misc,write:notification,read:package", nil},
-		{"all", "all", nil},
+		{"all,sudo", "all", nil},
 		{"write:activitypub,write:admin,write:misc,write:notification,write:organization,write:package,write:issue,write:repository,write:user", "all", nil},
 		{"write:activitypub,write:admin,write:misc,write:notification,write:organization,write:package,write:issue,write:repository,write:user,public-only", "public-only,all", nil},
 	}
