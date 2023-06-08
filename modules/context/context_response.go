@@ -49,9 +49,9 @@ func (ctx *Context) RedirectToFirst(location ...string) {
 			continue
 		}
 
-		// Unfortunately browsers consider a redirect Location with preceding "//" and "/\" as meaning redirect to "http(s)://REST_OF_PATH"
+		// Unfortunately browsers consider a redirect Location with preceding "//", "\\" and "/\" as meaning redirect to "http(s)://REST_OF_PATH"
 		// Therefore we should ignore these redirect locations to prevent open redirects
-		if len(loc) > 1 && loc[0] == '/' && (loc[1] == '/' || loc[1] == '\\') {
+		if len(loc) > 1 && (loc[0] == '/' || loc[0] == '\\') && (loc[1] == '/' || loc[1] == '\\') {
 			continue
 		}
 
