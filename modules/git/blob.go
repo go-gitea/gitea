@@ -21,15 +21,22 @@ func (b *Blob) Name() string {
 }
 
 // GetBlobContent Gets the content of the blob as raw text
-func (b *Blob) GetBlobContent() (string, error) {
+// limit=0 means no limit, limit>0 means limit the content length
+func (b *Blob) GetBlobContent(limit int64) (string, error) {
 	dataRc, err := b.DataAsync()
 	if err != nil {
 		return "", err
 	}
 	defer dataRc.Close()
-	buf := make([]byte, 1024)
-	n, _ := util.ReadAtMost(dataRc, buf)
-	buf = buf[:n]
+
+	var buf []byte
+	if limit == 0 {
+		buf, _ = io.ReadAll(dataRc)
+	} else {
+		buf = make([]byte, limit)
+		n, _ := util.ReadAtMost(dataRc, buf)
+		buf = buf[:n]
+	}
 	return string(buf), nil
 }
 

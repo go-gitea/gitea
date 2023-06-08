@@ -107,7 +107,7 @@ func Profile(ctx *context.Context) {
 		}
 		blob, err := commit.GetBlobByPath("README.md")
 		if err == nil {
-			bytes, err := blob.GetBlobAll()
+			bytes, err := blob.GetBlobContent(0)
 			if err != nil {
 				ctx.ServerError("GetBlobContent", err)
 				return
