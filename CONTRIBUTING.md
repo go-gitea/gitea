@@ -108,7 +108,7 @@ You can find more information on how to get started with it on the [Modules Wiki
 
 We do all translation work inside [Crowdin](https://crowdin.com/project/gitea).
 The only translation that is maintained in this Git repository is
-[`en_US.ini`](https://github.com/go-gitea/gitea/blob/master/options/locale/locale_en-US.ini)
+[`en_US.ini`](https://github.com/go-gitea/gitea/blob/main/options/locale/locale_en-US.ini)
 and is synced regularly to Crowdin. Once a translation has reached
 A SATISFACTORY PERCENTAGE it will be synced back into this repo and
 included in the next released version.
