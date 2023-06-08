@@ -108,9 +108,15 @@ function showLineButton() {
 
   createTippy(btn, {
     trigger: 'click',
+    hideOnClick: true,
     content: menu,
     placement: 'right-start',
     interactive: 'true',
+    onShow: (tippy) => {
+      tippy.popper.addEventListener('click', () => {
+        tippy.hide();
+      }, {once: true});
+    }
   });
 }
 
