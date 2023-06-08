@@ -4,6 +4,7 @@
 package elasticsearch
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -49,6 +50,9 @@ func NewIndexer(client *elastic.Client, indexerName string) *Indexer {
 
 // Init initializes the indexer
 func (i *Indexer) Init() (bool, error) {
+	if i == nil {
+		return false, fmt.Errorf("cannot init nil indexer")
+	}
 	ctx := graceful.GetManager().HammerContext()
 	exists, err := i.Client.IndexExists(i.IndexerName).Do(ctx)
 	if err != nil {
@@ -59,6 +63,9 @@ func (i *Indexer) Init() (bool, error) {
 
 // Ping checks if the indexer is available
 func (i *Indexer) Ping() bool {
+	if i == nil {
+		return false
+	}
 	i.lock.RLock()
 	defer i.lock.RUnlock()
 	return i.available
@@ -66,6 +73,9 @@ func (i *Indexer) Ping() bool {
 
 // Close closes the indexer
 func (i *Indexer) Close() {
+	if i == nil {
+		return
+	}
 	select {
 	case <-i.stopTimer:
 	default:
