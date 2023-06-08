@@ -18,6 +18,7 @@ __debug_bin
 
 # Architecture specific extensions/prefixes
 *.[568vq]
+!options/license/*.[568vq]
 [568vq].out
 
 *.cgo1.go
