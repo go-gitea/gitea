@@ -1,3 +1,5 @@
+import {encode, decode} from 'uint8-to-base64';
+
 // transform /path/to/file.ext to file.ext
 export function basename(path = '') {
   return path ? path.replace(/^.*\//, '') : '';
@@ -135,3 +137,17 @@ export function toAbsoluteUrl(url) {
   return `${window.location.origin}${url}`;
 }
 
+// Encode an ArrayBuffer into a URLEncoded base64 string.
+export function encodeURLEncodedBase64(arrayBuffer) {
+  return encode(arrayBuffer)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+}
+
+// Decode a URLEncoded base64 to an ArrayBuffer string.
+export function decodeURLEncodedBase64(base64url) {
+  return decode(base64url
+    .replace(/_/g, '/')
+    .replace(/-/g, '+'));
+}

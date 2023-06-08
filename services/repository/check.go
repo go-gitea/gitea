@@ -115,7 +115,7 @@ func GitGcRepo(ctx context.Context, repo *repo_model.Repository, timeout time.Du
 	return nil
 }
 
-func gatherMissingRepoRecords(ctx context.Context) ([]*repo_model.Repository, error) {
+func gatherMissingRepoRecords(ctx context.Context) (repo_model.RepositoryList, error) {
 	repos := make([]*repo_model.Repository, 0, 10)
 	if err := db.Iterate(
 		ctx,

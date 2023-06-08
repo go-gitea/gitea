@@ -394,10 +394,6 @@ textarea:focus,
   margin: 0;
 }
 
-.user.signin.webauthn-prompt {
-  margin-top: 15px;
-}
-
 .repository.new.repo form,
 .repository.new.migrate form,
 .repository.new.fork form {
