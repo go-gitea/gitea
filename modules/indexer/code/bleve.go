@@ -17,7 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
-	gitea_bleve "code.gitea.io/gitea/modules/indexer/bleve"
+	inner_bleve "code.gitea.io/gitea/modules/indexer/internal/bleve"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -183,7 +183,7 @@ func NewBleveIndexer(indexDir string) (*BleveIndexer, bool, error) {
 }
 
 func (b *BleveIndexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserError, batchReader *bufio.Reader, commitSha string,
-	update fileUpdate, repo *repo_model.Repository, batch *gitea_bleve.FlushingBatch,
+	update fileUpdate, repo *repo_model.Repository, batch *inner_bleve.FlushingBatch,
 ) error {
 	// Ignore vendored files in code search
 	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
@@ -238,7 +238,7 @@ func (b *BleveIndexer) addUpdate(ctx context.Context, batchWriter git.WriteClose
 	})
 }
 
-func (b *BleveIndexer) addDelete(filename string, repo *repo_model.Repository, batch *gitea_bleve.FlushingBatch) error {
+func (b *BleveIndexer) addDelete(filename string, repo *repo_model.Repository, batch *inner_bleve.FlushingBatch) error {
 	id := filenameIndexerID(repo.ID, filename)
 	return batch.Delete(id)
 }
@@ -281,7 +281,7 @@ func (b *BleveIndexer) Ping() bool {
 
 // Index indexes the data
 func (b *BleveIndexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *repoChanges) error {
-	batch := gitea_bleve.NewFlushingBatch(b.indexer, maxBatchSize)
+	batch := inner_bleve.NewFlushingBatch(b.indexer, maxBatchSize)
 	if len(changes.Updates) > 0 {
 
 		// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
@@ -316,7 +316,7 @@ func (b *BleveIndexer) Delete(repoID int64) error {
 	if err != nil {
 		return err
 	}
-	batch := gitea_bleve.NewFlushingBatch(b.indexer, maxBatchSize)
+	batch := inner_bleve.NewFlushingBatch(b.indexer, maxBatchSize)
 	for _, hit := range result.Hits {
 		if err = batch.Delete(hit.ID); err != nil {
 			return err

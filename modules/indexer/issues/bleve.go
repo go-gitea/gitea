@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"strconv"
 
-	gitea_bleve "code.gitea.io/gitea/modules/indexer/bleve"
 	"code.gitea.io/gitea/modules/indexer/internal"
 	inner_bleve "code.gitea.io/gitea/modules/indexer/internal/bleve"
 
@@ -158,7 +157,7 @@ func (b *BleveIndexer) Init() (bool, error) {
 
 // Index will save the index data
 func (b *BleveIndexer) Index(issues []*IndexerData) error {
-	batch := gitea_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
+	batch := inner_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	for _, issue := range issues {
 		if err := batch.Index(indexerID(issue.ID), struct {
 			RepoID   int64
@@ -179,7 +178,7 @@ func (b *BleveIndexer) Index(issues []*IndexerData) error {
 
 // Delete deletes indexes by ids
 func (b *BleveIndexer) Delete(ids ...int64) error {
-	batch := gitea_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
+	batch := inner_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	for _, id := range ids {
 		if err := batch.Delete(indexerID(id)); err != nil {
 			return err
