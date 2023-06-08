@@ -194,7 +194,7 @@ func InitIssueIndexer(syncReindex bool) {
 			populate = !exist
 			holder.set(issueIndexer)
 		case "db":
-			issueIndexer := &DBIndexer{}
+			issueIndexer := NewDBIndexer()
 			holder.set(issueIndexer)
 		case "meilisearch":
 			issueIndexer, err := NewMeilisearchIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueConnAuth, setting.Indexer.IssueIndexerName)
