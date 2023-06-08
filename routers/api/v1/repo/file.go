@@ -408,11 +408,11 @@ func canReadFiles(r *context.Repository) bool {
 	return r.Permission.CanRead(unit.TypeCode)
 }
 
-// ChangeFiles handles API call for creating or updating multiple files
+// ChangeFiles handles API call for modifying multiple files
 func ChangeFiles(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/contents repository repoChangeFiles
 	// ---
-	// summary: Create or update multiple files in a repository
+	// summary: Modify multiple files in a repository
 	// consumes:
 	// - application/json
 	// produces:

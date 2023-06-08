@@ -132,7 +132,7 @@
 }
 
 .repository .header-wrapper {
-  background-color: var(--color-navbar);
+  background-color: var(--color-header-wrapper);
 }
 
 .repository .header-wrapper .ui.tabs.divider {
