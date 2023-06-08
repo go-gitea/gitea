@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/indexer/internal"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
@@ -44,11 +45,10 @@ type SearchResultLanguages struct {
 
 // Indexer defines an interface to index and search code contents
 type Indexer interface {
-	Ping() bool
+	internal.Indexer
 	Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *repoChanges) error
 	Delete(repoID int64) error
 	Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error)
-	Close()
 }
 
 func filenameIndexerID(repoID int64, filename string) string {
@@ -214,7 +214,7 @@ func Init() {
 		start := time.Now()
 		var (
 			rIndexer Indexer
-			populate bool
+			existed  bool
 			err      error
 		)
 		switch setting.Indexer.RepoType {
@@ -228,7 +228,8 @@ func Init() {
 				}
 			}()
 
-			rIndexer, populate, err = NewBleveIndexer(setting.Indexer.RepoPath)
+			rIndexer = NewBleveIndexer(setting.Indexer.RepoPath)
+			existed, err = rIndexer.Init()
 			if err != nil {
 				cancel()
 				indexer.Close()
@@ -245,13 +246,21 @@ func Init() {
 				}
 			}()
 
-			rIndexer, populate, err = NewElasticSearchIndexer(setting.Indexer.RepoConnStr, setting.Indexer.RepoIndexerName)
+			rIndexer, err = NewElasticSearchIndexer(setting.Indexer.RepoConnStr, setting.Indexer.RepoIndexerName)
+			if err != nil {
+				cancel()
+				indexer.Close()
+				close(waitChannel)
+				log.Fatal("PID: %d Unable to create the elasticsearch Repository Indexer connstr: %s Error: %v", os.Getpid(), setting.Indexer.RepoConnStr, err)
+			}
+			existed, err = rIndexer.Init()
 			if err != nil {
 				cancel()
 				indexer.Close()
 				close(waitChannel)
 				log.Fatal("PID: %d Unable to initialize the elasticsearch Repository Indexer connstr: %s Error: %v", os.Getpid(), setting.Indexer.RepoConnStr, err)
 			}
+
 		default:
 			log.Fatal("PID: %d Unknown Indexer type: %s", os.Getpid(), setting.Indexer.RepoType)
 		}
@@ -261,7 +270,7 @@ func Init() {
 		// Start processing the queue
 		go graceful.GetManager().RunWithCancel(indexerQueue)
 
-		if populate {
+		if !existed { // populate the index because it's created for the first time
 			go graceful.GetManager().RunWithShutdownContext(populateRepoIndexer)
 		}
 		select {

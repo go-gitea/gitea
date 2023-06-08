@@ -56,6 +56,15 @@ func (w *wrappedIndexer) get() (Indexer, error) {
 	return w.internal, nil
 }
 
+func (w *wrappedIndexer) Init() (bool, error) {
+	indexer, err := w.get()
+	if err != nil {
+		log.Warn("Failed to get indexer: %v", err)
+		return false, err
+	}
+	return indexer.Init()
+}
+
 // Ping checks if elastic is available
 func (w *wrappedIndexer) Ping() bool {
 	indexer, err := w.get()

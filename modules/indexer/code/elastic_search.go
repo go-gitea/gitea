@@ -6,13 +6,10 @@ package code
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"io"
-	"net"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -20,6 +17,8 @@ import (
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/indexer/internal"
+	inner_elasticsearch "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -42,15 +41,12 @@ var _ Indexer = &ElasticSearchIndexer{}
 
 // ElasticSearchIndexer implements Indexer interface
 type ElasticSearchIndexer struct {
-	client           *elastic.Client
-	indexerAliasName string
-	available        bool
-	stopTimer        chan struct{}
-	lock             sync.RWMutex
+	inner            *inner_elasticsearch.Indexer
+	internal.Indexer // do not composite inner_elasticsearch.Indexer directly to avoid exposing too much
 }
 
 // NewElasticSearchIndexer creates a new elasticsearch indexer
-func NewElasticSearchIndexer(url, indexerName string) (*ElasticSearchIndexer, bool, error) {
+func NewElasticSearchIndexer(url, indexerName string) (*ElasticSearchIndexer, error) {
 	opts := []elastic.ClientOptionFunc{
 		elastic.SetURL(url),
 		elastic.SetSniff(false),
@@ -66,35 +62,15 @@ func NewElasticSearchIndexer(url, indexerName string) (*ElasticSearchIndexer, bo
 
 	client, err := elastic.NewClient(opts...)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
+	in := inner_elasticsearch.NewIndexer(client, indexerName)
 	indexer := &ElasticSearchIndexer{
-		client:           client,
-		indexerAliasName: indexerName,
-		available:        true,
-		stopTimer:        make(chan struct{}),
+		inner:   in,
+		Indexer: in,
 	}
-
-	ticker := time.NewTicker(10 * time.Second)
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				indexer.checkAvailability()
-			case <-indexer.stopTimer:
-				ticker.Stop()
-				return
-			}
-		}
-	}()
-
-	exists, err := indexer.init()
-	if err != nil {
-		indexer.Close()
-		return nil, false, err
-	}
-	return indexer, !exists, err
+	return indexer, nil
 }
 
 const (
@@ -128,68 +104,64 @@ const (
 )
 
 func (b *ElasticSearchIndexer) realIndexerName() string {
-	return fmt.Sprintf("%s.v%d", b.indexerAliasName, esRepoIndexerLatestVersion)
+	return fmt.Sprintf("%s.v%d", b.inner.IndexerName, esRepoIndexerLatestVersion)
 }
 
 // Init will initialize the indexer
-func (b *ElasticSearchIndexer) init() (bool, error) {
-	ctx := graceful.GetManager().HammerContext()
-	exists, err := b.client.IndexExists(b.realIndexerName()).Do(ctx)
+func (b *ElasticSearchIndexer) Init() (bool, error) {
+	opened, err := b.Indexer.Init()
 	if err != nil {
-		return false, b.checkError(err)
+		return false, err
 	}
-	if !exists {
-		mapping := defaultMapping
+	if opened {
+		return true, nil
+	}
 
-		createIndex, err := b.client.CreateIndex(b.realIndexerName()).BodyString(mapping).Do(ctx)
-		if err != nil {
-			return false, b.checkError(err)
-		}
-		if !createIndex.Acknowledged {
-			return false, fmt.Errorf("create index %s with %s failed", b.realIndexerName(), mapping)
-		}
+	ctx := graceful.GetManager().HammerContext()
+	mapping := defaultMapping
+
+	createIndex, err := b.inner.Client.CreateIndex(b.realIndexerName()).BodyString(mapping).Do(ctx)
+	if err != nil {
+		return false, b.inner.CheckError(err)
+	}
+	if !createIndex.Acknowledged {
+		return false, fmt.Errorf("create index %s with %s failed", b.realIndexerName(), mapping)
 	}
 
 	// check version
-	r, err := b.client.Aliases().Do(ctx)
+	// FIXME: return value should be fixed
+	r, err := b.inner.Client.Aliases().Do(ctx)
 	if err != nil {
-		return false, b.checkError(err)
+		return false, b.inner.CheckError(err)
 	}
 
-	realIndexerNames := r.IndicesByAlias(b.indexerAliasName)
+	realIndexerNames := r.IndicesByAlias(b.inner.IndexerName)
 	if len(realIndexerNames) < 1 {
-		res, err := b.client.Alias().
-			Add(b.realIndexerName(), b.indexerAliasName).
+		res, err := b.inner.Client.Alias().
+			Add(b.realIndexerName(), b.inner.IndexerName).
 			Do(ctx)
 		if err != nil {
-			return false, b.checkError(err)
+			return false, b.inner.CheckError(err)
 		}
 		if !res.Acknowledged {
-			return false, fmt.Errorf("create alias %s to index %s failed", b.indexerAliasName, b.realIndexerName())
+			return false, fmt.Errorf("create alias %s to index %s failed", b.inner.IndexerName, b.realIndexerName())
 		}
 	} else if len(realIndexerNames) >= 1 && realIndexerNames[0] < b.realIndexerName() {
 		log.Warn("Found older gitea indexer named %s, but we will create a new one %s and keep the old NOT DELETED. You can delete the old version after the upgrade succeed.",
 			realIndexerNames[0], b.realIndexerName())
-		res, err := b.client.Alias().
-			Remove(realIndexerNames[0], b.indexerAliasName).
-			Add(b.realIndexerName(), b.indexerAliasName).
+		res, err := b.inner.Client.Alias().
+			Remove(realIndexerNames[0], b.inner.IndexerName).
+			Add(b.realIndexerName(), b.inner.IndexerName).
 			Do(ctx)
 		if err != nil {
-			return false, b.checkError(err)
+			return false, b.inner.CheckError(err)
 		}
 		if !res.Acknowledged {
-			return false, fmt.Errorf("change alias %s to index %s failed", b.indexerAliasName, b.realIndexerName())
+			return false, fmt.Errorf("change alias %s to index %s failed", b.inner.IndexerName, b.realIndexerName())
 		}
 	}
 
-	return exists, nil
-}
-
-// Ping checks if elastic is available
-func (b *ElasticSearchIndexer) Ping() bool {
-	b.lock.RLock()
-	defer b.lock.RUnlock()
-	return b.available
+	return true, nil
 }
 
 func (b *ElasticSearchIndexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update fileUpdate, repo *repo_model.Repository) ([]elastic.BulkableRequest, error) {
@@ -239,7 +211,7 @@ func (b *ElasticSearchIndexer) addUpdate(ctx context.Context, batchWriter git.Wr
 
 	return []elastic.BulkableRequest{
 		elastic.NewBulkIndexRequest().
-			Index(b.indexerAliasName).
+			Index(b.inner.IndexerName).
 			Id(id).
 			Doc(map[string]interface{}{
 				"repo_id":    repo.ID,
@@ -254,7 +226,7 @@ func (b *ElasticSearchIndexer) addUpdate(ctx context.Context, batchWriter git.Wr
 func (b *ElasticSearchIndexer) addDelete(filename string, repo *repo_model.Repository) elastic.BulkableRequest {
 	id := filenameIndexerID(repo.ID, filename)
 	return elastic.NewBulkDeleteRequest().
-		Index(b.indexerAliasName).
+		Index(b.inner.IndexerName).
 		Id(id)
 }
 
@@ -288,21 +260,21 @@ func (b *ElasticSearchIndexer) Index(ctx context.Context, repo *repo_model.Repos
 	}
 
 	if len(reqs) > 0 {
-		_, err := b.client.Bulk().
-			Index(b.indexerAliasName).
+		_, err := b.inner.Client.Bulk().
+			Index(b.inner.IndexerName).
 			Add(reqs...).
 			Do(ctx)
-		return b.checkError(err)
+		return b.inner.CheckError(err)
 	}
 	return nil
 }
 
 // Delete deletes indexes by ids
 func (b *ElasticSearchIndexer) Delete(repoID int64) error {
-	_, err := b.client.DeleteByQuery(b.indexerAliasName).
+	_, err := b.inner.Client.DeleteByQuery(b.inner.IndexerName).
 		Query(elastic.NewTermsQuery("repo_id", repoID)).
 		Do(graceful.GetManager().HammerContext())
-	return b.checkError(err)
+	return b.inner.CheckError(err)
 }
 
 // indexPos find words positions for start and the following end on content. It will
@@ -412,8 +384,8 @@ func (b *ElasticSearchIndexer) Search(ctx context.Context, repoIDs []int64, lang
 	}
 
 	if len(language) == 0 {
-		searchResult, err := b.client.Search().
-			Index(b.indexerAliasName).
+		searchResult, err := b.inner.Client.Search().
+			Index(b.inner.IndexerName).
 			Aggregation("language", aggregation).
 			Query(query).
 			Highlight(
@@ -426,26 +398,26 @@ func (b *ElasticSearchIndexer) Search(ctx context.Context, repoIDs []int64, lang
 			From(start).Size(pageSize).
 			Do(ctx)
 		if err != nil {
-			return 0, nil, nil, b.checkError(err)
+			return 0, nil, nil, b.inner.CheckError(err)
 		}
 
 		return convertResult(searchResult, kw, pageSize)
 	}
 
 	langQuery := elastic.NewMatchQuery("language", language)
-	countResult, err := b.client.Search().
-		Index(b.indexerAliasName).
+	countResult, err := b.inner.Client.Search().
+		Index(b.inner.IndexerName).
 		Aggregation("language", aggregation).
 		Query(query).
 		Size(0). // We only needs stats information
 		Do(ctx)
 	if err != nil {
-		return 0, nil, nil, b.checkError(err)
+		return 0, nil, nil, b.inner.CheckError(err)
 	}
 
 	query = query.Must(langQuery)
-	searchResult, err := b.client.Search().
-		Index(b.indexerAliasName).
+	searchResult, err := b.inner.Client.Search().
+		Index(b.inner.IndexerName).
 		Query(query).
 		Highlight(
 			elastic.NewHighlight().
@@ -457,56 +429,10 @@ func (b *ElasticSearchIndexer) Search(ctx context.Context, repoIDs []int64, lang
 		From(start).Size(pageSize).
 		Do(ctx)
 	if err != nil {
-		return 0, nil, nil, b.checkError(err)
+		return 0, nil, nil, b.inner.CheckError(err)
 	}
 
 	total, hits, _, err := convertResult(searchResult, kw, pageSize)
 
 	return total, hits, extractAggs(countResult), err
-}
-
-// Close implements indexer
-func (b *ElasticSearchIndexer) Close() {
-	select {
-	case <-b.stopTimer:
-	default:
-		close(b.stopTimer)
-	}
-}
-
-func (b *ElasticSearchIndexer) checkError(err error) error {
-	var opErr *net.OpError
-	if !(elastic.IsConnErr(err) || (errors.As(err, &opErr) && (opErr.Op == "dial" || opErr.Op == "read"))) {
-		return err
-	}
-
-	b.setAvailability(false)
-
-	return err
-}
-
-func (b *ElasticSearchIndexer) checkAvailability() {
-	if b.Ping() {
-		return
-	}
-
-	// Request cluster state to check if elastic is available again
-	_, err := b.client.ClusterState().Do(graceful.GetManager().ShutdownContext())
-	if err != nil {
-		b.setAvailability(false)
-		return
-	}
-
-	b.setAvailability(true)
-}
-
-func (b *ElasticSearchIndexer) setAvailability(available bool) {
-	b.lock.Lock()
-	defer b.lock.Unlock()
-
-	if b.available == available {
-		return
-	}
-
-	b.available = available
 }

@@ -103,6 +103,8 @@ func (b *ElasticSearchIndexer) Init() (bool, error) {
 		return false, errors.New("init failed")
 	}
 
+	// FIXME: index version?
+
 	return false, nil
 }
 
