@@ -3,9 +3,6 @@ import tippy from 'tippy.js';
 const visibleInstances = new Set();
 
 export function createTippy(target, opts = {}) {
-  // do not use "tooltip" (tippy's default),
-  // otherwise the "auto hide tooltip" mechanism would cause tippy popups without role (default to tooltip) been incorrectly hidden.
-  if (!opts.role) opts.role = 'menu';
   const instance = tippy(target, {
     appendTo: document.body,
     animation: false,
@@ -30,7 +27,8 @@ export function createTippy(target, opts = {}) {
       visibleInstances.add(instance);
     },
     arrow: `<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`,
-    ...(opts?.role && {theme: opts.role}),
+    role: 'menu', // HTML role attribute, only tooltips should use "tooltip"
+    theme: 'menu', // CSS theme, we support either "tooltip" or "menu"
     ...opts,
   });
 
@@ -71,6 +69,7 @@ function attachTooltip(target, content = null) {
     content,
     delay: 100,
     role: 'tooltip',
+    theme: 'tooltip',
     hideOnClick,
     placement: target.getAttribute('data-tooltip-placement') || 'top-start',
     ...(target.getAttribute('data-tooltip-interactive') === 'true' ? {interactive: true, aria: {content: 'describedby', expanded: false}} : {}),
