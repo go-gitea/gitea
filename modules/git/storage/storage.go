@@ -4,6 +4,7 @@
 package storage
 
 import (
+	"fmt"
 	"io/fs"
 	"os"
 	"path"
@@ -15,7 +16,7 @@ import (
 )
 
 type Storage interface {
-	IsConfigured() bool
+	Configuration() string // information for configuration, json format
 	CheckStats() error
 	IsExist(path string) (bool, error)
 	IsDir(path string) (bool, error)
@@ -32,17 +33,27 @@ type LocalSingleStorage struct {
 	repoRootPath string
 }
 
+func (l *LocalSingleStorage) Configuration() string {
+	return "{RepoRootPath: " + l.repoRootPath + "}"
+}
+
 func (l *LocalSingleStorage) absPath(relPath string) string {
 	return filepath.Join(l.repoRootPath, relPath)
 }
 
-func (l *LocalSingleStorage) IsConfigured() bool {
-	return len(l.repoRootPath) != 0
-}
-
 func (l *LocalSingleStorage) CheckStats() error {
-	_, err := os.Stat(l.repoRootPath)
-	return err
+	// Check if l.repoRootPath exists. It could be the case that it doesn't exist, this can happen when
+	// `[repository]` `ROOT` is a relative path and $GITEA_WORK_DIR isn't passed to the SSH connection.
+	if _, err := os.Stat(l.repoRootPath); err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("incorrect configuration, no repository directory.", "Directory `[repository].ROOT` %q was not found, please check if $GITEA_WORK_DIR is passed to the SSH connection or make `[repository].ROOT` an absolute value",
+				l.repoRootPath)
+		}
+		return fmt.Errorf("incorrect configuration, repository directory is inaccessible", "Directory `[repository].ROOT` %q is inaccessible. err: %v",
+			l.repoRootPath, err)
+	}
+
+	return nil
 }
 
 func (l *LocalSingleStorage) IsExist(path string) (bool, error) {
@@ -88,15 +99,16 @@ func Init() error {
 	storage = &LocalSingleStorage{
 		repoRootPath: setting.RepoRootPath,
 	}
-	return nil
+
+	return storage.CheckStats()
 }
 
 func getStorage() Storage {
 	return storage
 }
 
-func IsConfigured() bool {
-	return getStorage().IsConfigured()
+func Configuration() string {
+	return getStorage().Configuration()
 }
 
 func CheckStats() error {

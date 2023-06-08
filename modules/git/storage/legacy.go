@@ -21,7 +21,7 @@ func UserPath(userName string) string { //revive:disable-line:exported
 
 // RepoPath returns repository path by given user and repository name.
 func RepoPath(userName, repoName string) string { //revive:disable-line:exported
-	return filepath.Join(UserPath(userName), strings.ToLower(repoName)+".git")
+	return absPath(filepath.Join(strings.ToLower(userName), strings.ToLower(repoName)+".git"))
 }
 
 // LocalPath returns local path by given relative path.
@@ -31,5 +31,5 @@ func LocalPath(relPath string) string {
 
 // WikiPath returns wiki data path by given user and repository name.
 func WikiPath(userName, repoName string) string {
-	return filepath.Join(UserPath(userName), strings.ToLower(repoName)+".wiki.git")
+	return absPath(filepath.Join(strings.ToLower(userName), strings.ToLower(repoName)+".wiki.git"))
 }

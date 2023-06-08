@@ -66,7 +66,7 @@ func initMigrationTest(t *testing.T) func() {
 
 	assert.NoError(t, git.InitFull(context.Background()))
 
-	assert.True(t, storage.IsConfigured())
+	assert.NoError(t, storage.CheckStats())
 	assert.NoError(t, storage.RemoveAll(""))
 	assert.NoError(t, storage.UploadDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), ""))
 	ownerDirs, err := storage.ReadDir("")
