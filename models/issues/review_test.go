@@ -71,24 +71,11 @@ func TestFindReviews(t *testing.T) {
 	assert.Equal(t, "Demo Review", reviews[0].Content)
 }
 
-func TestFindReviews_NotLatestOnly(t *testing.T) {
+func TestFindLatestReviews(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	reviews, err := issues_model.FindReviews(db.DefaultContext, issues_model.FindReviewOptions{
-		Type:       issues_model.ReviewTypeApprove,
-		IssueID:    11,
-		LatestOnly: false,
-	})
-	assert.NoError(t, err)
-	assert.Len(t, reviews, 3)
-	assert.Equal(t, "old review from user5", reviews[0].Content)
-}
-
-func TestFindReviews_LatestOnly(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	reviews, err := issues_model.FindReviews(db.DefaultContext, issues_model.FindReviewOptions{
-		Type:       issues_model.ReviewTypeApprove,
-		IssueID:    11,
-		LatestOnly: true,
+	reviews, err := issues_model.FindLatestReviews(db.DefaultContext, issues_model.FindReviewOptions{
+		Type:    issues_model.ReviewTypeApprove,
+		IssueID: 11,
 	})
 	assert.NoError(t, err)
 	assert.Len(t, reviews, 2)

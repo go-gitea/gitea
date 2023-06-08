@@ -243,7 +243,6 @@ type FindReviewOptions struct {
 	IssueID      int64
 	ReviewerID   int64
 	OfficialOnly bool
-	LatestOnly   bool // Latest per-reviewer
 }
 
 func (opts *FindReviewOptions) toCond() builder.Cond {
@@ -266,18 +265,31 @@ func (opts *FindReviewOptions) toCond() builder.Cond {
 // FindReviews returns reviews passing FindReviewOptions
 func FindReviews(ctx context.Context, opts FindReviewOptions) ([]*Review, error) {
 	reviews := make([]*Review, 0, 10)
+	sess := db.GetEngine(ctx).Where(opts.toCond())
+	if opts.Page > 0 {
+		sess = db.SetSessionPagination(sess, &opts)
+	}
+	return reviews, sess.
+		Asc("created_unix").
+		Asc("id").
+		Find(&reviews)
+}
+
+// FindLatestReviews returns only latest reviews per user, passing FindReviewOptions
+func FindLatestReviews(ctx context.Context, opts FindReviewOptions) ([]*Review, error) {
+	reviews := make([]*Review, 0, 10)
 	cond := opts.toCond()
 	sess := db.GetEngine(ctx).Where(cond)
 	if opts.Page > 0 {
 		sess = db.SetSessionPagination(sess, &opts)
 	}
-	if opts.LatestOnly {
-		sess.In("id", builder.
-			Select("max ( id ) ").
-			From("review").
-			Where(cond).
-			GroupBy("reviewer_id"))
-	}
+
+	sess.In("id", builder.
+		Select("max ( id ) ").
+		From("review").
+		Where(cond).
+		GroupBy("reviewer_id"))
+
 	return reviews, sess.
 		Asc("created_unix").
 		Asc("id").
