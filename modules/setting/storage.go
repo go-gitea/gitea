@@ -50,9 +50,9 @@ type MinioStorageConfig struct {
 
 // Storage represents configuration of storages
 type Storage struct {
-	Type          StorageType // local or minio
-	Path          string      `json:",omitempty"` // for local type
-	TemporaryPath string
+	Type          StorageType        // local or minio
+	Path          string             `json:",omitempty"` // for local type
+	TemporaryPath string             `json:",omitempty"`
 	MinioConfig   MinioStorageConfig // for minio type
 }
 
