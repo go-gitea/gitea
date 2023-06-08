@@ -5,6 +5,7 @@ package elasticsearch
 
 import (
 	"sync"
+	"time"
 
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/indexer/internal"
@@ -19,17 +20,31 @@ type Indexer struct {
 	Client      *elastic.Client
 	IndexerName string
 	available   bool
-	StopTimer   chan struct{}
+	stopTimer   chan struct{}
 	lock        sync.RWMutex
 }
 
 func NewIndexer(client *elastic.Client, indexerName string) *Indexer {
-	return &Indexer{
+	indexer := &Indexer{
 		Client:      client,
 		IndexerName: indexerName,
 		available:   true,
-		StopTimer:   make(chan struct{}),
+		stopTimer:   make(chan struct{}),
 	}
+
+	ticker := time.NewTicker(10 * time.Second)
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				indexer.checkAvailability()
+			case <-indexer.stopTimer:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+	return indexer
 }
 
 // Init initializes the indexer
@@ -52,8 +67,8 @@ func (i *Indexer) Ping() bool {
 // Close closes the indexer
 func (i *Indexer) Close() {
 	select {
-	case <-i.StopTimer:
+	case <-i.stopTimer:
 	default:
-		close(i.StopTimer)
+		close(i.stopTimer)
 	}
 }

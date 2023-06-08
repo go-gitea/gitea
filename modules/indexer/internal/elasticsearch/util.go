@@ -4,6 +4,7 @@
 package elasticsearch
 
 import (
+	"code.gitea.io/gitea/modules/graceful"
 	"errors"
 	"net"
 
@@ -17,12 +18,12 @@ func (i *Indexer) CheckError(err error) error {
 		return err
 	}
 
-	i.SetAvailability(false)
+	i.setAvailability(false)
 
 	return err
 }
 
-func (i *Indexer) SetAvailability(available bool) {
+func (i *Indexer) setAvailability(available bool) {
 	i.lock.Lock()
 	defer i.lock.Unlock()
 
@@ -31,4 +32,19 @@ func (i *Indexer) SetAvailability(available bool) {
 	}
 
 	i.available = available
+}
+
+func (i *Indexer) checkAvailability() {
+	if i.Ping() {
+		return
+	}
+
+	// Request cluster state to check if elastic is available again
+	_, err := i.Client.ClusterState().Do(graceful.GetManager().ShutdownContext())
+	if err != nil {
+		i.setAvailability(false)
+		return
+	}
+
+	i.setAvailability(true)
 }

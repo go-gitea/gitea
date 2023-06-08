@@ -6,12 +6,11 @@ package issues
 import (
 	"context"
 	"fmt"
-	"os"
 	"strconv"
 
 	gitea_bleve "code.gitea.io/gitea/modules/indexer/bleve"
+	"code.gitea.io/gitea/modules/indexer/internal"
 	in_bleve "code.gitea.io/gitea/modules/indexer/internal/bleve"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/analysis/analyzer/custom"
@@ -19,7 +18,6 @@ import (
 	"github.com/blevesearch/bleve/v2/analysis/token/lowercase"
 	"github.com/blevesearch/bleve/v2/analysis/token/unicodenorm"
 	"github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
-	"github.com/blevesearch/bleve/v2/index/upsidedown"
 	"github.com/blevesearch/bleve/v2/mapping"
 	"github.com/blevesearch/bleve/v2/search/query"
 	"github.com/ethantkoenig/rupture"
@@ -71,40 +69,6 @@ func addUnicodeNormalizeTokenFilter(m *mapping.IndexMappingImpl) error {
 }
 
 const maxBatchSize = 16
-
-// openIndexer open the index at the specified path, checking for metadata
-// updates and bleve version updates.  If index needs to be created (or
-// re-created), returns (nil, nil)
-// Deprecated:
-func openIndexer(path string, latestVersion int) (bleve.Index, error) {
-	_, err := os.Stat(path)
-	if err != nil && os.IsNotExist(err) {
-		return nil, nil
-	} else if err != nil {
-		return nil, err
-	}
-
-	metadata, err := rupture.ReadIndexMetadata(path)
-	if err != nil {
-		return nil, err
-	}
-	if metadata.Version < latestVersion {
-		// the indexer is using a previous version, so we should delete it and
-		// re-populate
-		return nil, util.RemoveAll(path)
-	}
-
-	index, err := bleve.Open(path)
-	if err != nil && err == upsidedown.IncompatibleVersion {
-		// the indexer was built with a previous version of bleve, so we should
-		// delete it and re-populate
-		return nil, util.RemoveAll(path)
-	} else if err != nil {
-		return nil, err
-	}
-
-	return index, nil
-}
 
 // BleveIndexerData an update to the issue indexer
 type BleveIndexerData IndexerData
@@ -162,16 +126,19 @@ var _ Indexer = &BleveIndexer{}
 
 // BleveIndexer implements Indexer interface
 type BleveIndexer struct {
-	in_bleve.Indexer
+	in               *in_bleve.Indexer
+	internal.Indexer // do not composite in_bleve.Indexer directly to avoid exposing too much
 }
 
 // NewBleveIndexer creates a new bleve local indexer
 func NewBleveIndexer(indexDir string) *BleveIndexer {
+	in := &in_bleve.Indexer{
+		IndexDir: indexDir,
+		Version:  issueIndexerLatestVersion,
+	}
 	return &BleveIndexer{
-		Indexer: in_bleve.Indexer{
-			IndexDir: indexDir,
-			Version:  issueIndexerLatestVersion,
-		},
+		Indexer: in,
+		in:      in,
 	}
 }
 
@@ -185,13 +152,13 @@ func (b *BleveIndexer) Init() (bool, error) {
 		return true, nil
 	}
 
-	b.Indexer.Indexer, err = createIssueIndexer(b.IndexDir, issueIndexerLatestVersion)
+	b.in.Indexer, err = createIssueIndexer(b.in.IndexDir, issueIndexerLatestVersion)
 	return false, err
 }
 
 // Index will save the index data
 func (b *BleveIndexer) Index(issues []*IndexerData) error {
-	batch := gitea_bleve.NewFlushingBatch(b.Indexer.Indexer, maxBatchSize)
+	batch := gitea_bleve.NewFlushingBatch(b.in.Indexer, maxBatchSize)
 	for _, issue := range issues {
 		if err := batch.Index(indexerID(issue.ID), struct {
 			RepoID   int64
@@ -212,7 +179,7 @@ func (b *BleveIndexer) Index(issues []*IndexerData) error {
 
 // Delete deletes indexes by ids
 func (b *BleveIndexer) Delete(ids ...int64) error {
-	batch := gitea_bleve.NewFlushingBatch(b.Indexer.Indexer, maxBatchSize)
+	batch := gitea_bleve.NewFlushingBatch(b.in.Indexer, maxBatchSize)
 	for _, id := range ids {
 		if err := batch.Delete(indexerID(id)); err != nil {
 			return err
@@ -243,7 +210,7 @@ func (b *BleveIndexer) Search(ctx context.Context, keyword string, repoIDs []int
 	search := bleve.NewSearchRequestOptions(indexerQuery, limit, start, false)
 	search.SortBy([]string{"-_score"})
 
-	result, err := b.Indexer.Indexer.SearchInContext(ctx, search)
+	result, err := b.in.Indexer.SearchInContext(ctx, search)
 	if err != nil {
 		return nil, err
 	}
