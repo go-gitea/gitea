@@ -41,7 +41,7 @@
 
 /* a plain button is a button without any opinionated styling */
 
-.button.button-plain {
+.btn {
   background: transparent;
   border-radius: var(--border-radius);
   border: none;
@@ -50,9 +50,9 @@
   padding: 0;
 }
 
-.button.button-plain:hover,
-.button.button-plain:active,
-.button.button-plain:focus {
+.btn:hover,
+.btn:active,
+.btn:focus {
   background: none;
   border: none;
 }

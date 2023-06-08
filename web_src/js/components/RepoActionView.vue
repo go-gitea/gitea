@@ -70,7 +70,7 @@
           </div>
           <div class="job-info-header-right">
             <div class="ui top right pointing dropdown custom jump item" @click.stop="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
-              <button class="ui button button-plain gt-interact-bg gt-p-3">
+              <button class="btn gt-interact-bg gt-p-3">
                 <SvgIcon name="octicon-gear" :size="18"/>
               </button>
               <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
