@@ -1,0 +1,25 @@
+<div class="saml field {{if not (eq .type 8)}}gt-hidden{{end}}">
+	<div class="required field">
+		<label for="saml_issuer">{{.locale.Tr "admin.auths.saml.issuer"}}</label>
+		<input id="saml_issuer" name="saml_issuer" value="{{.saml_issuer}}">
+	</div>
+	<div class="required field">
+		<label for="saml_login">{{.locale.Tr "admin.auths.saml.login"}}</label>
+		<input id="saml_login" name="saml_login" value="{{.saml_login}}">
+	</div>
+	<div class="optional field">
+		<label for="saml_logout">{{.locale.Tr "admin.auths.saml.logout"}}</label>
+		<input id="saml_logout" name="saml_logout" value="{{.saml_logout}}">
+	</div>
+	<div class="required field">
+		<label for="saml_certificate">{{.locale.Tr "admin.auths.saml.certificate"}}</label>
+		<textarea id="saml_certificate" name="saml_certificate" rows="5">{{.saml_certificate}}</textarea>
+	</div>
+	<div class="optional field">
+		<div class="ui checkbox">
+			<label for="skip_local_two_fa"><strong>{{.locale.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
+			<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if .skip_local_two_fa}}checked{{end}}>
+			<p class="help">{{.locale.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
+		</div>
+	</div>
+</div>

@@ -4,6 +4,8 @@
 package admin
 
 import (
+	"crypto/x509"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
@@ -24,6 +26,7 @@ import (
 	"code.gitea.io/gitea/services/auth/source/ldap"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	pam_service "code.gitea.io/gitea/services/auth/source/pam"
+	"code.gitea.io/gitea/services/auth/source/saml"
 	"code.gitea.io/gitea/services/auth/source/smtp"
 	"code.gitea.io/gitea/services/auth/source/sspi"
 	"code.gitea.io/gitea/services/forms"
@@ -71,6 +74,7 @@ var (
 			{auth.SMTP.String(), auth.SMTP},
 			{auth.OAuth2.String(), auth.OAuth2},
 			{auth.SSPI.String(), auth.SSPI},
+			{auth.SAML.String(), auth.SAML},
 		}
 		if pam.Supported {
 			items = append(items, dropdownItem{auth.Names[auth.PAM], auth.PAM})
@@ -231,6 +235,56 @@ func parseSSPIConfig(ctx *context.Context, form forms.AuthenticationForm) (*sspi
 	}, nil
 }
 
+// parseSAMLConfig verifies that required fields are supplied and that fields are properly typed (URLs are URLs, certificate is certificate)
+func parseSAMLConfig(ctx *context.Context, form forms.AuthenticationForm) (*saml.Source, error) {
+	if util.IsEmptyString(form.SAMLIssuer) {
+		ctx.Data["Err_SAMLIssuer"] = true
+		return nil, errors.New(ctx.Tr("admin.auths.saml.issuer") + ctx.Tr("form.require_error"))
+	}
+
+	if util.IsEmptyString(form.SAMLLogin) {
+		ctx.Data["Err_SAMLLogin"] = true
+		return nil, errors.New(ctx.Tr("admin.auths.saml.login") + ctx.Tr("form.require_error"))
+	}
+	_, err := url.ParseRequestURI(form.SAMLLogin)
+	if err != nil {
+		ctx.Data["Err_SAMLLogin"] = true
+		return nil, errors.New(ctx.Tr("admin.auths.saml.login") + " " + ctx.Tr("form.url_error", form.SAMLLogin))
+	}
+
+	if !util.IsEmptyString(form.SAMLLogout) {
+		_, err := url.ParseRequestURI(form.SAMLLogout)
+		if err != nil {
+			ctx.Data["Err_SAMLLogout"] = true
+			return nil, errors.New(ctx.Tr("admin.auths.saml.logout") + " " + ctx.Tr("form.url_error", form.SAMLLogout))
+		}
+	}
+
+	if util.IsEmptyString(form.SAMLCertificate) {
+		ctx.Data["Err_SAMLCertificate"] = true
+		return nil, errors.New(ctx.Tr("admin.auths.saml.certificate") + ctx.Tr("form.require_error"))
+	}
+	certData, err := base64.StdEncoding.DecodeString(form.SAMLCertificate)
+	if err != nil {
+		ctx.Data["Err_SAMLCertificate"] = true
+		return nil, errors.New(ctx.Tr("admin.auths.saml.certificate_error", ctx.Tr("admin.auths.saml.certificate")))
+	}
+	_, err = x509.ParseCertificate(certData)
+	if err != nil {
+		ctx.Data["Err_SAMLCertificate"] = true
+		return nil, errors.New(ctx.Tr("admin.auths.saml.certificate_error", ctx.Tr("admin.auths.saml.certificate")))
+	}
+
+	return &saml.Source{
+		IdPIssuer:      form.SAMLIssuer,
+		IdPLogin:       form.SAMLLogin,
+		IdPLogout:      form.SAMLLogout,
+		IdPCertificate: form.SAMLCertificate,
+
+		SkipLocalTwoFA: form.SkipLocalTwoFA,
+	}, nil
+}
+
 // NewAuthSourcePost response for adding an auth source
 func NewAuthSourcePost(ctx *context.Context) {
 	form := *web.GetForm(ctx).(*forms.AuthenticationForm)
@@ -288,6 +342,13 @@ func NewAuthSourcePost(ctx *context.Context) {
 		if err != nil || len(existing) > 0 {
 			ctx.Data["Err_Type"] = true
 			ctx.RenderWithErr(ctx.Tr("admin.auths.login_source_of_type_exist"), tplAuthNew, form)
+			return
+		}
+	case auth.SAML:
+		var err error
+		config, err = parseSAMLConfig(ctx, form)
+		if err != nil {
+			ctx.RenderWithErr(err.Error(), tplAuthNew, form)
 			return
 		}
 	default:
@@ -408,6 +469,12 @@ func EditAuthSourcePost(ctx *context.Context) {
 		}
 	case auth.SSPI:
 		config, err = parseSSPIConfig(ctx, form)
+		if err != nil {
+			ctx.RenderWithErr(err.Error(), tplAuthEdit, form)
+			return
+		}
+	case auth.SAML:
+		config, err = parseSAMLConfig(ctx, form)
 		if err != nil {
 			ctx.RenderWithErr(err.Error(), tplAuthEdit, form)
 			return

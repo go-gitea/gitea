@@ -30,6 +30,7 @@ const (
 	DLDAP       // 5
 	OAuth2      // 6
 	SSPI        // 7
+	SAML        // 8
 )
 
 // String returns the string name of the LoginType
@@ -50,6 +51,7 @@ var Names = map[Type]string{
 	PAM:    "PAM",
 	OAuth2: "OAuth2",
 	SSPI:   "SPNEGO with SSPI",
+	SAML:   "SAML",
 }
 
 // Config represents login config as far as the db is concerned
@@ -148,43 +150,48 @@ func (source *Source) TypeName() string {
 	return Names[source.Type]
 }
 
-// IsLDAP returns true of this source is of the LDAP type.
+// IsLDAP returns true if this source is of the LDAP type.
 func (source *Source) IsLDAP() bool {
 	return source.Type == LDAP
 }
 
-// IsDLDAP returns true of this source is of the DLDAP type.
+// IsDLDAP returns true if this source is of the DLDAP type.
 func (source *Source) IsDLDAP() bool {
 	return source.Type == DLDAP
 }
 
-// IsSMTP returns true of this source is of the SMTP type.
+// IsSMTP returns true if this source is of the SMTP type.
 func (source *Source) IsSMTP() bool {
 	return source.Type == SMTP
 }
 
-// IsPAM returns true of this source is of the PAM type.
+// IsPAM returns true if this source is of the PAM type.
 func (source *Source) IsPAM() bool {
 	return source.Type == PAM
 }
 
-// IsOAuth2 returns true of this source is of the OAuth2 type.
+// IsOAuth2 returns true if this source is of the OAuth2 type.
 func (source *Source) IsOAuth2() bool {
 	return source.Type == OAuth2
 }
 
-// IsSSPI returns true of this source is of the SSPI type.
+// IsSSPI returns true if this source is of the SSPI type.
 func (source *Source) IsSSPI() bool {
 	return source.Type == SSPI
 }
 
-// HasTLS returns true of this source supports TLS.
+// IsSAML returns true if this source is of the SAML type.
+func (source *Source) IsSAML() bool {
+	return source.Type == SAML
+}
+
+// HasTLS returns true if this source supports TLS.
 func (source *Source) HasTLS() bool {
 	hasTLSer, ok := source.Cfg.(HasTLSer)
 	return ok && hasTLSer.HasTLS()
 }
 
-// UseTLS returns true of this source is configured to use TLS.
+// UseTLS returns true if this source is configured to use TLS.
 func (source *Source) UseTLS() bool {
 	useTLSer, ok := source.Cfg.(UseTLSer)
 	return ok && useTLSer.UseTLS()
