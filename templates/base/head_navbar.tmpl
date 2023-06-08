@@ -76,10 +76,13 @@
 		{{else if .IsSigned}}
 			{{if EnableTimetracking}}
 			<a class="active-stopwatch-trigger item ui gt-mx-0{{if not .ActiveStopwatch}} gt-hidden{{end}}" href="{{.ActiveStopwatch.IssueLink}}" title="{{.locale.Tr "active_stopwatch"}}">
-				{{svg "octicon-stopwatch"}}<span class="header-stopwatch-dot"></span>
+				<div class="gt-relative">
+					{{svg "octicon-stopwatch"}}
+					<span class="header-stopwatch-dot"></span>
+				</div>
 				<span class="mobile-only gt-ml-2">{{.locale.Tr "active_stopwatch"}}</span>
 			</a>
-			<div class="active-stopwatch-popup tippy-target">
+			<div class="active-stopwatch-popup tippy-target gt-p-3">
 				<div class="gt-df gt-ac">
 					<a class="stopwatch-link gt-df gt-ac" href="{{.ActiveStopwatch.IssueLink}}">
 						{{svg "octicon-issue-opened" 16 "gt-mr-3"}}

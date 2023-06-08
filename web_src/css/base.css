@@ -1013,26 +1013,31 @@ img.ui.avatar,
 }
 
 #navbar a.item .notification_count {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: absolute;
-  left: 6px;
-  top: -9px;
-  min-width: 17px;
-  min-height: 17px;
-  background: var(--color-primary);
-  border: 2px solid var(--color-nav-bg);
   color: var(--color-nav-bg);
-  border-radius: 17px;
   padding: 0 3.75px;
   font-size: 12px;
   line-height: 12px;
   font-weight: var(--font-weight-bold);
 }
 
-#navbar a.item:hover .notification_count {
+#navbar a.item:hover .notification_count,
+#navbar a.item:hover .header-stopwatch-dot {
   border-color: var(--color-nav-hover-bg);
+}
+
+#navbar a.item .notification_count,
+#navbar a.item .header-stopwatch-dot {
+  background: var(--color-primary);
+  border: 2px solid var(--color-nav-bg);
+  position: absolute;
+  left: 6px;
+  top: -9px;
+  min-width: 17px;
+  min-height: 17px;
+  border-radius: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 #navbar .right.menu {
@@ -2116,17 +2121,6 @@ a.ui.basic.label:hover {
 .ui.segments ~ .ui.top.attached.header,
 .ui.attached.segment ~ .ui.top.attached.header {
   margin-top: 1rem;
-}
-
-.header-stopwatch-dot {
-  position: absolute;
-  left: 25px;
-  top: 0;
-  width: 13px;
-  height: 13px;
-  background: var(--color-primary);
-  border: 2px solid var(--color-nav-bg);
-  border-radius: 100%;
 }
 
 .rss-icon {
