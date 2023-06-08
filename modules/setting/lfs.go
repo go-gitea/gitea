@@ -36,7 +36,9 @@ func loadLFSFrom(rootCfg ConfigProvider) {
 	// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
 	// if these are removed, the warning will not be shown
 	deprecatedSetting(rootCfg, "server", "LFS_CONTENT_PATH", "lfs", "PATH", "v1.19.0")
-	lfsSec.Key("PATH").MustString(sec.Key("LFS_CONTENT_PATH").String())
+	if sec.HasKey("LFS_CONTENT_PATH") {
+		lfsSec.Key("PATH").MustString(sec.Key("LFS_CONTENT_PATH").String())
+	}
 
 	LFS.Storage = getStorage(rootCfg, "lfs", storageType, lfsSec)
 
