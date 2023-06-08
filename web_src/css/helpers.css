@@ -261,6 +261,7 @@ Gitea's private styles use `g-` prefix.
 
 .gt-shrink-0 { flex-shrink: 0 !important; }
 
+.gt-font-12 { font-size: 12px !important }
 .gt-font-13 { font-size: 13px !important }
 .gt-font-14 { font-size: 14px !important }
 .gt-font-15 { font-size: 15px !important }
