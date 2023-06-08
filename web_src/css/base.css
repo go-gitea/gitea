@@ -975,7 +975,11 @@ img.ui.avatar,
     display: none;
   }
   /* show the first navbar item (logo and its mobile right items) */
-  #navbar > .item:first-child,
+  #navbar > .item:first-child {
+    display: flex;
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
   #navbar .navbar-mobile-right > .item {
     display: flex;
   }
