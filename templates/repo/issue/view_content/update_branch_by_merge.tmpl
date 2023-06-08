@@ -1,9 +1,9 @@
 {{if and (gt $.Issue.PullRequest.CommitsBehind 0) (not $.Issue.IsClosed) (not $.Issue.PullRequest.IsChecking) (not $.IsPullFilesConflicted) (not $.IsPullRequestBroken)}}
 	<div class="ui divider"></div>
 	<div class="item item-section">
-		<div class="item-section-left">
-			<i class="icon icon-octicon">{{svg "octicon-alert"}}</i>
-			{{$.locale.Tr "repo.pulls.outdated_with_base_branch"}}
+		<div class="item-section-left gt-df gt-ac">
+			<i class="icon icon-octicon gt-df gt-ac">{{svg "octicon-alert"}}</i>
+			<span class="gt-ml-2">{{$.locale.Tr "repo.pulls.outdated_with_base_branch"}}</span>
 		</div>
 		<div class="item-section-right">
 			{{if and $.UpdateAllowed $.UpdateByRebaseAllowed}}

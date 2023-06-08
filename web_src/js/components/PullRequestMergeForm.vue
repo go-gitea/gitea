@@ -63,9 +63,9 @@
     <div v-if="!showActionForm" class="gt-df">
       <!-- the merge button -->
       <div class="ui buttons merge-button" :class="[mergeForm.emptyCommit ? 'grey' : mergeForm.allOverridableChecksOk ? 'green' : 'red']" @click="toggleActionForm(true)">
-        <button class="ui button">
+        <button class="ui button gt-df gt-ac">
           <svg-icon name="octicon-git-merge"/>
-          <span class="button-text">
+          <span class="button-text gt-ml-2">
             {{ mergeStyleDetail.textDoMerge }}
             <template v-if="autoMergeWhenSucceed">
               {{ mergeForm.textAutoMergeButtonWhenSucceed }}
