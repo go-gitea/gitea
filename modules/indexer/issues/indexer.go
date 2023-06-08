@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"runtime/pprof"
-	"sync"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -54,46 +53,10 @@ type Indexer interface {
 	Search(ctx context.Context, kw string, repoIDs []int64, limit, start int) (*SearchResult, error)
 }
 
-type indexerHolder struct {
-	indexer   Indexer
-	mutex     sync.RWMutex
-	cond      *sync.Cond
-	cancelled bool
-}
-
-func newIndexerHolder() *indexerHolder {
-	h := &indexerHolder{}
-	h.cond = sync.NewCond(h.mutex.RLocker())
-	return h
-}
-
-func (h *indexerHolder) cancel() {
-	h.mutex.Lock()
-	defer h.mutex.Unlock()
-	h.cancelled = true
-	h.cond.Broadcast()
-}
-
-func (h *indexerHolder) set(indexer Indexer) {
-	h.mutex.Lock()
-	defer h.mutex.Unlock()
-	h.indexer = indexer
-	h.cond.Broadcast()
-}
-
-func (h *indexerHolder) get() Indexer {
-	h.mutex.RLock()
-	defer h.mutex.RUnlock()
-	if h.indexer == nil && !h.cancelled {
-		h.cond.Wait()
-	}
-	return h.indexer
-}
-
 var (
 	// issueIndexerQueue queue of issue ids to be updated
 	issueIndexerQueue *queue.WorkerPoolQueue[*IndexerData]
-	holder            = newIndexerHolder()
+	holder            = internal.NewIndexerHolder(Indexer(nil))
 )
 
 // InitIssueIndexer initialize issue indexer, syncReindex is true then reindex until
@@ -107,7 +70,7 @@ func InitIssueIndexer(syncReindex bool) {
 	switch setting.Indexer.IssueType {
 	case "bleve", "elasticsearch", "meilisearch":
 		handler := func(items ...*IndexerData) (unhandled []*IndexerData) {
-			indexer := holder.get()
+			indexer := holder.Get()
 			if indexer == nil {
 				log.Warn("Issue indexer handler: indexer is not ready, retry later.")
 				return items
@@ -161,21 +124,21 @@ func InitIssueIndexer(syncReindex bool) {
 					log.Error("PANIC whilst initializing issue indexer: %v\nStacktrace: %s", err, log.Stack(2))
 					log.Error("The indexer files are likely corrupted and may need to be deleted")
 					log.Error("You can completely remove the %q directory to make Gitea recreate the indexes", setting.Indexer.IssuePath)
-					holder.cancel()
+					holder.Set(nil)
 					log.Fatal("PID: %d Unable to initialize the Bleve Issue Indexer at path: %s Error: %v", os.Getpid(), setting.Indexer.IssuePath, err)
 				}
 			}()
 			issueIndexer := NewBleveIndexer(setting.Indexer.IssuePath)
 			exist, err := issueIndexer.Init()
 			if err != nil {
-				holder.cancel()
+				holder.Set(nil)
 				log.Fatal("Unable to initialize Bleve Issue Indexer at path: %s Error: %v", setting.Indexer.IssuePath, err)
 			}
 			populate = !exist
-			holder.set(issueIndexer)
+			holder.Set(issueIndexer)
 			graceful.GetManager().RunAtTerminate(func() {
 				log.Debug("Closing issue indexer")
-				issueIndexer := holder.get()
+				issueIndexer := holder.Get()
 				if issueIndexer != nil {
 					issueIndexer.Close()
 				}
@@ -192,10 +155,10 @@ func InitIssueIndexer(syncReindex bool) {
 				log.Fatal("Unable to issueIndexer.Init with connection %s Error: %v", setting.Indexer.IssueConnStr, err)
 			}
 			populate = !exist
-			holder.set(issueIndexer)
+			holder.Set(issueIndexer)
 		case "db":
 			issueIndexer := NewDBIndexer()
-			holder.set(issueIndexer)
+			holder.Set(issueIndexer)
 		case "meilisearch":
 			issueIndexer, err := NewMeilisearchIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueConnAuth, setting.Indexer.IssueIndexerName)
 			if err != nil {
@@ -206,9 +169,9 @@ func InitIssueIndexer(syncReindex bool) {
 				log.Fatal("Unable to issueIndexer.Init with connection %s Error: %v", setting.Indexer.IssueConnStr, err)
 			}
 			populate = !exist
-			holder.set(issueIndexer)
+			holder.Set(issueIndexer)
 		default:
-			holder.cancel()
+			holder.Set(nil)
 			log.Fatal("Unknown issue indexer type: %s", setting.Indexer.IssueType)
 		}
 
@@ -357,7 +320,7 @@ func DeleteRepoIssueIndexer(ctx context.Context, repo *repo_model.Repository) {
 // WARNNING: You have to ensure user have permission to visit repoIDs' issues
 func SearchIssuesByKeyword(ctx context.Context, repoIDs []int64, keyword string) ([]int64, error) {
 	var issueIDs []int64
-	indexer := holder.get()
+	indexer := holder.Get()
 
 	if indexer == nil {
 		log.Error("SearchIssuesByKeyword(): unable to get indexer!")
@@ -375,7 +338,7 @@ func SearchIssuesByKeyword(ctx context.Context, repoIDs []int64, keyword string)
 
 // IsAvailable checks if issue indexer is available
 func IsAvailable() bool {
-	indexer := holder.get()
+	indexer := holder.Get()
 	if indexer == nil {
 		log.Error("IsAvailable(): unable to get indexer!")
 		return false
