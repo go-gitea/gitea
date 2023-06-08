@@ -13,14 +13,12 @@
 		<!-- mobile right menu, it must be here because in mobile view, each item is a flex column, the first item is a full row column -->
 		<div class="ui secondary menu navbar-mobile-right">
 			{{if .IsSigned}}
-			<a class="item" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{.locale.Tr "notifications"}}" aria-label="{{.locale.Tr "notifications"}}">
+			<a class="item gt-p-3" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{.locale.Tr "notifications"}}" aria-label="{{.locale.Tr "notifications"}}">
 				{{svg "octicon-bell"}}
 				<span class="notification_count{{if not $notificationUnreadCount}} gt-hidden{{end}}">{{$notificationUnreadCount}}</span>
 			</a>
 			{{end}}
-			<div class="item gt-px-0">
-				<button class="ui icon mini button" id="navbar-expand-toggle">{{svg "octicon-three-bars"}}</button>
-			</div>
+			<button class="item ui icon mini button gt-p-3 gt-m-0" id="navbar-expand-toggle">{{svg "octicon-three-bars"}}</button>
 		</div>
 	</div>
 
@@ -56,8 +54,8 @@
 	<div class="right menu gt-pr-4">
 		{{if and .IsSigned .MustChangePassword}}
 			<div class="ui dropdown jump item" data-tooltip-content="{{.locale.Tr "user_profile_and_more"}}">
-				<span class="text">
-					{{avatar $.Context .SignedUser 24 "gt-mr-0"}}
+				<span class="text gt-df gt-ac">
+					{{avatar $.Context .SignedUser 24 "gt-mr-2"}}
 					<span class="mobile-only gt-ml-2">{{.SignedUser.Name}}</span>
 					<span class="not-mobile">{{svg "octicon-triangle-down"}}</span>
 				</span>
@@ -77,7 +75,7 @@
 			{{if EnableTimetracking}}
 			<a class="active-stopwatch-trigger item ui gt-mx-0{{if not .ActiveStopwatch}} gt-hidden{{end}}" href="{{.ActiveStopwatch.IssueLink}}" title="{{.locale.Tr "active_stopwatch"}}">
 				{{svg "octicon-stopwatch"}}<span class="header-stopwatch-dot"></span>
-				<span class="mobile-only">{{.locale.Tr "active_stopwatch"}}</span>
+				<span class="mobile-only gt-ml-2">{{.locale.Tr "active_stopwatch"}}</span>
 			</a>
 			<div class="active-stopwatch-popup tippy-target">
 				<div class="gt-df gt-ac">
@@ -137,8 +135,8 @@
 			</div><!-- end dropdown menu create new -->
 
 			<div class="ui dropdown jump item gt-mx-0 gt-pr-3" data-tooltip-content="{{.locale.Tr "user_profile_and_more"}}">
-				<span class="text">
-					{{avatar $.Context .SignedUser 24 "gt-mr-0"}}
+				<span class="text gt-df gt-ac">
+					{{avatar $.Context .SignedUser 24 "gt-mr-2"}}
 					<span class="mobile-only gt-ml-2">{{.SignedUser.Name}}</span>
 					<span class="not-mobile">{{svg "octicon-triangle-down"}}</span>
 				</span>

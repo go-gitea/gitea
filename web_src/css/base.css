@@ -969,6 +969,11 @@ img.ui.avatar,
   margin-left: auto;
 }
 
+#navbar .secondary.menu > .item > .svg,
+#navbar .right.menu > .item > .svg {
+  margin-right: 0;
+}
+
 @media (max-width: 767.98px) {
   /* hide all items */
   #navbar .item {
