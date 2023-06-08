@@ -1722,6 +1722,10 @@ i.icon.centerlock {
   color: var(--color-label-text);
 }
 
+.ui.label > a {
+  opacity: .75; /* increase contrast over default fomantic .5 */
+}
+
 .ui.active.label {
   background: var(--color-label-active-bg);
   border-color: var(--color-label-active-bg);
