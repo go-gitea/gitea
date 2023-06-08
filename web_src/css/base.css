@@ -1013,15 +1013,15 @@ img.ui.avatar,
   align-items: center;
   justify-content: center;
   position: absolute;
-  left: 20px;
-  top: 0;
+  left: 18px;
+  top: 2px;
   min-width: 17px;
   min-height: 17px;
   background: var(--color-primary);
   border: 2px solid var(--color-nav-bg);
   color: var(--color-nav-bg);
   border-radius: 17px;
-  padding: 0 3.5px;
+  padding: 0 3.75px;
   font-size: 12px;
   line-height: 12px;
   font-weight: var(--font-weight-bold);

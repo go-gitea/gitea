@@ -11,9 +11,9 @@
 		</a>
 
 		<!-- mobile right menu, it must be here because in mobile view, each item is a flex column, the first item is a full row column -->
-		<div class="ui secondary menu navbar-mobile-right">
+		<div class="ui secondary menu navbar-mobile-right gt-gap-2">
 			{{if .IsSigned}}
-			<a class="item gt-p-3 {{if $notificationUnreadCount}}gt-mr-4{{end}}" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{.locale.Tr "notifications"}}" aria-label="{{.locale.Tr "notifications"}}">
+			<a class="item gt-mx-0" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{.locale.Tr "notifications"}}" aria-label="{{.locale.Tr "notifications"}}">
 				{{svg "octicon-bell"}}
 				<span class="notification_count{{if not $notificationUnreadCount}} gt-hidden{{end}}">{{$notificationUnreadCount}}</span>
 			</a>
