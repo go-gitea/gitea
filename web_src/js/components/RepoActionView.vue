@@ -14,7 +14,7 @@
         <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
           {{ locale.cancel }}
         </button>
-        <button class="ui basic small compact button secondary gt-mr-0" @click="rerun()" v-else-if="run.canRerun">
+        <button class="ui basic small compact button gt-mr-0" @click="rerun()" v-else-if="run.canRerun">
           {{ locale.rerun_all }}
         </button>
       </div>
