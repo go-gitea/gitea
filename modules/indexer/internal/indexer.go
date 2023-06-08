@@ -6,7 +6,7 @@ package internal
 // Indexer defines an basic indexer interface
 type Indexer interface {
 	// Init initializes the indexer
-	// returns true if the index was opened (with data populated), false if it was created (without any data)
+	// returns true if the index was opened/existed (with data populated), false if it was created/not-existed (with no data)
 	Init() (bool, error)
 	// Ping checks if the indexer is available
 	Ping() bool
