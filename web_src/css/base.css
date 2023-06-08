@@ -983,6 +983,9 @@ img.ui.avatar,
   #navbar.navbar-menu-open .item {
     display: flex;
   }
+  #navbar.navbar-menu-open > .item:first-child {
+    padding-bottom: 0;
+  }
 }
 
 @media (min-width: 767.98px) {
