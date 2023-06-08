@@ -250,7 +250,7 @@ func (s AccessTokenScope) parse() (accessTokenScopeBitmap, error) {
 			remainingScopes = remainingScopes[i+1:]
 		}
 		singleScope := AccessTokenScope(v)
-		if singleScope == "" || singleScope == "sudo" {
+		if singleScope == "" || singleScope == "sudo" { // sudo was recognized previously but isn't anymore
 			continue
 		}
 		if singleScope == AccessTokenScopeAll {
