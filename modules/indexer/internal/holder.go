@@ -3,7 +3,9 @@
 
 package internal
 
-import "sync"
+import (
+	"sync"
+)
 
 type IndexerHolder struct {
 	indexer Indexer
@@ -24,10 +26,12 @@ func (h *IndexerHolder) Set(indexer Indexer) {
 	h.cond.Broadcast()
 }
 
+// Get returns the indexer, blocking until it is set
+// It never returns nil
 func (h *IndexerHolder) Get() Indexer {
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
-	if h.indexer == nil {
+	for h.indexer == nil { // make sure it never return nil even called Set(nil)
 		h.cond.Wait()
 	}
 	return h.indexer
