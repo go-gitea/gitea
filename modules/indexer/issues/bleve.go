@@ -10,7 +10,7 @@ import (
 
 	gitea_bleve "code.gitea.io/gitea/modules/indexer/bleve"
 	"code.gitea.io/gitea/modules/indexer/internal"
-	in_bleve "code.gitea.io/gitea/modules/indexer/internal/bleve"
+	inner_bleve "code.gitea.io/gitea/modules/indexer/internal/bleve"
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/analysis/analyzer/custom"
@@ -126,19 +126,19 @@ var _ Indexer = &BleveIndexer{}
 
 // BleveIndexer implements Indexer interface
 type BleveIndexer struct {
-	in               *in_bleve.Indexer
-	internal.Indexer // do not composite in_bleve.Indexer directly to avoid exposing too much
+	inner            *inner_bleve.Indexer
+	internal.Indexer // do not composite inner_bleve.Indexer directly to avoid exposing too much
 }
 
 // NewBleveIndexer creates a new bleve local indexer
 func NewBleveIndexer(indexDir string) *BleveIndexer {
-	in := &in_bleve.Indexer{
+	in := &inner_bleve.Indexer{
 		IndexDir: indexDir,
 		Version:  issueIndexerLatestVersion,
 	}
 	return &BleveIndexer{
 		Indexer: in,
-		in:      in,
+		inner:   in,
 	}
 }
 
@@ -152,13 +152,13 @@ func (b *BleveIndexer) Init() (bool, error) {
 		return true, nil
 	}
 
-	b.in.Indexer, err = createIssueIndexer(b.in.IndexDir, issueIndexerLatestVersion)
+	b.inner.Indexer, err = createIssueIndexer(b.inner.IndexDir, issueIndexerLatestVersion)
 	return false, err
 }
 
 // Index will save the index data
 func (b *BleveIndexer) Index(issues []*IndexerData) error {
-	batch := gitea_bleve.NewFlushingBatch(b.in.Indexer, maxBatchSize)
+	batch := gitea_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	for _, issue := range issues {
 		if err := batch.Index(indexerID(issue.ID), struct {
 			RepoID   int64
@@ -179,7 +179,7 @@ func (b *BleveIndexer) Index(issues []*IndexerData) error {
 
 // Delete deletes indexes by ids
 func (b *BleveIndexer) Delete(ids ...int64) error {
-	batch := gitea_bleve.NewFlushingBatch(b.in.Indexer, maxBatchSize)
+	batch := gitea_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	for _, id := range ids {
 		if err := batch.Delete(indexerID(id)); err != nil {
 			return err
@@ -210,7 +210,7 @@ func (b *BleveIndexer) Search(ctx context.Context, keyword string, repoIDs []int
 	search := bleve.NewSearchRequestOptions(indexerQuery, limit, start, false)
 	search.SortBy([]string{"-_score"})
 
-	result, err := b.in.Indexer.SearchInContext(ctx, search)
+	result, err := b.inner.Indexer.SearchInContext(ctx, search)
 	if err != nil {
 		return nil, err
 	}

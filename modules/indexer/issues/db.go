@@ -9,7 +9,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/indexer/internal"
-	in_db "code.gitea.io/gitea/modules/indexer/internal/db"
+	inner_db "code.gitea.io/gitea/modules/indexer/internal/db"
 )
 
 // DBIndexer implements Indexer interface to use database's like search
@@ -19,7 +19,7 @@ type DBIndexer struct {
 
 func NewDBIndexer() *DBIndexer {
 	return &DBIndexer{
-		Indexer: &in_db.Indexer{},
+		Indexer: &inner_db.Indexer{},
 	}
 }
 

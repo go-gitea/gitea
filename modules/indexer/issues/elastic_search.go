@@ -12,7 +12,7 @@ import (
 
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/indexer/internal"
-	in_elasticsearch "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
+	inner_elasticsearch "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
 	"code.gitea.io/gitea/modules/log"
 
 	"github.com/olivere/elastic/v7"
@@ -22,8 +22,8 @@ var _ Indexer = &ElasticSearchIndexer{}
 
 // ElasticSearchIndexer implements Indexer interface
 type ElasticSearchIndexer struct {
-	in               *in_elasticsearch.Indexer
-	internal.Indexer // do not composite in_elasticsearch.Indexer directly to avoid exposing too much
+	inner            *inner_elasticsearch.Indexer
+	internal.Indexer // do not composite inner_elasticsearch.Indexer directly to avoid exposing too much
 }
 
 // NewElasticSearchIndexer creates a new elasticsearch indexer
@@ -45,9 +45,9 @@ func NewElasticSearchIndexer(url, indexerName string) (*ElasticSearchIndexer, er
 		return nil, err
 	}
 
-	in := in_elasticsearch.NewIndexer(client, indexerName)
+	in := inner_elasticsearch.NewIndexer(client, indexerName)
 	indexer := &ElasticSearchIndexer{
-		in:      in,
+		inner:   in,
 		Indexer: in,
 	}
 	return indexer, nil
@@ -95,9 +95,9 @@ func (b *ElasticSearchIndexer) Init() (bool, error) {
 	mapping := defaultMapping
 
 	ctx := graceful.GetManager().HammerContext()
-	createIndex, err := b.in.Client.CreateIndex(b.in.IndexerName).BodyString(mapping).Do(ctx)
+	createIndex, err := b.inner.Client.CreateIndex(b.inner.IndexerName).BodyString(mapping).Do(ctx)
 	if err != nil {
-		return false, b.in.CheckError(err)
+		return false, b.inner.CheckError(err)
 	}
 	if !createIndex.Acknowledged {
 		return false, errors.New("init failed")
@@ -112,8 +112,8 @@ func (b *ElasticSearchIndexer) Index(issues []*IndexerData) error {
 		return nil
 	} else if len(issues) == 1 {
 		issue := issues[0]
-		_, err := b.in.Client.Index().
-			Index(b.in.IndexerName).
+		_, err := b.inner.Client.Index().
+			Index(b.inner.IndexerName).
 			Id(fmt.Sprintf("%d", issue.ID)).
 			BodyJson(map[string]interface{}{
 				"id":       issue.ID,
@@ -123,14 +123,14 @@ func (b *ElasticSearchIndexer) Index(issues []*IndexerData) error {
 				"comments": issue.Comments,
 			}).
 			Do(graceful.GetManager().HammerContext())
-		return b.in.CheckError(err)
+		return b.inner.CheckError(err)
 	}
 
 	reqs := make([]elastic.BulkableRequest, 0)
 	for _, issue := range issues {
 		reqs = append(reqs,
 			elastic.NewBulkIndexRequest().
-				Index(b.in.IndexerName).
+				Index(b.inner.IndexerName).
 				Id(fmt.Sprintf("%d", issue.ID)).
 				Doc(map[string]interface{}{
 					"id":       issue.ID,
@@ -142,11 +142,11 @@ func (b *ElasticSearchIndexer) Index(issues []*IndexerData) error {
 		)
 	}
 
-	_, err := b.in.Client.Bulk().
-		Index(b.in.IndexerName).
+	_, err := b.inner.Client.Bulk().
+		Index(b.inner.IndexerName).
 		Add(reqs...).
 		Do(graceful.GetManager().HammerContext())
-	return b.in.CheckError(err)
+	return b.inner.CheckError(err)
 }
 
 // Delete deletes indexes by ids
@@ -154,27 +154,27 @@ func (b *ElasticSearchIndexer) Delete(ids ...int64) error {
 	if len(ids) == 0 {
 		return nil
 	} else if len(ids) == 1 {
-		_, err := b.in.Client.Delete().
-			Index(b.in.IndexerName).
+		_, err := b.inner.Client.Delete().
+			Index(b.inner.IndexerName).
 			Id(fmt.Sprintf("%d", ids[0])).
 			Do(graceful.GetManager().HammerContext())
-		return b.in.CheckError(err)
+		return b.inner.CheckError(err)
 	}
 
 	reqs := make([]elastic.BulkableRequest, 0)
 	for _, id := range ids {
 		reqs = append(reqs,
 			elastic.NewBulkDeleteRequest().
-				Index(b.in.IndexerName).
+				Index(b.inner.IndexerName).
 				Id(fmt.Sprintf("%d", id)),
 		)
 	}
 
-	_, err := b.in.Client.Bulk().
-		Index(b.in.IndexerName).
+	_, err := b.inner.Client.Bulk().
+		Index(b.inner.IndexerName).
 		Add(reqs...).
 		Do(graceful.GetManager().HammerContext())
-	return b.in.CheckError(err)
+	return b.inner.CheckError(err)
 }
 
 // Search searches for issues by given conditions.
@@ -191,14 +191,14 @@ func (b *ElasticSearchIndexer) Search(ctx context.Context, keyword string, repoI
 		repoQuery := elastic.NewTermsQuery("repo_id", repoStrs...)
 		query = query.Must(repoQuery)
 	}
-	searchResult, err := b.in.Client.Search().
-		Index(b.in.IndexerName).
+	searchResult, err := b.inner.Client.Search().
+		Index(b.inner.IndexerName).
 		Query(query).
 		Sort("_score", false).
 		From(start).Size(limit).
 		Do(ctx)
 	if err != nil {
-		return nil, b.in.CheckError(err)
+		return nil, b.inner.CheckError(err)
 	}
 
 	hits := make([]Match, 0, limit)
