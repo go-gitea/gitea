@@ -21,7 +21,7 @@ menu:
 
 #### 使用 systemd
 
-複製範例 [gitea.service](https://github.com/go-gitea/gitea/blob/master/contrib/systemd/gitea.service) 到 `/etc/systemd/system/gitea.service` 後用您喜愛的文字編輯器開啟檔案。
+複製範例 [gitea.service](https://github.com/go-gitea/gitea/blob/main/contrib/systemd/gitea.service) 到 `/etc/systemd/system/gitea.service` 後用您喜愛的文字編輯器開啟檔案。
 
 取消註解任何需要在此系統上啟動的服務像是 MySQL。
 
@@ -55,7 +55,7 @@ sudo apt install supervisor
 mkdir /home/git/gitea/log/supervisor
 ```
 
-附加範例 [supervisord config](https://github.com/go-gitea/gitea/blob/master/contrib/supervisor/gitea) 的設定值到 `/etc/supervisor/supervisord.conf`。
+附加範例 [supervisord config](https://github.com/go-gitea/gitea/blob/main/contrib/supervisor/gitea) 的設定值到 `/etc/supervisor/supervisord.conf`。
 
 用您喜愛的文字編輯器修改使用者（git）和家目錄（/home/git）設定以符合部署環境。若預設埠已被占用請修改埠號或移除「-p」旗標。
 
