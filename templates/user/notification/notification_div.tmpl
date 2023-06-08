@@ -46,7 +46,7 @@
 							</div>
 							<a class="notifications-link gt-df gt-f1 gt-fc silenced" href="{{.Link}}">
 								<div class="notifications-top-row gt-font-13">
-									{{.Repository.FullName}} <span class="text light-3">#{{.Issue.Index}}</span>
+									{{.Repository.FullName}} {{if .Issue}}<span class="text light-3">#{{.Issue.Index}}</span>{{end}}
 									{{if eq .Status 3}}
 										{{svg "octicon-pin" 13 "text blue gt-mt-1 gt-ml-2"}}
 									{{end}}
@@ -62,7 +62,11 @@
 								</div>
 							</a>
 							<div class="notifications-updated gt-ac gt-mr-3">
-								{{TimeSinceUnix .Issue.UpdatedUnix $locale}}
+								{{if .Issue}}
+									{{TimeSinceUnix .Issue.UpdatedUnix $locale}}
+								{{else}}
+									{{TimeSinceUnix .UpdatedUnix $locale}}
+								{{end}}
 							</div>
 							<div class="notifications-buttons gt-ac gt-je gt-gap-2 gt-px-2">
 								{{if ne .Status 3}}

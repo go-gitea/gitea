@@ -132,7 +132,7 @@
 }
 
 .repository .header-wrapper {
-  background-color: var(--color-navbar);
+  background-color: var(--color-header-wrapper);
 }
 
 .repository .header-wrapper .ui.tabs.divider {
@@ -2403,11 +2403,6 @@
   min-height: 50px !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
-}
-
-.settings .content > .header,
-.settings .content .segment {
-  box-shadow: 0 1px 2px 0 var(--color-box-header);
 }
 
 .settings.webhooks .list > .item:not(:first-child),
