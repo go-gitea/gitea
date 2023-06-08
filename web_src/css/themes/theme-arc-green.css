@@ -181,8 +181,8 @@
   --color-input-toggle-background: #454a57;
   --color-input-border: var(--color-secondary);
   --color-input-border-hover: var(--color-secondary-dark-1);
-  --color-navbar: #252935;
-  --color-navbar-transparent: #272b3700;
+  --color-header-wrapper: #212531;
+  --color-header-wrapper-transparent: #21253100;
   --color-light: #00000028;
   --color-light-mimic-enabled: rgba(0, 0, 0, calc(40 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #ffffff28;
@@ -208,7 +208,8 @@
   --color-reaction-active-bg: var(--color-primary-light-5);
   --color-tooltip-text: #ffffff;
   --color-tooltip-bg: #000000f0;
-  --color-header-bar: #272c37;
+  --color-nav-bg: #2e323e;
+  --color-nav-hover-bg: #434651;
   --color-label-text: #dfe3ec;
   --color-label-bg: #7c84974b;
   --color-label-hover-bg: #7c8497a0;
