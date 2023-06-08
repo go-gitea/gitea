@@ -57,6 +57,11 @@
   border: none;
 }
 
+a.btn,
+a.btn:hover {
+  color: inherit;
+}
+
 /* other button styles */
 
 .ui.buttons .button:first-child {

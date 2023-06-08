@@ -37,9 +37,7 @@
 									</button>
 								{{end}}
 								{{if .EnableFeed}}
-									<a role="button" class="btn interact-bg gt-p-3" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .DefaultBranch}}">
-										{{svg "octicon-rss"}}
-									</a>
+									<a role="button" class="btn interact-bg gt-p-3" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .DefaultBranch}}">{{svg "octicon-rss"}}</a>
 								{{end}}
 								{{if not $.DisableDownloadSourceArchives}}
 									<div class="ui dropdown btn interact-bg gt-p-3" data-tooltip-content="{{$.locale.Tr "repo.branch.download" ($.DefaultBranch)}}">
@@ -144,9 +142,7 @@
 											</button>
 										{{end}}
 										{{if $.EnableFeed}}
-											<a role="button" class="btn interact-bg gt-p-3" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .Name}}">
-												{{svg "octicon-rss"}}
-											</a>
+											<a role="button" class="btn interact-bg gt-p-3" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .Name}}">{{svg "octicon-rss"}}</a>
 										{{end}}
 										{{if and (not .IsDeleted) (not $.DisableDownloadSourceArchives)}}
 											<div class="ui dropdown btn interact-bg gt-p-3" data-tooltip-content="{{$.locale.Tr "repo.branch.download" (.Name)}}">
