@@ -44,7 +44,9 @@ func PerformSecretsPost(ctx *context.Context, ownerID, repoID int64, redirectURL
 		ctx.Flash.Success(ctx.Tr("secrets.creation.success", s.Name))
 	}
 
-	ctx.Redirect(redirectURL)
+	ctx.JSON(http.StatusOK, map[string]interface{}{
+		"redirect": redirectURL,
+	})
 }
 
 func PerformSecretsDelete(ctx *context.Context, ownerID, repoID int64, redirectURL string) {

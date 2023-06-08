@@ -46,3 +46,39 @@ export function initActionsVariables() {
     });
   });
 }
+
+export function initActionsSecrets() {
+  $('.show-secret-add-modal').on('click', function () {
+    const $btn = $(this);
+    const target = $btn.attr('data-modal');
+    const $modal = $(target);
+    const form = $modal.find('form')[0];
+    // clear input/textarea value
+    $modal.find('input[name=name]').val('');
+    $modal.find('textarea[name=value]').val('');
+
+    $modal.find('.actions .ok.button').off('click').on('click', () => {
+      if (!form.reportValidity()) return false;
+
+      (async () => {
+        const url = $(this).attr('data-base-action');
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Csrf-Token': csrfToken,
+          },
+          body: JSON.stringify({
+            title: $modal.find('input[name=title]').val(),
+            content: $modal.find('textarea[name=content]').val(),
+          }),
+        });
+        const data = await res.json();
+        if (data.redirect) window.location.href = data.redirect;
+        else window.location.reload();
+      })();
+    });
+
+    return false;
+  });
+}
