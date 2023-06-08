@@ -148,7 +148,7 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 		fatalTestError("git_storage.RemoveAll: %v\n", err)
 	}
 	if err = git_storage.UploadDir(filepath.Join(testOpts.GiteaRootPath, "tests", "gitea-repositories-meta"), ""); err != nil {
-		fatalTestError("git_storage.CopyDir: %v\n", err)
+		fatalTestError("git_storage.UploadDir: %v\n", err)
 	}
 
 	ownerDirs, err := git_storage.ReadDir("")

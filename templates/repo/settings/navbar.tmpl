@@ -34,8 +34,8 @@
 			</a>
 		{{end}}
 		{{if and .EnableActions (not .UnitActionsGlobalDisabled) (.Permission.CanRead $.UnitTypeActions)}}
-		<div class="item">
-			{{.locale.Tr "actions.actions"}}
+		<details class="item toggleable-item" {{if or .PageIsSharedSettingsRunners .PageIsSharedSettingsSecrets}}open{{end}}>
+			<summary>{{.locale.Tr "actions.actions"}}</summary>
 			<div class="menu">
 				<a class="{{if .PageIsSharedSettingsRunners}}active {{end}}item" href="{{.RepoLink}}/settings/actions/runners">
 					{{.locale.Tr "actions.runners"}}
@@ -44,7 +44,7 @@
 					{{.locale.Tr "secrets.secrets"}}
 				</a>
 			</div>
-		</div>
+		</details>
 		{{end}}
 	</div>
 </div>

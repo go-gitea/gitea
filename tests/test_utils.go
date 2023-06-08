@@ -192,7 +192,7 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 
 	// load git repo fixtures
 	assert.NoError(t, git_storage.RemoveAll(""))
-	assert.NoError(t, git_storage.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), ""))
+	assert.NoError(t, git_storage.UploadDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), ""))
 	ownerDirs, err := git_storage.ReadDir("")
 	if err != nil {
 		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)

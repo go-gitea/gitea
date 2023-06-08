@@ -68,7 +68,7 @@ func initMigrationTest(t *testing.T) func() {
 
 	assert.True(t, storage.IsConfigured())
 	assert.NoError(t, storage.RemoveAll(""))
-	assert.NoError(t, storage.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), ""))
+	assert.NoError(t, storage.UploadDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), ""))
 	ownerDirs, err := storage.ReadDir("")
 	if err != nil {
 		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
