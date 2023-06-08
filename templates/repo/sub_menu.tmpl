@@ -16,7 +16,7 @@
 				{{end}}
 				{{if .Licenses}}
 					<div class="item">
-						<a href="{{.RepoLink}}/src/{{.DefaultBranch}}/{{PathEscapeSegments .LicenseFileName}}">{{svg "octicon-law"}} <b>
+						<a data-tooltip-content="{{StringUtils.Join .Licenses ", "}}" href="{{.RepoLink}}/src/{{.DefaultBranch}}/{{PathEscapeSegments .LicenseFileName}}">{{svg "octicon-law"}} <b>
 						{{if eq (len .Licenses) 1}}
 							{{index .Licenses 0}}
 						{{else}}
