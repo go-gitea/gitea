@@ -107,7 +107,7 @@ func Profile(ctx *context.Context) {
 		}
 		blob, err := commit.GetBlobByPath("README.md")
 		if err == nil {
-			bytes, err := blob.GetBlobContent()
+			bytes, err := blob.GetBlobAll()
 			if err != nil {
 				ctx.ServerError("GetBlobContent", err)
 				return
@@ -115,7 +115,7 @@ func Profile(ctx *context.Context) {
 			profileContent, err := markdown.RenderString(&markup.RenderContext{
 				Ctx:     ctx,
 				GitRepo: gitRepo,
-			}, bytes)
+			}, string(bytes))
 			if err != nil {
 				ctx.ServerError("RenderString", err)
 				return
