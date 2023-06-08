@@ -115,7 +115,7 @@ func Profile(ctx *context.Context) {
 			profileContent, err := markdown.RenderString(&markup.RenderContext{
 				Ctx:     ctx,
 				GitRepo: gitRepo,
-			}, string(bytes))
+			}, bytes)
 			if err != nil {
 				ctx.ServerError("RenderString", err)
 				return
