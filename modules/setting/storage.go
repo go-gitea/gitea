@@ -56,6 +56,17 @@ type Storage struct {
 	MinioConfig   MinioStorageConfig // for minio type
 }
 
+func (storage *Storage) ToShadowCopy() Storage {
+	shadowStorage := *storage
+	if shadowStorage.MinioConfig.AccessKeyID != "" {
+		shadowStorage.MinioConfig.AccessKeyID = "******"
+	}
+	if shadowStorage.MinioConfig.SecretAccessKey != "" {
+		shadowStorage.MinioConfig.SecretAccessKey = "******"
+	}
+	return shadowStorage
+}
+
 const storageSectionName = "storage"
 
 func getDefaultStorageSection(rootCfg ConfigProvider) ConfigSection {
