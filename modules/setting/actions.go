@@ -33,10 +33,9 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 		return err
 	}
 
-	actionsSec := rootCfg.Section("actions.artifacts")
-	storageType := actionsSec.Key("STORAGE_TYPE").MustString("")
+	actionsSec, _ := rootCfg.GetSection("actions.artifacts")
 
-	Actions.ArtifactStorage, err = getStorage(rootCfg, "actions_artifacts", storageType, actionsSec)
+	Actions.ArtifactStorage, err = getStorage(rootCfg, "actions_artifacts", "", actionsSec)
 
 	return err
 }
