@@ -1044,7 +1044,7 @@
 }
 
 .repository.view.issue .comment-list .comment .ui.form .field.footer {
-  overflow: hidden;
+  overflow: visible;
 }
 
 .repository.view.issue .comment-list .comment .ui.form .field .tab.markup {

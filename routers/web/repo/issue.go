@@ -1249,6 +1249,50 @@ func getBranchData(ctx *context.Context, issue *issues_model.Issue) {
 	}
 }
 
+type IssueCloseBtnItem struct {
+	Value           issues_model.IssueClosedState
+	State           string
+	StateAndComment string
+}
+
+var issueCloseBtnItems = []IssueCloseBtnItem{
+	{
+		Value:           issues_model.IssueClosedState(-1),
+		State:           "repo.issues.close_as.reopen",
+		StateAndComment: "repo.issues.comment_and_close_as.reopen",
+	},
+	{
+		Value:           issues_model.IssueClosedStateCommonClose,
+		State:           "repo.issues.close_as.common",
+		StateAndComment: "repo.issues.comment_and_close_as.common",
+	},
+	{
+		Value:           issues_model.IssueClosedStateArchived,
+		State:           "repo.issues.close_as.archived",
+		StateAndComment: "repo.issues.comment_and_close_as.archived",
+	},
+	{
+		Value:           issues_model.IssueClosedStateResolved,
+		State:           "repo.issues.close_as.resolved",
+		StateAndComment: "repo.issues.comment_and_close_as.resolved",
+	},
+	{
+		Value:           issues_model.IssueClosedStateMerged,
+		State:           "repo.issues.close_as.merged",
+		StateAndComment: "repo.issues.comment_and_close_as.merged",
+	},
+	{
+		Value:           issues_model.IssueClosedStateDuplicate,
+		State:           "repo.issues.close_as.duplicate",
+		StateAndComment: "repo.issues.comment_and_close_as.duplicate",
+	},
+	{
+		Value:           issues_model.IssueClosedStateStale,
+		State:           "repo.issues.close_as.stale",
+		StateAndComment: "repo.issues.comment_and_close_as.stale",
+	},
+}
+
 // ViewIssue render issue view page
 func ViewIssue(ctx *context.Context) {
 	if ctx.Params(":type") == "issues" {
@@ -1309,6 +1353,21 @@ func ViewIssue(ctx *context.Context) {
 		}
 		ctx.Data["PageIsIssueList"] = true
 		ctx.Data["NewIssueChooseTemplate"] = issue_service.HasTemplatesOrContactLinks(ctx.Repo.Repository, ctx.Repo.GitRepo)
+
+		// assemble data for close/reopen button
+		var btnItems []IssueCloseBtnItem
+		for _, item := range issueCloseBtnItems {
+			if !issue.IsClosed && item.Value == issues_model.IssueClosedState(-1) {
+				// if issue is open, do not append "reopen" btn item
+				continue
+			}
+			if issue.IsClosed && item.Value == issue.ClosedState {
+				// if issue is closed and the state of issue is equal to this item, skip it.
+				continue
+			}
+			btnItems = append(btnItems, item)
+		}
+		ctx.Data["IssueCloseBtnItems"] = btnItems
 	}
 
 	if issue.IsPull && !ctx.Repo.CanRead(unit.TypeIssues) {
