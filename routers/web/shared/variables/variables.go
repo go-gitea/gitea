@@ -50,12 +50,20 @@ func DeleteVariable(ctx *context.Context, ownerID, repoID int64, redirectURL str
 func CreateVariable(ctx *context.Context, ownerID, repoID int64, redirectURL string) {
 	form := web.GetForm(ctx).(*forms.EditVariableForm)
 
-	v, err := variable_model.InsertVariable(ctx, ownerID, repoID, form.Name, form.Data)
+	content := form.Content
+	// Since the content is from a form which is a textarea, the line endings are \r\n.
+	// It's a standard behavior of HTML.
+	// But we want to store them as \n like what GitHub does.
+	// And users are unlikely to really need to keep the \r.
+	// Other than this, we should respect the original content, even leading or trailing spaces.
+	content = strings.ReplaceAll(content, "\r\n", "\n")
+
+	v, err := variable_model.InsertVariable(ctx, ownerID, repoID, form.Title, content)
 	if err != nil {
 		log.Error("InsertVariable error: %v", err)
 		ctx.Flash.Error(ctx.Tr("actions.variables.creation.failed"))
 	} else {
-		ctx.Flash.Success(ctx.Tr("actions.variables.creation.success", v.Name))
+		ctx.Flash.Success(ctx.Tr("actions.variables.creation.success", v.Title))
 	}
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
@@ -77,21 +85,30 @@ func GetVariable(ctx *context.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"id":   v.ID,
-		"name": v.Name,
-		"data": v.Data,
+		"id":      v.ID,
+		"title":   v.Title,
+		"content": v.Content,
 	})
 }
 
 func UpdateVariable(ctx *context.Context, ownerID, repoID int64, redirectURL string) {
 	id := ctx.ParamsInt64(":variable_id")
 	form := web.GetForm(ctx).(*forms.EditVariableForm)
+
+	content := form.Content
+	// Since the content is from a form which is a textarea, the line endings are \r\n.
+	// It's a standard behavior of HTML.
+	// But we want to store them as \n like what GitHub does.
+	// And users are unlikely to really need to keep the \r.
+	// Other than this, we should respect the original content, even leading or trailing spaces.
+	content = strings.ReplaceAll(content, "\r\n", "\n")
+
 	ok, err := variable_model.UpdateVariable(ctx, &variable_model.ActionVariable{
 		ID:      id,
 		OwnerID: ownerID,
 		RepoID:  repoID,
-		Name:    strings.ToUpper(form.Name),
-		Data:    form.Data,
+		Title:   strings.ToUpper(form.Title),
+		Content: content,
 	})
 	if err != nil || !ok {
 		log.Error("UpdateVariable error: %v", err)

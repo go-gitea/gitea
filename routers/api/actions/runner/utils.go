@@ -109,7 +109,7 @@ func getVariablesOfTask(ctx context.Context, task *actions_model.ActionTask) map
 
 	// Level precedence: Env > Repo > Org / User
 	for _, v := range append(ownerVariables, repoVariables...) {
-		variables[v.Name] = v.Data
+		variables[v.Title] = v.Content
 	}
 
 	return variables
