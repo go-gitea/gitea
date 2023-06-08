@@ -81,7 +81,10 @@ type IndexerData struct {
 	RepoID int64
 }
 
-var indexerQueue *queue.WorkerPoolQueue[*IndexerData]
+var (
+	indexerQueue *queue.WorkerPoolQueue[*IndexerData]
+	holder       = internal.NewIndexerHolder()
+)
 
 func index(ctx context.Context, indexer Indexer, repoID int64) error {
 	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
@@ -139,7 +142,7 @@ func index(ctx context.Context, indexer Indexer, repoID int64) error {
 // Init initialize the repo indexer
 func Init() {
 	if !setting.Indexer.RepoIndexerEnabled {
-		indexer.Close()
+		holder.Get().Close()
 		return
 	}
 
@@ -153,7 +156,7 @@ func Init() {
 		}
 		cancel()
 		log.Debug("Closing repository indexer")
-		indexer.Close()
+		holder.Get().Close()
 		log.Info("PID: %d Repository Indexer closed", os.Getpid())
 		finished()
 	})
@@ -164,8 +167,8 @@ func Init() {
 	switch setting.Indexer.RepoType {
 	case "bleve", "elasticsearch":
 		handler := func(items ...*IndexerData) (unhandled []*IndexerData) {
-			idx, err := indexer.get()
-			if idx == nil || err != nil {
+			indexer := holder.Get().(Indexer)
+			if indexer == nil {
 				log.Warn("Codes indexer handler: indexer is not ready, retry later.")
 				return items
 			}
@@ -188,7 +191,7 @@ func Init() {
 					code.gitea.io/gitea/modules/indexer/code.index(indexer.go:105)
 				*/
 				if err := index(ctx, indexer, indexerData.RepoID); err != nil {
-					if !idx.Ping() {
+					if !indexer.Ping() {
 						log.Error("Code indexer handler: indexer is unavailable.")
 						unhandled = append(unhandled, indexerData)
 						continue
@@ -232,7 +235,7 @@ func Init() {
 			existed, err = rIndexer.Init()
 			if err != nil {
 				cancel()
-				indexer.Close()
+				holder.Get().Close()
 				close(waitChannel)
 				log.Fatal("PID: %d Unable to initialize the bleve Repository Indexer at path: %s Error: %v", os.Getpid(), setting.Indexer.RepoPath, err)
 			}
@@ -249,14 +252,14 @@ func Init() {
 			rIndexer, err = NewElasticSearchIndexer(setting.Indexer.RepoConnStr, setting.Indexer.RepoIndexerName)
 			if err != nil {
 				cancel()
-				indexer.Close()
+				holder.Get().Close()
 				close(waitChannel)
 				log.Fatal("PID: %d Unable to create the elasticsearch Repository Indexer connstr: %s Error: %v", os.Getpid(), setting.Indexer.RepoConnStr, err)
 			}
 			existed, err = rIndexer.Init()
 			if err != nil {
 				cancel()
-				indexer.Close()
+				holder.Get().Close()
 				close(waitChannel)
 				log.Fatal("PID: %d Unable to initialize the elasticsearch Repository Indexer connstr: %s Error: %v", os.Getpid(), setting.Indexer.RepoConnStr, err)
 			}
@@ -265,7 +268,7 @@ func Init() {
 			log.Fatal("PID: %d Unknown Indexer type: %s", os.Getpid(), setting.Indexer.RepoType)
 		}
 
-		indexer.set(rIndexer)
+		holder.Set(rIndexer)
 
 		// Start processing the queue
 		go graceful.GetManager().RunWithCancel(indexerQueue)
@@ -292,18 +295,18 @@ func Init() {
 			case <-graceful.GetManager().IsShutdown():
 				log.Warn("Shutdown before Repository Indexer completed initialization")
 				cancel()
-				indexer.Close()
+				holder.Get().Close()
 			case duration, ok := <-waitChannel:
 				if !ok {
 					log.Warn("Repository Indexer Initialization failed")
 					cancel()
-					indexer.Close()
+					holder.Get().Close()
 					return
 				}
 				log.Info("Repository Indexer Initialization took %v", duration)
 			case <-time.After(timeout):
 				cancel()
-				indexer.Close()
+				holder.Get().Close()
 				log.Fatal("Repository Indexer Initialization Timed-Out after: %v", timeout)
 			}
 		}()
@@ -320,9 +323,9 @@ func UpdateRepoIndexer(repo *repo_model.Repository) {
 
 // IsAvailable checks if issue indexer is available
 func IsAvailable() bool {
-	idx, err := indexer.get()
-	if err != nil {
-		log.Error("IsAvailable(): unable to get indexer: %v", err)
+	idx := holder.Get().(Indexer)
+	if idx == nil {
+		log.Error("IsAvailable(): unable to get indexer")
 		return false
 	}
 
