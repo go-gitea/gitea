@@ -25,6 +25,7 @@ func CodeSearch(ctx *context.Context) {
 		ctx.Redirect(ctx.ContextUser.HomeLink())
 		return
 	}
+	ctx.Data["IsProjectEnabled"] = true
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["Title"] = ctx.Tr("explore.code")
@@ -108,6 +109,5 @@ func CodeSearch(ctx *context.Context) {
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "l", "Language")
 	ctx.Data["Page"] = pager
-
 	ctx.HTML(http.StatusOK, tplUserCode)
 }
