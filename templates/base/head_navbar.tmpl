@@ -1,4 +1,4 @@
-<nav class="ui container secondary stackable main menu" id="navbar" aria-label="{{.locale.Tr "aria.navbar"}}">
+<nav id="navbar" class="ui secondary stackable menu" aria-label="{{.locale.Tr "aria.navbar"}}">
 	{{$notificationUnreadCount := 0}}
 	{{if .IsSigned}}
 		{{if .NotificationUnreadCount}}{{$notificationUnreadCount = call .NotificationUnreadCount}}{{end}}
@@ -28,33 +28,21 @@
 		{{/* No links */}}
 	{{else if .IsSigned}}
 		{{if not .UnitIssuesGlobalDisabled}}
-		<a class="item {{if .PageIsIssues}}active{{end}}" href="{{AppSubUrl}}/issues">{{.locale.Tr "issues"}}</a>
+		<a class="item{{if .PageIsIssues}} active{{end}}" href="{{AppSubUrl}}/issues">{{.locale.Tr "issues"}}</a>
 		{{end}}
 		{{if not .UnitPullsGlobalDisabled}}
-		<a class="item {{if .PageIsPulls}}active{{end}}" href="{{AppSubUrl}}/pulls">{{.locale.Tr "pull_requests"}}</a>
+		<a class="item{{if .PageIsPulls}} active{{end}}" href="{{AppSubUrl}}/pulls">{{.locale.Tr "pull_requests"}}</a>
 		{{end}}
 		{{if not (and .UnitIssuesGlobalDisabled .UnitPullsGlobalDisabled)}}
-		{{if .ShowMilestonesDashboardPage}}<a class="item {{if .PageIsMilestonesDashboard}}active{{end}}" href="{{AppSubUrl}}/milestones">{{.locale.Tr "milestones"}}</a>{{end}}
+		{{if .ShowMilestonesDashboardPage}}<a class="item{{if .PageIsMilestonesDashboard}} active{{end}}" href="{{AppSubUrl}}/milestones">{{.locale.Tr "milestones"}}</a>{{end}}
 		{{end}}
-		<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.locale.Tr "explore"}}</a>
+		<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.locale.Tr "explore"}}</a>
 	{{else if .IsLandingPageOrganizations}}
-		<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/organizations">{{.locale.Tr "explore"}}</a>
+		<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/organizations">{{.locale.Tr "explore"}}</a>
 	{{else}}
-		<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.locale.Tr "explore"}}</a>
+		<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.locale.Tr "explore"}}</a>
 	{{end}}
-
 	{{template "custom/extra_links" .}}
-
-	{{/* TODO
-		<div class="item">
-		<div class="ui icon input">
-		<input class="searchbox" type="text" placeholder="{{.locale.Tr "search_project"}}">
-		<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-		</div>
-		</div>
-	*/}}
-
-
 	{{if and .IsSigned .MustChangePassword}}
 		<div class="right stackable menu">
 			<div class="ui dropdown jump item" tabindex="-1" data-tooltip-content="{{.locale.Tr "user_profile_and_more"}}">

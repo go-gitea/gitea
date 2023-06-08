@@ -941,7 +941,7 @@ img.ui.avatar,
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .page-content .ui.ui.ui.container:not(.fluid) {
     width: calc(100vw - 16px);
     max-width: calc(100vw - 16px);
@@ -961,17 +961,9 @@ img.ui.avatar,
   margin: 0 !important;
 }
 
-#navbar .column .menu {
-  margin-top: 0;
-}
-
 #navbar .fitted .svg {
   margin-right: 0;
   vertical-align: middle;
-}
-
-#navbar .searchbox {
-  background-color: var(--color-input-background) !important;
 }
 
 #navbar .text .svg {
@@ -987,8 +979,17 @@ img.ui.avatar,
   margin-right: 0 !important;
 }
 
-@media (max-width: 767px) {
-  #navbar:not(.shown) > *:not(:first-child) {
+@media (max-width: 767.98px) {
+  #navbar {
+    align-items: stretch;
+  }
+  #navbar.shown {
+    padding-bottom: 8px;
+  }
+  #navbar.shown .item.brand {
+    padding-bottom: 2px;
+  }
+  #navbar:not(.shown) > *:not(.item.brand) {
     display: none;
   }
 }
@@ -1455,7 +1456,7 @@ img.ui.avatar,
   line-height: 20px;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .ui.pagination.menu .item:not(.active,.navigation),
   .ui.pagination.menu .item.navigation span.navigation_label {
     display: none;
@@ -1550,7 +1551,7 @@ img.ui.avatar,
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   /* double selector so it wins over .gt-df etc */
   .not-mobile.not-mobile {
     display: none !important;
@@ -1613,7 +1614,7 @@ img.ui.avatar,
   margin-bottom: 0 !important; /* reset fomantic's margin, because the active menu has special bottom border */
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .ui.menu.new-menu .item {
     width: auto !important;
   }
