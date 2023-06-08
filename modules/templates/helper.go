@@ -181,7 +181,19 @@ func NewFuncMap() template.FuncMap {
 
 		"FilenameIsImage": FilenameIsImage,
 		"TabSizeClass":    TabSizeClass,
+		"ShadowStorage":   shadowStorage,
 	}
+}
+
+func shadowStorage(storage *setting.Storage) setting.Storage {
+	shadowStorage := *storage
+	if shadowStorage.MinioConfig.AccessKeyID != "" {
+		shadowStorage.MinioConfig.AccessKeyID = "******"
+	}
+	if shadowStorage.MinioConfig.SecretAccessKey != "" {
+		shadowStorage.MinioConfig.SecretAccessKey = "******"
+	}
+	return shadowStorage
 }
 
 // Safe render raw as HTML

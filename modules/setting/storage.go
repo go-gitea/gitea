@@ -36,22 +36,22 @@ func IsValidStorageType(storageType StorageType) bool {
 
 // MinioStorageConfig represents the configuration for a minio storage
 type MinioStorageConfig struct {
-	Endpoint           string `ini:"MINIO_ENDPOINT"`
-	AccessKeyID        string `ini:"MINIO_ACCESS_KEY_ID"`
-	SecretAccessKey    string `ini:"MINIO_SECRET_ACCESS_KEY"`
-	Bucket             string `ini:"MINIO_BUCKET"`
-	Location           string `ini:"MINIO_LOCATION"`
-	BasePath           string `ini:"MINIO_BASE_PATH"`
+	Endpoint           string `ini:"MINIO_ENDPOINT" json:",omitempty"`
+	AccessKeyID        string `ini:"MINIO_ACCESS_KEY_ID" json:",omitempty"`
+	SecretAccessKey    string `ini:"MINIO_SECRET_ACCESS_KEY" json:",omitempty"`
+	Bucket             string `ini:"MINIO_BUCKET" json:",omitempty"`
+	Location           string `ini:"MINIO_LOCATION" json:",omitempty"`
+	BasePath           string `ini:"MINIO_BASE_PATH" json:",omitempty"`
 	UseSSL             bool   `ini:"MINIO_USE_SSL"`
 	InsecureSkipVerify bool   `ini:"MINIO_INSECURE_SKIP_VERIFY"`
-	ChecksumAlgorithm  string `ini:"MINIO_CHECKSUM_ALGORITHM"`
+	ChecksumAlgorithm  string `ini:"MINIO_CHECKSUM_ALGORITHM" json:",omitempty"`
 	ServeDirect        bool   `ini:"SERVE_DIRECT"`
 }
 
 // Storage represents configuration of storages
 type Storage struct {
 	Type          StorageType // local or minio
-	Path          string      // for local type
+	Path          string      `json:",omitempty"` // for local type
 	TemporaryPath string
 	MinioConfig   MinioStorageConfig // for minio type
 }
