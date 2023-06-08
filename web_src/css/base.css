@@ -1013,8 +1013,8 @@ img.ui.avatar,
   align-items: center;
   justify-content: center;
   position: absolute;
-  left: 18px;
-  top: 2px;
+  left: 6px;
+  top: -9px;
   min-width: 17px;
   min-height: 17px;
   background: var(--color-primary);
