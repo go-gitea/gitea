@@ -41,23 +41,6 @@ func (runs RunList) GetRepoIDs() []int64 {
 	return ids.Values()
 }
 
-type StatusInfo struct {
-	Status          int
-	DisplayedStatus string
-}
-
-// GetStatusInfos returns a slice of StatusInfo
-func (runs RunList) GetStatusInfos(ctx context.Context) []StatusInfo {
-	statusInfos := make([]StatusInfo, 0, 7)
-	for s := StatusSuccess; s <= StatusBlocked; s++ {
-		statusInfos = append(statusInfos, StatusInfo{
-			Status:          int(s),
-			DisplayedStatus: s.String(),
-		})
-	}
-	return statusInfos
-}
-
 func (runs RunList) LoadTriggerUser(ctx context.Context) error {
 	userIDs := runs.GetUserIDs()
 	users := make(map[int64]*user_model.User, len(userIDs))

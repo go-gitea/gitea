@@ -52,6 +52,23 @@ func MustEnableActions(ctx *context.Context) {
 	}
 }
 
+type StatusInfo struct {
+	Status          int
+	DisplayedStatus string
+}
+
+// getStatusInfos returns a slice of StatusInfo
+func getStatusInfos(ctx *context.Context) []StatusInfo {
+	statusInfos := make([]StatusInfo, 0, 7)
+	for s := actions_model.StatusSuccess; s <= actions_model.StatusBlocked; s++ {
+		statusInfos = append(statusInfos, StatusInfo{
+			Status:          int(s),
+			DisplayedStatus: s.String(),
+		})
+	}
+	return statusInfos
+}
+
 func List(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsActions"] = true
@@ -184,8 +201,7 @@ func List(ctx *context.Context) {
 	}
 	ctx.Data["Actors"] = actors
 
-	statusInfos := allRuns.GetStatusInfos(ctx)
-	ctx.Data["StatusInfos"] = statusInfos
+	ctx.Data["StatusInfos"] = getStatusInfos(ctx)
 
 	pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
