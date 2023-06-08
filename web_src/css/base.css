@@ -983,13 +983,13 @@ img.ui.avatar,
   #navbar {
     align-items: stretch;
   }
-  #navbar.shown {
+  #navbar.navbar-menu-open {
     padding-bottom: 8px;
   }
-  #navbar.shown .item.brand {
+  #navbar.navbar-menu-open .item.brand {
     padding-bottom: 2px;
   }
-  #navbar:not(.shown) > *:not(.item.brand) {
+  #navbar:not(.navbar-menu-open) > *:not(.item.brand) {
     display: none;
   }
 }
