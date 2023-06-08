@@ -27,7 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"gopkg.in/ini.v1"
+	"gopkg.in/ini.v1" //nolint:depguard
 )
 
 /*
@@ -241,7 +241,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 // cleanUpMigrateGitConfig removes mirror info which prevents "push --all".
 // This also removes possible user credentials.
 func cleanUpMigrateGitConfig(configPath string) error {
-	cfg, err := ini.Load(configPath)
+	cfg, err := ini.Load(configPath) // FIXME: the ini package doesn't really work with git config files
 	if err != nil {
 		return fmt.Errorf("open config file: %w", err)
 	}

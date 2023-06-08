@@ -324,5 +324,4 @@ func TestParseCodeOwnersLine(t *testing.T) {
 		tokens := issues_model.TokenizeCodeOwnersLine(g.Line)
 		assert.Equal(t, g.Tokens, tokens, "Codeowners tokenizer failed")
 	}
-
 }

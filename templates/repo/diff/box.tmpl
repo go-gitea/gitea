@@ -21,7 +21,8 @@
 					{{svg "octicon-sidebar-expand" 20 "icon gt-hidden"}}
 				</button>
 				<script>
-					const diffTreeVisible = localStorage?.getItem('diff_file_tree_visible') === 'true';
+					// Default to true if unset
+					const diffTreeVisible = localStorage?.getItem('diff_file_tree_visible') !== 'false';
 					const diffTreeBtn = document.querySelector('.diff-toggle-file-tree-button');
 					const diffTreeIcon = `.octicon-sidebar-${diffTreeVisible ? 'expand' : 'collapse'}`;
 					diffTreeBtn.querySelector(diffTreeIcon).classList.remove('gt-hidden');
