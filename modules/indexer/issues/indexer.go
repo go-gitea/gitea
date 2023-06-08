@@ -56,7 +56,7 @@ type Indexer interface {
 var (
 	// issueIndexerQueue queue of issue ids to be updated
 	issueIndexerQueue *queue.WorkerPoolQueue[*IndexerData]
-	holder            = internal.NewIndexerHolder(Indexer(nil))
+	holder            = internal.NewIndexerHolder()
 )
 
 // InitIssueIndexer initialize issue indexer, syncReindex is true then reindex until
@@ -70,7 +70,7 @@ func InitIssueIndexer(syncReindex bool) {
 	switch setting.Indexer.IssueType {
 	case "bleve", "elasticsearch", "meilisearch":
 		handler := func(items ...*IndexerData) (unhandled []*IndexerData) {
-			indexer := holder.Get()
+			indexer := holder.Get().(Indexer)
 			if indexer == nil {
 				log.Warn("Issue indexer handler: indexer is not ready, retry later.")
 				return items
@@ -320,7 +320,7 @@ func DeleteRepoIssueIndexer(ctx context.Context, repo *repo_model.Repository) {
 // WARNNING: You have to ensure user have permission to visit repoIDs' issues
 func SearchIssuesByKeyword(ctx context.Context, repoIDs []int64, keyword string) ([]int64, error) {
 	var issueIDs []int64
-	indexer := holder.Get()
+	indexer := holder.Get().(Indexer)
 
 	if indexer == nil {
 		log.Error("SearchIssuesByKeyword(): unable to get indexer!")
