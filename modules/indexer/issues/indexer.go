@@ -15,6 +15,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/indexer/internal"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
@@ -47,12 +48,10 @@ type SearchResult struct {
 
 // Indexer defines an interface to indexer issues contents
 type Indexer interface {
-	Init() (bool, error)
-	Ping() bool
+	internal.Indexer
 	Index(issue []*IndexerData) error
 	Delete(ids ...int64) error
 	Search(ctx context.Context, kw string, repoIDs []int64, limit, start int) (*SearchResult, error)
-	Close()
 }
 
 type indexerHolder struct {

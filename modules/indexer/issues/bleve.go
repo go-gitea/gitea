@@ -10,7 +10,7 @@ import (
 	"strconv"
 
 	gitea_bleve "code.gitea.io/gitea/modules/indexer/bleve"
-	"code.gitea.io/gitea/modules/log"
+	in_bleve "code.gitea.io/gitea/modules/indexer/internal/bleve"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/blevesearch/bleve/v2"
@@ -75,6 +75,7 @@ const maxBatchSize = 16
 // openIndexer open the index at the specified path, checking for metadata
 // updates and bleve version updates.  If index needs to be created (or
 // re-created), returns (nil, nil)
+// Deprecated:
 func openIndexer(path string, latestVersion int) (bleve.Index, error) {
 	_, err := os.Stat(path)
 	if err != nil && os.IsNotExist(err) {
@@ -161,49 +162,36 @@ var _ Indexer = &BleveIndexer{}
 
 // BleveIndexer implements Indexer interface
 type BleveIndexer struct {
-	indexDir string
-	indexer  bleve.Index
+	in_bleve.Indexer
 }
 
 // NewBleveIndexer creates a new bleve local indexer
 func NewBleveIndexer(indexDir string) *BleveIndexer {
 	return &BleveIndexer{
-		indexDir: indexDir,
+		Indexer: in_bleve.Indexer{
+			IndexDir: indexDir,
+			Version:  issueIndexerLatestVersion,
+		},
 	}
 }
 
 // Init will initialize the indexer
 func (b *BleveIndexer) Init() (bool, error) {
-	var err error
-	b.indexer, err = openIndexer(b.indexDir, issueIndexerLatestVersion)
+	opened, err := b.Indexer.Init()
 	if err != nil {
 		return false, err
 	}
-	if b.indexer != nil {
+	if opened {
 		return true, nil
 	}
 
-	b.indexer, err = createIssueIndexer(b.indexDir, issueIndexerLatestVersion)
+	b.Indexer.Indexer, err = createIssueIndexer(b.IndexDir, issueIndexerLatestVersion)
 	return false, err
-}
-
-// Ping does nothing
-func (b *BleveIndexer) Ping() bool {
-	return true
-}
-
-// Close will close the bleve indexer
-func (b *BleveIndexer) Close() {
-	if b.indexer != nil {
-		if err := b.indexer.Close(); err != nil {
-			log.Error("Error whilst closing indexer: %v", err)
-		}
-	}
 }
 
 // Index will save the index data
 func (b *BleveIndexer) Index(issues []*IndexerData) error {
-	batch := gitea_bleve.NewFlushingBatch(b.indexer, maxBatchSize)
+	batch := gitea_bleve.NewFlushingBatch(b.Indexer.Indexer, maxBatchSize)
 	for _, issue := range issues {
 		if err := batch.Index(indexerID(issue.ID), struct {
 			RepoID   int64
@@ -224,7 +212,7 @@ func (b *BleveIndexer) Index(issues []*IndexerData) error {
 
 // Delete deletes indexes by ids
 func (b *BleveIndexer) Delete(ids ...int64) error {
-	batch := gitea_bleve.NewFlushingBatch(b.indexer, maxBatchSize)
+	batch := gitea_bleve.NewFlushingBatch(b.Indexer.Indexer, maxBatchSize)
 	for _, id := range ids {
 		if err := batch.Delete(indexerID(id)); err != nil {
 			return err
@@ -255,7 +243,7 @@ func (b *BleveIndexer) Search(ctx context.Context, keyword string, repoIDs []int
 	search := bleve.NewSearchRequestOptions(indexerQuery, limit, start, false)
 	search.SortBy([]string{"-_score"})
 
-	result, err := b.indexer.SearchInContext(ctx, search)
+	result, err := b.Indexer.Indexer.SearchInContext(ctx, search)
 	if err != nil {
 		return nil, err
 	}

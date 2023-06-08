@@ -62,6 +62,7 @@ func addUnicodeNormalizeTokenFilter(m *mapping.IndexMappingImpl) error {
 // openBleveIndexer open the index at the specified path, checking for metadata
 // updates and bleve version updates.  If index needs to be created (or
 // re-created), returns (nil, nil)
+// Deprecated:
 func openBleveIndexer(path string, latestVersion int) (bleve.Index, error) {
 	_, err := os.Stat(path)
 	if err != nil && os.IsNotExist(err) {
