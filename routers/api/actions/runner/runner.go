@@ -106,7 +106,8 @@ func (s *Service) Declare(
 ) (*connect.Response[runnerv1.DeclareResponse], error) {
 	runner := GetRunner(ctx)
 	runner.Labels = req.Msg.Labels
-	if err := actions_model.UpdateRunner(ctx, runner, "labels"); err != nil {
+	runner.Version = req.Msg.Version
+	if err := actions_model.UpdateRunner(ctx, runner, "labels", "version"); err != nil {
 		return nil, status.Errorf(codes.Internal, "update runner: %v", err)
 	}
 

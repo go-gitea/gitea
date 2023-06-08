@@ -21,8 +21,9 @@ import (
 )
 
 const (
-	uuidHeaderKey    = "x-runner-uuid"
-	tokenHeaderKey   = "x-runner-token"
+	uuidHeaderKey  = "x-runner-uuid"
+	tokenHeaderKey = "x-runner-token"
+	// Deprecated: will be removed after Gitea 1.20 released.
 	versionHeaderKey = "x-runner-version"
 )
 
