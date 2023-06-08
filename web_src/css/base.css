@@ -969,6 +969,10 @@ img.ui.avatar,
   margin-left: auto;
 }
 
+#navbar .navbar-mobile-right a.item:hover {
+  background: transparent;
+}
+
 #navbar .secondary.menu > .item > .svg,
 #navbar .right.menu > .item > .svg {
   margin-right: 0;
