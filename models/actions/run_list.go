@@ -48,16 +48,11 @@ type StatusInfo struct {
 
 // GetStatusInfos returns a slice of StatusInfo
 func (runs RunList) GetStatusInfos(ctx context.Context) []StatusInfo {
-	statuses := make(container.Set[int], len(runs))
-	statusInfos := make([]StatusInfo, 0, len(runs))
-	for _, run := range runs {
-		if statuses.Contains(int(run.Status)) {
-			continue
-		}
-		statuses.Add(int(run.Status))
+	statusInfos := make([]StatusInfo, 0, 7)
+	for s := StatusSuccess; s <= StatusBlocked; s++ {
 		statusInfos = append(statusInfos, StatusInfo{
-			Status:          int(run.Status),
-			DisplayedStatus: run.Status.String(),
+			Status:          int(s),
+			DisplayedStatus: s.String(),
 		})
 	}
 	return statusInfos
