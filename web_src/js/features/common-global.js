@@ -22,11 +22,12 @@ export function initGlobalFormDirtyLeaveConfirm() {
 export function initHeadNavbarContentToggle() {
   const navbar = document.getElementById('navbar');
   const btn = document.getElementById('navbar-expand-toggle');
-  let isExpanded = false;
+  if (!navbar || !btn) return;
+
   btn.addEventListener('click', () => {
-    isExpanded = !isExpanded;
-    navbar.classList.toggle('navbar-menu-open', isExpanded);
-    btn.classList.toggle('active', isExpanded);
+    const isExpanded = btn.classList.contains('active');
+    navbar.classList.toggle('navbar-menu-open', !isExpanded);
+    btn.classList.toggle('active', !isExpanded);
   });
 }
 

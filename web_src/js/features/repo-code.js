@@ -110,7 +110,6 @@ function showLineButton() {
     trigger: 'click',
     content: menu,
     placement: 'right-start',
-    role: 'menu',
     interactive: 'true',
   });
 }
