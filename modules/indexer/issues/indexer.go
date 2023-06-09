@@ -10,11 +10,16 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
+	db_model "code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/indexer/internal"
+	"code.gitea.io/gitea/modules/indexer/issues/base"
+	"code.gitea.io/gitea/modules/indexer/issues/bleve"
+	"code.gitea.io/gitea/modules/indexer/issues/db"
+	"code.gitea.io/gitea/modules/indexer/issues/elasticsearch"
+	"code.gitea.io/gitea/modules/indexer/issues/meilisearch"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
@@ -22,40 +27,9 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-// IndexerData data stored in the issue indexer
-type IndexerData struct {
-	ID       int64    `json:"id"`
-	RepoID   int64    `json:"repo_id"`
-	Title    string   `json:"title"`
-	Content  string   `json:"content"`
-	Comments []string `json:"comments"`
-	IsDelete bool     `json:"is_delete"`
-	IDs      []int64  `json:"ids"`
-}
-
-// Match represents on search result
-type Match struct {
-	ID    int64   `json:"id"`
-	Score float64 `json:"score"`
-}
-
-// SearchResult represents search results
-type SearchResult struct {
-	Total int64
-	Hits  []Match
-}
-
-// Indexer defines an interface to indexer issues contents
-type Indexer interface {
-	internal.Indexer
-	Index(issue []*IndexerData) error
-	Delete(ids ...int64) error
-	Search(ctx context.Context, kw string, repoIDs []int64, limit, start int) (*SearchResult, error)
-}
-
 var (
 	// issueIndexerQueue queue of issue ids to be updated
-	issueIndexerQueue *queue.WorkerPoolQueue[*IndexerData]
+	issueIndexerQueue *queue.WorkerPoolQueue[*base.IndexerData]
 	holder            = internal.NewIndexerHolder()
 )
 
@@ -69,13 +43,13 @@ func InitIssueIndexer(syncReindex bool) {
 	// Create the Queue
 	switch setting.Indexer.IssueType {
 	case "bleve", "elasticsearch", "meilisearch":
-		handler := func(items ...*IndexerData) (unhandled []*IndexerData) {
-			indexer := holder.Get().(Indexer)
+		handler := func(items ...*base.IndexerData) (unhandled []*base.IndexerData) {
+			indexer := holder.Get().(base.Indexer)
 			if indexer == nil {
 				log.Warn("Issue indexer handler: indexer is not ready, retry later.")
 				return items
 			}
-			toIndex := make([]*IndexerData, 0, len(items))
+			toIndex := make([]*base.IndexerData, 0, len(items))
 			for _, indexerData := range items {
 				log.Trace("IndexerData Process: %d %v %t", indexerData.ID, indexerData.IDs, indexerData.IsDelete)
 				if indexerData.IsDelete {
@@ -106,7 +80,7 @@ func InitIssueIndexer(syncReindex bool) {
 			log.Fatal("Unable to create issue indexer queue")
 		}
 	default:
-		issueIndexerQueue = queue.CreateSimpleQueue[*IndexerData](ctx, "issue_indexer", nil)
+		issueIndexerQueue = queue.CreateSimpleQueue[*base.IndexerData](ctx, "issue_indexer", nil)
 	}
 
 	graceful.GetManager().RunAtTerminate(finished)
@@ -128,7 +102,7 @@ func InitIssueIndexer(syncReindex bool) {
 					log.Fatal("PID: %d Unable to initialize the Bleve Issue Indexer at path: %s Error: %v", os.Getpid(), setting.Indexer.IssuePath, err)
 				}
 			}()
-			issueIndexer := NewBleveIndexer(setting.Indexer.IssuePath)
+			issueIndexer := bleve.NewIndexer(setting.Indexer.IssuePath)
 			exist, err := issueIndexer.Init()
 			if err != nil {
 				holder.Set(nil)
@@ -146,7 +120,7 @@ func InitIssueIndexer(syncReindex bool) {
 			})
 			log.Debug("Created Bleve Indexer")
 		case "elasticsearch":
-			issueIndexer := NewElasticsearchIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueIndexerName)
+			issueIndexer := elasticsearch.NewIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueIndexerName)
 			exist, err := issueIndexer.Init()
 			if err != nil {
 				log.Fatal("Unable to issueIndexer.Init with connection %s Error: %v", setting.Indexer.IssueConnStr, err)
@@ -154,10 +128,10 @@ func InitIssueIndexer(syncReindex bool) {
 			populate = !exist
 			holder.Set(issueIndexer)
 		case "db":
-			issueIndexer := NewDBIndexer()
+			issueIndexer := db.NewIndexer()
 			holder.Set(issueIndexer)
 		case "meilisearch":
-			issueIndexer, err := NewMeilisearchIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueConnAuth, setting.Indexer.IssueIndexerName)
+			issueIndexer, err := meilisearch.NewMeilisearchIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueConnAuth, setting.Indexer.IssueIndexerName)
 			if err != nil {
 				log.Fatal("Unable to initialize Meilisearch Issue Indexer at connection: %s Error: %v", setting.Indexer.IssueConnStr, err)
 			}
@@ -225,8 +199,8 @@ func populateIssueIndexer(ctx context.Context) {
 		default:
 		}
 		repos, _, err := repo_model.SearchRepositoryByName(ctx, &repo_model.SearchRepoOptions{
-			ListOptions: db.ListOptions{Page: page, PageSize: repo_model.RepositoryListDefaultPageSize},
-			OrderBy:     db.SearchOrderByID,
+			ListOptions: db_model.ListOptions{Page: page, PageSize: repo_model.RepositoryListDefaultPageSize},
+			OrderBy:     db_model.SearchOrderByID,
 			Private:     true,
 			Collaborate: util.OptionalBoolFalse,
 		})
@@ -279,7 +253,7 @@ func UpdateIssueIndexer(issue *issues_model.Issue) {
 			comments = append(comments, comment.Content)
 		}
 	}
-	indexerData := &IndexerData{
+	indexerData := &base.IndexerData{
 		ID:       issue.ID,
 		RepoID:   issue.RepoID,
 		Title:    issue.Title,
@@ -304,7 +278,7 @@ func DeleteRepoIssueIndexer(ctx context.Context, repo *repo_model.Repository) {
 	if len(ids) == 0 {
 		return
 	}
-	indexerData := &IndexerData{
+	indexerData := &base.IndexerData{
 		IDs:      ids,
 		IsDelete: true,
 	}
@@ -317,7 +291,7 @@ func DeleteRepoIssueIndexer(ctx context.Context, repo *repo_model.Repository) {
 // WARNNING: You have to ensure user have permission to visit repoIDs' issues
 func SearchIssuesByKeyword(ctx context.Context, repoIDs []int64, keyword string) ([]int64, error) {
 	var issueIDs []int64
-	indexer := holder.Get().(Indexer)
+	indexer := holder.Get().(base.Indexer)
 
 	if indexer == nil {
 		log.Error("SearchIssuesByKeyword(): unable to get indexer!")

@@ -1,7 +1,7 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package issues
+package elasticsearch
 
 import (
 	"context"
@@ -11,22 +11,27 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/indexer/internal"
 	inner_elasticsearch "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
+	"code.gitea.io/gitea/modules/indexer/issues/base"
 
 	"github.com/olivere/elastic/v7"
 )
 
-var _ Indexer = &ElasticsearchIndexer{}
+const (
+	issueIndexerLatestVersion = 2
+)
 
-// ElasticsearchIndexer implements Indexer interface
-type ElasticsearchIndexer struct {
+var _ base.Indexer = &Indexer{}
+
+// Indexer implements Indexer interface
+type Indexer struct {
 	inner            *inner_elasticsearch.Indexer
 	internal.Indexer // do not composite inner_elasticsearch.Indexer directly to avoid exposing too much
 }
 
-// NewElasticsearchIndexer creates a new elasticsearch indexer
-func NewElasticsearchIndexer(url, indexerName string) *ElasticsearchIndexer {
+// NewIndexer creates a new elasticsearch indexer
+func NewIndexer(url, indexerName string) *Indexer {
 	in := inner_elasticsearch.NewIndexer(url, indexerName, issueIndexerLatestVersion, defaultMapping)
-	indexer := &ElasticsearchIndexer{
+	indexer := &Indexer{
 		inner:   in,
 		Indexer: in,
 	}
@@ -63,7 +68,7 @@ const (
 )
 
 // Index will save the index data
-func (b *ElasticsearchIndexer) Index(issues []*IndexerData) error {
+func (b *Indexer) Index(issues []*base.IndexerData) error {
 	if len(issues) == 0 {
 		return nil
 	} else if len(issues) == 1 {
@@ -106,7 +111,7 @@ func (b *ElasticsearchIndexer) Index(issues []*IndexerData) error {
 }
 
 // Delete deletes indexes by ids
-func (b *ElasticsearchIndexer) Delete(ids ...int64) error {
+func (b *Indexer) Delete(ids ...int64) error {
 	if len(ids) == 0 {
 		return nil
 	} else if len(ids) == 1 {
@@ -135,7 +140,7 @@ func (b *ElasticsearchIndexer) Delete(ids ...int64) error {
 
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
-func (b *ElasticsearchIndexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int) (*SearchResult, error) {
+func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int) (*base.SearchResult, error) {
 	kwQuery := elastic.NewMultiMatchQuery(keyword, "title", "content", "comments")
 	query := elastic.NewBoolQuery()
 	query = query.Must(kwQuery)
@@ -157,15 +162,15 @@ func (b *ElasticsearchIndexer) Search(ctx context.Context, keyword string, repoI
 		return nil, b.inner.CheckError(err)
 	}
 
-	hits := make([]Match, 0, limit)
+	hits := make([]base.Match, 0, limit)
 	for _, hit := range searchResult.Hits.Hits {
 		id, _ := strconv.ParseInt(hit.Id, 10, 64)
-		hits = append(hits, Match{
+		hits = append(hits, base.Match{
 			ID: id,
 		})
 	}
 
-	return &SearchResult{
+	return &base.SearchResult{
 		Total: searchResult.TotalHits(),
 		Hits:  hits,
 	}, nil

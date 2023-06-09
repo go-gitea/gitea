@@ -1,18 +1,20 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package issues
+package bleve
 
 import (
 	"context"
 	"testing"
+
+	"code.gitea.io/gitea/modules/indexer/issues/base"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestBleveIndexAndSearch(t *testing.T) {
 	dir := t.TempDir()
-	indexer := NewBleveIndexer(dir)
+	indexer := NewIndexer(dir)
 	defer indexer.Close()
 
 	if _, err := indexer.Init(); err != nil {
@@ -20,7 +22,7 @@ func TestBleveIndexAndSearch(t *testing.T) {
 		return
 	}
 
-	err := indexer.Index([]*IndexerData{
+	err := indexer.Index([]*base.IndexerData{
 		{
 			ID:      1,
 			RepoID:  2,
