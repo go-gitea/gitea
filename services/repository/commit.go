@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-type containedLinks struct { // TODO: better name?
+type ContainedLinks struct { // TODO: better name?
 	Branches                 []*namedLink `json:"branches"`
 	Tags                     []*namedLink `json:"tags"`
 	ContainedInDefaultBranch bool         `json:"contained_in_default_branch"`
@@ -24,7 +24,7 @@ type namedLink struct { // TODO: better name?
 }
 
 // CreateNewBranch creates a new repository branch
-func LoadBranchesAndTags(ctx context.Context, baseRepo *gitea_ctx.Repository, commitSHA string) (*containedLinks, error) {
+func LoadBranchesAndTags(ctx context.Context, baseRepo *gitea_ctx.Repository, commitSHA string) (*ContainedLinks, error) {
 	containedTags, err := baseRepo.GitRepo.ListOccurrences(ctx, "tag", commitSHA)
 	if err != nil {
 		return nil, fmt.Errorf("encountered a problem while querying %s: %w", "tags", err)
@@ -34,7 +34,7 @@ func LoadBranchesAndTags(ctx context.Context, baseRepo *gitea_ctx.Repository, co
 		return nil, fmt.Errorf("encountered a problem while querying %s: %w", "branches", err)
 	}
 
-	result := &containedLinks{
+	result := &ContainedLinks{
 		ContainedInDefaultBranch: util.SliceContains(containedBranches, baseRepo.Repository.DefaultBranch), DefaultBranch: baseRepo.Repository.DefaultBranch,
 		Branches: make([]*namedLink, 0, len(containedBranches)), Tags: make([]*namedLink, 0, len(containedTags)),
 	}
