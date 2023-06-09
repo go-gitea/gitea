@@ -7,17 +7,19 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/modules/util"
 	gitea_ctx "code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/util"
 )
 
 type containedLinks struct { // TODO: better name?
-	Branches []*namedLink `json:"branches"`
-	Tags []*namedLink `json:"tags"`
+	Branches                 []*namedLink `json:"branches"`
+	Tags                     []*namedLink `json:"tags"`
+	ContainedInDefaultBranch bool         `json:"contained_in_default_branch"`
+	DefaultBranch            string       `json:"default_branch"`
 }
 
 type namedLink struct { // TODO: better name?
-	Name string `json:"name"`
+	Name    string `json:"name"`
 	WebLink string `json:"web_url"`
 }
 
@@ -32,7 +34,10 @@ func LoadBranchesAndTags(ctx context.Context, baseRepo *gitea_ctx.Repository, co
 		return nil, fmt.Errorf("encountered a problem while querying %s: %w", "branches", err)
 	}
 
-	result := &containedLinks{Branches: make([]*namedLink, 0, len(containedBranches)), Tags: make([]*namedLink, 0, len(containedTags))}
+	result := &containedLinks{
+		ContainedInDefaultBranch: util.SliceContains(containedBranches, baseRepo.Repository.DefaultBranch), DefaultBranch: baseRepo.Repository.DefaultBranch,
+		Branches: make([]*namedLink, 0, len(containedBranches)), Tags: make([]*namedLink, 0, len(containedTags)),
+	}
 	for _, tag := range containedTags {
 		result.Tags = append(result.Tags, &namedLink{Name: tag, WebLink: fmt.Sprintf("%s/src/tag/%s", baseRepo.RepoLink, util.PathEscapeSegments(tag))}) // TODO: Use a common method to get the link to a branch/tag instead of hardcoding it here
 	}

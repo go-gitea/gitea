@@ -80,6 +80,7 @@ Gitea's private styles use `g-` prefix.
 .gt-overflow-x-auto { overflow-x: auto !important; }
 .gt-overflow-x-scroll { overflow-x: scroll !important; }
 .gt-overflow-y-hidden { overflow-y: hidden !important; }
+.gt-flex-wrap { flex-wrap: wrap !important; }
 
 .gt-w-screen { width: 100vw !important; }
 .gt-h-screen { height: 100vh !important; }

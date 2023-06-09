@@ -1,0 +1,9 @@
+<div class="branch-and-tag-area">
+	<button class="btn interact-bg gt-df gt-ac gt-mt-3 load-tags-and-branches" data-fetch-url="{{.RepoLink}}/commit/{{.CommitID}}/load-branches-and-tags" data-tooltip-content="{{.locale.Tr "repo.file.load_referencing_branches_and_tags"}}" data-contained-in-text="{{.locale.Tr "repo.commit.contained_in"}}">
+		{{svg "octicon-git-branch" 12}}{{svg "octicon-tag" 12}}{{svg "octicon-plus" 16}}
+	</button>
+	<div class="ui divider branch-tag-area-divider gt-hidden"></div>
+	<div class="branch-tag-area-text gt-df"></div>
+	<div class="branch-area gt-df gt-ac gt-flex-wrap gt-hidden" data-defaultbranch-tooltip="{{.locale.Tr "repo.commit.contained_in_default_branch"}}">{{svg "octicon-git-branch"}}</div>
+	<div class="tag-area gt-df gt-ac gt-flex-wrap gt-hidden">{{svg "octicon-tag"}}</div>
+</div>

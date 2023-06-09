@@ -258,7 +258,6 @@ func FileHistory(ctx *context.Context) {
 }
 
 func LoadBranchesAndTags(ctx *context.Context) {
-	fmt.Println("Hello from mfuntrion")
 	response, err := git_service.LoadBranchesAndTags(ctx, ctx.Repo, ctx.Params("sha"))
 	if err == nil {
 		ctx.JSON(http.StatusOK, response)
