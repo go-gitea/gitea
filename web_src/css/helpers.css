@@ -11,7 +11,6 @@ Gitea's private styles use `g-` prefix.
 .gt-ab { align-items: baseline !important; }
 .gt-tc { text-align: center !important; }
 .gt-tl { text-align: left !important; }
-.gt-tdn { text-decoration: none !important; }
 .gt-jc { justify-content: center !important; }
 .gt-js { justify-content: flex-start !important; }
 .gt-je { justify-content: flex-end !important; }
@@ -76,6 +75,7 @@ Gitea's private styles use `g-` prefix.
 .gt-self-center { align-self: center !important; }
 .gt-self-start { align-self: flex-start !important; }
 .gt-self-end { align-self: flex-end !important; }
+.gt-no-underline { text-decoration-line: none !important; }
 
 .gt-overflow-x-auto { overflow-x: auto !important; }
 .gt-overflow-x-scroll { overflow-x: scroll !important; }
@@ -123,6 +123,14 @@ Gitea's private styles use `g-` prefix.
 .gt-bg-transparent { background: transparent !important; }
 
 .gt-text-white { color: var(--color-white) !important; }
+
+.interact-fg { color: inherit !important; }
+.interact-fg:hover { color: var(--color-primary) !important; }
+.interact-fg:active { color: var(--color-primary-active) !important; }
+
+.interact-bg { background: transparent !important; }
+.interact-bg:hover { background: var(--color-hover) !important; }
+.interact-bg:active { background: var(--color-active) !important; }
 
 .gt-m-0 { margin: 0 !important; }
 .gt-m-1 { margin: .125rem !important; }
@@ -253,6 +261,7 @@ Gitea's private styles use `g-` prefix.
 
 .gt-shrink-0 { flex-shrink: 0 !important; }
 
+.gt-font-12 { font-size: 12px !important }
 .gt-font-13 { font-size: 13px !important }
 .gt-font-14 { font-size: 14px !important }
 .gt-font-15 { font-size: 15px !important }
