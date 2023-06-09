@@ -230,11 +230,12 @@ func (issues IssueList) loadMilestones(ctx context.Context) error {
 }
 
 func (issues IssueList) getProjectIDs() []int64 {
-	var ids []int64
+	ids := make(container.Set[int64])
 	for _, issue := range issues {
-		ids = append(ids, issue.ProjectIDs()...)
+		ids.AddMultiple(issue.ProjectIDs()...)
 	}
-	return ids
+
+	return ids.Values()
 }
 
 func (issues IssueList) loadProjects(ctx context.Context) error {
