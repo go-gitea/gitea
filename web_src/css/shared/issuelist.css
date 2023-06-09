@@ -24,10 +24,6 @@
   width: 80%;
 }
 
-.action-item-title {
-  color: var(--color-text);
-}
-
 .issue.list > .item .issue-item-right {
   width: 15%;
 }
