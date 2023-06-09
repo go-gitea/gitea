@@ -29,11 +29,11 @@ globals:
   __webpack_public_path__: true
 
 overrides:
-  - files: ["web_src/**/*.js", "docs/**/*.js"]
+  - files: ["web_src/**/*", "docs/**/*"]
     env:
       browser: true
       node: false
-  - files: ["web_src/**/*worker.js"]
+  - files: ["web_src/**/*worker.*"]
     env:
       worker: true
     rules:
@@ -42,7 +42,7 @@ overrides:
     rules:
       import/no-unresolved: [0]
       import/no-extraneous-dependencies: [0]
-  - files: ["*.config.js"]
+  - files: ["*.config.*"]
     rules:
       import/no-unused-modules: [0]
 
