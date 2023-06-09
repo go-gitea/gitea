@@ -43,11 +43,8 @@ type ActionRunner struct {
 	LastOnline timeutil.TimeStamp `xorm:"index"`
 	LastActive timeutil.TimeStamp `xorm:"index"`
 
-	// Deprecated: Store OS and Artch.
-	AgentLabels []string
-	// Deprecated: Store custom labels use defined.
-	CustomLabels []string
 	// Store labels defined in config file (yaml or state file) of `act_runner`
+	// Replace the previous AgentLabels and CustomLabels
 	Labels []string `xorm:"TEXT"`
 
 	Created timeutil.TimeStamp `xorm:"created"`
@@ -104,11 +101,6 @@ func (r *ActionRunner) IsOnline() bool {
 		return true
 	}
 	return false
-}
-
-// Deprecated: AllLabels returns agent and custom labels
-func (r *ActionRunner) AllLabels() []string {
-	return append(r.AgentLabels, r.CustomLabels...)
 }
 
 // Editable checks if the runner is editable by the user
