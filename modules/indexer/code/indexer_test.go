@@ -11,8 +11,8 @@ import (
 
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/indexer/code/base"
 	"code.gitea.io/gitea/modules/indexer/code/bleve"
+	"code.gitea.io/gitea/modules/indexer/code/internal"
 
 	_ "code.gitea.io/gitea/models"
 
@@ -25,7 +25,7 @@ func TestMain(m *testing.M) {
 	})
 }
 
-func testIndexer(name string, t *testing.T, indexer base.Indexer) {
+func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 	t.Run(name, func(t *testing.T) {
 		var repoID int64 = 1
 		err := index(git.DefaultContext, indexer, repoID)

@@ -12,10 +12,10 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/indexer/code/base"
 	"code.gitea.io/gitea/modules/indexer/code/bleve"
 	"code.gitea.io/gitea/modules/indexer/code/elasticsearch"
-	"code.gitea.io/gitea/modules/indexer/internal"
+	"code.gitea.io/gitea/modules/indexer/code/internal"
+	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
@@ -24,11 +24,11 @@ import (
 )
 
 var (
-	indexerQueue *queue.WorkerPoolQueue[*base.IndexerData]
-	holder       = internal.NewIndexerHolder()
+	indexerQueue *queue.WorkerPoolQueue[*internal.IndexerData]
+	holder       = indexer_internal.NewIndexerHolder()
 )
 
-func index(ctx context.Context, indexer base.Indexer, repoID int64) error {
+func index(ctx context.Context, indexer internal.Indexer, repoID int64) error {
 	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 	if repo_model.IsErrRepoNotExist(err) {
 		return indexer.Delete(repoID)
@@ -108,8 +108,8 @@ func Init() {
 	// Create the Queue
 	switch setting.Indexer.RepoType {
 	case "bleve", "elasticsearch":
-		handler := func(items ...*base.IndexerData) (unhandled []*base.IndexerData) {
-			indexer := holder.Get().(base.Indexer)
+		handler := func(items ...*internal.IndexerData) (unhandled []*internal.IndexerData) {
+			indexer := holder.Get().(internal.Indexer)
 			if indexer == nil {
 				log.Warn("Codes indexer handler: indexer is not ready, retry later.")
 				return items
@@ -158,7 +158,7 @@ func Init() {
 		pprof.SetGoroutineLabels(ctx)
 		start := time.Now()
 		var (
-			rIndexer base.Indexer
+			rIndexer internal.Indexer
 			existed  bool
 			err      error
 		)
@@ -257,7 +257,7 @@ func Init() {
 
 // UpdateRepoIndexer update a repository's entries in the indexer
 func UpdateRepoIndexer(repo *repo_model.Repository) {
-	indexData := &base.IndexerData{RepoID: repo.ID}
+	indexData := &internal.IndexerData{RepoID: repo.ID}
 	if err := indexerQueue.Push(indexData); err != nil {
 		log.Error("Update repo index data %v failed: %v", indexData, err)
 	}
@@ -265,7 +265,7 @@ func UpdateRepoIndexer(repo *repo_model.Repository) {
 
 // IsAvailable checks if issue indexer is available
 func IsAvailable() bool {
-	idx := holder.Get().(base.Indexer)
+	idx := holder.Get().(internal.Indexer)
 	if idx == nil {
 		log.Error("IsAvailable(): unable to get indexer")
 		return false
@@ -322,7 +322,7 @@ func populateRepoIndexer(ctx context.Context) {
 				return
 			default:
 			}
-			if err := indexerQueue.Push(&base.IndexerData{RepoID: id}); err != nil {
+			if err := indexerQueue.Push(&internal.IndexerData{RepoID: id}); err != nil {
 				log.Error("indexerQueue.Push: %v", err)
 				return
 			}
