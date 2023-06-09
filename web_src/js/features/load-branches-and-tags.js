@@ -50,5 +50,5 @@ function addLink(href, text, addHere, tooltip) {
 }
 
 export function initLoadBranchesAndTagsButton() {
-  for (const loadButton of document.querySelectorAll('.load-tags-and-branches')) loadButton.addEventListener('click', async (e) => loadBranchesAndTags(loadButton, document.querySelector('.branch-and-tag-area')));
+  for (const loadButton of document.querySelectorAll('.load-tags-and-branches')) loadButton.addEventListener('click', async () => loadBranchesAndTags(loadButton, document.querySelector('.branch-and-tag-area')));
 }
