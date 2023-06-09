@@ -1823,14 +1823,10 @@
   clear: right;
 }
 
-.repository .diff-file-box.file-content img {
+.repository .diff-file-box.file-content .image-diff img {
   max-width: 100%;
   padding: 0;
   border-radius: 0;
-}
-
-.repository .diff-file-box.file-content img.emoji {
-  padding: 0;
 }
 
 .repository .diff-file-box .ui.bottom.attached.table.segment {
@@ -3085,8 +3081,7 @@ tbody.commit-list {
 }
 
 .diff-file-header {
-  padding-top: 5px !important;
-  padding-bottom: 5px !important;
+  padding: 5px 8px !important;
 }
 
 .diff-file-box[data-folded="true"] .diff-file-body {
