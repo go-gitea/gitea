@@ -59,8 +59,10 @@ type StatusInfo struct {
 
 // getStatusInfos returns a slice of StatusInfo
 func getStatusInfos(ctx *context.Context) []StatusInfo {
-	statusInfos := make([]StatusInfo, 0, 7)
-	for s := actions_model.StatusSuccess; s <= actions_model.StatusBlocked; s++ {
+	// same as those in aggregateJobStatus
+	allStatus := []actions_model.Status{actions_model.StatusSuccess, actions_model.StatusFailure, actions_model.StatusWaiting, actions_model.StatusRunning}
+	statusInfos := make([]StatusInfo, 0, 4)
+	for _, s := range allStatus {
 		statusInfos = append(statusInfos, StatusInfo{
 			Status:          int(s),
 			DisplayedStatus: s.String(),
