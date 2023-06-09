@@ -43,7 +43,7 @@ type ActionRunner struct {
 	LastOnline timeutil.TimeStamp `xorm:"index"`
 	LastActive timeutil.TimeStamp `xorm:"index"`
 
-	// Store labels defined in config file (yaml or state file) of `act_runner`
+	// Store labels defined in state file (default: .runner file) of `act_runner`
 	// Replace the previous AgentLabels and CustomLabels
 	Labels []string `xorm:"TEXT"`
 
