@@ -17,7 +17,7 @@ func (issue *Issue) LoadProject(ctx context.Context) (err error) {
 	if issue.Projects == nil {
 		err = db.GetEngine(ctx).Table("project").
 			Join("INNER", "project_issue", "project.id=project_issue.project_id").
-			Where("project_issue.issue_id = ?", issue.ID).
+			Where("project_issue.issue_id = ?", issue.ID).OrderBy("title").
 			Find(&issue.Projects)
 	}
 	return err
