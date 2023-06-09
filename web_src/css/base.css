@@ -73,8 +73,9 @@
   --color-secondary-alpha-70: #dededeb3;
   --color-secondary-alpha-80: #dededecc;
   --color-secondary-alpha-90: #dededee1;
-  --color-secondary-hover: var(--color-secondary-dark-1);
-  --color-secondary-active: var(--color-secondary-dark-2);
+  --color-secondary-button: var(--color-secondary-dark-4);
+  --color-secondary-hover: var(--color-secondary-dark-5);
+  --color-secondary-active: var(--color-secondary-dark-6);
   /* console colors - used for actions console and console files */
   --color-console-fg: #eeeff2;
   --color-console-fg-subtle: #959cab;
@@ -191,22 +192,20 @@
   --color-footer: #ffffff;
   --color-timeline: #ececec;
   --color-input-text: #212121;
-  --color-input-background: #ffffff;
+  --color-input-background: #fafafa;
   --color-input-toggle-background: #dedede;
-  --color-input-border: #dedede;
-  --color-input-border-hover: #cecece;
-  --color-header-wrapper: #f8f8f8;
-  --color-header-wrapper-transparent: #f8f8f800;
+  --color-input-border: var(--color-secondary);
+  --color-input-border-hover: var(--color-secondary-dark-1);
   --color-light: #00000006;
   --color-light-mimic-enabled: rgba(0, 0, 0, calc(6 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #0000001d;
   --color-hover: #00000014;
-  --color-active: #0000001e;
-  --color-menu: #ffffff;
-  --color-card: #ffffff;
+  --color-active: #0000001b;
+  --color-menu: #fafafa;
+  --color-card: #fafafa;
   --color-markup-table-row: #00000008;
   --color-markup-code-block: #00000010;
-  --color-button: #ffffff;
+  --color-button: #fafafa;
   --color-code-bg: #ffffff;
   --color-code-sidebar-bg: #f5f5f5;
   --color-shadow: #00000030;
@@ -415,11 +414,6 @@ a.silenced:hover {
   text-decoration: none;
 }
 
-.delete-button,
-.delete-button:hover {
-  color: var(--color-red);
-}
-
 a.label,
 .repository-menu a,
 .ui.search .results a,
@@ -460,12 +454,6 @@ a.label,
   padding: 2px 4px;
   border-radius: 6px;
   background-color: var(--color-markup-code-block);
-}
-
-/* try to match button with no icons in height */
-.icon-button {
-  padding-top: 7.42px !important;
-  padding-bottom: 7.42px !important;
 }
 
 .ui.divider {
@@ -509,8 +497,9 @@ a.label,
   border-right-color: transparent;
 }
 
+.ui.action.input:not([class*="left action"]) > input,
 .ui.action.input:not([class*="left action"]) > input:hover {
-  border-right-color: transparent;
+  border-right: 1px solid transparent;
 }
 
 .ui.action.input:not([class*="left action"]) > input:focus {
@@ -682,7 +671,7 @@ a.label,
 }
 
 .ui.menu .dropdown.item .menu {
-  background: var(--color-menu);
+  background: var(--color-body);
 }
 
 .ui.menu .ui.dropdown .menu > .item {
@@ -1733,6 +1722,10 @@ i.icon.centerlock {
   color: var(--color-label-text);
 }
 
+.ui.label > a {
+  opacity: .75; /* increase contrast over default fomantic .5 */
+}
+
 .ui.active.label {
   background: var(--color-label-active-bg);
   border-color: var(--color-label-active-bg);
@@ -2037,7 +2030,7 @@ a.ui.ui.ui.basic.primary.label:hover {
 
 .ui.basic.labels .label,
 .ui.basic.label {
-  background: var(--color-light);
+  background: var(--color-button);
   border-color: var(--color-light-border);
   color: var(--color-text-light);
 }
