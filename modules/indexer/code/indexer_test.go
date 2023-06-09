@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/indexer/code/bleve"
+	"code.gitea.io/gitea/modules/indexer/code/elasticsearch"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
 
 	_ "code.gitea.io/gitea/models"
@@ -116,7 +117,7 @@ func TestESIndexAndSearch(t *testing.T) {
 		return
 	}
 
-	indexer := NewElasticsearchIndexer(u, "gitea_codes")
+	indexer := elasticsearch.NewIndexer(u, "gitea_codes")
 	if _, err := indexer.Init(); err != nil {
 		assert.Fail(t, "Unable to init ES indexer Error: %v", err)
 		if indexer != nil {
