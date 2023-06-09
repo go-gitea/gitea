@@ -180,7 +180,7 @@
 								{{$checked = true}}
 							{{end}}
 						{{end}}
-					<a class="item muted sidebar-item-link{{if $checked}} checked{{end}}" href="#" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">
+					<a class="item muted sidebar-item-link{{if $checked}} checked{{end}}" href="#" data-id="{{.ID}}" data-href="{{.Link}}">
 						<span class="octicon-check {{if not $checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
 						<span class="text">
 							{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
@@ -201,7 +201,7 @@
 								{{$checked = true}}
 							{{end}}
 						{{end}}
-						<a class="item muted sidebar-item-link{{if $checked}} checked{{end}}" href="#" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">
+						<a class="item muted sidebar-item-link{{if $checked}} checked{{end}}" href="#" data-id="{{.ID}}" data-href="{{.Link}}">
 							<span class="octicon-check {{if not $checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
 							<span class="text">
 							{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
