@@ -14,11 +14,11 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/indexer/internal"
-	"code.gitea.io/gitea/modules/indexer/issues/base"
+	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	"code.gitea.io/gitea/modules/indexer/issues/bleve"
 	"code.gitea.io/gitea/modules/indexer/issues/db"
 	"code.gitea.io/gitea/modules/indexer/issues/elasticsearch"
+	"code.gitea.io/gitea/modules/indexer/issues/internal"
 	"code.gitea.io/gitea/modules/indexer/issues/meilisearch"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -29,8 +29,8 @@ import (
 
 var (
 	// issueIndexerQueue queue of issue ids to be updated
-	issueIndexerQueue *queue.WorkerPoolQueue[*base.IndexerData]
-	holder            = internal.NewIndexerHolder()
+	issueIndexerQueue *queue.WorkerPoolQueue[*internal.IndexerData]
+	holder            = indexer_internal.NewIndexerHolder()
 )
 
 // InitIssueIndexer initialize issue indexer, syncReindex is true then reindex until
@@ -43,13 +43,13 @@ func InitIssueIndexer(syncReindex bool) {
 	// Create the Queue
 	switch setting.Indexer.IssueType {
 	case "bleve", "elasticsearch", "meilisearch":
-		handler := func(items ...*base.IndexerData) (unhandled []*base.IndexerData) {
-			indexer := holder.Get().(base.Indexer)
+		handler := func(items ...*internal.IndexerData) (unhandled []*internal.IndexerData) {
+			indexer := holder.Get().(internal.Indexer)
 			if indexer == nil {
 				log.Warn("Issue indexer handler: indexer is not ready, retry later.")
 				return items
 			}
-			toIndex := make([]*base.IndexerData, 0, len(items))
+			toIndex := make([]*internal.IndexerData, 0, len(items))
 			for _, indexerData := range items {
 				log.Trace("IndexerData Process: %d %v %t", indexerData.ID, indexerData.IDs, indexerData.IsDelete)
 				if indexerData.IsDelete {
@@ -80,7 +80,7 @@ func InitIssueIndexer(syncReindex bool) {
 			log.Fatal("Unable to create issue indexer queue")
 		}
 	default:
-		issueIndexerQueue = queue.CreateSimpleQueue[*base.IndexerData](ctx, "issue_indexer", nil)
+		issueIndexerQueue = queue.CreateSimpleQueue[*internal.IndexerData](ctx, "issue_indexer", nil)
 	}
 
 	graceful.GetManager().RunAtTerminate(finished)
@@ -253,7 +253,7 @@ func UpdateIssueIndexer(issue *issues_model.Issue) {
 			comments = append(comments, comment.Content)
 		}
 	}
-	indexerData := &base.IndexerData{
+	indexerData := &internal.IndexerData{
 		ID:       issue.ID,
 		RepoID:   issue.RepoID,
 		Title:    issue.Title,
@@ -278,7 +278,7 @@ func DeleteRepoIssueIndexer(ctx context.Context, repo *repo_model.Repository) {
 	if len(ids) == 0 {
 		return
 	}
-	indexerData := &base.IndexerData{
+	indexerData := &internal.IndexerData{
 		IDs:      ids,
 		IsDelete: true,
 	}
@@ -291,7 +291,7 @@ func DeleteRepoIssueIndexer(ctx context.Context, repo *repo_model.Repository) {
 // WARNNING: You have to ensure user have permission to visit repoIDs' issues
 func SearchIssuesByKeyword(ctx context.Context, repoIDs []int64, keyword string) ([]int64, error) {
 	var issueIDs []int64
-	indexer := holder.Get().(base.Indexer)
+	indexer := holder.Get().(internal.Indexer)
 
 	if indexer == nil {
 		log.Error("SearchIssuesByKeyword(): unable to get indexer!")

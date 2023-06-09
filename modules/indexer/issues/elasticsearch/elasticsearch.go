@@ -9,9 +9,9 @@ import (
 	"strconv"
 
 	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/indexer/internal"
+	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_elasticsearch "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
-	"code.gitea.io/gitea/modules/indexer/issues/base"
+	"code.gitea.io/gitea/modules/indexer/issues/internal"
 
 	"github.com/olivere/elastic/v7"
 )
@@ -20,12 +20,12 @@ const (
 	issueIndexerLatestVersion = 2
 )
 
-var _ base.Indexer = &Indexer{}
+var _ internal.Indexer = &Indexer{}
 
 // Indexer implements Indexer interface
 type Indexer struct {
-	inner            *inner_elasticsearch.Indexer
-	internal.Indexer // do not composite inner_elasticsearch.Indexer directly to avoid exposing too much
+	inner                    *inner_elasticsearch.Indexer
+	indexer_internal.Indexer // do not composite inner_elasticsearch.Indexer directly to avoid exposing too much
 }
 
 // NewIndexer creates a new elasticsearch indexer
@@ -68,7 +68,7 @@ const (
 )
 
 // Index will save the index data
-func (b *Indexer) Index(issues []*base.IndexerData) error {
+func (b *Indexer) Index(issues []*internal.IndexerData) error {
 	if len(issues) == 0 {
 		return nil
 	} else if len(issues) == 1 {
@@ -140,7 +140,7 @@ func (b *Indexer) Delete(ids ...int64) error {
 
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
-func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int) (*base.SearchResult, error) {
+func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int) (*internal.SearchResult, error) {
 	kwQuery := elastic.NewMultiMatchQuery(keyword, "title", "content", "comments")
 	query := elastic.NewBoolQuery()
 	query = query.Must(kwQuery)
@@ -162,15 +162,15 @@ func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, l
 		return nil, b.inner.CheckError(err)
 	}
 
-	hits := make([]base.Match, 0, limit)
+	hits := make([]internal.Match, 0, limit)
 	for _, hit := range searchResult.Hits.Hits {
 		id, _ := strconv.ParseInt(hit.Id, 10, 64)
-		hits = append(hits, base.Match{
+		hits = append(hits, internal.Match{
 			ID: id,
 		})
 	}
 
-	return &base.SearchResult{
+	return &internal.SearchResult{
 		Total: searchResult.TotalHits(),
 		Hits:  hits,
 	}, nil

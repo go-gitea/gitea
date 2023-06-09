@@ -10,12 +10,12 @@ import (
 	"sync"
 	"time"
 
-	"code.gitea.io/gitea/modules/indexer/issues/base"
+	"code.gitea.io/gitea/modules/indexer/issues/internal"
 
 	"github.com/meilisearch/meilisearch-go"
 )
 
-var _ base.Indexer = &Indexer{}
+var _ internal.Indexer = &Indexer{}
 
 // Indexer implements Indexer interface
 type Indexer struct {
@@ -82,7 +82,7 @@ func (b *Indexer) Ping() bool {
 }
 
 // Index will save the index data
-func (b *Indexer) Index(issues []*base.IndexerData) error {
+func (b *Indexer) Index(issues []*internal.IndexerData) error {
 	if len(issues) == 0 {
 		return nil
 	}
@@ -114,7 +114,7 @@ func (b *Indexer) Delete(ids ...int64) error {
 
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
-func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int) (*base.SearchResult, error) {
+func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int) (*internal.SearchResult, error) {
 	repoFilters := make([]string, 0, len(repoIDs))
 	for _, repoID := range repoIDs {
 		repoFilters = append(repoFilters, "repo_id = "+strconv.FormatInt(repoID, 10))
@@ -129,13 +129,13 @@ func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, l
 		return nil, b.checkError(err)
 	}
 
-	hits := make([]base.Match, 0, len(searchRes.Hits))
+	hits := make([]internal.Match, 0, len(searchRes.Hits))
 	for _, hit := range searchRes.Hits {
-		hits = append(hits, base.Match{
+		hits = append(hits, internal.Match{
 			ID: int64(hit.(map[string]interface{})["id"].(float64)),
 		})
 	}
-	return &base.SearchResult{
+	return &internal.SearchResult{
 		Total: searchRes.TotalHits,
 		Hits:  hits,
 	}, nil

@@ -7,7 +7,7 @@ import (
 	"context"
 	"testing"
 
-	"code.gitea.io/gitea/modules/indexer/issues/base"
+	"code.gitea.io/gitea/modules/indexer/issues/internal"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -22,7 +22,7 @@ func TestBleveIndexAndSearch(t *testing.T) {
 		return
 	}
 
-	err := indexer.Index([]*base.IndexerData{
+	err := indexer.Index([]*internal.IndexerData{
 		{
 			ID:      1,
 			RepoID:  2,

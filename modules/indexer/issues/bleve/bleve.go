@@ -6,9 +6,9 @@ package bleve
 import (
 	"context"
 
-	"code.gitea.io/gitea/modules/indexer/internal"
+	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_bleve "code.gitea.io/gitea/modules/indexer/internal/bleve"
-	"code.gitea.io/gitea/modules/indexer/issues/base"
+	"code.gitea.io/gitea/modules/indexer/issues/internal"
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/analysis/analyzer/custom"
@@ -54,7 +54,7 @@ func addUnicodeNormalizeTokenFilter(m *mapping.IndexMappingImpl) error {
 const maxBatchSize = 16
 
 // IndexerData an update to the issue indexer
-type IndexerData base.IndexerData
+type IndexerData internal.IndexerData
 
 // Type returns the document type, for bleve's mapping.Classifier interface.
 func (i *IndexerData) Type() string {
@@ -95,12 +95,12 @@ func generateIssueIndexMapping() (mapping.IndexMapping, error) {
 	return mapping, nil
 }
 
-var _ base.Indexer = &Indexer{}
+var _ internal.Indexer = &Indexer{}
 
 // Indexer implements Indexer interface
 type Indexer struct {
-	inner            *inner_bleve.Indexer
-	internal.Indexer // do not composite inner_bleve.Indexer directly to avoid exposing too much
+	inner                    *inner_bleve.Indexer
+	indexer_internal.Indexer // do not composite inner_bleve.Indexer directly to avoid exposing too much
 }
 
 // NewIndexer creates a new bleve local indexer
@@ -113,10 +113,10 @@ func NewIndexer(indexDir string) *Indexer {
 }
 
 // Index will save the index data
-func (b *Indexer) Index(issues []*base.IndexerData) error {
+func (b *Indexer) Index(issues []*internal.IndexerData) error {
 	batch := inner_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	for _, issue := range issues {
-		if err := batch.Index(internal.Base36(issue.ID), struct {
+		if err := batch.Index(indexer_internal.Base36(issue.ID), struct {
 			RepoID   int64
 			Title    string
 			Content  string
@@ -137,7 +137,7 @@ func (b *Indexer) Index(issues []*base.IndexerData) error {
 func (b *Indexer) Delete(ids ...int64) error {
 	batch := inner_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	for _, id := range ids {
-		if err := batch.Delete(internal.Base36(id)); err != nil {
+		if err := batch.Delete(indexer_internal.Base36(id)); err != nil {
 			return err
 		}
 	}
@@ -146,7 +146,7 @@ func (b *Indexer) Delete(ids ...int64) error {
 
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
-func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int) (*base.SearchResult, error) {
+func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int) (*internal.SearchResult, error) {
 	var repoQueriesP []*query.NumericRangeQuery
 	for _, repoID := range repoIDs {
 		repoQueriesP = append(repoQueriesP, numericEqualityQuery(repoID, "RepoID"))
@@ -171,15 +171,15 @@ func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, l
 		return nil, err
 	}
 
-	ret := base.SearchResult{
-		Hits: make([]base.Match, 0, len(result.Hits)),
+	ret := internal.SearchResult{
+		Hits: make([]internal.Match, 0, len(result.Hits)),
 	}
 	for _, hit := range result.Hits {
-		id, err := internal.ParseBase36(hit.ID)
+		id, err := indexer_internal.ParseBase36(hit.ID)
 		if err != nil {
 			return nil, err
 		}
-		ret.Hits = append(ret.Hits, base.Match{
+		ret.Hits = append(ret.Hits, internal.Match{
 			ID: id,
 		})
 	}

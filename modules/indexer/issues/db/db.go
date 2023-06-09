@@ -7,16 +7,16 @@ import (
 	"context"
 
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/indexer/internal"
+	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_db "code.gitea.io/gitea/modules/indexer/internal/db"
-	"code.gitea.io/gitea/modules/indexer/issues/base"
+	"code.gitea.io/gitea/modules/indexer/issues/internal"
 )
 
-var _ base.Indexer = &Indexer{}
+var _ internal.Indexer = &Indexer{}
 
 // Indexer implements Indexer interface to use database's like search
 type Indexer struct {
-	internal.Indexer
+	indexer_internal.Indexer
 }
 
 func NewIndexer() *Indexer {
@@ -26,7 +26,7 @@ func NewIndexer() *Indexer {
 }
 
 // Index dummy function
-func (i *Indexer) Index(issue []*base.IndexerData) error {
+func (i *Indexer) Index(issue []*internal.IndexerData) error {
 	return nil
 }
 
@@ -36,17 +36,17 @@ func (i *Indexer) Delete(ids ...int64) error {
 }
 
 // Search searches for issues
-func (i *Indexer) Search(ctx context.Context, kw string, repoIDs []int64, limit, start int) (*base.SearchResult, error) {
+func (i *Indexer) Search(ctx context.Context, kw string, repoIDs []int64, limit, start int) (*internal.SearchResult, error) {
 	total, ids, err := issues_model.SearchIssueIDsByKeyword(ctx, kw, repoIDs, limit, start)
 	if err != nil {
 		return nil, err
 	}
-	result := base.SearchResult{
+	result := internal.SearchResult{
 		Total: total,
-		Hits:  make([]base.Match, 0, limit),
+		Hits:  make([]internal.Match, 0, limit),
 	}
 	for _, id := range ids {
-		result.Hits = append(result.Hits, base.Match{
+		result.Hits = append(result.Hits, internal.Match{
 			ID: id,
 		})
 	}
