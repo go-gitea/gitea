@@ -48,13 +48,13 @@
   height: auto;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .user.profile .ui.card #profile-avatar img {
     width: 30vw;
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .user.profile .ui.card {
     width: 100%;
   }
