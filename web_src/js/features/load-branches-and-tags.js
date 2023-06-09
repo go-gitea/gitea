@@ -37,9 +37,9 @@ function addLink(href, text, addHere, tooltip) {
   const link = document.createElement('a');
   link.classList.add('muted');
   link.classList.add('gt-px-3');
+  link.classList.add('gt-rounded');
   if(tooltip) {
     link.classList.add('gt-border-secondary');
-    link.classList.add('gt-rounded');
     link.setAttribute('data-tooltip-content', tooltip);
   }
   link.href=href;
