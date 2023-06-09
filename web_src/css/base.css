@@ -460,10 +460,6 @@ a.label,
   color: var(--color-text);
 }
 
-.ui.divider {
-  color: var(--color-text);
-}
-
 .ui.divider:not(.vertical,.horizontal) {
   border-top-color: var(--color-secondary) !important;
   border-bottom: none !important;
