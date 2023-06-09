@@ -22,8 +22,8 @@ func MakeDevAssetsHandler(destUrl, path string) http.Handler {
 				req.URL.Path = url.Path + strings.TrimPrefix(req.URL.Path, path)
 			},
 			Transport: &http.Transport{
-				MaxIdleConns:        100,
-				IdleConnTimeout:     5 * time.Second,
+				MaxIdleConns:    100,
+				IdleConnTimeout: 5 * time.Second,
 			},
 			ErrorHandler: func(rw http.ResponseWriter, r *http.Request, err error) {
 				rw.Header().Set("Content-Type", "text/html")
