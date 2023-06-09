@@ -7,6 +7,11 @@ async function loadBranchesAndTags(loadingButton, addHere) {
     headers: {'X-Csrf-Token': csrfToken},
   }).finally(() => loadingButton.removeAttribute('disabled'));
 
+  if(!response.ok) {
+    console.log('Could not retrieve branches and tags for ' + response);
+    return;
+  }
+
   const data  = await response.json();
   showAreas('.branch-tag-area-divider');
   loadingButton.classList.add('gt-hidden');
