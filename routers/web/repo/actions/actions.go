@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/services/convert"
 
 	"github.com/nektos/act/pkg/model"
@@ -168,7 +169,7 @@ func List(ctx *context.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
-	ctx.Data["Actors"] = actors
+	ctx.Data["Actors"] = repo.MakeSelfOnTop(ctx, actors)
 
 	ctx.Data["StatusInfos"] = actions_model.GetStatusInfos(ctx)
 
