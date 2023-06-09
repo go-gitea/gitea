@@ -21,7 +21,6 @@
 }
 
 .issue.list > .item .action-item-main {
-  width: 80%;
   padding-left: 24px;
 }
 
@@ -32,10 +31,6 @@
   position: absolute;
   left: 0;
   margin-top: 2px;
-}
-
-.action-item-top-row {
-  margin-bottom: 4px;
 }
 
 .action-item-title {
