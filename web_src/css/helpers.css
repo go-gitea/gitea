@@ -9,7 +9,6 @@ Gitea's private styles use `g-` prefix.
 .gt-dib { display: inline-block !important; }
 .gt-ac { align-items: center !important; }
 .gt-ab { align-items: baseline !important; }
-.gt-afs { align-items: flex-start !important; }
 .gt-tc { text-align: center !important; }
 .gt-tl { text-align: left !important; }
 .gt-jc { justify-content: center !important; }
