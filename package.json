@@ -78,7 +78,8 @@
     "stylelint-declaration-strict-value": "1.9.2",
     "svgo": "3.0.2",
     "updates": "14.1.1",
-    "vitest": "0.32.0"
+    "vitest": "0.32.0",
+    "webpack-dev-server": "4.15.1"
   },
   "browserslist": [
     "defaults",

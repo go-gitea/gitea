@@ -424,7 +424,7 @@ watch:
 .PHONY: watch-frontend
 watch-frontend: node-check node_modules
 	@rm -rf $(WEBPACK_DEST_ENTRIES)
-	NODE_ENV=development npx webpack --watch --progress
+	NODE_ENV=development npx webpack serve --progress
 
 .PHONY: watch-backend
 watch-backend: go-check

@@ -108,7 +108,15 @@ func Routes(ctx gocontext.Context) *web.Route {
 	routes := web.NewRoute()
 
 	routes.Head("/", misc.DummyOK) // for health check - doesn't need to be passed through gzip handler
-	routes.RouteMethods("/assets/*", "GET, HEAD", CorsHandler(), public.AssetsHandlerFunc("/assets/"))
+
+	if setting.IsProd {
+		routes.RouteMethods("/assets/*", "GET, HEAD", CorsHandler(), public.AssetsHandlerFunc("/assets/"))
+	} else {
+		routes.RouteMethods("/assets/*", "GET, HEAD", CorsHandler(),
+			public.MakeDevAssetsHandler("http://localhost:3874", "/assets"),
+		)
+	}
+
 	routes.RouteMethods("/avatars/*", "GET, HEAD", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
 	routes.RouteMethods("/repo-avatars/*", "GET, HEAD", storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 	routes.RouteMethods("/apple-touch-icon.png", "GET, HEAD", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
