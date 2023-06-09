@@ -4,7 +4,7 @@
 			<div class="issue-item-left action-item-icon gt-df gt-afs gt-mr-2">
 				{{template "repo/actions/status" (dict "status" .Status.String "locale" $.locale)}}
 			</div>
-			<div class="issue-ite./g	m-main action-item-main gt-f1 gt-fc gt-df gt-mr-3">
+			<div class="issue-item-main action-item-main gt-f1 gt-fc gt-df gt-mr-3">
 				<div class="issue-item-top-row gt-mb-2">
 					<a class="index gt-tdn action-item-title" title="{{.Title}}" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
 						{{- .Title -}}
