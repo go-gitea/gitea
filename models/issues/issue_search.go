@@ -223,6 +223,8 @@ func applyConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
 	if opts.ProjectBoardID != 0 {
 		if opts.ProjectBoardID > 0 {
 			sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": opts.ProjectBoardID}))
+		} else if opts.ProjectID > 0 {
+			sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": 0, "project_id": opts.ProjectID}))
 		} else {
 			sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": 0}))
 		}

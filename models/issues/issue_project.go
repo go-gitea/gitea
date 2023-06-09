@@ -14,31 +14,33 @@ import (
 
 // LoadProject load the project the issue was assigned to
 func (issue *Issue) LoadProject(ctx context.Context) (err error) {
-	if issue.Project == nil {
-		var p project_model.Project
-		if _, err = db.GetEngine(ctx).Table("project").
+	if issue.Projects == nil {
+		err = db.GetEngine(ctx).Table("project").
 			Join("INNER", "project_issue", "project.id=project_issue.project_id").
 			Where("project_issue.issue_id = ?", issue.ID).
-			Get(&p); err != nil {
-			return err
-		}
-		issue.Project = &p
+			Find(&issue.Projects)
 	}
 	return err
 }
 
 // ProjectID return project id if issue was assigned to one
-func (issue *Issue) ProjectID() int64 {
-	return issue.projectID(db.DefaultContext)
+func (issue *Issue) ProjectIDs() []int64 {
+	return issue.projectIDs(db.DefaultContext)
 }
 
-func (issue *Issue) projectID(ctx context.Context) int64 {
-	var ip project_model.ProjectIssue
-	has, err := db.GetEngine(ctx).Where("issue_id=?", issue.ID).Get(&ip)
-	if err != nil || !has {
-		return 0
+func (issue *Issue) projectIDs(ctx context.Context) []int64 {
+	var ip []project_model.ProjectIssue
+	var ips []int64
+	err := db.GetEngine(ctx).Select("project_id").Where("issue_id=?", issue.ID).Find(&ip)
+	if err != nil {
+		return nil
 	}
-	return ip.ProjectID
+
+	for _, i := range ip {
+		ips = append(ips, i.ProjectID)
+	}
+
+	return ips
 }
 
 // ProjectBoardID return project board id if issue was assigned to one
@@ -104,59 +106,104 @@ func LoadIssuesFromBoardList(ctx context.Context, bs project_model.BoardList) (m
 }
 
 // ChangeProjectAssign changes the project associated with an issue
-func ChangeProjectAssign(issue *Issue, doer *user_model.User, newProjectID int64) error {
+func ChangeProjectAssign(issue *Issue, doer *user_model.User, newProjectID int64, action string) error {
 	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	if err := addUpdateIssueProject(ctx, issue, doer, newProjectID); err != nil {
+	if err := addUpdateIssueProject(ctx, issue, doer, newProjectID, action); err != nil {
 		return err
 	}
 
 	return committer.Commit()
 }
 
-func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectID int64) error {
-	oldProjectID := issue.projectID(ctx)
+func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectID int64, action string) error {
 
 	if err := issue.LoadRepo(ctx); err != nil {
 		return err
 	}
 
-	// Only check if we add a new project and not remove it.
-	if newProjectID > 0 {
-		newProject, err := project_model.GetProjectByID(ctx, newProjectID)
-		if err != nil {
-			return err
+	oldProjectIDs := issue.projectIDs(ctx)
+
+	if len(oldProjectIDs) > 0 {
+		for _, i := range oldProjectIDs {
+			// Only check if we add a new project and not remove it.
+			if newProjectID > 0 {
+				newProject, err := project_model.GetProjectByID(ctx, newProjectID)
+				if err != nil {
+					return err
+				}
+				if newProject.RepoID != issue.RepoID && newProject.OwnerID != issue.Repo.OwnerID {
+					return fmt.Errorf("issue's repository is not the same as project's repository")
+				}
+			}
+
+			if action == "attach" || (action == "" && i != newProjectID) {
+				if err := db.Insert(ctx, &project_model.ProjectIssue{
+					IssueID:   issue.ID,
+					ProjectID: newProjectID,
+				}); err != nil {
+					return err
+				}
+				i = 0
+			} else {
+				if action == "clear" {
+					if _, err := db.GetEngine(ctx).Where("project_issue.issue_id=?", issue.ID).Delete(&project_model.ProjectIssue{}); err != nil {
+						return err
+					}
+				} else if i > 0 && i == newProjectID {
+					if _, err := db.GetEngine(ctx).Where("project_issue.issue_id=? AND project_issue.project_id=?", issue.ID, i).Delete(&project_model.ProjectIssue{}); err != nil {
+						return err
+					}
+					newProjectID = 0
+				}
+			}
+
+			if i > 0 || newProjectID > 0 {
+				if _, err := CreateComment(ctx, &CreateCommentOptions{
+					Type:         CommentTypeProject,
+					Doer:         doer,
+					Repo:         issue.Repo,
+					Issue:        issue,
+					OldProjectID: i,
+					ProjectID:    newProjectID,
+				}); err != nil {
+					return err
+				}
+			}
+
+			if action != "clear" && newProjectID == 0 {
+				break
+			}
 		}
-		if newProject.RepoID != issue.RepoID && newProject.OwnerID != issue.Repo.OwnerID {
-			return fmt.Errorf("issue's repository is not the same as project's repository")
+	} else {
+		if action == "attach" || action == "" {
+			if err := db.Insert(ctx, &project_model.ProjectIssue{
+				IssueID:   issue.ID,
+				ProjectID: newProjectID,
+			}); err != nil {
+				return err
+			}
+		}
+
+		if newProjectID > 0 {
+			if _, err := CreateComment(ctx, &CreateCommentOptions{
+				Type:         CommentTypeProject,
+				Doer:         doer,
+				Repo:         issue.Repo,
+				Issue:        issue,
+				OldProjectID: 0,
+				ProjectID:    newProjectID,
+			}); err != nil {
+				return err
+			}
 		}
 	}
 
-	if _, err := db.GetEngine(ctx).Where("project_issue.issue_id=?", issue.ID).Delete(&project_model.ProjectIssue{}); err != nil {
-		return err
-	}
-
-	if oldProjectID > 0 || newProjectID > 0 {
-		if _, err := CreateComment(ctx, &CreateCommentOptions{
-			Type:         CommentTypeProject,
-			Doer:         doer,
-			Repo:         issue.Repo,
-			Issue:        issue,
-			OldProjectID: oldProjectID,
-			ProjectID:    newProjectID,
-		}); err != nil {
-			return err
-		}
-	}
-
-	return db.Insert(ctx, &project_model.ProjectIssue{
-		IssueID:   issue.ID,
-		ProjectID: newProjectID,
-	})
+	return nil
 }
 
 // MoveIssueAcrossProjectBoards move a card from one board to another

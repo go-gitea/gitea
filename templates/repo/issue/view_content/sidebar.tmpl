@@ -152,7 +152,7 @@
 	{{if .IsProjectsEnabled}}
 		<div class="ui divider"></div>
 
-		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-project dropdown">
+		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-projects dropdown">
 			<a class="text gt-df gt-ac muted">
 				<strong>{{.locale.Tr "repo.issues.new.projects"}}</strong>
 				{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
@@ -173,9 +173,19 @@
 						{{.locale.Tr "repo.issues.new.open_projects"}}
 					</div>
 					{{range .OpenProjects}}
-						<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
+						{{$ProjectID := .ID}}
+						{{$checked := false}}
+						{{range $.Issue.Projects}}
+							{{if eq .ID $ProjectID}}
+								{{$checked = true}}
+							{{end}}
+						{{end}}
+					<a class="item muted sidebar-item-link{{if $checked}} checked{{end}}" href="#" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">
+						<span class="octicon-check {{if not $checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
+						<span class="text">
 							{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
-						</a>
+						</span>
+					</a>
 					{{end}}
 				{{end}}
 				{{if .ClosedProjects}}
@@ -184,21 +194,33 @@
 						{{.locale.Tr "repo.issues.new.closed_projects"}}
 					</div>
 					{{range .ClosedProjects}}
-						<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{.Link}}">
+						{{$ProjectID := .ID}}
+						{{$checked := false}}
+						{{range $.Issue.Projects}}
+							{{if eq .ID $ProjectID}}
+								{{$checked = true}}
+							{{end}}
+						{{end}}
+						<a class="item muted sidebar-item-link{{if $checked}} checked{{end}}" href="#" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">
+							<span class="octicon-check {{if not $checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
+							<span class="text">
 							{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
+							</span>
 						</a>
 					{{end}}
 				{{end}}
 			</div>
 		</div>
-		<div class="ui select-project list">
-			<span class="no-select item {{if .Issue.ProjectID}}gt-hidden{{end}}">{{.locale.Tr "repo.issues.new.no_projects"}}</span>
+		<div class="ui projects list">
+			<span class="no-select item {{if .Issue.ProjectIDs}}gt-hidden{{end}}">{{.locale.Tr "repo.issues.new.no_projects"}}</span>
 			<div class="selected">
-				{{if .Issue.ProjectID}}
-					<a class="item muted sidebar-item-link" href="{{.Issue.Project.Link}}">
-						{{svg .Issue.Project.IconName 18 "gt-mr-3"}}{{.Issue.Project.Title}}
+			{{range .Issue.Projects}}
+				<div class="item">
+					<a class="item muted sidebar-item-link" href="{{$.RepoLink}}/projects/{{.ID}}">
+						{{svg .IconName 18 "gt-mr-3"}}{{.Title}}
 					</a>
-				{{end}}
+				</div>
+			{{end}}
 			</div>
 		</div>
 	{{end}}
