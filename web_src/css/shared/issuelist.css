@@ -24,11 +24,11 @@
   width: 80%;
 }
 
-/* height of icon is 16px. and line height of issue-item-top-row is about 20px,
-  so need margin-top 2px to make them aligned 
+/* The icon is wrapper by span, resulting in different line height, need to make it a block
+  to align with `.issue-item-top-row`
 */
-.action-item-icon {
-  margin-top: 2px;
+.action-item-icon > span {
+  display: block !important;
 }
 
 .action-item-title {
