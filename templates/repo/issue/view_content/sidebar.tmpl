@@ -58,10 +58,10 @@
 						</div>
 						<div class="gt-df gt-ac gt-gap-3">
 							{{if (and $.Permission.IsAdmin (or (eq .Review.Type 1) (eq .Review.Type 3)) (not $.Issue.IsClosed))}}
-								<a href="#" class="ui muted icon gt-df gt-ac show-modal" data-review-id="dismiss-review-{{.Review.ID}}" data-tooltip-content="{{$.locale.Tr "repo.issues.dismiss_review"}}" data-modal="#dismiss-review-modal">
+								<a href="#" class="ui muted icon gt-df gt-ac show-modal" data-tooltip-content="{{$.locale.Tr "repo.issues.dismiss_review"}}" data-modal="#dismiss-review-modal-{{.Review.ID}}">
 									{{svg "octicon-x" 20}}
 								</a>
-								<div class="ui small modal dismiss-review-modal" id="dismiss-review-modal">
+								<div class="ui small modal" id="dismiss-review-modal-{{.Review.ID}}">
 									<div class="header">
 										{{$.locale.Tr "repo.issues.dismiss_review"}}
 									</div>
