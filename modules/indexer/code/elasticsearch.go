@@ -10,7 +10,6 @@ import (
 	"io"
 	"strconv"
 	"strings"
-	"time"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/analyze"
@@ -46,31 +45,13 @@ type ElasticsearchIndexer struct {
 }
 
 // NewElasticsearchIndexer creates a new elasticsearch indexer
-func NewElasticsearchIndexer(url, indexerName string) (*ElasticsearchIndexer, error) {
-	opts := []elastic.ClientOptionFunc{
-		elastic.SetURL(url),
-		elastic.SetSniff(false),
-		elastic.SetHealthcheckInterval(10 * time.Second),
-		elastic.SetGzip(false),
-	}
-
-	logger := log.GetLogger(log.DEFAULT)
-
-	opts = append(opts, elastic.SetTraceLog(&log.PrintfLogger{Logf: logger.Trace}))
-	opts = append(opts, elastic.SetInfoLog(&log.PrintfLogger{Logf: logger.Info}))
-	opts = append(opts, elastic.SetErrorLog(&log.PrintfLogger{Logf: logger.Error}))
-
-	client, err := elastic.NewClient(opts...)
-	if err != nil {
-		return nil, err
-	}
-
-	in := inner_elasticsearch.NewIndexer(client, indexerName)
+func NewElasticsearchIndexer(url, indexerName string) *ElasticsearchIndexer {
+	in := inner_elasticsearch.NewIndexer(url, indexerName, repoIndexerLatestVersion, defaultMapping)
 	indexer := &ElasticsearchIndexer{
 		inner:   in,
 		Indexer: in,
 	}
-	return indexer, nil
+	return indexer
 }
 
 const (
@@ -102,67 +83,6 @@ const (
 		}
 	}`
 )
-
-func (b *ElasticsearchIndexer) realIndexerName() string {
-	return fmt.Sprintf("%s.v%d", b.inner.IndexerName, esRepoIndexerLatestVersion)
-}
-
-// Init will initialize the indexer
-func (b *ElasticsearchIndexer) Init() (bool, error) {
-	opened, err := b.Indexer.Init()
-	if err != nil {
-		return false, err
-	}
-	if opened {
-		return true, nil
-	}
-
-	ctx := graceful.GetManager().HammerContext()
-	mapping := defaultMapping
-
-	createIndex, err := b.inner.Client.CreateIndex(b.realIndexerName()).BodyString(mapping).Do(ctx)
-	if err != nil {
-		return false, b.inner.CheckError(err)
-	}
-	if !createIndex.Acknowledged {
-		return false, fmt.Errorf("create index %s with %s failed", b.realIndexerName(), mapping)
-	}
-
-	// check version
-	// FIXME: return value should be fixed
-	r, err := b.inner.Client.Aliases().Do(ctx)
-	if err != nil {
-		return false, b.inner.CheckError(err)
-	}
-
-	realIndexerNames := r.IndicesByAlias(b.inner.IndexerName)
-	if len(realIndexerNames) < 1 {
-		res, err := b.inner.Client.Alias().
-			Add(b.realIndexerName(), b.inner.IndexerName).
-			Do(ctx)
-		if err != nil {
-			return false, b.inner.CheckError(err)
-		}
-		if !res.Acknowledged {
-			return false, fmt.Errorf("create alias %s to index %s failed", b.inner.IndexerName, b.realIndexerName())
-		}
-	} else if len(realIndexerNames) >= 1 && realIndexerNames[0] < b.realIndexerName() {
-		log.Warn("Found older gitea indexer named %s, but we will create a new one %s and keep the old NOT DELETED. You can delete the old version after the upgrade succeed.",
-			realIndexerNames[0], b.realIndexerName())
-		res, err := b.inner.Client.Alias().
-			Remove(realIndexerNames[0], b.inner.IndexerName).
-			Add(b.realIndexerName(), b.inner.IndexerName).
-			Do(ctx)
-		if err != nil {
-			return false, b.inner.CheckError(err)
-		}
-		if !res.Acknowledged {
-			return false, fmt.Errorf("change alias %s to index %s failed", b.inner.IndexerName, b.realIndexerName())
-		}
-	}
-
-	return true, nil
-}
 
 func (b *ElasticsearchIndexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update fileUpdate, repo *repo_model.Repository) ([]elastic.BulkableRequest, error) {
 	// Ignore vendored files in code search
@@ -211,7 +131,7 @@ func (b *ElasticsearchIndexer) addUpdate(ctx context.Context, batchWriter git.Wr
 
 	return []elastic.BulkableRequest{
 		elastic.NewBulkIndexRequest().
-			Index(b.inner.IndexerName).
+			Index(b.inner.IndexName()).
 			Id(id).
 			Doc(map[string]interface{}{
 				"repo_id":    repo.ID,
@@ -226,7 +146,7 @@ func (b *ElasticsearchIndexer) addUpdate(ctx context.Context, batchWriter git.Wr
 func (b *ElasticsearchIndexer) addDelete(filename string, repo *repo_model.Repository) elastic.BulkableRequest {
 	id := filenameIndexerID(repo.ID, filename)
 	return elastic.NewBulkDeleteRequest().
-		Index(b.inner.IndexerName).
+		Index(b.inner.IndexName()).
 		Id(id)
 }
 
@@ -261,7 +181,7 @@ func (b *ElasticsearchIndexer) Index(ctx context.Context, repo *repo_model.Repos
 
 	if len(reqs) > 0 {
 		_, err := b.inner.Client.Bulk().
-			Index(b.inner.IndexerName).
+			Index(b.inner.IndexName()).
 			Add(reqs...).
 			Do(ctx)
 		return b.inner.CheckError(err)
@@ -271,7 +191,7 @@ func (b *ElasticsearchIndexer) Index(ctx context.Context, repo *repo_model.Repos
 
 // Delete deletes indexes by ids
 func (b *ElasticsearchIndexer) Delete(repoID int64) error {
-	_, err := b.inner.Client.DeleteByQuery(b.inner.IndexerName).
+	_, err := b.inner.Client.DeleteByQuery(b.inner.IndexName()).
 		Query(elastic.NewTermsQuery("repo_id", repoID)).
 		Do(graceful.GetManager().HammerContext())
 	return b.inner.CheckError(err)
@@ -385,7 +305,7 @@ func (b *ElasticsearchIndexer) Search(ctx context.Context, repoIDs []int64, lang
 
 	if len(language) == 0 {
 		searchResult, err := b.inner.Client.Search().
-			Index(b.inner.IndexerName).
+			Index(b.inner.IndexName()).
 			Aggregation("language", aggregation).
 			Query(query).
 			Highlight(
@@ -406,7 +326,7 @@ func (b *ElasticsearchIndexer) Search(ctx context.Context, repoIDs []int64, lang
 
 	langQuery := elastic.NewMatchQuery("language", language)
 	countResult, err := b.inner.Client.Search().
-		Index(b.inner.IndexerName).
+		Index(b.inner.IndexName()).
 		Aggregation("language", aggregation).
 		Query(query).
 		Size(0). // We only needs stats information
@@ -417,7 +337,7 @@ func (b *ElasticsearchIndexer) Search(ctx context.Context, repoIDs []int64, lang
 
 	query = query.Must(langQuery)
 	searchResult, err := b.inner.Client.Search().
-		Index(b.inner.IndexerName).
+		Index(b.inner.IndexName()).
 		Query(query).
 		Highlight(
 			elastic.NewHighlight().

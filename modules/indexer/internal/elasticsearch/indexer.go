@@ -6,7 +6,6 @@ package elasticsearch
 import (
 	"fmt"
 	"sync"
-	"time"
 
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/indexer/internal"
@@ -18,34 +17,27 @@ var _ internal.Indexer = &Indexer{}
 
 // Indexer represents a basic elasticsearch indexer implementation
 type Indexer struct {
-	Client      *elastic.Client
-	IndexerName string
-	available   bool
-	stopTimer   chan struct{}
-	lock        sync.RWMutex
+	Client *elastic.Client
+
+	url            string
+	indexAliasName string
+	version        int
+	mapping        string
+
+	available bool
+	stopTimer chan struct{}
+	lock      sync.RWMutex
 }
 
-func NewIndexer(client *elastic.Client, indexerName string) *Indexer {
-	indexer := &Indexer{
-		Client:      client,
-		IndexerName: indexerName,
-		available:   true,
-		stopTimer:   make(chan struct{}),
+func NewIndexer(url, indexName string, version int, mapping string) *Indexer {
+	return &Indexer{
+		url:            url,
+		indexAliasName: indexName,
+		version:        version,
+		mapping:        mapping,
+		available:      false,
+		stopTimer:      make(chan struct{}),
 	}
-
-	ticker := time.NewTicker(10 * time.Second)
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				indexer.checkAvailability()
-			case <-indexer.stopTimer:
-				ticker.Stop()
-				return
-			}
-		}
-	}()
-	return indexer
 }
 
 // Init initializes the indexer
@@ -53,11 +45,25 @@ func (i *Indexer) Init() (bool, error) {
 	if i == nil {
 		return false, fmt.Errorf("cannot init nil indexer")
 	}
+
+	if err := i.initClient(); err != nil {
+		return false, err
+	}
+
 	ctx := graceful.GetManager().HammerContext()
-	exists, err := i.Client.IndexExists(i.IndexerName).Do(ctx)
+
+	exists, err := i.Client.IndexExists(i.IndexName()).Do(ctx)
 	if err != nil {
 		return false, i.CheckError(err)
 	}
+	if exists {
+		return true, nil
+	}
+
+	if err := i.createIndex(ctx); err != nil {
+		return false, i.CheckError(err)
+	}
+
 	return exists, nil
 }
 

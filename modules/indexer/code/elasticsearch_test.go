@@ -21,15 +21,7 @@ func TestESIndexAndSearch(t *testing.T) {
 		return
 	}
 
-	indexer, err := NewElasticsearchIndexer(u, "gitea_codes")
-	if err != nil {
-		assert.Fail(t, "Unable to create ES indexer Error: %v", err)
-		if indexer != nil {
-			indexer.Close()
-		}
-		return
-	}
-
+	indexer := NewElasticsearchIndexer(u, "gitea_codes")
 	if _, err := indexer.Init(); err != nil {
 		assert.Fail(t, "Unable to init ES indexer Error: %v", err)
 		if indexer != nil {
