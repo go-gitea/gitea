@@ -182,21 +182,7 @@ func List(ctx *context.Context) {
 
 	ctx.Data["Runs"] = runs
 
-	// Get all runs under the repo to get all actors and statuses
-	allRunsOpts := actions_model.FindRunOptions{
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
-		RepoID: ctx.Repo.Repository.ID,
-	}
-
-	allRuns, _, err := actions_model.FindRuns(ctx, allRunsOpts)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	actors, err := allRuns.GetActors(ctx)
+	actors, err := actions_model.GetActors(ctx)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return

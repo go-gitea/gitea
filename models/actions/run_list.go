@@ -25,14 +25,6 @@ func (runs RunList) GetUserIDs() []int64 {
 	return ids.Values()
 }
 
-// GetActors returns a slice of Actors
-func (runs RunList) GetActors(ctx context.Context) (map[int64]*user_model.User, error) {
-	actorIDs := runs.GetUserIDs()
-	actors := make(map[int64]*user_model.User, len(actorIDs))
-	err := db.GetEngine(ctx).In("id", actorIDs).Find(&actors)
-	return actors, err
-}
-
 func (runs RunList) GetRepoIDs() []int64 {
 	ids := make(container.Set[int64], len(runs))
 	for _, run := range runs {
@@ -117,4 +109,14 @@ func FindRuns(ctx context.Context, opts FindRunOptions) (RunList, int64, error) 
 
 func CountRuns(ctx context.Context, opts FindRunOptions) (int64, error) {
 	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(ActionRun))
+}
+
+// GetActors returns a slice of Actors
+func GetActors(ctx context.Context) (map[int64]*user_model.User, error) {
+	actors := make(map[int64]*user_model.User, 10)
+	err := db.GetEngine(ctx).
+		Table("user").
+		Join("INNER", "action_run", "`action_run`.trigger_user_id = `user`.id").
+		Find(&actors)
+	return actors, err
 }
