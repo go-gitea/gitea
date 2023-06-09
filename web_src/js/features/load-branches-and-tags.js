@@ -1,11 +1,10 @@
 const {csrfToken} = window.config;
 
-function loadBranchesAndTags(loadingButton, addHere) {
+async function loadBranchesAndTags(loadingButton, addHere) {
   loadingButton.setAttribute('disabled', 'disabled');
   const response = await fetch(loadingButton.getAttribute('data-fetch-url'), {
     method: 'GET',
     headers: {'X-Csrf-Token': csrfToken},
-    body: JSON.stringify(data),
   }).finally(() => loadingButton.removeAttribute('disabled'));
 
   const data  = await response.json();
@@ -15,12 +14,12 @@ function loadBranchesAndTags(loadingButton, addHere) {
 
 function addTags(tags, addHere) {
   for(const tag of tags)
-    addLink(tag.link, addHere);
+    addLink(tag.web_url, addHere);
 }
 
-function addTags(tags, addHere) {
+function addBranches(tags, addHere) {
   for(const branch of branches)
-    addLink(branch.link, branch.name, addHere);
+    addLink(branch.web_url, branch.name, addHere);
 }
 
 function addLink(href, text, parent) {
@@ -31,6 +30,6 @@ function addLink(href, text, parent) {
 }
 
 export function initLoadBranchesAndTagsButton() {
-  for(const loadButton of document.querySelector('.load-tags-and-branches-button'))
-    loadButton.addEventListener('click', (e) => loadBranchesAndTags(e.target, ));
+  for(const loadButton of document.querySelectorAll('.load-tags-and-branches'))
+    loadButton.addEventListener('click', async (e) => loadBranchesAndTags(loadButton, document.querySelector('.branch-and-tag-area')));
 }
