@@ -22,6 +22,24 @@
 
 .issue.list > .item .action-item-main {
   width: 80%;
+  padding-left: 24px;
+}
+
+/* height of icon is 16px. and line height of action-item-main is about 20px,
+  so need margin-top 2px to make them aligned 
+*/
+.action-item-icon {
+  position: absolute;
+  left: 0;
+  margin-top: 2px;
+}
+
+.action-item-top-row {
+  margin-bottom: 4px;
+}
+
+.action-item-title {
+  color: var(--color-text);
 }
 
 .issue.list > .item .issue-item-right {
