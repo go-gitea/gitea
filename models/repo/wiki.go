@@ -81,9 +81,10 @@ func (repo *Repository) WikiPath() string {
 
 // HasWiki returns true if repository has wiki.
 func (repo *Repository) HasWiki() bool {
-	isDir, err := storage.IsDir(storage.WikiRelPath(repo.OwnerName, repo.Name))
+	relWikiPath := storage.WikiRelPath(repo.OwnerName, repo.Name)
+	isDir, err := storage.IsDir(relWikiPath)
 	if err != nil {
-		log.Error("Unable to check if %s is a directory: %v", repo.WikiPath(), err)
+		log.Error("Unable to check if %s is a directory: %v", relWikiPath, err)
 	}
 	return isDir
 }

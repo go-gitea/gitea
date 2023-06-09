@@ -63,31 +63,27 @@ func initMigrationTest(t *testing.T) func() {
 	}
 
 	unittest.InitSettings()
+	setting.LoadDBSetting()
+	setting.InitLoggersForTest()
 
 	assert.NoError(t, git.InitFull(context.Background()))
-
-	assert.NoError(t, storage.CheckStats())
 	assert.NoError(t, storage.RemoveAll(""))
 	assert.NoError(t, storage.UploadDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), ""))
 	ownerDirs, err := storage.ReadDir("")
-	if err != nil {
-		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
-	}
+	assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
+
 	for _, ownerDir := range ownerDirs {
 		if !ownerDir.Type().IsDir() {
 			continue
 		}
 		repoDirs, err := storage.ReadDir(ownerDir.Name())
-		if err != nil {
-			assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
-		}
+		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
+
 		for _, repoDir := range repoDirs {
 			storage.MakeRepoDir(storage.RepoRelPath(ownerDir.Name(), repoDir.Name()))
 		}
 	}
 
-	setting.LoadDBSetting()
-	setting.InitLoggersForTest()
 	return deferFn
 }
 
