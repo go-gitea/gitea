@@ -1,7 +1,7 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package code
+package elasticsearch
 
 import (
 	"bufio"
@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/indexer/code/base"
 	"code.gitea.io/gitea/modules/indexer/internal"
 	inner_elasticsearch "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
 	"code.gitea.io/gitea/modules/json"
@@ -36,18 +37,18 @@ const (
 	esMultiMatchTypePhrasePrefix = "phrase_prefix"
 )
 
-var _ Indexer = &ElasticsearchIndexer{}
+var _ base.Indexer = &Indexer{}
 
-// ElasticsearchIndexer implements Indexer interface
-type ElasticsearchIndexer struct {
+// Indexer implements Indexer interface
+type Indexer struct {
 	inner            *inner_elasticsearch.Indexer
 	internal.Indexer // do not composite inner_elasticsearch.Indexer directly to avoid exposing too much
 }
 
-// NewElasticsearchIndexer creates a new elasticsearch indexer
-func NewElasticsearchIndexer(url, indexerName string) *ElasticsearchIndexer {
+// NewIndexer creates a new elasticsearch indexer
+func NewIndexer(url, indexerName string) *Indexer {
 	in := inner_elasticsearch.NewIndexer(url, indexerName, esRepoIndexerLatestVersion, defaultMapping)
-	indexer := &ElasticsearchIndexer{
+	indexer := &Indexer{
 		inner:   in,
 		Indexer: in,
 	}
@@ -84,7 +85,7 @@ const (
 	}`
 )
 
-func (b *ElasticsearchIndexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update fileUpdate, repo *repo_model.Repository) ([]elastic.BulkableRequest, error) {
+func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update base.FileUpdate, repo *repo_model.Repository) ([]elastic.BulkableRequest, error) {
 	// Ignore vendored files in code search
 	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil, nil
@@ -127,7 +128,7 @@ func (b *ElasticsearchIndexer) addUpdate(ctx context.Context, batchWriter git.Wr
 	if _, err = batchReader.Discard(1); err != nil {
 		return nil, err
 	}
-	id := filenameIndexerID(repo.ID, update.Filename)
+	id := base.FilenameIndexerID(repo.ID, update.Filename)
 
 	return []elastic.BulkableRequest{
 		elastic.NewBulkIndexRequest().
@@ -143,15 +144,15 @@ func (b *ElasticsearchIndexer) addUpdate(ctx context.Context, batchWriter git.Wr
 	}, nil
 }
 
-func (b *ElasticsearchIndexer) addDelete(filename string, repo *repo_model.Repository) elastic.BulkableRequest {
-	id := filenameIndexerID(repo.ID, filename)
+func (b *Indexer) addDelete(filename string, repo *repo_model.Repository) elastic.BulkableRequest {
+	id := base.FilenameIndexerID(repo.ID, filename)
 	return elastic.NewBulkDeleteRequest().
 		Index(b.inner.IndexName()).
 		Id(id)
 }
 
 // Index will save the index data
-func (b *ElasticsearchIndexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *repoChanges) error {
+func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *base.RepoChanges) error {
 	reqs := make([]elastic.BulkableRequest, 0)
 	if len(changes.Updates) > 0 {
 		// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
@@ -190,7 +191,7 @@ func (b *ElasticsearchIndexer) Index(ctx context.Context, repo *repo_model.Repos
 }
 
 // Delete deletes indexes by ids
-func (b *ElasticsearchIndexer) Delete(repoID int64) error {
+func (b *Indexer) Delete(repoID int64) error {
 	_, err := b.inner.Client.DeleteByQuery(b.inner.IndexName()).
 		Query(elastic.NewTermsQuery("repo_id", repoID)).
 		Do(graceful.GetManager().HammerContext())
@@ -213,8 +214,8 @@ func indexPos(content, start, end string) (int, int) {
 	return startIdx, startIdx + len(start) + endIdx + len(end)
 }
 
-func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) (int64, []*SearchResult, []*SearchResultLanguages, error) {
-	hits := make([]*SearchResult, 0, pageSize)
+func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) (int64, []*base.SearchResult, []*base.SearchResultLanguages, error) {
+	hits := make([]*base.SearchResult, 0, pageSize)
 	for _, hit := range searchResult.Hits.Hits {
 		// FIXME: There is no way to get the position the keyword on the content currently on the same request.
 		// So we get it from content, this may made the query slower. See
@@ -233,7 +234,7 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 			panic(fmt.Sprintf("2===%#v", hit.Highlight))
 		}
 
-		repoID, fileName := parseIndexerID(hit.Id)
+		repoID, fileName := base.ParseIndexerID(hit.Id)
 		res := make(map[string]interface{})
 		if err := json.Unmarshal(hit.Source, &res); err != nil {
 			return 0, nil, nil, err
@@ -241,7 +242,7 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 
 		language := res["language"].(string)
 
-		hits = append(hits, &SearchResult{
+		hits = append(hits, &base.SearchResult{
 			RepoID:      repoID,
 			Filename:    fileName,
 			CommitID:    res["commit_id"].(string),
@@ -257,14 +258,14 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 	return searchResult.TotalHits(), hits, extractAggs(searchResult), nil
 }
 
-func extractAggs(searchResult *elastic.SearchResult) []*SearchResultLanguages {
-	var searchResultLanguages []*SearchResultLanguages
+func extractAggs(searchResult *elastic.SearchResult) []*base.SearchResultLanguages {
+	var searchResultLanguages []*base.SearchResultLanguages
 	agg, found := searchResult.Aggregations.Terms("language")
 	if found {
-		searchResultLanguages = make([]*SearchResultLanguages, 0, 10)
+		searchResultLanguages = make([]*base.SearchResultLanguages, 0, 10)
 
 		for _, bucket := range agg.Buckets {
-			searchResultLanguages = append(searchResultLanguages, &SearchResultLanguages{
+			searchResultLanguages = append(searchResultLanguages, &base.SearchResultLanguages{
 				Language: bucket.Key.(string),
 				Color:    enry.GetColor(bucket.Key.(string)),
 				Count:    int(bucket.DocCount),
@@ -275,7 +276,7 @@ func extractAggs(searchResult *elastic.SearchResult) []*SearchResultLanguages {
 }
 
 // Search searches for codes and language stats by given conditions.
-func (b *ElasticsearchIndexer) Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error) {
+func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*base.SearchResult, []*base.SearchResultLanguages, error) {
 	searchType := esMultiMatchTypeBestFields
 	if isMatch {
 		searchType = esMultiMatchTypePhrasePrefix

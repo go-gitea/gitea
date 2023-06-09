@@ -7,81 +7,28 @@ import (
 	"context"
 	"os"
 	"runtime/pprof"
-	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/indexer/code/base"
+	"code.gitea.io/gitea/modules/indexer/code/bleve"
+	"code.gitea.io/gitea/modules/indexer/code/elasticsearch"
 	"code.gitea.io/gitea/modules/indexer/internal"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 )
 
-// SearchResult result of performing a search in a repo
-type SearchResult struct {
-	RepoID      int64
-	StartIndex  int
-	EndIndex    int
-	Filename    string
-	Content     string
-	CommitID    string
-	UpdatedUnix timeutil.TimeStamp
-	Language    string
-	Color       string
-}
-
-// SearchResultLanguages result of top languages count in search results
-type SearchResultLanguages struct {
-	Language string
-	Color    string
-	Count    int
-}
-
-// Indexer defines an interface to index and search code contents
-type Indexer interface {
-	internal.Indexer
-	Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *repoChanges) error
-	Delete(repoID int64) error
-	Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error)
-}
-
-func filenameIndexerID(repoID int64, filename string) string {
-	return internal.Base36(repoID) + "_" + filename
-}
-
-func parseIndexerID(indexerID string) (int64, string) {
-	index := strings.IndexByte(indexerID, '_')
-	if index == -1 {
-		log.Error("Unexpected ID in repo indexer: %s", indexerID)
-	}
-	repoID, _ := internal.ParseBase36(indexerID[:index])
-	return repoID, indexerID[index+1:]
-}
-
-func filenameOfIndexerID(indexerID string) string {
-	index := strings.IndexByte(indexerID, '_')
-	if index == -1 {
-		log.Error("Unexpected ID in repo indexer: %s", indexerID)
-	}
-	return indexerID[index+1:]
-}
-
-// IndexerData represents data stored in the code indexer
-type IndexerData struct {
-	RepoID int64
-}
-
 var (
-	indexerQueue *queue.WorkerPoolQueue[*IndexerData]
+	indexerQueue *queue.WorkerPoolQueue[*base.IndexerData]
 	holder       = internal.NewIndexerHolder()
 )
 
-func index(ctx context.Context, indexer Indexer, repoID int64) error {
+func index(ctx context.Context, indexer base.Indexer, repoID int64) error {
 	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 	if repo_model.IsErrRepoNotExist(err) {
 		return indexer.Delete(repoID)
@@ -161,8 +108,8 @@ func Init() {
 	// Create the Queue
 	switch setting.Indexer.RepoType {
 	case "bleve", "elasticsearch":
-		handler := func(items ...*IndexerData) (unhandled []*IndexerData) {
-			indexer := holder.Get().(Indexer)
+		handler := func(items ...*base.IndexerData) (unhandled []*base.IndexerData) {
+			indexer := holder.Get().(base.Indexer)
 			if indexer == nil {
 				log.Warn("Codes indexer handler: indexer is not ready, retry later.")
 				return items
@@ -211,7 +158,7 @@ func Init() {
 		pprof.SetGoroutineLabels(ctx)
 		start := time.Now()
 		var (
-			rIndexer Indexer
+			rIndexer base.Indexer
 			existed  bool
 			err      error
 		)
@@ -226,7 +173,7 @@ func Init() {
 				}
 			}()
 
-			rIndexer = NewBleveIndexer(setting.Indexer.RepoPath)
+			rIndexer = bleve.NewIndexer(setting.Indexer.RepoPath)
 			existed, err = rIndexer.Init()
 			if err != nil {
 				cancel()
@@ -244,7 +191,7 @@ func Init() {
 				}
 			}()
 
-			rIndexer = NewElasticsearchIndexer(setting.Indexer.RepoConnStr, setting.Indexer.RepoIndexerName)
+			rIndexer = elasticsearch.NewIndexer(setting.Indexer.RepoConnStr, setting.Indexer.RepoIndexerName)
 			if err != nil {
 				cancel()
 				holder.Get().Close()
@@ -310,7 +257,7 @@ func Init() {
 
 // UpdateRepoIndexer update a repository's entries in the indexer
 func UpdateRepoIndexer(repo *repo_model.Repository) {
-	indexData := &IndexerData{RepoID: repo.ID}
+	indexData := &base.IndexerData{RepoID: repo.ID}
 	if err := indexerQueue.Push(indexData); err != nil {
 		log.Error("Update repo index data %v failed: %v", indexData, err)
 	}
@@ -318,7 +265,7 @@ func UpdateRepoIndexer(repo *repo_model.Repository) {
 
 // IsAvailable checks if issue indexer is available
 func IsAvailable() bool {
-	idx := holder.Get().(Indexer)
+	idx := holder.Get().(base.Indexer)
 	if idx == nil {
 		log.Error("IsAvailable(): unable to get indexer")
 		return false
@@ -375,7 +322,7 @@ func populateRepoIndexer(ctx context.Context) {
 				return
 			default:
 			}
-			if err := indexerQueue.Push(&IndexerData{RepoID: id}); err != nil {
+			if err := indexerQueue.Push(&base.IndexerData{RepoID: id}); err != nil {
 				log.Error("indexerQueue.Push: %v", err)
 				return
 			}
