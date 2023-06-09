@@ -4,7 +4,6 @@
 package public
 
 import (
-	"crypto/tls"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -25,10 +24,6 @@ func MakeDevAssetsHandler(destUrl, path string) http.Handler {
 			Transport: &http.Transport{
 				MaxIdleConns:        100,
 				IdleConnTimeout:     5 * time.Second,
-				TLSHandshakeTimeout: 5 * time.Second,
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true,
-				},
 			},
 			ErrorHandler: func(rw http.ResponseWriter, r *http.Request, err error) {
 				rw.Header().Set("Content-Type", "text/html")
