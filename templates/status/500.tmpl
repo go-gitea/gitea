@@ -15,14 +15,16 @@
 </head>
 <body>
 	<div class="full height">
-		<nav class="ui container secondary stackable main menu" id="navbar">
+		<nav class="ui secondary menu gt-border-secondary-bottom">
 			<div class="ui container gt-df">
-				<div class="item brand gt-f1">
+				<div class="item gt-f1">
 					<a href="{{AppSubUrl}}/" aria-label="{{.locale.Tr "home"}}">
 						<img width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{.locale.Tr "logo"}}" aria-hidden="true">
 					</a>
 				</div>
-				<button class="item ui icon button">{{svg "octicon-three-bars"}}</button>{{/* a fake button to make the UI looks better*/}}
+				<div class="item">
+					<button class="ui icon button disabled">{{svg "octicon-three-bars"}}</button>{{/* a fake button to make the UI looks better*/}}
+				</div>
 			</div>
 		</nav>
 		<div role="main" class="page-content status-page-500">

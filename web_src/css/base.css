@@ -930,7 +930,7 @@ img.ui.avatar,
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .page-content .ui.ui.ui.container:not(.fluid) {
     width: calc(100vw - 16px);
     max-width: calc(100vw - 16px);
@@ -950,46 +950,91 @@ img.ui.avatar,
   margin: 0 !important;
 }
 
-#navbar .column .menu {
-  margin-top: 0;
-}
-
-#navbar .fitted .svg {
-  margin-right: 0;
-  vertical-align: middle;
-}
-
-#navbar .searchbox {
-  background-color: var(--color-input-background) !important;
-}
-
-#navbar .text .svg {
-  width: 16px;
-  text-align: center;
-}
-
 #navbar a.item:hover {
   background: var(--color-nav-hover-bg);
 }
 
-#navbar .dropdown .avatar {
-  margin-right: 0 !important;
+#navbar .navbar-mobile-right {
+  margin-left: auto;
 }
 
-@media (max-width: 767px) {
-  #navbar:not(.shown) > *:not(:first-child) {
+#navbar .navbar-mobile-right a.item:hover {
+  background: transparent;
+}
+
+#navbar .secondary.menu > .item > .svg,
+#navbar .right.menu > .item > .svg {
+  margin-right: 0;
+}
+
+@media (max-width: 767.98px) {
+  /* hide all items */
+  #navbar .item {
     display: none;
+  }
+  /* show the first navbar item (logo and its mobile right items) */
+  #navbar > .item:first-child {
+    display: flex;
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+  #navbar .navbar-mobile-right > .item {
+    display: flex;
+  }
+  /* show items if the navbar is open */
+  #navbar.navbar-menu-open .item {
+    display: flex;
+  }
+  #navbar.navbar-menu-open > .item:first-child {
+    padding-bottom: 0;
   }
 }
 
-.right.stackable.menu {
-  /* responsive fix: this makes sure that the right menu when the page */
-  /* is on mobile view will have elements stacked on top of each other. */
-  /* no, stackable won't work on right menus. */
-  margin-left: auto;
+@media (min-width: 767.98px) {
+  #navbar .navbar-mobile-right,
+  #navbar .mobile-only {
+    display: none;
+  }
+  #navbar .right.menu {
+    padding-right: 1em;
+  }
+}
+
+#navbar .navbar-mobile-right .item {
+  width: auto !important;
+}
+
+#navbar a.item .notification_count {
+  color: var(--color-nav-bg);
+  padding: 0 3.75px;
+  font-size: 12px;
+  line-height: 12px;
+  font-weight: var(--font-weight-bold);
+}
+
+#navbar a.item:hover .notification_count,
+#navbar a.item:hover .header-stopwatch-dot {
+  border-color: var(--color-nav-hover-bg);
+}
+
+#navbar a.item .notification_count,
+#navbar a.item .header-stopwatch-dot {
+  background: var(--color-primary);
+  border: 2px solid var(--color-nav-bg);
+  position: absolute;
+  left: 6px;
+  top: -9px;
+  min-width: 17px;
+  min-height: 17px;
+  border-radius: 17px;
   display: flex;
-  align-items: inherit;
-  flex-direction: inherit;
+  align-items: center;
+  justify-content: center;
+}
+
+#navbar .right.menu {
+  width: 100%;
+  justify-content: flex-end;
 }
 
 .ui.pagination.menu .active.item {
@@ -1444,7 +1489,7 @@ img.ui.avatar,
   line-height: 20px;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .ui.pagination.menu .item:not(.active,.navigation),
   .ui.pagination.menu .item.navigation span.navigation_label {
     display: none;
@@ -1518,54 +1563,11 @@ img.ui.avatar,
   text-align: center;
 }
 
-/* Conditional display */
-@media (min-width: 768px) {
-  .mobile-only,
-  .ui.button.mobile-only {
-    display: none !important;
-  }
-
-  /* has the same behaviour of sr-only, hiding the content for */
-  /* non-screenreaders, but is shown on mobile devices. */
-  .sr-mobile-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    border: 0;
-  }
-}
-
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   /* double selector so it wins over .gt-df etc */
   .not-mobile.not-mobile {
     display: none !important;
   }
-}
-
-/* Accessibility for screen readers */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  border: 0;
-}
-
-.sr-only-focusable:active,
-.sr-only-focusable:focus {
-  position: static;
-  width: auto;
-  height: auto;
-  margin: 0;
-  overflow: visible;
-  clip: auto;
 }
 
 .ui.menu.new-menu {
@@ -1602,7 +1604,7 @@ img.ui.avatar,
   margin-bottom: 0 !important; /* reset fomantic's margin, because the active menu has special bottom border */
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .ui.menu.new-menu .item {
     width: auto !important;
   }
@@ -2115,40 +2117,6 @@ a.ui.basic.label:hover {
 .ui.segments ~ .ui.top.attached.header,
 .ui.attached.segment ~ .ui.top.attached.header {
   margin-top: 1rem;
-}
-
-.header-stopwatch-dot {
-  position: absolute;
-  left: 8px;
-  top: -8px;
-  width: 13px;
-  height: 13px;
-  background: var(--color-primary);
-  border: 2px solid var(--color-nav-bg);
-  border-radius: 100%;
-}
-
-.notification_count {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: absolute;
-  left: 6px;
-  top: -8px;
-  min-width: 17px;
-  min-height: 17px;
-  background: var(--color-primary);
-  border: 2px solid var(--color-nav-bg);
-  color: var(--color-nav-bg);
-  border-radius: 17px;
-  padding: 0 3.5px;
-  font-size: 12px;
-  line-height: 12px;
-  font-weight: var(--font-weight-bold);
-}
-
-#navbar a.item:hover .notification_count {
-  border-color: var(--color-nav-hover-bg);
 }
 
 .rss-icon {

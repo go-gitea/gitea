@@ -31,7 +31,7 @@
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   #create-page-form form .optional .title {
     margin-left: 15px;
   }
@@ -77,7 +77,7 @@
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .organization.new.org form .optional .title {
     margin-left: 15px;
   }
@@ -222,7 +222,7 @@
   height: 60px;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .organization.teams #repo-top-segment {
     height: 100px;
   }
