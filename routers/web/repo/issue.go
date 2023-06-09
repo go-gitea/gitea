@@ -520,6 +520,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		Page:     -1,
 		IsClosed: util.OptionalBoolFalse,
 		Type:     project_model.TypeRepository,
+		SortType: "title",
 	})
 	if err != nil {
 		ctx.ServerError("GetProjects", err)
@@ -530,6 +531,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		Page:     -1,
 		IsClosed: util.OptionalBoolFalse,
 		Type:     project_model.TypeOrganization,
+		SortType: "title",
 	})
 	if err != nil {
 		ctx.ServerError("GetProjects", err)
