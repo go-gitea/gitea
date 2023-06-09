@@ -194,13 +194,13 @@
   width: 320px;
 }
 
-@media (min-width: 768px) and (max-width: 991px) {
+@media (min-width: 768px) and (max-width: 991.98px) {
   .repository #clone-panel #repo-clone-url {
     width: 200px;
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .repository #clone-panel #repo-clone-url {
     width: 200px;
   }
@@ -298,7 +298,7 @@
   }
 }
 
-@media (min-width: 768px) and (max-width: 991px) {
+@media (min-width: 768px) and (max-width: 991.98px) {
   .repository.file.list #repo-files-table td.name {
     max-width: 300px;
   }
@@ -321,7 +321,7 @@
   }
 }
 
-@media (min-width: 768px) and (max-width: 991px) {
+@media (min-width: 768px) and (max-width: 991.98px) {
   .repository.file.list #repo-files-table td.message {
     max-width: 250px;
   }
@@ -643,7 +643,7 @@
   display: flex;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .repository.view.issue .issue-title {
     flex-direction: column;
   }
@@ -939,7 +939,7 @@
   border: 1px solid var(--color-light-border);
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .repository.view.issue .comment-list .timeline-item .ui.segments {
     margin-left: -2rem;
   }
@@ -964,7 +964,7 @@
   border-radius: var(--border-radius);
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .repository.view.issue .comment-list .comment .content .form .button {
     width: 100%;
     margin: 0;
@@ -987,7 +987,7 @@
   margin-bottom: -0.25rem;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .repository.view.issue .comment-list .comment .merge-section .item-section {
     align-items: flex-start;
     flex-direction: column;
@@ -1133,7 +1133,7 @@
   box-shadow: none;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .repository.view.issue .comment-list {
     padding: 1rem 0 !important; /* Important is required here to override existing fomantic styles. */
   }
@@ -1597,7 +1597,7 @@
   line-height: 30px;
 }
 
-@media (max-width: 991px) {
+@media (max-width: 991.98px) {
   .repository .diff-detail-box {
     flex-direction: column;
     align-items: flex-start;
@@ -1849,7 +1849,7 @@
 }
 
 
-@media (max-width: 991px) {
+@media (max-width: 991.98px) {
   .diff-file-box {
     scroll-margin-top: 77px; /* match .repository .diff-detail-box */
   }
@@ -1957,14 +1957,14 @@
   display: inline-block;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .repository.wiki .dividing.header .stackable.grid .button {
     margin-top: 2px;
     margin-bottom: 2px;
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .repository.wiki #clone-panel #repo-clone-url {
     width: 160px;
   }
@@ -2265,7 +2265,7 @@
   border-radius: 0;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .repository .repository-summary .segment.language-stats {
     display: none;
   }
@@ -2292,7 +2292,7 @@
   width: 500px;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   #cite-repo-modal #citation-panel {
     width: 100%;
   }
@@ -2753,7 +2753,7 @@ tbody.commit-list {
   display: inline-block;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   tr.commit-list {
     width: 100%;
   }
@@ -2766,7 +2766,7 @@ tbody.commit-list {
   }
 }
 
-@media (min-width: 768px) and (max-width: 991px) {
+@media (min-width: 768px) and (max-width: 991.98px) {
   tr.commit-list {
     width: 723px;
   }
@@ -2862,7 +2862,7 @@ tbody.commit-list {
   word-break: break-word;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .repo-header + .container {
     margin-top: 7px;
   }
@@ -2876,7 +2876,7 @@ tbody.commit-list {
   word-break: keep-all;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .repo-buttons {
     margin-top: 1em;
   }
@@ -2923,7 +2923,7 @@ tbody.commit-list {
   pointer-events: none !important;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .repo-buttons .ui.labeled.button .svg {
     display: none;
   }
@@ -3021,7 +3021,7 @@ tbody.commit-list {
   color: var(--color-primary);
 }
 
-@media (max-width: 991px) {
+@media (max-width: 991.98px) {
   #diff-file-tree {
     display: none !important;
   }
@@ -3098,7 +3098,7 @@ tbody.commit-list {
   z-index: 7;
 }
 
-@media (max-width: 991px) {
+@media (max-width: 991.98px) {
   .ui.attached.header.diff-file-header.sticky-2nd-row {
     top: 77px; /* match .repository .diff-detail-box */
   }
@@ -3137,7 +3137,7 @@ tbody.commit-list {
   overflow: hidden;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .repository-summary-language-stats {
     height: auto;
   }
@@ -3218,7 +3218,7 @@ tbody.commit-list {
   box-shadow: 0 0.5rem 1rem var(--color-shadow) !important;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .repository.file.list #repo-files-table .entry,
   .repository.file.list #repo-files-table .commit-list {
     align-items: center;
@@ -3340,13 +3340,13 @@ tbody.commit-list {
   vertical-align: bottom !important;
 }
 
-@media (min-width: 768px) and (max-width: 991px) {
+@media (min-width: 768px) and (max-width: 991.98px) {
   .branch-dropdown-button {
     max-width: 185px;
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .branch-dropdown-button {
     max-width: 165px;
   }
@@ -3380,7 +3380,7 @@ tbody.commit-list {
   justify-content: flex-end;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .pr-status .status-details {
     flex-direction: column;
     align-items: flex-end;
