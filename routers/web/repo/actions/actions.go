@@ -52,25 +52,6 @@ func MustEnableActions(ctx *context.Context) {
 	}
 }
 
-type StatusInfo struct {
-	Status          int
-	DisplayedStatus string
-}
-
-// getStatusInfos returns a slice of StatusInfo
-func getStatusInfos(ctx *context.Context) []StatusInfo {
-	// same as those in aggregateJobStatus
-	allStatus := []actions_model.Status{actions_model.StatusSuccess, actions_model.StatusFailure, actions_model.StatusWaiting, actions_model.StatusRunning}
-	statusInfos := make([]StatusInfo, 0, 4)
-	for _, s := range allStatus {
-		statusInfos = append(statusInfos, StatusInfo{
-			Status:          int(s),
-			DisplayedStatus: s.String(),
-		})
-	}
-	return statusInfos
-}
-
 func List(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsActions"] = true
@@ -189,7 +170,7 @@ func List(ctx *context.Context) {
 	}
 	ctx.Data["Actors"] = actors
 
-	ctx.Data["StatusInfos"] = getStatusInfos(ctx)
+	ctx.Data["StatusInfos"] = actions_model.GetStatusInfos(ctx)
 
 	pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)

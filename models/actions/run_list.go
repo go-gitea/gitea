@@ -111,6 +111,25 @@ func CountRuns(ctx context.Context, opts FindRunOptions) (int64, error) {
 	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(ActionRun))
 }
 
+type StatusInfo struct {
+	Status          int
+	DisplayedStatus string
+}
+
+// GetStatusInfos returns a slice of StatusInfo
+func GetStatusInfos(ctx context.Context) []StatusInfo {
+	// same as those in aggregateJobStatus
+	allStatus := []Status{StatusSuccess, StatusFailure, StatusWaiting, StatusRunning}
+	statusInfos := make([]StatusInfo, 0, 4)
+	for _, s := range allStatus {
+		statusInfos = append(statusInfos, StatusInfo{
+			Status:          int(s),
+			DisplayedStatus: s.String(),
+		})
+	}
+	return statusInfos
+}
+
 // GetActors returns a slice of Actors
 func GetActors(ctx context.Context) (map[int64]*user_model.User, error) {
 	actors := make(map[int64]*user_model.User, 10)
