@@ -32,7 +32,6 @@ import (
 	"github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
 	"github.com/blevesearch/bleve/v2/mapping"
 	"github.com/blevesearch/bleve/v2/search/query"
-	"github.com/ethantkoenig/rupture"
 	"github.com/go-enry/go-enry/v2"
 )
 
@@ -77,8 +76,8 @@ const (
 	repoIndexerLatestVersion = 6
 )
 
-// createBleveIndexer create a bleve repo indexer if one does not already exist
-func createBleveIndexer(path string, latestVersion int) (bleve.Index, error) {
+// generateBleveIndexMapping generates a bleve index mapping for the repo indexer
+func generateBleveIndexMapping() (mapping.IndexMapping, error) {
 	docMapping := bleve.NewDocumentMapping()
 	numericFieldMapping := bleve.NewNumericFieldMapping()
 	numericFieldMapping.IncludeInAll = false
@@ -113,17 +112,7 @@ func createBleveIndexer(path string, latestVersion int) (bleve.Index, error) {
 	mapping.AddDocumentMapping(repoIndexerDocType, docMapping)
 	mapping.AddDocumentMapping("_all", bleve.NewDocumentDisabledMapping())
 
-	indexer, err := bleve.New(path, mapping)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = rupture.WriteIndexMetadata(path, &rupture.IndexMetadata{
-		Version: latestVersion,
-	}); err != nil {
-		return nil, err
-	}
-	return indexer, nil
+	return mapping, nil
 }
 
 var _ Indexer = &BleveIndexer{}
@@ -136,13 +125,10 @@ type BleveIndexer struct {
 
 // NewBleveIndexer creates a new bleve local indexer
 func NewBleveIndexer(indexDir string) *BleveIndexer {
-	in := &inner_bleve.Indexer{
-		IndexDir: indexDir,
-		Version:  repoIndexerLatestVersion,
-	}
+	inner := inner_bleve.NewIndexer(indexDir, repoIndexerLatestVersion, generateBleveIndexMapping)
 	return &BleveIndexer{
-		Indexer: in,
-		inner:   in,
+		Indexer: inner,
+		inner:   inner,
 	}
 }
 
@@ -205,23 +191,6 @@ func (b *BleveIndexer) addUpdate(ctx context.Context, batchWriter git.WriteClose
 func (b *BleveIndexer) addDelete(filename string, repo *repo_model.Repository, batch *inner_bleve.FlushingBatch) error {
 	id := filenameIndexerID(repo.ID, filename)
 	return batch.Delete(id)
-}
-
-// Init initializes the indexer
-func (b *BleveIndexer) Init() (bool, error) {
-	opened, err := b.Indexer.Init()
-	if err != nil {
-		return false, err
-	}
-	if opened {
-		return true, nil
-	}
-
-	b.inner.Indexer, err = createBleveIndexer(b.inner.IndexDir, repoIndexerLatestVersion)
-	if err != nil {
-		return false, err
-	}
-	return false, nil
 }
 
 // Index indexes the data

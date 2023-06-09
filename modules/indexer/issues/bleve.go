@@ -19,7 +19,6 @@ import (
 	"github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
 	"github.com/blevesearch/bleve/v2/mapping"
 	"github.com/blevesearch/bleve/v2/search/query"
-	"github.com/ethantkoenig/rupture"
 )
 
 const (
@@ -77,8 +76,8 @@ func (i *BleveIndexerData) Type() string {
 	return issueIndexerDocType
 }
 
-// createIssueIndexer create an issue indexer if one does not already exist
-func createIssueIndexer(path string, latestVersion int) (bleve.Index, error) {
+// generateIssueIndexMapping generates the bleve index mapping for issues
+func generateIssueIndexMapping() (mapping.IndexMapping, error) {
 	mapping := bleve.NewIndexMapping()
 	docMapping := bleve.NewDocumentMapping()
 
@@ -108,17 +107,7 @@ func createIssueIndexer(path string, latestVersion int) (bleve.Index, error) {
 	mapping.AddDocumentMapping(issueIndexerDocType, docMapping)
 	mapping.AddDocumentMapping("_all", bleve.NewDocumentDisabledMapping())
 
-	index, err := bleve.New(path, mapping)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = rupture.WriteIndexMetadata(path, &rupture.IndexMetadata{
-		Version: latestVersion,
-	}); err != nil {
-		return nil, err
-	}
-	return index, nil
+	return mapping, nil
 }
 
 var _ Indexer = &BleveIndexer{}
@@ -131,28 +120,11 @@ type BleveIndexer struct {
 
 // NewBleveIndexer creates a new bleve local indexer
 func NewBleveIndexer(indexDir string) *BleveIndexer {
-	in := &inner_bleve.Indexer{
-		IndexDir: indexDir,
-		Version:  issueIndexerLatestVersion,
-	}
+	inner := inner_bleve.NewIndexer(indexDir, issueIndexerLatestVersion, generateIssueIndexMapping)
 	return &BleveIndexer{
-		Indexer: in,
-		inner:   in,
+		Indexer: inner,
+		inner:   inner,
 	}
-}
-
-// Init will initialize the indexer
-func (b *BleveIndexer) Init() (bool, error) {
-	opened, err := b.Indexer.Init()
-	if err != nil {
-		return false, err
-	}
-	if opened {
-		return true, nil
-	}
-
-	b.inner.Indexer, err = createIssueIndexer(b.inner.IndexDir, issueIndexerLatestVersion)
-	return false, err
 }
 
 // Index will save the index data
