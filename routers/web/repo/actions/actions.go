@@ -163,7 +163,7 @@ func List(ctx *context.Context) {
 
 	ctx.Data["Runs"] = runs
 
-	actors, err := actions_model.GetActors(ctx)
+	actors, err := actions_model.GetActors(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return

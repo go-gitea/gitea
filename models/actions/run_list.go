@@ -131,11 +131,13 @@ func GetStatusInfos(ctx context.Context) []StatusInfo {
 }
 
 // GetActors returns a slice of Actors
-func GetActors(ctx context.Context) (map[int64]*user_model.User, error) {
+func GetActors(ctx context.Context, repoID int64) (map[int64]*user_model.User, error) {
 	actors := make(map[int64]*user_model.User, 10)
 	err := db.GetEngine(ctx).
 		Table("user").
 		Join("INNER", "action_run", "`action_run`.trigger_user_id = `user`.id").
+		And("`action_run`.repo_id = ?", repoID).
+		OrderBy("`user`.name ASC").
 		Find(&actors)
 	return actors, err
 }
