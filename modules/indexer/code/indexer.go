@@ -7,7 +7,6 @@ import (
 	"context"
 	"os"
 	"runtime/pprof"
-	"strconv"
 	"strings"
 	"time"
 
@@ -52,11 +51,7 @@ type Indexer interface {
 }
 
 func filenameIndexerID(repoID int64, filename string) string {
-	return indexerID(repoID) + "_" + filename
-}
-
-func indexerID(id int64) string {
-	return strconv.FormatInt(id, 36)
+	return internal.Base36(repoID) + "_" + filename
 }
 
 func parseIndexerID(indexerID string) (int64, string) {
@@ -64,7 +59,7 @@ func parseIndexerID(indexerID string) (int64, string) {
 	if index == -1 {
 		log.Error("Unexpected ID in repo indexer: %s", indexerID)
 	}
-	repoID, _ := strconv.ParseInt(indexerID[:index], 36, 64)
+	repoID, _ := internal.ParseBase36(indexerID[:index])
 	return repoID, indexerID[index+1:]
 }
 

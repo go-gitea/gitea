@@ -5,8 +5,6 @@ package issues
 
 import (
 	"context"
-	"fmt"
-	"strconv"
 
 	"code.gitea.io/gitea/modules/indexer/internal"
 	inner_bleve "code.gitea.io/gitea/modules/indexer/internal/bleve"
@@ -26,20 +24,6 @@ const (
 	issueIndexerDocType       = "issueIndexerDocType"
 	issueIndexerLatestVersion = 2
 )
-
-// indexerID a bleve-compatible unique identifier for an integer id
-func indexerID(id int64) string {
-	return strconv.FormatInt(id, 36)
-}
-
-// idOfIndexerID the integer id associated with an indexer id
-func idOfIndexerID(indexerID string) (int64, error) {
-	id, err := strconv.ParseInt(indexerID, 36, 64)
-	if err != nil {
-		return 0, fmt.Errorf("Unexpected indexer ID %s: %w", indexerID, err)
-	}
-	return id, nil
-}
 
 // numericEqualityQuery a numeric equality query for the given value and field
 func numericEqualityQuery(value int64, field string) *query.NumericRangeQuery {
@@ -131,7 +115,7 @@ func NewBleveIndexer(indexDir string) *BleveIndexer {
 func (b *BleveIndexer) Index(issues []*IndexerData) error {
 	batch := inner_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	for _, issue := range issues {
-		if err := batch.Index(indexerID(issue.ID), struct {
+		if err := batch.Index(internal.Base36(issue.ID), struct {
 			RepoID   int64
 			Title    string
 			Content  string
@@ -152,7 +136,7 @@ func (b *BleveIndexer) Index(issues []*IndexerData) error {
 func (b *BleveIndexer) Delete(ids ...int64) error {
 	batch := inner_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	for _, id := range ids {
-		if err := batch.Delete(indexerID(id)); err != nil {
+		if err := batch.Delete(internal.Base36(id)); err != nil {
 			return err
 		}
 	}
@@ -190,7 +174,7 @@ func (b *BleveIndexer) Search(ctx context.Context, keyword string, repoIDs []int
 		Hits: make([]Match, 0, len(result.Hits)),
 	}
 	for _, hit := range result.Hits {
-		id, err := idOfIndexerID(hit.ID)
+		id, err := internal.ParseBase36(hit.ID)
 		if err != nil {
 			return nil, err
 		}
