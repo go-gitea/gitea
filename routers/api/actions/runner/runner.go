@@ -58,8 +58,8 @@ func (s *Service) Register(
 	// TODO: agent_labels should be removed from pb after Gitea 1.20 released.
 	// Old version runner's agent_labels slice is not empty and labels slice is empty.
 	// And due to compatibility with older versions, it is temporarily marked as Deprecated in pb, so use `//nolint` here.
-	if len(req.Msg.AgentLabels) > 0 && len(req.Msg.Labels) == 0 { //nolint
-		labels = req.Msg.AgentLabels //nolint
+	if len(req.Msg.AgentLabels) > 0 && len(req.Msg.Labels) == 0 { //nolint:staticcheck
+		labels = req.Msg.AgentLabels //nolint:staticcheck
 	}
 
 	// create new runner

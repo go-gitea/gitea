@@ -498,6 +498,9 @@ var migrations = []Migration{
 	NewMigration("Add PinOrder Column", v1_20.AddPinOrderToIssue),
 	// v259 -> 260
 	NewMigration("Convert scoped access tokens", v1_20.ConvertScopedAccessTokens),
+
+	// Gitea 1.20.0 ends at 260
+
 	// v260 -> v261
 	NewMigration("Add label column to action_run table, and combine labels", v1_21.AddLabelsToActRunner),
 }
