@@ -1,4 +1,4 @@
-<nav class="ui container" id="navbar" aria-label="{{.locale.Tr "aria.navbar"}}">
+<nav class="ui container secondary stackable main menu" id="navbar" aria-label="{{.locale.Tr "aria.navbar"}}">
 	{{$notificationUnreadCount := 0}}
 	{{if .IsSigned}}
 		{{if .NotificationUnreadCount}}{{$notificationUnreadCount = call .NotificationUnreadCount}}{{end}}
@@ -78,7 +78,7 @@
 			</div><!-- end dropdown avatar menu -->
 		</div>
 	{{else if .IsSigned}}
-		<div class="right stackable menu">
+		<div class="right stackable menu gt-mr-4">
 			{{if EnableTimetracking}}
 			<a class="active-stopwatch-trigger item ui gt-mx-0{{if not .ActiveStopwatch}} gt-hidden{{end}}" href="{{.ActiveStopwatch.IssueLink}}">
 				<span class="fitted gt-relative">
@@ -125,7 +125,7 @@
 				</span>
 			</a>
 
-			<div class="ui dropdown jump item gt-mx-0" data-tooltip-content="{{.locale.Tr "create_new"}}">
+			<div class="ui dropdown jump item gt-mx-0 gt-pr-3" data-tooltip-content="{{.locale.Tr "create_new"}}">
 				<span class="text">
 					<span class="fitted">{{svg "octicon-plus"}}</span>
 					<span class="sr-mobile-only">{{.locale.Tr "create_new"}}</span>
@@ -148,7 +148,7 @@
 				</div><!-- end content create new menu -->
 			</div><!-- end dropdown menu create new -->
 
-			<div class="ui dropdown jump item gt-mx-0" data-tooltip-content="{{.locale.Tr "user_profile_and_more"}}">
+			<div class="ui dropdown jump item gt-mx-0 gt-pr-3" data-tooltip-content="{{.locale.Tr "user_profile_and_more"}}">
 				<span class="text">
 					{{avatar $.Context .SignedUser 24 "tiny"}}
 					<span class="sr-only">{{.locale.Tr "user_profile_and_more"}}</span>
