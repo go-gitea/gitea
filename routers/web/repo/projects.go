@@ -385,14 +385,10 @@ func UpdateIssueProject(ctx *context.Context) {
 	}
 
 	projectID := ctx.FormInt64("id")
+	action := ctx.FormString("action")
 	for _, issue := range issues {
-		if issue.Project != nil {
-			if issue.Project.ID == projectID {
-				continue
-			}
-		}
 
-		if err := issues_model.ChangeProjectAssign(ctx, issue, ctx.Doer, projectID); err != nil {
+		if err := issues_model.ChangeProjectAssign(ctx, issue, ctx.Doer, projectID, action); err != nil {
 			ctx.ServerError("ChangeProjectAssign", err)
 			return
 		}

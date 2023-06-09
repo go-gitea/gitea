@@ -92,9 +92,9 @@
 							{{svg "octicon-milestone" 14}}{{.Milestone.Name}}
 						</a>
 					{{end}}
-					{{if .Project}}
-						<a class="project flex-text-inline" href="{{.Project.Link ctx}}">
-							{{svg .Project.IconName 14}}{{.Project.Title}}
+					{{range .Projects}}
+						<a class="project flex-text-inline" href="{{.Link ctx}}">
+							{{svg .IconName 14 "gt-mr-2"}}{{.Title}}
 						</a>
 					{{end}}
 					{{if .Ref}}

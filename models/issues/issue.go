@@ -102,14 +102,14 @@ type Issue struct {
 	PosterID         int64                  `xorm:"INDEX"`
 	Poster           *user_model.User       `xorm:"-"`
 	OriginalAuthor   string
-	OriginalAuthorID int64                  `xorm:"index"`
-	Title            string                 `xorm:"name"`
-	Content          string                 `xorm:"LONGTEXT"`
-	RenderedContent  string                 `xorm:"-"`
-	Labels           []*Label               `xorm:"-"`
-	MilestoneID      int64                  `xorm:"INDEX"`
-	Milestone        *Milestone             `xorm:"-"`
-	Project          *project_model.Project `xorm:"-"`
+	OriginalAuthorID int64                    `xorm:"index"`
+	Title            string                   `xorm:"name"`
+	Content          string                   `xorm:"LONGTEXT"`
+	RenderedContent  string                   `xorm:"-"`
+	Labels           []*Label                 `xorm:"-"`
+	MilestoneID      int64                    `xorm:"INDEX"`
+	Milestone        *Milestone               `xorm:"-"`
+	Projects         []*project_model.Project `xorm:"-"`
 	Priority         int
 	AssigneeID       int64            `xorm:"-"`
 	Assignee         *user_model.User `xorm:"-"`

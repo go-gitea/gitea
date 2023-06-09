@@ -93,7 +93,7 @@ func MoveIssuesOnProjectBoard(ctx context.Context, board *Board, sortedIssueIDs 
 		}
 
 		for sorting, issueID := range sortedIssueIDs {
-			_, err = sess.Exec("UPDATE `project_issue` SET project_board_id=?, sorting=? WHERE issue_id=?", board.ID, sorting, issueID)
+			_, err = sess.Exec("UPDATE `project_issue` SET project_board_id=?, sorting=? WHERE issue_id=? AND project_id=?", board.ID, sorting, issueID, board.ProjectID)
 			if err != nil {
 				return err
 			}

@@ -231,8 +231,12 @@ func (issues IssueList) loadMilestones(ctx context.Context) error {
 
 func (issues IssueList) LoadProjects(ctx context.Context) error {
 	issueIDs := issues.getIssueIDs()
-	projectMaps := make(map[int64]*project_model.Project, len(issues))
+	issueMap := make(map[int64]*Issue, len(issues))
 	left := len(issueIDs)
+
+	for _, issue := range issues {
+		issueMap[issue.ID] = issue;
+	}
 
 	type projectWithIssueID struct {
 		*project_model.Project `xorm:"extends"`
@@ -255,16 +259,14 @@ func (issues IssueList) LoadProjects(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		for _, project := range projects {
-			projectMaps[project.IssueID] = project.Project
-		}
 		left -= limit
 		issueIDs = issueIDs[limit:]
+		for _, projectIssue := range projects {
+			issue := issueMap[projectIssue.IssueID]
+			issue.Projects = append(issue.Projects, projectIssue.Project)
+		}
 	}
 
-	for _, issue := range issues {
-		issue.Project = projectMaps[issue.ID]
-	}
 	return nil
 }
 
