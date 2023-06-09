@@ -121,7 +121,6 @@ func ChangeProjectAssign(issue *Issue, doer *user_model.User, newProjectID int64
 }
 
 func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectID int64, action string) error {
-
 	if err := issue.LoadRepo(ctx); err != nil {
 		return err
 	}
