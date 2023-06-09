@@ -14,24 +14,73 @@
 			<label><input type="checkbox" name="button-state-disabled" value="disabled">disabled</label>
 		</div>
 		<div id="devtest-button-samples">
-			<div>
-				<button class="ui primary button">Primary</button>
-				<button class="ui secondary button">Secondary</button>
-				<button class="ui basic secondary button">Basic Secondary</button>
-				<button class="ui red button">Red</button>
-				<button class="ui basic red button">Basic Red</button>
-			</div>
-			<div>This is a <button class="ui button button-ghost">Ghost</button> button</div>
+			<style>
+				.button-sample-groups { margin: 0; padding: 0; }
+				.button-sample-groups .sample-group { list-style: none; margin: 0; padding: 0; }
+				.button-sample-groups .sample-group .ui.button { margin-bottom: 5px; }
+			</style>
+			<ul class="button-sample-groups">
+				<li class="sample-group">
+					<h2>General purpose:</h2>
+					<button class="ui button">Unclassed</button>
+					<button class="ui basic button">Basic Unclassed</button>
+					<button class="ui primary button">Primary</button>
+					<button class="ui basic primary button">Basic Primary</button>
+					<button class="ui negative button">Negative</button>
+					<button class="ui basic negative button">Basic Negative</button>
+					<button class="ui positive button">Positive</button>
+					<button class="ui basic positive button">Basic Positive</button>
+				</li>
+				<li class="sample-group">
+					<h2>Recommended colors:</h2>
+					<button class="ui red button">Red</button>
+					<button class="ui basic red button">Basic Red</button>
+					<button class="ui green button">Green</button>
+					<button class="ui basic green button">Basic Green</button>
+					<button class="ui blue button">Blue</button>
+					<button class="ui basic blue button">Basic Blue</button>
+					<button class="ui orange button">Orange</button>
+					<button class="ui basic orange button">Basic Orange</button>
+					<button class="ui yellow button">Yellow</button>
+					<button class="ui basic yellow button">Basic Yellow</button>
+				</li>
+				<li class="sample-group">
+					<h2>Supported but not recommended:</h2>
+					<p>Do not use if there is no strong requirement. Do not use grey/black buttons, they don't work well with dark theme.</p>
+					<button class="ui secondary button">Secondary</button>
+					<button class="ui basic secondary button">Basic Secondary</button>
+					<button class="ui olive button">Olive</button>
+					<button class="ui basic olive button">Basic Olive</button>
+					<button class="ui teal button">Teal</button>
+					<button class="ui basic teal button">Basic Teal</button>
+					<button class="ui violet button">Violet</button>
+					<button class="ui basic violet button">Basic Violet</button>
+					<button class="ui purple button">Purple</button>
+					<button class="ui basic purple button">Basic Purple</button>
+					<button class="ui pink button">Pink</button>
+					<button class="ui basic pink button">Basic Pink</button>
+					<button class="ui brown button">Brown</button>
+					<button class="ui basic brown button">Basic Brown</button>
+				</li>
+				<li class="sample-group">
+					<h2>Inline / Plain:</h2>
+					<div class="gt-my-2">
+						<button class="btn gt-p-3">Plain button</button>
+						<button class="btn interact-fg gt-p-3">Plain button with interact fg</button>
+						<button class="btn interact-bg gt-p-3">Plain button with interact bg</button>
+					</div>
+				</li>
+			</ul>
+			<script type="module">
+				const $buttons = $('#devtest-button-samples').find('button.ui');
+
+				const $buttonStyles = $('input[name*="button-style"]');
+				$buttonStyles.on('click', () => $buttonStyles.map((_ ,el) => $buttons.toggleClass(el.value, el.checked)));
+
+				const $buttonStates = $('input[name*="button-state"]');
+				$buttonStates.on('click', () => $buttonStates.map((_ ,el) => $buttons.prop(el.value, el.checked)));
+			</script>
 		</div>
-		<script type="module">
-			const $buttons = $('#devtest-button-samples').find('button');
-
-			const $buttonStyles = $('input[name*="button-style"]');
-			$buttonStyles.on('click', () => $buttonStyles.map((_ ,el) => $buttons.toggleClass(el.value, el.checked)));
-
-			const $buttonStates = $('input[name*="button-state"]');
-			$buttonStates.on('click', () => $buttonStates.map((_ ,el) => $buttons.prop(el.value, el.checked)));
-		</script>
 	</div>
 
 	<div>
@@ -75,7 +124,7 @@
 	</div>
 
 	<style>
-		h1 {
+		h1, h2 {
 			margin: 0;
 			padding: 10px 0;
 		}
