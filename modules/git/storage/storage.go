@@ -46,10 +46,10 @@ func (l *LocalSingleStorage) CheckStats() error {
 	// `[repository]` `ROOT` is a relative path and $GITEA_WORK_DIR isn't passed to the SSH connection.
 	if _, err := os.Stat(l.repoRootPath); err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("incorrect configuration, no repository directory.", "Directory `[repository].ROOT` %q was not found, please check if $GITEA_WORK_DIR is passed to the SSH connection or make `[repository].ROOT` an absolute value",
+			return fmt.Errorf("directory `[repository].ROOT` %q was not found, please check if $GITEA_WORK_DIR is passed to the SSH connection or make `[repository].ROOT` an absolute value",
 				l.repoRootPath)
 		}
-		return fmt.Errorf("incorrect configuration, repository directory is inaccessible", "Directory `[repository].ROOT` %q is inaccessible. err: %v",
+		return fmt.Errorf("directory `[repository].ROOT` %q is inaccessible. err: %v",
 			l.repoRootPath, err)
 	}
 
