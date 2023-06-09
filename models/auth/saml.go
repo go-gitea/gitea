@@ -1,9 +1,8 @@
 package auth
 
 import (
-	"code.gitea.io/gitea/models/db"
-
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 )
 
 // GetActiveSAMLProviderLoginSources returns all actived LoginSAML sources

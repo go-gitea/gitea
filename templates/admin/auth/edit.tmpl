@@ -370,7 +370,7 @@
 
 				<!-- SAML -->
 				{{if .Source.IsSAML}}
-					{{ $cfg:=.Source.Cfg }}
+					{{$cfg:=.Source.Cfg}}
 					<div class="inline required field">
 						<label>{{.locale.Tr "admin.auths.saml_nameidformat"}}</label>
 						<div class="ui selection type dropdown">
