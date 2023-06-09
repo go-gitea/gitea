@@ -90,7 +90,10 @@ func InitIssueIndexer(syncReindex bool) {
 		pprof.SetGoroutineLabels(ctx)
 		start := time.Now()
 		log.Info("PID %d: Initializing Issue Indexer: %s", os.Getpid(), setting.Indexer.IssueType)
-		var populate bool
+		var (
+			existed bool
+			err     error
+		)
 		switch setting.Indexer.IssueType {
 		case "bleve":
 			defer func() {
@@ -103,12 +106,11 @@ func InitIssueIndexer(syncReindex bool) {
 				}
 			}()
 			issueIndexer := bleve.NewIndexer(setting.Indexer.IssuePath)
-			exist, err := issueIndexer.Init()
+			existed, err = issueIndexer.Init()
 			if err != nil {
 				holder.Set(nil)
 				log.Fatal("Unable to initialize Bleve Issue Indexer at path: %s Error: %v", setting.Indexer.IssuePath, err)
 			}
-			populate = !exist
 			holder.Set(issueIndexer)
 			graceful.GetManager().RunAtTerminate(func() {
 				log.Debug("Closing issue indexer")
@@ -121,25 +123,20 @@ func InitIssueIndexer(syncReindex bool) {
 			log.Debug("Created Bleve Indexer")
 		case "elasticsearch":
 			issueIndexer := elasticsearch.NewIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueIndexerName)
-			exist, err := issueIndexer.Init()
+			existed, err = issueIndexer.Init()
 			if err != nil {
 				log.Fatal("Unable to issueIndexer.Init with connection %s Error: %v", setting.Indexer.IssueConnStr, err)
 			}
-			populate = !exist
 			holder.Set(issueIndexer)
 		case "db":
 			issueIndexer := db.NewIndexer()
 			holder.Set(issueIndexer)
 		case "meilisearch":
-			issueIndexer, err := meilisearch.NewMeilisearchIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueConnAuth, setting.Indexer.IssueIndexerName)
-			if err != nil {
-				log.Fatal("Unable to initialize Meilisearch Issue Indexer at connection: %s Error: %v", setting.Indexer.IssueConnStr, err)
-			}
-			exist, err := issueIndexer.Init()
+			issueIndexer := meilisearch.NewIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueConnAuth, setting.Indexer.IssueIndexerName)
+			existed, err = issueIndexer.Init()
 			if err != nil {
 				log.Fatal("Unable to issueIndexer.Init with connection %s Error: %v", setting.Indexer.IssueConnStr, err)
 			}
-			populate = !exist
 			holder.Set(issueIndexer)
 		default:
 			holder.Set(nil)
@@ -150,7 +147,7 @@ func InitIssueIndexer(syncReindex bool) {
 		go graceful.GetManager().RunWithCancel(issueIndexerQueue)
 
 		// Populate the index
-		if populate {
+		if !existed {
 			if syncReindex {
 				graceful.GetManager().RunWithShutdownContext(populateIssueIndexer)
 			} else {

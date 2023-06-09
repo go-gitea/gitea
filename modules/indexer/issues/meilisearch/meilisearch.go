@@ -7,9 +7,9 @@ import (
 	"context"
 	"strconv"
 	"strings"
-	"sync"
-	"time"
 
+	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
+	inner_meilisearch "code.gitea.io/gitea/modules/indexer/internal/meilisearch"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
 
 	"github.com/meilisearch/meilisearch-go"
@@ -19,66 +19,19 @@ var _ internal.Indexer = &Indexer{}
 
 // Indexer implements Indexer interface
 type Indexer struct {
-	client      *meilisearch.Client
-	indexerName string
-	available   bool
-	stopTimer   chan struct{}
-	lock        sync.RWMutex
+	inner                    *inner_meilisearch.Indexer
+	indexer_internal.Indexer // do not composite inner_meilisearch.Indexer directly to avoid exposing too much
+
 }
 
-// Indexer creates a new meilisearch indexer
-func NewMeilisearchIndexer(url, apiKey, indexerName string) (*Indexer, error) {
-	client := meilisearch.NewClient(meilisearch.ClientConfig{
-		Host:   url,
-		APIKey: apiKey,
-	})
-
+// NewIndexer creates a new meilisearch indexer
+func NewIndexer(url, apiKey, indexerName string) *Indexer {
+	inner := inner_meilisearch.NewIndexer(url, apiKey, indexerName)
 	indexer := &Indexer{
-		client:      client,
-		indexerName: indexerName,
-		available:   true,
-		stopTimer:   make(chan struct{}),
+		inner:   inner,
+		Indexer: inner,
 	}
-
-	ticker := time.NewTicker(10 * time.Second)
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				indexer.checkAvailability()
-			case <-indexer.stopTimer:
-				ticker.Stop()
-				return
-			}
-		}
-	}()
-
-	return indexer, nil
-}
-
-// Init will initialize the indexer
-func (b *Indexer) Init() (bool, error) {
-	_, err := b.client.GetIndex(b.indexerName)
-	if err == nil {
-		return true, nil
-	}
-	_, err = b.client.CreateIndex(&meilisearch.IndexConfig{
-		Uid:        b.indexerName,
-		PrimaryKey: "id",
-	})
-	if err != nil {
-		return false, b.checkError(err)
-	}
-
-	_, err = b.client.Index(b.indexerName).UpdateFilterableAttributes(&[]string{"repo_id"})
-	return false, b.checkError(err)
-}
-
-// Ping checks if meilisearch is available
-func (b *Indexer) Ping() bool {
-	b.lock.RLock()
-	defer b.lock.RUnlock()
-	return b.available
+	return indexer
 }
 
 // Index will save the index data
@@ -87,9 +40,9 @@ func (b *Indexer) Index(issues []*internal.IndexerData) error {
 		return nil
 	}
 	for _, issue := range issues {
-		_, err := b.client.Index(b.indexerName).AddDocuments(issue)
+		_, err := b.inner.Client.Index(b.inner.IndexName()).AddDocuments(issue)
 		if err != nil {
-			return b.checkError(err)
+			return err
 		}
 	}
 	// TODO: bulk send index data
@@ -103,9 +56,9 @@ func (b *Indexer) Delete(ids ...int64) error {
 	}
 
 	for _, id := range ids {
-		_, err := b.client.Index(b.indexerName).DeleteDocument(strconv.FormatInt(id, 10))
+		_, err := b.inner.Client.Index(b.inner.IndexName()).DeleteDocument(strconv.FormatInt(id, 10))
 		if err != nil {
-			return b.checkError(err)
+			return err
 		}
 	}
 	// TODO: bulk send deletes
@@ -120,13 +73,13 @@ func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, l
 		repoFilters = append(repoFilters, "repo_id = "+strconv.FormatInt(repoID, 10))
 	}
 	filter := strings.Join(repoFilters, " OR ")
-	searchRes, err := b.client.Index(b.indexerName).Search(keyword, &meilisearch.SearchRequest{
+	searchRes, err := b.inner.Client.Index(b.inner.IndexName()).Search(keyword, &meilisearch.SearchRequest{
 		Filter: filter,
 		Limit:  int64(limit),
 		Offset: int64(start),
 	})
 	if err != nil {
-		return nil, b.checkError(err)
+		return nil, err
 	}
 
 	hits := make([]internal.Match, 0, len(searchRes.Hits))
@@ -139,37 +92,4 @@ func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, l
 		Total: searchRes.TotalHits,
 		Hits:  hits,
 	}, nil
-}
-
-// Close implements indexer
-func (b *Indexer) Close() {
-	select {
-	case <-b.stopTimer:
-	default:
-		close(b.stopTimer)
-	}
-}
-
-func (b *Indexer) checkError(err error) error {
-	return err
-}
-
-func (b *Indexer) checkAvailability() {
-	_, err := b.client.Health()
-	if err != nil {
-		b.setAvailability(false)
-		return
-	}
-	b.setAvailability(true)
-}
-
-func (b *Indexer) setAvailability(available bool) {
-	b.lock.Lock()
-	defer b.lock.Unlock()
-
-	if b.available == available {
-		return
-	}
-
-	b.available = available
 }

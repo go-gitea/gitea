@@ -30,10 +30,10 @@ type Indexer struct {
 
 // NewIndexer creates a new elasticsearch indexer
 func NewIndexer(url, indexerName string) *Indexer {
-	in := inner_elasticsearch.NewIndexer(url, indexerName, issueIndexerLatestVersion, defaultMapping)
+	inner := inner_elasticsearch.NewIndexer(url, indexerName, issueIndexerLatestVersion, defaultMapping)
 	indexer := &Indexer{
-		inner:   in,
-		Indexer: in,
+		inner:   inner,
+		Indexer: inner,
 	}
 	return indexer
 }
