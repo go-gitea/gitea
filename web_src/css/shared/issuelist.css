@@ -24,13 +24,6 @@
   width: 80%;
 }
 
-/* The icon is wrapper by span, resulting in different line height, need to make it a block
-  to align with .issue-item-top-row
-*/
-.action-item-icon > span {
-  display: block !important;
-}
-
 .action-item-title {
   color: var(--color-text);
 }
