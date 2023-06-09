@@ -7,12 +7,12 @@ async function loadBranchesAndTags(loadingButton, addHere) {
     headers: {'X-Csrf-Token': csrfToken},
   }).finally(() => loadingButton.removeAttribute('disabled'));
 
-  if(!response.ok) {
-    console.log('Could not retrieve branches and tags for ' + response);
+  if (!response.ok) {
+    console.log(`Could not retrieve branches and tags for ${response}`);
     return;
   }
 
-  const data  = await response.json();
+  const data = await response.json();
   showAreas('.branch-tag-area-divider');
   loadingButton.classList.add('gt-hidden');
   addHere.querySelector('.branch-tag-area-text').textContent = loadingButton.getAttribute('data-contained-in-text');
@@ -23,19 +23,16 @@ async function loadBranchesAndTags(loadingButton, addHere) {
 
 function addTags(tags, addHere) {
   showAreas('.tag-area');
-  for(const tag of tags)
-    addLink(tag.web_url, tag.name, addHere);
+  for (const tag of tags) addLink(tag.web_url, tag.name, addHere);
 }
 
 function addBranches(branches, defaultBranch, defaultBranchTooltip, addHere) {
   showAreas('.branch-area');
-  for(const branch of branches)
-    addLink(branch.web_url, branch.name, addHere, defaultBranch === branch.name ? defaultBranchTooltip : undefined);
+  for (const branch of branches) addLink(branch.web_url, branch.name, addHere, defaultBranch === branch.name ? defaultBranchTooltip : undefined);
 }
 
 function showAreas(selector) {
-  for(const branchArea of document.querySelectorAll(selector))
-    branchArea.classList.remove('gt-hidden');
+  for (const branchArea of document.querySelectorAll(selector)) branchArea.classList.remove('gt-hidden');
 }
 
 function addLink(href, text, addHere, tooltip) {
@@ -43,16 +40,15 @@ function addLink(href, text, addHere, tooltip) {
   link.classList.add('muted');
   link.classList.add('gt-px-3');
   link.classList.add('gt-rounded');
-  if(tooltip) {
+  if (tooltip) {
     link.classList.add('gt-border-secondary');
     link.setAttribute('data-tooltip-content', tooltip);
   }
-  link.href=href;
-  link.text=text;
-  addHere.appendChild(link);
+  link.href = href;
+  link.text = text;
+  addHere.append(link);
 }
 
 export function initLoadBranchesAndTagsButton() {
-  for(const loadButton of document.querySelectorAll('.load-tags-and-branches'))
-    loadButton.addEventListener('click', async (e) => loadBranchesAndTags(loadButton, document.querySelector('.branch-and-tag-area')));
+  for (const loadButton of document.querySelectorAll('.load-tags-and-branches')) loadButton.addEventListener('click', async (e) => loadBranchesAndTags(loadButton, document.querySelector('.branch-and-tag-area')));
 }
