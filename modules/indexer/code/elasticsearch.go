@@ -37,16 +37,16 @@ const (
 	esMultiMatchTypePhrasePrefix = "phrase_prefix"
 )
 
-var _ Indexer = &ElasticSearchIndexer{}
+var _ Indexer = &ElasticsearchIndexer{}
 
-// ElasticSearchIndexer implements Indexer interface
-type ElasticSearchIndexer struct {
+// ElasticsearchIndexer implements Indexer interface
+type ElasticsearchIndexer struct {
 	inner            *inner_elasticsearch.Indexer
 	internal.Indexer // do not composite inner_elasticsearch.Indexer directly to avoid exposing too much
 }
 
-// NewElasticSearchIndexer creates a new elasticsearch indexer
-func NewElasticSearchIndexer(url, indexerName string) (*ElasticSearchIndexer, error) {
+// NewElasticsearchIndexer creates a new elasticsearch indexer
+func NewElasticsearchIndexer(url, indexerName string) (*ElasticsearchIndexer, error) {
 	opts := []elastic.ClientOptionFunc{
 		elastic.SetURL(url),
 		elastic.SetSniff(false),
@@ -66,7 +66,7 @@ func NewElasticSearchIndexer(url, indexerName string) (*ElasticSearchIndexer, er
 	}
 
 	in := inner_elasticsearch.NewIndexer(client, indexerName)
-	indexer := &ElasticSearchIndexer{
+	indexer := &ElasticsearchIndexer{
 		inner:   in,
 		Indexer: in,
 	}
@@ -103,12 +103,12 @@ const (
 	}`
 )
 
-func (b *ElasticSearchIndexer) realIndexerName() string {
+func (b *ElasticsearchIndexer) realIndexerName() string {
 	return fmt.Sprintf("%s.v%d", b.inner.IndexerName, esRepoIndexerLatestVersion)
 }
 
 // Init will initialize the indexer
-func (b *ElasticSearchIndexer) Init() (bool, error) {
+func (b *ElasticsearchIndexer) Init() (bool, error) {
 	opened, err := b.Indexer.Init()
 	if err != nil {
 		return false, err
@@ -164,7 +164,7 @@ func (b *ElasticSearchIndexer) Init() (bool, error) {
 	return true, nil
 }
 
-func (b *ElasticSearchIndexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update fileUpdate, repo *repo_model.Repository) ([]elastic.BulkableRequest, error) {
+func (b *ElasticsearchIndexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update fileUpdate, repo *repo_model.Repository) ([]elastic.BulkableRequest, error) {
 	// Ignore vendored files in code search
 	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil, nil
@@ -223,7 +223,7 @@ func (b *ElasticSearchIndexer) addUpdate(ctx context.Context, batchWriter git.Wr
 	}, nil
 }
 
-func (b *ElasticSearchIndexer) addDelete(filename string, repo *repo_model.Repository) elastic.BulkableRequest {
+func (b *ElasticsearchIndexer) addDelete(filename string, repo *repo_model.Repository) elastic.BulkableRequest {
 	id := filenameIndexerID(repo.ID, filename)
 	return elastic.NewBulkDeleteRequest().
 		Index(b.inner.IndexerName).
@@ -231,7 +231,7 @@ func (b *ElasticSearchIndexer) addDelete(filename string, repo *repo_model.Repos
 }
 
 // Index will save the index data
-func (b *ElasticSearchIndexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *repoChanges) error {
+func (b *ElasticsearchIndexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *repoChanges) error {
 	reqs := make([]elastic.BulkableRequest, 0)
 	if len(changes.Updates) > 0 {
 		// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
@@ -270,7 +270,7 @@ func (b *ElasticSearchIndexer) Index(ctx context.Context, repo *repo_model.Repos
 }
 
 // Delete deletes indexes by ids
-func (b *ElasticSearchIndexer) Delete(repoID int64) error {
+func (b *ElasticsearchIndexer) Delete(repoID int64) error {
 	_, err := b.inner.Client.DeleteByQuery(b.inner.IndexerName).
 		Query(elastic.NewTermsQuery("repo_id", repoID)).
 		Do(graceful.GetManager().HammerContext())
@@ -355,7 +355,7 @@ func extractAggs(searchResult *elastic.SearchResult) []*SearchResultLanguages {
 }
 
 // Search searches for codes and language stats by given conditions.
-func (b *ElasticSearchIndexer) Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error) {
+func (b *ElasticsearchIndexer) Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error) {
 	searchType := esMultiMatchTypeBestFields
 	if isMatch {
 		searchType = esMultiMatchTypePhrasePrefix

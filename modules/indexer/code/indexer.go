@@ -249,7 +249,7 @@ func Init() {
 				}
 			}()
 
-			rIndexer, err = NewElasticSearchIndexer(setting.Indexer.RepoConnStr, setting.Indexer.RepoIndexerName)
+			rIndexer, err = NewElasticsearchIndexer(setting.Indexer.RepoConnStr, setting.Indexer.RepoIndexerName)
 			if err != nil {
 				cancel()
 				holder.Get().Close()

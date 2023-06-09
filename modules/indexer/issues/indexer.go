@@ -146,7 +146,7 @@ func InitIssueIndexer(syncReindex bool) {
 			})
 			log.Debug("Created Bleve Indexer")
 		case "elasticsearch":
-			issueIndexer, err := NewElasticSearchIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueIndexerName)
+			issueIndexer, err := NewElasticsearchIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueIndexerName)
 			if err != nil {
 				log.Fatal("Unable to initialize Elastic Search Issue Indexer at connection: %s Error: %v", setting.Indexer.IssueConnStr, err)
 			}

@@ -18,16 +18,16 @@ import (
 	"github.com/olivere/elastic/v7"
 )
 
-var _ Indexer = &ElasticSearchIndexer{}
+var _ Indexer = &ElasticsearchIndexer{}
 
-// ElasticSearchIndexer implements Indexer interface
-type ElasticSearchIndexer struct {
+// ElasticsearchIndexer implements Indexer interface
+type ElasticsearchIndexer struct {
 	inner            *inner_elasticsearch.Indexer
 	internal.Indexer // do not composite inner_elasticsearch.Indexer directly to avoid exposing too much
 }
 
-// NewElasticSearchIndexer creates a new elasticsearch indexer
-func NewElasticSearchIndexer(url, indexerName string) (*ElasticSearchIndexer, error) {
+// NewElasticsearchIndexer creates a new elasticsearch indexer
+func NewElasticsearchIndexer(url, indexerName string) (*ElasticsearchIndexer, error) {
 	opts := []elastic.ClientOptionFunc{
 		elastic.SetURL(url),
 		elastic.SetSniff(false),
@@ -46,7 +46,7 @@ func NewElasticSearchIndexer(url, indexerName string) (*ElasticSearchIndexer, er
 	}
 
 	in := inner_elasticsearch.NewIndexer(client, indexerName)
-	indexer := &ElasticSearchIndexer{
+	indexer := &ElasticsearchIndexer{
 		inner:   in,
 		Indexer: in,
 	}
@@ -83,7 +83,7 @@ const (
 )
 
 // Init will initialize the indexer
-func (b *ElasticSearchIndexer) Init() (bool, error) {
+func (b *ElasticsearchIndexer) Init() (bool, error) {
 	opened, err := b.Indexer.Init()
 	if err != nil {
 		return false, err
@@ -109,7 +109,7 @@ func (b *ElasticSearchIndexer) Init() (bool, error) {
 }
 
 // Index will save the index data
-func (b *ElasticSearchIndexer) Index(issues []*IndexerData) error {
+func (b *ElasticsearchIndexer) Index(issues []*IndexerData) error {
 	if len(issues) == 0 {
 		return nil
 	} else if len(issues) == 1 {
@@ -152,7 +152,7 @@ func (b *ElasticSearchIndexer) Index(issues []*IndexerData) error {
 }
 
 // Delete deletes indexes by ids
-func (b *ElasticSearchIndexer) Delete(ids ...int64) error {
+func (b *ElasticsearchIndexer) Delete(ids ...int64) error {
 	if len(ids) == 0 {
 		return nil
 	} else if len(ids) == 1 {
@@ -181,7 +181,7 @@ func (b *ElasticSearchIndexer) Delete(ids ...int64) error {
 
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
-func (b *ElasticSearchIndexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int) (*SearchResult, error) {
+func (b *ElasticsearchIndexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int) (*SearchResult, error) {
 	kwQuery := elastic.NewMultiMatchQuery(keyword, "title", "content", "comments")
 	query := elastic.NewBoolQuery()
 	query = query.Must(kwQuery)
