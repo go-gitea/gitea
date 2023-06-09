@@ -19,7 +19,7 @@
 				{{if .Org.Website}}<div class="item">{{svg "octicon-link"}} <a target="_blank" rel="noopener noreferrer me" href="{{.Org.Website}}">{{.Org.Website}}</a></div>{{end}}
 			</div>
 		</div>
-		<div class="right stackable menu">
+		<div class="right menu">
 			<form method="post" action="{{.Link}}?action={{if $.IsFollowing}}unfollow{{else}}follow{{end}}&redirect_to={{$.Link}}">
 				{{$.CsrfTokenHtml}}
 				<button type="submit" class="ui basic button gt-mr-0">
