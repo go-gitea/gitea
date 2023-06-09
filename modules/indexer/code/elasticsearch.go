@@ -46,7 +46,7 @@ type ElasticsearchIndexer struct {
 
 // NewElasticsearchIndexer creates a new elasticsearch indexer
 func NewElasticsearchIndexer(url, indexerName string) *ElasticsearchIndexer {
-	in := inner_elasticsearch.NewIndexer(url, indexerName, repoIndexerLatestVersion, defaultMapping)
+	in := inner_elasticsearch.NewIndexer(url, indexerName, esRepoIndexerLatestVersion, defaultMapping)
 	indexer := &ElasticsearchIndexer{
 		inner:   in,
 		Indexer: in,
