@@ -248,7 +248,7 @@ func detectLicense(buf []byte) []string {
 	for _, r := range matches.Matches {
 		if r.MatchType == "License" {
 			tag := fmt.Sprintf("%d-%d", r.StartLine, r.EndLine)
-			licenseVariants[tag] = append(licenseVariants[r.Variant], r.Name)
+			licenseVariants[tag] = append(licenseVariants[tag], r.Name)
 		}
 	}
 
