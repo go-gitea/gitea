@@ -21,7 +21,6 @@ var _ internal.Indexer = &Indexer{}
 type Indexer struct {
 	inner                    *inner_meilisearch.Indexer
 	indexer_internal.Indexer // do not composite inner_meilisearch.Indexer directly to avoid exposing too much
-
 }
 
 // NewIndexer creates a new meilisearch indexer
