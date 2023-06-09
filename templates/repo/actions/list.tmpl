@@ -42,7 +42,7 @@
 						</div>
 					</div>
 					<!-- Status -->
-					<div class="ui {{if not .StatusInfos}}disabled{{end}} dropdown jump item">
+					<div class="ui {{if not .StatusInfoList}}disabled{{end}} dropdown jump item">
 						<span class="text">
 							{{.locale.Tr "actions.runs.status"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -55,7 +55,7 @@
 							<a class="item{{if not $.CurStatus}} active{{end}}" href="{{$.Link}}?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}">
 								{{.locale.Tr "actions.runs.status_no_select"}}
 							</a>
-							{{range .StatusInfos}}
+							{{range .StatusInfoList}}
 								<a class="item{{if eq .Status $.CurStatus}} active{{end}}" href="{{$.Link}}?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status={{.Status}}">
 									{{.DisplayedStatus}}
 								</a>

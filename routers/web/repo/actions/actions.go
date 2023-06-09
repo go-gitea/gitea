@@ -171,7 +171,7 @@ func List(ctx *context.Context) {
 	}
 	ctx.Data["Actors"] = repo.MakeSelfOnTop(ctx, actors)
 
-	ctx.Data["StatusInfos"] = actions_model.GetStatusInfos(ctx)
+	ctx.Data["StatusInfoList"] = actions_model.GetStatusInfoList(ctx)
 
 	pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)

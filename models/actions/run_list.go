@@ -116,18 +116,18 @@ type StatusInfo struct {
 	DisplayedStatus string
 }
 
-// GetStatusInfos returns a slice of StatusInfo
-func GetStatusInfos(ctx context.Context) []StatusInfo {
+// GetStatusInfoList returns a slice of StatusInfo
+func GetStatusInfoList(ctx context.Context) []StatusInfo {
 	// same as those in aggregateJobStatus
 	allStatus := []Status{StatusSuccess, StatusFailure, StatusWaiting, StatusRunning}
-	statusInfos := make([]StatusInfo, 0, 4)
+	statusInfoList := make([]StatusInfo, 0, 4)
 	for _, s := range allStatus {
-		statusInfos = append(statusInfos, StatusInfo{
+		statusInfoList = append(statusInfoList, StatusInfo{
 			Status:          int(s),
 			DisplayedStatus: s.String(),
 		})
 	}
-	return statusInfos
+	return statusInfoList
 }
 
 // GetActors returns a slice of Actors
