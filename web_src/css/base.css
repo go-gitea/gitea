@@ -1006,6 +1006,9 @@ img.ui.avatar,
   #navbar .mobile-only {
     display: none;
   }
+  #navbar .right.menu {
+    padding-right: 1em;
+  }
 }
 
 #navbar .navbar-mobile-right .item {
