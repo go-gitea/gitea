@@ -228,7 +228,7 @@ func Test_detectLicense(t *testing.T) {
 	assert.NoError(t, err)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equalf(t, tt.want, detectLicense(tt.arg), "%s", tt.arg)
+			assert.Equalf(t, tt.want, detectLicense(tt.arg), "")
 		})
 	}
 }

@@ -36,12 +36,15 @@ func InitClassifier() error {
 	if err != nil {
 		return err
 	}
-	for _, lf := range licenseFiles {
-		data, err := options.License(lf)
-		if err != nil {
-			return err
+
+	if len(licenseFiles) > 0 {
+		for _, lf := range licenseFiles {
+			data, err := options.License(lf)
+			if err != nil {
+				return err
+			}
+			classifier.AddContent("License", lf, "license", data)
 		}
-		classifier.AddContent("License", lf, "license", data)
 	}
 	return nil
 }
@@ -240,12 +243,23 @@ func detectLicense(buf []byte) []string {
 		return nil
 	}
 
-	var licenses []string
-	results := classifier.Match(buf)
-	for _, r := range results.Matches {
+	matches := classifier.Match(buf)
+	licenseVariants := make(map[string][]string, len(matches.Matches))
+	for _, r := range matches.Matches {
 		if r.MatchType == "License" {
-			licenses = append(licenses, r.Name)
+			tag := fmt.Sprintf("%d-%d", r.StartLine, r.EndLine)
+			licenseVariants[tag] = append(licenseVariants[r.Variant], r.Name)
 		}
 	}
-	return licenses
+
+	var results []string
+	for _, licenses := range licenseVariants {
+		if len(licenses) == 1 {
+			results = append(results, licenses[0])
+		} else {
+			// TODO: reslove license detection conflict
+			results = append(results, licenses...)
+		}
+	}
+	return results
 }
