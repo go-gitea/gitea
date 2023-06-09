@@ -140,7 +140,7 @@ func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.U
 				}
 			}
 
-			if action == "attach" || (action == "" && i != newProjectID) {
+			if action == "attach" && newProjectID > 0 {
 				if err := db.Insert(ctx, &project_model.ProjectIssue{
 					IssueID:   issue.ID,
 					ProjectID: newProjectID,
@@ -174,7 +174,7 @@ func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.U
 				}
 			}
 
-			if action != "clear" && newProjectID == 0 {
+			if action != "clear" && newProjectID == 0 || action == "attach" && newProjectID > 0 {
 				break
 			}
 		}
