@@ -8,7 +8,6 @@ async function loadBranchesAndTags(loadingButton, addHere) {
   }).finally(() => loadingButton.removeAttribute('disabled'));
 
   if (!response.ok) {
-    console.log(`Could not retrieve branches and tags for ${response}`);
     return;
   }
 
