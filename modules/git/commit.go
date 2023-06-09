@@ -20,7 +20,6 @@ import (
 
 // Commit represents a git commit.
 type Commit struct {
-	Branch string // Branch this commit belongs to
 	Tree
 	ID            SHA1 // The ID of this commit object
 	Author        *Signature
@@ -430,16 +429,6 @@ func (c *Commit) GetBranchName() (string, error) {
 
 	// name-rev commitID output will be "master" or "master~12"
 	return strings.SplitN(strings.TrimSpace(data), "~", 2)[0], nil
-}
-
-// LoadBranchName load branch name for commit
-func (c *Commit) LoadBranchName() (err error) {
-	if len(c.Branch) != 0 {
-		return
-	}
-
-	c.Branch, err = c.GetBranchName()
-	return err
 }
 
 // GetTagName gets the current tag name for given commit
