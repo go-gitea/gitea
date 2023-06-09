@@ -174,12 +174,3 @@ func RunnerDeletePost(ctx *context.Context, runnerID int64,
 		"redirect": successRedirectTo,
 	})
 }
-
-// unused, so comment out
-// func splitLabels(s string) []string {
-// 	labels := strings.Split(s, ",")
-// 	for i, v := range labels {
-// 		labels[i] = strings.TrimSpace(v)
-// 	}
-// 	return labels
-// }
