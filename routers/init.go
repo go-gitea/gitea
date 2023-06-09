@@ -39,6 +39,7 @@ import (
 	actions_service "code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
+	"code.gitea.io/gitea/services/auth/source/saml"
 	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/cron"
 	"code.gitea.io/gitea/services/mailer"
@@ -142,6 +143,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	log.Info("ORM engine initialization successful!")
 	mustInit(system.Init)
 	mustInit(oauth2.Init)
+	mustInit(saml.Init)
 
 	mustInitCtx(ctx, models.Init)
 	mustInit(repo_service.Init)

@@ -15,7 +15,7 @@ import (
 // AuthenticationForm form for authentication
 type AuthenticationForm struct {
 	ID                            int64
-	Type                          int    `binding:"Range(2,7)"`
+	Type                          int    `binding:"Range(2,9)"`
 	Name                          string `binding:"Required;MaxSize(30)"`
 	Host                          string
 	Port                          int
@@ -82,6 +82,15 @@ type AuthenticationForm struct {
 	SSPIDefaultLanguage           string
 	GroupTeamMap                  string `binding:"ValidGroupTeamMap"`
 	GroupTeamMapRemoval           bool
+
+	// SAML Settings
+	NameIDFormat                             int
+	IdentityProviderMetadata                 string
+	IdentityProviderMetadataURL              string
+	InsecureSkipAssertionSignatureValidation bool
+	ServiceProviderCertificate               string
+	ServiceProviderPrivateKey                string
+	SignRequests                             bool
 }
 
 // Validate validates fields

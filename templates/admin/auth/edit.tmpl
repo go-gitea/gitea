@@ -368,6 +368,56 @@
 					</div>
 				{{end}}
 
+				<!-- SAML -->
+				{{if .Source.IsSAML}}
+					{{ $cfg:=.Source.Cfg }}
+					<div class="inline required field">
+						<label>{{.locale.Tr "admin.auths.saml_nameidformat"}}</label>
+						<div class="ui selection type dropdown">
+							<input type="hidden" id="name_id_format" name="name_id_format" value="{{$cfg.NameIDFormat}}">
+							<div class="text">{{.CurrentNameIDFormat}}</div>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							<div class="menu">
+								{{range .NameIDFormats}}
+									<div class="item" data-value="{{.Type.Int}}">{{.Name}}</div>
+								{{end}}
+							</div>
+						</div>
+					</div>
+
+					<div class="field">
+						<label for="identity_provider_metadata_url">{{.locale.Tr "admin.auths.saml_IdentityProviderMetadataURL"}}</label>
+						<input id="identity_provider_metadata_url" name="identity_provider_metadata_url" value="{{$cfg.IdentityProviderMetadataURL}}">
+					</div>
+					<div class="field">
+						<label for="identity_provider_metadata">{{.locale.Tr "admin.auths.saml_IdentityProviderMetadata"}}</label>
+						<textarea rows=2 id="identity_provider_metadata" name="identity_provider_metadata">{{$cfg.IdentityProviderMetadata}}</textarea>
+					</div>
+
+					<div class="inline field">
+						<div class="ui checkbox">
+							<label><strong>{{.locale.Tr "admin.auths.saml_insecure_skip_assertion_signature_validation"}}</strong></label>
+							<input name="insecure_skip_assertion_signature_validation" type="checkbox" {{if $cfg.InsecureSkipAssertionSignatureValidation}}checked{{end}}>
+						</div>
+					</div>
+
+					<div class=" field">
+						<label for="service_provider_certificate">{{.locale.Tr "admin.auths.saml_ServiceProviderCertificate"}}</label>
+						<textarea rows=2 id="service_provider_certificate" name="service_provider_certificate">{{$cfg.ServiceProviderCertificate}}</textarea>
+					</div>
+					<div class=" field">
+						<label for="service_provider_private_key">{{.locale.Tr "admin.auths.saml_ServiceProviderPrivateKey"}}</label>
+						<textarea rows=2 id="service_provider_private_key" name="service_provider_private_key">{{$cfg.ServiceProviderPrivateKey}}</textarea>
+					</div>
+
+					<div class="inline field">
+						<div class="ui checkbox">
+							<label><strong>{{.locale.Tr "admin.auths.SignRequests"}}</strong></label>
+							<input name="sign_requests" type="checkbox" {{if $cfg.SignRequests}}checked{{end}}>
+						</div>
+					</div>
+				{{end}}
+
 				<!-- SSPI -->
 				{{if .Source.IsSSPI}}
 					{{$cfg:=.Source.Cfg}}
