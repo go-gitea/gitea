@@ -1,5 +1,5 @@
 ---
-date: "2016-12-01T16:00:00+02:00"
+date: "2023-06-11T16:00:00+02:00"
 title: "使用源代码安装"
 slug: "install-from-source"
 weight: 30
@@ -103,3 +103,81 @@ GOOS=linux GOARCH=arm64 make build
 ```bash
 CC=aarch64-unknown-linux-gnu-gcc GOOS=linux GOARCH=arm64 TAGS="bindata sqlite sqlite_unlock_notify" make build
 ```
+
+## 使用Linux与Zig编译或交叉编译
+
+- 下载：https://ziglang.org/download/
+- 安装：
+```sh
+sudo rm -rf /usr/local/zig && tar -C /usr/local -xf zig-linux-x86_64-0.10.1.tar.xz
+```
+- 环境变量：`export PATH=$PATH:/usr/local/zig-linux-x86_64-0.10.1/`
+
+1.编译(Linux ➝ Linux)
+
+```sh
+CC="zig cc -target x86_64-linux-gnu" \
+CGO_ENABLED=1 \
+CGO_CFLAGS="-O2 -g -pthread" \
+CGO_LDFLAGS="-linkmode=external -v"
+GOOS=linux \
+GOARCH=amd64 \
+TAGS="bindata sqlite sqlite_unlock_notify" \
+make build
+```
+✅亲测成功
+
+2.交叉编译(Linux ➝ Windows)
+```sh
+CC="zig cc -target x86_64-windows-gnu" \
+CGO_ENABLED=1 \
+CGO_CFLAGS="-O2 -g -pthread" \
+GOOS=windows \
+GOARCH=amd64 \
+TAGS="bindata sqlite sqlite_unlock_notify" \
+make build
+```
+✅亲测成功（Gitea版本1.20.0-rc0,编译后96.4M，选择SQLite3可以正常安装）
+
+
+
+## 使用Windows与Zig编译或交叉编译
+安装zig：
+- 下载：https://ziglang.org/download/
+- 解压设置环境变量
+
+
+让`GIT BASH`支持make：
+- 到 https://sourceforge.net/projects/ezwinports/files/ 去下载 make-4.4.1-without-guile-w32-bin.zip
+- 把该文件进行解压
+- 把解压出来的文件全部拷贝的git的安装目录下： .\Program Files\Git\mingw64\,把文件夹进行合并，如果跳出来需要替换的文件要选择不替换
+- 这样在git bash窗口下就可以执行make了（编译的时候编译器还是需要另外安装的）
+
+让`GIT BASH`支持make（第二种方法）：
+- 下载：[https://github.com/niXman/mingw-builds-binaries](https://github.com/niXman/mingw-builds-binaries)
+- 复制 mingw32-make.exe 到`C:\Program Files\Git\mingw64\bin`，改名make.exe
+
+1.编译(Windows ➝ Windows)
+```
+CC="zig cc -target x86_64-windows-gnu" \
+CGO_ENABLED=1 \
+CGO_CFLAGS="-O2 -g -pthread" \
+GOOS=windows \
+GOARCH=amd64 \
+TAGS="bindata sqlite sqlite_unlock_notify" \
+make build
+```
+✅亲测成功
+
+2.交叉编译(Windows ➝ Linux)
+```
+CC="zig cc -target x86_64-linux-gnu" \
+CGO_ENABLED=1 \
+CGO_CFLAGS="-O2 -g -pthread" \
+CGO_LDFLAGS="-linkmode=external -v"
+GOOS=linux \
+GOARCH=amd64 \
+TAGS="bindata sqlite sqlite_unlock_notify" \
+make build
+```
+❓暂未有时间亲自测试，如有异常，欢迎修正
