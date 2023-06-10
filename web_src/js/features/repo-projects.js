@@ -9,6 +9,20 @@ function updateIssueCount(cards) {
   parent.getElementsByClassName('board-card-cnt')[0].textContent = cnt;
 }
 
+function createNewBoard(boardTitle, projectColorInput) {
+  $.ajax({
+    url: $(this).data('url'),
+    data: JSON.stringify({title: boardTitle.val(), color: projectColorInput.val()}),
+    headers: {
+      'X-Csrf-Token': csrfToken,
+    },
+    contentType: 'application/json',
+    method: 'POST',
+  }).done(() => {
+    boardTitle.closest('form').removeClass('dirty');
+    window.location.reload();
+  });
+}
 function moveIssue({item, from, to, oldIndex}) {
   const columnCards = to.getElementsByClassName('board-card');
   updateIssueCount(from);
@@ -168,24 +182,27 @@ export function initRepoProject() {
     });
   });
 
-  $('#new_board_submit').on('click', function (e) {
+  $('#new_board_submit').on('click', (e) => {
     e.preventDefault();
-
     const boardTitle = $('#new_board');
     const projectColorInput = $('#new_board_color_picker');
+    if (boardTitle.val().length < 1) {
+      return false;
+    }
+    createNewBoard(boardTitle, projectColorInput);
+  });
 
-    $.ajax({
-      url: $(this).data('url'),
-      data: JSON.stringify({title: boardTitle.val(), color: projectColorInput.val()}),
-      headers: {
-        'X-Csrf-Token': csrfToken,
-      },
-      contentType: 'application/json',
-      method: 'POST',
-    }).done(() => {
-      boardTitle.closest('form').removeClass('dirty');
-      window.location.reload();
-    });
+  $('.new-board').on('keyup', (e) => {
+    const boardTitle = $('#new_board');
+    const projectColorInput = $('#new_board_color_picker');
+    if (boardTitle.val().length < 1) {
+      $('#new_board_submit').addClass('disabled');
+      return false;
+    }
+    $(`#new_board_submit`).removeClass('disabled');
+    if (e.key === 'Enter' || e.keyCode === 13) {
+      createNewBoard(boardTitle, projectColorInput);
+    }
   });
 }
 
