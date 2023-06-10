@@ -10,6 +10,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"strings"
 
@@ -63,6 +64,14 @@ func (repo *Repository) IsBranchExist(name string) bool {
 // returning at most "limit" branches, or all branches if "limit" is 0.
 func (repo *Repository) GetBranchNames(skip, limit int) ([]string, int, error) {
 	return callShowRef(repo.Ctx, repo.Path, BranchPrefix, TrustedCmdArgs{BranchPrefix, "--sort=-committerdate"}, skip, limit)
+}
+
+// GetRemotetBranchNames returns branches from the repository remote, skipping "skip" initial branches and
+// returning at most "limit" branches, or all branches if "limit" is 0.
+func (repo *Repository) GetRemotetBranchNames(remote string, skip, limit int) ([]string, int, error) {
+	refPrefix := fmt.Sprintf("refs/remotes/%s/", remote)
+
+	return callShowRef(repo.Ctx, repo.Path, refPrefix, ToTrustedCmdArgs([]string{refPrefix, "--sort=-committerdate"}), skip, limit)
 }
 
 // WalkReferences walks all the references from the repository

@@ -8,6 +8,7 @@ package git
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/go-git/go-git/v5/plumbing"
@@ -76,6 +77,41 @@ func (repo *Repository) GetBranchNames(skip, limit int) ([]string, int, error) {
 	})
 
 	// TODO: Sort?
+
+	return branchNames, count, nil
+}
+
+// GetRemotetBranchNames returns branches from the repository remote, skipping "skip" initial branches and
+// returning at most "limit" branches, or all branches if "limit" is 0.
+func (repo *Repository) GetRemotetBranchNames(remote string, skip, limit int) ([]string, int, error) {
+	var branchNames []string
+
+	refs, err := repo.gogitRepo.References()
+	if err != nil {
+		return nil, 0, nil
+	}
+
+	i := 0
+	count := 0
+	refPrefix := fmt.Sprintf("refs/remotes/%s/", remote)
+
+	_ = refs.ForEach(func(ref *plumbing.Reference) error {
+		refName := ref.Name().String()
+		if !strings.HasPrefix(refName, refPrefix) {
+			return nil
+		}
+
+		count++
+		if i < skip {
+			i++
+			return nil
+		} else if limit != 0 && count > skip+limit {
+			return nil
+		}
+
+		branchNames = append(branchNames, strings.TrimPrefix(refName, refPrefix))
+		return nil
+	})
 
 	return branchNames, count, nil
 }

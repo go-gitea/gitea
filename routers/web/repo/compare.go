@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -29,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/upload"
@@ -175,6 +177,8 @@ func setCsvCompareContext(ctx *context.Context) {
 	}
 }
 
+type CompareMode string
+
 // CompareInfo represents the collected results from ParseCompareInfo
 type CompareInfo struct {
 	HeadUser         *user_model.User
@@ -184,7 +188,128 @@ type CompareInfo struct {
 	BaseBranch       string
 	HeadBranch       string
 	DirectComparison bool
+	CompareMode      CompareMode
+	RefsNotExist     bool
+	HeadInfoNotExist bool
+
+	HeadRef         string
+	BaseRef         string
+	ExternalRepoURL string
+	tmpReop         *tmpGitContext
 }
+
+const (
+	// compareModeInSameRepo compare in same repository
+	compareModeInSameRepo CompareMode = "in_same_repo"
+	// compareModeAcrossRepos compare across repositorys
+	compareModeAcrossRepos CompareMode = "across_repos"
+	// compareModeAcrossService Compare with repository in other service
+	compareModeAcrossService CompareMode = "across_service"
+)
+
+func (c CompareMode) IsInSameRepo() bool {
+	return c == compareModeInSameRepo
+}
+
+func (c CompareMode) IsAcrossRepos() bool {
+	return c == compareModeAcrossRepos
+}
+
+func (c CompareMode) IsAcrossService() bool {
+	return c == compareModeAcrossService
+}
+
+func (c CompareMode) ToLocal() string {
+	return "repo.compare.mode." + string(c)
+}
+
+type tmpGitContext struct {
+	gocontext.Context
+	tmpRepoPath string
+	outbuf      *strings.Builder // we keep these around to help reduce needless buffer recreation,
+	errbuf      *strings.Builder // any use should be preceded by a Reset and preferably after use
+}
+
+func (ctx *tmpGitContext) RunOpts() *git.RunOpts {
+	ctx.outbuf.Reset()
+	ctx.errbuf.Reset()
+	return &git.RunOpts{
+		Dir:    ctx.tmpRepoPath,
+		Stdout: ctx.outbuf,
+		Stderr: ctx.errbuf,
+	}
+}
+
+func (ctx *tmpGitContext) FetchRemote(url string) error {
+	if err := git.NewCommand(ctx, "remote", "add").AddDynamicArguments("origin", url).
+		Run(ctx.RunOpts()); err != nil {
+		return ctx.Error("remote add", err)
+	}
+
+	fetchArgs := git.TrustedCmdArgs{"--tags", "--depth=100"}
+	if git.CheckGitVersionAtLeast("2.25.0") == nil {
+		// Writing the commit graph can be slow and is not needed here
+		fetchArgs = append(fetchArgs, "--no-write-commit-graph")
+	}
+
+	if err := git.NewCommand(ctx, "fetch", "origin").AddArguments(fetchArgs...).Run(ctx.RunOpts()); err != nil {
+		return ctx.Error("fetch origin", err)
+	}
+
+	return nil
+}
+
+func (ctx *tmpGitContext) FetchRemoteRef(ref string) error {
+	fetchArgs := git.TrustedCmdArgs{"--no-tags"}
+	if git.CheckGitVersionAtLeast("2.25.0") == nil {
+		// Writing the commit graph can be slow and is not needed here
+		fetchArgs = append(fetchArgs, "--no-write-commit-graph")
+	}
+
+	if err := git.NewCommand(ctx, "fetch", "origin", "--depth=100").AddArguments(fetchArgs...).AddDashesAndList(ref + ":" + ref).
+		Run(ctx.RunOpts()); err != nil {
+		return ctx.Error("fetch origin", err)
+	}
+
+	return nil
+}
+
+func (ctx *tmpGitContext) Close() {
+	if err := repo_module.RemoveTemporaryPath(ctx.tmpRepoPath); err != nil {
+		log.Error("Error whilst removing removing temporary repo: %v", err)
+	}
+}
+
+func (ctx *tmpGitContext) OpenRepository() (*git.Repository, error) {
+	return git.OpenRepository(ctx, ctx.tmpRepoPath)
+}
+
+func (ctx *tmpGitContext) Error(name string, err error) error {
+	return fmt.Errorf("git error %v: %v\n%s\n%s", name, err, ctx.outbuf.String(), ctx.errbuf.String())
+}
+
+func openTempGitRepo(ctx gocontext.Context) (*tmpGitContext, error) {
+	tmpRepoPath, err := repo_module.CreateTemporaryPath("compare")
+	if err != nil {
+		return nil, err
+	}
+
+	tmpCtx := &tmpGitContext{
+		Context:     ctx,
+		tmpRepoPath: tmpRepoPath,
+		outbuf:      &strings.Builder{},
+		errbuf:      &strings.Builder{},
+	}
+
+	if err := git.InitRepository(ctx, tmpRepoPath, true); err != nil {
+		tmpCtx.Close()
+		return nil, err
+	}
+
+	return tmpCtx, nil
+}
+
+const exampleExternalRepoURL = "https://example.git.com/unknow.git"
 
 // ParseCompareInfo parse compare info between two commit for preparing comparing references
 func ParseCompareInfo(ctx *context.Context) *CompareInfo {
@@ -202,6 +327,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	// 4. /{:baseOwner}/{:baseRepoName}/compare/{:headBranch}
 	// 5. /{:baseOwner}/{:baseRepoName}/compare/{:headOwner}:{:headBranch}
 	// 6. /{:baseOwner}/{:baseRepoName}/compare/{:headOwner}/{:headRepoName}:{:headBranch}
+	// 7. /{:baseOwner}/{:baseRepoName}/compare/{:headBranch}:{:headBranch}?head_repo_url={:head_repo_url}
 	//
 	// Here we obtain the infoPath "{:baseBranch}...[{:headOwner}/{:headRepoName}:]{:headBranch}" as ctx.Params("*")
 	// with the :baseRepo in ctx.Repo.
@@ -240,8 +366,12 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 			}
 		}
 	}
+	ci.CompareMode = compareModeInSameRepo
+	ci.HeadRef = infos[1]
+	ci.BaseRef = infos[0]
 
 	ctx.Data["BaseName"] = baseRepo.OwnerName
+	ctx.Data["BaseRepo"] = baseRepo
 	ci.BaseBranch = infos[0]
 	ctx.Data["BaseBranch"] = ci.BaseBranch
 
@@ -250,46 +380,71 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	if len(headInfos) == 1 {
 		isSameRepo = true
 		ci.HeadUser = ctx.Repo.Owner
+		ctx.Data["HeadUserName"] = ctx.Repo.Owner.Name
 		ci.HeadBranch = headInfos[0]
 
+		if headRepoURL := ctx.FormString("head_repo_url"); len(headRepoURL) != 0 {
+			isSameRepo = false
+			ci.CompareMode = compareModeAcrossService
+			ctx.Data["HeadRepoName"] = ctx.Repo.Repository.Name
+			ci.ExternalRepoURL, _ = url.QueryUnescape(headRepoURL)
+			ci.HeadRepo = &repo_model.Repository{
+				ID:      -1,
+				Owner:   user_model.NewGhostUser(),
+				OwnerID: -1,
+			}
+		}
 	} else if len(headInfos) == 2 {
+		ci.CompareMode = compareModeAcrossRepos
+
 		headInfosSplit := strings.Split(headInfos[0], "/")
 		if len(headInfosSplit) == 1 {
+			ctx.Data["HeadUserName"] = headInfos[0]
+			ctx.Data["HeadRepoName"] = ""
+			ci.HeadBranch = headInfos[1]
+
 			ci.HeadUser, err = user_model.GetUserByName(ctx, headInfos[0])
 			if err != nil {
 				if user_model.IsErrUserNotExist(err) {
-					ctx.NotFound("GetUserByName", nil)
+					ci.HeadInfoNotExist = true
+					ci.RefsNotExist = true
 				} else {
 					ctx.ServerError("GetUserByName", err)
+					return nil
 				}
-				return nil
-			}
-			ci.HeadBranch = headInfos[1]
-			isSameRepo = ci.HeadUser.ID == ctx.Repo.Owner.ID
-			if isSameRepo {
-				ci.HeadRepo = baseRepo
+			} else {
+				isSameRepo = ci.HeadUser.ID == ctx.Repo.Owner.ID
+				if isSameRepo {
+					ci.HeadRepo = baseRepo
+				}
 			}
 		} else {
+			ctx.Data["HeadUserName"] = headInfosSplit[0]
+			ctx.Data["HeadRepoName"] = headInfosSplit[1]
+
 			ci.HeadRepo, err = repo_model.GetRepositoryByOwnerAndName(ctx, headInfosSplit[0], headInfosSplit[1])
 			if err != nil {
 				if repo_model.IsErrRepoNotExist(err) {
-					ctx.NotFound("GetRepositoryByOwnerAndName", nil)
+					ci.HeadInfoNotExist = true
+					ci.RefsNotExist = true
 				} else {
 					ctx.ServerError("GetRepositoryByOwnerAndName", err)
+					return nil
 				}
-				return nil
-			}
-			if err := ci.HeadRepo.LoadOwner(ctx); err != nil {
+			} else if err := ci.HeadRepo.LoadOwner(ctx); err != nil {
 				if user_model.IsErrUserNotExist(err) {
-					ctx.NotFound("GetUserByName", nil)
+					ci.HeadInfoNotExist = true
+					ci.RefsNotExist = true
 				} else {
 					ctx.ServerError("GetUserByName", err)
+					return nil
 				}
-				return nil
 			}
 			ci.HeadBranch = headInfos[1]
-			ci.HeadUser = ci.HeadRepo.Owner
-			isSameRepo = ci.HeadRepo.ID == ctx.Repo.Repository.ID
+			if ci.HeadRepo != nil {
+				ci.HeadUser = ci.HeadRepo.Owner
+				isSameRepo = ci.HeadRepo.ID == ctx.Repo.Repository.ID
+			}
 		}
 	} else {
 		ctx.NotFound("CompareAndPullRequest", nil)
@@ -298,6 +453,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	ctx.Data["HeadUser"] = ci.HeadUser
 	ctx.Data["HeadBranch"] = ci.HeadBranch
 	ctx.Repo.PullRequest.SameRepo = isSameRepo
+	ctx.Data["CompareMode"] = ci.CompareMode
 
 	// Check if base branch is valid.
 	baseIsCommit := ctx.Repo.GitRepo.IsCommitExist(ci.BaseBranch)
@@ -317,8 +473,9 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 			}
 			return nil
 		} else {
-			ctx.NotFound("IsRefExist", nil)
-			return nil
+			ctx.Data["CompareRefsNotFound"] = true
+			ci.RefsNotExist = true
+			// not return on time because should load head repo data
 		}
 	}
 	ctx.Data["BaseIsCommit"] = baseIsCommit
@@ -363,6 +520,74 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		}
 	}
 
+	loadForkReps := func() *CompareInfo {
+		// list all fork repos in acrossmode
+		if !ci.CompareMode.IsInSameRepo() {
+			var (
+				forks []*repo_model.Repository
+				err   error
+			)
+
+			if rootRepo == nil {
+				forks, err = repo_model.GetForks(baseRepo, db.ListOptions{
+					Page:     0,
+					PageSize: 20,
+				})
+			} else {
+				forks, err = repo_model.GetForks(rootRepo, db.ListOptions{
+					Page:     0,
+					PageSize: 20,
+				})
+			}
+
+			if err != nil {
+				ctx.ServerError("GetForks", err)
+				return nil
+			}
+
+			forkmap := make(map[int64]*repo_model.Repository)
+			for _, fork := range forks {
+				forkmap[fork.ID] = fork
+			}
+
+			if _, ok := forkmap[baseRepo.ID]; !ok {
+				forkmap[baseRepo.ID] = baseRepo
+			}
+
+			if rootRepo != nil {
+				if _, ok := forkmap[rootRepo.ID]; !ok {
+					forkmap[rootRepo.ID] = rootRepo
+				}
+			}
+
+			if ownForkRepo != nil {
+				if _, ok := forkmap[ownForkRepo.ID]; !ok {
+					forkmap[ownForkRepo.ID] = ownForkRepo
+				}
+			}
+
+			forks = make([]*repo_model.Repository, 0, len(forkmap))
+			for _, fork := range forkmap {
+				forks = append(forks, fork)
+			}
+
+			ctx.Data["CompareRepos"] = forks
+		}
+
+		if ci.CompareMode == compareModeAcrossService {
+			ctx.Data["ExternalRepoURL"] = ci.ExternalRepoURL
+		} else {
+			ctx.Data["ExternalRepoURL"] = exampleExternalRepoURL
+		}
+
+		return ci
+	}
+
+	if ci.HeadInfoNotExist {
+		ctx.Data["HeadInfoNotExist"] = true
+		return loadForkReps()
+	}
+
 	has := ci.HeadRepo != nil
 	// 3. If the base is a forked from "RootRepo" and the owner of
 	// the "RootRepo" is the :headUser - set headRepo to that
@@ -399,6 +624,43 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	if isSameRepo {
 		ci.HeadRepo = ctx.Repo.Repository
 		ci.HeadGitRepo = ctx.Repo.GitRepo
+	} else if ci.CompareMode == compareModeAcrossService {
+		if ci.ExternalRepoURL == exampleExternalRepoURL {
+			ci.HeadInfoNotExist = true
+			ci.RefsNotExist = true
+			ctx.Data["HeadInfoNotExist"] = true
+			return loadForkReps()
+		}
+
+		tmpCtx, err := openTempGitRepo(ctx)
+		if err != nil {
+			ci.HeadInfoNotExist = true
+			ci.RefsNotExist = true
+			ctx.Data["HeadInfoNotExist"] = true
+			return loadForkReps()
+		}
+
+		ci.HeadGitRepo, err = tmpCtx.OpenRepository()
+		if err != nil {
+			ctx.ServerError("OpenRepository", err)
+			return nil
+		}
+		ci.tmpReop = tmpCtx
+
+		err = tmpCtx.FetchRemote(ci.ExternalRepoURL)
+		if err != nil {
+			ci.HeadInfoNotExist = true
+			ci.RefsNotExist = true
+			ctx.Data["HeadInfoNotExist"] = true
+			return loadForkReps()
+		}
+
+		err = tmpCtx.FetchRemoteRef(ci.HeadBranch)
+		if err != nil {
+			ci.RefsNotExist = true
+			ctx.Data["CompareRefsNotFound"] = true
+		}
+
 	} else if has {
 		ci.HeadGitRepo, err = git.OpenRepository(ctx, ci.HeadRepo.RepoPath())
 		if err != nil {
@@ -410,6 +672,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 
 	ctx.Data["HeadRepo"] = ci.HeadRepo
 	ctx.Data["BaseCompareRepo"] = ctx.Repo.Repository
+	ctx.Data["HeadRepoName"] = ci.HeadRepo.Name
 
 	// Now we need to assert that the ctx.Doer has permission to read
 	// the baseRepo's code and pulls
@@ -438,7 +701,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 			ctx.ServerError("GetUserRepoPermission", err)
 			return nil
 		}
-		if !permHead.CanRead(unit.TypeCode) {
+		if !permHead.CanRead(unit.TypeCode) && ci.CompareMode != compareModeAcrossService {
 			if log.IsTrace() {
 				log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v",
 					ctx.Doer,
@@ -451,51 +714,12 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		ctx.Data["CanWriteToHeadRepo"] = permHead.CanWrite(unit.TypeCode)
 	}
 
-	// If we have a rootRepo and it's different from:
-	// 1. the computed base
-	// 2. the computed head
-	// then get the branches of it
-	if rootRepo != nil &&
-		rootRepo.ID != ci.HeadRepo.ID &&
-		rootRepo.ID != baseRepo.ID {
-		canRead := access_model.CheckRepoUnitUser(ctx, rootRepo, ctx.Doer, unit.TypeCode)
-		if canRead && rootRepo.AllowsPulls() {
-			ctx.Data["RootRepo"] = rootRepo
-			if !fileOnly {
-				branches, tags, err := getBranchesAndTagsForRepo(ctx, rootRepo)
-				if err != nil {
-					ctx.ServerError("GetBranchesForRepo", err)
-					return nil
-				}
-
-				ctx.Data["RootRepoBranches"] = branches
-				ctx.Data["RootRepoTags"] = tags
-			}
-		}
+	if loadForkReps() == nil {
+		return nil
 	}
 
-	// If we have a ownForkRepo and it's different from:
-	// 1. The computed base
-	// 2. The computed head
-	// 3. The rootRepo (if we have one)
-	// then get the branches from it.
-	if ownForkRepo != nil &&
-		ownForkRepo.ID != ci.HeadRepo.ID &&
-		ownForkRepo.ID != baseRepo.ID &&
-		(rootRepo == nil || ownForkRepo.ID != rootRepo.ID) {
-		canRead := access_model.CheckRepoUnitUser(ctx, ownForkRepo, ctx.Doer, unit.TypeCode)
-		if canRead {
-			ctx.Data["OwnForkRepo"] = ownForkRepo
-			if !fileOnly {
-				branches, tags, err := getBranchesAndTagsForRepo(ctx, ownForkRepo)
-				if err != nil {
-					ctx.ServerError("GetBranchesForRepo", err)
-					return nil
-				}
-				ctx.Data["OwnForkRepoBranches"] = branches
-				ctx.Data["OwnForkRepoTags"] = tags
-			}
-		}
+	if ci.RefsNotExist {
+		return ci
 	}
 
 	// Check if head branch is valid.
@@ -509,8 +733,9 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 			ctx.Data["HeadBranch"] = ci.HeadBranch
 			headIsCommit = true
 		} else {
-			ctx.NotFound("IsRefExist", nil)
-			return nil
+			ctx.Data["CompareRefsNotFound"] = true
+			ci.RefsNotExist = true
+			return ci
 		}
 	}
 	ctx.Data["HeadIsCommit"] = headIsCommit
@@ -676,30 +901,16 @@ func PrepareCompareDiff(
 	return false
 }
 
-func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repository) (branches, tags []string, err error) {
-	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
-	if err != nil {
-		return nil, nil, err
-	}
-	defer gitRepo.Close()
-
-	branches, _, err = gitRepo.GetBranchNames(0, 0)
-	if err != nil {
-		return nil, nil, err
-	}
-	tags, err = gitRepo.GetTags(0, 0)
-	if err != nil {
-		return nil, nil, err
-	}
-	return branches, tags, nil
-}
-
 // CompareDiff show different from one commit to another commit
 func CompareDiff(ctx *context.Context) {
 	ci := ParseCompareInfo(ctx)
 	defer func() {
 		if ci != nil && ci.HeadGitRepo != nil {
 			ci.HeadGitRepo.Close()
+		}
+
+		if ci.tmpReop != nil {
+			ci.tmpReop.Close()
 		}
 	}()
 	if ctx.Written() {
@@ -715,10 +926,15 @@ func CompareDiff(ctx *context.Context) {
 		ctx.Data["OtherCompareSeparator"] = "..."
 	}
 
-	nothingToCompare := PrepareCompareDiff(ctx, ci,
-		gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
-	if ctx.Written() {
-		return
+	var nothingToCompare bool
+	if ci.RefsNotExist {
+		nothingToCompare = true
+	} else {
+		nothingToCompare = PrepareCompareDiff(ctx, ci,
+			gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
+		if ctx.Written() {
+			return
+		}
 	}
 
 	baseTags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
@@ -734,21 +950,40 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 
-	headBranches, _, err := ci.HeadGitRepo.GetBranchNames(0, 0)
-	if err != nil {
-		ctx.ServerError("GetBranches", err)
-		return
-	}
-	ctx.Data["HeadBranches"] = headBranches
+	if !ci.HeadInfoNotExist {
+		if ci.CompareMode == compareModeAcrossService {
+			headBranches, _, err := ci.HeadGitRepo.GetRemotetBranchNames("origin", 0, 0)
+			if err != nil {
+				ctx.ServerError("GetBranches", err)
+				return
+			}
+			ctx.Data["HeadBranches"] = headBranches
 
-	headTags, err := repo_model.GetTagNamesByRepoID(ctx, ci.HeadRepo.ID)
-	if err != nil {
-		ctx.ServerError("GetTagNamesByRepoID", err)
-		return
-	}
-	ctx.Data["HeadTags"] = headTags
+			headTags, err := ci.HeadGitRepo.GetTags(0, 0)
+			if err != nil {
+				ctx.ServerError("GetBranches", err)
+				return
+			}
 
-	if ctx.Data["PageIsComparePull"] == true {
+			ctx.Data["HeadTags"] = headTags
+		} else {
+			headBranches, _, err := ci.HeadGitRepo.GetBranchNames(0, 0)
+			if err != nil {
+				ctx.ServerError("GetBranches", err)
+				return
+			}
+			ctx.Data["HeadBranches"] = headBranches
+
+			headTags, err := repo_model.GetTagNamesByRepoID(ctx, ci.HeadRepo.ID)
+			if err != nil {
+				ctx.ServerError("GetTagNamesByRepoID", err)
+				return
+			}
+			ctx.Data["HeadTags"] = headTags
+		}
+	}
+
+	if !ci.HeadInfoNotExist && ctx.Data["PageIsComparePull"] == true {
 		pr, err := issues_model.GetUnmergedPullRequest(ctx, ci.HeadRepo.ID, ctx.Repo.Repository.ID, ci.HeadBranch, ci.BaseBranch, issues_model.PullRequestFlowGithub)
 		if err != nil {
 			if !issues_model.IsErrPullRequestNotExist(err) {
@@ -774,14 +1009,12 @@ func CompareDiff(ctx *context.Context) {
 			}
 		}
 	}
-	beforeCommitID := ctx.Data["BeforeCommitID"].(string)
-	afterCommitID := ctx.Data["AfterCommitID"].(string)
 
 	separator := "..."
 	if ci.DirectComparison {
 		separator = ".."
 	}
-	ctx.Data["Title"] = "Comparing " + base.ShortSha(beforeCommitID) + separator + base.ShortSha(afterCommitID)
+	ctx.Data["Title"] = ctx.Tr("repo.compare.titile", ci.BaseRef+separator+ci.HeadRef)
 
 	ctx.Data["IsRepoToolbarCommits"] = true
 	ctx.Data["IsDiffCompare"] = true

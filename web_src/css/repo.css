@@ -3401,3 +3401,8 @@ tbody.commit-list {
   font-size: 18px;
   margin-left: 4px;
 }
+
+.repository .compare-switch-btn {
+  display: inline-flex;
+  flex-direction: column;
+}
