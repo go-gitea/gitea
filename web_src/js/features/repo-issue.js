@@ -476,7 +476,6 @@ export function initRepoPullRequestReview() {
       content: $panel[0],
       placement: 'bottom',
       trigger: 'click',
-      role: 'menu',
       maxWidth: 'none',
       interactive: true,
       hideOnClick: true,
