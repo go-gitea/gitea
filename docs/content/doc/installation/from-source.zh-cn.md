@@ -112,6 +112,11 @@ CC=aarch64-unknown-linux-gnu-gcc GOOS=linux GOARCH=arm64 TAGS="bindata sqlite sq
 sudo rm -rf /usr/local/zig && tar -C /usr/local -xf zig-linux-x86_64-0.10.1.tar.xz
 ```
 - 环境变量：`export PATH=$PATH:/usr/local/zig-linux-x86_64-0.10.1/`
+- Install cc
+```
+sudo apt install gcc
+which cc
+```
 
 1.编译(Linux ➝ Linux)
 
@@ -148,7 +153,7 @@ make build
 
 
 让`GIT BASH`支持make：
-- 到 https://sourceforge.net/projects/ezwinports/files/ 去下载 make-4.4.1-without-guile-w32-bin.zip
+- 到 https://sourceforge.net/projects/ezwinports/files/ 下载 `make-4.4.1-without-guile-w32-bin.zip`
 - 把该文件进行解压
 - 把解压出来的文件全部拷贝的git的安装目录下： .\Program Files\Git\mingw64\,把文件夹进行合并，如果跳出来需要替换的文件要选择不替换
 - 这样在git bash窗口下就可以执行make了（编译的时候编译器还是需要另外安装的）
