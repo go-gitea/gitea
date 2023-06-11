@@ -12,7 +12,6 @@
         </div>
         <a class="gt-df gt-ac muted" :href="subUrl + '/repo/create' + (isOrganization ? '?org=' + organizationId : '')" :data-tooltip-content="textNewRepo">
           <svg-icon name="octicon-plus"/>
-          <span class="sr-only">{{ textNewRepo }}</span>
         </a>
       </h4>
       <div class="ui attached segment repos-search">
@@ -121,7 +120,6 @@
         </div>
         <a class="gt-df gt-ac muted" v-if="canCreateOrganization" :href="subUrl + '/org/create'" :data-tooltip-content="textNewOrg">
           <svg-icon name="octicon-plus"/>
-          <span class="sr-only">{{ textNewOrg }}</span>
         </a>
       </h4>
       <div v-if="organizations.length" class="ui attached table segment gt-rounded-bottom">

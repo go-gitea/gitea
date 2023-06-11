@@ -2,7 +2,7 @@
   max-width: 220px;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .home .hero h1 {
     font-size: 3.5em;
   }
