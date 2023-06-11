@@ -9,6 +9,7 @@
 
 @import "./shared/issuelist.css";
 @import "./shared/repoorg.css";
+@import "./shared/settings.css";
 
 @import "./features/dropzone.css";
 @import "./features/gitgraph.css";

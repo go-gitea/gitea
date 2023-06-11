@@ -203,6 +203,11 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		}
 	}
 
+	var mileIDs []int64
+	if milestoneID > 0 || milestoneID == db.NoConditionID { // -1 to get those issues which have no any milestone assigned
+		mileIDs = []int64{milestoneID}
+	}
+
 	var issueStats *issues_model.IssueStats
 	if forceEmpty {
 		issueStats = &issues_model.IssueStats{}
@@ -210,7 +215,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		issueStats, err = issues_model.GetIssueStats(&issues_model.IssuesOptions{
 			RepoIDs:           []int64{repo.ID},
 			LabelIDs:          labelIDs,
-			MilestoneIDs:      []int64{milestoneID},
+			MilestoneIDs:      mileIDs,
 			ProjectID:         projectID,
 			AssigneeID:        assigneeID,
 			MentionedID:       mentionedID,
@@ -244,11 +249,6 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		total = int(issueStats.ClosedCount)
 	}
 	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
-
-	var mileIDs []int64
-	if milestoneID > 0 || milestoneID == db.NoConditionID { // -1 to get those issues which have no any milestone assigned
-		mileIDs = []int64{milestoneID}
-	}
 
 	var issues []*issues_model.Issue
 	if forceEmpty {

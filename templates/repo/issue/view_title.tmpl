@@ -14,7 +14,7 @@
 		</h1>
 		<div class="issue-title-buttons">
 			{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
-				<button id="edit-title" class="ui small basic button secondary edit-button not-in-edit{{if .Issue.IsPull}} gt-mr-0{{end}}">{{.locale.Tr "repo.issues.edit"}}</button>
+				<button id="edit-title" class="ui small basic button edit-button not-in-edit{{if .Issue.IsPull}} gt-mr-0{{end}}">{{.locale.Tr "repo.issues.edit"}}</button>
 			{{end}}
 			{{if not .Issue.IsPull}}
 				<a role="button" class="ui small green button new-issue-button gt-mr-0" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{.locale.Tr "repo.issues.new"}}</a>
@@ -22,7 +22,7 @@
 		</div>
 		{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
 			<div class="edit-buttons">
-				<button id="cancel-edit-title" class="ui small basic button secondary in-edit gt-hidden">{{.locale.Tr "repo.issues.cancel"}}</button>
+				<button id="cancel-edit-title" class="ui small basic button in-edit gt-hidden">{{.locale.Tr "repo.issues.cancel"}}</button>
 				<button id="save-edit-title" class="ui small primary button in-edit gt-hidden gt-mr-0" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title" {{if .Issue.IsPull}}data-target-update-url="{{$.RepoLink}}/pull/{{.Issue.Index}}/target_branch"{{end}}>{{.locale.Tr "repo.issues.save"}}</button>
 			</div>
 		{{end}}
@@ -47,7 +47,7 @@
 				{{if .HeadBranchLink}}
 					{{$headHref = printf `<a href="%s">%s</a>` (.HeadBranchLink | Escape) $headHref}}
 				{{end}}
-				{{$headHref = printf `%s <button class="button button-ghost" data-tooltip-content="%s" data-clipboard-text="%s">%s</button>` $headHref (.locale.Tr "copy_branch") (.HeadTarget | Escape) (svg "octicon-copy" 14)}}
+				{{$headHref = printf `%s <button class="btn interact-fg" data-tooltip-content="%s" data-clipboard-text="%s">%s</button>` $headHref (.locale.Tr "copy_branch") (.HeadTarget | Escape) (svg "octicon-copy" 14)}}
 				{{$baseHref := .BaseTarget|Escape}}
 				{{if .BaseBranchLink}}
 					{{$baseHref = printf `<a href="%s">%s</a>` (.BaseBranchLink | Escape) $baseHref}}
