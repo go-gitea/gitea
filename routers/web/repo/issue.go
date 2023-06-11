@@ -2096,7 +2096,7 @@ func UpdateIssueTimeEstimate(ctx *context.Context) {
 		return
 	}
 
-	total := issue.TimeEstimateFromStr(timeStr)
+	total := timeutil.TimeEstimateFromStr(timeStr)
 
 	// User entered something wrong
 	if total == 0 && len(timeStr) != 0 {

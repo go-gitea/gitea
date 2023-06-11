@@ -295,7 +295,7 @@
 					<form method="POST" id="set_time_estimate_form" class="gt-mt-3" action="{{.Issue.Link}}/time_estimate">
 						{{$.CsrfTokenHtml}}
 							<div class="ui input fluid">
-								<input name="time_estimate" placeholder='{{.locale.Tr "repo.issues.add_time_estimate"}}' value="{{($.Issue.TimeEstimateToStr)}}" type="text" >
+								<input name="time_estimate" placeholder='{{.locale.Tr "repo.issues.add_time_estimate"}}' value="{{($.timeutil.TimeEstimateToStr .timeutil.TimeEstimate)}}" type="text" >
 							</div>
 							<button class="ui fluid button green tooltip gt-mt-3">
 								{{.locale.Tr "repo.issues.save"}}

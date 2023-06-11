@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
@@ -34,7 +35,7 @@ func AddTimeManually(c *context.Context) {
 		return
 	}
 
-	total := issue.TimeEstimateFromStr(form.TimeString)
+	total := timeutil.TimeEstimateFromStr(form.TimeString)
 
 	if total <= 0 {
 		c.Flash.Error(c.Tr("repo.issues.add_time_sum_to_small"))
