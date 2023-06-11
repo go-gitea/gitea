@@ -24,9 +24,9 @@ func (o *OpenIDProvider) DisplayName() string {
 	return "OpenID Connect"
 }
 
-// Image returns an image path for this provider
-func (o *OpenIDProvider) Image() string {
-	return "/assets/img/auth/openid_connect.svg"
+// IconURL returns an icon path for this provider
+func (o *OpenIDProvider) IconURL() string {
+	return setting.AppSubURL + "/assets/img/svg/gitea-openid.svg"
 }
 
 // CreateGothProvider creates a GothProvider from this Provider
@@ -48,7 +48,7 @@ func (o *OpenIDProvider) CustomURLSettings() *CustomURLSettings {
 	return nil
 }
 
-var _ (GothProvider) = &OpenIDProvider{}
+var _ GothProvider = &OpenIDProvider{}
 
 func init() {
 	RegisterGothProvider(&OpenIDProvider{})

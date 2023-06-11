@@ -309,7 +309,8 @@ textarea:focus,
   .user.reset.password form .inline.field > textarea,
   .user.link-account form .inline.field > textarea,
   .user.signin form .inline.field > textarea,
-  .user.signup form .inline.field > textarea {
+  .user.signup form .inline.field > textarea,
+  .oauth-login-link {
     width: 50%;
   }
 }
@@ -364,7 +365,8 @@ textarea:focus,
   .user.reset.password form input,
   .user.link-account form input,
   .user.signin form input,
-  .user.signup form input {
+  .user.signup form input,
+  .oauth-login-link {
     width: 100% !important;
   }
 }

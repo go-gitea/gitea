@@ -468,6 +468,10 @@ a.label,
   padding-bottom: 7.42px !important;
 }
 
+.ui.divider {
+  color: var(--color-text);
+}
+
 .ui.divider:not(.vertical,.horizontal) {
   border-top-color: var(--color-secondary) !important;
   border-bottom: none !important;
