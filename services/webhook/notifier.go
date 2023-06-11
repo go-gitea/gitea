@@ -752,10 +752,20 @@ func (m *webhookNotifier) NotifyCreateRef(ctx context.Context, pusher *user_mode
 	apiRepo := convert.ToRepo(ctx, repo, perm.AccessModeNone)
 	refName := refFullName.ShortName()
 
+	var refType string
+	if refFullName.IsBranch() {
+		refType = "branch"
+	} else if refFullName.IsTag() {
+		refType = "tag"
+	} else {
+		log.Error("unsupported ref type for NotifyCreateRef: %s", refFullName)
+		return
+	}
+
 	if err := PrepareWebhooks(ctx, EventSource{Repository: repo}, webhook_module.HookEventCreate, &api.CreatePayload{
 		Ref:     refName, // FIXME: should it be a full ref name?
 		Sha:     refID,
-		RefType: refFullName.RefGroup(),
+		RefType: refType,
 		Repo:    apiRepo,
 		Sender:  apiPusher,
 	}); err != nil {
