@@ -1,5 +1,5 @@
 ---
-date: "2016-12-01T16:00:00+02:00"
+date: "2023-06-11T16:00:00+02:00"
 title: "Installation from source"
 slug: "install-from-source"
 weight: 30
@@ -206,3 +206,86 @@ Similarly, a script for zsh-completion can be found at [`contrib/autocompletion/
 `.zshrc`.
 
 YMMV and these scripts may need further improvement.
+
+## Compile or cross-compile using Linux with Zig
+
+- Download: https://ziglang.org/download/
+- To install:
+```sh
+sudo rm -rf /usr/local/zig && tar -C /usr/local -xf zig-linux-x86_64-0.10.1.tar.xz
+```
+- Environment variable: `export PATH=$PATH:/usr/local/zig-linux-x86_64-0.10.1/`
+- Install cc
+```
+sudo apt install gcc
+which cc
+```
+
+1. Compile (Linux ➝ Linux)
+
+```sh
+CC="zig cc -target x86_64-linux-gnu" \
+CGO_ENABLED=1 \
+CGO_CFLAGS="-O2 -g -pthread" \
+CGO_LDFLAGS="-linkmode=external -v"
+GOOS=linux \
+GOARCH=amd64 \
+TAGS="bindata sqlite sqlite_unlock_notify" \
+make build
+```
+✅Proven success
+
+2. cross-compile (Linux ➝ Windows)
+```sh
+CC="zig cc -target x86_64-windows-gnu" \
+CGO_ENABLED=1 \
+CGO_CFLAGS="-O2 -g -pthread" \
+GOOS=windows \
+GOARCH=amd64 \
+TAGS="bindata sqlite sqlite_unlock_notify" \
+make build
+```
+✅Proven success (Gitea version 1.20.0-rc0,compiled 96.4M, select SQLite3 can be installed normally)
+
+
+
+## Compile or cross-compile with Zig using Windows
+To install zig:
+- Download: https://ziglang.org/download/
+- Decompress and set environment variables
+
+
+Make `GIT BASH` support make:
+- Go to https://sourceforge.net/projects/ezwinports/files/ and download `make-4.4.1-without-guile-w32-bin.zip`
+- Decompress the file
+- Copy all the extracted files to the git installation directory: . \Program Files\Git\mingw64\, merge the folders, and choose not to replace the files that pop up if they need to be replaced.
+- So that you can execute make in the git bash window (the compiler still needs to be installed separately when compiling)
+
+To make `GIT BASH` support make (second method):
+- Download: [https://github.com/niXman/mingw-builds-binaries](https://github.com/niXman/mingw-builds-binaries)
+- Copy mingw32-make.exe to `C:\Program Files\Git\mingw64\bin`, renamed make.exe
+
+1. Compile (Windows ➝ Windows)
+```
+CC="zig cc -target x86_64-windows-gnu" \
+CGO_ENABLED=1 \
+CGO_CFLAGS="-O2 -g -pthread" \
+GOOS=windows \
+GOARCH=amd64 \
+TAGS="bindata sqlite sqlite_unlock_notify" \
+make build
+```
+✅Proven success
+
+2. Cross-compile (Windows ➝ Linux)
+```
+CC="zig cc -target x86_64-linux-gnu" \
+CGO_ENABLED=1 \
+CGO_CFLAGS="-O2 -g -pthread" \
+CGO_LDFLAGS="-linkmode=external -v"
+GOOS=linux \
+GOARCH=amd64 \
+TAGS="bindata sqlite sqlite_unlock_notify" \
+make build
+```
+❓ I don't have time to test it myself, if there is any exception, welcome to fix it
