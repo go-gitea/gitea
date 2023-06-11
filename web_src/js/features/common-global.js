@@ -20,18 +20,14 @@ export function initGlobalFormDirtyLeaveConfirm() {
 }
 
 export function initHeadNavbarContentToggle() {
-  const content = $('#navbar');
-  const toggle = $('#navbar-expand-toggle');
-  let isExpanded = false;
-  toggle.on('click', () => {
-    isExpanded = !isExpanded;
-    if (isExpanded) {
-      content.addClass('shown');
-      toggle.addClass('active');
-    } else {
-      content.removeClass('shown');
-      toggle.removeClass('active');
-    }
+  const navbar = document.getElementById('navbar');
+  const btn = document.getElementById('navbar-expand-toggle');
+  if (!navbar || !btn) return;
+
+  btn.addEventListener('click', () => {
+    const isExpanded = btn.classList.contains('active');
+    navbar.classList.toggle('navbar-menu-open', !isExpanded);
+    btn.classList.toggle('active', !isExpanded);
   });
 }
 
