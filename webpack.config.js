@@ -86,7 +86,7 @@ export default {
       reconnect: false,
     },
     hot: true,
-    port: 3874,
+    port: parseInt(env.GITEA_DEV_FRONTEND_PORT) || 3001,
   },
   output: {
     path: fileURLToPath(new URL('public', import.meta.url)),

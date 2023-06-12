@@ -6,10 +6,12 @@ package web
 import (
 	gocontext "context"
 	"net/http"
+	"os"
 
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/metrics"
 	"code.gitea.io/gitea/modules/public"
@@ -109,11 +111,18 @@ func Routes(ctx gocontext.Context) *web.Route {
 
 	routes.Head("/", misc.DummyOK) // for health check - doesn't need to be passed through gzip handler
 
-	if setting.IsProd {
+	if setting.IsProd { // use assets from embed or filesystem
 		routes.RouteMethods("/assets/*", "GET, HEAD", CorsHandler(), public.AssetsHandlerFunc("/assets/"))
-	} else {
+	} else { // reverse-proxy asset requests to webpack-dev-server
+		// this setting is intentionally not loaded from ini config because webpack also needs
+		// to parse it from the environment
+		port := os.Getenv("GITEA_DEV_FRONTEND_PORT")
+		if port == "" {
+			port = "3001"
+		}
+
 		routes.RouteMethods("/assets/*", "GET, HEAD", CorsHandler(),
-			public.MakeDevAssetsHandler("http://localhost:3874", "/assets"),
+			httplib.MakeReverseProxyHandler("http://localhost:"+port, "/assets", true),
 		)
 	}
 

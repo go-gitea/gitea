@@ -1,9 +1,10 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package public
+package httplib
 
 import (
+	"crypto/tls"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -11,7 +12,7 @@ import (
 	"time"
 )
 
-func MakeDevAssetsHandler(destUrl, path string) http.Handler {
+func MakeReverseProxyHandler(destUrl, path string, skipVerify bool) http.Handler {
 	url, _ := url.Parse(destUrl)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -22,8 +23,12 @@ func MakeDevAssetsHandler(destUrl, path string) http.Handler {
 				req.URL.Path = url.Path + strings.TrimPrefix(req.URL.Path, path)
 			},
 			Transport: &http.Transport{
-				MaxIdleConns:    100,
-				IdleConnTimeout: 5 * time.Second,
+				MaxIdleConns:        100,
+				IdleConnTimeout:     5 * time.Second,
+				TLSHandshakeTimeout: 5 * time.Second,
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: skipVerify,
+				},
 			},
 			ErrorHandler: func(rw http.ResponseWriter, r *http.Request, err error) {
 				rw.Header().Set("Content-Type", "text/html")

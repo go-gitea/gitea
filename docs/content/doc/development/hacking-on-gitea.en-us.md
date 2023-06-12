@@ -141,7 +141,7 @@ See `make help` for all available `make` targets. Also see [`.drone.yml`](https:
 To run and continuously rebuild when source files change:
 
 ```bash
-# for both frontend and backend
+# for both frontend and backend, with dev server for frontend
 make watch
 
 # or: watch frontend files (html/js/css) only
@@ -152,6 +152,8 @@ make watch-backend
 ```
 
 On macOS, watching all backend source files may hit the default open files limit which can be increased via `ulimit -n 12288` for the current shell or in your shell startup file for all future shells.
+
+The `watch` target will invoke `make serve-frontend` which runs `webpack-dev-server` on port 3001. In case this port is already in use, it can be changed via the `GITEA_DEV_FRONTEND_PORT` environment variable.
 
 ### Formatting, code analysis and spell check
 
