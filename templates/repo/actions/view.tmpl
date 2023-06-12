@@ -1,6 +1,6 @@
 {{template "base/head" .}}
-
-<div class="page-content repository">
+<!-- actions-content is used in RepoActionView.vue as a selector -->
+<div class="page-content repository actions" id="actions-content">
 	{{template "repo/header" .}}
 	<div id="repo-action-view"
 		data-run-index="{{.RunIndex}}"
