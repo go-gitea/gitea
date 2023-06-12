@@ -298,7 +298,7 @@
 					<form method="POST" action="{{.Issue.Link}}/times/stopwatch/cancel" id="cancel_stopwatch_form">
 						{{$.CsrfTokenHtml}}
 					</form>
-					{{if  $.IsStopwatchRunning}}
+					{{if $.IsStopwatchRunning}}
 						<button class="ui fluid button issue-stop-time">{{.locale.Tr "repo.issues.stop_tracking"}}</button>
 						<button class="ui fluid negative button issue-cancel-time gt-mt-3">{{.locale.Tr "repo.issues.cancel_tracking"}}</button>
 					{{else}}
@@ -330,7 +330,7 @@
 		{{if gt (len .WorkingUsers) 0}}
 			<div class="ui divider"></div>
 			<div class="ui comments">
-				<span class="text"><strong>{{.locale.Tr "repo.issues.time_spent_from_all_authors"  ($.Issue.TotalTrackedTime | Sec2Time) | Safe}}</strong></span>
+				<span class="text"><strong>{{.locale.Tr "repo.issues.time_spent_from_all_authors" ($.Issue.TotalTrackedTime | Sec2Time) | Safe}}</strong></span>
 				<div>
 					{{range $user, $trackedtime := .WorkingUsers}}
 						<div class="comment gt-mt-3">
