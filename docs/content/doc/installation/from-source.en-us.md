@@ -237,6 +237,8 @@ make build
 
 ## Compile or cross-compile with Zig using Windows
 
+Compile with `GIT BASH`.
+
 1. Compile (Windows ➝ Windows)
 ```
 CC="zig cc -target x86_64-windows-gnu" \
