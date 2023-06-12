@@ -462,7 +462,7 @@ func (r *HTMLRenderer) renderTaskCheckBoxListItem(w util.BufWriter, source []byt
 		} else {
 			_, _ = w.WriteString("<li>")
 		}
-		_, _ = w.WriteString(fmt.Sprintf(`<input type="checkbox" disabled="" data-source-position="%d"`, n.SourcePosition))
+		fmt.Fprintf(w, `<input type="checkbox" disabled="" data-source-position="%d"`, n.SourcePosition)
 		if n.IsChecked {
 			_, _ = w.WriteString(` checked=""`)
 		}
