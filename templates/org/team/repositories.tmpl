@@ -9,7 +9,7 @@
 				{{template "org/team/navbar" .}}
 				{{$canAddRemove := and $.IsOrganizationOwner (not $.Team.IncludesAllRepositories)}}
 				{{if $canAddRemove}}
-					<div class="ui attached segment gt-df">
+					<div class="ui attached segment gt-df gt-fw gt-gap-3">
 						<form class="ui form ignore-dirty gt-f1 gt-dif" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/add" method="post">
 							{{.CsrfTokenHtml}}
 							<div id="search-repo-box" data-uid="{{.Org.ID}}" class="ui search">
