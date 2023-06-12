@@ -52,7 +52,7 @@
 							{{if $.EscapeStatus.Escaped}}
 								<td class="lines-escape">
 									{{if $row.EscapeStatus.Escaped}}
-										<button class="toggle-escape-button button button-ghost" title="{{template "repo/diff/escape_title" dict "diff" $row "locale" $.locale}}"></button>
+										<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $row "locale" $.locale}}"></button>
 									{{end}}
 								</td>
 							{{end}}

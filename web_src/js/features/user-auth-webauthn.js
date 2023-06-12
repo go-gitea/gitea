@@ -1,11 +1,11 @@
-import $ from 'jquery';
-import {encode, decode} from 'uint8-to-base64';
-import {hideElem, showElem} from '../utils/dom.js';
+import {encodeURLEncodedBase64, decodeURLEncodedBase64} from '../utils.js';
+import {showElem} from '../utils/dom.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
-export function initUserAuthWebAuthn() {
-  if ($('.user.signin.webauthn-prompt').length === 0) {
+export async function initUserAuthWebAuthn() {
+  const elPrompt = document.querySelector('.user.signin.webauthn-prompt');
+  if (!elPrompt) {
     return;
   }
 
@@ -13,49 +13,52 @@ export function initUserAuthWebAuthn() {
     return;
   }
 
-  $.getJSON(`${appSubUrl}/user/webauthn/assertion`, {})
-    .done((makeAssertionOptions) => {
-      makeAssertionOptions.publicKey.challenge = decodeURLEncodedBase64(makeAssertionOptions.publicKey.challenge);
-      for (let i = 0; i < makeAssertionOptions.publicKey.allowCredentials.length; i++) {
-        makeAssertionOptions.publicKey.allowCredentials[i].id = decodeURLEncodedBase64(makeAssertionOptions.publicKey.allowCredentials[i].id);
-      }
-      navigator.credentials.get({
-        publicKey: makeAssertionOptions.publicKey
-      })
-        .then((credential) => {
-          verifyAssertion(credential);
-        }).catch((err) => {
-          // Try again... without the appid
-          if (makeAssertionOptions.publicKey.extensions && makeAssertionOptions.publicKey.extensions.appid) {
-            delete makeAssertionOptions.publicKey.extensions['appid'];
-            navigator.credentials.get({
-              publicKey: makeAssertionOptions.publicKey
-            })
-              .then((credential) => {
-                verifyAssertion(credential);
-              }).catch((err) => {
-                webAuthnError('general', err.message);
-              });
-            return;
-          }
-          webAuthnError('general', err.message);
-        });
-    }).fail(() => {
-      webAuthnError('unknown');
+  const res = await fetch(`${appSubUrl}/user/webauthn/assertion`);
+  if (res.status !== 200) {
+    webAuthnError('unknown');
+    return;
+  }
+  const options = await res.json();
+  options.publicKey.challenge = decodeURLEncodedBase64(options.publicKey.challenge);
+  for (const cred of options.publicKey.allowCredentials) {
+    cred.id = decodeURLEncodedBase64(cred.id);
+  }
+  try {
+    const credential = await navigator.credentials.get({
+      publicKey: options.publicKey
     });
+    await verifyAssertion(credential);
+  } catch (err) {
+    if (!options.publicKey.extensions?.appid) {
+      webAuthnError('general', err.message);
+      return;
+    }
+    delete options.publicKey.extensions.appid;
+    try {
+      const credential = await navigator.credentials.get({
+        publicKey: options.publicKey
+      });
+      await verifyAssertion(credential);
+    } catch (err) {
+      webAuthnError('general', err.message);
+    }
+  }
 }
 
-function verifyAssertion(assertedCredential) {
-  // Move data into Arrays incase it is super long
+async function verifyAssertion(assertedCredential) {
+  // Move data into Arrays in case it is super long
   const authData = new Uint8Array(assertedCredential.response.authenticatorData);
   const clientDataJSON = new Uint8Array(assertedCredential.response.clientDataJSON);
   const rawId = new Uint8Array(assertedCredential.rawId);
   const sig = new Uint8Array(assertedCredential.response.signature);
   const userHandle = new Uint8Array(assertedCredential.response.userHandle);
-  $.ajax({
-    url: `${appSubUrl}/user/webauthn/assertion`,
-    type: 'POST',
-    data: JSON.stringify({
+
+  const res = await fetch(`${appSubUrl}/user/webauthn/assertion`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8'
+    },
+    body: JSON.stringify({
       id: assertedCredential.id,
       rawId: encodeURLEncodedBase64(rawId),
       type: assertedCredential.type,
@@ -67,50 +70,31 @@ function verifyAssertion(assertedCredential) {
         userHandle: encodeURLEncodedBase64(userHandle),
       },
     }),
-    contentType: 'application/json; charset=utf-8',
-    dataType: 'json',
-    success: (resp) => {
-      if (resp && resp['redirect']) {
-        window.location.href = resp['redirect'];
-      } else {
-        window.location.href = '/';
-      }
-    },
-    error: (xhr) => {
-      if (xhr.status === 500) {
-        webAuthnError('unknown');
-        return;
-      }
-      webAuthnError('unable-to-process');
-    }
   });
+  if (res.status === 500) {
+    webAuthnError('unknown');
+    return;
+  } else if (res.status !== 200) {
+    webAuthnError('unable-to-process');
+    return;
+  }
+  const reply = await res.json();
+
+  window.location.href = reply?.redirect ?? `${appSubUrl}/`;
 }
 
-// Encode an ArrayBuffer into a URLEncoded base64 string.
-function encodeURLEncodedBase64(value) {
-  return encode(value)
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '');
-}
-
-// Dccode a URLEncoded base64 to an ArrayBuffer string.
-function decodeURLEncodedBase64(value) {
-  return decode(value
-    .replace(/_/g, '/')
-    .replace(/-/g, '+'));
-}
-
-function webauthnRegistered(newCredential) {
+async function webauthnRegistered(newCredential) {
   const attestationObject = new Uint8Array(newCredential.response.attestationObject);
   const clientDataJSON = new Uint8Array(newCredential.response.clientDataJSON);
   const rawId = new Uint8Array(newCredential.rawId);
 
-  return $.ajax({
-    url: `${appSubUrl}/user/settings/security/webauthn/register`,
-    type: 'POST',
-    headers: {'X-Csrf-Token': csrfToken},
-    data: JSON.stringify({
+  const res = await fetch(`${appSubUrl}/user/settings/security/webauthn/register`, {
+    method: 'POST',
+    headers: {
+      'X-Csrf-Token': csrfToken,
+      'Content-Type': 'application/json; charset=utf-8',
+    },
+    body: JSON.stringify({
       id: newCredential.id,
       rawId: encodeURLEncodedBase64(rawId),
       type: newCredential.type,
@@ -119,48 +103,43 @@ function webauthnRegistered(newCredential) {
         clientDataJSON: encodeURLEncodedBase64(clientDataJSON),
       },
     }),
-    dataType: 'json',
-    contentType: 'application/json; charset=utf-8',
-  }).then(() => {
-    window.location.reload();
-  }).fail((xhr) => {
-    if (xhr.status === 409) {
-      webAuthnError('duplicated');
-      return;
-    }
-    webAuthnError('unknown');
   });
+
+  if (res.status === 409) {
+    webAuthnError('duplicated');
+    return;
+  } else if (res.status !== 201) {
+    webAuthnError('unknown');
+    return;
+  }
+
+  window.location.reload();
 }
 
 function webAuthnError(errorType, message) {
-  hideElem($('#webauthn-error [data-webauthn-error-msg]'));
-  const $errorGeneral = $(`#webauthn-error [data-webauthn-error-msg=general]`);
+  const elErrorMsg = document.getElementById(`webauthn-error-msg`);
+
   if (errorType === 'general') {
-    showElem($errorGeneral);
-    $errorGeneral.text(message || 'unknown error');
+    elErrorMsg.textContent = message || 'unknown error';
   } else {
-    const $errorTyped = $(`#webauthn-error [data-webauthn-error-msg=${errorType}]`);
-    if ($errorTyped.length) {
-      showElem($errorTyped);
+    const elTypedError = document.querySelector(`#webauthn-error [data-webauthn-error-msg=${errorType}]`);
+    if (elTypedError) {
+      elErrorMsg.textContent = `${elTypedError.textContent}${message ? ` ${message}` : ''}`;
     } else {
-      showElem($errorGeneral);
-      $errorGeneral.text(`unknown error type: ${errorType}`);
+      elErrorMsg.textContent = `unknown error type: ${errorType}${message ? ` ${message}` : ''}`;
     }
   }
-  $('#webauthn-error').modal('show');
+
+  showElem('#webauthn-error');
 }
 
 function detectWebAuthnSupport() {
   if (!window.isSecureContext) {
-    $('#register-button').prop('disabled', true);
-    $('#login-button').prop('disabled', true);
     webAuthnError('insecure');
     return false;
   }
 
   if (typeof window.PublicKeyCredential !== 'function') {
-    $('#register-button').prop('disabled', true);
-    $('#login-button').prop('disabled', true);
     webAuthnError('browser');
     return false;
   }
@@ -169,54 +148,59 @@ function detectWebAuthnSupport() {
 }
 
 export function initUserAuthWebAuthnRegister() {
-  if ($('#register-webauthn').length === 0) {
+  const elRegister = document.getElementById('register-webauthn');
+  if (!elRegister) {
     return;
   }
-
-  $('#webauthn-error').modal({allowMultiple: false});
-  $('#register-webauthn').on('click', (e) => {
+  if (!detectWebAuthnSupport()) {
+    elRegister.disabled = true;
+    return;
+  }
+  elRegister.addEventListener('click', async (e) => {
     e.preventDefault();
-    if (!detectWebAuthnSupport()) {
-      return;
-    }
-    webAuthnRegisterRequest();
+    await webAuthnRegisterRequest();
   });
 }
 
-function webAuthnRegisterRequest() {
-  if ($('#nickname').val() === '') {
-    webAuthnError('empty');
+async function webAuthnRegisterRequest() {
+  const elNickname = document.getElementById('nickname');
+
+  const body = new FormData();
+  body.append('name', elNickname.value);
+
+  const res = await fetch(`${appSubUrl}/user/settings/security/webauthn/request_register`, {
+    method: 'POST',
+    headers: {
+      'X-Csrf-Token': csrfToken,
+    },
+    body,
+  });
+
+  if (res.status === 409) {
+    webAuthnError('duplicated');
+    return;
+  } else if (res.status !== 200) {
+    webAuthnError('unknown');
     return;
   }
-  $.post(`${appSubUrl}/user/settings/security/webauthn/request_register`, {
-    _csrf: csrfToken,
-    name: $('#nickname').val(),
-  }).done((makeCredentialOptions) => {
-    $('#nickname').closest('div.field').removeClass('error');
 
-    makeCredentialOptions.publicKey.challenge = decodeURLEncodedBase64(makeCredentialOptions.publicKey.challenge);
-    makeCredentialOptions.publicKey.user.id = decodeURLEncodedBase64(makeCredentialOptions.publicKey.user.id);
-    if (makeCredentialOptions.publicKey.excludeCredentials) {
-      for (let i = 0; i < makeCredentialOptions.publicKey.excludeCredentials.length; i++) {
-        makeCredentialOptions.publicKey.excludeCredentials[i].id = decodeURLEncodedBase64(makeCredentialOptions.publicKey.excludeCredentials[i].id);
-      }
-    }
+  const options = await res.json();
+  elNickname.closest('div.field').classList.remove('error');
 
-    navigator.credentials.create({
-      publicKey: makeCredentialOptions.publicKey
-    }).then(webauthnRegistered)
-      .catch((err) => {
-        if (!err) {
-          webAuthnError('unknown');
-          return;
-        }
-        webAuthnError('general', err.message);
-      });
-  }).fail((xhr) => {
-    if (xhr.status === 409) {
-      webAuthnError('duplicated');
-      return;
+  options.publicKey.challenge = decodeURLEncodedBase64(options.publicKey.challenge);
+  options.publicKey.user.id = decodeURLEncodedBase64(options.publicKey.user.id);
+  if (options.publicKey.excludeCredentials) {
+    for (const cred of options.publicKey.excludeCredentials) {
+      cred.id = decodeURLEncodedBase64(cred.id);
     }
-    webAuthnError('unknown');
-  });
+  }
+
+  try {
+    const credential = await navigator.credentials.create({
+      publicKey: options.publicKey
+    });
+    await webauthnRegistered(credential);
+  } catch (err) {
+    webAuthnError('unknown', err);
+  }
 }
