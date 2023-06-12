@@ -186,15 +186,12 @@ func SubmitReview(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.SubmitReviewForm)
 	issue := GetActionIssue(ctx)
 	if !issue.IsPull {
-		fmt.Print("!issue.IsPull!issue.IsPull!issue.IsPull!issue.IsPull")
 		return
 	}
 	if ctx.Written() {
-		fmt.Print("WrittenWrittenWritten")
 		return
 	}
 	if ctx.HasError() {
-		fmt.Print("has error has error")
 		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
 		ctx.JSON(http.StatusOK, map[string]interface{}{
 			"redirectLink": fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index),
