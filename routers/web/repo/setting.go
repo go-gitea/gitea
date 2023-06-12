@@ -68,7 +68,7 @@ func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["DisableNewPushMirrors"] = setting.Mirror.DisableNewPush
 	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
 	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
-	ctx.Data["Err_RepoSize"] = ctx.Repo.Repository.RepoSizeIsOversized(ctx.Repo.Repository.GetActualSizeLimit() / 10) // less than 10% left
+	ctx.Data["Err_RepoSize"] = ctx.Repo.Repository.IsRepoSizeOversized(ctx.Repo.Repository.GetActualSizeLimit() / 10) // less than 10% left
 	ctx.Data["ActualSizeLimit"] = ctx.Repo.Repository.GetActualSizeLimit()
 	ctx.Data["EnableSizeLimit"] = setting.EnableSizeLimit
 
@@ -123,7 +123,7 @@ func SettingsPost(ctx *context.Context) {
 	ctx.Data["CodeIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	repo := ctx.Repo.Repository
-	ctx.Data["Err_RepoSize"] = repo.RepoSizeIsOversized(repo.SizeLimit / 10) // less than 10% left
+	ctx.Data["Err_RepoSize"] = repo.IsRepoSizeOversized(repo.SizeLimit / 10) // less than 10% left
 
 	switch ctx.FormString("action") {
 	case "update":

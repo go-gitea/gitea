@@ -507,8 +507,14 @@ func (repo *Repository) GetActualSizeLimit() int64 {
 }
 
 // RepoSizeIsOversized return true if is over size limitation
-func (repo *Repository) RepoSizeIsOversized(additionalSize int64) bool {
+func (repo *Repository) IsRepoSizeOversized(additionalSize int64) bool {
 	return setting.EnableSizeLimit && repo.GetActualSizeLimit() > 0 && repo.Size+additionalSize > repo.GetActualSizeLimit()
+}
+
+// RepoSizeLimitEnabled return true if size limit checking is enabled and limit is non zero for this specific repository
+// this is used to enable size checking during pre-receive hook
+func (repo *Repository) IsRepoSizeLimitEnabled() bool {
+	return setting.EnableSizeLimit && repo.GetActualSizeLimit() > 0
 }
 
 // CanCreateBranch returns true if repository meets the requirements for creating new branches.
