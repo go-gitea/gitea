@@ -9,9 +9,9 @@ function updateIssueCount(cards) {
   parent.getElementsByClassName('board-card-cnt')[0].textContent = cnt;
 }
 
-function createNewBoard(boardTitle, projectColorInput) {
+function createNewBoard(url, boardTitle, projectColorInput) {
   $.ajax({
-    url: $(this).data('url'),
+    url,
     data: JSON.stringify({title: boardTitle.val(), color: projectColorInput.val()}),
     headers: {
       'X-Csrf-Token': csrfToken,
@@ -23,6 +23,7 @@ function createNewBoard(boardTitle, projectColorInput) {
     window.location.reload();
   });
 }
+
 function moveIssue({item, from, to, oldIndex}) {
   const columnCards = to.getElementsByClassName('board-card');
   updateIssueCount(from);
@@ -31,8 +32,8 @@ function moveIssue({item, from, to, oldIndex}) {
   const columnSorting = {
     issues: Array.from(columnCards, (card, i) => ({
       issueID: parseInt($(card).attr('data-issue')),
-      sorting: i
-    }))
+      sorting: i,
+    })),
   };
 
   $.ajax({
@@ -45,7 +46,7 @@ function moveIssue({item, from, to, oldIndex}) {
     type: 'POST',
     error: () => {
       from.insertBefore(item, from.children[oldIndex]);
-    }
+    },
   });
 }
 
@@ -186,22 +187,24 @@ export function initRepoProject() {
     e.preventDefault();
     const boardTitle = $('#new_board');
     const projectColorInput = $('#new_board_color_picker');
-    if (boardTitle.val().length < 1) {
-      return false;
+    if (!boardTitle.val()) {
+      return;
     }
-    createNewBoard(boardTitle, projectColorInput);
+    const url = $(this).data('url');
+    createNewBoard(url, boardTitle, projectColorInput);
   });
 
   $('.new-board').on('keyup', (e) => {
     const boardTitle = $('#new_board');
     const projectColorInput = $('#new_board_color_picker');
-    if (boardTitle.val().length < 1) {
+    if (!boardTitle.val()) {
       $('#new_board_submit').addClass('disabled');
       return false;
     }
-    $(`#new_board_submit`).removeClass('disabled');
-    if (e.key === 'Enter' || e.keyCode === 13) {
-      createNewBoard(boardTitle, projectColorInput);
+    $('#new_board_submit').removeClass('disabled');
+    if (e.key === 'Enter') {
+      const url = $(this).data('url');
+      createNewBoard(url, boardTitle, projectColorInput);
     }
   });
 }
