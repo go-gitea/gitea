@@ -275,6 +275,27 @@ func FindReviews(ctx context.Context, opts FindReviewOptions) ([]*Review, error)
 		Find(&reviews)
 }
 
+// FindLatestReviews returns only latest reviews per user, passing FindReviewOptions
+func FindLatestReviews(ctx context.Context, opts FindReviewOptions) ([]*Review, error) {
+	reviews := make([]*Review, 0, 10)
+	cond := opts.toCond()
+	sess := db.GetEngine(ctx).Where(cond)
+	if opts.Page > 0 {
+		sess = db.SetSessionPagination(sess, &opts)
+	}
+
+	sess.In("id", builder.
+		Select("max ( id ) ").
+		From("review").
+		Where(cond).
+		GroupBy("reviewer_id"))
+
+	return reviews, sess.
+		Asc("created_unix").
+		Asc("id").
+		Find(&reviews)
+}
+
 // CountReviews returns count of reviews passing FindReviewOptions
 func CountReviews(opts FindReviewOptions) (int64, error) {
 	return db.GetEngine(db.DefaultContext).Where(opts.toCond()).Count(&Review{})

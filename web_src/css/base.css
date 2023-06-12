@@ -188,7 +188,7 @@
   --color-text-light-3: #a0a0a0;
   --color-box-header: #f7f7f7;
   --color-box-body: #ffffff;
-  --color-box-body-highlight: #f8f8f8;
+  --color-box-body-highlight: #fafafa;
   --color-footer: #ffffff;
   --color-timeline: #ececec;
   --color-input-text: #212121;
@@ -2197,19 +2197,6 @@ table th[data-sortt-desc] .svg {
   font-style: normal !important;
   font-weight: var(--font-weight-normal) !important;
   vertical-align: -0.075em;
-}
-
-@supports (-webkit-hyphens:none) {
-  body:not(.safari-above125) .emoji,
-  body:not(.safari-above125) .reaction {
-    font-size: inherit;
-    vertical-align: inherit;
-  }
-  body:not(.safari-above125) .emoji img,
-  body:not(.safari-above125) .reaction img {
-    font-size: 1.25em;
-    vertical-align: -0.225em !important;
-  }
 }
 
 .emoji img,
