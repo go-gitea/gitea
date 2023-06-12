@@ -371,6 +371,8 @@ type DiffFile struct {
 	IsViewed                  bool // User specific
 	HasChangedSinceLastReview bool // User specific
 	Language                  string
+	Mode                      string
+	OldMode                   string
 }
 
 // GetType returns type of diff file.
@@ -501,6 +503,11 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader, ski
 		}
 		return diff, err
 	}
+
+	prepareValue := func(s, p string) string {
+		return strings.TrimSpace(strings.TrimPrefix(s, p))
+	}
+
 parsingLoop:
 	for {
 		// 1. A patch file always begins with `diff --git ` + `a/path b/path` (possibly quoted)
@@ -585,11 +592,20 @@ parsingLoop:
 				}
 				break parsingLoop
 			}
+
 			switch {
 			case strings.HasPrefix(line, cmdDiffHead):
 				break curFileLoop
 			case strings.HasPrefix(line, "old mode ") ||
 				strings.HasPrefix(line, "new mode "):
+
+				if strings.HasPrefix(line, "old mode ") {
+					curFile.OldMode = prepareValue(line, "old mode ")
+				}
+				if strings.HasPrefix(line, "new mode ") {
+					curFile.Mode = prepareValue(line, "new mode ")
+				}
+
 				if strings.HasSuffix(line, " 160000\n") {
 					curFile.IsSubmodule = true
 				}
@@ -597,31 +613,34 @@ parsingLoop:
 				curFile.IsRenamed = true
 				curFile.Type = DiffFileRename
 				if curFile.IsAmbiguous {
-					curFile.OldName = line[len("rename from ") : len(line)-1]
+					curFile.OldName = prepareValue(line, "rename from ")
 				}
 			case strings.HasPrefix(line, "rename to "):
 				curFile.IsRenamed = true
 				curFile.Type = DiffFileRename
 				if curFile.IsAmbiguous {
-					curFile.Name = line[len("rename to ") : len(line)-1]
+					curFile.Name = prepareValue(line, "rename to ")
 					curFile.IsAmbiguous = false
 				}
 			case strings.HasPrefix(line, "copy from "):
 				curFile.IsRenamed = true
 				curFile.Type = DiffFileCopy
 				if curFile.IsAmbiguous {
-					curFile.OldName = line[len("copy from ") : len(line)-1]
+					curFile.OldName = prepareValue(line, "copy from ")
 				}
 			case strings.HasPrefix(line, "copy to "):
 				curFile.IsRenamed = true
 				curFile.Type = DiffFileCopy
 				if curFile.IsAmbiguous {
-					curFile.Name = line[len("copy to ") : len(line)-1]
+					curFile.Name = prepareValue(line, "copy to ")
 					curFile.IsAmbiguous = false
 				}
 			case strings.HasPrefix(line, "new file"):
 				curFile.Type = DiffFileAdd
 				curFile.IsCreated = true
+				if strings.HasPrefix(line, "new file mode ") {
+					curFile.Mode = prepareValue(line, "new file mode ")
+				}
 				if strings.HasSuffix(line, " 160000\n") {
 					curFile.IsSubmodule = true
 				}
