@@ -416,11 +416,14 @@ function prepareReviewBox ($reviewBox) {
         },
         body: JSON.stringify(data),
       });
+      // if page is redirected, no need to remove loading status
       if (response.status === 200) {
         const {redirectLink} = await response.json();
         window.location.href = redirectLink;
+      // error occurs, still on the page, remove loading status
       } else {
-        window.location.reload();
+        $reviewBox.removeClass('isFetching');
+        $(btn).removeClass('loading');
       }
     });
   }
