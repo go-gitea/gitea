@@ -394,6 +394,9 @@ export async function handleReply($el) {
 function prepareReviewBox ($reviewBox) {
   for (const btn of $reviewBox.find('.btn-submit')) {
     $(btn).on('click', async () => {
+      if ($reviewBox.hasClass('isFetching')) return;
+      $reviewBox.addClass('isFetching');
+      $(btn).addClass('loading');
       const fileIds = [];
       for (const fileInput of $reviewBox.find('.dropzone .files input')) {
         fileIds.push($(fileInput).attr('id'));
@@ -413,10 +416,11 @@ function prepareReviewBox ($reviewBox) {
         },
         body: JSON.stringify(data),
       });
-      console.log(response)
       if (response.status === 200) {
         const {redirectLink} = await response.json();
         window.location.href = redirectLink;
+      } else {
+        window.location.reload();
       }
     });
   }
