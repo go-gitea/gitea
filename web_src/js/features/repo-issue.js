@@ -393,30 +393,31 @@ export async function handleReply($el) {
 
 function prepareReviewBox ($reviewBox) {
   for (const btn of $reviewBox.find('.btn-submit')) {
-    const files = $('.files');
-    let fileIds = [];
-    for (const file of files) {
-      fileIds.push($(file).attr('id'));
-    }
-    const markdown = $('textarea.markdown-text-editor');
-    $(btn).on('click', (e) => {
-      console.log('commit-id', $reviewBox.attr('data-commit-id'));
-      console.log('type', $(btn).attr('data-type'));
-      console.log('content', markdown.val());
-      data = {
+    $(btn).on('click', async () => {
+      const fileIds = [];
+      for (const fileInput of $reviewBox.find('.dropzone .files input')) {
+        fileIds.push($(fileInput).attr('id'));
+      }
+      const $textEditor = $reviewBox.find('textarea.markdown-text-editor');
+      const data = {
         'commitID': $reviewBox.attr('data-commit-id'),
         'type': $(btn).attr('data-type'),
-        'content': markdown.val(),
+        'content': $textEditor.val(),
       };
-      if (fileIds.length > 0) {
-        data['files'] = fileIds
-      }
-      fetch($reviewBox.attr('data-link'), {
+      if (fileIds.length > 0) data['files'] = fileIds;
+      const response = await fetch($reviewBox.attr('data-url'), {
         method: 'POST',
-        headers: {'X-Csrf-Token': csrfToken},
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Csrf-Token': csrfToken,
+        },
         body: JSON.stringify(data),
       });
-    })
+      if (response.status === 200) {
+        const {redirectLink} = await response.json();
+        window.location.href = redirectLink;
+      }
+    });
   }
 }
 
