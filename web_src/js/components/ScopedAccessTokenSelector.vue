@@ -3,7 +3,7 @@
     <label class="category-label" :for="'access-token-scope-' + category">
       {{ category }}
     </label>
-    <div class="access-token-select-wrapper">
+    <div class="gitea-select">
       <select
         class="ui selection access-token-select"
         name="scope"
@@ -111,35 +111,3 @@ export function initScopedAccessTokenCategories() {
 }
 
 </script>
-
-<style scoped>
-.access-token-select-wrapper {
-  position: relative;
-}
-
-/* ::before and ::after pseudo elements don't work on select elements, so we
-need to put it on the parent. */
-.access-token-select-wrapper::before {
-  position: absolute;
-  top: 12px;
-  right: 8px;
-  pointer-events: none;
-  display: inline-block;
-  content: '';
-  width: 14px;
-  height: 14px;
-  mask-size: cover;
-  -webkit-mask-size: cover;
-  mask-image: var(--octicon-chevron-right);
-  -webkit-mask-image: var(--octicon-chevron-right);
-  /* Point the chevron down. */
-  transform: rotate(90deg);
-  background: currentcolor;
-}
-
-.ui.form .access-token-select {
-  appearance: none;
-  /* Increase padding for the chevron */
-  padding-right: 26px;
-}
-</style>
