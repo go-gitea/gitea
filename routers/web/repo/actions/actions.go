@@ -130,6 +130,8 @@ func List(ctx *context.Context) {
 	actorID := ctx.FormInt64("actor")
 	status := ctx.FormInt("status")
 	ctx.Data["CurWorkflow"] = workflow
+	// if status or actor query param is not given to frontend href, (href="/<repoLink>/actions")
+	// they will be 0 by default, which indicates get all status or actors
 	ctx.Data["CurActor"] = actorID
 	ctx.Data["CurStatus"] = status
 	if actorID > 0 || status > int(actions_model.StatusUnknown) {
