@@ -126,7 +126,7 @@
 				{{if .TotalTrackedTime}}
 				<div class="issue-item-icon-right text grey">
 						{{svg "octicon-clock" 16 "gt-mr-2"}}
-						{{.TotalTrackedTime | Sec2Time}}
+						{{.TotalTrackedTime | Sec2TrackedTime}}
 				</div>
 				{{end}}
 				{{if .Assignees}}

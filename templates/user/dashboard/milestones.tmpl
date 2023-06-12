@@ -102,7 +102,7 @@
 									{{svg "octicon-check" 16 "gt-mr-3"}}
 									{{$.locale.PrettyNumber .NumClosedIssues}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
 									{{if .TotalTrackedTime}}
-										{{svg "octicon-clock"}} {{.TotalTrackedTime|Sec2Time}}
+										{{svg "octicon-clock"}} {{.TotalTrackedTime|Sec2TrackedTime}}
 									{{end}}
 								</span>
 							</div>
