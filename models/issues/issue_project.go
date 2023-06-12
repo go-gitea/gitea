@@ -153,11 +153,12 @@ func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.U
 					if _, err := db.GetEngine(ctx).Where("project_issue.issue_id=?", issue.ID).Delete(&project_model.ProjectIssue{}); err != nil {
 						return err
 					}
-				} else if i > 0 && i == newProjectID {
+				} else {
+					i = newProjectID
+					newProjectID = 0
 					if _, err := db.GetEngine(ctx).Where("project_issue.issue_id=? AND project_issue.project_id=?", issue.ID, i).Delete(&project_model.ProjectIssue{}); err != nil {
 						return err
 					}
-					newProjectID = 0
 				}
 			}
 
@@ -173,8 +174,7 @@ func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.U
 					return err
 				}
 			}
-
-			if action != "clear" && newProjectID == 0 || action == "attach" && newProjectID > 0 {
+			if action != "clear" && newProjectID == 0 || newProjectID > 0 {
 				break
 			}
 		}
