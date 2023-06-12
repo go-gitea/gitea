@@ -391,12 +391,12 @@ export async function handleReply($el) {
   return editor;
 }
 
-function prepareReviewBox ($reviewBox) {
+function prepareReviewBoxButtons ($reviewBox) {
   for (const btn of $reviewBox.find('.btn-submit')) {
     $(btn).on('click', async () => {
       if ($reviewBox.hasClass('isFetching')) return;
       $reviewBox.addClass('isFetching');
-      $(btn).addClass('loading');
+      $(this).addClass('loading');
       const fileIds = [];
       for (const fileInput of $reviewBox.find('.dropzone .files input')) {
         fileIds.push($(fileInput).attr('id'));
@@ -404,7 +404,7 @@ function prepareReviewBox ($reviewBox) {
       const $textEditor = $reviewBox.find('textarea.markdown-text-editor');
       const data = {
         'commitID': $reviewBox.attr('data-commit-id'),
-        'type': $(btn).attr('data-type'),
+        'type': $(this).attr('data-type'),
         'content': $textEditor.val(),
       };
       if (fileIds.length > 0) data['files'] = fileIds;
@@ -423,7 +423,7 @@ function prepareReviewBox ($reviewBox) {
       // error occurs, still on the page, remove loading status
       } else {
         $reviewBox.removeClass('isFetching');
-        $(btn).removeClass('loading');
+        $(this).removeClass('loading');
       }
     });
   }
@@ -491,7 +491,7 @@ export function initRepoPullRequestReview() {
   const $reviewBox = $('.review-box-panel');
   if ($reviewBox.length === 1) {
     const _promise = initComboMarkdownEditor($reviewBox.find('.combo-markdown-editor'));
-    prepareReviewBox($reviewBox);
+    prepareReviewBoxButtons($reviewBox);
   }
 
   // The following part is only for diff views
