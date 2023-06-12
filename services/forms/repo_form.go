@@ -636,10 +636,10 @@ func (f *CodeCommentForm) Validate(req *http.Request, errs binding.Errors) bindi
 
 // SubmitReviewForm for submitting a finished code review
 type SubmitReviewForm struct {
-	Content  string
-	Type     string
-	CommitID string
-	Files    []string
+	Content  string   `json:"content"`
+	Type     string   `json:"type"`
+	CommitID string   `json:"commitID"`
+	Files    []string `json:"files"`
 }
 
 // Validate validates the fields

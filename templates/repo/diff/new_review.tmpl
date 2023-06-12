@@ -4,7 +4,7 @@
 		<span class="ui small label review-comments-counter" data-pending-comment-number="{{.PendingCodeCommentNumber}}">{{.PendingCodeCommentNumber}}</span>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 	</button>
-	<div class="review-box-panel tippy-target" data-url="{{.Link}}/reviews/submit">
+	<div class="review-box-panel tippy-target" data-url="{{.Link}}/reviews/submit" data-commit-id="{{.AfterCommitID}}">
 		<div class="ui segment">
 			<div class="ui form">
 				<input type="hidden" name="commit_id" value="{{.AfterCommitID}}">

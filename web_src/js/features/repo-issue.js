@@ -391,6 +391,30 @@ export async function handleReply($el) {
   return editor;
 }
 
+function prepareReviewBox () {
+  const files = document.querySelector('.files');
+  let fileIds = [];
+  for (const file of files) {
+    fileIds.push(file.getAttribute('id'));
+  }
+  const markdown = document.querySelector('textarea.markdown-text-editor');
+  for (const btn of $reviewBox.querySelectorAll('.btn-submit')) {
+    btn.addEventListener('click', function(e) {
+      data = {
+        'commitID': $reviewBox.getAttribute('data-commit-id'),
+        'type': btn.getAttribute('data-type'),
+        'content': markdown.value,
+        'files': fileIds,
+      };
+      fetch($reviewBox.getAttribute('data-link'), {
+        method: 'POST',
+        headers: {'X-Csrf-Token': csrfToken},
+        body: JSON.stringify(data),
+      });
+    })
+  }
+}
+
 export function initRepoPullRequestReview() {
   if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
     // set scrollRestoration to 'manual' when there is a hash in url, so that the scroll position will not be remembered after refreshing
@@ -453,19 +477,9 @@ export function initRepoPullRequestReview() {
   const $reviewBox = $('.review-box-panel');
   if ($reviewBox.length === 1) {
     const _promise = initComboMarkdownEditor($reviewBox.find('.combo-markdown-editor'));
+    prepareReviewBox();
   }
-  for (const btn of $reviewBox.querySelectorAll('.btn-submit')) {
-    btn.addEventListener('click', function(e) {
-      data = {
-        'type': btn.getAttribute('data-type')
-      };
-      fetch($reviewBox.getAttribute('data-link'), {
-        method: 'POST',
-        headers: {'X-Csrf-Token': csrfToken},
-        body: JSON.stringify(data),
-      });
-    })
-  }
+
   // The following part is only for diff views
   if ($('.repository.pull.diff').length === 0) {
     return;
