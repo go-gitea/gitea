@@ -393,7 +393,7 @@ export async function handleReply($el) {
 
 function prepareReviewBoxButtons ($reviewBox) {
   for (const btn of $reviewBox.find('.btn-submit')) {
-    $(btn).on('click', async () => {
+    $(btn).on('click', async function () {
       if ($reviewBox.hasClass('isFetching')) return;
       $reviewBox.addClass('isFetching');
       $(this).addClass('loading');
@@ -420,7 +420,7 @@ function prepareReviewBoxButtons ($reviewBox) {
       if (response.status === 200) {
         const {redirectLink} = await response.json();
         window.location.href = redirectLink;
-      // error occurs, still on the page, remove loading status
+      // error occurs, still on the same page, remove loading status
       } else {
         $reviewBox.removeClass('isFetching');
         $(this).removeClass('loading');
