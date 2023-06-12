@@ -213,17 +213,14 @@ function linkAction(e) {
     });
   };
 
-  let modalConfirmHtml = $this.attr('data-modal-confirm-html');
-  if (!modalConfirmHtml) {
-    modalConfirmHtml = htmlEscape($this.attr('data-modal-confirm') || '');
-  }
+  const modalConfirmHtml = htmlEscape($this.attr('data-modal-confirm') || '');
   if (!modalConfirmHtml) {
     request();
     return;
   }
 
   const okButtonColor = $this.hasClass('red') || $this.hasClass('yellow') || $this.hasClass('orange') || $this.hasClass('negative') ? 'orange' : 'green';
-  
+
   const $modal = $(`
 <div class="ui g-modal-confirm modal">
   <div class="content">${modalConfirmHtml}</div>
