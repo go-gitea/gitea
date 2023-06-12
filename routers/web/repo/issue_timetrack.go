@@ -82,6 +82,6 @@ func DeleteTime(c *context.Context) {
 		return
 	}
 
-	c.Flash.Success(c.Tr("repo.issues.del_time_history", util.SecToTime(t.Time)))
+	c.Flash.Success(c.Tr("repo.issues.del_time_history", util.Sec2TrackedTime(t.Time)))
 	c.Redirect(issue.Link())
 }
