@@ -6,7 +6,7 @@
 	{{if .PinnedIssues}}
 		<div id="issue-pins" {{if .IsRepoAdmin}}data-is-repo-admin{{end}}>
 			{{range .PinnedIssues}}
-				<div class="pinned-issue-card gt-word-break" data-move-url="{{$.Link}}/pin_move" data-issue-id="{{.ID}}">
+				<div class="pinned-issue-card gt-word-break" data-move-url="{{$.Link}}/move_pin" data-issue-id="{{.ID}}">
 					{{if eq $.Project.CardType 1}}
 						<div class="card-attachment-images">
 							{{range (index $.issuesAttachmentMap .ID)}}
@@ -21,13 +21,13 @@
 							</div>
 							<a class="pinned-issue-title muted issue-title" href="{{.Link}}">{{.Title | RenderEmoji $.Context | RenderCodeBlock}}</a>
 							{{if $.IsRepoAdmin}}
-								<a role="button" class="pinned-issue-unpin muted gt-df gt-ac" data-tooltip-content={{$.locale.Tr "repo.issues.unpin_issue"}} data-issue-id="{{.ID}}" data-unpin-url="{{$.Link}}/unpin/{{.ID}}">
+								<a role="button" class="pinned-issue-unpin muted gt-df gt-ac" data-tooltip-content={{$.locale.Tr "repo.issues.unpin_issue"}} data-issue-id="{{.ID}}" data-unpin-url="{{$.Link}}/unpin/{{.Index}}">
 									{{svg "octicon-x" 16}}
 								</a>
 							{{end}}
 						</div>
 						<div class="meta gt-my-2">
-							<span class="text light grey">
+							<span class="text light grey muted-links">
 								#{{.Index}}
 								{{$timeStr := TimeSinceUnix .GetLastEventTimestamp $.locale}}
 								{{if .OriginalAuthor}}
@@ -83,7 +83,7 @@
 		</div>
 		<div id="issue-filters" class="issue-list-toolbar">
 			<div class="issue-list-toolbar-left">
-				{{if $.CanWriteIssuesOrPulls}}
+				{{if and ($.CanWriteIssuesOrPulls) (gt (len .Issues) 0)}}
 					<input type="checkbox" autocomplete="off" class="issue-checkbox-all gt-mr-4" title="{{.locale.Tr "repo.issues.action_check_all"}}">
 				{{end}}
 				{{template "repo/issue/openclose" .}}

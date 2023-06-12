@@ -51,14 +51,6 @@ func (app *OAuth2Application) TableName() string {
 	return "oauth2_application"
 }
 
-// PrimaryRedirectURI returns the first redirect uri or an empty string if empty
-func (app *OAuth2Application) PrimaryRedirectURI() string {
-	if len(app.RedirectURIs) == 0 {
-		return ""
-	}
-	return app.RedirectURIs[0]
-}
-
 // ContainsRedirectURI checks if redirectURI is allowed for app
 func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
 	if !app.ConfidentialClient {

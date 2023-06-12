@@ -62,7 +62,7 @@ func (oa *OAuth2CommonHandlers) AddApp(ctx *context.Context) {
 	// TODO validate redirect URI
 	app, err := auth.CreateOAuth2Application(ctx, auth.CreateOAuth2ApplicationOptions{
 		Name:               form.Name,
-		RedirectURIs:       []string{form.RedirectURI},
+		RedirectURIs:       util.SplitTrimSpace(form.RedirectURIs, "\n"),
 		UserID:             oa.ownerID(),
 		ConfidentialClient: form.ConfidentialClient,
 	})
@@ -116,7 +116,7 @@ func (oa *OAuth2CommonHandlers) EditSave(ctx *context.Context) {
 	app, err := auth.UpdateOAuth2Application(auth.UpdateOAuth2ApplicationOptions{
 		ID:                 ctx.ParamsInt64("id"),
 		Name:               form.Name,
-		RedirectURIs:       []string{form.RedirectURI},
+		RedirectURIs:       util.SplitTrimSpace(form.RedirectURIs, "\n"),
 		UserID:             oa.ownerID(),
 		ConfidentialClient: form.ConfidentialClient,
 	})
