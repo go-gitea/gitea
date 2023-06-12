@@ -287,7 +287,7 @@
 				{{$isCodeEnabled := .Repository.UnitEnabled $.Context $.UnitTypeCode}}
 				<div class="inline field">
 					<label>{{.locale.Tr "repo.code"}}</label>
-					<div class="ui checkbox{{if .UnitTypeCode.UnitGlobalDisabled}} disabled{{end}}"{{if .UnitTypeCode.UnitGlobalDisabled}} data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}"{{end}>
+					<div class="ui checkbox{{if .UnitTypeCode.UnitGlobalDisabled}} disabled{{end}}"{{if .UnitTypeCode.UnitGlobalDisabled}} data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}"{{end}}>
 						<input class="enable-system" name="enable_code" type="checkbox"{{if $isCodeEnabled}} checked{{end}}>
 						<label>{{.locale.Tr "repo.code.desc"}}</label>
 					</div>
