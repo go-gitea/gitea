@@ -106,17 +106,7 @@ CC=aarch64-unknown-linux-gnu-gcc GOOS=linux GOARCH=arm64 TAGS="bindata sqlite sq
 
 ## 使用Linux与Zig编译或交叉编译
 
-- 下载：https://ziglang.org/download/
-- 安装：
-```sh
-sudo rm -rf /usr/local/zig && tar -C /usr/local -xf zig-linux-x86_64-0.10.1.tar.xz
-```
-- 环境变量：`export PATH=$PATH:/usr/local/zig-linux-x86_64-0.10.1/`
-- Install cc
-```
-sudo apt install gcc
-which cc
-```
+按照[Getting Started of Zig](https://ziglang.org/learn/getting-started/#installing-zig)来安装zig。
 
 1.编译(Linux ➝ Linux)
 
@@ -130,7 +120,6 @@ GOARCH=amd64 \
 TAGS="bindata sqlite sqlite_unlock_notify" \
 make build
 ```
-✅亲测成功
 
 2.交叉编译(Linux ➝ Windows)
 ```sh
@@ -142,9 +131,6 @@ GOARCH=amd64 \
 TAGS="bindata sqlite sqlite_unlock_notify" \
 make build
 ```
-✅亲测成功（Gitea版本1.20.0-rc0,编译后96.4M，选择SQLite3可以正常安装）
-
-
 
 ## 使用Windows与Zig编译或交叉编译
 安装zig：
@@ -172,7 +158,6 @@ GOARCH=amd64 \
 TAGS="bindata sqlite sqlite_unlock_notify" \
 make build
 ```
-✅亲测成功
 
 2.交叉编译(Windows ➝ Linux)
 ```
@@ -185,4 +170,3 @@ GOARCH=amd64 \
 TAGS="bindata sqlite sqlite_unlock_notify" \
 make build
 ```
-❓暂未有时间亲自测试，如有异常，欢迎修正
