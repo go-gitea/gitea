@@ -222,20 +222,17 @@ function linkAction(e) {
     return;
   }
 
-  const modalHtml = `
+  const okButtonColor = $this.hasClass('red') || $this.hasClass('yellow') || $this.hasClass('orange') || $this.hasClass('negative') ? 'orange' : 'green';
+  
+  const $modal = $(`
 <div class="ui g-modal-confirm modal">
   <div class="content">${modalConfirmHtml}</div>
   <div class="actions">
     <button class="ui basic cancel button">${svg('octicon-x')} ${i18n.modal_cancel}</button>
-    <button class="ui green ok button">${svg('octicon-check')} ${i18n.modal_confirm}</button>
+    <button class="ui ${okButtonColor} ok button">${svg('octicon-check')} ${i18n.modal_confirm}</button>
   </div>
 </div>
-`;
-
-  const $modal = $(modalHtml);
-  if ($this.hasClass('red') || $this.hasClass('yellow') || $this.hasClass('orange') || $this.hasClass('negative')) {
-    $modal.find('.ui.ok.button').removeClass('green').addClass('orange');
-  }
+`);
 
   $modal.appendTo(document.body);
   $modal.modal({
