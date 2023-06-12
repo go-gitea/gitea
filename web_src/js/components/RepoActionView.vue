@@ -415,7 +415,7 @@ const sfc = {
       const fullScreenEl = document.querySelector('.action-view-right');
       const outerEl = document.querySelector('.full.height');
       const actionBodyEl = document.querySelector('.action-view-body');
-      const headerEl = document.querySelector('.ui.main.menu');
+      const headerEl = document.querySelector('#navbar');
       const contentEl = document.querySelector('.page-content.repository');
       const footerEl = document.querySelector('.page-footer');
       toggleElem(headerEl, !this.isFullScreen);
