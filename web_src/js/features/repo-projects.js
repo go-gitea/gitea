@@ -199,7 +199,7 @@ export function initRepoProject() {
     const projectColorInput = $('#new_board_color_picker');
     if (!boardTitle.val()) {
       $('#new_board_submit').addClass('disabled');
-      return false;
+      return;
     }
     $('#new_board_submit').removeClass('disabled');
     if (e.key === 'Enter') {
