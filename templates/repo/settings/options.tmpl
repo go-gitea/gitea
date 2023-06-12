@@ -309,11 +309,7 @@
 						</div>
 					</div>
 					<div class="field">
-						{{if .UnitTypeExternalWiki.UnitGlobalDisabled}}
-						<div class="ui radio checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
-						{{else}}
-						<div class="ui radio checkbox">
-						{{end}}
+						<div class="ui radio checkbox{{if .UnitTypeExternalWiki.UnitGlobalDisabled}} disabled{{end}}"{{if .UnitTypeExternalWiki.UnitGlobalDisabled}} data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}"{{end}}>
 							<input class="enable-system-radio" tabindex="0" name="enable_external_wiki" type="radio" value="true" data-target="#external_wiki_box" {{if .Repository.UnitEnabled $.Context $.UnitTypeExternalWiki}}checked{{end}}>
 							<label>{{.locale.Tr "repo.settings.use_external_wiki"}}</label>
 						</div>
