@@ -420,8 +420,7 @@ lint-actions:
 
 .PHONY: lint-templates
 lint-templates: .venv
-	$(eval TEMPLATES := $(shell find templates -type f -iname '*.tmpl'))
-	@poetry run djlint $(TEMPLATES)
+	@poetry run djlint $(shell find templates -type f -iname '*.tmpl')
 
 .PHONY: watch
 watch:
