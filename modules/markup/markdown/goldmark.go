@@ -180,7 +180,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 					segments := newChild.FirstChild().Lines()
 					if segments.Len() > 0 {
 						segment := segments.At(0)
-						newChild.SourcePosition = rc.MetaLength + segment.Start
+						newChild.SourcePosition = rc.metaLength + segment.Start
 					}
 					v.AppendChild(v, newChild)
 				}

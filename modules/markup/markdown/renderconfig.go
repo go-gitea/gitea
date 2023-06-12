@@ -22,7 +22,7 @@ type RenderConfig struct {
 	yamlNode *yaml.Node
 
 	// Used internally.  Cannot be controlled by frontmatter.
-	MetaLength int
+	metaLength int
 }
 
 func renderMetaModeFromString(s string) markup.RenderMetaMode {

@@ -192,7 +192,7 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 	if metaLength < 0 {
 		metaLength = 0
 	}
-	rc.MetaLength = metaLength
+	rc.metaLength = metaLength
 
 	pc.Set(renderConfigKey, rc)
 
