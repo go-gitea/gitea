@@ -209,17 +209,7 @@ YMMV and these scripts may need further improvement.
 
 ## Compile or cross-compile using Linux with Zig
 
-- Download: https://ziglang.org/download/
-- To install:
-```sh
-sudo rm -rf /usr/local/zig && tar -C /usr/local -xf zig-linux-x86_64-0.10.1.tar.xz
-```
-- Environment variable: `export PATH=$PATH:/usr/local/zig-linux-x86_64-0.10.1/`
-- Install cc
-```
-sudo apt install gcc
-which cc
-```
+Follow [Getting Started of Zig](https://ziglang.org/learn/getting-started/#installing-zig) to install zig.
 
 1. Compile (Linux ➝ Linux)
 
@@ -233,7 +223,6 @@ GOARCH=amd64 \
 TAGS="bindata sqlite sqlite_unlock_notify" \
 make build
 ```
-✅Proven success
 
 2. cross-compile (Linux ➝ Windows)
 ```sh
@@ -245,15 +234,11 @@ GOARCH=amd64 \
 TAGS="bindata sqlite sqlite_unlock_notify" \
 make build
 ```
-✅Proven success (Gitea version 1.20.0-rc0,compiled 96.4M, select SQLite3 can be installed normally)
-
-
 
 ## Compile or cross-compile with Zig using Windows
 To install zig:
 - Download: https://ziglang.org/download/
 - Decompress and set environment variables
-
 
 Make `GIT BASH` support make:
 - Go to https://sourceforge.net/projects/ezwinports/files/ and download `make-4.4.1-without-guile-w32-bin.zip`
@@ -275,8 +260,6 @@ GOARCH=amd64 \
 TAGS="bindata sqlite sqlite_unlock_notify" \
 make build
 ```
-✅Proven success
-
 2. Cross-compile (Windows ➝ Linux)
 ```
 CC="zig cc -target x86_64-linux-gnu" \
@@ -288,4 +271,3 @@ GOARCH=amd64 \
 TAGS="bindata sqlite sqlite_unlock_notify" \
 make build
 ```
-❓ I don't have time to test it myself, if there is any exception, welcome to fix it
