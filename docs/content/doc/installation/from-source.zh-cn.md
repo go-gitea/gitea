@@ -1,5 +1,5 @@
 ---
-date: "2023-06-11T16:00:00+02:00"
+date: "2016-12-01T16:00:00+02:00"
 title: "使用源代码安装"
 slug: "install-from-source"
 weight: 30
