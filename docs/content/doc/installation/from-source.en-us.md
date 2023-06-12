@@ -236,19 +236,6 @@ make build
 ```
 
 ## Compile or cross-compile with Zig using Windows
-To install zig:
-- Download: https://ziglang.org/download/
-- Decompress and set environment variables
-
-Make `GIT BASH` support make:
-- Go to https://sourceforge.net/projects/ezwinports/files/ and download `make-4.4.1-without-guile-w32-bin.zip`
-- Decompress the file
-- Copy all the extracted files to the git installation directory: . \Program Files\Git\mingw64\, merge the folders, and choose not to replace the files that pop up if they need to be replaced.
-- So that you can execute make in the git bash window (the compiler still needs to be installed separately when compiling)
-
-To make `GIT BASH` support make (second method):
-- Download: [https://github.com/niXman/mingw-builds-binaries](https://github.com/niXman/mingw-builds-binaries)
-- Copy mingw32-make.exe to `C:\Program Files\Git\mingw64\bin`, renamed make.exe
 
 1. Compile (Windows ➝ Windows)
 ```
