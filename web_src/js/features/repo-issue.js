@@ -413,6 +413,7 @@ function prepareReviewBox ($reviewBox) {
         },
         body: JSON.stringify(data),
       });
+      console.log(response)
       if (response.status === 200) {
         const {redirectLink} = await response.json();
         window.location.href = redirectLink;

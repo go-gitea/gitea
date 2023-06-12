@@ -181,10 +181,6 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment) {
 	ctx.HTML(http.StatusOK, tplConversation)
 }
 
-type submitReviewResponse struct {
-	RedirectLink string `json:"redirectLink"`
-}
-
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
 func SubmitReview(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.SubmitReviewForm)
@@ -200,14 +196,13 @@ func SubmitReview(ctx *context.Context) {
 	if ctx.HasError() {
 		fmt.Print("has error has error")
 		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
-		ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
+		ctx.JSON(http.StatusOK, map[string]interface{}{
+			"redirectLink": fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index),
+		})
 		return
 	}
 
 	reviewType := form.ReviewType()
-	fmt.Print("reviewType \n")
-	fmt.Print(form.Type)
-	fmt.Print(reviewType)
 	switch reviewType {
 	case issues_model.ReviewTypeUnknown:
 		ctx.ServerError("ReviewType", fmt.Errorf("unknown ReviewType: %s", form.Type))
@@ -224,7 +219,9 @@ func SubmitReview(ctx *context.Context) {
 			}
 
 			ctx.Flash.Error(translated)
-			ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
+			ctx.JSON(http.StatusOK, map[string]interface{}{
+				"redirectLink": fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index),
+			})
 			return
 		}
 	}
@@ -236,22 +233,19 @@ func SubmitReview(ctx *context.Context) {
 
 	_, comm, err := pull_service.SubmitReview(ctx, ctx.Doer, ctx.Repo.GitRepo, issue, reviewType, form.Content, form.CommitID, attachments)
 	if err != nil {
-		fmt.Print("errerrerrerr \n")
-		fmt.Print(err)
 		if issues_model.IsContentEmptyErr(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.review.content.empty"))
-			ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
+			ctx.JSON(http.StatusOK, map[string]interface{}{
+				"redirectLink": fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index),
+			})
 		} else {
 			ctx.ServerError("SubmitReview", err)
 		}
 		return
 	}
-	fmt.Print("RedirectRedirectRedirectRedirectRedirect \n")
-	fmt.Print(fmt.Sprintf("%s/pulls/%d#%s", ctx.Repo.RepoLink, issue.Index, comm.HashTag()))
-	resp := submitReviewResponse{
-		RedirectLink: fmt.Sprintf("%s/pulls/%d#%s", ctx.Repo.RepoLink, issue.Index, comm.HashTag()),
-	}
-	ctx.JSON(http.StatusOK, resp)
+	ctx.JSON(http.StatusOK, map[string]interface{}{
+		"redirectLink": fmt.Sprintf("%s/pulls/%d#%s", ctx.Repo.RepoLink, issue.Index, comm.HashTag()),
+	})
 }
 
 // DismissReview dismissing stale review by repo admin
