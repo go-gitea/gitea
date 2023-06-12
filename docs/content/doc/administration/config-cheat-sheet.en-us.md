@@ -73,7 +73,7 @@ In addition there is _`StaticRootPath`_ which can be set as a built-in at build 
 - `RUN_USER`: **_current OS username_/`$USER`/`$USERNAME` e.g. git**: The user Gitea will run as.
    This should be a dedicated system (non-user) account. Setting this incorrectly will cause Gitea
    to not start.
-- `RUN_MODE`: **prod**: Application run mode, affects performance and debugging: `dev` or `prod`, default is `prod`. Mode `dev` makes Gitea easier to develop and debug, values other than `dev` are treated as `prod` which is for production use.
+- `RUN_MODE`: **prod**: Application run mode: `dev` or `prod`, default is `prod`. Mode `dev` is only meant for Gitea development and must not be used for any other purpose. Values other than `dev` are treated as `prod`.
 
 ## Repository (`repository`)
 
