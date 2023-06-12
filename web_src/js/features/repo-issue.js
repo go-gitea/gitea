@@ -391,22 +391,27 @@ export async function handleReply($el) {
   return editor;
 }
 
-function prepareReviewBox () {
-  const files = document.querySelector('.files');
-  let fileIds = [];
-  for (const file of files) {
-    fileIds.push(file.getAttribute('id'));
-  }
-  const markdown = document.querySelector('textarea.markdown-text-editor');
-  for (const btn of $reviewBox.querySelectorAll('.btn-submit')) {
-    btn.addEventListener('click', function(e) {
+function prepareReviewBox ($reviewBox) {
+  for (const btn of $reviewBox.find('.btn-submit')) {
+    const files = $('.files');
+    let fileIds = [];
+    for (const file of files) {
+      fileIds.push($(file).attr('id'));
+    }
+    const markdown = $('textarea.markdown-text-editor');
+    $(btn).on('click', (e) => {
+      console.log('commit-id', $reviewBox.attr('data-commit-id'));
+      console.log('type', $(btn).attr('data-type'));
+      console.log('content', markdown.val());
       data = {
-        'commitID': $reviewBox.getAttribute('data-commit-id'),
-        'type': btn.getAttribute('data-type'),
-        'content': markdown.value,
-        'files': fileIds,
+        'commitID': $reviewBox.attr('data-commit-id'),
+        'type': $(btn).attr('data-type'),
+        'content': markdown.val(),
       };
-      fetch($reviewBox.getAttribute('data-link'), {
+      if (fileIds.length > 0) {
+        data['files'] = fileIds
+      }
+      fetch($reviewBox.attr('data-link'), {
         method: 'POST',
         headers: {'X-Csrf-Token': csrfToken},
         body: JSON.stringify(data),
@@ -477,7 +482,7 @@ export function initRepoPullRequestReview() {
   const $reviewBox = $('.review-box-panel');
   if ($reviewBox.length === 1) {
     const _promise = initComboMarkdownEditor($reviewBox.find('.combo-markdown-editor'));
-    prepareReviewBox();
+    prepareReviewBox($reviewBox);
   }
 
   // The following part is only for diff views
