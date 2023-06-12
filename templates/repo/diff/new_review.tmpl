@@ -4,10 +4,9 @@
 		<span class="ui small label review-comments-counter" data-pending-comment-number="{{.PendingCodeCommentNumber}}">{{.PendingCodeCommentNumber}}</span>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 	</button>
-	<div class="review-box-panel tippy-target">
+	<div class="review-box-panel tippy-target" data-url="{{.Link}}/reviews/submit">
 		<div class="ui segment">
-			<form class="ui form" action="{{.Link}}/reviews/submit" method="post">
-				{{.CsrfTokenHtml}}
+			<div class="ui form">
 				<input type="hidden" name="commit_id" value="{{.AfterCommitID}}">
 				<div class="field gt-df gt-ac">
 					<div class="gt-f1">{{$.locale.Tr "repo.diff.review.header"}}</div>
@@ -32,20 +31,20 @@
 				{{$showSelfTooltip := (and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID))}}
 				{{if $showSelfTooltip}}
 					<span class="gt-dib" data-tooltip-content="{{$.locale.Tr "repo.diff.review.self_approve"}}">
-						<button type="submit" name="type" value="approve" disabled class="ui submit green tiny button btn-submit">{{$.locale.Tr "repo.diff.review.approve"}}</button>
+						<button data-type="approve" disabled class="ui submit green tiny button btn-submit">{{$.locale.Tr "repo.diff.review.approve"}}</button>
 					</span>
 				{{else}}
-					<button type="submit" name="type" value="approve" class="ui submit green tiny button btn-submit">{{$.locale.Tr "repo.diff.review.approve"}}</button>
+					<button data-type="approve" class="ui submit green tiny button btn-submit">{{$.locale.Tr "repo.diff.review.approve"}}</button>
 				{{end}}
-				<button type="submit" name="type" value="comment" class="ui submit tiny basic button btn-submit">{{$.locale.Tr "repo.diff.review.comment"}}</button>
+				<button data-type="comment" class="ui submit tiny basic button btn-submit">{{$.locale.Tr "repo.diff.review.comment"}}</button>
 				{{if $showSelfTooltip}}
 					<span class="gt-dib" data-tooltip-content="{{$.locale.Tr "repo.diff.review.self_reject"}}">
-						<button type="submit" name="type" value="reject" disabled class="ui submit red tiny button btn-submit">{{$.locale.Tr "repo.diff.review.reject"}}</button>
+						<button data-type="reject" disabled class="ui submit red tiny button btn-submit">{{$.locale.Tr "repo.diff.review.reject"}}</button>
 					</span>
 				{{else}}
-					<button type="submit" name="type" value="reject" class="ui submit red tiny button btn-submit">{{$.locale.Tr "repo.diff.review.reject"}}</button>
+					<button data-type="reject" class="ui submit red tiny button btn-submit">{{$.locale.Tr "repo.diff.review.reject"}}</button>
 				{{end}}
-			</form>
+			</div>
 		</div>
 	</div>
 </div>

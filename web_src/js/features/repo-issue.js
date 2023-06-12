@@ -454,7 +454,18 @@ export function initRepoPullRequestReview() {
   if ($reviewBox.length === 1) {
     const _promise = initComboMarkdownEditor($reviewBox.find('.combo-markdown-editor'));
   }
-
+  for (const btn of $reviewBox.querySelectorAll('.btn-submit')) {
+    btn.addEventListener('click', function(e) {
+      data = {
+        'type': btn.getAttribute('data-type')
+      };
+      fetch($reviewBox.getAttribute('data-link'), {
+        method: 'POST',
+        headers: {'X-Csrf-Token': csrfToken},
+        body: JSON.stringify(data),
+      });
+    })
+  }
   // The following part is only for diff views
   if ($('.repository.pull.diff').length === 0) {
     return;
