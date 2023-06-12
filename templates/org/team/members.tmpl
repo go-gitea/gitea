@@ -9,17 +9,15 @@
 				{{template "org/team/navbar" .}}
 				{{if .IsOrganizationOwner}}
 					<div class="ui attached segment">
-						<form class="ui form ignore-dirty" id="add-member-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/add" method="post">
+						<form class="ui form ignore-dirty gt-df" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/add" method="post">
 							{{.CsrfTokenHtml}}
 							<input type="hidden" name="uid" value="{{.SignedUser.ID}}">
-							<div class="inline field ui left">
-								<div id="search-user-box" class="ui search"{{if .IsEmailInviteEnabled}} data-allow-email="true" data-allow-email-description="{{.locale.Tr "org.teams.invite_team_member" $.Team.Name}}"{{end}}>
-									<div class="ui input">
-										<input class="prompt" name="uname" placeholder="{{.locale.Tr "repo.settings.search_user_placeholder"}}" autocomplete="off" required>
-									</div>
+							<div id="search-user-box" class="ui search"{{if .IsEmailInviteEnabled}} data-allow-email="true" data-allow-email-description="{{.locale.Tr "org.teams.invite_team_member" $.Team.Name}}"{{end}}>
+								<div class="ui input">
+									<input class="prompt" name="uname" placeholder="{{.locale.Tr "repo.settings.search_user_placeholder"}}" autocomplete="off" required>
 								</div>
 							</div>
-							<button class="ui green button">{{.locale.Tr "org.teams.add_team_member"}}</button>
+							<button class="ui green button gt-ml-3">{{.locale.Tr "org.teams.add_team_member"}}</button>
 						</form>
 					</div>
 				{{end}}
