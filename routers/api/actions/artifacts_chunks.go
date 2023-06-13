@@ -98,7 +98,8 @@ func mergeChunksForRun(ctx *ArtifactContext, st storage.ObjectStorage, runID int
 	for _, art := range artifacts {
 		chunks, ok := chunksMap[art.ID]
 		if !ok {
-			return fmt.Errorf("artifact %d chunks not found", art.ID)
+			log.Debug("artifact %d chunks not found", art.ID)
+			continue
 		}
 		if err := mergeChunksForArtifact(ctx, chunks, st, art); err != nil {
 			return err

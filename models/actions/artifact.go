@@ -31,7 +31,7 @@ func init() {
 // ActionArtifact is a file that is stored in the artifact storage.
 type ActionArtifact struct {
 	ID                 int64 `xorm:"pk autoincr"`
-	RunID              int64 `xorm:"index index(runid_name_path)"` // The run id of the artifact
+	RunID              int64 `xorm:"index unique(runid_name_path)"` // The run id of the artifact
 	RunnerID           int64
 	RepoID             int64 `xorm:"index"`
 	OwnerID            int64
@@ -40,9 +40,9 @@ type ActionArtifact struct {
 	FileSize           int64              // The size of the artifact in bytes
 	FileCompressedSize int64              // The size of the artifact in bytes after gzip compression
 	ContentEncoding    string             // The content encoding of the artifact
-	ArtifactPath       string             `xorm:"index index(runid_name_path)"` // The path to the artifact when runner uploads it
-	ArtifactName       string             `xorm:"index index(runid_name_path)"` // The name of the artifact when runner uploads it
-	Status             int64              `xorm:"index"`                        // The status of the artifact, uploading, expired or need-delete
+	ArtifactPath       string             `xorm:"index unique(runid_name_path)"` // The path to the artifact when runner uploads it
+	ArtifactName       string             `xorm:"index unique(runid_name_path)"` // The name of the artifact when runner uploads it
+	Status             int64              `xorm:"index"`                         // The status of the artifact, uploading, expired or need-delete
 	CreatedUnix        timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix        timeutil.TimeStamp `xorm:"updated index"`
 }
