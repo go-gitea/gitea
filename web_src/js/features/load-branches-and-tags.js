@@ -47,7 +47,7 @@ function addLink(href, text, addHere, tooltip) {
     link.setAttribute('data-tooltip-content', tooltip);
   }
   link.href = href;
-  link.text = text;
+  link.textContent = text;
   addHere.append(link);
 }
 
