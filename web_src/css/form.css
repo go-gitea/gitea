@@ -197,7 +197,7 @@ textarea:focus,
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   #create-page-form form .optional .title {
     margin-left: 15px;
   }
@@ -309,12 +309,13 @@ textarea:focus,
   .user.reset.password form .inline.field > textarea,
   .user.link-account form .inline.field > textarea,
   .user.signin form .inline.field > textarea,
-  .user.signup form .inline.field > textarea {
+  .user.signup form .inline.field > textarea,
+  .oauth-login-link {
     width: 50%;
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .user.activate form .optional .title,
   .user.forgot.password form .optional .title,
   .user.reset.password form .optional .title,
@@ -352,7 +353,7 @@ textarea:focus,
   width: 200px;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .user.activate form .inline.field > label,
   .user.forgot.password form .inline.field > label,
   .user.reset.password form .inline.field > label,
@@ -364,7 +365,8 @@ textarea:focus,
   .user.reset.password form input,
   .user.link-account form input,
   .user.signin form input,
-  .user.signup form input {
+  .user.signup form input,
+  .oauth-login-link {
     width: 100% !important;
   }
 }
@@ -392,10 +394,6 @@ textarea:focus,
 .user.signup form input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
-}
-
-.user.signin.webauthn-prompt {
-  margin-top: 15px;
 }
 
 .repository.new.repo form,
@@ -451,7 +449,7 @@ textarea:focus,
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .repository.new.repo form .optional .title,
   .repository.new.migrate form .optional .title,
   .repository.new.fork form .optional .title {
@@ -485,7 +483,7 @@ textarea:focus,
   width: 50% !important;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .repository.new.repo form label,
   .repository.new.migrate form label,
   .repository.new.fork form label,
@@ -518,7 +516,7 @@ textarea:focus,
   width: 50% !important;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .repository.new.repo .ui.form .selection.dropdown:not(.owner) {
     width: 100% !important;
   }
@@ -536,7 +534,7 @@ textarea:focus,
   font-family: var(--fonts-monospace);
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .new.org .ui.form .field button,
   .new.org .ui.form .field a {
     margin-bottom: 1em;

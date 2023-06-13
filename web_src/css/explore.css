@@ -1,6 +1,6 @@
 .explore .navbar {
   margin-bottom: 15px !important;
-  background-color: var(--color-navbar) !important;
+  background-color: var(--color-header-wrapper) !important;
   border-width: 1px !important;
 }
 

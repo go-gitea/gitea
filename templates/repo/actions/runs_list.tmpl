@@ -1,16 +1,16 @@
 <div class="issue list gt-m-0">
 	{{range .Runs}}
-		<li class="item gt-df gt-py-3 gt-ab">
-			<div class="issue-item-left gt-df gt-mr-2">
+		<li class="item gt-df gt-py-4">
+			<div class="issue-item-left issue-item-icon gt-df gt-items-start">
 				{{template "repo/actions/status" (dict "status" .Status.String "locale" $.locale)}}
 			</div>
 			<div class="issue-item-main action-item-main gt-f1 gt-fc gt-df gt-mr-3">
-				<div class="issue-item-top-row">
-					<a class="index gt-ml-0 gt-mr-2" title="{{.Title}}" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
+				<div class="issue-item-top-row gt-mb-2">
+					<a class="index gt-no-underline title action-item-title" title="{{.Title}}" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
 						{{- .Title -}}
 					</a>
 				</div>
-				<div class="desc issue-item-bottom-row gt-df gt-ac gt-fw gt-my-1">
+				<div class="desc issue-item-bottom-row gt-df gt-ac gt-fw">
 					<b>{{if not $.CurWorkflow}}{{.WorkflowID}} {{end}}#{{.Index}}</b>: {{$.locale.Tr "actions.runs.commit"}}
 					<a href="{{$.RepoLink}}/commit/{{.CommitSHA}}">{{ShortSha .CommitSHA}}</a>{{$.locale.Tr "actions.runs.pushed_by"}} {{.TriggerUser.GetDisplayName}}
 					<span class="ui label">

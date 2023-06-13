@@ -4074,7 +4074,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Create or update multiple files in a repository",
+        "summary": "Modify multiple files in a repository",
         "operationId": "repoChangeFiles",
         "parameters": [
           {
@@ -15947,11 +15947,11 @@
       "type": "object",
       "required": [
         "operation",
-        "content"
+        "path"
       ],
       "properties": {
         "content": {
-          "description": "content must be base64 encoded",
+          "description": "new or updated file content, must be base64 encoded",
           "type": "string",
           "x-go-name": "Content"
         },
@@ -15976,7 +15976,7 @@
           "x-go-name": "Path"
         },
         "sha": {
-          "description": "sha is the SHA for the file that already exists, required for update, delete",
+          "description": "sha is the SHA for the file that already exists, required for update or delete",
           "type": "string",
           "x-go-name": "SHA"
         }
@@ -15986,6 +15986,9 @@
     "ChangeFilesOptions": {
       "description": "ChangeFilesOptions options for creating, updating or deleting multiple files\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
       "type": "object",
+      "required": [
+        "files"
+      ],
       "properties": {
         "author": {
           "$ref": "#/definitions/Identity"
@@ -16002,6 +16005,7 @@
           "$ref": "#/definitions/CommitDateOptions"
         },
         "files": {
+          "description": "list of file operations",
           "type": "array",
           "items": {
             "$ref": "#/definitions/ChangeFileOperation"
