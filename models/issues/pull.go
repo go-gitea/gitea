@@ -920,7 +920,7 @@ func PullRequestCodeOwnersReview(ctx context.Context, pull *Issue, pr *PullReque
 	var data string
 	for _, file := range files {
 		if blob, err := commit.GetBlobByPath(file); err == nil {
-			data, err = blob.GetBlobContent()
+			data, err = blob.GetBlobContent(setting.UI.MaxDisplayFileSize)
 			if err == nil {
 				break
 			}
