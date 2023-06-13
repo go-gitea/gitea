@@ -14,7 +14,7 @@
         <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
           {{ locale.cancel }}
         </button>
-        <button class="ui basic small compact button secondary gt-mr-0" @click="rerun()" v-else-if="run.canRerun">
+        <button class="ui basic small compact button gt-mr-0" @click="rerun()" v-else-if="run.canRerun">
           {{ locale.rerun_all }}
         </button>
       </div>
@@ -70,7 +70,7 @@
           </div>
           <div class="job-info-header-right">
             <div class="ui top right pointing dropdown custom jump item" @click.stop="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
-              <button class="ui button button-ghost gt-p-3">
+              <button class="btn gt-interact-bg gt-p-3">
                 <SvgIcon name="octicon-gear" :size="18"/>
               </button>
               <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
@@ -415,7 +415,7 @@ const sfc = {
       const fullScreenEl = document.querySelector('.action-view-right');
       const outerEl = document.querySelector('.full.height');
       const actionBodyEl = document.querySelector('.action-view-body');
-      const headerEl = document.querySelector('.ui.main.menu');
+      const headerEl = document.querySelector('#navbar');
       const contentEl = document.querySelector('.page-content.repository');
       const footerEl = document.querySelector('.page-footer');
       toggleElem(headerEl, !this.isFullScreen);
