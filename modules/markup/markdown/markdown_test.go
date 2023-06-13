@@ -531,7 +531,7 @@ func TestTaskList(t *testing.T) {
 foo: bar
 ---
 - [ ] task 1`,
-			`<details><summary><i class="icon table"></i></summary><table>
+			`<table>
 <thead>
 <tr>
 <th>foo</th>
@@ -543,7 +543,7 @@ foo: bar
 </tr>
 </tbody>
 </table>
-</details><ul>
+<ul>
 <li class="task-list-item"><input type="checkbox" disabled="" data-source-position="19"/>task 1</li>
 </ul>
 `,
