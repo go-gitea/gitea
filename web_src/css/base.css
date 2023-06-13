@@ -2335,6 +2335,10 @@ table th[data-sortt-desc] .svg {
   justify-content: center;
 }
 
+.ui.dropdown .ui.label .svg {
+  vertical-align: middle;
+}
+
 .ui.ui.labeled.button {
   gap: 0;
   align-items: stretch;
