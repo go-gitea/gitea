@@ -1,6 +1,5 @@
 import $ from 'jquery';
 import 'jquery.are-you-sure';
-import {mqBinarySearch} from '../utils.js';
 import {createDropzone} from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
@@ -62,19 +61,6 @@ export function initGlobalButtonClickOnEnter() {
 }
 
 export function initGlobalCommon() {
-  // Undo Safari emoji glitch fix at high enough zoom levels
-  if (navigator.userAgent.match('Safari')) {
-    $(window).on('resize', () => {
-      const px = mqBinarySearch('width', 0, 4096, 1, 'px');
-      const em = mqBinarySearch('width', 0, 1024, 0.01, 'em');
-      if (em * 16 * 1.25 - px <= -1) {
-        $('body').addClass('safari-above125');
-      } else {
-        $('body').removeClass('safari-above125');
-      }
-    });
-  }
-
   // Semantic UI modules.
   const $uiDropdowns = $('.ui.dropdown');
 
