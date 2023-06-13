@@ -15,7 +15,11 @@ import (
 
 // IndexName returns the full index name with version
 func (i *Indexer) IndexName() string {
-	return fmt.Sprintf("%s.v%d", i.indexAliasName, i.version)
+	return formatIndexName(i.indexAliasName, i.version)
+}
+
+func formatIndexName(indexAliasName string, version int) string {
+	return fmt.Sprintf("%s.v%d", indexAliasName, version)
 }
 
 func (i *Indexer) createIndex(ctx context.Context) error {
@@ -27,37 +31,7 @@ func (i *Indexer) createIndex(ctx context.Context) error {
 		return fmt.Errorf("create index %s with %s failed", i.IndexName(), i.mapping)
 	}
 
-	// check version
-	r, err := i.Client.Aliases().Do(ctx)
-	if err != nil {
-		return err
-	}
-
-	realIndexerNames := r.IndicesByAlias(i.indexAliasName)
-	if len(realIndexerNames) < 1 {
-		res, err := i.Client.Alias().
-			Add(i.IndexName(), i.indexAliasName).
-			Do(ctx)
-		if err != nil {
-			return err
-		}
-		if !res.Acknowledged {
-			return fmt.Errorf("create alias %s to index %s failed", i.indexAliasName, i.IndexName())
-		}
-	} else if len(realIndexerNames) >= 1 && realIndexerNames[0] < i.IndexName() {
-		log.Warn("Found older gitea indexer named %s, but we will create a new one %s and keep the old NOT DELETED. You can delete the old version after the upgrade succeed.",
-			realIndexerNames[0], i.IndexName())
-		res, err := i.Client.Alias().
-			Remove(realIndexerNames[0], i.indexAliasName).
-			Add(i.IndexName(), i.indexAliasName).
-			Do(ctx)
-		if err != nil {
-			return err
-		}
-		if !res.Acknowledged {
-			return fmt.Errorf("change alias %s to index %s failed", i.indexAliasName, i.IndexName())
-		}
-	}
+	i.checkOldIndexes(ctx)
 
 	return nil
 }
@@ -77,4 +51,18 @@ func (i *Indexer) initClient() (*elastic.Client, error) {
 	opts = append(opts, elastic.SetErrorLog(&log.PrintfLogger{Logf: logger.Error}))
 
 	return elastic.NewClient(opts...)
+}
+
+func (i *Indexer) checkOldIndexes(ctx context.Context) {
+	i.checkOldIndex(ctx, i.indexAliasName) // Old index name without version
+	for v := 1; v < i.version; v++ {
+		i.checkOldIndex(ctx, formatIndexName(i.indexAliasName, v))
+	}
+}
+
+func (i *Indexer) checkOldIndex(ctx context.Context, indexName string) {
+	exists, err := i.Client.IndexExists(indexName).Do(ctx)
+	if err == nil && exists {
+		log.Warn("Found older elasticsearch index named %q, Gitea will keep the old NOT DELETED. You can delete the old version after the upgrade succeed.", indexName)
+	}
 }
