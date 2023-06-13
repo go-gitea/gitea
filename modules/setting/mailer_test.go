@@ -4,6 +4,7 @@
 package setting
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,11 +27,12 @@ func Test_loadMailerFrom(t *testing.T) {
 	}
 	for host, kase := range kases {
 		t.Run(host, func(t *testing.T) {
-			cfg, _ := NewConfigProviderFromData("")
-			sec := cfg.Section("mailer")
-			sec.NewKey("ENABLED", "true")
-			sec.NewKey("HOST", host)
-
+			cfg, _ := NewConfigProviderFromData(fmt.Sprintf(`
+[mailer]
+ENABLED = true
+SMTP_ADDR = %s
+SMTP_PORT = %s
+`, kase.SMTPAddr, kase.SMTPPort))
 			// Check mailer setting
 			loadMailerFrom(cfg)
 
