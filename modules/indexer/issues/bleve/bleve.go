@@ -113,7 +113,7 @@ func NewIndexer(indexDir string) *Indexer {
 }
 
 // Index will save the index data
-func (b *Indexer) Index(issues []*internal.IndexerData) error {
+func (b *Indexer) Index(_ context.Context, issues []*internal.IndexerData) error {
 	batch := inner_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	for _, issue := range issues {
 		if err := batch.Index(indexer_internal.Base36(issue.ID), struct {
@@ -134,7 +134,7 @@ func (b *Indexer) Index(issues []*internal.IndexerData) error {
 }
 
 // Delete deletes indexes by ids
-func (b *Indexer) Delete(ids ...int64) error {
+func (b *Indexer) Delete(_ context.Context, ids ...int64) error {
 	batch := inner_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	for _, id := range ids {
 		if err := batch.Delete(indexer_internal.Base36(id)); err != nil {

@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_elasticsearch "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
@@ -191,10 +190,10 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 }
 
 // Delete deletes indexes by ids
-func (b *Indexer) Delete(repoID int64) error {
+func (b *Indexer) Delete(ctx context.Context, repoID int64) error {
 	_, err := b.inner.Client.DeleteByQuery(b.inner.IndexName()).
 		Query(elastic.NewTermsQuery("repo_id", repoID)).
-		Do(graceful.GetManager().HammerContext())
+		Do(ctx)
 	return err
 }
 

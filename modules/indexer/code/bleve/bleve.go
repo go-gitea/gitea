@@ -224,7 +224,7 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 }
 
 // Delete deletes indexes by ids
-func (b *Indexer) Delete(repoID int64) error {
+func (b *Indexer) Delete(_ context.Context, repoID int64) error {
 	query := numericEqualityQuery(repoID, "RepoID")
 	searchRequest := bleve.NewSearchRequestOptions(query, 2147483647, 0, false)
 	result, err := b.inner.Indexer.Search(searchRequest)

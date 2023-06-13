@@ -68,7 +68,7 @@ const (
 )
 
 // Index will save the index data
-func (b *Indexer) Index(issues []*internal.IndexerData) error {
+func (b *Indexer) Index(ctx context.Context, issues []*internal.IndexerData) error {
 	if len(issues) == 0 {
 		return nil
 	} else if len(issues) == 1 {
@@ -83,7 +83,7 @@ func (b *Indexer) Index(issues []*internal.IndexerData) error {
 				"content":  issue.Content,
 				"comments": issue.Comments,
 			}).
-			Do(graceful.GetManager().HammerContext())
+			Do(ctx)
 		return err
 	}
 
@@ -111,14 +111,14 @@ func (b *Indexer) Index(issues []*internal.IndexerData) error {
 }
 
 // Delete deletes indexes by ids
-func (b *Indexer) Delete(ids ...int64) error {
+func (b *Indexer) Delete(ctx context.Context, ids ...int64) error {
 	if len(ids) == 0 {
 		return nil
 	} else if len(ids) == 1 {
 		_, err := b.inner.Client.Delete().
 			Index(b.inner.IndexName()).
 			Id(fmt.Sprintf("%d", ids[0])).
-			Do(graceful.GetManager().HammerContext())
+			Do(ctx)
 		return err
 	}
 

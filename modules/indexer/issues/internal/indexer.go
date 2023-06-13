@@ -12,7 +12,7 @@ import (
 // Indexer defines an interface to indexer issues contents
 type Indexer interface {
 	internal.Indexer
-	Index(issue []*IndexerData) error
-	Delete(ids ...int64) error
+	Index(ctx context.Context, issue []*IndexerData) error
+	Delete(ctx context.Context, ids ...int64) error
 	Search(ctx context.Context, kw string, repoIDs []int64, limit, start int) (*SearchResult, error)
 }

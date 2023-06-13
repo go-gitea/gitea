@@ -14,6 +14,6 @@ import (
 type Indexer interface {
 	internal.Indexer
 	Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *RepoChanges) error
-	Delete(repoID int64) error
+	Delete(ctx context.Context, repoID int64) error
 	Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error)
 }

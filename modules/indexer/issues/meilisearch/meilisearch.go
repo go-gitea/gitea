@@ -34,7 +34,7 @@ func NewIndexer(url, apiKey, indexerName string) *Indexer {
 }
 
 // Index will save the index data
-func (b *Indexer) Index(issues []*internal.IndexerData) error {
+func (b *Indexer) Index(_ context.Context, issues []*internal.IndexerData) error {
 	if len(issues) == 0 {
 		return nil
 	}
@@ -49,7 +49,7 @@ func (b *Indexer) Index(issues []*internal.IndexerData) error {
 }
 
 // Delete deletes indexes by ids
-func (b *Indexer) Delete(ids ...int64) error {
+func (b *Indexer) Delete(_ context.Context, ids ...int64) error {
 	if len(ids) == 0 {
 		return nil
 	}

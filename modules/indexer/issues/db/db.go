@@ -26,12 +26,12 @@ func NewIndexer() *Indexer {
 }
 
 // Index dummy function
-func (i *Indexer) Index(issue []*internal.IndexerData) error {
+func (i *Indexer) Index(_ context.Context, _ []*internal.IndexerData) error {
 	return nil
 }
 
 // Delete dummy function
-func (i *Indexer) Delete(ids ...int64) error {
+func (i *Indexer) Delete(_ context.Context, _ ...int64) error {
 	return nil
 }
 

@@ -31,7 +31,7 @@ var (
 func index(ctx context.Context, indexer internal.Indexer, repoID int64) error {
 	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 	if repo_model.IsErrRepoNotExist(err) {
-		return indexer.Delete(repoID)
+		return indexer.Delete(ctx, repoID)
 	}
 	if err != nil {
 		return err
