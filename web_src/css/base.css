@@ -272,13 +272,6 @@ body {
   overflow-wrap: break-word;
 }
 
-@supports (overflow: overlay) {
-  body {
-    overflow: overlay; /* stylelint-disable-line */
-    scrollbar-gutter: stable;
-  }
-}
-
 table {
   border-collapse: collapse;
 }
