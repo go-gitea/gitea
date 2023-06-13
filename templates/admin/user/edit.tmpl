@@ -197,7 +197,7 @@
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "settings.delete_account_title"}}
 	</div>
-	<form class="ui form" method="POST" action="{{.Link}}/delete">
+	<form class="ui form" method="post" action="{{.Link}}/delete">
 		<div class="content">
 			<p>{{.locale.Tr "settings.delete_account_desc"}}</p>
 			{{$.CsrfTokenHtml}}
