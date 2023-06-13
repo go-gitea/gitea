@@ -2331,6 +2331,15 @@ table th[data-sortt-desc] .svg {
   vertical-align: middle;
 }
 
+.ui.ui.button {
+  justify-content: center;
+}
+
+.ui.ui.labeled.button {
+  gap: 0;
+  align-items: stretch;
+}
+
 .flex-items-block > .item,
 .flex-text-block {
   display: flex;
