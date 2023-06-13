@@ -173,12 +173,21 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 	}
 	buf = giteautil.NormalizeEOL(buf)
 
+	// Preserve original length.
+	bufWithMetadataLength := len(buf)
+
 	rc := &RenderConfig{
 		Meta: "table",
 		Icon: "table",
 		Lang: "",
 	}
 	buf, _ = ExtractMetadataBytes(buf, rc)
+
+	metaLength := bufWithMetadataLength - len(buf)
+	if metaLength < 0 {
+		metaLength = 0
+	}
+	rc.metaLength = metaLength
 
 	pc.Set(renderConfigKey, rc)
 

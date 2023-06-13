@@ -18,6 +18,9 @@ type RenderConfig struct {
 	TOC      bool
 	Lang     string
 	yamlNode *yaml.Node
+
+	// Used internally.  Cannot be controlled by frontmatter.
+	metaLength int
 }
 
 // UnmarshalYAML implement yaml.v3 UnmarshalYAML
