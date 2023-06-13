@@ -74,7 +74,7 @@ async function fetchFormAction(e) {
   const formMethod = formEl.getAttribute('method') || 'get';
   const formActionUrl = formEl.getAttribute('action');
   const formData = new FormData(formEl);
-  const [submitterName, submitterValue] = [e.submitter?.hasAttribute('name'), e.submitter?.hasAttribute('value')];
+  const [submitterName, submitterValue] = [e.submitter?.getAttribute('name'), e.submitter?.getAttribute('value')];
   if (submitterName) {
     formData.append(submitterName, submitterValue);
   }
