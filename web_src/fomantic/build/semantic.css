@@ -24658,7 +24658,7 @@ html {
 body {
   margin: 0;
   padding: 0;
-  overflow-x: hidden;
+  overflow-x: visible;
   min-width: 320px;
   background: #FFFFFF;
   font-family: var(--fonts-regular);
