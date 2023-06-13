@@ -85,7 +85,7 @@ Gitea's private styles use `g-` prefix.
 .gt-w-screen { width: 100vw !important; }
 .gt-h-screen { height: 100vh !important; }
 
-.gt-min-w-0 { min-width: 0px !important; }
+.gt-min-w-0 { min-width: 0 !important; }
 .gt-min-w-16 { min-width: 16px !important; } /*There are some weird bugs with flexboxes and SVGs*/
 
 .gt-float-left { float: left !important; }
