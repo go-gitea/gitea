@@ -404,7 +404,7 @@ func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
 	defer committer.Close()
 
 	// Note: This doesn't page as we only expect a very limited number of reviews
-	reviews, err := FindReviews(ctx, FindReviewOptions{
+	reviews, err := FindLatestReviews(ctx, FindReviewOptions{
 		Type:         ReviewTypeApprove,
 		IssueID:      pr.IssueID,
 		OfficialOnly: setting.Repository.PullRequest.DefaultMergeMessageOfficialApproversOnly,
@@ -920,7 +920,7 @@ func PullRequestCodeOwnersReview(ctx context.Context, pull *Issue, pr *PullReque
 	var data string
 	for _, file := range files {
 		if blob, err := commit.GetBlobByPath(file); err == nil {
-			data, err = blob.GetBlobContent()
+			data, err = blob.GetBlobContent(setting.UI.MaxDisplayFileSize)
 			if err == nil {
 				break
 			}

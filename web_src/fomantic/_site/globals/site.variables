@@ -8,3 +8,4 @@
 @variationPopupTooltip: false;
 @linkHoverUnderline: underline;
 @variationButtonSocial: false;
+@pageOverflowX: visible;

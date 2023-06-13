@@ -356,7 +356,12 @@ func registerRoutes(m *web.Route) {
 		m.Get("/users", explore.Users)
 		m.Get("/users/sitemap-{idx}.xml", sitemapEnabled, explore.Users)
 		m.Get("/organizations", explore.Organizations)
-		m.Get("/code", reqUnitAccess(unit.TypeCode, perm.AccessModeRead), explore.Code)
+		m.Get("/code", func(ctx *context.Context) {
+			if unit.TypeCode.UnitGlobalDisabled() {
+				ctx.NotFound(unit.TypeCode.String(), nil)
+				return
+			}
+		}, explore.Code)
 		m.Get("/topics/search", explore.TopicSearch)
 	}, ignExploreSignIn)
 	m.Group("/issues", func() {
