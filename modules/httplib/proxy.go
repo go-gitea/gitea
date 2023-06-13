@@ -12,8 +12,9 @@ import (
 	"time"
 )
 
-func MakeReverseProxyHandler(destUrl, path string, skipVerify bool) http.Handler {
-	url, _ := url.Parse(destUrl)
+// MakeReverseProxyHandler creates HTTP handler that reverse-proxies requests to destURL
+func MakeReverseProxyHandler(destURL, path string, skipVerify bool) http.Handler {
+	url, _ := url.Parse(destURL)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		proxy := httputil.ReverseProxy{
@@ -32,8 +33,7 @@ func MakeReverseProxyHandler(destUrl, path string, skipVerify bool) http.Handler
 			},
 			ErrorHandler: func(rw http.ResponseWriter, r *http.Request, err error) {
 				rw.Header().Set("Content-Type", "text/html")
-				if _, err := rw.Write([]byte(`<html><head><title>502 Bad Gateway</title></head><body><center><h1>502 Bad Gateway</h1></center><hr><center>gitea</center></body></html>`)); err != nil {
-				}
+				rw.Write([]byte(`<html><head><title>502 Bad Gateway</title></head><body><center><h1>502 Bad Gateway</h1></center><hr><center>gitea</center></body></html>`))
 				rw.WriteHeader(http.StatusBadGateway)
 			},
 		}
