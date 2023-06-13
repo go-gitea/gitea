@@ -65,12 +65,12 @@ func (s *Service) Register(
 	// create new runner
 	name, _ := util.SplitStringAtByteN(req.Msg.Name, 255)
 	runner := &actions_model.ActionRunner{
-		UUID:    gouuid.New().String(),
-		Name:    name,
-		OwnerID: runnerToken.OwnerID,
-		RepoID:  runnerToken.RepoID,
-		Version: req.Msg.Version,
-		Labels:  labels,
+		UUID:        gouuid.New().String(),
+		Name:        name,
+		OwnerID:     runnerToken.OwnerID,
+		RepoID:      runnerToken.RepoID,
+		Version:     req.Msg.Version,
+		AgentLabels: labels,
 	}
 	if err := runner.GenerateToken(); err != nil {
 		return nil, errors.New("can't generate token")
@@ -94,7 +94,7 @@ func (s *Service) Register(
 			Token:   runner.Token,
 			Name:    runner.Name,
 			Version: runner.Version,
-			Labels:  runner.Labels,
+			Labels:  runner.AgentLabels,
 		},
 	})
 
@@ -106,7 +106,7 @@ func (s *Service) Declare(
 	req *connect.Request[runnerv1.DeclareRequest],
 ) (*connect.Response[runnerv1.DeclareResponse], error) {
 	runner := GetRunner(ctx)
-	runner.Labels = req.Msg.Labels
+	runner.AgentLabels = req.Msg.Labels
 	runner.Version = req.Msg.Version
 	if err := actions_model.UpdateRunner(ctx, runner, "labels", "version"); err != nil {
 		return nil, status.Errorf(codes.Internal, "update runner: %v", err)
@@ -119,7 +119,7 @@ func (s *Service) Declare(
 			Token:   runner.Token,
 			Name:    runner.Name,
 			Version: runner.Version,
-			Labels:  runner.Labels,
+			Labels:  runner.AgentLabels,
 		},
 	}), nil
 }

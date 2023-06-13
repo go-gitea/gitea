@@ -44,8 +44,7 @@ type ActionRunner struct {
 	LastActive timeutil.TimeStamp `xorm:"index"`
 
 	// Store labels defined in state file (default: .runner file) of `act_runner`
-	// Replace the previous AgentLabels and CustomLabels
-	Labels []string `xorm:"TEXT"`
+	AgentLabels []string `xorm:"TEXT"`
 
 	Created timeutil.TimeStamp `xorm:"created"`
 	Updated timeutil.TimeStamp `xorm:"updated"`
