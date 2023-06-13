@@ -32,8 +32,8 @@ func MakeReverseProxyHandler(destURL, path string, skipVerify bool) http.Handler
 				},
 			},
 			ErrorHandler: func(rw http.ResponseWriter, r *http.Request, err error) {
-				rw.Header().Set("Content-Type", "text/html")
-				rw.Write([]byte(`<html><head><title>502 Bad Gateway</title></head><body><center><h1>502 Bad Gateway</h1></center><hr><center>gitea</center></body></html>`))
+				rw.Header().Set("Content-Type", "text/plain")
+				_, _ = rw.Write([]byte(`502 Bad Gateway`))
 				rw.WriteHeader(http.StatusBadGateway)
 			},
 		}
