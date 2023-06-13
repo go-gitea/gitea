@@ -172,14 +172,18 @@ func notify(ctx context.Context, input *notifyInput) error {
 		}
 	}
 
-	for id, content := range workflows {
+	for _, wf := range workflows {
+		wfRef := ref
+		if wf.Event.Name == "pull_request_target" {
+			wfRef = git.BranchPrefix + input.PullRequest.BaseBranch
+		}
 		run := &actions_model.ActionRun{
 			Title:             strings.SplitN(commit.CommitMessage, "\n", 2)[0],
 			RepoID:            input.Repo.ID,
 			OwnerID:           input.Repo.OwnerID,
-			WorkflowID:        id,
+			WorkflowID:        wf.Name,
 			TriggerUserID:     input.Doer.ID,
-			Ref:               ref,
+			Ref:               wfRef,
 			CommitSHA:         commit.ID.String(),
 			IsForkPullRequest: isForkPullRequest,
 			Event:             input.Event,
@@ -193,7 +197,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 			run.NeedApproval = need
 		}
 
-		jobs, err := jobparser.Parse(content)
+		jobs, err := jobparser.Parse(wf.Content)
 		if err != nil {
 			log.Error("jobparser.Parse: %v", err)
 			continue

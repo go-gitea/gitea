@@ -29,6 +29,12 @@ func init() {
 	}
 }
 
+type DetectedWorkflow struct {
+	Name    string
+	Event   *jobparser.Event
+	Content []byte
+}
+
 func IsWorkflow(path string) bool {
 	if (!strings.HasSuffix(path, ".yaml")) && (!strings.HasSuffix(path, ".yml")) {
 		return false
@@ -89,13 +95,13 @@ func GetEventsFromContent(content []byte) ([]*jobparser.Event, error) {
 	return events, nil
 }
 
-func DetectWorkflows(commit *git.Commit, triggedEvent webhook_module.HookEventType, payload api.Payloader) (map[string][]byte, error) {
+func DetectWorkflows(commit *git.Commit, triggedEvent webhook_module.HookEventType, payload api.Payloader) ([]*DetectedWorkflow, error) {
 	entries, err := ListWorkflows(commit)
 	if err != nil {
 		return nil, err
 	}
 
-	workflows := make(map[string][]byte, len(entries))
+	workflows := make([]*DetectedWorkflow, 0, len(entries))
 	for _, entry := range entries {
 		content, err := GetContentFromEntry(entry)
 		if err != nil {
@@ -109,7 +115,12 @@ func DetectWorkflows(commit *git.Commit, triggedEvent webhook_module.HookEventTy
 		for _, evt := range events {
 			log.Trace("detect workflow %q for event %#v matching %q", entry.Name(), evt, triggedEvent)
 			if detectMatched(commit, triggedEvent, payload, evt) {
-				workflows[entry.Name()] = content
+				dw := &DetectedWorkflow{
+					Name:    entry.Name(),
+					Event:   evt,
+					Content: content,
+				}
+				workflows = append(workflows, dw)
 			}
 		}
 	}
