@@ -2,16 +2,21 @@ const {csrfToken} = window.config;
 
 async function loadBranchesAndTags(loadingButton, addHere) {
   loadingButton.setAttribute('disabled', 'disabled');
-  const response = await fetch(loadingButton.getAttribute('data-fetch-url'), {
-    method: 'GET',
-    headers: {'X-Csrf-Token': csrfToken},
-  }).finally(() => loadingButton.removeAttribute('disabled'));
+  let res;
+  try {
+    res = await fetch(loadingButton.getAttribute('data-fetch-url'), {
+      method: 'GET',
+      headers: {'X-Csrf-Token': csrfToken},
+    });
+  } finally {
+    loadingButton.removeAttribute('disabled');
+  }
 
-  if (!response.ok) {
+  if (!res.ok) {
     return;
   }
 
-  const data = await response.json();
+  const data = await res.json();
   showAreas('.branch-tag-area-divider');
   loadingButton.classList.add('gt-hidden');
   addHere.querySelector('.branch-tag-area-text').textContent = loadingButton.getAttribute('data-contained-in-text');
