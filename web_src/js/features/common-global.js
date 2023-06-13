@@ -119,7 +119,7 @@ export function initGlobalCommon() {
     formEl.addEventListener('submit', async (e) => {
       e.preventDefault();
       const submitter = e.submitter;
-      // Do not fetch repeatedly if post request has sent.
+      // Do not fetch repeatedly if request has sent.
       // Added to formEl to avoid sending several requests if there are several buttons inside the form
       if (formEl.classList.contains('isFetching')) return;
       formEl.classList.add('isFetching');
