@@ -2199,19 +2199,6 @@ table th[data-sortt-desc] .svg {
   vertical-align: -0.075em;
 }
 
-@supports (-webkit-hyphens:none) {
-  body:not(.safari-above125) .emoji,
-  body:not(.safari-above125) .reaction {
-    font-size: inherit;
-    vertical-align: inherit;
-  }
-  body:not(.safari-above125) .emoji img,
-  body:not(.safari-above125) .reaction img {
-    font-size: 1.25em;
-    vertical-align: -0.225em !important;
-  }
-}
-
 .emoji img,
 .reaction img {
   border-width: 0 !important;
