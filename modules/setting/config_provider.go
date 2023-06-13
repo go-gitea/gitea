@@ -287,6 +287,12 @@ func deprecatedSetting(rootCfg ConfigProvider, oldSection, oldKey, newSection, n
 	}
 }
 
+func deprecatedSettingFatal(rootCfg ConfigProvider, oldSection, oldKey, newSection, newKey, version string) {
+	if rootCfg.Section(oldSection).HasKey(oldKey) {
+		log.Fatal("Deprecated fallback `[%s]` `%s` present. Use `[%s]` `%s` instead. This fallback will be/has been removed in %s", oldSection, oldKey, newSection, newKey, version)
+	}
+}
+
 // deprecatedSettingDB add a hint that the configuration has been moved to database but still kept in app.ini
 func deprecatedSettingDB(rootCfg ConfigProvider, oldSection, oldKey string) {
 	if rootCfg.Section(oldSection).HasKey(oldKey) {

@@ -184,7 +184,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 		if sec.HasKey("ENABLE_ACME") {
 			EnableAcme = sec.Key("ENABLE_ACME").MustBool(false)
 		}
-		deprecatedSetting(rootCfg, "server", "ENABLE_LETSENCRYPT", "server", "ENABLE_ACME", "v1.19.0")
+		deprecatedSettingFatal(rootCfg, "server", "ENABLE_LETSENCRYPT", "server", "ENABLE_ACME", "v1.19.0")
 
 		if EnableAcme {
 			AcmeURL = sec.Key("ACME_URL").MustString("")
@@ -193,7 +193,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 			if sec.HasKey("ACME_ACCEPTTOS") {
 				AcmeTOS = sec.Key("ACME_ACCEPTTOS").MustBool(false)
 			}
-			deprecatedSetting(rootCfg, "server", "LETSENCRYPT_ACCEPTTOS", "server", "ACME_ACCEPTTOS", "v1.19.0")
+			deprecatedSettingFatal(rootCfg, "server", "LETSENCRYPT_ACCEPTTOS", "server", "ACME_ACCEPTTOS", "v1.19.0")
 
 			if !AcmeTOS {
 				log.Fatal("ACME TOS is not accepted (ACME_ACCEPTTOS).")
@@ -202,12 +202,12 @@ func loadServerFrom(rootCfg ConfigProvider) {
 			if sec.HasKey("ACME_DIRECTORY") {
 				AcmeLiveDirectory = sec.Key("ACME_DIRECTORY").MustString("https")
 			}
-			deprecatedSetting(rootCfg, "server", "LETSENCRYPT_DIRECTORY", "server", "ACME_DIRECTORY", "v1.19.0")
+			deprecatedSettingFatal(rootCfg, "server", "LETSENCRYPT_DIRECTORY", "server", "ACME_DIRECTORY", "v1.19.0")
 
 			if sec.HasKey("ACME_EMAIL") {
 				AcmeEmail = sec.Key("ACME_EMAIL").MustString("")
 			}
-			deprecatedSetting(rootCfg, "server", "LETSENCRYPT_EMAIL", "server", "ACME_EMAIL", "v1.19.0")
+			deprecatedSettingFatal(rootCfg, "server", "LETSENCRYPT_EMAIL", "server", "ACME_EMAIL", "v1.19.0")
 
 		} else {
 			CertFile = sec.Key("CERT_FILE").String()
