@@ -1,7 +1,5 @@
 <div class="branch-and-tag-area">
-	<button class="btn interact-bg gt-df gt-ac gt-mt-3 load-tags-and-branches" data-fetch-url="{{.RepoLink}}/commit/{{.CommitID}}/load-branches-and-tags" data-tooltip-content="{{.locale.Tr "repo.commit.load_referencing_branches_and_tags"}}" data-contained-in-text="{{.locale.Tr "repo.commit.contained_in"}}">
-		{{svg "octicon-ellipsis" 16}}
-	</button>
+	<button class="ui button ellipsis-button gt-mt-3 load-tags-and-branches" data-fetch-url="{{.RepoLink}}/commit/{{.CommitID}}/load-branches-and-tags" data-tooltip-content="{{.locale.Tr "repo.commit.load_referencing_branches_and_tags"}}" data-contained-in-text="{{.locale.Tr "repo.commit.contained_in"}}" aria-expanded="false">...</button>
 	<div class="ui divider branch-tag-area-divider gt-hidden"></div>
 	<div class="branch-tag-area-text gt-df"></div>
 	<div class="branch-area-parent gt-df gt-ac gt-my-3 gt-gap-2 gt-hidden">
