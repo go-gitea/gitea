@@ -139,12 +139,20 @@ jobs:
           TAGS: bindata
           RACE_ENABLED: true
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
+      - uses: actions/upload-artifact@v3
+        with:
+          name: unit-test-coverage
+          path: coverage.out
       - name: unit-tests-gogit
         run: make unit-test-coverage test-check
         env:
           TAGS: bindata gogit
           RACE_ENABLED: true
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
+      - uses: actions/upload-artifact@v3
+        with:
+          name: unit-test-coverage-gogit
+          path: coverage.out
 
   test-mysql5:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.frontend == 'true'
@@ -190,6 +198,10 @@ jobs:
           RACE_ENABLED: true
           USE_REPO_TEST_DIR: 1
           TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
+      - uses: actions/upload-artifact@v3
+        with:
+          name: unit-test-coverage-integration
+          path: integration.coverage.out
 
   test-mysql8:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.frontend == 'true'
@@ -251,3 +263,16 @@ jobs:
         env:
           TAGS: bindata
           USE_REPO_TEST_DIR: 1
+
+  test-coverage-check:
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.frontend == 'true'
+    needs: [files-changed, test-pgsql, test-sqlite, test-unit, test-mysql5, test-mysql8, test-mssql]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-go@v4
+      with:
+        go-version: ">=1.20"
+        check-latest: true
+    - uses: actions/download-artifact@v3
+    - run: make coverage test-coverage-check
