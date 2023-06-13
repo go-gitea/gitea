@@ -194,7 +194,7 @@ export function initRepoProject() {
     createNewBoard(url, boardTitle, projectColorInput);
   });
 
-  $('.new-board').on('keyup', (e) => {
+  $('.new-board').on('input keyup', (e) => {
     const boardTitle = $('#new_board');
     const projectColorInput = $('#new_board_color_picker');
     if (!boardTitle.val()) {
