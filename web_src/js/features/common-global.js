@@ -140,7 +140,8 @@ export function initGlobalCommon() {
         req['body'] = formData;
       }
       const response = await fetch(formEl.getAttribute('action'), req);
-      // if page is redirected, no need to remove loading status
+      // if page is redirected, no need to remove isFetching
+      // because request may be sent again if isFetching is removed here when network is slow
       if (response.status === 200) {
         const {redirect} = await response.json();
         window.location.href = redirect;
