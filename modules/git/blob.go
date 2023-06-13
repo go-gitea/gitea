@@ -9,7 +9,6 @@ import (
 	"encoding/base64"
 	"io"
 
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -21,15 +20,17 @@ func (b *Blob) Name() string {
 	return b.name
 }
 
-// GetBlobContent Gets the content of the blob as raw text
-// The max content size depends on MAX_DISPLAY_FILE_SIZE in app.ini
-func (b *Blob) GetBlobContent() (string, error) {
+// GetBlobContent Gets the limited content of the blob as raw text
+func (b *Blob) GetBlobContent(limit int64) (string, error) {
+	if limit <= 0 {
+		return "", nil
+	}
 	dataRc, err := b.DataAsync()
 	if err != nil {
 		return "", err
 	}
 	defer dataRc.Close()
-	buf := make([]byte, setting.UI.MaxDisplayFileSize)
+	buf := make([]byte, limit)
 	n, _ := util.ReadAtMost(dataRc, buf)
 	buf = buf[:n]
 	return string(buf), nil
