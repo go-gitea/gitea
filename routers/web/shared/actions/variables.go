@@ -57,7 +57,7 @@ func CreateVariable(ctx *context.Context, ownerID, repoID int64, redirectURL str
 		return
 	}
 
-	v, err := actions_model.InsertVariable(ctx, ownerID, repoID, form.Title, reserveLineBreakForTextarea(form.Content))
+	v, err := actions_model.InsertVariable(ctx, ownerID, repoID, form.Title, ReserveLineBreakForTextarea(form.Content))
 	if err != nil {
 		log.Error("InsertVariable error: %v", err)
 		ctx.Flash.Error(ctx.Tr("actions.variables.creation.failed"))
@@ -84,7 +84,7 @@ func UpdateVariable(ctx *context.Context, redirectURL string) {
 	ok, err := actions_model.UpdateVariable(ctx, &actions_model.ActionVariable{
 		ID:      id,
 		Title:   strings.ToUpper(form.Title),
-		Content: reserveLineBreakForTextarea(form.Content),
+		Content: ReserveLineBreakForTextarea(form.Content),
 	})
 	if err != nil || !ok {
 		log.Error("UpdateVariable error: %v", err)
@@ -112,7 +112,7 @@ func DeleteVariable(ctx *context.Context, redirectURL string) {
 	})
 }
 
-func reserveLineBreakForTextarea(input string) string {
+func ReserveLineBreakForTextarea(input string) string {
 	// Since the content is from a form which is a textarea, the line endings are \r\n.
 	// It's a standard behavior of HTML.
 	// But we want to store them as \n like what GitHub does.
