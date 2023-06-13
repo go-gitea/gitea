@@ -15,14 +15,16 @@ type Indexer struct {
 	Client *meilisearch.Client
 
 	url, apiKey string
-	indexerName string
+	indexName   string
+	version     int
 }
 
-func NewIndexer(url, apiKey, indexerName string) *Indexer {
+func NewIndexer(url, apiKey, indexName string, version int) *Indexer {
 	return &Indexer{
-		url:         url,
-		apiKey:      apiKey,
-		indexerName: indexerName,
+		url:       url,
+		apiKey:    apiKey,
+		indexName: indexName,
+		version:   version,
 	}
 }
 
@@ -41,21 +43,21 @@ func (i *Indexer) Init(_ context.Context) (bool, error) {
 		APIKey: i.apiKey,
 	})
 
-	_, err := i.Client.GetIndex(i.indexerName)
+	_, err := i.Client.GetIndex(i.VersionedIndexName())
 	if err == nil {
 		return true, nil
 	}
 	_, err = i.Client.CreateIndex(&meilisearch.IndexConfig{
-		Uid:        i.indexerName,
+		Uid:        i.VersionedIndexName(),
 		PrimaryKey: "id",
 	})
 	if err != nil {
 		return false, err
 	}
 
-	// TODO support version ?
+	i.checkOldIndexes()
 
-	_, err = i.Client.Index(i.indexerName).UpdateFilterableAttributes(&[]string{"repo_id"})
+	_, err = i.Client.Index(i.VersionedIndexName()).UpdateFilterableAttributes(&[]string{"repo_id"})
 	return false, err
 }
 

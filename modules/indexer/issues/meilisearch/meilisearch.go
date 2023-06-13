@@ -15,6 +15,10 @@ import (
 	"github.com/meilisearch/meilisearch-go"
 )
 
+const (
+	issueIndexerLatestVersion = 1
+)
+
 var _ internal.Indexer = &Indexer{}
 
 // Indexer implements Indexer interface
@@ -25,7 +29,7 @@ type Indexer struct {
 
 // NewIndexer creates a new meilisearch indexer
 func NewIndexer(url, apiKey, indexerName string) *Indexer {
-	inner := inner_meilisearch.NewIndexer(url, apiKey, indexerName)
+	inner := inner_meilisearch.NewIndexer(url, apiKey, indexerName, issueIndexerLatestVersion)
 	indexer := &Indexer{
 		inner:   inner,
 		Indexer: inner,
@@ -39,7 +43,7 @@ func (b *Indexer) Index(_ context.Context, issues []*internal.IndexerData) error
 		return nil
 	}
 	for _, issue := range issues {
-		_, err := b.inner.Client.Index(b.inner.IndexName()).AddDocuments(issue)
+		_, err := b.inner.Client.Index(b.inner.VersionedIndexName()).AddDocuments(issue)
 		if err != nil {
 			return err
 		}
@@ -55,7 +59,7 @@ func (b *Indexer) Delete(_ context.Context, ids ...int64) error {
 	}
 
 	for _, id := range ids {
-		_, err := b.inner.Client.Index(b.inner.IndexName()).DeleteDocument(strconv.FormatInt(id, 10))
+		_, err := b.inner.Client.Index(b.inner.VersionedIndexName()).DeleteDocument(strconv.FormatInt(id, 10))
 		if err != nil {
 			return err
 		}
@@ -72,7 +76,7 @@ func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, l
 		repoFilters = append(repoFilters, "repo_id = "+strconv.FormatInt(repoID, 10))
 	}
 	filter := strings.Join(repoFilters, " OR ")
-	searchRes, err := b.inner.Client.Index(b.inner.IndexName()).Search(keyword, &meilisearch.SearchRequest{
+	searchRes, err := b.inner.Client.Index(b.inner.VersionedIndexName()).Search(keyword, &meilisearch.SearchRequest{
 		Filter: filter,
 		Limit:  int64(limit),
 		Offset: int64(start),
