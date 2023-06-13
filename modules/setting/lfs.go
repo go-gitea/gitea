@@ -34,7 +34,7 @@ func loadLFSFrom(rootCfg ConfigProvider) error {
 	// Specifically default PATH to LFS_CONTENT_PATH
 	// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
 	// if these are removed, the warning will not be shown
-	deprecatedSetting(rootCfg, "server", "LFS_CONTENT_PATH", "lfs", "PATH", "v1.19.0")
+	deprecatedSettingFatal(rootCfg, "server", "LFS_CONTENT_PATH", "lfs", "PATH", "v1.19.0")
 
 	var err error
 	LFS.Storage, err = getStorage(rootCfg, "lfs", "", lfsSec)
