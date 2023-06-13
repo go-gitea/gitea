@@ -193,9 +193,7 @@ func SubmitReview(ctx *context.Context) {
 	}
 	if ctx.HasError() {
 		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
-		ctx.JSON(http.StatusOK, map[string]interface{}{
-			"redirect": fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index),
-		})
+		ctx.JSONRedirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
 		return
 	}
 
@@ -216,9 +214,7 @@ func SubmitReview(ctx *context.Context) {
 			}
 
 			ctx.Flash.Error(translated)
-			ctx.JSON(http.StatusOK, map[string]interface{}{
-				"redirect": fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index),
-			})
+			ctx.JSONRedirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
 			return
 		}
 	}
@@ -232,17 +228,13 @@ func SubmitReview(ctx *context.Context) {
 	if err != nil {
 		if issues_model.IsContentEmptyErr(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.review.content.empty"))
-			ctx.JSON(http.StatusOK, map[string]interface{}{
-				"redirect": fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index),
-			})
+			ctx.JSONRedirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
 		} else {
 			ctx.ServerError("SubmitReview", err)
 		}
 		return
 	}
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": fmt.Sprintf("%s/pulls/%d#%s", ctx.Repo.RepoLink, issue.Index, comm.HashTag()),
-	})
+	ctx.JSONRedirect(fmt.Sprintf("%s/pulls/%d#%s", ctx.Repo.RepoLink, issue.Index, comm.HashTag()))
 }
 
 // DismissReview dismissing stale review by repo admin
