@@ -49,8 +49,7 @@ recommended to install the version of Go that our continuous integration is
 running. As of last update, the Go version should be {{< go-version >}}.
 
 To lint the template files, ensure [Python](https://www.python.org/) and
-[Poetry](https://python-poetry.org/) are installed. The recommended way to
-install poetry is via `pipx install poetry`.
+[Poetry](https://python-poetry.org/) are installed.
 
 ## Installing Make
 
