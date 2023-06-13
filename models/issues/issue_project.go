@@ -29,15 +29,9 @@ func (issue *Issue) ProjectIDs() []int64 {
 }
 
 func (issue *Issue) projectIDs(ctx context.Context) []int64 {
-	var ip []project_model.ProjectIssue
 	var ips []int64
-	err := db.GetEngine(ctx).Select("project_id").Where("issue_id=?", issue.ID).Find(&ip)
-	if err != nil {
+	if err := db.GetEngine(ctx).Table("project_issue").Select("project_id").Where("issue_id=?", issue.ID).Find(&ips); err != nil {
 		return nil
-	}
-
-	for _, i := range ip {
-		ips = append(ips, i.ProjectID)
 	}
 
 	return ips
