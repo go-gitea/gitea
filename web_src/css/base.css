@@ -266,7 +266,6 @@ body {
   color: var(--color-text);
   background-color: var(--color-body);
   tab-size: var(--tab-size);
-  overflow: visible;
   display: flex;
   flex-direction: column;
   overflow-wrap: break-word;
