@@ -3,8 +3,8 @@
 			<thead>
 				<tr>
 					<th class="three wide">{{.locale.Tr "repo.commits.author"}}</th>
-					<th class="four wide sha">SHA1</th>
-					<th class="seven wide message">{{.locale.Tr "repo.commits.message"}}</th>
+					<th class="two wide sha">SHA1</th>
+					<th class="nine wide message">{{.locale.Tr "repo.commits.message"}}</th>
 					<th class="two wide right aligned">{{.locale.Tr "repo.commits.date"}}</th>
 				</tr>
 			</thead>
@@ -54,9 +54,7 @@
 								{{end}}
 							{{if $.Reponame}}
 								</a>
-								<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/archive/{{.ID}}.zip" rel="nofollow" class="default-link"><span>[.zip]</span></a>
-								<span> | </span>
-								<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/archive/{{.ID}}.tar.gz" rel="nofollow" class="default-link"><span>[.tar.gz]</span></a>
+								<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/archive/{{.ID}}.zip" rel="nofollow" class="default-link">{{svg "octicon-file-zip" 16 "gt-mr-3"}}</a>
 							{{else}}
 								</span>
 							{{end}}
