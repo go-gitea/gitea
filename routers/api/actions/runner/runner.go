@@ -108,7 +108,7 @@ func (s *Service) Declare(
 	runner := GetRunner(ctx)
 	runner.AgentLabels = req.Msg.Labels
 	runner.Version = req.Msg.Version
-	if err := actions_model.UpdateRunner(ctx, runner, "labels", "version"); err != nil {
+	if err := actions_model.UpdateRunner(ctx, runner, "agent_labels", "version"); err != nil {
 		return nil, status.Errorf(codes.Internal, "update runner: %v", err)
 	}
 
