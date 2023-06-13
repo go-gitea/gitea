@@ -946,6 +946,7 @@ img.ui.avatar,
   background: var(--color-nav-bg);
   border-bottom: 1px solid var(--color-secondary);
   width: 100vw;
+  max-width: 100%;
   min-height: 52px;
   margin: 0 !important;
 }
