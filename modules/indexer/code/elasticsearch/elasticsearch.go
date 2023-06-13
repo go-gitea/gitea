@@ -131,7 +131,7 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 
 	return []elastic.BulkableRequest{
 		elastic.NewBulkIndexRequest().
-			Index(b.inner.IndexName()).
+			Index(b.inner.VersionedIndexName()).
 			Id(id).
 			Doc(map[string]interface{}{
 				"repo_id":    repo.ID,
@@ -146,7 +146,7 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 func (b *Indexer) addDelete(filename string, repo *repo_model.Repository) elastic.BulkableRequest {
 	id := internal.FilenameIndexerID(repo.ID, filename)
 	return elastic.NewBulkDeleteRequest().
-		Index(b.inner.IndexName()).
+		Index(b.inner.VersionedIndexName()).
 		Id(id)
 }
 
@@ -181,7 +181,7 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 
 	if len(reqs) > 0 {
 		_, err := b.inner.Client.Bulk().
-			Index(b.inner.IndexName()).
+			Index(b.inner.VersionedIndexName()).
 			Add(reqs...).
 			Do(ctx)
 		return err
@@ -191,7 +191,7 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 
 // Delete deletes indexes by ids
 func (b *Indexer) Delete(ctx context.Context, repoID int64) error {
-	_, err := b.inner.Client.DeleteByQuery(b.inner.IndexName()).
+	_, err := b.inner.Client.DeleteByQuery(b.inner.VersionedIndexName()).
 		Query(elastic.NewTermsQuery("repo_id", repoID)).
 		Do(ctx)
 	return err
@@ -305,7 +305,7 @@ func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword
 
 	if len(language) == 0 {
 		searchResult, err := b.inner.Client.Search().
-			Index(b.inner.IndexName()).
+			Index(b.inner.VersionedIndexName()).
 			Aggregation("language", aggregation).
 			Query(query).
 			Highlight(
@@ -326,7 +326,7 @@ func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword
 
 	langQuery := elastic.NewMatchQuery("language", language)
 	countResult, err := b.inner.Client.Search().
-		Index(b.inner.IndexName()).
+		Index(b.inner.VersionedIndexName()).
 		Aggregation("language", aggregation).
 		Query(query).
 		Size(0). // We only need stats information
@@ -337,7 +337,7 @@ func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword
 
 	query = query.Must(langQuery)
 	searchResult, err := b.inner.Client.Search().
-		Index(b.inner.IndexName()).
+		Index(b.inner.VersionedIndexName()).
 		Query(query).
 		Highlight(
 			elastic.NewHighlight().

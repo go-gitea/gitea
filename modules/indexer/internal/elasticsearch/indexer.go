@@ -18,18 +18,18 @@ var _ internal.Indexer = &Indexer{}
 type Indexer struct {
 	Client *elastic.Client
 
-	url            string
-	indexAliasName string
-	version        int
-	mapping        string
+	url       string
+	indexName string
+	version   int
+	mapping   string
 }
 
 func NewIndexer(url, indexName string, version int, mapping string) *Indexer {
 	return &Indexer{
-		url:            url,
-		indexAliasName: indexName,
-		version:        version,
-		mapping:        mapping,
+		url:       url,
+		indexName: indexName,
+		version:   version,
+		mapping:   mapping,
 	}
 }
 
@@ -48,7 +48,7 @@ func (i *Indexer) Init(ctx context.Context) (bool, error) {
 	}
 	i.Client = client
 
-	exists, err := i.Client.IndexExists(i.IndexName()).Do(ctx)
+	exists, err := i.Client.IndexExists(i.VersionedIndexName()).Do(ctx)
 	if err != nil {
 		return false, err
 	}

@@ -13,22 +13,22 @@ import (
 	"github.com/olivere/elastic/v7"
 )
 
-// IndexName returns the full index name with version
-func (i *Indexer) IndexName() string {
-	return formatIndexName(i.indexAliasName, i.version)
+// VersionedIndexName returns the full index name with version
+func (i *Indexer) VersionedIndexName() string {
+	return versionedIndexName(i.indexName, i.version)
 }
 
-func formatIndexName(indexAliasName string, version int) string {
-	return fmt.Sprintf("%s.v%d", indexAliasName, version)
+func versionedIndexName(indexName string, version int) string {
+	return fmt.Sprintf("%s.v%d", indexName, version)
 }
 
 func (i *Indexer) createIndex(ctx context.Context) error {
-	createIndex, err := i.Client.CreateIndex(i.IndexName()).BodyString(i.mapping).Do(ctx)
+	createIndex, err := i.Client.CreateIndex(i.VersionedIndexName()).BodyString(i.mapping).Do(ctx)
 	if err != nil {
 		return err
 	}
 	if !createIndex.Acknowledged {
-		return fmt.Errorf("create index %s with %s failed", i.IndexName(), i.mapping)
+		return fmt.Errorf("create index %s with %s failed", i.VersionedIndexName(), i.mapping)
 	}
 
 	i.checkOldIndexes(ctx)
@@ -54,9 +54,9 @@ func (i *Indexer) initClient() (*elastic.Client, error) {
 }
 
 func (i *Indexer) checkOldIndexes(ctx context.Context) {
-	i.checkOldIndex(ctx, i.indexAliasName) // Old index name without version
+	i.checkOldIndex(ctx, i.indexName) // Old index name without version
 	for v := 1; v < i.version; v++ {
-		i.checkOldIndex(ctx, formatIndexName(i.indexAliasName, v))
+		i.checkOldIndex(ctx, versionedIndexName(i.indexName, v))
 	}
 }
 

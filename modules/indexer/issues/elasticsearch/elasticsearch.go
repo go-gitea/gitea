@@ -74,7 +74,7 @@ func (b *Indexer) Index(ctx context.Context, issues []*internal.IndexerData) err
 	} else if len(issues) == 1 {
 		issue := issues[0]
 		_, err := b.inner.Client.Index().
-			Index(b.inner.IndexName()).
+			Index(b.inner.VersionedIndexName()).
 			Id(fmt.Sprintf("%d", issue.ID)).
 			BodyJson(map[string]interface{}{
 				"id":       issue.ID,
@@ -91,7 +91,7 @@ func (b *Indexer) Index(ctx context.Context, issues []*internal.IndexerData) err
 	for _, issue := range issues {
 		reqs = append(reqs,
 			elastic.NewBulkIndexRequest().
-				Index(b.inner.IndexName()).
+				Index(b.inner.VersionedIndexName()).
 				Id(fmt.Sprintf("%d", issue.ID)).
 				Doc(map[string]interface{}{
 					"id":       issue.ID,
@@ -104,7 +104,7 @@ func (b *Indexer) Index(ctx context.Context, issues []*internal.IndexerData) err
 	}
 
 	_, err := b.inner.Client.Bulk().
-		Index(b.inner.IndexName()).
+		Index(b.inner.VersionedIndexName()).
 		Add(reqs...).
 		Do(graceful.GetManager().HammerContext())
 	return err
@@ -116,7 +116,7 @@ func (b *Indexer) Delete(ctx context.Context, ids ...int64) error {
 		return nil
 	} else if len(ids) == 1 {
 		_, err := b.inner.Client.Delete().
-			Index(b.inner.IndexName()).
+			Index(b.inner.VersionedIndexName()).
 			Id(fmt.Sprintf("%d", ids[0])).
 			Do(ctx)
 		return err
@@ -126,13 +126,13 @@ func (b *Indexer) Delete(ctx context.Context, ids ...int64) error {
 	for _, id := range ids {
 		reqs = append(reqs,
 			elastic.NewBulkDeleteRequest().
-				Index(b.inner.IndexName()).
+				Index(b.inner.VersionedIndexName()).
 				Id(fmt.Sprintf("%d", id)),
 		)
 	}
 
 	_, err := b.inner.Client.Bulk().
-		Index(b.inner.IndexName()).
+		Index(b.inner.VersionedIndexName()).
 		Add(reqs...).
 		Do(graceful.GetManager().HammerContext())
 	return err
@@ -153,7 +153,7 @@ func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, l
 		query = query.Must(repoQuery)
 	}
 	searchResult, err := b.inner.Client.Search().
-		Index(b.inner.IndexName()).
+		Index(b.inner.VersionedIndexName()).
 		Query(query).
 		Sort("_score", false).
 		From(start).Size(limit).
