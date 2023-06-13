@@ -801,12 +801,12 @@ func (m *webhookNotifier) NotifyDeleteRef(ctx context.Context, pusher *user_mode
 
 	if err := PrepareWebhooks(ctx, EventSource{Repository: repo}, webhook_module.HookEventDelete, &api.DeletePayload{
 		Ref:        refName, // FIXME: should it be a full ref name?
-		RefType:    refFullName.RefGroup(),
+		RefType:    refFullName.RefType(),
 		PusherType: api.PusherTypeUser,
 		Repo:       apiRepo,
 		Sender:     apiPusher,
 	}); err != nil {
-		log.Error("PrepareWebhooks.(delete %s): %v", refFullName.RefGroup(), err)
+		log.Error("PrepareWebhooks.(delete %s): %v", refFullName.RefType(), err)
 	}
 }
 
