@@ -2533,11 +2533,6 @@
   margin-left: 0.25rem;
 }
 
-.content-history-menu .octicon-triangle-down {
-  position: relative;
-  top: 1.5px;
-}
-
 .comment-body {
   background: var(--color-box-body);
   border: none !important;
