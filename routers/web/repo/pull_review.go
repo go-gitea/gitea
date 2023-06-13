@@ -194,7 +194,7 @@ func SubmitReview(ctx *context.Context) {
 	if ctx.HasError() {
 		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
 		ctx.JSON(http.StatusOK, map[string]interface{}{
-			"redirectLink": fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index),
+			"redirect": fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index),
 		})
 		return
 	}
@@ -217,7 +217,7 @@ func SubmitReview(ctx *context.Context) {
 
 			ctx.Flash.Error(translated)
 			ctx.JSON(http.StatusOK, map[string]interface{}{
-				"redirectLink": fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index),
+				"redirect": fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index),
 			})
 			return
 		}
@@ -233,7 +233,7 @@ func SubmitReview(ctx *context.Context) {
 		if issues_model.IsContentEmptyErr(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.review.content.empty"))
 			ctx.JSON(http.StatusOK, map[string]interface{}{
-				"redirectLink": fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index),
+				"redirect": fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index),
 			})
 		} else {
 			ctx.ServerError("SubmitReview", err)
@@ -241,7 +241,7 @@ func SubmitReview(ctx *context.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirectLink": fmt.Sprintf("%s/pulls/%d#%s", ctx.Repo.RepoLink, issue.Index, comm.HashTag()),
+		"redirect": fmt.Sprintf("%s/pulls/%d#%s", ctx.Repo.RepoLink, issue.Index, comm.HashTag()),
 	})
 }
 

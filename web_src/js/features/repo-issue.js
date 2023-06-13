@@ -421,8 +421,8 @@ function prepareReviewBoxButtons ($reviewBox) {
       });
       // if page is redirected, no need to remove loading status
       if (response.status === 200) {
-        const {redirectLink} = await response.json();
-        window.location.href = redirectLink;
+        const {redirect} = await response.json();
+        window.location.href = redirect;
       // error occurs, still on the same page, remove loading status
       } else {
         $reviewBox.removeClass('isFetching');
