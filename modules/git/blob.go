@@ -30,10 +30,8 @@ func (b *Blob) GetBlobContent(limit int64) (string, error) {
 		return "", err
 	}
 	defer dataRc.Close()
-	buf := make([]byte, limit)
-	n, _ := util.ReadAtMost(dataRc, buf)
-	buf = buf[:n]
-	return string(buf), nil
+	buf, err := util.ReadWithLimit(dataRc, int(limit))
+	return string(buf), err
 }
 
 // GetBlobLineCount gets line count of the blob
