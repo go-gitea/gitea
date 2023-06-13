@@ -1,4 +1,7 @@
+@import "./modules/normalize.css";
 @import "./modules/animations.css";
+@import "./modules/button.css";
+@import "./modules/select.css";
 @import "./modules/tippy.css";
 @import "./modules/modal.css";
 @import "./modules/breadcrumb.css";
@@ -7,6 +10,7 @@
 
 @import "./shared/issuelist.css";
 @import "./shared/repoorg.css";
+@import "./shared/settings.css";
 
 @import "./features/dropzone.css";
 @import "./features/gitgraph.css";

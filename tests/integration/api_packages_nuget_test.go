@@ -75,7 +75,7 @@ func TestPackageNuGet(t *testing.T) {
 	}
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	token := getUserToken(t, user.Name, auth_model.AccessTokenScopePackage)
+	token := getUserToken(t, user.Name, auth_model.AccessTokenScopeWritePackage)
 
 	packageName := "test.package"
 	packageVersion := "1.0.3"

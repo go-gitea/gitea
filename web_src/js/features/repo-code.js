@@ -108,10 +108,15 @@ function showLineButton() {
 
   createTippy(btn, {
     trigger: 'click',
+    hideOnClick: true,
     content: menu,
     placement: 'right-start',
-    role: 'menu',
     interactive: 'true',
+    onShow: (tippy) => {
+      tippy.popper.addEventListener('click', () => {
+        tippy.hide();
+      }, {once: true});
+    }
   });
 }
 
@@ -190,8 +195,6 @@ export function initRepoCodeView() {
     currentTarget.closest('tr').outerHTML = blob;
   });
   $(document).on('click', '.copy-line-permalink', async (e) => {
-    const success = await clippie(toAbsoluteUrl(e.currentTarget.getAttribute('data-url')));
-    if (!success) return;
-    document.querySelector('.code-line-button')?._tippy?.hide();
+    await clippie(toAbsoluteUrl(e.currentTarget.getAttribute('data-url')));
   });
 }

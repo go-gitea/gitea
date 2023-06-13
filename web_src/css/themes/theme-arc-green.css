@@ -29,6 +29,8 @@
   --color-primary-alpha-70: #87ab63b3;
   --color-primary-alpha-80: #87ab63cc;
   --color-primary-alpha-90: #87ab63e1;
+  --color-primary-hover: var(--color-primary-light-1);
+  --color-primary-active: var(--color-primary-light-2);
   --color-secondary: #525767;
   --color-secondary-dark-1: #5c6374;
   --color-secondary-dark-2: #666e81;
@@ -56,7 +58,19 @@
   --color-secondary-alpha-70: #525767b3;
   --color-secondary-alpha-80: #525767cc;
   --color-secondary-alpha-90: #525767e1;
-  /* colors */
+  --color-secondary-button: var(--color-secondary-dark-4);
+  --color-secondary-hover: var(--color-secondary-dark-3);
+  --color-secondary-active: var(--color-secondary-dark-2);
+  /* console colors - used for actions console and console files */
+  --color-console-fg: #eeeff2;
+  --color-console-fg-subtle: #959cab;
+  --color-console-bg: #262936;
+  --color-console-border: #383c47;
+  --color-console-hover-bg: #ffffff16;
+  --color-console-active-bg: #454a57;
+  --color-console-menu-bg: #383c47;
+  --color-console-menu-border: #5c6374;
+  /* named colors */
   --color-red: #cc4848;
   --color-orange: #cc580c;
   --color-yellow: #cc9903;
@@ -69,19 +83,45 @@
   --color-pink: #d22e8b;
   --color-brown: #a47252;
   --color-black: #2e323e;
-  /* light variants - produced via Sass scale-color(color, $lightness: -10%) */
-  --color-red-light: #c23636;
-  --color-orange-light: #b84f0b;
-  --color-yellow-light: #b88a03;
-  --color-olive-light: #839311;
-  --color-green-light: #7a9e55;
-  --color-teal-light: #00837c;
-  --color-blue-light: #347cb3;
-  --color-violet-light: #7b4edb;
-  --color-purple-light: #a742c9;
-  --color-pink-light: #be297d;
-  --color-brown-light: #94674a;
-  --color-black-light: #292d38;
+  /* light variants - produced via Sass scale-color(color, $lightness: +10%) */
+  --color-red-light: #d15a5a;
+  --color-orange-light: #f6a066;
+  --color-yellow-light: #eaaf03;
+  --color-olive-light: #abc016;
+  --color-green-light: #93b373;
+  --color-teal-light: #00b6ad;
+  --color-blue-light: #4e96cc;
+  --color-violet-light: #9b79e4;
+  --color-purple-light: #ba6ad5;
+  --color-pink-light: #d74397;
+  --color-brown-light: #b08061;
+  --color-black-light: #3f4555;
+  /* dark 1 variants - produced via Sass scale-color(color, $lightness: -10%) */
+  --color-red-dark-1: #c23636;
+  --color-orange-dark-1: #f38236;
+  --color-yellow-dark-1: #b88a03;
+  --color-olive-dark-1: #839311;
+  --color-green-dark-1: #7a9e55;
+  --color-teal-dark-1: #00837c;
+  --color-blue-dark-1: #347cb3;
+  --color-violet-dark-1: #7b4edb;
+  --color-purple-dark-1: #a742c9;
+  --color-pink-dark-1: #be297d;
+  --color-brown-dark-1: #94674a;
+  --color-black-dark-1: #292d38;
+  /* dark 2 variants - produced via Sass scale-color(color, $lightness: -20%) */
+  --color-red-dark-2: #ad3030;
+  --color-orange-dark-2: #f16e17;
+  --color-yellow-dark-2: #a37a02;
+  --color-olive-dark-2: #74820f;
+  --color-green-dark-2: #6c8c4c;
+  --color-teal-dark-2: #00746e;
+  --color-blue-dark-2: #2e6e9f;
+  --color-violet-dark-2: #6733d6;
+  --color-purple-dark-2: #9834b9;
+  --color-pink-dark-2: #a9246f;
+  --color-brown-dark-2: #835b42;
+  --color-black-dark-2: #252832;
   /* other colors */
   --color-grey: #505665;
   --color-grey-light: #a1a6b7;
@@ -124,37 +164,37 @@
   --color-orange-badge-hover-bg: #f2711c4d;
   --color-git: #f05133;
   /* target-based colors */
-  --color-body: #373b47;
-  --color-box-header: #404652;
-  --color-box-body: #2a2e3a;
-  --color-box-body-highlight: #353945;
+  --color-body: #2e323e;
+  --color-box-header: #303340;
+  --color-box-body: #222733;
+  --color-box-body-highlight: #262b36;
   --color-text-dark: #dbe0ea;
   --color-text: #cbd0da;
   --color-text-light: #bbbfca;
   --color-text-light-1: #aaafb9;
   --color-text-light-2: #9a9ea9;
   --color-text-light-3: #8a8e99;
-  --color-footer: #2e323e;
+  --color-footer: #232834;
   --color-timeline: #4c525e;
   --color-input-text: #dfe3ec;
-  --color-input-background: #232933;
+  --color-input-background: #1e252e;
   --color-input-toggle-background: #454a57;
-  --color-input-border: #454a57;
-  --color-input-border-hover: #505667;
-  --color-navbar: #2a2e3a;
-  --color-navbar-transparent: #2a2e3a00;
+  --color-input-border: var(--color-secondary);
+  --color-input-border-hover: var(--color-secondary-dark-1);
+  --color-header-wrapper: #202430;
+  --color-header-wrapper-transparent: #20243000;
   --color-light: #00000028;
   --color-light-mimic-enabled: rgba(0, 0, 0, calc(40 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #ffffff28;
-  --color-hover: #ffffff10;
-  --color-active: #ffffff16;
-  --color-menu: #2e323e;
-  --color-card: #2e323e;
+  --color-hover: #ffffff19;
+  --color-active: #ffffff24;
+  --color-menu: #1e252e;
+  --color-card: #1e252e;
   --color-markup-table-row: #ffffff06;
   --color-markup-code-block: #ffffff16;
-  --color-button: #353846;
-  --color-code-bg: #2a2e3a;
-  --color-code-sidebar-bg: #2e323e;
+  --color-button: #1e252e;
+  --color-code-bg: #222733;
+  --color-code-sidebar-bg: #232834;
   --color-shadow: #00000060;
   --color-secondary-bg: #2a2e3a;
   --color-text-focus: #fff;
@@ -164,10 +204,12 @@
   --color-project-board-bg: var(--color-secondary-light-2);
   --color-caret: var(--color-text); /* should ideally be --color-text-dark, see #15651 */
   --color-reaction-bg: #ffffff12;
-  --color-reaction-active-bg: var(--color-primary-alpha-40);
+  --color-reaction-hover-bg: var(--color-primary-light-4);
+  --color-reaction-active-bg: var(--color-primary-light-5);
   --color-tooltip-text: #ffffff;
   --color-tooltip-bg: #000000f0;
-  --color-header-bar: #2e323e;
+  --color-nav-bg: #232834;
+  --color-nav-hover-bg: #383c47;
   --color-label-text: #dfe3ec;
   --color-label-bg: #7c84974b;
   --color-label-hover-bg: #7c8497a0;
@@ -175,7 +217,6 @@
   --color-accent: var(--color-primary-light-1);
   --color-small-accent: var(--color-primary-light-5);
   --color-active-line: #534d1b;
-
   accent-color: var(--color-accent);
   color-scheme: dark;
 }

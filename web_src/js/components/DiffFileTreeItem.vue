@@ -40,7 +40,7 @@
 
 <script>
 import {SvgIcon} from '../svg.js';
-import {DiffTreeStore} from '../modules/stores.js';
+import {diffTreeStore} from '../modules/stores.js';
 
 export default {
   components: {SvgIcon},
@@ -56,7 +56,7 @@ export default {
     },
   },
   data: () => ({
-    store: DiffTreeStore,
+    store: diffTreeStore(),
     collapsed: false,
   }),
   methods: {

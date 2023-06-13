@@ -81,6 +81,7 @@ func (n *actionsNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *use
 		newNotifyInputFromIssue(issue, webhook_module.HookEventPullRequest).
 			WithDoer(doer).
 			WithPayload(apiPullRequest).
+			WithPullRequest(issue.PullRequest).
 			Notify(ctx)
 		return
 	}
@@ -136,6 +137,7 @@ func (n *actionsNotifier) NotifyIssueChangeLabels(ctx context.Context, doer *use
 				Repository:  convert.ToRepo(ctx, issue.Repo, perm_model.AccessModeNone),
 				Sender:      convert.ToUser(ctx, doer, nil),
 			}).
+			WithPullRequest(issue.PullRequest).
 			Notify(ctx)
 		return
 	}
@@ -160,6 +162,10 @@ func (n *actionsNotifier) NotifyCreateIssueComment(ctx context.Context, doer *us
 	mode, _ := access_model.AccessLevel(ctx, doer, repo)
 
 	if issue.IsPull {
+		if err := issue.LoadPullRequest(ctx); err != nil {
+			log.Error("LoadPullRequest: %v", err)
+			return
+		}
 		newNotifyInputFromIssue(issue, webhook_module.HookEventPullRequestComment).
 			WithDoer(doer).
 			WithPayload(&api.IssueCommentPayload{
@@ -170,6 +176,7 @@ func (n *actionsNotifier) NotifyCreateIssueComment(ctx context.Context, doer *us
 				Sender:     convert.ToUser(ctx, doer, nil),
 				IsPull:     true,
 			}).
+			WithPullRequest(issue.PullRequest).
 			Notify(ctx)
 		return
 	}
@@ -351,9 +358,9 @@ func (n *actionsNotifier) NotifyPushCommits(ctx context.Context, pusher *user_mo
 	}
 
 	newNotifyInput(repo, pusher, webhook_module.HookEventPush).
-		WithRef(opts.RefFullName).
+		WithRef(opts.RefFullName.String()).
 		WithPayload(&api.PushPayload{
-			Ref:        opts.RefFullName,
+			Ref:        opts.RefFullName.String(),
 			Before:     opts.OldCommitID,
 			After:      opts.NewCommitID,
 			CompareURL: setting.AppURL + commits.CompareURL,
@@ -366,37 +373,35 @@ func (n *actionsNotifier) NotifyPushCommits(ctx context.Context, pusher *user_mo
 		Notify(ctx)
 }
 
-func (n *actionsNotifier) NotifyCreateRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
+func (n *actionsNotifier) NotifyCreateRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string) {
 	ctx = withMethod(ctx, "NotifyCreateRef")
 
 	apiPusher := convert.ToUser(ctx, pusher, nil)
 	apiRepo := convert.ToRepo(ctx, repo, perm_model.AccessModeNone)
-	refName := git.RefEndName(refFullName)
 
 	newNotifyInput(repo, pusher, webhook_module.HookEventCreate).
-		WithRef(refName).
+		WithRef(refFullName.ShortName()). // FIXME: should we use a full ref name
 		WithPayload(&api.CreatePayload{
-			Ref:     refName,
+			Ref:     refFullName.ShortName(),
 			Sha:     refID,
-			RefType: refType,
+			RefType: refFullName.RefType(),
 			Repo:    apiRepo,
 			Sender:  apiPusher,
 		}).
 		Notify(ctx)
 }
 
-func (n *actionsNotifier) NotifyDeleteRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
+func (n *actionsNotifier) NotifyDeleteRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refFullName git.RefName) {
 	ctx = withMethod(ctx, "NotifyDeleteRef")
 
 	apiPusher := convert.ToUser(ctx, pusher, nil)
 	apiRepo := convert.ToRepo(ctx, repo, perm_model.AccessModeNone)
-	refName := git.RefEndName(refFullName)
 
 	newNotifyInput(repo, pusher, webhook_module.HookEventDelete).
-		WithRef(refName).
+		WithRef(refFullName.ShortName()). // FIXME: should we use a full ref name
 		WithPayload(&api.DeletePayload{
-			Ref:        refName,
-			RefType:    refType,
+			Ref:        refFullName.ShortName(),
+			RefType:    refFullName.RefType(),
 			PusherType: api.PusherTypeUser,
 			Repo:       apiRepo,
 			Sender:     apiPusher,
@@ -415,9 +420,9 @@ func (n *actionsNotifier) NotifySyncPushCommits(ctx context.Context, pusher *use
 	}
 
 	newNotifyInput(repo, pusher, webhook_module.HookEventPush).
-		WithRef(opts.RefFullName).
+		WithRef(opts.RefFullName.String()).
 		WithPayload(&api.PushPayload{
-			Ref:          opts.RefFullName,
+			Ref:          opts.RefFullName.String(),
 			Before:       opts.OldCommitID,
 			After:        opts.NewCommitID,
 			CompareURL:   setting.AppURL + commits.CompareURL,
@@ -431,14 +436,14 @@ func (n *actionsNotifier) NotifySyncPushCommits(ctx context.Context, pusher *use
 		Notify(ctx)
 }
 
-func (n *actionsNotifier) NotifySyncCreateRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
+func (n *actionsNotifier) NotifySyncCreateRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string) {
 	ctx = withMethod(ctx, "NotifySyncCreateRef")
-	n.NotifyCreateRef(ctx, pusher, repo, refType, refFullName, refID)
+	n.NotifyCreateRef(ctx, pusher, repo, refFullName, refID)
 }
 
-func (n *actionsNotifier) NotifySyncDeleteRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
+func (n *actionsNotifier) NotifySyncDeleteRef(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, refFullName git.RefName) {
 	ctx = withMethod(ctx, "NotifySyncDeleteRef")
-	n.NotifyDeleteRef(ctx, pusher, repo, refType, refFullName)
+	n.NotifyDeleteRef(ctx, pusher, repo, refFullName)
 }
 
 func (n *actionsNotifier) NotifyNewRelease(ctx context.Context, rel *repo_model.Release) {

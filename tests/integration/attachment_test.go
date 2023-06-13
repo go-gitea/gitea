@@ -89,6 +89,9 @@ func TestCreateIssueAttachment(t *testing.T) {
 	// Validate that attachment is available
 	req = NewRequest(t, "GET", "/attachments/"+uuid)
 	session.MakeRequest(t, req, http.StatusOK)
+
+	// anonymous visit should be allowed because user2/repo1 is a public repository
+	MakeRequest(t, req, http.StatusOK)
 }
 
 func TestGetAttachment(t *testing.T) {
