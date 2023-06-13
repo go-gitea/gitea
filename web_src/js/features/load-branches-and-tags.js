@@ -41,9 +41,7 @@ function showAreas(selector) {
 
 function addLink(href, text, addHere, tooltip) {
   const link = document.createElement('a');
-  link.classList.add('muted');
-  link.classList.add('gt-px-3');
-  link.classList.add('gt-rounded');
+  link.classList.add('muted', 'gt-px-3', 'gt-rounded');
   if (tooltip) {
     link.classList.add('gt-border-secondary');
     link.setAttribute('data-tooltip-content', tooltip);
