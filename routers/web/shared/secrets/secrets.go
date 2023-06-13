@@ -36,8 +36,7 @@ func PerformSecretsPost(ctx *context.Context, ownerID, repoID int64, redirectURL
 		return
 	}
 
-	content := actions.ReserveLineBreakForTextarea(form.Content)
-	s, err := secret_model.InsertEncryptedSecret(ctx, ownerID, repoID, form.Title, content)
+	s, err := secret_model.InsertEncryptedSecret(ctx, ownerID, repoID, form.Title, actions.ReserveLineBreakForTextarea(form.Content))
 	if err != nil {
 		log.Error("InsertEncryptedSecret: %v", err)
 		ctx.Flash.Error(ctx.Tr("secrets.creation.failed"))
