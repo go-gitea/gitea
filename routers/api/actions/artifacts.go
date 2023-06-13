@@ -112,7 +112,7 @@ func ArtifactsRoutes(prefix string) *web.Route {
 		// handle container artifacts list and download
 		m.Put("/{artifact_hash}/upload", r.uploadArtifact)
 		// handle artifacts download
-		m.Get("/download/path", r.getDownloadArtifactURL)
+		m.Get("/{artifact_hash}/download_url", r.getDownloadArtifactURL)
 		m.Get("/{artifact_id}/download", r.downloadArtifact)
 	})
 
@@ -261,6 +261,11 @@ func (ar artifactRoutes) comfirmUploadArtifact(ctx *ArtifactContext) {
 		return
 	}
 	artifactName := ctx.Req.URL.Query().Get("artifactName")
+	if artifactName == "" {
+		log.Error("Error artifact name is empty")
+		ctx.Error(http.StatusBadRequest, "Error artifact name is empty")
+		return
+	}
 	if err := mergeChunksForRun(ctx, ar.fs, runID, artifactName); err != nil {
 		log.Error("Error merge chunks: %v", err)
 		ctx.Error(http.StatusInternalServerError, "Error merge chunks")
@@ -300,13 +305,29 @@ func (ar artifactRoutes) listArtifacts(ctx *ArtifactContext) {
 		return
 	}
 
-	item := listArtifactsResponseItem{
-		Name:                     artifacts[0].ArtifactName,
-		FileContainerResourceURL: ar.buildArtifactURL(runID, "download", "path"),
+	var (
+		items  []listArtifactsResponseItem
+		values = make(map[string]bool)
+	)
+
+	for _, art := range artifacts {
+		if values[art.ArtifactName] {
+			continue
+		}
+		artifactHash := fmt.Sprintf("%x", md5.Sum([]byte(art.ArtifactName)))
+		item := listArtifactsResponseItem{
+			Name:                     art.ArtifactName,
+			FileContainerResourceURL: ar.buildArtifactURL(runID, artifactHash, "download_url"),
+		}
+		items = append(items, item)
+		values[art.ArtifactName] = true
+
+		log.Debug("[artifact] handleListArtifacts, name: %s, url: %s", item.Name, item.FileContainerResourceURL)
 	}
+
 	respData := listArtifactsResponse{
-		Count: 1,
-		Value: []listArtifactsResponseItem{item},
+		Count: int64(len(items)),
+		Value: items,
 	}
 	ctx.JSON(http.StatusOK, respData)
 }
@@ -329,7 +350,12 @@ func (ar artifactRoutes) getDownloadArtifactURL(ctx *ArtifactContext) {
 		return
 	}
 
-	artifacts, err := actions.ListArtifactsByRunID(ctx, runID)
+	itemPath := util.PathJoinRel(ctx.Req.URL.Query().Get("itemPath"))
+	if !validateArtifactHash(ctx, itemPath) {
+		return
+	}
+
+	artifacts, err := actions.ListArtifactsByRunIDAndArtifactName(ctx, runID, itemPath)
 	if err != nil {
 		log.Error("Error getting artifacts: %v", err)
 		ctx.Error(http.StatusInternalServerError, err.Error())
@@ -341,7 +367,6 @@ func (ar artifactRoutes) getDownloadArtifactURL(ctx *ArtifactContext) {
 		return
 	}
 
-	itemPath := util.PathJoinRel(ctx.Req.URL.Query().Get("itemPath"))
 	if itemPath != artifacts[0].ArtifactName {
 		log.Error("Error dismatch artifact name, itemPath: %v, artifact: %v", itemPath, artifacts[0].ArtifactName)
 		ctx.Error(http.StatusBadRequest, "Error dismatch artifact name")

@@ -110,6 +110,12 @@ func ListArtifactsByRunID(ctx context.Context, runID int64) ([]*ActionArtifact, 
 	return arts, db.GetEngine(ctx).Where("run_id=?", runID).Find(&arts)
 }
 
+// ListArtifactsByRunIDAndArtifactName returns an artifacts of a run by artifact name
+func ListArtifactsByRunIDAndArtifactName(ctx context.Context, runID int64, artifactName string) ([]*ActionArtifact, error) {
+	arts := make([]*ActionArtifact, 0, 10)
+	return arts, db.GetEngine(ctx).Where("run_id=? AND artifact_name=?", runID, artifactName).Find(&arts)
+}
+
 // ListUploadedArtifactsByRunID returns all uploaded artifacts of a run
 func ListUploadedArtifactsByRunID(ctx context.Context, runID int64) ([]*ActionArtifact, error) {
 	arts := make([]*ActionArtifact, 0, 10)
