@@ -60,6 +60,44 @@ export function initGlobalButtonClickOnEnter() {
   });
 }
 
+function prepareFetchForm(formEl) {
+  formEl.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const submitter = e.submitter;
+    // Do not fetch repeatedly if request has sent.
+    // Added to formEl to avoid sending several requests if there are several buttons inside the form
+    if (formEl.classList.contains('isFetching')) return;
+    formEl.classList.add('isFetching');
+    // if the submitter is a button, add loading class to it
+    if (submitter.tagName === 'BUTTON') submitter.classList.add('loading');
+    const method = formEl.getAttribute('method').toUpperCase();
+    const req = {
+      method,
+      headers: {
+        'X-Csrf-Token': csrfToken,
+      }
+    };
+    if (method !== 'GET') {
+      const formData = new FormData(formEl);
+      if (submitter.hasAttribute('name') && submitter.hasAttribute('value')) {
+        formData.append(submitter.getAttribute('name'), submitter.getAttribute('value'));
+      }
+      req['body'] = formData;
+    }
+    const response = await fetch(formEl.getAttribute('action'), req);
+    // if page is redirected, no need to remove isFetching
+    // because request may be sent again if isFetching is removed here when network is slow
+    if (response.status === 200) {
+      const {redirect} = await response.json();
+      window.location.href = redirect;
+    // error occurs, still on the same page, remove loading status
+    } else {
+      formEl.classList.remove('isFetching');
+      if (submitter.tagName === 'BUTTON') submitter.classList.remove('loading');
+    }
+  });
+}
+
 export function initGlobalCommon() {
   // Semantic UI modules.
   const $uiDropdowns = $('.ui.dropdown');
@@ -114,44 +152,6 @@ export function initGlobalCommon() {
     if (btn.classList.contains('loading')) return e.preventDefault();
     btn.classList.add('loading');
   });
-
-  function prepareFetchForm(formEl) {
-    formEl.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const submitter = e.submitter;
-      // Do not fetch repeatedly if request has sent.
-      // Added to formEl to avoid sending several requests if there are several buttons inside the form
-      if (formEl.classList.contains('isFetching')) return;
-      formEl.classList.add('isFetching');
-      // if the submitter is a button, add loading class to it
-      if (submitter.tagName === 'BUTTON') submitter.classList.add('loading');
-      const method = formEl.getAttribute('method').toUpperCase();
-      const req = {
-        method,
-        headers: {
-          'X-Csrf-Token': csrfToken,
-        }
-      }
-      if (method !== 'GET') {
-        const formData = new FormData(formEl);
-        if (submitter.hasAttribute('name') && submitter.hasAttribute('value')) {
-          formData.append(submitter.getAttribute('name'), submitter.getAttribute('value'));
-        }
-        req['body'] = formData;
-      }
-      const response = await fetch(formEl.getAttribute('action'), req);
-      // if page is redirected, no need to remove isFetching
-      // because request may be sent again if isFetching is removed here when network is slow
-      if (response.status === 200) {
-        const {redirect} = await response.json();
-        window.location.href = redirect;
-      // error occurs, still on the same page, remove loading status
-      } else {
-        formEl.classList.remove('isFetching');
-        if (submitter.tagName === 'BUTTON') submitter.classList.remove('loading');
-      }
-    });
-  }
 
   for (const el of document.querySelectorAll('.fetch-form')) {
     prepareFetchForm(el);
