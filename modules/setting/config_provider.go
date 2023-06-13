@@ -96,6 +96,18 @@ func ConfigSectionKeyString(sec ConfigSection, key string, def ...string) string
 	return ""
 }
 
+func ConfigSectionKeyBool(sec ConfigSection, key string, def ...bool) bool {
+	k := ConfigSectionKey(sec, key)
+	if k != nil && k.String() != "" {
+		b, _ := strconv.ParseBool(k.String())
+		return b
+	}
+	if len(def) > 0 {
+		return def[0]
+	}
+	return false
+}
+
 // ConfigInheritedKey works like ini.Section.Key(), but it always returns a new key instance, it is O(n) because NewKey is O(n)
 // and the returned key is safe to be used with "MustXxx", it doesn't change the parent's values.
 // Otherwise, ini.Section.Key().MustXxx would pollute the parent section's keys.
@@ -313,23 +325,4 @@ func NewConfigProviderForLocale(source any, others ...any) (ConfigProvider, erro
 
 func init() {
 	ini.PrettyFormat = false
-}
-
-// MustSectionKeyString to avoid use ini's MustString which will write data back to the ini's memory
-// this function is safe to be instead of ini's MustString
-func MustSectionKeyString(section ConfigSection, key string, defaults ...string) string {
-	v := section.Key(key).String()
-	if v == "" && len(defaults) > 0 {
-		return defaults[0]
-	}
-	return v
-}
-
-func MustSectionKeyBool(section ConfigSection, key string, defaults ...bool) bool {
-	v := section.Key(key).String()
-	if v == "" && len(defaults) > 0 {
-		return defaults[0]
-	}
-	b, _ := strconv.ParseBool(v)
-	return b
 }

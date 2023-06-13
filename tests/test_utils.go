@@ -215,7 +215,7 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 	// load LFS object fixtures
 	// (LFS storage can be on any of several backends, including remote servers, so we init it with the storage API)
 	lfsFixtures, err := storage.NewStorage(setting.LocalStorageType, &setting.Storage{
-		Path: path.Join(filepath.Dir(setting.AppPath), "tests/gitea-lfs-meta"),
+		Path: filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-lfs-meta"),
 	})
 	assert.NoError(t, err)
 	assert.NoError(t, storage.Clean(storage.LFS))

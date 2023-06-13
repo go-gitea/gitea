@@ -158,7 +158,7 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 
 	switch targetType {
 	case string(LocalStorageType):
-		storage.Path = MustSectionKeyString(targetSec, "PATH", filepath.Join(AppDataPath, name))
+		storage.Path = ConfigSectionKeyString(targetSec, "PATH", filepath.Join(AppDataPath, name))
 		if !filepath.IsAbs(storage.Path) {
 			storage.Path = filepath.Join(AppWorkPath, storage.Path)
 		}
@@ -175,9 +175,9 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 		}
 
 		if extraConfigSec != nil {
-			storage.MinioConfig.ServeDirect = MustSectionKeyBool(extraConfigSec, "SERVE_DIRECT", storage.MinioConfig.ServeDirect)
-			storage.MinioConfig.BasePath = MustSectionKeyString(extraConfigSec, "MINIO_BASE_PATH", storage.MinioConfig.BasePath)
-			storage.MinioConfig.Bucket = MustSectionKeyString(extraConfigSec, "MINIO_BUCKET", storage.MinioConfig.Bucket)
+			storage.MinioConfig.ServeDirect = ConfigSectionKeyBool(extraConfigSec, "SERVE_DIRECT", storage.MinioConfig.ServeDirect)
+			storage.MinioConfig.BasePath = ConfigSectionKeyString(extraConfigSec, "MINIO_BASE_PATH", storage.MinioConfig.BasePath)
+			storage.MinioConfig.Bucket = ConfigSectionKeyString(extraConfigSec, "MINIO_BUCKET", storage.MinioConfig.Bucket)
 		}
 	}
 
