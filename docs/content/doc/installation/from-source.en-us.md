@@ -211,7 +211,7 @@ YMMV and these scripts may need further improvement.
 
 Follow [Getting Started of Zig](https://ziglang.org/learn/getting-started/#installing-zig) to install zig.
 
-1. Compile (Linux ➝ Linux)
+- Compile (Linux ➝ Linux)
 
 ```sh
 CC="zig cc -target x86_64-linux-gnu" \
@@ -224,7 +224,7 @@ TAGS="bindata sqlite sqlite_unlock_notify" \
 make build
 ```
 
-2. Cross-compile (Linux ➝ Windows)
+- Cross-compile (Linux ➝ Windows)
 
 ```sh
 CC="zig cc -target x86_64-windows-gnu" \
@@ -240,7 +240,7 @@ make build
 
 Compile with `GIT BASH`.
 
-1. Compile (Windows ➝ Windows)
+- Compile (Windows ➝ Windows)
 
 ```sh
 CC="zig cc -target x86_64-windows-gnu" \
@@ -252,7 +252,7 @@ TAGS="bindata sqlite sqlite_unlock_notify" \
 make build
 ```
 
-2. Cross-compile (Windows ➝ Linux)
+- Cross-compile (Windows ➝ Linux)
 
 ```sh
 CC="zig cc -target x86_64-linux-gnu" \
