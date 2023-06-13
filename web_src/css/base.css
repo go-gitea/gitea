@@ -2284,13 +2284,18 @@ table th[data-sortt-desc] .svg {
 }
 
 .ui.dropdown {
-  /* the dropdown doesn't have default line-height, use this to make the dropdown icon align with plain dropdown */
-  line-height: 1em;
+  line-height: 1em; /* the dropdown doesn't have default line-height, use this to make the dropdown icon align with plain dropdown */
 }
 
+/* dropdown has some kinds of icons:
+- "> .dropdown.icon": the arrow for opening the dropdown
+- "> .remove.icon": the "x" icon for clearing the dropdown, only used in selection dropdown
+- "> .ui.label > .delete.icon": the "x" icon for removing a label item in multiple selection dropdown
+*/
+
+/* Gitea uses SVG images instead of Fomantic builtin "<i>" font icons, so we need to reset the icon styles */
 .ui.ui.dropdown > .icon.icon {
-  /* plain dropdown and button dropdown use flex layout for icons */
-  position: initial;
+  position: initial; /* plain dropdown and button dropdown use flex layout for icons */
   padding: 0;
   margin: 0;
   height: auto;
@@ -2302,8 +2307,7 @@ table th[data-sortt-desc] .svg {
 
 .ui.ui.button.dropdown > .icon.icon,
 .ui.ui.selection.dropdown > .icon.icon {
-  /* selection dropdown uses absolute layout for icons */
-  position: absolute;
+  position: absolute; /* selection dropdown uses absolute layout for icons */
   top: 50%;
   transform: translateY(-50%);
 }
@@ -2313,15 +2317,12 @@ table th[data-sortt-desc] .svg {
 }
 
 .ui.ui.dropdown > .remove.icon {
-  right: 2em; /* clear the dropdown, only used in selection dropdown, it's beside the "dropdown icon arrow" */
-}
-
-.ui.ui.buttons .floating.dropdown.icon.button {
-  padding-right: 1em;
+  right: 2em;
 }
 
 .ui.ui.button,
 .ui.ui.dropdown,
+.flex-items-inline > .item,
 .flex-text-inline {
   display: inline-flex;
   align-items: center;
@@ -2330,6 +2331,7 @@ table th[data-sortt-desc] .svg {
   vertical-align: middle;
 }
 
+.flex-items-block > .item,
 .flex-text-block {
   display: flex;
   align-items: center;

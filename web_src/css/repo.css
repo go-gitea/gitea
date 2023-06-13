@@ -850,6 +850,11 @@
   padding-top: 0;
 }
 
+.repository.view.issue .comment-list .timeline-item.commits-list .ui.avatar,
+.repository.view.issue .comment-list .timeline-item.event .ui.avatar {
+  margin-right: 0.25em;
+}
+
 .repository.view.issue .comment-list .timeline-item.commits-list .singular-commit {
   line-height: 34px; /* this must be same as .badge height, to avoid overflow */
   clear: both; /* reset the "float right shabox", in the future, use flexbox instead */

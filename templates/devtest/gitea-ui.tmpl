@@ -121,6 +121,10 @@
 		<h1>SVG alignment</h1>
 		<div class="flex-text-block">{{svg "octicon-alert"}} {{svg "octicon-x"}} text (block)</div>
 		<div><div class="flex-text-inline">{{svg "octicon-alert"}} {{svg "octicon-x"}} text</div> (inline)</div>
+		<div class="flex-items-block">
+			<div class="item">{{svg "octicon-alert"}} flex every line</div>
+			<div class="item">{{svg "octicon-alert"}} flex every item</div>
+		</div>
 		<div><button class="ui red button">{{svg "octicon-alert" 24}} {{svg "octicon-x" 24}} text</button></div>
 		<div>
 			<div class="ui dropdown" style="border: 1px red dashed" data-tooltip-content="border for demo purpose only">
@@ -166,8 +170,8 @@
 			</div>
 			<div class="ui buttons">
 				<button class="ui button">Button with Dropdown</button>
-				<div class="ui floating dropdown icon button">
-					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				<div class="ui dropdown button icon">
+					{{svg "octicon-triangle-down"}}
 					<div class="menu">
 						<div class="item">item</div>
 					</div>
