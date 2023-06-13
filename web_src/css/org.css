@@ -205,29 +205,6 @@
   margin: 0;
 }
 
-.organization.teams #add-repo-form input,
-.organization.teams #repo-multiple-form input,
-.organization.teams #add-member-form input {
-  margin-left: 0;
-}
-
-.organization.teams #add-repo-form .ui.button,
-.organization.teams #repo-multiple-form .ui.button,
-.organization.teams #add-member-form .ui.button {
-  margin-left: 5px;
-  margin-top: -3px;
-}
-
-.organization.teams #repo-top-segment {
-  height: 60px;
-}
-
-@media (max-width: 767.98px) {
-  .organization.teams #repo-top-segment {
-    height: 100px;
-  }
-}
-
 .org-team-navbar .active.item {
   background: var(--color-box-body) !important;
 }
