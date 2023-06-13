@@ -520,3 +520,40 @@ func TestMathBlock(t *testing.T) {
 
 	}
 }
+
+func TestTaskList(t *testing.T) {
+	testcases := []struct {
+		testcase string
+		expected string
+	}{
+		{
+			// data-source-position should take into account YAML frontmatter.
+			`---
+foo: bar
+---
+- [ ] task 1`,
+			`<details><summary><i class="icon table"></i></summary><table>
+<thead>
+<tr>
+<th>foo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>bar</td>
+</tr>
+</tbody>
+</table>
+</details><ul>
+<li class="task-list-item"><input type="checkbox" disabled="" data-source-position="19"/>task 1</li>
+</ul>
+`,
+		},
+	}
+
+	for _, test := range testcases {
+		res, err := RenderString(&markup.RenderContext{Ctx: git.DefaultContext}, test.testcase)
+		assert.NoError(t, err, "Unexpected error in testcase: %q", test.testcase)
+		assert.Equal(t, test.expected, res, "Unexpected result in testcase %q", test.testcase)
+	}
+}
