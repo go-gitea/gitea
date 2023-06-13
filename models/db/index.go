@@ -100,7 +100,7 @@ WHEN MATCHED
 			SET max_index = max_index + 1
 WHEN NOT MATCHED
 	THEN INSERT (group_id, max_index)
-			VALUES (%d, 1))
+			VALUES (%d, 1)
 `, tableName, groupID, groupID)); err != nil {
 		return 0, err
 	}

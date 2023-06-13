@@ -94,7 +94,7 @@ WHEN MATCHED
 			SET max_index = max_index + 1
 WHEN NOT MATCHED
 	THEN INSERT (repo_id, sha, max_index)
-			VALUES (%d, %s, 1))
+			VALUES (%d, %s, 1)
 `, repoID, sha, repoID, sha)); err != nil {
 		return 0, err
 	}
