@@ -391,47 +391,6 @@ export async function handleReply($el) {
   return editor;
 }
 
-function prepareReviewBoxButtons ($reviewBox) {
-  for (const btn of $reviewBox.find('.btn-submit')) {
-    $(btn).on('click', async function () {
-      // Do not fetch repeatedly if post request has sent.
-      // Added to $reviewBox to avoid sending several requests when approve, comment,
-      // and request change buttons are clicked.
-      if ($reviewBox.hasClass('isFetching')) return;
-      $reviewBox.addClass('isFetching');
-      $(this).addClass('loading');
-      const fileIds = [];
-      for (const fileInput of $reviewBox.find('.dropzone .files input')) {
-        fileIds.push($(fileInput).attr('id'));
-      }
-      const $textEditor = $reviewBox.find('textarea.markdown-text-editor');
-      const data = {
-        'commitID': $reviewBox.attr('data-commit-id'),
-        'type': $(this).attr('data-type'),
-        'content': $textEditor.val(),
-      };
-      if (fileIds.length > 0) data['files'] = fileIds;
-      const response = await fetch($reviewBox.attr('data-url'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Csrf-Token': csrfToken,
-        },
-        body: JSON.stringify(data),
-      });
-      // if page is redirected, no need to remove loading status
-      if (response.status === 200) {
-        const {redirect} = await response.json();
-        window.location.href = redirect;
-      // error occurs, still on the same page, remove loading status
-      } else {
-        $reviewBox.removeClass('isFetching');
-        $(this).removeClass('loading');
-      }
-    });
-  }
-}
-
 export function initRepoPullRequestReview() {
   if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
     // set scrollRestoration to 'manual' when there is a hash in url, so that the scroll position will not be remembered after refreshing
@@ -494,9 +453,13 @@ export function initRepoPullRequestReview() {
   const $reviewBox = $('.review-box-panel');
   if ($reviewBox.length === 1) {
     const _promise = initComboMarkdownEditor($reviewBox.find('.combo-markdown-editor'));
-    prepareReviewBoxButtons($reviewBox);
   }
 
+  for (const btn of $reviewBox.find('.btn-submit')) {
+    $(btn).on('click', function () {
+      $reviewBox.find('input[name="type"]').attr('value', $(this).attr('value'));
+    })
+  }
   // The following part is only for diff views
   if ($('.repository.pull.diff').length === 0) {
     return;

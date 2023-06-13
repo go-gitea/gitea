@@ -114,6 +114,39 @@ export function initGlobalCommon() {
     if (btn.classList.contains('loading')) return e.preventDefault();
     btn.classList.add('loading');
   });
+
+  function prepareFetchForm($form) {
+    $form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const submitter = e.submitter;
+      // Do not fetch repeatedly if post request has sent.
+      // Added to $form to avoid sending several requests if there are several buttons inside the form
+      if ($form.classList.contains('isFetching')) return;
+      $form.classList.add('isFetching');
+      // if the submitter is a button, add loading class to it
+      if (submitter.tagName === 'BUTTON') submitter.classList.add('loading');
+      const response = await fetch($form.getAttribute('action'), {
+        method: 'POST',
+        headers: {
+          'X-Csrf-Token': csrfToken,
+        },
+        body: new FormData($form),
+      });
+      // if page is redirected, no need to remove loading status
+      if (response.status === 200) {
+        const {redirect} = await response.json();
+        window.location.href = redirect;
+      // error occurs, still on the same page, remove loading status
+      } else {
+        $form.classList.remove('isFetching');
+        if (submitter.tagName === 'BUTTON') submitter.classList.remove('loading');
+      }
+    });
+  }
+
+  for (const el of document.querySelectorAll('.fetch-form')) {
+    prepareFetchForm(el);
+  }
 }
 
 export function initGlobalDropzone() {
