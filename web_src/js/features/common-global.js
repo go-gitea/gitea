@@ -125,13 +125,15 @@ export function initGlobalCommon() {
       $form.classList.add('isFetching');
       // if the submitter is a button, add loading class to it
       if (submitter.tagName === 'BUTTON') submitter.classList.add('loading');
-      const response = await fetch($form.getAttribute('action'), {
-        method: 'POST',
+      const method = $form.getAttribute('method').toUpperCase();
+      const req = {
+        method,
         headers: {
           'X-Csrf-Token': csrfToken,
-        },
-        body: new FormData($form),
-      });
+        }
+      }
+      if (method !== 'GET') req['body'] = new FormData($form);
+      const response = await fetch($form.getAttribute('action'), req);
       // if page is redirected, no need to remove loading status
       if (response.status === 200) {
         const {redirect} = await response.json();
