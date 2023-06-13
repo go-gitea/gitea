@@ -224,7 +224,8 @@ TAGS="bindata sqlite sqlite_unlock_notify" \
 make build
 ```
 
-2. cross-compile (Linux ➝ Windows)
+2. Cross-compile (Linux ➝ Windows)
+
 ```sh
 CC="zig cc -target x86_64-windows-gnu" \
 CGO_ENABLED=1 \
@@ -240,7 +241,8 @@ make build
 Compile with `GIT BASH`.
 
 1. Compile (Windows ➝ Windows)
-```
+
+```sh
 CC="zig cc -target x86_64-windows-gnu" \
 CGO_ENABLED=1 \
 CGO_CFLAGS="-O2 -g -pthread" \
@@ -249,8 +251,10 @@ GOARCH=amd64 \
 TAGS="bindata sqlite sqlite_unlock_notify" \
 make build
 ```
+
 2. Cross-compile (Windows ➝ Linux)
-```
+
+```sh
 CC="zig cc -target x86_64-linux-gnu" \
 CGO_ENABLED=1 \
 CGO_CFLAGS="-O2 -g -pthread" \

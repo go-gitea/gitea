@@ -122,6 +122,7 @@ make build
 ```
 
 2.交叉编译(Linux ➝ Windows)
+
 ```sh
 CC="zig cc -target x86_64-windows-gnu" \
 CGO_ENABLED=1 \
@@ -137,7 +138,8 @@ make build
 使用`GIT BASH`编译。
 
 1.编译(Windows ➝ Windows)
-```
+
+```sh
 CC="zig cc -target x86_64-windows-gnu" \
 CGO_ENABLED=1 \
 CGO_CFLAGS="-O2 -g -pthread" \
@@ -148,7 +150,8 @@ make build
 ```
 
 2.交叉编译(Windows ➝ Linux)
-```
+
+```sh
 CC="zig cc -target x86_64-linux-gnu" \
 CGO_ENABLED=1 \
 CGO_CFLAGS="-O2 -g -pthread" \
