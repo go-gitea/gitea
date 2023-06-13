@@ -21,12 +21,12 @@ async function loadBranchesAndTags(loadingButton, addHere) {
 }
 
 function addTags(tags, addHere) {
-  showAreas('.tag-area');
+  showAreas('.tag-area,.tag-area-parent');
   for (const tag of tags) addLink(tag.web_url, tag.name, addHere);
 }
 
 function addBranches(branches, defaultBranch, defaultBranchTooltip, addHere) {
-  showAreas('.branch-area');
+  showAreas('.branch-area,.branch-area-parent');
   for (const branch of branches) addLink(branch.web_url, branch.name, addHere, defaultBranch === branch.name ? defaultBranchTooltip : undefined);
 }
 
