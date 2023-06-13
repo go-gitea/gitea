@@ -4,8 +4,8 @@
 package meilisearch
 
 import (
+	"context"
 	"fmt"
-	"sync"
 
 	"github.com/meilisearch/meilisearch-go"
 )
@@ -16,9 +16,6 @@ type Indexer struct {
 
 	url, apiKey string
 	indexerName string
-	available   bool
-	stopTimer   chan struct{}
-	lock        sync.RWMutex
 }
 
 func NewIndexer(url, apiKey, indexerName string) *Indexer {
@@ -26,20 +23,24 @@ func NewIndexer(url, apiKey, indexerName string) *Indexer {
 		url:         url,
 		apiKey:      apiKey,
 		indexerName: indexerName,
-		available:   false,
-		stopTimer:   make(chan struct{}),
 	}
 }
 
 // Init initializes the indexer
-func (i *Indexer) Init() (bool, error) {
+func (i *Indexer) Init(_ context.Context) (bool, error) {
 	if i == nil {
 		return false, fmt.Errorf("cannot init nil indexer")
 	}
 
-	if err := i.initClient(); err != nil {
-		return false, err
+	if i.Client != nil {
+		return false, fmt.Errorf("indexer is already initialized")
 	}
+
+	i.Client = meilisearch.NewClient(meilisearch.ClientConfig{
+		Host:   i.url,
+		APIKey: i.apiKey,
+	})
+
 	_, err := i.Client.GetIndex(i.indexerName)
 	if err == nil {
 		return true, nil
@@ -59,13 +60,22 @@ func (i *Indexer) Init() (bool, error) {
 }
 
 // Ping checks if the indexer is available
-func (i *Indexer) Ping() bool {
+func (i *Indexer) Ping(ctx context.Context) error {
 	if i == nil {
-		return false
+		return fmt.Errorf("cannot ping nil indexer")
 	}
-	i.lock.RLock()
-	defer i.lock.RUnlock()
-	return i.available
+	if i.Client == nil {
+		return fmt.Errorf("indexer is not initialized")
+	}
+	resp, err := i.Client.Health()
+	if err != nil {
+		return err
+	}
+	if resp.Status != "available" {
+		// See https://docs.meilisearch.com/reference/api/health.html#status
+		return fmt.Errorf("status of meilisearch is not available: %s", resp.Status)
+	}
+	return nil
 }
 
 // Close closes the indexer
@@ -73,9 +83,8 @@ func (i *Indexer) Close() {
 	if i == nil {
 		return
 	}
-	select {
-	case <-i.stopTimer:
-	default:
-		close(i.stopTimer)
+	if i.Client == nil {
+		return
 	}
+	i.Client = nil
 }

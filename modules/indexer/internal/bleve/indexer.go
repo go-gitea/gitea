@@ -4,6 +4,7 @@
 package bleve
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/modules/indexer/internal"
@@ -36,16 +37,21 @@ func NewIndexer(indexDir string, version int, mappingGetter func() (mapping.Inde
 }
 
 // Init initializes the indexer
-func (i *Indexer) Init() (bool, error) {
+func (i *Indexer) Init(_ context.Context) (bool, error) {
 	if i == nil {
 		return false, fmt.Errorf("cannot init nil indexer")
 	}
-	var err error
-	i.Indexer, err = openIndexer(i.indexDir, i.version)
+
+	if i.Indexer != nil {
+		return false, fmt.Errorf("indexer is already initialized")
+	}
+
+	indexer, err := openIndexer(i.indexDir, i.version)
 	if err != nil {
 		return false, err
 	}
-	if i.Indexer != nil {
+	if indexer != nil {
+		i.Indexer = indexer
 		return true, nil
 	}
 
@@ -54,7 +60,7 @@ func (i *Indexer) Init() (bool, error) {
 		return false, err
 	}
 
-	i.Indexer, err = bleve.New(i.indexDir, indexMapping)
+	indexer, err = bleve.New(i.indexDir, indexMapping)
 	if err != nil {
 		return false, err
 	}
@@ -65,24 +71,29 @@ func (i *Indexer) Init() (bool, error) {
 		return false, err
 	}
 
+	i.Indexer = indexer
+
 	return false, nil
 }
 
 // Ping checks if the indexer is available
-func (i *Indexer) Ping() bool {
+func (i *Indexer) Ping(_ context.Context) error {
 	if i == nil {
-		return false
+		return fmt.Errorf("cannot ping nil indexer")
 	}
-	return i.Indexer != nil
+	if i.Indexer == nil {
+		return fmt.Errorf("indexer is not initialized")
+	}
+	return nil
 }
 
 func (i *Indexer) Close() {
 	if i == nil {
 		return
 	}
-	if indexer := i.Indexer; indexer != nil {
-		if err := indexer.Close(); err != nil {
-			log.Error("Failed to close bleve indexer in %q: %v", i.indexDir, err)
-		}
+
+	if err := i.Indexer.Close(); err != nil {
+		log.Error("Failed to close bleve indexer in %q: %v", i.indexDir, err)
 	}
+	i.Indexer = nil
 }

@@ -3,13 +3,15 @@
 
 package internal
 
+import "context"
+
 // Indexer defines an basic indexer interface
 type Indexer interface {
 	// Init initializes the indexer
 	// returns true if the index was opened/existed (with data populated), false if it was created/not-existed (with no data)
-	Init() (bool, error)
+	Init(ctx context.Context) (bool, error)
 	// Ping checks if the indexer is available
-	Ping() bool
+	Ping(ctx context.Context) error
 	// Close closes the indexer
 	Close()
 }

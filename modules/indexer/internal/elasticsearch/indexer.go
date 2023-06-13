@@ -4,10 +4,9 @@
 package elasticsearch
 
 import (
+	"context"
 	"fmt"
-	"sync"
 
-	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/indexer/internal"
 
 	"github.com/olivere/elastic/v7"
@@ -23,10 +22,6 @@ type Indexer struct {
 	indexAliasName string
 	version        int
 	mapping        string
-
-	available bool
-	stopTimer chan struct{}
-	lock      sync.RWMutex
 }
 
 func NewIndexer(url, indexName string, version int, mapping string) *Indexer {
@@ -35,46 +30,57 @@ func NewIndexer(url, indexName string, version int, mapping string) *Indexer {
 		indexAliasName: indexName,
 		version:        version,
 		mapping:        mapping,
-		available:      false,
-		stopTimer:      make(chan struct{}),
 	}
 }
 
 // Init initializes the indexer
-func (i *Indexer) Init() (bool, error) {
+func (i *Indexer) Init(ctx context.Context) (bool, error) {
 	if i == nil {
 		return false, fmt.Errorf("cannot init nil indexer")
 	}
-
-	if err := i.initClient(); err != nil {
-		return false, err
+	if i.Client != nil {
+		return false, fmt.Errorf("indexer is already initialized")
 	}
 
-	ctx := graceful.GetManager().HammerContext()
+	client, err := i.initClient()
+	if err != nil {
+		return false, err
+	}
+	i.Client = client
 
 	exists, err := i.Client.IndexExists(i.IndexName()).Do(ctx)
 	if err != nil {
-		return false, i.CheckError(err)
+		return false, err
 	}
 	if exists {
 		return true, nil
 	}
 
 	if err := i.createIndex(ctx); err != nil {
-		return false, i.CheckError(err)
+		return false, err
 	}
 
 	return exists, nil
 }
 
 // Ping checks if the indexer is available
-func (i *Indexer) Ping() bool {
+func (i *Indexer) Ping(ctx context.Context) error {
 	if i == nil {
-		return false
+		return fmt.Errorf("cannot ping nil indexer")
 	}
-	i.lock.RLock()
-	defer i.lock.RUnlock()
-	return i.available
+	if i.Client == nil {
+		return fmt.Errorf("indexer is not initialized")
+	}
+
+	resp, err := i.Client.ClusterHealth().Do(ctx)
+	if err != nil {
+		return err
+	}
+	if resp.Status != "green" {
+		// see https://www.elastic.co/guide/en/elasticsearch/reference/current/cluster-health.html
+		return fmt.Errorf("status of elasticsearch cluster is %s", resp.Status)
+	}
+	return nil
 }
 
 // Close closes the indexer
@@ -82,9 +88,5 @@ func (i *Indexer) Close() {
 	if i == nil {
 		return
 	}
-	select {
-	case <-i.stopTimer:
-	default:
-		close(i.stopTimer)
-	}
+	i.Client = nil
 }

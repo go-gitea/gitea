@@ -84,7 +84,7 @@ func (b *Indexer) Index(issues []*internal.IndexerData) error {
 				"comments": issue.Comments,
 			}).
 			Do(graceful.GetManager().HammerContext())
-		return b.inner.CheckError(err)
+		return err
 	}
 
 	reqs := make([]elastic.BulkableRequest, 0)
@@ -107,7 +107,7 @@ func (b *Indexer) Index(issues []*internal.IndexerData) error {
 		Index(b.inner.IndexName()).
 		Add(reqs...).
 		Do(graceful.GetManager().HammerContext())
-	return b.inner.CheckError(err)
+	return err
 }
 
 // Delete deletes indexes by ids
@@ -119,7 +119,7 @@ func (b *Indexer) Delete(ids ...int64) error {
 			Index(b.inner.IndexName()).
 			Id(fmt.Sprintf("%d", ids[0])).
 			Do(graceful.GetManager().HammerContext())
-		return b.inner.CheckError(err)
+		return err
 	}
 
 	reqs := make([]elastic.BulkableRequest, 0)
@@ -135,7 +135,7 @@ func (b *Indexer) Delete(ids ...int64) error {
 		Index(b.inner.IndexName()).
 		Add(reqs...).
 		Do(graceful.GetManager().HammerContext())
-	return b.inner.CheckError(err)
+	return err
 }
 
 // Search searches for issues by given conditions.
@@ -159,7 +159,7 @@ func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, l
 		From(start).Size(limit).
 		Do(ctx)
 	if err != nil {
-		return nil, b.inner.CheckError(err)
+		return nil, err
 	}
 
 	hits := make([]internal.Match, 0, limit)

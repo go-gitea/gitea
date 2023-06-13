@@ -55,8 +55,8 @@ func InitIssueIndexer(syncReindex bool) {
 				if indexerData.IsDelete {
 					if err := indexer.Delete(indexerData.IDs...); err != nil {
 						log.Error("Issue indexer handler: failed to from index: %v Error: %v", indexerData.IDs, err)
-						if !indexer.Ping() {
-							log.Error("Issue indexer handler: indexer is unavailable when deleting")
+						if err := indexer.Ping(ctx); err != nil {
+							log.Error("Issue indexer handler: indexer is unavailable when deleting: %v", err)
 							unhandled = append(unhandled, indexerData)
 						}
 					}
@@ -66,8 +66,8 @@ func InitIssueIndexer(syncReindex bool) {
 			}
 			if err := indexer.Index(toIndex); err != nil {
 				log.Error("Error whilst indexing: %v Error: %v", toIndex, err)
-				if !indexer.Ping() {
-					log.Error("Issue indexer handler: indexer is unavailable when indexing")
+				if err := indexer.Ping(ctx); err != nil {
+					log.Error("Issue indexer handler: indexer is unavailable when indexing: %v", err)
 					unhandled = append(unhandled, toIndex...)
 				}
 			}
@@ -106,7 +106,7 @@ func InitIssueIndexer(syncReindex bool) {
 				}
 			}()
 			issueIndexer := bleve.NewIndexer(setting.Indexer.IssuePath)
-			existed, err = issueIndexer.Init()
+			existed, err = issueIndexer.Init(ctx)
 			if err != nil {
 				holder.Set(nil)
 				log.Fatal("Unable to initialize Bleve Issue Indexer at path: %s Error: %v", setting.Indexer.IssuePath, err)
@@ -123,7 +123,7 @@ func InitIssueIndexer(syncReindex bool) {
 			log.Debug("Created Bleve Indexer")
 		case "elasticsearch":
 			issueIndexer := elasticsearch.NewIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueIndexerName)
-			existed, err = issueIndexer.Init()
+			existed, err = issueIndexer.Init(ctx)
 			if err != nil {
 				log.Fatal("Unable to issueIndexer.Init with connection %s Error: %v", setting.Indexer.IssueConnStr, err)
 			}
@@ -133,7 +133,7 @@ func InitIssueIndexer(syncReindex bool) {
 			holder.Set(issueIndexer)
 		case "meilisearch":
 			issueIndexer := meilisearch.NewIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueConnAuth, setting.Indexer.IssueIndexerName)
-			existed, err = issueIndexer.Init()
+			existed, err = issueIndexer.Init(ctx)
 			if err != nil {
 				log.Fatal("Unable to issueIndexer.Init with connection %s Error: %v", setting.Indexer.IssueConnStr, err)
 			}
@@ -305,12 +305,12 @@ func SearchIssuesByKeyword(ctx context.Context, repoIDs []int64, keyword string)
 }
 
 // IsAvailable checks if issue indexer is available
-func IsAvailable() bool {
+func IsAvailable(ctx context.Context) bool {
 	indexer := holder.Get()
 	if indexer == nil {
 		log.Error("IsAvailable(): unable to get indexer!")
 		return false
 	}
 
-	return indexer.Ping()
+	return indexer.Ping(ctx) == nil
 }

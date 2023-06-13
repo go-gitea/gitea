@@ -133,8 +133,8 @@ func Init() {
 					code.gitea.io/gitea/modules/indexer/code.index(indexer.go:105)
 				*/
 				if err := index(ctx, indexer, indexerData.RepoID); err != nil {
-					if !indexer.Ping() {
-						log.Error("Code indexer handler: indexer is unavailable.")
+					if err := indexer.Ping(ctx); err != nil {
+						log.Error("Code indexer handler: indexer is unavailable: %v.", err)
 						unhandled = append(unhandled, indexerData)
 						continue
 					}
@@ -174,7 +174,7 @@ func Init() {
 			}()
 
 			rIndexer = bleve.NewIndexer(setting.Indexer.RepoPath)
-			existed, err = rIndexer.Init()
+			existed, err = rIndexer.Init(ctx)
 			if err != nil {
 				cancel()
 				holder.Get().Close()
@@ -198,7 +198,7 @@ func Init() {
 				close(waitChannel)
 				log.Fatal("PID: %d Unable to create the elasticsearch Repository Indexer connstr: %s Error: %v", os.Getpid(), setting.Indexer.RepoConnStr, err)
 			}
-			existed, err = rIndexer.Init()
+			existed, err = rIndexer.Init(ctx)
 			if err != nil {
 				cancel()
 				holder.Get().Close()
@@ -264,14 +264,14 @@ func UpdateRepoIndexer(repo *repo_model.Repository) {
 }
 
 // IsAvailable checks if issue indexer is available
-func IsAvailable() bool {
+func IsAvailable(ctx context.Context) bool {
 	idx := holder.Get().(internal.Indexer)
 	if idx == nil {
 		log.Error("IsAvailable(): unable to get indexer")
 		return false
 	}
 
-	return idx.Ping()
+	return idx.Ping(ctx) == nil
 }
 
 // populateRepoIndexer populate the repo indexer with pre-existing data. This

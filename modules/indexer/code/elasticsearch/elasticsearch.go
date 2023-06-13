@@ -185,7 +185,7 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 			Index(b.inner.IndexName()).
 			Add(reqs...).
 			Do(ctx)
-		return b.inner.CheckError(err)
+		return err
 	}
 	return nil
 }
@@ -195,7 +195,7 @@ func (b *Indexer) Delete(repoID int64) error {
 	_, err := b.inner.Client.DeleteByQuery(b.inner.IndexName()).
 		Query(elastic.NewTermsQuery("repo_id", repoID)).
 		Do(graceful.GetManager().HammerContext())
-	return b.inner.CheckError(err)
+	return err
 }
 
 // indexPos find words positions for start and the following end on content. It will
@@ -319,7 +319,7 @@ func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword
 			From(start).Size(pageSize).
 			Do(ctx)
 		if err != nil {
-			return 0, nil, nil, b.inner.CheckError(err)
+			return 0, nil, nil, err
 		}
 
 		return convertResult(searchResult, kw, pageSize)
@@ -330,10 +330,10 @@ func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword
 		Index(b.inner.IndexName()).
 		Aggregation("language", aggregation).
 		Query(query).
-		Size(0). // We only needs stats information
+		Size(0). // We only need stats information
 		Do(ctx)
 	if err != nil {
-		return 0, nil, nil, b.inner.CheckError(err)
+		return 0, nil, nil, err
 	}
 
 	query = query.Must(langQuery)
@@ -350,7 +350,7 @@ func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword
 		From(start).Size(pageSize).
 		Do(ctx)
 	if err != nil {
-		return 0, nil, nil, b.inner.CheckError(err)
+		return 0, nil, nil, err
 	}
 
 	total, hits, _, err := convertResult(searchResult, kw, pageSize)

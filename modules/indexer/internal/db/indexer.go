@@ -4,6 +4,8 @@
 package db
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/modules/indexer/internal"
 )
 
@@ -13,16 +15,16 @@ var _ internal.Indexer = &Indexer{}
 type Indexer struct{}
 
 // Init initializes the indexer
-func (i *Indexer) Init() (bool, error) {
+func (i *Indexer) Init(_ context.Context) (bool, error) {
 	// nothing to do
 	return false, nil
 }
 
 // Ping checks if the indexer is available
-func (i *Indexer) Ping() bool {
+func (i *Indexer) Ping(_ context.Context) error {
 	// No need to ping database to check if it is available.
 	// If the database goes down, Gitea will go down, so nobody will care if the indexer is available.
-	return true
+	return nil
 }
 
 // Close closes the indexer
