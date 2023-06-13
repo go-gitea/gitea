@@ -394,7 +394,9 @@ export async function handleReply($el) {
 function prepareReviewBoxButtons ($reviewBox) {
   for (const btn of $reviewBox.find('.btn-submit')) {
     $(btn).on('click', async function () {
-      // Do not fetch repeatedly if post request has sent
+      // Do not fetch repeatedly if post request has sent.
+      // Added to $reviewBox to avoid sending several requests when approve, comment,
+      // and request change buttons are clicked.
       if ($reviewBox.hasClass('isFetching')) return;
       $reviewBox.addClass('isFetching');
       $(this).addClass('loading');
