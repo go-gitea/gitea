@@ -115,32 +115,38 @@ export function initGlobalCommon() {
     btn.classList.add('loading');
   });
 
-  function prepareFetchForm($form) {
-    $form.addEventListener('submit', async (e) => {
+  function prepareFetchForm(formEl) {
+    formEl.addEventListener('submit', async (e) => {
       e.preventDefault();
       const submitter = e.submitter;
       // Do not fetch repeatedly if post request has sent.
-      // Added to $form to avoid sending several requests if there are several buttons inside the form
-      if ($form.classList.contains('isFetching')) return;
-      $form.classList.add('isFetching');
+      // Added to formEl to avoid sending several requests if there are several buttons inside the form
+      if (formEl.classList.contains('isFetching')) return;
+      formEl.classList.add('isFetching');
       // if the submitter is a button, add loading class to it
       if (submitter.tagName === 'BUTTON') submitter.classList.add('loading');
-      const method = $form.getAttribute('method').toUpperCase();
+      const method = formEl.getAttribute('method').toUpperCase();
       const req = {
         method,
         headers: {
           'X-Csrf-Token': csrfToken,
         }
       }
-      if (method !== 'GET') req['body'] = new FormData($form);
-      const response = await fetch($form.getAttribute('action'), req);
+      if (method !== 'GET') {
+        const formData = new FormData(formEl);
+        if (submitter.hasAttribute('name') && submitter.hasAttribute('value')) {
+          formData.append(submitter.getAttribute('name'), submitter.getAttribute('value'));
+        }
+        req['body'] = formData;
+      }
+      const response = await fetch(formEl.getAttribute('action'), req);
       // if page is redirected, no need to remove loading status
       if (response.status === 200) {
         const {redirect} = await response.json();
         window.location.href = redirect;
       // error occurs, still on the same page, remove loading status
       } else {
-        $form.classList.remove('isFetching');
+        formEl.classList.remove('isFetching');
         if (submitter.tagName === 'BUTTON') submitter.classList.remove('loading');
       }
     });

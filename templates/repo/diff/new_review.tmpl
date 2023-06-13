@@ -29,7 +29,6 @@
 					</div>
 				{{end}}
 				<div class="ui divider"></div>
-				<input type="hidden" name="type">
 				{{$showSelfTooltip := (and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID))}}
 				{{if $showSelfTooltip}}
 					<span class="gt-dib" data-tooltip-content="{{$.locale.Tr "repo.diff.review.self_approve"}}">

@@ -455,12 +455,6 @@ export function initRepoPullRequestReview() {
     const _promise = initComboMarkdownEditor($reviewBox.find('.combo-markdown-editor'));
   }
 
-  // set the value of type to the button's type value for the submit review panel
-  for (const btn of $reviewBox.find('.btn-submit')) {
-    $(btn).on('click', function () {
-      $reviewBox.find('input[name="type"]').attr('value', $(this).attr('value'));
-    })
-  }
   // The following part is only for diff views
   if ($('.repository.pull.diff').length === 0) {
     return;
