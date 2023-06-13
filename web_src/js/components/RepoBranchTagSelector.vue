@@ -296,10 +296,10 @@ export default sfc; // activate IDE's Vue plugin
 </script>
 
 <style scoped>
-.menu .item a {
+.menu .item .rss-icon {
   display: none; /* only show RSS icon on hover */
 }
-.menu .item:hover a {
+.menu .item:hover .rss-icon {
   display: inline-block;
 }
 </style>

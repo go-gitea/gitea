@@ -132,6 +132,8 @@ If pre-built frontend files are present it is possible to only build the backend
 TAGS="bindata" make backend
 ```
 
+Webpack source maps are by default enabled in development builds and disabled in production builds. They can be enabled by setting the `ENABLE_SOURCEMAP=true` environment variable.
+
 ## Test
 
 After following the steps above, a `gitea` binary will be available in the working directory.
@@ -204,3 +206,61 @@ Similarly, a script for zsh-completion can be found at [`contrib/autocompletion/
 `.zshrc`.
 
 YMMV and these scripts may need further improvement.
+
+## Compile or cross-compile using Linux with Zig
+
+Follow [Getting Started of Zig](https://ziglang.org/learn/getting-started/#installing-zig) to install zig.
+
+- Compile (Linux ➝ Linux)
+
+```sh
+CC="zig cc -target x86_64-linux-gnu" \
+CGO_ENABLED=1 \
+CGO_CFLAGS="-O2 -g -pthread" \
+CGO_LDFLAGS="-linkmode=external -v"
+GOOS=linux \
+GOARCH=amd64 \
+TAGS="bindata sqlite sqlite_unlock_notify" \
+make build
+```
+
+- Cross-compile (Linux ➝ Windows)
+
+```sh
+CC="zig cc -target x86_64-windows-gnu" \
+CGO_ENABLED=1 \
+CGO_CFLAGS="-O2 -g -pthread" \
+GOOS=windows \
+GOARCH=amd64 \
+TAGS="bindata sqlite sqlite_unlock_notify" \
+make build
+```
+
+## Compile or cross-compile with Zig using Windows
+
+Compile with `GIT BASH`.
+
+- Compile (Windows ➝ Windows)
+
+```sh
+CC="zig cc -target x86_64-windows-gnu" \
+CGO_ENABLED=1 \
+CGO_CFLAGS="-O2 -g -pthread" \
+GOOS=windows \
+GOARCH=amd64 \
+TAGS="bindata sqlite sqlite_unlock_notify" \
+make build
+```
+
+- Cross-compile (Windows ➝ Linux)
+
+```sh
+CC="zig cc -target x86_64-linux-gnu" \
+CGO_ENABLED=1 \
+CGO_CFLAGS="-O2 -g -pthread" \
+CGO_LDFLAGS="-linkmode=external -v"
+GOOS=linux \
+GOARCH=amd64 \
+TAGS="bindata sqlite sqlite_unlock_notify" \
+make build
+```
