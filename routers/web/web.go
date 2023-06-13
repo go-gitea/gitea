@@ -114,7 +114,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 	if setting.IsProd { // use assets from embed or filesystem
 		routes.RouteMethods("/assets/*", "GET, HEAD", CorsHandler(), public.AssetsHandlerFunc("/assets/"))
 	} else { // reverse-proxy asset requests to webpack-dev-server
-		// this setting is intentionally not loaded from ini config because webpack also needs
+		// this environment variable is intentionally not loaded from ini config because webpack also needs
 		// to parse it from the environment
 		port := os.Getenv("GITEA_DEV_FRONTEND_PORT")
 		if port == "" {
