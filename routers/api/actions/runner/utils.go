@@ -9,7 +9,6 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	secret_model "code.gitea.io/gitea/models/secret"
-	variable_model "code.gitea.io/gitea/models/variable"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -94,20 +93,18 @@ func getVariablesOfTask(ctx context.Context, task *actions_model.ActionTask) map
 	variables := map[string]string{}
 
 	// Org / User level
-	ownerVariables, err := variable_model.FindVariables(ctx, variable_model.FindVariablesOpts{OwnerID: task.Job.Run.Repo.OwnerID})
+	ownerVariables, err := actions_model.FindVariables(ctx, actions_model.FindVariablesOpts{OwnerID: task.Job.Run.Repo.OwnerID})
 	if err != nil {
 		log.Error("find variables of org: %d, error: %v", task.Job.Run.Repo.OwnerID, err)
 	}
 
 	// Repo level
-	repoVariables, err := variable_model.FindVariables(ctx, variable_model.FindVariablesOpts{RepoID: task.Job.Run.RepoID})
+	repoVariables, err := actions_model.FindVariables(ctx, actions_model.FindVariablesOpts{RepoID: task.Job.Run.RepoID})
 	if err != nil {
 		log.Error("find variables of repo: %d, error: %v", task.Job.Run.RepoID, err)
 	}
 
-	// TODO: Env level
-
-	// Level precedence: Env > Repo > Org / User
+	// Level precedence: Repo > Org / User
 	for _, v := range append(ownerVariables, repoVariables...) {
 		variables[v.Title] = v.Content
 	}

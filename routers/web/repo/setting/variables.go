@@ -10,7 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
-	shared "code.gitea.io/gitea/routers/web/shared/variables"
+	shared "code.gitea.io/gitea/routers/web/shared/actions"
 )
 
 const (
@@ -79,21 +79,21 @@ func Variables(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, vCtx.VariablesTemplate)
 }
 
-func VariableDelete(ctx *context.Context) {
-	vCtx, err := getVariablesCtx(ctx)
-	if err != nil {
-		ctx.ServerError("getVariablesCtx", err)
-		return
-	}
-	shared.DeleteVariable(ctx, vCtx.OwnerID, vCtx.RepoID, vCtx.RedirectLink)
-}
-
 func VariableCreate(ctx *context.Context) {
 	vCtx, err := getVariablesCtx(ctx)
 	if err != nil {
 		ctx.ServerError("getVariablesCtx", err)
 		return
 	}
+
+	if ctx.HasError() { // form binding validation error
+		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
+		ctx.JSON(http.StatusOK, map[string]interface{}{
+			"redirect": vCtx.RedirectLink,
+		})
+		return
+	}
+
 	shared.CreateVariable(ctx, vCtx.OwnerID, vCtx.RepoID, vCtx.RedirectLink)
 }
 
@@ -103,9 +103,23 @@ func VariableUpdate(ctx *context.Context) {
 		ctx.ServerError("getVariablesCtx", err)
 		return
 	}
-	shared.UpdateVariable(ctx, vCtx.OwnerID, vCtx.RepoID, vCtx.RedirectLink)
+
+	if ctx.HasError() { // form binding validation error
+		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
+		ctx.JSON(http.StatusOK, map[string]interface{}{
+			"redirect": vCtx.RedirectLink,
+		})
+		return
+	}
+
+	shared.UpdateVariable(ctx, vCtx.RedirectLink)
 }
 
-func VariableByID(ctx *context.Context) {
-	shared.GetVariable(ctx)
+func VariableDelete(ctx *context.Context) {
+	vCtx, err := getVariablesCtx(ctx)
+	if err != nil {
+		ctx.ServerError("getVariablesCtx", err)
+		return
+	}
+	shared.DeleteVariable(ctx, vCtx.RedirectLink)
 }

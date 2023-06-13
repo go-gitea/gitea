@@ -92,6 +92,15 @@ func SecretsPost(ctx *context.Context) {
 		ctx.ServerError("getSecretsCtx", err)
 		return
 	}
+
+	if ctx.HasError() {
+		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
+		ctx.JSON(http.StatusOK, map[string]interface{}{
+			"redirect": sCtx.RedirectLink,
+		})
+		return
+	}
+
 	shared.PerformSecretsPost(
 		ctx,
 		sCtx.OwnerID,

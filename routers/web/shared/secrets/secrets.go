@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/web/shared/actions"
 	"code.gitea.io/gitea/services/forms"
 )
 
@@ -27,6 +28,14 @@ func SetSecretsContext(ctx *context.Context, ownerID, repoID int64) {
 
 func PerformSecretsPost(ctx *context.Context, ownerID, repoID int64, redirectURL string) {
 	form := web.GetForm(ctx).(*forms.AddSecretForm)
+
+	if err := actions.TitleRegexMatch(ctx, form.Title, redirectURL); err != nil {
+		ctx.Flash.Error(ctx.Tr("secrets.creation.failed"))
+		ctx.JSON(http.StatusOK, map[string]interface{}{
+			"redirect": redirectURL,
+		})
+		return
+	}
 
 	content := form.Content
 	// Since the content is from a form which is a textarea, the line endings are \r\n.
