@@ -1,0 +1,26 @@
+{{template "base/head" .}}
+<div class="page-content devtest ui container">
+	<div>
+		<h1>link-action</h1>
+		<div>
+			Use "window.fetch" to send a request to backend, the request is defined in an "A" or "BUTTON" element.
+			It might be renamed to "link-fetch-action" to match the "form-fetch-action".
+		</div>
+		<div>
+			<button class="link-action" data-url="...">test</button>
+		</div>
+	</div>
+	<div>
+		<h1>form-fetch-action</h1>
+		<div>Use "window.fetch" to send a form request to backend</div>
+		<div>
+			<form method="get" action="?k=1" class="form-fetch-action">
+				<button name="btn">submit get</button>
+			</form>
+			<form method="post" class="form-fetch-action">
+				<button name="btn">submit get</button>
+			</form>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

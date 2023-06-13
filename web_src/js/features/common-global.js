@@ -60,7 +60,7 @@ export function initGlobalButtonClickOnEnter() {
   });
 }
 
-async function fetchFormAction(e) {
+async function formFetchAction(e) {
   if (!e.target.classList.contains('form-fetch-action')) return;
 
   e.preventDefault();
@@ -76,14 +76,23 @@ async function fetchFormAction(e) {
   const formData = new FormData(formEl);
   const [submitterName, submitterValue] = [e.submitter?.getAttribute('name'), e.submitter?.getAttribute('value')];
   if (submitterName) {
-    formData.append(submitterName, submitterValue);
+    formData.append(submitterName, submitterValue || '');
   }
 
-  const req = {method: formMethod.toUpperCase(), headers: {'X-Csrf-Token': csrfToken}};
-  if (formMethod === 'GET') {
-    // TODO: append to the action URL
+  let reqUrl = formActionUrl;
+  const reqOpt = {method: formMethod.toUpperCase(), headers: {'X-Csrf-Token': csrfToken}};
+  if (formMethod.toLowerCase() === 'get') {
+    const params = new URLSearchParams();
+    for (const [key, value] of formData) {
+      params.append(key, value.toString());
+    }
+    const pos = reqUrl.indexOf('?');
+    if (pos !== -1) {
+      reqUrl = reqUrl.slice(0, pos);
+    }
+    reqUrl += `?${params.toString()}`;
   } else {
-    req.body = formData;
+    reqOpt.body = formData;
   }
 
   const onError = () => {
@@ -92,23 +101,27 @@ async function fetchFormAction(e) {
     e.submitter?.classList.remove('loading');
   };
 
-  try {
-    const resp = await fetch(formActionUrl, req);
-    if (resp.status === 200) {
-      const {redirect} = await resp.json();
-      if (redirect) {
-        window.location.href = redirect;
+  const doRequest = async () => {
+    try {
+      const resp = await fetch(reqUrl, reqOpt);
+      if (resp.status === 200) {
+        const {redirect} = await resp.json();
+        if (redirect) {
+          window.location.href = redirect;
+        } else {
+          // TODO: remove areYouSure form check
+          window.reload();
+        }
       } else {
-        // TODO: remove areYouSure form check
-        window.reload();
+        // TODO: show error to end users
+        onError();
       }
-    } else {
-      // TODO: show error to end users
+    } catch {
       onError();
     }
-  } catch {
-    onError();
-  }
+  };
+
+  await doRequest();
 }
 
 export function initGlobalCommon() {
@@ -166,7 +179,7 @@ export function initGlobalCommon() {
     btn.classList.add('loading');
   });
 
-  document.addEventListener('submit', fetchFormAction);
+  document.addEventListener('submit', formFetchAction);
 }
 
 export function initGlobalDropzone() {
@@ -235,7 +248,7 @@ function linkAction(e) {
   const $this = $(e.target);
   const redirect = $this.attr('data-redirect');
 
-  const request = () => {
+  const doRequest = () => {
     $this.prop('disabled', true);
     $.post($this.attr('data-url'), {
       _csrf: csrfToken
@@ -254,7 +267,7 @@ function linkAction(e) {
 
   const modalConfirmHtml = htmlEscape($this.attr('data-modal-confirm') || '');
   if (!modalConfirmHtml) {
-    request();
+    doRequest();
     return;
   }
 
@@ -273,7 +286,7 @@ function linkAction(e) {
   $modal.appendTo(document.body);
   $modal.modal({
     onApprove() {
-      request();
+      doRequest();
     },
     onHidden() {
       $modal.remove();
