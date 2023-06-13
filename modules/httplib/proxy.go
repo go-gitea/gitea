@@ -24,7 +24,7 @@ func MakeReverseProxyHandler(destURL, path string, skipVerify bool) http.Handler
 				req.URL.Path = url.Path + strings.TrimPrefix(req.URL.Path, path)
 			},
 			Transport: &http.Transport{
-				MaxIdleConns:        100,
+				MaxIdleConns:        5,
 				IdleConnTimeout:     5 * time.Second,
 				TLSHandshakeTimeout: 5 * time.Second,
 				TLSClientConfig: &tls.Config{
