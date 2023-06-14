@@ -7,6 +7,7 @@ import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
 import {svg} from '../svg.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
+import {createTippy} from "../modules/tippy.js";
 
 const {appUrl, csrfToken, i18n} = window.config;
 
@@ -65,11 +66,12 @@ async function formFetchAction(e) {
 
   e.preventDefault();
   const formEl = e.target;
-  if (formEl.classList.contains('loading')) return;
+  if (formEl.classList.contains('is-loading')) return;
 
-  // TODO: fine tune the UI feedback
-  formEl.classList.add('loading');
-  e.submitter?.classList.add('loading');
+  formEl.classList.add('is-loading');
+  if (formEl.clientHeight < 50) {
+    formEl.classList.add('small-loading-icon');
+  }
 
   const formMethod = formEl.getAttribute('method') || 'get';
   const formActionUrl = formEl.getAttribute('action');
@@ -95,10 +97,20 @@ async function formFetchAction(e) {
     reqOpt.body = formData;
   }
 
-  const onError = () => {
-    // TODO: show error to end users
-    formEl.classList.remove('loading');
-    e.submitter?.classList.remove('loading');
+  let errorTippy;
+  const onError = (msg) => {
+    formEl.classList.remove('is-loading', 'small-loading-icon');
+    if (errorTippy) errorTippy.destroy();
+    errorTippy = createTippy(formEl, {
+      content: msg,
+      interactive: true,
+      showOnCreate: true,
+      hideOnClick: true,
+      role: 'alert',
+      theme: 'form-fetch-error',
+      trigger: 'manual',
+      arrow: false,
+    });
   };
 
   const doRequest = async () => {
@@ -109,18 +121,18 @@ async function formFetchAction(e) {
         if (redirect) {
           window.location.href = redirect;
         } else {
-          // TODO: remove areYouSure form check
-          window.reload();
+          formEl.classList.remove('dirty'); // remove the areYouSure check before reloading
+          window.location.reload();
         }
       } else {
-        // TODO: show error to end users
-        onError();
+        onError(`server error: ${resp.status}`);
       }
-    } catch {
-      onError();
+    } catch (e) {
+      onError(e.error);
     }
   };
 
+  // TODO: add "confirm" support like "link-action" in the future
   await doRequest();
 }
 

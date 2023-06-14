@@ -111,7 +111,7 @@ function showLineButton() {
     hideOnClick: true,
     content: menu,
     placement: 'right-start',
-    interactive: 'true',
+    interactive: true,
     onShow: (tippy) => {
       tippy.popper.addEventListener('click', () => {
         tippy.hide();
