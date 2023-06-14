@@ -183,17 +183,22 @@ func profileCount(p *cover.Profile) (int64, int64) {
 }
 
 func checkPackages(args []string) {
-	if len(args) < 2 {
+	if len(args) != 2 {
 		log.Fatalf("invalid arguments: %v", args)
 		return
 	}
-	coverageFile, packages := args[0], args[1:]
+	coverageFile, packagesFile := args[0], args[1]
 	profiles, err := cover.ParseProfiles(coverageFile)
 	if err != nil {
 		log.Fatalf("failed to parse profile '%s': %v", coverageFile, err)
 	}
 	packagesRequirements := make(map[string]int64)
-	for _, p := range packages {
+	packages, err := os.ReadFile(packagesFile)
+	if err != nil {
+		log.Fatalf("failed to read packages file '%s': %v", packagesFile, err)
+	}
+	lines := strings.Split(string(packages), "\n")
+	for _, p := range lines {
 		parts := strings.Split(p, "=")
 		if len(parts) != 2 {
 			continue
