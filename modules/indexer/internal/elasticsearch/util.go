@@ -19,6 +19,10 @@ func (i *Indexer) VersionedIndexName() string {
 }
 
 func versionedIndexName(indexName string, version int) string {
+	if version == 0 {
+		// Old index name without version
+		return indexName
+	}
 	return fmt.Sprintf("%s.v%d", indexName, version)
 }
 
@@ -54,15 +58,11 @@ func (i *Indexer) initClient() (*elastic.Client, error) {
 }
 
 func (i *Indexer) checkOldIndexes(ctx context.Context) {
-	i.checkOldIndex(ctx, i.indexName) // Old index name without version
-	for v := 1; v < i.version; v++ {
-		i.checkOldIndex(ctx, versionedIndexName(i.indexName, v))
-	}
-}
-
-func (i *Indexer) checkOldIndex(ctx context.Context, indexName string) {
-	exists, err := i.Client.IndexExists(indexName).Do(ctx)
-	if err == nil && exists {
-		log.Warn("Found older elasticsearch index named %q, Gitea will keep the old NOT DELETED. You can delete the old version after the upgrade succeed.", indexName)
+	for v := 0; v < i.version; v++ {
+		indexName := versionedIndexName(i.indexName, v)
+		exists, err := i.Client.IndexExists(indexName).Do(ctx)
+		if err == nil && exists {
+			log.Warn("Found older elasticsearch index named %q, Gitea will keep the old NOT DELETED. You can delete the old version after the upgrade succeed.", indexName)
+		}
 	}
 }

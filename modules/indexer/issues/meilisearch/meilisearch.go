@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	issueIndexerLatestVersion = 1
+	issueIndexerLatestVersion = 0
 )
 
 var _ internal.Indexer = &Indexer{}
