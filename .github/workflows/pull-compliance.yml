@@ -12,7 +12,7 @@ jobs:
     uses: ./.github/workflows/files-changed.yml
 
   lint-backend:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
@@ -27,7 +27,7 @@ jobs:
           TAGS: bindata sqlite sqlite_unlock_notify
 
   lint-go-windows:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
@@ -44,7 +44,7 @@ jobs:
           GOARCH: amd64
 
   lint-go-gogit:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
@@ -59,7 +59,7 @@ jobs:
           TAGS: bindata gogit sqlite sqlite_unlock_notify
 
   checks-backend:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
@@ -72,7 +72,7 @@ jobs:
       - run: make --always-make checks-backend # ensure the "go-licenses" make target runs
 
   frontend:
-    if: needs.files-changed.outputs.frontend == 'true'
+    if: needs.files-changed.outputs.frontend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
@@ -83,9 +83,10 @@ jobs:
       - run: make deps-frontend
       - run: make lint-frontend
       - run: make checks-frontend
+      - run: make frontend
 
   backend:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
@@ -94,12 +95,9 @@ jobs:
         with:
           go-version: ">=1.20"
           check-latest: true
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 20
+      # no frontend build here as backend should be able to build
+      # even without any frontend files
       - run: make deps-backend deps-tools
-      - run: make deps-frontend
-      - run: make frontend
       - run: go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
       - name: build-backend-arm64
         run: make backend # test cross compile
@@ -120,7 +118,7 @@ jobs:
           GOARCH: 386
 
   docs:
-    if: needs.files-changed.outputs.docs == 'true'
+    if: needs.files-changed.outputs.docs == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
@@ -133,7 +131,7 @@ jobs:
       - run: make docs # test if build could succeed
 
   actions:
-    if: needs.files-changed.outputs.actions == 'true'
+    if: needs.files-changed.outputs.actions == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
