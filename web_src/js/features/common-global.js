@@ -7,7 +7,7 @@ import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
 import {svg} from '../svg.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
-import {createTippy} from "../modules/tippy.js";
+import {createTippy} from '../modules/tippy.js';
 
 const {appUrl, csrfToken, i18n} = window.config;
 
@@ -118,10 +118,10 @@ async function formFetchAction(e) {
       const resp = await fetch(reqUrl, reqOpt);
       if (resp.status === 200) {
         const {redirect} = await resp.json();
+        formEl.classList.remove('dirty'); // remove the areYouSure check before reloading
         if (redirect) {
           window.location.href = redirect;
         } else {
-          formEl.classList.remove('dirty'); // remove the areYouSure check before reloading
           window.location.reload();
         }
       } else {
