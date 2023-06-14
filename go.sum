@@ -40,8 +40,8 @@ cloud.google.com/go/storage v1.6.0/go.mod h1:N7U0C8pVQ/+NIKOBQyamJIeKQKkZ+mxpohl
 cloud.google.com/go/storage v1.8.0/go.mod h1:Wv1Oy7z6Yz3DshWRJFhqM/UCfaWIRTdp0RXyy7KQOVs=
 cloud.google.com/go/storage v1.10.0/go.mod h1:FLPqc6j+Ki4BU591ie1oL6qBQGu2Bl/tZ9ullr3+Kg0=
 cloud.google.com/go/storage v1.14.0/go.mod h1:GrKmX003DSIwi9o29oFT7YDnHYwZoctc3fOKtUw0Xmo=
-code.gitea.io/actions-proto-go v0.2.1 h1:ToMN/8thz2q10TuCq8dL2d8mI+/pWpJcHCvG+TELwa0=
-code.gitea.io/actions-proto-go v0.2.1/go.mod h1:00ys5QDo1iHN1tHNvvddAcy2W/g+425hQya1cCSvq9A=
+code.gitea.io/actions-proto-go v0.3.0 h1:9Tvg8+TaaCXPKi6EnWl9vVgs2VZsj1Cs5afnsHa4AmM=
+code.gitea.io/actions-proto-go v0.3.0/go.mod h1:00ys5QDo1iHN1tHNvvddAcy2W/g+425hQya1cCSvq9A=
 code.gitea.io/gitea-vet v0.2.1/go.mod h1:zcNbT/aJEmivCAhfmkHOlT645KNOf9W2KnkLgFjGGfE=
 code.gitea.io/gitea-vet v0.2.2 h1:TEOV/Glf38iGmKzKP0EB++Z5OSL4zGg3RrAvlwaMuvk=
 code.gitea.io/gitea-vet v0.2.2/go.mod h1:zcNbT/aJEmivCAhfmkHOlT645KNOf9W2KnkLgFjGGfE=
