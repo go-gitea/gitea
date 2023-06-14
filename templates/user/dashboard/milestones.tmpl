@@ -85,24 +85,41 @@
 								</div>
 							</div>
 							<div class="meta">
-								{{$closedDate:= TimeSinceUnix .ClosedDateUnix $.locale}}
-								{{if .IsClosed}}
-									{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.closed" $closedDate | Safe}}
-								{{else}}
-									{{svg "octicon-calendar"}}
-									{{if .DeadlineString}}
-										<span {{if .IsOverdue}}class="overdue"{{end}}>{{DateTime "short" .DeadlineString}}</span>
-									{{else}}
-										{{$.locale.Tr "repo.milestones.no_due_date"}}
-									{{end}}
-								{{end}}
-								<span class="issue-stats">
-									{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
-									{{$.locale.PrettyNumber .NumOpenIssues}}&nbsp;{{$.locale.Tr "repo.issues.open_title"}}
-									{{svg "octicon-check" 16 "gt-mr-3"}}
-									{{$.locale.PrettyNumber .NumClosedIssues}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
+								<span class="issue-stats gt-df gt-ac gt-fw gt-gap-3">
+									<div class="gt-df gt-ac gt-gap-2">
+										{{svg "octicon-issue-opened"}}
+										{{$.locale.PrettyNumber .NumOpenIssues}}&nbsp;{{$.locale.Tr "repo.issues.open_title"}}
+									</div>
+									<div class="gt-df gt-ac gt-gap-2">
+										{{svg "octicon-check" 14}}
+										{{$.locale.PrettyNumber .NumClosedIssues}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
+									</div>
 									{{if .TotalTrackedTime}}
-										{{svg "octicon-clock"}} {{.TotalTrackedTime|Sec2Time}}
+										<div class="gt-df gt-ac gt-gap-2">
+											{{svg "octicon-clock" 14}}&nbsp;{{.TotalTrackedTime|Sec2Time}}
+										</div>
+									{{end}}
+									{{if .UpdatedUnix}}
+										<div class="gt-dif gt-ac gt-gap-2">
+											{{svg "octicon-clock" 14}}{{$.locale.Tr "repo.milestones.update_ago" (TimeSinceUnix .UpdatedUnix $.locale) | Safe}}
+										</div>
+									{{end}}
+									{{if .IsClosed}}
+										<div class="gt-df gt-ac gt-gap-2">
+											{{svg "octicon-clock" 14}}
+											{{$.locale.Tr "repo.milestones.closed" (TimeSinceUnix .ClosedDateUnix $.locale) | Safe}}
+										</div>
+									{{else}}
+										<div class="gt-df gt-ac gt-gap-2">
+											{{svg "octicon-calendar" 14}}
+											{{if .DeadlineString}}
+												<span{{if .IsOverdue}} class="overdue"{{end}}>
+													{{DateTime "short" .DeadlineString}}
+												</span>
+											{{else}}
+												{{$.locale.Tr "repo.milestones.no_due_date"}}
+											{{end}}
+										</div>
 									{{end}}
 								</span>
 							</div>

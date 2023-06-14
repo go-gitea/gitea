@@ -38,17 +38,22 @@
 		<div class="milestone list">
 			{{range .Projects}}
 				<li class="item">
-					{{svg .IconName}} <a href="{{.Link}}">{{.Title}}</a>
+					{{svg .IconName 16 "gt-mr-3"}}
+					<a class="muted gt-font-16" href="{{.Link}}">{{.Title}}</a>
 					<div class="meta">
 						{{$closedDate:= TimeSinceUnix .ClosedDateUnix $.locale}}
 						{{if .IsClosed}}
 							{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.closed" $closedDate | Safe}}
 						{{end}}
-						<span class="issue-stats">
-							{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
-							{{$.locale.PrettyNumber .NumOpenIssues}}&nbsp;{{$.locale.Tr "repo.issues.open_title"}}
-							{{svg "octicon-check" 16 "gt-mr-3"}}
-							{{$.locale.PrettyNumber .NumClosedIssues}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
+						<span class="issue-stats gt-df gt-ac gt-fw gt-gap-3">
+							<div class="gt-df gt-ac gt-gap-2">
+								{{svg "octicon-issue-opened" 14}}
+								{{$.locale.PrettyNumber .NumOpenIssues}}&nbsp;{{$.locale.Tr "repo.issues.open_title"}}
+							</div>
+							<div class="gt-df gt-ac gt-gap-2">
+								{{svg "octicon-check" 14}}
+								{{$.locale.PrettyNumber .NumClosedIssues}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
+							</div>
 						</span>
 					</div>
 					{{if and $.CanWriteProjects (not $.Repository.IsArchived)}}

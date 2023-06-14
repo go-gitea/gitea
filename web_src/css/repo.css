@@ -1190,10 +1190,6 @@
   padding-top: 5px;
 }
 
-.repository .milestone.list > .item .meta .issue-stats .svg {
-  padding-left: 5px;
-}
-
 .repository .milestone.list > .item .meta .overdue {
   color: var(--color-red);
 }
@@ -1973,10 +1969,6 @@
 .repository.settings.collaboration .collaborator.list > .item {
   margin: 0;
   line-height: 2em;
-}
-
-.repository.settings.collaboration .collaborator.list > .item:not(:last-child) {
-  border-bottom: 1px solid var(--color-secondary);
 }
 
 .repository.settings.collaboration #repo-collab-form #search-user-box .results {

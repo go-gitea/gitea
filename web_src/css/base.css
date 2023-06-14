@@ -869,6 +869,13 @@ a.label,
   border-color: var(--color-secondary);
 }
 
+.ui.table > tfoot > tr > th,
+.ui.table > tfoot > tr > td {
+  border-color: var(--color-secondary);
+  background: var(--color-box-body);
+  color: var(--color-text);
+}
+
 img.ui.avatar,
 .ui.avatar img,
 .ui.avatar svg {
