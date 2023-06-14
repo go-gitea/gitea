@@ -29,12 +29,6 @@ func init() {
 	}
 }
 
-type DetectedWorkflow struct {
-	Name    string
-	Event   *jobparser.Event
-	Content []byte
-}
-
 func IsWorkflow(path string) bool {
 	if (!strings.HasSuffix(path, ".yaml")) && (!strings.HasSuffix(path, ".yml")) {
 		return false
