@@ -34,17 +34,6 @@ func (b *Blob) GetBlobContent(limit int64) (string, error) {
 	return string(buf), err
 }
 
-// GetBlobAll Gets the all content of the blob as bytes
-func (b *Blob) GetBlobAll() ([]byte, error) {
-	dataRc, err := b.DataAsync()
-	if err != nil {
-		return nil, err
-	}
-	buf, _ := io.ReadAll(dataRc)
-	_ = dataRc.Close()
-	return buf, nil
-}
-
 // GetBlobLineCount gets line count of the blob
 func (b *Blob) GetBlobLineCount() (int, error) {
 	reader, err := b.DataAsync()

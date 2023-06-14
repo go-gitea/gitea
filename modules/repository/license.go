@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	licenseclassifier "github.com/google/licenseclassifier/v2"
@@ -263,16 +264,16 @@ func detectLicenseByEntry(file *git.TreeEntry) ([]string, error) {
 	}
 
 	blob := file.Blob()
-	contentBuf, err := blob.GetBlobAll()
+	content, err := blob.GetBlobContent(setting.UI.MaxDisplayFileSize)
 	if err != nil {
 		return nil, fmt.Errorf("GetBlobAll: %w", err)
 	}
-	return detectLicense(contentBuf), nil
+	return detectLicense(content), nil
 }
 
 // detectLicense returns the licenses detected by the given content buff
-func detectLicense(buf []byte) []string {
-	if len(buf) == 0 {
+func detectLicense(content string) []string {
+	if len(content) == 0 {
 		return nil
 	}
 	if classifier == nil {
@@ -280,7 +281,11 @@ func detectLicense(buf []byte) []string {
 		return nil
 	}
 
-	matches := classifier.Match(buf)
+	matches, err := classifier.MatchFrom(strings.NewReader(content))
+	if err != nil {
+		log.Error("licenseclassifier.MatchFrom: %v", err)
+		return nil
+	}
 	var results []string
 	for _, r := range matches.Matches {
 		if r.MatchType == "License" {
