@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_18"
 	"code.gitea.io/gitea/models/migrations/v1_19"
 	"code.gitea.io/gitea/models/migrations/v1_20"
+	"code.gitea.io/gitea/models/migrations/v1_21"
 	"code.gitea.io/gitea/models/migrations/v1_6"
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
@@ -497,6 +498,11 @@ var migrations = []Migration{
 	NewMigration("Add PinOrder Column", v1_20.AddPinOrderToIssue),
 	// v259 -> 260
 	NewMigration("Convert scoped access tokens", v1_20.ConvertScopedAccessTokens),
+
+	// Gitea 1.21.0 ends at 260
+
+	// v260 -> v261
+	NewMigration("Add label column to action_run table, and combine labels", v1_21.DropCustomLabelsColumnToActRunner),
 }
 
 // GetCurrentDBVersion returns the current db version

@@ -9,25 +9,19 @@
 				{{template "org/team/navbar" .}}
 				{{$canAddRemove := and $.IsOrganizationOwner (not $.Team.IncludesAllRepositories)}}
 				{{if $canAddRemove}}
-					<div class="ui attached segment" id="repo-top-segment">
-						<div class="inline ui field left">
-							<form class="ui form ignore-dirty" id="add-repo-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/add" method="post">
-								{{.CsrfTokenHtml}}
-								<div class="inline field ui left">
-									<div id="search-repo-box" data-uid="{{.Org.ID}}" class="ui search">
-										<div class="ui input">
-											<input class="prompt" name="repo_name" placeholder="{{.locale.Tr "org.teams.search_repo_placeholder"}}" autocomplete="off" required>
-										</div>
-									</div>
+					<div class="ui attached segment gt-df gt-fw gt-gap-3">
+						<form class="ui form ignore-dirty gt-f1 gt-dif" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/add" method="post">
+							{{.CsrfTokenHtml}}
+							<div id="search-repo-box" data-uid="{{.Org.ID}}" class="ui search">
+								<div class="ui input">
+									<input class="prompt" name="repo_name" placeholder="{{.locale.Tr "org.teams.search_repo_placeholder"}}" autocomplete="off" required>
 								</div>
-								<button class="ui green button">{{.locale.Tr "add"}}</button>
-							</form>
-						</div>
-						<div class="inline ui field right">
-							<form class="ui form" id="repo-multiple-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/repositories" method="post">
-								<button class="ui green button add-all-button" data-modal-id="org-team-add-all-repo" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/addall">{{.locale.Tr "add_all"}}</button>
-								<button class="ui red button delete-button" data-modal-id="org-team-remove-all-repo" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/removeall">{{.locale.Tr "remove_all"}}</button>
-							</form>
+							</div>
+							<button class="ui green button gt-ml-3">{{.locale.Tr "add"}}</button>
+						</form>
+						<div class="gt-dib">
+							<button class="ui green button link-action" data-modal-confirm="{{.locale.Tr "org.teams.add_all_repos_desc"}}" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/addall">{{.locale.Tr "add_all"}}</button>
+							<button class="ui red button link-action" data-modal-confirm="{{.locale.Tr "org.teams.remove_all_repos_desc"}}" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/removeall">{{.locale.Tr "remove_all"}}</button>
 						</div>
 					</div>
 				{{end}}
@@ -62,28 +56,6 @@
 			</div>
 		</div>
 	</div>
-</div>
-
-<div class="ui g-modal-confirm delete modal" id="org-team-remove-all-repo">
-	<div class="header">
-		{{svg "octicon-trash"}}
-		{{.locale.Tr "org.teams.remove_all_repos_title"}}
-	</div>
-	<div class="content">
-		<p>{{.locale.Tr "org.teams.remove_all_repos_desc"}}</p>
-	</div>
-	{{template "base/modal_actions_confirm" .}}
-</div>
-
-<div class="ui g-modal-confirm addall modal" id="org-team-add-all-repo">
-	<div class="header">
-		{{svg "octicon-globe"}}
-		{{.locale.Tr "org.teams.add_all_repos_title"}}
-	</div>
-	<div class="content">
-		<p>{{.locale.Tr "org.teams.add_all_repos_desc"}}</p>
-	</div>
-	{{template "base/modal_actions_confirm" .}}
 </div>
 
 {{template "base/footer" .}}
