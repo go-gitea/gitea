@@ -95,13 +95,13 @@ func GetEventsFromContent(content []byte) ([]*jobparser.Event, error) {
 	return events, nil
 }
 
-func DetectWorkflows(commit *git.Commit, triggedEvent webhook_module.HookEventType, payload api.Payloader) ([]*DetectedWorkflow, error) {
+func DetectWorkflows(commit *git.Commit, triggedEvent webhook_module.HookEventType, payload api.Payloader) (map[string][]byte, error) {
 	entries, err := ListWorkflows(commit)
 	if err != nil {
 		return nil, err
 	}
 
-	workflows := make([]*DetectedWorkflow, 0, len(entries))
+	workflows := make(map[string][]byte, len(entries))
 	for _, entry := range entries {
 		content, err := GetContentFromEntry(entry)
 		if err != nil {
@@ -115,12 +115,7 @@ func DetectWorkflows(commit *git.Commit, triggedEvent webhook_module.HookEventTy
 		for _, evt := range events {
 			log.Trace("detect workflow %q for event %#v matching %q", entry.Name(), evt, triggedEvent)
 			if detectMatched(commit, triggedEvent, payload, evt) {
-				dw := &DetectedWorkflow{
-					Name:    entry.Name(),
-					Event:   evt,
-					Content: content,
-				}
-				workflows = append(workflows, dw)
+				workflows[entry.Name()] = content
 			}
 		}
 	}
@@ -165,6 +160,7 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 
 	case // pull_request
 		webhook_module.HookEventPullRequest,
+		webhook_module.HookEventPullRequestTarget,
 		webhook_module.HookEventPullRequestSync,
 		webhook_module.HookEventPullRequestAssign,
 		webhook_module.HookEventPullRequestLabel:

@@ -95,6 +95,16 @@ func (input *notifyInput) WithPullRequest(pr *issues_model.PullRequest) *notifyI
 	return input
 }
 
+func (input *notifyInput) NotifyPullRequest(ctx context.Context) {
+	// notify with the original event related to pull_request
+	input.Notify(ctx)
+
+	// notify with the pull_request_target event
+	input.Event = webhook_module.HookEventPullRequestTarget
+	input.Ref = git.BranchPrefix + input.PullRequest.BaseBranch
+	input.Notify(ctx)
+}
+
 func (input *notifyInput) Notify(ctx context.Context) {
 	log.Trace("execute %v for event %v whose doer is %v", getMethod(ctx), input.Event, input.Doer.Name)
 
@@ -172,18 +182,14 @@ func notify(ctx context.Context, input *notifyInput) error {
 		}
 	}
 
-	for _, wf := range workflows {
-		wfRef := ref
-		if wf.Event.Name == "pull_request_target" {
-			wfRef = git.BranchPrefix + input.PullRequest.BaseBranch
-		}
+	for id, content := range workflows {
 		run := &actions_model.ActionRun{
 			Title:             strings.SplitN(commit.CommitMessage, "\n", 2)[0],
 			RepoID:            input.Repo.ID,
 			OwnerID:           input.Repo.OwnerID,
-			WorkflowID:        wf.Name,
+			WorkflowID:        id,
 			TriggerUserID:     input.Doer.ID,
-			Ref:               wfRef,
+			Ref:               ref,
 			CommitSHA:         commit.ID.String(),
 			IsForkPullRequest: isForkPullRequest,
 			Event:             input.Event,
@@ -197,7 +203,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 			run.NeedApproval = need
 		}
 
-		jobs, err := jobparser.Parse(wf.Content)
+		jobs, err := jobparser.Parse(content)
 		if err != nil {
 			log.Error("jobparser.Parse: %v", err)
 			continue

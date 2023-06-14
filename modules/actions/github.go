@@ -49,6 +49,7 @@ func canGithubEventMatch(eventName string, triggedEvent webhook_module.HookEvent
 	case githubEventPullRequest, githubEventPullRequestTarget:
 		switch triggedEvent {
 		case webhook_module.HookEventPullRequest,
+			webhook_module.HookEventPullRequestTarget,
 			webhook_module.HookEventPullRequestSync,
 			webhook_module.HookEventPullRequestAssign,
 			webhook_module.HookEventPullRequestLabel:
