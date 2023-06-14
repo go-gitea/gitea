@@ -19,7 +19,12 @@ func versionedIndexName(indexName string, version int) string {
 		// Old index name without version
 		return indexName
 	}
-	return fmt.Sprintf("%s.v%d", indexName, version)
+
+	// The format of the index name is <index_name>_v<version>, not <index_name>.v<version> like elasticsearch.
+	// Because meilisearch does not support "." in index name, it should contain only alphanumeric characters, hyphens (-) and underscores (_).
+	// See https://www.meilisearch.com/docs/learn/core_concepts/indexes#index-uid
+
+	return fmt.Sprintf("%s_v%d", indexName, version)
 }
 
 func (i *Indexer) checkOldIndexes() {
