@@ -2787,7 +2787,7 @@ func NewComment(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		ctx.JSONError(ctx.Data["ErrorMsg"].(string))
+		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}
 

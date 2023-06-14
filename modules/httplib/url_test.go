@@ -17,8 +17,10 @@ func TestIsRiskyRedirectURL(t *testing.T) {
 		input string
 		want  bool
 	}{
-		{"empty", false},
+		{"", false},
+		{"foo", false},
 		{"/", false},
+		{"/foo?k=%20#abc", false},
 
 		{"//", true},
 		{"\\\\", true},
