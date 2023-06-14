@@ -272,7 +272,8 @@ func AddRepositoryLicenses(x *xorm.Engine) error {
 		gitRepo, err := git.OpenRepository(git.DefaultContext, repoPath(repo.OwnerName, repo.Name))
 		if err != nil {
 			log.Error("Error whilst opening git repo for [%d]%s/%s. Error: %v", repo.ID, repo.OwnerName, repo.Name, err)
-			return err
+			// Allow git repo not exist
+			continue
 		}
 		_, licenseFile, err := findLicenseFile(gitRepo, repo.DefaultBranch)
 		if err != nil {
