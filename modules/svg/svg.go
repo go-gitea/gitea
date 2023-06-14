@@ -62,5 +62,5 @@ func RenderHTML(icon string, others ...interface{}) template.HTML {
 		}
 		return template.HTML(svgStr)
 	}
-	return template.HTML("")
+	return ""
 }

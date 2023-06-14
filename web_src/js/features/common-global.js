@@ -8,7 +8,7 @@ import {svg} from '../svg.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
 
-const {appUrl, csrfToken} = window.config;
+const {appUrl, csrfToken, i18n} = window.config;
 
 export function initGlobalFormDirtyLeaveConfirm() {
   // Warn users that try to leave a page after entering data into a form.
@@ -172,6 +172,62 @@ export function initGlobalDropzone() {
   }
 }
 
+function linkAction(e) {
+  e.preventDefault();
+
+  // A "link-action" can post AJAX request to its "data-url"
+  // Then the browser is redirect to: the "redirect" in response, or "data-redirect" attribute, or current URL by reloading.
+  // If the "link-action" has "data-modal-confirm(-html)" attribute, a confirm modal dialog will be shown before taking action.
+
+  const $this = $(e.target);
+  const redirect = $this.attr('data-redirect');
+
+  const request = () => {
+    $this.prop('disabled', true);
+    $.post($this.attr('data-url'), {
+      _csrf: csrfToken
+    }).done((data) => {
+      if (data && data.redirect) {
+        window.location.href = data.redirect;
+      } else if (redirect) {
+        window.location.href = redirect;
+      } else {
+        window.location.reload();
+      }
+    }).always(() => {
+      $this.prop('disabled', false);
+    });
+  };
+
+  const modalConfirmHtml = htmlEscape($this.attr('data-modal-confirm') || '');
+  if (!modalConfirmHtml) {
+    request();
+    return;
+  }
+
+  const okButtonColor = $this.hasClass('red') || $this.hasClass('yellow') || $this.hasClass('orange') || $this.hasClass('negative') ? 'orange' : 'green';
+
+  const $modal = $(`
+<div class="ui g-modal-confirm modal">
+  <div class="content">${modalConfirmHtml}</div>
+  <div class="actions">
+    <button class="ui basic cancel button">${svg('octicon-x')} ${i18n.modal_cancel}</button>
+    <button class="ui ${okButtonColor} ok button">${svg('octicon-check')} ${i18n.modal_confirm}</button>
+  </div>
+</div>
+`);
+
+  $modal.appendTo(document.body);
+  $modal.modal({
+    onApprove() {
+      request();
+    },
+    onHidden() {
+      $modal.remove();
+    },
+  }).modal('show');
+}
+
 export function initGlobalLinkActions() {
   function showDeletePopup(e) {
     e.preventDefault();
@@ -217,75 +273,9 @@ export function initGlobalLinkActions() {
     }).modal('show');
   }
 
-  function showAddAllPopup(e) {
-    e.preventDefault();
-    const $this = $(this);
-    let filter = '';
-    if ($this.attr('data-modal-id')) {
-      filter += `#${$this.attr('data-modal-id')}`;
-    }
-
-    const dialog = $(`.addall.modal${filter}`);
-    dialog.find('.name').text($this.data('name'));
-
-    dialog.modal({
-      closable: false,
-      onApprove() {
-        if ($this.data('type') === 'form') {
-          $($this.data('form')).trigger('submit');
-          return;
-        }
-
-        $.post($this.data('url'), {
-          _csrf: csrfToken,
-          id: $this.data('id')
-        }).done((data) => {
-          window.location.href = data.redirect;
-        });
-      }
-    }).modal('show');
-  }
-
-  function linkAction(e) {
-    e.preventDefault();
-    const $this = $(this);
-    const redirect = $this.data('redirect');
-    $this.prop('disabled', true);
-    $.post($this.data('url'), {
-      _csrf: csrfToken
-    }).done((data) => {
-      if (data.redirect) {
-        window.location.href = data.redirect;
-      } else if (redirect) {
-        window.location.href = redirect;
-      } else {
-        window.location.reload();
-      }
-    }).always(() => {
-      $this.prop('disabled', false);
-    });
-  }
-
   // Helpers.
   $('.delete-button').on('click', showDeletePopup);
   $('.link-action').on('click', linkAction);
-
-  // FIXME: this function is only used once, and not common, not well designed. should be refactored later
-  $('.add-all-button').on('click', showAddAllPopup);
-
-  // FIXME: this is only used once, and should be replace with `link-action` instead
-  $('.undo-button').on('click', function () {
-    const $this = $(this);
-    $this.prop('disabled', true);
-    $.post($this.data('url'), {
-      _csrf: csrfToken,
-      id: $this.data('id')
-    }).done((data) => {
-      window.location.href = data.redirect;
-    }).always(() => {
-      $this.prop('disabled', false);
-    });
-  });
 }
 
 export function initGlobalButtons() {
@@ -345,16 +335,6 @@ export function initGlobalButtons() {
     if (colorPickers.length > 0) {
       initCompColorPicker();
     }
-  });
-
-  $('.delete-post.button').on('click', function (e) {
-    e.preventDefault();
-    const $this = $(this);
-    $.post($this.attr('data-request-url'), {
-      _csrf: csrfToken
-    }).done(() => {
-      window.location.href = $this.attr('data-done-url');
-    });
   });
 }
 
