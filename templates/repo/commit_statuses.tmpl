@@ -8,7 +8,7 @@
 			{{template "repo/commit_status" .Status}}
 		</span>
 	{{end}}
-	<div class="tippy-target ui relaxed list divided gt-px-4 gt-py-3">
+	<div class="tippy-target ui relaxed list divided">
 		{{range .Statuses}}
 			<div class="ui item singular-status gt-df">
 				{{template "repo/commit_status" .}}
