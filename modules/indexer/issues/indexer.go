@@ -54,10 +54,7 @@ func InitIssueIndexer(syncReindex bool) {
 				if indexerData.IsDelete {
 					if err := indexer.Delete(ctx, indexerData.IDs...); err != nil {
 						log.Error("Issue indexer handler: failed to from index: %v Error: %v", indexerData.IDs, err)
-						if err := indexer.Ping(ctx); err != nil {
-							log.Error("Issue indexer handler: indexer is unavailable when deleting: %v", err)
-							unhandled = append(unhandled, indexerData)
-						}
+						unhandled = append(unhandled, indexerData)
 					}
 					continue
 				}
@@ -65,10 +62,7 @@ func InitIssueIndexer(syncReindex bool) {
 			}
 			if err := indexer.Index(ctx, toIndex); err != nil {
 				log.Error("Error whilst indexing: %v Error: %v", toIndex, err)
-				if err := indexer.Ping(ctx); err != nil {
-					log.Error("Issue indexer handler: indexer is unavailable when indexing: %v", err)
-					unhandled = append(unhandled, toIndex...)
-				}
+				unhandled = append(unhandled, toIndex...)
 			}
 			return unhandled
 		}
