@@ -23,7 +23,7 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 20
-      - run: make deps-frontend deps-backend frontend
+      - run: make deps-frontend deps-backend
       # xgo build
       - run: |
           make release
