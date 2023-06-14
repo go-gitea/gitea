@@ -7,13 +7,13 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/util"
@@ -40,7 +40,7 @@ func getConvertLicenseName() (map[string]string, error) {
 		return nil, err
 	}
 	var convertLicenseName map[string]string
-	err = json.Unmarshal([]byte(data), &convertLicenseName)
+	err = json.Unmarshal(data, &convertLicenseName)
 	if err != nil {
 		return nil, err
 	}

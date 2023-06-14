@@ -202,7 +202,7 @@ func initClassifier() error {
 		return err
 	}
 	var convertLicenseName map[string]string
-	err = json.Unmarshal([]byte(data), &convertLicenseName)
+	err = json.Unmarshal(data, &convertLicenseName)
 	if err != nil {
 		return err
 	}
