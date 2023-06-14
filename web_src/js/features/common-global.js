@@ -7,6 +7,7 @@ import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
 import {svg} from '../svg.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
+import {createTippy} from '../modules/tippy.js';
 
 const {appUrl, csrfToken, i18n} = window.config;
 
@@ -58,6 +59,81 @@ export function initGlobalButtonClickOnEnter() {
       e.preventDefault();
     }
   });
+}
+
+async function formFetchAction(e) {
+  if (!e.target.classList.contains('form-fetch-action')) return;
+
+  e.preventDefault();
+  const formEl = e.target;
+  if (formEl.classList.contains('is-loading')) return;
+
+  formEl.classList.add('is-loading');
+  if (formEl.clientHeight < 50) {
+    formEl.classList.add('small-loading-icon');
+  }
+
+  const formMethod = formEl.getAttribute('method') || 'get';
+  const formActionUrl = formEl.getAttribute('action');
+  const formData = new FormData(formEl);
+  const [submitterName, submitterValue] = [e.submitter?.getAttribute('name'), e.submitter?.getAttribute('value')];
+  if (submitterName) {
+    formData.append(submitterName, submitterValue || '');
+  }
+
+  let reqUrl = formActionUrl;
+  const reqOpt = {method: formMethod.toUpperCase(), headers: {'X-Csrf-Token': csrfToken}};
+  if (formMethod.toLowerCase() === 'get') {
+    const params = new URLSearchParams();
+    for (const [key, value] of formData) {
+      params.append(key, value.toString());
+    }
+    const pos = reqUrl.indexOf('?');
+    if (pos !== -1) {
+      reqUrl = reqUrl.slice(0, pos);
+    }
+    reqUrl += `?${params.toString()}`;
+  } else {
+    reqOpt.body = formData;
+  }
+
+  let errorTippy;
+  const onError = (msg) => {
+    formEl.classList.remove('is-loading', 'small-loading-icon');
+    if (errorTippy) errorTippy.destroy();
+    errorTippy = createTippy(formEl, {
+      content: msg,
+      interactive: true,
+      showOnCreate: true,
+      hideOnClick: true,
+      role: 'alert',
+      theme: 'form-fetch-error',
+      trigger: 'manual',
+      arrow: false,
+    });
+  };
+
+  const doRequest = async () => {
+    try {
+      const resp = await fetch(reqUrl, reqOpt);
+      if (resp.status === 200) {
+        const {redirect} = await resp.json();
+        formEl.classList.remove('dirty'); // remove the areYouSure check before reloading
+        if (redirect) {
+          window.location.href = redirect;
+        } else {
+          window.location.reload();
+        }
+      } else {
+        onError(`server error: ${resp.status}`);
+      }
+    } catch (e) {
+      onError(e.error);
+    }
+  };
+
+  // TODO: add "confirm" support like "link-action" in the future
+  await doRequest();
 }
 
 export function initGlobalCommon() {
@@ -114,6 +190,8 @@ export function initGlobalCommon() {
     if (btn.classList.contains('loading')) return e.preventDefault();
     btn.classList.add('loading');
   });
+
+  document.addEventListener('submit', formFetchAction);
 }
 
 export function initGlobalDropzone() {
@@ -182,7 +260,7 @@ function linkAction(e) {
   const $this = $(e.target);
   const redirect = $this.attr('data-redirect');
 
-  const request = () => {
+  const doRequest = () => {
     $this.prop('disabled', true);
     $.post($this.attr('data-url'), {
       _csrf: csrfToken
@@ -201,7 +279,7 @@ function linkAction(e) {
 
   const modalConfirmHtml = htmlEscape($this.attr('data-modal-confirm') || '');
   if (!modalConfirmHtml) {
-    request();
+    doRequest();
     return;
   }
 
@@ -220,7 +298,7 @@ function linkAction(e) {
   $modal.appendTo(document.body);
   $modal.modal({
     onApprove() {
-      request();
+      doRequest();
     },
     onHidden() {
       $modal.remove();
