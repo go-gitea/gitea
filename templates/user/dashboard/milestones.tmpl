@@ -12,7 +12,7 @@
 					<div class="ui divider"></div>
 					{{range .Repos}}
 						{{with $Repo := .}}
-							<a class="{{range $.RepoIDs}}{{if eq . $Repo.ID}}ui basic primary button{{end}}{{end}} repo name item" href="{{$.Link}}?repos=[
+							<a class="{{range $.RepoIDs}}{{if eq . $Repo.ID}}active{{end}}{{end}} repo name item" href="{{$.Link}}?repos=[
 								{{- with $include := true -}}
 										{{- range $.RepoIDs -}}
 											{{- if eq . $Repo.ID -}}

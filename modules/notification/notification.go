@@ -230,10 +230,10 @@ func NotifyIssueChangeAssignee(ctx context.Context, doer *user_model.User, issue
 	}
 }
 
-// NotifyPullReviewRequest notifies Request Review change
-func NotifyPullReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
+// NotifyPullRequestReviewRequest notifies Request Review change
+func NotifyPullRequestReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
 	for _, notifier := range notifiers {
-		notifier.NotifyPullReviewRequest(ctx, doer, issue, reviewer, isRequest, comment)
+		notifier.NotifyPullRequestReviewRequest(ctx, doer, issue, reviewer, isRequest, comment)
 	}
 }
 

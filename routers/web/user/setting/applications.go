@@ -89,6 +89,7 @@ func DeleteApplication(ctx *context.Context) {
 }
 
 func loadApplicationsData(ctx *context.Context) {
+	ctx.Data["AccessTokenScopePublicOnly"] = auth_model.AccessTokenScopePublicOnly
 	tokens, err := auth_model.ListAccessTokens(auth_model.ListAccessTokensOptions{UserID: ctx.Doer.ID})
 	if err != nil {
 		ctx.ServerError("ListAccessTokens", err)
@@ -96,6 +97,7 @@ func loadApplicationsData(ctx *context.Context) {
 	}
 	ctx.Data["Tokens"] = tokens
 	ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
+	ctx.Data["IsAdmin"] = ctx.Doer.IsAdmin
 	if setting.OAuth2.Enable {
 		ctx.Data["Applications"], err = auth_model.GetOAuth2ApplicationsByUserID(ctx, ctx.Doer.ID)
 		if err != nil {

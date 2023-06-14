@@ -719,9 +719,9 @@ func (m *webhookNotifier) NotifyPullRequestReview(ctx context.Context, pr *issue
 	}
 }
 
-func (m *webhookNotifier) NotifyPullReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
+func (m *webhookNotifier) NotifyPullRequestReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
 	if !issue.IsPull {
-		log.Warn("NotifyPullReviewRequest: issue is not a pull request: %v", issue.ID)
+		log.Warn("NotifyPullRequestReviewRequest: issue is not a pull request: %v", issue.ID)
 		return
 	}
 	mode, _ := access_model.AccessLevelUnit(ctx, doer, issue.Repo, unit.TypePullRequests)
@@ -755,7 +755,7 @@ func (m *webhookNotifier) NotifyCreateRef(ctx context.Context, pusher *user_mode
 	if err := PrepareWebhooks(ctx, EventSource{Repository: repo}, webhook_module.HookEventCreate, &api.CreatePayload{
 		Ref:     refName, // FIXME: should it be a full ref name?
 		Sha:     refID,
-		RefType: refFullName.RefGroup(),
+		RefType: refFullName.RefType(),
 		Repo:    apiRepo,
 		Sender:  apiPusher,
 	}); err != nil {
@@ -791,12 +791,12 @@ func (m *webhookNotifier) NotifyDeleteRef(ctx context.Context, pusher *user_mode
 
 	if err := PrepareWebhooks(ctx, EventSource{Repository: repo}, webhook_module.HookEventDelete, &api.DeletePayload{
 		Ref:        refName, // FIXME: should it be a full ref name?
-		RefType:    refFullName.RefGroup(),
+		RefType:    refFullName.RefType(),
 		PusherType: api.PusherTypeUser,
 		Repo:       apiRepo,
 		Sender:     apiPusher,
 	}); err != nil {
-		log.Error("PrepareWebhooks.(delete %s): %v", refFullName.RefGroup(), err)
+		log.Error("PrepareWebhooks.(delete %s): %v", refFullName.RefType(), err)
 	}
 }
 
