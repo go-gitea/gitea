@@ -1,6 +1,7 @@
 {{/* This page should only depend the minimal template functions/variables, to avoid triggering new panics.
 * base template functions: AppName, AssetUrlPrefix, AssetVersion, AppSubUrl, DefaultTheme, Str2html
 * locale
+* Flash
 * ErrorMsg
 * SignedUser (optional)
 */}}
@@ -28,6 +29,10 @@
 			</div>
 		</nav>
 		<div role="main" class="page-content status-page-500">
+			<div class="ui container" >
+				<style> .ui.message.flash-message { text-align: left; } </style>
+				{{template "base/alert" .}}
+			</div>
 			<p class="gt-mt-5 center"><img src="{{AssetUrlPrefix}}/img/500.png" alt="Internal Server Error"></p>
 			<div class="ui divider"></div>
 			<div class="ui container gt-my-5">
