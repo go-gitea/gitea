@@ -414,7 +414,7 @@ LFS 的存储配置。 如果 `STORAGE_TYPE` 为空，则此配置将从 `[stora
 
 ## Storage (`storage`)
 
-Attachments, lfs, avatars and etc 的默认存储配置。
+Attachments, lfs, avatars, repo-avatars, repo-archive, packages, actions_log, actions_artifact 的默认存储配置。
 
 - `STORAGE_TYPE`: **local**: 附件存储类型，`local` 将存储到本地文件夹， `minio` 将存储到 s3 兼容的对象存储服务中。
 - `SERVE_DIRECT`: **false**: 允许直接重定向到存储系统。当前，仅 Minio/S3 是支持的。
@@ -425,9 +425,59 @@ Attachments, lfs, avatars and etc 的默认存储配置。
 - `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
 - `MINIO_USE_SSL`: **false**: Minio enabled ssl，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
 
-你也可以自定义一个存储的名字如下：
+以下为推荐的 recommanded storage configuration for minio like below:
 
 ```ini
+[storage]
+STORAGE_TYPE = minio
+; uncomment when STORAGE_TYPE = local
+; PATH = storage root path
+; Minio endpoint to connect only available when STORAGE_TYPE is `minio`
+MINIO_ENDPOINT = localhost:9000
+; Minio accessKeyID to connect only available when STORAGE_TYPE is `minio`
+MINIO_ACCESS_KEY_ID =
+; Minio secretAccessKey to connect only available when STORAGE_TYPE is `minio`
+MINIO_SECRET_ACCESS_KEY =
+; Minio bucket to store the attachments only available when STORAGE_TYPE is `minio`
+MINIO_BUCKET = gitea
+; Minio location to create bucket only available when STORAGE_TYPE is `minio`
+MINIO_LOCATION = us-east-1
+; Minio enabled ssl only available when STORAGE_TYPE is `minio`
+MINIO_USE_SSL = false
+; Minio skip SSL verification available when STORAGE_TYPE is `minio`
+MINIO_INSECURE_SKIP_VERIFY = false
+SERVE_DIRECT = true
+```
+
+默认的，每一个存储都会有各自默认的 BasePath 在同一个minio中，默认值如下：
+
+| storage           | default base path  |
+| ----------------- | ------------------ |
+| attachments       | attachments/       |
+| lfs               | lfs/               |
+| avatars           | avatars/           |
+| repo-avatars      | repo-avatars/      |
+| repo-archive      | repo-archive/      |
+| packages          | packages/          |
+| actions_log       | actions_log/       |
+| actions_artifacts | actions_artifacts/ |
+
+同时 bucket, basepath or `SERVE_DIRECT` 是可以被覆写的，像如下所示：
+
+```ini
+[storage.actions_log]
+MINIO_BUCKET = gitea_actions_log
+SERVE_DIRECT = true
+MINIO_BASE_PATH = my_actions_log/ ; default is actions_log/ if blank
+```
+
+当然你也可以完全自定义，像如下
+
+```ini
+[lfs]
+STORAGE_TYPE = my_minio
+MINIO_BASE_PATH = my_lfs_basepath
+
 [storage.my_minio]
 STORAGE_TYPE = minio
 ; Minio endpoint to connect only available when STORAGE_TYPE is `minio`
@@ -444,9 +494,8 @@ MINIO_LOCATION = us-east-1
 MINIO_USE_SSL = false
 ; Minio skip SSL verification available when STORAGE_TYPE is `minio`
 MINIO_INSECURE_SKIP_VERIFY = false
+SERVE_DIRECT = true
 ```
-
-然后你在 `[attachment]`, `[lfs]` 等中可以把这个名字用作 `STORAGE_TYPE` 的值。
 
 ## Repository Archive Storage (`storage.repo-archive`)
 
