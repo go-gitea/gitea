@@ -5,6 +5,9 @@ package oauth2
 
 import (
 	"errors"
+	"fmt"
+	"html"
+	"html/template"
 	"net/url"
 	"sort"
 
@@ -19,7 +22,7 @@ import (
 type Provider interface {
 	Name() string
 	DisplayName() string
-	IconURL() string
+	IconHTML() template.HTML
 	CustomURLSettings() *CustomURLSettings
 }
 
@@ -35,7 +38,7 @@ type GothProvider interface {
 }
 
 // AuthSourceProvider provides a provider for an AuthSource. Multiple auth sources could use the same registered GothProvider
-// So each auth source should have its own DisplayName and IconURL for display.
+// So each auth source should have its own DisplayName and IconHTML for display.
 // The Name is the GothProvider's name, to help to find the GothProvider to sign in.
 // The DisplayName is the auth source config's name, site admin set it on the admin page, the IconURL can also be set there.
 type AuthSourceProvider struct {
@@ -51,11 +54,14 @@ func (p *AuthSourceProvider) DisplayName() string {
 	return p.sourceName
 }
 
-func (p *AuthSourceProvider) IconURL() string {
+func (p *AuthSourceProvider) IconHTML() template.HTML {
 	if p.iconURL != "" {
-		return p.iconURL
+		img := fmt.Sprintf(`<img class="gt-mr-3" width="20" height="20" src="%s" alt="%s">`,
+			html.EscapeString(p.iconURL), html.EscapeString(p.DisplayName()),
+		)
+		return template.HTML(img)
 	}
-	return p.GothProvider.IconURL()
+	return p.GothProvider.IconHTML()
 }
 
 // Providers contains the map of registered OAuth2 providers in Gitea (based on goth)
