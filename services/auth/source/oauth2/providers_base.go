@@ -3,7 +3,12 @@
 
 package oauth2
 
-import "code.gitea.io/gitea/modules/setting"
+import (
+	"html/template"
+
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/svg"
+)
 
 // BaseProvider represents a common base for Provider
 type BaseProvider struct {
@@ -21,14 +26,21 @@ func (b *BaseProvider) DisplayName() string {
 	return b.displayName
 }
 
-// IconURL returns an icon path for this provider
-// Use svg for default icons, providers_openid has its own IconURL function
-func (b *BaseProvider) IconURL() string {
-	name := b.name
-	if b.name == "gplus" {
-		name = "google"
+// IconHTML returns icon HTML for this provider
+func (b *BaseProvider) IconHTML() template.HTML {
+	svgName := "gitea-" + b.name
+	switch b.name {
+	case "gplus":
+		svgName = "gitea-google"
+	case "github":
+		svgName = "octicon-mark-github"
 	}
-	return setting.AppSubURL + "/assets/img/auth/" + name + ".svg"
+	svgHTML := svg.RenderHTML(svgName, 20, "gt-mr-3")
+	if svgHTML == "" {
+		log.Error("No SVG icon for oauth2 provider %q", b.name)
+		svgHTML = svg.RenderHTML("gitea-openid", 20, "gt-mr-3")
+	}
+	return svgHTML
 }
 
 // CustomURLSettings returns the custom url settings for this provider

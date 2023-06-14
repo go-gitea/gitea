@@ -132,6 +132,10 @@ func (b *Base) JSON(status int, content interface{}) {
 	}
 }
 
+func (b *Base) JSONRedirect(redirect string) {
+	b.JSON(http.StatusOK, map[string]any{"redirect": redirect})
+}
+
 // RemoteAddr returns the client machine ip address
 func (b *Base) RemoteAddr() string {
 	return b.Req.RemoteAddr

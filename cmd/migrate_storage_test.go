@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	packages_module "code.gitea.io/gitea/modules/packages"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	packages_service "code.gitea.io/gitea/services/packages"
 
@@ -57,7 +58,7 @@ func TestMigratePackages(t *testing.T) {
 
 	dstStorage, err := storage.NewLocalStorage(
 		ctx,
-		storage.LocalStorageConfig{
+		&setting.Storage{
 			Path: p,
 		})
 	assert.NoError(t, err)
