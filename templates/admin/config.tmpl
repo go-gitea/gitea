@@ -102,7 +102,7 @@
 				<dd>{{if .LFS.StartServer}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				{{if .LFS.StartServer}}
 					<dt>{{.locale.Tr "admin.config.lfs_content_path"}}</dt>
-					<dd>{{.LFS.Path}}</dd>
+					<dd>{{JsonUtils.EncodeToString .LFS.Storage.ToShadowCopy}}</dd>
 					<dt>{{.locale.Tr "admin.config.lfs_http_auth_expiry"}}</dt>
 					<dd>{{.LFS.HTTPAuthExpiry}}</dd>
 				{{end}}
