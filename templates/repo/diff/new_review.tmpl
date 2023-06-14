@@ -6,7 +6,7 @@
 	</button>
 	<div class="review-box-panel tippy-target">
 		<div class="ui segment">
-			<form class="ui form" action="{{.Link}}/reviews/submit" method="post">
+			<form class="ui form form-fetch-action" action="{{.Link}}/reviews/submit" method="post">
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="commit_id" value="{{.AfterCommitID}}">
 				<div class="field gt-df gt-ac">
