@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	secret_module "code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/actions"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
@@ -53,7 +54,7 @@ func pickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 
 func getSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) map[string]string {
 	secrets := map[string]string{}
-	if task.Job.Run.IsForkPullRequest {
+	if task.Job.Run.IsForkPullRequest && task.Job.Run.Event != webhook_module.HookEventPullRequestTarget {
 		// ignore secrets for fork pull request
 		return secrets
 	}
