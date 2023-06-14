@@ -285,6 +285,12 @@
 					{{else}}
 						<button class="ui red active basic button issue-action gt-ml-auto" data-action="close" data-url="{{$.RepoLink}}/issues/status">{{.locale.Tr "repo.issues.action_close"}}</button>
 					{{end}}
+					{{if $.IsRepoAdmin}}
+						<button class="ui red active basic button issue-action gt-ml-auto"
+							data-action="delete" data-url="{{$.RepoLink}}/issues/delete"
+							data-action-delete-confirm="{{.locale.Tr "repo.issues.action_delete_confirm"}}"
+						>{{.locale.Tr "repo.issues.delete"}}</button>
+					{{end}}
 					<!-- Labels -->
 					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item">
 						<span class="text">

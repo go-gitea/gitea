@@ -136,6 +136,10 @@ func (b *Base) JSONRedirect(redirect string) {
 	b.JSON(http.StatusOK, map[string]any{"redirect": redirect})
 }
 
+func (b *Base) JSONOK() {
+	b.JSON(http.StatusOK, map[string]any{"ok": true}) // this is only a dummy response, frontend seldom uses it
+}
+
 // RemoteAddr returns the client machine ip address
 func (b *Base) RemoteAddr() string {
 	return b.Req.RemoteAddr
