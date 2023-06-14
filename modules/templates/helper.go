@@ -66,13 +66,14 @@ func NewFuncMap() template.FuncMap {
 
 		// -----------------------------------------------------------------
 		// time / number / format
-		"FileSize":      base.FileSize,
-		"CountFmt":      base.FormatNumberSI,
-		"TimeSince":     timeutil.TimeSince,
-		"TimeSinceUnix": timeutil.TimeSinceUnix,
-		"DateTime":      timeutil.DateTime,
-		"Sec2Time":      util.SecToTime,
-		"SecToTimeExact": util.SecToTimeExact,
+		"FileSize":          base.FileSize,
+		"CountFmt":          base.FormatNumberSI,
+		"TimeSince":         timeutil.TimeSince,
+		"TimeSinceUnix":     timeutil.TimeSinceUnix,
+		"DateTime":          timeutil.DateTime,
+		"Sec2Time":          util.SecToTime,
+		"SecToTimeExact":    util.SecToTimeExact,
+		"TimeEstimateToStr": timeutil.TimeEstimateToStr,
 		"LoadTimes": func(startTime time.Time) string {
 			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
 		},
