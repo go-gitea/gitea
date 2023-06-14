@@ -29,6 +29,12 @@
   color: var(--color-text);
 }
 
+.tippy-box[data-theme="form-fetch-error"] {
+  border-color: var(--color-error-border);
+  background-color: var(--color-error-bg);
+  color: var(--color-error-text);
+}
+
 .tippy-content {
   position: relative;
   padding: 1rem;
