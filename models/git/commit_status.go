@@ -84,9 +84,9 @@ func mysqlGetCommitStatusIndex(ctx context.Context, repoID int64, sha string) (i
 }
 
 func mssqlGetCommitStatusIndex(ctx context.Context, repoID int64, sha string) (int64, error) {
-	if _, err := db.GetEngine(ctx).Exec(fmt.Sprintf(`
+	if _, err := db.GetEngine(ctx).Exec(`
 MERGE INTO commit_status_index WITH (HOLDLOCK) AS target
-USING (SELECT %d AS repo_id, '%s' AS sha) AS source
+USING (SELECT ? AS repo_id, ? AS sha) AS source
 (repo_id, sha)
 ON target.repo_id = source.repo_id AND target.sha = source.sha
 WHEN MATCHED
@@ -94,8 +94,8 @@ WHEN MATCHED
 			SET max_index = max_index + 1
 WHEN NOT MATCHED
 	THEN INSERT (repo_id, sha, max_index)
-			VALUES (%d, '%s', 1);
-`, repoID, sha, repoID, sha)); err != nil {
+			VALUES (?, ?, 1);
+`, repoID, sha, repoID, sha); err != nil {
 		return 0, err
 	}
 
