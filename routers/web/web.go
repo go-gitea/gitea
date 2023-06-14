@@ -1412,6 +1412,7 @@ func registerRoutes(m *web.Route) {
 
 	if !setting.IsProd {
 		m.Any("/devtest", devtest.List)
+		m.Any("/devtest/fetch-action-test", devtest.FetchActionTest)
 		m.Any("/devtest/{sub}", devtest.Tmpl)
 	}
 

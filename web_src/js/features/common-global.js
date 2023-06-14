@@ -7,8 +7,9 @@ import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
 import {svg} from '../svg.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
+import {createTippy} from '../modules/tippy.js';
 
-const {appUrl, csrfToken} = window.config;
+const {appUrl, csrfToken, i18n} = window.config;
 
 export function initGlobalFormDirtyLeaveConfirm() {
   // Warn users that try to leave a page after entering data into a form.
@@ -58,6 +59,81 @@ export function initGlobalButtonClickOnEnter() {
       e.preventDefault();
     }
   });
+}
+
+async function formFetchAction(e) {
+  if (!e.target.classList.contains('form-fetch-action')) return;
+
+  e.preventDefault();
+  const formEl = e.target;
+  if (formEl.classList.contains('is-loading')) return;
+
+  formEl.classList.add('is-loading');
+  if (formEl.clientHeight < 50) {
+    formEl.classList.add('small-loading-icon');
+  }
+
+  const formMethod = formEl.getAttribute('method') || 'get';
+  const formActionUrl = formEl.getAttribute('action');
+  const formData = new FormData(formEl);
+  const [submitterName, submitterValue] = [e.submitter?.getAttribute('name'), e.submitter?.getAttribute('value')];
+  if (submitterName) {
+    formData.append(submitterName, submitterValue || '');
+  }
+
+  let reqUrl = formActionUrl;
+  const reqOpt = {method: formMethod.toUpperCase(), headers: {'X-Csrf-Token': csrfToken}};
+  if (formMethod.toLowerCase() === 'get') {
+    const params = new URLSearchParams();
+    for (const [key, value] of formData) {
+      params.append(key, value.toString());
+    }
+    const pos = reqUrl.indexOf('?');
+    if (pos !== -1) {
+      reqUrl = reqUrl.slice(0, pos);
+    }
+    reqUrl += `?${params.toString()}`;
+  } else {
+    reqOpt.body = formData;
+  }
+
+  let errorTippy;
+  const onError = (msg) => {
+    formEl.classList.remove('is-loading', 'small-loading-icon');
+    if (errorTippy) errorTippy.destroy();
+    errorTippy = createTippy(formEl, {
+      content: msg,
+      interactive: true,
+      showOnCreate: true,
+      hideOnClick: true,
+      role: 'alert',
+      theme: 'form-fetch-error',
+      trigger: 'manual',
+      arrow: false,
+    });
+  };
+
+  const doRequest = async () => {
+    try {
+      const resp = await fetch(reqUrl, reqOpt);
+      if (resp.status === 200) {
+        const {redirect} = await resp.json();
+        formEl.classList.remove('dirty'); // remove the areYouSure check before reloading
+        if (redirect) {
+          window.location.href = redirect;
+        } else {
+          window.location.reload();
+        }
+      } else {
+        onError(`server error: ${resp.status}`);
+      }
+    } catch (e) {
+      onError(e.error);
+    }
+  };
+
+  // TODO: add "confirm" support like "link-action" in the future
+  await doRequest();
 }
 
 export function initGlobalCommon() {
@@ -114,6 +190,8 @@ export function initGlobalCommon() {
     if (btn.classList.contains('loading')) return e.preventDefault();
     btn.classList.add('loading');
   });
+
+  document.addEventListener('submit', formFetchAction);
 }
 
 export function initGlobalDropzone() {
@@ -172,6 +250,62 @@ export function initGlobalDropzone() {
   }
 }
 
+function linkAction(e) {
+  e.preventDefault();
+
+  // A "link-action" can post AJAX request to its "data-url"
+  // Then the browser is redirect to: the "redirect" in response, or "data-redirect" attribute, or current URL by reloading.
+  // If the "link-action" has "data-modal-confirm(-html)" attribute, a confirm modal dialog will be shown before taking action.
+
+  const $this = $(e.target);
+  const redirect = $this.attr('data-redirect');
+
+  const doRequest = () => {
+    $this.prop('disabled', true);
+    $.post($this.attr('data-url'), {
+      _csrf: csrfToken
+    }).done((data) => {
+      if (data && data.redirect) {
+        window.location.href = data.redirect;
+      } else if (redirect) {
+        window.location.href = redirect;
+      } else {
+        window.location.reload();
+      }
+    }).always(() => {
+      $this.prop('disabled', false);
+    });
+  };
+
+  const modalConfirmHtml = htmlEscape($this.attr('data-modal-confirm') || '');
+  if (!modalConfirmHtml) {
+    doRequest();
+    return;
+  }
+
+  const okButtonColor = $this.hasClass('red') || $this.hasClass('yellow') || $this.hasClass('orange') || $this.hasClass('negative') ? 'orange' : 'green';
+
+  const $modal = $(`
+<div class="ui g-modal-confirm modal">
+  <div class="content">${modalConfirmHtml}</div>
+  <div class="actions">
+    <button class="ui basic cancel button">${svg('octicon-x')} ${i18n.modal_cancel}</button>
+    <button class="ui ${okButtonColor} ok button">${svg('octicon-check')} ${i18n.modal_confirm}</button>
+  </div>
+</div>
+`);
+
+  $modal.appendTo(document.body);
+  $modal.modal({
+    onApprove() {
+      doRequest();
+    },
+    onHidden() {
+      $modal.remove();
+    },
+  }).modal('show');
+}
+
 export function initGlobalLinkActions() {
   function showDeletePopup(e) {
     e.preventDefault();
@@ -217,75 +351,9 @@ export function initGlobalLinkActions() {
     }).modal('show');
   }
 
-  function showAddAllPopup(e) {
-    e.preventDefault();
-    const $this = $(this);
-    let filter = '';
-    if ($this.attr('data-modal-id')) {
-      filter += `#${$this.attr('data-modal-id')}`;
-    }
-
-    const dialog = $(`.addall.modal${filter}`);
-    dialog.find('.name').text($this.data('name'));
-
-    dialog.modal({
-      closable: false,
-      onApprove() {
-        if ($this.data('type') === 'form') {
-          $($this.data('form')).trigger('submit');
-          return;
-        }
-
-        $.post($this.data('url'), {
-          _csrf: csrfToken,
-          id: $this.data('id')
-        }).done((data) => {
-          window.location.href = data.redirect;
-        });
-      }
-    }).modal('show');
-  }
-
-  function linkAction(e) {
-    e.preventDefault();
-    const $this = $(this);
-    const redirect = $this.data('redirect');
-    $this.prop('disabled', true);
-    $.post($this.data('url'), {
-      _csrf: csrfToken
-    }).done((data) => {
-      if (data.redirect) {
-        window.location.href = data.redirect;
-      } else if (redirect) {
-        window.location.href = redirect;
-      } else {
-        window.location.reload();
-      }
-    }).always(() => {
-      $this.prop('disabled', false);
-    });
-  }
-
   // Helpers.
   $('.delete-button').on('click', showDeletePopup);
   $('.link-action').on('click', linkAction);
-
-  // FIXME: this function is only used once, and not common, not well designed. should be refactored later
-  $('.add-all-button').on('click', showAddAllPopup);
-
-  // FIXME: this is only used once, and should be replace with `link-action` instead
-  $('.undo-button').on('click', function () {
-    const $this = $(this);
-    $this.prop('disabled', true);
-    $.post($this.data('url'), {
-      _csrf: csrfToken,
-      id: $this.data('id')
-    }).done((data) => {
-      window.location.href = data.redirect;
-    }).always(() => {
-      $this.prop('disabled', false);
-    });
-  });
 }
 
 export function initGlobalButtons() {
@@ -345,16 +413,6 @@ export function initGlobalButtons() {
     if (colorPickers.length > 0) {
       initCompColorPicker();
     }
-  });
-
-  $('.delete-post.button').on('click', function (e) {
-    e.preventDefault();
-    const $this = $(this);
-    $.post($this.attr('data-request-url'), {
-      _csrf: csrfToken
-    }).done(() => {
-      window.location.href = $this.attr('data-done-url');
-    });
   });
 }
 
