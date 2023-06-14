@@ -452,7 +452,7 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 
 		if download {
 			var link *lfs_module.Link
-			if setting.LFS.ServeDirect {
+			if setting.LFS.Storage.MinioConfig.ServeDirect {
 				// If we have a signed url (S3, object storage), redirect to this directly.
 				u, err := storage.LFS.URL(pointer.RelativePath(), pointer.Oid)
 				if u != nil && err == nil {
