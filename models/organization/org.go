@@ -342,11 +342,15 @@ func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
 	// insert units for team
 	units := make([]TeamUnit, 0, len(unit.AllRepoUnitTypes))
 	for _, tp := range unit.AllRepoUnitTypes {
+		up := perm.AccessModeOwner
+		if tp == unit.TypeExternalTracker || tp == unit.TypeExternalWiki {
+			up = perm.AccessModeRead
+		}
 		units = append(units, TeamUnit{
 			OrgID:      org.ID,
 			TeamID:     t.ID,
 			Type:       tp,
-			AccessMode: perm.AccessModeOwner,
+			AccessMode: up,
 		})
 	}
 
@@ -706,8 +710,8 @@ func (org *Organization) GetUserTeams(userID int64) ([]*Team, error) {
 type AccessibleReposEnvironment interface {
 	CountRepos() (int64, error)
 	RepoIDs(page, pageSize int) ([]int64, error)
-	Repos(page, pageSize int) ([]*repo_model.Repository, error)
-	MirrorRepos() ([]*repo_model.Repository, error)
+	Repos(page, pageSize int) (repo_model.RepositoryList, error)
+	MirrorRepos() (repo_model.RepositoryList, error)
 	AddKeyword(keyword string)
 	SetSort(db.SearchOrderBy)
 }
@@ -809,7 +813,7 @@ func (env *accessibleReposEnv) RepoIDs(page, pageSize int) ([]int64, error) {
 		Find(&repoIDs)
 }
 
-func (env *accessibleReposEnv) Repos(page, pageSize int) ([]*repo_model.Repository, error) {
+func (env *accessibleReposEnv) Repos(page, pageSize int) (repo_model.RepositoryList, error) {
 	repoIDs, err := env.RepoIDs(page, pageSize)
 	if err != nil {
 		return nil, fmt.Errorf("GetUserRepositoryIDs: %w", err)
@@ -838,7 +842,7 @@ func (env *accessibleReposEnv) MirrorRepoIDs() ([]int64, error) {
 		Find(&repoIDs)
 }
 
-func (env *accessibleReposEnv) MirrorRepos() ([]*repo_model.Repository, error) {
+func (env *accessibleReposEnv) MirrorRepos() (repo_model.RepositoryList, error) {
 	repoIDs, err := env.MirrorRepoIDs()
 	if err != nil {
 		return nil, fmt.Errorf("MirrorRepoIDs: %w", err)

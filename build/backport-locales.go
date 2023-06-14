@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gopkg.in/ini.v1"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 func main() {
@@ -22,14 +22,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	ini.PrettyFormat = false
 	mustNoErr := func(err error) {
 		if err != nil {
 			panic(err)
 		}
 	}
-	collectInis := func(ref string) map[string]*ini.File {
-		inis := map[string]*ini.File{}
+	collectInis := func(ref string) map[string]setting.ConfigProvider {
+		inis := map[string]setting.ConfigProvider{}
 		err := filepath.WalkDir("options/locale", func(path string, d os.DirEntry, err error) error {
 			if err != nil {
 				return err
@@ -37,10 +36,7 @@ func main() {
 			if d.IsDir() || !strings.HasSuffix(d.Name(), ".ini") {
 				return nil
 			}
-			cfg, err := ini.LoadSources(ini.LoadOptions{
-				IgnoreInlineComment:         true,
-				UnescapeValueCommentSymbols: true,
-			}, path)
+			cfg, err := setting.NewConfigProviderForLocale(path)
 			mustNoErr(err)
 			inis[path] = cfg
 			fmt.Printf("collecting: %s @ %s\n", path, ref)

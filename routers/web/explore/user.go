@@ -24,7 +24,10 @@ const (
 )
 
 // UserSearchDefaultSortType is the default sort type for user search
-const UserSearchDefaultSortType = "alphabetically"
+const (
+	UserSearchDefaultSortType  = "recentupdate"
+	UserSearchDefaultAdminSort = "alphabetically"
+)
 
 var nullByte = []byte{0x00}
 
@@ -56,14 +59,13 @@ func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, 
 	)
 
 	// we can not set orderBy to `models.SearchOrderByXxx`, because there may be a JOIN in the statement, different tables may have the same name columns
+
 	ctx.Data["SortType"] = ctx.FormString("sort")
 	switch ctx.FormString("sort") {
 	case "newest":
 		orderBy = "`user`.id DESC"
 	case "oldest":
 		orderBy = "`user`.id ASC"
-	case "recentupdate":
-		orderBy = "`user`.updated_unix DESC"
 	case "leastupdate":
 		orderBy = "`user`.updated_unix ASC"
 	case "reversealphabetically":
@@ -72,10 +74,14 @@ func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, 
 		orderBy = "`user`.last_login_unix ASC"
 	case "reverselastlogin":
 		orderBy = "`user`.last_login_unix DESC"
-	case UserSearchDefaultSortType: // "alphabetically"
-	default:
+	case "alphabetically":
 		orderBy = "`user`.name ASC"
-		ctx.Data["SortType"] = UserSearchDefaultSortType
+	case "recentupdate":
+		fallthrough
+	default:
+		// in case the sortType is not valid, we set it to recentupdate
+		ctx.Data["SortType"] = "recentupdate"
+		orderBy = "`user`.updated_unix DESC"
 	}
 
 	opts.Keyword = ctx.FormTrim("q")
@@ -126,6 +132,10 @@ func Users(ctx *context.Context) {
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreUsers"] = true
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
+
+	if ctx.FormString("sort") == "" {
+		ctx.SetFormString("sort", UserSearchDefaultSortType)
+	}
 
 	RenderUserSearch(ctx, &user_model.SearchUserOptions{
 		Actor:       ctx.Doer,

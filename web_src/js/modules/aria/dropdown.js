@@ -148,8 +148,8 @@ function attachInit($dropdown) {
   // Since #19861 we have prepared the "combobox" solution, but didn't get enough time to put it into practice and test before.
   const isComboBox = $dropdown.find('input').length > 0;
 
-  dropdown[ariaPatchKey].focusableRole = isComboBox ? 'combobox' : 'button';
-  dropdown[ariaPatchKey].listPopupRole = isComboBox ? 'listbox' : 'menu';
+  dropdown[ariaPatchKey].focusableRole = isComboBox ? 'combobox' : 'menu';
+  dropdown[ariaPatchKey].listPopupRole = isComboBox ? 'listbox' : '';
   dropdown[ariaPatchKey].listItemRole = isComboBox ? 'option' : 'menuitem';
 
   attachDomEvents($dropdown, $focusable, $menu);

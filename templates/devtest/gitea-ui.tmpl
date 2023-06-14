@@ -1,12 +1,133 @@
 {{template "base/head" .}}
-<div class="page-content devtest">
+<div class="page-content devtest ui container">
 	<div>
-		<gitea-origin-url data-url="test/url"></gitea-origin-url>
-		<gitea-origin-url data-url="/test/url"></gitea-origin-url>
+		<h1>Button</h1>
+		<div>
+			Style:
+			<label><input type="checkbox" name="button-style-compact" value="compact">compact</label>
+			<label><input type="radio" name="button-style-size" value="">(normal)</label>
+			<label><input type="radio" name="button-style-size" value="tiny">tiny</label>
+			<label><input type="radio" name="button-style-size" value="mini">mini</label>
+		</div>
+		<div>
+			State:
+			<label><input type="checkbox" name="button-state-disabled" value="disabled">disabled</label>
+		</div>
+		<div id="devtest-button-samples">
+			<style>
+				.button-sample-groups { margin: 0; padding: 0; }
+				.button-sample-groups .sample-group { list-style: none; margin: 0; padding: 0; }
+				.button-sample-groups .sample-group .ui.button { margin-bottom: 5px; }
+			</style>
+			<ul class="button-sample-groups">
+				<li class="sample-group">
+					<h2>General purpose:</h2>
+					<button class="ui button">Unclassed</button>
+					<button class="ui basic button">Basic Unclassed</button>
+					<button class="ui primary button">Primary</button>
+					<button class="ui basic primary button">Basic Primary</button>
+					<button class="ui negative button">Negative</button>
+					<button class="ui basic negative button">Basic Negative</button>
+					<button class="ui positive button">Positive</button>
+					<button class="ui basic positive button">Basic Positive</button>
+				</li>
+				<li class="sample-group">
+					<h2>Recommended colors:</h2>
+					<button class="ui red button">Red</button>
+					<button class="ui basic red button">Basic Red</button>
+					<button class="ui green button">Green</button>
+					<button class="ui basic green button">Basic Green</button>
+					<button class="ui blue button">Blue</button>
+					<button class="ui basic blue button">Basic Blue</button>
+					<button class="ui orange button">Orange</button>
+					<button class="ui basic orange button">Basic Orange</button>
+					<button class="ui yellow button">Yellow</button>
+					<button class="ui basic yellow button">Basic Yellow</button>
+				</li>
+				<li class="sample-group">
+					<h2>Supported but not recommended:</h2>
+					<p>Do not use if there is no strong requirement. Do not use grey/black buttons, they don't work well with dark theme.</p>
+					<button class="ui secondary button">Secondary</button>
+					<button class="ui basic secondary button">Basic Secondary</button>
+					<button class="ui olive button">Olive</button>
+					<button class="ui basic olive button">Basic Olive</button>
+					<button class="ui teal button">Teal</button>
+					<button class="ui basic teal button">Basic Teal</button>
+					<button class="ui violet button">Violet</button>
+					<button class="ui basic violet button">Basic Violet</button>
+					<button class="ui purple button">Purple</button>
+					<button class="ui basic purple button">Basic Purple</button>
+					<button class="ui pink button">Pink</button>
+					<button class="ui basic pink button">Basic Pink</button>
+					<button class="ui brown button">Brown</button>
+					<button class="ui basic brown button">Basic Brown</button>
+				</li>
+				<li class="sample-group">
+					<h2>Inline / Plain:</h2>
+					<div class="gt-my-2">
+						<button class="btn gt-p-3">Plain button</button>
+						<button class="btn interact-fg gt-p-3">Plain button with interact fg</button>
+						<button class="btn interact-bg gt-p-3">Plain button with interact bg</button>
+					</div>
+				</li>
+			</ul>
+			<script type="module">
+				const $buttons = $('#devtest-button-samples').find('button.ui');
+
+				const $buttonStyles = $('input[name*="button-style"]');
+				$buttonStyles.on('click', () => $buttonStyles.map((_ ,el) => $buttons.toggleClass(el.value, el.checked)));
+
+				const $buttonStates = $('input[name*="button-state"]');
+				$buttonStates.on('click', () => $buttonStates.map((_ ,el) => $buttons.prop(el.value, el.checked)));
+			</script>
+		</div>
 	</div>
+
 	<div>
-		<span data-tooltip-content="test tooltip">text with tooltip</span>
+		<h1>Tooltip</h1>
+		<div><span data-tooltip-content="test tooltip">text with tooltip</span></div>
+		<div><span data-tooltip-content="test tooltip" data-tooltip-interactive="true">text with interactive tooltip</span></div>
 	</div>
-	{{template "shared/combomarkdowneditor" .}}
+
+	<div>
+		<h1>GiteaOriginUrl</h1>
+		<div><gitea-origin-url data-url="test/url"></gitea-origin-url></div>
+		<div><gitea-origin-url data-url="/test/url"></gitea-origin-url></div>
+	</div>
+
+	<div>
+		<h1>LocaleNumber</h1>
+		<div>{{.locale.PrettyNumber 1}}</div>
+		<div>{{.locale.PrettyNumber 12}}</div>
+		<div>{{.locale.PrettyNumber 123}}</div>
+		<div>{{.locale.PrettyNumber 1234}}</div>
+		<div>{{.locale.PrettyNumber 12345}}</div>
+		<div>{{.locale.PrettyNumber 123456}}</div>
+		<div>{{.locale.PrettyNumber 1234567}}</div>
+	</div>
+
+	<div>
+		<h1>TimeSince</h1>
+		<div>Now: {{TimeSince .TimeNow $.locale}}</div>
+		<div>5s past: {{TimeSince .TimePast5s $.locale}}</div>
+		<div>5s future: {{TimeSince .TimeFuture5s $.locale}}</div>
+		<div>2m past: {{TimeSince .TimePast2m $.locale}}</div>
+		<div>2m future: {{TimeSince .TimeFuture2m $.locale}}</div>
+		<div>1y past: {{TimeSince .TimePast1y $.locale}}</div>
+		<div>1y future: {{TimeSince .TimeFuture1y $.locale}}</div>
+	</div>
+
+	<div>
+		<h1>ComboMarkdownEditor</h1>
+		<div>ps: no JS code attached, so just a layout</div>
+		{{template "shared/combomarkdowneditor" .}}
+	</div>
+
+	<style>
+		h1, h2 {
+			margin: 0;
+			padding: 10px 0;
+		}
+	</style>
 </div>
 {{template "base/footer" .}}

@@ -5,6 +5,8 @@ slug: "authentication"
 weight: 10
 toc: false
 draft: false
+aliases:
+  - /zh-tw/authentication
 menu:
   sidebar:
     parent: "usage"

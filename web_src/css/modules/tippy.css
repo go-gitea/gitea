@@ -25,12 +25,8 @@
 }
 
 .tippy-box[data-theme="menu"] {
-  background-color: transparent;
-  color: var(--color-tooltip-text);
-}
-
-.tippy-box[data-theme="menu"] .ui.menu {
-  border: none;
+  background-color: var(--color-menu);
+  color: var(--color-text);
 }
 
 .tippy-content {

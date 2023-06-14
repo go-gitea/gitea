@@ -21,7 +21,7 @@ var SessionConfig = struct {
 	ProviderConfig string
 	// Cookie name to save session ID. Default is "MacaronSession".
 	CookieName string
-	// Cookie path to store. Default is "/".
+	// Cookie path to store. Default is "/". HINT: there was a bug, the old value doesn't have trailing slash, and could be empty "".
 	CookiePath string
 	// GC interval time in seconds. Default is 3600.
 	Gclifetime int64
@@ -49,7 +49,7 @@ func loadSessionFrom(rootCfg ConfigProvider) {
 		SessionConfig.ProviderConfig = path.Join(AppWorkPath, SessionConfig.ProviderConfig)
 	}
 	SessionConfig.CookieName = sec.Key("COOKIE_NAME").MustString("i_like_gitea")
-	SessionConfig.CookiePath = AppSubURL
+	SessionConfig.CookiePath = AppSubURL + "/" // there was a bug, old code only set CookePath=AppSubURL, no trailing slash
 	SessionConfig.Secure = sec.Key("COOKIE_SECURE").MustBool(false)
 	SessionConfig.Gclifetime = sec.Key("GC_INTERVAL_TIME").MustInt64(86400)
 	SessionConfig.Maxlifetime = sec.Key("SESSION_LIFE_TIME").MustInt64(86400)

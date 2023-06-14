@@ -71,6 +71,18 @@ func TestFindReviews(t *testing.T) {
 	assert.Equal(t, "Demo Review", reviews[0].Content)
 }
 
+func TestFindLatestReviews(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	reviews, err := issues_model.FindLatestReviews(db.DefaultContext, issues_model.FindReviewOptions{
+		Type:    issues_model.ReviewTypeApprove,
+		IssueID: 11,
+	})
+	assert.NoError(t, err)
+	assert.Len(t, reviews, 2)
+	assert.Equal(t, "duplicate review from user5 (latest)", reviews[0].Content)
+	assert.Equal(t, "singular review from user6 and final review for this pr", reviews[1].Content)
+}
+
 func TestGetCurrentReview(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
@@ -132,11 +144,22 @@ func TestGetReviewersByIssueID(t *testing.T) {
 			UpdatedUnix: 946684814,
 		})
 
-	allReviews, err := issues_model.GetReviewersByIssueID(issue.ID)
-	for _, reviewer := range allReviews {
-		assert.NoError(t, reviewer.LoadReviewer(db.DefaultContext))
-	}
+	allReviews, err := issues_model.GetReviewsByIssueID(issue.ID)
 	assert.NoError(t, err)
+	for _, review := range allReviews {
+		assert.NoError(t, review.LoadReviewer(db.DefaultContext))
+	}
+	if assert.Len(t, allReviews, 3) {
+		for i, review := range allReviews {
+			assert.Equal(t, expectedReviews[i].Reviewer, review.Reviewer)
+			assert.Equal(t, expectedReviews[i].Type, review.Type)
+			assert.Equal(t, expectedReviews[i].UpdatedUnix, review.UpdatedUnix)
+		}
+	}
+
+	allReviews, err = issues_model.GetReviewsByIssueID(issue.ID)
+	assert.NoError(t, err)
+	assert.NoError(t, issues_model.LoadReviewers(db.DefaultContext, allReviews))
 	if assert.Len(t, allReviews, 3) {
 		for i, review := range allReviews {
 			assert.Equal(t, expectedReviews[i].Reviewer, review.Reviewer)

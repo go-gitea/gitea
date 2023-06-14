@@ -177,9 +177,9 @@ export function initRepoIssueCommentDelete() {
           const idx = $conversationHolder.data('idx');
           const lineType = $conversationHolder.closest('tr').data('line-type');
           if (lineType === 'same') {
-            $(`[data-path="${path}"] a.add-code-comment[data-idx="${idx}"]`).removeClass('invisible');
+            $(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).removeClass('invisible');
           } else {
-            $(`[data-path="${path}"] a.add-code-comment[data-side="${side}"][data-idx="${idx}"]`).removeClass('invisible');
+            $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).removeClass('invisible');
           }
           $conversationHolder.remove();
         }
@@ -291,8 +291,8 @@ export function initRepoIssueReferenceRepositorySearch() {
           const filteredResponse = {success: true, results: []};
           $.each(response.data, (_r, repo) => {
             filteredResponse.results.push({
-              name: htmlEscape(repo.full_name),
-              value: repo.full_name
+              name: htmlEscape(repo.repository.full_name),
+              value: repo.repository.full_name
             });
           });
           return filteredResponse;
@@ -313,7 +313,7 @@ export function initRepoIssueWipTitle() {
     e.preventDefault();
 
     const $issueTitle = $('#issue_title');
-    $issueTitle.focus();
+    $issueTitle.trigger('focus');
     const value = $issueTitle.val().trim().toUpperCase();
 
     const wipPrefixes = $('.title_wip_desc').data('wip-prefixes');
@@ -356,13 +356,6 @@ export function initRepoIssueComments() {
       issueId,
       id,
     ).then(() => window.location.reload());
-  });
-
-  $('.dismiss-review-btn').on('click', function (e) {
-    e.preventDefault();
-    const $this = $(this);
-    const $dismissReviewModal = $this.next();
-    $dismissReviewModal.modal('show');
   });
 
   $(document).on('click', (event) => {
@@ -476,7 +469,6 @@ export function initRepoPullRequestReview() {
       content: $panel[0],
       placement: 'bottom',
       trigger: 'click',
-      role: 'menu',
       maxWidth: 'none',
       interactive: true,
       hideOnClick: true,
@@ -488,7 +480,7 @@ export function initRepoPullRequestReview() {
     });
   }
 
-  $(document).on('click', 'a.add-code-comment', async function (e) {
+  $(document).on('click', '.add-code-comment', async function (e) {
     if ($(e.target).hasClass('btn-add-single')) return; // https://github.com/go-gitea/gitea/issues/4745
     e.preventDefault();
 
@@ -572,8 +564,10 @@ export function initRepoIssueTitleEdit() {
     toggleElem($('#pull-desc'));
     toggleElem($('#pull-desc-edit'));
     toggleElem($('.in-edit'));
+    toggleElem($('.new-issue-button'));
     $('#issue-title-wrapper').toggleClass('edit-active');
-    $editInput.focus();
+    $editInput[0].focus();
+    $editInput[0].select();
     return false;
   };
 
@@ -633,4 +627,60 @@ export function initRepoIssueBranchSelect() {
     selectionTextField.data('branch', branchNameNew); // update branch name in setting
   };
   $('#branch-select > .item').on('click', changeBranchSelect);
+}
+
+export function initSingleCommentEditor($commentForm) {
+  // pages:
+  // * normal new issue/pr page, no status-button
+  // * issue/pr view page, with comment form, has status-button
+  const opts = {};
+  const $statusButton = $('#status-button');
+  if ($statusButton.length) {
+    $statusButton.on('click', (e) => {
+      e.preventDefault();
+      $('#status').val($statusButton.data('status-val'));
+      $('#comment-form').trigger('submit');
+    });
+    opts.onContentChanged = (editor) => {
+      $statusButton.text($statusButton.attr(editor.value().trim() ? 'data-status-and-comment' : 'data-status'));
+    };
+  }
+  initComboMarkdownEditor($commentForm.find('.combo-markdown-editor'), opts);
+}
+
+export function initIssueTemplateCommentEditors($commentForm) {
+  // pages:
+  // * new issue with issue template
+  const $comboFields = $commentForm.find('.combo-editor-dropzone');
+
+  const initCombo = async ($combo) => {
+    const $dropzoneContainer = $combo.find('.form-field-dropzone');
+    const $formField = $combo.find('.form-field-real');
+    const $markdownEditor = $combo.find('.combo-markdown-editor');
+
+    const editor = await initComboMarkdownEditor($markdownEditor, {
+      onContentChanged: (editor) => {
+        $formField.val(editor.value());
+      }
+    });
+
+    $formField.on('focus', async () => {
+      // deactivate all markdown editors
+      showElem($commentForm.find('.combo-editor-dropzone .form-field-real'));
+      hideElem($commentForm.find('.combo-editor-dropzone .combo-markdown-editor'));
+      hideElem($commentForm.find('.combo-editor-dropzone .form-field-dropzone'));
+
+      // activate this markdown editor
+      hideElem($formField);
+      showElem($markdownEditor);
+      showElem($dropzoneContainer);
+
+      await editor.switchToUserPreference();
+      editor.focus();
+    });
+  };
+
+  for (const el of $comboFields) {
+    initCombo($(el));
+  }
 }

@@ -13,20 +13,23 @@ import (
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation/i18n"
-	"code.gitea.io/gitea/modules/watcher"
+	"code.gitea.io/gitea/modules/util"
 
 	"golang.org/x/text/language"
+	"golang.org/x/text/message"
+	"golang.org/x/text/number"
 )
 
 type contextKey struct{}
 
-var ContextKey interface{} = &contextKey{}
+var ContextKey any = &contextKey{}
 
 // Locale represents an interface to translation
 type Locale interface {
 	Language() string
-	Tr(string, ...interface{}) string
-	TrN(cnt interface{}, key1, keyN string, args ...interface{}) string
+	Tr(string, ...any) string
+	TrN(cnt any, key1, keyN string, args ...any) string
+	PrettyNumber(v any) string
 }
 
 // LangType represents a lang type
@@ -35,10 +38,12 @@ type LangType struct {
 }
 
 var (
-	lock          *sync.RWMutex
+	lock *sync.RWMutex
+
+	allLangs   []*LangType
+	allLangMap map[string]*LangType
+
 	matcher       language.Matcher
-	allLangs      []*LangType
-	allLangMap    map[string]*LangType
 	supportedTags []language.Tag
 )
 
@@ -58,7 +63,7 @@ func InitLocales(ctx context.Context) {
 
 	refreshLocales := func() {
 		i18n.ResetDefaultLocales()
-		localeNames, err := options.Dir("locale")
+		localeNames, err := options.AssetFS().ListFiles("locale", true)
 		if err != nil {
 			log.Fatal("Failed to list locale files: %v", err)
 		}
@@ -118,13 +123,10 @@ func InitLocales(ctx context.Context) {
 	})
 
 	if !setting.IsProd {
-		watcher.CreateWatcher(ctx, "Locales", &watcher.CreateWatcherOpts{
-			PathsCallback: options.WalkLocales,
-			BetweenCallback: func() {
-				lock.Lock()
-				defer lock.Unlock()
-				refreshLocales()
-			},
+		go options.AssetFS().WatchLocalChanges(ctx, func() {
+			lock.Lock()
+			defer lock.Unlock()
+			refreshLocales()
 		})
 	}
 }
@@ -139,6 +141,7 @@ func Match(tags ...language.Tag) language.Tag {
 type locale struct {
 	i18n.Locale
 	Lang, LangName string // these fields are used directly in templates: .i18n.Lang
+	msgPrinter     *message.Printer
 }
 
 // NewLocale return a locale
@@ -151,13 +154,24 @@ func NewLocale(lang string) Locale {
 	langName := "unknown"
 	if l, ok := allLangMap[lang]; ok {
 		langName = l.Name
+	} else if len(setting.Langs) > 0 {
+		lang = setting.Langs[0]
+		langName = setting.Names[0]
 	}
+
 	i18nLocale, _ := i18n.GetLocale(lang)
-	return &locale{
+	l := &locale{
 		Locale:   i18nLocale,
 		Lang:     lang,
 		LangName: langName,
 	}
+	if langTag, err := language.Parse(lang); err != nil {
+		log.Error("Failed to parse language tag from name %q: %v", l.Lang, err)
+		l.msgPrinter = message.NewPrinter(language.English)
+	} else {
+		l.msgPrinter = message.NewPrinter(langTag)
+	}
+	return l
 }
 
 func (l *locale) Language() string {
@@ -203,7 +217,7 @@ var trNLangRules = map[string]func(int64) int{
 }
 
 // TrN returns translated message for plural text translation
-func (l *locale) TrN(cnt interface{}, key1, keyN string, args ...interface{}) string {
+func (l *locale) TrN(cnt any, key1, keyN string, args ...any) string {
 	var c int64
 	if t, ok := cnt.(int); ok {
 		c = int64(t)
@@ -226,4 +240,22 @@ func (l *locale) TrN(cnt interface{}, key1, keyN string, args ...interface{}) st
 		return l.Tr(key1, args...)
 	}
 	return l.Tr(keyN, args...)
+}
+
+func (l *locale) PrettyNumber(v any) string {
+	// TODO: this mechanism is not good enough, the complete solution is to switch the translation system to ICU message format
+	if s, ok := v.(string); ok {
+		if num, err := util.ToInt64(s); err == nil {
+			v = num
+		} else if num, err := util.ToFloat64(s); err == nil {
+			v = num
+		}
+	}
+	return l.msgPrinter.Sprintf("%v", number.Decimal(v))
+}
+
+func init() {
+	// prepare a default matcher, especially for tests
+	supportedTags = []language.Tag{language.English}
+	matcher = language.NewMatcher(supportedTags)
 }

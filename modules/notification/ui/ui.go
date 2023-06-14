@@ -21,7 +21,7 @@ import (
 type (
 	notificationService struct {
 		base.NullNotifier
-		issueQueue queue.Queue
+		issueQueue *queue.WorkerPoolQueue[issueNotificationOpts]
 	}
 
 	issueNotificationOpts struct {
@@ -37,13 +37,15 @@ var _ base.Notifier = &notificationService{}
 // NewNotifier create a new notificationService notifier
 func NewNotifier() base.Notifier {
 	ns := &notificationService{}
-	ns.issueQueue = queue.CreateQueue("notification-service", ns.handle, issueNotificationOpts{})
+	ns.issueQueue = queue.CreateSimpleQueue(graceful.GetManager().ShutdownContext(), "notification-service", handler)
+	if ns.issueQueue == nil {
+		log.Fatal("Unable to create notification-service queue")
+	}
 	return ns
 }
 
-func (ns *notificationService) handle(data ...queue.Data) []queue.Data {
-	for _, datum := range data {
-		opts := datum.(issueNotificationOpts)
+func handler(items ...issueNotificationOpts) []issueNotificationOpts {
+	for _, opts := range items {
 		if err := activities_model.CreateOrUpdateIssueNotifications(opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID); err != nil {
 			log.Error("Was unable to create issue notification: %v", err)
 		}
@@ -52,7 +54,7 @@ func (ns *notificationService) handle(data ...queue.Data) []queue.Data {
 }
 
 func (ns *notificationService) Run() {
-	graceful.GetManager().RunWithShutdownFns(ns.issueQueue.Run)
+	go graceful.GetManager().RunWithCancel(ns.issueQueue) // TODO: using "go" here doesn't seem right, just leave it as old code
 }
 
 func (ns *notificationService) NotifyCreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,
@@ -227,7 +229,7 @@ func (ns *notificationService) NotifyIssueChangeAssignee(ctx context.Context, do
 	}
 }
 
-func (ns *notificationService) NotifyPullReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
+func (ns *notificationService) NotifyPullRequestReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
 	if isRequest {
 		opts := issueNotificationOpts{
 			IssueID:              issue.ID,

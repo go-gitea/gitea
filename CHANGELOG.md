@@ -4,7 +4,156 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.19.0](https://github.com/go-gitea/gitea/releases/tag/1.19.0) - 2023-03-19
+## [1.19.3](https://github.com/go-gitea/gitea/releases/tag/1.19.3) - 2023-05-03
+
+* SECURITY
+  * Use golang 1.20.4 to fix CVE-2023-24539, CVE-2023-24540, and CVE-2023-29400
+* ENHANCEMENTS
+  * Enable whitespace rendering on selection in Monaco (#24444) (#24485)
+  * Improve milestone filter on issues page (#22423) (#24440)
+* BUGFIXES
+  * Fix api error message if fork exists (#24487) (#24493)
+  * Fix user-cards format (#24428) (#24431)
+  * Fix incorrect CurrentUser check for docker rootless (#24435)
+  * Getting the tag list does not require being signed in (#24413) (#24416)
+
+## [1.19.2](https://github.com/go-gitea/gitea/releases/tag/1.19.2) - 2023-04-26
+
+* SECURITY
+  * Require repo scope for PATs for private repos and basic authentication (#24362) (#24364)
+  * Only delete secrets belonging to its owner (#24284) (#24286)
+* API
+  * Fix typo in API route (#24310) (#24332)
+  * Fix access token issue on some public endpoints (#24194) (#24259)
+* ENHANCEMENTS
+  * Fix broken clone script on an empty archived repo (#24339) (#24348)
+  * Fix Monaco IOS keyboard button (#24341) (#24347)
+  * Don't set meta `theme-color` by default (#24340) (#24346)
+  * Wrap too long push mirror addresses (#21120) (#24334)
+  * Add --font-weight-bold and set previous bold to 601 (#24307) (#24331)
+  * Unify nightly naming across binaries and docker images (#24116) (#24308)
+  * Fix footer display (#24251) (#24269)
+  * Fix label color, fix divider in dropdown (#24215) (#24244)
+  * Vertical widths of containers removed (#24184) (#24211)
+  * Use correct locale key for forks page (#24172) (#24175)
+  * Sort repo topic labels by name (#24123) (#24153)
+  * Highlight selected file in the PR file tree (#23947) (#24126)
+* BUGFIXES
+  * Fix auth check bug (#24382) (#24387)
+  * Add tags list for repos whose release setting is disabled (#23465) (#24369)
+  * Fix wrong error info in RepoRefForAPI (#24344) (#24351)
+  * Fix no edit/close/delete button in org repo project view page (#24349)
+  * Respect the REGISTER_MANUAL_CONFIRM setting when registering via OIDC (#24035) (#24333)
+  * Remove org users who belong to no teams (#24247) (#24313)
+  * Fix bug when deleting wiki with no code write permission (#24274) (#24295)
+  * Handle canceled workflow as a warning instead of a fail (#24282) (#24292)
+  * Load reviewer for comments when dismissing a review (#24281) (#24288)
+  * Show commit history for closed/merged PRs (#24238) (#24261)
+  * Fix owner team access mode value in team_unit table (#24224)
+  * Fix issue attachment handling (#24202) (#24221)
+  * Fix incorrect CORS default values (#24206) (#24217)
+  * Fix template error in pull request with deleted head repo (#24192) (#24216)
+  * Don't list root repository on compare page if pulls not allowed (#24183) (#24210)
+  * Fix calReleaseNumCommitsBehind (#24148) (#24197)
+  * Fix Org edit page bugs: renaming detection, maxlength (#24161) (#24171)
+  * Update redis library to support redis v7 (#24114) (#24156)
+  * Use 1.18's aria role for dropdown menus (#24144) (#24155)
+  * Fix 2-dot direct compare to use the right base commit (#24133) (#24150)
+  * Fix incorrect server error content in RunnersList (#24118) (#24121)
+  * Fix mismatch between hook events and github event types (#24048) (#24091)
+* BUILD
+  * Support converting varchar to nvarchar for mssql database (#24105) (#24168)
+
+## [1.19.1](https://github.com/go-gitea/gitea/releases/tag/v1.19.1) - 2023-04-12
+
+* BREAKING
+  * Rename actions unit to `repo.actions` and add docs for it (#23733) (#23881)
+* ENHANCEMENTS
+  * Add card type to org/user level project on creation, edit and view (#24043) (#24066)
+  * Refactor commit status for Actions jobs (#23786) (#24060)
+  * Show errors for KaTeX and mermaid on the preview tab (#24009) (#24019)
+  * Show protected branch rule names again (#23907) (#24018)
+  * Adjust sticky PR header to cover background (#23956) (#23999)
+  * Discolor pull request tab labels (#23950) (#23987)
+  * Treat PRs with agit flow as fork PRs when triggering actions. (#23884) (#23967)
+  * Left-align review comments (#23937)
+  * Fix image border-radius (#23886) (#23930)
+  * Scroll collapsed file into view (#23702) (#23929)
+  * Fix code view (diff) broken layout (#23096) (#23918)
+  * Org pages style fixes (#23901) (#23914)
+  * Fix user profile description rendering (#23882) (#23902)
+  * Fix review box viewport overflow issue (#23800) (#23898)
+  * Prefill input values in OAuth settings as intended (#23829) (#23871)
+  * CSS color tweaks (#23828) (#23842)
+  * Fix incorrect visibility dropdown list in add/edit user page (#23804) (#23833)
+  * Add CSS rules for basic colored labels (#23774) (#23777)
+  * Add creation time in tag list page (#23693) (#23773)
+  * Fix br display for packages curls (#23737) (#23764)
+  * Fix issue due date edit toggle bug (#23723) (#23758)
+  * Improve commit graph page UI alignment (#23751) (#23754)
+  * Use GitHub Actions compatible globbing for `branches`, `tag`, `path` filter (#22804) (#23740)
+  * Redirect to project again after editing it (#23326) (#23739)
+  * Remove row clicking from notification table (#22695) (#23706)
+  * Remove conflicting CSS rules on notifications, improve notifications table (#23565) (#23621)
+  * Fix diff tree height and adjust target file style (#23616)
+* BUGFIXES
+  * Improve error logging for LFS (#24072) (#24082)
+  * Fix custom mailer template on Windows platform (#24081)
+  * Update the value of `diffEnd` when clicking the `Show More` button in the DiffFileTree (#24069) (#24078)
+  * Make label templates have consistent behavior and priority (#23749)
+  * Fix accidental overwriting of LDAP team memberships (#24050) (#24065)
+  * Fix branch protection priority (#24045) (#24061)
+  * Use actions job link as commit status URL instead of run link (#24023) (#24032)
+  * Add actions support to package auth verification (#23729) (#24028)
+  * Fix protected branch for API (#24013) (#24027)
+  * Do not escape space between PyPI repository URL and package name… (#23981) (#24008)
+  * Fix redirect bug when creating issue from a project (#23971) (#23997)
+  * Set `ref` to fully-formed of the tag when trigger event is `release` (#23944) (#23989)
+  * Use Get/Set instead of Rename when regenerating session ID (#23975) (#23983)
+  * Ensure RSS icon is present on all repo tabs (#23904) (#23973)
+  * Remove `Repository.getFilesChanged` to fix Actions `paths` and `paths-ignore` filter (#23920) (#23969)
+  * Delete deleted release attachments immediately from storage (#23913) (#23958)
+  * Use ghost user if package creator does not exist (#23822) (#23915)
+  * User/Org Feed render description as per web (#23887) (#23906)
+  * Fix `cases.Title` crash for concurrency (#23885) (#23903)
+  * Convert .Source.SkipVerify to $cfg.SkipVerify (#23839) (#23899)
+  * Support "." char as user name for User/Orgs in RSS/ATOM/GPG/KEYS path ... (#23874) (#23878)
+  * Fix JS error when changing PR's target branch (#23862) (#23864)
+  * Fix 500 error if there is a name conflict when editing authentication source (#23832) (#23852)
+  * Fix closed PR also triggers Webhooks and actions (#23782) (#23834)
+  * Fix checks for `needs` in Actions (#23789) (#23831)
+  * Fix "Updating branch by merge" bug in "update_branch_by_merge.tmpl" (#23790) (#23825)
+  * Fix cancel button in the page of project edit not work (#23655) (#23813)
+  * Don't apply the group filter when listing LDAP group membership if it is empty (#23745) (#23788)
+  * Fix profile page email display, respect settings (#23747) (#23756)
+  * Fix project card preview select and template select (#23684) (#23731)
+  * Check LFS/Packages settings in dump and doctor command (#23631) (#23730)
+  * Add git dashes separator to some "log" and "diff" commands (#23606) (#23720)
+  * Create commit status when event is `pull_request_sync` (#23683) (#23691)
+  * Fix incorrect `HookEventType` of pull request review comments (#23650) (#23678)
+  * Fix incorrect `show-modal` and `show-panel` class (#23660) (#23663)
+  * Improve workflow event triggers (#23613) (#23648)
+  * Introduce path Clean/Join helper functions, partially backport&refactor (#23495) (#23607)
+  * Fix pagination on `/notifications/watching` (#23564) (#23603)
+  * Fix submodule is nil panic (#23588) (#23601)
+  * Polyfill the window.customElements (#23592) (#23595)
+  * Avoid too long names for actions (#23162) (#23190)
+* TRANSLATION
+  * Backport locales (with manual fixes) (#23808, #23634, #24083)
+* BUILD
+  * Hardcode the path to docker images (#23955) (#23968)
+* DOCS
+  * Update documentation to explain which projects allow Gitea to host static pages (#23993) (#24058)
+  * Merge `push to create`, `open PR from push`, and `push options` docs articles into one (#23744) (#23959)
+  * Fix code blocks in the cheat sheet (#23664) (#23669)
+* MISC
+  * Do not crash when parsing an invalid workflow file (#23972) (#23976)
+  * Remove assertion debug code for show/hide refactoring (#23576) (#23868)
+  * Add ONLY_SHOW_RELEVANT_REPOS back, fix explore page bug, make code more strict (#23766) (#23791)
+  * Make minio package support legacy MD5 checksum (#23768) (#23770)
+  * Improve template error reporting (#23396) (#23600)
+
+## [1.19.0](https://github.com/go-gitea/gitea/releases/tag/v1.19.0) - 2023-03-19
 
 * BREAKING
   * Add loading yaml label template files (#22976) (#23232)

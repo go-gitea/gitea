@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -256,4 +257,21 @@ func setMigrationContextData(ctx *context.Context, serviceType structs.GitServic
 	// Plain git should be first
 	ctx.Data["Services"] = append([]structs.GitServiceType{structs.PlainGitService}, structs.SupportedFullGitService...)
 	ctx.Data["service"] = serviceType
+}
+
+func MigrateCancelPost(ctx *context.Context) {
+	migratingTask, err := admin_model.GetMigratingTask(ctx.Repo.Repository.ID)
+	if err != nil {
+		log.Error("GetMigratingTask: %v", err)
+		ctx.Redirect(ctx.Repo.Repository.Link())
+		return
+	}
+	if migratingTask.Status == structs.TaskStatusRunning {
+		taskUpdate := &admin_model.Task{ID: migratingTask.ID, Status: structs.TaskStatusFailed, Message: "canceled"}
+		if err = taskUpdate.UpdateCols("status", "message"); err != nil {
+			ctx.ServerError("task.UpdateCols", err)
+			return
+		}
+	}
+	ctx.Redirect(ctx.Repo.Repository.Link())
 }

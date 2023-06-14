@@ -3,20 +3,18 @@
 	{{template "org/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
-		<div class="ui grid">
+		<div class="ui stackable grid">
 			{{template "org/team/sidebar" .}}
 			<div class="ui ten wide column">
 				{{template "org/team/navbar" .}}
 				{{if .IsOrganizationOwner}}
 					<div class="ui attached segment">
-						<form class="ui form ignore-dirty" id="add-member-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/add" method="post">
+						<form class="ui form ignore-dirty gt-df gt-fw gt-gap-3" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/add" method="post">
 							{{.CsrfTokenHtml}}
 							<input type="hidden" name="uid" value="{{.SignedUser.ID}}">
-							<div class="inline field ui left">
-								<div id="search-user-box" class="ui search"{{if .IsEmailInviteEnabled}} data-allow-email="true" data-allow-email-description="{{.locale.Tr "org.teams.invite_team_member" $.Team.Name}}"{{end}}>
-									<div class="ui input">
-										<input class="prompt" name="uname" placeholder="{{.locale.Tr "repo.settings.search_user_placeholder"}}" autocomplete="off" required>
-									</div>
+							<div id="search-user-box" class="ui search gt-mr-3"{{if .IsEmailInviteEnabled}} data-allow-email="true" data-allow-email-description="{{.locale.Tr "org.teams.invite_team_member" $.Team.Name}}"{{end}}>
+								<div class="ui input">
+									<input class="prompt" name="uname" placeholder="{{.locale.Tr "repo.settings.search_user_placeholder"}}" autocomplete="off" required>
 								</div>
 							</div>
 							<button class="ui green button">{{.locale.Tr "org.teams.add_team_member"}}</button>
@@ -49,13 +47,13 @@
 				<h4 class="ui top attached header">{{$.locale.Tr "org.teams.invite_team_member.list"}}</h4>
 				<div class="ui bottom attached table segment members">
 					{{range .Invites}}
-						<div class="item">
+						<div class="item gt-df gt-ac gt-fw">
+							<span class="gt-f1">{{.Email}}</span>
 							<form action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove_invite" method="post">
 								{{$.CsrfTokenHtml}}
 								<input type="hidden" name="iid" value="{{.ID}}">
-								<button class="ui red button right">{{$.locale.Tr "org.members.remove"}}</button>
+								<button class="ui red button">{{$.locale.Tr "org.members.remove"}}</button>
 							</form>
-							{{.Email}}
 						</div>
 					{{end}}
 				</div>
@@ -64,14 +62,13 @@
 		</div>
 	</div>
 </div>
-<div class="ui small basic delete modal" id="remove-team-member">
-	<div class="ui icon header">
-		{{svg "octicon-x" 16 "close inside"}}
+<div class="ui g-modal-confirm delete modal" id="remove-team-member">
+	<div class="header">
 		{{$.locale.Tr "org.members.remove"}}
 	</div>
 	<div class="content">
 		<p>{{$.locale.Tr "org.members.remove.detail" `<span class="name"></span>` `<span class="dataTeamName"></span>` | Safe}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
 {{template "base/footer" .}}

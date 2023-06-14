@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -44,7 +45,7 @@ func (g GitPushOptions) Bool(key string, def bool) bool {
 type HookOptions struct {
 	OldCommitIDs                    []string
 	NewCommitIDs                    []string
-	RefFullNames                    []string
+	RefFullNames                    []git.RefName
 	UserID                          int64
 	UserName                        string
 	GitObjectDirectory              string
@@ -89,7 +90,7 @@ type HookProcReceiveRefResult struct {
 	OldOID       string
 	NewOID       string
 	Ref          string
-	OriginalRef  string
+	OriginalRef  git.RefName
 	IsForcePush  bool
 	IsNotMatched bool
 	Err          string
@@ -129,7 +130,8 @@ func SetDefaultBranch(ctx context.Context, ownerName, repoName, branch string) R
 		url.PathEscape(branch),
 	)
 	req := newInternalRequest(ctx, reqURL, "POST")
-	return requestJSONUserMsg(req, "")
+	_, extra := requestJSONResp(req, &responseText{})
+	return extra
 }
 
 // SSHLog sends ssh error log response

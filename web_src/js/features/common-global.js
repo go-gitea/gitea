@@ -1,14 +1,14 @@
 import $ from 'jquery';
 import 'jquery.are-you-sure';
-import {mqBinarySearch} from '../utils.js';
 import {createDropzone} from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
 import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
 import {svg} from '../svg.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
+import {htmlEscape} from 'escape-goat';
 
-const {appUrl, csrfToken} = window.config;
+const {appUrl, csrfToken, i18n} = window.config;
 
 export function initGlobalFormDirtyLeaveConfirm() {
   // Warn users that try to leave a page after entering data into a form.
@@ -19,18 +19,14 @@ export function initGlobalFormDirtyLeaveConfirm() {
 }
 
 export function initHeadNavbarContentToggle() {
-  const content = $('#navbar');
-  const toggle = $('#navbar-expand-toggle');
-  let isExpanded = false;
-  toggle.on('click', () => {
-    isExpanded = !isExpanded;
-    if (isExpanded) {
-      content.addClass('shown');
-      toggle.addClass('active');
-    } else {
-      content.removeClass('shown');
-      toggle.removeClass('active');
-    }
+  const navbar = document.getElementById('navbar');
+  const btn = document.getElementById('navbar-expand-toggle');
+  if (!navbar || !btn) return;
+
+  btn.addEventListener('click', () => {
+    const isExpanded = btn.classList.contains('active');
+    navbar.classList.toggle('navbar-menu-open', !isExpanded);
+    btn.classList.toggle('active', !isExpanded);
   });
 }
 
@@ -56,9 +52,8 @@ export function initGlobalEnterQuickSubmit() {
 }
 
 export function initGlobalButtonClickOnEnter() {
-  $(document).on('keypress', '.ui.button', (e) => {
-    if (e.keyCode === 13 || e.keyCode === 32) { // enter key or space bar
-      if (e.target.nodeName === 'BUTTON') return; // button already handles space&enter correctly
+  $(document).on('keypress', 'div.ui.button,span.ui.button', (e) => {
+    if (e.code === ' ' || e.code === 'Enter') {
       $(e.target).trigger('click');
       e.preventDefault();
     }
@@ -66,19 +61,6 @@ export function initGlobalButtonClickOnEnter() {
 }
 
 export function initGlobalCommon() {
-  // Undo Safari emoji glitch fix at high enough zoom levels
-  if (navigator.userAgent.match('Safari')) {
-    $(window).resize(() => {
-      const px = mqBinarySearch('width', 0, 4096, 1, 'px');
-      const em = mqBinarySearch('width', 0, 1024, 0.01, 'em');
-      if (em * 16 * 1.25 - px <= -1) {
-        $('body').addClass('safari-above125');
-      } else {
-        $('body').removeClass('safari-above125');
-      }
-    });
-  }
-
   // Semantic UI modules.
   const $uiDropdowns = $('.ui.dropdown');
 
@@ -169,10 +151,12 @@ export function initGlobalDropzone() {
             let fileMarkdown = `[${file.name}](/attachments/${file.uuid})`;
             if (file.type.startsWith('image/')) {
               fileMarkdown = `!${fileMarkdown}`;
+            } else if (file.type.startsWith('video/')) {
+              fileMarkdown = `<video src="/attachments/${file.uuid}" title="${htmlEscape(file.name)}" controls></video>`;
             }
             navigator.clipboard.writeText(fileMarkdown);
           });
-          file.previewTemplate.appendChild(copyLinkElement);
+          file.previewTemplate.append(copyLinkElement);
         });
         this.on('removedfile', (file) => {
           $(`#${file.uuid}`).remove();
@@ -188,14 +172,70 @@ export function initGlobalDropzone() {
   }
 }
 
+function linkAction(e) {
+  e.preventDefault();
+
+  // A "link-action" can post AJAX request to its "data-url"
+  // Then the browser is redirect to: the "redirect" in response, or "data-redirect" attribute, or current URL by reloading.
+  // If the "link-action" has "data-modal-confirm(-html)" attribute, a confirm modal dialog will be shown before taking action.
+
+  const $this = $(e.target);
+  const redirect = $this.attr('data-redirect');
+
+  const request = () => {
+    $this.prop('disabled', true);
+    $.post($this.attr('data-url'), {
+      _csrf: csrfToken
+    }).done((data) => {
+      if (data && data.redirect) {
+        window.location.href = data.redirect;
+      } else if (redirect) {
+        window.location.href = redirect;
+      } else {
+        window.location.reload();
+      }
+    }).always(() => {
+      $this.prop('disabled', false);
+    });
+  };
+
+  const modalConfirmHtml = htmlEscape($this.attr('data-modal-confirm') || '');
+  if (!modalConfirmHtml) {
+    request();
+    return;
+  }
+
+  const okButtonColor = $this.hasClass('red') || $this.hasClass('yellow') || $this.hasClass('orange') || $this.hasClass('negative') ? 'orange' : 'green';
+
+  const $modal = $(`
+<div class="ui g-modal-confirm modal">
+  <div class="content">${modalConfirmHtml}</div>
+  <div class="actions">
+    <button class="ui basic cancel button">${svg('octicon-x')} ${i18n.modal_cancel}</button>
+    <button class="ui ${okButtonColor} ok button">${svg('octicon-check')} ${i18n.modal_confirm}</button>
+  </div>
+</div>
+`);
+
+  $modal.appendTo(document.body);
+  $modal.modal({
+    onApprove() {
+      request();
+    },
+    onHidden() {
+      $modal.remove();
+    },
+  }).modal('show');
+}
+
 export function initGlobalLinkActions() {
   function showDeletePopup(e) {
     e.preventDefault();
     const $this = $(this);
     const dataArray = $this.data();
     let filter = '';
-    if ($this.data('modal-id')) {
-      filter += `#${$this.data('modal-id')}`;
+    if ($this.attr('data-modal-id')) {
+      filter += `#${$this.attr('data-modal-id')}`;
     }
 
     const dialog = $(`.delete.modal${filter}`);
@@ -233,75 +273,9 @@ export function initGlobalLinkActions() {
     }).modal('show');
   }
 
-  function showAddAllPopup(e) {
-    e.preventDefault();
-    const $this = $(this);
-    let filter = '';
-    if ($this.attr('id')) {
-      filter += `#${$this.attr('id')}`;
-    }
-
-    const dialog = $(`.addall.modal${filter}`);
-    dialog.find('.name').text($this.data('name'));
-
-    dialog.modal({
-      closable: false,
-      onApprove() {
-        if ($this.data('type') === 'form') {
-          $($this.data('form')).trigger('submit');
-          return;
-        }
-
-        $.post($this.data('url'), {
-          _csrf: csrfToken,
-          id: $this.data('id')
-        }).done((data) => {
-          window.location.href = data.redirect;
-        });
-      }
-    }).modal('show');
-  }
-
-  function linkAction(e) {
-    e.preventDefault();
-    const $this = $(this);
-    const redirect = $this.data('redirect');
-    $this.prop('disabled', true);
-    $.post($this.data('url'), {
-      _csrf: csrfToken
-    }).done((data) => {
-      if (data.redirect) {
-        window.location.href = data.redirect;
-      } else if (redirect) {
-        window.location.href = redirect;
-      } else {
-        window.location.reload();
-      }
-    }).always(() => {
-      $this.prop('disabled', false);
-    });
-  }
-
   // Helpers.
   $('.delete-button').on('click', showDeletePopup);
   $('.link-action').on('click', linkAction);
-
-  // FIXME: this function is only used once, and not common, not well designed. should be refactored later
-  $('.add-all-button').on('click', showAddAllPopup);
-
-  // FIXME: this is only used once, and should be replace with `link-action` instead
-  $('.undo-button').on('click', function () {
-    const $this = $(this);
-    $this.prop('disabled', true);
-    $.post($this.data('url'), {
-      _csrf: csrfToken,
-      id: $this.data('id')
-    }).done((data) => {
-      window.location.href = data.redirect;
-    }).always(() => {
-      $this.prop('disabled', false);
-    });
-  });
 }
 
 export function initGlobalButtons() {
@@ -361,16 +335,6 @@ export function initGlobalButtons() {
     if (colorPickers.length > 0) {
       initCompColorPicker();
     }
-  });
-
-  $('.delete-post.button').on('click', function (e) {
-    e.preventDefault();
-    const $this = $(this);
-    $.post($this.attr('data-request-url'), {
-      _csrf: csrfToken
-    }).done(() => {
-      window.location.href = $this.attr('data-done-url');
-    });
   });
 }
 

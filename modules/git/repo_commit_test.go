@@ -97,6 +97,6 @@ func TestRepository_CommitsBetweenIDs(t *testing.T) {
 	for i, c := range cases {
 		commits, err := bareRepo1.CommitsBetweenIDs(c.NewID, c.OldID)
 		assert.NoError(t, err)
-		assert.Equal(t, c.ExpectedCommits, len(commits), "case %d", i)
+		assert.Len(t, commits, c.ExpectedCommits, "case %d", i)
 	}
 }

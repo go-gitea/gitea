@@ -1,8 +1,6 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content user settings applications">
-	{{template "user/settings/navbar" .}}
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings applications")}}
+	<div class="user-setting-content">
 
-	{{template "user/settings/applications_oauth2_edit_form" .}}
-</div>
-
-{{template "base/footer" .}}
+		{{template "user/settings/applications_oauth2_edit_form" .}}
+	</div>
+{{template "user/settings/layout_footer" .}}

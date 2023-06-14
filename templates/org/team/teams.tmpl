@@ -10,7 +10,7 @@
 			<div class="ui divider"></div>
 		{{end}}
 
-		<div class="ui two column grid">
+		<div class="ui two column stackable grid">
 			{{range .Teams}}
 				<div class="column">
 					<div class="ui top attached header">
@@ -43,14 +43,13 @@
 		</div>
 	</div>
 </div>
-<div class="ui small basic delete modal" id="leave-team">
-	<div class="ui icon header">
-		{{svg "octicon-x" 16 "close inside"}}
+<div class="ui g-modal-confirm delete modal" id="leave-team">
+	<div class="header">
 		{{$.locale.Tr "org.teams.leave"}}
 	</div>
 	<div class="content">
 		<p>{{$.locale.Tr "org.teams.leave.detail" `<span class="name"></span>` | Safe}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
 {{template "base/footer" .}}

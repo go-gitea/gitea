@@ -34,7 +34,7 @@ func (issues IssueList) getRepoIDs() []int64 {
 }
 
 // LoadRepositories loads issues' all repositories
-func (issues IssueList) LoadRepositories(ctx context.Context) ([]*repo_model.Repository, error) {
+func (issues IssueList) LoadRepositories(ctx context.Context) (repo_model.RepositoryList, error) {
 	if len(issues) == 0 {
 		return nil, nil
 	}
