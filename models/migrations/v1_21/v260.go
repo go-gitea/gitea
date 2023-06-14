@@ -9,7 +9,7 @@ import (
 	"xorm.io/xorm"
 )
 
-func DropCustomLabelsColumnToActRunner(x *xorm.Engine) error {
+func DropCustomLabelsColumnOfActionRunner(x *xorm.Engine) error {
 	sess := x.NewSession()
 	defer sess.Close()
 
