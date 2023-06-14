@@ -79,7 +79,7 @@ func Migrate(ctx *context.APIContext) {
 		return
 	}
 
-	if ctx.HasError() {
+	if ctx.HasAPIError() {
 		ctx.Error(http.StatusUnprocessableEntity, "", ctx.GetErrMsg())
 		return
 	}
@@ -154,7 +154,7 @@ func Migrate(ctx *context.APIContext) {
 		Issues:         form.Issues,
 		Milestones:     form.Milestones,
 		Labels:         form.Labels,
-		Comments:       true,
+		Comments:       form.Issues || form.PullRequests,
 		PullRequests:   form.PullRequests,
 		Releases:       form.Releases,
 		GitServiceType: gitServiceType,

@@ -1,4 +1,4 @@
-export async function renderAsciinemaPlayer() {
+export async function renderAsciicast() {
   const els = document.querySelectorAll('.asciinema-player-container');
   if (!els.length) return;
 

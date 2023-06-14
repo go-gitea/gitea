@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -18,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
-	pull_service "code.gitea.io/gitea/services/pull"
 )
 
 // CreateNewBranch creates a new repository branch
@@ -52,6 +50,10 @@ func CreateNewBranch(ctx context.Context, doer *user_model.User, repo *repo_mode
 // returning at most limit branches, or all branches if limit is 0.
 func GetBranches(ctx context.Context, repo *repo_model.Repository, skip, limit int) ([]*git.Branch, int, error) {
 	return git.GetBranchesByPath(ctx, repo.RepoPath(), skip, limit)
+}
+
+func GetBranchCommitID(ctx context.Context, repo *repo_model.Repository, branch string) (string, error) {
+	return git.GetBranchCommitID(ctx, repo.RepoPath(), branch)
 }
 
 // checkBranchName validates branch name with existing repository branches
@@ -106,7 +108,7 @@ func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo 
 }
 
 // RenameBranch rename a branch
-func RenameBranch(repo *repo_model.Repository, doer *user_model.User, gitRepo *git.Repository, from, to string) (string, error) {
+func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, gitRepo *git.Repository, from, to string) (string, error) {
 	if from == to {
 		return "target_exist", nil
 	}
@@ -119,7 +121,7 @@ func RenameBranch(repo *repo_model.Repository, doer *user_model.User, gitRepo *g
 		return "from_not_exist", nil
 	}
 
-	if err := git_model.RenameBranch(db.DefaultContext, repo, from, to, func(isDefault bool) error {
+	if err := git_model.RenameBranch(ctx, repo, from, to, func(isDefault bool) error {
 		err2 := gitRepo.RenameBranch(from, to)
 		if err2 != nil {
 			return err2
@@ -136,13 +138,14 @@ func RenameBranch(repo *repo_model.Repository, doer *user_model.User, gitRepo *g
 	}); err != nil {
 		return "", err
 	}
-	refID, err := gitRepo.GetRefCommitID(git.BranchPrefix + to)
+	refNameTo := git.RefNameFromBranch(to)
+	refID, err := gitRepo.GetRefCommitID(refNameTo.String())
 	if err != nil {
 		return "", err
 	}
 
-	notification.NotifyDeleteRef(db.DefaultContext, doer, repo, "branch", git.BranchPrefix+from)
-	notification.NotifyCreateRef(db.DefaultContext, doer, repo, "branch", git.BranchPrefix+to, refID)
+	notification.NotifyDeleteRef(ctx, doer, repo, git.RefNameFromBranch(from))
+	notification.NotifyCreateRef(ctx, doer, repo, refNameTo, refID)
 
 	return "", nil
 }
@@ -153,12 +156,12 @@ var (
 )
 
 // DeleteBranch delete branch
-func DeleteBranch(doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, branchName string) error {
+func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, branchName string) error {
 	if branchName == repo.DefaultBranch {
 		return ErrBranchIsDefault
 	}
 
-	isProtected, err := git_model.IsBranchProtected(db.DefaultContext, repo.ID, branchName)
+	isProtected, err := git_model.IsBranchProtected(ctx, repo.ID, branchName)
 	if err != nil {
 		return err
 	}
@@ -177,14 +180,10 @@ func DeleteBranch(doer *user_model.User, repo *repo_model.Repository, gitRepo *g
 		return err
 	}
 
-	if err := pull_service.CloseBranchPulls(doer, repo.ID, branchName); err != nil {
-		return err
-	}
-
 	// Don't return error below this
 	if err := PushUpdate(
 		&repo_module.PushUpdateOptions{
-			RefFullName:  git.BranchPrefix + branchName,
+			RefFullName:  git.RefNameFromBranch(branchName),
 			OldCommitID:  commit.ID.String(),
 			NewCommitID:  git.EmptySHA,
 			PusherID:     doer.ID,
@@ -193,10 +192,6 @@ func DeleteBranch(doer *user_model.User, repo *repo_model.Repository, gitRepo *g
 			RepoName:     repo.Name,
 		}); err != nil {
 		log.Error("Update: %v", err)
-	}
-
-	if err := git_model.AddDeletedBranch(db.DefaultContext, repo.ID, branchName, commit.ID.String(), doer.ID); err != nil {
-		log.Warn("AddDeletedBranch: %v", err)
 	}
 
 	return nil

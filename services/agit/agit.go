@@ -48,7 +48,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			continue
 		}
 
-		if !strings.HasPrefix(opts.RefFullNames[i], git.PullRequestPrefix) {
+		if !opts.RefFullNames[i].IsFor() {
 			results = append(results, private.HookProcReceiveRefResult{
 				IsNotMatched: true,
 				OriginalRef:  opts.RefFullNames[i],
@@ -56,7 +56,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			continue
 		}
 
-		baseBranchName := opts.RefFullNames[i][len(git.PullRequestPrefix):]
+		baseBranchName := opts.RefFullNames[i].ForBranchName()
 		curentTopicBranch := ""
 		if !gitRepo.IsBranchExist(baseBranchName) {
 			// try match refs/for/<target-branch>/<topic-branch>
@@ -226,8 +226,8 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 }
 
 // UserNameChanged handle user name change for agit flow pull
-func UserNameChanged(user *user_model.User, newName string) error {
-	pulls, err := issues_model.GetAllUnmergedAgitPullRequestByPoster(user.ID)
+func UserNameChanged(ctx context.Context, user *user_model.User, newName string) error {
+	pulls, err := issues_model.GetAllUnmergedAgitPullRequestByPoster(ctx, user.ID)
 	if err != nil {
 		return err
 	}

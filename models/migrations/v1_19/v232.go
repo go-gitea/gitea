@@ -16,7 +16,7 @@ func AlterPackageVersionMetadataToLongText(x *xorm.Engine) error {
 		return err
 	}
 
-	if setting.Database.UseMySQL {
+	if setting.Database.Type.IsMySQL() {
 		if _, err := sess.Exec("ALTER TABLE `package_version` MODIFY COLUMN `metadata_json` LONGTEXT"); err != nil {
 			return err
 		}

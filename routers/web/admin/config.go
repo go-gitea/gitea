@@ -100,7 +100,6 @@ func shadowPassword(provider, cfgItem string) string {
 // Config show admin config page
 func Config(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.config")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminConfig"] = true
 
 	systemSettings, err := system_model.GetAllSettings(ctx)
@@ -115,9 +114,9 @@ func Config(ctx *context.Context) {
 
 	ctx.Data["CustomConf"] = setting.CustomConf
 	ctx.Data["AppUrl"] = setting.AppURL
+	ctx.Data["AppBuiltWith"] = setting.AppBuiltWith
 	ctx.Data["Domain"] = setting.Domain
 	ctx.Data["OfflineMode"] = setting.OfflineMode
-	ctx.Data["DisableRouterLog"] = setting.Log.DisableRouterLog
 	ctx.Data["RunUser"] = setting.RunUser
 	ctx.Data["RunMode"] = util.ToTitleCase(setting.RunMode)
 	ctx.Data["GitVersion"] = git.VersionInfo()
@@ -182,12 +181,10 @@ func Config(ctx *context.Context) {
 	}
 
 	ctx.Data["EnvVars"] = envVars
-	ctx.Data["Loggers"] = setting.GetLogDescriptions()
-	ctx.Data["EnableAccessLog"] = setting.Log.EnableAccessLog
 	ctx.Data["AccessLogTemplate"] = setting.Log.AccessLogTemplate
-	ctx.Data["DisableRouterLog"] = setting.Log.DisableRouterLog
-	ctx.Data["EnableXORMLog"] = setting.Log.EnableXORMLog
 	ctx.Data["LogSQL"] = setting.Database.LogSQL
+
+	ctx.Data["Loggers"] = log.GetManager().DumpLoggers()
 
 	ctx.HTML(http.StatusOK, tplConfig)
 }

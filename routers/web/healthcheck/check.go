@@ -100,7 +100,7 @@ func checkDatabase(checks checks) status {
 		st.Time = getCheckTime()
 	}
 
-	if setting.Database.UseSQLite3 && st.Status == pass {
+	if setting.Database.Type.IsSQLite3() && st.Status == pass {
 		if !setting.EnableSQLite3 {
 			st.Status = fail
 			st.Time = getCheckTime()

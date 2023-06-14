@@ -6,27 +6,29 @@ const {appSubUrl, csrfToken} = window.config;
 
 export function initRepoTopicBar() {
   const mgrBtn = $('#manage_topic');
+  if (!mgrBtn.length) return;
   const editDiv = $('#topic_edit');
   const viewDiv = $('#repo-topics');
   const saveBtn = $('#save_topic');
   const topicDropdown = $('#topic_edit .dropdown');
-  const topicForm = $('#topic_edit.ui.form');
-  const topicPrompts = getPrompts();
+  const topicForm = editDiv; // the old logic, editDiv is topicForm
+  const topicDropdownSearch = topicDropdown.find('input.search');
+  const topicPrompts = {
+    countPrompt: topicDropdown.attr('data-text-count-prompt'),
+    formatPrompt: topicDropdown.attr('data-text-format-prompt'),
+  };
 
   mgrBtn.on('click', () => {
     hideElem(viewDiv);
     showElem(editDiv);
+    topicDropdownSearch.focus();
   });
 
-  function getPrompts() {
-    const hidePrompt = $('#validate_prompt');
-    const prompts = {
-      countPrompt: hidePrompt.children('#count_prompt').text(),
-      formatPrompt: hidePrompt.children('#format_prompt').text()
-    };
-    hidePrompt.remove();
-    return prompts;
-  }
+  $('#cancel_topic_edit').on('click', () => {
+    hideElem(editDiv);
+    showElem(viewDiv);
+    mgrBtn.focus();
+  });
 
   saveBtn.on('click', () => {
     const topics = $('input[name=topics]').val();
@@ -39,13 +41,12 @@ export function initRepoTopicBar() {
         viewDiv.children('.topic').remove();
         if (topics.length) {
           const topicArray = topics.split(',');
-
-          const last = viewDiv.children('a').last();
+          topicArray.sort();
           for (let i = 0; i < topicArray.length; i++) {
             const link = $('<a class="ui repo-topic large label topic"></a>');
             link.attr('href', `${appSubUrl}/explore/repos?q=${encodeURIComponent(topicArray[i])}&topic=1`);
             link.text(topicArray[i]);
-            link.insertBefore(last);
+            link.insertBefore(mgrBtn); // insert all new topics before manage button
           }
         }
         hideElem(editDiv);
@@ -57,12 +58,12 @@ export function initRepoTopicBar() {
           topicPrompts.formatPrompt = xhr.responseJSON.message;
 
           const {invalidTopics} = xhr.responseJSON;
-          const topicLables = topicDropdown.children('a.ui.label');
+          const topicLabels = topicDropdown.children('a.ui.label');
 
           for (const [index, value] of topics.split(',').entries()) {
             for (let i = 0; i < invalidTopics.length; i++) {
               if (invalidTopics[i] === value) {
-                topicLables.eq(index).removeClass('green').addClass('red');
+                topicLabels.eq(index).removeClass('green').addClass('red');
               }
             }
           }
@@ -86,9 +87,6 @@ export function initRepoTopicBar() {
       duration: 200,
       variation: false,
     },
-    className: {
-      label: 'ui small label'
-    },
     apiSettings: {
       url: `${appSubUrl}/explore/topics/search?q={query}`,
       throttle: 500,
@@ -101,7 +99,7 @@ export function initRepoTopicBar() {
         const query = stripTags(this.urlData.query.trim());
         let found_query = false;
         const current_topics = [];
-        topicDropdown.find('div.label.visible.topic,a.label.visible').each((_, el) => {
+        topicDropdown.find('a.label.visible').each((_, el) => {
           current_topics.push(el.getAttribute('data-value'));
         });
 

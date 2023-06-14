@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content admin new authentication">
-	{{template "admin/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin new authentication")}}
+	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.auths.new"}}
 		</h4>
@@ -38,7 +35,7 @@
 				<!-- PAM -->
 				<div class="pam required field {{if not (eq .type 4)}}gt-hidden{{end}}">
 					<label for="pam_service_name">{{.locale.Tr "admin.auths.pam_service_name"}}</label>
-					<input id="pam_service_name" name="pam_service_name" value="{{.pam_service_name}}" />
+					<input id="pam_service_name" name="pam_service_name" value="{{.pam_service_name}}">
 					<label for="pam_email_domain">{{.locale.Tr "admin.auths.pam_email_domain"}}</label>
 					<input id="pam_email_domain" name="pam_email_domain" value="{{.pam_email_domain}}">
 				</div>
@@ -122,5 +119,4 @@
 			</div>
 		</div>
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "admin/layout_footer" .}}

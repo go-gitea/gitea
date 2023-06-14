@@ -10,7 +10,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -45,6 +44,9 @@ func (runs RunList) LoadTriggerUser(ctx context.Context) error {
 			run.TriggerUser = user_model.NewActionsUser()
 		} else {
 			run.TriggerUser = users[run.TriggerUserID]
+			if run.TriggerUser == nil {
+				run.TriggerUser = user_model.NewGhostUser()
+			}
 		}
 	}
 	return nil
@@ -66,7 +68,6 @@ type FindRunOptions struct {
 	db.ListOptions
 	RepoID           int64
 	OwnerID          int64
-	IsClosed         util.OptionalBool
 	WorkflowFileName string
 	TriggerUserID    int64
 	Approved         bool // not util.OptionalBool, it works only when it's true
@@ -79,14 +80,6 @@ func (opts FindRunOptions) toConds() builder.Cond {
 	}
 	if opts.OwnerID > 0 {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
-	}
-	if opts.IsClosed.IsFalse() {
-		cond = cond.And(builder.Eq{"status": StatusWaiting}.Or(
-			builder.Eq{"status": StatusRunning}))
-	} else if opts.IsClosed.IsTrue() {
-		cond = cond.And(
-			builder.Neq{"status": StatusWaiting}.And(
-				builder.Neq{"status": StatusRunning}))
 	}
 	if opts.WorkflowFileName != "" {
 		cond = cond.And(builder.Eq{"workflow_id": opts.WorkflowFileName})

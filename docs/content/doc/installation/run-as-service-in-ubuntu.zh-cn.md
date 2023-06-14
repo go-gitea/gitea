@@ -2,14 +2,16 @@
 date: "2017-07-21T12:00:00+02:00"
 title: "在 Linux 中以 service 方式运行"
 slug: "linux-service"
-weight: 10
+weight: 40
 toc: false
 draft: false
+aliases:
+  - /zh-cn/linux-service
 menu:
   sidebar:
     parent: "installation"
     name: "在Linux中以service方式运行"
-    weight: 20
+    weight: 40
     identifier: "linux-service"
 ---
 
@@ -23,7 +25,7 @@ menu:
 sudo vim /etc/systemd/system/gitea.service
 ```
 
-接着拷贝示例代码 [gitea.service](https://github.com/go-gitea/gitea/blob/master/contrib/systemd/gitea.service) 并取消对任何需要运行在主机上的服务部分的注释，譬如 MySQL。
+接着拷贝示例代码 [gitea.service](https://github.com/go-gitea/gitea/blob/main/contrib/systemd/gitea.service) 并取消对任何需要运行在主机上的服务部分的注释，譬如 MySQL。
 
 修改 user，home 目录以及其他必须的初始化参数，如果使用自定义端口，则需修改 PORT 参数，反之如果使用默认端口则需删除 -p 标记。
 
@@ -56,7 +58,7 @@ sudo vim /etc/supervisor/supervisord.conf
 ```
 
 增加如下示例配置
-[supervisord config](https://github.com/go-gitea/gitea/blob/master/contrib/supervisor/gitea)。
+[supervisord config](https://github.com/go-gitea/gitea/blob/main/contrib/supervisor/gitea)。
 
 将 user(git) 和 home(/home/git) 设置为与上文部署中匹配的值。如果使用自定义端口，则需修改 PORT 参数，反之如果使用默认端口则需删除 -p 标记。
 

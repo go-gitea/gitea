@@ -296,6 +296,13 @@ type swaggerFileResponse struct {
 	Body api.FileResponse `json:"body"`
 }
 
+// FilesResponse
+// swagger:response FilesResponse
+type swaggerFilesResponse struct {
+	// in: body
+	Body api.FilesResponse `json:"body"`
+}
+
 // ContentsResponse
 // swagger:response ContentsResponse
 type swaggerContentsResponse struct {
@@ -385,4 +392,25 @@ type swaggerPushMirrorList struct {
 type swaggerRepoCollaboratorPermission struct {
 	// in:body
 	Body api.RepoCollaboratorPermission `json:"body"`
+}
+
+// RepoIssueConfig
+// swagger:response RepoIssueConfig
+type swaggerRepoIssueConfig struct {
+	// in:body
+	Body api.IssueConfig `json:"body"`
+}
+
+// RepoIssueConfigValidation
+// swagger:response RepoIssueConfigValidation
+type swaggerRepoIssueConfigValidation struct {
+	// in:body
+	Body api.IssueConfigValidation `json:"body"`
+}
+
+// RepoNewIssuePinsAllowed
+// swagger:response RepoNewIssuePinsAllowed
+type swaggerRepoNewIssuePinsAllowed struct {
+	// in:body
+	Body api.NewIssuePinsAllowed `json:"body"`
 }

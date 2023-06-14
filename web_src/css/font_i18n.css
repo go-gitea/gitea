@@ -1,0 +1,393 @@
+:root :lang(ja) {
+  --fonts-override: var(--fonts-default-override-ja);
+}
+
+:root :lang(zh-CN) {
+  --fonts-override: var(--fonts-default-override-zh-cn);
+}
+
+:root :lang(zh-TW) {
+  --fonts-override: var(--fonts-default-override-zh-tw);
+}
+
+:root :lang(zh-HK) {
+  --fonts-override: var(--fonts-default-override-zh-hk);
+}
+
+:root :lang(ko) {
+  --fonts-override: var(--fonts-default-override-ko);
+}
+
+[lang] {
+  font-family: var(--fonts-regular);
+}
+
+:root {
+  --fonts-default-override-ja: system-ui-ja, var(--fonts-proportional);
+  --fonts-default-override-zh-cn: system-ui-zh-cn, var(--fonts-proportional);
+  --fonts-default-override-zh-tw: system-ui-zh-tw, var(--fonts-proportional);
+  --fonts-default-override-zh-hk: system-ui-zh-hk, var(--fonts-proportional);
+  --fonts-default-override-ko: system-ui-ko, var(--fonts-proportional);
+}
+
+/* Special handling for Firefox on Windows/Linux */
+@supports (-moz-appearance: none) {
+  :root {
+    --fonts-default-override-ja: var(--fonts-proportional), system-ui-ja;
+    --fonts-default-override-zh-cn: var(--fonts-proportional), system-ui-zh-cn;
+    --fonts-default-override-zh-tw: var(--fonts-proportional), system-ui-zh-tw;
+    --fonts-default-override-zh-hk: var(--fonts-proportional), system-ui-zh-hk;
+    --fonts-default-override-ko: var(--fonts-proportional), system-ui-ko;
+  }
+}
+
+@font-face {
+  font-family: system-ui-ja;
+  src: local("HiraKakuProN-W3"), local("Hiragino Kaku Gothic ProN W3"),
+    local("HiraginoSans-W2"), local("Source Han Sans JP Light"),
+    local("SourceHanSansJP-Light"), local("Source Han Sans J Light"),
+    local("SourceHanSansJ-Light"), local("Noto Sans CJK JP Light"),
+    local("NotoSansCJKJP-Light"), local("Source Han Sans Light"),
+    local("SourceHanSans-Light"), local("Yu Gothic Regular"),
+    local("YuGothic Regular"), local("Droid Sans Japanese"), local("Meiryo"),
+    local("MS PGothic");
+  font-weight: 300;
+  unicode-range: U+11??, U+2E80-4DBF, U+4E00-9FFF, U+A960-A97F, U+AC00-D7FF,
+    U+F900-FAFF, U+FE00-FE6F, U+FF00-FFEF, U+1F2??, U+2????;
+}
+
+@font-face {
+  font-family: system-ui-ja;
+  src: local("HiraKakuProN-W3"), local("Hiragino Kaku Gothic ProN W3"),
+    local("HiraginoSans-W4"), local("Source Han Sans JP Regular"),
+    local("SourceHanSansJP-Regular"), local("Source Han Sans J Regular"),
+    local("SourceHanSansJ-Regular"), local("Noto Sans CJK JP Regular"),
+    local("NotoSansCJKJP-Regular"), local("Source Han Sans Regular"),
+    local("SourceHanSans-Regular"), local("Yu Gothic Medium"),
+    local("YuGothic Medium"), local("Droid Sans Japanese"), local("Meiryo"),
+    local("MS PGothic");
+  font-weight: 400;
+  unicode-range: U+11??, U+2E80-4DBF, U+4E00-9FFF, U+A960-A97F, U+AC00-D7FF,
+    U+F900-FAFF, U+FE00-FE6F, U+FF00-FFEF, U+1F2??, U+2????;
+}
+
+@font-face {
+  font-family: system-ui-ja;
+  src: local("HiraKakuProN-W3"), local("Hiragino Kaku Gothic ProN W3"),
+    local("HiraginoSans-W5"), local("Source Han Sans JP Medium"),
+    local("SourceHanSansJP-Medium"), local("Source Han Sans J Medium"),
+    local("SourceHanSansJ-Medium"), local("Noto Sans CJK JP Medium"),
+    local("NotoSansCJKJP-Medium"), local("Source Han Sans Medium"),
+    local("SourceHanSans-Medium"), local("Yu Gothic Medium"),
+    local("YuGothic Medium"), local("Droid Sans Japanese"), local("Meiryo"),
+    local("MS PGothic");
+  font-weight: 500;
+  unicode-range: U+11??, U+2E80-4DBF, U+4E00-9FFF, U+A960-A97F, U+AC00-D7FF,
+    U+F900-FAFF, U+FE00-FE6F, U+FF00-FFEF, U+1F2??, U+2????;
+}
+
+@font-face {
+  font-family: system-ui-ja;
+  src: local("HiraKakuProN-W6"), local("Hiragino Kaku Gothic ProN W6"),
+    local("HiraginoSans-W6"), local("Source Han Sans JP Bold"),
+    local("SourceHanSansJP-Bold"), local("Source Han Sans J Bold"),
+    local("SourceHanSansJ-Bold"), local("Noto Sans CJK JP Bold"),
+    local("NotoSansCJKJP-Bold"), local("Source Han Sans Bold"),
+    local("SourceHanSans-Bold"), local("Yu Gothic Bold"), local("YuGothic Bold"),
+    local("Droid Sans Japanese"), local("Meiryo Bold"), local("MS PGothic");
+  font-weight: 600;
+  unicode-range: U+11??, U+2E80-4DBF, U+4E00-9FFF, U+A960-A97F, U+AC00-D7FF,
+    U+F900-FAFF, U+FE00-FE6F, U+FF00-FFEF, U+1F2??, U+2????;
+}
+
+/* Safari on macOS/iOS */
+@font-face {
+  font-family: system-ui-ja;
+  src: local("HelveticaNeue");
+  unicode-range: U+A0;
+}
+
+/* Other browsers on macOS/iOS */
+@supports not (-webkit-hyphens: none) {
+  @font-face {
+    font-family: system-ui-ja;
+    src: local("HelveticaNeue");
+    unicode-range: U+20;
+  }
+}
+
+@font-face {
+  font-family: system-ui-zh-cn;
+  src: local("PingFangSC-Light"), local("Source Han Sans CN Light"),
+    local("SourceHanSansCN-Light"), local("Source Han Sans SC Light"),
+    local("SourceHanSansSC-Light"), local("Noto Sans CJK SC Light"),
+    local("NotoSansCJKSC-Light"), local("HiraginoSansGB-W3"),
+    local("Hiragino Sans GB W3"), local("Microsoft YaHei Light"),
+    local("Heiti SC Light"), local("SimHei");
+  font-weight: 300;
+  unicode-range: U+11??, U+2E80-4DBF, U+4E00-9FFF, U+A960-A97F, U+AC00-D7FF,
+    U+F900-FAFF, U+FE00-FE6F, U+FF00-FFEF, U+1F2??, U+2????;
+}
+
+@font-face {
+  font-family: system-ui-zh-cn;
+  src: local("PingFangSC-Regular"), local("Source Han Sans CN Regular"),
+    local("SourceHanSansCN-Regular"), local("Source Han Sans SC Regular"),
+    local("SourceHanSansSC-Regular"), local("Noto Sans CJK SC Regular"),
+    local("NotoSansCJKSC-Regular"), local("HiraginoSansGB-W3"),
+    local("Hiragino Sans GB W3"), local("Microsoft YaHei"),
+    local("Heiti SC Light"), local("SimHei");
+  font-weight: 400;
+  unicode-range: U+11??, U+2E80-4DBF, U+4E00-9FFF, U+A960-A97F, U+AC00-D7FF,
+    U+F900-FAFF, U+FE00-FE6F, U+FF00-FFEF, U+1F2??, U+2????;
+}
+
+@font-face {
+  font-family: system-ui-zh-cn;
+  src: local("PingFangSC-Medium"), local("Source Han Sans CN Medium"),
+    local("SourceHanSansCN-Medium"), local("Source Han Sans SC Medium"),
+    local("SourceHanSansSC-Medium"), local("Noto Sans CJK SC Medium"),
+    local("NotoSansCJKSC-Medium"), local("HiraginoSansGB-W3"),
+    local("Hiragino Sans GB W3"), local("Microsoft YaHei"),
+    local("Heiti SC Light"), local("SimHei");
+  font-weight: 500;
+  unicode-range: U+11??, U+2E80-4DBF, U+4E00-9FFF, U+A960-A97F, U+AC00-D7FF,
+    U+F900-FAFF, U+FE00-FE6F, U+FF00-FFEF, U+1F2??, U+2????;
+}
+
+@font-face {
+  font-family: system-ui-zh-cn;
+  src: local("PingFangSC-Semibold"), local("Source Han Sans CN Bold"),
+    local("SourceHanSansCN-Bold"), local("Source Han Sans SC Bold"),
+    local("SourceHanSansSC-Bold"), local("Noto Sans CJK SC Bold"),
+    local("NotoSansCJKSC-Bold"), local("HiraginoSansGB-W6"),
+    local("Hiragino Sans GB W6"), local("Microsoft YaHei Bold"),
+    local("Heiti SC Medium"), local("SimHei");
+  font-weight: 600;
+  unicode-range: U+11??, U+2E80-4DBF, U+4E00-9FFF, U+A960-A97F, U+AC00-D7FF,
+    U+F900-FAFF, U+FE00-FE6F, U+FF00-FFEF, U+1F2??, U+2????;
+}
+
+/* Safari on macOS/iOS */
+@font-face {
+  font-family: system-ui-zh-cn;
+  src: local("HelveticaNeue");
+  unicode-range: U+A0;
+}
+
+/* Other browsers on macOS/iOS */
+@supports not (-webkit-hyphens: none) {
+  @font-face {
+    font-family: system-ui-zh-cn;
+    src: local("HelveticaNeue");
+    unicode-range: U+20;
+  }
+}
+
+@font-face {
+  font-family: system-ui-zh-tw;
+  src: local("PingFangTC-Light"), local("Source Han Sans TW Light"),
+    local("SourceHanSansTW-Light"), local("Source Han Sans TC Light"),
+    local("SourceHanSansTC-Light"), local("Noto Sans CJK TC Light"),
+    local("NotoSansCJKTC-Light"), local("HiraginoSansTC-W3"),
+    local("Hiragino Sans TC W3"), local("Microsoft JhengHei Light"),
+    local("Heiti TC Light"), local("PMingLiU");
+  font-weight: 300;
+  unicode-range: U+11??, U+2E80-4DBF, U+4E00-9FFF, U+A960-A97F, U+AC00-D7FF,
+    U+F900-FAFF, U+FE00-FE6F, U+FF00-FFEF, U+1F2??, U+2????;
+}
+
+@font-face {
+  font-family: system-ui-zh-tw;
+  src: local("PingFangTC-Regular"), local("Source Han Sans TW Regular"),
+    local("SourceHanSansTW-Regular"), local("Source Han Sans TC Regular"),
+    local("SourceHanSansTC-Regular"), local("Noto Sans CJK TC Regular"),
+    local("NotoSansCJKTC-Regular"), local("HiraginoSansTC-W3"),
+    local("Hiragino Sans TC W3"), local("Microsoft JhengHei"),
+    local("Heiti TC Light"), local("PMingLiU");
+  font-weight: 400;
+  unicode-range: U+11??, U+2E80-4DBF, U+4E00-9FFF, U+A960-A97F, U+AC00-D7FF,
+    U+F900-FAFF, U+FE00-FE6F, U+FF00-FFEF, U+1F2??, U+2????;
+}
+
+@font-face {
+  font-family: system-ui-zh-tw;
+  src: local("PingFangTC-Medium"), local("Source Han Sans TW Medium"),
+    local("SourceHanSansTW-Medium"), local("Source Han Sans TC Medium"),
+    local("SourceHanSansTC-Medium"), local("Noto Sans CJK TC Medium"),
+    local("NotoSansCJKTC-Medium"), local("HiraginoSansTC-W3"),
+    local("Hiragino Sans TC W3"), local("Microsoft JhengHei"),
+    local("Heiti TC Light"), local("PMingLiU");
+  font-weight: 500;
+  unicode-range: U+11??, U+2E80-4DBF, U+4E00-9FFF, U+A960-A97F, U+AC00-D7FF,
+    U+F900-FAFF, U+FE00-FE6F, U+FF00-FFEF, U+1F2??, U+2????;
+}
+
+@font-face {
+  font-family: system-ui-zh-tw;
+  src: local("PingFangTC-Semibold"), local("Source Han Sans TW Bold"),
+    local("SourceHanSansTW-Bold"), local("Source Han Sans TC Bold"),
+    local("SourceHanSansTC-Bold"), local("Noto Sans CJK TC Bold"),
+    local("NotoSansCJKTC-Bold"), local("HiraginoSansTC-W6"),
+    local("Hiragino Sans TC W6"), local("Microsoft JhengHei Bold"),
+    local("Heiti TC Medium"), local("PMingLiU");
+  font-weight: 600;
+  unicode-range: U+11??, U+2E80-4DBF, U+4E00-9FFF, U+A960-A97F, U+AC00-D7FF,
+    U+F900-FAFF, U+FE00-FE6F, U+FF00-FFEF, U+1F2??, U+2????;
+}
+
+/* Safari on macOS/iOS */
+@font-face {
+  font-family: system-ui-zh-tw;
+  src: local("HelveticaNeue");
+  unicode-range: U+A0;
+}
+
+/* Other browsers on macOS/iOS */
+@supports not (-webkit-hyphens: none) {
+  @font-face {
+    font-family: system-ui-zh-tw;
+    src: local("HelveticaNeue");
+    unicode-range: U+20;
+  }
+}
+
+@font-face {
+  font-family: system-ui-zh-hk;
+  src: local("PingFangHK-Light"), local("Source Han Sans HK Light"),
+    local("SourceHanSansHK-Light"), local("Source Han Sans HC Light"),
+    local("SourceHanSansHC-Light"), local("Noto Sans CJK HK Light"),
+    local("NotoSansCJKHK-Light"), local("Source Han Sans TC Light"),
+    local("SourceHanSansTC-Light"), local("Noto Sans CJK TC Light"),
+    local("NotoSansCJKTC-Light"), local("HiraginoSansTC-W3"),
+    local("Hiragino Sans TC W3"), local("Microsoft JhengHei Light"),
+    local("Heiti TC Light"), local("PMingLiU_HKSCS"), local("PMingLiU");
+  font-weight: 300;
+  unicode-range: U+11??, U+2E80-4DBF, U+4E00-9FFF, U+A960-A97F, U+AC00-D7FF,
+    U+F900-FAFF, U+FE00-FE6F, U+FF00-FFEF, U+1F2??, U+2????;
+}
+
+@font-face {
+  font-family: system-ui-zh-hk;
+  src: local("PingFangHK-Regular"), local("Source Han Sans HK Regular"),
+    local("SourceHanSansHK-Regular"), local("Source Han Sans HC Regular"),
+    local("SourceHanSansHC-Regular"), local("Noto Sans CJK HK Regular"),
+    local("NotoSansCJKHK-Regular"), local("Source Han Sans TC Regular"),
+    local("SourceHanSansTC-Regular"), local("Noto Sans CJK TC Regular"),
+    local("NotoSansCJKTC-Regular"), local("HiraginoSansTC-W3"),
+    local("Hiragino Sans TC W3"), local("Microsoft JhengHei"),
+    local("Heiti TC Light"), local("PMingLiU_HKSCS"), local("PMingLiU");
+  font-weight: 400;
+  unicode-range: U+11??, U+2E80-4DBF, U+4E00-9FFF, U+A960-A97F, U+AC00-D7FF,
+    U+F900-FAFF, U+FE00-FE6F, U+FF00-FFEF, U+1F2??, U+2????;
+}
+
+@font-face {
+  font-family: system-ui-zh-hk;
+  src: local("PingFangHK-Medium"), local("Source Han Sans HK Medium"),
+    local("SourceHanSansHK-Medium"), local("Source Han Sans HC Medium"),
+    local("SourceHanSansHC-Medium"), local("Noto Sans CJK HK Medium"),
+    local("NotoSansCJKHK-Medium"), local("Source Han Sans TC Medium"),
+    local("SourceHanSansTC-Medium"), local("Noto Sans CJK TC Medium"),
+    local("NotoSansCJKTC-Medium"), local("HiraginoSansTC-W3"),
+    local("Hiragino Sans TC W3"), local("Microsoft JhengHei"),
+    local("Heiti TC Light"), local("PMingLiU_HKSCS"), local("PMingLiU");
+  font-weight: 500;
+  unicode-range: U+11??, U+2E80-4DBF, U+4E00-9FFF, U+A960-A97F, U+AC00-D7FF,
+    U+F900-FAFF, U+FE00-FE6F, U+FF00-FFEF, U+1F2??, U+2????;
+}
+
+@font-face {
+  font-family: system-ui-zh-hk;
+  src: local("PingFangHK-Semibold"), local("Source Han Sans HK Bold"),
+    local("SourceHanSansHK-Bold"), local("Source Han Sans HC Bold"),
+    local("SourceHanSansHC-Bold"), local("Noto Sans CJK HK Bold"),
+    local("NotoSansCJKHK-Bold"), local("Source Han Sans TC Bold"),
+    local("SourceHanSansTC-Bold"), local("Noto Sans CJK TC Bold"),
+    local("NotoSansCJKTC-Bold"), local("HiraginoSansTC-W6"),
+    local("Hiragino Sans TC W6"), local("Microsoft JhengHei Bold"),
+    local("Heiti TC Medium"), local("PMingLiU_HKSCS"), local("PMingLiU");
+  font-weight: 600;
+  unicode-range: U+11??, U+2E80-4DBF, U+4E00-9FFF, U+A960-A97F, U+AC00-D7FF,
+    U+F900-FAFF, U+FE00-FE6F, U+FF00-FFEF, U+1F2??, U+2????;
+}
+
+/* Safari on macOS/iOS */
+@font-face {
+  font-family: system-ui-zh-hk;
+  src: local("HelveticaNeue");
+  unicode-range: U+A0;
+}
+
+/* Other browsers on macOS/iOS */
+@supports not (-webkit-hyphens: none) {
+  @font-face {
+    font-family: system-ui-zh-hk;
+    src: local("HelveticaNeue");
+    unicode-range: U+20;
+  }
+}
+
+@font-face {
+  font-family: system-ui-ko;
+  src: local("AppleSDGothicNeo-Light"), local("Source Han Sans KR Light"),
+    local("SourceHanSansKR-Light"), local("Source Han Sans K Light"),
+    local("SourceHanSansK-Light"), local("Noto Sans CJK KR Light"),
+    local("NotoSansCJKKR-Light"), local("NanumBarunGothic Light"),
+    local("Malgun Gothic Semilight"), local("Nanum Gothic"), local("Dotum");
+  font-weight: 300;
+  unicode-range: U+11??, U+2E80-4DBF, U+4E00-9FFF, U+A960-A97F, U+AC00-D7FF,
+    U+F900-FAFF, U+FE00-FE6F, U+FF00-FFEF, U+1F2??, U+2????;
+}
+
+@font-face {
+  font-family: system-ui-ko;
+  src: local("AppleSDGothicNeo-Regular"), local("Source Han Sans KR Regular"),
+    local("SourceHanSansKR-Regular"), local("Source Han Sans K Regular"),
+    local("SourceHanSansK-Regular"), local("Noto Sans CJK KR Regular"),
+    local("NotoSansCJKKR-Regular"), local("NanumBarunGothic"),
+    local("Malgun Gothic"), local("Nanum Gothic"), local("Dotum");
+  font-weight: 400;
+  unicode-range: U+11??, U+2E80-4DBF, U+4E00-9FFF, U+A960-A97F, U+AC00-D7FF,
+    U+F900-FAFF, U+FE00-FE6F, U+FF00-FFEF, U+1F2??, U+2????;
+}
+
+@font-face {
+  font-family: system-ui-ko;
+  src: local("AppleSDGothicNeo-Medium"), local("Source Han Sans KR Medium"),
+    local("SourceHanSansKR-Medium"), local("Source Han Sans K Medium"),
+    local("SourceHanSansK-Medium"), local("Noto Sans CJK KR Medium"),
+    local("NotoSansCJKKR-Medium"), local("NanumBarunGothic"),
+    local("Malgun Gothic"), local("Nanum Gothic"), local("Dotum");
+  font-weight: 500;
+  unicode-range: U+11??, U+2E80-4DBF, U+4E00-9FFF, U+A960-A97F, U+AC00-D7FF,
+    U+F900-FAFF, U+FE00-FE6F, U+FF00-FFEF, U+1F2??, U+2????;
+}
+
+@font-face {
+  font-family: system-ui-ko;
+  src: local("AppleSDGothicNeo-SemiBold"), local("Source Han Sans KR Bold"),
+    local("SourceHanSansKR-Bold"), local("Source Han Sans K Bold"),
+    local("SourceHanSansK-Bold"), local("Noto Sans CJK KR Bold"),
+    local("NotoSansCJKKR-Bold"), local("NanumBarunGothic Bold"),
+    local("Malgun Gothic Bold"), local("Nanum Gothic Bold"), local("Dotum");
+  font-weight: 600;
+  unicode-range: U+11??, U+2E80-4DBF, U+4E00-9FFF, U+A960-A97F, U+AC00-D7FF,
+    U+F900-FAFF, U+FE00-FE6F, U+FF00-FFEF, U+1F2??, U+2????;
+}
+
+/* Safari on macOS/iOS */
+@font-face {
+  font-family: system-ui-ko;
+  src: local("HelveticaNeue");
+  unicode-range: U+A0;
+}
+
+/* Other browsers on macOS/iOS */
+@supports not (-webkit-hyphens: none) {
+  @font-face {
+    font-family: system-ui-ko;
+    src: local("HelveticaNeue");
+    unicode-range: U+20;
+  }
+}

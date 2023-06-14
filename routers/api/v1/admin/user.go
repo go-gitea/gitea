@@ -103,7 +103,6 @@ func CreateUser(ctx *context.APIContext) {
 		if err != nil {
 			log.Error(err.Error())
 		}
-		ctx.Data["Err_Password"] = true
 		ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
 		return
 	}
@@ -201,7 +200,6 @@ func EditUser(ctx *context.APIContext) {
 			if err != nil {
 				log.Error(err.Error())
 			}
-			ctx.Data["Err_Password"] = true
 			ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
 			return
 		}
@@ -305,6 +303,10 @@ func DeleteUser(ctx *context.APIContext) {
 	//   description: username of user to delete
 	//   type: string
 	//   required: true
+	// - name: purge
+	//   in: query
+	//   description: purge the user from the system completely
+	//   type: boolean
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
@@ -413,14 +415,23 @@ func DeleteUserPublicKey(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// GetAllUsers API for getting information of all the users
-func GetAllUsers(ctx *context.APIContext) {
-	// swagger:operation GET /admin/users admin adminGetAllUsers
+// SearchUsers API for getting information of the users according the filter conditions
+func SearchUsers(ctx *context.APIContext) {
+	// swagger:operation GET /admin/users admin adminSearchUsers
 	// ---
-	// summary: List all users
+	// summary: Search users according filter conditions
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: source_id
+	//   in: query
+	//   description: ID of the user's login source to search for
+	//   type: integer
+	//   format: int64
+	// - name: login_name
+	//   in: query
+	//   description: user's login name to search for
+	//   type: string
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -440,11 +451,13 @@ func GetAllUsers(ctx *context.APIContext) {
 	users, maxResults, err := user_model.SearchUsers(&user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
 		Type:        user_model.UserTypeIndividual,
+		LoginName:   ctx.FormTrim("login_name"),
+		SourceID:    ctx.FormInt64("source_id"),
 		OrderBy:     db.SearchOrderByAlphabetically,
 		ListOptions: listOptions,
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetAllUsers", err)
+		ctx.Error(http.StatusInternalServerError, "SearchUsers", err)
 		return
 	}
 
@@ -456,4 +469,62 @@ func GetAllUsers(ctx *context.APIContext) {
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
 	ctx.SetTotalCountHeader(maxResults)
 	ctx.JSON(http.StatusOK, &results)
+}
+
+// RenameUser api for renaming a user
+func RenameUser(ctx *context.APIContext) {
+	// swagger:operation POST /admin/users/{username}/rename admin adminRenameUser
+	// ---
+	// summary: Rename a user
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: existing username of user
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   required: true
+	//   schema:
+	//     "$ref": "#/definitions/RenameUserOption"
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	if ctx.ContextUser.IsOrganization() {
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("%s is an organization not a user", ctx.ContextUser.Name))
+		return
+	}
+
+	oldName := ctx.ContextUser.Name
+	newName := web.GetForm(ctx).(*api.RenameUserOption).NewName
+
+	// Check if user name has been changed
+	if err := user_service.RenameUser(ctx, ctx.ContextUser, newName); err != nil {
+		switch {
+		case user_model.IsErrUsernameNotChanged(err):
+			// Noop as username is not changed
+			ctx.Status(http.StatusNoContent)
+		case user_model.IsErrUserAlreadyExist(err):
+			ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("form.username_been_taken"))
+		case db.IsErrNameReserved(err):
+			ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("user.form.name_reserved", newName))
+		case db.IsErrNamePatternNotAllowed(err):
+			ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("user.form.name_pattern_not_allowed", newName))
+		case db.IsErrNameCharsNotAllowed(err):
+			ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("user.form.name_chars_not_allowed", newName))
+		default:
+			ctx.ServerError("ChangeUserName", err)
+		}
+		return
+	}
+
+	log.Trace("User name changed: %s -> %s", oldName, newName)
+	ctx.Status(http.StatusOK)
 }

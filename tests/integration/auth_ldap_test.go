@@ -203,7 +203,7 @@ func TestLDAPAuthChange(t *testing.T) {
 	host, _ := doc.Find(`input[name="host"]`).Attr("value")
 	assert.Equal(t, host, getLDAPServerHost())
 	binddn, _ := doc.Find(`input[name="bind_dn"]`).Attr("value")
-	assert.Equal(t, binddn, "uid=gitea,ou=service,dc=planetexpress,dc=com")
+	assert.Equal(t, "uid=gitea,ou=service,dc=planetexpress,dc=com", binddn)
 
 	req = NewRequestWithValues(t, "POST", href, buildAuthSourceLDAPPayload(csrf, "", "", "", "off"))
 	session.MakeRequest(t, req, http.StatusSeeOther)
@@ -214,7 +214,7 @@ func TestLDAPAuthChange(t *testing.T) {
 	host, _ = doc.Find(`input[name="host"]`).Attr("value")
 	assert.Equal(t, host, getLDAPServerHost())
 	binddn, _ = doc.Find(`input[name="bind_dn"]`).Attr("value")
-	assert.Equal(t, binddn, "uid=gitea,ou=service,dc=planetexpress,dc=com")
+	assert.Equal(t, "uid=gitea,ou=service,dc=planetexpress,dc=com", binddn)
 }
 
 func TestLDAPUserSync(t *testing.T) {
@@ -397,8 +397,8 @@ func TestLDAPGroupTeamSyncAddMember(t *testing.T) {
 		assert.NoError(t, err)
 		if user.Name == "fry" || user.Name == "leela" || user.Name == "bender" {
 			// assert members of LDAP group "cn=ship_crew" are added to mapped teams
-			assert.Equal(t, len(usersOrgs), 1, "User [%s] should be member of one organization", user.Name)
-			assert.Equal(t, usersOrgs[0].Name, "org26", "Membership should be added to the right organization")
+			assert.Len(t, usersOrgs, 1, "User [%s] should be member of one organization", user.Name)
+			assert.Equal(t, "org26", usersOrgs[0].Name, "Membership should be added to the right organization")
 			isMember, err := organization.IsTeamMember(db.DefaultContext, usersOrgs[0].ID, team.ID, user.ID)
 			assert.NoError(t, err)
 			assert.True(t, isMember, "Membership should be added to the right team")

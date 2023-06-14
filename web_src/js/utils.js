@@ -1,3 +1,5 @@
+import {encode, decode} from 'uint8-to-base64';
+
 // transform /path/to/file.ext to file.ext
 export function basename(path = '') {
   return path ? path.replace(/^.*\//, '') : '';
@@ -30,27 +32,9 @@ export function isDarkTheme() {
   return style.getPropertyValue('--is-dark-theme').trim().toLowerCase() === 'true';
 }
 
-// removes duplicate elements in an array
-export function uniq(arr) {
-  return Array.from(new Set(arr));
-}
-
 // strip <tags> from a string
 export function stripTags(text) {
-  return text.replace(/<[^>]*>?/gm, '');
-}
-
-// searches the inclusive range [minValue, maxValue].
-// credits: https://matthiasott.com/notes/write-your-media-queries-in-pixels-not-ems
-export function mqBinarySearch(feature, minValue, maxValue, step, unit) {
-  if (maxValue - minValue < step) {
-    return minValue;
-  }
-  const mid = Math.ceil((minValue + maxValue) / 2 / step) * step;
-  if (matchMedia(`screen and (min-${feature}:${mid}${unit})`).matches) {
-    return mqBinarySearch(feature, mid, maxValue, step, unit); // feature is >= mid
-  }
-  return mqBinarySearch(feature, minValue, mid - step, step, unit); // feature is < mid
+  return text.replace(/<[^>]*>?/g, '');
 }
 
 export function parseIssueHref(href) {
@@ -59,20 +43,13 @@ export function parseIssueHref(href) {
   return {owner, repo, type, index};
 }
 
-// pretty-print a number using locale-specific separators, e.g. 1200 -> 1,200
-export function prettyNumber(num, locale = 'en-US') {
-  if (typeof num !== 'number') return '';
-  const {format} = new Intl.NumberFormat(locale);
-  return format(num);
-}
-
 // parse a URL, either relative '/path' or absolute 'https://localhost/path'
 export function parseUrl(str) {
   return new URL(str, str.startsWith('http') ? undefined : window.location.origin);
 }
 
 // return current locale chosen by user
-function getCurrentLocale() {
+export function getCurrentLocale() {
   return document.documentElement.lang;
 }
 
@@ -147,17 +124,17 @@ export function toAbsoluteUrl(url) {
   return `${window.location.origin}${url}`;
 }
 
-// determine if light or dark text color should be used on a given background color
-// NOTE: see models/issue_label.go for similar implementation
-export function useLightTextOnBackground(backgroundColor) {
-  if (backgroundColor[0] === '#') {
-    backgroundColor = backgroundColor.substring(1);
-  }
-  // Perceived brightness from: https://www.w3.org/TR/AERT/#color-contrast
-  // In the future WCAG 3 APCA may be a better solution.
-  const r = parseInt(backgroundColor.substring(0, 2), 16);
-  const g = parseInt(backgroundColor.substring(2, 4), 16);
-  const b = parseInt(backgroundColor.substring(4, 6), 16);
-  const brightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return brightness < 0.35;
+// Encode an ArrayBuffer into a URLEncoded base64 string.
+export function encodeURLEncodedBase64(arrayBuffer) {
+  return encode(arrayBuffer)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+}
+
+// Decode a URLEncoded base64 to an ArrayBuffer string.
+export function decodeURLEncodedBase64(base64url) {
+  return decode(base64url
+    .replace(/_/g, '/')
+    .replace(/-/g, '+'));
 }

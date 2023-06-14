@@ -1,19 +1,21 @@
 ---
 date: "2016-12-01T16:00:00+02:00"
-title: "从二进制安装"
+title: "使用二进制文件安装"
 slug: "install-from-binary"
-weight: 10
+weight: 15
 toc: false
 draft: false
+aliases:
+  - /zh-cn/install-from-binary
 menu:
   sidebar:
     parent: "installation"
-    name: "从二进制安装"
-    weight: 20
+    name: "使用二进制文件安装"
+    weight: 15
     identifier: "install-from-binary"
 ---
 
-# 从二进制安装
+# 使用二进制文件安装
 
 所有打包的二进制程序均包含 SQLite，MySQL 和 PostgreSQL 的数据库连接支持，同时网站的静态资源均已嵌入到可执行程序中，这一点和曾经的 Gogs 有所不同。
 
@@ -59,7 +61,7 @@ gpg --verify gitea-{{< version >}}-linux-amd64.asc gitea-{{< version >}}-linux-a
 
 ## 服务器设置
 
-**提示：** `GITEA_WORK_DIR` 表示 Gitea 工作的路径。以下路径可以通过 [环境变量]({{< relref "doc/advanced/environment-variables.zh-cn.md" >}}) 初始化。
+**提示：** `GITEA_WORK_DIR` 表示 Gitea 工作的路径。以下路径可以通过 [环境变量]({{< relref "doc/administration/environment-variables.zh-cn.md" >}}) 初始化。
 
 ### 准备环境
 
@@ -72,6 +74,7 @@ git --version
 创建用户（推荐使用名称 `git`）
 
 ```sh
+# On Ubuntu/Debian:
 adduser \
    --system \
    --shell /bin/bash \
@@ -79,6 +82,17 @@ adduser \
    --group \
    --disabled-password \
    --home /home/git \
+   git
+
+# On Fedora/RHEL/CentOS:
+groupadd --system git
+adduser \
+   --system \
+   --shell /bin/bash \
+   --comment 'Git Version Control' \
+   --gid git \
+   --home-dir /home/git \
+   --create-home \
    git
 ```
 
@@ -129,7 +143,7 @@ cp gitea /usr/local/bin/gitea
 
 ### 1. 创建服务自动启动 Gitea（推荐）
 
-学习创建 [Linux 服务]({{< relref "run-as-service-in-ubuntu.zh-cn.md" >}})
+学习创建 [Linux 服务]({{< relref "doc/installation/run-as-service-in-ubuntu.zh-cn.md" >}})
 
 ### 2. 通过命令行终端运行
 
@@ -141,7 +155,7 @@ GITEA_WORK_DIR=/var/lib/gitea/ /usr/local/bin/gitea web -c /etc/gitea/app.ini
 
 您可以通过停止程序，替换 `/usr/local/bin/gitea` 并重启来更新到新版本。直接替换可执行程序时不要更改或使用新的文件名称，以避免数据出错。
 
-建议您在更新之前进行[备份]({{< relref "doc/usage/backup-and-restore.zh-cn.md" >}})。
+建议您在更新之前进行[备份]({{< relref "doc/administration/backup-and-restore.zh-cn.md" >}})。
 
 ### 1. 使用 systemd 重新启动 Gitea（推荐）
 
@@ -161,4 +175,4 @@ GITEA_WORK_DIR=/var/lib/gitea/ /usr/local/bin/gitea web -c /etc/gitea/app.ini
 
 > 更多经验总结，请参考英文版 [Troubleshooting](/en-us/install-from-binary/#troubleshooting)
 
-如果从本页中没有找到你需要的内容，请访问 [帮助页面]({{< relref "seek-help.zh-cn.md" >}})
+如果从本页中没有找到你需要的内容，请访问 [帮助页面]({{< relref "doc/help/support.zh-cn.md" >}})

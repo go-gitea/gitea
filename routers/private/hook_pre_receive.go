@@ -1,14 +1,12 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-// Package private includes all internal routes. The package name internal is ideal but Golang is not allowed, so we use private as package name instead.
 package private
 
 import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -69,8 +67,8 @@ func (ctx *preReceiveContext) AssertCanWriteCode() bool {
 		if ctx.Written() {
 			return false
 		}
-		ctx.JSON(http.StatusForbidden, map[string]interface{}{
-			"err": "User permission denied for writing.",
+		ctx.JSON(http.StatusForbidden, private.Response{
+			UserMsg: "User permission denied for writing.",
 		})
 		return false
 	}
@@ -95,8 +93,8 @@ func (ctx *preReceiveContext) AssertCreatePullRequest() bool {
 		if ctx.Written() {
 			return false
 		}
-		ctx.JSON(http.StatusForbidden, map[string]interface{}{
-			"err": "User permission denied for creating pull-request.",
+		ctx.JSON(http.StatusForbidden, private.Response{
+			UserMsg: "User permission denied for creating pull-request.",
 		})
 		return false
 	}
@@ -120,12 +118,12 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		refFullName := opts.RefFullNames[i]
 
 		switch {
-		case strings.HasPrefix(refFullName, git.BranchPrefix):
+		case refFullName.IsBranch():
 			preReceiveBranch(ourCtx, oldCommitID, newCommitID, refFullName)
-		case strings.HasPrefix(refFullName, git.TagPrefix):
+		case refFullName.IsTag():
 			preReceiveTag(ourCtx, oldCommitID, newCommitID, refFullName)
-		case git.SupportProcReceive && strings.HasPrefix(refFullName, git.PullRequestPrefix):
-			preReceivePullRequest(ourCtx, oldCommitID, newCommitID, refFullName)
+		case git.SupportProcReceive && refFullName.IsFor():
+			preReceiveFor(ourCtx, oldCommitID, newCommitID, refFullName)
 		default:
 			ourCtx.AssertCanWriteCode()
 		}
@@ -137,8 +135,8 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 	ctx.PlainText(http.StatusOK, "ok")
 }
 
-func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullName string) {
-	branchName := strings.TrimPrefix(refFullName, git.BranchPrefix)
+func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, refFullName git.RefName) {
+	branchName := refFullName.BranchName()
 	ctx.branchName = branchName
 
 	if !ctx.AssertCanWriteCode() {
@@ -151,7 +149,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 	if branchName == repo.DefaultBranch && newCommitID == git.EmptySHA {
 		log.Warn("Forbidden: Branch: %s is the default branch in %-v and cannot be deleted", branchName, repo)
 		ctx.JSON(http.StatusForbidden, private.Response{
-			Err: fmt.Sprintf("branch %s is the default branch and cannot be deleted", branchName),
+			UserMsg: fmt.Sprintf("branch %s is the default branch and cannot be deleted", branchName),
 		})
 		return
 	}
@@ -179,7 +177,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 	if newCommitID == git.EmptySHA {
 		log.Warn("Forbidden: Branch: %s in %-v is protected from deletion", branchName, repo)
 		ctx.JSON(http.StatusForbidden, private.Response{
-			Err: fmt.Sprintf("branch %s is protected from deletion", branchName),
+			UserMsg: fmt.Sprintf("branch %s is protected from deletion", branchName),
 		})
 		return
 	}
@@ -196,7 +194,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 		} else if len(output) > 0 {
 			log.Warn("Forbidden: Branch: %s in %-v is protected from force push", branchName, repo)
 			ctx.JSON(http.StatusForbidden, private.Response{
-				Err: fmt.Sprintf("branch %s is protected from force push", branchName),
+				UserMsg: fmt.Sprintf("branch %s is protected from force push", branchName),
 			})
 			return
 
@@ -217,7 +215,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 			unverifiedCommit := err.(*errUnverifiedCommit).sha
 			log.Warn("Forbidden: Branch: %s in %-v is protected from unverified commit %s", branchName, repo, unverifiedCommit)
 			ctx.JSON(http.StatusForbidden, private.Response{
-				Err: fmt.Sprintf("branch %s is protected from unverified commit %s", branchName, unverifiedCommit),
+				UserMsg: fmt.Sprintf("branch %s is protected from unverified commit %s", branchName, unverifiedCommit),
 			})
 			return
 		}
@@ -272,7 +270,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 			if changedProtectedfiles {
 				log.Warn("Forbidden: Branch: %s in %-v is protected from changing file %s", branchName, repo, protectedFilePath)
 				ctx.JSON(http.StatusForbidden, private.Response{
-					Err: fmt.Sprintf("branch %s is protected from changing file %s", branchName, protectedFilePath),
+					UserMsg: fmt.Sprintf("branch %s is protected from changing file %s", branchName, protectedFilePath),
 				})
 				return
 			}
@@ -297,7 +295,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 			// Or we're simply not able to push to this protected branch
 			log.Warn("Forbidden: User %d is not allowed to push to protected branch: %s in %-v", ctx.opts.UserID, branchName, repo)
 			ctx.JSON(http.StatusForbidden, private.Response{
-				Err: fmt.Sprintf("Not allowed to push to protected branch %s", branchName),
+				UserMsg: fmt.Sprintf("Not allowed to push to protected branch %s", branchName),
 			})
 			return
 		}
@@ -333,7 +331,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 		if !allowedMerge {
 			log.Warn("Forbidden: User %d is not allowed to push to protected branch: %s in %-v and is not allowed to merge pr #%d", ctx.opts.UserID, branchName, repo, pr.Index)
 			ctx.JSON(http.StatusForbidden, private.Response{
-				Err: fmt.Sprintf("Not allowed to push to protected branch %s", branchName),
+				UserMsg: fmt.Sprintf("Not allowed to push to protected branch %s", branchName),
 			})
 			return
 		}
@@ -347,7 +345,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 		if changedProtectedfiles {
 			log.Warn("Forbidden: Branch: %s in %-v is protected from changing file %s", branchName, repo, protectedFilePath)
 			ctx.JSON(http.StatusForbidden, private.Response{
-				Err: fmt.Sprintf("branch %s is protected from changing file %s", branchName, protectedFilePath),
+				UserMsg: fmt.Sprintf("branch %s is protected from changing file %s", branchName, protectedFilePath),
 			})
 			return
 		}
@@ -357,7 +355,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 			if models.IsErrDisallowedToMerge(err) {
 				log.Warn("Forbidden: User %d is not allowed push to protected branch %s in %-v and pr #%d is not ready to be merged: %s", ctx.opts.UserID, branchName, repo, pr.Index, err.Error())
 				ctx.JSON(http.StatusForbidden, private.Response{
-					Err: fmt.Sprintf("Not allowed to push to protected branch %s and pr #%d is not ready to be merged: %s", branchName, ctx.opts.PullRequestID, err.Error()),
+					UserMsg: fmt.Sprintf("Not allowed to push to protected branch %s and pr #%d is not ready to be merged: %s", branchName, ctx.opts.PullRequestID, err.Error()),
 				})
 				return
 			}
@@ -370,12 +368,12 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 	}
 }
 
-func preReceiveTag(ctx *preReceiveContext, oldCommitID, newCommitID, refFullName string) {
+func preReceiveTag(ctx *preReceiveContext, oldCommitID, newCommitID string, refFullName git.RefName) {
 	if !ctx.AssertCanWriteCode() {
 		return
 	}
 
-	tagName := strings.TrimPrefix(refFullName, git.TagPrefix)
+	tagName := refFullName.TagName()
 
 	if !ctx.gotProtectedTags {
 		var err error
@@ -400,32 +398,32 @@ func preReceiveTag(ctx *preReceiveContext, oldCommitID, newCommitID, refFullName
 	if !isAllowed {
 		log.Warn("Forbidden: Tag %s in %-v is protected", tagName, ctx.Repo.Repository)
 		ctx.JSON(http.StatusForbidden, private.Response{
-			Err: fmt.Sprintf("Tag %s is protected", tagName),
+			UserMsg: fmt.Sprintf("Tag %s is protected", tagName),
 		})
 		return
 	}
 }
 
-func preReceivePullRequest(ctx *preReceiveContext, oldCommitID, newCommitID, refFullName string) {
+func preReceiveFor(ctx *preReceiveContext, oldCommitID, newCommitID string, refFullName git.RefName) {
 	if !ctx.AssertCreatePullRequest() {
 		return
 	}
 
 	if ctx.Repo.Repository.IsEmpty {
-		ctx.JSON(http.StatusForbidden, map[string]interface{}{
-			"err": "Can't create pull request for an empty repository.",
+		ctx.JSON(http.StatusForbidden, private.Response{
+			UserMsg: "Can't create pull request for an empty repository.",
 		})
 		return
 	}
 
 	if ctx.opts.IsWiki {
-		ctx.JSON(http.StatusForbidden, map[string]interface{}{
-			"err": "Pull requests are not supported on the wiki.",
+		ctx.JSON(http.StatusForbidden, private.Response{
+			UserMsg: "Pull requests are not supported on the wiki.",
 		})
 		return
 	}
 
-	baseBranchName := refFullName[len(git.PullRequestPrefix):]
+	baseBranchName := refFullName.ForBranchName()
 
 	baseBranchExist := false
 	if ctx.Repo.GitRepo.IsBranchExist(baseBranchName) {
@@ -443,7 +441,7 @@ func preReceivePullRequest(ctx *preReceiveContext, oldCommitID, newCommitID, ref
 
 	if !baseBranchExist {
 		ctx.JSON(http.StatusForbidden, private.Response{
-			Err: fmt.Sprintf("Unexpected ref: %s", refFullName),
+			UserMsg: fmt.Sprintf("Unexpected ref: %s", refFullName),
 		})
 		return
 	}

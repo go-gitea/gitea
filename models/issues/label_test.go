@@ -15,22 +15,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TODO TestGetLabelTemplateFile
-
 func TestLabel_CalOpenIssues(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1})
 	label.CalOpenIssues()
 	assert.EqualValues(t, 2, label.NumOpenIssues)
-}
-
-func TestLabel_TextColor(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1})
-	assert.False(t, label.UseLightTextColor())
-
-	label = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 2})
-	assert.True(t, label.UseLightTextColor())
 }
 
 func TestLabel_ExclusiveScope(t *testing.T) {

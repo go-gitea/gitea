@@ -10,8 +10,8 @@ draft: false
 
 # What is Gitea?
 
-Gitea is a painless self-hosted Git service. It is similar to GitHub, Bitbucket, and GitLab.
-Gitea is a fork of [Gogs](http://gogs.io). See the [Gitea Announcement](https://blog.gitea.io/2016/12/welcome-to-gitea/)
+Gitea is a painless self-hosted all-in-one software development service, it includes Git hosting, code review, team collaboration, package registry and CI/CD. It is similar to GitHub, Bitbucket and GitLab.
+Gitea was forked from [Gogs](http://gogs.io) originally and almost all the code has been changed. See the [Gitea Announcement](https://blog.gitea.io/2016/12/welcome-to-gitea/)
 blog post to read about the justification for a fork.
 
 ## Purpose
@@ -299,6 +299,6 @@ You can try it out using [the online demo](https://try.gitea.io/).
   - [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
   - [github.com/denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb)
 
-## Software and Service Support
+## Integrated support
 
-- [Drone](https://github.com/drone/drone) (CI)
+ Please visit [Awesome Gitea](https://gitea.com/gitea/awesome-gitea/) to get more third-party integrated support

@@ -176,7 +176,7 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 		filename = query
 	}
 
-	attachment, err := attachment.UploadAttachment(file, setting.Attachment.AllowedTypes, &repo_model.Attachment{
+	attachment, err := attachment.UploadAttachment(file, setting.Attachment.AllowedTypes, header.Size, &repo_model.Attachment{
 		Name:       filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     ctx.Repo.Repository.ID,

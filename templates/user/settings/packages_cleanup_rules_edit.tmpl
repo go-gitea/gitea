@@ -1,9 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content user settings packages">
-	{{template "user/settings/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings packages")}}
+	<div class="user-setting-content">
 		{{template "package/shared/cleanup_rules/edit" .}}
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "user/settings/layout_footer" .}}

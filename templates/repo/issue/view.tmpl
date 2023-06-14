@@ -2,32 +2,11 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository view issue pull">
 	{{template "repo/header" .}}
 	<div class="ui container">
-		<div class="ui two column grid">
-			<div class="column">
-				{{template "repo/issue/navbar" .}}
-			</div>
-			{{if and (not .Repository.IsArchived) (not .Issue.IsPull)}}
-				<div class="column right aligned">
-					{{if .PageIsIssueList}}
-						<a class="ui green button" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{.locale.Tr "repo.issues.new"}}</a>
-					{{else}}
-						<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{.RepoLink}}/compare/{{.BranchName | PathEscapeSegments}}...{{.PullRequestCtx.HeadInfoSubURL}}">{{.locale.Tr "repo.pulls.new"}}</a>
-					{{end}}
-				</div>
-			{{end}}
-		</div>
-		<div class="ui divider"></div>
+		{{template "repo/issue/view_title" .}}
 		{{if .Issue.IsPull}}
-			{{template "repo/issue/view_title" .}}
 			{{template "repo/pulls/tab_menu" .}}
-			<div class="ui bottom attached tab pull active" data-tab="request-{{.ID}}">
-				{{template "repo/issue/view_content" .}}
-			</div>
-		{{else}}
-			<div>
-				{{template "repo/issue/view_content" .}}
-			</div>
 		{{end}}
+		{{template "repo/issue/view_content" .}}
 	</div>
 </div>
 {{template "base/footer" .}}

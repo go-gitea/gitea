@@ -52,7 +52,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 	}
 
 	for _, assigneeID := range assigneeIDs {
-		if err := issue_service.AddAssigneeIfNotAssigned(pull, pull.Poster, assigneeID); err != nil {
+		if err := issue_service.AddAssigneeIfNotAssigned(ctx, pull, pull.Poster, assigneeID); err != nil {
 			return err
 		}
 	}
@@ -122,7 +122,14 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 			Content:     string(dataJSON),
 		}
 
-		_, _ = issue_service.CreateComment(ops)
+		_, _ = issue_service.CreateComment(ctx, ops)
+
+		if !pr.IsWorkInProgress() {
+			if err := issues_model.PullRequestCodeOwnersReview(ctx, pull, pr); err != nil {
+				return err
+			}
+		}
+
 	}
 
 	return nil
@@ -221,7 +228,7 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 		OldRef: oldBranch,
 		NewRef: targetBranch,
 	}
-	if _, err = issue_service.CreateComment(options); err != nil {
+	if _, err = issue_service.CreateComment(ctx, options); err != nil {
 		return fmt.Errorf("CreateChangeTargetBranchComment: %w", err)
 	}
 
@@ -257,6 +264,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 		// If you don't let it run all the way then you will lose data
 		// TODO: graceful: AddTestPullRequestTask needs to become a queue!
 
+		// GetUnmergedPullRequestsByHeadInfo() only return open and unmerged PR.
 		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(repoID, branch)
 		if err != nil {
 			log.Error("Find pull requests [head_repo_id: %d, head_branch: %s]: %v", repoID, branch, err)
@@ -349,18 +357,14 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 // checkIfPRContentChanged checks if diff to target branch has changed by push
 // A commit can be considered to leave the PR untouched if the patch/diff with its merge base is unchanged
 func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, oldCommitID, newCommitID string) (hasChanged bool, err error) {
-	tmpBasePath, err := createTemporaryRepo(ctx, pr)
+	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
 	if err != nil {
-		log.Error("CreateTemporaryRepo: %v", err)
+		log.Error("CreateTemporaryRepoForPR %-v: %v", pr, err)
 		return false, err
 	}
-	defer func() {
-		if err := repo_module.RemoveTemporaryPath(tmpBasePath); err != nil {
-			log.Error("checkIfPRContentChanged: RemoveTemporaryPath: %s", err)
-		}
-	}()
+	defer cancel()
 
-	tmpRepo, err := git.OpenRepository(ctx, tmpBasePath)
+	tmpRepo, err := git.OpenRepository(ctx, prCtx.tmpBasePath)
 	if err != nil {
 		return false, fmt.Errorf("OpenRepository: %w", err)
 	}
@@ -379,7 +383,7 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 	}
 
 	if err := cmd.Run(&git.RunOpts{
-		Dir:    tmpBasePath,
+		Dir:    prCtx.tmpBasePath,
 		Stdout: stdoutWriter,
 		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
@@ -673,7 +677,12 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 
 		authorString := commit.Author.String()
 		if uniqueAuthors.Add(authorString) && authorString != posterSig {
-			authors = append(authors, authorString)
+			// Compare use account as well to avoid adding the same author multiple times
+			// times when email addresses are private or multiple emails are used.
+			commitUser, _ := user_model.GetUserByEmail(ctx, commit.Author.Email)
+			if commitUser == nil || commitUser.ID != pr.Issue.Poster.ID {
+				authors = append(authors, authorString)
+			}
 		}
 	}
 
@@ -694,7 +703,10 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 			for _, commit := range commits {
 				authorString := commit.Author.String()
 				if uniqueAuthors.Add(authorString) && authorString != posterSig {
-					authors = append(authors, authorString)
+					commitUser, _ := user_model.GetUserByEmail(ctx, commit.Author.Email)
+					if commitUser == nil || commitUser.ID != pr.Issue.Poster.ID {
+						authors = append(authors, authorString)
+					}
 				}
 			}
 			skip += limit

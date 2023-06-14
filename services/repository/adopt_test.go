@@ -30,7 +30,7 @@ func TestCheckUnadoptedRepositories_Add(t *testing.T) {
 	}
 
 	assert.Equal(t, total, unadopted.index)
-	assert.Equal(t, end-start, len(unadopted.repositories))
+	assert.Len(t, unadopted.repositories, end-start)
 }
 
 func TestCheckUnadoptedRepositories(t *testing.T) {
@@ -39,9 +39,9 @@ func TestCheckUnadoptedRepositories(t *testing.T) {
 	// Non existent user
 	//
 	unadopted := &unadoptedRepositories{start: 0, end: 100}
-	err := checkUnadoptedRepositories("notauser", []string{"repo"}, unadopted)
+	err := checkUnadoptedRepositories(db.DefaultContext, "notauser", []string{"repo"}, unadopted)
 	assert.NoError(t, err)
-	assert.Equal(t, 0, len(unadopted.repositories))
+	assert.Empty(t, unadopted.repositories)
 	//
 	// Unadopted repository is returned
 	// Existing (adopted) repository is not returned
@@ -50,16 +50,16 @@ func TestCheckUnadoptedRepositories(t *testing.T) {
 	repoName := "repo2"
 	unadoptedRepoName := "unadopted"
 	unadopted = &unadoptedRepositories{start: 0, end: 100}
-	err = checkUnadoptedRepositories(userName, []string{repoName, unadoptedRepoName}, unadopted)
+	err = checkUnadoptedRepositories(db.DefaultContext, userName, []string{repoName, unadoptedRepoName}, unadopted)
 	assert.NoError(t, err)
 	assert.Equal(t, []string{path.Join(userName, unadoptedRepoName)}, unadopted.repositories)
 	//
 	// Existing (adopted) repository is not returned
 	//
 	unadopted = &unadoptedRepositories{start: 0, end: 100}
-	err = checkUnadoptedRepositories(userName, []string{repoName}, unadopted)
+	err = checkUnadoptedRepositories(db.DefaultContext, userName, []string{repoName}, unadopted)
 	assert.NoError(t, err)
-	assert.Equal(t, 0, len(unadopted.repositories))
+	assert.Empty(t, unadopted.repositories)
 	assert.Equal(t, 0, unadopted.index)
 }
 
@@ -72,13 +72,13 @@ func TestListUnadoptedRepositories_ListOptions(t *testing.T) {
 	}
 
 	opts := db.ListOptions{Page: 1, PageSize: 1}
-	repoNames, count, err := ListUnadoptedRepositories("", &opts)
+	repoNames, count, err := ListUnadoptedRepositories(db.DefaultContext, "", &opts)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, count)
 	assert.Equal(t, unadoptedList[0], repoNames[0])
 
 	opts = db.ListOptions{Page: 2, PageSize: 1}
-	repoNames, count, err = ListUnadoptedRepositories("", &opts)
+	repoNames, count, err = ListUnadoptedRepositories(db.DefaultContext, "", &opts)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, count)
 	assert.Equal(t, unadoptedList[1], repoNames[0])

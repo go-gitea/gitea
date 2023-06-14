@@ -5,6 +5,8 @@ slug: "install-from-package"
 weight: 20
 toc: false
 draft: false
+aliases:
+  - /en-us/install-from-package
 menu:
   sidebar:
     parent: "installation"
@@ -13,11 +15,24 @@ menu:
     identifier: "install-from-package"
 ---
 
-# Installation from package
-
 **Table of Contents**
 
 {{< toc >}}
+
+# Official packages
+
+## macOS
+
+Currently, the only supported method of installation on MacOS is [Homebrew](http://brew.sh/).
+Following the [deployment from binary]({{< relref "doc/installation/from-binary.en-us.md" >}}) guide may work,
+but is not supported. To install Gitea via `brew`:
+
+```
+brew tap gitea/tap https://gitea.com/gitea/homebrew-gitea
+brew install gitea
+```
+
+# Unofficial packages
 
 ## Alpine Linux
 
@@ -72,18 +87,7 @@ There is a [Gitea](https://chocolatey.org/packages/gitea) package for Windows by
 choco install gitea
 ```
 
-Or follow the [deployment from binary]({{< relref "from-binary.en-us.md" >}}) guide.
-
-## macOS
-
-Currently, the only supported method of installation on MacOS is [Homebrew](http://brew.sh/).
-Following the [deployment from binary]({{< relref "from-binary.en-us.md" >}}) guide may work,
-but is not supported. To install Gitea via `brew`:
-
-```
-brew tap gitea/tap https://gitea.com/gitea/homebrew-gitea
-brew install gitea
-```
+Or follow the [deployment from binary]({{< relref "doc/installation/from-binary.en-us.md" >}}) guide.
 
 ## FreeBSD
 
@@ -108,7 +112,7 @@ is in `/usr/local/etc/rc.d/gitea`.
 
 To enable Gitea to run as a service, run `sysrc gitea_enable=YES` and start it with `service gitea start`.
 
-## Third-party
+## Others
 
 Various other third-party packages of Gitea exist.
 To see a curated list, head over to [awesome-gitea](https://gitea.com/gitea/awesome-gitea/src/branch/master/README.md#user-content-packages).
