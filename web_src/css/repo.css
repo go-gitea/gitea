@@ -1883,11 +1883,6 @@
   padding-bottom: 100px;
 }
 
-.repository.packages .empty .svg,
-.repository.actions .empty .svg {
-  height: 48px;
-}
-
 .repository.packages .file-size {
   white-space: nowrap;
 }
