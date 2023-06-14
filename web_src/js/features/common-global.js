@@ -8,9 +8,9 @@ import {svg} from '../svg.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
 import {createTippy} from '../modules/tippy.js';
-import {confirmModal} from "./comp/ConfirmModal.js";
+import {confirmModal} from './comp/ConfirmModal.js';
 
-const {appUrl, csrfToken, i18n} = window.config;
+const {appUrl, csrfToken} = window.config;
 
 export function initGlobalFormDirtyLeaveConfirm() {
   // Warn users that try to leave a page after entering data into a form.

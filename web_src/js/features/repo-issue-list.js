@@ -3,7 +3,7 @@ import {updateIssuesMeta} from './repo-issue.js';
 import {toggleElem} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
 import {Sortable} from 'sortablejs';
-import {confirmModal} from "./comp/ConfirmModal.js";
+import {confirmModal} from './comp/ConfirmModal.js';
 
 function initRepoIssueListCheckboxes() {
   const $issueSelectAll = $('.issue-checkbox-all');
