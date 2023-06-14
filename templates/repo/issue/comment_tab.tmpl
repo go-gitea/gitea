@@ -1,34 +1,20 @@
-{{if .Fields}}
-	<input type="hidden" name="template-file" value="{{.TemplateFile}}">
-	{{range .Fields}}
-		{{if eq .Type "input"}}
-			{{template "repo/issue/fields/input" Dict "Context" $.Context "item" .}}
-		{{else if eq .Type "markdown"}}
-			{{template "repo/issue/fields/markdown" Dict "Context" $.Context "item" .}}
-		{{else if eq .Type "textarea"}}
-			{{template "repo/issue/fields/textarea" Dict "Context" $.Context "item" .}}
-		{{else if eq .Type "dropdown"}}
-			{{template "repo/issue/fields/dropdown" Dict "Context" $.Context "item" .}}
-		{{else if eq .Type "checkboxes"}}
-			{{template "repo/issue/fields/checkboxes" Dict "Context" $.Context "item" .}}
-		{{end}}
-	{{end}}
-{{else}}
-	<div class="ui top tabular menu" data-write="write" data-preview="preview">
-		<a class="active item" data-tab="write">{{.locale.Tr "write"}}</a>
-		<a class="item" data-tab="preview" data-url="{{.Repository.Link}}/markdown" data-context="{{.RepoLink}}">{{.locale.Tr "preview"}}</a>
-	</div>
-	<div class="field">
-		<div class="ui bottom active tab" data-tab="write">
-		<textarea id="content" class="edit_area js-quick-submit" name="content" tabindex="4" data-id="issue-{{.RepoName}}" data-url="{{.Repository.Link}}/markdown" data-context="{{.Repo.RepoLink}}">
-			{{- if .BodyQuery}}{{.BodyQuery}}{{else if .IssueTemplate}}{{.IssueTemplate}}{{else if .PullRequestTemplate}}{{.PullRequestTemplate}}{{else}}{{.content}}{{end -}}
-		</textarea>
-		</div>
-		<div class="ui bottom tab markup" data-tab="preview">
-			{{.locale.Tr "loading"}}
-		</div>
-	</div>
-{{end}}
+{{$textareaContent := .BodyQuery}}
+{{if not $textareaContent}}{{$textareaContent = .IssueTemplate}}{{end}}
+{{if not $textareaContent}}{{$textareaContent = .PullRequestTemplate}}{{end}}
+{{if not $textareaContent}}{{$textareaContent = .content}}{{end}}
+
+<div class="field">
+	{{template "shared/combomarkdowneditor" (dict
+		"locale" $.locale
+		"MarkdownPreviewUrl" (print .Repository.Link "/markup")
+		"MarkdownPreviewContext" .RepoLink
+		"TextareaName" "content"
+		"TextareaContent" $textareaContent
+		"TextareaPlaceholder"  ($.locale.Tr "repo.diff.comment.placeholder")
+		"DropzoneParentContainer" "form, .ui.form"
+	)}}
+</div>
+
 {{if .IsAttachmentEnabled}}
 	<div class="field">
 		{{template "repo/upload" .}}

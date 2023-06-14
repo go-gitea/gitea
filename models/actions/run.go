@@ -36,7 +36,7 @@ type ActionRun struct {
 	TriggerUser       *user_model.User       `xorm:"-"`
 	Ref               string
 	CommitSHA         string
-	IsForkPullRequest bool
+	IsForkPullRequest bool  // If this is triggered by a PR from a forked repository or an untrusted user, we need to check if it is approved and limit permissions when running the workflow.
 	NeedApproval      bool  // may need approval if it's a fork pull request
 	ApprovedBy        int64 `xorm:"index"` // who approved
 	Event             webhook_module.HookEventType
@@ -70,7 +70,7 @@ func (run *ActionRun) Link() string {
 // RefLink return the url of run's ref
 func (run *ActionRun) RefLink() string {
 	refName := git.RefName(run.Ref)
-	if refName.RefGroup() == "pull" {
+	if refName.IsPull() {
 		return run.Repo.Link() + "/pulls/" + refName.ShortName()
 	}
 	return git.RefURL(run.Repo.Link(), run.Ref)
@@ -79,7 +79,7 @@ func (run *ActionRun) RefLink() string {
 // PrettyRef return #id for pull ref or ShortName for others
 func (run *ActionRun) PrettyRef() string {
 	refName := git.RefName(run.Ref)
-	if refName.RefGroup() == "pull" {
+	if refName.IsPull() {
 		return "#" + strings.TrimSuffix(strings.TrimPrefix(run.Ref, git.PullPrefix), "/head")
 	}
 	return refName.ShortName()
@@ -126,6 +126,17 @@ func (run *ActionRun) GetPushEventPayload() (*api.PushPayload, error) {
 		return &payload, nil
 	}
 	return nil, fmt.Errorf("event %s is not a push event", run.Event)
+}
+
+func (run *ActionRun) GetPullRequestEventPayload() (*api.PullRequestPayload, error) {
+	if run.Event == webhook_module.HookEventPullRequest || run.Event == webhook_module.HookEventPullRequestSync {
+		var payload api.PullRequestPayload
+		if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
+			return nil, err
+		}
+		return &payload, nil
+	}
+	return nil, fmt.Errorf("event %s is not a pull request event", run.Event)
 }
 
 func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) error {
@@ -186,12 +197,15 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 	for _, v := range jobs {
 		id, job := v.Job()
 		needs := job.Needs()
-		job.EraseNeeds()
+		if err := v.SetJob(id, job.EraseNeeds()); err != nil {
+			return err
+		}
 		payload, _ := v.Marshal()
 		status := StatusWaiting
 		if len(needs) > 0 || run.NeedApproval {
 			status = StatusBlocked
 		}
+		job.Name, _ = util.SplitStringAtByteN(job.Name, 255)
 		runJobs = append(runJobs, &ActionRunJob{
 			RunID:             run.ID,
 			RepoID:            run.RepoID,

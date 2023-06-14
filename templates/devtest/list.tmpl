@@ -1,0 +1,12 @@
+<style>
+	@media (prefers-color-scheme: dark) {
+		:root {
+			color-scheme: dark;
+		}
+	}
+</style>
+<ul>
+	{{range .SubNames}}
+	<li><a href="{{AppSubUrl}}/devtest/{{.}}">{{.}}</a></li>
+	{{end}}
+</ul>

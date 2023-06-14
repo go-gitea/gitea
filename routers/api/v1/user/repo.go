@@ -31,7 +31,7 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 		return
 	}
 
-	if err := repos.LoadAttributes(); err != nil {
+	if err := repos.LoadAttributes(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "RepositoryList.LoadAttributes", err)
 		return
 	}

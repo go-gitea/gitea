@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
@@ -19,6 +20,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -28,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/convert"
+	"code.gitea.io/gitea/services/issue"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -176,7 +179,7 @@ func Search(ctx *context.APIContext) {
 		if len(sortOrder) == 0 {
 			sortOrder = "asc"
 		}
-		if searchModeMap, ok := context.SearchOrderByMap[sortOrder]; ok {
+		if searchModeMap, ok := repo_model.SearchOrderByMap[sortOrder]; ok {
 			if orderBy, ok := searchModeMap[sortMode]; ok {
 				opts.OrderBy = orderBy
 			} else {
@@ -230,7 +233,14 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 	if opt.AutoInit && opt.Readme == "" {
 		opt.Readme = "Default"
 	}
-	repo, err := repo_service.CreateRepository(ctx.Doer, owner, repo_module.CreateRepoOptions{
+
+	// If the readme template does not exist, a 400 will be returned.
+	if opt.AutoInit && len(opt.Readme) > 0 && !util.SliceContains(repo_module.Readmes, opt.Readme) {
+		ctx.Error(http.StatusBadRequest, "", fmt.Errorf("readme template does not exist, available templates: %v", repo_module.Readmes))
+		return
+	}
+
+	repo, err := repo_service.CreateRepository(ctx, ctx.Doer, owner, repo_module.CreateRepoOptions{
 		Name:          opt.Name,
 		Description:   opt.Description,
 		IssueLabels:   opt.IssueLabels,
@@ -248,7 +258,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 			ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
 		} else if db.IsErrNameReserved(err) ||
 			db.IsErrNamePatternNotAllowed(err) ||
-			repo_module.IsErrIssueLabelTemplateLoad(err) {
+			label.IsErrTemplateLoad(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "CreateRepository", err)
@@ -282,6 +292,8 @@ func Create(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Repository"
+	//   "400":
+	//     "$ref": "#/responses/error"
 	//   "409":
 	//     description: The repository with the same name already exists.
 	//   "422":
@@ -393,7 +405,7 @@ func Generate(ctx *context.APIContext) {
 		}
 	}
 
-	repo, err := repo_service.GenerateRepository(ctx.Doer, ctxUser, ctx.Repo.Repository, opts)
+	repo, err := repo_service.GenerateRepository(ctx, ctx.Doer, ctxUser, ctx.Repo.Repository, opts)
 	if err != nil {
 		if repo_model.IsErrRepoAlreadyExist(err) {
 			ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
@@ -463,6 +475,8 @@ func CreateOrgRepo(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Repository"
+	//   "400":
+	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	//   "403":
@@ -637,7 +651,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	}
 	// Check if repository name has been changed and not just a case change
 	if repo.LowerName != strings.ToLower(newRepoName) {
-		if err := repo_service.ChangeRepositoryName(ctx.Doer, repo, newRepoName); err != nil {
+		if err := repo_service.ChangeRepositoryName(ctx, ctx.Doer, repo, newRepoName); err != nil {
 			switch {
 			case repo_model.IsErrRepoAlreadyExist(err):
 				ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("repo name is already taken [name: %s]", newRepoName), err)
@@ -714,7 +728,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 		repo.DefaultBranch = *opts.DefaultBranch
 	}
 
-	if err := repo_service.UpdateRepository(repo, visibilityChanged); err != nil {
+	if err := repo_service.UpdateRepository(ctx, repo, visibilityChanged); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateRepository", err)
 		return err
 	}
@@ -924,9 +938,44 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
-	if err := repo_model.UpdateRepositoryUnits(repo, units, deleteUnitTypes); err != nil {
-		ctx.Error(http.StatusInternalServerError, "UpdateRepositoryUnits", err)
-		return err
+	if opts.HasReleases != nil && !unit_model.TypeReleases.UnitGlobalDisabled() {
+		if *opts.HasReleases {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   unit_model.TypeReleases,
+			})
+		} else {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeReleases)
+		}
+	}
+
+	if opts.HasPackages != nil && !unit_model.TypePackages.UnitGlobalDisabled() {
+		if *opts.HasPackages {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   unit_model.TypePackages,
+			})
+		} else {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePackages)
+		}
+	}
+
+	if opts.HasActions != nil && !unit_model.TypeActions.UnitGlobalDisabled() {
+		if *opts.HasActions {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   unit_model.TypeActions,
+			})
+		} else {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeActions)
+		}
+	}
+
+	if len(units)+len(deleteUnitTypes) > 0 {
+		if err := repo_model.UpdateRepositoryUnits(repo, units, deleteUnitTypes); err != nil {
+			ctx.Error(http.StatusInternalServerError, "UpdateRepositoryUnits", err)
+			return err
+		}
 	}
 
 	log.Trace("Repository advanced settings updated: %s/%s", owner.Name, repo.Name)
@@ -1096,6 +1145,121 @@ func GetIssueTemplates(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueTemplates"
+	ret, err := issue.GetTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetTemplatesFromDefaultBranch", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, ret)
+}
 
-	ctx.JSON(http.StatusOK, ctx.IssueTemplatesFromDefaultBranch())
+// GetIssueConfig returns the issue config for a repo
+func GetIssueConfig(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/issue_config repository repoGetIssueConfig
+	// ---
+	// summary: Returns the issue config for a repo
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/RepoIssueConfig"
+	issueConfig, _ := issue.GetTemplateConfigFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	ctx.JSON(http.StatusOK, issueConfig)
+}
+
+// ValidateIssueConfig returns validation errors for the issue config
+func ValidateIssueConfig(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/issue_config/validate repository repoValidateIssueConfig
+	// ---
+	// summary: Returns the validation information for a issue config
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/RepoIssueConfigValidation"
+	_, err := issue.GetTemplateConfigFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
+
+	if err == nil {
+		ctx.JSON(http.StatusOK, api.IssueConfigValidation{Valid: true, Message: ""})
+	} else {
+		ctx.JSON(http.StatusOK, api.IssueConfigValidation{Valid: false, Message: err.Error()})
+	}
+}
+
+func ListRepoActivityFeeds(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/activities/feeds repository repoListActivityFeeds
+	// ---
+	// summary: List a repository's activity feeds
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: date
+	//   in: query
+	//   description: the date of the activities to be found
+	//   type: string
+	//   format: date
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ActivityFeedsList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	listOptions := utils.GetListOptions(ctx)
+
+	opts := activities_model.GetFeedsOptions{
+		RequestedRepo:  ctx.Repo.Repository,
+		Actor:          ctx.Doer,
+		IncludePrivate: true,
+		Date:           ctx.FormString("date"),
+		ListOptions:    listOptions,
+	}
+
+	feeds, count, err := activities_model.GetFeeds(ctx, opts)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetFeeds", err)
+		return
+	}
+	ctx.SetTotalCountHeader(count)
+
+	ctx.JSON(http.StatusOK, convert.ToActivities(ctx, feeds, ctx.Doer))
 }

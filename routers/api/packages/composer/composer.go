@@ -192,7 +192,7 @@ func DownloadPackageFile(ctx *context.Context) {
 
 // UploadPackage creates a new package
 func UploadPackage(ctx *context.Context) {
-	buf, err := packages_module.CreateHashedBufferFromReader(ctx.Req.Body, 32*1024*1024)
+	buf, err := packages_module.CreateHashedBufferFromReader(ctx.Req.Body)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

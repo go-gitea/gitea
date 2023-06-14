@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content user settings security">
-	{{template "user/settings/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings security")}}
+	<div class="user-setting-content">
 		{{template "user/settings/security/twofa" .}}
 		{{template "user/settings/security/webauthn" .}}
 		{{template "user/settings/security/accountlinks" .}}
@@ -10,6 +7,5 @@
 		{{template "user/settings/security/openid" .}}
 		{{end}}
 	</div>
-</div>
 
-{{template "base/footer" .}}
+{{template "user/settings/layout_footer" .}}

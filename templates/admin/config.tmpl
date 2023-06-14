@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content admin config">
-	{{template "admin/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin config")}}
+	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.config.server_config"}}
 		</h4>
@@ -11,7 +8,7 @@
 				<dt>{{.locale.Tr "admin.config.app_name"}}</dt>
 				<dd>{{AppName}}</dd>
 				<dt>{{.locale.Tr "admin.config.app_ver"}}</dt>
-				<dd>{{AppVer}}{{AppBuiltWith}}</dd>
+				<dd>{{AppVer}}{{.AppBuiltWith}}</dd>
 				<dt>{{.locale.Tr "admin.config.custom_conf"}}</dt>
 				<dd>{{.CustomConf}}</dd>
 				<dt>{{.locale.Tr "admin.config.app_url"}}</dt>
@@ -241,16 +238,18 @@
 						<dd>{{.Mailer.SMTPPort}}</dd>
 					{{end}}
 					<dt>{{.locale.Tr "admin.config.mailer_user"}}</dt>
-					<dd>{{if .Mailer.User}}{{.Mailer.User}}{{else}}(empty){{end}}</dd><br>
-					<form class="ui form ignore-dirty" action="{{AppSubUrl}}/admin/config/test_mail" method="post">
-						{{.CsrfTokenHtml}}
-						<div class="inline field ui left">
-							<div class="ui input">
+					<dd>{{if .Mailer.User}}{{.Mailer.User}}{{else}}(empty){{end}}</dd>
+					<div class="ui divider"></div>
+					<dt class="gt-py-2">{{.locale.Tr "admin.config.send_test_mail"}}</dt>
+					<dd>
+						<form class="ui form ignore-dirty" action="{{AppSubUrl}}/admin/config/test_mail" method="post">
+							{{.CsrfTokenHtml}}
+							<div class="ui tiny input">
 								<input type="email" name="email" placeholder="{{.locale.Tr "admin.config.test_email_placeholder"}}" size="29" required>
 							</div>
-						</div>
-						<button class="ui green button" id="test-mail-btn">{{.locale.Tr "admin.config.send_test_mail"}}</button>
-					</form>
+							<button class="ui tiny green button">{{.locale.Tr "admin.config.send_test_mail_submit"}}</button>
+						</form>
+					</dd>
 				{{end}}
 			</dl>
 		</div>
@@ -331,7 +330,9 @@
 				<dd>{{.Git.MaxGitDiffFiles}}</dd>
 				<dt>{{.locale.Tr "admin.config.git_gc_args"}}</dt>
 				<dd><code>{{.Git.GCArgs}}</code></dd>
+
 				<div class="ui divider"></div>
+
 				<dt>{{.locale.Tr "admin.config.git_migrate_timeout"}}</dt>
 				<dd>{{.Git.Timeout.Migrate}} {{.locale.Tr "tool.raw_seconds"}}</dd>
 				<dt>{{.locale.Tr "admin.config.git_mirror_timeout"}}</dt>
@@ -350,69 +351,25 @@
 		</h4>
 		<div class="ui attached table segment">
 			<dl class="dl-horizontal admin-dl-horizontal">
-				{{range .Loggers.default.SubLogDescriptions}}
-					<dt>{{$.locale.Tr "admin.config.log_mode"}}</dt>
-					<dd>{{.Name}} ({{.Provider}})</dd>
-					<dt>{{$.locale.Tr "admin.config.log_config"}}</dt>
-					<dd><pre>{{.Config | JsonPrettyPrint}}</pre></dd>
-				{{end}}
-				<div class="ui divider"></div>
-				<dt>{{$.locale.Tr "admin.config.router_log_mode"}}</dt>
-				{{if .DisableRouterLog}}
-					<dd>{{$.locale.Tr "admin.config.disabled_logger"}}</dd>
-				{{else}}
-					{{if .Loggers.router.SubLogDescriptions}}
-						<dd>{{$.locale.Tr "admin.config.own_named_logger"}}</dd>
-						{{range .Loggers.router.SubLogDescriptions}}
-							<dt>{{$.locale.Tr "admin.config.log_mode"}}</dt>
-							<dd>{{.Name}} ({{.Provider}})</dd>
-							<dt>{{$.locale.Tr "admin.config.log_config"}}</dt>
-							<dd><pre>{{.Config | JsonPrettyPrint}}</pre></dd>
-						{{end}}
-					{{else}}
-						<dd>{{$.locale.Tr "admin.config.routes_to_default_logger"}}</dd>
-					{{end}}
-				{{end}}
-				<div class="ui divider"></div>
-				<dt>{{$.locale.Tr "admin.config.access_log_mode"}}</dt>
-				{{if .EnableAccessLog}}
-					{{if .Loggers.access.SubLogDescriptions}}
-						<dd>{{$.locale.Tr "admin.config.own_named_logger"}}</dd>
-						{{range .Loggers.access.SubLogDescriptions}}
-							<dt>{{$.locale.Tr "admin.config.log_mode"}}</dt>
-							<dd>{{.Name}} ({{.Provider}})</dd>
-							<dt>{{$.locale.Tr "admin.config.log_config"}}</dt>
-							<dd><pre>{{.Config | JsonPrettyPrint}}</pre></dd>
-						{{end}}
-					{{else}}
-						<dd>{{$.locale.Tr "admin.config.routes_to_default_logger"}}</dd>
-					{{end}}
-					<dt>{{$.locale.Tr "admin.config.access_log_template"}}</dt>
-					<dd><code>{{$.AccessLogTemplate}}</code></dd>
-				{{else}}
-					<dd>{{$.locale.Tr "admin.config.disabled_logger"}}</dd>
-				{{end}}
-				<div class="ui divider"></div>
-				<dt>{{$.locale.Tr "admin.config.xorm_log_mode"}}</dt>
-				{{if .EnableXORMLog}}
-					{{if .Loggers.xorm.SubLogDescriptions}}
-						<dd>{{$.locale.Tr "admin.config.own_named_logger"}}</dd>
-						{{range .Loggers.xorm.SubLogDescriptions}}
-							<dt>{{$.locale.Tr "admin.config.log_mode"}}</dt>
-							<dd>{{.Name}} ({{.Provider}})</dd>
-							<dt>{{$.locale.Tr "admin.config.log_config"}}</dt>
-							<dd><pre>{{.Config | JsonPrettyPrint}}</pre></dd>
-						{{end}}
-					{{else}}
-						<dd>{{$.locale.Tr "admin.config.routes_to_default_logger"}}</dd>
-					{{end}}
+				{{if .Loggers.xorm.IsEnabled}}
 					<dt>{{$.locale.Tr "admin.config.xorm_log_sql"}}</dt>
 					<dd>{{if $.LogSQL}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
-				{{else}}
-					<dd>{{$.locale.Tr "admin.config.disabled_logger"}}</dd>
+				{{end}}
+
+				{{if .Loggers.access.IsEnabled}}
+					<dt>{{$.locale.Tr "admin.config.access_log_template"}}</dt>
+					<dd><code>{{$.AccessLogTemplate}}</code></dd>
+				{{end}}
+
+				{{range $loggerName, $loggerDetail := .Loggers}}
+					<dt>{{$.locale.Tr "admin.config.logger_name_fmt" $loggerName}}</dt>
+					{{if $loggerDetail.IsEnabled}}
+						<dd><pre class="gt-m-0">{{$loggerDetail.EventWriters | JsonUtils.EncodeToString | JsonUtils.PrettyIndent}}</pre></dd>
+					{{else}}
+						<dd>{{$.locale.Tr "admin.config.disabled_logger"}}</dd>
+					{{end}}
 				{{end}}
 			</dl>
 		</div>
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "admin/layout_footer" .}}

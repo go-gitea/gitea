@@ -51,14 +51,12 @@ func listPullRequestStatement(baseRepoID int64, opts *PullRequestsOptions) (*xor
 }
 
 // GetUnmergedPullRequestsByHeadInfo returns all pull requests that are open and has not been merged
-// by given head information (repo and branch).
 func GetUnmergedPullRequestsByHeadInfo(repoID int64, branch string) ([]*PullRequest, error) {
 	prs := make([]*PullRequest, 0, 2)
-	return prs, db.GetEngine(db.DefaultContext).
-		Where("head_repo_id = ? AND head_branch = ? AND has_merged = ? AND issue.is_closed = ? AND flow = ?",
-			repoID, branch, false, false, PullRequestFlowGithub).
+	sess := db.GetEngine(db.DefaultContext).
 		Join("INNER", "issue", "issue.id = pull_request.issue_id").
-		Find(&prs)
+		Where("head_repo_id = ? AND head_branch = ? AND has_merged = ? AND issue.is_closed = ? AND flow = ?", repoID, branch, false, false, PullRequestFlowGithub)
+	return prs, sess.Find(&prs)
 }
 
 // CanMaintainerWriteToBranch check whether user is a maintainer and could write to the branch
@@ -111,6 +109,7 @@ func GetUnmergedPullRequestsByBaseInfo(repoID int64, branch string) ([]*PullRequ
 	return prs, db.GetEngine(db.DefaultContext).
 		Where("base_repo_id=? AND base_branch=? AND has_merged=? AND issue.is_closed=?",
 			repoID, branch, false, false).
+		OrderBy("issue.updated_unix DESC").
 		Join("INNER", "issue", "issue.id=pull_request.issue_id").
 		Find(&prs)
 }
@@ -142,7 +141,7 @@ func PullRequests(baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, 
 	}
 
 	findSession, err := listPullRequestStatement(baseRepoID, opts)
-	sortIssuesSession(findSession, opts.SortType, 0)
+	applySorts(findSession, opts.SortType, 0)
 	if err != nil {
 		log.Error("listPullRequestStatement: %v", err)
 		return nil, maxResults, err

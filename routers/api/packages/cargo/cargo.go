@@ -4,6 +4,7 @@
 package cargo
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -43,6 +44,35 @@ func apiError(ctx *context.Context, status int, obj interface{}) {
 			},
 		})
 	})
+}
+
+// https://rust-lang.github.io/rfcs/2789-sparse-index.html
+func RepositoryConfig(ctx *context.Context) {
+	ctx.JSON(http.StatusOK, cargo_service.BuildConfig(ctx.Package.Owner))
+}
+
+func EnumeratePackageVersions(ctx *context.Context) {
+	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeCargo, ctx.Params("package"))
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			apiError(ctx, http.StatusNotFound, err)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	b, err := cargo_service.BuildPackageIndex(ctx, p)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if b == nil {
+		apiError(ctx, http.StatusNotFound, nil)
+		return
+	}
+
+	ctx.PlainTextBytes(http.StatusOK, b.Bytes())
 }
 
 type SearchResult struct {
@@ -173,7 +203,7 @@ func UploadPackage(ctx *context.Context) {
 		return
 	}
 
-	buf, err := packages_module.CreateHashedBufferFromReader(cp.Content, 32*1024*1024)
+	buf, err := packages_module.CreateHashedBufferFromReader(cp.Content)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

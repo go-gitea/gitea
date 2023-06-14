@@ -93,3 +93,12 @@ type UserSettingsOptions struct {
 	HideEmail    *bool `json:"hide_email"`
 	HideActivity *bool `json:"hide_activity"`
 }
+
+// RenameUserOption options when renaming a user
+type RenameUserOption struct {
+	// New username for this user. This name cannot be in use yet by any other user.
+	//
+	// required: true
+	// unique: true
+	NewName string `json:"new_username" binding:"Required"`
+}

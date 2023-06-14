@@ -2,39 +2,17 @@
 	{{$approvalCounts := .ApprovalCounts}}
 	{{range .Issues}}
 		<li class="item gt-df gt-py-3">
-			<div class="issue-item-left gt-df">
+			<div class="issue-item-left gt-df gt-items-start">
 				{{if $.CanWriteIssuesOrPulls}}
-					<div class="ui checkbox issue-checkbox">
-						<input type="checkbox" data-issue-id={{.ID}} title="{{$.locale.Tr "repo.issues.action_check"}} «{{.Title}}»">
-					</div>
+					<input type="checkbox" autocomplete="off" class="issue-checkbox gt-mt-2 gt-mr-4" data-issue-id={{.ID}} aria-label="{{$.locale.Tr "repo.issues.action_check"}} &quot;{{.Title}}&quot;">
 				{{end}}
 				<div class="issue-item-icon">
-					{{if .IsPull}}
-						{{if .PullRequest.HasMerged}}
-							{{svg "octicon-git-merge" 16 "text purple"}}
-						{{else}}
-							{{if .IsClosed}}
-								{{svg "octicon-git-pull-request" 16 "text red"}}
-							{{else}}
-								{{if .PullRequest.IsWorkInProgress}}
-									{{svg "octicon-git-pull-request-draft" 16 "text grey"}}
-								{{else}}
-									{{svg "octicon-git-pull-request" 16 "text green"}}
-								{{end}}
-							{{end}}
-						{{end}}
-					{{else}}
-						{{if .IsClosed}}
-							{{svg "octicon-issue-closed" 16 "text red"}}
-						{{else}}
-							{{svg "octicon-issue-opened" 16 "text green"}}
-						{{end}}
-					{{end}}
+					{{template "shared/issueicon" .}}
 				</div>
 			</div>
 			<div class="issue-item-main gt-f1 gt-fc gt-df">
 				<div class="issue-item-top-row">
-					<a class="title gt-tdn issue-title" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{RenderEmoji .Title | RenderCodeBlock}}</a>
+					<a class="title gt-no-underline issue-title" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{RenderEmoji $.Context .Title | RenderCodeBlock}}</a>
 					{{if .IsPull}}
 						{{if (index $.CommitStatuses .PullRequest.ID)}}
 							{{template "repo/commit_statuses" dict "Status" (index $.CommitLastStatus .PullRequest.ID) "Statuses" (index $.CommitStatuses .PullRequest.ID) "root" $}}
@@ -42,7 +20,7 @@
 					{{end}}
 					<span class="labels-list gt-ml-2">
 						{{range .Labels}}
-							<a href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{RenderLabel .}}</a>
+							<a href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{RenderLabel $.Context .}}</a>
 						{{end}}
 					</span>
 				</div>
@@ -87,8 +65,8 @@
 						</a>
 					{{end}}
 					{{if .Project}}
-						<a class="project" {{if $.RepoLink}}href="{{$.RepoLink}}/projects/{{.Project.ID}}"{{else}}href="{{.Repo.Link}}/projects/{{.Project.ID}}"{{end}}>
-							{{svg "octicon-project" 14 "gt-mr-2"}}{{.Project.Title}}
+						<a class="project" href="{{.Project.Link}}">
+							{{svg .Project.IconName 14 "gt-mr-2"}}{{.Project.Title}}
 						</a>
 					{{end}}
 					{{if .Ref}}
@@ -105,10 +83,10 @@
 						</span>
 					{{end}}
 					{{if ne .DeadlineUnix 0}}
-						<span class="due-date tooltip" data-content="{{$.locale.Tr "repo.issues.due_date"}}" data-position="right center">
+						<span class="due-date" data-tooltip-content="{{$.locale.Tr "repo.issues.due_date"}}">
 							<span{{if .IsOverdue}} class="overdue"{{end}}>
 								{{svg "octicon-calendar" 14 "gt-mr-2"}}
-								<time data-format="short-date" datetime="{{.DeadlineUnix.FormatLong}}">{{.DeadlineUnix.FormatShort}}</time>
+								{{DateTime "short" .DeadlineUnix}}
 							</span>
 						</span>
 					{{end}}
@@ -143,28 +121,32 @@
 					{{end}}
 				</div>
 			</div>
+			{{if or .TotalTrackedTime .Assignees .NumComments}}
 			<div class="issue-item-icons-right gt-df gt-p-2">
+				{{if .TotalTrackedTime}}
 				<div class="issue-item-icon-right text grey">
-					{{if .TotalTrackedTime}}
 						{{svg "octicon-clock" 16 "gt-mr-2"}}
 						{{.TotalTrackedTime | Sec2Time}}
-					{{end}}
 				</div>
+				{{end}}
+				{{if .Assignees}}
 				<div class="issue-item-icon-right text grey">
 					{{range .Assignees}}
-						<a class="ui assignee tooltip gt-tdn" href="{{.HomeLink}}" data-content="{{.GetDisplayName}}" data-position="left center">
-							{{avatar $.Context .}}
+						<a class="ui assignee gt-no-underline" href="{{.HomeLink}}" data-tooltip-content="{{.GetDisplayName}}">
+							{{avatar $.Context . 20}}
 						</a>
 					{{end}}
 				</div>
+				{{end}}
+				{{if .NumComments}}
 				<div class="issue-item-icon-right text grey">
-					{{if .NumComments}}
-						<a class="gt-tdn muted" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
-							{{svg "octicon-comment" 16 "gt-mr-2"}}{{.NumComments}}
-						</a>
-					{{end}}
+					<a class="gt-no-underline muted" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
+						{{svg "octicon-comment" 16 "gt-mr-2"}}{{.NumComments}}
+					</a>
 				</div>
+				{{end}}
 			</div>
+			{{end}}
 		</li>
 	{{end}}
 	{{if .IssueIndexerUnavailable}}

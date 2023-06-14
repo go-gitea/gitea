@@ -24,9 +24,9 @@ func TestRepository_GetCodeActivityStats(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, code)
 
-	assert.EqualValues(t, 9, code.CommitCount)
+	assert.EqualValues(t, 10, code.CommitCount)
 	assert.EqualValues(t, 3, code.AuthorCount)
-	assert.EqualValues(t, 9, code.CommitCountInAllBranches)
+	assert.EqualValues(t, 10, code.CommitCountInAllBranches)
 	assert.EqualValues(t, 10, code.Additions)
 	assert.EqualValues(t, 1, code.Deletions)
 	assert.Len(t, code.Authors, 3)

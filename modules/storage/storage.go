@@ -65,7 +65,7 @@ type ObjectStorage interface {
 	Stat(path string) (os.FileInfo, error)
 	Delete(path string) error
 	URL(path, name string) (*url.URL, error)
-	IterateObjects(func(path string, obj Object) error) error
+	IterateObjects(path string, iterator func(path string, obj Object) error) error
 }
 
 // Copy copies a file from source ObjectStorage to dest ObjectStorage
@@ -87,7 +87,7 @@ func Copy(dstStorage ObjectStorage, dstPath string, srcStorage ObjectStorage, sr
 
 // Clean delete all the objects in this storage
 func Clean(storage ObjectStorage) error {
-	return storage.IterateObjects(func(path string, obj Object) error {
+	return storage.IterateObjects("", func(path string, obj Object) error {
 		_ = obj.Close()
 		return storage.Delete(path)
 	})
@@ -128,6 +128,8 @@ var (
 
 	// Actions represents actions storage
 	Actions ObjectStorage = uninitializedStorage
+	// Actions Artifacts represents actions artifacts storage
+	ActionsArtifacts ObjectStorage = uninitializedStorage
 )
 
 // Init init the stoarge
@@ -212,9 +214,14 @@ func initPackages() (err error) {
 func initActions() (err error) {
 	if !setting.Actions.Enabled {
 		Actions = discardStorage("Actions isn't enabled")
+		ActionsArtifacts = discardStorage("ActionsArtifacts isn't enabled")
 		return nil
 	}
-	log.Info("Initialising Actions storage with type: %s", setting.Actions.Storage.Type)
-	Actions, err = NewStorage(setting.Actions.Storage.Type, &setting.Actions.Storage)
+	log.Info("Initialising Actions storage with type: %s", setting.Actions.LogStorage.Type)
+	if Actions, err = NewStorage(setting.Actions.LogStorage.Type, &setting.Actions.LogStorage); err != nil {
+		return err
+	}
+	log.Info("Initialising ActionsArtifacts storage with type: %s", setting.Actions.ArtifactStorage.Type)
+	ActionsArtifacts, err = NewStorage(setting.Actions.ArtifactStorage.Type, &setting.Actions.ArtifactStorage)
 	return err
 }

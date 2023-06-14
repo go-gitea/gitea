@@ -62,7 +62,13 @@ type Metadata struct {
 	DocumentationURL string            `json:"documentation_url,omitempty"`
 	Labels           map[string]string `json:"labels,omitempty"`
 	ImageLayers      []string          `json:"layer_creation,omitempty"`
-	MultiArch        map[string]string `json:"multiarch,omitempty"`
+	Manifests        []*Manifest       `json:"manifests,omitempty"`
+}
+
+type Manifest struct {
+	Platform string `json:"platform"`
+	Digest   string `json:"digest"`
+	Size     int64  `json:"size"`
 }
 
 // ParseImageConfig parses the metadata of an image config

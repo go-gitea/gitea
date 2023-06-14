@@ -1,6 +1,7 @@
 import $ from 'jquery';
 import {svg} from '../svg.js';
 import {toggleElem} from '../utils/dom.js';
+import {pathEscapeSegments} from '../utils/url.js';
 
 const {csrf} = window.config;
 
@@ -73,10 +74,6 @@ export function filterRepoFilesWeighted(files, filter) {
   return filterResult;
 }
 
-export function escapePath(s) {
-  return s.split('/').map(encodeURIComponent).join('/');
-}
-
 function filterRepoFiles(filter) {
   const treeLink = $repoFindFileInput.attr('data-url-tree-link');
   $repoFindFileTableBody.empty();
@@ -88,7 +85,7 @@ function filterRepoFiles(filter) {
   for (const r of filterResult) {
     const $row = $(tmplRow);
     const $a = $row.find('a');
-    $a.attr('href', `${treeLink}/${escapePath(r.matchResult.join(''))}`);
+    $a.attr('href', `${treeLink}/${pathEscapeSegments(r.matchResult.join(''))}`);
     const $octiconFile = $(svg('octicon-file')).addClass('gt-mr-3');
     $a.append($octiconFile);
     // if the target file path is "abc/xyz", to search "bx", then the matchResult is ['a', 'b', 'c/', 'x', 'yz']

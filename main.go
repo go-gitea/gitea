@@ -75,6 +75,7 @@ arguments - which can alternatively be run by running the subcommand web.`
 		cmd.CmdDocs,
 		cmd.CmdDumpRepository,
 		cmd.CmdRestoreRepository,
+		cmd.CmdActions,
 	}
 	// Now adjust these commands to add our global configuration options
 
@@ -119,6 +120,8 @@ arguments - which can alternatively be run by running the subcommand web.`
 	if err != nil {
 		log.Fatal("Failed to run app with %s: %v", os.Args, err)
 	}
+
+	log.GetManager().Close()
 }
 
 func setFlagsAndBeforeOnSubcommands(command *cli.Command, defaultFlags []cli.Flag, before cli.BeforeFunc) {

@@ -5,6 +5,8 @@ slug: "faq"
 weight: 5
 toc: false
 draft: false
+aliases:
+  - /en-us/faq
 menu:
   sidebar:
     parent: "help"
@@ -17,33 +19,31 @@ menu:
 
 This page contains some common questions and answers.
 
-For more help resources, check all [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}}).
+For more help resources, check all [Support Options]({{< relref "doc/help/support.en-us.md" >}}).
 
 **Table of Contents**
 
 {{< toc >}}
 
-## Difference between 1.x and 1.x.x downloads
+## Difference between 1.x and 1.x.x downloads, how can I get latest stable release with bug fixes?
 
-Version 1.7.x will be used for this example.
+Version 1.20.x will be used for this example.
 
-**NOTE:** this example applies to Docker images as well!
+On our [downloads page](https://dl.gitea.com/gitea/) you will see a 1.20 directory, as well as directories for 1.20.0, 1.20.1.
 
-On our [downloads page](https://dl.gitea.io/gitea/) you will see a 1.7 directory, as well as directories for 1.7.0, 1.7.1, 1.7.2, 1.7.3, 1.7.4, 1.7.5, and 1.7.6.
+The 1.20 directory is the nightly build, which is built on each merged commit to the [`release/v1.20`](https://github.com/go-gitea/gitea/tree/release/v1.20) branch.
 
-The 1.7 and 1.7.0 directories are **not** the same. The 1.7 directory is built on each merged commit to the [`release/v1.7`](https://github.com/go-gitea/gitea/tree/release/v1.7) branch.
+The 1.20.0 directory is a release build that was created when the [`v1.20.0`](https://github.com/go-gitea/gitea/releases/tag/v1.20.0) tag was created.
 
-The 1.7.0 directory, however, is a build that was created when the [`v1.7.0`](https://github.com/go-gitea/gitea/releases/tag/v1.7.0) tag was created.
+The nightly builds (1.x) downloads will change as commits are merged to their respective branch, they contain the latest changes/fixes before a tag release is built.
 
-This means that 1.x downloads will change as commits are merged to their respective branch (think of it as a separate "main" branch for each release).
-
-On the other hand, 1.x.x downloads should never change.
+If a bug fix is targeted on 1.20.1 but 1.20.1 is not released yet, you can get the "1.20-nightly" build to get the bug fix.
 
 ## How to migrate from Gogs/GitHub/etc. to Gitea
 
 To migrate from Gogs to Gitea:
 
-- [Gogs version 0.9.146 or less]({{< relref "doc/upgrade/from-gogs.en-us.md" >}})
+- [Gogs version 0.9.146 or less]({{< relref "doc/installation/upgrade-from-gogs.en-us.md" >}})
 - [Gogs version 0.11.46.0418](https://github.com/go-gitea/gitea/issues/4286)
 
 To migrate from GitHub to Gitea, you can use Gitea's built-in migration form.
@@ -90,7 +90,7 @@ https://github.com/loganinak/MigrateGitlabToGogs
 
 There are a few places that could make this show incorrectly.
 
-1. If using a reverse proxy, make sure you have followed the correction directions in the [reverse proxy guide]({{< relref "doc/usage/reverse-proxies.en-us.md" >}})
+1. If using a reverse proxy, make sure you have followed the correction directions in the [reverse proxy guide]({{< relref "doc/administration/reverse-proxies.en-us.md" >}})
 2. Make sure you have correctly set `ROOT_URL` in the `server` section of your `app.ini`
 
 If certain clone options aren't showing up (HTTP/S or SSH), the following options can be checked in your `app.ini`
@@ -103,7 +103,7 @@ If certain clone options aren't showing up (HTTP/S or SSH), the following option
 
 This error occurs when the reverse proxy limits the file upload size.
 
-See the [reverse proxy guide]({{< relref "doc/usage/reverse-proxies.en-us.md" >}}) for a solution with nginx.
+See the [reverse proxy guide]({{< relref "doc/administration/reverse-proxies.en-us.md" >}}) for a solution with nginx.
 
 ## Custom Templates not loading or working incorrectly
 
@@ -116,7 +116,15 @@ The correct path for the template(s) will be relative to the `CustomPath`
     If that doesn't exist, you can try `echo $GITEA_CUSTOM`
 
 2. If you are still unable to find a path, the default can be [calculated above](#where-does-gitea-store-what-file)
-3. Once you have figured out the correct custom path, you can refer to the [customizing Gitea]({{< relref "doc/advanced/customizing-gitea.en-us.md" >}}) page to add your template to the correct location.
+3. Once you have figured out the correct custom path, you can refer to the [customizing Gitea]({{< relref "doc/administration/customizing-gitea.en-us.md" >}}) page to add your template to the correct location.
+
+## Does Gitea have a "GitHub/GitLab pages" feature?
+
+Gitea doesn't provide a built-in Pages server. You need a dedicated domain to serve static pages to avoid CSRF security risks.
+
+For simple usage, you can use a reverse proxy to rewrite & serve static contents from Gitea's raw file URLs.
+
+And there are already available third-party services, like a standalone [pages server](https://codeberg.org/Codeberg/pages-server) or a [caddy plugin](https://github.com/42wim/caddy-gitea), that can provide the required functionality.
 
 ## Active user vs login prohibited user
 
@@ -126,7 +134,7 @@ A "login prohibited" user is a user that is not allowed to log in to Gitea anymo
 
 ## Setting up logging
 
-- [Official Docs]({{< relref "doc/advanced/logging-documentation.en-us.md" >}})
+- [Official Docs]({{< relref "doc/administration/logging-config.en-us.md" >}})
 
 ## What is Swagger?
 
@@ -134,7 +142,7 @@ A "login prohibited" user is a user that is not allowed to log in to Gitea anymo
 
 All Gitea instances have the built-in API and there is no way to disable it completely.
 You can, however, disable showing its documentation by setting `ENABLE_SWAGGER` to `false` in the `api` section of your `app.ini`.
-For more information, refer to Gitea's [API docs]({{< relref "doc/developers/api-usage.en-us.md" >}}).
+For more information, refer to Gitea's [API docs]({{< relref "doc/development/api-usage.en-us.md" >}}).
 
 You can see the latest API (for example) on <https://try.gitea.io/api/swagger>.
 
@@ -149,7 +157,7 @@ There are multiple things you can combine to prevent spammers.
 1. By whitelisting or blocklisting certain email domains
 2. By only whitelisting certain domains with OpenID (see below)
 3. Setting `ENABLE_CAPTCHA` to `true` in your `app.ini` and properly configuring `RECAPTCHA_SECRET` and `RECAPTCHA_SITEKEY`
-4. Settings `DISABLE_REGISTRATION` to `true` and creating new users via the [CLI]({{< relref "doc/usage/command-line.en-us.md" >}}), [API]({{< relref "doc/developers/api-usage.en-us.md" >}}), or Gitea's Admin UI
+4. Settings `DISABLE_REGISTRATION` to `true` and creating new users via the [CLI]({{< relref "doc/administration/command-line.en-us.md" >}}), [API]({{< relref "doc/development/api-usage.en-us.md" >}}), or Gitea's Admin UI
 
 ### Only allow/block certain email domains
 
@@ -175,7 +183,7 @@ At some point, a customer or third party needs access to a specific repo and onl
 
 ### Enable Fail2ban
 
-Use [Fail2Ban]({{< relref "doc/usage/fail2ban-setup.en-us.md" >}}) to monitor and stop automated login attempts or other malicious behavior based on log patterns
+Use [Fail2Ban]({{< relref "doc/administration/fail2ban-setup.en-us.md" >}}) to monitor and stop automated login attempts or other malicious behavior based on log patterns
 
 ## How to add/use custom themes
 
@@ -328,24 +336,24 @@ You may want to set this value to `60m` or `120m`.
 
 ## How can I create users before starting Gitea
 
-Gitea provides a sub-command `gitea migrate` to initialize the database, after which you can use the [admin CLI commands]({{< relref "doc/usage/command-line.en-us.md#admin" >}}) to add users like normal.
+Gitea provides a sub-command `gitea migrate` to initialize the database, after which you can use the [admin CLI commands]({{< relref "doc/administration/command-line.en-us.md#admin" >}}) to add users like normal.
 
 ## How can I enable password reset
 
-There is no setting for password resets. It is enabled when a [mail service]({{< relref "doc/usage/email-setup.en-us.md" >}}) is configured, and disabled otherwise.
+There is no setting for password resets. It is enabled when a [mail service]({{< relref "doc/administration/email-setup.en-us.md" >}}) is configured, and disabled otherwise.
 
 ## How can a user's password be changed
 
 - As an **admin**, you can change any user's password (and optionally force them to change it on next login)...
   - By navigating to your `Site Administration -> User Accounts` page and editing a user.
-  - By using the [admin CLI commands]({{< relref "doc/usage/command-line.en-us.md#admin" >}}).
+  - By using the [admin CLI commands]({{< relref "doc/administration/command-line.en-us.md#admin" >}}).
 
-    Keep in mind most commands will also need a [global flag]({{< relref "doc/usage/command-line.en-us.md#global-options" >}}) to point the CLI at the correct configuration.
+    Keep in mind most commands will also need a [global flag]({{< relref "doc/administration/command-line.en-us.md#global-options" >}}) to point the CLI at the correct configuration.
 - As a **user** you can change it...
   - In your account `Settings -> Account` page (this method **requires** you to know your current password).
   - By using the `Forgot Password` link.
 
-    If the `Forgot Password/Account Recovery` page is disabled, please contact your administrator to configure a [mail service]({{< relref "doc/usage/email-setup.en-us.md" >}}).
+    If the `Forgot Password/Account Recovery` page is disabled, please contact your administrator to configure a [mail service]({{< relref "doc/administration/email-setup.en-us.md" >}}).
 
 ## Why is my markdown broken
 
@@ -394,14 +402,6 @@ You will also need to change the app.ini database charset to `CHARSET=utf8mb4`.
 
 Gitea requires the system or browser to have one of the supported Emoji fonts installed, which are Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji and Twemoji Mozilla. Generally, the operating system should already provide one of these fonts, but especially on Linux, it may be necessary to install them manually.
 
-## Stdout logging on SystemD and Docker
-
-Stdout on systemd goes to the journal by default. Try using `journalctl`, `journalctl  -u gitea`, or `journalctl <path-to-gitea-binary>`.
-
-Similarly, stdout on docker can be viewed using `docker logs <container>`.
-
-To collect logs for help and issue report, see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}}).
-
 ## Initial logging
 
 Before Gitea has read the configuration file and set-up its logging it will log a number of things to stdout in order to help debug things if logging does not work.
@@ -444,12 +444,6 @@ gitea doctor recreate-table
 
 It is highly recommended to back-up your database before running these commands.
 
-## Why are tabs/indents wrong when viewing files
-
-If you are using Cloudflare, turn off the auto-minify option in the dashboard.
-
-`Speed` -> `Optimization` -> Uncheck `HTML` within the `Auto-Minify` settings.
-
 ## How to adopt repositories from disk
 
 - Add your (bare) repositories to the correct spot for your configuration (`repository.ROOT`), ensuring they are in the correct layout `<REPO_ROOT>/[user]/[repo].git`.
@@ -457,6 +451,20 @@ If you are using Cloudflare, turn off the auto-minify option in the dashboard.
   - You can also check `<ROOT_URL>/admin/config` for the repository root path.
 - Ensure that the user/org exists that you want to adopt repositories for.
 - As an admin, go to `<ROOT_URL>/admin/repos/unadopted` and search.
-  - Users can also be given similar permissions via config [`ALLOW_ADOPTION_OF_UNADOPTED_REPOSITORIES`]({{< relref "doc/advanced/config-cheat-sheet.en-us.md#repository" >}}).
+  - Users can also be given similar permissions via config [`ALLOW_ADOPTION_OF_UNADOPTED_REPOSITORIES`]({{< relref "doc/administration/config-cheat-sheet.en-us.md#repository" >}}).
 - If the above steps are done correctly, you should be able to select repositories to adopt.
-  - If no repositories are found, enable [debug logging]({{< relref "doc/advanced/config-cheat-sheet.en-us.md#repository" >}}) to check for any specific errors.
+  - If no repositories are found, enable [debug logging]({{< relref "doc/administration/config-cheat-sheet.en-us.md#repository" >}}) to check for any specific errors.
+
+## Gitea can't start on NFS
+
+In most cases, it's caused by broken NFS lock system. You can try to stop Gitea process and
+run `flock -n /data-nfs/gitea/queues/LOCK echo 'lock acquired'` to see whether the lock can be acquired immediately.
+If the lock can't be acquired, NFS might report some errors like `lockd: cannot monitor node-3, statd: server rpc.statd not responding, timed out` in its server logs.
+
+Then the NFS lock could be reset by:
+
+```bash
+# /etc/init.d/nfs stop
+# rm -rf /var/lib/nfs/sm/*
+# /etc/init.d/nfs start
+```

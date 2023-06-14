@@ -3,7 +3,10 @@
 
 package util
 
-import "unicode/utf8"
+import (
+	"strings"
+	"unicode/utf8"
+)
 
 // in UTF8 "…" is 3 bytes so doesn't really gain us anything...
 const (
@@ -36,26 +39,16 @@ func SplitStringAtByteN(input string, n int) (left, right string) {
 	return input[:end] + utf8Ellipsis, utf8Ellipsis + input[end:]
 }
 
-// SplitStringAtRuneN splits a string at rune n accounting for rune boundaries. (Combining characters are not accounted for.)
-func SplitStringAtRuneN(input string, n int) (left, right string) {
-	if !utf8.ValidString(input) {
-		if len(input) <= n || n-3 < 0 {
-			return input, ""
-		}
-		return input[:n-3] + asciiEllipsis, asciiEllipsis + input[n-3:]
+// SplitTrimSpace splits the string at given separator and trims leading and trailing space
+func SplitTrimSpace(input, sep string) []string {
+	// replace CRLF with LF
+	input = strings.ReplaceAll(input, "\r\n", "\n")
+
+	var stringList []string
+	for _, s := range strings.Split(input, sep) {
+		// trim leading and trailing space
+		stringList = append(stringList, strings.TrimSpace(s))
 	}
 
-	if utf8.RuneCountInString(input) <= n {
-		return input, ""
-	}
-
-	count := 0
-	end := 0
-	for count < n-1 {
-		_, size := utf8.DecodeRuneInString(input[end:])
-		end += size
-		count++
-	}
-
-	return input[:end] + utf8Ellipsis, utf8Ellipsis + input[end:]
+	return stringList
 }

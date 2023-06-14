@@ -223,12 +223,8 @@ func CreateHook(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Hook"
-	form := web.GetForm(ctx).(*api.CreateHookOption)
 
-	if !utils.CheckCreateHookOption(ctx, form) {
-		return
-	}
-	utils.AddRepoHook(ctx, form)
+	utils.AddRepoHook(ctx, web.GetForm(ctx).(*api.CreateHookOption))
 }
 
 // EditHook modify a hook of a repository

@@ -207,6 +207,14 @@ func syncGitConfig() (err error) {
 		return fmt.Errorf("unable to prepare git home directory %s, err: %w", HomeDir(), err)
 	}
 
+	// first, write user's git config options to git config file
+	// user config options could be overwritten by builtin values later, because if a value is builtin, it must have some special purposes
+	for k, v := range setting.GitConfig.Options {
+		if err = configSet(strings.ToLower(k), v); err != nil {
+			return err
+		}
+	}
+
 	// Git requires setting user.name and user.email in order to commit changes - old comment: "if they're not set just add some defaults"
 	// TODO: need to confirm whether users really need to change these values manually. It seems that these values are dummy only and not really used.
 	// If these values are not really used, then they can be set (overwritten) directly without considering about existence.
@@ -312,7 +320,7 @@ func CheckGitVersionAtLeast(atLeast string) error {
 }
 
 func configSet(key, value string) error {
-	stdout, _, err := NewCommand(DefaultContext, "config", "--get").AddDynamicArguments(key).RunStdString(nil)
+	stdout, _, err := NewCommand(DefaultContext, "config", "--global", "--get").AddDynamicArguments(key).RunStdString(nil)
 	if err != nil && !err.IsExitCode(1) {
 		return fmt.Errorf("failed to get git config %s, err: %w", key, err)
 	}
@@ -331,7 +339,7 @@ func configSet(key, value string) error {
 }
 
 func configSetNonExist(key, value string) error {
-	_, _, err := NewCommand(DefaultContext, "config", "--get").AddDynamicArguments(key).RunStdString(nil)
+	_, _, err := NewCommand(DefaultContext, "config", "--global", "--get").AddDynamicArguments(key).RunStdString(nil)
 	if err == nil {
 		// already exist
 		return nil
@@ -349,7 +357,7 @@ func configSetNonExist(key, value string) error {
 }
 
 func configAddNonExist(key, value string) error {
-	_, _, err := NewCommand(DefaultContext, "config", "--get").AddDynamicArguments(key, regexp.QuoteMeta(value)).RunStdString(nil)
+	_, _, err := NewCommand(DefaultContext, "config", "--global", "--get").AddDynamicArguments(key, regexp.QuoteMeta(value)).RunStdString(nil)
 	if err == nil {
 		// already exist
 		return nil
@@ -366,7 +374,7 @@ func configAddNonExist(key, value string) error {
 }
 
 func configUnsetAll(key, value string) error {
-	_, _, err := NewCommand(DefaultContext, "config", "--get").AddDynamicArguments(key).RunStdString(nil)
+	_, _, err := NewCommand(DefaultContext, "config", "--global", "--get").AddDynamicArguments(key).RunStdString(nil)
 	if err == nil {
 		// exist, need to remove
 		_, _, err = NewCommand(DefaultContext, "config", "--global", "--unset-all").AddDynamicArguments(key, regexp.QuoteMeta(value)).RunStdString(nil)

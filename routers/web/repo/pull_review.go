@@ -77,7 +77,7 @@ func CreateCodeComment(ctx *context.Context) {
 		signedLine,
 		form.Content,
 		form.TreePath,
-		form.IsReview,
+		!form.SingleReview,
 		form.Reply,
 		form.LatestCommitID,
 	)

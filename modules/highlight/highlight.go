@@ -36,6 +36,8 @@ var (
 	once sync.Once
 
 	cache *lru.TwoQueueCache
+
+	githubStyles = styles.Get("github")
 )
 
 // NewContext loads custom highlight map from local config
@@ -121,7 +123,7 @@ func CodeFromLexer(lexer chroma.Lexer, code string) string {
 		return code
 	}
 	// style not used for live site but need to pass something
-	err = formatter.Format(htmlw, styles.GitHub, iterator)
+	err = formatter.Format(htmlw, githubStyles, iterator)
 	if err != nil {
 		log.Error("Can't format code: %v", err)
 		return code
@@ -184,7 +186,7 @@ func File(fileName, language string, code []byte) ([]string, string, error) {
 	lines := make([]string, 0, len(tokensLines))
 	for _, tokens := range tokensLines {
 		iterator = chroma.Literator(tokens...)
-		err = formatter.Format(htmlBuf, styles.GitHub, iterator)
+		err = formatter.Format(htmlBuf, githubStyles, iterator)
 		if err != nil {
 			return nil, "", fmt.Errorf("can't format code: %w", err)
 		}

@@ -6,6 +6,8 @@ package git
 import (
 	"regexp"
 	"strings"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -13,8 +15,6 @@ const (
 	RemotePrefix = "refs/remotes/"
 	// PullPrefix is the base directory of the pull information of git.
 	PullPrefix = "refs/pull/"
-
-	pullLen = len(PullPrefix)
 )
 
 // refNamePatternInvalid is regular expression with unallowed characters in git reference name
@@ -63,8 +63,26 @@ func (ref *Reference) RefGroup() string {
 	return RefName(ref.Name).RefGroup()
 }
 
-// RefName represents a git reference name
+// ForPrefix special ref to create a pull request: refs/for/<target-branch>/<topic-branch>
+// or refs/for/<targe-branch> -o topic='<topic-branch>'
+const ForPrefix = "refs/for/"
+
+// TODO: /refs/for-review for suggest change interface
+
+// RefName represents a full git reference name
 type RefName string
+
+func RefNameFromBranch(shortName string) RefName {
+	return RefName(BranchPrefix + shortName)
+}
+
+func RefNameFromTag(shortName string) RefName {
+	return RefName(TagPrefix + shortName)
+}
+
+func (ref RefName) String() string {
+	return string(ref)
+}
 
 func (ref RefName) IsBranch() bool {
 	return strings.HasPrefix(string(ref), BranchPrefix)
@@ -74,39 +92,123 @@ func (ref RefName) IsTag() bool {
 	return strings.HasPrefix(string(ref), TagPrefix)
 }
 
+func (ref RefName) IsRemote() bool {
+	return strings.HasPrefix(string(ref), RemotePrefix)
+}
+
+func (ref RefName) IsPull() bool {
+	return strings.HasPrefix(string(ref), PullPrefix) && strings.IndexByte(string(ref)[len(PullPrefix):], '/') > -1
+}
+
+func (ref RefName) IsFor() bool {
+	return strings.HasPrefix(string(ref), ForPrefix)
+}
+
+func (ref RefName) nameWithoutPrefix(prefix string) string {
+	if strings.HasPrefix(string(ref), prefix) {
+		return strings.TrimPrefix(string(ref), prefix)
+	}
+	return ""
+}
+
+// TagName returns simple tag name if it's an operation to a tag
+func (ref RefName) TagName() string {
+	return ref.nameWithoutPrefix(TagPrefix)
+}
+
+// BranchName returns simple branch name if it's an operation to branch
+func (ref RefName) BranchName() string {
+	return ref.nameWithoutPrefix(BranchPrefix)
+}
+
+// PullName returns the pull request name part of refs like refs/pull/<pull_name>/head
+func (ref RefName) PullName() string {
+	refName := string(ref)
+	lastIdx := strings.LastIndexByte(refName[len(PullPrefix):], '/')
+	if strings.HasPrefix(refName, PullPrefix) && lastIdx > -1 {
+		return refName[len(PullPrefix) : lastIdx+len(PullPrefix)]
+	}
+	return ""
+}
+
+// ForBranchName returns the branch name part of refs like refs/for/<branch_name>
+func (ref RefName) ForBranchName() string {
+	return ref.nameWithoutPrefix(ForPrefix)
+}
+
+func (ref RefName) RemoteName() string {
+	return ref.nameWithoutPrefix(RemotePrefix)
+}
+
 // ShortName returns the short name of the reference name
 func (ref RefName) ShortName() string {
 	refName := string(ref)
-	if strings.HasPrefix(refName, BranchPrefix) {
-		return strings.TrimPrefix(refName, BranchPrefix)
+	if ref.IsBranch() {
+		return ref.BranchName()
 	}
-	if strings.HasPrefix(refName, TagPrefix) {
-		return strings.TrimPrefix(refName, TagPrefix)
+	if ref.IsTag() {
+		return ref.TagName()
 	}
-	if strings.HasPrefix(refName, RemotePrefix) {
-		return strings.TrimPrefix(refName, RemotePrefix)
+	if ref.IsRemote() {
+		return ref.RemoteName()
 	}
-	if strings.HasPrefix(refName, PullPrefix) && strings.IndexByte(refName[pullLen:], '/') > -1 {
-		return refName[pullLen : strings.IndexByte(refName[pullLen:], '/')+pullLen]
+	if ref.IsPull() {
+		return ref.PullName()
+	}
+	if ref.IsFor() {
+		return ref.ForBranchName()
 	}
 
 	return refName
 }
 
 // RefGroup returns the group type of the reference
+// Using the name of the directory under .git/refs
 func (ref RefName) RefGroup() string {
-	refName := string(ref)
-	if strings.HasPrefix(refName, BranchPrefix) {
+	if ref.IsBranch() {
 		return "heads"
 	}
-	if strings.HasPrefix(refName, TagPrefix) {
+	if ref.IsTag() {
 		return "tags"
 	}
-	if strings.HasPrefix(refName, RemotePrefix) {
+	if ref.IsRemote() {
 		return "remotes"
 	}
-	if strings.HasPrefix(refName, PullPrefix) && strings.IndexByte(refName[pullLen:], '/') > -1 {
+	if ref.IsPull() {
 		return "pull"
 	}
+	if ref.IsFor() {
+		return "for"
+	}
 	return ""
+}
+
+// RefType returns the simple ref type of the reference, e.g. branch, tag
+// It's differrent from RefGroup, which is using the name of the directory under .git/refs
+// Here we using branch but not heads, using tag but not tags
+func (ref RefName) RefType() string {
+	var refType string
+	if ref.IsBranch() {
+		refType = "branch"
+	} else if ref.IsTag() {
+		refType = "tag"
+	}
+	return refType
+}
+
+// RefURL returns the absolute URL for a ref in a repository
+func RefURL(repoURL, ref string) string {
+	refFullName := RefName(ref)
+	refName := util.PathEscapeSegments(refFullName.ShortName())
+	switch {
+	case refFullName.IsBranch():
+		return repoURL + "/src/branch/" + refName
+	case refFullName.IsTag():
+		return repoURL + "/src/tag/" + refName
+	case !IsValidSHAPattern(ref):
+		// assume they mean a branch
+		return repoURL + "/src/branch/" + refName
+	default:
+		return repoURL + "/src/commit/" + refName
+	}
 }

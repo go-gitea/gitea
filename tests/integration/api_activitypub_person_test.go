@@ -29,8 +29,9 @@ func TestActivityPubPerson(t *testing.T) {
 	}()
 
 	onGiteaRun(t, func(*testing.T, *url.URL) {
+		userID := 2
 		username := "user2"
-		req := NewRequestf(t, "GET", fmt.Sprintf("/api/v1/activitypub/user/%s", username))
+		req := NewRequestf(t, "GET", fmt.Sprintf("/api/v1/activitypub/user-id/%v", userID))
 		resp := MakeRequest(t, req, http.StatusOK)
 		body := resp.Body.Bytes()
 		assert.Contains(t, string(body), "@context")
@@ -42,9 +43,9 @@ func TestActivityPubPerson(t *testing.T) {
 		assert.Equal(t, ap.PersonType, person.Type)
 		assert.Equal(t, username, person.PreferredUsername.String())
 		keyID := person.GetID().String()
-		assert.Regexp(t, fmt.Sprintf("activitypub/user/%s$", username), keyID)
-		assert.Regexp(t, fmt.Sprintf("activitypub/user/%s/outbox$", username), person.Outbox.GetID().String())
-		assert.Regexp(t, fmt.Sprintf("activitypub/user/%s/inbox$", username), person.Inbox.GetID().String())
+		assert.Regexp(t, fmt.Sprintf("activitypub/user-id/%v$", userID), keyID)
+		assert.Regexp(t, fmt.Sprintf("activitypub/user-id/%v/outbox$", userID), person.Outbox.GetID().String())
+		assert.Regexp(t, fmt.Sprintf("activitypub/user-id/%v/inbox$", userID), person.Inbox.GetID().String())
 
 		pubKey := person.PublicKey
 		assert.NotNil(t, pubKey)
@@ -66,9 +67,9 @@ func TestActivityPubMissingPerson(t *testing.T) {
 	}()
 
 	onGiteaRun(t, func(*testing.T, *url.URL) {
-		req := NewRequestf(t, "GET", "/api/v1/activitypub/user/nonexistentuser")
+		req := NewRequestf(t, "GET", "/api/v1/activitypub/user-id/999999999")
 		resp := MakeRequest(t, req, http.StatusNotFound)
-		assert.Contains(t, resp.Body.String(), "user redirect does not exist")
+		assert.Contains(t, resp.Body.String(), "user does not exist")
 	})
 }
 
@@ -85,7 +86,7 @@ func TestActivityPubPersonInbox(t *testing.T) {
 
 	onGiteaRun(t, func(*testing.T, *url.URL) {
 		appURL := setting.AppURL
-		setting.AppURL = srv.URL
+		setting.AppURL = srv.URL + "/"
 		defer func() {
 			setting.Database.LogSQL = false
 			setting.AppURL = appURL
@@ -94,11 +95,10 @@ func TestActivityPubPersonInbox(t *testing.T) {
 		ctx := context.Background()
 		user1, err := user_model.GetUserByName(ctx, username1)
 		assert.NoError(t, err)
-		user1url := fmt.Sprintf("%s/api/v1/activitypub/user/%s#main-key", srv.URL, username1)
+		user1url := fmt.Sprintf("%s/api/v1/activitypub/user-id/1#main-key", srv.URL)
 		c, err := activitypub.NewClient(user1, user1url)
 		assert.NoError(t, err)
-		username2 := "user2"
-		user2inboxurl := fmt.Sprintf("%s/api/v1/activitypub/user/%s/inbox", srv.URL, username2)
+		user2inboxurl := fmt.Sprintf("%s/api/v1/activitypub/user-id/2/inbox", srv.URL)
 
 		// Signed request succeeds
 		resp, err := c.Post([]byte{}, user2inboxurl)

@@ -47,7 +47,7 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified time.Time
 				log.Error("ServeBlobOrLFS: Close: %v", err)
 			}
 			closed = true
-			return common.ServeBlob(ctx, blob, lastModified)
+			return common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, lastModified)
 		}
 		if httpcache.HandleGenericETagCache(ctx.Req, ctx.Resp, `"`+pointer.Oid+`"`) {
 			return nil
@@ -71,14 +71,15 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified time.Time
 				log.Error("ServeBlobOrLFS: Close: %v", err)
 			}
 		}()
-		return common.ServeData(ctx, ctx.Repo.TreePath, meta.Size, lfsDataRc)
+		common.ServeContentByReadSeeker(ctx.Base, ctx.Repo.TreePath, lastModified, lfsDataRc)
+		return nil
 	}
 	if err = dataRc.Close(); err != nil {
 		log.Error("ServeBlobOrLFS: Close: %v", err)
 	}
 	closed = true
 
-	return common.ServeBlob(ctx, blob, lastModified)
+	return common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, lastModified)
 }
 
 func getBlobForEntry(ctx *context.Context) (blob *git.Blob, lastModified time.Time) {
@@ -119,7 +120,7 @@ func SingleDownload(ctx *context.Context) {
 		return
 	}
 
-	if err := common.ServeBlob(ctx, blob, lastModified); err != nil {
+	if err := common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, lastModified); err != nil {
 		ctx.ServerError("ServeBlob", err)
 	}
 }
@@ -147,7 +148,7 @@ func DownloadByID(ctx *context.Context) {
 		}
 		return
 	}
-	if err = common.ServeBlob(ctx, blob, time.Time{}); err != nil {
+	if err = common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, time.Time{}); err != nil {
 		ctx.ServerError("ServeBlob", err)
 	}
 }

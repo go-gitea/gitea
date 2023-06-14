@@ -5,7 +5,7 @@
 			</div>
 			<div class="column right aligned">
 				{{if .CanWriteProjects}}
-					<a class="ui green button show-modal item" data-modal="#new-board-item">{{.locale.Tr "new_project_column"}}</a>
+					<a class="ui small green button show-modal item" data-modal="#new-board-item">{{.locale.Tr "new_project_column"}}</a>
 				{{end}}
 				<div class="ui small modal new-board-modal" id="new-board-item">
 					<div class="header">
@@ -29,7 +29,7 @@
 							</div>
 
 							<div class="text right actions">
-								<div class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</div>
+								<button class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</button>
 								<button data-url="{{$.Link}}" class="ui primary button" id="new_board_submit">{{$.locale.Tr "repo.projects.column.new_submit"}}</button>
 							</div>
 						</form>
@@ -43,10 +43,10 @@
 				<h2 class="project-title">{{$.Project.Title}}</h2>
 				<div class="content project-description">{{$.Project.RenderedContent|Str2html}}</div>
 			</div>
-			{{if or $.CanWriteIssues $.CanWritePulls}}
+			{{if $.CanWriteProjects}}
 				<div class="column right aligned">
 					<div class="ui compact right small menu">
-						<a class="item" href="{{$.Link}}/edit" data-id={{$.Project.ID}} data-title={{$.Project.Title}}>
+						<a class="item" href="{{$.Link}}/edit?redirect=project" data-id={{$.Project.ID}} data-title={{$.Project.Title}}>
 							{{svg "octicon-pencil"}}
 							<span class="gt-mx-3">{{$.locale.Tr "repo.issues.label_edit"}}</span>
 						</a>
@@ -73,7 +73,7 @@
 	</div>
 	<div class="ui container fluid padded" id="project-board">
 
-		<div class="board">
+		<div class="board {{if .CanWriteProjects}}sortable{{end}}">
 			{{range $board := .Boards}}
 
 			<div class="ui segment board-column" style="background: {{.Color}} !important;" data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.Link}}/{{.ID}}">
@@ -85,7 +85,7 @@
 						{{.Title}}
 					</div>
 					{{if and $.CanWriteProjects (ne .ID 0)}}
-						<div class="ui dropdown jump item tooltip">
+						<div class="ui dropdown jump item">
 							<div class="not-mobile gt-px-3" tabindex="-1">
 								{{svg "octicon-kebab-horizontal"}}
 							</div>
@@ -95,12 +95,28 @@
 									{{$.locale.Tr "repo.projects.column.edit"}}
 								</a>
 								{{if not .Default}}
-									<a class="item show-modal button" data-modal="#set-default-project-board-modal-{{.ID}}">
+									<a class="item show-modal button default-project-board-show"
+									data-modal="#default-project-board-modal-{{.ID}}"
+									data-modal-default-project-board-header="{{$.locale.Tr "repo.projects.column.set_default"}}"
+									data-modal-default-project-board-content="{{$.locale.Tr "repo.projects.column.set_default_desc"}}"
+									data-url="{{$.Link}}/{{.ID}}/default">
 										{{svg "octicon-pin"}}
 										{{$.locale.Tr "repo.projects.column.set_default"}}
 									</a>
+								{{else}}
+									<a class="item show-modal button default-project-board-show"
+									data-modal="#default-project-board-modal-{{.ID}}"
+									data-modal-default-project-board-header="{{$.locale.Tr "repo.projects.column.unset_default"}}"
+									data-modal-default-project-board-content="{{$.locale.Tr "repo.projects.column.unset_default_desc"}}"
+									data-url="{{$.Link}}/{{.ID}}/unsetdefault">
+										{{svg "octicon-pin-slash"}}
+										{{$.locale.Tr "repo.projects.column.unset_default"}}
+									</a>
 								{{end}}
-								<a class="item show-modal button" data-modal="#delete-board-modal-{{.ID}}">
+								<a class="item show-modal button show-delete-column-modal"
+									data-modal="#delete-board-modal-{{.ID}}"
+									data-url="{{$.Link}}/{{.ID}}"
+								>
 									{{svg "octicon-trash"}}
 									{{$.locale.Tr "repo.projects.column.delete"}}
 								</a>
@@ -127,41 +143,33 @@
 											</div>
 
 											<div class="text right actions">
-												<div class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</div>
-												<button data-url="{{$.Link}}/{{.ID}}" class="ui primary button">{{$.locale.Tr "repo.projects.column.edit"}}</button>
+												<button class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</button>
+												<button data-url="{{$.Link}}/{{.ID}}" class="ui primary button edit-column-button">{{$.locale.Tr "repo.projects.column.edit"}}</button>
 											</div>
 										</form>
 									</div>
 								</div>
 
-								<div class="ui basic modal" id="set-default-project-board-modal-{{.ID}}">
-									<div class="ui icon header">
-										{{$.locale.Tr "repo.projects.column.set_default"}}
+								<div class="ui g-modal-confirm modal default-project-board-modal" id="default-project-board-modal-{{.ID}}">
+									<div class="header">
+										<span id="default-project-board-header"></span>
 									</div>
-									<div class="content center">
-										<label>
-											{{$.locale.Tr "repo.projects.column.set_default_desc"}}
-										</label>
+									<div class="content">
+										<label id="default-project-board-content"></label>
 									</div>
-									<div class="text right actions">
-										<div class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</div>
-										<button class="ui primary button set-default-project-board" data-url="{{$.Link}}/{{.ID}}/default">{{$.locale.Tr "repo.projects.column.set_default"}}</button>
-									</div>
+									{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonTypes" "confirm")}}
 								</div>
 
-								<div class="ui basic modal" id="delete-board-modal-{{.ID}}">
-									<div class="ui icon header">
+								<div class="ui g-modal-confirm modal" id="delete-board-modal-{{.ID}}">
+									<div class="header">
 										{{$.locale.Tr "repo.projects.column.delete"}}
 									</div>
-									<div class="content center">
+									<div class="content">
 										<label>
 											{{$.locale.Tr "repo.projects.column.deletion_desc"}}
 										</label>
 									</div>
-									<div class="text right actions">
-										<div class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</div>
-										<button class="ui red button delete-project-board" data-url="{{$.Link}}/{{.ID}}">{{$.locale.Tr "repo.projects.column.delete"}}</button>
-									</div>
+									{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonTypes" "confirm")}}
 								</div>
 							</div>
 						</div>
@@ -175,26 +183,17 @@
 
 					<!-- start issue card -->
 					<div class="card board-card" data-issue="{{.ID}}">
+						{{if eq $.Project.CardType 1}}{{/* Images and Text*/}}
+							<div class="card-attachment-images">
+								{{range (index $.issuesAttachmentMap .ID)}}
+									<img src="{{.DownloadURL}}" alt="{{.Name}}" />
+								{{end}}
+							</div>
+						{{end}}
 						<div class="content gt-p-0">
 							<div class="header">
-								<span class="gt-dif gt-ac gt-vm {{if .IsClosed}}red{{else}}green{{end}}">
-									{{if .IsPull}}
-										{{if .PullRequest.HasMerged}}
-											{{svg "octicon-git-merge" 16 "text purple"}}
-										{{else}}
-											{{if .IsClosed}}
-												{{svg "octicon-git-pull-request" 16 "text red"}}
-											{{else}}
-												{{svg "octicon-git-pull-request" 16 "text green"}}
-											{{end}}
-										{{end}}
-									{{else}}
-										{{if .IsClosed}}
-											{{svg "octicon-issue-closed" 16 "text red"}}
-										{{else}}
-											{{svg "octicon-issue-opened" 16 "text green"}}
-										{{end}}
-									{{end}}
+								<span class="gt-dif gt-ac gt-vm">
+									{{template "shared/issueicon" .}}
 								</span>
 								<a class="project-board-title gt-vm" href="{{.Link}}">
 									{{.Title}}
@@ -224,7 +223,7 @@
 							{{- range index $.LinkedPRs .ID}}
 							<div class="meta gt-my-2">
 								<a href="{{$.RepoLink}}/pulls/{{.Index}}">
-									<span class="gt-m-0 {{if .PullRequest.HasMerged}}purple{{else if .IsClosed}}red{{else}}green{{end}}">{{svg "octicon-git-merge" 16 "gt-mr-2 gt-vm"}}</span>
+									<span class="gt-m-0 text {{if .PullRequest.HasMerged}}purple{{else if .IsClosed}}red{{else}}green{{end}}">{{svg "octicon-git-merge" 16 "gt-mr-2 gt-vm"}}</span>
 									<span class="gt-vm">{{.Title}} <span class="text light grey">#{{.Index}}</span></span>
 								</a>
 							</div>
@@ -234,11 +233,11 @@
 						{{if or .Labels .Assignees}}
 						<div class="extra content labels-list gt-p-0 gt-pt-2">
 							{{range .Labels}}
-								<a target="_blank" href="{{$.RepoLink}}/issues?labels={{.ID}}">{{RenderLabel .}}</a>
+								<a target="_blank" href="{{$.RepoLink}}/issues?labels={{.ID}}">{{RenderLabel $.Context .}}</a>
 							{{end}}
 							<div class="right floated">
 								{{range .Assignees}}
-									<a class="tooltip" target="_blank" href="{{.HomeLink}}" data-content="{{$.locale.Tr "repo.projects.column.assigned_to"}} {{.Name}}">{{avatar . 28 "mini gt-mr-3"}}</a>
+									<a target="_blank" href="{{.HomeLink}}" data-tooltip-content="{{$.locale.Tr "repo.projects.column.assigned_to"}} {{.Name}}">{{avatar $.Context . 28 "mini gt-mr-3"}}</a>
 								{{end}}
 							</div>
 						</div>
@@ -256,24 +255,15 @@
 
 </div>
 
-{{if or .CanWriteIssues .CanWritePulls}}
-	<div class="ui small basic delete modal">
-		<div class="ui icon header">
+{{if .CanWriteProjects}}
+	<div class="ui g-modal-confirm delete modal">
+		<div class="header">
 			{{svg "octicon-trash"}}
 			{{.locale.Tr "repo.projects.deletion"}}
 		</div>
 		<div class="content">
 			<p>{{.locale.Tr "repo.projects.deletion_desc"}}</p>
 		</div>
-		<div class="actions">
-			<div class="ui red basic inverted cancel button">
-				<i class="remove icon"></i>
-				{{.locale.Tr "modal.no"}}
-			</div>
-			<div class="ui green basic inverted ok button">
-				<i class="checkmark icon"></i>
-				{{.locale.Tr "modal.yes"}}
-			</div>
-		</div>
+		{{template "base/modal_actions_confirm" .}}
 	</div>
 {{end}}

@@ -100,6 +100,21 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 		hasProjects = true
 	}
 
+	hasReleases := false
+	if _, err := repo.GetUnit(ctx, unit_model.TypeReleases); err == nil {
+		hasReleases = true
+	}
+
+	hasPackages := false
+	if _, err := repo.GetUnit(ctx, unit_model.TypePackages); err == nil {
+		hasPackages = true
+	}
+
+	hasActions := false
+	if _, err := repo.GetUnit(ctx, unit_model.TypeActions); err == nil {
+		hasActions = true
+	}
+
 	if err := repo.LoadOwner(ctx); err != nil {
 		return nil
 	}
@@ -109,11 +124,10 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 	mirrorInterval := ""
 	var mirrorUpdated time.Time
 	if repo.IsMirror {
-		var err error
-		repo.Mirror, err = repo_model.GetMirrorByRepoID(ctx, repo.ID)
+		pullMirror, err := repo_model.GetMirrorByRepoID(ctx, repo.ID)
 		if err == nil {
-			mirrorInterval = repo.Mirror.Interval.String()
-			mirrorUpdated = repo.Mirror.UpdatedUnix.AsTime()
+			mirrorInterval = pullMirror.Interval.String()
+			mirrorUpdated = pullMirror.UpdatedUnix.AsTime()
 		}
 	}
 
@@ -168,12 +182,16 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 		DefaultBranch:                 repo.DefaultBranch,
 		Created:                       repo.CreatedUnix.AsTime(),
 		Updated:                       repo.UpdatedUnix.AsTime(),
+		ArchivedAt:                    repo.ArchivedUnix.AsTime(),
 		Permissions:                   permission,
 		HasIssues:                     hasIssues,
 		ExternalTracker:               externalTracker,
 		InternalTracker:               internalTracker,
 		HasWiki:                       hasWiki,
 		HasProjects:                   hasProjects,
+		HasReleases:                   hasReleases,
+		HasPackages:                   hasPackages,
+		HasActions:                    hasActions,
 		ExternalWiki:                  externalWiki,
 		HasPullRequests:               hasPullRequests,
 		IgnoreWhitespaceConflicts:     ignoreWhitespaceConflicts,

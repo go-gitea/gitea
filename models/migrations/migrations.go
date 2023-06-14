@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_18"
 	"code.gitea.io/gitea/models/migrations/v1_19"
 	"code.gitea.io/gitea/models/migrations/v1_20"
+	"code.gitea.io/gitea/models/migrations/v1_21"
 	"code.gitea.io/gitea/models/migrations/v1_6"
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
@@ -468,7 +469,42 @@ var migrations = []Migration{
 	// v244 -> v245
 	NewMigration("Add NeedApproval to actions tables", v1_20.AddNeedApprovalToActionRun),
 	// v245 -> v246
-	NewMigration("Add git_size and lfs_size columns to repository table", v1_20.AddGitSizeAndLFSSizeToRepositoryTable),
+	NewMigration("Rename Webhook org_id to owner_id", v1_20.RenameWebhookOrgToOwner),
+	// v246 -> v247
+	NewMigration("Add missed column owner_id for project table", v1_20.AddNewColumnForProject),
+	// v247 -> v248
+	NewMigration("Fix incorrect project type", v1_20.FixIncorrectProjectType),
+	// v248 -> v249
+	NewMigration("Add version column to action_runner table", v1_20.AddVersionToActionRunner),
+	// v249 -> v250
+	NewMigration("Improve Action table indices v3", v1_20.ImproveActionTableIndices),
+	// v250 -> v251
+	NewMigration("Change Container Metadata", v1_20.ChangeContainerMetadataMultiArch),
+	// v251 -> v252
+	NewMigration("Fix incorrect owner team unit access mode", v1_20.FixIncorrectOwnerTeamUnitAccessMode),
+	// v252 -> v253
+	NewMigration("Fix incorrect admin team unit access mode", v1_20.FixIncorrectAdminTeamUnitAccessMode),
+	// v253 -> v254
+	NewMigration("Fix ExternalTracker and ExternalWiki accessMode in owner and admin team", v1_20.FixExternalTrackerAndExternalWikiAccessModeInOwnerAndAdminTeam),
+	// v254 -> v255
+	NewMigration("Add ActionTaskOutput table", v1_20.AddActionTaskOutputTable),
+	// v255 -> v256
+	NewMigration("Add ArchivedUnix Column", v1_20.AddArchivedUnixToRepository),
+	// v256 -> v257
+	NewMigration("Add is_internal column to package", v1_20.AddIsInternalColumnToPackage),
+	// v257 -> v258
+	NewMigration("Add Actions Artifact table", v1_20.CreateActionArtifactTable),
+	// v258 -> 259
+	NewMigration("Add PinOrder Column", v1_20.AddPinOrderToIssue),
+	// v259 -> 260
+	NewMigration("Convert scoped access tokens", v1_20.ConvertScopedAccessTokens),
+
+	// Gitea 1.21.0 ends at 260
+
+	// v260 -> v261
+	NewMigration("Add label column to action_run table, and combine labels", v1_21.DropCustomLabelsColumnToActRunner),
+	// v261 -> v262
+	NewMigration("Add git_size and lfs_size columns to repository table", v1_21.AddGitSizeAndLFSSizeToRepositoryTable),
 }
 
 // GetCurrentDBVersion returns the current db version

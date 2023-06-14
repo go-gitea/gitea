@@ -1,11 +1,10 @@
 <div class="runner-container">
-	{{template "base/alert" .}}
 
 	<h4 class="ui top attached header">
 		{{.locale.Tr "actions.runners.runner_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
 		<div class="ui right">
 			<div class="ui top right pointing dropdown">
-				<button class="ui button primary">
+				<button class="ui primary tiny button">
 					{{.locale.Tr "actions.runners.new"}}
 					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				</button>
@@ -20,9 +19,9 @@
 					</div>
 					<div class="ui input">
 						<input type="text" value="{{.RegistrationToken}}">
-						<div class="ui basic label button" data-clipboard-text="{{.RegistrationToken}}">
+						<button class="ui basic label button" aria-label="{{.locale.Tr "copy"}}" data-clipboard-text="{{.RegistrationToken}}">
 							{{svg "octicon-copy" 14}}
-						</div>
+						</button>
 					</div>
 					<div class="divider"></div>
 					<div class="item">
@@ -49,10 +48,11 @@
 					<th data-sortt-asc="online" data-sortt-desc="offline">{{.locale.Tr "actions.runners.status"}}</th>
 					<th data-sortt-asc="alphabetically">{{.locale.Tr "actions.runners.id"}}</th>
 					<th>{{.locale.Tr "actions.runners.name"}}</th>
+					<th>{{.locale.Tr "actions.runners.version"}}</th>
 					<th>{{.locale.Tr "actions.runners.owner_type"}}</th>
 					<th>{{.locale.Tr "actions.runners.labels"}}</th>
 					<th>{{.locale.Tr "actions.runners.last_online"}}</th>
-					<th></th>
+					<th>{{.locale.Tr "edit"}}</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -63,10 +63,11 @@
 							<span class="runner-status-{{if .IsOnline}}online{{else}}offline{{end}}">{{.StatusLocaleName $.locale}}</span>
 						</td>
 						<td>{{.ID}}</td>
-						<td><p class="tooltip" data-content="{{.Description}}">{{.Name}}</p></td>
-						<td>{{.OwnType}}</td>
+						<td><p data-tooltip-content="{{.Description}}">{{.Name}}</p></td>
+						<td>{{if .Version}}{{.Version}}{{else}}{{$.locale.Tr "unknown"}}{{end}}</td>
+						<td><span data-tooltip-content="{{.BelongsToOwnerName}}">{{.BelongsToOwnerType.LocaleString $.locale}}<span></td>
 						<td class="runner-tags">
-							{{range .AllLabels}}<span class="ui label">{{.}}</span>{{end}}
+							{{range .AgentLabels}}<span class="ui label">{{.}}</span>{{end}}
 						</td>
 						<td>{{if .LastOnline}}{{TimeSinceUnix .LastOnline $.locale}}{{else}}{{$.locale.Tr "never"}}{{end}}</td>
 						<td class="runner-ops">

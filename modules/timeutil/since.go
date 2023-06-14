@@ -6,11 +6,9 @@ package timeutil
 import (
 	"fmt"
 	"html/template"
-	"math"
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
 )
 
@@ -24,12 +22,8 @@ const (
 	Year   = 12 * Month
 )
 
-func round(s float64) int64 {
-	return int64(math.Round(s))
-}
-
 func computeTimeDiffFloor(diff int64, lang translation.Locale) (int64, string) {
-	diffStr := ""
+	var diffStr string
 	switch {
 	case diff <= 0:
 		diff = 0
@@ -86,94 +80,6 @@ func computeTimeDiffFloor(diff int64, lang translation.Locale) (int64, string) {
 	return diff, diffStr
 }
 
-func computeTimeDiff(diff int64, lang translation.Locale) (int64, string) {
-	diffStr := ""
-	switch {
-	case diff <= 0:
-		diff = 0
-		diffStr = lang.Tr("tool.now")
-	case diff < 2:
-		diff = 0
-		diffStr = lang.Tr("tool.1s")
-	case diff < 1*Minute:
-		diffStr = lang.Tr("tool.seconds", diff)
-		diff = 0
-
-	case diff < Minute+Minute/2:
-		diff -= 1 * Minute
-		diffStr = lang.Tr("tool.1m")
-	case diff < 1*Hour:
-		minutes := round(float64(diff) / Minute)
-		if minutes > 1 {
-			diffStr = lang.Tr("tool.minutes", minutes)
-		} else {
-			diffStr = lang.Tr("tool.1m")
-		}
-		diff -= diff / Minute * Minute
-
-	case diff < Hour+Hour/2:
-		diff -= 1 * Hour
-		diffStr = lang.Tr("tool.1h")
-	case diff < 1*Day:
-		hours := round(float64(diff) / Hour)
-		if hours > 1 {
-			diffStr = lang.Tr("tool.hours", hours)
-		} else {
-			diffStr = lang.Tr("tool.1h")
-		}
-		diff -= diff / Hour * Hour
-
-	case diff < Day+Day/2:
-		diff -= 1 * Day
-		diffStr = lang.Tr("tool.1d")
-	case diff < 1*Week:
-		days := round(float64(diff) / Day)
-		if days > 1 {
-			diffStr = lang.Tr("tool.days", days)
-		} else {
-			diffStr = lang.Tr("tool.1d")
-		}
-		diff -= diff / Day * Day
-
-	case diff < Week+Week/2:
-		diff -= 1 * Week
-		diffStr = lang.Tr("tool.1w")
-	case diff < 1*Month:
-		weeks := round(float64(diff) / Week)
-		if weeks > 1 {
-			diffStr = lang.Tr("tool.weeks", weeks)
-		} else {
-			diffStr = lang.Tr("tool.1w")
-		}
-		diff -= diff / Week * Week
-
-	case diff < 1*Month+Month/2:
-		diff -= 1 * Month
-		diffStr = lang.Tr("tool.1mon")
-	case diff < 1*Year:
-		months := round(float64(diff) / Month)
-		if months > 1 {
-			diffStr = lang.Tr("tool.months", months)
-		} else {
-			diffStr = lang.Tr("tool.1mon")
-		}
-		diff -= diff / Month * Month
-
-	case diff < Year+Year/2:
-		diff -= 1 * Year
-		diffStr = lang.Tr("tool.1y")
-	default:
-		years := round(float64(diff) / Year)
-		if years > 1 {
-			diffStr = lang.Tr("tool.years", years)
-		} else {
-			diffStr = lang.Tr("tool.1y")
-		}
-		diff -= (diff / Year) * Year
-	}
-	return diff, diffStr
-}
-
 // MinutesToFriendly returns a user friendly string with number of minutes
 // converted to hours and minutes.
 func MinutesToFriendly(minutes int, lang translation.Locale) string {
@@ -208,43 +114,28 @@ func timeSincePro(then, now time.Time, lang translation.Locale) string {
 	return strings.TrimPrefix(timeStr, ", ")
 }
 
-func timeSince(then, now time.Time, lang translation.Locale) string {
-	return timeSinceUnix(then.Unix(), now.Unix(), lang)
-}
+func timeSinceUnix(then, now time.Time, lang translation.Locale) template.HTML {
+	friendlyText := then.Format("2006-01-02 15:04:05 -07:00")
 
-func timeSinceUnix(then, now int64, lang translation.Locale) string {
-	lbl := "tool.ago"
-	diff := now - then
-	if then > now {
-		lbl = "tool.from_now"
-		diff = then - now
-	}
-	if diff <= 0 {
-		return lang.Tr("tool.now")
+	// document: https://github.com/github/relative-time-element
+	attrs := `tense="past"`
+	isFuture := now.Before(then)
+	if isFuture {
+		attrs = `tense="future"`
 	}
 
-	_, diffStr := computeTimeDiff(diff, lang)
-	return lang.Tr(lbl, diffStr)
+	// declare data-tooltip-content attribute to switch from "title" tooltip to "tippy" tooltip
+	htm := fmt.Sprintf(`<relative-time class="time-since" prefix="" %s datetime="%s" data-tooltip-content data-tooltip-interactive="true">%s</relative-time>`,
+		attrs, then.Format(time.RFC3339), friendlyText)
+	return template.HTML(htm)
 }
 
-// TimeSince calculates the time interval and generate user-friendly string.
+// TimeSince renders relative time HTML given a time.Time
 func TimeSince(then time.Time, lang translation.Locale) template.HTML {
-	return htmlTimeSince(then, time.Now(), lang)
+	return timeSinceUnix(then, time.Now(), lang)
 }
 
-func htmlTimeSince(then, now time.Time, lang translation.Locale) template.HTML {
-	return template.HTML(fmt.Sprintf(`<span class="time-since tooltip" data-content="%s">%s</span>`,
-		then.In(setting.DefaultUILocation).Format(GetTimeFormat(lang.Language())),
-		timeSince(then, now, lang)))
-}
-
-// TimeSinceUnix calculates the time interval and generate user-friendly string.
+// TimeSinceUnix renders relative time HTML given a TimeStamp
 func TimeSinceUnix(then TimeStamp, lang translation.Locale) template.HTML {
-	return htmlTimeSinceUnix(then, TimeStamp(time.Now().Unix()), lang)
-}
-
-func htmlTimeSinceUnix(then, now TimeStamp, lang translation.Locale) template.HTML {
-	return template.HTML(fmt.Sprintf(`<span class="time-since tooltip" data-content="%s">%s</span>`,
-		then.FormatInLocation(GetTimeFormat(lang.Language()), setting.DefaultUILocation),
-		timeSinceUnix(int64(then), int64(now), lang)))
+	return TimeSince(then.AsLocalTime(), lang)
 }

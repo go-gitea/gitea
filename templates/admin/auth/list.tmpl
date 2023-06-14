@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content admin authentication">
-	{{template "admin/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin authentication")}}
+	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.auths.auth_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
 			<div class="ui right">
@@ -29,8 +26,8 @@
 							<td><a href="{{AppSubUrl}}/admin/auths/{{.ID}}">{{.Name}}</a></td>
 							<td>{{.TypeName}}</td>
 							<td>{{if .IsActive}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
-							<td><span class="tooltip" data-content="{{.UpdatedUnix.FormatShort}}"><time data-format="short-date" datetime="{{.UpdatedUnix.FormatLong}}">{{.UpdatedUnix.FormatShort}}</time></span></td>
-							<td><span class="tooltip" data-content="{{.CreatedUnix.FormatLong}}"><time data-format="short-date" datetime="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</time></span></td>
+							<td>{{DateTime "short" .UpdatedUnix}}</td>
+							<td>{{DateTime "short" .CreatedUnix}}</td>
 							<td><a href="{{AppSubUrl}}/admin/auths/{{.ID}}">{{svg "octicon-pencil"}}</a></td>
 						</tr>
 					{{end}}
@@ -38,5 +35,4 @@
 			</table>
 		</div>
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "admin/layout_footer" .}}

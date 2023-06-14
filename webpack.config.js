@@ -10,9 +10,10 @@ import {parse, dirname} from 'node:path';
 import webpack from 'webpack';
 import {fileURLToPath} from 'node:url';
 import {readFileSync} from 'node:fs';
+import {env} from 'node:process';
 
-const {ESBuildMinifyPlugin} = EsBuildLoader;
-const {SourceMapDevToolPlugin} = webpack;
+const {EsbuildPlugin} = EsBuildLoader;
+const {SourceMapDevToolPlugin, DefinePlugin} = webpack;
 const formatLicenseText = (licenseText) => wrapAnsi(licenseText || '', 80).trim();
 
 const glob = (pattern) => fastGlob.sync(pattern, {
@@ -21,11 +22,18 @@ const glob = (pattern) => fastGlob.sync(pattern, {
 });
 
 const themes = {};
-for (const path of glob('web_src/less/themes/*.less')) {
+for (const path of glob('web_src/css/themes/*.css')) {
   themes[parse(path).name] = [path];
 }
 
-const isProduction = process.env.NODE_ENV !== 'development';
+const isProduction = env.NODE_ENV !== 'development';
+
+let sourceMapEnabled;
+if ('ENABLE_SOURCEMAP' in env) {
+  sourceMapEnabled = env.ENABLE_SOURCEMAP === 'true';
+} else {
+  sourceMapEnabled = !isProduction;
+}
 
 const filterCssImport = (url, ...args) => {
   const cssFile = args[1] || args[0]; // resourcePath is 2nd argument for url and 3rd for import
@@ -37,10 +45,6 @@ const filterCssImport = (url, ...args) => {
   }
 
   if (cssFile.includes('katex') && /(ttf|woff)$/.test(importedFile)) {
-    return false;
-  }
-
-  if (cssFile.includes('font-awesome') && /(eot|ttf|otf|woff|svg)$/.test(importedFile)) {
     return false;
   }
 
@@ -57,17 +61,14 @@ export default {
       fileURLToPath(new URL('web_src/js/index.js', import.meta.url)),
       fileURLToPath(new URL('node_modules/easymde/dist/easymde.min.css', import.meta.url)),
       fileURLToPath(new URL('web_src/fomantic/build/semantic.css', import.meta.url)),
-      fileURLToPath(new URL('web_src/less/index.less', import.meta.url)),
+      fileURLToPath(new URL('web_src/css/index.css', import.meta.url)),
     ],
     webcomponents: [
-      fileURLToPath(new URL('web_src/js/webcomponents/GiteaOriginUrl.js', import.meta.url)),
+      fileURLToPath(new URL('web_src/js/webcomponents/webcomponents.js', import.meta.url)),
     ],
     swagger: [
       fileURLToPath(new URL('web_src/js/standalone/swagger.js', import.meta.url)),
-      fileURLToPath(new URL('web_src/less/standalone/swagger.less', import.meta.url)),
-    ],
-    serviceworker: [
-      fileURLToPath(new URL('web_src/js/serviceworker.js', import.meta.url)),
+      fileURLToPath(new URL('web_src/css/standalone/swagger.css', import.meta.url)),
     ],
     'eventsource.sharedworker': [
       fileURLToPath(new URL('web_src/js/features/eventsource.sharedworker.js', import.meta.url)),
@@ -77,11 +78,7 @@ export default {
   devtool: false,
   output: {
     path: fileURLToPath(new URL('public', import.meta.url)),
-    filename: ({chunk}) => {
-      // serviceworker can only manage assets below it's script's directory so
-      // we have to put it in / instead of /js/
-      return chunk.name === 'serviceworker' ? '[name].js' : 'js/[name].js';
-    },
+    filename: () => 'js/[name].js',
     chunkFilename: ({chunk}) => {
       const language = (/monaco.*languages?_.+?_(.+?)_/.exec(chunk.id) || [])[1];
       return `js/${language ? `monaco-language-${language.toLowerCase()}` : `[name]`}.[contenthash:8].js`;
@@ -90,7 +87,7 @@ export default {
   optimization: {
     minimize: isProduction,
     minimizer: [
-      new ESBuildMinifyPlugin({
+      new EsbuildPlugin({
         target: 'es2015',
         minify: true,
         css: true,
@@ -112,31 +109,20 @@ export default {
         loader: 'vue-loader',
       },
       {
-        test: /\.worker\.js$/,
-        exclude: /monaco/,
-        use: [
-          {
-            loader: 'worker-loader',
-            options: {
-              inline: 'no-fallback',
-            },
-          },
-        ],
-      },
-      {
         test: /\.js$/,
         exclude: /node_modules/,
         use: [
           {
             loader: 'esbuild-loader',
             options: {
-              target: 'es2015'
+              loader: 'js',
+              target: 'es2015',
             },
           },
         ],
       },
       {
-        test: /.css$/i,
+        test: /\.css$/i,
         use: [
           {
             loader: MiniCssExtractPlugin.loader,
@@ -144,32 +130,9 @@ export default {
           {
             loader: 'css-loader',
             options: {
-              sourceMap: true,
+              sourceMap: sourceMapEnabled,
               url: {filter: filterCssImport},
               import: {filter: filterCssImport},
-            },
-          },
-        ],
-      },
-      {
-        test: /.less$/i,
-        use: [
-          {
-            loader: MiniCssExtractPlugin.loader,
-          },
-          {
-            loader: 'css-loader',
-            options: {
-              sourceMap: true,
-              importLoaders: 1,
-              url: {filter: filterCssImport},
-              import: {filter: filterCssImport},
-            },
-          },
-          {
-            loader: 'less-loader',
-            options: {
-              sourceMap: true,
             },
           },
         ],
@@ -196,18 +159,18 @@ export default {
     ],
   },
   plugins: [
+    new DefinePlugin({
+      __VUE_OPTIONS_API__: true, // at the moment, many Vue components still use the Vue Options API
+      __VUE_PROD_DEVTOOLS__: false, // do not enable devtools support in production
+    }),
     new VueLoaderPlugin(),
     new MiniCssExtractPlugin({
       filename: 'css/[name].css',
       chunkFilename: 'css/[name].[contenthash:8].css',
     }),
-    new SourceMapDevToolPlugin({
+    sourceMapEnabled && (new SourceMapDevToolPlugin({
       filename: '[file].[contenthash:8].map',
-      include: [
-        'js/index.js',
-        'css/index.css',
-      ],
-    }),
+    })),
     new MonacoWebpackPlugin({
       filename: 'js/monaco-[name].[contenthash:8].worker.js',
     }),
@@ -234,12 +197,9 @@ export default {
         'khroma@*': {licenseName: 'MIT'}, // https://github.com/fabiospampinato/khroma/pull/33
       },
       emitError: true,
-      allow: '(Apache-2.0 OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC OR CPAL-1.0 OR Unlicense)',
-      ignore: [
-        'font-awesome',
-      ],
+      allow: '(Apache-2.0 OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC OR CPAL-1.0 OR Unlicense OR EPL-1.0 OR EPL-2.0)',
     }) : new AddAssetPlugin('js/licenses.txt', `Licenses are disabled during development`),
-  ],
+  ].filter(Boolean),
   performance: {
     hints: false,
     maxEntrypointSize: Infinity,
