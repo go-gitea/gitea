@@ -78,6 +78,14 @@ The default configuration is safe to use without any modification, so you can ju
 
 When you are using the docker image, you can specify the configuration file by using the `CONFIG_FILE` environment variable. Make sure that the file is mounted into the container as a volume:
 
+You need to create config.yaml first to avoid docker creating a directory instead. Neither use the method mentioned above, or just run the following command:
+
+```bash
+docker run --entrypoint="" --rm -it gitea/act_runner:latest act_runner generate-config > config.yaml
+```
+
+Then, you could start the server using:
+
 ```bash
 docker run -v $(pwd)/config.yaml:/config.yaml -e CONFIG_FILE=/config.yaml ...
 ```
@@ -171,6 +179,29 @@ You may notice that we have mounted the `/var/run/docker.sock` into the containe
 It is because the act runner will run jobs in docker containers, so it needs to communicate with the docker daemon.
 As mentioned, you can remove it if you want to run jobs in the host directly.
 To be clear, the "host" actually means the container which is running the act runner now, instead of the host machine.
+
+### Set up the runner using docker compose
+
+You could also set up the runner using the following `docker-compose.yml`:
+
+```yml
+version: "3.8"
+services:
+  runner:
+    image: gitea/act_runner:nightly
+    environment:
+      CONFIG_FILE: /config.yaml
+      GITEA_INSTANCE_URL: "${INSTANCE_URL}"
+      GITEA_RUNNER_REGISTRATION_TOKEN: "${REGISTRATION_TOKEN}"
+      GITEA_RUNNER_NAME: "${RUNNER_NAME}"
+      GITEA_RUNNER_LABELS: "${RUNNER_LABELS}"
+    volumes:
+      - ./config.yaml:/config.yaml
+      - ./data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+```
+
+Don't forget to create the `config.yaml` before running `docker compose up` to avoid `EOF` errors.
 
 ### Configuring cache when starting a Runner using docker image
 
