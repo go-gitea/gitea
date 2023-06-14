@@ -82,6 +82,12 @@ docker pull gitea/act_runner:nightly # for the latest nightly build
 docker run -v $(pwd)/config.yaml:/config.yaml -e CONFIG_FILE=/config.yaml ...
 ```
 
+您需要先创建好 `config.yaml` 以避免出现 `Error: EOF` 错误。您既可以使用上面提到的方式创建，亦可使用如下命令：
+
+```bash
+docker run --entrypoint="" --rm -it gitea/act_runner:latest act_runner generate-config > config.yaml
+```
+
 您可能注意到上面的命令都是不完整的，因为现在还不是运行Act Runner的时候。
 在运行Act Runner之前，我们需要首先将其注册到您的Gitea实例中。
 
@@ -168,6 +174,29 @@ docker run \
 这是因为Act Runner将在Docker容器中运行Job，因此它需要与Docker守护进程进行通信。
 如前所述，如果要在主机上直接运行Job，可以将其移除。
 需要明确的是，这里的 "主机" 实际上指的是当前运行 Act Runner的容器，而不是主机机器本身。
+
+### 使用 Docker compose 运行 Runner
+
+您亦可使用如下的 `docker-compose.yml`:
+
+```yml
+version: "3.8"
+services:
+  runner:
+    image: gitea/act_runner:nightly
+    environment:
+      CONFIG_FILE: /config.yaml
+      GITEA_INSTANCE_URL: "${INSTANCE_URL}"
+      GITEA_RUNNER_REGISTRATION_TOKEN: "${REGISTRATION_TOKEN}"
+      GITEA_RUNNER_NAME: "${RUNNER_NAME}"
+      GITEA_RUNNER_LABELS: "${RUNNER_LABELS}"
+    volumes:
+      - ./config.yaml:/config.yaml
+      - ./data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+```
+
+别忘了在启动之前先创建 `config.yaml` 以避免 `Error: EOF` 错误.
 
 ### 当您使用 Docker 镜像启动 Runner，如何配置 Cache
 
