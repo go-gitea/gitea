@@ -26,7 +26,7 @@
 				{{if not .Repository.IsFork}}
 					<div class="inline field">
 						<label>{{.locale.Tr "repo.visibility"}}</label>
-						<div class="ui checkbox">
+						<div class="ui checkbox" {{if and (not .Repository.IsPrivate) (gt .Repository.NumStars 0)}}data-tooltip-content="{{.locale.Tr "repo.stars_remove_warning"}}"{{end}}>
 							{{if .IsAdmin}}
 							<input name="private" type="checkbox" {{if .Repository.IsPrivate}}checked{{end}}>
 							{{else}}
@@ -61,7 +61,7 @@
 
 				<div class="field">
 					<button class="ui green button">{{$.locale.Tr "settings.update_avatar"}}</button>
-					<a class="ui red button delete-post" data-request-url="{{.Link}}/avatar/delete" data-done-url="{{.Link}}">{{$.locale.Tr "settings.delete_current_avatar"}}</a>
+					<button class="ui red button link-action" data-url="{{.Link}}/avatar/delete" data-redirect="{{.Link}}">{{$.locale.Tr "settings.delete_current_avatar"}}</button>
 				</div>
 			</form>
 

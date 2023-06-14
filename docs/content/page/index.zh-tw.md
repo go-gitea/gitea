@@ -71,7 +71,7 @@ Gitea 是從 [Gogs](http://gogs.io) Fork 出來的，請閱讀部落格文章 [G
     - MSSQL
     - TiDB（MySQL 協議）
   - 設定檔
-    - [app.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
+    - [app.ini](https://github.com/go-gitea/gitea/blob/main/custom/conf/app.example.ini)
   - 管理員面板
     - 系統摘要
     - 維護操作

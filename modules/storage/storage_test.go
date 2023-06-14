@@ -7,10 +7,12 @@ import (
 	"bytes"
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/stretchr/testify/assert"
 )
 
-func testStorageIterator(t *testing.T, typStr string, cfg interface{}) {
+func testStorageIterator(t *testing.T, typStr Type, cfg *setting.Storage) {
 	l, err := NewStorage(typStr, cfg)
 	assert.NoError(t, err)
 

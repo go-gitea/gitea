@@ -16,10 +16,6 @@ _test
 .vscode
 __debug_bin
 
-# Architecture specific extensions/prefixes
-*.[568vq]
-[568vq].out
-
 *.cgo1.go
 *.cgo2.c
 _cgo_defun.c

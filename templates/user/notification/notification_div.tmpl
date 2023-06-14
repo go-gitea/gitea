@@ -46,7 +46,7 @@
 							</div>
 							<a class="notifications-link gt-df gt-f1 gt-fc silenced" href="{{.Link}}">
 								<div class="notifications-top-row gt-font-13">
-									{{.Repository.FullName}} <span class="text light-3">#{{.Issue.Index}}</span>
+									{{.Repository.FullName}} {{if .Issue}}<span class="text light-3">#{{.Issue.Index}}</span>{{end}}
 									{{if eq .Status 3}}
 										{{svg "octicon-pin" 13 "text blue gt-mt-1 gt-ml-2"}}
 									{{end}}
@@ -62,7 +62,11 @@
 								</div>
 							</a>
 							<div class="notifications-updated gt-ac gt-mr-3">
-								{{TimeSinceUnix .Issue.UpdatedUnix $locale}}
+								{{if .Issue}}
+									{{TimeSinceUnix .Issue.UpdatedUnix $locale}}
+								{{else}}
+									{{TimeSinceUnix .UpdatedUnix $locale}}
+								{{end}}
 							</div>
 							<div class="notifications-buttons gt-ac gt-je gt-gap-2 gt-px-2">
 								{{if ne .Status 3}}
@@ -70,7 +74,7 @@
 										{{$.CsrfTokenHtml}}
 										<input type="hidden" name="notification_id" value="{{.ID}}">
 										<input type="hidden" name="status" value="pinned">
-										<button class="ui mini button button-ghost gt-p-3" title='{{$.locale.Tr "notification.pin"}}'
+										<button class="btn interact-bg gt-p-3" title='{{$.locale.Tr "notification.pin"}}'
 											data-url="{{AppSubUrl}}/notifications/status"
 											data-status="pinned"
 											data-page="{{$.Page.Paginater.Current}}"
@@ -86,7 +90,7 @@
 										<input type="hidden" name="notification_id" value="{{.ID}}">
 										<input type="hidden" name="status" value="read">
 										<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
-										<button class="ui mini button button-ghost gt-p-3" title='{{$.locale.Tr "notification.mark_as_read"}}'
+										<button class="btn interact-bg gt-p-3" title='{{$.locale.Tr "notification.mark_as_read"}}'
 											data-url="{{AppSubUrl}}/notifications/status"
 											data-status="read"
 											data-page="{{$.Page.Paginater.Current}}"
@@ -101,7 +105,7 @@
 										<input type="hidden" name="notification_id" value="{{.ID}}">
 										<input type="hidden" name="status" value="unread">
 										<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
-										<button class="ui mini button button-ghost gt-p-3" title='{{$.locale.Tr "notification.mark_as_unread"}}'
+										<button class="btn interact-bg gt-p-3" title='{{$.locale.Tr "notification.mark_as_unread"}}'
 											data-url="{{AppSubUrl}}/notifications/status"
 											data-status="unread"
 											data-page="{{$.Page.Paginater.Current}}"
