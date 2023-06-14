@@ -820,7 +820,7 @@ $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 .PHONY: release
-release: frontend generate release-windows release-linux release-darwin release-freebsd release-copy release-compress vendor release-sources release-docs release-check
+release: generate release-windows release-linux release-darwin release-freebsd release-copy release-compress vendor release-sources release-docs release-check
 
 $(DIST_DIRS):
 	mkdir -p $(DIST_DIRS)
