@@ -202,6 +202,8 @@ func Test_detectLicense(t *testing.T) {
 	}
 
 	LoadRepoConfig()
+	convertLicenseName, err := getConvertLicenseName()
+	assert.NoError(t, err)
 	for _, licenseName := range Licenses {
 		license, err := getLicense(licenseName, &licenseValues{
 			Owner: "Gitea",
@@ -211,20 +213,28 @@ func Test_detectLicense(t *testing.T) {
 		})
 		assert.NoError(t, err)
 
+		variant := licenseName
+		if convertLicenseName != nil {
+			v, ok := convertLicenseName[licenseName]
+			if ok {
+				variant = v
+			}
+		}
 		tests = append(tests, DetectLicenseTest{
 			name: fmt.Sprintf("auto single license test: %s", licenseName),
 			arg:  license,
-			want: []string{licenseName},
+			want: []string{variant},
 		})
 	}
 
 	tests = append(tests, DetectLicenseTest{
 		name: fmt.Sprintf("auto multiple license test: %s and %s", tests[2].want[0], tests[3].want[0]),
 		arg:  append(tests[2].arg, tests[3].arg...),
+		// TODO doesn't depend on the order
 		want: []string{"389-exception", "0BSD"},
 	})
 
-	err := InitClassifier()
+	err = initClassifier(convertLicenseName)
 	assert.NoError(t, err)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

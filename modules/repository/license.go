@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
@@ -23,27 +24,56 @@ import (
 var classifier *licenseclassifier.Classifier
 
 func init() {
-	err := InitClassifier()
+	cln, err := getConvertLicenseName()
+	if err != nil {
+		log.Error("getConvertLicenseName: %v", err)
+	}
+	err = initClassifier(cln)
 	if err != nil {
 		log.Error("initClassifier: %v", err)
 	}
 }
 
-func InitClassifier() error {
+func getConvertLicenseName() (map[string]string, error) {
+	data, err := options.AssetFS().ReadFile("", "convertLicenseName")
+	if err != nil {
+		return nil, err
+	}
+	var convertLicenseName map[string]string
+	err = json.Unmarshal([]byte(data), &convertLicenseName)
+	if err != nil {
+		return nil, err
+	}
+	return convertLicenseName, nil
+}
+func initClassifier(convertLicenseName map[string]string) error {
+	// threshold should be 0.84~0.86 or the test will be failed
 	// TODO: add threshold to app.ini
-	classifier = licenseclassifier.NewClassifier(.9)
+	classifier = licenseclassifier.NewClassifier(.85)
 	licenseFiles, err := options.AssetFS().ListFiles("license", true)
 	if err != nil {
 		return err
 	}
 
+	licenseVariantCount := make(map[string]int)
 	if len(licenseFiles) > 0 {
 		for _, lf := range licenseFiles {
 			data, err := options.License(lf)
 			if err != nil {
 				return err
 			}
-			classifier.AddContent("License", lf, "license", data)
+			variant := lf
+			if convertLicenseName != nil {
+				v, ok := convertLicenseName[lf]
+				if ok {
+					variant = v
+				}
+				licenseVariantCount[variant]++
+				if licenseVariantCount[variant] > 1 {
+					continue
+				}
+			}
+			classifier.AddContent("License", lf, variant, data)
 		}
 	}
 	return nil
@@ -244,21 +274,10 @@ func detectLicense(buf []byte) []string {
 	}
 
 	matches := classifier.Match(buf)
-	licenseVariants := make(map[string][]string, len(matches.Matches))
+	var results []string
 	for _, r := range matches.Matches {
 		if r.MatchType == "License" {
-			tag := fmt.Sprintf("%d-%d", r.StartLine, r.EndLine)
-			licenseVariants[tag] = append(licenseVariants[tag], r.Name)
-		}
-	}
-
-	var results []string
-	for _, licenses := range licenseVariants {
-		if len(licenses) == 1 {
-			results = append(results, licenses[0])
-		} else {
-			// TODO: reslove license detection conflict
-			results = append(results, licenses...)
+			results = append(results, r.Variant)
 		}
 	}
 	return results
