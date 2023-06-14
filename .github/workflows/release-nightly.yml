@@ -1,0 +1,32 @@
+name: release-nightly-assets
+
+on:
+  push:
+    branches: [ main, release/v1.* ]
+  pull_request:
+
+jobs:
+  nightly-binary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version: ">=1.20"
+          check-latest: true
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 20
+      - run: git fetch --tags --force
+      - run: make deps-frontend deps-backend
+      - run: make release
+        env:
+          TAGS: bindata sqlite sqlite_unlock_notify
+      # gpg sign
+      # upload to s3 (directory based on branch name)
+  nightly-docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/setup-buildx-action@v1
+      # build for linux/amd64, and linux/arm64 (possibly include linux/arm/v7 later. not included now because it adds significant amount to the build time)
