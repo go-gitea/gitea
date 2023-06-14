@@ -129,6 +129,106 @@
 	</div>
 
 	<div>
+		<h1>SVG alignment</h1>
+
+		<h2>Text with SVG</h2>
+		<div class="flex-text-block">{{svg "octicon-alert"}} {{svg "octicon-x"}} text (block)</div>
+		<div><div class="flex-text-inline">{{svg "octicon-alert"}} {{svg "octicon-x"}} text</div> (inline)</div>
+		<div class="flex-items-block">
+			<div class="item">{{svg "octicon-alert"}} flex every line</div>
+			<div class="item">{{svg "octicon-alert"}} flex every item</div>
+		</div>
+
+		<h2>Button with SVG</h2>
+		<div>
+			<button class="ui red button">{{svg "octicon-alert" 24}} {{svg "octicon-x" 24}} text</button>
+			<div class="ui labeled button">
+				<button class="ui basic button">labeled button</button>
+				<a class="ui basic label">123</a>
+			</div>
+		</div>
+
+		<h2>Input with SVG</h2>
+		<div>
+			<div class="ui icon search input">
+				<i class="icon">{{svg "octicon-search"}}</i>
+				<input type="text" placeholder="place holder">
+			</div>
+		</div>
+
+		<h2>Dropdown with SVG</h2>
+		<div>
+			<div class="ui dropdown" style="border: 1px red dashed" data-tooltip-content="border for demo purpose only">
+				<span class="text">simple</span>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				<div class="menu">
+					<div class="item">item</div>
+				</div>
+			</div>
+			<div class="ui button dropdown">
+				<span class="text">button dropdown</span>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				<div class="menu">
+					<div class="item">item</div>
+				</div>
+			</div>
+			<div class="ui search selection dropdown">
+				<span class="text">search ...</span>
+				<input name="value" class="search">
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				{{svg "octicon-x" 14 "remove icon"}}
+				<div class="menu">
+					<div class="item">item</div>
+				</div>
+			</div>
+			<div class="ui multiple selection dropdown">
+				<input class="hidden" value="1">
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				{{svg "octicon-x" 14 "remove icon"}}
+				<div class="default text">empty multiple dropdown</div>
+				<div class="menu">
+					<div class="item">item</div>
+				</div>
+			</div>
+			<div class="ui multiple clearable search selection dropdown">
+				<input type="hidden" value="1">
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				{{svg "octicon-x" 14 "remove icon"}}
+				<div class="default text">clearable search dropdown</div>
+				<div class="menu">
+					<div class="item" data-value="1">item</div>
+				</div>
+			</div>
+			<div class="ui buttons">
+				<button class="ui button">Button with Dropdown</button>
+				<div class="ui dropdown button icon">
+					{{svg "octicon-triangle-down"}}
+					<div class="menu">
+						<div class="item">item</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div>
+			<div class="ui dropdown mini button">
+				<span class="text">small dropdown</span>
+				{{svg "octicon-triangle-down" 12 "dropdown icon"}}
+				<div class="menu">
+					<div class="item">item</div>
+				</div>
+			</div>
+			<div class="ui dropdown large button">
+				<span class="text">large dropdown</span>
+				{{svg "octicon-triangle-down" 18 "dropdown icon"}}
+				<div class="menu">
+					<div class="item">item</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div>
 		<h1>ComboMarkdownEditor</h1>
 		<div>ps: no JS code attached, so just a layout</div>
 		{{template "shared/combomarkdowneditor" .}}
