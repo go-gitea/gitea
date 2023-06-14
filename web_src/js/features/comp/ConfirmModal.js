@@ -2,9 +2,10 @@ import $ from 'jquery';
 import {svg} from '../../svg.js';
 import {htmlEscape} from 'escape-goat';
 
+const {i18n} = window.config;
+
 export async function confirmModal(opts = {content: '', buttonColor: 'green'}) {
   return new Promise((resolve) => {
-    const i18n = window.config.i18n;
     const $modal = $(`
 <div class="ui g-modal-confirm modal">
   <div class="content">${htmlEscape(opts.content)}</div>
