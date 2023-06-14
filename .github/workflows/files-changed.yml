@@ -39,7 +39,7 @@ jobs:
           filters: |
             backend:
               - "**/*.go"
-              - "**/*.tmpl"
+              - "templates/**/*.tmpl"
               - "go.mod"
               - "go.sum"
 
@@ -57,4 +57,4 @@ jobs:
               - ".github/workflows/*"
 
             templates:
-              - "**/*.tmpl"
+              - "templates/**/*.tmpl"
