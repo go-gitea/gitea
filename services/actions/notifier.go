@@ -82,7 +82,7 @@ func (n *actionsNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *use
 			WithDoer(doer).
 			WithPayload(apiPullRequest).
 			WithPullRequest(issue.PullRequest).
-			Notify(ctx)
+			NotifyPullRequest(ctx)
 		return
 	}
 	apiIssue := &api.IssuePayload{
@@ -138,7 +138,7 @@ func (n *actionsNotifier) NotifyIssueChangeLabels(ctx context.Context, doer *use
 				Sender:      convert.ToUser(ctx, doer, nil),
 			}).
 			WithPullRequest(issue.PullRequest).
-			Notify(ctx)
+			NotifyPullRequest(ctx)
 		return
 	}
 	newNotifyInputFromIssue(issue, webhook_module.HookEventIssueLabel).
@@ -220,7 +220,7 @@ func (n *actionsNotifier) NotifyNewPullRequest(ctx context.Context, pull *issues
 			Sender:      convert.ToUser(ctx, pull.Issue.Poster, nil),
 		}).
 		WithPullRequest(pull).
-		Notify(ctx)
+		NotifyPullRequest(ctx)
 }
 
 func (n *actionsNotifier) NotifyCreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
@@ -344,7 +344,7 @@ func (*actionsNotifier) NotifyMergePullRequest(ctx context.Context, doer *user_m
 		WithRef(pr.MergedCommitID).
 		WithPayload(apiPullRequest).
 		WithPullRequest(pr).
-		Notify(ctx)
+		NotifyPullRequest(ctx)
 }
 
 func (n *actionsNotifier) NotifyPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
@@ -529,7 +529,7 @@ func (n *actionsNotifier) NotifyPullRequestChangeTargetBranch(ctx context.Contex
 			Sender:      convert.ToUser(ctx, doer, nil),
 		}).
 		WithPullRequest(pr).
-		Notify(ctx)
+		NotifyPullRequest(ctx)
 }
 
 func (n *actionsNotifier) NotifyNewWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page, comment string) {

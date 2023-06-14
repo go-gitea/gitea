@@ -96,10 +96,10 @@ func (input *notifyInput) WithPullRequest(pr *issues_model.PullRequest) *notifyI
 }
 
 func (input *notifyInput) NotifyPullRequest(ctx context.Context) {
-	// notify with the original event related to pull_request
+	// notify with the original `pull_request` related events
 	input.Notify(ctx)
 
-	// notify with the pull_request_target event
+	// notify with the `pull_request_target` event
 	input.Event = webhook_module.HookEventPullRequestTarget
 	input.Ref = git.BranchPrefix + input.PullRequest.BaseBranch
 	input.Notify(ctx)
