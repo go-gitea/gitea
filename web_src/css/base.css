@@ -1031,10 +1031,6 @@ img.ui.avatar,
   background: var(--color-active);
 }
 
-.ui.form .field > .selection.dropdown > .dropdown.icon {
-  height: auto;
-}
-
 .ui.loading.segment::before,
 .ui.loading.form::before {
   background: none;
@@ -2124,35 +2120,6 @@ table th[data-sortt-desc] .svg {
   margin-left: 0.25rem;
 }
 
-.ui.dropdown .svg.dropdown.icon,
-.ui.dropdown .svg.remove.icon,
-.svg.dropdown.icon {
-  margin-top: 0 !important; /* reset the "ui.selection.dropdown > .dropdown.icon {margin-top}", for the Issue Dependencies dropdown */
-  margin-right: -0.5rem !important; /* fix up SVG dropdown triangles because Fomantic thinks they are icon fonts */
-  height: auto; /* reset the ".ui.dropdown > .dropdown.icon {height}", otherwise the icon would be too small */
-}
-
-.ui.selection.dropdown > .svg.search.icon,
-.ui.selection.dropdown > .svg.delete.icon,
-.ui.selection.dropdown > .svg.dropdown.icon {
-  top: 0 !important; /* reset the ".ui.selection.dropdown > .xxx.icon {top}" if the icon is svg instead of the fomantic icon */
-}
-
-.ui.selection.dropdown > .svg.remove.icon {
-  top: .5px;
-  right: 32px;
-  width: auto;
-}
-
-.ui.selection.dropdown > .svg.remove.icon:hover {
-  opacity: 1;
-}
-
-.ui.dropdown.no-text > .dropdown.icon {
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-}
-
 .ui.dropdown .menu .item {
   border-radius: 0;
 }
@@ -2303,4 +2270,79 @@ table th[data-sortt-desc] .svg {
   float: left;
   width: 15px;
   height: 15px;
+}
+
+.ui.dropdown {
+  line-height: 1em; /* the dropdown doesn't have default line-height, use this to make the dropdown icon align with plain dropdown */
+}
+
+/* dropdown has some kinds of icons:
+- "> .dropdown.icon": the arrow for opening the dropdown
+- "> .remove.icon": the "x" icon for clearing the dropdown, only used in selection dropdown
+- "> .ui.label > .delete.icon": the "x" icon for removing a label item in multiple selection dropdown
+*/
+
+/* Gitea uses SVG images instead of Fomantic builtin "<i>" font icons, so we need to reset the icon styles */
+.ui.ui.dropdown > .icon.icon {
+  position: initial; /* plain dropdown and button dropdown use flex layout for icons */
+  padding: 0;
+  margin: 0;
+  height: auto;
+}
+
+.ui.ui.dropdown > .icon.icon:hover {
+  opacity: 1;
+}
+
+.ui.ui.button.dropdown > .icon.icon,
+.ui.ui.selection.dropdown > .icon.icon {
+  position: absolute; /* selection dropdown uses absolute layout for icons */
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.ui.ui.dropdown > .dropdown.icon {
+  right: 0.5em;
+}
+
+.ui.ui.dropdown > .remove.icon {
+  right: 2em;
+}
+
+.ui.ui.button,
+.ui.ui.dropdown,
+.flex-items-inline > .item,
+.flex-text-inline {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .25rem;
+  vertical-align: middle;
+}
+
+.ui.ui.button {
+  justify-content: center;
+}
+
+.ui.dropdown .ui.label .svg {
+  vertical-align: middle;
+}
+
+.ui.ui.labeled.button {
+  gap: 0;
+  align-items: stretch;
+}
+
+.ui.ui.icon.input .icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-items-block > .item,
+.flex-text-block {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .25rem;
 }

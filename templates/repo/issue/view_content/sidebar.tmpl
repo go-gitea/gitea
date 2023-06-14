@@ -273,7 +273,7 @@
 				<form method="POST" action="{{.Issue.Link}}/watch">
 					<input type="hidden" name="watch" value="{{if $.IssueWatch.IsWatching}}0{{else}}1{{end}}">
 					{{$.CsrfTokenHtml}}
-					<button class="fluid ui button gt-df gt-jc">
+					<button class="fluid ui button">
 						{{if $.IssueWatch.IsWatching}}
 							{{svg "octicon-mute" 16 "gt-mr-3"}}
 							{{.locale.Tr "repo.issues.unsubscribe"}}
@@ -558,7 +558,7 @@
 		{{if or .PinEnabled .Issue.IsPinned}}
 			<form class="gt-mt-2" method="POST" {{if $.NewPinAllowed}}action="{{.Issue.Link}}/pin"{{else}}data-tooltip-content="{{.locale.Tr "repo.issues.max_pinned"}}"{{end}}>
 				{{$.CsrfTokenHtml}}
-				<button class="fluid ui button gt-df gt-jc {{if not $.NewPinAllowed}}disabled{{end}}">
+				<button class="fluid ui button {{if not $.NewPinAllowed}}disabled{{end}}">
 					{{if not .Issue.IsPinned}}
 						{{svg "octicon-pin" 16 "gt-mr-3"}}
 						{{.locale.Tr "pin"}}
