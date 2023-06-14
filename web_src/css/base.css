@@ -2344,6 +2344,12 @@ table th[data-sortt-desc] .svg {
   align-items: stretch;
 }
 
+.ui.ui.icon.input .icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .flex-items-block > .item,
 .flex-text-block {
   display: flex;
