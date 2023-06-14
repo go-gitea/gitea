@@ -3,7 +3,10 @@
 
 package internal
 
-import "context"
+import (
+	"context"
+	"fmt"
+)
 
 // Indexer defines an basic indexer interface
 type Indexer interface {
@@ -15,3 +18,20 @@ type Indexer interface {
 	// Close closes the indexer
 	Close()
 }
+
+// NewDummyIndexer returns a dummy indexer
+func NewDummyIndexer() Indexer {
+	return &dummyIndexer{}
+}
+
+type dummyIndexer struct{}
+
+func (d *dummyIndexer) Init(ctx context.Context) (bool, error) {
+	return false, fmt.Errorf("indexer is not ready")
+}
+
+func (d *dummyIndexer) Ping(ctx context.Context) error {
+	return fmt.Errorf("indexer is not ready")
+}
+
+func (d *dummyIndexer) Close() {}

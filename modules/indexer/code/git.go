@@ -97,7 +97,7 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revisio
 		// previous commit sha may have been removed by a force push, so
 		// try rebuilding from scratch
 		log.Warn("git diff: %v", runErr)
-		if err := holder.Get().(internal.Indexer).Delete(ctx, repo.ID); err != nil {
+		if err := globalIndexer.Delete(ctx, repo.ID); err != nil {
 			return nil, err
 		}
 		return genesisChanges(ctx, repo, revision)

@@ -5,6 +5,7 @@ package internal
 
 import (
 	"context"
+	"fmt"
 
 	"code.gitea.io/gitea/modules/indexer/internal"
 )
@@ -15,4 +16,27 @@ type Indexer interface {
 	Index(ctx context.Context, issue []*IndexerData) error
 	Delete(ctx context.Context, ids ...int64) error
 	Search(ctx context.Context, kw string, repoIDs []int64, limit, start int) (*SearchResult, error)
+}
+
+// NewDummyIndexer returns a dummy indexer
+func NewDummyIndexer() Indexer {
+	return &dummyIndexer{
+		Indexer: internal.NewDummyIndexer(),
+	}
+}
+
+type dummyIndexer struct {
+	internal.Indexer
+}
+
+func (d *dummyIndexer) Index(ctx context.Context, issue []*IndexerData) error {
+	return fmt.Errorf("indexer is not ready")
+}
+
+func (d *dummyIndexer) Delete(ctx context.Context, ids ...int64) error {
+	return fmt.Errorf("indexer is not ready")
+}
+
+func (d *dummyIndexer) Search(ctx context.Context, kw string, repoIDs []int64, limit, start int) (*SearchResult, error) {
+	return nil, fmt.Errorf("indexer is not ready")
 }
