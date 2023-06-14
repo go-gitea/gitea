@@ -22,32 +22,44 @@ import (
 )
 
 var classifier *licenseclassifier.Classifier
+var convertLicenseNames map[string]string
 
 func init() {
-	cln, err := getConvertLicenseName()
+	err := readConvertLicenseNames()
 	if err != nil {
-		log.Error("getConvertLicenseName: %v", err)
+		log.Error("getConvertLicenseNames: %v", err)
 	}
-	err = initClassifier(cln)
+	err = initClassifier()
 	if err != nil {
 		log.Error("initClassifier: %v", err)
 	}
 }
 
-func getConvertLicenseName() (map[string]string, error) {
+func readConvertLicenseNames() error {
 	data, err := options.AssetFS().ReadFile("", "convertLicenseName")
 	if err != nil {
-		return nil, err
+		return err
 	}
-	var convertLicenseName map[string]string
-	err = json.Unmarshal(data, &convertLicenseName)
+	err = json.Unmarshal(data, &convertLicenseNames)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return convertLicenseName, nil
+	return nil
 }
 
-func initClassifier(convertLicenseName map[string]string) error {
+func ConvertLicenseName(name string) string {
+	if convertLicenseNames == nil {
+		return name
+	}
+
+	v, ok := convertLicenseNames[name]
+	if ok {
+		return v
+	}
+	return name
+}
+
+func initClassifier() error {
 	// threshold should be 0.84~0.86 or the test will be failed
 	// TODO: add threshold to app.ini
 	classifier = licenseclassifier.NewClassifier(.85)
@@ -58,23 +70,17 @@ func initClassifier(convertLicenseName map[string]string) error {
 
 	licenseVariantCount := make(map[string]int)
 	if len(licenseFiles) > 0 {
-		for _, lf := range licenseFiles {
-			data, err := options.License(lf)
+		for _, licenseFile := range licenseFiles {
+			data, err := options.License(licenseFile)
 			if err != nil {
 				return err
 			}
-			variant := lf
-			if convertLicenseName != nil {
-				v, ok := convertLicenseName[lf]
-				if ok {
-					variant = v
-				}
-				licenseVariantCount[variant]++
-				if licenseVariantCount[variant] > 1 {
-					continue
-				}
+			licenseName := ConvertLicenseName(licenseFile)
+			licenseVariantCount[licenseName]++
+			if licenseVariantCount[licenseName] > 1 {
+				continue
 			}
-			classifier.AddContent("License", lf, variant, data)
+			classifier.AddContent("License", licenseFile, licenseName, data)
 		}
 	}
 	return nil

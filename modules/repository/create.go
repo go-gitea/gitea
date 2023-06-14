@@ -196,7 +196,7 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 
 	var licenses []string
 	if len(opts.License) > 0 {
-		licenses = append(licenses, opts.License)
+		licenses = append(licenses, ConvertLicenseName(opts.License))
 	}
 	repo := &repo_model.Repository{
 		OwnerID:                         u.ID,

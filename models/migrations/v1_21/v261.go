@@ -24,6 +24,7 @@ import (
 )
 
 var classifier *licenseclassifier.Classifier
+var convertLicenseNames map[string]string
 
 // Copy paste from models/repo.go because we cannot import models package
 func repoPath(userName, repoName string) string {
@@ -194,6 +195,18 @@ func detectLicense(buf []byte) []string {
 	return results
 }
 
+func ConvertLicenseName(name string) string {
+	if convertLicenseNames == nil {
+		return name
+	}
+
+	v, ok := convertLicenseNames[name]
+	if ok {
+		return v
+	}
+	return name
+}
+
 func initClassifier() error {
 	// threshold should be 0.84~0.86 or the test will be failed
 	// TODO: add threshold to app.ini
@@ -201,8 +214,7 @@ func initClassifier() error {
 	if err != nil {
 		return err
 	}
-	var convertLicenseName map[string]string
-	err = json.Unmarshal(data, &convertLicenseName)
+	err = json.Unmarshal(data, &convertLicenseNames)
 	if err != nil {
 		return err
 	}
@@ -217,23 +229,17 @@ func initClassifier() error {
 
 	licenseVariantCount := make(map[string]int)
 	if len(licenseFiles) > 0 {
-		for _, lf := range licenseFiles {
-			data, err := options.License(lf)
+		for _, licenseFile := range licenseFiles {
+			data, err := options.License(licenseFile)
 			if err != nil {
 				return err
 			}
-			variant := lf
-			if convertLicenseName != nil {
-				v, ok := convertLicenseName[lf]
-				if ok {
-					variant = v
-				}
-				licenseVariantCount[variant]++
-				if licenseVariantCount[variant] > 1 {
-					continue
-				}
+			licenseName := ConvertLicenseName(licenseFile)
+			licenseVariantCount[licenseName]++
+			if licenseVariantCount[licenseName] > 1 {
+				continue
 			}
-			classifier.AddContent("License", lf, variant, data)
+			classifier.AddContent("License", licenseFile, licenseName, data)
 		}
 	}
 	return nil

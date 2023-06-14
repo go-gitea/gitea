@@ -80,8 +80,8 @@ func main() {
 	}
 
 	tr := tar.NewReader(gz)
-	var pf *os.File
-	var pfn string
+	var preFile *os.File
+	var preLicenseName string
 	sameFiles := make(map[string][]string)
 	for {
 		hdr, err := tr.Next()
@@ -102,17 +102,17 @@ func main() {
 			continue
 		}
 
-		fbn := filepath.Base(hdr.Name)
-		ln := strings.TrimSuffix(fbn, ".txt")
+		fileBaseName := filepath.Base(hdr.Name)
+		licenseName := strings.TrimSuffix(fileBaseName, ".txt")
 
-		if strings.HasPrefix(fbn, "README") {
+		if strings.HasPrefix(fileBaseName, "README") {
 			continue
 		}
 
-		if strings.HasPrefix(fbn, "deprecated_") {
+		if strings.HasPrefix(fileBaseName, "deprecated_") {
 			continue
 		}
-		out, err := os.Create(path.Join(destination, ln))
+		out, err := os.Create(path.Join(destination, licenseName))
 		if err != nil {
 			log.Fatalf("Failed to create new file. %s", err)
 		}
@@ -126,7 +126,7 @@ func main() {
 
 			// some license files have same content, so we need to detect these files and create a convert map into a file
 			// In InitClassifier, we will use this convert map to avoid adding same license content with different license name
-			md5, err := getSameFileMD5(pf, out)
+			md5, err := getSameFileMD5(preFile, out)
 			if err != nil {
 				log.Fatalf("Failed to get same file md5. %s", err)
 				continue
@@ -136,13 +136,13 @@ func main() {
 				if !ok {
 					sameFiles[md5] = make([]string, 0)
 				}
-				if !contains(sameFiles[md5], pfn) {
-					sameFiles[md5] = append(sameFiles[md5], pfn)
+				if !contains(sameFiles[md5], preLicenseName) {
+					sameFiles[md5] = append(sameFiles[md5], preLicenseName)
 				}
-				sameFiles[md5] = append(sameFiles[md5], ln)
+				sameFiles[md5] = append(sameFiles[md5], licenseName)
 			}
-			pf = out
-			pfn = ln
+			preFile = out
+			preLicenseName = licenseName
 		}
 	}
 
