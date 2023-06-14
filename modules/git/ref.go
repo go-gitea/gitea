@@ -163,6 +163,7 @@ func (ref RefName) ShortName() string {
 }
 
 // RefGroup returns the group type of the reference
+// Using the name of the directory under .git/refs
 func (ref RefName) RefGroup() string {
 	if ref.IsBranch() {
 		return "heads"
@@ -180,6 +181,19 @@ func (ref RefName) RefGroup() string {
 		return "for"
 	}
 	return ""
+}
+
+// RefType returns the simple ref type of the reference, e.g. branch, tag
+// It's differrent from RefGroup, which is using the name of the directory under .git/refs
+// Here we using branch but not heads, using tag but not tags
+func (ref RefName) RefType() string {
+	var refType string
+	if ref.IsBranch() {
+		refType = "branch"
+	} else if ref.IsTag() {
+		refType = "tag"
+	}
+	return refType
 }
 
 // RefURL returns the absolute URL for a ref in a repository

@@ -54,15 +54,23 @@ func (s *Service) Register(
 		return nil, errors.New("runner token has already been activated")
 	}
 
+	labels := req.Msg.Labels
+	// TODO: agent_labels should be removed from pb after Gitea 1.20 released.
+	// Old version runner's agent_labels slice is not empty and labels slice is empty.
+	// And due to compatibility with older versions, it is temporarily marked as Deprecated in pb, so use `//nolint` here.
+	if len(req.Msg.AgentLabels) > 0 && len(req.Msg.Labels) == 0 { //nolint:staticcheck
+		labels = req.Msg.AgentLabels //nolint:staticcheck
+	}
+
 	// create new runner
 	name, _ := util.SplitStringAtByteN(req.Msg.Name, 255)
 	runner := &actions_model.ActionRunner{
-		UUID:         gouuid.New().String(),
-		Name:         name,
-		OwnerID:      runnerToken.OwnerID,
-		RepoID:       runnerToken.RepoID,
-		AgentLabels:  req.Msg.AgentLabels,
-		CustomLabels: req.Msg.CustomLabels,
+		UUID:        gouuid.New().String(),
+		Name:        name,
+		OwnerID:     runnerToken.OwnerID,
+		RepoID:      runnerToken.RepoID,
+		Version:     req.Msg.Version,
+		AgentLabels: labels,
 	}
 	if err := runner.GenerateToken(); err != nil {
 		return nil, errors.New("can't generate token")
@@ -81,16 +89,39 @@ func (s *Service) Register(
 
 	res := connect.NewResponse(&runnerv1.RegisterResponse{
 		Runner: &runnerv1.Runner{
-			Id:           runner.ID,
-			Uuid:         runner.UUID,
-			Token:        runner.Token,
-			Name:         runner.Name,
-			AgentLabels:  runner.AgentLabels,
-			CustomLabels: runner.CustomLabels,
+			Id:      runner.ID,
+			Uuid:    runner.UUID,
+			Token:   runner.Token,
+			Name:    runner.Name,
+			Version: runner.Version,
+			Labels:  runner.AgentLabels,
 		},
 	})
 
 	return res, nil
+}
+
+func (s *Service) Declare(
+	ctx context.Context,
+	req *connect.Request[runnerv1.DeclareRequest],
+) (*connect.Response[runnerv1.DeclareResponse], error) {
+	runner := GetRunner(ctx)
+	runner.AgentLabels = req.Msg.Labels
+	runner.Version = req.Msg.Version
+	if err := actions_model.UpdateRunner(ctx, runner, "agent_labels", "version"); err != nil {
+		return nil, status.Errorf(codes.Internal, "update runner: %v", err)
+	}
+
+	return connect.NewResponse(&runnerv1.DeclareResponse{
+		Runner: &runnerv1.Runner{
+			Id:      runner.ID,
+			Uuid:    runner.UUID,
+			Token:   runner.Token,
+			Name:    runner.Name,
+			Version: runner.Version,
+			Labels:  runner.AgentLabels,
+		},
+	}), nil
 }
 
 // FetchTask assigns a task to the runner
