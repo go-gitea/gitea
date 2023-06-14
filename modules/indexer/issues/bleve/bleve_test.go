@@ -17,12 +17,12 @@ func TestBleveIndexAndSearch(t *testing.T) {
 	indexer := NewIndexer(dir)
 	defer indexer.Close()
 
-	if _, err := indexer.Init(); err != nil {
+	if _, err := indexer.Init(context.Background()); err != nil {
 		assert.Fail(t, "Unable to initialize bleve indexer: %v", err)
 		return
 	}
 
-	err := indexer.Index([]*internal.IndexerData{
+	err := indexer.Index(context.Background(), []*internal.IndexerData{
 		{
 			ID:      1,
 			RepoID:  2,

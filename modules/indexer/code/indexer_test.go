@@ -85,7 +85,7 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 			})
 		}
 
-		assert.NoError(t, indexer.Delete(repoID))
+		assert.NoError(t, indexer.Delete(context.Background(), repoID))
 	})
 }
 
@@ -95,7 +95,7 @@ func TestBleveIndexAndSearch(t *testing.T) {
 	dir := t.TempDir()
 
 	idx := bleve.NewIndexer(dir)
-	_, err := idx.Init()
+	_, err := idx.Init(context.Background())
 	if err != nil {
 		assert.Fail(t, "Unable to create bleve indexer Error: %v", err)
 		if idx != nil {
@@ -118,7 +118,7 @@ func TestESIndexAndSearch(t *testing.T) {
 	}
 
 	indexer := elasticsearch.NewIndexer(u, "gitea_codes")
-	if _, err := indexer.Init(); err != nil {
+	if _, err := indexer.Init(context.Background()); err != nil {
 		assert.Fail(t, "Unable to init ES indexer Error: %v", err)
 		if indexer != nil {
 			indexer.Close()
