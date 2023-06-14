@@ -132,11 +132,7 @@ func Init() {
 					code.gitea.io/gitea/modules/indexer/code.index(indexer.go:105)
 				*/
 				if err := index(ctx, indexer, indexerData.RepoID); err != nil {
-					if err := indexer.Ping(ctx); err != nil {
-						log.Error("Code indexer handler: indexer is unavailable: %v.", err)
-						unhandled = append(unhandled, indexerData)
-						continue
-					}
+					unhandled = append(unhandled, indexerData)
 					if !setting.IsInTesting {
 						log.Error("Codes indexer handler: index error for repo %v: %v", indexerData.RepoID, err)
 					}
