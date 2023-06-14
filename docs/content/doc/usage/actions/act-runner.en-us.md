@@ -78,16 +78,14 @@ The default configuration is safe to use without any modification, so you can ju
 
 When you are using the docker image, you can specify the configuration file by using the `CONFIG_FILE` environment variable. Make sure that the file is mounted into the container as a volume:
 
-You need to create config.yaml first to avoid docker creating a directory instead. Neither use the method mentioned above, or just run the following command:
+```bash
+docker run -v $(pwd)/config.yaml:/config.yaml -e CONFIG_FILE=/config.yaml ...
+```
+
+You need to create config.yaml before running the container, to avoid `Error: EOF` errors. Neither use the method mentioned above, or just run the following command:
 
 ```bash
 docker run --entrypoint="" --rm -it gitea/act_runner:latest act_runner generate-config > config.yaml
-```
-
-Then, you could start the server using:
-
-```bash
-docker run -v $(pwd)/config.yaml:/config.yaml -e CONFIG_FILE=/config.yaml ...
 ```
 
 You may notice the commands above are both incomplete, because it is not the time to run the act runner yet.
@@ -201,7 +199,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
 ```
 
-Don't forget to create the `config.yaml` before running `docker compose up` to avoid `EOF` errors.
+Don't forget to create the `config.yaml` before running `docker compose up` to avoid `Error: EOF` errors.
 
 ### Configuring cache when starting a Runner using docker image
 
