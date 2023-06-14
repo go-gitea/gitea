@@ -502,7 +502,7 @@ var migrations = []Migration{
 	// Gitea 1.20.0 ends at 260
 
 	// v260 -> v261
-	NewMigration("Drop custom_labels column of action_runner table", v1_21.DropCustomLabelsColumnToActRunner),
+	NewMigration("Drop custom_labels column of action_runner table", v1_21.DropCustomLabelsColumnOfActionRunner),
 }
 
 // GetCurrentDBVersion returns the current db version
