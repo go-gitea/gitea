@@ -46,6 +46,7 @@ func getConvertLicenseName() (map[string]string, error) {
 	}
 	return convertLicenseName, nil
 }
+
 func initClassifier(convertLicenseName map[string]string) error {
 	// threshold should be 0.84~0.86 or the test will be failed
 	// TODO: add threshold to app.ini

@@ -503,8 +503,8 @@ var migrations = []Migration{
 
 	// v260 -> v261
 	NewMigration("Add label column to action_run table, and combine labels", v1_21.DropCustomLabelsColumnToActRunner),
-  // v261 -> 262
-	NewMigration("Add Repository Licenses", v1_20.AddRepositoryLicenses),
+	// v261 -> 262
+	NewMigration("Add Repository Licenses", v1_21.AddRepositoryLicenses),
 }
 
 // GetCurrentDBVersion returns the current db version

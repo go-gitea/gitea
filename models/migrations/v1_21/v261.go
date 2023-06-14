@@ -1,9 +1,10 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_20 //nolint
+package v1_21 //nolint
 
 import (
+	"encoding/json"
 	"fmt"
 	"path"
 	"path/filepath"
@@ -21,6 +22,8 @@ import (
 
 	licenseclassifier "github.com/google/licenseclassifier/v2"
 )
+
+var classifier *licenseclassifier.Classifier
 
 // Copy paste from models/repo.go because we cannot import models package
 func repoPath(userName, repoName string) string {
@@ -157,50 +160,83 @@ func localizedExtensions(ext, languageCode string) (localizedExts []string) {
 	return []string{lowerLangCode + ext, ext}
 }
 
+// detectLicenseByEntry returns the licenses detected by the given tree entry
 func detectLicenseByEntry(file *git.TreeEntry) ([]string, error) {
 	if file == nil {
 		return nil, nil
 	}
 
-	// Read license file content
 	blob := file.Blob()
 	contentBuf, err := blob.GetBlobAll()
 	if err != nil {
 		return nil, fmt.Errorf("GetBlobAll: %w", err)
 	}
-
-	// check license
 	return detectLicense(contentBuf), nil
 }
 
+// detectLicense returns the licenses detected by the given content buff
 func detectLicense(buf []byte) []string {
 	if len(buf) == 0 {
 		return nil
 	}
-
-	classifier := licenseclassifier.NewClassifier(.9)
-	licenseFiles, err := options.AssetFS().ListFiles("license", true)
-	if err != nil {
-		log.Error("initClassifier: %v", err)
+	if classifier == nil {
+		log.Error("detectLicense: license classifier is null.")
 		return nil
 	}
-	for _, lf := range licenseFiles {
-		data, err := options.License(lf)
-		if err != nil {
-			log.Error("initClassifier: %v", err)
-			return nil
+
+	matches := classifier.Match(buf)
+	var results []string
+	for _, r := range matches.Matches {
+		if r.MatchType == "License" {
+			results = append(results, r.Variant)
 		}
-		classifier.AddContent("License", lf, "license", data)
+	}
+	return results
+}
+
+func initClassifier() error {
+	// threshold should be 0.84~0.86 or the test will be failed
+	// TODO: add threshold to app.ini
+	data, err := options.AssetFS().ReadFile("", "convertLicenseName")
+	if err != nil {
+		return err
+	}
+	var convertLicenseName map[string]string
+	err = json.Unmarshal([]byte(data), &convertLicenseName)
+	if err != nil {
+		return err
 	}
 
-	var licenses []string
-	results := classifier.Match(buf)
-	for _, r := range results.Matches {
-		if r.MatchType == "License" {
-			licenses = append(licenses, r.Name)
+	// threshold should be 0.84~0.86 or the test will be failed
+	// TODO: add threshold to app.ini
+	classifier = licenseclassifier.NewClassifier(.85)
+	licenseFiles, err := options.AssetFS().ListFiles("license", true)
+	if err != nil {
+		return err
+	}
+
+	licenseVariantCount := make(map[string]int)
+	if len(licenseFiles) > 0 {
+		for _, lf := range licenseFiles {
+			data, err := options.License(lf)
+			if err != nil {
+				return err
+			}
+			variant := lf
+			if convertLicenseName != nil {
+				v, ok := convertLicenseName[lf]
+				if ok {
+					variant = v
+				}
+				licenseVariantCount[variant]++
+				if licenseVariantCount[variant] > 1 {
+					continue
+				}
+			}
+			classifier.AddContent("License", lf, variant, data)
 		}
 	}
-	return licenses
+	return nil
 }
 
 func AddRepositoryLicenses(x *xorm.Engine) error {
@@ -225,6 +261,10 @@ func AddRepositoryLicenses(x *xorm.Engine) error {
 
 	repos := make([]*Repository, 0)
 	if err := sess.Where(builder.IsNull{"licenses"}).Find(&repos); err != nil {
+		return err
+	}
+
+	if err := initClassifier(); err != nil {
 		return err
 	}
 
