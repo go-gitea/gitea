@@ -238,20 +238,22 @@ func SyncRepoBranches(ctx context.Context, repo *repo_model.Repository, doerID i
 		}
 		if dbb == nil {
 			toAdd = append(toAdd, &git_model.Branch{
-				RepoID:     repo.ID,
-				Name:       branch,
-				Commit:     commit.ID.String(),
-				PusherID:   doerID,
-				CommitTime: timeutil.TimeStamp(commit.Author.When.Unix()),
+				RepoID:        repo.ID,
+				Name:          branch,
+				CommitSHA:     commit.ID.String(),
+				CommitMessage: commit.CommitMessage,
+				PusherID:      doerID,
+				CommitTime:    timeutil.TimeStamp(commit.Author.When.Unix()),
 			})
-		} else if commit.ID.String() != dbb.Commit {
+		} else if commit.ID.String() != dbb.CommitSHA {
 			toUpdate = append(toUpdate, &git_model.Branch{
-				ID:         dbb.ID,
-				RepoID:     repo.ID,
-				Name:       branch,
-				Commit:     commit.ID.String(),
-				PusherID:   doerID,
-				CommitTime: timeutil.TimeStamp(commit.Author.When.Unix()),
+				ID:            dbb.ID,
+				RepoID:        repo.ID,
+				Name:          branch,
+				CommitSHA:     commit.ID.String(),
+				CommitMessage: commit.CommitMessage,
+				PusherID:      doerID,
+				CommitTime:    timeutil.TimeStamp(commit.Author.When.Unix()),
 			})
 		}
 	}

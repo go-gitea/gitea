@@ -17,16 +17,17 @@ import (
 
 // Branch represents a branch of a repository
 // For those repository who have many branches, stored into database is a good choice
-// for pagination and search
+// for pagination, keyword search and filtering
 type Branch struct {
-	ID          int64
-	RepoID      int64  `xorm:"index UNIQUE(s)"`
-	Name        string `xorm:"UNIQUE(s) NOT NULL"`
-	Commit      string
-	PusherID    int64
-	CommitTime  timeutil.TimeStamp // The commit
-	CreatedUnix timeutil.TimeStamp `xorm:"created"`
-	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
+	ID            int64
+	RepoID        int64  `xorm:"index UNIQUE(s)"`
+	Name          string `xorm:"UNIQUE(s) NOT NULL"`
+	CommitSHA     string
+	CommitMessage string `xorm:"TEXT"`
+	PusherID      int64
+	CommitTime    timeutil.TimeStamp // The commit
+	CreatedUnix   timeutil.TimeStamp `xorm:"created"`
+	UpdatedUnix   timeutil.TimeStamp `xorm:"updated"`
 }
 
 // DeletedBranch struct
