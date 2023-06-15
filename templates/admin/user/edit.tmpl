@@ -72,7 +72,7 @@
 				</div>
 				<div class="field {{if .Err_Website}}error{{end}}">
 					<label for="website">{{.locale.Tr "settings.website"}}</label>
-					<input id="website" name="website" type="url" value="{{.User.Website}}" placeholder="e.g. http://mydomain.com or https://mydomain.com" maxlength="255">
+					<input id="website" name="website" type="url" value="{{.User.Website}}" placeholder="http://mydomain.com or https://mydomain.com" maxlength="255">
 				</div>
 				<div class="field {{if .Err_Location}}error{{end}}">
 					<label for="location">{{.locale.Tr "settings.location"}}</label>
@@ -197,7 +197,7 @@
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "settings.delete_account_title"}}
 	</div>
-	<form class="ui form" method="POST" action="{{.Link}}/delete">
+	<form class="ui form" method="post" action="{{.Link}}/delete">
 		<div class="content">
 			<p>{{.locale.Tr "settings.delete_account_desc"}}</p>
 			{{$.CsrfTokenHtml}}
