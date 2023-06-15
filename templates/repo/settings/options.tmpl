@@ -12,7 +12,7 @@
 					<label for="repo_name">{{.locale.Tr "repo.repo_name"}}</label>
 					<input id="repo_name" name="repo_name" value="{{.Repository.Name}}" data-repo-name="{{.Repository.Name}}" autofocus required>
 				</div>
-				<div class="inline field{{if not (eq .Repository.LFSSize 0)}} tooltip{{end}}"{{if not (eq .Repository.LFSSize 0)}} data-content="{{.Repository.SizeDetailsString}}"{{end}}>
+				<div class="inline field"{{if not (eq .Repository.LFSSize 0)}} data-tooltip-content="{{.Repository.SizeDetailsString}}"{{end}}>
 					<label>{{.locale.Tr "repo.repo_size"}}</label>
 					<span>{{FileSize .Repository.Size}}</span>
 				</div>
