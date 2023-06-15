@@ -580,7 +580,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 				}()
 			}
 			// FIXME: since we only need to recheck files protected rules, we could improve this
-			matchedBranches, err := git_model.FindAllMatchedBranches(ctx, ctx.Repo.GitRepo, ruleName)
+			matchedBranches, err := git_model.FindAllMatchedBranches(ctx, ctx.Repo.Repository.ID, ruleName)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "FindAllMatchedBranches", err)
 				return
@@ -851,7 +851,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 			}
 
 			// FIXME: since we only need to recheck files protected rules, we could improve this
-			matchedBranches, err := git_model.FindAllMatchedBranches(ctx, ctx.Repo.GitRepo, protectBranch.RuleName)
+			matchedBranches, err := git_model.FindAllMatchedBranches(ctx, ctx.Repo.Repository.ID, protectBranch.RuleName)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "FindAllMatchedBranches", err)
 				return

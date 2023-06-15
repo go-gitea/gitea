@@ -667,7 +667,12 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	}
 	ctx.Data["Tags"] = tags
 
-	brs, _, err := ctx.Repo.GitRepo.GetBranchNames(0, 0)
+	brs, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
+		RepoID: ctx.Repo.Repository.ID,
+		ListOptions: db.ListOptions{
+			PageSize: -1,
+		},
+	})
 	if err != nil {
 		ctx.ServerError("GetBranches", err)
 		return
@@ -897,7 +902,14 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 		if len(ctx.Params("*")) == 0 {
 			refName = ctx.Repo.Repository.DefaultBranch
 			if !ctx.Repo.GitRepo.IsBranchExist(refName) {
-				brs, _, err := ctx.Repo.GitRepo.GetBranchNames(0, 0)
+				// get the first branch
+				brs, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
+					RepoID: ctx.Repo.Repository.ID,
+					ListOptions: db.ListOptions{
+						PageSize: 1,
+					},
+					IsDeletedBranch: util.OptionalBoolFalse,
+				})
 				if err == nil && len(brs) != 0 {
 					refName = brs[0]
 				} else if len(brs) == 0 {

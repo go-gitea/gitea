@@ -65,6 +65,24 @@ func FindBranches(ctx context.Context, opts FindBranchOptions) (BranchList, int6
 	return branches, total, err
 }
 
+func FindBranchNames(ctx context.Context, opts FindBranchOptions) ([]string, error) {
+	sess := db.GetEngine(ctx).Select("name").Where("repo_id=?", opts.RepoID)
+	if opts.PageSize > 0 {
+		sess = db.SetSessionPagination(sess, &opts.ListOptions)
+	}
+	if !opts.IncludeDefaultBranch {
+		sess = sess.And(builder.Neq{"name": builder.Select("default_branch").From("repository").Where(builder.Eq{"id": opts.RepoID})})
+	}
+	if !opts.IsDeletedBranch.IsNone() {
+		sess.And(builder.Eq{"is_deleted": opts.IsDeletedBranch.IsTrue()})
+	}
+	var branches []string
+	if err := sess.Table("branch").Find(&branches); err != nil {
+		return nil, err
+	}
+	return branches, nil
+}
+
 func GetDeletedBranches(ctx context.Context, repoID int64) (BranchList, error) {
 	branches, _, err := FindBranches(ctx, FindBranchOptions{
 		ListOptions: db.ListOptions{
