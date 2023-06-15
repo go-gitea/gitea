@@ -23,14 +23,14 @@ import (
 )
 
 var (
-	classifier          *licenseclassifier.Classifier
-	convertLicenseNames map[string]string
+	classifier   *licenseclassifier.Classifier
+	sameLicenses map[string]string
 )
 
 func init() {
-	err := loadConvertLicenseNames()
+	err := loadSameLicenses()
 	if err != nil {
-		log.Error("loadConvertLicenseNames: %v", err)
+		log.Error("loadSameLicenses: %v", err)
 	}
 	err = initClassifier()
 	if err != nil {
@@ -38,12 +38,12 @@ func init() {
 	}
 }
 
-func loadConvertLicenseNames() error {
-	data, err := options.AssetFS().ReadFile("", "convertLicenseName")
+func loadSameLicenses() error {
+	data, err := options.AssetFS().ReadFile("", "sameLicenses")
 	if err != nil {
 		return err
 	}
-	err = json.Unmarshal(data, &convertLicenseNames)
+	err = json.Unmarshal(data, &sameLicenses)
 	if err != nil {
 		return err
 	}
@@ -51,11 +51,11 @@ func loadConvertLicenseNames() error {
 }
 
 func ConvertLicenseName(name string) string {
-	if convertLicenseNames == nil {
+	if sameLicenses == nil {
 		return name
 	}
 
-	v, ok := convertLicenseNames[name]
+	v, ok := sameLicenses[name]
 	if ok {
 		return v
 	}
@@ -64,14 +64,13 @@ func ConvertLicenseName(name string) string {
 
 func initClassifier() error {
 	// threshold should be 0.84~0.86 or the test will be failed
-	// TODO: add threshold to app.ini
 	classifier = licenseclassifier.NewClassifier(.85)
 	licenseFiles, err := options.AssetFS().ListFiles("license", true)
 	if err != nil {
 		return err
 	}
 
-	licenseVariantCount := make(map[string]int)
+	licenseNameCount := make(map[string]int)
 	if len(licenseFiles) > 0 {
 		for _, licenseFile := range licenseFiles {
 			data, err := options.License(licenseFile)
@@ -79,8 +78,8 @@ func initClassifier() error {
 				return err
 			}
 			licenseName := ConvertLicenseName(licenseFile)
-			licenseVariantCount[licenseName]++
-			if licenseVariantCount[licenseName] > 1 {
+			licenseNameCount[licenseName]++
+			if licenseNameCount[licenseName] > 1 {
 				continue
 			}
 			classifier.AddContent("License", licenseFile, licenseName, data)
