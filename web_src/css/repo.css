@@ -225,6 +225,13 @@
   align-items: center;
 }
 
+@media (max-width: 767.68px) {
+  .repository.file.list .repo-description {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
 .repository.file.list #repo-desc {
   font-size: 1.2em;
 }
@@ -3381,6 +3388,12 @@ tbody.commit-list {
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   margin-bottom: 8px;
+}
+
+@media (max-width: 767.98px) {
+  #issue-pins {
+    grid-template-columns: repeat(1, 1fr);
+  }
 }
 
 .pinned-issue-card {

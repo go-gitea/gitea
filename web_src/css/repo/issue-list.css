@@ -13,3 +13,16 @@
 .issue-list-toolbar-right {
   margin-left: auto;
 }
+
+@media (max-width: 575.98px) {
+  .issue-list-navbar {
+    order: 1
+  }
+  .issue-list-new {
+    order: 2;
+    margin-left: auto !important;
+  }
+  .issue-list-search {
+    order: 3
+  }
+}
