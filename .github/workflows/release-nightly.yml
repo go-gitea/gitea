@@ -25,12 +25,9 @@ jobs:
           node-version: 20
       - run: make deps-frontend deps-backend
       # xgo build
-      - run: |
-          make release
-          ls -laR dist
+      - run: make release
         env:
           TAGS: bindata sqlite sqlite_unlock_notify
-
       - name: import gpg key
         id: import_gpg
         uses: crazy-max/ghaction-import-gpg@v5
@@ -40,8 +37,15 @@ jobs:
       - name: sign binaries
         run: |
           for f in dist/release/*; do
-            echo "${{ secrets.GPGSIGN_PASSPHRASE }}" | gpg --pinentry-mode loopback --passphrase-fd 0 --batch --yes --detach-sign -u ${{ steps.import_gpg.outputs.fingerprint }} --output $f.asc $f
+            echo '${{ secrets.GPGSIGN_PASSPHRASE }}' | gpg --pinentry-mode loopback --passphrase-fd 0 --batch --yes --detach-sign -u ${{ steps.import_gpg.outputs.fingerprint }} --output $f.asc $f
           done
+      # clean branch name to get the folder name in S3
+      - name: Get cleaned branch name
+        id: clean_name
+        run: |
+          REF_NAME=$(echo "${{ github.ref }}" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\///' -e 's/release\/v//')
+          echo "Cleaned name is ${REF_NAME}"
+          echo "::set-output name=branch::${REF_NAME}"
       - name: upload binaries to s3
         uses: jakejarvis/s3-sync-action@master
         env:
@@ -50,7 +54,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           SOURCE_DIR: dist/release
-          DEST_DIR: gitea/${{ github.ref }} # TODO: fix dir here
+          DEST_DIR: gitea/${{ steps.clean_name.outputs.branch }}
   nightly-docker:
     runs-on: ubuntu-latest
     steps:
