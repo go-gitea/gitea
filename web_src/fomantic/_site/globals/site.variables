@@ -5,22 +5,23 @@
 @bold: 500;
 @useCustomScrollbars: false;
 @disabledOpacity: var(--opacity-disabled);
-@variationPopupTooltip: false;
 @linkHoverUnderline: underline;
-@variationButtonSocial: false;
 @pageOverflowX: visible;
-@variationTableStackable: false;
-@variationTableMarked: false;
-@variationGridDoubling: false;
-@variationFormTransparent: false;
+
 @variationButtonAnimated: false;
 @variationButtonAnimatedFade: false;
-@variationLabelImage: false;
+@variationButtonSocial: false;
+@variationFormTransparent: false;
+@variationGridDoubling: false;
 @variationLabelCorner: false;
-@variationLabelTag: false;
+@variationLabelImage: false;
 @variationLabelRibbon: false;
-@variationSegmentStacked: false;
+@variationLabelTag: false;
+@variationPopupTooltip: false;
 @variationSegmentPiled: false;
+@variationSegmentStacked: false;
+@variationTableMarked: false;
+@variationTableStackable: false;
 
 /* disable all inverted variations */
 @variationAccordionInverted: false;
