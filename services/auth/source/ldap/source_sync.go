@@ -106,7 +106,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 		fullName := composeFullName(su.Name, su.Surname, su.Username)
 		// If no existing user found, create one
-		if usr == nil {
+		if usr == nil && len(su.Username) > 0 {
 			log.Trace("SyncExternalUsers[%s]: Creating user %s", source.authSource.Name, su.Username)
 
 			usr = &user_model.User{

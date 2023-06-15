@@ -268,6 +268,30 @@ func TestLDAPUserSync(t *testing.T) {
 	}
 }
 
+func TestLDAPUserSyncWithEmptyUsernameAttribute(t *testing.T) {
+	if skipLDAPTests() {
+		t.Skip()
+		return
+	}
+
+	session := loginUser(t, "user1")
+	csrf := GetCSRF(t, session, "/admin/auths/new")
+	payload := buildAuthSourceLDAPPayload(csrf, "", "", "", "")
+	payload["attribute_username"] = ""
+	req := NewRequestWithValues(t, "POST", "/admin/auths/new", payload)
+	session.MakeRequest(t, req, http.StatusSeeOther)
+
+	for _, u := range gitLDAPUsers {
+		req := NewRequest(t, "GET", "/admin/users?q="+u.UserName)
+		resp := session.MakeRequest(t, req, http.StatusOK)
+
+		htmlDoc := NewHTMLParser(t, resp.Body)
+
+		tr := htmlDoc.doc.Find("table.table tbody tr")
+		assert.True(t, tr.Length() == 0)
+	}
+}
+
 func TestLDAPUserSyncWithGroupFilter(t *testing.T) {
 	if skipLDAPTests() {
 		t.Skip()
