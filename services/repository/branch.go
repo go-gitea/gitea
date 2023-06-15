@@ -81,6 +81,10 @@ func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		return nil, nil, 0, err
 	}
 
+	if err := rawBranches.LoadDeletedBy(ctx); err != nil {
+		return nil, nil, 0, err
+	}
+
 	rules, err := git_model.FindRepoProtectedBranchRules(ctx, repo.ID)
 	if err != nil {
 		return nil, nil, 0, err
@@ -92,7 +96,7 @@ func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	repoIDToGitRepo := map[int64]*git.Repository{}
 	repoIDToGitRepo[repo.ID] = gitRepo
 
-	var branches []*Branch
+	branches := make([]*Branch, 0, len(rawBranches))
 	for i := range rawBranches {
 		branch, err := loadOneBranch(ctx, repo, rawBranches[i], &rules, repoIDToRepo, repoIDToGitRepo)
 		if err != nil {
@@ -128,11 +132,11 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, rawBranch *
 	}
 
 	// it's not default branch
-	if repo.DefaultBranch != rawBranch.Name {
+	if repo.DefaultBranch != rawBranch.Name && !rawBranch.IsDeleted {
 		var err error
 		divergence, err = files_service.CountDivergingCommits(ctx, repo, git.BranchPrefix+branchName)
 		if err != nil {
-			log.Error("CountDivergingCommits", err)
+			log.Error("CountDivergingCommits: %v", err)
 		}
 	}
 

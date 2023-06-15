@@ -75,9 +75,9 @@
 						{{range .Branches}}
 							<tr>
 								<td class="six wide">
-								{{if .IsDeleted}}
+								{{if .RawBranch.IsDeleted}}
 									<s><a href="{{$.RepoLink}}/src/branch/{{PathEscapeSegments .RawBranch.Name}}">{{.RawBranch.Name}}</a></s>
-									<p class="info">{{$.locale.Tr "repo.branch.deleted_by" .DeletedBranch.DeletedBy.Name}} {{TimeSinceUnix .DeletedBranch.DeletedUnix $.locale}}</p>
+									<p class="info">{{$.locale.Tr "repo.branch.deleted_by" .RawBranch.DeletedBy.Name}} {{TimeSinceUnix .RawBranch.DeletedUnix $.locale}}</p>
 								{{else}}
 									{{if .IsProtected}}
 										{{svg "octicon-shield-lock"}}
@@ -87,7 +87,7 @@
 								{{end}}
 								</td>
 								<td class="three wide ui">
-									{{if and (not .IsDeleted) $.DefaultBranch}}
+									{{if and (not .RawBranch.IsDeleted) $.DefaultBranch}}
 									<div class="commit-divergence">
 										<div class="bar-group">
 											<div class="count count-behind">{{.CommitsBehind}}</div>
@@ -130,7 +130,7 @@
 									{{end}}
 								</td>
 								<td class="three wide right aligned overflow-visible">
-									{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
+									{{if and $.IsWriter (not $.Repository.IsArchived) (not .RawBranch.IsDeleted)}}
 										<button class="btn interact-bg gt-p-3 show-modal show-create-branch-modal"
 											data-branch-from="{{.RawBranch.Name}}"
 											data-branch-from-urlcomponent="{{PathEscapeSegments .RawBranch.Name}}"
@@ -143,7 +143,7 @@
 									{{if $.EnableFeed}}
 										<a role="button" class="btn interact-bg gt-p-3" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .RawBranch.Name}}">{{svg "octicon-rss"}}</a>
 									{{end}}
-									{{if and (not .IsDeleted) (not $.DisableDownloadSourceArchives)}}
+									{{if and (not .RawBranch.IsDeleted) (not $.DisableDownloadSourceArchives)}}
 										<div class="ui dropdown btn interact-bg gt-p-3" data-tooltip-content="{{$.locale.Tr "repo.branch.download" (.RawBranch.Name)}}">
 											{{svg "octicon-download"}}
 											<div class="menu">
@@ -152,7 +152,7 @@
 											</div>
 										</div>
 									{{end}}
-									{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted) (not $.IsMirror)}}
+									{{if and $.IsWriter (not $.Repository.IsArchived) (not .RawBranch.IsDeleted) (not $.IsMirror)}}
 										<button class="btn interact-bg gt-p-3 show-modal show-rename-branch-modal"
 											data-is-default-branch="false"
 											data-old-branch-name="{{.RawBranch.Name}}"
@@ -163,7 +163,7 @@
 										</button>
 									{{end}}
 									{{if and $.IsWriter (not $.IsMirror) (not $.Repository.IsArchived) (not .IsProtected)}}
-										{{if .IsDeleted}}
+										{{if .RawBranch.IsDeleted}}
 											<button class="btn interact-bg gt-p-3 link-action restore-branch-button" data-url="{{$.Link}}/restore?branch_id={{.DeletedBranch.ID}}&name={{.DeletedBranch.Name}}&page={{$.Page.Paginater.Current}}" data-tooltip-content="{{$.locale.Tr "repo.branch.restore" (.RawBranch.Name)}}">
 												<span class="text blue">
 													{{svg "octicon-reply"}}

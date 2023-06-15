@@ -9,11 +9,10 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/builder"
 )
 
 // Branch represents a branch of a repository
@@ -28,6 +27,7 @@ type Branch struct {
 	PusherID      int64
 	IsDeleted     bool
 	DeletedByID   int64
+	DeletedBy     *user_model.User `xorm:"-"`
 	DeletedUnix   timeutil.TimeStamp
 	CommitTime    timeutil.TimeStamp // The commit
 	CreatedUnix   timeutil.TimeStamp `xorm:"created"`
@@ -39,12 +39,6 @@ func init() {
 	db.RegisterModel(new(RenamedBranch))
 }
 
-func LoadAllBranches(ctx context.Context, repoID int64) ([]*Branch, error) {
-	var branches []*Branch
-	err := db.GetEngine(ctx).Where("repo_id=?", repoID).Find(&branches)
-	return branches, err
-}
-
 func GetDefaultBranch(ctx context.Context, repo *repo_model.Repository) (*Branch, error) {
 	var branch Branch
 	has, err := db.GetEngine(ctx).Where("repo_id=?", repo.ID).And("name=?", repo.DefaultBranch).Get(&branch)
@@ -54,32 +48,6 @@ func GetDefaultBranch(ctx context.Context, repo *repo_model.Repository) (*Branch
 		return nil, git.ErrBranchNotExist{Name: repo.DefaultBranch}
 	}
 	return &branch, nil
-}
-
-type FindBranchOptions struct {
-	db.ListOptions
-	RepoID               int64
-	IncludeDefaultBranch bool
-	IncludeDeletedBranch bool
-}
-
-func FindBranches(ctx context.Context, opts FindBranchOptions) ([]*Branch, int64, error) {
-	sess := db.GetEngine(ctx).Where("repo_id=?", opts.RepoID)
-	if opts.PageSize > 0 {
-		sess = db.SetSessionPagination(sess, &opts.ListOptions)
-	}
-	if !opts.IncludeDefaultBranch {
-		sess = sess.And(builder.Neq{"name": builder.Select("default_branch").From("repository").Where(builder.Eq{"id": opts.RepoID})})
-	}
-	if !opts.IncludeDeletedBranch {
-		sess.And(builder.Eq{"is_deleted": false})
-	}
-	var branches []*Branch
-	total, err := sess.FindAndCount(&branches)
-	if err != nil {
-		return nil, 0, err
-	}
-	return branches, total, err
 }
 
 func AddBranch(ctx context.Context, branch *Branch) error {
