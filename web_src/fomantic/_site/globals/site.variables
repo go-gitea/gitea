@@ -15,6 +15,7 @@
 @variationButtonAttached: false;
 @variationButtonInverted: false;
 @variationButtonSocial: false;
+@variationButtonTertiary: false;
 @variationCalendarInverted: false;
 @variationCardInverted: false;
 @variationCheckboxInverted: false;
