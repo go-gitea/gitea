@@ -37,7 +37,6 @@ func AddBranchTable(x *xorm.Engine) error {
 		RepoID      int64  `xorm:"index UNIQUE(s)"`
 		Name        string `xorm:"UNIQUE(s) NOT NULL"`
 		Commit      string
-		IsDeleted   bool
 		DeletedByID int64
 		DeletedUnix timeutil.TimeStamp
 	}

@@ -439,20 +439,13 @@ func runRepoSyncBranches(_ *cli.Context) error {
 		log.Trace("Processing next %d repos of %d", len(repos), count)
 		for _, repo := range repos {
 			log.Trace("Synchronizing repo %s with path %s", repo.FullName(), repo.RepoPath())
-			gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
-			if err != nil {
-				log.Warn("OpenRepository: %v", err)
-				continue
-			}
 
-			if err = repo_service.SyncRepoBranches(ctx, repo, doer.ID, gitRepo); err != nil {
+			if err = repo_service.SyncRepoBranches(ctx, repo, doer.ID); err != nil {
 				log.Warn("repo_module.SyncBranches: %v", err)
-				gitRepo.Close()
 				continue
 			}
 
 			log.Trace("repo %s branches synchronized")
-			gitRepo.Close()
 		}
 	}
 

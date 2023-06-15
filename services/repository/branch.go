@@ -341,8 +341,14 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 }
 
 // SyncRepoBranches synchronizes branch table with repository branches
-func SyncRepoBranches(ctx context.Context, repo *repo_model.Repository, doerID int64, gitRepo *git.Repository) error {
+func SyncRepoBranches(ctx context.Context, repo *repo_model.Repository, doerID int64) error {
 	log.Debug("SyncRepoBranches: in Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
+
+	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	if err != nil {
+		return fmt.Errorf("openRepository: %v", err)
+	}
+	defer gitRepo.Close()
 
 	const limit = 100
 	var allBranches []string
