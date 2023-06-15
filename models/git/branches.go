@@ -11,8 +11,11 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
+
+	"xorm.io/builder"
 )
 
 // Branch represents a branch of a repository
@@ -53,18 +56,41 @@ func LoadAllBranches(ctx context.Context, repoID int64) ([]*Branch, error) {
 	return branches, err
 }
 
-type FindBranchOptions struct {
-	db.ListOptions
-	RepoID int64
+func GetDefaultBranch(ctx context.Context, repo *repo_model.Repository) (*Branch, error) {
+	var branch Branch
+	has, err := db.GetEngine(ctx).Where("repo_id=?", repo.ID).And("name=?", repo.DefaultBranch).Get(&branch)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, git.ErrBranchNotExist{Name: repo.DefaultBranch}
+	}
+	return &branch, nil
 }
 
-func FindBranches(ctx context.Context, opts FindBranchOptions) ([]*Branch, error) {
+type FindBranchOptions struct {
+	db.ListOptions
+	RepoID               int64
+	IncludeDefaultBranch bool
+	IncludeDeletedBranch bool
+}
+
+func FindBranches(ctx context.Context, opts FindBranchOptions) ([]*Branch, int64, error) {
 	sess := db.GetEngine(ctx).Where("repo_id=?", opts.RepoID)
 	if opts.PageSize > 0 {
 		sess = db.SetSessionPagination(sess, &opts.ListOptions)
 	}
+	if !opts.IncludeDefaultBranch {
+		sess = sess.And(builder.Neq{"name": builder.Select("default_branch").From("repository").Where(builder.Eq{"id": opts.RepoID})})
+	}
+	if opts.IncludeDeletedBranch {
+		// FIXME: xxxxxx
+	}
 	var branches []*Branch
-	return branches, sess.Find(&branches)
+	total, err := sess.FindAndCount(&branches)
+	if err != nil {
+		return nil, 0, err
+	}
+	return branches, total, err
 }
 
 func AddBranch(ctx context.Context, branch *Branch) error {
@@ -93,7 +119,7 @@ func DeleteBranches(ctx context.Context, repoID, doerID int64, branchIDs []int64
 			return err
 		}
 		for _, branch := range branches {
-			if err := AddDeletedBranch(ctx, repoID, branch.Name, branch.Commit, doerID); err != nil {
+			if err := AddDeletedBranch(ctx, repoID, branch.Name, branch.CommitSHA, doerID); err != nil {
 				return err
 			}
 		}
@@ -104,16 +130,17 @@ func DeleteBranches(ctx context.Context, repoID, doerID int64, branchIDs []int64
 
 // UpdateBranch updates the branch information in the database. If the branch exist, it will update latest commit of this branch information
 // If it doest not exist, insert a new record into database
-func UpdateBranch(ctx context.Context, repoID int64, branchName string, commitID string, pusherID int64, commitTime time.Time) error {
+func UpdateBranch(ctx context.Context, repoID int64, branchName, commitID, commitMessage string, pusherID int64, commitTime time.Time) error {
 	if err := removeDeletedBranchByName(ctx, repoID, branchName); err != nil {
 		return err
 	}
 	cnt, err := db.GetEngine(ctx).Where("repo_id=? AND name=?", repoID, branchName).
-		Cols("commit, pusher_id, commit_time, updated_unix").
+		Cols("commit_sha, commit_message, pusher_id, commit_time, updated_unix").
 		Update(&Branch{
-			Commit:     commitID,
-			PusherID:   pusherID,
-			CommitTime: timeutil.TimeStamp(commitTime.Unix()),
+			CommitSHA:     commitID,
+			CommitMessage: commitMessage,
+			PusherID:      pusherID,
+			CommitTime:    timeutil.TimeStamp(commitTime.Unix()),
 		})
 	if err != nil {
 		return err
@@ -123,11 +150,12 @@ func UpdateBranch(ctx context.Context, repoID int64, branchName string, commitID
 	}
 
 	return db.Insert(ctx, &Branch{
-		RepoID:     repoID,
-		Name:       branchName,
-		Commit:     commitID,
-		PusherID:   pusherID,
-		CommitTime: timeutil.TimeStamp(commitTime.Unix()),
+		RepoID:        repoID,
+		Name:          branchName,
+		CommitSHA:     commitID,
+		CommitMessage: commitMessage,
+		PusherID:      pusherID,
+		CommitTime:    timeutil.TimeStamp(commitTime.Unix()),
 	})
 }
 

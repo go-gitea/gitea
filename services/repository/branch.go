@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -19,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/timeutil"
+	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
 // CreateNewBranch creates a new repository branch
@@ -48,10 +50,147 @@ func CreateNewBranch(ctx context.Context, doer *user_model.User, repo *repo_mode
 	return nil
 }
 
-// GetBranches returns branches from the repository, skipping skip initial branches and
-// returning at most limit branches, or all branches if limit is 0.
-func GetBranches(ctx context.Context, repo *repo_model.Repository, skip, limit int) ([]*git.Branch, int, error) {
-	return git.GetBranchesByPath(ctx, repo.RepoPath(), skip, limit)
+// Branch contains the branch information
+type Branch struct {
+	RawBranch         *git_model.Branch
+	IsProtected       bool
+	IsDeleted         bool
+	IsIncluded        bool
+	DeletedBranch     *git_model.DeletedBranch
+	CommitsAhead      int
+	CommitsBehind     int
+	LatestPullRequest *issues_model.PullRequest
+	MergeMovedOn      bool
+}
+
+// LoadBranches loads branches from the repository limited by page & pageSize.
+// NOTE: May write to context on error.
+func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, includeDeletedBranch bool, page, pageSize int) (*Branch, []*Branch, int64, error) {
+	defaultRawBranch, err := git_model.GetDefaultBranch(ctx, repo)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+
+	rawBranches, totalNumOfBranches, err := git_model.FindBranches(ctx, git_model.FindBranchOptions{
+		RepoID:               repo.ID,
+		IncludeDefaultBranch: false,
+		IncludeDeletedBranch: includeDeletedBranch,
+		ListOptions: db.ListOptions{
+			Page:     page,
+			PageSize: pageSize,
+		},
+	})
+	if err != nil {
+		return nil, nil, 0, err
+	}
+
+	rules, err := git_model.FindRepoProtectedBranchRules(ctx, repo.ID)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+
+	repoIDToRepo := map[int64]*repo_model.Repository{}
+	repoIDToRepo[repo.ID] = repo
+
+	repoIDToGitRepo := map[int64]*git.Repository{}
+	repoIDToGitRepo[repo.ID] = gitRepo
+
+	var branches []*Branch
+	for i := range rawBranches {
+		branch, err := loadOneBranch(ctx, repo, rawBranches[i], &rules, repoIDToRepo, repoIDToGitRepo)
+		if err != nil {
+			return nil, nil, 0, fmt.Errorf("loadOneBranch: %v", err)
+		}
+
+		branches = append(branches, branch)
+	}
+
+	// Always add the default branch
+	log.Debug("loadOneBranch: load default: '%s'", defaultRawBranch.Name)
+	defaultBranch, err := loadOneBranch(ctx, repo, defaultRawBranch, &rules, repoIDToRepo, repoIDToGitRepo)
+	if err != nil {
+		return nil, nil, 0, fmt.Errorf("loadOneBranch: %v", err)
+	}
+
+	return defaultBranch, branches, totalNumOfBranches, nil
+}
+
+func loadOneBranch(ctx context.Context, repo *repo_model.Repository, rawBranch *git_model.Branch, protectedBranches *git_model.ProtectedBranchRules,
+	repoIDToRepo map[int64]*repo_model.Repository,
+	repoIDToGitRepo map[int64]*git.Repository,
+) (*Branch, error) {
+	log.Trace("loadOneBranch: '%s'", rawBranch.Name)
+
+	branchName := rawBranch.Name
+	p := protectedBranches.GetFirstMatched(branchName)
+	isProtected := p != nil
+
+	divergence := &git.DivergeObject{
+		Ahead:  -1,
+		Behind: -1,
+	}
+
+	// it's not default branch
+	if repo.DefaultBranch != rawBranch.Name {
+		var err error
+		divergence, err = files_service.CountDivergingCommits(ctx, repo, git.BranchPrefix+branchName)
+		if err != nil {
+			log.Error("CountDivergingCommits", err)
+		}
+	}
+
+	pr, err := issues_model.GetLatestPullRequestByHeadInfo(repo.ID, branchName)
+	if err != nil {
+		return nil, fmt.Errorf("GetLatestPullRequestByHeadInfo: %v", err)
+	}
+	headCommit := rawBranch.CommitSHA
+
+	mergeMovedOn := false
+	if pr != nil {
+		pr.HeadRepo = repo
+		if err := pr.LoadIssue(ctx); err != nil {
+			return nil, fmt.Errorf("LoadIssue: %v", err)
+		}
+		if repo, ok := repoIDToRepo[pr.BaseRepoID]; ok {
+			pr.BaseRepo = repo
+		} else if err := pr.LoadBaseRepo(ctx); err != nil {
+			return nil, fmt.Errorf("LoadBaseRepo: %v", err)
+		} else {
+			repoIDToRepo[pr.BaseRepoID] = pr.BaseRepo
+		}
+		pr.Issue.Repo = pr.BaseRepo
+
+		if pr.HasMerged {
+			baseGitRepo, ok := repoIDToGitRepo[pr.BaseRepoID]
+			if !ok {
+				baseGitRepo, err = git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
+				if err != nil {
+					return nil, fmt.Errorf("OpenRepository: %v", err)
+				}
+				defer baseGitRepo.Close()
+				repoIDToGitRepo[pr.BaseRepoID] = baseGitRepo
+			}
+			pullCommit, err := baseGitRepo.GetRefCommitID(pr.GetGitRefName())
+			if err != nil && !git.IsErrNotExist(err) {
+				return nil, fmt.Errorf("GetBranchCommitID: %v", err)
+			}
+			if err == nil && headCommit != pullCommit {
+				// the head has moved on from the merge - we shouldn't delete
+				mergeMovedOn = true
+			}
+		}
+	}
+
+	isIncluded := divergence.Ahead == 0 && repo.DefaultBranch != branchName
+	return &Branch{
+		RawBranch:         rawBranch,
+		IsProtected:       isProtected,
+		IsIncluded:        isIncluded,
+		CommitsAhead:      divergence.Ahead,
+		CommitsBehind:     divergence.Behind,
+		LatestPullRequest: pr,
+		MergeMovedOn:      mergeMovedOn,
+	}, nil
 }
 
 func GetBranchCommitID(ctx context.Context, repo *repo_model.Repository, branch string) (string, error) {
@@ -103,7 +242,7 @@ func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo 
 		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
 			return err
 		}
-		return fmt.Errorf("Push: %w", err)
+		return fmt.Errorf("push: %w", err)
 	}
 
 	return nil
