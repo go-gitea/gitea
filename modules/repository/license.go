@@ -26,9 +26,9 @@ var classifier *licenseclassifier.Classifier
 var convertLicenseNames map[string]string
 
 func init() {
-	err := readConvertLicenseNames()
+	err := loadConvertLicenseNames()
 	if err != nil {
-		log.Error("getConvertLicenseNames: %v", err)
+		log.Error("loadConvertLicenseNames: %v", err)
 	}
 	err = initClassifier()
 	if err != nil {
@@ -36,7 +36,7 @@ func init() {
 	}
 }
 
-func readConvertLicenseNames() error {
+func loadConvertLicenseNames() error {
 	data, err := options.AssetFS().ReadFile("", "convertLicenseName")
 	if err != nil {
 		return err

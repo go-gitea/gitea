@@ -184,25 +184,25 @@ Copyright (C) 2023 by Gitea teabot@gitea.io
 func Test_detectLicense(t *testing.T) {
 	type DetectLicenseTest struct {
 		name string
-		arg  []byte
+		arg  string
 		want []string
 	}
 
 	tests := []DetectLicenseTest{
 		{
 			name: "empty",
-			arg:  []byte(""),
+			arg:  "",
 			want: nil,
 		},
 		{
 			name: "no detected license",
-			arg:  []byte("Copyright (c) 2023 Gitea"),
+			arg:  "Copyright (c) 2023 Gitea",
 			want: nil,
 		},
 	}
 
 	LoadRepoConfig()
-	convertLicenseName, err := getConvertLicenseName()
+	err := loadConvertLicenseNames()
 	assert.NoError(t, err)
 	for _, licenseName := range Licenses {
 		license, err := getLicense(licenseName, &licenseValues{
@@ -213,28 +213,21 @@ func Test_detectLicense(t *testing.T) {
 		})
 		assert.NoError(t, err)
 
-		variant := licenseName
-		if convertLicenseName != nil {
-			v, ok := convertLicenseName[licenseName]
-			if ok {
-				variant = v
-			}
-		}
 		tests = append(tests, DetectLicenseTest{
 			name: fmt.Sprintf("auto single license test: %s", licenseName),
-			arg:  license,
-			want: []string{variant},
+			arg:  string(license),
+			want: []string{ConvertLicenseName(licenseName)},
 		})
 	}
 
 	tests = append(tests, DetectLicenseTest{
 		name: fmt.Sprintf("auto multiple license test: %s and %s", tests[2].want[0], tests[3].want[0]),
-		arg:  append(tests[2].arg, tests[3].arg...),
+		arg:  tests[2].arg + tests[3].arg,
 		// TODO doesn't depend on the order
 		want: []string{"389-exception", "0BSD"},
 	})
 
-	err = initClassifier(convertLicenseName)
+	err = initClassifier()
 	assert.NoError(t, err)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
