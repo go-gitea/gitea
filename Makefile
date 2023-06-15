@@ -220,7 +220,7 @@ help:
 	@echo " - test                             test everything"
 	@echo " - test-frontend                    test frontend files"
 	@echo " - test-backend                     test backend files"
-	@echo " - test-coverage-check              check package coverage in tests"
+	@echo " - check-backend-coverage           check backend package coverage"
 	@echo " - test-e2e[\#TestSpecificName]     test end to end using playwright"
 	@echo " - webpack                          build webpack files"
 	@echo " - svg                              build svg files"
@@ -471,8 +471,8 @@ unit-test-coverage:
 	@echo "Running unit-test-coverage $(GOTESTFLAGS) -tags '$(TEST_TAGS)'..."
 	@$(GO) test $(GOTESTFLAGS) -timeout=20m -tags='$(TEST_TAGS)' -cover -coverprofile coverage.out $(GO_TEST_PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
 
-.PHONY: test-coverage-check
-test-coverage-check:
+.PHONY: check-backend-coverage
+check-backend-coverage:
 	@$(GO) run build/gocoverage.go check coverage.all tests/coverage_requirement.txt
 
 .PHONY: tidy

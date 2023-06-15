@@ -15,7 +15,7 @@ import (
 	"log"
 	"math"
 	"os"
-	"path"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -132,14 +132,14 @@ func showUsage() {
 
 Commands:
   %[1]s merge ...
-  %[1]s check [coverage_file] [package=percent] ...
+  %[1]s check coverage_file requirement_file.txt
 
 Arguments:
   {file-list}     the file list
 
 Example:
-  %[1]s merge -s -d {file-list}
-	%[1]s check coverage.out code.gitea.io/gitea/modules/setting=4%%
+  %[1]s merge {file-list}
+	%[1]s check coverage.out requirement_file.txt
 
 `, "gocoverage")
 }
@@ -208,7 +208,7 @@ func checkPackages(args []string) {
 	packagesTotals := make(map[string]int64)
 	packagesActives := make(map[string]int64)
 	for _, p := range profiles {
-		pkg := path.Dir(p.FileName)
+		pkg := filepath.Dir(p.FileName)
 		_, ok := packagesRequirements[pkg]
 		if !ok {
 			continue
@@ -221,7 +221,7 @@ func checkPackages(args []string) {
 	for k, v := range packagesRequirements {
 		actual := 100 * float64(packagesActives[k]) / float64(packagesTotals[k])
 		if v > int64(math.Floor(actual*10+0.5)) {
-			log.Printf("package %s coverage is %.1f%%, required %.1f%%\n", k, actual, float64(v)/10.0)
+			log.Printf("package %s coverage is %.1f%%, required %.1f%%", k, actual, float64(v)/10.0)
 			failed = true
 		}
 	}
