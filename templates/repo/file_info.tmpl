@@ -20,6 +20,11 @@
 			<a href="{{.LFSLockOwnerHomeLink}}">{{.LFSLockOwner}}</a>
 		</div>
 	{{end}}
+	{{if .IsExecutable}}
+		<div class="file-info-entry">
+			{{.locale.Tr "repo.executable_file"}}
+		</div>
+	{{end}}
 	{{if .LexerName}}
 		<div class="file-info-entry">
 			{{.LexerName}}
