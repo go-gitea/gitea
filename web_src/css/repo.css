@@ -2693,24 +2693,21 @@
 }
 
 .repo-button-row {
-  margin-bottom: 10px;
-}
-
-.repo-button-row > * {
-  margin-top: 8px;
-}
-
-.wiki .repo-button-row {
-  margin-bottom: 0;
-}
-
-.wiki .repo-button-row > * {
-  margin-top: 0;
+  margin: 10px 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  flex-wrap: wrap;
+  justify-content: space-between;
 }
 
 .repo-button-row .button {
   padding: 6px 10px !important;
   height: 30px;
+}
+
+.repo-button-row .button.dropdown {
+  padding-right: 22px !important; /* normal buttons have !important paddings, so we need to override it for dropdown (Add File) icons */
 }
 
 .repo-button-row input {

@@ -2099,8 +2099,8 @@ a.ui.basic.label:hover {
 }
 
 /* if a .top.attached.header is followed by a .segment, add some margin */
-.ui.segments ~ .ui.top.attached.header,
-.ui.attached.segment ~ .ui.top.attached.header {
+.ui.segments + .ui.top.attached.header,
+.ui.attached.segment + .ui.top.attached.header {
   margin-top: 1rem;
 }
 
