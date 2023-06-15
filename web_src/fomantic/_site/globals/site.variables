@@ -8,26 +8,13 @@
 @linkHoverUnderline: underline;
 @pageOverflowX: visible;
 
-@variationButtonAnimated: false;
-@variationButtonAnimatedFade: false;
-@variationButtonSocial: false;
-@variationFormTransparent: false;
-@variationGridDoubling: false;
-@variationLabelCorner: false;
-@variationLabelImage: false;
-@variationLabelRibbon: false;
-@variationLabelTag: false;
-@variationPopupTooltip: false;
-@variationSegmentPiled: false;
-@variationSegmentStacked: false;
-@variationTableMarked: false;
-@variationTableStackable: false;
-
-/* disable all inverted variations */
 @variationAccordionInverted: false;
 @variationBreadcrumbInverted: false;
+@variationButtonAnimated: false;
+@variationButtonAnimatedFade: false;
 @variationButtonAttached: false;
 @variationButtonInverted: false;
+@variationButtonSocial: false;
 @variationCalendarInverted: false;
 @variationCardInverted: false;
 @variationCheckboxInverted: false;
@@ -38,12 +25,18 @@
 @variationFeedInverted: false;
 @variationFlyoutInverted: false;
 @variationFormInverted: false;
+@variationFormTransparent: false;
+@variationGridDoubling: false;
 @variationGridInverted: false;
 @variationHeaderInverted: false;
 @variationIconInverted: false;
 @variationInputInverted: false;
 @variationItemInverted: false;
+@variationLabelCorner: false;
+@variationLabelImage: false;
 @variationLabelInverted: false;
+@variationLabelRibbon: false;
+@variationLabelTag: false;
 @variationListInverted: false;
 @variationMenuInverted: false;
 @variationMessageInverted: false;
@@ -51,12 +44,17 @@
 @variationNagInverted: false;
 @variationPlaceholderInverted: false;
 @variationPopupInverted: false;
+@variationPopupTooltip: false;
 @variationProgressInverted: false;
 @variationSegmentInverted: false;
+@variationSegmentPiled: false;
+@variationSegmentStacked: false;
 @variationSliderInverted: false;
 @variationStatisticInverted: false;
 @variationStepInverted: false;
 @variationTableInverted: false;
+@variationTableMarked: false;
+@variationTableStackable: false;
 @variationTextInverted: false;
 @variationToastInverted: false;
 @variationTransitionInverted: false;
