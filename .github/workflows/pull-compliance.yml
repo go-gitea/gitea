@@ -26,6 +26,19 @@ jobs:
         env:
           TAGS: bindata sqlite sqlite_unlock_notify
 
+  lint-templates:
+    if: needs.files-changed.outputs.templates == 'true'
+    needs: files-changed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - run: pip install poetry
+      - run: make deps-py
+      - run: make lint-templates
+
   lint-go-windows:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
