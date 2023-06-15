@@ -76,6 +76,7 @@
     "postcss-html": "1.5.0",
     "stylelint": "15.7.0",
     "stylelint-declaration-strict-value": "1.9.2",
+    "stylelint-stylistic": "0.4.2",
     "svgo": "3.0.2",
     "updates": "14.1.1",
     "vitest": "0.32.0"
