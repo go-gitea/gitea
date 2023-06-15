@@ -196,7 +196,7 @@ func getSameFileMD5(f1, f2 *os.File) (string, error) {
 	}
 
 	// check content
-	var chunkSize = 1024
+	chunkSize := 1024
 	_, err = f1.Seek(0, 0)
 	if err != nil {
 		return "", err

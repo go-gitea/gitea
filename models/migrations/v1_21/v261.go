@@ -17,10 +17,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
+	licenseclassifier "github.com/google/licenseclassifier/v2"
 	"xorm.io/builder"
 	"xorm.io/xorm"
-
-	licenseclassifier "github.com/google/licenseclassifier/v2"
 )
 
 var (
