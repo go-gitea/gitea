@@ -198,6 +198,7 @@ help:
 	@echo " - deps-frontend                    install frontend dependencies"
 	@echo " - deps-backend                     install backend dependencies"
 	@echo " - deps-tools                       install tool dependencies"
+	@echo " - deps-py                          install python dependencies"
 	@echo " - lint                             lint everything"
 	@echo " - lint-fix                         lint everything and fix issues"
 	@echo " - lint-actions                     lint action workflow files"
@@ -214,6 +215,7 @@ help:
 	@echo " - lint-css-fix                     lint css files and fix issues"
 	@echo " - lint-md                          lint markdown files"
 	@echo " - lint-swagger                     lint swagger files"
+	@echo " - lint-templates                   lint template files"
 	@echo " - checks                           run various consistency checks"
 	@echo " - checks-frontend                  check frontend files"
 	@echo " - checks-backend                   check backend files"
@@ -417,6 +419,10 @@ lint-editorconfig:
 .PHONY: lint-actions
 lint-actions:
 	$(GO) run $(ACTIONLINT_PACKAGE)
+
+.PHONY: lint-templates
+lint-templates: .venv
+	@poetry run djlint $(shell find templates -type f -iname '*.tmpl')
 
 .PHONY: watch
 watch:
@@ -898,7 +904,10 @@ deps-docs:
 	fi
 
 .PHONY: deps
-deps: deps-frontend deps-backend deps-tools deps-docs
+deps: deps-frontend deps-backend deps-tools deps-docs deps-py
+
+.PHONY: deps-py
+deps-py: .venv
 
 .PHONY: deps-frontend
 deps-frontend: node_modules
@@ -924,6 +933,10 @@ deps-tools:
 node_modules: package-lock.json
 	npm install --no-save
 	@touch node_modules
+
+.venv: poetry.lock
+	poetry install
+	@touch .venv
 
 .PHONY: npm-update
 npm-update: node-check | node_modules
