@@ -6,7 +6,6 @@ package ldap
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -24,7 +23,6 @@ import (
 func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 	log.Trace("Doing: SyncExternalUsers[%s]", source.authSource.Name)
 
-	var existingUsers []int
 	isAttributeSSHPublicKeySet := len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
 	var sshKeysNeedUpdate bool
 
@@ -41,9 +39,15 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 	default:
 	}
 
-	sort.Slice(users, func(i, j int) bool {
-		return users[i].LowerName < users[j].LowerName
-	})
+	usernameUsers := make(map[string]*user_model.User, len(users))
+	mailUsers := make(map[string]*user_model.User, len(users))
+	existingUsers := make(map[int64]struct{})
+
+	for i := range users {
+		u := users[i]
+		usernameUsers[u.LowerName] = u
+		mailUsers[u.Email] = u
+	}
 
 	sr, err := source.SearchEntries()
 	if err != nil {
@@ -59,11 +63,6 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 		log.Warn("LDAP search found no entries but did not report an error. All users will be deactivated as per settings")
 	}
 
-	sort.Slice(sr, func(i, j int) bool {
-		return sr[i].LowerName < sr[j].LowerName
-	})
-
-	userPos := 0
 	orgCache := make(map[string]*organization.Organization)
 	teamCache := make(map[string]*organization.Team)
 
@@ -86,21 +85,23 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			return db.ErrCancelledf("During update of %s before completed update of users", source.authSource.Name)
 		default:
 		}
-		if len(su.Username) == 0 {
+		if len(su.Username) == 0 && len(su.Mail) == 0 {
 			continue
+		}
+
+		var usr *user_model.User
+		if len(su.Username) > 0 {
+			usr = usernameUsers[su.LowerName]
+		}
+		if usr == nil && len(su.Mail) > 0 {
+			usr = mailUsers[su.Mail]
+		}
+		if usr != nil {
+			existingUsers[usr.ID] = struct{}{}
 		}
 
 		if len(su.Mail) == 0 {
 			su.Mail = fmt.Sprintf("%s@localhost", su.Username)
-		}
-
-		var usr *user_model.User
-		for userPos < len(users) && users[userPos].LowerName < su.LowerName {
-			userPos++
-		}
-		if userPos < len(users) && users[userPos].LowerName == su.LowerName {
-			usr = users[userPos]
-			existingUsers = append(existingUsers, userPos)
 		}
 
 		fullName := composeFullName(su.Name, su.Surname, su.Username)
@@ -203,19 +204,18 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 	// Deactivate users not present in LDAP
 	if updateExisting {
-		existPos := 0
-		for i, usr := range users {
-			for existPos < len(existingUsers) && i > existingUsers[existPos] {
-				existPos++
+		for i := range users {
+			usr := users[i]
+			if _, ok := existingUsers[usr.ID]; ok {
+				continue
 			}
-			if usr.IsActive && (existPos >= len(existingUsers) || i < existingUsers[existPos]) {
-				log.Trace("SyncExternalUsers[%s]: Deactivating user %s", source.authSource.Name, usr.Name)
 
-				usr.IsActive = false
-				err = user_model.UpdateUserCols(ctx, usr, "is_active")
-				if err != nil {
-					log.Error("SyncExternalUsers[%s]: Error deactivating user %s: %v", source.authSource.Name, usr.Name, err)
-				}
+			log.Trace("SyncExternalUsers[%s]: Deactivating user %s", source.authSource.Name, usr.Name)
+
+			usr.IsActive = false
+			err = user_model.UpdateUserCols(ctx, usr, "is_active")
+			if err != nil {
+				log.Error("SyncExternalUsers[%s]: Error deactivating user %s: %v", source.authSource.Name, usr.Name, err)
 			}
 		}
 	}
