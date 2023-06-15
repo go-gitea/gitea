@@ -53,29 +53,17 @@
 	{{end}}
 
 	{{if and .OrderedOAuth2Names .OAuth2Providers}}
-	<hr class="ui divider"/>
-	<div id="oauth2-login-navigator">
-		<div id="oauth2-login-navigator-inner" class="gt-df gt-jc">
-			<span class="gt-self-center gt-mr-3">{{.locale.Tr "sign_in_with"}}</span>
-			<div class="gt-df gt-fw gt-gap-4">
+	<div class="ui horizontal divider">
+		{{.locale.Tr "sign_in_or"}}
+	</div>
+	<div id="oauth2-login-navigator" class="gt-py-2">
+		<div class="gt-df gt-fc gt-jc">
+			<div id="oauth2-login-navigator-inner" class="gt-df gt-fc gt-fw gt-ac gt-gap-3">
 				{{range $key := .OrderedOAuth2Names}}
 					{{$provider := index $.OAuth2Providers $key}}
-					<a class="{{$provider.Name}} silenced oauth-login-link" href="{{AppSubUrl}}/user/oauth2/{{$key}}" data-tooltip-content="{{$provider.DisplayName}}{{if eq $provider.Name "openidConnect"}} ({{$key}}){{end}}">
-						{{if eq $provider.Name "github"}}
-							{{svg "octicon-mark-github" 40}}
-						{{else if eq $provider.Name "gitlab"}}
-							{{svg "gitea-gitlab" 40}}
-						{{else if eq $provider.Name "openidConnect"}}
-							{{svg "gitea-openid" 40}}
-						{{else}}
-							<img
-								class="gt-object-contain"
-								width="40"
-								height="40"
-								alt="{{$provider.DisplayName}}{{if eq $provider.Name "openidConnect"}} ({{$key}}){{end}}"
-								src="{{AppSubUrl}}{{$provider.Image}}"
-							>
-						{{end}}
+					<a class="{{$provider.Name}} ui button gt-df gt-ac gt-jc gt-py-3 oauth-login-link" href="{{AppSubUrl}}/user/oauth2/{{$key}}">
+						{{$provider.IconHTML}}
+						{{$.locale.Tr "sign_in_with_provider" $provider.DisplayName}}
 					</a>
 				{{end}}
 			</div>

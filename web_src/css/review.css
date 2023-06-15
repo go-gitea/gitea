@@ -67,7 +67,7 @@
   max-width: 820px;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .comment-code-cloud {
     max-width: none;
     padding: 0.75rem !important;
@@ -91,7 +91,7 @@
   padding: 0;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .comment-code-cloud .comments .comment {
     display: flex;
   }
@@ -182,7 +182,7 @@
   display: block;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .comment-code-cloud .button {
     width: 100%;
     margin: 0 !important;
@@ -252,7 +252,7 @@
   scroll-margin-top: 99px;
 }
 
-@media (max-width: 991px) {
+@media (max-width: 991.98px) {
   .pull.files.diff .comment {
     scroll-margin-top: 130px;
   }

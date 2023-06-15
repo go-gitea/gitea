@@ -177,6 +177,11 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 					newChild := NewTaskCheckBoxListItem(listItem)
 					newChild.IsChecked = taskCheckBox.IsChecked
 					newChild.SetAttributeString("class", []byte("task-list-item"))
+					segments := newChild.FirstChild().Lines()
+					if segments.Len() > 0 {
+						segment := segments.At(0)
+						newChild.SourcePosition = rc.metaLength + segment.Start
+					}
 					v.AppendChild(v, newChild)
 				}
 			}
@@ -457,12 +462,7 @@ func (r *HTMLRenderer) renderTaskCheckBoxListItem(w util.BufWriter, source []byt
 		} else {
 			_, _ = w.WriteString("<li>")
 		}
-		_, _ = w.WriteString(`<input type="checkbox" disabled=""`)
-		segments := node.FirstChild().Lines()
-		if segments.Len() > 0 {
-			segment := segments.At(0)
-			_, _ = w.WriteString(fmt.Sprintf(` data-source-position="%d"`, segment.Start))
-		}
+		fmt.Fprintf(w, `<input type="checkbox" disabled="" data-source-position="%d"`, n.SourcePosition)
 		if n.IsChecked {
 			_, _ = w.WriteString(` checked=""`)
 		}
