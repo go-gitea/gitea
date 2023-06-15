@@ -3,6 +3,8 @@ import tippy from 'tippy.js';
 const visibleInstances = new Set();
 
 export function createTippy(target, opts = {}) {
+  // the callback functions should be destructured from opts,
+  // because we should use our own wrapper functions to handle them, do not let the user override them
   const {onHide, onShow, onDestroy, ...other} = opts;
   const instance = tippy(target, {
     appendTo: document.body,
