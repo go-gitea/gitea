@@ -8,32 +8,32 @@
 	<div class="filter menu" {{if .Issue}}data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/labels"{{else}}data-id="#label_ids"{{end}}>
 		{{if or .Labels .OrgLabels}}
 			<div class="ui icon search input">
-				<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-				<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_labels"}}">
+				<i class="icon">{{svg "octicon-search" 16}}</i>
+				<input class="labels-filter-input" type="text" placeholder="{{.locale.Tr "repo.issues.filter_labels"}}">
 			</div>
 		{{end}}
 		<a class="no-select item" href="#">{{.locale.Tr "repo.issues.new.clear_labels"}}</a>
 		{{if or .Labels .OrgLabels}}
 			{{$previousExclusiveScope := "_no_scope"}}
-			{{range .Labels}}
-				{{$exclusiveScope := .ExclusiveScope}}
+			{{range $i, $Label := .Labels}}
+				{{$exclusiveScope := $Label.ExclusiveScope}}
 				{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
-					<div class="ui divider"></div>
+					<div class="ui divider" data-divider-index="{{$i}}"></div>
 				{{end}}
 				{{$previousExclusiveScope = $exclusiveScope}}
-				<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}</span>&nbsp;&nbsp;{{RenderLabel $.Context .}}
-				{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}</a>
+				<a class="{{if $Label.IsChecked}}checked{{end}} item" href="#" data-id="{{$Label.ID}}" data-id-selector="#label_{{$Label.ID}}" data-scope="{{$exclusiveScope}}" data-divider-group="{{$i}}"><span class="octicon-check {{if not $Label.IsChecked}}invisible{{end}}">{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}</span>&nbsp;&nbsp;{{RenderLabel $.Context $Label}}
+				{{if $Label.Description}}<br><small class="desc">{{$Label.Description | RenderEmoji $.Context}}</small>{{end}}</a>
 			{{end}}
 			<div class="ui divider"></div>
 			{{$previousExclusiveScope := "_no_scope"}}
-			{{range .OrgLabels}}
-				{{$exclusiveScope := .ExclusiveScope}}
+			{{range $j, $OrgLabel := .OrgLabels}}
+				{{$exclusiveScope := $OrgLabel.ExclusiveScope}}
 				{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
-					<div class="ui divider"></div>
+					<div class="ui divider" data-divider-index="{{$j}}"></div>
 				{{end}}
 				{{$previousExclusiveScope = $exclusiveScope}}
-				<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}" data-scope="{{$exclusiveScope}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}</span>&nbsp;&nbsp;{{RenderLabel $.Context .}}
-				{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}</a>
+				<a class="{{if $OrgLabel.IsChecked}}checked{{end}} item" href="#" data-id="{{$OrgLabel.ID}}" data-id-selector="#label_{{$OrgLabel.ID}}" data-scope="{{$exclusiveScope}}" data-divider-group="{{$j}}"><span class="octicon-check {{if not $OrgLabel.IsChecked}}invisible{{end}}">{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}</span>&nbsp;&nbsp;{{RenderLabel $.Context $OrgLabel}}
+				{{if $OrgLabel.Description}}<br><small class="desc">{{$OrgLabel.Description | RenderEmoji $.Context}}</small>{{end}}</a>
 			{{end}}
 		{{else}}
 			<div class="disabled item">{{.locale.Tr "repo.issues.new.no_items"}}</div>
