@@ -5,6 +5,7 @@ package git
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -32,6 +33,13 @@ type Branch struct {
 	CommitTime    timeutil.TimeStamp // The commit
 	CreatedUnix   timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix   timeutil.TimeStamp `xorm:"updated"`
+}
+
+func (b *Branch) LoadUser(ctx context.Context) (err error) {
+	if b.DeletedBy == nil {
+		b.DeletedBy, err = user_model.GetUserByID(ctx, b.DeletedByID)
+	}
+	return err
 }
 
 func init() {
@@ -134,19 +142,30 @@ func UpdateBranch(ctx context.Context, repoID int64, branchName, commitID, commi
 
 // AddDeletedBranch adds a deleted branch to the database
 func AddDeletedBranch(ctx context.Context, repoID int64, branchName string, deletedByID int64) error {
-	_, err := db.GetEngine(ctx).Where("repo_id=? AND name=?", repoID, branchName).
+	cnt, err := db.GetEngine(ctx).Where("repo_id=? AND name=? AND is_deleted=?", repoID, branchName, false).
 		Cols("is_deleted, deleted_by_id, deleted_unix").
 		Update(&Branch{
 			IsDeleted:   true,
 			DeletedByID: deletedByID,
 			DeletedUnix: timeutil.TimeStampNow(),
 		})
+	if err != nil {
+		return err
+	}
+	if cnt == 0 {
+		return fmt.Errorf("branch %s not found or has been deleted", branchName)
+	}
 	return err
 }
 
 // removeDeletedBranchByName removes all deleted branches
 func removeDeletedBranchByName(ctx context.Context, repoID int64, branch string) error {
 	_, err := db.GetEngine(ctx).Where("repo_id=? AND name=? AND is_deleted = ?", repoID, branch, true).Delete(new(Branch))
+	return err
+}
+
+func RemoveDeletedBranchByID(ctx context.Context, repoID, branchID int64) error {
+	_, err := db.GetEngine(ctx).Where("repo_id=? AND id=? AND is_deleted = ?", repoID, branchID, true).Delete(new(Branch))
 	return err
 }
 

@@ -53,7 +53,7 @@ func Branches(ctx *context.Context) {
 	pageSize := setting.Git.BranchesRangeSize
 
 	log.Debug("Branches: page: %d pageSize: %d", page, pageSize)
-	defaultBranch, branches, branchesCount, err := repo_service.LoadBranches(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, true, page, pageSize)
+	defaultBranch, branches, branchesCount, err := repo_service.LoadBranches(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, util.OptionalBoolNone, page, pageSize)
 	if err != nil {
 		ctx.ServerError("LoadBranches", err)
 		return

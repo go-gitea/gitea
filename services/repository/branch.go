@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
@@ -44,7 +45,7 @@ func CreateNewBranch(ctx context.Context, doer *user_model.User, repo *repo_mode
 		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
 			return err
 		}
-		return fmt.Errorf("Push: %w", err)
+		return fmt.Errorf("push: %w", err)
 	}
 
 	return nil
@@ -62,7 +63,7 @@ type Branch struct {
 }
 
 // LoadBranches loads branches from the repository limited by page & pageSize.
-func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, includeDeletedBranch bool, page, pageSize int) (*Branch, []*Branch, int64, error) {
+func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, isDeletedBranch util.OptionalBool, page, pageSize int) (*Branch, []*Branch, int64, error) {
 	defaultRawBranch, err := git_model.GetDefaultBranch(ctx, repo)
 	if err != nil {
 		return nil, nil, 0, err
@@ -71,7 +72,7 @@ func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	rawBranches, totalNumOfBranches, err := git_model.FindBranches(ctx, git_model.FindBranchOptions{
 		RepoID:               repo.ID,
 		IncludeDefaultBranch: false,
-		IncludeDeletedBranch: includeDeletedBranch,
+		IsDeletedBranch:      isDeletedBranch,
 		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: pageSize,
@@ -411,7 +412,7 @@ func SyncRepoBranches(ctx context.Context, repo *repo_model.Repository, doerID i
 		}
 	}
 
-	if len(toAdd) <= 0 && len(toRemove) <= 0 && len(toUpdate) <= 0 {
+	if len(toAdd) == 0 && len(toRemove) == 0 && len(toUpdate) == 0 {
 		return nil
 	}
 

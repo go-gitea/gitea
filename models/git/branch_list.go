@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/util"
 	"xorm.io/builder"
 )
 
@@ -42,7 +43,7 @@ type FindBranchOptions struct {
 	db.ListOptions
 	RepoID               int64
 	IncludeDefaultBranch bool
-	IncludeDeletedBranch bool
+	IsDeletedBranch      util.OptionalBool
 }
 
 func FindBranches(ctx context.Context, opts FindBranchOptions) (BranchList, int64, error) {
@@ -53,8 +54,8 @@ func FindBranches(ctx context.Context, opts FindBranchOptions) (BranchList, int6
 	if !opts.IncludeDefaultBranch {
 		sess = sess.And(builder.Neq{"name": builder.Select("default_branch").From("repository").Where(builder.Eq{"id": opts.RepoID})})
 	}
-	if !opts.IncludeDeletedBranch {
-		sess.And(builder.Eq{"is_deleted": false})
+	if !opts.IsDeletedBranch.IsNone() {
+		sess.And(builder.Eq{"is_deleted": opts.IsDeletedBranch.IsTrue()})
 	}
 	var branches []*Branch
 	total, err := sess.FindAndCount(&branches)
@@ -62,4 +63,15 @@ func FindBranches(ctx context.Context, opts FindBranchOptions) (BranchList, int6
 		return nil, 0, err
 	}
 	return branches, total, err
+}
+
+func GetDeletedBranches(ctx context.Context, repoID int64) (BranchList, error) {
+	branches, _, err := FindBranches(ctx, FindBranchOptions{
+		ListOptions: db.ListOptions{
+			PageSize: -1,
+		},
+		RepoID:          repoID,
+		IsDeletedBranch: util.OptionalBoolTrue,
+	})
+	return branches, err
 }

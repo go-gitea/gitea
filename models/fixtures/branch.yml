@@ -1,0 +1,35 @@
+-
+  id: 1
+  repo_id: 1
+  name: foo
+  commit_sha: 1213212312313213213132131
+  commit_message: first commit
+  commit_time: 978307100
+  pusher_id: 1
+  is_deleted: true
+  deleted_by_id: 1
+  deleted_unix: 978307200
+
+-
+  id: 2
+  repo_id: 1
+  name: bar
+  commit_sha: 5655464564554545466464655
+  commit_message: second commit
+  commit_time: 978307100
+  pusher_id: 1
+  is_deleted: true
+  deleted_by_id: 99
+  deleted_unix: 978307200
+
+-
+  id: 3
+  repo_id: 1
+  name: test
+  commit_sha: 5655464564554545466464655
+  commit_message: second commit
+  commit_time: 978307100
+  pusher_id: 1
+  is_deleted: false
+  deleted_by_id: 0
+  deleted_unix: 978307200
