@@ -56,7 +56,7 @@
 				{{if .Topics}}
 					<div class="gt-df gt-fw gt-gap-2 gt-mb-3">
 					{{range .Topics}}
-						{{if ne . ""}}<a class="ui small label" href="{{AppSubUrl}}/explore/repos?q={{.}}&topic=1">{{.}}</a>{{end}}
+						{{if ne . ""}}<a class="ui label gt-font-14 gt-font-normal" href="{{AppSubUrl}}/explore/repos?q={{.}}&topic=1">{{.}}</a>{{end}}
 					{{end}}
 					</div>
 				{{end}}
