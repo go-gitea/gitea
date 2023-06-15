@@ -76,16 +76,16 @@ docker pull gitea/act_runner:nightly # for the latest nightly build
 ./act_runner --config config.yaml [command]
 ```
 
+您亦可以如下使用 docker 创建配置文件：
+
+```bash
+docker run --entrypoint="" --rm -it gitea/act_runner:latest act_runner generate-config > config.yaml
+```
+
 当使用Docker镜像时，可以使用`CONFIG_FILE`环境变量指定配置文件。确保将文件作为卷挂载到容器中：
 
 ```bash
 docker run -v $(pwd)/config.yaml:/config.yaml -e CONFIG_FILE=/config.yaml ...
-```
-
-您需要先创建好 `config.yaml` 以避免出现 `Error: EOF` 错误。您既可以使用上面提到的方式创建，亦可使用如下命令：
-
-```bash
-docker run --entrypoint="" --rm -it gitea/act_runner:latest act_runner generate-config > config.yaml
 ```
 
 您可能注意到上面的命令都是不完整的，因为现在还不是运行Act Runner的时候。
@@ -195,8 +195,6 @@ services:
       - ./data:/data
       - /var/run/docker.sock:/var/run/docker.sock
 ```
-
-别忘了在启动之前先创建 `config.yaml` 以避免 `Error: EOF` 错误.
 
 ### 当您使用 Docker 镜像启动 Runner，如何配置 Cache
 
