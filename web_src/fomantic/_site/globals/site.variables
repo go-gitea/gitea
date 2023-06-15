@@ -9,6 +9,18 @@
 @linkHoverUnderline: underline;
 @variationButtonSocial: false;
 @pageOverflowX: visible;
+@variationTableStackable: false;
+@variationTableMarked: false;
+@variationGridDoubling: false;
+@variationFormTransparent: false;
+@variationButtonAnimated: false;
+@variationButtonAnimatedFade: false;
+@variationLabelImage: false;
+@variationLabelCorner: false;
+@variationLabelTag: false;
+@variationLabelRibbon: false;
+@variationSegmentStacked: false;
+@variationSegmentPiled: false;
 
 /* disable all inverted variations */
 @variationAccordionInverted: false;
