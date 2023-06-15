@@ -23,8 +23,10 @@ import (
 	licenseclassifier "github.com/google/licenseclassifier/v2"
 )
 
-var classifier *licenseclassifier.Classifier
-var convertLicenseNames map[string]string
+var (
+	classifier          *licenseclassifier.Classifier
+	convertLicenseNames map[string]string
+)
 
 // Copy paste from models/repo.go because we cannot import models package
 func repoPath(userName, repoName string) string {

@@ -22,8 +22,10 @@ import (
 	licenseclassifier "github.com/google/licenseclassifier/v2"
 )
 
-var classifier *licenseclassifier.Classifier
-var convertLicenseNames map[string]string
+var (
+	classifier          *licenseclassifier.Classifier
+	convertLicenseNames map[string]string
+)
 
 func init() {
 	err := loadConvertLicenseNames()
