@@ -274,7 +274,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					log.Error("close related pull request failed: %v", err)
 				}
 
-				if err := git_model.AddDeletedBranch(db.DefaultContext, repo.ID, branch, opts.OldCommitID, pusher.ID); err != nil {
+				if err := git_model.AddDeletedBranch(db.DefaultContext, repo.ID, branch, pusher.ID); err != nil {
 					log.Warn("AddDeletedBranch: %v", err)
 				}
 			}

@@ -54,9 +54,7 @@ func CreateNewBranch(ctx context.Context, doer *user_model.User, repo *repo_mode
 type Branch struct {
 	RawBranch         *git_model.Branch
 	IsProtected       bool
-	IsDeleted         bool
 	IsIncluded        bool
-	DeletedBranch     *git_model.DeletedBranch
 	CommitsAhead      int
 	CommitsBehind     int
 	LatestPullRequest *issues_model.PullRequest
@@ -64,7 +62,6 @@ type Branch struct {
 }
 
 // LoadBranches loads branches from the repository limited by page & pageSize.
-// NOTE: May write to context on error.
 func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, includeDeletedBranch bool, page, pageSize int) (*Branch, []*Branch, int64, error) {
 	defaultRawBranch, err := git_model.GetDefaultBranch(ctx, repo)
 	if err != nil {
