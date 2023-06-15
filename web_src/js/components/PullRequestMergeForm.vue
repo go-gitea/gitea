@@ -27,7 +27,7 @@
           <div class="field">
             <textarea name="merge_message_field" rows="5" :placeholder="mergeForm.mergeMessageFieldPlaceHolder" v-model="mergeMessageFieldValue"/>
             <template v-if="mergeMessageFieldValue !== mergeForm.defaultMergeMessage">
-              <button @click.prevent="clearMergeMessage" class="btn gt-mt-2 gt-p-2 interact-bg" :data-tooltip-content="mergeForm.textClearMergeMessageHint">
+              <button @click.prevent="clearMergeMessage" class="btn gt-mt-2 gt-p-2 interact-fg" :data-tooltip-content="mergeForm.textClearMergeMessageHint">
                 {{ mergeForm.textClearMergeMessage }}
               </button>
             </template>
