@@ -46,13 +46,17 @@ func (i *Indexer) Init(_ context.Context) (bool, error) {
 		return false, fmt.Errorf("indexer is already initialized")
 	}
 
-	indexer, err := openIndexer(i.indexDir, i.version)
+	indexer, version, err := openIndexer(i.indexDir, i.version)
 	if err != nil {
 		return false, err
 	}
 	if indexer != nil {
 		i.Indexer = indexer
 		return true, nil
+	}
+
+	if version != 0 {
+		log.Warn("Found older bleve index with version %d, Gitea will remove it and rebuild", version)
 	}
 
 	indexMapping, err := i.mappingGetter()
