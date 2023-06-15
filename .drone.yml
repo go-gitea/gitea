@@ -26,57 +26,6 @@ volumes:
     temp: {}
 
 steps:
-  - name: fetch-tags
-    image: docker:git
-    pull: always
-    commands:
-      - git fetch --tags --force
-
-  - name: deps-frontend
-    image: node:20
-    pull: always
-    commands:
-      - make deps-frontend
-
-  - name: deps-backend
-    image: gitea/test_env:linux-1.20-amd64
-    pull: always
-    commands:
-      - make deps-backend
-    volumes:
-      - name: deps
-        path: /go
-
-  - name: static
-    image: techknowlogick/xgo:go-1.20.x
-    pull: always
-    commands:
-      # Upgrade to node 20 once https://github.com/techknowlogick/xgo/issues/163 is resolved
-      - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get -qqy install nodejs
-      - export PATH=$PATH:$GOPATH/bin
-      - make release
-    environment:
-      GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
-      TAGS: bindata sqlite sqlite_unlock_notify
-      DEBIAN_FRONTEND: noninteractive
-    volumes:
-      - name: deps
-        path: /go
-
-  - name: gpg-sign
-    image: plugins/gpgsign:1
-    pull: always
-    settings:
-      detach_sign: true
-      excludes:
-        - "dist/release/*.sha256"
-      files:
-        - "dist/release/*"
-    environment:
-      GPGSIGN_KEY:
-        from_secret: gpgsign_key
-      GPGSIGN_PASSPHRASE:
-        from_secret: gpgsign_passphrase
 
   - name: release-branch
     image: woodpeckerci/plugin-s3:latest
