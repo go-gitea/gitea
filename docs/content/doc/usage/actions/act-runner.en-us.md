@@ -76,7 +76,7 @@ The default configuration is safe to use without any modification, so you can ju
 ./act_runner --config config.yaml [command]
 ```
 
-You could also generate generate config file with docker:
+You could also generate config file with docker:
 
 ```bash
 docker run --entrypoint="" --rm -it gitea/act_runner:latest act_runner generate-config > config.yaml
