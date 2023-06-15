@@ -2,7 +2,8 @@ import tippy from 'tippy.js';
 
 const visibleInstances = new Set();
 
-export function createTippy(target, {onHide, onShow, onDestroy, role, content, ...other} = {}) {
+export function createTippy(target, opts = {}) {
+  const {onHide, onShow, onDestroy, ...other} = opts;
   const instance = tippy(target, {
     appendTo: document.body,
     animation: false,
@@ -31,16 +32,15 @@ export function createTippy(target, {onHide, onShow, onDestroy, role, content, .
     },
     arrow: `<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`,
     role: 'menu', // HTML role attribute, only tooltips should use "tooltip"
-    theme: role || 'menu', // CSS theme, we support either "tooltip" or "menu"
-    content,
+    theme: other.role || 'menu', // CSS theme, we support either "tooltip" or "menu"
     ...other,
   });
 
   // for popups where content refers to a DOM element, we use the 'tippy-target' class
   // to initially hide the content, now we can remove it as the content has been removed
   // from the DOM by tippy
-  if (content instanceof Element) {
-    content.classList.remove('tippy-target');
+  if (other.content instanceof Element) {
+    other.content.classList.remove('tippy-target');
   }
 
   return instance;
