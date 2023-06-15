@@ -4,21 +4,23 @@
 package v1_21 //nolint
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/models/migrations/base"
 
 	"xorm.io/xorm"
 )
 
-func CreateVariableTable(x *xorm.Engine) error {
-	type ActionVariable struct {
-		ID          int64              `xorm:"pk autoincr"`
-		OwnerID     int64              `xorm:"INDEX UNIQUE(owner_repo_title)"`
-		RepoID      int64              `xorm:"INDEX UNIQUE(owner_repo_title)"`
-		Title       string             `xorm:"UNIQUE(owner_repo_title) NOT NULL"`
-		Content     string             `xorm:"LONGTEXT NOT NULL"`
-		CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
+func DropCustomLabelsColumnOfActionRunner(x *xorm.Engine) error {
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err := sess.Begin(); err != nil {
+		return err
 	}
 
-	return x.Sync(new(ActionVariable))
+	// drop "custom_labels" cols
+	if err := base.DropTableColumns(sess, "action_runner", "custom_labels"); err != nil {
+		return err
+	}
+
+	return sess.Commit()
 }

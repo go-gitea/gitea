@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -93,6 +94,18 @@ func ConfigSectionKeyString(sec ConfigSection, key string, def ...string) string
 		return def[0]
 	}
 	return ""
+}
+
+func ConfigSectionKeyBool(sec ConfigSection, key string, def ...bool) bool {
+	k := ConfigSectionKey(sec, key)
+	if k != nil && k.String() != "" {
+		b, _ := strconv.ParseBool(k.String())
+		return b
+	}
+	if len(def) > 0 {
+		return def[0]
+	}
+	return false
 }
 
 // ConfigInheritedKey works like ini.Section.Key(), but it always returns a new key instance, it is O(n) because NewKey is O(n)
@@ -284,6 +297,12 @@ func mustMapSetting(rootCfg ConfigProvider, sectionName string, setting any) {
 func deprecatedSetting(rootCfg ConfigProvider, oldSection, oldKey, newSection, newKey, version string) {
 	if rootCfg.Section(oldSection).HasKey(oldKey) {
 		log.Error("Deprecated fallback `[%s]` `%s` present. Use `[%s]` `%s` instead. This fallback will be/has been removed in %s", oldSection, oldKey, newSection, newKey, version)
+	}
+}
+
+func deprecatedSettingFatal(rootCfg ConfigProvider, oldSection, oldKey, newSection, newKey, version string) {
+	if rootCfg.Section(oldSection).HasKey(oldKey) {
+		log.Fatal("Deprecated fallback `[%s]` `%s` present. Use `[%s]` `%s` instead. This fallback will be/has been removed in %s", oldSection, oldKey, newSection, newKey, version)
 	}
 }
 

@@ -1254,8 +1254,9 @@ is `data/lfs` and the default of `MINIO_BASE_PATH` is `lfs/`.
 
 ## Storage (`storage`)
 
-Default storage configuration for attachments, lfs, avatars and etc.
+Default storage configuration for attachments, lfs, avatars, repo-avatars, repo-archive, packages, actions_log, actions_artifact.
 
+- `STORAGE_TYPE`: **local**: Storage type, `local` for local disk or `minio` for s3 compatible object storage service.
 - `SERVE_DIRECT`: **false**: Allows the storage driver to redirect to authenticated URLs to serve files directly. Currently, only Minio/S3 is supported via signed URLs, local does nothing.
 - `MINIO_ENDPOINT`: **localhost:9000**: Minio endpoint to connect only available when `STORAGE_TYPE` is `minio`
 - `MINIO_ACCESS_KEY_ID`: Minio accessKeyID to connect only available when `STORAGE_TYPE` is `minio`
@@ -1265,9 +1266,56 @@ Default storage configuration for attachments, lfs, avatars and etc.
 - `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `STORAGE_TYPE` is `minio`
 - `MINIO_INSECURE_SKIP_VERIFY`: **false**: Minio skip SSL verification available when STORAGE_TYPE is `minio`
 
-And you can also define a customize storage like below:
+The recommanded storage configuration for minio like below:
 
 ```ini
+[storage]
+STORAGE_TYPE = minio
+; Minio endpoint to connect only available when STORAGE_TYPE is `minio`
+MINIO_ENDPOINT = localhost:9000
+; Minio accessKeyID to connect only available when STORAGE_TYPE is `minio`
+MINIO_ACCESS_KEY_ID =
+; Minio secretAccessKey to connect only available when STORAGE_TYPE is `minio`
+MINIO_SECRET_ACCESS_KEY =
+; Minio bucket to store the attachments only available when STORAGE_TYPE is `minio`
+MINIO_BUCKET = gitea
+; Minio location to create bucket only available when STORAGE_TYPE is `minio`
+MINIO_LOCATION = us-east-1
+; Minio enabled ssl only available when STORAGE_TYPE is `minio`
+MINIO_USE_SSL = false
+; Minio skip SSL verification available when STORAGE_TYPE is `minio`
+MINIO_INSECURE_SKIP_VERIFY = false
+SERVE_DIRECT = true
+```
+
+Defaultly every storage has their default base path like below
+
+| storage           | default base path  |
+| ----------------- | ------------------ |
+| attachments       | attachments/       |
+| lfs               | lfs/               |
+| avatars           | avatars/           |
+| repo-avatars      | repo-avatars/      |
+| repo-archive      | repo-archive/      |
+| packages          | packages/          |
+| actions_log       | actions_log/       |
+| actions_artifacts | actions_artifacts/ |
+
+And bucket, basepath or `SERVE_DIRECT` could be special or overrided, if you want to use a different you can:
+
+```ini
+[storage.actions_log]
+MINIO_BUCKET = gitea_actions_log
+SERVE_DIRECT = true
+MINIO_BASE_PATH = my_actions_log/ ; default is actions_log/ if blank
+```
+
+If you want to customerize a different storage for `lfs` if above default storage defined
+
+```ini
+[lfs]
+STORAGE_TYPE = my_minio
+
 [storage.my_minio]
 STORAGE_TYPE = minio
 ; Minio endpoint to connect only available when STORAGE_TYPE is `minio`
@@ -1285,8 +1333,6 @@ MINIO_USE_SSL = false
 ; Minio skip SSL verification available when STORAGE_TYPE is `minio`
 MINIO_INSECURE_SKIP_VERIFY = false
 ```
-
-And used by `[attachment]`, `[lfs]` and etc. as `STORAGE_TYPE`.
 
 ## Repository Archive Storage (`storage.repo-archive`)
 
@@ -1306,6 +1352,11 @@ is `data/repo-archive` and the default of `MINIO_BASE_PATH` is `repo-archive/`.
 - `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `STORAGE_TYPE` is `minio`
 - `MINIO_INSECURE_SKIP_VERIFY`: **false**: Minio skip SSL verification available when STORAGE_TYPE is `minio`
 
+## Repository Archives (`repo-archive`)
+
+- `STORAGE_TYPE`: **local**: Storage type for actions logs, `local` for local disk or `minio` for s3 compatible object storage service, default is `local` or other name defined with `[storage.xxx]`
+- `MINIO_BASE_PATH`: **repo-archive/**: Minio base path on the bucket only available when STORAGE_TYPE is `minio`
+
 ## Proxy (`proxy`)
 
 - `PROXY_ENABLED`: **false**: Enable the proxy if true, all requests to external via HTTP will be affected, if false, no proxy will be used even environment http_proxy/https_proxy
@@ -1324,6 +1375,8 @@ PROXY_HOSTS = *.github.com
 
 - `ENABLED`: **false**: Enable/Disable actions capabilities
 - `DEFAULT_ACTIONS_URL`: **https://gitea.com**: Default address to get action plugins, e.g. the default value means downloading from "<https://gitea.com/actions/checkout>" for "uses: actions/checkout@v3"
+- `STORAGE_TYPE`: **local**: Storage type for actions logs, `local` for local disk or `minio` for s3 compatible object storage service, default is `local` or other name defined with `[storage.xxx]`
+- `MINIO_BASE_PATH`: **actions_log/**: Minio base path on the bucket only available when STORAGE_TYPE is `minio`
 
 `DEFAULT_ACTIONS_URL` indicates where should we find the relative path action plugin. i.e. when use an action in a workflow file like
 

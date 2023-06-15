@@ -4,14 +4,14 @@
 package setting
 
 import (
-	"code.gitea.io/gitea/modules/log"
+	"fmt"
 )
 
 // Actions settings
 var (
 	Actions = struct {
-		LogStorage        Storage // how the created logs should be stored
-		ArtifactStorage   Storage // how the created artifacts should be stored
+		LogStorage        *Storage // how the created logs should be stored
+		ArtifactStorage   *Storage // how the created artifacts should be stored
 		Enabled           bool
 		DefaultActionsURL string `ini:"DEFAULT_ACTIONS_URL"`
 	}{
@@ -20,15 +20,22 @@ var (
 	}
 )
 
-func loadActionsFrom(rootCfg ConfigProvider) {
+func loadActionsFrom(rootCfg ConfigProvider) error {
 	sec := rootCfg.Section("actions")
-	if err := sec.MapTo(&Actions); err != nil {
-		log.Fatal("Failed to map Actions settings: %v", err)
+	err := sec.MapTo(&Actions)
+	if err != nil {
+		return fmt.Errorf("failed to map Actions settings: %v", err)
 	}
 
-	actionsSec := rootCfg.Section("actions.artifacts")
-	storageType := actionsSec.Key("STORAGE_TYPE").MustString("")
+	// don't support to read configuration from [actions]
+	Actions.LogStorage, err = getStorage(rootCfg, "actions_log", "", nil)
+	if err != nil {
+		return err
+	}
 
-	Actions.LogStorage = getStorage(rootCfg, "actions_log", "", nil)
-	Actions.ArtifactStorage = getStorage(rootCfg, "actions_artifacts", storageType, actionsSec)
+	actionsSec, _ := rootCfg.GetSection("actions.artifacts")
+
+	Actions.ArtifactStorage, err = getStorage(rootCfg, "actions_artifacts", "", actionsSec)
+
+	return err
 }
