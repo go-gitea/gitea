@@ -134,9 +134,9 @@ func GetStatusInfoList(ctx context.Context) []StatusInfo {
 func GetActors(ctx context.Context, repoID int64) ([]*user_model.User, error) {
 	actors := make([]*user_model.User, 0, 10)
 
-	return actors, db.GetEngine(ctx).Where(builder.In("id", builder.Select("`user`.id").From("`user`").
-		Join("INNER", "`action_run`", "`action_run`.trigger_user_id = `user`.id").
-		And(builder.Eq{"`action_run`.repo_id": repoID}))).
+	return actors, db.GetEngine(ctx).Where(builder.In("id", builder.Select("`action_run`.trigger_user_id").From("`action_run`").
+		GroupBy("`action_run`.trigger_user_id").
+		Where(builder.Eq{"`action_run`.repo_id": repoID}))).
 		Cols("id", "name", "full_name", "avatar", "avatar_email", "use_custom_avatar").
 		OrderBy(user_model.GetOrderByName()).
 		Find(&actors)
