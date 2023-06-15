@@ -14,8 +14,8 @@
 					<span>{{.Source.TypeName}}</span>
 				</div>
 				<div class="required inline field {{if .Err_Name}}error{{end}}">
-					<label for="name">{{.locale.Tr "admin.auths.auth_name"}}</label>
-					<input id="name" name="name" value="{{.Source.Name}}" autofocus required>
+					<label for="auth_name">{{.locale.Tr "admin.auths.auth_name"}}</label>
+					<input id="auth_name" name="name" value="{{.Source.Name}}" autofocus required>
 				</div>
 
 				<!-- LDAP and DLDAP -->
@@ -433,6 +433,17 @@
 					<button class="ui red button delete-button" data-url="{{$.Link}}/delete" data-id="{{.Source.ID}}">{{.locale.Tr "admin.auths.delete"}}</button>
 				</div>
 			</form>
+		</div>
+
+		<h4 class="ui top attached header">
+			{{.locale.Tr "admin.auths.tips"}}
+		</h4>
+		<div class="ui attached segment">
+			<h5>GMail Settings:</h5>
+			<p>Host: smtp.gmail.com, Port: 587, Enable TLS Encryption: true</p>
+
+			<h5 class="oauth2">{{.locale.Tr "admin.auths.tips.oauth2.general"}}:</h5>
+			<p class="oauth2">{{.locale.Tr "admin.auths.tips.oauth2.general.tip"}} <b id="oauth2-callback-url"></b></p>
 		</div>
 	</div>
 
