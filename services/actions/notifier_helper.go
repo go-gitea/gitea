@@ -152,13 +152,33 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return fmt.Errorf("gitRepo.GetCommit: %w", err)
 	}
 
-	workflows, err := actions_module.DetectWorkflows(commit, input.Event, input.Payload)
+	workflows, err := actions_module.DetectWorkflows(commit, ref, input.Event, input.Payload, false)
 	if err != nil {
 		return fmt.Errorf("DetectWorkflows: %w", err)
 	}
-
 	if len(workflows) == 0 {
 		log.Trace("repo %s with commit %s couldn't find workflows", input.Repo.RepoPath(), commit.ID)
+	}
+
+	if input.PullRequest != nil {
+		// detect pull_request_target workflows
+		baseRef := git.BranchPrefix + input.PullRequest.BaseBranch
+		baseCommit, err := gitRepo.GetCommit(baseRef)
+		if err != nil {
+			return fmt.Errorf("gitRepo.GetCommit: %w", err)
+		}
+		baseWorkflows, err := actions_module.DetectWorkflows(baseCommit, baseRef, input.Event, input.Payload, true)
+		if err != nil {
+			return fmt.Errorf("DetectWorkflows: %w", err)
+		}
+		if len(baseWorkflows) == 0 {
+			log.Trace("repo %s with commit %s couldn't find pull_request_target workflows", input.Repo.RepoPath(), baseCommit.ID)
+		} else {
+			workflows = append(workflows, baseWorkflows...)
+		}
+	}
+
+	if len(workflows) == 0 {
 		return nil
 	}
 
@@ -182,15 +202,15 @@ func notify(ctx context.Context, input *notifyInput) error {
 		}
 	}
 
-	for id, content := range workflows {
+	for _, dwf := range workflows {
 		run := &actions_model.ActionRun{
 			Title:             strings.SplitN(commit.CommitMessage, "\n", 2)[0],
 			RepoID:            input.Repo.ID,
 			OwnerID:           input.Repo.OwnerID,
-			WorkflowID:        id,
+			WorkflowID:        dwf.EntryName,
 			TriggerUserID:     input.Doer.ID,
-			Ref:               ref,
-			CommitSHA:         commit.ID.String(),
+			Ref:               dwf.Ref,
+			CommitSHA:         dwf.Commit.ID.String(),
 			IsForkPullRequest: isForkPullRequest,
 			Event:             input.Event,
 			EventPayload:      string(p),
@@ -203,7 +223,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 			run.NeedApproval = need
 		}
 
-		jobs, err := jobparser.Parse(content)
+		jobs, err := jobparser.Parse(dwf.Content)
 		if err != nil {
 			log.Error("jobparser.Parse: %v", err)
 			continue
