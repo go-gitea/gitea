@@ -140,6 +140,10 @@ func (b *Base) JSONOK() {
 	b.JSON(http.StatusOK, map[string]any{"ok": true}) // this is only a dummy response, frontend seldom uses it
 }
 
+func (b *Base) JSONError(msg string) {
+	b.JSON(http.StatusBadRequest, map[string]any{"errorMessage": msg})
+}
+
 // RemoteAddr returns the client machine ip address
 func (b *Base) RemoteAddr() string {
 	return b.Req.RemoteAddr
