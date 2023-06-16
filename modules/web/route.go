@@ -4,7 +4,6 @@
 package web
 
 import (
-	"context"
 	"net/http"
 	"strings"
 
@@ -18,22 +17,21 @@ import (
 func Bind[T any](_ T) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
 		theObj := new(T) // create a new form obj for every request but not use obj directly
+		data := middleware.GetContextData(req.Context())
 		binding.Bind(req, theObj)
-		SetForm(req.Context(), theObj)
-		middleware.AssignForm(theObj, middleware.GetContextData(req.Context()))
+		SetForm(data, theObj)
+		middleware.AssignForm(theObj, data)
 	}
 }
 
 // SetForm set the form object
-func SetForm(ctx context.Context, obj interface{}) {
-	ctxData := middleware.GetContextData(ctx)
-	ctxData["__form"] = obj
+func SetForm(dataStore middleware.ContextDataStore, obj interface{}) {
+	dataStore.GetData()["__form"] = obj
 }
 
 // GetForm returns the validate form information
-func GetForm(ctx context.Context) interface{} {
-	ctxData := middleware.GetContextData(ctx)
-	return ctxData["__form"]
+func GetForm(dataStore middleware.ContextDataStore) interface{} {
+	return dataStore.GetData()["__form"]
 }
 
 // Route defines a route based on chi's router
