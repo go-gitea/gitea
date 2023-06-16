@@ -15,6 +15,9 @@ on:
       actions:
         description: "whether actions files changed"
         value: ${{ jobs.detect.outputs.actions }}
+      templates:
+        description: "whether templates files changed"
+        value: ${{ jobs.detect.outputs.templates }}
 
 jobs:
   detect:
@@ -27,6 +30,7 @@ jobs:
       frontend: ${{ steps.changes.outputs.frontend }}
       docs: ${{ steps.changes.outputs.docs }}
       actions: ${{ steps.changes.outputs.actions }}
+      templates: ${{ steps.changes.outputs.templates }}
     steps:
       - uses: actions/checkout@v3
       - uses: dorny/paths-filter@v2
@@ -35,7 +39,7 @@ jobs:
           filters: |
             backend:
               - "**/*.go"
-              - "**/*.tmpl"
+              - "templates/**/*.tmpl"
               - "go.mod"
               - "go.sum"
 
@@ -51,3 +55,6 @@ jobs:
 
             actions:
               - ".github/workflows/*"
+
+            templates:
+              - "templates/**/*.tmpl"
