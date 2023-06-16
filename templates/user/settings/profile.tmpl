@@ -41,7 +41,7 @@
 				<div class="ui divider"></div>
 				<!-- private block -->
 
-				<div class="field">
+				<div class="field" id="privacy">
 					<label for="security-private"><strong>{{.locale.Tr "settings.privacy"}}</strong></label>
 				</div>
 
@@ -72,7 +72,7 @@
 				</div>
 
 				<div class="field">
-					<div class="ui checkbox" id="keep-email-private">
+					<div class="ui checkbox">
 						<label data-tooltip-content="{{.locale.Tr "settings.keep_email_private_popup"}}"><strong>{{.locale.Tr "settings.keep_email_private"}}</strong></label>
 						<input name="keep_email_private" type="checkbox" {{if .SignedUser.KeepEmailPrivate}}checked{{end}}>
 					</div>
