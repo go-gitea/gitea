@@ -132,7 +132,10 @@ func GetBranch(ctx context.Context, repoID int64, branchName string) (*Branch, e
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, git.ErrBranchNotExist{Name: branchName}
+		return nil, ErrBranchDoesNotExist{
+			RepoID:     repoID,
+			BranchName: branchName,
+		}
 	}
 	return &branch, nil
 }

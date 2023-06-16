@@ -352,11 +352,12 @@ func SyncRepoBranches(ctx context.Context, repo *repo_model.Repository, doerID i
 
 	const limit = 100
 	var allBranches []string
-	for page := 1; ; page++ {
+	for page := 0; ; page++ {
 		branches, _, err := gitRepo.GetBranchNames(page*limit, limit)
 		if err != nil {
 			return err
 		}
+		log.Trace("SyncRepoBranches: branches[%d]: %v", page, branches)
 		if len(branches) == 0 {
 			break
 		}
@@ -417,6 +418,8 @@ func SyncRepoBranches(ctx context.Context, repo *repo_model.Repository, doerID i
 			toRemove = append(toRemove, dbBranch.ID)
 		}
 	}
+
+	log.Trace("SyncRepoBranches: toAdd: %v, toUpdate: %v, toRemove: %v", toAdd, toUpdate, toRemove)
 
 	if len(toAdd) == 0 && len(toRemove) == 0 && len(toUpdate) == 0 {
 		return nil
