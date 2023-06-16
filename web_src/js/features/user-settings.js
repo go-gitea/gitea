@@ -1,6 +1,5 @@
 import $ from 'jquery';
 import {hideElem, showElem} from '../utils/dom.js';
-import {initActionsEditBtns} from './actions.js';
 
 export function initUserSettings() {
   if ($('.user.settings.profile').length > 0) {
@@ -16,6 +15,4 @@ export function initUserSettings() {
       }
     });
   }
-
-  initActionsEditBtns();
 }

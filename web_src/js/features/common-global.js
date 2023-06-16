@@ -271,7 +271,7 @@ function linkAction(e) {
   // Then the browser is redirect to: the "redirect" in response, or "data-redirect" attribute, or current URL by reloading.
   // If the "link-action" has "data-modal-confirm(-html)" attribute, a confirm modal dialog will be shown before taking action.
 
-  const $this = $(e.target);
+  const $this = $(this);
   const redirect = $this.attr('data-redirect');
 
   const doRequest = () => {
@@ -372,10 +372,14 @@ export function initGlobalLinkActions() {
 
 function initGlobalShowModal() {
   // A ".show-modal" button will show a modal dialog defined by its "data-modal" attribute.
-  // Each "data-modal-{id}" attribute will be filled to "#id" element's value or text-content.
-  $('.show-modal').on('click', (e) => {
+  // Each "data-modal-{target}" attribute will be filled to target element's value or text-content.
+  // * First, try to query '#target'
+  // * Then, try to query '.target'
+  // * Then, try to query 'target' as HTML tag
+  // If there is a ".{attr}" part like "data-modal-form.action", then the form's "action" attribute will be set.
+  $('.show-modal').on('click', function (e) {
     e.preventDefault();
-    const $el = $(e.target);
+    const $el = $(this);
     const modalSelector = $el.attr('data-modal');
     const $modal = $(modalSelector);
     if (!$modal.length) {
@@ -386,22 +390,31 @@ function initGlobalShowModal() {
       if (!attrib.name.startsWith(modalAttrPrefix)) {
         continue;
       }
-      const attrTargetId = attrib.name.substring(modalAttrPrefix.length);
-      const $attrTarget = $modal.find(`#${attrTargetId}`);
-      if ($attrTarget.is('input') || $attrTarget.is('textarea')) {
-        // FIXME: add more supports like checkbox
-        $attrTarget.val(attrib.value);
+
+      const attrTargetCombo = attrib.name.substring(modalAttrPrefix.length);
+      const [attrTargetName, attrTargetAttr] = attrTargetCombo.split('.');
+      // try to find target by: "#target" -> ".target" -> "target tag"
+      let $attrTarget = $modal.find(`#${attrTargetName}`);
+      if (!$attrTarget.length) $attrTarget = $modal.find(`.${attrTargetName}`);
+      if (!$attrTarget.length) $attrTarget = $modal.find(`${attrTargetName}`);
+
+      if (attrTargetAttr) {
+        $attrTarget[0][attrTargetAttr] = attrib.value;
+      } else if ($attrTarget.is('input') || $attrTarget.is('textarea')) {
+        $attrTarget.val(attrib.value); // FIXME: add more supports like checkbox
       } else {
-        // FIXME: it should be more strict here, only handle div/span/p
-        $attrTarget.text(attrib.value);
+        $attrTarget.text(attrib.value); // FIXME: it should be more strict here, only handle div/span/p
       }
     }
     const colorPickers = $modal.find('.color-picker');
     if (colorPickers.length > 0) {
-      // FIXME: this might cause duplicate init
-      initCompColorPicker();
+      initCompColorPicker(); // FIXME: this might cause duplicate init
     }
-    $modal.modal('show');
+    $modal.modal('setting', {
+      onApprove: () => {
+        if ($modal.find('form').length) return false;
+      },
+    }).modal('show');
   });
 }
 
