@@ -365,9 +365,9 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 
 // Escapes user input to valid OS filenames
 //
-//	https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file
+//	https://github.com/sindresorhus/filename-reserved-regex
 func fileNameEscape(s string) string {
-	re := regexp.MustCompile("[/<>:\"\\|?*\n]")
+	re := regexp.MustCompile(`(?i)[<>:\"/\\|?*\x{0000}-\x{001F}]|^(con|prn|aux|nul|com\d|lpt\d)$`)
 
-	return re.ReplaceAllString(s, "*")
+	return re.ReplaceAllString(s, "_")
 }
