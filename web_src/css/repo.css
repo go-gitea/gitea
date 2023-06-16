@@ -2410,10 +2410,6 @@
   margin: 16px -1rem -1rem;
 }
 
-.settings .ui.attached.segment {
-  border-radius: 0 0 var(--border-radius) var(--border-radius);
-}
-
 .settings .list > .item > .svg {
   display: table-cell;
 }
