@@ -303,6 +303,14 @@ func TestLDAPUserSyncWithEmptyUsernameAttribute(t *testing.T) {
 
 	auth.SyncExternalUsers(context.Background(), true)
 
+	authSource := unittest.AssertExistsAndLoadBean(t, &auth_model.Source{
+		Name: payload["name"],
+	})
+	unittest.AssertCount(t, &user_model.User{
+		LoginType:   auth_model.LDAP,
+		LoginSource: authSource.ID,
+	}, len(gitLDAPUsers))
+
 	for _, u := range gitLDAPUsers {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 			Name: u.UserName,
