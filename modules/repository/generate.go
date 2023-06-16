@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -195,6 +196,14 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 							0o644); err != nil {
 							return err
 						}
+
+						// Substitute filename variables
+						if err := os.Rename(path,
+							filepath.FromSlash(filepath.Join(tmpDirSlash,
+								fileNameEscape(generateExpansion(base, templateRepo, generateRepo))))); err != nil {
+							return err
+						}
+
 						break
 					}
 				}
@@ -352,4 +361,13 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 	}
 
 	return generateRepo, nil
+}
+
+// Escapes user input to valid OS filenames
+//
+//	https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file
+func fileNameEscape(s string) string {
+	re := regexp.MustCompile("[/<>:\"\\|?*\n]")
+
+	return re.ReplaceAllString(s, "*")
 }
