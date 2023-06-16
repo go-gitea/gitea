@@ -262,6 +262,10 @@ func GetRepositories(ctx context.Context, actor *user_model.User, n int, last st
 		cond = cond.And(builder.Gt{"package_property.value": strings.ToLower(last)})
 	}
 
+	if actor.IsGhost() {
+		actor = nil
+	}
+
 	cond = cond.And(user_model.BuildCanSeeUserCondition(actor))
 
 	sess := db.GetEngine(ctx).

@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_18"
 	"code.gitea.io/gitea/models/migrations/v1_19"
 	"code.gitea.io/gitea/models/migrations/v1_20"
+	"code.gitea.io/gitea/models/migrations/v1_21"
 	"code.gitea.io/gitea/models/migrations/v1_6"
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
@@ -493,10 +494,15 @@ var migrations = []Migration{
 	NewMigration("Add is_internal column to package", v1_20.AddIsInternalColumnToPackage),
 	// v257 -> v258
 	NewMigration("Add Actions Artifact table", v1_20.CreateActionArtifactTable),
-	// v258 -> 259
+	// v258 -> v259
 	NewMigration("Add PinOrder Column", v1_20.AddPinOrderToIssue),
-	// v259 -> 260
+	// v259 -> v260
 	NewMigration("Convert scoped access tokens", v1_20.ConvertScopedAccessTokens),
+
+	// Gitea 1.20.0 ends at 260
+
+	// v260 -> v261
+	NewMigration("Drop custom_labels column of action_runner table", v1_21.DropCustomLabelsColumnOfActionRunner),
 }
 
 // GetCurrentDBVersion returns the current db version

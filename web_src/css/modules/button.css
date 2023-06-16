@@ -24,10 +24,6 @@
   color: var(--color-text);
 }
 
-.ui.button.no-text .icon {
-  margin: 0 !important;
-}
-
 .delete-button,
 .delete-button:hover {
   color: var(--color-red);

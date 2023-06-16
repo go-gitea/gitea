@@ -12,7 +12,7 @@
 				</a>
 			</div>
 			{{if and (eq .Status 1)}}
-				<form action="{{AppSubUrl}}/notifications/purge" method="POST">
+				<form action="{{AppSubUrl}}/notifications/purge" method="post">
 					{{$.CsrfTokenHtml}}
 					<div class="{{if not $notificationUnreadCount}}gt-hidden{{end}}">
 						<button class="ui mini button primary gt-mr-0" title='{{$.locale.Tr "notification.mark_all_as_read"}}'>
@@ -70,7 +70,7 @@
 							</div>
 							<div class="notifications-buttons gt-ac gt-je gt-gap-2 gt-px-2">
 								{{if ne .Status 3}}
-									<form action="{{AppSubUrl}}/notifications/status" method="POST">
+									<form action="{{AppSubUrl}}/notifications/status" method="post">
 										{{$.CsrfTokenHtml}}
 										<input type="hidden" name="notification_id" value="{{.ID}}">
 										<input type="hidden" name="status" value="pinned">
@@ -85,7 +85,7 @@
 									</form>
 								{{end}}
 								{{if or (eq .Status 1) (eq .Status 3)}}
-									<form action="{{AppSubUrl}}/notifications/status" method="POST">
+									<form action="{{AppSubUrl}}/notifications/status" method="post">
 										{{$.CsrfTokenHtml}}
 										<input type="hidden" name="notification_id" value="{{.ID}}">
 										<input type="hidden" name="status" value="read">
@@ -100,7 +100,7 @@
 										</button>
 									</form>
 								{{else if eq .Status 2}}
-									<form action="{{AppSubUrl}}/notifications/status" method="POST">
+									<form action="{{AppSubUrl}}/notifications/status" method="post">
 										{{$.CsrfTokenHtml}}
 										<input type="hidden" name="notification_id" value="{{.ID}}">
 										<input type="hidden" name="status" value="unread">
