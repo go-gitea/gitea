@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import {updateIssuesMeta} from './repo-issue.js';
-import {toggleElem} from '../utils/dom.js';
+import {toggleElem, onInputDebounce} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
 import {Sortable} from 'sortablejs';
 
@@ -178,9 +178,28 @@ function initIssuePinSort() {
   });
 }
 
+function initLabelSearchInput() {
+  if (!document.querySelector('.labels-filter-menu')) return;
+  const menu = document.querySelector('.labels-filter-menu');
+  menu.querySelector('.labels-filter-input').addEventListener('input', onInputDebounce(() => {
+    for (const divider of menu.querySelectorAll('[data-divider-index]')) {
+      const dividerIndex = divider.getAttribute('data-divider-index');
+      let showDivider = false;
+      for (const el of menu.querySelectorAll(`[data-divider-group="${dividerIndex}"]`)) {
+        if (!el.classList.contains('filtered')) {
+          showDivider = true;
+          break;
+        }
+      }
+      toggleElem(divider, showDivider);
+    }
+  }))
+}
+
 export function initRepoIssueList() {
   if (!document.querySelectorAll('.page-content.repository.issue-list, .page-content.repository.milestone-issue-list').length) return;
   initRepoIssueListCheckboxes();
   initRepoIssueListAuthorDropdown();
   initIssuePinSort();
+  initLabelSearchInput();
 }
