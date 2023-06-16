@@ -107,13 +107,13 @@
 											<span class="ui orange large label" data-tooltip-content="{{$.locale.Tr "repo.branch.included_desc"}}">
 												{{svg "octicon-git-pull-request"}} {{$.locale.Tr "repo.branch.included"}}
 											</span>
-										{{else if and (not .IsDeleted) $.AllowsPulls (gt .CommitsAhead 0)}}
+										{{else if and (not .RawBranch.IsDeleted) $.AllowsPulls (gt .CommitsAhead 0)}}
 										<a href="{{$.RepoLink}}/compare/{{PathEscapeSegments $.DefaultBranch.RawBranch.Name}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{PathEscape $.Owner.Name}}:{{end}}{{PathEscapeSegments .RawBranch.Name}}">
 											<button id="new-pull-request" class="ui compact basic button gt-mr-0">{{if $.CanPull}}{{$.locale.Tr "repo.pulls.compare_changes"}}{{else}}{{$.locale.Tr "action.compare_branch"}}{{end}}</button>
 										</a>
 										{{end}}
 									{{else if and .LatestPullRequest.HasMerged .MergeMovedOn}}
-										{{if and (not .IsDeleted) $.AllowsPulls (gt .CommitsAhead 0)}}
+										{{if and (not .RawBranch.IsDeleted) $.AllowsPulls (gt .CommitsAhead 0)}}
 										<a href="{{$.RepoLink}}/compare/{{PathEscapeSegments $.DefaultBranch}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{$.Owner.Name}}:{{end}}{{.Name | PathEscapeSegments}}">
 											<button id="new-pull-request" class="ui compact basic button gt-mr-0">{{if $.CanPull}}{{$.locale.Tr "repo.pulls.compare_changes"}}{{else}}{{$.locale.Tr "action.compare_branch"}}{{end}}</button>
 										</a>
@@ -164,7 +164,7 @@
 									{{end}}
 									{{if and $.IsWriter (not $.IsMirror) (not $.Repository.IsArchived) (not .IsProtected)}}
 										{{if .RawBranch.IsDeleted}}
-											<button class="btn interact-bg gt-p-3 link-action restore-branch-button" data-url="{{$.Link}}/restore?branch_id={{.DeletedBranch.ID}}&name={{.DeletedBranch.Name}}&page={{$.Page.Paginater.Current}}" data-tooltip-content="{{$.locale.Tr "repo.branch.restore" (.RawBranch.Name)}}">
+											<button class="btn interact-bg gt-p-3 link-action restore-branch-button" data-url="{{$.Link}}/restore?branch_id={{.RawBranch.ID}}&name={{.RawBranch.Name}}&page={{$.Page.Paginater.Current}}" data-tooltip-content="{{$.locale.Tr "repo.branch.restore" (.RawBranch.Name)}}">
 												<span class="text blue">
 													{{svg "octicon-reply"}}
 												</span>
