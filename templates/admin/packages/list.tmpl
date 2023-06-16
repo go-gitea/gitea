@@ -7,7 +7,7 @@
 			<div class="ui right">
 				<form method="POST" action="/admin/packages/cleanup">
 					{{.CsrfTokenHtml}}
-					<button class="ui primary tiny button">Garbage collect blobs</button>
+					<button class="ui primary tiny button">{{.locale.Tr "admin.packages.cleanup"}})</button>
 				</form>
 			</div>
 		</h4>
