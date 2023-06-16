@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -25,17 +26,24 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// MockContext mock context for unit tests
-// TODO: move this function to other packages, because it depends on "models" package
-func MockContext(t *testing.T, path string) *context.Context {
-	resp := httptest.NewRecorder()
+func mockRequest(t *testing.T, reqPath string) *http.Request {
+	method, path, found := strings.Cut(reqPath, " ")
+	if !found {
+		method = "GET"
+		path = reqPath
+	}
 	requestURL, err := url.Parse(path)
 	assert.NoError(t, err)
-	req := &http.Request{
-		URL:  requestURL,
-		Form: url.Values{},
-	}
+	req := &http.Request{Method: method, URL: requestURL, Form: url.Values{}}
 	req = req.WithContext(middleware.WithContextData(req.Context()))
+	return req
+}
+
+// MockContext mock context for unit tests
+// TODO: move this function to other packages, because it depends on "models" package
+func MockContext(t *testing.T, reqPath string) (*context.Context, *httptest.ResponseRecorder) {
+	resp := httptest.NewRecorder()
+	req := mockRequest(t, reqPath)
 	base, baseCleanUp := context.NewBaseContext(resp, req)
 	base.Data = middleware.GetContextData(req.Context())
 	base.Locale = &translation.MockLocale{}
@@ -48,20 +56,14 @@ func MockContext(t *testing.T, path string) *context.Context {
 
 	chiCtx := chi.NewRouteContext()
 	ctx.Base.AppendContextValue(chi.RouteCtxKey, chiCtx)
-	return ctx
+	return ctx, resp
 }
 
 // MockAPIContext mock context for unit tests
 // TODO: move this function to other packages, because it depends on "models" package
-func MockAPIContext(t *testing.T, path string) *context.APIContext {
+func MockAPIContext(t *testing.T, reqPath string) (*context.APIContext, *httptest.ResponseRecorder) {
 	resp := httptest.NewRecorder()
-	requestURL, err := url.Parse(path)
-	assert.NoError(t, err)
-	req := &http.Request{
-		URL:  requestURL,
-		Form: url.Values{},
-	}
-	req = req.WithContext(middleware.WithContextData(req.Context()))
+	req := mockRequest(t, reqPath)
 	base, baseCleanUp := context.NewBaseContext(resp, req)
 	base.Data = middleware.GetContextData(req.Context())
 	base.Locale = &translation.MockLocale{}
@@ -70,7 +72,7 @@ func MockAPIContext(t *testing.T, path string) *context.APIContext {
 
 	chiCtx := chi.NewRouteContext()
 	ctx.Base.AppendContextValue(chi.RouteCtxKey, chiCtx)
-	return ctx
+	return ctx, resp
 }
 
 // LoadRepo load a repo into a test context.
