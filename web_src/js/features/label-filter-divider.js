@@ -16,5 +16,5 @@ export function initLabelSearchInput() {
       }
       toggleElem(divider, showDivider);
     }
-  }))
+  }));
 }
