@@ -87,8 +87,7 @@ func VariableCreate(ctx *context.Context) {
 	}
 
 	if ctx.HasError() { // form binding validation error
-		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
-		ctx.JSONRedirect(vCtx.RedirectLink)
+		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}
 
@@ -103,8 +102,7 @@ func VariableUpdate(ctx *context.Context) {
 	}
 
 	if ctx.HasError() { // form binding validation error
-		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
-		ctx.JSONRedirect(vCtx.RedirectLink)
+		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}
 

@@ -40,7 +40,7 @@ var (
 func TitleRegexMatch(ctx *context.Context, title, redirectURL string) error {
 	if !titleRx.MatchString(title) || forbiddenPrefixRx.MatchString(title) {
 		log.Error("Title %s, regex match error", title)
-		return errors.New("title has invaild character")
+		return errors.New("title has invalid character")
 	}
 	return nil
 }
@@ -49,18 +49,17 @@ func CreateVariable(ctx *context.Context, ownerID, repoID int64, redirectURL str
 	form := web.GetForm(ctx).(*forms.EditVariableForm)
 
 	if err := TitleRegexMatch(ctx, form.Title, redirectURL); err != nil {
-		ctx.Flash.Error(ctx.Tr("actions.variables.creation.failed"))
-		ctx.JSONRedirect(redirectURL)
+		ctx.JSONError(err.Error())
 		return
 	}
 
 	v, err := actions_model.InsertVariable(ctx, ownerID, repoID, form.Title, ReserveLineBreakForTextarea(form.Content))
 	if err != nil {
 		log.Error("InsertVariable error: %v", err)
-		ctx.Flash.Error(ctx.Tr("actions.variables.creation.failed"))
-	} else {
-		ctx.Flash.Success(ctx.Tr("actions.variables.creation.success", v.Title))
+		ctx.JSONError(ctx.Tr("actions.variables.creation.failed"))
+		return
 	}
+	ctx.Flash.Success(ctx.Tr("actions.variables.creation.success", v.Title))
 	ctx.JSONRedirect(redirectURL)
 }
 
@@ -69,8 +68,7 @@ func UpdateVariable(ctx *context.Context, redirectURL string) {
 	form := web.GetForm(ctx).(*forms.EditVariableForm)
 
 	if err := TitleRegexMatch(ctx, form.Title, redirectURL); err != nil {
-		ctx.Flash.Error(ctx.Tr("actions.variables.creation.failed"))
-		ctx.JSONRedirect(redirectURL)
+		ctx.JSONError(ctx.Tr("actions.variables.creation.failed"))
 		return
 	}
 
@@ -81,10 +79,10 @@ func UpdateVariable(ctx *context.Context, redirectURL string) {
 	})
 	if err != nil || !ok {
 		log.Error("UpdateVariable error: %v", err)
-		ctx.Flash.Error(ctx.Tr("actions.variables.update.failed"))
-	} else {
-		ctx.Flash.Success(ctx.Tr("actions.variables.update.success"))
+		ctx.JSONError(ctx.Tr("actions.variables.update.failed"))
+		return
 	}
+	ctx.Flash.Success(ctx.Tr("actions.variables.update.success"))
 	ctx.JSONRedirect(redirectURL)
 }
 
@@ -93,11 +91,10 @@ func DeleteVariable(ctx *context.Context, redirectURL string) {
 
 	if _, err := db.DeleteByBean(ctx, &actions_model.ActionVariable{ID: id}); err != nil {
 		log.Error("Delete variable [%d] failed: %v", id, err)
-		ctx.Flash.Error(ctx.Tr("actions.variables.deletion.failed"))
-	} else {
-		ctx.Flash.Success(ctx.Tr("actions.variables.deletion.success"))
+		ctx.JSONError(ctx.Tr("actions.variables.deletion.failed"))
+		return
 	}
-
+	ctx.Flash.Success(ctx.Tr("actions.variables.deletion.success"))
 	ctx.JSONRedirect(redirectURL)
 }
 

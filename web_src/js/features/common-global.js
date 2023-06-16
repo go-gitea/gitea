@@ -397,6 +397,7 @@ function initGlobalShowModal() {
       let $attrTarget = $modal.find(`#${attrTargetName}`);
       if (!$attrTarget.length) $attrTarget = $modal.find(`.${attrTargetName}`);
       if (!$attrTarget.length) $attrTarget = $modal.find(`${attrTargetName}`);
+      if (!$attrTarget.length) continue; // TODO: show errors in dev mode to remind developers that there is a bug
 
       if (attrTargetAttr) {
         $attrTarget[0][attrTargetAttr] = attrib.value;
@@ -412,7 +413,9 @@ function initGlobalShowModal() {
     }
     $modal.modal('setting', {
       onApprove: () => {
-        if ($modal.find('form').length) return false;
+        // "form-fetch-action" can handle network errors gracefully,
+        // so keep the modal dialog to make users can re-submit the form if anything wrong happens.
+        if ($modal.find('.form-fetch-action').length) return false;
       },
     }).modal('show');
   });
