@@ -318,14 +318,6 @@ func (err ErrFilePathProtected) Unwrap() error {
 	return util.ErrPermissionDenied
 }
 
-// __________                             .__
-// \______   \____________    ____   ____ |  |__
-//  |    |  _/\_  __ \__  \  /    \_/ ___\|  |  \
-//  |    |   \ |  | \// __ \|   |  \  \___|   Y  \
-//  |______  / |__|  (____  /___|  /\___  >___|  /
-//         \/             \/     \/     \/     \/
-
-
 // ErrDisallowedToMerge represents an error that a branch is protected and the current user is not allowed to modify it.
 type ErrDisallowedToMerge struct {
 	Reason string
