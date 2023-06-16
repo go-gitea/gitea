@@ -3,6 +3,8 @@ import $ from 'jquery';
 const {csrfToken} = window.config;
 
 export function initActionsEditBtns() {
+  if (!$('.show-variable-edit-modal,.show-secret-add-modal').length) return;
+
   $('.show-variable-edit-modal,.show-secret-add-modal').on('click', function () {
     const $btn = $(this);
     const target = $btn.attr('data-modal');
