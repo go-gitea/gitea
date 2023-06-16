@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -60,8 +61,14 @@ func testRepoGenerate(t *testing.T, session *TestSession, templateID, templateOw
 	body := fmt.Sprintf(`# %s Readme
 Owner: %s
 Link: /%s/%s
-Clone URL: http://localhost:3003/%s/%s.git`,
-		generateRepoName, strings.ToUpper(generateOwnerName), generateOwnerName, generateRepoName, generateOwnerName, generateRepoName)
+Clone URL: %s%s/%s.git`,
+		generateRepoName,
+		strings.ToUpper(generateOwnerName),
+		generateOwnerName,
+		generateRepoName,
+		setting.AppURL,
+		generateOwnerName,
+		generateRepoName)
 	assert.Equal(t, body, resp.Body.String())
 
 	// Step6: check substituted values in substituted file path ${REPO_NAME}
