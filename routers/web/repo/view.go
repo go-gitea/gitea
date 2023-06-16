@@ -390,6 +390,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["IsRepresentableAsText"] = isRepresentableAsText
 	ctx.Data["IsDisplayingSource"] = isDisplayingSource
 	ctx.Data["IsDisplayingRendered"] = isDisplayingRendered
+	ctx.Data["IsExecutable"] = entry.IsExecutable()
 
 	isTextSource := fInfo.isTextFile || isDisplayingSource
 	ctx.Data["IsTextSource"] = isTextSource
