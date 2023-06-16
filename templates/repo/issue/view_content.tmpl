@@ -96,15 +96,14 @@
 						{{avatar $.Context .SignedUser 40}}
 					</a>
 					<div class="content">
-						<form class="ui segment form" id="comment-form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/comments" method="post">
+						<form class="ui segment form form-fetch-action" id="comment-form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/comments" method="post">
 							{{template "repo/issue/comment_tab" .}}
 							{{.CsrfTokenHtml}}
-							<input id="status" name="status" type="hidden">
 							<div class="field footer">
 								<div class="text right">
 									{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
 										{{if .Issue.IsClosed}}
-											<button id="status-button" class="ui green basic button" tabindex="6" data-status="{{.locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
+											<button id="status-button" class="ui green basic button" tabindex="6" data-status="{{.locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.reopen_comment_issue"}}" name="status" value="reopen">
 												{{.locale.Tr "repo.issues.reopen_issue"}}
 											</button>
 										{{else}}
@@ -112,12 +111,12 @@
 											{{if .Issue.IsPull}}
 												{{$closeTranslationKey = "repo.pulls.close"}}
 											{{end}}
-											<button id="status-button" class="ui red basic button" tabindex="6" data-status="{{.locale.Tr $closeTranslationKey}}" data-status-and-comment="{{.locale.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
+											<button id="status-button" class="ui red basic button" tabindex="6" data-status="{{.locale.Tr $closeTranslationKey}}" data-status-and-comment="{{.locale.Tr "repo.issues.close_comment_issue"}}" name="status" value="close">
 												{{.locale.Tr $closeTranslationKey}}
 											</button>
 										{{end}}
 									{{end}}
-									<button class="ui green button loading-button" tabindex="5">
+									<button class="ui green button" tabindex="5">
 										{{.locale.Tr "repo.issues.create_comment"}}
 									</button>
 								</div>

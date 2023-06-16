@@ -13,7 +13,7 @@
     </button>
     <div class="menu transition" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
       <div class="ui icon search input">
-        <i class="icon gt-df gt-ac gt-jc gt-m-0"><svg-icon name="octicon-filter" :size="16"/></i>
+        <i class="icon"><svg-icon name="octicon-filter" :size="16"/></i>
         <input name="search" ref="searchField" autocomplete="off" v-model="searchTerm" @keydown="keydown($event)" :placeholder="searchFieldPlaceholder">
       </div>
       <template v-if="showBranchesInDropdown">
