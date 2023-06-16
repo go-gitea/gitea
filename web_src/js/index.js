@@ -83,7 +83,6 @@ import {initGiteaFomantic} from './modules/fomantic.js';
 import {onDomReady} from './utils/dom.js';
 import {initRepoIssueList} from './features/repo-issue-list.js';
 import {initCommonIssueListQuickGoto} from './features/common-issue-list.js';
-import {initActionsEditBtns} from './features/actions.js';
 
 // Init Gitea's Fomantic settings
 initGiteaFomantic();
@@ -180,5 +179,4 @@ onDomReady(() => {
   initRepoDiffView();
   initPdfViewer();
   initScopedAccessTokenCategories();
-  initActionsEditBtns();
 });

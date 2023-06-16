@@ -24,6 +24,7 @@ import {initRepoPullRequestMergeForm} from './repo-issue-pr-form.js';
 import {hideElem, showElem} from '../utils/dom.js';
 import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
 import {attachRefIssueContextPopup} from './contextpopup.js';
+import {initActionsEditBtns} from './actions.js';
 
 const {csrfToken} = window.config;
 
@@ -526,6 +527,7 @@ export function initRepository() {
   initCitationFileCopyContent();
   initRepoCommonLanguageStats();
   initRepoSettingBranches();
+  initActionsEditBtns();
 
   // Issues
   if ($('.repository.view.issue').length > 0) {
