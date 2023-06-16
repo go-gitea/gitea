@@ -370,6 +370,41 @@ export function initGlobalLinkActions() {
   $('.link-action').on('click', linkAction);
 }
 
+function initGlobalShowModal() {
+  // A ".show-modal" button will show a modal dialog defined by its "data-modal" attribute.
+  // Each "data-modal-{id}" attribute will be filled to "#id" element's value or text-content.
+  $('.show-modal').on('click', (e) => {
+    e.preventDefault();
+    const $el = $(e.target);
+    const modalSelector = $el.attr('data-modal');
+    const $modal = $(modalSelector);
+    if (!$modal.length) {
+      throw new Error('no modal for this action');
+    }
+    const modalAttrPrefix = 'data-modal-';
+    for (const attrib of this.attributes) {
+      if (!attrib.name.startsWith(modalAttrPrefix)) {
+        continue;
+      }
+      const attrTargetId = attrib.name.substring(modalAttrPrefix.length);
+      const $attrTarget = $modal.find(`#${attrTargetId}`);
+      if ($attrTarget.is('input') || $attrTarget.is('textarea')) {
+        // FIXME: add more supports like checkbox
+        $attrTarget.val(attrib.value);
+      } else {
+        // FIXME: it should be more strict here, only handle div/span/p
+        $attrTarget.text(attrib.value);
+      }
+    }
+    const colorPickers = $modal.find('.color-picker');
+    if (colorPickers.length > 0) {
+      // FIXME: this might cause duplicate init
+      initCompColorPicker();
+    }
+    $modal.modal('show');
+  });
+}
+
 export function initGlobalButtons() {
   // There are many "cancel button" elements in modal dialogs, Fomantic UI expects they are button-like elements but never submit a form.
   // However, Gitea misuses the modal dialog and put the cancel buttons inside forms, so we must prevent the form submission.
@@ -407,27 +442,7 @@ export function initGlobalButtons() {
     alert('Nothing to hide');
   });
 
-  $('.show-modal').on('click', function (e) {
-    e.preventDefault();
-    const modalDiv = $($(this).attr('data-modal'));
-    for (const attrib of this.attributes) {
-      if (!attrib.name.startsWith('data-modal-')) {
-        continue;
-      }
-      const id = attrib.name.substring(11);
-      const target = modalDiv.find(`#${id}`);
-      if (target.is('input')) {
-        target.val(attrib.value);
-      } else {
-        target.text(attrib.value);
-      }
-    }
-    modalDiv.modal('show');
-    const colorPickers = $($(this).attr('data-modal')).find('.color-picker');
-    if (colorPickers.length > 0) {
-      initCompColorPicker();
-    }
-  });
+  initGlobalShowModal();
 }
 
 /**
