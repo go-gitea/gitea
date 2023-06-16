@@ -152,7 +152,7 @@ func registerCleanupPackages() {
 		OlderThan: 24 * time.Hour,
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		realConfig := config.(*OlderThanConfig)
-		return packages_cleanup_service.Cleanup(ctx, realConfig.OlderThan)
+		return packages_cleanup_service.CleanupTask(ctx, realConfig.OlderThan)
 	})
 }
 
