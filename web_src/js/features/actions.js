@@ -23,29 +23,32 @@ export function initActionsEditBtns() {
       $modal.find('textarea[name=content]').val($btn.attr('data-old-content'));
     }
 
-    $modal.find('.actions .ok.button').off('click').on('click', () => {
-      if (!form.reportValidity()) return false;
+    const url = $(this).attr('data-base-action');
+    $modal.modal({
+      duration: 200,
+      onApprove() {
+        if (!form.reportValidity()) return false;
 
-      (async () => {
-        const url = $(this).attr('data-base-action');
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Csrf-Token': csrfToken,
-          },
-          body: JSON.stringify({
-            title: $modal.find('input[name=title]').val(),
-            content: $modal.find('textarea[name=content]').val(),
-          }),
-        });
-        const data = await res.json();
-        if (data.redirect) window.location.href = data.redirect;
-        else window.location.reload();
-      })();
+        (async () => {
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Csrf-Token': csrfToken,
+            },
+            body: JSON.stringify({
+              title: $modal.find('input[name=title]').val(),
+              content: $modal.find('textarea[name=content]').val(),
+            }),
+          });
+          const data = await res.json();
+          if (data.redirect) window.location.href = data.redirect;
+          else window.location.reload();
+        })();
 
-      return false; // tell fomantic to do not close the modal
-    });
+        return false; // tell fomantic to do not close the modal
+      }
+    }).modal('show');
   });
 }
 
