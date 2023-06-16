@@ -12,8 +12,8 @@ import (
 func CreateVariableTable(x *xorm.Engine) error {
 	type ActionVariable struct {
 		ID          int64              `xorm:"pk autoincr"`
-		OwnerID     int64              `xorm:"INDEX UNIQUE(owner_repo_title)"`
-		RepoID      int64              `xorm:"INDEX UNIQUE(owner_repo_title)"`
+		OwnerID     int64              `xorm:"UNIQUE(owner_repo_title)"`
+		RepoID      int64              `xorm:"UNIQUE(owner_repo_title)"`
 		Title       string             `xorm:"UNIQUE(owner_repo_title) NOT NULL"`
 		Content     string             `xorm:"LONGTEXT NOT NULL"`
 		CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
