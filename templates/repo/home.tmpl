@@ -61,7 +61,7 @@
 			</div>
 		{{end}}
 		{{template "repo/sub_menu" .}}
-		<div class="repo-button-row gt-df gt-ac gt-sb gt-fw">
+		<div class="repo-button-row">
 			<div class="gt-df gt-ac gt-fw gt-gap-y-3">
 				{{template "repo/branch_dropdown" dict "root" . "ContainerClasses" "gt-mr-2"}}
 				{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
@@ -84,8 +84,9 @@
 				{{end}}
 
 				{{if and .CanWriteCode .IsViewBranch (not .Repository.IsArchived)}}
-					<button class="ui basic compact dropdown jump icon button gt-mr-2"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
-						<span class="text">{{.locale.Tr "repo.editor.add_file"}}</span>
+					<button class="ui dropdown basic compact jump button gt-mr-2"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
+						{{.locale.Tr "repo.editor.add_file"}}
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							<a class="item" href="{{.RepoLink}}/_new/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
 								{{.locale.Tr "repo.editor.new_file"}}
@@ -99,7 +100,6 @@
 								{{.locale.Tr "repo.editor.patch"}}
 							</a>
 						</div>
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 					</button>
 				{{end}}
 
