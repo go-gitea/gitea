@@ -36,7 +36,7 @@ jobs:
       - name: sign binaries
         run: |
           for f in dist/release/*; do
-            echo '${{ secrets.GPGSIGN_PASSPHRASE }}' | gpg --pinentry-mode loopback --passphrase-fd 0 --batch --yes --detach-sign -u ${{ steps.import_gpg.outputs.fingerprint }} --output '$f.asc' '$f'
+            echo '${{ secrets.GPGSIGN_PASSPHRASE }}' | gpg --pinentry-mode loopback --passphrase-fd 0 --batch --yes --detach-sign -u ${{ steps.import_gpg.outputs.fingerprint }} --output "$f.asc" "$f"
           done
       # clean branch name to get the folder name in S3
       - name: Get cleaned branch name
