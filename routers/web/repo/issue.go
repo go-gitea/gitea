@@ -1134,12 +1134,12 @@ func NewIssuePost(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplIssueNew)
+		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}
 
 	if util.IsEmptyString(form.Title) {
-		ctx.RenderWithErr(ctx.Tr("repo.issues.new.title_empty"), tplIssueNew, form)
+		ctx.JSONError(ctx.Tr("repo.issues.new.title_empty"))
 		return
 	}
 
@@ -1184,9 +1184,9 @@ func NewIssuePost(ctx *context.Context) {
 
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
 	if ctx.FormString("redirect_after_creation") == "project" && projectID > 0 {
-		ctx.Redirect(ctx.Repo.RepoLink + "/projects/" + strconv.FormatInt(projectID, 10))
+		ctx.JSONRedirect(ctx.Repo.RepoLink + "/projects/" + strconv.FormatInt(projectID, 10))
 	} else {
-		ctx.Redirect(issue.Link())
+		ctx.JSONRedirect(issue.Link())
 	}
 }
 
@@ -2777,8 +2777,7 @@ func NewComment(ctx *context.Context) {
 	}
 
 	if issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
-		ctx.Flash.Error(ctx.Tr("repo.issues.comment_on_locked"))
-		ctx.Redirect(issue.Link())
+		ctx.JSONError(ctx.Tr("repo.issues.comment_on_locked"))
 		return
 	}
 
@@ -2788,8 +2787,7 @@ func NewComment(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
-		ctx.Redirect(issue.Link())
+		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}
 
@@ -2809,8 +2807,7 @@ func NewComment(ctx *context.Context) {
 				pr, err = issues_model.GetUnmergedPullRequest(ctx, pull.HeadRepoID, pull.BaseRepoID, pull.HeadBranch, pull.BaseBranch, pull.Flow)
 				if err != nil {
 					if !issues_model.IsErrPullRequestNotExist(err) {
-						ctx.Flash.Error(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
-						ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, pull.Index))
+						ctx.JSONError(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
 						return
 					}
 				}
@@ -2841,8 +2838,7 @@ func NewComment(ctx *context.Context) {
 				}
 				if ok := git.IsBranchExist(ctx, pull.HeadRepo.RepoPath(), pull.BaseBranch); !ok {
 					// todo localize
-					ctx.Flash.Error("The origin branch is delete, cannot reopen.")
-					ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, pull.Index))
+					ctx.JSONError("The origin branch is delete, cannot reopen.")
 					return
 				}
 				headBranchRef := pull.GetGitHeadBranchRefName()
@@ -2882,11 +2878,9 @@ func NewComment(ctx *context.Context) {
 
 					if issues_model.IsErrDependenciesLeft(err) {
 						if issue.IsPull {
-							ctx.Flash.Error(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
-							ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
+							ctx.JSONError(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
 						} else {
-							ctx.Flash.Error(ctx.Tr("repo.issues.dependency.issue_close_blocked"))
-							ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index))
+							ctx.JSONError(ctx.Tr("repo.issues.dependency.issue_close_blocked"))
 						}
 						return
 					}
@@ -2899,7 +2893,6 @@ func NewComment(ctx *context.Context) {
 					log.Trace("Issue [%d] status changed to closed: %v", issue.ID, issue.IsClosed)
 				}
 			}
-
 		}
 
 		// Redirect to comment hashtag if there is any actual content.
@@ -2908,9 +2901,9 @@ func NewComment(ctx *context.Context) {
 			typeName = "pulls"
 		}
 		if comment != nil {
-			ctx.Redirect(fmt.Sprintf("%s/%s/%d#%s", ctx.Repo.RepoLink, typeName, issue.Index, comment.HashTag()))
+			ctx.JSONRedirect(fmt.Sprintf("%s/%s/%d#%s", ctx.Repo.RepoLink, typeName, issue.Index, comment.HashTag()))
 		} else {
-			ctx.Redirect(fmt.Sprintf("%s/%s/%d", ctx.Repo.RepoLink, typeName, issue.Index))
+			ctx.JSONRedirect(fmt.Sprintf("%s/%s/%d", ctx.Repo.RepoLink, typeName, issue.Index))
 		}
 	}()
 

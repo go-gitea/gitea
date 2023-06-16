@@ -9,7 +9,7 @@ import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
 import {createTippy} from '../modules/tippy.js';
 
-const {appUrl, csrfToken, i18n} = window.config;
+const {appUrl, appSubUrl, csrfToken, i18n} = window.config;
 
 export function initGlobalFormDirtyLeaveConfirm() {
   // Warn users that try to leave a page after entering data into a form.
@@ -61,6 +61,21 @@ export function initGlobalButtonClickOnEnter() {
   });
 }
 
+// doRedirect does real redirection to bypass the browser's limitations of "location"
+// more details are in the backend's fetch-redirect handler
+function doRedirect(redirect) {
+  const form = document.createElement('form');
+  const input = document.createElement('input');
+  form.method = 'post';
+  form.action = `${appSubUrl}/-/fetch-redirect`;
+  input.type = 'hidden';
+  input.name = 'redirect';
+  input.value = redirect;
+  form.append(input);
+  document.body.append(form);
+  form.submit();
+}
+
 async function formFetchAction(e) {
   if (!e.target.classList.contains('form-fetch-action')) return;
 
@@ -101,6 +116,7 @@ async function formFetchAction(e) {
   const onError = (msg) => {
     formEl.classList.remove('is-loading', 'small-loading-icon');
     if (errorTippy) errorTippy.destroy();
+    // TODO: use a better toast UI instead of the tippy. If the form height is large, the tippy position is not good
     errorTippy = createTippy(formEl, {
       content: msg,
       interactive: true,
@@ -120,15 +136,21 @@ async function formFetchAction(e) {
         const {redirect} = await resp.json();
         formEl.classList.remove('dirty'); // remove the areYouSure check before reloading
         if (redirect) {
-          window.location.href = redirect;
+          doRedirect(redirect);
         } else {
           window.location.reload();
         }
+      } else if (resp.status >= 400 && resp.status < 500) {
+        const data = await resp.json();
+        // the code was quite messy, sometimes the backend uses "err", sometimes it uses "error", and even "user_error"
+        // but at the moment, as a new approach, we only use "errorMessage" here, backend can use JSONError() to respond.
+        onError(data.errorMessage || `server error: ${resp.status}`);
       } else {
         onError(`server error: ${resp.status}`);
       }
     } catch (e) {
-      onError(e.error);
+      console.error('error when doRequest', e);
+      onError(i18n.network_error);
     }
   };
 
@@ -182,14 +204,6 @@ export function initGlobalCommon() {
   $('.ui.checkbox').checkbox();
 
   $('.tabular.menu .item').tab();
-
-  // prevent multiple form submissions on forms containing .loading-button
-  document.addEventListener('submit', (e) => {
-    const btn = e.target.querySelector('.loading-button');
-    if (!btn) return;
-    if (btn.classList.contains('loading')) return e.preventDefault();
-    btn.classList.add('loading');
-  });
 
   document.addEventListener('submit', formFetchAction);
 }
