@@ -29,6 +29,7 @@
 			{{$previousExclusiveScope := "_no_scope"}}
 			{{range .OrgLabels}}
 				{{$exclusiveScope := .ExclusiveScope}}
+				<!-- if (eq $previousExclusiveScope "_no_scope"), it means it is the first label of  OrgLabels, add divider here no matter what -->
 				{{if or (eq $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
 					{{$dividerIndex = Eval $dividerIndex "+" 1}}
 					<div class="ui divider" data-divider-index="{{$dividerIndex}}"></div>
