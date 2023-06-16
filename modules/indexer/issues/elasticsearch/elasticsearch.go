@@ -68,7 +68,7 @@ const (
 )
 
 // Index will save the index data
-func (b *Indexer) Index(ctx context.Context, issues []*internal.IndexerData) error {
+func (b *Indexer) Index(ctx context.Context, issues ...*internal.IndexerData) error {
 	if len(issues) == 0 {
 		return nil
 	} else if len(issues) == 1 {

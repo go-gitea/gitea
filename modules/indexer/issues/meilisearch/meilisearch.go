@@ -38,7 +38,7 @@ func NewIndexer(url, apiKey, indexerName string) *Indexer {
 }
 
 // Index will save the index data
-func (b *Indexer) Index(_ context.Context, issues []*internal.IndexerData) error {
+func (b *Indexer) Index(_ context.Context, issues ...*internal.IndexerData) error {
 	if len(issues) == 0 {
 		return nil
 	}

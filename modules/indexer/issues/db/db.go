@@ -26,7 +26,7 @@ func NewIndexer() *Indexer {
 }
 
 // Index dummy function
-func (i *Indexer) Index(_ context.Context, _ []*internal.IndexerData) error {
+func (i *Indexer) Index(_ context.Context, _ ...*internal.IndexerData) error {
 	return nil
 }
 

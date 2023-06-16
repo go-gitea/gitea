@@ -26,9 +26,24 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+// IndexerMetadata is used to send data to the queue, so it contains only the ids.
+// It may look weired, because it has to be compatible with the old queue data format.
+// If the IsDelete flag is true, the IDs specify the issues to delete from the index without querying the database.
+// If the IsDelete flag is false, the ID specify the issue to index, so Indexer will query the database to get the issue data.
+// It should be noted that if the id is not existing in the database, it's index will be deleted too even if IsDelete is false.
+// Valid values:
+//   - IsDelete = true, IDs = [1, 2, 3], and ID will be ignored
+//   - IsDelete = false, ID = 1, and IDs will be ignored
+type IndexerMetadata struct {
+	ID int64 `json:"id"`
+
+	IsDelete bool    `json:"is_delete"`
+	IDs      []int64 `json:"ids"`
+}
+
 var (
 	// issueIndexerQueue queue of issue ids to be updated
-	issueIndexerQueue *queue.WorkerPoolQueue[*internal.IndexerData]
+	issueIndexerQueue *queue.WorkerPoolQueue[*IndexerMetadata]
 	// globalIndexer is the global indexer, it cannot be nil.
 	// When the real indexer is not ready, it will be a dummy indexer which will return error to explain it's not ready.
 	// So it's always safe use it as *globalIndexer.Load() and call its methods.
@@ -52,24 +67,37 @@ func InitIssueIndexer(syncReindex bool) {
 	// Create the Queue
 	switch setting.Indexer.IssueType {
 	case "bleve", "elasticsearch", "meilisearch":
-		handler := func(items ...*internal.IndexerData) (unhandled []*internal.IndexerData) {
+		handler := func(items ...*IndexerMetadata) (unhandled []*IndexerMetadata) {
 			indexer := *globalIndexer.Load()
-			toIndex := make([]*internal.IndexerData, 0, len(items))
-			for _, indexerData := range items {
-				log.Trace("IndexerData Process: %d %v %t", indexerData.ID, indexerData.IDs, indexerData.IsDelete)
-				if indexerData.IsDelete {
-					if err := indexer.Delete(ctx, indexerData.IDs...); err != nil {
-						log.Error("Issue indexer handler: failed to from index: %v Error: %v", indexerData.IDs, err)
-						unhandled = append(unhandled, indexerData)
+			for _, item := range items {
+				log.Trace("IndexerMetadata Process: %d %v %t", item.ID, item.IDs, item.IsDelete)
+				if item.IsDelete {
+					if err := indexer.Delete(ctx, item.IDs...); err != nil {
+						log.Error("Issue indexer handler: failed to from index: %v Error: %v", item.IDs, err)
+						unhandled = append(unhandled, item)
 					}
 					continue
 				}
-				toIndex = append(toIndex, indexerData)
+				data, existed, err := getIssueIndexerData(ctx, item.ID)
+				if err != nil {
+					log.Error("Issue indexer handler: failed to get issue data of %d: %v", item.ID, err)
+					unhandled = append(unhandled, item)
+					continue
+				}
+				if !existed {
+					if err := indexer.Delete(ctx, item.ID); err != nil {
+						log.Error("Issue indexer handler: failed to delete issue %d from index: %v", item.ID, err)
+						unhandled = append(unhandled, item)
+					}
+					continue
+				}
+				if err := indexer.Index(ctx, data); err != nil {
+					log.Error("Issue indexer handler: failed to index issue %d: %v", item.ID, err)
+					unhandled = append(unhandled, item)
+					continue
+				}
 			}
-			if err := indexer.Index(ctx, toIndex); err != nil {
-				log.Error("Error whilst indexing: %v Error: %v", toIndex, err)
-				unhandled = append(unhandled, toIndex...)
-			}
+
 			return unhandled
 		}
 
@@ -79,7 +107,7 @@ func InitIssueIndexer(syncReindex bool) {
 			log.Fatal("Unable to create issue indexer queue")
 		}
 	default:
-		issueIndexerQueue = queue.CreateSimpleQueue[*internal.IndexerData](ctx, "issue_indexer", nil)
+		issueIndexerQueue = queue.CreateSimpleQueue[*IndexerMetadata](ctx, "issue_indexer", nil)
 	}
 
 	graceful.GetManager().RunAtTerminate(finished)
@@ -236,28 +264,8 @@ func UpdateRepoIndexer(ctx context.Context, repo *repo_model.Repository) {
 
 // UpdateIssueIndexer add/update an issue to the issue indexer
 func UpdateIssueIndexer(issue *issues_model.Issue) {
-	var comments []string
-	for _, comment := range issue.Comments {
-		if comment.Type == issues_model.CommentTypeComment {
-			comments = append(comments, comment.Content)
-		}
-	}
-	issueType := "issue"
-	if issue.IsPull {
-		issueType = "pull"
-	}
-	indexerData := &internal.IndexerData{
-		ID:        issue.ID,
-		RepoID:    issue.RepoID,
-		State:     string(issue.State()),
-		IssueType: issueType,
-		Title:     issue.Title,
-		Content:   issue.Content,
-		Comments:  comments,
-	}
-	log.Debug("Adding to channel: %v", indexerData)
-	if err := issueIndexerQueue.Push(indexerData); err != nil {
-		log.Error("Unable to push to issue indexer: %v: Error: %v", indexerData, err)
+	if err := issueIndexerQueue.Push(&IndexerMetadata{ID: issue.ID}); err != nil {
+		log.Error("Unable to push to issue indexer: %v: Error: %v", issue.ID, err)
 	}
 }
 
@@ -273,7 +281,7 @@ func DeleteRepoIssueIndexer(ctx context.Context, repo *repo_model.Repository) {
 	if len(ids) == 0 {
 		return
 	}
-	indexerData := &internal.IndexerData{
+	indexerData := &IndexerMetadata{
 		IDs:      ids,
 		IsDelete: true,
 	}
