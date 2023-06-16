@@ -355,20 +355,22 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 			return fmt.Errorf("setDefaultBranch: %w", err)
 		}
 
-		commit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
-		if err != nil {
-			return fmt.Errorf("getBranchCommit: %w", err)
-		}
+		if !repo.IsEmpty {
+			commit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
+			if err != nil {
+				return fmt.Errorf("getBranchCommit: %w", err)
+			}
 
-		if err := db.Insert(ctx, &git_model.Branch{
-			Name:          repo.DefaultBranch,
-			RepoID:        repo.ID,
-			CommitSHA:     commit.ID.String(),
-			CommitMessage: commit.CommitMessage,
-			CommitTime:    timeutil.TimeStamp(commit.Committer.When.Unix()),
-			PusherID:      u.ID,
-		}); err != nil {
-			return fmt.Errorf("insert default branch for repo %d: %w", repo.ID, err)
+			if err := db.Insert(ctx, &git_model.Branch{
+				Name:          repo.DefaultBranch,
+				RepoID:        repo.ID,
+				CommitSHA:     commit.ID.String(),
+				CommitMessage: commit.CommitMessage,
+				CommitTime:    timeutil.TimeStamp(commit.Committer.When.Unix()),
+				PusherID:      u.ID,
+			}); err != nil {
+				return fmt.Errorf("insert default branch for repo %d: %w", repo.ID, err)
+			}
 		}
 	}
 
