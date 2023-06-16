@@ -35,9 +35,9 @@ func MockContext(t *testing.T, path string) *context.Context {
 		URL:  requestURL,
 		Form: url.Values{},
 	}
-
+	req = req.WithContext(middleware.WithContextData(req.Context()))
 	base, baseCleanUp := context.NewBaseContext(resp, req)
-	base.Data = middleware.ContextData{}
+	base.Data = middleware.GetContextData(req.Context())
 	base.Locale = &translation.MockLocale{}
 	ctx := &context.Context{
 		Base:   base,
@@ -61,9 +61,9 @@ func MockAPIContext(t *testing.T, path string) *context.APIContext {
 		URL:  requestURL,
 		Form: url.Values{},
 	}
-
+	req = req.WithContext(middleware.WithContextData(req.Context()))
 	base, baseCleanUp := context.NewBaseContext(resp, req)
-	base.Data = middleware.ContextData{}
+	base.Data = middleware.GetContextData(req.Context())
 	base.Locale = &translation.MockLocale{}
 	ctx := &context.APIContext{Base: base}
 	_ = baseCleanUp // during test, it doesn't need to do clean up. TODO: this can be improved later
