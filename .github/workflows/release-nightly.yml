@@ -44,7 +44,7 @@ jobs:
         run: |
           REF_NAME=$(echo "${{ github.ref }}" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\///' -e 's/release\/v//')
           echo "Cleaned name is ${REF_NAME}"
-          echo "branch=${REF_NAME}" >> $GITHUB_OUTPUT
+          echo "branch=${REF_NAME}" >> "$GITHUB_OUTPUT"
       - name: upload binaries to s3
         uses: jakejarvis/s3-sync-action@master
         env:
