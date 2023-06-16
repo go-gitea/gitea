@@ -14,17 +14,7 @@
   margin-left: auto;
 }
 
-@media (max-width: 575.98px) {
-  .issue-list-navbar {
-    order: 0;
-  }
-  .issue-list-new {
-    order: 1;
-    margin-left: auto !important;
-  }
-  .issue-list-search {
-    order: 2;
-  }
+@media (max-width: 767.98px) {
   .issue-list-toolbar {
     flex-direction: column-reverse;
   }

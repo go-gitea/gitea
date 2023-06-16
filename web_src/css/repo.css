@@ -87,6 +87,12 @@
   }
 }
 
+.projects-toolbar {
+  display: flex;
+  justify-content: space-between;
+  padding-left: 4px;
+}
+
 .repository .issue-content-right .menu {
   overflow-x: auto;
   max-height: 500px;
@@ -229,6 +235,7 @@
   .repository.file.list .repo-description {
     flex-direction: column;
     gap: 8px;
+    align-items: normal;
   }
 }
 
@@ -1192,21 +1199,27 @@
   height: 16px;
 }
 
-.repository .milestone.list > .item .meta {
-  color: var(--color-text-light-2);
+.repository .milestone.list > .item .body {
   padding-top: 5px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
 }
 
-.repository .milestone.list > .item .meta .issue-stats .svg {
-  padding-left: 5px;
+.repository .milestone.list > .item .meta {
+  color: var(--color-text-light-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.repository .milestone.list > .item .meta .svg {
+  margin-right: .5rem;
 }
 
 .repository .milestone.list > .item .meta .overdue {
   color: var(--color-red);
-}
-
-.repository .milestone.list > .item .operate {
-  margin-top: -15px;
 }
 
 .repository .milestone.list > .item .operate > a {
@@ -1220,8 +1233,20 @@
   color: var(--color-text);
 }
 
+.repository .milestone.list > .item .operate > a .svg {
+  margin-right: .5rem;
+}
+
 .repository .milestone.list > .item .content {
   padding-top: 10px;
+}
+
+@media (max-width: 767.98px) {
+  .repository .milestone.list > .item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
 }
 
 .repository.new.milestone textarea {
