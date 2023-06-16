@@ -358,10 +358,11 @@ func SyncRepoBranches(ctx context.Context, repo *repo_model.Repository, doerID i
 			return err
 		}
 		log.Trace("SyncRepoBranches: branches[%d]: %v", page, branches)
-		if len(branches) == 0 {
+
+		allBranches = append(allBranches, branches...)
+		if len(branches) < limit {
 			break
 		}
-		allBranches = append(allBranches, branches...)
 	}
 
 	dbBranches, err := git_model.LoadAllBranches(ctx, repo.ID)
