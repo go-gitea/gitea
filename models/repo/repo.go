@@ -199,8 +199,34 @@ func (repo *Repository) SanitizedOriginalURL() string {
 	return u.String()
 }
 
+type SizeDetail struct {
+	Name string
+	Size int64
+}
+
+// SizeDetails forms a struct with various size details about repository
+func (repo *Repository) SizeDetails() []SizeDetail {
+	sizeDetails := []SizeDetail{
+		{
+			Name: "git",
+			Size: repo.GitSize,
+		},
+		{
+			Name: "lfs",
+			Size: repo.LFSSize,
+		},
+	}
+	return sizeDetails
+}
+
+// SizeDetailsString returns a concatenation of all repository size details as a string
 func (repo *Repository) SizeDetailsString() string {
-	return fmt.Sprintf("git: " + base.FileSize(repo.GitSize) + ", lfs: " + base.FileSize(repo.LFSSize))
+	var str strings.Builder
+	sizeDetails := repo.SizeDetails()
+	for _, detail := range sizeDetails {
+		str.WriteString(fmt.Sprintf("%s: %s, ", detail.Name, base.FileSize(detail.Size)))
+	}
+	return strings.TrimSuffix(str.String(), ", ")
 }
 
 func (repo *Repository) LogString() string {
