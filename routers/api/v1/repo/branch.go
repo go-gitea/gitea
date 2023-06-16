@@ -76,7 +76,7 @@ func GetBranch(ctx *context.APIContext) {
 		return
 	}
 
-	br, err := convert.ToBranch(ctx, ctx.Repo.Repository, branch, c, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
+	br, err := convert.ToBranch(ctx, ctx.Repo.Repository, branch.Name, c, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "convert.ToBranch", err)
 		return
@@ -236,7 +236,7 @@ func CreateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	br, err := convert.ToBranch(ctx, ctx.Repo.Repository, branch, commit, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
+	br, err := convert.ToBranch(ctx, ctx.Repo.Repository, branch.Name, commit, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "convert.ToBranch", err)
 		return
@@ -287,8 +287,9 @@ func ListBranches(ctx *context.APIContext) {
 			return
 		}
 
-		skip, _ := listOptions.GetStartEnd()
-		branches, total, err := ctx.Repo.GitRepo.GetBranches(skip, listOptions.PageSize)
+		branches, total, err := git_model.FindBranches(ctx, git_model.FindBranchOptions{
+			ListOptions: listOptions,
+		})
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetBranches", err)
 			return
@@ -296,7 +297,7 @@ func ListBranches(ctx *context.APIContext) {
 
 		apiBranches = make([]*api.Branch, 0, len(branches))
 		for i := range branches {
-			c, err := branches[i].GetCommit()
+			c, err := ctx.Repo.GitRepo.GetBranchCommit(branches[i].Name)
 			if err != nil {
 				// Skip if this branch doesn't exist anymore.
 				if git.IsErrNotExist(err) {
@@ -308,7 +309,7 @@ func ListBranches(ctx *context.APIContext) {
 			}
 
 			branchProtection := rules.GetFirstMatched(branches[i].Name)
-			apiBranch, err := convert.ToBranch(ctx, ctx.Repo.Repository, branches[i], c, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
+			apiBranch, err := convert.ToBranch(ctx, ctx.Repo.Repository, branches[i].Name, c, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "convert.ToBranch", err)
 				return
@@ -316,7 +317,7 @@ func ListBranches(ctx *context.APIContext) {
 			apiBranches = append(apiBranches, apiBranch)
 		}
 
-		totalNumOfBranches = total
+		totalNumOfBranches = int(total)
 	}
 
 	ctx.SetLinkHeader(totalNumOfBranches, listOptions.PageSize)
