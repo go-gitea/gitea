@@ -76,6 +76,18 @@ export default {
     ...themes,
   },
   devtool: false,
+  devServer: {
+    static: {
+      directory: fileURLToPath(new URL('public', import.meta.url)),
+    },
+    client: {
+      logging: 'error',
+      overlay: false,
+      reconnect: false,
+    },
+    hot: true,
+    port: parseInt(env.GITEA_DEV_FRONTEND_PORT) || 3001,
+  },
   output: {
     path: fileURLToPath(new URL('public', import.meta.url)),
     filename: () => 'js/[name].js',
