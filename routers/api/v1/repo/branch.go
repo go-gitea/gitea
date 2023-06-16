@@ -203,14 +203,14 @@ func CreateBranch(ctx *context.APIContext) {
 
 	err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, oldCommit.ID.String(), opt.BranchName)
 	if err != nil {
-		if models.IsErrBranchDoesNotExist(err) {
+		if git_model.IsErrBranchDoesNotExist(err) {
 			ctx.Error(http.StatusNotFound, "", "The old branch does not exist")
 		}
 		if models.IsErrTagAlreadyExists(err) {
 			ctx.Error(http.StatusConflict, "", "The branch with the same tag already exists.")
-		} else if models.IsErrBranchAlreadyExists(err) || git.IsErrPushOutOfDate(err) {
+		} else if git_model.IsErrBranchAlreadyExists(err) || git.IsErrPushOutOfDate(err) {
 			ctx.Error(http.StatusConflict, "", "The branch already exists.")
-		} else if models.IsErrBranchNameConflict(err) {
+		} else if git_model.IsErrBranchNameConflict(err) {
 			ctx.Error(http.StatusConflict, "", "The branch with the same name already exists.")
 		} else {
 			ctx.Error(http.StatusInternalServerError, "CreateNewBranchFromCommit", err)

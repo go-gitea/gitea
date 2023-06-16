@@ -191,13 +191,13 @@ func CreateBranch(ctx *context.Context) {
 			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
 			return
 		}
-		if models.IsErrBranchAlreadyExists(err) || git.IsErrPushOutOfDate(err) {
+		if git_model.IsErrBranchAlreadyExists(err) || git.IsErrPushOutOfDate(err) {
 			ctx.Flash.Error(ctx.Tr("repo.branch.branch_already_exists", form.NewBranchName))
 			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
 			return
 		}
-		if models.IsErrBranchNameConflict(err) {
-			e := err.(models.ErrBranchNameConflict)
+		if git_model.IsErrBranchNameConflict(err) {
+			e := err.(git_model.ErrBranchNameConflict)
 			ctx.Flash.Error(ctx.Tr("repo.branch.branch_name_conflict", form.NewBranchName, e.BranchName))
 			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
 			return

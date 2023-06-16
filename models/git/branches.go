@@ -14,7 +14,86 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
+
+// ErrBranchDoesNotExist represents an error that branch with such name does not exist.
+type ErrBranchDoesNotExist struct {
+	RepoID     int64
+	BranchName string
+}
+
+// IsErrBranchDoesNotExist checks if an error is an ErrBranchDoesNotExist.
+func IsErrBranchDoesNotExist(err error) bool {
+	_, ok := err.(ErrBranchDoesNotExist)
+	return ok
+}
+
+func (err ErrBranchDoesNotExist) Error() string {
+	return fmt.Sprintf("branch does not exist [repo_id: %d name: %s]", err.RepoID, err.BranchName)
+}
+
+func (err ErrBranchDoesNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
+// ErrBranchAlreadyExists represents an error that branch with such name already exists.
+type ErrBranchAlreadyExists struct {
+	BranchName string
+}
+
+// IsErrBranchAlreadyExists checks if an error is an ErrBranchAlreadyExists.
+func IsErrBranchAlreadyExists(err error) bool {
+	_, ok := err.(ErrBranchAlreadyExists)
+	return ok
+}
+
+func (err ErrBranchAlreadyExists) Error() string {
+	return fmt.Sprintf("branch already exists [name: %s]", err.BranchName)
+}
+
+func (err ErrBranchAlreadyExists) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
+// ErrBranchNameConflict represents an error that branch name conflicts with other branch.
+type ErrBranchNameConflict struct {
+	BranchName string
+}
+
+// IsErrBranchNameConflict checks if an error is an ErrBranchNameConflict.
+func IsErrBranchNameConflict(err error) bool {
+	_, ok := err.(ErrBranchNameConflict)
+	return ok
+}
+
+func (err ErrBranchNameConflict) Error() string {
+	return fmt.Sprintf("branch conflicts with existing branch [name: %s]", err.BranchName)
+}
+
+func (err ErrBranchNameConflict) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
+// ErrBranchesEqual represents an error that branch name conflicts with other branch.
+type ErrBranchesEqual struct {
+	BaseBranchName string
+	HeadBranchName string
+}
+
+// IsErrBranchesEqual checks if an error is an ErrBranchesEqual.
+func IsErrBranchesEqual(err error) bool {
+	_, ok := err.(ErrBranchesEqual)
+	return ok
+}
+
+func (err ErrBranchesEqual) Error() string {
+	return fmt.Sprintf("branches are equal [head: %sm base: %s]", err.HeadBranchName, err.BaseBranchName)
+}
+
+func (err ErrBranchesEqual) Unwrap() error {
+	return util.ErrInvalidArgument
+}
 
 // Branch represents a branch of a repository
 // For those repository who have many branches, stored into database is a good choice
@@ -47,13 +126,13 @@ func init() {
 	db.RegisterModel(new(RenamedBranch))
 }
 
-func GetDefaultBranch(ctx context.Context, repo *repo_model.Repository) (*Branch, error) {
+func GetBranch(ctx context.Context, repoID int64, branchName string) (*Branch, error) {
 	var branch Branch
-	has, err := db.GetEngine(ctx).Where("repo_id=?", repo.ID).And("name=?", repo.DefaultBranch).Get(&branch)
+	has, err := db.GetEngine(ctx).Where("repo_id=?", repoID).And("name=?", branchName).Get(&branch)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, git.ErrBranchNotExist{Name: repo.DefaultBranch}
+		return nil, git.ErrBranchNotExist{Name: branchName}
 	}
 	return &branch, nil
 }
@@ -218,8 +297,10 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 	}); err != nil {
 		return err
 	} else if n <= 0 {
-		// branch does not exist in the database, so we think branch is not existed
-		return nil
+		return ErrBranchDoesNotExist{
+			RepoID:     repo.ID,
+			BranchName: from,
+		}
 	}
 
 	// 2. update default branch if needed

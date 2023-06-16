@@ -32,7 +32,7 @@ func CreateNewBranch(ctx context.Context, doer *user_model.User, repo *repo_mode
 	}
 
 	if !git.IsBranchExist(ctx, repo.RepoPath(), oldBranchName) {
-		return models.ErrBranchDoesNotExist{
+		return git_model.ErrBranchDoesNotExist{
 			BranchName: oldBranchName,
 		}
 	}
@@ -64,7 +64,7 @@ type Branch struct {
 
 // LoadBranches loads branches from the repository limited by page & pageSize.
 func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, isDeletedBranch util.OptionalBool, page, pageSize int) (*Branch, []*Branch, int64, error) {
-	defaultRawBranch, err := git_model.GetDefaultBranch(ctx, repo)
+	defaultRawBranch, err := git_model.GetBranch(ctx, repo.ID, repo.DefaultBranch)
 	if err != nil {
 		return nil, nil, 0, err
 	}
@@ -205,17 +205,17 @@ func checkBranchName(ctx context.Context, repo *repo_model.Repository, name stri
 		branchRefName := strings.TrimPrefix(refName, git.BranchPrefix)
 		switch {
 		case branchRefName == name:
-			return models.ErrBranchAlreadyExists{
+			return git_model.ErrBranchAlreadyExists{
 				BranchName: name,
 			}
 		// If branchRefName like a/b but we want to create a branch named a then we have a conflict
 		case strings.HasPrefix(branchRefName, name+"/"):
-			return models.ErrBranchNameConflict{
+			return git_model.ErrBranchNameConflict{
 				BranchName: branchRefName,
 			}
 			// Conversely if branchRefName like a but we want to create a branch named a/b then we also have a conflict
 		case strings.HasPrefix(name, branchRefName+"/"):
-			return models.ErrBranchNameConflict{
+			return git_model.ErrBranchNameConflict{
 				BranchName: branchRefName,
 			}
 		case refName == git.TagPrefix+name:
