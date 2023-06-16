@@ -183,6 +183,8 @@ func NormalRoutes(ctx context.Context) *web.Route {
 	r.Mount("/api/v1", apiv1.Routes(ctx))
 	r.Mount("/api/internal", private.Routes())
 
+	r.Post("/-/fetch-redirect", common.FetchRedirectDelegate)
+
 	if setting.Packages.Enabled {
 		// This implements package support for most package managers
 		r.Mount("/api/packages", packages_router.CommonRoutes(ctx))
