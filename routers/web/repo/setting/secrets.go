@@ -95,9 +95,7 @@ func SecretsPost(ctx *context.Context) {
 
 	if ctx.HasError() {
 		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
-		ctx.JSON(http.StatusOK, map[string]interface{}{
-			"redirect": sCtx.RedirectLink,
-		})
+		ctx.JSONRedirect(sCtx.RedirectLink)
 		return
 	}
 

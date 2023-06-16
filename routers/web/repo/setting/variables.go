@@ -88,9 +88,7 @@ func VariableCreate(ctx *context.Context) {
 
 	if ctx.HasError() { // form binding validation error
 		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
-		ctx.JSON(http.StatusOK, map[string]interface{}{
-			"redirect": vCtx.RedirectLink,
-		})
+		ctx.JSONRedirect(vCtx.RedirectLink)
 		return
 	}
 
@@ -106,9 +104,7 @@ func VariableUpdate(ctx *context.Context) {
 
 	if ctx.HasError() { // form binding validation error
 		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
-		ctx.JSON(http.StatusOK, map[string]interface{}{
-			"redirect": vCtx.RedirectLink,
-		})
+		ctx.JSONRedirect(vCtx.RedirectLink)
 		return
 	}
 

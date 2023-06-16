@@ -4,8 +4,6 @@
 package secrets
 
 import (
-	"net/http"
-
 	"code.gitea.io/gitea/models/db"
 	secret_model "code.gitea.io/gitea/models/secret"
 	"code.gitea.io/gitea/modules/context"
@@ -30,9 +28,7 @@ func PerformSecretsPost(ctx *context.Context, ownerID, repoID int64, redirectURL
 
 	if err := actions.TitleRegexMatch(ctx, form.Title, redirectURL); err != nil {
 		ctx.Flash.Error(ctx.Tr("secrets.creation.failed"))
-		ctx.JSON(http.StatusOK, map[string]interface{}{
-			"redirect": redirectURL,
-		})
+		ctx.JSONRedirect(redirectURL)
 		return
 	}
 
@@ -44,9 +40,7 @@ func PerformSecretsPost(ctx *context.Context, ownerID, repoID int64, redirectURL
 		ctx.Flash.Success(ctx.Tr("secrets.creation.success", s.Name))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": redirectURL,
-	})
+	ctx.JSONRedirect(redirectURL)
 }
 
 func PerformSecretsDelete(ctx *context.Context, ownerID, repoID int64, redirectURL string) {
@@ -59,7 +53,5 @@ func PerformSecretsDelete(ctx *context.Context, ownerID, repoID int64, redirectU
 		ctx.Flash.Success(ctx.Tr("secrets.deletion.success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": redirectURL,
-	})
+	ctx.JSONRedirect(redirectURL)
 }

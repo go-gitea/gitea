@@ -5,7 +5,6 @@ package actions
 
 import (
 	"errors"
-	"net/http"
 	"regexp"
 	"strings"
 
@@ -51,9 +50,7 @@ func CreateVariable(ctx *context.Context, ownerID, repoID int64, redirectURL str
 
 	if err := TitleRegexMatch(ctx, form.Title, redirectURL); err != nil {
 		ctx.Flash.Error(ctx.Tr("actions.variables.creation.failed"))
-		ctx.JSON(http.StatusOK, map[string]interface{}{
-			"redirect": redirectURL,
-		})
+		ctx.JSONRedirect(redirectURL)
 		return
 	}
 
@@ -64,9 +61,7 @@ func CreateVariable(ctx *context.Context, ownerID, repoID int64, redirectURL str
 	} else {
 		ctx.Flash.Success(ctx.Tr("actions.variables.creation.success", v.Title))
 	}
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": redirectURL,
-	})
+	ctx.JSONRedirect(redirectURL)
 }
 
 func UpdateVariable(ctx *context.Context, redirectURL string) {
@@ -75,9 +70,7 @@ func UpdateVariable(ctx *context.Context, redirectURL string) {
 
 	if err := TitleRegexMatch(ctx, form.Title, redirectURL); err != nil {
 		ctx.Flash.Error(ctx.Tr("actions.variables.creation.failed"))
-		ctx.JSON(http.StatusOK, map[string]interface{}{
-			"redirect": redirectURL,
-		})
+		ctx.JSONRedirect(redirectURL)
 		return
 	}
 
@@ -92,9 +85,7 @@ func UpdateVariable(ctx *context.Context, redirectURL string) {
 	} else {
 		ctx.Flash.Success(ctx.Tr("actions.variables.update.success"))
 	}
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": redirectURL,
-	})
+	ctx.JSONRedirect(redirectURL)
 }
 
 func DeleteVariable(ctx *context.Context, redirectURL string) {
@@ -107,9 +98,7 @@ func DeleteVariable(ctx *context.Context, redirectURL string) {
 		ctx.Flash.Success(ctx.Tr("actions.variables.deletion.success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": redirectURL,
-	})
+	ctx.JSONRedirect(redirectURL)
 }
 
 func ReserveLineBreakForTextarea(input string) string {

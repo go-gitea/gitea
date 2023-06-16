@@ -35,8 +35,9 @@
 				>
 					{{svg "octicon-pencil"}}
 				</button>
-				<button class="ui btn interact-bg delete-button gt-p-3"
+				<button class="ui btn interact-bg delete-button link-action gt-p-3"
 					data-url="{{$.Link}}/{{$v.ID}}/delete"
+					data-modal-confirm="{{$.locale.Tr "actions.variables.deletion.description"}}"
 					data-tooltip-content="{{$.locale.Tr "actions.variables.delete" $v.Content}}"
 				>
 					{{svg "octicon-trash"}}
@@ -84,14 +85,3 @@
 	</form>
 </div>
 
-{{/** Delete variable confirm dialog */}}
-<div class="ui g-modal-confirm delete modal">
-	<div class="header">
-		{{svg "octicon-trash"}}
-		{{.locale.Tr "actions.variables.deletion"}}
-	</div>
-	<div class="content">
-		<p>{{.locale.Tr "actions.variables.deletion.description"}}</p>
-	</div>
-	{{template "base/modal_actions_confirm" .}}
-</div>
