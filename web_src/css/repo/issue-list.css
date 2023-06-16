@@ -16,13 +16,20 @@
 
 @media (max-width: 575.98px) {
   .issue-list-navbar {
-    order: 1
+    order: 0;
   }
   .issue-list-new {
-    order: 2;
+    order: 1;
     margin-left: auto !important;
   }
   .issue-list-search {
-    order: 3
+    order: 2;
+  }
+  .issue-list-toolbar {
+    flex-direction: column-reverse;
+  }
+  .issue-list-toolbar-right {
+    margin-right: auto;
+    width: 100%;
   }
 }
