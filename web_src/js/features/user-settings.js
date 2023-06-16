@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import { hideElem, showElem } from '../utils/dom.js';
+import {hideElem, showElem} from '../utils/dom.js';
 import {initActionsEditBtns} from './actions.js';
 
 export function initUserSettings() {
