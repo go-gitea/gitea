@@ -1,7 +1,7 @@
 <h4 class="ui top attached header">
 	{{.locale.Tr "actions.variables.management"}}
 	<div class="ui right">
-		<button class="ui primary tiny show-modal show-variable-edit-modal button"
+		<button class="ui primary tiny show-variable-edit-modal button"
 			data-is-new="true"
 			data-base-action="{{.Link}}/new"
 			data-modal="#edit-variable-modal"
@@ -24,7 +24,7 @@
 				<span class="color-text-light-2 gt-mr-5">
 					{{$.locale.Tr "settings.added_on" (DateTime "short" $v.CreatedUnix) | Safe}}
 				</span>
-				<button class="ui btn interact-bg show-modal show-variable-edit-modal gt-p-3"
+				<button class="ui btn interact-bg show-variable-edit-modal gt-p-3"
 					data-is-new="false"
 					data-old-title="{{$v.Title}}"
 					data-old-content="{{$v.Content}}"
