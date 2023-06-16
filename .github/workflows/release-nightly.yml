@@ -3,7 +3,6 @@ name: release-nightly-assets
 on:
   push:
     branches: [ main, release/v1.* ]
-  pull_request:
 
 jobs:
   nightly-binary:
