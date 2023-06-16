@@ -24,7 +24,7 @@
 				<span class="color-text-light-2 gt-mr-5">
 					{{$.locale.Tr "settings.added_on" (DateTime "short" $v.CreatedUnix) | Safe}}
 				</span>
-				<button class="ui button button-ghost show-modal show-variable-edit-modal gt-p-3"
+				<button class="ui btn interact-bg show-modal show-variable-edit-modal gt-p-3"
 					data-is-new="false"
 					data-old-title="{{$v.Title}}"
 					data-old-content="{{$v.Content}}"
@@ -35,7 +35,7 @@
 				>
 					{{svg "octicon-pencil"}}
 				</button>
-				<button class="ui button button-ghost delete-button gt-p-3"
+				<button class="ui btn interact-bg delete-button gt-p-3"
 					data-url="{{$.Link}}/{{$v.ID}}/delete"
 					data-tooltip-content="{{$.locale.Tr "actions.variables.delete" $v.Content}}"
 				>
