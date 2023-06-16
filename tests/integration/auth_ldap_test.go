@@ -273,6 +273,7 @@ func TestLDAPUserSyncWithEmptyUsernameAttribute(t *testing.T) {
 		t.Skip()
 		return
 	}
+	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
 	csrf := GetCSRF(t, session, "/admin/auths/new")
@@ -289,6 +290,24 @@ func TestLDAPUserSyncWithEmptyUsernameAttribute(t *testing.T) {
 
 		tr := htmlDoc.doc.Find("table.table tbody tr")
 		assert.True(t, tr.Length() == 0)
+	}
+
+	for _, u := range gitLDAPUsers {
+		req := NewRequestWithValues(t, "POST", "/user/login", map[string]string{
+			"_csrf":     csrf,
+			"user_name": u.UserName,
+			"password":  u.Password,
+		})
+		MakeRequest(t, req, http.StatusSeeOther)
+	}
+
+	auth.SyncExternalUsers(context.Background(), true)
+
+	for _, u := range gitLDAPUsers {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{
+			Name: u.UserName,
+		})
+		assert.True(t, user.IsActive)
 	}
 }
 
