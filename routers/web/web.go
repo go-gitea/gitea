@@ -1244,6 +1244,11 @@ func registerRoutes(m *web.Route) {
 			m.Get("/{period}", repo.ActivityAuthors)
 		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(unit.TypeCode))
 
+		m.Group("/contributors", func() {
+			m.Get("", repo.Contributors)
+			m.Get("/{period}", repo.Contributors)
+		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(unit.TypePullRequests, unit.TypeIssues, unit.TypeReleases))
+
 		m.Group("/archive", func() {
 			m.Get("/*", repo.Download)
 			m.Post("/*", repo.InitiateDownload)

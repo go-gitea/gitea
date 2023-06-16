@@ -233,6 +233,12 @@
 					</a>
 				{{end}}
 
+				{{if and (.Permission.CanReadAny $.UnitTypePullRequests $.UnitTypeIssues $.UnitTypeReleases) (not .IsEmptyRepo)}}
+					<a class="{{if .PageIsContributors}}active {{end}}item" href="{{.RepoLink}}/contributors">
+						{{svg "octicon-graph"}} {{.locale.Tr "repo.contributors"}}
+					</a>
+				{{end}}
+
 				{{template "custom/extra_tabs" .}}
 
 				{{if .Permission.IsAdmin}}
