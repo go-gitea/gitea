@@ -9,12 +9,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-        with:
-          # depth: 0 fetches all commits
-          # we fetch all instead of just some, as some branches are long lived and could have many between versions
-          fetch-depth: 0
+      # fetch all commits instead of only the last as some branches are long lived and could have many between versions
       # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
-      - run: git fetch --tags --force
+      - run: git fetch --unshallow --quiet --tags --force
       - uses: actions/setup-go@v4
         with:
           go-version: ">=1.20"
