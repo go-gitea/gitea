@@ -41,12 +41,12 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 	usernameUsers := make(map[string]*user_model.User, len(users))
 	mailUsers := make(map[string]*user_model.User, len(users))
-	existingUsers := make(map[int64]struct{})
+	keepActiveUsers := make(map[int64]struct{})
 
 	for i := range users {
 		u := users[i]
 		usernameUsers[u.LowerName] = u
-		mailUsers[u.Email] = u
+		mailUsers[strings.ToLower(u.Email)] = u
 	}
 
 	sr, err := source.SearchEntries()
@@ -94,11 +94,14 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			usr = usernameUsers[su.LowerName]
 		}
 		if usr == nil && len(su.Mail) > 0 {
-			usr = mailUsers[su.Mail]
+			usr = mailUsers[strings.ToLower(su.Mail)]
 		}
-		if usr != nil {
-			existingUsers[usr.ID] = struct{}{}
+		if usr == nil && len(su.Username) == 0 {
+			// we cannot create the user if su.Username is empty
+			continue
 		}
+
+		keepActiveUsers[usr.ID] = struct{}{}
 
 		if len(su.Mail) == 0 {
 			su.Mail = fmt.Sprintf("%s@localhost", su.Username)
@@ -106,7 +109,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 		fullName := composeFullName(su.Name, su.Surname, su.Username)
 		// If no existing user found, create one
-		if usr == nil && len(su.Username) > 0 {
+		if usr == nil {
 			log.Trace("SyncExternalUsers[%s]: Creating user %s", source.authSource.Name, su.Username)
 
 			usr = &user_model.User{
@@ -206,7 +209,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 	if updateExisting {
 		for i := range users {
 			usr := users[i]
-			if _, ok := existingUsers[usr.ID]; ok {
+			if _, ok := keepActiveUsers[usr.ID]; ok {
 				continue
 			}
 
