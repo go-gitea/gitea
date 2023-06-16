@@ -101,13 +101,13 @@ func InitIssueIndexer(syncReindex bool) {
 			return unhandled
 		}
 
-		issueIndexerQueue = queue.CreateSimpleQueue(ctx, "issue_indexer", handler)
+		issueIndexerQueue = queue.CreateUniqueQueue(ctx, "issue_indexer", handler)
 
 		if issueIndexerQueue == nil {
 			log.Fatal("Unable to create issue indexer queue")
 		}
 	default:
-		issueIndexerQueue = queue.CreateSimpleQueue[*IndexerMetadata](ctx, "issue_indexer", nil)
+		issueIndexerQueue = queue.CreateUniqueQueue[*IndexerMetadata](ctx, "issue_indexer", nil)
 	}
 
 	graceful.GetManager().RunAtTerminate(finished)
