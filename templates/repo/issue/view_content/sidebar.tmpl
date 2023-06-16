@@ -270,7 +270,7 @@
 		<div class="ui watching">
 			<span class="text"><strong>{{.locale.Tr "notification.notifications"}}</strong></span>
 			<div class="gt-mt-3">
-				<form method="POST" action="{{.Issue.Link}}/watch">
+				<form method="post" action="{{.Issue.Link}}/watch">
 					<input type="hidden" name="watch" value="{{if $.IssueWatch.IsWatching}}0{{else}}1{{end}}">
 					{{$.CsrfTokenHtml}}
 					<button class="fluid ui button">
@@ -292,13 +292,13 @@
 			<div class="ui timetrack">
 				<span class="text"><strong>{{.locale.Tr "repo.issues.tracker"}}</strong></span>
 				<div class="gt-mt-3">
-					<form method="POST" action="{{.Issue.Link}}/times/stopwatch/toggle" id="toggle_stopwatch_form">
+					<form method="post" action="{{.Issue.Link}}/times/stopwatch/toggle" id="toggle_stopwatch_form">
 						{{$.CsrfTokenHtml}}
 					</form>
-					<form method="POST" action="{{.Issue.Link}}/times/stopwatch/cancel" id="cancel_stopwatch_form">
+					<form method="post" action="{{.Issue.Link}}/times/stopwatch/cancel" id="cancel_stopwatch_form">
 						{{$.CsrfTokenHtml}}
 					</form>
-					{{if  $.IsStopwatchRunning}}
+					{{if $.IsStopwatchRunning}}
 						<button class="ui fluid button issue-stop-time">{{.locale.Tr "repo.issues.stop_tracking"}}</button>
 						<button class="ui fluid negative button issue-cancel-time gt-mt-3">{{.locale.Tr "repo.issues.cancel_tracking"}}</button>
 					{{else}}
@@ -311,7 +311,7 @@
 						<div class="ui mini modal issue-start-time-modal">
 							<div class="header">{{.locale.Tr "repo.issues.add_time"}}</div>
 							<div class="content">
-								<form method="POST" id="add_time_manual_form" action="{{.Issue.Link}}/times/add" class="ui action input fluid">
+								<form method="post" id="add_time_manual_form" action="{{.Issue.Link}}/times/add" class="ui action input fluid">
 									{{$.CsrfTokenHtml}}
 									<input placeholder='{{.locale.Tr "repo.issues.add_time_hours"}}' type="number" name="hours">
 									<input placeholder='{{.locale.Tr "repo.issues.add_time_minutes"}}' type="number" name="minutes" class="ui compact">
@@ -330,7 +330,7 @@
 		{{if gt (len .WorkingUsers) 0}}
 			<div class="ui divider"></div>
 			<div class="ui comments">
-				<span class="text"><strong>{{.locale.Tr "repo.issues.time_spent_from_all_authors"  ($.Issue.TotalTrackedTime | Sec2Time) | Safe}}</strong></span>
+				<span class="text"><strong>{{.locale.Tr "repo.issues.time_spent_from_all_authors" ($.Issue.TotalTrackedTime | Sec2Time) | Safe}}</strong></span>
 				<div>
 					{{range $user, $trackedtime := .WorkingUsers}}
 						<div class="comment gt-mt-3">
@@ -498,7 +498,7 @@
 
 			{{if and .CanCreateIssueDependencies (not .Repository.IsArchived)}}
 				<div>
-					<form method="POST" action="{{.Issue.Link}}/dependency/add" id="addDependencyForm">
+					<form method="post" action="{{.Issue.Link}}/dependency/add" id="addDependencyForm">
 						{{$.CsrfTokenHtml}}
 						<div class="ui fluid action input">
 							<div class="ui search selection dropdown" id="new-dependency-drop-list" data-issue-id="{{.Issue.ID}}">
@@ -525,7 +525,7 @@
 					{{.locale.Tr "repo.issues.dependency.remove_header"}}
 				</div>
 				<div class="content">
-					<form method="POST" action="{{.Issue.Link}}/dependency/delete" id="removeDependencyForm">
+					<form method="post" action="{{.Issue.Link}}/dependency/delete" id="removeDependencyForm">
 						{{$.CsrfTokenHtml}}
 						<input type="hidden" value="" name="removeDependencyID" id="removeDependencyID">
 						<input type="hidden" value="" name="dependencyType" id="dependencyType">
@@ -556,7 +556,7 @@
 		<div class="ui divider"></div>
 
 		{{if or .PinEnabled .Issue.IsPinned}}
-			<form class="gt-mt-2" method="POST" {{if $.NewPinAllowed}}action="{{.Issue.Link}}/pin"{{else}}data-tooltip-content="{{.locale.Tr "repo.issues.max_pinned"}}"{{end}}>
+			<form class="gt-mt-2" method="post" {{if $.NewPinAllowed}}action="{{.Issue.Link}}/pin"{{else}}data-tooltip-content="{{.locale.Tr "repo.issues.max_pinned"}}"{{end}}>
 				{{$.CsrfTokenHtml}}
 				<button class="fluid ui button {{if not $.NewPinAllowed}}disabled{{end}}">
 					{{if not .Issue.IsPinned}}
