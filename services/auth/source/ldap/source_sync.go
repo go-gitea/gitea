@@ -96,12 +96,13 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 		if usr == nil && len(su.Mail) > 0 {
 			usr = mailUsers[strings.ToLower(su.Mail)]
 		}
-		if usr == nil && len(su.Username) == 0 {
+
+		if usr != nil {
+			keepActiveUsers[usr.ID] = struct{}{}
+		} else if len(su.Username) == 0 {
 			// we cannot create the user if su.Username is empty
 			continue
 		}
-
-		keepActiveUsers[usr.ID] = struct{}{}
 
 		if len(su.Mail) == 0 {
 			su.Mail = fmt.Sprintf("%s@localhost", su.Username)
