@@ -635,17 +635,15 @@ export function initSingleCommentEditor($commentForm) {
   // * issue/pr view page, with comment form, has status-button
   const opts = {};
   const $statusButton = $('#status-button');
+  const $statusDropdown = $('#status-dropdown');
   if ($statusButton.length) {
-    $statusButton.on('click', (e) => {
-      e.preventDefault();
-      $('#status').val($statusButton.data('status-val'));
-      $('#comment-form').trigger('submit');
-    });
     opts.onContentChanged = (editor) => {
-      $statusButton.text($statusButton.attr(editor.value().trim() ? 'data-status-and-comment' : 'data-status'));
+      console.log('content changed', editor.value().trim());
+      $statusButton.text($statusDropdown.dropdown('get item').data(editor.value().trim() ? 'status-and-comment': 'status'));
     };
   }
   initComboMarkdownEditor($commentForm.find('.combo-markdown-editor'), opts);
+  initRepoIssueStateButton();
 }
 
 export function initIssueTemplateCommentEditors($commentForm) {
@@ -683,4 +681,34 @@ export function initIssueTemplateCommentEditors($commentForm) {
   for (const el of $comboFields) {
     initCombo($(el));
   }
+}
+
+function initRepoIssueStateButton() {
+  const $statusButton = $('#status-button');
+  if (!$statusButton.length) return;
+
+  $statusButton.on('click', (e) => {
+    e.preventDefault();
+    $('#status').val($statusButton.data('status-value') === -1 ? 'reopen' : 'close');
+    $('#comment-form').trigger('submit');
+  })
+
+  $('#comment-button').on('click', (e) => {
+    e.preventDefault();
+    $('#status').val('');
+    $('#comment-form').trigger('submit');
+  })
+
+  const $statusDropdown = $('#status-dropdown');
+  const selectedValue = $statusDropdown.find('input[type=hidden]').val();
+  
+  const onCloseStatusChanged = (val) => {
+    $statusButton.attr('data-status-value', val);
+    const editor = getComboMarkdownEditor($('#comment-form .combo-markdown-editor'));
+    const buttonText = $statusDropdown.dropdown('get item').data(editor.value().trim() ? 'status-and-comment': 'status');
+    $statusButton.text(buttonText);
+  }
+  $statusDropdown.dropdown('setting', { selectOnKeydown: false, onChange: onCloseStatusChanged });
+  $statusDropdown.dropdown('set selected', selectedValue);
+  onCloseStatusChanged(selectedValue);
 }

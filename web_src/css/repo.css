@@ -1051,6 +1051,10 @@
   margin-top: 10px;
 }
 
+.repository.view.issue .comment-list .comment .ui.form .field .ui.buttons {
+  vertical-align: middle;
+}
+
 .repository.view.issue .comment-list .code-comment {
   border: 1px solid transparent;
   margin: 0;

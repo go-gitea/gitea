@@ -91,21 +91,21 @@ func (err ErrIssueWasClosed) Error() string {
 	return fmt.Sprintf("Issue [%d] %d was already closed", err.ID, err.Index)
 }
 
-type IssueClosedState int8
+type IssueClosedStatus int8
 
 const (
-	// IssueClosedStateCommonClose close issue without any state.
-	IssueClosedStateCommonClose IssueClosedState = iota
-	// IssueClosedStateArchived close issue as archived.
-	IssueClosedStateArchived
-	// IssueClosedStateResolved close issue as resolved.
-	IssueClosedStateResolved
-	// IssueClosedStateMerged close issue as merged.
-	IssueClosedStateMerged
-	// IssueClosedStateDuplicate close issue as duplicate.
-	IssueClosedStateDuplicate
-	// IssueClosedStateStale close issue as stale.
-	IssueClosedStateStale
+	// IssueClosedStatusCommonClose close issue without any state.
+	IssueClosedStatusCommonClose IssueClosedStatus = iota
+	// IssueClosedStatusArchived close issue as archived.
+	IssueClosedStatusArchived
+	// IssueClosedStatusResolved close issue as resolved.
+	IssueClosedStatusResolved
+	// IssueClosedStatusMerged close issue as merged.
+	IssueClosedStatusMerged
+	// IssueClosedStatusDuplicate close issue as duplicate.
+	IssueClosedStatusDuplicate
+	// IssueClosedStatusStale close issue as stale.
+	IssueClosedStatusStale
 )
 
 // Issue represents an issue or pull request of repository.
@@ -129,7 +129,7 @@ type Issue struct {
 	AssigneeID       int64            `xorm:"-"`
 	Assignee         *user_model.User `xorm:"-"`
 	IsClosed         bool             `xorm:"INDEX"`
-	ClosedState      IssueClosedState
+	ClosedStatus     IssueClosedStatus
 	IsRead           bool         `xorm:"-"`
 	IsPull           bool         `xorm:"INDEX"` // Indicates whether is a pull request or not.
 	PullRequest      *PullRequest `xorm:"-"`

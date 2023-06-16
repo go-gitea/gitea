@@ -1250,46 +1250,46 @@ func getBranchData(ctx *context.Context, issue *issues_model.Issue) {
 }
 
 type IssueCloseBtnItem struct {
-	Value           issues_model.IssueClosedState
-	State           string
-	StateAndComment string
+	Value            issues_model.IssueClosedStatus
+	Status           string
+	StatusAndComment string
 }
 
 var issueCloseBtnItems = []IssueCloseBtnItem{
 	{
-		Value:           issues_model.IssueClosedState(-1),
-		State:           "repo.issues.close_as.reopen",
-		StateAndComment: "repo.issues.comment_and_close_as.reopen",
+		Value:            issues_model.IssueClosedStatus(-1),
+		Status:           "repo.issues.close_as.reopen",
+		StatusAndComment: "repo.issues.comment_and_close_as.reopen",
 	},
 	{
-		Value:           issues_model.IssueClosedStateCommonClose,
-		State:           "repo.issues.close_as.common",
-		StateAndComment: "repo.issues.comment_and_close_as.common",
+		Value:            issues_model.IssueClosedStatusCommonClose,
+		Status:           "repo.issues.close_as.common",
+		StatusAndComment: "repo.issues.comment_and_close_as.common",
 	},
 	{
-		Value:           issues_model.IssueClosedStateArchived,
-		State:           "repo.issues.close_as.archived",
-		StateAndComment: "repo.issues.comment_and_close_as.archived",
+		Value:            issues_model.IssueClosedStatusArchived,
+		Status:           "repo.issues.close_as.archived",
+		StatusAndComment: "repo.issues.comment_and_close_as.archived",
 	},
 	{
-		Value:           issues_model.IssueClosedStateResolved,
-		State:           "repo.issues.close_as.resolved",
-		StateAndComment: "repo.issues.comment_and_close_as.resolved",
+		Value:            issues_model.IssueClosedStatusResolved,
+		Status:           "repo.issues.close_as.resolved",
+		StatusAndComment: "repo.issues.comment_and_close_as.resolved",
 	},
 	{
-		Value:           issues_model.IssueClosedStateMerged,
-		State:           "repo.issues.close_as.merged",
-		StateAndComment: "repo.issues.comment_and_close_as.merged",
+		Value:            issues_model.IssueClosedStatusMerged,
+		Status:           "repo.issues.close_as.merged",
+		StatusAndComment: "repo.issues.comment_and_close_as.merged",
 	},
 	{
-		Value:           issues_model.IssueClosedStateDuplicate,
-		State:           "repo.issues.close_as.duplicate",
-		StateAndComment: "repo.issues.comment_and_close_as.duplicate",
+		Value:            issues_model.IssueClosedStatusDuplicate,
+		Status:           "repo.issues.close_as.duplicate",
+		StatusAndComment: "repo.issues.comment_and_close_as.duplicate",
 	},
 	{
-		Value:           issues_model.IssueClosedStateStale,
-		State:           "repo.issues.close_as.stale",
-		StateAndComment: "repo.issues.comment_and_close_as.stale",
+		Value:            issues_model.IssueClosedStatusStale,
+		Status:           "repo.issues.close_as.stale",
+		StatusAndComment: "repo.issues.comment_and_close_as.stale",
 	},
 }
 
@@ -1357,12 +1357,12 @@ func ViewIssue(ctx *context.Context) {
 		// assemble data for close/reopen button
 		var btnItems []IssueCloseBtnItem
 		for _, item := range issueCloseBtnItems {
-			if !issue.IsClosed && item.Value == issues_model.IssueClosedState(-1) {
+			if !issue.IsClosed && item.Value == issues_model.IssueClosedStatus(-1) {
 				// if issue is open, do not append "reopen" btn item
 				continue
 			}
-			if issue.IsClosed && item.Value == issue.ClosedState {
-				// if issue is closed and the state of issue is equal to this item, skip it.
+			if issue.IsClosed && item.Value == issue.ClosedStatus {
+				// if issue is closed and the status of issue is equal to this item, skip it.
 				continue
 			}
 			btnItems = append(btnItems, item)
