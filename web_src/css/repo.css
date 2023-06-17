@@ -1930,6 +1930,13 @@
   }
 }
 
+.repository .activity-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .repository.settings.collaboration .collaborator.list {
   padding: 0;
 }
