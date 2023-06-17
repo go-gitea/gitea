@@ -58,3 +58,6 @@ jobs:
 
             templates:
               - "templates/**/*.tmpl"
+              - "pyproject.toml"
+              - "poetry.toml"
+              - "poetry.lock"
