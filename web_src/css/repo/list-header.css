@@ -18,6 +18,11 @@
   flex: 1;
 }
 
+.list-header-sort {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
 .small-menu-items {
   min-height: 35.4px !important; /* match .small.button in height */
   background: none !important; /* fomantic sets a color here which does not play well with active transparent color on the item, so unset and set the colors on the item */
@@ -35,4 +40,17 @@
 
 .small-menu-items .item.active {
   background: var(--color-active) !important;
+}
+
+@media (max-width: 747.98px) {
+  .list-header-search {
+    order: 0;
+  }
+  .list-header-toggle {
+    order: 1;
+  }
+  .list-header-sort {
+    order: 2;
+    margin-left: auto;
+  }
 }

@@ -13,7 +13,7 @@
 		{{template "base/alert" .}}
 
 		<div class="list-header">
-			<div class="small-menu-items ui compact tiny menu gt-o-1-small">
+			<div class="small-menu-items ui compact tiny menu list-header-toggle">
 				<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/milestones?state=open&q={{$.Keyword}}">
 					{{svg "octicon-milestone" 16 "gt-mr-3"}}
 					{{.locale.PrettyNumber .OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
@@ -25,7 +25,7 @@
 			</div>
 
 			<!-- Search -->
-			<form class="list-header-search ui form ignore-dirty gt-o-0-small">
+			<form class="list-header-search ui form ignore-dirty">
 				<div class="ui small search fluid action input">
 					<input type="hidden" name="state" value="{{$.State}}">
 					<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}...">
@@ -36,7 +36,7 @@
 			</form>
 
 			<!-- Sort -->
-			<div class="ui small dropdown type jump item gt-pl-4 gt-pr-4 gt-o-2-small gt-ml-auto-small">
+			<div class="ui small dropdown type jump item list-header-sort">
 				<span class="text">
 					{{.locale.Tr "repo.issues.filter_sort"}}
 					{{svg "octicon-triangle-down" 14 "dropdown icon"}}

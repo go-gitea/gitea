@@ -270,17 +270,6 @@ Gitea's private styles use `g-` prefix.
 .gt-font-17 { font-size: 17px !important }
 .gt-font-18 { font-size: 18px !important }
 
-@media (max-width: 575.98px) {
-  .gt-ml-auto-small { margin-left: auto !important; }
-
-  .gt-o-0-small { order: 0 !important; }
-  .gt-o-1-small { order: 1 !important; }
-  .gt-o-2-small { order: 2 !important; }
-  .gt-o-3-small { order: 3 !important; }
-  .gt-o-4-small { order: 4 !important; }
-  .gt-o-5-small { order: 5 !important; }
-}
-
 @media (max-width: 767.98px) {
   .gt-db-small { display: block !important; }
   .gt-w-100-small { width: 100% !important; }
