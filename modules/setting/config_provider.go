@@ -51,12 +51,15 @@ type ConfigProvider interface {
 	GetSection(name string) (ConfigSection, error)
 	Save() error
 	SaveTo(filename string) error
+
+	IsLoadedFromEmpty() bool
 }
 
 type iniConfigProvider struct {
-	opts    *Options
-	ini     *ini.File
-	newFile bool // whether the file has not existed previously
+	file string
+	ini  *ini.File
+
+	loadedFromEmpty bool // whether the file has not existed previously
 }
 
 type iniConfigSection struct {
@@ -175,53 +178,43 @@ func NewConfigProviderFromData(configContent string) (ConfigProvider, error) {
 	}
 	cfg.NameMapper = ini.SnackCase
 	return &iniConfigProvider{
-		ini:     cfg,
-		newFile: true,
+		ini:             cfg,
+		loadedFromEmpty: true,
 	}, nil
-}
-
-type Options struct {
-	CustomConf  string // the ini file path
-	AllowEmpty  bool   // whether not finding configuration files is allowed
-	ExtraConfig string
-
-	DisableLoadCommonSettings bool // only used by "Init()", not used by "NewConfigProvider()"
 }
 
 // NewConfigProviderFromFile load configuration from file.
 // NOTE: do not print any log except error.
-func NewConfigProviderFromFile(opts *Options) (ConfigProvider, error) {
+func NewConfigProviderFromFile(file string, extraConfigs ...string) (ConfigProvider, error) {
 	cfg := ini.Empty()
-	newFile := true
+	loadedFromEmpty := true
 
-	if opts.CustomConf != "" {
-		isFile, err := util.IsFile(opts.CustomConf)
+	if file != "" {
+		isFile, err := util.IsFile(file)
 		if err != nil {
-			return nil, fmt.Errorf("unable to check if %s is a file. Error: %v", opts.CustomConf, err)
+			return nil, fmt.Errorf("unable to check if %q is a file. Error: %v", file, err)
 		}
 		if isFile {
-			if err := cfg.Append(opts.CustomConf); err != nil {
-				return nil, fmt.Errorf("failed to load custom conf '%s': %v", opts.CustomConf, err)
+			if err = cfg.Append(file); err != nil {
+				return nil, fmt.Errorf("failed to load config file %q: %v", file, err)
 			}
-			newFile = false
+			loadedFromEmpty = false
 		}
 	}
 
-	if newFile && !opts.AllowEmpty {
-		return nil, fmt.Errorf("unable to find configuration file: %q, please ensure you are running in the correct environment or set the correct configuration file with -c", CustomConf)
-	}
-
-	if opts.ExtraConfig != "" {
-		if err := cfg.Append([]byte(opts.ExtraConfig)); err != nil {
-			return nil, fmt.Errorf("unable to append more config: %v", err)
+	if len(extraConfigs) > 0 {
+		for _, s := range extraConfigs {
+			if err := cfg.Append([]byte(s)); err != nil {
+				return nil, fmt.Errorf("unable to append more config: %v", err)
+			}
 		}
 	}
 
 	cfg.NameMapper = ini.SnackCase
 	return &iniConfigProvider{
-		opts:    opts,
-		ini:     cfg,
-		newFile: newFile,
+		file:            file,
+		ini:             cfg,
+		loadedFromEmpty: loadedFromEmpty,
 	}, nil
 }
 
@@ -254,20 +247,17 @@ func (p *iniConfigProvider) GetSection(name string) (ConfigSection, error) {
 
 // Save saves the content into file
 func (p *iniConfigProvider) Save() error {
-	filename := p.opts.CustomConf
+	filename := p.file
 	if filename == "" {
-		if !p.opts.AllowEmpty {
-			return fmt.Errorf("custom config path must not be empty")
-		}
-		return nil
+		return fmt.Errorf("config file path must not be empty")
 	}
-	if p.newFile {
+	if p.loadedFromEmpty {
 		if err := os.MkdirAll(filepath.Dir(filename), os.ModePerm); err != nil {
-			return fmt.Errorf("failed to create '%s': %v", filename, err)
+			return fmt.Errorf("failed to create %q: %v", filename, err)
 		}
 	}
 	if err := p.ini.SaveTo(filename); err != nil {
-		return fmt.Errorf("failed to save '%s': %v", filename, err)
+		return fmt.Errorf("failed to save %q: %v", filename, err)
 	}
 
 	// Change permissions to be more restrictive
@@ -286,6 +276,10 @@ func (p *iniConfigProvider) Save() error {
 
 func (p *iniConfigProvider) SaveTo(filename string) error {
 	return p.ini.SaveTo(filename)
+}
+
+func (p *iniConfigProvider) IsLoadedFromEmpty() bool {
+	return p.loadedFromEmpty
 }
 
 func mustMapSetting(rootCfg ConfigProvider, sectionName string, setting any) {
@@ -324,8 +318,8 @@ func NewConfigProviderForLocale(source any, others ...any) (ConfigProvider, erro
 	}
 	iniFile.BlockMode = false
 	return &iniConfigProvider{
-		ini:     iniFile,
-		newFile: true,
+		ini:             iniFile,
+		loadedFromEmpty: true,
 	}, nil
 }
 
