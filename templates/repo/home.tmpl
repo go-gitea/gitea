@@ -84,23 +84,25 @@
 				{{end}}
 
 				{{if and .CanWriteCode .IsViewBranch (not .Repository.IsArchived)}}
-					<button class="ui dropdown basic compact jump button gt-mr-2"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
-						{{.locale.Tr "repo.editor.add_file"}}
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="menu">
-							<a class="item" href="{{.RepoLink}}/_new/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
-								{{.locale.Tr "repo.editor.new_file"}}
-							</a>
-							{{if .RepositoryUploadEnabled}}
-							<a class="item" href="{{.RepoLink}}/_upload/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
-								{{.locale.Tr "repo.editor.upload_file"}}
-							</a>
-							{{end}}
-							<a class="item" href="{{.RepoLink}}/_diffpatch/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
-								{{.locale.Tr "repo.editor.patch"}}
-							</a>
-						</div>
-					</button>
+					{{if not .IsViewFile}}
+						<button class="ui dropdown basic compact jump button gt-mr-2"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
+							{{.locale.Tr "repo.editor.add_file"}}
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							<div class="menu">
+								<a class="item" href="{{.RepoLink}}/_new/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
+									{{.locale.Tr "repo.editor.new_file"}}
+								</a>
+								{{if .RepositoryUploadEnabled}}
+								<a class="item" href="{{.RepoLink}}/_upload/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
+									{{.locale.Tr "repo.editor.upload_file"}}
+								</a>
+								{{end}}
+								<a class="item" href="{{.RepoLink}}/_diffpatch/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
+									{{.locale.Tr "repo.editor.patch"}}
+								</a>
+							</div>
+						</button>
+					{{end}}
 				{{end}}
 
 				{{if and (eq $n 0) (.Repository.IsTemplate)}}
