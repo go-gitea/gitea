@@ -197,22 +197,6 @@ a.btn:hover {
   border-color: var(--color-secondary-active);
 }
 
-/* tertiary */
-
-.ui.tertiary.button,
-.ui.tertiary.button:focus {
-  color: var(--color-text-light);
-  border: none;
-}
-
-.ui.tertiary.button:hover {
-  color: var(--color-text);
-}
-
-.ui.tertiary.button:active {
-  color: var(--color-text-dark);
-}
-
 /* red */
 
 .ui.red.labels .label,
