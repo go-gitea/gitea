@@ -5,6 +5,13 @@
   gap: .5rem;
 }
 
+.list-header-sort {
+  display: flex;
+  align-items: center;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
 .list-header-search {
   display: flex;
   flex: 1;
@@ -16,11 +23,6 @@
 
 .list-header-search .input {
   flex: 1;
-}
-
-.list-header-sort {
-  padding-left: 1rem;
-  padding-right: 1rem;
 }
 
 .small-menu-items {
