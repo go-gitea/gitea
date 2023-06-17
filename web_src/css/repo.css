@@ -1199,7 +1199,7 @@
   height: 16px;
 }
 
-.repository .milestone.list > .item .body {
+.repository .milestone.list > .item .milestone-toolbar {
   padding-top: 5px;
   display: flex;
   flex-wrap: wrap;
@@ -1222,18 +1222,18 @@
   color: var(--color-red);
 }
 
-.repository .milestone.list > .item .operate > a {
+.repository .milestone.list > .item .operations > a {
   font-size: 15px;
   padding-top: 5px;
   padding-right: 10px;
   color: var(--color-text-light-2);
 }
 
-.repository .milestone.list > .item .operate > a:hover {
+.repository .milestone.list > .item .operations > a:hover {
   color: var(--color-text);
 }
 
-.repository .milestone.list > .item .operate > a .svg {
+.repository .milestone.list > .item .operations > a .svg {
   margin-right: .5rem;
 }
 
