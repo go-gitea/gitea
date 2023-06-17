@@ -153,8 +153,8 @@ func TestOnlyGetDeletedBranchOnCorrectRepo(t *testing.T) {
 
 	deletedBranch, err := git_model.GetDeletedBranchByID(db.DefaultContext, repo2.ID, 1)
 
-	// Expect no error, and the returned branch is nil.
-	assert.NoError(t, err)
+	// Expect error, and the returned branch is nil.
+	assert.Error(t, err)
 	assert.Nil(t, deletedBranch)
 
 	// Now get the deletedBranch with ID of 1 on repo with ID 1.
