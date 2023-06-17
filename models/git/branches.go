@@ -117,6 +117,10 @@ type Branch struct {
 func (b *Branch) LoadUser(ctx context.Context) (err error) {
 	if b.DeletedBy == nil {
 		b.DeletedBy, err = user_model.GetUserByID(ctx, b.DeletedByID)
+		if user_model.IsErrUserNotExist(err) {
+			b.DeletedBy = user_model.NewGhostUser()
+			err = nil
+		}
 	}
 	return err
 }
@@ -194,16 +198,14 @@ func DeleteBranches(ctx context.Context, repoID, doerID int64, branchIDs []int64
 // UpdateBranch updates the branch information in the database. If the branch exist, it will update latest commit of this branch information
 // If it doest not exist, insert a new record into database
 func UpdateBranch(ctx context.Context, repoID int64, branchName, commitID, commitMessage string, pusherID int64, commitTime time.Time) error {
-	if err := removeDeletedBranchByName(ctx, repoID, branchName); err != nil {
-		return err
-	}
 	cnt, err := db.GetEngine(ctx).Where("repo_id=? AND name=?", repoID, branchName).
-		Cols("commit_sha, commit_message, pusher_id, commit_time, updated_unix").
+		Cols("commit_sha, commit_message, pusher_id, commit_time, is_deleted, updated_unix").
 		Update(&Branch{
 			CommitSHA:     commitID,
 			CommitMessage: commitMessage,
 			PusherID:      pusherID,
 			CommitTime:    timeutil.TimeStamp(commitTime.Unix()),
+			IsDeleted:     false,
 		})
 	if err != nil {
 		return err
