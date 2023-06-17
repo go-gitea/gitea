@@ -2,7 +2,7 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository projects milestones">
 	{{template "repo/header" .}}
 	<div class="ui container">
-		<div class="navbar gt-mb-4 gt-fc gt-gap-4">
+		<div class="navbar projects-header">
 			<div>
 				<div class="small-menu-items ui compact tiny menu">
 					<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/projects?state=open">
