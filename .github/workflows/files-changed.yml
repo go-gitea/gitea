@@ -58,3 +58,4 @@ jobs:
 
             templates:
               - "templates/**/*.tmpl"
+              - "poetry.lock"

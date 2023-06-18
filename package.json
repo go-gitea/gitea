@@ -1,7 +1,4 @@
 {
-  "name": "gitea",
-  "license": "MIT",
-  "private": true,
   "type": "module",
   "engines": {
     "node": ">= 16.0.0"
