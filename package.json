@@ -75,6 +75,7 @@
     "markdownlint-cli": "0.34.0",
     "postcss-html": "1.5.0",
     "stylelint": "15.7.0",
+    "stylelint-declaration-block-no-ignored-properties": "2.7.0",
     "stylelint-declaration-strict-value": "1.9.2",
     "stylelint-stylistic": "0.4.2",
     "svgo": "3.0.2",
