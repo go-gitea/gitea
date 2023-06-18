@@ -21,7 +21,7 @@ details.toggleable-item summary::-webkit-details-marker /* Safari */ {
 
 details.toggleable-item summary::after {
   transition: transform 0.25s ease;
-  content: '';
+  content: "";
   width: 14px;
   height: 14px;
   mask-size: cover;

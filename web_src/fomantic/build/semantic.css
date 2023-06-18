@@ -203,130 +203,6 @@
 *******************************/
 
 /*-------------------
-         Animated
-  --------------------*/
-
-.ui.animated.button {
-  position: relative;
-  overflow: hidden;
-  padding-right: 0 !important;
-  vertical-align: middle;
-  z-index: 1;
-}
-
-.ui.animated.button .content {
-  will-change: transform, opacity;
-}
-
-.ui.animated.button .visible.content {
-  position: relative;
-  margin-right: 1.5em;
-}
-
-.ui.animated.button .hidden.content {
-  position: absolute;
-  width: 100%;
-}
-
-/* Horizontal */
-
-.ui.animated.button .visible.content,
-.ui.animated.button .hidden.content {
-  transition: right 0.3s ease 0s;
-}
-
-.ui.animated.button .visible.content {
-  left: auto;
-  right: 0;
-}
-
-.ui.animated.button .hidden.content {
-  top: 50%;
-  left: auto;
-  right: -100%;
-  margin-top: -0.5em;
-}
-
-.ui.animated.button:focus .visible.content,
-.ui.animated.button:hover .visible.content {
-  left: auto;
-  right: 200%;
-}
-
-.ui.animated.button:focus .hidden.content,
-.ui.animated.button:hover .hidden.content {
-  left: auto;
-  right: 0;
-}
-
-/* Vertical */
-
-.ui.vertical.animated.button .visible.content,
-.ui.vertical.animated.button .hidden.content {
-  transition: top 0.3s ease, transform 0.3s ease;
-}
-
-.ui.vertical.animated.button .visible.content {
-  transform: translateY(0%);
-  right: auto;
-}
-
-.ui.vertical.animated.button .hidden.content {
-  top: -50%;
-  left: 0;
-  right: auto;
-}
-
-.ui.vertical.animated.button:focus .visible.content,
-.ui.vertical.animated.button:hover .visible.content {
-  transform: translateY(200%);
-  right: auto;
-}
-
-.ui.vertical.animated.button:focus .hidden.content,
-.ui.vertical.animated.button:hover .hidden.content {
-  top: 50%;
-  right: auto;
-}
-
-/* Fade */
-
-.ui.fade.animated.button .visible.content,
-.ui.fade.animated.button .hidden.content {
-  transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.ui.fade.animated.button .visible.content {
-  left: auto;
-  right: auto;
-  opacity: 1;
-  transform: scale(1);
-}
-
-.ui.fade.animated.button .hidden.content {
-  opacity: 0;
-  left: 0;
-  right: auto;
-  transform: scale(1.5);
-}
-
-.ui.fade.animated.button:focus .visible.content,
-.ui.fade.animated.button:hover .visible.content {
-  left: auto;
-  right: auto;
-  opacity: 0;
-  transform: scale(0.75);
-}
-
-.ui.fade.animated.button:focus .hidden.content,
-.ui.fade.animated.button:hover .hidden.content {
-  left: 0;
-  right: auto;
-  opacity: 1;
-  transform: scale(1);
-}
-
-/*-------------------
       Labeled Button
   --------------------*/
 
@@ -628,41 +504,6 @@
 
 .ui.basic.vertical.buttons .button:first-child {
   border-top-width: 0;
-}
-
-/*-------------------
-         Tertiary
-  --------------------*/
-
-/* Overline Mixin */
-
-.ui.tertiary.button {
-  transition: color 0.1s ease !important;
-  border-radius: 0;
-  margin: 0.28571429em 0.25em 0.28571429em 0 !important;
-  padding: 0.5em !important;
-  box-shadow: none;
-  color: rgba(0, 0, 0, 0.6);
-  background: none;
-}
-
-.ui.tertiary.button:hover {
-  box-shadow: inset 0 -0.2em 0 #666666;
-  color: #333333;
-  background: none;
-}
-
-.ui.tertiary.button:focus {
-  box-shadow: inset 0 -0.2em 0 #666666;
-  color: #333333;
-  background: none;
-}
-
-.ui.tertiary.button:active {
-  box-shadow: inset 0 -0.2em 0 #999999;
-  border-radius: 0.28571429rem 0.28571429rem 0 0;
-  color: #666666;
-  background: none;
 }
 
 /*--------------
@@ -1076,40 +917,6 @@
   margin-left: -1px;
 }
 
-/* Tertiary */
-
-.ui.tertiary.primary.buttons .button,
-.ui.tertiary.primary.buttons .tertiary.button,
-.ui.tertiary.primary.button {
-  background: transparent;
-  box-shadow: none;
-  color: #2185D0;
-}
-
-.ui.tertiary.primary.buttons .button:hover,
-.ui.tertiary.primary.buttons button:hover,
-.ui.tertiary.primary.button:hover {
-  box-shadow: inset 0 -0.2em 0 #2b75ac;
-  color: #2b75ac;
-}
-
-.ui.tertiary.primary.buttons .button:focus,
-.ui.tertiary.primary.buttons .tertiary.button:focus,
-.ui.tertiary.primary.button:focus {
-  box-shadow: inset 0 -0.2em 0 #216ea7;
-  color: #216ea7;
-}
-
-.ui.tertiary.primary.buttons .active.button,
-.ui.tertiary.primary.buttons .tertiary.active.button,
-.ui.tertiary.primary.active.button,
-.ui.tertiary.primary.buttons .button:active,
-.ui.tertiary.primary.buttons .tertiary.button:active,
-.ui.tertiary.primary.button:active {
-  box-shadow: inset 0 -0.2em 0 #007bd8;
-  color: #1279c6;
-}
-
 .ui.secondary.buttons .button,
 .ui.secondary.button {
   background-color: #1B1C1D;
@@ -1190,40 +997,6 @@
 
 .ui.buttons:not(.vertical) > .basic.secondary.button:not(:first-child) {
   margin-left: -1px;
-}
-
-/* Tertiary */
-
-.ui.tertiary.secondary.buttons .button,
-.ui.tertiary.secondary.buttons .tertiary.button,
-.ui.tertiary.secondary.button {
-  background: transparent;
-  box-shadow: none;
-  color: #1B1C1D;
-}
-
-.ui.tertiary.secondary.buttons .button:hover,
-.ui.tertiary.secondary.buttons button:hover,
-.ui.tertiary.secondary.button:hover {
-  box-shadow: inset 0 -0.2em 0 #292929;
-  color: #292929;
-}
-
-.ui.tertiary.secondary.buttons .button:focus,
-.ui.tertiary.secondary.buttons .tertiary.button:focus,
-.ui.tertiary.secondary.button:focus {
-  box-shadow: inset 0 -0.2em 0 #303030;
-  color: #303030;
-}
-
-.ui.tertiary.secondary.buttons .active.button,
-.ui.tertiary.secondary.buttons .tertiary.active.button,
-.ui.tertiary.secondary.active.button,
-.ui.tertiary.secondary.buttons .button:active,
-.ui.tertiary.secondary.buttons .tertiary.button:active,
-.ui.tertiary.secondary.button:active {
-  box-shadow: inset 0 -0.2em 0 #1f2933;
-  color: #27292a;
 }
 
 .ui.red.buttons .button,
@@ -1308,40 +1081,6 @@
   margin-left: -1px;
 }
 
-/* Tertiary */
-
-.ui.tertiary.red.buttons .button,
-.ui.tertiary.red.buttons .tertiary.button,
-.ui.tertiary.red.button {
-  background: transparent;
-  box-shadow: none;
-  color: #DB2828;
-}
-
-.ui.tertiary.red.buttons .button:hover,
-.ui.tertiary.red.buttons button:hover,
-.ui.tertiary.red.button:hover {
-  box-shadow: inset 0 -0.2em 0 #b93131;
-  color: #b93131;
-}
-
-.ui.tertiary.red.buttons .button:focus,
-.ui.tertiary.red.buttons .tertiary.button:focus,
-.ui.tertiary.red.button:focus {
-  box-shadow: inset 0 -0.2em 0 #b52626;
-  color: #b52626;
-}
-
-.ui.tertiary.red.buttons .active.button,
-.ui.tertiary.red.buttons .tertiary.active.button,
-.ui.tertiary.red.active.button,
-.ui.tertiary.red.buttons .button:active,
-.ui.tertiary.red.buttons .tertiary.button:active,
-.ui.tertiary.red.button:active {
-  box-shadow: inset 0 -0.2em 0 #ea0000;
-  color: #d41515;
-}
-
 .ui.orange.buttons .button,
 .ui.orange.button {
   background-color: #F2711C;
@@ -1422,40 +1161,6 @@
 
 .ui.buttons:not(.vertical) > .basic.orange.button:not(:first-child) {
   margin-left: -1px;
-}
-
-/* Tertiary */
-
-.ui.tertiary.orange.buttons .button,
-.ui.tertiary.orange.buttons .tertiary.button,
-.ui.tertiary.orange.button {
-  background: transparent;
-  box-shadow: none;
-  color: #F2711C;
-}
-
-.ui.tertiary.orange.buttons .button:hover,
-.ui.tertiary.orange.buttons button:hover,
-.ui.tertiary.orange.button:hover {
-  box-shadow: inset 0 -0.2em 0 #da671b;
-  color: #da671b;
-}
-
-.ui.tertiary.orange.buttons .button:focus,
-.ui.tertiary.orange.buttons .tertiary.button:focus,
-.ui.tertiary.orange.button:focus {
-  box-shadow: inset 0 -0.2em 0 #ce6017;
-  color: #ce6017;
-}
-
-.ui.tertiary.orange.buttons .active.button,
-.ui.tertiary.orange.buttons .tertiary.active.button,
-.ui.tertiary.orange.active.button,
-.ui.tertiary.orange.buttons .button:active,
-.ui.tertiary.orange.buttons .tertiary.button:active,
-.ui.tertiary.orange.button:active {
-  box-shadow: inset 0 -0.2em 0 #f56100;
-  color: #f56100;
 }
 
 .ui.yellow.buttons .button,
@@ -1540,40 +1245,6 @@
   margin-left: -1px;
 }
 
-/* Tertiary */
-
-.ui.tertiary.yellow.buttons .button,
-.ui.tertiary.yellow.buttons .tertiary.button,
-.ui.tertiary.yellow.button {
-  background: transparent;
-  box-shadow: none;
-  color: #FBBD08;
-}
-
-.ui.tertiary.yellow.buttons .button:hover,
-.ui.tertiary.yellow.buttons button:hover,
-.ui.tertiary.yellow.button:hover {
-  box-shadow: inset 0 -0.2em 0 #d2a217;
-  color: #d2a217;
-}
-
-.ui.tertiary.yellow.buttons .button:focus,
-.ui.tertiary.yellow.buttons .tertiary.button:focus,
-.ui.tertiary.yellow.button:focus {
-  box-shadow: inset 0 -0.2em 0 #c49816;
-  color: #c49816;
-}
-
-.ui.tertiary.yellow.buttons .active.button,
-.ui.tertiary.yellow.buttons .tertiary.active.button,
-.ui.tertiary.yellow.active.button,
-.ui.tertiary.yellow.buttons .button:active,
-.ui.tertiary.yellow.buttons .tertiary.button:active,
-.ui.tertiary.yellow.button:active {
-  box-shadow: inset 0 -0.2em 0 #eaae00;
-  color: #eaae00;
-}
-
 .ui.olive.buttons .button,
 .ui.olive.button {
   background-color: #B5CC18;
@@ -1654,40 +1325,6 @@
 
 .ui.buttons:not(.vertical) > .basic.olive.button:not(:first-child) {
   margin-left: -1px;
-}
-
-/* Tertiary */
-
-.ui.tertiary.olive.buttons .button,
-.ui.tertiary.olive.buttons .tertiary.button,
-.ui.tertiary.olive.button {
-  background: transparent;
-  box-shadow: none;
-  color: #B5CC18;
-}
-
-.ui.tertiary.olive.buttons .button:hover,
-.ui.tertiary.olive.buttons button:hover,
-.ui.tertiary.olive.button:hover {
-  box-shadow: inset 0 -0.2em 0 #98a922;
-  color: #98a922;
-}
-
-.ui.tertiary.olive.buttons .button:focus,
-.ui.tertiary.olive.buttons .tertiary.button:focus,
-.ui.tertiary.olive.button:focus {
-  box-shadow: inset 0 -0.2em 0 #92a418;
-  color: #92a418;
-}
-
-.ui.tertiary.olive.buttons .active.button,
-.ui.tertiary.olive.buttons .tertiary.active.button,
-.ui.tertiary.olive.active.button,
-.ui.tertiary.olive.buttons .button:active,
-.ui.tertiary.olive.buttons .tertiary.button:active,
-.ui.tertiary.olive.button:active {
-  box-shadow: inset 0 -0.2em 0 #b1cb00;
-  color: #aac109;
 }
 
 .ui.green.buttons .button,
@@ -1772,40 +1409,6 @@
   margin-left: -1px;
 }
 
-/* Tertiary */
-
-.ui.tertiary.green.buttons .button,
-.ui.tertiary.green.buttons .tertiary.button,
-.ui.tertiary.green.button {
-  background: transparent;
-  box-shadow: none;
-  color: #21BA45;
-}
-
-.ui.tertiary.green.buttons .button:hover,
-.ui.tertiary.green.buttons button:hover,
-.ui.tertiary.green.button:hover {
-  box-shadow: inset 0 -0.2em 0 #2a9844;
-  color: #2a9844;
-}
-
-.ui.tertiary.green.buttons .button:focus,
-.ui.tertiary.green.buttons .tertiary.button:focus,
-.ui.tertiary.green.button:focus {
-  box-shadow: inset 0 -0.2em 0 #20923b;
-  color: #20923b;
-}
-
-.ui.tertiary.green.buttons .active.button,
-.ui.tertiary.green.buttons .tertiary.active.button,
-.ui.tertiary.green.active.button,
-.ui.tertiary.green.buttons .button:active,
-.ui.tertiary.green.buttons .tertiary.button:active,
-.ui.tertiary.green.button:active {
-  box-shadow: inset 0 -0.2em 0 #00c22e;
-  color: #13ae38;
-}
-
 .ui.teal.buttons .button,
 .ui.teal.button {
   background-color: #00B5AD;
@@ -1886,40 +1489,6 @@
 
 .ui.buttons:not(.vertical) > .basic.teal.button:not(:first-child) {
   margin-left: -1px;
-}
-
-/* Tertiary */
-
-.ui.tertiary.teal.buttons .button,
-.ui.tertiary.teal.buttons .tertiary.button,
-.ui.tertiary.teal.button {
-  background: transparent;
-  box-shadow: none;
-  color: #00B5AD;
-}
-
-.ui.tertiary.teal.buttons .button:hover,
-.ui.tertiary.teal.buttons button:hover,
-.ui.tertiary.teal.button:hover {
-  box-shadow: inset 0 -0.2em 0 #108c86;
-  color: #108c86;
-}
-
-.ui.tertiary.teal.buttons .button:focus,
-.ui.tertiary.teal.buttons .tertiary.button:focus,
-.ui.tertiary.teal.button:focus {
-  box-shadow: inset 0 -0.2em 0 #0e7e79;
-  color: #0e7e79;
-}
-
-.ui.tertiary.teal.buttons .active.button,
-.ui.tertiary.teal.buttons .tertiary.active.button,
-.ui.tertiary.teal.active.button,
-.ui.tertiary.teal.buttons .button:active,
-.ui.tertiary.teal.buttons .tertiary.button:active,
-.ui.tertiary.teal.button:active {
-  box-shadow: inset 0 -0.2em 0 #009c95;
-  color: #009c95;
 }
 
 .ui.blue.buttons .button,
@@ -2004,40 +1573,6 @@
   margin-left: -1px;
 }
 
-/* Tertiary */
-
-.ui.tertiary.blue.buttons .button,
-.ui.tertiary.blue.buttons .tertiary.button,
-.ui.tertiary.blue.button {
-  background: transparent;
-  box-shadow: none;
-  color: #2185D0;
-}
-
-.ui.tertiary.blue.buttons .button:hover,
-.ui.tertiary.blue.buttons button:hover,
-.ui.tertiary.blue.button:hover {
-  box-shadow: inset 0 -0.2em 0 #2b75ac;
-  color: #2b75ac;
-}
-
-.ui.tertiary.blue.buttons .button:focus,
-.ui.tertiary.blue.buttons .tertiary.button:focus,
-.ui.tertiary.blue.button:focus {
-  box-shadow: inset 0 -0.2em 0 #216ea7;
-  color: #216ea7;
-}
-
-.ui.tertiary.blue.buttons .active.button,
-.ui.tertiary.blue.buttons .tertiary.active.button,
-.ui.tertiary.blue.active.button,
-.ui.tertiary.blue.buttons .button:active,
-.ui.tertiary.blue.buttons .tertiary.button:active,
-.ui.tertiary.blue.button:active {
-  box-shadow: inset 0 -0.2em 0 #007bd8;
-  color: #1279c6;
-}
-
 .ui.violet.buttons .button,
 .ui.violet.button {
   background-color: #6435C9;
@@ -2118,40 +1653,6 @@
 
 .ui.buttons:not(.vertical) > .basic.violet.button:not(:first-child) {
   margin-left: -1px;
-}
-
-/* Tertiary */
-
-.ui.tertiary.violet.buttons .button,
-.ui.tertiary.violet.buttons .tertiary.button,
-.ui.tertiary.violet.button {
-  background: transparent;
-  box-shadow: none;
-  color: #6435C9;
-}
-
-.ui.tertiary.violet.buttons .button:hover,
-.ui.tertiary.violet.buttons button:hover,
-.ui.tertiary.violet.button:hover {
-  box-shadow: inset 0 -0.2em 0 #6040a5;
-  color: #6040a5;
-}
-
-.ui.tertiary.violet.buttons .button:focus,
-.ui.tertiary.violet.buttons .tertiary.button:focus,
-.ui.tertiary.violet.button:focus {
-  box-shadow: inset 0 -0.2em 0 #5735a0;
-  color: #5735a0;
-}
-
-.ui.tertiary.violet.buttons .active.button,
-.ui.tertiary.violet.buttons .tertiary.active.button,
-.ui.tertiary.violet.active.button,
-.ui.tertiary.violet.buttons .button:active,
-.ui.tertiary.violet.buttons .tertiary.button:active,
-.ui.tertiary.violet.button:active {
-  box-shadow: inset 0 -0.2em 0 #4e0fd6;
-  color: #5626bf;
 }
 
 .ui.purple.buttons .button,
@@ -2236,40 +1737,6 @@
   margin-left: -1px;
 }
 
-/* Tertiary */
-
-.ui.tertiary.purple.buttons .button,
-.ui.tertiary.purple.buttons .tertiary.button,
-.ui.tertiary.purple.button {
-  background: transparent;
-  box-shadow: none;
-  color: #A333C8;
-}
-
-.ui.tertiary.purple.buttons .button:hover,
-.ui.tertiary.purple.buttons button:hover,
-.ui.tertiary.purple.button:hover {
-  box-shadow: inset 0 -0.2em 0 #8a3ea4;
-  color: #8a3ea4;
-}
-
-.ui.tertiary.purple.buttons .button:focus,
-.ui.tertiary.purple.buttons .tertiary.button:focus,
-.ui.tertiary.purple.button:focus {
-  box-shadow: inset 0 -0.2em 0 #84339f;
-  color: #84339f;
-}
-
-.ui.tertiary.purple.buttons .active.button,
-.ui.tertiary.purple.buttons .tertiary.active.button,
-.ui.tertiary.purple.active.button,
-.ui.tertiary.purple.buttons .button:active,
-.ui.tertiary.purple.buttons .tertiary.button:active,
-.ui.tertiary.purple.button:active {
-  box-shadow: inset 0 -0.2em 0 #a30dd4;
-  color: #9724be;
-}
-
 .ui.pink.buttons .button,
 .ui.pink.button {
   background-color: #E03997;
@@ -2350,40 +1817,6 @@
 
 .ui.buttons:not(.vertical) > .basic.pink.button:not(:first-child) {
   margin-left: -1px;
-}
-
-/* Tertiary */
-
-.ui.tertiary.pink.buttons .button,
-.ui.tertiary.pink.buttons .tertiary.button,
-.ui.tertiary.pink.button {
-  background: transparent;
-  box-shadow: none;
-  color: #E03997;
-}
-
-.ui.tertiary.pink.buttons .button:hover,
-.ui.tertiary.pink.buttons button:hover,
-.ui.tertiary.pink.button:hover {
-  box-shadow: inset 0 -0.2em 0 #cc3389;
-  color: #cc3389;
-}
-
-.ui.tertiary.pink.buttons .button:focus,
-.ui.tertiary.pink.buttons .tertiary.button:focus,
-.ui.tertiary.pink.button:focus {
-  box-shadow: inset 0 -0.2em 0 #c92782;
-  color: #c92782;
-}
-
-.ui.tertiary.pink.buttons .active.button,
-.ui.tertiary.pink.buttons .tertiary.active.button,
-.ui.tertiary.pink.active.button,
-.ui.tertiary.pink.buttons .button:active,
-.ui.tertiary.pink.buttons .tertiary.button:active,
-.ui.tertiary.pink.button:active {
-  box-shadow: inset 0 -0.2em 0 #ff0090;
-  color: #ea158d;
 }
 
 .ui.brown.buttons .button,
@@ -2468,40 +1901,6 @@
   margin-left: -1px;
 }
 
-/* Tertiary */
-
-.ui.tertiary.brown.buttons .button,
-.ui.tertiary.brown.buttons .tertiary.button,
-.ui.tertiary.brown.button {
-  background: transparent;
-  box-shadow: none;
-  color: #A5673F;
-}
-
-.ui.tertiary.brown.buttons .button:hover,
-.ui.tertiary.brown.buttons button:hover,
-.ui.tertiary.brown.button:hover {
-  box-shadow: inset 0 -0.2em 0 #835f48;
-  color: #835f48;
-}
-
-.ui.tertiary.brown.buttons .button:focus,
-.ui.tertiary.brown.buttons .tertiary.button:focus,
-.ui.tertiary.brown.button:focus {
-  box-shadow: inset 0 -0.2em 0 #7d573e;
-  color: #7d573e;
-}
-
-.ui.tertiary.brown.buttons .active.button,
-.ui.tertiary.brown.buttons .tertiary.active.button,
-.ui.tertiary.brown.active.button,
-.ui.tertiary.brown.buttons .button:active,
-.ui.tertiary.brown.buttons .tertiary.button:active,
-.ui.tertiary.brown.button:active {
-  box-shadow: inset 0 -0.2em 0 #ae561d;
-  color: #995a31;
-}
-
 .ui.grey.buttons .button,
 .ui.grey.button {
   background-color: #767676;
@@ -2584,40 +1983,6 @@
   margin-left: -1px;
 }
 
-/* Tertiary */
-
-.ui.tertiary.grey.buttons .button,
-.ui.tertiary.grey.buttons .tertiary.button,
-.ui.tertiary.grey.button {
-  background: transparent;
-  box-shadow: none;
-  color: #767676;
-}
-
-.ui.tertiary.grey.buttons .button:hover,
-.ui.tertiary.grey.buttons button:hover,
-.ui.tertiary.grey.button:hover {
-  box-shadow: inset 0 -0.2em 0 #838383;
-  color: #838383;
-}
-
-.ui.tertiary.grey.buttons .button:focus,
-.ui.tertiary.grey.buttons .tertiary.button:focus,
-.ui.tertiary.grey.button:focus {
-  box-shadow: inset 0 -0.2em 0 #8a8a8a;
-  color: #8a8a8a;
-}
-
-.ui.tertiary.grey.buttons .active.button,
-.ui.tertiary.grey.buttons .tertiary.active.button,
-.ui.tertiary.grey.active.button,
-.ui.tertiary.grey.buttons .button:active,
-.ui.tertiary.grey.buttons .tertiary.button:active,
-.ui.tertiary.grey.button:active {
-  box-shadow: inset 0 -0.2em 0 #7e5454;
-  color: #696969;
-}
-
 .ui.black.buttons .button,
 .ui.black.button {
   background-color: #1B1C1D;
@@ -2698,40 +2063,6 @@
 
 .ui.buttons:not(.vertical) > .basic.black.button:not(:first-child) {
   margin-left: -1px;
-}
-
-/* Tertiary */
-
-.ui.tertiary.black.buttons .button,
-.ui.tertiary.black.buttons .tertiary.button,
-.ui.tertiary.black.button {
-  background: transparent;
-  box-shadow: none;
-  color: #1B1C1D;
-}
-
-.ui.tertiary.black.buttons .button:hover,
-.ui.tertiary.black.buttons button:hover,
-.ui.tertiary.black.button:hover {
-  box-shadow: inset 0 -0.2em 0 #8b8f93;
-  color: #8b8f93;
-}
-
-.ui.tertiary.black.buttons .button:focus,
-.ui.tertiary.black.buttons .tertiary.button:focus,
-.ui.tertiary.black.button:focus {
-  box-shadow: inset 0 -0.2em 0 #93969a;
-  color: #93969a;
-}
-
-.ui.tertiary.black.buttons .active.button,
-.ui.tertiary.black.buttons .tertiary.active.button,
-.ui.tertiary.black.active.button,
-.ui.tertiary.black.buttons .button:active,
-.ui.tertiary.black.buttons .tertiary.button:active,
-.ui.tertiary.black.button:active {
-  box-shadow: inset 0 -0.2em 0 #404245;
-  color: #0f0f10;
 }
 
 /*---------------
@@ -6763,23 +6094,6 @@ select.ui.dropdown {
   margin-top: 0.7em;
 }
 
-/*--------------------
-        Transparent
-  ---------------------*/
-
-.ui.form .field .transparent.input:not(.icon) input,
-.ui.form .field input.transparent,
-.ui.form .field textarea.transparent {
-  padding: 0.67857143em 1em;
-}
-
-.ui.form .field input.transparent,
-.ui.form .field textarea.transparent {
-  border-color: transparent !important;
-  background-color: transparent !important;
-  box-shadow: none !important;
-}
-
 /*--------------------------
   Input w/ attached Button
 ---------------------------*/
@@ -10120,231 +9434,6 @@ select.ui.dropdown {
 }
 
 /*-------------------
-        Doubling
-  --------------------*/
-
-/* Tablet Only */
-
-@media only screen and (min-width: 768px) and (max-width: 991.98px) {
-  .ui.doubling.grid {
-    width: auto;
-  }
-
-  .ui.grid > .doubling.row,
-  .ui.doubling.grid > .row {
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
-  .ui.grid > .doubling.row > .column,
-  .ui.doubling.grid > .row > .column {
-    display: inline-block !important;
-    padding-top: 1rem !important;
-    padding-bottom: 1rem !important;
-    box-shadow: none !important;
-    margin: 0;
-  }
-
-  .ui[class*="two column"].doubling.grid > .row > .column,
-  .ui[class*="two column"].doubling.grid > .column:not(.row),
-  .ui.grid > [class*="two column"].doubling.row.row > .column {
-    width: 100% !important;
-  }
-
-  .ui[class*="three column"].doubling.grid > .row > .column,
-  .ui[class*="three column"].doubling.grid > .column:not(.row),
-  .ui.grid > [class*="three column"].doubling.row.row > .column {
-    width: 50% !important;
-  }
-
-  .ui[class*="four column"].doubling.grid > .row > .column,
-  .ui[class*="four column"].doubling.grid > .column:not(.row),
-  .ui.grid > [class*="four column"].doubling.row.row > .column {
-    width: 50% !important;
-  }
-
-  .ui[class*="five column"].doubling.grid > .row > .column,
-  .ui[class*="five column"].doubling.grid > .column:not(.row),
-  .ui.grid > [class*="five column"].doubling.row.row > .column {
-    width: 33.33333333% !important;
-  }
-
-  .ui[class*="six column"].doubling.grid > .row > .column,
-  .ui[class*="six column"].doubling.grid > .column:not(.row),
-  .ui.grid > [class*="six column"].doubling.row.row > .column {
-    width: 33.33333333% !important;
-  }
-
-  .ui[class*="seven column"].doubling.grid > .row > .column,
-  .ui[class*="seven column"].doubling.grid > .column:not(.row),
-  .ui.grid > [class*="seven column"].doubling.row.row > .column {
-    width: 33.33333333% !important;
-  }
-
-  .ui[class*="eight column"].doubling.grid > .row > .column,
-  .ui[class*="eight column"].doubling.grid > .column:not(.row),
-  .ui.grid > [class*="eight column"].doubling.row.row > .column {
-    width: 25% !important;
-  }
-
-  .ui[class*="nine column"].doubling.grid > .row > .column,
-  .ui[class*="nine column"].doubling.grid > .column:not(.row),
-  .ui.grid > [class*="nine column"].doubling.row.row > .column {
-    width: 25% !important;
-  }
-
-  .ui[class*="ten column"].doubling.grid > .row > .column,
-  .ui[class*="ten column"].doubling.grid > .column:not(.row),
-  .ui.grid > [class*="ten column"].doubling.row.row > .column {
-    width: 20% !important;
-  }
-
-  .ui[class*="eleven column"].doubling.grid > .row > .column,
-  .ui[class*="eleven column"].doubling.grid > .column:not(.row),
-  .ui.grid > [class*="eleven column"].doubling.row.row > .column {
-    width: 20% !important;
-  }
-
-  .ui[class*="twelve column"].doubling.grid > .row > .column,
-  .ui[class*="twelve column"].doubling.grid > .column:not(.row),
-  .ui.grid > [class*="twelve column"].doubling.row.row > .column {
-    width: 16.66666667% !important;
-  }
-
-  .ui[class*="thirteen column"].doubling.grid > .row > .column,
-  .ui[class*="thirteen column"].doubling.grid > .column:not(.row),
-  .ui.grid > [class*="thirteen column"].doubling.row.row > .column {
-    width: 16.66666667% !important;
-  }
-
-  .ui[class*="fourteen column"].doubling.grid > .row > .column,
-  .ui[class*="fourteen column"].doubling.grid > .column:not(.row),
-  .ui.grid > [class*="fourteen column"].doubling.row.row > .column {
-    width: 14.28571429% !important;
-  }
-
-  .ui[class*="fifteen column"].doubling.grid > .row > .column,
-  .ui[class*="fifteen column"].doubling.grid > .column:not(.row),
-  .ui.grid > [class*="fifteen column"].doubling.row.row > .column {
-    width: 14.28571429% !important;
-  }
-
-  .ui[class*="sixteen column"].doubling.grid > .row > .column,
-  .ui[class*="sixteen column"].doubling.grid > .column:not(.row),
-  .ui.grid > [class*="sixteen column"].doubling.row.row > .column {
-    width: 12.5% !important;
-  }
-}
-
-/* Mobile Only */
-
-@media only screen and (max-width: 767.98px) {
-  .ui.grid > .doubling.row,
-  .ui.doubling.grid > .row {
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
-  .ui.grid > .doubling.row > .column,
-  .ui.doubling.grid > .row > .column {
-    padding-top: 1rem !important;
-    padding-bottom: 1rem !important;
-    margin: 0 !important;
-    box-shadow: none !important;
-  }
-
-  .ui[class*="two column"].doubling:not(.stackable).grid > .row > .column,
-  .ui[class*="two column"].doubling:not(.stackable).grid > .column:not(.row),
-  .ui.grid > [class*="two column"].doubling:not(.stackable).row.row > .column {
-    width: 100% !important;
-  }
-
-  .ui[class*="three column"].doubling:not(.stackable).grid > .row > .column,
-  .ui[class*="three column"].doubling:not(.stackable).grid > .column:not(.row),
-  .ui.grid > [class*="three column"].doubling:not(.stackable).row.row > .column {
-    width: 50% !important;
-  }
-
-  .ui[class*="four column"].doubling:not(.stackable).grid > .row > .column,
-  .ui[class*="four column"].doubling:not(.stackable).grid > .column:not(.row),
-  .ui.grid > [class*="four column"].doubling:not(.stackable).row.row > .column {
-    width: 50% !important;
-  }
-
-  .ui[class*="five column"].doubling:not(.stackable).grid > .row > .column,
-  .ui[class*="five column"].doubling:not(.stackable).grid > .column:not(.row),
-  .ui.grid > [class*="five column"].doubling:not(.stackable).row.row > .column {
-    width: 50% !important;
-  }
-
-  .ui[class*="six column"].doubling:not(.stackable).grid > .row > .column,
-  .ui[class*="six column"].doubling:not(.stackable).grid > .column:not(.row),
-  .ui.grid > [class*="six column"].doubling:not(.stackable).row.row > .column {
-    width: 50% !important;
-  }
-
-  .ui[class*="seven column"].doubling:not(.stackable).grid > .row > .column,
-  .ui[class*="seven column"].doubling:not(.stackable).grid > .column:not(.row),
-  .ui.grid > [class*="seven column"].doubling:not(.stackable).row.row > .column {
-    width: 50% !important;
-  }
-
-  .ui[class*="eight column"].doubling:not(.stackable).grid > .row > .column,
-  .ui[class*="eight column"].doubling:not(.stackable).grid > .column:not(.row),
-  .ui.grid > [class*="eight column"].doubling:not(.stackable).row.row > .column {
-    width: 50% !important;
-  }
-
-  .ui[class*="nine column"].doubling:not(.stackable).grid > .row > .column,
-  .ui[class*="nine column"].doubling:not(.stackable).grid > .column:not(.row),
-  .ui.grid > [class*="nine column"].doubling:not(.stackable).row.row > .column {
-    width: 33.33333333% !important;
-  }
-
-  .ui[class*="ten column"].doubling:not(.stackable).grid > .row > .column,
-  .ui[class*="ten column"].doubling:not(.stackable).grid > .column:not(.row),
-  .ui.grid > [class*="ten column"].doubling:not(.stackable).row.row > .column {
-    width: 33.33333333% !important;
-  }
-
-  .ui[class*="eleven column"].doubling:not(.stackable).grid > .row > .column,
-  .ui[class*="eleven column"].doubling:not(.stackable).grid > .column:not(.row),
-  .ui.grid > [class*="eleven column"].doubling:not(.stackable).row.row > .column {
-    width: 33.33333333% !important;
-  }
-
-  .ui[class*="twelve column"].doubling:not(.stackable).grid > .row > .column,
-  .ui[class*="twelve column"].doubling:not(.stackable).grid > .column:not(.row),
-  .ui.grid > [class*="twelve column"].doubling:not(.stackable).row.row > .column {
-    width: 33.33333333% !important;
-  }
-
-  .ui[class*="thirteen column"].doubling:not(.stackable).grid > .row > .column,
-  .ui[class*="thirteen column"].doubling:not(.stackable).grid > .column:not(.row),
-  .ui.grid > [class*="thirteen column"].doubling:not(.stackable).row.row > .column {
-    width: 33.33333333% !important;
-  }
-
-  .ui[class*="fourteen column"].doubling:not(.stackable).grid > .row > .column,
-  .ui[class*="fourteen column"].doubling:not(.stackable).grid > .column:not(.row),
-  .ui.grid > [class*="fourteen column"].doubling:not(.stackable).row.row > .column {
-    width: 25% !important;
-  }
-
-  .ui[class*="fifteen column"].doubling:not(.stackable).grid > .row > .column,
-  .ui[class*="fifteen column"].doubling:not(.stackable).grid > .column:not(.row),
-  .ui.grid > [class*="fifteen column"].doubling:not(.stackable).row.row > .column {
-    width: 25% !important;
-  }
-
-  .ui[class*="sixteen column"].doubling:not(.stackable).grid > .row > .column,
-  .ui[class*="sixteen column"].doubling:not(.stackable).grid > .column:not(.row),
-  .ui.grid > [class*="sixteen column"].doubling:not(.stackable).row.row > .column {
-    width: 25% !important;
-  }
-}
-
-/*-------------------
         Stackable
   --------------------*/
 
@@ -12858,304 +11947,6 @@ a.ui.label {
              Types
 *******************************/
 
-.ui.image.label {
-  width: auto;
-  margin-top: 0;
-  margin-bottom: 0;
-  max-width: 9999px;
-  vertical-align: baseline;
-  text-transform: none;
-  background: #E8E8E8;
-  padding: 0.5833em 0.833em 0.5833em 0.5em;
-  border-radius: 0.28571429rem;
-  box-shadow: none;
-}
-
-.ui.image.label.attached:not(.basic) {
-  padding: 0.5833em 0.833em 0.5833em 0.5em;
-}
-
-.ui.image.label img {
-  display: inline-block;
-  vertical-align: top;
-  height: 2.1666em;
-  margin: -0.5833em 0.5em -0.5833em -0.5em;
-  border-radius: 0.28571429rem 0 0 0.28571429rem;
-}
-
-.ui.image.label .detail {
-  background: rgba(0, 0, 0, 0.1);
-  margin: -0.5833em -0.833em -0.5833em 0.5em;
-  padding: 0.5833em 0.833em;
-  border-radius: 0 0.28571429rem 0.28571429rem 0;
-}
-
-.ui.bottom.attached.image.label:not(.right) > img,
-.ui.top.right.attached.image.label > img {
-  border-top-left-radius: 0;
-}
-
-.ui.top.attached.image.label:not(.right) > img,
-.ui.bottom.right.attached.image.label > img {
-  border-bottom-left-radius: 0;
-}
-
-/*-------------------
-         Tag
---------------------*/
-
-.ui.tag.labels .label,
-.ui.tag.label {
-  margin-left: 1em;
-  position: relative;
-  padding-left: 1.5em;
-  padding-right: 1.5em;
-  border-radius: 0 0.28571429rem 0.28571429rem 0;
-  transition: none;
-}
-
-.ui.tag.labels .label:before,
-.ui.tag.label:before {
-  position: absolute;
-  transform: translateY(-50%) translateX(50%) rotate(-45deg);
-  top: 50%;
-  right: 100%;
-  content: '';
-  background-color: inherit;
-  background-image: none;
-  width: 1.56em;
-  height: 1.56em;
-  transition: none;
-}
-
-.ui.tag.labels .label:after,
-.ui.tag.label:after {
-  position: absolute;
-  content: '';
-  top: 50%;
-  left: -0.25em;
-  margin-top: -0.25em;
-  background-color: #FFFFFF;
-  width: 0.5em;
-  height: 0.5em;
-  box-shadow: 0 -1px 1px 0 rgba(0, 0, 0, 0.3);
-  border-radius: 500rem;
-}
-
-.ui.basic.tag.labels .label:before,
-.ui.basic.tag.label:before {
-  border-color: inherit;
-  border-width: 1px 0 0 1px;
-  border-style: inherit;
-  right: calc(100% + 1px);
-}
-
-.ui.basic.tag.labels .label:after,
-.ui.basic.tag.label:after {
-  box-shadow: 0 -1px 3px 0 rgba(0, 0, 0, 0.8);
-}
-
-/*-------------------
-    Corner Label
---------------------*/
-
-.ui.corner.label {
-  position: absolute;
-  top: 0;
-  right: 0;
-  margin: 0;
-  padding: 0;
-  text-align: center;
-  border-color: #E8E8E8;
-  width: 4em;
-  height: 4em;
-  z-index: 1;
-  transition: border-color 0.1s ease;
-}
-
-/* Icon Label */
-
-.ui.corner.label {
-  background-color: transparent !important;
-}
-
-.ui.corner.label:after {
-  position: absolute;
-  content: "";
-  right: 0;
-  top: 0;
-  z-index: -1;
-  width: 0;
-  height: 0;
-  background-color: transparent;
-  border-top: 0 solid transparent;
-  border-right: 4em solid transparent;
-  border-bottom: 4em solid transparent;
-  border-left: 0 solid transparent;
-  border-right-color: inherit;
-  transition: border-color 0.1s ease;
-}
-
-.ui.corner.label .icon {
-  cursor: inherit;
-  position: absolute;
-  top: 0.64285714em;
-  left: auto;
-  right: 0.57142857em;
-  font-size: 1.14285714em;
-  margin: 0;
-}
-
-/* Left Corner */
-
-.ui.left.corner.label,
-.ui.left.corner.label:after {
-  right: auto;
-  left: 0;
-}
-
-.ui.left.corner.label:after {
-  border-top: 4em solid transparent;
-  border-right: 4em solid transparent;
-  border-bottom: 0 solid transparent;
-  border-left: 0 solid transparent;
-  border-top-color: inherit;
-}
-
-.ui.left.corner.label .icon {
-  left: 0.57142857em;
-  right: auto;
-}
-
-/* Segment */
-
-.ui.segment > .ui.corner.label {
-  top: -1px;
-  right: -1px;
-}
-
-.ui.segment > .ui.left.corner.label {
-  right: auto;
-  left: -1px;
-}
-
-/*-------------------
-         Ribbon
-  --------------------*/
-
-.ui.ribbon.label {
-  position: relative;
-  margin: 0;
-  min-width: -webkit-max-content;
-  min-width: -moz-max-content;
-  min-width: max-content;
-  border-radius: 0 0.28571429rem 0.28571429rem 0;
-  border-color: rgba(0, 0, 0, 0.15);
-}
-
-.ui.ribbon.label:after {
-  position: absolute;
-  content: '';
-  top: 100%;
-  left: 0;
-  background-color: transparent;
-  border-style: solid;
-  border-width: 0 1.2em 1.2em 0;
-  border-color: transparent;
-  border-right-color: inherit;
-  width: 0;
-  height: 0;
-}
-
-/* Positioning */
-
-.ui.ribbon.label {
-  left: calc(-1rem - 1.2em);
-  margin-right: -1.2em;
-  padding-left: calc(1rem + 1.2em);
-  padding-right: 1.2em;
-}
-
-.ui[class*="right ribbon"].label {
-  left: calc(100% + 1rem + 1.2em);
-  padding-left: 1.2em;
-  padding-right: calc(1rem + 1.2em);
-}
-
-.ui.basic.ribbon.label {
-  padding-top: calc(0.5833em - 1px);
-  padding-bottom: calc(0.5833em - 1px);
-}
-
-.ui.basic.ribbon.label:not([class*="right ribbon"]) {
-  padding-left: calc(1rem + 1.2em - 1px);
-  padding-right: calc(1.2em - 1px);
-}
-
-.ui.basic[class*="right ribbon"].label {
-  padding-left: calc(1.2em - 1px);
-  padding-right: calc(1rem + 1.2em - 1px);
-}
-
-.ui.basic.ribbon.label::after {
-  top: calc(100% + 1px);
-}
-
-.ui.basic.ribbon.label:not([class*="right ribbon"])::after {
-  left: -1px;
-}
-
-.ui.basic[class*="right ribbon"].label::after {
-  right: -1px;
-}
-
-/* Right Ribbon */
-
-.ui[class*="right ribbon"].label {
-  text-align: left;
-  transform: translateX(-100%);
-  border-radius: 0.28571429rem 0 0 0.28571429rem;
-}
-
-.ui[class*="right ribbon"].label:after {
-  left: auto;
-  right: 0;
-  border-style: solid;
-  border-width: 1.2em 1.2em 0 0;
-  border-color: transparent;
-  border-top-color: inherit;
-}
-
-/* Inside Table */
-
-.ui.image > .ribbon.label,
-.ui.card .image > .ribbon.label {
-  position: absolute;
-  top: 1rem;
-}
-
-.ui.card .image > .ui.ribbon.label,
-.ui.image > .ui.ribbon.label {
-  left: calc(0.05rem - 1.2em);
-}
-
-.ui.card .image > .ui[class*="right ribbon"].label,
-.ui.image > .ui[class*="right ribbon"].label {
-  left: calc(100% + -0.05rem + 1.2em);
-  padding-left: 0.833em;
-}
-
-/* Inside Table */
-
-.ui.table td > .ui.ribbon.label {
-  left: calc(-1em - 1.2em);
-}
-
-.ui.table td > .ui[class*="right ribbon"].label {
-  left: calc(100% + 1em + 1.2em);
-  padding-left: 0.833em;
-}
-
 /*-------------------
         Attached
   --------------------*/
@@ -13313,10 +12104,6 @@ a.ui.active.label:hover:before {
   padding-left: calc(0.833em - 1px);
 }
 
-.ui.basic.image.label {
-  padding-left: calc(0.5em - 1px);
-}
-
 /* Link */
 
 .ui.basic.labels a.label:hover,
@@ -13363,12 +12150,6 @@ a.ui.ui.ui.primary.label:hover {
   color: #FFFFFF;
 }
 
-/* Ribbon */
-
-.ui.ui.ui.primary.ribbon.label {
-  border-color: #1a69a4;
-}
-
 /* Basic */
 
 .ui.basic.labels .primary.label,
@@ -13399,12 +12180,6 @@ a.ui.ui.ui.secondary.label:hover {
   background-color: #27292a;
   border-color: #27292a;
   color: #FFFFFF;
-}
-
-/* Ribbon */
-
-.ui.ui.ui.secondary.ribbon.label {
-  border-color: #020203;
 }
 
 /* Basic */
@@ -13439,12 +12214,6 @@ a.ui.ui.ui.red.label:hover {
   color: #FFFFFF;
 }
 
-/* Ribbon */
-
-.ui.ui.ui.red.ribbon.label {
-  border-color: #b21e1e;
-}
-
 /* Basic */
 
 .ui.basic.labels .red.label,
@@ -13475,12 +12244,6 @@ a.ui.ui.ui.orange.label:hover {
   background-color: #f26202;
   border-color: #f26202;
   color: #FFFFFF;
-}
-
-/* Ribbon */
-
-.ui.ui.ui.orange.ribbon.label {
-  border-color: #cf590c;
 }
 
 /* Basic */
@@ -13515,12 +12278,6 @@ a.ui.ui.ui.yellow.label:hover {
   color: #FFFFFF;
 }
 
-/* Ribbon */
-
-.ui.ui.ui.yellow.ribbon.label {
-  border-color: #cd9903;
-}
-
 /* Basic */
 
 .ui.basic.labels .yellow.label,
@@ -13551,12 +12308,6 @@ a.ui.ui.ui.olive.label:hover {
   background-color: #a7bd0d;
   border-color: #a7bd0d;
   color: #FFFFFF;
-}
-
-/* Ribbon */
-
-.ui.ui.ui.olive.ribbon.label {
-  border-color: #8d9e13;
 }
 
 /* Basic */
@@ -13591,12 +12342,6 @@ a.ui.ui.ui.green.label:hover {
   color: #FFFFFF;
 }
 
-/* Ribbon */
-
-.ui.ui.ui.green.ribbon.label {
-  border-color: #198f35;
-}
-
 /* Basic */
 
 .ui.basic.labels .green.label,
@@ -13627,12 +12372,6 @@ a.ui.ui.ui.teal.label:hover {
   background-color: #009c95;
   border-color: #009c95;
   color: #FFFFFF;
-}
-
-/* Ribbon */
-
-.ui.ui.ui.teal.ribbon.label {
-  border-color: #00827c;
 }
 
 /* Basic */
@@ -13667,12 +12406,6 @@ a.ui.ui.ui.blue.label:hover {
   color: #FFFFFF;
 }
 
-/* Ribbon */
-
-.ui.ui.ui.blue.ribbon.label {
-  border-color: #1a69a4;
-}
-
 /* Basic */
 
 .ui.basic.labels .blue.label,
@@ -13703,12 +12436,6 @@ a.ui.ui.ui.violet.label:hover {
   background-color: #5829bb;
   border-color: #5829bb;
   color: #FFFFFF;
-}
-
-/* Ribbon */
-
-.ui.ui.ui.violet.ribbon.label {
-  border-color: #502aa1;
 }
 
 /* Basic */
@@ -13743,12 +12470,6 @@ a.ui.ui.ui.purple.label:hover {
   color: #FFFFFF;
 }
 
-/* Ribbon */
-
-.ui.ui.ui.purple.ribbon.label {
-  border-color: #82299f;
-}
-
 /* Basic */
 
 .ui.basic.labels .purple.label,
@@ -13779,12 +12500,6 @@ a.ui.ui.ui.pink.label:hover {
   background-color: #e61a8d;
   border-color: #e61a8d;
   color: #FFFFFF;
-}
-
-/* Ribbon */
-
-.ui.ui.ui.pink.ribbon.label {
-  border-color: #c71f7e;
 }
 
 /* Basic */
@@ -13819,12 +12534,6 @@ a.ui.ui.ui.brown.label:hover {
   color: #FFFFFF;
 }
 
-/* Ribbon */
-
-.ui.ui.ui.brown.ribbon.label {
-  border-color: #805031;
-}
-
 /* Basic */
 
 .ui.basic.labels .brown.label,
@@ -13857,12 +12566,6 @@ a.ui.ui.ui.grey.label:hover {
   color: #FFFFFF;
 }
 
-/* Ribbon */
-
-.ui.ui.ui.grey.ribbon.label {
-  border-color: #5d5d5d;
-}
-
 /* Basic */
 
 .ui.basic.labels .grey.label,
@@ -13893,12 +12596,6 @@ a.ui.ui.ui.black.label:hover {
   background-color: #27292a;
   border-color: #27292a;
   color: #FFFFFF;
-}
-
-/* Ribbon */
-
-.ui.ui.ui.black.ribbon.label {
-  border-color: #020203;
 }
 
 /* Basic */
@@ -20315,111 +19012,6 @@ Floated Menu / Item
 }
 
 /*-------------------
-          Piled
-  --------------------*/
-
-.ui.piled.segments,
-.ui.piled.segment {
-  margin: 3em 0;
-  box-shadow: '';
-  z-index: auto;
-}
-
-.ui.piled.segment:first-child {
-  margin-top: 0;
-}
-
-.ui.piled.segment:last-child {
-  margin-bottom: 0;
-}
-
-.ui.piled.segments:after,
-.ui.piled.segments:before,
-.ui.piled.segment:after,
-.ui.piled.segment:before {
-  background-color: #FFFFFF;
-  visibility: visible;
-  content: '';
-  display: block;
-  height: 100%;
-  left: 0;
-  position: absolute;
-  width: 100%;
-  border: 1px solid rgba(34, 36, 38, 0.15);
-  box-shadow: '';
-}
-
-.ui.piled.segments:before,
-.ui.piled.segment:before {
-  transform: rotate(-1.2deg);
-  top: 0;
-  z-index: -2;
-}
-
-.ui.piled.segments:after,
-.ui.piled.segment:after {
-  transform: rotate(1.2deg);
-  top: 0;
-  z-index: -1;
-}
-
-/* Piled Attached */
-
-.ui[class*="top attached"].piled.segment {
-  margin-top: 3em;
-  margin-bottom: 0;
-}
-
-.ui.piled.segment[class*="top attached"]:first-child {
-  margin-top: 0;
-}
-
-.ui.piled.segment[class*="bottom attached"] {
-  margin-top: 0;
-  margin-bottom: 3em;
-}
-
-.ui.piled.segment[class*="bottom attached"]:last-child {
-  margin-bottom: 0;
-}
-
-/*-------------------
-         Stacked
-  --------------------*/
-
-.ui.stacked.segment {
-  padding-bottom: 1.4em;
-}
-
-.ui.stacked.segments:before,
-.ui.stacked.segments:after,
-.ui.stacked.segment:before,
-.ui.stacked.segment:after {
-  content: '';
-  position: absolute;
-  bottom: -3px;
-  left: 0;
-  border-top: 1px solid rgba(34, 36, 38, 0.15);
-  background: rgba(0, 0, 0, 0.03);
-  width: 100%;
-  height: 6px;
-  visibility: visible;
-}
-
-.ui.stacked.segments:before,
-.ui.stacked.segment:before {
-  display: none;
-}
-
-/* Add additional page */
-
-.ui.tall.stacked.segments:before,
-.ui.tall.stacked.segment:before {
-  display: block;
-  bottom: 0;
-}
-
-/*-------------------
          Padded
   --------------------*/
 
@@ -21440,126 +20032,6 @@ input::selection {
   .ui.definition.table:not(.unstackable) > thead > tr > th:first-child {
     box-shadow: none !important;
   }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.primary.left {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #2185D0 inset;
-  }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.primary.right {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #2185D0 inset;
-  }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.secondary.left {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #1B1C1D inset;
-  }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.secondary.right {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #1B1C1D inset;
-  }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.red.left {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #DB2828 inset;
-  }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.red.right {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #DB2828 inset;
-  }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.orange.left {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #F2711C inset;
-  }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.orange.right {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #F2711C inset;
-  }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.yellow.left {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #FBBD08 inset;
-  }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.yellow.right {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #FBBD08 inset;
-  }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.olive.left {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #B5CC18 inset;
-  }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.olive.right {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #B5CC18 inset;
-  }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.green.left {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #21BA45 inset;
-  }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.green.right {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #21BA45 inset;
-  }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.teal.left {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #00B5AD inset;
-  }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.teal.right {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #00B5AD inset;
-  }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.blue.left {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #2185D0 inset;
-  }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.blue.right {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #2185D0 inset;
-  }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.violet.left {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #6435C9 inset;
-  }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.violet.right {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #6435C9 inset;
-  }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.purple.left {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #A333C8 inset;
-  }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.purple.right {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #A333C8 inset;
-  }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.pink.left {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #E03997 inset;
-  }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.pink.right {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #E03997 inset;
-  }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.brown.left {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #A5673F inset;
-  }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.brown.right {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #A5673F inset;
-  }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.grey.left {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #767676 inset;
-  }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.grey.right {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #767676 inset;
-  }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.black.left {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #1B1C1D inset;
-  }
-
-  .ui.ui.ui.ui.table:not(.unstackable) tr.marked.black.right {
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #1B1C1D inset;
-  }
 }
 
 /*******************************
@@ -21743,191 +20215,6 @@ input::selection {
 /*******************************
           Variations
 *******************************/
-
-/*--------------
-      Stackable
-  ---------------*/
-
-@media only screen and (max-width: 991.98px) {
-  .ui[class*="tablet stackable"].table,
-  .ui[class*="tablet stackable"].table > thead,
-  .ui[class*="tablet stackable"].table > thead > tr,
-  .ui[class*="tablet stackable"].table > tfoot,
-  .ui[class*="tablet stackable"].table > tfoot > tr,
-  .ui[class*="tablet stackable"].table > tbody,
-  .ui[class*="tablet stackable"].table > tbody > tr,
-  .ui[class*="tablet stackable"].table > tr,
-  .ui[class*="tablet stackable"].table > thead > tr > th:not(.rowspanned),
-  .ui[class*="tablet stackable"].table > tbody > tr > th:not(.rowspanned),
-  .ui[class*="tablet stackable"].table > tfoot > tr > th:not(.rowspanned),
-  .ui[class*="tablet stackable"].table > tr > th:not(.rowspanned),
-  .ui[class*="tablet stackable"].table > tbody > tr > td:not(.rowspanned),
-  .ui[class*="tablet stackable"].table > tfoot > tr > td:not(.rowspanned),
-  .ui[class*="tablet stackable"].table > tr > td:not(.rowspanned) {
-    display: block !important;
-    width: 100% !important;
-  }
-
-  .ui[class*="tablet stackable"].table {
-    padding: 0;
-  }
-
-  .ui[class*="tablet stackable"].table > thead {
-    display: block;
-  }
-
-  .ui[class*="tablet stackable"].table > tfoot {
-    display: block;
-  }
-
-  .ui.ui.ui.ui[class*="tablet stackable"].table > thead > tr,
-  .ui.ui.ui.ui[class*="tablet stackable"].table > tbody > tr,
-  .ui.ui.ui.ui[class*="tablet stackable"].table > tfoot > tr,
-  .ui.ui.ui.ui[class*="tablet stackable"].table > tr {
-    padding-top: 1em;
-    padding-bottom: 1em;
-    box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset;
-  }
-
-  .ui[class*="tablet stackable"].table > thead > tr > th,
-  .ui[class*="tablet stackable"].table > tbody > tr > th,
-  .ui[class*="tablet stackable"].table > tfoot > tr > th,
-  .ui[class*="tablet stackable"].table > tr > th,
-  .ui[class*="tablet stackable"].table > tbody > tr > td,
-  .ui[class*="tablet stackable"].table > tfoot > tr > td,
-  .ui[class*="tablet stackable"].table > tr > td {
-    background: none;
-    border: none !important;
-    padding: 0.25em 0.75em;
-    box-shadow: none;
-  }
-
-  /* Definition Table */
-
-  .ui.definition[class*="tablet stackable"].table > thead > tr > th:first-child {
-    box-shadow: none !important;
-  }
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.primary.left {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #2185D0 inset;
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.primary.right {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #2185D0 inset;
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.secondary.left {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #1B1C1D inset;
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.secondary.right {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #1B1C1D inset;
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.red.left {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #DB2828 inset;
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.red.right {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #DB2828 inset;
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.orange.left {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #F2711C inset;
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.orange.right {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #F2711C inset;
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.yellow.left {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #FBBD08 inset;
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.yellow.right {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #FBBD08 inset;
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.olive.left {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #B5CC18 inset;
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.olive.right {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #B5CC18 inset;
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.green.left {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #21BA45 inset;
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.green.right {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #21BA45 inset;
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.teal.left {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #00B5AD inset;
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.teal.right {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #00B5AD inset;
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.blue.left {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #2185D0 inset;
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.blue.right {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #2185D0 inset;
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.violet.left {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #6435C9 inset;
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.violet.right {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #6435C9 inset;
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.purple.left {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #A333C8 inset;
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.purple.right {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #A333C8 inset;
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.pink.left {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #E03997 inset;
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.pink.right {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #E03997 inset;
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.brown.left {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #A5673F inset;
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.brown.right {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #A5673F inset;
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.grey.left {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #767676 inset;
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.grey.right {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #767676 inset;
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.black.left {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, 0.2em 0 0 0 #1B1C1D inset;
-}
-
-.ui.ui.ui.ui[class*="tablet stackable"].table tr.marked.black.right {
-  box-shadow: 0 -1px 0 0 rgba(0, 0, 0, 0.1) inset, -0.2em 0 0 0 #1B1C1D inset;
-}
 
 /*--------------
    Text Alignment
@@ -22155,16 +20442,6 @@ input::selection {
   color: rgba(255, 255, 255, 0.9);
 }
 
-.ui.table td.marked.primary.left,
-.ui.table tr.marked.primary.left {
-  box-shadow: 0.2em 0 0 0 #2185D0 inset;
-}
-
-.ui.table td.marked.primary.right,
-.ui.table tr.marked.primary.right {
-  box-shadow: -0.2em 0 0 0 #2185D0 inset;
-}
-
 .ui.secondary.table {
   border-top: 0.2em solid #1B1C1D;
 }
@@ -22180,16 +20457,6 @@ input::selection {
 .ui.selectable.table tr:hover td.secondary:not(.marked) {
   background: #e2e2e2;
   color: rgba(255, 255, 255, 0.9);
-}
-
-.ui.table td.marked.secondary.left,
-.ui.table tr.marked.secondary.left {
-  box-shadow: 0.2em 0 0 0 #1B1C1D inset;
-}
-
-.ui.table td.marked.secondary.right,
-.ui.table tr.marked.secondary.right {
-  box-shadow: -0.2em 0 0 0 #1B1C1D inset;
 }
 
 .ui.red.table {
@@ -22209,16 +20476,6 @@ input::selection {
   color: #DB2828;
 }
 
-.ui.table td.marked.red.left,
-.ui.table tr.marked.red.left {
-  box-shadow: 0.2em 0 0 0 #DB2828 inset;
-}
-
-.ui.table td.marked.red.right,
-.ui.table tr.marked.red.right {
-  box-shadow: -0.2em 0 0 0 #DB2828 inset;
-}
-
 .ui.orange.table {
   border-top: 0.2em solid #F2711C;
 }
@@ -22234,16 +20491,6 @@ input::selection {
 .ui.selectable.table tr:hover td.orange:not(.marked) {
   background: #fae1cc;
   color: #F2711C;
-}
-
-.ui.table td.marked.orange.left,
-.ui.table tr.marked.orange.left {
-  box-shadow: 0.2em 0 0 0 #F2711C inset;
-}
-
-.ui.table td.marked.orange.right,
-.ui.table tr.marked.orange.right {
-  box-shadow: -0.2em 0 0 0 #F2711C inset;
 }
 
 .ui.yellow.table {
@@ -22263,16 +20510,6 @@ input::selection {
   color: #B58105;
 }
 
-.ui.table td.marked.yellow.left,
-.ui.table tr.marked.yellow.left {
-  box-shadow: 0.2em 0 0 0 #FBBD08 inset;
-}
-
-.ui.table td.marked.yellow.right,
-.ui.table tr.marked.yellow.right {
-  box-shadow: -0.2em 0 0 0 #FBBD08 inset;
-}
-
 .ui.olive.table {
   border-top: 0.2em solid #B5CC18;
 }
@@ -22288,16 +20525,6 @@ input::selection {
 .ui.selectable.table tr:hover td.olive:not(.marked) {
   background: #f6fada;
   color: #8ABC1E;
-}
-
-.ui.table td.marked.olive.left,
-.ui.table tr.marked.olive.left {
-  box-shadow: 0.2em 0 0 0 #B5CC18 inset;
-}
-
-.ui.table td.marked.olive.right,
-.ui.table tr.marked.olive.right {
-  box-shadow: -0.2em 0 0 0 #B5CC18 inset;
 }
 
 .ui.green.table {
@@ -22317,16 +20544,6 @@ input::selection {
   color: #1EBC30;
 }
 
-.ui.table td.marked.green.left,
-.ui.table tr.marked.green.left {
-  box-shadow: 0.2em 0 0 0 #21BA45 inset;
-}
-
-.ui.table td.marked.green.right,
-.ui.table tr.marked.green.right {
-  box-shadow: -0.2em 0 0 0 #21BA45 inset;
-}
-
 .ui.teal.table {
   border-top: 0.2em solid #00B5AD;
 }
@@ -22342,16 +20559,6 @@ input::selection {
 .ui.selectable.table tr:hover td.teal:not(.marked) {
   background: #d8ffff;
   color: #10A3A3;
-}
-
-.ui.table td.marked.teal.left,
-.ui.table tr.marked.teal.left {
-  box-shadow: 0.2em 0 0 0 #00B5AD inset;
-}
-
-.ui.table td.marked.teal.right,
-.ui.table tr.marked.teal.right {
-  box-shadow: -0.2em 0 0 0 #00B5AD inset;
 }
 
 .ui.blue.table {
@@ -22371,16 +20578,6 @@ input::selection {
   color: #2185D0;
 }
 
-.ui.table td.marked.blue.left,
-.ui.table tr.marked.blue.left {
-  box-shadow: 0.2em 0 0 0 #2185D0 inset;
-}
-
-.ui.table td.marked.blue.right,
-.ui.table tr.marked.blue.right {
-  box-shadow: -0.2em 0 0 0 #2185D0 inset;
-}
-
 .ui.violet.table {
   border-top: 0.2em solid #6435C9;
 }
@@ -22396,16 +20593,6 @@ input::selection {
 .ui.selectable.table tr:hover td.violet:not(.marked) {
   background: #e3deff;
   color: #6435C9;
-}
-
-.ui.table td.marked.violet.left,
-.ui.table tr.marked.violet.left {
-  box-shadow: 0.2em 0 0 0 #6435C9 inset;
-}
-
-.ui.table td.marked.violet.right,
-.ui.table tr.marked.violet.right {
-  box-shadow: -0.2em 0 0 0 #6435C9 inset;
 }
 
 .ui.purple.table {
@@ -22425,16 +20612,6 @@ input::selection {
   color: #A333C8;
 }
 
-.ui.table td.marked.purple.left,
-.ui.table tr.marked.purple.left {
-  box-shadow: 0.2em 0 0 0 #A333C8 inset;
-}
-
-.ui.table td.marked.purple.right,
-.ui.table tr.marked.purple.right {
-  box-shadow: -0.2em 0 0 0 #A333C8 inset;
-}
-
 .ui.pink.table {
   border-top: 0.2em solid #E03997;
 }
@@ -22450,16 +20627,6 @@ input::selection {
 .ui.selectable.table tr:hover td.pink:not(.marked) {
   background: #ffdef6;
   color: #E03997;
-}
-
-.ui.table td.marked.pink.left,
-.ui.table tr.marked.pink.left {
-  box-shadow: 0.2em 0 0 0 #E03997 inset;
-}
-
-.ui.table td.marked.pink.right,
-.ui.table tr.marked.pink.right {
-  box-shadow: -0.2em 0 0 0 #E03997 inset;
 }
 
 .ui.brown.table {
@@ -22479,16 +20646,6 @@ input::selection {
   color: #A5673F;
 }
 
-.ui.table td.marked.brown.left,
-.ui.table tr.marked.brown.left {
-  box-shadow: 0.2em 0 0 0 #A5673F inset;
-}
-
-.ui.table td.marked.brown.right,
-.ui.table tr.marked.brown.right {
-  box-shadow: -0.2em 0 0 0 #A5673F inset;
-}
-
 .ui.grey.table {
   border-top: 0.2em solid #767676;
 }
@@ -22506,16 +20663,6 @@ input::selection {
   color: #767676;
 }
 
-.ui.table td.marked.grey.left,
-.ui.table tr.marked.grey.left {
-  box-shadow: 0.2em 0 0 0 #767676 inset;
-}
-
-.ui.table td.marked.grey.right,
-.ui.table tr.marked.grey.right {
-  box-shadow: -0.2em 0 0 0 #767676 inset;
-}
-
 .ui.black.table {
   border-top: 0.2em solid #1B1C1D;
 }
@@ -22531,16 +20678,6 @@ input::selection {
 .ui.selectable.table tr:hover td.black:not(.marked) {
   background: #000000;
   color: #FFFFFF;
-}
-
-.ui.table td.marked.black.left,
-.ui.table tr.marked.black.left {
-  box-shadow: 0.2em 0 0 0 #1B1C1D inset;
-}
-
-.ui.table td.marked.black.right,
-.ui.table tr.marked.black.right {
-  box-shadow: -0.2em 0 0 0 #1B1C1D inset;
 }
 
 /*--------------
