@@ -55,5 +55,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: docker/setup-buildx-action@v1
-      # build for linux/amd64, and linux/arm64 (possibly include linux/arm/v7 later. not included now because it adds significant amount to the build time)
+      - uses: docker/setup-qemu-action@v2
+      - uses: docker/setup-buildx-action@v2
+      - name: Get cleaned branch name
+        id: clean_name
+        run: |
+          # if main then say nightly otherwise cleanup name
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "branch=nightly" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          REF_NAME=$(echo "${{ github.ref }}" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\///' -e 's/release\/v//')
+          echo "branch=${REF_NAME}-nightly" >> "$GITHUB_OUTPUT"
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: build rootful docker image
+        uses: docker/build-push-action@v4
+        with:
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: gitea/gitea:${{ steps.clean_name.outputs.branch }}
+      - name: build rootless docker image
+        uses: docker/build-push-action@v4
+        with:
+          platforms: linux/amd64,linux/arm64
+          push: true
+          file: Dockerfile.rootless
+          tags: gitea/gitea:${{ steps.clean_name.outputs.branch }}-rootless
