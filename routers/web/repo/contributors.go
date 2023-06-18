@@ -57,8 +57,8 @@ func Contributors(ctx *context.Context) {
 		return
 	}
 
-	if ctx.PageData["repoActivityTopAuthors"], err = activities_model.GetActivityStatsTopAuthors(ctx, ctx.Repo.Repository, timeFrom, 10); err != nil {
-		ctx.ServerError("GetActivityStatsTopAuthors", err)
+	if ctx.PageData["repoContributorsCommitStats"], err = ctx.Repo.GitRepo.ContributorsCommitStats("main", 6000); err != nil {
+		ctx.ServerError("ContributorsCommitStats", err)
 		return
 	}
 

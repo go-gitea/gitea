@@ -5,13 +5,17 @@
 package git
 
 import (
+	"bufio"
 	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"io"
+	"os"
 	"strconv"
 	"strings"
 
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -218,6 +222,88 @@ type CommitsByFileAndRangeOptions struct {
 	File     string
 	Not      string
 	Page     int
+}
+
+
+// ContributorsCommitStats return the list of api.ContributorsCommitStats struct for drawing graph
+func (repo *Repository) ContributorsCommitStats(revision string, limit int) ([]*api.ContributorsCommitStats, error) {
+	var baseCommit *Commit
+	baseCommit, err := repo.GetCommit(revision)
+	stdoutReader, stdoutWriter, err := os.Pipe()
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = stdoutReader.Close()
+		_ = stdoutWriter.Close()
+	}()
+
+	gitCmd := NewCommand(repo.Ctx, "log", "--shortstat", "--no-merges", "--pretty=format:%aN%n%aE%n%as")
+		// AddOptionFormat("--max-count=%d", limit)
+	gitCmd.AddDynamicArguments(baseCommit.ID.String())
+
+
+	var contributors_commit_stats []*api.ContributorsCommitStats
+	stderr := new(strings.Builder)
+	err = gitCmd.Run(&RunOpts{
+		Dir:    repo.Path,
+		Stdout: stdoutWriter,
+		Stderr: stderr,
+		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
+			_ = stdoutWriter.Close()
+			scanner := bufio.NewScanner(stdoutReader)
+			scanner.Split(bufio.ScanLines)
+
+			for scanner.Scan() {
+				author_name := strings.TrimSpace(scanner.Text())
+				scanner.Scan()
+				author_email := strings.TrimSpace(scanner.Text())
+				scanner.Scan()
+				date := strings.TrimSpace(scanner.Text())
+				scanner.Scan()
+				stats := strings.TrimSpace(scanner.Text())
+				if author_name == "" || author_email == "" || date == "" || stats == "" {
+					// FIXME: find a better way to parse the output so that we will handle this properly
+					fmt.Println("Something is wrong with git log output, skipping...")
+					continue
+				}
+				//  1 file changed, 1 insertion(+), 1 deletion(-)
+				fields := strings.Split(stats, ",")
+
+				commit_stats := api.CommitStats{}
+				for _, field := range fields[1:] {
+					parts := strings.Split(strings.TrimSpace(field), " ")
+					value, type_ := parts[0], parts[1]
+					amount, _ := strconv.Atoi(value)
+
+					if strings.HasPrefix(type_, "insertion") {
+						commit_stats.Additions = amount
+
+					} else {
+						commit_stats.Deletions = amount
+					}
+				}
+				commit_stats.Total = commit_stats.Additions + commit_stats.Deletions
+				scanner.Scan()
+				scanner.Text() // empty line at the end
+
+				res := &api.ContributorsCommitStats{
+					Date: date,
+					Name:  author_name,
+					Email: author_email,
+					Stats: &commit_stats,
+				}
+				contributors_commit_stats = append(contributors_commit_stats, res)
+
+				}
+			_ = stdoutReader.Close()
+			return nil
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get ContributorsCommitStats for repository.\nError: %w\nStderr: %s", err, stderr)
+	}
+	return contributors_commit_stats, nil
 }
 
 // CommitsByFileAndRange return the commits according revision file and the page

@@ -279,6 +279,66 @@ func GetAllCommits(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, &apiCommits)
 }
 
+
+// GetAllCommitsStats get all commits via
+func GetAllCommitsStats(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/commits/stats repository repoGetAllCommitsStats
+	// ---
+	// summary: Get a list of all commits stats from a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: sha
+	//   in: query
+	//   description: SHA or branch to start listing commits from (usually 'master')
+	//   type: string
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/CommitList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     "$ref": "#/responses/EmptyRepository"
+
+	if ctx.Repo.Repository.IsEmpty {
+		ctx.JSON(http.StatusConflict, api.APIError{
+			Message: "Git Repository is empty.",
+			URL:     setting.API.SwaggerURL,
+		})
+		return
+	}
+
+	sha := ctx.FormString("sha")
+
+	var (
+		commits           []*api.ContributorsCommitStats
+		err               error
+	)
+
+	if len(sha) == 0 {
+		sha = ctx.Repo.Repository.DefaultBranch
+	}
+
+	commits, err = ctx.Repo.GitRepo.ContributorsCommitStats(sha, 6000)
+
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "ContributorsCommitStats", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, &commits)
+}
+
 // DownloadCommitDiffOrPatch render a commit's raw diff or patch
 func DownloadCommitDiffOrPatch(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/git/commits/{sha}.{diffType} repository repoDownloadCommitDiffOrPatch

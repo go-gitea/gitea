@@ -58,6 +58,14 @@ type Commit struct {
 	Stats      *CommitStats           `json:"stats"`
 }
 
+// ContributorsCommitStats contains information for generating contributor graphs from commit stats
+type ContributorsCommitStats struct {
+	Date  	string				`json:"date"`
+	Name    string				`json:"name" binding:"MaxSize(100)"`
+	Email   string				`json:"email" binding:"MaxSize(254)"`
+	Stats	  *CommitStats  `json:"stats"`
+}
+
 // CommitDateOptions store dates for GIT_AUTHOR_DATE and GIT_COMMITTER_DATE
 type CommitDateOptions struct {
 	// swagger:strfmt date-time
