@@ -272,18 +272,18 @@
 			</div>
 		</div>
 
-		<div id="issue-actions" class="issue-list-toolbar gt-hidden">
-			<div class="issue-list-toolbar-left">
+		<div id="issue-actions" class="ui grid issue-list-toolbar gt-hidden">
+			<div class="six wide column issue-list-toolbar-left">
 				{{template "repo/issue/openclose" .}}
 			</div>
-			<div class="issue-list-toolbar-right">
+			<div class="ten wide column  issue-list-toolbar-right">
 				<div class="ui secondary filter stackable menu">
 					{{if not .Repository.IsArchived}}
 					<!-- Action Button -->
 					{{if .IsShowClosed}}
-						<button class="ui green active basic button issue-action gt-ml-auto" data-action="open" data-url="{{$.RepoLink}}/issues/status">{{.locale.Tr "repo.issues.action_open"}}</button>
+						<button class="ui green active basic button issue-action" data-action="open" data-url="{{$.RepoLink}}/issues/status">{{.locale.Tr "repo.issues.action_open"}}</button>
 					{{else}}
-						<button class="ui red active basic button issue-action gt-ml-auto" data-action="close" data-url="{{$.RepoLink}}/issues/status">{{.locale.Tr "repo.issues.action_close"}}</button>
+						<button class="ui red active basic button issue-action" data-action="close" data-url="{{$.RepoLink}}/issues/status">{{.locale.Tr "repo.issues.action_close"}}</button>
 					{{end}}
 					<!-- Labels -->
 					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item">

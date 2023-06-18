@@ -1,6 +1,11 @@
-#issue-filters > .issue-list-toolbar-left {
+#issue-filters > .issue-list-toolbar-left,
+#issue-actions > .issue-list-toolbar-left {
   flex-direction: row;
   display: flex;
+}
+
+#issue-actions {
+  margin-top: 0;
 }
 
 @media only screen and (min-width: 1200px) {
@@ -40,11 +45,47 @@
   }
 
   #issue-filters > .issue-list-toolbar-left {
-    margin-top: 10px !important;
+    margin-top: 14px !important;
   }
 
   .ui.stackable.menu > .dropdown.item {
     position: initial;
+  }
+
+  .issue-list-toolbar {
+    flex-direction: column-reverse;
+  }
+
+  .issue-list-toolbar-right {
+    margin-right: auto;
+    width: 100%;
+  }
+
+  .issue-list-navbar {
+    order: 0;
+  }
+
+  .issue-list-new {
+    order: 1;
+    margin-left: auto !important;
+  }
+
+  .issue-list-search {
+    order: 2 !important;
+  }
+
+  #issue-actions {
+    flex-direction: column;
+    margin-right: 0;
+  }
+
+  #issue-actions > .issue-list-toolbar-right {
+    width: 100% !important;
+    padding-top: 0 !important;
+  }
+
+  #issue-actions > .issue-list-toolbar-right > .filter.menu {
+    padding-left: .5rem;
   }
 }
 
@@ -58,6 +99,14 @@
     margin-top: 0;
     padding: 0 1rem;
   }
+
+  #issue-actions {
+    justify-content: flex-end;
+  }
+
+  #issue-actions > .issue-list-toolbar-right .filter.menu {
+    justify-content: flex-end;
+  }
 }
 
 @media only screen and (min-width: 1024px) and (max-width: 1200px) {
@@ -69,5 +118,10 @@
   #issue-filters > .issue-list-toolbar-right {
     margin-top: 0;
     padding: 0 1rem;
+  }
+
+  #issue-actions > .issue-list-toolbar-right {
+    display: flex;
+    justify-content: flex-end;
   }
 }
