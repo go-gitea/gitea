@@ -120,18 +120,20 @@ func loadOAuth2From(rootCfg ConfigProvider) {
 		OAuth2.JWTSigningPrivateKeyFile = filepath.Join(AppDataPath, OAuth2.JWTSigningPrivateKeyFile)
 	}
 
-	key := make([]byte, 32)
-	n, err := base64.RawURLEncoding.Decode(key, []byte(OAuth2.JWTSecretBase64))
-	if err != nil || n != 32 {
-		key, err = generate.NewJwtSecret()
-		if err != nil {
-			log.Fatal("error generating JWT secret: %v", err)
-		}
+	if InstallLock {
+		key := make([]byte, 32)
+		n, err := base64.RawURLEncoding.Decode(key, []byte(OAuth2.JWTSecretBase64))
+		if err != nil || n != 32 {
+			key, err = generate.NewJwtSecret()
+			if err != nil {
+				log.Fatal("error generating JWT secret: %v", err)
+			}
 
-		secretBase64 := base64.RawURLEncoding.EncodeToString(key)
-		rootCfg.Section("oauth2").Key("JWT_SECRET").SetValue(secretBase64)
-		if err := rootCfg.Save(); err != nil {
-			log.Fatal("save oauth2.JWT_SECRET failed: %v", err)
+			secretBase64 := base64.RawURLEncoding.EncodeToString(key)
+			rootCfg.Section("oauth2").Key("JWT_SECRET").SetValue(secretBase64)
+			if err := rootCfg.Save(); err != nil {
+				log.Fatal("save oauth2.JWT_SECRET failed: %v", err)
+			}
 		}
 	}
 }
