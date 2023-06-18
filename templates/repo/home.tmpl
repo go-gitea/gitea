@@ -83,7 +83,7 @@
 					<a href="{{.Repository.Link}}/find/{{.BranchNameSubURL}}" class="ui compact basic button">{{.locale.Tr "repo.find_file.go_to_file"}}</a>
 				{{end}}
 
-				{{if and .CanWriteCode .IsViewBranch (not .Repository.IsArchived)}}
+				{{if and .CanWriteCode .IsViewBranch (not .Repository.IsArchived) (not .IsViewFile)}}
 					<button class="ui dropdown basic compact jump button gt-mr-2"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
 						{{.locale.Tr "repo.editor.add_file"}}
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
