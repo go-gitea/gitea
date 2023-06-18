@@ -1,15 +1,61 @@
-.issue-list-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 1rem;
-  margin-top: 1rem;
+@media only screen and (min-width: 1024px) and (max-width: 1266px){
+  #issue-filters > .column.six.wide.column {
+    max-width: fit-content;
+  }
+
+  #issue-filters > .issue-list-toolbar-right > .stackable.menu {
+    margin-left: calc(33% - 7vw);
+  }
 }
 
-.issue-list-toolbar-left {
-  display: flex;
+@media only screen and (min-width: 1266px) {
+  #issue-filters > .issue-list-toolbar-right > .stackable.menu {
+    margin-left: 16vh;
+  }
 }
 
-.issue-list-toolbar-right {
-  margin-left: auto;
+@media only screen and (max-width: 767.98px) {
+  .ui.container > .ui.stackable.grid > .column.issue-list-toolbar-right > .stackable.menu {
+    overflow-y: hidden;
+    overflow-x: scroll;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+  }
+
+  .ui.container > .ui.stackable.grid > .column.issue-list-toolbar-right > .stackable.menu > .item {
+    max-width: fit-content;
+  }
+
+  .ui.stackable.menu:not(.no-vertical-tabs) > .dropdown.item {
+    position: initial;
+  }
+
+  .ui.container > .ui.stackable.grid > .column.issue-list-toolbar-right {
+    padding-top: 0;
+  }
+}
+
+@media only screen and (min-width: 767.98px) and (max-width: 1024px) {
+  .ui.container > .ui.stackable.grid > .column.issue-list-toolbar-right > .stackable.menu {
+    flex-wrap: nowrap !important;
+  }
+
+  .ui.grid > .column.six.wide.column {
+    flex: 1;
+    max-width: fit-content;
+    display: flex;
+  }
+
+  #issue-filters {
+    flex-direction: column;
+  }
+
+  .ui.container > .ui.stackable.grid > .column.issue-list-toolbar-right {
+    padding-top: 0;
+    padding-left: 3px;
+  }
+
+  #issue-filters > .issue-list-toolbar-right > .stackable.menu {
+    margin-left: 0;
+  }
 }
