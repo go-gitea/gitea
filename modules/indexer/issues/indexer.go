@@ -5,9 +5,9 @@ package issues
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"runtime/pprof"
+	"sync/atomic"
 	"time"
 
 	db_model "code.gitea.io/gitea/models/db"
@@ -29,8 +29,18 @@ import (
 var (
 	// issueIndexerQueue queue of issue ids to be updated
 	issueIndexerQueue *queue.WorkerPoolQueue[*internal.IndexerData]
-	globalIndexer     = internal.NewDummyIndexer()
+	// globalIndexer is the global indexer, it cannot be nil.
+	// When the real indexer is not ready, it will be a dummy indexer which will return error to explain it's not ready.
+	// So it's always safe use it as *globalIndexer.Load() and call its methods.
+	globalIndexer atomic.Pointer[internal.Indexer]
+	dummyIndexer  *internal.Indexer
 )
+
+func init() {
+	i := internal.NewDummyIndexer()
+	dummyIndexer = &i
+	globalIndexer.Store(dummyIndexer)
+}
 
 // InitIssueIndexer initialize issue indexer, syncReindex is true then reindex until
 // all issue index done.
@@ -43,11 +53,7 @@ func InitIssueIndexer(syncReindex bool) {
 	switch setting.Indexer.IssueType {
 	case "bleve", "elasticsearch", "meilisearch":
 		handler := func(items ...*internal.IndexerData) (unhandled []*internal.IndexerData) {
-			indexer := globalIndexer
-			if indexer == nil {
-				log.Warn("Issue indexer handler: indexer is not ready, retry later.")
-				return items
-			}
+			indexer := *globalIndexer.Load()
 			toIndex := make([]*internal.IndexerData, 0, len(items))
 			for _, indexerData := range items {
 				log.Trace("IndexerData Process: %d %v %t", indexerData.ID, indexerData.IDs, indexerData.IsDelete)
@@ -84,8 +90,9 @@ func InitIssueIndexer(syncReindex bool) {
 		start := time.Now()
 		log.Info("PID %d: Initializing Issue Indexer: %s", os.Getpid(), setting.Indexer.IssueType)
 		var (
-			existed bool
-			err     error
+			issueIndexer internal.Indexer
+			existed      bool
+			err          error
 		)
 		switch setting.Indexer.IssueType {
 		case "bleve":
@@ -94,42 +101,37 @@ func InitIssueIndexer(syncReindex bool) {
 					log.Error("PANIC whilst initializing issue indexer: %v\nStacktrace: %s", err, log.Stack(2))
 					log.Error("The indexer files are likely corrupted and may need to be deleted")
 					log.Error("You can completely remove the %q directory to make Gitea recreate the indexes", setting.Indexer.IssuePath)
-					globalIndexer = internal.NewDummyIndexer()
+					globalIndexer.Store(dummyIndexer)
 					log.Fatal("PID: %d Unable to initialize the Bleve Issue Indexer at path: %s Error: %v", os.Getpid(), setting.Indexer.IssuePath, err)
 				}
 			}()
-			issueIndexer := bleve.NewIndexer(setting.Indexer.IssuePath)
+			issueIndexer = bleve.NewIndexer(setting.Indexer.IssuePath)
 			existed, err = issueIndexer.Init(ctx)
 			if err != nil {
-				globalIndexer = internal.NewDummyIndexer()
 				log.Fatal("Unable to initialize Bleve Issue Indexer at path: %s Error: %v", setting.Indexer.IssuePath, err)
 			}
-			globalIndexer = issueIndexer
 		case "elasticsearch":
-			issueIndexer := elasticsearch.NewIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueIndexerName)
+			issueIndexer = elasticsearch.NewIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueIndexerName)
 			existed, err = issueIndexer.Init(ctx)
 			if err != nil {
 				log.Fatal("Unable to issueIndexer.Init with connection %s Error: %v", setting.Indexer.IssueConnStr, err)
 			}
-			globalIndexer = issueIndexer
 		case "db":
-			issueIndexer := db.NewIndexer()
-			globalIndexer = issueIndexer
+			issueIndexer = db.NewIndexer()
 		case "meilisearch":
-			issueIndexer := meilisearch.NewIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueConnAuth, setting.Indexer.IssueIndexerName)
+			issueIndexer = meilisearch.NewIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueConnAuth, setting.Indexer.IssueIndexerName)
 			existed, err = issueIndexer.Init(ctx)
 			if err != nil {
 				log.Fatal("Unable to issueIndexer.Init with connection %s Error: %v", setting.Indexer.IssueConnStr, err)
 			}
-			globalIndexer = issueIndexer
 		default:
-			globalIndexer = internal.NewDummyIndexer()
 			log.Fatal("Unknown issue indexer type: %s", setting.Indexer.IssueType)
 		}
+		globalIndexer.Store(&issueIndexer)
 
 		graceful.GetManager().RunAtTerminate(func() {
 			log.Debug("Closing issue indexer")
-			globalIndexer.Close()
+			(*globalIndexer.Load()).Close()
 			log.Info("PID: %d Issue Indexer closed", os.Getpid())
 		})
 
@@ -278,12 +280,7 @@ func DeleteRepoIssueIndexer(ctx context.Context, repo *repo_model.Repository) {
 // WARNNING: You have to ensure user have permission to visit repoIDs' issues
 func SearchIssuesByKeyword(ctx context.Context, repoIDs []int64, keyword string) ([]int64, error) {
 	var issueIDs []int64
-	indexer := globalIndexer
-
-	if indexer == nil {
-		log.Error("SearchIssuesByKeyword(): unable to get indexer!")
-		return nil, fmt.Errorf("unable to get issue indexer")
-	}
+	indexer := *globalIndexer.Load()
 	res, err := indexer.Search(ctx, keyword, repoIDs, 50, 0)
 	if err != nil {
 		return nil, err
@@ -296,11 +293,5 @@ func SearchIssuesByKeyword(ctx context.Context, repoIDs []int64, keyword string)
 
 // IsAvailable checks if issue indexer is available
 func IsAvailable(ctx context.Context) bool {
-	indexer := globalIndexer
-	if indexer == nil {
-		log.Error("IsAvailable(): unable to get indexer!")
-		return false
-	}
-
-	return globalIndexer.Ping(ctx) == nil
+	return (*globalIndexer.Load()).Ping(ctx) == nil
 }

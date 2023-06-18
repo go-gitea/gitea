@@ -117,7 +117,7 @@ func PerformSearch(ctx context.Context, repoIDs []int64, language, keyword strin
 		return 0, nil, nil, nil
 	}
 
-	total, results, resultLanguages, err := globalIndexer.Search(ctx, repoIDs, language, keyword, page, pageSize, isMatch)
+	total, results, resultLanguages, err := (*globalIndexer.Load()).Search(ctx, repoIDs, language, keyword, page, pageSize, isMatch)
 	if err != nil {
 		return 0, nil, nil, err
 	}

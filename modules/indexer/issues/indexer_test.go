@@ -43,7 +43,7 @@ func TestBleveSearchIssues(t *testing.T) {
 	setting.LoadQueueSettings()
 	InitIssueIndexer(true)
 	defer func() {
-		if bleveIndexer, ok := globalIndexer.(*bleve.Indexer); ok {
+		if bleveIndexer, ok := (*globalIndexer.Load()).(*bleve.Indexer); ok {
 			bleveIndexer.Close()
 		}
 	}()

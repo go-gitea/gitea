@@ -7,6 +7,7 @@ import (
 	"context"
 	"os"
 	"runtime/pprof"
+	"sync/atomic"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -23,9 +24,19 @@ import (
 )
 
 var (
-	indexerQueue  *queue.WorkerPoolQueue[*internal.IndexerData]
-	globalIndexer = internal.NewDummyIndexer()
+	indexerQueue *queue.WorkerPoolQueue[*internal.IndexerData]
+	// globalIndexer is the global indexer, it cannot be nil.
+	// When the real indexer is not ready, it will be a dummy indexer which will return error to explain it's not ready.
+	// So it's always safe use it as *globalIndexer.Load() and call its methods.
+	globalIndexer atomic.Pointer[internal.Indexer]
+	dummyIndexer  *internal.Indexer
 )
+
+func init() {
+	i := internal.NewDummyIndexer()
+	dummyIndexer = &i
+	globalIndexer.Store(dummyIndexer)
+}
 
 func index(ctx context.Context, indexer internal.Indexer, repoID int64) error {
 	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
@@ -83,7 +94,7 @@ func index(ctx context.Context, indexer internal.Indexer, repoID int64) error {
 // Init initialize the repo indexer
 func Init() {
 	if !setting.Indexer.RepoIndexerEnabled {
-		globalIndexer.Close()
+		(*globalIndexer.Load()).Close()
 		return
 	}
 
@@ -97,7 +108,7 @@ func Init() {
 		}
 		cancel()
 		log.Debug("Closing repository indexer")
-		globalIndexer.Close()
+		(*globalIndexer.Load()).Close()
 		log.Info("PID: %d Repository Indexer closed", os.Getpid())
 		finished()
 	})
@@ -108,12 +119,7 @@ func Init() {
 	switch setting.Indexer.RepoType {
 	case "bleve", "elasticsearch":
 		handler := func(items ...*internal.IndexerData) (unhandled []*internal.IndexerData) {
-			indexer := globalIndexer
-			if indexer == nil {
-				log.Warn("Codes indexer handler: indexer is not ready, retry later.")
-				return items
-			}
-
+			indexer := *globalIndexer.Load()
 			for _, indexerData := range items {
 				log.Trace("IndexerData Process Repo: %d", indexerData.RepoID)
 
@@ -172,7 +178,7 @@ func Init() {
 			existed, err = rIndexer.Init(ctx)
 			if err != nil {
 				cancel()
-				globalIndexer.Close()
+				(*globalIndexer.Load()).Close()
 				close(waitChannel)
 				log.Fatal("PID: %d Unable to initialize the bleve Repository Indexer at path: %s Error: %v", os.Getpid(), setting.Indexer.RepoPath, err)
 			}
@@ -189,14 +195,14 @@ func Init() {
 			rIndexer = elasticsearch.NewIndexer(setting.Indexer.RepoConnStr, setting.Indexer.RepoIndexerName)
 			if err != nil {
 				cancel()
-				globalIndexer.Close()
+				(*globalIndexer.Load()).Close()
 				close(waitChannel)
 				log.Fatal("PID: %d Unable to create the elasticsearch Repository Indexer connstr: %s Error: %v", os.Getpid(), setting.Indexer.RepoConnStr, err)
 			}
 			existed, err = rIndexer.Init(ctx)
 			if err != nil {
 				cancel()
-				globalIndexer.Close()
+				(*globalIndexer.Load()).Close()
 				close(waitChannel)
 				log.Fatal("PID: %d Unable to initialize the elasticsearch Repository Indexer connstr: %s Error: %v", os.Getpid(), setting.Indexer.RepoConnStr, err)
 			}
@@ -205,7 +211,7 @@ func Init() {
 			log.Fatal("PID: %d Unknown Indexer type: %s", os.Getpid(), setting.Indexer.RepoType)
 		}
 
-		globalIndexer = rIndexer
+		globalIndexer.Store(&rIndexer)
 
 		// Start processing the queue
 		go graceful.GetManager().RunWithCancel(indexerQueue)
@@ -232,18 +238,18 @@ func Init() {
 			case <-graceful.GetManager().IsShutdown():
 				log.Warn("Shutdown before Repository Indexer completed initialization")
 				cancel()
-				globalIndexer.Close()
+				(*globalIndexer.Load()).Close()
 			case duration, ok := <-waitChannel:
 				if !ok {
 					log.Warn("Repository Indexer Initialization failed")
 					cancel()
-					globalIndexer.Close()
+					(*globalIndexer.Load()).Close()
 					return
 				}
 				log.Info("Repository Indexer Initialization took %v", duration)
 			case <-time.After(timeout):
 				cancel()
-				globalIndexer.Close()
+				(*globalIndexer.Load()).Close()
 				log.Fatal("Repository Indexer Initialization Timed-Out after: %v", timeout)
 			}
 		}()
@@ -260,13 +266,7 @@ func UpdateRepoIndexer(repo *repo_model.Repository) {
 
 // IsAvailable checks if issue indexer is available
 func IsAvailable(ctx context.Context) bool {
-	idx := globalIndexer
-	if idx == nil {
-		log.Error("IsAvailable(): unable to get indexer")
-		return false
-	}
-
-	return idx.Ping(ctx) == nil
+	return (*globalIndexer.Load()).Ping(ctx) == nil
 }
 
 // populateRepoIndexer populate the repo indexer with pre-existing data. This
