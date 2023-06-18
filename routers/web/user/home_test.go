@@ -20,7 +20,7 @@ func TestArchivedIssues(t *testing.T) {
 	setting.UI.IssuePagingNum = 1
 	assert.NoError(t, unittest.LoadFixtures())
 
-	ctx := test.MockContext(t, "issues")
+	ctx, _ := test.MockContext(t, "issues")
 	test.LoadUser(t, ctx, 30)
 	ctx.Req.Form.Set("state", "open")
 
@@ -53,7 +53,7 @@ func TestIssues(t *testing.T) {
 	setting.UI.IssuePagingNum = 1
 	assert.NoError(t, unittest.LoadFixtures())
 
-	ctx := test.MockContext(t, "issues")
+	ctx, _ := test.MockContext(t, "issues")
 	test.LoadUser(t, ctx, 2)
 	ctx.Req.Form.Set("state", "closed")
 	Issues(ctx)
@@ -69,7 +69,7 @@ func TestPulls(t *testing.T) {
 	setting.UI.IssuePagingNum = 20
 	assert.NoError(t, unittest.LoadFixtures())
 
-	ctx := test.MockContext(t, "pulls")
+	ctx, _ := test.MockContext(t, "pulls")
 	test.LoadUser(t, ctx, 2)
 	ctx.Req.Form.Set("state", "open")
 	Pulls(ctx)
@@ -82,7 +82,7 @@ func TestMilestones(t *testing.T) {
 	setting.UI.IssuePagingNum = 1
 	assert.NoError(t, unittest.LoadFixtures())
 
-	ctx := test.MockContext(t, "milestones")
+	ctx, _ := test.MockContext(t, "milestones")
 	test.LoadUser(t, ctx, 2)
 	ctx.SetParams("sort", "issues")
 	ctx.Req.Form.Set("state", "closed")
@@ -101,7 +101,7 @@ func TestMilestonesForSpecificRepo(t *testing.T) {
 	setting.UI.IssuePagingNum = 1
 	assert.NoError(t, unittest.LoadFixtures())
 
-	ctx := test.MockContext(t, "milestones")
+	ctx, _ := test.MockContext(t, "milestones")
 	test.LoadUser(t, ctx, 2)
 	ctx.SetParams("sort", "issues")
 	ctx.SetParams("repo", "1")
