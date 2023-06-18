@@ -15,7 +15,7 @@ import (
 
 func TestCheckProjectBoardChangePermissions(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/-/projects/4/4")
+	ctx, _ := test.MockContext(t, "user2/-/projects/4/4")
 	test.LoadUser(t, ctx, 2)
 	ctx.ContextUser = ctx.Doer // user2
 	ctx.SetParams(":id", "4")
