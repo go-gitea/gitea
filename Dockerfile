@@ -1,4 +1,4 @@
-#Build stage
+#Build stage!
 FROM docker.io/library/golang:1.20-alpine3.18 AS build-env
 
 ARG GOPROXY
