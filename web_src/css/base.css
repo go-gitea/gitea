@@ -279,6 +279,10 @@ button {
   cursor: pointer;
 }
 
+input {
+  line-height: 100% !important;
+}
+
 details summary {
   cursor: pointer;
 }
