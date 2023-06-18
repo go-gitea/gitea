@@ -81,6 +81,7 @@ rules:
   media-feature-name-unit-allowed-list: null
   media-feature-name-value-allowed-list: null
   media-feature-range-notation: null
+  media-feature-name-value-no-unknown: true
   named-grid-areas-no-invalid: true
   no-descending-specificity: null
   no-duplicate-at-import-rules: true
