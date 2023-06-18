@@ -1,7 +1,13 @@
+#issue-filters > .issue-list-toolbar-left {
+  flex-direction: row;
+  display: flex;
+}
+
 @media only screen and (min-width: 1200px) {
   #issue-filters {
     margin-top: 0;
     margin-left: auto;
+    padding-right: 0;
   }
 
   .issue-list-toolbar-right > .filter.menu {
@@ -14,11 +20,14 @@
 }
 
 @media only screen and  (max-width: 769px) {
+  #issue-filters {
+    margin-right: 0;
+  }
+
   #issue-filters > .issue-list-toolbar-right {
     margin-right: auto;
     width: 100% !important;
     padding-top: 0;
-
   }
 
   .issue-list-toolbar-right > .filter.menu {
