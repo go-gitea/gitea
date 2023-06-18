@@ -151,6 +151,8 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			}
 		}
 
+		SyncRepoBranches(ctx, repo, u.ID)
+
 		if !opts.Releases {
 			// note: this will greatly improve release (tag) sync
 			// for pull-mirrors with many tags
@@ -273,6 +275,118 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 	}
 
 	return repo, UpdateRepository(ctx, repo, false)
+}
+
+// SyncRepoBranches synchronizes branch table with repository branches
+func SyncRepoBranches(ctx context.Context, repo *repo_model.Repository, doerID int64) error {
+	log.Debug("SyncRepoBranches: in Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
+
+	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	if err != nil {
+		return fmt.Errorf("openRepository: %v", err)
+	}
+	defer gitRepo.Close()
+
+	const limit = 100
+	var allBranches []string
+	for page := 0; ; page++ {
+		branches, _, err := gitRepo.GetBranchNames(page*limit, limit)
+		if err != nil {
+			return err
+		}
+		log.Trace("SyncRepoBranches: branches[%d]: %v", page, branches)
+
+		allBranches = append(allBranches, branches...)
+		if len(branches) < limit {
+			break
+		}
+	}
+
+	dbBranches, err := git_model.LoadAllBranches(ctx, repo.ID)
+	if err != nil {
+		return err
+	}
+
+	var toAdd []*git_model.Branch
+	var toUpdate []*git_model.Branch
+	var toRemove []int64
+	for _, branch := range allBranches {
+		var dbb *git_model.Branch
+		for _, dbBranch := range dbBranches {
+			if branch == dbBranch.Name {
+				dbb = dbBranch
+				break
+			}
+		}
+		commit, err := gitRepo.GetBranchCommit(branch)
+		if err != nil {
+			return err
+		}
+		if dbb == nil {
+			toAdd = append(toAdd, &git_model.Branch{
+				RepoID:        repo.ID,
+				Name:          branch,
+				CommitSHA:     commit.ID.String(),
+				CommitMessage: commit.CommitMessage,
+				PusherID:      doerID,
+				CommitTime:    timeutil.TimeStamp(commit.Author.When.Unix()),
+			})
+		} else if commit.ID.String() != dbb.CommitSHA {
+			toUpdate = append(toUpdate, &git_model.Branch{
+				ID:            dbb.ID,
+				RepoID:        repo.ID,
+				Name:          branch,
+				CommitSHA:     commit.ID.String(),
+				CommitMessage: commit.CommitMessage,
+				PusherID:      doerID,
+				CommitTime:    timeutil.TimeStamp(commit.Author.When.Unix()),
+			})
+		}
+	}
+
+	for _, dbBranch := range dbBranches {
+		var found bool
+		for _, branch := range allBranches {
+			if branch == dbBranch.Name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			toRemove = append(toRemove, dbBranch.ID)
+		}
+	}
+
+	log.Trace("SyncRepoBranches: toAdd: %v, toUpdate: %v, toRemove: %v", toAdd, toUpdate, toRemove)
+
+	if len(toAdd) == 0 && len(toRemove) == 0 && len(toUpdate) == 0 {
+		return nil
+	}
+
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if len(toAdd) > 0 {
+			if err := git_model.AddBranches(ctx, toAdd); err != nil {
+				return err
+			}
+		}
+
+		if len(toUpdate) > 0 {
+			for _, b := range toUpdate {
+				if _, err := db.GetEngine(ctx).ID(b.ID).Cols("commit, pusher_id, commit_time").Update(b); err != nil {
+					return err
+				}
+			}
+		}
+
+		if len(toRemove) > 0 {
+			err = git_model.DeleteBranches(ctx, repo.ID, doerID, toRemove)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }
 
 // SyncReleasesWithTags synchronizes release table with repository tags

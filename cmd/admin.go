@@ -440,7 +440,7 @@ func runRepoSyncBranches(_ *cli.Context) error {
 		for _, repo := range repos {
 			log.Trace("Synchronizing repo %s with path %s", repo.FullName(), repo.RepoPath())
 
-			if err = repo_service.SyncRepoBranches(ctx, repo, doer.ID); err != nil {
+			if err = repo_module.SyncRepoBranches(ctx, repo, doer.ID); err != nil {
 				log.Warn("repo_module.SyncBranches: %v", err)
 				continue
 			}

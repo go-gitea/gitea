@@ -158,7 +158,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 			return fmt.Errorf("createDelegateHooks: %w", err)
 		}
 
-		return SyncRepoBranches(ctx, repo, doer.ID)
+		return repo_module.SyncRepoBranches(ctx, repo, doer.ID)
 	})
 	needsRollbackInPanic = false
 	if err != nil {
