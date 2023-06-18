@@ -1,5 +1,6 @@
 plugins:
   - stylelint-declaration-strict-value
+  - stylelint-declaration-block-no-ignored-properties
   - stylelint-stylistic
 
 ignoreFiles:
@@ -93,6 +94,7 @@ rules:
   no-unknown-animations: null
   no-unknown-custom-properties: null
   number-max-precision: null
+  plugin/declaration-block-no-ignored-properties: true
   property-allowed-list: null
   property-disallowed-list: null
   property-no-unknown: true
