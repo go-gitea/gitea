@@ -151,7 +151,9 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			}
 		}
 
-		SyncRepoBranches(ctx, repo, u.ID)
+		if err := SyncRepoBranches(ctx, repo, gitRepo, u.ID); err != nil {
+			return repo, fmt.Errorf("SyncRepoBranches: %v", err)
+		}
 
 		if !opts.Releases {
 			// note: this will greatly improve release (tag) sync
@@ -278,14 +280,8 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 }
 
 // SyncRepoBranches synchronizes branch table with repository branches
-func SyncRepoBranches(ctx context.Context, repo *repo_model.Repository, doerID int64) error {
+func SyncRepoBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doerID int64) error {
 	log.Debug("SyncRepoBranches: in Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
-
-	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
-	if err != nil {
-		return fmt.Errorf("openRepository: %v", err)
-	}
-	defer gitRepo.Close()
 
 	const limit = 100
 	var allBranches []string
