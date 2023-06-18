@@ -104,7 +104,7 @@ func ctxDataSet(args ...any) func(ctx *context.Context) {
 }
 
 // Routes returns all web routes
-func Routes(ctx gocontext.Context) *web.Route {
+func Routes() *web.Route {
 	routes := web.NewRoute()
 
 	routes.Head("/", misc.DummyOK) // for health check - doesn't need to be passed through gzip handler
@@ -146,13 +146,8 @@ func Routes(ctx gocontext.Context) *web.Route {
 
 	mid = append(mid, common.Sessioner(), context.Contexter())
 
-	group := buildAuthGroup()
-	if err := group.Init(ctx); err != nil {
-		log.Error("Could not initialize '%s' auth method, error: %s", group.Name(), err)
-	}
-
 	// Get user from session if logged in.
-	mid = append(mid, auth_service.Auth(group))
+	mid = append(mid, auth_service.Auth(buildAuthGroup()))
 
 	// GetHead allows a HEAD request redirect to GET if HEAD method is not defined for that route
 	mid = append(mid, middleware.GetHead)
