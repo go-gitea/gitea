@@ -149,6 +149,7 @@ export function initRepoIssueSidebarList() {
       }
     }
   });
+  $('.ui.dropdown.label-filter').dropdown('setting', {'hideDividers': 'empty'}).dropdown('refreshItems');
 }
 
 export function initRepoIssueCommentDelete() {
