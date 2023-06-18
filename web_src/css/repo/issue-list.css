@@ -1,81 +1,64 @@
-@media only screen and (min-width: 1024px) and (max-width: 1266px) {
-  #issue-filters > .column.six.wide.column {
-    max-width: fit-content;
+@media only screen and (min-width: 1200px) {
+  #issue-filters {
+    margin-top: 0;
+    margin-left: auto;
   }
 
-  #issue-filters > .issue-list-toolbar-right > .stackable.menu {
-    margin-left: calc(33% - 7vw);
+  #issue-filters > .issue-list-toolbar-right > .issues-menu {
+    justify-content: flex-end;
+  }
+
+  #issue-filters > .issue-list-toolbar-left {
+    padding-left: 0;
   }
 }
 
-@media only screen and (min-width: 1266px) {
-  #issue-filters > .issue-list-toolbar-right > .stackable.menu {
-    margin-left: 14vh;
-  }
-}
+@media only screen and  (max-width: 769px) {
+  #issue-filters > .issue-list-toolbar-right {
+    margin-right: auto;
+    width: 100% !important;
+    padding-top: 0;
 
-@media only screen and (max-width: 767.98px) {
-  .ui.container > .ui.stackable.grid > .column.issue-list-toolbar-right > .stackable.menu {
-    overflow-y: hidden;
+  }
+
+  #issue-filters > .issue-list-toolbar-right > .issues-menu {
+    flex-direction: row;
     overflow-x: scroll;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
   }
 
-  .ui.container > .ui.stackable.grid > .column.issue-list-toolbar-right > .stackable.menu > .item {
+  #issue-filters > .issue-list-toolbar-right > .issues-menu > .item {
     max-width: fit-content;
+  }
+
+  #issue-filters > .issue-list-toolbar-left {
+    margin-top: 10px !important;
   }
 
   .ui.stackable.menu:not(.no-vertical-tabs) > .dropdown.item {
     position: initial;
   }
-
-  .ui.container > .ui.stackable.grid > .column.issue-list-toolbar-right {
-    padding-top: 0;
-  }
 }
 
-@media only screen and (min-width: 767.98px) and (max-width: 1024px) {
-  .ui.container > .ui.stackable.grid > .column.issue-list-toolbar-right > .stackable.menu {
-    flex-wrap: nowrap !important;
-  }
-
-  .ui.grid > .column.six.wide.column {
-    flex: 1;
-    max-width: fit-content;
-    display: flex;
-  }
-
+@media only screen and (min-width: 768px) and (max-width: 1024px) {
   #issue-filters {
     flex-direction: column;
+    margin-top: 0;
   }
 
-  .ui.container > .ui.stackable.grid > .column.issue-list-toolbar-right {
-    padding-top: 0;
-    padding-left: 3px;
-  }
-
-  #issue-filters > .issue-list-toolbar-right > .stackable.menu {
-    margin-left: 0;
+  #issue-filters > .issue-list-toolbar-right {
+    margin-top: 0;
+    padding: 0 1rem;
   }
 }
 
-@media (max-width: 767.98px) {
-  .issue-list-toolbar {
-    flex-direction: column-reverse;
+@media only screen and (min-width: 1024px) and (max-width: 1200px) {
+  #issue-filters {
+    flex-direction: column;
+    margin-top: 0;
   }
-  .issue-list-toolbar-right {
-    margin-right: auto;
-    width: 100%;
-  }
-  .issue-list-navbar {
-    order: 0;
-  }
-  .issue-list-new {
-    order: 1;
-    margin-left: auto !important;
-  }
-  .issue-list-search {
-    order: 2 !important;
+
+  #issue-filters > .issue-list-toolbar-right {
+    margin-top: 0;
+    padding: 0 1rem;
   }
 }
