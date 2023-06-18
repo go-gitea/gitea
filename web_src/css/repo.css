@@ -1844,7 +1844,6 @@
   border: none;
 }
 
-
 @media (max-width: 991.98px) {
   .diff-file-box {
     scroll-margin-top: 77px; /* match .repository .diff-detail-box */
@@ -1854,9 +1853,9 @@
 /* TODO: this can potentially be made "global" by removing the class prefix */
 .diff-file-box .ui.attached.header,
 .diff-file-box .ui.attached.table {
-  margin: 0; /* remove fomantic negative margins */;
-  width: initial; /* remove fomantic over 100% width */;
-  max-width: initial; /* remove fomantic over 100% width */;
+  margin: 0; /* remove fomantic negative margins */
+  width: initial; /* remove fomantic over 100% width */
+  max-width: initial; /* remove fomantic over 100% width */
 }
 
 .repository .diff-stats {
@@ -1907,7 +1906,6 @@
   line-height: 1.4;
   flex: 1
 }
-
 
 .repository.packages .empty {
   padding-top: 70px;
@@ -2693,24 +2691,21 @@
 }
 
 .repo-button-row {
-  margin-bottom: 10px;
-}
-
-.repo-button-row > * {
-  margin-top: 8px;
-}
-
-.wiki .repo-button-row {
-  margin-bottom: 0;
-}
-
-.wiki .repo-button-row > * {
-  margin-top: 0;
+  margin: 10px 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  flex-wrap: wrap;
+  justify-content: space-between;
 }
 
 .repo-button-row .button {
   padding: 6px 10px !important;
   height: 30px;
+}
+
+.repo-button-row .button.dropdown {
+  padding-right: 22px !important; /* normal buttons have !important paddings, so we need to override it for dropdown (Add File) icons */
 }
 
 .repo-button-row input {
