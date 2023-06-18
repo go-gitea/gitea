@@ -45,5 +45,5 @@
 }
 
 .CodeMirror :focus {
-  outline: none
+  outline: none;
 }
