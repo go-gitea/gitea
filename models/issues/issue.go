@@ -5,6 +5,10 @@
 package issues
 
 import (
+	"context"
+	"fmt"
+	"regexp"
+
 	"code.gitea.io/gitea/models/db"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -14,9 +18,6 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-	"context"
-	"fmt"
-	"regexp"
 
 	"xorm.io/builder"
 )
