@@ -19,7 +19,7 @@ import (
 func TestRepoEdit(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	ctx := test.MockAPIContext(t, "user2/repo1")
+	ctx, _ := test.MockAPIContext(t, "user2/repo1")
 	test.LoadRepo(t, ctx, 1)
 	test.LoadUser(t, ctx, 2)
 	ctx.Repo.Owner = ctx.Doer
@@ -65,7 +65,7 @@ func TestRepoEdit(t *testing.T) {
 func TestRepoEditNameChange(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	ctx := test.MockAPIContext(t, "user2/repo1")
+	ctx, _ := test.MockAPIContext(t, "user2/repo1")
 	test.LoadRepo(t, ctx, 1)
 	test.LoadUser(t, ctx, 2)
 	ctx.Repo.Owner = ctx.Doer
