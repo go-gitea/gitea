@@ -66,7 +66,7 @@ jobs:
             exit 0
           fi
           REF_NAME=$(echo "${{ github.ref }}" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\///' -e 's/release\/v//')
-          echo "branch=${REF_NAME}" >> "$GITHUB_OUTPUT"
+          echo "branch=${REF_NAME}-nightly" >> "$GITHUB_OUTPUT"
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -77,11 +77,11 @@ jobs:
         with:
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: gitea/gitea:${{ steps.clean_name.outputs.branch }}-nightly
+          tags: gitea/gitea:${{ steps.clean_name.outputs.branch }}
       - name: build rootless docker image
         uses: docker/build-push-action@v4
         with:
           platforms: linux/amd64,linux/arm64
           push: true
           file: Dockerfile.rootless
-          tags: gitea/gitea:${{ steps.clean_name.outputs.branch }}-nightly-rootless
+          tags: gitea/gitea:${{ steps.clean_name.outputs.branch }}-rootless
