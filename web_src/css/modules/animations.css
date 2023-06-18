@@ -45,11 +45,8 @@
   visibility: hidden;
 }
 
-.markup code.is-loading {
-  color: transparent;
-}
-
 .markup .is-loading {
+  color: transparent;
   background: transparent;
 }
 
