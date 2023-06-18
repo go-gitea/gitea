@@ -149,7 +149,6 @@
 .repository .filter.menu.labels .label-filter .menu .info {
   display: inline-block;
   padding: 0.5rem 0.25rem;
-  border-bottom: 1px solid var(--color-secondary);
   font-size: 12px;
   width: 100%;
   white-space: nowrap;
