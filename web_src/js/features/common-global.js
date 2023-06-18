@@ -268,10 +268,10 @@ function linkAction(e) {
   e.preventDefault();
 
   // A "link-action" can post AJAX request to its "data-url"
-  // Then the browser is redirect to: the "redirect" in response, or "data-redirect" attribute, or current URL by reloading.
-  // If the "link-action" has "data-modal-confirm(-html)" attribute, a confirm modal dialog will be shown before taking action.
+  // Then the browser is redirected to: the "redirect" in response, or "data-redirect" attribute, or current URL by reloading.
+  // If the "link-action" has "data-modal-confirm" attribute, a confirm modal dialog will be shown before taking action.
 
-  const $this = $(e.target);
+  const $this = $(this);
   const redirect = $this.attr('data-redirect');
 
   const doRequest = () => {
