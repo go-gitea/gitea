@@ -23,7 +23,7 @@ jobs:
           tags: gitea/gitea:linux-amd64
 
   rootless:
-    if: needs.files-changed.outputs.docker == 'true'
+    if: needs.files-changed.outputs.docker == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
