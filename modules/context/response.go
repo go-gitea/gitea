@@ -5,15 +5,20 @@ package context
 
 import (
 	"net/http"
+
+	web_types "code.gitea.io/gitea/modules/web/types"
 )
 
 // ResponseWriter represents a response writer for HTTP
 type ResponseWriter interface {
 	http.ResponseWriter
 	http.Flusher
-	Status() int
+	web_types.ResponseStatusProvider
+
 	Before(func(ResponseWriter))
-	Size() int // used by access logger template
+
+	Status() int // used by access logger template
+	Size() int   // used by access logger template
 }
 
 var _ ResponseWriter = &Response{}
@@ -46,6 +51,10 @@ func (r *Response) Write(bs []byte) (int, error) {
 	return size, nil
 }
 
+func (r *Response) Status() int {
+	return r.status
+}
+
 func (r *Response) Size() int {
 	return r.written
 }
@@ -71,8 +80,8 @@ func (r *Response) Flush() {
 	}
 }
 
-// Status returned status code written
-func (r *Response) Status() int {
+// WrittenStatus returned status code written
+func (r *Response) WrittenStatus() int {
 	return r.status
 }
 
