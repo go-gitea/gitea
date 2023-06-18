@@ -87,6 +87,18 @@
   }
 }
 
+.projects-header {
+  margin-bottom: 1rem;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.projects-toolbar {
+  display: flex;
+  justify-content: space-between;
+  padding-left: 4px;
+}
+
 .repository .issue-content-right .menu {
   overflow-x: auto;
   max-height: 500px;
@@ -223,6 +235,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+@media (max-width: 767.68px) {
+  .repository.file.list .repo-description {
+    flex-direction: column;
+    gap: 8px;
+    align-items: normal;
+  }
 }
 
 .repository.file.list #repo-desc {
@@ -1167,56 +1187,6 @@
   margin-top: -8px;
 }
 
-.repository .milestone.list {
-  list-style: none;
-}
-
-.repository .milestone.list > .item {
-  padding-top: 10px;
-  padding-bottom: 10px;
-}
-
-.repository .milestone.list > .item + .item {
-  border-top: 1px solid var(--color-secondary);
-}
-
-.repository .milestone.list > .item progress {
-  width: 200px;
-  height: 16px;
-}
-
-.repository .milestone.list > .item .meta {
-  color: var(--color-text-light-2);
-  padding-top: 5px;
-}
-
-.repository .milestone.list > .item .meta .issue-stats .svg {
-  padding-left: 5px;
-}
-
-.repository .milestone.list > .item .meta .overdue {
-  color: var(--color-red);
-}
-
-.repository .milestone.list > .item .operate {
-  margin-top: -15px;
-}
-
-.repository .milestone.list > .item .operate > a {
-  font-size: 15px;
-  padding-top: 5px;
-  padding-right: 10px;
-  color: var(--color-text-light-2);
-}
-
-.repository .milestone.list > .item .operate > a:hover {
-  color: var(--color-text);
-}
-
-.repository .milestone.list > .item .content {
-  padding-top: 10px;
-}
-
 .repository.new.milestone textarea {
   height: 200px;
 }
@@ -1962,6 +1932,13 @@
   .repository.wiki #clone-panel #repo-clone-url {
     width: 160px;
   }
+}
+
+.repository .activity-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .repository.settings.collaboration .collaborator.list {
@@ -3379,6 +3356,12 @@ tbody.commit-list {
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   margin-bottom: 8px;
+}
+
+@media (max-width: 767.98px) {
+  #issue-pins {
+    grid-template-columns: repeat(1, 1fr);
+  }
 }
 
 .pinned-issue-card {
