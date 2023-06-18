@@ -146,11 +146,11 @@ func GetBranch(ctx context.Context, repoID int64, branchName string) (*Branch, e
 
 func AddBranch(ctx context.Context, branch *Branch) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		if _, err := db.GetEngine(ctx).Insert(branch); err != nil {
+		if err := removeDeletedBranchByName(ctx, branch.RepoID, branch.Name); err != nil {
 			return err
 		}
-
-		return removeDeletedBranchByName(ctx, branch.RepoID, branch.Name)
+		_, err := db.GetEngine(ctx).Insert(branch)
+		return err
 	})
 }
 

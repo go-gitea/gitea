@@ -158,13 +158,13 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 			return fmt.Errorf("createDelegateHooks: %w", err)
 		}
 
-		gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+		gitRepo, err := git.OpenRepository(txCtx, repo.RepoPath())
 		if err != nil {
 			return fmt.Errorf("OpenRepository: %w", err)
 		}
 		defer gitRepo.Close()
 
-		return repo_module.SyncRepoBranches(ctx, repo, gitRepo, doer.ID)
+		return repo_module.SyncRepoBranches(txCtx, repo, gitRepo, doer.ID)
 	})
 	needsRollbackInPanic = false
 	if err != nil {

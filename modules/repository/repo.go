@@ -173,7 +173,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		}
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	subCtx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -210,28 +210,28 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			}
 		}
 
-		if err = repo_model.InsertMirror(ctx, &mirrorModel); err != nil {
+		if err = repo_model.InsertMirror(subCtx, &mirrorModel); err != nil {
 			return repo, fmt.Errorf("InsertOne: %w", err)
 		}
 
 		repo.IsMirror = true
-		if err = UpdateRepository(ctx, repo, false); err != nil {
+		if err = UpdateRepository(subCtx, repo, false); err != nil {
 			return nil, err
 		}
 
 		// this is necessary for sync local tags from remote
 		configName := fmt.Sprintf("remote.%s.fetch", mirrorModel.GetRemoteName())
-		if stdout, _, err := git.NewCommand(ctx, "config").
+		if stdout, _, err := git.NewCommand(subCtx, "config").
 			AddOptionValues("--add", configName, `+refs/tags/*:refs/tags/*`).
 			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
 			log.Error("MigrateRepositoryGitData(git config --add <remote> +refs/tags/*:refs/tags/*) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			return repo, fmt.Errorf("error in MigrateRepositoryGitData(git config --add <remote> +refs/tags/*:refs/tags/*): %w", err)
 		}
 	} else {
-		if err = UpdateRepoSize(ctx, repo); err != nil {
+		if err = UpdateRepoSize(subCtx, repo); err != nil {
 			log.Error("Failed to update size for repository: %v", err)
 		}
-		if repo, err = CleanUpMigrateInfo(ctx, repo); err != nil {
+		if repo, err = CleanUpMigrateInfo(subCtx, repo); err != nil {
 			return nil, err
 		}
 	}
@@ -283,20 +283,11 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 func SyncRepoBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doerID int64) error {
 	log.Debug("SyncRepoBranches: in Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
 
-	const limit = 100
-	var allBranches []string
-	for page := 0; ; page++ {
-		branches, _, err := gitRepo.GetBranchNames(page*limit, limit)
-		if err != nil {
-			return err
-		}
-		log.Trace("SyncRepoBranches: branches[%d]: %v", page, branches)
-
-		allBranches = append(allBranches, branches...)
-		if len(branches) < limit {
-			break
-		}
+	allBranches, _, err := gitRepo.GetBranchNames(0, 0)
+	if err != nil {
+		return err
 	}
+	log.Trace("SyncRepoBranches: branches[%d]: %v", len(allBranches), allBranches)
 
 	dbBranches, err := git_model.LoadAllBranches(ctx, repo.ID)
 	if err != nil {
@@ -359,23 +350,23 @@ func SyncRepoBranches(ctx context.Context, repo *repo_model.Repository, gitRepo 
 		return nil
 	}
 
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	return db.WithTx(ctx, func(subCtx context.Context) error {
 		if len(toAdd) > 0 {
-			if err := git_model.AddBranches(ctx, toAdd); err != nil {
+			if err := git_model.AddBranches(subCtx, toAdd); err != nil {
 				return err
 			}
 		}
 
 		if len(toUpdate) > 0 {
 			for _, b := range toUpdate {
-				if _, err := db.GetEngine(ctx).ID(b.ID).Cols("commit, pusher_id, commit_time").Update(b); err != nil {
+				if _, err := db.GetEngine(subCtx).ID(b.ID).Cols("commit, pusher_id, commit_time").Update(b); err != nil {
 					return err
 				}
 			}
 		}
 
 		if len(toRemove) > 0 {
-			err = git_model.DeleteBranches(ctx, repo.ID, doerID, toRemove)
+			err = git_model.DeleteBranches(subCtx, repo.ID, doerID, toRemove)
 			if err != nil {
 				return err
 			}

@@ -36,7 +36,9 @@ func (branches BranchList) LoadDeletedBy(ctx context.Context) error {
 
 func LoadAllBranches(ctx context.Context, repoID int64) ([]*Branch, error) {
 	var branches []*Branch
-	err := db.GetEngine(ctx).Where("repo_id=?", repoID).Find(&branches)
+	err := db.GetEngine(ctx).Where("repo_id=?", repoID).
+		And("is_deleted = ?", false).
+		Find(&branches)
 	return branches, err
 }
 
