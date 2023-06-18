@@ -297,7 +297,7 @@
 				{{$isWikiEnabled := or (.Repository.UnitEnabled $.Context $.UnitTypeWiki) (.Repository.UnitEnabled $.Context $.UnitTypeExternalWiki)}}
 				{{$isWikiGlobalDisabled := .UnitTypeWiki.UnitGlobalDisabled}}
 				{{$isExternalWikiGlobalDisabled := .UnitTypeExternalWiki.UnitGlobalDisabled}}
-				{{$isBothWikiGlobalDisabled := and $isWikiGlobalDisabled $isBothWikiGlobalDisabled}}
+				{{$isBothWikiGlobalDisabled := and $isWikiGlobalDisabled $isExternalWikiGlobalDisabled}}
 				<div class="inline field">
 					<label>{{.locale.Tr "repo.wiki"}}</label>
 					<div class="ui checkbox{{if $isBothWikiGlobalDisabled}} disabled{{end}}"{{if $isBothWikiGlobalDisabled}} data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}"{{end}}>

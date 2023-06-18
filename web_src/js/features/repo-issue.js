@@ -636,11 +636,6 @@ export function initSingleCommentEditor($commentForm) {
   const opts = {};
   const $statusButton = $('#status-button');
   if ($statusButton.length) {
-    $statusButton.on('click', (e) => {
-      e.preventDefault();
-      $('#status').val($statusButton.data('status-val'));
-      $('#comment-form').trigger('submit');
-    });
     opts.onContentChanged = (editor) => {
       $statusButton.text($statusButton.attr(editor.value().trim() ? 'data-status-and-comment' : 'data-status'));
     };
