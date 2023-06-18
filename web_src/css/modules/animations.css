@@ -18,7 +18,6 @@
   position: absolute;
   display: block;
   height: 4rem;
-  max-height: 50%;
   aspect-ratio: 1 / 1;
   left: 50%;
   top: 50%;
@@ -38,6 +37,18 @@
 .editor-loading.is-loading,
 .pdf-content.is-loading {
   height: var(--height-loading);
+}
+
+.markup .is-loading > * {
+  visibility: hidden;
+}
+
+.markup code.is-loading {
+  color: transparent;
+}
+
+.markup .is-loading {
+  background: transparent;
 }
 
 /* TODO: not needed, use "is-loading small-loading-icon" instead */
