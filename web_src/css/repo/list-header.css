@@ -44,7 +44,7 @@
   background: var(--color-active) !important;
 }
 
-@media (max-width: 747.98px) {
+@media (max-width: 767.98px) {
   .list-header-search {
     order: 0;
   }

@@ -55,13 +55,13 @@
 						</div>
 						{{if and $.CanWriteProjects (not $.Repository.IsArchived)}}
 						<div class="group">
-							<a class="flex-text-inline" href="{{.Link}}/edit" data-id={{.ID}} data-title={{.Title}}>{{svg "octicon-pencil" 14}}{{$.locale.Tr "repo.issues.label_edit"}}</a>
+							<a class="flex-text-inline" href="{{.Link}}/edit">{{svg "octicon-pencil" 14}}{{$.locale.Tr "repo.issues.label_edit"}}</a>
 							{{if .IsClosed}}
 								<a class="link-action flex-text-inline" href data-url="{{.Link}}/open">{{svg "octicon-check" 14}}{{$.locale.Tr "repo.projects.open"}}</a>
 							{{else}}
 								<a class="link-action flex-text-inline" href data-url="{{.Link}}/close">{{svg "octicon-skip" 14}}{{$.locale.Tr "repo.projects.close"}}</a>
 							{{end}}
-							<a class="delete-button flex-text-inline" href="#" data-url="{{.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trash" 14}}{{$.locale.Tr "repo.issues.label_delete"}}</a>
+							<a class="delete-button flex-text-inline" href="#" data-url="{{.Link}}/delete">{{svg "octicon-trash" 14}}{{$.locale.Tr "repo.issues.label_delete"}} tesssst</a>
 						</div>
 						{{end}}
 					</div>
