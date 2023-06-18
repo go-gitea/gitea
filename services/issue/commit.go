@@ -23,14 +23,6 @@ import (
 	"code.gitea.io/gitea/modules/repository"
 )
 
-const (
-	secondsByMinute = float64(time.Minute / time.Second) // seconds in a minute
-	secondsByHour   = 60 * secondsByMinute               // seconds in an hour
-	secondsByDay    = 8 * secondsByHour                  // seconds in a day
-	secondsByWeek   = 5 * secondsByDay                   // seconds in a week
-	secondsByMonth  = 4 * secondsByWeek                  // seconds in a month
-)
-
 func issueAddTime(issue *issues_model.Issue, doer *user_model.User, time time.Time, timeLog string) error {
 	amount := timeutil.TimeEstimateFromStr(timeLog)
 	if amount == 0 {
