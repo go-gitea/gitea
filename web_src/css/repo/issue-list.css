@@ -4,7 +4,7 @@
     margin-left: auto;
   }
 
-  #issue-filters > .issue-list-toolbar-right > .issues-menu {
+  .issue-list-toolbar-right > .filter.menu {
     justify-content: flex-end;
   }
 
@@ -21,12 +21,12 @@
 
   }
 
-  #issue-filters > .issue-list-toolbar-right > .issues-menu {
+  .issue-list-toolbar-right > .filter.menu {
     flex-direction: row;
     overflow-x: scroll;
   }
 
-  #issue-filters > .issue-list-toolbar-right > .issues-menu > .item {
+  .issue-list-toolbar-right > .filter.menu > .item {
     max-width: fit-content;
   }
 
@@ -34,7 +34,7 @@
     margin-top: 10px !important;
   }
 
-  .ui.stackable.menu:not(.no-vertical-tabs) > .dropdown.item {
+  .ui.stackable.menu > .dropdown.item {
     position: initial;
   }
 }

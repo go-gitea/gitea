@@ -81,7 +81,7 @@
 				{{end}}
 			{{end}}
 		</div>
-		<div id="issue-filters" class="ui stackable grid">
+		<div id="issue-filters" class="ui grid">
 			<div class="six wide column issue-list-toolbar-left">
 				{{if and ($.CanWriteIssuesOrPulls) (gt (len .Issues) 0)}}
 					<input type="checkbox" autocomplete="off" class="issue-checkbox-all gt-mr-4" title="{{.locale.Tr "repo.issues.action_check_all"}}">
@@ -89,7 +89,7 @@
 				{{template "repo/issue/openclose" .}}
 			</div>
 			<div class="ten wide right aligned column issue-list-toolbar-right">
-				<div class="ui secondary filter stackable menu labels issues-menu">
+				<div class="ui secondary filter stackable menu labels">
 					<!-- Label -->
 					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item label-filter">
 						<span class="text">
