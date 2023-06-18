@@ -95,11 +95,7 @@
   .comment-code-cloud .comments .comment {
     display: flex;
   }
-  .comment-code-cloud
-    .comments
-    .comment
-    .comment-header-right.actions
-    .ui.basic.label {
+  .comment-code-cloud .comments .comment .comment-header-right.actions .ui.basic.label {
     display: none;
   }
   .comment-code-cloud .comments .comment .avatar {
