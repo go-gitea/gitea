@@ -311,13 +311,31 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 		return git_model.ErrBranchIsProtected
 	}
 
+	rawBranch, err := git_model.GetBranch(ctx, repo.ID, branchName)
+	if err != nil {
+		return fmt.Errorf("GetBranch: %vc", err)
+	}
+
+	if rawBranch.IsDeleted {
+		return nil
+	}
+
 	commit, err := gitRepo.GetBranchCommit(branchName)
 	if err != nil {
 		return err
 	}
 
-	if err := gitRepo.DeleteBranch(branchName, git.DeleteBranchOptions{
-		Force: true,
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		if err := git_model.AddDeletedBranch(ctx, repo.ID, branchName, doer.ID); err != nil {
+			return err
+		}
+
+		if err := gitRepo.DeleteBranch(branchName, git.DeleteBranchOptions{
+			Force: true,
+		}); err != nil {
+			return err
+		}
+		return nil
 	}); err != nil {
 		return err
 	}
