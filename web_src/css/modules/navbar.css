@@ -1,0 +1,120 @@
+#navbar {
+  display: flex;
+  align-items: center;
+  background: var(--color-nav-bg);
+  border-bottom: 1px solid var(--color-secondary);
+  margin: 0 !important;
+  padding: 0 10px;
+}
+
+#navbar,
+#navbar .navbar-left {
+  min-height: 48px;
+}
+
+#navbar-logo {
+  margin: 0;
+  width: auto !important;
+}
+
+#navbar .navbar-left {
+  display: flex;
+  align-items: center;
+}
+
+#navbar .navbar-right {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+}
+
+#navbar .item {
+  min-height: 36px;
+  min-width: 36px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  display: flex;
+  justify-content: center;
+}
+
+#navbar a.item:hover,
+#navbar button.item:hover {
+  background: var(--color-nav-hover-bg);
+}
+
+#navbar .navbar-mobile-right {
+  margin-left: auto;
+}
+
+#navbar .secondary.menu > .item > .svg,
+#navbar .right.menu > .item > .svg {
+  margin-right: 0;
+}
+
+@media (max-width: 767.98px) {
+  #navbar {
+    align-items: stretch;
+    padding-bottom: 8px;
+  }
+  /* hide all items */
+  #navbar .item {
+    display: none;
+  }
+  #navbar #navbar-logo {
+    display: flex;
+  }
+  /* show the first navbar item (logo and its mobile right items) */
+  #navbar .navbar-left {
+    flex: 1;
+    display: flex;
+  }
+  #navbar .navbar-mobile-right > .item {
+    display: flex;
+  }
+  /* show items if the navbar is open */
+  #navbar.navbar-menu-open .item {
+    display: flex;
+  }
+  #navbar .navbar-right {
+    flex-direction: column;
+  }
+}
+
+@media (min-width: 767.98px) {
+  #navbar .navbar-mobile-right,
+  #navbar .mobile-only {
+    display: none;
+  }
+}
+
+#navbar .navbar-mobile-right .item {
+  width: auto !important;
+}
+
+#navbar a.item .notification_count {
+  color: var(--color-nav-bg);
+  padding: 0 3.75px;
+  font-size: 12px;
+  line-height: 12px;
+  font-weight: var(--font-weight-bold);
+}
+
+#navbar a.item:hover .notification_count,
+#navbar a.item:hover .header-stopwatch-dot {
+  border-color: var(--color-nav-hover-bg);
+}
+
+#navbar a.item .notification_count,
+#navbar a.item .header-stopwatch-dot {
+  background: var(--color-primary);
+  border: 2px solid var(--color-nav-bg);
+  position: absolute;
+  left: 6px;
+  top: -9px;
+  min-width: 17px;
+  min-height: 17px;
+  border-radius: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
