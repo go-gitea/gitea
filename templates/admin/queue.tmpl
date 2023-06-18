@@ -23,7 +23,7 @@
 				<td>{{$q.GetItemTypeName}}</td>
 				<td>{{$sum := $q.GetWorkerNumber}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
 				<td>{{$sum = $q.GetQueueItemNumber}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
-				<td><a href="{{$.Link}}/{{$qid}}" class="button">{{if lt $sum 0}}{{$.locale.Tr "admin.monitor.queue.review"}}{{else}}{{$.locale.Tr "admin.monitor.queue.review_add"}}{{end}}</a>
+				<td><a href="{{$.Link}}/{{$qid}}" class="button">{{if lt $sum 0}}{{$.locale.Tr "admin.monitor.queue.review"}}{{else}}{{$.locale.Tr "admin.monitor.queue.review_add"}}{{end}}</a></td>
 			</tr>
 			{{end}}
 			</tbody>

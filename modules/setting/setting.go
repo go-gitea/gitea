@@ -203,16 +203,18 @@ func Init(opts *Options) {
 	var err error
 	CfgProvider, err = NewConfigProviderFromFile(opts)
 	if err != nil {
-		log.Fatal("Init[%v]: %v", opts, err)
+		log.Fatal("newConfigProviderFromFile[%v]: %v", opts, err)
 	}
 	if !opts.DisableLoadCommonSettings {
-		loadCommonSettingsFrom(CfgProvider)
+		if err := loadCommonSettingsFrom(CfgProvider); err != nil {
+			log.Fatal("loadCommonSettingsFrom[%v]: %v", opts, err)
+		}
 	}
 }
 
 // loadCommonSettingsFrom loads common configurations from a configuration provider.
-func loadCommonSettingsFrom(cfg ConfigProvider) {
-	// WARNING: don't change the sequence except you know what you are doing.
+func loadCommonSettingsFrom(cfg ConfigProvider) error {
+	// WARNNING: don't change the sequence except you know what you are doing.
 	loadRunModeFrom(cfg)
 	loadLogGlobalFrom(cfg)
 	loadServerFrom(cfg)
@@ -222,13 +224,26 @@ func loadCommonSettingsFrom(cfg ConfigProvider) {
 
 	loadOAuth2From(cfg)
 	loadSecurityFrom(cfg)
-	loadAttachmentFrom(cfg)
-	loadLFSFrom(cfg)
+	if err := loadAttachmentFrom(cfg); err != nil {
+		return err
+	}
+	if err := loadLFSFrom(cfg); err != nil {
+		return err
+	}
 	loadTimeFrom(cfg)
 	loadRepositoryFrom(cfg)
-	loadPictureFrom(cfg)
-	loadPackagesFrom(cfg)
-	loadActionsFrom(cfg)
+	if err := loadAvatarsFrom(cfg); err != nil {
+		return err
+	}
+	if err := loadRepoAvatarFrom(cfg); err != nil {
+		return err
+	}
+	if err := loadPackagesFrom(cfg); err != nil {
+		return err
+	}
+	if err := loadActionsFrom(cfg); err != nil {
+		return err
+	}
 	loadUIFrom(cfg)
 	loadAdminFrom(cfg)
 	loadAPIFrom(cfg)
@@ -239,6 +254,7 @@ func loadCommonSettingsFrom(cfg ConfigProvider) {
 	loadMirrorFrom(cfg)
 	loadMarkupFrom(cfg)
 	loadOtherFrom(cfg)
+	return nil
 }
 
 func loadRunModeFrom(rootCfg ConfigProvider) {

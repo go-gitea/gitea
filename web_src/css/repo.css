@@ -20,15 +20,6 @@
   margin-top: 2px;
 }
 
-.repository .repo-header .repo-buttons .svg {
-  margin: 0 0.42857143em 0 -0.21428571em;
-}
-
-.repository .repo-header .button {
-  margin-top: 2px;
-  margin-bottom: 2px;
-}
-
 .repository .tabs .navbar {
   justify-content: initial;
 }
@@ -94,6 +85,18 @@
   .issue-content-right {
     width: 100%;
   }
+}
+
+.projects-header {
+  margin-bottom: 1rem;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.projects-toolbar {
+  display: flex;
+  justify-content: space-between;
+  padding-left: 4px;
 }
 
 .repository .issue-content-right .menu {
@@ -232,6 +235,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+@media (max-width: 767.68px) {
+  .repository.file.list .repo-description {
+    flex-direction: column;
+    gap: 8px;
+    align-items: normal;
+  }
 }
 
 .repository.file.list #repo-desc {
@@ -850,6 +861,11 @@
   padding-top: 0;
 }
 
+.repository.view.issue .comment-list .timeline-item.commits-list .ui.avatar,
+.repository.view.issue .comment-list .timeline-item.event .ui.avatar {
+  margin-right: 0.25em;
+}
+
 .repository.view.issue .comment-list .timeline-item.commits-list .singular-commit {
   line-height: 34px; /* this must be same as .badge height, to avoid overflow */
   clear: both; /* reset the "float right shabox", in the future, use flexbox instead */
@@ -1169,56 +1185,6 @@
   border-right-color: var(--color-box-body);
   border-width: 8px;
   margin-top: -8px;
-}
-
-.repository .milestone.list {
-  list-style: none;
-}
-
-.repository .milestone.list > .item {
-  padding-top: 10px;
-  padding-bottom: 10px;
-}
-
-.repository .milestone.list > .item + .item {
-  border-top: 1px solid var(--color-secondary);
-}
-
-.repository .milestone.list > .item progress {
-  width: 200px;
-  height: 16px;
-}
-
-.repository .milestone.list > .item .meta {
-  color: var(--color-text-light-2);
-  padding-top: 5px;
-}
-
-.repository .milestone.list > .item .meta .issue-stats .svg {
-  padding-left: 5px;
-}
-
-.repository .milestone.list > .item .meta .overdue {
-  color: var(--color-red);
-}
-
-.repository .milestone.list > .item .operate {
-  margin-top: -15px;
-}
-
-.repository .milestone.list > .item .operate > a {
-  font-size: 15px;
-  padding-top: 5px;
-  padding-right: 10px;
-  color: var(--color-text-light-2);
-}
-
-.repository .milestone.list > .item .operate > a:hover {
-  color: var(--color-text);
-}
-
-.repository .milestone.list > .item .content {
-  padding-top: 10px;
 }
 
 .repository.new.milestone textarea {
@@ -1848,7 +1814,6 @@
   border: none;
 }
 
-
 @media (max-width: 991.98px) {
   .diff-file-box {
     scroll-margin-top: 77px; /* match .repository .diff-detail-box */
@@ -1858,9 +1823,9 @@
 /* TODO: this can potentially be made "global" by removing the class prefix */
 .diff-file-box .ui.attached.header,
 .diff-file-box .ui.attached.table {
-  margin: 0; /* remove fomantic negative margins */;
-  width: initial; /* remove fomantic over 100% width */;
-  max-width: initial; /* remove fomantic over 100% width */;
+  margin: 0; /* remove fomantic negative margins */
+  width: initial; /* remove fomantic over 100% width */
+  max-width: initial; /* remove fomantic over 100% width */
 }
 
 .repository .diff-stats {
@@ -1911,7 +1876,6 @@
   line-height: 1.4;
   flex: 1
 }
-
 
 .repository.packages .empty {
   padding-top: 70px;
@@ -1968,6 +1932,13 @@
   .repository.wiki #clone-panel #repo-clone-url {
     width: 160px;
   }
+}
+
+.repository .activity-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .repository.settings.collaboration .collaborator.list {
@@ -2537,11 +2508,6 @@
   margin-left: 0.25rem;
 }
 
-.content-history-menu .octicon-triangle-down {
-  position: relative;
-  top: 1.5px;
-}
-
 .comment-body {
   background: var(--color-box-body);
   border: none !important;
@@ -2702,24 +2668,21 @@
 }
 
 .repo-button-row {
-  margin-bottom: 10px;
-}
-
-.repo-button-row > * {
-  margin-top: 8px;
-}
-
-.wiki .repo-button-row {
-  margin-bottom: 0;
-}
-
-.wiki .repo-button-row > * {
-  margin-top: 0;
+  margin: 10px 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  flex-wrap: wrap;
+  justify-content: space-between;
 }
 
 .repo-button-row .button {
   padding: 6px 10px !important;
   height: 30px;
+}
+
+.repo-button-row .button.dropdown {
+  padding-right: 22px !important; /* normal buttons have !important paddings, so we need to override it for dropdown (Add File) icons */
 }
 
 .repo-button-row input {
@@ -2874,6 +2837,7 @@ tbody.commit-list {
   flex-direction: row;
   flex-wrap: wrap;
   word-break: keep-all;
+  gap: 0.25em;
 }
 
 @media (max-width: 767.98px) {
@@ -2895,15 +2859,6 @@ tbody.commit-list {
 
 .repo-buttons button[disabled] ~ .label:hover {
   color: var(--color-primary-dark-1);
-}
-
-.repo-buttons .ui.labeled.button {
-  cursor: initial;
-}
-
-.repo-buttons .ui.labeled.button > .label {
-  border-left: 0 !important;
-  margin: 0 !important;
 }
 
 .repo-buttons .ui.labeled.button.disabled {
@@ -3401,6 +3356,12 @@ tbody.commit-list {
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   margin-bottom: 8px;
+}
+
+@media (max-width: 767.98px) {
+  #issue-pins {
+    grid-template-columns: repeat(1, 1fr);
+  }
 }
 
 .pinned-issue-card {

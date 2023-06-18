@@ -116,7 +116,7 @@ func Install(ctx *context.Context) {
 	// Application general settings
 	form.AppName = setting.AppName
 	form.RepoRootPath = setting.RepoRootPath
-	form.LFSRootPath = setting.LFS.Path
+	form.LFSRootPath = setting.LFS.Storage.Path
 
 	// Note(unknown): it's hard for Windows users change a running user,
 	// 	so just use current one if config says default.
@@ -393,6 +393,7 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("server").Key("DOMAIN").SetValue(form.Domain)
 	cfg.Section("server").Key("HTTP_PORT").SetValue(form.HTTPPort)
 	cfg.Section("server").Key("ROOT_URL").SetValue(form.AppURL)
+	cfg.Section("server").Key("APP_DATA_PATH").SetValue(setting.AppDataPath)
 
 	if form.SSHPort == 0 {
 		cfg.Section("server").Key("DISABLE_SSH").SetValue("true")
@@ -453,10 +454,9 @@ func SubmitInstall(ctx *context.Context) {
 
 	cfg.Section("session").Key("PROVIDER").SetValue("file")
 
-	cfg.Section("log").Key("MODE").SetValue("console")
+	cfg.Section("log").Key("MODE").MustString("console")
 	cfg.Section("log").Key("LEVEL").SetValue(setting.Log.Level.String())
 	cfg.Section("log").Key("ROOT_PATH").SetValue(form.LogRootPath)
-	cfg.Section("log").Key("ROUTER").SetValue("console")
 
 	cfg.Section("repository.pull-request").Key("DEFAULT_MERGE_STYLE").SetValue("merge")
 

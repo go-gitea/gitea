@@ -3,7 +3,7 @@ module code.gitea.io/gitea
 go 1.20
 
 require (
-	code.gitea.io/actions-proto-go v0.2.1
+	code.gitea.io/actions-proto-go v0.3.0
 	code.gitea.io/gitea-vet v0.2.2
 	code.gitea.io/sdk/gitea v0.15.1
 	codeberg.org/gusted/mcaptcha v0.0.0-20220723083913-4f3072e1d570
