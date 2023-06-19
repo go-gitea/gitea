@@ -282,9 +282,15 @@
 					{{if not .Repository.IsArchived}}
 					<!-- Action Button -->
 					{{if .IsShowClosed}}
-						<button class="ui green active basic button issue-action gt-ml-auto" data-action="open" data-url="{{$.RepoLink}}/issues/status">{{.locale.Tr "repo.issues.action_open"}}</button>
+						<button class="ui green basic button issue-action gt-ml-auto" data-action="open" data-url="{{$.RepoLink}}/issues/status">{{.locale.Tr "repo.issues.action_open"}}</button>
 					{{else}}
-						<button class="ui red active basic button issue-action gt-ml-auto" data-action="close" data-url="{{$.RepoLink}}/issues/status">{{.locale.Tr "repo.issues.action_close"}}</button>
+						<button class="ui red basic button issue-action gt-ml-auto" data-action="close" data-url="{{$.RepoLink}}/issues/status">{{.locale.Tr "repo.issues.action_close"}}</button>
+					{{end}}
+					{{if $.IsRepoAdmin}}
+						<button class="ui red button issue-action gt-ml-auto"
+							data-action="delete" data-url="{{$.RepoLink}}/issues/delete"
+							data-action-delete-confirm="{{.locale.Tr "confirm_delete_selected"}}"
+						>{{.locale.Tr "repo.issues.delete"}}</button>
 					{{end}}
 					<!-- Labels -->
 					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item">
