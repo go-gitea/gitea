@@ -18,10 +18,10 @@ import (
 
 type ActionVariable struct {
 	ID          int64              `xorm:"pk autoincr"`
-	OwnerID     int64              `xorm:"UNIQUE(owner_repo_title)"`
-	RepoID      int64              `xorm:"INDEX UNIQUE(owner_repo_title)"`
-	Title       string             `xorm:"UNIQUE(owner_repo_title) NOT NULL"`
-	Content     string             `xorm:"LONGTEXT NOT NULL"`
+	OwnerID     int64              `xorm:"UNIQUE(owner_repo_name)"`
+	RepoID      int64              `xorm:"INDEX UNIQUE(owner_repo_name)"`
+	Name        string             `xorm:"UNIQUE(owner_repo_name) NOT NULL"`
+	Data        string             `xorm:"LONGTEXT NOT NULL"`
 	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
 }
@@ -37,12 +37,12 @@ func (v *ActionVariable) Validate() error {
 	return nil
 }
 
-func InsertVariable(ctx context.Context, ownerID, repoID int64, title, content string) (*ActionVariable, error) {
+func InsertVariable(ctx context.Context, ownerID, repoID int64, name, data string) (*ActionVariable, error) {
 	variable := &ActionVariable{
 		OwnerID: ownerID,
 		RepoID:  repoID,
-		Title:   strings.ToUpper(title),
-		Content: content,
+		Name:    strings.ToUpper(name),
+		Data:    data,
 	}
 	if err := variable.Validate(); err != nil {
 		return variable, err
@@ -88,10 +88,10 @@ func GetVariableByID(ctx context.Context, variableID int64) (*ActionVariable, er
 }
 
 func UpdateVariable(ctx context.Context, variable *ActionVariable) (bool, error) {
-	count, err := db.GetEngine(ctx).ID(variable.ID).Cols("title", "content").
+	count, err := db.GetEngine(ctx).ID(variable.ID).Cols("name", "data").
 		Update(&ActionVariable{
-			Title:   variable.Title,
-			Content: variable.Content,
+			Name: variable.Name,
+			Data: variable.Data,
 		})
 	return count != 0, err
 }

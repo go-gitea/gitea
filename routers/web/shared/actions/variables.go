@@ -33,14 +33,14 @@ func SetVariablesContext(ctx *context.Context, ownerID, repoID int64) {
 // https://docs.github.com/en/actions/learn-github-actions/variables#naming-conventions-for-configuration-variables
 // https://docs.github.com/en/actions/security-guides/encrypted-secrets#naming-your-secrets
 var (
-	titleRx           = regexp.MustCompile("(?i)^[A-Z_][A-Z0-9_]*$")
+	nameRx            = regexp.MustCompile("(?i)^[A-Z_][A-Z0-9_]*$")
 	forbiddenPrefixRx = regexp.MustCompile("(?i)^GIT(EA|HUB)_")
 )
 
-func TitleRegexMatch(ctx *context.Context, title, redirectURL string) error {
-	if !titleRx.MatchString(title) || forbiddenPrefixRx.MatchString(title) {
-		log.Error("Title %s, regex match error", title)
-		return errors.New("title has invalid character")
+func NameRegexMatch(ctx *context.Context, name, redirectURL string) error {
+	if !nameRx.MatchString(name) || forbiddenPrefixRx.MatchString(name) {
+		log.Error("Name %s, regex match error", name)
+		return errors.New("name has invalid character")
 	}
 	return nil
 }
@@ -48,18 +48,18 @@ func TitleRegexMatch(ctx *context.Context, title, redirectURL string) error {
 func CreateVariable(ctx *context.Context, ownerID, repoID int64, redirectURL string) {
 	form := web.GetForm(ctx).(*forms.EditVariableForm)
 
-	if err := TitleRegexMatch(ctx, form.Title, redirectURL); err != nil {
+	if err := NameRegexMatch(ctx, form.Name, redirectURL); err != nil {
 		ctx.JSONError(err.Error())
 		return
 	}
 
-	v, err := actions_model.InsertVariable(ctx, ownerID, repoID, form.Title, ReserveLineBreakForTextarea(form.Content))
+	v, err := actions_model.InsertVariable(ctx, ownerID, repoID, form.Name, ReserveLineBreakForTextarea(form.Data))
 	if err != nil {
 		log.Error("InsertVariable error: %v", err)
 		ctx.JSONError(ctx.Tr("actions.variables.creation.failed"))
 		return
 	}
-	ctx.Flash.Success(ctx.Tr("actions.variables.creation.success", v.Title))
+	ctx.Flash.Success(ctx.Tr("actions.variables.creation.success", v.Name))
 	ctx.JSONRedirect(redirectURL)
 }
 
@@ -67,15 +67,15 @@ func UpdateVariable(ctx *context.Context, redirectURL string) {
 	id := ctx.ParamsInt64(":variable_id")
 	form := web.GetForm(ctx).(*forms.EditVariableForm)
 
-	if err := TitleRegexMatch(ctx, form.Title, redirectURL); err != nil {
+	if err := NameRegexMatch(ctx, form.Name, redirectURL); err != nil {
 		ctx.JSONError(ctx.Tr("actions.variables.creation.failed"))
 		return
 	}
 
 	ok, err := actions_model.UpdateVariable(ctx, &actions_model.ActionVariable{
-		ID:      id,
-		Title:   strings.ToUpper(form.Title),
-		Content: ReserveLineBreakForTextarea(form.Content),
+		ID:   id,
+		Name: strings.ToUpper(form.Name),
+		Data: ReserveLineBreakForTextarea(form.Data),
 	})
 	if err != nil || !ok {
 		log.Error("UpdateVariable error: %v", err)

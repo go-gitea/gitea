@@ -26,12 +26,12 @@ func SetSecretsContext(ctx *context.Context, ownerID, repoID int64) {
 func PerformSecretsPost(ctx *context.Context, ownerID, repoID int64, redirectURL string) {
 	form := web.GetForm(ctx).(*forms.AddSecretForm)
 
-	if err := actions.TitleRegexMatch(ctx, form.Title, redirectURL); err != nil {
+	if err := actions.NameRegexMatch(ctx, form.Name, redirectURL); err != nil {
 		ctx.JSONError(ctx.Tr("secrets.creation.failed"))
 		return
 	}
 
-	s, err := secret_model.InsertEncryptedSecret(ctx, ownerID, repoID, form.Title, actions.ReserveLineBreakForTextarea(form.Content))
+	s, err := secret_model.InsertEncryptedSecret(ctx, ownerID, repoID, form.Name, actions.ReserveLineBreakForTextarea(form.Data))
 	if err != nil {
 		log.Error("InsertEncryptedSecret: %v", err)
 		ctx.JSONError(ctx.Tr("secrets.creation.failed"))
