@@ -154,8 +154,8 @@ function updateStopwatchTime(seconds) {
   const $stopwatch = $('.stopwatch-time');
   const start = Date.now();
   const updateUi = () => {
-    const delta = Date.now() - start;
-    const dur = formatTrackedTime(secs * 1000 + delta);
+    const delta = (Date.now() - start) / 1000;
+    const dur = formatTrackedTime(secs + delta);
     $stopwatch.text(dur);
   };
   updateUi();
