@@ -115,7 +115,8 @@ func DetectWorkflows(commit *git.Commit, ref string, triggedEvent webhook_module
 			continue
 		}
 		for _, evt := range events {
-			if isPullRequestTarget && evt.Name != GithubEventPullRequestTarget {
+			if isPullRequestTarget && evt.Name != GithubEventPullRequestTarget ||
+				!isPullRequestTarget && evt.Name == GithubEventPullRequestTarget {
 				continue
 			}
 			log.Trace("detect workflow %q for event %#v matching %q", entry.Name(), evt, triggedEvent)
@@ -128,6 +129,7 @@ func DetectWorkflows(commit *git.Commit, ref string, triggedEvent webhook_module
 					Content:      content,
 				}
 				workflows = append(workflows, dwf)
+				break
 			}
 		}
 	}
