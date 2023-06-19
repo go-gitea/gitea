@@ -365,9 +365,10 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 
 // Escapes user input to valid OS filenames
 //
-//	https://github.com/sindresorhus/filename-reserved-regex
+//		Based on https://github.com/sindresorhus/filename-reserved-regex
+//	 Adds "." to prevend directory traversal
 func fileNameEscape(s string) string {
-	re := regexp.MustCompile(`(?i)[<>:\"/\\|?*\x{0000}-\x{001F}]|^(con|prn|aux|nul|com\d|lpt\d)$`)
+	re := regexp.MustCompile(`(?i)[\.<>:\"/\\|?*\x{0000}-\x{001F}]|^(con|prn|aux|nul|com\d|lpt\d)$`)
 
 	return re.ReplaceAllString(s, "_")
 }

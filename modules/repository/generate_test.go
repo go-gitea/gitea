@@ -57,7 +57,7 @@ func TestGiteaTemplate(t *testing.T) {
 
 func TestFileNameEscape(t *testing.T) {
 	assert.Equal(t, "test_CON", fileNameEscape("test_CON"))
-	assert.Equal(t, "http___localhost_3003_user_test.git", fileNameEscape("http://localhost:3003/user/test.git"))
+	assert.Equal(t, "http___localhost_3003_user_test_git", fileNameEscape("http://localhost:3003/user/test.git"))
 	assert.Equal(t, "_", fileNameEscape("CON"))
 	assert.Equal(t, "_", fileNameEscape("con"))
 	assert.Equal(t, "_", fileNameEscape("\u0000"))
