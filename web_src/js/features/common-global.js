@@ -7,8 +7,10 @@ import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
 import {svg} from '../svg.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
+import {createTippy} from '../modules/tippy.js';
+import {confirmModal} from './comp/ConfirmModal.js';
 
-const {appUrl, csrfToken, i18n} = window.config;
+const {appUrl, appSubUrl, csrfToken, i18n} = window.config;
 
 export function initGlobalFormDirtyLeaveConfirm() {
   // Warn users that try to leave a page after entering data into a form.
@@ -60,6 +62,103 @@ export function initGlobalButtonClickOnEnter() {
   });
 }
 
+// doRedirect does real redirection to bypass the browser's limitations of "location"
+// more details are in the backend's fetch-redirect handler
+function doRedirect(redirect) {
+  const form = document.createElement('form');
+  const input = document.createElement('input');
+  form.method = 'post';
+  form.action = `${appSubUrl}/-/fetch-redirect`;
+  input.type = 'hidden';
+  input.name = 'redirect';
+  input.value = redirect;
+  form.append(input);
+  document.body.append(form);
+  form.submit();
+}
+
+async function formFetchAction(e) {
+  if (!e.target.classList.contains('form-fetch-action')) return;
+
+  e.preventDefault();
+  const formEl = e.target;
+  if (formEl.classList.contains('is-loading')) return;
+
+  formEl.classList.add('is-loading');
+  if (formEl.clientHeight < 50) {
+    formEl.classList.add('small-loading-icon');
+  }
+
+  const formMethod = formEl.getAttribute('method') || 'get';
+  const formActionUrl = formEl.getAttribute('action');
+  const formData = new FormData(formEl);
+  const [submitterName, submitterValue] = [e.submitter?.getAttribute('name'), e.submitter?.getAttribute('value')];
+  if (submitterName) {
+    formData.append(submitterName, submitterValue || '');
+  }
+
+  let reqUrl = formActionUrl;
+  const reqOpt = {method: formMethod.toUpperCase(), headers: {'X-Csrf-Token': csrfToken}};
+  if (formMethod.toLowerCase() === 'get') {
+    const params = new URLSearchParams();
+    for (const [key, value] of formData) {
+      params.append(key, value.toString());
+    }
+    const pos = reqUrl.indexOf('?');
+    if (pos !== -1) {
+      reqUrl = reqUrl.slice(0, pos);
+    }
+    reqUrl += `?${params.toString()}`;
+  } else {
+    reqOpt.body = formData;
+  }
+
+  let errorTippy;
+  const onError = (msg) => {
+    formEl.classList.remove('is-loading', 'small-loading-icon');
+    if (errorTippy) errorTippy.destroy();
+    // TODO: use a better toast UI instead of the tippy. If the form height is large, the tippy position is not good
+    errorTippy = createTippy(formEl, {
+      content: msg,
+      interactive: true,
+      showOnCreate: true,
+      hideOnClick: true,
+      role: 'alert',
+      theme: 'form-fetch-error',
+      trigger: 'manual',
+      arrow: false,
+    });
+  };
+
+  const doRequest = async () => {
+    try {
+      const resp = await fetch(reqUrl, reqOpt);
+      if (resp.status === 200) {
+        const {redirect} = await resp.json();
+        formEl.classList.remove('dirty'); // remove the areYouSure check before reloading
+        if (redirect) {
+          doRedirect(redirect);
+        } else {
+          window.location.reload();
+        }
+      } else if (resp.status >= 400 && resp.status < 500) {
+        const data = await resp.json();
+        // the code was quite messy, sometimes the backend uses "err", sometimes it uses "error", and even "user_error"
+        // but at the moment, as a new approach, we only use "errorMessage" here, backend can use JSONError() to respond.
+        onError(data.errorMessage || `server error: ${resp.status}`);
+      } else {
+        onError(`server error: ${resp.status}`);
+      }
+    } catch (e) {
+      console.error('error when doRequest', e);
+      onError(i18n.network_error);
+    }
+  };
+
+  // TODO: add "confirm" support like "link-action" in the future
+  await doRequest();
+}
+
 export function initGlobalCommon() {
   // Semantic UI modules.
   const $uiDropdowns = $('.ui.dropdown');
@@ -107,13 +206,7 @@ export function initGlobalCommon() {
 
   $('.tabular.menu .item').tab();
 
-  // prevent multiple form submissions on forms containing .loading-button
-  document.addEventListener('submit', (e) => {
-    const btn = e.target.querySelector('.loading-button');
-    if (!btn) return;
-    if (btn.classList.contains('loading')) return e.preventDefault();
-    btn.classList.add('loading');
-  });
+  document.addEventListener('submit', formFetchAction);
 }
 
 export function initGlobalDropzone() {
@@ -172,17 +265,17 @@ export function initGlobalDropzone() {
   }
 }
 
-function linkAction(e) {
+async function linkAction(e) {
   e.preventDefault();
 
   // A "link-action" can post AJAX request to its "data-url"
-  // Then the browser is redirect to: the "redirect" in response, or "data-redirect" attribute, or current URL by reloading.
-  // If the "link-action" has "data-modal-confirm(-html)" attribute, a confirm modal dialog will be shown before taking action.
+  // Then the browser is redirected to: the "redirect" in response, or "data-redirect" attribute, or current URL by reloading.
+  // If the "link-action" has "data-modal-confirm" attribute, a confirm modal dialog will be shown before taking action.
 
-  const $this = $(e.target);
+  const $this = $(this);
   const redirect = $this.attr('data-redirect');
 
-  const request = () => {
+  const doRequest = () => {
     $this.prop('disabled', true);
     $.post($this.attr('data-url'), {
       _csrf: csrfToken
@@ -199,33 +292,16 @@ function linkAction(e) {
     });
   };
 
-  const modalConfirmHtml = htmlEscape($this.attr('data-modal-confirm') || '');
-  if (!modalConfirmHtml) {
-    request();
+  const modalConfirmContent = htmlEscape($this.attr('data-modal-confirm') || '');
+  if (!modalConfirmContent) {
+    doRequest();
     return;
   }
 
-  const okButtonColor = $this.hasClass('red') || $this.hasClass('yellow') || $this.hasClass('orange') || $this.hasClass('negative') ? 'orange' : 'green';
-
-  const $modal = $(`
-<div class="ui g-modal-confirm modal">
-  <div class="content">${modalConfirmHtml}</div>
-  <div class="actions">
-    <button class="ui basic cancel button">${svg('octicon-x')} ${i18n.modal_cancel}</button>
-    <button class="ui ${okButtonColor} ok button">${svg('octicon-check')} ${i18n.modal_confirm}</button>
-  </div>
-</div>
-`);
-
-  $modal.appendTo(document.body);
-  $modal.modal({
-    onApprove() {
-      request();
-    },
-    onHidden() {
-      $modal.remove();
-    },
-  }).modal('show');
+  const isRisky = $this.hasClass('red') || $this.hasClass('yellow') || $this.hasClass('orange') || $this.hasClass('negative');
+  if (await confirmModal({content: modalConfirmContent, buttonColor: isRisky ? 'orange' : 'green'})) {
+    doRequest();
+  }
 }
 
 export function initGlobalLinkActions() {
