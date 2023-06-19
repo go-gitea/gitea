@@ -82,7 +82,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "Gitea"
 	app.Usage = "A painless self-hosted Git service"
-	app.Description = `By default, Gitea will start serving using the web-server with no argument, which can alternatively be run by running the subcommand "web"".`
+	app.Description = `By default, Gitea will start serving using the web-server with no argument, which can alternatively be run by running the subcommand "web".`
 	app.Version = Version + formatBuiltWith()
 	app.EnableBashCompletion = true
 	app.Commands = []cli.Command{
