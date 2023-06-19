@@ -83,7 +83,7 @@ func TestChangePassword(t *testing.T) {
 		t.Run(req.OldPassword+"__"+req.NewPassword, func(t *testing.T) {
 			unittest.PrepareTestEnv(t)
 			setting.PasswordComplexity = req.PasswordComplexity
-			ctx := test.MockContext(t, "user/settings/security")
+			ctx, _ := test.MockContext(t, "user/settings/security")
 			test.LoadUser(t, ctx, 2)
 			test.LoadRepo(t, ctx, 1)
 
