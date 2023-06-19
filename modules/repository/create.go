@@ -194,10 +194,6 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 		}
 	}
 
-	var licenses []string
-	if len(opts.License) > 0 {
-		licenses = append(licenses, ConvertLicenseName(opts.License))
-	}
 	repo := &repo_model.Repository{
 		OwnerID:                         u.ID,
 		Owner:                           u,
@@ -216,7 +212,6 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 		TrustModel:                      opts.TrustModel,
 		IsMirror:                        opts.IsMirror,
 		DefaultBranch:                   opts.DefaultBranch,
-		Licenses:                        licenses,
 	}
 
 	var rollbackRepo *repo_model.Repository
@@ -282,6 +277,26 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 			rollbackRepo.OwnerID = u.ID
 			return fmt.Errorf("CreateRepository(git update-server-info): %w", err)
 		}
+
+		// update licenses
+		var licenses []string
+		if len(opts.License) > 0 {
+			licenses = append(licenses, ConvertLicenseName(opts.License))
+
+			// TODO git command?
+			gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+			if err != nil {
+				return fmt.Errorf("OpenRepository: %w", err)
+			}
+			commitID, err := gitRepo.GetBranchCommitID(repo.DefaultBranch)
+			if err != nil {
+				return err
+			}
+			if err := repo_model.UpdateRepoLicenses(ctx, repo, commitID, licenses); err != nil {
+				return err
+			}
+		}
+
 		return nil
 	}); err != nil {
 		if rollbackRepo != nil {

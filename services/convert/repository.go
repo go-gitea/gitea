@@ -150,6 +150,11 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 		language = repo.PrimaryLanguage.Language
 	}
 
+	repoLicenses, err := repo_model.GetRepoLicenses(ctx, repo)
+	if err != nil {
+		return nil
+	}
+
 	repoAPIURL := repo.APIURL()
 
 	return &api.Repository{
@@ -208,7 +213,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 		MirrorInterval:                mirrorInterval,
 		MirrorUpdated:                 mirrorUpdated,
 		RepoTransfer:                  transfer,
-		Licenses:                      repo.Licenses,
+		Licenses:                      repoLicenses.StringList(),
 	}
 }
 

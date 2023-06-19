@@ -78,7 +78,7 @@ func SetDefaultBranchPost(ctx *context.Context) {
 				ctx.ServerError("UpdateDefaultBranch", err)
 				return
 			}
-			if err := repo_module.UpdateRepoLicenses(ctx, repo, ctx.Repo.GitRepo); err != nil {
+			if err := repo_module.UpdateRepoLicenses(ctx, repo, ctx.Repo.Commit); err != nil {
 				ctx.ServerError("UpdateRepoLicenses", err)
 				return
 			}

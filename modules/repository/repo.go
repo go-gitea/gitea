@@ -134,12 +134,6 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	}
 	defer gitRepo.Close()
 
-	// Update repo license
-	err = UpdateRepoLicenses(ctx, repo, gitRepo)
-	if err != nil {
-		return repo, fmt.Errorf("UpdateRepoLicenses: %w", err)
-	}
-
 	repo.IsEmpty, err = gitRepo.IsEmpty()
 	if err != nil {
 		return repo, fmt.Errorf("git.IsEmpty: %w", err)
@@ -172,6 +166,12 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			if err = StoreMissingLfsObjectsInRepository(ctx, repo, gitRepo, lfsClient); err != nil {
 				log.Error("Failed to store missing LFS objects for repository: %v", err)
 			}
+		}
+
+		// Update repo license
+		err = UpdateRepoLicensesByGitRepo(ctx, repo, gitRepo)
+		if err != nil {
+			return repo, fmt.Errorf("UpdateRepoLicensesByGitRepo: %w", err)
 		}
 	}
 

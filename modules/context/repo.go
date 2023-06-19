@@ -399,7 +399,13 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 	ctx.Data["PushMirrors"] = pushMirrors
 	ctx.Data["RepoName"] = ctx.Repo.Repository.Name
 	ctx.Data["IsEmptyRepo"] = ctx.Repo.Repository.IsEmpty
-	ctx.Data["Licenses"] = ctx.Repo.Repository.Licenses
+
+	repoLicenses, err := repo_model.GetRepoLicenses(ctx, ctx.Repo.Repository)
+	if err != nil {
+		ctx.ServerError("GetRepoLicenses", err)
+		return
+	}
+	ctx.Data["Licenses"] = repoLicenses.StringList()
 }
 
 // RepoIDAssignment returns a handler which assigns the repo to the context.

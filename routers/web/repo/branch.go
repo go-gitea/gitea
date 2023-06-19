@@ -80,7 +80,7 @@ func Branches(ctx *context.Context) {
 	ctx.Data["Page"] = pager
 
 	var err error
-	ctx.Data["LicenseFileName"], err = repo_module.GetLicenseFileName(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
+	ctx.Data["LicenseFileName"], err = repo_module.GetLicenseFileName(ctx, ctx.Repo.Repository, ctx.Repo.Commit)
 	if err != nil {
 		ctx.ServerError("GetLicenseFileName", err)
 		return

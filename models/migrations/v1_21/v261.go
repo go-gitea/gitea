@@ -15,10 +15,10 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
 	licenseclassifier "github.com/google/licenseclassifier/v2"
-	"xorm.io/builder"
 	"xorm.io/xorm"
 )
 
@@ -37,20 +37,9 @@ func userPath(userName string) string {
 }
 
 // Copy paste from modules/repository/file.go because we cannot import models package
-func findLicenseFile(gitRepo *git.Repository, branchName string) (string, *git.TreeEntry, error) {
-	if branchName == "" {
+func findLicenseFile(commit *git.Commit) (string, *git.TreeEntry, error) {
+	if commit == nil {
 		return "", nil, nil
-	}
-	if gitRepo == nil {
-		return "", nil, nil
-	}
-
-	commit, err := gitRepo.GetBranchCommit(branchName)
-	if err != nil {
-		if git.IsErrNotExist(err) {
-			return "", nil, nil
-		}
-		return "", nil, fmt.Errorf("GetBranchCommit: %w", err)
 	}
 	entries, err := commit.ListEntries()
 	if err != nil {
@@ -253,10 +242,18 @@ func AddRepositoryLicenses(x *xorm.Engine) error {
 		OwnerName     string
 		Name          string `xorm:"INDEX NOT NULL"`
 		DefaultBranch string
-		Licenses      []string `xorm:"TEXT JSON"`
 	}
 
-	if err := x.Sync(new(Repository)); err != nil {
+	type RepoLicense struct {
+		ID          int64 `xorm:"pk autoincr"`
+		RepoID      int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		CommitID    string
+		License     string             `xorm:"VARCHAR(50) UNIQUE(s) INDEX NOT NULL"`
+		CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
+		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+	}
+
+	if err := x.Sync(new(RepoLicense)); err != nil {
 		return err
 	}
 
@@ -268,7 +265,7 @@ func AddRepositoryLicenses(x *xorm.Engine) error {
 	}
 
 	repos := make([]*Repository, 0)
-	if err := sess.Where(builder.IsNull{"licenses"}).Find(&repos); err != nil {
+	if err := sess.Find(&repos); err != nil {
 		return err
 	}
 
@@ -283,19 +280,66 @@ func AddRepositoryLicenses(x *xorm.Engine) error {
 			// Allow git repo not exist
 			continue
 		}
-		_, licenseFile, err := findLicenseFile(gitRepo, repo.DefaultBranch)
+		commit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
+		if err != nil {
+			if git.IsErrNotExist(err) {
+				continue
+			}
+			log.Error("Error whilst getting default branch commit in [%d]%s/%s. Error: %v", repo.ID, repo.OwnerName, repo.Name, err)
+			return err
+		}
+		_, licenseFile, err := findLicenseFile(commit)
 		if err != nil {
 			log.Error("Error whilst finding license file in [%d]%s/%s. Error: %v", repo.ID, repo.OwnerName, repo.Name, err)
 			return err
 		}
-		repo.Licenses, err = detectLicenseByEntry(licenseFile)
+		licenses, err := detectLicenseByEntry(licenseFile)
 		if err != nil {
 			log.Error("Error whilst detecting license from %s in [%d]%s/%s. Error: %v", licenseFile.Name(), repo.ID, repo.OwnerName, repo.Name, err)
 			return err
 		}
-		if _, err := sess.ID(repo.ID).Cols("licenses").NoAutoTime().Update(repo); err != nil {
-			log.Error("Error whilst updating [%d]%s/%s licenses column. Error: %v", repo.ID, repo.OwnerName, repo.Name, err)
+
+		oldLicenses := make([]RepoLicense, 0)
+		if err := sess.Where("`repo_id` = ?", repo.ID).Asc("`license`").Find(&oldLicenses); err != nil {
 			return err
+		}
+
+		for _, license := range licenses {
+			upd := false
+			for _, o := range oldLicenses {
+				// Update already existing license
+				if o.License == license {
+					if _, err := sess.ID(o.ID).Cols("`commit_id`").Update(o); err != nil {
+						log.Error("Error whilst updating [%d]%s/%s license [%s]. Error: %v", repo.ID, repo.OwnerName, repo.Name, license, err)
+						return err
+					}
+					upd = true
+					break
+				}
+			}
+			// Insert new license
+			if !upd {
+				if _, err := sess.Insert(&RepoLicense{
+					RepoID:   repo.ID,
+					CommitID: commit.ID.String(),
+					License:  license,
+				}); err != nil {
+					log.Error("Error whilst inserting [%d]%s/%s license [%s]. Error: %v", repo.ID, repo.OwnerName, repo.Name, license, err)
+					return err
+				}
+			}
+		}
+		// Delete old languages
+		licenseToDelete := make([]int64, 0, len(oldLicenses))
+		for _, o := range oldLicenses {
+			if o.CommitID != commit.ID.String() {
+				licenseToDelete = append(licenseToDelete, o.ID)
+			}
+		}
+		if len(licenseToDelete) > 0 {
+			if _, err := sess.In("`id`", licenseToDelete).Delete(&RepoLicense{}); err != nil {
+				return err
+			}
 		}
 	}
 	return sess.Commit()

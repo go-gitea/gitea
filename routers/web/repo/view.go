@@ -878,7 +878,7 @@ func renderCode(ctx *context.Context) {
 	ctx.Data["TreeLink"] = treeLink
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["BranchLink"] = branchLink
-	ctx.Data["LicenseFileName"], err = repo_module.GetLicenseFileName(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
+	ctx.Data["LicenseFileName"], err = repo_module.GetLicenseFileName(ctx, ctx.Repo.Repository, ctx.Repo.Commit)
 	if err != nil {
 		ctx.ServerError("GetLicenseFileName", err)
 		return

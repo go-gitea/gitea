@@ -188,7 +188,7 @@ func getLicensePlaceholder(name string) *licensePlaceholder {
 }
 
 // UpdateRepoLicenses will update repository licenses col if license file exists
-func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository) error {
+func UpdateRepoLicensesByGitRepo(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository) error {
 	if gitRepo == nil {
 		var err error
 		gitRepo, err = git.OpenRepository(ctx, repo.RepoPath())
@@ -196,15 +196,28 @@ func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository, gitRep
 			return fmt.Errorf("OpenRepository: %w", err)
 		}
 	}
+	commit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
+	if err != nil {
+		return err
+	}
+	return UpdateRepoLicenses(ctx, repo, commit)
+}
 
-	_, licenseFile, err := findLicenseFile(gitRepo, repo.DefaultBranch)
+// UpdateRepoLicenses will update repository licenses col if license file exists
+func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository, commit *git.Commit) error {
+	if commit == nil {
+		return nil
+	}
+
+	_, licenseFile, err := findLicenseFile(commit)
 	if err != nil {
 		return fmt.Errorf("findLicenseFile: %w", err)
 	}
-	if repo.Licenses, err = detectLicenseByEntry(licenseFile); err != nil {
+	licenses, err := detectLicenseByEntry(licenseFile)
+	if err != nil {
 		return fmt.Errorf("checkLicenseFile: %w", err)
 	}
-	if err := repo_model.UpdateRepositoryCols(ctx, repo, "licenses"); err != nil {
+	if err := repo_model.UpdateRepoLicenses(ctx, repo, commit.ID.String(), licenses); err != nil {
 		return fmt.Errorf("UpdateRepositoryCols: %v", err)
 	}
 
@@ -212,23 +225,14 @@ func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository, gitRep
 }
 
 // GetLicenseFileName returns license file name in the repository if it exists
-func GetLicenseFileName(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository) (string, error) {
-	if repo.DefaultBranch == "" {
+func GetLicenseFileName(ctx context.Context, repo *repo_model.Repository, commit *git.Commit) (string, error) {
+	if commit == nil {
 		return "", nil
 	}
-	if gitRepo == nil {
-		var err error
-		gitRepo, err = git.OpenRepository(ctx, repo.RepoPath())
-		if err != nil {
-			return "", fmt.Errorf("OpenRepository: %w", err)
-		}
-	}
-
-	_, licenseFile, err := findLicenseFile(gitRepo, repo.DefaultBranch)
+	_, licenseFile, err := findLicenseFile(commit)
 	if err != nil {
 		return "", fmt.Errorf("findLicenseFile: %w", err)
 	}
-
 	if licenseFile != nil {
 		return licenseFile.Name(), nil
 	}
@@ -236,20 +240,9 @@ func GetLicenseFileName(ctx context.Context, repo *repo_model.Repository, gitRep
 }
 
 // findLicenseFile returns the entry of license file in the repository if it exists
-func findLicenseFile(gitRepo *git.Repository, branchName string) (string, *git.TreeEntry, error) {
-	if branchName == "" {
+func findLicenseFile(commit *git.Commit) (string, *git.TreeEntry, error) {
+	if commit == nil {
 		return "", nil, nil
-	}
-	if gitRepo == nil {
-		return "", nil, nil
-	}
-
-	commit, err := gitRepo.GetBranchCommit(branchName)
-	if err != nil {
-		if git.IsErrNotExist(err) {
-			return "", nil, nil
-		}
-		return "", nil, fmt.Errorf("GetBranchCommit: %w", err)
 	}
 	entries, err := commit.ListEntries()
 	if err != nil {

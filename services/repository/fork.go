@@ -82,7 +82,6 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		IsEmpty:       opts.BaseRepo.IsEmpty,
 		IsFork:        true,
 		ForkID:        opts.BaseRepo.ID,
-		Licenses:      opts.BaseRepo.Licenses,
 	}
 
 	oldRepoPath := opts.BaseRepo.RepoPath()
@@ -172,6 +171,9 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	}
 	if err := repo_model.CopyLanguageStat(opts.BaseRepo, repo); err != nil {
 		log.Error("Copy language stat from oldRepo failed: %v", err)
+	}
+	if err := repo_model.CopyLicense(opts.BaseRepo, repo); err != nil {
+		return nil, err
 	}
 
 	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
