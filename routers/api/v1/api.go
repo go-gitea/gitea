@@ -899,6 +899,11 @@ func Routes() *web.Route {
 					Patch(bind(api.EditHookOption{}), user.EditHook).
 					Delete(user.DeleteHook)
 			}, reqWebhooksEnabled())
+
+			m.Group("/avatar", func() {
+				m.Post("", bind(api.UpdateUserAvatarOption{}), user.UpdateAvatar)
+				m.Delete("", user.DeleteAvatar)
+			}, reqToken())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
 
 		// Repositories (requires repo scope, org scope)
@@ -1134,6 +1139,10 @@ func Routes() *web.Route {
 				m.Get("/languages", reqRepoReader(unit.TypeCode), repo.GetLanguages)
 				m.Get("/activities/feeds", repo.ListRepoActivityFeeds)
 				m.Get("/new_pin_allowed", repo.AreNewIssuePinsAllowed)
+				m.Group("/avatar", func() {
+					m.Post("", bind(api.UpdateRepoAvatarOption{}), repo.UpdateAvatar)
+					m.Delete("", repo.DeleteAvatar)
+				}, reqAdmin(), reqToken())
 			}, repoAssignment())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
 
@@ -1314,6 +1323,10 @@ func Routes() *web.Route {
 					Patch(bind(api.EditHookOption{}), org.EditHook).
 					Delete(org.DeleteHook)
 			}, reqToken(), reqOrgOwnership(), reqWebhooksEnabled())
+			m.Group("/avatar", func() {
+				m.Post("", bind(api.UpdateUserAvatarOption{}), org.UpdateAvatar)
+				m.Delete("", org.DeleteAvatar)
+			}, reqToken(), reqOrgOwnership())
 			m.Get("/activities/feeds", org.ListOrgActivityFeeds)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(true))
 		m.Group("/teams/{teamid}", func() {
