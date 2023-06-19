@@ -120,7 +120,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "work-path, w",
-			Usage: "Set Gitea's working path (default to the Gitea's binary directory)",
+			Usage: "Set Gitea's working path (defaults to the Gitea's binary directory)",
 		},
 	}
 
