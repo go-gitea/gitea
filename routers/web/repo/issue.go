@@ -1650,6 +1650,13 @@ func ViewIssue(ctx *context.Context) {
 			comment.Type == issues_model.CommentTypeStopTracking {
 			// drop error since times could be pruned from DB..
 			_ = comment.LoadTime()
+			// migrate old string based to timestamp on demand
+			if comment.Content[0] != '|' {
+				comment.Content = fmt.Sprint(util.TimeToSec(comment.Content))
+				// TODO: decide if we should save them to db back so we don't need to write a migration and convert it over time
+			} else if comment.Content != "" {
+				comment.Content = comment.Content[1:]
+			}
 		}
 
 		if comment.Type == issues_model.CommentTypeClose || comment.Type == issues_model.CommentTypeMergePull {

@@ -6,6 +6,7 @@ package issues
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -176,7 +177,7 @@ func AddTime(user *user_model.User, issue *Issue, amount int64, created time.Tim
 		Issue:   issue,
 		Repo:    issue.Repo,
 		Doer:    user,
-		Content: util.Sec2TrackedTime(amount),
+		Content: fmt.Sprintf("|%d", amount),
 		Type:    CommentTypeAddTimeManual,
 		TimeID:  t.ID,
 	}); err != nil {

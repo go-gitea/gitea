@@ -210,7 +210,7 @@ func FinishIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 		Doer:    user,
 		Issue:   issue,
 		Repo:    issue.Repo,
-		Content: util.Sec2TrackedTime(timediff),
+		Content: fmt.Sprintf("|%d", timediff),
 		Type:    CommentTypeStopTracking,
 		TimeID:  tt.ID,
 	}); err != nil {
