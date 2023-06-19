@@ -55,7 +55,7 @@ jobs:
 
             templates:
               - "templates/**/*.tmpl"
-
+              - "poetry.lock"
             docker:
               - "Dockerfile"
               - "Dockerfile.rootless"
