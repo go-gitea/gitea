@@ -57,7 +57,9 @@ func Contributors(ctx *context.Context) {
 		return
 	}
 
-	if ctx.PageData["repoContributorsCommitStats"], err = ctx.Repo.GitRepo.ContributorsCommitStats("main", 6000); err != nil {
+	default_branch, _ := ctx.Repo.GitRepo.GetDefaultBranch()
+	if ctx.PageData["repoContributorsCommitStats"], err = ctx.Repo.GitRepo.ContributorsCommitStats(
+		default_branch, 6000); err != nil {
 		ctx.ServerError("ContributorsCommitStats", err)
 		return
 	}
