@@ -128,11 +128,6 @@ func (p *Permission) LogString() string {
 
 // GetUserRepoPermission returns the user permissions to the repository
 func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (perm Permission, err error) {
-	if repo.ID == -1 {
-		perm.AccessMode = perm_model.AccessModeNone
-		return
-	}
-
 	if log.IsTrace() {
 		defer func() {
 			if user == nil {

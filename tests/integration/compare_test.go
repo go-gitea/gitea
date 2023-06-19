@@ -26,8 +26,8 @@ func TestCompareTag(t *testing.T) {
 	assert.Lenf(t, selection.Nodes, 2, "The template has changed")
 
 	req = NewRequest(t, "GET", "/user2/repo1/compare/invalid")
-	resp = session.MakeRequest(t, req, http.StatusNotFound)
-	assert.False(t, strings.Contains(resp.Body.String(), "/assets/img/500.png"), "expect 404 page not 500")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.True(t, strings.Contains(resp.Body.String(), "Head or base ref is not exist."))
 }
 
 // Compare with inferred default branch (master)

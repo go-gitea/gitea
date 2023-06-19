@@ -203,7 +203,7 @@ const (
 	compareModeInSameRepo CompareMode = "in_same_repo"
 	// compareModeAcrossRepos compare across repositorys
 	compareModeAcrossRepos CompareMode = "across_repos"
-	// compareModeAcrossService Compare with repository in other service
+	// compareModeAcrossService compare with external repository
 	compareModeAcrossService CompareMode = "across_service"
 )
 
@@ -321,12 +321,15 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	// Get compared branches information
 	// A full compare url is of the form:
 	//
+	// Compare in same repository:
 	// 1. /{:baseOwner}/{:baseRepoName}/compare/{:baseBranch}...{:headBranch}
+	// Compare across repositorys:
 	// 2. /{:baseOwner}/{:baseRepoName}/compare/{:baseBranch}...{:headOwner}:{:headBranch}
 	// 3. /{:baseOwner}/{:baseRepoName}/compare/{:baseBranch}...{:headOwner}/{:headRepoName}:{:headBranch}
 	// 4. /{:baseOwner}/{:baseRepoName}/compare/{:headBranch}
 	// 5. /{:baseOwner}/{:baseRepoName}/compare/{:headOwner}:{:headBranch}
 	// 6. /{:baseOwner}/{:baseRepoName}/compare/{:headOwner}/{:headRepoName}:{:headBranch}
+	// Compare with external repository:
 	// 7. /{:baseOwner}/{:baseRepoName}/compare/{:headBranch}:{:headBranch}?head_repo_url={:head_repo_url}
 	//
 	// Here we obtain the infoPath "{:baseBranch}...[{:headOwner}/{:headRepoName}:]{:headBranch}" as ctx.Params("*")
@@ -695,12 +698,21 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 
 	// If we're not merging from the same repo:
 	if !isSameRepo {
-		// Assert ctx.Doer has permission to read headRepo's codes
-		permHead, err := access_model.GetUserRepoPermission(ctx, ci.HeadRepo, ctx.Doer)
-		if err != nil {
-			ctx.ServerError("GetUserRepoPermission", err)
-			return nil
+		var (
+			permHead access_model.Permission
+			err      error
+		)
+
+		// permission is meaningless of external repo
+		if ci.CompareMode != compareModeAcrossService {
+			// Assert ctx.Doer has permission to read headRepo's codes
+			permHead, err = access_model.GetUserRepoPermission(ctx, ci.HeadRepo, ctx.Doer)
+			if err != nil {
+				ctx.ServerError("GetUserRepoPermission", err)
+				return nil
+			}
 		}
+
 		if !permHead.CanRead(unit.TypeCode) && ci.CompareMode != compareModeAcrossService {
 			if log.IsTrace() {
 				log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v",

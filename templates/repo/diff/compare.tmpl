@@ -172,7 +172,7 @@
 
 		{{if $.CompareMode.IsAcrossService}}
 			<div class="ui action tiny input" id="clone-panel">
-				<button class="ui basic small compact button compare-across-server-btn", data-compare-url="{{$.RepoLink}}/compare/{{PathEscapeSegments $.BaseBranch}}{{$.CompareSeparator}}{{$.HeadBranch}}?head_repo_url=">
+				<button class="ui basic small compact button compare-across-server-btn" data-compare-url="{{$.RepoLink}}/compare/{{PathEscapeSegments $.BaseBranch}}{{$.CompareSeparator}}{{$.HeadBranch}}?head_repo_url=">
 					{{.locale.Tr "repo.compare.button_title"}}
 				</button>
 			</div>
