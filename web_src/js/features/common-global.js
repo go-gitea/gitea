@@ -8,6 +8,7 @@ import {svg} from '../svg.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
 import {createTippy} from '../modules/tippy.js';
+import {confirmModal} from './comp/ConfirmModal.js';
 
 const {appUrl, appSubUrl, csrfToken, i18n} = window.config;
 
@@ -264,7 +265,7 @@ export function initGlobalDropzone() {
   }
 }
 
-function linkAction(e) {
+async function linkAction(e) {
   e.preventDefault();
 
   // A "link-action" can post AJAX request to its "data-url"
@@ -291,33 +292,16 @@ function linkAction(e) {
     });
   };
 
-  const modalConfirmHtml = htmlEscape($this.attr('data-modal-confirm') || '');
-  if (!modalConfirmHtml) {
+  const modalConfirmContent = htmlEscape($this.attr('data-modal-confirm') || '');
+  if (!modalConfirmContent) {
     doRequest();
     return;
   }
 
-  const okButtonColor = $this.hasClass('red') || $this.hasClass('yellow') || $this.hasClass('orange') || $this.hasClass('negative') ? 'orange' : 'green';
-
-  const $modal = $(`
-<div class="ui g-modal-confirm modal">
-  <div class="content">${modalConfirmHtml}</div>
-  <div class="actions">
-    <button class="ui basic cancel button">${svg('octicon-x')} ${i18n.modal_cancel}</button>
-    <button class="ui ${okButtonColor} ok button">${svg('octicon-check')} ${i18n.modal_confirm}</button>
-  </div>
-</div>
-`);
-
-  $modal.appendTo(document.body);
-  $modal.modal({
-    onApprove() {
-      doRequest();
-    },
-    onHidden() {
-      $modal.remove();
-    },
-  }).modal('show');
+  const isRisky = $this.hasClass('red') || $this.hasClass('yellow') || $this.hasClass('orange') || $this.hasClass('negative');
+  if (await confirmModal({content: modalConfirmContent, buttonColor: isRisky ? 'orange' : 'green'})) {
+    doRequest();
+  }
 }
 
 export function initGlobalLinkActions() {
