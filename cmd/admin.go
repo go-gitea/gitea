@@ -421,11 +421,7 @@ func runRepoSyncBranches(_ *cli.Context) error {
 		return err
 	}
 
-	if err := repo_module.SyncAllBranches(ctx, doer.ID); err != nil {
-		return err
-	}
-
-	return nil
+	return repo_module.SyncAllBranches(ctx, doer.ID)
 }
 
 func getReleaseCount(id int64) (int64, error) {

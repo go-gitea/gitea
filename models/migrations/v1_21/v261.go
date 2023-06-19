@@ -5,9 +5,9 @@ package v1_21 //nolint
 
 import (
 	"context"
+	"fmt"
 
 	"code.gitea.io/gitea/models/db"
-	user_model "code.gitea.io/gitea/models/user"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -34,12 +34,18 @@ func AddBranchTable(x *xorm.Engine) error {
 		return err
 	}
 
-	doer, err := user_model.GetAdminUser()
+	var adminUserID int64
+	has, err := x.Select("id").
+		Where("is_admin=?", true).
+		Asc("id"). // Reliably get the admin with the lowest ID.
+		Get(&adminUserID)
 	if err != nil {
 		return err
+	} else if !has {
+		return fmt.Errorf("no admin user found")
 	}
 
-	if err := repo_module.SyncAllBranches(context.Background(), doer.ID); err != nil {
+	if err := repo_module.SyncAllBranches(context.Background(), adminUserID); err != nil {
 		return err
 	}
 

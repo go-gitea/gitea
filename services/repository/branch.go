@@ -330,12 +330,9 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 			return err
 		}
 
-		if err := gitRepo.DeleteBranch(branchName, git.DeleteBranchOptions{
+		return gitRepo.DeleteBranch(branchName, git.DeleteBranchOptions{
 			Force: true,
-		}); err != nil {
-			return err
-		}
-		return nil
+		})
 	}); err != nil {
 		return err
 	}
