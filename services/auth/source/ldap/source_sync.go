@@ -43,7 +43,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 	mailUsers := make(map[string]*user_model.User, len(users))
 	keepActiveUsers := make(map[int64]struct{})
 
-	for _,u := range users {
+	for _, u := range users {
 		usernameUsers[u.LowerName] = u
 		mailUsers[strings.ToLower(u.Email)] = u
 	}
@@ -207,8 +207,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 	// Deactivate users not present in LDAP
 	if updateExisting {
-		for i := range users {
-			usr := users[i]
+		for _, usr := range users {
 			if _, ok := keepActiveUsers[usr.ID]; ok {
 				continue
 			}
