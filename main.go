@@ -111,7 +111,7 @@ func main() {
 		cli.HelpFlag,
 		cli.StringFlag{
 			Name:  "custom-path, C",
-			Usage: "Set custom path (default to '{WorkPath}/custom')",
+			Usage: "Set custom path (defaults to '{WorkPath}/custom')",
 		},
 		cli.StringFlag{
 			Name:  "config, c",
