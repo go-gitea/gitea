@@ -9,6 +9,7 @@
 @import "./modules/comment.css";
 
 @import "./shared/issuelist.css";
+@import "./shared/milestone.css";
 @import "./shared/repoorg.css";
 @import "./shared/settings.css";
 
