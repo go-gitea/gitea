@@ -54,6 +54,7 @@ func envNameCIRegexMatch(name string) error {
 	}
 	return nil
 }
+
 func CreateVariable(ctx *context.Context, ownerID, repoID int64, redirectURL string) {
 	form := web.GetForm(ctx).(*forms.EditVariableForm)
 
