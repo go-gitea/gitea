@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ToAPIIssue converts an Issue to API format
@@ -164,7 +165,7 @@ func ToStopWatches(sws []*issues_model.Stopwatch) (api.StopWatches, error) {
 		result = append(result, api.StopWatch{
 			Created:       sw.CreatedUnix.AsTime(),
 			Seconds:       sw.Seconds(),
-			Duration:      sw.Duration(),
+			Duration:      util.SecToTime(sw.Seconds()),
 			IssueIndex:    issue.Index,
 			IssueTitle:    issue.Title,
 			RepoOwnerName: repo.OwnerName,
