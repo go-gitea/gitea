@@ -105,7 +105,6 @@ func CopyLicense(originalRepo, destRepo *Repository) error {
 		for i := range repoLicenses {
 			repoLicenses[i].ID = 0
 			repoLicenses[i].RepoID = destRepo.ID
-			// TODO: convert commitID?
 			repoLicenses[i].CreatedUnix = time
 			repoLicenses[i].UpdatedUnix = time
 		}
