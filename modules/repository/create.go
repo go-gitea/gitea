@@ -283,16 +283,16 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 		if len(opts.License) > 0 {
 			licenses = append(licenses, ConvertLicenseName(opts.License))
 
-			// TODO git command?
-			gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+			stdout, _, err := git.NewCommand(ctx, "rev-parse", "HEAD").
+				SetDescription(fmt.Sprintf("CreateRepository(git rev-parse HEAD): %s", repoPath)).
+				RunStdString(&git.RunOpts{Dir: repoPath})
 			if err != nil {
-				return fmt.Errorf("OpenRepository: %w", err)
+				log.Error("CreateRepository(git rev-parse HEAD) in %v: Stdout: %s\nError: %v", repo, stdout, err)
+				rollbackRepo = repo
+				rollbackRepo.OwnerID = u.ID
+				return fmt.Errorf("CreateRepository(git rev-parse HEAD): %w", err)
 			}
-			commitID, err := gitRepo.GetBranchCommitID(repo.DefaultBranch)
-			if err != nil {
-				return err
-			}
-			if err := repo_model.UpdateRepoLicenses(ctx, repo, commitID, licenses); err != nil {
+			if err := repo_model.UpdateRepoLicenses(ctx, repo, stdout, licenses); err != nil {
 				return err
 			}
 		}
