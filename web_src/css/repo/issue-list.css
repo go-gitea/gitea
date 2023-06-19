@@ -13,3 +13,23 @@
 .issue-list-toolbar-right {
   margin-left: auto;
 }
+
+@media (max-width: 767.98px) {
+  .issue-list-toolbar {
+    flex-direction: column-reverse;
+  }
+  .issue-list-toolbar-right {
+    margin-right: auto;
+    width: 100%;
+  }
+  .issue-list-navbar {
+    order: 0;
+  }
+  .issue-list-new {
+    order: 1;
+    margin-left: auto !important;
+  }
+  .issue-list-search {
+    order: 2 !important;
+  }
+}
