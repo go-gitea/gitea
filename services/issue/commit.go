@@ -193,7 +193,8 @@ func UpdateIssuesCommit(doer *user_model.User, repo *repo_model.Repository, comm
 			}
 			if close != refIssue.IsClosed {
 				refIssue.Repo = refRepo
-				if err := ChangeStatus(refIssue, doer, c.Sha1, close); err != nil {
+				refIssue.IsClosed = close
+				if err := ChangeStatus(refIssue, doer, c.Sha1); err != nil {
 					return err
 				}
 			}

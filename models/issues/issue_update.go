@@ -33,7 +33,7 @@ func UpdateIssueCols(ctx context.Context, issue *Issue, cols ...string) error {
 	return nil
 }
 
-func changeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User, isClosed, isMergePull bool) (*Comment, error) {
+func changeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User, isMergePull bool) (*Comment, error) {
 	// Reload the issue
 	currentIssue, err := GetIssueByID(ctx, issue.ID)
 	if err != nil {
@@ -41,7 +41,7 @@ func changeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User,
 	}
 
 	// Nothing should be performed if current status is same as target status
-	if currentIssue.IsClosed == isClosed {
+	if currentIssue.IsClosed == issue.IsClosed {
 		if !issue.IsPull {
 			return nil, ErrIssueWasClosed{
 				ID: issue.ID,
@@ -52,7 +52,6 @@ func changeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User,
 		}
 	}
 
-	issue.IsClosed = isClosed
 	return doChangeIssueStatus(ctx, issue, doer, isMergePull)
 }
 
@@ -76,7 +75,7 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 		issue.ClosedUnix = 0
 	}
 
-	if err := UpdateIssueCols(ctx, issue, "is_closed", "closed_unix"); err != nil {
+	if err := UpdateIssueCols(ctx, issue, "is_closed", "closed_status", "closed_unix"); err != nil {
 		return nil, err
 	}
 
@@ -119,7 +118,7 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 }
 
 // ChangeIssueStatus changes issue status to open or closed.
-func ChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User, isClosed bool) (*Comment, error) {
+func ChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User) (*Comment, error) {
 	if err := issue.LoadRepo(ctx); err != nil {
 		return nil, err
 	}
@@ -127,7 +126,7 @@ func ChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User,
 		return nil, err
 	}
 
-	return changeIssueStatus(ctx, issue, doer, isClosed, false)
+	return changeIssueStatus(ctx, issue, doer, false)
 }
 
 // ChangeIssueTitle changes the title of this issue, as the given user.

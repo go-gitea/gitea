@@ -14,16 +14,16 @@ import (
 )
 
 // ChangeStatus changes issue status to open or closed.
-func ChangeStatus(issue *issues_model.Issue, doer *user_model.User, commitID string, closed bool) error {
-	return changeStatusCtx(db.DefaultContext, issue, doer, commitID, closed)
+func ChangeStatus(issue *issues_model.Issue, doer *user_model.User, commitID string) error {
+	return changeStatusCtx(db.DefaultContext, issue, doer, commitID)
 }
 
 // changeStatusCtx changes issue status to open or closed.
 // TODO: if context is not db.DefaultContext we get a deadlock!!!
-func changeStatusCtx(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, commitID string, closed bool) error {
-	comment, err := issues_model.ChangeIssueStatus(ctx, issue, doer, closed)
+func changeStatusCtx(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, commitID string) error {
+	comment, err := issues_model.ChangeIssueStatus(ctx, issue, doer)
 	if err != nil {
-		if issues_model.IsErrDependenciesLeft(err) && closed {
+		if issues_model.IsErrDependenciesLeft(err) && issue.IsClosed {
 			if err := issues_model.FinishIssueStopwatchIfPossible(ctx, doer, issue); err != nil {
 				log.Error("Unable to stop stopwatch for issue[%d]#%d: %v", issue.ID, issue.Index, err)
 			}
@@ -31,13 +31,14 @@ func changeStatusCtx(ctx context.Context, issue *issues_model.Issue, doer *user_
 		return err
 	}
 
-	if closed {
+	if issue.IsClosed {
 		if err := issues_model.FinishIssueStopwatchIfPossible(ctx, doer, issue); err != nil {
 			return err
 		}
 	}
 
-	notification.NotifyIssueChangeStatus(ctx, doer, commitID, issue, comment, closed)
+	// TBD: whether to notify if only closed_status is changed.
+	notification.NotifyIssueChangeStatus(ctx, doer, commitID, issue, comment, issue.IsClosed)
 
 	return nil
 }
