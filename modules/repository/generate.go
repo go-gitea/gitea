@@ -49,7 +49,7 @@ var defaultTransformers = []transformer{
 	{Name: "TITLE", Transform: util.ToTitleCase},
 }
 
-func generateExpansion(src string, templateRepo, generateRepo *repo_model.Repository) string {
+func generateExpansion(src string, templateRepo, generateRepo *repo_model.Repository, escapeFileName bool) string {
 	expansions := []expansion{
 		{Name: "REPO_NAME", Value: generateRepo.Name, Transformers: defaultTransformers},
 		{Name: "TEMPLATE_NAME", Value: templateRepo.Name, Transformers: defaultTransformers},
@@ -75,6 +75,9 @@ func generateExpansion(src string, templateRepo, generateRepo *repo_model.Reposi
 
 	return os.Expand(src, func(key string) string {
 		if expansion, ok := expansionMap[key]; ok {
+			if escapeFileName {
+				return fileNameEscape(expansion)
+			}
 			return expansion
 		}
 		return key
@@ -192,15 +195,21 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 						}
 
 						if err := os.WriteFile(path,
-							[]byte(generateExpansion(string(content), templateRepo, generateRepo)),
+							[]byte(generateExpansion(string(content), templateRepo, generateRepo, false)),
 							0o644); err != nil {
 							return err
 						}
 
+						substPath := filepath.FromSlash(filepath.Join(tmpDirSlash,
+							generateExpansion(base, templateRepo, generateRepo, true)))
+
+						// Create parent subdirectories if needed or continue silently if it exists
+						if err := os.MkdirAll(filepath.Dir(substPath), 0o755); err != nil {
+							return err
+						}
+
 						// Substitute filename variables
-						if err := os.Rename(path,
-							filepath.FromSlash(filepath.Join(tmpDirSlash,
-								fileNameEscape(generateExpansion(base, templateRepo, generateRepo))))); err != nil {
+						if err := os.Rename(path, substPath); err != nil {
 							return err
 						}
 
@@ -370,5 +379,5 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 func fileNameEscape(s string) string {
 	re := regexp.MustCompile(`(?i)[\.<>:\"/\\|?*\x{0000}-\x{001F}]|^(con|prn|aux|nul|com\d|lpt\d)$`)
 
-	return re.ReplaceAllString(s, "_")
+	return strings.TrimSpace(re.ReplaceAllString(s, "_"))
 }
