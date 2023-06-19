@@ -82,10 +82,16 @@
   #issue-actions > .issue-list-toolbar-right {
     width: 100% !important;
     padding-top: 0 !important;
+    padding-bottom: 0;
   }
 
   #issue-actions > .issue-list-toolbar-right > .filter.menu {
     padding-left: .5rem;
+  }
+
+  .repository .filter.menu .ui.dropdown.label-filter .menu,
+  .repository .filter.menu .ui.dropdown .menu {
+    left: 8px;
   }
 }
 
