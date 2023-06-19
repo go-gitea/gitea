@@ -89,7 +89,7 @@
 				{{template "repo/issue/openclose" .}}
 			</div>
 			<div class="issue-list-toolbar-right">
-				<div class="ui secondary filter stackable menu labels">
+				<div class="ui secondary filter menu labels">
 					<!-- Label -->
 					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item label-filter">
 						<span class="text">
@@ -278,7 +278,7 @@
 				{{template "repo/issue/openclose" .}}
 			</div>
 			<div class="issue-list-toolbar-right">
-				<div class="ui secondary filter stackable menu">
+				<div class="ui secondary filter menu">
 					{{if not .Repository.IsArchived}}
 					<!-- Action Button -->
 					{{if .IsShowClosed}}
