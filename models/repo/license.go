@@ -14,7 +14,7 @@ func init() {
 	db.RegisterModel(new(RepoLicense))
 }
 
-type RepoLicense struct {
+type RepoLicense struct { //revive:disable-line:exported
 	ID          int64 `xorm:"pk autoincr"`
 	RepoID      int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	CommitID    string
@@ -24,7 +24,7 @@ type RepoLicense struct {
 }
 
 // LanguageStatList defines a list of language statistics
-type RepoLicenseList []*RepoLicense
+type RepoLicenseList []*RepoLicense //revive:disable-line:exported
 
 func (rll RepoLicenseList) StringList() []string {
 	var licenses []string
