@@ -21,11 +21,11 @@ import (
 )
 
 type DetectedWorkflow struct {
-	EntryName string
-	Event     *jobparser.Event
-	Commit    *git.Commit
-	Ref       string
-	Content   []byte
+	EntryName    string
+	TriggerEvent string
+	Commit       *git.Commit
+	Ref          string
+	Content      []byte
 }
 
 func init() {
@@ -121,11 +121,11 @@ func DetectWorkflows(commit *git.Commit, ref string, triggedEvent webhook_module
 			log.Trace("detect workflow %q for event %#v matching %q", entry.Name(), evt, triggedEvent)
 			if detectMatched(commit, triggedEvent, payload, evt) {
 				dwf := &DetectedWorkflow{
-					EntryName: entry.Name(),
-					Event:     evt,
-					Commit:    commit,
-					Ref:       ref,
-					Content:   content,
+					EntryName:    entry.Name(),
+					TriggerEvent: evt.Name,
+					Commit:       commit,
+					Ref:          ref,
+					Content:      content,
 				}
 				workflows = append(workflows, dwf)
 			}

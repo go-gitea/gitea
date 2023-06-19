@@ -82,7 +82,7 @@ func (n *actionsNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *use
 			WithDoer(doer).
 			WithPayload(apiPullRequest).
 			WithPullRequest(issue.PullRequest).
-			NotifyPullRequest(ctx)
+			Notify(ctx)
 		return
 	}
 	apiIssue := &api.IssuePayload{
@@ -138,7 +138,7 @@ func (n *actionsNotifier) NotifyIssueChangeLabels(ctx context.Context, doer *use
 				Sender:      convert.ToUser(ctx, doer, nil),
 			}).
 			WithPullRequest(issue.PullRequest).
-			NotifyPullRequest(ctx)
+			Notify(ctx)
 		return
 	}
 	newNotifyInputFromIssue(issue, webhook_module.HookEventIssueLabel).
@@ -220,7 +220,7 @@ func (n *actionsNotifier) NotifyNewPullRequest(ctx context.Context, pull *issues
 			Sender:      convert.ToUser(ctx, pull.Issue.Poster, nil),
 		}).
 		WithPullRequest(pull).
-		NotifyPullRequest(ctx)
+		Notify(ctx)
 }
 
 func (n *actionsNotifier) NotifyCreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
@@ -344,7 +344,7 @@ func (*actionsNotifier) NotifyMergePullRequest(ctx context.Context, doer *user_m
 		WithRef(pr.MergedCommitID).
 		WithPayload(apiPullRequest).
 		WithPullRequest(pr).
-		NotifyPullRequest(ctx)
+		Notify(ctx)
 }
 
 func (n *actionsNotifier) NotifyPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
@@ -498,7 +498,7 @@ func (n *actionsNotifier) NotifyPullRequestSynchronized(ctx context.Context, doe
 			Sender:      convert.ToUser(ctx, doer, nil),
 		}).
 		WithPullRequest(pr).
-		NotifyPullRequest(ctx)
+		Notify(ctx)
 }
 
 func (n *actionsNotifier) NotifyPullRequestChangeTargetBranch(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, oldBranch string) {
@@ -529,7 +529,7 @@ func (n *actionsNotifier) NotifyPullRequestChangeTargetBranch(ctx context.Contex
 			Sender:      convert.ToUser(ctx, doer, nil),
 		}).
 		WithPullRequest(pr).
-		NotifyPullRequest(ctx)
+		Notify(ctx)
 }
 
 func (n *actionsNotifier) NotifyNewWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page, comment string) {

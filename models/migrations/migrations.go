@@ -503,6 +503,8 @@ var migrations = []Migration{
 
 	// v260 -> v261
 	NewMigration("Drop custom_labels column of action_runner table", v1_21.DropCustomLabelsColumnOfActionRunner),
+	// v261 -> v262
+	NewMigration("Add TriggerEvent to action_run table", v1_21.AddTriggerEventToActionRun),
 }
 
 // GetCurrentDBVersion returns the current db version

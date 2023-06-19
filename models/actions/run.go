@@ -41,6 +41,7 @@ type ActionRun struct {
 	ApprovedBy        int64 `xorm:"index"` // who approved
 	Event             webhook_module.HookEventType
 	EventPayload      string `xorm:"LONGTEXT"`
+	TriggerEvent      string // the trigger event defined in the `on` configuration of the triggered workflow
 	Status            Status `xorm:"index"`
 	Started           timeutil.TimeStamp
 	Stopped           timeutil.TimeStamp
