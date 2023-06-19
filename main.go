@@ -116,7 +116,7 @@ func main() {
 		cli.StringFlag{
 			Name:  "config, c",
 			Value: setting.CustomConf,
-			Usage: "Set custom config file (default to '{WorkPath}/custom/conf/app.ini')",
+			Usage: "Set custom config file (defaults to '{WorkPath}/custom/conf/app.ini')",
 		},
 		cli.StringFlag{
 			Name:  "work-path, w",
