@@ -24,7 +24,7 @@
 											<span class="icon">{{svg "octicon-repo"}}</span>
 										{{end}}
 										<a class="name" href="{{$repo.Link}}">{{$repo.OwnerName}}/{{$repo.Name}}</a>
-										<span  class="ui" {{if not (eq $repo.LFSSize 0)}} data-tooltip-content="{{$repo.SizeDetailsString}}"{{end}}>
+										<span  class="ui" {{if not (eq $repo.Size 0)}} data-tooltip-content="{{$repo.SizeDetailsString}}"{{end}}>
 											{{FileSize $repo.Size}}
 										</span>
 										{{if $repo.IsFork}}
