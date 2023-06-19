@@ -128,7 +128,6 @@ func DetectWorkflows(commit *git.Commit, ref string, triggedEvent webhook_module
 					Content:   content,
 				}
 				workflows = append(workflows, dwf)
-				// workflows[entry.Name()] = content
 			}
 		}
 	}
