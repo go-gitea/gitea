@@ -43,8 +43,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 	mailUsers := make(map[string]*user_model.User, len(users))
 	keepActiveUsers := make(map[int64]struct{})
 
-	for i := range users {
-		u := users[i]
+	for _,u := range users {
 		usernameUsers[u.LowerName] = u
 		mailUsers[strings.ToLower(u.Email)] = u
 	}
