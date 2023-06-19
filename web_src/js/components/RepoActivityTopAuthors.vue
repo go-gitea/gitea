@@ -112,8 +112,8 @@ const sfc = {
       return {
         datasets: [{
           label: 'Number of additions',
-          data: this.contributorsCommitsStats.map((item) => {
-            return {x: item.date, y: item.stats.additions}
+          data: Object.entries(this.contributorsCommitsStats[""].weeks).map(([date, stats]) => {
+            return {x: date, y: stats.commits}
           }),
           pointRadius: 0,
           pointHitRadius: 0,

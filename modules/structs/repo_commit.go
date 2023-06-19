@@ -58,11 +58,9 @@ type Commit struct {
 	Stats      *CommitStats           `json:"stats"`
 }
 
-// ContributorsCommitStats contains information for generating contributor graphs from commit stats
-type ContributorsCommitStats struct {
-	Date  	string				`json:"date"`
-	Name    string				`json:"name" binding:"MaxSize(100)"`
-	Email   string				`json:"email" binding:"MaxSize(254)"`
+// ExtendedCommitStats contains information for commit stats with author data
+type ExtendedCommitStats struct {
+	Author  *CommitUser   `json:"author"`
 	Stats	  *CommitStats  `json:"stats"`
 }
 

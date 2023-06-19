@@ -5,6 +5,7 @@ import (
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	contributors_model "code.gitea.io/gitea/models/contributors"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -57,10 +58,8 @@ func Contributors(ctx *context.Context) {
 		return
 	}
 
-	default_branch, _ := ctx.Repo.GitRepo.GetDefaultBranch()
-	if ctx.PageData["repoContributorsCommitStats"], err = ctx.Repo.GitRepo.ContributorsCommitStats(
-		default_branch, 6000); err != nil {
-		ctx.ServerError("ContributorsCommitStats", err)
+	if ctx.PageData["repoContributorsCommitStats"], err = contributors_model.GetContributorStats(ctx, ctx.Repo.Repository); err != nil {
+		ctx.ServerError("GetContributorStats", err)
 		return
 	}
 

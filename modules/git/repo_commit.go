@@ -225,8 +225,8 @@ type CommitsByFileAndRangeOptions struct {
 }
 
 
-// ContributorsCommitStats return the list of api.ContributorsCommitStats struct for drawing graph
-func (repo *Repository) ContributorsCommitStats(revision string, limit int) ([]*api.ContributorsCommitStats, error) {
+// ExtendedCommitStats return the list of *api.ExtendedCommitStats for the given revision
+func (repo *Repository) ExtendedCommitStats(revision string, limit int) ([]*api.ExtendedCommitStats, error) {
 	var baseCommit *Commit
 	baseCommit, err := repo.GetCommit(revision)
 	stdoutReader, stdoutWriter, err := os.Pipe()
@@ -238,12 +238,12 @@ func (repo *Repository) ContributorsCommitStats(revision string, limit int) ([]*
 		_ = stdoutWriter.Close()
 	}()
 
-	gitCmd := NewCommand(repo.Ctx, "log", "--shortstat", "--no-merges", "--pretty=format:%aN%n%aE%n%as")
+	gitCmd := NewCommand(repo.Ctx, "log", "--shortstat", "--no-merges", "--pretty=format:%aN%n%aE%n%as", "--reverse")
 		// AddOptionFormat("--max-count=%d", limit)
 	gitCmd.AddDynamicArguments(baseCommit.ID.String())
 
 
-	var contributors_commit_stats []*api.ContributorsCommitStats
+	var extended_commit_stats []*api.ExtendedCommitStats
 	stderr := new(strings.Builder)
 	err = gitCmd.Run(&RunOpts{
 		Dir:    repo.Path,
@@ -287,13 +287,17 @@ func (repo *Repository) ContributorsCommitStats(revision string, limit int) ([]*
 				scanner.Scan()
 				scanner.Text() // empty line at the end
 
-				res := &api.ContributorsCommitStats{
-					Date: date,
-					Name:  author_name,
-					Email: author_email,
+				res := &api.ExtendedCommitStats{
+					Author: &api.CommitUser{
+						Identity: api.Identity{
+							Name: author_name,
+							Email: author_email,
+						},
+						Date: date,
+					},
 					Stats: &commit_stats,
 				}
-				contributors_commit_stats = append(contributors_commit_stats, res)
+				extended_commit_stats = append(extended_commit_stats, res)
 
 				}
 			_ = stdoutReader.Close()
@@ -303,7 +307,8 @@ func (repo *Repository) ContributorsCommitStats(revision string, limit int) ([]*
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get ContributorsCommitStats for repository.\nError: %w\nStderr: %s", err, stderr)
 	}
-	return contributors_commit_stats, nil
+
+	return extended_commit_stats, nil
 }
 
 // CommitsByFileAndRange return the commits according revision file and the page
