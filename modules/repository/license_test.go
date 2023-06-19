@@ -214,24 +214,25 @@ func Test_detectLicense(t *testing.T) {
 		assert.NoError(t, err)
 
 		tests = append(tests, DetectLicenseTest{
-			name: fmt.Sprintf("auto single license test: %s", licenseName),
+			name: fmt.Sprintf("single license test: %s", licenseName),
 			arg:  string(license),
 			want: []string{ConvertLicenseName(licenseName)},
 		})
 	}
 
-	tests = append(tests, DetectLicenseTest{
-		name: fmt.Sprintf("auto multiple license test: %s and %s", tests[2].want[0], tests[3].want[0]),
-		arg:  tests[2].arg + tests[3].arg,
-		// TODO doesn't depend on the order
-		want: []string{"389-exception", "0BSD"},
-	})
-
 	err = initClassifier()
 	assert.NoError(t, err)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equalf(t, tt.want, detectLicense(tt.arg), "")
+			assert.Equal(t, tt.want, detectLicense(tt.arg))
 		})
 	}
+
+	result := detectLicense(tests[2].arg + tests[3].arg + tests[4].arg)
+	t.Run("multiple licenses test", func(t *testing.T) {
+		assert.Equal(t, 3, len(result))
+		assert.Contains(t, result, tests[2].want[0])
+		assert.Contains(t, result, tests[3].want[0])
+		assert.Contains(t, result, tests[4].want[0])
+	})
 }
