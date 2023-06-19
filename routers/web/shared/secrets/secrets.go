@@ -26,7 +26,7 @@ func SetSecretsContext(ctx *context.Context, ownerID, repoID int64) {
 func PerformSecretsPost(ctx *context.Context, ownerID, repoID int64, redirectURL string) {
 	form := web.GetForm(ctx).(*forms.AddSecretForm)
 
-	if err := actions.NameRegexMatch(ctx, form.Name, redirectURL); err != nil {
+	if err := actions.NameRegexMatch(form.Name); err != nil {
 		ctx.JSONError(ctx.Tr("secrets.creation.failed"))
 		return
 	}

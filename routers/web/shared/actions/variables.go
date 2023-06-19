@@ -35,9 +35,11 @@ func SetVariablesContext(ctx *context.Context, ownerID, repoID int64) {
 var (
 	nameRx            = regexp.MustCompile("(?i)^[A-Z_][A-Z0-9_]*$")
 	forbiddenPrefixRx = regexp.MustCompile("(?i)^GIT(EA|HUB)_")
+
+	forbiddenEnvNameCIRx = regexp.MustCompile("(?i)^CI")
 )
 
-func NameRegexMatch(ctx *context.Context, name, redirectURL string) error {
+func NameRegexMatch(name string) error {
 	if !nameRx.MatchString(name) || forbiddenPrefixRx.MatchString(name) {
 		log.Error("Name %s, regex match error", name)
 		return errors.New("name has invalid character")
@@ -45,10 +47,22 @@ func NameRegexMatch(ctx *context.Context, name, redirectURL string) error {
 	return nil
 }
 
+func envNameCIRegexMatch(name string) error {
+	if forbiddenEnvNameCIRx.MatchString(name) {
+		log.Error("Env Name cannot be ci")
+		return errors.New("env name cannot be ci")
+	}
+	return nil
+}
 func CreateVariable(ctx *context.Context, ownerID, repoID int64, redirectURL string) {
 	form := web.GetForm(ctx).(*forms.EditVariableForm)
 
-	if err := NameRegexMatch(ctx, form.Name, redirectURL); err != nil {
+	if err := NameRegexMatch(form.Name); err != nil {
+		ctx.JSONError(err.Error())
+		return
+	}
+
+	if err := envNameCIRegexMatch(form.Name); err != nil {
 		ctx.JSONError(err.Error())
 		return
 	}
@@ -67,8 +81,13 @@ func UpdateVariable(ctx *context.Context, redirectURL string) {
 	id := ctx.ParamsInt64(":variable_id")
 	form := web.GetForm(ctx).(*forms.EditVariableForm)
 
-	if err := NameRegexMatch(ctx, form.Name, redirectURL); err != nil {
-		ctx.JSONError(ctx.Tr("actions.variables.creation.failed"))
+	if err := NameRegexMatch(form.Name); err != nil {
+		ctx.JSONError(err.Error())
+		return
+	}
+
+	if err := envNameCIRegexMatch(form.Name); err != nil {
+		ctx.JSONError(err.Error())
 		return
 	}
 
