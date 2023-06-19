@@ -1,6 +1,7 @@
-export function formatTrackedTime(duration) {
+export function formatTrackedTime(durationSec) {
   let formattedTime = '';
 
+  const duration = Math.floor(durationSec / 1);
   const hours = Math.floor(duration / 3600);
   const minutes = Math.floor((duration / 60) % 60);
   const seconds = duration % 60;

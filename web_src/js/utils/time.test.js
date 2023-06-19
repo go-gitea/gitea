@@ -10,4 +10,6 @@ test('formatTrackedTime', () => {
   expect(formatTrackedTime('1563418')).toEqual('434 hours 16 minutes');
   expect(formatTrackedTime('3937125')).toEqual('1093 hours 38 minutes');
   expect(formatTrackedTime('45677465')).toEqual('12688 hours 11 minutes');
+  expect(formatTrackedTime(1.333)).toEqual('1 second');
+  expect(formatTrackedTime(1.999)).toEqual('1 second');
 });
