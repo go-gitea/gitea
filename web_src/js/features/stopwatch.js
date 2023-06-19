@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import prettyMilliseconds from 'pretty-ms';
+import {formatTrackedTime} from '../utils/time.js';
 import {createTippy} from '../modules/tippy.js';
 
 const {appSubUrl, csrfToken, notificationSettings, enableTimeTracking, assetVersionEncoded} = window.config;
@@ -155,7 +155,7 @@ function updateStopwatchTime(seconds) {
   const start = Date.now();
   const updateUi = () => {
     const delta = Date.now() - start;
-    const dur = prettyMilliseconds(secs * 1000 + delta, {compact: true});
+    const dur = formatTrackedTime(secs * 1000 + delta);
     $stopwatch.text(dur);
   };
   updateUi();
