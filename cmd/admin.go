@@ -421,39 +421,8 @@ func runRepoSyncBranches(_ *cli.Context) error {
 		return err
 	}
 
-	log.Trace("Synchronizing repository branches (this may take a while)")
-	for page := 1; ; page++ {
-		repos, count, err := repo_model.SearchRepositoryByName(ctx, &repo_model.SearchRepoOptions{
-			ListOptions: db.ListOptions{
-				PageSize: repo_model.RepositoryListDefaultPageSize,
-				Page:     page,
-			},
-			Private: true,
-		})
-		if err != nil {
-			return fmt.Errorf("SearchRepositoryByName: %w", err)
-		}
-		if len(repos) == 0 {
-			break
-		}
-		log.Trace("Processing next %d repos of %d", len(repos), count)
-		for _, repo := range repos {
-			log.Trace("Synchronizing repo %s with path %s", repo.FullName(), repo.RepoPath())
-
-			gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
-			if err != nil {
-				return fmt.Errorf("OpenRepository: %w", err)
-			}
-
-			if err = repo_module.SyncRepoBranches(ctx, repo, gitRepo, doer.ID); err != nil {
-				log.Warn("repo_module.SyncBranches: %v", err)
-				gitRepo.Close()
-				continue
-			}
-			gitRepo.Close()
-
-			log.Trace("repo %s branches synchronized")
-		}
+	if err := repo_module.SyncAllBranches(ctx, doer.ID); err != nil {
+		return err
 	}
 
 	return nil

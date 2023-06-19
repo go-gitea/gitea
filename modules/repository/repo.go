@@ -281,13 +281,20 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 
 // SyncRepoBranches synchronizes branch table with repository branches
 func SyncRepoBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doerID int64) error {
-	log.Debug("SyncRepoBranches: in Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
+	log.Debug("SyncRepoBranches: in Repo[%d:%s]", repo.ID, repo.FullName())
 
-	allBranches, _, err := gitRepo.GetBranchNames(0, 0)
-	if err != nil {
-		return err
+	var allBranches []string
+	for page := 0; ; page++ {
+		branches, _, err := gitRepo.GetBranchNames(page*100, 100)
+		if err != nil {
+			return err
+		}
+		allBranches = append(allBranches, branches...)
+		if len(branches) < 100 {
+			break
+		}
 	}
-	log.Trace("SyncRepoBranches: branches[%d]: %v", len(allBranches), allBranches)
+	log.Trace("SyncRepoBranches[%s]: branches[%d]: %v", repo.FullName(), len(allBranches), allBranches)
 
 	dbBranches, err := git_model.LoadAllBranches(ctx, repo.ID)
 	if err != nil {
@@ -344,7 +351,7 @@ func SyncRepoBranches(ctx context.Context, repo *repo_model.Repository, gitRepo 
 		}
 	}
 
-	log.Trace("SyncRepoBranches: toAdd: %v, toUpdate: %v, toRemove: %v", toAdd, toUpdate, toRemove)
+	log.Trace("SyncRepoBranches[%s]: toAdd: %v, toUpdate: %v, toRemove: %v", repo.FullName(), toAdd, toUpdate, toRemove)
 
 	if len(toAdd) == 0 && len(toRemove) == 0 && len(toUpdate) == 0 {
 		return nil
@@ -630,4 +637,25 @@ func pullMirrorReleaseSync(repo *repo_model.Repository, gitRepo *git.Repository)
 
 	log.Trace("pullMirrorReleaseSync: done rebuilding %d releases", numTags)
 	return nil
+}
+
+func SyncAllBranches(ctx context.Context, doerID int64) error {
+	log.Trace("Synchronizing repository branches (this may take a while)")
+	return db.Iterate(ctx, nil, func(ctx context.Context, repo *repo_model.Repository) error {
+		log.Trace("Synchronizing repo %s with path %s", repo.FullName(), repo.RepoPath())
+
+		gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+		if err != nil {
+			return fmt.Errorf("OpenRepository[%s]: %w", repo.RepoPath(), err)
+		}
+
+		if err = SyncRepoBranches(ctx, repo, gitRepo, doerID); err != nil {
+			log.Warn("repo_module.SyncBranches[%s]: %v", repo.FullName(), err)
+			gitRepo.Close()
+			return nil
+		}
+		gitRepo.Close()
+		log.Trace("repo %s branches synchronized", repo.FullName())
+		return nil
+	})
 }

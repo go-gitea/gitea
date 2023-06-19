@@ -7,6 +7,8 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/xorm"
@@ -30,6 +32,21 @@ func AddBranchTable(x *xorm.Engine) error {
 
 	if err := x.Sync(new(Branch)); err != nil {
 		return err
+	}
+
+	doer, err := user_model.GetAdminUser()
+	if err != nil {
+		return err
+	}
+
+	if err := repo_module.SyncAllBranches(context.Background(), doer.ID); err != nil {
+		return err
+	}
+
+	if exist, err := x.IsTableExist("deleted_branches"); err != nil {
+		return err
+	} else if !exist {
+		return nil
 	}
 
 	type DeletedBranch struct {
