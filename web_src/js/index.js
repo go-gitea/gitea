@@ -2,6 +2,7 @@
 import './bootstrap.js';
 
 import {initRepoActivityTopAuthorsChart} from './components/RepoActivityTopAuthors.vue';
+import {initRepoContributorsChart} from './components/RepoContributors.vue';
 import {initScopedAccessTokenCategories} from './components/ScopedAccessTokenSelector.vue';
 import {initDashboardRepoList} from './components/DashboardRepoList.vue';
 
@@ -136,6 +137,7 @@ onDomReady(() => {
   initOrgTeamSettings();
 
   initRepoActivityTopAuthorsChart();
+  initRepoContributorsChart();
   initRepoArchiveLinks();
   initRepoBranchButton();
   initRepoCodeView();
