@@ -96,7 +96,11 @@ func (b *Base) SetTotalCountHeader(total int64) {
 
 // Written returns true if there are something sent to web browser
 func (b *Base) Written() bool {
-	return b.Resp.Status() > 0
+	return b.Resp.WrittenStatus() != 0
+}
+
+func (b *Base) WrittenStatus() int {
+	return b.Resp.WrittenStatus()
 }
 
 // Status writes status code
