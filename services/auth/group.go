@@ -4,7 +4,6 @@
 package auth
 
 import (
-	"context"
 	"net/http"
 	"reflect"
 	"strings"
@@ -14,9 +13,7 @@ import (
 
 // Ensure the struct implements the interface.
 var (
-	_ Method        = &Group{}
-	_ Initializable = &Group{}
-	_ Freeable      = &Group{}
+	_ Method = &Group{}
 )
 
 // Group implements the Auth interface with serval Auth.
@@ -47,35 +44,6 @@ func (b *Group) Name() string {
 		}
 	}
 	return strings.Join(names, ",")
-}
-
-// Init does nothing as the Basic implementation does not need to allocate any resources
-func (b *Group) Init(ctx context.Context) error {
-	for _, method := range b.methods {
-		initializable, ok := method.(Initializable)
-		if !ok {
-			continue
-		}
-
-		if err := initializable.Init(ctx); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// Free does nothing as the Basic implementation does not have to release any resources
-func (b *Group) Free() error {
-	for _, method := range b.methods {
-		freeable, ok := method.(Freeable)
-		if !ok {
-			continue
-		}
-		if err := freeable.Free(); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // Verify extracts and validates

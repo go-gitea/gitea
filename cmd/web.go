@@ -191,7 +191,7 @@ func runWeb(ctx *cli.Context) error {
 	}
 
 	// Set up Chi routes
-	c := routers.NormalRoutes(graceful.GetManager().HammerContext())
+	c := routers.NormalRoutes()
 	err := listen(c, true)
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())
