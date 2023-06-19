@@ -638,7 +638,6 @@ export function initSingleCommentEditor($commentForm) {
   const $statusDropdown = $('#status-dropdown');
   if ($statusButton.length) {
     opts.onContentChanged = (editor) => {
-      console.log('content changed', editor.value().trim());
       $statusButton.text($statusDropdown.dropdown('get item').data(editor.value().trim() ? 'status-and-comment': 'status'));
     };
   }
