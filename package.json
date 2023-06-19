@@ -35,7 +35,6 @@
     "monaco-editor": "0.39.0",
     "monaco-editor-webpack-plugin": "7.0.1",
     "pdfobject": "2.2.12",
-    "pretty-ms": "8.0.0",
     "sortablejs": "1.15.0",
     "swagger-ui-dist": "5.0.0",
     "throttle-debounce": "5.0.0",
