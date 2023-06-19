@@ -68,7 +68,7 @@ endif
 
 EXTRA_GOFLAGS ?=
 
-MAKE_VERSION := $(shell "$(MAKE)" -v | head -n 1)
+MAKE_VERSION := $(shell "$(MAKE)" -v | cat | head -n 1)
 MAKE_EVIDENCE_DIR := .make_evidence
 
 ifeq ($(RACE_ENABLED),true)
