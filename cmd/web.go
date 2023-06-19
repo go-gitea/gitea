@@ -152,6 +152,11 @@ func serveInstalled(ctx *cli.Context) error {
 	log.Info("Run mode: %s", setting.RunMode)
 	log.Info("Prepare to run web server")
 
+	if setting.AppWorkPathMismatch {
+		log.Error("WORK_PATH from config %q doesn't match other paths from environment variables or command arguments. "+
+			"Only WORK_PATH in config should be set and used. Please remove the other outdated work paths from environment variables and command arguments", setting.CustomConf)
+	}
+
 	if setting.CfgProvider.Section("").Key("WORK_PATH").String() == "" {
 		setting.CfgProvider.Section("").Key("WORK_PATH").SetValue(setting.AppWorkPath)
 		if err := setting.CfgProvider.Save(); err != nil {

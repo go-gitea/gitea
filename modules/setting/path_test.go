@@ -19,6 +19,7 @@ func (e envVars) Getenv(key string) string {
 
 func TestInitWorkPathAndCommonConfig(t *testing.T) {
 	testInit := func(defaultWorkPath, defaultCustomPath, defaultCustomConf string) {
+		AppWorkPathMismatch = false
 		AppWorkPath = defaultWorkPath
 		appWorkPathBuiltin = defaultWorkPath
 		CustomPath = defaultCustomPath
@@ -93,16 +94,25 @@ func TestInitWorkPathAndCommonConfig(t *testing.T) {
 		_ = os.WriteFile(iniWorkPath, []byte("WORK_PATH="+dirXxx), 0o644)
 
 		testInit(dirFoo, "", "")
+		InitWorkPathAndCommonConfig(envVars{}.Getenv, ArgWorkPathAndCustomConf{CustomConf: iniWorkPath})
+		assert.Equal(t, dirXxx, AppWorkPath)
+		assert.Equal(t, fp(dirXxx, "custom"), CustomPath)
+		assert.Equal(t, iniWorkPath, CustomConf)
+		assert.False(t, AppWorkPathMismatch)
+
+		testInit(dirFoo, "", "")
 		InitWorkPathAndCommonConfig(envVars{"GITEA_WORK_DIR": dirBar}.Getenv, ArgWorkPathAndCustomConf{CustomConf: iniWorkPath})
 		assert.Equal(t, dirXxx, AppWorkPath)
 		assert.Equal(t, fp(dirXxx, "custom"), CustomPath)
 		assert.Equal(t, iniWorkPath, CustomConf)
+		assert.True(t, AppWorkPathMismatch)
 
 		testInit(dirFoo, "", "")
 		InitWorkPathAndCommonConfig(envVars{}.Getenv, ArgWorkPathAndCustomConf{WorkPath: dirBar, CustomConf: iniWorkPath})
 		assert.Equal(t, dirXxx, AppWorkPath)
 		assert.Equal(t, fp(dirXxx, "custom"), CustomPath)
 		assert.Equal(t, iniWorkPath, CustomConf)
+		assert.True(t, AppWorkPathMismatch)
 	})
 
 	t.Run("Builtin", func(t *testing.T) {

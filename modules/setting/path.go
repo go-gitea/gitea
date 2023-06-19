@@ -27,6 +27,8 @@ var (
 	appWorkPathBuiltin string
 	customPathBuiltin  string
 	customConfBuiltin  string
+
+	AppWorkPathMismatch bool
 )
 
 func getAppPath() (string, error) {
@@ -169,12 +171,11 @@ func InitWorkPathAndCommonConfig(getEnvFn func(name string) string, args ArgWork
 			log.Fatal("WORK_PATH in %q must be absolute path", configWorkPath)
 		}
 		configWorkPath = filepath.Clean(configWorkPath)
-		if tmpWorkPath.Value != "" {
+		if tmpWorkPath.Value != "" && (getEnvFn("GITEA_WORK_DIR") != "" || args.WorkPath != "") {
 			fi1, err1 := os.Stat(tmpWorkPath.Value)
 			fi2, err2 := os.Stat(configWorkPath)
 			if err1 != nil || err2 != nil || !os.SameFile(fi1, fi2) {
-				log.Error("WORK_PATH from config %q doesn't match other paths from environment variables or command arguments."+
-					"Only WORK_PATH in config should be set and used. Please remove the other outdated work paths from environment variables and command arguments", tmpCustomConf)
+				AppWorkPathMismatch = true
 			}
 		}
 		tmpWorkPath.Set(configWorkPath)

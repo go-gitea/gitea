@@ -51,6 +51,9 @@ func init() {
 // ./gitea -c /tmp/app.ini -h
 // ./gitea -c /tmp/app.ini help
 // ./gitea help -c /tmp/app.ini
+// GITEA_WORK_DIR=/tmp ./gitea help
+// GITEA_WORK_DIR=/tmp ./gitea help --work-path /tmp/other
+// GITEA_WORK_DIR=/tmp ./gitea help --config /tmp/app-other.ini
 var cmdHelp = cli.Command{
 	Name:      "help",
 	Aliases:   []string{"h"},
