@@ -42,7 +42,7 @@
 													<div class="content">
 														<p>{{$.locale.Tr "repo.adopt_preexisting_content" $dir}}</p>
 													</div>
-													<form class="ui form" method="POST" action="{{AppSubUrl}}/user/settings/repos/unadopted">
+													<form class="ui form" method="post" action="{{AppSubUrl}}/user/settings/repos/unadopted">
 														{{$.CsrfTokenHtml}}
 														<input type="hidden" name="id" value="{{$dir}}">
 														<input type="hidden" name="action" value="adopt">
@@ -59,7 +59,7 @@
 													<div class="content">
 														<p>{{$.locale.Tr "repo.delete_preexisting_content" $dir}}</p>
 													</div>
-													<form class="ui form" method="POST" action="{{AppSubUrl}}/user/settings/repos/unadopted">
+													<form class="ui form" method="post" action="{{AppSubUrl}}/user/settings/repos/unadopted">
 														{{$.CsrfTokenHtml}}
 														<input type="hidden" name="id" value="{{$dir}}">
 														<input type="hidden" name="action" value="delete">

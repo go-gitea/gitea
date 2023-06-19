@@ -73,8 +73,9 @@
   --color-secondary-alpha-70: #dededeb3;
   --color-secondary-alpha-80: #dededecc;
   --color-secondary-alpha-90: #dededee1;
-  --color-secondary-hover: var(--color-secondary-dark-1);
-  --color-secondary-active: var(--color-secondary-dark-2);
+  --color-secondary-button: var(--color-secondary-dark-4);
+  --color-secondary-hover: var(--color-secondary-dark-5);
+  --color-secondary-active: var(--color-secondary-dark-6);
   /* console colors - used for actions console and console files */
   --color-console-fg: #eeeff2;
   --color-console-fg-subtle: #959cab;
@@ -187,26 +188,24 @@
   --color-text-light-3: #a0a0a0;
   --color-box-header: #f7f7f7;
   --color-box-body: #ffffff;
-  --color-box-body-highlight: #f8f8f8;
+  --color-box-body-highlight: #fafafa;
   --color-footer: #ffffff;
   --color-timeline: #ececec;
   --color-input-text: #212121;
-  --color-input-background: #ffffff;
+  --color-input-background: #fafafa;
   --color-input-toggle-background: #dedede;
-  --color-input-border: #dedede;
-  --color-input-border-hover: #cecece;
-  --color-header-wrapper: #f8f8f8;
-  --color-header-wrapper-transparent: #f8f8f800;
+  --color-input-border: var(--color-secondary);
+  --color-input-border-hover: var(--color-secondary-dark-1);
   --color-light: #00000006;
   --color-light-mimic-enabled: rgba(0, 0, 0, calc(6 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #0000001d;
   --color-hover: #00000014;
-  --color-active: #0000001e;
-  --color-menu: #ffffff;
-  --color-card: #ffffff;
+  --color-active: #0000001b;
+  --color-menu: #fafafa;
+  --color-card: #fafafa;
   --color-markup-table-row: #00000008;
   --color-markup-code-block: #00000010;
-  --color-button: #ffffff;
+  --color-button: #fafafa;
   --color-code-bg: #ffffff;
   --color-code-sidebar-bg: #f5f5f5;
   --color-shadow: #00000030;
@@ -267,17 +266,9 @@ body {
   color: var(--color-text);
   background-color: var(--color-body);
   tab-size: var(--tab-size);
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
   overflow-wrap: break-word;
-}
-
-@supports (overflow: overlay) {
-  body {
-    overflow: overlay; /* stylelint-disable-line */
-    scrollbar-gutter: stable;
-  }
 }
 
 table {
@@ -415,11 +406,6 @@ a.silenced:hover {
   text-decoration: none;
 }
 
-.delete-button,
-.delete-button:hover {
-  color: var(--color-red);
-}
-
 a.label,
 .repository-menu a,
 .ui.search .results a,
@@ -462,10 +448,8 @@ a.label,
   background-color: var(--color-markup-code-block);
 }
 
-/* try to match button with no icons in height */
-.icon-button {
-  padding-top: 7.42px !important;
-  padding-bottom: 7.42px !important;
+.ui.divider {
+  color: var(--color-text);
 }
 
 .ui.divider:not(.vertical,.horizontal) {
@@ -505,8 +489,9 @@ a.label,
   border-right-color: transparent;
 }
 
+.ui.action.input:not([class*="left action"]) > input,
 .ui.action.input:not([class*="left action"]) > input:hover {
-  border-right-color: transparent;
+  border-right: 1px solid transparent;
 }
 
 .ui.action.input:not([class*="left action"]) > input:focus {
@@ -678,7 +663,7 @@ a.label,
 }
 
 .ui.menu .dropdown.item .menu {
-  background: var(--color-menu);
+  background: var(--color-body);
 }
 
 .ui.menu .ui.dropdown .menu > .item {
@@ -917,7 +902,7 @@ img.ui.avatar,
 /* overwrite semantic width of containers inside the main page content div (div with class "page-content") */
 .page-content .ui.ui.ui.container:not(.fluid) {
   width: 1280px;
-  max-width: calc(100vw - 64px);
+  max-width: calc(100% - 64px);
   margin-left: auto;
   margin-right: auto;
 }
@@ -929,18 +914,16 @@ img.ui.avatar,
 /* enable fluid page widths for medium size viewports */
 @media (min-width: 768px) and (max-width: 1200px) {
   .page-content .ui.ui.ui.container:not(.fluid) {
-    width: calc(100vw - 32px);
-    max-width: calc(100vw - 32px);
+    max-width: calc(100% - 32px);
   }
   .ui.container.fluid.padded {
     padding: 0 16px;
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .page-content .ui.ui.ui.container:not(.fluid) {
-    width: calc(100vw - 16px);
-    max-width: calc(100vw - 16px);
+    max-width: calc(100% - 16px);
   }
   .ui.container.fluid.padded {
     padding: 0 8px;
@@ -952,60 +935,100 @@ img.ui.avatar,
   align-items: center;
   background: var(--color-nav-bg);
   border-bottom: 1px solid var(--color-secondary);
-  width: 100vw;
   min-height: 52px;
   margin: 0 !important;
-}
-
-#navbar .column .menu {
-  margin-top: 0;
-}
-
-#navbar .fitted .svg {
-  margin-right: 0;
-  vertical-align: middle;
-}
-
-#navbar .searchbox {
-  background-color: var(--color-input-background) !important;
-}
-
-#navbar .text .svg {
-  width: 16px;
-  text-align: center;
 }
 
 #navbar a.item:hover {
   background: var(--color-nav-hover-bg);
 }
 
-#navbar .dropdown .avatar {
-  margin-right: 0 !important;
+#navbar .navbar-mobile-right {
+  margin-left: auto;
 }
 
-@media (max-width: 767px) {
-  #navbar:not(.shown) > *:not(:first-child) {
+#navbar .navbar-mobile-right a.item:hover {
+  background: transparent;
+}
+
+#navbar .secondary.menu > .item > .svg,
+#navbar .right.menu > .item > .svg {
+  margin-right: 0;
+}
+
+@media (max-width: 767.98px) {
+  /* hide all items */
+  #navbar .item {
     display: none;
+  }
+  /* show the first navbar item (logo and its mobile right items) */
+  #navbar > .item:first-child {
+    display: flex;
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+  #navbar .navbar-mobile-right > .item {
+    display: flex;
+  }
+  /* show items if the navbar is open */
+  #navbar.navbar-menu-open .item {
+    display: flex;
+  }
+  #navbar.navbar-menu-open > .item:first-child {
+    padding-bottom: 0;
   }
 }
 
-.right.stackable.menu {
-  /* responsive fix: this makes sure that the right menu when the page */
-  /* is on mobile view will have elements stacked on top of each other. */
-  /* no, stackable won't work on right menus. */
-  margin-left: auto;
+@media (min-width: 767.98px) {
+  #navbar .navbar-mobile-right,
+  #navbar .mobile-only {
+    display: none;
+  }
+  #navbar .right.menu {
+    padding-right: 1em;
+  }
+}
+
+#navbar .navbar-mobile-right .item {
+  width: auto !important;
+}
+
+#navbar a.item .notification_count {
+  color: var(--color-nav-bg);
+  padding: 0 3.75px;
+  font-size: 12px;
+  line-height: 12px;
+  font-weight: var(--font-weight-bold);
+}
+
+#navbar a.item:hover .notification_count,
+#navbar a.item:hover .header-stopwatch-dot {
+  border-color: var(--color-nav-hover-bg);
+}
+
+#navbar a.item .notification_count,
+#navbar a.item .header-stopwatch-dot {
+  background: var(--color-primary);
+  border: 2px solid var(--color-nav-bg);
+  position: absolute;
+  left: 6px;
+  top: -9px;
+  min-width: 17px;
+  min-height: 17px;
+  border-radius: 17px;
   display: flex;
-  align-items: inherit;
-  flex-direction: inherit;
+  align-items: center;
+  justify-content: center;
+}
+
+#navbar .right.menu {
+  width: 100%;
+  justify-content: flex-end;
 }
 
 .ui.pagination.menu .active.item {
   color: var(--color-text);
   background: var(--color-active);
-}
-
-.ui.form .field > .selection.dropdown > .dropdown.icon {
-  height: auto;
 }
 
 .ui.loading.segment::before,
@@ -1451,7 +1474,7 @@ img.ui.avatar,
   line-height: 20px;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .ui.pagination.menu .item:not(.active,.navigation),
   .ui.pagination.menu .item.navigation span.navigation_label {
     display: none;
@@ -1525,54 +1548,11 @@ img.ui.avatar,
   text-align: center;
 }
 
-/* Conditional display */
-@media (min-width: 768px) {
-  .mobile-only,
-  .ui.button.mobile-only {
-    display: none !important;
-  }
-
-  /* has the same behaviour of sr-only, hiding the content for */
-  /* non-screenreaders, but is shown on mobile devices. */
-  .sr-mobile-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    border: 0;
-  }
-}
-
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   /* double selector so it wins over .gt-df etc */
   .not-mobile.not-mobile {
     display: none !important;
   }
-}
-
-/* Accessibility for screen readers */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  border: 0;
-}
-
-.sr-only-focusable:active,
-.sr-only-focusable:focus {
-  position: static;
-  width: auto;
-  height: auto;
-  margin: 0;
-  overflow: visible;
-  clip: auto;
 }
 
 .ui.menu.new-menu {
@@ -1593,7 +1573,7 @@ img.ui.avatar,
   position: absolute;
   display: block;
   background: linear-gradient(to right, var(--color-header-wrapper-transparent), var(--color-header-wrapper) 100%);
-  content: '';
+  content: "";
   right: 0;
   height: 39px;
   width: 60px;
@@ -1609,7 +1589,7 @@ img.ui.avatar,
   margin-bottom: 0 !important; /* reset fomantic's margin, because the active menu has special bottom border */
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .ui.menu.new-menu .item {
     width: auto !important;
   }
@@ -1727,6 +1707,10 @@ i.icon.centerlock {
 .ui.menu .item > .label {
   background: var(--color-label-bg);
   color: var(--color-label-text);
+}
+
+.ui.label > a {
+  opacity: .75; /* increase contrast over default fomantic .5 */
 }
 
 .ui.active.label {
@@ -2033,7 +2017,7 @@ a.ui.ui.ui.basic.primary.label:hover {
 
 .ui.basic.labels .label,
 .ui.basic.label {
-  background: var(--color-light);
+  background: var(--color-button);
   border-color: var(--color-light-border);
   color: var(--color-text-light);
 }
@@ -2115,43 +2099,9 @@ a.ui.basic.label:hover {
 }
 
 /* if a .top.attached.header is followed by a .segment, add some margin */
-.ui.segments ~ .ui.top.attached.header,
-.ui.attached.segment ~ .ui.top.attached.header {
+.ui.segments + .ui.top.attached.header,
+.ui.attached.segment + .ui.top.attached.header {
   margin-top: 1rem;
-}
-
-.header-stopwatch-dot {
-  position: absolute;
-  left: 8px;
-  top: -8px;
-  width: 13px;
-  height: 13px;
-  background: var(--color-primary);
-  border: 2px solid var(--color-nav-bg);
-  border-radius: 100%;
-}
-
-.notification_count {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: absolute;
-  left: 6px;
-  top: -8px;
-  min-width: 17px;
-  min-height: 17px;
-  background: var(--color-primary);
-  border: 2px solid var(--color-nav-bg);
-  color: var(--color-nav-bg);
-  border-radius: 17px;
-  padding: 0 3.5px;
-  font-size: 12px;
-  line-height: 12px;
-  font-weight: var(--font-weight-bold);
-}
-
-#navbar a.item:hover .notification_count {
-  border-color: var(--color-nav-hover-bg);
 }
 
 .rss-icon {
@@ -2168,35 +2118,6 @@ table th[data-sortt-desc]:hover {
 table th[data-sortt-asc] .svg,
 table th[data-sortt-desc] .svg {
   margin-left: 0.25rem;
-}
-
-.ui.dropdown .svg.dropdown.icon,
-.ui.dropdown .svg.remove.icon,
-.svg.dropdown.icon {
-  margin-top: 0 !important; /* reset the "ui.selection.dropdown > .dropdown.icon {margin-top}", for the Issue Dependencies dropdown */
-  margin-right: -0.5rem !important; /* fix up SVG dropdown triangles because Fomantic thinks they are icon fonts */
-  height: auto; /* reset the ".ui.dropdown > .dropdown.icon {height}", otherwise the icon would be too small */
-}
-
-.ui.selection.dropdown > .svg.search.icon,
-.ui.selection.dropdown > .svg.delete.icon,
-.ui.selection.dropdown > .svg.dropdown.icon {
-  top: 0 !important; /* reset the ".ui.selection.dropdown > .xxx.icon {top}" if the icon is svg instead of the fomantic icon */
-}
-
-.ui.selection.dropdown > .svg.remove.icon {
-  top: .5px;
-  right: 32px;
-  width: auto;
-}
-
-.ui.selection.dropdown > .svg.remove.icon:hover {
-  opacity: 1;
-}
-
-.ui.dropdown.no-text > .dropdown.icon {
-  margin-left: 0 !important;
-  margin-right: 0 !important;
 }
 
 .ui.dropdown .menu .item {
@@ -2234,19 +2155,6 @@ table th[data-sortt-desc] .svg {
   vertical-align: -0.075em;
 }
 
-@supports (-webkit-hyphens:none) {
-  body:not(.safari-above125) .emoji,
-  body:not(.safari-above125) .reaction {
-    font-size: inherit;
-    vertical-align: inherit;
-  }
-  body:not(.safari-above125) .emoji img,
-  body:not(.safari-above125) .reaction img {
-    font-size: 1.25em;
-    vertical-align: -0.225em !important;
-  }
-}
-
 .emoji img,
 .reaction img {
   border-width: 0 !important;
@@ -2259,7 +2167,6 @@ table th[data-sortt-desc] .svg {
 .minicolors-panel {
   background: var(--color-secondary-dark-1) !important;
 }
-
 
 /* https://github.com/go-gitea/gitea/pull/11486 */
 .ui.sub.header {
@@ -2362,4 +2269,79 @@ table th[data-sortt-desc] .svg {
   float: left;
   width: 15px;
   height: 15px;
+}
+
+.ui.dropdown {
+  line-height: 1em; /* the dropdown doesn't have default line-height, use this to make the dropdown icon align with plain dropdown */
+}
+
+/* dropdown has some kinds of icons:
+- "> .dropdown.icon": the arrow for opening the dropdown
+- "> .remove.icon": the "x" icon for clearing the dropdown, only used in selection dropdown
+- "> .ui.label > .delete.icon": the "x" icon for removing a label item in multiple selection dropdown
+*/
+
+/* Gitea uses SVG images instead of Fomantic builtin "<i>" font icons, so we need to reset the icon styles */
+.ui.ui.dropdown > .icon.icon {
+  position: initial; /* plain dropdown and button dropdown use flex layout for icons */
+  padding: 0;
+  margin: 0;
+  height: auto;
+}
+
+.ui.ui.dropdown > .icon.icon:hover {
+  opacity: 1;
+}
+
+.ui.ui.button.dropdown > .icon.icon,
+.ui.ui.selection.dropdown > .icon.icon {
+  position: absolute; /* selection dropdown uses absolute layout for icons */
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.ui.ui.dropdown > .dropdown.icon {
+  right: 0.5em;
+}
+
+.ui.ui.dropdown > .remove.icon {
+  right: 2em;
+}
+
+.ui.ui.button,
+.ui.ui.dropdown,
+.flex-items-inline > .item,
+.flex-text-inline {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .25rem;
+  vertical-align: middle;
+}
+
+.ui.ui.button {
+  justify-content: center;
+}
+
+.ui.dropdown .ui.label .svg {
+  vertical-align: middle;
+}
+
+.ui.ui.labeled.button {
+  gap: 0;
+  align-items: stretch;
+}
+
+.ui.ui.icon.input .icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-items-block > .item,
+.flex-text-block {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .25rem;
 }

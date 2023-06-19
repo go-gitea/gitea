@@ -68,7 +68,7 @@ endif
 
 EXTRA_GOFLAGS ?=
 
-MAKE_VERSION := $(shell "$(MAKE)" -v | head -n 1)
+MAKE_VERSION := $(shell "$(MAKE)" -v | cat | head -n 1)
 MAKE_EVIDENCE_DIR := .make_evidence
 
 ifeq ($(RACE_ENABLED),true)
@@ -79,12 +79,12 @@ endif
 STORED_VERSION_FILE := VERSION
 HUGO_VERSION ?= 0.111.3
 
-ifneq ($(DRONE_TAG),)
-	VERSION ?= $(subst v,,$(DRONE_TAG))
-	GITEA_VERSION ?= $(VERSION)
+ifneq ($(GITHUB_REF_TYPE),branch)
+	VERSION ?= $(subst v,,$(GITHUB_REF_NAME))
+	GITEA_VERSION ?= $(GITHUB_REF_NAME)
 else
-	ifneq ($(DRONE_BRANCH),)
-		VERSION ?= $(subst release/v,,$(DRONE_BRANCH))
+	ifneq ($(GITHUB_REF_NAME),)
+		VERSION ?= $(subst release/v,,$(GITHUB_REF_NAME))
 	else
 		VERSION ?= main
 	endif
@@ -198,6 +198,7 @@ help:
 	@echo " - deps-frontend                    install frontend dependencies"
 	@echo " - deps-backend                     install backend dependencies"
 	@echo " - deps-tools                       install tool dependencies"
+	@echo " - deps-py                          install python dependencies"
 	@echo " - lint                             lint everything"
 	@echo " - lint-fix                         lint everything and fix issues"
 	@echo " - lint-actions                     lint action workflow files"
@@ -214,6 +215,7 @@ help:
 	@echo " - lint-css-fix                     lint css files and fix issues"
 	@echo " - lint-md                          lint markdown files"
 	@echo " - lint-swagger                     lint swagger files"
+	@echo " - lint-templates                   lint template files"
 	@echo " - checks                           run various consistency checks"
 	@echo " - checks-frontend                  check frontend files"
 	@echo " - checks-backend                   check backend files"
@@ -416,6 +418,10 @@ lint-editorconfig:
 .PHONY: lint-actions
 lint-actions:
 	$(GO) run $(ACTIONLINT_PACKAGE)
+
+.PHONY: lint-templates
+lint-templates: .venv
+	@poetry run djlint $(shell find templates -type f -iname '*.tmpl')
 
 .PHONY: watch
 watch:
@@ -829,30 +835,18 @@ release-windows: | $(DIST_DIRS)
 ifeq (,$(findstring gogit,$(TAGS)))
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'osusergo gogit $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION)-gogit .
 endif
-ifeq ($(CI),true)
-	cp /build/* $(DIST)/binaries
-endif
 
 .PHONY: release-linux
 release-linux: | $(DIST_DIRS)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets '$(LINUX_ARCHS)' -out gitea-$(VERSION) .
-ifeq ($(CI),true)
-	cp /build/* $(DIST)/binaries
-endif
 
 .PHONY: release-darwin
 release-darwin: | $(DIST_DIRS)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin-10.12/amd64,darwin-10.12/arm64' -out gitea-$(VERSION) .
-ifeq ($(CI),true)
-	cp /build/* $(DIST)/binaries
-endif
 
 .PHONY: release-freebsd
 release-freebsd: | $(DIST_DIRS)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'freebsd/amd64' -out gitea-$(VERSION) .
-ifeq ($(CI),true)
-	cp /build/* $(DIST)/binaries
-endif
 
 .PHONY: release-copy
 release-copy: | $(DIST_DIRS)
@@ -891,7 +885,10 @@ deps-docs:
 	fi
 
 .PHONY: deps
-deps: deps-frontend deps-backend deps-tools deps-docs
+deps: deps-frontend deps-backend deps-tools deps-docs deps-py
+
+.PHONY: deps-py
+deps-py: .venv
 
 .PHONY: deps-frontend
 deps-frontend: node_modules
@@ -917,6 +914,10 @@ deps-tools:
 node_modules: package-lock.json
 	npm install --no-save
 	@touch node_modules
+
+.venv: poetry.lock
+	poetry install
+	@touch .venv
 
 .PHONY: npm-update
 npm-update: node-check | node_modules

@@ -81,6 +81,7 @@ func (n *actionsNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *use
 		newNotifyInputFromIssue(issue, webhook_module.HookEventPullRequest).
 			WithDoer(doer).
 			WithPayload(apiPullRequest).
+			WithPullRequest(issue.PullRequest).
 			Notify(ctx)
 		return
 	}
@@ -136,6 +137,7 @@ func (n *actionsNotifier) NotifyIssueChangeLabels(ctx context.Context, doer *use
 				Repository:  convert.ToRepo(ctx, issue.Repo, perm_model.AccessModeNone),
 				Sender:      convert.ToUser(ctx, doer, nil),
 			}).
+			WithPullRequest(issue.PullRequest).
 			Notify(ctx)
 		return
 	}
@@ -160,6 +162,10 @@ func (n *actionsNotifier) NotifyCreateIssueComment(ctx context.Context, doer *us
 	mode, _ := access_model.AccessLevel(ctx, doer, repo)
 
 	if issue.IsPull {
+		if err := issue.LoadPullRequest(ctx); err != nil {
+			log.Error("LoadPullRequest: %v", err)
+			return
+		}
 		newNotifyInputFromIssue(issue, webhook_module.HookEventPullRequestComment).
 			WithDoer(doer).
 			WithPayload(&api.IssueCommentPayload{
@@ -170,6 +176,7 @@ func (n *actionsNotifier) NotifyCreateIssueComment(ctx context.Context, doer *us
 				Sender:     convert.ToUser(ctx, doer, nil),
 				IsPull:     true,
 			}).
+			WithPullRequest(issue.PullRequest).
 			Notify(ctx)
 		return
 	}
@@ -377,7 +384,7 @@ func (n *actionsNotifier) NotifyCreateRef(ctx context.Context, pusher *user_mode
 		WithPayload(&api.CreatePayload{
 			Ref:     refFullName.ShortName(),
 			Sha:     refID,
-			RefType: refFullName.RefGroup(),
+			RefType: refFullName.RefType(),
 			Repo:    apiRepo,
 			Sender:  apiPusher,
 		}).
@@ -394,7 +401,7 @@ func (n *actionsNotifier) NotifyDeleteRef(ctx context.Context, pusher *user_mode
 		WithRef(refFullName.ShortName()). // FIXME: should we use a full ref name
 		WithPayload(&api.DeletePayload{
 			Ref:        refFullName.ShortName(),
-			RefType:    refFullName.RefGroup(),
+			RefType:    refFullName.RefType(),
 			PusherType: api.PusherTypeUser,
 			Repo:       apiRepo,
 			Sender:     apiPusher,

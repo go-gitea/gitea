@@ -46,7 +46,7 @@
 			{{if $.CanWriteProjects}}
 				<div class="column right aligned">
 					<div class="ui compact right small menu">
-						<a class="item" href="{{$.Link}}/edit?redirect=project" data-id={{$.Project.ID}} data-title={{$.Project.Title}}>
+						<a class="item" href="{{$.Link}}/edit?redirect=project">
 							{{svg "octicon-pencil"}}
 							<span class="gt-mx-3">{{$.locale.Tr "repo.issues.label_edit"}}</span>
 						</a>
