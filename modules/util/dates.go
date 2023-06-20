@@ -25,7 +25,7 @@ func ListSundaysBetween(startStr, endStr string) ([]int64, error) {
 
 	// Iterate from start date to end date and find all Sundays
 	for currentDate := startDate; currentDate.Before(endDate); currentDate = currentDate.AddDate(0, 0, 7) {
-		sundays = append(sundays, currentDate.Unix())
+		sundays = append(sundays, currentDate.UnixMilli())
 	}
 
 	return sundays, nil

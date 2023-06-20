@@ -110,7 +110,7 @@ const sfc = {
         datasets: [
           {
             data: this.masterChartData[""].weeks.map((i) => {
-              return { x: i.week * 1000, y: i[this.type] };
+              return { x: i.week, y: i[this.type] };
             }),
             pointRadius: 0,
             pointHitRadius: 0,
@@ -149,7 +149,7 @@ const sfc = {
         datasets: [
           {
             data: data.map((i) => {
-              return { x: i.week * 1000, y: i[this.type] };
+              return { x: i.week, y: i[this.type] };
             }),
             pointRadius: 0,
             pointHitRadius: 0,
