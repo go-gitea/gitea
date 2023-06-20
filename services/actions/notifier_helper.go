@@ -142,12 +142,20 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return fmt.Errorf("gitRepo.GetCommit: %w", err)
 	}
 
-	workflows, err := actions_module.DetectWorkflows(commit, ref, input.Event, input.Payload, false)
+	var detectedWorkflows []*actions_module.DetectedWorkflow
+	workflows, err := actions_module.DetectWorkflows(commit, input.Event, input.Payload)
 	if err != nil {
 		return fmt.Errorf("DetectWorkflows: %w", err)
 	}
 	if len(workflows) == 0 {
 		log.Trace("repo %s with commit %s couldn't find workflows", input.Repo.RepoPath(), commit.ID)
+	} else {
+		for _, wf := range workflows {
+			if wf.TriggerEvent != actions_module.GithubEventPullRequestTarget {
+				wf.Ref = ref
+				detectedWorkflows = append(detectedWorkflows, wf)
+			}
+		}
 	}
 
 	if input.PullRequest != nil {
@@ -157,18 +165,23 @@ func notify(ctx context.Context, input *notifyInput) error {
 		if err != nil {
 			return fmt.Errorf("gitRepo.GetCommit: %w", err)
 		}
-		baseWorkflows, err := actions_module.DetectWorkflows(baseCommit, baseRef, input.Event, input.Payload, true)
+		baseWorkflows, err := actions_module.DetectWorkflows(baseCommit, input.Event, input.Payload)
 		if err != nil {
 			return fmt.Errorf("DetectWorkflows: %w", err)
 		}
 		if len(baseWorkflows) == 0 {
 			log.Trace("repo %s with commit %s couldn't find pull_request_target workflows", input.Repo.RepoPath(), baseCommit.ID)
 		} else {
-			workflows = append(workflows, baseWorkflows...)
+			for _, wf := range baseWorkflows {
+				if wf.TriggerEvent == actions_module.GithubEventPullRequestTarget {
+					wf.Ref = baseRef
+					detectedWorkflows = append(detectedWorkflows, wf)
+				}
+			}
 		}
 	}
 
-	if len(workflows) == 0 {
+	if len(detectedWorkflows) == 0 {
 		return nil
 	}
 
@@ -192,7 +205,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		}
 	}
 
-	for _, dwf := range workflows {
+	for _, dwf := range detectedWorkflows {
 		run := &actions_model.ActionRun{
 			Title:             strings.SplitN(commit.CommitMessage, "\n", 2)[0],
 			RepoID:            input.Repo.ID,

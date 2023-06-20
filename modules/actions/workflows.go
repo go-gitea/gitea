@@ -97,7 +97,7 @@ func GetEventsFromContent(content []byte) ([]*jobparser.Event, error) {
 	return events, nil
 }
 
-func DetectWorkflows(commit *git.Commit, ref string, triggedEvent webhook_module.HookEventType, payload api.Payloader, isPullRequestTarget bool) ([]*DetectedWorkflow, error) {
+func DetectWorkflows(commit *git.Commit, triggedEvent webhook_module.HookEventType, payload api.Payloader) ([]*DetectedWorkflow, error) {
 	entries, err := ListWorkflows(commit)
 	if err != nil {
 		return nil, err
@@ -115,21 +115,15 @@ func DetectWorkflows(commit *git.Commit, ref string, triggedEvent webhook_module
 			continue
 		}
 		for _, evt := range events {
-			if isPullRequestTarget && evt.Name != GithubEventPullRequestTarget ||
-				!isPullRequestTarget && evt.Name == GithubEventPullRequestTarget {
-				continue
-			}
 			log.Trace("detect workflow %q for event %#v matching %q", entry.Name(), evt, triggedEvent)
 			if detectMatched(commit, triggedEvent, payload, evt) {
 				dwf := &DetectedWorkflow{
 					EntryName:    entry.Name(),
 					TriggerEvent: evt.Name,
 					Commit:       commit,
-					Ref:          ref,
 					Content:      content,
 				}
 				workflows = append(workflows, dwf)
-				break
 			}
 		}
 	}
