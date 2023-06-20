@@ -55,13 +55,13 @@ func TestGiteaTemplate(t *testing.T) {
 	}
 }
 
-func TestFileNameEscape(t *testing.T) {
-	assert.Equal(t, "test_CON", fileNameEscape("test_CON"))
-	assert.Equal(t, "test CON", fileNameEscape("test CON "))
-	assert.Equal(t, "___traverse", fileNameEscape("../traverse"))
-	assert.Equal(t, "http___localhost_3003_user_test_git", fileNameEscape("http://localhost:3003/user/test.git"))
-	assert.Equal(t, "_", fileNameEscape("CON"))
-	assert.Equal(t, "_", fileNameEscape("con"))
-	assert.Equal(t, "_", fileNameEscape("\u0000"))
-	assert.Equal(t, "目标", fileNameEscape("目标"))
+func TestFileNameSanitize(t *testing.T) {
+	assert.Equal(t, "test_CON", fileNameSanitize("test_CON"))
+	assert.Equal(t, "test CON", fileNameSanitize("test CON "))
+	assert.Equal(t, "__traverse__", fileNameSanitize("../traverse/.."))
+	assert.Equal(t, "http___localhost_3003_user_test.git", fileNameSanitize("http://localhost:3003/user/test.git"))
+	assert.Equal(t, "_", fileNameSanitize("CON"))
+	assert.Equal(t, "_", fileNameSanitize("con"))
+	assert.Equal(t, "_", fileNameSanitize("\u0000"))
+	assert.Equal(t, "目标", fileNameSanitize("目标"))
 }

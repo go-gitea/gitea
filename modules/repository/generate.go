@@ -49,7 +49,7 @@ var defaultTransformers = []transformer{
 	{Name: "TITLE", Transform: util.ToTitleCase},
 }
 
-func generateExpansion(src string, templateRepo, generateRepo *repo_model.Repository, escapeFileName bool) string {
+func generateExpansion(src string, templateRepo, generateRepo *repo_model.Repository, sanitizeFileName bool) string {
 	expansions := []expansion{
 		{Name: "REPO_NAME", Value: generateRepo.Name, Transformers: defaultTransformers},
 		{Name: "TEMPLATE_NAME", Value: templateRepo.Name, Transformers: defaultTransformers},
@@ -75,8 +75,8 @@ func generateExpansion(src string, templateRepo, generateRepo *repo_model.Reposi
 
 	return os.Expand(src, func(key string) string {
 		if expansion, ok := expansionMap[key]; ok {
-			if escapeFileName {
-				return fileNameEscape(expansion)
+			if sanitizeFileName {
+				return fileNameSanitize(expansion)
 			}
 			return expansion
 		}
@@ -372,12 +372,12 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 	return generateRepo, nil
 }
 
-// Escapes user input to valid OS filenames
+// Sanitize user input to valid OS filenames
 //
 //		Based on https://github.com/sindresorhus/filename-reserved-regex
-//	 Adds "." to prevend directory traversal
-func fileNameEscape(s string) string {
-	re := regexp.MustCompile(`(?i)[\.<>:\"/\\|?*\x{0000}-\x{001F}]|^(con|prn|aux|nul|com\d|lpt\d)$`)
+//	 Adds ".." to prevent directory traversal
+func fileNameSanitize(s string) string {
+	re := regexp.MustCompile(`(?i)\.\.|[<>:\"/\\|?*\x{0000}-\x{001F}]|^(con|prn|aux|nul|com\d|lpt\d)$`)
 
 	return strings.TrimSpace(re.ReplaceAllString(s, "_"))
 }
