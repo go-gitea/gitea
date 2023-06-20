@@ -25,7 +25,8 @@
   margin: 0;
 }
 
-#navbar .item {
+#navbar .navbar-left > .item,
+#navbar .navbar-right > .item {
   min-height: 36px;
   min-width: 36px;
   padding-top: 3px;
