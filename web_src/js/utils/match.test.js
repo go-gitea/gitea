@@ -42,6 +42,6 @@ test('matchEmoji', () => {
 });
 
 test('matchMention', () => {
-  expect(matchMention('')).toEqual(window.config.tributeValues.slice(0, 6));
-  expect(matchMention('user4')).toEqual([window.config.tributeValues[3]]);
+  expect(matchMention('')).toEqual(window.config.mentionValues.slice(0, 6));
+  expect(matchMention('user4')).toEqual([window.config.mentionValues[3]]);
 });
