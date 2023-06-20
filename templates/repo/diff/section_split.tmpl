@@ -43,7 +43,7 @@
 					{{- $leftDiff := ""}}{{if $line.LeftIdx}}{{$leftDiff = $section.GetComputedInlineDiffFor $line $.root.locale}}{{end}}
 					{{- $rightDiff := ""}}{{if $match.RightIdx}}{{$rightDiff = $section.GetComputedInlineDiffFor $match $.root.locale}}{{end}}
 					<td class="lines-num lines-num-old del-code" data-line-num="{{$line.LeftIdx}}"><span rel="diff-{{$file.NameHash}}L{{$line.LeftIdx}}"></span></td>
-					<td class="lines-escape del-code lines-escape-old">{{if $line.LeftIdx}}{{if $leftDiff.EscapeStatus.Escaped}}<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $leftDiff "locale" $.root.locale}}"></a>{{end}}{{end}}</td>
+					<td class="lines-escape del-code lines-escape-old">{{if $line.LeftIdx}}{{if $leftDiff.EscapeStatus.Escaped}}<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $leftDiff "locale" $.root.locale}}"></button>{{end}}{{end}}</td>
 					<td class="lines-type-marker lines-type-marker-old del-code"><span class="gt-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
 					<td class="lines-code lines-code-old del-code">{{/*
 						*/}}{{if and $.root.SignedUserID $.root.PageIsPullFiles}}{{/*

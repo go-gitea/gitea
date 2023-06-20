@@ -199,8 +199,8 @@ func addTime(ctx context.Context, user *user_model.User, issue *Issue, amount in
 	return tt, db.Insert(ctx, tt)
 }
 
-// TotalTimes returns the spent time for each user by an issue
-func TotalTimes(options *FindTrackedTimesOptions) (map[*user_model.User]string, error) {
+// TotalTimes returns the spent time in seconds for each user by an issue
+func TotalTimes(options *FindTrackedTimesOptions) (map[*user_model.User]int64, error) {
 	trackedTimes, err := GetTrackedTimes(db.DefaultContext, options)
 	if err != nil {
 		return nil, err
@@ -211,7 +211,7 @@ func TotalTimes(options *FindTrackedTimesOptions) (map[*user_model.User]string, 
 		totalTimesByUser[t.UserID] += t.Time
 	}
 
-	totalTimes := make(map[*user_model.User]string)
+	totalTimes := make(map[*user_model.User]int64)
 	// Fetching User and making time human readable
 	for userID, total := range totalTimesByUser {
 		user, err := user_model.GetUserByID(db.DefaultContext, userID)
@@ -221,7 +221,7 @@ func TotalTimes(options *FindTrackedTimesOptions) (map[*user_model.User]string, 
 			}
 			return nil, err
 		}
-		totalTimes[user] = util.SecToTime(total)
+		totalTimes[user] = total
 	}
 	return totalTimes, nil
 }
