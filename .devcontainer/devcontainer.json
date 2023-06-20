@@ -20,7 +20,7 @@
         "Vue.volar",
         "ms-azuretools.vscode-docker",
         "zixuanchen.vitest-explorer",
-        "alexcvzz.vscode-sqlite"
+        "qwtel.sqlite-viewer"
       ]
     }
   },
