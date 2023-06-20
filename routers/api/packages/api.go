@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/packages/alpine"
+	"code.gitea.io/gitea/routers/api/packages/arch"
 	"code.gitea.io/gitea/routers/api/packages/cargo"
 	"code.gitea.io/gitea/routers/api/packages/chef"
 	"code.gitea.io/gitea/routers/api/packages/composer"
@@ -749,6 +750,19 @@ func ContainerRoutes() *web.Route {
 			ctx.Status(http.StatusNotFound)
 		})
 	}, container.ReqContainerAccess, context_service.UserAssignmentWeb(), context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
+
+	return r
+}
+
+// Routes for arch packages.
+func ArchRoutes() *web.Route {
+	r := web.NewRoute()
+
+	r.Use(context.PackageContexter())
+
+	r.Put("/push", arch.Push)
+	r.Get("/{distro}/{arch}/{owner}/{file}", arch.Get)
+	r.Get("/{distro}/{arch}/{file}", arch.Get)
 
 	return r
 }

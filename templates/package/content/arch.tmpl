@@ -1,0 +1,105 @@
+{{if eq .PackageDescriptor.Package.Type "arch"}}
+	<h4 class="ui top attached header">{{.locale.Tr "packages.installation"}}</h4>
+	<div class="ui attached segment">
+		<div class="ui form">
+
+			<div class="field">
+				<label>{{svg "octicon-note"}} {{.locale.Tr "packages.arch.pacmanconf"}}</label>
+				<div class="markup"><pre class="code-block"><code>[{{.PackageDescriptor.Owner.LowerName}}.{{.PackageDescriptor.Metadata.BaseDomain}}]
+Server = https://{{.PackageDescriptor.Metadata.BaseDomain}}/api/packages/arch/(distribution)/(architecture)/{{.PackageDescriptor.Owner.LowerName}}</code></pre></div>
+			</div>
+
+			<div class="field">
+				<label>{{svg "octicon-clock"}} {{.locale.Tr "packages.arch.pacmansync"}}</label>
+				<div class="markup"><pre class="code-block"><code>pacman -S {{.PackageDescriptor.Package.LowerName}}</code></pre></div>
+			</div>
+
+			<div class="field">
+				<label>{{.locale.Tr "packages.arch.documentation" "https://docs.gitea.io/en-us/usage/packages/arch/" | Safe}}</label>
+			</div>
+		</div>
+	</div>
+
+	<h4 class="ui top attached header">{{.locale.Tr "packages.arch.properties"}}</h4>
+	<div class="ui attached segment">
+	<table class="ui single line very basic table">
+		<tbody>
+
+			<tr>
+				<td class="collapsing"><h5>Description</h5></td>
+				<td>{{.PackageDescriptor.Metadata.Description}}</td>
+			</tr>
+			<tr>
+				<td class="collapsing"><h5>Compressed size</h5></td>
+				<td>{{.PackageDescriptor.Metadata.CompressedSizeMib}}</td>
+			</tr>
+			<tr>
+				<td class="collapsing"><h5>Installed size</h5></td>
+				<td>{{.PackageDescriptor.Metadata.InstalledSizeMib}}</td>
+			</tr>
+			<tr>
+				<td class="collapsing"><h5>Official URL</h5></td>
+				<td> <a target="_blank" rel="noopener noreferrer" href="{{.PackageDescriptor.Metadata.URL}}">{{.PackageDescriptor.Metadata.URL}}</a></td>
+			</tr>
+			<tr>
+				<td class="collapsing"><h5>Build date</h5></td>
+				<td>{{.PackageDescriptor.Metadata.BuildDateStr}}</td>
+			</tr>
+			<tr>
+				<td class="collapsing"><h5>Packager</h5></td>
+				<td>{{.PackageDescriptor.Metadata.Packager}}</td>
+			</tr>
+
+			{{range $key := .PackageDescriptor.Metadata.Provides}}
+			<tr>
+				<td class="collapsing"><h5>Provides</h5></td>
+				<td>{{$key}}</td>
+			</tr>
+			{{end}}
+
+			{{range $key := .PackageDescriptor.Metadata.Arch}}
+			<tr>
+				<td class="collapsing"><h5>Architecture</h5></td>
+				<td>{{$key}}</td>
+			</tr>
+			{{end}}
+
+			{{range $key := .PackageDescriptor.Metadata.Depends}}
+			<tr>
+				<td class="collapsing"><h5>Depends</h5></td>
+				<td>{{$key}}</td>
+			</tr>
+			{{end}}
+
+			{{range $key := .PackageDescriptor.Metadata.OptDepends}}
+			<tr>
+				<td class="collapsing"><h5>Optional depends</h5></td>
+				<td>{{$key}}</td>
+			</tr>
+			{{end}}
+
+			{{range $key := .PackageDescriptor.Metadata.MakeDepends}}
+			<tr>
+				<td class="collapsing"><h5>Make depends</h5></td>
+				<td>{{$key}}</td>
+			</tr>
+			{{end}}
+
+			{{range $key := .PackageDescriptor.Metadata.CheckDepends}}
+			<tr>
+				<td class="collapsing"><h5>Check depends</h5></td>
+				<td>{{$key}}</td>
+			</tr>
+			{{end}}
+
+			{{range $key := .PackageDescriptor.Metadata.Backup}}
+			<tr>
+				<td class="collapsing"><h5>Backup file</h5></td>
+				<td>{{$key}}</td>
+			</tr>
+			{{end}}
+		</tbody>
+	</table>
+	</div>
+
+{{end}}

@@ -1,0 +1,3 @@
+{{if eq .PackageDescriptor.Package.Type "arch"}}
+	{{range .PackageDescriptor.Metadata.License}}<div class="item" title="{{$.locale.Tr "packages.details.author"}}">{{svg "octicon-law" 16 "gt-mr-3"}} {{.}}</div>{{end}}
+{{end}}
