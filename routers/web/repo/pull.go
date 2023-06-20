@@ -357,6 +357,73 @@ func setMergeTarget(ctx *context.Context, pull *issues_model.PullRequest) {
 	ctx.Data["BaseBranchLink"] = pull.GetBaseBranchLink()
 }
 
+// GetPullDiffStats get Pull Requests diff stats
+func GetPullDiffStats(ctx *context.Context) {
+	issue := checkPullInfo(ctx)
+	pull := issue.PullRequest
+
+	var (
+		startCommitID string
+		endCommitID   string
+		gitRepo       = ctx.Repo.GitRepo
+	)
+
+	var prInfo *git.CompareInfo
+
+	if pull.HasMerged {
+		prInfo = PrepareMergedViewPullInfo(ctx, issue)
+	} else {
+		prInfo = PrepareViewPullInfo(ctx, issue)
+	}
+
+	if ctx.Written() {
+		return
+	} else if prInfo == nil {
+		ctx.NotFound("PullFiles", nil)
+		return
+	}
+
+	headCommitID, err := gitRepo.GetRefCommitID(pull.GetGitRefName())
+	if err != nil {
+		ctx.ServerError("GetRefCommitID", err)
+		return
+	}
+
+	startCommitID = prInfo.MergeBase
+	endCommitID = headCommitID
+
+	fileOnly := ctx.FormBool("file-only")
+
+	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
+	files := ctx.FormStrings("files")
+	fmt.Printf("=========>> files: %s\n", files)
+	if fileOnly && (len(files) == 2 || len(files) == 1) {
+		maxLines, maxFiles = -1, -1
+	}
+	diffOptions := &gitdiff.DiffOptions{
+		BeforeCommitID:     startCommitID,
+		AfterCommitID:      endCommitID,
+		SkipTo:             ctx.FormString("skip-to"),
+		MaxLines:           maxLines,
+		MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
+		MaxFiles:           maxFiles,
+		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
+	}
+
+	var methodWithError string
+	var diff *gitdiff.Diff
+
+	diff, err = gitdiff.GetDiff(gitRepo, diffOptions, files...)
+	methodWithError = "GetDiff"
+
+	if err != nil {
+		ctx.ServerError(methodWithError, err)
+		return
+	}
+
+	ctx.Data["Diff"] = diff
+}
+
 // PrepareMergedViewPullInfo show meta information for a merged pull request view page
 func PrepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.CompareInfo {
 	pull := issue.PullRequest

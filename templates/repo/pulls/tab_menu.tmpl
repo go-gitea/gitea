@@ -14,4 +14,10 @@
 		{{$.locale.Tr "repo.pulls.tab_files"}}
 		<span class="ui small label">{{if .NumFiles}}{{.NumFiles}}{{else}}-{{end}}</span>
 	</a>
+	<span class="item">
+		<span class="">{{if .Diff.TotalAddition}}+{{.Diff.TotalAddition}}{{else}}+0{{end}}</span>&nbsp;<span>{{if .Diff.TotalDeletion}}-{{.Diff.TotalDeletion}}{{else}}-0{{end}}</span>
+		<span class="diff-stats-bar gt-mx-3">
+			<div class="diff-stats-add-bar" style="width: 50%;"></div>
+		</span>
+	</span>
 </div>
