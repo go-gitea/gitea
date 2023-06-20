@@ -23,12 +23,12 @@
               ><h4>{{ contributor.name }}</h4></a
             >
             <p class="gt-font-12">
-              <strong>{{ contributor.total }} commits </strong>
+              <strong>{{ contributor.total.toLocaleString() }} commits </strong>
               <strong class="text green"
-                >{{ additions(contributor.weeks) }}++
+                >{{ additions(contributor.weeks).toLocaleString() }}++
               </strong>
               <strong class="text red">
-                {{ deletions(contributor.weeks) }}--</strong
+                {{ deletions(contributor.weeks).toLocaleString() }}--</strong
               >
             </p>
           </div>
@@ -78,6 +78,11 @@ const sfc = {
     data: {
       options: {
         responsive: true,
+        plugins: {
+          legend: {
+            display: false,
+          }
+        },
         scales: {
           x: {
             // min: '2021-11-06',
@@ -103,7 +108,6 @@ const sfc = {
       return {
         datasets: [
           {
-            label: "Number of commits",
             data: this.masterChartData[""].weeks.map((i) => {
               return { x: i.week * 1000, y: i.commits };
             }),
@@ -143,7 +147,6 @@ const sfc = {
       return {
         datasets: [
           {
-            label: "Number of commits",
             data: data.map((i) => {
               return { x: i.week * 1000, y: i.commits };
             }),
