@@ -396,7 +396,6 @@ func GetPullDiffStats(ctx *context.Context) {
 
 	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
 	files := ctx.FormStrings("files")
-	fmt.Printf("=========>> files: %s\n", files)
 	if fileOnly && (len(files) == 2 || len(files) == 1) {
 		maxLines, maxFiles = -1, -1
 	}
