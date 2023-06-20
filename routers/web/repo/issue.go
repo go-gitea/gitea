@@ -1650,14 +1650,23 @@ func ViewIssue(ctx *context.Context) {
 			comment.Type == issues_model.CommentTypeStopTracking {
 			// drop error since times could be pruned from DB..
 			_ = comment.LoadTime()
-			if comment.Content[0] != '|' {
+			if comment.Content != "" {
+				if comment.Content[0] != '|' {
+					// handle old time comments that have formatted text stored
+					comment.RenderedContent = comment.Content
+					comment.Content = ""
+				} else {
+					// else it's just a duration in seconds to pass on to the frontend
+					comment.Content = comment.Content[1:]
+				}
+			}
+		} else if comment.Type == issues_model.CommentTypeDeleteTimeManual && comment.Content != "" {
+			if comment.Content[0] == '-' {
 				// handle old time comments that have formatted text stored
 				comment.RenderedContent = comment.Content
 				comment.Content = ""
-			} else if comment.Content != "" {
-				// else it's just a duration in seconds to pass on to the frontend
-				comment.Content = comment.Content[1:]
 			}
+			// else it's just a duration in seconds to pass on to the frontend
 		}
 
 		if comment.Type == issues_model.CommentTypeClose || comment.Type == issues_model.CommentTypeMergePull {

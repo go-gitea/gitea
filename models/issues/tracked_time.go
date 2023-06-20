@@ -255,7 +255,7 @@ func DeleteIssueUserTimes(issue *Issue, user *user_model.User) error {
 		Issue:   issue,
 		Repo:    issue.Repo,
 		Doer:    user,
-		Content: "- " + util.Sec2TrackedTime(removedTime),
+		Content: fmt.Sprint(removedTime),
 		Type:    CommentTypeDeleteTimeManual,
 	}); err != nil {
 		return err
@@ -284,7 +284,7 @@ func DeleteTime(t *TrackedTime) error {
 		Issue:   t.Issue,
 		Repo:    t.Issue.Repo,
 		Doer:    t.User,
-		Content: "- " + util.Sec2TrackedTime(t.Time),
+		Content: fmt.Sprint(t.Time),
 		Type:    CommentTypeDeleteTimeManual,
 	}); err != nil {
 		return err
