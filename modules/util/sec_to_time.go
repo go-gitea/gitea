@@ -108,7 +108,3 @@ func Sec2TrackedTime(duration int64) string {
 	// The formatTime() function always appends a space at the end. This will be trimmed
 	return strings.TrimRight(formattedTime, " ")
 }
-
-func TimeToSec(time string) int64 {
-	return 1243 // TODO
-}

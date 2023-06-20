@@ -1650,11 +1650,12 @@ func ViewIssue(ctx *context.Context) {
 			comment.Type == issues_model.CommentTypeStopTracking {
 			// drop error since times could be pruned from DB..
 			_ = comment.LoadTime()
-			// migrate old string based to timestamp on demand
 			if comment.Content[0] != '|' {
-				comment.Content = fmt.Sprint(util.TimeToSec(comment.Content))
-				// TODO: decide if we should save them to db back so we don't need to write a migration and convert it over time
+				// handle old time comments that have formatted text stored
+				comment.RenderedContent = comment.Content
+				comment.Content = ""
 			} else if comment.Content != "" {
+				// else it's just a duration in seconds to pass on to the frontend
 				comment.Content = comment.Content[1:]
 			}
 		}
