@@ -44,6 +44,11 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 			return nil
 		}
 		if repo.BaseRepo != nil {
+			// FIXME: The permission of the parent repo is not correct.
+			//        It's the permission of the current repo, so it's probably different from the parent repo.
+			//        But there isn't a good way to get the permission of the parent repo, because the doer is not passed in.
+			//        Use the permission of the current repo to keep the behavior consistent with the old API.
+			//        Maybe the right way is setting the permission of the parent repo to nil, empty is better than wrong.
 			parent = innerToRepo(ctx, repo.BaseRepo, permissionInRepo, true)
 		}
 	}
