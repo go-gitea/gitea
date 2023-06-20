@@ -105,7 +105,7 @@ const sfc = {
           {
             label: "Number of commits",
             data: this.masterChartData[""].weeks.map((i) => {
-              return { x: i.week, y: i.commits };
+              return { x: i.week * 1000, y: i.commits };
             }),
             pointRadius: 0,
             pointHitRadius: 0,
@@ -145,7 +145,7 @@ const sfc = {
           {
             label: "Number of commits",
             data: data.map((i) => {
-              return { x: i.week, y: i.commits };
+              return { x: i.week * 1000, y: i.commits };
             }),
             pointRadius: 0,
             pointHitRadius: 0,
