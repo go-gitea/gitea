@@ -209,14 +209,14 @@ func Push(ctx *context.Context) {
 
 	// Create package in database.
 	pkg, err := packages_model.TryInsertPackage(ctx, &packages_model.Package{
-		OwnerID:   connector.user.ID,
+		OwnerID:   connector.org.ID,
 		Type:      packages_model.TypeArch,
 		Name:      md.Name,
 		LowerName: strings.ToLower(md.Name),
 	})
 	if errors.Is(err, packages_model.ErrDuplicatePackage) {
 		pkg, err = packages_model.GetPackageByName(
-			ctx, connector.user.ID,
+			ctx, connector.org.ID,
 			packages_model.TypeArch, md.Name,
 		)
 		if err != nil {
@@ -248,7 +248,7 @@ func Push(ctx *context.Context) {
 
 	ver, err := packages_model.GetOrInsertVersion(ctx, &packages_model.PackageVersion{
 		PackageID:    pkg.ID,
-		CreatorID:    connector.user.ID,
+		CreatorID:    connector.org.ID,
 		Version:      md.Version,
 		LowerVersion: strings.ToLower(md.Version),
 		CreatedUnix:  timeutil.TimeStampNow(),
@@ -347,8 +347,7 @@ func Get(ctx *context.Context) {
 
 	cs := packages_module.NewContentStore()
 
-	if strings.HasSuffix(filename, "tar.zst") ||
-		strings.HasSuffix(filename, "zst.sig") {
+	if strings.HasSuffix(filename, "tar.zst") || strings.HasSuffix(filename, "zst.sig") {
 		db := db.GetEngine(ctx)
 
 		pkgfile := &packages_model.PackageFile{
@@ -390,23 +389,27 @@ func Get(ctx *context.Context) {
 
 		return
 	}
-	obj, err := cs.Get(packages_module.BlobHash256Key(Join(owner, distro, filename)))
-	if err != nil {
-		apiError(ctx, http.StatusNotFound, err)
-	}
+	if strings.HasSuffix(filename, ".db.tar.gz") || strings.HasSuffix(filename, ".db") {
+		filename = strings.TrimPrefix(filename, owner+".")
+		obj, err := cs.Get(packages_module.BlobHash256Key(Join(owner, distro, filename)))
+		if err != nil {
+			apiError(ctx, http.StatusNotFound, err)
+		}
 
-	data, err := io.ReadAll(obj)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
+		data, err := io.ReadAll(obj)
+		if err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
 
-	_, err = ctx.Resp.Write(data)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
+		_, err = ctx.Resp.Write(data)
+		if err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		ctx.Resp.WriteHeader(http.StatusOK)
 	}
-	ctx.Resp.WriteHeader(http.StatusOK)
+	ctx.Resp.WriteHeader(http.StatusNotFound)
 }
 
 func apiError(ctx *context.Context, status int, obj interface{}) {
