@@ -9,8 +9,9 @@
 }
 
 #navbar,
-#navbar .navbar-left {
-  min-height: 48px;
+#navbar .navbar-left,
+#navbar .navbar-right {
+  min-height: 49px; /* +1px border-bottom */
 }
 
 #navbar .navbar-left,
@@ -47,7 +48,6 @@
 @media (max-width: 767.98px) {
   #navbar {
     align-items: stretch;
-    padding-bottom: 8px;
   }
   /* hide all items */
   #navbar .item {
@@ -70,6 +70,9 @@
     display: flex;
   }
   /* show items if the navbar is open */
+  #navbar.navbar-menu-open {
+    padding-bottom: 8px;
+  }
   #navbar.navbar-menu-open,
   #navbar.navbar-menu-open .navbar-right {
     flex-direction: column;
