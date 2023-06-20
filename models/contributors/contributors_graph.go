@@ -56,11 +56,12 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository) (map[
 		return nil, fmt.Errorf("ExtendedCommitStats: %w", err)
 	}
 
+	layout := "2006-01-02"
 	initial_commit_date := extended_commit_stats[0].Author.Date
-	last_commit_date := extended_commit_stats[len(extended_commit_stats)-1].Author.Date
+
 
 	starting_sunday, _ := util.FindLastSundayBeforeDate(initial_commit_date)
-	ending_sunday, _ := util.FindFirstSundayAfterDate(last_commit_date)
+	ending_sunday, _ := util.FindFirstSundayAfterDate(time.Now().Format(layout))
 
 	sundays, _ := util.ListSundaysBetween(starting_sunday, ending_sunday)
 
@@ -99,7 +100,6 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository) (map[
 		user, _ := contributors_commit_stats[v.Author.Email]
 		starting_of_week, _ := util.FindLastSundayBeforeDate(v.Author.Date)
 
-		layout := "2006-01-02"
     val, _ := time.Parse(layout, starting_of_week)
 		starting_sunday_p, _ := time.Parse(layout, starting_sunday)
 		idx := int(val.Sub(starting_sunday_p).Hours()/24)/7
