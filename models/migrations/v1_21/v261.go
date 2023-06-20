@@ -35,7 +35,8 @@ func AddBranchTable(x *xorm.Engine) error {
 	}
 
 	var adminUserID int64
-	has, err := x.Select("id").
+	has, err := x.Table("user").
+		Select("id").
 		Where("is_admin=?", true).
 		Asc("id"). // Reliably get the admin with the lowest ID.
 		Get(&adminUserID)

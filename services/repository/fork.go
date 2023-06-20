@@ -164,7 +164,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		}
 		defer gitRepo.Close()
 
-		return repo_module.SyncRepoBranches(txCtx, repo, gitRepo, doer.ID)
+		return repo_module.SyncRepoBranchesWithRepo(txCtx, repo, gitRepo, doer.ID)
 	})
 	needsRollbackInPanic = false
 	if err != nil {

@@ -144,19 +144,9 @@ func GetBranch(ctx context.Context, repoID int64, branchName string) (*Branch, e
 	return &branch, nil
 }
 
-func AddBranch(ctx context.Context, branch *Branch) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		if err := removeDeletedBranchByName(ctx, branch.RepoID, branch.Name); err != nil {
-			return err
-		}
-		_, err := db.GetEngine(ctx).Insert(branch)
-		return err
-	})
-}
-
 func AddBranches(ctx context.Context, branches []*Branch) error {
 	for _, branch := range branches {
-		if err := AddBranch(ctx, branch); err != nil {
+		if _, err := db.GetEngine(ctx).Insert(branch); err != nil {
 			return err
 		}
 	}
@@ -242,12 +232,6 @@ func AddDeletedBranch(ctx context.Context, repoID int64, branchName string, dele
 	return err
 }
 
-// removeDeletedBranchByName removes all deleted branches
-func removeDeletedBranchByName(ctx context.Context, repoID int64, branch string) error {
-	_, err := db.GetEngine(ctx).Where("repo_id=? AND name=? AND is_deleted = ?", repoID, branch, true).Delete(new(Branch))
-	return err
-}
-
 func RemoveDeletedBranchByID(ctx context.Context, repoID, branchID int64) error {
 	_, err := db.GetEngine(ctx).Where("repo_id=? AND id=? AND is_deleted = ?", repoID, branchID, true).Delete(new(Branch))
 	return err
@@ -259,7 +243,7 @@ func RemoveOldDeletedBranches(ctx context.Context, olderThan time.Duration) {
 	log.Trace("Doing: DeletedBranchesCleanup")
 
 	deleteBefore := time.Now().Add(-olderThan)
-	_, err := db.GetEngine(ctx).Where("deleted_unix < ?", deleteBefore.Unix()).Delete(new(Branch))
+	_, err := db.GetEngine(ctx).Where("is_deleted=? AND deleted_unix < ?", true, deleteBefore.Unix()).Delete(new(Branch))
 	if err != nil {
 		log.Error("DeletedBranchesCleanup: %v", err)
 	}

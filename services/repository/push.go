@@ -93,7 +93,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	defer gitRepo.Close()
 
 	if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
-		log.Error("Failed to update size for repository: %v", err)
+		return fmt.Errorf("Failed to update size for repository: %v", err)
 	}
 
 	addTags := make([]string, 0, len(optsList))
@@ -260,7 +260,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				notification.NotifyPushCommits(ctx, pusher, repo, opts, commits)
 
 				if err = git_model.UpdateBranch(ctx, repo.ID, branch, newCommit.ID.String(), newCommit.CommitMessage, opts.PusherID, newCommit.Committer.When); err != nil {
-					log.Error("git_model.UpdateBranch %s/%s failed: %v", repo.ID, branch, err)
+					return fmt.Errorf("git_model.UpdateBranch %s:%s failed: %v", repo.FullName(), branch, err)
 				}
 
 				// Cache for big repository
@@ -275,7 +275,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				}
 
 				if err := git_model.AddDeletedBranch(db.DefaultContext, repo.ID, branch, pusher.ID); err != nil {
-					log.Warn("AddDeletedBranch: %v", err)
+					return fmt.Errorf("AddDeletedBranch %s:%s failed: %v", repo.FullName(), branch, err)
 				}
 			}
 

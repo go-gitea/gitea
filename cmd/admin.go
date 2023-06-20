@@ -52,8 +52,15 @@ var (
 	}
 
 	subcmdRepoSyncBranches = cli.Command{
-		Name:   "repo-sync-branches",
-		Usage:  "Synchronize repository branches",
+		Name:  "repo-sync-branches",
+		Usage: "Synchronize repository branches",
+		Flags: []cli.Flag{
+			cli.IntFlag{
+				Name:  "repo-id",
+				Usage: "Repository id to be synchronized",
+				Value: 0,
+			},
+		},
 		Action: runRepoSyncBranches,
 	}
 
@@ -408,7 +415,7 @@ func runRepoSyncReleases(_ *cli.Context) error {
 	return nil
 }
 
-func runRepoSyncBranches(_ *cli.Context) error {
+func runRepoSyncBranches(cli *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
@@ -421,7 +428,12 @@ func runRepoSyncBranches(_ *cli.Context) error {
 		return err
 	}
 
-	return repo_module.SyncAllBranches(ctx, doer.ID)
+	if !cli.IsSet("repo-id") {
+		return repo_module.SyncAllBranches(ctx, doer.ID)
+	}
+
+	repoID := cli.Int64("repo-id")
+	return repo_module.SyncRepoBranches(ctx, repoID, doer.ID)
 }
 
 func getReleaseCount(id int64) (int64, error) {
