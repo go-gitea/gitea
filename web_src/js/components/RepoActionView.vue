@@ -119,13 +119,13 @@
 import {SvgIcon} from '../svg.js';
 import ActionRunStatus from './ActionRunStatus.vue';
 import {createApp} from 'vue';
-import AnsiToHTML from 'ansi-to-html';
+import AnsiUp from 'ansi_up';
 import {toggleElem} from '../utils/dom.js';
 import {getCurrentLocale} from '../utils.js';
 
 const {csrfToken} = window.config;
 
-const ansiLogRender = new AnsiToHTML({escapeXML: true});
+const ansi_up = new AnsiUp();
 
 const sfc = {
   name: 'RepoActionView',
@@ -495,7 +495,7 @@ export function ansiLogToHTML(line) {
   line = ansiCleanControlSequences(line);
 
   if (!line.includes('\r')) {
-    return ansiLogRender.toHtml(line);
+    return ansi_up.ansi_to_html(line);
   }
 
   // handle "\rReading...1%\rReading...5%\rReading...100%",
@@ -503,7 +503,7 @@ export function ansiLogToHTML(line) {
   const lines = [];
   for (const part of line.split('\r')) {
     if (part === '') continue;
-    const partHtml = ansiLogRender.toHtml(part);
+    const partHtml = ansi_up.ansi_to_html(part);
     if (partHtml !== '') {
       lines.push(partHtml);
     }
