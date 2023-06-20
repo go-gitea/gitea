@@ -27,13 +27,11 @@
 		<div class="ui divider"></div>
 
 		{{if .Permission.CanRead $.UnitTypeCode}}
-			{{if gt .Activity.Code.CommitCountInAllBranches 0}}
-				<div class="ui attached segment horizontal segments">
-					<div class="ui attached segment">
-						<div id="repo-contributors-master-chart"></div>
-					</div>
+			<div class="ui attached segment horizontal segments">
+				<div class="ui attached segment">
+					<div id="repo-contributors-master-chart"></div>
 				</div>
-			{{end}}
+			</div>
 		{{end}}
 
 	</div>

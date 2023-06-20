@@ -58,10 +58,15 @@ func Contributors(ctx *context.Context) {
 		return
 	}
 
-	if ctx.PageData["repoContributorsCommitStats"], err = contributors_model.GetContributorStats(ctx, ctx.Repo.Repository); err != nil {
+
+	if contributor_stats, err := contributors_model.GetContributorStats(ctx, ctx.Repo.Repository); err != nil {
 		ctx.ServerError("GetContributorStats", err)
 		return
+	} else{
+		ctx.PageData["repoContributorsCommitStats"] = contributor_stats
+		// contributor_stats[""].Weeks.(map[string]interface{})
 	}
+
 
 	ctx.HTML(http.StatusOK, tplContributors)
 }
