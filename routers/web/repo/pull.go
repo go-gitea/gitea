@@ -37,7 +37,6 @@ import (
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/automerge"
@@ -1206,36 +1205,12 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		middleware.AssignForm(form, ctx.Data)
-
-		// This stage is already stop creating new pull request, so it does not matter if it has
-		// something to compare or not.
-		PrepareCompareDiff(ctx, ci,
-			gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
-		if ctx.Written() {
-			return
-		}
-
-		if len(form.Title) > 255 {
-			var trailer string
-			form.Title, trailer = util.SplitStringAtByteN(form.Title, 255)
-
-			form.Content = trailer + "\n\n" + form.Content
-		}
-		middleware.AssignForm(form, ctx.Data)
-
-		ctx.HTML(http.StatusOK, tplCompareDiff)
+		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}
 
 	if util.IsEmptyString(form.Title) {
-		PrepareCompareDiff(ctx, ci,
-			gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
-		if ctx.Written() {
-			return
-		}
-
-		ctx.RenderWithErr(ctx.Tr("repo.issues.new.title_empty"), tplCompareDiff, form)
+		ctx.JSONError(ctx.Tr("repo.issues.new.title_empty"))
 		return
 	}
 
@@ -1278,20 +1253,20 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 			pushrejErr := err.(*git.ErrPushRejected)
 			message := pushrejErr.Message
 			if len(message) == 0 {
-				ctx.Flash.Error(ctx.Tr("repo.pulls.push_rejected_no_message"))
-			} else {
-				flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
-					"Message": ctx.Tr("repo.pulls.push_rejected"),
-					"Summary": ctx.Tr("repo.pulls.push_rejected_summary"),
-					"Details": utils.SanitizeFlashErrorString(pushrejErr.Message),
-				})
-				if err != nil {
-					ctx.ServerError("CompareAndPullRequest.HTMLString", err)
-					return
-				}
-				ctx.Flash.Error(flashError)
+				ctx.JSONError(ctx.Tr("repo.pulls.push_rejected_no_message"))
+				return
 			}
-			ctx.Redirect(pullIssue.Link())
+			flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
+				"Message": ctx.Tr("repo.pulls.push_rejected"),
+				"Summary": ctx.Tr("repo.pulls.push_rejected_summary"),
+				"Details": utils.SanitizeFlashErrorString(pushrejErr.Message),
+			})
+			if err != nil {
+				ctx.ServerError("CompareAndPullRequest.HTMLString", err)
+				return
+			}
+			ctx.Flash.Error(flashError)
+			ctx.JSONRedirect(pullIssue.Link()) // FIXME: it's unfriendly, and will make the content lost
 			return
 		}
 		ctx.ServerError("NewPullRequest", err)
@@ -1299,7 +1274,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	}
 
 	log.Trace("Pull request created: %d/%d", repo.ID, pullIssue.ID)
-	ctx.Redirect(pullIssue.Link())
+	ctx.JSONRedirect(pullIssue.Link())
 }
 
 // CleanUpPullRequest responses for delete merged branch when PR has been merged
