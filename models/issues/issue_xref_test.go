@@ -98,6 +98,7 @@ func TestXRef_ResolveCrossReferences(t *testing.T) {
 	i1 := testCreateIssue(t, 1, 2, "title1", "content1", false)
 	i2 := testCreateIssue(t, 1, 2, "title2", "content2", false)
 	i3 := testCreateIssue(t, 1, 2, "title3", "content3", false)
+	i3.IsClosed = true
 	_, err := issues_model.ChangeIssueStatus(db.DefaultContext, i3, d)
 	assert.NoError(t, err)
 

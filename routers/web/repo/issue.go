@@ -2955,6 +2955,10 @@ func closeOrReopenIssue(ctx *context.Context, form *forms.CreateCommentForm, iss
 			ctx.Flash.Info(ctx.Tr("repo.pulls.open_unmerged_pull_exists", pr.Index))
 		} else {
 			issue.IsClosed = form.Status == "close"
+			issue.ClosedStatus = issues_model.IssueClosedStatus(0)
+			if issue.IsClosed {
+				issue.ClosedStatus = form.ClosedStatus
+			}
 			if err := issue_service.ChangeStatus(issue, ctx.Doer, ""); err != nil {
 				log.Error("ChangeStatus: %v", err)
 

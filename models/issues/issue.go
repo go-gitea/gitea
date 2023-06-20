@@ -108,6 +108,15 @@ const (
 	IssueClosedStatusStale
 )
 
+var issueClosedCommentTrMap = map[IssueClosedStatus]string{
+	IssueClosedStatusCommonClose: "repo.issues.closed_at",
+	IssueClosedStatusArchived:    "repo.issues.closed_as_archived_at",
+	IssueClosedStatusResolved:    "repo.issues.closed_as_resolved_at",
+	IssueClosedStatusMerged:      "repo.issues.closed_as_merged_at",
+	IssueClosedStatusDuplicate:   "repo.issues.closed_as_duplicate_at",
+	IssueClosedStatusStale:       "repo.issues.closed_as_stale_at",
+}
+
 // Issue represents an issue or pull request of repository.
 type Issue struct {
 	ID               int64                  `xorm:"pk autoincr"`

@@ -103,19 +103,26 @@
 							<div class="field footer">
 								<div class="text right">
 									{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
-										{{/* start: new close / reopen button */}}
 										{{$buttonTranslationKey := "repo.issues.close_as.reopen"}}
+										{{$buttonCommentTranslationKey := "repo.issues.comment_and_close_as.reopen"}}
 										{{$buttonValue := -1}}
 										{{if not .Issue.IsClosed}}
 											{{$buttonValue = 0}}
 											{{if .Issue.IsPull}}
 												{{$buttonTranslationKey = "repo.pulls.close"}}
+												{{$buttonCommentTranslationKey = "repo.pulls.comment_and_close"}}
 											{{else}}
 												{{$buttonTranslationKey = "repo.issues.close_as.common"}}
+												{{$buttonCommentTranslationKey = "repo.issues.comment_and_close_as.common"}}
 											{{end}}
 										{{end}}
 										<div class="ui buttons">
-											<button id="status-button" class="ui button loading-button" data-status-value={{$buttonValue}}>
+											<button id="status-button"
+												class="ui button loading-button"
+												data-status-value={{$buttonValue}}
+												data-status="{{$.locale.Tr $buttonTranslationKey}}"
+												data-status-and-comment="{{$.locale.Tr $buttonCommentTranslationKey}}"
+											>
 												<span class="button-text">
 													{{$.locale.Tr $buttonTranslationKey}}
 												</span>
@@ -138,7 +145,6 @@
 												</div>
 											{{end}}
 										</div>
-										{{/* end: new close / reopen button */}}
 									{{end}}
 									<button id="comment-button" class="ui green button loading-button" tabindex="5">
 										{{.locale.Tr "repo.issues.create_comment"}}

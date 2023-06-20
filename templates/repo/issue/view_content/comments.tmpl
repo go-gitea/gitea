@@ -113,7 +113,11 @@
 					{{if .Issue.IsPull}}
 						{{$.locale.Tr "repo.pulls.closed_at" .EventTag $createdStr | Safe}}
 					{{else}}
-						{{$.locale.Tr "repo.issues.closed_at" .EventTag $createdStr | Safe}}
+						{{$trans := "repo.issues.closed_at"}}
+						{{if not (eq .Content "")}}
+						{{$trans = .Content}}
+						{{end}}
+						{{$.locale.Tr $trans .EventTag $createdStr | Safe}}
 					{{end}}
 				</span>
 			</div>

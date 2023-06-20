@@ -638,7 +638,8 @@ export function initSingleCommentEditor($commentForm) {
   const $statusDropdown = $('#status-dropdown');
   if ($statusButton.length) {
     opts.onContentChanged = (editor) => {
-      $statusButton.text($statusDropdown.dropdown('get item').data(editor.value().trim() ? 'status-and-comment': 'status'));
+      const $source = $statusDropdown.length > 0 ? $statusDropdown.dropdown('get item') : $statusButton;
+      $statusButton.text($source.data(editor.value().trim() ? 'status-and-comment': 'status'));
     };
   }
   initComboMarkdownEditor($commentForm.find('.combo-markdown-editor'), opts);
