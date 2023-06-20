@@ -96,18 +96,17 @@
 						{{avatar $.Context .SignedUser 40}}
 					</a>
 					<div class="content">
-						<form class="ui segment form" id="comment-form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/comments" method="post">
+						<form class="ui segment form form-fetch-action" id="comment-form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/comments" method="post">
 							{{template "repo/issue/comment_tab" .}}
 							{{.CsrfTokenHtml}}
-							<input id="status" name="status" type="hidden">
 							<div class="field footer">
 								<div class="text right">
 									{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
+										{{$statusValue := "reopen"}}
 										{{$buttonTranslationKey := "repo.issues.close_as.reopen"}}
 										{{$buttonCommentTranslationKey := "repo.issues.comment_and_close_as.reopen"}}
-										{{$buttonValue := -1}}
 										{{if not .Issue.IsClosed}}
-											{{$buttonValue = 0}}
+											{{$statusValue = "close"}}
 											{{if .Issue.IsPull}}
 												{{$buttonTranslationKey = "repo.pulls.close"}}
 												{{$buttonCommentTranslationKey = "repo.pulls.comment_and_close"}}
@@ -118,8 +117,9 @@
 										{{end}}
 										<div class="ui buttons">
 											<button id="status-button"
-												class="ui button loading-button"
-												data-status-value={{$buttonValue}}
+												class="ui button"
+												name="status"
+												value="{{$statusValue}}"
 												data-status="{{$.locale.Tr $buttonTranslationKey}}"
 												data-status-and-comment="{{$.locale.Tr $buttonCommentTranslationKey}}"
 											>
@@ -129,7 +129,7 @@
 											</button>
 											{{if not .Issue.IsPull}}
 												<div id="status-dropdown" class="ui dropdown icon button gt-ml-0">
-													<input type="hidden" name="closed_status" value="{{if eq $buttonValue -1}}-1{{else}}{{.Issue.ClosedStatus}}{{end}}">
+													<input type="hidden" name="closed_status" value="{{if eq $statusValue "reopen"}}-1{{else}}{{.Issue.ClosedStatus}}{{end}}">
 													{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 													<div class="menu">
 														{{range .IssueCloseBtnItems}}
@@ -146,7 +146,7 @@
 											{{end}}
 										</div>
 									{{end}}
-									<button id="comment-button" class="ui green button loading-button" tabindex="5">
+									<button id="comment-button" class="ui green button" tabindex="5">
 										{{.locale.Tr "repo.issues.create_comment"}}
 									</button>
 								</div>

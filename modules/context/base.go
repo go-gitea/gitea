@@ -96,7 +96,11 @@ func (b *Base) SetTotalCountHeader(total int64) {
 
 // Written returns true if there are something sent to web browser
 func (b *Base) Written() bool {
-	return b.Resp.Status() > 0
+	return b.Resp.WrittenStatus() != 0
+}
+
+func (b *Base) WrittenStatus() int {
+	return b.Resp.WrittenStatus()
 }
 
 // Status writes status code
@@ -134,6 +138,14 @@ func (b *Base) JSON(status int, content interface{}) {
 
 func (b *Base) JSONRedirect(redirect string) {
 	b.JSON(http.StatusOK, map[string]any{"redirect": redirect})
+}
+
+func (b *Base) JSONOK() {
+	b.JSON(http.StatusOK, map[string]any{"ok": true}) // this is only a dummy response, frontend seldom uses it
+}
+
+func (b *Base) JSONError(msg string) {
+	b.JSON(http.StatusBadRequest, map[string]any{"errorMessage": msg})
 }
 
 // RemoteAddr returns the client machine ip address

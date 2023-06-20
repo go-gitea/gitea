@@ -149,6 +149,7 @@ export function initRepoIssueSidebarList() {
       }
     }
   });
+  $('.ui.dropdown.label-filter, .ui.dropdown.select-label').dropdown('setting', {'hideDividers': 'empty'}).dropdown('refreshItems');
 }
 
 export function initRepoIssueCommentDelete() {
@@ -687,26 +688,15 @@ function initRepoIssueStateButton() {
   const $statusButton = $('#status-button');
   if (!$statusButton.length) return;
 
-  $statusButton.on('click', (e) => {
-    e.preventDefault();
-    $('#status').val($statusButton.data('status-value') === -1 ? 'reopen' : 'close');
-    $('#comment-form').trigger('submit');
-  })
-
-  $('#comment-button').on('click', (e) => {
-    e.preventDefault();
-    $('#status').val('');
-    $('#comment-form').trigger('submit');
-  })
-
   const $statusDropdown = $('#status-dropdown');
   const selectedValue = $statusDropdown.find('input[type=hidden]').val();
   
   const onCloseStatusChanged = (val) => {
-    $statusButton.attr('data-status-value', val);
     const editor = getComboMarkdownEditor($('#comment-form .combo-markdown-editor'));
-    const buttonText = $statusDropdown.dropdown('get item').data(editor.value().trim() ? 'status-and-comment': 'status');
+    const buttonText = $statusDropdown.dropdown('get item').data(editor.value().trim() ? 'status-and-comment' : 'status');
     $statusButton.text(buttonText);
+    $statusButton.attr('value', val === "-1" ? 'reopen' : 'close');
+    $statusDropdown.find('input[type=hidden]').val(val)
   }
   $statusDropdown.dropdown('setting', { selectOnKeydown: false, onChange: onCloseStatusChanged });
   $statusDropdown.dropdown('set selected', selectedValue);

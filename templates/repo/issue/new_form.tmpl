@@ -1,4 +1,4 @@
-<form class="issue-content ui comment form" id="new-issue" action="{{.Link}}" method="post">
+<form class="issue-content ui comment form form-fetch-action" id="new-issue" action="{{.Link}}" method="post">
 	{{.CsrfTokenHtml}}
 	{{if .Flash}}
 		<div class="sixteen wide column">
@@ -35,7 +35,7 @@
 						{{template "repo/issue/comment_tab" .}}
 					{{end}}
 					<div class="text right">
-						<button class="ui green button loading-button" tabindex="6">
+						<button class="ui green button" tabindex="6">
 							{{if .PageIsComparePull}}
 								{{.locale.Tr "repo.pulls.create"}}
 							{{else}}
