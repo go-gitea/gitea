@@ -16,10 +16,6 @@ _test
 .vscode
 __debug_bin
 
-# Architecture specific extensions/prefixes
-*.[568vq]
-[568vq].out
-
 *.cgo1.go
 *.cgo2.c
 _cgo_defun.c
@@ -74,6 +70,7 @@ cpu.out
 /tests/*.ini
 /tests/**/*.git/**/*.sample
 /node_modules
+/.venv
 /yarn.lock
 /yarn-error.log
 /npm-debug.log*

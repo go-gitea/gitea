@@ -14,8 +14,8 @@
 					<span>{{.Source.TypeName}}</span>
 				</div>
 				<div class="required inline field {{if .Err_Name}}error{{end}}">
-					<label for="name">{{.locale.Tr "admin.auths.auth_name"}}</label>
-					<input id="name" name="name" value="{{.Source.Name}}" autofocus required>
+					<label for="auth_name">{{.locale.Tr "admin.auths.auth_name"}}</label>
+					<input id="auth_name" name="name" value="{{.Source.Name}}" autofocus required>
 				</div>
 
 				<!-- LDAP and DLDAP -->
@@ -36,11 +36,11 @@
 					</div>
 					<div class="required field">
 						<label for="host">{{.locale.Tr "admin.auths.host"}}</label>
-						<input id="host" name="host" value="{{$cfg.Host}}" placeholder="e.g. mydomain.com" required>
+						<input id="host" name="host" value="{{$cfg.Host}}" placeholder="mydomain.com" required>
 					</div>
 					<div class="required field">
 						<label for="port">{{.locale.Tr "admin.auths.port"}}</label>
-						<input id="port" name="port" value="{{$cfg.Port}}"  placeholder="e.g. 636" required>
+						<input id="port" name="port" value="{{$cfg.Port}}"  placeholder="636" required>
 					</div>
 					<div class="has-tls inline field {{if not .HasTLS}}gt-hidden{{end}}">
 						<div class="ui checkbox">
@@ -51,7 +51,7 @@
 					{{if .Source.IsLDAP}}
 						<div class="field">
 							<label for="bind_dn">{{.locale.Tr "admin.auths.bind_dn"}}</label>
-							<input id="bind_dn" name="bind_dn" value="{{$cfg.BindDN}}" placeholder="e.g. cn=Search,dc=mydomain,dc=com">
+							<input id="bind_dn" name="bind_dn" value="{{$cfg.BindDN}}" placeholder="cn=Search,dc=mydomain,dc=com">
 						</div>
 						<div class="field">
 							<label for="bind_password">{{.locale.Tr "admin.auths.bind_password"}}</label>
@@ -60,17 +60,17 @@
 					{{end}}
 					<div class="{{if .Source.IsLDAP}}required{{end}} field">
 							<label for="user_base">{{.locale.Tr "admin.auths.user_base"}}</label>
-							<input id="user_base" name="user_base" value="{{$cfg.UserBase}}" placeholder="e.g. ou=Users,dc=mydomain,dc=com" {{if .Source.IsLDAP}}required{{end}}>
+							<input id="user_base" name="user_base" value="{{$cfg.UserBase}}" placeholder="ou=Users,dc=mydomain,dc=com" {{if .Source.IsLDAP}}required{{end}}>
 					</div>
 					{{if .Source.IsDLDAP}}
 						<div class="required field">
 							<label for="user_dn">{{.locale.Tr "admin.auths.user_dn"}}</label>
-							<input id="user_dn" name="user_dn" value="{{$cfg.UserDN}}" placeholder="e.g. uid=%s,ou=Users,dc=mydomain,dc=com" required>
+							<input id="user_dn" name="user_dn" value="{{$cfg.UserDN}}" placeholder="uid=%s,ou=Users,dc=mydomain,dc=com" required>
 						</div>
 					{{end}}
 					<div class="required field">
 						<label for="filter">{{.locale.Tr "admin.auths.filter"}}</label>
-						<input id="filter" name="filter" value="{{$cfg.Filter}}" placeholder="e.g. (&(objectClass=posixAccount)(|(uid=%[1]s)(mail=%[1]s)))" required>
+						<input id="filter" name="filter" value="{{$cfg.Filter}}" placeholder="(&(objectClass=posixAccount)(|(uid=%[1]s)(mail=%[1]s)))" required>
 					</div>
 					<div class="field">
 						<label for="admin_filter">{{.locale.Tr "admin.auths.admin_filter"}}</label>
@@ -95,15 +95,15 @@
 					</div>
 					<div class="required field">
 						<label for="attribute_mail">{{.locale.Tr "admin.auths.attribute_mail"}}</label>
-						<input id="attribute_mail" name="attribute_mail" value="{{$cfg.AttributeMail}}" placeholder="e.g. mail" required>
+						<input id="attribute_mail" name="attribute_mail" value="{{$cfg.AttributeMail}}" placeholder="mail" required>
 					</div>
 					<div class="field">
 						<label for="attribute_ssh_public_key">{{.locale.Tr "admin.auths.attribute_ssh_public_key"}}</label>
-						<input id="attribute_ssh_public_key" name="attribute_ssh_public_key" value="{{$cfg.AttributeSSHPublicKey}}" placeholder="e.g. SshPublicKey">
+						<input id="attribute_ssh_public_key" name="attribute_ssh_public_key" value="{{$cfg.AttributeSSHPublicKey}}" placeholder="SshPublicKey">
 					</div>
 					<div class="field">
 						<label for="attribute_avatar">{{.locale.Tr "admin.auths.attribute_avatar"}}</label>
-						<input id="attribute_avatar" name="attribute_avatar" value="{{$cfg.AttributeAvatar}}" placeholder="e.g. jpegPhoto">
+						<input id="attribute_avatar" name="attribute_avatar" value="{{$cfg.AttributeAvatar}}" placeholder="jpegPhoto">
 					</div>
 
 
@@ -117,23 +117,23 @@
 					<div id="ldap-group-options" class="ui segment secondary {{if not $cfg.GroupsEnabled}}gt-hidden{{end}}">
 						<div class="field">
 							<label>{{.locale.Tr "admin.auths.group_search_base"}}</label>
-							<input name="group_dn" value="{{$cfg.GroupDN}}" placeholder="e.g. ou=group,dc=mydomain,dc=com">
+							<input name="group_dn" value="{{$cfg.GroupDN}}" placeholder="ou=group,dc=mydomain,dc=com">
 						</div>
 						<div class="field">
 							<label>{{.locale.Tr "admin.auths.group_attribute_list_users"}}</label>
-							<input name="group_member_uid" value="{{$cfg.GroupMemberUID}}" placeholder="e.g. memberUid">
+							<input name="group_member_uid" value="{{$cfg.GroupMemberUID}}" placeholder="memberUid">
 						</div>
 						<div class="field">
 							<label>{{.locale.Tr "admin.auths.user_attribute_in_group"}}</label>
-							<input name="user_uid" value="{{$cfg.UserUID}}" placeholder="e.g. uid">
+							<input name="user_uid" value="{{$cfg.UserUID}}" placeholder="uid">
 						</div>
 						<div class="field">
 							<label>{{.locale.Tr "admin.auths.verify_group_membership"}}</label>
-							<input name="group_filter" value="{{$cfg.GroupFilter}}" placeholder="e.g. (|(cn=gitea_users)(cn=admins))">
+							<input name="group_filter" value="{{$cfg.GroupFilter}}" placeholder="(|(cn=gitea_users)(cn=admins))">
 						</div>
 						<div class="field">
 							<label>{{.locale.Tr "admin.auths.map_group_to_team"}}</label>
-							<input name="group_team_map" value="{{$cfg.GroupTeamMap}}" placeholder='e.g. {"cn=my-group,cn=groups,dc=example,dc=org": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}'>
+							<textarea name="group_team_map" rows="5" placeholder='{"cn=my-group,cn=groups,dc=example,dc=org": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}'>{{$cfg.GroupTeamMap}}</textarea>
 						</div>
 						<div class="ui checkbox">
 							<label>{{.locale.Tr "admin.auths.map_group_to_team_removal"}}</label>
@@ -360,7 +360,7 @@
 					</div>
 					<div class="field">
 						<label>{{.locale.Tr "admin.auths.oauth2_map_group_to_team"}}</label>
-						<input name="oauth2_group_team_map" value="{{$cfg.GroupTeamMap}}" placeholder='e.g. {"Developer": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}'>
+						<textarea name="oauth2_group_team_map" rows="5" placeholder='{"Developer": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}'>{{$cfg.GroupTeamMap}}</textarea>
 					</div>
 					<div class="ui checkbox">
 						<label>{{.locale.Tr "admin.auths.oauth2_map_group_to_team_removal"}}</label>
@@ -433,6 +433,17 @@
 					<button class="ui red button delete-button" data-url="{{$.Link}}/delete" data-id="{{.Source.ID}}">{{.locale.Tr "admin.auths.delete"}}</button>
 				</div>
 			</form>
+		</div>
+
+		<h4 class="ui top attached header">
+			{{.locale.Tr "admin.auths.tips"}}
+		</h4>
+		<div class="ui attached segment">
+			<h5>GMail Settings:</h5>
+			<p>Host: smtp.gmail.com, Port: 587, Enable TLS Encryption: true</p>
+
+			<h5 class="oauth2">{{.locale.Tr "admin.auths.tips.oauth2.general"}}:</h5>
+			<p class="oauth2">{{.locale.Tr "admin.auths.tips.oauth2.general.tip"}} <b id="oauth2-callback-url"></b></p>
 		</div>
 	</div>
 

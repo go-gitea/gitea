@@ -249,7 +249,7 @@
 				{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{$.locale.Tr "repo.issues.start_tracking_history"  $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.start_tracking_history" $createdStr | Safe}}
 				</span>
 			</div>
 		{{else if eq .Type 13}}
@@ -258,7 +258,7 @@
 				{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{$.locale.Tr "repo.issues.stop_tracking_history"  $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.stop_tracking_history" $createdStr | Safe}}
 				</span>
 				{{template "repo/issue/view_content/comments_delete_time" dict "ctxData" $ "comment" .}}
 				<div class="detail">
@@ -272,7 +272,7 @@
 				{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{$.locale.Tr "repo.issues.add_time_history"  $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.add_time_history" $createdStr | Safe}}
 				</span>
 				{{template "repo/issue/view_content/comments_delete_time" dict "ctxData" $ "comment" .}}
 				<div class="detail">
@@ -286,7 +286,7 @@
 				{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{$.locale.Tr "repo.issues.cancel_tracking_history"  $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.cancel_tracking_history" $createdStr | Safe}}
 				</span>
 			</div>
 		{{else if eq .Type 16}}
@@ -672,7 +672,7 @@
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
 
-					{{$.locale.Tr "repo.issues.del_time_history"  $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.del_time_history" $createdStr | Safe}}
 				</span>
 				<div class="detail">
 					{{svg "octicon-clock"}}
@@ -719,7 +719,7 @@
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
 					{{if .IsForcePush}}
-						{{$.locale.Tr "repo.issues.force_push_codes" ($.Issue.PullRequest.HeadBranch|Escape) (ShortSha .OldCommit) (($.Issue.Repo.CommitLink .OldCommit)|Escape)  (ShortSha .NewCommit) (($.Issue.Repo.CommitLink .NewCommit)|Escape) $createdStr | Safe}}
+						{{$.locale.Tr "repo.issues.force_push_codes" ($.Issue.PullRequest.HeadBranch|Escape) (ShortSha .OldCommit) (($.Issue.Repo.CommitLink .OldCommit)|Escape) (ShortSha .NewCommit) (($.Issue.Repo.CommitLink .NewCommit)|Escape) $createdStr | Safe}}
 					{{else}}
 						{{$.locale.TrN (len .Commits) "repo.issues.push_commit_1" "repo.issues.push_commits_n" (len .Commits) $createdStr | Safe}}
 					{{end}}
