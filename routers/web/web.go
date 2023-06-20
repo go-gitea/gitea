@@ -1025,7 +1025,7 @@ func registerRoutes(m *web.Route) {
 			m.Post("/dismiss_review", reqRepoAdmin, web.Bind(forms.DismissReviewForm{}), repo.DismissReview)
 			m.Post("/status", reqRepoIssuesOrPullsWriter, repo.UpdateIssueStatus)
 			m.Post("/delete", reqRepoAdmin, repo.BatchDeleteIssues)
-      m.Post("/resolve_conversation", reqRepoIssuesOrPullsReader, repo.SetShowOutdatedComments, repo.UpdateResolveConversation)
+			m.Post("/resolve_conversation", reqRepoIssuesOrPullsReader, repo.SetShowOutdatedComments, repo.UpdateResolveConversation)
 			m.Post("/attachments", repo.UploadIssueAttachment)
 			m.Post("/attachments/remove", repo.DeleteAttachment)
 			m.Delete("/unpin/{index}", reqRepoAdmin, repo.IssueUnpin)
