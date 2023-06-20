@@ -287,7 +287,7 @@ func (n *actionsNotifier) NotifyPullRequestReview(ctx context.Context, pr *issue
 
 	permission, err := access_model.GetUserRepoPermission(ctx, review.Issue.Repo, review.Issue.Poster)
 	if err != nil {
-		log.Error("models.AccessLevel: %v", err)
+		log.Error("models.GetUserRepoPermission: %v", err)
 		return
 	}
 
@@ -327,7 +327,7 @@ func (*actionsNotifier) NotifyMergePullRequest(ctx context.Context, doer *user_m
 
 	permission, err := access_model.GetUserRepoPermission(ctx, pr.Issue.Repo, doer)
 	if err != nil {
-		log.Error("models.AccessLevel: %v", err)
+		log.Error("models.GetUserRepoPermission: %v", err)
 		return
 	}
 
