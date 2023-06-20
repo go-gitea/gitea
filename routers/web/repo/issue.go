@@ -1651,6 +1651,8 @@ func ViewIssue(ctx *context.Context) {
 			// drop error since times could be pruned from DB..
 			_ = comment.LoadTime()
 			if comment.Content != "" {
+				// Content before v1.21 did store the formated string instead of seconds,
+				// so "|" is used as delimeter to mark the new format
 				if comment.Content[0] != '|' {
 					// handle old time comments that have formatted text stored
 					comment.RenderedContent = comment.Content

@@ -68,16 +68,18 @@ func ToTimelineComment(ctx context.Context, c *issues_model.Comment, doer *user_
 		return nil
 	}
 
-	// for time tracking comments, we now store seconds
-	// so convert them for the API
 	if c.Content != "" {
 		if (c.Type == issues_model.CommentTypeAddTimeManual ||
 			c.Type == issues_model.CommentTypeStopTracking) &&
 			c.Content[0] == '|' {
+			// TimeTracking Comments from v1.21 on store the seconds instead of an formated string
+			// so we check for the "|" delimeter and convert new to legacy format on demand
 			i, _ := strconv.ParseInt(c.Content[1:], 10, 64)
 			c.Content = util.SecToTime(i)
 		} else if c.Type == issues_model.CommentTypeDeleteTimeManual &&
 			c.Content[0] != '-' {
+			// TimeTracking Comments from v1.21 on store the seconds instead of an formated string
+			// so we check for the legacy format via "-" indicator and convert new to legacy format on demand
 			i, _ := strconv.ParseInt(c.Content, 10, 64)
 			c.Content = "- " + util.SecToTime(i)
 		}
