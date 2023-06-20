@@ -38,7 +38,7 @@ func (su *StringUtils) EllipsisString(s string, max int) string {
 	return base.EllipsisString(s, max)
 }
 
-func (su *StringUtils) ToInt(s string, max int) int64 {
+func (su *StringUtils) ToInt(s string) int64 {
 	i, _ := strconv.ParseInt(s, 10, 64)
 	return i
 }
