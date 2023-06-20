@@ -10,9 +10,9 @@ import (
 
 // Permission represents a set of permissions
 type Permission struct {
-	Admin bool `json:"admin"`
-	Push  bool `json:"push"`
-	Pull  bool `json:"pull"`
+	Admin bool `json:"admin"` // Admin indicates if the user is an administrator of the repository.
+	Push  bool `json:"push"`  // Push indicates if the user can push code to the repository.
+	Pull  bool `json:"pull"`  // Pull indicates if the user can pull code from the repository.
 }
 
 // InternalTracker represents settings for internal tracker
