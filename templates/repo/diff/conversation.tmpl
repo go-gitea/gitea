@@ -10,7 +10,7 @@
 				{{svg "octicon-check" 16 "icon gt-mr-2"}}
 				<b>{{$resolveDoer.Name}}</b> {{$.locale.Tr "repo.issues.review.resolved_by"}}
 				{{if $invalid}}
-				  <!--
+					<!--
 					We only handle the case $resolved=true and $invalid=true in this template because if the comment is not resolved it has the outdated label in the comments area (not the header above).
 					The case $resolved=false and $invalid=true is handled in repo/diff/comments.tmpl
 					-->
