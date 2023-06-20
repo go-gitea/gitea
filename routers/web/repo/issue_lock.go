@@ -21,13 +21,13 @@ func LockIssue(ctx *context.Context) {
 
 	if issue.IsLocked {
 		ctx.Flash.Error(ctx.Tr("repo.issues.lock_duplicate"))
-		ctx.Redirect(issue.Link())
+		ctx.JSONRedirect(issue.Link())
 		return
 	}
 
 	if !form.HasValidReason() {
 		ctx.Flash.Error(ctx.Tr("repo.issues.lock.unknown_reason"))
-		ctx.Redirect(issue.Link())
+		ctx.JSONRedirect(issue.Link())
 		return
 	}
 
@@ -40,7 +40,7 @@ func LockIssue(ctx *context.Context) {
 		return
 	}
 
-	ctx.Redirect(issue.Link())
+	ctx.JSONRedirect(issue.Link())
 }
 
 // UnlockIssue unlocks a previously locked issue.
@@ -52,7 +52,7 @@ func UnlockIssue(ctx *context.Context) {
 
 	if !issue.IsLocked {
 		ctx.Flash.Error(ctx.Tr("repo.issues.unlock_error"))
-		ctx.Redirect(issue.Link())
+		ctx.JSONRedirect(issue.Link())
 		return
 	}
 
@@ -64,5 +64,5 @@ func UnlockIssue(ctx *context.Context) {
 		return
 	}
 
-	ctx.Redirect(issue.Link())
+	ctx.JSONRedirect(issue.Link())
 }
