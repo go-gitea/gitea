@@ -3,6 +3,7 @@ import {updateIssuesMeta} from './repo-issue.js';
 import {toggleElem} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
 import {Sortable} from 'sortablejs';
+import {confirmModal} from './comp/ConfirmModal.js';
 
 function initRepoIssueListCheckboxes() {
   const $issueSelectAll = $('.issue-checkbox-all');
@@ -36,19 +37,36 @@ function initRepoIssueListCheckboxes() {
 
   $('.issue-action').on('click', async function (e) {
     e.preventDefault();
+
+    const url = this.getAttribute('data-url');
     let action = this.getAttribute('data-action');
     let elementId = this.getAttribute('data-element-id');
-    const url = this.getAttribute('data-url');
-    const issueIDs = $('.issue-checkbox:checked').map((_, el) => {
-      return el.getAttribute('data-issue-id');
-    }).get().join(',');
-    if (elementId === '0' && url.slice(-9) === '/assignee') {
+    let issueIDs = [];
+    for (const el of document.querySelectorAll('.issue-checkbox:checked')) {
+      issueIDs.push(el.getAttribute('data-issue-id'));
+    }
+    issueIDs = issueIDs.join(',');
+    if (!issueIDs) return;
+
+    // for assignee
+    if (elementId === '0' && url.endsWith('/assignee')) {
       elementId = '';
       action = 'clear';
     }
+
+    // for toggle
     if (action === 'toggle' && e.altKey) {
       action = 'toggle-alt';
     }
+
+    // for delete
+    if (action === 'delete') {
+      const confirmText = e.target.getAttribute('data-action-delete-confirm');
+      if (!await confirmModal({content: confirmText, buttonColor: 'orange'})) {
+        return;
+      }
+    }
+
     updateIssuesMeta(
       url,
       action,
