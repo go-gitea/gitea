@@ -35,7 +35,6 @@ import (
 	"code.gitea.io/gitea/services/forms"
 
 	"gitea.com/go-chi/session"
-	"gopkg.in/ini.v1"
 )
 
 const (
@@ -117,7 +116,7 @@ func Install(ctx *context.Context) {
 	// Application general settings
 	form.AppName = setting.AppName
 	form.RepoRootPath = setting.RepoRootPath
-	form.LFSRootPath = setting.LFS.Path
+	form.LFSRootPath = setting.LFS.Storage.Path
 
 	// Note(unknown): it's hard for Windows users change a running user,
 	// 	so just use current one if config says default.
@@ -371,17 +370,11 @@ func SubmitInstall(ctx *context.Context) {
 	}
 
 	// Save settings.
-	cfg := ini.Empty()
-	isFile, err := util.IsFile(setting.CustomConf)
+	cfg, err := setting.NewConfigProviderFromFile(&setting.Options{CustomConf: setting.CustomConf, AllowEmpty: true})
 	if err != nil {
-		log.Error("Unable to check if %s is a file. Error: %v", setting.CustomConf, err)
+		log.Error("Failed to load custom conf '%s': %v", setting.CustomConf, err)
 	}
-	if isFile {
-		// Keeps custom settings if there is already something.
-		if err = cfg.Append(setting.CustomConf); err != nil {
-			log.Error("Failed to load custom conf '%s': %v", setting.CustomConf, err)
-		}
-	}
+
 	cfg.Section("database").Key("DB_TYPE").SetValue(setting.Database.Type.String())
 	cfg.Section("database").Key("HOST").SetValue(setting.Database.Host)
 	cfg.Section("database").Key("NAME").SetValue(setting.Database.Name)
@@ -400,6 +393,7 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("server").Key("DOMAIN").SetValue(form.Domain)
 	cfg.Section("server").Key("HTTP_PORT").SetValue(form.HTTPPort)
 	cfg.Section("server").Key("ROOT_URL").SetValue(form.AppURL)
+	cfg.Section("server").Key("APP_DATA_PATH").SetValue(setting.AppDataPath)
 
 	if form.SSHPort == 0 {
 		cfg.Section("server").Key("DISABLE_SSH").SetValue("true")
@@ -460,10 +454,9 @@ func SubmitInstall(ctx *context.Context) {
 
 	cfg.Section("session").Key("PROVIDER").SetValue("file")
 
-	cfg.Section("log").Key("MODE").SetValue("console")
+	cfg.Section("log").Key("MODE").MustString("console")
 	cfg.Section("log").Key("LEVEL").SetValue(setting.Log.Level.String())
 	cfg.Section("log").Key("ROOT_PATH").SetValue(form.LogRootPath)
-	cfg.Section("log").Key("ROUTER").SetValue("console")
 
 	cfg.Section("repository.pull-request").Key("DEFAULT_MERGE_STYLE").SetValue("merge")
 

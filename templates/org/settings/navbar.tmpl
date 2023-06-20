@@ -23,8 +23,8 @@
 		</a>
 		{{end}}
 		{{if .EnableActions}}
-		<div class="item">
-			{{.locale.Tr "actions.actions"}}
+		<details class="item toggleable-item" {{if or .PageIsSharedSettingsRunners .PageIsSharedSettingsSecrets}}open{{end}}>
+			<summary>{{.locale.Tr "actions.actions"}}</summary>
 			<div class="menu">
 				<a class="{{if .PageIsSharedSettingsRunners}}active {{end}}item" href="{{.OrgLink}}/settings/actions/runners">
 					{{.locale.Tr "actions.runners"}}
@@ -33,7 +33,7 @@
 					{{.locale.Tr "secrets.secrets"}}
 				</a>
 			</div>
-		</div>
+		</details>
 		{{end}}
 		<a class="{{if .PageIsSettingsDelete}}active {{end}}item" href="{{.OrgLink}}/settings/delete">
 			{{.locale.Tr "org.settings.delete"}}

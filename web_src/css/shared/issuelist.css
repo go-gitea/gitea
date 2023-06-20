@@ -145,7 +145,7 @@
 }
 
 .issue.list .branches .branch {
-  background-color: var(--color-secondary);
+  background-color: var(--color-secondary-alpha-40);
   border-radius: 3px;
 }
 

@@ -201,18 +201,20 @@ func Init(opts *Options) {
 		opts.CustomConf = CustomConf
 	}
 	var err error
-	CfgProvider, err = newConfigProviderFromFile(opts)
+	CfgProvider, err = NewConfigProviderFromFile(opts)
 	if err != nil {
-		log.Fatal("Init[%v]: %v", opts, err)
+		log.Fatal("newConfigProviderFromFile[%v]: %v", opts, err)
 	}
 	if !opts.DisableLoadCommonSettings {
-		loadCommonSettingsFrom(CfgProvider)
+		if err := loadCommonSettingsFrom(CfgProvider); err != nil {
+			log.Fatal("loadCommonSettingsFrom[%v]: %v", opts, err)
+		}
 	}
 }
 
 // loadCommonSettingsFrom loads common configurations from a configuration provider.
-func loadCommonSettingsFrom(cfg ConfigProvider) {
-	// WARNING: don't change the sequence except you know what you are doing.
+func loadCommonSettingsFrom(cfg ConfigProvider) error {
+	// WARNNING: don't change the sequence except you know what you are doing.
 	loadRunModeFrom(cfg)
 	loadLogGlobalFrom(cfg)
 	loadServerFrom(cfg)
@@ -222,13 +224,26 @@ func loadCommonSettingsFrom(cfg ConfigProvider) {
 
 	loadOAuth2From(cfg)
 	loadSecurityFrom(cfg)
-	loadAttachmentFrom(cfg)
-	loadLFSFrom(cfg)
+	if err := loadAttachmentFrom(cfg); err != nil {
+		return err
+	}
+	if err := loadLFSFrom(cfg); err != nil {
+		return err
+	}
 	loadTimeFrom(cfg)
 	loadRepositoryFrom(cfg)
-	loadPictureFrom(cfg)
-	loadPackagesFrom(cfg)
-	loadActionsFrom(cfg)
+	if err := loadAvatarsFrom(cfg); err != nil {
+		return err
+	}
+	if err := loadRepoAvatarFrom(cfg); err != nil {
+		return err
+	}
+	if err := loadPackagesFrom(cfg); err != nil {
+		return err
+	}
+	if err := loadActionsFrom(cfg); err != nil {
+		return err
+	}
 	loadUIFrom(cfg)
 	loadAdminFrom(cfg)
 	loadAPIFrom(cfg)
@@ -239,6 +254,7 @@ func loadCommonSettingsFrom(cfg ConfigProvider) {
 	loadMirrorFrom(cfg)
 	loadMarkupFrom(cfg)
 	loadOtherFrom(cfg)
+	return nil
 }
 
 func loadRunModeFrom(rootCfg ConfigProvider) {
@@ -246,7 +262,7 @@ func loadRunModeFrom(rootCfg ConfigProvider) {
 	RunUser = rootSec.Key("RUN_USER").MustString(user.CurrentUsername())
 	// The following is a purposefully undocumented option. Please do not run Gitea as root. It will only cause future headaches.
 	// Please don't use root as a bandaid to "fix" something that is broken, instead the broken thing should instead be fixed properly.
-	unsafeAllowRunAsRoot := rootSec.Key("I_AM_BEING_UNSAFE_RUNNING_AS_ROOT").MustBool(false)
+	unsafeAllowRunAsRoot := ConfigSectionKeyBool(rootSec, "I_AM_BEING_UNSAFE_RUNNING_AS_ROOT")
 	RunMode = os.Getenv("GITEA_RUN_MODE")
 	if RunMode == "" {
 		RunMode = rootSec.Key("RUN_MODE").MustString("prod")
