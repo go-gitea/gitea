@@ -24,7 +24,8 @@
             <p class="gt-font-12">
               <strong>{{ contributor.total }} commits </strong>
               <strong class="text green"
-                >{{ additions(contributor.weeks) }}++ </strong>
+                >{{ additions(contributor.weeks) }}++
+              </strong>
               <strong class="text red">
                 {{ deletions(contributor.weeks) }}--</strong
               >
@@ -92,8 +93,7 @@ const sfc = {
       },
     },
 
-    masterChartData:
-      window.config.pageData.repoContributorsCommitStats[""] || [],
+    masterChartData: window.config.pageData.repoContributorsCommitStats || [],
     individualChartsData:
       window.config.pageData.repoContributorsCommitStats || [],
   }),
@@ -103,11 +103,9 @@ const sfc = {
         datasets: [
           {
             label: "Number of commits",
-            data: Object.entries(this.masterChartData.weeks).map(
-              ([date, stats]) => {
-                return { x: date, y: stats.commits };
-              }
-            ),
+            data: this.masterChartData[""].weeks.map((i) => {
+              return { x: i.week, y: i.commits };
+            }),
             pointRadius: 0,
             pointHitRadius: 0,
             fill: "start",
@@ -121,10 +119,12 @@ const sfc = {
     },
     individualGraphData() {
       let { "": _, ...rest } = this.individualChartsData;
-      console.log(rest)
-      const data = Object.values(rest).sort((a, b) => a.total > b.total ? -1 : (a.total == b.total ? 0 : 1)).slice(0, 100);
-      console.log(data)
-      return data
+      console.log(rest);
+      const data = Object.values(rest)
+        .sort((a, b) => (a.total > b.total ? -1 : a.total == b.total ? 0 : 1))
+        .slice(0, 100);
+      console.log(data);
+      return data;
     },
   },
   methods: {
@@ -143,8 +143,8 @@ const sfc = {
         datasets: [
           {
             label: "Number of commits",
-            data: Object.entries(data).map(([date, stats]) => {
-              return { x: date, y: stats.commits };
+            data: data.map((i) => {
+              return { x: i.week, y: i.commits };
             }),
             pointRadius: 0,
             pointHitRadius: 0,
@@ -161,7 +161,7 @@ const sfc = {
 };
 
 export function initRepoContributorsChart() {
-  const el = document.getElementById("repo-contributors-master-chart");
+  const el = document.getElementById("repo-contributors-chart");
   if (el) {
     createApp(sfc).mount(el);
   }

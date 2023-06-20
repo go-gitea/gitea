@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-func ListSundaysBetween(startStr, endStr string) ([]string, error) {
+func ListSundaysBetween(startStr, endStr string) ([]int64, error) {
 	layout := "2006-01-02"
 	startDate, err := time.Parse(layout, startStr)
 	if err != nil {
@@ -21,11 +21,11 @@ func ListSundaysBetween(startStr, endStr string) ([]string, error) {
 		startDate = startDate.AddDate(0, 0, 1)
 	}
 
-	var sundays []string
+	var sundays []int64
 
 	// Iterate from start date to end date and find all Sundays
 	for currentDate := startDate; currentDate.Before(endDate); currentDate = currentDate.AddDate(0, 0, 7) {
-		sundays = append(sundays, currentDate.Format(layout))
+		sundays = append(sundays, currentDate.Unix())
 	}
 
 	return sundays, nil

@@ -1,39 +1,43 @@
 package contributors
 
 import (
-	"code.gitea.io/gitea/modules/json"
-	"context"
-	"fmt"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	util "code.gitea.io/gitea/modules/util"
+	"context"
+	"fmt"
+	"time"
 )
 
 type WeekData struct {
-	Additions int `json:"additions"`
-	Deletions int `json:"deletions"`
-	Commits int `json:"commits"`
+	Week      int64 `json:"week"`
+	Additions int    `json:"additions"`
+	Deletions int    `json:"deletions"`
+	Commits   int    `json:"commits"`
 }
 
 // ContributorData represents statistical git commit count data
 type ContributorData struct {
-	Name       string               `json:"name"`
-	Login      string               `json:"login"`
-	AvatarLink string               `json:"avatar_link"`
-	HomeLink   string               `json:"home_link"`
-	Total      int64                `json:"total"`
-	Weeks      map[string]*WeekData `json:"weeks"`
+	Name       string      `json:"name"`
+	Login      string      `json:"login"`
+	AvatarLink string      `json:"avatar_link"`
+	HomeLink   string      `json:"home_link"`
+	Total      int64       `json:"total"`
+	Weeks      []*WeekData `json:"weeks"`
 }
 
-func CreateWeeks(sundays []string) map[string]*WeekData {
-	weeks := make(map[string]*WeekData)
+func CreateWeeks(sundays []int64) []*WeekData {
+	var weeks []*WeekData
 	for _, week := range sundays {
-		weeks[week] = &WeekData{
+		weeks = append(weeks, &WeekData{
+			Week:      week,
 			Additions: 0,
 			Deletions: 0,
-			Commits: 0,
-		}
+			Commits:   0,
+		},
+		)
 	}
 	return weeks
 }
@@ -94,16 +98,21 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository) (map[
 		// Update user statistics
 		user, _ := contributors_commit_stats[v.Author.Email]
 		starting_of_week, _ := util.FindLastSundayBeforeDate(v.Author.Date)
-		user.Weeks[starting_of_week].Additions += v.Stats.Additions
-		user.Weeks[starting_of_week].Deletions += v.Stats.Deletions
-		user.Weeks[starting_of_week].Commits++
+
+		layout := "2006-01-02"
+    val, _ := time.Parse(layout, starting_of_week)
+		starting_sunday_p, _ := time.Parse(layout, starting_sunday)
+		idx := int(val.Sub(starting_sunday_p).Hours()/24)/7
+		user.Weeks[idx].Additions += v.Stats.Additions
+		user.Weeks[idx].Deletions += v.Stats.Deletions
+		user.Weeks[idx].Commits++
 		user.Total++
 
 		// Update overall statistics
 		total, _ := contributors_commit_stats[""]
-		total.Weeks[starting_of_week].Additions += v.Stats.Additions
-		total.Weeks[starting_of_week].Deletions += v.Stats.Deletions
-		total.Weeks[starting_of_week].Commits++
+		total.Weeks[idx].Additions += v.Stats.Additions
+		total.Weeks[idx].Deletions += v.Stats.Deletions
+		total.Weeks[idx].Commits++
 		total.Total++
 	}
 
