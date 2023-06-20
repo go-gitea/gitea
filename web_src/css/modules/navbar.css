@@ -32,7 +32,6 @@
   padding-bottom: 3px;
   display: flex;
   justify-content: center;
-  width: auto;
 }
 
 #navbar a.item:hover,
@@ -65,9 +64,11 @@
   #navbar .navbar-mobile-right {
     display: flex;
     margin-left: auto !important;
+    width: auto !important;
   }
   #navbar .navbar-mobile-right > .item {
     display: flex;
+    width: auto !important;
   }
   /* show items if the navbar is open */
   #navbar.navbar-menu-open {
