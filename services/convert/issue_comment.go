@@ -5,12 +5,14 @@ package convert
 
 import (
 	"context"
+	"strconv"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ToComment converts a issues_model.Comment to the api.Comment format
@@ -64,6 +66,22 @@ func ToTimelineComment(ctx context.Context, c *issues_model.Comment, doer *user_
 	if err != nil {
 		log.Error("LoadLabel: %v", err)
 		return nil
+	}
+
+	// for time tracking comments, we now store seconds
+	// so convert them for the API
+	if c.Content != "" {
+		if (c.Type == issues_model.CommentTypeAddTimeManual ||
+			c.Type == issues_model.CommentTypeStopTracking) &&
+			c.Content[0] == '|' {
+			i, _ := strconv.ParseInt(c.Content[1:], 10, 64)
+			c.Content = util.SecToTime(i)
+		} else if c.Type == issues_model.CommentTypeDeleteTimeManual {
+			if c.Content[0] != '-' {
+				i, _ := strconv.ParseInt(c.Content, 10, 64)
+				c.Content = "- " + util.SecToTime(i)
+			}
+		}
 	}
 
 	comment := &api.TimelineComment{
