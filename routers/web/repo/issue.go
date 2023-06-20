@@ -2711,6 +2711,20 @@ func ListIssues(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, issues))
 }
 
+func BatchDeleteIssues(ctx *context.Context) {
+	issues := getActionIssues(ctx)
+	if ctx.Written() {
+		return
+	}
+	for _, issue := range issues {
+		if err := issue_service.DeleteIssue(ctx, ctx.Doer, ctx.Repo.GitRepo, issue); err != nil {
+			ctx.ServerError("DeleteIssue", err)
+			return
+		}
+	}
+	ctx.JSONOK()
+}
+
 // UpdateIssueStatus change issue's status
 func UpdateIssueStatus(ctx *context.Context) {
 	issues := getActionIssues(ctx)
@@ -2746,9 +2760,7 @@ func UpdateIssueStatus(ctx *context.Context) {
 			}
 		}
 	}
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }
 
 // NewComment create a comment for issue
