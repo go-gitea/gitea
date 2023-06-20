@@ -5,7 +5,8 @@
     // installs nodejs into container
     "ghcr.io/devcontainers/features/node:1": {
       "version":"20"
-    }
+    },
+    "ghcr.io/devcontainers/features/git-lfs:1.1.0": {}
   },
   "customizations": {
     "vscode": {
