@@ -76,11 +76,10 @@ func ToTimelineComment(ctx context.Context, c *issues_model.Comment, doer *user_
 			c.Content[0] == '|' {
 			i, _ := strconv.ParseInt(c.Content[1:], 10, 64)
 			c.Content = util.SecToTime(i)
-		} else if c.Type == issues_model.CommentTypeDeleteTimeManual {
-			if c.Content[0] != '-' {
-				i, _ := strconv.ParseInt(c.Content, 10, 64)
-				c.Content = "- " + util.SecToTime(i)
-			}
+		} else if c.Type == issues_model.CommentTypeDeleteTimeManual &&
+			c.Content[0] != '-' {
+			i, _ := strconv.ParseInt(c.Content, 10, 64)
+			c.Content = "- " + util.SecToTime(i)
 		}
 	}
 
