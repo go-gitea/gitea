@@ -100,6 +100,7 @@ const sfc = {
     },
 
     masterChartData: window.config.pageData.repoContributorsCommitStats || [],
+    type: window.config.pageData.contributionType,
     individualChartsData:
       window.config.pageData.repoContributorsCommitStats || [],
   }),
@@ -109,7 +110,7 @@ const sfc = {
         datasets: [
           {
             data: this.masterChartData[""].weeks.map((i) => {
-              return { x: i.week * 1000, y: i.commits };
+              return { x: i.week * 1000, y: i[this.type] };
             }),
             pointRadius: 0,
             pointHitRadius: 0,
@@ -148,7 +149,7 @@ const sfc = {
         datasets: [
           {
             data: data.map((i) => {
-              return { x: i.week * 1000, y: i.commits };
+              return { x: i.week * 1000, y: i[this.type] };
             }),
             pointRadius: 0,
             pointHitRadius: 0,

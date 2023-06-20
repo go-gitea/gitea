@@ -24,6 +24,7 @@ func Contributors(ctx *context.Context) {
 	if ctx.Data["ContributionType"] == "" {
 		ctx.Data["ContributionType"] = "commits"
 	}
+	ctx.PageData["contributionType"] = ctx.Data["ContributionType"]
 
 	timeUntil := time.Now()
 	var timeFrom time.Time
