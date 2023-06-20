@@ -1246,7 +1246,7 @@ func registerRoutes(m *web.Route) {
 
 		m.Group("/contributors", func() {
 			m.Get("", repo.Contributors)
-			m.Get("/{period}", repo.Contributors)
+			m.Get("/{contribution_type}", repo.Contributors)
 		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(unit.TypePullRequests, unit.TypeIssues, unit.TypeReleases))
 
 		m.Group("/archive", func() {

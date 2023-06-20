@@ -20,33 +20,18 @@ func Contributors(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.activity")
 	ctx.Data["PageIsContributors"] = true
 
-	ctx.Data["Period"] = ctx.Params("period")
+	ctx.Data["ContributionType"] = ctx.Params("contribution_type")
+	if ctx.Data["ContributionType"] == "" {
+		ctx.Data["ContributionType"] = "commits"
+	}
 
 	timeUntil := time.Now()
 	var timeFrom time.Time
 
-	switch ctx.Data["Period"] {
-	case "daily":
-		timeFrom = timeUntil.Add(-time.Hour * 24)
-	case "halfweekly":
-		timeFrom = timeUntil.Add(-time.Hour * 72)
-	case "weekly":
-		timeFrom = timeUntil.Add(-time.Hour * 168)
-	case "monthly":
-		timeFrom = timeUntil.AddDate(0, -1, 0)
-	case "quarterly":
-		timeFrom = timeUntil.AddDate(0, -3, 0)
-	case "semiyearly":
-		timeFrom = timeUntil.AddDate(0, -6, 0)
-	case "yearly":
-		timeFrom = timeUntil.AddDate(-1, 0, 0)
-	default:
-		ctx.Data["Period"] = "weekly"
-		timeFrom = timeUntil.Add(-time.Hour * 168)
-	}
+	timeFrom = timeUntil.Add(-time.Hour * 24)
 	ctx.Data["DateFrom"] = timeFrom.UTC().Format(time.RFC3339)
 	ctx.Data["DateUntil"] = timeUntil.UTC().Format(time.RFC3339)
-	ctx.Data["PeriodText"] = ctx.Tr("repo.activity.period." + ctx.Data["Period"].(string))
+	ctx.Data["ContributionTypeText"] = ctx.Tr("repo.contributors.contribution_type." + ctx.Data["ContributionType"].(string))
 
 	var err error
 	if ctx.Data["Activity"], err = activities_model.GetActivityStats(ctx, ctx.Repo.Repository, timeFrom,
