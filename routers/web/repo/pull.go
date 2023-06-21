@@ -401,17 +401,15 @@ func GetPullDiffStats(ctx *context.Context) {
 	}
 
 	var methodWithError string
-	var diff *gitdiff.Diff
+	var diff *gitdiff.PullDiffStats
 
-	diff, err = gitdiff.GetDiff(gitRepo, diffOptions)
-	methodWithError = "GetDiff"
+	diff, err = gitdiff.GetPullDiffStats(gitRepo, diffOptions)
+	methodWithError = "GetPullDiffStats"
 
 	if err != nil {
 		ctx.ServerError(methodWithError, err)
 		return
 	}
-
-	diff.Files = nil
 
 	ctx.Data["Diff"] = diff
 }
