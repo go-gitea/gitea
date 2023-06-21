@@ -88,6 +88,7 @@ const sfc = {
     options() {
       return {
         responsive: true,
+        animation: false,
         plugins: {
           legend: {
             display: false,
