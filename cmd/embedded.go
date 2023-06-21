@@ -99,11 +99,6 @@ type assetFile struct {
 func initEmbeddedExtractor(c *cli.Context) error {
 	setupConsoleLogger(log.ERROR, log.CanColorStderr, os.Stderr)
 
-	// Read configuration file
-	setting.Init(&setting.Options{
-		AllowEmpty: true,
-	})
-
 	patterns, err := compileCollectPatterns(c.Args())
 	if err != nil {
 		return err

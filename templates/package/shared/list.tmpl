@@ -38,7 +38,7 @@
 		{{else}}
 			{{if not .HasPackages}}
 				<div class="empty center">
-					{{svg "octicon-package" 32}}
+					{{svg "octicon-package" 48}}
 					<h2>{{.locale.Tr "packages.empty"}}</h2>
 					{{if and .Repository .CanWritePackages}}
 						{{$packagesUrl := URLJoin .Owner.HomeLink "-" "packages"}}
