@@ -77,8 +77,7 @@ ChartJS.register(
 const sfc = {
   components: { Line },
   data: () => ({
-    data: {
-    },
+    data: {},
 
     masterChartData: window.config.pageData.repoContributorsCommitStats || [],
     type: window.config.pageData.contributionType,
@@ -98,6 +97,19 @@ const sfc = {
               enabled: true,
               mode: "x",
               threshold: 20,
+
+              onPan: function (event) {
+                var minVal = event.chart.options.scales.x.min;
+                var maxVal = event.chart.options.scales.x.max;
+
+                Object.values(ChartJS.instances).forEach(function (instance) {
+                  if (instance !== event.chart){
+                    instance.options.scales.x.min = minVal;
+                    instance.options.scales.x.max = maxVal;
+                    instance.update();
+                  }
+                });
+              },
             },
             limits: {
               x: {
@@ -114,6 +126,20 @@ const sfc = {
                 enabled: true,
               },
               mode: "x",
+
+              onZoomComplete: function (event) {
+                var minVal = event.chart.options.scales.x.min;
+                var maxVal = event.chart.options.scales.x.max;
+
+                Object.values(ChartJS.instances).forEach(function (instance) {
+                  if (instance !== event.chart){
+                    instance.options.scales.x.min = minVal;
+                    instance.options.scales.x.max = maxVal;
+                    instance.update();
+                  }
+                });
+              },
+
             },
           },
         },
@@ -130,7 +156,7 @@ const sfc = {
             max: this.maxMainGraph(),
           },
         },
-      }
+      };
     },
     mainGraphData() {
       return {
@@ -162,12 +188,14 @@ const sfc = {
   },
   methods: {
     maxMainGraph() {
-      const maxValue = Math.max(...this.masterChartData[""].weeks.map(o => o[this.type]))
-      const [cooefficient, exp] = maxValue.toExponential().split('e')
+      const maxValue = Math.max(
+        ...this.masterChartData[""].weeks.map((o) => o[this.type])
+      );
+      const [cooefficient, exp] = maxValue.toExponential().split("e");
       if (Number(cooefficient) % 1 == 0) {
-        return maxValue
+        return maxValue;
       }
-      return (1 - Number(cooefficient) % 1) * 10 ** Number(exp) + maxValue
+      return (1 - (Number(cooefficient) % 1)) * 10 ** Number(exp) + maxValue;
     },
     additions(data) {
       return Object.values(data).reduce((acc, item) => {
