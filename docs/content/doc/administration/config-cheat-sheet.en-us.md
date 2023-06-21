@@ -1013,7 +1013,7 @@ Default templates for project boards:
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
 - `ENABLE_SUCCESS_NOTICE`: **true**: Set to false to switch off success notices.
 - `SCHEDULE`: **@every 168h**: Cron syntax for scheduling a work, e.g. `@every 168h`.
-- `HTTP_ENDPOINT`: **https://dl.gitea.io/gitea/version.json**: the endpoint that Gitea will check for newer versions
+- `HTTP_ENDPOINT`: **https://dl.gitea.com/gitea/version.json**: the endpoint that Gitea will check for newer versions
 
 #### Cron -  Delete all old system notices from database (`cron.delete_old_system_notices`)
 
