@@ -174,6 +174,12 @@ func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
 		return false
 	}
 
+	if setting.Database.Type == "mysql" && setting.Database.Charset != "utf8mb4" {
+		ctx.Data["Err_DbCharset"] = true
+		ctx.RenderWithErr(ctx.Tr("install.err_mysql_charset_must_utf8mb4"), tplInstall, form)
+		return false
+	}
+
 	// Check if the user is trying to re-install in an installed database
 	db.UnsetDefaultEngine()
 	defer db.UnsetDefaultEngine()

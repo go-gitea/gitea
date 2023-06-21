@@ -70,7 +70,7 @@
 					</div>
 
 					<div class="gt-hidden" data-db-setting-for="mysql">
-						<div class="inline required field">
+						<div class="inline required field {{if .Err_DbCharset}}error{{end}}">
 							<label>{{.locale.Tr "install.charset"}}</label>
 							<div class="ui selection database type dropdown">
 								<input type="hidden" name="charset" value="{{if .charset}}{{.charset}}{{else}}utf8mb4{{end}}">
