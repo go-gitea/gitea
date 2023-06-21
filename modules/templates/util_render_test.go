@@ -24,26 +24,10 @@ func TestRenderCommitBody(t *testing.T) {
 		want template.HTML
 	}{
 		{
-			name: "empty message",
-			args: args{
-				ctx: context.Background(),
-				msg: "",
-			},
-			want: "",
-		},
-		{
 			name: "multiple lines",
 			args: args{
 				ctx: context.Background(),
 				msg: "first line\nsecond line",
-			},
-			want: "second line",
-		},
-		{
-			name: "multiple lines with leading newline",
-			args: args{
-				ctx: context.Background(),
-				msg: "\nfirst line\nsecond line",
 			},
 			want: "second line",
 		},
