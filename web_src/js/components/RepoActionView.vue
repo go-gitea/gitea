@@ -208,10 +208,6 @@ const sfc = {
     this.loadJob();
     this.intervalID = setInterval(this.loadJob, 1000);
     document.body.addEventListener('click', this.closeDropdown);
-    this.hashChangeListener = () => {
-      this.selectedLog = window.location.hash;
-      this.expandSelectedLog();
-    };
     // this.hashChangeListener();
     window.addEventListener('hashchange', this.hashChangeListener);
   },
@@ -437,13 +433,22 @@ const sfc = {
         actionBodyEl.append(fullScreenEl);
       }
     },
-    
+    hashChangeListener() {
+      this.selectedLog = window.location.hash;
+      this.expandSelectedLog();
+    },
     expandSelectedLog() {
       const [_, step, line] = this.selectedLog.split('-');
       console.log(step, line, this.currentJobStepsStates[step]);
       if (this.currentJobStepsStates[step] && !this.currentJobStepsStates[step].expanded) toggleStepLogs(step);
       const logline = document.querySelector(`${this.selectedLog}`);
+      const logSummary = logline.parentElement.parentElement.previousElementSibling;
       console.log(logline);
+      console.log(logSummary, logSummary.offsetTop);
+      window.scrollTo({
+        top: logSummary.offsetTop - 60,
+        behavior: 'instant'
+      });
     }
   },
 };
