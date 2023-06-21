@@ -67,7 +67,7 @@ func loadDBSetting(rootCfg ConfigProvider) {
 	}
 	Database.Schema = sec.Key("SCHEMA").String()
 	Database.SSLMode = sec.Key("SSL_MODE").MustString("disable")
-	Database.MysqlCharset = sec.Key("MYSQL_CHARSET").MustString("utf8mb4")
+	Database.MysqlCharset = sec.Key("MYSQL_CHARSET").MustString("utf8mb4") // do not document it, end users won't need it.
 
 	Database.Path = sec.Key("PATH").MustString(filepath.Join(AppDataPath, "gitea.db"))
 	Database.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
