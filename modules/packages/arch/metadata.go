@@ -258,3 +258,21 @@ func PackDb(src, dst string) error {
 	}
 	return os.Symlink(dst, symlink)
 }
+
+// Join database or package names to prevent collisions with same packages in
+// different user spaces. Skips empty strings and returns name joined with
+// dots.
+func Join(s ...string) string {
+	rez := ""
+	for i, v := range s {
+		if v == "" {
+			continue
+		}
+		if i+1 == len(s) {
+			rez += v
+			continue
+		}
+		rez += v + "."
+	}
+	return rez
+}

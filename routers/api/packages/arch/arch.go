@@ -4,91 +4,32 @@
 package arch
 
 import (
-	"bytes"
 	"encoding/hex"
-	"errors"
-	"fmt"
 	"io"
 	"net/http"
-	"os"
-	"path"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	packages_model "code.gitea.io/gitea/models/packages"
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/json"
-	packages_module "code.gitea.io/gitea/modules/packages"
 	arch_module "code.gitea.io/gitea/modules/packages/arch"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/routers/api/packages/helper"
-	packages_service "code.gitea.io/gitea/services/packages"
-
-	"github.com/ProtonMail/gopenpgp/v2/crypto"
-	"github.com/google/uuid"
+	arch_service "code.gitea.io/gitea/services/packages/arch"
 )
 
 // Push new package to arch package registry.
 func Push(ctx *context.Context) {
-	// Creating connector that will help with keys/blobs.
-	connector := Connector{ctx: ctx}
-
-	// Getting some information related to package from headers.
-	filename := ctx.Req.Header.Get("filename")
-	email := ctx.Req.Header.Get("email")
-	sign := ctx.Req.Header.Get("sign")
-	owner := ctx.Req.Header.Get("owner")
-	distro := ctx.Req.Header.Get("distro")
+	var (
+		filename = ctx.Req.Header.Get("filename")
+		email    = ctx.Req.Header.Get("email")
+		sign     = ctx.Req.Header.Get("sign")
+		owner    = ctx.Req.Header.Get("owner")
+		distro   = ctx.Req.Header.Get("distro")
+	)
 
 	// Decoding package signature.
 	sigdata, err := hex.DecodeString(sign)
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
-		return
-	}
-	pgpsig := crypto.NewPGPSignature(sigdata)
-
-	// Validating that user is allowed to push to specified namespace.
-	err = connector.ValidateNamespace(owner, email)
-	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
-		return
-	}
-
-	// Getting GPG keys related to specific user. After keys have been recieved,
-	// this function will find one key related to email provided in request.
-	armoredKeys, err := connector.GetValidKeys(email)
-	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
-		return
-	}
-	var matchedKeyring *crypto.KeyRing
-	for _, armor := range armoredKeys {
-		pgpkey, err := crypto.NewKeyFromArmored(armor)
-		if err != nil {
-			apiError(ctx, http.StatusBadRequest, err)
-			return
-		}
-		keyring, err := crypto.NewKeyRing(pgpkey)
-		if err != nil {
-			apiError(ctx, http.StatusBadRequest, err)
-			return
-		}
-		for _, idnt := range keyring.GetIdentities() {
-			if idnt.Email == email {
-				matchedKeyring = keyring
-				break
-			}
-		}
-		if matchedKeyring != nil {
-			break
-		}
-	}
-	if matchedKeyring == nil {
-		msg := "GPG key related to " + email + " not found"
-		apiError(ctx, http.StatusBadRequest, msg)
 		return
 	}
 
@@ -100,23 +41,19 @@ func Push(ctx *context.Context) {
 	}
 	defer ctx.Req.Body.Close()
 
-	pgpmes := crypto.NewPlainMessage(pkgdata)
-
-	// Validate package signature with user's GPG key related to his email.
-	err = matchedKeyring.VerifyDetached(pgpmes, pgpsig, crypto.GetUnixTime())
+	// Get user and organization owning arch package.
+	user, org, err := arch_service.IdentifyOwner(ctx, owner, email)
 	if err != nil {
-		apiError(ctx, http.StatusUnauthorized, "unable to validate package signature")
+		apiError(ctx, http.StatusUnauthorized, err)
 		return
 	}
 
-	// Create temporary directory for arch database operations.
-	tmpdir := path.Join(setting.Repository.Upload.TempPath, uuid.New().String())
-	err = os.MkdirAll(tmpdir, os.ModePerm)
+	// Validate package signature with user's GnuPG key.
+	err = arch_service.ValidatePackageSignature(ctx, pkgdata, sigdata, user)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, "unable to create tmp path")
+		apiError(ctx, http.StatusUnauthorized, err)
 		return
 	}
-	defer os.RemoveAll(tmpdir)
 
 	// Parse metadata contained in arch package archive.
 	md, err := arch_module.EjectMetadata(filename, setting.Domain, pkgdata)
@@ -125,211 +62,43 @@ func Push(ctx *context.Context) {
 		return
 	}
 
-	// Arch database related filenames, pathes and folders.
-	dbname := Join(owner, distro, setting.Domain, "db.tar.gz")
-	dbpath := path.Join(tmpdir, dbname)
-	dbfolder := path.Join(tmpdir, dbname) + ".folder"
-	dbsymlink := strings.TrimSuffix(dbname, ".tar.gz")
-	dbsymlinkpath := path.Join(tmpdir, dbsymlink)
-
-	// Get existing arch package database, related to specific userspace from
-	// file storage, and save it on disk, then unpack it's contents to related
-	// folder. If database is not found in storage, create empty directory to
-	// store package related information.
-	dbdata, err := connector.Get(dbname)
-	if err == nil {
-		err = os.WriteFile(dbpath, dbdata, os.ModePerm)
-		if err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
-		err = arch_module.UnpackDb(dbpath, dbfolder)
-		if err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
-	}
-	if err != nil {
-		err = os.MkdirAll(dbfolder, os.ModePerm)
-		if err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
-	}
-
-	// Update database folder with metadata for new package.
-	err = md.PutToDb(dbfolder, os.ModePerm)
+	// Get package property from DB if exists/create new one.
+	dbpkg, err := arch_service.CreateGetPackage(ctx, org, md.Name)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	// Create database archive and related symlink.
-	err = arch_module.PackDb(dbfolder, dbpath)
+	// Create or get package version from DB if exists/create new one.
+	dbpkgver, err := arch_service.CreateGetPackageVersion(ctx, md, dbpkg, user)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	// Save namespace related arch repository database.
-	f, err := os.Open(dbpath)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	defer f.Close()
-	dbfi, err := f.Stat()
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	err = connector.Save(dbname, f, dbfi.Size())
+	// Automatically connect repository for provided package if name matched.
+	err = arch_service.RepositoryAutoconnect(ctx, owner, md.Name, dbpkg)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	// Save namespace related arch repository db archive.
-	f, err = os.Open(dbsymlinkpath)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	defer f.Close()
-	dbarchivefi, err := f.Stat()
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	err = connector.Save(dbsymlink, f, dbarchivefi.Size())
+	// Save package file data to gitea storage and update database.
+	err = arch_service.SavePackageFile(ctx, pkgdata, distro, filename, dbpkgver.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	// Create package in database.
-	pkg, err := packages_model.TryInsertPackage(ctx, &packages_model.Package{
-		OwnerID:   connector.org.ID,
-		Type:      packages_model.TypeArch,
-		Name:      md.Name,
-		LowerName: strings.ToLower(md.Name),
-	})
-	if errors.Is(err, packages_model.ErrDuplicatePackage) {
-		pkg, err = packages_model.GetPackageByName(
-			ctx, connector.org.ID,
-			packages_model.TypeArch, md.Name,
-		)
-		if err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
-	}
+	// Save package signature data to gitea storage and update database.
+	err = arch_service.SavePackageFile(ctx, sigdata, distro, filename+".sig", dbpkgver.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	// Check if repository for package with provided owner exists.
-	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, owner, md.Name)
-	if err == nil {
-		err = packages_model.SetRepositoryLink(ctx, pkg.ID, repo.ID)
-		if err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
-	}
-
-	// Create new package version in database.
-	rawjsonmetadata, err := json.Marshal(&md)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	ver, err := packages_model.GetOrInsertVersion(ctx, &packages_model.PackageVersion{
-		PackageID:    pkg.ID,
-		CreatorID:    connector.org.ID,
-		Version:      md.Version,
-		LowerVersion: strings.ToLower(md.Version),
-		CreatedUnix:  timeutil.TimeStampNow(),
-		MetadataJSON: string(rawjsonmetadata),
-	})
-	if err != nil {
-		if errors.Is(err, packages_model.ErrDuplicatePackageVersion) {
-			apiError(ctx, http.StatusConflict, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	// Create package blob and db file for package file.
-	pkgreader := bytes.NewReader(pkgdata)
-	fbuf, err := packages_module.CreateHashedBufferFromReader(pkgreader)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	defer fbuf.Close()
-
-	filepb, ok, err := packages_model.GetOrInsertBlob(
-		ctx, packages_service.NewPackageBlob(fbuf),
-	)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, fmt.Errorf("%v %t", err, ok))
-		return
-	}
-	err = connector.Save(filepb.HashSHA256, fbuf, filepb.Size)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	_, err = packages_model.TryInsertFile(ctx, &packages_model.PackageFile{
-		VersionID:    ver.ID,
-		BlobID:       filepb.ID,
-		Name:         filename,
-		LowerName:    strings.ToLower(filename),
-		CompositeKey: distro + "-" + filename,
-		IsLead:       true,
-		CreatedUnix:  timeutil.TimeStampNow(),
-	})
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	// Create package blob for package signature.
-	sigreader := bytes.NewReader(sigdata)
-	sbuf, err := packages_module.CreateHashedBufferFromReader(sigreader)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	defer fbuf.Close()
-
-	sigpb, ok, err := packages_model.GetOrInsertBlob(
-		ctx, packages_service.NewPackageBlob(sbuf),
-	)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, fmt.Errorf("%v %t", err, ok))
-		return
-	}
-	err = connector.Save(sigpb.HashSHA256, sbuf, sigpb.Size)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	_, err = packages_model.TryInsertFile(ctx, &packages_model.PackageFile{
-		VersionID:    ver.ID,
-		BlobID:       sigpb.ID,
-		Name:         filename + ".sig",
-		LowerName:    strings.ToLower(filename + ".sig"),
-		CompositeKey: distro + "-" + filename + ".sig",
-		IsLead:       false,
-		CreatedUnix:  timeutil.TimeStampNow(),
-	})
+	// Update pacman databases with new package.
+	err = arch_service.UpdatePacmanDatabases(ctx, md, distro, owner)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -340,65 +109,38 @@ func Push(ctx *context.Context) {
 
 // Get file from arch package registry.
 func Get(ctx *context.Context) {
-	filename := ctx.Params("file")
-	owner := ctx.Params("owner")
-	distro := ctx.Params("distro")
-	// arch := ctx.Params("arch")
+	var (
+		file   = ctx.Params("file")
+		owner  = ctx.Params("owner")
+		distro = ctx.Params("distro")
+		arch   = ctx.Params("arch")
+	)
 
-	cs := packages_module.NewContentStore()
-
-	if strings.HasSuffix(filename, "tar.zst") || strings.HasSuffix(filename, "zst.sig") {
-		db := db.GetEngine(ctx)
-
-		pkgfile := &packages_model.PackageFile{
-			CompositeKey: distro + "-" + filename,
-		}
-		ok, err := db.Get(pkgfile)
-		if err != nil || !ok {
-			apiError(
-				ctx, http.StatusInternalServerError,
-				fmt.Errorf("%+v %t", err, ok),
-			)
-			return
-		}
-
-		blob, err := packages_model.GetBlobByID(ctx, pkgfile.BlobID)
-		if err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
-
-		obj, err := cs.Get(packages_module.BlobHash256Key(blob.HashSHA256))
-		if err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
-
-		data, err := io.ReadAll(obj)
-		if err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
-
-		_, err = ctx.Resp.Write(data)
-		if err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
-		ctx.Resp.WriteHeader(http.StatusOK)
-
-		return
-	}
-	if strings.HasSuffix(filename, ".db.tar.gz") || strings.HasSuffix(filename, ".db") {
-		filename = strings.TrimPrefix(filename, owner+".")
-		obj, err := cs.Get(packages_module.BlobHash256Key(Join(owner, distro, filename)))
+	// Packages are stored in different way from pacman databases, and loaded
+	// with LoadPackageFile function.
+	if strings.HasSuffix(file, "tar.zst") || strings.HasSuffix(file, "zst.sig") {
+		pkgdata, err := arch_service.LoadPackageFile(ctx, distro, file)
 		if err != nil {
 			apiError(ctx, http.StatusNotFound, err)
+			return
 		}
 
-		data, err := io.ReadAll(obj)
+		_, err = ctx.Resp.Write(pkgdata)
 		if err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+
+		ctx.Resp.WriteHeader(http.StatusOK)
+		return
+	}
+
+	// Pacman databases are stored directly in gitea file storage and could be
+	// loaded with name as a key.
+	if strings.HasSuffix(file, ".db.tar.gz") || strings.HasSuffix(file, ".db") {
+		data, err := arch_service.LoadPacmanDatabase(ctx, owner, distro, arch, file)
+		if err != nil {
+			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
 

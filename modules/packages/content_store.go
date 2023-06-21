@@ -4,6 +4,7 @@
 package packages
 
 import (
+	"bytes"
 	"io"
 	"path"
 	"strings"
@@ -62,4 +63,18 @@ func RelativePathToKey(relativePath string) (BlobHash256Key, error) {
 	}
 
 	return BlobHash256Key(parts[2]), nil
+}
+
+// Save data with specified string key.
+func (s *ContentStore) SaveStrBytes(key string, data []byte) error {
+	return s.Save(BlobHash256Key(key), bytes.NewReader(data), int64(len(data)))
+}
+
+// Get data related to provided key.
+func (s *ContentStore) GetStrBytes(key string) ([]byte, error) {
+	obj, err := s.Get(BlobHash256Key(key))
+	if err != nil {
+		return nil, err
+	}
+	return io.ReadAll(obj)
 }
