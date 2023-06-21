@@ -279,7 +279,6 @@ func GetAllCommits(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, &apiCommits)
 }
 
-
 // GetAllCommitsStats get all commits via
 func GetAllCommitsStats(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/commits/stats repository repoGetAllCommitsStats
@@ -321,8 +320,8 @@ func GetAllCommitsStats(ctx *context.APIContext) {
 	sha := ctx.FormString("sha")
 
 	var (
-		commits           []*api.ExtendedCommitStats
-		err               error
+		commits []*api.ExtendedCommitStats
+		err     error
 	)
 
 	if len(sha) == 0 {

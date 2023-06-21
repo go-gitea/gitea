@@ -29,7 +29,7 @@ func Contributors(ctx *context.Context) {
 	if contributor_stats, err := contributors_model.GetContributorStats(ctx, ctx.Repo.Repository); err != nil {
 		ctx.ServerError("GetContributorStats", err)
 		return
-	} else{
+	} else {
 		ctx.PageData["repoContributorsCommitStats"] = contributor_stats
 		timeUntil := time.Now()
 		timeFrom := time.UnixMilli(contributor_stats[""].Weeks[0].Week)
@@ -38,7 +38,6 @@ func Contributors(ctx *context.Context) {
 		ctx.Data["DateUntil"] = timeUntil.UTC().Format(time.RFC3339)
 		// contributor_stats[""].Weeks.(map[string]interface{})
 	}
-
 
 	ctx.HTML(http.StatusOK, tplContributors)
 }

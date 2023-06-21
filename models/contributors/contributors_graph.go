@@ -13,9 +13,9 @@ import (
 
 type WeekData struct {
 	Week      int64 `json:"week"`
-	Additions int    `json:"additions"`
-	Deletions int    `json:"deletions"`
-	Commits   int    `json:"commits"`
+	Additions int   `json:"additions"`
+	Deletions int   `json:"deletions"`
+	Commits   int   `json:"commits"`
 }
 
 // ContributorData represents statistical git commit count data
@@ -59,7 +59,6 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository) (map[
 	layout := "2006-01-02"
 	initial_commit_date := extended_commit_stats[0].Author.Date
 
-
 	starting_sunday, _ := util.FindLastSundayBeforeDate(initial_commit_date)
 	ending_sunday, _ := util.FindFirstSundayAfterDate(time.Now().Format(layout))
 
@@ -100,9 +99,9 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository) (map[
 		user, _ := contributors_commit_stats[v.Author.Email]
 		starting_of_week, _ := util.FindLastSundayBeforeDate(v.Author.Date)
 
-    val, _ := time.Parse(layout, starting_of_week)
+		val, _ := time.Parse(layout, starting_of_week)
 		starting_sunday_p, _ := time.Parse(layout, starting_sunday)
-		idx := int(val.Sub(starting_sunday_p).Hours()/24)/7
+		idx := int(val.Sub(starting_sunday_p).Hours()/24) / 7
 		user.Weeks[idx].Additions += v.Stats.Additions
 		user.Weeks[idx].Deletions += v.Stats.Deletions
 		user.Weeks[idx].Commits++

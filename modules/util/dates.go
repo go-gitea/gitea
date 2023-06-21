@@ -49,7 +49,6 @@ func FindLastSundayBeforeDate(dateStr string) (string, error) {
 	return last_sunday.Format(layout), nil
 }
 
-
 func FindFirstSundayAfterDate(dateStr string) (string, error) {
 	layout := "2006-01-02"
 
@@ -59,10 +58,10 @@ func FindFirstSundayAfterDate(dateStr string) (string, error) {
 	}
 
 	weekday := date.Weekday()
-  daysToAdd := int(time.Sunday) - int(weekday)
-  if daysToAdd <= 0 {
-    daysToAdd += 7
-  }
+	daysToAdd := int(time.Sunday) - int(weekday)
+	if daysToAdd <= 0 {
+		daysToAdd += 7
+	}
 
 	first_sunday := date.AddDate(0, 0, daysToAdd)
 	return first_sunday.Format(layout), nil

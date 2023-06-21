@@ -15,9 +15,9 @@ import (
 	"strconv"
 	"strings"
 
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // GetBranchCommitID returns last commit ID string of given branch.
@@ -224,7 +224,6 @@ type CommitsByFileAndRangeOptions struct {
 	Page     int
 }
 
-
 // ExtendedCommitStats return the list of *api.ExtendedCommitStats for the given revision
 func (repo *Repository) ExtendedCommitStats(revision string, limit int) ([]*api.ExtendedCommitStats, error) {
 	var baseCommit *Commit
@@ -239,9 +238,8 @@ func (repo *Repository) ExtendedCommitStats(revision string, limit int) ([]*api.
 	}()
 
 	gitCmd := NewCommand(repo.Ctx, "log", "--shortstat", "--no-merges", "--pretty=format:%aN%n%aE%n%as", "--reverse")
-		// AddOptionFormat("--max-count=%d", limit)
+	// AddOptionFormat("--max-count=%d", limit)
 	gitCmd.AddDynamicArguments(baseCommit.ID.String())
-
 
 	var extended_commit_stats []*api.ExtendedCommitStats
 	stderr := new(strings.Builder)
@@ -290,7 +288,7 @@ func (repo *Repository) ExtendedCommitStats(revision string, limit int) ([]*api.
 				res := &api.ExtendedCommitStats{
 					Author: &api.CommitUser{
 						Identity: api.Identity{
-							Name: author_name,
+							Name:  author_name,
 							Email: author_email,
 						},
 						Date: date,
@@ -299,7 +297,7 @@ func (repo *Repository) ExtendedCommitStats(revision string, limit int) ([]*api.
 				}
 				extended_commit_stats = append(extended_commit_stats, res)
 
-				}
+			}
 			_ = stdoutReader.Close()
 			return nil
 		},

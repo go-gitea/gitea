@@ -60,8 +60,8 @@ type Commit struct {
 
 // ExtendedCommitStats contains information for commit stats with author data
 type ExtendedCommitStats struct {
-	Author  *CommitUser   `json:"author"`
-	Stats	  *CommitStats  `json:"stats"`
+	Author *CommitUser  `json:"author"`
+	Stats  *CommitStats `json:"stats"`
 }
 
 // CommitDateOptions store dates for GIT_AUTHOR_DATE and GIT_COMMITTER_DATE
