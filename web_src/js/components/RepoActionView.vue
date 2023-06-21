@@ -154,6 +154,7 @@ const sfc = {
         'log-time-stamp': false,
         'log-time-seconds': false,
       },
+      selectedLog: "",
 
       // provided by backend
       run: {
@@ -207,6 +208,12 @@ const sfc = {
     this.loadJob();
     this.intervalID = setInterval(this.loadJob, 1000);
     document.body.addEventListener('click', this.closeDropdown);
+    this.hashChangeListener = () => {
+      this.selectedLog = window.location.hash;
+      this.expandSelectedLog();
+    };
+    this.hashChangeListener();
+    window.addEventListener('hashchange', this.hashChangeListener);
   },
 
   beforeUnmount() {
@@ -278,14 +285,16 @@ const sfc = {
       this.fetchPost(`${this.run.link}/approve`);
     },
 
-    createLogLine(line, startTime) {
+    createLogLine(line, startTime, stepIndex) {
       const div = document.createElement('div');
       div.classList.add('job-log-line');
       div._jobLogTime = line.timestamp;
 
-      const lineNumber = document.createElement('div');
+      const lineNumber = document.createElement('a');
       lineNumber.className = 'line-num';
       lineNumber.textContent = line.index;
+      lineNumber.setAttribute('id', `step-${stepIndex}-${line.index}`);
+      lineNumber.setAttribute('href', `${this.run.link}/jobs/${this.runIndex}#step-${stepIndex}-${line.index}`);
       div.append(lineNumber);
 
       // for "Show timestamps"
@@ -316,7 +325,7 @@ const sfc = {
       for (const line of logLines) {
         // TODO: group support: ##[group]GroupTitle , ##[endgroup]
         const el = this.getLogsContainer(stepIndex);
-        el.append(this.createLogLine(line, startTime));
+        el.append(this.createLogLine(line, startTime, stepIndex));
       }
     },
 
@@ -427,6 +436,14 @@ const sfc = {
       } else {
         actionBodyEl.append(fullScreenEl);
       }
+    },
+    
+    expandSelectedLog() {
+      const [_, step, line] = this.selectedLog.split('-');
+      console.log(step, line, this.currentJobStepsStates[step]);
+      if (this.currentJobStepsStates[step] && !this.currentJobStepsStates[step].expanded) toggleStepLogs(step);
+      const logline = document.querySelector(`${this.selectedLog}`);
+      console.log(logline);
     }
   },
 };
@@ -851,6 +868,10 @@ export function ansiLogToHTML(line) {
   color: var(--color-grey-light);
   text-align: right;
   user-select: none;
+}
+
+.line-num:target, .line-num:hover {
+  color: var(--color-primary);
 }
 
 .log-time-seconds {
