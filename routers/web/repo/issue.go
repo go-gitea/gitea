@@ -312,7 +312,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	ctx.Data["Assignees"] = makeSelfOnTop(ctx, assigneeUsers)
+	ctx.Data["Assignees"] = MakeSelfOnTop(ctx, assigneeUsers)
 
 	handleTeamMentions(ctx)
 	if ctx.Written() {
@@ -508,7 +508,7 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	ctx.Data["Assignees"] = makeSelfOnTop(ctx, assigneeUsers)
+	ctx.Data["Assignees"] = MakeSelfOnTop(ctx, assigneeUsers)
 
 	handleTeamMentions(ctx)
 }
@@ -2705,6 +2705,20 @@ func ListIssues(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, issues))
 }
 
+func BatchDeleteIssues(ctx *context.Context) {
+	issues := getActionIssues(ctx)
+	if ctx.Written() {
+		return
+	}
+	for _, issue := range issues {
+		if err := issue_service.DeleteIssue(ctx, ctx.Doer, ctx.Repo.GitRepo, issue); err != nil {
+			ctx.ServerError("DeleteIssue", err)
+			return
+		}
+	}
+	ctx.JSONOK()
+}
+
 // UpdateIssueStatus change issue's status
 func UpdateIssueStatus(ctx *context.Context) {
 	issues := getActionIssues(ctx)
@@ -2740,9 +2754,7 @@ func UpdateIssueStatus(ctx *context.Context) {
 			}
 		}
 	}
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }
 
 // NewComment create a comment for issue
@@ -3475,7 +3487,7 @@ func IssuePosters(ctx *context.Context) {
 		}
 	}
 
-	posters = makeSelfOnTop(ctx, posters)
+	posters = MakeSelfOnTop(ctx, posters)
 
 	resp := &userSearchResponse{}
 	resp.Results = make([]*userSearchInfo, len(posters))
