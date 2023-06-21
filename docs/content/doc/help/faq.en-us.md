@@ -396,8 +396,6 @@ Please run `gitea convert`, or run `ALTER DATABASE database_name CHARACTER SET u
 for the database_name and run `ALTER TABLE table_name CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`
 for each table in the database.
 
-You will also need to change the app.ini database charset to `CHARSET=utf8mb4`.
-
 ## Why are Emoji displaying only as placeholders or in monochrome
 
 Gitea requires the system or browser to have one of the supported Emoji fonts installed, which are Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji and Twemoji Mozilla. Generally, the operating system should already provide one of these fonts, but especially on Linux, it may be necessary to install them manually.
