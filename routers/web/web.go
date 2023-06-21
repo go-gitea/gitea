@@ -870,6 +870,7 @@ func registerRoutes(m *web.Route) {
 
 	// ***** Release Attachment Download without Signin
 	m.Get("/{username}/{reponame}/releases/download/{vTag}/{fileName}", ignSignIn, context.RepoAssignment, repo.MustBeNotEmpty, repo.RedirectDownload)
+	m.Get("/{username}/{reponame}/releases/download-latest/{fileName}", ignSignIn, context.RepoAssignment, repo.MustBeNotEmpty, repo.RedirectDownloadLatest)
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("/settings", func() {

@@ -367,6 +367,34 @@ func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
 	return nil
 }
 
+// RedirectDownload return a file from the latest of the repo releases:
+func RedirectDownloadLatest(ctx *context.Context) {
+	var (
+		fileName = ctx.Params("fileName")
+	)
+	curRepo := ctx.Repo.Repository
+	release, err := repo_model.GetLatestReleaseByRepoID(curRepo.ID)
+	if err != nil {
+		if repo_model.IsErrAttachmentNotExist(err) {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+		ctx.ServerError("RedirectDownloadLatest", err)
+		return
+	}
+
+	att, err := repo_model.GetAttachmentByReleaseIDFileName(ctx, release.ID, fileName)
+	if err != nil {
+		ctx.Error(http.StatusNotFound)
+		return
+	}
+	if att != nil {
+		ServeAttachment(ctx, att.UUID)
+		return
+	}
+	ctx.Error(http.StatusNotFound)
+}
+
 // RedirectDownload return a file based on the following infos:
 func RedirectDownload(ctx *context.Context) {
 	var (
