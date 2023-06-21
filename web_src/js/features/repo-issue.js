@@ -87,40 +87,7 @@ export function initRepoIssueDue() {
 }
 
 export function initRepoIssueSidebarList() {
-  const repolink = $('#repolink').val();
-  const repoId = $('#repoId').val();
-  const crossRepoSearch = $('#crossRepoSearch').val();
-  const tp = $('#type').val();
-  let issueSearchUrl = `${appSubUrl}/${repolink}/issues/search?q={query}&type=${tp}`;
-  if (crossRepoSearch === 'true') {
-    issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${repoId}&type=${tp}`;
-  }
-  $('#new-dependency-drop-list')
-    .dropdown({
-      apiSettings: {
-        url: issueSearchUrl,
-        onResponse(response) {
-          const filteredResponse = {success: true, results: []};
-          const currIssueId = $('#new-dependency-drop-list').data('issue-id');
-          // Parse the response from the api to work with our dropdown
-          $.each(response, (_i, issue) => {
-            // Don't list current issue in the dependency list.
-            if (issue.id === currIssueId) {
-              return;
-            }
-            filteredResponse.results.push({
-              name: `#${issue.number} ${htmlEscape(issue.title)
-              }<div class="text small dont-break-out">${htmlEscape(issue.repository.full_name)}</div>`,
-              value: issue.id,
-            });
-          });
-          return filteredResponse;
-        },
-        cache: false,
-      },
-
-      fullTextSearch: true,
-    });
+  initIssueSearchDropdown('#new-dependency-drop-list');
 
   function excludeLabel(item) {
     const href = $(item).attr('href');
@@ -150,6 +117,43 @@ export function initRepoIssueSidebarList() {
     }
   });
   $('.ui.dropdown.label-filter, .ui.dropdown.select-label').dropdown('setting', {'hideDividers': 'empty'}).dropdown('refreshItems');
+}
+
+function initIssueSearchDropdown(selector) {
+  const repolink = $('#repolink').val();
+  const repoId = $('#repoId').val();
+  const crossRepoSearch = $('#crossRepoSearch').val();
+  const tp = $('#type').val();
+  let issueSearchUrl = `${appSubUrl}/${repolink}/issues/search?q={query}&type=${tp}`;
+  if (crossRepoSearch === 'true') {
+    issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${repoId}&type=${tp}`;
+  }
+  $(selector)
+    .dropdown({
+      apiSettings: {
+        url: issueSearchUrl,
+        onResponse(response) {
+          const filteredResponse = {success: true, results: []};
+          const currIssueId = $(selector).data('issue-id');
+          // Parse the response from the api to work with our dropdown
+          $.each(response, (_i, issue) => {
+            // Don't list current issue in the dependency list.
+            if (issue.id === currIssueId) {
+              return;
+            }
+            filteredResponse.results.push({
+              name: `#${issue.number} ${htmlEscape(issue.title)
+              }<div class="text small dont-break-out">${htmlEscape(issue.repository.full_name)}</div>`,
+              value: issue.id,
+            });
+          });
+          return filteredResponse;
+        },
+        cache: false,
+      },
+
+      fullTextSearch: true,
+    });
 }
 
 export function initRepoIssueCommentDelete() {
@@ -690,6 +694,15 @@ function initRepoIssueStateButton() {
 
   const $statusDropdown = $('#status-dropdown');
   const selectedValue = $statusDropdown.find('input[type=hidden]').val();
+
+  $statusButton.on('click', function (e) {
+    if ($statusDropdown.find('input[type=hidden]').val() !== "4") return;
+    // if click the button of "close as duplicate", show modal to let users select issue firstly.
+    e.preventDefault();
+    initIssueSearchDropdown('#duplicate-issues-list');
+    const $duplicateModal = $('#duplicate-issue-modal');
+    $duplicateModal.modal('show');
+  });
 
   const onCloseStatusChanged = (val) => {
     const editor = getComboMarkdownEditor($('#comment-form .combo-markdown-editor'));

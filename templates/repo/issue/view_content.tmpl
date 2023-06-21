@@ -227,3 +227,25 @@
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>
+}}
+
+<div class="ui mini modal" id="duplicate-issue-modal">
+	<div class="header">{{.locale.Tr "repo.issues.duplicate.header"}}</div>
+	<form class="ui form form-fetch-action" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/comments" method="post">
+		<input type="hidden" name="status" value="close">
+		<input type="hidden" name="closed_status" value="4">
+		<div class="content">
+			{{.CsrfTokenHtml}}
+			<div class="field">
+				<label for="duplicate-issues-list">{{.locale.Tr "repo.issues.duplicate.label"}}</label>
+				<div class="ui search selection dropdown" id="duplicate-issues-list" data-issue-id="{{.Issue.ID}}">
+					<input name="duplicate_issue_id" type="hidden">
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+					<input type="text" class="search">
+					<div class="default text">{{.locale.Tr "repo.issues.duplicate.header"}}</div>
+				</div>
+			</div>
+		</div>
+		{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonTypes" "confirm")}}
+	</form>
+</div>
