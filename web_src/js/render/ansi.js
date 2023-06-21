@@ -8,7 +8,8 @@ const replacements = [
 // render ANSI to HTML
 export function renderAnsi(line) {
   // create a fresh ansi_up instance because otherwise previous renders can influence
-  // the output of future renders, like with <span> wrappings
+  // the output of future renders, because ansi_up is stateful and remembers things like
+  // unclosed opening tags for colors.
   const ansi_up = new (AnsiUp.default || AnsiUp)();
 
   if (line.endsWith('\r\n')) {
