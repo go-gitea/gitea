@@ -135,13 +135,14 @@ type Issue struct {
 	Milestone        *Milestone             `xorm:"-"`
 	Project          *project_model.Project `xorm:"-"`
 	Priority         int
-	AssigneeID       int64            `xorm:"-"`
-	Assignee         *user_model.User `xorm:"-"`
-	IsClosed         bool             `xorm:"INDEX"`
-	ClosedStatus     IssueClosedStatus
-	IsRead           bool         `xorm:"-"`
-	IsPull           bool         `xorm:"INDEX"` // Indicates whether is a pull request or not.
-	PullRequest      *PullRequest `xorm:"-"`
+	AssigneeID       int64             `xorm:"-"`
+	Assignee         *user_model.User  `xorm:"-"`
+	IsClosed         bool              `xorm:"INDEX"`
+	ClosedStatus     IssueClosedStatus `xorm:"INDEX NOT NULL"`
+	DuplicateIssueID int64             `xorm:"INDEX NOT NULL"`
+	IsRead           bool              `xorm:"-"`
+	IsPull           bool              `xorm:"INDEX"` // Indicates whether is a pull request or not.
+	PullRequest      *PullRequest      `xorm:"-"`
 	NumComments      int
 	Ref              string
 	PinOrder         int `xorm:"DEFAULT 0"`
