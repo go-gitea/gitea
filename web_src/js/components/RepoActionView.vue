@@ -119,13 +119,11 @@
 import {SvgIcon} from '../svg.js';
 import ActionRunStatus from './ActionRunStatus.vue';
 import {createApp} from 'vue';
-import AnsiUp from 'ansi_up';
 import {toggleElem} from '../utils/dom.js';
 import {getCurrentLocale} from '../utils.js';
+import {renderAnsi} from '../render/ansi.js';
 
 const {csrfToken} = window.config;
-
-const ansi_up = new AnsiUp();
 
 const sfc = {
   name: 'RepoActionView',
@@ -304,7 +302,7 @@ const sfc = {
 
       const logMessage = document.createElement('span');
       logMessage.className = 'log-msg';
-      logMessage.innerHTML = ansiLogToHTML(line.message);
+      logMessage.innerHTML = renderAnsi(line.message);
       div.append(logTimeStamp);
       div.append(logMessage);
       div.append(logTimeSeconds);
@@ -468,32 +466,6 @@ export function initRepositoryActionView() {
     }
   });
   view.mount(el);
-}
-
-export function ansiLogToHTML(line) {
-  if (line.endsWith('\r\n')) {
-    line = line.substring(0, line.length - 2);
-  } else if (line.endsWith('\n')) {
-    line = line.substring(0, line.length - 1);
-  }
-
-  if (!line.includes('\r')) {
-    return ansi_up.ansi_to_html(line);
-  }
-
-  // handle "\rReading...1%\rReading...5%\rReading...100%",
-  // convert it into a multiple-line string: "Reading...1%\nReading...5%\nReading...100%"
-  const lines = [];
-  for (const part of line.split('\r')) {
-    if (part === '') continue;
-    const partHtml = ansi_up.ansi_to_html(part);
-    if (partHtml !== '') {
-      lines.push(partHtml);
-    }
-  }
-
-  // the log message element is with "white-space: break-spaces;", so use "\n" to break lines
-  return lines.join('\n');
 }
 
 </script>
