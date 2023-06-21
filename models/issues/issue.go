@@ -138,8 +138,8 @@ type Issue struct {
 	AssigneeID       int64             `xorm:"-"`
 	Assignee         *user_model.User  `xorm:"-"`
 	IsClosed         bool              `xorm:"INDEX"`
-	ClosedStatus     IssueClosedStatus `xorm:"INDEX NOT NULL"`
-	DuplicateIssueID int64             `xorm:"INDEX NOT NULL"`
+	ClosedStatus     IssueClosedStatus `xorm:"INDEX NOT NULL DEFAULT 0"`
+	DuplicateIssueID int64             `xorm:"NOT NULL DEFAULT 0"`
 	IsRead           bool              `xorm:"-"`
 	IsPull           bool              `xorm:"INDEX"` // Indicates whether is a pull request or not.
 	PullRequest      *PullRequest      `xorm:"-"`
