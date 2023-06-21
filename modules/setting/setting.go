@@ -95,6 +95,7 @@ func InitCfgProvider(file string, extraConfigs ...string) {
 	if CfgProvider, err = NewConfigProviderFromFile(file, extraConfigs...); err != nil {
 		log.Fatal("Unable to init config provider from %q: %v", file, err)
 	}
+	CfgProvider.DisableSaving() // do not allow saving the CfgProvider into file, it will be polluted by the "MustXxx" calls
 }
 
 func MustInstalled() {

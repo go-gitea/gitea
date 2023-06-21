@@ -4,6 +4,7 @@
 package setting
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -52,6 +53,8 @@ type ConfigProvider interface {
 	Save() error
 	SaveTo(filename string) error
 
+	DisableSaving()
+	PrepareSaving() (ConfigProvider, error)
 	IsLoadedFromEmpty() bool
 }
 
@@ -59,6 +62,7 @@ type iniConfigProvider struct {
 	file string
 	ini  *ini.File
 
+	disableSaving bool
 	loadedFromEmpty bool // whether the file has not existed previously
 }
 
@@ -186,7 +190,7 @@ func NewConfigProviderFromData(configContent string) (ConfigProvider, error) {
 // NewConfigProviderFromFile load configuration from file.
 // NOTE: do not print any log except error.
 func NewConfigProviderFromFile(file string, extraConfigs ...string) (ConfigProvider, error) {
-	cfg := ini.Empty()
+	cfg := ini.Empty(ini.LoadOptions{KeyValueDelimiterOnWrite: " = "})
 	loadedFromEmpty := true
 
 	if file != "" {
@@ -245,8 +249,13 @@ func (p *iniConfigProvider) GetSection(name string) (ConfigSection, error) {
 	return &iniConfigSection{sec: sec}, nil
 }
 
+var errDisableSaving = errors.New("this config can't be saved, developers should prepare a new config to save")
+
 // Save saves the content into file
 func (p *iniConfigProvider) Save() error {
+	if p.disableSaving {
+		return errDisableSaving
+	}
 	filename := p.file
 	if filename == "" {
 		return fmt.Errorf("config file path must not be empty")
@@ -275,7 +284,27 @@ func (p *iniConfigProvider) Save() error {
 }
 
 func (p *iniConfigProvider) SaveTo(filename string) error {
+	if p.disableSaving {
+		return errDisableSaving
+	}
 	return p.ini.SaveTo(filename)
+}
+
+// DisableSaving disables the saving function, use PrepareSaving to get clear config options.
+func (p *iniConfigProvider) DisableSaving() {
+	p.disableSaving = true
+}
+
+// PrepareSaving loads the ini from file again to get clear config options.
+// Otherwise, the "MustXxx" calls would have polluted the current config provider,
+// it makes the "Save" outputs a lot of garbage options
+// After the INI package gets refactored, no "MustXxx" pollution, this workaround can be dropped.
+func (p *iniConfigProvider) PrepareSaving() (ConfigProvider, error) {
+	cfgFile := p.opts.CustomConf
+	if cfgFile == "" {
+		return nil, errors.New("no config file to save")
+	}
+	return NewConfigProviderFromFile(p.opts)
 }
 
 func (p *iniConfigProvider) IsLoadedFromEmpty() bool {
