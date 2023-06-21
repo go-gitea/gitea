@@ -412,6 +412,8 @@ func GetPullDiffStats(ctx *context.Context) {
 		return
 	}
 
+	diff.Files = nil
+
 	ctx.Data["Diff"] = diff
 }
 
