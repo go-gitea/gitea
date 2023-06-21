@@ -203,13 +203,14 @@ const sfc = {
     };
   },
 
-  mounted() {
+  async mounted() {
     // load job data and then auto-reload periodically
-    this.loadJob();
+    await this.loadJob();
     this.intervalID = setInterval(this.loadJob, 1000);
     document.body.addEventListener('click', this.closeDropdown);
-    // this.hashChangeListener();
     window.addEventListener('hashchange', this.hashChangeListener);
+    console.log('here');
+    this.hashChangeListener();
   },
 
   beforeUnmount() {
@@ -439,16 +440,15 @@ const sfc = {
     },
     expandSelectedLog() {
       const [_, step, line] = this.selectedLog.split('-');
-      console.log(step, line, this.currentJobStepsStates[step]);
-      if (this.currentJobStepsStates[step] && !this.currentJobStepsStates[step].expanded) toggleStepLogs(step);
-      const logline = document.querySelector(`${this.selectedLog}`);
-      const logSummary = logline.parentElement.parentElement.previousElementSibling;
-      console.log(logline);
-      console.log(logSummary, logSummary.offsetTop);
-      window.scrollTo({
-        top: logSummary.offsetTop - 60,
-        behavior: 'instant'
-      });
+      const logSummary = this.$refs.steps.querySelector(`.job-step-section:nth-of-type(${parseInt(step) - 1}) > .job-step-summary`);
+      console.log(step, line, this.currentJobStepsStates[step], this.selectedLog);
+      console.log(logSummary);
+      if (!this.currentJobStepsStates[step]) {
+        logSummary.click();
+      }
+      if (this.currentJobStepsStates[step] && !this.currentJobStepsStates[step].expanded) this.toggleStepLogs(step);
+      console.log(this.$refs.steps.querySelector(`${this.selectedLog}`));
+      this.$refs.steps.querySelector(`${this.selectedLog}`).click();
     }
   },
 };
