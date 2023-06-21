@@ -20,6 +20,7 @@
     "asciinema-player": "3.4.0",
     "chart.js": "4.3.0",
     "chartjs-adapter-dayjs-4": "1.0.4",
+    "chartjs-plugin-zoom": "2.0.1",
     "clippie": "4.0.1",
     "css-loader": "6.8.1",
     "dayjs": "1.11.8",

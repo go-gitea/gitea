@@ -1,6 +1,6 @@
 <template>
   <div>
-    <Line :data="mainGraphData" :options="data.options" />
+    <Line :data="mainGraphData" :options="options" />
 
     <div class="ui attached segment two column grid">
       <div
@@ -9,7 +9,7 @@
         class="column stats-table"
       >
         <div class="ui top attached header gt-df gt-f1">
-          <b class="ui right">#{{index + 1}}</b>
+          <b class="ui right">#{{ index + 1 }}</b>
           <a :href="contributor.home_link">
             <img
               height="40"
@@ -34,7 +34,7 @@
           </div>
         </div>
         <div class="ui attached segment">
-          <Line :data="graph(contributor.weeks)" :options="data.options" />
+          <Line :data="graph(contributor.weeks)" :options="options" />
         </div>
       </div>
     </div>
@@ -56,6 +56,7 @@ import {
   LineElement,
   Filler,
 } from "chart.js";
+import zoomPlugin from "chartjs-plugin-zoom";
 import { Bar, Line } from "vue-chartjs";
 import "chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm";
 
@@ -69,34 +70,14 @@ ChartJS.register(
   Legend,
   PointElement,
   LineElement,
-  Filler
+  Filler,
+  zoomPlugin
 );
 
 const sfc = {
   components: { Line },
   data: () => ({
     data: {
-      options: {
-        responsive: true,
-        plugins: {
-          legend: {
-            display: false,
-          }
-        },
-        scales: {
-          x: {
-            // min: '2021-11-06',
-            type: "time",
-            time: {
-              // unit: 'year'
-              minUnit: "day",
-            },
-          },
-          y: {
-            min: 0,
-          },
-        },
-      },
     },
 
     masterChartData: window.config.pageData.repoContributorsCommitStats || [],
@@ -105,6 +86,52 @@ const sfc = {
       window.config.pageData.repoContributorsCommitStats || [],
   }),
   computed: {
+    options() {
+      return {
+        responsive: true,
+        plugins: {
+          legend: {
+            display: false,
+          },
+          zoom: {
+            pan: {
+              enabled: true,
+              mode: "x",
+              threshold: 20,
+            },
+            limits: {
+              x: {
+                min: "original",
+                max: "original",
+                minRange: 1000000000,
+              },
+            },
+            zoom: {
+              wheel: {
+                enabled: true,
+              },
+              pinch: {
+                enabled: true,
+              },
+              mode: "x",
+            },
+          },
+        },
+        scales: {
+          x: {
+            type: "time",
+            time: {
+              // unit: 'year'
+              minUnit: "day",
+            },
+          },
+          y: {
+            min: 0,
+            max: this.maxMainGraph(),
+          },
+        },
+      }
+    },
     mainGraphData() {
       return {
         datasets: [
@@ -134,6 +161,14 @@ const sfc = {
     },
   },
   methods: {
+    maxMainGraph() {
+      const maxValue = Math.max(...this.masterChartData[""].weeks.map(o => o[this.type]))
+      const [cooefficient, exp] = maxValue.toExponential().split('e')
+      if (Number(cooefficient) % 1 == 0) {
+        return maxValue
+      }
+      return (1 - Number(cooefficient) % 1) * 10 ** Number(exp) + maxValue
+    },
     additions(data) {
       return Object.values(data).reduce((acc, item) => {
         return acc + item.additions;
