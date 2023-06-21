@@ -81,8 +81,6 @@ func main() {
 		},
 	}
 	app.Action = runEnvironmentToIni
-	setting.SetCustomPathAndConf("", "", "")
-
 	err := app.Run(os.Args)
 	if err != nil {
 		log.Fatal("Failed to run app with %s: %v", os.Args, err)
@@ -90,12 +88,13 @@ func main() {
 }
 
 func runEnvironmentToIni(c *cli.Context) error {
-	providedCustom := c.String("custom-path")
-	providedConf := c.String("config")
-	providedWorkPath := c.String("work-path")
-	setting.SetCustomPathAndConf(providedCustom, providedConf, providedWorkPath)
+	setting.InitWorkPathAndCommonConfig(os.Getenv, setting.ArgWorkPathAndCustomConf{
+		WorkPath:   c.String("work-path"),
+		CustomPath: c.String("custom-path"),
+		CustomConf: c.String("config"),
+	})
 
-	cfg, err := setting.NewConfigProviderFromFile(&setting.Options{CustomConf: setting.CustomConf, AllowEmpty: true})
+	cfg, err := setting.NewConfigProviderFromFile(setting.CustomConf)
 	if err != nil {
 		log.Fatal("Failed to load custom conf '%s': %v", setting.CustomConf, err)
 	}
