@@ -695,8 +695,8 @@ function initRepoIssueStateButton() {
   const $statusDropdown = $('#status-dropdown');
   const selectedValue = $statusDropdown.find('input[type=hidden]').val();
 
-  $statusButton.on('click', function (e) {
-    if ($statusDropdown.find('input[type=hidden]').val() !== "4") return;
+  $statusButton.on('click', (e) => {
+    if ($statusDropdown.find('input[type=hidden]').val() !== '4') return;
     // if click the button of "close as duplicate", show modal to let users select issue firstly.
     e.preventDefault();
     initIssueSearchDropdown('#duplicate-issues-list');
