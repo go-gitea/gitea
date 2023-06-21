@@ -89,8 +89,13 @@ func generateSaveInternalToken(rootCfg ConfigProvider) {
 	}
 
 	InternalToken = token
+	saveCfg, err := rootCfg.PrepareSaving()
+	if err != nil {
+		log.Fatal("Error saving internal token: %v", err)
+	}
 	rootCfg.Section("security").Key("INTERNAL_TOKEN").SetValue(token)
-	if err := rootCfg.Save(); err != nil {
+	saveCfg.Section("security").Key("INTERNAL_TOKEN").SetValue(token)
+	if err = saveCfg.Save(); err != nil {
 		log.Fatal("Error saving internal token: %v", err)
 	}
 }
