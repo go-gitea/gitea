@@ -202,6 +202,7 @@ func Init(opts *Options) {
 	}
 	var err error
 	CfgProvider, err = NewConfigProviderFromFile(opts)
+	CfgProvider.DisableSaving() // do not allow saving the CfgProvider into file, it will be polluted by the "MustXxx" calls
 	if err != nil {
 		log.Fatal("newConfigProviderFromFile[%v]: %v", opts, err)
 	}
@@ -214,7 +215,7 @@ func Init(opts *Options) {
 
 // loadCommonSettingsFrom loads common configurations from a configuration provider.
 func loadCommonSettingsFrom(cfg ConfigProvider) error {
-	// WARNNING: don't change the sequence except you know what you are doing.
+	// WARNING: don't change the sequence except you know what you are doing.
 	loadRunModeFrom(cfg)
 	loadLogGlobalFrom(cfg)
 	loadServerFrom(cfg)
