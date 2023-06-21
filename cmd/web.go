@@ -217,9 +217,15 @@ func setPort(port string) error {
 		defaultLocalURL += ":" + setting.HTTPPort + "/"
 
 		// Save LOCAL_ROOT_URL if port changed
-		setting.CfgProvider.Section("server").Key("LOCAL_ROOT_URL").SetValue(defaultLocalURL)
-		if err := setting.CfgProvider.Save(); err != nil {
-			return fmt.Errorf("Failed to save config file: %v", err)
+		rootCfg := setting.CfgProvider
+		saveCfg, err := rootCfg.PrepareSaving()
+		if err != nil {
+			return fmt.Errorf("failed to save config file: %v", err)
+		}
+		rootCfg.Section("server").Key("LOCAL_ROOT_URL").SetValue(defaultLocalURL)
+		saveCfg.Section("server").Key("LOCAL_ROOT_URL").SetValue(defaultLocalURL)
+		if err = saveCfg.Save(); err != nil {
+			return fmt.Errorf("failed to save config file: %v", err)
 		}
 	}
 	return nil
