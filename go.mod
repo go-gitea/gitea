@@ -15,7 +15,6 @@ require (
 	gitea.com/lunny/levelqueue v0.4.2-0.20220729054728-f020868cc2f7
 	github.com/42wim/sshsig v0.0.0-20211121163825-841cf5bbc121
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358
-	github.com/DataDog/zstd v1.4.5
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/ProtonMail/gopenpgp/v2 v2.7.1
 	github.com/PuerkitoBio/goquery v1.8.1
@@ -133,6 +132,7 @@ require (
 	git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078 // indirect
 	github.com/ClickHouse/ch-go v0.55.0 // indirect
 	github.com/ClickHouse/clickhouse-go/v2 v2.9.1 // indirect
+	github.com/DataDog/zstd v1.4.5 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.0 // indirect
 	github.com/Masterminds/sprig/v3 v3.2.3 // indirect

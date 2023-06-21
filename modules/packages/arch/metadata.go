@@ -4,11 +4,13 @@
 package arch
 
 import (
+	"bytes"
 	"crypto/md5"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path"
@@ -16,7 +18,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/DataDog/zstd"
 	"github.com/mholt/archiver/v3"
 )
 
@@ -50,11 +51,15 @@ type Metadata struct {
 
 // Function that recieves arch package archive data and returns it's metadata.
 func EjectMetadata(filename, domain string, pkg []byte) (*Metadata, error) {
-	d, err := zstd.Decompress(nil, pkg)
+	pkgreader := io.LimitReader(bytes.NewReader(pkg), 250000)
+	var buf bytes.Buffer
+	err := archiver.DefaultZstd.Decompress(pkgreader, &buf)
 	if err != nil {
-		return nil, err
+		if !errors.Is(err, io.ErrUnexpectedEOF) {
+			return nil, err
+		}
 	}
-	splt := strings.Split(string(d), "PKGINFO")
+	splt := strings.Split(buf.String(), "PKGINFO")
 	if len(splt) < 2 {
 		return nil, errors.New("unable to eject .PKGINFO from archive")
 	}
@@ -87,7 +92,7 @@ func EjectMetadata(filename, domain string, pkg []byte) (*Metadata, error) {
 		MakeDepends:       ejectStrings(raw, "makedepend"),
 		CheckDepends:      ejectStrings(raw, "checkdepend"),
 		Backup:            ejectStrings(raw, "backup"),
-	}, err
+	}, nil
 }
 
 func ejectString(raw, field string) string {
