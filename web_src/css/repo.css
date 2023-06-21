@@ -1665,8 +1665,9 @@
   background-color: var(--color-teal);
 }
 
-.repository .diff-detail-box .button {
-  padding: 8px 12px;
+.repository .diff-detail-box .ui.button {
+  padding: 0 12px;
+  height: 30px;
 }
 
 .repository .diff-box .header:not(.resolved-placeholder) {
@@ -1700,6 +1701,10 @@
 .repository .diff-box .resolved-placeholder {
   display: flex;
   align-items: center;
+  font-size: 14px !important;
+  height: 36px;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .repository .diff-box .resolved-placeholder .button {
@@ -1724,10 +1729,6 @@
 .repository .diff-file-box .file-body.file-code .lines-num span.fold {
   display: block;
   text-align: center;
-}
-
-.repository .diff-file-box .code-diff {
-  font-size: 12px;
 }
 
 .repository .diff-file-box .code-diff td {
@@ -1875,13 +1876,10 @@
   flex: 1
 }
 
-.repository.packages .empty {
+.repository.packages .empty,
+.repository.actions .empty {
   padding-top: 70px;
   padding-bottom: 100px;
-}
-
-.repository.packages .empty .svg {
-  height: 48px;
 }
 
 .repository.packages .file-size {
@@ -2496,14 +2494,17 @@
   left: 7px;
 }
 
-.comment-header .actions a {
-  margin-right: 0 !important;
+.comment-header .actions a:not(.label) {
   padding: 0.5rem !important;
 }
 
-.comment-header-left > * + *,
-.comment-header-right > * + * {
-  margin-left: 0.25rem;
+.comment-header .actions .label {
+  margin: 0 !important;
+}
+
+.comment-header-left,
+.comment-header-right {
+  gap: 4px;
 }
 
 .comment-body {
