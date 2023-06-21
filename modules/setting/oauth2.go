@@ -130,8 +130,13 @@ func loadOAuth2From(rootCfg ConfigProvider) {
 			}
 
 			secretBase64 := base64.RawURLEncoding.EncodeToString(key)
+			saveCfg, err := rootCfg.PrepareSaving()
+			if err != nil {
+				log.Fatal("save oauth2.JWT_SECRET failed: %v", err)
+			}
 			rootCfg.Section("oauth2").Key("JWT_SECRET").SetValue(secretBase64)
-			if err := rootCfg.Save(); err != nil {
+			saveCfg.Section("oauth2").Key("JWT_SECRET").SetValue(secretBase64)
+			if err := saveCfg.Save(); err != nil {
 				log.Fatal("save oauth2.JWT_SECRET failed: %v", err)
 			}
 		}

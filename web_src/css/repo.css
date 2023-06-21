@@ -1666,8 +1666,9 @@
   background-color: var(--color-teal);
 }
 
-.repository .diff-detail-box .button {
-  padding: 8px 12px;
+.repository .diff-detail-box .ui.button {
+  padding: 0 12px;
+  height: 30px;
 }
 
 .repository .diff-box .header:not(.resolved-placeholder) {
@@ -1876,13 +1877,10 @@
   flex: 1
 }
 
-.repository.packages .empty {
+.repository.packages .empty,
+.repository.actions .empty {
   padding-top: 70px;
   padding-bottom: 100px;
-}
-
-.repository.packages .empty .svg {
-  height: 48px;
 }
 
 .repository.packages .file-size {
