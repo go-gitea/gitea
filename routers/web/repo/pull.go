@@ -761,7 +761,7 @@ func ViewPullFiles(ctx *context.Context) {
 		"numberOfViewedFiles": diff.NumViewedFiles,
 	}
 
-	if err = diff.LoadComments(ctx, issue, ctx.Doer); err != nil {
+	if err = diff.LoadComments(ctx, issue, ctx.Doer, ctx.Data["ShowOutdatedComments"].(bool)); err != nil {
 		ctx.ServerError("LoadComments", err)
 		return
 	}
