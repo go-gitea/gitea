@@ -91,7 +91,7 @@ func runRecreateTable(ctx *cli.Context) error {
 	golog.SetOutput(log.LoggerToWriter(log.GetLogger(log.DEFAULT).Info))
 
 	debug := ctx.Bool("debug")
-	setting.Init(&setting.Options{})
+	setting.MustInstalled()
 	setting.LoadDBSetting()
 
 	if debug {
