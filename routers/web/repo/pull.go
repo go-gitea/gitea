@@ -392,27 +392,19 @@ func GetPullDiffStats(ctx *context.Context) {
 	startCommitID = prInfo.MergeBase
 	endCommitID = headCommitID
 
-	fileOnly := ctx.FormBool("file-only")
-
-	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
-	files := ctx.FormStrings("files")
-	if fileOnly && (len(files) == 2 || len(files) == 1) {
-		maxLines, maxFiles = -1, -1
-	}
 	diffOptions := &gitdiff.DiffOptions{
 		BeforeCommitID:     startCommitID,
 		AfterCommitID:      endCommitID,
-		SkipTo:             ctx.FormString("skip-to"),
-		MaxLines:           maxLines,
+		MaxLines:           setting.Git.MaxGitDiffLines,
 		MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
-		MaxFiles:           maxFiles,
+		MaxFiles:           setting.Git.MaxGitDiffFiles,
 		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
 	}
 
 	var methodWithError string
 	var diff *gitdiff.Diff
 
-	diff, err = gitdiff.GetDiff(gitRepo, diffOptions, files...)
+	diff, err = gitdiff.GetDiff(gitRepo, diffOptions)
 	methodWithError = "GetDiff"
 
 	if err != nil {
