@@ -115,7 +115,7 @@
 					{{else}}
 						{{$trans := "repo.issues.closed_at"}}
 						{{if not (eq .Content "")}}
-						{{$trans = .Content}}
+							{{$trans = .Content}}
 						{{end}}
 						{{$.locale.Tr $trans .EventTag $createdStr | Safe}}
 					{{end}}

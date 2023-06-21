@@ -1058,10 +1058,6 @@
   clear: none;
 }
 
-.repository.view.issue .comment-list .comment .ui.form .field.footer {
-  overflow: visible;
-}
-
 .repository.view.issue .comment-list .comment .ui.form .field .tab.markup {
   min-height: 5rem;
 }
@@ -1072,11 +1068,6 @@
 
 .repository.view.issue .comment-list .comment .ui.form .field .ui.buttons {
   vertical-align: middle;
-}
-
-.repository.view.issue .comment-list .code-comment {
-  border: 1px solid transparent;
-  margin: 0;
 }
 
 /* fix fomantic's border-radius via :first-child with hidden elements */

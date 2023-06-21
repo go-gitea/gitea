@@ -640,7 +640,7 @@ export function initSingleCommentEditor($commentForm) {
   if ($statusButton.length) {
     opts.onContentChanged = (editor) => {
       const $source = $statusDropdown.length > 0 ? $statusDropdown.dropdown('get item') : $statusButton;
-      $statusButton.text($source.data(editor.value().trim() ? 'status-and-comment': 'status'));
+      $statusButton.text($source.data(editor.value().trim() ? 'status-and-comment' : 'status'));
     };
   }
   initComboMarkdownEditor($commentForm.find('.combo-markdown-editor'), opts);
@@ -690,15 +690,15 @@ function initRepoIssueStateButton() {
 
   const $statusDropdown = $('#status-dropdown');
   const selectedValue = $statusDropdown.find('input[type=hidden]').val();
-  
+
   const onCloseStatusChanged = (val) => {
     const editor = getComboMarkdownEditor($('#comment-form .combo-markdown-editor'));
     const buttonText = $statusDropdown.dropdown('get item').data(editor.value().trim() ? 'status-and-comment' : 'status');
     $statusButton.text(buttonText);
-    $statusButton.attr('value', val === "-1" ? 'reopen' : 'close');
-    $statusDropdown.find('input[type=hidden]').val(val)
-  }
-  $statusDropdown.dropdown('setting', { selectOnKeydown: false, onChange: onCloseStatusChanged });
+    $statusButton.attr('value', val === '-1' ? 'reopen' : 'close');
+    $statusDropdown.find('input[type=hidden]').val(val);
+  };
+  $statusDropdown.dropdown('setting', {selectOnKeydown: false, onChange: onCloseStatusChanged});
   $statusDropdown.dropdown('set selected', selectedValue);
   onCloseStatusChanged(selectedValue);
 }
