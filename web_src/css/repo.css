@@ -1066,10 +1066,6 @@
   margin-top: 10px;
 }
 
-.repository.view.issue .comment-list .comment .ui.form .field .ui.buttons {
-  vertical-align: middle;
-}
-
 /* fix fomantic's border-radius via :first-child with hidden elements */
 .collapsible-comment-box:has(.gt-hidden) {
   border-radius: var(--border-radius) !important;
