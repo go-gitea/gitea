@@ -27,7 +27,6 @@ type InstallForm struct {
 	DbPasswd string
 	DbName   string
 	SSLMode  string
-	Charset  string `binding:"Required;In(utf8,utf8mb4)"`
 	DbPath   string
 	DbSchema string
 
