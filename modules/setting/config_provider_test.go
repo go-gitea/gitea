@@ -124,7 +124,7 @@ func TestNewConfigProviderForLocale(t *testing.T) {
 func TestDisableSaving(t *testing.T) {
 	testFile := t.TempDir() + "/test.ini"
 	_ = os.WriteFile(testFile, []byte("k1=a\nk2=b"), 0o644)
-	cfg, err := NewConfigProviderFromFile(&Options{CustomConf: testFile, AllowEmpty: true})
+	cfg, err := NewConfigProviderFromFile(testFile)
 	assert.NoError(t, err)
 
 	cfg.DisableSaving()

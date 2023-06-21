@@ -62,7 +62,7 @@ type iniConfigProvider struct {
 	file string
 	ini  *ini.File
 
-	disableSaving bool
+	disableSaving   bool // disable the "Save" method because the config options could be polluted
 	loadedFromEmpty bool // whether the file has not existed previously
 }
 
@@ -300,11 +300,10 @@ func (p *iniConfigProvider) DisableSaving() {
 // it makes the "Save" outputs a lot of garbage options
 // After the INI package gets refactored, no "MustXxx" pollution, this workaround can be dropped.
 func (p *iniConfigProvider) PrepareSaving() (ConfigProvider, error) {
-	cfgFile := p.opts.CustomConf
-	if cfgFile == "" {
+	if p.file == "" {
 		return nil, errors.New("no config file to save")
 	}
-	return NewConfigProviderFromFile(p.opts)
+	return NewConfigProviderFromFile(p.file)
 }
 
 func (p *iniConfigProvider) IsLoadedFromEmpty() bool {

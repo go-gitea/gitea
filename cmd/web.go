@@ -157,10 +157,17 @@ func serveInstalled(ctx *cli.Context) error {
 			"Only WORK_PATH in config should be set and used. Please remove the other outdated work paths from environment variables and command arguments", setting.CustomConf)
 	}
 
-	if setting.CfgProvider.Section("").Key("WORK_PATH").String() == "" {
-		setting.CfgProvider.Section("").Key("WORK_PATH").SetValue(setting.AppWorkPath)
-		if err := setting.CfgProvider.Save(); err != nil {
-			log.Error("Unable to update WORK_PATH=%s to config %q: %v\nYou must set it manually, otherwise there might be bugs when accessing the git repositories.", setting.AppWorkPath, setting.CustomConf, err)
+	rootCfg := setting.CfgProvider
+	if rootCfg.Section("").Key("WORK_PATH").String() == "" {
+		saveCfg, err := rootCfg.PrepareSaving()
+		if err != nil {
+			log.Error("Unable to prepare saving WORK_PATH=%s to config %q: %v\nYou must set it manually, otherwise there might be bugs when accessing the git repositories.", setting.AppWorkPath, setting.CustomConf, err)
+		} else {
+			rootCfg.Section("").Key("WORK_PATH").SetValue(setting.AppWorkPath)
+			saveCfg.Section("").Key("WORK_PATH").SetValue(setting.AppWorkPath)
+			if err = saveCfg.Save(); err != nil {
+				log.Error("Unable to update WORK_PATH=%s to config %q: %v\nYou must set it manually, otherwise there might be bugs when accessing the git repositories.", setting.AppWorkPath, setting.CustomConf, err)
+			}
 		}
 	}
 
