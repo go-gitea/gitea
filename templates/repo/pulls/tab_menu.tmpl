@@ -17,7 +17,7 @@
 	<span class="item gt-ml-auto gt-pr-0 gt-font-bold gt-df gt-ac gt-gap-3">
 		<span><span class="text green">+{{if .Diff.TotalAddition}}{{.Diff.TotalAddition}}{{else}}0{{end}}</span> <span class="text red">-{{if .Diff.TotalDeletion}}{{.Diff.TotalDeletion}}{{else}}0{{end}}</span></span>
 		<span class="diff-stats-bar">
-			<div class="diff-stats-add-bar" style="width: 50%;"></div>
+			<div class="diff-stats-add-bar" style="width: {{Eval 100 "*" .Diff.TotalAddition "/" "(" .Diff.TotalAddition "+" .Diff.TotalDeletion "+" 0.0 ")"}}%"></div>
 		</span>
 	</span>
 </div>
