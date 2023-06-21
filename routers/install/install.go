@@ -32,6 +32,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/forms"
 
 	"gitea.com/go-chi/session"
@@ -370,10 +371,15 @@ func SubmitInstall(ctx *context.Context) {
 	}
 
 	// Save settings.
-	cfg, err := setting.NewConfigProviderFromFile(&setting.Options{CustomConf: setting.CustomConf, AllowEmpty: true})
+	cfg, err := setting.NewConfigProviderFromFile(setting.CustomConf)
 	if err != nil {
 		log.Error("Failed to load custom conf '%s': %v", setting.CustomConf, err)
 	}
+
+	cfg.Section("").Key("APP_NAME").SetValue(form.AppName)
+	cfg.Section("").Key("RUN_USER").SetValue(form.RunUser)
+	cfg.Section("").Key("WORK_PATH").SetValue(setting.AppWorkPath)
+	cfg.Section("").Key("RUN_MODE").SetValue("prod")
 
 	cfg.Section("database").Key("DB_TYPE").SetValue(setting.Database.Type.String())
 	cfg.Section("database").Key("HOST").SetValue(setting.Database.Host)
@@ -386,9 +392,7 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("database").Key("PATH").SetValue(setting.Database.Path)
 	cfg.Section("database").Key("LOG_SQL").SetValue("false") // LOG_SQL is rarely helpful
 
-	cfg.Section("").Key("APP_NAME").SetValue(form.AppName)
 	cfg.Section("repository").Key("ROOT").SetValue(form.RepoRootPath)
-	cfg.Section("").Key("RUN_USER").SetValue(form.RunUser)
 	cfg.Section("server").Key("SSH_DOMAIN").SetValue(form.Domain)
 	cfg.Section("server").Key("DOMAIN").SetValue(form.Domain)
 	cfg.Section("server").Key("HTTP_PORT").SetValue(form.HTTPPort)
@@ -449,8 +453,6 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("service").Key("DEFAULT_ENABLE_TIMETRACKING").SetValue(fmt.Sprint(form.DefaultEnableTimetracking))
 	cfg.Section("service").Key("NO_REPLY_ADDRESS").SetValue(fmt.Sprint(form.NoReplyAddress))
 	cfg.Section("cron.update_checker").Key("ENABLED").SetValue(fmt.Sprint(form.EnableUpdateChecker))
-
-	cfg.Section("").Key("RUN_MODE").SetValue("prod")
 
 	cfg.Section("session").Key("PROVIDER").SetValue("file")
 
@@ -514,7 +516,13 @@ func SubmitInstall(ctx *context.Context) {
 	// ---- All checks are passed
 
 	// Reload settings (and re-initialize database connection)
-	reloadSettings(ctx)
+	setting.InitCfgProvider(setting.CustomConf)
+	setting.LoadCommonSettings()
+	setting.MustInstalled()
+	setting.LoadDBSetting()
+	if err := common.InitDBEngine(ctx); err != nil {
+		log.Fatal("ORM engine initialization failed: %v", err)
+	}
 
 	// Create admin account
 	if len(form.AdminName) > 0 {

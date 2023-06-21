@@ -90,10 +90,11 @@ func (w *testLoggerWriterCloser) Reset() {
 
 // PrintCurrentTest prints the current test to os.Stdout
 func PrintCurrentTest(t testing.TB, skip ...int) func() {
+	t.Helper()
 	start := time.Now()
 	actualSkip := 1
 	if len(skip) > 0 {
-		actualSkip = skip[0]
+		actualSkip = skip[0] + 1
 	}
 	_, filename, line, _ := runtime.Caller(actualSkip)
 
