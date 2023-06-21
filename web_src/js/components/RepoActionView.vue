@@ -212,7 +212,7 @@ const sfc = {
       this.selectedLog = window.location.hash;
       this.expandSelectedLog();
     };
-    this.hashChangeListener();
+    // this.hashChangeListener();
     window.addEventListener('hashchange', this.hashChangeListener);
   },
 
