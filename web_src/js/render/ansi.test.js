@@ -15,8 +15,7 @@ test('renderAnsi', () => {
   expect(renderAnsi('\x1b[1A\x1b[2Ktest\x1b[1B\x1b[1A\x1b[2K')).toEqual('test');
   expect(renderAnsi('\x1b[1A\x1b[2K\rtest\r\x1b[1B\x1b[1A\x1b[2K')).toEqual('test');
 
-  // treat "\033[0K" and "\033[0J" (Erase display/line) as "\r", then it will
-  // be covered to "\n" finally.
+  // treat "\033[0K" and "\033[0J" (Erase display/line) as "\r", then it will be covered to "\n" finally.
   expect(renderAnsi('a\x1b[Kb\x1b[2Jc')).toEqual('a\nb\nc');
   expect(renderAnsi('\x1b[48;5;88ma\x1b[38;208;48;5;159mb\x1b[m')).toEqual(`<span style="background-color:rgb(135,0,0)">a</span><span style="background-color:rgb(175,255,255)">b</span>`);
 });
