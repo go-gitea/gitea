@@ -13,9 +13,11 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	auth_service "code.gitea.io/gitea/services/auth"
+	auth_db "code.gitea.io/gitea/services/auth/source/db"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/forms"
@@ -116,9 +118,25 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 
 	u, _, err := auth_service.UserSignIn(signInForm.UserName, signInForm.Password)
 	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) || user_model.IsErrEmailAddressNotExist(err) ||
+			auth_db.IsErrUserPasswordNotSet(err) || auth_db.IsErrUserPasswordInvalidate(err) {
 			ctx.Data["user_exists"] = true
 			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplLinkAccount, &signInForm)
+		} else if user_model.IsErrUserProhibitLogin(err) {
+			ctx.Data["user_exists"] = true
+			log.Info("Failed authentication attempt for %s from %s: %v", signInForm.UserName, ctx.RemoteAddr(), err)
+			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
+			ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
+		} else if user_model.IsErrUserInactive(err) {
+			ctx.Data["user_exists"] = true
+			if setting.Service.RegisterEmailConfirm {
+				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
+				ctx.HTML(http.StatusOK, TplActivate)
+			} else {
+				log.Info("Failed authentication attempt for %s from %s: %v", signInForm.UserName, ctx.RemoteAddr(), err)
+				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
+				ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
+			}
 		} else {
 			ctx.ServerError("UserLinkAccount", err)
 		}

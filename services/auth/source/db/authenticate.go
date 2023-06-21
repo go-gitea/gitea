@@ -4,10 +4,55 @@
 package db
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
+
+// ErrUserPasswordNotSet represents a "ErrUserPasswordNotSet" kind of error.
+type ErrUserPasswordNotSet struct {
+	UID  int64
+	Name string
+}
+
+// IsErrUserPasswordNotSet checks if an error is a ErrUserPasswordNotSet
+func IsErrUserPasswordNotSet(err error) bool {
+	_, ok := err.(ErrUserPasswordNotSet)
+	return ok
+}
+
+func (err ErrUserPasswordNotSet) Error() string {
+	return fmt.Sprintf("user's password doesn't set [uid: %d, name: %s]", err.UID, err.Name)
+}
+
+// Unwrap unwraps this error as a ErrPermission error
+func (err ErrUserPasswordNotSet) Unwrap() error {
+	return util.ErrPermissionDenied
+}
+
+// ErrUserPasswordInvalidate represents a "ErrUserPasswordInvalidate" kind of error.
+type ErrUserPasswordInvalidate struct {
+	UID  int64
+	Name string
+}
+
+// IsErrUserPasswordInvalidate checks if an error is a ErrUserPasswordInvalidate
+func IsErrUserPasswordInvalidate(err error) bool {
+	_, ok := err.(ErrUserPasswordInvalidate)
+	return ok
+}
+
+func (err ErrUserPasswordInvalidate) Error() string {
+	return fmt.Sprintf("user's password is invalidated [uid: %d, name: %s]", err.UID, err.Name)
+}
+
+// Unwrap unwraps this error as a ErrPermission error
+func (err ErrUserPasswordInvalidate) Unwrap() error {
+	return util.ErrPermissionDenied
+}
 
 // Authenticate authenticates the provided user against the DB
 func Authenticate(user *user_model.User, login, password string) (*user_model.User, error) {
@@ -15,8 +60,10 @@ func Authenticate(user *user_model.User, login, password string) (*user_model.Us
 		return nil, user_model.ErrUserNotExist{Name: login}
 	}
 
-	if !user.IsPasswordSet() || !user.ValidatePassword(password) {
-		return nil, user_model.ErrUserNotExist{UID: user.ID, Name: user.Name}
+	if !user.IsPasswordSet() {
+		return nil, ErrUserPasswordNotSet{UID: user.ID, Name: user.Name}
+	} else if !user.ValidatePassword(password) {
+		return nil, ErrUserPasswordInvalidate{UID: user.ID, Name: user.Name}
 	}
 
 	// Update password hash if server password hash algorithm have changed

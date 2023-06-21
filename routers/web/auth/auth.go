@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/utils"
 	auth_service "code.gitea.io/gitea/services/auth"
+	auth_db "code.gitea.io/gitea/services/auth/source/db"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/forms"
@@ -201,7 +202,8 @@ func SignInPost(ctx *context.Context) {
 
 	u, source, err := auth_service.UserSignIn(form.UserName, form.Password)
 	if err != nil {
-		if user_model.IsErrUserNotExist(err) || user_model.IsErrEmailAddressNotExist(err) {
+		if user_model.IsErrUserNotExist(err) || user_model.IsErrEmailAddressNotExist(err) ||
+			auth_db.IsErrUserPasswordNotSet(err) || auth_db.IsErrUserPasswordInvalidate(err) {
 			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplSignIn, &form)
 			log.Info("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
 		} else if user_model.IsErrEmailAlreadyUsed(err) {

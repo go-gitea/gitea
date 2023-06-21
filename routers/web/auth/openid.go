@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth"
+	auth_db "code.gitea.io/gitea/services/auth/source/db"
 	"code.gitea.io/gitea/services/forms"
 )
 
@@ -282,8 +283,25 @@ func ConnectOpenIDPost(ctx *context.Context) {
 
 	u, _, err := auth.UserSignIn(form.UserName, form.Password)
 	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) || user_model.IsErrEmailAddressNotExist(err) ||
+			auth_db.IsErrUserPasswordNotSet(err) || auth_db.IsErrUserPasswordInvalidate(err) {
+			ctx.Data["user_exists"] = true
 			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplConnectOID, &form)
+		} else if user_model.IsErrUserProhibitLogin(err) {
+			ctx.Data["user_exists"] = true
+			log.Info("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
+			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
+			ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
+		} else if user_model.IsErrUserInactive(err) {
+			ctx.Data["user_exists"] = true
+			if setting.Service.RegisterEmailConfirm {
+				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
+				ctx.HTML(http.StatusOK, TplActivate)
+			} else {
+				log.Info("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
+				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
+				ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
+			}
 		} else {
 			ctx.ServerError("ConnectOpenIDPost", err)
 		}
