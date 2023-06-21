@@ -89,6 +89,9 @@ const sfc = {
       return {
         responsive: true,
         animation: false,
+        onClick: (e) => {
+          e.chart.resetZoom()
+        },
         plugins: {
           legend: {
             display: false,
