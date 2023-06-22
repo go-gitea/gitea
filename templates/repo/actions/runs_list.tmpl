@@ -1,4 +1,10 @@
 <div class="issue list gt-m-0">
+	{{if eq (len .Runs) 0}}
+	<div class="empty center">
+		{{svg "octicon-no-entry" 48}}
+		<h2>{{if $.IsFiltered}}{{.locale.Tr "actions.runs.no_results"}}{{else}}{{.locale.Tr "actions.runs.no_runs"}}{{end}}</h2>
+	</div>
+	{{end}}
 	{{range .Runs}}
 		<li class="item gt-df gt-py-4">
 			<div class="issue-item-left issue-item-icon gt-df gt-items-start">

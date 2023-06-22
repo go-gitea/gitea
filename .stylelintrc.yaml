@@ -82,6 +82,7 @@ rules:
   media-feature-name-no-vendor-prefix: true
   media-feature-name-unit-allowed-list: null
   media-feature-name-value-allowed-list: null
+  media-feature-name-value-no-unknown: true
   media-feature-range-notation: null
   named-grid-areas-no-invalid: true
   no-descending-specificity: null
