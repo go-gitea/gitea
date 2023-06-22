@@ -599,7 +599,7 @@
 					{{end}}
 				</div>
 
-				<form class="ui form form-fetch-action single-button-form" action="{{.Issue.Link}}{{if .Issue.IsLocked}}/unlock{{else}}/lock{{end}}"
+				<form class="ui form form-fetch-action" action="{{.Issue.Link}}{{if .Issue.IsLocked}}/unlock{{else}}/lock{{end}}"
 					method="post">
 					{{.CsrfTokenHtml}}
 
