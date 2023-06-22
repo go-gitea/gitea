@@ -685,7 +685,11 @@ func UploadFilePost(ctx *context.Context) {
 
 	message := strings.TrimSpace(form.CommitSummary)
 	if len(message) == 0 {
-		message = ctx.Tr("repo.editor.upload_files_to_dir", form.TreePath)
+		dir := form.TreePath
+		if dir == "" {
+			dir = "/"
+		}
+		message = ctx.Tr("repo.editor.upload_files_to_dir", dir)
 	}
 
 	form.CommitMessage = strings.TrimSpace(form.CommitMessage)

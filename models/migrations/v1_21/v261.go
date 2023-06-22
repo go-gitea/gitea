@@ -4,92 +4,21 @@
 package v1_21 //nolint
 
 import (
-	"context"
-	"fmt"
-
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/xorm"
 )
 
-func AddBranchTable(x *xorm.Engine) error {
-	type Branch struct {
-		ID            int64
-		RepoID        int64  `xorm:"index UNIQUE(s)"`
-		Name          string `xorm:"UNIQUE(s) NOT NULL"`
-		CommitSHA     string
-		CommitMessage string `xorm:"TEXT"`
-		PusherID      int64
-		IsDeleted     bool
-		DeletedByID   int64
-		DeletedUnix   timeutil.TimeStamp
-		CommitTime    timeutil.TimeStamp // The commit
-		CreatedUnix   timeutil.TimeStamp `xorm:"created"`
-		UpdatedUnix   timeutil.TimeStamp `xorm:"updated"`
+func CreateVariableTable(x *xorm.Engine) error {
+	type ActionVariable struct {
+		ID          int64              `xorm:"pk autoincr"`
+		OwnerID     int64              `xorm:"UNIQUE(owner_repo_name)"`
+		RepoID      int64              `xorm:"INDEX UNIQUE(owner_repo_name)"`
+		Name        string             `xorm:"UNIQUE(owner_repo_name) NOT NULL"`
+		Data        string             `xorm:"LONGTEXT NOT NULL"`
+		CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
+		UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
 	}
 
-	if err := x.Sync(new(Branch)); err != nil {
-		return err
-	}
-
-	if exist, err := x.IsTableExist("deleted_branches"); err != nil {
-		return err
-	} else if !exist {
-		return nil
-	}
-
-	type DeletedBranch struct {
-		ID          int64
-		RepoID      int64  `xorm:"index UNIQUE(s)"`
-		Name        string `xorm:"UNIQUE(s) NOT NULL"`
-		Commit      string
-		DeletedByID int64
-		DeletedUnix timeutil.TimeStamp
-	}
-
-	var adminUserID int64
-	has, err := x.Table("user").
-		Select("id").
-		Where("is_admin=?", true).
-		Asc("id"). // Reliably get the admin with the lowest ID.
-		Get(&adminUserID)
-	if err != nil {
-		return err
-	} else if !has {
-		return fmt.Errorf("no admin user found")
-	}
-
-	branches := make([]Branch, 0, 100)
-	if err := db.Iterate(context.Background(), nil, func(ctx context.Context, deletedBranch *DeletedBranch) error {
-		branches = append(branches, Branch{
-			RepoID:    deletedBranch.RepoID,
-			Name:      deletedBranch.Name,
-			CommitSHA: deletedBranch.Commit,
-			PusherID:  adminUserID,
-			// CommitMessage: string, FIXME: how to get this?
-			// CommitTime:		timeutil.TimeStamp, FIXME: how to get this?
-			IsDeleted:   true,
-			DeletedByID: deletedBranch.DeletedByID,
-			DeletedUnix: deletedBranch.DeletedUnix,
-		})
-		if len(branches) >= 100 {
-			_, err := x.Insert(&branches)
-			if err != nil {
-				return err
-			}
-			branches = branches[:0]
-		}
-		return nil
-	}); err != nil {
-		return err
-	}
-
-	if len(branches) > 0 {
-		if _, err := x.Insert(&branches); err != nil {
-			return err
-		}
-	}
-
-	return x.DropTables("deleted_branches")
+	return x.Sync(new(ActionVariable))
 }
