@@ -23,8 +23,8 @@
 										{{else}}
 											<span class="icon">{{svg "octicon-repo"}}</span>
 										{{end}}
-										<a class="name" href="{{$repo.Link}}">{{$repo.OwnerName}}/{{$repo.Name}}</a>
-										<span>{{FileSize $repo.Size}}</span>
+										<a class="muted name" href="{{$repo.Link}}">{{$repo.OwnerName}}/{{$repo.Name}}</a>
+										<span class="text light-3">{{FileSize $repo.Size}}</span>
 										{{if $repo.IsFork}}
 											{{$.locale.Tr "repo.forked_from"}}
 											<span><a href="{{$repo.BaseRepo.Link}}">{{$repo.BaseRepo.OwnerName}}/{{$repo.BaseRepo.Name}}</a></span>
