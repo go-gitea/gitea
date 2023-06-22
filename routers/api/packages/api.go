@@ -123,6 +123,10 @@ func CommonRoutes() *web.Route {
 				})
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/arch", func() {
+			r.Put("/push", arch.Push)
+			r.Get("/{distro}/{arch}/{file}", arch.Get)
+		})
 		r.Group("/cargo", func() {
 			r.Group("/api/v1/crates", func() {
 				r.Get("", cargo.SearchPackages)
@@ -750,19 +754,6 @@ func ContainerRoutes() *web.Route {
 			ctx.Status(http.StatusNotFound)
 		})
 	}, container.ReqContainerAccess, context_service.UserAssignmentWeb(), context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
-
-	return r
-}
-
-// Routes for arch packages.
-func ArchRoutes() *web.Route {
-	r := web.NewRoute()
-
-	r.Use(context.PackageContexter())
-
-	r.Put("/push", arch.Push)
-	r.Get("/{distro}/{arch}/{owner}/{file}", arch.Get)
-	r.Get("/{distro}/{arch}/{file}", arch.Get)
 
 	return r
 }

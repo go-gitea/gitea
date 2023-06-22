@@ -190,8 +190,6 @@ func NormalRoutes() *web.Route {
 		r.Mount("/api/packages", packages_router.CommonRoutes())
 		// This implements the OCI API (Note this is not preceded by /api but is instead /v2)
 		r.Mount("/v2", packages_router.ContainerRoutes())
-		// Arch package routes
-		r.Mount("/api/packages/arch", packages_router.ArchRoutes())
 	}
 
 	if setting.Actions.Enabled {

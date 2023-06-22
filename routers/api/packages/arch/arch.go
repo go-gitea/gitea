@@ -19,10 +19,10 @@ import (
 // Push new package to arch package registry.
 func Push(ctx *context.Context) {
 	var (
+		owner    = ctx.Params("username")
 		filename = ctx.Req.Header.Get("filename")
 		email    = ctx.Req.Header.Get("email")
 		sign     = ctx.Req.Header.Get("sign")
-		owner    = ctx.Req.Header.Get("owner")
 		distro   = ctx.Req.Header.Get("distro")
 	)
 
