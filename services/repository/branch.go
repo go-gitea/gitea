@@ -393,7 +393,7 @@ func initBranchSyncQueue() error {
 
 	admin, err := user_model.GetAdminUser()
 	if err != nil {
-		return err
+		return fmt.Errorf("user_model.GetAdminUser: %v", err)
 	}
 
 	cnt, err := git_model.CountBranches(context.Background(), git_model.FindBranchOptions{
@@ -401,7 +401,7 @@ func initBranchSyncQueue() error {
 		IsDeletedBranch:      util.OptionalBoolFalse,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("CountBranches: %v", err)
 	}
 
 	if cnt == 0 {
