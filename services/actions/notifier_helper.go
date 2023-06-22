@@ -222,14 +222,14 @@ func notifyRelease(ctx context.Context, doer *user_model.User, rel *repo_model.R
 		return
 	}
 
-	mode, _ := access_model.AccessLevel(ctx, doer, rel.Repo)
+	permission, _ := access_model.GetUserRepoPermission(ctx, rel.Repo, doer)
 
 	newNotifyInput(rel.Repo, doer, webhook_module.HookEventRelease).
 		WithRef(git.RefNameFromTag(rel.TagName).String()).
 		WithPayload(&api.ReleasePayload{
 			Action:     action,
 			Release:    convert.ToRelease(ctx, rel),
-			Repository: convert.ToRepo(ctx, rel.Repo, mode),
+			Repository: convert.ToRepo(ctx, rel.Repo, permission),
 			Sender:     convert.ToUser(ctx, doer, nil),
 		}).
 		Notify(ctx)
