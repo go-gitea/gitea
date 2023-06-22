@@ -100,7 +100,10 @@ func Init() error {
 	}
 	system_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repository uploads", setting.Repository.Upload.TempPath)
 	system_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repositories", repo_module.LocalCopyPath())
-	return initPushQueue()
+	if err := initPushQueue(); err != nil {
+		return err
+	}
+	return initBranchSyncQueue()
 }
 
 // UpdateRepository updates a repository

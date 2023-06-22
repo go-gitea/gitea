@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/xorm"
@@ -34,22 +33,6 @@ func AddBranchTable(x *xorm.Engine) error {
 		return err
 	}
 
-	var adminUserID int64
-	has, err := x.Table("user").
-		Select("id").
-		Where("is_admin=?", true).
-		Asc("id"). // Reliably get the admin with the lowest ID.
-		Get(&adminUserID)
-	if err != nil {
-		return err
-	} else if !has {
-		return fmt.Errorf("no admin user found")
-	}
-
-	if err := repo_module.SyncAllBranches(context.Background(), adminUserID); err != nil {
-		return err
-	}
-
 	if exist, err := x.IsTableExist("deleted_branches"); err != nil {
 		return err
 	} else if !exist {
@@ -65,12 +48,25 @@ func AddBranchTable(x *xorm.Engine) error {
 		DeletedUnix timeutil.TimeStamp
 	}
 
+	var adminUserID int64
+	has, err := x.Table("user").
+		Select("id").
+		Where("is_admin=?", true).
+		Asc("id"). // Reliably get the admin with the lowest ID.
+		Get(&adminUserID)
+	if err != nil {
+		return err
+	} else if !has {
+		return fmt.Errorf("no admin user found")
+	}
+
 	branches := make([]Branch, 0, 100)
 	if err := db.Iterate(context.Background(), nil, func(ctx context.Context, deletedBranch *DeletedBranch) error {
 		branches = append(branches, Branch{
 			RepoID:    deletedBranch.RepoID,
 			Name:      deletedBranch.Name,
 			CommitSHA: deletedBranch.Commit,
+			PusherID:  adminUserID,
 			// CommitMessage: string, FIXME: how to get this?
 			// CommitTime:		timeutil.TimeStamp, FIXME: how to get this?
 			IsDeleted:   true,

@@ -679,6 +679,35 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		ctx.ServerError("GetBranches", err)
 		return
 	}
+	if len(brs) == 0 { // fallback to do a sync immediately
+		var doerID int64
+		if ctx.Doer != nil {
+			doerID = ctx.Doer.ID
+		} else {
+			admin, err := user_model.GetAdminUser()
+			if err != nil {
+				ctx.ServerError("GetAdminUser", err)
+				return
+			}
+			doerID = admin.ID
+		}
+		if err := repo_module.SyncRepoBranches(ctx, ctx.Repo.Repository.ID, doerID); err != nil {
+			ctx.ServerError("SyncRepoBranches", err)
+			return
+		}
+		brs, err = git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
+			RepoID:               ctx.Repo.Repository.ID,
+			IncludeDefaultBranch: true,
+			IsDeletedBranch:      util.OptionalBoolFalse,
+			ListOptions: db.ListOptions{
+				PageSize: -1,
+			},
+		})
+		if err != nil {
+			ctx.ServerError("GetBranches", err)
+			return
+		}
+	}
 	ctx.Data["Branches"] = brs
 	ctx.Data["BranchesCount"] = len(brs)
 

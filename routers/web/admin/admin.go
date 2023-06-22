@@ -15,11 +15,13 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/updatechecker"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/cron"
 	"code.gitea.io/gitea/services/forms"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
@@ -133,12 +135,22 @@ func DashboardPost(ctx *context.Context) {
 
 	// Run operation.
 	if form.Op != "" {
-		task := cron.GetTask(form.Op)
-		if task != nil {
-			go task.RunWithUser(ctx.Doer, nil)
-			ctx.Flash.Success(ctx.Tr("admin.dashboard.task.started", ctx.Tr("admin.dashboard."+form.Op)))
-		} else {
-			ctx.Flash.Error(ctx.Tr("admin.dashboard.task.unknown", form.Op))
+		switch form.Op {
+		case "sync_repo_sync":
+			go func() {
+				if err := repo_service.AddAllRepoBranchesToSyncQueue(ctx, ctx.Doer.ID); err != nil {
+					log.Error("AddAllRepoBranchesToSyncQueue: %v: %v", ctx.Doer.ID, err)
+				}
+			}()
+		case "":
+		default:
+			task := cron.GetTask(form.Op)
+			if task != nil {
+				go task.RunWithUser(ctx.Doer, nil)
+				ctx.Flash.Success(ctx.Tr("admin.dashboard.task.started", ctx.Tr("admin.dashboard."+form.Op)))
+			} else {
+				ctx.Flash.Error(ctx.Tr("admin.dashboard.task.unknown", form.Op))
+			}
 		}
 	}
 	if form.From == "monitor" {

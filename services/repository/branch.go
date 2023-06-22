@@ -16,11 +16,14 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/queue"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
 	files_service "code.gitea.io/gitea/services/repository/files"
+	"xorm.io/builder"
 )
 
 // CreateNewBranch creates a new repository branch
@@ -351,5 +354,71 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 		log.Error("Update: %v", err)
 	}
 
+	return nil
+}
+
+type BranchSyncOptions struct {
+	RepoID int64
+	DoerID int64
+}
+
+// branchSyncQueue represents a queue to handle branch s
+var branchSyncQueue *queue.WorkerPoolQueue[*BranchSyncOptions]
+
+// handle passed PR IDs and test the PRs
+func handlerBranchSync(items ...*BranchSyncOptions) []*BranchSyncOptions {
+	var failedOptions []*BranchSyncOptions
+	for _, opts := range items {
+		if err := repo_module.SyncRepoBranches(context.Background(), opts.RepoID, opts.DoerID); err != nil {
+			log.Error("syncRepoBranches [%d:%d] failed: %v", opts.RepoID, opts.DoerID, err)
+			failedOptions = append(failedOptions, opts)
+		}
+	}
+	return failedOptions
+}
+
+func addRepoToBranchSyncQueue(repoID, doerID int64) error {
+	return branchSyncQueue.Push(&BranchSyncOptions{
+		RepoID: repoID,
+		DoerID: doerID,
+	})
+}
+
+func initBranchSyncQueue() error {
+	branchSyncQueue = queue.CreateSimpleQueue(graceful.GetManager().ShutdownContext(), "branch_sync", handlerBranchSync)
+	if branchSyncQueue == nil {
+		return errors.New("unable to create branch_sync queue")
+	}
+	go graceful.GetManager().RunWithCancel(branchSyncQueue)
+
+	admin, err := user_model.GetAdminUser()
+	if err != nil {
+		return err
+	}
+
+	cnt, err := git_model.CountBranches(context.Background(), git_model.FindBranchOptions{
+		IncludeDefaultBranch: true,
+		IsDeletedBranch:      util.OptionalBoolFalse,
+	})
+	if err != nil {
+		return err
+	}
+
+	if cnt == 0 {
+		go func() {
+			if err := AddAllRepoBranchesToSyncQueue(graceful.GetManager().ShutdownContext(), admin.ID); err != nil {
+				log.Error("AddAllRepoBranchesToSyncQueue: %v", err)
+			}
+		}()
+	}
+	return nil
+}
+
+func AddAllRepoBranchesToSyncQueue(ctx context.Context, doerID int64) error {
+	if err := db.Iterate(graceful.GetManager().ShutdownContext(), builder.Eq{"is_empty": false}, func(ctx context.Context, repo *repo_model.Repository) error {
+		return addRepoToBranchSyncQueue(repo.ID, doerID)
+	}); err != nil {
+		return fmt.Errorf("run sync all branches failed: %v", err)
+	}
 	return nil
 }

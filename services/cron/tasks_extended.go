@@ -213,6 +213,20 @@ func registerGCLFS() {
 	})
 }
 
+func registerSyncBranches() {
+	RegisterTaskFatal("sync_repo_sync", &OlderThanConfig{
+		BaseConfig: BaseConfig{
+			Enabled:    false,
+			RunAtStart: false,
+			Schedule:   "@every 168h",
+		},
+		OlderThan: 365 * 24 * time.Hour,
+	}, func(ctx context.Context, _ *user_model.User, config Config) error {
+		olderThanConfig := config.(*OlderThanConfig)
+		return system.DeleteOldSystemNotices(olderThanConfig.OlderThan)
+	})
+}
+
 func initExtendedTasks() {
 	registerDeleteInactiveUsers()
 	registerDeleteRepositoryArchives()

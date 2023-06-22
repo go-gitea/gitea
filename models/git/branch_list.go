@@ -49,17 +49,30 @@ type FindBranchOptions struct {
 	IsDeletedBranch      util.OptionalBool
 }
 
+func (opts *FindBranchOptions) Cond() builder.Cond {
+	cond := builder.NewCond()
+	if opts.RepoID > 0 {
+		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	}
+	if !opts.IncludeDefaultBranch {
+		cond = cond.And(builder.Neq{"name": builder.Select("default_branch").From("repository").Where(builder.Eq{"id": opts.RepoID})})
+	}
+	if !opts.IsDeletedBranch.IsNone() {
+		cond = cond.And(builder.Eq{"is_deleted": opts.IsDeletedBranch.IsTrue()})
+	}
+	return cond
+}
+
+func CountBranches(ctx context.Context, opts FindBranchOptions) (int64, error) {
+	return db.GetEngine(ctx).Where(opts.Cond()).Count(&Branch{})
+}
+
 func FindBranches(ctx context.Context, opts FindBranchOptions) (BranchList, int64, error) {
-	sess := db.GetEngine(ctx).Where("repo_id=?", opts.RepoID)
+	sess := db.GetEngine(ctx).Where(opts.Cond())
 	if opts.PageSize > 0 {
 		sess = db.SetSessionPagination(sess, &opts.ListOptions)
 	}
-	if !opts.IncludeDefaultBranch {
-		sess = sess.And(builder.Neq{"name": builder.Select("default_branch").From("repository").Where(builder.Eq{"id": opts.RepoID})})
-	}
-	if !opts.IsDeletedBranch.IsNone() {
-		sess.And(builder.Eq{"is_deleted": opts.IsDeletedBranch.IsTrue()})
-	}
+
 	var branches []*Branch
 	total, err := sess.FindAndCount(&branches)
 	if err != nil {
