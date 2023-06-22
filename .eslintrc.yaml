@@ -27,6 +27,7 @@ env:
 
 globals:
   __webpack_public_path__: true
+  process: false # use import.meta once https://github.com/webpack/webpack/issues/15833 is fixed
 
 overrides:
   - files: ["web_src/**/*", "docs/**/*"]

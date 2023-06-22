@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import {svg} from '../svg.js';
-import {showError} from "../modules/toast.js";
+import {showError} from '../modules/toast.js';
 
 const {appSubUrl, csrfToken} = window.config;
 let i18nTextEdited;
