@@ -5,7 +5,7 @@ const levels = {
   info: {
     icon: 'octicon-check',
     background: 'var(--color-green)',
-    dur: 2500,
+    dur: 2000,
   },
   error: {
     icon: 'gitea-exclamation',
