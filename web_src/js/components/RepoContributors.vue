@@ -1,10 +1,10 @@
 <template>
   <div>
-    <Line :data="mainGraphData" :options="options" />
+    <Line :data="toGraphData(totalStats.weeks, 'main')" :options="getOptions('main')"/>
 
     <div class="ui attached segment two column grid">
       <div
-        v-for="(contributor, index) in individualGraphData"
+        v-for="(contributor, index) in contributorGraphData"
         :key="index"
         class="column stats-table"
       >
@@ -16,25 +16,21 @@
               width="40"
               :href="contributor.avatar_link"
               :src="contributor.avatar_link"
-            />
+            >
           </a>
           <div class="gt-ml-3">
-            <a :href="contributor.home_link"
-              ><h4>{{ contributor.name }}</h4></a
-            >
+            <a :href="contributor.home_link"><h4>{{ contributor.name }}</h4></a>
             <p class="gt-font-12">
-              <strong>{{ contributor.total.toLocaleString() }} commits </strong>
-              <strong class="text green"
-                >{{ additions(contributor.weeks).toLocaleString() }}++
+              <strong>{{ contributor.total_commits.toLocaleString() }} commits </strong>
+              <strong class="text green">{{ additions(contributor.weeks).toLocaleString() }}++
               </strong>
               <strong class="text red">
-                {{ deletions(contributor.weeks).toLocaleString() }}--</strong
-              >
+                {{ deletions(contributor.weeks).toLocaleString() }}--</strong>
             </p>
           </div>
         </div>
         <div class="ui attached segment">
-          <Line :data="graph(contributor.weeks)" :options="options" />
+          <Line :data="toGraphData(contributor.weeks, 'contributor')" :options="getOptions('contributor')"/>
         </div>
       </div>
     </div>
@@ -42,9 +38,9 @@
 </template>
 
 <script>
-import { createApp } from "vue";
+import {createApp} from 'vue';
 import {
-  Chart as ChartJS,
+  Chart,
   Title,
   Tooltip,
   Legend,
@@ -55,12 +51,12 @@ import {
   PointElement,
   LineElement,
   Filler,
-} from "chart.js";
-import zoomPlugin from "chartjs-plugin-zoom";
-import { Bar, Line } from "vue-chartjs";
-import "chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm";
+} from 'chart.js';
+import zoomPlugin from 'chartjs-plugin-zoom';
+import {Line} from 'vue-chartjs';
+import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 
-ChartJS.register(
+Chart.register(
   TimeScale,
   CategoryScale,
   LinearScale,
@@ -75,134 +71,30 @@ ChartJS.register(
 );
 
 const sfc = {
-  components: { Line },
+  components: {Line},
   data: () => ({
-    data: {},
-
-    masterChartData: window.config.pageData.repoContributorsCommitStats || [],
+    totalStats: window.config.pageData.repoTotalStats || [],
     type: window.config.pageData.contributionType,
-    individualChartsData:
-      window.config.pageData.repoContributorsCommitStats || [],
+    contributorsStats:
+      window.config.pageData.repoContributorsStats || [],
   }),
   computed: {
-    options() {
-      return {
-        responsive: true,
-        animation: false,
-        onClick: (e) => {
-          e.chart.resetZoom()
-        },
-        plugins: {
-          legend: {
-            display: false,
-          },
-          zoom: {
-            pan: {
-              enabled: true,
-              mode: "x",
-              threshold: 20,
-
-              onPan: function (event) {
-                var minVal = event.chart.options.scales.x.min;
-                var maxVal = event.chart.options.scales.x.max;
-
-                Object.values(ChartJS.instances).forEach(function (instance) {
-                  if (instance !== event.chart){
-                    instance.options.scales.x.min = minVal;
-                    instance.options.scales.x.max = maxVal;
-                    instance.update();
-                  }
-                });
-              },
-            },
-            limits: {
-              x: {
-                min: "original",
-                max: "original",
-                minRange: 1000000000,
-              },
-            },
-            zoom: {
-              wheel: {
-                enabled: true,
-              },
-              pinch: {
-                enabled: true,
-              },
-              mode: "x",
-
-              onZoomComplete: function (event) {
-                var minVal = event.chart.options.scales.x.min;
-                var maxVal = event.chart.options.scales.x.max;
-
-                Object.values(ChartJS.instances).forEach(function (instance) {
-                  if (instance !== event.chart){
-                    instance.options.scales.x.min = minVal;
-                    instance.options.scales.x.max = maxVal;
-                    instance.update();
-                  }
-                });
-              },
-
-            },
-          },
-        },
-        scales: {
-          x: {
-            type: "time",
-            grid: {
-              display: false,
-            },
-            time: {
-              // unit: 'year'
-              minUnit: "day",
-            },
-          },
-          y: {
-            min: 0,
-            max: this.maxMainGraph(),
-          },
-        },
-      };
-    },
-    mainGraphData() {
-      return {
-        datasets: [
-          {
-            data: this.masterChartData[""].weeks.map((i) => {
-              return { x: i.week, y: i[this.type] };
-            }),
-            pointRadius: 0,
-            pointHitRadius: 0,
-            fill: "start",
-            borderColor: "rgb(75, 192, 192)",
-            borderWidth: 0,
-            backgroundColor: "rgba(137, 191, 154, 0.6)",
-            tension: 0.3,
-          },
-        ],
-      };
-    },
-    individualGraphData() {
-      let { "": _, ...rest } = this.individualChartsData;
-      console.log(rest);
-      const data = Object.values(rest)
-        .sort((a, b) => (a.total > b.total ? -1 : a.total == b.total ? 0 : 1))
+    contributorGraphData() {
+      return Object.values(this.contributorsStats)
+        .sort((a, b) => (a.total_commits > b.total_commits ? -1 : a.total_commits === b.total_commits ? 0 : 1))
         .slice(0, 100);
-      console.log(data);
-      return data;
     },
   },
   methods: {
     maxMainGraph() {
       const maxValue = Math.max(
-        ...this.masterChartData[""].weeks.map((o) => o[this.type])
+        ...this.totalStats.weeks.map((o) => o[this.type])
       );
-      const [cooefficient, exp] = maxValue.toExponential().split("e");
-      if (Number(cooefficient) % 1 == 0) {
+      const [cooefficient, exp] = maxValue.toExponential().split('e').map(Number);
+      if (cooefficient % 1 === 0) {
         return maxValue;
       }
-      return (1 - (Number(cooefficient) % 1)) * 10 ** Number(exp) + maxValue;
+      return (1 - (cooefficient % 1)) * 10 ** exp + maxValue;
     },
     additions(data) {
       return Object.values(data).reduce((acc, item) => {
@@ -214,29 +106,101 @@ const sfc = {
         return acc + item.deletions;
       }, 0);
     },
-    graph(data) {
+
+    toGraphData(data, type) {
       return {
         datasets: [
           {
             data: data.map((i) => {
-              return { x: i.week, y: i[this.type] };
+              return {x: i.week, y: i[this.type]};
             }),
             pointRadius: 0,
             pointHitRadius: 0,
-            fill: "start",
-            borderColor: "rgb(75, 192, 192)",
-            backgroundColor: "rgba(96, 153, 38, 0.7)",
+            fill: 'start',
+            backgroundColor: type === 'main' ? 'rgba(137, 191, 154, 0.6)' : 'rgba(96, 153, 38, 0.7)',
             borderWidth: 0,
             tension: 0.3,
           },
         ],
       };
     },
+
+    updateOtherCharts(event) {
+      const minVal = event.chart.options.scales.x.min;
+      const maxVal = event.chart.options.scales.x.max;
+
+      for (const instance of Object.values(Chart.instances)) {
+        if (instance !== event.chart) {
+          instance.options.scales.x.min = minVal;
+          instance.options.scales.x.max = maxVal;
+          instance.update();
+        }
+      }
+    },
+
+    getOptions(type) {
+      return {
+        responsive: true,
+        animation: false,
+        onClick: (e) => {
+          if (type === 'main') {
+            e.chart.resetZoom();
+          }
+        },
+        plugins: {
+          legend: {
+            display: false,
+          },
+          zoom: {
+            pan: {
+              enabled: true,
+              mode: 'x',
+              threshold: 20,
+
+              onPan: this.updateOtherCharts
+            },
+            limits: {
+              x: {
+                min: 'original',
+                max: 'original',
+                minRange: 1000000000,
+              },
+            },
+            zoom: {
+              wheel: {
+                enabled: type === 'main',
+              },
+              pinch: {
+                enabled: type === 'main',
+              },
+              mode: 'x',
+
+              onZoomComplete: this.updateOtherCharts
+            },
+          },
+        },
+        scales: {
+          x: {
+            type: 'time',
+            grid: {
+              display: false,
+            },
+            time: {
+              minUnit: 'day',
+            },
+          },
+          y: {
+            min: 0,
+            max: this.maxMainGraph(),
+          },
+        },
+      };
+    },
   },
 };
 
 export function initRepoContributorsChart() {
-  const el = document.getElementById("repo-contributors-chart");
+  const el = document.getElementById('repo-contributors-chart');
   if (el) {
     createApp(sfc).mount(el);
   }

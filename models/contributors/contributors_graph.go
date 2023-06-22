@@ -1,14 +1,14 @@
 package contributors
 
 import (
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/json"
-	util "code.gitea.io/gitea/modules/util"
 	"context"
 	"fmt"
 	"time"
+
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
+	util "code.gitea.io/gitea/modules/util"
 )
 
 type WeekData struct {
@@ -20,12 +20,12 @@ type WeekData struct {
 
 // ContributorData represents statistical git commit count data
 type ContributorData struct {
-	Name       string      `json:"name"`
-	Login      string      `json:"login"`
-	AvatarLink string      `json:"avatar_link"`
-	HomeLink   string      `json:"home_link"`
-	Total      int64       `json:"total"`
-	Weeks      []*WeekData `json:"weeks"`
+	Name         string      `json:"name"`
+	Login        string      `json:"login"`
+	AvatarLink   string      `json:"avatar_link"`
+	HomeLink     string      `json:"home_link"`
+	TotalCommits int64       `json:"total_commits"`
+	Weeks        []*WeekData `json:"weeks"`
 }
 
 func CreateWeeks(sundays []int64) []*WeekData {
@@ -51,7 +51,7 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository) (map[
 	defer closer.Close()
 
 	default_branch, _ := gitRepo.GetDefaultBranch()
-	extended_commit_stats, err := gitRepo.ExtendedCommitStats(default_branch, 6000)
+	extended_commit_stats, err := gitRepo.ExtendedCommitStats(default_branch)
 	if err != nil {
 		return nil, fmt.Errorf("ExtendedCommitStats: %w", err)
 	}
@@ -66,11 +66,12 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository) (map[
 
 	unknownUserAvatarLink := user_model.NewGhostUser().AvatarLink(ctx)
 	contributors_commit_stats := make(map[string]*ContributorData)
-	contributors_commit_stats[""] = &ContributorData{
+	contributors_commit_stats["Total"] = &ContributorData{
 		Name:       "Total",
 		AvatarLink: unknownUserAvatarLink,
 		Weeks:      CreateWeeks(sundays),
 	}
+	total, _ := contributors_commit_stats["Total"]
 
 	for _, v := range extended_commit_stats {
 		if len(v.Author.Email) == 0 {
@@ -92,7 +93,6 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository) (map[
 					HomeLink:   u.HomeLink(),
 					Weeks:      CreateWeeks(sundays),
 				}
-
 			}
 		}
 		// Update user statistics
@@ -105,22 +105,14 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository) (map[
 		user.Weeks[idx].Additions += v.Stats.Additions
 		user.Weeks[idx].Deletions += v.Stats.Deletions
 		user.Weeks[idx].Commits++
-		user.Total++
+		user.TotalCommits++
 
 		// Update overall statistics
-		total, _ := contributors_commit_stats[""]
 		total.Weeks[idx].Additions += v.Stats.Additions
 		total.Weeks[idx].Deletions += v.Stats.Deletions
 		total.Weeks[idx].Commits++
-		total.Total++
+		total.TotalCommits++
 	}
 
-	fmt.Printf("users are: %s", prettyPrint(contributors_commit_stats))
-
 	return contributors_commit_stats, nil
-}
-
-func prettyPrint(i interface{}) string {
-	s, _ := json.MarshalIndent(i, "", "\t")
-	return string(s)
 }

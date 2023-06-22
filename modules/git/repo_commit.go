@@ -225,7 +225,7 @@ type CommitsByFileAndRangeOptions struct {
 }
 
 // ExtendedCommitStats return the list of *api.ExtendedCommitStats for the given revision
-func (repo *Repository) ExtendedCommitStats(revision string, limit int) ([]*api.ExtendedCommitStats, error) {
+func (repo *Repository) ExtendedCommitStats(revision string /*, limit int */) ([]*api.ExtendedCommitStats, error) {
 	var baseCommit *Commit
 	baseCommit, err := repo.GetCommit(revision)
 	stdoutReader, stdoutWriter, err := os.Pipe()
@@ -276,7 +276,6 @@ func (repo *Repository) ExtendedCommitStats(revision string, limit int) ([]*api.
 
 					if strings.HasPrefix(type_, "insertion") {
 						commit_stats.Additions = amount
-
 					} else {
 						commit_stats.Deletions = amount
 					}

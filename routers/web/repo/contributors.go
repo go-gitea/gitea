@@ -15,7 +15,7 @@ const (
 
 // Contributors render the page to show repository contributors graph
 func Contributors(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.activity")
+	ctx.Data["Title"] = ctx.Tr("repo.contributors")
 	ctx.Data["PageIsContributors"] = true
 
 	ctx.Data["ContributionType"] = ctx.Params("contribution_type")
@@ -30,13 +30,17 @@ func Contributors(ctx *context.Context) {
 		ctx.ServerError("GetContributorStats", err)
 		return
 	} else {
-		ctx.PageData["repoContributorsCommitStats"] = contributor_stats
-		timeUntil := time.Now()
-		timeFrom := time.UnixMilli(contributor_stats[""].Weeks[0].Week)
+		total_stats, ok := contributor_stats["Total"]
+		if ok {
+			delete(contributor_stats, "Total")
+		}
+		ctx.PageData["repoTotalStats"] = total_stats
+		ctx.PageData["repoContributorsStats"] = contributor_stats
 
+		timeFrom := time.UnixMilli(total_stats.Weeks[0].Week)
+		timeUntil := time.Now()
 		ctx.Data["DateFrom"] = timeFrom.UTC().Format(time.RFC3339)
 		ctx.Data["DateUntil"] = timeUntil.UTC().Format(time.RFC3339)
-		// contributor_stats[""].Weeks.(map[string]interface{})
 	}
 
 	ctx.HTML(http.StatusOK, tplContributors)

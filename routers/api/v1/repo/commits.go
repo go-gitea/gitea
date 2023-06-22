@@ -328,7 +328,7 @@ func GetAllCommitsStats(ctx *context.APIContext) {
 		sha = ctx.Repo.Repository.DefaultBranch
 	}
 
-	commits, err = ctx.Repo.GitRepo.ExtendedCommitStats(sha, 6000)
+	commits, err = ctx.Repo.GitRepo.ExtendedCommitStats(sha)
 
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ContributorsCommitStats", err)
