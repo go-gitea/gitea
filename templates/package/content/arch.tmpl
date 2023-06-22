@@ -24,32 +24,16 @@ Server = https://{{.PackageDescriptor.Metadata.BaseDomain}}/api/packages/arch/(d
 	<div class="ui attached segment">
 	<table class="ui single line very basic table">
 		<tbody>
-
 			<tr>
 				<td class="collapsing"><h5>Description</h5></td>
 				<td>{{.PackageDescriptor.Metadata.Description}}</td>
 			</tr>
-			<tr>
-				<td class="collapsing"><h5>Compressed size</h5></td>
-				<td>{{.PackageDescriptor.Metadata.CompressedSizeMib}}</td>
-			</tr>
-			<tr>
-				<td class="collapsing"><h5>Installed size</h5></td>
-				<td>{{.PackageDescriptor.Metadata.InstalledSizeMib}}</td>
-			</tr>
-			<tr>
-				<td class="collapsing"><h5>Official URL</h5></td>
-				<td> <a target="_blank" rel="noopener noreferrer" href="{{.PackageDescriptor.Metadata.URL}}">{{.PackageDescriptor.Metadata.URL}}</a></td>
-			</tr>
-			<tr>
-				<td class="collapsing"><h5>Build date</h5></td>
-				<td>{{.PackageDescriptor.Metadata.BuildDateStr}}</td>
-			</tr>
+
 			<tr>
 				<td class="collapsing"><h5>Packager</h5></td>
 				<td>{{.PackageDescriptor.Metadata.Packager}}</td>
 			</tr>
-
+			
 			{{range $key := .PackageDescriptor.Metadata.Provides}}
 			<tr>
 				<td class="collapsing"><h5>Provides</h5></td>
