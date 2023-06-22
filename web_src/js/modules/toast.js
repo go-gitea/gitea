@@ -5,12 +5,12 @@ const levels = {
   info: {
     icon: 'octicon-check',
     background: 'var(--color-green)',
-    dur: 2000,
+    duration: 2000,
   },
   error: {
     icon: 'gitea-exclamation',
     background: 'var(--color-red)',
-    dur: -1, // needs to be clicked away
+    duration: -1, // needs to be clicked away
   },
 };
 
@@ -19,7 +19,8 @@ async function showToast(message, level, {gravity, position, duration, ...other}
   if (!message) return;
 
   const {default: Toastify} = await import(/* webpackChunkName: 'toastify' */'toastify-js');
-  const {icon, background, dur} = levels[level ?? 'info'];
+  const {icon, background, duration: levelDuration} = levels[level ?? 'info'];
+
 
   const toast = Toastify({
     text: `
@@ -30,7 +31,7 @@ async function showToast(message, level, {gravity, position, duration, ...other}
     escapeMarkup: false,
     gravity: gravity ?? 'top',
     position: position ?? 'center',
-    duration: duration ?? dur,
+    duration: duration ?? levelDuration,
     style: {background},
     ...other,
   });
