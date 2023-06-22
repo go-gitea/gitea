@@ -8,30 +8,15 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	api "code.gitea.io/gitea/modules/structs"
 	util "code.gitea.io/gitea/modules/util"
 )
 
-type WeekData struct {
-	Week      int64 `json:"week"`
-	Additions int   `json:"additions"`
-	Deletions int   `json:"deletions"`
-	Commits   int   `json:"commits"`
-}
-
-// ContributorData represents statistical git commit count data
-type ContributorData struct {
-	Name         string      `json:"name"`
-	Login        string      `json:"login"`
-	AvatarLink   string      `json:"avatar_link"`
-	HomeLink     string      `json:"home_link"`
-	TotalCommits int64       `json:"total_commits"`
-	Weeks        []*WeekData `json:"weeks"`
-}
-
-func CreateWeeks(sundays []int64) []*WeekData {
-	var weeks []*WeekData
+// CreateWeeks converts list of sundays to list of *api.WeekData
+func CreateWeeks(sundays []int64) []*api.WeekData {
+	var weeks []*api.WeekData
 	for _, week := range sundays {
-		weeks = append(weeks, &WeekData{
+		weeks = append(weeks, &api.WeekData{
 			Week:      week,
 			Additions: 0,
 			Deletions: 0,
@@ -42,16 +27,18 @@ func CreateWeeks(sundays []int64) []*WeekData {
 	return weeks
 }
 
-// GetContributorStats returns contributors stats for git commits
-func GetContributorStats(ctx context.Context, repo *repo_model.Repository) (map[string]*ContributorData, error) {
+// GetContributorStats returns contributors stats for git commits for given revision or default branch
+func GetContributorStats(ctx context.Context, repo *repo_model.Repository, revision string) (map[string]*api.ContributorData, error) {
 	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
 	if err != nil {
 		return nil, fmt.Errorf("OpenRepository: %w", err)
 	}
 	defer closer.Close()
 
-	default_branch, _ := gitRepo.GetDefaultBranch()
-	extended_commit_stats, err := gitRepo.ExtendedCommitStats(default_branch)
+	if len(revision) == 0 {
+		revision = repo.DefaultBranch
+	}
+	extended_commit_stats, err := gitRepo.ExtendedCommitStats(revision)
 	if err != nil {
 		return nil, fmt.Errorf("ExtendedCommitStats: %w", err)
 	}
@@ -65,8 +52,8 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository) (map[
 	sundays, _ := util.ListSundaysBetween(starting_sunday, ending_sunday)
 
 	unknownUserAvatarLink := user_model.NewGhostUser().AvatarLink(ctx)
-	contributors_commit_stats := make(map[string]*ContributorData)
-	contributors_commit_stats["Total"] = &ContributorData{
+	contributors_commit_stats := make(map[string]*api.ContributorData)
+	contributors_commit_stats["Total"] = &api.ContributorData{
 		Name:       "Total",
 		AvatarLink: unknownUserAvatarLink,
 		Weeks:      CreateWeeks(sundays),
@@ -80,13 +67,13 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository) (map[
 		if _, ok := contributors_commit_stats[v.Author.Email]; !ok {
 			u, err := user_model.GetUserByEmail(ctx, v.Author.Email)
 			if u == nil || user_model.IsErrUserNotExist(err) {
-				contributors_commit_stats[v.Author.Email] = &ContributorData{
+				contributors_commit_stats[v.Author.Email] = &api.ContributorData{
 					Name:       v.Author.Name,
 					AvatarLink: unknownUserAvatarLink,
 					Weeks:      CreateWeeks(sundays),
 				}
 			} else {
-				contributors_commit_stats[v.Author.Email] = &ContributorData{
+				contributors_commit_stats[v.Author.Email] = &api.ContributorData{
 					Name:       u.DisplayName(),
 					Login:      u.LowerName,
 					AvatarLink: u.AvatarLink(ctx),

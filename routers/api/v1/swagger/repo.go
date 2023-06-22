@@ -253,6 +253,11 @@ type swaggerCommitList struct {
 	Body []api.Commit `json:"body"`
 }
 
+type swaggerContributorDataMap struct {
+	// in: body
+	Body map[string]*api.ContributorData `json:"body"`
+}
+
 // ChangedFileList
 // swagger:response ChangedFileList
 type swaggerChangedFileList struct {

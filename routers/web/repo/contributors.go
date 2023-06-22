@@ -26,7 +26,7 @@ func Contributors(ctx *context.Context) {
 
 	ctx.Data["ContributionTypeText"] = ctx.Tr("repo.contributors.contribution_type." + ctx.Data["ContributionType"].(string))
 
-	if contributor_stats, err := contributors_model.GetContributorStats(ctx, ctx.Repo.Repository); err != nil {
+	if contributor_stats, err := contributors_model.GetContributorStats(ctx, ctx.Repo.Repository, ""); err != nil {
 		ctx.ServerError("GetContributorStats", err)
 		return
 	} else {

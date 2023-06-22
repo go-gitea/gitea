@@ -9,12 +9,14 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	contributors_model "code.gitea.io/gitea/models/contributors"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -348,4 +350,55 @@ func GetAssignees(ctx *context.APIContext) {
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToUsers(ctx, ctx.Doer, assignees))
+}
+
+// GetAllContributorsStats retrieves a map of contributors along with their weekly commit statistics
+func GetAllContributorsStats(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/contributors repository repoGetAllContributorsStats
+	// ---
+	// summary: Get a map of all contributors along with their weekly commit statistics from a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: sha
+	//   in: query
+	//   description: SHA or branch to start listing commits from (usually 'master')
+	//   type: string
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ContributorDataMap"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     "$ref": "#/responses/EmptyRepository"
+
+	if ctx.Repo.Repository.IsEmpty {
+		ctx.JSON(http.StatusConflict, api.APIError{
+			Message: "Git Repository is empty.",
+			URL:     setting.API.SwaggerURL,
+		})
+		return
+	}
+
+	sha := ctx.FormString("sha")
+
+	if len(sha) == 0 {
+		sha = ctx.Repo.Repository.DefaultBranch
+	}
+
+	if contributor_stats, err := contributors_model.GetContributorStats(ctx, ctx.Repo.Repository, sha); err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetContributorStats", err)
+	} else {
+		ctx.JSON(http.StatusOK, &contributor_stats)
+	}
 }
