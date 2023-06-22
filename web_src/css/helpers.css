@@ -40,7 +40,6 @@ Gitea's private styles use `g-` prefix.
   text-overflow: ellipsis !important;
 }
 
-
 .g-table-auto-ellipsis td.auto-ellipsis {
   position: relative;
 }

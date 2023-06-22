@@ -594,14 +594,24 @@ func setupDefaultDiff() *Diff {
 	}
 }
 
-func TestDiff_LoadComments(t *testing.T) {
+func TestDiff_LoadCommentsNoOutdated(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	diff := setupDefaultDiff()
-	assert.NoError(t, diff.LoadComments(db.DefaultContext, issue, user))
+	assert.NoError(t, diff.LoadComments(db.DefaultContext, issue, user, false))
 	assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, 2)
+}
+
+func TestDiff_LoadCommentsWithOutdated(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	diff := setupDefaultDiff()
+	assert.NoError(t, diff.LoadComments(db.DefaultContext, issue, user, true))
+	assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, 3)
 }
 
 func TestDiffLine_CanComment(t *testing.T) {
