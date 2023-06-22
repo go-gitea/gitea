@@ -150,6 +150,9 @@ const sfc = {
         scales: {
           x: {
             type: "time",
+            grid: {
+              display: false,
+            },
             time: {
               // unit: 'year'
               minUnit: "day",
