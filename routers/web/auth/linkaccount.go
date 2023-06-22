@@ -83,6 +83,31 @@ func LinkAccount(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplLinkAccount)
 }
 
+func handleSingInError(ctx *context.Context, userName string, ptrForm any, invoker string, err error) {
+	if user_model.IsErrUserNotExist(err) || user_model.IsErrEmailAddressNotExist(err) ||
+		auth_db.IsErrUserPasswordNotSet(err) || auth_db.IsErrUserPasswordInvalidate(err) {
+		ctx.Data["user_exists"] = true
+		ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplConnectOID, ptrForm)
+	} else if user_model.IsErrUserProhibitLogin(err) {
+		ctx.Data["user_exists"] = true
+		log.Info("Failed authentication attempt for %s from %s: %v", userName, ctx.RemoteAddr(), err)
+		ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
+		ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
+	} else if user_model.IsErrUserInactive(err) {
+		ctx.Data["user_exists"] = true
+		if setting.Service.RegisterEmailConfirm {
+			ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
+			ctx.HTML(http.StatusOK, TplActivate)
+		} else {
+			log.Info("Failed authentication attempt for %s from %s: %v", userName, ctx.RemoteAddr(), err)
+			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
+			ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
+		}
+	} else {
+		ctx.ServerError(invoker, err)
+	}
+}
+
 // LinkAccountPostSignIn handle the coupling of external account with another account using signIn
 func LinkAccountPostSignIn(ctx *context.Context) {
 	signInForm := web.GetForm(ctx).(*forms.SignInForm)
@@ -118,28 +143,7 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 
 	u, _, err := auth_service.UserSignIn(signInForm.UserName, signInForm.Password)
 	if err != nil {
-		if user_model.IsErrUserNotExist(err) || user_model.IsErrEmailAddressNotExist(err) ||
-			auth_db.IsErrUserPasswordNotSet(err) || auth_db.IsErrUserPasswordInvalidate(err) {
-			ctx.Data["user_exists"] = true
-			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplLinkAccount, &signInForm)
-		} else if user_model.IsErrUserProhibitLogin(err) {
-			ctx.Data["user_exists"] = true
-			log.Info("Failed authentication attempt for %s from %s: %v", signInForm.UserName, ctx.RemoteAddr(), err)
-			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
-			ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
-		} else if user_model.IsErrUserInactive(err) {
-			ctx.Data["user_exists"] = true
-			if setting.Service.RegisterEmailConfirm {
-				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
-				ctx.HTML(http.StatusOK, TplActivate)
-			} else {
-				log.Info("Failed authentication attempt for %s from %s: %v", signInForm.UserName, ctx.RemoteAddr(), err)
-				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
-				ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
-			}
-		} else {
-			ctx.ServerError("UserLinkAccount", err)
-		}
+		handleSingInError(ctx, signInForm.UserName, &signInForm, "UserLinkAccount", err)
 		return
 	}
 
