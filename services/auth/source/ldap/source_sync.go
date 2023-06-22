@@ -104,7 +104,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 		}
 
 		if len(su.Mail) == 0 {
-			su.Mail = fmt.Sprintf("%s@localhost", su.Username)
+			su.Mail = fmt.Sprintf("%s@localhost.local", su.Username)
 		}
 
 		fullName := composeFullName(su.Name, su.Surname, su.Username)
