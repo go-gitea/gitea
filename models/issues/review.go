@@ -141,7 +141,7 @@ func (r *Review) LoadCodeComments(ctx context.Context) (err error) {
 	if err = r.loadIssue(ctx); err != nil {
 		return
 	}
-	r.CodeComments, err = fetchCodeCommentsByReview(ctx, r.Issue, nil, r)
+	r.CodeComments, err = fetchCodeCommentsByReview(ctx, r.Issue, nil, r, false)
 	return err
 }
 

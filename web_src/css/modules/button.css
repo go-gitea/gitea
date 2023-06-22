@@ -29,12 +29,6 @@
   color: var(--color-red);
 }
 
-/* try to match button with no icons in height */
-.icon-button {
-  padding-top: 7.42px !important;
-  padding-bottom: 7.42px !important;
-}
-
 /* btn is a plain button without any opinionated styling */
 
 .btn {
