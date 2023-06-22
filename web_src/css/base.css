@@ -2200,7 +2200,7 @@ table th[data-sortt-desc] .svg {
   padding-right: 22px;
 }
 .ui.dropdown.large.button {
-  padding-right: 28px;
+  padding-right: 24px;
 }
 
 /* Gitea uses SVG images instead of Fomantic builtin "<i>" font icons, so we need to reset the icon styles */
