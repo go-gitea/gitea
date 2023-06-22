@@ -1559,7 +1559,6 @@
 .repository .diff-detail-box {
   padding: 7px 0;
   background: var(--color-body);
-  line-height: 30px;
 }
 
 @media (max-width: 991.98px) {
