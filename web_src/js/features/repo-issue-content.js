@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import {svg} from '../svg.js';
+import {showError} from "../modules/toast.js";
 
 const {appSubUrl, csrfToken} = window.config;
 let i18nTextEdited;
@@ -44,7 +45,7 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
           });
         }
       } else { // required by eslint
-        window.alert(`unknown option item: ${optionItem}`);
+        showError(`unknown option item: ${optionItem}`);
       }
     },
     onHide() {
