@@ -232,14 +232,18 @@
 		<h1>Toast</h1>
 		<div>
 			<button class="ui button" id="info-toast">Show Info Toast</button>
+			<button class="ui button" id="warning-toast">Show Warning Toast</button>
 			<button class="ui button" id="error-toast">Show Error Toast</button>
 		</div>
 		<script>
 			document.getElementById('info-toast').addEventListener('click', () => {
-				window.giteaShowInfo('success :)');
+				window.giteaShowInfo('success 😀');
+			});
+			document.getElementById('warning-toast').addEventListener('click', () => {
+				window.giteaShowWarning('warning 😐');
 			});
 			document.getElementById('error-toast').addEventListener('click', () => {
-				window.giteaShowError('error :(');
+				window.giteaShowError('error 🙁');
 			});
 		</script>
 	</div>

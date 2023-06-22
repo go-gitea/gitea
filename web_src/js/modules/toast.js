@@ -7,6 +7,11 @@ const levels = {
     background: 'var(--color-green)',
     duration: 2000,
   },
+  warning: {
+    icon: 'gitea-exclamation',
+    background: 'var(--color-orange)',
+    duration: -1, // needs to be clicked away
+  },
   error: {
     icon: 'gitea-exclamation',
     background: 'var(--color-red)',
@@ -47,6 +52,10 @@ export async function showInfo(message, opts) {
   return await showToast(message, 'info', opts);
 }
 
+export async function showWarning(message, opts) {
+  return await showToast(message, 'warning', opts);
+}
+
 export async function showError(message, opts) {
   return await showToast(message, 'error', opts);
 }
@@ -54,5 +63,6 @@ export async function showError(message, opts) {
 // export for devtest page in development
 if (process.env.NODE_ENV === 'development') {
   window.giteaShowInfo = showInfo;
+  window.giteaShowWarning = showWarning;
   window.giteaShowError = showError;
 }
