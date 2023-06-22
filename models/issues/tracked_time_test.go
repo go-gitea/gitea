@@ -86,8 +86,8 @@ func TestTotalTimes(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, total, 1)
 	for user, time := range total {
-		assert.Equal(t, int64(1), user.ID)
-		assert.Equal(t, "6 minutes 40 seconds", time)
+		assert.EqualValues(t, 1, user.ID)
+		assert.EqualValues(t, 400, time)
 	}
 
 	total, err = issues_model.TotalTimes(&issues_model.FindTrackedTimesOptions{IssueID: 2})
@@ -95,9 +95,9 @@ func TestTotalTimes(t *testing.T) {
 	assert.Len(t, total, 2)
 	for user, time := range total {
 		if user.ID == 2 {
-			assert.Equal(t, "1 hour 1 minute", time)
+			assert.EqualValues(t, 3662, time)
 		} else if user.ID == 1 {
-			assert.Equal(t, "20 seconds", time)
+			assert.EqualValues(t, 20, time)
 		} else {
 			assert.Error(t, assert.AnError)
 		}
@@ -107,8 +107,8 @@ func TestTotalTimes(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, total, 1)
 	for user, time := range total {
-		assert.Equal(t, int64(2), user.ID)
-		assert.Equal(t, "1 second", time)
+		assert.EqualValues(t, 2, user.ID)
+		assert.EqualValues(t, 1, time)
 	}
 
 	total, err = issues_model.TotalTimes(&issues_model.FindTrackedTimesOptions{IssueID: 4})

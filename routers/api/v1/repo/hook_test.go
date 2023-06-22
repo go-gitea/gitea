@@ -17,7 +17,7 @@ import (
 func TestTestHook(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	ctx := test.MockAPIContext(t, "user2/repo1/wiki/_pages")
+	ctx, _ := test.MockAPIContext(t, "user2/repo1/wiki/_pages")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)
 	test.LoadRepoCommit(t, ctx)

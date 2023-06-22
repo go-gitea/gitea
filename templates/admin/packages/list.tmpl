@@ -8,7 +8,7 @@
 		<div class="ui attached segment">
 			<form class="ui form ignore-dirty">
 				<div class="ui fluid action input">
-					<input name="q" value="{{.Query}}" placeholder="{{.locale.Tr "explore.search"}}..." autofocus>
+					{{template "shared/searchinput" dict "locale" .locale "Value" .Query "AutoFocus" true}}
 					<select class="ui dropdown" name="type">
 						<option value="">{{.locale.Tr "packages.filter.type"}}</option>
 						<option value="all">{{.locale.Tr "packages.filter.type.all"}}</option>

@@ -443,7 +443,6 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `SQLITE_TIMEOUT`: **500**: Query timeout for SQLite3 only.
 - `SQLITE_JOURNAL_MODE`: **""**: Change journal mode for SQlite3. Can be used to enable [WAL mode](https://www.sqlite.org/wal.html) when high load causes write congestion. See [SQlite3 docs](https://www.sqlite.org/pragma.html#pragma_journal_mode) for possible values. Defaults to the default for the database file, often DELETE.
 - `ITERATE_BUFFER_SIZE`: **50**: Internal buffer size for iterating.
-- `CHARSET`: **utf8mb4**: For MySQL only, either "utf8" or "utf8mb4". NOTICE: for "utf8mb4" you must use MySQL InnoDB > 5.6. Gitea is unable to check this.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
 - `LOG_SQL`: **true**: Log the executed SQL.
 - `DB_RETRIES`: **10**: How many ORM init / DB connect attempts allowed.
@@ -1013,7 +1012,7 @@ Default templates for project boards:
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
 - `ENABLE_SUCCESS_NOTICE`: **true**: Set to false to switch off success notices.
 - `SCHEDULE`: **@every 168h**: Cron syntax for scheduling a work, e.g. `@every 168h`.
-- `HTTP_ENDPOINT`: **https://dl.gitea.io/gitea/version.json**: the endpoint that Gitea will check for newer versions
+- `HTTP_ENDPOINT`: **https://dl.gitea.com/gitea/version.json**: the endpoint that Gitea will check for newer versions
 
 #### Cron -  Delete all old system notices from database (`cron.delete_old_system_notices`)
 
