@@ -488,7 +488,7 @@
 										<div class="gt-df gt-ac">
 											<a href="{{(index $comms 0).CodeCommentLink}}" class="file-comment gt-ml-3 gt-word-break">{{$filename}}</a>
 											{{if $invalid}}
-												<span class="ui label basic small gt-ml-3">
+												<span class="ui label basic small gt-ml-3" data-tooltip-content="{{$.locale.Tr "repo.issues.review.outdated_description"}}">
 													{{$.locale.Tr "repo.issues.review.outdated"}}
 												</span>
 											{{end}}
