@@ -96,6 +96,7 @@ jobs:
       - run: make deps-frontend
       - run: make lint-frontend
       - run: make checks-frontend
+      - run: make test-frontend
       - run: make frontend
 
   backend:
