@@ -741,7 +741,7 @@ func CompareDiff(ctx *context.Context) {
 	}
 
 	headBranches, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
-		RepoID: ctx.Repo.Repository.ID,
+		RepoID: ci.HeadRepo.ID,
 		ListOptions: db.ListOptions{
 			PageSize: 1,
 		},
