@@ -67,13 +67,14 @@ key = 123
 }
 
 func TestNewConfigProviderFromFile(t *testing.T) {
-	_, err := NewConfigProviderFromFile(&Options{CustomConf: "no-such.ini", AllowEmpty: false})
-	assert.ErrorContains(t, err, "unable to find configuration file")
+	cfg, err := NewConfigProviderFromFile("no-such.ini")
+	assert.NoError(t, err)
+	assert.True(t, cfg.IsLoadedFromEmpty())
 
 	// load non-existing file and save
 	testFile := t.TempDir() + "/test.ini"
 	testFile1 := t.TempDir() + "/test1.ini"
-	cfg, err := NewConfigProviderFromFile(&Options{CustomConf: testFile, AllowEmpty: true})
+	cfg, err = NewConfigProviderFromFile(testFile)
 	assert.NoError(t, err)
 
 	sec, _ := cfg.NewSection("foo")
@@ -91,7 +92,7 @@ func TestNewConfigProviderFromFile(t *testing.T) {
 	assert.Equal(t, "[foo]\nk1 = a\nk2 = b\n", string(bs))
 
 	// load existing file and save
-	cfg, err = NewConfigProviderFromFile(&Options{CustomConf: testFile, AllowEmpty: true})
+	cfg, err = NewConfigProviderFromFile(testFile)
 	assert.NoError(t, err)
 	assert.Equal(t, "a", cfg.Section("foo").Key("k1").String())
 	sec, _ = cfg.NewSection("bar")
@@ -123,7 +124,7 @@ func TestNewConfigProviderForLocale(t *testing.T) {
 func TestDisableSaving(t *testing.T) {
 	testFile := t.TempDir() + "/test.ini"
 	_ = os.WriteFile(testFile, []byte("k1=a\nk2=b"), 0o644)
-	cfg, err := NewConfigProviderFromFile(&Options{CustomConf: testFile, AllowEmpty: true})
+	cfg, err := NewConfigProviderFromFile(testFile)
 	assert.NoError(t, err)
 
 	cfg.DisableSaving()
