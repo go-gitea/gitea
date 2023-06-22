@@ -1,6 +1,10 @@
 <template>
   <div>
-    <Line :data="toGraphData(totalStats.weeks, 'main')" :options="getOptions('main')"/>
+    <Line
+      v-if="Object.keys(totalStats).length !== 0"
+      :data="toGraphData(totalStats.weeks, 'main')"
+      :options="getOptions('main')"
+    />
 
     <div class="ui attached segment two column grid">
       <div
@@ -21,7 +25,8 @@
           <div class="gt-ml-3">
             <a :href="contributor.home_link"><h4>{{ contributor.name }}</h4></a>
             <p class="gt-font-12">
-              <strong>{{ contributor.total_commits.toLocaleString() }} commits </strong>
+              <strong>{{ contributor.total_commits.toLocaleString() }} commits
+              </strong>
               <strong class="text green">{{ additions(contributor.weeks).toLocaleString() }}++
               </strong>
               <strong class="text red">
@@ -30,7 +35,10 @@
           </div>
         </div>
         <div class="ui attached segment">
-          <Line :data="toGraphData(contributor.weeks, 'contributor')" :options="getOptions('contributor')"/>
+          <Line
+            :data="toGraphData(contributor.weeks, 'contributor')"
+            :options="getOptions('contributor')"
+          />
         </div>
       </div>
     </div>
@@ -56,6 +64,8 @@ import zoomPlugin from 'chartjs-plugin-zoom';
 import {Line} from 'vue-chartjs';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 
+const {pageData} = window.config;
+
 Chart.register(
   TimeScale,
   CategoryScale,
@@ -72,25 +82,51 @@ Chart.register(
 
 const sfc = {
   components: {Line},
-  data: () => ({
-    totalStats: window.config.pageData.repoTotalStats || [],
-    type: window.config.pageData.contributionType,
-    contributorsStats:
-      window.config.pageData.repoContributorsStats || [],
-  }),
+  data: () => {
+    return {
+      isLoading: false,
+      totalStats: {},
+      repoLink: pageData.repoLink || [],
+      type: pageData.contributionType,
+      contributorsStats: [],
+    };
+  },
+  mounted() {
+    this.fetchGraphData();
+  },
   computed: {
     sortedContributors() {
       return Object.values(this.contributorsStats)
-        .sort((a, b) => (a.total_commits > b.total_commits ? -1 : a.total_commits === b.total_commits ? 0 : 1))
+        .sort((a, b) =>
+          a.total_commits > b.total_commits ?
+            -1 :
+            a.total_commits === b.total_commits ?
+              0 :
+              1
+        )
         .slice(0, 100);
     },
   },
   methods: {
+    async fetchGraphData() {
+      this.isLoading = true;
+      fetch(`/api/v1/repos/${this.repoLink}/contributors`)
+        .then((response) => response.json())
+        .then((data) => {
+          const {Total, ...rest} = data;
+          this.contributorsStats = rest;
+          this.totalStats = Total;
+          this.isLoading = false;
+        });
+    },
     maxMainGraph() {
       const maxValue = Math.max(
         ...this.totalStats.weeks.map((o) => o[this.type])
       );
-      const [cooefficient, exp] = maxValue.toExponential().split('e').map(Number);
+      const [cooefficient, exp] = maxValue
+        .toExponential()
+        .split('e')
+        .map(Number);
       if (cooefficient % 1 === 0) {
         return maxValue;
       }
@@ -117,7 +153,10 @@ const sfc = {
             pointRadius: 0,
             pointHitRadius: 0,
             fill: 'start',
-            backgroundColor: type === 'main' ? 'rgba(137, 191, 154, 0.6)' : 'rgba(96, 153, 38, 0.7)',
+            backgroundColor:
+              type === 'main' ?
+                'rgba(137, 191, 154, 0.6)' :
+                'rgba(96, 153, 38, 0.7)',
             borderWidth: 0,
             tension: 0.3,
           },
@@ -157,7 +196,7 @@ const sfc = {
               mode: 'x',
               threshold: 20,
 
-              onPan: this.updateOtherCharts
+              onPan: this.updateOtherCharts,
             },
             limits: {
               x: {
@@ -175,7 +214,7 @@ const sfc = {
               },
               mode: 'x',
 
-              onZoomComplete: this.updateOtherCharts
+              onZoomComplete: this.updateOtherCharts,
             },
           },
         },
