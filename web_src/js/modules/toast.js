@@ -26,7 +26,6 @@ async function showToast(message, level, {gravity, position, duration, ...other}
   const {default: Toastify} = await import(/* webpackChunkName: 'toastify' */'toastify-js');
   const {icon, background, duration: levelDuration} = levels[level ?? 'info'];
 
-
   const toast = Toastify({
     text: `
       <div class='toast-icon'>${svg(icon)}</div>
