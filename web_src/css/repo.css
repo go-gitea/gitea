@@ -281,7 +281,8 @@
 }
 
 .repository.file.list #repo-files-table tbody .svg.octicon-file,
-.repository.file.list #repo-files-table tbody .svg.octicon-file-symlink-file {
+.repository.file.list #repo-files-table tbody .svg.octicon-file-symlink-file,
+.repository.file.list #repo-files-table tbody .svg.octicon-file-directory-symlink {
   color: var(--color-secondary-dark-7);
 }
 
@@ -1559,7 +1560,6 @@
 .repository .diff-detail-box {
   padding: 7px 0;
   background: var(--color-body);
-  line-height: 30px;
 }
 
 @media (max-width: 991.98px) {
@@ -1945,10 +1945,6 @@
 .repository.settings.collaboration .collaborator.list > .item {
   margin: 0;
   line-height: 2em;
-}
-
-.repository.settings.collaboration .collaborator.list > .item:not(:last-child) {
-  border-bottom: 1px solid var(--color-secondary);
 }
 
 .repository.settings.collaboration #repo-collab-form #search-user-box .results {

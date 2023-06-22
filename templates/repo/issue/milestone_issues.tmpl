@@ -33,10 +33,14 @@
 					{{if .IsClosed}}
 						{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.closed" $closedDate | Safe}}
 					{{else}}
-						{{svg "octicon-calendar"}}
+
 						{{if .Milestone.DeadlineString}}
-							<span {{if .IsOverdue}}class="overdue"{{end}}>{{DateTime "short" .Milestone.DeadlineString}}</span>
+							<span{{if .IsOverdue}} class="text red"{{end}}>
+								{{svg "octicon-calendar"}}
+								{{DateTime "short" .Milestone.DeadlineString}}
+							</span>
 						{{else}}
+							{{svg "octicon-calendar"}}
 							{{$.locale.Tr "repo.milestones.no_due_date"}}
 						{{end}}
 					{{end}}
