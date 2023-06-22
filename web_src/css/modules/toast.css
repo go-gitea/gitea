@@ -12,6 +12,7 @@
   min-width: 300px;
   pointer-events: all;
   padding: 4px;
+  font-size: 14px;
 }
 
 .toastify.on {
@@ -21,15 +22,6 @@
 .toast-body {
   flex: 1;
   padding: 6px 5px 5px;
-}
-
-.toast-title {
-  font-size: 19px;
-  margin-bottom: 4px;
-}
-
-.toast-message {
-  font-size: 16px;
 }
 
 .toast-close,
@@ -68,10 +60,6 @@
 
 .toastify-bottom {
   bottom: -150px;
-}
-
-.toastify-rounded {
-  border-radius: 25px;
 }
 
 .toastify-center {
