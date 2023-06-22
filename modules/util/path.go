@@ -222,6 +222,8 @@ func isOSWindows() bool {
 	return runtime.GOOS == "windows"
 }
 
+var driveLetterRegexp = regexp.MustCompile("/[A-Za-z]:/")
+
 // FileURLToPath extracts the path information from a file://... url.
 func FileURLToPath(u *url.URL) (string, error) {
 	if u.Scheme != "file" {
@@ -235,8 +237,7 @@ func FileURLToPath(u *url.URL) (string, error) {
 	}
 
 	// If it looks like there's a Windows drive letter at the beginning, strip off the leading slash.
-	re := regexp.MustCompile("/[A-Za-z]:/")
-	if re.MatchString(path) {
+	if driveLetterRegexp.MatchString(path) {
 		return path[1:], nil
 	}
 	return path, nil
