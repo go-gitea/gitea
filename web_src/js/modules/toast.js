@@ -24,9 +24,7 @@ async function showToast(message, level, {gravity, position, duration, ...other}
   const toast = Toastify({
     text: `
       <div class='toast-icon'>${svg(icon)}</div>
-      <div class='toast-body'>
-        <div class='toast-message'>${htmlEscape(message)}</div>
-      </div>
+      <div class='toast-body'>${htmlEscape(message)}</div>
       <button class='toast-close'>${svg('octicon-x')}</button>
     `,
     escapeMarkup: false,
