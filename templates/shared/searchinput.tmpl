@@ -1,1 +1,1 @@
-<input type="search" spellcheck="false" name="q" maxlength="255" value="{{.Value}}" placeholder="{{.locale.Tr "explore.search"}}…"{{if .AutoFocus}} autofocus{{end}}{{if .Disabled}} disabled{{end}}>
+<input type="search" spellcheck="false" name="q" maxlength="255" {{if .Value}}value="{{.Value}}"{{end}} placeholder="{{.locale.Tr "explore.search"}}…"{{if .AutoFocus}} autofocus{{end}}{{if .Disabled}} disabled{{end}}>
