@@ -3,6 +3,7 @@ package repo
 import (
 	"net/http"
 
+	contributors_model "code.gitea.io/gitea/models/contributors"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 )
@@ -27,4 +28,13 @@ func Contributors(ctx *context.Context) {
 	ctx.PageData["repoLink"] = ctx.Repo.RepoLink
 
 	ctx.HTML(http.StatusOK, tplContributors)
+}
+
+// ContributorsData renders JSON of contributors along with their weekly commit statistics
+func ContributorsData(ctx *context.Context) {
+	if contributor_stats, err := contributors_model.GetContributorStats(ctx, ctx.Repo.Repository, ""); err != nil {
+		ctx.ServerError("GetContributorStats", err)
+	} else {
+		ctx.JSON(http.StatusOK, contributor_stats)
+	}
 }

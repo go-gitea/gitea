@@ -110,7 +110,7 @@ const sfc = {
   methods: {
     async fetchGraphData() {
       this.isLoading = true;
-      fetch(`/api/v1/repos/${this.repoLink}/contributors`)
+      fetch(`${this.repoLink}/contributors/data`)
         .then((response) => response.json())
         .then((data) => {
           const {Total, ...rest} = data;
