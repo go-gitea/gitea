@@ -1947,10 +1947,6 @@
   line-height: 2em;
 }
 
-.repository.settings.collaboration .collaborator.list > .item:not(:last-child) {
-  border-bottom: 1px solid var(--color-secondary);
-}
-
 .repository.settings.collaboration #repo-collab-form #search-user-box .results {
   left: 7px;
 }
