@@ -4,7 +4,7 @@
 
     <div class="ui attached segment two column grid">
       <div
-        v-for="(contributor, index) in contributorGraphData"
+        v-for="(contributor, index) in sortedContributors"
         :key="index"
         class="column stats-table"
       >
@@ -79,7 +79,7 @@ const sfc = {
       window.config.pageData.repoContributorsStats || [],
   }),
   computed: {
-    contributorGraphData() {
+    sortedContributors() {
       return Object.values(this.contributorsStats)
         .sort((a, b) => (a.total_commits > b.total_commits ? -1 : a.total_commits === b.total_commits ? 0 : 1))
         .slice(0, 100);
