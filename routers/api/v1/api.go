@@ -1091,7 +1091,6 @@ func Routes() *web.Route {
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/commits", func() {
 					m.Get("", context.ReferencesGitRepo(), repo.GetAllCommits)
-					m.Get("/stats", context.ReferencesGitRepo(), repo.GetAllCommitsStats)
 					m.Group("/{ref}", func() {
 						m.Get("/status", repo.GetCombinedCommitStatusByRef)
 						m.Get("/statuses", repo.GetCommitStatusesByRef)
