@@ -28,7 +28,7 @@ type Check struct {
 }
 
 func initDBSkipLogger(ctx context.Context) error {
-	setting.Init(&setting.Options{})
+	setting.MustInstalled()
 	setting.LoadDBSetting()
 	if err := db.InitEngine(ctx); err != nil {
 		return fmt.Errorf("db.InitEngine: %w", err)
