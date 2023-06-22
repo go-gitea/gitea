@@ -15,9 +15,9 @@
 		</div>
 	</div>
 </div>
-<form class="ui form ignore-dirty" style="max-width: 90%">
+<form class="ui form ignore-dirty">
 	<div class="ui fluid action input">
-		<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}…" autofocus>
+		{{template "shared/searchinput" dict "locale" .locale "Value" .Keyword "AutoFocus" true}}
 		<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
 	</div>
 </form>
