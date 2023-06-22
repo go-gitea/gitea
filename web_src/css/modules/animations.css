@@ -35,6 +35,19 @@
   border-width: 2px;
 }
 
+form.is-loading::after {
+  max-height: 50%;
+  max-width: 50%;
+}
+
+form.single-button-form.is-loading > * {
+  opacity: 1;
+}
+
+form.single-button-form.is-loading .button {
+  color: transparent;
+}
+
 .markup pre.is-loading,
 .editor-loading.is-loading,
 .pdf-content.is-loading {
