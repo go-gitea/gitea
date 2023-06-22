@@ -62,36 +62,36 @@ func Push(ctx *context.Context) {
 		return
 	}
 
-	// Get package property from DB if exists/create new one.
-	dbpkg, err := arch_service.CreateGetPackage(ctx, org, md.Name)
+	// Save file related to arch package.
+	pkgid, err := arch_service.SaveFile(ctx, &arch_service.SaveFileParams{
+		Organization: org,
+		User:         user,
+		Metadata:     md,
+		Filename:     filename,
+		Data:         pkgdata,
+		Distro:       distro,
+	})
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
-	// Create or get package version from DB if exists/create new one.
-	dbpkgver, err := arch_service.CreateGetPackageVersion(ctx, md, dbpkg, user)
+	// Save file related to arch package signature.
+	_, err = arch_service.SaveFile(ctx, &arch_service.SaveFileParams{
+		Organization: org,
+		User:         user,
+		Metadata:     md,
+		Data:         sigdata,
+		Filename:     filename + ".sig",
+		Distro:       distro,
+	})
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
 	// Automatically connect repository for provided package if name matched.
-	err = arch_service.RepositoryAutoconnect(ctx, owner, md.Name, dbpkg)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	// Save package file data to gitea storage and update database.
-	err = arch_service.SavePackageFile(ctx, pkgdata, distro, filename, dbpkgver.ID)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	// Save package signature data to gitea storage and update database.
-	err = arch_service.SavePackageFile(ctx, sigdata, distro, filename+".sig", dbpkgver.ID)
+	err = arch_service.RepositoryAutoconnect(ctx, owner, md.Name, pkgid)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

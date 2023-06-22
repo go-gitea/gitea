@@ -4,71 +4,71 @@
 package arch
 
 import (
-	"errors"
-	"fmt"
-	"strings"
+	"bytes"
 
 	org "code.gitea.io/gitea/models/organization"
 	pkg "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/modules/packages/arch"
-	"code.gitea.io/gitea/modules/timeutil"
+	svc "code.gitea.io/gitea/services/packages"
 )
 
-// This function will create new package in database, if it does not exist it
-// will get existing and return it back to user.
-func CreateGetPackage(ctx *context.Context, o *org.Organization, name string) (*pkg.Package, error) {
-	pack, err := pkg.TryInsertPackage(ctx, &pkg.Package{
-		OwnerID:   o.ID,
-		Type:      pkg.TypeArch,
-		Name:      name,
-		LowerName: strings.ToLower(name),
-	})
-	if errors.Is(err, pkg.ErrDuplicatePackage) {
-		pack, err = pkg.GetPackageByName(ctx, o.ID, pkg.TypeArch, name)
-		if err != nil {
-			return nil, fmt.Errorf("unable to get package %s in organization %s", name, o.Name)
-		}
-	}
-	if err != nil {
-		return nil, err
-	}
-	return pack, nil
+// Parameters required to save new arch package.
+type SaveFileParams struct {
+	*org.Organization
+	*user.User
+	*arch.Metadata
+	Data     []byte
+	Filename string
+	Distro   string
 }
 
-// This function will create new version for package, or find and return existing.
-func CreateGetPackageVersion(ctx *context.Context, md *arch.Metadata, p *pkg.Package, u *user.User) (*pkg.PackageVersion, error) {
-	rawjsonmetadata, err := json.Marshal(&md)
+// This function create new package, version and package file properties in
+// database, and write blob to file storage. If package/version/blob exists it
+// will overwrite existing data. Package id and error will be returned.
+func SaveFile(ctx *context.Context, p *SaveFileParams) (int64, error) {
+	buf, err := packages.CreateHashedBufferFromReader(bytes.NewReader(p.Data))
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
+	defer buf.Close()
 
-	ver, err := pkg.GetOrInsertVersion(ctx, &pkg.PackageVersion{
-		PackageID:    p.ID,
-		CreatorID:    u.ID,
-		Version:      md.Version,
-		LowerVersion: strings.ToLower(md.Version),
-		CreatedUnix:  timeutil.TimeStampNow(),
-		MetadataJSON: string(rawjsonmetadata),
-	})
+	pv, _, err := svc.CreatePackageOrAddFileToExisting(
+		&svc.PackageCreationInfo{
+			PackageInfo: svc.PackageInfo{
+				Owner:       p.Organization.AsUser(),
+				PackageType: pkg.TypeArch,
+				Name:        p.Metadata.Name,
+				Version:     p.Metadata.Version,
+			},
+			Creator:  p.User,
+			Metadata: p.Metadata,
+		},
+		&svc.PackageFileCreationInfo{
+			PackageFileInfo: svc.PackageFileInfo{
+				Filename:     p.Filename,
+				CompositeKey: p.Distro + "-" + p.Filename,
+			},
+			Creator:           p.User,
+			Data:              buf,
+			OverwriteExisting: true,
+		},
+	)
 	if err != nil {
-		if errors.Is(err, pkg.ErrDuplicatePackageVersion) {
-			return ver, nil
-		}
-		return nil, err
+		return 0, err
 	}
-	return ver, nil
+	return pv.PackageID, nil
 }
 
 // Automatically connect repository to pushed package, if package with provided
 // with provided name exists in namespace scope.
-func RepositoryAutoconnect(ctx *context.Context, owner, repository string, p *pkg.Package) error {
+func RepositoryAutoconnect(ctx *context.Context, owner, repository string, pkgid int64) error {
 	repo, err := repo.GetRepositoryByOwnerAndName(ctx, owner, repository)
 	if err == nil {
-		err = pkg.SetRepositoryLink(ctx, p.ID, repo.ID)
+		err = pkg.SetRepositoryLink(ctx, pkgid, repo.ID)
 		if err != nil {
 			return err
 		}

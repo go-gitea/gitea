@@ -4,7 +4,6 @@
 package arch
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -17,40 +16,8 @@ import (
 	"code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/modules/packages/arch"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	pkg_svc "code.gitea.io/gitea/services/packages"
 	"github.com/google/uuid"
 )
-
-// Save package file to content store for the provided version id and specified distribution.
-func SavePackageFile(ctx *context.Context, data []byte, distro, filename string, pkgverid int64) error {
-	buf, err := packages.CreateHashedBufferFromReader(bytes.NewReader(data))
-	if err != nil {
-		return err
-	}
-	defer buf.Close()
-
-	blob, _, err := pkg_mdl.GetOrInsertBlob(ctx, pkg_svc.NewPackageBlob(buf))
-	if err != nil {
-		return err
-	}
-
-	cs := packages.NewContentStore()
-	err = cs.Save(packages.BlobHash256Key(blob.HashSHA256), buf, blob.Size)
-	if err != nil {
-		return err
-	}
-
-	_, err = pkg_mdl.TryInsertFile(ctx, &pkg_mdl.PackageFile{
-		VersionID:    pkgverid,
-		BlobID:       blob.ID,
-		Name:         filename,
-		LowerName:    strings.ToLower(filename),
-		CompositeKey: distro + "-" + filename,
-		CreatedUnix:  timeutil.TimeStampNow(),
-	})
-	return err
-}
 
 // Get data related to provided file name and distribution.
 func LoadPackageFile(ctx *context.Context, distro, file string) ([]byte, error) {
