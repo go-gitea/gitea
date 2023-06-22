@@ -53,6 +53,6 @@ export async function showError(message, opts) {
 
 // export for devtest page in development
 if (process.env.NODE_ENV === 'development') {
-  window.showInfo = showInfo;
-  window.showError = showError;
+  window.giteaShowInfo = showInfo;
+  window.giteaShowError = showError;
 }
