@@ -40,7 +40,7 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
             if (resp.ok) {
               $dialog.modal('hide');
             } else {
-              alert(resp.message);
+              showError(resp.message);
             }
           });
         }
