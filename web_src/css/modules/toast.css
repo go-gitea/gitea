@@ -21,7 +21,7 @@
 
 .toast-body {
   flex: 1;
-  padding: 6px 5px 5px;
+  padding: 5px 0;
 }
 
 .toast-close,
