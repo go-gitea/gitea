@@ -1887,50 +1887,9 @@
   white-space: nowrap;
 }
 
-.repository.wiki.start .ui.segment {
-  padding-top: 70px;
-  padding-bottom: 100px;
-}
-
-.repository.wiki.start .ui.segment .svg {
-  height: 48px;
-}
-
-.repository.wiki.new .ui.attached.tabular.menu.previewtabs {
-  margin-bottom: 15px;
-}
-
 .file-view.markup {
   padding: 1em 2em;
 }
-
-.wiki-content-main {
-  padding: 1em 2em !important;
-  margin-left: 1em !important;
-}
-
-.wiki-pages-list .wiki-git-entry {
-  margin-left: 10px;
-  display: none;
-}
-
-.wiki-pages-list td:hover .wiki-git-entry {
-  display: inline-block;
-}
-
-@media (max-width: 767.98px) {
-  .repository.wiki .dividing.header .stackable.grid .button {
-    margin-top: 2px;
-    margin-bottom: 2px;
-  }
-}
-
-@media (max-width: 767.98px) {
-  .repository.wiki #clone-panel #repo-clone-url {
-    width: 160px;
-  }
-}
-
 .repository .activity-header {
   display: flex;
   justify-content: space-between;
@@ -2986,22 +2945,6 @@ tbody.commit-list {
   border-radius: 0;
   display: flex;
   flex-direction: column;
-}
-
-.wiki-content-sidebar .ui.message.unicode-escape-prompt p,
-.wiki-content-footer .ui.message.unicode-escape-prompt p {
-  display: none;
-}
-
-.wiki-content-toc ul {
-  margin: 0;
-  list-style: none;
-  padding: 5px 0 5px 1em;
-}
-
-.wiki-content-toc ul ul {
-  border-left:  1px var(--color-secondary);
-  border-left-style: dashed;
 }
 
 /* fomantic's last-child selector does not work with hidden last child */
