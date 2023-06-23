@@ -15,7 +15,7 @@ const levels = {
   error: {
     icon: 'gitea-exclamation',
     background: 'var(--color-red)',
-    duration: -1, // requires dismissal
+    duration: -1, // requires dismissal to hide
   },
 };
 
