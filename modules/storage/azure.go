@@ -269,7 +269,7 @@ func (a *AzureBlobStorage) URL(path, name string) (*url.URL, error) {
 func (a *AzureBlobStorage) IterateObjects(dirName string, fn func(path string, obj Object) error) error {
 	dirName = a.buildAzureBlobPath(dirName)
 	if dirName != "" {
-		dirName = dirName + "/"
+		dirName += "/"
 	}
 	pager := a.client.NewListBlobsFlatPager(a.container, &container.ListBlobsFlatOptions{
 		Prefix: &dirName,
