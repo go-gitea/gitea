@@ -36,6 +36,7 @@ func pickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		WorkflowPayload: t.Job.WorkflowPayload,
 		Context:         generateTaskContext(t),
 		Secrets:         getSecretsOfTask(ctx, t),
+		Vars:            getVariablesOfTask(ctx, t),
 	}
 
 	if needs, err := findTaskNeeds(ctx, t); err != nil {
@@ -86,6 +87,29 @@ func getSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) map[s
 	}
 
 	return secrets
+}
+
+func getVariablesOfTask(ctx context.Context, task *actions_model.ActionTask) map[string]string {
+	variables := map[string]string{}
+
+	// Org / User level
+	ownerVariables, err := actions_model.FindVariables(ctx, actions_model.FindVariablesOpts{OwnerID: task.Job.Run.Repo.OwnerID})
+	if err != nil {
+		log.Error("find variables of org: %d, error: %v", task.Job.Run.Repo.OwnerID, err)
+	}
+
+	// Repo level
+	repoVariables, err := actions_model.FindVariables(ctx, actions_model.FindVariablesOpts{RepoID: task.Job.Run.RepoID})
+	if err != nil {
+		log.Error("find variables of repo: %d, error: %v", task.Job.Run.RepoID, err)
+	}
+
+	// Level precedence: Repo > Org / User
+	for _, v := range append(ownerVariables, repoVariables...) {
+		variables[v.Name] = v.Data
+	}
+
+	return variables
 }
 
 func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {

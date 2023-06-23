@@ -53,19 +53,26 @@ func loadLFSFrom(rootCfg ConfigProvider) error {
 		return nil
 	}
 
+	LFS.JWTSecretBase64 = loadSecret(rootCfg.Section("lfs"), "LFS_JWT_SECRET_URI", "LFS_JWT_SECRET")
+
 	LFS.JWTSecretBytes = make([]byte, 32)
 	n, err := base64.RawURLEncoding.Decode(LFS.JWTSecretBytes, []byte(LFS.JWTSecretBase64))
 
 	if err != nil || n != 32 {
 		LFS.JWTSecretBase64, err = generate.NewJwtSecretBase64()
 		if err != nil {
-			return fmt.Errorf("Error generating JWT Secret for custom config: %v", err)
+			return fmt.Errorf("error generating JWT Secret for custom config: %v", err)
 		}
 
 		// Save secret
-		sec.Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
-		if err := rootCfg.Save(); err != nil {
-			return fmt.Errorf("Error saving JWT Secret for custom config: %v", err)
+		saveCfg, err := rootCfg.PrepareSaving()
+		if err != nil {
+			return fmt.Errorf("error saving JWT Secret for custom config: %v", err)
+		}
+		rootCfg.Section("server").Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
+		saveCfg.Section("server").Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
+		if err := saveCfg.Save(); err != nil {
+			return fmt.Errorf("error saving JWT Secret for custom config: %v", err)
 		}
 	}
 
