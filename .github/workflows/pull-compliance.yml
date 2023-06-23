@@ -111,7 +111,7 @@ jobs:
           check-latest: true
       # no frontend build here as backend should be able to build
       # even without any frontend files
-      - run: make deps-backend deps-tools
+      - run: make deps-backend
       - run: go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
       - name: build-backend-arm64
         run: make backend # test cross compile
