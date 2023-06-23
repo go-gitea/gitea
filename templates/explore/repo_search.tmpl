@@ -28,6 +28,8 @@
 		{{template "shared/searchinput" dict "locale" .locale "Value" .Keyword "AutoFocus" true}}
 		{{if .PageIsExploreRepositories}}
 			<input type="hidden" name="only_show_relevant" value="{{.OnlyShowRelevant}}">
+		{{else}}
+			<input type="hidden" name="tab" value="repositories">
 		{{end}}
 		<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
 	</div>
