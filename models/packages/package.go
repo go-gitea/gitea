@@ -136,7 +136,7 @@ func (pt Type) SVGName() string {
 	case TypeAlpine:
 		return "gitea-alpine"
 	case TypeArch:
-		return "octicon-arch"
+		return "gitea-arch"
 	case TypeCargo:
 		return "gitea-cargo"
 	case TypeChef:
