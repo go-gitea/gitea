@@ -17,7 +17,7 @@ func TestAzureBlobStorageIterator(t *testing.T) {
 	}
 	testStorageIterator(t, setting.AzureBlobStorageType, &setting.Storage{
 		AzureBlobConfig: setting.AzureBlobStorageConfig{
-			// https://learn.microsoft.com/ja-jp/azure/storage/common/storage-use-azurite?tabs=visual-studio-code#ip-style-url
+			// https://learn.microsoft.com/azure/storage/common/storage-use-azurite?tabs=visual-studio-code#ip-style-url
 			Endpoint: "http://127.0.0.1:10000/devstoreaccount1/",
 			// https://learn.microsoft.com/azure/storage/common/storage-use-azurite?tabs=visual-studio-code#well-known-storage-account-and-key
 			AccountName: "devstoreaccount1",
