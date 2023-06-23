@@ -258,8 +258,8 @@ func DeleteIssueUserTimes(issue *Issue, user *user_model.User) error {
 		Repo:  issue.Repo,
 		Doer:  user,
 		// Content before v1.21 did store the formated string instead of seconds,
-		// the legacy format starts with '- '
-		Content: fmt.Sprint(removedTime),
+		// so use "|" as delimeter to mark the new format
+		Content: fmt.Sprintf("|%d", removedTime),
 		Type:    CommentTypeDeleteTimeManual,
 	}); err != nil {
 		return err
@@ -289,8 +289,8 @@ func DeleteTime(t *TrackedTime) error {
 		Repo:  t.Issue.Repo,
 		Doer:  t.User,
 		// Content before v1.21 did store the formated string instead of seconds,
-		// the legacy format starts with '- '
-		Content: fmt.Sprint(t.Time),
+		// so use "|" as delimeter to mark the new format
+		Content: fmt.Sprintf("|%d", t.Time),
 		Type:    CommentTypeDeleteTimeManual,
 	}); err != nil {
 		return err
