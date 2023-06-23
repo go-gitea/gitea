@@ -1,7 +1,7 @@
 image: gitea/gitea:{{#if build.tag}}{{trimPrefix "v" build.tag}}{{else}}{{#if (hasPrefix "refs/heads/release/v" build.ref)}}{{trimPrefix "refs/heads/release/v" build.ref}}-{{/if}}nightly{{/if}}
 {{#if build.tags}}
-{{#unless (contains "-rc" tag)}}
-{{#unless (contains "-dev" tag)}}
+{{#unless (contains "-rc" build.tag)}}
+{{#unless (contains "-dev" build.tag)}}
 tags:
 {{#each build.tags}}
   - {{this}}
