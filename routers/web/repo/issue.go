@@ -1984,7 +1984,7 @@ func checkIssueRights(ctx *context.Context, issue *issues_model.Issue) {
 	}
 }
 
-func getActionIssues(ctx *context.Context) []*issues_model.Issue {
+func getActionIssues(ctx *context.Context) issues_model.IssueList {
 	commaSeparatedIssueIDs := ctx.FormString("issue_ids")
 	if len(commaSeparatedIssueIDs) == 0 {
 		return nil

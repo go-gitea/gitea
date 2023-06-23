@@ -229,7 +229,7 @@ func (issues IssueList) loadMilestones(ctx context.Context) error {
 	return nil
 }
 
-func (issues IssueList) loadProjects(ctx context.Context) error {
+func (issues IssueList) LoadProjects(ctx context.Context) error {
 	issueIDs := issues.getIssueIDs()
 	projectMaps := make(map[int64]*project_model.Project, len(issues))
 	left := len(issueIDs)
@@ -543,7 +543,7 @@ func (issues IssueList) loadAttributes(ctx context.Context) error {
 		return fmt.Errorf("issue.loadAttributes: loadMilestones: %w", err)
 	}
 
-	if err := issues.loadProjects(ctx); err != nil {
+	if err := issues.LoadProjects(ctx); err != nil {
 		return fmt.Errorf("issue.loadAttributes: loadProjects: %w", err)
 	}
 
