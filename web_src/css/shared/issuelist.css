@@ -135,10 +135,6 @@
   margin-right: -4px;
 }
 
-.issue.list > .item .desc .overdue {
-  color: var(--color-red);
-}
-
 .issue.list .branches {
   display: inline-flex;
   padding: 0 4px;

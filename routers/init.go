@@ -28,7 +28,6 @@ import (
 	"code.gitea.io/gitea/modules/system"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	actions_router "code.gitea.io/gitea/routers/api/actions"
 	packages_router "code.gitea.io/gitea/routers/api/packages"
@@ -101,21 +100,16 @@ func syncAppConfForGit(ctx context.Context) error {
 	return nil
 }
 
-// GlobalInitInstalled is for global installed configuration.
-func GlobalInitInstalled(ctx context.Context) {
-	if !setting.InstallLock {
-		log.Fatal("Gitea is not installed")
-	}
+func InitWebInstallPage(ctx context.Context) {
+	translation.InitLocales(ctx)
+	setting.LoadSettingsForInstall()
+	mustInit(svg.Init)
+}
 
+// InitWebInstalled is for global installed configuration.
+func InitWebInstalled(ctx context.Context) {
 	mustInitCtx(ctx, git.InitFull)
-	log.Info("Gitea Version: %s%s", setting.AppVer, setting.AppBuiltWith)
-	log.Info("Git Version: %s (home: %s)", git.VersionInfo(), git.HomeDir())
-	log.Info("AppPath: %s", setting.AppPath)
-	log.Info("AppWorkPath: %s", setting.AppWorkPath)
-	log.Info("Custom path: %s", setting.CustomPath)
-	log.Info("Log path: %s", setting.Log.RootPath)
-	log.Info("Configuration file: %s", setting.CustomConf)
-	log.Info("Run Mode: %s", util.ToTitleCase(setting.RunMode))
+	log.Info("Git version: %s (home: %s)", git.VersionInfo(), git.HomeDir())
 
 	// Setup i18n
 	translation.InitLocales(ctx)
