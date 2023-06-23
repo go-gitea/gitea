@@ -6,6 +6,7 @@ package issues
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -173,10 +174,12 @@ func AddTime(user *user_model.User, issue *Issue, amount int64, created time.Tim
 	}
 
 	if _, err := CreateComment(ctx, &CreateCommentOptions{
-		Issue:   issue,
-		Repo:    issue.Repo,
-		Doer:    user,
-		Content: util.SecToTime(amount),
+		Issue: issue,
+		Repo:  issue.Repo,
+		Doer:  user,
+		// Content before v1.21 did store the formated string instead of seconds,
+		// so use "|" as delimeter to mark the new format
+		Content: fmt.Sprintf("|%d", amount),
 		Type:    CommentTypeAddTimeManual,
 		TimeID:  t.ID,
 	}); err != nil {
@@ -251,10 +254,12 @@ func DeleteIssueUserTimes(issue *Issue, user *user_model.User) error {
 		return err
 	}
 	if _, err := CreateComment(ctx, &CreateCommentOptions{
-		Issue:   issue,
-		Repo:    issue.Repo,
-		Doer:    user,
-		Content: "- " + util.SecToTime(removedTime),
+		Issue: issue,
+		Repo:  issue.Repo,
+		Doer:  user,
+		// Content before v1.21 did store the formated string instead of seconds,
+		// so use "|" as delimeter to mark the new format
+		Content: fmt.Sprintf("|%d", removedTime),
 		Type:    CommentTypeDeleteTimeManual,
 	}); err != nil {
 		return err
@@ -280,10 +285,12 @@ func DeleteTime(t *TrackedTime) error {
 	}
 
 	if _, err := CreateComment(ctx, &CreateCommentOptions{
-		Issue:   t.Issue,
-		Repo:    t.Issue.Repo,
-		Doer:    t.User,
-		Content: "- " + util.SecToTime(t.Time),
+		Issue: t.Issue,
+		Repo:  t.Issue.Repo,
+		Doer:  t.User,
+		// Content before v1.21 did store the formated string instead of seconds,
+		// so use "|" as delimeter to mark the new format
+		Content: fmt.Sprintf("|%d", t.Time),
 		Type:    CommentTypeDeleteTimeManual,
 	}); err != nil {
 		return err
