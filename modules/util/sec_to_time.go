@@ -15,7 +15,9 @@ import (
 // 1563418		-> 2 weeks 4 days
 // 3937125s		-> 1 month 2 weeks
 // 45677465s	-> 1 year 6 months
-func SecToTime(duration int64) string {
+func SecToTime(durationVal any) string {
+	duration, _ := ToInt64(durationVal)
+
 	formattedTime := ""
 
 	// The following four variables are calculated by taking
@@ -85,7 +87,9 @@ func formatTime(value int64, name, formattedTime string) string {
 // 1563418s		-> 434 hours 16 minutes
 // 3937125s		-> 1093 hours 38 minutes
 // 45677465s	-> 12688 hours 11 minutes
-func Sec2TrackedTime(duration int64) string {
+func Sec2TrackedTime(durationVal any) string {
+	duration, _ := ToInt64(durationVal)
+
 	formattedTime := ""
 
 	// The following three variables are calculated without depending

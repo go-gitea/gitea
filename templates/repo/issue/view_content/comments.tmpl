@@ -267,7 +267,7 @@
 						{{/* compatibility with time comments made before v1.21 */}}
 						<span class="text grey muted-links">{{.RenderedContent}}</span>
 					{{else}}
-						<span class="text grey muted-links">{{.Content|StringUtils.ToInt|Sec2TrackedTime}}</span>
+						<span class="text grey muted-links">{{.Content|Sec2TrackedTime}}</span>
 					{{end}}
 				</div>
 			</div>
@@ -286,7 +286,7 @@
 						{{/* compatibility with time comments made before v1.21 */}}
 						<span class="text grey muted-links">{{.RenderedContent}}</span>
 					{{else}}
-						<span class="text grey muted-links">{{.Content|StringUtils.ToInt|Sec2TrackedTime}}</span>
+						<span class="text grey muted-links">{{.Content|Sec2TrackedTime}}</span>
 					{{end}}
 				</div>
 			</div>
@@ -498,7 +498,7 @@
 										<div class="gt-df gt-ac">
 											<a href="{{(index $comms 0).CodeCommentLink}}" class="file-comment gt-ml-3 gt-word-break">{{$filename}}</a>
 											{{if $invalid}}
-												<span class="ui label basic small gt-ml-3">
+												<span class="ui label basic small gt-ml-3" data-tooltip-content="{{$.locale.Tr "repo.issues.review.outdated_description"}}">
 													{{$.locale.Tr "repo.issues.review.outdated"}}
 												</span>
 											{{end}}
@@ -690,7 +690,7 @@
 						{{/* compatibility with time comments made before v1.21 */}}
 						<span class="text grey muted-links">{{.RenderedContent}}</span>
 					{{else}}
-						<span class="text grey muted-links">- {{.Content|StringUtils.ToInt|Sec2TrackedTime}}</span>
+						<span class="text grey muted-links">- {{.Content|Sec2TrackedTime}}</span>
 					{{end}}
 				</div>
 			</div>
@@ -782,7 +782,6 @@
 						<img src="{{.Poster.AvatarLink $.Context}}" width="40" height="40">
 					</a>
 					<span class="badge grey">{{svg "octicon-x" 16}}</span>
-					{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
 					<span class="text grey muted-links">
 						{{template "shared/user/authorlink" .Poster}}
 						{{$reviewerName := ""}}

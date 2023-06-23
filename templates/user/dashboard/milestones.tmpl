@@ -51,7 +51,7 @@
 							<input type="hidden" name="repos" value="[{{range $.RepoIDs}}{{.}},{{end}}]">
 							<input type="hidden" name="sort" value="{{$.SortType}}">
 							<input type="hidden" name="state" value="{{$.State}}">
-							<input name="q" value="{{$.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}...">
+							{{template "shared/searchinput" dict "locale" .locale "Value" $.Keyword}}
 							<button class="ui small icon button" type="submit" aria-label="{{.locale.Tr "explore.search"}}">{{svg "octicon-search"}}</button>
 						</div>
 					</form>
@@ -115,12 +115,13 @@
 											{{svg "octicon-clock" 14}}
 											{{$.locale.Tr "repo.milestones.closed" $closedDate | Safe}}
 										{{else}}
-											{{svg "octicon-calendar" 14}}
 											{{if .DeadlineString}}
-												<span {{if .IsOverdue}}class="overdue"{{end}}>
+												<span{{if .IsOverdue}} class="text red"{{end}}>
+													{{svg "octicon-calendar" 14}}
 													{{DateTime "short" .DeadlineString}}
 												</span>
 											{{else}}
+												{{svg "octicon-calendar" 14}}
 												{{$.locale.Tr "repo.milestones.no_due_date"}}
 											{{end}}
 										{{end}}
