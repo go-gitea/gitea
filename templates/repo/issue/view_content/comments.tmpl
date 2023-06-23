@@ -263,7 +263,12 @@
 				{{template "repo/issue/view_content/comments_delete_time" dict "ctxData" $ "comment" .}}
 				<div class="detail">
 					{{svg "octicon-clock"}}
-					<span class="text grey muted-links">{{.Content}}</span>
+					{{if .RenderedContent}}
+						{{/* compatibility with time comments made before v1.21 */}}
+						<span class="text grey muted-links">{{.RenderedContent}}</span>
+					{{else}}
+						<span class="text grey muted-links">{{.Content|Sec2Time}}</span>
+					{{end}}
 				</div>
 			</div>
 		{{else if eq .Type 14}}
@@ -277,7 +282,12 @@
 				{{template "repo/issue/view_content/comments_delete_time" dict "ctxData" $ "comment" .}}
 				<div class="detail">
 					{{svg "octicon-clock"}}
-					<span class="text grey muted-links">{{.Content}}</span>
+					{{if .RenderedContent}}
+						{{/* compatibility with time comments made before v1.21 */}}
+						<span class="text grey muted-links">{{.RenderedContent}}</span>
+					{{else}}
+						<span class="text grey muted-links">{{.Content|Sec2Time}}</span>
+					{{end}}
 				</div>
 			</div>
 		{{else if eq .Type 15}}
@@ -676,7 +686,12 @@
 				</span>
 				<div class="detail">
 					{{svg "octicon-clock"}}
-					<span class="text grey muted-links">{{.Content}}</span>
+					{{if .RenderedContent}}
+						{{/* compatibility with time comments made before v1.21 */}}
+						<span class="text grey muted-links">{{.RenderedContent}}</span>
+					{{else}}
+						<span class="text grey muted-links">- {{.Content|Sec2Time}}</span>
+					{{end}}
 				</div>
 			</div>
 		{{else if eq .Type 27}}
