@@ -82,6 +82,12 @@ HUGO_VERSION ?= 0.111.3
 GITHUB_REF_TYPE ?= branch
 GITHUB_REF_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
 
+# backwards compatible to build with Drone
+ifneq ($(DRONE_TAG),)
+	GITHUB_REF_TYPE := tag
+	GITHUB_REF_NAME := DRONE_TAG
+endif
+
 ifneq ($(GITHUB_REF_TYPE),branch)
 	VERSION ?= $(subst v,,$(GITHUB_REF_NAME))
 	GITEA_VERSION ?= $(GITHUB_REF_NAME)
@@ -834,18 +840,30 @@ release-windows: | $(DIST_DIRS)
 ifeq (,$(findstring gogit,$(TAGS)))
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'osusergo gogit $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION)-gogit .
 endif
+ifneq ($(DRONE_TAG),)
+	cp /build/* $(DIST)/binaries
+endif
 
 .PHONY: release-linux
 release-linux: | $(DIST_DIRS)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets '$(LINUX_ARCHS)' -out gitea-$(VERSION) .
+ifneq ($(DRONE_TAG),)
+	cp /build/* $(DIST)/binaries
+endif
 
 .PHONY: release-darwin
 release-darwin: | $(DIST_DIRS)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin-10.12/amd64,darwin-10.12/arm64' -out gitea-$(VERSION) .
+ifneq ($(DRONE_TAG),)
+	cp /build/* $(DIST)/binaries
+endif
 
 .PHONY: release-freebsd
 release-freebsd: | $(DIST_DIRS)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'freebsd/amd64' -out gitea-$(VERSION) .
+ifneq ($(DRONE_TAG),)
+	cp /build/* $(DIST)/binaries
+endif
 
 .PHONY: release-copy
 release-copy: | $(DIST_DIRS)
