@@ -4,15 +4,17 @@
 package arch
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	org "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"github.com/ProtonMail/gopenpgp/v2/crypto"
+	"github.com/keybase/go-crypto/openpgp"
 )
 
 type IdentidyOwnerParameters struct {
@@ -77,34 +79,20 @@ func ValidatePackageSignature(ctx *context.Context, pkg, sign []byte, u *user.Us
 		keyarmors = append(keyarmors, k.Content)
 	}
 
-	var matchedKeyring *crypto.KeyRing
+	var trace []error
 	for _, armor := range keyarmors {
-		pgpkey, err := crypto.NewKeyFromArmored(armor)
+		kr, err := openpgp.ReadArmoredKeyRing(strings.NewReader(armor))
 		if err != nil {
-			return fmt.Errorf("unable to get keys for %s: %v", u.Name, err)
+			trace = append(trace, fmt.Errorf("unable to get keys for %s: %v", u.Name, err))
+			continue
 		}
-		keyring, err := crypto.NewKeyRing(pgpkey)
+		_, err = openpgp.CheckDetachedSignature(kr, bytes.NewReader(pkg), bytes.NewReader(sign))
 		if err != nil {
-			return fmt.Errorf("unable to form keyring %s: %v", u.Name, err)
+			trace = append(trace, err)
+			continue
 		}
-		for _, idnt := range keyring.GetIdentities() {
-			if idnt.Email == u.Email {
-				matchedKeyring = keyring
-				break
-			}
-		}
-		if matchedKeyring != nil {
-			break
-		}
-	}
-	if matchedKeyring == nil {
-		return fmt.Errorf("GPG key related to %s not found", u.Email)
+		return nil
 	}
 
-	var (
-		pgpmes = crypto.NewPlainMessage(pkg)
-		pgpsig = crypto.NewPGPSignature(sign)
-	)
-
-	return matchedKeyring.VerifyDetached(pgpmes, pgpsig, crypto.GetUnixTime())
+	return errors.Join(trace...)
 }
