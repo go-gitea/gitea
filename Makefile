@@ -85,12 +85,12 @@ GITHUB_REF_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
 # backwards compatible to build with Drone
 ifneq ($(DRONE_TAG),)
 	GITHUB_REF_TYPE := tag
-	GITHUB_REF_NAME := DRONE_TAG
+	GITHUB_REF_NAME := $(DRONE_TAG)
 endif
 
 ifneq ($(GITHUB_REF_TYPE),branch)
 	VERSION ?= $(subst v,,$(GITHUB_REF_NAME))
-	GITEA_VERSION ?= $(GITHUB_REF_NAME)
+	GITEA_VERSION ?= $(VERSION)
 else
 	ifneq ($(GITHUB_REF_NAME),)
 		VERSION ?= $(subst release/v,,$(GITHUB_REF_NAME))
