@@ -7,7 +7,7 @@ test('showInfo', async () => {
 });
 
 test('showWarning', async () => {
-  await showWarning('success 😐', {duration: -1});
+  await showWarning('warning 😐', {duration: -1});
   expect(document.querySelector('.toastify')).toBeTruthy();
 });
 
