@@ -7,6 +7,7 @@
 @import "./modules/breadcrumb.css";
 @import "./modules/card.css";
 @import "./modules/comment.css";
+@import "./modules/navbar.css";
 
 @import "./shared/issuelist.css";
 @import "./shared/milestone.css";
