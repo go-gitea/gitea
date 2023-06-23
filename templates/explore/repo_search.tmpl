@@ -28,6 +28,8 @@
 		<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}…" autofocus>
 		{{if .PageIsExploreRepositories}}
 			<input type="hidden" name="only_show_relevant" value="{{.OnlyShowRelevant}}">
+		{{else}}
+			<input type="hidden" name="tab" value="repositories">
 		{{end}}
 		<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
 	</div>
