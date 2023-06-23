@@ -1923,5 +1923,5 @@ strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251/go.mod h1:
 xorm.io/builder v0.3.11-0.20220531020008-1bd24a7dc978/go.mod h1:aUW0S9eb9VCaPohFCH3j7czOx1PMW3i1HrSzbLYGBSE=
 xorm.io/builder v0.3.12 h1:ASZYX7fQmy+o8UJdhlLHSW57JDOkM8DNhcAF5d0LiJM=
 xorm.io/builder v0.3.12/go.mod h1:aUW0S9eb9VCaPohFCH3j7czOx1PMW3i1HrSzbLYGBSE=
-xorm.io/xorm v1.3.3-0.20230219231735-056cecc97e9e h1:d5PY6mwuQK5/7T6VKfFswaKMzLmGTHkJ/ZS7+cUIAjk=
-xorm.io/xorm v1.3.3-0.20230219231735-056cecc97e9e/go.mod h1:9NbjqdnjX6eyjRRhh01GHm64r6N9shTb/8Ak3YRt8Nw=
+xorm.io/xorm v1.3.3-0.20230623150031-18f8e7a86c75 h1:ReBAlO50dCIXCWF8Gbi0ZRa62AGAwCJNCPaUNUa7JSg=
+xorm.io/xorm v1.3.3-0.20230623150031-18f8e7a86c75/go.mod h1:9NbjqdnjX6eyjRRhh01GHm64r6N9shTb/8Ak3YRt8Nw=
