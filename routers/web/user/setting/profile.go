@@ -351,6 +351,12 @@ func Appearance(ctx *context.Context) {
 		return forms.IsUserHiddenCommentTypeGroupChecked(commentTypeGroup, hiddenCommentTypes)
 	}
 
+	ctx.Data["TrackedTimeMaxUnit"], err = user_model.GetUserSetting(ctx.Doer.ID, user_model.SettingsKeyTrackedTimeMaxUnit, "year") // TODO: make default set via system?
+	if err != nil {
+		ctx.ServerError("GetUserSetting", err)
+		return
+	}
+
 	ctx.HTML(http.StatusOK, tplSettingsAppearance)
 }
 

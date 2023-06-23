@@ -14,4 +14,6 @@ const (
 	UserActivityPubPrivPem = "activitypub.priv_pem"
 	// UserActivityPubPubPem is user's public key
 	UserActivityPubPubPem = "activitypub.pub_pem"
+	// SettingsKeyTrackedTimeMaxUnit set how tracked time values are converted from seconds to sting
+	SettingsKeyTrackedTimeMaxUnit = "tracked_time.max_unit"
 )
