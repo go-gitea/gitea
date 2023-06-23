@@ -96,15 +96,9 @@ const sfc = {
   },
   computed: {
     sortedContributors() {
-      return Object.values(this.contributorsStats)
-        .sort((a, b) =>
-          a.total_commits > b.total_commits ?
-            -1 :
-            a.total_commits === b.total_commits ?
-              0 :
-              1
-        )
-        .slice(0, 100);
+      return Object.values(this.contributorsStats).sort((a, b) =>
+        a.total_commits > b.total_commits ? -1 : a.total_commits === b.total_commits ? 0 : 1
+      ).slice(0, 100);
     },
   },
   methods: {
@@ -133,14 +127,10 @@ const sfc = {
       return (1 - (cooefficient % 1)) * 10 ** exp + maxValue;
     },
     additions(data) {
-      return Object.values(data).reduce((acc, item) => {
-        return acc + item.additions;
-      }, 0);
+      return Object.values(data).reduce((acc, item) => acc + item.additions, 0);
     },
     deletions(data) {
-      return Object.values(data).reduce((acc, item) => {
-        return acc + item.deletions;
-      }, 0);
+      return Object.values(data).reduce((acc, item) => acc + item.deletions, 0);
     },
 
     toGraphData(data, type) {
@@ -213,7 +203,6 @@ const sfc = {
                 enabled: type === 'main',
               },
               mode: 'x',
-
               onZoomComplete: this.updateOtherCharts,
             },
           },
