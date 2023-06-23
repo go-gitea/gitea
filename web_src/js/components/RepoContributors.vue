@@ -134,6 +134,9 @@ const sfc = {
     },
 
     toGraphData(data, type) {
+      var style = getComputedStyle(document.body);
+      const colorName = this.type === "commits" ? '--color-primary-alpha-60' : (this.type === "additions" ? '--color-green-badge-hover-bg' : '--color-red-badge-hover-bg')
+      var color = style.getPropertyValue(colorName);
       return {
         datasets: [
           {
@@ -143,10 +146,7 @@ const sfc = {
             pointRadius: 0,
             pointHitRadius: 0,
             fill: 'start',
-            backgroundColor:
-              type === 'main' ?
-                'rgba(137, 191, 154, 0.6)' :
-                'rgba(96, 153, 38, 0.7)',
+            backgroundColor: color,
             borderWidth: 0,
             tension: 0.3,
           },
