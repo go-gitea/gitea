@@ -16,8 +16,9 @@ type Indexer struct{}
 
 // Init initializes the indexer
 func (i *Indexer) Init(_ context.Context) (bool, error) {
-	// nothing to do
-	return false, nil
+	// Return true to indicate that the index was opened/existed.
+	// So that the indexer will not try to populate the index, the data is already there.
+	return true, nil
 }
 
 // Ping checks if the indexer is available

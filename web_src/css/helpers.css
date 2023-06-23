@@ -85,6 +85,7 @@ Gitea's private styles use `g-` prefix.
 
 .gt-float-left { float: left !important; }
 .gt-float-right { float: right !important; }
+.gt-clear-both { clear: both !important; }
 
 .gt-font-light { font-weight: var(--font-weight-light) !important; }
 .gt-font-normal { font-weight: var(--font-weight-normal) !important; }
