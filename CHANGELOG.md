@@ -538,7 +538,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Improve External Wiki in Repo Header (#24304)
   * Updated upgrade script that is informing user that Gitea service has to be running in order to upgrade it (#24260)
   * Add run status in action view page (#24223)
-  * Update github.com/google/go-github to v51 (#23946)
   * Show visibility status of email in own profile (#23900)
   * Refactor authors dropdown (send get request from frontend to avoid long wait time) (#23890)
   * Add self to maintainers (#23644)
