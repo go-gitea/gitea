@@ -767,7 +767,6 @@
 						<img src="{{.Poster.AvatarLink $.Context}}" width="40" height="40">
 					</a>
 					<span class="badge grey">{{svg "octicon-x" 16}}</span>
-					{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
 					<span class="text grey muted-links">
 						{{template "shared/user/authorlink" .Poster}}
 						{{$reviewerName := ""}}
