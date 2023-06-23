@@ -17,11 +17,14 @@ const (
 	LocalStorageType StorageType = "local"
 	// MinioStorageType is the type descriptor for minio storage
 	MinioStorageType StorageType = "minio"
+	// AzureBlobStorageType is the type descriptor for azure blob storage
+	AzureBlobStorageType StorageType = "azureblob"
 )
 
 var storageTypes = []StorageType{
 	LocalStorageType,
 	MinioStorageType,
+	AzureBlobStorageType,
 }
 
 // IsValidStorageType returns true if the given storage type is valid
@@ -48,12 +51,22 @@ type MinioStorageConfig struct {
 	ServeDirect        bool   `ini:"SERVE_DIRECT"`
 }
 
+// MinioStorageConfig represents the configuration for a minio storage
+type AzureBlobStorageConfig struct {
+	Endpoint    string `ini:"AZUREBLOB_ENDPOINT" json:",omitempty"`
+	AccountName string `ini:"AZUREBLOB_ACCOUNT_NAME" json:",omitempty"`
+	AccountKey  string `ini:"AZUREBLOB_ACCOUNT_KEY" json:",omitempty"`
+	Container   string `ini:"AZUREBLOB_CONTAINER" json:",omitempty"`
+	BasePath    string `ini:"AZUREBLOB_BASE_PATH" json:",omitempty"`
+}
+
 // Storage represents configuration of storages
 type Storage struct {
-	Type          StorageType        // local or minio
-	Path          string             `json:",omitempty"` // for local type
-	TemporaryPath string             `json:",omitempty"`
-	MinioConfig   MinioStorageConfig // for minio type
+	Type            StorageType            // local or minio or azureblob
+	Path            string                 `json:",omitempty"` // for local type
+	TemporaryPath   string                 `json:",omitempty"`
+	MinioConfig     MinioStorageConfig     // for minio type
+	AzureBlobConfig AzureBlobStorageConfig // for azureblob type
 }
 
 func (storage *Storage) ToShadowCopy() Storage {
@@ -178,6 +191,22 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 			storage.MinioConfig.ServeDirect = ConfigSectionKeyBool(extraConfigSec, "SERVE_DIRECT", storage.MinioConfig.ServeDirect)
 			storage.MinioConfig.BasePath = ConfigSectionKeyString(extraConfigSec, "MINIO_BASE_PATH", storage.MinioConfig.BasePath)
 			storage.MinioConfig.Bucket = ConfigSectionKeyString(extraConfigSec, "MINIO_BUCKET", storage.MinioConfig.Bucket)
+		}
+	case string(AzureBlobStorageType):
+		storage.AzureBlobConfig.BasePath = name + "/"
+
+		if err := targetSec.MapTo(&storage.AzureBlobConfig); err != nil {
+			return nil, fmt.Errorf("map azure blob config failed: %v", err)
+		}
+		// extra config section will be read SERVE_DIRECT, PATH, MINIO_BASE_PATH to override the targetsec
+		extraConfigSec := sec
+		if extraConfigSec == nil {
+			extraConfigSec = storageNameSec
+		}
+
+		if extraConfigSec != nil {
+			storage.AzureBlobConfig.BasePath = ConfigSectionKeyString(extraConfigSec, "AZUREBLOB_BASE_PATH", storage.AzureBlobConfig.BasePath)
+			storage.AzureBlobConfig.Container = ConfigSectionKeyString(extraConfigSec, "AZUREBLOB_CONTAINER", storage.AzureBlobConfig.Container)
 		}
 	}
 
