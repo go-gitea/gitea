@@ -229,39 +229,41 @@ func (issues IssueList) loadMilestones(ctx context.Context) error {
 	return nil
 }
 
-func (issues IssueList) getProjectIDs() []int64 {
-	ids := make(container.Set[int64], len(issues))
-	for _, issue := range issues {
-		ids.Add(issue.ProjectID())
-	}
-	return ids.Values()
-}
-
 func (issues IssueList) loadProjects(ctx context.Context) error {
-	projectIDs := issues.getProjectIDs()
-	if len(projectIDs) == 0 {
-		return nil
+	issueIDs := issues.getIssueIDs()
+	projectMaps := make(map[int64]*project_model.Project, len(issues))
+	left := len(issueIDs)
+
+	type projectWithIssueID struct {
+		*project_model.Project `xorm:"extends"`
+		IssueID                int64
 	}
 
-	projectMaps := make(map[int64]*project_model.Project, len(projectIDs))
-	left := len(projectIDs)
 	for left > 0 {
 		limit := db.DefaultMaxInSize
 		if left < limit {
 			limit = left
 		}
+
+		projects := make([]*projectWithIssueID, 0, limit)
 		err := db.GetEngine(ctx).
-			In("id", projectIDs[:limit]).
-			Find(&projectMaps)
+			Table("project").
+			Select("project.*, project_issue.issue_id").
+			Join("INNER", "project_issue", "project.id = project_issue.project_id").
+			In("project_issue.issue_id", issueIDs[:limit]).
+			Find(&projects)
 		if err != nil {
 			return err
 		}
+		for _, project := range projects {
+			projectMaps[project.IssueID] = project.Project
+		}
 		left -= limit
-		projectIDs = projectIDs[limit:]
+		issueIDs = issueIDs[limit:]
 	}
 
 	for _, issue := range issues {
-		issue.Project = projectMaps[issue.ProjectID()]
+		issue.Project = projectMaps[issue.ID]
 	}
 	return nil
 }
