@@ -57,6 +57,12 @@ func ChangeTitle(ctx context.Context, issue *issues_model.Issue, doer *user_mode
 		return
 	}
 
+	if issue.IsPull && issues_model.HasWorkInProgressPrefix(oldTitle) && !issues_model.HasWorkInProgressPrefix(title) {
+		if err = issues_model.PullRequestCodeOwnersReview(ctx, issue, issue.PullRequest); err != nil {
+			return
+		}
+	}
+
 	notification.NotifyIssueChangeTitle(ctx, doer, issue, oldTitle)
 
 	return nil

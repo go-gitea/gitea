@@ -9,10 +9,8 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/urfave/cli"
-	"gopkg.in/ini.v1"
 )
 
 // EnvironmentPrefix environment variables prefixed with this represent ini values to write
@@ -83,8 +81,6 @@ func main() {
 		},
 	}
 	app.Action = runEnvironmentToIni
-	setting.SetCustomPathAndConf("", "", "")
-
 	err := app.Run(os.Args)
 	if err != nil {
 		log.Fatal("Failed to run app with %s: %v", os.Args, err)
@@ -92,24 +88,16 @@ func main() {
 }
 
 func runEnvironmentToIni(c *cli.Context) error {
-	providedCustom := c.String("custom-path")
-	providedConf := c.String("config")
-	providedWorkPath := c.String("work-path")
-	setting.SetCustomPathAndConf(providedCustom, providedConf, providedWorkPath)
+	setting.InitWorkPathAndCfgProvider(os.Getenv, setting.ArgWorkPathAndCustomConf{
+		WorkPath:   c.String("work-path"),
+		CustomPath: c.String("custom-path"),
+		CustomConf: c.String("config"),
+	})
 
-	cfg := ini.Empty()
-	confFileExists, err := util.IsFile(setting.CustomConf)
+	cfg, err := setting.NewConfigProviderFromFile(setting.CustomConf)
 	if err != nil {
-		log.Fatal("Unable to check if %s is a file. Error: %v", setting.CustomConf, err)
+		log.Fatal("Failed to load custom conf '%s': %v", setting.CustomConf, err)
 	}
-	if confFileExists {
-		if err := cfg.Append(setting.CustomConf); err != nil {
-			log.Fatal("Failed to load custom conf '%s': %v", setting.CustomConf, err)
-		}
-	} else {
-		log.Warn("Custom config '%s' not found, ignore this if you're running first time", setting.CustomConf)
-	}
-	cfg.NameMapper = ini.SnackCase
 
 	prefixGitea := c.String("prefix") + "__"
 	suffixFile := "__FILE"

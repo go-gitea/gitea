@@ -47,7 +47,7 @@ func TestNewReleasePost(t *testing.T) {
 	} {
 		unittest.PrepareTestEnv(t)
 
-		ctx := test.MockContext(t, "user2/repo1/releases/new")
+		ctx, _ := test.MockContext(t, "user2/repo1/releases/new")
 		test.LoadUser(t, ctx, 2)
 		test.LoadRepo(t, ctx, 1)
 		test.LoadGitRepo(t, ctx)
@@ -67,7 +67,7 @@ func TestNewReleasePost(t *testing.T) {
 
 func TestNewReleasesList(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo-release/releases")
+	ctx, _ := test.MockContext(t, "user2/repo-release/releases")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 57)
 	test.LoadGitRepo(t, ctx)

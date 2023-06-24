@@ -3,7 +3,7 @@ module code.gitea.io/gitea
 go 1.20
 
 require (
-	code.gitea.io/actions-proto-go v0.2.1
+	code.gitea.io/actions-proto-go v0.3.0
 	code.gitea.io/gitea-vet v0.2.2
 	code.gitea.io/sdk/gitea v0.15.1
 	codeberg.org/gusted/mcaptcha v0.0.0-20220723083913-4f3072e1d570
@@ -55,7 +55,7 @@ require (
 	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
 	github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
 	github.com/golang-jwt/jwt/v4 v4.5.0
-	github.com/google/go-github/v52 v52.0.0
+	github.com/google/go-github/v53 v53.0.0
 	github.com/google/pprof v0.0.0-20230502171905-255e3b9b56de
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/feeds v1.1.1
@@ -122,7 +122,7 @@ require (
 	mvdan.cc/xurls/v2 v2.4.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 	xorm.io/builder v0.3.12
-	xorm.io/xorm v1.3.3-0.20230219231735-056cecc97e9e
+	xorm.io/xorm v1.3.3-0.20230623150031-18f8e7a86c75
 )
 
 require (

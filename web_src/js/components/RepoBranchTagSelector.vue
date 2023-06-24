@@ -13,7 +13,7 @@
     </button>
     <div class="menu transition" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
       <div class="ui icon search input">
-        <i class="icon gt-df gt-ac gt-jc gt-m-0"><svg-icon name="octicon-filter" :size="16"/></i>
+        <i class="icon"><svg-icon name="octicon-filter" :size="16"/></i>
         <input name="search" ref="searchField" autocomplete="off" v-model="searchTerm" @keydown="keydown($event)" :placeholder="searchFieldPlaceholder">
       </div>
       <template v-if="showBranchesInDropdown">
@@ -296,10 +296,10 @@ export default sfc; // activate IDE's Vue plugin
 </script>
 
 <style scoped>
-.menu .item a {
+.menu .item .rss-icon {
   display: none; /* only show RSS icon on hover */
 }
-.menu .item:hover a {
+.menu .item:hover .rss-icon {
   display: inline-block;
 }
 </style>

@@ -3,6 +3,7 @@ name: cron-translations
 on:
   schedule:
     - cron: "7 0 * * *" # every day at 00:07 UTC
+  workflow_dispatch:
 
 jobs:
   crowdin-pull:

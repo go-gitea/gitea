@@ -273,6 +273,9 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					// close all related pulls
 					log.Error("close related pull request failed: %v", err)
 				}
+				if err := git_model.AddDeletedBranch(db.DefaultContext, repo.ID, branch, opts.OldCommitID, pusher.ID); err != nil {
+					log.Warn("AddDeletedBranch: %v", err)
+				}
 			}
 
 			// Even if user delete a branch on a repository which he didn't watch, he will be watch that.
