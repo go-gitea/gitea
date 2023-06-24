@@ -76,7 +76,7 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 		}
 
 		if len(sr.Mail) == 0 {
-			sr.Mail = fmt.Sprintf("%s@localhost", sr.Username)
+			sr.Mail = fmt.Sprintf("%s@localhost.local", sr.Username)
 		}
 
 		user = &user_model.User{

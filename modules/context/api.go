@@ -20,6 +20,8 @@ import (
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web"
+	web_types "code.gitea.io/gitea/modules/web/types"
 
 	"gitea.com/go-chi/cache"
 )
@@ -39,6 +41,12 @@ type APIContext struct {
 	Repo    *Repository
 	Org     *APIOrganization
 	Package *Package
+}
+
+func init() {
+	web.RegisterResponseStatusProvider[*APIContext](func(req *http.Request) web_types.ResponseStatusProvider {
+		return req.Context().Value(apiContextKey).(*APIContext)
+	})
 }
 
 // Currently, we have the following common fields in error response:

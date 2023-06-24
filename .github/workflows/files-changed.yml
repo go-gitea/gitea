@@ -4,29 +4,29 @@ on:
   workflow_call:
     outputs:
       backend:
-        description: "whether backend files changed"
         value: ${{ jobs.detect.outputs.backend }}
       frontend:
-        description: "whether frontend files changed"
         value: ${{ jobs.detect.outputs.frontend }}
       docs:
-        description: "whether docs files changed"
         value: ${{ jobs.detect.outputs.docs }}
       actions:
-        description: "whether actions files changed"
         value: ${{ jobs.detect.outputs.actions }}
+      templates:
+        value: ${{ jobs.detect.outputs.templates }}
+      docker:
+        value: ${{ jobs.detect.outputs.docker }}
 
 jobs:
   detect:
-    name: detect which files changed
     runs-on: ubuntu-latest
     timeout-minutes: 3
-    # Map a step output to a job output
     outputs:
       backend: ${{ steps.changes.outputs.backend }}
       frontend: ${{ steps.changes.outputs.frontend }}
       docs: ${{ steps.changes.outputs.docs }}
       actions: ${{ steps.changes.outputs.actions }}
+      templates: ${{ steps.changes.outputs.templates }}
+      docker: ${{ steps.changes.outputs.docker }}
     steps:
       - uses: actions/checkout@v3
       - uses: dorny/paths-filter@v2
@@ -35,15 +35,17 @@ jobs:
           filters: |
             backend:
               - "**/*.go"
-              - "**/*.tmpl"
+              - "templates/**/*.tmpl"
               - "go.mod"
               - "go.sum"
+              - "Makefile"
 
             frontend:
               - "**/*.js"
               - "web_src/**"
               - "package.json"
               - "package-lock.json"
+              - "Makefile"
 
             docs:
               - "**/*.md"
@@ -51,3 +53,13 @@ jobs:
 
             actions:
               - ".github/workflows/*"
+
+            templates:
+              - "templates/**/*.tmpl"
+              - "poetry.lock"
+
+            docker:
+              - "Dockerfile"
+              - "Dockerfile.rootless"
+              - "docker/**"
+              - "Makefile"

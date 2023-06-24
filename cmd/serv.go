@@ -61,7 +61,7 @@ func setup(ctx context.Context, debug bool) {
 	} else {
 		setupConsoleLogger(log.FATAL, false, os.Stderr)
 	}
-	setting.Init(&setting.Options{})
+	setting.MustInstalled()
 	if debug {
 		setting.RunMode = "dev"
 	}

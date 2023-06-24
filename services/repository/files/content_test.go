@@ -47,7 +47,7 @@ func getExpectedReadmeContentsResponse() *api.ContentsResponse {
 
 func TestGetContents(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1")
+	ctx, _ := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)
 	test.LoadRepoCommit(t, ctx)
@@ -75,7 +75,7 @@ func TestGetContents(t *testing.T) {
 
 func TestGetContentsOrListForDir(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1")
+	ctx, _ := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)
 	test.LoadRepoCommit(t, ctx)
@@ -110,7 +110,7 @@ func TestGetContentsOrListForDir(t *testing.T) {
 
 func TestGetContentsOrListForFile(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1")
+	ctx, _ := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)
 	test.LoadRepoCommit(t, ctx)
@@ -138,7 +138,7 @@ func TestGetContentsOrListForFile(t *testing.T) {
 
 func TestGetContentsErrors(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1")
+	ctx, _ := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)
 	test.LoadRepoCommit(t, ctx)
@@ -169,7 +169,7 @@ func TestGetContentsErrors(t *testing.T) {
 
 func TestGetContentsOrListErrors(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1")
+	ctx, _ := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)
 	test.LoadRepoCommit(t, ctx)
@@ -200,7 +200,7 @@ func TestGetContentsOrListErrors(t *testing.T) {
 
 func TestGetContentsOrListOfEmptyRepos(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user30/empty")
+	ctx, _ := test.MockContext(t, "user30/empty")
 	ctx.SetParams(":id", "52")
 	test.LoadRepo(t, ctx, 52)
 	test.LoadUser(t, ctx, 30)
@@ -218,7 +218,7 @@ func TestGetContentsOrListOfEmptyRepos(t *testing.T) {
 
 func TestGetBlobBySHA(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1")
+	ctx, _ := test.MockContext(t, "user2/repo1")
 	test.LoadRepo(t, ctx, 1)
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
