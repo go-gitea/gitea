@@ -260,13 +260,12 @@
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
 
-					{{$timeStr := .Content}} <!-- legacy support -->
-					{{if eq .Content ""}}
-						{{if lt .TimeTracked 60}}
-							{{$timeStr = SecToTimeExact .TimeTracked true}}
-						{{else}}
-							{{$timeStr = SecToTimeExact .TimeTracked false}}
-						{{end}}
+					{{$timeStr := ""}}
+					{{if .RenderedContent}}
+						{{/* compatibility with time comments made before v1.21 */}}
+						{{$timeStr = .RenderedContent}}
+					{{else}}
+						{{$timeStr = .Content|Sec2Time}}
 					{{end}}
 
 					{{$.locale.Tr "repo.issues.stop_tracking_history" $timeStr $createdStr | Safe}}
@@ -280,13 +279,12 @@
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
 
-					{{$timeStr := .Content}} <!-- legacy support -->
-					{{if eq .Content ""}}
-						{{if lt .TimeTracked 60}}
-							{{$timeStr = SecToTimeExact .TimeTracked true}}
-						{{else}}
-							{{$timeStr = SecToTimeExact .TimeTracked false}}
-						{{end}}
+					{{$timeStr := ""}}
+					{{if .RenderedContent}}
+						{{/* compatibility with time comments made before v1.21 */}}
+						{{$timeStr = .RenderedContent}}
+					{{else}}
+						{{$timeStr = .Content|Sec2Time}}
 					{{end}}
 
 					{{$.locale.Tr "repo.issues.add_time_history" $timeStr $createdStr | Safe}}
@@ -685,17 +683,17 @@
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
 
-					{{$timeStr := .Content}} <!-- legacy support -->
-					{{if eq .Content ""}}
-						{{if lt .TimeTracked 60}}
-							{{$timeStr = SecToTimeExact .TimeTracked true}}
-						{{else}}
-							{{$timeStr = SecToTimeExact .TimeTracked false}}
-						{{end}}
-					{{end}}
-
-					{{$.locale.Tr "repo.issues.del_time_history" $timeStr $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.del_time_history" $createdStr | Safe}}
 				</span>
+				<div class="detail">
+					{{svg "octicon-clock"}}
+					{{if .RenderedContent}}
+						{{/* compatibility with time comments made before v1.21 */}}
+						<span class="text grey muted-links">{{.RenderedContent}}</span>
+					{{else}}
+						<span class="text grey muted-links">- {{.Content|Sec2Time}}</span>
+					{{end}}
+				</div>
 			</div>
 		{{else if eq .Type 27}}
 			<div class="timeline-item event" id="{{.HashTag}}">
@@ -785,7 +783,6 @@
 						<img src="{{.Poster.AvatarLink $.Context}}" width="40" height="40">
 					</a>
 					<span class="badge grey">{{svg "octicon-x" 16}}</span>
-					{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
 					<span class="text grey muted-links">
 						{{template "shared/user/authorlink" .Poster}}
 						{{$reviewerName := ""}}
@@ -863,11 +860,7 @@
 				{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{if and (eq .TimeEstimate 0)}}
-						{{$.locale.Tr "repo.issues.remove_time_estimate" $createdStr | Safe}}
-					{{else}}
-						{{$.locale.Tr "repo.issues.change_time_estimate_at" (SecToTimeExact .TimeEstimate false)  $createdStr | Safe}}
-					{{end}}
+					{{$.locale.Tr "repo.issues.change_time_estimate_at" .Content $createdStr | Safe}}
 				</span>
 			</div>
 		{{end}}

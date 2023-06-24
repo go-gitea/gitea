@@ -14,12 +14,3 @@ func AddTimeEstimateColumnToIssueTable(x *xorm.Engine) error {
 
 	return x.Sync(new(Issue))
 }
-
-func AddColumnsToCommentTable(x *xorm.Engine) error {
-	type Comment struct {
-		TimeTracked  int64 `xorm:"NOT NULL DEFAULT 0"`
-		TimeEstimate int64 `xorm:"NOT NULL DEFAULT 0"`
-	}
-
-	return x.Sync(new(Comment))
-}

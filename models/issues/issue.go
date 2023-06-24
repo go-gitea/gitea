@@ -895,8 +895,7 @@ func ChangeIssueTimeEstimate(issue *Issue, doer *user_model.User, timeEstimate i
 		Doer:         doer,
 		Repo:         issue.Repo,
 		Issue:        issue,
-		Content:      util.SecToTime(timeEstimate),
-		TimeEstimate: timeEstimate,
+		Content:      fmt.Sprintf("%d", timeEstimate),
 	}
 	if _, err = CreateComment(ctx, opts); err != nil {
 		return fmt.Errorf("createComment: %w", err)

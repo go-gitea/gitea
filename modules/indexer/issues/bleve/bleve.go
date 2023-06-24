@@ -1,17 +1,14 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package issues
+package bleve
 
 import (
 	"context"
-	"fmt"
-	"os"
-	"strconv"
 
-	gitea_bleve "code.gitea.io/gitea/modules/indexer/bleve"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
+	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
+	inner_bleve "code.gitea.io/gitea/modules/indexer/internal/bleve"
+	"code.gitea.io/gitea/modules/indexer/issues/internal"
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/analysis/analyzer/custom"
@@ -19,10 +16,8 @@ import (
 	"github.com/blevesearch/bleve/v2/analysis/token/lowercase"
 	"github.com/blevesearch/bleve/v2/analysis/token/unicodenorm"
 	"github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
-	"github.com/blevesearch/bleve/v2/index/upsidedown"
 	"github.com/blevesearch/bleve/v2/mapping"
 	"github.com/blevesearch/bleve/v2/search/query"
-	"github.com/ethantkoenig/rupture"
 )
 
 const (
@@ -30,20 +25,6 @@ const (
 	issueIndexerDocType       = "issueIndexerDocType"
 	issueIndexerLatestVersion = 2
 )
-
-// indexerID a bleve-compatible unique identifier for an integer id
-func indexerID(id int64) string {
-	return strconv.FormatInt(id, 36)
-}
-
-// idOfIndexerID the integer id associated with an indexer id
-func idOfIndexerID(indexerID string) (int64, error) {
-	id, err := strconv.ParseInt(indexerID, 36, 64)
-	if err != nil {
-		return 0, fmt.Errorf("Unexpected indexer ID %s: %w", indexerID, err)
-	}
-	return id, nil
-}
 
 // numericEqualityQuery a numeric equality query for the given value and field
 func numericEqualityQuery(value int64, field string) *query.NumericRangeQuery {
@@ -72,49 +53,16 @@ func addUnicodeNormalizeTokenFilter(m *mapping.IndexMappingImpl) error {
 
 const maxBatchSize = 16
 
-// openIndexer open the index at the specified path, checking for metadata
-// updates and bleve version updates.  If index needs to be created (or
-// re-created), returns (nil, nil)
-func openIndexer(path string, latestVersion int) (bleve.Index, error) {
-	_, err := os.Stat(path)
-	if err != nil && os.IsNotExist(err) {
-		return nil, nil
-	} else if err != nil {
-		return nil, err
-	}
-
-	metadata, err := rupture.ReadIndexMetadata(path)
-	if err != nil {
-		return nil, err
-	}
-	if metadata.Version < latestVersion {
-		// the indexer is using a previous version, so we should delete it and
-		// re-populate
-		return nil, util.RemoveAll(path)
-	}
-
-	index, err := bleve.Open(path)
-	if err != nil && err == upsidedown.IncompatibleVersion {
-		// the indexer was built with a previous version of bleve, so we should
-		// delete it and re-populate
-		return nil, util.RemoveAll(path)
-	} else if err != nil {
-		return nil, err
-	}
-
-	return index, nil
-}
-
-// BleveIndexerData an update to the issue indexer
-type BleveIndexerData IndexerData
+// IndexerData an update to the issue indexer
+type IndexerData internal.IndexerData
 
 // Type returns the document type, for bleve's mapping.Classifier interface.
-func (i *BleveIndexerData) Type() string {
+func (i *IndexerData) Type() string {
 	return issueIndexerDocType
 }
 
-// createIssueIndexer create an issue indexer if one does not already exist
-func createIssueIndexer(path string, latestVersion int) (bleve.Index, error) {
+// generateIssueIndexMapping generates the bleve index mapping for issues
+func generateIssueIndexMapping() (mapping.IndexMapping, error) {
 	mapping := bleve.NewIndexMapping()
 	docMapping := bleve.NewDocumentMapping()
 
@@ -144,68 +92,31 @@ func createIssueIndexer(path string, latestVersion int) (bleve.Index, error) {
 	mapping.AddDocumentMapping(issueIndexerDocType, docMapping)
 	mapping.AddDocumentMapping("_all", bleve.NewDocumentDisabledMapping())
 
-	index, err := bleve.New(path, mapping)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = rupture.WriteIndexMetadata(path, &rupture.IndexMetadata{
-		Version: latestVersion,
-	}); err != nil {
-		return nil, err
-	}
-	return index, nil
+	return mapping, nil
 }
 
-var _ Indexer = &BleveIndexer{}
+var _ internal.Indexer = &Indexer{}
 
-// BleveIndexer implements Indexer interface
-type BleveIndexer struct {
-	indexDir string
-	indexer  bleve.Index
+// Indexer implements Indexer interface
+type Indexer struct {
+	inner                    *inner_bleve.Indexer
+	indexer_internal.Indexer // do not composite inner_bleve.Indexer directly to avoid exposing too much
 }
 
-// NewBleveIndexer creates a new bleve local indexer
-func NewBleveIndexer(indexDir string) *BleveIndexer {
-	return &BleveIndexer{
-		indexDir: indexDir,
-	}
-}
-
-// Init will initialize the indexer
-func (b *BleveIndexer) Init() (bool, error) {
-	var err error
-	b.indexer, err = openIndexer(b.indexDir, issueIndexerLatestVersion)
-	if err != nil {
-		return false, err
-	}
-	if b.indexer != nil {
-		return true, nil
-	}
-
-	b.indexer, err = createIssueIndexer(b.indexDir, issueIndexerLatestVersion)
-	return false, err
-}
-
-// Ping does nothing
-func (b *BleveIndexer) Ping() bool {
-	return true
-}
-
-// Close will close the bleve indexer
-func (b *BleveIndexer) Close() {
-	if b.indexer != nil {
-		if err := b.indexer.Close(); err != nil {
-			log.Error("Error whilst closing indexer: %v", err)
-		}
+// NewIndexer creates a new bleve local indexer
+func NewIndexer(indexDir string) *Indexer {
+	inner := inner_bleve.NewIndexer(indexDir, issueIndexerLatestVersion, generateIssueIndexMapping)
+	return &Indexer{
+		Indexer: inner,
+		inner:   inner,
 	}
 }
 
 // Index will save the index data
-func (b *BleveIndexer) Index(issues []*IndexerData) error {
-	batch := gitea_bleve.NewFlushingBatch(b.indexer, maxBatchSize)
+func (b *Indexer) Index(_ context.Context, issues []*internal.IndexerData) error {
+	batch := inner_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	for _, issue := range issues {
-		if err := batch.Index(indexerID(issue.ID), struct {
+		if err := batch.Index(indexer_internal.Base36(issue.ID), struct {
 			RepoID   int64
 			Title    string
 			Content  string
@@ -223,10 +134,10 @@ func (b *BleveIndexer) Index(issues []*IndexerData) error {
 }
 
 // Delete deletes indexes by ids
-func (b *BleveIndexer) Delete(ids ...int64) error {
-	batch := gitea_bleve.NewFlushingBatch(b.indexer, maxBatchSize)
+func (b *Indexer) Delete(_ context.Context, ids ...int64) error {
+	batch := inner_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	for _, id := range ids {
-		if err := batch.Delete(indexerID(id)); err != nil {
+		if err := batch.Delete(indexer_internal.Base36(id)); err != nil {
 			return err
 		}
 	}
@@ -235,7 +146,7 @@ func (b *BleveIndexer) Delete(ids ...int64) error {
 
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
-func (b *BleveIndexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int) (*SearchResult, error) {
+func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int) (*internal.SearchResult, error) {
 	var repoQueriesP []*query.NumericRangeQuery
 	for _, repoID := range repoIDs {
 		repoQueriesP = append(repoQueriesP, numericEqualityQuery(repoID, "RepoID"))
@@ -255,20 +166,20 @@ func (b *BleveIndexer) Search(ctx context.Context, keyword string, repoIDs []int
 	search := bleve.NewSearchRequestOptions(indexerQuery, limit, start, false)
 	search.SortBy([]string{"-_score"})
 
-	result, err := b.indexer.SearchInContext(ctx, search)
+	result, err := b.inner.Indexer.SearchInContext(ctx, search)
 	if err != nil {
 		return nil, err
 	}
 
-	ret := SearchResult{
-		Hits: make([]Match, 0, len(result.Hits)),
+	ret := internal.SearchResult{
+		Hits: make([]internal.Match, 0, len(result.Hits)),
 	}
 	for _, hit := range result.Hits {
-		id, err := idOfIndexerID(hit.ID)
+		id, err := indexer_internal.ParseBase36(hit.ID)
 		if err != nil {
 			return nil, err
 		}
-		ret.Hits = append(ret.Hits, Match{
+		ret.Hits = append(ret.Hits, internal.Match{
 			ID: id,
 		})
 	}

@@ -35,7 +35,7 @@ func TestAddTime(t *testing.T) {
 	assert.Equal(t, int64(3661), tt.Time)
 
 	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{Type: issues_model.CommentTypeAddTimeManual, PosterID: 3, IssueID: 1})
-	assert.Equal(t, comment.TimeTracked, int64(3661))
+	assert.Equal(t, "|3661", comment.Content)
 }
 
 func TestGetTrackedTimes(t *testing.T) {

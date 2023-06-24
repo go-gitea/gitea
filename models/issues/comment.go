@@ -170,7 +170,7 @@ func AsCommentType(typeName string) CommentType {
 
 func (t CommentType) HasContentSupport() bool {
 	switch t {
-	case CommentTypeComment, CommentTypeCode, CommentTypeReview:
+	case CommentTypeComment, CommentTypeCode, CommentTypeReview, CommentTypeDismissReview:
 		return true
 	}
 	return false
@@ -244,7 +244,6 @@ type Comment struct {
 	Milestone        *Milestone `xorm:"-"`
 	TimeID           int64
 	Time             *TrackedTime `xorm:"-"`
-	TimeTracked      int64        `xorm:"NOT NULL DEFAULT 0"`
 	AssigneeID       int64
 	RemovedAssignee  bool
 	Assignee         *user_model.User   `xorm:"-"`
@@ -302,8 +301,6 @@ type Comment struct {
 	NewCommit   string                              `xorm:"-"`
 	CommitsNum  int64                               `xorm:"-"`
 	IsForcePush bool                                `xorm:"-"`
-
-	TimeEstimate int64 `xorm:"NOT NULL DEFAULT 0"`
 }
 
 func init() {
@@ -800,7 +797,6 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 		OldProjectID:     opts.OldProjectID,
 		ProjectID:        opts.ProjectID,
 		TimeID:           opts.TimeID,
-		TimeTracked:      opts.TimeTracked,
 		RemovedAssignee:  opts.RemovedAssignee,
 		AssigneeID:       opts.AssigneeID,
 		AssigneeTeamID:   opts.AssigneeTeamID,
@@ -823,7 +819,6 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 		RefIsPull:        opts.RefIsPull,
 		IsForcePush:      opts.IsForcePush,
 		Invalidated:      opts.Invalidated,
-		TimeEstimate:     opts.TimeEstimate,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -973,7 +968,6 @@ type CreateCommentOptions struct {
 	OldProjectID     int64
 	ProjectID        int64
 	TimeID           int64
-	TimeTracked      int64
 	AssigneeID       int64
 	AssigneeTeamID   int64
 	RemovedAssignee  bool

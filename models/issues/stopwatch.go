@@ -217,7 +217,6 @@ func FinishIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 		Repo:        issue.Repo,
 		Type:        CommentTypeStopTracking,
 		TimeID:      tt.ID,
-		TimeTracked: tt.Time,
 	}); err != nil {
 		return err
 	}

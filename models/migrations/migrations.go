@@ -509,7 +509,6 @@ var migrations = []Migration{
 
 	// v262 -> v263
 	NewMigration("Add TimeEstimate to issue table", v1_21.AddTimeEstimateColumnToIssueTable),
-	NewMigration("Add TimeTracked, TimeEstimate to comment table", v1_21.AddColumnsToCommentTable),
 }
 
 // GetCurrentDBVersion returns the current db version
