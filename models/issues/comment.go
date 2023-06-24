@@ -225,6 +225,7 @@ type Comment struct {
 	Poster           *user_model.User `xorm:"-"`
 	OriginalAuthor   string
 	OriginalAuthorID int64
+	OriginalID       int64  // Only used in synced comments
 	IssueID          int64  `xorm:"INDEX"`
 	Issue            *Issue `xorm:"-"`
 	LabelID          int64

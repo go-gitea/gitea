@@ -506,6 +506,7 @@ func (g *GiteaLocalUploader) prepareComments(comments ...*base.Comment) ([]*issu
 			Content:     comment.Content,
 			CreatedUnix: timeutil.TimeStamp(comment.Created.Unix()),
 			UpdatedUnix: timeutil.TimeStamp(comment.Updated.Unix()),
+			OriginalID:  comment.OriginalID,
 		}
 
 		switch cm.Type {

@@ -490,6 +490,7 @@ func (g *GithubDownloaderV3) getCommentsSince(commentable base.Commentable, sinc
 				Created:     comment.GetCreatedAt().Time,
 				Updated:     comment.GetUpdatedAt().Time,
 				Reactions:   reactions,
+				OriginalID:  comment.GetID(),
 			})
 		}
 		if resp.NextPage == 0 {
