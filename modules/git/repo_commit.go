@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 )
@@ -226,8 +227,7 @@ type CommitsByFileAndRangeOptions struct {
 
 // ExtendedCommitStats return the list of *api.ExtendedCommitStats for the given revision
 func (repo *Repository) ExtendedCommitStats(revision string /*, limit int */) ([]*api.ExtendedCommitStats, error) {
-	var baseCommit *Commit
-	baseCommit, err := repo.GetCommit(revision)
+	baseCommit, _ := repo.GetCommit(revision)
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
 		return nil, err
@@ -241,7 +241,7 @@ func (repo *Repository) ExtendedCommitStats(revision string /*, limit int */) ([
 	// AddOptionFormat("--max-count=%d", limit)
 	gitCmd.AddDynamicArguments(baseCommit.ID.String())
 
-	var extended_commit_stats []*api.ExtendedCommitStats
+	var extendedCommitStats []*api.ExtendedCommitStats
 	stderr := new(strings.Builder)
 	err = gitCmd.Run(&RunOpts{
 		Dir:    repo.Path,
@@ -253,48 +253,48 @@ func (repo *Repository) ExtendedCommitStats(revision string /*, limit int */) ([
 			scanner.Split(bufio.ScanLines)
 
 			for scanner.Scan() {
-				author_name := strings.TrimSpace(scanner.Text())
+				authorName := strings.TrimSpace(scanner.Text())
 				scanner.Scan()
-				author_email := strings.TrimSpace(scanner.Text())
+				authorEmail := strings.TrimSpace(scanner.Text())
 				scanner.Scan()
 				date := strings.TrimSpace(scanner.Text())
 				scanner.Scan()
 				stats := strings.TrimSpace(scanner.Text())
-				if author_name == "" || author_email == "" || date == "" || stats == "" {
+				if authorName == "" || authorEmail == "" || date == "" || stats == "" {
 					// FIXME: find a better way to parse the output so that we will handle this properly
-					fmt.Println("Something is wrong with git log output, skipping...")
+					log.Warn("Something is wrong with git log output, skipping...")
 					continue
 				}
 				//  1 file changed, 1 insertion(+), 1 deletion(-)
 				fields := strings.Split(stats, ",")
 
-				commit_stats := api.CommitStats{}
+				commitStats := api.CommitStats{}
 				for _, field := range fields[1:] {
 					parts := strings.Split(strings.TrimSpace(field), " ")
-					value, type_ := parts[0], parts[1]
+					value, contributionType := parts[0], parts[1]
 					amount, _ := strconv.Atoi(value)
 
-					if strings.HasPrefix(type_, "insertion") {
-						commit_stats.Additions = amount
+					if strings.HasPrefix(contributionType, "insertion") {
+						commitStats.Additions = amount
 					} else {
-						commit_stats.Deletions = amount
+						commitStats.Deletions = amount
 					}
 				}
-				commit_stats.Total = commit_stats.Additions + commit_stats.Deletions
+				commitStats.Total = commitStats.Additions + commitStats.Deletions
 				scanner.Scan()
 				scanner.Text() // empty line at the end
 
 				res := &api.ExtendedCommitStats{
 					Author: &api.CommitUser{
 						Identity: api.Identity{
-							Name:  author_name,
-							Email: author_email,
+							Name:  authorName,
+							Email: authorEmail,
 						},
 						Date: date,
 					},
-					Stats: &commit_stats,
+					Stats: &commitStats,
 				}
-				extended_commit_stats = append(extended_commit_stats, res)
+				extendedCommitStats = append(extendedCommitStats, res)
 
 			}
 			_ = stdoutReader.Close()
@@ -305,7 +305,7 @@ func (repo *Repository) ExtendedCommitStats(revision string /*, limit int */) ([
 		return nil, fmt.Errorf("Failed to get ContributorsCommitStats for repository.\nError: %w\nStderr: %s", err, stderr)
 	}
 
-	return extended_commit_stats, nil
+	return extendedCommitStats, nil
 }
 
 // CommitsByFileAndRange return the commits according revision file and the page

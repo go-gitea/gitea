@@ -35,9 +35,9 @@ func Contributors(ctx *context.Context) {
 
 // ContributorsData renders JSON of contributors along with their weekly commit statistics
 func ContributorsData(ctx *context.Context) {
-	if contributor_stats, err := contributors_model.GetContributorStats(ctx, ctx.Repo.Repository, ""); err != nil {
+	if contributorStats, err := contributors_model.GetContributorStats(ctx, ctx.Repo.Repository, ""); err != nil {
 		ctx.ServerError("GetContributorStats", err)
 	} else {
-		ctx.JSON(http.StatusOK, contributor_stats)
+		ctx.JSON(http.StatusOK, contributorStats)
 	}
 }

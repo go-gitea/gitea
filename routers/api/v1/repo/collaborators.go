@@ -396,9 +396,9 @@ func GetAllContributorsStats(ctx *context.APIContext) {
 		sha = ctx.Repo.Repository.DefaultBranch
 	}
 
-	if contributor_stats, err := contributors_model.GetContributorStats(ctx, ctx.Repo.Repository, sha); err != nil {
+	if contributorStats, err := contributors_model.GetContributorStats(ctx, ctx.Repo.Repository, sha); err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetContributorStats", err)
 	} else {
-		ctx.JSON(http.StatusOK, &contributor_stats)
+		ctx.JSON(http.StatusOK, &contributorStats)
 	}
 }

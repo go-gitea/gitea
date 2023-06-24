@@ -41,42 +41,42 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository, revis
 	if len(revision) == 0 {
 		revision = repo.DefaultBranch
 	}
-	extended_commit_stats, err := gitRepo.ExtendedCommitStats(revision)
+	extendedCommitStats, err := gitRepo.ExtendedCommitStats(revision)
 	if err != nil {
 		return nil, fmt.Errorf("ExtendedCommitStats: %w", err)
 	}
 
 	layout := "2006-01-02"
-	initial_commit_date := extended_commit_stats[0].Author.Date
+	initialCommitDate := extendedCommitStats[0].Author.Date
 
-	starting_sunday, _ := util.FindLastSundayBeforeDate(initial_commit_date)
-	ending_sunday, _ := util.FindFirstSundayAfterDate(time.Now().Format(layout))
+	startingSunday, _ := util.FindLastSundayBeforeDate(initialCommitDate)
+	endingSunday, _ := util.FindFirstSundayAfterDate(time.Now().Format(layout))
 
-	sundays, _ := util.ListSundaysBetween(starting_sunday, ending_sunday)
+	sundays, _ := util.ListSundaysBetween(startingSunday, endingSunday)
 
 	unknownUserAvatarLink := user_model.NewGhostUser().AvatarLink(ctx)
-	contributors_commit_stats := make(map[string]*api.ContributorData)
-	contributors_commit_stats["total"] = &api.ContributorData{
+	contributorsCommitStats := make(map[string]*api.ContributorData)
+	contributorsCommitStats["total"] = &api.ContributorData{
 		Name:       "Total",
 		AvatarLink: unknownUserAvatarLink,
 		Weeks:      CreateWeeks(sundays),
 	}
-	total, _ := contributors_commit_stats["total"]
+	total := contributorsCommitStats["total"]
 
-	for _, v := range extended_commit_stats {
+	for _, v := range extendedCommitStats {
 		if len(v.Author.Email) == 0 {
 			continue
 		}
-		if _, ok := contributors_commit_stats[v.Author.Email]; !ok {
+		if _, ok := contributorsCommitStats[v.Author.Email]; !ok {
 			u, err := user_model.GetUserByEmail(ctx, v.Author.Email)
 			if u == nil || user_model.IsErrUserNotExist(err) {
-				contributors_commit_stats[v.Author.Email] = &api.ContributorData{
+				contributorsCommitStats[v.Author.Email] = &api.ContributorData{
 					Name:       v.Author.Name,
 					AvatarLink: unknownUserAvatarLink,
 					Weeks:      CreateWeeks(sundays),
 				}
 			} else {
-				contributors_commit_stats[v.Author.Email] = &api.ContributorData{
+				contributorsCommitStats[v.Author.Email] = &api.ContributorData{
 					Name:       u.DisplayName(),
 					Login:      u.LowerName,
 					AvatarLink: u.AvatarLink(ctx),
@@ -86,12 +86,12 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository, revis
 			}
 		}
 		// Update user statistics
-		user, _ := contributors_commit_stats[v.Author.Email]
-		starting_of_week, _ := util.FindLastSundayBeforeDate(v.Author.Date)
+		user := contributorsCommitStats[v.Author.Email]
+		startingOfWeek, _ := util.FindLastSundayBeforeDate(v.Author.Date)
 
-		val, _ := time.Parse(layout, starting_of_week)
-		starting_sunday_p, _ := time.Parse(layout, starting_sunday)
-		idx := int(val.Sub(starting_sunday_p).Hours()/24) / 7
+		val, _ := time.Parse(layout, startingOfWeek)
+		startingSundayParsed, _ := time.Parse(layout, startingSunday)
+		idx := int(val.Sub(startingSundayParsed).Hours()/24) / 7
 		user.Weeks[idx].Additions += v.Stats.Additions
 		user.Weeks[idx].Deletions += v.Stats.Deletions
 		user.Weeks[idx].Commits++
@@ -104,5 +104,5 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository, revis
 		total.TotalCommits++
 	}
 
-	return contributors_commit_stats, nil
+	return contributorsCommitStats, nil
 }

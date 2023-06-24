@@ -2,7 +2,7 @@
   <div>
     <Line
       v-if="Object.keys(totalStats).length !== 0"
-      :data="toGraphData(totalStats.weeks, 'main')"
+      :data="toGraphData(totalStats.weeks)"
       :options="getOptions('main')"
     />
 
@@ -36,7 +36,7 @@
         </div>
         <div class="ui attached segment">
           <Line
-            :data="toGraphData(contributor.weeks, 'contributor')"
+            :data="toGraphData(contributor.weeks)"
             :options="getOptions('contributor')"
           />
         </div>
@@ -133,10 +133,10 @@ const sfc = {
       return Object.values(data).reduce((acc, item) => acc + item.deletions, 0);
     },
 
-    toGraphData(data, type) {
-      var style = getComputedStyle(document.body);
-      const colorName = this.type === "commits" ? '--color-primary-alpha-60' : (this.type === "additions" ? '--color-green-badge-hover-bg' : '--color-red-badge-hover-bg')
-      var color = style.getPropertyValue(colorName);
+    toGraphData(data) {
+      const style = getComputedStyle(document.body);
+      const colorName = this.type === 'commits' ? '--color-primary-alpha-60' : (this.type === 'additions' ? '--color-green-badge-hover-bg' : '--color-red-badge-hover-bg');
+      const color = style.getPropertyValue(colorName);
       return {
         datasets: [
           {

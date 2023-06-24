@@ -48,8 +48,8 @@ func FindLastSundayBeforeDate(dateStr string) (string, error) {
 		daysToSubtract += 7
 	}
 
-	last_sunday := date.AddDate(0, 0, -daysToSubtract)
-	return last_sunday.Format(layout), nil
+	lastSunday := date.AddDate(0, 0, -daysToSubtract)
+	return lastSunday.Format(layout), nil
 }
 
 func FindFirstSundayAfterDate(dateStr string) (string, error) {
@@ -66,6 +66,6 @@ func FindFirstSundayAfterDate(dateStr string) (string, error) {
 		daysToAdd += 7
 	}
 
-	first_sunday := date.AddDate(0, 0, daysToAdd)
-	return first_sunday.Format(layout), nil
+	firstSunday := date.AddDate(0, 0, daysToAdd)
+	return firstSunday.Format(layout), nil
 }
