@@ -4,16 +4,16 @@
 package arch
 
 import (
+	"archive/tar"
 	"bytes"
+	"compress/gzip"
 	"crypto/md5"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
-	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -209,56 +209,6 @@ func rmEmptyStrings(s []string) []string {
 	return r
 }
 
-// Function takes path to directory with pacman database and updates package
-// it with current metadata.
-func (m *Metadata) PutToDb(dir string, mode fs.FileMode) error {
-	descdir := path.Join(dir, m.Name+"-"+m.Version)
-	err := os.MkdirAll(descdir, mode)
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(path.Join(descdir, "desc"), []byte(m.GetDbDesc()), mode)
-}
-
-// Function takes raw database archive bytes and destination directory as
-// arguements and unpacks database contents to destination directory.
-func UnpackDb(src, dst string) error {
-	return archiver.DefaultTarGz.Unarchive(src, dst)
-}
-
-// Function takes path to source directory with raw pacman description files
-// for pacman database, creates db.tar.gz archive and related symlink for
-// provided path.
-func PackDb(src, dst string) error {
-	if !strings.HasSuffix(dst, ".db.tar.gz") {
-		return fmt.Errorf("dst should end with '.db.tar.gz': %s", dst)
-	}
-	symlink := strings.TrimSuffix(dst, ".tar.gz")
-	if _, err := os.Stat(dst); err == nil {
-		err = os.RemoveAll(dst)
-		if err != nil {
-			return err
-		}
-		err = os.RemoveAll(symlink)
-		if err != nil {
-			return err
-		}
-	}
-	des, err := os.ReadDir(src)
-	if err != nil {
-		return err
-	}
-	var pkgdescs []string
-	for _, de := range des {
-		pkgdescs = append(pkgdescs, path.Join(src, de.Name()))
-	}
-	err = archiver.DefaultTarGz.Archive(pkgdescs, dst)
-	if err != nil {
-		return err
-	}
-	return os.Symlink(dst, symlink)
-}
-
 // Join database or package names to prevent collisions with same packages in
 // different user spaces. Skips empty strings and returns name joined with
 // dots.
@@ -275,4 +225,87 @@ func Join(s ...string) string {
 		rez += v + "."
 	}
 	return rez
+}
+
+// Add or update existing package entry in database archived data.
+func UpdatePacmanDbEntry(db []byte, md *Metadata) ([]byte, error) {
+	// Read existing entries in archive.
+	entries, err := readEntries(db)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add new package entry to list.
+	entries[md.Name+"-"+md.Version+"/desc"] = []byte(md.GetDbDesc())
+
+	fmt.Println(entries)
+
+	var out bytes.Buffer
+
+	// Write entries to new buffer and return it.
+	err = writeToArchive(entries, &out)
+	if err != nil {
+		return nil, err
+	}
+
+	return out.Bytes(), nil
+}
+
+// Read database entries containing in pacman archive.
+func readEntries(dbarchive []byte) (map[string][]byte, error) {
+	gzf, err := gzip.NewReader(bytes.NewReader(dbarchive))
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	var entries = map[string][]byte{}
+
+	tarReader := tar.NewReader(gzf)
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		if header.Typeflag == tar.TypeReg {
+			content, err := io.ReadAll(tarReader)
+			if err != nil {
+				return nil, err
+			}
+			entries[header.Name] = content
+		}
+	}
+	return entries, nil
+}
+
+// Write pacman package entries to empty buffer.
+func writeToArchive(files map[string][]byte, buf io.Writer) error {
+	gw := gzip.NewWriter(buf)
+	defer gw.Close()
+	tw := tar.NewWriter(gw)
+	defer tw.Close()
+
+	for name, content := range files {
+		hdr := &tar.Header{
+			Name: name,
+			Size: int64(len(content)),
+			Mode: int64(os.ModePerm),
+		}
+
+		err := tw.WriteHeader(hdr)
+		if err != nil {
+			return err
+		}
+
+		_, err = io.Copy(tw, bytes.NewReader(content))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

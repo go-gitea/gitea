@@ -33,7 +33,7 @@ func Push(ctx *context.Context) {
 		return
 	}
 
-	// Read package to memory and create plain GPG message to validate signature.
+	// Read package to memory for signature validation.
 	pkgdata, err := io.ReadAll(ctx.Req.Body)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -48,7 +48,7 @@ func Push(ctx *context.Context) {
 		return
 	}
 
-	// Validate package signature with user's GnuPG key.
+	// Validate package signature with any of user's GnuPG keys.
 	err = arch_service.ValidatePackageSignature(ctx, pkgdata, sigdata, user)
 	if err != nil {
 		apiError(ctx, http.StatusUnauthorized, err)
@@ -149,8 +149,11 @@ func Get(ctx *context.Context) {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
 		}
+
 		ctx.Resp.WriteHeader(http.StatusOK)
+		return
 	}
+
 	ctx.Resp.WriteHeader(http.StatusNotFound)
 }
 
