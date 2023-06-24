@@ -1,12 +1,14 @@
 <template>
   <div>
-    <Line
-      v-if="Object.keys(totalStats).length !== 0"
-      :data="toGraphData(totalStats.weeks)"
-      :options="getOptions('main')"
-    />
+    <div style="height: 380px">
+      <Line
+        v-if="Object.keys(totalStats).length !== 0"
+        :data="toGraphData(totalStats.weeks)"
+        :options="getOptions('main')"
+      />
+    </div>
 
-    <div class="ui attached segment two column grid">
+    <div class="ui attached two column grid">
       <div
         v-for="(contributor, index) in sortedContributors"
         :key="index"
@@ -35,10 +37,12 @@
           </div>
         </div>
         <div class="ui attached segment">
-          <Line
-            :data="toGraphData(contributor.weeks)"
-            :options="getOptions('contributor')"
-          />
+          <div>
+            <Line
+              :data="toGraphData(contributor.weeks)"
+              :options="getOptions('contributor')"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -170,6 +174,7 @@ const sfc = {
     getOptions(type) {
       return {
         responsive: true,
+        maintainAspectRatio: false,
         animation: false,
         onClick: (e) => {
           if (type === 'main') {
