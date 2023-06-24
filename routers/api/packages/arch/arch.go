@@ -111,7 +111,7 @@ func Push(ctx *context.Context) {
 func Get(ctx *context.Context) {
 	var (
 		file   = ctx.Params("file")
-		owner  = ctx.Params("owner")
+		owner  = ctx.Params("username")
 		distro = ctx.Params("distro")
 		arch   = ctx.Params("arch")
 	)

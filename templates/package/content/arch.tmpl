@@ -6,16 +6,16 @@
 			<div class="field">
 				<label>{{svg "octicon-note"}} {{.locale.Tr "packages.arch.pacmanconf"}}</label>
 				<div class="markup"><pre class="code-block"><code>[{{.PackageDescriptor.Owner.LowerName}}.{{.PackageDescriptor.Metadata.BaseDomain}}]
-Server = https://{{.PackageDescriptor.Metadata.BaseDomain}}/api/packages/arch/(distribution)/(architecture)/{{.PackageDescriptor.Owner.LowerName}}</code></pre></div>
+Server = https://{{.PackageDescriptor.Metadata.BaseDomain}}/api/packages/{{.PackageDescriptor.Owner.LowerName}}/arch/archlinux/x86_64</code></pre></div>
 			</div>
 
 			<div class="field">
 				<label>{{svg "octicon-clock"}} {{.locale.Tr "packages.arch.pacmansync"}}</label>
-				<div class="markup"><pre class="code-block"><code>pacman -S {{.PackageDescriptor.Package.LowerName}}</code></pre></div>
+				<div class="markup"><pre class="code-block"><code>pacman -Sy {{.PackageDescriptor.Package.LowerName}}</code></pre></div>
 			</div>
 
 			<div class="field">
-				<label>{{.locale.Tr "packages.arch.documentation" "https://docs.gitea.io/en-us/usage/packages/arch/" | Safe}}</label>
+				<label>{{.locale.Tr "packages.arch.documentation" "https://wiki.archlinux.org/title/mirrors" | Safe}}</label>
 			</div>
 		</div>
 	</div>

@@ -238,8 +238,6 @@ func UpdatePacmanDbEntry(db []byte, md *Metadata) ([]byte, error) {
 	// Add new package entry to list.
 	entries[md.Name+"-"+md.Version+"/desc"] = []byte(md.GetDbDesc())
 
-	fmt.Println(entries)
-
 	var out bytes.Buffer
 
 	// Write entries to new buffer and return it.
@@ -255,7 +253,6 @@ func UpdatePacmanDbEntry(db []byte, md *Metadata) ([]byte, error) {
 func readEntries(dbarchive []byte) (map[string][]byte, error) {
 	gzf, err := gzip.NewReader(bytes.NewReader(dbarchive))
 	if err != nil {
-		fmt.Println(err)
 		return map[string][]byte{}, nil
 	}
 
