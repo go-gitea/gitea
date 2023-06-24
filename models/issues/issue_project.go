@@ -27,11 +27,6 @@ func (issue *Issue) LoadProject(ctx context.Context) (err error) {
 	return err
 }
 
-// ProjectID return project id if issue was assigned to one
-func (issue *Issue) ProjectID() int64 {
-	return issue.projectID(db.DefaultContext)
-}
-
 func (issue *Issue) projectID(ctx context.Context) int64 {
 	var ip project_model.ProjectIssue
 	has, err := db.GetEngine(ctx).Where("issue_id=?", issue.ID).Get(&ip)
