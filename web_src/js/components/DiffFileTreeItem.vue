@@ -150,6 +150,6 @@ a:hover {
 }
 
 a.file.viewed {
-  color: var(--color-text-light-3) !important;
+  color: var(--color-text-light-3);
 }
 </style>
