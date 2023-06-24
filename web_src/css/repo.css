@@ -87,6 +87,18 @@
   }
 }
 
+.projects-header {
+  margin-bottom: 1rem;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.projects-toolbar {
+  display: flex;
+  justify-content: space-between;
+  padding-left: 4px;
+}
+
 .repository .issue-content-right .menu {
   overflow-x: auto;
   max-height: 500px;
@@ -137,7 +149,6 @@
 .repository .filter.menu.labels .label-filter .menu .info {
   display: inline-block;
   padding: 0.5rem 0.25rem;
-  border-bottom: 1px solid var(--color-secondary);
   font-size: 12px;
   width: 100%;
   white-space: nowrap;
@@ -225,6 +236,14 @@
   align-items: center;
 }
 
+@media (max-width: 767.68px) {
+  .repository.file.list .repo-description {
+    flex-direction: column;
+    gap: 8px;
+    align-items: normal;
+  }
+}
+
 .repository.file.list #repo-desc {
   font-size: 1.2em;
 }
@@ -262,7 +281,8 @@
 }
 
 .repository.file.list #repo-files-table tbody .svg.octicon-file,
-.repository.file.list #repo-files-table tbody .svg.octicon-file-symlink-file {
+.repository.file.list #repo-files-table tbody .svg.octicon-file-symlink-file,
+.repository.file.list #repo-files-table tbody .svg.octicon-file-directory-symlink {
   color: var(--color-secondary-dark-7);
 }
 
@@ -1167,56 +1187,6 @@
   margin-top: -8px;
 }
 
-.repository .milestone.list {
-  list-style: none;
-}
-
-.repository .milestone.list > .item {
-  padding-top: 10px;
-  padding-bottom: 10px;
-}
-
-.repository .milestone.list > .item + .item {
-  border-top: 1px solid var(--color-secondary);
-}
-
-.repository .milestone.list > .item progress {
-  width: 200px;
-  height: 16px;
-}
-
-.repository .milestone.list > .item .meta {
-  color: var(--color-text-light-2);
-  padding-top: 5px;
-}
-
-.repository .milestone.list > .item .meta .issue-stats .svg {
-  padding-left: 5px;
-}
-
-.repository .milestone.list > .item .meta .overdue {
-  color: var(--color-red);
-}
-
-.repository .milestone.list > .item .operate {
-  margin-top: -15px;
-}
-
-.repository .milestone.list > .item .operate > a {
-  font-size: 15px;
-  padding-top: 5px;
-  padding-right: 10px;
-  color: var(--color-text-light-2);
-}
-
-.repository .milestone.list > .item .operate > a:hover {
-  color: var(--color-text);
-}
-
-.repository .milestone.list > .item .content {
-  padding-top: 10px;
-}
-
 .repository.new.milestone textarea {
   height: 200px;
 }
@@ -1590,7 +1560,6 @@
 .repository .diff-detail-box {
   padding: 7px 0;
   background: var(--color-body);
-  line-height: 30px;
 }
 
 @media (max-width: 991.98px) {
@@ -1697,8 +1666,9 @@
   background-color: var(--color-teal);
 }
 
-.repository .diff-detail-box .button {
-  padding: 8px 12px;
+.repository .diff-detail-box .ui.button {
+  padding: 0 12px;
+  height: 30px;
 }
 
 .repository .diff-box .header:not(.resolved-placeholder) {
@@ -1732,6 +1702,10 @@
 .repository .diff-box .resolved-placeholder {
   display: flex;
   align-items: center;
+  font-size: 14px !important;
+  height: 36px;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .repository .diff-box .resolved-placeholder .button {
@@ -1756,10 +1730,6 @@
 .repository .diff-file-box .file-body.file-code .lines-num span.fold {
   display: block;
   text-align: center;
-}
-
-.repository .diff-file-box .code-diff {
-  font-size: 12px;
 }
 
 .repository .diff-file-box .code-diff td {
@@ -1844,7 +1814,6 @@
   border: none;
 }
 
-
 @media (max-width: 991.98px) {
   .diff-file-box {
     scroll-margin-top: 77px; /* match .repository .diff-detail-box */
@@ -1854,9 +1823,9 @@
 /* TODO: this can potentially be made "global" by removing the class prefix */
 .diff-file-box .ui.attached.header,
 .diff-file-box .ui.attached.table {
-  margin: 0; /* remove fomantic negative margins */;
-  width: initial; /* remove fomantic over 100% width */;
-  max-width: initial; /* remove fomantic over 100% width */;
+  margin: 0; /* remove fomantic negative margins */
+  width: initial; /* remove fomantic over 100% width */
+  max-width: initial; /* remove fomantic over 100% width */
 }
 
 .repository .diff-stats {
@@ -1908,62 +1877,24 @@
   flex: 1
 }
 
-
-.repository.packages .empty {
+.repository.packages .empty,
+.repository.actions .empty {
   padding-top: 70px;
   padding-bottom: 100px;
-}
-
-.repository.packages .empty .svg {
-  height: 48px;
 }
 
 .repository.packages .file-size {
   white-space: nowrap;
 }
 
-.repository.wiki.start .ui.segment {
-  padding-top: 70px;
-  padding-bottom: 100px;
-}
-
-.repository.wiki.start .ui.segment .svg {
-  height: 48px;
-}
-
-.repository.wiki.new .ui.attached.tabular.menu.previewtabs {
-  margin-bottom: 15px;
-}
-
 .file-view.markup {
   padding: 1em 2em;
 }
-
-.wiki-content-main {
-  padding: 1em 2em !important;
-  margin-left: 1em !important;
-}
-
-.wiki-pages-list .wiki-git-entry {
-  margin-left: 10px;
-  display: none;
-}
-
-.wiki-pages-list td:hover .wiki-git-entry {
-  display: inline-block;
-}
-
-@media (max-width: 767.98px) {
-  .repository.wiki .dividing.header .stackable.grid .button {
-    margin-top: 2px;
-    margin-bottom: 2px;
-  }
-}
-
-@media (max-width: 767.98px) {
-  .repository.wiki #clone-panel #repo-clone-url {
-    width: 160px;
-  }
+.repository .activity-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .repository.settings.collaboration .collaborator.list {
@@ -1973,10 +1904,6 @@
 .repository.settings.collaboration .collaborator.list > .item {
   margin: 0;
   line-height: 2em;
-}
-
-.repository.settings.collaboration .collaborator.list > .item:not(:last-child) {
-  border-bottom: 1px solid var(--color-secondary);
 }
 
 .repository.settings.collaboration #repo-collab-form #search-user-box .results {
@@ -2523,14 +2450,17 @@
   left: 7px;
 }
 
-.comment-header .actions a {
-  margin-right: 0 !important;
+.comment-header .actions a:not(.label) {
   padding: 0.5rem !important;
 }
 
-.comment-header-left > * + *,
-.comment-header-right > * + * {
-  margin-left: 0.25rem;
+.comment-header .actions .label {
+  margin: 0 !important;
+}
+
+.comment-header-left,
+.comment-header-right {
+  gap: 4px;
 }
 
 .comment-body {
@@ -3017,22 +2947,6 @@ tbody.commit-list {
   flex-direction: column;
 }
 
-.wiki-content-sidebar .ui.message.unicode-escape-prompt p,
-.wiki-content-footer .ui.message.unicode-escape-prompt p {
-  display: none;
-}
-
-.wiki-content-toc ul {
-  margin: 0;
-  list-style: none;
-  padding: 5px 0 5px 1em;
-}
-
-.wiki-content-toc ul ul {
-  border-left:  1px var(--color-secondary);
-  border-left-style: dashed;
-}
-
 /* fomantic's last-child selector does not work with hidden last child */
 .ui.buttons .unescape-button {
   border-top-right-radius: 0.28571429rem;
@@ -3381,6 +3295,12 @@ tbody.commit-list {
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   margin-bottom: 8px;
+}
+
+@media (max-width: 767.98px) {
+  #issue-pins {
+    grid-template-columns: repeat(1, 1fr);
+  }
 }
 
 .pinned-issue-card {

@@ -46,15 +46,6 @@
 				<dd>{{.ScriptType}}</dd>
 				<dt>{{.locale.Tr "admin.config.reverse_auth_user"}}</dt>
 				<dd>{{.ReverseProxyAuthUser}}</dd>
-
-				{{if .EnvVars}}
-				<div class="ui divider"></div>
-				{{range .EnvVars}}
-				<dt>{{.Name}}</dt>
-				<dd>{{.Value}}</dd>
-				{{end}}
-				{{end}}
-
 			</dl>
 		</div>
 

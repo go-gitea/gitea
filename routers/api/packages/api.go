@@ -4,7 +4,6 @@
 package packages
 
 import (
-	gocontext "context"
 	"net/http"
 	"regexp"
 	"strings"
@@ -96,7 +95,7 @@ func verifyAuth(r *web.Route, authMethods []auth.Method) {
 
 // CommonRoutes provide endpoints for most package managers (except containers - see below)
 // These are mounted on `/api/packages` (not `/api/v1/packages`)
-func CommonRoutes(ctx gocontext.Context) *web.Route {
+func CommonRoutes() *web.Route {
 	r := web.NewRoute()
 
 	r.Use(context.PackageContexter())
@@ -590,7 +589,7 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 // ContainerRoutes provides endpoints that implement the OCI API to serve containers
 // These have to be mounted on `/v2/...` to comply with the OCI spec:
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md
-func ContainerRoutes(ctx gocontext.Context) *web.Route {
+func ContainerRoutes() *web.Route {
 	r := web.NewRoute()
 
 	r.Use(context.PackageContexter())

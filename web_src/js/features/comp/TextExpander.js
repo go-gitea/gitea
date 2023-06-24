@@ -53,7 +53,9 @@ export function initTextExpander(expander) {
   });
   expander?.addEventListener('text-expander-value', ({detail}) => {
     if (detail?.item) {
-      detail.value = detail.item.getAttribute('data-value');
+      // add a space after @mentions as it's likely the user wants one
+      const suffix = detail.key === '@' ? ' ' : '';
+      detail.value = `${detail.item.getAttribute('data-value')}${suffix}`;
     }
   });
 }
