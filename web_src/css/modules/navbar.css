@@ -34,6 +34,10 @@
   justify-content: center;
 }
 
+#navbar .dropdown .item {
+  justify-content: stretch;
+}
+
 #navbar a.item:hover,
 #navbar button.item:hover {
   background: var(--color-nav-hover-bg);
@@ -85,19 +89,19 @@
   #navbar.navbar-menu-open .item {
     display: flex;
     width: 100%;
+    margin: 0;
   }
   #navbar.navbar-menu-open .navbar-left #navbar-logo {
     justify-content: flex-start;
-    width: 50%;
-    min-height: 48px;
+    width: auto;
   }
   #navbar.navbar-menu-open .navbar-left .navbar-mobile-right {
     justify-content: flex-end;
     width: 50%;
     min-height: 48px;
   }
-  #navbar.navbar-menu-open .mobile-right-item {
-    width: auto !important;
+  #navbar #mobile-notifications-icon {
+    margin-right: 6px !important;
   }
 }
 
