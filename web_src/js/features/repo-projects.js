@@ -9,16 +9,31 @@ function updateIssueCount(cards) {
   parent.getElementsByClassName('board-card-cnt')[0].textContent = cnt;
 }
 
+function createNewBoard(url, boardTitle, projectColorInput) {
+  $.ajax({
+    url,
+    data: JSON.stringify({title: boardTitle.val(), color: projectColorInput.val()}),
+    headers: {
+      'X-Csrf-Token': csrfToken,
+    },
+    contentType: 'application/json',
+    method: 'POST',
+  }).done(() => {
+    boardTitle.closest('form').removeClass('dirty');
+    window.location.reload();
+  });
+}
+
 function moveIssue({item, from, to, oldIndex}) {
   const columnCards = to.getElementsByClassName('board-card');
   updateIssueCount(from);
   updateIssueCount(to);
 
   const columnSorting = {
-    issues: [...columnCards].map((card, i) => ({
+    issues: Array.from(columnCards, (card, i) => ({
       issueID: parseInt($(card).attr('data-issue')),
-      sorting: i
-    }))
+      sorting: i,
+    })),
   };
 
   $.ajax({
@@ -31,7 +46,7 @@ function moveIssue({item, from, to, oldIndex}) {
     type: 'POST',
     error: () => {
       from.insertBefore(item, from.children[oldIndex]);
-    }
+    },
   });
 }
 
@@ -168,24 +183,29 @@ export function initRepoProject() {
     });
   });
 
-  $('#new_board_submit').on('click', function (e) {
+  $('#new_board_submit').on('click', (e) => {
     e.preventDefault();
-
     const boardTitle = $('#new_board');
     const projectColorInput = $('#new_board_color_picker');
+    if (!boardTitle.val()) {
+      return;
+    }
+    const url = $(this).data('url');
+    createNewBoard(url, boardTitle, projectColorInput);
+  });
 
-    $.ajax({
-      url: $(this).data('url'),
-      data: JSON.stringify({title: boardTitle.val(), color: projectColorInput.val()}),
-      headers: {
-        'X-Csrf-Token': csrfToken,
-      },
-      contentType: 'application/json',
-      method: 'POST',
-    }).done(() => {
-      boardTitle.closest('form').removeClass('dirty');
-      window.location.reload();
-    });
+  $('.new-board').on('input keyup', (e) => {
+    const boardTitle = $('#new_board');
+    const projectColorInput = $('#new_board_color_picker');
+    if (!boardTitle.val()) {
+      $('#new_board_submit').addClass('disabled');
+      return;
+    }
+    $('#new_board_submit').removeClass('disabled');
+    if (e.key === 'Enter') {
+      const url = $(this).data('url');
+      createNewBoard(url, boardTitle, projectColorInput);
+    }
   });
 }
 

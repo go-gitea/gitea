@@ -21,7 +21,7 @@
   transform: scale(1.1);
 }
 
-.lines-escape a.toggle-escape-button::before {
+.lines-escape .toggle-escape-button::before {
   visibility: visible;
   content: "⚠️";
   font-family: var(--fonts-emoji);
@@ -61,10 +61,13 @@
 .comment-code-cloud {
   padding: 0.5rem 1rem !important;
   position: relative;
+}
+
+.conversation-holder .comment-code-cloud {
   max-width: 820px;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .comment-code-cloud {
     max-width: none;
     padding: 0.75rem !important;
@@ -88,15 +91,11 @@
   padding: 0;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .comment-code-cloud .comments .comment {
     display: flex;
   }
-  .comment-code-cloud
-    .comments
-    .comment
-    .comment-header-right.actions
-    .ui.basic.label {
+  .comment-code-cloud .comments .comment .comment-header-right.actions .ui.basic.label {
     display: none;
   }
   .comment-code-cloud .comments .comment .avatar {
@@ -129,7 +128,7 @@
 }
 
 .comment-code-cloud .attached.header {
-  padding: 0.1rem 1rem;
+  padding: 1px 8px 1px 12px;
 }
 
 .comment-code-cloud .attached.header .text {
@@ -179,7 +178,7 @@
   display: block;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .comment-code-cloud .button {
     width: 100%;
     margin: 0 !important;
@@ -195,7 +194,8 @@
   color: var(--color-text);
 }
 
-a.blob-excerpt {
+.code-expander-button {
+  border: none;
   color: var(--color-text-light);
   height: 28px;
   display: flex;
@@ -203,9 +203,10 @@ a.blob-excerpt {
   align-items: center;
   width: 100%;
   background: var(--color-expand-button);
+  flex: 1;
 }
 
-a.blob-excerpt:hover {
+.code-expander-button:hover {
   background: var(--color-primary);
   color: var(--color-primary-contrast);
 }
@@ -247,7 +248,7 @@ a.blob-excerpt:hover {
   scroll-margin-top: 99px;
 }
 
-@media (max-width: 991px) {
+@media (max-width: 991.98px) {
   .pull.files.diff .comment {
     scroll-margin-top: 130px;
   }
@@ -282,6 +283,6 @@ a.blob-excerpt:hover {
 }
 
 #viewed-files-summary {
-  width: 72px;
-  height: 10px;
+  width: 100%;
+  height: 8px;
 }

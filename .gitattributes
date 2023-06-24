@@ -2,9 +2,9 @@
 *.tmpl linguist-language=Handlebars
 /assets/*.json linguist-generated
 /public/img/svg/*.svg linguist-generated
-/public/vendor/** -text -eol linguist-vendored
 /templates/swagger/v1_json.tmpl linguist-generated
 /vendor/** -text -eol linguist-vendored
 /web_src/fomantic/build/** linguist-generated
+/web_src/fomantic/_site/globals/site.variables linguist-language=Less
 /web_src/js/vendor/** -text -eol linguist-vendored
 Dockerfile.* linguist-language=Dockerfile

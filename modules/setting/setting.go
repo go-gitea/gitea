@@ -5,12 +5,8 @@
 package setting
 
 import (
-	"errors"
 	"fmt"
 	"os"
-	"os/exec"
-	"path"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -28,19 +24,9 @@ var (
 	// AppStartTime store time gitea has started
 	AppStartTime time.Time
 
-	// AppPath represents the path to the gitea binary
-	AppPath string
-	// AppWorkPath is the "working directory" of Gitea. It maps to the environment variable GITEA_WORK_DIR.
-	// If that is not set it is the default set here by the linker or failing that the directory of AppPath.
-	//
-	// AppWorkPath is used as the base path for several other paths.
-	AppWorkPath string
-
 	// Other global setting objects
 
 	CfgProvider ConfigProvider
-	CustomPath  string // Custom directory path
-	CustomConf  string
 	RunMode     string
 	RunUser     string
 	IsProd      bool
@@ -51,62 +37,6 @@ var (
 	IsInTesting = false
 )
 
-func getAppPath() (string, error) {
-	var appPath string
-	var err error
-	if IsWindows && filepath.IsAbs(os.Args[0]) {
-		appPath = filepath.Clean(os.Args[0])
-	} else {
-		appPath, err = exec.LookPath(os.Args[0])
-	}
-
-	if err != nil {
-		if !errors.Is(err, exec.ErrDot) {
-			return "", err
-		}
-		appPath, err = filepath.Abs(os.Args[0])
-	}
-	if err != nil {
-		return "", err
-	}
-	appPath, err = filepath.Abs(appPath)
-	if err != nil {
-		return "", err
-	}
-	// Note: we don't use path.Dir here because it does not handle case
-	//	which path starts with two "/" in Windows: "//psf/Home/..."
-	return strings.ReplaceAll(appPath, "\\", "/"), err
-}
-
-func getWorkPath(appPath string) string {
-	workPath := AppWorkPath
-
-	if giteaWorkPath, ok := os.LookupEnv("GITEA_WORK_DIR"); ok {
-		workPath = giteaWorkPath
-	}
-	if len(workPath) == 0 {
-		i := strings.LastIndex(appPath, "/")
-		if i == -1 {
-			workPath = appPath
-		} else {
-			workPath = appPath[:i]
-		}
-	}
-	workPath = strings.ReplaceAll(workPath, "\\", "/")
-	if !filepath.IsAbs(workPath) {
-		log.Info("Provided work path %s is not absolute - will be made absolute against the current working directory", workPath)
-
-		absPath, err := filepath.Abs(workPath)
-		if err != nil {
-			log.Error("Unable to absolute %s against the current working directory %v. Will absolute against the AppPath %s", workPath, err, appPath)
-			workPath = filepath.Join(appPath, workPath)
-		} else {
-			workPath = absPath
-		}
-	}
-	return strings.ReplaceAll(workPath, "\\", "/")
-}
-
 func init() {
 	IsWindows = runtime.GOOS == "windows"
 	if AppVer == "" {
@@ -115,19 +45,7 @@ func init() {
 
 	// We can rely on log.CanColorStdout being set properly because modules/log/console_windows.go comes before modules/setting/setting.go lexicographically
 	// By default set this logger at Info - we'll change it later, but we need to start with something.
-	log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "info", "colorize": %t, "stacktraceLevel": "none"}`, log.CanColorStdout))
-
-	var err error
-	if AppPath, err = getAppPath(); err != nil {
-		log.Fatal("Failed to get app path: %v", err)
-	}
-	AppWorkPath = getWorkPath(AppPath)
-}
-
-func forcePathSeparator(path string) {
-	if strings.Contains(path, "\\") {
-		log.Fatal("Do not use '\\' or '\\\\' in paths, instead, please use '/' in all places")
-	}
+	log.SetConsoleLogger(log.DEFAULT, "console", log.INFO)
 }
 
 // IsRunUserMatchCurrentUser returns false if configured run user does not match
@@ -141,36 +59,6 @@ func IsRunUserMatchCurrentUser(runUser string) (string, bool) {
 
 	currentUser := user.CurrentUsername()
 	return currentUser, runUser == currentUser
-}
-
-// SetCustomPathAndConf will set CustomPath and CustomConf with reference to the
-// GITEA_CUSTOM environment variable and with provided overrides before stepping
-// back to the default
-func SetCustomPathAndConf(providedCustom, providedConf, providedWorkPath string) {
-	if len(providedWorkPath) != 0 {
-		AppWorkPath = filepath.ToSlash(providedWorkPath)
-	}
-	if giteaCustom, ok := os.LookupEnv("GITEA_CUSTOM"); ok {
-		CustomPath = giteaCustom
-	}
-	if len(providedCustom) != 0 {
-		CustomPath = providedCustom
-	}
-	if len(CustomPath) == 0 {
-		CustomPath = path.Join(AppWorkPath, "custom")
-	} else if !filepath.IsAbs(CustomPath) {
-		CustomPath = path.Join(AppWorkPath, CustomPath)
-	}
-
-	if len(providedConf) != 0 {
-		CustomConf = providedConf
-	}
-	if len(CustomConf) == 0 {
-		CustomConf = path.Join(CustomPath, "conf/app.ini")
-	} else if !filepath.IsAbs(CustomConf) {
-		CustomConf = path.Join(CustomPath, CustomConf)
-		log.Warn("Using 'custom' directory as relative origin for configuration file: '%s'", CustomConf)
-	}
 }
 
 // PrepareAppDataPath creates app data directory if necessary
@@ -202,25 +90,31 @@ func PrepareAppDataPath() error {
 	return nil
 }
 
-func Init(opts *Options) {
-	if opts.CustomConf == "" {
-		opts.CustomConf = CustomConf
-	}
+func InitCfgProvider(file string, extraConfigs ...string) {
 	var err error
-	CfgProvider, err = newConfigProviderFromFile(opts)
-	if err != nil {
-		log.Fatal("Init[%v]: %v", opts, err)
+	if CfgProvider, err = NewConfigProviderFromFile(file, extraConfigs...); err != nil {
+		log.Fatal("Unable to init config provider from %q: %v", file, err)
 	}
-	if !opts.DisableLoadCommonSettings {
-		loadCommonSettingsFrom(CfgProvider)
+	CfgProvider.DisableSaving() // do not allow saving the CfgProvider into file, it will be polluted by the "MustXxx" calls
+}
+
+func MustInstalled() {
+	if !InstallLock {
+		log.Fatal(`Unable to load config file for a installed Gitea instance, you should either use "--config" to set your config file (app.ini), or run "gitea web" command to install Gitea.`)
+	}
+}
+
+func LoadCommonSettings() {
+	if err := loadCommonSettingsFrom(CfgProvider); err != nil {
+		log.Fatal("Unable to load settings from config: %v", err)
 	}
 }
 
 // loadCommonSettingsFrom loads common configurations from a configuration provider.
-func loadCommonSettingsFrom(cfg ConfigProvider) {
-	// WARNNING: don't change the sequence except you know what you are doing.
+func loadCommonSettingsFrom(cfg ConfigProvider) error {
+	// WARNING: don't change the sequence except you know what you are doing.
 	loadRunModeFrom(cfg)
-	loadLogFrom(cfg)
+	loadLogGlobalFrom(cfg)
 	loadServerFrom(cfg)
 	loadSSHFrom(cfg)
 
@@ -228,13 +122,26 @@ func loadCommonSettingsFrom(cfg ConfigProvider) {
 
 	loadOAuth2From(cfg)
 	loadSecurityFrom(cfg)
-	loadAttachmentFrom(cfg)
-	loadLFSFrom(cfg)
+	if err := loadAttachmentFrom(cfg); err != nil {
+		return err
+	}
+	if err := loadLFSFrom(cfg); err != nil {
+		return err
+	}
 	loadTimeFrom(cfg)
 	loadRepositoryFrom(cfg)
-	loadPictureFrom(cfg)
-	loadPackagesFrom(cfg)
-	loadActionsFrom(cfg)
+	if err := loadAvatarsFrom(cfg); err != nil {
+		return err
+	}
+	if err := loadRepoAvatarFrom(cfg); err != nil {
+		return err
+	}
+	if err := loadPackagesFrom(cfg); err != nil {
+		return err
+	}
+	if err := loadActionsFrom(cfg); err != nil {
+		return err
+	}
 	loadUIFrom(cfg)
 	loadAdminFrom(cfg)
 	loadAPIFrom(cfg)
@@ -245,6 +152,7 @@ func loadCommonSettingsFrom(cfg ConfigProvider) {
 	loadMirrorFrom(cfg)
 	loadMarkupFrom(cfg)
 	loadOtherFrom(cfg)
+	return nil
 }
 
 func loadRunModeFrom(rootCfg ConfigProvider) {
@@ -252,12 +160,18 @@ func loadRunModeFrom(rootCfg ConfigProvider) {
 	RunUser = rootSec.Key("RUN_USER").MustString(user.CurrentUsername())
 	// The following is a purposefully undocumented option. Please do not run Gitea as root. It will only cause future headaches.
 	// Please don't use root as a bandaid to "fix" something that is broken, instead the broken thing should instead be fixed properly.
-	unsafeAllowRunAsRoot := rootSec.Key("I_AM_BEING_UNSAFE_RUNNING_AS_ROOT").MustBool(false)
+	unsafeAllowRunAsRoot := ConfigSectionKeyBool(rootSec, "I_AM_BEING_UNSAFE_RUNNING_AS_ROOT")
 	RunMode = os.Getenv("GITEA_RUN_MODE")
 	if RunMode == "" {
 		RunMode = rootSec.Key("RUN_MODE").MustString("prod")
 	}
-	IsProd = strings.EqualFold(RunMode, "prod")
+
+	// non-dev mode is treated as prod mode, to protect users from accidentally running in dev mode if there is a typo in this value.
+	RunMode = strings.ToLower(RunMode)
+	if RunMode != "dev" {
+		RunMode = "prod"
+	}
+	IsProd = RunMode != "dev"
 
 	// check if we run as root
 	if os.Getuid() == 0 {
@@ -282,10 +196,11 @@ func mustCurrentRunUserMatch(rootCfg ConfigProvider) {
 
 // LoadSettings initializes the settings for normal start up
 func LoadSettings() {
+	initAllLoggers()
+
 	loadDBSetting(CfgProvider)
 	loadServiceFrom(CfgProvider)
 	loadOAuth2ClientFrom(CfgProvider)
-	InitLogs(false)
 	loadCacheFrom(CfgProvider)
 	loadSessionFrom(CfgProvider)
 	loadCorsFrom(CfgProvider)

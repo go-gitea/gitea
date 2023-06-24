@@ -3,7 +3,6 @@
 
 .ui.comments {
   margin: 1.5em 0;
-  max-width: 650px;
 }
 
 .ui.comments:first-child {
@@ -61,7 +60,7 @@
 
 .ui.comments .comment .author {
   font-size: 1em;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .ui.comments .comment a.author {

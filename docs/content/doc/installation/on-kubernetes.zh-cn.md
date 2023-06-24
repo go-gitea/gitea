@@ -1,6 +1,6 @@
 ---
 date: "2020-03-19T19:27:00+02:00"
-title: "在 Kubernetes 安装 Gitea"
+title: "在 Kubernetes 中安装 Gitea"
 slug: "install-on-kubernetes"
 weight: 80
 toc: false
@@ -10,7 +10,7 @@ aliases:
 menu:
   sidebar:
     parent: "installation"
-    name: "Kubernetes"
+    name: "在 Kubernetes 中安装 Gitea"
     weight: 80
     identifier: "install-on-kubernetes"
 ---
@@ -22,7 +22,7 @@ Gitea 已经提供了便于在 Kubernetes 云原生环境中安装所需的 Helm
 默认安装指令为：
 
 ```bash
-helm repo add gitea https://dl.gitea.io/charts
+helm repo add gitea https://dl.gitea.com/charts
 helm repo update
 helm install gitea gitea/gitea
 ```

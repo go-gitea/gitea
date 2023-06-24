@@ -30,7 +30,7 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 				"title": "pull request from status1",
 			},
 		)
-		session.MakeRequest(t, req, http.StatusSeeOther)
+		session.MakeRequest(t, req, http.StatusOK)
 
 		req = NewRequest(t, "GET", "/user1/repo1/pulls")
 		resp := session.MakeRequest(t, req, http.StatusOK)
@@ -64,7 +64,7 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 			api.CommitStatusWarning: "gitea-exclamation",
 		}
 
-		testCtx := NewAPITestContext(t, "user1", "repo1", auth_model.AccessTokenScopeRepo)
+		testCtx := NewAPITestContext(t, "user1", "repo1", auth_model.AccessTokenScopeWriteRepository)
 
 		// Update commit status, and check if icon is updated as well
 		for _, status := range statusList {
@@ -127,7 +127,7 @@ func TestPullCreate_EmptyChangesWithDifferentCommits(t *testing.T) {
 				"title": "pull request from status1",
 			},
 		)
-		session.MakeRequest(t, req, http.StatusSeeOther)
+		session.MakeRequest(t, req, http.StatusOK)
 
 		req = NewRequest(t, "GET", "/user1/repo1/pulls/1")
 		resp := session.MakeRequest(t, req, http.StatusOK)
@@ -150,7 +150,7 @@ func TestPullCreate_EmptyChangesWithSameCommits(t *testing.T) {
 				"title": "pull request from status1",
 			},
 		)
-		session.MakeRequest(t, req, http.StatusSeeOther)
+		session.MakeRequest(t, req, http.StatusOK)
 		req = NewRequest(t, "GET", "/user1/repo1/pulls/1")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		doc := NewHTMLParser(t, resp.Body)

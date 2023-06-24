@@ -34,8 +34,8 @@ import (
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 
-// GetDefaultMergeMessage returns default message used when merging pull request
-func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issues_model.PullRequest, mergeStyle repo_model.MergeStyle) (message, body string, err error) {
+// getMergeMessage composes the message used when merging a pull request.
+func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issues_model.PullRequest, mergeStyle repo_model.MergeStyle, extraVars map[string]string) (message, body string, err error) {
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return "", "", err
 	}
@@ -80,6 +80,9 @@ func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr
 			if pr.HeadRepo != nil {
 				vars["HeadRepoOwnerName"] = pr.HeadRepo.OwnerName
 				vars["HeadRepoName"] = pr.HeadRepo.Name
+			}
+			for extraKey, extraValue := range extraVars {
+				vars[extraKey] = extraValue
 			}
 			refs, err := pr.ResolveCrossReferences(ctx)
 			if err == nil {
@@ -131,6 +134,11 @@ func expandDefaultMergeMessage(template string, vars map[string]string) (message
 	}
 	mapping := func(s string) string { return vars[s] }
 	return os.Expand(message, mapping), os.Expand(body, mapping)
+}
+
+// GetDefaultMergeMessage returns default message used when merging pull request
+func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issues_model.PullRequest, mergeStyle repo_model.MergeStyle) (message, body string, err error) {
+	return getMergeMessage(ctx, baseGitRepo, pr, mergeStyle, nil)
 }
 
 // Merge merges pull request to base repository.

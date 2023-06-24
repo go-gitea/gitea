@@ -110,11 +110,6 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 			return
 		}
 	} else { // If we have the repository we check access
-		context.CheckRepoScopedToken(ctx, repository)
-		if ctx.Written() {
-			return
-		}
-
 		perm, err := access_model.GetUserRepoPermission(ctx, repository, ctx.Doer)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err.Error())
@@ -131,7 +126,7 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 		return
 	}
 
-	if setting.Attachment.ServeDirect {
+	if setting.Attachment.Storage.MinioConfig.ServeDirect {
 		// If we have a signed url (S3, object storage), redirect to this directly.
 		u, err := storage.Attachments.URL(attach.RelativePath(), attach.Name)
 
@@ -153,7 +148,7 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 	}
 	defer fr.Close()
 
-	common.ServeContentByReadSeeker(ctx, attach.Name, attach.CreatedUnix.AsTime(), fr)
+	common.ServeContentByReadSeeker(ctx.Base, attach.Name, attach.CreatedUnix.AsTime(), fr)
 }
 
 // GetAttachment serve attachments

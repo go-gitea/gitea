@@ -3,7 +3,7 @@
 	{{template "repo/header" .}}
 	{{$title := .title}}
 	<div class="ui container">
-		<div class="repo-button-row gt-df gt-ac gt-sb gt-fw">
+		<div class="repo-button-row">
 			<div class="gt-df gt-ac">
 				<div class="ui floating filter dropdown" data-no-results="{{.locale.Tr "repo.pulls.no_results"}}">
 					<div class="ui basic small button">
@@ -15,7 +15,7 @@
 					</div>
 					<div class="menu">
 						<div class="ui icon search input">
-							<i class="icon gt-df gt-ac gt-jc gt-m-0">{{svg "octicon-filter" 16}}</i>
+							<i class="icon">{{svg "octicon-filter" 16}}</i>
 							<input name="search" placeholder="{{.locale.Tr "repo.wiki.filter_page"}}...">
 						</div>
 						<div class="scrolling menu">
@@ -63,39 +63,41 @@
 				<p>{{.FormatWarning}}</p>
 			</div>
 		{{end}}
-		<div class="ui gt-mt-0 {{if or .sidebarPresent .sidebarTocContent}}grid equal width{{end}}">
-			<div class="ui {{if or .sidebarPresent .sidebarTocContent}}eleven wide column{{else}}gt-ml-0{{end}} segment markup wiki-content-main">
+
+		<div class="wiki-content-parts">
+			{{if .sidebarTocContent}}
+			<div class="markup wiki-content-sidebar wiki-content-toc">
+				{{.sidebarTocContent | Safe}}
+			</div>
+			{{end}}
+
+			<div class="markup wiki-content-main {{if or .sidebarTocContent .sidebarPresent}}with-sidebar{{end}}">
 				{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus "root" $}}
 				{{.content | Safe}}
 			</div>
-			{{if or .sidebarPresent .sidebarTocContent}}
-			<div class="column gt-pt-0">
-				{{if .sidebarTocContent}}
-					<div class="ui segment wiki-content-toc">
-						{{.sidebarTocContent | Safe}}
-					</div>
+
+			{{if .sidebarPresent}}
+			<div class="markup wiki-content-sidebar">
+				{{if and .CanWriteWiki (not .Repository.IsMirror)}}
+					<a class="ui right floated muted" href="{{.RepoLink}}/wiki/_Sidebar?action=_edit" aria-label="{{.locale.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
 				{{end}}
-				{{if .sidebarPresent}}
-					<div class="ui segment wiki-content-sidebar">
-						{{if and .CanWriteWiki (not .Repository.IsMirror)}}
-							<a class="ui right floated muted" href="{{.RepoLink}}/wiki/_Sidebar?action=_edit" aria-label="{{.locale.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
-						{{end}}
-						{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .sidebarEscapeStatus "root" $}}
-						{{.sidebarContent | Safe}}
-					</div>
+				{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .sidebarEscapeStatus "root" $}}
+				{{.sidebarContent | Safe}}
+			</div>
+			{{end}}
+
+			<div class="gt-clear-both"></div>
+
+			{{if .footerPresent}}
+			<div class="markup wiki-content-footer">
+				{{if and .CanWriteWiki (not .Repository.IsMirror)}}
+					<a class="ui right floated muted" href="{{.RepoLink}}/wiki/_Footer?action=_edit" aria-label="{{.locale.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
 				{{end}}
+				{{template "repo/unicode_escape_prompt" dict "footerEscapeStatus" .sidebarEscapeStatus "root" $}}
+				{{.footerContent | Safe}}
 			</div>
 			{{end}}
 		</div>
-		{{if .footerPresent}}
-		<div class="ui segment wiki-content-footer">
-			{{if and .CanWriteWiki (not .Repository.IsMirror)}}
-				<a class="ui right floated muted" href="{{.RepoLink}}/wiki/_Footer?action=_edit" aria-label="{{.locale.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
-			{{end}}
-			{{template "repo/unicode_escape_prompt" dict "footerEscapeStatus" .sidebarEscapeStatus "root" $}}
-			{{.footerContent | Safe}}
-		</div>
-		{{end}}
 	</div>
 </div>
 

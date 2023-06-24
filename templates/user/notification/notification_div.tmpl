@@ -1,20 +1,18 @@
 <div role="main" aria-label="{{.Title}}" class="page-content user notification" id="notification_div" data-params="{{.Page.GetParams}}" data-sequence-number="{{.SequenceNumber}}">
 	<div class="ui container">
-		<h1 class="ui header gt-df gt-ac">
-			{{svg "octicon-bell" 28 "gt-mr-3 gt-mt-1"}}
-			{{.locale.Tr "notification.notifications"}}
-		</h1>
-		<div class="ui top attached tabular menu">
-			{{$notificationUnreadCount := call .NotificationUnreadCount}}
-			<a href="{{AppSubUrl}}/notifications?q=unread" class="{{if eq .Status 1}}active {{end}}item">
-				{{.locale.Tr "notification.unread"}}
-				<div class="ui label {{if not $notificationUnreadCount}}gt-hidden{{end}}">{{$notificationUnreadCount}}</div>
-			</a>
-			<a href="{{AppSubUrl}}/notifications?q=read" class="{{if eq .Status 2}}active {{end}}item">
-				{{.locale.Tr "notification.read"}}
-			</a>
+		{{$notificationUnreadCount := call .NotificationUnreadCount}}
+		<div class="gt-df gt-ac gt-sb gt-mb-4">
+			<div class="small-menu-items ui compact tiny menu">
+				<a class="{{if eq .Status 1}}active {{end}}item" href="{{AppSubUrl}}/notifications?q=unread">
+					{{.locale.Tr "notification.unread"}}
+					<div class="notifications-unread-count ui label {{if not $notificationUnreadCount}}gt-hidden{{end}}">{{$notificationUnreadCount}}</div>
+				</a>
+				<a class="{{if eq .Status 2}}active {{end}}item" href="{{AppSubUrl}}/notifications?q=read">
+					{{.locale.Tr "notification.read"}}
+				</a>
+			</div>
 			{{if and (eq .Status 1)}}
-				<form class="gt-ml-auto" action="{{AppSubUrl}}/notifications/purge" method="POST">
+				<form action="{{AppSubUrl}}/notifications/purge" method="post">
 					{{$.CsrfTokenHtml}}
 					<div class="{{if not $notificationUnreadCount}}gt-hidden{{end}}">
 						<button class="ui mini button primary gt-mr-0" title='{{$.locale.Tr "notification.mark_all_as_read"}}'>
@@ -24,113 +22,104 @@
 				</form>
 			{{end}}
 		</div>
-		<div class="ui bottom attached active tab segment gt-p-3">
-			{{if eq (len .Notifications) 0}}
-				<div class="gt-df gt-ac gt-fc gt-p-4">
-					{{svg "octicon-inbox" 56 "gt-mb-4"}}
-					{{if eq .Status 1}}
-						{{.locale.Tr "notification.no_unread"}}
-					{{else}}
-						{{.locale.Tr "notification.no_read"}}
-					{{end}}
-				</div>
-			{{else}}
-				<table class="ui unstackable very compact small table" id="notification_table">
-					<tbody>
-						{{range $notification := .Notifications}}
-							{{$issue := .Issue}}
-							{{$repo := .Repository}}
-							<tr id="notification_{{.ID}}">
-								<td class="collapsing gt-pl-4">
-									{{if eq .Status 3}}
-										{{svg "octicon-pin" 16 "text blue"}}
-									{{else if not $issue}}
-										{{svg "octicon-repo" 16 "text grey"}}
-									{{else if $issue.IsPull}}
-										{{if $issue.IsClosed}}
-											{{if $issue.GetPullRequest.HasMerged}}
-												{{svg "octicon-git-merge" 16 "text purple"}}
-											{{else}}
-												{{svg "octicon-git-pull-request" 16 "text red"}}
-											{{end}}
-										{{else}}
-											{{svg "octicon-git-pull-request" 16 "text green"}}
-										{{end}}
-									{{else}}
-										{{if $issue.IsClosed}}
-											{{svg "octicon-issue-closed" 16 "text red"}}
-										{{else}}
-											{{svg "octicon-issue-opened" 16 "text green"}}
-										{{end}}
-									{{end}}
-								</td>
-								<td class="eleven wide">
-									<a class="item issue-title muted" href="{{.Link}}">
-										{{if $issue}}
-											#{{$issue.Index}} - {{$issue.Title | RenderEmoji $.Context | RenderCodeBlock}}
-										{{else}}
-											{{$repo.FullName}}
-										{{end}}
-									</a>
-								</td>
-								<td>
-									<a class="item muted" href="{{$repo.Link}}">{{$repo.FullName}}</a>
-								</td>
-								<td class="collapsing">
-									{{if ne .Status 3}}
-										<form action="{{AppSubUrl}}/notifications/status" method="POST">
-											{{$.CsrfTokenHtml}}
-											<input type="hidden" name="notification_id" value="{{.ID}}">
-											<input type="hidden" name="status" value="pinned">
-											<button class="ui mini button button-ghost" title='{{$.locale.Tr "notification.pin"}}'
-												data-url="{{AppSubUrl}}/notifications/status"
-												data-status="pinned"
-												data-page="{{$.Page.Paginater.Current}}"
-												data-notification-id="{{.ID}}"
-												data-q="{{$.Keyword}}">
-												{{svg "octicon-pin"}}
-											</button>
-										</form>
-									{{end}}
-								</td>
-								<td class="collapsing">
-									{{if or (eq .Status 1) (eq .Status 3)}}
-										<form action="{{AppSubUrl}}/notifications/status" method="POST">
-											{{$.CsrfTokenHtml}}
-											<input type="hidden" name="notification_id" value="{{.ID}}">
-											<input type="hidden" name="status" value="read">
-											<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
-											<button class="ui mini button button-ghost" title='{{$.locale.Tr "notification.mark_as_read"}}'
-												data-url="{{AppSubUrl}}/notifications/status"
-												data-status="read"
-												data-page="{{$.Page.Paginater.Current}}"
-												data-notification-id="{{.ID}}"
-												data-q="{{$.Keyword}}">
-												{{svg "octicon-check"}}
-											</button>
-										</form>
-									{{else if eq .Status 2}}
-										<form action="{{AppSubUrl}}/notifications/status" method="POST">
-											{{$.CsrfTokenHtml}}
-											<input type="hidden" name="notification_id" value="{{.ID}}">
-											<input type="hidden" name="status" value="unread">
-											<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
-											<button class="ui mini button button-ghost" title='{{$.locale.Tr "notification.mark_as_unread"}}'
-												data-url="{{AppSubUrl}}/notifications/status"
-												data-status="unread"
-												data-page="{{$.Page.Paginater.Current}}"
-												data-notification-id="{{.ID}}"
-												data-q="{{$.Keyword}}">
-												{{svg "octicon-bell"}}
-											</button>
-										</form>
-									{{end}}
-								</td>
-							</tr>
+		<div class="gt-p-0">
+			<div id="notification_table">
+				{{if eq (len .Notifications) 0}}
+					<div class="gt-df gt-ac gt-fc gt-p-4">
+						{{svg "octicon-inbox" 56 "gt-mb-4"}}
+						{{if eq .Status 1}}
+							{{.locale.Tr "notification.no_unread"}}
+						{{else}}
+							{{.locale.Tr "notification.no_read"}}
 						{{end}}
-					</tbody>
-				</table>
-			{{end}}
+					</div>
+				{{else}}
+					{{$locale := .locale}}
+					{{range $notification := .Notifications}}
+						<div class="notifications-item gt-df gt-ac gt-fw gt-gap-3 gt-p-3" id="notification_{{.ID}}" data-status="{{.Status}}">
+							<div class="notifications-icon gt-ml-3 gt-mr-2 gt-self-start gt-mt-2">
+								{{if .Issue}}
+									{{template "shared/issueicon" .Issue}}
+								{{else}}
+									{{svg "octicon-repo" 16 "text grey"}}
+								{{end}}
+							</div>
+							<a class="notifications-link gt-df gt-f1 gt-fc silenced" href="{{.Link}}">
+								<div class="notifications-top-row gt-font-13">
+									{{.Repository.FullName}} {{if .Issue}}<span class="text light-3">#{{.Issue.Index}}</span>{{end}}
+									{{if eq .Status 3}}
+										{{svg "octicon-pin" 13 "text blue gt-mt-1 gt-ml-2"}}
+									{{end}}
+								</div>
+								<div class="notifications-bottom-row gt-font-16 gt-py-1">
+									<span class="issue-title">
+										{{if .Issue}}
+											{{.Issue.Title | RenderEmoji $.Context | RenderCodeBlock}}
+										{{else}}
+											{{.Repository.FullName}}
+										{{end}}
+									</span>
+								</div>
+							</a>
+							<div class="notifications-updated gt-ac gt-mr-3">
+								{{if .Issue}}
+									{{TimeSinceUnix .Issue.UpdatedUnix $locale}}
+								{{else}}
+									{{TimeSinceUnix .UpdatedUnix $locale}}
+								{{end}}
+							</div>
+							<div class="notifications-buttons gt-ac gt-je gt-gap-2 gt-px-2">
+								{{if ne .Status 3}}
+									<form action="{{AppSubUrl}}/notifications/status" method="post">
+										{{$.CsrfTokenHtml}}
+										<input type="hidden" name="notification_id" value="{{.ID}}">
+										<input type="hidden" name="status" value="pinned">
+										<button class="btn interact-bg gt-p-3" title='{{$.locale.Tr "notification.pin"}}'
+											data-url="{{AppSubUrl}}/notifications/status"
+											data-status="pinned"
+											data-page="{{$.Page.Paginater.Current}}"
+											data-notification-id="{{.ID}}"
+											data-q="{{$.Keyword}}">
+											{{svg "octicon-pin"}}
+										</button>
+									</form>
+								{{end}}
+								{{if or (eq .Status 1) (eq .Status 3)}}
+									<form action="{{AppSubUrl}}/notifications/status" method="post">
+										{{$.CsrfTokenHtml}}
+										<input type="hidden" name="notification_id" value="{{.ID}}">
+										<input type="hidden" name="status" value="read">
+										<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
+										<button class="btn interact-bg gt-p-3" title='{{$.locale.Tr "notification.mark_as_read"}}'
+											data-url="{{AppSubUrl}}/notifications/status"
+											data-status="read"
+											data-page="{{$.Page.Paginater.Current}}"
+											data-notification-id="{{.ID}}"
+											data-q="{{$.Keyword}}">
+											{{svg "octicon-check"}}
+										</button>
+									</form>
+								{{else if eq .Status 2}}
+									<form action="{{AppSubUrl}}/notifications/status" method="post">
+										{{$.CsrfTokenHtml}}
+										<input type="hidden" name="notification_id" value="{{.ID}}">
+										<input type="hidden" name="status" value="unread">
+										<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
+										<button class="btn interact-bg gt-p-3" title='{{$.locale.Tr "notification.mark_as_unread"}}'
+											data-url="{{AppSubUrl}}/notifications/status"
+											data-status="unread"
+											data-page="{{$.Page.Paginater.Current}}"
+											data-notification-id="{{.ID}}"
+											data-q="{{$.Keyword}}">
+											{{svg "octicon-bell"}}
+										</button>
+									</form>
+								{{end}}
+							</div>
+						</div>
+					{{end}}
+				{{end}}
+			</div>
 		</div>
 		{{template "base/paginate" .}}
 	</div>

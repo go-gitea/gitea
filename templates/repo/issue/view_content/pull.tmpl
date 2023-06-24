@@ -1,100 +1,3 @@
-{{if or .PullReviewers .OriginalReviews}}
-	<div class="comment box timeline-item gt-pt-3 gt-pb-0">
-		<div class="content">
-			<div class="ui segment">
-				<h4>{{$.locale.Tr "repo.issues.review.reviewers"}}</h4>
-				{{range .PullReviewers}}
-					{{$createdStr:= TimeSinceUnix .Review.UpdatedUnix $.locale}}
-					<div class="ui divider"></div>
-					<div class="review-item">
-						<div class="review-item-left">
-							<span class="gt-mr-3 text {{.Review.HTMLTypeColorName}}">
-								{{svg (printf "octicon-%s" .Review.Type.Icon)}}
-							</span>
-							{{if .User}}
-								<a href="{{.User.HomeLink}}">
-									{{avatar $.Context .User 20}}
-								</a>
-							{{end}}
-							<span class="gt-ml-2">
-								{{if .User}}
-									<a href="{{.User.HomeLink}}">{{.User.GetDisplayName}}</a>
-								{{else if .Team}}
-									<span class="ui text">{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}</span>
-								{{end}}
-								{{if eq .Review.Type 1}}
-									{{$.locale.Tr "repo.issues.review.approve" $createdStr | Safe}}
-								{{else if eq .Review.Type 2}}
-									{{$.locale.Tr "repo.issues.review.comment" $createdStr | Safe}}
-								{{else if eq .Review.Type 3}}
-									{{$.locale.Tr "repo.issues.review.reject" $createdStr | Safe}}
-								{{else if eq .Review.Type 4}}
-									{{$.locale.Tr "repo.issues.review.wait" $createdStr | Safe}}
-								{{else}}
-									{{$.locale.Tr "repo.issues.review.comment" $createdStr | Safe}}
-								{{end}}
-							</span>
-						</div>
-						<div class="review-item-right">
-							{{if .Review.Stale}}
-								<span class="ui text grey" data-tooltip-content="{{$.locale.Tr "repo.issues.is_stale"}}">
-									{{svg "octicon-hourglass" 16 "icon"}}
-								</span>
-							{{end}}
-							{{if (and $.Permission.IsAdmin (or (eq .Review.Type 1) (eq .Review.Type 3)) (not $.Issue.IsClosed))}}
-								<a href="#" class="ui muted icon gt-df gt-ac dismiss-review-btn" data-review-id="dismiss-review-{{.Review.ID}}" data-tooltip-content="{{$.locale.Tr "repo.issues.dismiss_review"}}">
-									{{svg "octicon-x" 20}}
-								</a>
-								<div class="ui small modal" id="dismiss-review-modal">
-									<div class="header">
-										{{$.locale.Tr "repo.issues.dismiss_review"}}
-									</div>
-									<div class="content">
-										<div class="ui warning message">
-											{{$.locale.Tr "repo.issues.dismiss_review_warning"}}
-										</div>
-										<form class="ui form dismiss-review-form" id="dismiss-review-{{.Review.ID}}" action="{{$.RepoLink}}/issues/dismiss_review" method="post">
-											{{$.CsrfTokenHtml}}
-											<input type="hidden" name="review_id" value="{{.Review.ID}}">
-											<div class="field">
-												<label for="message">{{$.locale.Tr "action.review_dismissed_reason"}}</label>
-												<input id="message" name="message">
-											</div>
-											<div class="text right actions">
-												<button class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</button>
-												<button class="ui red button" type="submit">{{$.locale.Tr "ok"}}</button>
-											</div>
-										</form>
-									</div>
-								</div>
-							{{end}}
-							{{if .CanChange}}
-								<a href="#" class="ui icon muted gt-df gt-ac re-request-review{{if .Checked}} checked{{end}}" data-issue-id="{{$.Issue.ID}}" data-tooltip-content="{{if .Checked}}{{$.locale.Tr "repo.issues.remove_request_review"}}{{else}}{{$.locale.Tr "repo.issues.re_request_review"}}{{end}}" data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">{{if .Checked}}{{svg "octicon-trash"}}{{else}}{{svg "octicon-sync"}}{{end}}</a>
-							{{end}}
-						</div>
-					</div>
-				{{end}}
-				{{range .OriginalReviews}}
-					{{$createdStr:= TimeSinceUnix .UpdatedUnix $.locale}}
-					<div class="ui divider"></div>
-					<div class="review-item">
-						<div class="review-item-left">
-							<span class="gt-mr-3 text {{.Review.HTMLTypeColorName}}">
-								{{svg (printf "octicon-%s" .Type.Icon)}}
-							</span>
-							<a href="{{$.Repository.OriginalURL}}" data-tooltip-content="{{$.locale.Tr "repo.migrated_from_fake" ($.Repository.GetOriginalURLHostname|Escape) | Safe}}">
-								<span class="text black">
-									{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
-									{{.OriginalAuthor}}
-								</span>
-							</a>
-						</div>
-					</div>
-				{{end}}
-			</div>
-		</div>
-	</div>
-{{end}}
 {{if and .Issue.PullRequest.HasMerged (not .IsPullBranchDeletable)}}
 {{/* Then the merge box will not be displayed because this page already contains enough information */}}
 {{else}}
@@ -119,13 +22,13 @@
 	<div class="content">
 		{{template "repo/pulls/status" .}}
 		{{$showGeneralMergeForm := false}}
-		<div class="ui attached merge-section segment {{if not $.LatestCommitStatus}}no-header{{end}}">
+		<div class="ui attached merge-section segment {{if not $.LatestCommitStatus}}no-header{{end}} flex-items-block">
 			{{if .Issue.PullRequest.HasMerged}}
 				{{if .IsPullBranchDeletable}}
 					<div class="item item-section text gt-f1">
 						<div class="item-section-left">
 							<h3 class="gt-mb-3">
-									{{$.locale.Tr "repo.pulls.merged_success"}}
+								{{$.locale.Tr "repo.pulls.merged_success"}}
 							</h3>
 							<div class="merge-section-info">
 								{{$.locale.Tr "repo.pulls.merged_info_text" (printf "<code>%s</code>" (.HeadTarget | Escape)) | Str2html}}
@@ -155,93 +58,91 @@
 					{{end}}
 				</div>
 			{{else if .IsPullFilesConflicted}}
-				<div class="item text">
+				<div class="item">
 					{{svg "octicon-x"}}
 					{{$.locale.Tr "repo.pulls.files_conflicted"}}
-					<ul>
-						{{range .ConflictedFiles}}
-							<li>{{.}}</li>
-						{{end}}
-					</ul>
 				</div>
+				<ul>
+					{{range .ConflictedFiles}}
+					<li>{{.}}</li>
+					{{end}}
+				</ul>
 			{{else if .IsPullRequestBroken}}
 				<div class="item">
-					<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
+					{{svg "octicon-x"}}
 					{{$.locale.Tr "repo.pulls.data_broken"}}
 				</div>
 			{{else if .IsPullWorkInProgress}}
-				<div class="item toggle-wip gt-df gt-ac gt-sb" data-title="{{.Issue.Title}}" data-wip-prefix="{{(.WorkInProgressPrefix|Escape)}}" data-update-url="{{.Issue.Link}}/title">
-					<div>
-						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
+				<div class="item toggle-wip" data-title="{{.Issue.Title}}" data-wip-prefix="{{(.WorkInProgressPrefix|Escape)}}" data-update-url="{{.Issue.Link}}/title">
+					<div class="item-section-left flex-text-inline gt-f1">
+						{{svg "octicon-x"}}
 						{{$.locale.Tr "repo.pulls.cannot_merge_work_in_progress"}}
 					</div>
-					<div>
-						{{if or .HasIssuesOrPullsWritePermission .IsIssuePoster}}
-							<button class="ui compact button">
-								{{$.locale.Tr "repo.pulls.remove_prefix" (.WorkInProgressPrefix|Escape) | Safe}}
-							</button>
-						{{end}}
-					</div>
+					{{if or .HasIssuesOrPullsWritePermission .IsIssuePoster}}
+						<button class="ui compact button">
+							{{$.locale.Tr "repo.pulls.remove_prefix" (.WorkInProgressPrefix|Escape) | Safe}}
+						</button>
+					{{end}}
 				</div>
 				{{template "repo/issue/view_content/update_branch_by_merge" $}}
 			{{else if .Issue.PullRequest.IsChecking}}
 				<div class="item">
-					<i class="icon icon-octicon">{{svg "octicon-sync"}}</i>
+					{{svg "octicon-sync"}}
 					{{$.locale.Tr "repo.pulls.is_checking"}}
 				</div>
 			{{else if .Issue.PullRequest.IsAncestor}}
 				<div class="item">
-					<i class="icon icon-octicon">{{svg "octicon-alert"}}</i>
+					{{svg "octicon-alert"}}
 					{{$.locale.Tr "repo.pulls.is_ancestor"}}
 				</div>
 			{{else if or .Issue.PullRequest.CanAutoMerge .Issue.PullRequest.IsEmpty}}
 				{{if .IsBlockedByApprovals}}
 					<div class="item">
-						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
-					{{$.locale.Tr "repo.pulls.blocked_by_approvals" .GrantedApprovals .ProtectedBranch.RequiredApprovals}}
+						{{svg "octicon-x"}}
+						{{$.locale.Tr "repo.pulls.blocked_by_approvals" .GrantedApprovals .ProtectedBranch.RequiredApprovals}}
 					</div>
 				{{else if .IsBlockedByRejection}}
 					<div class="item">
-						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
+						{{svg "octicon-x"}}
 					{{$.locale.Tr "repo.pulls.blocked_by_rejection"}}
 					</div>
 				{{else if .IsBlockedByOfficialReviewRequests}}
 					<div class="item">
-						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
+						{{svg "octicon-x"}}
 					{{$.locale.Tr "repo.pulls.blocked_by_official_review_requests"}}
 					</div>
 				{{else if .IsBlockedByOutdatedBranch}}
 					<div class="item">
-						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
-					{{$.locale.Tr "repo.pulls.blocked_by_outdated_branch"}}
+						{{svg "octicon-x"}}
+						{{$.locale.Tr "repo.pulls.blocked_by_outdated_branch"}}
 					</div>
 				{{else if .IsBlockedByChangedProtectedFiles}}
 					<div class="item">
-						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
+						{{svg "octicon-x"}}
 						{{$.locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n" | Safe}}
-						<ul>
-							{{range .ChangedProtectedFiles}}
-								<li>{{.}}</li>
-							{{end}}
-						</ul>
 					</div>
+					<ul>
+						{{range .ChangedProtectedFiles}}
+						<li>{{.}}</li>
+						{{end}}
+					</ul>
 				{{else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsError .RequiredStatusCheckState.IsFailure)}}
 					<div class="item">
-						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
+						{{svg "octicon-x"}}
 						{{$.locale.Tr "repo.pulls.required_status_check_failed"}}
 					</div>
 				{{else if and .EnableStatusCheck (not .RequiredStatusCheckState.IsSuccess)}}
 					<div class="item">
-						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
+						{{svg "octicon-x"}}
 						{{$.locale.Tr "repo.pulls.required_status_check_missing"}}
 					</div>
 				{{else if and .AllowMerge .RequireSigned (not .WillSign)}}
 					<div class="item">
-						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
+						{{svg "octicon-x"}}
 						{{$.locale.Tr "repo.pulls.require_signed_wont_sign"}}
 					</div>
 					<div class="item">
-						<i class="icon icon-octicon">{{svg "octicon-unlock"}}</i>
+						{{svg "octicon-unlock"}}
 						{{$.locale.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason)}}
 					</div>
 				{{end}}
@@ -255,23 +156,23 @@
 				{{if $canMergeNow}}
 					{{if $notAllOverridableChecksOk}}
 						<div class="item">
-							<i class="icon icon-octicon">{{svg "octicon-dot-fill"}}</i>
+							{{svg "octicon-dot-fill"}}
 							{{$.locale.Tr "repo.pulls.required_status_check_administrator"}}
 						</div>
 					{{else}}
 						<div class="item">
-							<i class="icon icon-octicon">{{svg "octicon-check"}}</i>
+							{{svg "octicon-check"}}
 							{{$.locale.Tr "repo.pulls.can_auto_merge_desc"}}
 						</div>
 					{{end}}
 					{{if .WillSign}}
 						<div class="item">
-							<i class="icon icon-octicon">{{svg "octicon-lock" 16 "text green"}}</i>
+							{{svg "octicon-lock" 16 "text green"}}
 							{{$.locale.Tr "repo.signing.will_sign" .SigningKey}}
 						</div>
 					{{else if .IsSigned}}
 						<div class="item">
-							<i class="icon icon-octicon">{{svg "octicon-unlock"}}</i>
+							{{svg "octicon-unlock"}}
 							{{$.locale.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason)}}
 						</div>
 					{{end}}
@@ -281,7 +182,7 @@
 					<div class="ui divider"></div>
 
 					<div class="item">
-						<i class="icon icon-octicon">{{svg "octicon-alert"}}</i>
+						{{svg "octicon-alert"}}
 						{{$.locale.Tr "repo.pulls.is_empty"}}
 					</div>
 				{{end}}
@@ -412,19 +313,19 @@
 					</div>
 				{{else if .IsBlockedByOutdatedBranch}}
 					<div class="item text red">
-						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
-					{{$.locale.Tr "repo.pulls.blocked_by_outdated_branch"}}
+						{{svg "octicon-x"}}
+						{{$.locale.Tr "repo.pulls.blocked_by_outdated_branch"}}
 					</div>
 				{{else if .IsBlockedByChangedProtectedFiles}}
 					<div class="item text red">
-						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
+						{{svg "octicon-x"}}
 						{{$.locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n" | Safe}}
-						<ul>
-							{{range .ChangedProtectedFiles}}
-								<li>{{.}}</li>
-							{{end}}
-						</ul>
 					</div>
+					<ul>
+						{{range .ChangedProtectedFiles}}
+						<li>{{.}}</li>
+						{{end}}
+					</ul>
 				{{else if and .EnableStatusCheck (not .RequiredStatusCheckState.IsSuccess)}}
 					<div class="item text red">
 						{{svg "octicon-x"}}

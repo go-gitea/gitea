@@ -17,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
-	pull_service "code.gitea.io/gitea/services/pull"
 )
 
 // CreateNewBranch creates a new repository branch
@@ -139,13 +138,14 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 	}); err != nil {
 		return "", err
 	}
-	refID, err := gitRepo.GetRefCommitID(git.BranchPrefix + to)
+	refNameTo := git.RefNameFromBranch(to)
+	refID, err := gitRepo.GetRefCommitID(refNameTo.String())
 	if err != nil {
 		return "", err
 	}
 
-	notification.NotifyDeleteRef(ctx, doer, repo, "branch", git.BranchPrefix+from)
-	notification.NotifyCreateRef(ctx, doer, repo, "branch", git.BranchPrefix+to, refID)
+	notification.NotifyDeleteRef(ctx, doer, repo, git.RefNameFromBranch(from))
+	notification.NotifyCreateRef(ctx, doer, repo, refNameTo, refID)
 
 	return "", nil
 }
@@ -180,14 +180,10 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 		return err
 	}
 
-	if err := pull_service.CloseBranchPulls(doer, repo.ID, branchName); err != nil {
-		return err
-	}
-
 	// Don't return error below this
 	if err := PushUpdate(
 		&repo_module.PushUpdateOptions{
-			RefFullName:  git.BranchPrefix + branchName,
+			RefFullName:  git.RefNameFromBranch(branchName),
 			OldCommitID:  commit.ID.String(),
 			NewCommitID:  git.EmptySHA,
 			PusherID:     doer.ID,
@@ -196,10 +192,6 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 			RepoName:     repo.Name,
 		}); err != nil {
 		log.Error("Update: %v", err)
-	}
-
-	if err := git_model.AddDeletedBranch(ctx, repo.ID, branchName, commit.ID.String(), doer.ID); err != nil {
-		log.Warn("AddDeletedBranch: %v", err)
 	}
 
 	return nil
