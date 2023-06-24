@@ -174,6 +174,13 @@ func InitTest(requireGitea bool) {
 	}
 
 	routers.InitWebInstalled(graceful.GetManager().HammerContext(), func() error {
+		if err := unittest.InitFixtures(
+			unittest.FixturesOptions{
+				Dir: filepath.Join(filepath.Dir(setting.AppPath), "models/fixtures/"),
+			},
+		); err != nil {
+			return err
+		}
 		return unittest.LoadFixtures()
 	})
 }
