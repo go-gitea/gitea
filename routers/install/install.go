@@ -358,6 +358,12 @@ func SubmitInstall(ctx *context.Context) {
 			ctx.RenderWithErr(ctx.Tr("form.password_not_match"), tplInstall, form)
 			return
 		}
+		if len(form.AdminPasswd) < setting.MinPasswordLength {
+			ctx.Data["Err_Admin"] = true
+			ctx.Data["Err_AdminPasswd"] = true
+			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplInstall, form)
+			return
+		}
 	}
 
 	// Init the engine with migration
