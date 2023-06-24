@@ -171,7 +171,7 @@ func serveInstalled(ctx *cli.Context) error {
 		}
 	}
 
-	routers.InitWebInstalled(graceful.GetManager().HammerContext())
+	routers.InitWebInstalled(graceful.GetManager().HammerContext(), nil)
 
 	// We check that AppDataPath exists here (it should have been created during installation)
 	// We can't check it in `InitWebInstalled`, because some integration tests

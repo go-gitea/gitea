@@ -173,7 +173,9 @@ func InitTest(requireGitea bool) {
 		defer db.Close()
 	}
 
-	routers.InitWebInstalled(graceful.GetManager().HammerContext())
+	routers.InitWebInstalled(graceful.GetManager().HammerContext(), func() error {
+		return unittest.LoadFixtures()
+	})
 }
 
 func PrepareTestEnv(t testing.TB, skip ...int) func() {
