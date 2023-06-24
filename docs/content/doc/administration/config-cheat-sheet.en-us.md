@@ -314,8 +314,11 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `LOCAL_ROOT_URL`: **%(PROTOCOL)s://%(HTTP_ADDR)s:%(HTTP_PORT)s/**: Local
    (DMZ) URL for Gitea workers (such as SSH update) accessing web service. In
    most cases you do not need to change the default value. Alter it only if
-   your SSH server node is not the same as HTTP node. Do not set this variable
-   if `PROTOCOL` is set to `http+unix`.
+   your SSH server node is not the same as HTTP node. For different protocol, the default
+   values are different. If `PROTOCOL` is `http+unix`, the default value is `http://unix/`.
+   If `PROTOCOL` is `fcgi` or `fcgi+unix`, the default value is `%(PROTOCOL)s://%(HTTP_ADDR)s:%(HTTP_PORT)s/`.
+   If listen on `0.0.0.0`, the default value is `%(PROTOCOL)s://localhost:%(HTTP_PORT)s/`, Otherwise the default
+   value is `%(PROTOCOL)s://%(HTTP_ADDR)s:%(HTTP_PORT)s/`.
 - `LOCAL_USE_PROXY_PROTOCOL`: **%(USE_PROXY_PROTOCOL)s**: When making local connections pass the PROXY protocol header.
    This should be set to false if the local connection will go through the proxy.
 - `PER_WRITE_TIMEOUT`: **30s**: Timeout for any write to the connection. (Set to -1 to
