@@ -75,6 +75,7 @@ Gitea's private styles use `g-` prefix.
 .gt-self-start { align-self: flex-start !important; }
 .gt-self-end { align-self: flex-end !important; }
 .gt-no-underline { text-decoration-line: none !important; }
+.gt-w-auto { width: auto !important; }
 
 .gt-overflow-x-auto { overflow-x: auto !important; }
 .gt-overflow-x-scroll { overflow-x: scroll !important; }
