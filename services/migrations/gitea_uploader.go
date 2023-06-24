@@ -208,6 +208,7 @@ func (g *GiteaLocalUploader) prepareMilestones(milestones ...*base.Milestone) []
 			CreatedUnix:  timeutil.TimeStamp(milestone.Created.Unix()),
 			UpdatedUnix:  timeutil.TimeStamp(milestone.Updated.Unix()),
 			DeadlineUnix: deadline,
+			OriginalID:   milestone.OriginalID,
 		}
 		if ms.IsClosed && milestone.Closed != nil {
 			ms.ClosedDateUnix = timeutil.TimeStamp(milestone.Closed.Unix())

@@ -70,7 +70,7 @@ func UpdateMilestones(ms ...*issues_model.Milestone) (err error) {
 	for _, m := range ms {
 		var foundMilestone *issues_model.Milestone
 		for _, existingMilestone := range existingMilestones {
-			if existingMilestone.CreatedUnix == m.CreatedUnix {
+			if existingMilestone.OriginalID == m.OriginalID {
 				foundMilestone = existingMilestone
 				foundMap[existingMilestone.ID] = true
 				break
@@ -79,8 +79,7 @@ func UpdateMilestones(ms ...*issues_model.Milestone) (err error) {
 
 		if foundMilestone == nil {
 			milestonesToAdd = append(milestonesToAdd, m)
-		} else if foundMilestone.UpdatedUnix != m.UpdatedUnix {
-			// consider as updated if updated_unix is different
+		} else if foundMilestone.OriginalID != m.OriginalID {
 			m.ID = foundMilestone.ID
 			milestonesToUpdate = append(milestonesToUpdate, m)
 		}
@@ -116,6 +115,7 @@ func UpdateMilestones(ms ...*issues_model.Milestone) (err error) {
 		}
 	}
 
+	// TODO: is this correct?
 	if _, err = sess.ID(ms[0].RepoID).Update(&repo_model.Repository{
 		NumMilestones:       len(ms),
 		NumOpenMilestones:   openCount,

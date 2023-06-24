@@ -64,6 +64,8 @@ type Milestone struct {
 	DeadlineString string `xorm:"-"`
 
 	TotalTrackedTime int64 `xorm:"-"`
+
+	OriginalID int64 // ID from the upstream syncing source
 }
 
 func init() {

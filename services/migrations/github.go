@@ -265,6 +265,7 @@ func (g *GithubDownloaderV3) GetMilestones() ([]*base.Milestone, error) {
 				Created:     m.GetCreatedAt().Time,
 				Updated:     m.UpdatedAt.GetTime(),
 				Closed:      m.ClosedAt.GetTime(),
+				OriginalID:  m.GetID(),
 			})
 		}
 		if len(ms) < perPage {
