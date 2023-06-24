@@ -7,31 +7,31 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/web/middleware"
 
 	"gitea.com/go-chi/binding"
-	chi "github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5"
 )
 
-// Bind binding an obj to a handler
-func Bind[T any](_ T) any {
-	return func(ctx *context.Context) {
+// Bind binding an obj to a handler's context data
+func Bind[T any](_ T) http.HandlerFunc {
+	return func(resp http.ResponseWriter, req *http.Request) {
 		theObj := new(T) // create a new form obj for every request but not use obj directly
-		binding.Bind(ctx.Req, theObj)
-		SetForm(ctx, theObj)
-		middleware.AssignForm(theObj, ctx.Data)
+		data := middleware.GetContextData(req.Context())
+		binding.Bind(req, theObj)
+		SetForm(data, theObj)
+		middleware.AssignForm(theObj, data)
 	}
 }
 
 // SetForm set the form object
-func SetForm(data middleware.ContextDataStore, obj interface{}) {
-	data.GetData()["__form"] = obj
+func SetForm(dataStore middleware.ContextDataStore, obj interface{}) {
+	dataStore.GetData()["__form"] = obj
 }
 
 // GetForm returns the validate form information
-func GetForm(data middleware.ContextDataStore) interface{} {
-	return data.GetData()["__form"]
+func GetForm(dataStore middleware.ContextDataStore) interface{} {
+	return dataStore.GetData()["__form"]
 }
 
 // Route defines a route based on chi's router

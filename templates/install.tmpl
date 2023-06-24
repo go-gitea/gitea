@@ -44,7 +44,6 @@
 						<div class="inline required field {{if .Err_DbSetting}}error{{end}}">
 							<label for="db_name">{{.locale.Tr "install.db_name"}}</label>
 							<input id="db_name" name="db_name" value="{{.db_name}}">
-							<span class="help">{{.locale.Tr "install.db_helper"}}</span>
 						</div>
 					</div>
 
@@ -66,20 +65,6 @@
 							<label for="db_schema">{{.locale.Tr "install.db_schema"}}</label>
 							<input id="db_schema" name="db_schema" value="{{.db_schema}}">
 							<span class="help">{{.locale.Tr "install.db_schema_helper"}}</span>
-						</div>
-					</div>
-
-					<div class="gt-hidden" data-db-setting-for="mysql">
-						<div class="inline required field">
-							<label>{{.locale.Tr "install.charset"}}</label>
-							<div class="ui selection database type dropdown">
-								<input type="hidden" name="charset" value="{{if .charset}}{{.charset}}{{else}}utf8mb4{{end}}">
-								<div class="default text">utf8mb4</div>
-								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-								<div class="menu">
-									<div class="item" data-value="utf8mb4">utf8mb4</div>
-								</div>
-							</div>
 						</div>
 					</div>
 

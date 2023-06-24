@@ -25,12 +25,6 @@
 					<label for="email">{{.locale.Tr "email"}}</label>
 					<p>{{.SignedUser.Email}}</p>
 				</div>
-				<div class="inline field">
-					<div class="ui checkbox" id="keep-email-private">
-						<label data-tooltip-content="{{.locale.Tr "settings.keep_email_private_popup"}}"><strong>{{.locale.Tr "settings.keep_email_private"}}</strong></label>
-						<input name="keep_email_private" type="checkbox" {{if .SignedUser.KeepEmailPrivate}}checked{{end}}>
-					</div>
-				</div>
 				<div class="field {{if .Err_Description}}error{{end}}">
 					<label for="description">{{$.locale.Tr "user.user_bio"}}</label>
 					<textarea id="description" name="description" rows="2" placeholder="{{.locale.Tr "settings.biography_placeholder"}}" maxlength="255">{{.SignedUser.Description}}</textarea>
@@ -47,7 +41,7 @@
 				<div class="ui divider"></div>
 				<!-- private block -->
 
-				<div class="field">
+				<div class="field" id="privacy-user-settings">
 					<label for="security-private"><strong>{{.locale.Tr "settings.privacy"}}</strong></label>
 				</div>
 
@@ -74,6 +68,13 @@
 								{{end}}
 							{{end}}
 						</div>
+					</div>
+				</div>
+
+				<div class="field">
+					<div class="ui checkbox">
+						<label data-tooltip-content="{{.locale.Tr "settings.keep_email_private_popup"}}"><strong>{{.locale.Tr "settings.keep_email_private"}}</strong></label>
+						<input name="keep_email_private" type="checkbox" {{if .SignedUser.KeepEmailPrivate}}checked{{end}}>
 					</div>
 				</div>
 
