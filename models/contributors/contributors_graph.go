@@ -53,12 +53,12 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository, revis
 
 	unknownUserAvatarLink := user_model.NewGhostUser().AvatarLink(ctx)
 	contributors_commit_stats := make(map[string]*api.ContributorData)
-	contributors_commit_stats["Total"] = &api.ContributorData{
+	contributors_commit_stats["total"] = &api.ContributorData{
 		Name:       "Total",
 		AvatarLink: unknownUserAvatarLink,
 		Weeks:      CreateWeeks(sundays),
 	}
-	total, _ := contributors_commit_stats["Total"]
+	total, _ := contributors_commit_stats["total"]
 
 	for _, v := range extended_commit_stats {
 		if len(v.Author.Email) == 0 {

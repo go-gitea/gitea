@@ -107,9 +107,9 @@ const sfc = {
       fetch(`${this.repoLink}/contributors/data`)
         .then((response) => response.json())
         .then((data) => {
-          const {Total, ...rest} = data;
+          const {total, ...rest} = data;
           this.contributorsStats = rest;
-          this.totalStats = Total;
+          this.totalStats = total;
           this.isLoading = false;
         });
     },
