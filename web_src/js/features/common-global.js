@@ -345,8 +345,6 @@ export function initGlobalButtons() {
     if (colorPickers.length > 0) {
       initCompColorPicker();
     }
-    // all non-"ok" buttons which do not have "type" should not submit the form, should not be triggered by "Enter"
-    $($(this).attr('data-modal')).find('form button:not(.ok):not([type])').attr('type', 'button');
   });
 
   $('.delete-post.button').on('click', function (e) {
