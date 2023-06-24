@@ -3,6 +3,8 @@ import {initAriaCheckboxPatch} from './aria/checkbox.js';
 import {initAriaDropdownPatch} from './aria/dropdown.js';
 import {svg} from '../svg.js';
 
+export const fomanticMobileScreen = window.matchMedia('only screen and (max-width: 767.98px)');
+
 export function initGiteaFomantic() {
   // Silence fomantic's error logging when tabs are used without a target content element
   $.fn.tab.settings.silent = true;
