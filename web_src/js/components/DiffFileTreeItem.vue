@@ -10,7 +10,7 @@
       />
       <a
         v-if="item.isFile"
-        :class="['file', 'gt-ellipsis', item.file.IsViewed ? 'viewed' : 'not-viewed']"
+        :class="['file gt-ellipsis', {'viewed': item.file.IsViewed}]"
         :href="item.isFile ? '#diff-' + item.file.NameHash : ''"
       >{{ item.name }}</a>
       <SvgIcon

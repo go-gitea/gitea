@@ -57,7 +57,7 @@ export function initViewedCheckboxListenerFor() {
       const fileName = checkbox.getAttribute('name');
 
       // check if the file is in our difftreestore and if we find it -> change the IsViewed status
-      const fileInPageData = diffTreeStore().files?.find((x) => x.Name === fileName);
+      const fileInPageData = diffTreeStore().files.find((x) => x.Name === fileName);
       if (fileInPageData) {
         fileInPageData.IsViewed = this.checked;
       }
