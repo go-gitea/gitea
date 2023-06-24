@@ -990,7 +990,6 @@ type CreateCommentOptions struct {
 	RefIsPull        bool
 	IsForcePush      bool
 	Invalidated      bool
-	TimeEstimate     int64
 }
 
 // GetCommentByID returns the comment by given ID.

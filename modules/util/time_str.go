@@ -1,4 +1,7 @@
-package timeutil
+// Copyright 2022 Gitea. All rights reserved.
+// SPDX-License-Identifier: MIT
+
+package util
 
 import (
 	"fmt"

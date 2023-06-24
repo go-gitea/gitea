@@ -212,11 +212,12 @@ func FinishIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 	}
 
 	if _, err := CreateComment(ctx, &CreateCommentOptions{
-		Doer:        user,
-		Issue:       issue,
-		Repo:        issue.Repo,
-		Type:        CommentTypeStopTracking,
-		TimeID:      tt.ID,
+		Doer:    user,
+		Issue:   issue,
+		Repo:    issue.Repo,
+		Content: util.SecToTime(timediff),
+		Type:    CommentTypeStopTracking,
+		TimeID:  tt.ID,
 	}); err != nil {
 		return err
 	}
