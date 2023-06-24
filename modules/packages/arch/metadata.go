@@ -256,7 +256,7 @@ func readEntries(dbarchive []byte) (map[string][]byte, error) {
 	gzf, err := gzip.NewReader(bytes.NewReader(dbarchive))
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		return map[string][]byte{}, nil
 	}
 
 	var entries = map[string][]byte{}

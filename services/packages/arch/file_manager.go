@@ -98,22 +98,22 @@ func UpdatePacmanDatabases(ctx *context.Context, md *arch.Metadata, distro, owne
 		db := arch.Join(owner, distro, architecture, setting.Domain, "db")
 		dbkey := packages.BlobHash256Key(db)
 
-		o, err := cs.Get(dbkey)
+		var dbdata []byte
+
+		dbobj, err := cs.Get(dbkey)
+		if err == nil {
+			dbdata, err = io.ReadAll(dbobj)
+			if err != nil {
+				return err
+			}
+		}
+
+		newdata, err := arch.UpdatePacmanDbEntry(dbdata, md)
 		if err != nil {
 			return err
 		}
 
-		data, err := io.ReadAll(o)
-		if err != nil {
-			return err
-		}
-
-		udata, err := arch.UpdatePacmanDbEntry(data, md)
-		if err != nil {
-			return err
-		}
-
-		err = cs.Save(dbkey, bytes.NewReader(udata), int64(len(udata)))
+		err = cs.Save(dbkey, bytes.NewReader(newdata), int64(len(newdata)))
 		if err != nil {
 			return err
 		}
