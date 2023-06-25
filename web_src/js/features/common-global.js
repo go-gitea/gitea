@@ -395,8 +395,6 @@ function initGlobalShowModal() {
     if (colorPickers.length > 0) {
       initCompColorPicker(); // FIXME: this might cause duplicate init
     }
-    // all non-"ok" buttons which do not have "type" should not submit the form, should not be triggered by "Enter"
-    $modal.find('form button:not(.ok):not([type])').attr('type', 'button');
     $modal.modal('setting', {
       onApprove: () => {
         // "form-fetch-action" can handle network errors gracefully,
