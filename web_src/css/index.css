@@ -45,6 +45,7 @@
 @import "./repo/issue-list.css";
 @import "./repo/list-header.css";
 @import "./repo/linebutton.css";
+@import "./repo/wiki.css";
 
 @import "./editor/fileeditor.css";
 @import "./editor/combomarkdowneditor.css";

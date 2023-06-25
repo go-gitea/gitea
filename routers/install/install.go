@@ -99,7 +99,6 @@ func Install(ctx *context.Context) {
 	form.DbName = setting.Database.Name
 	form.DbPath = setting.Database.Path
 	form.DbSchema = setting.Database.Schema
-	form.Charset = setting.Database.Charset
 
 	curDBType := setting.Database.Type.String()
 	var isCurDBTypeSupported bool
@@ -269,7 +268,6 @@ func SubmitInstall(ctx *context.Context) {
 	setting.Database.Name = form.DbName
 	setting.Database.Schema = form.DbSchema
 	setting.Database.SSLMode = form.SSLMode
-	setting.Database.Charset = form.Charset
 	setting.Database.Path = form.DbPath
 	setting.Database.LogSQL = !setting.IsProd
 
@@ -388,7 +386,6 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("database").Key("PASSWD").SetValue(setting.Database.Passwd)
 	cfg.Section("database").Key("SCHEMA").SetValue(setting.Database.Schema)
 	cfg.Section("database").Key("SSL_MODE").SetValue(setting.Database.SSLMode)
-	cfg.Section("database").Key("CHARSET").SetValue(setting.Database.Charset)
 	cfg.Section("database").Key("PATH").SetValue(setting.Database.Path)
 	cfg.Section("database").Key("LOG_SQL").SetValue("false") // LOG_SQL is rarely helpful
 
