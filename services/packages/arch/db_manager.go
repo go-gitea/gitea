@@ -5,7 +5,6 @@ package arch
 
 import (
 	"bytes"
-	"strings"
 
 	org "code.gitea.io/gitea/models/organization"
 	pkg "code.gitea.io/gitea/models/packages"
@@ -87,13 +86,9 @@ type RemoveParameters struct {
 
 // Remove package and it's blobs from gitea.
 func RemovePackage(ctx *context.Context, p *RemoveParameters) error {
-	tpkg, err := pkg.GetPackageByName(ctx, p.Organization.ID, pkg.TypeArch, p.Name)
+	ver, err := pkg.GetVersionByNameAndVersion(ctx, p.Organization.ID, pkg.TypeArch, p.Name, p.Version)
 	if err != nil {
 		return err
 	}
-	return svc.RemovePackageVersion(p.User, &pkg.PackageVersion{
-		PackageID:    tpkg.ID,
-		Version:      p.Version,
-		LowerVersion: strings.ToLower(p.Version),
-	})
+	return svc.RemovePackageVersion(p.User, ver)
 }
