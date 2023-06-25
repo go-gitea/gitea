@@ -1,0 +1,63 @@
+.repository.wiki .wiki-pages-list .wiki-git-entry {
+  margin-left: 10px;
+  display: none;
+}
+
+.repository.wiki .wiki-pages-list td:hover .wiki-git-entry {
+  display: inline-block;
+}
+
+.repository.wiki .markup {
+  overflow: visible;
+}
+
+.repository.wiki .wiki-content-parts .markup {
+  border: 1px solid var(--color-secondary);
+  padding: 1em;
+  margin-top: 1em;
+  font-size: 1em;
+}
+
+.repository.wiki .wiki-content-main.with-sidebar {
+  float: left;
+  width: 80%;
+  max-width: calc(100% - 150px - 1em); /* match the min-width of .wiki-content-sidebar */
+}
+
+.repository.wiki .wiki-content-sidebar {
+  float: right;
+  width: calc(20% - 1em);
+  min-width: 150px;
+}
+
+.repository.wiki .wiki-content-sidebar .ui.message.unicode-escape-prompt p {
+  display: none;
+}
+
+.repository.wiki .wiki-content-footer {
+  margin-top: 1em;
+}
+
+.repository.wiki .wiki-content-toc ul {
+  margin: 0;
+  list-style: none;
+  padding: 5px 0 5px 1em;
+}
+
+.repository.wiki .wiki-content-toc ul ul {
+  border-left:  1px var(--color-secondary);
+  border-left-style: dashed;
+}
+
+@media (max-width: 767.98px) {
+  .repository.wiki #clone-panel #repo-clone-url {
+    width: 160px;
+  }
+  .repository.wiki .wiki-content-main.with-sidebar,
+  .repository.wiki .wiki-content-sidebar {
+    float: none;
+    width: 100%;
+    min-width: unset;
+    max-width: unset;
+  }
+}
