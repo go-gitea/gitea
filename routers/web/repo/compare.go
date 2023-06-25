@@ -689,6 +689,7 @@ func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repositor
 		ListOptions: db.ListOptions{
 			PageSize: -1,
 		},
+		IsDeletedBranch: util.OptionalBoolFalse,
 	})
 	if err != nil {
 		return nil, nil, err
