@@ -1266,6 +1266,5 @@ func (c *Comment) LoadClosedIssueCommentContent(ctx context.Context) (err error)
 	if c.DuplicateIssue, err = GetIssueByID(ctx, ctnt.DuplicateIssueID); err != nil {
 		return
 	}
-	err = c.DuplicateIssue.LoadRepo((ctx))
-	return
+	return c.DuplicateIssue.LoadRepo((ctx))
 }
