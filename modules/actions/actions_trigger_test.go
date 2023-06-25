@@ -21,7 +21,6 @@ import (
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
-	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -33,7 +32,8 @@ func TestMain(m *testing.M) {
 }
 
 func TestPullRequestTargetEvent(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}) // owner of the base repo
 	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}) // owner of the forked repo
 
