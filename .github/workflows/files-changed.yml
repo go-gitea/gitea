@@ -30,7 +30,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: dorny/paths-filter@v2
-        id: changes
+        id: changes_check
+        if: env.ACT_EXEC != 'true'
         with:
           filters: |
             backend:
@@ -63,3 +64,22 @@ jobs:
               - "Dockerfile.rootless"
               - "docker/**"
               - "Makefile"
+      - name: set outputs result
+        id: changes
+        run: |
+          if [ "$ACT_EXEC" == 'true' ]; then
+            # set default value for 'act_runner exec'
+            { echo "backend=true" ; \
+            echo "frontend=true" ; \
+            echo "docs=true" ; \
+            echo "actions=true" ; \
+            echo "templates=true" ; \
+            echo "docker=true" ; } >> "$GITHUB_OUTPUT"
+          else
+            { echo "backend=${{ steps.changes_check.outputs.backend }}" ; \
+            echo "frontend=${{ steps.changes_check.outputs.frontend }}" ; \
+            echo "docs=${{ steps.changes_check.outputs.docs }}" ; \
+            echo "actions=${{ steps.changes_check.outputs.actions }}" ; \
+            echo "actions=${{ steps.changes_check.outputs.templates }}" ; \
+            echo "actions=${{ steps.changes_check.outputs.docker }}" ; } >> "$GITHUB_OUTPUT"
+          fi

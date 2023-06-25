@@ -54,14 +54,14 @@ func TestBaseRedis(t *testing.T) {
 			_ = redisServer.Wait()
 		}
 	}()
-	if !waitRedisReady("redis://127.0.0.1:6379/0", 0) {
+	if !waitRedisReady("redis://redis:6379/0", 0) {
 		redisServer = redisServerCmd(t)
 		if redisServer == nil && os.Getenv("CI") == "" {
 			t.Skip("redis-server not found")
 			return
 		}
 		assert.NoError(t, redisServer.Start())
-		if !assert.True(t, waitRedisReady("redis://127.0.0.1:6379/0", 5*time.Second), "start redis-server") {
+		if !assert.True(t, waitRedisReady("redis://redis:6379/0", 5*time.Second), "start redis-server") {
 			return
 		}
 	}
