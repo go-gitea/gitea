@@ -40,6 +40,11 @@
 		</h4>
 		<div class="ui attached segment">
 			<div class="ui email list">
+				{{if not .CanAddEmails}}
+				<div class="item">
+					<p>{{.locale.Tr "settings.email_cant_add"}}</p>
+				</div>
+				{{end}}
 				{{if $.EnableNotifyMail}}
 				<div class="item">
 					<form action="{{AppSubUrl}}/user/settings/account/email" class="ui form" method="post">
