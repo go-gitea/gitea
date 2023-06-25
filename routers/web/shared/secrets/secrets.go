@@ -4,9 +4,6 @@
 package secrets
 
 import (
-	"net/http"
-	"strings"
-
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	secret_model "code.gitea.io/gitea/models/secret"
@@ -14,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/web/shared/actions"
 	"code.gitea.io/gitea/services/audit"
 	"code.gitea.io/gitea/services/forms"
 )
@@ -40,31 +38,25 @@ func SetSecretsContext(ctx *context.Context, owner *user_model.User, repo *repo_
 func PerformSecretsPost(ctx *context.Context, doer, owner *user_model.User, repo *repo_model.Repository, redirectURL string) {
 	form := web.GetForm(ctx).(*forms.AddSecretForm)
 
-	// Since the content is from a form which is a textarea, the line endings are \r\n.
-	// It's a standard behavior of HTML.
-	// But we want to store them as \n like what GitHub does.
-	// And users are unlikely to really need to keep the \r.
-	// Other than this, we should respect the original content, even leading or trailing spaces.
-	content := strings.ReplaceAll(form.Content, "\r\n", "\n")
-
-	s, err := secret_model.InsertEncryptedSecret(ctx, tryGetOwnerID(owner), tryGetRepositoryID(repo), form.Title, content)
-	if err != nil {
-		log.Error("InsertEncryptedSecret: %v", err)
-		ctx.Flash.Error(ctx.Tr("secrets.creation.failed"))
-	} else {
-		audit.Record(auditActionSwitch(owner, repo, audit.UserSecretAdd, audit.OrganizationSecretAdd, audit.RepositorySecretAdd), doer, auditScopeSwitch(owner, repo), s, "Added secret %s.", s.Name)
-
-		ctx.Flash.Success(ctx.Tr("secrets.creation.success", s.Name))
+	if err := actions.NameRegexMatch(form.Name); err != nil {
+		ctx.JSONError(ctx.Tr("secrets.creation.failed"))
+		return
 	}
 
-	ctx.Redirect(redirectURL)
+	s, err := secret_model.InsertEncryptedSecret(ctx, tryGetOwnerID(owner), tryGetRepositoryID(repo), form.Name, actions.ReserveLineBreakForTextarea(form.Data))
+	if err != nil {
+		log.Error("InsertEncryptedSecret: %v", err)
+		ctx.JSONError(ctx.Tr("secrets.creation.failed"))
+		return
+	}
+
+	audit.Record(auditActionSwitch(owner, repo, audit.UserSecretAdd, audit.OrganizationSecretAdd, audit.RepositorySecretAdd), doer, auditScopeSwitch(owner, repo), s, "Added secret %s.", s.Name)
+
+	ctx.Flash.Success(ctx.Tr("secrets.creation.success", s.Name))
+	ctx.JSONRedirect(redirectURL)
 }
 
 func PerformSecretsDelete(ctx *context.Context, doer, owner *user_model.User, repo *repo_model.Repository, redirectURL string) {
-	defer ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": redirectURL,
-	})
-
 	id := ctx.FormInt64("id")
 
 	s := &secret_model.Secret{OwnerID: tryGetOwnerID(owner), RepoID: tryGetRepositoryID(repo)}
@@ -86,6 +78,7 @@ func PerformSecretsDelete(ctx *context.Context, doer, owner *user_model.User, re
 	audit.Record(auditActionSwitch(owner, repo, audit.UserSecretRemove, audit.OrganizationSecretRemove, audit.RepositorySecretRemove), doer, auditScopeSwitch(owner, repo), s, "Removed secret %s.", s.Name)
 
 	ctx.Flash.Success(ctx.Tr("secrets.deletion.success"))
+	ctx.JSONRedirect(redirectURL)
 }
 
 func tryGetOwnerID(owner *user_model.User) int64 {

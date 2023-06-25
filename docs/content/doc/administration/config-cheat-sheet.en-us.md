@@ -314,8 +314,11 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `LOCAL_ROOT_URL`: **%(PROTOCOL)s://%(HTTP_ADDR)s:%(HTTP_PORT)s/**: Local
    (DMZ) URL for Gitea workers (such as SSH update) accessing web service. In
    most cases you do not need to change the default value. Alter it only if
-   your SSH server node is not the same as HTTP node. Do not set this variable
-   if `PROTOCOL` is set to `http+unix`.
+   your SSH server node is not the same as HTTP node. For different protocol, the default
+   values are different. If `PROTOCOL` is `http+unix`, the default value is `http://unix/`.
+   If `PROTOCOL` is `fcgi` or `fcgi+unix`, the default value is `%(PROTOCOL)s://%(HTTP_ADDR)s:%(HTTP_PORT)s/`.
+   If listen on `0.0.0.0`, the default value is `%(PROTOCOL)s://localhost:%(HTTP_PORT)s/`, Otherwise the default
+   value is `%(PROTOCOL)s://%(HTTP_ADDR)s:%(HTTP_PORT)s/`.
 - `LOCAL_USE_PROXY_PROTOCOL`: **%(USE_PROXY_PROTOCOL)s**: When making local connections pass the PROXY protocol header.
    This should be set to false if the local connection will go through the proxy.
 - `PER_WRITE_TIMEOUT`: **30s**: Timeout for any write to the connection. (Set to -1 to
@@ -443,7 +446,6 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `SQLITE_TIMEOUT`: **500**: Query timeout for SQLite3 only.
 - `SQLITE_JOURNAL_MODE`: **""**: Change journal mode for SQlite3. Can be used to enable [WAL mode](https://www.sqlite.org/wal.html) when high load causes write congestion. See [SQlite3 docs](https://www.sqlite.org/pragma.html#pragma_journal_mode) for possible values. Defaults to the default for the database file, often DELETE.
 - `ITERATE_BUFFER_SIZE`: **50**: Internal buffer size for iterating.
-- `CHARSET`: **utf8mb4**: For MySQL only, either "utf8" or "utf8mb4". NOTICE: for "utf8mb4" you must use MySQL InnoDB > 5.6. Gitea is unable to check this.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
 - `LOG_SQL`: **true**: Log the executed SQL.
 - `DB_RETRIES`: **10**: How many ORM init / DB connect attempts allowed.
@@ -459,15 +461,15 @@ relation to port exhaustion.
 ## Indexer (`indexer`)
 
 - `ISSUE_INDEXER_TYPE`: **bleve**: Issue indexer type, currently supported: `bleve`, `db`, `elasticsearch` or `meilisearch`.
-- `ISSUE_INDEXER_CONN_STR`: ****: Issue indexer connection string, available when ISSUE_INDEXER_TYPE is elasticsearch, or meilisearch. i.e. http://elastic:changeme@localhost:9200
-- `ISSUE_INDEXER_NAME`: **gitea_issues**: Issue indexer name, available when ISSUE_INDEXER_TYPE is elasticsearch
+- `ISSUE_INDEXER_CONN_STR`: ****: Issue indexer connection string, available when ISSUE_INDEXER_TYPE is elasticsearch (e.g. http://elastic:password@localhost:9200) or meilisearch (e.g. http://:apikey@localhost:7700)
+- `ISSUE_INDEXER_NAME`: **gitea_issues**: Issue indexer name, available when ISSUE_INDEXER_TYPE is elasticsearch or meilisearch.
 - `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: Index file used for issue search; available when ISSUE_INDEXER_TYPE is bleve and elasticsearch. Relative paths will be made absolute against _`AppWorkPath`_.
 
 - `REPO_INDEXER_ENABLED`: **false**: Enables code search (uses a lot of disk space, about 6 times more than the repository size).
 - `REPO_INDEXER_REPO_TYPES`: **sources,forks,mirrors,templates**: Repo indexer units. The items to index could be `sources`, `forks`, `mirrors`, `templates` or any combination of them separated by a comma. If empty then it defaults to `sources` only, as if you'd like to disable fully please see `REPO_INDEXER_ENABLED`.
 - `REPO_INDEXER_TYPE`: **bleve**: Code search engine type, could be `bleve` or `elasticsearch`.
 - `REPO_INDEXER_PATH`: **indexers/repos.bleve**: Index file used for code search.
-- `REPO_INDEXER_CONN_STR`: ****: Code indexer connection string, available when `REPO_INDEXER_TYPE` is elasticsearch. i.e. http://elastic:changeme@localhost:9200
+- `REPO_INDEXER_CONN_STR`: ****: Code indexer connection string, available when `REPO_INDEXER_TYPE` is elasticsearch. i.e. http://elastic:password@localhost:9200
 - `REPO_INDEXER_NAME`: **gitea_codes**: Code indexer name, available when `REPO_INDEXER_TYPE` is elasticsearch
 
 - `REPO_INDEXER_INCLUDE`: **empty**: A comma separated list of glob patterns (see https://github.com/gobwas/glob) to **include** in the index. Use `**.txt` to match any files with .txt extension. An empty list means include all files.
@@ -1028,7 +1030,7 @@ Default templates for project boards:
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
 - `ENABLE_SUCCESS_NOTICE`: **true**: Set to false to switch off success notices.
 - `SCHEDULE`: **@every 168h**: Cron syntax for scheduling a work, e.g. `@every 168h`.
-- `HTTP_ENDPOINT`: **https://dl.gitea.io/gitea/version.json**: the endpoint that Gitea will check for newer versions
+- `HTTP_ENDPOINT`: **https://dl.gitea.com/gitea/version.json**: the endpoint that Gitea will check for newer versions
 
 #### Cron -  Delete all old system notices from database (`cron.delete_old_system_notices`)
 
@@ -1269,8 +1271,9 @@ is `data/lfs` and the default of `MINIO_BASE_PATH` is `lfs/`.
 
 ## Storage (`storage`)
 
-Default storage configuration for attachments, lfs, avatars and etc.
+Default storage configuration for attachments, lfs, avatars, repo-avatars, repo-archive, packages, actions_log, actions_artifact.
 
+- `STORAGE_TYPE`: **local**: Storage type, `local` for local disk or `minio` for s3 compatible object storage service.
 - `SERVE_DIRECT`: **false**: Allows the storage driver to redirect to authenticated URLs to serve files directly. Currently, only Minio/S3 is supported via signed URLs, local does nothing.
 - `MINIO_ENDPOINT`: **localhost:9000**: Minio endpoint to connect only available when `STORAGE_TYPE` is `minio`
 - `MINIO_ACCESS_KEY_ID`: Minio accessKeyID to connect only available when `STORAGE_TYPE` is `minio`
@@ -1280,9 +1283,56 @@ Default storage configuration for attachments, lfs, avatars and etc.
 - `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `STORAGE_TYPE` is `minio`
 - `MINIO_INSECURE_SKIP_VERIFY`: **false**: Minio skip SSL verification available when STORAGE_TYPE is `minio`
 
-And you can also define a customize storage like below:
+The recommanded storage configuration for minio like below:
 
 ```ini
+[storage]
+STORAGE_TYPE = minio
+; Minio endpoint to connect only available when STORAGE_TYPE is `minio`
+MINIO_ENDPOINT = localhost:9000
+; Minio accessKeyID to connect only available when STORAGE_TYPE is `minio`
+MINIO_ACCESS_KEY_ID =
+; Minio secretAccessKey to connect only available when STORAGE_TYPE is `minio`
+MINIO_SECRET_ACCESS_KEY =
+; Minio bucket to store the attachments only available when STORAGE_TYPE is `minio`
+MINIO_BUCKET = gitea
+; Minio location to create bucket only available when STORAGE_TYPE is `minio`
+MINIO_LOCATION = us-east-1
+; Minio enabled ssl only available when STORAGE_TYPE is `minio`
+MINIO_USE_SSL = false
+; Minio skip SSL verification available when STORAGE_TYPE is `minio`
+MINIO_INSECURE_SKIP_VERIFY = false
+SERVE_DIRECT = true
+```
+
+Defaultly every storage has their default base path like below
+
+| storage           | default base path  |
+| ----------------- | ------------------ |
+| attachments       | attachments/       |
+| lfs               | lfs/               |
+| avatars           | avatars/           |
+| repo-avatars      | repo-avatars/      |
+| repo-archive      | repo-archive/      |
+| packages          | packages/          |
+| actions_log       | actions_log/       |
+| actions_artifacts | actions_artifacts/ |
+
+And bucket, basepath or `SERVE_DIRECT` could be special or overrided, if you want to use a different you can:
+
+```ini
+[storage.actions_log]
+MINIO_BUCKET = gitea_actions_log
+SERVE_DIRECT = true
+MINIO_BASE_PATH = my_actions_log/ ; default is actions_log/ if blank
+```
+
+If you want to customerize a different storage for `lfs` if above default storage defined
+
+```ini
+[lfs]
+STORAGE_TYPE = my_minio
+
 [storage.my_minio]
 STORAGE_TYPE = minio
 ; Minio endpoint to connect only available when STORAGE_TYPE is `minio`
@@ -1300,8 +1350,6 @@ MINIO_USE_SSL = false
 ; Minio skip SSL verification available when STORAGE_TYPE is `minio`
 MINIO_INSECURE_SKIP_VERIFY = false
 ```
-
-And used by `[attachment]`, `[lfs]` and etc. as `STORAGE_TYPE`.
 
 ## Repository Archive Storage (`storage.repo-archive`)
 
@@ -1321,6 +1369,11 @@ is `data/repo-archive` and the default of `MINIO_BASE_PATH` is `repo-archive/`.
 - `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `STORAGE_TYPE` is `minio`
 - `MINIO_INSECURE_SKIP_VERIFY`: **false**: Minio skip SSL verification available when STORAGE_TYPE is `minio`
 
+## Repository Archives (`repo-archive`)
+
+- `STORAGE_TYPE`: **local**: Storage type for actions logs, `local` for local disk or `minio` for s3 compatible object storage service, default is `local` or other name defined with `[storage.xxx]`
+- `MINIO_BASE_PATH`: **repo-archive/**: Minio base path on the bucket only available when STORAGE_TYPE is `minio`
+
 ## Proxy (`proxy`)
 
 - `PROXY_ENABLED`: **false**: Enable the proxy if true, all requests to external via HTTP will be affected, if false, no proxy will be used even environment http_proxy/https_proxy
@@ -1339,6 +1392,8 @@ PROXY_HOSTS = *.github.com
 
 - `ENABLED`: **false**: Enable/Disable actions capabilities
 - `DEFAULT_ACTIONS_URL`: **https://gitea.com**: Default address to get action plugins, e.g. the default value means downloading from "<https://gitea.com/actions/checkout>" for "uses: actions/checkout@v3"
+- `STORAGE_TYPE`: **local**: Storage type for actions logs, `local` for local disk or `minio` for s3 compatible object storage service, default is `local` or other name defined with `[storage.xxx]`
+- `MINIO_BASE_PATH`: **actions_log/**: Minio base path on the bucket only available when STORAGE_TYPE is `minio`
 
 `DEFAULT_ACTIONS_URL` indicates where should we find the relative path action plugin. i.e. when use an action in a workflow file like
 

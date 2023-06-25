@@ -64,7 +64,6 @@
 package v1
 
 import (
-	gocontext "context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -709,7 +708,7 @@ func buildAuthGroup() *auth.Group {
 }
 
 // Routes registers all v1 APIs routes to web application.
-func Routes(ctx gocontext.Context) *web.Route {
+func Routes() *web.Route {
 	m := web.NewRoute()
 
 	m.Use(securityHeaders())
@@ -726,13 +725,8 @@ func Routes(ctx gocontext.Context) *web.Route {
 	}
 	m.Use(context.APIContexter())
 
-	group := buildAuthGroup()
-	if err := group.Init(ctx); err != nil {
-		log.Error("Could not initialize '%s' auth method, error: %s", group.Name(), err)
-	}
-
 	// Get user from session if logged in.
-	m.Use(auth.APIAuth(group))
+	m.Use(auth.APIAuth(buildAuthGroup()))
 
 	m.Use(auth.VerifyAuthWithOptionsAPI(&auth.VerifyOptions{
 		SignInRequired: setting.Service.RequireSignInView,

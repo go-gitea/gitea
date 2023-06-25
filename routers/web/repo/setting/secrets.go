@@ -94,6 +94,12 @@ func SecretsPost(ctx *context.Context) {
 		ctx.ServerError("getSecretsCtx", err)
 		return
 	}
+
+	if ctx.HasError() {
+		ctx.JSONError(ctx.GetErrMsg())
+		return
+	}
+
 	shared.PerformSecretsPost(
 		ctx,
 		ctx.Doer,

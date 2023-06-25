@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -123,12 +124,12 @@ func Transfer(ctx *context.APIContext) {
 
 	if ctx.Repo.Repository.Status == repo_model.RepositoryPendingTransfer {
 		log.Trace("Repository transfer initiated: %s -> %s", oldFullname, ctx.Repo.Repository.FullName())
-		ctx.JSON(http.StatusCreated, convert.ToRepo(ctx, ctx.Repo.Repository, perm.AccessModeAdmin))
+		ctx.JSON(http.StatusCreated, convert.ToRepo(ctx, ctx.Repo.Repository, access_model.Permission{AccessMode: perm.AccessModeAdmin}))
 		return
 	}
 
 	log.Trace("Repository transferred: %s -> %s", oldFullname, ctx.Repo.Repository.FullName())
-	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx, ctx.Repo.Repository, perm.AccessModeAdmin))
+	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx, ctx.Repo.Repository, access_model.Permission{AccessMode: perm.AccessModeAdmin}))
 }
 
 // AcceptTransfer accept a repo transfer
@@ -166,7 +167,7 @@ func AcceptTransfer(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx, ctx.Repo.Repository, ctx.Repo.AccessMode))
+	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx, ctx.Repo.Repository, ctx.Repo.Permission))
 }
 
 // RejectTransfer reject a repo transfer
@@ -204,7 +205,7 @@ func RejectTransfer(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, ctx.Repo.Repository, ctx.Repo.AccessMode))
+	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, ctx.Repo.Repository, ctx.Repo.Permission))
 }
 
 func acceptOrRejectRepoTransfer(ctx *context.APIContext, accept bool) error {
