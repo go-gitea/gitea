@@ -11,29 +11,28 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 )
 
-// ErrBranchDoesNotExist represents an error that branch with such name does not exist.
-type ErrBranchDoesNotExist struct {
+// ErrBranchNotExist represents an error that branch with such name does not exist.
+type ErrBranchNotExist struct {
 	RepoID     int64
 	BranchName string
 }
 
-// IsErrBranchDoesNotExist checks if an error is an ErrBranchDoesNotExist.
-func IsErrBranchDoesNotExist(err error) bool {
-	_, ok := err.(ErrBranchDoesNotExist)
+// IsErrBranchNotExist checks if an error is an ErrBranchDoesNotExist.
+func IsErrBranchNotExist(err error) bool {
+	_, ok := err.(ErrBranchNotExist)
 	return ok
 }
 
-func (err ErrBranchDoesNotExist) Error() string {
+func (err ErrBranchNotExist) Error() string {
 	return fmt.Sprintf("branch does not exist [repo_id: %d name: %s]", err.RepoID, err.BranchName)
 }
 
-func (err ErrBranchDoesNotExist) Unwrap() error {
+func (err ErrBranchNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
@@ -100,7 +99,7 @@ func (err ErrBranchesEqual) Unwrap() error {
 // for pagination, keyword search and filtering
 type Branch struct {
 	ID            int64
-	RepoID        int64  `xorm:"index UNIQUE(s)"`
+	RepoID        int64  `xorm:"UNIQUE(s)"`
 	Name          string `xorm:"UNIQUE(s) NOT NULL"`
 	CommitSHA     string
 	CommitMessage string `xorm:"TEXT"`
@@ -136,7 +135,7 @@ func GetBranch(ctx context.Context, repoID int64, branchName string) (*Branch, e
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrBranchDoesNotExist{
+		return nil, ErrBranchNotExist{
 			RepoID:     repoID,
 			BranchName: branchName,
 		}
@@ -159,13 +158,19 @@ func GetDeletedBranchByID(ctx context.Context, repoID, branchID int64) (*Branch,
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, git.ErrNotExist{}
+		return nil, ErrBranchNotExist{
+			RepoID: repoID,
+		}
 	}
 	if branch.RepoID != repoID {
-		return nil, git.ErrNotExist{}
+		return nil, ErrBranchNotExist{
+			RepoID: repoID,
+		}
 	}
 	if !branch.IsDeleted {
-		return nil, git.ErrNotExist{}
+		return nil, ErrBranchNotExist{
+			RepoID: repoID,
+		}
 	}
 	return &branch, nil
 }

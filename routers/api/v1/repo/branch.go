@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/convert"
@@ -288,7 +289,10 @@ func ListBranches(ctx *context.APIContext) {
 		}
 
 		branches, total, err := git_model.FindBranches(ctx, git_model.FindBranchOptions{
-			ListOptions: listOptions,
+			ListOptions:          listOptions,
+			RepoID:               ctx.Repo.Repository.ID,
+			IncludeDefaultBranch: true,
+			IsDeletedBranch:      util.OptionalBoolFalse,
 		})
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetBranches", err)

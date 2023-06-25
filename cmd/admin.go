@@ -16,7 +16,6 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -38,7 +37,6 @@ var (
 		Subcommands: []cli.Command{
 			subcmdUser,
 			subcmdRepoSyncReleases,
-			subcmdRepoSyncBranches,
 			subcmdRegenerate,
 			subcmdAuth,
 			subcmdSendMail,
@@ -49,19 +47,6 @@ var (
 		Name:   "repo-sync-releases",
 		Usage:  "Synchronize repository releases with tags",
 		Action: runRepoSyncReleases,
-	}
-
-	subcmdRepoSyncBranches = cli.Command{
-		Name:  "repo-sync-branches",
-		Usage: "Synchronize repository branches",
-		Flags: []cli.Flag{
-			cli.IntFlag{
-				Name:  "repo-id",
-				Usage: "Repository id to be synchronized",
-				Value: 0,
-			},
-		},
-		Action: runRepoSyncBranches,
 	}
 
 	subcmdRegenerate = cli.Command{
@@ -413,27 +398,6 @@ func runRepoSyncReleases(_ *cli.Context) error {
 	}
 
 	return nil
-}
-
-func runRepoSyncBranches(cli *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
-	if err := initDB(ctx); err != nil {
-		return err
-	}
-
-	doer, err := user_model.GetAdminUser()
-	if err != nil {
-		return err
-	}
-
-	if !cli.IsSet("repo-id") {
-		return repo_module.SyncAllBranches(ctx, doer.ID)
-	}
-
-	repoID := cli.Int64("repo-id")
-	return repo_module.SyncRepoBranches(ctx, repoID, doer.ID)
 }
 
 func getReleaseCount(id int64) (int64, error) {

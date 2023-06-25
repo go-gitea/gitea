@@ -35,7 +35,7 @@ func (branches BranchList) LoadDeletedBy(ctx context.Context) error {
 }
 
 // LoadAllBranches loads all branches of a repository from database includes deleted branches
-func LoadAllBranches(ctx context.Context, repoID int64) ([]*Branch, error) {
+func LoadAllBranches(ctx context.Context, repoID int64) (BranchList, error) {
 	var branches []*Branch
 	err := db.GetEngine(ctx).Where("repo_id=?", repoID).
 		Find(&branches)
@@ -51,9 +51,8 @@ type FindBranchOptions struct {
 
 func (opts *FindBranchOptions) Cond() builder.Cond {
 	cond := builder.NewCond()
-	if opts.RepoID > 0 {
-		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
-	}
+	cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+
 	if !opts.IncludeDefaultBranch {
 		cond = cond.And(builder.Neq{"name": builder.Select("default_branch").From("repository").Where(builder.Eq{"id": opts.RepoID})})
 	}

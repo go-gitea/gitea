@@ -43,16 +43,9 @@ func SyncRepoBranches(ctx context.Context, repoID, doerID int64) error {
 }
 
 func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doerID int64) error {
-	var allBranches []string
-	for page := 0; ; page++ {
-		branches, _, err := gitRepo.GetBranchNames(page*100, 100)
-		if err != nil {
-			return err
-		}
-		allBranches = append(allBranches, branches...)
-		if len(branches) < 100 {
-			break
-		}
+	allBranches, _, err := gitRepo.GetBranchNames(0, 0)
+	if err != nil {
+		return err
 	}
 	log.Trace("SyncRepoBranches[%s]: branches[%d]: %v", repo.FullName(), len(allBranches), allBranches)
 
