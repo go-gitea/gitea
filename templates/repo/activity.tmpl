@@ -2,25 +2,24 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository commits">
 	{{template "repo/header" .}}
 	<div class="ui container">
-		<h2 class="ui header">{{DateTime "long" .DateFrom}} - {{DateTime "long" .DateUntil}}
-			<div class="ui right">
-				<!-- Period -->
-				<div class="ui floating dropdown jump filter">
-					<div class="ui basic compact button">
-						<span class="text">
-							{{.locale.Tr "repo.activity.period.filter_label"}} <strong>{{.PeriodText}}</strong>
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						</span>
-					</div>
-					<div class="menu">
-						<a class="{{if eq .Period "daily"}}active {{end}}item" href="{{$.RepoLink}}/activity/daily">{{.locale.Tr "repo.activity.period.daily"}}</a>
-						<a class="{{if eq .Period "halfweekly"}}active {{end}}item" href="{{$.RepoLink}}/activity/halfweekly">{{.locale.Tr "repo.activity.period.halfweekly"}}</a>
-						<a class="{{if eq .Period "weekly"}}active {{end}}item" href="{{$.RepoLink}}/activity/weekly">{{.locale.Tr "repo.activity.period.weekly"}}</a>
-						<a class="{{if eq .Period "monthly"}}active {{end}}item" href="{{$.RepoLink}}/activity/monthly">{{.locale.Tr "repo.activity.period.monthly"}}</a>
-						<a class="{{if eq .Period "quarterly"}}active {{end}}item" href="{{$.RepoLink}}/activity/quarterly">{{.locale.Tr "repo.activity.period.quarterly"}}</a>
-						<a class="{{if eq .Period "semiyearly"}}active {{end}}item" href="{{$.RepoLink}}/activity/semiyearly">{{.locale.Tr "repo.activity.period.semiyearly"}}</a>
-						<a class="{{if eq .Period "yearly"}}active {{end}}item" href="{{$.RepoLink}}/activity/yearly">{{.locale.Tr "repo.activity.period.yearly"}}</a>
-					</div>
+		<h2 class="ui header activity-header">
+			<span>{{DateTime "long" .DateFrom}} - {{DateTime "long" .DateUntil}}</span>
+			<!-- Period -->
+			<div class="ui floating dropdown jump filter">
+				<div class="ui basic compact button">
+					<span class="text">
+						{{.locale.Tr "repo.activity.period.filter_label"}} <strong>{{.PeriodText}}</strong>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+					</span>
+				</div>
+				<div class="menu">
+					<a class="{{if eq .Period "daily"}}active {{end}}item" href="{{$.RepoLink}}/activity/daily">{{.locale.Tr "repo.activity.period.daily"}}</a>
+					<a class="{{if eq .Period "halfweekly"}}active {{end}}item" href="{{$.RepoLink}}/activity/halfweekly">{{.locale.Tr "repo.activity.period.halfweekly"}}</a>
+					<a class="{{if eq .Period "weekly"}}active {{end}}item" href="{{$.RepoLink}}/activity/weekly">{{.locale.Tr "repo.activity.period.weekly"}}</a>
+					<a class="{{if eq .Period "monthly"}}active {{end}}item" href="{{$.RepoLink}}/activity/monthly">{{.locale.Tr "repo.activity.period.monthly"}}</a>
+					<a class="{{if eq .Period "quarterly"}}active {{end}}item" href="{{$.RepoLink}}/activity/quarterly">{{.locale.Tr "repo.activity.period.quarterly"}}</a>
+					<a class="{{if eq .Period "semiyearly"}}active {{end}}item" href="{{$.RepoLink}}/activity/semiyearly">{{.locale.Tr "repo.activity.period.semiyearly"}}</a>
+					<a class="{{if eq .Period "yearly"}}active {{end}}item" href="{{$.RepoLink}}/activity/yearly">{{.locale.Tr "repo.activity.period.yearly"}}</a>
 				</div>
 			</div>
 		</h2>

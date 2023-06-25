@@ -34,10 +34,12 @@
 			</div>
 			<div class="diff-detail-actions gt-df gt-ac gt-gap-2 gt-fw">
 				{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
-					<progress id="viewed-files-summary" value="{{.Diff.NumViewedFiles}}" max="{{.Diff.NumFiles}}"></progress>
-					<label for="viewed-files-summary" id="viewed-files-summary-label" class="gt-f1 gt-whitespace-nowrap not-mobile" data-text-changed-template="{{.locale.Tr "repo.pulls.viewed_files_label"}}">
-						{{.locale.Tr "repo.pulls.viewed_files_label" .Diff.NumViewedFiles .Diff.NumFiles}}
-					</label>
+					<div class="gt-df gt-ac gt-fc gt-whitespace-nowrap gt-mr-2">
+						<label for="viewed-files-summary" id="viewed-files-summary-label" data-text-changed-template="{{.locale.Tr "repo.pulls.viewed_files_label"}}">
+							{{.locale.Tr "repo.pulls.viewed_files_label" .Diff.NumViewedFiles .Diff.NumFiles}}
+						</label>
+						<progress id="viewed-files-summary" value="{{.Diff.NumViewedFiles}}" max="{{.Diff.NumFiles}}"></progress>
+					</div>
 				{{end}}
 				{{template "repo/diff/whitespace_dropdown" .}}
 				{{template "repo/diff/options_dropdown" .}}
@@ -47,7 +49,7 @@
 			</div>
 		</div>
 		<script id="diff-data-script" type="module">
-			const diffDataFiles = [{{range $i, $file := .Diff.Files}}{Name:"{{$file.Name}}",NameHash:"{{$file.NameHash}}",Type:{{$file.Type}},IsBin:{{$file.IsBin}},Addition:{{$file.Addition}},Deletion:{{$file.Deletion}}},{{end}}];
+			const diffDataFiles = [{{range $i, $file := .Diff.Files}}{Name:"{{$file.Name}}",NameHash:"{{$file.NameHash}}",Type:{{$file.Type}},IsBin:{{$file.IsBin}},Addition:{{$file.Addition}},Deletion:{{$file.Deletion}},IsViewed:{{$file.IsViewed}}},{{end}}];
 			const diffData = {
 				isIncomplete: {{.Diff.IsIncomplete}},
 				tooManyFilesMessage: "{{$.locale.Tr "repo.diff.too_many_files"}}",
@@ -90,7 +92,7 @@
 						<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}} gt-mt-3" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if or ($file.ShouldBeHidden) (not $isExpandable)}}data-folded="true"{{end}}>
 							<h4 class="diff-file-header sticky-2nd-row ui top attached normal header gt-df gt-ac gt-sb gt-fw">
 								<div class="diff-file-name gt-df gt-ac gt-gap-2 gt-fw">
-									<button class="fold-file ui button button-ghost gt-p-0 gt-mr-3{{if not $isExpandable}} gt-invisible{{end}}">
+									<button class="fold-file btn interact-bg gt-p-2{{if not $isExpandable}} gt-invisible{{end}}">
 										{{if $file.ShouldBeHidden}}
 											{{svg "octicon-chevron-right" 18}}
 										{{else}}
@@ -107,7 +109,7 @@
 										{{end}}
 									</div>
 									<span class="file gt-mono"><a class="muted file-link" title="{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}" href="#diff-{{$file.NameHash}}">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}</a>{{if .IsLFSFile}} ({{$.locale.Tr "repo.stored_lfs"}}){{end}}</span>
-									<button class="ui button button-link gt-p-3" data-clipboard-text="{{$file.Name}}">{{svg "octicon-copy" 14}}</button>
+									<button class="btn interact-fg gt-p-3" data-clipboard-text="{{$file.Name}}">{{svg "octicon-copy" 14}}</button>
 									{{if $file.IsGenerated}}
 										<span class="ui label">{{$.locale.Tr "repo.diff.generated"}}</span>
 									{{end}}

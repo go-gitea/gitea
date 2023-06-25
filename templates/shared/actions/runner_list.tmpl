@@ -35,8 +35,8 @@
 	<div class="ui attached segment">
 		<form class="ui form ignore-dirty" id="user-list-search-form" action="{{$.Link}}">
 			<!-- Search Text -->
-			<div class="ui fluid action input" style="max-width: 70%;">
-				<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}..." autofocus>
+			<div class="ui fluid action input">
+				{{template "shared/searchinput" dict "locale" .locale "Value" .Keyword "AutoFocus" true}}
 				<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
 			</div>
 		</form>
@@ -65,9 +65,9 @@
 						<td>{{.ID}}</td>
 						<td><p data-tooltip-content="{{.Description}}">{{.Name}}</p></td>
 						<td>{{if .Version}}{{.Version}}{{else}}{{$.locale.Tr "unknown"}}{{end}}</td>
-						<td><span data-tooltip-content="{{.BelongsToOwnerName}}">{{.BelongsToOwnerType.LocaleString $.locale}}<span></td>
+						<td><span data-tooltip-content="{{.BelongsToOwnerName}}">{{.BelongsToOwnerType.LocaleString $.locale}}</span></td>
 						<td class="runner-tags">
-							{{range .AllLabels}}<span class="ui label">{{.}}</span>{{end}}
+							{{range .AgentLabels}}<span class="ui label">{{.}}</span>{{end}}
 						</td>
 						<td>{{if .LastOnline}}{{TimeSinceUnix .LastOnline $.locale}}{{else}}{{$.locale.Tr "never"}}{{end}}</td>
 						<td class="runner-ops">

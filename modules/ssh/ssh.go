@@ -68,7 +68,7 @@ func sessionHandler(session ssh.Session) {
 
 	log.Trace("SSH: Payload: %v", command)
 
-	args := []string{"serv", "key-" + keyID, "--config=" + setting.CustomConf}
+	args := []string{"--config=" + setting.CustomConf, "serv", "key-" + keyID}
 	log.Trace("SSH: Arguments: %v", args)
 
 	ctx, cancel := context.WithCancel(session.Context())

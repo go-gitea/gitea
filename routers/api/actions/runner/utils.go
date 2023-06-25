@@ -36,6 +36,7 @@ func pickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		WorkflowPayload: t.Job.WorkflowPayload,
 		Context:         generateTaskContext(t),
 		Secrets:         getSecretsOfTask(ctx, t),
+		Vars:            getVariablesOfTask(ctx, t),
 	}
 
 	if needs, err := findTaskNeeds(ctx, t); err != nil {
@@ -88,6 +89,29 @@ func getSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) map[s
 	return secrets
 }
 
+func getVariablesOfTask(ctx context.Context, task *actions_model.ActionTask) map[string]string {
+	variables := map[string]string{}
+
+	// Org / User level
+	ownerVariables, err := actions_model.FindVariables(ctx, actions_model.FindVariablesOpts{OwnerID: task.Job.Run.Repo.OwnerID})
+	if err != nil {
+		log.Error("find variables of org: %d, error: %v", task.Job.Run.Repo.OwnerID, err)
+	}
+
+	// Repo level
+	repoVariables, err := actions_model.FindVariables(ctx, actions_model.FindVariablesOpts{RepoID: task.Job.Run.RepoID})
+	if err != nil {
+		log.Error("find variables of repo: %d, error: %v", task.Job.Run.RepoID, err)
+	}
+
+	// Level precedence: Repo > Org / User
+	for _, v := range append(ownerVariables, repoVariables...) {
+		variables[v.Name] = v.Data
+	}
+
+	return variables
+}
+
 func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
 	event := map[string]interface{}{}
 	_ = json.Unmarshal([]byte(t.Job.Run.EventPayload), &event)
@@ -98,8 +122,8 @@ func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
 		baseRef = pullPayload.PullRequest.Base.Ref
 		headRef = pullPayload.PullRequest.Head.Ref
 	}
+
 	refName := git.RefName(t.Job.Run.Ref)
-	refType := refName.RefGroup()
 
 	taskContext, err := structpb.NewStruct(map[string]interface{}{
 		// standard contexts, see https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
@@ -119,9 +143,9 @@ func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
 		"head_ref":          headRef,                                              // string, The head_ref or source branch of the pull request in a workflow run. This property is only available when the event that triggers a workflow run is either pull_request or pull_request_target.
 		"job":               fmt.Sprint(t.JobID),                                  // string, The job_id of the current job.
 		"ref":               t.Job.Run.Ref,                                        // string, The fully-formed ref of the branch or tag that triggered the workflow run. For workflows triggered by push, this is the branch or tag ref that was pushed. For workflows triggered by pull_request, this is the pull request merge branch. For workflows triggered by release, this is the release tag created. For other triggers, this is the branch or tag ref that triggered the workflow run. This is only set if a branch or tag is available for the event type. The ref given is fully-formed, meaning that for branches the format is refs/heads/<branch_name>, for pull requests it is refs/pull/<pr_number>/merge, and for tags it is refs/tags/<tag_name>. For example, refs/heads/feature-branch-1.
-		"ref_name":          refName.String(),                                     // string, The short ref name of the branch or tag that triggered the workflow run. This value matches the branch or tag name shown on GitHub. For example, feature-branch-1.
+		"ref_name":          refName.ShortName(),                                  // string, The short ref name of the branch or tag that triggered the workflow run. This value matches the branch or tag name shown on GitHub. For example, feature-branch-1.
 		"ref_protected":     false,                                                // boolean, true if branch protections are configured for the ref that triggered the workflow run.
-		"ref_type":          refType,                                              // string, The type of ref that triggered the workflow run. Valid values are branch or tag.
+		"ref_type":          refName.RefType(),                                    // string, The type of ref that triggered the workflow run. Valid values are branch or tag.
 		"path":              "",                                                   // string, Path on the runner to the file that sets system PATH variables from workflow commands. This file is unique to the current step and is a different file for each step in a job. For more information, see "Workflow commands for GitHub Actions."
 		"repository":        t.Job.Run.Repo.OwnerName + "/" + t.Job.Run.Repo.Name, // string, The owner and repository name. For example, Codertocat/Hello-World.
 		"repository_owner":  t.Job.Run.Repo.OwnerName,                             // string, The repository owner's name. For example, Codertocat.
