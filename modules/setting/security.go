@@ -76,7 +76,7 @@ func loadSecret(sec ConfigSection, uriKey, verbatimKey string) string {
 
 	// only file URIs are allowed
 	default:
-		log.Fatal("Unsupported URI-Scheme %q (INTERNAL_TOKEN_URI = %q)", tempURI.Scheme, uri)
+		log.Fatal("Unsupported URI-Scheme %q (%q = %q)", tempURI.Scheme, uriKey, uri)
 		return ""
 	}
 }

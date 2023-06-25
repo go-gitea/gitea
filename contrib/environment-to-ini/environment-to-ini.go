@@ -88,7 +88,7 @@ func main() {
 }
 
 func runEnvironmentToIni(c *cli.Context) error {
-	setting.InitWorkPathAndCommonConfig(os.Getenv, setting.ArgWorkPathAndCustomConf{
+	setting.InitWorkPathAndCfgProvider(os.Getenv, setting.ArgWorkPathAndCustomConf{
 		WorkPath:   c.String("work-path"),
 		CustomPath: c.String("custom-path"),
 		CustomConf: c.String("config"),
