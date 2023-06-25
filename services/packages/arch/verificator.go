@@ -59,7 +59,7 @@ func IdentifyOwner(ctx *context.Context, owner, email string) (*user.User, *org.
 }
 
 // Validate package signature with owner's GnuPG keys stored in gitea's database.
-func ValidatePackageSignature(ctx *context.Context, pkg, sign []byte, u *user.User) error {
+func ValidateSignature(ctx *context.Context, pkg, sign []byte, u *user.User) error {
 	keys, err := asymkey.ListGPGKeys(ctx, u.ID, db.ListOptions{
 		ListAll: true,
 	})

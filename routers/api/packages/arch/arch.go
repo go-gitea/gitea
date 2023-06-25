@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/context"
 	arch_module "code.gitea.io/gitea/modules/packages/arch"
@@ -49,7 +50,7 @@ func Push(ctx *context.Context) {
 	}
 
 	// Validate package signature with any of user's GnuPG keys.
-	err = arch_service.ValidatePackageSignature(ctx, pkgdata, sigdata, user)
+	err = arch_service.ValidateSignature(ctx, pkgdata, sigdata, user)
 	if err != nil {
 		apiError(ctx, http.StatusUnauthorized, err)
 		return
@@ -155,6 +156,76 @@ func Get(ctx *context.Context) {
 	}
 
 	ctx.Resp.WriteHeader(http.StatusNotFound)
+}
+
+// Remove package and all it's versions from gitea.
+func Remove(ctx *context.Context) {
+	var (
+		owner   = ctx.Params("username")
+		email   = ctx.Req.Header.Get("email")
+		distro  = ctx.Req.Header.Get("distro")
+		target  = ctx.Req.Header.Get("target")
+		stime   = ctx.Req.Header.Get("time")
+		version = ctx.Req.Header.Get("version")
+		arch    = strings.Split(ctx.Req.Header.Get("arch"), " ")
+	)
+
+	// Parse sent time and check if it is within last minute.
+	t, err := time.Parse(time.RFC3339, stime)
+	if err != nil {
+		apiError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	if time.Since(t) > time.Minute {
+		apiError(ctx, http.StatusUnauthorized, "outdated message")
+		return
+	}
+
+	// Get user owning the package.
+	user, org, err := arch_service.IdentifyOwner(ctx, owner, email)
+	if err != nil {
+		apiError(ctx, http.StatusUnauthorized, err)
+		return
+	}
+
+	// Read signature data from request body.
+	sigdata, err := io.ReadAll(ctx.Req.Body)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	defer ctx.Req.Body.Close()
+
+	// Validate package signature with any of user's GnuPG keys.
+	mesdata := []byte(stime + owner + target)
+	err = arch_service.ValidateSignature(ctx, mesdata, sigdata, user)
+	if err != nil {
+		apiError(ctx, http.StatusUnauthorized, err)
+		return
+	}
+
+	// Remove package files and pacman database entry.
+	err = arch_service.RemovePackage(ctx, &arch_service.RemoveParameters{
+		User:         user,
+		Organization: org,
+		Owner:        owner,
+		Name:         target,
+		Version:      version,
+	})
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	// Remove pacman database entries related to package.
+	err = arch_service.RemoveDbEntry(ctx, arch, owner, distro, target, version)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.Resp.WriteHeader(http.StatusOK)
 }
 
 func apiError(ctx *context.Context, status int, obj interface{}) {

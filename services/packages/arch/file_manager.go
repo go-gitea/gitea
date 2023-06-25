@@ -7,8 +7,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"os"
-	"path"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -17,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/modules/packages/arch"
 	"code.gitea.io/gitea/modules/setting"
-	"github.com/google/uuid"
 )
 
 // Get data related to provided file name and distribution, and update download
@@ -73,28 +70,16 @@ func LoadPacmanDatabase(ctx *context.Context, owner, distro, architecture, file 
 // This function will update information about package in related pacman databases
 // or create them if they do not exist.
 func UpdatePacmanDatabases(ctx *context.Context, md *arch.Metadata, distro, owner string) error {
-	// Create temporary directory for arch database operations.
-	tmpdir := path.Join(setting.Repository.Upload.TempPath, uuid.New().String())
-	err := os.MkdirAll(tmpdir, os.ModePerm)
-	if err != nil {
-		return err
-	}
-	defer os.RemoveAll(tmpdir)
-
 	// If architecure is not specified or any, package will be automatically
 	// saved to pacman databases with most popular architectures.
-	var architectures = md.Arch
 	if len(md.Arch) == 0 || md.Arch[0] == "any" {
-		architectures = []string{
-			"x86_64", "arm", "i686", "pentium4",
-			"armv7h", "armv6h", "aarch64", "riscv64",
-		}
+		md.Arch = popularArchitectures()
 	}
 
 	cs := packages.NewContentStore()
 
 	// Update pacman database files for each architecture.
-	for _, architecture := range architectures {
+	for _, architecture := range md.Arch {
 		db := arch.Join(owner, distro, architecture, setting.Domain, "db")
 		dbkey := packages.BlobHash256Key(db)
 
@@ -120,4 +105,49 @@ func UpdatePacmanDatabases(ctx *context.Context, md *arch.Metadata, distro, owne
 	}
 
 	return nil
+}
+
+func RemoveDbEntry(ctx *context.Context, architectures []string, owner, distro, pkg, ver string) error {
+	cs := packages.NewContentStore()
+
+	// If architecures are not specified or any, package will be automatically
+	// removed from pacman databases with most popular architectures.
+	if len(architectures) == 0 || architectures[0] == "any" {
+		architectures = popularArchitectures()
+	}
+
+	for _, architecture := range architectures {
+		db := arch.Join(owner, distro, architecture, setting.Domain, "db")
+		dbkey := packages.BlobHash256Key(db)
+
+		var dbdata []byte
+
+		dbobj, err := cs.Get(dbkey)
+		if err != nil {
+			return err
+		}
+
+		dbdata, err = io.ReadAll(dbobj)
+		if err != nil {
+			return err
+		}
+
+		newdata, err := arch.RemoveDbEntry(dbdata, pkg, ver)
+		if err != nil {
+			return err
+		}
+
+		err = cs.Save(dbkey, bytes.NewReader(newdata), int64(len(newdata)))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func popularArchitectures() []string {
+	return []string{
+		"x86_64", "arm", "i686", "pentium4",
+		"armv7h", "armv6h", "aarch64", "riscv64",
+	}
 }

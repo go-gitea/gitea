@@ -5,6 +5,7 @@ package arch
 
 import (
 	"bytes"
+	"strings"
 
 	org "code.gitea.io/gitea/models/organization"
 	pkg "code.gitea.io/gitea/models/packages"
@@ -74,4 +75,25 @@ func RepositoryAutoconnect(ctx *context.Context, owner, repository string, pkgid
 		}
 	}
 	return nil
+}
+
+type RemoveParameters struct {
+	*user.User
+	*org.Organization
+	Owner   string
+	Name    string
+	Version string
+}
+
+// Remove package and it's blobs from gitea.
+func RemovePackage(ctx *context.Context, p *RemoveParameters) error {
+	tpkg, err := pkg.GetPackageByName(ctx, p.Organization.ID, pkg.TypeArch, p.Name)
+	if err != nil {
+		return err
+	}
+	return svc.RemovePackageVersion(p.User, &pkg.PackageVersion{
+		PackageID:    tpkg.ID,
+		Version:      p.Version,
+		LowerVersion: strings.ToLower(p.Version),
+	})
 }

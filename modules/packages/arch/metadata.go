@@ -249,6 +249,28 @@ func UpdatePacmanDbEntry(db []byte, md *Metadata) ([]byte, error) {
 	return out.Bytes(), nil
 }
 
+// Add or update existing package entry in database archived data.
+func RemoveDbEntry(db []byte, pkg, ver string) ([]byte, error) {
+	// Read existing entries in archive.
+	entries, err := readEntries(db)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add new package entry to list.
+	delete(entries, pkg+"-"+ver+"/desc")
+
+	var out bytes.Buffer
+
+	// Write entries to new buffer and return it.
+	err = writeToArchive(entries, &out)
+	if err != nil {
+		return nil, err
+	}
+
+	return out.Bytes(), nil
+}
+
 // Read database entries containing in pacman archive.
 func readEntries(dbarchive []byte) (map[string][]byte, error) {
 	gzf, err := gzip.NewReader(bytes.NewReader(dbarchive))
