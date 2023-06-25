@@ -4,6 +4,7 @@
 package actions_test
 
 import (
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -24,6 +25,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestMain(m *testing.M) {
+	unittest.MainTest(m, &unittest.TestOptions{
+		GiteaRootPath: filepath.Join("..", "..", ".."),
+	})
+}
 
 func TestPullRequestTargetEvent(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
