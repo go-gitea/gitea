@@ -18,14 +18,8 @@ type ErrUserPasswordNotSet struct {
 	Name string
 }
 
-// IsErrUserPasswordNotSet checks if an error is a ErrUserPasswordNotSet
-func IsErrUserPasswordNotSet(err error) bool {
-	_, ok := err.(ErrUserPasswordNotSet)
-	return ok
-}
-
 func (err ErrUserPasswordNotSet) Error() string {
-	return fmt.Sprintf("user's password doesn't set [uid: %d, name: %s]", err.UID, err.Name)
+	return fmt.Sprintf("user's password isn't set [uid: %d, name: %s]", err.UID, err.Name)
 }
 
 // Unwrap unwraps this error as a ErrPermission error
@@ -39,14 +33,8 @@ type ErrUserPasswordInvalidate struct {
 	Name string
 }
 
-// IsErrUserPasswordInvalidate checks if an error is a ErrUserPasswordInvalidate
-func IsErrUserPasswordInvalidate(err error) bool {
-	_, ok := err.(ErrUserPasswordInvalidate)
-	return ok
-}
-
 func (err ErrUserPasswordInvalidate) Error() string {
-	return fmt.Sprintf("user's password is invalidated [uid: %d, name: %s]", err.UID, err.Name)
+	return fmt.Sprintf("user's password is invalid [uid: %d, name: %s]", err.UID, err.Name)
 }
 
 // Unwrap unwraps this error as a ErrPermission error

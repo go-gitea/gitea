@@ -83,11 +83,12 @@ func LinkAccount(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplLinkAccount)
 }
 
-func handleSingInError(ctx *context.Context, userName string, ptrForm any, invoker string, err error) {
-	if user_model.IsErrUserNotExist(err) || user_model.IsErrEmailAddressNotExist(err) ||
-		auth_db.IsErrUserPasswordNotSet(err) || auth_db.IsErrUserPasswordInvalidate(err) {
+func handleSignInError(ctx *context.Context, userName string, ptrForm any, tmpl base.TplName, invoker string, err error) {
+	if user_model.IsErrUserNotExist(err) || user_model.IsErrEmailAddressNotExist(err) {
+		ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tmpl, ptrForm)
+	} else if errors.Is(err, auth_db.ErrUserPasswordNotSet{}) || errors.Is(err, auth_db.ErrUserPasswordInvalidate{}) {
 		ctx.Data["user_exists"] = true
-		ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplConnectOID, ptrForm)
+		ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tmpl, ptrForm)
 	} else if user_model.IsErrUserProhibitLogin(err) {
 		ctx.Data["user_exists"] = true
 		log.Info("Failed authentication attempt for %s from %s: %v", userName, ctx.RemoteAddr(), err)
@@ -143,7 +144,7 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 
 	u, _, err := auth_service.UserSignIn(signInForm.UserName, signInForm.Password)
 	if err != nil {
-		handleSingInError(ctx, signInForm.UserName, &signInForm, "UserLinkAccount", err)
+		handleSignInError(ctx, signInForm.UserName, &signInForm, tplLinkAccount, "UserLinkAccount", err)
 		return
 	}
 
