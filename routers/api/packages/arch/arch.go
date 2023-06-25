@@ -158,7 +158,7 @@ func Get(ctx *context.Context) {
 	ctx.Resp.WriteHeader(http.StatusNotFound)
 }
 
-// Remove package and all it's versions from gitea.
+// Remove specific package version, related files and pacman database entry.
 func Remove(ctx *context.Context) {
 	var (
 		owner   = ctx.Params("username")
