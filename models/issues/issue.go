@@ -117,6 +117,11 @@ var issueClosedCommentTrMap = map[IssueClosedStatus]string{
 	IssueClosedStatusStale:       "repo.issues.closed_as_stale_at",
 }
 
+type ClosedIssueCommentContent struct {
+	Tr               string `json:"tr"`
+	DuplicateIssueID int64  `json:"duplicate_issue_id"`
+}
+
 // Issue represents an issue or pull request of repository.
 type Issue struct {
 	ID               int64                  `xorm:"pk autoincr"`

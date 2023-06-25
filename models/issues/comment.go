@@ -298,6 +298,9 @@ type Comment struct {
 	NewCommit   string                              `xorm:"-"`
 	CommitsNum  int64                               `xorm:"-"`
 	IsForcePush bool                                `xorm:"-"`
+
+	ClosedTranslation string `xorm:"-"`
+	DuplicateIssue    *Issue `xorm:"-"`
 }
 
 func init() {
@@ -1245,4 +1248,24 @@ func FixCommentTypeLabelWithOutsideLabels(ctx context.Context) (int64, error) {
 // HasOriginalAuthor returns if a comment was migrated and has an original author.
 func (c *Comment) HasOriginalAuthor() bool {
 	return c.OriginalAuthor != "" && c.OriginalAuthorID != 0
+}
+
+func (c *Comment) LoadClosedIssueCommentContent(ctx context.Context) (err error) {
+	if c.Type != CommentTypeClose || c.Content == "" {
+		return
+	}
+	var ctnt ClosedIssueCommentContent
+	if err = json.Unmarshal([]byte(c.Content), &ctnt); err != nil {
+		return
+	}
+	c.ClosedTranslation = ctnt.Tr
+	if ctnt.DuplicateIssueID <= 0 {
+		return
+	}
+
+	if c.DuplicateIssue, err = GetIssueByID(ctx, ctnt.DuplicateIssueID); err != nil {
+		return
+	}
+	err = c.DuplicateIssue.LoadRepo((ctx))
+	return
 }

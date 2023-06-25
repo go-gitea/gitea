@@ -1722,6 +1722,13 @@ func ViewIssue(ctx *context.Context) {
 					comment.Content = comment.Content[1:]
 				}
 			}
+		} else if comment.Type == issues_model.CommentTypeClose {
+			if err = comment.LoadClosedIssueCommentContent(ctx); err != nil {
+				if !issues_model.IsErrIssueNotExist(err) {
+					ctx.ServerError("LoadClosedIssueCommentContent", err)
+					return
+				}
+			}
 		}
 
 		if comment.Type == issues_model.CommentTypeClose || comment.Type == issues_model.CommentTypeMergePull {
@@ -2977,6 +2984,7 @@ func closeOrReopenIssue(ctx *context.Context, form *forms.CreateCommentForm, iss
 		} else {
 			issue.IsClosed = form.Status == "close"
 			issue.ClosedStatus = issues_model.IssueClosedStatus(0)
+			issue.DuplicateIssueID = form.DuplicateIssueID
 			if issue.IsClosed {
 				issue.ClosedStatus = form.ClosedStatus
 			}

@@ -5,6 +5,7 @@ package issues
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -77,7 +78,7 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 		issue.ClosedUnix = 0
 	}
 
-	if err := UpdateIssueCols(ctx, issue, "is_closed", "closed_status", "closed_unix"); err != nil {
+	if err := UpdateIssueCols(ctx, issue, "is_closed", "closed_status", "duplicate_issue_id", "closed_unix"); err != nil {
 		return nil, err
 	}
 
@@ -107,8 +108,20 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 	cmtType := CommentTypeClose
 	var content string
 	if !issue.IsPull && issue.IsClosed {
-		content = issueClosedCommentTrMap[issue.ClosedStatus]
+		c := &ClosedIssueCommentContent{
+			Tr: issueClosedCommentTrMap[issue.ClosedStatus],
+		}
+		if issue.ClosedStatus == IssueClosedStatusDuplicate {
+			c.DuplicateIssueID = issue.DuplicateIssueID
+			// TODO: Transfer the issue watchers to the duplicate issue
+		}
+		data, err := json.Marshal(c)
+		if err != nil {
+			return nil, err
+		}
+		content = string(data)
 	}
+
 	if !issue.IsClosed {
 		cmtType = CommentTypeReopen
 	} else if isMergePull {

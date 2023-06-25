@@ -701,7 +701,11 @@ function initRepoIssueStateButton() {
     e.preventDefault();
     initIssueSearchDropdown('#duplicate-issues-list');
     const $duplicateModal = $('#duplicate-issue-modal');
-    $duplicateModal.modal('show');
+    $duplicateModal.modal({
+      onHidden() {
+        $('#duplicate-issues-list').dropdown('set exactly', []);
+      },
+    }).modal('show');
   });
 
   const onCloseStatusChanged = (val) => {

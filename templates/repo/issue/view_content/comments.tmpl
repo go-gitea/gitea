@@ -114,12 +114,26 @@
 						{{$.locale.Tr "repo.pulls.closed_at" .EventTag $createdStr | Safe}}
 					{{else}}
 						{{$trans := "repo.issues.closed_at"}}
-						{{if not (eq .Content "")}}
-							{{$trans = .Content}}
+						{{if not (eq .ClosedTranslation "")}}
+							{{$trans = .ClosedTranslation}}
 						{{end}}
 						{{$.locale.Tr $trans .EventTag $createdStr | Safe}}
 					{{end}}
 				</span>
+				{{if .DuplicateIssue}}
+					<div class="detail">
+						{{svg "octicon-duplicate"}}
+						<span class="text grey muted-links">
+							<a href="{{.DuplicateIssue.Link}}">
+								{{if eq .DuplicateIssue.RepoID .Issue.RepoID}}
+									#{{.DuplicateIssue.Index}} {{.DuplicateIssue.Title}}
+								{{else}}
+									{{.DuplicateIssue.Repo.FullName}}#{{.DuplicateIssue.Index}} - {{.DuplicateIssue.Title}}
+								{{end}}
+							</a>
+						</span>
+					</div>
+				{{end}}
 			</div>
 		{{else if eq .Type 28}}
 			<div class="timeline-item event" id="{{.HashTag}}">

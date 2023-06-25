@@ -37,7 +37,7 @@ func changeStatusCtx(ctx context.Context, issue *issues_model.Issue, doer *user_
 		}
 	}
 
-	// TBD: whether to notify if only closed_status is changed.
+	// TBD: whether to notify if only `is_closed` is changed().
 	notification.NotifyIssueChangeStatus(ctx, doer, commitID, issue, comment, issue.IsClosed)
 
 	return nil
