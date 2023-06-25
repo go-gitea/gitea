@@ -235,6 +235,9 @@ func UpdatePacmanDbEntry(db []byte, md *Metadata) ([]byte, error) {
 		return nil, err
 	}
 
+	// Remove entries related old package versions.
+	entries = CleanOldEntries(entries, md.Name)
+
 	// Add new package entry to list.
 	entries[md.Name+"-"+md.Version+"/desc"] = []byte(md.GetDbDesc())
 
@@ -247,6 +250,19 @@ func UpdatePacmanDbEntry(db []byte, md *Metadata) ([]byte, error) {
 	}
 
 	return out.Bytes(), nil
+}
+
+// Clean entries for old package versions from pacman database.
+func CleanOldEntries(entries map[string][]byte, pkg string) map[string][]byte {
+	out := map[string][]byte{}
+	for entry, value := range entries {
+		splt := strings.Split(entry, "-")
+		basename := strings.Join(splt[0:len(splt)-2], "-")
+		if pkg != basename {
+			out[entry] = value
+		}
+	}
+	return out
 }
 
 // Add or update existing package entry in database archived data.
