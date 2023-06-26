@@ -23,7 +23,7 @@
 									{{svg "octicon-shield-lock"}}
 								{{end}}
 								<a href="{{.RepoLink}}/src/branch/{{PathEscapeSegments .DefaultBranchBranch.RawBranch.Name}}">{{.DefaultBranchBranch.RawBranch.Name}}</a>
-								<p class="info gt-df gt-ac gt-my-2">{{svg "octicon-git-commit" 16 "gt-mr-2"}}<a href="{{.RepoLink}}/commit/{{PathEscape .DefaultBranchBranch.RawBranch.CommitSHA}}">{{ShortSha .DefaultBranchBranch.RawBranch.CommitSHA}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .DefaultBranch.RawBranch.CommitMessage .RepoLink .Repository.ComposeMetas}}</span> · {{.locale.Tr "org.repo_updated"}} {{TimeSince .DefaultBranch.RawBranch.CommitTime.AsTime .locale}}</p>
+								<p class="info gt-df gt-ac gt-my-2">{{svg "octicon-git-commit" 16 "gt-mr-2"}}<a href="{{.RepoLink}}/commit/{{PathEscape .DefaultBranchBranch.RawBranch.CommitSHA}}">{{ShortSha .DefaultBranchBranch.RawBranch.CommitSHA}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .DefaultBranchBranch.RawBranch.CommitMessage .RepoLink .Repository.ComposeMetas}}</span> · {{.locale.Tr "org.repo_updated"}} {{TimeSince .DefaultBranchBranch.RawBranch.CommitTime.AsTime .locale}}</p>
 							</td>
 							<td class="right aligned overflow-visible">
 								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}

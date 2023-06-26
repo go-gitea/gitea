@@ -173,7 +173,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		}
 	}
 
-	subCtx, committer, err := db.TxContext(ctx)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -210,28 +210,28 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			}
 		}
 
-		if err = repo_model.InsertMirror(subCtx, &mirrorModel); err != nil {
+		if err = repo_model.InsertMirror(ctx, &mirrorModel); err != nil {
 			return repo, fmt.Errorf("InsertOne: %w", err)
 		}
 
 		repo.IsMirror = true
-		if err = UpdateRepository(subCtx, repo, false); err != nil {
+		if err = UpdateRepository(ctx, repo, false); err != nil {
 			return nil, err
 		}
 
 		// this is necessary for sync local tags from remote
 		configName := fmt.Sprintf("remote.%s.fetch", mirrorModel.GetRemoteName())
-		if stdout, _, err := git.NewCommand(subCtx, "config").
+		if stdout, _, err := git.NewCommand(ctx, "config").
 			AddOptionValues("--add", configName, `+refs/tags/*:refs/tags/*`).
 			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
 			log.Error("MigrateRepositoryGitData(git config --add <remote> +refs/tags/*:refs/tags/*) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			return repo, fmt.Errorf("error in MigrateRepositoryGitData(git config --add <remote> +refs/tags/*:refs/tags/*): %w", err)
 		}
 	} else {
-		if err = UpdateRepoSize(subCtx, repo); err != nil {
+		if err = UpdateRepoSize(ctx, repo); err != nil {
 			log.Error("Failed to update size for repository: %v", err)
 		}
-		if repo, err = CleanUpMigrateInfo(subCtx, repo); err != nil {
+		if repo, err = CleanUpMigrateInfo(ctx, repo); err != nil {
 			return nil, err
 		}
 	}
