@@ -684,7 +684,7 @@ func ViewPullCommits(ctx *context.Context) {
 // ViewPullFiles render pull request changed files list page
 func ViewPullFiles(ctx *context.Context) {
 	commitToShow := ctx.Params("sha")
-
+	willShowSingleCommit := len(commitToShow) > 0
 	ctx.Data["PageIsPullList"] = true
 	ctx.Data["PageIsPullFiles"] = true
 
@@ -722,7 +722,7 @@ func ViewPullFiles(ctx *context.Context) {
 
 	startCommitID = prInfo.MergeBase
 
-	if len(commitToShow) > 0 {
+	if willShowSingleCommit {
 		endCommitID = commitToShow
 		ctx.Data["IsShowingAllCommits"] = false
 	} else {
@@ -746,7 +746,7 @@ func ViewPullFiles(ctx *context.Context) {
 	var diffOptions *gitdiff.DiffOptions
 
 	// show only a single commit for this pr
-	if len(commitToShow) > 0 {
+	if willShowSingleCommit {
 		diffOptions = &gitdiff.DiffOptions{
 			AfterCommitID:      endCommitID,
 			SkipTo:             ctx.FormString("skip-to"),
@@ -770,7 +770,7 @@ func ViewPullFiles(ctx *context.Context) {
 
 	var methodWithError string
 	var diff *gitdiff.Diff
-	if !ctx.IsSigned {
+	if !ctx.IsSigned || willShowSingleCommit {
 		diff, err = gitdiff.GetDiff(gitRepo, diffOptions, files...)
 		methodWithError = "GetDiff"
 	} else {
