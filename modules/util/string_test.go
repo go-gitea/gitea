@@ -4,6 +4,8 @@
 package util
 
 import (
+	"fmt"
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -43,5 +45,58 @@ func TestToSnakeCase(t *testing.T) {
 	}
 	for input, expected := range cases {
 		assert.Equal(t, expected, ToSnakeCase(input))
+	}
+}
+
+type testSliceUnionInput[T string | int] [][]T
+type testSliceUnionOutput[T string | int] []T
+type testUnionItem[T string | int] struct {
+	input    testSliceUnionInput[T]
+	expected testSliceUnionOutput[T]
+}
+
+func TestSliceUnion(t *testing.T) {
+	intTests := []testUnionItem[int]{
+		{
+			input: testSliceUnionInput[int]{
+				[]int{1, 2, 2, 3},
+				[]int{2, 4, 7},
+			},
+			expected: []int{1, 2, 3, 4, 7},
+		},
+		{
+			input: testSliceUnionInput[int]{
+				[]int{7, 8, 1},
+				[]int{1, 2, 3},
+				[]int{3, 4, 5},
+			},
+			expected: []int{1, 2, 3, 4, 5, 7, 8},
+		},
+	}
+	for i, test := range intTests {
+		t.Run(fmt.Sprintf("int test: %d", i), func(t *testing.T) {
+			actual := SliceUnion(test.input...)
+			// sort
+			sort.Ints(actual)
+			assert.EqualValues(t, test.expected, actual, actual)
+		})
+	}
+
+	stringTests := []testUnionItem[string]{
+		{
+			input: testSliceUnionInput[string]{
+				[]string{"a", "c"},
+				[]string{"c", "d", "a", "b"},
+			},
+			expected: []string{"a", "b", "c", "d"},
+		},
+	}
+	for i, test := range stringTests {
+		t.Run(fmt.Sprintf("string test: %d", i), func(t *testing.T) {
+			actual := SliceUnion(test.input...)
+			// sort
+			sort.Strings(actual)
+			assert.EqualValues(t, test.expected, actual, actual)
+		})
 	}
 }

@@ -5,6 +5,7 @@ package issues
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -22,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/references"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -114,6 +116,9 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 		if issue.ClosedStatus == IssueClosedStatusDuplicate {
 			c.DuplicateIssueID = issue.DuplicateIssueID
 			// TODO: Transfer the issue watchers to the duplicate issue
+			if err := transferWatchersToDuplicateIssue(ctx, issue); err != nil {
+				return nil, err
+			}
 		}
 		data, err := json.Marshal(c)
 		if err != nil {
@@ -135,6 +140,33 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 		Issue:   issue,
 		Content: content,
 	})
+}
+
+// transferWatchersToDuplicateIssue transfer the watchers (including users who participated in the comments) of the original issue to the duplicate issue.
+func transferWatchersToDuplicateIssue(ctx context.Context, issue *Issue) error {
+	if issue.DuplicateIssueID <= 0 {
+		return errors.New("the ID of duplicate issue cannot be zero")
+	}
+	// participants of the origianl issue
+	participatingUserIDs, err := issue.GetParticipantIDsByIssue(ctx)
+	if err != nil {
+		return err
+	}
+	// watchers of the original issue
+	iws, err := GetIssueWatchersIDs(ctx, issue.ID, true)
+	if err != nil {
+		return err
+	}
+	subscribers := util.SliceUnion(participatingUserIDs, iws)
+	for _, sid := range subscribers {
+		if err := CreateOrUpdateIssueWatch(sid, issue.DuplicateIssueID, true); err != nil {
+			return err
+		}
+		if err := CreateOrUpdateIssueWatch(sid, issue.ID, false); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // ChangeIssueStatus changes issue status to open or closed.

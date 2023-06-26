@@ -88,3 +88,23 @@ func SliceRemoveAllFunc[T comparable](slice []T, targetFunc func(T) bool) []T {
 	}
 	return slice[:idx]
 }
+
+// SliceRemoveAll returns the union of the slices
+func SliceUnion[T comparable](inputs ...[]T) []T {
+	m := make(map[T]struct{})
+
+	for idx1 := range inputs {
+		for idx2 := range inputs[idx1] {
+			m[inputs[idx1][idx2]] = struct{}{}
+		}
+	}
+
+	output := make([]T, len(m))
+	i := 0
+	for k := range m {
+		output[i] = k
+		i++
+	}
+
+	return output
+}
