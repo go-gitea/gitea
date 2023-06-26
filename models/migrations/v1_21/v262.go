@@ -7,10 +7,10 @@ import (
 	"xorm.io/xorm"
 )
 
-func AddTimeEstimateColumnToIssueTable(x *xorm.Engine) error {
-	type Issue struct {
-		TimeEstimate int64 `xorm:"NOT NULL DEFAULT 0"`
+func AddTriggerEventToActionRun(x *xorm.Engine) error {
+	type ActionRun struct {
+		TriggerEvent string
 	}
 
-	return x.Sync(new(Issue))
+	return x.Sync(new(ActionRun))
 }

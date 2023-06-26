@@ -2192,6 +2192,17 @@ table th[data-sortt-desc] .svg {
 - "> .ui.label > .delete.icon": the "x" icon for removing a label item in multiple selection dropdown
 */
 
+.ui.dropdown.mini.button,
+.ui.dropdown.tiny.button {
+  padding-right: 20px;
+}
+.ui.dropdown.button {
+  padding-right: 22px;
+}
+.ui.dropdown.large.button {
+  padding-right: 24px;
+}
+
 /* Gitea uses SVG images instead of Fomantic builtin "<i>" font icons, so we need to reset the icon styles */
 .ui.ui.dropdown > .icon.icon {
   position: initial; /* plain dropdown and button dropdown use flex layout for icons */

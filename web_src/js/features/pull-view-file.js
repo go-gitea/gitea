@@ -1,3 +1,4 @@
+import {diffTreeStore} from '../modules/stores.js';
 import {setFileFolding} from './file-fold.js';
 
 const {csrfToken, pageData} = window.config;
@@ -53,9 +54,17 @@ export function initViewedCheckboxListenerFor() {
       const hasChangedLabel = form.parentNode.querySelector('.changed-since-last-review');
       hasChangedLabel?.remove();
 
+      const fileName = checkbox.getAttribute('name');
+
+      // check if the file is in our difftreestore and if we find it -> change the IsViewed status
+      const fileInPageData = diffTreeStore().files.find((x) => x.Name === fileName);
+      if (fileInPageData) {
+        fileInPageData.IsViewed = this.checked;
+      }
+
       // Unfortunately, actual forms cause too many problems, hence another approach is needed
       const files = {};
-      files[checkbox.getAttribute('name')] = this.checked;
+      files[fileName] = this.checked;
       const data = {files};
       const headCommitSHA = form.getAttribute('data-headcommit');
       if (headCommitSHA) data.headCommitSHA = headCommitSHA;
