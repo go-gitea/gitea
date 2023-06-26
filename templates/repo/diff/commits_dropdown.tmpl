@@ -16,15 +16,15 @@
 				<span class="description gt-ellipsis">
 					{{if .Committer}}
 						{{.Committer.Name}}
-						<span class="text right aligned">{{TimeSince .Committer.When $.locale}}</span>
+						<span class="text right">{{TimeSince .Committer.When $.locale}}</span>
 					{{else}}
 						{{.Author.Name}}
-						<span class="text right aligned">{{TimeSince .Author.When $.locale}}</span>
+						<span class="text right">{{TimeSince .Author.When $.locale}}</span>
 					{{end}}
 				</span>
-				<div class="text gt-ellipsis">
-					<span class="ui compact">{{.Summary}}</span>
-					<span class="ui compact right shortsha">{{ShortSha .ID.String}}</span>
+				<div class="text">
+					<div class="ui compact gt-ellipsis commit-list-summary">{{.Summary}}</div>
+					<code class="ui right">{{ShortSha .ID.String}}</code>
 				</div>
 			</a>
 		{{end}}

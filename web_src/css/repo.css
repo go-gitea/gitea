@@ -3340,3 +3340,8 @@ tbody.commit-list {
   font-size: 18px;
   margin-left: 4px;
 }
+
+.commit-list-summary {
+  max-width: calc(100% - 10ch);
+  display: inline-block;
+}
