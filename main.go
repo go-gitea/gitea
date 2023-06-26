@@ -47,7 +47,9 @@ func init() {
 // ./gitea -h
 // ./gitea web help
 // ./gitea web -h (due to cli lib limitation, this won't call our cmdHelp, so no extra info)
-// ./gitea admin help auth
+// ./gitea admin
+// ./gitea admin help
+// ./gitea admin auth help
 // ./gitea -c /tmp/app.ini -h
 // ./gitea -c /tmp/app.ini help
 // ./gitea help -c /tmp/app.ini
@@ -156,11 +158,7 @@ func prepareSubcommands(command *cli.Command, defaultFlags []cli.Flag) {
 
 // prepareWorkPathAndCustomConf wraps the Action to prepare the work path and custom config
 // It can't use "Before", because each level's sub-command's Before will be called one by one, so the "init" would be done multiple times
-func prepareWorkPathAndCustomConf(a any) func(ctx *cli.Context) error {
-	if a == nil {
-		return nil
-	}
-	action := a.(func(*cli.Context) error)
+func prepareWorkPathAndCustomConf(action any) func(ctx *cli.Context) error {
 	return func(ctx *cli.Context) error {
 		var args setting.ArgWorkPathAndCustomConf
 		curCtx := ctx
@@ -177,10 +175,11 @@ func prepareWorkPathAndCustomConf(a any) func(ctx *cli.Context) error {
 			curCtx = curCtx.Parent()
 		}
 		setting.InitWorkPathAndCommonConfig(os.Getenv, args)
-		if ctx.Bool("help") {
+		if ctx.Bool("help") || action == nil {
+			// the default behavior of "urfave/cli": "nil action" means "show help"
 			return cmdHelp.Action.(func(ctx *cli.Context) error)(ctx)
 		}
-		return action(ctx)
+		return action.(func(*cli.Context) error)(ctx)
 	}
 }
 
