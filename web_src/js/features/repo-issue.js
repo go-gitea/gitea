@@ -119,14 +119,15 @@ export function initRepoIssueSidebarList() {
   $('.ui.dropdown.label-filter, .ui.dropdown.select-label').dropdown('setting', {'hideDividers': 'empty'}).dropdown('refreshItems');
 }
 
-function initIssueSearchDropdown(selector) {
+function initIssueSearchDropdown(selector, isDuplicateModal) {
   const repolink = $('#repolink').val();
   const repoId = $('#repoId').val();
   const crossRepoSearch = $('#crossRepoSearch').val();
-  const tp = $('#type').val();
-  let issueSearchUrl = `${appSubUrl}/${repolink}/issues/search?q={query}&type=${tp}`;
+  const tp = isDuplicateModal ? 'issues' : $('#type').val();
+  const state = isDuplicateModal ? 'all' : '';
+  let issueSearchUrl = `${appSubUrl}/${repolink}/issues/search?q={query}&type=${tp}&state=${state}`;
   if (crossRepoSearch === 'true') {
-    issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${repoId}&type=${tp}`;
+    issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${repoId}&type=${tp}&state=${state}`;
   }
   $(selector)
     .dropdown({
@@ -699,7 +700,7 @@ function initRepoIssueStateButton() {
     if ($statusDropdown.find('input[type=hidden]').val() !== '4') return;
     // if click the button of "close as duplicate", show modal to let users select issue firstly.
     e.preventDefault();
-    initIssueSearchDropdown('#duplicate-issues-list');
+    initIssueSearchDropdown('#duplicate-issues-list', true);
     const $duplicateModal = $('#duplicate-issue-modal');
     $duplicateModal.modal({
       onHidden() {
