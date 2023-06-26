@@ -22,6 +22,7 @@
 .toast-body {
   flex: 1;
   padding: 5px 0;
+  overflow-wrap: anywhere;
 }
 
 .toast-close,
