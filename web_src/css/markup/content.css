@@ -481,10 +481,7 @@
 .markup pre code,
 .markup pre tt {
   display: inline;
-  max-width: initial;
   padding: 0;
-  margin: 0;
-  overflow: initial;
   line-height: inherit;
   word-wrap: normal;
   background-color: transparent;
@@ -515,20 +512,6 @@
 .markup ol.ui.list ol,
 .markup ul.ui.list ul {
   padding-left: 2em;
-}
-
-.repository.wiki.revisions .ui.container > .ui.stackable.grid {
-  -ms-flex-direction: row-reverse;
-  flex-direction: row-reverse;
-}
-
-.repository.wiki.revisions .ui.container > .ui.stackable.grid > .header {
-  margin-top: 0;
-}
-
-.repository.wiki.revisions .ui.container > .ui.stackable.grid > .header .sub.header {
-  padding-left: 52px;
-  word-break: break-word;
 }
 
 .file-revisions-btn {

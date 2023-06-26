@@ -44,7 +44,7 @@
 			</div>
 			<div class="menu">
 				<div class="ui icon search input">
-					<i class="icon gt-df gt-ac gt-jc gt-m-0">{{svg "octicon-filter" 16}}</i>
+					<i class="icon">{{svg "octicon-filter" 16}}</i>
 					<input name="search" placeholder="{{.locale.Tr "repo.filter_branch_and_tag"}}...">
 				</div>
 				<div class="header">
@@ -113,7 +113,7 @@
 			</div>
 			<div class="menu">
 				<div class="ui icon search input">
-					<i class="icon gt-df gt-ac gt-jc gt-m-0">{{svg "octicon-filter" 16}}</i>
+					<i class="icon">{{svg "octicon-filter" 16}}</i>
 					<input name="search" placeholder="{{.locale.Tr "repo.filter_branch_and_tag"}}...">
 				</div>
 				<div class="header">
@@ -192,7 +192,7 @@
 		{{if .HasPullRequest}}
 			<div class="ui segment grid title">
 				<div class="twelve wide column issue-title">
-					{{.locale.Tr "repo.pulls.has_pull_request" (Escape $.RepoLink) (Escape $.RepoRelPath) .PullRequest.Index | Safe}}
+					{{.locale.Tr "repo.pulls.has_pull_request" (print (Escape $.RepoLink) "/pulls/" .PullRequest.Issue.Index) (Escape $.RepoRelPath) .PullRequest.Index | Safe}}
 					<h1>
 						<span id="issue-title">{{RenderIssueTitle $.Context .PullRequest.Issue.Title $.RepoLink $.Repository.ComposeMetas}}</span>
 						<span class="index">#{{.PullRequest.Issue.Index}}</span>

@@ -3,7 +3,7 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
-		<form class="ui edit form" method="post" action="{{.RepoLink}}/_diffpatch/{{.BranchName  | PathEscapeSegments}}">
+		<form class="ui edit form" method="post" action="{{.RepoLink}}/_diffpatch/{{.BranchName | PathEscapeSegments}}">
 			{{.CsrfTokenHtml}}
 			<input type="hidden" name="last_commit" value="{{.last_commit}}">
 			<input type="hidden" name="page_has_posted" value="{{.PageHasPosted}}">

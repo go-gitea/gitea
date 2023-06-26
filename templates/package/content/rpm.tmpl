@@ -4,7 +4,7 @@
 		<div class="ui form">
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.rpm.registry"}}</label>
-				<div class="markup"><pre class="code-block"><code>dnf config-manager --add-repo <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm/{{$.PackageDescriptor.Owner.LowerName}}.repo"></gitea-origin-url></code></pre></div>
+				<div class="markup"><pre class="code-block"><code>dnf config-manager --add-repo <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm.repo"></gitea-origin-url></code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.rpm.install"}}</label>

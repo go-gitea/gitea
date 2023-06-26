@@ -52,7 +52,9 @@
 								{{if .Signature}}
 									{{template "repo/shabox_badge" dict "root" $ "verification" .Verification}}
 								{{end}}
-							{{if $.Reponame}}
+							{{if $.PageIsWiki}}
+								</a>
+							{{else if $.Reponame}}
 								</a>
 							{{else}}
 								</span>
