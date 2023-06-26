@@ -191,7 +191,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	if len(keyword) > 0 {
 		issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, []int64{repo.ID}, keyword)
 		if err != nil {
-			if issue_indexer.IsAvailable() {
+			if issue_indexer.IsAvailable(ctx) {
 				ctx.ServerError("issueIndexer.Search", err)
 				return
 			}
@@ -312,7 +312,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	ctx.Data["Assignees"] = makeSelfOnTop(ctx, assigneeUsers)
+	ctx.Data["Assignees"] = MakeSelfOnTop(ctx, assigneeUsers)
 
 	handleTeamMentions(ctx)
 	if ctx.Written() {
@@ -508,7 +508,7 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	ctx.Data["Assignees"] = makeSelfOnTop(ctx, assigneeUsers)
+	ctx.Data["Assignees"] = MakeSelfOnTop(ctx, assigneeUsers)
 
 	handleTeamMentions(ctx)
 }
@@ -1134,12 +1134,12 @@ func NewIssuePost(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplIssueNew)
+		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}
 
 	if util.IsEmptyString(form.Title) {
-		ctx.RenderWithErr(ctx.Tr("repo.issues.new.title_empty"), tplIssueNew, form)
+		ctx.JSONError(ctx.Tr("repo.issues.new.title_empty"))
 		return
 	}
 
@@ -1184,9 +1184,9 @@ func NewIssuePost(ctx *context.Context) {
 
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
 	if ctx.FormString("redirect_after_creation") == "project" && projectID > 0 {
-		ctx.Redirect(ctx.Repo.RepoLink + "/projects/" + strconv.FormatInt(projectID, 10))
+		ctx.JSONRedirect(ctx.Repo.RepoLink + "/projects/" + strconv.FormatInt(projectID, 10))
 	} else {
-		ctx.Redirect(issue.Link())
+		ctx.JSONRedirect(issue.Link())
 	}
 }
 
@@ -1647,9 +1647,22 @@ func ViewIssue(ctx *context.Context) {
 				return
 			}
 		} else if comment.Type == issues_model.CommentTypeAddTimeManual ||
-			comment.Type == issues_model.CommentTypeStopTracking {
+			comment.Type == issues_model.CommentTypeStopTracking ||
+			comment.Type == issues_model.CommentTypeDeleteTimeManual {
 			// drop error since times could be pruned from DB..
 			_ = comment.LoadTime()
+			if comment.Content != "" {
+				// Content before v1.21 did store the formated string instead of seconds,
+				// so "|" is used as delimeter to mark the new format
+				if comment.Content[0] != '|' {
+					// handle old time comments that have formatted text stored
+					comment.RenderedContent = comment.Content
+					comment.Content = ""
+				} else {
+					// else it's just a duration in seconds to pass on to the frontend
+					comment.Content = comment.Content[1:]
+				}
+			}
 		}
 
 		if comment.Type == issues_model.CommentTypeClose || comment.Type == issues_model.CommentTypeMergePull {
@@ -1971,7 +1984,7 @@ func checkIssueRights(ctx *context.Context, issue *issues_model.Issue) {
 	}
 }
 
-func getActionIssues(ctx *context.Context) []*issues_model.Issue {
+func getActionIssues(ctx *context.Context) issues_model.IssueList {
 	commaSeparatedIssueIDs := ctx.FormString("issue_ids")
 	if len(commaSeparatedIssueIDs) == 0 {
 		return nil
@@ -2705,6 +2718,20 @@ func ListIssues(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, issues))
 }
 
+func BatchDeleteIssues(ctx *context.Context) {
+	issues := getActionIssues(ctx)
+	if ctx.Written() {
+		return
+	}
+	for _, issue := range issues {
+		if err := issue_service.DeleteIssue(ctx, ctx.Doer, ctx.Repo.GitRepo, issue); err != nil {
+			ctx.ServerError("DeleteIssue", err)
+			return
+		}
+	}
+	ctx.JSONOK()
+}
+
 // UpdateIssueStatus change issue's status
 func UpdateIssueStatus(ctx *context.Context) {
 	issues := getActionIssues(ctx)
@@ -2722,7 +2749,7 @@ func UpdateIssueStatus(ctx *context.Context) {
 		log.Warn("Unrecognized action: %s", action)
 	}
 
-	if _, err := issues_model.IssueList(issues).LoadRepositories(ctx); err != nil {
+	if _, err := issues.LoadRepositories(ctx); err != nil {
 		ctx.ServerError("LoadRepositories", err)
 		return
 	}
@@ -2740,9 +2767,7 @@ func UpdateIssueStatus(ctx *context.Context) {
 			}
 		}
 	}
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }
 
 // NewComment create a comment for issue
@@ -2777,8 +2802,7 @@ func NewComment(ctx *context.Context) {
 	}
 
 	if issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
-		ctx.Flash.Error(ctx.Tr("repo.issues.comment_on_locked"))
-		ctx.Redirect(issue.Link())
+		ctx.JSONError(ctx.Tr("repo.issues.comment_on_locked"))
 		return
 	}
 
@@ -2788,8 +2812,7 @@ func NewComment(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
-		ctx.Redirect(issue.Link())
+		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}
 
@@ -2809,8 +2832,7 @@ func NewComment(ctx *context.Context) {
 				pr, err = issues_model.GetUnmergedPullRequest(ctx, pull.HeadRepoID, pull.BaseRepoID, pull.HeadBranch, pull.BaseBranch, pull.Flow)
 				if err != nil {
 					if !issues_model.IsErrPullRequestNotExist(err) {
-						ctx.Flash.Error(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
-						ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, pull.Index))
+						ctx.JSONError(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
 						return
 					}
 				}
@@ -2841,8 +2863,7 @@ func NewComment(ctx *context.Context) {
 				}
 				if ok := git.IsBranchExist(ctx, pull.HeadRepo.RepoPath(), pull.BaseBranch); !ok {
 					// todo localize
-					ctx.Flash.Error("The origin branch is delete, cannot reopen.")
-					ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, pull.Index))
+					ctx.JSONError("The origin branch is delete, cannot reopen.")
 					return
 				}
 				headBranchRef := pull.GetGitHeadBranchRefName()
@@ -2882,11 +2903,9 @@ func NewComment(ctx *context.Context) {
 
 					if issues_model.IsErrDependenciesLeft(err) {
 						if issue.IsPull {
-							ctx.Flash.Error(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
-							ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
+							ctx.JSONError(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
 						} else {
-							ctx.Flash.Error(ctx.Tr("repo.issues.dependency.issue_close_blocked"))
-							ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index))
+							ctx.JSONError(ctx.Tr("repo.issues.dependency.issue_close_blocked"))
 						}
 						return
 					}
@@ -2899,7 +2918,6 @@ func NewComment(ctx *context.Context) {
 					log.Trace("Issue [%d] status changed to closed: %v", issue.ID, issue.IsClosed)
 				}
 			}
-
 		}
 
 		// Redirect to comment hashtag if there is any actual content.
@@ -2908,9 +2926,9 @@ func NewComment(ctx *context.Context) {
 			typeName = "pulls"
 		}
 		if comment != nil {
-			ctx.Redirect(fmt.Sprintf("%s/%s/%d#%s", ctx.Repo.RepoLink, typeName, issue.Index, comment.HashTag()))
+			ctx.JSONRedirect(fmt.Sprintf("%s/%s/%d#%s", ctx.Repo.RepoLink, typeName, issue.Index, comment.HashTag()))
 		} else {
-			ctx.Redirect(fmt.Sprintf("%s/%s/%d", ctx.Repo.RepoLink, typeName, issue.Index))
+			ctx.JSONRedirect(fmt.Sprintf("%s/%s/%d", ctx.Repo.RepoLink, typeName, issue.Index))
 		}
 	}()
 
@@ -3482,7 +3500,7 @@ func IssuePosters(ctx *context.Context) {
 		}
 	}
 
-	posters = makeSelfOnTop(ctx, posters)
+	posters = MakeSelfOnTop(ctx, posters)
 
 	resp := &userSearchResponse{}
 	resp.Results = make([]*userSearchInfo, len(posters))

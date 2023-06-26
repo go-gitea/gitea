@@ -76,6 +76,12 @@ docker pull gitea/act_runner:nightly # for the latest nightly build
 ./act_runner --config config.yaml [command]
 ```
 
+您亦可以如下使用 docker 创建配置文件：
+
+```bash
+docker run --entrypoint="" --rm -it gitea/act_runner:latest act_runner generate-config > config.yaml
+```
+
 当使用Docker镜像时，可以使用`CONFIG_FILE`环境变量指定配置文件。确保将文件作为卷挂载到容器中：
 
 ```bash
@@ -168,6 +174,27 @@ docker run \
 这是因为Act Runner将在Docker容器中运行Job，因此它需要与Docker守护进程进行通信。
 如前所述，如果要在主机上直接运行Job，可以将其移除。
 需要明确的是，这里的 "主机" 实际上指的是当前运行 Act Runner的容器，而不是主机机器本身。
+
+### 使用 Docker compose 运行 Runner
+
+您亦可使用如下的 `docker-compose.yml`:
+
+```yml
+version: "3.8"
+services:
+  runner:
+    image: gitea/act_runner:nightly
+    environment:
+      CONFIG_FILE: /config.yaml
+      GITEA_INSTANCE_URL: "${INSTANCE_URL}"
+      GITEA_RUNNER_REGISTRATION_TOKEN: "${REGISTRATION_TOKEN}"
+      GITEA_RUNNER_NAME: "${RUNNER_NAME}"
+      GITEA_RUNNER_LABELS: "${RUNNER_LABELS}"
+    volumes:
+      - ./config.yaml:/config.yaml
+      - ./data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+```
 
 ### 当您使用 Docker 镜像启动 Runner，如何配置 Cache
 

@@ -274,6 +274,13 @@ func NotifyCreateRepository(ctx context.Context, doer, u *user_model.User, repo 
 	}
 }
 
+// NotifyAdoptRepository notifies the adoption of a repository to notifiers
+func NotifyAdoptRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
+	for _, notifier := range notifiers {
+		notifier.NotifyAdoptRepository(ctx, doer, u, repo)
+	}
+}
+
 // NotifyMigrateRepository notifies create repository to notifiers
 func NotifyMigrateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
 	for _, notifier := range notifiers {
