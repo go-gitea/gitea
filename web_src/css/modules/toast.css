@@ -2,7 +2,7 @@
   color: var(--color-white);
   position: fixed;
   opacity: 0;
-  transition: all .25s ease;
+  transition: all .2s ease;
   z-index: 500;
   border-radius: 4px;
   box-shadow: 0 8px 24px var(--color-shadow);
