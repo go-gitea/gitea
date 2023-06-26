@@ -37,7 +37,7 @@ func redisServerCmd(t *testing.T) *exec.Cmd {
 	}
 	c := &exec.Cmd{
 		Path:   redisServerProg,
-		Args:   []string{redisServerProg, "--bind", "127.0.0.1", "--port", "6379"},
+		Args:   []string{redisServerProg, "--bind", "redis", "--port", "6379"},
 		Dir:    t.TempDir(),
 		Stdin:  os.Stdin,
 		Stdout: os.Stdout,
