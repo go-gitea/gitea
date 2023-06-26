@@ -22,7 +22,7 @@
 
 .admin dl.admin-dl-horizontal dt,
 .admin dl.admin-dl-horizontal dd {
-  line-height: 1em;
+  line-height: 1;
   padding: 5px 0;
 }
 
