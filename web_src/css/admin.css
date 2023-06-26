@@ -17,7 +17,7 @@
 
 .admin dl.admin-dl-horizontal dd {
   margin-left: auto;
-  width: calc(100% - 245px);
+  width: calc(100% - 425px);
 }
 
 @media (max-width: 767.98px) {
@@ -33,7 +33,7 @@
 
 .admin dl.admin-dl-horizontal dt {
   font-weight: var(--font-weight-semibold);
-  width: 220px;
+  width: 400px;
   margin-right: 5px;
   overflow: hidden;
   text-overflow: ellipsis;
