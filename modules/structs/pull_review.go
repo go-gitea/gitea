@@ -68,6 +68,13 @@ type PullReviewComment struct {
 
 	HTMLURL     string `json:"html_url"`
 	HTMLPullURL string `json:"pull_request_url"`
+
+	// The line of the blob to which the comment applies. The last line of the range for a multi-line comment.
+	Line uint64 `json:"line"`
+	// The side of the diff to which the comment applies. The side of the last line of the range for a multi-line comment.
+	Side string `json:"side"`
+	// The first line of the range for a multi-line comment.
+	StartLine uint64 `json:"start_line,omitempty"`
 }
 
 // CreatePullReviewOptions are options to create a pull review
@@ -83,10 +90,15 @@ type CreatePullReviewComment struct {
 	// the tree path
 	Path string `json:"path"`
 	Body string `json:"body"`
-	// if comment to old file line or 0
+	// if comment to old file line or 0 (This parameter is deprecated. Suggest use line and side instead)
 	OldLineNum int64 `json:"old_position"`
-	// if comment to new file line or 0
+	// if comment to new file line or 0 (This parameter is deprecated. Suggest use line and side instead)
 	NewLineNum int64 `json:"new_position"`
+	// The line of the blob in the pull request diff that the comment applies to. For a multi-line comment, the last line of the range that your comment applies to.
+	Line *int64 `json:"line"`
+	// Can be LEFT or RIGHT. Use LEFT for deletions that appear in red. Use RIGHT for additions that appear in green.
+	Side      *string `json:"side"`
+	StartLine *int64  `json:"start_line"`
 }
 
 // SubmitPullReviewOptions are options to submit a pending pull review

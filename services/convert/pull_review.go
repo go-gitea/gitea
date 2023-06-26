@@ -107,10 +107,16 @@ func ToPullReviewCommentList(ctx context.Context, review *issues_model.Review, d
 				}
 
 				if comment.Line < 0 {
+					apiComment.Side = "LEFT"
 					apiComment.OldLineNum = comment.UnsignedLine()
 				} else {
+					apiComment.Side = "RIGHT"
 					apiComment.LineNum = comment.UnsignedLine()
 				}
+				if comment.IsMultiLine {
+					apiComment.StartLine = comment.UnsignedStartLine()
+				}
+				apiComment.Line = comment.UnsignedLine()
 				apiComments = append(apiComments, apiComment)
 			}
 		}

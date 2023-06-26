@@ -17039,14 +17039,20 @@
           "type": "string",
           "x-go-name": "Body"
         },
+        "line": {
+          "description": "The line of the blob in the pull request diff that the comment applies to. For a multi-line comment, the last line of the range that your comment applies to.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Line"
+        },
         "new_position": {
-          "description": "if comment to new file line or 0",
+          "description": "if comment to new file line or 0 (This parameter is deprecated. Suggest use line and side instead)",
           "type": "integer",
           "format": "int64",
           "x-go-name": "NewLineNum"
         },
         "old_position": {
-          "description": "if comment to old file line or 0",
+          "description": "if comment to old file line or 0 (This parameter is deprecated. Suggest use line and side instead)",
           "type": "integer",
           "format": "int64",
           "x-go-name": "OldLineNum"
@@ -17055,6 +17061,16 @@
           "description": "the tree path",
           "type": "string",
           "x-go-name": "Path"
+        },
+        "side": {
+          "description": "Can be LEFT or RIGHT. Use LEFT for deletions that appear in red. Use RIGHT for additions that appear in green.",
+          "type": "string",
+          "x-go-name": "Side"
+        },
+        "start_line": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "StartLine"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -20494,6 +20510,12 @@
           "format": "int64",
           "x-go-name": "ID"
         },
+        "line": {
+          "description": "The line of the blob to which the comment applies. The last line of the range for a multi-line comment.",
+          "type": "integer",
+          "format": "uint64",
+          "x-go-name": "Line"
+        },
         "original_commit_id": {
           "type": "string",
           "x-go-name": "OrigCommitID"
@@ -20523,6 +20545,17 @@
         },
         "resolver": {
           "$ref": "#/definitions/User"
+        },
+        "side": {
+          "description": "The side of the diff to which the comment applies. The side of the last line of the range for a multi-line comment.",
+          "type": "string",
+          "x-go-name": "Side"
+        },
+        "start_line": {
+          "description": "The first line of the range for a multi-line comment.",
+          "type": "integer",
+          "format": "uint64",
+          "x-go-name": "StartLine"
         },
         "updated_at": {
           "type": "string",

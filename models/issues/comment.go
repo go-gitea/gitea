@@ -260,6 +260,8 @@ type Comment struct {
 	TreePath        string
 	Content         string `xorm:"LONGTEXT"`
 	RenderedContent string `xorm:"-"`
+	StartLine       int64  // - previous line / + proposed line
+	IsMultiLine     bool   `xorm:"NOT NULL DEFAULT false"`
 
 	// Path represents the 4 lines of code cemented by this comment
 	Patch       string `xorm:"-"`
@@ -724,6 +726,14 @@ func (c *Comment) UnsignedLine() uint64 {
 	return uint64(c.Line)
 }
 
+// UnsignedStartLine returns the start line of the code comment without + or -
+func (c *Comment) UnsignedStartLine() uint64 {
+	if c.StartLine < 0 {
+		return uint64(c.StartLine * -1)
+	}
+	return uint64(c.StartLine)
+}
+
 // CodeCommentLink returns the url to a comment in code
 func (c *Comment) CodeCommentLink() string {
 	err := c.LoadIssue(db.DefaultContext)
@@ -800,6 +810,8 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 		CommitID:         opts.CommitID,
 		CommitSHA:        opts.CommitSHA,
 		Line:             opts.LineNum,
+		StartLine:        opts.StartLineNum,
+		IsMultiLine:      opts.IsMultiLine,
 		Content:          opts.Content,
 		OldTitle:         opts.OldTitle,
 		NewTitle:         opts.NewTitle,
@@ -976,6 +988,8 @@ type CreateCommentOptions struct {
 	CommitSHA        string
 	Patch            string
 	LineNum          int64
+	StartLineNum     int64
+	IsMultiLine      bool
 	TreePath         string
 	ReviewID         int64
 	Content          string

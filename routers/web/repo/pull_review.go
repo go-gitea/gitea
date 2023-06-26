@@ -75,6 +75,8 @@ func CreateCodeComment(ctx *context.Context) {
 		ctx.Repo.GitRepo,
 		issue,
 		signedLine,
+		0,
+		false,
 		form.Content,
 		form.TreePath,
 		!form.SingleReview,

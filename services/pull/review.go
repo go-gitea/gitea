@@ -71,7 +71,7 @@ func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestLis
 }
 
 // CreateCodeComment creates a comment on the code line
-func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue, line int64, content, treePath string, pendingReview bool, replyReviewID int64, latestCommitID string) (*issues_model.Comment, error) {
+func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue, line, startLine int64, isMultiLine bool, content, treePath string, pendingReview bool, replyReviewID int64, latestCommitID string) (*issues_model.Comment, error) {
 	var (
 		existsReview bool
 		err          error
@@ -103,7 +103,9 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 			content,
 			treePath,
 			line,
+			startLine,
 			replyReviewID,
+			isMultiLine,
 		)
 		if err != nil {
 			return nil, err
@@ -143,7 +145,9 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 		content,
 		treePath,
 		line,
+		startLine,
 		review.ID,
+		isMultiLine,
 	)
 	if err != nil {
 		return nil, err
@@ -162,7 +166,7 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 }
 
 // createCodeComment creates a plain code comment at the specified line / path
-func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content, treePath string, line, reviewID int64) (*issues_model.Comment, error) {
+func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content, treePath string, line, startLine, reviewID int64, isMultiLine bool) (*issues_model.Comment, error) {
 	var commitID, patch string
 	if err := issue.LoadPullRequest(ctx); err != nil {
 		return nil, fmt.Errorf("LoadPullRequest: %w", err)
@@ -176,6 +180,10 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 		return nil, fmt.Errorf("RepositoryFromContextOrOpen: %w", err)
 	}
 	defer closer.Close()
+
+	if isMultiLine && (startLine*line < 0 || startLine > line) {
+		return nil, fmt.Errorf("not supported multi line format: %d, %d", startLine, line)
+	}
 
 	invalidated := false
 	head := pr.GetGitRefName()
@@ -242,24 +250,33 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 			_ = writer.Close()
 		}()
 
-		patch, err = git.CutDiffAroundLine(reader, int64((&issues_model.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
+		var cutLineNum int
+		if isMultiLine {
+			cutLineNum = int(line - startLine + 1)
+		} else {
+			cutLineNum = setting.UI.CodeCommentLines
+		}
+
+		patch, err = git.CutDiffAroundLine(reader, int64((&issues_model.Comment{Line: line}).UnsignedLine()), line < 0, cutLineNum)
 		if err != nil {
 			log.Error("Error whilst generating patch: %v", err)
 			return nil, err
 		}
 	}
 	return issue_service.CreateComment(ctx, &issues_model.CreateCommentOptions{
-		Type:        issues_model.CommentTypeCode,
-		Doer:        doer,
-		Repo:        repo,
-		Issue:       issue,
-		Content:     content,
-		LineNum:     line,
-		TreePath:    treePath,
-		CommitSHA:   commitID,
-		ReviewID:    reviewID,
-		Patch:       patch,
-		Invalidated: invalidated,
+		Type:         issues_model.CommentTypeCode,
+		Doer:         doer,
+		Repo:         repo,
+		Issue:        issue,
+		Content:      content,
+		LineNum:      line,
+		StartLineNum: startLine,
+		IsMultiLine:  isMultiLine,
+		TreePath:     treePath,
+		CommitSHA:    commitID,
+		ReviewID:     reviewID,
+		Patch:        patch,
+		Invalidated:  invalidated,
 	})
 }
 

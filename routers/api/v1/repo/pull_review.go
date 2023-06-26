@@ -353,11 +353,29 @@ func CreatePullReview(ctx *context.APIContext) {
 			line = c.OldLineNum * -1
 		}
 
+		if c.Side != nil && c.Line != nil && *c.Line > 0 {
+			line = *c.Line
+			if strings.ToUpper(*c.Side) == "LEFT" {
+				line *= -1
+			}
+		}
+
+		var startLine int64
+		isMultiLine := c.Side != nil && c.StartLine != nil && *c.StartLine > 0
+		if isMultiLine {
+			startLine = *c.StartLine
+			if strings.ToUpper(*c.Side) == "LEFT" {
+				startLine *= -1
+			}
+		}
+
 		if _, err := pull_service.CreateCodeComment(ctx,
 			ctx.Doer,
 			ctx.Repo.GitRepo,
 			pr.Issue,
 			line,
+			startLine,
+			isMultiLine,
 			c.Body,
 			c.Path,
 			true, // pending review

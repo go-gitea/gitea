@@ -507,6 +507,8 @@ var migrations = []Migration{
 	NewMigration("Add variable table", v1_21.CreateVariableTable),
 	// v262 -> v263
 	NewMigration("Add TriggerEvent to action_run table", v1_21.AddTriggerEventToActionRun),
+	// v263 -> v264
+	NewMigration("Add start_line and is_multi_line Column in comment table", v1_21.AddStartLineAndIsMultiLineToComment),
 }
 
 // GetCurrentDBVersion returns the current db version
