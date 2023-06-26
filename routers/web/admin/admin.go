@@ -142,7 +142,6 @@ func DashboardPost(ctx *context.Context) {
 					log.Error("AddAllRepoBranchesToSyncQueue: %v: %v", ctx.Doer.ID, err)
 				}
 			}()
-		case "":
 		default:
 			task := cron.GetTask(form.Op)
 			if task != nil {

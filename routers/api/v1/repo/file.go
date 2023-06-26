@@ -692,7 +692,7 @@ func handleCreateOrUpdateFileError(ctx *context.APIContext, err error) {
 		ctx.Error(http.StatusUnprocessableEntity, "Invalid", err)
 		return
 	}
-	if git_model.IsErrBranchDoesNotExist(err) || git.IsErrBranchNotExist(err) {
+	if git_model.IsErrBranchNotExist(err) || git.IsErrBranchNotExist(err) {
 		ctx.Error(http.StatusNotFound, "BranchDoesNotExist", err)
 		return
 	}

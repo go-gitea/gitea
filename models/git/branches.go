@@ -291,7 +291,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 	}); err != nil {
 		return err
 	} else if n <= 0 {
-		return ErrBranchDoesNotExist{
+		return ErrBranchNotExist{
 			RepoID:     repo.ID,
 			BranchName: from,
 		}

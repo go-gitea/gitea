@@ -37,7 +37,6 @@ const (
 func Branches(ctx *context.Context) {
 	ctx.Data["Title"] = "Branches"
 	ctx.Data["IsRepoToolbarBranches"] = true
-	ctx.Data["DefaultBranch"] = ctx.Repo.Repository.DefaultBranch
 	ctx.Data["AllowsPulls"] = ctx.Repo.Repository.AllowsPulls()
 	ctx.Data["IsWriter"] = ctx.Repo.CanWrite(unit.TypeCode)
 	ctx.Data["IsMirror"] = ctx.Repo.Repository.IsMirror
@@ -52,7 +51,6 @@ func Branches(ctx *context.Context) {
 	}
 	pageSize := setting.Git.BranchesRangeSize
 
-	log.Debug("Branches: page: %d pageSize: %d", page, pageSize)
 	defaultBranch, branches, branchesCount, err := repo_service.LoadBranches(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, util.OptionalBoolNone, page, pageSize)
 	if err != nil {
 		ctx.ServerError("LoadBranches", err)
@@ -60,7 +58,7 @@ func Branches(ctx *context.Context) {
 	}
 
 	ctx.Data["Branches"] = branches
-	ctx.Data["DefaultBranch"] = defaultBranch
+	ctx.Data["DefaultBranchBranch"] = defaultBranch
 	pager := context.NewPagination(int(branchesCount), pageSize, page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager

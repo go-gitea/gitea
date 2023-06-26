@@ -17,6 +17,7 @@ import (
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -103,7 +104,7 @@ func Init() error {
 	if err := initPushQueue(); err != nil {
 		return err
 	}
-	return initBranchSyncQueue()
+	return initBranchSyncQueue(graceful.GetManager().ShutdownContext())
 }
 
 // UpdateRepository updates a repository

@@ -35,7 +35,7 @@ func CreateNewBranch(ctx context.Context, doer *user_model.User, repo *repo_mode
 	}
 
 	if !git.IsBranchExist(ctx, repo.RepoPath(), oldBranchName) {
-		return git_model.ErrBranchDoesNotExist{
+		return git_model.ErrBranchNotExist{
 			BranchName: oldBranchName,
 		}
 	}
@@ -73,9 +73,9 @@ func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	}
 
 	rawBranches, totalNumOfBranches, err := git_model.FindBranches(ctx, git_model.FindBranchOptions{
-		RepoID:               repo.ID,
-		IncludeDefaultBranch: false,
-		IsDeletedBranch:      isDeletedBranch,
+		RepoID:             repo.ID,
+		ExcludeBranchNames: []string{repo.DefaultBranch},
+		IsDeletedBranch:    isDeletedBranch,
 		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: pageSize,
@@ -370,7 +370,7 @@ var branchSyncQueue *queue.WorkerPoolQueue[*BranchSyncOptions]
 func handlerBranchSync(items ...*BranchSyncOptions) []*BranchSyncOptions {
 	var failedOptions []*BranchSyncOptions
 	for _, opts := range items {
-		if err := repo_module.SyncRepoBranches(context.Background(), opts.RepoID, opts.DoerID); err != nil {
+		if err := repo_module.SyncRepoBranches(graceful.GetManager().ShutdownContext(), opts.RepoID, opts.DoerID); err != nil {
 			log.Error("syncRepoBranches [%d:%d] failed: %v", opts.RepoID, opts.DoerID, err)
 			failedOptions = append(failedOptions, opts)
 		}
@@ -385,21 +385,20 @@ func addRepoToBranchSyncQueue(repoID, doerID int64) error {
 	})
 }
 
-func initBranchSyncQueue() error {
-	branchSyncQueue = queue.CreateSimpleQueue(graceful.GetManager().ShutdownContext(), "branch_sync", handlerBranchSync)
+func initBranchSyncQueue(ctx context.Context) error {
+	branchSyncQueue = queue.CreateSimpleQueue(ctx, "branch_sync", handlerBranchSync)
 	if branchSyncQueue == nil {
 		return errors.New("unable to create branch_sync queue")
 	}
 	go graceful.GetManager().RunWithCancel(branchSyncQueue)
 
-	admin, err := user_model.GetAdminUser()
+	admin, err := user_model.GetAdminUser(ctx)
 	if err != nil {
 		return fmt.Errorf("user_model.GetAdminUser: %v", err)
 	}
 
-	cnt, err := git_model.CountBranches(context.Background(), git_model.FindBranchOptions{
-		IncludeDefaultBranch: true,
-		IsDeletedBranch:      util.OptionalBoolFalse,
+	cnt, err := git_model.CountBranches(ctx, git_model.FindBranchOptions{
+		IsDeletedBranch: util.OptionalBoolFalse,
 	})
 	if err != nil {
 		return fmt.Errorf("CountBranches: %v", err)
@@ -407,7 +406,7 @@ func initBranchSyncQueue() error {
 
 	if cnt == 0 {
 		go func() {
-			if err := AddAllRepoBranchesToSyncQueue(graceful.GetManager().ShutdownContext(), admin.ID); err != nil {
+			if err := AddAllRepoBranchesToSyncQueue(ctx, admin.ID); err != nil {
 				log.Error("AddAllRepoBranchesToSyncQueue: %v", err)
 			}
 		}()

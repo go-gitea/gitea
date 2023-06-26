@@ -181,7 +181,7 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 		Run(prCtx.RunOpts()); err != nil {
 		cancel()
 		if !git.IsBranchExist(ctx, pr.HeadRepo.RepoPath(), pr.HeadBranch) {
-			return nil, nil, git_model.ErrBranchDoesNotExist{
+			return nil, nil, git_model.ErrBranchNotExist{
 				BranchName: pr.HeadBranch,
 			}
 		}

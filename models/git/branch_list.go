@@ -44,17 +44,19 @@ func LoadAllBranches(ctx context.Context, repoID int64) (BranchList, error) {
 
 type FindBranchOptions struct {
 	db.ListOptions
-	RepoID               int64
-	IncludeDefaultBranch bool
-	IsDeletedBranch      util.OptionalBool
+	RepoID             int64
+	ExcludeBranchNames []string
+	IsDeletedBranch    util.OptionalBool
 }
 
 func (opts *FindBranchOptions) Cond() builder.Cond {
 	cond := builder.NewCond()
-	cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	if opts.RepoID > 0 {
+		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	}
 
-	if !opts.IncludeDefaultBranch {
-		cond = cond.And(builder.Neq{"name": builder.Select("default_branch").From("repository").Where(builder.Eq{"id": opts.RepoID})})
+	if len(opts.ExcludeBranchNames) > 0 {
+		cond = cond.And(builder.NotIn("name", opts.ExcludeBranchNames))
 	}
 	if !opts.IsDeletedBranch.IsNone() {
 		cond = cond.And(builder.Eq{"is_deleted": opts.IsDeletedBranch.IsTrue()})
@@ -68,7 +70,7 @@ func CountBranches(ctx context.Context, opts FindBranchOptions) (int64, error) {
 
 func FindBranches(ctx context.Context, opts FindBranchOptions) (BranchList, int64, error) {
 	sess := db.GetEngine(ctx).Where(opts.Cond())
-	if opts.PageSize > 0 {
+	if opts.PageSize > 0 && !opts.IsListAll() {
 		sess = db.SetSessionPagination(sess, &opts.ListOptions)
 	}
 
@@ -81,15 +83,9 @@ func FindBranches(ctx context.Context, opts FindBranchOptions) (BranchList, int6
 }
 
 func FindBranchNames(ctx context.Context, opts FindBranchOptions) ([]string, error) {
-	sess := db.GetEngine(ctx).Select("name").Where("repo_id=?", opts.RepoID)
+	sess := db.GetEngine(ctx).Select("name").Where(opts.Cond())
 	if opts.PageSize > 0 {
 		sess = db.SetSessionPagination(sess, &opts.ListOptions)
-	}
-	if !opts.IncludeDefaultBranch {
-		sess = sess.And(builder.Neq{"name": builder.Select("default_branch").From("repository").Where(builder.Eq{"id": opts.RepoID})})
-	}
-	if !opts.IsDeletedBranch.IsNone() {
-		sess.And(builder.Eq{"is_deleted": opts.IsDeletedBranch.IsTrue()})
 	}
 	var branches []string
 	if err := sess.Table("branch").Find(&branches); err != nil {

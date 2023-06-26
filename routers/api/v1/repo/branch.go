@@ -204,7 +204,7 @@ func CreateBranch(ctx *context.APIContext) {
 
 	err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, oldCommit.ID.String(), opt.BranchName)
 	if err != nil {
-		if git_model.IsErrBranchDoesNotExist(err) {
+		if git_model.IsErrBranchNotExist(err) {
 			ctx.Error(http.StatusNotFound, "", "The old branch does not exist")
 		}
 		if models.IsErrTagAlreadyExists(err) {
@@ -289,10 +289,9 @@ func ListBranches(ctx *context.APIContext) {
 		}
 
 		branches, total, err := git_model.FindBranches(ctx, git_model.FindBranchOptions{
-			ListOptions:          listOptions,
-			RepoID:               ctx.Repo.Repository.ID,
-			IncludeDefaultBranch: true,
-			IsDeletedBranch:      util.OptionalBoolFalse,
+			ListOptions:     listOptions,
+			RepoID:          ctx.Repo.Repository.ID,
+			IsDeletedBranch: util.OptionalBoolFalse,
 		})
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetBranches", err)

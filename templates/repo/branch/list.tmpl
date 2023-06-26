@@ -4,7 +4,7 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		{{template "repo/sub_menu" .}}
-		{{if .DefaultBranch}}
+		{{if .DefaultBranchBranch}}
 			<h4 class="ui top attached header">
 				{{.locale.Tr "repo.default_branch"}}
 				{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
@@ -19,32 +19,32 @@
 					<tbody>
 						<tr>
 							<td>
-								{{if .DefaultBranch.IsProtected}}
+								{{if .DefaultBranchBranch.IsProtected}}
 									{{svg "octicon-shield-lock"}}
 								{{end}}
-								<a href="{{.RepoLink}}/src/branch/{{PathEscapeSegments .DefaultBranch.RawBranch.Name}}">{{.DefaultBranch.RawBranch.Name}}</a>
-								<p class="info gt-df gt-ac gt-my-2">{{svg "octicon-git-commit" 16 "gt-mr-2"}}<a href="{{.RepoLink}}/commit/{{PathEscape .DefaultBranch.RawBranch.CommitSHA}}">{{ShortSha .DefaultBranch.RawBranch.CommitSHA}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .DefaultBranch.RawBranch.CommitMessage .RepoLink .Repository.ComposeMetas}}</span> · {{.locale.Tr "org.repo_updated"}} {{TimeSince .DefaultBranch.RawBranch.CommitTime.AsTime .locale}}</p>
+								<a href="{{.RepoLink}}/src/branch/{{PathEscapeSegments .DefaultBranchBranch.RawBranch.Name}}">{{.DefaultBranchBranch.RawBranch.Name}}</a>
+								<p class="info gt-df gt-ac gt-my-2">{{svg "octicon-git-commit" 16 "gt-mr-2"}}<a href="{{.RepoLink}}/commit/{{PathEscape .DefaultBranchBranch.RawBranch.CommitSHA}}">{{ShortSha .DefaultBranchBranch.RawBranch.CommitSHA}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .DefaultBranch.RawBranch.CommitMessage .RepoLink .Repository.ComposeMetas}}</span> · {{.locale.Tr "org.repo_updated"}} {{TimeSince .DefaultBranch.RawBranch.CommitTime.AsTime .locale}}</p>
 							</td>
 							<td class="right aligned overflow-visible">
 								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
 									<button class="btn interact-bg show-create-branch-modal gt-p-3"
 										data-modal="#create-branch-modal"
-										data-branch-from="{{$.DefaultBranch}}"
-										data-branch-from-urlcomponent="{{PathEscapeSegments $.DefaultBranch.RawBranch.Name}}"
-										data-tooltip-content="{{$.locale.Tr "repo.branch.new_branch_from" ($.DefaultBranch.RawBranch.Name)}}"
+										data-branch-from="{{$.DefaultBranchBranch}}"
+										data-branch-from-urlcomponent="{{PathEscapeSegments $.DefaultBranchBranch.RawBranch.Name}}"
+										data-tooltip-content="{{$.locale.Tr "repo.branch.new_branch_from" ($.DefaultBranchBranch.RawBranch.Name)}}"
 									>
 										{{svg "octicon-git-branch"}}
 									</button>
 								{{end}}
 								{{if .EnableFeed}}
-									<a role="button" class="btn interact-bg gt-p-3" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .DefaultBranch.RawBranch.Name}}">{{svg "octicon-rss"}}</a>
+									<a role="button" class="btn interact-bg gt-p-3" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .DefaultBranchBranch.RawBranch.Name}}">{{svg "octicon-rss"}}</a>
 								{{end}}
 								{{if not $.DisableDownloadSourceArchives}}
-									<div class="ui dropdown btn interact-bg gt-p-3" data-tooltip-content="{{$.locale.Tr "repo.branch.download" ($.DefaultBranch.RawBranch.Name)}}">
+									<div class="ui dropdown btn interact-bg gt-p-3" data-tooltip-content="{{$.locale.Tr "repo.branch.download" ($.DefaultBranchBranch.RawBranch.Name)}}">
 										{{svg "octicon-download"}}
 										<div class="menu">
-											<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.DefaultBranch.RawBranch.Name}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
-											<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.DefaultBranch.RawBranch.Name}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
+											<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.DefaultBranchBranch.RawBranch.Name}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
+											<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.DefaultBranchBranch.RawBranch.Name}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
 										</div>
 									</div>
 								{{end}}
@@ -52,8 +52,8 @@
 									<button class="btn interact-bg gt-p-3 show-modal show-rename-branch-modal"
 										data-is-default-branch="true"
 										data-modal="#rename-branch-modal"
-										data-old-branch-name="{{$.DefaultBranch}}"
-										data-tooltip-content="{{$.locale.Tr "repo.branch.rename" ($.DefaultBranch.RawBranch.Name)}}"
+										data-old-branch-name="{{$.DefaultBranchBranch}}"
+										data-tooltip-content="{{$.locale.Tr "repo.branch.rename" ($.DefaultBranchBranch.RawBranch.Name)}}"
 									>
 										{{svg "octicon-pencil"}}
 									</button>
@@ -87,7 +87,7 @@
 								{{end}}
 								</td>
 								<td class="three wide ui">
-									{{if and (not .RawBranch.IsDeleted) $.DefaultBranch}}
+									{{if and (not .RawBranch.IsDeleted) $.DefaultBranchBranch}}
 									<div class="commit-divergence">
 										<div class="bar-group">
 											<div class="count count-behind">{{.CommitsBehind}}</div>
@@ -108,13 +108,13 @@
 												{{svg "octicon-git-pull-request"}} {{$.locale.Tr "repo.branch.included"}}
 											</span>
 										{{else if and (not .RawBranch.IsDeleted) $.AllowsPulls (gt .CommitsAhead 0)}}
-										<a href="{{$.RepoLink}}/compare/{{PathEscapeSegments $.DefaultBranch.RawBranch.Name}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{PathEscape $.Owner.Name}}:{{end}}{{PathEscapeSegments .RawBranch.Name}}">
+										<a href="{{$.RepoLink}}/compare/{{PathEscapeSegments $.DefaultBranchBranch.RawBranch.Name}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{PathEscape $.Owner.Name}}:{{end}}{{PathEscapeSegments .RawBranch.Name}}">
 											<button id="new-pull-request" class="ui compact basic button gt-mr-0">{{if $.CanPull}}{{$.locale.Tr "repo.pulls.compare_changes"}}{{else}}{{$.locale.Tr "action.compare_branch"}}{{end}}</button>
 										</a>
 										{{end}}
 									{{else if and .LatestPullRequest.HasMerged .MergeMovedOn}}
 										{{if and (not .RawBranch.IsDeleted) $.AllowsPulls (gt .CommitsAhead 0)}}
-										<a href="{{$.RepoLink}}/compare/{{PathEscapeSegments $.DefaultBranch}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{$.Owner.Name}}:{{end}}{{.Name | PathEscapeSegments}}">
+										<a href="{{$.RepoLink}}/compare/{{PathEscapeSegments $.DefaultBranchBranch}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{$.Owner.Name}}:{{end}}{{.Name | PathEscapeSegments}}">
 											<button id="new-pull-request" class="ui compact basic button gt-mr-0">{{if $.CanPull}}{{$.locale.Tr "repo.pulls.compare_changes"}}{{else}}{{$.locale.Tr "action.compare_branch"}}{{end}}</button>
 										</a>
 										{{end}}

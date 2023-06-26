@@ -668,9 +668,8 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["Tags"] = tags
 
 	brs, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
-		RepoID:               ctx.Repo.Repository.ID,
-		IncludeDefaultBranch: true,
-		IsDeletedBranch:      util.OptionalBoolFalse,
+		RepoID:          ctx.Repo.Repository.ID,
+		IsDeletedBranch: util.OptionalBoolFalse,
 		ListOptions: db.ListOptions{
 			PageSize: -1,
 		},
@@ -684,7 +683,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		if ctx.Doer != nil {
 			doerID = ctx.Doer.ID
 		} else {
-			admin, err := user_model.GetAdminUser()
+			admin, err := user_model.GetAdminUser(ctx)
 			if err != nil {
 				ctx.ServerError("GetAdminUser", err)
 				return
@@ -696,9 +695,8 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 			return
 		}
 		brs, err = git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
-			RepoID:               ctx.Repo.Repository.ID,
-			IncludeDefaultBranch: true,
-			IsDeletedBranch:      util.OptionalBoolFalse,
+			RepoID:          ctx.Repo.Repository.ID,
+			IsDeletedBranch: util.OptionalBoolFalse,
 			ListOptions: db.ListOptions{
 				PageSize: -1,
 			},
