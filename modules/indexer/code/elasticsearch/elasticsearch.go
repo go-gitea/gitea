@@ -1,25 +1,23 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package code
+package elasticsearch
 
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"io"
-	"net"
 	"strconv"
 	"strings"
-	"sync"
-	"time"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/indexer/code/internal"
+	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
+	inner_elasticsearch "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -38,63 +36,22 @@ const (
 	esMultiMatchTypePhrasePrefix = "phrase_prefix"
 )
 
-var _ Indexer = &ElasticSearchIndexer{}
+var _ internal.Indexer = &Indexer{}
 
-// ElasticSearchIndexer implements Indexer interface
-type ElasticSearchIndexer struct {
-	client           *elastic.Client
-	indexerAliasName string
-	available        bool
-	stopTimer        chan struct{}
-	lock             sync.RWMutex
+// Indexer implements Indexer interface
+type Indexer struct {
+	inner                    *inner_elasticsearch.Indexer
+	indexer_internal.Indexer // do not composite inner_elasticsearch.Indexer directly to avoid exposing too much
 }
 
-// NewElasticSearchIndexer creates a new elasticsearch indexer
-func NewElasticSearchIndexer(url, indexerName string) (*ElasticSearchIndexer, bool, error) {
-	opts := []elastic.ClientOptionFunc{
-		elastic.SetURL(url),
-		elastic.SetSniff(false),
-		elastic.SetHealthcheckInterval(10 * time.Second),
-		elastic.SetGzip(false),
+// NewIndexer creates a new elasticsearch indexer
+func NewIndexer(url, indexerName string) *Indexer {
+	inner := inner_elasticsearch.NewIndexer(url, indexerName, esRepoIndexerLatestVersion, defaultMapping)
+	indexer := &Indexer{
+		inner:   inner,
+		Indexer: inner,
 	}
-
-	logger := log.GetLogger(log.DEFAULT)
-
-	opts = append(opts, elastic.SetTraceLog(&log.PrintfLogger{Logf: logger.Trace}))
-	opts = append(opts, elastic.SetInfoLog(&log.PrintfLogger{Logf: logger.Info}))
-	opts = append(opts, elastic.SetErrorLog(&log.PrintfLogger{Logf: logger.Error}))
-
-	client, err := elastic.NewClient(opts...)
-	if err != nil {
-		return nil, false, err
-	}
-
-	indexer := &ElasticSearchIndexer{
-		client:           client,
-		indexerAliasName: indexerName,
-		available:        true,
-		stopTimer:        make(chan struct{}),
-	}
-
-	ticker := time.NewTicker(10 * time.Second)
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				indexer.checkAvailability()
-			case <-indexer.stopTimer:
-				ticker.Stop()
-				return
-			}
-		}
-	}()
-
-	exists, err := indexer.init()
-	if err != nil {
-		indexer.Close()
-		return nil, false, err
-	}
-	return indexer, !exists, err
+	return indexer
 }
 
 const (
@@ -127,72 +84,7 @@ const (
 	}`
 )
 
-func (b *ElasticSearchIndexer) realIndexerName() string {
-	return fmt.Sprintf("%s.v%d", b.indexerAliasName, esRepoIndexerLatestVersion)
-}
-
-// Init will initialize the indexer
-func (b *ElasticSearchIndexer) init() (bool, error) {
-	ctx := graceful.GetManager().HammerContext()
-	exists, err := b.client.IndexExists(b.realIndexerName()).Do(ctx)
-	if err != nil {
-		return false, b.checkError(err)
-	}
-	if !exists {
-		mapping := defaultMapping
-
-		createIndex, err := b.client.CreateIndex(b.realIndexerName()).BodyString(mapping).Do(ctx)
-		if err != nil {
-			return false, b.checkError(err)
-		}
-		if !createIndex.Acknowledged {
-			return false, fmt.Errorf("create index %s with %s failed", b.realIndexerName(), mapping)
-		}
-	}
-
-	// check version
-	r, err := b.client.Aliases().Do(ctx)
-	if err != nil {
-		return false, b.checkError(err)
-	}
-
-	realIndexerNames := r.IndicesByAlias(b.indexerAliasName)
-	if len(realIndexerNames) < 1 {
-		res, err := b.client.Alias().
-			Add(b.realIndexerName(), b.indexerAliasName).
-			Do(ctx)
-		if err != nil {
-			return false, b.checkError(err)
-		}
-		if !res.Acknowledged {
-			return false, fmt.Errorf("create alias %s to index %s failed", b.indexerAliasName, b.realIndexerName())
-		}
-	} else if len(realIndexerNames) >= 1 && realIndexerNames[0] < b.realIndexerName() {
-		log.Warn("Found older gitea indexer named %s, but we will create a new one %s and keep the old NOT DELETED. You can delete the old version after the upgrade succeed.",
-			realIndexerNames[0], b.realIndexerName())
-		res, err := b.client.Alias().
-			Remove(realIndexerNames[0], b.indexerAliasName).
-			Add(b.realIndexerName(), b.indexerAliasName).
-			Do(ctx)
-		if err != nil {
-			return false, b.checkError(err)
-		}
-		if !res.Acknowledged {
-			return false, fmt.Errorf("change alias %s to index %s failed", b.indexerAliasName, b.realIndexerName())
-		}
-	}
-
-	return exists, nil
-}
-
-// Ping checks if elastic is available
-func (b *ElasticSearchIndexer) Ping() bool {
-	b.lock.RLock()
-	defer b.lock.RUnlock()
-	return b.available
-}
-
-func (b *ElasticSearchIndexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update fileUpdate, repo *repo_model.Repository) ([]elastic.BulkableRequest, error) {
+func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update internal.FileUpdate, repo *repo_model.Repository) ([]elastic.BulkableRequest, error) {
 	// Ignore vendored files in code search
 	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil, nil
@@ -235,11 +127,11 @@ func (b *ElasticSearchIndexer) addUpdate(ctx context.Context, batchWriter git.Wr
 	if _, err = batchReader.Discard(1); err != nil {
 		return nil, err
 	}
-	id := filenameIndexerID(repo.ID, update.Filename)
+	id := internal.FilenameIndexerID(repo.ID, update.Filename)
 
 	return []elastic.BulkableRequest{
 		elastic.NewBulkIndexRequest().
-			Index(b.indexerAliasName).
+			Index(b.inner.VersionedIndexName()).
 			Id(id).
 			Doc(map[string]interface{}{
 				"repo_id":    repo.ID,
@@ -251,15 +143,15 @@ func (b *ElasticSearchIndexer) addUpdate(ctx context.Context, batchWriter git.Wr
 	}, nil
 }
 
-func (b *ElasticSearchIndexer) addDelete(filename string, repo *repo_model.Repository) elastic.BulkableRequest {
-	id := filenameIndexerID(repo.ID, filename)
+func (b *Indexer) addDelete(filename string, repo *repo_model.Repository) elastic.BulkableRequest {
+	id := internal.FilenameIndexerID(repo.ID, filename)
 	return elastic.NewBulkDeleteRequest().
-		Index(b.indexerAliasName).
+		Index(b.inner.VersionedIndexName()).
 		Id(id)
 }
 
 // Index will save the index data
-func (b *ElasticSearchIndexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *repoChanges) error {
+func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
 	reqs := make([]elastic.BulkableRequest, 0)
 	if len(changes.Updates) > 0 {
 		// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
@@ -288,21 +180,21 @@ func (b *ElasticSearchIndexer) Index(ctx context.Context, repo *repo_model.Repos
 	}
 
 	if len(reqs) > 0 {
-		_, err := b.client.Bulk().
-			Index(b.indexerAliasName).
+		_, err := b.inner.Client.Bulk().
+			Index(b.inner.VersionedIndexName()).
 			Add(reqs...).
 			Do(ctx)
-		return b.checkError(err)
+		return err
 	}
 	return nil
 }
 
 // Delete deletes indexes by ids
-func (b *ElasticSearchIndexer) Delete(repoID int64) error {
-	_, err := b.client.DeleteByQuery(b.indexerAliasName).
+func (b *Indexer) Delete(ctx context.Context, repoID int64) error {
+	_, err := b.inner.Client.DeleteByQuery(b.inner.VersionedIndexName()).
 		Query(elastic.NewTermsQuery("repo_id", repoID)).
-		Do(graceful.GetManager().HammerContext())
-	return b.checkError(err)
+		Do(ctx)
+	return err
 }
 
 // indexPos find words positions for start and the following end on content. It will
@@ -321,8 +213,8 @@ func indexPos(content, start, end string) (int, int) {
 	return startIdx, startIdx + len(start) + endIdx + len(end)
 }
 
-func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) (int64, []*SearchResult, []*SearchResultLanguages, error) {
-	hits := make([]*SearchResult, 0, pageSize)
+func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
+	hits := make([]*internal.SearchResult, 0, pageSize)
 	for _, hit := range searchResult.Hits.Hits {
 		// FIXME: There is no way to get the position the keyword on the content currently on the same request.
 		// So we get it from content, this may made the query slower. See
@@ -341,7 +233,7 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 			panic(fmt.Sprintf("2===%#v", hit.Highlight))
 		}
 
-		repoID, fileName := parseIndexerID(hit.Id)
+		repoID, fileName := internal.ParseIndexerID(hit.Id)
 		res := make(map[string]interface{})
 		if err := json.Unmarshal(hit.Source, &res); err != nil {
 			return 0, nil, nil, err
@@ -349,7 +241,7 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 
 		language := res["language"].(string)
 
-		hits = append(hits, &SearchResult{
+		hits = append(hits, &internal.SearchResult{
 			RepoID:      repoID,
 			Filename:    fileName,
 			CommitID:    res["commit_id"].(string),
@@ -365,14 +257,14 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 	return searchResult.TotalHits(), hits, extractAggs(searchResult), nil
 }
 
-func extractAggs(searchResult *elastic.SearchResult) []*SearchResultLanguages {
-	var searchResultLanguages []*SearchResultLanguages
+func extractAggs(searchResult *elastic.SearchResult) []*internal.SearchResultLanguages {
+	var searchResultLanguages []*internal.SearchResultLanguages
 	agg, found := searchResult.Aggregations.Terms("language")
 	if found {
-		searchResultLanguages = make([]*SearchResultLanguages, 0, 10)
+		searchResultLanguages = make([]*internal.SearchResultLanguages, 0, 10)
 
 		for _, bucket := range agg.Buckets {
-			searchResultLanguages = append(searchResultLanguages, &SearchResultLanguages{
+			searchResultLanguages = append(searchResultLanguages, &internal.SearchResultLanguages{
 				Language: bucket.Key.(string),
 				Color:    enry.GetColor(bucket.Key.(string)),
 				Count:    int(bucket.DocCount),
@@ -383,7 +275,7 @@ func extractAggs(searchResult *elastic.SearchResult) []*SearchResultLanguages {
 }
 
 // Search searches for codes and language stats by given conditions.
-func (b *ElasticSearchIndexer) Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error) {
+func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
 	searchType := esMultiMatchTypeBestFields
 	if isMatch {
 		searchType = esMultiMatchTypePhrasePrefix
@@ -412,8 +304,8 @@ func (b *ElasticSearchIndexer) Search(ctx context.Context, repoIDs []int64, lang
 	}
 
 	if len(language) == 0 {
-		searchResult, err := b.client.Search().
-			Index(b.indexerAliasName).
+		searchResult, err := b.inner.Client.Search().
+			Index(b.inner.VersionedIndexName()).
 			Aggregation("language", aggregation).
 			Query(query).
 			Highlight(
@@ -426,26 +318,26 @@ func (b *ElasticSearchIndexer) Search(ctx context.Context, repoIDs []int64, lang
 			From(start).Size(pageSize).
 			Do(ctx)
 		if err != nil {
-			return 0, nil, nil, b.checkError(err)
+			return 0, nil, nil, err
 		}
 
 		return convertResult(searchResult, kw, pageSize)
 	}
 
 	langQuery := elastic.NewMatchQuery("language", language)
-	countResult, err := b.client.Search().
-		Index(b.indexerAliasName).
+	countResult, err := b.inner.Client.Search().
+		Index(b.inner.VersionedIndexName()).
 		Aggregation("language", aggregation).
 		Query(query).
-		Size(0). // We only needs stats information
+		Size(0). // We only need stats information
 		Do(ctx)
 	if err != nil {
-		return 0, nil, nil, b.checkError(err)
+		return 0, nil, nil, err
 	}
 
 	query = query.Must(langQuery)
-	searchResult, err := b.client.Search().
-		Index(b.indexerAliasName).
+	searchResult, err := b.inner.Client.Search().
+		Index(b.inner.VersionedIndexName()).
 		Query(query).
 		Highlight(
 			elastic.NewHighlight().
@@ -457,56 +349,10 @@ func (b *ElasticSearchIndexer) Search(ctx context.Context, repoIDs []int64, lang
 		From(start).Size(pageSize).
 		Do(ctx)
 	if err != nil {
-		return 0, nil, nil, b.checkError(err)
+		return 0, nil, nil, err
 	}
 
 	total, hits, _, err := convertResult(searchResult, kw, pageSize)
 
 	return total, hits, extractAggs(countResult), err
-}
-
-// Close implements indexer
-func (b *ElasticSearchIndexer) Close() {
-	select {
-	case <-b.stopTimer:
-	default:
-		close(b.stopTimer)
-	}
-}
-
-func (b *ElasticSearchIndexer) checkError(err error) error {
-	var opErr *net.OpError
-	if !(elastic.IsConnErr(err) || (errors.As(err, &opErr) && (opErr.Op == "dial" || opErr.Op == "read"))) {
-		return err
-	}
-
-	b.setAvailability(false)
-
-	return err
-}
-
-func (b *ElasticSearchIndexer) checkAvailability() {
-	if b.Ping() {
-		return
-	}
-
-	// Request cluster state to check if elastic is available again
-	_, err := b.client.ClusterState().Do(graceful.GetManager().ShutdownContext())
-	if err != nil {
-		b.setAvailability(false)
-		return
-	}
-
-	b.setAvailability(true)
-}
-
-func (b *ElasticSearchIndexer) setAvailability(available bool) {
-	b.lock.Lock()
-	defer b.lock.Unlock()
-
-	if b.available == available {
-		return
-	}
-
-	b.available = available
 }

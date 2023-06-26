@@ -78,12 +78,14 @@ jobs:
       - name: build rootful docker image
         uses: docker/build-push-action@v4
         with:
+          context: .
           platforms: linux/amd64,linux/arm64
           push: true
           tags: gitea/gitea:${{ steps.clean_name.outputs.branch }}
       - name: build rootless docker image
         uses: docker/build-push-action@v4
         with:
+          context: .
           platforms: linux/amd64,linux/arm64
           push: true
           file: Dockerfile.rootless

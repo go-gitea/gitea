@@ -20,7 +20,6 @@ jobs:
   detect:
     runs-on: ubuntu-latest
     timeout-minutes: 3
-    # Map a step output to a job output
     outputs:
       backend: ${{ steps.changes.outputs.backend }}
       frontend: ${{ steps.changes.outputs.frontend }}
@@ -39,12 +38,14 @@ jobs:
               - "templates/**/*.tmpl"
               - "go.mod"
               - "go.sum"
+              - "Makefile"
 
             frontend:
               - "**/*.js"
               - "web_src/**"
               - "package.json"
               - "package-lock.json"
+              - "Makefile"
 
             docs:
               - "**/*.md"
@@ -56,7 +57,9 @@ jobs:
             templates:
               - "templates/**/*.tmpl"
               - "poetry.lock"
+
             docker:
               - "Dockerfile"
               - "Dockerfile.rootless"
               - "docker/**"
+              - "Makefile"

@@ -2,7 +2,7 @@
 	{{template "base/alert" .}}
 	<form class="ui form ignore-dirty">
 		<div class="ui fluid action input">
-			<input name="q" value="{{.Query}}" placeholder="{{.locale.Tr "explore.search"}}..." autofocus>
+			{{template "shared/searchinput" dict "locale" .locale "Value" .Query "AutoFocus" true}}
 			<select class="ui dropdown" name="type">
 				<option value="">{{.locale.Tr "packages.filter.type"}}</option>
 				<option value="all">{{.locale.Tr "packages.filter.type.all"}}</option>
@@ -38,7 +38,7 @@
 		{{else}}
 			{{if not .HasPackages}}
 				<div class="empty center">
-					{{svg "octicon-package" 32}}
+					{{svg "octicon-package" 48}}
 					<h2>{{.locale.Tr "packages.empty"}}</h2>
 					{{if and .Repository .CanWritePackages}}
 						{{$packagesUrl := URLJoin .Owner.HomeLink "-" "packages"}}
