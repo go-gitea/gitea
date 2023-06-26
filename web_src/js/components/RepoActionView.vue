@@ -253,11 +253,11 @@ const sfc = {
     },
 
     // show/hide the step logs for a step
-    toggleStepLogs(idx) {
+    async toggleStepLogs(idx) {
       this.currentJobStepsStates[idx].expanded = !this.currentJobStepsStates[idx].expanded;
       if (this.currentJobStepsStates[idx].expanded) {
         console.log('loadjob toggle')
-        this.loadJob(); // try to load the data immediately instead of waiting for next timer interval
+        await this.loadJob(); // try to load the data immediately instead of waiting for next timer interval
       }
     },
     // rerun a job
@@ -437,17 +437,18 @@ const sfc = {
       this.selectedLog = window.location.hash;
       this.expandSelectedLog();
     },
-    expandSelectedLog() {
+    async expandSelectedLog() {
       const [_, step, line] = this.selectedLog.split('-');
-      // const logSummary = this.$refs.steps.querySelector(`.job-step-section:nth-of-type(${parseInt(step) + 1}) > .job-step-summary`);
-      console.log(`.job-step-section:nth-of-type(${parseInt(step) + 1}) > .job-step-summary`);
-      console.log(this.currentJobStepsStates);
-      console.log(step, line, this.currentJobStepsStates[step], this.selectedLog);
-      if (!this.currentJobStepsStates[step] || this.currentJobStepsStates[step].expanded) return;
+      const logSummary = this.$refs.steps.querySelector(`.job-step-section:nth-of-type(${parseInt(step) + 1}) > .job-step-summary`);
+      // console.log(step, line, this.currentJobStepsStates[step], this.selectedLog);
+      if (!this.currentJobStepsStates[step]) return;
+      if (!this.currentJobStepsStates[step].expanded) await this.toggleStepLogs(step);
       console.log('toggletoggle');
-      this.toggleStepLogs(step);
-      console.log(document.querySelector(`${this.selectedLog}`));
-      document.querySelector(`${this.selectedLog}`).click();
+      const logline = this.$refs.steps.querySelector(`${this.selectedLog}`);
+      logline.click();
+      const offset = logSummary.offsetHeight + document.querySelector('.job-info-header').offsetHeight;
+      console.log(logline.parentElement, offset);
+      window.scrollTo({top: logline.parentElement.offsetTop - offset, behavior: 'instant' });
     }
   },
 };
@@ -834,6 +835,7 @@ export function initRepositoryActionView() {
 
 .line-num:target, .line-num:hover {
   color: var(--color-primary);
+  text-decoration: underline;
 }
 
 .log-time-seconds {
