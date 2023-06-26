@@ -1,4 +1,5 @@
 {{template "base/head" .}}
+<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/devtest.css?v={{AssetVersion}}">
 <div class="page-content devtest ui container">
 	<div>
 		<h1>Button</h1>
@@ -14,11 +15,6 @@
 			<label><input type="checkbox" name="button-state-disabled" value="disabled">disabled</label>
 		</div>
 		<div id="devtest-button-samples">
-			<style>
-				.button-sample-groups { margin: 0; padding: 0; }
-				.button-sample-groups .sample-group { list-style: none; margin: 0; padding: 0; }
-				.button-sample-groups .sample-group .ui.button { margin-bottom: 5px; }
-			</style>
 			<ul class="button-sample-groups">
 				<li class="sample-group">
 					<h2>General purpose:</h2>
@@ -249,17 +245,6 @@
 			<button class="ui button" id="warning-toast">Show Warning Toast</button>
 			<button class="ui button" id="error-toast">Show Error Toast</button>
 		</div>
-		<script>
-			document.getElementById('info-toast').addEventListener('click', () => {
-				window.giteaShowInfoToast('success 😀');
-			});
-			document.getElementById('warning-toast').addEventListener('click', () => {
-				window.giteaShowWarningToast('warning 😐');
-			});
-			document.getElementById('error-toast').addEventListener('click', () => {
-				window.giteaShowErrorToast('error 🙁');
-			});
-		</script>
 	</div>
 
 	<div>
@@ -267,12 +252,6 @@
 		<div>ps: no JS code attached, so just a layout</div>
 		{{template "shared/combomarkdowneditor" .}}
 	</div>
-
-	<style>
-		h1, h2 {
-			margin: 0;
-			padding: 10px 0;
-		}
-	</style>
+	<script src="{{AssetUrlPrefix}}/js/devtest.js?v={{AssetVersion}}"></script>
 </div>
 {{template "base/footer" .}}

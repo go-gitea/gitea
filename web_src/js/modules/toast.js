@@ -58,10 +58,3 @@ export async function showWarningToast(message, opts) {
 export async function showErrorToast(message, opts) {
   return await showToast(message, 'error', opts);
 }
-
-// export for devtest page in development
-if (process.env.NODE_ENV === 'development') {
-  window.giteaShowInfoToast = showInfoToast;
-  window.giteaShowWarningToast = showWarningToast;
-  window.giteaShowErrorToast = showErrorToast;
-}
