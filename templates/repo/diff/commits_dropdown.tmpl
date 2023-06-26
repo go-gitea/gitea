@@ -1,0 +1,32 @@
+<div class="ui dropdown tiny basic button" data-tooltip-content="{{.locale.Tr "repo.pulls.select_commits"}}">
+	{{svg "octicon-git-commit"}}
+	<div class="menu">
+		<a class="vertical item" href="{{$.Issue.Link}}/files?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}">
+			<span class="description">
+				{{.locale.Tr "repo.pulls.show_all_commits.description"}}
+			</span>
+			<span class="text">
+				<input class="gt-mr-3 gt-pointer-events-none" type="radio"{{if .IsShowingAllCommits}} checked{{end}}>
+				{{.locale.Tr "repo.pulls.show_all_commits"}}
+			</span>
+		</a>
+		{{range .Commits}}
+			<a class="vertical item" href="{{$.Issue.Link}}/files/{{.ID.String}}?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}">
+				<span class="description">
+					{{if .Committer}}
+						{{.Committer.Name}}
+						<td class="text right aligned">{{TimeSince .Committer.When $.locale}}</td>
+					{{else}}
+						{{.Author.Name}}
+						<td class="text right aligned">{{TimeSince .Author.When $.locale}}</td>
+					{{end}}
+				</span>
+				<div class="text">
+					<input class="gt-mr-3 gt-pointer-events-none" type="radio"{{if and (eq .ID.String $.AfterCommitID) (not $.IsShowingAllCommits)}} checked{{end}}>
+					<span class="ui compact">{{.Summary}}</span>
+					<span class="ui compact right shortsha">{{ShortSha .ID.String}}</span>
+				</div>
+			</a>
+		{{end}}
+	</div>
+</div>

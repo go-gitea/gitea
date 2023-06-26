@@ -683,6 +683,8 @@ func ViewPullCommits(ctx *context.Context) {
 
 // ViewPullFiles render pull request changed files list page
 func ViewPullFiles(ctx *context.Context) {
+	commitToShow := ctx.Params("sha")
+
 	ctx.Data["PageIsPullList"] = true
 	ctx.Data["PageIsPullFiles"] = true
 
@@ -719,8 +721,16 @@ func ViewPullFiles(ctx *context.Context) {
 	}
 
 	startCommitID = prInfo.MergeBase
-	endCommitID = headCommitID
 
+	if len(commitToShow) > 0 {
+		endCommitID = commitToShow
+		ctx.Data["IsShowingAllCommits"] = false
+	} else {
+		endCommitID = headCommitID
+		ctx.Data["IsShowingAllCommits"] = true
+	}
+
+	ctx.Data["Commits"] = prInfo.Commits
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["AfterCommitID"] = endCommitID
@@ -732,14 +742,30 @@ func ViewPullFiles(ctx *context.Context) {
 	if fileOnly && (len(files) == 2 || len(files) == 1) {
 		maxLines, maxFiles = -1, -1
 	}
-	diffOptions := &gitdiff.DiffOptions{
-		BeforeCommitID:     startCommitID,
-		AfterCommitID:      endCommitID,
-		SkipTo:             ctx.FormString("skip-to"),
-		MaxLines:           maxLines,
-		MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
-		MaxFiles:           maxFiles,
-		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
+
+	var diffOptions *gitdiff.DiffOptions
+
+	// show only a single commit for this pr
+	if len(commitToShow) > 0 {
+		diffOptions = &gitdiff.DiffOptions{
+			AfterCommitID:      endCommitID,
+			SkipTo:             ctx.FormString("skip-to"),
+			MaxLines:           maxLines,
+			MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
+			MaxFiles:           maxFiles,
+			WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
+		}
+	} else {
+		// show full PR diff
+		diffOptions = &gitdiff.DiffOptions{
+			BeforeCommitID:     startCommitID,
+			AfterCommitID:      endCommitID,
+			SkipTo:             ctx.FormString("skip-to"),
+			MaxLines:           maxLines,
+			MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
+			MaxFiles:           maxFiles,
+			WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
+		}
 	}
 
 	var methodWithError string

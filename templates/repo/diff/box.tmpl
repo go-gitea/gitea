@@ -43,11 +43,19 @@
 				{{end}}
 				{{template "repo/diff/whitespace_dropdown" .}}
 				{{template "repo/diff/options_dropdown" .}}
+				{{if .PageIsPullFiles}}
+					{{template "repo/diff/commits_dropdown" .}}
+				{{end}}
 				{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
 					{{template "repo/diff/new_review" .}}
 				{{end}}
 			</div>
 		</div>
+		{{if and (not .IsShowingAllCommits) .PageIsPullFiles}}
+			<div class="ui info message">
+				<div class="text gt-whitespace-pre">{{.locale.Tr "repo.pulls.showing_only_single_commit" (ShortSha .AfterCommitID)}}</div>
+			</div>
+		{{end}}
 		<script id="diff-data-script" type="module">
 			const diffDataFiles = [{{range $i, $file := .Diff.Files}}{Name:"{{$file.Name}}",NameHash:"{{$file.NameHash}}",Type:{{$file.Type}},IsBin:{{$file.IsBin}},Addition:{{$file.Addition}},Deletion:{{$file.Deletion}},IsViewed:{{$file.IsViewed}}},{{end}}];
 			const diffData = {
