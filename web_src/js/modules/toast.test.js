@@ -1,17 +1,17 @@
 import {test, expect} from 'vitest';
-import {showInfo, showError, showWarning} from './toast.js';
+import {showInfoToast, showErrorToast, showWarningToast} from './toast.js';
 
-test('showInfo', async () => {
-  await showInfo('success 😀', {duration: -1});
+test('showInfoToast', async () => {
+  await showInfoToast('success 😀', {duration: -1});
   expect(document.querySelector('.toastify')).toBeTruthy();
 });
 
-test('showWarning', async () => {
-  await showWarning('warning 😐', {duration: -1});
+test('showWarningToast', async () => {
+  await showWarningToast('warning 😐', {duration: -1});
   expect(document.querySelector('.toastify')).toBeTruthy();
 });
 
-test('showError', async () => {
-  await showError('error 🙁', {duration: -1});
+test('showErrorToast', async () => {
+  await showErrorToast('error 🙁', {duration: -1});
   expect(document.querySelector('.toastify')).toBeTruthy();
 });

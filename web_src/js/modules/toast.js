@@ -47,21 +47,21 @@ async function showToast(message, level, {gravity, position, duration, ...other}
   });
 }
 
-export async function showInfo(message, opts) {
+export async function showInfoToast(message, opts) {
   return await showToast(message, 'info', opts);
 }
 
-export async function showWarning(message, opts) {
+export async function showWarningToast(message, opts) {
   return await showToast(message, 'warning', opts);
 }
 
-export async function showError(message, opts) {
+export async function showErrorToast(message, opts) {
   return await showToast(message, 'error', opts);
 }
 
 // export for devtest page in development
 if (process.env.NODE_ENV === 'development') {
-  window.giteaShowInfo = showInfo;
-  window.giteaShowWarning = showWarning;
-  window.giteaShowError = showError;
+  window.giteaShowInfoToast = showInfoToast;
+  window.giteaShowWarningToast = showWarningToast;
+  window.giteaShowErrorToast = showErrorToast;
 }
