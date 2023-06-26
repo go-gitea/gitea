@@ -10,141 +10,125 @@ import (
 	"crypto/md5"
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"io"
 	"os"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/mholt/archiver/v3"
 )
 
 // Metadata for arch package.
 type Metadata struct {
-	Filename          string
-	Name              string
-	Base              string
-	Version           string
-	Description       string
-	CompressedSize    int64
-	CompressedSizeMib string
-	InstalledSize     int64
-	InstalledSizeMib  string
-	MD5               string
-	SHA256            string
-	URL               string
-	BuildDate         int64
-	BuildDateStr      string
-	BaseDomain        string
-	Packager          string
-	Provides          []string
-	License           []string
-	Arch              []string
-	Depends           []string
-	OptDepends        []string
-	MakeDepends       []string
-	CheckDepends      []string
-	Backup            []string
+	Filename       string
+	Name           string
+	Base           string
+	Version        string
+	Description    string
+	CompressedSize int64
+	InstalledSize  int64
+	MD5            string
+	SHA256         string
+	URL            string
+	BuildDate      int64
+	BaseDomain     string
+	Packager       string
+	Provides       []string
+	License        []string
+	Arch           []string
+	Depends        []string
+	OptDepends     []string
+	MakeDepends    []string
+	CheckDepends   []string
+	Backup         []string
 }
 
 // Function that recieves arch package archive data and returns it's metadata.
 func EjectMetadata(filename, domain string, pkg []byte) (*Metadata, error) {
-	pkgreader := io.LimitReader(bytes.NewReader(pkg), 250000)
-	var buf bytes.Buffer
-	err := archiver.DefaultZstd.Decompress(pkgreader, &buf)
+	pkginfo, err := getPkginfo(pkg)
 	if err != nil {
-		if !errors.Is(err, io.ErrUnexpectedEOF) {
-			return nil, err
-		}
+		return nil, err
 	}
-	splt := strings.Split(buf.String(), "PKGINFO")
-	if len(splt) < 2 {
-		return nil, errors.New("unable to eject .PKGINFO from archive")
+	var md = Metadata{
+		Filename:       filename,
+		BaseDomain:     domain,
+		CompressedSize: int64(len(pkg)),
+		MD5:            md5sum(pkg),
+		SHA256:         sha256sum(pkg),
 	}
-	raw := splt[1][0:10000]
-	inssize := int64(len(pkg))
-	compsize := ejectInt64(raw, "size")
-	unixbuilddate := ejectInt64(raw, "builddate")
-	return &Metadata{
-		Filename:          filename,
-		Name:              ejectString(raw, "pkgname"),
-		Base:              ejectString(raw, "pkgbase"),
-		Version:           ejectString(raw, "pkgver"),
-		Description:       ejectString(raw, "pkgdesc"),
-		CompressedSize:    inssize,
-		CompressedSizeMib: ByteCountSI(inssize),
-		InstalledSize:     compsize,
-		InstalledSizeMib:  ByteCountSI(compsize),
-		MD5:               md5sum(pkg),
-		SHA256:            sha256sum(pkg),
-		URL:               ejectString(raw, "url"),
-		BuildDate:         unixbuilddate,
-		BuildDateStr:      ReadableTime(unixbuilddate),
-		BaseDomain:        domain,
-		Packager:          ejectString(raw, "packager"),
-		Provides:          ejectStrings(raw, "provides"),
-		License:           ejectStrings(raw, "license"),
-		Arch:              ejectStrings(raw, "arch"),
-		Depends:           ejectStrings(raw, "depend"),
-		OptDepends:        ejectStrings(raw, "optdepend"),
-		MakeDepends:       ejectStrings(raw, "makedepend"),
-		CheckDepends:      ejectStrings(raw, "checkdepend"),
-		Backup:            ejectStrings(raw, "backup"),
-	}, nil
-}
-
-func ejectString(raw, field string) string {
-	splitted := strings.Split(raw, "\n"+field+" = ")
-	if len(splitted) < 2 {
-		return ``
-	}
-	return strings.Split(splitted[1], "\n")[0]
-}
-
-func ejectStrings(raw, field string) []string {
-	splitted := strings.Split(raw, "\n"+field+" = ")
-	if len(splitted) < 2 {
-		return nil
-	}
-	var rez []string
-	for i, v := range splitted {
-		if i == 0 {
+	for _, line := range strings.Split(pkginfo, "\n") {
+		splt := strings.Split(line, " = ")
+		if len(splt) != 2 {
 			continue
 		}
-		rez = append(rez, strings.Split(v, "\n")[0])
+		switch splt[0] {
+		case "pkgname":
+			md.Name = splt[1]
+		case "pkgbase":
+			md.Base = splt[1]
+		case "pkgver":
+			md.Version = splt[1]
+		case "pkgdesc":
+			md.Description = splt[1]
+		case "url":
+			md.URL = splt[1]
+		case "packager":
+			md.Packager = splt[1]
+		case "builddate":
+			num, err := strconv.ParseInt(splt[1], 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			md.BuildDate = num
+		case "size":
+			num, err := strconv.ParseInt(splt[1], 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			md.InstalledSize = num
+		case "provides":
+			md.Provides = append(md.Provides, splt[1])
+		case "license":
+			md.License = append(md.License, splt[1])
+		case "arch":
+			md.Arch = append(md.Arch, splt[1])
+		case "depend":
+			md.Depends = append(md.Depends, splt[1])
+		case "optdepend":
+			md.Depends = append(md.OptDepends, splt[1])
+		case "makedepend":
+			md.Depends = append(md.MakeDepends, splt[1])
+		case "checkdepend":
+			md.Depends = append(md.CheckDepends, splt[1])
+		case "backup":
+			md.Depends = append(md.Backup, splt[1])
+		}
 	}
-	return rez
+	return &md, nil
 }
 
-func ejectInt64(raw, field string) int64 {
-	splitted := strings.Split(raw, "\n"+field+" = ")
-	if len(splitted) < 2 {
-		return 0
-	}
-	i, err := strconv.ParseInt(strings.Split(splitted[1], "\n")[0], 10, 64)
+func getPkginfo(data []byte) (string, error) {
+	pkgreader := io.LimitReader(bytes.NewReader(data), 250000)
+	zstd := archiver.NewTarZstd()
+	err := zstd.Open(pkgreader, int64(250000))
 	if err != nil {
-		return 0
+		return ``, err
 	}
-	return i
-}
-
-func ByteCountSI(b int64) string {
-	const unit = 1000
-	if b < unit {
-		return fmt.Sprintf("%d B", b)
+	for {
+		f, err := zstd.Read()
+		if err != nil {
+			return ``, err
+		}
+		if f.Name() != ".PKGINFO" {
+			continue
+		}
+		b, err := io.ReadAll(f)
+		if err != nil {
+			return ``, err
+		}
+		return string(b), nil
 	}
-	div, exp := int64(unit), 0
-	for n := b / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "kMGTPE"[exp])
-}
-
-func ReadableTime(unix int64) string {
-	return time.Unix(unix, 0).Format(time.DateTime)
 }
 
 func md5sum(data []byte) string {
