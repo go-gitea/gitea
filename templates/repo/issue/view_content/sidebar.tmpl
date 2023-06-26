@@ -192,9 +192,9 @@
 			</div>
 		</div>
 		<div class="ui select-project list">
-			<span class="no-select item {{if .Issue.ProjectID}}gt-hidden{{end}}">{{.locale.Tr "repo.issues.new.no_projects"}}</span>
+			<span class="no-select item {{if .Issue.Project}}gt-hidden{{end}}">{{.locale.Tr "repo.issues.new.no_projects"}}</span>
 			<div class="selected">
-				{{if .Issue.ProjectID}}
+				{{if .Issue.Project}}
 					<a class="item muted sidebar-item-link" href="{{.Issue.Project.Link}}">
 						{{svg .Issue.Project.IconName 18 "gt-mr-3"}}{{.Issue.Project.Title}}
 					</a>
