@@ -378,9 +378,14 @@ func UpdateIssueProject(ctx *context.Context) {
 		return
 	}
 
+	if err := issues.LoadProjects(ctx); err != nil {
+		ctx.ServerError("LoadProjects", err)
+		return
+	}
+
 	projectID := ctx.FormInt64("id")
 	for _, issue := range issues {
-		oldProjectID := issue.ProjectID()
+		oldProjectID := issue.Project.ID
 		if oldProjectID == projectID {
 			continue
 		}
