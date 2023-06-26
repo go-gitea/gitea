@@ -3100,16 +3100,35 @@ tbody.commit-list {
   }
 }
 
-.repository.migrate .card {
+.migrate-entries {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 25px;
+  margin: 0 !important;
+}
+
+@media (max-width: 767.98px) {
+  .migrate-entries {
+    grid-template-columns: repeat(1, 1fr);
+  }
+}
+
+.migrate-entry {
   transition: all 0.1s ease-in-out;
   box-shadow: none !important;
   border: 1px solid var(--color-secondary);
-  color: var(--color-text);
+  color: var(--color-text) !important;
+  width: auto !important;
+  margin: 0 !important;
 }
 
-.repository.migrate .card:hover {
+.migrate-entry:hover {
   transform: scale(105%);
   box-shadow: 0 0.5rem 1rem var(--color-shadow) !important;
+}
+
+.migrate-entry .description {
+  text-wrap: balance;
 }
 
 @media (max-width: 767.98px) {
