@@ -445,9 +445,9 @@ const sfc = {
       if (!this.currentJobStepsStates[step].expanded) await this.toggleStepLogs(step);
       console.log('toggletoggle');
       const logline = this.$refs.steps.querySelector(`${this.selectedLog}`);
-      logline.click();
       const offset = logSummary.offsetHeight + document.querySelector('.job-info-header').offsetHeight;
-      console.log(logline.parentElement, offset);
+      console.log(logline.parentElement, offset, logline.parentElement.getBoundingClientRect().top);
+      // if (logline.parentElement.getBoundingClientRect().top >= offset) return;
       window.scrollTo({top: logline.parentElement.offsetTop - offset, behavior: 'instant' });
     }
   },
