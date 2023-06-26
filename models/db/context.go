@@ -7,8 +7,8 @@ import (
 	"context"
 	"database/sql"
 
+	"xorm.io/builder"
 	"xorm.io/xorm"
-	"xorm.io/xorm/schemas"
 )
 
 // DefaultContext is the default context to run xorm queries in
@@ -183,11 +183,47 @@ func DeleteByBean(ctx context.Context, bean interface{}) (int64, error) {
 	return GetEngine(ctx).Delete(bean)
 }
 
-// DeleteBeans deletes all given beans, beans should contain delete conditions.
+// DeleteByID deletes the given bean with the given ID
+func DeleteByID(ctx context.Context, id int64, bean interface{}) (int64, error) {
+	return GetEngine(ctx).ID(id).NoAutoTime().Delete(bean)
+}
+
+// FindIDs finds the IDs for the given table name satisfying the given condition
+// By passing a different value than "id" for "idCol", you can query for foreign IDs, i.e. the repo IDs which satisfy the condition
+func FindIDs(ctx context.Context, tableName, idCol string, cond builder.Cond) ([]int64, error) {
+	ids := make([]int64, 0, 10)
+	if err := GetEngine(ctx).Table(tableName).
+		Cols(idCol).
+		Where(cond).
+		Find(&ids); err != nil {
+		return nil, err
+	}
+	return ids, nil
+}
+
+// DecrByIDs decreases the given column for entities of the "bean" type with one of the given ids by one
+// Timestamps of the entities won't be updated
+func DecrByIDs(ctx context.Context, ids []int64, decrCol string, bean interface{}) error {
+	_, err := GetEngine(ctx).Decr(decrCol).In("id", ids).NoAutoCondition().NoAutoTime().Update(bean)
+	return err
+}
+
+// DeleteBeans deletes all given beans, beans must contain delete conditions.
 func DeleteBeans(ctx context.Context, beans ...interface{}) (err error) {
 	e := GetEngine(ctx)
 	for i := range beans {
 		if _, err = e.Delete(beans[i]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// TruncateBeans deletes all given beans, beans may contain delete conditions.
+func TruncateBeans(ctx context.Context, beans ...interface{}) (err error) {
+	e := GetEngine(ctx)
+	for i := range beans {
+		if _, err = e.Truncate(beans[i]); err != nil {
 			return err
 		}
 	}
@@ -202,30 +238,6 @@ func CountByBean(ctx context.Context, bean interface{}) (int64, error) {
 // TableName returns the table name according a bean object
 func TableName(bean interface{}) string {
 	return x.TableName(bean)
-}
-
-// EstimateCount returns an estimate of total number of rows in table
-func EstimateCount(ctx context.Context, bean interface{}) (int64, error) {
-	e := GetEngine(ctx)
-	e.Context(ctx)
-
-	var rows int64
-	var err error
-	tablename := TableName(bean)
-	switch x.Dialect().URI().DBType {
-	case schemas.MYSQL:
-		_, err = e.Context(ctx).SQL("SELECT table_rows FROM information_schema.tables WHERE tables.table_name = ? AND tables.table_schema = ?;", tablename, x.Dialect().URI().DBName).Get(&rows)
-	case schemas.POSTGRES:
-		// the table can live in multiple schemas of a postgres database
-		// See https://wiki.postgresql.org/wiki/Count_estimate
-		tablename = x.TableName(bean, true)
-		_, err = e.Context(ctx).SQL("SELECT reltuples::bigint AS estimate FROM pg_class WHERE oid = ?::regclass;", tablename).Get(&rows)
-	case schemas.MSSQL:
-		_, err = e.Context(ctx).SQL("sp_spaceused ?;", tablename).Get(&rows)
-	default:
-		return e.Context(ctx).Count(tablename)
-	}
-	return rows, err
 }
 
 // InTransaction returns true if the engine is in a transaction otherwise return false

@@ -1,20 +1,20 @@
 {{if .Flash.ErrorMsg}}
-	<div class="ui negative message flash-error">
+	<div class="ui negative message flash-message flash-error">
 		<p>{{.Flash.ErrorMsg | Str2html}}</p>
 	</div>
 {{end}}
 {{if .Flash.SuccessMsg}}
-	<div class="ui positive message flash-success">
+	<div class="ui positive message flash-message flash-success">
 		<p>{{.Flash.SuccessMsg | Str2html}}</p>
 	</div>
 {{end}}
 {{if .Flash.InfoMsg}}
-	<div class="ui info message flash-info">
+	<div class="ui info message flash-message flash-info">
 		<p>{{.Flash.InfoMsg | Str2html}}</p>
 	</div>
 {{end}}
 {{if .Flash.WarningMsg}}
-	<div class="ui warning message flash-warning">
+	<div class="ui warning message flash-message flash-warning">
 		<p>{{.Flash.WarningMsg | Str2html}}</p>
 	</div>
 {{end}}

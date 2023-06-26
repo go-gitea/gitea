@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 
 const $service = $('#service_type');
 const $user = $('#auth_username');
@@ -18,7 +19,7 @@ export function initRepoMigration() {
   $pass.on('keyup', () => {checkItems(false)});
   $token.on('keyup', () => {checkItems(true)});
   $mirror.on('change', () => {checkItems(true)});
-  $('#lfs_settings_show').on('click', () => { $lfsEndpoint.show(); return false });
+  $('#lfs_settings_show').on('click', () => { showElem($lfsEndpoint); return false });
   $lfs.on('change', setLFSSettingsVisibility);
 
   const $cloneAddr = $('#clone_addr');
@@ -57,6 +58,6 @@ function checkItems(tokenAuth) {
 
 function setLFSSettingsVisibility() {
   const visible = $lfs.is(':checked');
-  $lfsSettings.toggle(visible);
-  $lfsEndpoint.hide();
+  toggleElem($lfsSettings, visible);
+  hideElem($lfsEndpoint);
 }

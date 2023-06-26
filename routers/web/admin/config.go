@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 
@@ -100,10 +99,9 @@ func shadowPassword(provider, cfgItem string) string {
 // Config show admin config page
 func Config(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.config")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminConfig"] = true
 
-	systemSettings, err := system_model.GetAllSettings()
+	systemSettings, err := system_model.GetAllSettings(ctx)
 	if err != nil {
 		ctx.ServerError("system_model.GetAllSettings", err)
 		return
@@ -115,9 +113,9 @@ func Config(ctx *context.Context) {
 
 	ctx.Data["CustomConf"] = setting.CustomConf
 	ctx.Data["AppUrl"] = setting.AppURL
+	ctx.Data["AppBuiltWith"] = setting.AppBuiltWith
 	ctx.Data["Domain"] = setting.Domain
 	ctx.Data["OfflineMode"] = setting.OfflineMode
-	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
 	ctx.Data["RunUser"] = setting.RunUser
 	ctx.Data["RunMode"] = util.ToTitleCase(setting.RunMode)
 	ctx.Data["GitVersion"] = git.VersionInfo()
@@ -125,7 +123,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["RepoRootPath"] = setting.RepoRootPath
 	ctx.Data["CustomRootPath"] = setting.CustomPath
 	ctx.Data["StaticRootPath"] = setting.StaticRootPath
-	ctx.Data["LogRootPath"] = setting.LogRootPath
+	ctx.Data["LogRootPath"] = setting.Log.RootPath
 	ctx.Data["ScriptType"] = setting.ScriptType
 	ctx.Data["ReverseProxyAuthUser"] = setting.ReverseProxyAuthUser
 	ctx.Data["ReverseProxyAuthEmail"] = setting.ReverseProxyAuthEmail
@@ -168,26 +166,10 @@ func Config(ctx *context.Context) {
 	ctx.Data["SessionConfig"] = sessionCfg
 
 	ctx.Data["Git"] = setting.Git
-
-	type envVar struct {
-		Name, Value string
-	}
-
-	envVars := map[string]*envVar{}
-	if len(os.Getenv("GITEA_WORK_DIR")) > 0 {
-		envVars["GITEA_WORK_DIR"] = &envVar{"GITEA_WORK_DIR", os.Getenv("GITEA_WORK_DIR")}
-	}
-	if len(os.Getenv("GITEA_CUSTOM")) > 0 {
-		envVars["GITEA_CUSTOM"] = &envVar{"GITEA_CUSTOM", os.Getenv("GITEA_CUSTOM")}
-	}
-
-	ctx.Data["EnvVars"] = envVars
-	ctx.Data["Loggers"] = setting.GetLogDescriptions()
-	ctx.Data["EnableAccessLog"] = setting.EnableAccessLog
-	ctx.Data["AccessLogTemplate"] = setting.AccessLogTemplate
-	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
-	ctx.Data["EnableXORMLog"] = setting.EnableXORMLog
+	ctx.Data["AccessLogTemplate"] = setting.Log.AccessLogTemplate
 	ctx.Data["LogSQL"] = setting.Database.LogSQL
+
+	ctx.Data["Loggers"] = log.GetManager().DumpLoggers()
 
 	ctx.HTML(http.StatusOK, tplConfig)
 }
@@ -213,7 +195,7 @@ func ChangeConfig(ctx *context.Context) {
 		}
 	}
 
-	if err := system_model.SetSetting(&system_model.Setting{
+	if err := system_model.SetSetting(ctx, &system_model.Setting{
 		SettingKey:   key,
 		SettingValue: value,
 		Version:      version,

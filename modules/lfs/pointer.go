@@ -4,7 +4,6 @@
 package lfs
 
 import (
-	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -14,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
+	"github.com/minio/sha256-simd"
 )
 
 const (
@@ -112,15 +111,11 @@ func (p Pointer) RelativePath() string {
 	return path.Join(p.Oid[0:2], p.Oid[2:4], p.Oid[4:])
 }
 
-// ColorFormat provides a basic color format for a Team
-func (p Pointer) ColorFormat(s fmt.State) {
+func (p Pointer) LogString() string {
 	if p.Oid == "" && p.Size == 0 {
-		log.ColorFprintf(s, "<empty>")
-		return
+		return "<LFSPointer empty>"
 	}
-	log.ColorFprintf(s, "%s:%d",
-		log.NewColoredIDValue(p.Oid),
-		p.Size)
+	return fmt.Sprintf("<LFSPointer %s:%d>", p.Oid, p.Size)
 }
 
 // GeneratePointer generates a pointer for arbitrary content

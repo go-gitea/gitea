@@ -15,12 +15,13 @@ import (
 
 // SessionConfig defines Session settings
 var SessionConfig = struct {
-	Provider string
+	OriginalProvider string
+	Provider         string
 	// Provider configuration, it's corresponding to provider.
 	ProviderConfig string
 	// Cookie name to save session ID. Default is "MacaronSession".
 	CookieName string
-	// Cookie path to store. Default is "/".
+	// Cookie path to store. Default is "/". HINT: there was a bug, the old value doesn't have trailing slash, and could be empty "".
 	CookiePath string
 	// GC interval time in seconds. Default is 3600.
 	Gclifetime int64
@@ -39,8 +40,8 @@ var SessionConfig = struct {
 	SameSite:    http.SameSiteLaxMode,
 }
 
-func newSessionService() {
-	sec := Cfg.Section("session")
+func loadSessionFrom(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("session")
 	SessionConfig.Provider = sec.Key("PROVIDER").In("memory",
 		[]string{"memory", "file", "redis", "mysql", "postgres", "couchbase", "memcache", "db"})
 	SessionConfig.ProviderConfig = strings.Trim(sec.Key("PROVIDER_CONFIG").MustString(path.Join(AppDataPath, "sessions")), "\" ")
@@ -48,7 +49,7 @@ func newSessionService() {
 		SessionConfig.ProviderConfig = path.Join(AppWorkPath, SessionConfig.ProviderConfig)
 	}
 	SessionConfig.CookieName = sec.Key("COOKIE_NAME").MustString("i_like_gitea")
-	SessionConfig.CookiePath = AppSubURL
+	SessionConfig.CookiePath = AppSubURL + "/" // there was a bug, old code only set CookePath=AppSubURL, no trailing slash
 	SessionConfig.Secure = sec.Key("COOKIE_SECURE").MustBool(false)
 	SessionConfig.Gclifetime = sec.Key("GC_INTERVAL_TIME").MustInt64(86400)
 	SessionConfig.Maxlifetime = sec.Key("SESSION_LIFE_TIME").MustInt64(86400)
@@ -67,6 +68,7 @@ func newSessionService() {
 		log.Fatal("Can't shadow session config: %v", err)
 	}
 	SessionConfig.ProviderConfig = string(shadowConfig)
+	SessionConfig.OriginalProvider = SessionConfig.Provider
 	SessionConfig.Provider = "VirtualSession"
 
 	log.Info("Session Service Enabled")

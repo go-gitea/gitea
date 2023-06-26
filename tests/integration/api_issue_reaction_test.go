@@ -29,7 +29,7 @@ func TestAPIIssuesReactions(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/reactions?token=%s",
@@ -65,7 +65,7 @@ func TestAPIIssuesReactions(t *testing.T) {
 	DecodeJSON(t, resp, &apiReactions)
 	expectResponse := make(map[int]api.Reaction)
 	expectResponse[0] = api.Reaction{
-		User:     convert.ToUser(user2, user2),
+		User:     convert.ToUser(db.DefaultContext, user2, user2),
 		Reaction: "eyes",
 		Created:  time.Unix(1573248003, 0),
 	}
@@ -88,7 +88,7 @@ func TestAPICommentReactions(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
 	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
@@ -125,12 +125,12 @@ func TestAPICommentReactions(t *testing.T) {
 	DecodeJSON(t, resp, &apiReactions)
 	expectResponse := make(map[int]api.Reaction)
 	expectResponse[0] = api.Reaction{
-		User:     convert.ToUser(user2, user2),
+		User:     convert.ToUser(db.DefaultContext, user2, user2),
 		Reaction: "laugh",
 		Created:  time.Unix(1573248004, 0),
 	}
 	expectResponse[1] = api.Reaction{
-		User:     convert.ToUser(user1, user1),
+		User:     convert.ToUser(db.DefaultContext, user1, user1),
 		Reaction: "laugh",
 		Created:  time.Unix(1573248005, 0),
 	}

@@ -13,7 +13,7 @@
 				<li {{if .PageIsSettingsGitHooks}}class="current"{{end}}><a href="{{.RepoLink}}/settings/hooks/git">{{.locale.Tr "repo.settings.githooks"}}</a></li>
 			{{end}}
 			<li {{if .PageIsSettingsKeys}}class="current"{{end}}><a href="{{.RepoLink}}/settings/keys">{{.locale.Tr "repo.settings.deploy_keys"}}</a></li>
-			<li {{if .PageIsSettingsSecrets}}class="current"{{end}}><a href="{{.RepoLink}}/settings/secrets">{{.locale.Tr "secrets.secrets"}}</a></li>
+			<li {{if .PageIsSharedSettingsSecrets}}class="current"{{end}}><a href="{{.RepoLink}}/settings/secrets">{{.locale.Tr "secrets.secrets"}}</a></li>
 		</ul>
 	</div>
 </div>

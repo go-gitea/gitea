@@ -5,7 +5,6 @@ package integration
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"fmt"
 	"net/http"
 	"strings"
@@ -20,10 +19,12 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	packages_service "code.gitea.io/gitea/services/packages"
 	packages_cleanup_service "code.gitea.io/gitea/services/packages/cleanup"
 	"code.gitea.io/gitea/tests"
 
+	"github.com/minio/sha256-simd"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,7 +34,7 @@ func TestPackageAPI(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 	session := loginUser(t, user.Name)
 	tokenReadPackage := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadPackage)
-	tokenDeletePackage := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeDeletePackage)
+	tokenDeletePackage := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWritePackage)
 
 	packageName := "test-package"
 	packageVersion := "1.0.3"
@@ -156,6 +157,7 @@ func TestPackageAccess(t *testing.T) {
 	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 	inactive := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 9})
+	privatedOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 23})
 
 	uploadPackage := func(doer, owner *user_model.User, expectedStatus int) {
 		url := fmt.Sprintf("/api/packages/%s/generic/test-package/1.0/file.bin", owner.Name)
@@ -169,6 +171,15 @@ func TestPackageAccess(t *testing.T) {
 	uploadPackage(inactive, user, http.StatusUnauthorized)
 	uploadPackage(admin, inactive, http.StatusCreated)
 	uploadPackage(admin, user, http.StatusCreated)
+
+	// team.authorize is write, but team_unit.access_mode is none
+	// so the user can not upload packages or get package list
+	uploadPackage(user, privatedOrg, http.StatusUnauthorized)
+
+	session := loginUser(t, user.Name)
+	tokenReadPackage := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadPackage)
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s?token=%s", privatedOrg.Name, tokenReadPackage))
+	MakeRequest(t, req, http.StatusForbidden)
 }
 
 func TestPackageQuota(t *testing.T) {
@@ -235,16 +246,35 @@ func TestPackageQuota(t *testing.T) {
 func TestPackageCleanup(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
 	duration, _ := time.ParseDuration("-1h")
 
 	t.Run("Common", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
+		// Upload and delete a generic package and upload a container blob
+		data, _ := util.CryptoRandomBytes(5)
+		url := fmt.Sprintf("/api/packages/%s/generic/cleanup-test/1.1.1/file.bin", user.Name)
+		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(data))
+		AddBasicAuthHeader(req, user.Name)
+		MakeRequest(t, req, http.StatusCreated)
+
+		req = NewRequest(t, "DELETE", url)
+		AddBasicAuthHeader(req, user.Name)
+		MakeRequest(t, req, http.StatusNoContent)
+
+		data, _ = util.CryptoRandomBytes(5)
+		url = fmt.Sprintf("/v2/%s/cleanup-test/blobs/uploads?digest=sha256:%x", user.Name, sha256.Sum256(data))
+		req = NewRequestWithBody(t, "POST", url, bytes.NewReader(data))
+		AddBasicAuthHeader(req, user.Name)
+		MakeRequest(t, req, http.StatusCreated)
+
 		pbs, err := packages_model.FindExpiredUnreferencedBlobs(db.DefaultContext, duration)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, pbs)
 
-		_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, 2, packages_model.TypeContainer, "test", container_model.UploadVersion)
+		_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, "cleanup-test", container_model.UploadVersion)
 		assert.NoError(t, err)
 
 		err = packages_cleanup_service.Cleanup(db.DefaultContext, duration)
@@ -254,14 +284,12 @@ func TestPackageCleanup(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Empty(t, pbs)
 
-		_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, 2, packages_model.TypeContainer, "test", container_model.UploadVersion)
+		_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, "cleanup-test", container_model.UploadVersion)
 		assert.ErrorIs(t, err, packages_model.ErrPackageNotExist)
 	})
 
 	t.Run("CleanupRules", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 		type version struct {
 			Version     string

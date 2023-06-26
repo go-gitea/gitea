@@ -142,24 +142,21 @@ type IndexVersionEntry struct {
 	Links        string                     `json:"links,omitempty"`
 }
 
-func addOrUpdatePackageIndex(ctx context.Context, t *files_service.TemporaryUploadRepository, p *packages_model.Package) error {
+func BuildPackageIndex(ctx context.Context, p *packages_model.Package) (*bytes.Buffer, error) {
 	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 		PackageID: p.ID,
 		Sort:      packages_model.SortVersionAsc,
 	})
 	if err != nil {
-		return fmt.Errorf("SearchVersions[%s]: %w", p.Name, err)
+		return nil, fmt.Errorf("SearchVersions[%s]: %w", p.Name, err)
 	}
-
-	path := BuildPackagePath(p.LowerName)
-
 	if len(pvs) == 0 {
-		return t.RemoveFilesFromIndex(path)
+		return nil, nil
 	}
 
 	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
-		return fmt.Errorf("GetPackageDescriptors[%s]: %w", p.Name, err)
+		return nil, fmt.Errorf("GetPackageDescriptors[%s]: %w", p.Name, err)
 	}
 
 	var b bytes.Buffer
@@ -187,14 +184,29 @@ func addOrUpdatePackageIndex(ctx context.Context, t *files_service.TemporaryUplo
 			Links:        metadata.Links,
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		b.Write(entry)
 		b.WriteString("\n")
 	}
 
-	return writeObjectToIndex(t, path, &b)
+	return &b, nil
+}
+
+func addOrUpdatePackageIndex(ctx context.Context, t *files_service.TemporaryUploadRepository, p *packages_model.Package) error {
+	b, err := BuildPackageIndex(ctx, p)
+	if err != nil {
+		return err
+	}
+
+	path := BuildPackagePath(p.LowerName)
+
+	if b == nil {
+		return t.RemoveFilesFromIndex(path)
+	}
+
+	return writeObjectToIndex(t, path, b)
 }
 
 func getOrCreateIndexRepository(ctx context.Context, doer, owner *user_model.User) (*repo_model.Repository, error) {
@@ -220,6 +232,13 @@ type Config struct {
 	APIURL      string `json:"api"`
 }
 
+func BuildConfig(owner *user_model.User) *Config {
+	return &Config{
+		DownloadURL: setting.AppURL + "api/packages/" + owner.Name + "/cargo/api/v1/crates",
+		APIURL:      setting.AppURL + "api/packages/" + owner.Name + "/cargo",
+	}
+}
+
 func createOrUpdateConfigFile(ctx context.Context, repo *repo_model.Repository, doer, owner *user_model.User) error {
 	return alterRepositoryContent(
 		ctx,
@@ -228,10 +247,7 @@ func createOrUpdateConfigFile(ctx context.Context, repo *repo_model.Repository, 
 		"Initialize Cargo Config",
 		func(t *files_service.TemporaryUploadRepository) error {
 			var b bytes.Buffer
-			err := json.NewEncoder(&b).Encode(Config{
-				DownloadURL: setting.AppURL + "api/packages/" + owner.Name + "/cargo/api/v1/crates",
-				APIURL:      setting.AppURL + "api/packages/" + owner.Name + "/cargo",
-			})
+			err := json.NewEncoder(&b).Encode(BuildConfig(owner))
 			if err != nil {
 				return err
 			}

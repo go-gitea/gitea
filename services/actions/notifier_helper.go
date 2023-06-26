@@ -127,6 +127,11 @@ func notify(ctx context.Context, input *notifyInput) error {
 	defer gitRepo.Close()
 
 	ref := input.Ref
+	if input.Event == webhook_module.HookEventDelete {
+		// The event is deleting a reference, so it will fail to get the commit for a deleted reference.
+		// Set ref to empty string to fall back to the default branch.
+		ref = ""
+	}
 	if ref == "" {
 		ref = input.Repo.DefaultBranch
 	}
@@ -137,13 +142,46 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return fmt.Errorf("gitRepo.GetCommit: %w", err)
 	}
 
+	var detectedWorkflows []*actions_module.DetectedWorkflow
 	workflows, err := actions_module.DetectWorkflows(commit, input.Event, input.Payload)
 	if err != nil {
 		return fmt.Errorf("DetectWorkflows: %w", err)
 	}
-
 	if len(workflows) == 0 {
 		log.Trace("repo %s with commit %s couldn't find workflows", input.Repo.RepoPath(), commit.ID)
+	} else {
+		for _, wf := range workflows {
+			if wf.TriggerEvent != actions_module.GithubEventPullRequestTarget {
+				wf.Ref = ref
+				detectedWorkflows = append(detectedWorkflows, wf)
+			}
+		}
+	}
+
+	if input.PullRequest != nil {
+		// detect pull_request_target workflows
+		baseRef := git.BranchPrefix + input.PullRequest.BaseBranch
+		baseCommit, err := gitRepo.GetCommit(baseRef)
+		if err != nil {
+			return fmt.Errorf("gitRepo.GetCommit: %w", err)
+		}
+		baseWorkflows, err := actions_module.DetectWorkflows(baseCommit, input.Event, input.Payload)
+		if err != nil {
+			return fmt.Errorf("DetectWorkflows: %w", err)
+		}
+		if len(baseWorkflows) == 0 {
+			log.Trace("repo %s with commit %s couldn't find pull_request_target workflows", input.Repo.RepoPath(), baseCommit.ID)
+		} else {
+			for _, wf := range baseWorkflows {
+				if wf.TriggerEvent == actions_module.GithubEventPullRequestTarget {
+					wf.Ref = baseRef
+					detectedWorkflows = append(detectedWorkflows, wf)
+				}
+			}
+		}
+	}
+
+	if len(detectedWorkflows) == 0 {
 		return nil
 	}
 
@@ -152,37 +190,56 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return fmt.Errorf("json.Marshal: %w", err)
 	}
 
-	for id, content := range workflows {
-		run := actions_model.ActionRun{
+	isForkPullRequest := false
+	if pr := input.PullRequest; pr != nil {
+		switch pr.Flow {
+		case issues_model.PullRequestFlowGithub:
+			isForkPullRequest = pr.IsFromFork()
+		case issues_model.PullRequestFlowAGit:
+			// There is no fork concept in agit flow, anyone with read permission can push refs/for/<target-branch>/<topic-branch> to the repo.
+			// So we can treat it as a fork pull request because it may be from an untrusted user
+			isForkPullRequest = true
+		default:
+			// unknown flow, assume it's a fork pull request to be safe
+			isForkPullRequest = true
+		}
+	}
+
+	for _, dwf := range detectedWorkflows {
+		run := &actions_model.ActionRun{
 			Title:             strings.SplitN(commit.CommitMessage, "\n", 2)[0],
 			RepoID:            input.Repo.ID,
 			OwnerID:           input.Repo.OwnerID,
-			WorkflowID:        id,
+			WorkflowID:        dwf.EntryName,
 			TriggerUserID:     input.Doer.ID,
-			Ref:               ref,
-			CommitSHA:         commit.ID.String(),
-			IsForkPullRequest: input.PullRequest != nil && input.PullRequest.IsFromFork(),
+			Ref:               dwf.Ref,
+			CommitSHA:         dwf.Commit.ID.String(),
+			IsForkPullRequest: isForkPullRequest,
 			Event:             input.Event,
 			EventPayload:      string(p),
+			TriggerEvent:      dwf.TriggerEvent,
 			Status:            actions_model.StatusWaiting,
 		}
-		jobs, err := jobparser.Parse(content)
+		if need, err := ifNeedApproval(ctx, run, input.Repo, input.Doer); err != nil {
+			log.Error("check if need approval for repo %d with user %d: %v", input.Repo.ID, input.Doer.ID, err)
+			continue
+		} else {
+			run.NeedApproval = need
+		}
+
+		jobs, err := jobparser.Parse(dwf.Content)
 		if err != nil {
 			log.Error("jobparser.Parse: %v", err)
 			continue
 		}
-		if err := actions_model.InsertRun(ctx, &run, jobs); err != nil {
+		if err := actions_model.InsertRun(ctx, run, jobs); err != nil {
 			log.Error("InsertRun: %v", err)
 			continue
 		}
 		if jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: run.ID}); err != nil {
 			log.Error("FindRunJobs: %v", err)
 		} else {
-			for _, job := range jobs {
-				if err := CreateCommitStatus(ctx, job); err != nil {
-					log.Error("CreateCommitStatus: %v", err)
-				}
-			}
+			CreateCommitStatus(ctx, jobs...)
 		}
 
 	}
@@ -193,21 +250,21 @@ func newNotifyInputFromIssue(issue *issues_model.Issue, event webhook_module.Hoo
 	return newNotifyInput(issue.Repo, issue.Poster, event)
 }
 
-func notifyRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release, ref string, action api.HookReleaseAction) {
+func notifyRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release, action api.HookReleaseAction) {
 	if err := rel.LoadAttributes(ctx); err != nil {
 		log.Error("LoadAttributes: %v", err)
 		return
 	}
 
-	mode, _ := access_model.AccessLevel(ctx, doer, rel.Repo)
+	permission, _ := access_model.GetUserRepoPermission(ctx, rel.Repo, doer)
 
 	newNotifyInput(rel.Repo, doer, webhook_module.HookEventRelease).
-		WithRef(ref).
+		WithRef(git.RefNameFromTag(rel.TagName).String()).
 		WithPayload(&api.ReleasePayload{
 			Action:     action,
-			Release:    convert.ToRelease(rel),
-			Repository: convert.ToRepo(ctx, rel.Repo, mode),
-			Sender:     convert.ToUser(doer, nil),
+			Release:    convert.ToRelease(ctx, rel),
+			Repository: convert.ToRepo(ctx, rel.Repo, permission),
+			Sender:     convert.ToUser(ctx, doer, nil),
 		}).
 		Notify(ctx)
 }
@@ -230,7 +287,46 @@ func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_mo
 		WithPayload(&api.PackagePayload{
 			Action:  action,
 			Package: apiPackage,
-			Sender:  convert.ToUser(sender, nil),
+			Sender:  convert.ToUser(ctx, sender, nil),
 		}).
 		Notify(ctx)
+}
+
+func ifNeedApproval(ctx context.Context, run *actions_model.ActionRun, repo *repo_model.Repository, user *user_model.User) (bool, error) {
+	// 1. don't need approval if it's not a fork PR
+	// 2. don't need approval if the event is `pull_request_target` since the workflow will run in the context of base branch
+	// 		see https://docs.github.com/en/actions/managing-workflow-runs/approving-workflow-runs-from-public-forks#about-workflow-runs-from-public-forks
+	if !run.IsForkPullRequest || run.TriggerEvent == actions_module.GithubEventPullRequestTarget {
+		return false, nil
+	}
+
+	// always need approval if the user is restricted
+	if user.IsRestricted {
+		log.Trace("need approval because user %d is restricted", user.ID)
+		return true, nil
+	}
+
+	// don't need approval if the user can write
+	if perm, err := access_model.GetUserRepoPermission(ctx, repo, user); err != nil {
+		return false, fmt.Errorf("GetUserRepoPermission: %w", err)
+	} else if perm.CanWrite(unit_model.TypeActions) {
+		log.Trace("do not need approval because user %d can write", user.ID)
+		return false, nil
+	}
+
+	// don't need approval if the user has been approved before
+	if count, err := actions_model.CountRuns(ctx, actions_model.FindRunOptions{
+		RepoID:        repo.ID,
+		TriggerUserID: user.ID,
+		Approved:      true,
+	}); err != nil {
+		return false, fmt.Errorf("CountRuns: %w", err)
+	} else if count > 0 {
+		log.Trace("do not need approval because user %d has been approved before", user.ID)
+		return false, nil
+	}
+
+	// otherwise, need approval
+	log.Trace("need approval because it's the first time user %d triggered actions", user.ID)
+	return true, nil
 }

@@ -16,6 +16,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -47,7 +48,7 @@ func Profile(ctx *context.Context) {
 	}
 
 	// advertise feed via meta tag
-	ctx.Data["FeedURL"] = ctx.ContextUser.HTMLURL()
+	ctx.Data["FeedURL"] = ctx.ContextUser.HomeLink()
 
 	// Show OpenID URIs
 	openIDs, err := user_model.GetUserOpenIDs(ctx.ContextUser.ID)
@@ -63,7 +64,7 @@ func Profile(ctx *context.Context) {
 
 	ctx.Data["Title"] = ctx.ContextUser.DisplayName()
 	ctx.Data["PageIsUserProfile"] = true
-	ctx.Data["Owner"] = ctx.ContextUser
+	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["OpenIDs"] = openIDs
 	ctx.Data["IsFollowing"] = isFollowing
 
@@ -74,6 +75,7 @@ func Profile(ctx *context.Context) {
 			return
 		}
 		ctx.Data["HeatmapData"] = data
+		ctx.Data["HeatmapTotalContributions"] = activities_model.GetTotalContributionsInHeatmap(data)
 	}
 
 	if len(ctx.ContextUser.Description) != 0 {
@@ -88,6 +90,38 @@ func Profile(ctx *context.Context) {
 			return
 		}
 		ctx.Data["RenderedDescription"] = content
+	}
+
+	repo, err := repo_model.GetRepositoryByName(ctx.ContextUser.ID, ".profile")
+	if err == nil && !repo.IsEmpty {
+		gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+		if err != nil {
+			ctx.ServerError("OpenRepository", err)
+			return
+		}
+		defer gitRepo.Close()
+		commit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
+		if err != nil {
+			ctx.ServerError("GetBranchCommit", err)
+			return
+		}
+		blob, err := commit.GetBlobByPath("README.md")
+		if err == nil {
+			bytes, err := blob.GetBlobContent(setting.UI.MaxDisplayFileSize)
+			if err != nil {
+				ctx.ServerError("GetBlobContent", err)
+				return
+			}
+			profileContent, err := markdown.RenderString(&markup.RenderContext{
+				Ctx:     ctx,
+				GitRepo: gitRepo,
+			}, bytes)
+			if err != nil {
+				ctx.ServerError("RenderString", err)
+				return
+			}
+			ctx.Data["ProfileReadme"] = profileContent
+		}
 	}
 
 	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
@@ -117,6 +151,11 @@ func Profile(ctx *context.Context) {
 	page := ctx.FormInt("page")
 	if page <= 0 {
 		page = 1
+	}
+
+	pagingNum := setting.UI.User.RepoPagingNum
+	if tab == "activity" {
+		pagingNum = setting.UI.FeedPagingNum
 	}
 
 	topicOnly := ctx.FormBool("topic")
@@ -161,50 +200,59 @@ func Profile(ctx *context.Context) {
 	language := ctx.FormTrim("language")
 	ctx.Data["Language"] = language
 
+	followers, numFollowers, err := user_model.GetUserFollowers(ctx, ctx.ContextUser, ctx.Doer, db.ListOptions{
+		PageSize: pagingNum,
+		Page:     page,
+	})
+	if err != nil {
+		ctx.ServerError("GetUserFollowers", err)
+		return
+	}
+	ctx.Data["NumFollowers"] = numFollowers
+	following, numFollowing, err := user_model.GetUserFollowing(ctx, ctx.ContextUser, ctx.Doer, db.ListOptions{
+		PageSize: pagingNum,
+		Page:     page,
+	})
+	if err != nil {
+		ctx.ServerError("GetUserFollowing", err)
+		return
+	}
+	ctx.Data["NumFollowing"] = numFollowing
+
 	switch tab {
 	case "followers":
-		items, count, err := user_model.GetUserFollowers(ctx, ctx.ContextUser, ctx.Doer, db.ListOptions{
-			PageSize: setting.UI.User.RepoPagingNum,
-			Page:     page,
-		})
-		if err != nil {
-			ctx.ServerError("GetUserFollowers", err)
-			return
-		}
-		ctx.Data["Cards"] = items
-
+		ctx.Data["Cards"] = followers
 		total = int(count)
 	case "following":
-		items, count, err := user_model.GetUserFollowing(ctx, ctx.ContextUser, ctx.Doer, db.ListOptions{
-			PageSize: setting.UI.User.RepoPagingNum,
-			Page:     page,
-		})
-		if err != nil {
-			ctx.ServerError("GetUserFollowing", err)
-			return
-		}
-		ctx.Data["Cards"] = items
-
+		ctx.Data["Cards"] = following
 		total = int(count)
 	case "activity":
-		ctx.Data["Feeds"], err = activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
+		date := ctx.FormString("date")
+		items, count, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,
 			Actor:           ctx.Doer,
 			IncludePrivate:  showPrivate,
 			OnlyPerformedBy: true,
 			IncludeDeleted:  false,
-			Date:            ctx.FormString("date"),
-			ListOptions:     db.ListOptions{PageSize: setting.UI.FeedPagingNum},
+			Date:            date,
+			ListOptions: db.ListOptions{
+				PageSize: pagingNum,
+				Page:     page,
+			},
 		})
 		if err != nil {
 			ctx.ServerError("GetFeeds", err)
 			return
 		}
+		ctx.Data["Feeds"] = items
+		ctx.Data["Date"] = date
+
+		total = int(count)
 	case "stars":
 		ctx.Data["PageIsProfileStarList"] = true
 		repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
-				PageSize: setting.UI.User.RepoPagingNum,
+				PageSize: pagingNum,
 				Page:     page,
 			},
 			Actor:              ctx.Doer,
@@ -236,7 +284,7 @@ func Profile(ctx *context.Context) {
 	case "watching":
 		repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
-				PageSize: setting.UI.User.RepoPagingNum,
+				PageSize: pagingNum,
 				Page:     page,
 			},
 			Actor:              ctx.Doer,
@@ -258,7 +306,7 @@ func Profile(ctx *context.Context) {
 	default:
 		repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
-				PageSize: setting.UI.User.RepoPagingNum,
+				PageSize: pagingNum,
 				Page:     page,
 			},
 			Actor:              ctx.Doer,
@@ -281,17 +329,21 @@ func Profile(ctx *context.Context) {
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = total
 
-	pager := context.NewPagination(total, setting.UI.User.RepoPagingNum, page, 5)
+	pager := context.NewPagination(total, pagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "tab", "TabName")
 	if tab != "followers" && tab != "following" && tab != "activity" && tab != "projects" {
 		pager.AddParam(ctx, "language", "Language")
 	}
+	if tab == "activity" {
+		pager.AddParam(ctx, "date", "Date")
+	}
 	ctx.Data["Page"] = pager
+	ctx.Data["IsProjectEnabled"] = true
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
-	ctx.Data["ShowUserEmail"] = len(ctx.ContextUser.Email) > 0 && ctx.IsSigned && (!ctx.ContextUser.KeepEmailPrivate || ctx.ContextUser.ID == ctx.Doer.ID)
+	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail && ctx.ContextUser.Email != "" && ctx.IsSigned && !ctx.ContextUser.KeepEmailPrivate
 
 	ctx.HTML(http.StatusOK, tplProfile)
 }

@@ -1,3 +1,5 @@
+import {encode, decode} from 'uint8-to-base64';
+
 // transform /path/to/file.ext to file.ext
 export function basename(path = '') {
   return path ? path.replace(/^.*\//, '') : '';
@@ -30,27 +32,9 @@ export function isDarkTheme() {
   return style.getPropertyValue('--is-dark-theme').trim().toLowerCase() === 'true';
 }
 
-// removes duplicate elements in an array
-export function uniq(arr) {
-  return Array.from(new Set(arr));
-}
-
 // strip <tags> from a string
 export function stripTags(text) {
-  return text.replace(/<[^>]*>?/gm, '');
-}
-
-// searches the inclusive range [minValue, maxValue].
-// credits: https://matthiasott.com/notes/write-your-media-queries-in-pixels-not-ems
-export function mqBinarySearch(feature, minValue, maxValue, step, unit) {
-  if (maxValue - minValue < step) {
-    return minValue;
-  }
-  const mid = Math.ceil((minValue + maxValue) / 2 / step) * step;
-  if (matchMedia(`screen and (min-${feature}:${mid}${unit})`).matches) {
-    return mqBinarySearch(feature, mid, maxValue, step, unit); // feature is >= mid
-  }
-  return mqBinarySearch(feature, minValue, mid - step, step, unit); // feature is < mid
+  return text.replace(/<[^>]*>?/g, '');
 }
 
 export function parseIssueHref(href) {
@@ -59,20 +43,13 @@ export function parseIssueHref(href) {
   return {owner, repo, type, index};
 }
 
-// pretty-print a number using locale-specific separators, e.g. 1200 -> 1,200
-export function prettyNumber(num, locale = 'en-US') {
-  if (typeof num !== 'number') return '';
-  const {format} = new Intl.NumberFormat(locale);
-  return format(num);
-}
-
 // parse a URL, either relative '/path' or absolute 'https://localhost/path'
 export function parseUrl(str) {
   return new URL(str, str.startsWith('http') ? undefined : window.location.origin);
 }
 
 // return current locale chosen by user
-function getCurrentLocale() {
+export function getCurrentLocale() {
   return document.documentElement.lang;
 }
 
@@ -134,9 +111,30 @@ export function convertImage(blob, mime) {
   });
 }
 
-export function toAbsoluteUrl(relUrl) {
-  if (relUrl.startsWith('http://') || relUrl.startsWith('https://')) {
-    return relUrl;
+export function toAbsoluteUrl(url) {
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
   }
-  return `${window.location.origin}${relUrl}`;
+  if (url.startsWith('//')) {
+    return `${window.location.protocol}${url}`; // it's also a somewhat absolute URL (with the current scheme)
+  }
+  if (url && !url.startsWith('/')) {
+    throw new Error('unsupported url, it should either start with / or http(s)://');
+  }
+  return `${window.location.origin}${url}`;
+}
+
+// Encode an ArrayBuffer into a URLEncoded base64 string.
+export function encodeURLEncodedBase64(arrayBuffer) {
+  return encode(arrayBuffer)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+}
+
+// Decode a URLEncoded base64 to an ArrayBuffer string.
+export function decodeURLEncodedBase64(base64url) {
+  return decode(base64url
+    .replace(/_/g, '/')
+    .replace(/-/g, '+'));
 }

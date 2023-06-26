@@ -21,8 +21,11 @@ const (
 // Organizations show all the organizations
 func Organizations(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.organizations")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminOrganizations"] = true
+
+	if ctx.FormString("sort") == "" {
+		ctx.SetFormString("sort", explore.UserSearchDefaultAdminSort)
+	}
 
 	explore.RenderUserSearch(ctx, &user_model.SearchUserOptions{
 		Actor: ctx.Doer,

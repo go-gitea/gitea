@@ -1,6 +1,7 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
+//nolint:forbidigo
 package main
 
 import (
@@ -16,7 +17,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/google/go-github/v45/github"
+	"github.com/google/go-github/v53/github"
 	"github.com/urfave/cli"
 	"gopkg.in/yaml.v3"
 )
@@ -79,6 +80,10 @@ func main() {
 			Name:  "no-xdg-open",
 			Usage: "Set this flag to not use xdg-open to open the PR URL",
 		},
+		cli.BoolFlag{
+			Name:  "continue",
+			Usage: "Set this flag to continue from a git cherry-pick that has broken",
+		},
 	}
 	cli.AppHelpTemplate = `NAME:
 	{{.Name}} - {{.Usage}}
@@ -104,7 +109,19 @@ func runBackport(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
+	continuing := c.Bool("continue")
+
+	var pr string
+
 	version := c.String("version")
+	if version == "" && continuing {
+		// determine version from current branch name
+		var err error
+		pr, version, err = readCurrentBranch(ctx)
+		if err != nil {
+			return err
+		}
+	}
 	if version == "" {
 		version = readVersion()
 	}
@@ -135,13 +152,14 @@ func runBackport(c *cli.Context) error {
 	localReleaseBranch := path.Join(upstream, upstreamReleaseBranch)
 
 	args := c.Args()
-	if len(args) == 0 {
+	if len(args) == 0 && pr == "" {
 		return fmt.Errorf("no PR number provided\nProvide a PR number to backport")
-	} else if len(args) != 1 {
+	} else if len(args) != 1 && pr == "" {
 		return fmt.Errorf("multiple PRs provided %v\nOnly a single PR can be backported at a time", args)
 	}
-
-	pr := args[0]
+	if pr == "" {
+		pr = args[0]
+	}
 
 	backportBranch := c.String("backport-branch")
 	if backportBranch == "" {
@@ -168,8 +186,10 @@ func runBackport(c *cli.Context) error {
 		}
 	}
 
-	if err := checkoutBackportBranch(ctx, backportBranch, localReleaseBranch); err != nil {
-		return err
+	if !continuing {
+		if err := checkoutBackportBranch(ctx, backportBranch, localReleaseBranch); err != nil {
+			return err
+		}
 	}
 
 	if err := cherrypick(ctx, sha); err != nil {
@@ -351,6 +371,22 @@ func determineRemote(ctx context.Context, forkUser string) (string, string, erro
 		return name, forkUser, nil
 	}
 	return "", "", fmt.Errorf("unable to find appropriate remote in:\n%s", string(out))
+}
+
+func readCurrentBranch(ctx context.Context) (pr, version string, err error) {
+	out, err := exec.CommandContext(ctx, "git", "branch", "--show-current").Output()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Unable to read current git branch:\n%s\n", string(out))
+		return "", "", fmt.Errorf("unable to read current git branch: %w", err)
+	}
+	parts := strings.Split(strings.TrimSpace(string(out)), "-")
+
+	if len(parts) != 3 || parts[0] != "backport" {
+		fmt.Fprintf(os.Stderr, "Unable to continue from git branch:\n%s\n", string(out))
+		return "", "", fmt.Errorf("unable to continue from git branch:\n%s", string(out))
+	}
+
+	return parts[1], parts[2], nil
 }
 
 func readVersion() string {

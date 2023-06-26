@@ -136,6 +136,8 @@ func Validate(errs binding.Errors, data map[string]interface{}, f Form, l transl
 				data["ErrorMsg"] = trName + l.Tr("form.regex_pattern_error", errs[0].Message)
 			case validation.ErrUsername:
 				data["ErrorMsg"] = trName + l.Tr("form.username_error")
+			case validation.ErrInvalidGroupTeamMap:
+				data["ErrorMsg"] = trName + l.Tr("form.invalid_group_team_map_error", errs[0].Message)
 			default:
 				msg := errs[0].Classification
 				if msg != "" && errs[0].Message != "" {

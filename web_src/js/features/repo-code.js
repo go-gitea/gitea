@@ -2,7 +2,8 @@ import $ from 'jquery';
 import {svg} from '../svg.js';
 import {invertFileFolding} from './file-fold.js';
 import {createTippy} from '../modules/tippy.js';
-import {copyToClipboard} from './clipboard.js';
+import {clippie} from 'clippie';
+import {toAbsoluteUrl} from '../utils.js';
 
 export const singleAnchorRegex = /^#(L|n)([1-9][0-9]*)$/;
 export const rangeAnchorRegex = /^#(L[1-9][0-9]*)-(L[1-9][0-9]*)$/;
@@ -19,17 +20,18 @@ function selectRange($list, $select, $from) {
   $list.removeClass('active');
 
   // add hashchange to permalink
-  const $issue = $('a.ref-in-new-issue');
+  const $refInNewIssue = $('a.ref-in-new-issue');
   const $copyPermalink = $('a.copy-line-permalink');
   const $viewGitBlame = $('a.view_git_blame');
 
   const updateIssueHref = function (anchor) {
-    if ($issue.length === 0) {
+    if ($refInNewIssue.length === 0) {
       return;
     }
-    let href = $issue.attr('href');
-    href = `${href.replace(/%23L\d+$|%23L\d+-L\d+$/, '')}%23${anchor}`;
-    $issue.attr('href', href);
+    const urlIssueNew = $refInNewIssue.attr('data-url-issue-new');
+    const urlParamBodyLink = $refInNewIssue.attr('data-url-param-body-link');
+    const issueContent = `${toAbsoluteUrl(urlParamBodyLink)}#${anchor}`; // the default content for issue body
+    $refInNewIssue.attr('href', `${urlIssueNew}?body=${encodeURIComponent(issueContent)}`);
   };
 
   const updateViewGitBlameFragment = function (anchor) {
@@ -102,14 +104,19 @@ function showLineButton() {
   td.prepend(btn);
 
   // put a copy of the menu back into DOM for the next click
-  btn.closest('.code-view').appendChild(menu.cloneNode(true));
+  btn.closest('.code-view').append(menu.cloneNode(true));
 
   createTippy(btn, {
     trigger: 'click',
+    hideOnClick: true,
     content: menu,
     placement: 'right-start',
-    role: 'menu',
-    interactive: 'true',
+    interactive: true,
+    onShow: (tippy) => {
+      tippy.popper.addEventListener('click', () => {
+        tippy.hide();
+      }, {once: true});
+    }
   });
 }
 
@@ -179,7 +186,7 @@ export function initRepoCodeView() {
   $(document).on('click', '.fold-file', ({currentTarget}) => {
     invertFileFolding(currentTarget.closest('.file-content'), currentTarget);
   });
-  $(document).on('click', '.blob-excerpt', async ({currentTarget}) => {
+  $(document).on('click', '.code-expander-button', async ({currentTarget}) => {
     const url = currentTarget.getAttribute('data-url');
     const query = currentTarget.getAttribute('data-query');
     const anchor = currentTarget.getAttribute('data-anchor');
@@ -188,8 +195,6 @@ export function initRepoCodeView() {
     currentTarget.closest('tr').outerHTML = blob;
   });
   $(document).on('click', '.copy-line-permalink', async (e) => {
-    const success = await copyToClipboard(e.currentTarget.getAttribute('data-url'));
-    if (!success) return;
-    document.querySelector('.code-line-button')?._tippy?.hide();
+    await clippie(toAbsoluteUrl(e.currentTarget.getAttribute('data-url')));
   });
 }

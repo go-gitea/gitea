@@ -117,10 +117,10 @@ func TestAPIUpdateFile(t *testing.T) {
 
 		// Get user2's token
 		session := loginUser(t, user2.Name)
-		token2 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+		token2 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 		// Get user4's token
 		session = loginUser(t, user4.Name)
-		token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+		token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 		// Test updating a file in repo1 which user2 owns, try both with branch and empty branch
 		for _, branch := range [...]string{
@@ -199,7 +199,7 @@ func TestAPIUpdateFile(t *testing.T) {
 		req = NewRequestWithJSON(t, "PUT", url, &updateFileOptions)
 		resp = MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &fileResponse)
-		expectedMessage := "Update '" + treePath + "'\n"
+		expectedMessage := "Update " + treePath + "\n"
 		assert.EqualValues(t, expectedMessage, fileResponse.Commit.Message)
 
 		// Test updating a file with the wrong SHA

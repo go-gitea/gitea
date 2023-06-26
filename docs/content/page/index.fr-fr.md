@@ -70,7 +70,7 @@ Le but de ce projet est de fournir de la manière la plus simple, la plus rapide
     - MSSQL
     - [TiDB](https://github.com/pingcap/tidb) (MySQL protocol)
   - Fichier de configuration
-    - Voir [ici](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
+    - Voir [ici](https://github.com/go-gitea/gitea/blob/main/custom/conf/app.example.ini)
   - Panel d'administration
     - Statistiques
     - Actions

@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/services/mailer"
 
 	gouuid "github.com/google/uuid"
 )
@@ -91,7 +90,7 @@ func (r *ReverseProxy) getUserFromAuthEmail(req *http.Request) *user_model.User 
 	}
 	log.Trace("ReverseProxy Authorization: Found email: %s", email)
 
-	user, err := user_model.GetUserByEmail(email)
+	user, err := user_model.GetUserByEmail(req.Context(), email)
 	if err != nil {
 		// Do not allow auto-registration, we don't have a username here
 		if !user_model.IsErrUserNotExist(err) {
@@ -171,8 +170,6 @@ func (r *ReverseProxy) newUser(req *http.Request) *user_model.User {
 		log.Error("CreateUser: %v", err)
 		return nil
 	}
-
-	mailer.SendRegisterNotifyMail(user)
 
 	return user
 }

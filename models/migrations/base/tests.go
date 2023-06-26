@@ -1,6 +1,7 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
+//nolint:forbidigo
 package base
 
 import (
@@ -10,7 +11,6 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
@@ -18,10 +18,13 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/testlogger"
 
 	"github.com/stretchr/testify/assert"
 	"xorm.io/xorm"
 )
+
+// FIXME: this file shouldn't be in a normal package, it should only be compiled for tests
 
 // PrepareTestEnv prepares the test environment and reset the database. The skip parameter should usually be 0.
 // Provide models to be sync'd with the database - in particular any models you expect fixtures to be loaded from.
@@ -31,7 +34,7 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 	t.Helper()
 	ourSkip := 2
 	ourSkip += skip
-	deferFn := PrintCurrentTest(t, ourSkip)
+	deferFn := testlogger.PrintCurrentTest(t, ourSkip)
 	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
 	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
@@ -109,9 +112,7 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 }
 
 func MainTest(m *testing.M) {
-	log.Register("test", NewTestLogger)
-	_, filename, _, _ := runtime.Caller(0)
-	prefix = strings.TrimSuffix(filename, "tests/testlogger.go")
+	log.RegisterEventWriter("test", testlogger.NewTestLoggerWriter)
 
 	giteaRoot := base.SetupGiteaRoot()
 	if giteaRoot == "" {
@@ -146,16 +147,16 @@ func MainTest(m *testing.M) {
 		os.Exit(1)
 	}
 
+	setting.CustomPath = filepath.Join(setting.AppWorkPath, "custom")
 	setting.AppDataPath = tmpDataPath
 
-	setting.SetCustomPathAndConf("", "", "")
-	setting.LoadForTest()
+	unittest.InitSettings()
 	if err = git.InitFull(context.Background()); err != nil {
 		fmt.Printf("Unable to InitFull: %v\n", err)
 		os.Exit(1)
 	}
-	setting.InitDBConfig()
-	setting.NewLogServices(true)
+	setting.LoadDBSetting()
+	setting.InitLoggersForTest()
 
 	exitStatus := m.Run()
 

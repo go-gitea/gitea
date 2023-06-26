@@ -49,8 +49,8 @@ var CacheService = struct {
 // MemcacheMaxTTL represents the maximum memcache TTL
 const MemcacheMaxTTL = 30 * 24 * time.Hour
 
-func newCacheService() {
-	sec := Cfg.Section("cache")
+func loadCacheFrom(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("cache")
 	if err := sec.MapTo(&CacheService); err != nil {
 		log.Fatal("Failed to map Cache settings: %v", err)
 	}
@@ -79,7 +79,7 @@ func newCacheService() {
 		Service.EnableCaptcha = false
 	}
 
-	sec = Cfg.Section("cache.last_commit")
+	sec = rootCfg.Section("cache.last_commit")
 	if !CacheService.Enabled {
 		CacheService.LastCommit.Enabled = false
 	}

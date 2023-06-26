@@ -116,7 +116,7 @@ func CheckCreateRepository(doer, u *user_model.User, name string, overwriteOrAdo
 		return err
 	}
 
-	has, err := IsRepositoryExist(db.DefaultContext, u, name)
+	has, err := IsRepositoryModelOrDirExist(db.DefaultContext, u, name)
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %w", err)
 	} else if has {
@@ -143,11 +143,11 @@ func ChangeRepositoryName(doer *user_model.User, repo *Repository, newRepoName s
 		return err
 	}
 
-	if err := repo.GetOwner(db.DefaultContext); err != nil {
+	if err := repo.LoadOwner(db.DefaultContext); err != nil {
 		return err
 	}
 
-	has, err := IsRepositoryExist(db.DefaultContext, repo.Owner, newRepoName)
+	has, err := IsRepositoryModelOrDirExist(db.DefaultContext, repo.Owner, newRepoName)
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %w", err)
 	} else if has {

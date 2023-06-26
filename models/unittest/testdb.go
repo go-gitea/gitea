@@ -6,12 +6,15 @@ package unittest
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
 	system_model "code.gitea.io/gitea/models/system"
+	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
@@ -39,6 +42,24 @@ func fatalTestError(fmtStr string, args ...interface{}) {
 	os.Exit(1)
 }
 
+// InitSettings initializes config provider and load common settings for tests
+func InitSettings(extraConfigs ...string) {
+	if setting.CustomConf == "" {
+		setting.CustomConf = filepath.Join(setting.CustomPath, "conf/app-unittest-tmp.ini")
+		_ = os.Remove(setting.CustomConf)
+	}
+	setting.InitCfgProvider(setting.CustomConf, strings.Join(extraConfigs, "\n"))
+	setting.LoadCommonSettings()
+
+	if err := setting.PrepareAppDataPath(); err != nil {
+		log.Fatalf("Can not prepare APP_DATA_PATH: %v", err)
+	}
+	// register the dummy hash algorithm function used in the test fixtures
+	_ = hash.Register("dummy", hash.NewDummyHasher)
+
+	setting.PasswordHashAlgo, _ = hash.SetDefaultPasswordHashAlgorithm("dummy")
+}
+
 // TestOptions represents test options
 type TestOptions struct {
 	GiteaRootPath string
@@ -50,6 +71,9 @@ type TestOptions struct {
 // MainTest a reusable TestMain(..) function for unit tests that need to use a
 // test database. Creates the test database, and sets necessary settings.
 func MainTest(m *testing.M, testOpts *TestOptions) {
+	setting.CustomPath = filepath.Join(testOpts.GiteaRootPath, "custom")
+	InitSettings()
+
 	var err error
 
 	giteaRoot = testOpts.GiteaRootPath
@@ -76,7 +100,7 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 	setting.SSH.BuiltinServerUser = "builtinuser"
 	setting.SSH.Port = 3000
 	setting.SSH.Domain = "try.gitea.io"
-	setting.Database.UseSQLite3 = true
+	setting.Database.Type = "sqlite3"
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 	repoRootPath, err := os.MkdirTemp(os.TempDir(), "repos")
 	if err != nil {
@@ -104,7 +128,7 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 
 	setting.Packages.Storage.Path = filepath.Join(setting.AppDataPath, "packages")
 
-	setting.Actions.Storage.Path = filepath.Join(setting.AppDataPath, "actions_log")
+	setting.Actions.LogStorage.Path = filepath.Join(setting.AppDataPath, "actions_log")
 
 	setting.Git.HomePath = filepath.Join(setting.AppDataPath, "home")
 
@@ -113,7 +137,7 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 	if err = storage.Init(); err != nil {
 		fatalTestError("storage.Init: %v\n", err)
 	}
-	if err = system_model.Init(); err != nil {
+	if err = system_model.Init(db.DefaultContext); err != nil {
 		fatalTestError("models.Init: %v\n", err)
 	}
 
@@ -180,6 +204,9 @@ type FixturesOptions struct {
 func CreateTestEngine(opts FixturesOptions) error {
 	x, err := xorm.NewEngine("sqlite3", "file::memory:?cache=shared&_txlock=immediate")
 	if err != nil {
+		if strings.Contains(err.Error(), "unknown driver") {
+			return fmt.Errorf(`sqlite3 requires: import _ "github.com/mattn/go-sqlite3" or -tags sqlite,sqlite_unlock_notify%s%w`, "\n", err)
+		}
 		return err
 	}
 	x.SetMapper(names.GonicMapper{})

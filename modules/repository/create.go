@@ -35,7 +35,7 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 		return err
 	}
 
-	has, err := repo_model.IsRepositoryExist(ctx, u, repo.Name)
+	has, err := repo_model.IsRepositoryModelExist(ctx, u, repo.Name)
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %w", err)
 	} else if has {
@@ -189,7 +189,7 @@ func CreateRepository(doer, u *user_model.User, opts CreateRepoOptions) (*repo_m
 
 	// Check if label template exist
 	if len(opts.IssueLabels) > 0 {
-		if _, err := GetLabelTemplateFile(opts.IssueLabels); err != nil {
+		if _, err := LoadTemplateLabelsByDisplayName(opts.IssueLabels); err != nil {
 			return nil, err
 		}
 	}
@@ -335,7 +335,7 @@ func UpdateRepoSize(ctx context.Context, repo *repo_model.Repository) error {
 
 // CheckDaemonExportOK creates/removes git-daemon-export-ok for git-daemon...
 func CheckDaemonExportOK(ctx context.Context, repo *repo_model.Repository) error {
-	if err := repo.GetOwner(ctx); err != nil {
+	if err := repo.LoadOwner(ctx); err != nil {
 		return err
 	}
 
@@ -379,8 +379,8 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 	}
 
 	if visibilityChanged {
-		if err = repo.GetOwner(ctx); err != nil {
-			return fmt.Errorf("getOwner: %w", err)
+		if err = repo.LoadOwner(ctx); err != nil {
+			return fmt.Errorf("LoadOwner: %w", err)
 		}
 		if repo.Owner.IsOrganization() {
 			// Organization repository need to recalculate access table when visibility is changed.
@@ -395,6 +395,10 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 				IsPrivate: true,
 			})
 			if err != nil {
+				return err
+			}
+
+			if err = repo_model.ClearRepoStars(ctx, repo.ID); err != nil {
 				return err
 			}
 		}

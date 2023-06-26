@@ -9,7 +9,6 @@ import (
 	"os"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -67,7 +66,7 @@ func checkConfigurationFiles(ctx context.Context, logger log.Logger, autofix boo
 		return err
 	}
 
-	setting.LoadFromExisting()
+	setting.MustInstalled()
 
 	configurationFiles := []configurationFile{
 		{"Configuration File Path", setting.CustomConf, false, true, false},
@@ -75,10 +74,10 @@ func checkConfigurationFiles(ctx context.Context, logger log.Logger, autofix boo
 		{"Data Root Path", setting.AppDataPath, true, true, true},
 		{"Custom File Root Path", setting.CustomPath, true, false, false},
 		{"Work directory", setting.AppWorkPath, true, true, false},
-		{"Log Root Path", setting.LogRootPath, true, true, true},
+		{"Log Root Path", setting.Log.RootPath, true, true, true},
 	}
 
-	if options.IsDynamic() {
+	if !setting.HasBuiltinBindata {
 		configurationFiles = append(configurationFiles, configurationFile{"Static File Root Path", setting.StaticRootPath, true, true, false})
 	}
 
@@ -106,7 +105,7 @@ func isWritableDir(path string) error {
 		return err
 	}
 	if err := os.Remove(tmpFile.Name()); err != nil {
-		fmt.Printf("Warning: can't remove temporary file: '%s'\n", tmpFile.Name())
+		fmt.Printf("Warning: can't remove temporary file: '%s'\n", tmpFile.Name()) //nolint:forbidigo
 	}
 	tmpFile.Close()
 	return nil

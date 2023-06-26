@@ -20,7 +20,7 @@ func TestIsProjectTypeValid(t *testing.T) {
 		typ   Type
 		valid bool
 	}{
-		{TypeIndividual, false},
+		{TypeIndividual, true},
 		{TypeRepository, true},
 		{TypeOrganization, true},
 		{UnknownType, false},
@@ -53,6 +53,7 @@ func TestProject(t *testing.T) {
 	project := &Project{
 		Type:        TypeRepository,
 		BoardType:   BoardTypeBasicKanban,
+		CardType:    CardTypeTextOnly,
 		Title:       "New Project",
 		RepoID:      1,
 		CreatedUnix: timeutil.TimeStampNow(),

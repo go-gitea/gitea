@@ -13,11 +13,7 @@ import (
 )
 
 // LoadProject load the project the issue was assigned to
-func (issue *Issue) LoadProject() (err error) {
-	return issue.loadProject(db.DefaultContext)
-}
-
-func (issue *Issue) loadProject(ctx context.Context) (err error) {
+func (issue *Issue) LoadProject(ctx context.Context) (err error) {
 	if issue.Project == nil {
 		var p project_model.Project
 		if _, err = db.GetEngine(ctx).Table("project").
@@ -29,11 +25,6 @@ func (issue *Issue) loadProject(ctx context.Context) (err error) {
 		issue.Project = &p
 	}
 	return err
-}
-
-// ProjectID return project id if issue was assigned to one
-func (issue *Issue) ProjectID() int64 {
-	return issue.projectID(db.DefaultContext)
 }
 
 func (issue *Issue) projectID(ctx context.Context) int64 {

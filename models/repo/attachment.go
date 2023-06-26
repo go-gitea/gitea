@@ -18,17 +18,18 @@ import (
 
 // Attachment represent a attachment of issue/comment/release.
 type Attachment struct {
-	ID            int64  `xorm:"pk autoincr"`
-	UUID          string `xorm:"uuid UNIQUE"`
-	RepoID        int64  `xorm:"INDEX"`           // this should not be zero
-	IssueID       int64  `xorm:"INDEX"`           // maybe zero when creating
-	ReleaseID     int64  `xorm:"INDEX"`           // maybe zero when creating
-	UploaderID    int64  `xorm:"INDEX DEFAULT 0"` // Notice: will be zero before this column added
-	CommentID     int64
-	Name          string
-	DownloadCount int64              `xorm:"DEFAULT 0"`
-	Size          int64              `xorm:"DEFAULT 0"`
-	CreatedUnix   timeutil.TimeStamp `xorm:"created"`
+	ID                int64  `xorm:"pk autoincr"`
+	UUID              string `xorm:"uuid UNIQUE"`
+	RepoID            int64  `xorm:"INDEX"`           // this should not be zero
+	IssueID           int64  `xorm:"INDEX"`           // maybe zero when creating
+	ReleaseID         int64  `xorm:"INDEX"`           // maybe zero when creating
+	UploaderID        int64  `xorm:"INDEX DEFAULT 0"` // Notice: will be zero before this column added
+	CommentID         int64
+	Name              string
+	DownloadCount     int64              `xorm:"DEFAULT 0"`
+	Size              int64              `xorm:"DEFAULT 0"`
+	CreatedUnix       timeutil.TimeStamp `xorm:"created"`
+	CustomDownloadURL string             `xorm:"-"`
 }
 
 func init() {
@@ -57,6 +58,10 @@ func (a *Attachment) RelativePath() string {
 
 // DownloadURL returns the download url of the attached file
 func (a *Attachment) DownloadURL() string {
+	if a.CustomDownloadURL != "" {
+		return a.CustomDownloadURL
+	}
+
 	return setting.AppURL + "attachments/" + url.PathEscape(a.UUID)
 }
 
@@ -130,6 +135,21 @@ func ExistAttachmentsByUUID(ctx context.Context, uuid string) (bool, error) {
 func GetAttachmentsByIssueID(ctx context.Context, issueID int64) ([]*Attachment, error) {
 	attachments := make([]*Attachment, 0, 10)
 	return attachments, db.GetEngine(ctx).Where("issue_id = ? AND comment_id = 0", issueID).Find(&attachments)
+}
+
+// GetAttachmentsByIssueIDImagesLatest returns the latest image attachments of an issue.
+func GetAttachmentsByIssueIDImagesLatest(ctx context.Context, issueID int64) ([]*Attachment, error) {
+	attachments := make([]*Attachment, 0, 5)
+	return attachments, db.GetEngine(ctx).Where(`issue_id = ? AND (name like '%.apng'
+		OR name like '%.avif'
+		OR name like '%.bmp'
+		OR name like '%.gif'
+		OR name like '%.jpg'
+		OR name like '%.jpeg'
+		OR name like '%.jxl'
+		OR name like '%.png'
+		OR name like '%.svg'
+		OR name like '%.webp')`, issueID).Desc("comment_id").Limit(5).Find(&attachments)
 }
 
 // GetAttachmentsByCommentID returns all attachments if comment by given ID.

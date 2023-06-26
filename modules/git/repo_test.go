@@ -4,6 +4,7 @@
 package git
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
 
@@ -14,10 +15,10 @@ func TestGetLatestCommitTime(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 	lct, err := GetLatestCommitTime(DefaultContext, bareRepo1Path)
 	assert.NoError(t, err)
-	// Time is Sun Jul 21 22:43:13 2019 +0200
+	// Time is Sun Nov 13 16:40:14 2022 +0100
 	// which is the time of commit
-	// feaf4ba6bc635fec442f46ddd4512416ec43c2c2 (refs/heads/master)
-	assert.EqualValues(t, 1563741793, lct.Unix())
+	// ce064814f4a0d337b333e646ece456cd39fab612 (refs/heads/master)
+	assert.EqualValues(t, 1668354014, lct.Unix())
 }
 
 func TestRepoIsEmpty(t *testing.T) {
@@ -28,4 +29,28 @@ func TestRepoIsEmpty(t *testing.T) {
 	isEmpty, err := repo.IsEmpty()
 	assert.NoError(t, err)
 	assert.True(t, isEmpty)
+}
+
+func TestRepoGetDivergingCommits(t *testing.T) {
+	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
+	do, err := GetDivergingCommits(context.Background(), bareRepo1Path, "master", "branch2")
+	assert.NoError(t, err)
+	assert.Equal(t, DivergeObject{
+		Ahead:  1,
+		Behind: 5,
+	}, do)
+
+	do, err = GetDivergingCommits(context.Background(), bareRepo1Path, "master", "master")
+	assert.NoError(t, err)
+	assert.Equal(t, DivergeObject{
+		Ahead:  0,
+		Behind: 0,
+	}, do)
+
+	do, err = GetDivergingCommits(context.Background(), bareRepo1Path, "master", "test")
+	assert.NoError(t, err)
+	assert.Equal(t, DivergeObject{
+		Ahead:  0,
+		Behind: 2,
+	}, do)
 }

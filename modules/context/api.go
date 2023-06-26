@@ -13,19 +13,40 @@ import (
 
 	"code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
+	mc "code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/web/middleware"
-	auth_service "code.gitea.io/gitea/services/auth"
+	"code.gitea.io/gitea/modules/web"
+	web_types "code.gitea.io/gitea/modules/web/types"
+
+	"gitea.com/go-chi/cache"
 )
 
 // APIContext is a specific context for API service
 type APIContext struct {
-	*Context
-	Org *APIOrganization
+	*Base
+
+	Cache cache.Cache
+
+	Doer        *user_model.User // current signed-in user
+	IsSigned    bool
+	IsBasicAuth bool
+
+	ContextUser *user_model.User // the user which is being visited, in most cases it differs from Doer
+
+	Repo    *Repository
+	Org     *APIOrganization
+	Package *Package
+}
+
+func init() {
+	web.RegisterResponseStatusProvider[*APIContext](func(req *http.Request) web_types.ResponseStatusProvider {
+		return req.Context().Value(apiContextKey).(*APIContext)
+	})
 }
 
 // Currently, we have the following common fields in error response:
@@ -129,11 +150,6 @@ type apiContextKeyType struct{}
 
 var apiContextKey = apiContextKeyType{}
 
-// WithAPIContext set up api context in request
-func WithAPIContext(req *http.Request, ctx *APIContext) *http.Request {
-	return req.WithContext(context.WithValue(req.Context(), apiContextKey, ctx))
-}
-
 // GetAPIContext returns a context for API routes
 func GetAPIContext(req *http.Request) *APIContext {
 	return req.Context().Value(apiContextKey).(*APIContext)
@@ -196,51 +212,22 @@ func (ctx *APIContext) CheckForOTP() {
 	}
 
 	otpHeader := ctx.Req.Header.Get("X-Gitea-OTP")
-	twofa, err := auth.GetTwoFactorByUID(ctx.Context.Doer.ID)
+	twofa, err := auth.GetTwoFactorByUID(ctx.Doer.ID)
 	if err != nil {
 		if auth.IsErrTwoFactorNotEnrolled(err) {
 			return // No 2FA enrollment for this user
 		}
-		ctx.Context.Error(http.StatusInternalServerError)
+		ctx.Error(http.StatusInternalServerError, "GetTwoFactorByUID", err)
 		return
 	}
 	ok, err := twofa.ValidateTOTP(otpHeader)
 	if err != nil {
-		ctx.Context.Error(http.StatusInternalServerError)
+		ctx.Error(http.StatusInternalServerError, "ValidateTOTP", err)
 		return
 	}
 	if !ok {
-		ctx.Context.Error(http.StatusUnauthorized)
+		ctx.Error(http.StatusUnauthorized, "", nil)
 		return
-	}
-}
-
-// APIAuth converts auth_service.Auth as a middleware
-func APIAuth(authMethod auth_service.Method) func(*APIContext) {
-	return func(ctx *APIContext) {
-		// Get user from session if logged in.
-		var err error
-		ctx.Doer, err = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
-		if err != nil {
-			ctx.Error(http.StatusUnauthorized, "APIAuth", err)
-			return
-		}
-
-		if ctx.Doer != nil {
-			if ctx.Locale.Language() != ctx.Doer.Language {
-				ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
-			}
-			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == auth_service.BasicMethodName
-			ctx.IsSigned = true
-			ctx.Data["IsSigned"] = ctx.IsSigned
-			ctx.Data["SignedUser"] = ctx.Doer
-			ctx.Data["SignedUserID"] = ctx.Doer.ID
-			ctx.Data["SignedUserName"] = ctx.Doer.Name
-			ctx.Data["IsAdmin"] = ctx.Doer.IsAdmin
-		} else {
-			ctx.Data["SignedUserID"] = int64(0)
-			ctx.Data["SignedUserName"] = ""
-		}
 	}
 }
 
@@ -248,23 +235,17 @@ func APIAuth(authMethod auth_service.Method) func(*APIContext) {
 func APIContexter() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			locale := middleware.Locale(w, req)
-			ctx := APIContext{
-				Context: &Context{
-					Resp:   NewResponse(w),
-					Data:   map[string]interface{}{},
-					Locale: locale,
-					Cache:  cache.GetCache(),
-					Repo: &Repository{
-						PullRequest: &PullRequest{},
-					},
-					Org: &Organization{},
-				},
-				Org: &APIOrganization{},
+			base, baseCleanUp := NewBaseContext(w, req)
+			ctx := &APIContext{
+				Base:  base,
+				Cache: mc.GetCache(),
+				Repo:  &Repository{PullRequest: &PullRequest{}},
+				Org:   &APIOrganization{},
 			}
-			defer ctx.Close()
+			defer baseCleanUp()
 
-			ctx.Req = WithAPIContext(WithContext(req, ctx.Context), &ctx)
+			ctx.Base.AppendContextValue(apiContextKey, ctx)
+			ctx.Base.AppendContextValueFunc(git.RepositoryContextKey, func() any { return ctx.Repo.GitRepo })
 
 			// If request sends files, parse them here otherwise the Query() can't be parsed and the CsrfToken will be invalid.
 			if ctx.Req.Method == "POST" && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
@@ -274,23 +255,10 @@ func APIContexter() func(http.Handler) http.Handler {
 				}
 			}
 
-			httpcache.AddCacheControlToHeader(ctx.Resp.Header(), 0, "no-transform")
+			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), 0, "no-transform")
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
-			ctx.Data["Context"] = &ctx
-
 			next.ServeHTTP(ctx.Resp, ctx.Req)
-
-			// Handle adding signedUserName to the context for the AccessLogger
-			usernameInterface := ctx.Data["SignedUserName"]
-			identityPtrInterface := ctx.Req.Context().Value(signedUserNameStringPointerKey)
-			if usernameInterface != nil && identityPtrInterface != nil {
-				username := usernameInterface.(string)
-				identityPtr := identityPtrInterface.(*string)
-				if identityPtr != nil && username != "" {
-					*identityPtr = username
-				}
-			}
 		})
 	}
 }
@@ -342,7 +310,7 @@ func ReferencesGitRepo(allowEmpty ...bool) func(ctx *APIContext) (cancel context
 			return func() {
 				// If it's been set to nil then assume someone else has closed it.
 				if ctx.Repo.GitRepo != nil {
-					ctx.Repo.GitRepo.Close()
+					_ = ctx.Repo.GitRepo.Close()
 				}
 			}
 		}
@@ -367,17 +335,18 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 				if git.IsErrNotExist(err) {
 					ctx.NotFound()
 				} else {
-					ctx.Error(http.StatusInternalServerError, "GetBlobByPath", err)
+					ctx.Error(http.StatusInternalServerError, "GetCommit", err)
 				}
 				return
 			}
 			ctx.Repo.Commit = commit
 			ctx.Repo.TreePath = ctx.Params("*")
+			next.ServeHTTP(w, req)
 			return
 		}
 
 		var err error
-		refName := getRefName(ctx.Context, RepoRefAny)
+		refName := getRefName(ctx.Base, ctx.Repo, RepoRefAny)
 
 		if ctx.Repo.GitRepo.IsBranchExist(refName) {
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
@@ -407,4 +376,54 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, req)
 	})
+}
+
+// HasAPIError returns true if error occurs in form validation.
+func (ctx *APIContext) HasAPIError() bool {
+	hasErr, ok := ctx.Data["HasError"]
+	if !ok {
+		return false
+	}
+	return hasErr.(bool)
+}
+
+// GetErrMsg returns error message in form validation.
+func (ctx *APIContext) GetErrMsg() string {
+	msg, _ := ctx.Data["ErrorMsg"].(string)
+	if msg == "" {
+		msg = "invalid form data"
+	}
+	return msg
+}
+
+// NotFoundOrServerError use error check function to determine if the error
+// is about not found. It responds with 404 status code for not found error,
+// or error context description for logging purpose of 500 server error.
+func (ctx *APIContext) NotFoundOrServerError(logMsg string, errCheck func(error) bool, logErr error) {
+	if errCheck(logErr) {
+		ctx.JSON(http.StatusNotFound, nil)
+		return
+	}
+	ctx.Error(http.StatusInternalServerError, "NotFoundOrServerError", logMsg)
+}
+
+// IsUserSiteAdmin returns true if current user is a site admin
+func (ctx *APIContext) IsUserSiteAdmin() bool {
+	return ctx.IsSigned && ctx.Doer.IsAdmin
+}
+
+// IsUserRepoAdmin returns true if current user is admin in current repo
+func (ctx *APIContext) IsUserRepoAdmin() bool {
+	return ctx.Repo.IsAdmin()
+}
+
+// IsUserRepoWriter returns true if current user has write privilege in current repo
+func (ctx *APIContext) IsUserRepoWriter(unitTypes []unit.Type) bool {
+	for _, unitType := range unitTypes {
+		if ctx.Repo.CanWrite(unitType) {
+			return true
+		}
+	}
+
+	return false
 }

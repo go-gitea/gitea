@@ -11,10 +11,10 @@ import (
 
 	"code.gitea.io/gitea/models"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
@@ -60,7 +60,7 @@ func AccountPost(ctx *context.Context) {
 	} else if form.Password != form.Retype {
 		ctx.Flash.Error(ctx.Tr("form.password_not_match"))
 	} else if !password.IsComplexEnough(form.Password) {
-		ctx.Flash.Error(password.BuildComplexityError(ctx))
+		ctx.Flash.Error(password.BuildComplexityError(ctx.Locale))
 	} else if pwned, err := password.IsPwned(ctx, form.Password); pwned || err != nil {
 		errMsg := ctx.Tr("auth.password_pwned")
 		if err != nil {

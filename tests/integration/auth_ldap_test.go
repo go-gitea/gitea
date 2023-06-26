@@ -112,23 +112,14 @@ func getLDAPServerPort() string {
 	return port
 }
 
-func addAuthSourceLDAP(t *testing.T, sshKeyAttribute, groupFilter string, groupMapParams ...string) {
-	groupTeamMapRemoval := "off"
-	groupTeamMap := ""
-	if len(groupMapParams) == 2 {
-		groupTeamMapRemoval = groupMapParams[0]
-		groupTeamMap = groupMapParams[1]
-	}
-
+func buildAuthSourceLDAPPayload(csrf, sshKeyAttribute, groupFilter, groupTeamMap, groupTeamMapRemoval string) map[string]string {
 	// Modify user filter to test group filter explicitly
 	userFilter := "(&(objectClass=inetOrgPerson)(memberOf=cn=git,ou=people,dc=planetexpress,dc=com)(uid=%s))"
 	if groupFilter != "" {
 		userFilter = "(&(objectClass=inetOrgPerson)(uid=%s))"
 	}
 
-	session := loginUser(t, "user1")
-	csrf := GetCSRF(t, session, "/admin/auths/new")
-	req := NewRequestWithValues(t, "POST", "/admin/auths/new", map[string]string{
+	return map[string]string{
 		"_csrf":                    csrf,
 		"type":                     "2",
 		"name":                     "ldap",
@@ -154,7 +145,19 @@ func addAuthSourceLDAP(t *testing.T, sshKeyAttribute, groupFilter string, groupM
 		"group_team_map":           groupTeamMap,
 		"group_team_map_removal":   groupTeamMapRemoval,
 		"user_uid":                 "DN",
-	})
+	}
+}
+
+func addAuthSourceLDAP(t *testing.T, sshKeyAttribute, groupFilter string, groupMapParams ...string) {
+	groupTeamMapRemoval := "off"
+	groupTeamMap := ""
+	if len(groupMapParams) == 2 {
+		groupTeamMapRemoval = groupMapParams[0]
+		groupTeamMap = groupMapParams[1]
+	}
+	session := loginUser(t, "user1")
+	csrf := GetCSRF(t, session, "/admin/auths/new")
+	req := NewRequestWithValues(t, "POST", "/admin/auths/new", buildAuthSourceLDAPPayload(csrf, sshKeyAttribute, groupFilter, groupTeamMap, groupTeamMapRemoval))
 	session.MakeRequest(t, req, http.StatusSeeOther)
 }
 
@@ -200,28 +203,9 @@ func TestLDAPAuthChange(t *testing.T) {
 	host, _ := doc.Find(`input[name="host"]`).Attr("value")
 	assert.Equal(t, host, getLDAPServerHost())
 	binddn, _ := doc.Find(`input[name="bind_dn"]`).Attr("value")
-	assert.Equal(t, binddn, "uid=gitea,ou=service,dc=planetexpress,dc=com")
+	assert.Equal(t, "uid=gitea,ou=service,dc=planetexpress,dc=com", binddn)
 
-	req = NewRequestWithValues(t, "POST", href, map[string]string{
-		"_csrf":                    csrf,
-		"type":                     "2",
-		"name":                     "ldap",
-		"host":                     getLDAPServerHost(),
-		"port":                     "389",
-		"bind_dn":                  "uid=gitea,ou=service,dc=planetexpress,dc=com",
-		"bind_password":            "password",
-		"user_base":                "ou=people,dc=planetexpress,dc=com",
-		"filter":                   "(&(objectClass=inetOrgPerson)(memberOf=cn=git,ou=people,dc=planetexpress,dc=com)(uid=%s))",
-		"admin_filter":             "(memberOf=cn=admin_staff,ou=people,dc=planetexpress,dc=com)",
-		"restricted_filter":        "(uid=leela)",
-		"attribute_username":       "uid",
-		"attribute_name":           "givenName",
-		"attribute_surname":        "sn",
-		"attribute_mail":           "mail",
-		"attribute_ssh_public_key": "",
-		"is_sync_enabled":          "on",
-		"is_active":                "on",
-	})
+	req = NewRequestWithValues(t, "POST", href, buildAuthSourceLDAPPayload(csrf, "", "", "", "off"))
 	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	req = NewRequest(t, "GET", href)
@@ -230,7 +214,7 @@ func TestLDAPAuthChange(t *testing.T) {
 	host, _ = doc.Find(`input[name="host"]`).Attr("value")
 	assert.Equal(t, host, getLDAPServerHost())
 	binddn, _ = doc.Find(`input[name="bind_dn"]`).Attr("value")
-	assert.Equal(t, binddn, "uid=gitea,ou=service,dc=planetexpress,dc=com")
+	assert.Equal(t, "uid=gitea,ou=service,dc=planetexpress,dc=com", binddn)
 }
 
 func TestLDAPUserSync(t *testing.T) {
@@ -281,6 +265,57 @@ func TestLDAPUserSync(t *testing.T) {
 
 		tr := htmlDoc.doc.Find("table.table tbody tr")
 		assert.True(t, tr.Length() == 0)
+	}
+}
+
+func TestLDAPUserSyncWithEmptyUsernameAttribute(t *testing.T) {
+	if skipLDAPTests() {
+		t.Skip()
+		return
+	}
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user1")
+	csrf := GetCSRF(t, session, "/admin/auths/new")
+	payload := buildAuthSourceLDAPPayload(csrf, "", "", "", "")
+	payload["attribute_username"] = ""
+	req := NewRequestWithValues(t, "POST", "/admin/auths/new", payload)
+	session.MakeRequest(t, req, http.StatusSeeOther)
+
+	for _, u := range gitLDAPUsers {
+		req := NewRequest(t, "GET", "/admin/users?q="+u.UserName)
+		resp := session.MakeRequest(t, req, http.StatusOK)
+
+		htmlDoc := NewHTMLParser(t, resp.Body)
+
+		tr := htmlDoc.doc.Find("table.table tbody tr")
+		assert.True(t, tr.Length() == 0)
+	}
+
+	for _, u := range gitLDAPUsers {
+		req := NewRequestWithValues(t, "POST", "/user/login", map[string]string{
+			"_csrf":     csrf,
+			"user_name": u.UserName,
+			"password":  u.Password,
+		})
+		MakeRequest(t, req, http.StatusSeeOther)
+	}
+
+	auth.SyncExternalUsers(context.Background(), true)
+
+	authSource := unittest.AssertExistsAndLoadBean(t, &auth_model.Source{
+		Name: payload["name"],
+	})
+	unittest.AssertCount(t, &user_model.User{
+		LoginType:   auth_model.LDAP,
+		LoginSource: authSource.ID,
+	}, len(gitLDAPUsers))
+
+	for _, u := range gitLDAPUsers {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{
+			Name: u.UserName,
+		})
+		assert.True(t, user.IsActive)
 	}
 }
 
@@ -395,7 +430,7 @@ func TestLDAPGroupTeamSyncAddMember(t *testing.T) {
 	}
 	defer tests.PrepareTestEnv(t)()
 	addAuthSourceLDAP(t, "", "", "on", `{"cn=ship_crew,ou=people,dc=planetexpress,dc=com":{"org26": ["team11"]},"cn=admin_staff,ou=people,dc=planetexpress,dc=com": {"non-existent": ["non-existent"]}}`)
-	org, err := organization.GetOrgByName("org26")
+	org, err := organization.GetOrgByName(db.DefaultContext, "org26")
 	assert.NoError(t, err)
 	team, err := organization.GetTeam(db.DefaultContext, org.ID, "team11")
 	assert.NoError(t, err)
@@ -413,8 +448,8 @@ func TestLDAPGroupTeamSyncAddMember(t *testing.T) {
 		assert.NoError(t, err)
 		if user.Name == "fry" || user.Name == "leela" || user.Name == "bender" {
 			// assert members of LDAP group "cn=ship_crew" are added to mapped teams
-			assert.Equal(t, len(usersOrgs), 1, "User [%s] should be member of one organization", user.Name)
-			assert.Equal(t, usersOrgs[0].Name, "org26", "Membership should be added to the right organization")
+			assert.Len(t, usersOrgs, 1, "User [%s] should be member of one organization", user.Name)
+			assert.Equal(t, "org26", usersOrgs[0].Name, "Membership should be added to the right organization")
 			isMember, err := organization.IsTeamMember(db.DefaultContext, usersOrgs[0].ID, team.ID, user.ID)
 			assert.NoError(t, err)
 			assert.True(t, isMember, "Membership should be added to the right team")
@@ -440,7 +475,7 @@ func TestLDAPGroupTeamSyncRemoveMember(t *testing.T) {
 	}
 	defer tests.PrepareTestEnv(t)()
 	addAuthSourceLDAP(t, "", "", "on", `{"cn=dispatch,ou=people,dc=planetexpress,dc=com": {"org26": ["team11"]}}`)
-	org, err := organization.GetOrgByName("org26")
+	org, err := organization.GetOrgByName(db.DefaultContext, "org26")
 	assert.NoError(t, err)
 	team, err := organization.GetTeam(db.DefaultContext, org.ID, "team11")
 	assert.NoError(t, err)
@@ -468,24 +503,15 @@ func TestLDAPGroupTeamSyncRemoveMember(t *testing.T) {
 	assert.False(t, isMember, "User membership should have been removed from team")
 }
 
-// Login should work even if Team Group Map contains a broken JSON
-func TestBrokenLDAPMapUserSignin(t *testing.T) {
+func TestLDAPPreventInvalidGroupTeamMap(t *testing.T) {
 	if skipLDAPTests() {
 		t.Skip()
 		return
 	}
 	defer tests.PrepareTestEnv(t)()
-	addAuthSourceLDAP(t, "", "", "on", `{"NOT_A_VALID_JSON"["MISSING_DOUBLE_POINT"]}`)
 
-	u := gitLDAPUsers[0]
-
-	session := loginUserWithPassword(t, u.UserName, u.Password)
-	req := NewRequest(t, "GET", "/user/settings")
-	resp := session.MakeRequest(t, req, http.StatusOK)
-
-	htmlDoc := NewHTMLParser(t, resp.Body)
-
-	assert.Equal(t, u.UserName, htmlDoc.GetInputValueByName("name"))
-	assert.Equal(t, u.FullName, htmlDoc.GetInputValueByName("full_name"))
-	assert.Equal(t, u.Email, htmlDoc.Find(`label[for="email"]`).Siblings().First().Text())
+	session := loginUser(t, "user1")
+	csrf := GetCSRF(t, session, "/admin/auths/new")
+	req := NewRequestWithValues(t, "POST", "/admin/auths/new", buildAuthSourceLDAPPayload(csrf, "", "", `{"NOT_A_VALID_JSON"["MISSING_DOUBLE_POINT"]}`, "off"))
+	session.MakeRequest(t, req, http.StatusOK) // StatusOK = failed, StatusSeeOther = ok
 }

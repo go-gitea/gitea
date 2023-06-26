@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import {hideElem, showElem, toggleElem} from '../../utils/dom.js';
 
 const {csrfToken} = window.config;
 
@@ -9,18 +10,18 @@ export function initCompWebHookEditor() {
 
   $('.events.checkbox input').on('change', function () {
     if ($(this).is(':checked')) {
-      $('.events.fields').show();
+      showElem($('.events.fields'));
     }
   });
   $('.non-events.checkbox input').on('change', function () {
     if ($(this).is(':checked')) {
-      $('.events.fields').hide();
+      hideElem($('.events.fields'));
     }
   });
 
   const updateContentType = function () {
     const visible = $('#http_method').val() === 'POST';
-    $('#content_type').parent().parent()[visible ? 'show' : 'hide']();
+    toggleElem($('#content_type').parent().parent(), visible);
   };
   updateContentType();
   $('#http_method').on('change', () => {

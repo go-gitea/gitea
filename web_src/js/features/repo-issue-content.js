@@ -14,16 +14,16 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
   $dialog = $(`
 <div class="ui modal content-history-detail-dialog">
   ${svg('octicon-x', 16, 'close icon inside')}
-  <div class="header df ac sb">
+  <div class="header gt-df gt-ac gt-sb">
     <div>${itemTitleHtml}</div>
-    <div class="ui dropdown dialog-header-options df ac mr-5 hide">
+    <div class="ui dropdown dialog-header-options gt-df gt-ac gt-mr-5 gt-hidden">
       ${i18nTextOptions}${svg('octicon-triangle-down', 14, 'dropdown icon')}
       <div class="menu">
         <div class="item red text" data-option-item="delete">${i18nTextDeleteFromHistory}</div>
       </div>
     </div>
   </div>
-  <div class="comment-diff-data tl p-3 is-loading"></div>
+  <div class="comment-diff-data gt-tl gt-p-3 is-loading"></div>
 </div>`);
   $dialog.appendTo($('body'));
   $dialog.find('.dialog-header-options').dropdown({
@@ -62,7 +62,7 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
         $dialog.find('.comment-diff-data').removeClass('is-loading').html(resp.diffHtml);
         // there is only one option "item[data-option-item=delete]", so the dropdown can be entirely shown/hidden.
         if (resp.canSoftDelete) {
-          $dialog.find('.dialog-header-options').removeClass('hide');
+          $dialog.find('.dialog-header-options').removeClass('gt-hidden');
         }
       });
     },
@@ -75,8 +75,8 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
 function showContentHistoryMenu(issueBaseUrl, $item, commentId) {
   const $headerLeft = $item.find('.comment-header-left');
   const menuHtml = `
-  <div class="ui pointing dropdown top left content-history-menu" data-comment-id="${commentId}">
-    &bull; <a>${i18nTextEdited}${svg('octicon-triangle-down', 14, 'dropdown icon ml-1 mt-1')}</a>
+  <div class="ui dropdown interact-fg content-history-menu" data-comment-id="${commentId}">
+    &bull; ${i18nTextEdited}${svg('octicon-triangle-down', 14, 'dropdown icon')}
     <div class="menu">
     </div>
   </div>`;

@@ -5,7 +5,6 @@ package auth
 
 import (
 	"context"
-	"crypto/sha256"
 	"encoding/base32"
 	"encoding/base64"
 	"fmt"
@@ -18,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	uuid "github.com/google/uuid"
+	"github.com/minio/sha256-simd"
 	"golang.org/x/crypto/bcrypt"
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -49,14 +49,6 @@ func init() {
 // TableName sets the table name to `oauth2_application`
 func (app *OAuth2Application) TableName() string {
 	return "oauth2_application"
-}
-
-// PrimaryRedirectURI returns the first redirect uri or an empty string if empty
-func (app *OAuth2Application) PrimaryRedirectURI() string {
-	if len(app.RedirectURIs) == 0 {
-		return ""
-	}
-	return app.RedirectURIs[0]
 }
 
 // ContainsRedirectURI checks if redirectURI is allowed for app

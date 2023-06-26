@@ -241,11 +241,9 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 
 	// TODO: a more efficient way to filter labels
 	var job *ActionRunJob
-	labels := runner.AgentLabels
-	labels = append(labels, runner.CustomLabels...)
-	log.Trace("runner labels: %v", labels)
+	log.Trace("runner labels: %v", runner.AgentLabels)
 	for _, v := range jobs {
-		if isSubset(labels, v.RunsOn) {
+		if isSubset(runner.AgentLabels, v.RunsOn) {
 			job = v
 			break
 		}
@@ -291,15 +289,16 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	}
 
 	task.LogFilename = logFileName(job.Run.Repo.FullName(), task.ID)
-	if _, err := e.ID(task.ID).Cols("log_filename").Update(task); err != nil {
+	if err := UpdateTask(ctx, task, "log_filename"); err != nil {
 		return nil, false, err
 	}
 
 	if len(workflowJob.Steps) > 0 {
 		steps := make([]*ActionTaskStep, len(workflowJob.Steps))
 		for i, v := range workflowJob.Steps {
+			name, _ := util.SplitStringAtByteN(v.String(), 255)
 			steps[i] = &ActionTaskStep{
-				Name:   v.String(),
+				Name:   name,
 				TaskID: task.ID,
 				Index:  int64(i),
 				RepoID: task.RepoID,
@@ -366,9 +365,18 @@ func UpdateTaskByState(ctx context.Context, state *runnerv1.TaskState) (*ActionT
 		return nil, util.ErrNotExist
 	}
 
+	if task.Status.IsDone() {
+		// the state is final, do nothing
+		return task, nil
+	}
+
+	// state.Result is not unspecified means the task is finished
 	if state.Result != runnerv1.Result_RESULT_UNSPECIFIED {
 		task.Status = Status(state.Result)
 		task.Stopped = timeutil.TimeStamp(state.StoppedAt.AsTime().Unix())
+		if err := UpdateTask(ctx, task, "status", "stopped"); err != nil {
+			return nil, err
+		}
 		if _, err := UpdateRunJob(ctx, &ActionRunJob{
 			ID:      task.JobID,
 			Status:  task.Status,
@@ -376,10 +384,6 @@ func UpdateTaskByState(ctx context.Context, state *runnerv1.TaskState) (*ActionT
 		}, nil); err != nil {
 			return nil, err
 		}
-	}
-
-	if _, err := e.ID(task.ID).Update(task); err != nil {
-		return nil, err
 	}
 
 	if err := task.LoadAttributes(ctx); err != nil {
@@ -439,7 +443,7 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 		return err
 	}
 
-	if _, err := e.ID(task.ID).Update(task); err != nil {
+	if err := UpdateTask(ctx, task, "status", "stopped"); err != nil {
 		return err
 	}
 

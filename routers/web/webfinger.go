@@ -60,7 +60,7 @@ func WebfingerQuery(ctx *context.Context) {
 
 		u, err = user_model.GetUserByName(ctx, parts[0])
 	case "mailto":
-		u, err = user_model.GetUserByEmailContext(ctx, resource.Opaque)
+		u, err = user_model.GetUserByEmail(ctx, resource.Opaque)
 		if u != nil && u.KeepEmailPrivate {
 			err = user_model.ErrUserNotExist{}
 		}
@@ -85,7 +85,7 @@ func WebfingerQuery(ctx *context.Context) {
 
 	aliases := []string{
 		u.HTMLURL(),
-		appURL.String() + "api/v1/activitypub/user/" + url.PathEscape(u.Name),
+		appURL.String() + "api/v1/activitypub/user-id/" + fmt.Sprint(u.ID),
 	}
 	if !u.KeepEmailPrivate {
 		aliases = append(aliases, fmt.Sprintf("mailto:%s", u.Email))
@@ -99,12 +99,12 @@ func WebfingerQuery(ctx *context.Context) {
 		},
 		{
 			Rel:  "http://webfinger.net/rel/avatar",
-			Href: u.AvatarLink(),
+			Href: u.AvatarLink(ctx),
 		},
 		{
 			Rel:  "self",
 			Type: "application/activity+json",
-			Href: appURL.String() + "api/v1/activitypub/user/" + url.PathEscape(u.Name),
+			Href: appURL.String() + "api/v1/activitypub/user-id/" + fmt.Sprint(u.ID),
 		},
 	}
 

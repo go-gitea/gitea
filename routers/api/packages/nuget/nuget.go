@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -94,8 +95,7 @@ func FeedCapabilityResource(ctx *context.Context) {
 
 var searchTermExtract = regexp.MustCompile(`'([^']+)'`)
 
-// https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Core/NuGet.Protocol/LegacyFeed/V2FeedQueryBuilder.cs
-func SearchServiceV2(ctx *context.Context) {
+func getSearchTerm(ctx *context.Context) string {
 	searchTerm := strings.Trim(ctx.FormTrim("searchTerm"), "'")
 	if searchTerm == "" {
 		// $filter contains a query like:
@@ -106,7 +106,11 @@ func SearchServiceV2(ctx *context.Context) {
 			searchTerm = strings.TrimSpace(match[1])
 		}
 	}
+	return searchTerm
+}
 
+// https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Core/NuGet.Protocol/LegacyFeed/V2FeedQueryBuilder.cs
+func SearchServiceV2(ctx *context.Context) {
 	skip, take := ctx.FormInt("skip"), ctx.FormInt("take")
 	if skip == 0 {
 		skip = ctx.FormInt("$skip")
@@ -116,9 +120,11 @@ func SearchServiceV2(ctx *context.Context) {
 	}
 
 	pvs, total, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
-		OwnerID:    ctx.Package.Owner.ID,
-		Type:       packages_model.TypeNuGet,
-		Name:       packages_model.SearchValue{Value: searchTerm},
+		OwnerID: ctx.Package.Owner.ID,
+		Type:    packages_model.TypeNuGet,
+		Name: packages_model.SearchValue{
+			Value: getSearchTerm(ctx),
+		},
 		IsInternal: util.OptionalBoolFalse,
 		Paginator: db.NewAbsoluteListOptions(
 			skip,
@@ -143,6 +149,24 @@ func SearchServiceV2(ctx *context.Context) {
 	)
 
 	xmlResponse(ctx, http.StatusOK, resp)
+}
+
+// http://docs.oasis-open.org/odata/odata/v4.0/errata03/os/complete/part2-url-conventions/odata-v4.0-errata03-os-part2-url-conventions-complete.html#_Toc453752351
+func SearchServiceV2Count(ctx *context.Context) {
+	count, err := packages_model.CountVersions(ctx, &packages_model.PackageSearchOptions{
+		OwnerID: ctx.Package.Owner.ID,
+		Type:    packages_model.TypeNuGet,
+		Name: packages_model.SearchValue{
+			Value: getSearchTerm(ctx),
+		},
+		IsInternal: util.OptionalBoolFalse,
+	})
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.PlainText(http.StatusOK, strconv.FormatInt(count, 10))
 }
 
 // https://docs.microsoft.com/en-us/nuget/api/search-query-service-resource#search-for-packages
@@ -286,6 +310,25 @@ func EnumeratePackageVersionsV2(ctx *context.Context) {
 	)
 
 	xmlResponse(ctx, http.StatusOK, resp)
+}
+
+// http://docs.oasis-open.org/odata/odata/v4.0/errata03/os/complete/part2-url-conventions/odata-v4.0-errata03-os-part2-url-conventions-complete.html#_Toc453752351
+func EnumeratePackageVersionsV2Count(ctx *context.Context) {
+	count, err := packages_model.CountVersions(ctx, &packages_model.PackageSearchOptions{
+		OwnerID: ctx.Package.Owner.ID,
+		Type:    packages_model.TypeNuGet,
+		Name: packages_model.SearchValue{
+			ExactMatch: true,
+			Value:      strings.Trim(ctx.FormTrim("id"), "'"),
+		},
+		IsInternal: util.OptionalBoolFalse,
+	})
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.PlainText(http.StatusOK, strconv.FormatInt(count, 10))
 }
 
 // https://docs.microsoft.com/en-us/nuget/api/package-base-address-resource#enumerate-package-versions
@@ -432,7 +475,7 @@ func UploadSymbolPackage(ctx *context.Context) {
 		Version:     np.Version,
 	}
 
-	_, _, err = packages_service.AddFileToExistingPackage(
+	_, err = packages_service.AddFileToExistingPackage(
 		pi,
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
@@ -458,7 +501,7 @@ func UploadSymbolPackage(ctx *context.Context) {
 	}
 
 	for _, pdb := range pdbs {
-		_, _, err := packages_service.AddFileToExistingPackage(
+		_, err := packages_service.AddFileToExistingPackage(
 			pi,
 			&packages_service.PackageFileCreationInfo{
 				PackageFileInfo: packages_service.PackageFileInfo{
@@ -502,7 +545,7 @@ func processUploadedFile(ctx *context.Context, expectedType nuget_module.Package
 		closables = append(closables, upload)
 	}
 
-	buf, err := packages_module.CreateHashedBufferFromReader(upload, 32*1024*1024)
+	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return nil, nil, closables
@@ -542,7 +585,7 @@ func DownloadSymbolFile(ctx *context.Context) {
 
 	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
 		OwnerID:     ctx.Package.Owner.ID,
-		PackageType: string(packages_model.TypeNuGet),
+		PackageType: packages_model.TypeNuGet,
 		Query:       filename,
 		Properties: map[string]string{
 			nuget_module.PropertySymbolID: strings.ToLower(guid),

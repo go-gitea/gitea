@@ -1,0 +1,38 @@
+.issue-list-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.issue-list-toolbar-left {
+  display: flex;
+}
+
+.issue-list-toolbar-right .filter.menu {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 767.98px) {
+  .issue-list-toolbar {
+    flex-direction: column-reverse;
+  }
+  .issue-list-toolbar-right .dropdown .menu {
+    left: auto !important;
+    right: auto !important;
+  }
+  .issue-list-navbar {
+    order: 0;
+  }
+  .issue-list-new {
+    order: 1;
+    margin-left: auto !important;
+  }
+  .issue-list-search {
+    order: 2 !important;
+  }
+}

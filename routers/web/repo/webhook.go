@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/base"
@@ -33,6 +34,7 @@ const (
 	tplHooks        base.TplName = "repo/settings/webhook/base"
 	tplHookNew      base.TplName = "repo/settings/webhook/new"
 	tplOrgHookNew   base.TplName = "org/settings/hook_new"
+	tplUserHookNew  base.TplName = "user/settings/hook_new"
 	tplAdminHookNew base.TplName = "admin/hook_new"
 )
 
@@ -54,8 +56,8 @@ func Webhooks(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplHooks)
 }
 
-type orgRepoCtx struct {
-	OrgID           int64
+type ownerRepoCtx struct {
+	OwnerID         int64
 	RepoID          int64
 	IsAdmin         bool
 	IsSystemWebhook bool
@@ -64,10 +66,10 @@ type orgRepoCtx struct {
 	NewTemplate     base.TplName
 }
 
-// getOrgRepoCtx determines whether this is a repo, organization, or admin (both default and system) context.
-func getOrgRepoCtx(ctx *context.Context) (*orgRepoCtx, error) {
-	if len(ctx.Repo.RepoLink) > 0 {
-		return &orgRepoCtx{
+// getOwnerRepoCtx determines whether this is a repo, owner, or admin (both default and system) context.
+func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
+	if ctx.Data["PageIsRepoSettings"] == true {
+		return &ownerRepoCtx{
 			RepoID:      ctx.Repo.Repository.ID,
 			Link:        path.Join(ctx.Repo.RepoLink, "settings/hooks"),
 			LinkNew:     path.Join(ctx.Repo.RepoLink, "settings/hooks"),
@@ -75,37 +77,35 @@ func getOrgRepoCtx(ctx *context.Context) (*orgRepoCtx, error) {
 		}, nil
 	}
 
-	if len(ctx.Org.OrgLink) > 0 {
-		return &orgRepoCtx{
-			OrgID:       ctx.Org.Organization.ID,
+	if ctx.Data["PageIsOrgSettings"] == true {
+		return &ownerRepoCtx{
+			OwnerID:     ctx.ContextUser.ID,
 			Link:        path.Join(ctx.Org.OrgLink, "settings/hooks"),
 			LinkNew:     path.Join(ctx.Org.OrgLink, "settings/hooks"),
 			NewTemplate: tplOrgHookNew,
 		}, nil
 	}
 
-	if ctx.Doer.IsAdmin {
-		// Are we looking at default webhooks?
-		if ctx.Params(":configType") == "default-hooks" {
-			return &orgRepoCtx{
-				IsAdmin:     true,
-				Link:        path.Join(setting.AppSubURL, "/admin/hooks"),
-				LinkNew:     path.Join(setting.AppSubURL, "/admin/default-hooks"),
-				NewTemplate: tplAdminHookNew,
-			}, nil
-		}
+	if ctx.Data["PageIsUserSettings"] == true {
+		return &ownerRepoCtx{
+			OwnerID:     ctx.Doer.ID,
+			Link:        path.Join(setting.AppSubURL, "/user/settings/hooks"),
+			LinkNew:     path.Join(setting.AppSubURL, "/user/settings/hooks"),
+			NewTemplate: tplUserHookNew,
+		}, nil
+	}
 
-		// Must be system webhooks instead
-		return &orgRepoCtx{
+	if ctx.Data["PageIsAdmin"] == true {
+		return &ownerRepoCtx{
 			IsAdmin:         true,
-			IsSystemWebhook: true,
+			IsSystemWebhook: ctx.Params(":configType") == "system-hooks",
 			Link:            path.Join(setting.AppSubURL, "/admin/hooks"),
-			LinkNew:         path.Join(setting.AppSubURL, "/admin/system-hooks"),
+			LinkNew:         path.Join(setting.AppSubURL, "/admin/", ctx.Params(":configType")),
 			NewTemplate:     tplAdminHookNew,
 		}, nil
 	}
 
-	return nil, errors.New("unable to set OrgRepo context")
+	return nil, errors.New("unable to set OwnerRepo context")
 }
 
 func checkHookType(ctx *context.Context) string {
@@ -122,9 +122,9 @@ func WebhooksNew(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.add_webhook")
 	ctx.Data["Webhook"] = webhook.Webhook{HookEvent: &webhook_module.HookEvent{}}
 
-	orCtx, err := getOrgRepoCtx(ctx)
+	orCtx, err := getOwnerRepoCtx(ctx)
 	if err != nil {
-		ctx.ServerError("getOrgRepoCtx", err)
+		ctx.ServerError("getOwnerRepoCtx", err)
 		return
 	}
 
@@ -161,26 +161,27 @@ func ParseHookEvent(form forms.WebhookForm) *webhook_module.HookEvent {
 		SendEverything: form.SendEverything(),
 		ChooseEvents:   form.ChooseEvents(),
 		HookEvents: webhook_module.HookEvents{
-			Create:               form.Create,
-			Delete:               form.Delete,
-			Fork:                 form.Fork,
-			Issues:               form.Issues,
-			IssueAssign:          form.IssueAssign,
-			IssueLabel:           form.IssueLabel,
-			IssueMilestone:       form.IssueMilestone,
-			IssueComment:         form.IssueComment,
-			Release:              form.Release,
-			Push:                 form.Push,
-			PullRequest:          form.PullRequest,
-			PullRequestAssign:    form.PullRequestAssign,
-			PullRequestLabel:     form.PullRequestLabel,
-			PullRequestMilestone: form.PullRequestMilestone,
-			PullRequestComment:   form.PullRequestComment,
-			PullRequestReview:    form.PullRequestReview,
-			PullRequestSync:      form.PullRequestSync,
-			Wiki:                 form.Wiki,
-			Repository:           form.Repository,
-			Package:              form.Package,
+			Create:                   form.Create,
+			Delete:                   form.Delete,
+			Fork:                     form.Fork,
+			Issues:                   form.Issues,
+			IssueAssign:              form.IssueAssign,
+			IssueLabel:               form.IssueLabel,
+			IssueMilestone:           form.IssueMilestone,
+			IssueComment:             form.IssueComment,
+			Release:                  form.Release,
+			Push:                     form.Push,
+			PullRequest:              form.PullRequest,
+			PullRequestAssign:        form.PullRequestAssign,
+			PullRequestLabel:         form.PullRequestLabel,
+			PullRequestMilestone:     form.PullRequestMilestone,
+			PullRequestComment:       form.PullRequestComment,
+			PullRequestReview:        form.PullRequestReview,
+			PullRequestSync:          form.PullRequestSync,
+			PullRequestReviewRequest: form.PullRequestReviewRequest,
+			Wiki:                     form.Wiki,
+			Repository:               form.Repository,
+			Package:                  form.Package,
 		},
 		BranchFilter: form.BranchFilter,
 	}
@@ -205,9 +206,9 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 	ctx.Data["Webhook"] = webhook.Webhook{HookEvent: &webhook_module.HookEvent{}}
 	ctx.Data["HookType"] = params.Type
 
-	orCtx, err := getOrgRepoCtx(ctx)
+	orCtx, err := getOwnerRepoCtx(ctx)
 	if err != nil {
-		ctx.ServerError("getOrgRepoCtx", err)
+		ctx.ServerError("getOwnerRepoCtx", err)
 		return
 	}
 	ctx.Data["BaseLink"] = orCtx.LinkNew
@@ -236,7 +237,7 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 		IsActive:        params.WebhookForm.Active,
 		Type:            params.Type,
 		Meta:            string(meta),
-		OrgID:           orCtx.OrgID,
+		OwnerID:         orCtx.OwnerID,
 		IsSystemWebhook: orCtx.IsSystemWebhook,
 	}
 	err = w.SetHeaderAuthorization(params.WebhookForm.AuthorizationHeader)
@@ -577,19 +578,19 @@ func packagistHookParams(ctx *context.Context) webhookParams {
 	}
 }
 
-func checkWebhook(ctx *context.Context) (*orgRepoCtx, *webhook.Webhook) {
-	orCtx, err := getOrgRepoCtx(ctx)
+func checkWebhook(ctx *context.Context) (*ownerRepoCtx, *webhook.Webhook) {
+	orCtx, err := getOwnerRepoCtx(ctx)
 	if err != nil {
-		ctx.ServerError("getOrgRepoCtx", err)
+		ctx.ServerError("getOwnerRepoCtx", err)
 		return nil, nil
 	}
 	ctx.Data["BaseLink"] = orCtx.Link
 
 	var w *webhook.Webhook
 	if orCtx.RepoID > 0 {
-		w, err = webhook.GetWebhookByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
-	} else if orCtx.OrgID > 0 {
-		w, err = webhook.GetWebhookByOrgID(ctx.Org.Organization.ID, ctx.ParamsInt64(":id"))
+		w, err = webhook.GetWebhookByRepoID(orCtx.RepoID, ctx.ParamsInt64(":id"))
+	} else if orCtx.OwnerID > 0 {
+		w, err = webhook.GetWebhookByOwnerID(orCtx.OwnerID, ctx.ParamsInt64(":id"))
 	} else if orCtx.IsAdmin {
 		w, err = webhook.GetSystemOrDefaultWebhook(ctx, ctx.ParamsInt64(":id"))
 	}
@@ -660,7 +661,7 @@ func TestWebhook(ctx *context.Context) {
 		}
 	}
 
-	apiUser := convert.ToUserWithAccessMode(ctx.Doer, perm.AccessModeNone)
+	apiUser := convert.ToUserWithAccessMode(ctx, ctx.Doer, perm.AccessModeNone)
 
 	apiCommit := &api.PayloadCommit{
 		ID:      commit.ID.String(),
@@ -685,7 +686,7 @@ func TestWebhook(ctx *context.Context) {
 		Commits:      []*api.PayloadCommit{apiCommit},
 		TotalCommits: 1,
 		HeadCommit:   apiCommit,
-		Repo:         convert.ToRepo(ctx, ctx.Repo.Repository, perm.AccessModeNone),
+		Repo:         convert.ToRepo(ctx, ctx.Repo.Repository, access_model.Permission{AccessMode: perm.AccessModeNone}),
 		Pusher:       apiUser,
 		Sender:       apiUser,
 	}

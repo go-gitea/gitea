@@ -31,7 +31,7 @@ func TestAPIIssueSubscriptions(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue1.PosterID})
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
 	testSubscription := func(issue *issues_model.Issue, isWatching bool) {
 		issueRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})

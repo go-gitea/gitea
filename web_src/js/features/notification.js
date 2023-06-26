@@ -4,6 +4,30 @@ const {appSubUrl, csrfToken, notificationSettings, assetVersionEncoded} = window
 let notificationSequenceNumber = 0;
 
 export function initNotificationsTable() {
+  const table = document.getElementById('notification_table');
+  if (!table) return;
+
+  // when page restores from bfcache, delete previously clicked items
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) { // page was restored from bfcache
+      const table = document.getElementById('notification_table');
+      const unreadCountEl = document.querySelector('.notifications-unread-count');
+      let unreadCount = parseInt(unreadCountEl.textContent);
+      for (const item of table.querySelectorAll('.notifications-item[data-remove="true"]')) {
+        item.remove();
+        unreadCount -= 1;
+      }
+      unreadCountEl.textContent = unreadCount;
+    }
+  });
+
+  // mark clicked unread links for deletion on bfcache restore
+  for (const link of table.querySelectorAll('.notifications-item[data-status="1"] .notifications-link')) {
+    link.addEventListener('click', (e) => {
+      e.target.closest('.notifications-item').setAttribute('data-remove', 'true');
+    });
+  }
+
   $('#notification_table .button').on('click', function () {
     (async () => {
       const data = await updateNotification(
@@ -29,7 +53,7 @@ async function receiveUpdateCount(event) {
     const data = JSON.parse(event.data);
 
     for (const count of document.querySelectorAll('.notification_count')) {
-      count.classList.toggle('hidden', data.Count === 0);
+      count.classList.toggle('gt-hidden', data.Count === 0);
       count.textContent = `${data.Count}`;
     }
     await updateNotificationTable();
@@ -165,9 +189,9 @@ async function updateNotificationCount() {
 
   const notificationCount = $('.notification_count');
   if (data.new === 0) {
-    notificationCount.addClass('hidden');
+    notificationCount.addClass('gt-hidden');
   } else {
-    notificationCount.removeClass('hidden');
+    notificationCount.removeClass('gt-hidden');
   }
 
   notificationCount.text(`${data.new}`);

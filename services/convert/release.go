@@ -4,12 +4,14 @@
 package convert
 
 import (
+	"context"
+
 	repo_model "code.gitea.io/gitea/models/repo"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
 // ToRelease convert a repo_model.Release to api.Release
-func ToRelease(r *repo_model.Release) *api.Release {
+func ToRelease(ctx context.Context, r *repo_model.Release) *api.Release {
 	return &api.Release{
 		ID:           r.ID,
 		TagName:      r.TagName,
@@ -24,7 +26,7 @@ func ToRelease(r *repo_model.Release) *api.Release {
 		IsPrerelease: r.IsPrerelease,
 		CreatedAt:    r.CreatedUnix.AsTime(),
 		PublishedAt:  r.CreatedUnix.AsTime(),
-		Publisher:    ToUser(r.Publisher, nil),
+		Publisher:    ToUser(ctx, r.Publisher, nil),
 		Attachments:  ToAttachments(r.Attachments),
 	}
 }

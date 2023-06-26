@@ -37,7 +37,6 @@ import (
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/automerge"
@@ -45,6 +44,8 @@ import (
 	"code.gitea.io/gitea/services/gitdiff"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
+
+	"github.com/gobwas/glob"
 )
 
 const (
@@ -119,8 +120,8 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 		return nil
 	}
 
-	if err := forkRepo.GetOwner(ctx); err != nil {
-		ctx.ServerError("GetOwner", err)
+	if err := forkRepo.LoadOwner(ctx); err != nil {
+		ctx.ServerError("LoadOwner", err)
 		return nil
 	}
 
@@ -203,6 +204,7 @@ func Fork(ctx *context.Context) {
 func ForkPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateRepoForm)
 	ctx.Data["Title"] = ctx.Tr("new_fork")
+	ctx.Data["CanForkRepo"] = true
 
 	ctxUser := checkContextUser(ctx, form.UID)
 	if ctx.Written() {
@@ -269,6 +271,17 @@ func ForkPost(ctx *context.Context) {
 			ctx.RenderWithErr(msg, tplFork, &form)
 		case repo_model.IsErrRepoAlreadyExist(err):
 			ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplFork, &form)
+		case repo_model.IsErrRepoFilesAlreadyExist(err):
+			switch {
+			case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories):
+				ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt_or_delete"), tplFork, form)
+			case setting.Repository.AllowAdoptionOfUnadoptedRepositories:
+				ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt"), tplFork, form)
+			case setting.Repository.AllowDeleteOfUnadoptedRepositories:
+				ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.delete"), tplFork, form)
+			default:
+				ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist"), tplFork, form)
+			}
 		case db.IsErrNameReserved(err):
 			ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplFork, &form)
 		case db.IsErrNamePatternNotAllowed(err):
@@ -574,7 +587,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 	if pb != nil && pb.EnableStatusCheck {
 		ctx.Data["is_context_required"] = func(context string) bool {
 			for _, c := range pb.StatusCheckContexts {
-				if c == context {
+				if gp, err := glob.Compile(c); err == nil && gp.Match(context) {
 					return true
 				}
 			}
@@ -587,7 +600,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 	ctx.Data["HeadBranchCommitID"] = headBranchSha
 	ctx.Data["PullHeadCommitID"] = sha
 
-	if pull.HeadRepo == nil || !headBranchExist || headBranchSha != sha {
+	if pull.HeadRepo == nil || !headBranchExist || (!pull.Issue.IsClosed && (headBranchSha != sha)) {
 		ctx.Data["IsPullRequestBroken"] = true
 		if pull.IsSameRepo() {
 			ctx.Data["HeadTarget"] = pull.HeadBranch
@@ -748,7 +761,7 @@ func ViewPullFiles(ctx *context.Context) {
 		"numberOfViewedFiles": diff.NumViewedFiles,
 	}
 
-	if err = diff.LoadComments(ctx, issue, ctx.Doer); err != nil {
+	if err = diff.LoadComments(ctx, issue, ctx.Doer, ctx.Data["ShowOutdatedComments"].(bool)); err != nil {
 		ctx.ServerError("LoadComments", err)
 		return
 	}
@@ -791,11 +804,13 @@ func ViewPullFiles(ctx *context.Context) {
 
 	setCompareContext(ctx, baseCommit, commit, ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 
-	ctx.Data["RequireTribute"] = true
-	if ctx.Data["Assignees"], err = repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository); err != nil {
-		ctx.ServerError("GetAssignees", err)
+	assigneeUsers, err := repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)
+	if err != nil {
+		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
+	ctx.Data["Assignees"] = MakeSelfOnTop(ctx, assigneeUsers)
+
 	handleTeamMentions(ctx)
 	if ctx.Written() {
 		return
@@ -926,11 +941,19 @@ func MergePullRequest(ctx *context.Context) {
 	pr := issue.PullRequest
 	pr.Issue = issue
 	pr.Issue.Repo = ctx.Repo.Repository
-	manualMerge := repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged
-	forceMerge := form.ForceMerge != nil && *form.ForceMerge
+
+	manuallyMerged := repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged
+
+	mergeCheckType := pull_service.MergeCheckTypeGeneral
+	if form.MergeWhenChecksSucceed {
+		mergeCheckType = pull_service.MergeCheckTypeAuto
+	}
+	if manuallyMerged {
+		mergeCheckType = pull_service.MergeCheckTypeManually
+	}
 
 	// start with merging by checking
-	if err := pull_service.CheckPullMergable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, manualMerge, forceMerge); err != nil {
+	if err := pull_service.CheckPullMergable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, mergeCheckType, form.ForceMerge); err != nil {
 		switch {
 		case errors.Is(err, pull_service.ErrIsClosed):
 			if issue.IsPull {
@@ -962,7 +985,7 @@ func MergePullRequest(ctx *context.Context) {
 	}
 
 	// handle manually-merged mark
-	if manualMerge {
+	if manuallyMerged {
 		if err := pull_service.MergedManually(pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
 			switch {
 
@@ -1152,7 +1175,6 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	ctx.Data["PageIsComparePull"] = true
 	ctx.Data["IsDiffCompare"] = true
 	ctx.Data["IsRepoToolbarCommits"] = true
-	ctx.Data["RequireTribute"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
@@ -1183,36 +1205,12 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		middleware.AssignForm(form, ctx.Data)
-
-		// This stage is already stop creating new pull request, so it does not matter if it has
-		// something to compare or not.
-		PrepareCompareDiff(ctx, ci,
-			gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
-		if ctx.Written() {
-			return
-		}
-
-		if len(form.Title) > 255 {
-			var trailer string
-			form.Title, trailer = util.SplitStringAtByteN(form.Title, 255)
-
-			form.Content = trailer + "\n\n" + form.Content
-		}
-		middleware.AssignForm(form, ctx.Data)
-
-		ctx.HTML(http.StatusOK, tplCompareDiff)
+		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}
 
 	if util.IsEmptyString(form.Title) {
-		PrepareCompareDiff(ctx, ci,
-			gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
-		if ctx.Written() {
-			return
-		}
-
-		ctx.RenderWithErr(ctx.Tr("repo.issues.new.title_empty"), tplCompareDiff, form)
+		ctx.JSONError(ctx.Tr("repo.issues.new.title_empty"))
 		return
 	}
 
@@ -1255,20 +1253,20 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 			pushrejErr := err.(*git.ErrPushRejected)
 			message := pushrejErr.Message
 			if len(message) == 0 {
-				ctx.Flash.Error(ctx.Tr("repo.pulls.push_rejected_no_message"))
-			} else {
-				flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
-					"Message": ctx.Tr("repo.pulls.push_rejected"),
-					"Summary": ctx.Tr("repo.pulls.push_rejected_summary"),
-					"Details": utils.SanitizeFlashErrorString(pushrejErr.Message),
-				})
-				if err != nil {
-					ctx.ServerError("CompareAndPullRequest.HTMLString", err)
-					return
-				}
-				ctx.Flash.Error(flashError)
+				ctx.JSONError(ctx.Tr("repo.pulls.push_rejected_no_message"))
+				return
 			}
-			ctx.Redirect(pullIssue.Link())
+			flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
+				"Message": ctx.Tr("repo.pulls.push_rejected"),
+				"Summary": ctx.Tr("repo.pulls.push_rejected_summary"),
+				"Details": utils.SanitizeFlashErrorString(pushrejErr.Message),
+			})
+			if err != nil {
+				ctx.ServerError("CompareAndPullRequest.HTMLString", err)
+				return
+			}
+			ctx.Flash.Error(flashError)
+			ctx.JSONRedirect(pullIssue.Link()) // FIXME: it's unfriendly, and will make the content lost
 			return
 		}
 		ctx.ServerError("NewPullRequest", err)
@@ -1276,7 +1274,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	}
 
 	log.Trace("Pull request created: %d/%d", repo.ID, pullIssue.ID)
-	ctx.Redirect(pullIssue.Link())
+	ctx.JSONRedirect(pullIssue.Link())
 }
 
 // CleanUpPullRequest responses for delete merged branch when PR has been merged
@@ -1315,8 +1313,8 @@ func CleanUpPullRequest(ctx *context.Context) {
 	} else if err = pr.LoadBaseRepo(ctx); err != nil {
 		ctx.ServerError("LoadBaseRepo", err)
 		return
-	} else if err = pr.HeadRepo.GetOwner(ctx); err != nil {
-		ctx.ServerError("HeadRepo.GetOwner", err)
+	} else if err = pr.HeadRepo.LoadOwner(ctx); err != nil {
+		ctx.ServerError("HeadRepo.LoadOwner", err)
 		return
 	}
 
@@ -1391,7 +1389,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 
 func deleteBranch(ctx *context.Context, pr *issues_model.PullRequest, gitRepo *git.Repository) {
 	fullBranchName := pr.HeadRepo.FullName() + ":" + pr.HeadBranch
-	if err := repo_service.DeleteBranch(ctx.Doer, pr.HeadRepo, gitRepo, pr.HeadBranch); err != nil {
+	if err := repo_service.DeleteBranch(ctx, ctx.Doer, pr.HeadRepo, gitRepo, pr.HeadBranch); err != nil {
 		switch {
 		case git.IsErrBranchNotExist(err):
 			ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))

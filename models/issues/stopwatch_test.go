@@ -45,12 +45,12 @@ func TestStopwatchExists(t *testing.T) {
 func TestHasUserStopwatch(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	exists, sw, err := issues_model.HasUserStopwatch(db.DefaultContext, 1)
+	exists, sw, _, err := issues_model.HasUserStopwatch(db.DefaultContext, 1)
 	assert.NoError(t, err)
 	assert.True(t, exists)
 	assert.Equal(t, int64(1), sw.ID)
 
-	exists, _, err = issues_model.HasUserStopwatch(db.DefaultContext, 3)
+	exists, _, _, err = issues_model.HasUserStopwatch(db.DefaultContext, 3)
 	assert.NoError(t, err)
 	assert.False(t, exists)
 }

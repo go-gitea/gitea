@@ -66,7 +66,6 @@ func Packages(ctx *context.Context) {
 	}
 
 	ctx.Data["Title"] = ctx.Tr("packages.title")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminPackages"] = true
 	ctx.Data["Query"] = query
 	ctx.Data["PackageType"] = packageType

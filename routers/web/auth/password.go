@@ -9,10 +9,10 @@ import (
 
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
@@ -59,7 +59,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 	email := ctx.FormString("email")
 	ctx.Data["Email"] = email
 
-	u, err := user_model.GetUserByEmail(email)
+	u, err := user_model.GetUserByEmail(ctx, email)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale)
@@ -176,7 +176,7 @@ func ResetPasswdPost(ctx *context.Context) {
 	} else if !password.IsComplexEnough(passwd) {
 		ctx.Data["IsResetForm"] = true
 		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(password.BuildComplexityError(ctx), tplResetPassword, nil)
+		ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplResetPassword, nil)
 		return
 	} else if pwned, err := password.IsPwned(ctx, passwd); pwned || err != nil {
 		errMsg := ctx.Tr("auth.password_pwned")
@@ -305,7 +305,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 
 	if !password.IsComplexEnough(form.Password) {
 		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(password.BuildComplexityError(ctx), tplMustChangePassword, &form)
+		ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplMustChangePassword, &form)
 		return
 	}
 	pwned, err := password.IsPwned(ctx, form.Password)
@@ -336,7 +336,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 
 	log.Trace("User updated password: %s", u.Name)
 
-	if redirectTo := ctx.GetCookie("redirect_to"); len(redirectTo) > 0 && !utils.IsExternalURL(redirectTo) {
+	if redirectTo := ctx.GetSiteCookie("redirect_to"); len(redirectTo) > 0 && !utils.IsExternalURL(redirectTo) {
 		middleware.DeleteRedirectToCookie(ctx.Resp)
 		ctx.RedirectToFirst(redirectTo)
 		return

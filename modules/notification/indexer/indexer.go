@@ -9,7 +9,6 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	stats_indexer "code.gitea.io/gitea/modules/indexer/stats"
@@ -28,6 +27,10 @@ var _ base.Notifier = &indexerNotifier{}
 // NewNotifier create a new indexerNotifier notifier
 func NewNotifier() base.Notifier {
 	return &indexerNotifier{}
+}
+
+func (r *indexerNotifier) NotifyAdoptRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
+	r.NotifyMigrateRepository(ctx, doer, u, repo)
 }
 
 func (r *indexerNotifier) NotifyCreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,
@@ -126,7 +129,11 @@ func (r *indexerNotifier) NotifyMigrateRepository(ctx context.Context, doer, u *
 }
 
 func (r *indexerNotifier) NotifyPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
-	if setting.Indexer.RepoIndexerEnabled && opts.RefFullName == git.BranchPrefix+repo.DefaultBranch {
+	if !opts.RefFullName.IsBranch() {
+		return
+	}
+
+	if setting.Indexer.RepoIndexerEnabled && opts.RefFullName.BranchName() == repo.DefaultBranch {
 		code_indexer.UpdateRepoIndexer(repo)
 	}
 	if err := stats_indexer.UpdateRepoIndexer(repo); err != nil {
@@ -135,7 +142,11 @@ func (r *indexerNotifier) NotifyPushCommits(ctx context.Context, pusher *user_mo
 }
 
 func (r *indexerNotifier) NotifySyncPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
-	if setting.Indexer.RepoIndexerEnabled && opts.RefFullName == git.BranchPrefix+repo.DefaultBranch {
+	if !opts.RefFullName.IsBranch() {
+		return
+	}
+
+	if setting.Indexer.RepoIndexerEnabled && opts.RefFullName.BranchName() == repo.DefaultBranch {
 		code_indexer.UpdateRepoIndexer(repo)
 	}
 	if err := stats_indexer.UpdateRepoIndexer(repo); err != nil {

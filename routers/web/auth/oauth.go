@@ -4,7 +4,7 @@
 package auth
 
 import (
-	stdContext "context"
+	go_context "context"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -12,12 +12,15 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 
 	"code.gitea.io/gitea/models/auth"
 	org_model "code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
+	auth_module "code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -27,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	auth_service "code.gitea.io/gitea/services/auth"
+	source_service "code.gitea.io/gitea/services/auth/source"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/forms"
@@ -36,6 +40,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
+	go_oauth2 "golang.org/x/oauth2"
 )
 
 const (
@@ -140,7 +145,7 @@ type AccessTokenResponse struct {
 	IDToken      string    `json:"id_token,omitempty"`
 }
 
-func newAccessTokenResponse(ctx stdContext.Context, grant *auth.OAuth2Grant, serverKey, clientKey oauth2.JWTSigningKey) (*AccessTokenResponse, *AccessTokenError) {
+func newAccessTokenResponse(ctx go_context.Context, grant *auth.OAuth2Grant, serverKey, clientKey oauth2.JWTSigningKey) (*AccessTokenResponse, *AccessTokenError) {
 	if setting.OAuth2.InvalidateRefreshTokens {
 		if err := grant.IncreaseCounter(ctx); err != nil {
 			return nil, &AccessTokenError{
@@ -222,7 +227,7 @@ func newAccessTokenResponse(ctx stdContext.Context, grant *auth.OAuth2Grant, ser
 			idToken.Name = user.GetDisplayName()
 			idToken.PreferredUsername = user.Name
 			idToken.Profile = user.HTMLURL()
-			idToken.Picture = user.AvatarLink()
+			idToken.Picture = user.AvatarLink(ctx)
 			idToken.Website = user.Website
 			idToken.Locale = user.Language
 			idToken.UpdatedAt = user.UpdatedUnix
@@ -283,7 +288,7 @@ func InfoOAuth(ctx *context.Context) {
 		Name:     ctx.Doer.FullName,
 		Username: ctx.Doer.Name,
 		Email:    ctx.Doer.Email,
-		Picture:  ctx.Doer.AvatarLink(),
+		Picture:  ctx.Doer.AvatarLink(ctx),
 	}
 
 	groups, err := getOAuthGroupsForUser(ctx.Doer)
@@ -575,12 +580,15 @@ func GrantApplicationOAuth(ctx *context.Context) {
 
 // OIDCWellKnown generates JSON so OIDC clients know Gitea's capabilities
 func OIDCWellKnown(ctx *context.Context) {
-	t := ctx.Render.TemplateLookup("user/auth/oidc_wellknown")
+	t, err := ctx.Render.TemplateLookup("user/auth/oidc_wellknown")
+	if err != nil {
+		ctx.ServerError("unable to find template", err)
+		return
+	}
 	ctx.Resp.Header().Set("Content-Type", "application/json")
 	ctx.Data["SigningKey"] = oauth2.DefaultSigningKey
-	if err := t.Execute(ctx.Resp, ctx.Data); err != nil {
-		log.Error("%v", err)
-		ctx.Error(http.StatusInternalServerError)
+	if err = t.Execute(ctx.Resp, ctx.Data); err != nil {
+		ctx.ServerError("unable to execute template", err)
 	}
 }
 
@@ -689,7 +697,7 @@ func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, server
 	}
 	// "The authorization server MUST ... require client authentication for confidential clients"
 	// https://datatracker.ietf.org/doc/html/rfc6749#section-6
-	if !app.ValidateClientSecret([]byte(form.ClientSecret)) {
+	if app.ConfidentialClient && !app.ValidateClientSecret([]byte(form.ClientSecret)) {
 		errorDescription := "invalid client secret"
 		if form.ClientSecret == "" {
 			errorDescription = "invalid empty client secret"
@@ -747,7 +755,7 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 		})
 		return
 	}
-	if !app.ValidateClientSecret([]byte(form.ClientSecret)) {
+	if app.ConfidentialClient && !app.ValidateClientSecret([]byte(form.ClientSecret)) {
 		errorDescription := "invalid client secret"
 		if form.ClientSecret == "" {
 			errorDescription = "invalid empty client secret"
@@ -880,6 +888,17 @@ func SignInOAuth(ctx *context.Context) {
 func SignInOAuthCallback(ctx *context.Context) {
 	provider := ctx.Params(":provider")
 
+	if ctx.Req.FormValue("error") != "" {
+		var errorKeyValues []string
+		for k, vv := range ctx.Req.Form {
+			for _, v := range vv {
+				errorKeyValues = append(errorKeyValues, fmt.Sprintf("%s = %s", html.EscapeString(k), html.EscapeString(v)))
+			}
+		}
+		sort.Strings(errorKeyValues)
+		ctx.Flash.Error(strings.Join(errorKeyValues, "<br>"), true)
+	}
+
 	// first look if the provider is still active
 	authSource, err := auth.GetActiveOAuth2SourceByName(provider)
 	if err != nil {
@@ -888,7 +907,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 	}
 
 	if authSource == nil {
-		ctx.ServerError("SignIn", errors.New("No valid provider found, check configured callback url in provider"))
+		ctx.ServerError("SignIn", errors.New("no valid provider found, check configured callback url in provider"))
 		return
 	}
 
@@ -913,6 +932,9 @@ func SignInOAuthCallback(ctx *context.Context) {
 			}
 			ctx.Redirect(setting.AppSubURL + "/user/login")
 			return
+		}
+		if err, ok := err.(*go_oauth2.RetrieveError); ok {
+			ctx.Flash.Error("OAuth2 RetrieveError: "+err.Error(), true)
 		}
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -960,13 +982,20 @@ func SignInOAuthCallback(ctx *context.Context) {
 			}
 
 			overwriteDefault := &user_model.CreateUserOverwriteOptions{
-				IsActive: util.OptionalBoolOf(!setting.OAuth2Client.RegisterEmailConfirm),
+				IsActive: util.OptionalBoolOf(!setting.OAuth2Client.RegisterEmailConfirm && !setting.Service.RegisterManualConfirm),
 			}
 
-			setUserGroupClaims(authSource, u, &gothUser)
+			source := authSource.Cfg.(*oauth2.Source)
+
+			setUserAdminAndRestrictedFromGroupClaims(source, u, &gothUser)
 
 			if !createAndHandleCreatedUser(ctx, base.TplName(""), nil, u, overwriteDefault, &gothUser, setting.OAuth2Client.AccountLinking != setting.OAuth2AccountLinkingDisabled) {
 				// error already handled
+				return
+			}
+
+			if err := syncGroupsToTeams(ctx, source, &gothUser, u); err != nil {
+				ctx.ServerError("SyncGroupsToTeams", err)
 				return
 			}
 		} else {
@@ -979,7 +1008,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 	handleOAuth2SignIn(ctx, authSource, u, gothUser)
 }
 
-func claimValueToStringSlice(claimValue interface{}) []string {
+func claimValueToStringSet(claimValue interface{}) container.Set[string] {
 	var groups []string
 
 	switch rawGroup := claimValue.(type) {
@@ -993,37 +1022,45 @@ func claimValueToStringSlice(claimValue interface{}) []string {
 		str := fmt.Sprintf("%s", rawGroup)
 		groups = strings.Split(str, ",")
 	}
-	return groups
+	return container.SetOf(groups...)
 }
 
-func setUserGroupClaims(loginSource *auth.Source, u *user_model.User, gothUser *goth.User) bool {
-	source := loginSource.Cfg.(*oauth2.Source)
-	if source.GroupClaimName == "" || (source.AdminGroup == "" && source.RestrictedGroup == "") {
-		return false
+func syncGroupsToTeams(ctx *context.Context, source *oauth2.Source, gothUser *goth.User, u *user_model.User) error {
+	if source.GroupTeamMap != "" || source.GroupTeamMapRemoval {
+		groupTeamMapping, err := auth_module.UnmarshalGroupTeamMapping(source.GroupTeamMap)
+		if err != nil {
+			return err
+		}
+
+		groups := getClaimedGroups(source, gothUser)
+
+		if err := source_service.SyncGroupsToTeams(ctx, u, groups, groupTeamMapping, source.GroupTeamMapRemoval); err != nil {
+			return err
+		}
 	}
 
+	return nil
+}
+
+func getClaimedGroups(source *oauth2.Source, gothUser *goth.User) container.Set[string] {
 	groupClaims, has := gothUser.RawData[source.GroupClaimName]
 	if !has {
-		return false
+		return nil
 	}
 
-	groups := claimValueToStringSlice(groupClaims)
+	return claimValueToStringSet(groupClaims)
+}
+
+func setUserAdminAndRestrictedFromGroupClaims(source *oauth2.Source, u *user_model.User, gothUser *goth.User) bool {
+	groups := getClaimedGroups(source, gothUser)
 
 	wasAdmin, wasRestricted := u.IsAdmin, u.IsRestricted
 
 	if source.AdminGroup != "" {
-		u.IsAdmin = false
+		u.IsAdmin = groups.Contains(source.AdminGroup)
 	}
 	if source.RestrictedGroup != "" {
-		u.IsRestricted = false
-	}
-
-	for _, g := range groups {
-		if source.AdminGroup != "" && g == source.AdminGroup {
-			u.IsAdmin = true
-		} else if source.RestrictedGroup != "" && g == source.RestrictedGroup {
-			u.IsRestricted = true
-		}
+		u.IsRestricted = groups.Contains(source.RestrictedGroup)
 	}
 
 	return wasAdmin != u.IsAdmin || wasRestricted != u.IsRestricted
@@ -1070,6 +1107,15 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		needs2FA = err == nil
 	}
 
+	oauth2Source := source.Cfg.(*oauth2.Source)
+	groupTeamMapping, err := auth_module.UnmarshalGroupTeamMapping(oauth2Source.GroupTeamMap)
+	if err != nil {
+		ctx.ServerError("UnmarshalGroupTeamMapping", err)
+		return
+	}
+
+	groups := getClaimedGroups(oauth2Source, &gothUser)
+
 	// If this user is enrolled in 2FA and this source doesn't override it,
 	// we can't sign the user in just yet. Instead, redirect them to the 2FA authentication page.
 	if !needs2FA {
@@ -1082,13 +1128,13 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		}
 
 		// Clear whatever CSRF cookie has right now, force to generate a new one
-		middleware.DeleteCSRFCookie(ctx.Resp)
+		ctx.Csrf.DeleteCookie(ctx)
 
 		// Register last login
 		u.SetLastLogin()
 
 		// Update GroupClaims
-		changed := setUserGroupClaims(source, u, &gothUser)
+		changed := setUserAdminAndRestrictedFromGroupClaims(oauth2Source, u, &gothUser)
 		cols := []string{"last_login_unix"}
 		if changed {
 			cols = append(cols, "is_admin", "is_restricted")
@@ -1097,6 +1143,13 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		if err := user_model.UpdateUserCols(ctx, u, cols...); err != nil {
 			ctx.ServerError("UpdateUserCols", err)
 			return
+		}
+
+		if oauth2Source.GroupTeamMap != "" || oauth2Source.GroupTeamMapRemoval {
+			if err := source_service.SyncGroupsToTeams(ctx, u, groups, groupTeamMapping, oauth2Source.GroupTeamMapRemoval); err != nil {
+				ctx.ServerError("SyncGroupsToTeams", err)
+				return
+			}
 		}
 
 		// update external user information
@@ -1111,7 +1164,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 			return
 		}
 
-		if redirectTo := ctx.GetCookie("redirect_to"); len(redirectTo) > 0 {
+		if redirectTo := ctx.GetSiteCookie("redirect_to"); len(redirectTo) > 0 {
 			middleware.DeleteRedirectToCookie(ctx.Resp)
 			ctx.RedirectToFirst(redirectTo)
 			return
@@ -1121,10 +1174,17 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		return
 	}
 
-	changed := setUserGroupClaims(source, u, &gothUser)
+	changed := setUserAdminAndRestrictedFromGroupClaims(oauth2Source, u, &gothUser)
 	if changed {
 		if err := user_model.UpdateUserCols(ctx, u, "is_admin", "is_restricted"); err != nil {
 			ctx.ServerError("UpdateUserCols", err)
+			return
+		}
+	}
+
+	if oauth2Source.GroupTeamMap != "" || oauth2Source.GroupTeamMapRemoval {
+		if err := source_service.SyncGroupsToTeams(ctx, u, groups, groupTeamMapping, oauth2Source.GroupTeamMapRemoval); err != nil {
+			ctx.ServerError("SyncGroupsToTeams", err)
 			return
 		}
 	}
@@ -1188,15 +1248,9 @@ func oAuth2UserLoginCallback(authSource *auth.Source, request *http.Request, res
 		}
 
 		if oauth2Source.RequiredClaimValue != "" {
-			groups := claimValueToStringSlice(claimInterface)
-			found := false
-			for _, group := range groups {
-				if group == oauth2Source.RequiredClaimValue {
-					found = true
-					break
-				}
-			}
-			if !found {
+			groups := claimValueToStringSet(claimInterface)
+
+			if !groups.Contains(oauth2Source.RequiredClaimValue) {
 				return nil, goth.User{}, user_model.ErrUserProhibitLogin{Name: gothUser.UserID}
 			}
 		}

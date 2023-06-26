@@ -61,28 +61,28 @@ func TestUser_IsOrgMember(t *testing.T) {
 func TestUser_GetTeam(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
-	team, err := org.GetTeam("team1")
+	team, err := org.GetTeam(db.DefaultContext, "team1")
 	assert.NoError(t, err)
 	assert.Equal(t, org.ID, team.OrgID)
 	assert.Equal(t, "team1", team.LowerName)
 
-	_, err = org.GetTeam("does not exist")
+	_, err = org.GetTeam(db.DefaultContext, "does not exist")
 	assert.True(t, organization.IsErrTeamNotExist(err))
 
 	nonOrg := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 2})
-	_, err = nonOrg.GetTeam("team")
+	_, err = nonOrg.GetTeam(db.DefaultContext, "team")
 	assert.True(t, organization.IsErrTeamNotExist(err))
 }
 
 func TestUser_GetOwnerTeam(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
-	team, err := org.GetOwnerTeam()
+	team, err := org.GetOwnerTeam(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.Equal(t, org.ID, team.OrgID)
 
 	nonOrg := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 2})
-	_, err = nonOrg.GetOwnerTeam()
+	_, err = nonOrg.GetOwnerTeam(db.DefaultContext)
 	assert.True(t, organization.IsErrTeamNotExist(err))
 }
 
@@ -115,15 +115,15 @@ func TestUser_GetMembers(t *testing.T) {
 func TestGetOrgByName(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	org, err := organization.GetOrgByName("user3")
+	org, err := organization.GetOrgByName(db.DefaultContext, "user3")
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, org.ID)
 	assert.Equal(t, "user3", org.Name)
 
-	_, err = organization.GetOrgByName("user2") // user2 is an individual
+	_, err = organization.GetOrgByName(db.DefaultContext, "user2") // user2 is an individual
 	assert.True(t, organization.IsErrOrgNotExist(err))
 
-	_, err = organization.GetOrgByName("") // corner case
+	_, err = organization.GetOrgByName(db.DefaultContext, "") // corner case
 	assert.True(t, organization.IsErrOrgNotExist(err))
 }
 
@@ -212,25 +212,31 @@ func TestGetOrgUsersByUserID(t *testing.T) {
 
 	orgUsers, err := organization.GetOrgUsersByUserID(5, &organization.SearchOrganizationsOptions{All: true})
 	assert.NoError(t, err)
-	if assert.Len(t, orgUsers, 2) {
+	if assert.Len(t, orgUsers, 3) {
 		assert.Equal(t, organization.OrgUser{
 			ID:       orgUsers[0].ID,
-			OrgID:    6,
+			OrgID:    23,
 			UID:      5,
-			IsPublic: true,
+			IsPublic: false,
 		}, *orgUsers[0])
 		assert.Equal(t, organization.OrgUser{
 			ID:       orgUsers[1].ID,
+			OrgID:    6,
+			UID:      5,
+			IsPublic: true,
+		}, *orgUsers[1])
+		assert.Equal(t, organization.OrgUser{
+			ID:       orgUsers[2].ID,
 			OrgID:    7,
 			UID:      5,
 			IsPublic: false,
-		}, *orgUsers[1])
+		}, *orgUsers[2])
 	}
 
 	publicOrgUsers, err := organization.GetOrgUsersByUserID(5, &organization.SearchOrganizationsOptions{All: false})
 	assert.NoError(t, err)
 	assert.Len(t, publicOrgUsers, 1)
-	assert.Equal(t, *orgUsers[0], *publicOrgUsers[0])
+	assert.Equal(t, *orgUsers[1], *publicOrgUsers[0])
 
 	orgUsers, err = organization.GetOrgUsersByUserID(1, &organization.SearchOrganizationsOptions{All: true})
 	assert.NoError(t, err)
@@ -259,6 +265,12 @@ func TestGetOrgUsersByOrgID(t *testing.T) {
 			UID:      4,
 			IsPublic: false,
 		}, *orgUsers[1])
+		assert.Equal(t, organization.OrgUser{
+			ID:       orgUsers[2].ID,
+			OrgID:    3,
+			UID:      28,
+			IsPublic: true,
+		}, *orgUsers[2])
 	}
 
 	orgUsers, err = organization.GetOrgUsersByOrgID(db.DefaultContext, &organization.FindOrgMembersOpts{
@@ -334,7 +346,7 @@ func TestAccessibleReposEnv_Repos(t *testing.T) {
 		assert.NoError(t, err)
 		repos, err := env.Repos(1, 100)
 		assert.NoError(t, err)
-		expectedRepos := make([]*repo_model.Repository, len(expectedRepoIDs))
+		expectedRepos := make(repo_model.RepositoryList, len(expectedRepoIDs))
 		for i, repoID := range expectedRepoIDs {
 			expectedRepos[i] = unittest.AssertExistsAndLoadBean(t,
 				&repo_model.Repository{ID: repoID})
@@ -353,7 +365,7 @@ func TestAccessibleReposEnv_MirrorRepos(t *testing.T) {
 		assert.NoError(t, err)
 		repos, err := env.MirrorRepos()
 		assert.NoError(t, err)
-		expectedRepos := make([]*repo_model.Repository, len(expectedRepoIDs))
+		expectedRepos := make(repo_model.RepositoryList, len(expectedRepoIDs))
 		for i, repoID := range expectedRepoIDs {
 			expectedRepos[i] = unittest.AssertExistsAndLoadBean(t,
 				&repo_model.Repository{ID: repoID})

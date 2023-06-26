@@ -10,19 +10,18 @@ tasks:
   - name: Run backend
     command: |
       gp sync-await setup
-      mkdir -p custom/conf/
-      echo -e "[server]\nROOT_URL=$(gp url 3000)/" > custom/conf/app.ini
-      echo -e "\n[database]\nDB_TYPE = sqlite3\nPATH = $GITPOD_REPO_ROOT/data/gitea.db" >> custom/conf/app.ini
+      if [ ! -f custom/conf/app.ini ]
+      then
+        mkdir -p custom/conf/
+        echo -e "[server]\nROOT_URL=$(gp url 3000)/" > custom/conf/app.ini
+        echo -e "\n[database]\nDB_TYPE = sqlite3\nPATH = $GITPOD_REPO_ROOT/data/gitea.db" >> custom/conf/app.ini
+      fi
       export TAGS="sqlite sqlite_unlock_notify"
       make watch-backend
   - name: Run frontend
     command: |
       gp sync-await setup
       make watch-frontend
-    openMode: split-right
-  - name: Run docs
-    before: sudo bash -c "$(grep 'https://github.com/gohugoio/hugo/releases/download' Makefile | tr -d '\')" # install hugo
-    command: cd docs && make clean update && hugo server -D -F --baseUrl $(gp url 1313) --liveReloadPort=443 --appendPort=false --bind=0.0.0.0
     openMode: split-right
 
 vscode:
@@ -32,13 +31,11 @@ vscode:
     - golang.go
     - stylelint.vscode-stylelint
     - DavidAnson.vscode-markdownlint
-    - johnsoncodehk.volar
+    - Vue.volar
     - ms-azuretools.vscode-docker
     - zixuanchen.vitest-explorer
-    - alexcvzz.vscode-sqlite
+    - qwtel.sqlite-viewer
 
 ports:
   - name: Gitea
     port: 3000
-  - name: Docs
-    port: 1313

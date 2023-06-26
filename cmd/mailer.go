@@ -5,7 +5,6 @@ package cmd
 
 import (
 	"fmt"
-	"net/http"
 
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
@@ -17,7 +16,7 @@ func runSendMail(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setting.LoadFromExisting()
+	setting.MustInstalled()
 
 	if err := argsSet(c, "title"); err != nil {
 		return err
@@ -42,13 +41,10 @@ func runSendMail(c *cli.Context) error {
 		}
 	}
 
-	status, message := private.SendEmail(ctx, subject, body, nil)
-	if status != http.StatusOK {
-		fmt.Printf("error: %s\n", message)
-		return nil
+	respText, extra := private.SendEmail(ctx, subject, body, nil)
+	if extra.HasError() {
+		return handleCliResponseExtra(extra)
 	}
-
-	fmt.Printf("Success: %s\n", message)
-
+	_, _ = fmt.Printf("Sent %s email(s) to all users\n", respText)
 	return nil
 }

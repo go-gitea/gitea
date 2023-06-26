@@ -26,7 +26,7 @@ func AddTimeManually(c *context.Context) {
 		c.NotFound("CanUseTimetracker", nil)
 		return
 	}
-	url := issue.HTMLURL()
+	url := issue.Link()
 
 	if c.HasError() {
 		c.Flash.Error(c.GetErrMsg())
@@ -83,5 +83,5 @@ func DeleteTime(c *context.Context) {
 	}
 
 	c.Flash.Success(c.Tr("repo.issues.del_time_history", util.SecToTime(t.Time)))
-	c.Redirect(issue.HTMLURL())
+	c.Redirect(issue.Link())
 }

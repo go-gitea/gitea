@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content admin user">
-	{{template "admin/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin user")}}
+	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.emails.email_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
 		</h4>
@@ -22,9 +19,9 @@
 					</div>
 				</div>
 			</div>
-			<form class="ui form ignore-dirty"  style="max-width: 90%">
+			<form class="ui form ignore-dirty">
 				<div class="ui fluid action input">
-					<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}..." autofocus>
+					{{template "shared/searchinput" dict "locale" .locale "Value" .Keyword "AutoFocus" true}}
 					<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
 				</div>
 			</form>
@@ -73,12 +70,12 @@
 
 		{{template "base/paginate" .}}
 
-		<div class="ui basic modal" id="change-email-modal">
-			<div class="ui icon header">
+		<div class="ui g-modal-confirm modal" id="change-email-modal">
+			<div class="header">
 				{{.locale.Tr "admin.emails.change_email_header"}}
 			</div>
-			<div class="content center">
-				<p>{{.locale.Tr "admin.emails.change_email_text"}}</p>
+			<div class="content">
+				<p class="center">{{.locale.Tr "admin.emails.change_email_text"}}</p>
 
 				<form class="ui form" id="email-action-form" action="{{AppSubUrl}}/admin/emails/activate" method="post">
 					{{$.CsrfTokenHtml}}
@@ -93,15 +90,12 @@
 					<input type="hidden" id="form-primary" name="primary" value="" required>
 					<input type="hidden" id="form-activate" name="activate" value="" required>
 
-					<div class="center actions">
-						<div class="ui basic cancel inverted button">{{$.locale.Tr "settings.cancel"}}</div>
-						<button class="ui basic inverted yellow button">{{$.locale.Tr "modal.yes"}}</button>
+					<div class="center">
+						{{template "base/modal_actions_confirm" .}}
 					</div>
-
 				</form>
 			</div>
 		</div>
 
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "admin/layout_footer" .}}

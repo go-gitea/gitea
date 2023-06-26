@@ -17,6 +17,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	container_module "code.gitea.io/gitea/modules/packages/container"
 	"code.gitea.io/gitea/modules/util"
@@ -71,11 +72,9 @@ func processManifest(mci *manifestCreationInfo, buf *packages_module.HashedBuffe
 	}
 
 	if isImageManifestMediaType(mci.MediaType) {
-		d, err := processImageManifest(mci, buf)
-		return d, err
+		return processImageManifest(mci, buf)
 	} else if isImageIndexMediaType(mci.MediaType) {
-		d, err := processImageManifestIndex(mci, buf)
-		return d, err
+		return processImageManifestIndex(mci, buf)
 	}
 	return "", errManifestInvalid
 }
@@ -182,6 +181,10 @@ func processImageManifest(mci *manifestCreationInfo, buf *packages_module.Hashed
 			return err
 		}
 
+		if err := notifyPackageCreate(mci.Creator, pv); err != nil {
+			return err
+		}
+
 		manifestDigest = digest
 
 		return nil
@@ -214,7 +217,7 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 
 		metadata := &container_module.Metadata{
 			Type:      container_module.TypeOCI,
-			MultiArch: make(map[string]string),
+			Manifests: make([]*container_module.Manifest, 0, len(index.Manifests)),
 		}
 
 		for _, manifest := range index.Manifests {
@@ -230,7 +233,7 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 				}
 			}
 
-			_, err := container_model.GetContainerBlob(ctx, &container_model.BlobSearchOptions{
+			pfd, err := container_model.GetContainerBlob(ctx, &container_model.BlobSearchOptions{
 				OwnerID:    mci.Owner.ID,
 				Image:      mci.Image,
 				Digest:     string(manifest.Digest),
@@ -243,7 +246,18 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 				return err
 			}
 
-			metadata.MultiArch[platform] = string(manifest.Digest)
+			size, err := packages_model.CalculateFileSize(ctx, &packages_model.PackageFileSearchOptions{
+				VersionID: pfd.File.VersionID,
+			})
+			if err != nil {
+				return err
+			}
+
+			metadata.Manifests = append(metadata.Manifests, &container_module.Manifest{
+				Platform: platform,
+				Digest:   string(manifest.Digest),
+				Size:     size,
+			})
 		}
 
 		pv, err := createPackageAndVersion(ctx, mci, metadata)
@@ -271,6 +285,10 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 			return err
 		}
 
+		if err := notifyPackageCreate(mci.Creator, pv); err != nil {
+			return err
+		}
+
 		manifestDigest = digest
 
 		return nil
@@ -280,6 +298,17 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 	}
 
 	return manifestDigest, nil
+}
+
+func notifyPackageCreate(doer *user_model.User, pv *packages_model.PackageVersion) error {
+	pd, err := packages_model.GetPackageDescriptor(db.DefaultContext, pv)
+	if err != nil {
+		return err
+	}
+
+	notification.NotifyPackageCreate(db.DefaultContext, doer, pd)
+
+	return nil
 }
 
 func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, metadata *container_module.Metadata) (*packages_model.PackageVersion, error) {
@@ -351,8 +380,8 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 			return nil, err
 		}
 	}
-	for _, digest := range metadata.MultiArch {
-		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestReference, digest); err != nil {
+	for _, manifest := range metadata.Manifests {
+		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestReference, manifest.Digest); err != nil {
 			log.Error("Error setting package version property: %v", err)
 			return nil, err
 		}

@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
+	"code.gitea.io/gitea/services/issue"
 
 	"xorm.io/builder"
 )
@@ -289,7 +290,9 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 	ctx.Data["Milestone"] = milestone
 
 	issues(ctx, milestoneID, 0, util.OptionalBoolNone)
-	ctx.Data["NewIssueChooseTemplate"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
+
+	ret, _ := issue.GetTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	ctx.Data["NewIssueChooseTemplate"] = len(ret) > 0
 
 	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWriteIssuesOrPulls(false)
 	ctx.Data["CanWritePulls"] = ctx.Repo.CanWriteIssuesOrPulls(true)

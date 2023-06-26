@@ -13,6 +13,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -32,33 +33,36 @@ func ToAPIIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
 	if err := issue.LoadRepo(ctx); err != nil {
 		return &api.Issue{}
 	}
-	if err := issue.Repo.GetOwner(ctx); err != nil {
-		return &api.Issue{}
-	}
 
 	apiIssue := &api.Issue{
 		ID:          issue.ID,
-		URL:         issue.APIURL(),
-		HTMLURL:     issue.HTMLURL(),
 		Index:       issue.Index,
-		Poster:      ToUser(issue.Poster, nil),
+		Poster:      ToUser(ctx, issue.Poster, nil),
 		Title:       issue.Title,
 		Body:        issue.Content,
 		Attachments: ToAttachments(issue.Attachments),
 		Ref:         issue.Ref,
-		Labels:      ToLabelList(issue.Labels, issue.Repo, issue.Repo.Owner),
 		State:       issue.State(),
 		IsLocked:    issue.IsLocked,
 		Comments:    issue.NumComments,
 		Created:     issue.CreatedUnix.AsTime(),
 		Updated:     issue.UpdatedUnix.AsTime(),
+		PinOrder:    issue.PinOrder,
 	}
 
-	apiIssue.Repo = &api.RepositoryMeta{
-		ID:       issue.Repo.ID,
-		Name:     issue.Repo.Name,
-		Owner:    issue.Repo.OwnerName,
-		FullName: issue.Repo.FullName(),
+	if issue.Repo != nil {
+		if err := issue.Repo.LoadOwner(ctx); err != nil {
+			return &api.Issue{}
+		}
+		apiIssue.URL = issue.APIURL()
+		apiIssue.HTMLURL = issue.HTMLURL()
+		apiIssue.Labels = ToLabelList(issue.Labels, issue.Repo, issue.Repo.Owner)
+		apiIssue.Repo = &api.RepositoryMeta{
+			ID:       issue.Repo.ID,
+			Name:     issue.Repo.Name,
+			Owner:    issue.Repo.OwnerName,
+			FullName: issue.Repo.FullName(),
+		}
 	}
 
 	if issue.ClosedUnix != 0 {
@@ -77,19 +81,21 @@ func ToAPIIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
 	}
 	if len(issue.Assignees) > 0 {
 		for _, assignee := range issue.Assignees {
-			apiIssue.Assignees = append(apiIssue.Assignees, ToUser(assignee, nil))
+			apiIssue.Assignees = append(apiIssue.Assignees, ToUser(ctx, assignee, nil))
 		}
-		apiIssue.Assignee = ToUser(issue.Assignees[0], nil) // For compatibility, we're keeping the first assignee as `apiIssue.Assignee`
+		apiIssue.Assignee = ToUser(ctx, issue.Assignees[0], nil) // For compatibility, we're keeping the first assignee as `apiIssue.Assignee`
 	}
 	if issue.IsPull {
 		if err := issue.LoadPullRequest(ctx); err != nil {
 			return &api.Issue{}
 		}
-		apiIssue.PullRequest = &api.PullRequestMeta{
-			HasMerged: issue.PullRequest.HasMerged,
-		}
-		if issue.PullRequest.HasMerged {
-			apiIssue.PullRequest.Merged = issue.PullRequest.MergedUnix.AsTimePtr()
+		if issue.PullRequest != nil {
+			apiIssue.PullRequest = &api.PullRequestMeta{
+				HasMerged: issue.PullRequest.HasMerged,
+			}
+			if issue.PullRequest.HasMerged {
+				apiIssue.PullRequest.Merged = issue.PullRequest.MergedUnix.AsTimePtr()
+			}
 		}
 	}
 	if issue.DeadlineUnix != 0 {
@@ -182,6 +188,7 @@ func ToLabel(label *issues_model.Label, repo *repo_model.Repository, org *user_m
 	result := &api.Label{
 		ID:          label.ID,
 		Name:        label.Name,
+		Exclusive:   label.Exclusive,
 		Color:       strings.TrimLeft(label.Color, "#"),
 		Description: label.Description,
 	}
@@ -232,4 +239,25 @@ func ToAPIMilestone(m *issues_model.Milestone) *api.Milestone {
 		apiMilestone.Deadline = m.DeadlineUnix.AsTimePtr()
 	}
 	return apiMilestone
+}
+
+// ToLabelTemplate converts Label to API format
+func ToLabelTemplate(label *label.Label) *api.LabelTemplate {
+	result := &api.LabelTemplate{
+		Name:        label.Name,
+		Exclusive:   label.Exclusive,
+		Color:       strings.TrimLeft(label.Color, "#"),
+		Description: label.Description,
+	}
+
+	return result
+}
+
+// ToLabelTemplateList converts list of Label to API format
+func ToLabelTemplateList(labels []*label.Label) []*api.LabelTemplate {
+	result := make([]*api.LabelTemplate, len(labels))
+	for i := range labels {
+		result[i] = ToLabelTemplate(labels[i])
+	}
+	return result
 }

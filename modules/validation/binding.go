@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 
+	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/git"
 
 	"gitea.com/go-chi/binding"
@@ -17,15 +18,14 @@ import (
 const (
 	// ErrGitRefName is git reference name error
 	ErrGitRefName = "GitRefNameError"
-
 	// ErrGlobPattern is returned when glob pattern is invalid
 	ErrGlobPattern = "GlobPattern"
-
 	// ErrRegexPattern is returned when a regex pattern is invalid
 	ErrRegexPattern = "RegexPattern"
-
 	// ErrUsername is username error
 	ErrUsername = "UsernameError"
+	// ErrInvalidGroupTeamMap is returned when a group team mapping is invalid
+	ErrInvalidGroupTeamMap = "InvalidGroupTeamMap"
 )
 
 // AddBindingRules adds additional binding rules
@@ -37,6 +37,7 @@ func AddBindingRules() {
 	addRegexPatternRule()
 	addGlobOrRegexPatternRule()
 	addUsernamePatternRule()
+	addValidGroupTeamMapRule()
 }
 
 func addGitRefNameBindingRule() {
@@ -162,6 +163,23 @@ func addUsernamePatternRule() {
 				errs.Add([]string{name}, ErrUsername, "invalid username")
 				return false, errs
 			}
+			return true, errs
+		},
+	})
+}
+
+func addValidGroupTeamMapRule() {
+	binding.AddRule(&binding.Rule{
+		IsMatch: func(rule string) bool {
+			return strings.HasPrefix(rule, "ValidGroupTeamMap")
+		},
+		IsValid: func(errs binding.Errors, name string, val interface{}) (bool, binding.Errors) {
+			_, err := auth.UnmarshalGroupTeamMapping(fmt.Sprintf("%v", val))
+			if err != nil {
+				errs.Add([]string{name}, ErrInvalidGroupTeamMap, err.Error())
+				return false, errs
+			}
+
 			return true, errs
 		},
 	})

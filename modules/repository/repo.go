@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"path"
 	"strings"
 	"time"
 
@@ -26,8 +25,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-
-	"gopkg.in/ini.v1"
 )
 
 /*
@@ -57,7 +54,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	repoPath := repo_model.RepoPath(u.Name, opts.RepoName)
 
 	if u.IsOrganization() {
-		t, err := organization.OrgFromUser(u).GetOwnerTeam()
+		t, err := organization.OrgFromUser(u).GetOwnerTeam(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -200,7 +197,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 				mirrorModel.Interval = 0
 				mirrorModel.NextUpdateUnix = 0
 			} else if parsedInterval < setting.Mirror.MinInterval {
-				err := fmt.Errorf("Interval %s is set below Minimum Interval of %s", parsedInterval, setting.Mirror.MinInterval)
+				err := fmt.Errorf("interval %s is set below Minimum Interval of %s", parsedInterval, setting.Mirror.MinInterval)
 				log.Error("Interval: %s is too frequent", opts.MirrorInterval)
 				return repo, err
 			} else {
@@ -217,6 +214,15 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		if err = UpdateRepository(ctx, repo, false); err != nil {
 			return nil, err
 		}
+
+		// this is necessary for sync local tags from remote
+		configName := fmt.Sprintf("remote.%s.fetch", mirrorModel.GetRemoteName())
+		if stdout, _, err := git.NewCommand(ctx, "config").
+			AddOptionValues("--add", configName, `+refs/tags/*:refs/tags/*`).
+			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
+			log.Error("MigrateRepositoryGitData(git config --add <remote> +refs/tags/*:refs/tags/*) in %v: Stdout: %s\nError: %v", repo, stdout, err)
+			return repo, fmt.Errorf("error in MigrateRepositoryGitData(git config --add <remote> +refs/tags/*:refs/tags/*): %w", err)
+		}
 	} else {
 		if err = UpdateRepoSize(ctx, repo); err != nil {
 			log.Error("Failed to update size for repository: %v", err)
@@ -231,14 +237,14 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 
 // cleanUpMigrateGitConfig removes mirror info which prevents "push --all".
 // This also removes possible user credentials.
-func cleanUpMigrateGitConfig(configPath string) error {
-	cfg, err := ini.Load(configPath)
-	if err != nil {
-		return fmt.Errorf("open config file: %w", err)
-	}
-	cfg.DeleteSection("remote \"origin\"")
-	if err = cfg.SaveToIndent(configPath, "\t"); err != nil {
-		return fmt.Errorf("save config file: %w", err)
+func cleanUpMigrateGitConfig(ctx context.Context, repoPath string) error {
+	cmd := git.NewCommand(ctx, "remote", "rm", "origin")
+	// if the origin does not exist
+	_, stderr, err := cmd.RunStdString(&git.RunOpts{
+		Dir: repoPath,
+	})
+	if err != nil && !strings.HasPrefix(stderr, "fatal: No such remote") {
+		return err
 	}
 	return nil
 }
@@ -261,7 +267,7 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 	}
 
 	if repo.HasWiki() {
-		if err := cleanUpMigrateGitConfig(path.Join(repo.WikiPath(), "config")); err != nil {
+		if err := cleanUpMigrateGitConfig(ctx, repo.WikiPath()); err != nil {
 			return repo, fmt.Errorf("cleanUpMigrateGitConfig (wiki): %w", err)
 		}
 	}
@@ -318,7 +324,7 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) 
 			return nil
 		}
 
-		if err := PushUpdateAddTag(repo, gitRepo, tagName, sha1, refname); err != nil {
+		if err := PushUpdateAddTag(db.DefaultContext, repo, gitRepo, tagName, sha1, refname); err != nil {
 			return fmt.Errorf("unable to PushUpdateAddTag: %q to Repo[%d:%s/%s]: %w", tagName, repo.ID, repo.OwnerName, repo.Name, err)
 		}
 
@@ -328,7 +334,7 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) 
 }
 
 // PushUpdateAddTag must be called for any push actions to add tag
-func PushUpdateAddTag(repo *repo_model.Repository, gitRepo *git.Repository, tagName, sha1, refname string) error {
+func PushUpdateAddTag(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, tagName, sha1, refname string) error {
 	tag, err := gitRepo.GetTagWithID(sha1, tagName)
 	if err != nil {
 		return fmt.Errorf("unable to GetTag: %w", err)
@@ -350,7 +356,7 @@ func PushUpdateAddTag(repo *repo_model.Repository, gitRepo *git.Repository, tagN
 	createdAt := time.Unix(1, 0)
 
 	if sig != nil {
-		author, err = user_model.GetUserByEmail(sig.Email)
+		author, err = user_model.GetUserByEmail(ctx, sig.Email)
 		if err != nil && !user_model.IsErrUserNotExist(err) {
 			return fmt.Errorf("unable to GetUserByEmail for %q: %w", sig.Email, err)
 		}

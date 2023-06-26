@@ -20,11 +20,12 @@ type BlamePart struct {
 
 // BlameReader returns part of file blame one by one
 type BlameReader struct {
-	cmd     *Command
-	output  io.WriteCloser
-	reader  io.ReadCloser
-	done    chan error
-	lastSha *string
+	cmd            *Command
+	output         io.WriteCloser
+	reader         io.ReadCloser
+	bufferedReader *bufio.Reader
+	done           chan error
+	lastSha        *string
 }
 
 var shaLineRegex = regexp.MustCompile("^([a-z0-9]{40})")
@@ -32,8 +33,6 @@ var shaLineRegex = regexp.MustCompile("^([a-z0-9]{40})")
 // NextPart returns next part of blame (sequential code lines with the same commit)
 func (r *BlameReader) NextPart() (*BlamePart, error) {
 	var blamePart *BlamePart
-
-	reader := bufio.NewReader(r.reader)
 
 	if r.lastSha != nil {
 		blamePart = &BlamePart{*r.lastSha, make([]string, 0)}
@@ -44,7 +43,7 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 	var err error
 
 	for err != io.EOF {
-		line, isPrefix, err = reader.ReadLine()
+		line, isPrefix, err = r.bufferedReader.ReadLine()
 		if err != nil && err != io.EOF {
 			return blamePart, err
 		}
@@ -66,7 +65,7 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 				r.lastSha = &sha1
 				// need to munch to end of line...
 				for isPrefix {
-					_, isPrefix, err = reader.ReadLine()
+					_, isPrefix, err = r.bufferedReader.ReadLine()
 					if err != nil && err != io.EOF {
 						return blamePart, err
 					}
@@ -81,7 +80,7 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 
 		// need to munch to end of line...
 		for isPrefix {
-			_, isPrefix, err = reader.ReadLine()
+			_, isPrefix, err = r.bufferedReader.ReadLine()
 			if err != nil && err != io.EOF {
 				return blamePart, err
 			}
@@ -96,6 +95,7 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 // Close BlameReader - don't run NextPart after invoking that
 func (r *BlameReader) Close() error {
 	err := <-r.done
+	r.bufferedReader = nil
 	_ = r.reader.Close()
 	_ = r.output.Close()
 	return err
@@ -126,10 +126,13 @@ func CreateBlameReader(ctx context.Context, repoPath, commitID, file string) (*B
 		done <- err
 	}(cmd, repoPath, stdout, done)
 
+	bufferedReader := bufio.NewReader(reader)
+
 	return &BlameReader{
-		cmd:    cmd,
-		output: stdout,
-		reader: reader,
-		done:   done,
+		cmd:            cmd,
+		output:         stdout,
+		reader:         reader,
+		bufferedReader: bufferedReader,
+		done:           done,
 	}, nil
 }

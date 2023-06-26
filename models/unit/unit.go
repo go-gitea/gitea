@@ -4,6 +4,7 @@
 package unit
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -61,11 +62,8 @@ func (u Type) String() string {
 	return fmt.Sprintf("Unknown Type %d", u)
 }
 
-// ColorFormat provides a ColorFormatted version of this Type
-func (u Type) ColorFormat(s fmt.State) {
-	log.ColorFprintf(s, "%d:%s",
-		log.NewColoredIDValue(u),
-		u)
+func (u Type) LogString() string {
+	return fmt.Sprintf("<UnitType:%d:%s>", u, u.String())
 }
 
 var (
@@ -106,12 +104,6 @@ var (
 		TypeExternalTracker,
 	}
 
-	// MustRepoUnits contains the units could not be disabled currently
-	MustRepoUnits = []Type{
-		TypeCode,
-		TypeReleases,
-	}
-
 	// DisabledRepoUnits contains the units that have been globally disabled
 	DisabledRepoUnits = []Type{}
 )
@@ -122,18 +114,13 @@ func validateDefaultRepoUnits(defaultUnits, settingDefaultUnits []Type) []Type {
 
 	// Use setting if not empty
 	if len(settingDefaultUnits) > 0 {
-		// MustRepoUnits required as default
-		units = make([]Type, len(MustRepoUnits))
-		copy(units, MustRepoUnits)
+		units = make([]Type, 0, len(settingDefaultUnits))
 		for _, settingUnit := range settingDefaultUnits {
 			if !settingUnit.CanBeDefault() {
 				log.Warn("Not allowed as default unit: %s", settingUnit.String())
 				continue
 			}
-			// MustRepoUnits already added
-			if settingUnit.CanDisable() {
-				units = append(units, settingUnit)
-			}
+			units = append(units, settingUnit)
 		}
 	}
 
@@ -150,20 +137,30 @@ func validateDefaultRepoUnits(defaultUnits, settingDefaultUnits []Type) []Type {
 }
 
 // LoadUnitConfig load units from settings
-func LoadUnitConfig() {
-	DisabledRepoUnits = FindUnitTypes(setting.Repository.DisabledRepoUnits...)
-	// Check that must units are not disabled
-	for i, disabledU := range DisabledRepoUnits {
-		if !disabledU.CanDisable() {
-			log.Warn("Not allowed to global disable unit %s", disabledU.String())
-			DisabledRepoUnits = append(DisabledRepoUnits[:i], DisabledRepoUnits[i+1:]...)
-		}
+func LoadUnitConfig() error {
+	var invalidKeys []string
+	DisabledRepoUnits, invalidKeys = FindUnitTypes(setting.Repository.DisabledRepoUnits...)
+	if len(invalidKeys) > 0 {
+		log.Warn("Invalid keys in disabled repo units: %s", strings.Join(invalidKeys, ", "))
 	}
 
-	setDefaultRepoUnits := FindUnitTypes(setting.Repository.DefaultRepoUnits...)
+	setDefaultRepoUnits, invalidKeys := FindUnitTypes(setting.Repository.DefaultRepoUnits...)
+	if len(invalidKeys) > 0 {
+		log.Warn("Invalid keys in default repo units: %s", strings.Join(invalidKeys, ", "))
+	}
 	DefaultRepoUnits = validateDefaultRepoUnits(DefaultRepoUnits, setDefaultRepoUnits)
-	setDefaultForkRepoUnits := FindUnitTypes(setting.Repository.DefaultForkRepoUnits...)
+	if len(DefaultRepoUnits) == 0 {
+		return errors.New("no default repository units found")
+	}
+	setDefaultForkRepoUnits, invalidKeys := FindUnitTypes(setting.Repository.DefaultForkRepoUnits...)
+	if len(invalidKeys) > 0 {
+		log.Warn("Invalid keys in default fork repo units: %s", strings.Join(invalidKeys, ", "))
+	}
 	DefaultForkRepoUnits = validateDefaultRepoUnits(DefaultForkRepoUnits, setDefaultForkRepoUnits)
+	if len(DefaultForkRepoUnits) == 0 {
+		return errors.New("no default fork repository units found")
+	}
+	return nil
 }
 
 // UnitGlobalDisabled checks if unit type is global disabled
@@ -174,16 +171,6 @@ func (u Type) UnitGlobalDisabled() bool {
 		}
 	}
 	return false
-}
-
-// CanDisable checks if this unit type can be disabled.
-func (u *Type) CanDisable() bool {
-	for _, mu := range MustRepoUnits {
-		if *u == mu {
-			return false
-		}
-	}
-	return true
 }
 
 // CanBeDefault checks if the unit type can be a default repo unit
@@ -204,11 +191,6 @@ type Unit struct {
 	DescKey       string
 	Idx           int
 	MaxAccessMode perm.AccessMode // The max access mode of the unit. i.e. Read means this unit can only be read.
-}
-
-// CanDisable returns if this unit could be disabled.
-func (u *Unit) CanDisable() bool {
-	return u.Type.CanDisable()
 }
 
 // IsLessThan compares order of two units
@@ -312,7 +294,7 @@ var (
 
 	UnitActions = Unit{
 		TypeActions,
-		"actions.actions",
+		"repo.actions",
 		"/actions",
 		"actions.unit.desc",
 		7,
@@ -334,22 +316,19 @@ var (
 	}
 )
 
-// FindUnitTypes give the unit key names and return unit
-func FindUnitTypes(nameKeys ...string) (res []Type) {
+// FindUnitTypes give the unit key names and return valid unique units and invalid keys
+func FindUnitTypes(nameKeys ...string) (res []Type, invalidKeys []string) {
+	m := map[Type]struct{}{}
 	for _, key := range nameKeys {
-		var found bool
-		for t, u := range Units {
-			if strings.EqualFold(key, u.NameKey) {
-				res = append(res, t)
-				found = true
-				break
-			}
-		}
-		if !found {
-			res = append(res, TypeInvalid)
+		t := TypeFromKey(key)
+		if t == TypeInvalid {
+			invalidKeys = append(invalidKeys, key)
+		} else if _, ok := m[t]; !ok {
+			res = append(res, t)
+			m[t] = struct{}{}
 		}
 	}
-	return res
+	return res, invalidKeys
 }
 
 // TypeFromKey give the unit key name and return unit

@@ -4,7 +4,6 @@
 package lfs
 
 import (
-	"fmt"
 	"net/url"
 	"os"
 	"path"
@@ -12,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // DetermineEndpoint determines an endpoint from the clone url or uses the specified LFS url.
@@ -95,7 +95,7 @@ func endpointFromLocalPath(path string) *url.URL {
 		return nil
 	}
 
-	path = fmt.Sprintf("file://%s%s", slash, filepath.ToSlash(path))
+	path = "file://" + slash + util.PathEscapeSegments(filepath.ToSlash(path))
 
 	u, _ := url.Parse(path)
 

@@ -4,6 +4,8 @@
 package convert
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -11,7 +13,7 @@ import (
 
 // ToUser convert user_model.User to api.User
 // if doer is set, private information is added if the doer has the permission to see it
-func ToUser(user, doer *user_model.User) *api.User {
+func ToUser(ctx context.Context, user, doer *user_model.User) *api.User {
 	if user == nil {
 		return nil
 	}
@@ -21,36 +23,36 @@ func ToUser(user, doer *user_model.User) *api.User {
 		signed = true
 		authed = doer.ID == user.ID || doer.IsAdmin
 	}
-	return toUser(user, signed, authed)
+	return toUser(ctx, user, signed, authed)
 }
 
 // ToUsers convert list of user_model.User to list of api.User
-func ToUsers(doer *user_model.User, users []*user_model.User) []*api.User {
+func ToUsers(ctx context.Context, doer *user_model.User, users []*user_model.User) []*api.User {
 	result := make([]*api.User, len(users))
 	for i := range users {
-		result[i] = ToUser(users[i], doer)
+		result[i] = ToUser(ctx, users[i], doer)
 	}
 	return result
 }
 
 // ToUserWithAccessMode convert user_model.User to api.User
 // AccessMode is not none show add some more information
-func ToUserWithAccessMode(user *user_model.User, accessMode perm.AccessMode) *api.User {
+func ToUserWithAccessMode(ctx context.Context, user *user_model.User, accessMode perm.AccessMode) *api.User {
 	if user == nil {
 		return nil
 	}
-	return toUser(user, accessMode != perm.AccessModeNone, false)
+	return toUser(ctx, user, accessMode != perm.AccessModeNone, false)
 }
 
 // toUser convert user_model.User to api.User
 // signed shall only be set if requester is logged in. authed shall only be set if user is site admin or user himself
-func toUser(user *user_model.User, signed, authed bool) *api.User {
+func toUser(ctx context.Context, user *user_model.User, signed, authed bool) *api.User {
 	result := &api.User{
 		ID:          user.ID,
 		UserName:    user.Name,
 		FullName:    user.FullName,
 		Email:       user.GetEmail(),
-		AvatarURL:   user.AvatarLink(),
+		AvatarURL:   user.AvatarLink(ctx),
 		Created:     user.CreatedUnix.AsTime(),
 		Restricted:  user.IsRestricted,
 		Location:    user.Location,
@@ -97,9 +99,9 @@ func User2UserSettings(user *user_model.User) api.UserSettings {
 }
 
 // ToUserAndPermission return User and its collaboration permission for a repository
-func ToUserAndPermission(user, doer *user_model.User, accessMode perm.AccessMode) api.RepoCollaboratorPermission {
+func ToUserAndPermission(ctx context.Context, user, doer *user_model.User, accessMode perm.AccessMode) api.RepoCollaboratorPermission {
 	return api.RepoCollaboratorPermission{
-		User:       ToUser(user, doer),
+		User:       ToUser(ctx, user, doer),
 		Permission: accessMode.String(),
 		RoleName:   accessMode.String(),
 	}

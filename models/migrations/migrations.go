@@ -19,6 +19,8 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_17"
 	"code.gitea.io/gitea/models/migrations/v1_18"
 	"code.gitea.io/gitea/models/migrations/v1_19"
+	"code.gitea.io/gitea/models/migrations/v1_20"
+	"code.gitea.io/gitea/models/migrations/v1_21"
 	"code.gitea.io/gitea/models/migrations/v1_6"
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
@@ -455,6 +457,56 @@ var migrations = []Migration{
 	NewMigration("Add scope for access_token", v1_19.AddScopeForAccessTokens),
 	// v240 -> v241
 	NewMigration("Add actions tables", v1_19.AddActionsTables),
+	// v241 -> v242
+	NewMigration("Add card_type column to project table", v1_19.AddCardTypeToProjectTable),
+	// v242 -> v243
+	NewMigration("Alter gpg_key_import content TEXT field to MEDIUMTEXT", v1_19.AlterPublicGPGKeyImportContentFieldToMediumText),
+	// v243 -> v244
+	NewMigration("Add exclusive label", v1_19.AddExclusiveLabel),
+
+	// Gitea 1.19.0 ends at v244
+
+	// v244 -> v245
+	NewMigration("Add NeedApproval to actions tables", v1_20.AddNeedApprovalToActionRun),
+	// v245 -> v246
+	NewMigration("Rename Webhook org_id to owner_id", v1_20.RenameWebhookOrgToOwner),
+	// v246 -> v247
+	NewMigration("Add missed column owner_id for project table", v1_20.AddNewColumnForProject),
+	// v247 -> v248
+	NewMigration("Fix incorrect project type", v1_20.FixIncorrectProjectType),
+	// v248 -> v249
+	NewMigration("Add version column to action_runner table", v1_20.AddVersionToActionRunner),
+	// v249 -> v250
+	NewMigration("Improve Action table indices v3", v1_20.ImproveActionTableIndices),
+	// v250 -> v251
+	NewMigration("Change Container Metadata", v1_20.ChangeContainerMetadataMultiArch),
+	// v251 -> v252
+	NewMigration("Fix incorrect owner team unit access mode", v1_20.FixIncorrectOwnerTeamUnitAccessMode),
+	// v252 -> v253
+	NewMigration("Fix incorrect admin team unit access mode", v1_20.FixIncorrectAdminTeamUnitAccessMode),
+	// v253 -> v254
+	NewMigration("Fix ExternalTracker and ExternalWiki accessMode in owner and admin team", v1_20.FixExternalTrackerAndExternalWikiAccessModeInOwnerAndAdminTeam),
+	// v254 -> v255
+	NewMigration("Add ActionTaskOutput table", v1_20.AddActionTaskOutputTable),
+	// v255 -> v256
+	NewMigration("Add ArchivedUnix Column", v1_20.AddArchivedUnixToRepository),
+	// v256 -> v257
+	NewMigration("Add is_internal column to package", v1_20.AddIsInternalColumnToPackage),
+	// v257 -> v258
+	NewMigration("Add Actions Artifact table", v1_20.CreateActionArtifactTable),
+	// v258 -> v259
+	NewMigration("Add PinOrder Column", v1_20.AddPinOrderToIssue),
+	// v259 -> v260
+	NewMigration("Convert scoped access tokens", v1_20.ConvertScopedAccessTokens),
+
+	// Gitea 1.20.0 ends at 260
+
+	// v260 -> v261
+	NewMigration("Drop custom_labels column of action_runner table", v1_21.DropCustomLabelsColumnOfActionRunner),
+	// v261 -> v262
+	NewMigration("Add variable table", v1_21.CreateVariableTable),
+	// v262 -> v263
+	NewMigration("Add TriggerEvent to action_run table", v1_21.AddTriggerEventToActionRun),
 }
 
 // GetCurrentDBVersion returns the current db version

@@ -4,16 +4,21 @@
 package user_test
 
 import (
+	"context"
+	"fmt"
 	"math/rand"
 	"strings"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -31,10 +36,10 @@ func TestGetUserEmailsByNames(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// ignore none active user email
-	assert.Equal(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user9"}))
-	assert.Equal(t, []string{"user8@example.com", "user5@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user5"}))
+	assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user9"}))
+	assert.ElementsMatch(t, []string{"user8@example.com", "user5@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user5"}))
 
-	assert.Equal(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user7"}))
+	assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user7"}))
 }
 
 func TestCanCreateOrganization(t *testing.T) {
@@ -60,9 +65,10 @@ func TestSearchUsers(t *testing.T) {
 	testSuccess := func(opts *user_model.SearchUserOptions, expectedUserOrOrgIDs []int64) {
 		users, _, err := user_model.SearchUsers(opts)
 		assert.NoError(t, err)
-		if assert.Len(t, users, len(expectedUserOrOrgIDs), opts) {
+		cassText := fmt.Sprintf("ids: %v, opts: %v", expectedUserOrOrgIDs, opts)
+		if assert.Len(t, users, len(expectedUserOrOrgIDs), "case: %s", cassText) {
 			for i, expectedID := range expectedUserOrOrgIDs {
-				assert.EqualValues(t, expectedID, users[i].ID)
+				assert.EqualValues(t, expectedID, users[i].ID, "case: %s", cassText)
 			}
 		}
 	}
@@ -95,13 +101,13 @@ func TestSearchUsers(t *testing.T) {
 	}
 
 	testUserSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}},
-		[]int64{1, 2, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27, 28, 29, 30, 32})
+		[]int64{1, 2, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27, 28, 29, 30, 32, 34})
 
 	testUserSuccess(&user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsActive: util.OptionalBoolFalse},
 		[]int64{9})
 
 	testUserSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}, IsActive: util.OptionalBoolTrue},
-		[]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27, 28, 29, 30, 32})
+		[]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27, 28, 29, 30, 32, 34})
 
 	testUserSuccess(&user_model.SearchUserOptions{Keyword: "user1", OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}, IsActive: util.OptionalBoolTrue},
 		[]int64{1, 10, 11, 12, 13, 14, 15, 16, 18})
@@ -114,7 +120,7 @@ func TestSearchUsers(t *testing.T) {
 		[]int64{1})
 
 	testUserSuccess(&user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsRestricted: util.OptionalBoolTrue},
-		[]int64{29, 30})
+		[]int64{29})
 
 	testUserSuccess(&user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsProhibitLogin: util.OptionalBoolTrue},
 		[]int64{30})
@@ -161,7 +167,7 @@ func TestEmailNotificationPreferences(t *testing.T) {
 func TestHashPasswordDeterministic(t *testing.T) {
 	b := make([]byte, 16)
 	u := &user_model.User{}
-	algos := []string{"argon2", "pbkdf2", "scrypt", "bcrypt"}
+	algos := hash.RecommendedHashAlgorithms
 	for j := 0; j < len(algos); j++ {
 		u.PasswdHashAlgo = algos[j]
 		for i := 0; i < 50; i++ {
@@ -250,6 +256,58 @@ func TestCreateUserEmailAlreadyUsed(t *testing.T) {
 	err := user_model.CreateUser(user)
 	assert.Error(t, err)
 	assert.True(t, user_model.IsErrEmailAlreadyUsed(err))
+}
+
+func TestCreateUserCustomTimestamps(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	// Add new user with a custom creation timestamp.
+	var creationTimestamp timeutil.TimeStamp = 12345
+	user.Name = "testuser"
+	user.LowerName = strings.ToLower(user.Name)
+	user.ID = 0
+	user.Email = "unique@example.com"
+	user.CreatedUnix = creationTimestamp
+	err := user_model.CreateUser(user)
+	assert.NoError(t, err)
+
+	fetched, err := user_model.GetUserByID(context.Background(), user.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, creationTimestamp, fetched.CreatedUnix)
+	assert.Equal(t, creationTimestamp, fetched.UpdatedUnix)
+}
+
+func TestCreateUserWithoutCustomTimestamps(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	// There is no way to use a mocked time for the XORM auto-time functionality,
+	// so use the real clock to approximate the expected timestamp.
+	timestampStart := time.Now().Unix()
+
+	// Add new user without a custom creation timestamp.
+	user.Name = "Testuser"
+	user.LowerName = strings.ToLower(user.Name)
+	user.ID = 0
+	user.Email = "unique@example.com"
+	user.CreatedUnix = 0
+	user.UpdatedUnix = 0
+	err := user_model.CreateUser(user)
+	assert.NoError(t, err)
+
+	timestampEnd := time.Now().Unix()
+
+	fetched, err := user_model.GetUserByID(context.Background(), user.ID)
+	assert.NoError(t, err)
+
+	assert.LessOrEqual(t, timestampStart, fetched.CreatedUnix)
+	assert.LessOrEqual(t, fetched.CreatedUnix, timestampEnd)
+
+	assert.LessOrEqual(t, timestampStart, fetched.UpdatedUnix)
+	assert.LessOrEqual(t, fetched.UpdatedUnix, timestampEnd)
 }
 
 func TestGetUserIDsByNames(t *testing.T) {
@@ -467,4 +525,22 @@ func TestIsUserVisibleToViewer(t *testing.T) {
 	test(user31, user29, false)
 	test(user31, user33, true)
 	test(user31, nil, false)
+}
+
+func Test_ValidateUser(t *testing.T) {
+	oldSetting := setting.Service.AllowedUserVisibilityModesSlice
+	defer func() {
+		setting.Service.AllowedUserVisibilityModesSlice = oldSetting
+	}()
+	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, false, true}
+	kases := map[*user_model.User]bool{
+		{ID: 1, Visibility: structs.VisibleTypePublic}:                            true,
+		{ID: 2, Visibility: structs.VisibleTypeLimited}:                           false,
+		{ID: 2, Visibility: structs.VisibleTypeLimited, Email: "invalid"}:         false,
+		{ID: 2, Visibility: structs.VisibleTypePrivate, Email: "valid@valid.com"}: true,
+	}
+	for kase, expected := range kases {
+		err := user_model.ValidateUser(kase)
+		assert.EqualValues(t, expected, err == nil, fmt.Sprintf("case: %+v", kase))
+	}
 }

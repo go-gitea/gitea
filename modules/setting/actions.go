@@ -4,13 +4,14 @@
 package setting
 
 import (
-	"code.gitea.io/gitea/modules/log"
+	"fmt"
 )
 
 // Actions settings
 var (
 	Actions = struct {
-		Storage           // how the created logs should be stored
+		LogStorage        *Storage // how the created logs should be stored
+		ArtifactStorage   *Storage // how the created artifacts should be stored
 		Enabled           bool
 		DefaultActionsURL string `ini:"DEFAULT_ACTIONS_URL"`
 	}{
@@ -19,11 +20,22 @@ var (
 	}
 )
 
-func newActions() {
-	sec := Cfg.Section("actions")
-	if err := sec.MapTo(&Actions); err != nil {
-		log.Fatal("Failed to map Actions settings: %v", err)
+func loadActionsFrom(rootCfg ConfigProvider) error {
+	sec := rootCfg.Section("actions")
+	err := sec.MapTo(&Actions)
+	if err != nil {
+		return fmt.Errorf("failed to map Actions settings: %v", err)
 	}
 
-	Actions.Storage = getStorage("actions_log", "", nil)
+	// don't support to read configuration from [actions]
+	Actions.LogStorage, err = getStorage(rootCfg, "actions_log", "", nil)
+	if err != nil {
+		return err
+	}
+
+	actionsSec, _ := rootCfg.GetSection("actions.artifacts")
+
+	Actions.ArtifactStorage, err = getStorage(rootCfg, "actions_artifacts", "", actionsSec)
+
+	return err
 }

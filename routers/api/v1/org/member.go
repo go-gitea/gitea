@@ -39,7 +39,7 @@ func listMembers(ctx *context.APIContext, publicOnly bool) {
 
 	apiMembers := make([]*api.User, len(members))
 	for i, member := range members {
-		apiMembers[i] = convert.ToUser(member, ctx.Doer)
+		apiMembers[i] = convert.ToUser(ctx, member, ctx.Doer)
 	}
 
 	ctx.SetTotalCountHeader(count)
