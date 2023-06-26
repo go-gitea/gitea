@@ -13,7 +13,7 @@
     "@github/relative-time-element": "4.3.0",
     "@github/text-expander-element": "2.5.0",
     "@mcaptcha/vanilla-glue": "0.1.0-alpha-3",
-    "@primer/octicons": "19.3.0",
+    "@primer/octicons": "19.4.0",
     "@webcomponents/custom-elements": "1.6.0",
     "add-asset-webpack-plugin": "2.0.1",
     "ansi_up": "5.2.1",

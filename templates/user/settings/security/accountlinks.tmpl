@@ -1,3 +1,5 @@
+{{/* No account links, no way to add account links: Menu will not be shown. */}}
+{{if or .AccountLinks .OrderedOAuth2Names}}
 <h4 class="ui top attached header">
 	{{.locale.Tr "settings.manage_account_links"}}
 	{{if .OrderedOAuth2Names}}
@@ -23,20 +25,18 @@
 		<div class="item">
 			{{.locale.Tr "settings.manage_account_links_desc"}}
 		</div>
-		{{if .AccountLinks}}
-			{{range $loginSource, $provider := .AccountLinks}}
-				<div class="item gt-df gt-ac">
-					<div class="gt-f1">
-						<span data-tooltip-content="{{$provider}}">
-							{{$loginSource.Name}}
-							{{if $loginSource.IsActive}}<span class="text primary">{{$.locale.Tr "repo.settings.active"}}</span>{{end}}
-						</span>
-					</div>
-					<button class="ui red tiny button delete-button" data-modal-id="delete-account-link" data-url="{{AppSubUrl}}/user/settings/security/account_link" data-id="{{$loginSource.ID}}">
-						{{$.locale.Tr "settings.delete_key"}}
-					</button>
+		{{range $loginSource, $provider := .AccountLinks}}
+			<div class="item gt-df gt-ac">
+				<div class="gt-f1">
+					<span data-tooltip-content="{{$provider}}">
+						{{$loginSource.Name}}
+						{{if $loginSource.IsActive}}<span class="text primary">{{$.locale.Tr "repo.settings.active"}}</span>{{end}}
+					</span>
 				</div>
-			{{end}}
+				<button class="ui red tiny button delete-button" data-modal-id="delete-account-link" data-url="{{AppSubUrl}}/user/settings/security/account_link" data-id="{{$loginSource.ID}}">
+					{{$.locale.Tr "settings.delete_key"}}
+				</button>
+			</div>
 		{{end}}
 	</div>
 </div>
@@ -51,3 +51,4 @@
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>
+{{end}}

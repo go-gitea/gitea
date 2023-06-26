@@ -84,7 +84,7 @@ GITHUB_REF_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
 
 ifneq ($(GITHUB_REF_TYPE),branch)
 	VERSION ?= $(subst v,,$(GITHUB_REF_NAME))
-	GITEA_VERSION ?= $(GITHUB_REF_NAME)
+	GITEA_VERSION ?= $(VERSION)
 else
 	ifneq ($(GITHUB_REF_NAME),)
 		VERSION ?= $(subst release/v,,$(GITHUB_REF_NAME))

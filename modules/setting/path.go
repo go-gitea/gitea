@@ -89,6 +89,12 @@ func (s *stringWithDefault) Set(v string) {
 
 // InitWorkPathAndCommonConfig will set AppWorkPath, CustomPath and CustomConf, init default config provider by CustomConf and load common settings,
 func InitWorkPathAndCommonConfig(getEnvFn func(name string) string, args ArgWorkPathAndCustomConf) {
+	InitWorkPathAndCfgProvider(getEnvFn, args)
+	LoadCommonSettings()
+}
+
+// InitWorkPathAndCfgProvider will set AppWorkPath, CustomPath and CustomConf, init default config provider by CustomConf
+func InitWorkPathAndCfgProvider(getEnvFn func(name string) string, args ArgWorkPathAndCustomConf) {
 	tryAbsPath := func(paths ...string) string {
 		s := paths[len(paths)-1]
 		for i := len(paths) - 2; i >= 0; i-- {
@@ -186,6 +192,4 @@ func InitWorkPathAndCommonConfig(getEnvFn func(name string) string, args ArgWork
 	AppWorkPath = tmpWorkPath.Value
 	CustomPath = tmpCustomPath.Value
 	CustomConf = tmpCustomConf.Value
-
-	LoadCommonSettings()
 }
