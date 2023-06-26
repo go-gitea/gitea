@@ -145,6 +145,10 @@ func (*NullNotifier) NotifyIssueChangeLabels(ctx context.Context, doer *user_mod
 func (*NullNotifier) NotifyCreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
 }
 
+// NotifyAdoptRepository places a place holder function
+func (*NullNotifier) NotifyAdoptRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
+}
+
 // NotifyDeleteRepository places a place holder function
 func (*NullNotifier) NotifyDeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository) {
 }
