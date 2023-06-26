@@ -13,8 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -24,7 +22,6 @@ import (
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates/vars"
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
@@ -356,20 +353,8 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 		}
 
 		if !repo.IsEmpty {
-			commit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
-			if err != nil {
-				return fmt.Errorf("getBranchCommit: %w", err)
-			}
-
-			if err := db.Insert(ctx, &git_model.Branch{
-				Name:          repo.DefaultBranch,
-				RepoID:        repo.ID,
-				CommitSHA:     commit.ID.String(),
-				CommitMessage: commit.CommitMessage,
-				CommitTime:    timeutil.TimeStamp(commit.Committer.When.Unix()),
-				PusherID:      u.ID,
-			}); err != nil {
-				return fmt.Errorf("insert default branch for repo %d: %w", repo.ID, err)
+			if err := SyncRepoBranches(ctx, repo.ID, u.ID); err != nil {
+				return fmt.Errorf("SyncRepoBranches: %w", err)
 			}
 		}
 	}
