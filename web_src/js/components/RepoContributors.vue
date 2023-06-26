@@ -1,5 +1,48 @@
 <template>
   <div>
+    <h2 class="ui header">
+      <relative-time
+        v-if="dateFrom !== null"
+        format="datetime"
+        year="numeric"
+        month="short"
+        day="numeric"
+        weekday=""
+        :datetime="dateFrom"
+      >
+        {{ dateFrom }}
+      </relative-time>
+      -
+      <relative-time
+        v-if="dateUntil !== null"
+        format="datetime"
+        year="numeric"
+        month="short"
+        day="numeric"
+        weekday=""
+        :datetime="dateUntil"
+      >
+        {{ dateUntil }}
+      </relative-time>
+
+      <div class="ui right">
+        <!-- Contribution type -->
+        <div class="ui dropdown simple">
+          <div class="ui basic compact button">
+            <span class="text">
+              Contribution type: <strong>{{ type }}</strong>
+              <svg-icon name="octicon-triangle-down" :size="14"/>
+            </span>
+          </div>
+          <div class="menu">
+            <a :class="type === 'commits' ? 'active item' : 'item'" :href="`${repoLink}/contributors/commits`">Commits</a>
+            <a :class="type === 'additions' ? 'active item' : 'item'" :href="`${repoLink}/contributors/additions`">Additions</a>
+            <a :class="type === 'deletions' ? 'active item' : 'item'" :href="`${repoLink}/contributors/deletions`">Deletions</a>
+          </div>
+        </div>
+      </div>
+    </h2>
+    <div class="ui divider"/>
     <div style="height: 380px">
       <Line
         v-if="Object.keys(totalStats).length !== 0"
@@ -7,6 +50,7 @@
         :options="getOptions('main')"
       />
     </div>
+    <div class="ui divider"/>
 
     <div class="ui attached two column grid">
       <div
@@ -51,6 +95,7 @@
 
 <script>
 import {createApp} from 'vue';
+import {SvgIcon} from '../svg.js';
 import {
   Chart,
   Title,
@@ -85,7 +130,7 @@ Chart.register(
 );
 
 const sfc = {
-  components: {Line},
+  components: {Line, SvgIcon},
   data: () => {
     return {
       isLoading: false,
@@ -93,6 +138,8 @@ const sfc = {
       repoLink: pageData.repoLink || [],
       type: pageData.contributionType,
       contributorsStats: [],
+      dateFrom: null,
+      dateUntil: null,
     };
   },
   mounted() {
@@ -114,6 +161,8 @@ const sfc = {
           const {total, ...rest} = data;
           this.contributorsStats = rest;
           this.totalStats = total;
+          this.dateFrom = new Date(total.weeks[0].week).toISOString();
+          this.dateUntil = new Date().toISOString();
           this.isLoading = false;
         });
     },

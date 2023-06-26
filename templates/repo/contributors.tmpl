@@ -2,32 +2,9 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository commits">
 	{{template "repo/header" .}}
 	<div class="ui container">
-		<h2 class="ui header">{{DateTime "long" .DateFrom}} - {{DateTime "long" .DateUntil}}
-			<div class="ui right">
-				<!-- Contribution type -->
-				<div class="ui floating dropdown jump filter">
-					<div class="ui basic compact button">
-						<span class="text">
-							{{.locale.Tr "repo.contributors.contribution_type.filter_label"}} <strong>{{.ContributionTypeText}}</strong>
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						</span>
-					</div>
-					<div class="menu">
-						<a class="{{if eq .ContributionType "commits"}}active {{end}}item" href="{{$.RepoLink}}/contributors/commits">{{.locale.Tr "repo.contributors.contribution_type.commits"}}</a>
-						<a class="{{if eq .ContributionType "additions"}}active {{end}}item" href="{{$.RepoLink}}/contributors/additions">{{.locale.Tr "repo.contributors.contribution_type.additions"}}</a>
-						<a class="{{if eq .ContributionType "deletions"}}active {{end}}item" href="{{$.RepoLink}}/contributors/deletions">{{.locale.Tr "repo.contributors.contribution_type.deletions"}}</a>
-					</div>
-				</div>
-			</div>
-		</h2>
-		<div class="ui divider"></div>
-
 		{{if .Permission.CanRead $.UnitTypeCode}}
-				<div class="ui container" >
-					<div id="repo-contributors-chart"></div>
-				</div>
+				<div id="repo-contributors-chart"></div>
 		{{end}}
-
 	</div>
 </div>
 {{template "base/footer" .}}
