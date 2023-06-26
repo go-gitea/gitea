@@ -71,9 +71,17 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts repo_mo
 		if err := repo_module.CreateRepositoryByExample(ctx, doer, u, repo, true, false); err != nil {
 			return err
 		}
-		if err := adoptRepository(ctx, repoPath, doer, repo, opts); err != nil {
+
+		// Re-fetch the repository from database before updating it (else it would
+		// override changes that were done earlier with sql)
+		if repo, err = repo_model.GetRepositoryByID(ctx, repo.ID); err != nil {
+			return fmt.Errorf("getRepositoryByID: %w", err)
+		}
+
+		if err := adoptRepository(ctx, repoPath, doer, repo, opts.DefaultBranch); err != nil {
 			return fmt.Errorf("createDelegateHooks: %w", err)
 		}
+
 		if err := repo_module.CheckDaemonExportOK(ctx, repo); err != nil {
 			return fmt.Errorf("checkDaemonExportOK: %w", err)
 		}
@@ -96,12 +104,12 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts repo_mo
 		return nil, err
 	}
 
-	notification.NotifyCreateRepository(ctx, doer, u, repo)
+	notification.NotifyAdoptRepository(ctx, doer, u, repo)
 
 	return repo, nil
 }
 
-func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, repo *repo_model.Repository, opts repo_module.CreateRepoOptions) (err error) {
+func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, repo *repo_model.Repository, defaultBranch string) (err error) {
 	isExist, err := util.IsExist(repoPath)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
@@ -115,12 +123,6 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 		return fmt.Errorf("createDelegateHooks: %w", err)
 	}
 
-	// Re-fetch the repository from database before updating it (else it would
-	// override changes that were done earlier with sql)
-	if repo, err = repo_model.GetRepositoryByID(ctx, repo.ID); err != nil {
-		return fmt.Errorf("getRepositoryByID: %w", err)
-	}
-
 	repo.IsEmpty = false
 
 	// Don't bother looking this repo in the context it won't be there
@@ -130,8 +132,8 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 	}
 	defer gitRepo.Close()
 
-	if len(opts.DefaultBranch) > 0 {
-		repo.DefaultBranch = opts.DefaultBranch
+	if len(defaultBranch) > 0 {
+		repo.DefaultBranch = defaultBranch
 
 		if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
 			return fmt.Errorf("setDefaultBranch: %w", err)
