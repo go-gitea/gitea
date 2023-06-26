@@ -206,9 +206,8 @@ const sfc = {
     await this.loadJob();
     this.intervalID = setInterval(this.loadJob, 1000);
     document.body.addEventListener('click', this.closeDropdown);
-    window.addEventListener('hashchange', this.hashChangeListener);
-    console.log('here');
     this.hashChangeListener();
+    window.addEventListener('hashchange', this.hashChangeListener);
   },
 
   beforeUnmount() {
@@ -257,6 +256,7 @@ const sfc = {
     toggleStepLogs(idx) {
       this.currentJobStepsStates[idx].expanded = !this.currentJobStepsStates[idx].expanded;
       if (this.currentJobStepsStates[idx].expanded) {
+        console.log('loadjob toggle')
         this.loadJob(); // try to load the data immediately instead of waiting for next timer interval
       }
     },
@@ -289,7 +289,7 @@ const sfc = {
       lineNumber.className = 'line-num';
       lineNumber.textContent = line.index;
       lineNumber.setAttribute('id', `step-${stepIndex}-${line.index}`);
-      lineNumber.setAttribute('href', `${this.run.link}/jobs/${this.runIndex}#step-${stepIndex}-${line.index}`);
+      lineNumber.setAttribute('href', `${this.run.link}/jobs/${this.jobIndex}#step-${stepIndex}-${line.index}`);
       div.append(lineNumber);
 
       // for "Show timestamps"
@@ -433,20 +433,21 @@ const sfc = {
       }
     },
     hashChangeListener() {
+      if (!window.location.hash) return;
       this.selectedLog = window.location.hash;
       this.expandSelectedLog();
     },
     expandSelectedLog() {
       const [_, step, line] = this.selectedLog.split('-');
-      const logSummary = this.$refs.steps.querySelector(`.job-step-section:nth-of-type(${parseInt(step) - 1}) > .job-step-summary`);
+      // const logSummary = this.$refs.steps.querySelector(`.job-step-section:nth-of-type(${parseInt(step) + 1}) > .job-step-summary`);
+      console.log(`.job-step-section:nth-of-type(${parseInt(step) + 1}) > .job-step-summary`);
+      console.log(this.currentJobStepsStates);
       console.log(step, line, this.currentJobStepsStates[step], this.selectedLog);
-      console.log(logSummary);
-      if (!this.currentJobStepsStates[step]) {
-        logSummary.click();
-      }
-      if (this.currentJobStepsStates[step] && !this.currentJobStepsStates[step].expanded) this.toggleStepLogs(step);
-      console.log(this.$refs.steps.querySelector(`${this.selectedLog}`));
-      this.$refs.steps.querySelector(`${this.selectedLog}`).click();
+      if (!this.currentJobStepsStates[step] || this.currentJobStepsStates[step].expanded) return;
+      console.log('toggletoggle');
+      this.toggleStepLogs(step);
+      console.log(document.querySelector(`${this.selectedLog}`));
+      document.querySelector(`${this.selectedLog}`).click();
     }
   },
 };
