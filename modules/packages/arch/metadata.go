@@ -96,11 +96,11 @@ func EjectMetadata(filename, domain string, pkg []byte) (*Metadata, error) {
 		case "depend":
 			md.Depends = append(md.Depends, splt[1])
 		case "optdepend":
-			md.Depends = append(md.OptDepends, splt[1])
+			md.OptDepends = append(md.OptDepends, splt[1])
 		case "makedepend":
-			md.Depends = append(md.MakeDepends, splt[1])
+			md.MakeDepends = append(md.MakeDepends, splt[1])
 		case "checkdepend":
-			md.Depends = append(md.CheckDepends, splt[1])
+			md.CheckDepends = append(md.CheckDepends, splt[1])
 		case "backup":
 			md.Depends = append(md.Backup, splt[1])
 		}
