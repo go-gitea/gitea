@@ -115,10 +115,6 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 		}
 		if issue.ClosedStatus == IssueClosedStatusDuplicate {
 			c.DuplicateIssueID = issue.DuplicateIssueID
-			// TODO: Transfer the issue watchers to the duplicate issue
-			if err := transferWatchersToDuplicateIssue(ctx, issue); err != nil {
-				return nil, err
-			}
 		}
 		data, err := json.Marshal(c)
 		if err != nil {
@@ -142,8 +138,9 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 	})
 }
 
-// transferWatchersToDuplicateIssue transfer the watchers (including users who participated in the comments) of the original issue to the duplicate issue.
-func transferWatchersToDuplicateIssue(ctx context.Context, issue *Issue) error {
+// TransferWatchersToDuplicateIssue transfer the watchers (including users who participated in the comments) of the original issue to the duplicate issue.
+// It can only be called after notification
+func TransferWatchersToDuplicateIssue(ctx context.Context, issue *Issue) error {
 	if issue.DuplicateIssueID <= 0 {
 		return errors.New("the ID of duplicate issue cannot be zero")
 	}

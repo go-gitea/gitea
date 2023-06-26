@@ -37,8 +37,13 @@ func changeStatusCtx(ctx context.Context, issue *issues_model.Issue, doer *user_
 		}
 	}
 
-	// TBD: whether to notify if only `is_closed` is changed().
 	notification.NotifyIssueChangeStatus(ctx, doer, commitID, issue, comment, issue.IsClosed)
+
+	if issue.ClosedStatus == issues_model.IssueClosedStatusDuplicate && issue.DuplicateIssueID > 0 {
+		if err := issues_model.TransferWatchersToDuplicateIssue(ctx, issue); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
