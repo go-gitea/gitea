@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -180,13 +181,13 @@ func detectLicense(content string) []string {
 		log.Error("licenseclassifier.MatchFrom: %v", err)
 		return nil
 	}
-	var results []string
+	results := make(container.Set[string], len(matches.Matches))
 	for _, r := range matches.Matches {
-		if r.MatchType == "License" {
-			results = append(results, r.Variant)
+		if r.MatchType == "License" && !results.Contains(r.Variant) {
+			results.Add(r.Variant)
 		}
 	}
-	return results
+	return results.Values()
 }
 
 func ConvertLicenseName(name string) string {
@@ -250,7 +251,7 @@ func AddRepositoryLicenses(x *xorm.Engine) error {
 		CommitID    string
 		License     string             `xorm:"VARCHAR(50) UNIQUE(s) INDEX NOT NULL"`
 		CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX UPDATED"`
 	}
 
 	if err := x.Sync(new(RepoLicense)); err != nil {

@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -280,11 +281,11 @@ func detectLicense(content string) []string {
 		log.Error("licenseclassifier.MatchFrom: %v", err)
 		return nil
 	}
-	var results []string
+	results := make(container.Set[string], len(matches.Matches))
 	for _, r := range matches.Matches {
-		if r.MatchType == "License" {
-			results = append(results, r.Variant)
+		if r.MatchType == "License" && !results.Contains(r.Variant) {
+			results.Add(r.Variant)
 		}
 	}
-	return results
+	return results.Values()
 }
