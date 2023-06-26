@@ -279,10 +279,6 @@ button {
   cursor: pointer;
 }
 
-input {
-  line-height: 100% !important;
-}
-
 details summary {
   cursor: pointer;
 }
@@ -473,6 +469,11 @@ a.label,
 .page-content .new-menu {
   margin-top: -15px !important;
   padding-top: 15px !important;
+}
+
+/* fix Fomantic's line-height cutting off "g" on Windows Chrome with out fonts */
+.ui.input > input {
+  line-height: 1.3;
 }
 
 .ui.input.focus > input,
