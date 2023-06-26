@@ -503,7 +503,9 @@ var migrations = []Migration{
 
 	// v260 -> v261
 	NewMigration("Drop custom_labels column of action_runner table", v1_21.DropCustomLabelsColumnOfActionRunner),
-	// v261 -> 262
+	// v261 -> v262
+	NewMigration("Add variable table", v1_21.CreateVariableTable),
+	// v262 -> v263
 	NewMigration("Add Repository Licenses", v1_21.AddRepositoryLicenses),
 }
 
