@@ -448,6 +448,7 @@ const sfc = {
       const offset = logSummary.offsetHeight + document.querySelector('.job-info-header').offsetHeight;
       console.log(logline.parentElement, offset, logline.parentElement.getBoundingClientRect().top);
       // if (logline.parentElement.getBoundingClientRect().top >= offset) return;
+      logline.click();
       window.scrollTo({top: logline.parentElement.offsetTop - offset, behavior: 'instant' });
     }
   },
