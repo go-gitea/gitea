@@ -1,14 +1,25 @@
 {{$resolved := (index .comments 0).IsResolved}}
+{{$invalid := (index .comments 0).Invalidated}}
 {{$resolveDoer := (index .comments 0).ResolveDoer}}
 {{$isNotPending := (not (eq (index .comments 0).Review.Type 0))}}
+{{$referenceUrl := printf "%s#%s" $.Issue.Link (index .comments 0).HashTag}}
 <div class="conversation-holder" data-path="{{(index .comments 0).TreePath}}" data-side="{{if lt (index .comments 0).Line 0}}left{{else}}right{{end}}" data-idx="{{(index .comments 0).UnsignedLine}}">
 	{{if $resolved}}
 		<div class="ui attached header resolved-placeholder gt-df gt-ac gt-sb">
-			<div class="ui grey text">
+			<div class="ui grey text gt-df gt-ac gt-fw gt-gap-2">
 				{{svg "octicon-check" 16 "icon gt-mr-2"}}
 				<b>{{$resolveDoer.Name}}</b> {{$.locale.Tr "repo.issues.review.resolved_by"}}
+				{{if $invalid}}
+					<!--
+					We only handle the case $resolved=true and $invalid=true in this template because if the comment is not resolved it has the outdated label in the comments area (not the header above).
+					The case $resolved=false and $invalid=true is handled in repo/diff/comments.tmpl
+					-->
+					<a href="{{AppSubUrl}}{{$referenceUrl}}" class="ui label basic small gt-ml-3" data-tooltip-content="{{$.locale.Tr "repo.issues.review.outdated_description"}}">
+						{{$.locale.Tr "repo.issues.review.outdated"}}
+					</a>
+				{{end}}
 			</div>
-			<div>
+			<div class="gt-df gt-ac gt-gap-3">
 				<button id="show-outdated-{{(index .comments 0).ID}}" data-comment="{{(index .comments 0).ID}}" class="ui tiny labeled button show-outdated gt-df gt-ac">
 					{{svg "octicon-unfold" 16 "gt-mr-3"}}
 					{{$.locale.Tr "repo.issues.review.show_resolved"}}

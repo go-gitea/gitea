@@ -1,14 +1,13 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package code
+package bleve
 
 import (
 	"bufio"
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -17,12 +16,13 @@ import (
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
-	gitea_bleve "code.gitea.io/gitea/modules/indexer/bleve"
+	"code.gitea.io/gitea/modules/indexer/code/internal"
+	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
+	inner_bleve "code.gitea.io/gitea/modules/indexer/internal/bleve"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/typesniffer"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/blevesearch/bleve/v2"
 	analyzer_custom "github.com/blevesearch/bleve/v2/analysis/analyzer/custom"
@@ -31,10 +31,8 @@ import (
 	"github.com/blevesearch/bleve/v2/analysis/token/lowercase"
 	"github.com/blevesearch/bleve/v2/analysis/token/unicodenorm"
 	"github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
-	"github.com/blevesearch/bleve/v2/index/upsidedown"
 	"github.com/blevesearch/bleve/v2/mapping"
 	"github.com/blevesearch/bleve/v2/search/query"
-	"github.com/ethantkoenig/rupture"
 	"github.com/go-enry/go-enry/v2"
 )
 
@@ -59,38 +57,6 @@ func addUnicodeNormalizeTokenFilter(m *mapping.IndexMappingImpl) error {
 	})
 }
 
-// openBleveIndexer open the index at the specified path, checking for metadata
-// updates and bleve version updates.  If index needs to be created (or
-// re-created), returns (nil, nil)
-func openBleveIndexer(path string, latestVersion int) (bleve.Index, error) {
-	_, err := os.Stat(path)
-	if err != nil && os.IsNotExist(err) {
-		return nil, nil
-	} else if err != nil {
-		return nil, err
-	}
-
-	metadata, err := rupture.ReadIndexMetadata(path)
-	if err != nil {
-		return nil, err
-	}
-	if metadata.Version < latestVersion {
-		// the indexer is using a previous version, so we should delete it and
-		// re-populate
-		return nil, util.RemoveAll(path)
-	}
-
-	index, err := bleve.Open(path)
-	if err != nil && err == upsidedown.IncompatibleVersion {
-		// the indexer was built with a previous version of bleve, so we should
-		// delete it and re-populate
-		return nil, util.RemoveAll(path)
-	} else if err != nil {
-		return nil, err
-	}
-	return index, nil
-}
-
 // RepoIndexerData data stored in the repo indexer
 type RepoIndexerData struct {
 	RepoID    int64
@@ -111,8 +77,8 @@ const (
 	repoIndexerLatestVersion = 6
 )
 
-// createBleveIndexer create a bleve repo indexer if one does not already exist
-func createBleveIndexer(path string, latestVersion int) (bleve.Index, error) {
+// generateBleveIndexMapping generates a bleve index mapping for the repo indexer
+func generateBleveIndexMapping() (mapping.IndexMapping, error) {
 	docMapping := bleve.NewDocumentMapping()
 	numericFieldMapping := bleve.NewNumericFieldMapping()
 	numericFieldMapping.IncludeInAll = false
@@ -147,42 +113,28 @@ func createBleveIndexer(path string, latestVersion int) (bleve.Index, error) {
 	mapping.AddDocumentMapping(repoIndexerDocType, docMapping)
 	mapping.AddDocumentMapping("_all", bleve.NewDocumentDisabledMapping())
 
-	indexer, err := bleve.New(path, mapping)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = rupture.WriteIndexMetadata(path, &rupture.IndexMetadata{
-		Version: latestVersion,
-	}); err != nil {
-		return nil, err
-	}
-	return indexer, nil
+	return mapping, nil
 }
 
-var _ Indexer = &BleveIndexer{}
+var _ internal.Indexer = &Indexer{}
 
-// BleveIndexer represents a bleve indexer implementation
-type BleveIndexer struct {
-	indexDir string
-	indexer  bleve.Index
+// Indexer represents a bleve indexer implementation
+type Indexer struct {
+	inner                    *inner_bleve.Indexer
+	indexer_internal.Indexer // do not composite inner_bleve.Indexer directly to avoid exposing too much
 }
 
-// NewBleveIndexer creates a new bleve local indexer
-func NewBleveIndexer(indexDir string) (*BleveIndexer, bool, error) {
-	indexer := &BleveIndexer{
-		indexDir: indexDir,
+// NewIndexer creates a new bleve local indexer
+func NewIndexer(indexDir string) *Indexer {
+	inner := inner_bleve.NewIndexer(indexDir, repoIndexerLatestVersion, generateBleveIndexMapping)
+	return &Indexer{
+		Indexer: inner,
+		inner:   inner,
 	}
-	created, err := indexer.init()
-	if err != nil {
-		indexer.Close()
-		return nil, false, err
-	}
-	return indexer, created, err
 }
 
-func (b *BleveIndexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserError, batchReader *bufio.Reader, commitSha string,
-	update fileUpdate, repo *repo_model.Repository, batch *gitea_bleve.FlushingBatch,
+func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserError, batchReader *bufio.Reader, commitSha string,
+	update internal.FileUpdate, repo *repo_model.Repository, batch *inner_bleve.FlushingBatch,
 ) error {
 	// Ignore vendored files in code search
 	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
@@ -227,7 +179,7 @@ func (b *BleveIndexer) addUpdate(ctx context.Context, batchWriter git.WriteClose
 	if _, err = batchReader.Discard(1); err != nil {
 		return err
 	}
-	id := filenameIndexerID(repo.ID, update.Filename)
+	id := internal.FilenameIndexerID(repo.ID, update.Filename)
 	return batch.Index(id, &RepoIndexerData{
 		RepoID:    repo.ID,
 		CommitID:  commitSha,
@@ -237,50 +189,14 @@ func (b *BleveIndexer) addUpdate(ctx context.Context, batchWriter git.WriteClose
 	})
 }
 
-func (b *BleveIndexer) addDelete(filename string, repo *repo_model.Repository, batch *gitea_bleve.FlushingBatch) error {
-	id := filenameIndexerID(repo.ID, filename)
+func (b *Indexer) addDelete(filename string, repo *repo_model.Repository, batch *inner_bleve.FlushingBatch) error {
+	id := internal.FilenameIndexerID(repo.ID, filename)
 	return batch.Delete(id)
 }
 
-// init init the indexer
-func (b *BleveIndexer) init() (bool, error) {
-	var err error
-	b.indexer, err = openBleveIndexer(b.indexDir, repoIndexerLatestVersion)
-	if err != nil {
-		return false, err
-	}
-	if b.indexer != nil {
-		return false, nil
-	}
-
-	b.indexer, err = createBleveIndexer(b.indexDir, repoIndexerLatestVersion)
-	if err != nil {
-		return false, err
-	}
-
-	return true, nil
-}
-
-// Close close the indexer
-func (b *BleveIndexer) Close() {
-	log.Debug("Closing repo indexer")
-	if b.indexer != nil {
-		err := b.indexer.Close()
-		if err != nil {
-			log.Error("Error whilst closing the repository indexer: %v", err)
-		}
-	}
-	log.Info("PID: %d Repository Indexer closed", os.Getpid())
-}
-
-// Ping does nothing
-func (b *BleveIndexer) Ping() bool {
-	return true
-}
-
 // Index indexes the data
-func (b *BleveIndexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *repoChanges) error {
-	batch := gitea_bleve.NewFlushingBatch(b.indexer, maxBatchSize)
+func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
+	batch := inner_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	if len(changes.Updates) > 0 {
 
 		// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
@@ -308,14 +224,14 @@ func (b *BleveIndexer) Index(ctx context.Context, repo *repo_model.Repository, s
 }
 
 // Delete deletes indexes by ids
-func (b *BleveIndexer) Delete(repoID int64) error {
+func (b *Indexer) Delete(_ context.Context, repoID int64) error {
 	query := numericEqualityQuery(repoID, "RepoID")
 	searchRequest := bleve.NewSearchRequestOptions(query, 2147483647, 0, false)
-	result, err := b.indexer.Search(searchRequest)
+	result, err := b.inner.Indexer.Search(searchRequest)
 	if err != nil {
 		return err
 	}
-	batch := gitea_bleve.NewFlushingBatch(b.indexer, maxBatchSize)
+	batch := inner_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	for _, hit := range result.Hits {
 		if err = batch.Delete(hit.ID); err != nil {
 			return err
@@ -326,7 +242,7 @@ func (b *BleveIndexer) Delete(repoID int64) error {
 
 // Search searches for files in the specified repo.
 // Returns the matching file-paths
-func (b *BleveIndexer) Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error) {
+func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
 	var (
 		indexerQuery query.Query
 		keywordQuery query.Query
@@ -379,14 +295,14 @@ func (b *BleveIndexer) Search(ctx context.Context, repoIDs []int64, language, ke
 		searchRequest.AddFacet("languages", bleve.NewFacetRequest("Language", 10))
 	}
 
-	result, err := b.indexer.SearchInContext(ctx, searchRequest)
+	result, err := b.inner.Indexer.SearchInContext(ctx, searchRequest)
 	if err != nil {
 		return 0, nil, nil, err
 	}
 
 	total := int64(result.Total)
 
-	searchResults := make([]*SearchResult, len(result.Hits))
+	searchResults := make([]*internal.SearchResult, len(result.Hits))
 	for i, hit := range result.Hits {
 		startIndex, endIndex := -1, -1
 		for _, locations := range hit.Locations["Content"] {
@@ -405,11 +321,11 @@ func (b *BleveIndexer) Search(ctx context.Context, repoIDs []int64, language, ke
 		if t, err := time.Parse(time.RFC3339, hit.Fields["UpdatedAt"].(string)); err == nil {
 			updatedUnix = timeutil.TimeStamp(t.Unix())
 		}
-		searchResults[i] = &SearchResult{
+		searchResults[i] = &internal.SearchResult{
 			RepoID:      int64(hit.Fields["RepoID"].(float64)),
 			StartIndex:  startIndex,
 			EndIndex:    endIndex,
-			Filename:    filenameOfIndexerID(hit.ID),
+			Filename:    internal.FilenameOfIndexerID(hit.ID),
 			Content:     hit.Fields["Content"].(string),
 			CommitID:    hit.Fields["CommitID"].(string),
 			UpdatedUnix: updatedUnix,
@@ -418,7 +334,7 @@ func (b *BleveIndexer) Search(ctx context.Context, repoIDs []int64, language, ke
 		}
 	}
 
-	searchResultLanguages := make([]*SearchResultLanguages, 0, 10)
+	searchResultLanguages := make([]*internal.SearchResultLanguages, 0, 10)
 	if len(language) > 0 {
 		// Use separate query to go get all language counts
 		facetRequest := bleve.NewSearchRequestOptions(facetQuery, 1, 0, false)
@@ -426,7 +342,7 @@ func (b *BleveIndexer) Search(ctx context.Context, repoIDs []int64, language, ke
 		facetRequest.IncludeLocations = true
 		facetRequest.AddFacet("languages", bleve.NewFacetRequest("Language", 10))
 
-		if result, err = b.indexer.Search(facetRequest); err != nil {
+		if result, err = b.inner.Indexer.Search(facetRequest); err != nil {
 			return 0, nil, nil, err
 		}
 
@@ -436,7 +352,7 @@ func (b *BleveIndexer) Search(ctx context.Context, repoIDs []int64, language, ke
 		if len(term.Term) == 0 {
 			continue
 		}
-		searchResultLanguages = append(searchResultLanguages, &SearchResultLanguages{
+		searchResultLanguages = append(searchResultLanguages, &internal.SearchResultLanguages{
 			Language: term.Term,
 			Color:    enry.GetColor(term.Term),
 			Count:    term.Count,

@@ -1,26 +1,28 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package issues
+package bleve
 
 import (
 	"context"
 	"testing"
+
+	"code.gitea.io/gitea/modules/indexer/issues/internal"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestBleveIndexAndSearch(t *testing.T) {
 	dir := t.TempDir()
-	indexer := NewBleveIndexer(dir)
+	indexer := NewIndexer(dir)
 	defer indexer.Close()
 
-	if _, err := indexer.Init(); err != nil {
+	if _, err := indexer.Init(context.Background()); err != nil {
 		assert.Fail(t, "Unable to initialize bleve indexer: %v", err)
 		return
 	}
 
-	err := indexer.Index([]*IndexerData{
+	err := indexer.Index(context.Background(), []*internal.IndexerData{
 		{
 			ID:      1,
 			RepoID:  2,
