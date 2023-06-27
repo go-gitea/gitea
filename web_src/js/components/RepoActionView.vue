@@ -152,7 +152,7 @@ const sfc = {
         'log-time-stamp': false,
         'log-time-seconds': false,
       },
-      selectedLogStep: "",
+      selectedLogStep: '',
 
       // provided by backend
       run: {
@@ -437,7 +437,7 @@ const sfc = {
       this.expandSelectedLog();
     },
     async expandSelectedLog() {
-      const [_, step, line] = this.selectedLogStep.split('-');
+      const [_, step, _line] = this.selectedLogStep.split('-');
       if (!this.currentJobStepsStates[step]) return;
       if (!this.currentJobStepsStates[step].expanded) {
         this.currentJobStepsStates[step].expanded = true;
@@ -448,7 +448,7 @@ const sfc = {
       const logSummary = this.$refs.steps.querySelector(`.job-step-section:nth-of-type(${parseInt(step) + 1}) > .job-step-summary`);
       const offset = logSummary.offsetHeight + document.querySelector('.job-info-header').offsetHeight;
       logline.querySelector('.line-num').click();
-      window.scrollTo({top: logline.offsetTop - offset, behavior: 'instant' });
+      window.scrollTo({top: logline.offsetTop - offset, behavior: 'instant'});
     }
   },
 };
