@@ -718,7 +718,8 @@ function initRepoIssueStateButton() {
       },
       onApprove() {
         $('#duplicate_issue_id').val($duplicateModal.find('input[type=hidden]').val());
-        $statusButton.trigger('click');
+        const $form = $('#comment-form');
+        $form[0].dispatchEvent(new SubmitEvent('submit', {bubbles: true, cancelable: true, submitter: $statusButton[0]}));
       },
     }).modal('show');
   });
