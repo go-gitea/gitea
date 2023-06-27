@@ -138,7 +138,7 @@
 
 		{{if gt .Activity.MergedPRCount 0}}
 			<h4 class="ui horizontal divider header" id="merged-pull-requests">
-				<span class="text">{{svg "octicon-git-pull-request"}}</span>
+				<span class="text">{{svg "octicon-git-pull-request" 16 "gt-mr-3"}}</span>
 				{{.locale.Tr "repo.activity.title.prs_merged_by"
 					(.locale.TrN .Activity.MergedPRCount "repo.activity.title.prs_1" "repo.activity.title.prs_n" .Activity.MergedPRCount)
 					(.locale.TrN .Activity.MergedPRAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n" .Activity.MergedPRAuthorCount)
@@ -157,7 +157,7 @@
 
 		{{if gt .Activity.OpenedPRCount 0}}
 			<h4 class="ui horizontal divider header" id="proposed-pull-requests">
-				<span class="text">{{svg "octicon-git-branch"}}</span>
+				<span class="text">{{svg "octicon-git-branch" 16 "gt-mr-3"}}</span>
 				{{.locale.Tr "repo.activity.title.prs_opened_by"
 					(.locale.TrN .Activity.OpenedPRCount "repo.activity.title.prs_1" "repo.activity.title.prs_n" .Activity.OpenedPRCount)
 					(.locale.TrN .Activity.OpenedPRAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n" .Activity.OpenedPRAuthorCount)
@@ -176,7 +176,7 @@
 
 		{{if gt .Activity.ClosedIssueCount 0}}
 			<h4 class="ui horizontal divider header" id="closed-issues">
-				<span class="text">{{svg "octicon-issue-closed"}}</span>
+				<span class="text">{{svg "octicon-issue-closed" 16 "gt-mr-3"}}</span>
 				{{.locale.Tr "repo.activity.title.issues_closed_from"
 					(.locale.TrN .Activity.ClosedIssueCount "repo.activity.title.issues_1" "repo.activity.title.issues_n" .Activity.ClosedIssueCount)
 					(.locale.TrN .Activity.ClosedIssueAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n" .Activity.ClosedIssueAuthorCount)
@@ -195,7 +195,7 @@
 
 		{{if gt .Activity.OpenedIssueCount 0}}
 			<h4 class="ui horizontal divider header" id="new-issues">
-				<span class="text">{{svg "octicon-issue-opened"}}</span>
+				<span class="text">{{svg "octicon-issue-opened" 16 "gt-mr-3"}}</span>
 				{{.locale.Tr "repo.activity.title.issues_created_by"
 					(.locale.TrN .Activity.OpenedIssueCount "repo.activity.title.issues_1" "repo.activity.title.issues_n" .Activity.OpenedIssueCount)
 					(.locale.TrN .Activity.OpenedIssueAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n" .Activity.OpenedIssueAuthorCount)
@@ -214,7 +214,7 @@
 
 		{{if gt .Activity.UnresolvedIssueCount 0}}
 			<h4 class="ui horizontal divider header" id="unresolved-conversations">
-				<span class="text">{{svg "octicon-comment-discussion"}}</span>
+				<span class="text">{{svg "octicon-comment-discussion" 16 "gt-mr-3"}}</span>
 				{{.locale.TrN .Activity.UnresolvedIssueCount "repo.activity.title.unresolved_conv_1" "repo.activity.title.unresolved_conv_n" .Activity.UnresolvedIssueCount}}
 			</h4>
 			<div class="text center desc">
