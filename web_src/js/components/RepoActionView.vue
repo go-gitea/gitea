@@ -152,7 +152,7 @@ const sfc = {
         'log-time-stamp': false,
         'log-time-seconds': false,
       },
-      selectedLog: "",
+      selectedLogStep: "",
 
       // provided by backend
       run: {
@@ -282,12 +282,12 @@ const sfc = {
     createLogLine(line, startTime, stepIndex) {
       const div = document.createElement('div');
       div.classList.add('job-log-line');
+      div.setAttribute('id', `step-${stepIndex}-${line.index}`);
       div._jobLogTime = line.timestamp;
 
       const lineNumber = document.createElement('a');
       lineNumber.className = 'line-num';
       lineNumber.textContent = line.index;
-      lineNumber.setAttribute('id', `step-${stepIndex}-${line.index}`);
       lineNumber.setAttribute('href', `${this.run.link}/jobs/${this.jobIndex}#step-${stepIndex}-${line.index}`);
       div.append(lineNumber);
 
@@ -433,25 +433,22 @@ const sfc = {
     },
     hashChangeListener() {
       if (!window.location.hash) return;
-      this.selectedLog = window.location.hash;
+      this.selectedLogStep = window.location.hash;
       this.expandSelectedLog();
     },
     async expandSelectedLog() {
-      const [_, step, line] = this.selectedLog.split('-');
+      const [_, step, line] = this.selectedLogStep.split('-');
       const logSummary = this.$refs.steps.querySelector(`.job-step-section:nth-of-type(${parseInt(step) + 1}) > .job-step-summary`);
-      // console.log(step, line, this.currentJobStepsStates[step], this.selectedLog);
       if (!this.currentJobStepsStates[step]) return;
       if (!this.currentJobStepsStates[step].expanded) {
         this.currentJobStepsStates[step].expanded = true;
         await this.loadJob();
       }
-      console.log('toggletoggle');
-      const logline = this.$refs.steps.querySelector(`${this.selectedLog}`);
+      const logline = this.$refs.steps.querySelector(`${this.selectedLogStep}`);
+      if (!logline) return;
       const offset = logSummary.offsetHeight + document.querySelector('.job-info-header').offsetHeight;
-      console.log(logline.parentElement, offset, logline.parentElement.getBoundingClientRect().top);
-      // if (logline.parentElement.getBoundingClientRect().top >= offset) return;
-      logline.click();
-      window.scrollTo({top: logline.parentElement.offsetTop - offset, behavior: 'instant' });
+      logline.querySelector('.line-num').click();
+      window.scrollTo({top: logline.offsetTop - offset, behavior: 'instant' });
     }
   },
 };
@@ -824,7 +821,7 @@ export function initRepositoryActionView() {
   display: flex;
 }
 
-.job-step-section .job-step-logs .job-log-line:hover {
+.job-step-section .job-step-logs .job-log-line:hover, .job-log-line:target {
   background-color: var(--color-console-hover-bg);
 }
 
@@ -836,7 +833,7 @@ export function initRepositoryActionView() {
   user-select: none;
 }
 
-.line-num:target, .line-num:hover {
+.job-log-line:target > .line-num, .line-num:hover {
   color: var(--color-primary);
   text-decoration: underline;
 }
