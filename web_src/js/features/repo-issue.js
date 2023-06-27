@@ -716,6 +716,10 @@ function initRepoIssueStateButton() {
         $('#type').val(originalType);
         $('#state').val(originalSate);
       },
+      onApprove() {
+        $('#duplicate_issue_id').val($duplicateModal.find('input[type=hidden]').val());
+        $statusButton.trigger('click');
+      },
     }).modal('show');
   });
 
