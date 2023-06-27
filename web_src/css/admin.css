@@ -35,9 +35,6 @@
   font-weight: var(--font-weight-semibold);
   width: 220px;
   margin-right: 5px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 @media (max-width: 767.98px) {
