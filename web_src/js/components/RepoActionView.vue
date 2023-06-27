@@ -611,7 +611,6 @@ export function initRepositoryActionView() {
 .job-brief-item .job-brief-info {
   display: flex;
   align-items: center;
-  width: fit-content;
 }
 
 /* ================ */
