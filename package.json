@@ -76,7 +76,7 @@
     "stylelint-declaration-strict-value": "1.9.2",
     "stylelint-stylistic": "0.4.2",
     "svgo": "3.0.2",
-    "updates": "14.2.4",
+    "updates": "14.2.8",
     "vitest": "0.32.2"
   },
   "browserslist": [

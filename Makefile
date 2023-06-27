@@ -926,10 +926,17 @@ node_modules: package-lock.json
 
 .PHONY: npm-update
 npm-update: node-check | node_modules
-	npx updates -cu
+	npx updates -u -f package.json
 	rm -rf node_modules package-lock.json
 	npm install --package-lock
 	@touch node_modules
+
+.PHONY: poetry-update
+poetry-update: node-check | node_modules
+	npx updates -u -f pyproject.toml
+	rm -rf .venv poetry.lock
+	poetry install
+	@touch .venv
 
 .PHONY: fomantic
 fomantic:
