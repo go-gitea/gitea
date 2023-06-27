@@ -253,11 +253,10 @@ const sfc = {
     },
 
     // show/hide the step logs for a step
-    async toggleStepLogs(idx) {
+    toggleStepLogs(idx) {
       this.currentJobStepsStates[idx].expanded = !this.currentJobStepsStates[idx].expanded;
       if (this.currentJobStepsStates[idx].expanded) {
-        console.log('loadjob toggle')
-        await this.loadJob(); // try to load the data immediately instead of waiting for next timer interval
+        this.loadJob(); // try to load the data immediately instead of waiting for next timer interval
       }
     },
     // rerun a job
@@ -442,7 +441,10 @@ const sfc = {
       const logSummary = this.$refs.steps.querySelector(`.job-step-section:nth-of-type(${parseInt(step) + 1}) > .job-step-summary`);
       // console.log(step, line, this.currentJobStepsStates[step], this.selectedLog);
       if (!this.currentJobStepsStates[step]) return;
-      if (!this.currentJobStepsStates[step].expanded) await this.toggleStepLogs(step);
+      if (!this.currentJobStepsStates[step].expanded) {
+        this.currentJobStepsStates[step].expanded = true;
+        await this.loadJob();
+      }
       console.log('toggletoggle');
       const logline = this.$refs.steps.querySelector(`${this.selectedLog}`);
       const offset = logSummary.offsetHeight + document.querySelector('.job-info-header').offsetHeight;
