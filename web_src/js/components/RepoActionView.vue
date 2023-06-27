@@ -152,7 +152,6 @@ const sfc = {
         'log-time-stamp': false,
         'log-time-seconds': false,
       },
-      selectedLogStep: '',
 
       // provided by backend
       run: {
@@ -213,6 +212,7 @@ const sfc = {
 
   beforeUnmount() {
     document.body.removeEventListener('click', this.closeDropdown);
+    window.removeEventListener('hashchange', this.hashChangeListener);
   },
 
   unmounted() {
@@ -432,13 +432,9 @@ const sfc = {
         actionBodyEl.append(fullScreenEl);
       }
     },
-    hashChangeListener() {
-      if (!window.location.hash) return;
-      this.selectedLogStep = window.location.hash;
-      this.expandSelectedLog();
-    },
-    async expandSelectedLog() {
-      const [_, step, _line] = this.selectedLogStep.split('-');
+    async hashChangeListener() {
+      const selectedLogStep = window.location.hash;
+      const [_, step, _line] = selectedLogStep.split('-');
       if (!this.currentJobStepsStates[step]) return;
       if (!this.currentJobStepsStates[step].expanded && this.currentJobStepsStates[step].cursor === null) {
         this.currentJobStepsStates[step].expanded = true;
@@ -446,7 +442,7 @@ const sfc = {
         // so logline can be selected by querySelector
         await this.loadJob();
       }
-      const logline = this.$refs.steps.querySelector(`${this.selectedLogStep}`);
+      const logline = this.$refs.steps.querySelector(`${selectedLogStep}`);
       if (!logline) return;
       const logSummary = this.$refs.steps.querySelector(`.job-step-section:nth-of-type(${parseInt(step) + 1}) > .job-step-summary`);
       const offset = logSummary.offsetHeight + document.querySelector('.job-info-header').offsetHeight;
