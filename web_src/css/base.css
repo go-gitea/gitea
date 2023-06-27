@@ -471,6 +471,11 @@ a.label,
   padding-top: 15px !important;
 }
 
+/* fix Fomantic's line-height cutting off "g" on Windows Chrome with Segoe UI */
+.ui.input > input {
+  line-height: 1.3;
+}
+
 .ui.input.focus > input,
 .ui.input > input:focus {
   border-color: var(--color-primary);
