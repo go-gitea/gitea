@@ -175,7 +175,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	s, pf, err := packages_service.GetFileStreamByPackageVersion(
+	s, u, pf, err := packages_service.GetFileStreamByPackageVersion(
 		ctx,
 		pvs[0],
 		&packages_service.PackageFileInfo{
@@ -190,6 +190,12 @@ func DownloadPackageFile(ctx *context.Context) {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+
+	if u != nil {
+		ctx.Redirect(u.String())
+		return
+	}
+
 	defer s.Close()
 
 	ctx.ServeContent(s, &context.ServeHeaderOptions{

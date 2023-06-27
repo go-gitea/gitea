@@ -453,7 +453,7 @@ func downloadFile(ctx *context.Context, fileFilter container.Set[string], fileKe
 		return
 	}
 
-	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
@@ -474,6 +474,12 @@ func downloadFile(ctx *context.Context, fileFilter container.Set[string], fileKe
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+
+	if u != nil {
+		ctx.Redirect(u.String())
+		return
+	}
+
 	defer s.Close()
 
 	ctx.ServeContent(s, &context.ServeHeaderOptions{

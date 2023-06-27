@@ -139,6 +139,39 @@ func TestPackageGeneric(t *testing.T) {
 			req = NewRequest(t, "GET", url+"/dummy.bin")
 			MakeRequest(t, req, http.StatusUnauthorized)
 		})
+
+		t.Run("ServeDirect", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			if setting.Packages.Storage.Type != setting.MinioStorageType {
+				t.Skip("Test skipped for non-Minio-storage.")
+				return
+			}
+
+			if !setting.Packages.Storage.MinioConfig.ServeDirect {
+				old := setting.Packages.Storage.MinioConfig.ServeDirect
+				defer func() {
+					setting.Packages.Storage.MinioConfig.ServeDirect = old
+				}()
+
+				setting.Packages.Storage.MinioConfig.ServeDirect = true
+			}
+
+			req := NewRequest(t, "GET", url+"/"+filename)
+			resp := MakeRequest(t, req, http.StatusSeeOther)
+
+			checkDownloadCount(3)
+
+			location := resp.Header().Get("Location")
+			assert.NotEmpty(t, location)
+
+			req = NewRequest(t, "GET", location)
+			resp = MakeRequest(t, req, http.StatusOK)
+
+			assert.Equal(t, content, resp.Body.Bytes())
+
+			checkDownloadCount(3)
+		})
 	})
 
 	t.Run("Delete", func(t *testing.T) {

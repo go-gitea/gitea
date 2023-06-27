@@ -83,7 +83,7 @@ func DownloadPackageFile(ctx *context.Context) {
 	packageVersion := ctx.Params("version")
 	filename := ctx.Params("filename")
 
-	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
@@ -103,6 +103,12 @@ func DownloadPackageFile(ctx *context.Context) {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+
+	if u != nil {
+		ctx.Redirect(u.String())
+		return
+	}
+
 	defer s.Close()
 
 	ctx.ServeContent(s, &context.ServeHeaderOptions{
@@ -134,7 +140,7 @@ func DownloadPackageFileByName(ctx *context.Context) {
 		return
 	}
 
-	s, pf, err := packages_service.GetFileStreamByPackageVersion(
+	s, u, pf, err := packages_service.GetFileStreamByPackageVersion(
 		ctx,
 		pvs[0],
 		&packages_service.PackageFileInfo{
@@ -149,6 +155,12 @@ func DownloadPackageFileByName(ctx *context.Context) {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+
+	if u != nil {
+		ctx.Redirect(u.String())
+		return
+	}
+
 	defer s.Close()
 
 	ctx.ServeContent(s, &context.ServeHeaderOptions{

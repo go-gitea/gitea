@@ -482,11 +482,23 @@ func GetBlob(ctx *context.Context) {
 		return
 	}
 
-	s, _, err := packages_service.GetPackageFileStream(ctx, blob.File)
+	s, u, _, err := packages_service.GetPackageFileStream(ctx, blob.File)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+
+	if u != nil {
+		setResponseHeaders(ctx.Resp, &containerHeaders{
+			ContentDigest: blob.Properties.GetByName(container_module.PropertyDigest),
+			ContentType:   blob.Properties.GetByName(container_module.PropertyMediaType),
+			ContentLength: blob.Blob.Size,
+			Status:        http.StatusTemporaryRedirect,
+			Location:      u.String(),
+		})
+		return
+	}
+
 	defer s.Close()
 
 	setResponseHeaders(ctx.Resp, &containerHeaders{
@@ -636,11 +648,23 @@ func GetManifest(ctx *context.Context) {
 		return
 	}
 
-	s, _, err := packages_service.GetPackageFileStream(ctx, manifest.File)
+	s, u, _, err := packages_service.GetPackageFileStream(ctx, manifest.File)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+
+	if u != nil {
+		setResponseHeaders(ctx.Resp, &containerHeaders{
+			ContentDigest: manifest.Properties.GetByName(container_module.PropertyDigest),
+			ContentType:   manifest.Properties.GetByName(container_module.PropertyMediaType),
+			ContentLength: manifest.Blob.Size,
+			Status:        http.StatusTemporaryRedirect,
+			Location:      u.String(),
+		})
+		return
+	}
+
 	defer s.Close()
 
 	setResponseHeaders(ctx.Resp, &containerHeaders{

@@ -273,11 +273,17 @@ func DownloadPackageFile(ctx *context.Context) {
 
 	pf := pd.Files[0].File
 
-	s, _, err := packages_service.GetPackageFileStream(ctx, pf)
+	s, u, _, err := packages_service.GetPackageFileStream(ctx, pf)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+
+	if u != nil {
+		ctx.Redirect(u.String())
+		return
+	}
+
 	defer s.Close()
 
 	ctx.ServeContent(s, &context.ServeHeaderOptions{

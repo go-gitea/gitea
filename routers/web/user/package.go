@@ -437,7 +437,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	s, _, err := packages_service.GetPackageFileStream(
+	s, u, _, err := packages_service.GetPackageFileStream(
 		ctx,
 		pf,
 	)
@@ -445,6 +445,12 @@ func DownloadPackageFile(ctx *context.Context) {
 		ctx.ServerError("GetPackageFileStream", err)
 		return
 	}
+
+	if u != nil {
+		ctx.Redirect(u.String())
+		return
+	}
+
 	defer s.Close()
 
 	ctx.ServeContent(s, &context.ServeHeaderOptions{

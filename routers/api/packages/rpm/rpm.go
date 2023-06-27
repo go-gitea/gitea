@@ -65,7 +65,7 @@ func GetRepositoryFile(ctx *context.Context) {
 		return
 	}
 
-	s, pf, err := packages_service.GetFileStreamByPackageVersion(
+	s, u, pf, err := packages_service.GetFileStreamByPackageVersion(
 		ctx,
 		pv,
 		&packages_service.PackageFileInfo{
@@ -80,6 +80,12 @@ func GetRepositoryFile(ctx *context.Context) {
 		}
 		return
 	}
+
+	if u != nil {
+		ctx.Redirect(u.String())
+		return
+	}
+
 	defer s.Close()
 
 	ctx.ServeContent(s, &context.ServeHeaderOptions{
@@ -173,7 +179,7 @@ func DownloadPackageFile(ctx *context.Context) {
 	name := ctx.Params("name")
 	version := ctx.Params("version")
 
-	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
@@ -193,6 +199,12 @@ func DownloadPackageFile(ctx *context.Context) {
 		}
 		return
 	}
+
+	if u != nil {
+		ctx.Redirect(u.String())
+		return
+	}
+
 	defer s.Close()
 
 	ctx.ServeContent(s, &context.ServeHeaderOptions{

@@ -216,7 +216,7 @@ func UploadPackageFile(ctx *context.Context) {
 }
 
 func DownloadPackageFile(ctx *context.Context) {
-	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
@@ -236,6 +236,12 @@ func DownloadPackageFile(ctx *context.Context) {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+
+	if u != nil {
+		ctx.Redirect(u.String())
+		return
+	}
+
 	defer s.Close()
 
 	ctx.ServeContent(s, &context.ServeHeaderOptions{
