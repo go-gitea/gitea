@@ -577,37 +577,6 @@ func GetFileStreamByPackageNameAndVersion(ctx context.Context, pvi *PackageInfo,
 	return GetFileStreamByPackageVersion(ctx, pv, pfi)
 }
 
-// GetFileStreamByPackageVersionAndFileID returns the content of the specific package file
-func GetFileStreamByPackageVersionAndFileID(ctx context.Context, owner *user_model.User, versionID, fileID int64) (io.ReadSeekCloser, *packages_model.PackageFile, error) {
-	log.Trace("Getting package file stream: %v, %v, %v", owner.ID, versionID, fileID)
-
-	pv, err := packages_model.GetVersionByID(ctx, versionID)
-	if err != nil {
-		if err != packages_model.ErrPackageNotExist {
-			log.Error("Error getting package version: %v", err)
-		}
-		return nil, nil, err
-	}
-
-	p, err := packages_model.GetPackageByID(ctx, pv.PackageID)
-	if err != nil {
-		log.Error("Error getting package: %v", err)
-		return nil, nil, err
-	}
-
-	if p.OwnerID != owner.ID {
-		return nil, nil, packages_model.ErrPackageNotExist
-	}
-
-	pf, err := packages_model.GetFileForVersionByID(ctx, versionID, fileID)
-	if err != nil {
-		log.Error("Error getting file: %v", err)
-		return nil, nil, err
-	}
-
-	return GetPackageFileStream(ctx, pf)
-}
-
 // GetFileStreamByPackageVersion returns the content of the specific package file
 func GetFileStreamByPackageVersion(ctx context.Context, pv *packages_model.PackageVersion, pfi *PackageFileInfo) (io.ReadSeekCloser, *packages_model.PackageFile, error) {
 	pf, err := packages_model.GetFileForVersionByName(ctx, pv.ID, pfi.Filename, pfi.CompositeKey)
