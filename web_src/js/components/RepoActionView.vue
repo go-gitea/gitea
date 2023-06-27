@@ -438,7 +438,6 @@ const sfc = {
     },
     async expandSelectedLog() {
       const [_, step, line] = this.selectedLogStep.split('-');
-      const logSummary = this.$refs.steps.querySelector(`.job-step-section:nth-of-type(${parseInt(step) + 1}) > .job-step-summary`);
       if (!this.currentJobStepsStates[step]) return;
       if (!this.currentJobStepsStates[step].expanded) {
         this.currentJobStepsStates[step].expanded = true;
@@ -446,6 +445,7 @@ const sfc = {
       }
       const logline = this.$refs.steps.querySelector(`${this.selectedLogStep}`);
       if (!logline) return;
+      const logSummary = this.$refs.steps.querySelector(`.job-step-section:nth-of-type(${parseInt(step) + 1}) > .job-step-summary`);
       const offset = logSummary.offsetHeight + document.querySelector('.job-info-header').offsetHeight;
       logline.querySelector('.line-num').click();
       window.scrollTo({top: logline.offsetTop - offset, behavior: 'instant' });
