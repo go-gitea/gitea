@@ -9,7 +9,6 @@
   display: flex;
   max-width: 50vw;
   min-width: 300px;
-  pointer-events: all;
   padding: 4px;
 }
 
