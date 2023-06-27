@@ -40,6 +40,7 @@
     "swagger-ui-dist": "5.0.0",
     "throttle-debounce": "5.0.0",
     "tippy.js": "6.3.7",
+    "toastify-js": "1.12.0",
     "tributejs": "5.1.3",
     "uint8-to-base64": "0.2.0",
     "vue": "3.3.4",
