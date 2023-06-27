@@ -448,15 +448,6 @@ a.label,
   background-color: var(--color-markup-code-block);
 }
 
-.ui.divider {
-  color: var(--color-text);
-}
-
-.ui.divider:not(.vertical,.horizontal) {
-  border-top-color: var(--color-secondary) !important;
-  border-bottom: none !important;
-}
-
 .ui.dividing.header {
   border-bottom-color: var(--color-secondary);
 }

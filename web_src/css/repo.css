@@ -138,10 +138,6 @@
   background-color: var(--color-header-wrapper);
 }
 
-.repository .header-wrapper .ui.tabs.divider {
-  border-bottom: 0;
-}
-
 .repository .header-wrapper .ui.tabular .svg {
   margin-right: 5px;
 }
@@ -591,6 +587,7 @@
 
 .repository.options .danger .ui.divider {
   margin: 0;
+  border-color: var(--color-error-border);
 }
 
 .repository.new.issue .comment.form .comment .avatar {
@@ -1012,7 +1009,7 @@
 
 .repository.view.issue .comment-list .comment .merge-section .divider {
   margin-left: -1rem;
-  margin-right: -1rem;
+  width: calc(100% + 2rem);
 }
 
 .repository.view.issue .comment-list .comment .merge-section.no-header::before,
