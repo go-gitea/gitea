@@ -119,12 +119,12 @@ export function initRepoIssueSidebarList() {
   $('.ui.dropdown.label-filter, .ui.dropdown.select-label').dropdown('setting', {'hideDividers': 'empty'}).dropdown('refreshItems');
 }
 
-function initIssueSearchDropdown(selector, isDuplicateModal) {
+function initIssueSearchDropdown(selector) {
   const repolink = $('#repolink').val();
   const repoId = $('#repoId').val();
   const crossRepoSearch = $('#crossRepoSearch').val();
-  const tp = isDuplicateModal ? 'issues' : $('#type').val();
-  const state = isDuplicateModal ? 'all' : '';
+  const tp = $('#type').val();
+  const state = $('#state').val();
   let issueSearchUrl = `${appSubUrl}/${repolink}/issues/search?q={query}&type=${tp}&state=${state}`;
   if (crossRepoSearch === 'true') {
     issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${repoId}&type=${tp}&state=${state}`;
@@ -700,11 +700,21 @@ function initRepoIssueStateButton() {
     if ($statusDropdown.find('input[type=hidden]').val() !== '4') return;
     // if click the button of "close as duplicate", show modal to let users select issue firstly.
     e.preventDefault();
-    initIssueSearchDropdown('#duplicate-issues-list', true);
+    // save the original value of "type" and "state" input
+    const originalType = $('#type').val();
+    const originalSate = $('#state').val();
+    // temporarily reset the input value
+    $('#type').val('issue');
+    $('#state').val('all');
+    initIssueSearchDropdown('#duplicate-issues-list');
     const $duplicateModal = $('#duplicate-issue-modal');
     $duplicateModal.modal({
-      onHidden() {
+      onHidden() { // close modal
+        // clear selected item in the dropdown
         $('#duplicate-issues-list').dropdown('set exactly', []);
+        // restore the value of "type" and "state" input
+        $('#type').val(originalType);
+        $('#state').val(originalSate);
       },
     }).modal('show');
   });

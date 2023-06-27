@@ -4,7 +4,9 @@
 	<input type="hidden" id="repolink" value="{{$.RepoRelPath}}">
 	<input type="hidden" id="repoId" value="{{.Repository.ID}}">
 	<input type="hidden" id="issueIndex" value="{{.Issue.Index}}">
+	<!-- If the modal of "select duplicate issue" is opened, the following two input values will be temporarily reset. And they will be restored after closing. -->
 	<input type="hidden" id="type" value="{{.IssueType}}">
+	<input type="hidden" id="state" value="">
 
 	{{$createdStr:= TimeSinceUnix .Issue.CreatedUnix $.locale}}
 	<div class="issue-content-left comment-list prevent-before-timeline">
