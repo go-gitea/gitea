@@ -79,6 +79,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Create a branch directly from commit on the create branch API (#22956)
   * Add API to manage issue dependencies (#17935)
 * ENHANCEMENTS
+  * Improve speed of loadprojects for issue list (#25468) (#25493)
   * Move some regexp out of functions (#25430) (#25445)
   * Diff page enhancements (#25398) (#25437)
   * Various UI fixes (#25264) (#25431)
@@ -377,6 +378,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Show editorconfig warnings when viewing a malformed editorconfig (#21257)
   * Npm packages: set repository link based on the url in package.json (#20379)
 * BUGFIXES
+  * Add Adopt repository event and handler (#25497) (#25518)
+  * Improve wiki sidebar and TOC (#25460) (#25477)
   * Make "dismiss" content shown correctly (#25461) (#25465)
   * Change default email domain for LDAP users (#25425) (#25434)
   * Fix missing commit message body when the message has leading newlines (#25418) (#25422)
