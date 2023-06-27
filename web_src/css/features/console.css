@@ -64,37 +64,37 @@
 
 /* term colors used in console rendering */
 
-.term-fg2 { color: var(--color-console-fg-subtle); } /* faint (decreased intensity) - same as gray really */
+.term-fg2 { color: var(--color-ansi-bright-black); } /* faint (decreased intensity) - same as gray really */
 .term-fg3 { font-style: italic; } /* italic */
 .term-fg4 { text-decoration: underline; } /* underline */
 .term-fg5 { animation: blink-animation 1s steps(3, start) infinite; } /* blink */
 .term-fg9 { text-decoration: line-through; } /* crossed-out */
 
-.term-fg30 { color: var(--color-console-fg-subtle); } /* black (but we can't use black, so a diff color) */
-.term-fg31 { color: var(--color-red); } /* red */
-.term-fg32 { color: var(--color-green); } /* green */
-.term-fg33 { color: var(--color-yellow); } /* yellow */
-.term-fg34 { color: var(--color-blue); } /* blue */
-.term-fg35 { color: var(--color-pink); } /* magenta */
-.term-fg36 { color: var(--color-teal); } /* cyan */
+.term-fg30 { color: var(--color-ansi-black); } /* black (but we can't use black, so a diff color) */
+.term-fg31 { color: var(--color-ansi-red); } /* red */
+.term-fg32 { color: var(--color-ansi-green); } /* green */
+.term-fg33 { color: var(--color-ansi-yellow); } /* yellow */
+.term-fg34 { color: var(--color-ansi-blue); } /* blue */
+.term-fg35 { color: var(--color-ansi-magenta); } /* magenta */
+.term-fg36 { color: var(--color-ansi-cyan); } /* cyan */
 
 /* high intense colors */
-.term-fgi1 { color: var(--color-green-light); }
-.term-fgi90 { color: var(--color-black-light); } /* grey */
-.term-fgi91 { color: var(--color-red-light); } /* red */
-.term-fgi92 { color: var(--color-green-light); } /* green */
-.term-fgi93 { color: var(--color-yellow-light); } /* yellow */
-.term-fgi94 { color: var(--color-blue-light); } /* blue */
-.term-fgi95 { color: var(--color-pink-light); } /* magenta */
-.term-fgi96 { color: var(--color-teal-light); } /* cyan */
+.term-fgi1 { color: var(--color-ansi-bright-green); }
+.term-fgi90 { color: var(--color-ansi-bright-black); } /* grey */
+.term-fgi91 { color: var(--color-ansi-bright-red); } /* red */
+.term-fgi92 { color: var(--color-ansi-bright-green); } /* green */
+.term-fgi93 { color: var(--color-ansi-bright-yellow); } /* yellow */
+.term-fgi94 { color: var(--color-ansi-bright-blue); } /* blue */
+.term-fgi95 { color: var(--color-ansi-bright-magenta); } /* magenta */
+.term-fgi96 { color: var(--color-ansi-bright-cyan); } /* cyan */
 
 /* background colors */
-.term-bg40 { background: var(--color-black-light); } /* grey */
-.term-bg41 { background: var(--color-red); } /* red */
-.term-bg42 { background: var(--color-green); } /* green */
+.term-bg40 { background: var(--color-ansi-bright-black); } /* grey */
+.term-bg41 { background: var(--color-ansi-red); } /* red */
+.term-bg42 { background: var(--color-ansi-green); } /* green */
 
 /* custom foreground/background combos for readability */
-.term-fg31.term-bg40 { color: var(--color-red-light); }
+.term-fg31.term-bg40 { color: var(--color-ansi-bright-red); }
 
 /* xterm colors */
 .term-fgx16 { color: #000000; }
