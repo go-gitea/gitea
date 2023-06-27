@@ -5,13 +5,10 @@ package user
 
 import (
 	"encoding/base64"
-	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/web"
 	user_service "code.gitea.io/gitea/services/user"
 )
@@ -36,17 +33,6 @@ func UpdateAvatar(ctx *context.APIContext) {
 	content, err := base64.StdEncoding.DecodeString(form.Image)
 	if err != nil {
 		ctx.Error(http.StatusBadRequest, "DecodeImage", err)
-		return
-	}
-
-	if int64(len(content)) > setting.Avatar.MaxFileSize {
-		ctx.Error(http.StatusBadRequest, "AvatarTooBig", fmt.Errorf("The avatar is to big"))
-		return
-	}
-
-	st := typesniffer.DetectContentType(content)
-	if !(st.IsImage() && !st.IsSvgImage()) {
-		ctx.Error(http.StatusBadRequest, "NotAnImage", fmt.Errorf("The avatar is not an image"))
 		return
 	}
 
