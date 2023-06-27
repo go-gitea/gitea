@@ -203,6 +203,7 @@ const sfc = {
 
   async mounted() {
     // load job data and then auto-reload periodically
+    // need to await first loadJob so this.currentJobStepsStates is initialized and can be used in hashChangeListener
     await this.loadJob();
     this.intervalID = setInterval(this.loadJob, 1000);
     document.body.addEventListener('click', this.closeDropdown);
@@ -439,8 +440,10 @@ const sfc = {
     async expandSelectedLog() {
       const [_, step, _line] = this.selectedLogStep.split('-');
       if (!this.currentJobStepsStates[step]) return;
-      if (!this.currentJobStepsStates[step].expanded) {
+      if (!this.currentJobStepsStates[step].expanded && this.currentJobStepsStates[step].cursor === null) {
         this.currentJobStepsStates[step].expanded = true;
+        // need to await for load job if the step log is loaded for the first time
+        // so logline can be selected by querySelector
         await this.loadJob();
       }
       const logline = this.$refs.steps.querySelector(`${this.selectedLogStep}`);
