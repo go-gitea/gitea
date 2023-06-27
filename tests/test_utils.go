@@ -42,7 +42,10 @@ func InitTest(requireGitea bool) {
 	if giteaRoot == "" {
 		exitf("Environment variable $GITEA_ROOT not set")
 	}
+
+	setting.IsInTesting = true
 	setting.AppWorkPath = giteaRoot
+	setting.CustomPath = filepath.Join(setting.AppWorkPath, "custom")
 	if requireGitea {
 		giteaBinary := "gitea"
 		if setting.IsWindows {
@@ -53,7 +56,6 @@ func InitTest(requireGitea bool) {
 			exitf("Could not find gitea binary at %s", setting.AppPath)
 		}
 	}
-
 	giteaConf := os.Getenv("GITEA_CONF")
 	if giteaConf == "" {
 		// By default, use sqlite.ini for testing, then IDE like GoLand can start the test process with debugger.
@@ -66,16 +68,12 @@ func InitTest(requireGitea bool) {
 			exitf(`sqlite3 requires: import _ "github.com/mattn/go-sqlite3" or -tags sqlite,sqlite_unlock_notify`)
 		}
 	}
-
-	setting.IsInTesting = true
-
 	if !path.IsAbs(giteaConf) {
-		setting.CustomConf = path.Join(giteaRoot, giteaConf)
+		setting.CustomConf = filepath.Join(giteaRoot, giteaConf)
 	} else {
 		setting.CustomConf = giteaConf
 	}
 
-	setting.SetCustomPathAndConf("", "", "")
 	unittest.InitSettings()
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 	_ = util.RemoveAll(repo_module.LocalCopyPath())
@@ -175,7 +173,7 @@ func InitTest(requireGitea bool) {
 		defer db.Close()
 	}
 
-	routers.GlobalInitInstalled(graceful.GetManager().HammerContext())
+	routers.InitWebInstalled(graceful.GetManager().HammerContext())
 }
 
 func PrepareTestEnv(t testing.TB, skip ...int) func() {
@@ -240,10 +238,12 @@ func PrepareTestEnv(t testing.TB, skip ...int) func() {
 }
 
 func PrintCurrentTest(t testing.TB, skip ...int) func() {
-	if len(skip) == 1 {
-		skip = []int{skip[0] + 1}
+	t.Helper()
+	actualSkip := 1
+	if len(skip) > 0 {
+		actualSkip = skip[0] + 1
 	}
-	return testlogger.PrintCurrentTest(t, skip...)
+	return testlogger.PrintCurrentTest(t, actualSkip)
 }
 
 // Printf takes a format and args and prints the string to os.Stdout

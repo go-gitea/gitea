@@ -128,6 +128,10 @@
 					{{.locale.Tr "settings.add_email"}}
 				</button>
 			</form>
+			{{/* if ActivationsPending is false, then CanAddEmails must be true, so if CanAddEmails is false, ActivationsPending must be true */}}
+			{{if not .CanAddEmails}}
+				<div class="ui warning message">{{.locale.Tr "settings.can_not_add_email_activations_pending"}}</div>
+			{{end}}
 		</div>
 
 		<h4 class="ui top attached error header">
