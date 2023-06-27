@@ -9,7 +9,6 @@ import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
 import {createTippy} from '../modules/tippy.js';
 import {confirmModal} from './comp/ConfirmModal.js';
-import {showErrorToast} from '../modules/toast.js';
 
 const {appUrl, appSubUrl, csrfToken, i18n} = window.config;
 
@@ -396,6 +395,8 @@ function initGlobalShowModal() {
     if (colorPickers.length > 0) {
       initCompColorPicker(); // FIXME: this might cause duplicate init
     }
+    // all non-"ok" buttons which do not have "type" should not submit the form, should not be triggered by "Enter"
+    $modal.find('form button:not(.ok):not([type])').attr('type', 'button');
     $modal.modal('setting', {
       onApprove: () => {
         // "form-fetch-action" can handle network errors gracefully,
@@ -440,7 +441,7 @@ export function initGlobalButtons() {
       return;
     }
     // should never happen, otherwise there is a bug in code
-    showErrorToast('Nothing to hide');
+    alert('Nothing to hide');
   });
 
   initGlobalShowModal();

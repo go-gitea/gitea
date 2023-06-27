@@ -506,8 +506,6 @@ var migrations = []Migration{
 	// v261 -> v262
 	NewMigration("Add variable table", v1_21.CreateVariableTable),
 	// v262 -> v263
-	NewMigration("Add TriggerEvent to action_run table", v1_21.AddTriggerEventToActionRun),
-	// v263 -> v264
 	NewMigration("Add column of closed_status and duplicate_issue_id to issue table", v1_21.AddClosedStatusAndDuplicateIssueIDToIssue),
 }
 

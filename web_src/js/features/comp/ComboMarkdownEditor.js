@@ -8,7 +8,6 @@ import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
 import {renderPreviewPanelContent} from '../repo-editor.js';
 import {easyMDEToolbarActions} from './EasyMDEToolbarActions.js';
 import {initTextExpander} from './TextExpander.js';
-import {showErrorToast} from '../../modules/toast.js';
 
 let elementIdCounter = 0;
 
@@ -27,7 +26,7 @@ export function validateTextareaNonEmpty($textarea) {
       $form[0]?.reportValidity();
     } else {
       // The alert won't hurt users too much, because we are dropping the EasyMDE and the check only occurs in a few places.
-      showErrorToast('Require non-empty content');
+      alert('Require non-empty content');
     }
     return false;
   }

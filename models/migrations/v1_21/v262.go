@@ -4,13 +4,16 @@
 package v1_21 //nolint
 
 import (
+	issues_model "code.gitea.io/gitea/models/issues"
+
 	"xorm.io/xorm"
 )
 
-func AddTriggerEventToActionRun(x *xorm.Engine) error {
-	type ActionRun struct {
-		TriggerEvent string
+func AddClosedStatusAndDuplicateIssueIDToIssue(x *xorm.Engine) error {
+	type Issue struct {
+		ClosedStatus     issues_model.IssueClosedStatus `xorm:"INDEX NOT NULL DEFAULT 0"`
+		DuplicateIssueID int64                          `xorm:"NOT NULL DEFAULT 0"`
 	}
 
-	return x.Sync(new(ActionRun))
+	return x.Sync(new(Issue))
 }
