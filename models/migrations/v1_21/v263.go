@@ -63,12 +63,10 @@ func AddBranchTable(x *xorm.Engine) error {
 	branches := make([]Branch, 0, 100)
 	if err := db.Iterate(context.Background(), nil, func(ctx context.Context, deletedBranch *DeletedBranch) error {
 		branches = append(branches, Branch{
-			RepoID:    deletedBranch.RepoID,
-			Name:      deletedBranch.Name,
-			CommitSHA: deletedBranch.Commit,
-			PusherID:  adminUserID,
-			// CommitMessage: string, FIXME: how to get this?
-			// CommitTime:		timeutil.TimeStamp, FIXME: how to get this?
+			RepoID:      deletedBranch.RepoID,
+			Name:        deletedBranch.Name,
+			CommitSHA:   deletedBranch.Commit,
+			PusherID:    adminUserID,
 			IsDeleted:   true,
 			DeletedByID: deletedBranch.DeletedByID,
 			DeletedUnix: deletedBranch.DeletedUnix,

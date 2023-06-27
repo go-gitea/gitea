@@ -8,6 +8,7 @@ import (
 	"sort"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gobwas/glob"
 )
@@ -54,7 +55,8 @@ func FindAllMatchedBranches(ctx context.Context, repoID int64, ruleName string) 
 				PageSize: 100,
 				Page:     page,
 			},
-			RepoID: repoID,
+			RepoID:          repoID,
+			IsDeletedBranch: util.OptionalBoolFalse,
 		})
 		if err != nil {
 			return nil, err

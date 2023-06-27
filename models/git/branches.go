@@ -74,7 +74,7 @@ func (err ErrBranchNameConflict) Unwrap() error {
 	return util.ErrAlreadyExist
 }
 
-// ErrBranchesEqual represents an error that branch name conflicts with other branch.
+// ErrBranchesEqual represents an error that base branch is equal to the head branch.
 type ErrBranchesEqual struct {
 	BaseBranchName string
 	HeadBranchName string
