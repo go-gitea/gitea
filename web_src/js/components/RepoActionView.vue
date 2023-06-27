@@ -590,6 +590,7 @@ export function initRepositoryActionView() {
 .job-brief-item .job-brief-link {
   display: flex;
   width: 100%;
+  min-width: 0;
 }
 
 .job-brief-item .job-brief-link span {
