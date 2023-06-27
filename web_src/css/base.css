@@ -2166,7 +2166,7 @@ table th[data-sortt-desc] .svg {
 }
 
 .truncated-item-name {
-  line-height: 2em;
+  line-height: 2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2188,7 +2188,7 @@ table th[data-sortt-desc] .svg {
 }
 
 .ui.dropdown {
-  line-height: 1em; /* the dropdown doesn't have default line-height, use this to make the dropdown icon align with plain dropdown */
+  line-height: 1; /* the dropdown doesn't have default line-height, use this to make the dropdown icon align with plain dropdown */
 }
 
 /* dropdown has some kinds of icons:
