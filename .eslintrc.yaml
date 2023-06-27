@@ -25,10 +25,11 @@ env:
   es2022: true
   node: true
 
-globals:
-  __webpack_public_path__: true
-
 overrides:
+  - files: ["web_src/**/*"]
+    globals:
+      __webpack_public_path__: true
+      process: false # https://github.com/webpack/webpack/issues/15833
   - files: ["web_src/**/*", "docs/**/*"]
     env:
       browser: true
