@@ -8,6 +8,7 @@
 @import "./modules/card.css";
 @import "./modules/comment.css";
 @import "./modules/navbar.css";
+@import "./modules/toast.css";
 
 @import "./shared/issuelist.css";
 @import "./shared/milestone.css";
