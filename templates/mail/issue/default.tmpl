@@ -38,7 +38,7 @@
 		{{if eq .ActionName "close"}}
 			{{$closeTrans := "mail.issue.action.close"}}
 			{{if eq .Issue.ClosedStatus 1}}
-				{{$closeTrans = "mail.issue.action.close_as_archived"}}				
+				{{$closeTrans = "mail.issue.action.close_as_archived"}}
 			{{else if eq .Issue.ClosedStatus 2}}
 				{{$closeTrans = "mail.issue.action.close_as_resolved"}}
 			{{else if eq .Issue.ClosedStatus 3}}

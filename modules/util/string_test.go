@@ -48,12 +48,14 @@ func TestToSnakeCase(t *testing.T) {
 	}
 }
 
-type testSliceUnionInput[T string | int] [][]T
-type testSliceUnionOutput[T string | int] []T
-type testUnionItem[T string | int] struct {
-	input    testSliceUnionInput[T]
-	expected testSliceUnionOutput[T]
-}
+type (
+	testSliceUnionInput[T string | int]  [][]T
+	testSliceUnionOutput[T string | int] []T
+	testUnionItem[T string | int]        struct {
+		input    testSliceUnionInput[T]
+		expected testSliceUnionOutput[T]
+	}
+)
 
 func TestSliceUnion(t *testing.T) {
 	intTests := []testUnionItem[int]{
