@@ -611,6 +611,7 @@ export function initRepositoryActionView() {
   display: flex;
   align-items: center;
   width: 55px;
+  min-width: fit-content;
 }
 
 /* ================ */
