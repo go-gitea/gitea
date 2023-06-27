@@ -818,6 +818,11 @@ func EditIssue(ctx *context.APIContext) {
 			}
 		}
 		issue.IsClosed = api.StateClosed == api.StateType(*form.State)
+		issue.ClosedStatus = issues_model.IssueClosedStatus(0)
+		issue.DuplicateIssueID = form.DuplicateIssueID
+		if issue.IsClosed {
+			issue.ClosedStatus = issues_model.IssueClosedStatus(form.ClosedStatus)
+		}
 	}
 	statusChangeComment, titleChanged, err := issues_model.UpdateIssueByAPI(issue, ctx.Doer)
 	if err != nil {
