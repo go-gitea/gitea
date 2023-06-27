@@ -38,8 +38,8 @@
                 <span class="job-brief-name gt-mx-3 gt-ellipsis">{{ job.name }}</span>
               </a>
               <span class="job-brief-info">
-                <span class="step-summary-duration">{{ job.duration }}</span>
                 <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun gt-mx-3" @click="rerunJob(index)" v-if="job.canRerun && onHoverRerunIndex === job.id"/>
+                <span class="step-summary-duration">{{ job.duration }}</span>
               </span>
             </div>
           </div>
@@ -610,8 +610,7 @@ export function initRepositoryActionView() {
 .job-brief-item .job-brief-info {
   display: flex;
   align-items: center;
-  width: 55px;
-  min-width: fit-content;
+  width: fit-content;
 }
 
 /* ================ */
