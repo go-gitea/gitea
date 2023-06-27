@@ -471,7 +471,7 @@ a.label,
   padding-top: 15px !important;
 }
 
-/* fix Fomantic's line-height cutting off "g" on Windows Chrome with out fonts */
+/* fix Fomantic's line-height cutting off "g" on Windows Chrome with our fonts */
 .ui.input > input {
   line-height: 1.3;
 }
