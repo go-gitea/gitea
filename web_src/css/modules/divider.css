@@ -1,6 +1,5 @@
 .ui.divider {
   margin: 1rem 0;
-  line-height: 1;
   height: 0;
   font-weight: var(--font-weight-medium);
   text-transform: uppercase;
