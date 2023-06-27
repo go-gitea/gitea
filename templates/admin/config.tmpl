@@ -4,7 +4,7 @@
 			{{.locale.Tr "admin.config.server_config"}}
 		</h4>
 		<div class="ui attached table segment">
-			<dl class="dl-horizontal admin-dl-horizontal">
+			<dl class="admin-dl-horizontal">
 				<dt>{{.locale.Tr "admin.config.app_name"}}</dt>
 				<dd>{{AppName}}</dd>
 				<dt>{{.locale.Tr "admin.config.app_ver"}}</dt>
@@ -53,7 +53,7 @@
 			{{.locale.Tr "admin.config.ssh_config"}}
 		</h4>
 		<div class="ui attached table segment">
-			<dl class="dl-horizontal admin-dl-horizontal">
+			<dl class="admin-dl-horizontal">
 				<dt>{{.locale.Tr "admin.config.ssh_enabled"}}</dt>
 				<dd>{{if not .SSH.Disabled}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				{{if not .SSH.Disabled}}
@@ -88,7 +88,7 @@
 			{{.locale.Tr "admin.config.lfs_config"}}
 		</h4>
 		<div class="ui attached table segment">
-			<dl class="dl-horizontal admin-dl-horizontal">
+			<dl class="admin-dl-horizontal">
 				<dt>{{.locale.Tr "admin.config.lfs_enabled"}}</dt>
 				<dd>{{if .LFS.StartServer}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				{{if .LFS.StartServer}}
@@ -104,7 +104,7 @@
 			{{.locale.Tr "admin.config.db_config"}}
 		</h4>
 		<div class="ui attached table segment">
-			<dl class="dl-horizontal admin-dl-horizontal">
+			<dl class="admin-dl-horizontal">
 				<dt>{{.locale.Tr "admin.config.db_type"}}</dt>
 				<dd>{{.DbCfg.Type}}</dd>
 				{{if not (eq .DbCfg.Type "sqlite3")}}
@@ -132,7 +132,7 @@
 			{{.locale.Tr "admin.config.service_config"}}
 		</h4>
 		<div class="ui attached table segment">
-			<dl class="dl-horizontal admin-dl-horizontal">
+			<dl class="admin-dl-horizontal">
 				<dt>{{.locale.Tr "admin.config.register_email_confirm"}}</dt>
 				<dd>{{if .Service.RegisterEmailConfirm}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<dt>{{.locale.Tr "admin.config.disable_register"}}</dt>
@@ -186,7 +186,7 @@
 			{{.locale.Tr "admin.config.webhook_config"}}
 		</h4>
 		<div class="ui attached table segment">
-			<dl class="dl-horizontal admin-dl-horizontal">
+			<dl class="admin-dl-horizontal">
 				<dt>{{.locale.Tr "admin.config.queue_length"}}</dt>
 				<dd>{{.Webhook.QueueLength}}</dd>
 				<dt>{{.locale.Tr "admin.config.deliver_timeout"}}</dt>
@@ -200,7 +200,7 @@
 			{{.locale.Tr "admin.config.mailer_config"}}
 		</h4>
 		<div class="ui attached table segment">
-			<dl class="dl-horizontal admin-dl-horizontal">
+			<dl class="admin-dl-horizontal">
 				<dt>{{.locale.Tr "admin.config.mailer_enabled"}}</dt>
 				<dd>{{if .MailerEnabled}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				{{if .MailerEnabled}}
@@ -249,7 +249,7 @@
 			{{.locale.Tr "admin.config.cache_config"}}
 		</h4>
 		<div class="ui attached table segment">
-			<dl class="dl-horizontal admin-dl-horizontal">
+			<dl class="admin-dl-horizontal">
 				<dt>{{.locale.Tr "admin.config.cache_adapter"}}</dt>
 				<dd>{{.CacheAdapter}}</dd>
 				{{if eq .CacheAdapter "memory"}}
@@ -269,7 +269,7 @@
 			{{.locale.Tr "admin.config.session_config"}}
 		</h4>
 		<div class="ui attached table segment">
-			<dl class="dl-horizontal admin-dl-horizontal">
+			<dl class="admin-dl-horizontal">
 				<dt>{{.locale.Tr "admin.config.session_provider"}}</dt>
 				<dd>{{.SessionConfig.Provider}}</dd>
 				<dt>{{.locale.Tr "admin.config.provider_config"}}</dt>
@@ -289,7 +289,7 @@
 			{{.locale.Tr "admin.config.picture_config"}}
 		</h4>
 		<div class="ui attached table segment">
-			<dl class="dl-horizontal admin-dl-horizontal">
+			<dl class="admin-dl-horizontal">
 				<dt>{{.locale.Tr "admin.config.disable_gravatar"}}</dt>
 				<dd>
 					<div class="ui toggle checkbox">
@@ -310,7 +310,7 @@
 			{{.locale.Tr "admin.config.git_config"}}
 		</h4>
 		<div class="ui attached table segment">
-			<dl class="dl-horizontal admin-dl-horizontal">
+			<dl class="admin-dl-horizontal">
 				<dt>{{.locale.Tr "admin.config.git_disable_diff_highlight"}}</dt>
 				<dd>{{if .Git.DisableDiffHighlight}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<dt>{{.locale.Tr "admin.config.git_max_diff_lines"}}</dt>
@@ -341,7 +341,7 @@
 			{{.locale.Tr "admin.config.log_config"}}
 		</h4>
 		<div class="ui attached table segment">
-			<dl class="dl-horizontal admin-dl-horizontal">
+			<dl class="admin-dl-horizontal">
 				{{if .Loggers.xorm.IsEnabled}}
 					<dt>{{$.locale.Tr "admin.config.xorm_log_sql"}}</dt>
 					<dd>{{if $.LogSQL}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
