@@ -21,7 +21,6 @@
 .ui.horizontal.divider::before,
 .ui.horizontal.divider::after {
   content: "";
-  height: 1px;
   flex: 1;
   border-top: 1px solid var(--color-secondary);
 }
