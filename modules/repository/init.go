@@ -353,7 +353,7 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 		}
 
 		if !repo.IsEmpty {
-			if err := SyncRepoBranches(ctx, repo.ID, u.ID); err != nil {
+			if _, err := SyncRepoBranches(ctx, repo.ID, u.ID); err != nil {
 				return fmt.Errorf("SyncRepoBranches: %w", err)
 			}
 		}

@@ -151,7 +151,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			}
 		}
 
-		if err := SyncRepoBranchesWithRepo(ctx, repo, gitRepo, u.ID); err != nil {
+		if _, err := SyncRepoBranchesWithRepo(ctx, repo, gitRepo, u.ID); err != nil {
 			return repo, fmt.Errorf("SyncRepoBranchesWithRepo: %v", err)
 		}
 

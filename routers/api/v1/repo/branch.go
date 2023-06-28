@@ -15,6 +15,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -118,6 +119,37 @@ func DeleteBranch(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	branchName := ctx.Params("*")
+
+	if ctx.Repo.Repository.IsEmpty {
+		ctx.Error(http.StatusForbidden, "", "Git Repository is empty.")
+		return
+	}
+
+	// check whether branches of this repository has been synced
+	totalNumOfBranches, err := git_model.CountBranches(ctx, git_model.FindBranchOptions{
+		RepoID:          ctx.Repo.Repository.ID,
+		IsDeletedBranch: util.OptionalBoolFalse,
+	})
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "CountBranches", err)
+		return
+	}
+	if totalNumOfBranches == 0 { // sync branches immediately because non-empty repository should have at least 1 branch
+		_, err = repo_module.SyncRepoBranches(ctx, ctx.Repo.Repository.ID, 0)
+		if err != nil {
+			ctx.ServerError("SyncRepoBranches", err)
+			return
+		}
+	}
+
+	if ctx.Repo.Repository.IsArchived {
+		ctx.Error(http.StatusForbidden, "IsArchived", fmt.Errorf("can not delete branch of an archived repository"))
+		return
+	}
+	if ctx.Repo.Repository.IsMirror {
+		ctx.Error(http.StatusForbidden, "IsMirrored", fmt.Errorf("can not delete branch of an mirror repository"))
+		return
+	}
 
 	if err := repo_service.DeleteBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName); err != nil {
 		switch {
@@ -276,23 +308,38 @@ func ListBranches(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/BranchList"
 
-	var totalNumOfBranches int
+	var totalNumOfBranches int64
 	var apiBranches []*api.Branch
 
 	listOptions := utils.GetListOptions(ctx)
 
 	if !ctx.Repo.Repository.IsEmpty && ctx.Repo.GitRepo != nil {
+		branchOpts := git_model.FindBranchOptions{
+			ListOptions:     listOptions,
+			RepoID:          ctx.Repo.Repository.ID,
+			IsDeletedBranch: util.OptionalBoolFalse,
+		}
+		var err error
+		totalNumOfBranches, err = git_model.CountBranches(ctx, branchOpts)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "CountBranches", err)
+			return
+		}
+		if totalNumOfBranches == 0 { // sync branches immediately because non-empty repository should have at least 1 branch
+			totalNumOfBranches, err = repo_module.SyncRepoBranches(ctx, ctx.Repo.Repository.ID, 0)
+			if err != nil {
+				ctx.ServerError("SyncRepoBranches", err)
+				return
+			}
+		}
+
 		rules, err := git_model.FindRepoProtectedBranchRules(ctx, ctx.Repo.Repository.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "FindMatchedProtectedBranchRules", err)
 			return
 		}
 
-		branches, total, err := git_model.FindBranches(ctx, git_model.FindBranchOptions{
-			ListOptions:     listOptions,
-			RepoID:          ctx.Repo.Repository.ID,
-			IsDeletedBranch: util.OptionalBoolFalse,
-		})
+		branches, err := git_model.FindBranches(ctx, branchOpts)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetBranches", err)
 			return
@@ -304,7 +351,7 @@ func ListBranches(ctx *context.APIContext) {
 			if err != nil {
 				// Skip if this branch doesn't exist anymore.
 				if git.IsErrNotExist(err) {
-					total--
+					totalNumOfBranches--
 					continue
 				}
 				ctx.Error(http.StatusInternalServerError, "GetCommit", err)
@@ -319,12 +366,10 @@ func ListBranches(ctx *context.APIContext) {
 			}
 			apiBranches = append(apiBranches, apiBranch)
 		}
-
-		totalNumOfBranches = int(total)
 	}
 
-	ctx.SetLinkHeader(totalNumOfBranches, listOptions.PageSize)
-	ctx.SetTotalCountHeader(int64(totalNumOfBranches))
+	ctx.SetLinkHeader(int(totalNumOfBranches), listOptions.PageSize)
+	ctx.SetTotalCountHeader(totalNumOfBranches)
 	ctx.JSON(http.StatusOK, apiBranches)
 }
 

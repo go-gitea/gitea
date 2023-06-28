@@ -682,7 +682,8 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 
 	// non empty repo should have at least 1 branch, so this repository's branches haven't been synced yet
 	if branchesTotal == 0 { // fallback to do a sync immediately
-		if err := repo_module.SyncRepoBranches(ctx, ctx.Repo.Repository.ID, 0); err != nil {
+		branchesTotal, err = repo_module.SyncRepoBranches(ctx, ctx.Repo.Repository.ID, 0)
+		if err != nil {
 			ctx.ServerError("SyncRepoBranches", err)
 			return
 		}

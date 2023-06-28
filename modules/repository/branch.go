@@ -16,10 +16,10 @@ import (
 )
 
 // SyncRepoBranches synchronizes branch table with repository branches
-func SyncRepoBranches(ctx context.Context, repoID, doerID int64) error {
+func SyncRepoBranches(ctx context.Context, repoID, doerID int64) (int64, error) {
 	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	log.Debug("SyncRepoBranches: in Repo[%d:%s]", repo.ID, repo.FullName())
@@ -27,19 +27,19 @@ func SyncRepoBranches(ctx context.Context, repoID, doerID int64) error {
 	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 	if err != nil {
 		log.Error("OpenRepository[%s]: %w", repo.RepoPath(), err)
-		return nil
+		return 0, err
 	}
 	defer gitRepo.Close()
 
 	return SyncRepoBranchesWithRepo(ctx, repo, gitRepo, doerID)
 }
 
-func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doerID int64) error {
+func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doerID int64) (int64, error) {
 	allBranches := container.Set[string]{}
 	{
 		branches, _, err := gitRepo.GetBranchNames(0, 0)
 		if err != nil {
-			return err
+			return 0, err
 		}
 		log.Trace("SyncRepoBranches[%s]: branches[%d]: %v", repo.FullName(), len(branches), branches)
 		for _, branch := range branches {
@@ -49,14 +49,14 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 
 	dbBranches := make(map[string]*git_model.Branch)
 	{
-		branches, _, err := git_model.FindBranches(ctx, git_model.FindBranchOptions{
+		branches, err := git_model.FindBranches(ctx, git_model.FindBranchOptions{
 			ListOptions: db.ListOptions{
 				ListAll: true,
 			},
 			RepoID: repo.ID,
 		})
 		if err != nil {
-			return err
+			return 0, err
 		}
 		for _, branch := range branches {
 			dbBranches[branch.Name] = branch
@@ -70,7 +70,7 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 		dbb := dbBranches[branch]
 		commit, err := gitRepo.GetBranchCommit(branch)
 		if err != nil {
-			return err
+			return 0, err
 		}
 		if dbb == nil {
 			toAdd = append(toAdd, &git_model.Branch{
@@ -103,10 +103,10 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 	log.Trace("SyncRepoBranches[%s]: toAdd: %v, toUpdate: %v, toRemove: %v", repo.FullName(), toAdd, toUpdate, toRemove)
 
 	if len(toAdd) == 0 && len(toRemove) == 0 && len(toUpdate) == 0 {
-		return nil
+		return int64(len(allBranches)), nil
 	}
 
-	return db.WithTx(ctx, func(subCtx context.Context) error {
+	if err := db.WithTx(ctx, func(subCtx context.Context) error {
 		if len(toAdd) > 0 {
 			if err := git_model.AddBranches(subCtx, toAdd); err != nil {
 				return err
@@ -128,5 +128,8 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 		}
 
 		return nil
-	})
+	}); err != nil {
+		return 0, err
+	}
+	return int64(len(allBranches)), nil
 }

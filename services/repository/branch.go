@@ -72,15 +72,23 @@ func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		return nil, nil, 0, err
 	}
 
-	dbBranches, totalNumOfBranches, err := git_model.FindBranches(ctx, git_model.FindBranchOptions{
-		RepoID:             repo.ID,
-		ExcludeBranchNames: []string{repo.DefaultBranch},
-		IsDeletedBranch:    isDeletedBranch,
+	branchOpts := git_model.FindBranchOptions{
+		RepoID:          repo.ID,
+		IsDeletedBranch: isDeletedBranch,
 		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: pageSize,
 		},
-	})
+	}
+
+	totalNumOfBranches, err := git_model.CountBranches(ctx, branchOpts)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+
+	branchOpts.ExcludeBranchNames = []string{repo.DefaultBranch}
+
+	dbBranches, err := git_model.FindBranches(ctx, branchOpts)
 	if err != nil {
 		return nil, nil, 0, err
 	}
@@ -372,7 +380,8 @@ var branchSyncQueue *queue.WorkerPoolQueue[*BranchSyncOptions]
 func handlerBranchSync(items ...*BranchSyncOptions) []*BranchSyncOptions {
 	var failedOptions []*BranchSyncOptions
 	for _, opts := range items {
-		if err := repo_module.SyncRepoBranches(graceful.GetManager().ShutdownContext(), opts.RepoID, opts.DoerID); err != nil {
+		_, err := repo_module.SyncRepoBranches(graceful.GetManager().ShutdownContext(), opts.RepoID, opts.DoerID)
+		if err != nil {
 			log.Error("syncRepoBranches [%d:%d] failed: %v", opts.RepoID, opts.DoerID, err)
 			failedOptions = append(failedOptions, opts)
 		}
@@ -394,23 +403,6 @@ func initBranchSyncQueue(ctx context.Context) error {
 	}
 	go graceful.GetManager().RunWithCancel(branchSyncQueue)
 
-	// for test env, this will return empty because data hasn't been loaded yet
-	// but that env don't need the sync
-	cnt, err := git_model.CountBranches(ctx, git_model.FindBranchOptions{
-		IsDeletedBranch: util.OptionalBoolFalse,
-	})
-	if err != nil {
-		return fmt.Errorf("CountBranches: %v", err)
-	}
-
-	if cnt == 0 {
-		go func() {
-			// doerID is 0 means no pusher will be displayed in the branch list ui
-			if err := AddAllRepoBranchesToSyncQueue(ctx, 0); err != nil {
-				log.Error("AddAllRepoBranchesToSyncQueue: %v", err)
-			}
-		}()
-	}
 	return nil
 }
 

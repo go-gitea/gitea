@@ -95,7 +95,7 @@ func CountBranches(ctx context.Context, opts FindBranchOptions) (int64, error) {
 	return db.GetEngine(ctx).Where(opts.Cond()).Count(&Branch{})
 }
 
-func FindBranches(ctx context.Context, opts FindBranchOptions) (BranchList, int64, error) {
+func FindBranches(ctx context.Context, opts FindBranchOptions) (BranchList, error) {
 	sess := db.GetEngine(ctx).Where(opts.Cond())
 	if opts.PageSize > 0 && !opts.IsListAll() {
 		sess = db.SetSessionPagination(sess, &opts.ListOptions)
@@ -106,11 +106,7 @@ func FindBranches(ctx context.Context, opts FindBranchOptions) (BranchList, int6
 	sess = sess.OrderBy(opts.OrderBy)
 
 	var branches []*Branch
-	total, err := sess.FindAndCount(&branches)
-	if err != nil {
-		return nil, 0, err
-	}
-	return branches, total, err
+	return branches, sess.Find(&branches)
 }
 
 func FindBranchNames(ctx context.Context, opts FindBranchOptions) ([]string, error) {

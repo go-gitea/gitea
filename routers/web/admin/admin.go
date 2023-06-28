@@ -143,7 +143,7 @@ func DashboardPost(ctx *context.Context) {
 					log.Error("AddAllRepoBranchesToSyncQueue: %v: %v", ctx.Doer.ID, err)
 				}
 			}()
-			ctx.Flash.Success(ctx.Tr("admin.dashboard.sync_branch.started", ctx.Tr("admin.dashboard."+form.Op)))
+			ctx.Flash.Success(ctx.Tr("admin.dashboard.sync_branch.started"))
 		default:
 			task := cron.GetTask(form.Op)
 			if task != nil {
