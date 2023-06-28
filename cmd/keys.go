@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 
 	"github.com/urfave/cli"
@@ -17,6 +18,7 @@ import (
 var CmdKeys = cli.Command{
 	Name:   "keys",
 	Usage:  "This command queries the Gitea database to get the authorized command for a given ssh key fingerprint",
+	Before: PrepareConsoleLoggerLevel(log.FATAL),
 	Action: runKeys,
 	Flags: []cli.Flag{
 		cli.StringFlag{

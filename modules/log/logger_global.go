@@ -79,5 +79,5 @@ func SetConsoleLogger(loggerName, writerName string, level Level) {
 		Colorize:     CanColorStdout,
 		WriterOption: WriterConsoleOption{},
 	})
-	GetManager().GetLogger(loggerName).RemoveAllWriters().AddWriters(writer)
+	GetManager().GetLogger(loggerName).ReplaceAllWriters(writer)
 }

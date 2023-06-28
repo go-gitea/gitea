@@ -1,0 +1,16 @@
+.button-sample-groups {
+  margin: 0; padding: 0;
+}
+
+.button-sample-groups .sample-group {
+  list-style: none; margin: 0; padding: 0;
+}
+
+.button-sample-groups .sample-group .ui.button {
+  margin-bottom: 5px;
+}
+
+h1, h2 {
+  margin: 0;
+  padding: 10px 0;
+}
