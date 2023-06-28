@@ -3346,7 +3346,7 @@ tbody.commit-list {
 }
 
 .commit-selector-menu {
-  max-height: max(60vh, 200px);
+  max-height: max(45vh, 200px);
   overflow-y: auto;
 }
 
