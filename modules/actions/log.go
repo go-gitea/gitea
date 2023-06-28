@@ -29,8 +29,13 @@ const (
 )
 
 func WriteLogs(ctx context.Context, filename string, offset int64, rows []*runnerv1.LogRow) ([]int, error) {
+	flag := os.O_WRONLY
+	if offset == 0 {
+		// Create file only if offset is 0, or it could result in a file with content holes if the file doesn't exist.
+		flag |= os.O_CREATE
+	}
 	name := DBFSPrefix + filename
-	f, err := dbfs.OpenFile(ctx, name, os.O_WRONLY|os.O_CREATE)
+	f, err := dbfs.OpenFile(ctx, name, flag)
 	if err != nil {
 		return nil, fmt.Errorf("dbfs OpenFile %q: %w", name, err)
 	}
