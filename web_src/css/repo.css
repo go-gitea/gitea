@@ -3343,7 +3343,6 @@ tbody.commit-list {
 
 .commit-list-summary {
   max-width: max(40vw, 200px);
-  display: inline-block;
 }
 
 .commit-selector-menu {
