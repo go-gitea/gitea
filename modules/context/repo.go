@@ -931,16 +931,9 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 		if len(ctx.Params("*")) == 0 {
 			refName = ctx.Repo.Repository.DefaultBranch
 			if !ctx.Repo.GitRepo.IsBranchExist(refName) {
-				// get the first branch
-				brs, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
-					RepoID: ctx.Repo.Repository.ID,
-					ListOptions: db.ListOptions{
-						PageSize: 1,
-					},
-					IsDeletedBranch: util.OptionalBoolFalse,
-				})
+				brs, _, err := ctx.Repo.GitRepo.GetBranches(0, 1)
 				if err == nil && len(brs) != 0 {
-					refName = brs[0]
+					refName = brs[0].Name
 				} else if len(brs) == 0 {
 					log.Error("No branches in non-empty repository %s", ctx.Repo.GitRepo.Path)
 					ctx.Repo.Repository.MarkAsBrokenEmpty()
