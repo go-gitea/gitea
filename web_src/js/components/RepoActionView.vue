@@ -446,10 +446,8 @@ const sfc = {
       }
       const logLine = this.$refs.steps.querySelector(selectedLogStep);
       if (!logLine) return;
-      const logSummary = this.$refs.steps.querySelector(`.job-step-section:nth-of-type(${parseInt(step) + 1}) > .job-step-summary`);
-      const offset = logSummary.offsetHeight + document.querySelector('.job-info-header').offsetHeight;
       logLine.querySelector('.line-num').click();
-      window.scrollTo({top: logLine.offsetTop - offset, behavior: 'instant'});
+      logLine.scrollIntoView({behavior: 'instant', block: 'center'});
     }
   },
 };
