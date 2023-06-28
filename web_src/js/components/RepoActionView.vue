@@ -434,6 +434,7 @@ const sfc = {
     },
     async hashChangeListener() {
       const selectedLogStep = window.location.hash;
+      if (!selectedLogStep) return;
       const [_, step, _line] = selectedLogStep.split('-');
       if (!this.currentJobStepsStates[step]) return;
       if (!this.currentJobStepsStates[step].expanded && this.currentJobStepsStates[step].cursor === null) {
