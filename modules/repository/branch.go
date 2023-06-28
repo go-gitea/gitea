@@ -43,28 +43,34 @@ func SyncRepoBranches(ctx context.Context, repoID, doerID int64) error {
 }
 
 func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doerID int64) error {
-	allBranches, _, err := gitRepo.GetBranchNames(0, 0)
-	if err != nil {
-		return err
+	allBranches := make(map[string]struct{})
+	{
+		branches, _, err := gitRepo.GetBranchNames(0, 0)
+		if err != nil {
+			return err
+		}
+		log.Trace("SyncRepoBranches[%s]: branches[%d]: %v", repo.FullName(), len(branches), branches)
+		for _, branch := range branches {
+			allBranches[branch] = struct{}{}
+		}
 	}
-	log.Trace("SyncRepoBranches[%s]: branches[%d]: %v", repo.FullName(), len(allBranches), allBranches)
 
-	dbBranches, err := git_model.LoadAllBranches(ctx, repo.ID)
-	if err != nil {
-		return err
+	dbBranches := make(map[string]*git_model.Branch)
+	{
+		branches, err := git_model.LoadAllBranches(ctx, repo.ID)
+		if err != nil {
+			return err
+		}
+		for _, branch := range branches {
+			dbBranches[branch.Name] = branch
+		}
 	}
 
 	var toAdd []*git_model.Branch
 	var toUpdate []*git_model.Branch
 	var toRemove []int64
-	for _, branch := range allBranches {
-		var dbb *git_model.Branch
-		for _, dbBranch := range dbBranches {
-			if branch == dbBranch.Name {
-				dbb = dbBranch
-				break
-			}
-		}
+	for branch := range allBranches {
+		dbb := dbBranches[branch]
 		commit, err := gitRepo.GetBranchCommit(branch)
 		if err != nil {
 			return err
@@ -92,13 +98,7 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 	}
 
 	for _, dbBranch := range dbBranches {
-		var found bool
-		for _, branch := range allBranches {
-			if branch == dbBranch.Name {
-				found = true
-				break
-			}
-		}
+		_, found := dbBranches[dbBranch.Name]
 		if !found && !dbBranch.IsDeleted {
 			toRemove = append(toRemove, dbBranch.ID)
 		}
@@ -117,19 +117,16 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 			}
 		}
 
-		if len(toUpdate) > 0 {
-			for _, b := range toUpdate {
-				if _, err := db.GetEngine(subCtx).ID(b.ID).
-					Cols("commit_sha, commit_message, pusher_id, commit_time, is_deleted").
-					Update(b); err != nil {
-					return err
-				}
+		for _, b := range toUpdate {
+			if _, err := db.GetEngine(subCtx).ID(b.ID).
+				Cols("commit_sha, commit_message, pusher_id, commit_time, is_deleted").
+				Update(b); err != nil {
+				return err
 			}
 		}
 
 		if len(toRemove) > 0 {
-			err = git_model.DeleteBranches(subCtx, repo.ID, doerID, toRemove)
-			if err != nil {
+			if err := git_model.DeleteBranches(subCtx, repo.ID, doerID, toRemove); err != nil {
 				return err
 			}
 		}
