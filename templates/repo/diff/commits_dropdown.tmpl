@@ -1,4 +1,4 @@
-<div class="ui jump dropdown basic button" data-tooltip-content="{{.locale.Tr "repo.pulls.select_commits"}}">
+<div class="ui jump dropdown basic button" data-tooltip-content="{{.locale.Tr "repo.pulls.filter_changes_by_commit"}}">
 	{{svg "octicon-git-commit"}}
 	<div class="menu commit-selector-menu">
 		<a class="vertical item gt-df gt-fc gt-gap-1" href="{{$.Issue.Link}}/files?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}">
