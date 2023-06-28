@@ -6,6 +6,7 @@ package integration
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"testing"
 
@@ -166,9 +167,13 @@ func TestPackageGeneric(t *testing.T) {
 			assert.NotEmpty(t, location)
 
 			req = NewRequest(t, "GET", location)
-			resp = MakeRequest(t, req, http.StatusOK)
+			resp2, err := (&http.Client{}).Do(req)
+			assert.NoError(t, err)
+			assert.Equal(t, http.StatusOK, resp2.StatusCode)
 
-			assert.Equal(t, content, resp.Body.Bytes())
+			body, err := io.ReadAll(resp2.Body)
+			assert.NoError(t, err)
+			assert.Equal(t, content, body)
 
 			checkDownloadCount(3)
 		})
