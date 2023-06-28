@@ -88,6 +88,7 @@ func main() {
 	app.Version = Version + formatBuiltWith()
 	app.EnableBashCompletion = true
 
+	// these sub-commands need to use config file
 	subCmdWithIni := []cli.Command{
 		cmd.CmdWeb,
 		cmd.CmdServ,
@@ -106,7 +107,8 @@ func main() {
 		cmd.CmdActions,
 		cmdHelp, // TODO: the "help" sub-command was used to show the more information for "work path" and "custom config", in the future, it should avoid doing so
 	}
-	subCmdWithStandalone := []cli.Command{
+	// these sub-commands do not need the config file, and they do not depend on any path or environment variable.
+	subCmdStandalone := []cli.Command{
 		cmd.CmdCert,
 		cmd.CmdGenerate,
 		cmd.CmdDocs,
@@ -142,7 +144,7 @@ func main() {
 		prepareSubcommands(&subCmdWithIni[i], globalFlags)
 	}
 	app.Commands = append(app.Commands, subCmdWithIni...)
-	app.Commands = append(app.Commands, subCmdWithStandalone...)
+	app.Commands = append(app.Commands, subCmdStandalone...)
 
 	err := app.Run(os.Args)
 	if err != nil {
