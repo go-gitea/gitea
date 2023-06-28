@@ -30,7 +30,7 @@
 							{{if .IsAdmin}}
 							<input name="private" type="checkbox" {{if .Repository.IsPrivate}}checked{{end}}>
 							{{else}}
-							<input name="private" type="checkbox" {{if .Repository.IsPrivate}}checked{{end}}{{if and $.ForcePrivate .Repository.IsPrivate}} readonly{{end}}>
+							<input name="private" type="checkbox" {{if .Repository.IsPrivate}}checked{{end}}{{if or (and (eq $.ForceVisibility "private") (.Repository.IsPrivate)) (and (eq $.ForceVisibility "public") (not .Repository.IsPrivate))}} readonly{{end}}>
 							{{end}}
 							<label>{{.locale.Tr "repo.visibility_helper" | Safe}} {{if .Repository.NumForks}}<span class="text red">{{.locale.Tr "repo.visibility_fork_helper"}}</span>{{end}}</label>
 						</div>

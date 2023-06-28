@@ -208,7 +208,7 @@ func MigratePost(ctx *context.Context) {
 		CloneAddr:      remoteAddr,
 		RepoName:       form.RepoName,
 		Description:    form.Description,
-		Private:        form.Private || setting.Repository.ForcePrivate,
+		Private:        getPrivate(form.Private),
 		Mirror:         form.Mirror,
 		LFS:            form.LFS,
 		LFSEndpoint:    form.LFSEndpoint,
@@ -251,7 +251,7 @@ func setMigrationContextData(ctx *context.Context, serviceType structs.GitServic
 	ctx.Data["Title"] = ctx.Tr("new_migrate")
 
 	ctx.Data["LFSActive"] = setting.LFS.StartServer
-	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
+	ctx.Data["ForceVisibility"] = setting.Repository.ForceVisibility
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 
 	// Plain git should be first
@@ -274,4 +274,14 @@ func MigrateCancelPost(ctx *context.Context) {
 		}
 	}
 	ctx.Redirect(ctx.Repo.Repository.Link())
+}
+
+func getPrivate(private bool) bool {
+	if setting.Repository.ForceVisibility == "private" {
+		return true
+	} else if setting.Repository.ForceVisibility == "public" {
+		return false
+	} else {
+		return private
+	}
 }

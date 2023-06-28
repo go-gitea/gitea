@@ -144,7 +144,7 @@ func Migrate(ctx *context.APIContext) {
 		CloneAddr:      remoteAddr,
 		RepoName:       form.RepoName,
 		Description:    form.Description,
-		Private:        form.Private || setting.Repository.ForcePrivate,
+		Private:        getPrivate(form.Private),
 		Mirror:         form.Mirror,
 		LFS:            form.LFS,
 		LFSEndpoint:    form.LFSEndpoint,
@@ -270,5 +270,15 @@ func handleRemoteAddrError(ctx *context.APIContext, err error) {
 		}
 	} else {
 		ctx.Error(http.StatusInternalServerError, "ParseRemoteAddr", err)
+	}
+}
+
+func getPrivate(private bool) bool {
+	if setting.Repository.ForceVisibility == "private" {
+		return true
+	} else if setting.Repository.ForceVisibility == "public" {
+		return false
+	} else {
+		return private
 	}
 }

@@ -62,7 +62,7 @@ const (
 func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.options")
 	ctx.Data["PageIsSettingsOptions"] = true
-	ctx.Data["ForcePrivate"] = setting.Repository.ForcePrivate
+	ctx.Data["ForceVisibility"] = setting.Repository.ForceVisibility
 	ctx.Data["MirrorsEnabled"] = setting.Mirror.Enabled
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["DisableNewPushMirrors"] = setting.Mirror.DisableNewPush
@@ -107,7 +107,7 @@ func Settings(ctx *context.Context) {
 func SettingsPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RepoSettingForm)
 
-	ctx.Data["ForcePrivate"] = setting.Repository.ForcePrivate
+	ctx.Data["ForceVisibility"] = setting.Repository.ForceVisibility
 	ctx.Data["MirrorsEnabled"] = setting.Mirror.Enabled
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["DisableNewPushMirrors"] = setting.Mirror.DisableNewPush
@@ -178,9 +178,15 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		visibilityChanged := repo.IsPrivate != form.Private
-		// when ForcePrivate enabled, you could change public repo to private, but only admin users can change private to public
-		if visibilityChanged && setting.Repository.ForcePrivate && !form.Private && !ctx.Doer.IsAdmin {
+		// when ForceVisibility is set to private, you could change public repo to private, but only admin users can change private to public
+		if visibilityChanged && setting.Repository.ForceVisibility == "private" && !form.Private && !ctx.Doer.IsAdmin {
 			ctx.RenderWithErr(ctx.Tr("form.repository_force_private"), tplSettingsOptions, form)
+			return
+		}
+
+		// when ForceVisibility is set to public, you could change private repo to public, but only admin users can change public to private
+		if visibilityChanged && setting.Repository.ForceVisibility == "public" && form.Private && !ctx.Doer.IsAdmin {
+			ctx.RenderWithErr(ctx.Tr("form.repository_force_public"), tplSettingsOptions, form)
 			return
 		}
 

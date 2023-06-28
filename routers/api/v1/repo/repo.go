@@ -691,10 +691,17 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 		}
 
 		visibilityChanged = repo.IsPrivate != *opts.Private
-		// when ForcePrivate enabled, you could change public repo to private, but only admin users can change private to public
-		if visibilityChanged && setting.Repository.ForcePrivate && !*opts.Private && !ctx.Doer.IsAdmin {
+		// when ForceVisibility is set to private, you could change public repo to private, but only admin users can change private to public
+		if visibilityChanged && setting.Repository.ForceVisibility == "private" && !*opts.Private && !ctx.Doer.IsAdmin {
 			err := fmt.Errorf("cannot change private repository to public")
-			ctx.Error(http.StatusUnprocessableEntity, "Force Private enabled", err)
+			ctx.Error(http.StatusUnprocessableEntity, "Force Private is set to private", err)
+			return err
+		}
+
+		// when ForceVisibility is set to public, you could change private repo to public, but only admin users can change public to private
+		if visibilityChanged && setting.Repository.ForceVisibility == "public" && *opts.Private && !ctx.Doer.IsAdmin {
+			err := fmt.Errorf("cannot change public repository to private")
+			ctx.Error(http.StatusUnprocessableEntity, "Force Private is set to public", err)
 			return err
 		}
 

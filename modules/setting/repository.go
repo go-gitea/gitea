@@ -28,7 +28,7 @@ var (
 		DetectedCharsetsOrder                   []string
 		DetectedCharsetScore                    map[string]int `ini:"-"`
 		AnsiCharset                             string
-		ForcePrivate                            bool
+		ForceVisibility                         string
 		DefaultPrivate                          string
 		DefaultPushCreatePrivate                bool
 		MaxCreationLimit                        int
@@ -146,7 +146,7 @@ var (
 		},
 		DetectedCharsetScore:                    map[string]int{},
 		AnsiCharset:                             "",
-		ForcePrivate:                            false,
+		ForceVisibility:                         "off",
 		DefaultPrivate:                          RepoCreatingLastUserVisibility,
 		DefaultPushCreatePrivate:                true,
 		MaxCreationLimit:                        -1,
@@ -310,6 +310,12 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 
 	if !rootCfg.Section("actions").Key("ENABLED").MustBool(Actions.Enabled) {
 		Repository.DisabledRepoUnits = append(Repository.DisabledRepoUnits, "repo.actions")
+	}
+
+	// for compatibility with force private
+	if sec.Key("FORCE_PRIVATE").MustBool(false) && sec.Key("FORCE_VISIBILITY").MustString("off") == "off" {
+		Repository.ForceVisibility = "private"
+		log.Error("FORCE_PRIVATE is deprecated! Please set FORCE_VISIBILITY to private.")
 	}
 
 	// Handle default trustmodel settings
