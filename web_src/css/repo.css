@@ -3350,3 +3350,11 @@ tbody.commit-list {
   max-height: 60vh;
   overflow-y: auto;
 }
+
+.ui.dropdown .menu.commit-selector-menu > .item.vertical {
+  padding: 6px 3px !important;
+}
+
+.ui.dropdown .menu.commit-selector-menu > .divider {
+  margin: 0;
+}
