@@ -3342,17 +3342,21 @@ tbody.commit-list {
 }
 
 .commit-list-summary {
-  max-width: calc(100% - 10ch);
+  max-width: max(40vw, 200px);
   display: inline-block;
 }
 
 .commit-selector-menu {
-  max-height: 60vh;
+  max-height: max(60vh, 200px);
   overflow-y: auto;
 }
 
 .ui.dropdown .menu.commit-selector-menu > .item.vertical {
-  padding: 6px 3px !important;
+  padding: 7px 14px !important;
+}
+
+.ui.dropdown .menu.commit-selector-menu > .item {
+  line-height: 1.4;
 }
 
 .ui.dropdown .menu.commit-selector-menu > .divider {

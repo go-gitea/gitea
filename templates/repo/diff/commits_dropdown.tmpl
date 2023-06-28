@@ -1,31 +1,33 @@
-<div class="ui dropdown tiny basic button" data-tooltip-content="{{.locale.Tr "repo.pulls.select_commits"}}">
+<div class="ui dropdown basic button" data-tooltip-content="{{.locale.Tr "repo.pulls.select_commits"}}">
 	{{svg "octicon-git-commit"}}
 	<div class="menu commit-selector-menu">
-		<a class="vertical item" href="{{$.Issue.Link}}/files?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}">
-			<span class="description gt-ellipsis">
-				{{.locale.Tr "repo.pulls.show_all_commits.description"}}
-			</span>
-			<span class="text gt-ellipsis">
+		<a class="vertical item gt-df gt-fc gt-gap-1" href="{{$.Issue.Link}}/files?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}">
+			<div class="gt-ellipsis">
 				{{.locale.Tr "repo.pulls.show_all_commits"}}
-			</span>
+			</div>
+			<div class="gt-ellipsis text light-2">
+				{{.locale.TrN (len .Commits) "repo.activity.git_stats_commit_1" "repo.activity.git_stats_commit_n" (len .Commits)}}
+			</div>
 		</a>
 
 		{{range .Commits}}
 			<div class="divider"></div>
-			<a class="vertical item" href="{{$.Issue.Link}}/files/{{.ID.String}}?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}">
-				<span class="description gt-ellipsis">
-					{{if .Committer}}
-						{{.Committer.Name}}
-						<span class="text right">{{TimeSince .Committer.When $.locale}}</span>
-					{{else}}
-						{{.Author.Name}}
-						<span class="text right">{{TimeSince .Author.When $.locale}}</span>
-					{{end}}
-				</span>
-				<div class="text">
-					<div class="ui compact gt-ellipsis commit-list-summary">{{.Summary}}</div>
-					<code class="ui right">{{ShortSha .ID.String}}</code>
+			<a class="vertical item gt-df gt-fr gt-gap-2" href="{{$.Issue.Link}}/files/{{.ID.String}}?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}">
+				<div class="gt-f1 gt-df gt-fc gt-gap-1">
+					<div class="gt-ellipsis commit-list-summary">
+						{{.Summary}}
+					</div>
+					<div class="gt-ellipsis text light-2">
+						{{if .Committer}}
+							{{.Committer.Name}}
+							<span class="text right">{{TimeSince .Committer.When $.locale}}</span>
+						{{else}}
+							{{.Author.Name}}
+							<span class="text right">{{TimeSince .Author.When $.locale}}</span>
+						{{end}}
+					</div>
 				</div>
+				<div class="gt-mono">{{ShortSha .ID.String}}</div>
 			</a>
 		{{end}}
 	</div>

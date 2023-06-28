@@ -16,6 +16,7 @@ Gitea's private styles use `g-` prefix.
 .gt-je { justify-content: flex-end !important; }
 .gt-sb { justify-content: space-between !important; }
 .gt-fc { flex-direction: column !important; }
+.gt-fr { flex-direction: row !important; }
 .gt-f1 { flex: 1 !important; }
 .gt-fw { flex-wrap: wrap !important; }
 .gt-vm { vertical-align: middle !important; }
