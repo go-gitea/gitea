@@ -19,6 +19,9 @@ type BranchList []*Branch
 func (branches BranchList) LoadDeletedBy(ctx context.Context) error {
 	ids := container.Set[int64]{}
 	for _, branch := range branches {
+		if !branch.IsDeleted {
+			continue
+		}
 		ids.Add(branch.DeletedByID)
 	}
 	usersMap := make(map[int64]*user_model.User, len(ids))
@@ -26,6 +29,9 @@ func (branches BranchList) LoadDeletedBy(ctx context.Context) error {
 		return err
 	}
 	for _, branch := range branches {
+		if !branch.IsDeleted {
+			continue
+		}
 		branch.DeletedBy = usersMap[branch.DeletedByID]
 		if branch.DeletedBy == nil {
 			branch.DeletedBy = user_model.NewGhostUser()
@@ -37,7 +43,7 @@ func (branches BranchList) LoadDeletedBy(ctx context.Context) error {
 func (branches BranchList) LoadPusher(ctx context.Context) error {
 	ids := container.Set[int64]{}
 	for _, branch := range branches {
-		if branch.PusherID > 0 {
+		if branch.PusherID > 0 { // pusher_id maybe zero because some branches are sync by backend with no pusher
 			ids.Add(branch.PusherID)
 		}
 	}
