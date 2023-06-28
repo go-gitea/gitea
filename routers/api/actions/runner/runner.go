@@ -210,17 +210,20 @@ func (s *Service) UpdateLog(
 
 	task, err := actions_model.GetTaskByID(ctx, req.Msg.TaskId)
 	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			return nil, status.Errorf(codes.NotFound, "task %d not found", req.Msg.TaskId)
+		}
 		return nil, status.Errorf(codes.Internal, "get task: %v", err)
 	}
+	if task.Status.IsDone() {
+		return nil, status.Errorf(codes.FailedPrecondition, "task %d is done", req.Msg.TaskId)
+	}
+
 	ack := task.LogLength
 
 	if len(req.Msg.Rows) == 0 || req.Msg.Index > ack || int64(len(req.Msg.Rows))+req.Msg.Index <= ack {
 		res.Msg.AckIndex = ack
 		return res, nil
-	}
-
-	if task.LogInStorage {
-		return nil, status.Errorf(codes.AlreadyExists, "log file has been archived")
 	}
 
 	rows := req.Msg.Rows[ack-req.Msg.Index:]
