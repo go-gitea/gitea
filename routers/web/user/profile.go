@@ -124,7 +124,7 @@ func Profile(ctx *context.Context) {
 		}
 	}
 
-	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
+	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID || !ctx.Doer.KeepActivityPrivate)
 
 	orgs, err := organization.FindOrgs(organization.FindOrgOptions{
 		UserID:         ctx.ContextUser.ID,
