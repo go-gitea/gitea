@@ -2,7 +2,7 @@
   id: 1
   repo_id: 1
   name: 'foo'
-  commit_sha: '65f1bf27bc3bf70f64657658635e66094edbcb4d'
+  commit_id: '65f1bf27bc3bf70f64657658635e66094edbcb4d'
   commit_message: 'first commit'
   commit_time: 978307100
   pusher_id: 1
@@ -14,7 +14,7 @@
   id: 2
   repo_id: 1
   name: 'bar'
-  commit_sha: '62fb502a7172d4453f0322a2cc85bddffa57f07a'
+  commit_id: '62fb502a7172d4453f0322a2cc85bddffa57f07a'
   commit_message: 'second commit'
   commit_time: 978307100
   pusher_id: 1
@@ -26,7 +26,7 @@
   id: 3
   repo_id: 1
   name: 'branch2'
-  commit_sha: '985f0301dba5e7b34be866819cd15ad3d8f508ee'
+  commit_id: '985f0301dba5e7b34be866819cd15ad3d8f508ee'
   commit_message: 'make pull5 outdated'
   commit_time: 1579166279
   pusher_id: 1
@@ -38,7 +38,7 @@
   id: 4
   repo_id: 1
   name: 'master'
-  commit_sha: '65f1bf27bc3bf70f64657658635e66094edbcb4d'
+  commit_id: '65f1bf27bc3bf70f64657658635e66094edbcb4d'
   commit_message: 'Initial commit'
   commit_time: 1489927679
   pusher_id: 1

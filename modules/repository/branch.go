@@ -13,16 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/builder"
 )
-
-func SyncAllBranches(ctx context.Context, doerID int64) error {
-	log.Trace("Synchronizing repository branches (this may take a while)")
-	return db.Iterate(ctx, builder.Eq{"is_empty": false}, func(ctx context.Context, repo *repo_model.Repository) error {
-		return SyncRepoBranches(ctx, repo.ID, doerID)
-	})
-}
 
 // SyncRepoBranches synchronizes branch table with repository branches
 func SyncRepoBranches(ctx context.Context, repoID, doerID int64) error {
