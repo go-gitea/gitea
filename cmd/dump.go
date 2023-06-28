@@ -182,7 +182,7 @@ func runDump(ctx *cli.Context) error {
 		}
 		fileName += "." + outType
 	}
-	setting.Init(&setting.Options{})
+	setting.MustInstalled()
 
 	// make sure we are logging to the console no matter what the configuration tells us do to
 	// FIXME: don't use CfgProvider directly
@@ -353,9 +353,9 @@ func runDump(ctx *cli.Context) error {
 		}
 
 		excludes = append(excludes, setting.RepoRootPath)
-		excludes = append(excludes, setting.LFS.Path)
-		excludes = append(excludes, setting.Attachment.Path)
-		excludes = append(excludes, setting.Packages.Path)
+		excludes = append(excludes, setting.LFS.Storage.Path)
+		excludes = append(excludes, setting.Attachment.Storage.Path)
+		excludes = append(excludes, setting.Packages.Storage.Path)
 		excludes = append(excludes, setting.Log.RootPath)
 		excludes = append(excludes, absFileName)
 		if err := addRecursiveExclude(w, "data", setting.AppDataPath, excludes, verbose); err != nil {

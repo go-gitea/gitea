@@ -38,8 +38,8 @@
                 <span class="job-brief-name gt-mx-3 gt-ellipsis">{{ job.name }}</span>
               </a>
               <span class="job-brief-info">
-                <span class="step-summary-duration">{{ job.duration }}</span>
                 <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun gt-mx-3" @click="rerunJob(index)" v-if="job.canRerun && onHoverRerunIndex === job.id"/>
+                <span class="step-summary-duration">{{ job.duration }}</span>
               </span>
             </div>
           </div>
@@ -119,13 +119,11 @@
 import {SvgIcon} from '../svg.js';
 import ActionRunStatus from './ActionRunStatus.vue';
 import {createApp} from 'vue';
-import AnsiToHTML from 'ansi-to-html';
 import {toggleElem} from '../utils/dom.js';
 import {getCurrentLocale} from '../utils.js';
+import {renderAnsi} from '../render/ansi.js';
 
 const {csrfToken} = window.config;
-
-const ansiLogRender = new AnsiToHTML({escapeXML: true});
 
 const sfc = {
   name: 'RepoActionView',
@@ -304,7 +302,7 @@ const sfc = {
 
       const logMessage = document.createElement('span');
       logMessage.className = 'log-msg';
-      logMessage.innerHTML = ansiLogToHTML(line.message);
+      logMessage.innerHTML = renderAnsi(line.message);
       div.append(logTimeStamp);
       div.append(logMessage);
       div.append(logTimeSeconds);
@@ -470,48 +468,6 @@ export function initRepositoryActionView() {
   view.mount(el);
 }
 
-// some unhandled control sequences by AnsiToHTML
-// https://man7.org/linux/man-pages/man4/console_codes.4.html
-const ansiRegexpRemove = /\x1b\[\d+[A-H]/g; // Move cursor, treat them as no-op.
-const ansiRegexpNewLine = /\x1b\[\d?[JK]/g; // Erase display/line, treat them as a Carriage Return
-
-function ansiCleanControlSequences(line) {
-  if (line.includes('\x1b')) {
-    line = line.replace(ansiRegexpRemove, '');
-    line = line.replace(ansiRegexpNewLine, '\r');
-  }
-  return line;
-}
-
-export function ansiLogToHTML(line) {
-  if (line.endsWith('\r\n')) {
-    line = line.substring(0, line.length - 2);
-  } else if (line.endsWith('\n')) {
-    line = line.substring(0, line.length - 1);
-  }
-
-  // usually we do not need to process control chars like "\033[", let AnsiToHTML do it
-  // but AnsiToHTML has bugs, so we need to clean some control sequences first
-  line = ansiCleanControlSequences(line);
-
-  if (!line.includes('\r')) {
-    return ansiLogRender.toHtml(line);
-  }
-
-  // handle "\rReading...1%\rReading...5%\rReading...100%",
-  // convert it into a multiple-line string: "Reading...1%\nReading...5%\nReading...100%"
-  const lines = [];
-  for (const part of line.split('\r')) {
-    if (part === '') continue;
-    const partHtml = ansiLogRender.toHtml(part);
-    if (partHtml !== '') {
-      lines.push(partHtml);
-    }
-  }
-  // the log message element is with "white-space: break-spaces;", so use "\n" to break lines
-  return lines.join('\n');
-}
-
 </script>
 
 <style scoped>
@@ -634,6 +590,7 @@ export function ansiLogToHTML(line) {
 .job-brief-item .job-brief-link {
   display: flex;
   width: 100%;
+  min-width: 0;
 }
 
 .job-brief-item .job-brief-link span {
@@ -654,7 +611,6 @@ export function ansiLogToHTML(line) {
 .job-brief-item .job-brief-info {
   display: flex;
   align-items: center;
-  width: 55px;
 }
 
 /* ================ */
