@@ -386,7 +386,6 @@ func GetPullDiffStats(ctx *context.Context) {
 	}
 
 	diff, err := gitdiff.GetPullDiffStats(ctx.Repo.GitRepo, diffOptions)
-
 	if err != nil {
 		ctx.ServerError("GetPullDiffStats", err)
 		return
