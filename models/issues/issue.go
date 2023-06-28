@@ -100,21 +100,18 @@ const (
 	IssueClosedStatusArchived
 	// IssueClosedStatusResolved close issue as resolved.
 	IssueClosedStatusResolved
-	// IssueClosedStatusMerged close issue as merged.
-	IssueClosedStatusMerged
-	// IssueClosedStatusDuplicate close issue as duplicate.
-	IssueClosedStatusDuplicate
 	// IssueClosedStatusStale close issue as stale.
 	IssueClosedStatusStale
+	// IssueClosedStatusDuplicate close issue as duplicate.
+	IssueClosedStatusDuplicate
 )
 
 var issueClosedCommentTrMap = map[IssueClosedStatus]string{
 	IssueClosedStatusCommonClose: "repo.issues.closed_at",
 	IssueClosedStatusArchived:    "repo.issues.closed_as_archived_at",
 	IssueClosedStatusResolved:    "repo.issues.closed_as_resolved_at",
-	IssueClosedStatusMerged:      "repo.issues.closed_as_merged_at",
-	IssueClosedStatusDuplicate:   "repo.issues.closed_as_duplicate_at",
 	IssueClosedStatusStale:       "repo.issues.closed_as_stale_at",
+	IssueClosedStatusDuplicate:   "repo.issues.closed_as_duplicate_at",
 }
 
 type ClosedIssueCommentContent struct {

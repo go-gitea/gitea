@@ -1277,19 +1277,14 @@ var issueCloseBtnItems = []IssueCloseBtnItem{
 		StatusAndComment: "repo.issues.comment_and_close_as.resolved",
 	},
 	{
-		Value:            issues_model.IssueClosedStatusMerged,
-		Status:           "repo.issues.close_as.merged",
-		StatusAndComment: "repo.issues.comment_and_close_as.merged",
+		Value:            issues_model.IssueClosedStatusStale,
+		Status:           "repo.issues.close_as.stale",
+		StatusAndComment: "repo.issues.comment_and_close_as.stale",
 	},
 	{
 		Value:            issues_model.IssueClosedStatusDuplicate,
 		Status:           "repo.issues.close_as.duplicate",
 		StatusAndComment: "repo.issues.comment_and_close_as.duplicate",
-	},
-	{
-		Value:            issues_model.IssueClosedStatusStale,
-		Status:           "repo.issues.close_as.stale",
-		StatusAndComment: "repo.issues.comment_and_close_as.stale",
 	},
 }
 

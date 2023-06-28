@@ -42,11 +42,9 @@
 			{{else if eq .Issue.ClosedStatus 2}}
 				{{$closeTrans = "mail.issue.action.close_as_resolved"}}
 			{{else if eq .Issue.ClosedStatus 3}}
-				{{$closeTrans = "mail.issue.action.close_as_merged"}}
-			{{else if eq .Issue.ClosedStatus 4}}
-				{{$closeTrans = "mail.issue.action.close_as_duplicate"}}
-			{{else if eq .Issue.ClosedStatus 5}}
 				{{$closeTrans = "mail.issue.action.close_as_stale"}}
+			{{else if eq .Issue.ClosedStatus 4}}
+				{{$closeTrans = "mail.issue.action.close_as_duplicate"}}				
 			{{end}}
 			{{.locale.Tr $closeTrans (Escape .Doer.Name) .Issue.Index | Str2html}}
 		{{else if eq .ActionName "reopen"}}
