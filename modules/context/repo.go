@@ -667,40 +667,35 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	}
 	ctx.Data["Tags"] = tags
 
-	brs, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
+	branchOpts := git_model.FindBranchOptions{
 		RepoID:          ctx.Repo.Repository.ID,
 		IsDeletedBranch: util.OptionalBoolFalse,
 		ListOptions: db.ListOptions{
-			PageSize: -1,
+			ListAll: true,
 		},
-	})
+	}
+	branchesTotal, err := git_model.CountBranches(ctx, branchOpts)
+	if err != nil {
+		ctx.ServerError("CountBranches", err)
+		return
+	}
+
+	// non empty repo should have at least 1 branch, so this repository's branches haven't been synced yet
+	if branchesTotal == 0 { // fallback to do a sync immediately
+		if err := repo_module.SyncRepoBranches(ctx, ctx.Repo.Repository.ID, 0); err != nil {
+			ctx.ServerError("SyncRepoBranches", err)
+			return
+		}
+	}
+
+	// FIXME: use paganation and async loading
+	brs, err := git_model.FindBranchNames(ctx, branchOpts)
 	if err != nil {
 		ctx.ServerError("GetBranches", err)
 		return
 	}
-	if len(brs) == 0 { // fallback to do a sync immediately
-		var doerID int64
-		if ctx.Doer != nil {
-			doerID = ctx.Doer.ID
-		}
-		if err := repo_module.SyncRepoBranches(ctx, ctx.Repo.Repository.ID, doerID); err != nil {
-			ctx.ServerError("SyncRepoBranches", err)
-			return
-		}
-		brs, err = git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
-			RepoID:          ctx.Repo.Repository.ID,
-			IsDeletedBranch: util.OptionalBoolFalse,
-			ListOptions: db.ListOptions{
-				PageSize: -1,
-			},
-		})
-		if err != nil {
-			ctx.ServerError("GetBranches", err)
-			return
-		}
-	}
 	ctx.Data["Branches"] = brs
-	ctx.Data["BranchesCount"] = len(brs)
+	ctx.Data["BranchesCount"] = branchesTotal
 
 	// If not branch selected, try default one.
 	// If default branch doesn't exist, fall back to some other branch.

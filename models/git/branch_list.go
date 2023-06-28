@@ -107,7 +107,7 @@ func FindBranches(ctx context.Context, opts FindBranchOptions) (BranchList, int6
 
 func FindBranchNames(ctx context.Context, opts FindBranchOptions) ([]string, error) {
 	sess := db.GetEngine(ctx).Select("name").Where(opts.Cond())
-	if opts.PageSize > 0 {
+	if opts.PageSize > 0 && !opts.IsListAll() {
 		sess = db.SetSessionPagination(sess, &opts.ListOptions)
 	}
 	var branches []string

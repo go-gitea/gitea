@@ -151,7 +151,7 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 	branches, _ := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
 		RepoID: repo.ID,
 		ListOptions: db.ListOptions{
-			PageSize: -1,
+			ListAll: true,
 		},
 		IsDeletedBranch: util.OptionalBoolFalse,
 	})

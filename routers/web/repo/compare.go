@@ -687,7 +687,7 @@ func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repositor
 	branches, err = git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
 		RepoID: repo.ID,
 		ListOptions: db.ListOptions{
-			PageSize: -1,
+			ListAll: true,
 		},
 		IsDeletedBranch: util.OptionalBoolFalse,
 	})
@@ -744,7 +744,7 @@ func CompareDiff(ctx *context.Context) {
 	headBranches, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
 		RepoID: ci.HeadRepo.ID,
 		ListOptions: db.ListOptions{
-			PageSize: 1,
+			ListAll: true,
 		},
 		IsDeletedBranch: util.OptionalBoolFalse,
 	})
