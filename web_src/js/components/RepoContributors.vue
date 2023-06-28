@@ -44,7 +44,7 @@
     </h2>
     <div class="ui divider"/>
     <div style="height: 380px">
-      <Line
+      <CLine
         v-if="Object.keys(totalStats).length !== 0"
         :data="toGraphData(totalStats.weeks)"
         :options="getOptions('main')"
@@ -82,7 +82,7 @@
         </div>
         <div class="ui attached segment">
           <div>
-            <Line
+            <CLine
               :data="toGraphData(contributor.weeks)"
               :options="getOptions('contributor')"
             />
@@ -109,7 +109,7 @@ import {
   Filler,
 } from 'chart.js';
 import zoomPlugin from 'chartjs-plugin-zoom';
-import {Line} from 'vue-chartjs';
+import {Line as CLine} from 'vue-chartjs';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 
 const {pageData} = window.config;
@@ -129,7 +129,7 @@ Chart.register(
 );
 
 export default {
-  components: {Line, SvgIcon},
+  components: {CLine, SvgIcon},
   data: () => {
     return {
       isLoading: false,
@@ -141,15 +141,15 @@ export default {
       dateUntil: null,
     };
   },
-  mounted() {
-    this.fetchGraphData();
-  },
   computed: {
     sortedContributors() {
       return Object.values(this.contributorsStats).sort((a, b) =>
         a.total_commits > b.total_commits ? -1 : a.total_commits === b.total_commits ? 0 : 1
       ).slice(0, 100);
     },
+  },
+  mounted() {
+    this.fetchGraphData();
   },
   methods: {
     async fetchGraphData() {
