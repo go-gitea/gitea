@@ -362,9 +362,8 @@ func GetPullDiffStats(ctx *context.Context) {
 	pull := issue.PullRequest
 
 	var (
-		startCommitID string
-		endCommitID   string
-		gitRepo       = ctx.Repo.GitRepo
+		endCommitID string
+		gitRepo     = ctx.Repo.GitRepo
 	)
 
 	mergeBaseCommitID := GetMergedBaseCommitID(ctx, issue)
@@ -382,11 +381,10 @@ func GetPullDiffStats(ctx *context.Context) {
 		return
 	}
 
-	startCommitID = mergeBaseCommitID
 	endCommitID = headCommitID
 
 	diffOptions := &gitdiff.DiffOptions{
-		BeforeCommitID:     startCommitID,
+		BeforeCommitID:     mergeBaseCommitID,
 		AfterCommitID:      endCommitID,
 		MaxLines:           setting.Git.MaxGitDiffLines,
 		MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
@@ -410,8 +408,6 @@ func GetPullDiffStats(ctx *context.Context) {
 
 func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) string {
 	pull := issue.PullRequest
-
-	setMergeTarget(ctx, pull)
 
 	var baseCommit string
 	// Some migrated PR won't have any Base SHA and lose history, try to get one
