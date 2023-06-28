@@ -372,12 +372,12 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 	return generateRepo, nil
 }
 
+var fileNameSanitizeRegexp = regexp.MustCompile(`(?i)\.\.|[<>:\"/\\|?*\x{0000}-\x{001F}]|^(con|prn|aux|nul|com\d|lpt\d)$`)
+
 // Sanitize user input to valid OS filenames
 //
 //		Based on https://github.com/sindresorhus/filename-reserved-regex
 //	 Adds ".." to prevent directory traversal
 func fileNameSanitize(s string) string {
-	re := regexp.MustCompile(`(?i)\.\.|[<>:\"/\\|?*\x{0000}-\x{001F}]|^(con|prn|aux|nul|com\d|lpt\d)$`)
-
-	return strings.TrimSpace(re.ReplaceAllString(s, "_"))
+	return strings.TrimSpace(fileNameSanitizeRegexp.ReplaceAllString(s, "_"))
 }

@@ -214,8 +214,8 @@
   --color-placeholder-text: #aaa;
   --color-editor-line-highlight: var(--color-primary-light-6);
   --color-project-board-bg: var(--color-secondary-light-4);
-  --color-project-board-dark-label: #555555;
-  --color-project-board-light-label: #a6aab5;
+  --color-project-board-dark-label: #111111;
+  --color-project-board-light-label: #eeeeee;
   --color-caret: var(--color-text-dark);
   --color-reaction-bg: #0000000a;
   --color-reaction-hover-bg: var(--color-primary-light-5);
@@ -469,6 +469,11 @@ a.label,
 .page-content .new-menu {
   margin-top: -15px !important;
   padding-top: 15px !important;
+}
+
+/* fix Fomantic's line-height cutting off "g" on Windows Chrome with Segoe UI */
+.ui.input > input {
+  line-height: 1.3;
 }
 
 .ui.input.focus > input,
@@ -867,6 +872,13 @@ a.label,
 
 .ui.basic.table > tbody > tr {
   border-color: var(--color-secondary);
+}
+
+.ui.table > tfoot > tr > th,
+.ui.table > tfoot > tr > td {
+  border-color: var(--color-secondary);
+  background: var(--color-box-body);
+  color: var(--color-text);
 }
 
 img.ui.avatar,
@@ -2154,7 +2166,7 @@ table th[data-sortt-desc] .svg {
 }
 
 .truncated-item-name {
-  line-height: 2em;
+  line-height: 2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2176,7 +2188,7 @@ table th[data-sortt-desc] .svg {
 }
 
 .ui.dropdown {
-  line-height: 1em; /* the dropdown doesn't have default line-height, use this to make the dropdown icon align with plain dropdown */
+  line-height: 1; /* the dropdown doesn't have default line-height, use this to make the dropdown icon align with plain dropdown */
 }
 
 /* dropdown has some kinds of icons:
@@ -2184,6 +2196,17 @@ table th[data-sortt-desc] .svg {
 - "> .remove.icon": the "x" icon for clearing the dropdown, only used in selection dropdown
 - "> .ui.label > .delete.icon": the "x" icon for removing a label item in multiple selection dropdown
 */
+
+.ui.dropdown.mini.button,
+.ui.dropdown.tiny.button {
+  padding-right: 20px;
+}
+.ui.dropdown.button {
+  padding-right: 22px;
+}
+.ui.dropdown.large.button {
+  padding-right: 24px;
+}
 
 /* Gitea uses SVG images instead of Fomantic builtin "<i>" font icons, so we need to reset the icon styles */
 .ui.ui.dropdown > .icon.icon {
