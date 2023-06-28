@@ -12,12 +12,15 @@ import (
 )
 
 const (
-	tplContributors base.TplName = "repo/contributors"
+	tplContributors base.TplName = "repo/activity"
 )
 
 // Contributors render the page to show repository contributors graph
 func Contributors(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.contributors")
+
+	ctx.Data["PageIsActivity"] = true
+	ctx.Data["PageIsPulse"] = false
 	ctx.Data["PageIsContributors"] = true
 
 	ctx.Data["ContributionType"] = ctx.Params("contribution_type")

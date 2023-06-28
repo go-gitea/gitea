@@ -35,9 +35,9 @@
             </span>
           </div>
           <div class="menu">
-            <a :class="type === 'commits' ? 'active item' : 'item'" :href="`${repoLink}/contributors/commits`">Commits</a>
-            <a :class="type === 'additions' ? 'active item' : 'item'" :href="`${repoLink}/contributors/additions`">Additions</a>
-            <a :class="type === 'deletions' ? 'active item' : 'item'" :href="`${repoLink}/contributors/deletions`">Deletions</a>
+            <a :class="type === 'commits' ? 'active item' : 'item'" :href="`${repoLink}/activity/contributors/commits`">Commits</a>
+            <a :class="type === 'additions' ? 'active item' : 'item'" :href="`${repoLink}/activity/contributors/additions`">Additions</a>
+            <a :class="type === 'deletions' ? 'active item' : 'item'" :href="`${repoLink}/activity/contributors/deletions`">Deletions</a>
           </div>
         </div>
       </div>
@@ -94,7 +94,6 @@
 </template>
 
 <script>
-import {createApp} from 'vue';
 import {SvgIcon} from '../svg.js';
 import {
   Chart,
@@ -129,7 +128,7 @@ Chart.register(
   zoomPlugin
 );
 
-const sfc = {
+export default {
   components: {Line, SvgIcon},
   data: () => {
     return {
@@ -155,7 +154,7 @@ const sfc = {
   methods: {
     async fetchGraphData() {
       this.isLoading = true;
-      fetch(`${this.repoLink}/contributors/data`)
+      fetch(`${this.repoLink}/activity/contributors/data`)
         .then((response) => response.json())
         .then((data) => {
           const {total, ...rest} = data;
@@ -273,20 +272,10 @@ const sfc = {
           },
           y: {
             min: 0,
-            max: this.maxMainGraph(),
           },
         },
       };
     },
   },
 };
-
-export function initRepoContributorsChart() {
-  const el = document.getElementById('repo-contributors-chart');
-  if (el) {
-    createApp(sfc).mount(el);
-  }
-}
-
-export default sfc; // activate the IDE's Vue plugin
 </script>

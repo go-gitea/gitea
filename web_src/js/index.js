@@ -2,7 +2,6 @@
 import './bootstrap.js';
 
 import {initRepoActivityTopAuthorsChart} from './components/RepoActivityTopAuthors.vue';
-import {initRepoContributorsChart} from './components/RepoContributors.vue';
 import {initScopedAccessTokenCategories} from './components/ScopedAccessTokenSelector.vue';
 import {initDashboardRepoList} from './components/DashboardRepoList.vue';
 
@@ -84,6 +83,7 @@ import {initGiteaFomantic} from './modules/fomantic.js';
 import {onDomReady} from './utils/dom.js';
 import {initRepoIssueList} from './features/repo-issue-list.js';
 import {initCommonIssueListQuickGoto} from './features/common-issue-list.js';
+import {initRepoContributors} from './features/contributors.js';
 
 // Init Gitea's Fomantic settings
 initGiteaFomantic();
@@ -137,7 +137,6 @@ onDomReady(() => {
   initOrgTeamSettings();
 
   initRepoActivityTopAuthorsChart();
-  initRepoContributorsChart();
   initRepoArchiveLinks();
   initRepoBranchButton();
   initRepoCodeView();
@@ -169,6 +168,7 @@ onDomReady(() => {
   initRepoWikiForm();
   initRepository();
   initRepositoryActionView();
+  initRepoContributors();
 
   initCommitStatuses();
   initCaptcha();
