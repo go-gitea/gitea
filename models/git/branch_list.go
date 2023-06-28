@@ -57,19 +57,17 @@ func (branches BranchList) LoadPusher(ctx context.Context) error {
 	return nil
 }
 
-// LoadAllBranches loads all branches of a repository from database includes deleted branches
-func LoadAllBranches(ctx context.Context, repoID int64) (BranchList, error) {
-	var branches []*Branch
-	err := db.GetEngine(ctx).Where("repo_id=?", repoID).
-		Find(&branches)
-	return branches, err
-}
+const (
+	BranchOrderByNameAsc        = "name ASC"
+	BranchOrderByCommitTimeDesc = "commit_time DESC"
+)
 
 type FindBranchOptions struct {
 	db.ListOptions
 	RepoID             int64
 	ExcludeBranchNames []string
 	IsDeletedBranch    util.OptionalBool
+	OrderBy            string
 }
 
 func (opts *FindBranchOptions) Cond() builder.Cond {
@@ -96,6 +94,10 @@ func FindBranches(ctx context.Context, opts FindBranchOptions) (BranchList, int6
 	if opts.PageSize > 0 && !opts.IsListAll() {
 		sess = db.SetSessionPagination(sess, &opts.ListOptions)
 	}
+	if opts.OrderBy == "" {
+		opts.OrderBy = BranchOrderByCommitTimeDesc
+	}
+	sess = sess.OrderBy(opts.OrderBy)
 
 	var branches []*Branch
 	total, err := sess.FindAndCount(&branches)
@@ -110,20 +112,13 @@ func FindBranchNames(ctx context.Context, opts FindBranchOptions) ([]string, err
 	if opts.PageSize > 0 && !opts.IsListAll() {
 		sess = db.SetSessionPagination(sess, &opts.ListOptions)
 	}
+	if opts.OrderBy == "" {
+		opts.OrderBy = BranchOrderByCommitTimeDesc
+	}
+	sess = sess.OrderBy(opts.OrderBy)
 	var branches []string
 	if err := sess.Table("branch").Find(&branches); err != nil {
 		return nil, err
 	}
 	return branches, nil
-}
-
-func GetDeletedBranches(ctx context.Context, repoID int64) (BranchList, error) {
-	branches, _, err := FindBranches(ctx, FindBranchOptions{
-		ListOptions: db.ListOptions{
-			PageSize: -1,
-		},
-		RepoID:          repoID,
-		IsDeletedBranch: util.OptionalBoolTrue,
-	})
-	return branches, err
 }

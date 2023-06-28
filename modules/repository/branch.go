@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -43,7 +44,7 @@ func SyncRepoBranches(ctx context.Context, repoID, doerID int64) error {
 }
 
 func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doerID int64) error {
-	allBranches := make(map[string]struct{})
+	allBranches := container.Set[string]{}
 	{
 		branches, _, err := gitRepo.GetBranchNames(0, 0)
 		if err != nil {
@@ -51,13 +52,18 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 		}
 		log.Trace("SyncRepoBranches[%s]: branches[%d]: %v", repo.FullName(), len(branches), branches)
 		for _, branch := range branches {
-			allBranches[branch] = struct{}{}
+			allBranches.Add(branch)
 		}
 	}
 
 	dbBranches := make(map[string]*git_model.Branch)
 	{
-		branches, err := git_model.LoadAllBranches(ctx, repo.ID)
+		branches, _, err := git_model.FindBranches(ctx, git_model.FindBranchOptions{
+			ListOptions: db.ListOptions{
+				ListAll: true,
+			},
+			RepoID: repo.ID,
+		})
 		if err != nil {
 			return err
 		}
@@ -79,17 +85,17 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 			toAdd = append(toAdd, &git_model.Branch{
 				RepoID:        repo.ID,
 				Name:          branch,
-				CommitSHA:     commit.ID.String(),
+				CommitID:      commit.ID.String(),
 				CommitMessage: commit.CommitMessage,
 				PusherID:      doerID,
 				CommitTime:    timeutil.TimeStamp(commit.Author.When.Unix()),
 			})
-		} else if commit.ID.String() != dbb.CommitSHA {
+		} else if commit.ID.String() != dbb.CommitID {
 			toUpdate = append(toUpdate, &git_model.Branch{
 				ID:            dbb.ID,
 				RepoID:        repo.ID,
 				Name:          branch,
-				CommitSHA:     commit.ID.String(),
+				CommitID:      commit.ID.String(),
 				CommitMessage: commit.CommitMessage,
 				PusherID:      doerID,
 				CommitTime:    timeutil.TimeStamp(commit.Author.When.Unix()),
@@ -98,8 +104,7 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 	}
 
 	for _, dbBranch := range dbBranches {
-		_, found := dbBranches[dbBranch.Name]
-		if !found && !dbBranch.IsDeleted {
+		if !allBranches.Contains(dbBranch.Name) && !dbBranch.IsDeleted {
 			toRemove = append(toRemove, dbBranch.ID)
 		}
 	}

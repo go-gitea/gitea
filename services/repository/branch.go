@@ -56,7 +56,7 @@ func CreateNewBranch(ctx context.Context, doer *user_model.User, repo *repo_mode
 
 // Branch contains the branch information
 type Branch struct {
-	RawBranch         *git_model.Branch
+	DBBranch          *git_model.Branch
 	IsProtected       bool
 	IsIncluded        bool
 	CommitsAhead      int
@@ -67,12 +67,12 @@ type Branch struct {
 
 // LoadBranches loads branches from the repository limited by page & pageSize.
 func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, isDeletedBranch util.OptionalBool, page, pageSize int) (*Branch, []*Branch, int64, error) {
-	defaultRawBranch, err := git_model.GetBranch(ctx, repo.ID, repo.DefaultBranch)
+	defaultDBBranch, err := git_model.GetBranch(ctx, repo.ID, repo.DefaultBranch)
 	if err != nil {
 		return nil, nil, 0, err
 	}
 
-	rawBranches, totalNumOfBranches, err := git_model.FindBranches(ctx, git_model.FindBranchOptions{
+	dbBranches, totalNumOfBranches, err := git_model.FindBranches(ctx, git_model.FindBranchOptions{
 		RepoID:             repo.ID,
 		ExcludeBranchNames: []string{repo.DefaultBranch},
 		IsDeletedBranch:    isDeletedBranch,
@@ -85,10 +85,10 @@ func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		return nil, nil, 0, err
 	}
 
-	if err := rawBranches.LoadDeletedBy(ctx); err != nil {
+	if err := dbBranches.LoadDeletedBy(ctx); err != nil {
 		return nil, nil, 0, err
 	}
-	if err := rawBranches.LoadPusher(ctx); err != nil {
+	if err := dbBranches.LoadPusher(ctx); err != nil {
 		return nil, nil, 0, err
 	}
 
@@ -103,9 +103,9 @@ func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	repoIDToGitRepo := map[int64]*git.Repository{}
 	repoIDToGitRepo[repo.ID] = gitRepo
 
-	branches := make([]*Branch, 0, len(rawBranches))
-	for i := range rawBranches {
-		branch, err := loadOneBranch(ctx, repo, rawBranches[i], &rules, repoIDToRepo, repoIDToGitRepo)
+	branches := make([]*Branch, 0, len(dbBranches))
+	for i := range dbBranches {
+		branch, err := loadOneBranch(ctx, repo, dbBranches[i], &rules, repoIDToRepo, repoIDToGitRepo)
 		if err != nil {
 			return nil, nil, 0, fmt.Errorf("loadOneBranch: %v", err)
 		}
@@ -114,8 +114,8 @@ func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	}
 
 	// Always add the default branch
-	log.Debug("loadOneBranch: load default: '%s'", defaultRawBranch.Name)
-	defaultBranch, err := loadOneBranch(ctx, repo, defaultRawBranch, &rules, repoIDToRepo, repoIDToGitRepo)
+	log.Debug("loadOneBranch: load default: '%s'", defaultDBBranch.Name)
+	defaultBranch, err := loadOneBranch(ctx, repo, defaultDBBranch, &rules, repoIDToRepo, repoIDToGitRepo)
 	if err != nil {
 		return nil, nil, 0, fmt.Errorf("loadOneBranch: %v", err)
 	}
@@ -123,13 +123,13 @@ func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	return defaultBranch, branches, totalNumOfBranches, nil
 }
 
-func loadOneBranch(ctx context.Context, repo *repo_model.Repository, rawBranch *git_model.Branch, protectedBranches *git_model.ProtectedBranchRules,
+func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *git_model.Branch, protectedBranches *git_model.ProtectedBranchRules,
 	repoIDToRepo map[int64]*repo_model.Repository,
 	repoIDToGitRepo map[int64]*git.Repository,
 ) (*Branch, error) {
-	log.Trace("loadOneBranch: '%s'", rawBranch.Name)
+	log.Trace("loadOneBranch: '%s'", dbBranch.Name)
 
-	branchName := rawBranch.Name
+	branchName := dbBranch.Name
 	p := protectedBranches.GetFirstMatched(branchName)
 	isProtected := p != nil
 
@@ -139,7 +139,7 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, rawBranch *
 	}
 
 	// it's not default branch
-	if repo.DefaultBranch != rawBranch.Name && !rawBranch.IsDeleted {
+	if repo.DefaultBranch != dbBranch.Name && !dbBranch.IsDeleted {
 		var err error
 		divergence, err = files_service.CountDivergingCommits(ctx, repo, git.BranchPrefix+branchName)
 		if err != nil {
@@ -151,7 +151,7 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, rawBranch *
 	if err != nil {
 		return nil, fmt.Errorf("GetLatestPullRequestByHeadInfo: %v", err)
 	}
-	headCommit := rawBranch.CommitSHA
+	headCommit := dbBranch.CommitID
 
 	mergeMovedOn := false
 	if pr != nil {
@@ -191,7 +191,7 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, rawBranch *
 
 	isIncluded := divergence.Ahead == 0 && repo.DefaultBranch != branchName
 	return &Branch{
-		RawBranch:         rawBranch,
+		DBBranch:          dbBranch,
 		IsProtected:       isProtected,
 		IsIncluded:        isIncluded,
 		CommitsAhead:      divergence.Ahead,
@@ -366,10 +366,9 @@ type BranchSyncOptions struct {
 	DoerID int64
 }
 
-// branchSyncQueue represents a queue to handle branch s
+// branchSyncQueue represents a queue to handle branch sync jobs.
 var branchSyncQueue *queue.WorkerPoolQueue[*BranchSyncOptions]
 
-// handle passed PR IDs and test the PRs
 func handlerBranchSync(items ...*BranchSyncOptions) []*BranchSyncOptions {
 	var failedOptions []*BranchSyncOptions
 	for _, opts := range items {

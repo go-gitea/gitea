@@ -11,6 +11,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -27,7 +28,7 @@ func TestAddDeletedBranch(t *testing.T) {
 	secondBranch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: repo.ID, Name: "branch2"})
 	assert.True(t, secondBranch.IsDeleted)
 
-	err := git_model.UpdateBranch(db.DefaultContext, repo.ID, secondBranch.Name, secondBranch.CommitSHA, secondBranch.CommitMessage, secondBranch.PusherID, secondBranch.CommitTime.AsLocalTime())
+	err := git_model.UpdateBranch(db.DefaultContext, repo.ID, secondBranch.Name, secondBranch.CommitID, secondBranch.CommitMessage, secondBranch.PusherID, secondBranch.CommitTime.AsLocalTime())
 	assert.NoError(t, err)
 }
 
@@ -35,7 +36,13 @@ func TestGetDeletedBranches(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	branches, err := git_model.GetDeletedBranches(db.DefaultContext, repo.ID)
+	branches, _, err := git_model.FindBranches(db.DefaultContext, git_model.FindBranchOptions{
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		RepoID:          repo.ID,
+		IsDeletedBranch: util.OptionalBoolTrue,
+	})
 	assert.NoError(t, err)
 	assert.Len(t, branches, 2)
 }
@@ -85,7 +92,7 @@ func getDeletedBranch(t *testing.T, branch *git_model.Branch) *git_model.Branch 
 	assert.NoError(t, err)
 	assert.Equal(t, branch.ID, deletedBranch.ID)
 	assert.Equal(t, branch.Name, deletedBranch.Name)
-	assert.Equal(t, branch.CommitSHA, deletedBranch.CommitSHA)
+	assert.Equal(t, branch.CommitID, deletedBranch.CommitID)
 	assert.Equal(t, branch.DeletedByID, deletedBranch.DeletedByID)
 
 	return deletedBranch

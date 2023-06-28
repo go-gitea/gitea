@@ -16,14 +16,14 @@ import (
 func AddBranchTable(x *xorm.Engine) error {
 	type Branch struct {
 		ID            int64
-		RepoID        int64  `xorm:"index UNIQUE(s)"`
+		RepoID        int64  `xorm:"UNIQUE(s)"`
 		Name          string `xorm:"UNIQUE(s) NOT NULL"`
-		CommitSHA     string
+		CommitID      string
 		CommitMessage string `xorm:"TEXT"`
 		PusherID      int64
-		IsDeleted     bool
+		IsDeleted     bool `xorm:"index"`
 		DeletedByID   int64
-		DeletedUnix   timeutil.TimeStamp
+		DeletedUnix   timeutil.TimeStamp `xorm:"index"`
 		CommitTime    timeutil.TimeStamp // The commit
 		CreatedUnix   timeutil.TimeStamp `xorm:"created"`
 		UpdatedUnix   timeutil.TimeStamp `xorm:"updated"`
@@ -65,7 +65,7 @@ func AddBranchTable(x *xorm.Engine) error {
 		branches = append(branches, Branch{
 			RepoID:      deletedBranch.RepoID,
 			Name:        deletedBranch.Name,
-			CommitSHA:   deletedBranch.Commit,
+			CommitID:    deletedBranch.Commit,
 			PusherID:    adminUserID,
 			IsDeleted:   true,
 			DeletedByID: deletedBranch.DeletedByID,

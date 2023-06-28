@@ -101,14 +101,14 @@ type Branch struct {
 	ID            int64
 	RepoID        int64  `xorm:"UNIQUE(s)"`
 	Name          string `xorm:"UNIQUE(s) NOT NULL"`
-	CommitSHA     string
+	CommitID      string
 	CommitMessage string `xorm:"TEXT"`
 	PusherID      int64
 	Pusher        *user_model.User `xorm:"-"`
-	IsDeleted     bool
+	IsDeleted     bool             `xorm:"index"`
 	DeletedByID   int64
-	DeletedBy     *user_model.User `xorm:"-"`
-	DeletedUnix   timeutil.TimeStamp
+	DeletedBy     *user_model.User   `xorm:"-"`
+	DeletedUnix   timeutil.TimeStamp `xorm:"index"`
 	CommitTime    timeutil.TimeStamp // The commit
 	CreatedUnix   timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix   timeutil.TimeStamp `xorm:"updated"`
@@ -208,7 +208,7 @@ func UpdateBranch(ctx context.Context, repoID int64, branchName, commitID, commi
 	cnt, err := db.GetEngine(ctx).Where("repo_id=? AND name=?", repoID, branchName).
 		Cols("commit_sha, commit_message, pusher_id, commit_time, is_deleted, updated_unix").
 		Update(&Branch{
-			CommitSHA:     commitID,
+			CommitID:      commitID,
 			CommitMessage: commitMessage,
 			PusherID:      pusherID,
 			CommitTime:    timeutil.TimeStamp(commitTime.Unix()),
@@ -224,7 +224,7 @@ func UpdateBranch(ctx context.Context, repoID int64, branchName, commitID, commi
 	return db.Insert(ctx, &Branch{
 		RepoID:        repoID,
 		Name:          branchName,
-		CommitSHA:     commitID,
+		CommitID:      commitID,
 		CommitMessage: commitMessage,
 		PusherID:      pusherID,
 		CommitTime:    timeutil.TimeStamp(commitTime.Unix()),
