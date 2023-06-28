@@ -116,6 +116,10 @@ func loadOAuth2From(rootCfg ConfigProvider) {
 		return
 	}
 
+	if !OAuth2.Enable {
+		return
+	}
+
 	if !filepath.IsAbs(OAuth2.JWTSigningPrivateKeyFile) {
 		OAuth2.JWTSigningPrivateKeyFile = filepath.Join(AppDataPath, OAuth2.JWTSigningPrivateKeyFile)
 	}
