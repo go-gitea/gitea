@@ -1,6 +1,6 @@
 <div class="ui dropdown tiny basic button" data-tooltip-content="{{.locale.Tr "repo.pulls.select_commits"}}">
 	{{svg "octicon-git-commit"}}
-	<div class="menu">
+	<div class="menu commit-selector-menu">
 		<a class="vertical item" href="{{$.Issue.Link}}/files?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}">
 			<span class="description gt-ellipsis">
 				{{.locale.Tr "repo.pulls.show_all_commits.description"}}

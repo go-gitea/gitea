@@ -3345,3 +3345,8 @@ tbody.commit-list {
   max-width: calc(100% - 10ch);
   display: inline-block;
 }
+
+.commit-selector-menu {
+  max-height: 60vh;
+  overflow-y: auto;
+}
