@@ -1,10 +1,3 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository commits">
-	{{template "repo/header" .}}
-	<div class="ui container">
-		{{if .Permission.CanRead $.UnitTypeCode}}
-				<div id="repo-contributors-chart"></div>
-		{{end}}
-	</div>
-</div>
-{{template "base/footer" .}}
+{{if .Permission.CanRead $.UnitTypeCode}}
+	<div id="repo-contributors-chart"></div>
+{{end}}

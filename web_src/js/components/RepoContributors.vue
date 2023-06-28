@@ -35,16 +35,16 @@
             </span>
           </div>
           <div class="menu">
-            <a :class="type === 'commits' ? 'active item' : 'item'" :href="`${repoLink}/contributors/commits`">Commits</a>
-            <a :class="type === 'additions' ? 'active item' : 'item'" :href="`${repoLink}/contributors/additions`">Additions</a>
-            <a :class="type === 'deletions' ? 'active item' : 'item'" :href="`${repoLink}/contributors/deletions`">Deletions</a>
+            <a :class="type === 'commits' ? 'active item' : 'item'" :href="`${repoLink}/activity/contributors/commits`">Commits</a>
+            <a :class="type === 'additions' ? 'active item' : 'item'" :href="`${repoLink}/activity/contributors/additions`">Additions</a>
+            <a :class="type === 'deletions' ? 'active item' : 'item'" :href="`${repoLink}/activity/contributors/deletions`">Deletions</a>
           </div>
         </div>
       </div>
     </h2>
     <div class="ui divider"/>
     <div style="height: 380px">
-      <Line
+      <CLine
         v-if="Object.keys(totalStats).length !== 0"
         :data="toGraphData(totalStats.weeks)"
         :options="getOptions('main')"
@@ -82,7 +82,7 @@
         </div>
         <div class="ui attached segment">
           <div>
-            <Line
+            <CLine
               :data="toGraphData(contributor.weeks)"
               :options="getOptions('contributor')"
             />
@@ -94,7 +94,6 @@
 </template>
 
 <script>
-import {createApp} from 'vue';
 import {SvgIcon} from '../svg.js';
 import {
   Chart,
@@ -110,7 +109,7 @@ import {
   Filler,
 } from 'chart.js';
 import zoomPlugin from 'chartjs-plugin-zoom';
-import {Line} from 'vue-chartjs';
+import {Line as CLine} from 'vue-chartjs';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 
 const {pageData} = window.config;
@@ -129,8 +128,8 @@ Chart.register(
   zoomPlugin
 );
 
-const sfc = {
-  components: {Line, SvgIcon},
+export default {
+  components: {CLine, SvgIcon},
   data: () => {
     return {
       isLoading: false,
@@ -142,9 +141,6 @@ const sfc = {
       dateUntil: null,
     };
   },
-  mounted() {
-    this.fetchGraphData();
-  },
   computed: {
     sortedContributors() {
       return Object.values(this.contributorsStats).sort((a, b) =>
@@ -152,10 +148,13 @@ const sfc = {
       ).slice(0, 100);
     },
   },
+  mounted() {
+    this.fetchGraphData();
+  },
   methods: {
     async fetchGraphData() {
       this.isLoading = true;
-      fetch(`${this.repoLink}/contributors/data`)
+      fetch(`${this.repoLink}/activity/contributors/data`)
         .then((response) => response.json())
         .then((data) => {
           const {total, ...rest} = data;
@@ -273,20 +272,10 @@ const sfc = {
           },
           y: {
             min: 0,
-            max: this.maxMainGraph(),
           },
         },
       };
     },
   },
 };
-
-export function initRepoContributorsChart() {
-  const el = document.getElementById('repo-contributors-chart');
-  if (el) {
-    createApp(sfc).mount(el);
-  }
-}
-
-export default sfc; // activate the IDE's Vue plugin
 </script>
