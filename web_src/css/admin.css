@@ -15,32 +15,27 @@
   flex-wrap: wrap;
 }
 
-.admin dl.admin-dl-horizontal dd {
-  margin-left: auto;
-  width: calc(100% - 245px);
-}
-
-@media (max-width: 767.98px) {
-  .admin dl.admin-dl-horizontal dd {
-    width: calc(100% - 185px);
-  }
-}
-
-/* divider needs explicit width to become visible here */
+/* divider needs explicit width because the parent container is "display: flex" */
 .admin dl.admin-dl-horizontal .ui.divider {
   width: 100%;
 }
 
-.admin dl.admin-dl-horizontal dt {
-  font-weight: var(--font-weight-semibold);
-  width: 220px;
-  margin-right: 5px;
+.admin dl.admin-dl-horizontal dt,
+.admin dl.admin-dl-horizontal dd {
+  line-height: 1;
+  padding: 5px 0;
 }
 
-@media (max-width: 767.98px) {
-  .admin dl.admin-dl-horizontal dt {
-    width: 160px;
-  }
+.admin dl.admin-dl-horizontal dt {
+  width: 300px;
+  max-width: calc(100% - 100px - 1em);
+  font-weight: var(--font-weight-semibold);
+}
+
+.admin dl.admin-dl-horizontal dd {
+  margin-left: auto;
+  width: calc(100% - 300px - 1em);
+  min-width: 100px;
 }
 
 .admin code,
