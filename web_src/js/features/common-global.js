@@ -9,6 +9,7 @@ import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
 import {createTippy} from '../modules/tippy.js';
 import {confirmModal} from './comp/ConfirmModal.js';
+import {showErrorToast} from '../modules/toast.js';
 
 const {appUrl, appSubUrl, csrfToken, i18n} = window.config;
 
@@ -439,7 +440,7 @@ export function initGlobalButtons() {
       return;
     }
     // should never happen, otherwise there is a bug in code
-    alert('Nothing to hide');
+    showErrorToast('Nothing to hide');
   });
 
   initGlobalShowModal();

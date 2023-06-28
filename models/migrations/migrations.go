@@ -506,6 +506,8 @@ var migrations = []Migration{
 	// v261 -> v262
 	NewMigration("Add variable table", v1_21.CreateVariableTable),
 	// v262 -> v263
+	NewMigration("Add TriggerEvent to action_run table", v1_21.AddTriggerEventToActionRun),
+	// v263 -> v264
 	NewMigration("Add git_size and lfs_size columns to repository table", v1_21.AddGitSizeAndLFSSizeToRepositoryTable),
 }
 
