@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -323,6 +324,12 @@ func Logs(ctx *context_module.Context) {
 		return
 	}
 
+	err := job.LoadRun(ctx)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	task, err := actions_model.GetTaskByID(ctx, job.TaskID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
@@ -340,8 +347,12 @@ func Logs(ctx *context_module.Context) {
 	}
 	defer reader.Close()
 
+	workflowName := job.Run.WorkflowID
+	if p := strings.Index(workflowName, "."); p > 0 {
+		workflowName = workflowName[0:p]
+	}
 	ctx.ServeContent(reader, &context_module.ServeHeaderOptions{
-		Filename:           job.Name + ".txt",
+		Filename:           fmt.Sprintf("%v-%v-%v.log", workflowName, job.Name, task.ID),
 		ContentLength:      &task.LogSize,
 		ContentType:        "text/plain",
 		ContentTypeCharset: "utf-8",
