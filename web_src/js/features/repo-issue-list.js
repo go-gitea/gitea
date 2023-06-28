@@ -4,6 +4,7 @@ import {toggleElem} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
 import {Sortable} from 'sortablejs';
 import {confirmModal} from './comp/ConfirmModal.js';
+import {showErrorToast} from '../modules/toast.js';
 
 function initRepoIssueListCheckboxes() {
   const $issueSelectAll = $('.issue-checkbox-all');
@@ -75,7 +76,7 @@ function initRepoIssueListCheckboxes() {
     ).then(() => {
       window.location.reload();
     }).catch((reason) => {
-      window.alert(reason.responseJSON.error);
+      showErrorToast(reason.responseJSON.error);
     });
   });
 }
