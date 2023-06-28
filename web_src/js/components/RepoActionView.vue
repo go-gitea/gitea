@@ -442,7 +442,7 @@ const sfc = {
         // so logline can be selected by querySelector
         await this.loadJob();
       }
-      const logline = this.$refs.steps.querySelector(`${selectedLogStep}`);
+      const logline = this.$refs.steps.querySelector(selectedLogStep);
       if (!logline) return;
       const logSummary = this.$refs.steps.querySelector(`.job-step-section:nth-of-type(${parseInt(step) + 1}) > .job-step-summary`);
       const offset = logSummary.offsetHeight + document.querySelector('.job-info-header').offsetHeight;
