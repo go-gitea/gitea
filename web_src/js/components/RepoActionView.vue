@@ -283,13 +283,14 @@ const sfc = {
     createLogLine(line, startTime, stepIndex) {
       const div = document.createElement('div');
       div.classList.add('job-log-line');
-      div.setAttribute('id', `step-${stepIndex}-${line.index}`);
+      div.setAttribute('id', `jobstep-${stepIndex}-${line.index}`);
       div._jobLogTime = line.timestamp;
 
       const lineNumber = document.createElement('a');
-      lineNumber.className = 'line-num';
+      lineNumber.classList.add('line-num');
+      lineNumber.classList.add('muted');
       lineNumber.textContent = line.index;
-      lineNumber.setAttribute('href', `${this.run.link}/jobs/${this.jobIndex}#step-${stepIndex}-${line.index}`);
+      lineNumber.setAttribute('href', `${this.run.link}/jobs/${this.jobIndex}#jobstep-${stepIndex}-${line.index}`);
       div.append(lineNumber);
 
       // for "Show timestamps"
@@ -443,12 +444,12 @@ const sfc = {
         // so logline can be selected by querySelector
         await this.loadJob();
       }
-      const logline = this.$refs.steps.querySelector(selectedLogStep);
-      if (!logline) return;
+      const logLine = this.$refs.steps.querySelector(selectedLogStep);
+      if (!logLine) return;
       const logSummary = this.$refs.steps.querySelector(`.job-step-section:nth-of-type(${parseInt(step) + 1}) > .job-step-summary`);
       const offset = logSummary.offsetHeight + document.querySelector('.job-info-header').offsetHeight;
-      logline.querySelector('.line-num').click();
-      window.scrollTo({top: logline.offsetTop - offset, behavior: 'instant'});
+      logLine.querySelector('.line-num').click();
+      window.scrollTo({top: logLine.offsetTop - offset, behavior: 'instant'});
     }
   },
 };
@@ -821,7 +822,8 @@ export function initRepositoryActionView() {
   display: flex;
 }
 
-.job-step-section .job-step-logs .job-log-line:hover, .job-log-line:target {
+.job-step-section .job-step-logs .job-log-line:hover,
+.job-log-line:target {
   background-color: var(--color-console-hover-bg);
 }
 
@@ -833,7 +835,7 @@ export function initRepositoryActionView() {
   user-select: none;
 }
 
-.job-log-line:target > .line-num, .line-num:hover {
+.job-log-line:target > .line-num {
   color: var(--color-primary);
   text-decoration: underline;
 }
