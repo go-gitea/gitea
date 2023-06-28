@@ -1354,11 +1354,11 @@ func ViewIssue(ctx *context.Context) {
 		ctx.Data["PageIsIssueList"] = true
 		ctx.Data["NewIssueChooseTemplate"] = issue_service.HasTemplatesOrContactLinks(ctx.Repo.Repository, ctx.Repo.GitRepo)
 
-		// assemble data for close/reopen button
+		// assemble data for close/reopen issue dropdown.
 		var btnItems []IssueCloseBtnItem
 		for _, item := range issueCloseBtnItems {
 			if !issue.IsClosed && item.Value == issues_model.IssueClosedStatus(-1) {
-				// if issue is open, do not append "reopen" btn item
+				// if issue is open, do not append "reopen" btn item.
 				continue
 			}
 			if issue.IsClosed && item.Value == issue.ClosedStatus {
