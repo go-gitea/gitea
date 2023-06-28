@@ -131,7 +131,7 @@
 										{{end}}
 									</td>
 									<td class="three wide right aligned overflow-visible">
-									<button class="btn interact-bg gt-p-3" data-clipboard-text="{{.Name}}" data-tooltip-content="{{$.locale.Tr "repo.branch.copy_branch_name"}}">{{svg "octicon-copy"}}</button>
+										<button class="btn interact-bg gt-p-3" data-clipboard-text="{{.Name}}" data-tooltip-content="{{$.locale.Tr "repo.branch.copy_branch_name"}}">{{svg "octicon-copy"}}</button>
 										{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
 											<button class="btn interact-bg gt-p-3 show-modal show-create-branch-modal"
 												data-branch-from="{{.Name}}"
