@@ -108,7 +108,9 @@ func main() {
 		cmd.CmdActions,
 	}
 
-	// default configuration flags
+	// shared configuration flags, they are for global and for each sub-command at the same time
+	// eg: such command is valid: "./gitea --config /tmp/app.ini web --config /tmp/app.ini", while it's discouraged indeed
+	// keep in mind that the short flags like "-C", "-c" and "-w" are globally polluted, they can't be used for sub-commands anymore.
 	globalFlags := []cli.Flag{
 		cli.HelpFlag,
 		cli.StringFlag{
@@ -128,9 +130,10 @@ func main() {
 
 	// Set the default to be equivalent to cmdWeb and add the default flags
 	app.Flags = append(app.Flags, globalFlags...)
-	app.Flags = append(app.Flags, cmd.CmdWeb.Flags...)
+	app.Flags = append(app.Flags, cmd.CmdWeb.Flags...) // TODO: the web flags polluted the global flags, they are not really global flags
 	app.Action = prepareWorkPathAndCustomConf(cmd.CmdWeb.Action)
 	app.HideHelp = true // use our own help action to show helps (with more information like default config)
+	app.Before = cmd.PrepareConsoleLoggerLevel(log.INFO)
 	app.Commands = append(app.Commands, cmdHelp)
 	for i := range app.Commands {
 		prepareSubcommands(&app.Commands[i], globalFlags)
