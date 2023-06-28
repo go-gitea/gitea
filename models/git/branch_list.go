@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 type BranchList []*Branch
@@ -95,15 +96,23 @@ func CountBranches(ctx context.Context, opts FindBranchOptions) (int64, error) {
 	return db.GetEngine(ctx).Where(opts.Cond()).Count(&Branch{})
 }
 
+func orderByBranches(sess *xorm.Session, opts FindBranchOptions) *xorm.Session {
+	if !opts.IsDeletedBranch.IsFalse() { // if deleted branch included, put them at the end
+		sess = sess.OrderBy("is_deleted ASC")
+	}
+
+	if opts.OrderBy == "" {
+		opts.OrderBy = BranchOrderByCommitTimeDesc
+	}
+	return sess.OrderBy(opts.OrderBy)
+}
+
 func FindBranches(ctx context.Context, opts FindBranchOptions) (BranchList, error) {
 	sess := db.GetEngine(ctx).Where(opts.Cond())
 	if opts.PageSize > 0 && !opts.IsListAll() {
 		sess = db.SetSessionPagination(sess, &opts.ListOptions)
 	}
-	if opts.OrderBy == "" {
-		opts.OrderBy = BranchOrderByCommitTimeDesc
-	}
-	sess = sess.OrderBy(opts.OrderBy)
+	sess = orderByBranches(sess, opts)
 
 	var branches []*Branch
 	return branches, sess.Find(&branches)
@@ -114,10 +123,7 @@ func FindBranchNames(ctx context.Context, opts FindBranchOptions) ([]string, err
 	if opts.PageSize > 0 && !opts.IsListAll() {
 		sess = db.SetSessionPagination(sess, &opts.ListOptions)
 	}
-	if opts.OrderBy == "" {
-		opts.OrderBy = BranchOrderByCommitTimeDesc
-	}
-	sess = sess.OrderBy(opts.OrderBy)
+	sess = orderByBranches(sess, opts)
 	var branches []string
 	if err := sess.Table("branch").Find(&branches); err != nil {
 		return nil, err

@@ -206,7 +206,7 @@ func DeleteBranches(ctx context.Context, repoID, doerID int64, branchIDs []int64
 // If it doest not exist, insert a new record into database
 func UpdateBranch(ctx context.Context, repoID int64, branchName, commitID, commitMessage string, pusherID int64, commitTime time.Time) error {
 	cnt, err := db.GetEngine(ctx).Where("repo_id=? AND name=?", repoID, branchName).
-		Cols("commit_sha, commit_message, pusher_id, commit_time, is_deleted, updated_unix").
+		Cols("commit_id, commit_message, pusher_id, commit_time, is_deleted, updated_unix").
 		Update(&Branch{
 			CommitID:      commitID,
 			CommitMessage: commitMessage,
@@ -233,6 +233,14 @@ func UpdateBranch(ctx context.Context, repoID int64, branchName, commitID, commi
 
 // AddDeletedBranch adds a deleted branch to the database
 func AddDeletedBranch(ctx context.Context, repoID int64, branchName string, deletedByID int64) error {
+	branch, err := GetBranch(ctx, repoID, branchName)
+	if err != nil {
+		return err
+	}
+	if branch.IsDeleted {
+		return nil
+	}
+
 	cnt, err := db.GetEngine(ctx).Where("repo_id=? AND name=? AND is_deleted=?", repoID, branchName, false).
 		Cols("is_deleted, deleted_by_id, deleted_unix").
 		Update(&Branch{
