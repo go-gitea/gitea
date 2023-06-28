@@ -406,6 +406,7 @@ func initBranchSyncQueue(ctx context.Context) error {
 
 	if cnt == 0 {
 		go func() {
+			// doerID is 0 means no pusher will be displayed in the branch list ui
 			if err := AddAllRepoBranchesToSyncQueue(ctx, 0); err != nil {
 				log.Error("AddAllRepoBranchesToSyncQueue: %v", err)
 			}
@@ -415,7 +416,7 @@ func initBranchSyncQueue(ctx context.Context) error {
 }
 
 func AddAllRepoBranchesToSyncQueue(ctx context.Context, doerID int64) error {
-	if err := db.Iterate(graceful.GetManager().ShutdownContext(), builder.Eq{"is_empty": false}, func(ctx context.Context, repo *repo_model.Repository) error {
+	if err := db.Iterate(ctx, builder.Eq{"is_empty": false}, func(ctx context.Context, repo *repo_model.Repository) error {
 		return addRepoToBranchSyncQueue(repo.ID, doerID)
 	}); err != nil {
 		return fmt.Errorf("run sync all branches failed: %v", err)

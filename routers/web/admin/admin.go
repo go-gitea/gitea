@@ -14,6 +14,7 @@ import (
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -138,7 +139,7 @@ func DashboardPost(ctx *context.Context) {
 		switch form.Op {
 		case "sync_repo_sync":
 			go func() {
-				if err := repo_service.AddAllRepoBranchesToSyncQueue(ctx, ctx.Doer.ID); err != nil {
+				if err := repo_service.AddAllRepoBranchesToSyncQueue(graceful.GetManager().HammerContext(), ctx.Doer.ID); err != nil {
 					log.Error("AddAllRepoBranchesToSyncQueue: %v: %v", ctx.Doer.ID, err)
 				}
 			}()
