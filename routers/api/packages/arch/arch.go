@@ -23,12 +23,14 @@ func Push(ctx *context.Context) {
 		owner    = ctx.Params("username")
 		filename = ctx.Req.Header.Get("filename")
 		email    = ctx.Req.Header.Get("email")
-		sign     = ctx.Req.Header.Get("sign")
 		distro   = ctx.Req.Header.Get("distro")
+		sendtime = ctx.Req.Header.Get("time")
+		pkgsign  = ctx.Req.Header.Get("pkgsign")
+		metasign = ctx.Req.Header.Get("metasign")
 	)
 
 	// Decoding package signature.
-	sigdata, err := hex.DecodeString(sign)
+	sigdata, err := hex.DecodeString(pkgsign)
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
@@ -44,6 +46,34 @@ func Push(ctx *context.Context) {
 
 	// Get user and organization owning arch package.
 	user, org, err := arch_service.IdentifyOwner(ctx, owner, email)
+	if err != nil {
+		apiError(ctx, http.StatusUnauthorized, err)
+		return
+	}
+
+	// Decoding time when message was created.
+	t, err := time.Parse(time.RFC3339, sendtime)
+	if err != nil {
+		apiError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	if time.Since(t) > time.Hour {
+		apiError(ctx, http.StatusUnauthorized, "outdated message")
+		return
+	}
+
+	// Decoding signature related to metadata.
+	msigdata, err := hex.DecodeString(metasign)
+	if err != nil {
+		apiError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	// Validating metadata signature, to ensure that operation push operation
+	// is initiated by original package owner.
+	sendmetadata := []byte(owner + filename + sendtime)
+	err = arch_service.ValidateSignature(ctx, sendmetadata, msigdata, user)
 	if err != nil {
 		apiError(ctx, http.StatusUnauthorized, err)
 		return
@@ -198,10 +228,17 @@ func Remove(ctx *context.Context) {
 	defer ctx.Req.Body.Close()
 
 	// Validate package signature with any of user's GnuPG keys.
-	mesdata := []byte(stime + owner + target)
+	mesdata := []byte(owner + target + stime)
 	err = arch_service.ValidateSignature(ctx, mesdata, sigdata, user)
 	if err != nil {
 		apiError(ctx, http.StatusUnauthorized, err)
+		return
+	}
+
+	// Remove pacman database entries related to package.
+	err = arch_service.RemoveDbEntry(ctx, arch, owner, distro, target, version)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -213,13 +250,6 @@ func Remove(ctx *context.Context) {
 		Name:         target,
 		Version:      version,
 	})
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	// Remove pacman database entries related to package.
-	err = arch_service.RemoveDbEntry(ctx, arch, owner, distro, target, version)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
