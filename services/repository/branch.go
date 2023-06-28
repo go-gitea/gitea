@@ -371,7 +371,6 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 
 type BranchSyncOptions struct {
 	RepoID int64
-	DoerID int64
 }
 
 // branchSyncQueue represents a queue to handle branch sync jobs.
@@ -379,9 +378,9 @@ var branchSyncQueue *queue.WorkerPoolQueue[*BranchSyncOptions]
 
 func handlerBranchSync(items ...*BranchSyncOptions) []*BranchSyncOptions {
 	for _, opts := range items {
-		_, err := repo_module.SyncRepoBranches(graceful.GetManager().ShutdownContext(), opts.RepoID, opts.DoerID)
+		_, err := repo_module.SyncRepoBranches(graceful.GetManager().ShutdownContext(), opts.RepoID, 0)
 		if err != nil {
-			log.Error("syncRepoBranches [%d:%d] failed: %v", opts.RepoID, opts.DoerID, err)
+			log.Error("syncRepoBranches [%d] failed: %v", opts.RepoID, err)
 		}
 	}
 	return nil
@@ -390,12 +389,11 @@ func handlerBranchSync(items ...*BranchSyncOptions) []*BranchSyncOptions {
 func addRepoToBranchSyncQueue(repoID, doerID int64) error {
 	return branchSyncQueue.Push(&BranchSyncOptions{
 		RepoID: repoID,
-		DoerID: doerID,
 	})
 }
 
 func initBranchSyncQueue(ctx context.Context) error {
-	branchSyncQueue = queue.CreateSimpleQueue(ctx, "branch_sync", handlerBranchSync)
+	branchSyncQueue = queue.CreateUniqueQueue(ctx, "branch_sync", handlerBranchSync)
 	if branchSyncQueue == nil {
 		return errors.New("unable to create branch_sync queue")
 	}
