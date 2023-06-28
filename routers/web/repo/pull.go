@@ -361,11 +361,6 @@ func GetPullDiffStats(ctx *context.Context) {
 	issue := checkPullInfo(ctx)
 	pull := issue.PullRequest
 
-	var (
-		endCommitID string
-		gitRepo     = ctx.Repo.GitRepo
-	)
-
 	mergeBaseCommitID := GetMergedBaseCommitID(ctx, issue)
 
 	if ctx.Written() {
@@ -375,31 +370,25 @@ func GetPullDiffStats(ctx *context.Context) {
 		return
 	}
 
-	headCommitID, err := gitRepo.GetRefCommitID(pull.GetGitRefName())
+	headCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(pull.GetGitRefName())
 	if err != nil {
 		ctx.ServerError("GetRefCommitID", err)
 		return
 	}
 
-	endCommitID = headCommitID
-
 	diffOptions := &gitdiff.DiffOptions{
 		BeforeCommitID:     mergeBaseCommitID,
-		AfterCommitID:      endCommitID,
+		AfterCommitID:      headCommitID,
 		MaxLines:           setting.Git.MaxGitDiffLines,
 		MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
 		MaxFiles:           setting.Git.MaxGitDiffFiles,
 		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
 	}
 
-	var methodWithError string
-	var diff *gitdiff.PullDiffStats
-
-	diff, err = gitdiff.GetPullDiffStats(gitRepo, diffOptions)
-	methodWithError = "GetPullDiffStats"
+	diff, err := gitdiff.GetPullDiffStats(ctx.Repo.GitRepo, diffOptions)
 
 	if err != nil {
-		ctx.ServerError(methodWithError, err)
+		ctx.ServerError("GetPullDiffStats", err)
 		return
 	}
 
