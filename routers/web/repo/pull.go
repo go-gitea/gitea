@@ -707,6 +707,20 @@ func ViewPullFiles(ctx *context.Context) {
 		prInfo = PrepareViewPullInfo(ctx, issue)
 	}
 
+	// Validate the given commit sha to show (if any passed)
+	if willShowSingleCommit {
+		foundCommit := false
+		for i := range prInfo.Commits {
+			if prInfo.Commits[i].ID.String() == commitToShow {
+				foundCommit = true
+			}
+		}
+		if !foundCommit {
+			ctx.NotFound("Given SHA1 not found for this PR", nil)
+			return
+		}
+	}
+
 	if ctx.Written() {
 		return
 	} else if prInfo == nil {
