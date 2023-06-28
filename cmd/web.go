@@ -35,6 +35,7 @@ var CmdWeb = cli.Command{
 	Usage: "Start Gitea web server",
 	Description: `Gitea web server is the only thing you need to run,
 and it takes care of all the other things for you`,
+	Before: PrepareConsoleLoggerLevel(log.INFO),
 	Action: runWeb,
 	Flags: []cli.Flag{
 		cli.StringFlag{
@@ -206,11 +207,6 @@ func servePprof() {
 }
 
 func runWeb(ctx *cli.Context) error {
-	if ctx.Bool("verbose") {
-		setupConsoleLogger(log.TRACE, log.CanColorStdout, os.Stdout)
-	} else if ctx.Bool("quiet") {
-		setupConsoleLogger(log.FATAL, log.CanColorStdout, os.Stdout)
-	}
 	defer func() {
 		if panicked := recover(); panicked != nil {
 			log.Fatal("PANIC: %v\n%s", panicked, log.Stack(2))
