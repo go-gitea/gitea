@@ -478,7 +478,7 @@
 }
 
 .repository.file.list .non-diff-file-content .asciicast {
-  padding: 5px !important;
+  padding: 0 !important;
 }
 
 .non-diff-file-content .attached.segment,
@@ -1903,7 +1903,7 @@
 
 .repository.settings.collaboration .collaborator.list > .item {
   margin: 0;
-  line-height: 2em;
+  line-height: 2;
 }
 
 .repository.settings.collaboration #repo-collab-form #search-user-box .results {
@@ -2601,7 +2601,7 @@
 .labels-list .label {
   margin: 2px 0;
   display: inline-flex !important;
-  line-height: 1.3em; /* there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly */
+  line-height: 1.3; /* there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly */
 }
 
 /* Scoped labels with different colors on left and right */
