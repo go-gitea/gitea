@@ -2056,11 +2056,6 @@ table th[data-sortt-desc] .svg {
   border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
-.ui.dropdown .menu > .divider {
-  border-top: 1px solid var(--color-secondary);
-  margin: 4px 0;
-}
-
 .ui.multiple.dropdown > .label {
   box-shadow: 0 0 0 1px var(--color-secondary) inset;
 }
