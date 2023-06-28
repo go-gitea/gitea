@@ -88,6 +88,9 @@ func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	if err := rawBranches.LoadDeletedBy(ctx); err != nil {
 		return nil, nil, 0, err
 	}
+	if err := rawBranches.LoadPusher(ctx); err != nil {
+		return nil, nil, 0, err
+	}
 
 	rules, err := git_model.FindRepoProtectedBranchRules(ctx, repo.ID)
 	if err != nil {
@@ -392,11 +395,8 @@ func initBranchSyncQueue(ctx context.Context) error {
 	}
 	go graceful.GetManager().RunWithCancel(branchSyncQueue)
 
-	admin, err := user_model.GetAdminUser(ctx)
-	if err != nil {
-		return fmt.Errorf("user_model.GetAdminUser: %v", err)
-	}
-
+	// for test env, this will return empty because data hasn't been loaded yet
+	// but that env don't need the sync
 	cnt, err := git_model.CountBranches(ctx, git_model.FindBranchOptions{
 		IsDeletedBranch: util.OptionalBoolFalse,
 	})
@@ -406,7 +406,7 @@ func initBranchSyncQueue(ctx context.Context) error {
 
 	if cnt == 0 {
 		go func() {
-			if err := AddAllRepoBranchesToSyncQueue(ctx, admin.ID); err != nil {
+			if err := AddAllRepoBranchesToSyncQueue(ctx, 0); err != nil {
 				log.Error("AddAllRepoBranchesToSyncQueue: %v", err)
 			}
 		}()

@@ -104,6 +104,7 @@ type Branch struct {
 	CommitSHA     string
 	CommitMessage string `xorm:"TEXT"`
 	PusherID      int64
+	Pusher        *user_model.User `xorm:"-"`
 	IsDeleted     bool
 	DeletedByID   int64
 	DeletedBy     *user_model.User `xorm:"-"`
@@ -113,11 +114,22 @@ type Branch struct {
 	UpdatedUnix   timeutil.TimeStamp `xorm:"updated"`
 }
 
-func (b *Branch) LoadUser(ctx context.Context) (err error) {
+func (b *Branch) LoadDeletedBy(ctx context.Context) (err error) {
 	if b.DeletedBy == nil {
 		b.DeletedBy, err = user_model.GetUserByID(ctx, b.DeletedByID)
 		if user_model.IsErrUserNotExist(err) {
 			b.DeletedBy = user_model.NewGhostUser()
+			err = nil
+		}
+	}
+	return err
+}
+
+func (b *Branch) LoadPusher(ctx context.Context) (err error) {
+	if b.Pusher == nil && b.PusherID > 0 {
+		b.Pusher, err = user_model.GetUserByID(ctx, b.PusherID)
+		if user_model.IsErrUserNotExist(err) {
+			b.Pusher = user_model.NewGhostUser()
 			err = nil
 		}
 	}

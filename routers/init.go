@@ -107,7 +107,7 @@ func InitWebInstallPage(ctx context.Context) {
 }
 
 // InitWebInstalled is for global installed configuration.
-func InitWebInstalled(ctx context.Context, extraDBPrepare func() error) {
+func InitWebInstalled(ctx context.Context) {
 	mustInitCtx(ctx, git.InitFull)
 	log.Info("Git version: %s (home: %s)", git.VersionInfo(), git.HomeDir())
 
@@ -134,11 +134,6 @@ func InitWebInstalled(ctx context.Context, extraDBPrepare func() error) {
 
 	mustInitCtx(ctx, common.InitDBEngine)
 	log.Info("ORM engine initialization successful!")
-	if extraDBPrepare != nil {
-		if err := extraDBPrepare(); err != nil {
-			log.Fatal("prepare database data failed: %v", err)
-		}
-	}
 	mustInit(system.Init)
 	mustInit(oauth2.Init)
 

@@ -23,7 +23,7 @@
 									{{svg "octicon-shield-lock"}}
 								{{end}}
 								<a href="{{.RepoLink}}/src/branch/{{PathEscapeSegments .DefaultBranchBranch.RawBranch.Name}}">{{.DefaultBranchBranch.RawBranch.Name}}</a>
-								<p class="info gt-df gt-ac gt-my-2">{{svg "octicon-git-commit" 16 "gt-mr-2"}}<a href="{{.RepoLink}}/commit/{{PathEscape .DefaultBranchBranch.RawBranch.CommitSHA}}">{{ShortSha .DefaultBranchBranch.RawBranch.CommitSHA}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .DefaultBranchBranch.RawBranch.CommitMessage .RepoLink .Repository.ComposeMetas}}</span> · {{.locale.Tr "org.repo_updated"}} {{TimeSince .DefaultBranchBranch.RawBranch.CommitTime.AsTime .locale}}</p>
+								<p class="info gt-df gt-ac gt-my-2">{{svg "octicon-git-commit" 16 "gt-mr-2"}}<a href="{{.RepoLink}}/commit/{{PathEscape .DefaultBranchBranch.RawBranch.CommitSHA}}">{{ShortSha .DefaultBranchBranch.RawBranch.CommitSHA}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .DefaultBranchBranch.RawBranch.CommitMessage .RepoLink .Repository.ComposeMetas}}</span> · {{.locale.Tr "org.repo_updated"}} {{TimeSince .DefaultBranchBranch.RawBranch.CommitTime.AsTime .locale}}{{if .DefaultBranchBranch.RawBranch.Pusher}} &nbsp;{{template "shared/user/avatarlink" dict "Context" $.Context "user" .DefaultBranchBranch.RawBranch.Pusher}}{{template "shared/user/namelink" .DefaultBranchBranch.RawBranch.Pusher}}{{end}}</p>
 							</td>
 							<td class="right aligned overflow-visible">
 								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
@@ -74,7 +74,7 @@
 					<tbody>
 						{{range .Branches}}
 							<tr>
-								<td class="six wide">
+								<td class="eight wide">
 								{{if .RawBranch.IsDeleted}}
 									<s><a href="{{$.RepoLink}}/src/branch/{{PathEscapeSegments .RawBranch.Name}}">{{.RawBranch.Name}}</a></s>
 									<p class="info">{{$.locale.Tr "repo.branch.deleted_by" .RawBranch.DeletedBy.Name}} {{TimeSinceUnix .RawBranch.DeletedUnix $.locale}}</p>
@@ -83,10 +83,10 @@
 										{{svg "octicon-shield-lock"}}
 									{{end}}
 									<a href="{{$.RepoLink}}/src/branch/{{PathEscapeSegments .RawBranch.Name}}">{{.RawBranch.Name}}</a>
-									<p class="info gt-df gt-ac gt-my-2">{{svg "octicon-git-commit" 16 "gt-mr-2"}}<a href="{{$.RepoLink}}/commit/{{PathEscape .RawBranch.CommitSHA}}">{{ShortSha .RawBranch.CommitSHA}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .RawBranch.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.locale.Tr "org.repo_updated"}} {{TimeSince .RawBranch.CommitTime.AsTime $.locale}}</p>
+									<p class="info gt-df gt-ac gt-my-2">{{svg "octicon-git-commit" 16 "gt-mr-2"}}<a href="{{$.RepoLink}}/commit/{{PathEscape .RawBranch.CommitSHA}}">{{ShortSha .RawBranch.CommitSHA}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .RawBranch.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.locale.Tr "org.repo_updated"}} {{TimeSince .RawBranch.CommitTime.AsTime $.locale}}{{if .RawBranch.Pusher}} &nbsp;{{template "shared/user/avatarlink" dict "Context" $.Context "user" .RawBranch.Pusher}} &nbsp;{{template "shared/user/namelink" .RawBranch.Pusher}}{{end}}</p>
 								{{end}}
 								</td>
-								<td class="three wide ui">
+								<td class="two wide ui">
 									{{if and (not .RawBranch.IsDeleted) $.DefaultBranchBranch}}
 									<div class="commit-divergence">
 										<div class="bar-group">
@@ -101,7 +101,7 @@
 									</div>
 									{{end}}
 								</td>
-								<td class="three wide right aligned">
+								<td class="two wide right aligned">
 									{{if not .LatestPullRequest}}
 										{{if .IsIncluded}}
 											<span class="ui orange large label" data-tooltip-content="{{$.locale.Tr "repo.branch.included_desc"}}">

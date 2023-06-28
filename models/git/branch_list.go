@@ -34,6 +34,29 @@ func (branches BranchList) LoadDeletedBy(ctx context.Context) error {
 	return nil
 }
 
+func (branches BranchList) LoadPusher(ctx context.Context) error {
+	ids := container.Set[int64]{}
+	for _, branch := range branches {
+		if branch.PusherID > 0 {
+			ids.Add(branch.PusherID)
+		}
+	}
+	usersMap := make(map[int64]*user_model.User, len(ids))
+	if err := db.GetEngine(ctx).In("id", ids.Values()).Find(&usersMap); err != nil {
+		return err
+	}
+	for _, branch := range branches {
+		if branch.PusherID <= 0 {
+			continue
+		}
+		branch.Pusher = usersMap[branch.PusherID]
+		if branch.Pusher == nil {
+			branch.Pusher = user_model.NewGhostUser()
+		}
+	}
+	return nil
+}
+
 // LoadAllBranches loads all branches of a repository from database includes deleted branches
 func LoadAllBranches(ctx context.Context, repoID int64) (BranchList, error) {
 	var branches []*Branch
