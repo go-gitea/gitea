@@ -328,6 +328,10 @@ func Logs(ctx *context_module.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
+	if task.LogExpired {
+		ctx.Error(http.StatusNotFound, "logs have been cleaned up")
+		return
+	}
 
 	reader, err := actions.OpenLogs(ctx, task.LogInStorage, task.LogFilename)
 	if err != nil {
