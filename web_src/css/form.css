@@ -41,6 +41,11 @@ textarea,
   color: var(--color-input-text);
 }
 
+.ui.read-only.checkbox label::before,
+.ui.read-only.checkbox input:checked ~ label::before {
+  opacity: var(--opacity-disabled);
+}
+
 input:hover,
 textarea:hover,
 .ui.input input:hover,
@@ -96,6 +101,11 @@ textarea:focus,
   color: var(--color-input-text);
 }
 
+.ui.read-only.checkbox input:focus ~ label::before,
+.ui.read-only.checkbox input:checked:focus ~ label::before {
+  border-color: var(--color-input-border);
+}
+
 .ui.form .field > label,
 .ui.form .inline.fields > label,
 .ui.form .inline.fields .field > label,
@@ -130,6 +140,10 @@ textarea:focus,
 .ui.disabled.checkbox label,
 .ui.checkbox input[disabled] ~ label {
   color: var(--color-input-text);
+}
+
+.ui.read-only.checkbox input:checked ~ label::after {
+  opacity: var(--opacity-disabled);
 }
 
 .ui.radio.checkbox input:focus ~ label::after,
