@@ -281,7 +281,8 @@
 }
 
 .repository.file.list #repo-files-table tbody .svg.octicon-file,
-.repository.file.list #repo-files-table tbody .svg.octicon-file-symlink-file {
+.repository.file.list #repo-files-table tbody .svg.octicon-file-symlink-file,
+.repository.file.list #repo-files-table tbody .svg.octicon-file-directory-symlink {
   color: var(--color-secondary-dark-7);
 }
 
@@ -477,7 +478,7 @@
 }
 
 .repository.file.list .non-diff-file-content .asciicast {
-  padding: 5px !important;
+  padding: 0 !important;
 }
 
 .non-diff-file-content .attached.segment,
@@ -1559,7 +1560,6 @@
 .repository .diff-detail-box {
   padding: 7px 0;
   background: var(--color-body);
-  line-height: 30px;
 }
 
 @media (max-width: 991.98px) {
@@ -1666,8 +1666,9 @@
   background-color: var(--color-teal);
 }
 
-.repository .diff-detail-box .button {
-  padding: 8px 12px;
+.repository .diff-detail-box .ui.button {
+  padding: 0 12px;
+  height: 30px;
 }
 
 .repository .diff-box .header:not(.resolved-placeholder) {
@@ -1701,6 +1702,10 @@
 .repository .diff-box .resolved-placeholder {
   display: flex;
   align-items: center;
+  font-size: 14px !important;
+  height: 36px;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .repository .diff-box .resolved-placeholder .button {
@@ -1725,10 +1730,6 @@
 .repository .diff-file-box .file-body.file-code .lines-num span.fold {
   display: block;
   text-align: center;
-}
-
-.repository .diff-file-box .code-diff {
-  font-size: 12px;
 }
 
 .repository .diff-file-box .code-diff td {
@@ -1876,63 +1877,19 @@
   flex: 1
 }
 
-.repository.packages .empty {
+.repository.packages .empty,
+.repository.actions .empty {
   padding-top: 70px;
   padding-bottom: 100px;
-}
-
-.repository.packages .empty .svg {
-  height: 48px;
 }
 
 .repository.packages .file-size {
   white-space: nowrap;
 }
 
-.repository.wiki.start .ui.segment {
-  padding-top: 70px;
-  padding-bottom: 100px;
-}
-
-.repository.wiki.start .ui.segment .svg {
-  height: 48px;
-}
-
-.repository.wiki.new .ui.attached.tabular.menu.previewtabs {
-  margin-bottom: 15px;
-}
-
 .file-view.markup {
   padding: 1em 2em;
 }
-
-.wiki-content-main {
-  padding: 1em 2em !important;
-  margin-left: 1em !important;
-}
-
-.wiki-pages-list .wiki-git-entry {
-  margin-left: 10px;
-  display: none;
-}
-
-.wiki-pages-list td:hover .wiki-git-entry {
-  display: inline-block;
-}
-
-@media (max-width: 767.98px) {
-  .repository.wiki .dividing.header .stackable.grid .button {
-    margin-top: 2px;
-    margin-bottom: 2px;
-  }
-}
-
-@media (max-width: 767.98px) {
-  .repository.wiki #clone-panel #repo-clone-url {
-    width: 160px;
-  }
-}
-
 .repository .activity-header {
   display: flex;
   justify-content: space-between;
@@ -1946,11 +1903,7 @@
 
 .repository.settings.collaboration .collaborator.list > .item {
   margin: 0;
-  line-height: 2em;
-}
-
-.repository.settings.collaboration .collaborator.list > .item:not(:last-child) {
-  border-bottom: 1px solid var(--color-secondary);
+  line-height: 2;
 }
 
 .repository.settings.collaboration #repo-collab-form #search-user-box .results {
@@ -2497,14 +2450,17 @@
   left: 7px;
 }
 
-.comment-header .actions a {
-  margin-right: 0 !important;
+.comment-header .actions a:not(.label) {
   padding: 0.5rem !important;
 }
 
-.comment-header-left > * + *,
-.comment-header-right > * + * {
-  margin-left: 0.25rem;
+.comment-header .actions .label {
+  margin: 0 !important;
+}
+
+.comment-header-left,
+.comment-header-right {
+  gap: 4px;
 }
 
 .comment-body {
@@ -2645,7 +2601,7 @@
 .labels-list .label {
   margin: 2px 0;
   display: inline-flex !important;
-  line-height: 1.3em; /* there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly */
+  line-height: 1.3; /* there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly */
 }
 
 /* Scoped labels with different colors on left and right */
@@ -2991,22 +2947,6 @@ tbody.commit-list {
   flex-direction: column;
 }
 
-.wiki-content-sidebar .ui.message.unicode-escape-prompt p,
-.wiki-content-footer .ui.message.unicode-escape-prompt p {
-  display: none;
-}
-
-.wiki-content-toc ul {
-  margin: 0;
-  list-style: none;
-  padding: 5px 0 5px 1em;
-}
-
-.wiki-content-toc ul ul {
-  border-left:  1px var(--color-secondary);
-  border-left-style: dashed;
-}
-
 /* fomantic's last-child selector does not work with hidden last child */
 .ui.buttons .unescape-button {
   border-top-right-radius: 0.28571429rem;
@@ -3160,16 +3100,35 @@ tbody.commit-list {
   }
 }
 
-.repository.migrate .card {
+.migrate-entries {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 25px;
+  margin: 0 !important;
+}
+
+@media (max-width: 767.98px) {
+  .migrate-entries {
+    grid-template-columns: repeat(1, 1fr);
+  }
+}
+
+.migrate-entry {
   transition: all 0.1s ease-in-out;
   box-shadow: none !important;
   border: 1px solid var(--color-secondary);
-  color: var(--color-text);
+  color: var(--color-text) !important;
+  width: auto !important;
+  margin: 0 !important;
 }
 
-.repository.migrate .card:hover {
+.migrate-entry:hover {
   transform: scale(105%);
   box-shadow: 0 0.5rem 1rem var(--color-shadow) !important;
+}
+
+.migrate-entry .description {
+  text-wrap: balance;
 }
 
 @media (max-width: 767.98px) {

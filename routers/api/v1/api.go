@@ -777,11 +777,11 @@ func Routes() *web.Route {
 		m.Group("/notifications", func() {
 			m.Combo("").
 				Get(notify.ListNotifications).
-				Put(notify.ReadNotifications, reqToken())
+				Put(reqToken(), notify.ReadNotifications)
 			m.Get("/new", notify.NewAvailable)
 			m.Combo("/threads/{id}").
 				Get(notify.GetThread).
-				Patch(notify.ReadThread, reqToken())
+				Patch(reqToken(), notify.ReadThread)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryNotification))
 
 		// Users (requires user scope)
