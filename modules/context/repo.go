@@ -593,7 +593,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 
 	ctx.Data["RepoSearchEnabled"] = setting.Indexer.RepoIndexerEnabled
 	if setting.Indexer.RepoIndexerEnabled {
-		ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable()
+		ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable(ctx)
 	}
 
 	if ctx.IsSigned {

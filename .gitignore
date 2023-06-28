@@ -53,8 +53,6 @@ cpu.out
 /bin
 /dist
 /custom/*
-!/custom/conf
-/custom/conf/*
 !/custom/conf/app.example.ini
 /data
 /indexers
