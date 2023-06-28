@@ -378,15 +378,13 @@ type BranchSyncOptions struct {
 var branchSyncQueue *queue.WorkerPoolQueue[*BranchSyncOptions]
 
 func handlerBranchSync(items ...*BranchSyncOptions) []*BranchSyncOptions {
-	var failedOptions []*BranchSyncOptions
 	for _, opts := range items {
 		_, err := repo_module.SyncRepoBranches(graceful.GetManager().ShutdownContext(), opts.RepoID, opts.DoerID)
 		if err != nil {
 			log.Error("syncRepoBranches [%d:%d] failed: %v", opts.RepoID, opts.DoerID, err)
-			failedOptions = append(failedOptions, opts)
 		}
 	}
-	return failedOptions
+	return nil
 }
 
 func addRepoToBranchSyncQueue(repoID, doerID int64) error {
