@@ -40,7 +40,7 @@ test('matchEmoji', () => {
     '1st_place_medal',
   ]);
 
-  expect(matchEmoji('jellyfish')).toEqual([
+  expect(matchEmoji('jellyfis')).toEqual([
     'jellyfish',
   ]);
 });
