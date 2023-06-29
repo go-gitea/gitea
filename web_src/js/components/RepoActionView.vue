@@ -291,8 +291,7 @@ const sfc = {
       div._jobLogTime = line.timestamp;
 
       const lineNumber = document.createElement('a');
-      lineNumber.classList.add('line-num');
-      lineNumber.classList.add('muted');
+      lineNumber.classList.add('line-num', 'muted');
       lineNumber.textContent = line.index;
       lineNumber.setAttribute('href', `#jobstep-${stepIndex}-${line.index}`);
       div.append(lineNumber);
