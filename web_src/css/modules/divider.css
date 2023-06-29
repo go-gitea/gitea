@@ -1,4 +1,4 @@
-.ui.divider {
+.divider {
   margin: 1rem 0;
   height: 0;
   font-weight: var(--font-weight-medium);
@@ -8,28 +8,28 @@
   width: 100%;
 }
 
-.ui.divider:not(.horizontal) {
+.divider:not(.divider-text) {
   border-top: 1px solid var(--color-secondary);
 }
 
-.ui.horizontal.divider {
+.divider.divider-text {
   display: flex;
   align-items: center;
   padding: 7px 0;
 }
 
-.ui.horizontal.divider::before,
-.ui.horizontal.divider::after {
+.divider.divider-text::before,
+.divider.divider-text::after {
   content: "";
   flex: 1;
   border-top: 1px solid var(--color-secondary);
 }
 
-.ui.horizontal.divider::before {
+.divider.divider-text::before {
   margin-right: .75em;
 }
 
-.ui.horizontal.divider::after {
+.divider.divider-text::after {
   margin-left: .75em;
 }
 

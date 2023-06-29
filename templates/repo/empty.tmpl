@@ -44,7 +44,7 @@
 						</div>
 
 						{{if not .Repository.IsArchived}}
-							<div class="ui divider gt-my-0"></div>
+							<div class="divider gt-my-0"></div>
 
 							<div class="item">
 								<h3>{{.locale.Tr "repo.create_new_repo_command"}}</h3>
@@ -58,7 +58,7 @@ git remote add origin <span class="js-clone-url">{{$.CloneButtonOriginLink.HTTPS
 git push -u origin {{.Repository.DefaultBranch}}</code></pre>
 								</div>
 							</div>
-							<div class="ui divider"></div>
+							<div class="divider"></div>
 
 							<div class="item">
 								<h3>{{.locale.Tr "repo.push_exist_repo"}}</h3>

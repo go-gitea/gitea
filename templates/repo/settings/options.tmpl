@@ -50,7 +50,7 @@
 				</div>
 			</form>
 
-			<div class="ui divider"></div>
+			<div class="divider"></div>
 
 			<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
 				{{.CsrfTokenHtml}}
@@ -325,7 +325,7 @@
 					</div>
 				</div>
 
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 
 				{{$isIssuesEnabled := or (.Repository.UnitEnabled $.Context $.UnitTypeIssues) (.Repository.UnitEnabled $.Context $.UnitTypeExternalTracker)}}
 				{{$isIssuesGlobalDisabled := .UnitTypeIssues.UnitGlobalDisabled}}
@@ -419,7 +419,7 @@
 					</div>
 				</div>
 
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 
 				{{$isProjectsEnabled := .Repository.UnitEnabled $.Context $.UnitTypeProjects}}
 				{{$isProjectsGlobalDisabled := .UnitTypeProjects.UnitGlobalDisabled}}
@@ -464,7 +464,7 @@
 				{{end}}
 
 				{{if not .IsMirror}}
-					<div class="ui divider"></div>
+					<div class="divider"></div>
 					{{$pullRequestEnabled := .Repository.UnitEnabled $.Context $.UnitTypePullRequests}}
 					{{$pullRequestGlobalDisabled := .UnitTypePullRequests.UnitGlobalDisabled}}
 					{{$prUnit := .Repository.MustGetUnit $.Context $.UnitTypePullRequests}}
@@ -578,7 +578,7 @@
 					</div>
 				{{end}}
 
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 				<div class="field">
 					<button class="ui green button">{{$.locale.Tr "repo.settings.update_settings"}}</button>
 				</div>
@@ -624,7 +624,7 @@
 					</div>
 				</div>
 
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 				<div class="field">
 					<button class="ui green button">{{$.locale.Tr "repo.settings.update_settings"}}</button>
 				</div>
@@ -651,7 +651,7 @@
 				</div>
 			</form>
 
-			<div class="ui divider"></div>
+			<div class="divider"></div>
 			<form class="ui form" method="post">
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="admin_index">
@@ -708,7 +708,7 @@
 						<p>{{.locale.Tr "repo.settings.convert_desc"}}</p>
 					</div>
 				</div>
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 			{{end}}
 			{{if and .Repository.IsFork .Repository.Owner.CanCreateRepo}}
 				<div class="item">
@@ -720,7 +720,7 @@
 						<p>{{.locale.Tr "repo.settings.convert_fork_desc"}}</p>
 					</div>
 				</div>
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 			{{end}}
 			<div class="item">
 				<div class="ui right">
@@ -745,7 +745,7 @@
 			</div>
 
 			{{if .Permission.CanRead $.UnitTypeWiki}}
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 
 				<div class="item">
 					<div class="ui right">
@@ -758,7 +758,7 @@
 				</div>
 			{{end}}
 
-			<div class="ui divider"></div>
+			<div class="divider"></div>
 
 			<div class="item">
 				<div class="ui right">
@@ -771,7 +771,7 @@
 			</div>
 
 			{{if not .Repository.IsMirror}}
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 
 				<div class="item">
 					<div class="ui right">
