@@ -167,6 +167,9 @@ In case you fork act runner to create your own version: Please contribute the ch
 
 ## What workflow trigger events does Gitea support?
 
+All events listed in this table are supported events and are compatible with GitHub.
+For events supported only by GitHub, see GitHub's [documentation](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows).
+
 | trigger event               | activity types                                                                                                           |
 |-----------------------------|--------------------------------------------------------------------------------------------------------------------------|
 | create                      | not applicable                                                                                                           |
