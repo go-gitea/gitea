@@ -22,9 +22,9 @@ func (err ErrUserPasswordNotSet) Error() string {
 	return fmt.Sprintf("user's password isn't set [uid: %d, name: %s]", err.UID, err.Name)
 }
 
-// Unwrap unwraps this error as a ErrPermission error
+// Unwrap unwraps this error as a ErrInvalidArgument error
 func (err ErrUserPasswordNotSet) Unwrap() error {
-	return util.ErrPermissionDenied
+	return util.ErrInvalidArgument
 }
 
 // ErrUserPasswordInvalidate represents a "ErrUserPasswordInvalidate" kind of error.
@@ -37,9 +37,9 @@ func (err ErrUserPasswordInvalidate) Error() string {
 	return fmt.Sprintf("user's password is invalid [uid: %d, name: %s]", err.UID, err.Name)
 }
 
-// Unwrap unwraps this error as a ErrPermission error
+// Unwrap unwraps this error as a ErrInvalidArgument error
 func (err ErrUserPasswordInvalidate) Unwrap() error {
-	return util.ErrPermissionDenied
+	return util.ErrInvalidArgument
 }
 
 // Authenticate authenticates the provided user against the DB
