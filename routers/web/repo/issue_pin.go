@@ -31,7 +31,7 @@ func IssuePinOrUnpin(ctx *context.Context) {
 		return
 	}
 
-	ctx.Redirect(issue.Link())
+	ctx.JSONRedirect(issue.Link())
 }
 
 // IssueUnpin unpins a Issue
