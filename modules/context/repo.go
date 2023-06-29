@@ -667,13 +667,38 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	}
 	ctx.Data["Tags"] = tags
 
-	brs, _, err := ctx.Repo.GitRepo.GetBranchNames(0, 0)
+	branchOpts := git_model.FindBranchOptions{
+		RepoID:          ctx.Repo.Repository.ID,
+		IsDeletedBranch: util.OptionalBoolFalse,
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+	}
+	branchesTotal, err := git_model.CountBranches(ctx, branchOpts)
+	if err != nil {
+		ctx.ServerError("CountBranches", err)
+		return
+	}
+
+	// non empty repo should have at least 1 branch, so this repository's branches haven't been synced yet
+	if branchesTotal == 0 { // fallback to do a sync immediately
+		branchesTotal, err = repo_module.SyncRepoBranches(ctx, ctx.Repo.Repository.ID, 0)
+		if err != nil {
+			ctx.ServerError("SyncRepoBranches", err)
+			return
+		}
+	}
+
+	// FIXME: use paganation and async loading
+	branchOpts.ExcludeBranchNames = []string{ctx.Repo.Repository.DefaultBranch}
+	brs, err := git_model.FindBranchNames(ctx, branchOpts)
 	if err != nil {
 		ctx.ServerError("GetBranches", err)
 		return
 	}
-	ctx.Data["Branches"] = brs
-	ctx.Data["BranchesCount"] = len(brs)
+	// always put default branch on the top
+	ctx.Data["Branches"] = append(branchOpts.ExcludeBranchNames, brs...)
+	ctx.Data["BranchesCount"] = branchesTotal
 
 	// If not branch selected, try default one.
 	// If default branch doesn't exist, fall back to some other branch.
@@ -897,9 +922,9 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 		if len(ctx.Params("*")) == 0 {
 			refName = ctx.Repo.Repository.DefaultBranch
 			if !ctx.Repo.GitRepo.IsBranchExist(refName) {
-				brs, _, err := ctx.Repo.GitRepo.GetBranchNames(0, 0)
+				brs, _, err := ctx.Repo.GitRepo.GetBranches(0, 1)
 				if err == nil && len(brs) != 0 {
-					refName = brs[0]
+					refName = brs[0].Name
 				} else if len(brs) == 0 {
 					log.Error("No branches in non-empty repository %s", ctx.Repo.GitRepo.Path)
 					ctx.Repo.Repository.MarkAsBrokenEmpty()

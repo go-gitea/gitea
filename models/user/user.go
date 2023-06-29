@@ -1171,9 +1171,9 @@ func GetUserByOpenID(uri string) (*User, error) {
 }
 
 // GetAdminUser returns the first administrator
-func GetAdminUser() (*User, error) {
+func GetAdminUser(ctx context.Context) (*User, error) {
 	var admin User
-	has, err := db.GetEngine(db.DefaultContext).
+	has, err := db.GetEngine(ctx).
 		Where("is_admin=?", true).
 		Asc("id"). // Reliably get the admin with the lowest ID.
 		Get(&admin)

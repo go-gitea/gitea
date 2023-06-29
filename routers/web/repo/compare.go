@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -683,7 +684,13 @@ func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repositor
 	}
 	defer gitRepo.Close()
 
-	branches, _, err = gitRepo.GetBranchNames(0, 0)
+	branches, err = git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
+		RepoID: repo.ID,
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		IsDeletedBranch: util.OptionalBoolFalse,
+	})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -734,7 +741,13 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 
-	headBranches, _, err := ci.HeadGitRepo.GetBranchNames(0, 0)
+	headBranches, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
+		RepoID: ci.HeadRepo.ID,
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		IsDeletedBranch: util.OptionalBoolFalse,
+	})
 	if err != nil {
 		ctx.ServerError("GetBranches", err)
 		return

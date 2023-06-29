@@ -74,6 +74,10 @@
                 <SvgIcon name="octicon-gear" :size="18"/>
               </button>
               <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
+                <a class="item" :href="run.link+'/jobs/'+jobIndex+'/logs'" target="_blank">
+                  <i class="icon"><SvgIcon name="octicon-download"/></i>
+                  {{ locale.downloadLogs }}
+                </a>
                 <a class="item" @click="toggleTimeDisplay('seconds')">
                   <i class="icon"><SvgIcon v-show="timeVisible['log-time-seconds']" name="octicon-check"/></i>
                   {{ locale.showLogSeconds }}
@@ -453,6 +457,7 @@ export function initRepositoryActionView() {
       showTimeStamps: el.getAttribute('data-locale-show-timestamps'),
       showLogSeconds: el.getAttribute('data-locale-show-log-seconds'),
       showFullScreen: el.getAttribute('data-locale-show-full-screen'),
+      downloadLogs: el.getAttribute('data-locale-download-logs'),
       status: {
         unknown: el.getAttribute('data-locale-status-unknown'),
         waiting: el.getAttribute('data-locale-status-waiting'),

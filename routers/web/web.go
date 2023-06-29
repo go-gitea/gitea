@@ -1207,6 +1207,7 @@ func registerRoutes(m *web.Route) {
 						Get(actions.View).
 						Post(web.Bind(actions.ViewRequest{}), actions.ViewPost)
 					m.Post("/rerun", reqRepoActionsWriter, actions.RerunOne)
+					m.Get("/logs", actions.Logs)
 				})
 				m.Post("/cancel", reqRepoActionsWriter, actions.Cancel)
 				m.Post("/approve", reqRepoActionsWriter, actions.Approve)

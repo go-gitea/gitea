@@ -687,12 +687,12 @@ func handleCreateOrUpdateFileError(ctx *context.APIContext, err error) {
 		ctx.Error(http.StatusForbidden, "Access", err)
 		return
 	}
-	if models.IsErrBranchAlreadyExists(err) || models.IsErrFilenameInvalid(err) || models.IsErrSHADoesNotMatch(err) ||
+	if git_model.IsErrBranchAlreadyExists(err) || models.IsErrFilenameInvalid(err) || models.IsErrSHADoesNotMatch(err) ||
 		models.IsErrFilePathInvalid(err) || models.IsErrRepoFileAlreadyExists(err) {
 		ctx.Error(http.StatusUnprocessableEntity, "Invalid", err)
 		return
 	}
-	if models.IsErrBranchDoesNotExist(err) || git.IsErrBranchNotExist(err) {
+	if git_model.IsErrBranchNotExist(err) || git.IsErrBranchNotExist(err) {
 		ctx.Error(http.StatusNotFound, "BranchDoesNotExist", err)
 		return
 	}
@@ -843,7 +843,7 @@ func DeleteFile(ctx *context.APIContext) {
 		if git.IsErrBranchNotExist(err) || models.IsErrRepoFileDoesNotExist(err) || git.IsErrNotExist(err) {
 			ctx.Error(http.StatusNotFound, "DeleteFile", err)
 			return
-		} else if models.IsErrBranchAlreadyExists(err) ||
+		} else if git_model.IsErrBranchAlreadyExists(err) ||
 			models.IsErrFilenameInvalid(err) ||
 			models.IsErrSHADoesNotMatch(err) ||
 			models.IsErrCommitIDDoesNotMatch(err) ||
