@@ -14,7 +14,7 @@
 				</div>
 				<div class="inline field">
 					<label>{{.locale.Tr "repo.repo_size"}}</label>
-					<span>{{FileSize .Repository.Size}}</span>
+					<span {{if not (eq .Repository.Size 0)}} data-tooltip-content="{{.Repository.SizeDetailsString}}"{{end}}>{{FileSize .Repository.Size}}</span>
 				</div>
 				<div class="inline field">
 					<label>{{.locale.Tr "repo.template"}}</label>
