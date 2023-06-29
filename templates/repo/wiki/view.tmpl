@@ -20,7 +20,7 @@
 						</div>
 						<div class="scrolling menu">
 							<a class="item muted" href="{{.RepoLink}}/wiki/?action=_pages">{{.locale.Tr "repo.wiki.pages"}}</a>
-							<div class="ui divider"></div>
+							<div class="divider"></div>
 							{{range .Pages}}
 								<a class="item {{if eq $.Title .Name}}selected{{end}}" href="{{$.RepoLink}}/wiki/{{.SubURL}}">{{.Name}}</a>
 							{{end}}

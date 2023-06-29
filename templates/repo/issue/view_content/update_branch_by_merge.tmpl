@@ -1,5 +1,5 @@
 {{if and (gt $.Issue.PullRequest.CommitsBehind 0) (not $.Issue.IsClosed) (not $.Issue.PullRequest.IsChecking) (not $.IsPullFilesConflicted) (not $.IsPullRequestBroken)}}
-	<div class="ui divider"></div>
+	<div class="divider"></div>
 	<div class="item item-section">
 		<div class="item-section-left flex-text-inline">
 			{{svg "octicon-alert"}}

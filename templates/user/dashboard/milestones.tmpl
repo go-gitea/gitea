@@ -9,7 +9,7 @@
 						{{.locale.Tr "home.issues.in_your_repos"}}
 						<strong class="ui right">{{.Total}}</strong>
 					</div>
-					<div class="ui divider"></div>
+					<div class="divider"></div>
 					{{range .Repos}}
 						{{with $Repo := .}}
 							<a class="{{range $.RepoIDs}}{{if eq . $Repo.ID}}active{{end}}{{end}} repo name item" href="{{$.Link}}?repos=[
