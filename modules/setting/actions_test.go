@@ -98,6 +98,15 @@ STORAGE_TYPE = minio
 }
 
 func Test_getDefaultActionsURLForActions(t *testing.T) {
+	oldActions := Actions
+	oldAppUrl := AppURL
+	defer func() {
+		Actions = oldActions
+		AppURL = oldAppUrl
+	}()
+
+	AppURL = "http://test_get_default_actions_url_for_actions:3000/"
+
 	tests := []struct {
 		name    string
 		iniStr  string
@@ -124,13 +133,11 @@ DEFAULT_ACTIONS_URL = github
 		{
 			name: "self",
 			iniStr: `
-[server]
-ROOT_URL = http://localhost:3000
 [actions]
 DEFAULT_ACTIONS_URL = self
 `,
 			wantErr: assert.NoError,
-			wantURL: "http://localhost:3000",
+			wantURL: "http://test_get_default_actions_url_for_actions:3000",
 		},
 		{
 			name: "custom url",
@@ -165,7 +172,6 @@ DEFAULT_ACTIONS_URL = gitea
 		t.Run(tt.name, func(t *testing.T) {
 			cfg, err := NewConfigProviderFromData(tt.iniStr)
 			require.NoError(t, err)
-			loadServerFrom(cfg)
 			if !tt.wantErr(t, loadActionsFrom(cfg)) {
 				return
 			}
