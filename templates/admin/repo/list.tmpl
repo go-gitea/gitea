@@ -29,9 +29,13 @@
 							{{SortArrow "mostforks" "fewestforks" $.SortType false}}
 						</th>
 						<th>{{.locale.Tr "admin.repos.issues"}}</th>
-						<th  data-sortt-asc="size" data-sortt-desc="reversesize">
+						<th  data-sortt-asc="gitsize" data-sortt-desc="reversegitsize">
 							{{.locale.Tr "admin.repos.size"}}
-							{{SortArrow "size" "reversesize" $.SortType false}}
+							{{SortArrow "gitsize" "reversegitsize" $.SortType false}}
+						</th>
+						<th  data-sortt-asc="lfssize" data-sortt-desc="reverselfssize">
+							{{.locale.Tr "admin.repos.lfs_size"}}
+							{{SortArrow "lfssize" "reverselfssize" $.SortType false}}
 						</th>
 						<th>{{.locale.Tr "admin.auths.updated"}}</th>
 						<th>{{.locale.Tr "admin.users.created"}}</th>
@@ -80,7 +84,8 @@
 							<td>{{.NumStars}}</td>
 							<td>{{.NumForks}}</td>
 							<td>{{.NumIssues}}</td>
-							<td>{{FileSize .Size}}</td>
+							<td>{{FileSize .GitSize}}</td>
+							<td>{{FileSize .LFSSize}}</td>
 							<td>{{DateTime "short" .UpdatedUnix}}</td>
 							<td>{{DateTime "short" .CreatedUnix}}</td>
 							<td><a class="delete-button" href="" data-url="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}" data-id="{{.ID}}" data-name="{{.Name}}">{{svg "octicon-trash"}}</a></td>
