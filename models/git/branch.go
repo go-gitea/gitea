@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -157,6 +158,7 @@ func GetBranch(ctx context.Context, repoID int64, branchName string) (*Branch, e
 
 func AddBranches(ctx context.Context, branches []*Branch) error {
 	for _, branch := range branches {
+		branch.CommitMessage = git.SummaryOfCommitMessage(branch.CommitMessage)
 		if _, err := db.GetEngine(ctx).Insert(branch); err != nil {
 			return err
 		}
@@ -209,7 +211,7 @@ func UpdateBranch(ctx context.Context, repoID int64, branchName, commitID, commi
 		Cols("commit_id, commit_message, pusher_id, commit_time, is_deleted, updated_unix").
 		Update(&Branch{
 			CommitID:      commitID,
-			CommitMessage: commitMessage,
+			CommitMessage: git.SummaryOfCommitMessage(commitMessage),
 			PusherID:      pusherID,
 			CommitTime:    timeutil.TimeStamp(commitTime.Unix()),
 			IsDeleted:     false,
@@ -225,7 +227,7 @@ func UpdateBranch(ctx context.Context, repoID int64, branchName, commitID, commi
 		RepoID:        repoID,
 		Name:          branchName,
 		CommitID:      commitID,
-		CommitMessage: commitMessage,
+		CommitMessage: git.SummaryOfCommitMessage(commitMessage),
 		PusherID:      pusherID,
 		CommitTime:    timeutil.TimeStamp(commitTime.Unix()),
 	})

@@ -114,6 +114,7 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 		}
 
 		for _, b := range toUpdate {
+			b.CommitMessage = git.SummaryOfCommitMessage(b.CommitMessage)
 			if _, err := db.GetEngine(subCtx).ID(b.ID).
 				Cols("commit_id, commit_message, pusher_id, commit_time, is_deleted").
 				Update(b); err != nil {
