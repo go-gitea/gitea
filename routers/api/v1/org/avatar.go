@@ -24,6 +24,8 @@ func UpdateAvatar(ctx *context.APIContext) {
 	// - name: org
 	//   in: path
 	//   description: name of the organization
+	//   type: string
+	//   required: true
 	// - name: body
 	//   in: body
 	//   schema:
@@ -58,6 +60,8 @@ func DeleteAvatar(ctx *context.APIContext) {
 	// - name: org
 	//   in: path
 	//   description: name of the organization
+	//   type: string
+	//   required: true
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"

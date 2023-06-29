@@ -41,7 +41,7 @@ func TestAPIUpdateRepoAvatar(t *testing.T) {
 	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/avatar?token=%s", repo.OwnerName, repo.Name, token), &opts)
 	MakeRequest(t, req, http.StatusNoContent)
 
-	// Test what happens if you donÄt have a valid Base64 string
+	// Test what happens if you don't have a valid Base64 string
 	opts = api.UpdateRepoAvatarOption{
 		Image: "Invalid",
 	}

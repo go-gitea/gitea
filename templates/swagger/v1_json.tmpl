@@ -1607,9 +1607,11 @@
         "operationId": "orgUpdateAvatar",
         "parameters": [
           {
+            "type": "string",
             "description": "name of the organization",
             "name": "org",
-            "in": "path"
+            "in": "path",
+            "required": true
           },
           {
             "name": "body",
@@ -1636,9 +1638,11 @@
         "operationId": "orgDeleteAvatar",
         "parameters": [
           {
+            "type": "string",
             "description": "name of the organization",
             "name": "org",
-            "in": "path"
+            "in": "path",
+            "required": true
           }
         ],
         "responses": {
