@@ -13,15 +13,15 @@ import (
 )
 
 func TestMakeSelfOnTop(t *testing.T) {
-	users := makeSelfOnTop(&context.Context{}, []*user.User{{ID: 2}, {ID: 1}})
+	users := MakeSelfOnTop(&context.Context{}, []*user.User{{ID: 2}, {ID: 1}})
 	assert.Len(t, users, 2)
 	assert.EqualValues(t, 2, users[0].ID)
 
-	users = makeSelfOnTop(&context.Context{Doer: &user.User{ID: 1}}, []*user.User{{ID: 2}, {ID: 1}})
+	users = MakeSelfOnTop(&context.Context{Doer: &user.User{ID: 1}}, []*user.User{{ID: 2}, {ID: 1}})
 	assert.Len(t, users, 2)
 	assert.EqualValues(t, 1, users[0].ID)
 
-	users = makeSelfOnTop(&context.Context{Doer: &user.User{ID: 2}}, []*user.User{{ID: 2}, {ID: 1}})
+	users = MakeSelfOnTop(&context.Context{Doer: &user.User{ID: 2}}, []*user.User{{ID: 2}, {ID: 1}})
 	assert.Len(t, users, 2)
 	assert.EqualValues(t, 2, users[0].ID)
 }

@@ -27,7 +27,7 @@ menu:
 
 - 使用 `gogs backup` 建立 Gogs 的備份。這會建立檔案 `gogs-backup-[timestamp].zip` 包含所有重要的 Gogs 資料。
   如果稍後您要恢復到 `gogs` 時會用到它。
-- 從[下載頁](https://dl.gitea.io/gitea/)下載對應您平臺的檔案。請下載 `1.0.x` 版，從 `gogs` 遷移到其它版本是不可行的。
+- 從[下載頁](https://dl.gitea.com/gitea/)下載對應您平臺的檔案。請下載 `1.0.x` 版，從 `gogs` 遷移到其它版本是不可行的。
 - 將二進位檔放到適當的安裝位置。
 - 複製 `gogs/custom/conf/app.ini` 到 `gitea/custom/conf/app.ini`。
 - 從 `gogs/custom/` 複製自訂 `templates, public` 到 `gitea/custom/`。
@@ -77,10 +77,10 @@ menu:
 
 成功從 `gogs` 升級到 `gitea 1.0.x` 後再用 2 個步驟即可升級到最新版的 `gitea`。
 
-請先升級到 [`gitea 1.6.4`](https://dl.gitea.io/gitea/1.6.4/)，先從[下載頁](https://dl.gitea.io/gitea/1.6.4/)下載
+請先升級到 [`gitea 1.6.4`](https://dl.gitea.com/gitea/1.6.4/)，先從[下載頁](https://dl.gitea.com/gitea/1.6.4/)下載
 您平臺的二進位檔取代既有的。至少執行一次 Gitea 並確認一切符合預期。
 
-接著重複上述步驟，但這次請使用[最新發行版本](https://dl.gitea.io/gitea/{{< version >}}/)。
+接著重複上述步驟，但這次請使用[最新發行版本](https://dl.gitea.com/gitea/{{< version >}}/)。
 
 ## 從更新版本的 Gogs 升級
 

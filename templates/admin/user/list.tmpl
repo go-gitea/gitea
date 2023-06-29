@@ -51,8 +51,8 @@
 				</div>
 
 				<!-- Search Text -->
-				<div class="ui fluid action input" style="max-width: 70%;">
-					<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}..." autofocus>
+				<div class="ui fluid action input">
+					{{template "shared/searchinput" dict "locale" .locale "Value" .Keyword "AutoFocus" true}}
 					<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
 				</div>
 			</form>
