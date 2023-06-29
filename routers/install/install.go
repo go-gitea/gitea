@@ -390,7 +390,7 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("database").Key("LOG_SQL").SetValue("false") // LOG_SQL is rarely helpful
 
 	cfg.Section("repository").Key("ROOT").SetValue(form.RepoRootPath)
-	cfg.Section("server").Key("SSH_DOMAIN").SetValue(form.Domain)
+	cfg.Section("server").Key("SSH_DOMAIN").MustString(form.Domain)
 	cfg.Section("server").Key("DOMAIN").SetValue(form.Domain)
 	cfg.Section("server").Key("HTTP_PORT").SetValue(form.HTTPPort)
 	cfg.Section("server").Key("ROOT_URL").SetValue(form.AppURL)
