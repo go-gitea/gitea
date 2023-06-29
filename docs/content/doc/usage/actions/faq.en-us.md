@@ -164,3 +164,23 @@ Although we would like to provide more options, our limited manpower means that 
 However, both Gitea and act runner are completely open source, so anyone can create a new/better implementation.
 We support your choice, no matter how you decide.
 In case you fork act runner to create your own version: Please contribute the changes back if you can and if you think your changes will help others as well.
+
+## What workflow trigger events does Gitea support?
+
+All events listed in this table are supported events and are compatible with GitHub.
+For events supported only by GitHub, see GitHub's [documentation](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows).
+
+| trigger event               | activity types                                                                                                           |
+|-----------------------------|--------------------------------------------------------------------------------------------------------------------------|
+| create                      | not applicable                                                                                                           |
+| delete                      | not applicable                                                                                                           |
+| fork                        | not applicable                                                                                                           |
+| gollum                      | not applicable                                                                                                           |
+| push                        | not applicable                                                                                                           |
+| issues                      | `opened`, `edited`, `closed`, `reopened`, `assigned`, `unassigned`, `milestoned`, `demilestoned`, `labeled`, `unlabeled` |
+| issue_comment               | `created`, `edited`, `deleted`                                                                                           |
+| pull_request                | `opened`, `edited`, `closed`, `reopened`, `assigned`, `unassigned`, `synchronize`, `labeled`, `unlabeled`                |
+| pull_request_review         | `submitted`, `edited`                                                                                                    |
+| pull_request_review_comment | `created`, `edited`                                                                                                      |
+| release                     | `published`, `edited`                                                                                                    |
+| registry_package            | `published`                                                                                                              |
