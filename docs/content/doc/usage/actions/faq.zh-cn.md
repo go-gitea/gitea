@@ -164,3 +164,20 @@ defaults:
 然而，无论您如何决定，Gitea 和act runner都是完全开源的，所以任何人都可以创建一个新的/更好的实现。
 我们支持您的选择，无论您如何决定。
 如果您选择分支act runner来创建自己的版本，请在您认为您的更改对其他人也有帮助的情况下贡献这些更改。
+
+## Gitea 支持哪些工作流触发事件？
+
+| 触发事件                    | 活动类型                                                                                                                 |
+|-----------------------------|--------------------------------------------------------------------------------------------------------------------------|
+| create                      | 不适用                                                                                                                   |
+| delete                      | 不适用                                                                                                                   |
+| fork                        | 不适用                                                                                                                   |
+| gollum                      | 不适用                                                                                                                   |
+| push                        | 不适用                                                                                                                   |
+| issues                      | `opened`, `edited`, `closed`, `reopened`, `assigned`, `unassigned`, `milestoned`, `demilestoned`, `labeled`, `unlabeled` |
+| issue_comment               | `created`, `edited`, `deleted`                                                                                           |
+| pull_request                | `opened`, `edited`, `closed`, `reopened`, `assigned`, `unassigned`, `synchronize`, `labeled`, `unlabeled`                |
+| pull_request_review         | `submitted`, `edited`                                                                                                    |
+| pull_request_review_comment | `created`, `edited`                                                                                                      |
+| release                     | `published`, `edited`                                                                                                    |
+| registry_package            | `published`                                                                                                              |
