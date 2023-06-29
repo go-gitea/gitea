@@ -1384,8 +1384,9 @@ PROXY_HOSTS = *.github.com
 For example, `uses: actions/checkout@v3` means `https://github.com/actions/checkout@v3` since the value of `DEFAULT_ACTIONS_URL` is `github`.
 And it can be changed to `self` to make it `root_url_of_your_gitea/actions/checkout@v3`.
 
-Please note that `self` is not recommended for most cases, since it could make the names globally ambiguous.
-And you need mirror all the actions you need to your Gitea instance, so use `self` only if you understand what you are doing.
+Please note that using `self` is not recommended for most cases, as it could make names globally ambiguous.
+Additionally, it requires you to mirror all the actions you need to your Gitea instance, which may not be worth it.
+Therefore, please use `self` only if you understand what you are doing.
 
 In earlier versions (<= 1.19), `DEFAULT_ACTIONS_URL` cound be set to any custom URLs like `https://gitea.com` or `http://your-git-server,https://gitea.com`, and the default value was `https://gitea.com`.
 However, later updates removed those options, and now the only options are `github` and `self`, with the default value being `github`.
