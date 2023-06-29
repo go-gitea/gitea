@@ -99,10 +99,10 @@ STORAGE_TYPE = minio
 
 func Test_getDefaultActionsURLForActions(t *testing.T) {
 	oldActions := Actions
-	oldAppUrl := AppURL
+	oldAppURL := AppURL
 	defer func() {
 		Actions = oldActions
-		AppURL = oldAppUrl
+		AppURL = oldAppURL
 	}()
 
 	AppURL = "http://test_get_default_actions_url_for_actions:3000/"
