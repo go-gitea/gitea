@@ -785,7 +785,13 @@ func RetrieveRepoMetas(ctx *context.Context, repo *repo_model.Repository, isPull
 		return nil
 	}
 
-	brs, _, err := ctx.Repo.GitRepo.GetBranchNames(0, 0)
+	brs, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
+		RepoID: ctx.Repo.Repository.ID,
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		IsDeletedBranch: util.OptionalBoolFalse,
+	})
 	if err != nil {
 		ctx.ServerError("GetBranches", err)
 		return nil

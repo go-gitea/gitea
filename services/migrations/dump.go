@@ -642,7 +642,7 @@ func (g *RepositoryDumper) Finish() error {
 
 // DumpRepository dump repository according MigrateOptions to a local directory
 func DumpRepository(ctx context.Context, baseDir, ownerName string, opts base.MigrateOptions) error {
-	doer, err := user_model.GetAdminUser()
+	doer, err := user_model.GetAdminUser(ctx)
 	if err != nil {
 		return err
 	}
@@ -705,7 +705,7 @@ func updateOptionsUnits(opts *base.MigrateOptions, units []string) error {
 
 // RestoreRepository restore a repository from the disk directory
 func RestoreRepository(ctx context.Context, baseDir, ownerName, repoName string, units []string, validation bool) error {
-	doer, err := user_model.GetAdminUser()
+	doer, err := user_model.GetAdminUser(ctx)
 	if err != nil {
 		return err
 	}

@@ -509,6 +509,8 @@ var migrations = []Migration{
 	NewMigration("Add TriggerEvent to action_run table", v1_21.AddTriggerEventToActionRun),
 	// v263 -> v264
 	NewMigration("Add git_size and lfs_size columns to repository table", v1_21.AddGitSizeAndLFSSizeToRepositoryTable),
+	// v264 -> v265
+	NewMigration("Add branch table", v1_21.AddBranchTable),
 }
 
 // GetCurrentDBVersion returns the current db version
