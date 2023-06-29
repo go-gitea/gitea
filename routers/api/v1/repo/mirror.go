@@ -258,7 +258,7 @@ func AddPushMirror(ctx *context.APIContext) {
 	//   schema:
 	//     "$ref": "#/definitions/CreatePushMirrorOption"
 	// responses:
-	//   "201":
+	//   "200":
 	//     "$ref": "#/responses/PushMirror"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
