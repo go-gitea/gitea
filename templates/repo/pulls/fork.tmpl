@@ -45,7 +45,7 @@
 					</div>
 					<div class="inline field">
 						<label>{{.locale.Tr "repo.visibility"}}</label>
-						<div class="ui read-only checkbox">
+						<div class="ui disabled checkbox">
 							<input type="checkbox" disabled {{if .IsPrivate}}checked{{end}}>
 							<label>{{.locale.Tr "repo.visibility_helper" | Safe}}</label>
 						</div>
