@@ -124,7 +124,7 @@ func Profile(ctx *context.Context) {
 		}
 	}
 
-	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID || !ctx.ContextUser.KeepActivityPrivate)
+	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
 
 	orgs, err := organization.FindOrgs(organization.FindOrgOptions{
 		UserID:         ctx.ContextUser.ID,
@@ -227,6 +227,7 @@ func Profile(ctx *context.Context) {
 		ctx.Data["Cards"] = following
 		total = int(count)
 	case "activity":
+		showPrivate = ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID || !ctx.ContextUser.KeepActivityPrivate)
 		date := ctx.FormString("date")
 		items, count, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,
