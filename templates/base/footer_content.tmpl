@@ -16,7 +16,7 @@
 	</div>
 	<div class="right-links" role="group" aria-label="{{.locale.Tr "aria.footer.links"}}">
 		<div class="ui dropdown upward language">
-			<span>{{svg "octicon-globe"}} {{.locale.LangName}}</span>
+			<span class="flex-text-inline">{{svg "octicon-globe" 14}} {{.locale.LangName}}</span>
 			<div class="menu language-menu">
 				{{range .AllLangs}}
 					<a lang="{{.Lang}}" data-url="{{AppSubUrl}}/?lang={{.Lang}}" class="item {{if eq $.locale.Lang .Lang}}active selected{{end}}">{{.Name}}</a>

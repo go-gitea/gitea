@@ -556,7 +556,7 @@
 		<div class="ui divider"></div>
 
 		{{if or .PinEnabled .Issue.IsPinned}}
-			<form class="gt-mt-2" method="post" {{if $.NewPinAllowed}}action="{{.Issue.Link}}/pin"{{else}}data-tooltip-content="{{.locale.Tr "repo.issues.max_pinned"}}"{{end}}>
+			<form class="gt-mt-2 form-fetch-action single-button-form" method="post" {{if $.NewPinAllowed}}action="{{.Issue.Link}}/pin"{{else}}data-tooltip-content="{{.locale.Tr "repo.issues.max_pinned"}}"{{end}}>
 				{{$.CsrfTokenHtml}}
 				<button class="fluid ui button {{if not $.NewPinAllowed}}disabled{{end}}">
 					{{if not .Issue.IsPinned}}
@@ -599,7 +599,7 @@
 					{{end}}
 				</div>
 
-				<form class="ui form" action="{{.Issue.Link}}{{if .Issue.IsLocked}}/unlock{{else}}/lock{{end}}"
+				<form class="ui form form-fetch-action" action="{{.Issue.Link}}{{if .Issue.IsLocked}}/unlock{{else}}/lock{{end}}"
 					method="post">
 					{{.CsrfTokenHtml}}
 
