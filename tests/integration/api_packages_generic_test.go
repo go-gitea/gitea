@@ -166,8 +166,7 @@ func TestPackageGeneric(t *testing.T) {
 			location := resp.Header().Get("Location")
 			assert.NotEmpty(t, location)
 
-			req = NewRequest(t, "GET", location)
-			resp2, err := (&http.Client{}).Do(req)
+			resp2, err := (&http.Client{}).Get(location)
 			assert.NoError(t, err)
 			assert.Equal(t, http.StatusOK, resp2.StatusCode)
 
