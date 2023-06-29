@@ -87,6 +87,16 @@ func (s *Service) Register(
 		return nil, errors.New("can't update runner token status")
 	}
 
+	if _, err := actions_model.GetTasksVersionByScope(ctx, runner.OwnerID, runner.RepoID); err != nil {
+		if !errors.Is(err, util.ErrNotExist) {
+			return nil, errors.New("query tasks version failure")
+		}
+		// create a row of action_tasks_version if not exists yet.
+		if _, err := actions_model.InsertTasksVersion(ctx, runner.OwnerID, runner.RepoID); err != nil {
+			return nil, errors.New("can't insert tasks version")
+		}
+	}
+
 	res := connect.NewResponse(&runnerv1.RegisterResponse{
 		Runner: &runnerv1.Runner{
 			Id:      runner.ID,
@@ -132,19 +142,24 @@ func (s *Service) FetchTask(
 	runner := GetRunner(ctx)
 
 	var task *runnerv1.Task
-	tasksVersion := req.Msg.TasksVersion
-	cacheVersion := actions_model.ActionsTasksVersionCache.Get()
-	if req.Msg.TasksVersion != cacheVersion {
-		// if the task version in request is not equal to the version in cache,
-		// it means there are some tasks still not be assgined.
+	tasksVersion := req.Msg.TasksVersion // task version from runner
+	atv, err := actions_model.GetTasksVersionByScope(ctx, runner.OwnerID, runner.RepoID)
+	if err != nil {
+		log.Error("query tasks version failed: %v", err)
+		return nil, status.Errorf(codes.Internal, "query tasks version: %v", err)
+	}
+	latestVersion := atv.Version
+	if req.Msg.TasksVersion != latestVersion {
+		// if the task version in request is not equal to the version in db,
+		// it means there may still be some tasks not be assgined.
 		// try to pick a task for the runner that send the request.
 		if t, ok, err := pickTask(ctx, runner); err != nil {
 			log.Error("pick task failed: %v", err)
 			return nil, status.Errorf(codes.Internal, "pick task: %v", err)
 		} else if ok {
 			task = t
-			tasksVersion = cacheVersion
 		}
+		tasksVersion = latestVersion
 	}
 	res := connect.NewResponse(&runnerv1.FetchTaskResponse{
 		Task:         task,

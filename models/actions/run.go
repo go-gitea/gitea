@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -15,7 +14,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -54,34 +52,6 @@ type ActionRun struct {
 func init() {
 	db.RegisterModel(new(ActionRun))
 	db.RegisterModel(new(ActionRunIndex))
-}
-
-var ActionsTasksVersionCache tasksVersionCache
-
-type tasksVersionCache struct {
-	version int64
-	lock    sync.RWMutex
-}
-
-func (c *tasksVersionCache) Get() int64 {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-	return c.version
-}
-
-func (c *tasksVersionCache) Increase(num int64) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	c.version += num
-}
-
-func (c *tasksVersionCache) Init() {
-	// Using the count of tasks that not be assgined to any runner as the initial task version when Gitea starts.
-	if count, err := db.GetEngine(db.DefaultContext).Where("task_id=? AND status=?", 0, StatusWaiting).Count(new(ActionRunJob)); err != nil {
-		log.Fatal("Init task index cache error: %v", err)
-	} else {
-		c.version = count
-	}
 }
 
 func (run *ActionRun) HTMLURL() string {
@@ -255,14 +225,7 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 		return err
 	}
 
-	if err := commiter.Commit(); err != nil {
-		return err
-	}
-
-	// increase version in memory cache.
-	ActionsTasksVersionCache.Increase(int64(len(runJobs)))
-
-	return nil
+	return commiter.Commit()
 }
 
 func GetRunByID(ctx context.Context, id int64) (*ActionRun, error) {
