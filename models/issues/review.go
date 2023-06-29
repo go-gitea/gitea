@@ -141,7 +141,7 @@ func (r *Review) LoadCodeComments(ctx context.Context) (err error) {
 	if err = r.loadIssue(ctx); err != nil {
 		return
 	}
-	r.CodeComments, err = fetchCodeCommentsByReview(ctx, r.Issue, nil, r)
+	r.CodeComments, err = fetchCodeCommentsByReview(ctx, r.Issue, nil, r, false)
 	return err
 }
 
@@ -269,6 +269,27 @@ func FindReviews(ctx context.Context, opts FindReviewOptions) ([]*Review, error)
 	if opts.Page > 0 {
 		sess = db.SetSessionPagination(sess, &opts)
 	}
+	return reviews, sess.
+		Asc("created_unix").
+		Asc("id").
+		Find(&reviews)
+}
+
+// FindLatestReviews returns only latest reviews per user, passing FindReviewOptions
+func FindLatestReviews(ctx context.Context, opts FindReviewOptions) ([]*Review, error) {
+	reviews := make([]*Review, 0, 10)
+	cond := opts.toCond()
+	sess := db.GetEngine(ctx).Where(cond)
+	if opts.Page > 0 {
+		sess = db.SetSessionPagination(sess, &opts)
+	}
+
+	sess.In("id", builder.
+		Select("max ( id ) ").
+		From("review").
+		Where(cond).
+		GroupBy("reviewer_id"))
+
 	return reviews, sess.
 		Asc("created_unix").
 		Asc("id").

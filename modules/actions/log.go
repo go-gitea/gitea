@@ -29,12 +29,28 @@ const (
 )
 
 func WriteLogs(ctx context.Context, filename string, offset int64, rows []*runnerv1.LogRow) ([]int, error) {
+	flag := os.O_WRONLY
+	if offset == 0 {
+		// Create file only if offset is 0, or it could result in content holes if the file doesn't exist.
+		flag |= os.O_CREATE
+	}
 	name := DBFSPrefix + filename
-	f, err := dbfs.OpenFile(ctx, name, os.O_WRONLY|os.O_CREATE)
+	f, err := dbfs.OpenFile(ctx, name, flag)
 	if err != nil {
 		return nil, fmt.Errorf("dbfs OpenFile %q: %w", name, err)
 	}
 	defer f.Close()
+
+	stat, err := f.Stat()
+	if err != nil {
+		return nil, fmt.Errorf("dbfs Stat %q: %w", name, err)
+	}
+	if stat.Size() < offset {
+		// If the size is less than offset, refuse to write, or it could result in content holes.
+		// However, if the size is greater than offset, we can still write to overwrite the content.
+		return nil, fmt.Errorf("size of %q is less than offset", name)
+	}
+
 	if _, err := f.Seek(offset, io.SeekStart); err != nil {
 		return nil, fmt.Errorf("dbfs Seek %q: %w", name, err)
 	}

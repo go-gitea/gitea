@@ -21,85 +21,85 @@ func TestCanGithubEventMatch(t *testing.T) {
 		// registry_package event
 		{
 			"registry_package matches",
-			githubEventRegistryPackage,
+			GithubEventRegistryPackage,
 			webhook_module.HookEventPackage,
 			true,
 		},
 		{
 			"registry_package cannot match",
-			githubEventRegistryPackage,
+			GithubEventRegistryPackage,
 			webhook_module.HookEventPush,
 			false,
 		},
 		// issues event
 		{
 			"issue matches",
-			githubEventIssues,
+			GithubEventIssues,
 			webhook_module.HookEventIssueLabel,
 			true,
 		},
 		{
 			"issue cannot match",
-			githubEventIssues,
+			GithubEventIssues,
 			webhook_module.HookEventIssueComment,
 			false,
 		},
 		// issue_comment event
 		{
 			"issue_comment matches",
-			githubEventIssueComment,
+			GithubEventIssueComment,
 			webhook_module.HookEventIssueComment,
 			true,
 		},
 		{
 			"issue_comment cannot match",
-			githubEventIssueComment,
+			GithubEventIssueComment,
 			webhook_module.HookEventIssues,
 			false,
 		},
 		// pull_request event
 		{
 			"pull_request matches",
-			githubEventPullRequest,
+			GithubEventPullRequest,
 			webhook_module.HookEventPullRequestSync,
 			true,
 		},
 		{
 			"pull_request cannot match",
-			githubEventPullRequest,
+			GithubEventPullRequest,
 			webhook_module.HookEventPullRequestComment,
 			false,
 		},
 		// pull_request_target event
 		{
 			"pull_request_target matches",
-			githubEventPullRequest,
+			GithubEventPullRequest,
 			webhook_module.HookEventPullRequest,
 			true,
 		},
 		{
 			"pull_request_target cannot match",
-			githubEventPullRequest,
+			GithubEventPullRequest,
 			webhook_module.HookEventPullRequestComment,
 			false,
 		},
 		// pull_request_review event
 		{
 			"pull_request_review matches",
-			githubEventPullRequestReview,
+			GithubEventPullRequestReview,
 			webhook_module.HookEventPullRequestReviewComment,
 			true,
 		},
 		{
 			"pull_request_review cannot match",
-			githubEventPullRequestReview,
+			GithubEventPullRequestReview,
 			webhook_module.HookEventPullRequestComment,
 			false,
 		},
 		// other events
 		{
 			"create event",
-			githubEventCreate,
+			GithubEventCreate,
 			webhook_module.HookEventCreate,
 			true,
 		},

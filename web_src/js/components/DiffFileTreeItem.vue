@@ -10,7 +10,7 @@
       />
       <a
         v-if="item.isFile"
-        class="file gt-ellipsis"
+        :class="['file gt-ellipsis', {'viewed': item.file.IsViewed}]"
         :href="item.isFile ? '#diff-' + item.file.NameHash : ''"
       >{{ item.name }}</a>
       <SvgIcon
@@ -147,5 +147,9 @@ a {
 a:hover {
   text-decoration: none;
   color: var(--color-text);
+}
+
+a.file.viewed {
+  color: var(--color-text-light-3);
 }
 </style>

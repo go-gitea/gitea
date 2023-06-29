@@ -123,6 +123,13 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 		}
 
 		_, _ = issue_service.CreateComment(ctx, ops)
+
+		if !pr.IsWorkInProgress() {
+			if err := issues_model.PullRequestCodeOwnersReview(ctx, pull, pr); err != nil {
+				return err
+			}
+		}
+
 	}
 
 	return nil

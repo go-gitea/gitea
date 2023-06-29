@@ -174,7 +174,7 @@ Here's how to run the test suite:
 ## Translation
 
 All translation work happens on [Crowdin](https://crowdin.com/project/gitea).
-The only translation that is maintained in this repository is [the English translation](https://github.com/go-gitea/gitea/blob/master/options/locale/locale_en-US.ini).
+The only translation that is maintained in this repository is [the English translation](https://github.com/go-gitea/gitea/blob/main/options/locale/locale_en-US.ini).
 It is synced regularly with Crowdin. \
 Other locales on main branch **should not** be updated manually as they will be overwritten with each sync. \
 Once a language has reached a **satisfactory percentage** of translated keys (~25%), it will be synced back into this repo and included in the next released version.
@@ -557,7 +557,7 @@ be reviewed by two maintainers and must pass the automatic tests.
 - And then push the tag as `git push origin v$vmaj.$vmin.$`. Drone CI will automatically create a release and upload all the compiled binary. (But currently it doesn't add the release notes automatically. Maybe we should fix that.)
 - If needed send a frontport PR for the changelog to branch `main` and update the version in `docs/config.yaml` to refer to the new version.
 - Send PR to [blog repository](https://gitea.com/gitea/blog) announcing the release.
-- Verify all release assets were correctly published through CI on dl.gitea.io and GitHub releases. Once ACKed:
-  - bump the version of https://dl.gitea.io/gitea/version.json
+- Verify all release assets were correctly published through CI on dl.gitea.com and GitHub releases. Once ACKed:
+  - bump the version of https://dl.gitea.com/gitea/version.json
   - merge the blog post PR
   - announce the release in discord `#announcements`

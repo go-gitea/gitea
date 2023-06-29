@@ -12,7 +12,7 @@ jobs:
     uses: ./.github/workflows/files-changed.yml
 
   test-e2e:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.frontend == 'true'
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.frontend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
