@@ -294,7 +294,7 @@ const sfc = {
       lineNumber.classList.add('line-num');
       lineNumber.classList.add('muted');
       lineNumber.textContent = line.index;
-      lineNumber.setAttribute('href', `${this.run.link}/jobs/${this.jobIndex}#jobstep-${stepIndex}-${line.index}`);
+      lineNumber.setAttribute('href', `#jobstep-${stepIndex}-${line.index}`);
       div.append(lineNumber);
 
       // for "Show timestamps"
