@@ -1,6 +1,6 @@
 <div class="dropzone-attachments">
 	{{if .Attachments}}
-		<div class="ui divider"></div>
+		<div class="divider"></div>
 	{{end}}
 	{{$hasThumbnails := false}}
 	{{- range .Attachments -}}
@@ -25,7 +25,7 @@
 	{{end -}}
 
 	{{if $hasThumbnails}}
-		<div class="ui divider"></div>
+		<div class="divider"></div>
 		<div class="ui small thumbnails">
 			{{- range .Attachments -}}
 				{{if FilenameIsImage .Name}}
