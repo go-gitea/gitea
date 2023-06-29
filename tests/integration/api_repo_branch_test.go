@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -116,10 +117,10 @@ func TestAPIRepoBranchesMirror(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusForbidden)
 	bs, err = io.ReadAll(resp.Body)
 	assert.NoError(t, err)
-	assert.EqualValues(t, "{\"message\":\"Git Repository is a mirror.\",\"url\":\"http://localhost:3003/api/swagger\"}\n", string(bs))
+	assert.EqualValues(t, "{\"message\":\"Git Repository is a mirror.\",\"url\":\""+setting.AppURL+"api/swagger\"}\n", string(bs))
 
 	resp = MakeRequest(t, NewRequest(t, "DELETE", link2.String()), http.StatusForbidden)
 	bs, err = io.ReadAll(resp.Body)
 	assert.NoError(t, err)
-	assert.EqualValues(t, "{\"message\":\"Git Repository is a mirror.\",\"url\":\"http://localhost:3003/api/swagger\"}\n", string(bs))
+	assert.EqualValues(t, "{\"message\":\"Git Repository is a mirror.\",\"url\":\""+setting.AppURL+"api/swagger\"}\n", string(bs))
 }
