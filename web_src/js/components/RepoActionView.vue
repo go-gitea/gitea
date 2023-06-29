@@ -827,6 +827,9 @@ export function initRepositoryActionView() {
 .job-step-section .job-step-logs .job-log-line:hover,
 .job-log-line:target {
   background-color: var(--color-console-hover-bg);
+}
+
+.job-log-line:target {
   scroll-margin-top: 95px;
 }
 
