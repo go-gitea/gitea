@@ -451,7 +451,6 @@ const sfc = {
       const logLine = this.$refs.steps.querySelector(selectedLogStep);
       if (!logLine) return;
       logLine.querySelector('.line-num').click();
-      logLine.scrollIntoView({behavior: 'instant', block: 'center'});
     }
   },
 };
@@ -828,6 +827,7 @@ export function initRepositoryActionView() {
 .job-step-section .job-step-logs .job-log-line:hover,
 .job-log-line:target {
   background-color: var(--color-console-hover-bg);
+  scroll-margin-top: 95px;
 }
 
 /* class names 'log-time-seconds' and 'log-time-stamp' are used in the method toggleTimeDisplay */
