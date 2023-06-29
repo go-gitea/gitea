@@ -142,6 +142,15 @@ DEFAULT_ACTIONS_URL = https://gitea.com
 			wantURL: "https://github.com",
 		},
 		{
+			name: "custom urls",
+			iniStr: `
+[actions]
+DEFAULT_ACTIONS_URL = https://gitea.com,https://github.com
+`,
+			wantErr: assert.NoError,
+			wantURL: "https://github.com",
+		},
+		{
 			name: "invalid",
 			iniStr: `
 [actions]

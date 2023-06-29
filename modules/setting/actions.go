@@ -53,11 +53,16 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 		return fmt.Errorf("failed to map Actions settings: %v", err)
 	}
 
-	if url := string(Actions.DefaultActionsURL); url != defaultActionsURLGitHub && url != defaultActionsURLSelf {
+	if urls := string(Actions.DefaultActionsURL); urls != defaultActionsURLGitHub && urls != defaultActionsURLSelf {
+		url := strings.Split(urls, ",")[0]
 		if strings.HasPrefix(url, "https://") || strings.HasPrefix(url, "http://") {
-			log.Error("[actions] DEFAULT_ACTIONS_URL does not support %q as custom URL any longer, fallback to https://github.com", url)
+			log.Error("[actions] DEFAULT_ACTIONS_URL does not support %q as custom URL any longer, fallback to %q",
+				urls,
+				defaultActionsURLGitHub,
+			)
+			Actions.DefaultActionsURL = defaultActionsURLGitHub
 		} else {
-			return fmt.Errorf("unsupported [actions] DEFAULT_ACTIONS_URL: %q", url)
+			return fmt.Errorf("unsupported [actions] DEFAULT_ACTIONS_URL: %q", urls)
 		}
 	}
 
