@@ -15,9 +15,9 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	auth_service "code.gitea.io/gitea/services/auth"
-	auth_db "code.gitea.io/gitea/services/auth/source/db"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/forms"
@@ -86,7 +86,7 @@ func LinkAccount(ctx *context.Context) {
 func handleSignInError(ctx *context.Context, userName string, ptrForm any, tmpl base.TplName, invoker string, err error) {
 	if user_model.IsErrUserNotExist(err) || user_model.IsErrEmailAddressNotExist(err) {
 		ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tmpl, ptrForm)
-	} else if errors.Is(err, auth_db.ErrUserPasswordNotSet{}) || errors.Is(err, auth_db.ErrUserPasswordInvalidate{}) {
+	} else if errors.Is(err, util.ErrInvalidArgument) {
 		ctx.Data["user_exists"] = true
 		ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tmpl, ptrForm)
 	} else if user_model.IsErrUserProhibitLogin(err) {
