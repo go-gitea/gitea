@@ -76,7 +76,7 @@ func TestAPIRepoBranchesPlain(t *testing.T) {
 		MakeRequest(t, NewRequest(t, "DELETE", link3.String()), http.StatusNotFound)
 
 		link3.RawQuery = url.Values{"token": {token}}.Encode()
-		resp = MakeRequest(t, NewRequest(t, "DELETE", link3.String()), http.StatusNoContent)
+		MakeRequest(t, NewRequest(t, "DELETE", link3.String()), http.StatusNoContent)
 		assert.NoError(t, err)
 	})
 }
