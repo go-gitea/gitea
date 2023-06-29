@@ -549,16 +549,6 @@
   margin-top: -8px;
 }
 
-.branch-detail {
-  display: flex;
-  align-items: center;
-}
-
-.branch-link {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .repository.file.editor .commit-form-wrapper .commit-form .quick-pull-choice .branch-name {
   display: inline-block;
   padding: 2px 4px;
