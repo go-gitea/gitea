@@ -68,4 +68,4 @@ jobs:
               - "Makefile"
 
             swagger:
-              - "templates/swagger/v1_json.tmpl"
+              - "templates/swagger/*_json.tmpl"
