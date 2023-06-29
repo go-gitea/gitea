@@ -21,7 +21,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  line-height: 1.3; /* avoid cut-off letters because of too little line-height from fomantic */
+  line-height: 1.3; /* avoid cut-off letters because fomantic line-height and overflow hidden via ellipsis */
   padding-top: 8.9px; /* adjust for increased line-height */
   padding-bottom: 8.9px; /* adjust for increased line-height */
 }
