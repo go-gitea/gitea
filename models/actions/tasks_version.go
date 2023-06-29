@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -46,7 +47,7 @@ func InsertTasksVersion(ctx context.Context, ownerID, repoID int64) (*ActionTask
 	return tasksVersion, db.Insert(ctx, tasksVersion)
 }
 
-func IncreaseTasksVersionByScope(ctx context.Context, ownerID, repoID int64) (bool, error) {
+func increaseTasksVersionByScope(ctx context.Context, ownerID, repoID int64) (bool, error) {
 	result, err := db.GetEngine(ctx).Exec("UPDATE action_tasks_version SET version = version + 1 WHERE owner_id = ? AND repo_id = ?", ownerID, repoID)
 	if err != nil {
 		return false, err
@@ -57,4 +58,24 @@ func IncreaseTasksVersionByScope(ctx context.Context, ownerID, repoID int64) (bo
 	}
 
 	return affected != 0, err
+}
+
+func IncreaseTaskVersion(ctx context.Context, ownerID, repoID int64) error {
+	// increase tasks version
+	// 1. increase global
+	if _, err := increaseTasksVersionByScope(ctx, 0, 0); err != nil {
+		log.Error("IncreaseTasksVersionByScope(Global): %v", err)
+		return err
+	}
+	// 2. increase owner
+	if _, err := increaseTasksVersionByScope(ctx, ownerID, 0); err != nil {
+		log.Error("IncreaseTasksVersionByScope(Owner): %v", err)
+		return err
+	}
+	// 3. increase repo
+	if _, err := increaseTasksVersionByScope(ctx, 0, repoID); err != nil {
+		log.Error("IncreaseTasksVersionByScope(Repo): %v", err)
+		return err
+	}
+	return nil
 }

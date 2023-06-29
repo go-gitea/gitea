@@ -242,22 +242,11 @@ func notify(ctx context.Context, input *notifyInput) error {
 			CreateCommitStatus(ctx, jobs...)
 		}
 	}
-	// increase tasks version
-	// 1. increase global
-	if _, err := actions_model.IncreaseTasksVersionByScope(ctx, 0, 0); err != nil {
-		log.Error("IncreaseTasksVersionByScope(Global): %v", err)
+
+	if err := actions_model.IncreaseTaskVersion(ctx, input.Repo.OwnerID, input.Repo.ID); err != nil {
 		return err
 	}
-	// 2. increase owner
-	if _, err := actions_model.IncreaseTasksVersionByScope(ctx, input.Repo.OwnerID, 0); err != nil {
-		log.Error("IncreaseTasksVersionByScope(Owner): %v", err)
-		return err
-	}
-	// 3. increase repo
-	if _, err := actions_model.IncreaseTasksVersionByScope(ctx, 0, input.Repo.ID); err != nil {
-		log.Error("IncreaseTasksVersionByScope(Repo): %v", err)
-		return err
-	}
+
 	return nil
 }
 
