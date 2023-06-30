@@ -66,6 +66,6 @@ func TestBaseRedis(t *testing.T) {
 		}
 	}
 
-	testQueueBasic(t, newBaseRedisSimple, toBaseConfig("baseRedis", setting.QueueSettings{Length: 10}), false)
-	testQueueBasic(t, newBaseRedisUnique, toBaseConfig("baseRedisUnique", setting.QueueSettings{Length: 10}), true)
+	testQueueBasic(t, newBaseRedisSimple, toBaseConfig("baseRedis", setting.QueueSettings{Length: 10, ConnStr: "redis://redis:6379/0"}), false)
+	testQueueBasic(t, newBaseRedisUnique, toBaseConfig("baseRedisUnique", setting.QueueSettings{Length: 10, ConnStr: "redis://redis:6379/0"}), true)
 }
