@@ -44,7 +44,7 @@
     </h2>
     <div class="ui divider"/>
     <div style="height: 380px">
-      <CLine
+      <Line
         v-memo="[totalStats.weeks]"
         v-if="Object.keys(totalStats).length !== 0"
         :data="toGraphData(totalStats.weeks)"
@@ -84,7 +84,7 @@
         </div>
         <div class="ui attached segment">
           <div>
-            <CLine
+            <Line
               :data="toGraphData(contributor.weeks)"
               :options="getOptions('contributor')"
             />
@@ -111,7 +111,7 @@ import {
   Filler,
 } from 'chart.js';
 import zoomPlugin from 'chartjs-plugin-zoom';
-import {Line as CLine} from 'vue-chartjs';
+import {Line} from 'vue-chartjs';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 
 const {pageData} = window.config;
@@ -131,11 +131,12 @@ Chart.register(
 );
 
 export default {
-  components: {CLine, SvgIcon},
+  components: {Line, SvgIcon},
   data: () => {
     return {
       isLoading: false,
       totalStats: {},
+      sortedContributors: {},
       repoLink: pageData.repoLink || [],
       type: pageData.contributionType,
       contributorsStats: [],
@@ -143,17 +144,15 @@ export default {
       dateUntil: null,
     };
   },
-  computed: {
-    sortedContributors() {
-      return Object.values(this.contributorsStats).sort((a, b) =>
-        a.total_commits > b.total_commits ? -1 : a.total_commits === b.total_commits ? 0 : 1
-      ).slice(0, 100);
-    },
-  },
   mounted() {
     this.fetchGraphData();
   },
   methods: {
+    sortContributors() {
+      this.sortedContributors =  Object.values(this.contributorsStats).sort((a, b) =>
+        a.total_commits > b.total_commits ? -1 : a.total_commits === b.total_commits ? 0 : 1
+      ).slice(0, 100);
+    },
     async fetchGraphData() {
       this.isLoading = true;
       fetch(`${this.repoLink}/activity/contributors/data`)
@@ -161,6 +160,7 @@ export default {
         .then((data) => {
           const {total, ...rest} = data;
           this.contributorsStats = rest;
+          this.sortContributors()
           this.totalStats = total;
           this.dateFrom = new Date(total.weeks[0].week).toISOString();
           this.dateUntil = new Date().toISOString();
