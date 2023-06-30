@@ -55,7 +55,7 @@
 		{{template "repo/issue/labels/labels_selector_field" .}}
 		{{template "repo/issue/labels/labels_sidebar" dict "root" $}}
 
-		<div class="ui divider"></div>
+		<div class="divider"></div>
 
 		<input id="milestone_id" name="milestone_id" type="hidden" value="{{.milestone_id}}">
 		<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating jump select-milestone dropdown">
@@ -82,7 +82,7 @@
 		</div>
 
 		{{if .IsProjectsEnabled}}
-		<div class="ui divider"></div>
+		<div class="divider"></div>
 
 		<input id="project_id" name="project_id" type="hidden" value="{{.project_id}}">
 		<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating jump select-project dropdown">
@@ -141,7 +141,7 @@
 			</div>
 		</div>
 		{{end}}
-		<div class="ui divider"></div>
+		<div class="divider"></div>
 			<input id="assignee_ids" name="assignee_ids" type="hidden" value="{{.assignee_ids}}">
 			<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating jump select-assignees dropdown">
 				<span class="text">
@@ -177,7 +177,7 @@
 				{{end}}
 			</div>
 		{{if and .PageIsComparePull (not (eq .HeadRepo.FullName .BaseCompareRepo.FullName)) .CanWriteToHeadRepo}}
-			<div class="ui divider"></div>
+			<div class="divider"></div>
 			<div class="inline field">
 				<div class="ui checkbox">
 					<label data-tooltip-content="{{.locale.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"><strong>{{.locale.Tr "repo.pulls.allow_edits_from_maintainers"}}</strong></label>

@@ -17,6 +17,7 @@ import (
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -100,7 +101,10 @@ func Init() error {
 	}
 	system_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repository uploads", setting.Repository.Upload.TempPath)
 	system_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repositories", repo_module.LocalCopyPath())
-	return initPushQueue()
+	if err := initPushQueue(); err != nil {
+		return err
+	}
+	return initBranchSyncQueue(graceful.GetManager().ShutdownContext())
 }
 
 // UpdateRepository updates a repository
