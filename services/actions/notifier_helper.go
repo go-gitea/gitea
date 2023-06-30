@@ -244,6 +244,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 	}
 
 	if err := actions_model.IncreaseTaskVersion(ctx, input.Repo.OwnerID, input.Repo.ID); err != nil {
+		log.Error("IncreaseTaskVersion: %v", err)
 		return err
 	}
 
