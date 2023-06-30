@@ -420,7 +420,13 @@ func PackageSettingsPost(ctx *context.Context) {
 			ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))
 		}
 
-		ctx.Redirect(ctx.Package.Owner.HomeLink() + "/-/packages")
+		redirectURL := ctx.Package.Owner.HomeLink() + "/-/packages"
+		// redirect to the package if there are still versions available
+		if has, _ := packages_model.ExistVersion(ctx, &packages_model.PackageSearchOptions{PackageID: ctx.Package.Descriptor.Package.ID}); has {
+			redirectURL = ctx.Package.Descriptor.PackageWebLink()
+		}
+
+		ctx.Redirect(redirectURL)
 		return
 	}
 }
