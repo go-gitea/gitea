@@ -6,9 +6,11 @@ package db
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
 )
 
 // DefaultContext is the default context to run xorm queries in
@@ -262,5 +264,31 @@ func inTransaction(ctx context.Context) (*xorm.Session, bool) {
 		return nil, false
 	default:
 		return nil, false
+	}
+}
+
+// BuilderDialect returns the xorm.Builder dialect of the engine
+func BuilderDialect(ctx context.Context) string {
+	var e *xorm.Engine
+	switch t := GetEngine(ctx).(type) {
+	case *xorm.Engine:
+		e = t
+	case *xorm.Session:
+		e = t.Engine()
+	default:
+		panic(fmt.Sprintf("unexpected engine type: %T", t))
+	}
+
+	switch e.Dialect().URI().DBType {
+	case schemas.POSTGRES:
+		return builder.POSTGRES
+	case schemas.MYSQL:
+		return builder.MYSQL
+	case schemas.MSSQL:
+		return builder.MSSQL
+	case schemas.SQLITE:
+		return builder.SQLITE
+	default:
+		return ""
 	}
 }
