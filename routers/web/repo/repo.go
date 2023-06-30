@@ -586,7 +586,8 @@ func SearchRepo(ctx *context.Context) {
 
 	repoIDsToLatestCommitSHAs, err := git_model.FindBranchesByRepoAndBranchName(ctx, repoBranchNamees)
 	if err != nil {
-			return
+		log.Error("FindBranchesByRepoAndBranchName: %v", err)
+		return
 	}
 
 	// call the database O(1) times to get the commit statuses for all repos
