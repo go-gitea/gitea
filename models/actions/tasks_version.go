@@ -18,7 +18,7 @@ type ActionTasksVersion struct {
 	OwnerID     int64 `xorm:"UNIQUE(owner_repo)"`
 	RepoID      int64 `xorm:"INDEX UNIQUE(owner_repo)"`
 	Version     int64
-	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
+	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
 }
 

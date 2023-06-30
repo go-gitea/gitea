@@ -22,12 +22,12 @@ func CreateActionTasksVersionTable(x *xorm.Engine) error {
 		OwnerID     int64 `xorm:"UNIQUE(owner_repo)"`
 		RepoID      int64 `xorm:"INDEX UNIQUE(owner_repo)"`
 		Version     int64
-		CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
+		CreatedUnix timeutil.TimeStamp `xorm:"created"`
 		UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
 	}
 
 	// cerate action_tasks_version table.
-	if err := x.Sync(new(ActionTasksVersion)); err != nil {
+	if err := sess.Sync(new(ActionTasksVersion)); err != nil {
 		return err
 	}
 
