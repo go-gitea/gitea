@@ -384,7 +384,7 @@ func SignOut(ctx *context.Context) {
 		})
 	}
 	HandleSignOut(ctx)
-	ctx.Redirect(setting.AppSubURL + "/")
+	ctx.JSONRedirect(setting.AppSubURL + "/")
 }
 
 // SignUp render the register page

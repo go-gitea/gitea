@@ -151,7 +151,7 @@ func setupDoctorDefaultLogger(ctx *cli.Context, colorize bool) {
 			log.FallbackErrorf("unable to create file log writer: %v", err)
 			return
 		}
-		log.GetManager().GetLogger(log.DEFAULT).RemoveAllWriters().AddWriters(writer)
+		log.GetManager().GetLogger(log.DEFAULT).ReplaceAllWriters(writer)
 	}
 }
 
