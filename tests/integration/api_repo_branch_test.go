@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -39,6 +40,9 @@ func TestAPIRepoBranchesPlain(t *testing.T) {
 		var branches []*api.Branch
 		assert.NoError(t, json.Unmarshal(bs, &branches))
 		assert.Len(t, branches, 2)
+		sort.Slice(branches, func(i, j int) bool {
+			return branches[i].Name > branches[j].Name
+		})
 		assert.EqualValues(t, "test_branch", branches[0].Name)
 		assert.EqualValues(t, "master", branches[1].Name)
 
@@ -69,8 +73,11 @@ func TestAPIRepoBranchesPlain(t *testing.T) {
 		branches = []*api.Branch{}
 		assert.NoError(t, json.Unmarshal(bs, &branches))
 		assert.Len(t, branches, 3)
-		assert.EqualValues(t, "test_branch", branches[0].Name)
-		assert.EqualValues(t, "test_branch2", branches[1].Name)
+		sort.Slice(branches, func(i, j int) bool {
+			return branches[i].Name > branches[j].Name
+		})
+		assert.EqualValues(t, "test_branch2", branches[0].Name)
+		assert.EqualValues(t, "test_branch", branches[1].Name)
 		assert.EqualValues(t, "master", branches[2].Name)
 
 		link3, _ := url.Parse(fmt.Sprintf("/api/v1/repos/user3/%s/branches/test_branch2", repo3.Name))
