@@ -237,7 +237,7 @@ func (repo *Repository) ExtendedCommitStats(revision string /*, limit int */) ([
 		_ = stdoutWriter.Close()
 	}()
 
-	gitCmd := NewCommand(repo.Ctx, "log", "--shortstat", "--no-merges", "--pretty=format:%aN%n%aE%n%as", "--reverse")
+	gitCmd := NewCommand(repo.Ctx, "log", "--shortstat", "--no-merges", "--pretty=format:---%n%cN%n%cE%n%cs", "--reverse")
 	// AddOptionFormat("--max-count=%d", limit)
 	gitCmd.AddDynamicArguments(baseCommit.ID.String())
 
@@ -253,6 +253,11 @@ func (repo *Repository) ExtendedCommitStats(revision string /*, limit int */) ([
 			scanner.Split(bufio.ScanLines)
 
 			for scanner.Scan() {
+				line := strings.TrimSpace(scanner.Text())
+				if line != "---" {
+					continue
+				}
+				scanner.Scan()
 				authorName := strings.TrimSpace(scanner.Text())
 				scanner.Scan()
 				authorEmail := strings.TrimSpace(scanner.Text())
@@ -263,6 +268,7 @@ func (repo *Repository) ExtendedCommitStats(revision string /*, limit int */) ([
 				if authorName == "" || authorEmail == "" || date == "" || stats == "" {
 					// FIXME: find a better way to parse the output so that we will handle this properly
 					log.Warn("Something is wrong with git log output, skipping...")
+					log.Warn("authorName: %s,  authorEmail: %s,  date: %s,  stats: %s", authorName, authorEmail, date, stats)
 					continue
 				}
 				//  1 file changed, 1 insertion(+), 1 deletion(-)

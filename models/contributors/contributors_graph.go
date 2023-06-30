@@ -11,6 +11,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	util "code.gitea.io/gitea/modules/util"
 )
@@ -92,16 +93,21 @@ func GetContributorStats(ctx context.Context, repo *repo_model.Repository, revis
 		val, _ := time.Parse(layout, startingOfWeek)
 		startingSundayParsed, _ := time.Parse(layout, startingSunday)
 		idx := int(val.Sub(startingSundayParsed).Hours()/24) / 7
-		user.Weeks[idx].Additions += v.Stats.Additions
-		user.Weeks[idx].Deletions += v.Stats.Deletions
-		user.Weeks[idx].Commits++
-		user.TotalCommits++
 
-		// Update overall statistics
-		total.Weeks[idx].Additions += v.Stats.Additions
-		total.Weeks[idx].Deletions += v.Stats.Deletions
-		total.Weeks[idx].Commits++
-		total.TotalCommits++
+		if idx >= 0 && idx < len(user.Weeks) {
+			user.Weeks[idx].Additions += v.Stats.Additions
+			user.Weeks[idx].Deletions += v.Stats.Deletions
+			user.Weeks[idx].Commits++
+			user.TotalCommits++
+
+			// Update overall statistics
+			total.Weeks[idx].Additions += v.Stats.Additions
+			total.Weeks[idx].Deletions += v.Stats.Deletions
+			total.Weeks[idx].Commits++
+			total.TotalCommits++
+		} else {
+			log.Warn("date range of the commit is not between starting date and ending date, skipping...")
+		}
 	}
 
 	return contributorsCommitStats, nil
