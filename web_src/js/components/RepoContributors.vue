@@ -44,7 +44,7 @@
     </h2>
     <div class="ui divider"/>
     <div style="height: 380px">
-      <Line
+      <CLine
         v-memo="[totalStats.weeks]"
         v-if="Object.keys(totalStats).length !== 0"
         :data="toGraphData(totalStats.weeks)"
@@ -84,7 +84,7 @@
         </div>
         <div class="ui attached segment">
           <div>
-            <Line
+            <CLine
               :data="toGraphData(contributor.weeks)"
               :options="getOptions('contributor')"
             />
@@ -111,7 +111,7 @@ import {
   Filler,
 } from 'chart.js';
 import zoomPlugin from 'chartjs-plugin-zoom';
-import {Line} from 'vue-chartjs';
+import {Line as CLine} from 'vue-chartjs';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 
 const {pageData} = window.config;
@@ -131,7 +131,7 @@ Chart.register(
 );
 
 export default {
-  components: {Line, SvgIcon},
+  components: {CLine, SvgIcon},
   data: () => {
     return {
       isLoading: false,
@@ -149,9 +149,9 @@ export default {
   },
   methods: {
     sortContributors() {
-      const contributors = this.filterContributorWeeksByDateRange()
-      const sortingCriteria = "total_" + this.type
-      this.sortedContributors =  Object.values(contributors).filter(contributor=>contributor[sortingCriteria]!==0).sort((a, b) =>
+      const contributors = this.filterContributorWeeksByDateRange();
+      const sortingCriteria = `total_${this.type}`;
+      this.sortedContributors = Object.values(contributors).filter((contributor) => contributor[sortingCriteria] !== 0).sort((a, b) =>
         a[sortingCriteria] > b[sortingCriteria] ? -1 : a[sortingCriteria] === b[sortingCriteria] ? 0 : 1
       ).slice(0, 100);
     },
@@ -162,9 +162,9 @@ export default {
         .then((data) => {
           const {total, ...rest} = data;
           this.contributorsStats = rest;
-          this.dateFrom = new Date(total.weeks[0].week)
-          this.dateUntil = new Date()
-          this.sortContributors()
+          this.dateFrom = new Date(total.weeks[0].week);
+          this.dateUntil = new Date();
+          this.sortContributors();
           this.totalStats = total;
           this.isLoading = false;
         });
@@ -173,34 +173,34 @@ export default {
     filterContributorWeeksByDateRange() {
       const filteredData = {};
 
-      const data = this.contributorsStats
-      for (const userEmail in data) {
-        const user = data[userEmail];
-        user["total_commits"] = 0
-        user["total_additions"] = 0
-        user["total_deletions"] = 0
-        user["max_contribution_type"] = 0
+      const data = this.contributorsStats;
+      for (const key of Object.keys(data)) {
+        const user = data[key];
+        user['total_commits'] = 0;
+        user['total_additions'] = 0;
+        user['total_deletions'] = 0;
+        user['max_contribution_type'] = 0;
         const filteredWeeks = user.weeks.filter((week) => {
           const weekDate = new Date(week.week);
           if (weekDate >= this.dateFrom && weekDate <= this.dateUntil) {
-            user["total_commits"] += week.commits
-            user["total_additions"] += week.additions
-            user["total_deletions"] += week.deletions
-            if (week[this.type] > user["max_contribution_type"]){
-              user["max_contribution_type"] = week[this.type]
+            user['total_commits'] += week.commits;
+            user['total_additions'] += week.additions;
+            user['total_deletions'] += week.deletions;
+            if (week[this.type] > user['max_contribution_type']) {
+              user['max_contribution_type'] = week[this.type];
             }
-            return true
-          } else return false
+            return true;
+          } return false;
         });
 
-        filteredData[userEmail] = { ...user, weeks: filteredWeeks };
+        filteredData[key] = {...user, weeks: filteredWeeks};
       }
 
       return filteredData;
     },
     maxContributorGraph() {
       const maxValue = Math.max(
-        ...this.sortedContributors.map((c) => c["max_contribution_type"])
+        ...this.sortedContributors.map((c) => c['max_contribution_type'])
       );
       const [cooefficient, exp] = maxValue
         .toExponential()
@@ -237,9 +237,9 @@ export default {
       const minVal = event.chart.options.scales.x.min;
       const maxVal = event.chart.options.scales.x.max;
       if (minVal) {
-        this.dateFrom = new Date(minVal)
-        this.dateUntil = new Date(maxVal)
-        this.sortContributors()
+        this.dateFrom = new Date(minVal);
+        this.dateUntil = new Date(maxVal);
+        this.sortContributors();
       }
     },
 
