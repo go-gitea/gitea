@@ -29,7 +29,7 @@
 					{{end}}
 				{{end}}
 				{{if .TeamReviewers}}
-					<div class="ui divider"></div>
+					<div class="divider"></div>
 					{{range .TeamReviewers}}
 						{{if .Team}}
 							<a class="{{if not .CanChange}}ui{{end}} item {{if .Checked}}checked{{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_team_{{.Team.ID}}" {{if not .CanChange}} data-tooltip-content="{{$.locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
@@ -118,13 +118,13 @@
 				</a>
 			</div>
 		{{end}}
-		<div class="ui divider"></div>
+		<div class="divider"></div>
 	{{end}}
 
 	{{template "repo/issue/labels/labels_selector_field" .}}
 	{{template "repo/issue/labels/labels_sidebar" dict "root" $}}
 
-	<div class="ui divider"></div>
+	<div class="divider"></div>
 
 	<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-milestone dropdown">
 		<a class="text gt-df gt-ac muted">
@@ -150,7 +150,7 @@
 	</div>
 
 	{{if .IsProjectsEnabled}}
-		<div class="ui divider"></div>
+		<div class="divider"></div>
 
 		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-project dropdown">
 			<a class="text gt-df gt-ac muted">
@@ -203,7 +203,7 @@
 		</div>
 	{{end}}
 
-	<div class="ui divider"></div>
+	<div class="divider"></div>
 
 	<input id="assignee_id" name="assignee_id" type="hidden" value="{{.assignee_id}}">
 	<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-assignees-modify dropdown">
@@ -251,7 +251,7 @@
 		</div>
 	</div>
 
-	<div class="ui divider"></div>
+	<div class="divider"></div>
 
 	{{if .Participants}}
 		<span class="text"><strong>{{.locale.Tr "repo.issues.num_participants" .NumParticipants}}</strong></span>
@@ -265,7 +265,7 @@
 	{{end}}
 
 	{{if and $.IssueWatch (not .Repository.IsArchived)}}
-		<div class="ui divider"></div>
+		<div class="divider"></div>
 
 		<div class="ui watching">
 			<span class="text"><strong>{{.locale.Tr "notification.notifications"}}</strong></span>
@@ -288,7 +288,7 @@
 	{{end}}
 	{{if .Repository.IsTimetrackerEnabled $.Context}}
 		{{if and .CanUseTimetracker (not .Repository.IsArchived)}}
-			<div class="ui divider"></div>
+			<div class="divider"></div>
 			<div class="ui timetrack">
 				<span class="text"><strong>{{.locale.Tr "repo.issues.tracker"}}</strong></span>
 				<div class="gt-mt-3">
@@ -328,7 +328,7 @@
 			</div>
 		{{end}}
 		{{if gt (len .WorkingUsers) 0}}
-			<div class="ui divider"></div>
+			<div class="divider"></div>
 			<div class="ui comments">
 				<span class="text"><strong>{{.locale.Tr "repo.issues.time_spent_from_all_authors" ($.Issue.TotalTrackedTime | Sec2Time) | Safe}}</strong></span>
 				<div>
@@ -350,7 +350,7 @@
 		{{end}}
 	{{end}}
 
-	<div class="ui divider"></div>
+	<div class="divider"></div>
 	<span class="text"><strong>{{.locale.Tr "repo.issues.due_date"}}</strong></span>
 	<div class="ui form" id="deadline-loader">
 		<div class="ui negative message gt-hidden" id="deadline-err-invalid-date">
@@ -394,7 +394,7 @@
 	</div>
 
 	{{if .Repository.IsDependenciesEnabled $.Context}}
-		<div class="ui divider"></div>
+		<div class="divider"></div>
 
 		<div class="ui depending">
 			{{if (and (not .BlockedByDependencies) (not .BlockedByDependenciesNotPermitted) (not .BlockingDependencies) (not .BlockingDependenciesNotPermitted))}}
@@ -543,7 +543,7 @@
 		{{end}}
 	{{end}}
 
-	<div class="ui divider"></div>
+	<div class="divider"></div>
 	<div class="ui equal width compact grid">
 		{{$issueReferenceLink := printf "%s#%d" .Issue.Repo.FullName .Issue.Index}}
 		<div class="row gt-ac" data-tooltip-content="{{$issueReferenceLink}}">
@@ -553,7 +553,7 @@
 	</div>
 
 	{{if and .IsRepoAdmin (not .Repository.IsArchived)}}
-		<div class="ui divider"></div>
+		<div class="divider"></div>
 
 		{{if or .PinEnabled .Issue.IsPinned}}
 			<form class="gt-mt-2 form-fetch-action single-button-form" method="post" {{if $.NewPinAllowed}}action="{{.Issue.Link}}/pin"{{else}}data-tooltip-content="{{.locale.Tr "repo.issues.max_pinned"}}"{{end}}>
@@ -673,7 +673,7 @@
 
 	{{if and .Issue.IsPull .IsIssuePoster (not .Issue.IsClosed) .Issue.PullRequest.HeadRepo}}
 		{{if and (not (eq .Issue.PullRequest.HeadRepo.FullName .Issue.PullRequest.BaseRepo.FullName)) .CanWriteToHeadRepo}}
-			<div class="ui divider"></div>
+			<div class="divider"></div>
 			<div class="inline field">
 				<div class="ui checkbox" id="allow-edits-from-maintainers"
 						data-url="{{.Issue.Link}}"

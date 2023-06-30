@@ -147,7 +147,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		&repo_model.Collaboration{RepoID: repoID},
 		&issues_model.Comment{RefRepoID: repoID},
 		&git_model.CommitStatus{RepoID: repoID},
-		&git_model.DeletedBranch{RepoID: repoID},
+		&git_model.Branch{RepoID: repoID},
 		&git_model.LFSLock{RepoID: repoID},
 		&repo_model.LanguageStat{RepoID: repoID},
 		&issues_model.Milestone{RepoID: repoID},
