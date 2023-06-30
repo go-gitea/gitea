@@ -151,7 +151,7 @@ export default {
     sortContributors() {
       const contributors = this.filterContributorWeeksByDateRange()
       const sortingCriteria = "total_" + this.type
-      this.sortedContributors =  Object.values(contributors).sort((a, b) =>
+      this.sortedContributors =  Object.values(contributors).filter(contributor=>contributor[sortingCriteria]!==0).sort((a, b) =>
         a[sortingCriteria] > b[sortingCriteria] ? -1 : a[sortingCriteria] === b[sortingCriteria] ? 0 : 1
       ).slice(0, 100);
     },
