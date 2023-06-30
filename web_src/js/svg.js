@@ -22,6 +22,7 @@ import octiconDiffModified from '../../public/img/svg/octicon-diff-modified.svg'
 import octiconDiffRemoved from '../../public/img/svg/octicon-diff-removed.svg';
 import octiconDiffRenamed from '../../public/img/svg/octicon-diff-renamed.svg';
 import octiconDotFill from '../../public/img/svg/octicon-dot-fill.svg';
+import octiconDownload from '../../public/img/svg/octicon-download.svg';
 import octiconEye from '../../public/img/svg/octicon-eye.svg';
 import octiconFile from '../../public/img/svg/octicon-file.svg';
 import octiconFileDirectoryFill from '../../public/img/svg/octicon-file-directory-fill.svg';
@@ -91,6 +92,7 @@ const svgs = {
   'octicon-diff-removed': octiconDiffRemoved,
   'octicon-diff-renamed': octiconDiffRenamed,
   'octicon-dot-fill': octiconDotFill,
+  'octicon-download': octiconDownload,
   'octicon-eye': octiconEye,
   'octicon-file': octiconFile,
   'octicon-file-directory-fill': octiconFileDirectoryFill,
