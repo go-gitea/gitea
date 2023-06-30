@@ -149,7 +149,8 @@ export default {
   },
   methods: {
     sortContributors() {
-      this.sortedContributors =  Object.values(this.contributorsStats).sort((a, b) =>
+      const contributors = this.filterContributorWeeksByDateRange()
+      this.sortedContributors =  Object.values(contributors).sort((a, b) =>
         a.total_commits > b.total_commits ? -1 : a.total_commits === b.total_commits ? 0 : 1
       ).slice(0, 100);
     },
@@ -160,12 +161,30 @@ export default {
         .then((data) => {
           const {total, ...rest} = data;
           this.contributorsStats = rest;
+          this.dateFrom = new Date(total.weeks[0].week)
+          this.dateUntil = new Date()
           this.sortContributors()
           this.totalStats = total;
-          this.dateFrom = new Date(total.weeks[0].week).toISOString();
-          this.dateUntil = new Date().toISOString();
           this.isLoading = false;
         });
+    },
+
+    filterContributorWeeksByDateRange() {
+      const filteredData = {};
+
+      const data = this.contributorsStats
+      for (const userEmail in data) {
+        const user = data[userEmail];
+        const filteredWeeks = user.weeks.filter((week) => {
+          const weekDate = new Date(week.week);
+          return weekDate >= this.dateFrom && weekDate <= this.dateUntil;
+        });
+
+        filteredData[userEmail] = { ...user, weeks: filteredWeeks };
+        filteredData[userEmail]["total_commits"] = this.commits(filteredWeeks)
+      }
+
+      return filteredData;
     },
     maxMainGraph() {
       const maxValue = Math.max(
@@ -179,6 +198,9 @@ export default {
         return maxValue;
       }
       return (1 - (cooefficient % 1)) * 10 ** exp + maxValue;
+    },
+    commits(data){
+      return Object.values(data).reduce((acc, item) => acc + item.commits, 0);
     },
     additions(data) {
       return Object.values(data).reduce((acc, item) => acc + item.additions, 0);
@@ -212,16 +234,9 @@ export default {
       const minVal = event.chart.options.scales.x.min;
       const maxVal = event.chart.options.scales.x.max;
       if (minVal) {
-        this.dateFrom = new Date(minVal).toISOString();
-        this.dateUntil = new Date(maxVal).toISOString();
-      }
-
-      for (const instance of Object.values(Chart.instances)) {
-        if (instance !== event.chart) {
-          instance.options.scales.x.min = minVal;
-          instance.options.scales.x.max = maxVal;
-          instance.update();
-        }
+        this.dateFrom = new Date(minVal)
+        this.dateUntil = new Date(maxVal)
+        this.sortContributors()
       }
     },
 
@@ -245,7 +260,7 @@ export default {
               mode: 'x',
               threshold: 20,
 
-              onPan: this.updateOtherCharts,
+              onPanComplete: this.updateOtherCharts,
             },
             limits: {
               x: {
