@@ -43,13 +43,9 @@ func (c *Commit) Message() string {
 	return c.CommitMessage
 }
 
-func SummaryOfCommitMessage(commitMessage string) string {
-	return strings.Split(strings.TrimSpace(commitMessage), "\n")[0]
-}
-
 // Summary returns first line of commit message.
 func (c *Commit) Summary() string {
-	return SummaryOfCommitMessage(c.CommitMessage)
+	return strings.Split(strings.TrimSpace(c.CommitMessage), "\n")[0]
 }
 
 // ParentID returns oid of n-th parent (0-based index).
