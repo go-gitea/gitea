@@ -431,21 +431,6 @@ func (c *Commit) GetBranchName() (string, error) {
 	return strings.SplitN(strings.TrimSpace(data), "~", 2)[0], nil
 }
 
-// GetTagName gets the current tag name for given commit
-func (c *Commit) GetTagName() (string, error) {
-	data, _, err := NewCommand(c.repo.Ctx, "describe", "--exact-match", "--tags", "--always").AddDynamicArguments(c.ID.String()).RunStdString(&RunOpts{Dir: c.repo.Path})
-	if err != nil {
-		// handle special case where there is no tag for this commit
-		if strings.Contains(err.Error(), "no tag exactly matches") {
-			return "", nil
-		}
-
-		return "", err
-	}
-
-	return strings.TrimSpace(data), nil
-}
-
 // CommitFileStatus represents status of files in a commit.
 type CommitFileStatus struct {
 	Added    []string

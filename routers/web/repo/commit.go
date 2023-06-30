@@ -385,11 +385,6 @@ func Diff(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["TagName"], err = commit.GetTagName()
-	if err != nil {
-		ctx.ServerError("commit.GetTagName", err)
-		return
-	}
 	ctx.HTML(http.StatusOK, tplCommitPage)
 }
 
