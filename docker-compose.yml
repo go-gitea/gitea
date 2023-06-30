@@ -25,7 +25,7 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: gitea
-    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci
+    command: mariadbd --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci
     expose:
       - 3306
 
