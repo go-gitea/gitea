@@ -150,8 +150,9 @@ export default {
   methods: {
     sortContributors() {
       const contributors = this.filterContributorWeeksByDateRange()
+      const sortingCriteria = "total_" + this.type
       this.sortedContributors =  Object.values(contributors).sort((a, b) =>
-        a.total_commits > b.total_commits ? -1 : a.total_commits === b.total_commits ? 0 : 1
+        a[sortingCriteria] > b[sortingCriteria] ? -1 : a[sortingCriteria] === b[sortingCriteria] ? 0 : 1
       ).slice(0, 100);
     },
     async fetchGraphData() {
