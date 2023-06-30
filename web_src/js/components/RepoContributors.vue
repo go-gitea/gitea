@@ -209,6 +209,10 @@ export default {
     updateOtherCharts(event) {
       const minVal = event.chart.options.scales.x.min;
       const maxVal = event.chart.options.scales.x.max;
+      if (minVal) {
+        this.dateFrom = new Date(minVal).toISOString();
+        this.dateUntil = new Date(maxVal).toISOString();
+      }
 
       for (const instance of Object.values(Chart.instances)) {
         if (instance !== event.chart) {
