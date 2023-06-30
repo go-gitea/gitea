@@ -14,7 +14,7 @@ import (
 
 func TestUpdateRepoPost(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "admin/repos")
+	ctx, _ := test.MockContext(t, "admin/repos")
 	test.LoadUser(t, ctx, 1)
 
 	ctx.Req.Form.Set("enable_size_limit", "on")
