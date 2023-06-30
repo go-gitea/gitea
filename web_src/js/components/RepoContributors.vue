@@ -179,12 +179,16 @@ export default {
         user["total_commits"] = 0
         user["total_additions"] = 0
         user["total_deletions"] = 0
+        user["max_contribution_type"] = 0
         const filteredWeeks = user.weeks.filter((week) => {
           const weekDate = new Date(week.week);
           if (weekDate >= this.dateFrom && weekDate <= this.dateUntil) {
             user["total_commits"] += week.commits
             user["total_additions"] += week.additions
             user["total_deletions"] += week.deletions
+            if (week[this.type] > user["max_contribution_type"]){
+              user["max_contribution_type"] = week[this.type]
+            }
             return true
           } else return false
         });
@@ -194,9 +198,9 @@ export default {
 
       return filteredData;
     },
-    maxMainGraph() {
+    maxContributorGraph() {
       const maxValue = Math.max(
-        ...this.totalStats.weeks.map((o) => o[this.type])
+        ...this.sortedContributors.map((c) => c["max_contribution_type"])
       );
       const [cooefficient, exp] = maxValue
         .toExponential()
@@ -292,6 +296,7 @@ export default {
           },
           y: {
             min: 0,
+            max: this.maxContributorGraph(),
           },
         },
       };
