@@ -31,7 +31,7 @@
 							<input id="location" name="location"  value="{{.Org.Location}}" maxlength="50">
 						</div>
 
-						<div class="ui divider"></div>
+						<div class="divider"></div>
 						<div class="field" id="visibility_box">
 							<label for="visibility">{{.locale.Tr "org.settings.visibility"}}</label>
 							<div class="field">
@@ -65,7 +65,7 @@
 						</div>
 
 						{{if .SignedUser.IsAdmin}}
-						<div class="ui divider"></div>
+						<div class="divider"></div>
 
 						<div class="inline field {{if .Err_MaxRepoCreation}}error{{end}}">
 							<label for="max_repo_creation">{{.locale.Tr "admin.users.max_repo_creation"}}</label>
@@ -79,7 +79,7 @@
 						</div>
 					</form>
 
-					<div class="ui divider"></div>
+					<div class="divider"></div>
 
 					<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
 						{{.CsrfTokenHtml}}

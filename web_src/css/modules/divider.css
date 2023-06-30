@@ -1,0 +1,39 @@
+.divider {
+  margin: 1rem 0;
+  height: 0;
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  color: var(--color-text);
+  font-size: 1rem;
+  width: 100%;
+}
+
+.divider:not(.divider-text) {
+  border-top: 1px solid var(--color-secondary);
+}
+
+.divider.divider-text {
+  display: flex;
+  align-items: center;
+  padding: 7px 0;
+}
+
+.divider.divider-text::before,
+.divider.divider-text::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--color-secondary);
+}
+
+.divider.divider-text::before {
+  margin-right: .75em;
+}
+
+.divider.divider-text::after {
+  margin-left: .75em;
+}
+
+.ui.dropdown .menu > .divider {
+  border-top: 1px solid var(--color-secondary);
+  margin: 4px 0;
+}
