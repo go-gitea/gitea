@@ -4,58 +4,90 @@
 package v1_21 //nolint
 
 import (
+	"context"
+	"fmt"
+
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/xorm"
 )
 
-func CreateActionTasksVersionTable(x *xorm.Engine) error {
-	sess := x.NewSession()
-	defer sess.Close()
+func AddBranchTable(x *xorm.Engine) error {
+	type Branch struct {
+		ID            int64
+		RepoID        int64  `xorm:"UNIQUE(s)"`
+		Name          string `xorm:"UNIQUE(s) NOT NULL"`
+		CommitID      string
+		CommitMessage string `xorm:"TEXT"`
+		PusherID      int64
+		IsDeleted     bool `xorm:"index"`
+		DeletedByID   int64
+		DeletedUnix   timeutil.TimeStamp `xorm:"index"`
+		CommitTime    timeutil.TimeStamp // The commit
+		CreatedUnix   timeutil.TimeStamp `xorm:"created"`
+		UpdatedUnix   timeutil.TimeStamp `xorm:"updated"`
+	}
 
-	if err := sess.Begin(); err != nil {
+	if err := x.Sync(new(Branch)); err != nil {
 		return err
 	}
 
-	type ActionTasksVersion struct {
-		ID          int64 `xorm:"pk autoincr"`
-		OwnerID     int64 `xorm:"UNIQUE(owner_repo)"`
-		RepoID      int64 `xorm:"INDEX UNIQUE(owner_repo)"`
-		Version     int64
-		CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
-	}
-
-	// cerate action_tasks_version table.
-	if err := x.Sync(new(ActionTasksVersion)); err != nil {
+	if exist, err := x.IsTableExist("deleted_branches"); err != nil {
 		return err
+	} else if !exist {
+		return nil
 	}
 
-	// initialize data
-	type ScopeItem struct {
-		OwnerID int64
-		RepoID  int64
+	type DeletedBranch struct {
+		ID          int64
+		RepoID      int64  `xorm:"index UNIQUE(s)"`
+		Name        string `xorm:"UNIQUE(s) NOT NULL"`
+		Commit      string
+		DeletedByID int64
+		DeletedUnix timeutil.TimeStamp
 	}
-	scopes := []ScopeItem{}
-	if err := sess.Distinct("owner_id", "repo_id").Table("action_runner").Where("deleted is null").Find(&scopes); err != nil {
+
+	var adminUserID int64
+	has, err := x.Table("user").
+		Select("id").
+		Where("is_admin=?", true).
+		Asc("id"). // Reliably get the admin with the lowest ID.
+		Get(&adminUserID)
+	if err != nil {
 		return err
+	} else if !has {
+		return fmt.Errorf("no admin user found")
 	}
 
-	if len(scopes) > 0 {
-		versions := make([]ActionTasksVersion, 0, len(scopes))
-		for _, scope := range scopes {
-			versions = append(versions, ActionTasksVersion{
-				OwnerID: scope.OwnerID,
-				RepoID:  scope.RepoID,
-				// Set the default value of version to 1, so that the first fetch request after the runner starts will definitely query the database.
-				Version: 1,
-			})
+	branches := make([]Branch, 0, 100)
+	if err := db.Iterate(context.Background(), nil, func(ctx context.Context, deletedBranch *DeletedBranch) error {
+		branches = append(branches, Branch{
+			RepoID:      deletedBranch.RepoID,
+			Name:        deletedBranch.Name,
+			CommitID:    deletedBranch.Commit,
+			PusherID:    adminUserID,
+			IsDeleted:   true,
+			DeletedByID: deletedBranch.DeletedByID,
+			DeletedUnix: deletedBranch.DeletedUnix,
+		})
+		if len(branches) >= 100 {
+			_, err := x.Insert(&branches)
+			if err != nil {
+				return err
+			}
+			branches = branches[:0]
 		}
+		return nil
+	}); err != nil {
+		return err
+	}
 
-		if _, err := sess.Insert(&versions); err != nil {
+	if len(branches) > 0 {
+		if _, err := x.Insert(&branches); err != nil {
 			return err
 		}
 	}
 
-	return sess.Commit()
+	return x.DropTables("deleted_branches")
 }
