@@ -15,11 +15,6 @@
   flex-wrap: wrap;
 }
 
-/* divider needs explicit width because the parent container is "display: flex" */
-.admin dl.admin-dl-horizontal .ui.divider {
-  width: 100%;
-}
-
 .admin dl.admin-dl-horizontal dt,
 .admin dl.admin-dl-horizontal dd {
   line-height: 1;
