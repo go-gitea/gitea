@@ -33,9 +33,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: dorny/paths-filter@v2
-        id: changes_check
-        if: env.ACT_EXEC != 'true'
+        id: changes
         with:
+          # used for `act_runner exec`
+          # base: HEAD
           filters: |
             backend:
               - "**/*.go"
