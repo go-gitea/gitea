@@ -20,19 +20,19 @@
 				<dt>{{.locale.Tr "admin.config.disable_router_log"}}</dt>
 				<dd>{{if .DisableRouterLog}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 
 				<dt>{{.locale.Tr "admin.config.run_user"}}</dt>
 				<dd>{{.RunUser}}</dd>
 				<dt>{{.locale.Tr "admin.config.run_mode"}}</dt>
 				<dd>{{.RunMode}}</dd>
 
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 
 				<dt>{{.locale.Tr "admin.config.git_version"}}</dt>
 				<dd>{{.GitVersion}}</dd>
 
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 
 				<dt>{{.locale.Tr "admin.config.repo_root_path"}}</dt>
 				<dd>{{.RepoRootPath}}</dd>
@@ -174,7 +174,7 @@
 				<dd>{{if .Service.NoReplyAddress}}{{.Service.NoReplyAddress}}{{else}}-{{end}}</dd>
 				<dt>{{.locale.Tr "admin.config.default_enable_dependencies"}}</dt>
 				<dd>{{if .Service.DefaultEnableDependencies}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 				<dt>{{.locale.Tr "admin.config.active_code_lives"}}</dt>
 				<dd>{{.Service.ActiveCodeLives}} {{.locale.Tr "tool.raw_minutes"}}</dd>
 				<dt>{{.locale.Tr "admin.config.reset_password_code_lives"}}</dt>
@@ -230,7 +230,7 @@
 					{{end}}
 					<dt>{{.locale.Tr "admin.config.mailer_user"}}</dt>
 					<dd>{{if .Mailer.User}}{{.Mailer.User}}{{else}}(empty){{end}}</dd>
-					<div class="ui divider"></div>
+					<div class="divider"></div>
 					<dt class="gt-py-2">{{.locale.Tr "admin.config.send_test_mail"}}</dt>
 					<dd>
 						<form class="ui form ignore-dirty" action="{{AppSubUrl}}/admin/config/test_mail" method="post">
@@ -296,7 +296,7 @@
 						<input type="checkbox" name="picture.disable_gravatar" version="{{.SystemSettings.GetVersion "picture.disable_gravatar"}}"{{if .SystemSettings.GetBool "picture.disable_gravatar"}} checked{{end}} title="{{.locale.Tr "admin.config.disable_gravatar"}}">
 					</div>
 				</dd>
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 				<dt>{{.locale.Tr "admin.config.enable_federated_avatar"}}</dt>
 				<dd>
 					<div class="ui toggle checkbox">
@@ -322,7 +322,7 @@
 				<dt>{{.locale.Tr "admin.config.git_gc_args"}}</dt>
 				<dd><code>{{.Git.GCArgs}}</code></dd>
 
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 
 				<dt>{{.locale.Tr "admin.config.git_migrate_timeout"}}</dt>
 				<dd>{{.Git.Timeout.Migrate}} {{.locale.Tr "tool.raw_seconds"}}</dd>

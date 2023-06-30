@@ -102,3 +102,9 @@ type RenameUserOption struct {
 	// unique: true
 	NewName string `json:"new_username" binding:"Required"`
 }
+
+// UpdateUserAvatarUserOption options when updating the user avatar
+type UpdateUserAvatarOption struct {
+	// image must be base64 encoded
+	Image string `json:"image" binding:"Required"`
+}

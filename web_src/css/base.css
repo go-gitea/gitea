@@ -465,15 +465,6 @@ a.label,
   background-color: var(--color-markup-code-block);
 }
 
-.ui.divider {
-  color: var(--color-text);
-}
-
-.ui.divider:not(.vertical,.horizontal) {
-  border-top-color: var(--color-secondary) !important;
-  border-bottom: none !important;
-}
-
 .ui.dividing.header {
   border-bottom-color: var(--color-secondary);
 }
@@ -2081,11 +2072,6 @@ table th[data-sortt-desc] .svg {
 
 .ui.dropdown .menu .item:last-of-type {
   border-radius: 0 0 var(--border-radius) var(--border-radius);
-}
-
-.ui.dropdown .menu > .divider {
-  border-top: 1px solid var(--color-secondary);
-  margin: 4px 0;
 }
 
 .ui.multiple.dropdown > .label {

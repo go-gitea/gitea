@@ -9,6 +9,7 @@
 @import "./modules/comment.css";
 @import "./modules/navbar.css";
 @import "./modules/toast.css";
+@import "./modules/divider.css";
 
 @import "./shared/issuelist.css";
 @import "./shared/milestone.css";
