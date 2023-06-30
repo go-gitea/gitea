@@ -174,7 +174,7 @@ func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
 		"workspace":         "",                                                   // string, The default working directory on the runner for steps, and the default location of your repository when using the checkout action.
 
 		// additional contexts
-		"gitea_default_actions_url": setting.Actions.DefaultActionsURL,
+		"gitea_default_actions_url": setting.Actions.DefaultActionsURL.URL(),
 	})
 	if err != nil {
 		log.Error("structpb.NewStruct failed: %v", err)
