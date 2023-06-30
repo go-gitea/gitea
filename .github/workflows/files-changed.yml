@@ -39,6 +39,7 @@ jobs:
             backend:
               - "**/*.go"
               - "templates/**/*.tmpl"
+              - "assets/emoji.json"
               - "go.mod"
               - "go.sum"
               - "Makefile"
@@ -46,6 +47,7 @@ jobs:
             frontend:
               - "**/*.js"
               - "web_src/**"
+              - "assets/emoji.json"
               - "package.json"
               - "package-lock.json"
               - "Makefile"
