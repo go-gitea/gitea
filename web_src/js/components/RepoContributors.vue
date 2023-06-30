@@ -45,6 +45,7 @@
     <div class="ui divider"/>
     <div style="height: 380px">
       <CLine
+        v-memo="[totalStats.weeks]"
         v-if="Object.keys(totalStats).length !== 0"
         :data="toGraphData(totalStats.weeks)"
         :options="getOptions('main')"
@@ -57,6 +58,7 @@
         v-for="(contributor, index) in sortedContributors"
         :key="index"
         class="column stats-table"
+        v-memo="[sortedContributors]"
       >
         <div class="ui top attached header gt-df gt-f1">
           <b class="ui right">#{{ index + 1 }}</b>
@@ -209,6 +211,10 @@ export default {
     updateOtherCharts(event) {
       const minVal = event.chart.options.scales.x.min;
       const maxVal = event.chart.options.scales.x.max;
+      if (minVal) {
+        this.dateFrom = new Date(minVal).toISOString();
+        this.dateUntil = new Date(maxVal).toISOString();
+      }
 
       for (const instance of Object.values(Chart.instances)) {
         if (instance !== event.chart) {
