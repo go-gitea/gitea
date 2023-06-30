@@ -511,7 +511,7 @@ var migrations = []Migration{
 	NewMigration("Add git_size and lfs_size columns to repository table", v1_21.AddGitSizeAndLFSSizeToRepositoryTable),
 	// v264 -> v265
 	NewMigration("Add branch table", v1_21.AddBranchTable),
-	// v26 5-> v266
+	// v265-> v266
 	NewMigration("Add action_tasks_version table", v1_21.CreateActionTasksVersionTable),
 }
 
