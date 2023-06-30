@@ -75,10 +75,10 @@
             <p class="gt-font-12">
               <strong>{{ contributor.total_commits.toLocaleString() }} commits
               </strong>
-              <strong class="text green">{{ additions(contributor.weeks).toLocaleString() }}++
+              <strong class="text green">{{ contributor.total_additions.toLocaleString() }}++
               </strong>
               <strong class="text red">
-                {{ deletions(contributor.weeks).toLocaleString() }}--</strong>
+                {{ contributor.total_deletions.toLocaleString() }}--</strong>
             </p>
           </div>
         </div>
@@ -175,13 +175,20 @@ export default {
       const data = this.contributorsStats
       for (const userEmail in data) {
         const user = data[userEmail];
+        user["total_commits"] = 0
+        user["total_additions"] = 0
+        user["total_deletions"] = 0
         const filteredWeeks = user.weeks.filter((week) => {
           const weekDate = new Date(week.week);
-          return weekDate >= this.dateFrom && weekDate <= this.dateUntil;
+          if (weekDate >= this.dateFrom && weekDate <= this.dateUntil) {
+            user["total_commits"] += week.commits
+            user["total_additions"] += week.additions
+            user["total_deletions"] += week.deletions
+            return true
+          } else return false
         });
 
         filteredData[userEmail] = { ...user, weeks: filteredWeeks };
-        filteredData[userEmail]["total_commits"] = this.commits(filteredWeeks)
       }
 
       return filteredData;
@@ -198,15 +205,6 @@ export default {
         return maxValue;
       }
       return (1 - (cooefficient % 1)) * 10 ** exp + maxValue;
-    },
-    commits(data){
-      return Object.values(data).reduce((acc, item) => acc + item.commits, 0);
-    },
-    additions(data) {
-      return Object.values(data).reduce((acc, item) => acc + item.additions, 0);
-    },
-    deletions(data) {
-      return Object.values(data).reduce((acc, item) => acc + item.deletions, 0);
     },
 
     toGraphData(data) {
