@@ -259,7 +259,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 
 				notification.NotifyPushCommits(ctx, pusher, repo, opts, commits)
 
-				if err = git_model.UpdateBranch(ctx, repo.ID, branch, newCommit.ID.String(), newCommit.CommitMessage, opts.PusherID, newCommit.Committer.When); err != nil {
+				if err = git_model.UpdateBranch(ctx, repo.ID, opts.PusherID, branch, newCommit); err != nil {
 					return fmt.Errorf("git_model.UpdateBranch %s:%s failed: %v", repo.FullName(), branch, err)
 				}
 
