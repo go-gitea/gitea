@@ -185,6 +185,12 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 			return
 		}
 
+		err = r.LoadArchiveDownloadCount(ctx)
+		if err != nil {
+			ctx.ServerError("LoadArchiveDownloadCount", err)
+			return
+		}
+
 		if r.IsDraft {
 			continue
 		}
@@ -289,6 +295,11 @@ func SingleRelease(ctx *context.Context) {
 	if err != nil {
 		ctx.ServerError("RenderString", err)
 		return
+	}
+
+	err = release.LoadArchiveDownloadCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadArchiveDownloadCount", err)
 	}
 
 	ctx.Data["Releases"] = []*repo_model.Release{release}

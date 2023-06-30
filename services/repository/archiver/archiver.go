@@ -34,6 +34,7 @@ type ArchiveRequest struct {
 	refName  string
 	Type     git.ArchiveType
 	CommitID string
+	TagName  string
 }
 
 // SHA1 hashes will only go up to 40 characters, but SHA256 hashes will go all
@@ -105,6 +106,7 @@ func NewRequest(repoID int64, repo *git.Repository, uri string) (*ArchiveRequest
 		}
 	} else if repo.IsTagExist(r.refName) {
 		r.CommitID, err = repo.GetTagCommitID(r.refName)
+		r.TagName = r.refName
 		if err != nil {
 			return nil, err
 		}
@@ -140,6 +142,8 @@ func (aReq *ArchiveRequest) Await(ctx context.Context) (*repo_model.RepoArchiver
 	if err != nil {
 		return nil, fmt.Errorf("models.GetRepoArchiver: %w", err)
 	}
+
+	archiver.TagName = aReq.TagName
 
 	if archiver != nil && archiver.Status == repo_model.ArchiverReady {
 		// Archive already generated, we're done.

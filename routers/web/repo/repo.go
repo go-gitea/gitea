@@ -444,6 +444,14 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 	}
 	defer fr.Close()
 
+	if archiver.TagName != "" {
+		err = repo_model.CountArchiveDownload(ctx, ctx.Repo.Repository.ID, archiver.Type, archiver.TagName)
+		if err != nil {
+			ctx.ServerError("CountArchiveDownload", err)
+			return
+		}
+	}
+
 	ctx.ServeContent(fr, &context.ServeHeaderOptions{
 		Filename:     downloadName,
 		LastModified: archiver.CreatedUnix.AsLocalTime(),

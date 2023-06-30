@@ -20805,6 +20805,9 @@
       "description": "Release represents a repository release",
       "type": "object",
       "properties": {
+        "archive_download_count": {
+          "$ref": "#/definitions/TagArchiveDownloadCount"
+        },
         "assets": {
           "type": "array",
           "items": {
@@ -21346,6 +21349,23 @@
         "zipball_url": {
           "type": "string",
           "x-go-name": "ZipballURL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "TagArchiveDownloadCount": {
+      "description": "CreateTagOption counts how many times a archive was downloaded",
+      "type": "object",
+      "properties": {
+        "targz": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TarGz"
+        },
+        "zip": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Zip"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
