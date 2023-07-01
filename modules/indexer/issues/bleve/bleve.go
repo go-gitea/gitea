@@ -91,6 +91,7 @@ func generateIssueIndexMapping() (mapping.IndexMapping, error) {
 	mapping.DefaultAnalyzer = issueIndexerAnalyzer
 	mapping.AddDocumentMapping(issueIndexerDocType, docMapping)
 	mapping.AddDocumentMapping("_all", bleve.NewDocumentDisabledMapping())
+	mapping.DefaultMapping = bleve.NewDocumentDisabledMapping() // disable default mapping, avoid indexing unexpected structs
 
 	return mapping, nil
 }
