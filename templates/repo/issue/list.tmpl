@@ -27,7 +27,7 @@
 							{{end}}
 						</div>
 						<div class="meta gt-my-2">
-							<span class="text light grey">
+							<span class="text light grey muted-links">
 								#{{.Index}}
 								{{$timeStr := TimeSinceUnix .GetLastEventTimestamp $.locale}}
 								{{if .OriginalAuthor}}
@@ -71,25 +71,25 @@
 			{{template "repo/issue/search" .}}
 			{{if not .Repository.IsArchived}}
 				{{if .PageIsIssueList}}
-					<a class="ui small green button" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{.locale.Tr "repo.issues.new"}}</a>
+					<a class="ui small green button issue-list-new" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{.locale.Tr "repo.issues.new"}}</a>
 				{{else}}
-					<a class="ui small green button new-pr-button{{if not .PullRequestCtx.Allowed}} disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.Repository.Link}}/compare/{{.Repository.DefaultBranch | PathEscapeSegments}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | PathEscapeSegments}}{{end}}">{{.locale.Tr "repo.pulls.new"}}</a>
+					<a class="ui small green button new-pr-button issue-list-new{{if not .PullRequestCtx.Allowed}} disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.Repository.Link}}/compare/{{.Repository.DefaultBranch | PathEscapeSegments}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | PathEscapeSegments}}{{end}}">{{.locale.Tr "repo.pulls.new"}}</a>
 				{{end}}
 			{{else}}
 				{{if not .PageIsIssueList}}
-					<a class="ui small green small button{{if not .PullRequestCtx.Allowed}} disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.PullRequestCtx.BaseRepo.DefaultBranch | PathEscapeSegments}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | PathEscapeSegments}}{{end}}">{{$.locale.Tr "action.compare_commits_general"}}</a>
+					<a class="ui small green small button issue-list-new{{if not .PullRequestCtx.Allowed}} disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.PullRequestCtx.BaseRepo.DefaultBranch | PathEscapeSegments}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | PathEscapeSegments}}{{end}}">{{$.locale.Tr "action.compare_commits_general"}}</a>
 				{{end}}
 			{{end}}
 		</div>
 		<div id="issue-filters" class="issue-list-toolbar">
 			<div class="issue-list-toolbar-left">
-				{{if $.CanWriteIssuesOrPulls}}
+				{{if and ($.CanWriteIssuesOrPulls) (gt (len .Issues) 0)}}
 					<input type="checkbox" autocomplete="off" class="issue-checkbox-all gt-mr-4" title="{{.locale.Tr "repo.issues.action_check_all"}}">
 				{{end}}
 				{{template "repo/issue/openclose" .}}
 			</div>
 			<div class="issue-list-toolbar-right">
-				<div class="ui secondary filter stackable menu labels">
+				<div class="ui secondary filter menu labels">
 					<!-- Label -->
 					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item label-filter">
 						<span class="text">
@@ -102,13 +102,14 @@
 								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_label"}}">
 							</div>
 							<span class="info">{{.locale.Tr "repo.issues.filter_label_exclude" | Safe}}</span>
+							<div class="divider"></div>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels=0&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_label_select_no_label"}}</a>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_label_no_select"}}</a>
 							{{$previousExclusiveScope := "_no_scope"}}
 							{{range .Labels}}
 								{{$exclusiveScope := .ExclusiveScope}}
-								{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
-									<div class="ui divider"></div>
+								{{if and (ne $previousExclusiveScope $exclusiveScope)}}
+									<div class="divider"></div>
 								{{end}}
 								{{$previousExclusiveScope = $exclusiveScope}}
 								<a class="item label-filter-item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}" data-label-id="{{.ID}}">{{if .IsExcluded}}{{svg "octicon-circle-slash"}}{{else if .IsSelected}}{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}} {{RenderLabel $.Context .}}</a>
@@ -277,13 +278,19 @@
 				{{template "repo/issue/openclose" .}}
 			</div>
 			<div class="issue-list-toolbar-right">
-				<div class="ui secondary filter stackable menu">
+				<div class="ui secondary filter menu">
 					{{if not .Repository.IsArchived}}
 					<!-- Action Button -->
 					{{if .IsShowClosed}}
-						<button class="ui green active basic button issue-action gt-ml-auto" data-action="open" data-url="{{$.RepoLink}}/issues/status">{{.locale.Tr "repo.issues.action_open"}}</button>
+						<button class="ui green basic button issue-action gt-ml-auto" data-action="open" data-url="{{$.RepoLink}}/issues/status">{{.locale.Tr "repo.issues.action_open"}}</button>
 					{{else}}
-						<button class="ui red active basic button issue-action gt-ml-auto" data-action="close" data-url="{{$.RepoLink}}/issues/status">{{.locale.Tr "repo.issues.action_close"}}</button>
+						<button class="ui red basic button issue-action gt-ml-auto" data-action="close" data-url="{{$.RepoLink}}/issues/status">{{.locale.Tr "repo.issues.action_close"}}</button>
+					{{end}}
+					{{if $.IsRepoAdmin}}
+						<button class="ui red button issue-action gt-ml-auto"
+							data-action="delete" data-url="{{$.RepoLink}}/issues/delete"
+							data-action-delete-confirm="{{.locale.Tr "confirm_delete_selected"}}"
+						>{{.locale.Tr "repo.issues.delete"}}</button>
 					{{end}}
 					<!-- Labels -->
 					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item">
@@ -299,7 +306,7 @@
 							{{range .Labels}}
 								{{$exclusiveScope := .ExclusiveScope}}
 								{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
-									<div class="ui divider"></div>
+									<div class="divider"></div>
 								{{end}}
 								{{$previousExclusiveScope = $exclusiveScope}}
 								<div class="item issue-action" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">

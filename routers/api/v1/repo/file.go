@@ -200,7 +200,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		return
 	}
 
-	if setting.LFS.ServeDirect {
+	if setting.LFS.Storage.MinioConfig.ServeDirect {
 		// If we have a signed url (S3, object storage), redirect to this directly.
 		u, err := storage.LFS.URL(pointer.RelativePath(), blob.Name())
 		if u != nil && err == nil {
@@ -320,7 +320,7 @@ func download(ctx *context.APIContext, archiveName string, archiver *repo_model.
 	downloadName := ctx.Repo.Repository.Name + "-" + archiveName
 
 	rPath := archiver.RelativePath()
-	if setting.RepoArchive.ServeDirect {
+	if setting.RepoArchive.Storage.MinioConfig.ServeDirect {
 		// If we have a signed url (S3, object storage), redirect to this directly.
 		u, err := storage.RepoArchives.URL(rPath, downloadName)
 		if u != nil && err == nil {
@@ -408,11 +408,11 @@ func canReadFiles(r *context.Repository) bool {
 	return r.Permission.CanRead(unit.TypeCode)
 }
 
-// ChangeFiles handles API call for creating or updating multiple files
+// ChangeFiles handles API call for modifying multiple files
 func ChangeFiles(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/contents repository repoChangeFiles
 	// ---
-	// summary: Create or update multiple files in a repository
+	// summary: Modify multiple files in a repository
 	// consumes:
 	// - application/json
 	// produces:
@@ -687,12 +687,12 @@ func handleCreateOrUpdateFileError(ctx *context.APIContext, err error) {
 		ctx.Error(http.StatusForbidden, "Access", err)
 		return
 	}
-	if models.IsErrBranchAlreadyExists(err) || models.IsErrFilenameInvalid(err) || models.IsErrSHADoesNotMatch(err) ||
+	if git_model.IsErrBranchAlreadyExists(err) || models.IsErrFilenameInvalid(err) || models.IsErrSHADoesNotMatch(err) ||
 		models.IsErrFilePathInvalid(err) || models.IsErrRepoFileAlreadyExists(err) {
 		ctx.Error(http.StatusUnprocessableEntity, "Invalid", err)
 		return
 	}
-	if models.IsErrBranchDoesNotExist(err) || git.IsErrBranchNotExist(err) {
+	if git_model.IsErrBranchNotExist(err) || git.IsErrBranchNotExist(err) {
 		ctx.Error(http.StatusNotFound, "BranchDoesNotExist", err)
 		return
 	}
@@ -843,7 +843,7 @@ func DeleteFile(ctx *context.APIContext) {
 		if git.IsErrBranchNotExist(err) || models.IsErrRepoFileDoesNotExist(err) || git.IsErrNotExist(err) {
 			ctx.Error(http.StatusNotFound, "DeleteFile", err)
 			return
-		} else if models.IsErrBranchAlreadyExists(err) ||
+		} else if git_model.IsErrBranchAlreadyExists(err) ||
 			models.IsErrFilenameInvalid(err) ||
 			models.IsErrSHADoesNotMatch(err) ||
 			models.IsErrCommitIDDoesNotMatch(err) ||

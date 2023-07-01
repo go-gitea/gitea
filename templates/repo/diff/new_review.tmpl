@@ -1,12 +1,12 @@
 <div id="review-box">
-	<button class="ui tiny green button gt-ml-2 gt-mr-0 js-btn-review">
+	<button class="ui tiny green button gt-pr-2 gt-df js-btn-review">
 		{{.locale.Tr "repo.diff.review"}}
 		<span class="ui small label review-comments-counter" data-pending-comment-number="{{.PendingCodeCommentNumber}}">{{.PendingCodeCommentNumber}}</span>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 	</button>
 	<div class="review-box-panel tippy-target">
 		<div class="ui segment">
-			<form class="ui form" action="{{.Link}}/reviews/submit" method="post">
+			<form class="ui form form-fetch-action" action="{{.Link}}/reviews/submit" method="post">
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="commit_id" value="{{.AfterCommitID}}">
 				<div class="field gt-df gt-ac">
@@ -28,7 +28,7 @@
 						{{template "repo/upload" .}}
 					</div>
 				{{end}}
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 				{{$showSelfTooltip := (and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID))}}
 				{{if $showSelfTooltip}}
 					<span class="gt-dib" data-tooltip-content="{{$.locale.Tr "repo.diff.review.self_approve"}}">

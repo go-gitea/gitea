@@ -72,14 +72,14 @@
 				</div>
 				<div class="field {{if .Err_Website}}error{{end}}">
 					<label for="website">{{.locale.Tr "settings.website"}}</label>
-					<input id="website" name="website" type="url" value="{{.User.Website}}" placeholder="e.g. http://mydomain.com or https://mydomain.com" maxlength="255">
+					<input id="website" name="website" type="url" value="{{.User.Website}}" placeholder="http://mydomain.com or https://mydomain.com" maxlength="255">
 				</div>
 				<div class="field {{if .Err_Location}}error{{end}}">
 					<label for="location">{{.locale.Tr "settings.location"}}</label>
 					<input id="location" name="location" value="{{.User.Location}}" maxlength="50">
 				</div>
 
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 
 				<div class="inline field {{if .Err_MaxRepoCreation}}error{{end}}">
 					<label for="max_repo_creation">{{.locale.Tr "admin.users.max_repo_creation"}}</label>
@@ -87,7 +87,7 @@
 					<p class="help">{{.locale.Tr "admin.users.max_repo_creation_desc"}}</p>
 				</div>
 
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 
 				<div class="inline field">
 					<div class="ui checkbox">
@@ -135,7 +135,7 @@
 				{{end}}
 
 				{{if .TwoFactorEnabled}}
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 				<div class="inline field">
 					<div class="ui checkbox">
 						<label><strong>{{.locale.Tr "admin.users.reset_2fa"}}</strong></label>
@@ -144,7 +144,7 @@
 				</div>
 				{{end}}
 
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 
 				<div class="field">
 					<button class="ui green button">{{.locale.Tr "admin.users.update_profile"}}</button>
@@ -186,7 +186,7 @@
 
 				<div class="field">
 					<button class="ui green button">{{$.locale.Tr "settings.update_avatar"}}</button>
-					<a class="ui red button delete-post" data-request-url="{{.Link}}/avatar/delete" data-done-url="{{.Link}}">{{$.locale.Tr "settings.delete_current_avatar"}}</a>{{/* TODO: Convert links without href to buttons for a11y */}}
+					<button class="ui red button link-action" data-url="{{.Link}}/avatar/delete" data-redirect="{{.Link}}">{{$.locale.Tr "settings.delete_current_avatar"}}</button>
 				</div>
 			</form>
 		</div>
@@ -197,7 +197,7 @@
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "settings.delete_account_title"}}
 	</div>
-	<form class="ui form" method="POST" action="{{.Link}}/delete">
+	<form class="ui form" method="post" action="{{.Link}}/delete">
 		<div class="content">
 			<p>{{.locale.Tr "settings.delete_account_desc"}}</p>
 			{{$.CsrfTokenHtml}}

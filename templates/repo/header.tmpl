@@ -132,7 +132,7 @@
 										{{end}}
 									</div>
 									{{if $.CanSignedUserFork}}
-									<div class="ui divider"></div>
+									<div class="divider"></div>
 									<a href="{{AppSubUrl}}/repo/fork/{{.ID}}">
 										{{$.locale.Tr "repo.fork_to_different_account"}}
 									</a>
@@ -169,7 +169,7 @@
 
 				{{if .Permission.CanRead $.UnitTypeExternalTracker}}
 					<a class="{{if .PageIsIssueList}}active {{end}}item" href="{{.RepoExternalIssuesLink}}" target="_blank" rel="noopener noreferrer">
-						{{svg "octicon-link-external"}} {{.locale.Tr "repo.issues"}} </span>
+						{{svg "octicon-link-external"}} {{.locale.Tr "repo.issues"}}
 					</a>
 				{{end}}
 

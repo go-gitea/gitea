@@ -244,7 +244,7 @@ func initLoggerByName(manager *log.LoggerManager, rootCfg ConfigProvider, logger
 		eventWriters = append(eventWriters, eventWriter)
 	}
 
-	manager.GetLogger(loggerName).RemoveAllWriters().AddWriters(eventWriters...)
+	manager.GetLogger(loggerName).ReplaceAllWriters(eventWriters...)
 }
 
 func InitSQLLoggersForCli(level log.Level) {

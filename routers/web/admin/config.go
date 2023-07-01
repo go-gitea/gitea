@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 
@@ -167,20 +166,6 @@ func Config(ctx *context.Context) {
 	ctx.Data["SessionConfig"] = sessionCfg
 
 	ctx.Data["Git"] = setting.Git
-
-	type envVar struct {
-		Name, Value string
-	}
-
-	envVars := map[string]*envVar{}
-	if len(os.Getenv("GITEA_WORK_DIR")) > 0 {
-		envVars["GITEA_WORK_DIR"] = &envVar{"GITEA_WORK_DIR", os.Getenv("GITEA_WORK_DIR")}
-	}
-	if len(os.Getenv("GITEA_CUSTOM")) > 0 {
-		envVars["GITEA_CUSTOM"] = &envVar{"GITEA_CUSTOM", os.Getenv("GITEA_CUSTOM")}
-	}
-
-	ctx.Data["EnvVars"] = envVars
 	ctx.Data["AccessLogTemplate"] = setting.Log.AccessLogTemplate
 	ctx.Data["LogSQL"] = setting.Database.LogSQL
 

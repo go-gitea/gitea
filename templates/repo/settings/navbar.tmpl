@@ -34,8 +34,8 @@
 			</a>
 		{{end}}
 		{{if and .EnableActions (not .UnitActionsGlobalDisabled) (.Permission.CanRead $.UnitTypeActions)}}
-		<div class="item">
-			{{.locale.Tr "actions.actions"}}
+		<details class="item toggleable-item" {{if or .PageIsSharedSettingsRunners .PageIsSharedSettingsSecrets .PageIsSharedSettingsVariables}}open{{end}}>
+			<summary>{{.locale.Tr "actions.actions"}}</summary>
 			<div class="menu">
 				<a class="{{if .PageIsSharedSettingsRunners}}active {{end}}item" href="{{.RepoLink}}/settings/actions/runners">
 					{{.locale.Tr "actions.runners"}}
@@ -43,8 +43,11 @@
 				<a class="{{if .PageIsSharedSettingsSecrets}}active {{end}}item" href="{{.RepoLink}}/settings/actions/secrets">
 					{{.locale.Tr "secrets.secrets"}}
 				</a>
+				<a class="{{if .PageIsSharedSettingsVariables}}active {{end}}item" href="{{.RepoLink}}/settings/actions/variables">
+					{{.locale.Tr "actions.variables"}}
+				</a>
 			</div>
-		</div>
+		</details>
 		{{end}}
 	</div>
 </div>
