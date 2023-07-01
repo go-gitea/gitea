@@ -37,7 +37,7 @@
 				</div>
 			</div>
 		</div>
-		<div class="ui divider"></div>
+		<div class="divider"></div>
 		<div class="ui two column stackable grid">
 			<div class="column">
 				<h2 class="project-title">{{$.Project.Title}}</h2>
@@ -45,8 +45,8 @@
 			</div>
 			{{if $.CanWriteProjects}}
 				<div class="column right aligned">
-					<div class="ui compact right small menu">
-						<a class="item" href="{{$.Link}}/edit?redirect=project" data-id={{$.Project.ID}} data-title={{$.Project.Title}}>
+					<div class="ui compact right mini menu">
+						<a class="item" href="{{$.Link}}/edit?redirect=project">
 							{{svg "octicon-pencil"}}
 							<span class="gt-mx-3">{{$.locale.Tr "repo.issues.label_edit"}}</span>
 						</a>
@@ -69,7 +69,7 @@
 				</div>
 			{{end}}
 		</div>
-		<div class="ui divider"></div>
+		<div class="divider"></div>
 	</div>
 	<div class="ui container fluid padded" id="project-board">
 
@@ -175,7 +175,7 @@
 						</div>
 					{{end}}
 				</div>
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 
 				<div class="ui cards board" data-url="{{$.Link}}/{{.ID}}" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="board_{{.ID}}">
 

@@ -76,6 +76,12 @@ The default configuration is safe to use without any modification, so you can ju
 ./act_runner --config config.yaml [command]
 ```
 
+You could also generate config file with docker:
+
+```bash
+docker run --entrypoint="" --rm -it gitea/act_runner:latest act_runner generate-config > config.yaml
+```
+
 When you are using the docker image, you can specify the configuration file by using the `CONFIG_FILE` environment variable. Make sure that the file is mounted into the container as a volume:
 
 ```bash
@@ -171,6 +177,61 @@ You may notice that we have mounted the `/var/run/docker.sock` into the containe
 It is because the act runner will run jobs in docker containers, so it needs to communicate with the docker daemon.
 As mentioned, you can remove it if you want to run jobs in the host directly.
 To be clear, the "host" actually means the container which is running the act runner now, instead of the host machine.
+
+### Set up the runner using docker compose
+
+You could also set up the runner using the following `docker-compose.yml`:
+
+```yml
+version: "3.8"
+services:
+  runner:
+    image: gitea/act_runner:nightly
+    environment:
+      CONFIG_FILE: /config.yaml
+      GITEA_INSTANCE_URL: "${INSTANCE_URL}"
+      GITEA_RUNNER_REGISTRATION_TOKEN: "${REGISTRATION_TOKEN}"
+      GITEA_RUNNER_NAME: "${RUNNER_NAME}"
+      GITEA_RUNNER_LABELS: "${RUNNER_LABELS}"
+    volumes:
+      - ./config.yaml:/config.yaml
+      - ./data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+```
+
+### Configuring cache when starting a Runner using docker image
+
+If you do not intend to use `actions/cache` in workflow, you can ignore this section.
+
+If you use `actions/cache` without any additional configuration, it will return the following error:
+> Failed to restore: getCacheEntry failed: connect ETIMEDOUT IP:PORT
+
+The error occurs because the runner container and job container are on different networks, so the job container cannot access the runner container.
+
+Therefore, it is essential to configure the cache action to ensure its proper functioning. Follow these steps:
+
+- 1.Obtain the LAN IP address of the host machine where the runner container is running.
+- 2.Find an available port number on the host machine where the runner container is running.
+- 3.Configure the following settings in the configuration file:
+
+```yaml
+cache:
+  enabled: true
+  dir: ""
+  # Use the LAN IP obtained in step 1
+  host: "192.168.8.17"
+  # Use the port number obtained in step 2
+  port: 8088
+```
+
+- 4.When starting the container, map the cache port to the host machine:
+
+```bash
+docker run \
+  --name gitea-docker-runner \
+  -p 8088:8088 \
+  -d gitea/act_runner:nightly
+```
 
 ### Labels
 

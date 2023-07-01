@@ -199,7 +199,7 @@ func TestCantMergeWorkInProgress(t *testing.T) {
 
 		resp := testPullCreate(t, session, "user1", "repo1", "master", "[wip] This is a pull title")
 
-		req := NewRequest(t, "GET", resp.Header().Get("Location"))
+		req := NewRequest(t, "GET", test.RedirectURL(resp))
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		text := strings.TrimSpace(htmlDoc.doc.Find(".merge-section > .item").Last().Text())

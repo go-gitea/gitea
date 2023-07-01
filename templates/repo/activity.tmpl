@@ -2,29 +2,28 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository commits">
 	{{template "repo/header" .}}
 	<div class="ui container">
-		<h2 class="ui header">{{DateTime "long" .DateFrom}} - {{DateTime "long" .DateUntil}}
-			<div class="ui right">
-				<!-- Period -->
-				<div class="ui floating dropdown jump filter">
-					<div class="ui basic compact button">
-						<span class="text">
-							{{.locale.Tr "repo.activity.period.filter_label"}} <strong>{{.PeriodText}}</strong>
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						</span>
-					</div>
-					<div class="menu">
-						<a class="{{if eq .Period "daily"}}active {{end}}item" href="{{$.RepoLink}}/activity/daily">{{.locale.Tr "repo.activity.period.daily"}}</a>
-						<a class="{{if eq .Period "halfweekly"}}active {{end}}item" href="{{$.RepoLink}}/activity/halfweekly">{{.locale.Tr "repo.activity.period.halfweekly"}}</a>
-						<a class="{{if eq .Period "weekly"}}active {{end}}item" href="{{$.RepoLink}}/activity/weekly">{{.locale.Tr "repo.activity.period.weekly"}}</a>
-						<a class="{{if eq .Period "monthly"}}active {{end}}item" href="{{$.RepoLink}}/activity/monthly">{{.locale.Tr "repo.activity.period.monthly"}}</a>
-						<a class="{{if eq .Period "quarterly"}}active {{end}}item" href="{{$.RepoLink}}/activity/quarterly">{{.locale.Tr "repo.activity.period.quarterly"}}</a>
-						<a class="{{if eq .Period "semiyearly"}}active {{end}}item" href="{{$.RepoLink}}/activity/semiyearly">{{.locale.Tr "repo.activity.period.semiyearly"}}</a>
-						<a class="{{if eq .Period "yearly"}}active {{end}}item" href="{{$.RepoLink}}/activity/yearly">{{.locale.Tr "repo.activity.period.yearly"}}</a>
-					</div>
+		<h2 class="ui header activity-header">
+			<span>{{DateTime "long" .DateFrom}} - {{DateTime "long" .DateUntil}}</span>
+			<!-- Period -->
+			<div class="ui floating dropdown jump filter">
+				<div class="ui basic compact button">
+					<span class="text">
+						{{.locale.Tr "repo.activity.period.filter_label"}} <strong>{{.PeriodText}}</strong>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+					</span>
+				</div>
+				<div class="menu">
+					<a class="{{if eq .Period "daily"}}active {{end}}item" href="{{$.RepoLink}}/activity/daily">{{.locale.Tr "repo.activity.period.daily"}}</a>
+					<a class="{{if eq .Period "halfweekly"}}active {{end}}item" href="{{$.RepoLink}}/activity/halfweekly">{{.locale.Tr "repo.activity.period.halfweekly"}}</a>
+					<a class="{{if eq .Period "weekly"}}active {{end}}item" href="{{$.RepoLink}}/activity/weekly">{{.locale.Tr "repo.activity.period.weekly"}}</a>
+					<a class="{{if eq .Period "monthly"}}active {{end}}item" href="{{$.RepoLink}}/activity/monthly">{{.locale.Tr "repo.activity.period.monthly"}}</a>
+					<a class="{{if eq .Period "quarterly"}}active {{end}}item" href="{{$.RepoLink}}/activity/quarterly">{{.locale.Tr "repo.activity.period.quarterly"}}</a>
+					<a class="{{if eq .Period "semiyearly"}}active {{end}}item" href="{{$.RepoLink}}/activity/semiyearly">{{.locale.Tr "repo.activity.period.semiyearly"}}</a>
+					<a class="{{if eq .Period "yearly"}}active {{end}}item" href="{{$.RepoLink}}/activity/yearly">{{.locale.Tr "repo.activity.period.yearly"}}</a>
 				</div>
 			</div>
 		</h2>
-		<div class="ui divider"></div>
+		<div class="divider"></div>
 
 		{{if (or (.Permission.CanRead $.UnitTypeIssues) (.Permission.CanRead $.UnitTypePullRequests))}}
 		<h4 class="ui top attached header">{{.locale.Tr "repo.activity.overview"}}</h4>
@@ -116,8 +115,8 @@
 		{{end}}
 
 		{{if gt .Activity.PublishedReleaseCount 0}}
-			<h4 class="ui horizontal divider header" id="published-releases">
-				<span class="text">{{svg "octicon-tag"}}</span>
+			<h4 class="divider divider-text gt-normal-case" id="published-releases">
+				{{svg "octicon-tag" 16 "gt-mr-3"}}
 				{{.locale.Tr "repo.activity.title.releases_published_by"
 					(.locale.TrN .Activity.PublishedReleaseCount "repo.activity.title.releases_1" "repo.activity.title.releases_n" .Activity.PublishedReleaseCount)
 					(.locale.TrN .Activity.PublishedReleaseAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n" .Activity.PublishedReleaseAuthorCount)
@@ -138,8 +137,8 @@
 		{{end}}
 
 		{{if gt .Activity.MergedPRCount 0}}
-			<h4 class="ui horizontal divider header" id="merged-pull-requests">
-				<span class="text">{{svg "octicon-git-pull-request"}}</span>
+			<h4 class="divider divider-text gt-normal-case" id="merged-pull-requests">
+				{{svg "octicon-git-pull-request" 16 "gt-mr-3"}}
 				{{.locale.Tr "repo.activity.title.prs_merged_by"
 					(.locale.TrN .Activity.MergedPRCount "repo.activity.title.prs_1" "repo.activity.title.prs_n" .Activity.MergedPRCount)
 					(.locale.TrN .Activity.MergedPRAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n" .Activity.MergedPRAuthorCount)
@@ -157,8 +156,8 @@
 		{{end}}
 
 		{{if gt .Activity.OpenedPRCount 0}}
-			<h4 class="ui horizontal divider header" id="proposed-pull-requests">
-				<span class="text">{{svg "octicon-git-branch"}}</span>
+			<h4 class="divider divider-text gt-normal-case" id="proposed-pull-requests">
+				{{svg "octicon-git-branch" 16 "gt-mr-3"}}
 				{{.locale.Tr "repo.activity.title.prs_opened_by"
 					(.locale.TrN .Activity.OpenedPRCount "repo.activity.title.prs_1" "repo.activity.title.prs_n" .Activity.OpenedPRCount)
 					(.locale.TrN .Activity.OpenedPRAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n" .Activity.OpenedPRAuthorCount)
@@ -176,8 +175,8 @@
 		{{end}}
 
 		{{if gt .Activity.ClosedIssueCount 0}}
-			<h4 class="ui horizontal divider header" id="closed-issues">
-				<span class="text">{{svg "octicon-issue-closed"}}</span>
+			<h4 class="divider divider-text gt-normal-case" id="closed-issues">
+				{{svg "octicon-issue-closed" 16 "gt-mr-3"}}
 				{{.locale.Tr "repo.activity.title.issues_closed_from"
 					(.locale.TrN .Activity.ClosedIssueCount "repo.activity.title.issues_1" "repo.activity.title.issues_n" .Activity.ClosedIssueCount)
 					(.locale.TrN .Activity.ClosedIssueAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n" .Activity.ClosedIssueAuthorCount)
@@ -195,8 +194,8 @@
 		{{end}}
 
 		{{if gt .Activity.OpenedIssueCount 0}}
-			<h4 class="ui horizontal divider header" id="new-issues">
-				<span class="text">{{svg "octicon-issue-opened"}}</span>
+			<h4 class="divider divider-text gt-normal-case" id="new-issues">
+				{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
 				{{.locale.Tr "repo.activity.title.issues_created_by"
 					(.locale.TrN .Activity.OpenedIssueCount "repo.activity.title.issues_1" "repo.activity.title.issues_n" .Activity.OpenedIssueCount)
 					(.locale.TrN .Activity.OpenedIssueAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n" .Activity.OpenedIssueAuthorCount)
@@ -214,13 +213,10 @@
 		{{end}}
 
 		{{if gt .Activity.UnresolvedIssueCount 0}}
-			<h4 class="ui horizontal divider header" id="unresolved-conversations">
-				<span class="text">{{svg "octicon-comment-discussion"}}</span>
+			<h4 class="divider divider-text gt-normal-case" id="unresolved-conversations" data-tooltip-content="{{.locale.Tr "repo.activity.unresolved_conv_desc"}}">
+				{{svg "octicon-comment-discussion" 16 "gt-mr-3"}}
 				{{.locale.TrN .Activity.UnresolvedIssueCount "repo.activity.title.unresolved_conv_1" "repo.activity.title.unresolved_conv_n" .Activity.UnresolvedIssueCount}}
 			</h4>
-			<div class="text center desc">
-				{{.locale.Tr "repo.activity.unresolved_conv_desc"}}
-			</div>
 			<div class="list">
 				{{range .Activity.UnresolvedIssues}}
 					<p class="desc">

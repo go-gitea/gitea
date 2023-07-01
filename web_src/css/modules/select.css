@@ -1,0 +1,25 @@
+.gitea-select {
+  position: relative;
+}
+
+.gitea-select select {
+  appearance: none; /* hide default triangle */
+}
+
+/* ::before and ::after pseudo elements don't work on select elements,
+   so we need to put it on the parent. */
+.gitea-select::after {
+  position: absolute;
+  top: 12px;
+  right: 8px;
+  pointer-events: none;
+  content: "";
+  width: 14px;
+  height: 14px;
+  mask-size: cover;
+  -webkit-mask-size: cover;
+  mask-image: var(--octicon-chevron-right);
+  -webkit-mask-image: var(--octicon-chevron-right);
+  transform: rotate(90deg); /* point the chevron down */
+  background: currentcolor;
+}

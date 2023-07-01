@@ -19,14 +19,15 @@
 		{{end}}
 		<div class="ui top attached header clearing segment gt-relative commit-header {{$class}}">
 			<div class="gt-df gt-mb-4 gt-fw">
-				<h3 class="gt-mb-0 gt-f1"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage $.Context .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses  "root" $}}</h3>
+				<h3 class="gt-mb-0 gt-f1"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage $.Context .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses "root" $}}</h3>
 				{{if not $.PageIsWiki}}
 					<div>
 						<a class="ui primary tiny button" href="{{.SourcePath}}">
 							{{.locale.Tr "repo.diff.browse_source"}}
 						</a>
 						{{if and ($.Permission.CanWrite $.UnitTypeCode) (not $.Repository.IsArchived) (not .IsDeleted)}}{{- /* */ -}}
-							<div class="ui primary tiny floating dropdown icon button">{{.locale.Tr "repo.commit.operations"}}
+							<div class="ui dropdown primary tiny button">
+								{{.locale.Tr "repo.commit.operations"}}
 								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 								<div class="menu">
 									<div class="ui header">{{.locale.Tr "repo.commit.operations"}}</div>
@@ -70,7 +71,7 @@
 												"branchForm" "branch-dropdown-form"
 												"branchURLPrefix" (printf "%s/_cherrypick/%s/" $.RepoLink .CommitID) "branchURLSuffix" ""
 												"setAction" true "submitForm" true}}
-											<form method="GET" action="{{$.RepoLink}}/_cherrypick/{{.CommitID}}/{{if $.BranchName}}{{PathEscapeSegments $.BranchName}}{{else}}{{PathEscapeSegments $.Repository.DefaultBranch}}{{end}}" id="branch-dropdown-form">
+											<form method="get" action="{{$.RepoLink}}/_cherrypick/{{.CommitID}}/{{if $.BranchName}}{{PathEscapeSegments $.BranchName}}{{else}}{{PathEscapeSegments $.Repository.DefaultBranch}}{{end}}" id="branch-dropdown-form">
 												<input type="hidden" name="ref" value="{{if $.BranchName}}{{$.BranchName}}{{else}}{{$.Repository.DefaultBranch}}{{end}}">
 												<input type="hidden" name="refType" value="branch">
 												<input type="hidden" id="cherry-pick-type" name="cherry-pick-type"><br>

@@ -108,6 +108,14 @@ Admin operations:
         - `--all`, `-A`: Force a password change for all users
         - `--exclude username`, `-e username`: Exclude the given user. Can be set multiple times.
         - `--unset`: Revoke forced password change for the given users
+    - `generate-access-token`:
+      - Options:
+        - `--username value`, `-u value`: Username. Required.
+        - `--token-name value`, `-t value`: Token name. Required.
+        - `--scopes value`: Comma-separated list of scopes. Scopes follow the format `[read|write]:<block>` or `all` where `<block>` is one of the available visual groups you can see when opening the API page showing the available routes (for example `repo`).
+      - Examples:
+        - `gitea admin user generate-access-token --username myname --token-name mytoken`
+        - `gitea admin user generate-access-token --help`
   - `regenerate`
     - Options:
       - `hooks`: Regenerate Git Hooks for all repositories

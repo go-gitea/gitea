@@ -241,11 +241,9 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 
 	// TODO: a more efficient way to filter labels
 	var job *ActionRunJob
-	labels := runner.AgentLabels
-	labels = append(labels, runner.CustomLabels...)
-	log.Trace("runner labels: %v", labels)
+	log.Trace("runner labels: %v", runner.AgentLabels)
 	for _, v := range jobs {
-		if isSubset(labels, v.RunsOn) {
+		if isSubset(runner.AgentLabels, v.RunsOn) {
 			job = v
 			break
 		}
@@ -346,6 +344,9 @@ func UpdateTask(ctx context.Context, task *ActionTask, cols ...string) error {
 	return err
 }
 
+// UpdateTaskByState updates the task by the state.
+// It will always update the task if the state is not final, even there is no change.
+// So it will update ActionTask.Updated to avoid the task being judged as a zombie task.
 func UpdateTaskByState(ctx context.Context, state *runnerv1.TaskState) (*ActionTask, error) {
 	stepStates := map[int64]*runnerv1.StepState{}
 	for _, v := range state.Steps {
@@ -384,6 +385,12 @@ func UpdateTaskByState(ctx context.Context, state *runnerv1.TaskState) (*ActionT
 			Status:  task.Status,
 			Stopped: task.Stopped,
 		}, nil); err != nil {
+			return nil, err
+		}
+	} else {
+		// Force update ActionTask.Updated to avoid the task being judged as a zombie task
+		task.Updated = timeutil.TimeStampNow()
+		if err := UpdateTask(ctx, task, "updated"); err != nil {
 			return nil, err
 		}
 	}

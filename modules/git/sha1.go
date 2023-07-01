@@ -28,6 +28,14 @@ func IsValidSHAPattern(sha string) bool {
 	return shaPattern.MatchString(sha)
 }
 
+type ErrInvalidSHA struct {
+	SHA string
+}
+
+func (err ErrInvalidSHA) Error() string {
+	return fmt.Sprintf("invalid sha: %s", err.SHA)
+}
+
 // MustID always creates a new SHA1 from a [20]byte array with no validation of input.
 func MustID(b []byte) SHA1 {
 	var id SHA1

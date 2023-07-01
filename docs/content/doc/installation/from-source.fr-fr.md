@@ -55,7 +55,7 @@ git checkout pr-xyz
 
 ## Compilation
 
-Comme nous regroupons déjà toutes les bibliothèques requises pour compiler Gitea, vous pouvez continuer avec le processus de compilation lui-même. Nous fournissons diverses [tâches Make](https://github.com/go-gitea/gitea/blob/master/Makefile) pour rendre le processus de construction aussi simple que possible. [Voyez ici comment obtenir Make](/fr-fr/hacking-on-gitea/). Selon vos besoins, vous pourrez éventuellement ajouter diverses options de compilation, vous pouvez choisir entre ces options :
+Comme nous regroupons déjà toutes les bibliothèques requises pour compiler Gitea, vous pouvez continuer avec le processus de compilation lui-même. Nous fournissons diverses [tâches Make](https://github.com/go-gitea/gitea/blob/main/Makefile) pour rendre le processus de construction aussi simple que possible. [Voyez ici comment obtenir Make](/fr-fr/hacking-on-gitea/). Selon vos besoins, vous pourrez éventuellement ajouter diverses options de compilation, vous pouvez choisir entre ces options :
 
 * `bindata`: Intègre toutes les ressources nécessaires à l'exécution d'une instance de Gitea, ce qui rend un déploiement facile car il n'est pas nécessaire de se préoccuper des fichiers supplémentaires.
 * `sqlite sqlite_unlock_notify`: Active la prise en charge d'une base de données [SQLite3](https://sqlite.org/), ceci n'est recommandé que pour les petites installations de Gitea.

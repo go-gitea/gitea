@@ -20,6 +20,9 @@ type RenderConfig struct {
 	TOC      string // "false": hide,  "side"/empty: in sidebar,  "main"/"true": in main view
 	Lang     string
 	yamlNode *yaml.Node
+
+	// Used internally.  Cannot be controlled by frontmatter.
+	metaLength int
 }
 
 func renderMetaModeFromString(s string) markup.RenderMetaMode {
