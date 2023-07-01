@@ -103,7 +103,7 @@ func Push(ctx *context.Context) {
 		Distro:       distro,
 	})
 	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -117,19 +117,26 @@ func Push(ctx *context.Context) {
 		Distro:       distro,
 	})
 	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	// Automatically connect repository for provided package if name matched.
-	err = arch_service.RepositoryAutoconnect(ctx, owner, md.Name, pkgid)
+	// Save file related to arch package description.
+	_, err = arch_service.SaveFile(ctx, &arch_service.SaveFileParams{
+		Organization: org,
+		User:         user,
+		Metadata:     md,
+		Data:         []byte(md.GetDbDesc()),
+		Filename:     filename + ".desc",
+		Distro:       distro,
+	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	// Update pacman databases with new package.
-	err = arch_service.UpdatePacmanDatabases(ctx, md, distro, owner)
+	// Automatically connect repository for provided package if name matched.
+	err = arch_service.RepositoryAutoconnect(ctx, owner, md.Name, pkgid)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
