@@ -729,6 +729,7 @@ export function initRepositoryActionView() {
   background-color: var(--color-console-bg);
   max-height: 100%;
   border-radius: 0 0 var(--border-radius) var(--border-radius);
+  z-index: 0;
 }
 
 .job-step-container .job-step-summary {

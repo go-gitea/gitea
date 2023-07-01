@@ -3223,10 +3223,6 @@ tbody.commit-list {
   .commit-table .commit-list span.message-wrapper {
     max-width: none;
   }
-  .commit-table .commit-list tr td:last-child {
-    display: block;
-    width: max-content;
-  }
   .commit-table .commit-list td.author {
     display: block;
     width: calc(100% + 0.5rem);
