@@ -657,7 +657,7 @@ func DeleteManifest(ctx *context.Context) {
 }
 
 func serveBlob(ctx *context.Context, pfd *packages_model.PackageFileDescriptor) {
-	s, u, _, err := packages_service.GetPackageFileStream(ctx, pfd.File)
+	s, u, _, err := packages_service.GetPackageBlobStream(ctx, pfd.File, pfd.Blob)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
