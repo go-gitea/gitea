@@ -118,12 +118,7 @@ func NewIndexer(indexDir string) *Indexer {
 func (b *Indexer) Index(_ context.Context, issues []*internal.IndexerData) error {
 	batch := inner_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	for _, issue := range issues {
-		if err := batch.Index(indexer_internal.Base36(issue.ID), &IndexerData{
-			RepoID:   issue.RepoID,
-			Title:    issue.Title,
-			Content:  issue.Content,
-			Comments: issue.Comments,
-		}); err != nil {
+		if err := batch.Index(indexer_internal.Base36(issue.ID), (*IndexerData)(issue)); err != nil {
 			return err
 		}
 	}
