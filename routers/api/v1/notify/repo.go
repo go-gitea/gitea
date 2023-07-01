@@ -183,7 +183,7 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 	if len(qLastRead) > 0 {
 		tmpLastRead, err := time.Parse(time.RFC3339, qLastRead)
 		if err != nil {
-			ctx.InternalServerError(err)
+			ctx.Error(http.StatusBadRequest, "Parse", err)
 			return
 		}
 		if !tmpLastRead.IsZero() {

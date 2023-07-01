@@ -4,6 +4,7 @@ import {toggleElem} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
 import {Sortable} from 'sortablejs';
 import {confirmModal} from './comp/ConfirmModal.js';
+import {showErrorToast} from '../modules/toast.js';
 
 function initRepoIssueListCheckboxes() {
   const $issueSelectAll = $('.issue-checkbox-all');
@@ -75,7 +76,7 @@ function initRepoIssueListCheckboxes() {
     ).then(() => {
       window.location.reload();
     }).catch((reason) => {
-      window.alert(reason.responseJSON.error);
+      showErrorToast(reason.responseJSON.error);
     });
   });
 }
@@ -127,7 +128,7 @@ function initRepoIssueListAuthorDropdown() {
     if (newMenuHtml) {
       const $newMenuItems = $(newMenuHtml);
       $newMenuItems.addClass('dynamic-item');
-      $menu.append('<div class="ui divider dynamic-item"></div>', ...$newMenuItems);
+      $menu.append('<div class="divider dynamic-item"></div>', ...$newMenuItems);
     }
     $searchDropdown.dropdown('refresh');
     // defer our selection to the next tick, because dropdown will set the selection item after this `menu` function

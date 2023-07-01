@@ -34,7 +34,7 @@ func TestEmptyRepo(t *testing.T) {
 		"commit/1ae57b34ccf7e18373",
 		"graph",
 	}
-	emptyRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 5})
+	emptyRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 6})
 	assert.True(t, emptyRepo.IsEmpty)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: emptyRepo.OwnerID})
 	for _, subPath := range subPaths {
