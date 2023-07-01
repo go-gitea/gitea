@@ -407,14 +407,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		Digest: pd.Files[0].Blob.HashSHA256,
 	})
 
-	if u != nil {
-		ctx.Redirect(u.String())
-		return
-	}
-
-	defer s.Close()
-
-	ctx.ServeContent(s, &context.ServeHeaderOptions{
+	helper.ServePackageFile(ctx, s, u, pf, &context.ServeHeaderOptions{
 		Filename:     pf.Name,
 		ContentType:  "application/zip",
 		LastModified: pf.CreatedUnix.AsLocalTime(),

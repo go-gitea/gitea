@@ -231,7 +231,11 @@ func DownloadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	helper.ServePackageFile(ctx, s, u, pf)
+	helper.ServePackageFile(ctx, s, u, pf, &context.ServeHeaderOptions{
+		ContentType:  "application/vnd.debian.binary-package",
+		Filename:     pf.Name,
+		LastModified: pf.CreatedUnix.AsLocalTime(),
+	})
 }
 
 func DeletePackageFile(ctx *context.Context) {

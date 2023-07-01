@@ -590,19 +590,25 @@ func GetFileStreamByPackageVersion(ctx context.Context, pv *packages_model.Packa
 }
 
 // GetPackageFileStream returns the content of the specific package file
-// If the storage supports direct serving and it's enabled only the direct serving url is returned.
 func GetPackageFileStream(ctx context.Context, pf *packages_model.PackageFile) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
 	pb, err := packages_model.GetBlobByID(ctx, pf.BlobID)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
+	return GetPackageBlobStream(ctx, pf, pb)
+}
+
+// GetPackageBlobStream returns the content of the specific package blob
+// If the storage supports direct serving and it's enabled, only the direct serving url is returned.
+func GetPackageBlobStream(ctx context.Context, pf *packages_model.PackageFile, pb *packages_model.PackageBlob) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
 	key := packages_module.BlobHash256Key(pb.HashSHA256)
 
 	cs := packages_module.NewContentStore()
 
 	var s io.ReadSeekCloser
 	var u *url.URL
+	var err error
 
 	if cs.ShouldServeDirect() {
 		u, err = cs.GetServeDirectURL(key, pf.Name)
