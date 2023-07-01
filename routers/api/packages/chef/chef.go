@@ -347,17 +347,7 @@ func DownloadPackage(ctx *context.Context) {
 		return
 	}
 
-	if u != nil {
-		ctx.Redirect(u.String())
-		return
-	}
-
-	defer s.Close()
-
-	ctx.ServeContent(s, &context.ServeHeaderOptions{
-		Filename:     pf.Name,
-		LastModified: pf.CreatedUnix.AsLocalTime(),
-	})
+	helper.ServePackageFile(ctx, s, u, pf)
 }
 
 // https://github.com/chef/chef/blob/main/knife/lib/chef/knife/supermarket_unshare.rb

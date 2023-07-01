@@ -35,3 +35,19 @@ func LogAndProcessError(ctx *context.Context, status int, obj interface{}, cb fu
 		cb(message)
 	}
 }
+
+// Serves the content of the package file
+// If the url is set it will redirect the request, otherwise the content is copied to the response.
+func ServePackageFile(ctx *context.Context, s io.ReadSeekCloser, u *url.URL, pf *packages_model.PackageFile) {
+	if u != nil {
+		ctx.Redirect(u.String())
+		return
+	}
+
+	defer s.Close()
+
+	ctx.ServeContent(s, &context.ServeHeaderOptions{
+		Filename:     pf.Name,
+		LastModified: pf.CreatedUnix.AsLocalTime(),
+	})
+}

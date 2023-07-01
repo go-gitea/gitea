@@ -101,17 +101,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	if u != nil {
-		ctx.Redirect(u.String())
-		return
-	}
-
-	defer s.Close()
-
-	ctx.ServeContent(s, &context.ServeHeaderOptions{
-		Filename:     pf.Name,
-		LastModified: pf.CreatedUnix.AsLocalTime(),
-	})
+	helper.ServePackageFile(ctx, s, u, pf)
 }
 
 // UploadPackageFile adds a file to the package. If the package does not exist, it gets created.

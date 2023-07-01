@@ -475,17 +475,7 @@ func downloadFile(ctx *context.Context, fileFilter container.Set[string], fileKe
 		return
 	}
 
-	if u != nil {
-		ctx.Redirect(u.String())
-		return
-	}
-
-	defer s.Close()
-
-	ctx.ServeContent(s, &context.ServeHeaderOptions{
-		Filename:     pf.Name,
-		LastModified: pf.CreatedUnix.AsLocalTime(),
-	})
+	helper.ServePackageFile(ctx, s, u, pf)
 }
 
 // DeleteRecipeV1 deletes the requested recipe(s)

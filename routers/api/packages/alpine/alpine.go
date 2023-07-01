@@ -85,17 +85,7 @@ func GetRepositoryFile(ctx *context.Context) {
 		return
 	}
 
-	if u != nil {
-		ctx.Redirect(u.String())
-		return
-	}
-
-	defer s.Close()
-
-	ctx.ServeContent(s, &context.ServeHeaderOptions{
-		Filename:     pf.Name,
-		LastModified: pf.CreatedUnix.AsLocalTime(),
-	})
+	helper.ServePackageFile(ctx, s, u, pf)
 }
 
 func UploadPackageFile(ctx *context.Context) {
@@ -216,17 +206,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	if u != nil {
-		ctx.Redirect(u.String())
-		return
-	}
-
-	defer s.Close()
-
-	ctx.ServeContent(s, &context.ServeHeaderOptions{
-		Filename:     pf.Name,
-		LastModified: pf.CreatedUnix.AsLocalTime(),
-	})
+	helper.ServePackageFile(ctx, s, u, pf)
 }
 
 func DeletePackageFile(ctx *context.Context) {
