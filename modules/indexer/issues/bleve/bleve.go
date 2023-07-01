@@ -23,7 +23,7 @@ import (
 const (
 	issueIndexerAnalyzer      = "issueIndexer"
 	issueIndexerDocType       = "issueIndexerDocType"
-	issueIndexerLatestVersion = 2
+	issueIndexerLatestVersion = 3
 )
 
 // numericEqualityQuery a numeric equality query for the given value and field
