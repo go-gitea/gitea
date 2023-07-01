@@ -73,6 +73,12 @@ export default {
     'eventsource.sharedworker': [
       fileURLToPath(new URL('web_src/js/features/eventsource.sharedworker.js', import.meta.url)),
     ],
+    ...(!isProduction && {
+      devtest: [
+        fileURLToPath(new URL('web_src/js/standalone/devtest.js', import.meta.url)),
+        fileURLToPath(new URL('web_src/css/standalone/devtest.css', import.meta.url)),
+      ],
+    }),
     ...themes,
   },
   devtool: false,
@@ -199,7 +205,7 @@ export default {
       emitError: true,
       allow: '(Apache-2.0 OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC OR CPAL-1.0 OR Unlicense OR EPL-1.0 OR EPL-2.0)',
     }) : new AddAssetPlugin('js/licenses.txt', `Licenses are disabled during development`),
-  ].filter(Boolean),
+  ],
   performance: {
     hints: false,
     maxEntrypointSize: Infinity,

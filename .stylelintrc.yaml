@@ -50,7 +50,7 @@ rules:
   declaration-no-important: null
   declaration-property-max-values: null
   declaration-property-unit-allowed-list: null
-  declaration-property-unit-disallowed-list: null
+  declaration-property-unit-disallowed-list: {line-height: [em]}
   declaration-property-value-allowed-list: null
   declaration-property-value-disallowed-list: null
   declaration-property-value-no-unknown: true
@@ -82,6 +82,7 @@ rules:
   media-feature-name-no-vendor-prefix: true
   media-feature-name-unit-allowed-list: null
   media-feature-name-value-allowed-list: null
+  media-feature-name-value-no-unknown: true
   media-feature-range-notation: null
   named-grid-areas-no-invalid: true
   no-descending-specificity: null

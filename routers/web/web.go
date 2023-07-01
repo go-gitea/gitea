@@ -307,6 +307,15 @@ func registerRoutes(m *web.Route) {
 		m.Post("/packagist/{id}", web.Bind(forms.NewPackagistHookForm{}), repo.PackagistHooksEditPost)
 	}
 
+	addSettingVariablesRoutes := func() {
+		m.Group("/variables", func() {
+			m.Get("", repo_setting.Variables)
+			m.Post("/new", web.Bind(forms.EditVariableForm{}), repo_setting.VariableCreate)
+			m.Post("/{variable_id}/edit", web.Bind(forms.EditVariableForm{}), repo_setting.VariableUpdate)
+			m.Post("/{variable_id}/delete", repo_setting.VariableDelete)
+		})
+	}
+
 	addSettingsSecretsRoutes := func() {
 		m.Group("/secrets", func() {
 			m.Get("", repo_setting.Secrets)
@@ -494,6 +503,7 @@ func registerRoutes(m *web.Route) {
 			m.Get("", user_setting.RedirectToDefaultSetting)
 			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
+			addSettingVariablesRoutes()
 		}, actions.MustEnableActions)
 
 		m.Get("/organization", user_setting.Organization)
@@ -760,6 +770,7 @@ func registerRoutes(m *web.Route) {
 					m.Get("", org_setting.RedirectToDefaultSetting)
 					addSettingsRunnersRoutes()
 					addSettingsSecretsRoutes()
+					addSettingVariablesRoutes()
 				}, actions.MustEnableActions)
 
 				m.RouteMethods("/delete", "GET,POST", org.SettingsDelete)
@@ -941,6 +952,7 @@ func registerRoutes(m *web.Route) {
 				m.Get("", repo_setting.RedirectToDefaultSetting)
 				addSettingsRunnersRoutes()
 				addSettingsSecretsRoutes()
+				addSettingVariablesRoutes()
 			}, actions.MustEnableActions)
 			m.Post("/migrate/cancel", repo.MigrateCancelPost) // this handler must be under "settings", otherwise this incomplete repo can't be accessed
 		}, ctxDataSet("PageIsRepoSettings", true, "LFSStartServer", setting.LFS.StartServer))
@@ -1024,7 +1036,8 @@ func registerRoutes(m *web.Route) {
 			m.Post("/request_review", reqRepoIssuesOrPullsReader, repo.UpdatePullReviewRequest)
 			m.Post("/dismiss_review", reqRepoAdmin, web.Bind(forms.DismissReviewForm{}), repo.DismissReview)
 			m.Post("/status", reqRepoIssuesOrPullsWriter, repo.UpdateIssueStatus)
-			m.Post("/resolve_conversation", reqRepoIssuesOrPullsReader, repo.UpdateResolveConversation)
+			m.Post("/delete", reqRepoAdmin, repo.BatchDeleteIssues)
+			m.Post("/resolve_conversation", reqRepoIssuesOrPullsReader, repo.SetShowOutdatedComments, repo.UpdateResolveConversation)
 			m.Post("/attachments", repo.UploadIssueAttachment)
 			m.Post("/attachments/remove", repo.DeleteAttachment)
 			m.Delete("/unpin/{index}", reqRepoAdmin, repo.IssueUnpin)
@@ -1194,6 +1207,7 @@ func registerRoutes(m *web.Route) {
 						Get(actions.View).
 						Post(web.Bind(actions.ViewRequest{}), actions.ViewPost)
 					m.Post("/rerun", reqRepoActionsWriter, actions.RerunOne)
+					m.Get("/logs", actions.Logs)
 				})
 				m.Post("/cancel", reqRepoActionsWriter, actions.Cancel)
 				m.Post("/approve", reqRepoActionsWriter, actions.Approve)
@@ -1272,10 +1286,10 @@ func registerRoutes(m *web.Route) {
 			m.Post("/set_allow_maintainer_edit", web.Bind(forms.UpdateAllowEditsForm{}), repo.SetAllowEdits)
 			m.Post("/cleanup", context.RepoMustNotBeArchived(), context.RepoRef(), repo.CleanUpPullRequest)
 			m.Group("/files", func() {
-				m.Get("", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.ViewPullFiles)
+				m.Get("", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFiles)
 				m.Group("/reviews", func() {
 					m.Get("/new_comment", repo.RenderNewCodeCommentForm)
-					m.Post("/comments", web.Bind(forms.CodeCommentForm{}), repo.CreateCodeComment)
+					m.Post("/comments", web.Bind(forms.CodeCommentForm{}), repo.SetShowOutdatedComments, repo.CreateCodeComment)
 					m.Post("/submit", web.Bind(forms.SubmitReviewForm{}), repo.SubmitReview)
 				}, context.RepoMustNotBeArchived())
 			})

@@ -91,7 +91,7 @@ func runRecreateTable(ctx *cli.Context) error {
 	golog.SetOutput(log.LoggerToWriter(log.GetLogger(log.DEFAULT).Info))
 
 	debug := ctx.Bool("debug")
-	setting.Init(&setting.Options{})
+	setting.MustInstalled()
 	setting.LoadDBSetting()
 
 	if debug {
@@ -151,7 +151,7 @@ func setupDoctorDefaultLogger(ctx *cli.Context, colorize bool) {
 			log.FallbackErrorf("unable to create file log writer: %v", err)
 			return
 		}
-		log.GetManager().GetLogger(log.DEFAULT).RemoveAllWriters().AddWriters(writer)
+		log.GetManager().GetLogger(log.DEFAULT).ReplaceAllWriters(writer)
 	}
 }
 

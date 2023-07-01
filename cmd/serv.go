@@ -44,6 +44,7 @@ var CmdServ = cli.Command{
 	Name:        "serv",
 	Usage:       "This command should only be called by SSH shell",
 	Description: "Serv provides access auth for repositories",
+	Before:      PrepareConsoleLoggerLevel(log.FATAL),
 	Action:      runServ,
 	Flags: []cli.Flag{
 		cli.BoolFlag{
@@ -61,7 +62,7 @@ func setup(ctx context.Context, debug bool) {
 	} else {
 		setupConsoleLogger(log.FATAL, false, os.Stderr)
 	}
-	setting.Init(&setting.Options{})
+	setting.MustInstalled()
 	if debug {
 		setting.RunMode = "dev"
 	}

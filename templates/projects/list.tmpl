@@ -6,7 +6,7 @@
 					<a class="ui small green button" href="{{$.Link}}/new">{{.locale.Tr "repo.projects.new"}}</a>
 				</div>
 			</div>
-			<div class="ui divider"></div>
+			<div class="divider"></div>
 		{{end}}
 
 		{{template "base/alert" .}}
@@ -35,33 +35,36 @@
 				</div>
 			</div>
 		</div>
-		<div class="milestone list">
+		<div class="milestone-list">
 			{{range .Projects}}
-				<li class="item">
-					{{svg .IconName}} <a href="{{.Link}}">{{.Title}}</a>
-					<div class="meta">
-						{{$closedDate:= TimeSinceUnix .ClosedDateUnix $.locale}}
-						{{if .IsClosed}}
-							{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.closed" $closedDate | Safe}}
+				<li class="milestone-card">
+					<h3 class="flex-text-block gt-m-0">
+						{{svg .IconName 16}}
+						<a class="muted" href="{{.Link}}">{{.Title}}</a>
+					</h3>
+					<div class="milestone-toolbar">
+						<div class="group">
+							<div class="flex-text-block">
+								{{svg "octicon-issue-opened" 14}}
+								{{$.locale.PrettyNumber .NumOpenIssues}}&nbsp;{{$.locale.Tr "repo.issues.open_title"}}
+							</div>
+							<div class="flex-text-block">
+								{{svg "octicon-check" 14}}
+								{{$.locale.PrettyNumber .NumClosedIssues}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
+							</div>
+						</div>
+						{{if and $.CanWriteProjects (not $.Repository.IsArchived)}}
+						<div class="group">
+							<a class="flex-text-inline" href="{{.Link}}/edit">{{svg "octicon-pencil" 14}}{{$.locale.Tr "repo.issues.label_edit"}}</a>
+							{{if .IsClosed}}
+								<a class="link-action flex-text-inline" href data-url="{{.Link}}/open">{{svg "octicon-check" 14}}{{$.locale.Tr "repo.projects.open"}}</a>
+							{{else}}
+								<a class="link-action flex-text-inline" href data-url="{{.Link}}/close">{{svg "octicon-skip" 14}}{{$.locale.Tr "repo.projects.close"}}</a>
+							{{end}}
+							<a class="delete-button flex-text-inline" href="#" data-url="{{.Link}}/delete">{{svg "octicon-trash" 14}}{{$.locale.Tr "repo.issues.label_delete"}}</a>
+						</div>
 						{{end}}
-						<span class="issue-stats">
-							{{svg "octicon-issue-opened" 16 "gt-mr-3"}}
-							{{$.locale.PrettyNumber .NumOpenIssues}}&nbsp;{{$.locale.Tr "repo.issues.open_title"}}
-							{{svg "octicon-check" 16 "gt-mr-3"}}
-							{{$.locale.PrettyNumber .NumClosedIssues}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
-						</span>
 					</div>
-					{{if and $.CanWriteProjects (not $.Repository.IsArchived)}}
-					<div class="ui right operate">
-						<a href="{{$.Link}}/{{.ID}}/edit" data-id={{.ID}} data-title={{.Title}}>{{svg "octicon-pencil"}} {{$.locale.Tr "repo.issues.label_edit"}}</a>
-						{{if .IsClosed}}
-							<a class="link-action" href data-url="{{$.Link}}/{{.ID}}/open">{{svg "octicon-check"}} {{$.locale.Tr "repo.projects.open"}}</a>
-						{{else}}
-							<a class="link-action" href data-url="{{$.Link}}/{{.ID}}/close">{{svg "octicon-skip"}} {{$.locale.Tr "repo.projects.close"}}</a>
-						{{end}}
-						<a class="delete-button" href="#" data-url="{{$.Link}}/{{.ID}}/delete" data-id="{{.ID}}">{{svg "octicon-trash"}} {{$.locale.Tr "repo.issues.label_delete"}}</a>
-					</div>
-					{{end}}
 					{{if .Description}}
 					<div class="content">
 						{{.RenderedContent|Str2html}}

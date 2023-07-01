@@ -4,9 +4,15 @@
 			{{.locale.Tr "admin.emails.email_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
 		</h4>
 		<div class="ui attached segment">
-			<div class="ui right floated secondary filter menu">
-			<!-- Sort -->
-				<div class="ui dropdown type jump item">
+			<div class="ui secondary filter menu gt-ac gt-mx-0">
+				<form class="ui form ignore-dirty gt-f1">
+					<div class="ui fluid action input">
+						{{template "shared/searchinput" dict "locale" .locale "Value" .Keyword "AutoFocus" true}}
+						<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
+					</div>
+				</form>
+				<!-- Sort -->
+				<div class="ui dropdown type jump item gt-mr-0">
 					<span class="text">
 						{{.locale.Tr "repo.issues.filter_sort"}}
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -19,12 +25,6 @@
 					</div>
 				</div>
 			</div>
-			<form class="ui form ignore-dirty"  style="max-width: 90%">
-				<div class="ui fluid action input">
-					<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}..." autofocus>
-					<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
-				</div>
-			</form>
 		</div>
 		<div class="ui attached table segment">
 			<table class="ui very basic striped table unstackable">

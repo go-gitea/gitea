@@ -16,6 +16,14 @@
 					{{end}}
 				</div>
 			</div>
+			{{template "shared/searchinput" dict "locale" .locale "Value" .Query "AutoFocus" true}}
+			<select class="ui dropdown" name="type">
+				<option value="">{{.locale.Tr "packages.filter.type"}}</option>
+				<option value="all">{{.locale.Tr "packages.filter.type.all"}}</option>
+				{{range $type := .AvailableTypes}}
+				<option{{if eq $.PackageType $type}} selected="selected"{{end}} value="{{$type}}">{{$type.Name}}</option>
+				{{end}}
+			</select>
 			<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
 		</div>
 	</form>
@@ -43,8 +51,8 @@
 			</li>
 		{{else}}
 			{{if not .HasPackages}}
-				<div class="empty list center">
-					{{svg "octicon-package" 32}}
+				<div class="empty center">
+					{{svg "octicon-package" 48}}
 					<h2>{{.locale.Tr "packages.empty"}}</h2>
 					{{if and .Repository .CanWritePackages}}
 						{{$packagesUrl := URLJoin .Owner.HomeLink "-" "packages"}}

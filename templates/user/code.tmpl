@@ -51,6 +51,16 @@
 						</div>
 						{{template "base/paginate" .}}
 					</div>
+
+<div role="main" aria-label="{{.Title}}" class="page-content repository code-search">
+	{{template "user/overview/header" .}}
+	<div class="ui container">
+		{{template "code/searchform" .}}
+		<div class="divider"></div>
+		<div class="ui user list">
+			{{if .CodeIndexerUnavailable}}
+				<div class="ui error message">
+					<p>{{$.locale.Tr "explore.code_search_unavailable"}}</p>
 				</div>
 			</div>
 		</div>
