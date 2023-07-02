@@ -14,7 +14,7 @@ func BranchColumnNameCollation(x *xorm.Engine) error {
 		_, err := x.Exec("ALTER TABLE branch MODIFY COLUMN `name` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL")
 		return err
 	} else if setting.Database.Type.IsMSSQL() {
-		_, err := x.Exec("ALTER TABLE [branch] COLUMN [name] nvarchar(255) COLLATE Latin1_General_CS_AS NOT NULL;")
+		_, err := x.Exec("ALTER TABLE [branch] ALTER COLUMN [name] nvarchar(255) COLLATE Latin1_General_CS_AS NOT NULL;")
 		return err
 	}
 	return nil
