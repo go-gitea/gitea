@@ -279,32 +279,32 @@ func registerRoutes(m *web.Route) {
 	}
 
 	addWebhookAddRoutes := func() {
-		m.Get("/{type}/new", repo.WebhooksNew)
-		m.Post("/gitea/new", web.Bind(forms.NewWebhookForm{}), repo.GiteaHooksNewPost)
-		m.Post("/gogs/new", web.Bind(forms.NewGogshookForm{}), repo.GogsHooksNewPost)
-		m.Post("/slack/new", web.Bind(forms.NewSlackHookForm{}), repo.SlackHooksNewPost)
-		m.Post("/discord/new", web.Bind(forms.NewDiscordHookForm{}), repo.DiscordHooksNewPost)
-		m.Post("/dingtalk/new", web.Bind(forms.NewDingtalkHookForm{}), repo.DingtalkHooksNewPost)
-		m.Post("/telegram/new", web.Bind(forms.NewTelegramHookForm{}), repo.TelegramHooksNewPost)
-		m.Post("/matrix/new", web.Bind(forms.NewMatrixHookForm{}), repo.MatrixHooksNewPost)
-		m.Post("/msteams/new", web.Bind(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
-		m.Post("/feishu/new", web.Bind(forms.NewFeishuHookForm{}), repo.FeishuHooksNewPost)
-		m.Post("/wechatwork/new", web.Bind(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksNewPost)
-		m.Post("/packagist/new", web.Bind(forms.NewPackagistHookForm{}), repo.PackagistHooksNewPost)
+		m.Get("/{type}/new", repo_setting.WebhooksNew)
+		m.Post("/gitea/new", web.Bind(forms.NewWebhookForm{}), repo_setting.GiteaHooksNewPost)
+		m.Post("/gogs/new", web.Bind(forms.NewGogshookForm{}), repo_setting.GogsHooksNewPost)
+		m.Post("/slack/new", web.Bind(forms.NewSlackHookForm{}), repo_setting.SlackHooksNewPost)
+		m.Post("/discord/new", web.Bind(forms.NewDiscordHookForm{}), repo_setting.DiscordHooksNewPost)
+		m.Post("/dingtalk/new", web.Bind(forms.NewDingtalkHookForm{}), repo_setting.DingtalkHooksNewPost)
+		m.Post("/telegram/new", web.Bind(forms.NewTelegramHookForm{}), repo_setting.TelegramHooksNewPost)
+		m.Post("/matrix/new", web.Bind(forms.NewMatrixHookForm{}), repo_setting.MatrixHooksNewPost)
+		m.Post("/msteams/new", web.Bind(forms.NewMSTeamsHookForm{}), repo_setting.MSTeamsHooksNewPost)
+		m.Post("/feishu/new", web.Bind(forms.NewFeishuHookForm{}), repo_setting.FeishuHooksNewPost)
+		m.Post("/wechatwork/new", web.Bind(forms.NewWechatWorkHookForm{}), repo_setting.WechatworkHooksNewPost)
+		m.Post("/packagist/new", web.Bind(forms.NewPackagistHookForm{}), repo_setting.PackagistHooksNewPost)
 	}
 
 	addWebhookEditRoutes := func() {
-		m.Post("/gitea/{id}", web.Bind(forms.NewWebhookForm{}), repo.GiteaHooksEditPost)
-		m.Post("/gogs/{id}", web.Bind(forms.NewGogshookForm{}), repo.GogsHooksEditPost)
-		m.Post("/slack/{id}", web.Bind(forms.NewSlackHookForm{}), repo.SlackHooksEditPost)
-		m.Post("/discord/{id}", web.Bind(forms.NewDiscordHookForm{}), repo.DiscordHooksEditPost)
-		m.Post("/dingtalk/{id}", web.Bind(forms.NewDingtalkHookForm{}), repo.DingtalkHooksEditPost)
-		m.Post("/telegram/{id}", web.Bind(forms.NewTelegramHookForm{}), repo.TelegramHooksEditPost)
-		m.Post("/matrix/{id}", web.Bind(forms.NewMatrixHookForm{}), repo.MatrixHooksEditPost)
-		m.Post("/msteams/{id}", web.Bind(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksEditPost)
-		m.Post("/feishu/{id}", web.Bind(forms.NewFeishuHookForm{}), repo.FeishuHooksEditPost)
-		m.Post("/wechatwork/{id}", web.Bind(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksEditPost)
-		m.Post("/packagist/{id}", web.Bind(forms.NewPackagistHookForm{}), repo.PackagistHooksEditPost)
+		m.Post("/gitea/{id}", web.Bind(forms.NewWebhookForm{}), repo_setting.GiteaHooksEditPost)
+		m.Post("/gogs/{id}", web.Bind(forms.NewGogshookForm{}), repo_setting.GogsHooksEditPost)
+		m.Post("/slack/{id}", web.Bind(forms.NewSlackHookForm{}), repo_setting.SlackHooksEditPost)
+		m.Post("/discord/{id}", web.Bind(forms.NewDiscordHookForm{}), repo_setting.DiscordHooksEditPost)
+		m.Post("/dingtalk/{id}", web.Bind(forms.NewDingtalkHookForm{}), repo_setting.DingtalkHooksEditPost)
+		m.Post("/telegram/{id}", web.Bind(forms.NewTelegramHookForm{}), repo_setting.TelegramHooksEditPost)
+		m.Post("/matrix/{id}", web.Bind(forms.NewMatrixHookForm{}), repo_setting.MatrixHooksEditPost)
+		m.Post("/msteams/{id}", web.Bind(forms.NewMSTeamsHookForm{}), repo_setting.MSTeamsHooksEditPost)
+		m.Post("/feishu/{id}", web.Bind(forms.NewFeishuHookForm{}), repo_setting.FeishuHooksEditPost)
+		m.Post("/wechatwork/{id}", web.Bind(forms.NewWechatWorkHookForm{}), repo_setting.WechatworkHooksEditPost)
+		m.Post("/packagist/{id}", web.Bind(forms.NewPackagistHookForm{}), repo_setting.PackagistHooksEditPost)
 	}
 
 	addSettingVariablesRoutes := func() {
@@ -515,8 +515,8 @@ func registerRoutes(m *web.Route) {
 			m.Post("/delete", user_setting.DeleteWebhook)
 			addWebhookAddRoutes()
 			m.Group("/{id}", func() {
-				m.Get("", repo.WebHooksEdit)
-				m.Post("/replay/{uuid}", repo.ReplayWebhook)
+				m.Get("", repo_setting.WebHooksEdit)
+				m.Post("/replay/{uuid}", repo_setting.ReplayWebhook)
 			})
 			addWebhookEditRoutes()
 		}, webhooksEnabled)
@@ -604,8 +604,8 @@ func registerRoutes(m *web.Route) {
 			m.Get("", admin.DefaultOrSystemWebhooks)
 			m.Post("/delete", admin.DeleteDefaultOrSystemWebhook)
 			m.Group("/{id}", func() {
-				m.Get("", repo.WebHooksEdit)
-				m.Post("/replay/{uuid}", repo.ReplayWebhook)
+				m.Get("", repo_setting.WebHooksEdit)
+				m.Post("/replay/{uuid}", repo_setting.ReplayWebhook)
 			})
 			addWebhookEditRoutes()
 		}, webhooksEnabled)
@@ -752,8 +752,8 @@ func registerRoutes(m *web.Route) {
 					m.Post("/delete", org.DeleteWebhook)
 					addWebhookAddRoutes()
 					m.Group("/{id}", func() {
-						m.Get("", repo.WebHooksEdit)
-						m.Post("/replay/{uuid}", repo.ReplayWebhook)
+						m.Get("", repo_setting.WebHooksEdit)
+						m.Post("/replay/{uuid}", repo_setting.ReplayWebhook)
 					})
 					addWebhookEditRoutes()
 				}, webhooksEnabled)
@@ -874,78 +874,78 @@ func registerRoutes(m *web.Route) {
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("/settings", func() {
 			m.Group("", func() {
-				m.Combo("").Get(repo.Settings).
-					Post(web.Bind(forms.RepoSettingForm{}), repo.SettingsPost)
-			}, repo.SettingsCtxData)
-			m.Post("/avatar", web.Bind(forms.AvatarForm{}), repo.SettingsAvatar)
-			m.Post("/avatar/delete", repo.SettingsDeleteAvatar)
+				m.Combo("").Get(repo_setting.Settings).
+					Post(web.Bind(forms.RepoSettingForm{}), repo_setting.SettingsPost)
+			}, repo_setting.SettingsCtxData)
+			m.Post("/avatar", web.Bind(forms.AvatarForm{}), repo_setting.SettingsAvatar)
+			m.Post("/avatar/delete", repo_setting.SettingsDeleteAvatar)
 
 			m.Group("/collaboration", func() {
-				m.Combo("").Get(repo.Collaboration).Post(repo.CollaborationPost)
-				m.Post("/access_mode", repo.ChangeCollaborationAccessMode)
-				m.Post("/delete", repo.DeleteCollaboration)
+				m.Combo("").Get(repo_setting.Collaboration).Post(repo_setting.CollaborationPost)
+				m.Post("/access_mode", repo_setting.ChangeCollaborationAccessMode)
+				m.Post("/delete", repo_setting.DeleteCollaboration)
 				m.Group("/team", func() {
-					m.Post("", repo.AddTeamPost)
-					m.Post("/delete", repo.DeleteTeam)
+					m.Post("", repo_setting.AddTeamPost)
+					m.Post("/delete", repo_setting.DeleteTeam)
 				})
 			})
 
 			m.Group("/branches", func() {
-				m.Post("/", repo.SetDefaultBranchPost)
+				m.Post("/", repo_setting.SetDefaultBranchPost)
 			}, repo.MustBeNotEmpty)
 
 			m.Group("/branches", func() {
-				m.Get("/", repo.ProtectedBranchRules)
-				m.Combo("/edit").Get(repo.SettingsProtectedBranch).
-					Post(web.Bind(forms.ProtectBranchForm{}), context.RepoMustNotBeArchived(), repo.SettingsProtectedBranchPost)
-				m.Post("/{id}/delete", repo.DeleteProtectedBranchRulePost)
+				m.Get("/", repo_setting.ProtectedBranchRules)
+				m.Combo("/edit").Get(repo_setting.SettingsProtectedBranch).
+					Post(web.Bind(forms.ProtectBranchForm{}), context.RepoMustNotBeArchived(), repo_setting.SettingsProtectedBranchPost)
+				m.Post("/{id}/delete", repo_setting.DeleteProtectedBranchRulePost)
 			}, repo.MustBeNotEmpty)
 
-			m.Post("/rename_branch", web.Bind(forms.RenameBranchForm{}), context.RepoMustNotBeArchived(), repo.RenameBranchPost)
+			m.Post("/rename_branch", web.Bind(forms.RenameBranchForm{}), context.RepoMustNotBeArchived(), repo_setting.RenameBranchPost)
 
 			m.Group("/tags", func() {
-				m.Get("", repo.Tags)
-				m.Post("", web.Bind(forms.ProtectTagForm{}), context.RepoMustNotBeArchived(), repo.NewProtectedTagPost)
-				m.Post("/delete", context.RepoMustNotBeArchived(), repo.DeleteProtectedTagPost)
-				m.Get("/{id}", repo.EditProtectedTag)
-				m.Post("/{id}", web.Bind(forms.ProtectTagForm{}), context.RepoMustNotBeArchived(), repo.EditProtectedTagPost)
+				m.Get("", repo_setting.ProtectedTags)
+				m.Post("", web.Bind(forms.ProtectTagForm{}), context.RepoMustNotBeArchived(), repo_setting.NewProtectedTagPost)
+				m.Post("/delete", context.RepoMustNotBeArchived(), repo_setting.DeleteProtectedTagPost)
+				m.Get("/{id}", repo_setting.EditProtectedTag)
+				m.Post("/{id}", web.Bind(forms.ProtectTagForm{}), context.RepoMustNotBeArchived(), repo_setting.EditProtectedTagPost)
 			})
 
 			m.Group("/hooks/git", func() {
-				m.Get("", repo.GitHooks)
-				m.Combo("/{name}").Get(repo.GitHooksEdit).
-					Post(repo.GitHooksEditPost)
+				m.Get("", repo_setting.GitHooks)
+				m.Combo("/{name}").Get(repo_setting.GitHooksEdit).
+					Post(repo_setting.GitHooksEditPost)
 			}, context.GitHookService())
 
 			m.Group("/hooks", func() {
-				m.Get("", repo.Webhooks)
-				m.Post("/delete", repo.DeleteWebhook)
+				m.Get("", repo_setting.Webhooks)
+				m.Post("/delete", repo_setting.DeleteWebhook)
 				addWebhookAddRoutes()
 				m.Group("/{id}", func() {
-					m.Get("", repo.WebHooksEdit)
-					m.Post("/test", repo.TestWebhook)
-					m.Post("/replay/{uuid}", repo.ReplayWebhook)
+					m.Get("", repo_setting.WebHooksEdit)
+					m.Post("/test", repo_setting.TestWebhook)
+					m.Post("/replay/{uuid}", repo_setting.ReplayWebhook)
 				})
 				addWebhookEditRoutes()
 			}, webhooksEnabled)
 
 			m.Group("/keys", func() {
-				m.Combo("").Get(repo.DeployKeys).
-					Post(web.Bind(forms.AddKeyForm{}), repo.DeployKeysPost)
-				m.Post("/delete", repo.DeleteDeployKey)
+				m.Combo("").Get(repo_setting.DeployKeys).
+					Post(web.Bind(forms.AddKeyForm{}), repo_setting.DeployKeysPost)
+				m.Post("/delete", repo_setting.DeleteDeployKey)
 			})
 
 			m.Group("/lfs", func() {
-				m.Get("/", repo.LFSFiles)
-				m.Get("/show/{oid}", repo.LFSFileGet)
-				m.Post("/delete/{oid}", repo.LFSDelete)
-				m.Get("/pointers", repo.LFSPointerFiles)
-				m.Post("/pointers/associate", repo.LFSAutoAssociate)
-				m.Get("/find", repo.LFSFileFind)
+				m.Get("/", repo_setting.LFSFiles)
+				m.Get("/show/{oid}", repo_setting.LFSFileGet)
+				m.Post("/delete/{oid}", repo_setting.LFSDelete)
+				m.Get("/pointers", repo_setting.LFSPointerFiles)
+				m.Post("/pointers/associate", repo_setting.LFSAutoAssociate)
+				m.Get("/find", repo_setting.LFSFileFind)
 				m.Group("/locks", func() {
-					m.Get("/", repo.LFSLocks)
-					m.Post("/", repo.LFSLockFile)
-					m.Post("/{lid}/unlock", repo.LFSUnlock)
+					m.Get("/", repo_setting.LFSLocks)
+					m.Post("/", repo_setting.LFSLockFile)
+					m.Post("/{lid}/unlock", repo_setting.LFSUnlock)
 				})
 			})
 			m.Group("/actions", func() {
