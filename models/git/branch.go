@@ -13,8 +13,11 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+
+	"xorm.io/xorm/schemas"
 )
 
 // ErrBranchNotExist represents an error that branch with such name does not exist.
@@ -113,6 +116,19 @@ type Branch struct {
 	CommitTime    timeutil.TimeStamp // The commit
 	CreatedUnix   timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix   timeutil.TimeStamp `xorm:"updated"`
+}
+
+func (b *Branch) TableCollations() []*schemas.Collation {
+	if setting.Database.Type.IsMySQL() {
+		return []*schemas.Collation{
+			{Name: "utf8mb4_bin", Column: "name"},
+		}
+	} else if setting.Database.Type.IsMSSQL() {
+		return []*schemas.Collation{
+			{Name: "Latin1_General_CS_AS", Column: "name"},
+		}
+	}
+	return nil
 }
 
 func (b *Branch) LoadDeletedBy(ctx context.Context) (err error) {
