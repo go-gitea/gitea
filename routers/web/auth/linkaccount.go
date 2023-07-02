@@ -84,7 +84,7 @@ func LinkAccount(ctx *context.Context) {
 }
 
 func handleSignInError(ctx *context.Context, userName string, ptrForm any, tmpl base.TplName, invoker string, err error) {
-	if user_model.IsErrUserNotExist(err) || user_model.IsErrEmailAddressNotExist(err) {
+	if errors.Is(err, util.ErrNotExist) {
 		ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tmpl, ptrForm)
 	} else if errors.Is(err, util.ErrInvalidArgument) {
 		ctx.Data["user_exists"] = true
