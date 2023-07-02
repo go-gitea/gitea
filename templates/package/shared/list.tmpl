@@ -3,7 +3,7 @@
 		{{template "base/alert" .}}
 		<form class="ui form ignore-dirty search-input">
 			<div class="ui fluid action input">
-				<input name="q" value="{{.Query}}" placeholder="{{.locale.Tr "explore.search"}}..." autofocus>
+				{{template "shared/searchinput" dict "locale" .locale "Value" .Query "AutoFocus" true}}
 				<div class="ui clearable dropdown selection">
 					<input name="type" type="hidden" value="{{$.PackageType}}">
 					{{svg "octicon-x" 14 "remove icon"}}
