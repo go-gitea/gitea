@@ -203,6 +203,7 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 	ctx.Data["Page"] = pager
 
 	if isTagList {
+		ctx.Data["PageIsViewCode"] = !ctx.Repo.Repository.UnitEnabled(ctx, unit.TypeReleases)
 		ctx.HTML(http.StatusOK, tplTagsList)
 	} else {
 		ctx.HTML(http.StatusOK, tplReleasesList)
