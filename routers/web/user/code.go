@@ -4,7 +4,6 @@
 package user
 
 import (
-	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"net/http"
 
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -12,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/setting"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 )
 
 const (

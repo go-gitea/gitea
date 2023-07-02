@@ -1,10 +1,10 @@
 {{template "base/head" .}}
 {{if .ContextUser.IsOrganization}}
-  <div role="main" aria-label="{{.Title}}" class="page-content repository packages">
-	{{template "shared/user/org_profile_avatar" .}}
-	{{template "user/overview/header" .}}
-	{{template "projects/list" .}}
-  </div>
+	<div role="main" aria-label="{{.Title}}" class="page-content repository packages">
+		{{template "shared/user/org_profile_avatar" .}}
+		{{template "user/overview/header" .}}
+		{{template "projects/list" .}}
+	</div>
 {{else}}
 	<div role="main" aria-label="{{.Title}}" class="page-content user profile">
 		<div class="ui container">
