@@ -28,7 +28,7 @@ func TestMain(m *testing.M) {
 
 func TestRepoStatsIndex(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	setting.CfgProvider = setting.NewEmptyConfigProvider()
+	setting.CfgProvider, _ = setting.NewConfigProviderFromData("")
 
 	setting.LoadQueueSettings()
 

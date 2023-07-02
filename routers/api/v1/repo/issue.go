@@ -116,7 +116,7 @@ func SearchIssues(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
 
-	before, since, err := context.GetQueryBeforeSince(ctx.Context)
+	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
@@ -368,7 +368,7 @@ func ListIssues(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
-	before, since, err := context.GetQueryBeforeSince(ctx.Context)
+	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
@@ -470,7 +470,7 @@ func ListIssues(ctx *context.APIContext) {
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
 		issuesOpt := &issues_model.IssuesOptions{
 			ListOptions:       listOptions,
-			RepoID:            ctx.Repo.Repository.ID,
+			RepoIDs:           []int64{ctx.Repo.Repository.ID},
 			IsClosed:          isClosed,
 			IssueIDs:          issueIDs,
 			LabelIDs:          labelIDs,

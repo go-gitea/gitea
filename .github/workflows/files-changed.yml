@@ -1,0 +1,73 @@
+name: files-changed
+
+on:
+  workflow_call:
+    outputs:
+      backend:
+        value: ${{ jobs.detect.outputs.backend }}
+      frontend:
+        value: ${{ jobs.detect.outputs.frontend }}
+      docs:
+        value: ${{ jobs.detect.outputs.docs }}
+      actions:
+        value: ${{ jobs.detect.outputs.actions }}
+      templates:
+        value: ${{ jobs.detect.outputs.templates }}
+      docker:
+        value: ${{ jobs.detect.outputs.docker }}
+      swagger:
+        value: ${{ jobs.detect.outputs.swagger }}
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      backend: ${{ steps.changes.outputs.backend }}
+      frontend: ${{ steps.changes.outputs.frontend }}
+      docs: ${{ steps.changes.outputs.docs }}
+      actions: ${{ steps.changes.outputs.actions }}
+      templates: ${{ steps.changes.outputs.templates }}
+      docker: ${{ steps.changes.outputs.docker }}
+      swagger: ${{ steps.changes.outputs.swagger }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            backend:
+              - "**/*.go"
+              - "templates/**/*.tmpl"
+              - "assets/emoji.json"
+              - "go.mod"
+              - "go.sum"
+              - "Makefile"
+
+            frontend:
+              - "**/*.js"
+              - "web_src/**"
+              - "assets/emoji.json"
+              - "package.json"
+              - "package-lock.json"
+              - "Makefile"
+
+            docs:
+              - "**/*.md"
+              - "docs/**"
+
+            actions:
+              - ".github/workflows/*"
+
+            templates:
+              - "templates/**/*.tmpl"
+              - "poetry.lock"
+
+            docker:
+              - "Dockerfile"
+              - "Dockerfile.rootless"
+              - "docker/**"
+              - "Makefile"
+
+            swagger:
+              - "templates/swagger/v1_json.tmpl"

@@ -6,16 +6,14 @@
 	<div class="singular-commit" id="{{$tag}}">
 		<span class="badge badge-commit">{{svg "octicon-git-commit"}}</span>
 		{{if .User}}
-			<a href="{{.User.HomeLink}}">
-				{{avatar $.root.Context .User}}
-			</a>
+			<a class="avatar" href="{{.User.HomeLink}}">{{avatar $.root.Context .User}}</a>
 		{{else}}
 			{{avatarByEmail $.root.Context .Author.Email .Author.Name}}
 		{{end}}
 
 		{{$commitLink:= printf "%s/commit/%s" $.comment.Issue.PullRequest.BaseRepo.Link (PathEscape .ID.String)}}
 
-		<span class="ui float right shabox">
+		<span class="ui float right shabox gt-df gt-ac">
 			{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses "root" $.root}}
 			{{$class := "ui sha label"}}
 			{{if .Signature}}
@@ -32,7 +30,7 @@
 					{{$class = (printf "%s%s" $class " isWarning")}}
 				{{end}}
 			{{end}}
-			<a href="{{$commitLink}}" rel="nofollow" class="{{$class}}">
+			<a href="{{$commitLink}}" rel="nofollow" class="gt-ml-3 {{$class}}">
 				<span class="shortsha">{{ShortSha .ID.String}}</span>
 				{{if .Signature}}
 					{{template "repo/shabox_badge" dict "root" $.root "verification" .Verification}}

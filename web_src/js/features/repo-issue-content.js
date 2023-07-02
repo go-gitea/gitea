@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import {svg} from '../svg.js';
+import {showErrorToast} from '../modules/toast.js';
 
 const {appSubUrl, csrfToken} = window.config;
 let i18nTextEdited;
@@ -39,12 +40,12 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
             if (resp.ok) {
               $dialog.modal('hide');
             } else {
-              alert(resp.message);
+              showErrorToast(resp.message);
             }
           });
         }
       } else { // required by eslint
-        window.alert(`unknown option item: ${optionItem}`);
+        showErrorToast(`unknown option item: ${optionItem}`);
       }
     },
     onHide() {
@@ -75,8 +76,8 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
 function showContentHistoryMenu(issueBaseUrl, $item, commentId) {
   const $headerLeft = $item.find('.comment-header-left');
   const menuHtml = `
-  <div class="ui pointing dropdown top left content-history-menu" data-comment-id="${commentId}">
-    &bull; <a>${i18nTextEdited}${svg('octicon-triangle-down', 14, 'dropdown icon gt-ml-1 gt-mt-1')}</a>
+  <div class="ui dropdown interact-fg content-history-menu" data-comment-id="${commentId}">
+    &bull; ${i18nTextEdited}${svg('octicon-triangle-down', 14, 'dropdown icon')}
     <div class="menu">
     </div>
   </div>`;

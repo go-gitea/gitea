@@ -30,7 +30,7 @@
 		</div>
 		<div class="gt-df gt-ac gt-fw gt-mt-3" id="repo-topics">
 			{{range .Topics}}<a class="ui repo-topic large label topic" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
-			{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}<button id="manage_topic" class="ui button tiny tertiary gt-ml-2">{{.locale.Tr "repo.topic.manage_topics"}}</button>{{end}}
+			{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}<button id="manage_topic" class="btn interact-fg gt-ml-2 gt-font-12">{{.locale.Tr "repo.topic.manage_topics"}}</button>{{end}}
 		</div>
 		{{end}}
 		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}
@@ -40,13 +40,13 @@
 					<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if Eval $i "+" 1 "<" (len $.Topics)}},{{end}}{{end}}">
 					{{range .Topics}}
 						{{/* keey the same layout as Fomantic UI generated labels */}}
-						<a class="ui label transition visible gt-cursor-default" data-value="{{.Name}}" style="display: inline-block !important;">{{.Name}}{{svg "octicon-x" 16 "delete icon"}}</a>
+						<a class="ui label transition visible gt-cursor-default gt-dib" data-value="{{.Name}}">{{.Name}}{{svg "octicon-x" 16 "delete icon"}}</a>
 					{{end}}
 					<div class="text"></div>
 				</div>
 			</div>
 			<div>
-				<button class="ui basic button secondary" id="cancel_topic_edit">{{.locale.Tr "cancel"}}</button>
+				<button class="ui basic button" id="cancel_topic_edit">{{.locale.Tr "cancel"}}</button>
 				<button class="ui primary button" id="save_topic" data-link="{{.RepoLink}}/topics">{{.locale.Tr "save"}}</button>
 			</div>
 		</div>
@@ -61,13 +61,10 @@
 			</div>
 		{{end}}
 		{{template "repo/sub_menu" .}}
-		<div class="repo-button-row gt-df gt-ac gt-sb gt-fw">
+		<div class="repo-button-row">
 			<div class="gt-df gt-ac gt-fw gt-gap-y-3">
 				{{template "repo/branch_dropdown" dict "root" . "ContainerClasses" "gt-mr-2"}}
-				{{$n := len .TreeNames}}
-				{{$l := Eval $n "-" 1}}
-				<!-- If home page, show new pr. If not, show breadcrumb -->
-				{{if and (eq $n 0) .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
+				{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
 					{{$cmpBranch := ""}}
 					{{if ne .Repository.ID .BaseRepo.ID}}
 						{{$cmpBranch = printf "%s/%s:" (.Repository.OwnerName|PathEscape) (.Repository.Name|PathEscape)}}
@@ -79,13 +76,17 @@
 						{{svg "octicon-git-pull-request"}}
 					</a>
 				{{end}}
+				<!-- Show go to file and breadcrumbs if not on home page -->
+				{{$n := len .TreeNames}}
+				{{$l := Eval $n "-" 1}}
 				{{if eq $n 0}}
 					<a href="{{.Repository.Link}}/find/{{.BranchNameSubURL}}" class="ui compact basic button">{{.locale.Tr "repo.find_file.go_to_file"}}</a>
 				{{end}}
 
-				{{if and .CanWriteCode .IsViewBranch (not .Repository.IsArchived)}}
-					<button class="ui basic compact dropdown jump icon button gt-mr-2"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
-						<span class="text">{{.locale.Tr "repo.editor.add_file"}}</span>
+				{{if and .CanWriteCode .IsViewBranch (not .Repository.IsArchived) (not .IsViewFile)}}
+					<button class="ui dropdown basic compact jump button gt-mr-2"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
+						{{.locale.Tr "repo.editor.add_file"}}
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							<a class="item" href="{{.RepoLink}}/_new/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
 								{{.locale.Tr "repo.editor.new_file"}}
@@ -99,7 +100,6 @@
 								{{.locale.Tr "repo.editor.patch"}}
 							</a>
 						</div>
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 					</button>
 				{{end}}
 

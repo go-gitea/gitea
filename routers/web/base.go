@@ -6,7 +6,6 @@ package web
 import (
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"path"
@@ -20,11 +19,11 @@ import (
 	"code.gitea.io/gitea/modules/web/routing"
 )
 
-func storageHandler(storageSetting setting.Storage, prefix string, objStore storage.ObjectStorage) func(next http.Handler) http.Handler {
+func storageHandler(storageSetting *setting.Storage, prefix string, objStore storage.ObjectStorage) func(next http.Handler) http.Handler {
 	prefix = strings.Trim(prefix, "/")
 	funcInfo := routing.GetFuncInfo(storageHandler, prefix)
 	return func(next http.Handler) http.Handler {
-		if storageSetting.ServeDirect {
+		if storageSetting.MinioConfig.ServeDirect {
 			return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 				if req.Method != "GET" && req.Method != "HEAD" {
 					next.ServeHTTP(w, req)
@@ -76,12 +75,6 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 			}
 
 			fi, err := objStore.Stat(rPath)
-			if err == nil && httpcache.HandleTimeCache(req, w, fi) {
-				return
-			}
-
-			// If we have matched and access to release or issue
-			fr, err := objStore.Open(rPath)
 			if err != nil {
 				if os.IsNotExist(err) || errors.Is(err, os.ErrNotExist) {
 					log.Warn("Unable to find %s %s", prefix, rPath)
@@ -92,14 +85,15 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 				http.Error(w, fmt.Sprintf("Error whilst opening %s %s", prefix, rPath), http.StatusInternalServerError)
 				return
 			}
-			defer fr.Close()
 
-			_, err = io.Copy(w, fr)
+			fr, err := objStore.Open(rPath)
 			if err != nil {
-				log.Error("Error whilst rendering %s %s. Error: %v", prefix, rPath, err)
-				http.Error(w, fmt.Sprintf("Error whilst rendering %s %s", prefix, rPath), http.StatusInternalServerError)
+				log.Error("Error whilst opening %s %s. Error: %v", prefix, rPath, err)
+				http.Error(w, fmt.Sprintf("Error whilst opening %s %s", prefix, rPath), http.StatusInternalServerError)
 				return
 			}
+			defer fr.Close()
+			httpcache.ServeContentWithCacheControl(w, req, path.Base(rPath), fi.ModTime(), fr)
 		})
 	}
 }

@@ -17,10 +17,10 @@ menu:
 
 # Installation avec le binaire pré-compilé
 
-Tous les binaires sont livrés avec le support de SQLite, MySQL et PostgreSQL, et sont construits avec les ressources incorporées. Gardez à l'esprit que cela peut être différent pour les versions antérieures. L'installation basée sur nos binaires est assez simple, il suffit de choisir le fichier correspondant à votre plateforme à partir de la [page de téléchargement](https://dl.gitea.io/gitea). Copiez l'URL et remplacer l'URL dans les commandes suivantes par la nouvelle:
+Tous les binaires sont livrés avec le support de SQLite, MySQL et PostgreSQL, et sont construits avec les ressources incorporées. Gardez à l'esprit que cela peut être différent pour les versions antérieures. L'installation basée sur nos binaires est assez simple, il suffit de choisir le fichier correspondant à votre plateforme à partir de la [page de téléchargement](https://dl.gitea.com/gitea). Copiez l'URL et remplacer l'URL dans les commandes suivantes par la nouvelle:
 
 ```
-wget -O gitea https://dl.gitea.io/gitea/{{< version >}}/gitea-{{< version >}}-linux-amd64
+wget -O gitea https://dl.gitea.com/gitea/{{< version >}}/gitea-{{< version >}}-linux-amd64
 chmod +x gitea
 ```
 
@@ -36,7 +36,7 @@ Après avoir suivi les étapes ci-dessus, vous aurez un binaire `gitea` dans vot
 
 ### Anciennes version de glibc
 
-Les anciennes distributions Linux (comme Debian 7 ou CentOS 6) peuvent ne pas être capable d'exécuter le binaire Gitea, résultant généralement une erreur du type ```./gitea: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.14' not found (required by ./gitea)```. Cette erreur est due au driver SQLite que nous intégrons dans le binaire Gitea. Dans le futur, nous fournirons des binaires sans la dépendance pour la bibliothèque glibc. En attendant, vous pouvez mettre à jour votre distribution ou installer Gitea depuis le [code source]({{< relref "from-source.fr-fr.md" >}}).
+Les anciennes distributions Linux (comme Debian 7 ou CentOS 6) peuvent ne pas être capable d'exécuter le binaire Gitea, résultant généralement une erreur du type ```./gitea: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.14' not found (required by ./gitea)```. Cette erreur est due au driver SQLite que nous intégrons dans le binaire Gitea. Dans le futur, nous fournirons des binaires sans la dépendance pour la bibliothèque glibc. En attendant, vous pouvez mettre à jour votre distribution ou installer Gitea depuis le [code source]({{< relref "doc/installation/from-source.fr-fr.md" >}}).
 
 ### Exécuter Gitea avec un autre port
 

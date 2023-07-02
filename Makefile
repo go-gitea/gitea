@@ -35,6 +35,7 @@ SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.30.4
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1.6.0
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@latest
+ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@latest
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -67,7 +68,7 @@ endif
 
 EXTRA_GOFLAGS ?=
 
-MAKE_VERSION := $(shell "$(MAKE)" -v | head -n 1)
+MAKE_VERSION := $(shell "$(MAKE)" -v | cat | head -n 1)
 MAKE_EVIDENCE_DIR := .make_evidence
 
 ifeq ($(RACE_ENABLED),true)
@@ -78,12 +79,15 @@ endif
 STORED_VERSION_FILE := VERSION
 HUGO_VERSION ?= 0.111.3
 
-ifneq ($(DRONE_TAG),)
-	VERSION ?= $(subst v,,$(DRONE_TAG))
+GITHUB_REF_TYPE ?= branch
+GITHUB_REF_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
+
+ifneq ($(GITHUB_REF_TYPE),branch)
+	VERSION ?= $(subst v,,$(GITHUB_REF_NAME))
 	GITEA_VERSION ?= $(VERSION)
 else
-	ifneq ($(DRONE_BRANCH),)
-		VERSION ?= $(subst release/v,,$(DRONE_BRANCH))
+	ifneq ($(GITHUB_REF_NAME),)
+		VERSION ?= $(subst release/v,,$(GITHUB_REF_NAME))
 	else
 		VERSION ?= main
 	endif
@@ -113,7 +117,7 @@ FOMANTIC_WORK_DIR := web_src/fomantic
 WEBPACK_SOURCES := $(shell find web_src/js web_src/css -type f)
 WEBPACK_CONFIGS := webpack.config.js
 WEBPACK_DEST := public/js/index.js public/css/index.css
-WEBPACK_DEST_ENTRIES := public/js public/css public/fonts public/img/webpack public/serviceworker.js
+WEBPACK_DEST_ENTRIES := public/js public/css public/fonts public/img/webpack
 
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
 BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
@@ -197,8 +201,10 @@ help:
 	@echo " - deps-frontend                    install frontend dependencies"
 	@echo " - deps-backend                     install backend dependencies"
 	@echo " - deps-tools                       install tool dependencies"
+	@echo " - deps-py                          install python dependencies"
 	@echo " - lint                             lint everything"
 	@echo " - lint-fix                         lint everything and fix issues"
+	@echo " - lint-actions                     lint action workflow files"
 	@echo " - lint-frontend                    lint frontend files"
 	@echo " - lint-frontend-fix                lint frontend files and fix issues"
 	@echo " - lint-backend                     lint backend files"
@@ -212,6 +218,7 @@ help:
 	@echo " - lint-css-fix                     lint css files and fix issues"
 	@echo " - lint-md                          lint markdown files"
 	@echo " - lint-swagger                     lint swagger files"
+	@echo " - lint-templates                   lint template files"
 	@echo " - checks                           run various consistency checks"
 	@echo " - checks-frontend                  check frontend files"
 	@echo " - checks-backend                   check backend files"
@@ -219,6 +226,8 @@ help:
 	@echo " - test-frontend                    test frontend files"
 	@echo " - test-backend                     test backend files"
 	@echo " - test-e2e[\#TestSpecificName]     test end to end using playwright"
+	@echo " - update-js                        update js dependencies"
+	@echo " - update-py                        update py dependencies"
 	@echo " - webpack                          build webpack files"
 	@echo " - svg                              build svg files"
 	@echo " - fomantic                         build fomantic files"
@@ -351,10 +360,10 @@ lint: lint-frontend lint-backend
 lint-fix: lint-frontend-fix lint-backend-fix
 
 .PHONY: lint-frontend
-lint-frontend: lint-js lint-css lint-md lint-swagger
+lint-frontend: lint-js lint-css
 
 .PHONY: lint-frontend-fix
-lint-frontend-fix: lint-js-fix lint-css-fix lint-md lint-swagger
+lint-frontend-fix: lint-js-fix lint-css-fix
 
 .PHONY: lint-backend
 lint-backend: lint-go lint-go-vet lint-editorconfig
@@ -372,11 +381,11 @@ lint-js-fix: node_modules
 
 .PHONY: lint-css
 lint-css: node_modules
-	npx stylelint --color --max-warnings=0 web_src/css
+	npx stylelint --color --max-warnings=0 web_src/css web_src/js/components/*.vue
 
 .PHONY: lint-css-fix
 lint-css-fix: node_modules
-	npx stylelint --color --max-warnings=0 web_src/css --fix
+	npx stylelint --color --max-warnings=0 web_src/css web_src/js/components/*.vue --fix
 
 .PHONY: lint-swagger
 lint-swagger: node_modules
@@ -394,7 +403,7 @@ lint-go:
 lint-go-fix:
 	$(GO) run $(GOLANGCI_LINT_PACKAGE) run --fix
 
-# workaround step for the lint-backend-windows CI task because 'go run' can not
+# workaround step for the lint-go-windows CI task because 'go run' can not
 # have distinct GOOS/GOARCH for its build and run steps
 .PHONY: lint-go-windows
 lint-go-windows:
@@ -409,15 +418,23 @@ lint-go-vet:
 
 .PHONY: lint-editorconfig
 lint-editorconfig:
-	$(GO) run $(EDITORCONFIG_CHECKER_PACKAGE) templates
+	$(GO) run $(EDITORCONFIG_CHECKER_PACKAGE) templates .github/workflows
+
+.PHONY: lint-actions
+lint-actions:
+	$(GO) run $(ACTIONLINT_PACKAGE)
+
+.PHONY: lint-templates
+lint-templates: .venv
+	@poetry run djlint $(shell find templates -type f -iname '*.tmpl')
 
 .PHONY: watch
 watch:
-	bash build/watch.sh
+	@bash build/watch.sh
 
 .PHONY: watch-frontend
 watch-frontend: node-check node_modules
-	rm -rf $(WEBPACK_DEST_ENTRIES)
+	@rm -rf $(WEBPACK_DEST_ENTRIES)
 	NODE_ENV=development npx webpack --watch --progress
 
 .PHONY: watch-backend
@@ -825,30 +842,18 @@ release-windows: | $(DIST_DIRS)
 ifeq (,$(findstring gogit,$(TAGS)))
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'osusergo gogit $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION)-gogit .
 endif
-ifeq ($(CI),true)
-	cp /build/* $(DIST)/binaries
-endif
 
 .PHONY: release-linux
 release-linux: | $(DIST_DIRS)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets '$(LINUX_ARCHS)' -out gitea-$(VERSION) .
-ifeq ($(CI),true)
-	cp /build/* $(DIST)/binaries
-endif
 
 .PHONY: release-darwin
 release-darwin: | $(DIST_DIRS)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin-10.12/amd64,darwin-10.12/arm64' -out gitea-$(VERSION) .
-ifeq ($(CI),true)
-	cp /build/* $(DIST)/binaries
-endif
 
 .PHONY: release-freebsd
 release-freebsd: | $(DIST_DIRS)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'freebsd/amd64' -out gitea-$(VERSION) .
-ifeq ($(CI),true)
-	cp /build/* $(DIST)/binaries
-endif
 
 .PHONY: release-copy
 release-copy: | $(DIST_DIRS)
@@ -887,7 +892,10 @@ deps-docs:
 	fi
 
 .PHONY: deps
-deps: deps-frontend deps-backend deps-tools deps-docs
+deps: deps-frontend deps-backend deps-tools deps-docs deps-py
+
+.PHONY: deps-py
+deps-py: .venv
 
 .PHONY: deps-frontend
 deps-frontend: node_modules
@@ -908,17 +916,29 @@ deps-tools:
 	$(GO) install $(XGO_PACKAGE)
 	$(GO) install $(GO_LICENSES_PACKAGE)
 	$(GO) install $(GOVULNCHECK_PACKAGE)
+	$(GO) install $(ACTIONLINT_PACKAGE)
 
 node_modules: package-lock.json
 	npm install --no-save
 	@touch node_modules
 
-.PHONY: npm-update
-npm-update: node-check | node_modules
-	npx updates -cu
+.venv: poetry.lock
+	poetry install
+	@touch .venv
+
+.PHONY: update-js
+update-js: node-check | node_modules
+	npx updates -u -f package.json
 	rm -rf node_modules package-lock.json
 	npm install --package-lock
 	@touch node_modules
+
+.PHONY: update-py
+update-py: node-check | node_modules
+	npx updates -u -f pyproject.toml
+	rm -rf .venv poetry.lock
+	poetry install
+	@touch .venv
 
 .PHONY: fomantic
 fomantic:
@@ -1002,10 +1022,6 @@ generate-manpage:
 docker:
 	docker build --disable-content-trust=false -t $(DOCKER_REF) .
 # support also build args docker build --build-arg GITEA_VERSION=v1.2.3 --build-arg TAGS="bindata sqlite sqlite_unlock_notify"  .
-
-.PHONY: docker-build
-docker-build:
-	docker run -ti --rm -v "$(CURDIR):/srv/app/src/code.gitea.io/gitea" -w /srv/app/src/code.gitea.io/gitea -e TAGS="bindata $(TAGS)" LDFLAGS="$(LDFLAGS)" CGO_EXTRA_CFLAGS="$(CGO_EXTRA_CFLAGS)" webhippie/golang:edge make clean build
 
 # This endif closes the if at the top of the file
 endif

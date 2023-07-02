@@ -34,7 +34,7 @@ func TestEmptyRepo(t *testing.T) {
 		"commit/1ae57b34ccf7e18373",
 		"graph",
 	}
-	emptyRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 5})
+	emptyRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 6})
 	assert.True(t, emptyRepo.IsEmpty)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: emptyRepo.OwnerID})
 	for _, subPath := range subPaths {
@@ -117,7 +117,7 @@ func TestEmptyRepoAddFileByAPI(t *testing.T) {
 	assert.NoError(t, err)
 
 	session := loginUser(t, "user30")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 	url := fmt.Sprintf("/api/v1/repos/user30/empty/contents/new-file.txt?token=%s", token)
 	req := NewRequestWithJSON(t, "POST", url, &api.CreateFileOptions{
@@ -137,4 +137,10 @@ func TestEmptyRepoAddFileByAPI(t *testing.T) {
 	req = NewRequest(t, "GET", "/user30/empty/src/branch/new_branch/new-file.txt")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	assert.Contains(t, resp.Body.String(), "newly-added-api-file")
+
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/user30/empty?token=%s", token))
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	var apiRepo api.Repository
+	DecodeJSON(t, resp, &apiRepo)
+	assert.Equal(t, "new_branch", apiRepo.DefaultBranch)
 }

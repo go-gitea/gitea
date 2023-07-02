@@ -8,25 +8,30 @@ import (
 	"fmt"
 	"net/http"
 	"runtime"
+	"sort"
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/process"
-	"code.gitea.io/gitea/modules/queue"
+	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/updatechecker"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/cron"
 	"code.gitea.io/gitea/services/forms"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
 	tplDashboard   base.TplName = "admin/dashboard"
-	tplMonitor     base.TplName = "admin/monitor"
+	tplCron        base.TplName = "admin/cron"
+	tplQueue       base.TplName = "admin/queue"
 	tplStacktrace  base.TplName = "admin/stacktrace"
 	tplQueueManage base.TplName = "admin/queue_manage"
+	tplStats       base.TplName = "admin/stats"
 )
 
 var sysStatus struct {
@@ -112,7 +117,6 @@ func updateSystemStatus() {
 func Dashboard(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
 	ctx.Data["PageIsAdminDashboard"] = true
-	ctx.Data["Stats"] = activities_model.GetStatistic()
 	ctx.Data["NeedUpdate"] = updatechecker.GetNeedUpdate()
 	ctx.Data["RemoteVersion"] = updatechecker.GetRemoteVersion()
 	// FIXME: update periodically
@@ -127,62 +131,66 @@ func DashboardPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AdminDashboardForm)
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
 	ctx.Data["PageIsAdminDashboard"] = true
-	ctx.Data["Stats"] = activities_model.GetStatistic()
 	updateSystemStatus()
 	ctx.Data["SysStatus"] = sysStatus
 
 	// Run operation.
 	if form.Op != "" {
-		task := cron.GetTask(form.Op)
-		if task != nil {
-			go task.RunWithUser(ctx.Doer, nil)
-			ctx.Flash.Success(ctx.Tr("admin.dashboard.task.started", ctx.Tr("admin.dashboard."+form.Op)))
-		} else {
-			ctx.Flash.Error(ctx.Tr("admin.dashboard.task.unknown", form.Op))
+		switch form.Op {
+		case "sync_repo_branches":
+			go func() {
+				if err := repo_service.AddAllRepoBranchesToSyncQueue(graceful.GetManager().ShutdownContext(), ctx.Doer.ID); err != nil {
+					log.Error("AddAllRepoBranchesToSyncQueue: %v: %v", ctx.Doer.ID, err)
+				}
+			}()
+			ctx.Flash.Success(ctx.Tr("admin.dashboard.sync_branch.started"))
+		default:
+			task := cron.GetTask(form.Op)
+			if task != nil {
+				go task.RunWithUser(ctx.Doer, nil)
+				ctx.Flash.Success(ctx.Tr("admin.dashboard.task.started", ctx.Tr("admin.dashboard."+form.Op)))
+			} else {
+				ctx.Flash.Error(ctx.Tr("admin.dashboard.task.unknown", form.Op))
+			}
 		}
 	}
 	if form.From == "monitor" {
-		ctx.Redirect(setting.AppSubURL + "/admin/monitor")
+		ctx.Redirect(setting.AppSubURL + "/admin/monitor/cron")
 	} else {
 		ctx.Redirect(setting.AppSubURL + "/admin")
 	}
 }
 
-// Monitor show admin monitor page
-func Monitor(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("admin.monitor")
-	ctx.Data["PageIsAdminMonitor"] = true
-	ctx.Data["Processes"], ctx.Data["ProcessCount"] = process.GetManager().Processes(false, true)
+func CronTasks(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("admin.monitor.cron")
+	ctx.Data["PageIsAdminMonitorCron"] = true
 	ctx.Data["Entries"] = cron.ListTasks()
-	ctx.Data["Queues"] = queue.GetManager().ManagedQueues()
-
-	ctx.HTML(http.StatusOK, tplMonitor)
+	ctx.HTML(http.StatusOK, tplCron)
 }
 
-// GoroutineStacktrace show admin monitor goroutines page
-func GoroutineStacktrace(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("admin.monitor")
-	ctx.Data["PageIsAdminMonitor"] = true
-
-	processStacks, processCount, goroutineCount, err := process.GetManager().ProcessStacktraces(false, false)
+func MonitorStats(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("admin.monitor.stats")
+	ctx.Data["PageIsAdminMonitorStats"] = true
+	bs, err := json.Marshal(activities_model.GetStatistic().Counter)
 	if err != nil {
-		ctx.ServerError("GoroutineStacktrace", err)
+		ctx.ServerError("MonitorStats", err)
 		return
 	}
-
-	ctx.Data["ProcessStacks"] = processStacks
-
-	ctx.Data["GoroutineCount"] = goroutineCount
-	ctx.Data["ProcessCount"] = processCount
-
-	ctx.HTML(http.StatusOK, tplStacktrace)
-}
-
-// MonitorCancel cancels a process
-func MonitorCancel(ctx *context.Context) {
-	pid := ctx.Params("pid")
-	process.GetManager().Cancel(process.IDType(pid))
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/admin/monitor",
-	})
+	statsCounter := map[string]any{}
+	err = json.Unmarshal(bs, &statsCounter)
+	if err != nil {
+		ctx.ServerError("MonitorStats", err)
+		return
+	}
+	statsKeys := make([]string, 0, len(statsCounter))
+	for k := range statsCounter {
+		if statsCounter[k] == nil {
+			continue
+		}
+		statsKeys = append(statsKeys, k)
+	}
+	sort.Strings(statsKeys)
+	ctx.Data["StatsKeys"] = statsKeys
+	ctx.Data["StatsCounter"] = statsCounter
+	ctx.HTML(http.StatusOK, tplStats)
 }

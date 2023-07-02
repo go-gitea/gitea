@@ -23,9 +23,9 @@
 }
 
 .markup .anchor {
+  float: left;
   padding-right: 4px;
   margin-left: -20px;
-  line-height: 1;
   color: inherit;
 }
 
@@ -35,6 +35,10 @@
 
 .markup .anchor:focus {
   outline: none;
+}
+
+.markup h1 .anchor {
+  margin-top: -2px; /* re-align to center */
 }
 
 .markup h1 .anchor .svg,
@@ -70,7 +74,7 @@
 .markup h6 {
   margin-top: 24px;
   margin-bottom: 16px;
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-semibold);
   line-height: 1.25;
 }
 
@@ -248,7 +252,7 @@
   margin-top: 16px;
   font-size: 1em;
   font-style: italic;
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-semibold);
 }
 
 .markup dl dd {
@@ -280,7 +284,7 @@
 }
 
 .markup table th {
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-semibold);
 }
 
 .markup table th,
@@ -297,7 +301,8 @@
   background-color: var(--color-markup-table-row);
 }
 
-.markup img {
+.markup img,
+.markup video {
   max-width: 100%;
   box-sizing: initial;
 }
@@ -305,17 +310,23 @@
 /* this background ensures images can break <hr>. We can only do this on
    cases where the background is known and not transparent. */
 .markup.file-view img,
+.markup.file-view video,
 .comment-body .markup img, /* regular comment */
+.comment-body .markup video,
 .comment-content .markup img, /* code comment */
-.wiki .markup img {
+.comment-content .markup video,
+.wiki .markup img,
+.wiki .markup video {
   background: var(--color-box-body);
 }
 
-.markup img[align="right"] {
+.markup img[align="right"],
+.markup video[align="right"] {
   padding-left: 20px;
 }
 
-.markup img[align="left"] {
+.markup img[align="left"],
+.markup video[align="left"] {
   padding-right: 20px;
 }
 
@@ -339,7 +350,8 @@
   border: 1px solid var(--color-secondary);
 }
 
-.markup span.frame span img {
+.markup span.frame span img,
+.markup span.frame span video {
   display: block;
   float: left;
 }
@@ -364,7 +376,8 @@
   text-align: center;
 }
 
-.markup span.align-center span img {
+.markup span.align-center span img
+.markup span.align-center span video {
   margin: 0 auto;
   text-align: center;
 }
@@ -382,7 +395,8 @@
   text-align: right;
 }
 
-.markup span.align-right span img {
+.markup span.align-right span img,
+.markup span.align-right span video {
   margin: 0;
   text-align: right;
 }
@@ -467,10 +481,7 @@
 .markup pre code,
 .markup pre tt {
   display: inline;
-  max-width: initial;
   padding: 0;
-  margin: 0;
-  overflow: initial;
   line-height: inherit;
   word-wrap: normal;
   background-color: transparent;
@@ -501,20 +512,6 @@
 .markup ol.ui.list ol,
 .markup ul.ui.list ul {
   padding-left: 2em;
-}
-
-.repository.wiki.revisions .ui.container > .ui.stackable.grid {
-  -ms-flex-direction: row-reverse;
-  flex-direction: row-reverse;
-}
-
-.repository.wiki.revisions .ui.container > .ui.stackable.grid > .header {
-  margin-top: 0;
-}
-
-.repository.wiki.revisions .ui.container > .ui.stackable.grid > .header .sub.header {
-  padding-left: 52px;
-  word-break: break-word;
 }
 
 .file-revisions-btn {

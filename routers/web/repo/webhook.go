@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/base"
@@ -99,7 +100,7 @@ func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 			IsAdmin:         true,
 			IsSystemWebhook: ctx.Params(":configType") == "system-hooks",
 			Link:            path.Join(setting.AppSubURL, "/admin/hooks"),
-			LinkNew:         path.Join(setting.AppSubURL, "/admin/system-hooks"),
+			LinkNew:         path.Join(setting.AppSubURL, "/admin/", ctx.Params(":configType")),
 			NewTemplate:     tplAdminHookNew,
 		}, nil
 	}
@@ -160,26 +161,27 @@ func ParseHookEvent(form forms.WebhookForm) *webhook_module.HookEvent {
 		SendEverything: form.SendEverything(),
 		ChooseEvents:   form.ChooseEvents(),
 		HookEvents: webhook_module.HookEvents{
-			Create:               form.Create,
-			Delete:               form.Delete,
-			Fork:                 form.Fork,
-			Issues:               form.Issues,
-			IssueAssign:          form.IssueAssign,
-			IssueLabel:           form.IssueLabel,
-			IssueMilestone:       form.IssueMilestone,
-			IssueComment:         form.IssueComment,
-			Release:              form.Release,
-			Push:                 form.Push,
-			PullRequest:          form.PullRequest,
-			PullRequestAssign:    form.PullRequestAssign,
-			PullRequestLabel:     form.PullRequestLabel,
-			PullRequestMilestone: form.PullRequestMilestone,
-			PullRequestComment:   form.PullRequestComment,
-			PullRequestReview:    form.PullRequestReview,
-			PullRequestSync:      form.PullRequestSync,
-			Wiki:                 form.Wiki,
-			Repository:           form.Repository,
-			Package:              form.Package,
+			Create:                   form.Create,
+			Delete:                   form.Delete,
+			Fork:                     form.Fork,
+			Issues:                   form.Issues,
+			IssueAssign:              form.IssueAssign,
+			IssueLabel:               form.IssueLabel,
+			IssueMilestone:           form.IssueMilestone,
+			IssueComment:             form.IssueComment,
+			Release:                  form.Release,
+			Push:                     form.Push,
+			PullRequest:              form.PullRequest,
+			PullRequestAssign:        form.PullRequestAssign,
+			PullRequestLabel:         form.PullRequestLabel,
+			PullRequestMilestone:     form.PullRequestMilestone,
+			PullRequestComment:       form.PullRequestComment,
+			PullRequestReview:        form.PullRequestReview,
+			PullRequestSync:          form.PullRequestSync,
+			PullRequestReviewRequest: form.PullRequestReviewRequest,
+			Wiki:                     form.Wiki,
+			Repository:               form.Repository,
+			Package:                  form.Package,
 		},
 		BranchFilter: form.BranchFilter,
 	}
@@ -684,7 +686,7 @@ func TestWebhook(ctx *context.Context) {
 		Commits:      []*api.PayloadCommit{apiCommit},
 		TotalCommits: 1,
 		HeadCommit:   apiCommit,
-		Repo:         convert.ToRepo(ctx, ctx.Repo.Repository, perm.AccessModeNone),
+		Repo:         convert.ToRepo(ctx, ctx.Repo.Repository, access_model.Permission{AccessMode: perm.AccessModeNone}),
 		Pusher:       apiUser,
 		Sender:       apiUser,
 	}

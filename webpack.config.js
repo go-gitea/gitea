@@ -10,6 +10,7 @@ import {parse, dirname} from 'node:path';
 import webpack from 'webpack';
 import {fileURLToPath} from 'node:url';
 import {readFileSync} from 'node:fs';
+import {env} from 'node:process';
 
 const {EsbuildPlugin} = EsBuildLoader;
 const {SourceMapDevToolPlugin, DefinePlugin} = webpack;
@@ -25,7 +26,14 @@ for (const path of glob('web_src/css/themes/*.css')) {
   themes[parse(path).name] = [path];
 }
 
-const isProduction = process.env.NODE_ENV !== 'development';
+const isProduction = env.NODE_ENV !== 'development';
+
+let sourceMapEnabled;
+if ('ENABLE_SOURCEMAP' in env) {
+  sourceMapEnabled = env.ENABLE_SOURCEMAP === 'true';
+} else {
+  sourceMapEnabled = !isProduction;
+}
 
 const filterCssImport = (url, ...args) => {
   const cssFile = args[1] || args[0]; // resourcePath is 2nd argument for url and 3rd for import
@@ -62,22 +70,21 @@ export default {
       fileURLToPath(new URL('web_src/js/standalone/swagger.js', import.meta.url)),
       fileURLToPath(new URL('web_src/css/standalone/swagger.css', import.meta.url)),
     ],
-    serviceworker: [
-      fileURLToPath(new URL('web_src/js/serviceworker.js', import.meta.url)),
-    ],
     'eventsource.sharedworker': [
       fileURLToPath(new URL('web_src/js/features/eventsource.sharedworker.js', import.meta.url)),
     ],
+    ...(!isProduction && {
+      devtest: [
+        fileURLToPath(new URL('web_src/js/standalone/devtest.js', import.meta.url)),
+        fileURLToPath(new URL('web_src/css/standalone/devtest.css', import.meta.url)),
+      ],
+    }),
     ...themes,
   },
   devtool: false,
   output: {
     path: fileURLToPath(new URL('public', import.meta.url)),
-    filename: ({chunk}) => {
-      // serviceworker can only manage assets below it's script's directory so
-      // we have to put it in / instead of /js/
-      return chunk.name === 'serviceworker' ? '[name].js' : 'js/[name].js';
-    },
+    filename: () => 'js/[name].js',
     chunkFilename: ({chunk}) => {
       const language = (/monaco.*languages?_.+?_(.+?)_/.exec(chunk.id) || [])[1];
       return `js/${language ? `monaco-language-${language.toLowerCase()}` : `[name]`}.[contenthash:8].js`;
@@ -129,7 +136,7 @@ export default {
           {
             loader: 'css-loader',
             options: {
-              sourceMap: true,
+              sourceMap: sourceMapEnabled,
               url: {filter: filterCssImport},
               import: {filter: filterCssImport},
             },
@@ -167,13 +174,9 @@ export default {
       filename: 'css/[name].css',
       chunkFilename: 'css/[name].[contenthash:8].css',
     }),
-    new SourceMapDevToolPlugin({
+    sourceMapEnabled && (new SourceMapDevToolPlugin({
       filename: '[file].[contenthash:8].map',
-      include: [
-        'js/index.js',
-        'css/index.css',
-      ],
-    }),
+    })),
     new MonacoWebpackPlugin({
       filename: 'js/monaco-[name].[contenthash:8].worker.js',
     }),

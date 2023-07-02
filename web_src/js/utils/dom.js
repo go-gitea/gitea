@@ -1,3 +1,5 @@
+import {debounce} from 'throttle-debounce';
+
 function elementsCall(el, func, ...args) {
   if (typeof el === 'string' || el instanceof String) {
     el = document.querySelectorAll(el);
@@ -40,6 +42,13 @@ export function hideElem(el) {
 
 export function toggleElem(el, force) {
   elementsCall(el, toggleShown, force);
+}
+
+export function isElemHidden(el) {
+  const res = [];
+  elementsCall(el, (e) => res.push(e.classList.contains('gt-hidden')));
+  if (res.length > 1) throw new Error(`isElemHidden doesn't work for multiple elements`);
+  return res[0];
 }
 
 export function onDomReady(cb) {
@@ -169,4 +178,8 @@ export function autosize(textarea, {viewportMarginBottom = 0} = {}) {
       textarea.form?.removeEventListener('reset', onFormReset);
     }
   };
+}
+
+export function onInputDebounce(fn) {
+  return debounce(300, fn);
 }

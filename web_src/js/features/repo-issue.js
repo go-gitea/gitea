@@ -4,7 +4,6 @@ import {showTemporaryTooltip, createTippy} from '../modules/tippy.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {setFileFolding} from './file-fold.js';
 import {getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
-import {parseIssueHref} from '../utils.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -150,6 +149,7 @@ export function initRepoIssueSidebarList() {
       }
     }
   });
+  $('.ui.dropdown.label-filter, .ui.dropdown.select-label').dropdown('setting', {'hideDividers': 'empty'}).dropdown('refreshItems');
 }
 
 export function initRepoIssueCommentDelete() {
@@ -178,9 +178,9 @@ export function initRepoIssueCommentDelete() {
           const idx = $conversationHolder.data('idx');
           const lineType = $conversationHolder.closest('tr').data('line-type');
           if (lineType === 'same') {
-            $(`[data-path="${path}"] a.add-code-comment[data-idx="${idx}"]`).removeClass('invisible');
+            $(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).removeClass('invisible');
           } else {
-            $(`[data-path="${path}"] a.add-code-comment[data-side="${side}"][data-idx="${idx}"]`).removeClass('invisible');
+            $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).removeClass('invisible');
           }
           $conversationHolder.remove();
         }
@@ -292,8 +292,8 @@ export function initRepoIssueReferenceRepositorySearch() {
           const filteredResponse = {success: true, results: []};
           $.each(response.data, (_r, repo) => {
             filteredResponse.results.push({
-              name: htmlEscape(repo.full_name),
-              value: repo.full_name
+              name: htmlEscape(repo.repository.full_name),
+              value: repo.repository.full_name
             });
           });
           return filteredResponse;
@@ -357,13 +357,6 @@ export function initRepoIssueComments() {
       issueId,
       id,
     ).then(() => window.location.reload());
-  });
-
-  $('.dismiss-review-btn').on('click', function (e) {
-    e.preventDefault();
-    const $this = $(this);
-    const $dismissReviewModal = $this.next();
-    $dismissReviewModal.modal('show');
   });
 
   $(document).on('click', (event) => {
@@ -477,7 +470,6 @@ export function initRepoPullRequestReview() {
       content: $panel[0],
       placement: 'bottom',
       trigger: 'click',
-      role: 'menu',
       maxWidth: 'none',
       interactive: true,
       hideOnClick: true,
@@ -489,7 +481,7 @@ export function initRepoPullRequestReview() {
     });
   }
 
-  $(document).on('click', 'a.add-code-comment', async function (e) {
+  $(document).on('click', '.add-code-comment', async function (e) {
     if ($(e.target).hasClass('btn-add-single')) return; // https://github.com/go-gitea/gitea/issues/4745
     e.preventDefault();
 
@@ -638,34 +630,6 @@ export function initRepoIssueBranchSelect() {
   $('#branch-select > .item').on('click', changeBranchSelect);
 }
 
-export function initRepoIssueGotoID() {
-  const issueidre = /^(?:\w+\/\w+#\d+|#\d+|\d+)$/;
-  const isGlobalIssuesArea = $('.repo.name.item').length > 0; // for global issues area or repository issues area
-  $('form.list-header-search').on('submit', (e) => {
-    const qval = e.target.q.value;
-    const aElm = document.activeElement;
-    if (!$('#hashtag-button').length || aElm.id === 'search-button' || (aElm.name === 'q' && !qval.includes('#')) || (isGlobalIssuesArea && !qval.includes('/')) || !issueidre.test(qval)) return;
-    const pathname = window.location.pathname;
-    let gotoUrl = qval.includes('/') ? `${qval.replace('#', '/issues/')}` : `${pathname}/${qval.replace('#', '')}`;
-    if (appSubUrl.length) {
-      gotoUrl = qval.includes('/') ? `/${appSubUrl}/${qval.replace('#', '/issues/')}` : `/${appSubUrl}/${pathname}/${qval.replace('#', '')}`;
-    }
-    const {owner, repo, type, index} = parseIssueHref(gotoUrl);
-    if (owner && repo && type && index) {
-      e.preventDefault();
-      window.location.href = gotoUrl;
-    }
-  });
-  $('form.list-header-search input[name=q]').on('input', (e) => {
-    const qval = e.target.value;
-    if (isGlobalIssuesArea && qval.includes('/') && issueidre.test(qval) || !isGlobalIssuesArea && issueidre.test(qval)) {
-      showElem($('#hashtag-button'));
-    } else {
-      hideElem($('#hashtag-button'));
-    }
-  });
-}
-
 export function initSingleCommentEditor($commentForm) {
   // pages:
   // * normal new issue/pr page, no status-button
@@ -673,11 +637,6 @@ export function initSingleCommentEditor($commentForm) {
   const opts = {};
   const $statusButton = $('#status-button');
   if ($statusButton.length) {
-    $statusButton.on('click', (e) => {
-      e.preventDefault();
-      $('#status').val($statusButton.data('status-val'));
-      $('#comment-form').trigger('submit');
-    });
     opts.onContentChanged = (editor) => {
       $statusButton.text($statusButton.attr(editor.value().trim() ? 'data-status-and-comment' : 'data-status'));
     };

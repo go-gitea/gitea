@@ -2,16 +2,17 @@
 <div role="main" aria-label="{{.Title}}" class="page-content user profile">
 	<div class="ui container">
 		<div class="ui stackable grid">
-			<div class="ui five wide column">
+			<div class="ui four wide column">
 				<div class="ui card">
 					<div id="profile-avatar" class="content gt-df">
 					{{if eq .SignedUserID .ContextUser.ID}}
 						<a class="image" href="{{AppSubUrl}}/user/settings" data-tooltip-content="{{.locale.Tr "user.change_avatar"}}">
-							{{avatar $.Context .ContextUser 290}}
+							{{/* the size doesn't take affect (and no need to take affect), image size(width) should be controlled by the parent container since this is not a flex layout*/}}
+							{{avatar $.Context .ContextUser 256}}
 						</a>
 					{{else}}
 						<span class="image">
-							{{avatar $.Context .ContextUser 290}}
+							{{avatar $.Context .ContextUser 256}}
 						</span>
 					{{end}}
 					</div>
@@ -34,7 +35,7 @@
 								<li>
 									{{svg "octicon-mail"}}
 									<a href="mailto:{{.ContextUser.Email}}" rel="nofollow">{{.ContextUser.Email}}</a>
-									<a href="{{AppSubUrl}}/user/settings#keep-email-private">
+									<a href="{{AppSubUrl}}/user/settings#privacy-user-settings">
 										{{if .ShowUserEmail}}
 											<i class="ui right" data-tooltip-content="{{.locale.Tr "user.email_visibility.limited"}}">
 												{{svg "octicon-unlock"}}
@@ -119,8 +120,8 @@
 					</div>
 				</div>
 			</div>
-			<div class="ui eleven wide column">
-				<div class="ui secondary stackable pointing tight menu">
+			<div class="ui twelve wide column">
+				<div class="gt-mb-4 gt-df">
 					{{template "user/overview/header" .}}
 				</div>
 

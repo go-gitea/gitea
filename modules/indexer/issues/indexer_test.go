@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/indexer/issues/bleve"
 	"code.gitea.io/gitea/modules/setting"
 
 	_ "code.gitea.io/gitea/models"
@@ -26,7 +27,7 @@ func TestMain(m *testing.M) {
 
 func TestBleveSearchIssues(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	setting.CfgProvider = setting.NewEmptyConfigProvider()
+	setting.CfgProvider, _ = setting.NewConfigProviderFromData("")
 
 	tmpIndexerDir := t.TempDir()
 
@@ -42,8 +43,7 @@ func TestBleveSearchIssues(t *testing.T) {
 	setting.LoadQueueSettings()
 	InitIssueIndexer(true)
 	defer func() {
-		indexer := holder.get()
-		if bleveIndexer, ok := indexer.(*BleveIndexer); ok {
+		if bleveIndexer, ok := (*globalIndexer.Load()).(*bleve.Indexer); ok {
 			bleveIndexer.Close()
 		}
 	}()

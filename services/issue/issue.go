@@ -57,6 +57,12 @@ func ChangeTitle(ctx context.Context, issue *issues_model.Issue, doer *user_mode
 		return
 	}
 
+	if issue.IsPull && issues_model.HasWorkInProgressPrefix(oldTitle) && !issues_model.HasWorkInProgressPrefix(title) {
+		if err = issues_model.PullRequestCodeOwnersReview(ctx, issue, issue.PullRequest); err != nil {
+			return
+		}
+	}
+
 	notification.NotifyIssueChangeTitle(ctx, doer, issue, oldTitle)
 
 	return nil
@@ -153,6 +159,13 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, gitRepo *git.Reposi
 		}
 	}
 
+	// If the Issue is pinned, we should unpin it before deletion to avoid problems with other pinned Issues
+	if issue.IsPinned() {
+		if err := issue.Unpin(ctx, doer); err != nil {
+			return err
+		}
+	}
+
 	notification.NotifyDeleteIssue(ctx, doer, issue)
 
 	return nil
@@ -199,7 +212,7 @@ func GetRefEndNamesAndURLs(issues []*issues_model.Issue, repoLink string) (map[i
 	issueRefURLs := make(map[int64]string, len(issues))
 	for _, issue := range issues {
 		if issue.Ref != "" {
-			issueRefEndNames[issue.ID] = git.RefEndName(issue.Ref)
+			issueRefEndNames[issue.ID] = git.RefName(issue.Ref).ShortName()
 			issueRefURLs[issue.ID] = git.RefURL(repoLink, issue.Ref)
 		}
 	}

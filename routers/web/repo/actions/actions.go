@@ -5,6 +5,7 @@ package actions
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -16,7 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/services/convert"
 
 	"github.com/nektos/act/pkg/model"
@@ -61,12 +62,7 @@ func List(ctx *context.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	} else if !empty {
-		defaultBranch, err := ctx.Repo.GitRepo.GetDefaultBranch()
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, err.Error())
-			return
-		}
-		commit, err := ctx.Repo.GitRepo.GetBranchCommit(defaultBranch)
+		commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 			return
@@ -90,7 +86,6 @@ func List(ctx *context.Context) {
 		allRunnerLabels := make(container.Set[string])
 		for _, r := range runners {
 			allRunnerLabels.AddMultiple(r.AgentLabels...)
-			allRunnerLabels.AddMultiple(r.CustomLabels...)
 		}
 
 		workflows = make([]Workflow, 0, len(entries))
@@ -132,7 +127,16 @@ func List(ctx *context.Context) {
 	}
 
 	workflow := ctx.FormString("workflow")
+	actorID := ctx.FormInt64("actor")
+	status := ctx.FormInt("status")
 	ctx.Data["CurWorkflow"] = workflow
+	// if status or actor query param is not given to frontend href, (href="/<repoLink>/actions")
+	// they will be 0 by default, which indicates get all status or actors
+	ctx.Data["CurActor"] = actorID
+	ctx.Data["CurStatus"] = status
+	if actorID > 0 || status > int(actions_model.StatusUnknown) {
+		ctx.Data["IsFiltered"] = true
+	}
 
 	opts := actions_model.FindRunOptions{
 		ListOptions: db.ListOptions{
@@ -141,37 +145,8 @@ func List(ctx *context.Context) {
 		},
 		RepoID:           ctx.Repo.Repository.ID,
 		WorkflowFileName: workflow,
-	}
-
-	// open counts
-	opts.IsClosed = util.OptionalBoolFalse
-	numOpenRuns, err := actions_model.CountRuns(ctx, opts)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
-		return
-	}
-	ctx.Data["NumOpenActionRuns"] = numOpenRuns
-
-	// closed counts
-	opts.IsClosed = util.OptionalBoolTrue
-	numClosedRuns, err := actions_model.CountRuns(ctx, opts)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
-		return
-	}
-	ctx.Data["NumClosedActionRuns"] = numClosedRuns
-
-	opts.IsClosed = util.OptionalBoolNone
-	isShowClosed := ctx.FormString("state") == "closed"
-	if len(ctx.FormString("state")) == 0 && numOpenRuns == 0 && numClosedRuns != 0 {
-		isShowClosed = true
-	}
-
-	if isShowClosed {
-		opts.IsClosed = util.OptionalBoolTrue
-		ctx.Data["IsShowClosed"] = true
-	} else {
-		opts.IsClosed = util.OptionalBoolFalse
+		TriggerUserID:    actorID,
+		Status:           actions_model.Status(status),
 	}
 
 	runs, total, err := actions_model.FindRuns(ctx, opts)
@@ -191,10 +166,20 @@ func List(ctx *context.Context) {
 
 	ctx.Data["Runs"] = runs
 
+	actors, err := actions_model.GetActors(ctx, ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+	ctx.Data["Actors"] = repo.MakeSelfOnTop(ctx, actors)
+
+	ctx.Data["StatusInfoList"] = actions_model.GetStatusInfoList(ctx)
+
 	pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParamString("workflow", workflow)
-	pager.AddParamString("state", ctx.FormString("state"))
+	pager.AddParamString("actor", fmt.Sprint(actorID))
+	pager.AddParamString("status", fmt.Sprint(status))
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplListActions)

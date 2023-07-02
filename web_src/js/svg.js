@@ -2,10 +2,12 @@ import {h} from 'vue';
 import giteaDoubleChevronLeft from '../../public/img/svg/gitea-double-chevron-left.svg';
 import giteaDoubleChevronRight from '../../public/img/svg/gitea-double-chevron-right.svg';
 import giteaEmptyCheckbox from '../../public/img/svg/gitea-empty-checkbox.svg';
+import giteaExclamation from '../../public/img/svg/gitea-exclamation.svg';
 import octiconArchive from '../../public/img/svg/octicon-archive.svg';
 import octiconArrowSwitch from '../../public/img/svg/octicon-arrow-switch.svg';
 import octiconBlocked from '../../public/img/svg/octicon-blocked.svg';
 import octiconBold from '../../public/img/svg/octicon-bold.svg';
+import octiconCheck from '../../public/img/svg/octicon-check.svg';
 import octiconCheckbox from '../../public/img/svg/octicon-checkbox.svg';
 import octiconCheckCircleFill from '../../public/img/svg/octicon-check-circle-fill.svg';
 import octiconChevronDown from '../../public/img/svg/octicon-chevron-down.svg';
@@ -19,10 +21,13 @@ import octiconDiffAdded from '../../public/img/svg/octicon-diff-added.svg';
 import octiconDiffModified from '../../public/img/svg/octicon-diff-modified.svg';
 import octiconDiffRemoved from '../../public/img/svg/octicon-diff-removed.svg';
 import octiconDiffRenamed from '../../public/img/svg/octicon-diff-renamed.svg';
+import octiconDotFill from '../../public/img/svg/octicon-dot-fill.svg';
+import octiconDownload from '../../public/img/svg/octicon-download.svg';
 import octiconEye from '../../public/img/svg/octicon-eye.svg';
 import octiconFile from '../../public/img/svg/octicon-file.svg';
 import octiconFileDirectoryFill from '../../public/img/svg/octicon-file-directory-fill.svg';
 import octiconFilter from '../../public/img/svg/octicon-filter.svg';
+import octiconGear from '../../public/img/svg/octicon-gear.svg';
 import octiconGitBranch from '../../public/img/svg/octicon-git-branch.svg';
 import octiconGitMerge from '../../public/img/svg/octicon-git-merge.svg';
 import octiconGitPullRequest from '../../public/img/svg/octicon-git-pull-request.svg';
@@ -67,10 +72,12 @@ const svgs = {
   'gitea-double-chevron-left': giteaDoubleChevronLeft,
   'gitea-double-chevron-right': giteaDoubleChevronRight,
   'gitea-empty-checkbox': giteaEmptyCheckbox,
+  'gitea-exclamation': giteaExclamation,
   'octicon-archive': octiconArchive,
   'octicon-arrow-switch': octiconArrowSwitch,
   'octicon-blocked': octiconBlocked,
   'octicon-bold': octiconBold,
+  'octicon-check': octiconCheck,
   'octicon-check-circle-fill': octiconCheckCircleFill,
   'octicon-checkbox': octiconCheckbox,
   'octicon-chevron-down': octiconChevronDown,
@@ -84,10 +91,13 @@ const svgs = {
   'octicon-diff-modified': octiconDiffModified,
   'octicon-diff-removed': octiconDiffRemoved,
   'octicon-diff-renamed': octiconDiffRenamed,
+  'octicon-dot-fill': octiconDotFill,
+  'octicon-download': octiconDownload,
   'octicon-eye': octiconEye,
   'octicon-file': octiconFile,
   'octicon-file-directory-fill': octiconFileDirectoryFill,
   'octicon-filter': octiconFilter,
+  'octicon-gear': octiconGear,
   'octicon-git-branch': octiconGitBranch,
   'octicon-git-merge': octiconGitMerge,
   'octicon-git-pull-request': octiconGitPullRequest,
@@ -126,7 +136,7 @@ const svgs = {
   'octicon-tag': octiconTag,
   'octicon-triangle-down': octiconTriangleDown,
   'octicon-x': octiconX,
-  'octicon-x-circle-fill': octiconXCircleFill
+  'octicon-x-circle-fill': octiconXCircleFill,
 };
 
 // TODO: use a more general approach to access SVG icons.

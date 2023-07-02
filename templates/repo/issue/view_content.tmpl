@@ -1,4 +1,4 @@
-<div class="ui stackable grid">
+<div class="issue-content">
 	<!-- I know, there is probably a better way to do this (moved from sidebar.tmpl, original author: 6543 @ 2021-02-28) -->
 	<!-- Agree, there should be a better way, eg: introduce window.config.pageData (original author: wxiaoguang @ 2021-09-05) -->
 	<input type="hidden" id="repolink" value="{{$.RepoRelPath}}">
@@ -7,25 +7,27 @@
 	<input type="hidden" id="type" value="{{.IssueType}}">
 
 	{{$createdStr:= TimeSinceUnix .Issue.CreatedUnix $.locale}}
-	<div class="twelve wide column comment-list prevent-before-timeline">
+	<div class="issue-content-left comment-list prevent-before-timeline">
 		<div class="ui timeline">
 			<div id="{{.Issue.HashTag}}" class="timeline-item comment first">
 				{{if .Issue.OriginalAuthor}}
-				<span class="timeline-avatar"><img src="{{AppSubUrl}}/assets/img/avatar_default.png"></span>
+				<span class="timeline-avatar">
+					<img src="{{AppSubUrl}}/assets/img/avatar_default.png" width="40" height="40">
+				</span>
 				{{else}}
 				<a class="timeline-avatar" {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>
-					{{avatar $.Context .Issue.Poster}}
+					{{avatar $.Context .Issue.Poster 40}}
 				</a>
 				{{end}}
 				<div class="content comment-container">
 					<div class="ui top attached header comment-header gt-df gt-ac gt-sb" role="heading" aria-level="3">
 						<div class="comment-header-left gt-df gt-ac">
 							{{if .Issue.OriginalAuthor}}
-								<span class="text black gt-bold">
+								<span class="text black gt-font-semibold">
 									{{svg (MigrationIcon .Repository.GetOriginalURLHostname)}}
 									{{.Issue.OriginalAuthor}}
 								</span>
-								<span class="text grey">
+								<span class="text grey muted-links">
 									{{.locale.Tr "repo.issues.commented_at" (.Issue.HashTag|Escape) $createdStr | Safe}}
 								</span>
 								<span class="text migrate">
@@ -33,9 +35,9 @@
 								</span>
 							{{else}}
 								<a class="inline-timeline-avatar" href="{{.Issue.Poster.HomeLink}}">
-									{{avatar $.Context .Issue.Poster}}
+									{{avatar $.Context .Issue.Poster 24}}
 								</a>
-								<span class="text grey">
+								<span class="text grey muted-links">
 									{{template "shared/user/authorlink" .Issue.Poster}}
 									{{.locale.Tr "repo.issues.commented_at" (.Issue.HashTag|Escape) $createdStr | Safe}}
 								</span>
@@ -76,9 +78,7 @@
 					</div>
 					{{$reactions := .Issue.Reactions.GroupByType}}
 					{{if $reactions}}
-						<div class="ui attached segment reactions" role="note">
-							{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index) "Reactions" $reactions}}
-						</div>
+						{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index) "Reactions" $reactions}}
 					{{end}}
 				</div>
 			</div>
@@ -93,18 +93,17 @@
 				{{if and (or .IsRepoAdmin .HasIssuesOrPullsWritePermission (not .Issue.IsLocked)) (not .Repository.IsArchived)}}
 				<div class="timeline-item comment form">
 					<a class="timeline-avatar" href="{{.SignedUser.HomeLink}}">
-						{{avatar $.Context .SignedUser}}
+						{{avatar $.Context .SignedUser 40}}
 					</a>
 					<div class="content">
-						<form class="ui segment form" id="comment-form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/comments" method="post">
+						<form class="ui segment form form-fetch-action" id="comment-form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/comments" method="post">
 							{{template "repo/issue/comment_tab" .}}
 							{{.CsrfTokenHtml}}
-							<input id="status" name="status" type="hidden">
 							<div class="field footer">
 								<div class="text right">
 									{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
 										{{if .Issue.IsClosed}}
-											<button id="status-button" class="ui green basic button" tabindex="6" data-status="{{.locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
+											<button id="status-button" class="ui green basic button" tabindex="6" data-status="{{.locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.reopen_comment_issue"}}" name="status" value="reopen">
 												{{.locale.Tr "repo.issues.reopen_issue"}}
 											</button>
 										{{else}}
@@ -112,12 +111,12 @@
 											{{if .Issue.IsPull}}
 												{{$closeTranslationKey = "repo.pulls.close"}}
 											{{end}}
-											<button id="status-button" class="ui red basic button" tabindex="6" data-status="{{.locale.Tr $closeTranslationKey}}" data-status-and-comment="{{.locale.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
+											<button id="status-button" class="ui red basic button" tabindex="6" data-status="{{.locale.Tr $closeTranslationKey}}" data-status-and-comment="{{.locale.Tr "repo.issues.close_comment_issue"}}" name="status" value="close">
 												{{.locale.Tr $closeTranslationKey}}
 											</button>
 										{{end}}
 									{{end}}
-									<button class="ui green button loading-button" tabindex="5">
+									<button class="ui green button" tabindex="5">
 										{{.locale.Tr "repo.issues.create_comment"}}
 									</button>
 								</div>
@@ -175,7 +174,7 @@
 
 		<div class="field">
 			<div class="text right edit">
-				<button class="ui basic secondary cancel button" tabindex="3">{{.locale.Tr "repo.issues.cancel"}}</button>
+				<button class="ui basic cancel button" tabindex="3">{{.locale.Tr "repo.issues.cancel"}}</button>
 				<button class="ui primary save button" tabindex="2">{{.locale.Tr "repo.issues.save"}}</button>
 			</div>
 		</div>

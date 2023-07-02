@@ -69,7 +69,7 @@
 						-->
 					</div>
 
-					<div class="ui divider"></div>
+					<div class="divider"></div>
 
 					<div class="inline required field {{if .Err_Owner}}error{{end}}">
 						<label>{{.locale.Tr "repo.owner"}}</label>
@@ -97,7 +97,7 @@
 
 					<div class="inline required field {{if .Err_RepoName}}error{{end}}">
 						<label for="repo_name">{{.locale.Tr "repo.repo_name"}}</label>
-						<input id="repo_name" name="repo_name" value="{{.repo_name}}" required>
+						<input id="repo_name" name="repo_name" value="{{.repo_name}}" required maxlength="100">
 					</div>
 					<div class="inline field">
 						<label>{{.locale.Tr "repo.visibility"}}</label>
@@ -113,7 +113,7 @@
 					</div>
 					<div class="inline field {{if .Err_Description}}error{{end}}">
 						<label for="description">{{.locale.Tr "repo.repo_desc"}}</label>
-						<textarea id="description" name="description">{{.description}}</textarea>
+						<textarea id="description" name="description" maxlength="2048">{{.description}}</textarea>
 					</div>
 
 					<div class="inline field">

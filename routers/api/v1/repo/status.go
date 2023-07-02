@@ -183,7 +183,7 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 		ctx.Error(http.StatusBadRequest, "ref/sha not given", nil)
 		return
 	}
-	sha = utils.MustConvertToSHA1(ctx.Context, sha)
+	sha = utils.MustConvertToSHA1(ctx.Base, ctx.Repo, sha)
 	repo := ctx.Repo.Repository
 
 	listOptions := utils.GetListOptions(ctx)
@@ -264,7 +264,7 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 		return
 	}
 
-	combiStatus := convert.ToCombinedStatus(ctx, statuses, convert.ToRepo(ctx, repo, ctx.Repo.AccessMode))
+	combiStatus := convert.ToCombinedStatus(ctx, statuses, convert.ToRepo(ctx, repo, ctx.Repo.Permission))
 
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, combiStatus)

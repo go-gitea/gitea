@@ -26,7 +26,7 @@ import (
 
 func TestAPIOrgCreate(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
-		token := getUserToken(t, "user1", auth_model.AccessTokenScopeWriteOrg)
+		token := getUserToken(t, "user1", auth_model.AccessTokenScopeWriteOrganization)
 
 		org := api.CreateOrgOption{
 			UserName:    "user1_org",
@@ -100,7 +100,7 @@ func TestAPIOrgEdit(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
 		session := loginUser(t, "user1")
 
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrg)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization)
 		org := api.EditOrgOption{
 			FullName:    "User3 organization new full name",
 			Description: "A new description",
@@ -127,7 +127,7 @@ func TestAPIOrgEditBadVisibility(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
 		session := loginUser(t, "user1")
 
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrg)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization)
 		org := api.EditOrgOption{
 			FullName:    "User3 organization new full name",
 			Description: "A new description",
@@ -162,7 +162,7 @@ func TestAPIOrgDeny(t *testing.T) {
 func TestAPIGetAll(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadOrg)
+	token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadOrganization)
 
 	// accessing with a token will return all orgs
 	req := NewRequestf(t, "GET", "/api/v1/orgs?token=%s", token)
@@ -186,7 +186,7 @@ func TestAPIGetAll(t *testing.T) {
 
 func TestAPIOrgSearchEmptyTeam(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
-		token := getUserToken(t, "user1", auth_model.AccessTokenScopeAdminOrg)
+		token := getUserToken(t, "user1", auth_model.AccessTokenScopeWriteOrganization)
 		orgName := "org_with_empty_team"
 
 		// create org

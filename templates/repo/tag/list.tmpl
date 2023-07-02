@@ -1,21 +1,15 @@
 {{template "base/head" .}}
-
 <div role="main" aria-label="{{.Title}}" class="page-content repository tags">
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
-		{{template "repo/sub_menu_release_tag" .}}
-
-		<div class="ui divider"></div>
-
+		{{template "repo/release_tag_header" .}}
 		<h4 class="ui top attached header">
 			<div class="five wide column gt-df gt-ac">
 				{{svg "octicon-tag" 16 "gt-mr-2"}}{{.locale.Tr "repo.release.tags"}}
 			</div>
 		</h4>
-
 		{{$canReadReleases := $.Permission.CanRead $.UnitTypeReleases}}
-
 		<div class="ui attached table segment">
 			<table class="ui very basic striped fixed table single line" id="tags-table">
 				<tbody class="tag-list">

@@ -1,3 +1,5 @@
+import {encode, decode} from 'uint8-to-base64';
+
 // transform /path/to/file.ext to file.ext
 export function basename(path = '') {
   return path ? path.replace(/^.*\//, '') : '';
@@ -35,19 +37,6 @@ export function stripTags(text) {
   return text.replace(/<[^>]*>?/g, '');
 }
 
-// searches the inclusive range [minValue, maxValue].
-// credits: https://matthiasott.com/notes/write-your-media-queries-in-pixels-not-ems
-export function mqBinarySearch(feature, minValue, maxValue, step, unit) {
-  if (maxValue - minValue < step) {
-    return minValue;
-  }
-  const mid = Math.ceil((minValue + maxValue) / 2 / step) * step;
-  if (matchMedia(`screen and (min-${feature}:${mid}${unit})`).matches) {
-    return mqBinarySearch(feature, mid, maxValue, step, unit); // feature is >= mid
-  }
-  return mqBinarySearch(feature, minValue, mid - step, step, unit); // feature is < mid
-}
-
 export function parseIssueHref(href) {
   const path = (href || '').replace(/[#?].*$/, '');
   const [_, owner, repo, type, index] = /([^/]+)\/([^/]+)\/(issues|pulls)\/([0-9]+)/.exec(path) || [];
@@ -60,7 +49,7 @@ export function parseUrl(str) {
 }
 
 // return current locale chosen by user
-function getCurrentLocale() {
+export function getCurrentLocale() {
   return document.documentElement.lang;
 }
 
@@ -135,17 +124,17 @@ export function toAbsoluteUrl(url) {
   return `${window.location.origin}${url}`;
 }
 
-// determine if light or dark text color should be used on a given background color
-// NOTE: see models/issue_label.go for similar implementation
-export function useLightTextOnBackground(backgroundColor) {
-  if (backgroundColor[0] === '#') {
-    backgroundColor = backgroundColor.substring(1);
-  }
-  // Perceived brightness from: https://www.w3.org/TR/AERT/#color-contrast
-  // In the future WCAG 3 APCA may be a better solution.
-  const r = parseInt(backgroundColor.substring(0, 2), 16);
-  const g = parseInt(backgroundColor.substring(2, 4), 16);
-  const b = parseInt(backgroundColor.substring(4, 6), 16);
-  const brightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return brightness < 0.35;
+// Encode an ArrayBuffer into a URLEncoded base64 string.
+export function encodeURLEncodedBase64(arrayBuffer) {
+  return encode(arrayBuffer)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+}
+
+// Decode a URLEncoded base64 to an ArrayBuffer string.
+export function decodeURLEncodedBase64(base64url) {
+  return decode(base64url
+    .replace(/_/g, '/')
+    .replace(/-/g, '+'));
 }

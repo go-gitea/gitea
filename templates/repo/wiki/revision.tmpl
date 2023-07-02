@@ -4,23 +4,25 @@
 	{{$title := .title}}
 	<div class="ui container">
 		<div class="ui stackable grid">
-			<div class="ui eight wide column text right gt-df gt-ac gt-je">
+			<div class="ui eight wide column">
+				<div class="ui header">
+					<a class="file-revisions-btn ui basic button" title="{{.locale.Tr "repo.wiki.back_to_wiki"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}"><span>{{.revision}}</span> {{svg "octicon-home"}}</a>
+					{{$title}}
+					<div class="ui sub header gt-word-break">
+						{{$timeSince := TimeSince .Author.When $.locale}}
+						{{.locale.Tr "repo.wiki.last_commit_info" .Author.Name $timeSince | Safe}}
+					</div>
+				</div>
+			</div>
+			<div class="ui eight wide column text right">
 				<div class="ui action small input" id="clone-panel">
 					{{template "repo/clone_buttons" .}}
 					{{template "repo/clone_script" .}}
 				</div>
 			</div>
-			<div class="ui header eight wide column">
-				<a class="file-revisions-btn ui basic button" title="{{.locale.Tr "repo.wiki.back_to_wiki"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}" ><span>{{.revision}}</span> {{svg "octicon-home"}}</a>
-				{{$title}}
-				<div class="ui sub header gt-word-break">
-					{{$timeSince := TimeSince .Author.When $.locale}}
-					{{.locale.Tr "repo.wiki.last_commit_info" .Author.Name $timeSince | Safe}}
-				</div>
-			</div>
 		</div>
 		<h2 class="ui top header">{{.locale.Tr "repo.wiki.wiki_page_revisions"}}</h2>
-		<div style="margin-top: 1rem;">
+		<div class="gt-mt-4">
 			<h4 class="ui top attached header">
 				<div class="ui stackable grid">
 					<div class="sixteen wide column">

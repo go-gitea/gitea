@@ -77,8 +77,8 @@
 		{{end}}
 
 	{{if .ContextUser.IsOrganization}}
-		<div class="right stackable menu">
-			<a class="{{if .PageIsNews}}active {{end}}item" style="margin-left: auto" href="{{.ContextUser.DashboardLink}}{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
+		<div class="right menu">
+			<a class="{{if .PageIsNews}}active {{end}}item gt-ml-auto" href="{{.ContextUser.DashboardLink}}{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
 				{{svg "octicon-rss"}}&nbsp;{{.locale.Tr "activities"}}
 			</a>
 			{{if not .UnitIssuesGlobalDisabled}}
@@ -105,4 +105,4 @@
 	{{end}}
 	</div>
 </div>
-<div class="ui divider"></div>
+<div class="divider"></div>

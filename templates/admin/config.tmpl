@@ -4,7 +4,7 @@
 			{{.locale.Tr "admin.config.server_config"}}
 		</h4>
 		<div class="ui attached table segment">
-			<dl class="dl-horizontal admin-dl-horizontal">
+			<dl class="admin-dl-horizontal">
 				<dt>{{.locale.Tr "admin.config.app_name"}}</dt>
 				<dd>{{AppName}}</dd>
 				<dt>{{.locale.Tr "admin.config.app_ver"}}</dt>
@@ -20,19 +20,19 @@
 				<dt>{{.locale.Tr "admin.config.disable_router_log"}}</dt>
 				<dd>{{if .DisableRouterLog}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 
 				<dt>{{.locale.Tr "admin.config.run_user"}}</dt>
 				<dd>{{.RunUser}}</dd>
 				<dt>{{.locale.Tr "admin.config.run_mode"}}</dt>
 				<dd>{{.RunMode}}</dd>
 
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 
 				<dt>{{.locale.Tr "admin.config.git_version"}}</dt>
 				<dd>{{.GitVersion}}</dd>
 
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 
 				<dt>{{.locale.Tr "admin.config.repo_root_path"}}</dt>
 				<dd>{{.RepoRootPath}}</dd>
@@ -46,15 +46,6 @@
 				<dd>{{.ScriptType}}</dd>
 				<dt>{{.locale.Tr "admin.config.reverse_auth_user"}}</dt>
 				<dd>{{.ReverseProxyAuthUser}}</dd>
-
-				{{if .EnvVars}}
-				<div class="ui divider"></div>
-				{{range .EnvVars}}
-				<dt>{{.Name}}</dt>
-				<dd>{{.Value}}</dd>
-				{{end}}
-				{{end}}
-
 			</dl>
 		</div>
 
@@ -62,7 +53,7 @@
 			{{.locale.Tr "admin.config.ssh_config"}}
 		</h4>
 		<div class="ui attached table segment">
-			<dl class="dl-horizontal admin-dl-horizontal">
+			<dl class="admin-dl-horizontal">
 				<dt>{{.locale.Tr "admin.config.ssh_enabled"}}</dt>
 				<dd>{{if not .SSH.Disabled}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				{{if not .SSH.Disabled}}
@@ -97,12 +88,12 @@
 			{{.locale.Tr "admin.config.lfs_config"}}
 		</h4>
 		<div class="ui attached table segment">
-			<dl class="dl-horizontal admin-dl-horizontal">
+			<dl class="admin-dl-horizontal">
 				<dt>{{.locale.Tr "admin.config.lfs_enabled"}}</dt>
 				<dd>{{if .LFS.StartServer}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				{{if .LFS.StartServer}}
 					<dt>{{.locale.Tr "admin.config.lfs_content_path"}}</dt>
-					<dd>{{.LFS.Path}}</dd>
+					<dd>{{JsonUtils.EncodeToString .LFS.Storage.ToShadowCopy}}</dd>
 					<dt>{{.locale.Tr "admin.config.lfs_http_auth_expiry"}}</dt>
 					<dd>{{.LFS.HTTPAuthExpiry}}</dd>
 				{{end}}
@@ -113,7 +104,7 @@
 			{{.locale.Tr "admin.config.db_config"}}
 		</h4>
 		<div class="ui attached table segment">
-			<dl class="dl-horizontal admin-dl-horizontal">
+			<dl class="admin-dl-horizontal">
 				<dt>{{.locale.Tr "admin.config.db_type"}}</dt>
 				<dd>{{.DbCfg.Type}}</dd>
 				{{if not (eq .DbCfg.Type "sqlite3")}}
@@ -141,7 +132,7 @@
 			{{.locale.Tr "admin.config.service_config"}}
 		</h4>
 		<div class="ui attached table segment">
-			<dl class="dl-horizontal admin-dl-horizontal">
+			<dl class="admin-dl-horizontal">
 				<dt>{{.locale.Tr "admin.config.register_email_confirm"}}</dt>
 				<dd>{{if .Service.RegisterEmailConfirm}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<dt>{{.locale.Tr "admin.config.disable_register"}}</dt>
@@ -183,7 +174,7 @@
 				<dd>{{if .Service.NoReplyAddress}}{{.Service.NoReplyAddress}}{{else}}-{{end}}</dd>
 				<dt>{{.locale.Tr "admin.config.default_enable_dependencies"}}</dt>
 				<dd>{{if .Service.DefaultEnableDependencies}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 				<dt>{{.locale.Tr "admin.config.active_code_lives"}}</dt>
 				<dd>{{.Service.ActiveCodeLives}} {{.locale.Tr "tool.raw_minutes"}}</dd>
 				<dt>{{.locale.Tr "admin.config.reset_password_code_lives"}}</dt>
@@ -195,7 +186,7 @@
 			{{.locale.Tr "admin.config.webhook_config"}}
 		</h4>
 		<div class="ui attached table segment">
-			<dl class="dl-horizontal admin-dl-horizontal">
+			<dl class="admin-dl-horizontal">
 				<dt>{{.locale.Tr "admin.config.queue_length"}}</dt>
 				<dd>{{.Webhook.QueueLength}}</dd>
 				<dt>{{.locale.Tr "admin.config.deliver_timeout"}}</dt>
@@ -209,7 +200,7 @@
 			{{.locale.Tr "admin.config.mailer_config"}}
 		</h4>
 		<div class="ui attached table segment">
-			<dl class="dl-horizontal admin-dl-horizontal">
+			<dl class="admin-dl-horizontal">
 				<dt>{{.locale.Tr "admin.config.mailer_enabled"}}</dt>
 				<dd>{{if .MailerEnabled}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				{{if .MailerEnabled}}
@@ -239,7 +230,7 @@
 					{{end}}
 					<dt>{{.locale.Tr "admin.config.mailer_user"}}</dt>
 					<dd>{{if .Mailer.User}}{{.Mailer.User}}{{else}}(empty){{end}}</dd>
-					<div class="ui divider"></div>
+					<div class="divider"></div>
 					<dt class="gt-py-2">{{.locale.Tr "admin.config.send_test_mail"}}</dt>
 					<dd>
 						<form class="ui form ignore-dirty" action="{{AppSubUrl}}/admin/config/test_mail" method="post">
@@ -258,7 +249,7 @@
 			{{.locale.Tr "admin.config.cache_config"}}
 		</h4>
 		<div class="ui attached table segment">
-			<dl class="dl-horizontal admin-dl-horizontal">
+			<dl class="admin-dl-horizontal">
 				<dt>{{.locale.Tr "admin.config.cache_adapter"}}</dt>
 				<dd>{{.CacheAdapter}}</dd>
 				{{if eq .CacheAdapter "memory"}}
@@ -278,7 +269,7 @@
 			{{.locale.Tr "admin.config.session_config"}}
 		</h4>
 		<div class="ui attached table segment">
-			<dl class="dl-horizontal admin-dl-horizontal">
+			<dl class="admin-dl-horizontal">
 				<dt>{{.locale.Tr "admin.config.session_provider"}}</dt>
 				<dd>{{.SessionConfig.Provider}}</dd>
 				<dt>{{.locale.Tr "admin.config.provider_config"}}</dt>
@@ -298,14 +289,14 @@
 			{{.locale.Tr "admin.config.picture_config"}}
 		</h4>
 		<div class="ui attached table segment">
-			<dl class="dl-horizontal admin-dl-horizontal">
+			<dl class="admin-dl-horizontal">
 				<dt>{{.locale.Tr "admin.config.disable_gravatar"}}</dt>
 				<dd>
 					<div class="ui toggle checkbox">
 						<input type="checkbox" name="picture.disable_gravatar" version="{{.SystemSettings.GetVersion "picture.disable_gravatar"}}"{{if .SystemSettings.GetBool "picture.disable_gravatar"}} checked{{end}} title="{{.locale.Tr "admin.config.disable_gravatar"}}">
 					</div>
 				</dd>
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 				<dt>{{.locale.Tr "admin.config.enable_federated_avatar"}}</dt>
 				<dd>
 					<div class="ui toggle checkbox">
@@ -319,7 +310,7 @@
 			{{.locale.Tr "admin.config.git_config"}}
 		</h4>
 		<div class="ui attached table segment">
-			<dl class="dl-horizontal admin-dl-horizontal">
+			<dl class="admin-dl-horizontal">
 				<dt>{{.locale.Tr "admin.config.git_disable_diff_highlight"}}</dt>
 				<dd>{{if .Git.DisableDiffHighlight}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<dt>{{.locale.Tr "admin.config.git_max_diff_lines"}}</dt>
@@ -331,17 +322,7 @@
 				<dt>{{.locale.Tr "admin.config.git_gc_args"}}</dt>
 				<dd><code>{{.Git.GCArgs}}</code></dd>
 
-				<div class="ui divider"></div>
-
-				<dt>{{.locale.Tr "admin.config.git_enable_reflogs"}}</dt>
-				<dd>{{if .Git.Reflog.Enabled}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
-
-				{{if .Git.Reflog.Enabled}}
-					<dt>{{.locale.Tr "admin.config.git_reflog_expiry_time"}}</dt>
-					<dd>{{.locale.Tr "tool.days" .Git.Reflog.Expiration}}</dd>
-				{{end}}
-
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 
 				<dt>{{.locale.Tr "admin.config.git_migrate_timeout"}}</dt>
 				<dd>{{.Git.Timeout.Migrate}} {{.locale.Tr "tool.raw_seconds"}}</dd>
@@ -360,67 +341,24 @@
 			{{.locale.Tr "admin.config.log_config"}}
 		</h4>
 		<div class="ui attached table segment">
-			<dl class="dl-horizontal admin-dl-horizontal">
-				{{range .Loggers.default.SubLogDescriptions}}
-					<dt>{{$.locale.Tr "admin.config.log_mode"}}</dt>
-					<dd>{{.Name}} ({{.Provider}})</dd>
-					<dt>{{$.locale.Tr "admin.config.log_config"}}</dt>
-					<dd><pre>{{JsonUtils.PrettyIndent .Config}}</pre></dd>
-				{{end}}
-				<div class="ui divider"></div>
-				<dt>{{$.locale.Tr "admin.config.router_log_mode"}}</dt>
-				{{if .DisableRouterLog}}
-					<dd>{{$.locale.Tr "admin.config.disabled_logger"}}</dd>
-				{{else}}
-					{{if .Loggers.router.SubLogDescriptions}}
-						<dd>{{$.locale.Tr "admin.config.own_named_logger"}}</dd>
-						{{range .Loggers.router.SubLogDescriptions}}
-							<dt>{{$.locale.Tr "admin.config.log_mode"}}</dt>
-							<dd>{{.Name}} ({{.Provider}})</dd>
-							<dt>{{$.locale.Tr "admin.config.log_config"}}</dt>
-							<dd><pre>{{JsonUtils.PrettyIndent .Config}}</pre></dd>
-						{{end}}
-					{{else}}
-						<dd>{{$.locale.Tr "admin.config.routes_to_default_logger"}}</dd>
-					{{end}}
-				{{end}}
-				<div class="ui divider"></div>
-				<dt>{{$.locale.Tr "admin.config.access_log_mode"}}</dt>
-				{{if .EnableAccessLog}}
-					{{if .Loggers.access.SubLogDescriptions}}
-						<dd>{{$.locale.Tr "admin.config.own_named_logger"}}</dd>
-						{{range .Loggers.access.SubLogDescriptions}}
-							<dt>{{$.locale.Tr "admin.config.log_mode"}}</dt>
-							<dd>{{.Name}} ({{.Provider}})</dd>
-							<dt>{{$.locale.Tr "admin.config.log_config"}}</dt>
-							<dd><pre>{{JsonUtils.PrettyIndent .Config}}</pre></dd>
-						{{end}}
-					{{else}}
-						<dd>{{$.locale.Tr "admin.config.routes_to_default_logger"}}</dd>
-					{{end}}
-					<dt>{{$.locale.Tr "admin.config.access_log_template"}}</dt>
-					<dd><code>{{$.AccessLogTemplate}}</code></dd>
-				{{else}}
-					<dd>{{$.locale.Tr "admin.config.disabled_logger"}}</dd>
-				{{end}}
-				<div class="ui divider"></div>
-				<dt>{{$.locale.Tr "admin.config.xorm_log_mode"}}</dt>
-				{{if .EnableXORMLog}}
-					{{if .Loggers.xorm.SubLogDescriptions}}
-						<dd>{{$.locale.Tr "admin.config.own_named_logger"}}</dd>
-						{{range .Loggers.xorm.SubLogDescriptions}}
-							<dt>{{$.locale.Tr "admin.config.log_mode"}}</dt>
-							<dd>{{.Name}} ({{.Provider}})</dd>
-							<dt>{{$.locale.Tr "admin.config.log_config"}}</dt>
-							<dd><pre>{{JsonUtils.PrettyIndent .Config}}</pre></dd>
-						{{end}}
-					{{else}}
-						<dd>{{$.locale.Tr "admin.config.routes_to_default_logger"}}</dd>
-					{{end}}
+			<dl class="admin-dl-horizontal">
+				{{if .Loggers.xorm.IsEnabled}}
 					<dt>{{$.locale.Tr "admin.config.xorm_log_sql"}}</dt>
 					<dd>{{if $.LogSQL}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
-				{{else}}
-					<dd>{{$.locale.Tr "admin.config.disabled_logger"}}</dd>
+				{{end}}
+
+				{{if .Loggers.access.IsEnabled}}
+					<dt>{{$.locale.Tr "admin.config.access_log_template"}}</dt>
+					<dd><code>{{$.AccessLogTemplate}}</code></dd>
+				{{end}}
+
+				{{range $loggerName, $loggerDetail := .Loggers}}
+					<dt>{{$.locale.Tr "admin.config.logger_name_fmt" $loggerName}}</dt>
+					{{if $loggerDetail.IsEnabled}}
+						<dd><pre class="gt-m-0">{{$loggerDetail.EventWriters | JsonUtils.EncodeToString | JsonUtils.PrettyIndent}}</pre></dd>
+					{{else}}
+						<dd>{{$.locale.Tr "admin.config.disabled_logger"}}</dd>
+					{{end}}
 				{{end}}
 			</dl>
 		</div>

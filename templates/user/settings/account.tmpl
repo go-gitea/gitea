@@ -128,6 +128,10 @@
 					{{.locale.Tr "settings.add_email"}}
 				</button>
 			</form>
+			{{/* if ActivationsPending is false, then CanAddEmails must be true, so if CanAddEmails is false, ActivationsPending must be true */}}
+			{{if not .CanAddEmails}}
+				<div class="ui warning message">{{.locale.Tr "settings.can_not_add_email_activations_pending"}}</div>
+			{{end}}
 		</div>
 
 		<h4 class="ui top attached error header">
@@ -137,7 +141,7 @@
 			<div class="ui red message">
 				<p class="text left">{{svg "octicon-alert"}} {{.locale.Tr "settings.delete_prompt" | Str2html}}</p>
 				{{if .UserDeleteWithComments}}
-				<p class="text left" style="font-weight: bold;">{{.locale.Tr "settings.delete_with_all_comments" .UserDeleteWithCommentsMaxTime | Str2html}}</p>
+				<p class="text left gt-font-semibold">{{.locale.Tr "settings.delete_with_all_comments" .UserDeleteWithCommentsMaxTime | Str2html}}</p>
 				{{end}}
 			</div>
 			<form class="ui form ignore-dirty" id="delete-form" action="{{AppSubUrl}}/user/settings/account/delete" method="post">

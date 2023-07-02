@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "gitea"
+version = "0.0.0"
+description = ""
+authors = []
+
+[tool.poetry.dependencies]
+python = "^3.8"
+
+[tool.poetry.group.dev.dependencies]
+djlint = "1.31.1"
+
+[tool.djlint]
+profile="golang"
+ignore="H005,H006,H008,H013,H014,H016,H020,H021,H023,H026,H030,H031,T027"

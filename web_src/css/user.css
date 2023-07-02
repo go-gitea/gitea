@@ -1,6 +1,6 @@
 .user.profile .ui.card .header {
   display: block;
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-semibold);
   font-size: 1.3rem;
   margin-top: -0.2rem;
   line-height: 1.3rem;
@@ -39,25 +39,22 @@
 }
 
 .user.profile .ui.card #profile-avatar {
-  background: none;
   padding: 1rem 1rem 0.25rem;
   justify-content: center;
 }
 
 .user.profile .ui.card #profile-avatar img {
-  width: 100%;
+  max-width: 100%;
   height: auto;
-  object-fit: contain;
-  margin: 0;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .user.profile .ui.card #profile-avatar img {
     width: 30vw;
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .user.profile .ui.card {
     width: 100%;
   }
@@ -124,22 +121,6 @@
   object-fit: contain;
 }
 
-.user.notification table button {
-  padding: 3px 3px 3px 5px;
-}
-
-#notification_div .tab.segment {
-  overflow-x: auto;
-}
-
-#notification_div .tabular.menu .active.item {
-  background: var(--color-box-body);
-}
-
-#notification_table {
-  border: none;
-}
-
 #readme_profile {
   padding: 10px;
   border-radius: 0.28571429rem;
@@ -147,11 +128,29 @@
   border: 1px solid var(--color-secondary);
 }
 
-#notification_table tr {
-  cursor: default;
+#notification_table {
+  background: var(--color-box-body);
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
 }
 
-#notification_table td a {
-  width: 100%;
-  display: inline-block;
+.notifications-item:hover {
+  background: var(--color-hover);
+}
+
+.notifications-buttons {
+  display: none;
+  min-width: 74px;
+}
+
+.notifications-updated {
+  display: flex;
+}
+
+.notifications-item:hover .notifications-buttons {
+  display: flex;
+}
+
+.notifications-item:hover .notifications-updated {
+  display: none;
 }

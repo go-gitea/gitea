@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
 )
@@ -31,6 +32,7 @@ func (oa *OAuth2CommonHandlers) renderEditPage(ctx *context.Context) {
 func (oa *OAuth2CommonHandlers) AddApp(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.EditOAuth2ApplicationForm)
 	if ctx.HasError() {
+		ctx.Flash.Error(ctx.GetErrMsg())
 		// go to the application list page
 		ctx.Redirect(oa.BasePathList)
 		return
@@ -39,7 +41,7 @@ func (oa *OAuth2CommonHandlers) AddApp(ctx *context.Context) {
 	// TODO validate redirect URI
 	app, err := auth.CreateOAuth2Application(ctx, auth.CreateOAuth2ApplicationOptions{
 		Name:               form.Name,
-		RedirectURIs:       []string{form.RedirectURI},
+		RedirectURIs:       util.SplitTrimSpace(form.RedirectURIs, "\n"),
 		UserID:             oa.OwnerID,
 		ConfidentialClient: form.ConfidentialClient,
 	})
@@ -92,7 +94,7 @@ func (oa *OAuth2CommonHandlers) EditSave(ctx *context.Context) {
 	if ctx.Data["App"], err = auth.UpdateOAuth2Application(auth.UpdateOAuth2ApplicationOptions{
 		ID:                 ctx.ParamsInt64("id"),
 		Name:               form.Name,
-		RedirectURIs:       []string{form.RedirectURI},
+		RedirectURIs:       util.SplitTrimSpace(form.RedirectURIs, "\n"),
 		UserID:             oa.OwnerID,
 		ConfidentialClient: form.ConfidentialClient,
 	}); err != nil {

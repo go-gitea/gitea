@@ -3,10 +3,18 @@
 	<div class="ui middle very relaxed page grid">
 		<div class="column">
 			{{template "repo/migrate/helper" .}}
-			<div class="ui three stackable cards">
+			<div class="ui cards migrate-entries">
 				{{range .Services}}
-					<a class="ui card gt-df gt-ac" href="{{AppSubUrl}}/repo/migrate?service_type={{.}}&org={{$.Org}}&mirror={{$.Mirror}}">
-						{{svg (printf "gitea-%s" .Name) 184}}
+					<a class="ui card migrate-entry gt-df gt-ac" href="{{AppSubUrl}}/repo/migrate?service_type={{.}}&org={{$.Org}}&mirror={{$.Mirror}}">
+						{{if eq .Name "github"}}
+							{{svg "octicon-mark-github" 184 "gt-p-4"}}
+						{{else if eq .Name "gitlab"}}
+							{{svg "gitea-gitlab" 184 "gt-p-4"}}
+						{{else if eq .Name "gitbucket"}}
+							{{svg "gitea-gitbucket" 184 "gt-p-4"}}
+						{{else}}
+							{{svg (printf "gitea-%s" .Name) 184}}
+						{{end}}
 						<div class="content">
 							<div class="header gt-tc">
 								{{.Title}}

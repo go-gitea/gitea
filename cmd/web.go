@@ -35,6 +35,7 @@ var CmdWeb = cli.Command{
 	Usage: "Start Gitea web server",
 	Description: `Gitea web server is the only thing you need to run,
 and it takes care of all the other things for you`,
+	Before: PrepareConsoleLoggerLevel(log.INFO),
 	Action: runWeb,
 	Flags: []cli.Flag{
 		cli.StringFlag{
@@ -101,14 +102,111 @@ func createPIDFile(pidPath string) {
 	}
 }
 
-func runWeb(ctx *cli.Context) error {
-	if ctx.Bool("verbose") {
-		_ = log.DelLogger("console")
-		log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "trace", "colorize": %t, "stacktraceLevel": "none"}`, log.CanColorStdout))
-	} else if ctx.Bool("quiet") {
-		_ = log.DelLogger("console")
-		log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "fatal", "colorize": %t, "stacktraceLevel": "none"}`, log.CanColorStdout))
+func serveInstall(ctx *cli.Context) error {
+	log.Info("Gitea version: %s%s", setting.AppVer, setting.AppBuiltWith)
+	log.Info("App path: %s", setting.AppPath)
+	log.Info("Work path: %s", setting.AppWorkPath)
+	log.Info("Custom path: %s", setting.CustomPath)
+	log.Info("Config file: %s", setting.CustomConf)
+	log.Info("Prepare to run install page")
+
+	routers.InitWebInstallPage(graceful.GetManager().HammerContext())
+
+	// Flag for port number in case first time run conflict
+	if ctx.IsSet("port") {
+		if err := setPort(ctx.String("port")); err != nil {
+			return err
+		}
 	}
+	if ctx.IsSet("install-port") {
+		if err := setPort(ctx.String("install-port")); err != nil {
+			return err
+		}
+	}
+	c := install.Routes()
+	err := listen(c, false)
+	if err != nil {
+		log.Critical("Unable to open listener for installer. Is Gitea already running?")
+		graceful.GetManager().DoGracefulShutdown()
+	}
+	select {
+	case <-graceful.GetManager().IsShutdown():
+		<-graceful.GetManager().Done()
+		log.Info("PID: %d Gitea Web Finished", os.Getpid())
+		log.GetManager().Close()
+		return err
+	default:
+	}
+	return nil
+}
+
+func serveInstalled(ctx *cli.Context) error {
+	setting.InitCfgProvider(setting.CustomConf)
+	setting.LoadCommonSettings()
+	setting.MustInstalled()
+
+	log.Info("Gitea version: %s%s", setting.AppVer, setting.AppBuiltWith)
+	log.Info("App path: %s", setting.AppPath)
+	log.Info("Work path: %s", setting.AppWorkPath)
+	log.Info("Custom path: %s", setting.CustomPath)
+	log.Info("Config file: %s", setting.CustomConf)
+	log.Info("Run mode: %s", setting.RunMode)
+	log.Info("Prepare to run web server")
+
+	if setting.AppWorkPathMismatch {
+		log.Error("WORK_PATH from config %q doesn't match other paths from environment variables or command arguments. "+
+			"Only WORK_PATH in config should be set and used. Please remove the other outdated work paths from environment variables and command arguments", setting.CustomConf)
+	}
+
+	rootCfg := setting.CfgProvider
+	if rootCfg.Section("").Key("WORK_PATH").String() == "" {
+		saveCfg, err := rootCfg.PrepareSaving()
+		if err != nil {
+			log.Error("Unable to prepare saving WORK_PATH=%s to config %q: %v\nYou must set it manually, otherwise there might be bugs when accessing the git repositories.", setting.AppWorkPath, setting.CustomConf, err)
+		} else {
+			rootCfg.Section("").Key("WORK_PATH").SetValue(setting.AppWorkPath)
+			saveCfg.Section("").Key("WORK_PATH").SetValue(setting.AppWorkPath)
+			if err = saveCfg.Save(); err != nil {
+				log.Error("Unable to update WORK_PATH=%s to config %q: %v\nYou must set it manually, otherwise there might be bugs when accessing the git repositories.", setting.AppWorkPath, setting.CustomConf, err)
+			}
+		}
+	}
+
+	routers.InitWebInstalled(graceful.GetManager().HammerContext())
+
+	// We check that AppDataPath exists here (it should have been created during installation)
+	// We can't check it in `InitWebInstalled`, because some integration tests
+	// use cmd -> InitWebInstalled, but the AppDataPath doesn't exist during those tests.
+	if _, err := os.Stat(setting.AppDataPath); err != nil {
+		log.Fatal("Can not find APP_DATA_PATH %q", setting.AppDataPath)
+	}
+
+	// Override the provided port number within the configuration
+	if ctx.IsSet("port") {
+		if err := setPort(ctx.String("port")); err != nil {
+			return err
+		}
+	}
+
+	// Set up Chi routes
+	c := routers.NormalRoutes()
+	err := listen(c, true)
+	<-graceful.GetManager().Done()
+	log.Info("PID: %d Gitea Web Finished", os.Getpid())
+	log.GetManager().Close()
+	return err
+}
+
+func servePprof() {
+	http.DefaultServeMux.Handle("/debug/fgprof", fgprof.Handler())
+	_, _, finished := process.GetManager().AddTypedContext(context.Background(), "Web: PProf Server", process.SystemProcessType, true)
+	// The pprof server is for debug purpose only, it shouldn't be exposed on public network. At the moment it's not worth to introduce a configurable option for it.
+	log.Info("Starting pprof server on localhost:6060")
+	log.Info("Stopped pprof server: %v", http.ListenAndServe("localhost:6060", nil))
+	finished()
+}
+
+func runWeb(ctx *cli.Context) error {
 	defer func() {
 		if panicked := recover(); panicked != nil {
 			log.Fatal("PANIC: %v\n%s", panicked, log.Stack(2))
@@ -130,77 +228,19 @@ func runWeb(ctx *cli.Context) error {
 		createPIDFile(ctx.String("pid"))
 	}
 
-	// Perform pre-initialization
-	needsInstall := install.PreloadSettings(graceful.GetManager().HammerContext())
-	if needsInstall {
-		// Flag for port number in case first time run conflict
-		if ctx.IsSet("port") {
-			if err := setPort(ctx.String("port")); err != nil {
-				return err
-			}
-		}
-		if ctx.IsSet("install-port") {
-			if err := setPort(ctx.String("install-port")); err != nil {
-				return err
-			}
-		}
-		installCtx, cancel := context.WithCancel(graceful.GetManager().HammerContext())
-		c := install.Routes(installCtx)
-		err := listen(c, false)
-		cancel()
-		if err != nil {
-			log.Critical("Unable to open listener for installer. Is Gitea already running?")
-			graceful.GetManager().DoGracefulShutdown()
-		}
-		select {
-		case <-graceful.GetManager().IsShutdown():
-			<-graceful.GetManager().Done()
-			log.Info("PID: %d Gitea Web Finished", os.Getpid())
-			log.Close()
+	if !setting.InstallLock {
+		if err := serveInstall(ctx); err != nil {
 			return err
-		default:
 		}
 	} else {
 		NoInstallListener()
 	}
 
 	if setting.EnablePprof {
-		go func() {
-			http.DefaultServeMux.Handle("/debug/fgprof", fgprof.Handler())
-			_, _, finished := process.GetManager().AddTypedContext(context.Background(), "Web: PProf Server", process.SystemProcessType, true)
-			// The pprof server is for debug purpose only, it shouldn't be exposed on public network. At the moment it's not worth to introduce a configurable option for it.
-			log.Info("Starting pprof server on localhost:6060")
-			log.Info("Stopped pprof server: %v", http.ListenAndServe("localhost:6060", nil))
-			finished()
-		}()
+		go servePprof()
 	}
 
-	log.Info("Global init")
-	// Perform global initialization
-	setting.Init(&setting.Options{})
-	routers.GlobalInitInstalled(graceful.GetManager().HammerContext())
-
-	// We check that AppDataPath exists here (it should have been created during installation)
-	// We can't check it in `GlobalInitInstalled`, because some integration tests
-	// use cmd -> GlobalInitInstalled, but the AppDataPath doesn't exist during those tests.
-	if _, err := os.Stat(setting.AppDataPath); err != nil {
-		log.Fatal("Can not find APP_DATA_PATH '%s'", setting.AppDataPath)
-	}
-
-	// Override the provided port number within the configuration
-	if ctx.IsSet("port") {
-		if err := setPort(ctx.String("port")); err != nil {
-			return err
-		}
-	}
-
-	// Set up Chi routes
-	c := routers.NormalRoutes(graceful.GetManager().HammerContext())
-	err := listen(c, true)
-	<-graceful.GetManager().Done()
-	log.Info("PID: %d Gitea Web Finished", os.Getpid())
-	log.Close()
-	return err
+	return serveInstalled(ctx)
 }
 
 func setPort(port string) error {
@@ -221,9 +261,15 @@ func setPort(port string) error {
 		defaultLocalURL += ":" + setting.HTTPPort + "/"
 
 		// Save LOCAL_ROOT_URL if port changed
-		setting.CfgProvider.Section("server").Key("LOCAL_ROOT_URL").SetValue(defaultLocalURL)
-		if err := setting.CfgProvider.Save(); err != nil {
-			return fmt.Errorf("Failed to save config file: %v", err)
+		rootCfg := setting.CfgProvider
+		saveCfg, err := rootCfg.PrepareSaving()
+		if err != nil {
+			return fmt.Errorf("failed to save config file: %v", err)
+		}
+		rootCfg.Section("server").Key("LOCAL_ROOT_URL").SetValue(defaultLocalURL)
+		saveCfg.Section("server").Key("LOCAL_ROOT_URL").SetValue(defaultLocalURL)
+		if err = saveCfg.Save(); err != nil {
+			return fmt.Errorf("failed to save config file: %v", err)
 		}
 	}
 	return nil

@@ -16,23 +16,25 @@
 			<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}}" data-line-type="{{.GetHTMLDiffLineType}}">
 				{{if eq .GetType 4}}
 					<td class="lines-num lines-num-old">
+						<div class="gt-df">
 						{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5)}}
-							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=down&wiki={{$.root.PageIsWiki}}" data-anchor="diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
+							<button class="code-expander-button" data-url="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=down&wiki={{$.root.PageIsWiki}}" data-anchor="diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
 								{{svg "octicon-fold-down"}}
-							</a>
+							</button>
 						{{end}}
 						{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4)}}
-							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=up&wiki={{$.root.PageIsWiki}}" data-anchor="diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
+							<button class="code-expander-button" data-url="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=up&wiki={{$.root.PageIsWiki}}" data-anchor="diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
 								{{svg "octicon-fold-up"}}
-							</a>
+							</button>
 						{{end}}
 						{{if eq $line.GetExpandDirection 2}}
-							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=&wiki={{$.root.PageIsWiki}}" data-anchor="diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
+							<button class="code-expander-button" data-url="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=&wiki={{$.root.PageIsWiki}}" data-anchor="diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
 								{{svg "octicon-fold"}}
-							</a>
+							</button>
 						{{end}}
+						</div>
 					</td>{{$inlineDiff := $section.GetComputedInlineDiffFor $line $.root.locale}}
-					<td class="lines-escape lines-escape-old">{{if $inlineDiff.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff "locale" $.root.locale}}"></a>{{end}}</td>
+					<td class="lines-escape lines-escape-old">{{if $inlineDiff.EscapeStatus.Escaped}}<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff "locale" $.root.locale}}"></button>{{end}}</td>
 					<td colspan="6" class="lines-code lines-code-old ">{{/*
 						*/}}{{template "repo/diff/section_code" dict "diff" $inlineDiff "locale" $.root.locale}}{{/*
 					*/}}</td>
@@ -41,7 +43,7 @@
 					{{- $leftDiff := ""}}{{if $line.LeftIdx}}{{$leftDiff = $section.GetComputedInlineDiffFor $line $.root.locale}}{{end}}
 					{{- $rightDiff := ""}}{{if $match.RightIdx}}{{$rightDiff = $section.GetComputedInlineDiffFor $match $.root.locale}}{{end}}
 					<td class="lines-num lines-num-old del-code" data-line-num="{{$line.LeftIdx}}"><span rel="diff-{{$file.NameHash}}L{{$line.LeftIdx}}"></span></td>
-					<td class="lines-escape del-code lines-escape-old">{{if $line.LeftIdx}}{{if $leftDiff.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{template "repo/diff/escape_title" dict "diff" $leftDiff "locale" $.root.locale}}"></a>{{end}}{{end}}</td>
+					<td class="lines-escape del-code lines-escape-old">{{if $line.LeftIdx}}{{if $leftDiff.EscapeStatus.Escaped}}<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $leftDiff "locale" $.root.locale}}"></button>{{end}}{{end}}</td>
 					<td class="lines-type-marker lines-type-marker-old del-code"><span class="gt-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
 					<td class="lines-code lines-code-old del-code">{{/*
 						*/}}{{if and $.root.SignedUserID $.root.PageIsPullFiles}}{{/*
@@ -56,7 +58,7 @@
 						*/}}{{end}}{{/*
 					*/}}</td>
 					<td class="lines-num lines-num-new add-code" data-line-num="{{if $match.RightIdx}}{{$match.RightIdx}}{{end}}"><span rel="{{if $match.RightIdx}}diff-{{$file.NameHash}}R{{$match.RightIdx}}{{end}}"></span></td>
-					<td class="lines-escape add-code lines-escape-new">{{if $match.RightIdx}}{{if $rightDiff.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{template "repo/diff/escape_title" dict "diff" $rightDiff "locale" $.root.locale}}"></a>{{end}}{{end}}</td>
+					<td class="lines-escape add-code lines-escape-new">{{if $match.RightIdx}}{{if $rightDiff.EscapeStatus.Escaped}}<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $rightDiff "locale" $.root.locale}}"></button>{{end}}{{end}}</td>
 					<td class="lines-type-marker lines-type-marker-new add-code">{{if $match.RightIdx}}<span class="gt-mono" data-type-marker="{{$match.GetLineTypeMarker}}"></span>{{end}}</td>
 					<td class="lines-code lines-code-new add-code">{{/*
 						*/}}{{if and $.root.SignedUserID $.root.PageIsPullFiles}}{{/*
@@ -73,7 +75,7 @@
 				{{else}}
 					{{$inlineDiff := $section.GetComputedInlineDiffFor $line $.root.locale}}
 					<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{$file.NameHash}}L{{$line.LeftIdx}}{{end}}"></span></td>
-					<td class="lines-escape lines-escape-old">{{if $line.LeftIdx}}{{if $inlineDiff.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff "locale" $.root.locale}}"></a>{{end}}{{end}}</td>
+					<td class="lines-escape lines-escape-old">{{if $line.LeftIdx}}{{if $inlineDiff.EscapeStatus.Escaped}}<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff "locale" $.root.locale}}"></button>{{end}}{{end}}</td>
 					<td class="lines-type-marker lines-type-marker-old">{{if $line.LeftIdx}}<span class="gt-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</td>
 					<td class="lines-code lines-code-old">{{/*
 						*/}}{{if and $.root.SignedUserID $.root.PageIsPullFiles (not (eq .GetType 2))}}{{/*
@@ -88,7 +90,7 @@
 						*/}}{{end}}{{/*
 					*/}}</td>
 					<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{$file.NameHash}}R{{$line.RightIdx}}{{end}}"></span></td>
-					<td class="lines-escape lines-escape-new">{{if $line.RightIdx}}{{if $inlineDiff.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff "locale" $.root.locale}}"></a>{{end}}{{end}}</td>
+					<td class="lines-escape lines-escape-new">{{if $line.RightIdx}}{{if $inlineDiff.EscapeStatus.Escaped}}<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff "locale" $.root.locale}}"></button>{{end}}{{end}}</td>
 					<td class="lines-type-marker lines-type-marker-new">{{if $line.RightIdx}}<span class="gt-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</td>
 					<td class="lines-code lines-code-new">{{/*
 						*/}}{{if and $.root.SignedUserID $.root.PageIsPullFiles (not (eq .GetType 3))}}{{/*

@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
@@ -16,18 +17,26 @@ import (
 )
 
 // ToRepo converts a Repository to api.Repository
-func ToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.AccessMode) *api.Repository {
-	return innerToRepo(ctx, repo, mode, false)
+func ToRepo(ctx context.Context, repo *repo_model.Repository, permissionInRepo access_model.Permission) *api.Repository {
+	return innerToRepo(ctx, repo, permissionInRepo, false)
 }
 
-func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.AccessMode, isParent bool) *api.Repository {
+func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInRepo access_model.Permission, isParent bool) *api.Repository {
 	var parent *api.Repository
+
+	if permissionInRepo.Units == nil && permissionInRepo.UnitsMode == nil {
+		// If Units and UnitsMode are both nil, it means that it's a hard coded permission,
+		// like access_model.Permission{AccessMode: perm.AccessModeAdmin}.
+		// So we need to load units for the repo, or UnitAccessMode will always return perm.AccessModeNone.
+		_ = repo.LoadUnits(ctx) // the error is not important, so ignore it
+		permissionInRepo.Units = repo.Units
+	}
 
 	cloneLink := repo.CloneLink()
 	permission := &api.Permission{
-		Admin: mode >= perm.AccessModeAdmin,
-		Push:  mode >= perm.AccessModeWrite,
-		Pull:  mode >= perm.AccessModeRead,
+		Admin: permissionInRepo.AccessMode >= perm.AccessModeAdmin,
+		Push:  permissionInRepo.UnitAccessMode(unit_model.TypeCode) >= perm.AccessModeWrite,
+		Pull:  permissionInRepo.UnitAccessMode(unit_model.TypeCode) >= perm.AccessModeRead,
 	}
 	if !isParent {
 		err := repo.GetBaseRepo(ctx)
@@ -35,7 +44,12 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 			return nil
 		}
 		if repo.BaseRepo != nil {
-			parent = innerToRepo(ctx, repo.BaseRepo, mode, true)
+			// FIXME: The permission of the parent repo is not correct.
+			//        It's the permission of the current repo, so it's probably different from the parent repo.
+			//        But there isn't a good way to get the permission of the parent repo, because the doer is not passed in.
+			//        Use the permission of the current repo to keep the behavior consistent with the old API.
+			//        Maybe the right way is setting the permission of the parent repo to nil, empty is better than wrong.
+			parent = innerToRepo(ctx, repo.BaseRepo, permissionInRepo, true)
 		}
 	}
 
@@ -124,11 +138,10 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 	mirrorInterval := ""
 	var mirrorUpdated time.Time
 	if repo.IsMirror {
-		var err error
-		repo.Mirror, err = repo_model.GetMirrorByRepoID(ctx, repo.ID)
+		pullMirror, err := repo_model.GetMirrorByRepoID(ctx, repo.ID)
 		if err == nil {
-			mirrorInterval = repo.Mirror.Interval.String()
-			mirrorUpdated = repo.Mirror.UpdatedUnix.AsTime()
+			mirrorInterval = pullMirror.Interval.String()
+			mirrorUpdated = pullMirror.UpdatedUnix.AsTime()
 		}
 	}
 
@@ -155,7 +168,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, mode perm.Acc
 
 	return &api.Repository{
 		ID:                            repo.ID,
-		Owner:                         ToUserWithAccessMode(ctx, repo.Owner, mode),
+		Owner:                         ToUserWithAccessMode(ctx, repo.Owner, permissionInRepo.AccessMode),
 		Name:                          repo.Name,
 		FullName:                      repo.FullName(),
 		Description:                   repo.Description,

@@ -1,3 +1,4 @@
+import {diffTreeStore} from '../modules/stores.js';
 import {setFileFolding} from './file-fold.js';
 
 const {csrfToken, pageData} = window.config;
@@ -38,7 +39,7 @@ export function initViewedCheckboxListenerFor() {
     // The checkbox consists of a div containing the real checkbox with its label and the CSRF token,
     // hence the actual checkbox first has to be found
     const checkbox = form.querySelector('input[type=checkbox]');
-    checkbox.addEventListener('change', function() {
+    checkbox.addEventListener('input', function() {
       // Mark the file as viewed visually - will especially change the background
       if (this.checked) {
         form.classList.add(viewedStyleClass);
@@ -53,9 +54,17 @@ export function initViewedCheckboxListenerFor() {
       const hasChangedLabel = form.parentNode.querySelector('.changed-since-last-review');
       hasChangedLabel?.remove();
 
+      const fileName = checkbox.getAttribute('name');
+
+      // check if the file is in our difftreestore and if we find it -> change the IsViewed status
+      const fileInPageData = diffTreeStore().files.find((x) => x.Name === fileName);
+      if (fileInPageData) {
+        fileInPageData.IsViewed = this.checked;
+      }
+
       // Unfortunately, actual forms cause too many problems, hence another approach is needed
       const files = {};
-      files[checkbox.getAttribute('name')] = this.checked;
+      files[fileName] = this.checked;
       const data = {files};
       const headCommitSHA = form.getAttribute('data-headcommit');
       if (headCommitSHA) data.headCommitSHA = headCommitSHA;

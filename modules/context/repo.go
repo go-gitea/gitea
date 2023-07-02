@@ -61,7 +61,6 @@ type Repository struct {
 	RepoLink     string
 	CloneLink    repo_model.CloneLink
 	CommitsCount int64
-	Mirror       *repo_model.Mirror
 
 	PullRequest *PullRequest
 }
@@ -319,19 +318,27 @@ func EarlyResponseForGoGetMeta(ctx *Context) {
 		ctx.PlainText(http.StatusBadRequest, "invalid repository path")
 		return
 	}
-	goImportContent := fmt.Sprintf("%s git %s", ComposeGoGetImport(username, reponame), repo_model.ComposeHTTPSCloneURL(username, reponame))
+
+	var cloneURL string
+	if setting.Repository.GoGetCloneURLProtocol == "ssh" {
+		cloneURL = repo_model.ComposeSSHCloneURL(username, reponame)
+	} else {
+		cloneURL = repo_model.ComposeHTTPSCloneURL(username, reponame)
+	}
+	goImportContent := fmt.Sprintf("%s git %s", ComposeGoGetImport(username, reponame), cloneURL)
 	htmlMeta := fmt.Sprintf(`<meta name="go-import" content="%s">`, html.EscapeString(goImportContent))
 	ctx.PlainText(http.StatusOK, htmlMeta)
 }
 
 // RedirectToRepo redirect to a differently-named repository
-func RedirectToRepo(ctx *Context, redirectRepoID int64) {
+func RedirectToRepo(ctx *Base, redirectRepoID int64) {
 	ownerName := ctx.Params(":username")
 	previousRepoName := ctx.Params(":reponame")
 
 	repo, err := repo_model.GetRepositoryByID(ctx, redirectRepoID)
 	if err != nil {
-		ctx.ServerError("GetRepositoryByID", err)
+		log.Error("GetRepositoryByID: %v", err)
+		ctx.Error(http.StatusInternalServerError, "GetRepositoryByID")
 		return
 	}
 
@@ -373,13 +380,9 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 	ctx.Data["Permission"] = &ctx.Repo.Permission
 
 	if repo.IsMirror {
-		ctx.Repo.Mirror, err = repo_model.GetMirrorByRepoID(ctx, repo.ID)
+		pullMirror, err := repo_model.GetMirrorByRepoID(ctx, repo.ID)
 		if err == nil {
-			ctx.Repo.Mirror.Repo = repo
-			ctx.Data["IsPullMirror"] = true
-			ctx.Data["MirrorEnablePrune"] = ctx.Repo.Mirror.EnablePrune
-			ctx.Data["MirrorInterval"] = ctx.Repo.Mirror.Interval
-			ctx.Data["Mirror"] = ctx.Repo.Mirror
+			ctx.Data["PullMirror"] = pullMirror
 		} else if err != repo_model.ErrMirrorNotExist {
 			ctx.ServerError("GetMirrorByRepoID", err)
 			return
@@ -454,7 +457,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 				}
 
 				if redirectUserID, err := user_model.LookupUserRedirect(userName); err == nil {
-					RedirectToUser(ctx, userName, redirectUserID)
+					RedirectToUser(ctx.Base, userName, redirectUserID)
 				} else if user_model.IsErrUserRedirectNotExist(err) {
 					ctx.NotFound("GetUserByName", nil)
 				} else {
@@ -496,7 +499,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		if repo_model.IsErrRepoNotExist(err) {
 			redirectRepoID, err := repo_model.LookupRedirect(owner.ID, repoName)
 			if err == nil {
-				RedirectToRepo(ctx, redirectRepoID)
+				RedirectToRepo(ctx.Base, redirectRepoID)
 			} else if repo_model.IsErrRedirectNotExist(err) {
 				if ctx.FormString("go-get") == "1" {
 					EarlyResponseForGoGetMeta(ctx)
@@ -590,7 +593,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 
 	ctx.Data["RepoSearchEnabled"] = setting.Indexer.RepoIndexerEnabled
 	if setting.Indexer.RepoIndexerEnabled {
-		ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable()
+		ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable(ctx)
 	}
 
 	if ctx.IsSigned {
@@ -664,13 +667,38 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	}
 	ctx.Data["Tags"] = tags
 
-	brs, _, err := ctx.Repo.GitRepo.GetBranchNames(0, 0)
+	branchOpts := git_model.FindBranchOptions{
+		RepoID:          ctx.Repo.Repository.ID,
+		IsDeletedBranch: util.OptionalBoolFalse,
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+	}
+	branchesTotal, err := git_model.CountBranches(ctx, branchOpts)
+	if err != nil {
+		ctx.ServerError("CountBranches", err)
+		return
+	}
+
+	// non empty repo should have at least 1 branch, so this repository's branches haven't been synced yet
+	if branchesTotal == 0 { // fallback to do a sync immediately
+		branchesTotal, err = repo_module.SyncRepoBranches(ctx, ctx.Repo.Repository.ID, 0)
+		if err != nil {
+			ctx.ServerError("SyncRepoBranches", err)
+			return
+		}
+	}
+
+	// FIXME: use paganation and async loading
+	branchOpts.ExcludeBranchNames = []string{ctx.Repo.Repository.DefaultBranch}
+	brs, err := git_model.FindBranchNames(ctx, branchOpts)
 	if err != nil {
 		ctx.ServerError("GetBranches", err)
 		return
 	}
-	ctx.Data["Branches"] = brs
-	ctx.Data["BranchesCount"] = len(brs)
+	// always put default branch on the top
+	ctx.Data["Branches"] = append(branchOpts.ExcludeBranchNames, brs...)
+	ctx.Data["BranchesCount"] = branchesTotal
 
 	// If not branch selected, try default one.
 	// If default branch doesn't exist, fall back to some other branch.
@@ -779,46 +807,46 @@ func (rt RepoRefType) RefTypeIncludesTags() bool {
 	return false
 }
 
-func getRefNameFromPath(ctx *Context, path string, isExist func(string) bool) string {
+func getRefNameFromPath(ctx *Base, repo *Repository, path string, isExist func(string) bool) string {
 	refName := ""
 	parts := strings.Split(path, "/")
 	for i, part := range parts {
 		refName = strings.TrimPrefix(refName+"/"+part, "/")
 		if isExist(refName) {
-			ctx.Repo.TreePath = strings.Join(parts[i+1:], "/")
+			repo.TreePath = strings.Join(parts[i+1:], "/")
 			return refName
 		}
 	}
 	return ""
 }
 
-func getRefName(ctx *Context, pathType RepoRefType) string {
+func getRefName(ctx *Base, repo *Repository, pathType RepoRefType) string {
 	path := ctx.Params("*")
 	switch pathType {
 	case RepoRefLegacy, RepoRefAny:
-		if refName := getRefName(ctx, RepoRefBranch); len(refName) > 0 {
+		if refName := getRefName(ctx, repo, RepoRefBranch); len(refName) > 0 {
 			return refName
 		}
-		if refName := getRefName(ctx, RepoRefTag); len(refName) > 0 {
+		if refName := getRefName(ctx, repo, RepoRefTag); len(refName) > 0 {
 			return refName
 		}
 		// For legacy and API support only full commit sha
 		parts := strings.Split(path, "/")
 		if len(parts) > 0 && len(parts[0]) == git.SHAFullLength {
-			ctx.Repo.TreePath = strings.Join(parts[1:], "/")
+			repo.TreePath = strings.Join(parts[1:], "/")
 			return parts[0]
 		}
-		if refName := getRefName(ctx, RepoRefBlob); len(refName) > 0 {
+		if refName := getRefName(ctx, repo, RepoRefBlob); len(refName) > 0 {
 			return refName
 		}
-		ctx.Repo.TreePath = path
-		return ctx.Repo.Repository.DefaultBranch
+		repo.TreePath = path
+		return repo.Repository.DefaultBranch
 	case RepoRefBranch:
-		ref := getRefNameFromPath(ctx, path, ctx.Repo.GitRepo.IsBranchExist)
+		ref := getRefNameFromPath(ctx, repo, path, repo.GitRepo.IsBranchExist)
 		if len(ref) == 0 {
 			// maybe it's a renamed branch
-			return getRefNameFromPath(ctx, path, func(s string) bool {
-				b, exist, err := git_model.FindRenamedBranch(ctx, ctx.Repo.Repository.ID, s)
+			return getRefNameFromPath(ctx, repo, path, func(s string) bool {
+				b, exist, err := git_model.FindRenamedBranch(ctx, repo.Repository.ID, s)
 				if err != nil {
 					log.Error("FindRenamedBranch", err)
 					return false
@@ -837,15 +865,15 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 
 		return ref
 	case RepoRefTag:
-		return getRefNameFromPath(ctx, path, ctx.Repo.GitRepo.IsTagExist)
+		return getRefNameFromPath(ctx, repo, path, repo.GitRepo.IsTagExist)
 	case RepoRefCommit:
 		parts := strings.Split(path, "/")
 		if len(parts) > 0 && len(parts[0]) >= 7 && len(parts[0]) <= git.SHAFullLength {
-			ctx.Repo.TreePath = strings.Join(parts[1:], "/")
+			repo.TreePath = strings.Join(parts[1:], "/")
 			return parts[0]
 		}
 	case RepoRefBlob:
-		_, err := ctx.Repo.GitRepo.GetBlob(path)
+		_, err := repo.GitRepo.GetBlob(path)
 		if err != nil {
 			return ""
 		}
@@ -894,9 +922,9 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 		if len(ctx.Params("*")) == 0 {
 			refName = ctx.Repo.Repository.DefaultBranch
 			if !ctx.Repo.GitRepo.IsBranchExist(refName) {
-				brs, _, err := ctx.Repo.GitRepo.GetBranchNames(0, 0)
+				brs, _, err := ctx.Repo.GitRepo.GetBranches(0, 1)
 				if err == nil && len(brs) != 0 {
-					refName = brs[0]
+					refName = brs[0].Name
 				} else if len(brs) == 0 {
 					log.Error("No branches in non-empty repository %s", ctx.Repo.GitRepo.Path)
 					ctx.Repo.Repository.MarkAsBrokenEmpty()
@@ -920,7 +948,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 			}
 			ctx.Repo.IsViewBranch = true
 		} else {
-			refName = getRefName(ctx, refType)
+			refName = getRefName(ctx.Base, ctx.Repo, refType)
 			ctx.Repo.RefName = refName
 			isRenamedBranch, has := ctx.Data["IsRenamedBranch"].(bool)
 			if isRenamedBranch && has {

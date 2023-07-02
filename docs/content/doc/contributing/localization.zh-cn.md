@@ -2,7 +2,7 @@
 date: "2016-12-01T16:00:00+02:00"
 title: "本地化"
 slug: "localization"
-weight: 20
+weight: 70
 toc: false
 draft: false
 aliases:
@@ -11,7 +11,7 @@ menu:
   sidebar:
     parent: "contributing"
     name: "本地化"
-    weight: 20
+    weight: 70
     identifier: "localization"
 ---
 
@@ -19,7 +19,7 @@ menu:
 
 Gitea的本地化是通过我们的[Crowdin项目](https://crowdin.com/project/gitea)进行的。
 
-对于对**英语翻译**的更改，可以发出pull-request，来更改[英语语言环境](https://github.com/go-gitea/gitea/blob/master/options/locale/locale_en-US.ini)中合适的关键字。
+对于对**英语翻译**的更改，可以发出pull-request，来更改[英语语言环境](https://github.com/go-gitea/gitea/blob/main/options/locale/locale_en-US.ini)中合适的关键字。
 
 有关对**非英语**翻译的更改，请参阅上面的 Crowdin 项目。
 
