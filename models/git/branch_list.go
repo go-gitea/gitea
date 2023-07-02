@@ -64,11 +64,6 @@ func (branches BranchList) LoadPusher(ctx context.Context) error {
 	return nil
 }
 
-const (
-	BranchOrderByNameAsc        = "name ASC"
-	BranchOrderByCommitTimeDesc = "commit_time DESC"
-)
-
 type FindBranchOptions struct {
 	db.ListOptions
 	RepoID             int64
@@ -102,7 +97,8 @@ func orderByBranches(sess *xorm.Session, opts FindBranchOptions) *xorm.Session {
 	}
 
 	if opts.OrderBy == "" {
-		opts.OrderBy = BranchOrderByCommitTimeDesc
+		// the commit_time might be the same, so add the "name" to make sure the order is stable
+		opts.OrderBy = "commit_time DESC, name ASC"
 	}
 	return sess.OrderBy(opts.OrderBy)
 }
