@@ -104,7 +104,7 @@ func (err ErrBranchesEqual) Unwrap() error {
 type Branch struct {
 	ID            int64
 	RepoID        int64  `xorm:"UNIQUE(s)"`
-	Name          string `xorm:"UNIQUE(s) NOT NULL"` // git's ref-name is case-sensitive internally, however, in some databases (mssql, mysql, by default), it's case-insensitive at the moment
+	Name          string `xorm:"UNIQUE(s) NOT NULL"`
 	CommitID      string
 	CommitMessage string `xorm:"TEXT"` // it only stores the message summary (the first line)
 	PusherID      int64
@@ -118,6 +118,9 @@ type Branch struct {
 	UpdatedUnix   timeutil.TimeStamp `xorm:"updated"`
 }
 
+// TableCollations git's ref-name is case-sensitive internally, however, in some databases (mssql, mysql, by default), it's case-insensitive at the moment
+// so we need to set the collation to case-sensitive which is utf8mb4_bin for mysql and Latin1_General_CS_AS for mssql
+// the function is supported by xorm
 func (b *Branch) TableCollations() []*schemas.Collation {
 	if setting.Database.Type.IsMySQL() {
 		return []*schemas.Collation{
