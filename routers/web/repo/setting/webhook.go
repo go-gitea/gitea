@@ -2,7 +2,7 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package repo
+package setting
 
 import (
 	"errors"
