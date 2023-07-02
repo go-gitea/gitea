@@ -42,13 +42,13 @@ six = ">=1.13.0"
 
 [[package]]
 name = "djlint"
-version = "1.31.0"
+version = "1.31.1"
 description = "HTML Template Linter and Formatter"
 optional = false
 python-versions = ">=3.8.0,<4.0.0"
 files = [
-    {file = "djlint-1.31.0-py3-none-any.whl", hash = "sha256:2b9200c67103b79835b7547ff732e910888d1f0ef684f5b329eb64b14d09c046"},
-    {file = "djlint-1.31.0.tar.gz", hash = "sha256:8acb4b751b429c5aabb1aef5b6007bdf53224eceda25c5fbe04c42cc57c0a7ba"},
+    {file = "djlint-1.31.1-py3-none-any.whl", hash = "sha256:9b2e2fc3a059a8e5a62f309edea15c1aeee331a279ab2699b9fb51a31d8c0934"},
+    {file = "djlint-1.31.1.tar.gz", hash = "sha256:a11739e2f919f760b3986eb13d06e00171f3bd342b8d88e9bd914a4260eaa8ce"},
 ]
 
 [package.dependencies]
@@ -328,4 +328,4 @@ telegram = ["requests"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "22c4af11eadd8784b613951d6160d67be0f33500238a450741c3d75beb218dad"
+content-hash = "f03ad8e7c4f6e797ac3c04630db8cc16438cd59642653c26fd401633cd62d696"

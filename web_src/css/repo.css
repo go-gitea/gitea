@@ -138,10 +138,6 @@
   background-color: var(--color-header-wrapper);
 }
 
-.repository .header-wrapper .ui.tabs.divider {
-  border-bottom: 0;
-}
-
 .repository .header-wrapper .ui.tabular .svg {
   margin-right: 5px;
 }
@@ -478,7 +474,7 @@
 }
 
 .repository.file.list .non-diff-file-content .asciicast {
-  padding: 5px !important;
+  padding: 0 !important;
 }
 
 .non-diff-file-content .attached.segment,
@@ -591,6 +587,7 @@
 
 .repository.options .danger .ui.divider {
   margin: 0;
+  border-color: var(--color-error-border);
 }
 
 .repository.new.issue .comment.form .comment .avatar {
@@ -1012,7 +1009,7 @@
 
 .repository.view.issue .comment-list .comment .merge-section .divider {
   margin-left: -1rem;
-  margin-right: -1rem;
+  width: calc(100% + 2rem);
 }
 
 .repository.view.issue .comment-list .comment .merge-section.no-header::before,
@@ -1903,7 +1900,7 @@
 
 .repository.settings.collaboration .collaborator.list > .item {
   margin: 0;
-  line-height: 2em;
+  line-height: 2;
 }
 
 .repository.settings.collaboration #repo-collab-form #search-user-box .results {
@@ -2601,7 +2598,7 @@
 .labels-list .label {
   margin: 2px 0;
   display: inline-flex !important;
-  line-height: 1.3em; /* there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly */
+  line-height: 1.3; /* there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly */
 }
 
 /* Scoped labels with different colors on left and right */
@@ -3100,16 +3097,35 @@ tbody.commit-list {
   }
 }
 
-.repository.migrate .card {
+.migrate-entries {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 25px;
+  margin: 0 !important;
+}
+
+@media (max-width: 767.98px) {
+  .migrate-entries {
+    grid-template-columns: repeat(1, 1fr);
+  }
+}
+
+.migrate-entry {
   transition: all 0.1s ease-in-out;
   box-shadow: none !important;
   border: 1px solid var(--color-secondary);
-  color: var(--color-text);
+  color: var(--color-text) !important;
+  width: auto !important;
+  margin: 0 !important;
 }
 
-.repository.migrate .card:hover {
+.migrate-entry:hover {
   transform: scale(105%);
   box-shadow: 0 0.5rem 1rem var(--color-shadow) !important;
+}
+
+.migrate-entry .description {
+  text-wrap: balance;
 }
 
 @media (max-width: 767.98px) {
