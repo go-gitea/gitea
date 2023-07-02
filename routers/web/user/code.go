@@ -4,6 +4,7 @@
 package user
 
 import (
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"net/http"
 
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -19,11 +20,14 @@ const (
 
 // CodeSearch render user/organization code search page
 func CodeSearch(ctx *context.Context) {
+	shared_user.PrepareContextForProfileBigAvatar(ctx)
+	if ctx.ContextUser.IsOrganization() {
+		ctx.Data["pageStyleClasses"] = "container"
+	}
 	if !setting.Indexer.RepoIndexerEnabled {
 		ctx.Redirect(ctx.ContextUser.HomeLink())
 		return
 	}
-
 	ctx.Data["IsProjectEnabled"] = true
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled

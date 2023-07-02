@@ -36,6 +36,10 @@ const (
 
 // ListPackages displays a list of all packages of the context user
 func ListPackages(ctx *context.Context) {
+	shared_user.PrepareContextForProfileBigAvatar(ctx)
+	if ctx.ContextUser.IsOrganization() {
+		ctx.Data["pageStyleClasses"] = "container"
+	}
 	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
@@ -104,7 +108,6 @@ func ListPackages(ctx *context.Context) {
 		org := org_model.OrgFromUser(ctx.ContextUser)
 		ctx.Data["Org"] = org
 		ctx.Data["OrgLink"] = ctx.ContextUser.OrganisationLink()
-
 		if ctx.Doer != nil {
 			ctx.Data["IsOrganizationMember"], _ = org_model.IsOrganizationMember(ctx, org.ID, ctx.Doer.ID)
 			ctx.Data["IsOrganizationOwner"], _ = org_model.IsOrganizationOwner(ctx, org.ID, ctx.Doer.ID)
