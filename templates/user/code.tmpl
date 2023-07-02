@@ -5,7 +5,7 @@
 		{{template "user/overview/header" .}}
 		<div class="ui container">
 			{{template "code/searchform" .}}
-			<div class="ui divider"></div>
+			<div class="divider"></div>
 			<div class="ui user list">
 				{{if .CodeIndexerUnavailable}}
 					<div class="ui error message">
@@ -36,7 +36,7 @@
 					</div>
 					<div class="ui code-search">
 						{{template "code/searchform" .}}
-						<div class="ui divider"></div>
+						<div class="divider"></div>
 						<div class="ui user list">
 							{{if .CodeIndexerUnavailable}}
 								<div class="ui error message">
