@@ -95,7 +95,7 @@
     local("NotoSansCJKJP-Bold"), local("Source Han Sans Bold"),
     local("SourceHanSans-Bold"), local("Yu Gothic Bold"), local("YuGothic Bold"),
     local("Droid Sans Japanese"), local("Meiryo Bold"), local("MS PGothic");
-  font-weight: 700;
+  font-weight: 600;
   unicode-range: U+11??, U+2E80-4DBF, U+4E00-9FFF, U+A960-A97F, U+AC00-D7FF,
     U+F900-FAFF, U+FE00-FE6F, U+FF00-FFEF, U+1F2??, U+2????;
 }
@@ -163,7 +163,7 @@
     local("NotoSansCJKSC-Bold"), local("HiraginoSansGB-W6"),
     local("Hiragino Sans GB W6"), local("Microsoft YaHei Bold"),
     local("Heiti SC Medium"), local("SimHei");
-  font-weight: 700;
+  font-weight: 600;
   unicode-range: U+11??, U+2E80-4DBF, U+4E00-9FFF, U+A960-A97F, U+AC00-D7FF,
     U+F900-FAFF, U+FE00-FE6F, U+FF00-FFEF, U+1F2??, U+2????;
 }
@@ -231,7 +231,7 @@
     local("NotoSansCJKTC-Bold"), local("HiraginoSansTC-W6"),
     local("Hiragino Sans TC W6"), local("Microsoft JhengHei Bold"),
     local("Heiti TC Medium"), local("PMingLiU");
-  font-weight: 700;
+  font-weight: 600;
   unicode-range: U+11??, U+2E80-4DBF, U+4E00-9FFF, U+A960-A97F, U+AC00-D7FF,
     U+F900-FAFF, U+FE00-FE6F, U+FF00-FFEF, U+1F2??, U+2????;
 }
@@ -307,7 +307,7 @@
     local("NotoSansCJKTC-Bold"), local("HiraginoSansTC-W6"),
     local("Hiragino Sans TC W6"), local("Microsoft JhengHei Bold"),
     local("Heiti TC Medium"), local("PMingLiU_HKSCS"), local("PMingLiU");
-  font-weight: 700;
+  font-weight: 600;
   unicode-range: U+11??, U+2E80-4DBF, U+4E00-9FFF, U+A960-A97F, U+AC00-D7FF,
     U+F900-FAFF, U+FE00-FE6F, U+FF00-FFEF, U+1F2??, U+2????;
 }
@@ -371,7 +371,7 @@
     local("SourceHanSansK-Bold"), local("Noto Sans CJK KR Bold"),
     local("NotoSansCJKKR-Bold"), local("NanumBarunGothic Bold"),
     local("Malgun Gothic Bold"), local("Nanum Gothic Bold"), local("Dotum");
-  font-weight: 700;
+  font-weight: 600;
   unicode-range: U+11??, U+2E80-4DBF, U+4E00-9FFF, U+A960-A97F, U+AC00-D7FF,
     U+F900-FAFF, U+FE00-FE6F, U+FF00-FFEF, U+1F2??, U+2????;
 }

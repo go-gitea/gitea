@@ -16,10 +16,6 @@ _test
 .vscode
 __debug_bin
 
-# Architecture specific extensions/prefixes
-*.[568vq]
-[568vq].out
-
 *.cgo1.go
 *.cgo2.c
 _cgo_defun.c
@@ -47,6 +43,7 @@ cpu.out
 
 *.db
 *.log
+*.log.*.gz
 
 /gitea
 /gitea-vet
@@ -56,8 +53,6 @@ cpu.out
 /bin
 /dist
 /custom/*
-!/custom/conf
-/custom/conf/*
 !/custom/conf/app.example.ini
 /data
 /indexers
@@ -73,11 +68,11 @@ cpu.out
 /tests/*.ini
 /tests/**/*.git/**/*.sample
 /node_modules
+/.venv
 /yarn.lock
 /yarn-error.log
 /npm-debug.log*
 /public/js
-/public/serviceworker.js
 /public/css
 /public/fonts
 /public/img/webpack

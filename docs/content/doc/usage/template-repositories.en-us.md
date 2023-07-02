@@ -5,6 +5,8 @@ slug: "template-repositories"
 weight: 14
 toc: false
 draft: false
+aliases:
+  - /en-us/template-repositories
 menu:
   sidebar:
     parent: "usage"
@@ -48,6 +50,8 @@ a/b/c/d.json
 ## Variable Expansion
 
 In any file matched by the above globs, certain variables will be expanded.
+
+Matching filenames and paths can also be expanded, and are conservatively sanitized to support cross-platform filesystems.
 
 All variables must be of the form `$VAR` or `${VAR}`. To escape an expansion, use a double `$$`, such as `$$VAR` or `$${VAR}`
 

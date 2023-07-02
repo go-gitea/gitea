@@ -143,10 +143,10 @@ func TestViewReleaseListNoLogin(t *testing.T) {
 
 	htmlDoc := NewHTMLParser(t, rsp.Body)
 	releases := htmlDoc.Find("#release-list li.ui.grid")
-	assert.Equal(t, 3, releases.Length())
+	assert.Equal(t, 5, releases.Length())
 
-	links := make([]string, 0, 3)
-	commitsToMain := make([]string, 0, 3)
+	links := make([]string, 0, 5)
+	commitsToMain := make([]string, 0, 5)
 	releases.Each(func(i int, s *goquery.Selection) {
 		link, exist := s.Find(".release-list-title a").Attr("href")
 		if !exist {
@@ -158,11 +158,15 @@ func TestViewReleaseListNoLogin(t *testing.T) {
 	})
 
 	assert.EqualValues(t, []string{
+		"/user2/repo-release/releases/tag/empty-target-branch",
+		"/user2/repo-release/releases/tag/non-existing-target-branch",
 		"/user2/repo-release/releases/tag/v2.0",
 		"/user2/repo-release/releases/tag/v1.1",
 		"/user2/repo-release/releases/tag/v1.0",
 	}, links)
 	assert.EqualValues(t, []string{
+		"1 commits", // like v1.1
+		"1 commits", // like v1.1
 		"0 commits",
 		"1 commits", // should be 3 commits ahead and 2 commits behind, but not implemented yet
 		"3 commits",

@@ -72,6 +72,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		Deadline:  apiIssue.Deadline,
 		Created:   pr.Issue.CreatedUnix.AsTimePtr(),
 		Updated:   pr.Issue.UpdatedUnix.AsTimePtr(),
+		PinOrder:  apiIssue.PinOrder,
 
 		AllowMaintainerEdit: pr.AllowMaintainerEdit,
 
@@ -79,13 +80,21 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			Name:       pr.BaseBranch,
 			Ref:        pr.BaseBranch,
 			RepoID:     pr.BaseRepoID,
-			Repository: ToRepo(ctx, pr.BaseRepo, p.AccessMode),
+			Repository: ToRepo(ctx, pr.BaseRepo, p),
 		},
 		Head: &api.PRBranchInfo{
 			Name:   pr.HeadBranch,
 			Ref:    fmt.Sprintf("%s%d/head", git.PullPrefix, pr.Index),
 			RepoID: -1,
 		},
+	}
+
+	if err = pr.LoadRequestedReviewers(ctx); err != nil {
+		log.Error("LoadRequestedReviewers[%d]: %v", pr.ID, err)
+		return nil
+	}
+	for _, reviewer := range pr.RequestedReviewers {
+		apiPullRequest.RequestedReviewers = append(apiPullRequest.RequestedReviewers, ToUser(ctx, reviewer, nil))
 	}
 
 	if pr.Issue.ClosedUnix != 0 {
@@ -143,7 +152,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		}
 
 		apiPullRequest.Head.RepoID = pr.HeadRepo.ID
-		apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p.AccessMode)
+		apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p)
 
 		headGitRepo, err := git.OpenRepository(ctx, pr.HeadRepo.RepoPath())
 		if err != nil {

@@ -16,8 +16,7 @@ func runSendMail(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setting.InitProviderFromExistingFile()
-	setting.LoadCommonSettings()
+	setting.MustInstalled()
 
 	if err := argsSet(c, "title"); err != nil {
 		return err

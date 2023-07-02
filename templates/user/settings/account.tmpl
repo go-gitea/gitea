@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content user settings account">
-	{{template "user/settings/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings account")}}
+	<div class="user-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "settings.password"}}
 		</h4>
@@ -131,6 +128,10 @@
 					{{.locale.Tr "settings.add_email"}}
 				</button>
 			</form>
+			{{/* if ActivationsPending is false, then CanAddEmails must be true, so if CanAddEmails is false, ActivationsPending must be true */}}
+			{{if not .CanAddEmails}}
+				<div class="ui warning message">{{.locale.Tr "settings.can_not_add_email_activations_pending"}}</div>
+			{{end}}
 		</div>
 
 		<h4 class="ui top attached error header">
@@ -140,7 +141,7 @@
 			<div class="ui red message">
 				<p class="text left">{{svg "octicon-alert"}} {{.locale.Tr "settings.delete_prompt" | Str2html}}</p>
 				{{if .UserDeleteWithComments}}
-				<p class="text left" style="font-weight: bold;">{{.locale.Tr "settings.delete_with_all_comments" .UserDeleteWithCommentsMaxTime | Str2html}}</p>
+				<p class="text left gt-font-semibold">{{.locale.Tr "settings.delete_with_all_comments" .UserDeleteWithCommentsMaxTime | Str2html}}</p>
 				{{end}}
 			</div>
 			<form class="ui form ignore-dirty" id="delete-form" action="{{AppSubUrl}}/user/settings/account/delete" method="post">
@@ -159,28 +160,27 @@
 			</form>
 		</div>
 	</div>
-</div>
 
-<div class="ui small basic delete modal" id="delete-email">
-	<div class="ui icon header">
+<div class="ui g-modal-confirm delete modal" id="delete-email">
+	<div class="header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "settings.email_deletion"}}
 	</div>
 	<div class="content">
 		<p>{{.locale.Tr "settings.email_deletion_desc"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
 
-<div class="ui small basic delete modal" id="delete-account">
-	<div class="ui icon header">
+<div class="ui g-modal-confirm delete modal" id="delete-account">
+	<div class="header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "settings.delete_account_title"}}
 	</div>
 	<div class="content">
 		<p>{{.locale.Tr "settings.delete_account_desc"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
 
-{{template "base/footer" .}}
+{{template "user/settings/layout_footer" .}}

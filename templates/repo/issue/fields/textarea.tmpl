@@ -1,6 +1,25 @@
-<div class="field">
+{{$useMarkdownEditor := not .item.Attributes.render}}
+<div class="field {{if $useMarkdownEditor}}combo-editor-dropzone{{end}}">
 	{{template "repo/issue/fields/header" .}}
-	{{/* FIXME: preview markdown result */}}
-	{{/* FIXME: required validation for markdown editor */}}
-	<textarea name="form-field-{{.item.ID}}" placeholder="{{.item.Attributes.placeholder}}" {{if and .item.Validations.required .item.Attributes.render}}required{{end}}>{{.item.Attributes.value}}</textarea>
+
+	{{/* the real form element to provide the value */}}
+	<textarea class="form-field-real" name="form-field-{{.item.ID}}" placeholder="{{.item.Attributes.placeholder}}" {{if and .item.Validations.required}}required{{end}}>{{.item.Attributes.value}}</textarea>
+
+	{{if $useMarkdownEditor}}
+		{{template "shared/combomarkdowneditor" (dict
+			"locale" .root.locale
+			"ContainerClasses" "gt-hidden"
+			"MarkdownPreviewUrl" (print .root.RepoLink "/markup")
+			"MarkdownPreviewContext" .root.RepoLink
+			"TextareaContent" .item.Attributes.value
+			"TextareaPlaceholder"  .item.Attributes.placeholder
+			"DropzoneParentContainer" ".combo-editor-dropzone"
+		)}}
+
+		{{if .root.IsAttachmentEnabled}}
+		<div class="gt-mt-4 form-field-dropzone gt-hidden">
+			{{template "repo/upload" .root}}
+		</div>
+		{{end}}
+	{{end}}
 </div>

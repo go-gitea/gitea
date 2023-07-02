@@ -7,31 +7,31 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/web/middleware"
 
 	"gitea.com/go-chi/binding"
-	chi "github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5"
 )
 
-// Bind binding an obj to a handler
-func Bind[T any](_ T) any {
-	return func(ctx *context.Context) {
+// Bind binding an obj to a handler's context data
+func Bind[T any](_ T) http.HandlerFunc {
+	return func(resp http.ResponseWriter, req *http.Request) {
 		theObj := new(T) // create a new form obj for every request but not use obj directly
-		binding.Bind(ctx.Req, theObj)
-		SetForm(ctx, theObj)
-		middleware.AssignForm(theObj, ctx.Data)
+		data := middleware.GetContextData(req.Context())
+		binding.Bind(req, theObj)
+		SetForm(data, theObj)
+		middleware.AssignForm(theObj, data)
 	}
 }
 
 // SetForm set the form object
-func SetForm(data middleware.DataStore, obj interface{}) {
-	data.GetData()["__form"] = obj
+func SetForm(dataStore middleware.ContextDataStore, obj interface{}) {
+	dataStore.GetData()["__form"] = obj
 }
 
 // GetForm returns the validate form information
-func GetForm(data middleware.DataStore) interface{} {
-	return data.GetData()["__form"]
+func GetForm(dataStore middleware.ContextDataStore) interface{} {
+	return dataStore.GetData()["__form"]
 }
 
 // Route defines a route based on chi's router
@@ -44,23 +44,13 @@ type Route struct {
 // NewRoute creates a new route
 func NewRoute() *Route {
 	r := chi.NewRouter()
-	return &Route{
-		R:              r,
-		curGroupPrefix: "",
-		curMiddlewares: []interface{}{},
-	}
+	return &Route{R: r}
 }
 
 // Use supports two middlewares
 func (r *Route) Use(middlewares ...interface{}) {
-	if r.curGroupPrefix != "" {
-		// FIXME: this behavior is incorrect, should use "With" instead
-		r.curMiddlewares = append(r.curMiddlewares, middlewares...)
-	} else {
-		// FIXME: another misuse, the "Use" with empty middlewares is called after "Mount"
-		for _, m := range middlewares {
-			r.R.Use(toHandlerProvider(m))
-		}
+	for _, m := range middlewares {
+		r.R.Use(toHandlerProvider(m))
 	}
 }
 
@@ -116,9 +106,7 @@ func (r *Route) Methods(method, pattern string, h []any) {
 
 // Mount attaches another Route along ./pattern/*
 func (r *Route) Mount(pattern string, subR *Route) {
-	middlewares := make([]interface{}, len(r.curMiddlewares))
-	copy(middlewares, r.curMiddlewares)
-	subR.Use(middlewares...)
+	subR.Use(r.curMiddlewares...)
 	r.R.Mount(r.getPattern(pattern), subR.R)
 }
 

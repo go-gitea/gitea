@@ -35,7 +35,7 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 		return err
 	}
 
-	has, err := repo_model.IsRepositoryExist(ctx, u, repo.Name)
+	has, err := repo_model.IsRepositoryModelExist(ctx, u, repo.Name)
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %w", err)
 	} else if has {
@@ -330,7 +330,7 @@ func UpdateRepoSize(ctx context.Context, repo *repo_model.Repository) error {
 		return fmt.Errorf("updateSize: GetLFSMetaObjects: %w", err)
 	}
 
-	return repo_model.UpdateRepoSize(ctx, repo.ID, size+lfsSize)
+	return repo_model.UpdateRepoSize(ctx, repo.ID, size, lfsSize)
 }
 
 // CheckDaemonExportOK creates/removes git-daemon-export-ok for git-daemon...
@@ -395,6 +395,10 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 				IsPrivate: true,
 			})
 			if err != nil {
+				return err
+			}
+
+			if err = repo_model.ClearRepoStars(ctx, repo.ID); err != nil {
 				return err
 			}
 		}

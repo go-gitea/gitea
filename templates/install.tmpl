@@ -44,7 +44,6 @@
 						<div class="inline required field {{if .Err_DbSetting}}error{{end}}">
 							<label for="db_name">{{.locale.Tr "install.db_name"}}</label>
 							<input id="db_name" name="db_name" value="{{.db_name}}">
-							<span class="help">{{.locale.Tr "install.db_helper"}}</span>
 						</div>
 					</div>
 
@@ -66,20 +65,6 @@
 							<label for="db_schema">{{.locale.Tr "install.db_schema"}}</label>
 							<input id="db_schema" name="db_schema" value="{{.db_schema}}">
 							<span class="help">{{.locale.Tr "install.db_schema_helper"}}</span>
-						</div>
-					</div>
-
-					<div class="gt-hidden" data-db-setting-for="mysql">
-						<div class="inline required field">
-							<label>{{.locale.Tr "install.charset"}}</label>
-							<div class="ui selection database type dropdown">
-								<input type="hidden" name="charset" value="{{if .charset}}{{.charset}}{{else}}utf8mb4{{end}}">
-								<div class="default text">utf8mb4</div>
-								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-								<div class="menu">
-									<div class="item" data-value="utf8mb4">utf8mb4</div>
-								</div>
-							</div>
 						</div>
 					</div>
 
@@ -139,7 +124,7 @@
 					</div>
 					<div class="inline required field">
 						<label for="domain">{{.locale.Tr "install.domain"}}</label>
-						<input id="domain" name="domain" value="{{.domain}}" placeholder="e.g. try.gitea.io" required>
+						<input id="domain" name="domain" value="{{.domain}}" placeholder="try.gitea.io" required>
 						<span class="help">{{.locale.Tr "install.domain_helper"}}</span>
 					</div>
 					<div class="inline field">
@@ -154,7 +139,7 @@
 					</div>
 					<div class="inline required field">
 						<label for="app_url">{{.locale.Tr "install.app_url"}}</label>
-						<input id="app_url" name="app_url" value="{{.app_url}}" placeholder="e.g. https://try.gitea.io" required>
+						<input id="app_url" name="app_url" value="{{.app_url}}" placeholder="https://try.gitea.io" required>
 						<span class="help">{{.locale.Tr "install.app_url_helper"}}</span>
 					</div>
 					<div class="inline required field">
@@ -322,6 +307,10 @@
 							<label for="admin_name">{{.locale.Tr "install.admin_name"}}</label>
 							<input id="admin_name" name="admin_name" value="{{.admin_name}}">
 						</div>
+						<div class="inline field {{if .Err_AdminEmail}}error{{end}}">
+							<label for="admin_email">{{.locale.Tr "install.admin_email"}}</label>
+							<input id="admin_email" name="admin_email" type="email" value="{{.admin_email}}">
+						</div>
 						<div class="inline field {{if .Err_AdminPasswd}}error{{end}}">
 							<label for="admin_passwd">{{.locale.Tr "install.admin_password"}}</label>
 							<input id="admin_passwd" name="admin_passwd" type="password" autocomplete="new-password" value="{{.admin_passwd}}">
@@ -330,13 +319,9 @@
 							<label for="admin_confirm_passwd">{{.locale.Tr "install.confirm_password"}}</label>
 							<input id="admin_confirm_passwd" name="admin_confirm_passwd" autocomplete="new-password" type="password" value="{{.admin_confirm_passwd}}">
 						</div>
-						<div class="inline field {{if .Err_AdminEmail}}error{{end}}">
-							<label for="admin_email">{{.locale.Tr "install.admin_email"}}</label>
-							<input id="admin_email" name="admin_email" type="email" value="{{.admin_email}}">
-						</div>
 					</details>
 
-					<div class="ui divider"></div>
+					<div class="divider"></div>
 					<div class="inline field">
 						<label></label>
 						<button class="ui primary button">{{.locale.Tr "install.install_btn_confirm"}}</button>

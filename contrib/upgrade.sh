@@ -10,6 +10,15 @@
 #   upgrade.sh 1.15.10
 #   giteahome=/opt/gitea giteaconf=$giteahome/app.ini upgrade.sh
 
+# Check if gitea service is running
+if ! pidof gitea &> /dev/null; then
+  echo "Error: gitea is not running."
+  exit 1
+fi
+
+# Continue with rest of the script if gitea is running
+echo "Gitea is running. Continuing with rest of script..."
+
 # apply variables from environment
 : "${giteabin:="/usr/local/bin/gitea"}"
 : "${giteahome:="/var/lib/gitea"}"

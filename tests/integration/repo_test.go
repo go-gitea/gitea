@@ -78,7 +78,7 @@ func testViewRepo(t *testing.T) {
 		// convert "2017-06-14 21:54:21 +0800" to "Wed, 14 Jun 2017 13:54:21 UTC"
 		htmlTimeString, _ := s.Find("relative-time.time-since").Attr("datetime")
 		htmlTime, _ := time.Parse(time.RFC3339, htmlTimeString)
-		f.commitTime = htmlTime.UTC().Format("Mon, 02 Jan 2006 15:04:05 UTC")
+		f.commitTime = htmlTime.In(time.Local).Format(time.RFC1123)
 		items = append(items, f)
 	})
 
@@ -170,7 +170,7 @@ func TestViewRepoWithSymlinks(t *testing.T) {
 	})
 	assert.Len(t, items, 5)
 	assert.Equal(t, "a: svg octicon-file-directory-fill", items[0])
-	assert.Equal(t, "link_b: svg octicon-file-submodule", items[1])
+	assert.Equal(t, "link_b: svg octicon-file-directory-symlink", items[1])
 	assert.Equal(t, "link_d: svg octicon-file-symlink-file", items[2])
 	assert.Equal(t, "link_hi: svg octicon-file-symlink-file", items[3])
 	assert.Equal(t, "link_link: svg octicon-file-symlink-file", items[4])
@@ -354,7 +354,6 @@ func TestViewRepoDirectoryReadme(t *testing.T) {
 
 			htmlDoc := NewHTMLParser(t, resp.Body)
 			_, exists := htmlDoc.doc.Find(".file-view").Attr("class")
-			fmt.Printf("%s", resp.Body)
 
 			assert.False(t, exists, "README should not have rendered")
 		})

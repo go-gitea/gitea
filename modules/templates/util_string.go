@@ -3,12 +3,18 @@
 
 package templates
 
-import "strings"
+import (
+	"strings"
+
+	"code.gitea.io/gitea/modules/base"
+)
 
 type StringUtils struct{}
 
+var stringUtils = StringUtils{}
+
 func NewStringUtils() *StringUtils {
-	return &StringUtils{}
+	return &stringUtils
 }
 
 func (su *StringUtils) HasPrefix(s, prefix string) bool {
@@ -17,4 +23,16 @@ func (su *StringUtils) HasPrefix(s, prefix string) bool {
 
 func (su *StringUtils) Contains(s, substr string) bool {
 	return strings.Contains(s, substr)
+}
+
+func (su *StringUtils) Split(s, sep string) []string {
+	return strings.Split(s, sep)
+}
+
+func (su *StringUtils) Join(a []string, sep string) string {
+	return strings.Join(a, sep)
+}
+
+func (su *StringUtils) EllipsisString(s string, max int) string {
+	return base.EllipsisString(s, max)
 }

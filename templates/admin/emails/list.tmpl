@@ -1,15 +1,18 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content admin user">
-	{{template "admin/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin user")}}
+	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.emails.email_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
 		</h4>
 		<div class="ui attached segment">
-			<div class="ui right floated secondary filter menu">
-			<!-- Sort -->
-				<div class="ui dropdown type jump item">
+			<div class="ui secondary filter menu gt-ac gt-mx-0">
+				<form class="ui form ignore-dirty gt-f1">
+					<div class="ui fluid action input">
+						{{template "shared/searchinput" dict "locale" .locale "Value" .Keyword "AutoFocus" true}}
+						<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
+					</div>
+				</form>
+				<!-- Sort -->
+				<div class="ui dropdown type jump item gt-mr-0">
 					<span class="text">
 						{{.locale.Tr "repo.issues.filter_sort"}}
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -22,12 +25,6 @@
 					</div>
 				</div>
 			</div>
-			<form class="ui form ignore-dirty"  style="max-width: 90%">
-				<div class="ui fluid action input">
-					<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}..." autofocus>
-					<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
-				</div>
-			</form>
 		</div>
 		<div class="ui attached table segment">
 			<table class="ui very basic striped table unstackable">
@@ -73,11 +70,11 @@
 
 		{{template "base/paginate" .}}
 
-		<div class="ui basic modal" id="change-email-modal">
-			<div class="ui icon header">
+		<div class="ui g-modal-confirm modal" id="change-email-modal">
+			<div class="header">
 				{{.locale.Tr "admin.emails.change_email_header"}}
 			</div>
-			<div class="content center">
+			<div class="content">
 				<p class="center">{{.locale.Tr "admin.emails.change_email_text"}}</p>
 
 				<form class="ui form" id="email-action-form" action="{{AppSubUrl}}/admin/emails/activate" method="post">
@@ -94,12 +91,11 @@
 					<input type="hidden" id="form-activate" name="activate" value="" required>
 
 					<div class="center">
-						{{template "base/delete_modal_actions" .}}
+						{{template "base/modal_actions_confirm" .}}
 					</div>
 				</form>
 			</div>
 		</div>
 
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "admin/layout_footer" .}}

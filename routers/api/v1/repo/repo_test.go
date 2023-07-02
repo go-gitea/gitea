@@ -9,7 +9,6 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
@@ -20,7 +19,7 @@ import (
 func TestRepoEdit(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	ctx := test.MockContext(t, "user2/repo1")
+	ctx, _ := test.MockAPIContext(t, "user2/repo1")
 	test.LoadRepo(t, ctx, 1)
 	test.LoadUser(t, ctx, 2)
 	ctx.Repo.Owner = ctx.Doer
@@ -54,9 +53,8 @@ func TestRepoEdit(t *testing.T) {
 		Archived:                  &archived,
 	}
 
-	apiCtx := &context.APIContext{Context: ctx, Org: nil}
-	web.SetForm(apiCtx, &opts)
-	Edit(apiCtx)
+	web.SetForm(ctx, &opts)
+	Edit(ctx)
 
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{
@@ -67,7 +65,7 @@ func TestRepoEdit(t *testing.T) {
 func TestRepoEditNameChange(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	ctx := test.MockContext(t, "user2/repo1")
+	ctx, _ := test.MockAPIContext(t, "user2/repo1")
 	test.LoadRepo(t, ctx, 1)
 	test.LoadUser(t, ctx, 2)
 	ctx.Repo.Owner = ctx.Doer
@@ -76,9 +74,8 @@ func TestRepoEditNameChange(t *testing.T) {
 		Name: &name,
 	}
 
-	apiCtx := &context.APIContext{Context: ctx, Org: nil}
-	web.SetForm(apiCtx, &opts)
-	Edit(apiCtx)
+	web.SetForm(ctx, &opts)
+	Edit(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{

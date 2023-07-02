@@ -1,21 +1,23 @@
 <div id="review-box">
-	<button class="ui tiny green button gt-ml-2 gt-mr-0 js-btn-review">
+	<button class="ui tiny green button gt-pr-2 gt-df js-btn-review">
 		{{.locale.Tr "repo.diff.review"}}
 		<span class="ui small label review-comments-counter" data-pending-comment-number="{{.PendingCodeCommentNumber}}">{{.PendingCodeCommentNumber}}</span>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 	</button>
 	<div class="review-box-panel tippy-target">
 		<div class="ui segment">
-			<form class="ui form" action="{{.Link}}/reviews/submit" method="post">
+			<form class="ui form form-fetch-action" action="{{.Link}}/reviews/submit" method="post">
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="commit_id" value="{{.AfterCommitID}}">
-				<div class="header gt-df gt-ac gt-pb-3">
+				<div class="field gt-df gt-ac">
 					<div class="gt-f1">{{$.locale.Tr "repo.diff.review.header"}}</div>
-					<a class="muted close gt-px-3">{{svg "octicon-x" 16}}</a>
+					<a class="muted close">{{svg "octicon-x" 16}}</a>
 				</div>
-				<div class="ui field">
+				<div class="field">
 					{{template "shared/combomarkdowneditor" (dict
 						"locale" $.locale
+						"MarkdownPreviewUrl" (print .Repository.Link "/markup")
+						"MarkdownPreviewContext" .RepoLink
 						"TextareaName" "content"
 						"TextareaPlaceholder" ($.locale.Tr "repo.diff.review.placeholder")
 						"DropzoneParentContainer" "form"
@@ -26,7 +28,7 @@
 						{{template "repo/upload" .}}
 					</div>
 				{{end}}
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 				{{$showSelfTooltip := (and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID))}}
 				{{if $showSelfTooltip}}
 					<span class="gt-dib" data-tooltip-content="{{$.locale.Tr "repo.diff.review.self_approve"}}">

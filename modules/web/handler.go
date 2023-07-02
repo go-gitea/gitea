@@ -8,22 +8,16 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
-	"strings"
 
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/web/routing"
+	"code.gitea.io/gitea/modules/web/types"
 )
 
-// ResponseStatusProvider is an interface to check whether the response has been written by the handler
-type ResponseStatusProvider interface {
-	Written() bool
-}
+var responseStatusProviders = map[reflect.Type]func(req *http.Request) types.ResponseStatusProvider{}
 
-// TODO: decouple this from the context package, let the context package register these providers
-var argTypeProvider = map[reflect.Type]func(req *http.Request) ResponseStatusProvider{
-	reflect.TypeOf(&context.APIContext{}):     func(req *http.Request) ResponseStatusProvider { return context.GetAPIContext(req) },
-	reflect.TypeOf(&context.Context{}):        func(req *http.Request) ResponseStatusProvider { return context.GetContext(req) },
-	reflect.TypeOf(&context.PrivateContext{}): func(req *http.Request) ResponseStatusProvider { return context.GetPrivateContext(req) },
+func RegisterResponseStatusProvider[T any](fn func(req *http.Request) types.ResponseStatusProvider) {
+	responseStatusProviders[reflect.TypeOf((*T)(nil)).Elem()] = fn
 }
 
 // responseWriter is a wrapper of http.ResponseWriter, to check whether the response has been written
@@ -32,10 +26,10 @@ type responseWriter struct {
 	status     int
 }
 
-var _ ResponseStatusProvider = (*responseWriter)(nil)
+var _ types.ResponseStatusProvider = (*responseWriter)(nil)
 
-func (r *responseWriter) Written() bool {
-	return r.status > 0
+func (r *responseWriter) WrittenStatus() int {
+	return r.status
 }
 
 func (r *responseWriter) Header() http.Header {
@@ -64,7 +58,7 @@ var (
 func preCheckHandler(fn reflect.Value, argsIn []reflect.Value) {
 	hasStatusProvider := false
 	for _, argIn := range argsIn {
-		if _, hasStatusProvider = argIn.Interface().(ResponseStatusProvider); hasStatusProvider {
+		if _, hasStatusProvider = argIn.Interface().(types.ResponseStatusProvider); hasStatusProvider {
 			break
 		}
 	}
@@ -79,7 +73,13 @@ func preCheckHandler(fn reflect.Value, argsIn []reflect.Value) {
 	}
 }
 
-func prepareHandleArgsIn(resp http.ResponseWriter, req *http.Request, fn reflect.Value) []reflect.Value {
+func prepareHandleArgsIn(resp http.ResponseWriter, req *http.Request, fn reflect.Value, fnInfo *routing.FuncInfo) []reflect.Value {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Error("unable to prepare handler arguments for %s: %v", fnInfo.String(), err)
+			panic(err)
+		}
+	}()
 	isPreCheck := req == nil
 
 	argsIn := make([]reflect.Value, fn.Type().NumIn())
@@ -91,7 +91,7 @@ func prepareHandleArgsIn(resp http.ResponseWriter, req *http.Request, fn reflect
 		case httpReqType:
 			argsIn[i] = reflect.ValueOf(req)
 		default:
-			if argFn, ok := argTypeProvider[argTyp]; ok {
+			if argFn, ok := responseStatusProviders[argTyp]; ok {
 				if isPreCheck {
 					argsIn[i] = reflect.ValueOf(&responseWriter{})
 				} else {
@@ -119,8 +119,8 @@ func handleResponse(fn reflect.Value, ret []reflect.Value) goctx.CancelFunc {
 
 func hasResponseBeenWritten(argsIn []reflect.Value) bool {
 	for _, argIn := range argsIn {
-		if statusProvider, ok := argIn.Interface().(ResponseStatusProvider); ok {
-			if statusProvider.Written() {
+		if statusProvider, ok := argIn.Interface().(types.ResponseStatusProvider); ok {
+			if statusProvider.WrittenStatus() != 0 {
 				return true
 			}
 		}
@@ -131,26 +131,32 @@ func hasResponseBeenWritten(argsIn []reflect.Value) bool {
 // toHandlerProvider converts a handler to a handler provider
 // A handler provider is a function that takes a "next" http.Handler, it can be used as a middleware
 func toHandlerProvider(handler any) func(next http.Handler) http.Handler {
-	if hp, ok := handler.(func(next http.Handler) http.Handler); ok {
-		return hp
-	}
-
 	funcInfo := routing.GetFuncInfo(handler)
 	fn := reflect.ValueOf(handler)
 	if fn.Type().Kind() != reflect.Func {
 		panic(fmt.Sprintf("handler must be a function, but got %s", fn.Type()))
 	}
 
+	if hp, ok := handler.(func(next http.Handler) http.Handler); ok {
+		return func(next http.Handler) http.Handler {
+			h := hp(next) // this handle could be dynamically generated, so we can't use it for debug info
+			return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+				routing.UpdateFuncInfo(req.Context(), funcInfo)
+				h.ServeHTTP(resp, req)
+			})
+		}
+	}
+
 	provider := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(respOrig http.ResponseWriter, req *http.Request) {
 			// wrap the response writer to check whether the response has been written
 			resp := respOrig
-			if _, ok := resp.(ResponseStatusProvider); !ok {
+			if _, ok := resp.(types.ResponseStatusProvider); !ok {
 				resp = &responseWriter{respWriter: resp}
 			}
 
 			// prepare the arguments for the handler and do pre-check
-			argsIn := prepareHandleArgsIn(resp, req, fn)
+			argsIn := prepareHandleArgsIn(resp, req, fn, funcInfo)
 			if req == nil {
 				preCheckHandler(fn, argsIn)
 				return // it's doing pre-check, just return
@@ -174,27 +180,4 @@ func toHandlerProvider(handler any) func(next http.Handler) http.Handler {
 
 	provider(nil).ServeHTTP(nil, nil) // do a pre-check to make sure all arguments and return values are supported
 	return provider
-}
-
-// MiddlewareWithPrefix wraps a handler function at a prefix, and make it as a middleware
-// TODO: this design is incorrect, the asset handler should not be a middleware
-func MiddlewareWithPrefix(pathPrefix string, middleware func(handler http.Handler) http.Handler, handlerFunc http.HandlerFunc) func(next http.Handler) http.Handler {
-	funcInfo := routing.GetFuncInfo(handlerFunc)
-	handler := http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		routing.UpdateFuncInfo(req.Context(), funcInfo)
-		handlerFunc(resp, req)
-	})
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			if !strings.HasPrefix(req.URL.Path, pathPrefix) {
-				next.ServeHTTP(resp, req)
-				return
-			}
-			if middleware != nil {
-				middleware(handler).ServeHTTP(resp, req)
-			} else {
-				handler.ServeHTTP(resp, req)
-			}
-		})
-	}
 }

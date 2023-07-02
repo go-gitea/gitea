@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -16,12 +17,26 @@ import (
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
+
+// WebSearchRepository represents a repository returned by web search
+type WebSearchRepository struct {
+	Repository         *structs.Repository `json:"repository"`
+	LatestCommitStatus *git.CommitStatus   `json:"latest_commit_status"`
+}
+
+// WebSearchResults results of a successful web search
+type WebSearchResults struct {
+	OK   bool                   `json:"ok"`
+	Data []*WebSearchRepository `json:"data"`
+}
 
 // CreateRepository creates a repository for the user/organization.
 func CreateRepository(ctx context.Context, doer, owner *user_model.User, opts repo_module.CreateRepoOptions) (*repo_model.Repository, error) {
@@ -86,7 +101,10 @@ func Init() error {
 	}
 	system_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repository uploads", setting.Repository.Upload.TempPath)
 	system_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repositories", repo_module.LocalCopyPath())
-	return initPushQueue()
+	if err := initPushQueue(); err != nil {
+		return err
+	}
+	return initBranchSyncQueue(graceful.GetManager().ShutdownContext())
 }
 
 // UpdateRepository updates a repository

@@ -419,6 +419,12 @@ func DeleteTeam(t *organization.Team) error {
 		return err
 	}
 
+	for _, tm := range t.Members {
+		if err := removeInvalidOrgUser(ctx, tm.ID, t.OrgID); err != nil {
+			return err
+		}
+	}
+
 	// Update organization number of teams.
 	if _, err := db.Exec(ctx, "UPDATE `user` SET num_teams=num_teams-1 WHERE id=?", t.OrgID); err != nil {
 		return err
@@ -568,16 +574,19 @@ func removeTeamMember(ctx context.Context, team *organization.Team, userID int64
 		}
 	}
 
+	return removeInvalidOrgUser(ctx, userID, team.OrgID)
+}
+
+func removeInvalidOrgUser(ctx context.Context, userID, orgID int64) error {
 	// Check if the user is a member of any team in the organization.
-	if count, err := e.Count(&organization.TeamUser{
+	if count, err := db.GetEngine(ctx).Count(&organization.TeamUser{
 		UID:   userID,
-		OrgID: team.OrgID,
+		OrgID: orgID,
 	}); err != nil {
 		return err
 	} else if count == 0 {
-		return removeOrgUser(ctx, team.OrgID, userID)
+		return removeOrgUser(ctx, orgID, userID)
 	}
-
 	return nil
 }
 
