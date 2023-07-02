@@ -141,11 +141,9 @@ curl -X DELETE \
   http://localhost:3000/api/packages/{user}/arch/remove \
   --header "username: {user}" \
   --header "email: user@email.com" \
-  --header "distro: archlinux" \
   --header "target: package" \
   --header "time: {rmtime}" \
   --header "version: {version-release}" \
-  --header "arch: x86_64" \
   --header 'Content-Type: application/octet-stream' \
   --data-binary @md.sig
 ```

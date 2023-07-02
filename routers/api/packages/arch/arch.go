@@ -4,6 +4,7 @@
 package arch
 
 import (
+	"bytes"
 	"encoding/hex"
 	"io"
 	"net/http"
@@ -87,7 +88,7 @@ func Push(ctx *context.Context) {
 	}
 
 	// Parse metadata contained in arch package archive.
-	md, err := arch_module.EjectMetadata(filename, setting.Domain, pkgdata)
+	md, err := arch_module.EjectMetadata(filename, distro, setting.Domain, pkgdata)
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
@@ -121,20 +122,6 @@ func Push(ctx *context.Context) {
 		return
 	}
 
-	// Save file related to arch package description.
-	_, err = arch_service.SaveFile(ctx, &arch_service.SaveFileParams{
-		Organization: org,
-		User:         user,
-		Metadata:     md,
-		Data:         []byte(md.GetDbDesc()),
-		Filename:     filename + ".desc",
-		Distro:       distro,
-	})
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
 	// Automatically connect repository for provided package if name matched.
 	err = arch_service.RepositoryAutoconnect(ctx, owner, md.Name, pkgid)
 	if err != nil {
@@ -157,38 +144,32 @@ func Get(ctx *context.Context) {
 	// Packages are stored in different way from pacman databases, and loaded
 	// with LoadPackageFile function.
 	if strings.HasSuffix(file, "tar.zst") || strings.HasSuffix(file, "zst.sig") {
-		pkgdata, err := arch_service.LoadPackageFile(ctx, distro, file)
+		pkgdata, err := arch_service.LoadFile(ctx, distro, file)
 		if err != nil {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
 
-		_, err = ctx.Resp.Write(pkgdata)
-		if err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
-
-		ctx.Resp.WriteHeader(http.StatusOK)
+		ctx.ServeContent(bytes.NewReader(pkgdata), &context.ServeHeaderOptions{
+			Filename:      file,
+			CacheDuration: time.Minute * 5,
+		})
 		return
 	}
 
-	// Pacman databases are stored directly in gitea file storage and could be
-	// loaded with name as a key.
+	// Pacman databases is not stored in gitea's storage, it is created for
+	// incoming request and cached.
 	if strings.HasSuffix(file, ".db.tar.gz") || strings.HasSuffix(file, ".db") {
-		data, err := arch_service.LoadPacmanDatabase(ctx, owner, distro, arch, file)
-		if err != nil {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-
-		_, err = ctx.Resp.Write(data)
+		db, err := arch_service.CreatePacmanDb(ctx, owner, arch, distro)
 		if err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
 		}
 
-		ctx.Resp.WriteHeader(http.StatusOK)
+		ctx.ServeContent(bytes.NewReader(db), &context.ServeHeaderOptions{
+			Filename:      file,
+			CacheDuration: time.Minute * 5,
+		})
 		return
 	}
 
@@ -200,11 +181,9 @@ func Remove(ctx *context.Context) {
 	var (
 		owner   = ctx.Params("username")
 		email   = ctx.Req.Header.Get("email")
-		distro  = ctx.Req.Header.Get("distro")
 		target  = ctx.Req.Header.Get("target")
 		stime   = ctx.Req.Header.Get("time")
 		version = ctx.Req.Header.Get("version")
-		arch    = strings.Split(ctx.Req.Header.Get("arch"), " ")
 	)
 
 	// Parse sent time and check if it is within last minute.
@@ -242,21 +221,8 @@ func Remove(ctx *context.Context) {
 		return
 	}
 
-	// Remove pacman database entries related to package.
-	err = arch_service.RemoveDbEntry(ctx, arch, owner, distro, target, version)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
 	// Remove package files and pacman database entry.
-	err = arch_service.RemovePackage(ctx, &arch_service.RemoveParameters{
-		User:         user,
-		Organization: org,
-		Owner:        owner,
-		Name:         target,
-		Version:      version,
-	})
+	err = arch_service.RemovePackage(ctx, org.AsUser(), target, version)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

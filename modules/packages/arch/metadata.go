@@ -21,31 +21,32 @@ import (
 
 // Metadata for arch package.
 type Metadata struct {
-	Filename       string
-	Name           string
-	Base           string
-	Version        string
-	Description    string
-	CompressedSize int64
-	InstalledSize  int64
-	MD5            string
-	SHA256         string
-	URL            string
-	BuildDate      int64
-	BaseDomain     string
-	Packager       string
-	Provides       []string
-	License        []string
-	Arch           []string
-	Depends        []string
-	OptDepends     []string
-	MakeDepends    []string
-	CheckDepends   []string
-	Backup         []string
+	Filename       string   `json:"filename"`
+	Name           string   `json:"name"`
+	Base           string   `json:"base"`
+	Version        string   `json:"version"`
+	Description    string   `json:"description"`
+	CompressedSize int64    `json:"compressed-size"`
+	InstalledSize  int64    `json:"installed-size"`
+	MD5            string   `json:"md5"`
+	SHA256         string   `json:"sha256"`
+	URL            string   `json:"url"`
+	BuildDate      int64    `json:"build-date"`
+	BaseDomain     string   `json:"base-domain"`
+	Packager       string   `json:"packager"`
+	Distribution   string   `json:"distribution"`
+	Provides       []string `json:"provides"`
+	License        []string `json:"license"`
+	Arch           []string `json:"arch"`
+	Depends        []string `json:"depends"`
+	OptDepends     []string `json:"opt-depends"`
+	MakeDepends    []string `json:"make-depends"`
+	CheckDepends   []string `json:"check-depends"`
+	Backup         []string `json:"backup"`
 }
 
 // Function that recieves arch package archive data and returns it's metadata.
-func EjectMetadata(filename, domain string, pkg []byte) (*Metadata, error) {
+func EjectMetadata(filename, distribution, domain string, pkg []byte) (*Metadata, error) {
 	pkginfo, err := getPkginfo(pkg)
 	if err != nil {
 		return nil, err
@@ -56,6 +57,7 @@ func EjectMetadata(filename, domain string, pkg []byte) (*Metadata, error) {
 		CompressedSize: int64(len(pkg)),
 		MD5:            md5sum(pkg),
 		SHA256:         sha256sum(pkg),
+		Distribution:   distribution,
 	}
 	for _, line := range strings.Split(pkginfo, "\n") {
 		splt := strings.Split(line, " = ")
@@ -211,24 +213,18 @@ func Join(s ...string) string {
 	return rez
 }
 
-// Add or update existing package entry in database archived data.
-func UpdatePacmanDbEntry(db []byte, md *Metadata) ([]byte, error) {
-	// Read existing entries in archive.
-	entries, err := readEntries(db)
-	if err != nil {
-		return nil, err
+// Create pacman database archive based on provided package metadata structs.
+func CreatePacmanDb(mds []*Metadata) ([]byte, error) {
+	entries := make(map[string][]byte)
+
+	for _, md := range mds {
+		entries[md.Name+"-"+md.Version+"/desc"] = []byte(md.GetDbDesc())
 	}
-
-	// Remove entries related old package versions.
-	entries = CleanOldEntries(entries, md.Name)
-
-	// Add new package entry to list.
-	entries[md.Name+"-"+md.Version+"/desc"] = []byte(md.GetDbDesc())
 
 	var out bytes.Buffer
 
 	// Write entries to new buffer and return it.
-	err = writeToArchive(entries, &out)
+	err := writeToArchive(entries, &out)
 	if err != nil {
 		return nil, err
 	}
@@ -236,73 +232,7 @@ func UpdatePacmanDbEntry(db []byte, md *Metadata) ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-// Clean entries for old package versions from pacman database.
-func CleanOldEntries(entries map[string][]byte, pkg string) map[string][]byte {
-	out := map[string][]byte{}
-	for entry, value := range entries {
-		splt := strings.Split(entry, "-")
-		basename := strings.Join(splt[0:len(splt)-2], "-")
-		if pkg != basename {
-			out[entry] = value
-		}
-	}
-	return out
-}
-
-// Add or update existing package entry in database archived data.
-func RemoveDbEntry(db []byte, pkg, ver string) ([]byte, error) {
-	// Read existing entries in archive.
-	entries, err := readEntries(db)
-	if err != nil {
-		return nil, err
-	}
-
-	// Add new package entry to list.
-	delete(entries, pkg+"-"+ver+"/desc")
-
-	var out bytes.Buffer
-
-	// Write entries to new buffer and return it.
-	err = writeToArchive(entries, &out)
-	if err != nil {
-		return nil, err
-	}
-
-	return out.Bytes(), nil
-}
-
-// Read database entries containing in pacman archive.
-func readEntries(dbarchive []byte) (map[string][]byte, error) {
-	gzf, err := gzip.NewReader(bytes.NewReader(dbarchive))
-	if err != nil {
-		return map[string][]byte{}, nil
-	}
-
-	var entries = map[string][]byte{}
-
-	tarReader := tar.NewReader(gzf)
-	for {
-		header, err := tarReader.Next()
-		if err == io.EOF {
-			break
-		}
-
-		if err != nil {
-			return nil, err
-		}
-
-		if header.Typeflag == tar.TypeReg {
-			content, err := io.ReadAll(tarReader)
-			if err != nil {
-				return nil, err
-			}
-			entries[header.Name] = content
-		}
-	}
-	return entries, nil
-}
-
-// Write pacman package entries to empty buffer.
+// Write pacman package entries to tarball.
 func writeToArchive(files map[string][]byte, buf io.Writer) error {
 	gw := gzip.NewWriter(buf)
 	defer gw.Close()
