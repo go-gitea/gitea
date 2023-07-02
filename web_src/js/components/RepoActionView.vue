@@ -477,6 +477,8 @@ export function initRepositoryActionView() {
 
 <style scoped>
 .action-view-body {
+  padding-top: 12px;
+  padding-bottom: 12px;
   display: flex;
   gap: 12px;
 }
@@ -509,11 +511,6 @@ export function initRepositoryActionView() {
   display: flex;
   gap: 5px;
   margin: 5px 0 0 25px;
-}
-
-.action-view-left, .action-view-right {
-  padding-top: 12px;
-  padding-bottom: 12px;
 }
 
 /* ================ */

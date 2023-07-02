@@ -43,7 +43,7 @@
 									<a role="button" class="btn interact-bg gt-p-3" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .DefaultBranchBranch.DBBranch.Name}}">{{svg "octicon-rss"}}</a>
 								{{end}}
 								{{if not $.DisableDownloadSourceArchives}}
-									<div class="ui dropdown btn interact-bg gt-p-3" data-tooltip-content="{{$.locale.Tr "repo.branch.download" ($.DefaultBranchBranch.DBBranch.Name)}}">
+									<div class="ui dropdown btn interact-bg branch-download" data-tooltip-content="{{$.locale.Tr "repo.branch.download" ($.DefaultBranchBranch.DBBranch.Name)}}">
 										{{svg "octicon-download"}}
 										<div class="menu">
 											<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.DefaultBranchBranch.DBBranch.Name}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
@@ -153,7 +153,7 @@
 										<a role="button" class="btn interact-bg gt-p-3" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .DBBranch.Name}}">{{svg "octicon-rss"}}</a>
 									{{end}}
 									{{if and (not .DBBranch.IsDeleted) (not $.DisableDownloadSourceArchives)}}
-										<div class="ui dropdown btn interact-bg gt-p-3" data-tooltip-content="{{$.locale.Tr "repo.branch.download" (.DBBranch.Name)}}">
+										<div class="ui dropdown btn interact-bg branch-download" data-tooltip-content="{{$.locale.Tr "repo.branch.download" (.DBBranch.Name)}}">
 											{{svg "octicon-download"}}
 											<div class="menu">
 												<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments .DBBranch.Name}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
