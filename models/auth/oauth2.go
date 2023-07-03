@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -44,6 +45,26 @@ func init() {
 	db.RegisterModel(new(OAuth2Application))
 	db.RegisterModel(new(OAuth2AuthorizationCode))
 	db.RegisterModel(new(OAuth2Grant))
+}
+
+func Init(ctx context.Context) error {
+	if setting.OAuth2.GitCredentialHelpers {
+		// the following Git credential helpers are universally useful
+		// https://git-scm.com/doc/credential-helpers
+		_ = db.Insert(ctx, []OAuth2Application{
+			{
+				Name:         "git-credential-oauth",
+				ClientID:     "a4792ccc-144e-407e-86c9-5e7d8d9c3269",
+				RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
+			},
+			{
+				Name:         "Git Credential Manager",
+				ClientID:     "e90ee53c-94e2-48ac-9358-a874fb9e0662",
+				RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
+			},
+		})
+	}
+	return nil
 }
 
 // TableName sets the table name to `oauth2_application`

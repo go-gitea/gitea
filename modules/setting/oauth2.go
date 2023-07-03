@@ -100,6 +100,7 @@ var OAuth2 = struct {
 	JWTSecretBase64            string `ini:"JWT_SECRET"`
 	JWTSigningPrivateKeyFile   string `ini:"JWT_SIGNING_PRIVATE_KEY_FILE"`
 	MaxTokenLength             int
+	GitCredentialHelpers       bool
 }{
 	Enable:                     true,
 	AccessTokenExpirationTime:  3600,
@@ -108,6 +109,7 @@ var OAuth2 = struct {
 	JWTSigningAlgorithm:        "RS256",
 	JWTSigningPrivateKeyFile:   "jwt/private.pem",
 	MaxTokenLength:             math.MaxInt16,
+	GitCredentialHelpers:       true,
 }
 
 func loadOAuth2From(rootCfg ConfigProvider) {
