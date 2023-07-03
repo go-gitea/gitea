@@ -16,19 +16,19 @@
 						<span class="text">{{.locale.Tr "admin.users.list_status_filter.menu_text"}} {{svg "octicon-triangle-down" 14 "dropdown icon"}}</span>
 						<div class="menu">
 							<a class="item j-reset-status-filter">{{.locale.Tr "admin.users.list_status_filter.reset"}}</a>
-							<div class="ui divider"></div>
+							<div class="divider"></div>
 							<label class="item"><input type="radio" name="status_filter[is_admin]" value="1"> {{.locale.Tr "admin.users.list_status_filter.is_admin"}}</label>
 							<label class="item"><input type="radio" name="status_filter[is_admin]" value="0"> {{.locale.Tr "admin.users.list_status_filter.not_admin"}}</label>
-							<div class="ui divider"></div>
+							<div class="divider"></div>
 							<label class="item"><input type="radio" name="status_filter[is_active]" value="1"> {{.locale.Tr "admin.users.list_status_filter.is_active"}}</label>
 							<label class="item"><input type="radio" name="status_filter[is_active]" value="0"> {{.locale.Tr "admin.users.list_status_filter.not_active"}}</label>
-							<div class="ui divider"></div>
+							<div class="divider"></div>
 							<label class="item"><input type="radio" name="status_filter[is_restricted]" value="0"> {{.locale.Tr "admin.users.list_status_filter.not_restricted"}}</label>
 							<label class="item"><input type="radio" name="status_filter[is_restricted]" value="1"> {{.locale.Tr "admin.users.list_status_filter.is_restricted"}}</label>
-							<div class="ui divider"></div>
+							<div class="divider"></div>
 							<label class="item"><input type="radio" name="status_filter[is_prohibit_login]" value="0"> {{.locale.Tr "admin.users.list_status_filter.not_prohibit_login"}}</label>
 							<label class="item"><input type="radio" name="status_filter[is_prohibit_login]" value="1"> {{.locale.Tr "admin.users.list_status_filter.is_prohibit_login"}}</label>
-							<div class="ui divider"></div>
+							<div class="divider"></div>
 							<label class="item"><input type="radio" name="status_filter[is_2fa_enabled]" value="1"> {{.locale.Tr "admin.users.list_status_filter.is_2fa_enabled"}}</label>
 							<label class="item"><input type="radio" name="status_filter[is_2fa_enabled]" value="0"> {{.locale.Tr "admin.users.list_status_filter.not_2fa_enabled"}}</label>
 						</div>
@@ -51,8 +51,8 @@
 				</div>
 
 				<!-- Search Text -->
-				<div class="ui fluid action input" style="max-width: 70%;">
-					<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}..." autofocus>
+				<div class="ui fluid action input">
+					{{template "shared/searchinput" dict "locale" .locale "Value" .Keyword "AutoFocus" true}}
 					<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
 				</div>
 			</form>
