@@ -79,8 +79,6 @@ linters-settings:
   depguard:
     rules:
       main:
-        allow:
-          - $gostd
         deny:
           - pkg: encoding/json
             desc: use gitea's modules/json instead of encoding/json
