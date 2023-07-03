@@ -1,5 +1,6 @@
-.page-content.install {
-  padding-top: 45px;
+.page-content.install .install-config-container {
+  max-width: 900px;
+  margin: auto;
 }
 
 .page-content.install form.ui.form .inline.field > label {
@@ -9,7 +10,8 @@
   margin-right: 0;
 }
 
-.page-content.install form.ui.form .inline.field > .ui.checkbox:first-child {
+.page-content.install .ui.form .field .help,
+.page-content.install .ui.form .field .right-content {
   margin-left: 30%;
   padding-left: 5px;
 }
@@ -18,17 +20,12 @@
   width: auto;
 }
 
-.page-content.install form.ui.form .title {
-  margin-left: 30%;
-  padding-left: 5px;
-}
-
 .page-content.install form.ui.form input {
   width: 60%;
 }
 
 .page-content.install form.ui.form details.optional.field[open] {
-  border-bottom: 1px solid var(--color-secondary);
+  border-bottom: 1px dashed var(--color-secondary);
   padding-bottom: 10px;
 }
 
@@ -42,12 +39,6 @@
 
 .page-content.install form.ui.form .field {
   text-align: left;
-}
-
-.page-content.install form.ui.form .field .help {
-  margin-left: 30%;
-  padding-left: 5px;
-  width: 60%;
 }
 
 .page-content.install .ui .reinstall-message {
