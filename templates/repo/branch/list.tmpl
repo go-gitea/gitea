@@ -28,9 +28,9 @@
 								</div>
 								<p class="info gt-df gt-ac gt-my-2">{{svg "octicon-git-commit" 16 "gt-mr-2"}}<a href="{{.RepoLink}}/commit/{{PathEscape .DefaultBranchBranch.DBBranch.CommitID}}">{{ShortSha .DefaultBranchBranch.DBBranch.CommitID}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .DefaultBranchBranch.DBBranch.CommitMessage .RepoLink .Repository.ComposeMetas}}</span> · {{.locale.Tr "org.repo_updated"}} {{TimeSince .DefaultBranchBranch.DBBranch.CommitTime.AsTime .locale}}{{if .DefaultBranchBranch.DBBranch.Pusher}} &nbsp;{{template "shared/user/avatarlink" dict "Context" $.Context "user" .DefaultBranchBranch.DBBranch.Pusher}}{{template "shared/user/namelink" .DefaultBranchBranch.DBBranch.Pusher}}{{end}}</p>
 							</td>
-							<td class="right aligned overflow-visible">
+							<td class="right aligned overflow-visible branch-toolbar">
 								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
-									<button class="btn interact-bg show-create-branch-modal gt-p-3"
+									<button class="btn interact-bg show-create-branch-modal"
 										data-modal="#create-branch-modal"
 										data-branch-from="{{$.DefaultBranchBranch}}"
 										data-branch-from-urlcomponent="{{PathEscapeSegments $.DefaultBranchBranch.DBBranch.Name}}"
@@ -40,10 +40,10 @@
 									</button>
 								{{end}}
 								{{if .EnableFeed}}
-									<a role="button" class="btn interact-bg gt-p-3" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .DefaultBranchBranch.DBBranch.Name}}">{{svg "octicon-rss"}}</a>
+									<a role="button" class="btn interact-bg" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .DefaultBranchBranch.DBBranch.Name}}">{{svg "octicon-rss"}}</a>
 								{{end}}
 								{{if not $.DisableDownloadSourceArchives}}
-									<div class="ui dropdown btn interact-bg branch-download" data-tooltip-content="{{$.locale.Tr "repo.branch.download" ($.DefaultBranchBranch.DBBranch.Name)}}">
+									<div class="ui dropdown btn interact-bg" data-tooltip-content="{{$.locale.Tr "repo.branch.download" ($.DefaultBranchBranch.DBBranch.Name)}}">
 										{{svg "octicon-download"}}
 										<div class="menu">
 											<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.DefaultBranchBranch.DBBranch.Name}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
@@ -52,7 +52,7 @@
 									</div>
 								{{end}}
 								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted) (not $.IsMirror)}}
-									<button class="btn interact-bg gt-p-3 show-modal show-rename-branch-modal"
+									<button class="btn interact-bg show-modal show-rename-branch-modal"
 										data-is-default-branch="true"
 										data-modal="#rename-branch-modal"
 										data-old-branch-name="{{$.DefaultBranchBranch}}"
@@ -138,9 +138,9 @@
 										{{end}}
 									{{end}}
 								</td>
-								<td class="three wide right aligned overflow-visible">
+								<td class="three wide right aligned overflow-visible branch-toolbar">
 									{{if and $.IsWriter (not $.Repository.IsArchived) (not .DBBranch.IsDeleted)}}
-										<button class="btn interact-bg gt-p-3 show-modal show-create-branch-modal"
+										<button class="btn interact-bg show-modal show-create-branch-modal"
 											data-branch-from="{{.DBBranch.Name}}"
 											data-branch-from-urlcomponent="{{PathEscapeSegments .DBBranch.Name}}"
 											data-tooltip-content="{{$.locale.Tr "repo.branch.new_branch_from" .DBBranch.Name}}"
@@ -150,10 +150,10 @@
 										</button>
 									{{end}}
 									{{if $.EnableFeed}}
-										<a role="button" class="btn interact-bg gt-p-3" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .DBBranch.Name}}">{{svg "octicon-rss"}}</a>
+										<a role="button" class="btn interact-bg" href="{{$.FeedURL}}/rss/branch/{{PathEscapeSegments .DBBranch.Name}}">{{svg "octicon-rss"}}</a>
 									{{end}}
 									{{if and (not .DBBranch.IsDeleted) (not $.DisableDownloadSourceArchives)}}
-										<div class="ui dropdown btn interact-bg branch-download" data-tooltip-content="{{$.locale.Tr "repo.branch.download" (.DBBranch.Name)}}">
+										<div class="ui dropdown btn interact-bg" data-tooltip-content="{{$.locale.Tr "repo.branch.download" (.DBBranch.Name)}}">
 											{{svg "octicon-download"}}
 											<div class="menu">
 												<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments .DBBranch.Name}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
@@ -162,7 +162,7 @@
 										</div>
 									{{end}}
 									{{if and $.IsWriter (not $.Repository.IsArchived) (not .DBBranch.IsDeleted) (not $.IsMirror)}}
-										<button class="btn interact-bg gt-p-3 show-modal show-rename-branch-modal"
+										<button class="btn interact-bg show-modal show-rename-branch-modal"
 											data-is-default-branch="false"
 											data-old-branch-name="{{.DBBranch.Name}}"
 											data-modal="#rename-branch-modal"
@@ -173,13 +173,13 @@
 									{{end}}
 									{{if and $.IsWriter (not $.IsMirror) (not $.Repository.IsArchived) (not .IsProtected)}}
 										{{if .DBBranch.IsDeleted}}
-											<button class="btn interact-bg gt-p-3 link-action restore-branch-button" data-url="{{$.Link}}/restore?branch_id={{.DBBranch.ID}}&name={{.DBBranch.Name}}&page={{$.Page.Paginater.Current}}" data-tooltip-content="{{$.locale.Tr "repo.branch.restore" (.DBBranch.Name)}}">
+											<button class="btn interact-bg link-action restore-branch-button" data-url="{{$.Link}}/restore?branch_id={{.DBBranch.ID}}&name={{.DBBranch.Name}}&page={{$.Page.Paginater.Current}}" data-tooltip-content="{{$.locale.Tr "repo.branch.restore" (.DBBranch.Name)}}">
 												<span class="text blue">
 													{{svg "octicon-reply"}}
 												</span>
 											</button>
 										{{else}}
-											<button class="btn interact-bg gt-p-3 delete-button delete-branch-button" data-url="{{$.Link}}/delete?name={{.DBBranch.Name}}&page={{$.Page.Paginater.Current}}" data-tooltip-content="{{$.locale.Tr "repo.branch.delete" (.DBBranch.Name)}}" data-name="{{.DBBranch.Name}}">
+											<button class="btn interact-bg delete-button delete-branch-button" data-url="{{$.Link}}/delete?name={{.DBBranch.Name}}&page={{$.Page.Paginater.Current}}" data-tooltip-content="{{$.locale.Tr "repo.branch.delete" (.DBBranch.Name)}}" data-name="{{.DBBranch.Name}}">
 												{{svg "octicon-trash"}}
 											</button>
 										{{end}}

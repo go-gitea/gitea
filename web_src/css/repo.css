@@ -662,11 +662,11 @@
   .repository.view.issue .edit-buttons {
     margin-top: .5rem;
   }
-  .repository.new.issue .comment.form .comment .avatar, .repository.pull .issue-comment .comment .avatar {
+  .comment.form .issue-content-left .avatar {
     display: none;
   }
-  .repository.new.issue .comment.form .content, .repository.pull .comment.form .content {
-    margin-left: 0;
+  .comment.form .issue-content-left .content {
+    margin-left: 0 !important;
   }
 }
 
@@ -1301,9 +1301,9 @@
   left: 0;
 }
 
-.repository.branches .branch-download {
+.repository.branches .branch-toolbar .btn {
   padding: .5rem;
-  vertical-align: bottom;
+  vertical-align: middle;
 }
 
 .repository.commits .header .search input {
