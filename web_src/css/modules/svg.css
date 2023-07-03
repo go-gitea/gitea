@@ -11,7 +11,7 @@
 /* prevent SVGs from shrinking, like in space-starved flexboxes. the sizes
    here are cherry-picked for our use cases, feel free to add more. after
    https://developer.mozilla.org/en-US/docs/Web/CSS/attr#type-or-unit is
-   supported in browsers, use `attr(data-width px)` instead for a generic
+   supported in browsers, use `attr(width px)` instead for a generic
    solution. */
 
 .svg[height="12"] { min-height: 12px; }
