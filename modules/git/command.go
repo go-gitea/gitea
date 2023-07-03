@@ -331,7 +331,7 @@ func (c *Command) Run(opts *RunOpts) error {
 	err := cmd.Wait()
 	elapsed := time.Since(startTime)
 	if elapsed > time.Second {
-		log.Debug("slow it.Command.Run: %s (%s)", c, elapsed)
+		log.Debug("slow git.Command.Run: %s (%s)", c, elapsed)
 	}
 
 	if err != nil && ctx.Err() != context.DeadlineExceeded {
