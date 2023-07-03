@@ -823,7 +823,7 @@ export function initRepositoryActionView() {
   display: flex;
 }
 
-.job-step-section .job-step-logs .job-log-line:hover,
+.job-log-line:hover,
 .job-log-line:target {
   background-color: var(--color-console-hover-bg);
 }
