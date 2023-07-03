@@ -64,7 +64,7 @@ func GetIssueAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToAttachment(attach))
+	ctx.JSON(http.StatusOK, convert.ToAttachment(ctx.Repo.Repository, attach))
 }
 
 // ListIssueAttachments lists all attachments of the issue
@@ -194,7 +194,7 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToAttachment(attachment))
+	ctx.JSON(http.StatusCreated, convert.ToAttachment(ctx.Repo.Repository, attachment))
 }
 
 // EditIssueAttachment updates the given attachment
@@ -254,7 +254,7 @@ func EditIssueAttachment(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "UpdateAttachment", err)
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToAttachment(attachment))
+	ctx.JSON(http.StatusCreated, convert.ToAttachment(ctx.Repo.Repository, attachment))
 }
 
 // DeleteIssueAttachment delete a given attachment

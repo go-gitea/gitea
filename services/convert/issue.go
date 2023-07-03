@@ -40,7 +40,7 @@ func ToAPIIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
 		Poster:      ToUser(ctx, issue.Poster, nil),
 		Title:       issue.Title,
 		Body:        issue.Content,
-		Attachments: ToAttachments(issue.Attachments),
+		Attachments: ToAPIAttachments(issue.Repo, issue.Attachments),
 		Ref:         issue.Ref,
 		State:       issue.State(),
 		IsLocked:    issue.IsLocked,
