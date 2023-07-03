@@ -281,6 +281,7 @@ func (c *Command) Run(opts *RunOpts) error {
 		log.Debug("git.Command.RunDir(%s): %s", opts.Dir, c)
 	}
 
+	startTime := time.Now()
 	desc := c.desc
 	if desc == "" {
 		if opts.Dir == "" {
@@ -327,7 +328,13 @@ func (c *Command) Run(opts *RunOpts) error {
 		}
 	}
 
-	if err := cmd.Wait(); err != nil && ctx.Err() != context.DeadlineExceeded {
+	err := cmd.Wait()
+	escaped := time.Since(startTime)
+	if escaped > time.Second {
+		log.Debug("slow it.Command.Run: %s", c)
+	}
+
+	if err != nil && ctx.Err() != context.DeadlineExceeded {
 		return err
 	}
 
