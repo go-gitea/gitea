@@ -21,8 +21,8 @@
 					<span class="ui label gt-px-1 gt-mx-2">
 						<a class="gt-mono" href="{{$.RepoLink}}/commit/{{.CommitSHA}}">{{ShortSha .CommitSHA}}</a>
 					</span>
-						{{$.locale.Tr "actions.runs.pushed_by"}}
-						<a href="{{.TriggerUser.HomeLink}}">{{.TriggerUser.GetDisplayName}}</a>
+					{{$.locale.Tr "actions.runs.pushed_by"}}
+					<a href="{{.TriggerUser.HomeLink}}">{{.TriggerUser.GetDisplayName}}</a>
 					<span class="ui label gt-px-1">
 						{{if .RefLink}}
 							<a href="{{.RefLink}}">{{.PrettyRef}}</a>
