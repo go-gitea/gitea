@@ -6,6 +6,7 @@ package repository
 import (
 	"context"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 )
@@ -27,6 +28,15 @@ func GenerateExternalWiki(ctx context.Context, templateRepo, generateRepo *repo_
 			ExternalWikiURL: generateExpansion(templateCfg.ExternalWikiURL, templateRepo, generateRepo, false),
 		},
 	}
+	if err := db.Insert(ctx, generateUnit); err != nil {
+		return err
+	}
+	if err := db.DeleteBeans(ctx, &repo_model.RepoUnit{
+		RepoID: generateRepo.ID,
+		Type:   unit.TypeWiki,
+	}); err != nil {
+		return err
+	}
 
-	return repo_model.UpdateRepositoryUnits(generateRepo, []repo_model.RepoUnit{*generateUnit}, []unit.Type{unit.TypeWiki})
+	return nil
 }
