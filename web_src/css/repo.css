@@ -2358,10 +2358,6 @@
   color: var(--color-text-light-2);
 }
 
-.settings .list.email > .item:not(:first-child) {
-  min-height: 60px;
-}
-
 .settings .list.collaborator > .item {
   padding: 0;
 }
