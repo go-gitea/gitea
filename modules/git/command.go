@@ -329,9 +329,9 @@ func (c *Command) Run(opts *RunOpts) error {
 	}
 
 	err := cmd.Wait()
-	escaped := time.Since(startTime)
-	if escaped > time.Second {
-		log.Debug("slow it.Command.Run: %s", c)
+	elapsed := time.Since(startTime)
+	if elapsed > time.Second {
+		log.Debug("slow it.Command.Run: %s (%s)", c, elapsed)
 	}
 
 	if err != nil && ctx.Err() != context.DeadlineExceeded {
