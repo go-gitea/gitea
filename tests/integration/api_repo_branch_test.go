@@ -106,6 +106,9 @@ func TestAPIRepoBranchesMirror(t *testing.T) {
 	var branches []*api.Branch
 	assert.NoError(t, json.Unmarshal(bs, &branches))
 	assert.Len(t, branches, 2)
+	sort.Slice(branches, func(i, j int) bool {
+		return branches[i].Name > branches[j].Name
+	})
 	assert.EqualValues(t, "test_branch", branches[0].Name)
 	assert.EqualValues(t, "master", branches[1].Name)
 
