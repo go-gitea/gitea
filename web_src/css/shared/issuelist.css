@@ -33,7 +33,7 @@
   flex: 0 0 15%;
   display: flex;
   flex-direction: column;
-  gap: .5rem;
+  gap: 3px;
   color: var(--color-text-light);
 }
 
