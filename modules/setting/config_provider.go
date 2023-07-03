@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 
-	"gopkg.in/ini.v1" //nolint:depguard
+	"gopkg.in/ini.v1" 
 )
 
 type ConfigKey interface {
