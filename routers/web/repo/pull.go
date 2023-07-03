@@ -728,9 +728,7 @@ func ViewPullCommits(ctx *context.Context) {
 }
 
 // ViewPullFiles render pull request changed files list page
-func ViewPullFiles(ctx *context.Context) {
-	commitToShow := ctx.Params("sha")
-	willShowSingleCommit := len(commitToShow) > 0
+func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommit string, willShowSpecifiedCommitRange, willShowSpecifiedCommit bool) {
 	ctx.Data["PageIsPullList"] = true
 	ctx.Data["PageIsPullFiles"] = true
 
@@ -754,15 +752,27 @@ func ViewPullFiles(ctx *context.Context) {
 	}
 
 	// Validate the given commit sha to show (if any passed)
-	if willShowSingleCommit {
-		foundCommit := false
-		for i := range prInfo.Commits {
-			if prInfo.Commits[i].ID.String() == commitToShow {
-				foundCommit = true
-				break
+	if willShowSpecifiedCommit || willShowSpecifiedCommitRange {
+
+		foundStartCommit := len(specifiedStartCommit) == 0
+		foundEndCommit := len(specifiedEndCommit) == 0
+
+		if !(foundStartCommit && foundEndCommit) {
+			for i := range prInfo.Commits {
+				if prInfo.Commits[i].ID.String() == specifiedStartCommit {
+					foundStartCommit = true
+				}
+				if prInfo.Commits[i].ID.String() == specifiedEndCommit {
+					foundEndCommit = true
+				}
+
+				if foundStartCommit && foundEndCommit {
+					break
+				}
 			}
 		}
-		if !foundCommit {
+
+		if !(foundStartCommit && foundEndCommit) {
 			ctx.NotFound("Given SHA1 not found for this PR", nil)
 			return
 		}
@@ -781,13 +791,23 @@ func ViewPullFiles(ctx *context.Context) {
 		return
 	}
 
-	startCommitID = prInfo.MergeBase
+	ctx.Data["IsShowingOnlySingleCommit"] = willShowSpecifiedCommit
 
-	if willShowSingleCommit {
-		endCommitID = commitToShow
+	if willShowSpecifiedCommit || willShowSpecifiedCommitRange {
+		if len(specifiedEndCommit) > 0 {
+			endCommitID = specifiedEndCommit
+		} else {
+			endCommitID = headCommitID
+		}
+		if len(specifiedStartCommit) > 0 {
+			startCommitID = specifiedStartCommit
+		} else {
+			startCommitID = prInfo.MergeBase
+		}
 		ctx.Data["IsShowingAllCommits"] = false
 	} else {
 		endCommitID = headCommitID
+		startCommitID = prInfo.MergeBase
 		ctx.Data["IsShowingAllCommits"] = true
 	}
 
@@ -795,6 +815,7 @@ func ViewPullFiles(ctx *context.Context) {
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["AfterCommitID"] = endCommitID
+	ctx.Data["BeforeCommitID"] = startCommitID
 
 	fileOnly := ctx.FormBool("file-only")
 
@@ -813,19 +834,18 @@ func ViewPullFiles(ctx *context.Context) {
 		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
 	}
 
-	if !willShowSingleCommit {
-		// show full PR diff (needs startCommitId to be set)
+	if !willShowSpecifiedCommit {
 		diffOptions.BeforeCommitID = startCommitID
 	}
 
 	var methodWithError string
 	var diff *gitdiff.Diff
 
-	// if we're not logged in or only a single commit is shown we
+	// if we're not logged in or only a single commit (or commit range) is shown we
 	// have to load only the diff and not get the viewed information
 	// as the viewed information is designed to be loaded only on latest PR
 	// diff and if you're signed in.
-	if !ctx.IsSigned || willShowSingleCommit {
+	if !ctx.IsSigned || willShowSpecifiedCommit || willShowSpecifiedCommitRange {
 		diff, err = gitdiff.GetDiff(gitRepo, diffOptions, files...)
 		methodWithError = "GetDiff"
 	} else {
@@ -925,6 +945,26 @@ func ViewPullFiles(ctx *context.Context) {
 	upload.AddUploadContext(ctx, "comment")
 
 	ctx.HTML(http.StatusOK, tplPullFiles)
+}
+
+func ViewPullFilesForSingleCommit(ctx *context.Context) {
+	commitToShow := ctx.Params("sha")
+	viewPullFiles(ctx, commitToShow, "", true, true)
+}
+
+func ViewPullFilesForRangeOrStartingFromCommit(ctx *context.Context) {
+	commitToShow := ctx.Params("sha")
+	if strings.Contains(commitToShow, "..") {
+		// it's a diff range that should be shown
+		parts := strings.Split(commitToShow, "..")
+		viewPullFiles(ctx, parts[0], parts[1], true, false)
+	} else {
+		viewPullFiles(ctx, commitToShow, "", true, false)
+	}
+}
+
+func ViewPullFilesForAllCommitsOfPr(ctx *context.Context) {
+	viewPullFiles(ctx, "", "", false, false)
 }
 
 // UpdatePullRequest merge PR's baseBranch into headBranch
