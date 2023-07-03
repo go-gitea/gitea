@@ -655,7 +655,8 @@
   .repository.view.issue .issue-title {
     flex-direction: column;
   }
-  .repository.view.issue .issue-title-buttons, .repository.view.issue .edit-buttons {
+  .repository.view.issue .issue-title-buttons,
+  .repository.view.issue .edit-buttons {
     width: 100%;
     justify-content: space-between;
   }
