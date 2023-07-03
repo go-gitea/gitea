@@ -1,5 +1,5 @@
 <div class="gt-mt-4">
-	<div class="ui repository packages {{.pageStyleClasses}}">
+	<div class="ui {{.pageStyleClasses}}">
 		{{template "base/alert" .}}
 		<form class="ui form ignore-dirty search-input">
 			<div class="ui fluid action input">
@@ -44,7 +44,7 @@
 				</li>
 			{{else}}
 				{{if not .HasPackages}}
-					<div class="empty center">
+					<div class="gt-pt-5 empty center">
 						{{svg "octicon-package" 48}}
 						<h2>{{.locale.Tr "packages.empty"}}</h2>
 						{{if and .Repository .CanWritePackages}}
