@@ -1229,6 +1229,42 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 	return diff, nil
 }
 
+type PullDiffStats struct {
+	TotalAddition, TotalDeletion int
+}
+
+// GetPullDiffStats
+func GetPullDiffStats(gitRepo *git.Repository, opts *DiffOptions) (*PullDiffStats, error) {
+	repoPath := gitRepo.Path
+
+	diff := &PullDiffStats{}
+
+	separator := "..."
+	if opts.DirectComparison {
+		separator = ".."
+	}
+
+	diffPaths := []string{opts.BeforeCommitID + separator + opts.AfterCommitID}
+	if len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == git.EmptySHA {
+		diffPaths = []string{git.EmptyTreeSHA, opts.AfterCommitID}
+	}
+
+	var err error
+
+	_, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(gitRepo.Ctx, repoPath, nil, diffPaths...)
+	if err != nil && strings.Contains(err.Error(), "no merge base") {
+		// git >= 2.28 now returns an error if base and head have become unrelated.
+		// previously it would return the results of git diff --shortstat base head so let's try that...
+		diffPaths = []string{opts.BeforeCommitID, opts.AfterCommitID}
+		_, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(gitRepo.Ctx, repoPath, nil, diffPaths...)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return diff, nil
+}
+
 // SyncAndGetUserSpecificDiff is like GetDiff, except that user specific data such as which files the given user has already viewed on the given PR will also be set
 // Additionally, the database asynchronously is updated if files have changed since the last review
 func SyncAndGetUserSpecificDiff(ctx context.Context, userID int64, pull *issues_model.PullRequest, gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
