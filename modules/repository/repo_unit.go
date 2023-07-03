@@ -40,3 +40,37 @@ func GenerateExternalWiki(ctx context.Context, templateRepo, generateRepo *repo_
 
 	return nil
 }
+
+func GenerateExternalTracker(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
+	templateUnit, err := templateRepo.GetUnit(ctx, unit.TypeExternalTracker)
+	if err != nil {
+		if repo_model.IsErrUnitTypeNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	templateCfg := templateUnit.ExternalTrackerConfig()
+
+	generateUnit := &repo_model.RepoUnit{
+		RepoID: generateRepo.ID,
+		Type:   unit.TypeExternalTracker,
+		Config: &repo_model.ExternalTrackerConfig{
+			ExternalTrackerURL:           generateExpansion(templateCfg.ExternalTrackerURL, templateRepo, generateRepo, false),
+			ExternalTrackerFormat:        generateExpansion(templateCfg.ExternalTrackerFormat, templateRepo, generateRepo, false),
+			ExternalTrackerStyle:         templateCfg.ExternalTrackerStyle,
+			ExternalTrackerRegexpPattern: templateCfg.ExternalTrackerRegexpPattern,
+		},
+	}
+	if err := db.Insert(ctx, generateUnit); err != nil {
+		return err
+	}
+	if err := db.DeleteBeans(ctx, &repo_model.RepoUnit{
+		RepoID: generateRepo.ID,
+		Type:   unit.TypeIssues,
+	}); err != nil {
+		return err
+	}
+
+	return nil
+
+}

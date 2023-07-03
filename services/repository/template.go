@@ -98,13 +98,18 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		}
 
 		// External Wiki
-		opts.ExternalWiki = true // for test
 		if opts.ExternalWiki && !unit.TypeExternalWiki.UnitGlobalDisabled() {
 			if err = repo_module.GenerateExternalWiki(ctx, templateRepo, generateRepo); err != nil {
 				return err
 			}
 		}
 
+		// External Tracker
+		if opts.ExternalTracker && !unit.TypeExternalTracker.UnitGlobalDisabled() {
+			if err = repo_module.GenerateExternalTracker(ctx, templateRepo, generateRepo); err != nil {
+				return err
+			}
+		}
 		return nil
 	}); err != nil {
 		return nil, err

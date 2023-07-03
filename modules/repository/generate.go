@@ -303,17 +303,18 @@ func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *repo_mo
 
 // GenerateRepoOptions contains the template units to generate
 type GenerateRepoOptions struct {
-	Name          string
-	DefaultBranch string
-	Description   string
-	Private       bool
-	GitContent    bool
-	Topics        bool
-	GitHooks      bool
-	Webhooks      bool
-	Avatar        bool
-	IssueLabels   bool
-	ExternalWiki  bool
+	Name            string
+	DefaultBranch   string
+	Description     string
+	Private         bool
+	GitContent      bool
+	Topics          bool
+	GitHooks        bool
+	Webhooks        bool
+	Avatar          bool
+	IssueLabels     bool
+	ExternalWiki    bool
+	ExternalTracker bool
 }
 
 // IsValid checks whether at least one option is chosen for generation
