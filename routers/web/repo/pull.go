@@ -959,7 +959,7 @@ func ViewPullFilesForRangeOrStartingFromCommit(ctx *context.Context) {
 		parts := strings.Split(commitToShow, "..")
 		viewPullFiles(ctx, parts[0], parts[1], true, false)
 	} else {
-		viewPullFiles(ctx, commitToShow, "", true, false)
+		viewPullFiles(ctx, "", commitToShow, true, false)
 	}
 }
 
