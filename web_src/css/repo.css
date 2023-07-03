@@ -669,6 +669,12 @@
   .comment.form .issue-content-left .content {
     margin-left: 0 !important;
   }
+  .comment.form .issue-content-left .content::before,
+  .comment.form .issue-content-left .content::after,
+  .comment.form .content .form::before,
+  .comment.form .content .form::after {
+    display: none;
+  }
 }
 
 .repository.view.issue .issue-title {
