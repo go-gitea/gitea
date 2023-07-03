@@ -12,6 +12,7 @@
    here are cherry-picked for our use cases, feel free to add more. after
    https://developer.mozilla.org/en-US/docs/Web/CSS/attr#type-or-unit is
    supported in browsers, use that instead for a generic solution. */
+
 .svg[height="12"] { min-height: 12px; }
 .svg[height="13"] { min-height: 13px; }
 .svg[height="14"] { min-height: 14px; }
