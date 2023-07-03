@@ -18,6 +18,9 @@
 
 .issue.list > .item .issue-item-main {
   width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .issue.list > .item .action-item-main {
