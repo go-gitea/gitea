@@ -28,5 +28,5 @@ func GenerateExternalWiki(ctx context.Context, templateRepo, generateRepo *repo_
 		},
 	}
 
-	return repo_model.UpdateRepositoryUnits(generateRepo, []repo_model.RepoUnit{*generateUnit}, nil)
+	return repo_model.UpdateRepositoryUnits(generateRepo, []repo_model.RepoUnit{*generateUnit}, []unit.Type{unit.TypeWiki})
 }
