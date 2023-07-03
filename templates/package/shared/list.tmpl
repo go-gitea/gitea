@@ -21,7 +21,7 @@
 						<a class="title" href="{{.FullWebLink}}">{{.Package.Name}}</a>
 						<span class="ui label">{{svg .Package.Type.SVGName 16}} {{.Package.Type.Name}}</span>
 					</div>
-					<div class="desc issue-item-bottom-row gt-df gt-ac gt-fw gt-my-1">
+					<div class="desc issue-item-bottom-row">
 						{{$timeStr := TimeSinceUnix .Version.CreatedUnix $.locale}}
 						{{$hasRepositoryAccess := false}}
 						{{if .Repository}}

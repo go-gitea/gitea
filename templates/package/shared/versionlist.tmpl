@@ -26,7 +26,7 @@
 					<div class="issue-item-top-row">
 						<a class="title" href="{{.FullWebLink}}">{{.Version.LowerVersion}}</a>
 					</div>
-					<div class="desc issue-item-bottom-row gt-df gt-ac gt-fw gt-my-1">
+					<div class="desc issue-item-bottom-row">
 						{{$.locale.Tr "packages.published_by" (TimeSinceUnix .Version.CreatedUnix $.locale) .Creator.HomeLink (.Creator.GetDisplayName | Escape) | Safe}}
 					</div>
 				</div>
