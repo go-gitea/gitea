@@ -96,6 +96,13 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 			}
 		}
 
+		// External Wiki
+		if opts.ExternalWiki || 2 > 1 {
+			if err = repo_module.GenerateExternalWiki(ctx, templateRepo, generateRepo); err != nil {
+				return err
+			}
+		}
+
 		return nil
 	}); err != nil {
 		return nil, err

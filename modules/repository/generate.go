@@ -313,6 +313,7 @@ type GenerateRepoOptions struct {
 	Webhooks      bool
 	Avatar        bool
 	IssueLabels   bool
+	ExternalWiki  bool
 }
 
 // IsValid checks whether at least one option is chosen for generation
