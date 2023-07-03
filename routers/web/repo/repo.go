@@ -579,13 +579,15 @@ func SearchRepo(ctx *context.Context) {
 
 	// collect the latest commit of each repo
 	// at most there are dozens of repos (limited by MaxResponseItems), so it's not a big problem at the moment
-	repoIDsToLatestCommitSHAs := make(map[int64]string, len(repos))
+	repoBranchNames := make(map[int64]string, len(repos))
 	for _, repo := range repos {
-		commitID, err := repo_service.GetBranchCommitID(ctx, repo, repo.DefaultBranch)
-		if err != nil {
-			continue
-		}
-		repoIDsToLatestCommitSHAs[repo.ID] = commitID
+		repoBranchNames[repo.ID] = repo.DefaultBranch
+	}
+
+	repoIDsToLatestCommitSHAs, err := git_model.FindBranchesByRepoAndBranchName(ctx, repoBranchNames)
+	if err != nil {
+		log.Error("FindBranchesByRepoAndBranchName: %v", err)
+		return
 	}
 
 	// call the database O(1) times to get the commit statuses for all repos

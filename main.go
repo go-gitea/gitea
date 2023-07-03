@@ -87,28 +87,36 @@ func main() {
 	app.Description = `By default, Gitea will start serving using the web-server with no argument, which can alternatively be run by running the subcommand "web".`
 	app.Version = Version + formatBuiltWith()
 	app.EnableBashCompletion = true
-	app.Commands = []cli.Command{
+
+	// these sub-commands need to use config file
+	subCmdWithIni := []cli.Command{
 		cmd.CmdWeb,
 		cmd.CmdServ,
 		cmd.CmdHook,
 		cmd.CmdDump,
-		cmd.CmdCert,
 		cmd.CmdAdmin,
-		cmd.CmdGenerate,
 		cmd.CmdMigrate,
 		cmd.CmdKeys,
 		cmd.CmdConvert,
 		cmd.CmdDoctor,
 		cmd.CmdManager,
-		cmd.Cmdembedded,
+		cmd.CmdEmbedded,
 		cmd.CmdMigrateStorage,
-		cmd.CmdDocs,
 		cmd.CmdDumpRepository,
 		cmd.CmdRestoreRepository,
 		cmd.CmdActions,
+		cmdHelp, // TODO: the "help" sub-command was used to show the more information for "work path" and "custom config", in the future, it should avoid doing so
+	}
+	// these sub-commands do not need the config file, and they do not depend on any path or environment variable.
+	subCmdStandalone := []cli.Command{
+		cmd.CmdCert,
+		cmd.CmdGenerate,
+		cmd.CmdDocs,
 	}
 
-	// default configuration flags
+	// shared configuration flags, they are for global and for each sub-command at the same time
+	// eg: such command is valid: "./gitea --config /tmp/app.ini web --config /tmp/app.ini", while it's discouraged indeed
+	// keep in mind that the short flags like "-C", "-c" and "-w" are globally polluted, they can't be used for sub-commands anymore.
 	globalFlags := []cli.Flag{
 		cli.HelpFlag,
 		cli.StringFlag{
@@ -128,13 +136,15 @@ func main() {
 
 	// Set the default to be equivalent to cmdWeb and add the default flags
 	app.Flags = append(app.Flags, globalFlags...)
-	app.Flags = append(app.Flags, cmd.CmdWeb.Flags...)
+	app.Flags = append(app.Flags, cmd.CmdWeb.Flags...) // TODO: the web flags polluted the global flags, they are not really global flags
 	app.Action = prepareWorkPathAndCustomConf(cmd.CmdWeb.Action)
 	app.HideHelp = true // use our own help action to show helps (with more information like default config)
-	app.Commands = append(app.Commands, cmdHelp)
-	for i := range app.Commands {
-		prepareSubcommands(&app.Commands[i], globalFlags)
+	app.Before = cmd.PrepareConsoleLoggerLevel(log.INFO)
+	for i := range subCmdWithIni {
+		prepareSubcommands(&subCmdWithIni[i], globalFlags)
 	}
+	app.Commands = append(app.Commands, subCmdWithIni...)
+	app.Commands = append(app.Commands, subCmdStandalone...)
 
 	err := app.Run(os.Args)
 	if err != nil {

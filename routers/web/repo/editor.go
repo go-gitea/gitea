@@ -327,10 +327,10 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 			} else {
 				ctx.Error(http.StatusInternalServerError, err.Error())
 			}
-		} else if models.IsErrBranchAlreadyExists(err) {
+		} else if git_model.IsErrBranchAlreadyExists(err) {
 			// For when a user specifies a new branch that already exists
 			ctx.Data["Err_NewBranchName"] = true
-			if branchErr, ok := err.(models.ErrBranchAlreadyExists); ok {
+			if branchErr, ok := err.(git_model.ErrBranchAlreadyExists); ok {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchErr.BranchName), tplEditFile, &form)
 			} else {
 				ctx.Error(http.StatusInternalServerError, err.Error())
@@ -529,9 +529,9 @@ func DeleteFilePost(ctx *context.Context) {
 			} else {
 				ctx.Error(http.StatusInternalServerError, err.Error())
 			}
-		} else if models.IsErrBranchAlreadyExists(err) {
+		} else if git_model.IsErrBranchAlreadyExists(err) {
 			// For when a user specifies a new branch that already exists
-			if branchErr, ok := err.(models.ErrBranchAlreadyExists); ok {
+			if branchErr, ok := err.(git_model.ErrBranchAlreadyExists); ok {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchErr.BranchName), tplDeleteFile, &form)
 			} else {
 				ctx.Error(http.StatusInternalServerError, err.Error())
@@ -731,10 +731,10 @@ func UploadFilePost(ctx *context.Context) {
 		} else if git.IsErrBranchNotExist(err) {
 			branchErr := err.(git.ErrBranchNotExist)
 			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_does_not_exist", branchErr.Name), tplUploadFile, &form)
-		} else if models.IsErrBranchAlreadyExists(err) {
+		} else if git_model.IsErrBranchAlreadyExists(err) {
 			// For when a user specifies a new branch that already exists
 			ctx.Data["Err_NewBranchName"] = true
-			branchErr := err.(models.ErrBranchAlreadyExists)
+			branchErr := err.(git_model.ErrBranchAlreadyExists)
 			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchErr.BranchName), tplUploadFile, &form)
 		} else if git.IsErrPushOutOfDate(err) {
 			ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+util.PathEscapeSegments(ctx.Repo.CommitID)+"..."+util.PathEscapeSegments(form.NewBranchName)), tplUploadFile, &form)

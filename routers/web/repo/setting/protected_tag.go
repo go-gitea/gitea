@@ -1,7 +1,7 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package repo
+package setting
 
 import (
 	"fmt"
@@ -19,8 +19,12 @@ import (
 	"code.gitea.io/gitea/services/forms"
 )
 
+const (
+	tplTags base.TplName = "repo/settings/tags"
+)
+
 // Tags render the page to protect tags
-func Tags(ctx *context.Context) {
+func ProtectedTags(ctx *context.Context) {
 	if setTagsContext(ctx) != nil {
 		return
 	}

@@ -5,8 +5,11 @@ package helper
 
 import (
 	"fmt"
+	"io"
 	"net/http"
+	"net/url"
 
+	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -34,4 +37,27 @@ func LogAndProcessError(ctx *context.Context, status int, obj interface{}, cb fu
 	if cb != nil {
 		cb(message)
 	}
+}
+
+// Serves the content of the package file
+// If the url is set it will redirect the request, otherwise the content is copied to the response.
+func ServePackageFile(ctx *context.Context, s io.ReadSeekCloser, u *url.URL, pf *packages_model.PackageFile, forceOpts ...*context.ServeHeaderOptions) {
+	if u != nil {
+		ctx.Redirect(u.String())
+		return
+	}
+
+	defer s.Close()
+
+	var opts *context.ServeHeaderOptions
+	if len(forceOpts) > 0 {
+		opts = forceOpts[0]
+	} else {
+		opts = &context.ServeHeaderOptions{
+			Filename:     pf.Name,
+			LastModified: pf.CreatedUnix.AsLocalTime(),
+		}
+	}
+
+	ctx.ServeContent(s, opts)
 }
