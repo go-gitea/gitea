@@ -57,7 +57,25 @@ func Branches(ctx *context.Context) {
 		return
 	}
 
+	commitIDs := []string{defaultBranch.DBBranch.CommitID}
+	for _, branch := range branches {
+		commitIDs = append(commitIDs, branch.DBBranch.CommitID)
+	}
+
+	commitStatuses, err := git_model.GetLatestCommitStatusForRepoCommitIDs(ctx, ctx.Repo.Repository.ID, commitIDs)
+	if err != nil {
+		ctx.ServerError("LoadBranches", err)
+		return
+	}
+
+	commitStatus := make(map[string]*git_model.CommitStatus)
+	for commitID, cs := range commitStatuses {
+		commitStatus[commitID] = git_model.CalcCommitStatus(cs)
+	}
+
 	ctx.Data["Branches"] = branches
+	ctx.Data["CommitStatus"] = commitStatus
+	ctx.Data["CommitStatuses"] = commitStatuses
 	ctx.Data["DefaultBranchBranch"] = defaultBranch
 	pager := context.NewPagination(int(branchesCount), pageSize, page, 5)
 	pager.SetDefaultParams(ctx)
