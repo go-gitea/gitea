@@ -44,7 +44,31 @@
 				{{template "repo/diff/whitespace_dropdown" .}}
 				{{template "repo/diff/options_dropdown" .}}
 				{{if .PageIsPullFiles}}
-					{{template "repo/diff/commits_dropdown" .}}
+					<script id="commit-data-script">
+						{{$numCommits := len .Commits}}
+						window.config.pageData.commitInfo = {
+							issueLink: {{$.Issue.Link}},
+							commits: [
+							{{range .Commits}}
+									{
+										Summary: {{.Summary}},
+										CommitterOrAuthorName: {{if .Committer}}{{.Committer.Name}}{{else}}{{.Author.Name}}{{end}},
+										ID: {{.ID.String}},
+										Time: {{if .Committer}}{{.Committer.When}}{{else}}{{.Author.When}}{{end}},
+										Hovered: false
+									},
+							{{end}}],
+							locale: {
+								lang: {{$.locale}},
+								filter_changes_by_commit: {{.locale.Tr "repo.pulls.filter_changes_by_commit"}},
+								show_all_commits: {{.locale.Tr "repo.pulls.show_all_commits"}},
+								stats_num_commits: {{.locale.TrN $numCommits "repo.activity.git_stats_commit_1" "repo.activity.git_stats_commit_n" $numCommits}},
+
+							},
+							queryParams: '?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}'
+						};
+					</script>
+					<div id="diff-commit-select"></div>
 				{{end}}
 				{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
 					{{template "repo/diff/new_review" .}}

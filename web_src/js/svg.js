@@ -29,6 +29,7 @@ import octiconFileDirectoryFill from '../../public/img/svg/octicon-file-director
 import octiconFilter from '../../public/img/svg/octicon-filter.svg';
 import octiconGear from '../../public/img/svg/octicon-gear.svg';
 import octiconGitBranch from '../../public/img/svg/octicon-git-branch.svg';
+import octiconGitCommit from '../../public/img/svg/octicon-git-commit.svg';
 import octiconGitMerge from '../../public/img/svg/octicon-git-merge.svg';
 import octiconGitPullRequest from '../../public/img/svg/octicon-git-pull-request.svg';
 import octiconHeading from '../../public/img/svg/octicon-heading.svg';
@@ -99,6 +100,7 @@ const svgs = {
   'octicon-filter': octiconFilter,
   'octicon-gear': octiconGear,
   'octicon-git-branch': octiconGitBranch,
+  'octicon-git-commit': octiconGitCommit,
   'octicon-git-merge': octiconGitMerge,
   'octicon-git-pull-request': octiconGitPullRequest,
   'octicon-heading': octiconHeading,
