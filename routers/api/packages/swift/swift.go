@@ -397,18 +397,17 @@ func DownloadPackageFile(ctx *context.Context) {
 
 	pf := pd.Files[0].File
 
-	s, _, err := packages_service.GetPackageFileStream(ctx, pf)
+	s, u, _, err := packages_service.GetPackageFileStream(ctx, pf)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	defer s.Close()
 
 	setResponseHeaders(ctx.Resp, &headers{
 		Digest: pd.Files[0].Blob.HashSHA256,
 	})
 
-	ctx.ServeContent(s, &context.ServeHeaderOptions{
+	helper.ServePackageFile(ctx, s, u, pf, &context.ServeHeaderOptions{
 		Filename:     pf.Name,
 		ContentType:  "application/zip",
 		LastModified: pf.CreatedUnix.AsLocalTime(),

@@ -210,21 +210,15 @@ func servePackageFile(ctx *context.Context, params parameters, serveContent bool
 		return
 	}
 
-	s, err := packages_module.NewContentStore().Get(packages_module.BlobHash256Key(pb.HashSHA256))
+	s, u, _, err := packages_service.GetPackageBlobStream(ctx, pf, pb)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
-	}
-	defer s.Close()
-
-	if pf.IsLead {
-		if err := packages_model.IncrementDownloadCounter(ctx, pv.ID); err != nil {
-			log.Error("Error incrementing download counter: %v", err)
-		}
+		return
 	}
 
 	opts.Filename = pf.Name
 
-	ctx.ServeContent(s, opts)
+	helper.ServePackageFile(ctx, s, u, pf, opts)
 }
 
 // UploadPackageFile adds a file to the package. If the package does not exist, it gets created.
