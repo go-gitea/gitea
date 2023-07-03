@@ -161,9 +161,10 @@ func RedirectToLastVersion(ctx *context.Context) {
 // ViewPackageVersion displays a single package version
 func ViewPackageVersion(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
-
 	shared_user.RenderUserHeader(ctx)
-
+	if ctx.ContextUser.IsOrganization() {
+		ctx.Data["pageStyleClasses"] = "container"
+	}
 	ctx.Data["Title"] = pd.Package.Name
 	ctx.Data["IsPackagesPage"] = true
 	ctx.Data["PackageDescriptor"] = pd
@@ -269,7 +270,7 @@ func ListPackageVersions(ctx *context.Context) {
 		}
 		return
 	}
-
+	ctx.Data["pageStyleClasses"] = "container"
 	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
@@ -357,7 +358,6 @@ func ListPackageVersions(ctx *context.Context) {
 // PackageSettings displays the package settings page
 func PackageSettings(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
-
 	shared_user.RenderUserHeader(ctx)
 
 	ctx.Data["Title"] = pd.Package.Name
@@ -377,7 +377,7 @@ func PackageSettings(ctx *context.Context) {
 // PackageSettingsPost updates the package settings
 func PackageSettingsPost(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
-
+	ctx.Data["pageStyleClasses"] = "container"
 	form := web.GetForm(ctx).(*forms.PackageSettingForm)
 	switch form.Action {
 	case "link":
