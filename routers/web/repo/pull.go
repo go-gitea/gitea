@@ -713,6 +713,7 @@ func ViewPullFiles(ctx *context.Context) {
 		for i := range prInfo.Commits {
 			if prInfo.Commits[i].ID.String() == commitToShow {
 				foundCommit = true
+				break
 			}
 		}
 		if !foundCommit {
@@ -757,33 +758,27 @@ func ViewPullFiles(ctx *context.Context) {
 		maxLines, maxFiles = -1, -1
 	}
 
-	var diffOptions *gitdiff.DiffOptions
+	diffOptions := &gitdiff.DiffOptions{
+		AfterCommitID:      endCommitID,
+		SkipTo:             ctx.FormString("skip-to"),
+		MaxLines:           maxLines,
+		MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
+		MaxFiles:           maxFiles,
+		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
+	}
 
-	// show only a single commit for this pr
-	if willShowSingleCommit {
-		diffOptions = &gitdiff.DiffOptions{
-			AfterCommitID:      endCommitID,
-			SkipTo:             ctx.FormString("skip-to"),
-			MaxLines:           maxLines,
-			MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
-			MaxFiles:           maxFiles,
-			WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
-		}
-	} else {
-		// show full PR diff
-		diffOptions = &gitdiff.DiffOptions{
-			BeforeCommitID:     startCommitID,
-			AfterCommitID:      endCommitID,
-			SkipTo:             ctx.FormString("skip-to"),
-			MaxLines:           maxLines,
-			MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
-			MaxFiles:           maxFiles,
-			WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
-		}
+	if !willShowSingleCommit {
+		// show full PR diff (needs startCommitId to be set)
+		diffOptions.BeforeCommitID = startCommitID
 	}
 
 	var methodWithError string
 	var diff *gitdiff.Diff
+
+	// if we're not logged in or only a single commit is shown we
+	// have to load only the diff and not get the viewed information
+	// as the viewed information is designed to be loaded only on latest PR
+	// diff and if you're signed in.
 	if !ctx.IsSigned || willShowSingleCommit {
 		diff, err = gitdiff.GetDiff(gitRepo, diffOptions, files...)
 		methodWithError = "GetDiff"
