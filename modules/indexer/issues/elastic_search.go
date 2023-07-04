@@ -140,7 +140,7 @@ func (b *ElasticSearchIndexer) Index(issues []*IndexerData) error {
 		_, err := b.client.Index().
 			Index(b.indexerName).
 			Id(fmt.Sprintf("%d", issue.ID)).
-			BodyJson(map[string]interface{}{
+			BodyJson(map[string]any{
 				"id":       issue.ID,
 				"repo_id":  issue.RepoID,
 				"title":    issue.Title,
@@ -157,7 +157,7 @@ func (b *ElasticSearchIndexer) Index(issues []*IndexerData) error {
 			elastic.NewBulkIndexRequest().
 				Index(b.indexerName).
 				Id(fmt.Sprintf("%d", issue.ID)).
-				Doc(map[string]interface{}{
+				Doc(map[string]any{
 					"id":       issue.ID,
 					"repo_id":  issue.RepoID,
 					"title":    issue.Title,
@@ -209,7 +209,7 @@ func (b *ElasticSearchIndexer) Search(ctx context.Context, keyword string, repoI
 	query := elastic.NewBoolQuery()
 	query = query.Must(kwQuery)
 	if len(repoIDs) > 0 {
-		repoStrs := make([]interface{}, 0, len(repoIDs))
+		repoStrs := make([]any, 0, len(repoIDs))
 		for _, repoID := range repoIDs {
 			repoStrs = append(repoStrs, repoID)
 		}

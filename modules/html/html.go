@@ -5,7 +5,7 @@ package html
 
 // ParseSizeAndClass get size and class from string with default values
 // If present, "others" expects the new size first and then the classes to use
-func ParseSizeAndClass(defaultSize int, defaultClass string, others ...interface{}) (int, string) {
+func ParseSizeAndClass(defaultSize int, defaultClass string, others ...any) (int, string) {
 	if len(others) == 0 {
 		return defaultSize, defaultClass
 	}

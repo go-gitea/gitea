@@ -75,7 +75,7 @@ func setResponseHeaders(resp http.ResponseWriter, h *containerHeaders) {
 	resp.WriteHeader(h.Status)
 }
 
-func jsonResponse(ctx *context.Context, status int, obj interface{}) {
+func jsonResponse(ctx *context.Context, status int, obj any) {
 	setResponseHeaders(ctx.Resp, &containerHeaders{
 		Status:      status,
 		ContentType: "application/json",

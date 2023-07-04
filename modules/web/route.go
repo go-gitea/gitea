@@ -25,12 +25,12 @@ func Bind[T any](_ T) any {
 }
 
 // SetForm set the form object
-func SetForm(data middleware.ContextDataStore, obj interface{}) {
+func SetForm(data middleware.ContextDataStore, obj any) {
 	data.GetData()["__form"] = obj
 }
 
 // GetForm returns the validate form information
-func GetForm(data middleware.ContextDataStore) interface{} {
+func GetForm(data middleware.ContextDataStore) any {
 	return data.GetData()["__form"]
 }
 
@@ -38,7 +38,7 @@ func GetForm(data middleware.ContextDataStore) interface{} {
 type Route struct {
 	R              chi.Router
 	curGroupPrefix string
-	curMiddlewares []interface{}
+	curMiddlewares []any
 }
 
 // NewRoute creates a new route
@@ -48,14 +48,14 @@ func NewRoute() *Route {
 }
 
 // Use supports two middlewares
-func (r *Route) Use(middlewares ...interface{}) {
+func (r *Route) Use(middlewares ...any) {
 	for _, m := range middlewares {
 		r.R.Use(toHandlerProvider(m))
 	}
 }
 
 // Group mounts a sub-Router along a `pattern` string.
-func (r *Route) Group(pattern string, fn func(), middlewares ...interface{}) {
+func (r *Route) Group(pattern string, fn func(), middlewares ...any) {
 	previousGroupPrefix := r.curGroupPrefix
 	previousMiddlewares := r.curMiddlewares
 	r.curGroupPrefix += pattern
@@ -111,53 +111,53 @@ func (r *Route) Mount(pattern string, subR *Route) {
 }
 
 // Any delegate requests for all methods
-func (r *Route) Any(pattern string, h ...interface{}) {
+func (r *Route) Any(pattern string, h ...any) {
 	middlewares, handlerFunc := r.wrapMiddlewareAndHandler(h)
 	r.R.With(middlewares...).HandleFunc(r.getPattern(pattern), handlerFunc)
 }
 
 // RouteMethods delegate special methods, it is an alias of "Methods", while the "pattern" is the first parameter
-func (r *Route) RouteMethods(pattern, methods string, h ...interface{}) {
+func (r *Route) RouteMethods(pattern, methods string, h ...any) {
 	r.Methods(methods, pattern, h)
 }
 
 // Delete delegate delete method
-func (r *Route) Delete(pattern string, h ...interface{}) {
+func (r *Route) Delete(pattern string, h ...any) {
 	r.Methods("DELETE", pattern, h)
 }
 
 // Get delegate get method
-func (r *Route) Get(pattern string, h ...interface{}) {
+func (r *Route) Get(pattern string, h ...any) {
 	r.Methods("GET", pattern, h)
 }
 
 // GetOptions delegate get and options method
-func (r *Route) GetOptions(pattern string, h ...interface{}) {
+func (r *Route) GetOptions(pattern string, h ...any) {
 	r.Methods("GET,OPTIONS", pattern, h)
 }
 
 // PostOptions delegate post and options method
-func (r *Route) PostOptions(pattern string, h ...interface{}) {
+func (r *Route) PostOptions(pattern string, h ...any) {
 	r.Methods("POST,OPTIONS", pattern, h)
 }
 
 // Head delegate head method
-func (r *Route) Head(pattern string, h ...interface{}) {
+func (r *Route) Head(pattern string, h ...any) {
 	r.Methods("HEAD", pattern, h)
 }
 
 // Post delegate post method
-func (r *Route) Post(pattern string, h ...interface{}) {
+func (r *Route) Post(pattern string, h ...any) {
 	r.Methods("POST", pattern, h)
 }
 
 // Put delegate put method
-func (r *Route) Put(pattern string, h ...interface{}) {
+func (r *Route) Put(pattern string, h ...any) {
 	r.Methods("PUT", pattern, h)
 }
 
 // Patch delegate patch method
-func (r *Route) Patch(pattern string, h ...interface{}) {
+func (r *Route) Patch(pattern string, h ...any) {
 	r.Methods("PATCH", pattern, h)
 }
 
@@ -172,7 +172,7 @@ func (r *Route) NotFound(h http.HandlerFunc) {
 }
 
 // Combo delegates requests to Combo
-func (r *Route) Combo(pattern string, h ...interface{}) *Combo {
+func (r *Route) Combo(pattern string, h ...any) *Combo {
 	return &Combo{r, pattern, h}
 }
 
@@ -180,35 +180,35 @@ func (r *Route) Combo(pattern string, h ...interface{}) *Combo {
 type Combo struct {
 	r       *Route
 	pattern string
-	h       []interface{}
+	h       []any
 }
 
 // Get delegates Get method
-func (c *Combo) Get(h ...interface{}) *Combo {
+func (c *Combo) Get(h ...any) *Combo {
 	c.r.Get(c.pattern, append(c.h, h...)...)
 	return c
 }
 
 // Post delegates Post method
-func (c *Combo) Post(h ...interface{}) *Combo {
+func (c *Combo) Post(h ...any) *Combo {
 	c.r.Post(c.pattern, append(c.h, h...)...)
 	return c
 }
 
 // Delete delegates Delete method
-func (c *Combo) Delete(h ...interface{}) *Combo {
+func (c *Combo) Delete(h ...any) *Combo {
 	c.r.Delete(c.pattern, append(c.h, h...)...)
 	return c
 }
 
 // Put delegates Put method
-func (c *Combo) Put(h ...interface{}) *Combo {
+func (c *Combo) Put(h ...any) *Combo {
 	c.r.Put(c.pattern, append(c.h, h...)...)
 	return c
 }
 
 // Patch delegates Patch method
-func (c *Combo) Patch(h ...interface{}) *Combo {
+func (c *Combo) Patch(h ...any) *Combo {
 	c.r.Patch(c.pattern, append(c.h, h...)...)
 	return c
 }

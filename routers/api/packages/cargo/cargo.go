@@ -33,7 +33,7 @@ type StatusMessage struct {
 	Message string `json:"detail"`
 }
 
-func apiError(ctx *context.Context, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj any) {
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.JSON(status, StatusResponse{
 			OK: false,

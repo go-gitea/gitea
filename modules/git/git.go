@@ -114,7 +114,7 @@ func VersionInfo() string {
 		return "(git not found)"
 	}
 	format := "%s"
-	args := []interface{}{gitVersion.Original()}
+	args := []any{gitVersion.Original()}
 	// Since git wire protocol has been released from git v2.18
 	if setting.Git.EnableAutoGitWireProtocol && CheckGitVersionAtLeast("2.18") == nil {
 		format += ", Wire Protocol %s Enabled"
