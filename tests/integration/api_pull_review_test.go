@@ -195,7 +195,7 @@ func TestAPIPullReview(t *testing.T) {
 		Comments: []api.CreatePullReviewComment{},
 	})
 	resp = MakeRequest(t, req, http.StatusUnprocessableEntity)
-	errMap := make(map[string]interface{})
+	errMap := make(map[string]any)
 	json.Unmarshal(resp.Body.Bytes(), &errMap)
 	assert.EqualValues(t, "review event COMMENT requires a body or a comment", errMap["message"].(string))
 

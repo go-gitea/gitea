@@ -1111,7 +1111,7 @@ func UpdateReviewsMigrationsByType(tp structs.GitServiceType, originalAuthorID s
 	_, err := db.GetEngine(db.DefaultContext).Table("review").
 		Where("original_author_id = ?", originalAuthorID).
 		And(migratedIssueCond(tp)).
-		Update(map[string]interface{}{
+		Update(map[string]any{
 			"reviewer_id":        posterID,
 			"original_author":    "",
 			"original_author_id": 0,

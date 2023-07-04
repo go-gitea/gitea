@@ -26,8 +26,8 @@ func DefaultOrSystemWebhooks(ctx *context.Context) {
 	ctx.Data["PageIsAdminSystemHooks"] = true
 	ctx.Data["PageIsAdminDefaultHooks"] = true
 
-	def := make(map[string]interface{}, len(ctx.Data))
-	sys := make(map[string]interface{}, len(ctx.Data))
+	def := make(map[string]any, len(ctx.Data))
+	sys := make(map[string]any, len(ctx.Data))
 	for k, v := range ctx.Data {
 		def[k] = v
 		sys[k] = v
@@ -67,7 +67,7 @@ func DeleteDefaultOrSystemWebhook(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"redirect": setting.AppSubURL + "/admin/hooks",
 	})
 }

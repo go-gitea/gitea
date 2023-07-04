@@ -173,7 +173,7 @@ func (m minioFileInfo) Mode() os.FileMode {
 	return os.ModePerm
 }
 
-func (m minioFileInfo) Sys() interface{} {
+func (m minioFileInfo) Sys() any {
 	return nil
 }
 

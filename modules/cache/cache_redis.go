@@ -24,7 +24,7 @@ type RedisCacher struct {
 }
 
 // toStr convert string/int/int64 interface to string. it's only used by the RedisCacher.Put internally
-func toStr(v interface{}) string {
+func toStr(v any) string {
 	if v == nil {
 		return ""
 	}
@@ -44,7 +44,7 @@ func toStr(v interface{}) string {
 
 // Put puts value (string type) into cache with key and expire time.
 // If expired is 0, it lives forever.
-func (c *RedisCacher) Put(key string, val interface{}, expire int64) error {
+func (c *RedisCacher) Put(key string, val any, expire int64) error {
 	// this function is not well-designed, it only puts string values into cache
 	key = c.prefix + key
 	if expire == 0 {
@@ -65,7 +65,7 @@ func (c *RedisCacher) Put(key string, val interface{}, expire int64) error {
 }
 
 // Get gets cached value by given key.
-func (c *RedisCacher) Get(key string) interface{} {
+func (c *RedisCacher) Get(key string) any {
 	val, err := c.c.Get(graceful.GetManager().HammerContext(), c.prefix+key).Result()
 	if err != nil {
 		return nil

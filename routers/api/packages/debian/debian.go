@@ -23,7 +23,7 @@ import (
 	debian_service "code.gitea.io/gitea/services/packages/debian"
 )
 
-func apiError(ctx *context.Context, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj any) {
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.PlainText(status, message)
 	})
@@ -59,7 +59,7 @@ func GetRepositoryFile(ctx *context.Context) {
 		key += "|" + component + "|" + architecture
 	}
 
-	s, pf, err := packages_service.GetFileStreamByPackageVersion(
+	s, u, pf, err := packages_service.GetFileStreamByPackageVersion(
 		ctx,
 		pv,
 		&packages_service.PackageFileInfo{
@@ -75,12 +75,8 @@ func GetRepositoryFile(ctx *context.Context) {
 		}
 		return
 	}
-	defer s.Close()
 
-	ctx.ServeContent(s, &context.ServeHeaderOptions{
-		Filename:     pf.Name,
-		LastModified: pf.CreatedUnix.AsLocalTime(),
-	})
+	helper.ServePackageFile(ctx, s, u, pf)
 }
 
 // https://wiki.debian.org/DebianRepository/Format#indices_acquisition_via_hashsums_.28by-hash.29
@@ -110,7 +106,7 @@ func GetRepositoryFileByHash(ctx *context.Context) {
 		return
 	}
 
-	s, pf, err := packages_service.GetPackageFileStream(ctx, pfs[0])
+	s, u, pf, err := packages_service.GetPackageFileStream(ctx, pfs[0])
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
@@ -119,12 +115,8 @@ func GetRepositoryFileByHash(ctx *context.Context) {
 		}
 		return
 	}
-	defer s.Close()
 
-	ctx.ServeContent(s, &context.ServeHeaderOptions{
-		Filename:     pf.Name,
-		LastModified: pf.CreatedUnix.AsLocalTime(),
-	})
+	helper.ServePackageFile(ctx, s, u, pf)
 }
 
 func UploadPackageFile(ctx *context.Context) {
@@ -217,7 +209,7 @@ func DownloadPackageFile(ctx *context.Context) {
 	name := ctx.Params("name")
 	version := ctx.Params("version")
 
-	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
@@ -238,9 +230,8 @@ func DownloadPackageFile(ctx *context.Context) {
 		}
 		return
 	}
-	defer s.Close()
 
-	ctx.ServeContent(s, &context.ServeHeaderOptions{
+	helper.ServePackageFile(ctx, s, u, pf, &context.ServeHeaderOptions{
 		ContentType:  "application/vnd.debian.binary-package",
 		Filename:     pf.Name,
 		LastModified: pf.CreatedUnix.AsLocalTime(),
