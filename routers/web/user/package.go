@@ -368,6 +368,7 @@ func PackageSettings(ctx *context.Context) {
 	})
 	ctx.Data["Repos"] = repos
 	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
+	ctx.Data["pageStyleClasses"] = "container"
 
 	ctx.HTML(http.StatusOK, tplPackagesSettings)
 }
