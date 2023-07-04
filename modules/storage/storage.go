@@ -20,7 +20,7 @@ var ErrURLNotSupported = errors.New("url method not supported")
 
 // ErrInvalidConfiguration is called when there is invalid configuration for a storage
 type ErrInvalidConfiguration struct {
-	cfg interface{}
+	cfg any
 	err error
 }
 
