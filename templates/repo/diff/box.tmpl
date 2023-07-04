@@ -55,7 +55,7 @@
 										CommitterOrAuthorName: {{if .Committer}}{{.Committer.Name}}{{else}}{{.Author.Name}}{{end}},
 										ID: {{.ID.String}},
 										Time: {{if .Committer}}{{.Committer.When}}{{else}}{{.Author.When}}{{end}},
-										Hovered: false
+										Selected: false
 									},
 							{{end}}],
 							locale: {
