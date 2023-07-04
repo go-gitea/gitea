@@ -31,14 +31,11 @@ func GenerateExternalWiki(ctx context.Context, templateRepo, generateRepo *repo_
 	if err := db.Insert(ctx, generateUnit); err != nil {
 		return err
 	}
-	if err := db.DeleteBeans(ctx, &repo_model.RepoUnit{
+
+	return db.DeleteBeans(ctx, &repo_model.RepoUnit{
 		RepoID: generateRepo.ID,
 		Type:   unit.TypeWiki,
-	}); err != nil {
-		return err
-	}
-
-	return nil
+	})
 }
 
 func GenerateExternalTracker(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
@@ -64,13 +61,9 @@ func GenerateExternalTracker(ctx context.Context, templateRepo, generateRepo *re
 	if err := db.Insert(ctx, generateUnit); err != nil {
 		return err
 	}
-	if err := db.DeleteBeans(ctx, &repo_model.RepoUnit{
+
+	return db.DeleteBeans(ctx, &repo_model.RepoUnit{
 		RepoID: generateRepo.ID,
 		Type:   unit.TypeIssues,
-	}); err != nil {
-		return err
-	}
-
-	return nil
-
+	})
 }
