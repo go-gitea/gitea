@@ -281,7 +281,6 @@ func (c *Command) Run(opts *RunOpts) error {
 		log.Debug("git.Command.RunDir(%s): %s", opts.Dir, c)
 	}
 
-	startTime := time.Now()
 	desc := c.desc
 	if desc == "" {
 		if opts.Dir == "" {
@@ -301,6 +300,8 @@ func (c *Command) Run(opts *RunOpts) error {
 		ctx, cancel, finished = process.GetManager().AddContextTimeout(c.parentContext, timeout, desc)
 	}
 	defer finished()
+
+	startTime := time.Now()
 
 	cmd := exec.CommandContext(ctx, c.prog, c.args...)
 	if opts.Env == nil {
