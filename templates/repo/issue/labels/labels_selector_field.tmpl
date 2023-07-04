@@ -1,5 +1,5 @@
 <div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-label dropdown">
-	<span class="text gt-df gt-ac muted">
+	<span class="text muted flex-text-block">
 		<strong>{{.locale.Tr "repo.issues.new.labels"}}</strong>
 		{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
 			{{svg "octicon-gear" 16 "gt-ml-2"}}
