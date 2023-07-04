@@ -355,16 +355,18 @@ func Generate(ctx *context.APIContext) {
 	}
 
 	opts := repo_module.GenerateRepoOptions{
-		Name:          form.Name,
-		DefaultBranch: form.DefaultBranch,
-		Description:   form.Description,
-		Private:       form.Private,
-		GitContent:    form.GitContent,
-		Topics:        form.Topics,
-		GitHooks:      form.GitHooks,
-		Webhooks:      form.Webhooks,
-		Avatar:        form.Avatar,
-		IssueLabels:   form.Labels,
+		Name:            form.Name,
+		DefaultBranch:   form.DefaultBranch,
+		Description:     form.Description,
+		Private:         form.Private,
+		GitContent:      form.GitContent,
+		Topics:          form.Topics,
+		GitHooks:        form.GitHooks,
+		Webhooks:        form.Webhooks,
+		Avatar:          form.Avatar,
+		IssueLabels:     form.Labels,
+		ExternalTracker: form.ExternalTracker,
+		ExternalWiki:    form.ExternalWiki,
 	}
 
 	if !opts.IsValid() {
