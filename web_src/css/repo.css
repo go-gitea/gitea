@@ -3147,14 +3147,6 @@ tbody.commit-list {
   flex-wrap: wrap;
 }
 
-.commits-table .commits-table-right form {
-  display: flex;
-  align-items: center;
-  gap: 0.75em;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
 @media (max-width: 767.98px) {
   .repository.file.list #repo-files-table .entry,
   .repository.file.list #repo-files-table .commit-list {
