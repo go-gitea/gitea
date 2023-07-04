@@ -41,15 +41,10 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Bump go.etcd.io/bbolt and blevesearch deps (#23062) (#24519)
   * Fix new wiki page mirror (#24518)
   * Match unqualified references when syncing pulls as well (#23070)
-* TRANSLATION
 * DOCS
-  * Fix broken links in documents v1.19 (#25142)
   * Change branch name from master to main in some documents' links (#25126) (#25139)
-  * Add oauth Chinese document for v1.19 (#25020)
   * Remove unnecessary content on docs (#24976) (#25001)
   * Unify doc links to use paths relative to doc folder (#24979) (#25000)
-  * Update from-binary.en-us.md (#24975) (#24999)
-  * Merge two translation contributing documents (#23939) (#24933)
   * Fix docs documenting invalid `@every` for `OLDER_THAN` cron settings (#24695) (#24698)
 * MISC
   * Merge different languages for language stats (#24900) (#24921)
