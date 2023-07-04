@@ -73,7 +73,7 @@ func WriteLogs(ctx context.Context, filename string, offset int64, rows []*runne
 }
 
 func ReadLogs(ctx context.Context, inStorage bool, filename string, offset, limit int64) ([]*runnerv1.LogRow, error) {
-	f, err := openLogs(ctx, inStorage, filename)
+	f, err := OpenLogs(ctx, inStorage, filename)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +141,7 @@ func RemoveLogs(ctx context.Context, inStorage bool, filename string) error {
 	return nil
 }
 
-func openLogs(ctx context.Context, inStorage bool, filename string) (io.ReadSeekCloser, error) {
+func OpenLogs(ctx context.Context, inStorage bool, filename string) (io.ReadSeekCloser, error) {
 	if !inStorage {
 		name := DBFSPrefix + filename
 		f, err := dbfs.Open(ctx, name)
