@@ -4,6 +4,7 @@ import {initRepoIssueContentHistory} from './repo-issue-content.js';
 import {initDiffFileTree} from './repo-diff-filetree.js';
 import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.js';
 import {initViewedCheckboxListenerFor, countAndUpdateViewedFiles, initExpandAndCollapseFilesButton} from './pull-view-file.js';
+import {initImageDiff} from './imagediff.js';
 
 const {csrfToken, pageData} = window.config;
 
@@ -117,6 +118,7 @@ function onShowMoreFiles() {
   initRepoIssueContentHistory();
   initViewedCheckboxListenerFor();
   countAndUpdateViewedFiles();
+  initImageDiff();
 }
 
 export function loadMoreFiles(url) {
