@@ -1,25 +1,25 @@
 {{template "base/head" .}}
 {{if .ContextUser.IsOrganization}}
-  <div role="main" aria-label="{{.Title}}" class="page-content repository packages">
-	{{template "shared/user/org_profile_avatar" .}}
-	{{template "user/overview/header" .}}
-	{{template "package/shared/versionlist" .}}
-  </div>
+<div role="main" aria-label="{{.Title}}" class="page-content repository packages">
+  {{template "shared/user/org_profile_avatar" .}}
+  {{template "user/overview/header" .}}
+  {{template "package/shared/versionlist" .}}
+</div>
 {{else}}
-  <div role="main" aria-label="{{.Title}}" class="page-content user profile packages">
-	<div class="ui container">
-	  <div class="ui stackable grid">
-		<div class="ui four wide column">
-		  {{template "shared/user/profile_big_avatar" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content user profile packages">
+  <div class="ui container">
+	<div class="ui stackable grid">
+	  <div class="ui four wide column">
+		{{template "shared/user/profile_big_avatar" .}}
+	  </div>
+	  <div class="ui twelve wide column">
+		<div class="gt-mb-4">
+		  {{template "user/overview/header" .}}
 		</div>
-		<div class="ui twelve wide column">
-		  <div class="gt-mb-4">
-			{{template "user/overview/header" .}}
-		  </div>
-		  {{template "package/shared/versionlist" .}}
-		</div>
+		{{template "package/shared/versionlist" .}}
 	  </div>
 	</div>
   </div>
+</div>
 {{end}}
 {{template "base/footer" .}}
