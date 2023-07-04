@@ -14,7 +14,7 @@
     <div class="menu transition" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
       <div class="ui icon search input">
         <i class="icon"><svg-icon name="octicon-filter" :size="16"/></i>
-        <input name="search" ref="searchField" autocomplete="off" v-model="searchTerm" @input="handleSearchInputChange" @keydown="keydown($event)" :placeholder="searchFieldPlaceholder">
+        <input name="search" ref="searchField" autocomplete="off" v-model="searchTerm" @keydown="keydown($event)" :placeholder="searchFieldPlaceholder">
       </div>
       <template v-if="showBranchesInDropdown">
         <div class="header branch-tag-choice">
@@ -81,7 +81,7 @@ import {createApp, nextTick} from 'vue';
 import $ from 'jquery';
 import {SvgIcon} from '../svg.js';
 import {pathEscapeSegments} from '../utils/url.js';
-import {debounce} from 'throttle-debounce';
+import _ from 'lodash';
 
 const sfc = {
   components: {SvgIcon},
@@ -120,6 +120,10 @@ const sfc = {
       if (visible) {
         this.focusSearchField();
       }
+    },
+    searchTerm: function(val) {
+      console.log(val);
+      this.fetchBranches();
     }
   },
 
@@ -249,8 +253,8 @@ const sfc = {
         this.menuVisible = false;
       }
     },
-    async fetchBranches() {
-      console.log('handleSearchInputChange', this.searchTerm);
+    fetchBranches: _.debounce(async function() {
+      console.log('fetchBranches', this.searchTerm);
       const resp = await fetch(`${this.repoLink}/${this.mode}/list?&q=${this.searchTerm}`);
       const {results} = await resp.json();
       console.log(results);
@@ -269,11 +273,7 @@ const sfc = {
           }
         }
       }
-    },
-    handleSearchInputChange(e) {
-      e.preventDefault();
-      this.fetchBranches();
-    }
+    }, 500),
   }
 };
 
