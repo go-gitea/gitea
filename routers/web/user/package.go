@@ -162,9 +162,7 @@ func RedirectToLastVersion(ctx *context.Context) {
 func ViewPackageVersion(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
 	shared_user.RenderUserHeader(ctx)
-	if ctx.ContextUser.IsOrganization() {
-		ctx.Data["pageStyleClasses"] = "container"
-	}
+	ctx.Data["pageStyleClasses"] = "container"
 	ctx.Data["Title"] = pd.Package.Name
 	ctx.Data["IsPackagesPage"] = true
 	ctx.Data["PackageDescriptor"] = pd
