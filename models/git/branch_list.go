@@ -5,6 +5,7 @@ package git
 
 import (
 	"context"
+	"fmt"
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
@@ -142,4 +143,19 @@ func FindBranchesByRepoAndBranchName(ctx context.Context, repoBranches map[int64
 		branchMap[branch.RepoID] = branch.CommitID
 	}
 	return branchMap, nil
+}
+
+func FindBranchesWithSearch(ctx context.Context, opts FindBranchOptions, search string) ([]string, error) {
+	fmt.Println(search)
+	branches := make([]string, 0, 30)
+	var prefixCond builder.Cond = builder.Like{"name", "%" + search + "%"}
+	sess := db.GetEngine(ctx).Select("name").Where(opts.Cond()).And(prefixCond)
+	if opts.PageSize > 0 && !opts.IsListAll() {
+		sess = db.SetSessionPagination(sess, &opts.ListOptions)
+	}
+	sess = orderByBranches(sess, opts)
+	if err := sess.Table("branch").Limit(30).Find(&branches); err != nil {
+		return nil, err
+	}
+	return branches, nil
 }

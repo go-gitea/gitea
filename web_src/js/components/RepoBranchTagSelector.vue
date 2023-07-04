@@ -1,6 +1,6 @@
 <template>
   <div class="ui floating filter dropdown custom">
-    <button class="branch-dropdown-button gt-ellipsis ui basic small compact button gt-df gt-m-0" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
+    <button class="branch-dropdown-button gt-ellipsis ui basic small compact button gt-df gt-m-0" @click="menuVisible = !menuVisible;fetchBranches()" @keyup.enter="menuVisible = !menuVisible">
       <span class="text gt-df gt-ac gt-mr-2">
         <template v-if="release">{{ textReleaseCompare }}</template>
         <template v-else>
@@ -14,7 +14,7 @@
     <div class="menu transition" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
       <div class="ui icon search input">
         <i class="icon"><svg-icon name="octicon-filter" :size="16"/></i>
-        <input name="search" ref="searchField" autocomplete="off" v-model="searchTerm" @keydown="keydown($event)" :placeholder="searchFieldPlaceholder">
+        <input name="search" ref="searchField" autocomplete="off" v-model="searchTerm" @input="handleSearchInputChange" @keydown="keydown($event)" :placeholder="searchFieldPlaceholder">
       </div>
       <template v-if="showBranchesInDropdown">
         <div class="header branch-tag-choice">
@@ -81,6 +81,7 @@ import {createApp, nextTick} from 'vue';
 import $ from 'jquery';
 import {SvgIcon} from '../svg.js';
 import {pathEscapeSegments} from '../utils/url.js';
+import {debounce} from 'throttle-debounce';
 
 const sfc = {
   components: {SvgIcon},
@@ -90,12 +91,14 @@ const sfc = {
   computed: {
     filteredItems() {
       const items = this.items.filter((item) => {
-        return ((this.mode === 'branches' && item.branch) || (this.mode === 'tags' && item.tag)) &&
-          (!this.searchTerm || item.name.toLowerCase().includes(this.searchTerm.toLowerCase()));
+        return ((this.mode === 'branches' && item.branch) || (this.mode === 'tags' && item.tag));
+        // return ((this.mode === 'branches' && item.branch) || (this.mode === 'tags' && item.tag)) &&
+        //   (!this.searchTerm || item.name.toLowerCase().includes(this.searchTerm.toLowerCase()));
       });
 
       // TODO: fix this anti-pattern: side-effects-in-computed-properties
       this.active = (items.length === 0 && this.showCreateNewBranch ? 0 : -1);
+      console.log('filteredItems', items);
       return items;
     },
     showNoResults() {
@@ -139,7 +142,6 @@ const sfc = {
       }
     });
   },
-
   methods: {
     selectItem(item) {
       const prev = this.getSelected();
@@ -246,6 +248,32 @@ const sfc = {
         event.preventDefault();
         this.menuVisible = false;
       }
+    },
+    async fetchBranches() {
+      console.log('handleSearchInputChange', this.searchTerm);
+      const searchQuery = this.searchTerm;
+      const resp = await fetch(`${this.repoLink}/branches?&q=${searchQuery}`);
+      const {branches} = await resp.json();
+      console.log(branches);
+      this.items = [];
+      if (this.showBranchesInDropdown && branches) {
+        for (const branch of branches) {
+          this.items.push({name: branch, url: branch, branch: true, tag: false, selected: branch === this.defaultBranch});
+        }
+      }
+      if (!this.noTag && this.tags) {
+        for (const tag of this.tags) {
+          if (this.release) {
+            this.items.push({name: tag, url: tag, branch: false, tag: true, selected: tag === this.release.tagName});
+          } else {
+            this.items.push({name: tag, url: tag, branch: false, tag: true, selected: tag === this.defaultBranch});
+          }
+        }
+      }
+    },
+    handleSearchInputChange(e) {
+      e.preventDefault();
+      this.fetchBranches();
     }
   }
 };
@@ -269,23 +297,6 @@ export function initRepoBranchTagSelector(selector) {
 
       ...window.config.pageData.branchDropdownDataList[elIndex],
     };
-
-    // the "data.defaultBranch" is ambiguous, it could be "branch name" or "tag name"
-
-    if (data.showBranchesInDropdown && data.branches) {
-      for (const branch of data.branches) {
-        data.items.push({name: branch, url: pathEscapeSegments(branch), branch: true, tag: false, selected: branch === data.defaultBranch});
-      }
-    }
-    if (!data.noTag && data.tags) {
-      for (const tag of data.tags) {
-        if (data.release) {
-          data.items.push({name: tag, url: pathEscapeSegments(tag), branch: false, tag: true, selected: tag === data.release.tagName});
-        } else {
-          data.items.push({name: tag, url: pathEscapeSegments(tag), branch: false, tag: true, selected: tag === data.defaultBranch});
-        }
-      }
-    }
 
     const comp = {...sfc, data() { return data }};
     createApp(comp).mount(elRoot);
