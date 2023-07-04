@@ -29,8 +29,8 @@ func (t TeamList) LoadUnits(ctx context.Context) error {
 func (t TeamList) UnitMaxAccess(tp unit.Type) perm.AccessMode {
 	maxAccess := perm.AccessModeNone
 	for _, team := range t {
-		if team.IsOwnerTeam() {
-			return perm.AccessModeOwner
+		if team.AccessMode >= perm.AccessModeAdmin {
+			return team.AccessMode
 		}
 		for _, teamUnit := range team.Units {
 			if teamUnit.Type != tp {
