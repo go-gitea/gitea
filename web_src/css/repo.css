@@ -655,8 +655,25 @@
   .repository.view.issue .issue-title {
     flex-direction: column;
   }
+  .repository.view.issue .issue-title-buttons,
+  .repository.view.issue .edit-buttons {
+    width: 100%;
+    justify-content: space-between;
+  }
   .repository.view.issue .edit-buttons {
     margin-top: .5rem;
+  }
+  .comment.form .issue-content-left .avatar {
+    display: none;
+  }
+  .comment.form .issue-content-left .content {
+    margin-left: 0 !important;
+  }
+  .comment.form .issue-content-left .content::before,
+  .comment.form .issue-content-left .content::after,
+  .comment.form .content .form::before,
+  .comment.form .content .form::after {
+    display: none;
   }
 }
 
@@ -1197,7 +1214,14 @@
   text-align: left;
 }
 
-.repository.compare.pull .choose.branch .svg {
+.repository .choose.branch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.repository .choose.branch .svg {
   margin-right: 10px;
 }
 
@@ -2036,12 +2060,15 @@
 .repository .ui.segment.sub-menu .list {
   width: 100%;
   display: flex;
-  align-items: center;
+  align-items: stretch;
 }
 
 .repository .ui.segment.sub-menu .list .item {
   width: 100%;
   color: var(--color-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .repository .ui.segment.sub-menu .list .item:first-of-type {
@@ -3124,6 +3151,14 @@ tbody.commit-list {
   text-wrap: balance;
 }
 
+.commits-table .commits-table-right form {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
 @media (max-width: 767.98px) {
   .repository.file.list #repo-files-table .entry,
   .repository.file.list #repo-files-table .commit-list {
@@ -3193,21 +3228,14 @@ tbody.commit-list {
     align-items: initial !important;
     margin-bottom: 6px;
   }
-  .commits-table .commits-table-right form {
-    display: flex;
-    flex-wrap: wrap;
-  }
   .commits-table .commits-table-right form > div:nth-child(1) {
-    order: 1;
+    order: 1; /* the "commit search" input */
   }
   .commits-table .commits-table-right form > div:nth-child(2) {
-    order: 3;
-    margin-left: 0.5rem;
-    margin-top: 0.5rem;
+    order: 3; /* the "search all" checkbox */
   }
   .commits-table .commits-table-right form > button:nth-child(3) {
-    order: 2;
-    margin-left: 0.25rem;
+    order: 2; /* the "search" button */
   }
   .commit-table {
     overflow-x: auto;
@@ -3219,9 +3247,9 @@ tbody.commit-list {
   .commit-table .commit-list span.message-wrapper {
     max-width: none;
   }
+  .commit-table .commit-list tr td:first-child,
   .commit-table .commit-list tr td:last-child {
-    display: block;
-    width: max-content;
+    white-space: nowrap;
   }
   .commit-table .commit-list td.author {
     display: block;
