@@ -17,6 +17,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Do not select line numbers when selecting text from the action run logs (#24594) (#24596)
 * BUGFIXES
   * Fix bug when change user name (#25637) (#25645)
+  * Fix task list checkbox toggle to work with YAML front matter (#25184) (#25236)
   * Hide limited users if viewed by anonymous ghost (#25214) (#25224)
   * Add `WithPullRequest` for `actionsNotifier` (#25144) (#25196)
   * Fix parallelly generating index failure with Mysql (#24567) (#25081)
@@ -44,7 +45,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add chinese documentations for Packages (#24914) (#25016)
   * Add chinese documentations for installation (#24904) (#25015)
   * Add Chinese docs for help, contribution and development (#24925) (#25011)
-  * `zh-cn` translation for usage docs (#24897) (#24977)
 * DOCS
   * Fix broken links in documents v1.19 (#25142)
   * Change branch name from master to main in some documents' links (#25126) (#25139)
@@ -55,10 +55,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Merge two translation contributing documents (#23939) (#24933)
   * Fix docs documenting invalid `@every` for `OLDER_THAN` cron settings (#24695) (#24698)
 * MISC
-  * Fix task list checkbox toggle to work with YAML front matter (#25184) (#25236)
   * Add zh-cn for `Upgrade from old Gitea` in v1.19 (#25022)
   * Port Chinese document for localization to v1.19 (#25021)
-  * Fix doc for 1.19 backend guideline (#24942)
   * Merge different languages for language stats (#24900) (#24921)
   * Hiding Secrets options when Actions feature is disabled (#24792)
   * Improve decryption failure message (#24573) (#24575)
