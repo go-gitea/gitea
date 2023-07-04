@@ -23,7 +23,7 @@ import (
 const (
 	issueIndexerAnalyzer      = "issueIndexer"
 	issueIndexerDocType       = "issueIndexerDocType"
-	issueIndexerLatestVersion = 2
+	issueIndexerLatestVersion = 3
 )
 
 // numericEqualityQuery a numeric equality query for the given value and field
@@ -67,15 +67,16 @@ func generateIssueIndexMapping() (mapping.IndexMapping, error) {
 	docMapping := bleve.NewDocumentMapping()
 
 	numericFieldMapping := bleve.NewNumericFieldMapping()
+	numericFieldMapping.Store = false
 	numericFieldMapping.IncludeInAll = false
-	docMapping.AddFieldMappingsAt("RepoID", numericFieldMapping)
+	docMapping.AddFieldMappingsAt("repo_id", numericFieldMapping)
 
 	textFieldMapping := bleve.NewTextFieldMapping()
 	textFieldMapping.Store = false
 	textFieldMapping.IncludeInAll = false
-	docMapping.AddFieldMappingsAt("Title", textFieldMapping)
-	docMapping.AddFieldMappingsAt("Content", textFieldMapping)
-	docMapping.AddFieldMappingsAt("Comments", textFieldMapping)
+	docMapping.AddFieldMappingsAt("title", textFieldMapping)
+	docMapping.AddFieldMappingsAt("content", textFieldMapping)
+	docMapping.AddFieldMappingsAt("comments", textFieldMapping)
 
 	if err := addUnicodeNormalizeTokenFilter(mapping); err != nil {
 		return nil, err
@@ -91,6 +92,7 @@ func generateIssueIndexMapping() (mapping.IndexMapping, error) {
 	mapping.DefaultAnalyzer = issueIndexerAnalyzer
 	mapping.AddDocumentMapping(issueIndexerDocType, docMapping)
 	mapping.AddDocumentMapping("_all", bleve.NewDocumentDisabledMapping())
+	mapping.DefaultMapping = bleve.NewDocumentDisabledMapping() // disable default mapping, avoid indexing unexpected structs
 
 	return mapping, nil
 }
@@ -116,17 +118,7 @@ func NewIndexer(indexDir string) *Indexer {
 func (b *Indexer) Index(_ context.Context, issues []*internal.IndexerData) error {
 	batch := inner_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	for _, issue := range issues {
-		if err := batch.Index(indexer_internal.Base36(issue.ID), struct {
-			RepoID   int64
-			Title    string
-			Content  string
-			Comments []string
-		}{
-			RepoID:   issue.RepoID,
-			Title:    issue.Title,
-			Content:  issue.Content,
-			Comments: issue.Comments,
-		}); err != nil {
+		if err := batch.Index(indexer_internal.Base36(issue.ID), (*IndexerData)(issue)); err != nil {
 			return err
 		}
 	}
@@ -149,7 +141,7 @@ func (b *Indexer) Delete(_ context.Context, ids ...int64) error {
 func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int) (*internal.SearchResult, error) {
 	var repoQueriesP []*query.NumericRangeQuery
 	for _, repoID := range repoIDs {
-		repoQueriesP = append(repoQueriesP, numericEqualityQuery(repoID, "RepoID"))
+		repoQueriesP = append(repoQueriesP, numericEqualityQuery(repoID, "repo_id"))
 	}
 	repoQueries := make([]query.Query, len(repoQueriesP))
 	for i, v := range repoQueriesP {
@@ -159,9 +151,9 @@ func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, l
 	indexerQuery := bleve.NewConjunctionQuery(
 		bleve.NewDisjunctionQuery(repoQueries...),
 		bleve.NewDisjunctionQuery(
-			newMatchPhraseQuery(keyword, "Title", issueIndexerAnalyzer),
-			newMatchPhraseQuery(keyword, "Content", issueIndexerAnalyzer),
-			newMatchPhraseQuery(keyword, "Comments", issueIndexerAnalyzer),
+			newMatchPhraseQuery(keyword, "title", issueIndexerAnalyzer),
+			newMatchPhraseQuery(keyword, "content", issueIndexerAnalyzer),
+			newMatchPhraseQuery(keyword, "comments", issueIndexerAnalyzer),
 		))
 	search := bleve.NewSearchRequestOptions(indexerQuery, limit, start, false)
 	search.SortBy([]string{"-_score"})
