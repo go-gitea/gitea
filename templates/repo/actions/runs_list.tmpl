@@ -1,30 +1,33 @@
 <div class="issue list gt-m-0">
 	{{range .Runs}}
-		<li class="item gt-df gt-py-3 gt-ab">
-			<div class="issue-item-left gt-df gt-mr-2">
+		<li class="item gt-df gt-py-3">
+			<div class="issue-item-left issue-item-icon gt-df gt-items-start">
 				{{template "repo/actions/status" (dict "status" .Status.String "locale" $.locale)}}
 			</div>
-			<div class="issue-item-main action-item-main gt-f1 gt-fc gt-df gt-mr-3">
+			<div class="issue-item-main action-item-main">
 				<div class="issue-item-top-row">
-					<a class="index gt-ml-0 gt-mr-2" title="{{.Title}}" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
+					<a class="index gt-no-underline title action-item-title" title="{{.Title}}" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
 						{{- .Title -}}
 					</a>
 				</div>
-				<div class="desc issue-item-bottom-row gt-df gt-ac gt-fw gt-my-1">
-					<b>{{if not $.CurWorkflow}}{{.WorkflowID}} {{end}}#{{.Index}}</b>: {{$.locale.Tr "actions.runs.commit"}}
-					<a href="{{$.RepoLink}}/commit/{{.CommitSHA}}">{{ShortSha .CommitSHA}}</a>{{$.locale.Tr "actions.runs.pushed_by"}} {{.TriggerUser.GetDisplayName}}
-					<span class="ui label">
-						{{if .RefLink}}
-							<a href="{{.RefLink}}">{{.PrettyRef}}</a>
-						{{else}}
-							{{.PrettyRef}}
-						{{end}}
-					</span>
+				<div class="desc issue-item-bottom-row">
+					<b>{{if not $.CurWorkflow}}{{.WorkflowID}} {{end}}#{{.Index}}</b>
+					: {{$.locale.Tr "actions.runs.commit"}}
+					<a href="{{$.RepoLink}}/commit/{{.CommitSHA}}">{{ShortSha .CommitSHA}}</a>
+					{{$.locale.Tr "actions.runs.pushed_by"}}
+					<a href="{{.TriggerUser.HomeLink}}">{{.TriggerUser.GetDisplayName}}</a>
 				</div>
 			</div>
-			<div class="issue-item-right">
-				<div>{{TimeSinceUnix .Updated $.locale}}</div>
-				<div>{{.Duration}}</div>
+			<div class="action-item-center">
+				{{if .RefLink}}
+					<a class="ui label gt-px-2 gt-mx-0" href="{{.RefLink}}">{{.PrettyRef}}</a>
+				{{else}}
+					<span class="ui label gt-px-2 gt-mx-0">{{.PrettyRef}}</span>
+				{{end}}
+			</div>
+			<div class="action-item-right">
+				<div>{{svg "octicon-calendar" 16 "gt-mr-2"}}{{TimeSinceUnix .Updated $.locale}}</div>
+				<div>{{svg "octicon-stopwatch" 16 "gt-mr-2"}}{{.Duration}}</div>
 			</div>
 		</li>
 	{{end}}
