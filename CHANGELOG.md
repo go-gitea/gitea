@@ -42,9 +42,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix new wiki page mirror (#24518)
   * Match unqualified references when syncing pulls as well (#23070)
 * TRANSLATION
-  * Add chinese documentations for Packages (#24914) (#25016)
-  * Add chinese documentations for installation (#24904) (#25015)
-  * Add Chinese docs for help, contribution and development (#24925) (#25011)
 * DOCS
   * Fix broken links in documents v1.19 (#25142)
   * Change branch name from master to main in some documents' links (#25126) (#25139)
@@ -55,8 +52,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Merge two translation contributing documents (#23939) (#24933)
   * Fix docs documenting invalid `@every` for `OLDER_THAN` cron settings (#24695) (#24698)
 * MISC
-  * Add zh-cn for `Upgrade from old Gitea` in v1.19 (#25022)
-  * Port Chinese document for localization to v1.19 (#25021)
   * Merge different languages for language stats (#24900) (#24921)
   * Hiding Secrets options when Actions feature is disabled (#24792)
   * Improve decryption failure message (#24573) (#24575)
