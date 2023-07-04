@@ -356,12 +356,46 @@ func setMergeTarget(ctx *context.Context, pull *issues_model.PullRequest) {
 	ctx.Data["BaseBranchLink"] = pull.GetBaseBranchLink()
 }
 
-// PrepareMergedViewPullInfo show meta information for a merged pull request view page
-func PrepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.CompareInfo {
+// GetPullDiffStats get Pull Requests diff stats
+func GetPullDiffStats(ctx *context.Context) {
+	issue := checkPullInfo(ctx)
 	pull := issue.PullRequest
 
-	setMergeTarget(ctx, pull)
-	ctx.Data["HasMerged"] = true
+	mergeBaseCommitID := GetMergedBaseCommitID(ctx, issue)
+
+	if ctx.Written() {
+		return
+	} else if mergeBaseCommitID == "" {
+		ctx.NotFound("PullFiles", nil)
+		return
+	}
+
+	headCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(pull.GetGitRefName())
+	if err != nil {
+		ctx.ServerError("GetRefCommitID", err)
+		return
+	}
+
+	diffOptions := &gitdiff.DiffOptions{
+		BeforeCommitID:     mergeBaseCommitID,
+		AfterCommitID:      headCommitID,
+		MaxLines:           setting.Git.MaxGitDiffLines,
+		MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
+		MaxFiles:           setting.Git.MaxGitDiffFiles,
+		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
+	}
+
+	diff, err := gitdiff.GetPullDiffStats(ctx.Repo.GitRepo, diffOptions)
+	if err != nil {
+		ctx.ServerError("GetPullDiffStats", err)
+		return
+	}
+
+	ctx.Data["Diff"] = diff
+}
+
+func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) string {
+	pull := issue.PullRequest
 
 	var baseCommit string
 	// Some migrated PR won't have any Base SHA and lose history, try to get one
@@ -400,6 +434,18 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) 
 		// Keep an empty history or original commit
 		baseCommit = pull.MergeBase
 	}
+
+	return baseCommit
+}
+
+// PrepareMergedViewPullInfo show meta information for a merged pull request view page
+func PrepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.CompareInfo {
+	pull := issue.PullRequest
+
+	setMergeTarget(ctx, pull)
+	ctx.Data["HasMerged"] = true
+
+	baseCommit := GetMergedBaseCommitID(ctx, issue)
 
 	compareInfo, err := ctx.Repo.GitRepo.GetCompareInfo(ctx.Repo.Repository.RepoPath(),
 		baseCommit, pull.GetGitRefName(), false, false)
