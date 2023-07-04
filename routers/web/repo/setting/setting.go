@@ -2,22 +2,18 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package repo
+package setting
 
 import (
-	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -32,17 +28,13 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/forms"
-	"code.gitea.io/gitea/services/mailer"
 	"code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
-	org_service "code.gitea.io/gitea/services/org"
 	repo_service "code.gitea.io/gitea/services/repository"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 )
@@ -51,7 +43,6 @@ const (
 	tplSettingsOptions base.TplName = "repo/settings/options"
 	tplCollaboration   base.TplName = "repo/settings/collaboration"
 	tplBranches        base.TplName = "repo/settings/branches"
-	tplTags            base.TplName = "repo/settings/tags"
 	tplGithooks        base.TplName = "repo/settings/githooks"
 	tplGithookEdit     base.TplName = "repo/settings/githook_edit"
 	tplDeployKeys      base.TplName = "repo/settings/deploy_keys"
@@ -893,398 +884,6 @@ func handleSettingRemoteAddrError(ctx *context.Context, err error, form *forms.R
 		return
 	}
 	ctx.RenderWithErr(ctx.Tr("repo.mirror_address_url_invalid"), tplSettingsOptions, form)
-}
-
-// Collaboration render a repository's collaboration page
-func Collaboration(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.settings.collaboration")
-	ctx.Data["PageIsSettingsCollaboration"] = true
-
-	users, err := repo_model.GetCollaborators(ctx, ctx.Repo.Repository.ID, db.ListOptions{})
-	if err != nil {
-		ctx.ServerError("GetCollaborators", err)
-		return
-	}
-	ctx.Data["Collaborators"] = users
-
-	teams, err := organization.GetRepoTeams(ctx, ctx.Repo.Repository)
-	if err != nil {
-		ctx.ServerError("GetRepoTeams", err)
-		return
-	}
-	ctx.Data["Teams"] = teams
-	ctx.Data["Repo"] = ctx.Repo.Repository
-	ctx.Data["OrgID"] = ctx.Repo.Repository.OwnerID
-	ctx.Data["OrgName"] = ctx.Repo.Repository.OwnerName
-	ctx.Data["Org"] = ctx.Repo.Repository.Owner
-	ctx.Data["Units"] = unit_model.Units
-
-	ctx.HTML(http.StatusOK, tplCollaboration)
-}
-
-// CollaborationPost response for actions for a collaboration of a repository
-func CollaborationPost(ctx *context.Context) {
-	name := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.FormString("collaborator")))
-	if len(name) == 0 || ctx.Repo.Owner.LowerName == name {
-		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
-		return
-	}
-
-	u, err := user_model.GetUserByName(ctx, name)
-	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			ctx.Flash.Error(ctx.Tr("form.user_not_exist"))
-			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
-		} else {
-			ctx.ServerError("GetUserByName", err)
-		}
-		return
-	}
-
-	if !u.IsActive {
-		ctx.Flash.Error(ctx.Tr("repo.settings.add_collaborator_inactive_user"))
-		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
-		return
-	}
-
-	// Organization is not allowed to be added as a collaborator.
-	if u.IsOrganization() {
-		ctx.Flash.Error(ctx.Tr("repo.settings.org_not_allowed_to_be_collaborator"))
-		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
-		return
-	}
-
-	if got, err := repo_model.IsCollaborator(ctx, ctx.Repo.Repository.ID, u.ID); err == nil && got {
-		ctx.Flash.Error(ctx.Tr("repo.settings.add_collaborator_duplicate"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
-		return
-	}
-
-	// find the owner team of the organization the repo belongs too and
-	// check if the user we're trying to add is an owner.
-	if ctx.Repo.Repository.Owner.IsOrganization() {
-		if isOwner, err := organization.IsOrganizationOwner(ctx, ctx.Repo.Repository.Owner.ID, u.ID); err != nil {
-			ctx.ServerError("IsOrganizationOwner", err)
-			return
-		} else if isOwner {
-			ctx.Flash.Error(ctx.Tr("repo.settings.add_collaborator_owner"))
-			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
-			return
-		}
-	}
-
-	if err = repo_module.AddCollaborator(ctx, ctx.Repo.Repository, u); err != nil {
-		ctx.ServerError("AddCollaborator", err)
-		return
-	}
-
-	if setting.Service.EnableNotifyMail {
-		mailer.SendCollaboratorMail(u, ctx.Doer, ctx.Repo.Repository)
-	}
-
-	ctx.Flash.Success(ctx.Tr("repo.settings.add_collaborator_success"))
-	ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
-}
-
-// ChangeCollaborationAccessMode response for changing access of a collaboration
-func ChangeCollaborationAccessMode(ctx *context.Context) {
-	if err := repo_model.ChangeCollaborationAccessMode(
-		ctx,
-		ctx.Repo.Repository,
-		ctx.FormInt64("uid"),
-		perm.AccessMode(ctx.FormInt("mode"))); err != nil {
-		log.Error("ChangeCollaborationAccessMode: %v", err)
-	}
-}
-
-// DeleteCollaboration delete a collaboration for a repository
-func DeleteCollaboration(ctx *context.Context) {
-	if err := models.DeleteCollaboration(ctx.Repo.Repository, ctx.FormInt64("id")); err != nil {
-		ctx.Flash.Error("DeleteCollaboration: " + err.Error())
-	} else {
-		ctx.Flash.Success(ctx.Tr("repo.settings.remove_collaborator_success"))
-	}
-
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": ctx.Repo.RepoLink + "/settings/collaboration",
-	})
-}
-
-// AddTeamPost response for adding a team to a repository
-func AddTeamPost(ctx *context.Context) {
-	if !ctx.Repo.Owner.RepoAdminChangeTeamAccess && !ctx.Repo.IsOwner() {
-		ctx.Flash.Error(ctx.Tr("repo.settings.change_team_access_not_allowed"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
-		return
-	}
-
-	name := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.FormString("team")))
-	if len(name) == 0 {
-		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
-		return
-	}
-
-	team, err := organization.OrgFromUser(ctx.Repo.Owner).GetTeam(ctx, name)
-	if err != nil {
-		if organization.IsErrTeamNotExist(err) {
-			ctx.Flash.Error(ctx.Tr("form.team_not_exist"))
-			ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
-		} else {
-			ctx.ServerError("GetTeam", err)
-		}
-		return
-	}
-
-	if team.OrgID != ctx.Repo.Repository.OwnerID {
-		ctx.Flash.Error(ctx.Tr("repo.settings.team_not_in_organization"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
-		return
-	}
-
-	if organization.HasTeamRepo(ctx, ctx.Repo.Repository.OwnerID, team.ID, ctx.Repo.Repository.ID) {
-		ctx.Flash.Error(ctx.Tr("repo.settings.add_team_duplicate"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
-		return
-	}
-
-	if err = org_service.TeamAddRepository(team, ctx.Repo.Repository); err != nil {
-		ctx.ServerError("TeamAddRepository", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("repo.settings.add_team_success"))
-	ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
-}
-
-// DeleteTeam response for deleting a team from a repository
-func DeleteTeam(ctx *context.Context) {
-	if !ctx.Repo.Owner.RepoAdminChangeTeamAccess && !ctx.Repo.IsOwner() {
-		ctx.Flash.Error(ctx.Tr("repo.settings.change_team_access_not_allowed"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
-		return
-	}
-
-	team, err := organization.GetTeamByID(ctx, ctx.FormInt64("id"))
-	if err != nil {
-		ctx.ServerError("GetTeamByID", err)
-		return
-	}
-
-	if err = models.RemoveRepository(team, ctx.Repo.Repository.ID); err != nil {
-		ctx.ServerError("team.RemoveRepositorys", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("repo.settings.remove_team_success"))
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": ctx.Repo.RepoLink + "/settings/collaboration",
-	})
-}
-
-// GitHooks hooks of a repository
-func GitHooks(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.settings.githooks")
-	ctx.Data["PageIsSettingsGitHooks"] = true
-
-	hooks, err := ctx.Repo.GitRepo.Hooks()
-	if err != nil {
-		ctx.ServerError("Hooks", err)
-		return
-	}
-	ctx.Data["Hooks"] = hooks
-
-	ctx.HTML(http.StatusOK, tplGithooks)
-}
-
-// GitHooksEdit render for editing a hook of repository page
-func GitHooksEdit(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.settings.githooks")
-	ctx.Data["PageIsSettingsGitHooks"] = true
-
-	name := ctx.Params(":name")
-	hook, err := ctx.Repo.GitRepo.GetHook(name)
-	if err != nil {
-		if err == git.ErrNotValidHook {
-			ctx.NotFound("GetHook", err)
-		} else {
-			ctx.ServerError("GetHook", err)
-		}
-		return
-	}
-	ctx.Data["Hook"] = hook
-	ctx.HTML(http.StatusOK, tplGithookEdit)
-}
-
-// GitHooksEditPost response for editing a git hook of a repository
-func GitHooksEditPost(ctx *context.Context) {
-	name := ctx.Params(":name")
-	hook, err := ctx.Repo.GitRepo.GetHook(name)
-	if err != nil {
-		if err == git.ErrNotValidHook {
-			ctx.NotFound("GetHook", err)
-		} else {
-			ctx.ServerError("GetHook", err)
-		}
-		return
-	}
-	hook.Content = ctx.FormString("content")
-	if err = hook.Update(); err != nil {
-		ctx.ServerError("hook.Update", err)
-		return
-	}
-	ctx.Redirect(ctx.Repo.RepoLink + "/settings/hooks/git")
-}
-
-// DeployKeys render the deploy keys list of a repository page
-func DeployKeys(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys") + " / " + ctx.Tr("secrets.secrets")
-	ctx.Data["PageIsSettingsKeys"] = true
-	ctx.Data["DisableSSH"] = setting.SSH.Disabled
-
-	keys, err := asymkey_model.ListDeployKeys(ctx, &asymkey_model.ListDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
-	if err != nil {
-		ctx.ServerError("ListDeployKeys", err)
-		return
-	}
-	ctx.Data["Deploykeys"] = keys
-
-	ctx.HTML(http.StatusOK, tplDeployKeys)
-}
-
-// DeployKeysPost response for adding a deploy key of a repository
-func DeployKeysPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.AddKeyForm)
-	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
-	ctx.Data["PageIsSettingsKeys"] = true
-	ctx.Data["DisableSSH"] = setting.SSH.Disabled
-
-	keys, err := asymkey_model.ListDeployKeys(ctx, &asymkey_model.ListDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
-	if err != nil {
-		ctx.ServerError("ListDeployKeys", err)
-		return
-	}
-	ctx.Data["Deploykeys"] = keys
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplDeployKeys)
-		return
-	}
-
-	content, err := asymkey_model.CheckPublicKeyString(form.Content)
-	if err != nil {
-		if db.IsErrSSHDisabled(err) {
-			ctx.Flash.Info(ctx.Tr("settings.ssh_disabled"))
-		} else if asymkey_model.IsErrKeyUnableVerify(err) {
-			ctx.Flash.Info(ctx.Tr("form.unable_verify_ssh_key"))
-		} else if err == asymkey_model.ErrKeyIsPrivate {
-			ctx.Data["HasError"] = true
-			ctx.Data["Err_Content"] = true
-			ctx.Flash.Error(ctx.Tr("form.must_use_public_key"))
-		} else {
-			ctx.Data["HasError"] = true
-			ctx.Data["Err_Content"] = true
-			ctx.Flash.Error(ctx.Tr("form.invalid_ssh_key", err.Error()))
-		}
-		ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
-		return
-	}
-
-	key, err := asymkey_model.AddDeployKey(ctx.Repo.Repository.ID, form.Title, content, !form.IsWritable)
-	if err != nil {
-		ctx.Data["HasError"] = true
-		switch {
-		case asymkey_model.IsErrDeployKeyAlreadyExist(err):
-			ctx.Data["Err_Content"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.settings.key_been_used"), tplDeployKeys, &form)
-		case asymkey_model.IsErrKeyAlreadyExist(err):
-			ctx.Data["Err_Content"] = true
-			ctx.RenderWithErr(ctx.Tr("settings.ssh_key_been_used"), tplDeployKeys, &form)
-		case asymkey_model.IsErrKeyNameAlreadyUsed(err):
-			ctx.Data["Err_Title"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.settings.key_name_used"), tplDeployKeys, &form)
-		case asymkey_model.IsErrDeployKeyNameAlreadyUsed(err):
-			ctx.Data["Err_Title"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.settings.key_name_used"), tplDeployKeys, &form)
-		default:
-			ctx.ServerError("AddDeployKey", err)
-		}
-		return
-	}
-
-	log.Trace("Deploy key added: %d", ctx.Repo.Repository.ID)
-	ctx.Flash.Success(ctx.Tr("repo.settings.add_key_success", key.Name))
-	ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
-}
-
-// DeleteDeployKey response for deleting a deploy key
-func DeleteDeployKey(ctx *context.Context) {
-	if err := asymkey_service.DeleteDeployKey(ctx.Doer, ctx.FormInt64("id")); err != nil {
-		ctx.Flash.Error("DeleteDeployKey: " + err.Error())
-	} else {
-		ctx.Flash.Success(ctx.Tr("repo.settings.deploy_key_deletion_success"))
-	}
-
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": ctx.Repo.RepoLink + "/settings/keys",
-	})
-}
-
-// UpdateAvatarSetting update repo's avatar
-func UpdateAvatarSetting(ctx *context.Context, form forms.AvatarForm) error {
-	ctxRepo := ctx.Repo.Repository
-
-	if form.Avatar == nil {
-		// No avatar is uploaded and we not removing it here.
-		// No random avatar generated here.
-		// Just exit, no action.
-		if ctxRepo.CustomAvatarRelativePath() == "" {
-			log.Trace("No avatar was uploaded for repo: %d. Default icon will appear instead.", ctxRepo.ID)
-		}
-		return nil
-	}
-
-	r, err := form.Avatar.Open()
-	if err != nil {
-		return fmt.Errorf("Avatar.Open: %w", err)
-	}
-	defer r.Close()
-
-	if form.Avatar.Size > setting.Avatar.MaxFileSize {
-		return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big"))
-	}
-
-	data, err := io.ReadAll(r)
-	if err != nil {
-		return fmt.Errorf("io.ReadAll: %w", err)
-	}
-	st := typesniffer.DetectContentType(data)
-	if !(st.IsImage() && !st.IsSvgImage()) {
-		return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
-	}
-	if err = repo_service.UploadAvatar(ctx, ctxRepo, data); err != nil {
-		return fmt.Errorf("UploadAvatar: %w", err)
-	}
-	return nil
-}
-
-// SettingsAvatar save new POSTed repository avatar
-func SettingsAvatar(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.AvatarForm)
-	form.Source = forms.AvatarLocal
-	if err := UpdateAvatarSetting(ctx, *form); err != nil {
-		ctx.Flash.Error(err.Error())
-	} else {
-		ctx.Flash.Success(ctx.Tr("repo.settings.update_avatar_success"))
-	}
-	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
-}
-
-// SettingsDeleteAvatar delete repository avatar
-func SettingsDeleteAvatar(ctx *context.Context) {
-	if err := repo_service.DeleteAvatar(ctx, ctx.Repo.Repository); err != nil {
-		ctx.Flash.Error(fmt.Sprintf("DeleteAvatar: %v", err))
-	}
-	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 }
 
 func selectPushMirrorByForm(ctx *context.Context, form *forms.RepoSettingForm, repo *repo_model.Repository) (*repo_model.PushMirror, error) {
