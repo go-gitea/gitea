@@ -281,6 +281,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 
 - `APP_DATA_PATH`: **_`AppWorkPath`_/data**: This is the default root path for storing data.
 - `PROTOCOL`: **http**: \[http, https, fcgi, http+unix, fcgi+unix\]
+  - Note: Value is case-sensitive (must be in lowercase). For example, if you write `PROTOCOL=HTTPS`, you may get a SSL_ERROR_RX_RECORD_TOO_LONG error on Firefox or ERR_SSL_PROTOCOL_ERROR on Chrome and Edge.
 - `USE_PROXY_PROTOCOL`: **false**: Expect PROXY protocol headers on connections
 - `PROXY_PROTOCOL_TLS_BRIDGING`: **false**: When protocol is https, expect PROXY protocol headers after TLS negotiation.
 - `PROXY_PROTOCOL_HEADER_TIMEOUT`: **5s**: Timeout to wait for PROXY protocol header (set to 0 to have no timeout)
