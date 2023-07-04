@@ -313,13 +313,13 @@ type GenerateRepoOptions struct {
 	Webhooks        bool
 	Avatar          bool
 	IssueLabels     bool
-	ExternalWiki    bool
 	ExternalTracker bool
+	ExternalWiki    bool
 }
 
 // IsValid checks whether at least one option is chosen for generation
 func (gro GenerateRepoOptions) IsValid() bool {
-	return gro.GitContent || gro.Topics || gro.GitHooks || gro.Webhooks || gro.Avatar || gro.IssueLabels // or other items as they are added
+	return gro.GitContent || gro.Topics || gro.GitHooks || gro.Webhooks || gro.Avatar || gro.IssueLabels || gro.ExternalTracker || gro.ExternalWiki // or other items as they are added
 }
 
 // GenerateRepository generates a repository from a template

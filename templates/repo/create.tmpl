@@ -107,6 +107,17 @@
 								<label>{{.locale.Tr "repo.template.issue_labels"}}</label>
 							</div>
 						</div>
+						<div class="inline field">
+							<label></label>
+							<div class="ui checkbox">
+								<input name="external_tracker" type="checkbox" tabindex="0" {{if .external_tracker}}checked{{end}}>
+								<label>{{.locale.Tr "repo.template.external_tracker"}}</label>
+							</div>
+							<div class="ui checkbox">
+								<input name="external_wiki" type="checkbox" tabindex="0" {{if .external_wiki}}checked{{end}}>
+								<label>{{.locale.Tr "repo.template.external_wiki"}}</label>
+							</div>
+						</div>
 					</div>
 
 					<div id="non_template">
