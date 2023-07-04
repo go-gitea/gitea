@@ -14,11 +14,11 @@ func (l MockLocale) Language() string {
 	return "en"
 }
 
-func (l MockLocale) Tr(s string, _ ...interface{}) string {
+func (l MockLocale) Tr(s string, _ ...any) string {
 	return s
 }
 
-func (l MockLocale) TrN(_cnt interface{}, key1, _keyN string, _args ...interface{}) string {
+func (l MockLocale) TrN(_cnt any, key1, _keyN string, _args ...any) string {
 	return key1
 }
 

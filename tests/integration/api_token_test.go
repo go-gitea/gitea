@@ -519,7 +519,7 @@ func runTestCase(t *testing.T, testCase *requiredScopeTestCase, user *user_model
 // createAPIAccessTokenWithoutCleanUp Create an API access token and assert that
 // creation succeeded.  The caller is responsible for deleting the token.
 func createAPIAccessTokenWithoutCleanUp(t *testing.T, tokenName string, user *user_model.User, scopes *[]auth_model.AccessTokenScope) api.AccessToken {
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"name": tokenName,
 	}
 	if scopes != nil {
