@@ -1,7 +1,10 @@
 {{if .DiffNotAvailable}}
 	<div>
-		<div class="diff-detail-box diff-box sticky">
-			<div class="ui right">
+		<div class="diff-detail-box diff-box sticky  gt-df gt-sb gt-ac gt-fw">
+			<div class="gt-df gt-ac gt-fw">
+				<h4>{{.locale.Tr "repo.diff.data_not_available"}}</h4>
+			</div>
+			<div class="diff-detail-actions gt-df gt-ac gt-gap-2 gt-fw">
 				{{template "repo/diff/whitespace_dropdown" .}}
 				{{template "repo/diff/options_dropdown" .}}
 				{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
@@ -10,7 +13,6 @@
 			</div>
 		</div>
 	</div>
-	<h4>{{.locale.Tr "repo.diff.data_not_available"}}</h4>
 {{else}}
 	<div>
 		<div class="diff-detail-box diff-box sticky gt-df gt-sb gt-ac gt-fw">
