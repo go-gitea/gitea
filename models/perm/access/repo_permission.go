@@ -151,10 +151,10 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 		return perm, nil
 	}
 
-	var is bool
+	var isCollaborator bool
 	var err error
 	if user != nil {
-		is, err = repo_model.IsCollaborator(ctx, repo.ID, user.ID)
+		isCollaborator, err = repo_model.IsCollaborator(ctx, repo.ID, user.ID)
 		if err != nil {
 			return perm, err
 		}
@@ -166,7 +166,7 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 
 	// Prevent strangers from checking out public repo of private organization/users
 	// Allow user if they are collaborator of a repo within a private user or a private organization but not a member of the organization itself
-	if !organization.HasOrgOrUserVisible(ctx, repo.Owner, user) && !is {
+	if !organization.HasOrgOrUserVisible(ctx, repo.Owner, user) && !isCollaborator {
 		perm.AccessMode = perm_model.AccessModeNone
 		return perm, nil
 	}
@@ -199,13 +199,13 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 		return perm, err
 	}
 	if !repo.Owner.IsOrganization() {
-		return perm, err
+		return perm, nil
 	}
 
 	perm.UnitsMode = make(map[unit.Type]perm_model.AccessMode)
 
 	// Collaborators on organization
-	if is {
+	if isCollaborator {
 		for _, u := range repo.Units {
 			perm.UnitsMode[u.Type] = perm.AccessMode
 		}
