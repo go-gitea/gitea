@@ -21,15 +21,15 @@
 		<a class="ui green button" href="{{AppSubUrl}}/user/settings/security/two_factor/enroll">{{$.locale.Tr "settings.twofa_enroll"}}</a>
 	</div>
 	{{end}}
-</div>
 
-<div class="ui g-modal-confirm delete modal" id="disable-twofa">
-	<div class="header">
-		{{svg "octicon-trash"}}
-		{{.locale.Tr "settings.twofa_disable"}}
+	<div class="ui g-modal-confirm delete modal" id="disable-twofa">
+		<div class="header">
+			{{svg "octicon-trash"}}
+			{{.locale.Tr "settings.twofa_disable"}}
+		</div>
+		<div class="content">
+			<p>{{.locale.Tr "settings.twofa_disable_desc"}}</p>
+		</div>
+		{{template "base/modal_actions_confirm" .}}
 	</div>
-	<div class="content">
-		<p>{{.locale.Tr "settings.twofa_disable_desc"}}</p>
-	</div>
-	{{template "base/modal_actions_confirm" .}}
 </div>
