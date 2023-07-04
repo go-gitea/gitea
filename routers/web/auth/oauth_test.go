@@ -26,7 +26,7 @@ func createAndParseToken(t *testing.T, grant *auth.OAuth2Grant) *oauth2.OIDCToke
 	assert.Nil(t, terr)
 	assert.NotNil(t, response)
 
-	parsedToken, err := jwt.ParseWithClaims(response.IDToken, &oauth2.OIDCToken{}, func(token *jwt.Token) (interface{}, error) {
+	parsedToken, err := jwt.ParseWithClaims(response.IDToken, &oauth2.OIDCToken{}, func(token *jwt.Token) (any, error) {
 		assert.NotNil(t, token.Method)
 		assert.Equal(t, signingKey.SigningMethod().Alg(), token.Method.Alg())
 		return signingKey.VerifyKey(), nil

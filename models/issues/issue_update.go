@@ -511,7 +511,7 @@ func UpdateIssueDeadline(issue *Issue, deadlineUnix timeutil.TimeStamp, doer *us
 }
 
 // DeleteInIssue delete records in beans with external key issue_id = ?
-func DeleteInIssue(ctx context.Context, issueID int64, beans ...interface{}) error {
+func DeleteInIssue(ctx context.Context, issueID int64, beans ...any) error {
 	e := db.GetEngine(ctx)
 	for _, bean := range beans {
 		if _, err := e.In("issue_id", issueID).Delete(bean); err != nil {
@@ -673,7 +673,7 @@ func UpdateIssuesMigrationsByType(gitServiceType api.GitServiceType, originalAut
 	_, err := db.GetEngine(db.DefaultContext).Table("issue").
 		Where("repo_id IN (SELECT id FROM repository WHERE original_service_type = ?)", gitServiceType).
 		And("original_author_id = ?", originalAuthorID).
-		Update(map[string]interface{}{
+		Update(map[string]any{
 			"poster_id":          posterID,
 			"original_author":    "",
 			"original_author_id": 0,
@@ -686,7 +686,7 @@ func UpdateReactionsMigrationsByType(gitServiceType api.GitServiceType, original
 	_, err := db.GetEngine(db.DefaultContext).Table("reaction").
 		Where("original_author_id = ?", originalAuthorID).
 		And(migratedIssueCond(gitServiceType)).
-		Update(map[string]interface{}{
+		Update(map[string]any{
 			"user_id":            userID,
 			"original_author":    "",
 			"original_author_id": 0,

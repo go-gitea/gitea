@@ -791,7 +791,7 @@ func DeleteWikiPagePost(ctx *context.Context) {
 
 	notification.NotifyDeleteWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(wikiName))
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"redirect": ctx.Repo.RepoLink + "/wiki/",
 	})
 }

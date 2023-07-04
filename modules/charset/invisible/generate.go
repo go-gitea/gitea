@@ -52,7 +52,7 @@ Usage: %[1]s [-v] [-o output.go]
 	}
 }
 
-func runTemplate(t *template.Template, filename string, data interface{}) error {
+func runTemplate(t *template.Template, filename string, data any) error {
 	buf := bytes.NewBuffer(nil)
 	if err := t.Execute(buf, data); err != nil {
 		return fmt.Errorf("unable to execute template: %w", err)
@@ -105,17 +105,17 @@ var InvisibleRanges = &unicode.RangeTable{
 }
 `))
 
-func logf(format string, args ...interface{}) {
+func logf(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, format+"\n", args...)
 }
 
-func verbosef(format string, args ...interface{}) {
+func verbosef(format string, args ...any) {
 	if verbose {
 		logf(format, args...)
 	}
 }
 
-func fatalf(format string, args ...interface{}) {
+func fatalf(format string, args ...any) {
 	logf("fatal: "+format+"\n", args...)
 	os.Exit(1)
 }
