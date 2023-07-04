@@ -71,9 +71,16 @@ func Push(ctx *context.Context) {
 		return
 	}
 
+	// Parse metadata contained in arch package archive.
+	md, err := arch_module.EjectMetadata(filename, distro, setting.Domain, pkgdata)
+	if err != nil {
+		apiError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
 	// Validating metadata signature, to ensure that operation push operation
 	// is initiated by original package owner.
-	sendmetadata := []byte(owner + filename + sendtime)
+	sendmetadata := []byte(owner + md.Name + sendtime)
 	err = arch_service.ValidateSignature(ctx, sendmetadata, msigdata, user)
 	if err != nil {
 		apiError(ctx, http.StatusUnauthorized, err)
@@ -84,13 +91,6 @@ func Push(ctx *context.Context) {
 	err = arch_service.ValidateSignature(ctx, pkgdata, sigdata, user)
 	if err != nil {
 		apiError(ctx, http.StatusUnauthorized, err)
-		return
-	}
-
-	// Parse metadata contained in arch package archive.
-	md, err := arch_module.EjectMetadata(filename, distro, setting.Domain, pkgdata)
-	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
 

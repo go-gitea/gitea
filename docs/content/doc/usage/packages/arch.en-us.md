@@ -67,7 +67,7 @@ gpg --verify package-ver-1-x86_64.pkg.tar.zst.sig
 2. Sign message metadata, which consists of package owner (namespace in gitea), package file name and send time. You can do that by running following command:
 
 ```sh
-echo -n {owner}{package}-1-1-x86_64.pkg.tar.zst$(date --rfc-3339=seconds | tr " " T) >> md
+echo -n {owner}{package}$(date --rfc-3339=seconds | tr " " T) >> md
 gpg --detach-sign md
 ```
 
@@ -166,11 +166,9 @@ curl -X DELETE \
   http://{domain}/api/packages/$owner/arch/remove \
   --header "username: $owner" \
   --header "email: $email" \
-  --header "distro: archlinux" \
   --header "target: $package" \
   --header "time: $time" \
   --header "version: $version" \
-  --header "arch: $arch" \
   --header 'Content-Type: application/octet-stream' \
   --data-binary @md.sig
 ```
