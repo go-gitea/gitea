@@ -259,6 +259,7 @@ func ViewPackageVersion(ctx *context.Context) {
 
 // ListPackageVersions lists all versions of a package
 func ListPackageVersions(ctx *context.Context) {
+	shared_user.PrepareContextForProfileBigAvatar(ctx)
 	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.Type(ctx.Params("type")), ctx.Params("name"))
 	if err != nil {
 		if err == packages_model.ErrPackageNotExist {
