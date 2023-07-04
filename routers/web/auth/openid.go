@@ -282,11 +282,7 @@ func ConnectOpenIDPost(ctx *context.Context) {
 
 	u, _, err := auth.UserSignIn(form.UserName, form.Password)
 	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplConnectOID, &form)
-		} else {
-			ctx.ServerError("ConnectOpenIDPost", err)
-		}
+		handleSignInError(ctx, form.UserName, &form, tplConnectOID, "ConnectOpenIDPost", err)
 		return
 	}
 
