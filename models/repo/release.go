@@ -442,7 +442,7 @@ func UpdateReleasesMigrationsByType(gitServiceType structs.GitServiceType, origi
 	_, err := db.GetEngine(db.DefaultContext).Table("release").
 		Where("repo_id IN (SELECT id FROM repository WHERE original_service_type = ?)", gitServiceType).
 		And("original_author_id = ?", originalAuthorID).
-		Update(map[string]interface{}{
+		Update(map[string]any{
 			"publisher_id":       posterID,
 			"original_author":    "",
 			"original_author_id": 0,

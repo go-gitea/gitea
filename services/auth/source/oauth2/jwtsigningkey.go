@@ -38,8 +38,8 @@ func (err ErrInvalidAlgorithmType) Error() string {
 type JWTSigningKey interface {
 	IsSymmetric() bool
 	SigningMethod() jwt.SigningMethod
-	SignKey() interface{}
-	VerifyKey() interface{}
+	SignKey() any
+	VerifyKey() any
 	ToJWK() (map[string]string, error)
 	PreProcessToken(*jwt.Token)
 }
@@ -57,11 +57,11 @@ func (key hmacSigningKey) SigningMethod() jwt.SigningMethod {
 	return key.signingMethod
 }
 
-func (key hmacSigningKey) SignKey() interface{} {
+func (key hmacSigningKey) SignKey() any {
 	return key.secret
 }
 
-func (key hmacSigningKey) VerifyKey() interface{} {
+func (key hmacSigningKey) VerifyKey() any {
 	return key.secret
 }
 
@@ -101,11 +101,11 @@ func (key rsaSingingKey) SigningMethod() jwt.SigningMethod {
 	return key.signingMethod
 }
 
-func (key rsaSingingKey) SignKey() interface{} {
+func (key rsaSingingKey) SignKey() any {
 	return key.key
 }
 
-func (key rsaSingingKey) VerifyKey() interface{} {
+func (key rsaSingingKey) VerifyKey() any {
 	return key.key.Public()
 }
 
@@ -152,11 +152,11 @@ func (key eddsaSigningKey) SigningMethod() jwt.SigningMethod {
 	return key.signingMethod
 }
 
-func (key eddsaSigningKey) SignKey() interface{} {
+func (key eddsaSigningKey) SignKey() any {
 	return key.key
 }
 
-func (key eddsaSigningKey) VerifyKey() interface{} {
+func (key eddsaSigningKey) VerifyKey() any {
 	return key.key.Public()
 }
 
@@ -203,11 +203,11 @@ func (key ecdsaSingingKey) SigningMethod() jwt.SigningMethod {
 	return key.signingMethod
 }
 
-func (key ecdsaSingingKey) SignKey() interface{} {
+func (key ecdsaSingingKey) SignKey() any {
 	return key.key
 }
 
-func (key ecdsaSingingKey) VerifyKey() interface{} {
+func (key ecdsaSingingKey) VerifyKey() any {
 	return key.key.Public()
 }
 
@@ -229,7 +229,7 @@ func (key ecdsaSingingKey) PreProcessToken(token *jwt.Token) {
 }
 
 // CreateJWTSigningKey creates a signing key from an algorithm / key pair.
-func CreateJWTSigningKey(algorithm string, key interface{}) (JWTSigningKey, error) {
+func CreateJWTSigningKey(algorithm string, key any) (JWTSigningKey, error) {
 	var signingMethod jwt.SigningMethod
 	switch algorithm {
 	case "HS256":
@@ -292,7 +292,7 @@ var DefaultSigningKey JWTSigningKey
 // InitSigningKey creates the default signing key from settings or creates a random key.
 func InitSigningKey() error {
 	var err error
-	var key interface{}
+	var key any
 
 	switch setting.OAuth2.JWTSigningAlgorithm {
 	case "HS256":
@@ -335,7 +335,7 @@ func InitSigningKey() error {
 
 // loadSymmetricKey checks if the configured secret is valid.
 // If it is not valid, it will return an error.
-func loadSymmetricKey() (interface{}, error) {
+func loadSymmetricKey() (any, error) {
 	key := make([]byte, 32)
 	n, err := base64.RawURLEncoding.Decode(key, []byte(setting.OAuth2.JWTSecretBase64))
 	if err != nil {
@@ -350,7 +350,7 @@ func loadSymmetricKey() (interface{}, error) {
 
 // loadOrCreateAsymmetricKey checks if the configured private key exists.
 // If it does not exist a new random key gets generated and saved on the configured path.
-func loadOrCreateAsymmetricKey() (interface{}, error) {
+func loadOrCreateAsymmetricKey() (any, error) {
 	keyPath := setting.OAuth2.JWTSigningPrivateKeyFile
 
 	isExist, err := util.IsExist(keyPath)
@@ -359,7 +359,7 @@ func loadOrCreateAsymmetricKey() (interface{}, error) {
 	}
 	if !isExist {
 		err := func() error {
-			key, err := func() (interface{}, error) {
+			key, err := func() (any, error) {
 				switch {
 				case strings.HasPrefix(setting.OAuth2.JWTSigningAlgorithm, "RS"):
 					return rsa.GenerateKey(rand.Reader, 4096)

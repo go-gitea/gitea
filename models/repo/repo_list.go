@@ -560,7 +560,7 @@ func searchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, c
 		opts.OrderBy = db.SearchOrderByAlphabetically
 	}
 
-	args := make([]interface{}, 0)
+	args := make([]any, 0)
 	if opts.PriorityOwnerID > 0 {
 		opts.OrderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN owner_id = ? THEN 0 ELSE owner_id END, %s", opts.OrderBy))
 		args = append(args, opts.PriorityOwnerID)

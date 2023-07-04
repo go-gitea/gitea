@@ -88,7 +88,7 @@ func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, l
 	hits := make([]internal.Match, 0, len(searchRes.Hits))
 	for _, hit := range searchRes.Hits {
 		hits = append(hits, internal.Match{
-			ID: int64(hit.(map[string]interface{})["id"].(float64)),
+			ID: int64(hit.(map[string]any)["id"].(float64)),
 		})
 	}
 	return &internal.SearchResult{

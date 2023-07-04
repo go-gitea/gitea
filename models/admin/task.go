@@ -44,7 +44,7 @@ func init() {
 // TranslatableMessage represents JSON struct that can be translated with a Locale
 type TranslatableMessage struct {
 	Format string
-	Args   []interface{} `json:"omitempty"`
+	Args   []any `json:"omitempty"`
 }
 
 // LoadRepo loads repository of the task

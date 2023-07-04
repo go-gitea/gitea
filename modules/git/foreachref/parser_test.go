@@ -217,7 +217,7 @@ func TestParser(t *testing.T) {
 	}
 }
 
-func pretty(v interface{}) string {
+func pretty(v any) string {
 	data, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		// shouldn't happen

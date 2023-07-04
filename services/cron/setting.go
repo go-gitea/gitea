@@ -14,7 +14,7 @@ type Config interface {
 	IsEnabled() bool
 	DoRunAtStart() bool
 	GetSchedule() string
-	FormatMessage(locale translation.Locale, name, status, doer string, args ...interface{}) string
+	FormatMessage(locale translation.Locale, name, status, doer string, args ...any) string
 	DoNoticeOnSuccess() bool
 }
 
@@ -68,8 +68,8 @@ func (b *BaseConfig) DoNoticeOnSuccess() bool {
 
 // FormatMessage returns a message for the task
 // Please note the `status` string will be concatenated with `admin.dashboard.cron.` and `admin.dashboard.task.` to provide locale messages. Similarly `name` will be composed with `admin.dashboard.` to provide the locale name for the task.
-func (b *BaseConfig) FormatMessage(locale translation.Locale, name, status, doer string, args ...interface{}) string {
-	realArgs := make([]interface{}, 0, len(args)+2)
+func (b *BaseConfig) FormatMessage(locale translation.Locale, name, status, doer string, args ...any) string {
+	realArgs := make([]any, 0, len(args)+2)
 	realArgs = append(realArgs, locale.Tr("admin.dashboard."+name))
 	if doer == "" {
 		realArgs = append(realArgs, "(Cron)")

@@ -44,7 +44,7 @@ type PackageCreationInfo struct {
 	PackageInfo
 	SemverCompatible  bool
 	Creator           *user_model.User
-	Metadata          interface{}
+	Metadata          any
 	PackageProperties map[string]string
 	VersionProperties map[string]string
 }

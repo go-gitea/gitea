@@ -45,7 +45,7 @@ func newMatchPhraseQuery(matchPhrase, field, analyzer string) *query.MatchPhrase
 const unicodeNormalizeName = "unicodeNormalize"
 
 func addUnicodeNormalizeTokenFilter(m *mapping.IndexMappingImpl) error {
-	return m.AddCustomTokenFilter(unicodeNormalizeName, map[string]interface{}{
+	return m.AddCustomTokenFilter(unicodeNormalizeName, map[string]any{
 		"type": unicodenorm.Name,
 		"form": unicodenorm.NFC,
 	})
@@ -80,7 +80,7 @@ func generateIssueIndexMapping() (mapping.IndexMapping, error) {
 
 	if err := addUnicodeNormalizeTokenFilter(mapping); err != nil {
 		return nil, err
-	} else if err = mapping.AddCustomAnalyzer(issueIndexerAnalyzer, map[string]interface{}{
+	} else if err = mapping.AddCustomAnalyzer(issueIndexerAnalyzer, map[string]any{
 		"type":          custom.Name,
 		"char_filters":  []string{},
 		"tokenizer":     unicode.Name,
