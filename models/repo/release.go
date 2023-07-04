@@ -339,7 +339,7 @@ func (s releaseMetaSearch) Less(i, j int) bool {
 // GetReleaseAttachments retrieves the attachments for releases
 func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 	if len(rels) == 0 {
-		return
+		return nil
 	}
 
 	// To keep this efficient as possible sort all releases by id,
