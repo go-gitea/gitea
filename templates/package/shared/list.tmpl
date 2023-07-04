@@ -16,12 +16,12 @@
 	<div class="ui {{if .PackageDescriptors}}issue list{{end}}">
 		{{range .PackageDescriptors}}
 			<li class="item gt-df gt-py-3">
-				<div class="issue-item-main gt-f1 gt-fc gt-df">
+				<div class="issue-item-main">
 					<div class="issue-item-top-row">
 						<a class="title" href="{{.FullWebLink}}">{{.Package.Name}}</a>
 						<span class="ui label">{{svg .Package.Type.SVGName 16}} {{.Package.Type.Name}}</span>
 					</div>
-					<div class="desc issue-item-bottom-row gt-df gt-ac gt-fw gt-my-1">
+					<div class="desc issue-item-bottom-row">
 						{{$timeStr := TimeSinceUnix .Version.CreatedUnix $.locale}}
 						{{$hasRepositoryAccess := false}}
 						{{if .Repository}}

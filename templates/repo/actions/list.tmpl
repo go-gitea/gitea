@@ -6,7 +6,6 @@
 			<div class="four wide column">
 				<div class="ui fluid vertical menu">
 					<a class="item{{if not $.CurWorkflow}} active{{end}}" href="{{$.Link}}">{{.locale.Tr "actions.runs.all_workflows"}}</a>
-					<div class="divider"></div>
 					{{range .workflows}}
 						<a class="item{{if eq .Entry.Name $.CurWorkflow}} active{{end}}" href="{{$.Link}}?workflow={{.Entry.Name}}">{{.Entry.Name}}
 							{{if .ErrMsg}}
