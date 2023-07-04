@@ -17,15 +17,24 @@
 }
 
 .issue.list > .item .issue-item-main {
-  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
-.issue.list > .item .action-item-main {
-  width: 80%;
+.issue.list > .item .action-item-center {
+  display: flex;
+  align-items: center;
+  padding-left: 4px;
+  padding-right: 12px;
 }
 
-.issue.list > .item .issue-item-right {
-  width: 15%;
+.issue.list > .item .action-item-right {
+  flex: 0 0 15%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  color: var(--color-text-light);
 }
 
 .issue.list > .item .issue-item-top-row {
@@ -52,6 +61,10 @@
 
 .issue.list > .item .issue-item-bottom-row {
   font-size: 13px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: .125rem 0;
 }
 
 .issue.list > .item .title {
