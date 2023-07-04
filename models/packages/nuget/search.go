@@ -38,7 +38,7 @@ func SearchVersions(ctx context.Context, opts *packages_model.PackageSearchOptio
 	}
 
 	inner := builder.
-		Dialect(db.BuilderDialect(ctx)).
+		Dialect(db.BuilderDialect()).
 		Select("*").
 		From("package").
 		Where(cond).
