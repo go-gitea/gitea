@@ -65,9 +65,9 @@ export function initImageDiff() {
     };
   }
 
-  $('.image-diff:not([data-is-loaded-image])').each(function() {
+  $('.image-diff:not([data-is-image-loaded])').each(function() {
     const $container = $(this);
-    $container.attr('data-is-loaded-image', 'true');
+    $container.attr('data-is-image-loaded', 'true');
 
     // the container may be hidden by "viewed" checkbox, so use the parent's width for reference
     const diffContainerWidth = Math.max($container.closest('.diff-file-box').width() - 300, 100);
