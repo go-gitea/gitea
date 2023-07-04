@@ -148,8 +148,8 @@ func FindBranchesByRepoAndBranchName(ctx context.Context, repoBranches map[int64
 func FindBranchesWithSearch(ctx context.Context, opts FindBranchOptions, search string) ([]string, error) {
 	fmt.Println(search)
 	branches := make([]string, 0, 30)
-	var prefixCond builder.Cond = builder.Like{"name", "%" + search + "%"}
-	sess := db.GetEngine(ctx).Select("name").Where(opts.Cond()).And(prefixCond)
+	var searchCond builder.Cond = builder.Like{"name", "%" + search + "%"}
+	sess := db.GetEngine(ctx).Select("name").Where(opts.Cond()).And(searchCond)
 	if opts.PageSize > 0 && !opts.IsListAll() {
 		sess = db.SetSessionPagination(sess, &opts.ListOptions)
 	}

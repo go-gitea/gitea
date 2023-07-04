@@ -277,6 +277,30 @@ func GetTagNamesByRepoID(ctx context.Context, repoID int64) ([]string, error) {
 	return tags, sess.Find(&tags)
 }
 
+// GetTagNamesByRepoID returns a list of release tag names of repository.
+func GetTagNamesByRepoIDWithSearch(ctx context.Context, repoID int64, search string) ([]string, error) {
+	tags := make([]string, 0, 30)
+	listOptions := db.ListOptions{
+		ListAll: true,
+	}
+	opts := FindReleasesOptions{
+		ListOptions:   listOptions,
+		IncludeDrafts: true,
+		IncludeTags:   true,
+		HasSha1:       util.OptionalBoolTrue,
+	}
+	var searchCond builder.Cond = builder.Like{"tag_name", "%" + search + "%"}
+	sess := db.GetEngine(ctx).
+		Table("release").
+		Desc("created_unix", "id").
+		Where(opts.toConds(repoID)).
+		Cols("tag_name").
+		And(searchCond).
+		Limit(30)
+
+	return tags, sess.Find(&tags)
+}
+
 // CountReleasesByRepoID returns a number of releases matching FindReleaseOptions and RepoID.
 func CountReleasesByRepoID(repoID int64, opts FindReleasesOptions) (int64, error) {
 	return db.GetEngine(db.DefaultContext).Where(opts.toConds(repoID)).Count(new(Release))

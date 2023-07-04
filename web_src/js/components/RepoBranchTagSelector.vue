@@ -20,13 +20,13 @@
         <div class="header branch-tag-choice">
           <div class="ui grid">
             <div class="two column row">
-              <a class="reference column" href="#" @click="createTag = false; mode = 'branches'; focusSearchField()">
+              <a class="reference column" href="#" @click="createTag = false; mode = 'branches'; focusSearchField(); fetchBranches()">
                 <span class="text" :class="{black: mode === 'branches'}">
                   <svg-icon name="octicon-git-branch" :size="16" class-name="gt-mr-2"/>{{ textBranches }}
                 </span>
               </a>
               <template v-if="!noTag">
-                <a class="reference column" href="#" @click="createTag = true; mode = 'tags'; focusSearchField()">
+                <a class="reference column" href="#" @click="createTag = true; mode = 'tags'; focusSearchField(); fetchBranches()">
                   <span class="text" :class="{black: mode === 'tags'}">
                     <svg-icon name="octicon-tag" :size="16" class-name="gt-mr-2"/>{{ textTags }}
                   </span>
@@ -251,22 +251,24 @@ const sfc = {
     },
     async fetchBranches() {
       console.log('handleSearchInputChange', this.searchTerm);
-      const searchQuery = this.searchTerm;
-      const resp = await fetch(`${this.repoLink}/branches?&q=${searchQuery}`);
-      const {branches} = await resp.json();
-      console.log(branches);
+      const resp = await fetch(`${this.repoLink}/${this.mode}?&q=${this.searchTerm}`);
+      const {results} = await resp.json();
+      console.log(results);
       this.items = [];
-      if (this.showBranchesInDropdown && branches) {
-        for (const branch of branches) {
-          this.items.push({name: branch, url: branch, branch: true, tag: false, selected: branch === this.defaultBranch});
+      if (this.mode === 'branches') {
+        if (this.showBranchesInDropdown && results) {
+          for (const branch of results) {
+            this.items.push({name: branch, url: branch, branch: true, tag: false, selected: branch === this.defaultBranch});
+          }
         }
-      }
-      if (!this.noTag && this.tags) {
-        for (const tag of this.tags) {
-          if (this.release) {
-            this.items.push({name: tag, url: tag, branch: false, tag: true, selected: tag === this.release.tagName});
-          } else {
-            this.items.push({name: tag, url: tag, branch: false, tag: true, selected: tag === this.defaultBranch});
+      } else {
+        if (!this.noTag && results) {
+          for (const tag of results) {
+            if (this.release) {
+              this.items.push({name: tag, url: tag, branch: false, tag: true, selected: tag === this.release.tagName});
+            } else {
+              this.items.push({name: tag, url: tag, branch: false, tag: true, selected: tag === this.defaultBranch});
+            }
           }
         }
       }

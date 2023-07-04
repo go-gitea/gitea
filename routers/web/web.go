@@ -1369,6 +1369,7 @@ func registerRoutes(m *web.Route) {
 		m.Group("/{reponame}", func() {
 			m.Get("", repo.SetEditorconfigIfExists, repo.Home)
 			m.Get("/branches", repo.GetBranches)
+			m.Get("/tags", repo.GetTags)
 		}, ignSignIn, context.RepoAssignment, context.RepoRef(), context.UnitTypes())
 
 		m.Group("/{reponame}", func() {

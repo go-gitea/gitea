@@ -1087,8 +1087,8 @@ func Forks(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplForks)
 }
 
-type branchSearchResponse struct {
-	Branches []string `json:"branches"`
+type branchTagSearchResponse struct {
+	Results []string `json:"results"`
 }
 
 // GetBranches get branches for current repo'
@@ -1113,7 +1113,20 @@ func GetBranches(ctx *context.Context) {
 		}
 		return branches[i] == ctx.Repo.Repository.DefaultBranch
 	})
-	resp := &branchSearchResponse{}
-	resp.Branches = branches
+	resp := &branchTagSearchResponse{}
+	resp.Results = branches
+	ctx.JSON(http.StatusOK, resp)
+}
+
+// GetTags get tags for current repo'
+func GetTags(ctx *context.Context) {
+	search := strings.TrimSpace(ctx.FormString("q"))
+	tags, err := repo_model.GetTagNamesByRepoIDWithSearch(ctx, ctx.Repo.Repository.ID, search)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+	resp := &branchTagSearchResponse{}
+	resp.Results = tags
 	ctx.JSON(http.StatusOK, resp)
 }
