@@ -1094,6 +1094,7 @@ func registerRoutes(m *web.Route) {
 		}, context.RepoRef(), canEnableEditor, context.RepoMustNotBeArchived())
 
 		m.Group("/branches", func() {
+			m.Get("/list", repo.GetBranches)
 			m.Group("/_new", func() {
 				m.Post("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.CreateBranch)
 				m.Post("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.CreateBranch)
@@ -1108,6 +1109,7 @@ func registerRoutes(m *web.Route) {
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("/tags", func() {
 			m.Get("", repo.TagsList)
+			m.Get("/list", repo.GetTags)
 			m.Get(".rss", feedEnabled, repo.TagsListFeedRSS)
 			m.Get(".atom", feedEnabled, repo.TagsListFeedAtom)
 		}, ctxDataSet("EnableFeed", setting.Other.EnableFeed),
@@ -1368,8 +1370,6 @@ func registerRoutes(m *web.Route) {
 	m.Group("/{username}", func() {
 		m.Group("/{reponame}", func() {
 			m.Get("", repo.SetEditorconfigIfExists, repo.Home)
-			m.Get("/branches", repo.GetBranches)
-			m.Get("/tags", repo.GetTags)
 		}, ignSignIn, context.RepoAssignment, context.RepoRef(), context.UnitTypes())
 
 		m.Group("/{reponame}", func() {

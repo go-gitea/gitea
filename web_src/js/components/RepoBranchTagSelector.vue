@@ -251,24 +251,21 @@ const sfc = {
     },
     async fetchBranches() {
       console.log('handleSearchInputChange', this.searchTerm);
-      const resp = await fetch(`${this.repoLink}/${this.mode}?&q=${this.searchTerm}`);
+      const resp = await fetch(`${this.repoLink}/${this.mode}/list?&q=${this.searchTerm}`);
       const {results} = await resp.json();
       console.log(results);
+      if (!results || !['branches', 'tags'].includes(this.mode)) return;
       this.items = [];
-      if (this.mode === 'branches') {
-        if (this.showBranchesInDropdown && results) {
-          for (const branch of results) {
-            this.items.push({name: branch, url: branch, branch: true, tag: false, selected: branch === this.defaultBranch});
-          }
+      if (this.mode === 'branches' && this.showBranchesInDropdown) {
+        for (const branch of results) {
+          this.items.push({name: branch, url: branch, branch: true, tag: false, selected: branch === this.defaultBranch});
         }
-      } else {
-        if (!this.noTag && results) {
-          for (const tag of results) {
-            if (this.release) {
-              this.items.push({name: tag, url: tag, branch: false, tag: true, selected: tag === this.release.tagName});
-            } else {
-              this.items.push({name: tag, url: tag, branch: false, tag: true, selected: tag === this.defaultBranch});
-            }
+      } else if (this.mode === 'tags' && !this.noTag) {
+        for (const tag of results) {
+          if (this.release) {
+            this.items.push({name: tag, url: tag, branch: false, tag: true, selected: tag === this.release.tagName});
+          } else {
+            this.items.push({name: tag, url: tag, branch: false, tag: true, selected: tag === this.defaultBranch});
           }
         }
       }
