@@ -105,7 +105,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	s, _, err := packages_service.GetPackageFileStream(ctx, pfs[0])
+	s, u, _, err := packages_service.GetPackageFileStream(ctx, pfs[0])
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
@@ -114,12 +114,8 @@ func DownloadPackageFile(ctx *context.Context) {
 		}
 		return
 	}
-	defer s.Close()
 
-	ctx.ServeContent(s, &context.ServeHeaderOptions{
-		Filename:     pfs[0].Name,
-		LastModified: pfs[0].CreatedUnix.AsLocalTime(),
-	})
+	helper.ServePackageFile(ctx, s, u, pfs[0])
 }
 
 func resolvePackage(ctx *context.Context, ownerID int64, name, version string) (*packages_model.PackageVersion, error) {
