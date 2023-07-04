@@ -77,7 +77,7 @@
 		</div>
 		{{if and .IsShowingOnlySingleCommit .PageIsPullFiles}}
 			<div class="ui info message">
-				<div class="text gt-whitespace-pre">{{.locale.Tr "repo.pulls.showing_only_single_commit" (ShortSha .AfterCommitID)}}</div>
+				<div class="text gt-whitespace-pre">{{.locale.Tr "repo.pulls.showing_only_single_commit" (ShortSha .BeforeCommitID)}}</div>
 			</div>
 		{{else if and (not .IsShowingAllCommits) .PageIsPullFiles}}
 				<div class="ui info message">

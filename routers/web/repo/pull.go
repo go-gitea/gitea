@@ -949,7 +949,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 
 func ViewPullFilesForSingleCommit(ctx *context.Context) {
 	commitToShow := ctx.Params("sha")
-	viewPullFiles(ctx, commitToShow, "", true, true)
+	viewPullFiles(ctx, "", commitToShow, true, true)
 }
 
 func ViewPullFilesForRangeOrStartingFromCommit(ctx *context.Context) {
