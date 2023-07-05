@@ -69,7 +69,7 @@ func FixMissingAdminTeamUnitRecords(x *xorm.Engine) error {
 
 	// find all admin teams
 	teams := make([]*Team, 0)
-	err := sess.Where("team.authorize == ?", AccessModeAdmin).Find(&teams)
+	err := sess.Where("team.authorize = ?", AccessModeAdmin).Find(&teams)
 	if err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func FixMissingAdminTeamUnitRecords(x *xorm.Engine) error {
 	for _, team := range teams {
 		// find all existing records
 		teamunits := make([]*TeamUnit, 0, len(AllRepoUnitTypes))
-		err := sess.Where("`team_unit`.team_id == ?", team.ID).Find(&teamunits)
+		err := sess.Where("`team_unit`.team_id = ?", team.ID).Find(&teamunits)
 		if err != nil {
 			return err
 		}
