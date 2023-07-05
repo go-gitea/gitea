@@ -116,7 +116,7 @@ func getVariablesOfTask(ctx context.Context, task *actions_model.ActionTask) map
 }
 
 func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
-	event := map[string]interface{}{}
+	event := map[string]any{}
 	_ = json.Unmarshal([]byte(t.Job.Run.EventPayload), &event)
 
 	// TriggerEvent is added in https://github.com/go-gitea/gitea/pull/25229
@@ -136,7 +136,7 @@ func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
 
 	refName := git.RefName(t.Job.Run.Ref)
 
-	taskContext, err := structpb.NewStruct(map[string]interface{}{
+	taskContext, err := structpb.NewStruct(map[string]any{
 		// standard contexts, see https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
 		"action":            "",                                                   // string, The name of the action currently running, or the id of a step. GitHub removes special characters, and uses the name __run when the current step runs a script without an id. If you use the same action more than once in the same job, the name will include a suffix with the sequence number with underscore before it. For example, the first script you run will have the name __run, and the second script will be named __run_2. Similarly, the second invocation of actions/checkout will be actionscheckout2.
 		"action_path":       "",                                                   // string, The path where an action is located. This property is only supported in composite actions. You can use this path to access files located in the same repository as the action.

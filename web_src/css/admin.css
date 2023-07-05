@@ -42,3 +42,7 @@
 .admin .ui.table.segment {
   overflow-x: auto; /* if the screen width is small, many wide tables (eg: user list) need scroll bars */
 }
+
+.admin .table th {
+  white-space: nowrap;
+}
