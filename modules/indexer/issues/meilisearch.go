@@ -130,7 +130,7 @@ func (b *MeilisearchIndexer) Search(ctx context.Context, keyword string, repoIDs
 	hits := make([]Match, 0, len(searchRes.Hits))
 	for _, hit := range searchRes.Hits {
 		hits = append(hits, Match{
-			ID: int64(hit.(map[string]interface{})["id"].(float64)),
+			ID: int64(hit.(map[string]any)["id"].(float64)),
 		})
 	}
 	return &SearchResult{
