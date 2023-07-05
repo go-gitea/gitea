@@ -10,13 +10,11 @@
   margin-right: 0;
 }
 
-.page-content.install .ui.form .field .help,
-.page-content.install .ui.form .field .right-content {
+.page-content.install .ui.form .field > .help,
+.page-content.install .ui.form .field > .ui.checkbox:first-child,
+.page-content.install .ui.form .field > .right-content {
   margin-left: 30%;
   padding-left: 5px;
-}
-
-.page-content.install form.ui.form .inline.field > .ui.checkbox:first-child label {
   width: auto;
 }
 
