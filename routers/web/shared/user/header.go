@@ -16,6 +16,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
+// prepareContextForCommonProfile store some common data into context data for user's profile related pages (including the nav menu)
+// It is designed to be fast and safe to be called multiple times in one request
 func prepareContextForCommonProfile(ctx *context.Context) {
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
@@ -24,7 +26,7 @@ func prepareContextForCommonProfile(ctx *context.Context) {
 	ctx.Data["FeedURL"] = ctx.ContextUser.HomeLink()
 }
 
-// PrepareContextForProfileBigAvatar set the context for big avatar view on repo
+// PrepareContextForProfileBigAvatar set the context for big avatar view on the profile page
 func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 	prepareContextForCommonProfile(ctx)
 

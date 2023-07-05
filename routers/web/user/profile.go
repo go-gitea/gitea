@@ -87,6 +87,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileGi
 		}
 	}
 	ctx.Data["TabName"] = tab
+	ctx.Data["HasProfileReadme"] = profileReadme != nil
 
 	page := ctx.FormInt("page")
 	if page <= 0 {
@@ -230,7 +231,6 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileGi
 
 		total = int(count)
 	case "overview":
-		ctx.Data["HasProfileReadme"] = true
 		if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
 			log.Error("failed to GetBlobContent: %v", err)
 		} else {

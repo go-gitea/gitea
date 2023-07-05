@@ -20,11 +20,12 @@ const (
 
 // CodeSearch render user/organization code search page
 func CodeSearch(ctx *context.Context) {
-	shared_user.PrepareContextForProfileBigAvatar(ctx)
 	if !setting.Indexer.RepoIndexerEnabled {
 		ctx.Redirect(ctx.ContextUser.HomeLink())
 		return
 	}
+	shared_user.PrepareContextForProfileBigAvatar(ctx)
+	shared_user.RenderUserHeader(ctx)
 
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
