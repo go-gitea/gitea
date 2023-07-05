@@ -3,16 +3,22 @@
 
 package internal
 
-import "code.gitea.io/gitea/modules/util"
+import (
+	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
+)
 
 // IndexerData data stored in the issue indexer
 type IndexerData struct {
-	ID       int64    `json:"id"`
-	RepoID   int64    `json:"repo_id"`
+	ID     int64 `json:"id"`
+	RepoID int64 `json:"repo_id"`
+
+	// Fields used for keyword searching
 	Title    string   `json:"title"`
 	Content  string   `json:"content"`
 	Comments []string `json:"comments"`
 
+	// Fields used for filtering
 	IsPublicRepo       bool     `json:"is_public_repo"` // So if the availability of a repository has changed, we should reindex all issues of the repository
 	IsPull             bool     `json:"is_pull"`
 	IsClosed           bool     `json:"is_closed"`     // So if the status of an issue has changed, we should reindex the issue.
@@ -27,6 +33,12 @@ type IndexerData struct {
 	Mentions           []int64  `json:"mentions"`
 	Reviewers          []int64  `json:"reviewers"`           // So if the reviewers of an issue have changed, we should reindex the issue.
 	RequestedReviewers []int64  `json:"requested_reviewers"` // So if the requested reviewers of an issue have changed, we should reindex the issue.
+
+	// Fields used for sorting
+	CreatedAt    timeutil.TimeStamp `json:"created_at"`
+	UpdatedAt    timeutil.TimeStamp `json:"updated_at"`
+	CommentCount int64              `json:"comment_count"`
+	DueDate      timeutil.TimeStamp `json:"due_date"`
 }
 
 // Match represents on search result
@@ -39,6 +51,10 @@ type Match struct {
 type SearchResult struct {
 	Total int64
 	Hits  []Match
+
+	// Imprecise indicates that the result is not accurate, and it needs second filtering and sorting by database.
+	// It could be removed when all engines support filtering and sorting.
+	Imprecise bool
 }
 
 // SearchOptions represents search options
