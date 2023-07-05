@@ -10,7 +10,7 @@
 				<div class="ui small label">{{.ContextUser.NumRepos}}</div>
 			{{end}}
 		</a>
-		{{if and .IsProjectEnabled (or .ContextUser.IsIndividual (and .ContextUser.IsOrganization .CanReadProjects))}}
+		{{if or .ContextUser.IsIndividual (and .ContextUser.IsOrganization .CanReadProjects)}}
 		<a href="{{.ContextUser.HomeLink}}/-/projects" class="{{if .PageIsViewProjects}}active {{end}}item">
 			{{svg "octicon-project-symlink"}} {{.locale.Tr "user.projects"}}
 		</a>

@@ -4,8 +4,6 @@
 package user
 
 import (
-	"fmt"
-
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -19,14 +17,9 @@ import (
 
 // PrepareContextForProfileBigAvatar set the context for big avatar view on repo
 func PrepareContextForProfileBigAvatar(ctx *context.Context) {
-	// check view permissions
-	if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
-		ctx.NotFound("user", fmt.Errorf(ctx.ContextUser.Name))
-		return
-	}
-
-	// advertise feed via meta tag
+	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["FeedURL"] = ctx.ContextUser.HomeLink()
+	ctx.Data["IsFollowing"] = ctx.Doer != nil && user_model.IsFollowing(ctx.Doer.ID, ctx.ContextUser.ID)
 
 	// Show OpenID URIs
 	openIDs, err := user_model.GetUserOpenIDs(ctx.ContextUser.ID)
@@ -34,15 +27,7 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 		ctx.ServerError("GetUserOpenIDs", err)
 		return
 	}
-
-	var isFollowing bool
-	if ctx.Doer != nil {
-		isFollowing = user_model.IsFollowing(ctx.Doer.ID, ctx.ContextUser.ID)
-	}
-
-	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["OpenIDs"] = openIDs
-	ctx.Data["IsFollowing"] = isFollowing
 
 	if len(ctx.ContextUser.Description) != 0 {
 		content, err := markdown.RenderString(&markup.RenderContext{
@@ -57,6 +42,7 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 		}
 		ctx.Data["RenderedDescription"] = content
 	}
+
 	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
 	orgs, err := organization.FindOrgs(organization.FindOrgOptions{
 		UserID:         ctx.ContextUser.ID,
@@ -101,7 +87,6 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 }
 
 func RenderUserHeader(ctx *context.Context) {
-	ctx.Data["IsProjectEnabled"] = true
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["ContextUser"] = ctx.ContextUser
