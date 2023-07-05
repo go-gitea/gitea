@@ -31,8 +31,8 @@ func garbageCollectLFSCheck(ctx context.Context, logger log.Logger, autofix bool
 	}
 
 	if err := repository.GarbageCollectLFSMetaObjects(ctx, repository.GarbageCollectLFSMetaObjectsOptions{
-		Logger:  logger,
-		AutoFix: autofix,
+		LogDetail: logger.Info,
+		AutoFix:   autofix,
 		// Only attempt to garbage collect lfs meta objects older than a week as the order of git lfs upload
 		// and git object upload is not necessarily guaranteed. It's possible to imagine a situation whereby
 		// an LFS object is uploaded but the git branch is not uploaded immediately, or there are some rapid
