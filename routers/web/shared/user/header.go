@@ -72,26 +72,13 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 	}
 	ctx.Data["Badges"] = badges
 
-	pagingNum := setting.UI.User.RepoPagingNum
-	page := ctx.FormInt("page")
-	_, numFollowers, err := user_model.GetUserFollowers(ctx, ctx.ContextUser, ctx.Doer, db.ListOptions{
-		PageSize: pagingNum,
-		Page:     page,
-	})
-	if err != nil {
-		ctx.ServerError("GetUserFollowers", err)
-		return
+	// in case the numbers are already provided by other functions, no need to query again (which is slow)
+	if _, ok := ctx.Data["NumFollowers"]; !ok {
+		_, ctx.Data["NumFollowers"], _ = user_model.GetUserFollowers(ctx, ctx.ContextUser, ctx.Doer, db.ListOptions{PageSize: 1, Page: 1})
 	}
-	ctx.Data["NumFollowers"] = numFollowers
-	_, numFollowing, err := user_model.GetUserFollowing(ctx, ctx.ContextUser, ctx.Doer, db.ListOptions{
-		PageSize: pagingNum,
-		Page:     page,
-	})
-	if err != nil {
-		ctx.ServerError("GetUserFollowing", err)
-		return
+	if _, ok := ctx.Data["NumFollowing"]; !ok {
+		_, ctx.Data["NumFollowing"], _ = user_model.GetUserFollowing(ctx, ctx.ContextUser, ctx.Doer, db.ListOptions{PageSize: 1, Page: 1})
 	}
-	ctx.Data["NumFollowing"] = numFollowing
 }
 
 func FindUserProfileReadme(ctx *context.Context) (profileGitRepo *git.Repository, profileReadmeBlob *git.Blob, profileClose func()) {

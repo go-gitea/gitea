@@ -5,10 +5,6 @@
 package user
 
 import (
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"fmt"
 	"net/http"
 	"strings"
@@ -19,10 +15,14 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
 	"code.gitea.io/gitea/routers/web/org"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 )
 
 // OwnerProfile render profile page for a user or a organization (aka, repo owner)
@@ -55,8 +55,6 @@ func userProfile(ctx *context.Context) {
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
-	shared_user.PrepareContextForProfileBigAvatar(ctx)
-
 	// prepare heatmap data
 	if setting.Service.EnableUserHeatmap {
 		data, err := activities_model.GetUserHeatmapDataByUser(ctx.ContextUser, ctx.Doer)
@@ -73,6 +71,8 @@ func userProfile(ctx *context.Context) {
 
 	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
 	prepareUserProfileTabData(ctx, showPrivate, profileGitRepo, profileReadmeBlob)
+	// call PrepareContextForProfileBigAvatar later to avoid re-querying the NumFollowers & NumFollowing
+	shared_user.PrepareContextForProfileBigAvatar(ctx)
 	ctx.HTML(http.StatusOK, tplProfile)
 }
 
