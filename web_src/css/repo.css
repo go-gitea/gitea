@@ -1313,10 +1313,9 @@
   padding: 5px 10px;
 }
 
-.repository #commits-table {
+.repository #commits-table td:not(.message) {
   white-space: nowrap;
 }
-
 .repository #commits-table thead .sha {
   width: 200px;
 }
@@ -1331,7 +1330,6 @@
 
 .repository #commits-table td.message {
   text-overflow: unset;
-  white-space: normal;
 }
 
 .repository #commits-table.ui.basic.striped.table tbody tr:nth-child(2n) {
