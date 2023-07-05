@@ -46,7 +46,7 @@ func FixMissingAdminTeamUnitRecords(x *xorm.Engine) error {
 		TypeActions                         // 10 Actions
 	)
 
-	var AllRepoUnitTypes = []UnitType{
+	AllRepoUnitTypes := []UnitType{
 		TypeCode,
 		TypeIssues,
 		TypePullRequests,
