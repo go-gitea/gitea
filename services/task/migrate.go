@@ -121,7 +121,7 @@ func runMigrateTask(t *admin_model.Task) (err error) {
 		}
 	}()
 
-	t.Repo, err = migrations.MigrateRepository(ctx, t.Doer, t.Owner.Name, *opts, func(format string, args ...interface{}) {
+	t.Repo, err = migrations.MigrateRepository(ctx, t.Doer, t.Owner.Name, *opts, func(format string, args ...any) {
 		message := admin_model.TranslatableMessage{
 			Format: format,
 			Args:   args,

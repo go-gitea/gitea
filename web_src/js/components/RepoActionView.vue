@@ -498,6 +498,8 @@ export function initRepositoryActionView() {
 
 <style scoped>
 .action-view-body {
+  padding-top: 12px;
+  padding-bottom: 12px;
   display: flex;
   gap: 12px;
 }
@@ -529,11 +531,6 @@ export function initRepositoryActionView() {
   display: flex;
   gap: 5px;
   margin: 0 0 0 28px;
-}
-
-.action-view-left, .action-view-right {
-  padding-top: 12px;
-  padding-bottom: 12px;
 }
 
 /* ================ */
@@ -749,6 +746,7 @@ export function initRepositoryActionView() {
   background-color: var(--color-console-bg);
   max-height: 100%;
   border-radius: 0 0 var(--border-radius) var(--border-radius);
+  z-index: 0;
 }
 
 .job-step-container .job-step-summary {

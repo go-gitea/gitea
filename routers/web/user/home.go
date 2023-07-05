@@ -97,7 +97,7 @@ func Dashboard(ctx *context.Context) {
 		uid = ctxUser.ID
 	}
 
-	ctx.PageData["dashboardRepoList"] = map[string]interface{}{
+	ctx.PageData["dashboardRepoList"] = map[string]any{
 		"searchLimit": setting.UI.User.RepoPagingNum,
 		"uid":         uid,
 	}

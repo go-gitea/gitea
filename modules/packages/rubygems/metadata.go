@@ -65,12 +65,12 @@ type gemspec struct {
 	Version struct {
 		Version string `yaml:"version"`
 	} `yaml:"version"`
-	Platform     string        `yaml:"platform"`
-	Authors      []string      `yaml:"authors"`
-	Autorequire  interface{}   `yaml:"autorequire"`
-	Bindir       string        `yaml:"bindir"`
-	CertChain    []interface{} `yaml:"cert_chain"`
-	Date         string        `yaml:"date"`
+	Platform     string   `yaml:"platform"`
+	Authors      []string `yaml:"authors"`
+	Autorequire  any      `yaml:"autorequire"`
+	Bindir       string   `yaml:"bindir"`
+	CertChain    []any    `yaml:"cert_chain"`
+	Date         string   `yaml:"date"`
 	Dependencies []struct {
 		Name                string      `yaml:"name"`
 		Requirement         requirement `yaml:"requirement"`
@@ -78,34 +78,34 @@ type gemspec struct {
 		Prerelease          bool        `yaml:"prerelease"`
 		VersionRequirements requirement `yaml:"version_requirements"`
 	} `yaml:"dependencies"`
-	Description    string        `yaml:"description"`
-	Executables    []string      `yaml:"executables"`
-	Extensions     []interface{} `yaml:"extensions"`
-	ExtraRdocFiles []string      `yaml:"extra_rdoc_files"`
-	Files          []string      `yaml:"files"`
-	Homepage       string        `yaml:"homepage"`
-	Licenses       []string      `yaml:"licenses"`
+	Description    string   `yaml:"description"`
+	Executables    []string `yaml:"executables"`
+	Extensions     []any    `yaml:"extensions"`
+	ExtraRdocFiles []string `yaml:"extra_rdoc_files"`
+	Files          []string `yaml:"files"`
+	Homepage       string   `yaml:"homepage"`
+	Licenses       []string `yaml:"licenses"`
 	Metadata       struct {
 		BugTrackerURI    string `yaml:"bug_tracker_uri"`
 		ChangelogURI     string `yaml:"changelog_uri"`
 		DocumentationURI string `yaml:"documentation_uri"`
 		SourceCodeURI    string `yaml:"source_code_uri"`
 	} `yaml:"metadata"`
-	PostInstallMessage      interface{}   `yaml:"post_install_message"`
-	RdocOptions             []interface{} `yaml:"rdoc_options"`
-	RequirePaths            []string      `yaml:"require_paths"`
-	RequiredRubyVersion     requirement   `yaml:"required_ruby_version"`
-	RequiredRubygemsVersion requirement   `yaml:"required_rubygems_version"`
-	Requirements            []interface{} `yaml:"requirements"`
-	RubygemsVersion         string        `yaml:"rubygems_version"`
-	SigningKey              interface{}   `yaml:"signing_key"`
-	SpecificationVersion    int           `yaml:"specification_version"`
-	Summary                 string        `yaml:"summary"`
-	TestFiles               []interface{} `yaml:"test_files"`
+	PostInstallMessage      any         `yaml:"post_install_message"`
+	RdocOptions             []any       `yaml:"rdoc_options"`
+	RequirePaths            []string    `yaml:"require_paths"`
+	RequiredRubyVersion     requirement `yaml:"required_ruby_version"`
+	RequiredRubygemsVersion requirement `yaml:"required_rubygems_version"`
+	Requirements            []any       `yaml:"requirements"`
+	RubygemsVersion         string      `yaml:"rubygems_version"`
+	SigningKey              any         `yaml:"signing_key"`
+	SpecificationVersion    int         `yaml:"specification_version"`
+	Summary                 string      `yaml:"summary"`
+	TestFiles               []any       `yaml:"test_files"`
 }
 
 type requirement struct {
-	Requirements [][]interface{} `yaml:"requirements"`
+	Requirements [][]any `yaml:"requirements"`
 }
 
 // AsVersionRequirement converts into []VersionRequirement
@@ -119,7 +119,7 @@ func (r requirement) AsVersionRequirement() []VersionRequirement {
 		if !ok {
 			continue
 		}
-		vm, ok := req[1].(map[string]interface{})
+		vm, ok := req[1].(map[string]any)
 		if !ok {
 			continue
 		}
