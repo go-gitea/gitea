@@ -1314,7 +1314,6 @@
 }
 
 .repository #commits-table {
-  display: block;
   white-space: nowrap;
 }
 
