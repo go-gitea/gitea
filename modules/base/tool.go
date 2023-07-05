@@ -107,7 +107,7 @@ const TimeLimitCodeLength = 12 + 6 + 40
 
 // CreateTimeLimitCode create a time limit code
 // code format: 12 length date time string + 6 minutes string + 40 sha1 encoded string
-func CreateTimeLimitCode(data string, minutes int, startInf interface{}) string {
+func CreateTimeLimitCode(data string, minutes int, startInf any) string {
 	format := "200601021504"
 
 	var start, end time.Time
@@ -245,7 +245,7 @@ func SetupGiteaRoot() string {
 }
 
 // FormatNumberSI format a number
-func FormatNumberSI(data interface{}) string {
+func FormatNumberSI(data any) string {
 	var num int64
 	if num1, ok := data.(int64); ok {
 		num = num1

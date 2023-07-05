@@ -57,7 +57,7 @@ func PerformSecretsDelete(ctx *context.Context, ownerID, repoID int64, redirectU
 		ctx.Flash.Success(ctx.Tr("secrets.deletion.success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"redirect": redirectURL,
 	})
 }

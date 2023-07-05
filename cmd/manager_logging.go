@@ -178,7 +178,7 @@ func runAddConnLogger(c *cli.Context) error {
 	defer cancel()
 
 	setup(ctx, c.Bool("debug"))
-	vals := map[string]interface{}{}
+	vals := map[string]any{}
 	mode := "conn"
 	vals["net"] = "tcp"
 	if c.IsSet("protocol") {
@@ -208,7 +208,7 @@ func runAddFileLogger(c *cli.Context) error {
 	defer cancel()
 
 	setup(ctx, c.Bool("debug"))
-	vals := map[string]interface{}{}
+	vals := map[string]any{}
 	mode := "file"
 	if c.IsSet("filename") {
 		vals["filename"] = c.String("filename")
@@ -236,7 +236,7 @@ func runAddFileLogger(c *cli.Context) error {
 	return commonAddLogger(c, mode, vals)
 }
 
-func commonAddLogger(c *cli.Context, mode string, vals map[string]interface{}) error {
+func commonAddLogger(c *cli.Context, mode string, vals map[string]any) error {
 	if len(c.String("level")) > 0 {
 		vals["level"] = log.LevelFromString(c.String("level")).String()
 	}

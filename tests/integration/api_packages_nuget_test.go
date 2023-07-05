@@ -35,7 +35,7 @@ func addNuGetAPIKeyHeader(request *http.Request, token string) *http.Request {
 	return request
 }
 
-func decodeXML(t testing.TB, resp *httptest.ResponseRecorder, v interface{}) {
+func decodeXML(t testing.TB, resp *httptest.ResponseRecorder, v any) {
 	t.Helper()
 
 	assert.NoError(t, xml.NewDecoder(resp.Body).Decode(v))

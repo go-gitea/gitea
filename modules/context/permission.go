@@ -90,7 +90,7 @@ func RequireRepoReaderOr(unitTypes ...unit.Type) func(ctx *Context) {
 		}
 		if log.IsTrace() {
 			var format string
-			var args []interface{}
+			var args []any
 			if ctx.IsSigned {
 				format = "Permission Denied: User %-v cannot read ["
 				args = append(args, ctx.Doer)

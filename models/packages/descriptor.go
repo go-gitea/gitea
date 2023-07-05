@@ -59,7 +59,7 @@ type PackageDescriptor struct {
 	Creator           *user_model.User
 	PackageProperties PackagePropertyList
 	VersionProperties PackagePropertyList
-	Metadata          interface{}
+	Metadata          any
 	Files             []*PackageFileDescriptor
 }
 
@@ -136,7 +136,7 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 		return nil, err
 	}
 
-	var metadata interface{}
+	var metadata any
 	switch p.Type {
 	case TypeAlpine:
 		metadata = &alpine.VersionMetadata{}

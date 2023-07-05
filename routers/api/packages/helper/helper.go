@@ -14,7 +14,7 @@ import (
 
 // LogAndProcessError logs an error and calls a custom callback with the processed error message.
 // If the error is an InternalServerError the message is stripped if the user is not an admin.
-func LogAndProcessError(ctx *context.Context, status int, obj interface{}, cb func(string)) {
+func LogAndProcessError(ctx *context.Context, status int, obj any, cb func(string)) {
 	var message string
 	if err, ok := obj.(error); ok {
 		message = err.Error()

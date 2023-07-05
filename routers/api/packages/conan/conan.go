@@ -47,7 +47,7 @@ var (
 	)
 )
 
-func jsonResponse(ctx *context.Context, status int, obj interface{}) {
+func jsonResponse(ctx *context.Context, status int, obj any) {
 	// https://github.com/conan-io/conan/issues/6613
 	ctx.Resp.Header().Set("Content-Type", "application/json")
 	ctx.Status(status)
@@ -56,7 +56,7 @@ func jsonResponse(ctx *context.Context, status int, obj interface{}) {
 	}
 }
 
-func apiError(ctx *context.Context, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj any) {
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		jsonResponse(ctx, status, map[string]string{
 			"message": message,
@@ -800,13 +800,13 @@ func listRevisionFiles(ctx *context.Context, fileKey string) {
 		return
 	}
 
-	files := make(map[string]interface{})
+	files := make(map[string]any)
 	for _, pf := range pfs {
 		files[pf.Name] = nil
 	}
 
 	type FileList struct {
-		Files map[string]interface{} `json:"files"`
+		Files map[string]any `json:"files"`
 	}
 
 	jsonResponse(ctx, http.StatusOK, &FileList{
