@@ -41,7 +41,7 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
-	// - name: attachment_id
+	// - name: asset
 	//   in: path
 	//   description: id of the attachment to get
 	//   type: integer
@@ -238,7 +238,7 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
-	// - name: attachment_id
+	// - name: asset
 	//   in: path
 	//   description: id of the attachment to edit
 	//   type: integer
@@ -306,7 +306,7 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
-	// - name: attachment_id
+	// - name: asset
 	//   in: path
 	//   description: id of the attachment to delete
 	//   type: integer
