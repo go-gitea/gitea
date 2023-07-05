@@ -1315,8 +1315,9 @@
   padding: 5px 10px;
 }
 
-.repository #commits-table thead th:first-of-type {
-  padding-left: 15px;
+.repository #commits-table {
+  display: block;
+  white-space: nowrap;
 }
 
 .repository #commits-table thead .sha {
@@ -1333,6 +1334,7 @@
 
 .repository #commits-table td.message {
   text-overflow: unset;
+  white-space: normal;
 }
 
 .repository #commits-table.ui.basic.striped.table tbody tr:nth-child(2n) {
@@ -3231,17 +3233,6 @@ tbody.commit-list {
   .commit-table td.sha,
   .commit-table th.sha {
     display: none !important;
-  }
-  .commit-table .commit-list span.message-wrapper {
-    max-width: none;
-  }
-  .commit-table .commit-list tr td:first-child,
-  .commit-table .commit-list tr td:last-child {
-    white-space: nowrap;
-  }
-  .commit-table .commit-list td.author {
-    display: block;
-    width: calc(100% + 0.5rem);
   }
   .commit-table .commit-list .copy-commit-sha {
     display: none !important;
