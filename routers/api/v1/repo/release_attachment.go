@@ -214,7 +214,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 
 // EditReleaseAttachment updates the given attachment
 func EditReleaseAttachment(ctx *context.APIContext) {
-	// swagger:operation PATCH /repos/{owner}/{repo}/releases/{id}/assets/{attachment_id} repository repoEditReleaseAttachment
+	// swagger:operation PATCH /repos/{owner}/{repo}/releases/{id}/assets/{asset} repository repoEditReleaseAttachment
 	// ---
 	// summary: Edit a release attachment
 	// produces:
@@ -284,7 +284,7 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 
 // DeleteReleaseAttachment delete a given attachment
 func DeleteReleaseAttachment(ctx *context.APIContext) {
-	// swagger:operation DELETE /repos/{owner}/{repo}/releases/{id}/assets/{attachment_id} repository repoDeleteReleaseAttachment
+	// swagger:operation DELETE /repos/{owner}/{repo}/releases/{id}/assets/{asset} repository repoDeleteReleaseAttachment
 	// ---
 	// summary: Delete a release attachment
 	// produces:
