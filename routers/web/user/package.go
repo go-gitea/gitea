@@ -103,7 +103,6 @@ func ListPackages(ctx *context.Context) {
 
 	// TODO: context/org -> HandleOrgAssignment() can not be used
 	if ctx.ContextUser.IsOrganization() {
-		ctx.Data["pageStyleClasses"] = "container"
 		org := org_model.OrgFromUser(ctx.ContextUser)
 		ctx.Data["Org"] = org
 		ctx.Data["OrgLink"] = ctx.ContextUser.OrganisationLink()
@@ -162,7 +161,6 @@ func RedirectToLastVersion(ctx *context.Context) {
 func ViewPackageVersion(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
 	shared_user.RenderUserHeader(ctx)
-	ctx.Data["pageStyleClasses"] = "container"
 	ctx.Data["Title"] = pd.Package.Name
 	ctx.Data["IsPackagesPage"] = true
 	ctx.Data["PackageDescriptor"] = pd
@@ -269,7 +267,6 @@ func ListPackageVersions(ctx *context.Context) {
 		}
 		return
 	}
-	ctx.Data["pageStyleClasses"] = "container"
 	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
@@ -369,7 +366,6 @@ func PackageSettings(ctx *context.Context) {
 	})
 	ctx.Data["Repos"] = repos
 	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
-	ctx.Data["pageStyleClasses"] = "container"
 
 	ctx.HTML(http.StatusOK, tplPackagesSettings)
 }
@@ -377,7 +373,6 @@ func PackageSettings(ctx *context.Context) {
 // PackageSettingsPost updates the package settings
 func PackageSettingsPost(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
-	ctx.Data["pageStyleClasses"] = "container"
 	form := web.GetForm(ctx).(*forms.PackageSettingForm)
 	switch form.Action {
 	case "link":

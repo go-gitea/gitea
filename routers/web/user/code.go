@@ -21,9 +21,6 @@ const (
 // CodeSearch render user/organization code search page
 func CodeSearch(ctx *context.Context) {
 	shared_user.PrepareContextForProfileBigAvatar(ctx)
-	if ctx.ContextUser.IsOrganization() {
-		ctx.Data["pageStyleClasses"] = "container"
-	}
 	if !setting.Indexer.RepoIndexerEnabled {
 		ctx.Redirect(ctx.ContextUser.HomeLink())
 		return

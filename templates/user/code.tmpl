@@ -2,8 +2,8 @@
 {{if .ContextUser.IsOrganization}}
 	<div role="main" aria-label="{{.Title}}" class="page-content repository code-search">
 		{{template "shared/user/org_profile_avatar" .}}
-		{{template "user/overview/header" .}}
 		<div class="ui container">
+			{{template "user/overview/header" .}}
 			{{template "code/searchform" .}}
 			<div class="divider"></div>
 			<div class="ui user list">

@@ -1,4 +1,3 @@
-<div class="ui tabs {{.pageStyleClasses}}">
 	<div class="ui secondary stackable pointing menu">
 		{{if .ProfileReadme}}
 		<a class='{{if or (eq .TabName "overview") (and (eq .TabName "") (not .IsPackagesPage) (not .PageIsViewProjects))}}active {{end}}item' href="{{.ContextUser.HomeLink}}?tab=overview">
@@ -69,4 +68,3 @@
 		{{end}}
 
 	</div>
-</div>

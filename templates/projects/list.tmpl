@@ -1,10 +1,6 @@
-<div class="gt-mt-4">
-	<div class="ui {{.pageStyleClasses}}">
 		{{if .CanWriteProjects}}
-			<div class="navbar gt-df gt-sb">
-				<div class="ui right">
-					<a class="ui small green button" href="{{$.Link}}/new">{{.locale.Tr "repo.projects.new"}}</a>
-				</div>
+			<div class="gt-tr">
+				<a class="ui small green button" href="{{$.Link}}/new">{{.locale.Tr "repo.projects.new"}}</a>
 			</div>
 			<div class="divider"></div>
 		{{end}}
@@ -75,8 +71,6 @@
 
 			{{template "base/paginate" .}}
 		</div>
-	</div>
-</div>
 
 {{if $.CanWriteProjects}}
 <div class="ui g-modal-confirm delete modal">
