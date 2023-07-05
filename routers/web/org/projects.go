@@ -383,7 +383,7 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["IssuesMap"] = issuesMap
 	ctx.Data["Boards"] = boards
 	shared_user.RenderUserHeader(ctx)
-
+	ctx.Data["pageStyleClasses"] = "container"
 	ctx.HTML(http.StatusOK, tplProjectsView)
 }
 
