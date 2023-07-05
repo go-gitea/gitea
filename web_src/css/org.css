@@ -103,6 +103,7 @@
 
 .organization.profile #org-info {
   overflow-wrap: anywhere;
+  flex: 1;
 }
 
 .organization.profile #org-info .ui.header {
