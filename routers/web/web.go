@@ -1260,16 +1260,16 @@ func registerRoutes(m *web.Route) {
 			if ctx.FormBool("wiki") {
 				ctx.Data["PageIsWiki"] = true
 				repo.MustEnableWiki(ctx)
-				return
+				return nil
 			}
 
 			reqRepoCodeReader(ctx)
 			if ctx.Written() {
-				return
+				return nil
 			}
 			cancel = context.RepoRef()(ctx)
 			if ctx.Written() {
-				return
+				return nil
 			}
 
 			repo.MustBeNotEmpty(ctx)
