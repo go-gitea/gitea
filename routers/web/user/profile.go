@@ -68,23 +68,8 @@ func userProfile(ctx *context.Context) {
 		ctx.Data["HeatmapTotalContributions"] = activities_model.GetTotalContributionsInHeatmap(data)
 	}
 
-	// try to find a profile readme
-	var profileReadmeBlob *git.Blob
-	var profileGitRepo *git.Repository
-	profileDbRepo, err := repo_model.GetRepositoryByName(ctx.ContextUser.ID, ".profile")
-	if err == nil && !profileDbRepo.IsEmpty {
-		if profileGitRepo, err = git.OpenRepository(ctx, profileDbRepo.RepoPath()); err != nil {
-			log.Error("failed to OpenRepository: %v", err)
-		} else {
-			defer profileGitRepo.Close()
-
-			if commit, err := profileGitRepo.GetBranchCommit(profileDbRepo.DefaultBranch); err != nil {
-				log.Error("failed to GetBranchCommit: %v", err)
-			} else {
-				profileReadmeBlob, _ = commit.GetBlobByPath("README.md")
-			}
-		}
-	}
+	profileGitRepo, profileReadmeBlob, profileClose := shared_user.FindUserProfileReadme(ctx)
+	defer profileClose()
 
 	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
 	prepareUserProfileTabData(ctx, showPrivate, profileGitRepo, profileReadmeBlob)
@@ -245,6 +230,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileGi
 
 		total = int(count)
 	case "overview":
+		ctx.Data["HasProfileReadme"] = true
 		if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
 			log.Error("failed to GetBlobContent: %v", err)
 		} else {

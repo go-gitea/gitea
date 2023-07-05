@@ -10,16 +10,26 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 )
 
+func prepareContextForCommonProfile(ctx *context.Context) {
+	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
+	ctx.Data["ContextUser"] = ctx.ContextUser
+	ctx.Data["EnableFeed"] = setting.Other.EnableFeed
+	ctx.Data["FeedURL"] = ctx.ContextUser.HomeLink()
+}
+
 // PrepareContextForProfileBigAvatar set the context for big avatar view on repo
 func PrepareContextForProfileBigAvatar(ctx *context.Context) {
-	ctx.Data["ContextUser"] = ctx.ContextUser
-	ctx.Data["FeedURL"] = ctx.ContextUser.HomeLink()
+	prepareContextForCommonProfile(ctx)
+
 	ctx.Data["IsFollowing"] = ctx.Doer != nil && user_model.IsFollowing(ctx.Doer.ID, ctx.ContextUser.ID)
+	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail && ctx.ContextUser.Email != "" && ctx.IsSigned && !ctx.ContextUser.KeepEmailPrivate
 
 	// Show OpenID URIs
 	openIDs, err := user_model.GetUserOpenIDs(ctx.ContextUser.ID)
@@ -82,32 +92,32 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 		return
 	}
 	ctx.Data["NumFollowing"] = numFollowing
-	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail && ctx.ContextUser.Email != "" && ctx.IsSigned && !ctx.ContextUser.KeepEmailPrivate
-	ctx.Data["EnableFeed"] = setting.Other.EnableFeed
+}
+
+func FindUserProfileReadme(ctx *context.Context) (profileGitRepo *git.Repository, profileReadmeBlob *git.Blob, profileClose func()) {
+	profileDbRepo, err := repo_model.GetRepositoryByName(ctx.ContextUser.ID, ".profile")
+	if err == nil && !profileDbRepo.IsEmpty {
+		if profileGitRepo, err = git.OpenRepository(ctx, profileDbRepo.RepoPath()); err != nil {
+			log.Error("FindUserProfileReadme failed to OpenRepository: %v", err)
+		} else {
+			if commit, err := profileGitRepo.GetBranchCommit(profileDbRepo.DefaultBranch); err != nil {
+				log.Error("FindUserProfileReadme failed to GetBranchCommit: %v", err)
+			} else {
+				profileReadmeBlob, _ = commit.GetBlobByPath("README.md")
+			}
+		}
+	}
+	return profileGitRepo, profileReadmeBlob, func() {
+		if profileGitRepo != nil {
+			_ = profileGitRepo.Close()
+		}
+	}
 }
 
 func RenderUserHeader(ctx *context.Context) {
-	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
-	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
-	ctx.Data["ContextUser"] = ctx.ContextUser
-	tab := ctx.FormString("tab")
-	ctx.Data["TabName"] = tab
-	repo, err := repo_model.GetRepositoryByName(ctx.ContextUser.ID, ".profile")
-	if err == nil && !repo.IsEmpty {
-		gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
-		if err != nil {
-			ctx.ServerError("OpenRepository", err)
-			return
-		}
-		defer gitRepo.Close()
-		commit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
-		if err != nil {
-			ctx.ServerError("GetBranchCommit", err)
-			return
-		}
-		blob, err := commit.GetBlobByPath("README.md")
-		if err == nil && blob != nil {
-			ctx.Data["ProfileReadme"] = true
-		}
-	}
+	prepareContextForCommonProfile(ctx)
+
+	_, profileReadmeBlob, profileClose := FindUserProfileReadme(ctx)
+	defer profileClose()
+	ctx.Data["HasProfileReadme"] = profileReadmeBlob != nil
 }
