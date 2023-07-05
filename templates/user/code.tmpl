@@ -1,26 +1,10 @@
 {{template "base/head" .}}
 {{if .ContextUser.IsOrganization}}
-	<div role="main" aria-label="{{.Title}}" class="page-content repository code-search">
+	<div role="main" aria-label="{{.Title}}" class="page-content repository">
 		{{template "shared/user/org_profile_avatar" .}}
 		<div class="ui container">
 			{{template "user/overview/header" .}}
-			{{template "code/searchform" .}}
-			<div class="divider"></div>
-			<div class="ui user list">
-				{{if .CodeIndexerUnavailable}}
-					<div class="ui error message">
-						<p>{{$.locale.Tr "explore.code_search_unavailable"}}</p>
-					</div>
-				{{else if .SearchResults}}
-					<h3>
-						{{.locale.Tr "explore.code_search_results" (.Keyword|Escape) | Str2html}}
-					</h3>
-					{{template "code/searchresults" .}}
-				{{else if .Keyword}}
-					<div>{{$.locale.Tr "explore.code_no_results"}}</div>
-				{{end}}
-			</div>
-			{{template "base/paginate" .}}
+			{{template "code/searchcombo" .}}
 		</div>
 	</div>
 {{else}}
@@ -31,28 +15,8 @@
 					{{template "shared/user/profile_big_avatar" .}}
 				</div>
 				<div class="ui twelve wide column">
-					<div class="gt-mb-4">
-						{{template "user/overview/header" .}}
-					</div>
-					<div class="ui code-search">
-						{{template "code/searchform" .}}
-						<div class="divider"></div>
-						<div class="ui user list">
-							{{if .CodeIndexerUnavailable}}
-								<div class="ui error message">
-									<p>{{$.locale.Tr "explore.code_search_unavailable"}}</p>
-								</div>
-							{{else if .SearchResults}}
-								<h3>
-									{{.locale.Tr "explore.code_search_results" (.Keyword|Escape) | Str2html}}
-								</h3>
-								{{template "code/searchresults" .}}
-							{{else if .Keyword}}
-								<div>{{$.locale.Tr "explore.code_no_results"}}</div>
-							{{end}}
-						</div>
-						{{template "base/paginate" .}}
-					</div>
+					{{template "user/overview/header" .}}
+					{{template "code/searchcombo" .}}
 				</div>
 			</div>
 		</div>
