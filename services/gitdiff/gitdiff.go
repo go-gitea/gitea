@@ -779,7 +779,7 @@ func skipToNextDiffHead(input *bufio.Reader) (line string, err error) {
 	for {
 		lineBytes, isFragment, err = input.ReadLine()
 		if err != nil {
-			return
+			return "", err
 		}
 		if wasFragment {
 			wasFragment = isFragment
@@ -795,7 +795,7 @@ func skipToNextDiffHead(input *bufio.Reader) (line string, err error) {
 		var tail string
 		tail, err = input.ReadString('\n')
 		if err != nil {
-			return
+			return "", err
 		}
 		line += tail
 	}
@@ -835,7 +835,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 		}
 		if lineBytes[0] == 'd' {
 			// End of hunks
-			return
+			return lineBytes, isFragment, err
 		}
 
 		switch lineBytes[0] {
@@ -852,8 +852,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 				lineBytes, isFragment, err = input.ReadLine()
 				if err != nil {
 					// Now by the definition of ReadLine this cannot be io.EOF
-					err = fmt.Errorf("unable to ReadLine: %w", err)
-					return nil, false, err
+					return nil, false, fmt.Errorf("unable to ReadLine: %w", err)
 				}
 				_, _ = sb.Write(lineBytes)
 			}
