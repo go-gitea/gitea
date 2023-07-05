@@ -81,7 +81,7 @@ import {createApp, nextTick} from 'vue';
 import $ from 'jquery';
 import {SvgIcon} from '../svg.js';
 import {pathEscapeSegments} from '../utils/url.js';
-import _ from 'lodash';
+import {onInputDebounce} from '../utils/dom.js';
 
 const sfc = {
   components: {SvgIcon},
@@ -253,7 +253,7 @@ const sfc = {
         this.menuVisible = false;
       }
     },
-    fetchBranches: _.debounce(async function() {
+    fetchBranches: onInputDebounce(async function() {
       console.log('fetchBranches', this.searchTerm);
       const resp = await fetch(`${this.repoLink}/${this.mode}/list?&q=${this.searchTerm}`);
       const {results} = await resp.json();
@@ -273,7 +273,7 @@ const sfc = {
           }
         }
       }
-    }, 500),
+    }),
   }
 };
 
