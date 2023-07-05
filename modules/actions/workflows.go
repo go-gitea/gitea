@@ -20,8 +20,16 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+type DetectedWorkflow struct {
+	EntryName    string
+	TriggerEvent string
+	Commit       *git.Commit
+	Ref          string
+	Content      []byte
+}
+
 func init() {
-	model.OnDecodeNodeError = func(node yaml.Node, out interface{}, err error) {
+	model.OnDecodeNodeError = func(node yaml.Node, out any, err error) {
 		// Log the error instead of panic or fatal.
 		// It will be a big job to refactor act/pkg/model to return decode error,
 		// so we just log the error and return empty value, and improve it later.
@@ -89,13 +97,13 @@ func GetEventsFromContent(content []byte) ([]*jobparser.Event, error) {
 	return events, nil
 }
 
-func DetectWorkflows(commit *git.Commit, triggedEvent webhook_module.HookEventType, payload api.Payloader) (map[string][]byte, error) {
+func DetectWorkflows(commit *git.Commit, triggedEvent webhook_module.HookEventType, payload api.Payloader) ([]*DetectedWorkflow, error) {
 	entries, err := ListWorkflows(commit)
 	if err != nil {
 		return nil, err
 	}
 
-	workflows := make(map[string][]byte, len(entries))
+	workflows := make([]*DetectedWorkflow, 0, len(entries))
 	for _, entry := range entries {
 		content, err := GetContentFromEntry(entry)
 		if err != nil {
@@ -109,7 +117,13 @@ func DetectWorkflows(commit *git.Commit, triggedEvent webhook_module.HookEventTy
 		for _, evt := range events {
 			log.Trace("detect workflow %q for event %#v matching %q", entry.Name(), evt, triggedEvent)
 			if detectMatched(commit, triggedEvent, payload, evt) {
-				workflows[entry.Name()] = content
+				dwf := &DetectedWorkflow{
+					EntryName:    entry.Name(),
+					TriggerEvent: evt.Name,
+					Commit:       commit,
+					Content:      content,
+				}
+				workflows = append(workflows, dwf)
 			}
 		}
 	}

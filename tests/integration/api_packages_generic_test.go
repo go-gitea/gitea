@@ -6,6 +6,7 @@ package integration
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"testing"
 
@@ -138,6 +139,42 @@ func TestPackageGeneric(t *testing.T) {
 
 			req = NewRequest(t, "GET", url+"/dummy.bin")
 			MakeRequest(t, req, http.StatusUnauthorized)
+		})
+
+		t.Run("ServeDirect", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			if setting.Packages.Storage.Type != setting.MinioStorageType {
+				t.Skip("Test skipped for non-Minio-storage.")
+				return
+			}
+
+			if !setting.Packages.Storage.MinioConfig.ServeDirect {
+				old := setting.Packages.Storage.MinioConfig.ServeDirect
+				defer func() {
+					setting.Packages.Storage.MinioConfig.ServeDirect = old
+				}()
+
+				setting.Packages.Storage.MinioConfig.ServeDirect = true
+			}
+
+			req := NewRequest(t, "GET", url+"/"+filename)
+			resp := MakeRequest(t, req, http.StatusSeeOther)
+
+			checkDownloadCount(3)
+
+			location := resp.Header().Get("Location")
+			assert.NotEmpty(t, location)
+
+			resp2, err := (&http.Client{}).Get(location)
+			assert.NoError(t, err)
+			assert.Equal(t, http.StatusOK, resp2.StatusCode)
+
+			body, err := io.ReadAll(resp2.Body)
+			assert.NoError(t, err)
+			assert.Equal(t, content, body)
+
+			checkDownloadCount(3)
 		})
 	})
 

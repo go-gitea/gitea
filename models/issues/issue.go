@@ -714,7 +714,7 @@ func (issue *Issue) Pin(ctx context.Context, user *user_model.User) error {
 
 	_, err = db.GetEngine(ctx).Table("issue").
 		Where("id = ?", issue.ID).
-		Update(map[string]interface{}{
+		Update(map[string]any{
 			"pin_order": maxPin + 1,
 		})
 	if err != nil {
@@ -750,7 +750,7 @@ func (issue *Issue) Unpin(ctx context.Context, user *user_model.User) error {
 
 	_, err = db.GetEngine(ctx).Table("issue").
 		Where("id = ?", issue.ID).
-		Update(map[string]interface{}{
+		Update(map[string]any{
 			"pin_order": 0,
 		})
 	if err != nil {
@@ -822,7 +822,7 @@ func (issue *Issue) MovePin(ctx context.Context, newPosition int) error {
 
 	_, err = db.GetEngine(dbctx).Table("issue").
 		Where("id = ?", issue.ID).
-		Update(map[string]interface{}{
+		Update(map[string]any{
 			"pin_order": newPosition,
 		})
 	if err != nil {

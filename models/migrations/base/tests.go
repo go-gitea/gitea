@@ -30,7 +30,7 @@ import (
 // Provide models to be sync'd with the database - in particular any models you expect fixtures to be loaded from.
 //
 // fixtures in `models/migrations/fixtures/<TestName>` will be loaded automatically
-func PrepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.Engine, func()) {
+func PrepareTestEnv(t *testing.T, skip int, syncModels ...any) (*xorm.Engine, func()) {
 	t.Helper()
 	ourSkip := 2
 	ourSkip += skip

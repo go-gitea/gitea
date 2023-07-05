@@ -147,7 +147,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		&repo_model.Collaboration{RepoID: repoID},
 		&issues_model.Comment{RefRepoID: repoID},
 		&git_model.CommitStatus{RepoID: repoID},
-		&git_model.DeletedBranch{RepoID: repoID},
+		&git_model.Branch{RepoID: repoID},
 		&git_model.LFSLock{RepoID: repoID},
 		&repo_model.LanguageStat{RepoID: repoID},
 		&issues_model.Milestone{RepoID: repoID},
@@ -456,7 +456,7 @@ func repoStatsCorrectNumClosedPulls(ctx context.Context, id int64) error {
 	return repo_model.UpdateRepoIssueNumbers(ctx, id, true, true)
 }
 
-func statsQuery(args ...interface{}) func(context.Context) ([]map[string][]byte, error) {
+func statsQuery(args ...any) func(context.Context) ([]map[string][]byte, error) {
 	return func(ctx context.Context) ([]map[string][]byte, error) {
 		return db.GetEngine(ctx).Query(args...)
 	}

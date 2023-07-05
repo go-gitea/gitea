@@ -37,7 +37,7 @@ func (w SilentWrap) Unwrap() error {
 }
 
 // NewSilentWrapErrorf returns an error that formats as the given text but unwraps as the provided error
-func NewSilentWrapErrorf(unwrap error, message string, args ...interface{}) error {
+func NewSilentWrapErrorf(unwrap error, message string, args ...any) error {
 	if len(args) == 0 {
 		return SilentWrap{Message: message, Err: unwrap}
 	}
@@ -45,21 +45,21 @@ func NewSilentWrapErrorf(unwrap error, message string, args ...interface{}) erro
 }
 
 // NewInvalidArgumentErrorf returns an error that formats as the given text but unwraps as an ErrInvalidArgument
-func NewInvalidArgumentErrorf(message string, args ...interface{}) error {
+func NewInvalidArgumentErrorf(message string, args ...any) error {
 	return NewSilentWrapErrorf(ErrInvalidArgument, message, args...)
 }
 
 // NewPermissionDeniedErrorf returns an error that formats as the given text but unwraps as an ErrPermissionDenied
-func NewPermissionDeniedErrorf(message string, args ...interface{}) error {
+func NewPermissionDeniedErrorf(message string, args ...any) error {
 	return NewSilentWrapErrorf(ErrPermissionDenied, message, args...)
 }
 
 // NewAlreadyExistErrorf returns an error that formats as the given text but unwraps as an ErrAlreadyExist
-func NewAlreadyExistErrorf(message string, args ...interface{}) error {
+func NewAlreadyExistErrorf(message string, args ...any) error {
 	return NewSilentWrapErrorf(ErrAlreadyExist, message, args...)
 }
 
 // NewNotExistErrorf returns an error that formats as the given text but unwraps as an ErrNotExist
-func NewNotExistErrorf(message string, args ...interface{}) error {
+func NewNotExistErrorf(message string, args ...any) error {
 	return NewSilentWrapErrorf(ErrNotExist, message, args...)
 }

@@ -21,10 +21,10 @@ const (
 	modelsCommentTypeComment   = 0
 )
 
-var consistencyCheckMap = make(map[string]func(t assert.TestingT, bean interface{}))
+var consistencyCheckMap = make(map[string]func(t assert.TestingT, bean any))
 
 // CheckConsistencyFor test that all matching database entries are consistent
-func CheckConsistencyFor(t assert.TestingT, beansToCheck ...interface{}) {
+func CheckConsistencyFor(t assert.TestingT, beansToCheck ...any) {
 	for _, bean := range beansToCheck {
 		sliceType := reflect.SliceOf(reflect.TypeOf(bean))
 		sliceValue := reflect.MakeSlice(sliceType, 0, 10)
@@ -42,7 +42,7 @@ func CheckConsistencyFor(t assert.TestingT, beansToCheck ...interface{}) {
 	}
 }
 
-func checkForConsistency(t assert.TestingT, bean interface{}) {
+func checkForConsistency(t assert.TestingT, bean any) {
 	tb, err := db.TableInfo(bean)
 	assert.NoError(t, err)
 	f := consistencyCheckMap[tb.Name]
@@ -63,7 +63,7 @@ func init() {
 		return i
 	}
 
-	checkForUserConsistency := func(t assert.TestingT, bean interface{}) {
+	checkForUserConsistency := func(t assert.TestingT, bean any) {
 		user := reflectionWrap(bean)
 		AssertCountByCond(t, "repository", builder.Eq{"owner_id": user.int("ID")}, user.int("NumRepos"))
 		AssertCountByCond(t, "star", builder.Eq{"uid": user.int("ID")}, user.int("NumStars"))
@@ -77,7 +77,7 @@ func init() {
 		}
 	}
 
-	checkForRepoConsistency := func(t assert.TestingT, bean interface{}) {
+	checkForRepoConsistency := func(t assert.TestingT, bean any) {
 		repo := reflectionWrap(bean)
 		assert.Equal(t, repo.str("LowerName"), strings.ToLower(repo.str("Name")), "repo: %+v", repo)
 		AssertCountByCond(t, "star", builder.Eq{"repo_id": repo.int("ID")}, repo.int("NumStars"))
@@ -113,7 +113,7 @@ func init() {
 			"Unexpected number of closed milestones for repo id: %d", repo.int("ID"))
 	}
 
-	checkForIssueConsistency := func(t assert.TestingT, bean interface{}) {
+	checkForIssueConsistency := func(t assert.TestingT, bean any) {
 		issue := reflectionWrap(bean)
 		typeComment := modelsCommentTypeComment
 		actual := GetCountByCond(t, "comment", builder.Eq{"`type`": typeComment, "issue_id": issue.int("ID")})
@@ -124,14 +124,14 @@ func init() {
 		}
 	}
 
-	checkForPullRequestConsistency := func(t assert.TestingT, bean interface{}) {
+	checkForPullRequestConsistency := func(t assert.TestingT, bean any) {
 		pr := reflectionWrap(bean)
 		issueRow := AssertExistsAndLoadMap(t, "issue", builder.Eq{"id": pr.int("IssueID")})
 		assert.True(t, parseBool(issueRow["is_pull"]))
 		assert.EqualValues(t, parseInt(issueRow["index"]), pr.int("Index"), "Unexpected index for pull request id: %d", pr.int("ID"))
 	}
 
-	checkForMilestoneConsistency := func(t assert.TestingT, bean interface{}) {
+	checkForMilestoneConsistency := func(t assert.TestingT, bean any) {
 		milestone := reflectionWrap(bean)
 		AssertCountByCond(t, "issue", builder.Eq{"milestone_id": milestone.int("ID")}, milestone.int("NumIssues"))
 
@@ -145,7 +145,7 @@ func init() {
 		assert.Equal(t, completeness, milestone.int("Completeness"))
 	}
 
-	checkForLabelConsistency := func(t assert.TestingT, bean interface{}) {
+	checkForLabelConsistency := func(t assert.TestingT, bean any) {
 		label := reflectionWrap(bean)
 		issueLabels, err := db.GetEngine(db.DefaultContext).Table("issue_label").
 			Where(builder.Eq{"label_id": label.int("ID")}).
@@ -166,13 +166,13 @@ func init() {
 		assert.EqualValues(t, expected, label.int("NumClosedIssues"), "Unexpected number of closed issues for label id: %d", label.int("ID"))
 	}
 
-	checkForTeamConsistency := func(t assert.TestingT, bean interface{}) {
+	checkForTeamConsistency := func(t assert.TestingT, bean any) {
 		team := reflectionWrap(bean)
 		AssertCountByCond(t, "team_user", builder.Eq{"team_id": team.int("ID")}, team.int("NumMembers"))
 		AssertCountByCond(t, "team_repo", builder.Eq{"team_id": team.int("ID")}, team.int("NumRepos"))
 	}
 
-	checkForActionConsistency := func(t assert.TestingT, bean interface{}) {
+	checkForActionConsistency := func(t assert.TestingT, bean any) {
 		action := reflectionWrap(bean)
 		if action.int("RepoID") != 1700 { // dangling intentional
 			repoRow := AssertExistsAndLoadMap(t, "repository", builder.Eq{"id": action.int("RepoID")})

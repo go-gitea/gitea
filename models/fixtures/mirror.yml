@@ -1,0 +1,49 @@
+-
+  id: 1
+  repo_id: 5
+  interval: 3600
+  enable_prune: false
+  updated_unix: 0
+  next_update_unix: 0
+  lfs_enabled: false
+  lfs_endpoint: ""
+
+-
+  id: 2
+  repo_id: 25
+  interval: 3600
+  enable_prune: false
+  updated_unix: 0
+  next_update_unix: 0
+  lfs_enabled: false
+  lfs_endpoint: ""
+
+-
+  id: 3
+  repo_id: 26
+  interval: 3600
+  enable_prune: false
+  updated_unix: 0
+  next_update_unix: 0
+  lfs_enabled: false
+  lfs_endpoint: ""
+
+-
+  id: 4
+  repo_id: 27
+  interval: 3600
+  enable_prune: false
+  updated_unix: 0
+  next_update_unix: 0
+  lfs_enabled: false
+  lfs_endpoint: ""
+
+-
+  id: 5
+  repo_id: 28
+  interval: 3600
+  enable_prune: false
+  updated_unix: 0
+  next_update_unix: 0
+  lfs_enabled: false
+  lfs_endpoint: ""

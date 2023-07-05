@@ -25,7 +25,7 @@
 						</b></a>
 					</div>
 				{{end}}
-				<div class="item">
+				<div class="item" {{if not (eq .Repository.Size 0)}}data-tooltip-content="{{.Repository.SizeDetailsString}}"{{end}}>
 					{{$fileSizeFormatted := FileSize .Repository.Size}}{{/* the formatted string is always "{val} {unit}" */}}
 					{{$fileSizeFields := StringUtils.Split $fileSizeFormatted " "}}
 					<span>{{svg "octicon-database"}} <b>{{.locale.PrettyNumber (index $fileSizeFields 0)}}</b> {{index $fileSizeFields 1}}</span>

@@ -138,10 +138,6 @@
   background-color: var(--color-header-wrapper);
 }
 
-.repository .header-wrapper .ui.tabs.divider {
-  border-bottom: 0;
-}
-
 .repository .header-wrapper .ui.tabular .svg {
   margin-right: 5px;
 }
@@ -478,7 +474,7 @@
 }
 
 .repository.file.list .non-diff-file-content .asciicast {
-  padding: 5px !important;
+  padding: 0 !important;
 }
 
 .non-diff-file-content .attached.segment,
@@ -591,6 +587,7 @@
 
 .repository.options .danger .ui.divider {
   margin: 0;
+  border-color: var(--color-error-border);
 }
 
 .repository.new.issue .comment.form .comment .avatar {
@@ -658,8 +655,25 @@
   .repository.view.issue .issue-title {
     flex-direction: column;
   }
+  .repository.view.issue .issue-title-buttons,
+  .repository.view.issue .edit-buttons {
+    width: 100%;
+    justify-content: space-between;
+  }
   .repository.view.issue .edit-buttons {
     margin-top: .5rem;
+  }
+  .comment.form .issue-content-left .avatar {
+    display: none;
+  }
+  .comment.form .issue-content-left .content {
+    margin-left: 0 !important;
+  }
+  .comment.form .issue-content-left .content::before,
+  .comment.form .issue-content-left .content::after,
+  .comment.form .content .form::before,
+  .comment.form .content .form::after {
+    display: none;
   }
 }
 
@@ -1012,7 +1026,7 @@
 
 .repository.view.issue .comment-list .comment .merge-section .divider {
   margin-left: -1rem;
-  margin-right: -1rem;
+  width: calc(100% + 2rem);
 }
 
 .repository.view.issue .comment-list .comment .merge-section.no-header::before,
@@ -1200,7 +1214,14 @@
   text-align: left;
 }
 
-.repository.compare.pull .choose.branch .svg {
+.repository .choose.branch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.repository .choose.branch .svg {
   margin-right: 10px;
 }
 
@@ -1903,7 +1924,7 @@
 
 .repository.settings.collaboration .collaborator.list > .item {
   margin: 0;
-  line-height: 2em;
+  line-height: 2;
 }
 
 .repository.settings.collaboration #repo-collab-form #search-user-box .results {
@@ -2039,12 +2060,15 @@
 .repository .ui.segment.sub-menu .list {
   width: 100%;
   display: flex;
-  align-items: center;
+  align-items: stretch;
 }
 
 .repository .ui.segment.sub-menu .list .item {
   width: 100%;
   color: var(--color-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .repository .ui.segment.sub-menu .list .item:first-of-type {
@@ -2361,10 +2385,6 @@
   color: var(--color-text-light-2);
 }
 
-.settings .list.email > .item:not(:first-child) {
-  min-height: 60px;
-}
-
 .settings .list.collaborator > .item {
   padding: 0;
 }
@@ -2601,7 +2621,7 @@
 .labels-list .label {
   margin: 2px 0;
   display: inline-flex !important;
-  line-height: 1.3em; /* there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly */
+  line-height: 1.3; /* there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly */
 }
 
 /* Scoped labels with different colors on left and right */
@@ -3100,16 +3120,43 @@ tbody.commit-list {
   }
 }
 
-.repository.migrate .card {
+.migrate-entries {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 25px;
+  margin: 0 !important;
+}
+
+@media (max-width: 767.98px) {
+  .migrate-entries {
+    grid-template-columns: repeat(1, 1fr);
+  }
+}
+
+.migrate-entry {
   transition: all 0.1s ease-in-out;
   box-shadow: none !important;
   border: 1px solid var(--color-secondary);
-  color: var(--color-text);
+  color: var(--color-text) !important;
+  width: auto !important;
+  margin: 0 !important;
 }
 
-.repository.migrate .card:hover {
+.migrate-entry:hover {
   transform: scale(105%);
   box-shadow: 0 0.5rem 1rem var(--color-shadow) !important;
+}
+
+.migrate-entry .description {
+  text-wrap: balance;
+}
+
+.commits-table .commits-table-right form {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 @media (max-width: 767.98px) {
@@ -3181,21 +3228,14 @@ tbody.commit-list {
     align-items: initial !important;
     margin-bottom: 6px;
   }
-  .commits-table .commits-table-right form {
-    display: flex;
-    flex-wrap: wrap;
-  }
   .commits-table .commits-table-right form > div:nth-child(1) {
-    order: 1;
+    order: 1; /* the "commit search" input */
   }
   .commits-table .commits-table-right form > div:nth-child(2) {
-    order: 3;
-    margin-left: 0.5rem;
-    margin-top: 0.5rem;
+    order: 3; /* the "search all" checkbox */
   }
   .commits-table .commits-table-right form > button:nth-child(3) {
-    order: 2;
-    margin-left: 0.25rem;
+    order: 2; /* the "search" button */
   }
   .commit-table {
     overflow-x: auto;
@@ -3207,9 +3247,9 @@ tbody.commit-list {
   .commit-table .commit-list span.message-wrapper {
     max-width: none;
   }
+  .commit-table .commit-list tr td:first-child,
   .commit-table .commit-list tr td:last-child {
-    display: block;
-    width: max-content;
+    white-space: nowrap;
   }
   .commit-table .commit-list td.author {
     display: block;

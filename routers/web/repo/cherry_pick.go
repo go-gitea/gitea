@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -124,9 +125,9 @@ func CherryPickPost(ctx *context.Context) {
 	// First lets try the simple plain read-tree -m approach
 	opts.Content = sha
 	if _, err := files.CherryPick(ctx, ctx.Repo.Repository, ctx.Doer, form.Revert, opts); err != nil {
-		if models.IsErrBranchAlreadyExists(err) {
+		if git_model.IsErrBranchAlreadyExists(err) {
 			// User has specified a branch that already exists
-			branchErr := err.(models.ErrBranchAlreadyExists)
+			branchErr := err.(git_model.ErrBranchAlreadyExists)
 			ctx.Data["Err_NewBranchName"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchErr.BranchName), tplCherryPick, &form)
 			return
@@ -161,9 +162,9 @@ func CherryPickPost(ctx *context.Context) {
 		ctx.Data["FileContent"] = opts.Content
 
 		if _, err := files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.Doer, opts); err != nil {
-			if models.IsErrBranchAlreadyExists(err) {
+			if git_model.IsErrBranchAlreadyExists(err) {
 				// User has specified a branch that already exists
-				branchErr := err.(models.ErrBranchAlreadyExists)
+				branchErr := err.(git_model.ErrBranchAlreadyExists)
 				ctx.Data["Err_NewBranchName"] = true
 				ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchErr.BranchName), tplCherryPick, &form)
 				return

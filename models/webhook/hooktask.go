@@ -92,7 +92,7 @@ func (t *HookTask) AfterLoad() {
 	}
 }
 
-func (t *HookTask) simpleMarshalJSON(v interface{}) string {
+func (t *HookTask) simpleMarshalJSON(v any) string {
 	p, err := json.Marshal(v)
 	if err != nil {
 		log.Error("Marshal [%d]: %v", t.ID, err)

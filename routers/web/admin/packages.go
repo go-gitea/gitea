@@ -97,7 +97,7 @@ func DeletePackageVersion(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"redirect": setting.AppSubURL + "/admin/packages?page=" + url.QueryEscape(ctx.FormString("page")) + "&q=" + url.QueryEscape(ctx.FormString("q")) + "&type=" + url.QueryEscape(ctx.FormString("type")),
 	})
 }
