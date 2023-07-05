@@ -106,6 +106,7 @@ func ListPackages(ctx *context.Context) {
 		org := org_model.OrgFromUser(ctx.ContextUser)
 		ctx.Data["Org"] = org
 		ctx.Data["OrgLink"] = ctx.ContextUser.OrganisationLink()
+
 		if ctx.Doer != nil {
 			ctx.Data["IsOrganizationMember"], _ = org_model.IsOrganizationMember(ctx, org.ID, ctx.Doer.ID)
 			ctx.Data["IsOrganizationOwner"], _ = org_model.IsOrganizationOwner(ctx, org.ID, ctx.Doer.ID)
@@ -160,7 +161,9 @@ func RedirectToLastVersion(ctx *context.Context) {
 // ViewPackageVersion displays a single package version
 func ViewPackageVersion(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
+
 	shared_user.RenderUserHeader(ctx)
+
 	ctx.Data["Title"] = pd.Package.Name
 	ctx.Data["IsPackagesPage"] = true
 	ctx.Data["PackageDescriptor"] = pd
@@ -354,6 +357,7 @@ func ListPackageVersions(ctx *context.Context) {
 // PackageSettings displays the package settings page
 func PackageSettings(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
+
 	shared_user.RenderUserHeader(ctx)
 
 	ctx.Data["Title"] = pd.Package.Name
@@ -373,6 +377,7 @@ func PackageSettings(ctx *context.Context) {
 // PackageSettingsPost updates the package settings
 func PackageSettingsPost(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
+
 	form := web.GetForm(ctx).(*forms.PackageSettingForm)
 	switch form.Action {
 	case "link":

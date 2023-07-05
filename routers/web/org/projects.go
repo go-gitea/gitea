@@ -255,6 +255,7 @@ func RenderEditProject(ctx *context.Context) {
 	ctx.Data["HomeLink"] = ctx.ContextUser.HomeLink()
 	ctx.Data["card_type"] = p.CardType
 	ctx.Data["CancelLink"] = fmt.Sprintf("%s/-/projects/%d", ctx.ContextUser.HomeLink(), p.ID)
+
 	ctx.HTML(http.StatusOK, tplProjectsNew)
 }
 
@@ -379,6 +380,7 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["IssuesMap"] = issuesMap
 	ctx.Data["Boards"] = boards
 	shared_user.RenderUserHeader(ctx)
+
 	ctx.HTML(http.StatusOK, tplProjectsView)
 }
 

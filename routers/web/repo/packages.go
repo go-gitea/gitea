@@ -74,5 +74,6 @@ func Packages(ctx *context.Context) {
 	pager.AddParam(ctx, "q", "Query")
 	pager.AddParam(ctx, "type", "PackageType")
 	ctx.Data["Page"] = pager
+
 	ctx.HTML(http.StatusOK, tplPackagesList)
 }
