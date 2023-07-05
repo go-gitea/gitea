@@ -245,6 +245,7 @@ func UpdateIssueIndexer(issue *issues_model.Issue) {
 	indexerData := &internal.IndexerData{
 		ID:       issue.ID,
 		RepoID:   issue.RepoID,
+		State:    string(issue.State()),
 		Title:    issue.Title,
 		Content:  issue.Content,
 		Comments: comments,
@@ -278,10 +279,10 @@ func DeleteRepoIssueIndexer(ctx context.Context, repo *repo_model.Repository) {
 
 // SearchIssuesByKeyword search issue ids by keywords and repo id
 // WARNNING: You have to ensure user have permission to visit repoIDs' issues
-func SearchIssuesByKeyword(ctx context.Context, repoIDs []int64, keyword string) ([]int64, error) {
+func SearchIssuesByKeyword(ctx context.Context, repoIDs []int64, keyword string, state string) ([]int64, error) {
 	var issueIDs []int64
 	indexer := *globalIndexer.Load()
-	res, err := indexer.Search(ctx, keyword, repoIDs, 50, 0)
+	res, err := indexer.Search(ctx, keyword, repoIDs, 50, 0, state)
 	if err != nil {
 		return nil, err
 	}
