@@ -232,7 +232,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					commits.CompareURL = repo.ComposeCompareURL(oldCommitID, opts.NewCommitID)
 				} else if len(commits.Commits) == 1 {
 					commits.CompareURL = fmt.Sprintf("%s/commit/%s", repo.FullName(), opts.NewCommitID)
-				} else {
+				} else if len(commits.Commits) > 1 {
 					oldCommitID = commits.Commits[len(commits.Commits)-1].Sha1
 					commits.CompareURL = fmt.Sprintf("%s/compare/%s^...%s", repo.FullName(), oldCommitID, opts.NewCommitID)
 				}
