@@ -322,9 +322,17 @@ func deprecatedSetting(rootCfg ConfigProvider, oldSection, oldKey, newSection, n
 	}
 }
 
+var fatalDeprecatedSetting []string
+
 func deprecatedSettingFatal(rootCfg ConfigProvider, oldSection, oldKey, newSection, newKey, version string) {
 	if rootCfg.Section(oldSection).HasKey(oldKey) {
-		log.Fatal("Deprecated fallback `[%s]` `%s` present. Use `[%s]` `%s` instead. This fallback will be/has been removed in %s", oldSection, oldKey, newSection, newKey, version)
+		fatalDeprecatedSetting = append(fatalDeprecatedSetting, fmt.Sprintf("Deprecated fallback `[%s]` `%s` present. Use `[%s]` `%s` instead. This fallback will be/has been removed in %s", oldSection, oldKey, newSection, newKey, version))
+	}
+}
+
+func doDeprecatedSettingFatal() {
+	if len(fatalDeprecatedSetting) > 0 {
+		log.Fatal(strings.Join(fatalDeprecatedSetting, "\n"))
 	}
 }
 

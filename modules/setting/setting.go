@@ -214,6 +214,8 @@ func LoadSettings() {
 	loadProjectFrom(CfgProvider)
 	loadMimeTypeMapFrom(CfgProvider)
 	loadFederationFrom(CfgProvider)
+
+	doDeprecatedSettingFatal()
 }
 
 // LoadSettingsForInstall initializes the settings for install
