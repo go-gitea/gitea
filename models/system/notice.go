@@ -43,7 +43,7 @@ func (n *Notice) TrStr() string {
 }
 
 // CreateNotice creates new system notice.
-func CreateNotice(ctx context.Context, tp NoticeType, desc string, args ...interface{}) error {
+func CreateNotice(ctx context.Context, tp NoticeType, desc string, args ...any) error {
 	if len(args) > 0 {
 		desc = fmt.Sprintf(desc, args...)
 	}
@@ -55,7 +55,7 @@ func CreateNotice(ctx context.Context, tp NoticeType, desc string, args ...inter
 }
 
 // CreateRepositoryNotice creates new system notice with type NoticeRepository.
-func CreateRepositoryNotice(desc string, args ...interface{}) error {
+func CreateRepositoryNotice(desc string, args ...any) error {
 	// Note we use the db.DefaultContext here rather than passing in a context as the context may be cancelled
 	return CreateNotice(db.DefaultContext, NoticeRepository, desc, args...)
 }

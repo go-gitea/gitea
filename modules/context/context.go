@@ -30,7 +30,7 @@ import (
 // Render represents a template render
 type Render interface {
 	TemplateLookup(tmpl string) (templates.TemplateExecutor, error)
-	HTML(w io.Writer, status int, name string, data interface{}) error
+	HTML(w io.Writer, status int, name string, data any) error
 }
 
 // Context represents context of a request.
@@ -61,7 +61,7 @@ type Context struct {
 // TrHTMLEscapeArgs runs ".Locale.Tr()" but pre-escapes all arguments with html.EscapeString.
 // This is useful if the locale message is intended to only produce HTML content.
 func (ctx *Context) TrHTMLEscapeArgs(msg string, args ...string) string {
-	trArgs := make([]interface{}, len(args))
+	trArgs := make([]any, len(args))
 	for i, arg := range args {
 		trArgs[i] = html.EscapeString(arg)
 	}
