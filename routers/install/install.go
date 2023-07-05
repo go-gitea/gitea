@@ -120,13 +120,10 @@ func Install(ctx *context.Context) {
 
 	// Note(unknown): it's hard for Windows users change a running user,
 	// 	so just use current one if config says default.
-	if setting.RunUser != "" {
-		form.RunUser = setting.RunUser
-	} else {
+	if setting.IsWindows && setting.RunUser == "git" {
 		form.RunUser = user.CurrentUsername()
-		if form.RunUser == "" {
-			form.RunUser = "git"
-		}
+	} else {
+		form.RunUser = setting.RunUser
 	}
 
 	form.Domain = setting.Domain
