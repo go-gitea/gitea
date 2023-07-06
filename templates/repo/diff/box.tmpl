@@ -55,7 +55,11 @@
 						queryParams: '?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}'
 					};
 				</script>
-				<div id="diff-commit-select"></div>
+				<div id="diff-commit-select">
+				  <div class="ui jump dropdown basic button custom">
+						{{svg "octicon-git-commit"}}
+					</div>
+				</div>
 			{{end}}
 			{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
 				{{template "repo/diff/new_review" .}}
