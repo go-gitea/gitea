@@ -1,6 +1,6 @@
 <template>
   <div class="ui floating filter dropdown custom">
-    <button class="branch-dropdown-button gt-ellipsis ui basic small compact button gt-df gt-m-0" @click="menuVisible = !menuVisible;fetchBranchesOrTags()" @keyup.enter="menuVisible = !menuVisible">
+    <button class="branch-dropdown-button gt-ellipsis ui basic small compact button gt-df gt-m-0" @click="menuVisible = !menuVisible;" @keyup.enter="menuVisible = !menuVisible">
       <span class="text gt-df gt-ac gt-mr-2">
         <template v-if="release">{{ textReleaseCompare }}</template>
         <template v-else>
@@ -20,13 +20,13 @@
         <div class="header branch-tag-choice">
           <div class="ui grid">
             <div class="two column row">
-              <a class="reference column" href="#" @click="createTag = false; mode = 'branches'; focusSearchField(); fetchBranchesOrTags()">
+              <a class="reference column" href="#" @click="createTag = false; mode = 'branches'; focusSearchField();">
                 <span class="text" :class="{black: mode === 'branches'}">
                   <svg-icon name="octicon-git-branch" :size="16" class-name="gt-mr-2"/>{{ textBranches }}
                 </span>
               </a>
               <template v-if="!noTag">
-                <a class="reference column" href="#" @click="createTag = true; mode = 'tags'; focusSearchField(); fetchBranchesOrTags()">
+                <a class="reference column" href="#" @click="createTag = true; mode = 'tags'; focusSearchField()">
                   <span class="text" :class="{black: mode === 'tags'}">
                     <svg-icon name="octicon-tag" :size="16" class-name="gt-mr-2"/>{{ textTags }}
                   </span>
@@ -81,7 +81,6 @@ import {createApp, nextTick} from 'vue';
 import $ from 'jquery';
 import {SvgIcon} from '../svg.js';
 import {pathEscapeSegments} from '../utils/url.js';
-import {onInputDebounce} from '../utils/dom.js';
 
 const sfc = {
   components: {SvgIcon},
@@ -139,6 +138,9 @@ const sfc = {
         this.menuVisible = false;
       }
     });
+  },
+  mounted() {
+    this.fetchBranchesAndTags();
   },
   methods: {
     selectItem(item) {
@@ -247,17 +249,18 @@ const sfc = {
         this.menuVisible = false;
       }
     },
-    fetchBranchesOrTags: onInputDebounce(async function() {
-      const resp = await fetch(`${this.repoLink}/${this.mode}/list`);
-      const {results} = await resp.json();
-      if (!results || !['branches', 'tags'].includes(this.mode)) return;
-      this.items = [];
+    async fetchBranchesAndTags() {
       // the "data.defaultBranch" is ambiguous, it could be "branch name" or "tag name"
-      if (this.mode === 'branches' && this.showBranchesInDropdown) {
+      if (this.showBranchesInDropdown) {
+        const resp = await fetch(`${this.repoLink}/branches/list`);
+        const {results} = await resp.json();
         for (const branch of results) {
           this.items.push({name: branch, url: branch, branch: true, tag: false, selected: branch === this.defaultBranch});
         }
-      } else if (this.mode === 'tags' && !this.noTag) {
+      } 
+      if (!this.noTag) {
+        const resp = await fetch(`${this.repoLink}/tags/list`);
+        const {results} = await resp.json();
         for (const tag of results) {
           if (this.release) {
             this.items.push({name: tag, url: tag, branch: false, tag: true, selected: tag === this.release.tagName});
@@ -266,7 +269,7 @@ const sfc = {
           }
         }
       }
-    }),
+    },
   }
 };
 
