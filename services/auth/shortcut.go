@@ -18,8 +18,11 @@ import (
 // And Shortcut solves this problem by:
 //
 //	NewGroup(
-//	    Shortcut{&OAuth2, &conan.Auth},
-//	    &OAuth2,
+//	    Shortcut{
+//	        &OAuth2{},
+//	        &conan.Auth{},
+//	    },
+//	    &OAuth2{},
 //	    &auth.Basic{},
 //	    &nuget.Auth{},
 //	    &conan.Auth{},
