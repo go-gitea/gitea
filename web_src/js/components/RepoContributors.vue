@@ -27,7 +27,7 @@
 
       <div class="ui right">
         <!-- Contribution type -->
-        <div class="ui dropdown simple">
+        <div class="ui dropdown jump" id="dropdown">
           <div class="ui basic compact button">
             <span class="text">
               Contribution type: <strong>{{ type }}</strong>
@@ -35,44 +35,41 @@
             </span>
           </div>
           <div class="menu">
-            <a :class="type === 'commits' ? 'active item' : 'item'" :href="`${repoLink}/activity/contributors/commits`">Commits</a>
-            <a :class="type === 'additions' ? 'active item' : 'item'" :href="`${repoLink}/activity/contributors/additions`">Additions</a>
-            <a :class="type === 'deletions' ? 'active item' : 'item'" :href="`${repoLink}/activity/contributors/deletions`">Deletions</a>
+            <div :class="type === 'commits' ? 'active item' : 'item'">
+              Commits
+            </div>
+            <div :class="type === 'additions' ? 'active item' : 'item'">
+              Additions
+            </div>
+            <div :class="type === 'deletions' ? 'active item' : 'item'">
+              Deletions
+            </div>
           </div>
         </div>
       </div>
     </h2>
-    <div class="ui divider"/>
+    <div class="divider"/>
     <div style="height: 380px" class="gt-df">
       <div v-if="isLoading" class="gt-tc gt-m-auto">
         <p>This might take a few minutes...</p>
         <SvgIcon v-if="isLoading" name="octicon-sync" class="gt-mr-3 job-status-rotate"/>
       </div>
       <CLine
-        v-memo="[totalStats.weeks]"
-        v-if="Object.keys(totalStats).length !== 0"
-        :data="toGraphData(totalStats.weeks)"
-        :options="getOptions('main')"
+        v-memo="[totalStats.weeks, type]" v-if="Object.keys(totalStats).length !== 0"
+        :data="toGraphData(totalStats.weeks)" :options="getOptions('main')"
       />
     </div>
-    <div class="ui divider"/>
+    <div class="divider"/>
 
     <div class="ui attached two column grid">
       <div
-        v-for="(contributor, index) in sortedContributors"
-        :key="index"
-        class="column stats-table"
-        v-memo="[sortedContributors]"
+        v-for="(contributor, index) in sortedContributors" :key="index" class="column stats-table"
+        v-memo="[sortedContributors, type]"
       >
         <div class="ui top attached header gt-df gt-f1">
           <b class="ui right">#{{ index + 1 }}</b>
           <a :href="contributor.home_link">
-            <img
-              height="40"
-              width="40"
-              :href="contributor.avatar_link"
-              :src="contributor.avatar_link"
-            >
+            <img height="40" width="40" :href="contributor.avatar_link" :src="contributor.avatar_link">
           </a>
           <div class="gt-ml-3">
             <a :href="contributor.home_link"><h4>{{ contributor.name }}</h4></a>
@@ -117,6 +114,7 @@ import {
 import zoomPlugin from 'chartjs-plugin-zoom';
 import {Line as CLine} from 'vue-chartjs';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
+import $ from 'jquery';
 
 const {pageData} = window.config;
 
@@ -146,10 +144,21 @@ export default {
       contributorsStats: [],
       dateFrom: null,
       dateUntil: null,
+      startDate: null,
+      endDate: null,
     };
   },
   mounted() {
     this.fetchGraphData();
+
+    $('.ui.dropdown').dropdown({
+      onChange: (val) => {
+        this.dateFrom = this.startDate;
+        this.dateUntil = this.endDate;
+        this.type = val;
+        this.sortContributors();
+      }
+    });
   },
   methods: {
     sortContributors() {
@@ -168,6 +177,8 @@ export default {
           this.contributorsStats = rest;
           this.dateFrom = new Date(total.weeks[0].week);
           this.dateUntil = new Date();
+          this.startDate = this.dateFrom;
+          this.endDate = this.dateUntil;
           this.sortContributors();
           this.totalStats = total;
           this.isLoading = false;
@@ -201,6 +212,20 @@ export default {
       }
 
       return filteredData;
+    },
+
+    maxMainGraph() {
+      const maxValue = Math.max(
+        ...this.totalStats.weeks.map((o) => o[this.type])
+      );
+      const [cooefficient, exp] = maxValue
+        .toExponential()
+        .split('e')
+        .map(Number);
+      if (cooefficient % 1 === 0) {
+        return maxValue;
+      }
+      return (1 - (cooefficient % 1)) * 10 ** exp + maxValue;
     },
     maxContributorGraph() {
       const maxValue = Math.max(
@@ -273,7 +298,7 @@ export default {
               x: {
                 min: 'original',
                 max: 'original',
-                minRange: 1000000000,
+                minRange: 1210000000,
               },
             },
             zoom: {
@@ -300,7 +325,7 @@ export default {
           },
           y: {
             min: 0,
-            max: this.maxContributorGraph(),
+            max: type === 'main' ? this.maxMainGraph() : this.maxContributorGraph(),
           },
         },
       };
