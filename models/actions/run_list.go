@@ -69,6 +69,7 @@ type FindRunOptions struct {
 	RepoID           int64
 	OwnerID          int64
 	WorkflowFileName string
+	Ref              string
 	TriggerUserID    int64
 	Approved         bool // not util.OptionalBool, it works only when it's true
 	Status           Status
@@ -93,6 +94,9 @@ func (opts FindRunOptions) toConds() builder.Cond {
 	}
 	if opts.Status > StatusUnknown {
 		cond = cond.And(builder.Eq{"status": opts.Status})
+	}
+	if opts.Ref != "" {
+		cond = cond.And(builder.Eq{"ref": opts.Ref})
 	}
 	return cond
 }

@@ -164,6 +164,60 @@ func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) err
 	return err
 }
 
+// CancelRunningJobs cancels all running jobs of a run
+func CancelRunningJobs(ctx context.Context, run *ActionRun) error {
+	runs, _, err := FindRuns(ctx, FindRunOptions{
+		RepoID: run.RepoID,
+		Ref:    run.Ref,
+		Status: StatusRunning,
+	})
+	if err != nil {
+		return err
+	}
+
+	if len(runs) == 0 {
+		return nil
+	}
+
+	for _, run := range runs {
+		run.Status = StatusCancelled
+		run.Stopped = timeutil.TimeStampNow()
+		if err := UpdateRun(ctx, run, []string{"status", "stopped"}...); err != nil {
+			return err
+		}
+
+		// cancel all running jobs
+		jobs, _, err := FindRunJobs(ctx, FindRunJobOptions{
+			RunID: run.ID,
+		})
+		if err != nil {
+			return err
+		}
+		for _, job := range jobs {
+			status := job.Status
+			if status.IsDone() {
+				continue
+			}
+			if job.TaskID == 0 {
+				job.Status = StatusCancelled
+				job.Stopped = timeutil.TimeStampNow()
+				n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}, "status", "stopped")
+				if err != nil {
+					return err
+				}
+				if n == 0 {
+					return fmt.Errorf("job has changed, try again")
+				}
+				continue
+			}
+			if err := StopTask(ctx, job.TaskID, StatusCancelled); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // InsertRun inserts a run
 func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWorkflow) error {
 	ctx, commiter, err := db.TxContext(ctx)
