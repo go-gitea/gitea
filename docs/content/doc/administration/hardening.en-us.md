@@ -60,7 +60,7 @@ If Gitea is integrated with a CI/CD server, and both are exposed to the Internet
   ```
 
 - Create an [OAuth2 application]({{< relref "doc/development/oauth2-provider.en-us.md" >}}) for your CI/CD server.
-- Ensure that you have applied appropriate access control to your repos, i.e. they are set to "limited" or "private".
+- Ensure that you have applied appropriate access control to your repositories, i.e. they are set to "limited" or "private" access level.
 
 That will ensure that:
 
