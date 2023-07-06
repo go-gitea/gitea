@@ -21,7 +21,7 @@ menu:
 
 {{< toc >}}
 
-In a multi-user environment, or where Gitea is exposed to the internet, it may be desirable to harden your installation.
+In a multi-user environment, or where Gitea is exposed to the Internet, it may be desirable to harden your installation.
 
 ## Block anonymous users
 
