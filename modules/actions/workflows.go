@@ -202,96 +202,75 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 		return true
 	}
 
-	matchTimes := 0
-	hasBranchFilter := false
-	hasTagFilter := false
 	refName := git.RefName(pushPayload.Ref)
-	// all acts conditions should be satisfied
-	for cond, vals := range evt.Acts() {
-		switch cond {
-		case "branches":
-			hasBranchFilter = true
-			if !refName.IsBranch() {
-				break
-			}
+	acts := evt.Acts()
+
+	branchesMatched := true
+	if refName.IsBranch() {
+		if vals, ok := acts["branches"]; ok {
 			patterns, err := workflowpattern.CompilePatterns(vals...)
 			if err != nil {
-				break
+				log.Error("CompilePatterns %v error: %v", vals, err)
+				return false
 			}
-			if !workflowpattern.Skip(patterns, []string{refName.BranchName()}, &workflowpattern.EmptyTraceWriter{}) {
-				matchTimes++
-			}
-		case "branches-ignore":
-			hasBranchFilter = true
-			if !refName.IsBranch() {
-				break
-			}
+			branchesMatched = !workflowpattern.Skip(patterns, []string{refName.BranchName()}, &workflowpattern.EmptyTraceWriter{})
+		} else if vals, ok := acts["branches-ignore"]; ok {
 			patterns, err := workflowpattern.CompilePatterns(vals...)
 			if err != nil {
-				break
+				log.Error("CompilePatterns %v error: %v", vals, err)
+				return false
 			}
-			if !workflowpattern.Filter(patterns, []string{refName.BranchName()}, &workflowpattern.EmptyTraceWriter{}) {
-				matchTimes++
-			}
-		case "tags":
-			hasTagFilter = true
-			if !refName.IsTag() {
-				break
-			}
-			patterns, err := workflowpattern.CompilePatterns(vals...)
-			if err != nil {
-				break
-			}
-			if !workflowpattern.Skip(patterns, []string{refName.TagName()}, &workflowpattern.EmptyTraceWriter{}) {
-				matchTimes++
-			}
-		case "tags-ignore":
-			hasTagFilter = true
-			if !refName.IsTag() {
-				break
-			}
-			patterns, err := workflowpattern.CompilePatterns(vals...)
-			if err != nil {
-				break
-			}
-			if !workflowpattern.Filter(patterns, []string{refName.TagName()}, &workflowpattern.EmptyTraceWriter{}) {
-				matchTimes++
-			}
-		case "paths":
-			filesChanged, err := commit.GetFilesChangedSinceCommit(pushPayload.Before)
-			if err != nil {
-				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
-			} else {
-				patterns, err := workflowpattern.CompilePatterns(vals...)
-				if err != nil {
-					break
-				}
-				if !workflowpattern.Skip(patterns, filesChanged, &workflowpattern.EmptyTraceWriter{}) {
-					matchTimes++
-				}
-			}
-		case "paths-ignore":
-			filesChanged, err := commit.GetFilesChangedSinceCommit(pushPayload.Before)
-			if err != nil {
-				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
-			} else {
-				patterns, err := workflowpattern.CompilePatterns(vals...)
-				if err != nil {
-					break
-				}
-				if !workflowpattern.Filter(patterns, filesChanged, &workflowpattern.EmptyTraceWriter{}) {
-					matchTimes++
-				}
-			}
-		default:
-			log.Warn("push event unsupported condition %q", cond)
+			branchesMatched = !workflowpattern.Filter(patterns, []string{refName.BranchName()}, &workflowpattern.EmptyTraceWriter{})
 		}
 	}
-	// if both branch and tag filter are defined in the workflow only one needs to match
-	if hasBranchFilter && hasTagFilter {
-		matchTimes++
+
+	tagsMatched := true
+	if refName.IsTag() {
+		if vals, ok := acts["tags"]; ok {
+			patterns, err := workflowpattern.CompilePatterns(vals...)
+			if err != nil {
+				log.Error("CompilePatterns %v error: %v", vals, err)
+				return false
+			}
+			tagsMatched = !workflowpattern.Skip(patterns, []string{refName.TagName()}, &workflowpattern.EmptyTraceWriter{})
+		} else if vals, ok := acts["tags-ignore"]; ok {
+			patterns, err := workflowpattern.CompilePatterns(vals...)
+			if err != nil {
+				log.Error("CompilePatterns %v error: %v", vals, err)
+				return false
+			}
+			tagsMatched = !workflowpattern.Filter(patterns, []string{refName.TagName()}, &workflowpattern.EmptyTraceWriter{})
+		}
 	}
-	return matchTimes == len(evt.Acts())
+
+	pathsMatched := true
+	if vals, ok := acts["paths"]; ok {
+		filesChanged, err := commit.GetFilesChangedSinceCommit(pushPayload.Before)
+		if err != nil {
+			log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
+			return false
+		}
+		patterns, err := workflowpattern.CompilePatterns(vals...)
+		if err != nil {
+			log.Error("CompilePatterns %v error: %v", vals, err)
+			return false
+		}
+		pathsMatched = !workflowpattern.Skip(patterns, filesChanged, &workflowpattern.EmptyTraceWriter{})
+	} else if vals, ok := acts["paths-ignore"]; ok {
+		filesChanged, err := commit.GetFilesChangedSinceCommit(pushPayload.Before)
+		if err != nil {
+			log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
+			return false
+		}
+		patterns, err := workflowpattern.CompilePatterns(vals...)
+		if err != nil {
+			log.Error("CompilePatterns %v error: %v", vals, err)
+			return false
+		}
+		pathsMatched = !workflowpattern.Filter(patterns, filesChanged, &workflowpattern.EmptyTraceWriter{})
+	}
+
+	return branchesMatched && tagsMatched && pathsMatched
 }
 
 func matchIssuesEvent(commit *git.Commit, issuePayload *api.IssuePayload, evt *jobparser.Event) bool {
