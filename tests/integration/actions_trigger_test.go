@@ -142,3 +142,99 @@ func TestPullRequestTargetEvent(t *testing.T) {
 		assert.Equal(t, actions_module.GithubEventPullRequestTarget, actionRun.TriggerEvent)
 	})
 }
+
+func TestPushEventWithTagsIgnoreFilter(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+		repo, err := repo_service.CreateRepository(db.DefaultContext, user2, user2, repo_module.CreateRepoOptions{
+			Name:          "test-pull-event-repo",
+			AutoInit:      true,
+			Gitignores:    "Go",
+			License:       "MIT",
+			Readme:        "Default",
+			DefaultBranch: "main",
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, repo)
+
+		// enable actions
+		err = repo_model.UpdateRepositoryUnits(repo, []repo_model.RepoUnit{{
+			RepoID: repo.ID,
+			Type:   unit_model.TypeActions,
+		}}, nil)
+		assert.NoError(t, err)
+
+		// create workflow file
+		addWorkflowResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation: "create",
+					TreePath:  ".gitea/workflows/push.yml",
+					Content: `
+name: test
+on:
+  push:
+    tags-ignore:
+      - 'v1.*'
+    paths:
+      - 'trigger.txt'
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo helloworld
+`,
+				},
+			},
+			Message:   "add workflow",
+			OldBranch: "main",
+			NewBranch: "main",
+			Author: &files_service.IdentityOptions{
+				Name:  user2.Name,
+				Email: user2.Email,
+			},
+			Committer: &files_service.IdentityOptions{
+				Name:  user2.Name,
+				Email: user2.Email,
+			},
+			Dates: &files_service.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
+			},
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, addWorkflowResp)
+
+		// create trigger.txt
+		editTriggerFileResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation: "create",
+					TreePath:  "trigger.txt",
+					Content:   `trigger`,
+				},
+			},
+			Message:   "add trigger.txt",
+			OldBranch: "main",
+			NewBranch: "main",
+			Author: &files_service.IdentityOptions{
+				Name:  user2.Name,
+				Email: user2.Email,
+			},
+			Committer: &files_service.IdentityOptions{
+				Name:  user2.Name,
+				Email: user2.Email,
+			},
+			Dates: &files_service.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
+			},
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, editTriggerFileResp)
+
+		actionRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID})
+		assert.Equal(t, editTriggerFileResp.Commit.SHA, actionRun.CommitSHA)
+	})
+}
