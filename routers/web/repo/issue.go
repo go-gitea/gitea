@@ -1922,9 +1922,13 @@ func ViewIssue(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplIssueView)
 }
 
-func checkBlockedByIssues(ctx *context.Context, blockers []*issues_model.DependencyInfo) (canRead, notPermitted []*issues_model.DependencyInfo) {
-	var lastRepoID int64
-	var lastPerm access_model.Permission
+// checkBlockedByIssues return canRead and notPermitted
+func checkBlockedByIssues(ctx *context.Context, blockers []*issues_model.DependencyInfo) ([]*issues_model.DependencyInfo, []*issues_model.DependencyInfo) {
+	var (
+		lastRepoID   int64
+		lastPerm     access_model.Permission
+		notPermitted []*issues_model.DependencyInfo
+	)
 	for i, blocker := range blockers {
 		// Get the permissions for this repository
 		perm := lastPerm
