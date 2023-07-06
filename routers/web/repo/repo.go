@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -621,4 +622,57 @@ func SearchRepo(ctx *context.Context) {
 		OK:   true,
 		Data: results,
 	})
+}
+
+type branchTagSearchResponse struct {
+	Results []string `json:"results"`
+}
+
+// GetBrancheList get branches for current repo'
+func GetBrancheList(ctx *context.Context) {
+	search := strings.TrimSpace(ctx.FormString("q"))
+	branchOpts := git_model.FindBranchOptions{
+		RepoID:          ctx.Repo.Repository.ID,
+		IsDeletedBranch: util.OptionalBoolFalse,
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+	}
+	branches, err := git_model.FindBranchesWithSearch(ctx, branchOpts, search)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+	// always put default branch on the top
+	sort.Slice(branches, func(i, j int) bool {
+		if branches[i] == branches[j] {
+			return false
+		}
+		return branches[i] == ctx.Repo.Repository.DefaultBranch
+	})
+	resp := &branchTagSearchResponse{}
+	resp.Results = branches
+	ctx.JSON(http.StatusOK, resp)
+}
+
+// GetTagList get tag list for current repo
+func GetTagList(ctx *context.Context) {
+	search := strings.TrimSpace(ctx.FormString("q"))
+	listOptions := db.ListOptions{
+		ListAll: true,
+	}
+	opts := repo_model.FindReleasesOptions{
+		ListOptions:   listOptions,
+		IncludeDrafts: true,
+		IncludeTags:   true,
+		HasSha1:       util.OptionalBoolTrue,
+	}
+	tags, err := repo_model.GetTagNamesByRepoIDWithSearch(ctx, ctx.Repo.Repository.ID, opts, search)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+	resp := &branchTagSearchResponse{}
+	resp.Results = tags
+	ctx.JSON(http.StatusOK, resp)
 }

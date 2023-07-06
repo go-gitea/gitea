@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"sort"
 	"strings"
 	"time"
 
@@ -1085,48 +1084,4 @@ func Forks(ctx *context.Context) {
 	ctx.Data["Forks"] = forks
 
 	ctx.HTML(http.StatusOK, tplForks)
-}
-
-type branchTagSearchResponse struct {
-	Results []string `json:"results"`
-}
-
-// GetBranches get branches for current repo'
-func GetBranches(ctx *context.Context) {
-	search := strings.TrimSpace(ctx.FormString("q"))
-	branchOpts := git_model.FindBranchOptions{
-		RepoID:          ctx.Repo.Repository.ID,
-		IsDeletedBranch: util.OptionalBoolFalse,
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
-	}
-	branches, err := git_model.FindBranchesWithSearch(ctx, branchOpts, search)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, err)
-		return
-	}
-	// always put default branch on the top
-	sort.Slice(branches, func(i, j int) bool {
-		if branches[i] == branches[j] {
-			return false
-		}
-		return branches[i] == ctx.Repo.Repository.DefaultBranch
-	})
-	resp := &branchTagSearchResponse{}
-	resp.Results = branches
-	ctx.JSON(http.StatusOK, resp)
-}
-
-// GetTags get tags for current repo'
-func GetTags(ctx *context.Context) {
-	search := strings.TrimSpace(ctx.FormString("q"))
-	tags, err := repo_model.GetTagNamesByRepoIDWithSearch(ctx, ctx.Repo.Repository.ID, search)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, err)
-		return
-	}
-	resp := &branchTagSearchResponse{}
-	resp.Results = tags
-	ctx.JSON(http.StatusOK, resp)
 }

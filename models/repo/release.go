@@ -278,17 +278,8 @@ func GetTagNamesByRepoID(ctx context.Context, repoID int64) ([]string, error) {
 }
 
 // GetTagNamesByRepoID returns a list of release tag names of repository.
-func GetTagNamesByRepoIDWithSearch(ctx context.Context, repoID int64, search string) ([]string, error) {
+func GetTagNamesByRepoIDWithSearch(ctx context.Context, repoID int64, opts FindReleasesOptions, search string) ([]string, error) {
 	tags := make([]string, 0, 30)
-	listOptions := db.ListOptions{
-		ListAll: true,
-	}
-	opts := FindReleasesOptions{
-		ListOptions:   listOptions,
-		IncludeDrafts: true,
-		IncludeTags:   true,
-		HasSha1:       util.OptionalBoolTrue,
-	}
 	var searchCond builder.Cond = builder.Like{"tag_name", "%" + search + "%"}
 	sess := db.GetEngine(ctx).
 		Table("release").
