@@ -47,7 +47,9 @@ In such a case, users must be registered manually by a Gitea administrator, or v
 ## Harden Gitea server, but allow access to CI/CD server
 
 If Gitea is integrated with a CI/CD server, and both are exposed to the Internet, then additional steps must be taken:
+
 - Update your config
+ 
   ```ini
   [service]
   REQUIRE_SIGNIN_VIEW      = true
@@ -56,10 +58,12 @@ If Gitea is integrated with a CI/CD server, and both are exposed to the Internet
   [repository]
   DISABLE_HTTP_GIT         = false
   ```
+
 - Create an [OAuth2 application]({{< relref "doc/development/oauth2-provider.en-us.md" >}}) for your CI/CD server.
 - Ensure that you have applied appropriate access control to your repos, i.e. they are set to "limited" or "private".
 
 That will ensure that:
+
 - Manually registered users can access your Gitea server and clone its repos (via HTTPS or SSH), and
 - Anonymous users cannot access your Gitea server, and
 - Anonymous users cannot clone your repos (even the public ones) as they lack Gitea accounts, and
