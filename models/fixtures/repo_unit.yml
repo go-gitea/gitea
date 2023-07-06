@@ -607,3 +607,16 @@
   repo_id: 52
   type: 1
   created_unix: 946684810
+
+-
+  id: 91
+  repo_id: 58
+  type: 1
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 92
+  repo_id: 58
+  type: 3
+  created_unix: 946684810

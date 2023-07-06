@@ -14,46 +14,33 @@ import (
 )
 
 func TestPullDiff_CompletePRDiff(t *testing.T) {
-	doTestPrDiff(t, "/user2/repo1/pulls/3/files", false, []string{"3", "iso-8859-1.txt"})
+	doTestPrDiff(t, "/user2/commitsonpr/pulls/1/files", false, []string{"test1.txt", "test10.txt", "test2.txt", "test3.txt", "test4.txt", "test5.txt", "test6.txt", "test7.txt", "test8.txt", "test9.txt"})
 }
 
 func TestPullDiff_SingleCommitPRDiff(t *testing.T) {
-	doTestPrDiff(t, "/user2/repo1/pulls/3/commits/5f22f7d0d95d614d25a5b68592adb345a4b5c7fd", true, []string{"iso-8859-1.txt"})
+	doTestPrDiff(t, "/user2/commitsonpr/pulls/1/commits/c5626fc9eff57eb1bb7b796b01d4d0f2f3f792a2", true, []string{"test3.txt"})
 }
 
 func TestPullDiff_CommitRangePRDiff(t *testing.T) {
-	doTestPrDiff(t, "/user2/repo1/pulls/3/files/4a357436d925b5c974181ff12a994538ddc5a269..5f22f7d0d95d614d25a5b68592adb345a4b5c7fd", true, []string{"iso-8859-1.txt"})
+	doTestPrDiff(t, "/user2/commitsonpr/pulls/1/files/4ca8bcaf27e28504df7bf996819665986b01c847..23576dd018294e476c06e569b6b0f170d0558705", true, []string{"test2.txt", "test3.txt", "test4.txt"})
 }
 
-func TestPullDiff_StartingFromCommitPRDiffFirstCommit(t *testing.T) {
-	doTestPrDiff(t, "/user2/repo1/pulls/3/files/5f22f7d0d95d614d25a5b68592adb345a4b5c7fd", true, []string{"3", "iso-8859-1.txt"})
-}
-
-func TestPullDiff_StartingFromCommitPRDiffLastCommit(t *testing.T) {
-	doTestPrDiff(t, "/user2/repo1/pulls/3/files/4a357436d925b5c974181ff12a994538ddc5a269", true, []string{"3"})
+func TestPullDiff_StartingFromBaseToCommitPRDiff(t *testing.T) {
+	doTestPrDiff(t, "/user2/commitsonpr/pulls/1/files/c5626fc9eff57eb1bb7b796b01d4d0f2f3f792a2", true, []string{"test1.txt", "test2.txt", "test3.txt"})
 }
 
 func doTestPrDiff(t *testing.T, prDiffURL string, reviewBtnDisabled bool, expectedFilenames []string) {
 	defer tests.PrepareTestEnv(t)()
 
-	session := loginUser(t, "user1")
+	session := loginUser(t, "user2")
 
-	req := NewRequest(t, "GET", "/pulls")
+	req := NewRequest(t, "GET", "/user2/commitsonpr/pulls")
 	session.MakeRequest(t, req, http.StatusOK)
-
-	// Get all commits
-	req = NewRequest(t, "GET", "/user2/repo1/pulls/3/commits")
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	doc := NewHTMLParser(t, resp.Body)
-
-	// Ensure we got 2 commits in this PR
-	commits := doc.doc.Find("#commits-table tbody tr td.sha a")
-	assert.Equal(t, 2, commits.Length())
 
 	// Get the given PR diff url
 	req = NewRequest(t, "GET", prDiffURL)
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	doc = NewHTMLParser(t, resp.Body)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	doc := NewHTMLParser(t, resp.Body)
 
 	// Assert all files are visible.
 	fileContents := doc.doc.Find("div.file-content")
