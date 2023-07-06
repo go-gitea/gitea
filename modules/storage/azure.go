@@ -255,6 +255,7 @@ func (a *AzureBlobStorage) Delete(path string) error {
 
 // URL gets the redirect URL to a file. The presigned link is valid for 5 minutes.
 func (a *AzureBlobStorage) URL(path, name string) (*url.URL, error) {
+	// TODO: Support download blobs directly from azure
 	return nil, ErrURLNotSupported
 }
 
