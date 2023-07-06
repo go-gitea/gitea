@@ -11,6 +11,7 @@ Gitea's private styles use `g-` prefix.
 .gt-ab { align-items: baseline !important; }
 .gt-tc { text-align: center !important; }
 .gt-tl { text-align: left !important; }
+.gt-tr { text-align: right !important; } /* TODO: rename these to "gt-text-right", etc. there are only a few */
 .gt-jc { justify-content: center !important; }
 .gt-js { justify-content: flex-start !important; }
 .gt-je { justify-content: flex-end !important; }
