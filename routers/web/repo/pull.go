@@ -949,7 +949,8 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 		lastreview, err := issues_model.FindLatestReviews(ctx, issues_model.FindReviewOptions{
 			IssueID:    issue.ID,
 			ReviewerID: ctx.Doer.ID,
-			Type:       issues_model.ReviewTypeUnknown})
+			Type:       issues_model.ReviewTypeUnknown,
+		})
 
 		if err != nil && !issues_model.IsErrReviewNotExist(err) {
 			ctx.ServerError("GetReviewByIssueIDAndUserID", err)
