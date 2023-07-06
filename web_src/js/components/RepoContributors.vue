@@ -262,10 +262,15 @@ export default {
       };
     },
 
-    updateOtherCharts(event) {
+    updateOtherCharts(event, reset) {
       const minVal = event.chart.options.scales.x.min;
       const maxVal = event.chart.options.scales.x.max;
-      if (minVal) {
+      if (reset) {
+        this.dateFrom = this.startDate;
+        this.dateUntil = this.endDate;
+        this.sortContributors();
+      }
+      else if (minVal) {
         this.dateFrom = new Date(minVal);
         this.dateUntil = new Date(maxVal);
         this.sortContributors();
@@ -280,6 +285,7 @@ export default {
         onClick: (e) => {
           if (type === 'main') {
             e.chart.resetZoom();
+            this.updateOtherCharts(e, true)
           }
         },
         plugins: {
