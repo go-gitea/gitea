@@ -336,7 +336,7 @@ func GetUserFollowers(ctx context.Context, u, viewer *User, listOptions db.ListO
 
 // GetUserFollowing returns range of user's following.
 func GetUserFollowing(ctx context.Context, u, viewer *User, listOptions db.ListOptions) ([]*User, int64, error) {
-	sess := db.GetEngine(db.DefaultContext).
+	sess := db.GetEngine(ctx).
 		Select("`user`.*").
 		Join("LEFT", "follow", "`user`.id=follow.follow_id").
 		Where("follow.user_id=?", u.ID).
