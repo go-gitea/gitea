@@ -188,7 +188,6 @@ func InitFull(ctx context.Context) (err error) {
 	if CheckGitVersionAtLeast("2.9") == nil {
 		globalCommandArgs = append(globalCommandArgs, "-c", "credential.helper=")
 	}
-
 	SupportProcReceive = CheckGitVersionAtLeast("2.29") == nil
 
 	if setting.LFS.StartServer {
@@ -359,7 +358,7 @@ func configSetNonExist(key, value string) error {
 func configAddNonExist(key, value string) error {
 	_, _, err := NewCommand(DefaultContext, "config", "--global", "--get").AddDynamicArguments(key, regexp.QuoteMeta(value)).RunStdString(nil)
 	if err == nil {
-		// already exist
+		// already exist                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   ,
 		return nil
 	}
 	if err.IsExitCode(1) {
