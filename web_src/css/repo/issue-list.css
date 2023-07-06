@@ -14,7 +14,6 @@
 .issue-list-toolbar-right .filter.menu {
   flex-direction: row;
   flex-wrap: wrap;
-  gap: 8px;
 }
 
 @media (max-width: 767.98px) {
