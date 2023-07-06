@@ -254,6 +254,7 @@ const sfc = {
       const {results} = await resp.json();
       if (!results || !['branches', 'tags'].includes(this.mode)) return;
       this.items = [];
+      // the "data.defaultBranch" is ambiguous, it could be "branch name" or "tag name"
       if (this.mode === 'branches' && this.showBranchesInDropdown) {
         for (const branch of results) {
           this.items.push({name: branch, url: branch, branch: true, tag: false, selected: branch === this.defaultBranch});
