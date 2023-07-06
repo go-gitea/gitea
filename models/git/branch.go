@@ -381,7 +381,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 	return committer.Commit()
 }
 
-// FindRecentlyPushedNewBranches return at most 2 new branches pushed by the user in 3 days which has no opened PRs created
+// FindRecentlyPushedNewBranches return at most 2 new branches pushed by the user in 6 hours which has no opened PRs created
 func FindRecentlyPushedNewBranches(ctx context.Context, repoID, userID int64) (BranchList, error) {
 	branches := make(BranchList, 0, 2)
 	subQuery := builder.Select("head_branch").From("pull_request").
@@ -392,7 +392,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, repoID, userID int64) (B
 		})
 	err := db.GetEngine(ctx).
 		Where("pusher_id=? AND is_deleted=?", userID, false).
-		And("updated_unix >= ?", time.Now().Add(-time.Hour*24*3).Unix()).
+		And("updated_unix >= ?", time.Now().Add(-time.Hour*6).Unix()).
 		NotIn("name", subQuery).
 		OrderBy("branch.updated_unix DESC").
 		Limit(2).
