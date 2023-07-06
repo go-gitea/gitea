@@ -944,6 +944,23 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
 
+	if ctx.IsSigned {
+		// get last review of current user and store information in context (if available)
+		lastreview, err := issues_model.FindLatestReviews(ctx, issues_model.FindReviewOptions{
+			IssueID:    issue.ID,
+			ReviewerID: ctx.Doer.ID,
+			Type:       issues_model.ReviewTypeUnknown})
+
+		if err != nil && !issues_model.IsErrReviewNotExist(err) {
+			ctx.ServerError("GetReviewByIssueIDAndUserID", err)
+			return
+		}
+
+		if len(lastreview) > 0 {
+			ctx.Data["LastReviewSha"] = lastreview[0].CommitID
+		}
+	}
+
 	ctx.HTML(http.StatusOK, tplPullFiles)
 }
 

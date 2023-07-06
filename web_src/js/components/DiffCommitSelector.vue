@@ -11,6 +11,11 @@
         <div class="gt-ellipsis text light-2">{{ locale.stats_num_commits }}</div>
       </a>
 
+      <a v-if="lastReviewCommitSha != null" class="vertical item gt-df gt-fc gt-gap-1" @click="changesSinceLastReviewClick()">
+        <div class="gt-ellipsis">{{ locale.show_changes_since_your_last_review }}</div>
+        <div class="gt-ellipsis text light-2">{{ commitsSinceLastReview }} commits</div>
+      </a>
+
       <template v-for="commit in commits" :key="commit.ID">
         <div class="divider"/>
         <div class="vertical item gt-df gt-fr gt-gap-2" :class="{selected: commit.Selected}" @click.exact="commitClicked(commit.ID)" @click.shift.exact.stop.prevent="commitClickedShift(commit)">
@@ -40,16 +45,30 @@ import {SvgIcon} from '../svg.js';
 export default {
   components: {SvgIcon},
   data: () => {
+    const commitInfo = window.config.pageData.commitInfo;
     return {
       menuVisible: false,
-      locale: window.config.pageData.commitInfo.locale,
-      commits: window.config.pageData.commitInfo.commits.reverse(),
-      queryParams: window.config.pageData.commitInfo.queryParams,
-      issueLink: window.config.pageData.commitInfo.issueLink,
+      lastReviewCommitSha: commitInfo.lastReviewCommitSha,
+      locale: commitInfo.locale,
+      commits: commitInfo.commits.reverse(),
+      queryParams: commitInfo.queryParams,
+      issueLink: commitInfo.issueLink,
       hoverActivated: false
     };
   },
+  computed: {
+    commitsSinceLastReview() {
+      if (this.lastReviewCommitSha) {
+        return this.commits.length - this.commits.findIndex((x) => x.ID === this.lastReviewCommitSha) - 1;
+      }
+      return 0;
+    }
+  },
   methods: {
+    /** Called when user clicks on since last review */
+    changesSinceLastReviewClick() {
+      window.location = `${this.issueLink}/files/${this.lastReviewCommitSha}..${this.commits.at(-1)}${this.queryParams}`;
+    },
     /** Clicking on a single commit opens this specific commit */
     commitClicked(commitId) {
       window.location = `${this.issueLink}/commits/${commitId}${this.queryParams}`;
