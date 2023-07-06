@@ -9,7 +9,7 @@
 		{{$.locale.Tr "repo.pulls.tab_commits"}}
 		<span class="ui small label">{{if .NumCommits}}{{.NumCommits}}{{else}}-{{end}}</span>
 	</a>
-	<a class="item {{if .PageIsPullFiles}}active{{end}}" {{if .NumFiles}}href="{{.Issue.Link}}/files"{{end}}>
+	<a class="item {{if .PageIsPullFiles}}active{{end}}" href="{{.Issue.Link}}/files">
 		{{svg "octicon-diff"}}
 		{{$.locale.Tr "repo.pulls.tab_files"}}
 		<span class="ui small label">{{if .NumFiles}}{{.NumFiles}}{{else}}-{{end}}</span>
