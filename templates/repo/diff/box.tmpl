@@ -56,7 +56,11 @@
 					};
 				</script>
 				<div id="diff-commit-select">
-				  <div class="ui jump dropdown basic button custom">
+					{{/*
+						the following will be replaced by vue component
+						but this avoids any loading artifacts till the vue component is initialized
+					*/}}
+					<div class="ui jump dropdown basic button custom">
 						{{svg "octicon-git-commit"}}
 					</div>
 				</div>
