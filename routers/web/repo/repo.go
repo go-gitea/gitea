@@ -644,7 +644,8 @@ func GetBranchesList(ctx *context.Context) {
 	}
 	resp := &branchTagSearchResponse{}
 	// always put default branch on the top
-	resp.Results = append(branchOpts.ExcludeBranchNames, branches...)
+	branches = append(branchOpts.ExcludeBranchNames, branches...)
+	resp.Results = branches
 	ctx.JSON(http.StatusOK, resp)
 }
 
