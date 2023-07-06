@@ -1,6 +1,6 @@
 <template>
   <div class="ui floating filter dropdown custom">
-    <button class="branch-dropdown-button gt-ellipsis ui basic small compact button gt-df gt-m-0" @click="menuVisible = !menuVisible;fetchBranches()" @keyup.enter="menuVisible = !menuVisible">
+    <button class="branch-dropdown-button gt-ellipsis ui basic small compact button gt-df gt-m-0" @click="menuVisible = !menuVisible;fetchBranchesOrTags()" @keyup.enter="menuVisible = !menuVisible">
       <span class="text gt-df gt-ac gt-mr-2">
         <template v-if="release">{{ textReleaseCompare }}</template>
         <template v-else>
@@ -20,13 +20,13 @@
         <div class="header branch-tag-choice">
           <div class="ui grid">
             <div class="two column row">
-              <a class="reference column" href="#" @click="createTag = false; mode = 'branches'; focusSearchField(); fetchBranches()">
+              <a class="reference column" href="#" @click="createTag = false; mode = 'branches'; focusSearchField(); fetchBranchesOrTags()">
                 <span class="text" :class="{black: mode === 'branches'}">
                   <svg-icon name="octicon-git-branch" :size="16" class-name="gt-mr-2"/>{{ textBranches }}
                 </span>
               </a>
               <template v-if="!noTag">
-                <a class="reference column" href="#" @click="createTag = true; mode = 'tags'; focusSearchField(); fetchBranches()">
+                <a class="reference column" href="#" @click="createTag = true; mode = 'tags'; focusSearchField(); fetchBranchesOrTags()">
                   <span class="text" :class="{black: mode === 'tags'}">
                     <svg-icon name="octicon-tag" :size="16" class-name="gt-mr-2"/>{{ textTags }}
                   </span>
@@ -119,7 +119,7 @@ const sfc = {
       }
     },
     searchTerm: function() {
-      this.fetchBranches();
+      this.fetchBranchesOrTags();
     }
   },
 
@@ -249,7 +249,7 @@ const sfc = {
         this.menuVisible = false;
       }
     },
-    fetchBranches: onInputDebounce(async function() {
+    fetchBranchesOrTags: onInputDebounce(async function() {
       const resp = await fetch(`${this.repoLink}/${this.mode}/list?&q=${this.searchTerm}`);
       const {results} = await resp.json();
       if (!results || !['branches', 'tags'].includes(this.mode)) return;
