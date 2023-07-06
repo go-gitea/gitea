@@ -356,7 +356,7 @@ func TestSearchIssues(t *testing.T) {
 
 	session := loginUser(t, "user2")
 
-	expectedIssueCount := 16 // from the fixtures
+	expectedIssueCount := 17 // from the fixtures
 	if expectedIssueCount > setting.UI.IssuePagingNum {
 		expectedIssueCount = setting.UI.IssuePagingNum
 	}
@@ -430,7 +430,7 @@ func TestSearchIssues(t *testing.T) {
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 7)
+	assert.Len(t, apiIssues, 8)
 
 	query = url.Values{"owner": {"user3"}} // organization
 	link.RawQuery = query.Encode()
@@ -450,7 +450,7 @@ func TestSearchIssues(t *testing.T) {
 func TestSearchIssuesWithLabels(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	expectedIssueCount := 16 // from the fixtures
+	expectedIssueCount := 17 // from the fixtures
 	if expectedIssueCount > setting.UI.IssuePagingNum {
 		expectedIssueCount = setting.UI.IssuePagingNum
 	}
