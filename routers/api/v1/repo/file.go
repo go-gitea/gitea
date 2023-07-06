@@ -78,9 +78,6 @@ func GetRawFile(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if lastModified == nil {
-		lastModified = &time.Time{}
-	}
 
 	ctx.RespHeader().Set(giteaObjectTypeHeader, string(files_service.GetObjectTypeFromTreeEntry(entry)))
 

@@ -131,9 +131,6 @@ func SingleDownloadOrLFS(ctx *context.Context) {
 	if blob == nil {
 		return
 	}
-	if lastModified == nil {
-		lastModified = &time.Time{}
-	}
 
 	if err := ServeBlobOrLFS(ctx, blob, lastModified); err != nil {
 		ctx.ServerError("ServeBlobOrLFS", err)
