@@ -854,6 +854,7 @@ func CompareDiff(ctx *context.Context) {
 	} else {
 		ctx.Data["AllowMaintainerEdit"] = false
 	}
+
 	ctx.HTML(http.StatusOK, tplCompare)
 }
 

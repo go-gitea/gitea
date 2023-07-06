@@ -627,8 +627,8 @@ type branchTagSearchResponse struct {
 	Results []string `json:"results"`
 }
 
-// GetBrancheList get branches for current repo'
-func GetBrancheList(ctx *context.Context) {
+// GetBranchesList get branches for current repo'
+func GetBranchesList(ctx *context.Context) {
 	branchOpts := git_model.FindBranchOptions{
 		RepoID:          ctx.Repo.Repository.ID,
 		IsDeletedBranch: util.OptionalBoolFalse,
