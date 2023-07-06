@@ -12,7 +12,7 @@
       >
         {{ dateFrom }}
       </relative-time>
-      {{ isLoading ? "Loading contributions..." : "-" }}
+      {{ isLoading ? "Loading contributions..." : errorText ? "Loading contributions failed :(": "-" }}
       <relative-time
         v-if="dateUntil !== null"
         format="datetime"
@@ -50,9 +50,15 @@
     </h2>
     <div class="divider"/>
     <div style="height: 380px" class="gt-df">
-      <div v-if="isLoading" class="gt-tc gt-m-auto">
-        <p>This might take a few minutes...</p>
-        <SvgIcon v-if="isLoading" name="octicon-sync" class="gt-mr-3 job-status-rotate"/>
+      <div v-if="isLoading || errorText !== ''" class="gt-tc gt-m-auto">
+        <div v-if="isLoading">
+          <SvgIcon name="octicon-sync" class="gt-mr-3 job-status-rotate"/>
+          This might take a few minutes...
+        </div>
+        <div v-else>
+          <SvgIcon name="octicon-x-circle-fill" class="text red"/>
+          {{ errorText }}
+        </div>
       </div>
       <CLine
         v-memo="[totalStats.weeks, type]" v-if="Object.keys(totalStats).length !== 0"
@@ -137,6 +143,7 @@ export default {
   data: () => {
     return {
       isLoading: false,
+      errorText: '',
       totalStats: {},
       sortedContributors: {},
       repoLink: pageData.repoLink || [],
@@ -181,6 +188,12 @@ export default {
           this.endDate = this.dateUntil;
           this.sortContributors();
           this.totalStats = total;
+          this.errorText = '';
+        })
+        .catch((e) => {
+          this.errorText = e.message;
+        })
+        .finally(() => {
           this.isLoading = false;
         });
     },
@@ -269,8 +282,7 @@ export default {
         this.dateFrom = this.startDate;
         this.dateUntil = this.endDate;
         this.sortContributors();
-      }
-      else if (minVal) {
+      } else if (minVal) {
         this.dateFrom = new Date(minVal);
         this.dateUntil = new Date(maxVal);
         this.sortContributors();
@@ -285,7 +297,7 @@ export default {
         onClick: (e) => {
           if (type === 'main') {
             e.chart.resetZoom();
-            this.updateOtherCharts(e, true)
+            this.updateOtherCharts(e, true);
           }
         },
         plugins: {
