@@ -12,7 +12,7 @@
       >
         {{ dateFrom }}
       </relative-time>
-      -
+      {{ isLoading ? "Loading contributions..." : "-" }}
       <relative-time
         v-if="dateUntil !== null"
         format="datetime"
@@ -43,7 +43,11 @@
       </div>
     </h2>
     <div class="ui divider"/>
-    <div style="height: 380px">
+    <div style="height: 380px" class="gt-df">
+      <div v-if="isLoading" class="gt-tc gt-m-auto">
+        <p>This might take a few minutes...</p>
+        <SvgIcon v-if="isLoading" name="octicon-sync" class="gt-mr-3 job-status-rotate"/>
+      </div>
       <CLine
         v-memo="[totalStats.weeks]"
         v-if="Object.keys(totalStats).length !== 0"
