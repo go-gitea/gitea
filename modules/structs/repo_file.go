@@ -166,7 +166,7 @@ type FilesResponse struct {
 
 // FileDeleteResponse contains information about a repo's file that was deleted
 type FileDeleteResponse struct {
-	Content      interface{}                `json:"content"` // to be set to nil
+	Content      any                        `json:"content"` // to be set to nil
 	Commit       *FileCommitResponse        `json:"commit"`
 	Verification *PayloadCommitVerification `json:"verification"`
 }

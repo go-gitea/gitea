@@ -1327,7 +1327,7 @@
   num_stars: 0
   num_repos: 0
   num_teams: 2
-  num_members: 1
+  num_members: 2
   visibility: 1
   repo_admin_change_team_access: false
   theme: ""

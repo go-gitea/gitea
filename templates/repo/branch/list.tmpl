@@ -29,7 +29,7 @@
 								</div>
 								<p class="info gt-df gt-ac gt-my-2">{{svg "octicon-git-commit" 16 "gt-mr-2"}}<a href="{{.RepoLink}}/commit/{{PathEscape .DefaultBranchBranch.DBBranch.CommitID}}">{{ShortSha .DefaultBranchBranch.DBBranch.CommitID}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .DefaultBranchBranch.DBBranch.CommitMessage .RepoLink .Repository.ComposeMetas}}</span> · {{.locale.Tr "org.repo_updated"}} {{TimeSince .DefaultBranchBranch.DBBranch.CommitTime.AsTime .locale}}{{if .DefaultBranchBranch.DBBranch.Pusher}} &nbsp;{{template "shared/user/avatarlink" dict "Context" $.Context "user" .DefaultBranchBranch.DBBranch.Pusher}}{{template "shared/user/namelink" .DefaultBranchBranch.DBBranch.Pusher}}{{end}}</p>
 							</td>
-							<td class="right aligned overflow-visible">
+							<td class="right aligned middle aligned overflow-visible">
 								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
 									<button class="btn interact-bg show-create-branch-modal gt-p-3"
 										data-modal="#create-branch-modal"
