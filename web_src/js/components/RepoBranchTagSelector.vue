@@ -92,13 +92,10 @@ const sfc = {
     filteredItems() {
       const items = this.items.filter((item) => {
         return ((this.mode === 'branches' && item.branch) || (this.mode === 'tags' && item.tag));
-        // return ((this.mode === 'branches' && item.branch) || (this.mode === 'tags' && item.tag)) &&
-        //   (!this.searchTerm || item.name.toLowerCase().includes(this.searchTerm.toLowerCase()));
       });
 
       // TODO: fix this anti-pattern: side-effects-in-computed-properties
       this.active = (items.length === 0 && this.showCreateNewBranch ? 0 : -1);
-      console.log('filteredItems', items);
       return items;
     },
     showNoResults() {
@@ -121,8 +118,7 @@ const sfc = {
         this.focusSearchField();
       }
     },
-    searchTerm: function(val) {
-      console.log(val);
+    searchTerm: function() {
       this.fetchBranches();
     }
   },
@@ -254,10 +250,8 @@ const sfc = {
       }
     },
     fetchBranches: onInputDebounce(async function() {
-      console.log('fetchBranches', this.searchTerm);
       const resp = await fetch(`${this.repoLink}/${this.mode}/list?&q=${this.searchTerm}`);
       const {results} = await resp.json();
-      console.log(results);
       if (!results || !['branches', 'tags'].includes(this.mode)) return;
       this.items = [];
       if (this.mode === 'branches' && this.showBranchesInDropdown) {
