@@ -86,7 +86,7 @@ func UserHiddenCommentTypesFromRequest(ctx *context.Context) *big.Int {
 }
 
 // IsUserHiddenCommentTypeGroupChecked check whether a hidden comment type group is "enabled" (checked on UI)
-func IsUserHiddenCommentTypeGroupChecked(group string, hiddenCommentTypes *big.Int) (ret bool) {
+func IsUserHiddenCommentTypeGroupChecked(group string, hiddenCommentTypes *big.Int) bool {
 	commentTypes, ok := hiddenCommentTypeGroups[group]
 	if !ok {
 		log.Critical("the group map for hidden comment types is out of sync, unknown group: %v", group)
