@@ -528,6 +528,18 @@ func (repo *Repository) ComposeCompareURL(oldCommitID, newCommitID string) strin
 	return fmt.Sprintf("%s/%s/compare/%s...%s", url.PathEscape(repo.OwnerName), url.PathEscape(repo.Name), util.PathEscapeSegments(oldCommitID), util.PathEscapeSegments(newCommitID))
 }
 
+func (repo *Repository) ComposeBranchCompareURL(baseRepo *Repository, branchName string) string {
+	var cmpBranch string
+	if baseRepo == nil {
+		baseRepo = repo
+	}
+	if repo.ID != baseRepo.ID {
+		cmpBranch = fmt.Sprintf("%s/%s:", url.PathEscape(repo.OwnerName), url.PathEscape(repo.Name))
+	}
+	cmpBranch = fmt.Sprintf("%s%s", cmpBranch, util.PathEscapeSegments(branchName))
+	return fmt.Sprintf("%s/compare/%s...%s", baseRepo.Link(), baseRepo.DefaultBranch, cmpBranch)
+}
+
 // IsOwnedBy returns true when user owns this repository
 func (repo *Repository) IsOwnedBy(userID int64) bool {
 	return repo.OwnerID == userID

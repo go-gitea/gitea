@@ -3,6 +3,7 @@
 	{{template "repo/header" .}}
 	<div class="ui container {{if .IsBlame}}fluid padded{{end}}">
 		{{template "base/alert" .}}
+		{{template "repo/code/recently_pushed_new_branches" .}}
 		{{if and (not .HideRepoInfo) (not .IsBlame)}}
 		<div class="ui repo-description">
 			<div id="repo-desc">
