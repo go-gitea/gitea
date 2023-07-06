@@ -119,12 +119,6 @@ curl -X PUT \
   --data-binary @$package
 ```
 
-Alternatively, you can install [pack](https://fmnx.su/core/pack) and execute push command. Pack is automatically handling all gpg/http related operations:
-
-```sh
-pack -P {domain}/{owner}/{package}
-```
-
 ## Delete packages
 
 1. Prepare signature for delete message.
@@ -171,10 +165,4 @@ curl -X DELETE \
   --header "version: $version" \
   --header 'Content-Type: application/octet-stream' \
   --data-binary @md.sig
-```
-
-Alternatively, you can use [pack](https://fmnx.su/core/pack) to execute remote delete operations:
-
-```sh
-pack -R {domain}/{owner}/{package}@{version-release}
 ```

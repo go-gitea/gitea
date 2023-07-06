@@ -278,6 +278,8 @@ ht719b7ZWR3+SRcXySXC/cP8DL/N12kaf8wQSBkjjLKkAPBDnLyL32YFQur67qtbXtxcd/23w375
 	// Add package gpg key to user in tests.
 
 	t.Run("push", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
 		req := NewRequest(t, "PUT", path.Join(rootURL, "/push"))
 
 		req.Header.Set("filename", "randpkg-1-1-x86_64.pkg.tar.zst")
@@ -293,7 +295,10 @@ ht719b7ZWR3+SRcXySXC/cP8DL/N12kaf8wQSBkjjLKkAPBDnLyL32YFQur67qtbXtxcd/23w375
 	})
 
 	t.Run("get", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
 		t.Run("package", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
 			req := NewRequest(t, "GET", path.Join(rootURL, "/archlinux/x86_64/randpkg-1-1-x86_64.pkg.tar.zst"))
 
 			req.Body = io.NopCloser(bytes.NewReader(pkgData))
@@ -304,6 +309,8 @@ ht719b7ZWR3+SRcXySXC/cP8DL/N12kaf8wQSBkjjLKkAPBDnLyL32YFQur67qtbXtxcd/23w375
 		})
 
 		t.Run("database", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
 			dbname := fmt.Sprintf("%s.%s.db", user.Name, setting.Domain)
 
 			req := NewRequest(t, "GET", path.Join(rootURL, "/archlinux/x86_64/"+dbname))
@@ -317,6 +324,8 @@ ht719b7ZWR3+SRcXySXC/cP8DL/N12kaf8wQSBkjjLKkAPBDnLyL32YFQur67qtbXtxcd/23w375
 	})
 
 	t.Run("remove", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
 		req := NewRequest(t, "PUT", path.Join(rootURL, "/push"))
 
 		req.Header.Set("username", "dancheg97")
