@@ -2,24 +2,7 @@
 <div role="main" aria-label="{{.Title}}" class="page-content explore users">
 	{{template "explore/navbar" .}}
 	<div class="ui container">
-		{{template "code/searchform" .}}
-		<div class="divider"></div>
-		<div class="ui user list">
-			{{if .CodeIndexerUnavailable}}
-				<div class="ui error message">
-					<p>{{$.locale.Tr "explore.code_search_unavailable"}}</p>
-				</div>
-			{{else if .SearchResults}}
-				<h3>
-					{{.locale.Tr "explore.code_search_results" (.Keyword|Escape) | Str2html}}
-				</h3>
-				{{template "code/searchresults" .}}
-			{{else if .Keyword}}
-				<div>{{$.locale.Tr "explore.code_no_results"}}</div>
-			{{end}}
-		</div>
-
-		{{template "base/paginate" .}}
+		{{template "code/searchcombo" .}}
 	</div>
 </div>
 {{template "base/footer" .}}

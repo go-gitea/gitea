@@ -1,4 +1,4 @@
-<div class="ui tabs container">
+<div class="ui container">
 	<div class="ui secondary stackable pointing menu">
 		<a class="{{if .PageIsViewRepositories}}active {{end}}item" href="{{$.Org.HomeLink}}">
 			{{svg "octicon-repo"}} {{.locale.Tr "user.repositories"}}
@@ -6,7 +6,7 @@
 				<div class="ui small label">{{.ContextUser.NumRepos}}</div>
 			{{end}}
 		</a>
-		{{if and .IsProjectEnabled .CanReadProjects}}
+		{{if .CanReadProjects}}
 		<a class="{{if .PageIsViewProjects}}active {{end}}item" href="{{$.Org.HomeLink}}/-/projects">
 			{{svg "octicon-project-symlink"}} {{.locale.Tr "user.projects"}}
 		</a>
