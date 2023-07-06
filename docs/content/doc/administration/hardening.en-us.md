@@ -49,7 +49,7 @@ In such a case, users must be registered manually by a Gitea administrator, or v
 If Gitea is integrated with a CI/CD server, and both are exposed to the Internet, then additional steps must be taken:
 
 - Update your config
- 
+
   ```ini
   [service]
   REQUIRE_SIGNIN_VIEW      = true
