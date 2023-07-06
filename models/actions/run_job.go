@@ -132,7 +132,6 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 	if runStatus.IsDone() {
 		run.Stopped = timeutil.TimeStampNow()
 	} else if !runStatus.IsRunning() {
-		fmt.Println("run status: ", runStatus.String())
 		// other status changed, increase tasks version
 		if err := increaseTaskVersion(ctx, job.OwnerID, job.RepoID); err != nil {
 			return affected, err
