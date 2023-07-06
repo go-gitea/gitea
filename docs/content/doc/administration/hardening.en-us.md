@@ -64,7 +64,7 @@ If Gitea is integrated with a CI/CD server, and both are exposed to the Internet
 
 That will ensure that:
 
-- Manually registered users can access your Gitea server and clone its repos (via HTTPS or SSH), and
+- Manually registered users can access your Gitea server and clone its repositories (via HTTPS or SSH), and
 - Anonymous users cannot access your Gitea server, and
 - Anonymous users cannot clone your repos (even the public ones) as they lack Gitea accounts, and
 - Your CI/CD server can clone your repos (via HTTPS), as it has an OAuth2 application token.
