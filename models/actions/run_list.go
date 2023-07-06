@@ -72,7 +72,7 @@ type FindRunOptions struct {
 	Ref              string
 	TriggerUserID    int64
 	Approved         bool // not util.OptionalBool, it works only when it's true
-	Status           Status
+	Status           []Status
 }
 
 func (opts FindRunOptions) toConds() builder.Cond {
@@ -92,8 +92,8 @@ func (opts FindRunOptions) toConds() builder.Cond {
 	if opts.Approved {
 		cond = cond.And(builder.Gt{"approved_by": 0})
 	}
-	if opts.Status > StatusUnknown {
-		cond = cond.And(builder.Eq{"status": opts.Status})
+	if len(opts.Status) > 0 {
+		cond = cond.And(builder.In("status", opts.Status))
 	}
 	if opts.Ref != "" {
 		cond = cond.And(builder.Eq{"ref": opts.Ref})

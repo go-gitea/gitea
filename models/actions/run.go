@@ -169,7 +169,7 @@ func CancelRunningJobs(ctx context.Context, run *ActionRun) error {
 	runs, _, err := FindRuns(ctx, FindRunOptions{
 		RepoID: run.RepoID,
 		Ref:    run.Ref,
-		Status: StatusRunning,
+		Status: []Status{StatusRunning, StatusWaiting},
 	})
 	if err != nil {
 		return err
