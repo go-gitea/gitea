@@ -75,7 +75,7 @@ func TestPulls(t *testing.T) {
 	Pulls(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 
-	assert.Len(t, ctx.Data["Issues"], 4)
+	assert.Len(t, ctx.Data["Issues"], 5)
 }
 
 func TestMilestones(t *testing.T) {
