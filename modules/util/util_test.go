@@ -224,3 +224,12 @@ func TestToTitleCase(t *testing.T) {
 	assert.Equal(t, ToTitleCase(`foo bar baz`), `Foo Bar Baz`)
 	assert.Equal(t, ToTitleCase(`FOO BAR BAZ`), `Foo Bar Baz`)
 }
+
+func TestToRef(t *testing.T) {
+	assert.Equal(t, "abc", *ToRef("abc"))
+	assert.Equal(t, 123, *ToRef(123))
+	abc := "abc"
+	assert.False(t, &abc == ToRef(abc))
+	val123 := 123
+	assert.False(t, &val123 == ToRef(val123))
+}

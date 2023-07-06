@@ -20,7 +20,7 @@ import (
 )
 
 // ServeBlobOrLFS download a git.Blob redirecting to LFS if necessary
-func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified time.Time) error {
+func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified *time.Time) error {
 	if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
 		return nil
 	}
@@ -119,11 +119,8 @@ func SingleDownload(ctx *context.Context) {
 	if blob == nil {
 		return
 	}
-	if lastModified == nil {
-		lastModified = &time.Time{}
-	}
 
-	if err := common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, *lastModified); err != nil {
+	if err := common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, lastModified); err != nil {
 		ctx.ServerError("ServeBlob", err)
 	}
 }
@@ -138,7 +135,7 @@ func SingleDownloadOrLFS(ctx *context.Context) {
 		lastModified = &time.Time{}
 	}
 
-	if err := ServeBlobOrLFS(ctx, blob, *lastModified); err != nil {
+	if err := ServeBlobOrLFS(ctx, blob, lastModified); err != nil {
 		ctx.ServerError("ServeBlobOrLFS", err)
 	}
 }
@@ -154,7 +151,7 @@ func DownloadByID(ctx *context.Context) {
 		}
 		return
 	}
-	if err = common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, time.Time{}); err != nil {
+	if err = common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, nil); err != nil {
 		ctx.ServerError("ServeBlob", err)
 	}
 }
@@ -170,7 +167,7 @@ func DownloadByIDOrLFS(ctx *context.Context) {
 		}
 		return
 	}
-	if err = ServeBlobOrLFS(ctx, blob, time.Time{}); err != nil {
+	if err = ServeBlobOrLFS(ctx, blob, nil); err != nil {
 		ctx.ServerError("ServeBlob", err)
 	}
 }

@@ -84,7 +84,7 @@ func GetRawFile(ctx *context.APIContext) {
 
 	ctx.RespHeader().Set(giteaObjectTypeHeader, string(files_service.GetObjectTypeFromTreeEntry(entry)))
 
-	if err := common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, *lastModified); err != nil {
+	if err := common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, lastModified); err != nil {
 		ctx.Error(http.StatusInternalServerError, "ServeBlob", err)
 	}
 }
@@ -130,21 +130,18 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if lastModified == nil {
-		lastModified = &time.Time{}
-	}
 
 	ctx.RespHeader().Set(giteaObjectTypeHeader, string(files_service.GetObjectTypeFromTreeEntry(entry)))
 
 	// LFS Pointer files are at most 1024 bytes - so any blob greater than 1024 bytes cannot be an LFS file
 	if blob.Size() > 1024 {
 		// First handle caching for the blob
-		if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, *lastModified) {
+		if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
 			return
 		}
 
 		// OK not cached - serve!
-		if err := common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, *lastModified); err != nil {
+		if err := common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, lastModified); err != nil {
 			ctx.ServerError("ServeBlob", err)
 		}
 		return
@@ -175,7 +172,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	// if it's not a pointer, just serve the data directly
 	if !pointer.IsValid() {
 		// First handle caching for the blob
-		if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, *lastModified) {
+		if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
 			return
 		}
 
@@ -190,7 +187,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	// If there isn't one, just serve the data directly
 	if err == git_model.ErrLFSObjectNotExist {
 		// Handle caching for the blob SHA (not the LFS object OID)
-		if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, *lastModified) {
+		if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
 			return
 		}
 
@@ -222,7 +219,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	}
 	defer lfsDataRc.Close()
 
-	common.ServeContentByReadSeeker(ctx.Base, ctx.Repo.TreePath, *lastModified, lfsDataRc)
+	common.ServeContentByReadSeeker(ctx.Base, ctx.Repo.TreePath, lastModified, lfsDataRc)
 }
 
 func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, entry *git.TreeEntry, lastModified *time.Time) {
