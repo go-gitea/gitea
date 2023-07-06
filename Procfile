@@ -1,2 +1,1 @@
-web: ./gitea
-
+web: ./gitea web
