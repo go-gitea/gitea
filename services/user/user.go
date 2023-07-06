@@ -58,10 +58,7 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string) err
 			u.Name = oldUserName
 			return err
 		}
-		if err := repo_model.UpdateRepositoryOwnerName(ctx, oldUserName, newUserName); err != nil {
-			return err
-		}
-		return nil
+		return repo_model.UpdateRepositoryOwnerName(ctx, oldUserName, newUserName)
 	}
 
 	ctx, committer, err := db.TxContext(ctx)
