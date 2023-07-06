@@ -40,13 +40,6 @@ type azureBlobObject struct {
 }
 
 func (a *azureBlobObject) downloadStream(p []byte) (int, error) {
-	if a.BlobClient == nil {
-		return 0, fmt.Errorf("no blob client in azure blob object")
-	}
-	if a.Context == nil {
-		return 0, fmt.Errorf("no context in azure blob object")
-	}
-
 	if a.Offset > a.Size {
 		return 0, io.EOF
 	}
