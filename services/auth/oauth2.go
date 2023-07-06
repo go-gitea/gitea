@@ -61,7 +61,7 @@ func (o *OAuth2) Name() string {
 
 // parseToken returns the token from request, and a boolean value
 // representing whether the token exists or not
-func (o *OAuth2) parseToken(req *http.Request) (string, bool) {
+func parseToken(req *http.Request) (string, bool) {
 	_ = req.ParseForm()
 	// Check token.
 	if token := req.Form.Get("token"); token != "" {
@@ -130,7 +130,7 @@ func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStor
 		return nil, nil
 	}
 
-	token, ok := o.parseToken(req)
+	token, ok := parseToken(req)
 	if !ok {
 		return nil, nil
 	}
