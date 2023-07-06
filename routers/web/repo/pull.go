@@ -893,6 +893,19 @@ func ViewPullFiles(ctx *context.Context) {
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
 
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	// For files changed page
+	brs, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
+		RepoID: ctx.Repo.Repository.ID,
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		IsDeletedBranch: util.OptionalBoolFalse,
+	})
+	if err != nil {
+		ctx.ServerError("GetBranches", err)
+		return
+	}
+	ctx.Data["Branches"] = brs
 	upload.AddUploadContext(ctx, "comment")
 
 	ctx.HTML(http.StatusOK, tplPullFiles)

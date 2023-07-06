@@ -118,7 +118,7 @@ const sfc = {
       if (visible) {
         this.focusSearchField();
       }
-    },
+    }
   },
 
   beforeMount() {

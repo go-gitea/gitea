@@ -690,14 +690,13 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 	}
 
 	// FIXME: use paganation and async loading
-	branchOpts.ExcludeBranchNames = []string{ctx.Repo.Repository.DefaultBranch}
-	brs, err := git_model.FindBranchNames(ctx, branchOpts)
-	if err != nil {
-		ctx.ServerError("GetBranches", err)
-		return cancel
-	}
-	// always put default branch on the top
-	ctx.Data["Branches"] = append(branchOpts.ExcludeBranchNames, brs...)
+	// branchOpts.ExcludeBranchNames = []string{ctx.Repo.Repository.DefaultBranch}
+	// brs, err := git_model.FindBranchNames(ctx, branchOpts)
+	// if err != nil {
+	// 	ctx.ServerError("GetBranches", err)
+	// 	return
+	// }
+	// ctx.Data["Branches"] = append(branchOpts.ExcludeBranchNames, brs...)
 	ctx.Data["BranchesCount"] = branchesTotal
 
 	// If not branch selected, try default one.
@@ -705,9 +704,10 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 	if len(ctx.Repo.BranchName) == 0 {
 		if len(ctx.Repo.Repository.DefaultBranch) > 0 && gitRepo.IsBranchExist(ctx.Repo.Repository.DefaultBranch) {
 			ctx.Repo.BranchName = ctx.Repo.Repository.DefaultBranch
-		} else if len(brs) > 0 {
-			ctx.Repo.BranchName = brs[0]
 		}
+		// else if len(brs) > 0 {
+		// 	ctx.Repo.BranchName = brs[0]
+		// }
 		ctx.Repo.RefName = ctx.Repo.BranchName
 	}
 	ctx.Data["BranchName"] = ctx.Repo.BranchName

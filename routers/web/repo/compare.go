@@ -754,6 +754,20 @@ func CompareDiff(ctx *context.Context) {
 	}
 	ctx.Data["HeadBranches"] = headBranches
 
+	// For compare repo branches
+	brs, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
+		RepoID: ctx.Repo.Repository.ID,
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		IsDeletedBranch: util.OptionalBoolFalse,
+	})
+	if err != nil {
+		ctx.ServerError("GetBranches", err)
+		return
+	}
+	ctx.Data["Branches"] = brs
+
 	headTags, err := repo_model.GetTagNamesByRepoID(ctx, ci.HeadRepo.ID)
 	if err != nil {
 		ctx.ServerError("GetTagNamesByRepoID", err)
@@ -840,7 +854,6 @@ func CompareDiff(ctx *context.Context) {
 	} else {
 		ctx.Data["AllowMaintainerEdit"] = false
 	}
-
 	ctx.HTML(http.StatusOK, tplCompare)
 }
 

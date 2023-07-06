@@ -1918,7 +1918,19 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["ShouldShowCommentType"] = func(commentType issues_model.CommentType) bool {
 		return hiddenCommentTypes == nil || hiddenCommentTypes.Bit(int(commentType)) == 0
 	}
-
+	// For sidebar
+	brs, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
+		RepoID: ctx.Repo.Repository.ID,
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		IsDeletedBranch: util.OptionalBoolFalse,
+	})
+	if err != nil {
+		ctx.ServerError("GetBranches", err)
+		return
+	}
+	ctx.Data["Branches"] = brs
 	ctx.HTML(http.StatusOK, tplIssueView)
 }
 
