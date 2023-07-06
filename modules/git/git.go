@@ -188,7 +188,6 @@ func InitFull(ctx context.Context) (err error) {
 	if CheckGitVersionAtLeast("2.9") == nil {
 		globalCommandArgs = append(globalCommandArgs, "-c", "credential.helper=")
 	}
-
 	SupportProcReceive = CheckGitVersionAtLeast("2.29") == nil
 
 	if setting.LFS.StartServer {
