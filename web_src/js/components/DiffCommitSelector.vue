@@ -11,6 +11,7 @@
         <div class="gt-ellipsis text light-2">{{ locale.stats_num_commits }}</div>
       </a>
 
+      <div class="divider"/>
       <a v-if="lastReviewCommitSha != null" class="vertical item gt-df gt-fc gt-gap-1" @click="changesSinceLastReviewClick()">
         <div class="gt-ellipsis">{{ locale.show_changes_since_your_last_review }}</div>
         <div class="gt-ellipsis text light-2">{{ commitsSinceLastReview }} commits</div>
