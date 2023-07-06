@@ -15,6 +15,9 @@ import (
 // IssuePinOrUnpin pin or unpin a Issue
 func IssuePinOrUnpin(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
+	if ctx.Written() {
+		return
+	}
 
 	// If we don't do this, it will crash when trying to add the pin event to the comment history
 	err := issue.LoadRepo(ctx)
