@@ -101,6 +101,12 @@ func CommonRoutes() *web.Route {
 	r.Use(context.PackageContexter())
 
 	verifyAuth(r, []auth.Method{
+		auth.Shortcut{
+			// auth.OAuth2 and auth.Basic both read "Authorization: Bearer <token>" header,
+			// so we need have a shortcut for them to avoid the first one returning error to skip the second one.
+			&auth.OAuth2{},
+			&conan.Auth{},
+		},
 		&auth.OAuth2{},
 		&auth.Basic{},
 		&nuget.Auth{},
