@@ -87,16 +87,6 @@ func (s *Service) Register(
 		return nil, errors.New("can't update runner token status")
 	}
 
-	if _, err := actions_model.GetTasksVersionByScope(ctx, runner.OwnerID, runner.RepoID); err != nil {
-		if !errors.Is(err, util.ErrNotExist) {
-			return nil, errors.New("query tasks version failure")
-		}
-		// create a row of action_tasks_version if not exists yet.
-		if _, err := actions_model.InsertTasksVersion(ctx, runner.OwnerID, runner.RepoID); err != nil {
-			return nil, errors.New("can't insert tasks version")
-		}
-	}
-
 	res := connect.NewResponse(&runnerv1.RegisterResponse{
 		Runner: &runnerv1.Runner{
 			Id:      runner.ID,
@@ -143,13 +133,19 @@ func (s *Service) FetchTask(
 
 	var task *runnerv1.Task
 	tasksVersion := req.Msg.TasksVersion // task version from runner
-	atv, err := actions_model.GetTasksVersionByScope(ctx, runner.OwnerID, runner.RepoID)
+	latestVersion, err := actions_model.GetTasksVersionByScope(ctx, runner.OwnerID, runner.RepoID)
 	if err != nil {
-		log.Error("query tasks version failed: %v", err)
-		return nil, status.Errorf(codes.Internal, "query tasks version: %v", err)
+		if !errors.Is(err, util.ErrNotExist) {
+			log.Error("query tasks version failed: %v", err)
+			return nil, status.Errorf(codes.Internal, "query tasks version failed: %v", err)
+		}
+		// create a row of action_tasks_version if not exists yet.
+		if _, err := actions_model.InsertTasksVersion(ctx, runner.OwnerID, runner.RepoID); err != nil {
+			return nil, status.Errorf(codes.Internal, "insert tasks version failed: %v", err)
+		}
 	}
-	latestVersion := atv.Version
-	if req.Msg.TasksVersion != latestVersion {
+
+	if tasksVersion != latestVersion {
 		// if the task version in request is not equal to the version in db,
 		// it means there may still be some tasks not be assgined.
 		// try to pick a task for the runner that send the request.
@@ -159,11 +155,10 @@ func (s *Service) FetchTask(
 		} else if ok {
 			task = t
 		}
-		tasksVersion = latestVersion
 	}
 	res := connect.NewResponse(&runnerv1.FetchTaskResponse{
 		Task:         task,
-		TasksVersion: tasksVersion,
+		TasksVersion: latestVersion,
 	})
 	return res, nil
 }

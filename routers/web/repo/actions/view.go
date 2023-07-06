@@ -268,11 +268,6 @@ func RerunOne(ctx *context_module.Context) {
 		return
 	}
 
-	if err := actions_model.IncreaseTaskVersion(ctx, job.OwnerID, job.RepoID); err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
-		return
-	}
-
 	ctx.JSON(http.StatusOK, struct{}{})
 }
 
@@ -289,11 +284,6 @@ func RerunAll(ctx *context_module.Context) {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 			return
 		}
-	}
-
-	if err := actions_model.IncreaseTaskVersion(ctx, jobs[0].OwnerID, jobs[0].RepoID); err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
-		return
 	}
 
 	ctx.JSON(http.StatusOK, struct{}{})

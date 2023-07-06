@@ -225,6 +225,11 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 		return err
 	}
 
+	// if new action jobs are triggered, increase tasks version.
+	if err := increaseTaskVersion(ctx, run.OwnerID, run.RepoID); err != nil {
+		return err
+	}
+
 	return commiter.Commit()
 }
 
