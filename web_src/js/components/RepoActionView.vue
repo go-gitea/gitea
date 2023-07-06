@@ -20,12 +20,12 @@
       </div>
       <div class="action-commit-summary">
         {{ run.commit.localeCommit }}
-        <a :href="run.commit.link">{{ run.commit.shortSHA }}</a>
+        <a class="muted" :href="run.commit.link">{{ run.commit.shortSHA }}</a>
+        {{ run.commit.localePushedBy }}
+        <a class="muted" :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
         <span class="ui label" v-if="run.commit.shortSHA">
           <a :href="run.commit.branch.link">{{ run.commit.branch.name }}</a>
         </span>
-        {{ run.commit.localePushedBy }}
-        <a :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
       </div>
     </div>
     <div class="action-view-body">
@@ -498,6 +498,8 @@ export function initRepositoryActionView() {
 
 <style scoped>
 .action-view-body {
+  padding-top: 12px;
+  padding-bottom: 12px;
   display: flex;
   gap: 12px;
 }
@@ -507,7 +509,6 @@ export function initRepositoryActionView() {
 
 .action-view-header {
   margin-top: 8px;
-  margin-bottom: 4px;
 }
 
 .action-info-summary {
@@ -522,19 +523,14 @@ export function initRepositoryActionView() {
 
 .action-info-summary-title-text {
   font-size: 20px;
-  margin: 0 0 0 5px;
+  margin: 0 0 0 8px;
   flex: 1;
 }
 
 .action-commit-summary {
   display: flex;
   gap: 5px;
-  margin: 5px 0 0 25px;
-}
-
-.action-view-left, .action-view-right {
-  padding-top: 12px;
-  padding-bottom: 12px;
+  margin: 0 0 0 28px;
 }
 
 /* ================ */
@@ -750,6 +746,7 @@ export function initRepositoryActionView() {
   background-color: var(--color-console-bg);
   max-height: 100%;
   border-radius: 0 0 var(--border-radius) var(--border-radius);
+  z-index: 0;
 }
 
 .job-step-container .job-step-summary {

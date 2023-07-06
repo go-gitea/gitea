@@ -75,7 +75,7 @@ func setResponseHeaders(resp http.ResponseWriter, h *containerHeaders) {
 	resp.WriteHeader(h.Status)
 }
 
-func jsonResponse(ctx *context.Context, status int, obj interface{}) {
+func jsonResponse(ctx *context.Context, status int, obj any) {
 	setResponseHeaders(ctx.Resp, &containerHeaders{
 		Status:      status,
 		ContentType: "application/json",
@@ -482,22 +482,7 @@ func GetBlob(ctx *context.Context) {
 		return
 	}
 
-	s, _, err := packages_service.GetPackageFileStream(ctx, blob.File)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	defer s.Close()
-
-	setResponseHeaders(ctx.Resp, &containerHeaders{
-		ContentDigest: blob.Properties.GetByName(container_module.PropertyDigest),
-		ContentType:   blob.Properties.GetByName(container_module.PropertyMediaType),
-		ContentLength: blob.Blob.Size,
-		Status:        http.StatusOK,
-	})
-	if _, err := io.Copy(ctx.Resp, s); err != nil {
-		log.Error("Error whilst copying content to response: %v", err)
-	}
+	serveBlob(ctx, blob)
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#deleting-blobs
@@ -636,22 +621,7 @@ func GetManifest(ctx *context.Context) {
 		return
 	}
 
-	s, _, err := packages_service.GetPackageFileStream(ctx, manifest.File)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	defer s.Close()
-
-	setResponseHeaders(ctx.Resp, &containerHeaders{
-		ContentDigest: manifest.Properties.GetByName(container_module.PropertyDigest),
-		ContentType:   manifest.Properties.GetByName(container_module.PropertyMediaType),
-		ContentLength: manifest.Blob.Size,
-		Status:        http.StatusOK,
-	})
-	if _, err := io.Copy(ctx.Resp, s); err != nil {
-		log.Error("Error whilst copying content to response: %v", err)
-	}
+	serveBlob(ctx, manifest)
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#deleting-tags
@@ -684,6 +654,36 @@ func DeleteManifest(ctx *context.Context) {
 	setResponseHeaders(ctx.Resp, &containerHeaders{
 		Status: http.StatusAccepted,
 	})
+}
+
+func serveBlob(ctx *context.Context, pfd *packages_model.PackageFileDescriptor) {
+	s, u, _, err := packages_service.GetPackageBlobStream(ctx, pfd.File, pfd.Blob)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	headers := &containerHeaders{
+		ContentDigest: pfd.Properties.GetByName(container_module.PropertyDigest),
+		ContentType:   pfd.Properties.GetByName(container_module.PropertyMediaType),
+		ContentLength: pfd.Blob.Size,
+		Status:        http.StatusOK,
+	}
+
+	if u != nil {
+		headers.Status = http.StatusTemporaryRedirect
+		headers.Location = u.String()
+
+		setResponseHeaders(ctx.Resp, headers)
+		return
+	}
+
+	defer s.Close()
+
+	setResponseHeaders(ctx.Resp, headers)
+	if _, err := io.Copy(ctx.Resp, s); err != nil {
+		log.Error("Error whilst copying content to response: %v", err)
+	}
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#content-discovery

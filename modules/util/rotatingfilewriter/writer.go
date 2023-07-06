@@ -39,10 +39,10 @@ type RotatingFileWriter struct {
 	cancelReleaseReopen func()
 }
 
-var ErrorPrintf func(format string, args ...interface{})
+var ErrorPrintf func(format string, args ...any)
 
 // errorf tries to print error messages. Since this writer could be used by a logger system, this is the last chance to show the error in some cases
-func errorf(format string, args ...interface{}) {
+func errorf(format string, args ...any) {
 	if ErrorPrintf != nil {
 		ErrorPrintf("rotatingfilewriter: "+format+"\n", args...)
 	}

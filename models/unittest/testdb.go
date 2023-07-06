@@ -37,7 +37,7 @@ func FixturesDir() string {
 	return fixturesDir
 }
 
-func fatalTestError(fmtStr string, args ...interface{}) {
+func fatalTestError(fmtStr string, args ...any) {
 	_, _ = fmt.Fprintf(os.Stderr, fmtStr, args...)
 	os.Exit(1)
 }

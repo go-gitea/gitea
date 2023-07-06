@@ -119,7 +119,7 @@
 					</div>
 					<div class="inline required field {{if .Err_RunUser}}error{{end}}">
 						<label for="run_user">{{.locale.Tr "install.run_user"}}</label>
-						<input id="run_user" name="run_user" value="{{.run_user}}" required>
+						<input id="run_user" name="run_user" value="{{.run_user}}" readonly>
 						<span class="help">{{.locale.Tr "install.run_user_helper"}}</span>
 					</div>
 					<div class="inline required field">

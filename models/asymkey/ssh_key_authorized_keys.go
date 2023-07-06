@@ -47,7 +47,7 @@ var sshOpLocker sync.Mutex
 // AuthorizedStringForKey creates the authorized keys string appropriate for the provided key
 func AuthorizedStringForKey(key *PublicKey) string {
 	sb := &strings.Builder{}
-	_ = setting.SSH.AuthorizedKeysCommandTemplateTemplate.Execute(sb, map[string]interface{}{
+	_ = setting.SSH.AuthorizedKeysCommandTemplateTemplate.Execute(sb, map[string]any{
 		"AppPath":     util.ShellEscape(setting.AppPath),
 		"AppWorkPath": util.ShellEscape(setting.AppWorkPath),
 		"CustomConf":  util.ShellEscape(setting.CustomConf),
@@ -175,7 +175,7 @@ func RewriteAllPublicKeys() error {
 
 // RegeneratePublicKeys regenerates the authorized_keys file
 func RegeneratePublicKeys(ctx context.Context, t io.StringWriter) error {
-	if err := db.GetEngine(ctx).Where("type != ?", KeyTypePrincipal).Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
+	if err := db.GetEngine(ctx).Where("type != ?", KeyTypePrincipal).Iterate(new(PublicKey), func(idx int, bean any) (err error) {
 		_, err = t.WriteString((bean.(*PublicKey)).AuthorizedString())
 		return err
 	}); err != nil {
