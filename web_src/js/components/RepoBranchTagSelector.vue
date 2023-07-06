@@ -91,7 +91,8 @@ const sfc = {
   computed: {
     filteredItems() {
       const items = this.items.filter((item) => {
-        return ((this.mode === 'branches' && item.branch) || (this.mode === 'tags' && item.tag));
+        return ((this.mode === 'branches' && item.branch) || (this.mode === 'tags' && item.tag)) &&
+          (!this.searchTerm || item.name.toLowerCase().includes(this.searchTerm.toLowerCase()));
       });
 
       // TODO: fix this anti-pattern: side-effects-in-computed-properties
@@ -118,9 +119,6 @@ const sfc = {
         this.focusSearchField();
       }
     },
-    searchTerm: function() {
-      this.fetchBranchesOrTags();
-    }
   },
 
   beforeMount() {
@@ -250,7 +248,7 @@ const sfc = {
       }
     },
     fetchBranchesOrTags: onInputDebounce(async function() {
-      const resp = await fetch(`${this.repoLink}/${this.mode}/list?&q=${this.searchTerm}`);
+      const resp = await fetch(`${this.repoLink}/${this.mode}/list`);
       const {results} = await resp.json();
       if (!results || !['branches', 'tags'].includes(this.mode)) return;
       this.items = [];
