@@ -1,4 +1,3 @@
-<div class="ui container">
 	{{template "base/alert" .}}
 	<form class="ui form ignore-dirty">
 		<div class="ui fluid action input">
@@ -37,7 +36,7 @@
 			</li>
 		{{else}}
 			{{if not .HasPackages}}
-				<div class="empty center">
+				<div class="gt-pt-5 empty center">
 					{{svg "octicon-package" 48}}
 					<h2>{{.locale.Tr "packages.empty"}}</h2>
 					{{if and .Repository .CanWritePackages}}
@@ -52,4 +51,3 @@
 		{{end}}
 		{{template "base/paginate" .}}
 	</div>
-</div>
