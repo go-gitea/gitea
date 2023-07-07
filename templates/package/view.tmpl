@@ -1,7 +1,8 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository view issue packages">
-	{{template "user/overview/header" .}}
+	{{template "shared/user/org_profile_avatar" .}}
 	<div class="ui container">
+		{{template "user/overview/header" .}}
 		<div class="issue-title-header">
 			<div class="issue-title">
 				<h1>{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</h1>
