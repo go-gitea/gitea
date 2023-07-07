@@ -12,7 +12,7 @@ import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/eventsource"
-	"code.gitea.io/gitea/modules/git"
+	git "code.gitea.io/gitea/modules/git/backend"
 	"code.gitea.io/gitea/modules/highlight"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"

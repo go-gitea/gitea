@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/git"
+	git "code.gitea.io/gitea/modules/git/backend"
 )
 
 func BenchmarkGetCommitGraph(b *testing.B) {

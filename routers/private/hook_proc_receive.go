@@ -8,7 +8,7 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	gitea_context "code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/git"
+	git "code.gitea.io/gitea/modules/git/backend"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/web"

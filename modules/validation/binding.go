@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/auth"
-	"code.gitea.io/gitea/modules/git"
+	git "code.gitea.io/gitea/modules/git/backend"
 
 	"gitea.com/go-chi/binding"
 	"github.com/gobwas/glob"

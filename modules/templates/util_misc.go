@@ -14,8 +14,8 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/git"
-	giturl "code.gitea.io/gitea/modules/git/url"
+	git "code.gitea.io/gitea/modules/git/backend"
+	giturl "code.gitea.io/gitea/modules/git/backend/url"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"

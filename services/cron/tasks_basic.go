@@ -11,7 +11,7 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/git"
+	git "code.gitea.io/gitea/modules/git/backend"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/migrations"

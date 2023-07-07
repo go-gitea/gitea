@@ -10,7 +10,7 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	secret_model "code.gitea.io/gitea/models/secret"
 	actions_module "code.gitea.io/gitea/modules/actions"
-	"code.gitea.io/gitea/modules/git"
+	git "code.gitea.io/gitea/modules/git/backend"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	secret_module "code.gitea.io/gitea/modules/secret"

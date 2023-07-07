@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git"
+	git "code.gitea.io/gitea/modules/git/backend"
 	"code.gitea.io/gitea/modules/log"
 )
 

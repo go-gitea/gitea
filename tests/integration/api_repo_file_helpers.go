@@ -6,7 +6,7 @@ package integration
 import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
+	git "code.gitea.io/gitea/modules/git/backend"
 	api "code.gitea.io/gitea/modules/structs"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )

@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/git"
+	git "code.gitea.io/gitea/modules/git/backend"
 	"code.gitea.io/gitea/modules/issue/template"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"

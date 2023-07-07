@@ -16,7 +16,7 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
+	git "code.gitea.io/gitea/modules/git/backend"
 	"code.gitea.io/gitea/modules/json"
 	cargo_module "code.gitea.io/gitea/modules/packages/cargo"
 	repo_module "code.gitea.io/gitea/modules/repository"

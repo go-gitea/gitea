@@ -4,7 +4,7 @@
 package repository
 
 import (
-	"code.gitea.io/gitea/modules/git"
+	git "code.gitea.io/gitea/modules/git/backend"
 )
 
 // PushUpdateOptions defines the push update options

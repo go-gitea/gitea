@@ -13,8 +13,8 @@ import (
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/pipeline"
+	git "code.gitea.io/gitea/modules/git/backend"
+	"code.gitea.io/gitea/modules/git/backend/pipeline"
 )
 
 // SearchPointerBlobs scans the whole repository for LFS pointer files

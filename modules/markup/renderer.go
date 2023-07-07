@@ -14,7 +14,7 @@ import (
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/modules/git"
+	git "code.gitea.io/gitea/modules/git/backend"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/yuin/goldmark/ast"
