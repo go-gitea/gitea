@@ -40,11 +40,11 @@
 						commits: [
 						{{range .Commits}}
 								{
-									Summary: {{.Summary}},
-									CommitterOrAuthorName: {{if .Committer}}{{.Committer.Name}}{{else}}{{.Author.Name}}{{end}},
-									ID: {{.ID.String}},
-									Time: {{if .Committer}}{{.Committer.When}}{{else}}{{.Author.When}}{{end}},
-									Selected: false
+									summary: {{.Summary}},
+									committerOrAuthorName: {{if .Committer}}{{.Committer.Name}}{{else}}{{.Author.Name}}{{end}},
+									id: {{.ID.String}},
+									time: {{if .Committer}}{{.Committer.When}}{{else}}{{.Author.When}}{{end}},
+									selected: false
 								},
 						{{end}}],
 						locale: {

@@ -17,22 +17,22 @@
         <div class="gt-ellipsis text light-2">{{ commitsSinceLastReview }} commits</div>
       </a>
 
-      <template v-for="commit in commits" :key="commit.ID">
+      <template v-for="commit in commits" :key="commit.id">
         <div class="divider"/>
-        <div class="vertical item gt-df gt-fr gt-gap-2" :class="{selected: commit.Selected}" @click.exact="commitClicked(commit.ID)" @click.shift.exact.stop.prevent="commitClickedShift(commit)">
+        <div class="vertical item gt-df gt-fr gt-gap-2" :class="{selected: commit.selected}" @click.exact="commitClicked(commit.id)" @click.shift.exact.stop.prevent="commitClickedShift(commit)">
           <div class="gt-f1 gt-df gt-fc gt-gap-1">
             <div class="gt-ellipsis commit-list-summary">
-              {{ commit.Summary }}
+              {{ commit.summary }}
             </div>
             <div class="gt-ellipsis text light-2">
-              {{ commit.CommitterOrAuthorName }}
+              {{ commit.committerOrAuthorName }}
               <span class="text right">
-                <relative-time class="time-since" prefix="" :datetime="commit.Time" data-tooltip-content data-tooltip-interactive="true">{{ commit.Time }}</relative-time>
+                <relative-time class="time-since" prefix="" :datetime="commit.time" data-tooltip-content data-tooltip-interactive="true">{{ commit.time }}</relative-time>
               </span>
             </div>
           </div>
           <div class="gt-mono">
-            {{ commit.ID }}
+            {{ commit.id }}
           </div>
         </div>
       </template>
@@ -60,7 +60,7 @@ export default {
   computed: {
     commitsSinceLastReview() {
       if (this.lastReviewCommitSha) {
-        return this.commits.length - this.commits.findIndex((x) => x.ID === this.lastReviewCommitSha) - 1;
+        return this.commits.length - this.commits.findIndex((x) => x.id === this.lastReviewCommitSha) - 1;
       }
       return 0;
     }
@@ -84,17 +84,17 @@ export default {
      */
     commitClickedShift(commit) {
       this.hoverActivated = !this.hoverActivated;
-      commit.Selected = true;
+      commit.selected = true;
       // Second click -> determine our range and open links accordingly
       if (!this.hoverActivated) {
         // find all selected commits and generate a link
-        if (this.commits[0].Selected) {
+        if (this.commits[0].selected) {
           // first commit is selected - generate a short url with only target sha
-          const lastCommit = this.commits.findLast((x) => x.Selected);
-          window.location = `${this.issueLink}/files/${lastCommit.ID}${this.queryParams}`;
+          const lastCommit = this.commits.findLast((x) => x.selected);
+          window.location = `${this.issueLink}/files/${lastCommit.id}${this.queryParams}`;
         } else {
-          const start = this.commits[this.commits.findIndex((x) => x.Selected) - 1].ID;
-          const end = this.commits.findLast((x) => x.Selected).ID;
+          const start = this.commits[this.commits.findIndex((x) => x.selected) - 1].id;
+          const end = this.commits.findLast((x) => x.selected).id;
           window.location = `${this.issueLink}/files/${start}..${end}${this.queryParams}`;
         }
       }
