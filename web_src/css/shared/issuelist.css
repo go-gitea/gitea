@@ -11,7 +11,7 @@
 
 .issue.list .item .issue-item-left {
   display: flex;
-  align-items: start;
+  align-items: flex-start;
 }
 
 .issue.list .item .issue-item-main {
