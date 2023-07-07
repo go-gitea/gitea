@@ -257,7 +257,7 @@ export default {
     toGraphData(data) {
       const style = getComputedStyle(document.body);
       const colorName = this.type === 'commits' ? '--color-primary-alpha-60' : (this.type === 'additions' ? '--color-green-badge-hover-bg' : '--color-red-badge-hover-bg');
-      const color = style.getPropertyValue(colorName);
+      const color = style.getPropertyValue(colorName).trim();
       return {
         datasets: [
           {
@@ -309,7 +309,6 @@ export default {
               enabled: true,
               mode: 'x',
               threshold: 20,
-
               onPanComplete: this.updateOtherCharts,
             },
             limits: {

@@ -7,7 +7,6 @@ export function initRepoContributors() {
 
   try {
     const View = createApp(RepoContributors);
-
     View.mount(el);
   } catch (err) {
     console.error('RepoContributors failed to load', err);
