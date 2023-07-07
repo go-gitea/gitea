@@ -79,7 +79,7 @@
 
 .issue.list > .item .title {
   color: var(--color-text);
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .issue.list > .item .issue-item-body {
