@@ -11,7 +11,7 @@
       </span>
       <svg-icon name="octicon-triangle-down" :size="14" class-name="dropdown icon"/>
     </button>
-    <div class="menu transition" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
+    <div class="menu transition" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak>
       <div class="ui icon search input">
         <i class="icon"><svg-icon name="octicon-filter" :size="16"/></i>
         <input name="search" ref="searchField" autocomplete="off" v-model="searchTerm" @keydown="keydown($event)" :placeholder="searchFieldPlaceholder">
@@ -36,7 +36,8 @@
           </div>
         </div>
       </template>
-      <div class="scrolling menu" ref="scrollContainer">
+      <!-- TODO: is-loading not working properly because menu is not shown until data is done fetching, need to figure out a proper way -->
+      <div class="scrolling menu" :class="{'is-loading' : isLoading}" ref="scrollContainer">
         <div v-for="(item, index) in filteredItems" :key="item.name" class="item" :class="{selected: item.selected, active: active === index}" @click="selectItem(item)" :ref="'listItem' + index">
           {{ item.name }}
           <a v-if="enableFeed && mode === 'branches'" role="button" class="rss-icon ui compact right" :href="rssURLPrefix + item.url" target="_blank" @click.stop>
@@ -257,7 +258,8 @@ const sfc = {
         for (const branch of results) {
           this.items.push({name: branch, url: branch, branch: true, tag: false, selected: branch === this.defaultBranch});
         }
-      } 
+      }
+      this.isLoading = false;
       if (!this.noTag) {
         const resp = await fetch(`${this.repoLink}/tags/list`);
         const {results} = await resp.json();
@@ -265,7 +267,7 @@ const sfc = {
           const selected = tag === (this.release ? this.release.tagName : this.defaultBranch);
           this.items.push({name: tag, url: tag, branch: false, tag: true, selected});
         }
-      }
+      } 
     },
   }
 };
@@ -286,7 +288,7 @@ export function initRepoBranchTagSelector(selector) {
       isViewTree: false,
 
       active: 0,
-
+      isLoading: true,
       ...window.config.pageData.branchDropdownDataList[elIndex],
     };
 

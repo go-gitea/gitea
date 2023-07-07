@@ -16,7 +16,7 @@
 .is-loading::after {
   content: "";
   position: absolute;
-  display: block;
+  display: block !important; /* to override fomantic rule .ui.dropdown .menu .menu:after {display: none} */
   left: 50%;
   top: 50%;
   height: min(4em, 66.6%);
