@@ -1923,11 +1923,10 @@ func ViewIssue(ctx *context.Context) {
 }
 
 // checkBlockedByIssues return canRead and notPermitted
-func checkBlockedByIssues(ctx *context.Context, blockers []*issues_model.DependencyInfo) ([]*issues_model.DependencyInfo, []*issues_model.DependencyInfo) {
+func checkBlockedByIssues(ctx *context.Context, blockers []*issues_model.DependencyInfo) (canRead, notPermitted []*issues_model.DependencyInfo) {
 	var (
-		lastRepoID   int64
-		lastPerm     access_model.Permission
-		notPermitted []*issues_model.DependencyInfo
+		lastRepoID int64
+		lastPerm   access_model.Permission
 	)
 	for i, blocker := range blockers {
 		// Get the permissions for this repository
