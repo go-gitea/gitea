@@ -49,14 +49,14 @@
       </div>
     </h2>
     <div class="divider"/>
-    <div style="height: 380px" class="gt-df">
+    <div class="gt-df main-graph">
       <div v-if="isLoading || errorText !== ''" class="gt-tc gt-m-auto">
         <div v-if="isLoading">
           <SvgIcon name="octicon-sync" class="gt-mr-3 job-status-rotate"/>
           This might take a few minutes...
         </div>
-        <div v-else>
-          <SvgIcon name="octicon-x-circle-fill" class="text red"/>
+        <div v-else class="text red">
+          <SvgIcon name="octicon-x-circle-fill"/>
           {{ errorText }}
         </div>
       </div>
@@ -177,25 +177,23 @@ export default {
     },
     async fetchGraphData() {
       this.isLoading = true;
-      fetch(`${this.repoLink}/activity/contributors/data`)
-        .then((response) => response.json())
-        .then((data) => {
-          const {total, ...rest} = data;
-          this.contributorsStats = rest;
-          this.dateFrom = new Date(total.weeks[0].week);
-          this.dateUntil = new Date();
-          this.startDate = this.dateFrom;
-          this.endDate = this.dateUntil;
-          this.sortContributors();
-          this.totalStats = total;
-          this.errorText = '';
-        })
-        .catch((e) => {
-          this.errorText = e.message;
-        })
-        .finally(() => {
-          this.isLoading = false;
-        });
+      try {
+        const response = await fetch(`${this.repoLink}/activity/contributors/data`);
+        const data = await response.json();
+        const { total, ...rest } = data;
+        this.contributorsStats = rest;
+        this.dateFrom = new Date(total.weeks[0].week);
+        this.dateUntil = new Date();
+        this.startDate = this.dateFrom;
+        this.endDate = this.dateUntil;
+        this.sortContributors();
+        this.totalStats = total;
+        this.errorText = '';
+      } catch (e) {
+        this.errorText = e.message;
+      } finally {
+        this.isLoading = false;
+      }
     },
 
     filterContributorWeeksByDateRange() {
@@ -218,7 +216,8 @@ export default {
               user['max_contribution_type'] = week[this.type];
             }
             return true;
-          } return false;
+          }
+          return false;
         });
 
         filteredData[key] = {...user, weeks: filteredWeeks};
@@ -350,3 +349,8 @@ export default {
   },
 };
 </script>
+<style scoped>
+.main-graph {
+  height: 380px;
+}
+</style>
