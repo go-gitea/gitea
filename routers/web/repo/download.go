@@ -20,7 +20,7 @@ import (
 )
 
 // ServeBlobOrLFS download a git.Blob redirecting to LFS if necessary
-func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified time.Time) error {
+func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified *time.Time) error {
 	if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
 		return nil
 	}
@@ -82,7 +82,7 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified time.Time
 	return common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, lastModified)
 }
 
-func getBlobForEntry(ctx *context.Context) (blob *git.Blob, lastModified time.Time) {
+func getBlobForEntry(ctx *context.Context) (blob *git.Blob, lastModified *time.Time) {
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
@@ -90,23 +90,23 @@ func getBlobForEntry(ctx *context.Context) (blob *git.Blob, lastModified time.Ti
 		} else {
 			ctx.ServerError("GetTreeEntryByPath", err)
 		}
-		return
+		return nil, nil
 	}
 
 	if entry.IsDir() || entry.IsSubModule() {
 		ctx.NotFound("getBlobForEntry", nil)
-		return
+		return nil, nil
 	}
 
 	info, _, err := git.Entries([]*git.TreeEntry{entry}).GetCommitsInfo(ctx, ctx.Repo.Commit, path.Dir("/" + ctx.Repo.TreePath)[1:])
 	if err != nil {
 		ctx.ServerError("GetCommitsInfo", err)
-		return
+		return nil, nil
 	}
 
 	if len(info) == 1 {
 		// Not Modified
-		lastModified = info[0].Commit.Committer.When
+		lastModified = &info[0].Commit.Committer.When
 	}
 	blob = entry.Blob()
 
@@ -148,7 +148,7 @@ func DownloadByID(ctx *context.Context) {
 		}
 		return
 	}
-	if err = common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, time.Time{}); err != nil {
+	if err = common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, nil); err != nil {
 		ctx.ServerError("ServeBlob", err)
 	}
 }
@@ -164,7 +164,7 @@ func DownloadByIDOrLFS(ctx *context.Context) {
 		}
 		return
 	}
-	if err = ServeBlobOrLFS(ctx, blob, time.Time{}); err != nil {
+	if err = ServeBlobOrLFS(ctx, blob, nil); err != nil {
 		ctx.ServerError("ServeBlob", err)
 	}
 }
