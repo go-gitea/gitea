@@ -262,11 +262,8 @@ const sfc = {
         const resp = await fetch(`${this.repoLink}/tags/list`);
         const {results} = await resp.json();
         for (const tag of results) {
-          if (this.release) {
-            this.items.push({name: tag, url: tag, branch: false, tag: true, selected: tag === this.release.tagName});
-          } else {
-            this.items.push({name: tag, url: tag, branch: false, tag: true, selected: tag === this.defaultBranch});
-          }
+          const selected = tag === (this.release ? this.release.tagName : this.defaultBranch);
+          this.items.push({name: tag, url: tag, branch: false, tag: true, selected});
         }
       }
     },
