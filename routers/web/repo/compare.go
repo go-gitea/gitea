@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -178,13 +179,74 @@ func setCsvCompareContext(ctx *context.Context) {
 
 // CompareInfo represents the collected results from ParseCompareInfo
 type CompareInfo struct {
-	HeadUser         *user_model.User
-	HeadRepo         *repo_model.Repository
-	HeadGitRepo      *git.Repository
-	CompareInfo      *git.CompareInfo
-	BaseBranch       string
-	HeadBranch       string
-	DirectComparison bool
+	HeadUser    *user_model.User
+	HeadRepo    *repo_model.Repository
+	HeadGitRepo *git.Repository
+	CompareInfo *git.CompareInfo
+	compareRouter
+}
+
+var regCompare = regexp.MustCompile(`(?P<base>[^\^\.]+)(?P<caret>\^*)(?P<dot>\.*)(?P<head>.*)`)
+
+type compareRouter struct {
+	BaseBranch   string
+	HeadBranch   string
+	HeadOwner    string
+	HeadRepoName string
+	CaretTimes   int
+	DotTimes     int
+}
+
+func (cr *compareRouter) IsSameRepo() bool {
+	return cr.HeadOwner == "" && cr.HeadRepoName == ""
+}
+
+func (cr *compareRouter) IsSameBranch() bool {
+	return cr.IsSameRepo() && cr.BaseBranch == cr.HeadBranch
+}
+
+func (cr *compareRouter) DirectComparison() bool {
+	return cr.DotTimes == 2
+}
+
+func parseHead(head string) (string, string, string) {
+	paths := strings.SplitN(head, ":", 2)
+	if len(paths) == 1 {
+		return "", "", paths[0]
+	}
+	ownerRepo := strings.SplitN(paths[0], "/", 2)
+	if len(ownerRepo) == 1 {
+		return "", paths[0], paths[1]
+	}
+	return ownerRepo[0], ownerRepo[1], paths[1]
+}
+
+func parseCompareRouters(router string) compareRouter {
+	matches := regCompare.FindStringSubmatch(router)
+	result := make(map[string]string)
+	for i, name := range regCompare.SubexpNames() {
+		if i != 0 && name != "" {
+			result[name] = matches[i]
+		}
+	}
+
+	base := result["base"]
+	head := result["head"]
+	if result["dot"] == "" {
+		head = base
+		base = ""
+	}
+
+	headOwner, headRepo, headBranch := parseHead(head)
+
+	return compareRouter{
+		BaseBranch:   base,
+		HeadBranch:   headBranch,
+		HeadOwner:    headOwner,
+		HeadRepoName: headRepo,
+		CaretTimes:   len(result["caret"]),
+		DotTimes:     len(result["dot"]),
+	}
 }
 
 // ParseCompareInfo parse compare info between two commit for preparing comparing references
@@ -197,9 +259,9 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	// Get compared branches information
 	// A full compare url is of the form:
 	//
-	// 1. /{:baseOwner}/{:baseRepoName}/compare/{:baseBranch}...{:headBranch}
-	// 2. /{:baseOwner}/{:baseRepoName}/compare/{:baseBranch}...{:headOwner}:{:headBranch}
-	// 3. /{:baseOwner}/{:baseRepoName}/compare/{:baseBranch}...{:headOwner}/{:headRepoName}:{:headBranch}
+	// 1. /{:baseOwner}/{:baseRepoName}/compare/{:baseBranch}[^]...{:headBranch}
+	// 2. /{:baseOwner}/{:baseRepoName}/compare/{:baseBranch}[^]...{:headOwner}:{:headBranch}
+	// 3. /{:baseOwner}/{:baseRepoName}/compare/{:baseBranch}[^]...{:headOwner}/{:headRepoName}:{:headBranch}
 	// 4. /{:baseOwner}/{:baseRepoName}/compare/{:headBranch}
 	// 5. /{:baseOwner}/{:baseRepoName}/compare/{:headOwner}:{:headBranch}
 	// 6. /{:baseOwner}/{:baseRepoName}/compare/{:headOwner}/{:headRepoName}:{:headBranch}
@@ -221,57 +283,42 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	// same repo: master...feature
 
 	var (
-		isSameRepo bool
-		infoPath   string
-		err        error
+		infoPath string
+		err      error
 	)
 
 	infoPath = ctx.Params("*")
-	var infos []string
+
 	if infoPath == "" {
-		infos = []string{baseRepo.DefaultBranch, baseRepo.DefaultBranch}
+		ci.BaseBranch = baseRepo.DefaultBranch
+		ci.HeadBranch = baseRepo.DefaultBranch
 	} else {
-		infos = strings.SplitN(infoPath, "...", 2)
-		if len(infos) != 2 {
-			if infos = strings.SplitN(infoPath, "..", 2); len(infos) == 2 {
-				ci.DirectComparison = true
-				ctx.Data["PageIsComparePull"] = false
-			} else {
-				infos = []string{baseRepo.DefaultBranch, infoPath}
-			}
+		ci.compareRouter = parseCompareRouters(infoPath)
+		if ci.BaseBranch == "" {
+			ci.BaseBranch = baseRepo.DefaultBranch
 		}
 	}
 
+	if ci.DirectComparison() {
+		ctx.Data["PageIsComparePull"] = false
+	}
+
 	ctx.Data["BaseName"] = baseRepo.OwnerName
-	ci.BaseBranch = infos[0]
 	ctx.Data["BaseBranch"] = ci.BaseBranch
 
-	// If there is no head repository, it means compare between same repository.
-	headInfos := strings.Split(infos[1], ":")
-	if len(headInfos) == 1 {
-		isSameRepo = true
-		ci.HeadUser = ctx.Repo.Owner
-		ci.HeadBranch = headInfos[0]
+	if ci.HeadOwner != "" {
+		ci.HeadUser, err = user_model.GetUserByName(ctx, ci.HeadOwner)
+		if err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				ctx.NotFound("GetUserByName", nil)
+			} else {
+				ctx.ServerError("GetUserByName", err)
+			}
+			return nil
+		}
 
-	} else if len(headInfos) == 2 {
-		headInfosSplit := strings.Split(headInfos[0], "/")
-		if len(headInfosSplit) == 1 {
-			ci.HeadUser, err = user_model.GetUserByName(ctx, headInfos[0])
-			if err != nil {
-				if user_model.IsErrUserNotExist(err) {
-					ctx.NotFound("GetUserByName", nil)
-				} else {
-					ctx.ServerError("GetUserByName", err)
-				}
-				return nil
-			}
-			ci.HeadBranch = headInfos[1]
-			isSameRepo = ci.HeadUser.ID == ctx.Repo.Owner.ID
-			if isSameRepo {
-				ci.HeadRepo = baseRepo
-			}
-		} else {
-			ci.HeadRepo, err = repo_model.GetRepositoryByOwnerAndName(ctx, headInfosSplit[0], headInfosSplit[1])
+		if ci.HeadRepoName != "" {
+			ci.HeadRepo, err = repo_model.GetRepositoryByOwnerAndName(ctx, ci.HeadOwner, ci.HeadRepoName)
 			if err != nil {
 				if repo_model.IsErrRepoNotExist(err) {
 					ctx.NotFound("GetRepositoryByOwnerAndName", nil)
@@ -280,25 +327,13 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 				}
 				return nil
 			}
-			if err := ci.HeadRepo.LoadOwner(ctx); err != nil {
-				if user_model.IsErrUserNotExist(err) {
-					ctx.NotFound("GetUserByName", nil)
-				} else {
-					ctx.ServerError("GetUserByName", err)
-				}
-				return nil
-			}
-			ci.HeadBranch = headInfos[1]
-			ci.HeadUser = ci.HeadRepo.Owner
-			isSameRepo = ci.HeadRepo.ID == ctx.Repo.Repository.ID
+			ci.HeadRepo.Owner = ci.HeadUser
 		}
-	} else {
-		ctx.NotFound("CompareAndPullRequest", nil)
-		return nil
 	}
+
 	ctx.Data["HeadUser"] = ci.HeadUser
 	ctx.Data["HeadBranch"] = ci.HeadBranch
-	ctx.Repo.PullRequest.SameRepo = isSameRepo
+	ctx.Repo.PullRequest.SameRepo = ci.IsSameRepo()
 
 	// Check if base branch is valid.
 	baseIsCommit := ctx.Repo.GitRepo.IsCommitExist(ci.BaseBranch)
@@ -311,7 +346,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 			ctx.Data["BaseBranch"] = ci.BaseBranch
 			baseIsCommit = true
 		} else if ci.BaseBranch == git.EmptySHA {
-			if isSameRepo {
+			if ci.IsSameRepo() {
 				ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + util.PathEscapeSegments(ci.HeadBranch))
 			} else {
 				ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + util.PathEscapeSegments(ci.HeadRepo.FullName()) + ":" + util.PathEscapeSegments(ci.HeadBranch))
@@ -392,12 +427,12 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	}
 
 	// 7. Otherwise if we're not the same repo and haven't found a repo give up
-	if !isSameRepo && !has {
+	if !ci.IsSameRepo() && !has {
 		ctx.Data["PageIsComparePull"] = false
 	}
 
 	// 8. Finally open the git repo
-	if isSameRepo {
+	if ci.IsSameRepo() {
 		ci.HeadRepo = ctx.Repo.Repository
 		ci.HeadGitRepo = ctx.Repo.GitRepo
 	} else if has {
@@ -432,7 +467,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	}
 
 	// If we're not merging from the same repo:
-	if !isSameRepo {
+	if !ci.IsSameRepo() {
 		// Assert ctx.Doer has permission to read headRepo's codes
 		permHead, err := access_model.GetUserRepoPermission(ctx, ci.HeadRepo, ctx.Doer)
 		if err != nil {
@@ -547,12 +582,12 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		headBranchRef = git.TagPrefix + ci.HeadBranch
 	}
 
-	ci.CompareInfo, err = ci.HeadGitRepo.GetCompareInfo(baseRepo.RepoPath(), baseBranchRef, headBranchRef, ci.DirectComparison, fileOnly)
+	ci.CompareInfo, err = ci.HeadGitRepo.GetCompareInfo(baseRepo.RepoPath(), baseBranchRef, headBranchRef, ci.DirectComparison(), fileOnly)
 	if err != nil {
 		ctx.ServerError("GetCompareInfo", err)
 		return nil
 	}
-	if ci.DirectComparison {
+	if ci.DirectComparison() {
 		ctx.Data["BeforeCommitID"] = ci.CompareInfo.BaseCommitID
 	} else {
 		ctx.Data["BeforeCommitID"] = ci.CompareInfo.MergeBase
@@ -580,7 +615,7 @@ func PrepareCompareDiff(
 
 	ctx.Data["AfterCommitID"] = headCommitID
 
-	if (headCommitID == ci.CompareInfo.MergeBase && !ci.DirectComparison) ||
+	if (headCommitID == ci.CompareInfo.MergeBase && !ci.DirectComparison()) ||
 		headCommitID == ci.CompareInfo.BaseCommitID {
 		ctx.Data["IsNothingToCompare"] = true
 		if unit, err := repo.GetUnit(ctx, unit.TypePullRequests); err == nil {
@@ -599,7 +634,7 @@ func PrepareCompareDiff(
 	}
 
 	beforeCommitID := ci.CompareInfo.MergeBase
-	if ci.DirectComparison {
+	if ci.DirectComparison() {
 		beforeCommitID = ci.CompareInfo.BaseCommitID
 	}
 
@@ -618,7 +653,7 @@ func PrepareCompareDiff(
 			MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
 			MaxFiles:           maxFiles,
 			WhitespaceBehavior: whitespaceBehavior,
-			DirectComparison:   ci.DirectComparison,
+			DirectComparison:   ci.DirectComparison(),
 		}, ctx.FormStrings("files")...)
 	if err != nil {
 		ctx.ServerError("GetDiffRangeWithWhitespaceBehavior", err)
@@ -714,10 +749,10 @@ func CompareDiff(ctx *context.Context) {
 	}
 
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
-	ctx.Data["DirectComparison"] = ci.DirectComparison
+	ctx.Data["DirectComparison"] = ci.DirectComparison()
 	ctx.Data["OtherCompareSeparator"] = ".."
 	ctx.Data["CompareSeparator"] = "..."
-	if ci.DirectComparison {
+	if ci.DirectComparison() {
 		ctx.Data["CompareSeparator"] = ".."
 		ctx.Data["OtherCompareSeparator"] = "..."
 	}
@@ -791,7 +826,7 @@ func CompareDiff(ctx *context.Context) {
 	afterCommitID := ctx.Data["AfterCommitID"].(string)
 
 	separator := "..."
-	if ci.DirectComparison {
+	if ci.DirectComparison() {
 		separator = ".."
 	}
 	ctx.Data["Title"] = "Comparing " + base.ShortSha(beforeCommitID) + separator + base.ShortSha(afterCommitID)
