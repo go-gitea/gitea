@@ -257,7 +257,7 @@ func ToFloat64(number any) (float64, error) {
 	return value, nil
 }
 
-// ToRef returns the reference of a copy of any given value
+// ToRef returns the pointer of a copy of any given value
 func ToRef[T any](val T) *T {
 	return &val
 }
