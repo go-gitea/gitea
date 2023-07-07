@@ -1,5 +1,3 @@
-<div role="main" aria-label="{{.Title}}" class="page-content repository projects view-project">
-	<div class="ui container">
 		<div class="ui two column stackable grid">
 			<div class="column">
 			</div>
@@ -70,8 +68,8 @@
 			{{end}}
 		</div>
 		<div class="divider"></div>
-	</div>
-	<div class="ui container fluid padded" id="project-board">
+
+	<div id="project-board">
 
 		<div class="board {{if .CanWriteProjects}}sortable{{end}}">
 			{{range $board := .Boards}}
@@ -252,8 +250,6 @@
 		</div>
 
 	</div>
-
-</div>
 
 {{if .CanWriteProjects}}
 	<div class="ui g-modal-confirm delete modal">
