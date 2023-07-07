@@ -136,6 +136,8 @@ func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
 		headRef = pullPayload.PullRequest.Head.Ref
 
 		// if the TriggerEvent is pull_request_target, ref and sha need to be set according to the base of pull request
+		// In GitHub's documentation, ref should be the branch or tag that triggered workflow. But when the TriggerEvent is pull_request_target,
+		// the ref will be the base branch.
 		if t.Job.Run.TriggerEvent == actions_module.GithubEventPullRequestTarget {
 			ref = git.BranchPrefix + pullPayload.PullRequest.Base.Name
 			sha = pullPayload.PullRequest.Base.Sha
