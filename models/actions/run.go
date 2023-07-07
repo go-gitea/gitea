@@ -180,12 +180,6 @@ func CancelRunningJobs(ctx context.Context, run *ActionRun) error {
 	}
 
 	for _, run := range runs {
-		run.Status = StatusCancelled
-		run.Stopped = timeutil.TimeStampNow()
-		if err := UpdateRun(ctx, run, []string{"status", "stopped"}...); err != nil {
-			return err
-		}
-
 		// cancel all running jobs
 		jobs, _, err := FindRunJobs(ctx, FindRunJobOptions{
 			RunID: run.ID,
