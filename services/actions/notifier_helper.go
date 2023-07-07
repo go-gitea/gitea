@@ -243,7 +243,6 @@ func notify(ctx context.Context, input *notifyInput) error {
 		}
 
 	}
-
 	return nil
 }
 
