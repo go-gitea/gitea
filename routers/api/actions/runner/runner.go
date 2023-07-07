@@ -140,6 +140,7 @@ func (s *Service) FetchTask(
 		if err := actions_model.IncreaseTaskVersion(ctx, runner.OwnerID, runner.RepoID); err != nil {
 			return nil, status.Errorf(codes.Internal, "fail to increase task version: %v", err)
 		}
+		latestVersion++
 	}
 
 	if tasksVersion != latestVersion {
