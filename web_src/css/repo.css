@@ -1313,10 +1313,9 @@
   padding: 5px 10px;
 }
 
-.repository #commits-table thead th:first-of-type {
-  padding-left: 15px;
+.repository #commits-table td:not(.message) {
+  white-space: nowrap;
 }
-
 .repository #commits-table thead .sha {
   width: 200px;
 }
@@ -2684,6 +2683,7 @@ tbody.commit-list {
 /* in the commit list, messages can wrap so we can use inline */
 .commit-list .message-wrapper {
   display: inline;
+  overflow-wrap: anywhere;
 }
 
 /* but in the repo-files-table we cannot */
@@ -3243,17 +3243,6 @@ tbody.commit-list {
   .commit-table td.sha,
   .commit-table th.sha {
     display: none !important;
-  }
-  .commit-table .commit-list span.message-wrapper {
-    max-width: none;
-  }
-  .commit-table .commit-list tr td:first-child,
-  .commit-table .commit-list tr td:last-child {
-    white-space: nowrap;
-  }
-  .commit-table .commit-list td.author {
-    display: block;
-    width: calc(100% + 0.5rem);
   }
   .commit-table .commit-list .copy-commit-sha {
     display: none !important;
