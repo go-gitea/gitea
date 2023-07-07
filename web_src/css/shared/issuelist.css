@@ -3,6 +3,30 @@
   margin-top: 1rem;
 }
 
+.issue.list .item {
+  display: flex;
+  align-items: baseline;
+  padding: 8px 0;
+}
+
+.issue.list .item .issue-item-left {
+  display: flex;
+  align-items: start;
+}
+
+.issue.list .item .issue-item-block {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.issue.list .item .issue-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .issue.list a:not(.label):hover {
   color: var(--color-primary) !important;
 }
@@ -64,7 +88,7 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  margin: .125rem 0;
+  gap: .25rem;
 }
 
 .issue.list > .item .title {
@@ -92,12 +116,6 @@
 .issue.list > .item .desc a {
   color: inherit;
   word-break: break-word;
-}
-
-.issue.list > .item .desc .time-since,
-.issue.list > .item .desc a {
-  margin-left: 0.25rem;
-  margin-right: 0.25rem;
 }
 
 .issue.list > .item .desc .waiting,
@@ -135,27 +153,14 @@
   padding-left: 5px;
 }
 
-.issue.list > .item .desc a.milestone,
-.issue.list > .item .desc a.project {
-  margin-left: 5px;
-}
-
-.issue.list > .item .desc a.ref {
-  margin-left: 8px;
-}
-
-.issue.list > .item .desc a.ref span {
-  margin-right: -4px;
-}
-
 .issue.list .branches {
   display: inline-flex;
-  padding: 0 4px;
 }
 
 .issue.list .branches .branch {
   background-color: var(--color-secondary-alpha-40);
   border-radius: 3px;
+  padding: 0 4px;
 }
 
 .issue.list .branches .truncated-name {
