@@ -74,6 +74,7 @@ export default {
         const resp = await fetch(`${this.issueLink}/commits/list`);
         const results = await resp.json();
         this.commits.push(...results.commits);
+        this.commits.reverse();
         this.lastReviewCommitSha = results.lastReviewCommitSha != '' ? results.lastReviewCommitSha : null;
         Object.assign(this.locale, results.locale);
     },
