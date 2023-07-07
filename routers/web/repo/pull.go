@@ -691,6 +691,102 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 	return compareInfo
 }
 
+type PullCommitInfo struct {
+	Summary               string `json:"summary"`
+	CommitterOrAuthorName string `json:"committer_or_author_name"`
+	ID                    string `json:"id"`
+	Time                  string `json:"time"`
+}
+
+type pullCommitList struct {
+	Commits             []PullCommitInfo  `json:"commits"`
+	LastReviewCommitSha string            `json:"lastReviewCommitSha"`
+	Locale              map[string]string `json:"locale"`
+}
+
+// GetPullCommits get all commits for given pull request
+func GetPullCommits(ctx *context.Context) {
+	issue := checkPullInfo(ctx)
+	if ctx.Written() {
+		return
+	}
+	pull := issue.PullRequest
+
+	baseGitRepo := ctx.Repo.GitRepo
+
+	if err := pull.LoadBaseRepo(ctx); err != nil {
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+	var prInfo *git.CompareInfo
+	var err error
+	if pull.HasMerged {
+		prInfo, err = baseGitRepo.GetCompareInfo(pull.BaseRepo.RepoPath(), pull.MergeBase, pull.GetGitRefName(), true, false)
+	} else {
+		prInfo, err = baseGitRepo.GetCompareInfo(pull.BaseRepo.RepoPath(), pull.BaseBranch, pull.GetGitRefName(), true, false)
+	}
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+
+	resp := &pullCommitList{}
+	commits := make([]PullCommitInfo, len(prInfo.Commits))
+
+	for i := range prInfo.Commits {
+		commit := prInfo.Commits[i]
+
+		var committerOrAuthorName string
+		var time string
+		if commit.Committer != nil {
+			committerOrAuthorName = commit.Committer.Name
+			time = commit.Committer.When.String()
+		} else {
+			committerOrAuthorName = commit.Author.Name
+			time = commit.Author.When.String()
+		}
+
+		commits[i] = PullCommitInfo{
+			Summary:               commit.Summary(),
+			CommitterOrAuthorName: committerOrAuthorName,
+			ID:                    commit.ID.String(),
+			Time:                  time,
+		}
+	}
+
+	if ctx.IsSigned {
+		// get last review of current user and store information in context (if available)
+		lastreview, err := issues_model.FindLatestReviews(ctx, issues_model.FindReviewOptions{
+			IssueID:    issue.ID,
+			ReviewerID: ctx.Doer.ID,
+			Type:       issues_model.ReviewTypeUnknown,
+		})
+
+		if err != nil && !issues_model.IsErrReviewNotExist(err) {
+			ctx.ServerError("GetReviewByIssueIDAndUserID", err)
+			return
+		}
+
+		if len(lastreview) > 0 {
+			resp.LastReviewCommitSha = lastreview[0].CommitID
+		}
+	}
+
+	// Get the needed locale
+	resp.Locale = map[string]string{
+		"lang":                                ctx.Locale.Language(),
+		"filter_changes_by_commit":            ctx.Tr("repo.pulls.filter_changes_by_commit"),
+		"show_all_commits":                    ctx.Tr("repo.pulls.show_all_commits"),
+		"stats_num_commits":                   ctx.TrN(len(commits), "repo.activity.git_stats_commit_1", "repo.activity.git_stats_commit_n", len(commits)),
+		"show_changes_since_your_last_review": ctx.Tr("repo.pulls.show_changes_since_your_last_review"),
+	}
+
+	resp.Commits = commits
+
+	ctx.JSON(http.StatusOK, resp)
+}
+
 // ViewPullCommits show commits for a pull request
 func ViewPullCommits(ctx *context.Context) {
 	ctx.Data["PageIsPullList"] = true
@@ -811,7 +907,6 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 		ctx.Data["IsShowingAllCommits"] = true
 	}
 
-	ctx.Data["Commits"] = prInfo.Commits
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["AfterCommitID"] = endCommitID
@@ -943,24 +1038,6 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
-
-	if ctx.IsSigned {
-		// get last review of current user and store information in context (if available)
-		lastreview, err := issues_model.FindLatestReviews(ctx, issues_model.FindReviewOptions{
-			IssueID:    issue.ID,
-			ReviewerID: ctx.Doer.ID,
-			Type:       issues_model.ReviewTypeUnknown,
-		})
-
-		if err != nil && !issues_model.IsErrReviewNotExist(err) {
-			ctx.ServerError("GetReviewByIssueIDAndUserID", err)
-			return
-		}
-
-		if len(lastreview) > 0 {
-			ctx.Data["LastReviewSha"] = lastreview[0].CommitID
-		}
-	}
 
 	ctx.HTML(http.StatusOK, tplPullFiles)
 }

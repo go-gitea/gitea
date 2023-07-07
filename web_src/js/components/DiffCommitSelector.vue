@@ -1,6 +1,6 @@
 <template>
   <div
-    class="ui jump dropdown basic button custom"
+    class="ui dropdown basic button custom"
     @click.stop="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible"
     :data-tooltip-content="locale.filter_changes_by_commit"
   >
@@ -49,12 +49,12 @@ export default {
     const commitInfo = window.config.pageData.commitInfo;
     return {
       menuVisible: false,
-      lastReviewCommitSha: commitInfo.lastReviewCommitSha,
-      locale: commitInfo.locale,
-      commits: commitInfo.commits.reverse(),
+      locale: {},
+      commits: [],
       queryParams: commitInfo.queryParams,
       issueLink: commitInfo.issueLink,
-      hoverActivated: false
+      hoverActivated: false,
+      lastReviewCommitSha: null
     };
   },
   computed: {
@@ -65,7 +65,18 @@ export default {
       return 0;
     }
   },
+  mounted() {
+    // fetch commit info
+    this.fetchCommits();
+  },
   methods: {
+    async fetchCommits() {
+        const resp = await fetch(`${this.issueLink}/commits/list`);
+        const results = await resp.json();
+        this.commits.push(...results.commits);
+        this.lastReviewCommitSha = results.lastReviewCommitSha != '' ? results.lastReviewCommitSha : null;
+        Object.assign(this.locale, results.locale);
+    },
     /** Called when user clicks on since last review */
     changesSinceLastReviewClick() {
       window.location = `${this.issueLink}/files/${this.lastReviewCommitSha}..${this.commits.at(-1)}${this.queryParams}`;

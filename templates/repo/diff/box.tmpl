@@ -32,28 +32,9 @@
 			{{template "repo/diff/whitespace_dropdown" .}}
 			{{template "repo/diff/options_dropdown" .}}
 			{{if .PageIsPullFiles}}
-				<script id="commit-data-script">
-					{{$numCommits := len .Commits}}
+				<script>
 					window.config.pageData.commitInfo = {
 						issueLink: {{$.Issue.Link}},
-						lastReviewCommitSha: {{.LastReviewSha}},
-						commits: [
-						{{range .Commits}}
-								{
-									summary: {{.Summary}},
-									committerOrAuthorName: {{if .Committer}}{{.Committer.Name}}{{else}}{{.Author.Name}}{{end}},
-									id: {{.ID.String}},
-									time: {{if .Committer}}{{.Committer.When}}{{else}}{{.Author.When}}{{end}},
-									selected: false
-								},
-						{{end}}],
-						locale: {
-							lang: {{$.locale}},
-							filter_changes_by_commit: {{.locale.Tr "repo.pulls.filter_changes_by_commit"}},
-							show_all_commits: {{.locale.Tr "repo.pulls.show_all_commits"}},
-							stats_num_commits: {{.locale.TrN $numCommits "repo.activity.git_stats_commit_1" "repo.activity.git_stats_commit_n" $numCommits}},
-							show_changes_since_your_last_review: {{.locale.Tr "repo.pulls.show_changes_since_your_last_review"}},
-						},
 						queryParams: '?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}'
 					};
 				</script>
@@ -75,11 +56,11 @@
 	{{if not .DiffNotAvailable}}
 		{{if and .IsShowingOnlySingleCommit .PageIsPullFiles}}
 			<div class="ui info message">
-				<div class="text gt-whitespace-pre">{{.locale.Tr "repo.pulls.showing_only_single_commit" (ShortSha .BeforeCommitID)}}</div>
+				<div class="text">{{.locale.Tr "repo.pulls.showing_only_single_commit" (ShortSha .BeforeCommitID)}}</div>
 			</div>
 		{{else if and (not .IsShowingAllCommits) .PageIsPullFiles}}
 			<div class="ui info message">
-				<div class="text gt-whitespace-pre">{{.locale.Tr "repo.pulls.showing_specified_commit_range" (ShortSha .BeforeCommitID) (ShortSha .AfterCommitID)}}</div>
+				<div class="text">{{.locale.Tr "repo.pulls.showing_specified_commit_range" (ShortSha .BeforeCommitID) (ShortSha .AfterCommitID)}}</div>
 			</div>
 		{{end}}
 		<script id="diff-data-script" type="module">
