@@ -140,6 +140,9 @@ func (s *Service) FetchTask(
 		if err := actions_model.IncreaseTaskVersion(ctx, runner.OwnerID, runner.RepoID); err != nil {
 			return nil, status.Errorf(codes.Internal, "fail to increase task version: %v", err)
 		}
+		// if we don't increase the value of `latestVersion` here,
+		// the reponse of FetchTask will return tasksVersion as zero.
+		// and the runner will treat it as an old version of Gitea.
 		latestVersion++
 	}
 

@@ -139,7 +139,6 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 	if runStatus.IsDone() {
 		run.Stopped = timeutil.TimeStampNow()
 	}
-
 	return affected, UpdateRun(ctx, run)
 }
 
