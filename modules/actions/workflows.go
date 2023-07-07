@@ -335,44 +335,47 @@ func matchIssuesEvent(commit *git.Commit, issuePayload *api.IssuePayload, evt *j
 }
 
 func matchPullRequestEvent(commit *git.Commit, prPayload *api.PullRequestPayload, evt *jobparser.Event) bool {
-	// with no special filter parameters
-	if len(evt.Acts()) == 0 {
+	acts := evt.Acts()
+	activityTypeMatched := false
+	matchTimes := 0
+
+	if vals, ok := acts["types"]; !ok {
 		// defaultly, only pull request `opened`, `reopened` and `synchronized` will trigger workflow
 		// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request
-		return prPayload.Action == api.HookIssueSynchronized || prPayload.Action == api.HookIssueOpened || prPayload.Action == api.HookIssueReOpened
+		activityTypeMatched = prPayload.Action == api.HookIssueSynchronized || prPayload.Action == api.HookIssueOpened || prPayload.Action == api.HookIssueReOpened
+	} else {
+		// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request
+		// Actions with the same name:
+		// opened, edited, closed, reopened, assigned, unassigned
+		// Actions need to be converted:
+		// synchronized -> synchronize
+		// label_updated -> labeled
+		// label_cleared -> unlabeled
+		// Unsupported activity types:
+		// converted_to_draft, ready_for_review, locked, unlocked, review_requested, review_request_removed, auto_merge_enabled, auto_merge_disabled
+
+		action := prPayload.Action
+		switch action {
+		case api.HookIssueSynchronized:
+			action = "synchronize"
+		case api.HookIssueLabelUpdated:
+			action = "labeled"
+		case api.HookIssueLabelCleared:
+			action = "unlabeled"
+		}
+		log.Trace("matching pull_request %s with %v", action, vals)
+		for _, val := range vals {
+			if glob.MustCompile(val, '/').Match(string(action)) {
+				activityTypeMatched = true
+				matchTimes++
+				break
+			}
+		}
 	}
 
-	matchTimes := 0
 	// all acts conditions should be satisfied
-	for cond, vals := range evt.Acts() {
+	for cond, vals := range acts {
 		switch cond {
-		case "types":
-			// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request
-			// Actions with the same name:
-			// opened, edited, closed, reopened, assigned, unassigned
-			// Actions need to be converted:
-			// synchronized -> synchronize
-			// label_updated -> labeled
-			// label_cleared -> unlabeled
-			// Unsupported activity types:
-			// converted_to_draft, ready_for_review, locked, unlocked, review_requested, review_request_removed, auto_merge_enabled, auto_merge_disabled
-
-			action := prPayload.Action
-			switch action {
-			case api.HookIssueSynchronized:
-				action = "synchronize"
-			case api.HookIssueLabelUpdated:
-				action = "labeled"
-			case api.HookIssueLabelCleared:
-				action = "unlabeled"
-			}
-			log.Trace("matching pull_request %s with %v", action, vals)
-			for _, val := range vals {
-				if glob.MustCompile(val, '/').Match(string(action)) {
-					matchTimes++
-					break
-				}
-			}
 		case "branches":
 			refName := git.RefName(prPayload.PullRequest.Base.Ref)
 			patterns, err := workflowpattern.CompilePatterns(vals...)
@@ -421,7 +424,7 @@ func matchPullRequestEvent(commit *git.Commit, prPayload *api.PullRequestPayload
 			log.Warn("pull request event unsupported condition %q", cond)
 		}
 	}
-	return matchTimes == len(evt.Acts())
+	return activityTypeMatched && matchTimes == len(evt.Acts())
 }
 
 func matchIssueCommentEvent(commit *git.Commit, issueCommentPayload *api.IssueCommentPayload, evt *jobparser.Event) bool {
