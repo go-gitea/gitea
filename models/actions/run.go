@@ -34,7 +34,7 @@ type ActionRun struct {
 	Index             int64                  `xorm:"index unique(repo_index)"` // a unique number for each run of a repository
 	TriggerUserID     int64                  `xorm:"index"`
 	TriggerUser       *user_model.User       `xorm:"-"`
-	Ref               string
+	Ref               string                 `xorm:"index"` // the ref of the run
 	CommitSHA         string
 	IsForkPullRequest bool                         // If this is triggered by a PR from a forked repository or an untrusted user, we need to check if it is approved and limit permissions when running the workflow.
 	NeedApproval      bool                         // may need approval if it's a fork pull request
@@ -166,7 +166,7 @@ func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) err
 
 // CancelRunningJobs cancels all running jobs of a run
 func CancelRunningJobs(ctx context.Context, run *ActionRun) error {
-	runs, _, err := FindRuns(ctx, FindRunOptions{
+	runs, total, err := FindRuns(ctx, FindRunOptions{
 		RepoID: run.RepoID,
 		Ref:    run.Ref,
 		Status: []Status{StatusRunning, StatusWaiting},
@@ -175,7 +175,7 @@ func CancelRunningJobs(ctx context.Context, run *ActionRun) error {
 		return err
 	}
 
-	if len(runs) == 0 {
+	if total == 0 {
 		return nil
 	}
 
