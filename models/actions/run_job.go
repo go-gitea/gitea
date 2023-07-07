@@ -131,12 +131,15 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 	}
 	if runStatus.IsDone() {
 		run.Stopped = timeutil.TimeStampNow()
-	} else if runStatus.IsWaiting() {
+	}
+
+	if affected != 0 && util.SliceContains(cols, "status") && job.Status.IsWaiting() {
 		// if the status of job changes to waiting again, increase tasks version.
-		if err := increaseTaskVersion(ctx, job.OwnerID, job.RepoID); err != nil {
+		if err := IncreaseTaskVersion(ctx, job.OwnerID, job.RepoID); err != nil {
 			return affected, err
 		}
 	}
+
 	return affected, UpdateRun(ctx, run)
 }
 

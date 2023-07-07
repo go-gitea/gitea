@@ -230,7 +230,7 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 
 	// if there is a job in the waiting status, increase tasks version.
 	if hasWaiting {
-		if err := increaseTaskVersion(ctx, run.OwnerID, run.RepoID); err != nil {
+		if err := IncreaseTaskVersion(ctx, run.OwnerID, run.RepoID); err != nil {
 			return err
 		}
 	}

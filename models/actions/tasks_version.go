@@ -5,12 +5,10 @@ package actions
 
 import (
 	"context"
-	"fmt"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // ActionTasksVersion
@@ -36,16 +34,15 @@ func GetTasksVersionByScope(ctx context.Context, ownerID, repoID int64) (int64, 
 	if err != nil {
 		return 0, err
 	} else if !has {
-		return 0, fmt.Errorf("tasks version with owner id %d repo id %d: %w", ownerID, repoID, util.ErrNotExist)
+		return 0, nil
 	}
 	return tasksVersion.Version, err
 }
 
-func InsertTasksVersion(ctx context.Context, ownerID, repoID int64) (*ActionTasksVersion, error) {
+func insertTasksVersion(ctx context.Context, ownerID, repoID int64) (*ActionTasksVersion, error) {
 	tasksVersion := &ActionTasksVersion{
 		OwnerID: ownerID,
 		RepoID:  repoID,
-		// Set the default value of version to 1, so that the first fetch request after the runner starts will definitely query the database.
 		Version: 1,
 	}
 	if _, err := db.GetEngine(ctx).Insert(tasksVersion); err != nil {
@@ -67,7 +64,7 @@ func increaseTasksVersionByScope(ctx context.Context, ownerID, repoID int64) err
 	if affected == 0 {
 		// if update sql does not affect any rows, the database may be broken,
 		// so re-insert the row of version data here.
-		if _, err := InsertTasksVersion(ctx, ownerID, repoID); err != nil {
+		if _, err := insertTasksVersion(ctx, ownerID, repoID); err != nil {
 			return err
 		}
 	}
@@ -75,7 +72,7 @@ func increaseTasksVersionByScope(ctx context.Context, ownerID, repoID int64) err
 	return nil
 }
 
-func increaseTaskVersion(ctx context.Context, ownerID, repoID int64) error {
+func IncreaseTaskVersion(ctx context.Context, ownerID, repoID int64) error {
 	dbCtx, commiter, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -84,20 +81,30 @@ func increaseTaskVersion(ctx context.Context, ownerID, repoID int64) error {
 
 	ctx = dbCtx.WithContext(ctx)
 
+	allScopes := ownerID > 0 && repoID > 0
+
 	// 1. increase global
-	if err := increaseTasksVersionByScope(ctx, 0, 0); err != nil {
-		log.Error("IncreaseTasksVersionByScope(Global): %v", err)
-		return err
+	if allScopes || (ownerID == 0 && repoID == 0) {
+		if err := increaseTasksVersionByScope(ctx, 0, 0); err != nil {
+			log.Error("IncreaseTasksVersionByScope(Global): %v", err)
+			return err
+		}
 	}
+
 	// 2. increase owner
-	if err := increaseTasksVersionByScope(ctx, ownerID, 0); err != nil {
-		log.Error("IncreaseTasksVersionByScope(Owner): %v", err)
-		return err
+	if allScopes || ownerID > 0 {
+		if err := increaseTasksVersionByScope(ctx, ownerID, 0); err != nil {
+			log.Error("IncreaseTasksVersionByScope(Owner): %v", err)
+			return err
+		}
 	}
+
 	// 3. increase repo
-	if err := increaseTasksVersionByScope(ctx, 0, repoID); err != nil {
-		log.Error("IncreaseTasksVersionByScope(Repo): %v", err)
-		return err
+	if allScopes || repoID > 0 {
+		if err := increaseTasksVersionByScope(ctx, 0, repoID); err != nil {
+			log.Error("IncreaseTasksVersionByScope(Repo): %v", err)
+			return err
+		}
 	}
 
 	return commiter.Commit()

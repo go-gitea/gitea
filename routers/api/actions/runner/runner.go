@@ -135,13 +135,10 @@ func (s *Service) FetchTask(
 	tasksVersion := req.Msg.TasksVersion // task version from runner
 	latestVersion, err := actions_model.GetTasksVersionByScope(ctx, runner.OwnerID, runner.RepoID)
 	if err != nil {
-		if !errors.Is(err, util.ErrNotExist) {
-			log.Error("query tasks version failed: %v", err)
-			return nil, status.Errorf(codes.Internal, "query tasks version failed: %v", err)
-		}
-		// create a row of action_tasks_version if not exists yet.
-		if _, err := actions_model.InsertTasksVersion(ctx, runner.OwnerID, runner.RepoID); err != nil {
-			return nil, status.Errorf(codes.Internal, "insert tasks version failed: %v", err)
+		return nil, status.Errorf(codes.Internal, "query tasks version failed: %v", err)
+	} else if latestVersion == 0 {
+		if err := actions_model.IncreaseTaskVersion(ctx, runner.OwnerID, runner.RepoID); err != nil {
+			return nil, status.Errorf(codes.Internal, "fail to increase task version: %v", err)
 		}
 	}
 
