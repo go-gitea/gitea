@@ -79,7 +79,7 @@ export default {
     },
     /** Called when user clicks on since last review */
     changesSinceLastReviewClick() {
-      window.location = `${this.issueLink}/files/${this.lastReviewCommitSha}..${this.commits.at(-1)}${this.queryParams}`;
+      window.location = `${this.issueLink}/files/${this.lastReviewCommitSha}..${this.commits.at(-1).id}${this.queryParams}`;
     },
     /** Clicking on a single commit opens this specific commit */
     commitClicked(commitId) {
