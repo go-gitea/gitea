@@ -1269,7 +1269,7 @@ func registerRoutes(m *web.Route) {
 			}
 			cancel := context.RepoRef()(ctx)
 			if ctx.Written() {
-				return nil
+				return cancel
 			}
 
 			repo.MustBeNotEmpty(ctx)
