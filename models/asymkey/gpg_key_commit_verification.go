@@ -494,9 +494,9 @@ func CalculateTrustStatus(verification *CommitVerification, repoTrustModel repo_
 	}
 
 	// Check we actually have a GPG SigningKey
+	var err error
 	if verification.SigningKey != nil {
 		var isMember bool
-		var err error
 		if keyMap != nil {
 			var has bool
 			isMember, has = (*keyMap)[verification.SigningKey.KeyID]
@@ -506,9 +506,6 @@ func CalculateTrustStatus(verification *CommitVerification, repoTrustModel repo_
 			}
 		} else {
 			isMember, err = isOwnerMemberCollaborator(verification.SigningUser)
-		}
-		if err != nil {
-			return err
 		}
 
 		if !isMember {
@@ -524,5 +521,5 @@ func CalculateTrustStatus(verification *CommitVerification, repoTrustModel repo_
 		}
 	}
 
-	return nil
+	return err
 }
