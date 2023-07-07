@@ -1256,20 +1256,20 @@ func registerRoutes(m *web.Route) {
 
 		m.Group("/blob_excerpt", func() {
 			m.Get("/{sha}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ExcerptBlob)
-		}, func(ctx *context.Context) (cancel gocontext.CancelFunc) {
+		}, func(ctx *context.Context) gocontext.CancelFunc {
 			if ctx.FormBool("wiki") {
 				ctx.Data["PageIsWiki"] = true
 				repo.MustEnableWiki(ctx)
-				return
+				return nil
 			}
 
 			reqRepoCodeReader(ctx)
 			if ctx.Written() {
-				return
+				return nil
 			}
-			cancel = context.RepoRef()(ctx)
+			cancel := context.RepoRef()(ctx)
 			if ctx.Written() {
-				return
+				return cancel
 			}
 
 			repo.MustBeNotEmpty(ctx)
