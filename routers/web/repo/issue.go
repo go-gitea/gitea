@@ -1922,9 +1922,12 @@ func ViewIssue(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplIssueView)
 }
 
+// checkBlockedByIssues return canRead and notPermitted
 func checkBlockedByIssues(ctx *context.Context, blockers []*issues_model.DependencyInfo) (canRead, notPermitted []*issues_model.DependencyInfo) {
-	var lastRepoID int64
-	var lastPerm access_model.Permission
+	var (
+		lastRepoID int64
+		lastPerm   access_model.Permission
+	)
 	for i, blocker := range blockers {
 		// Get the permissions for this repository
 		perm := lastPerm
@@ -1936,7 +1939,7 @@ func checkBlockedByIssues(ctx *context.Context, blockers []*issues_model.Depende
 				perm, err = access_model.GetUserRepoPermission(ctx, &blocker.Repository, ctx.Doer)
 				if err != nil {
 					ctx.ServerError("GetUserRepoPermission", err)
-					return
+					return nil, nil
 				}
 			}
 			lastRepoID = blocker.Repository.ID
@@ -1977,7 +1980,7 @@ func GetActionIssue(ctx *context.Context) *issues_model.Issue {
 		return nil
 	}
 	if err = issue.LoadAttributes(ctx); err != nil {
-		ctx.ServerError("LoadAttributes", nil)
+		ctx.ServerError("LoadAttributes", err)
 		return nil
 	}
 	return issue
@@ -3282,6 +3285,9 @@ func filterXRefComments(ctx *context.Context, issue *issues_model.Issue) error {
 // GetIssueAttachments returns attachments for the issue
 func GetIssueAttachments(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
+	if ctx.Written() {
+		return
+	}
 	attachments := make([]*api.Attachment, len(issue.Attachments))
 	for i := 0; i < len(issue.Attachments); i++ {
 		attachments[i] = convert.ToAttachment(issue.Attachments[i])
