@@ -247,13 +247,13 @@ func UpdateIssueIndexer(issue *issues_model.Issue) {
 		issueType = "pull"
 	}
 	indexerData := &internal.IndexerData{
-		ID:       issue.ID,
-		RepoID:   issue.RepoID,
-		State:    string(issue.State()),
-		Type:     issueType,
-		Title:    issue.Title,
-		Content:  issue.Content,
-		Comments: comments,
+		ID:        issue.ID,
+		RepoID:    issue.RepoID,
+		State:     string(issue.State()),
+		IssueType: issueType,
+		Title:     issue.Title,
+		Content:   issue.Content,
+		Comments:  comments,
 	}
 	log.Debug("Adding to channel: %v", indexerData)
 	if err := issueIndexerQueue.Push(indexerData); err != nil {
