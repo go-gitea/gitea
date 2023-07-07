@@ -195,6 +195,7 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 	}
 
 	runJobs := make([]*ActionRunJob, 0, len(jobs))
+	var hasWaiting bool
 	for _, v := range jobs {
 		id, job := v.Job()
 		needs := job.Needs()
@@ -205,6 +206,8 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 		status := StatusWaiting
 		if len(needs) > 0 || run.NeedApproval {
 			status = StatusBlocked
+		} else {
+			hasWaiting = true
 		}
 		job.Name, _ = util.SplitStringAtByteN(job.Name, 255)
 		runJobs = append(runJobs, &ActionRunJob{
@@ -225,9 +228,11 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 		return err
 	}
 
-	// if new action jobs are triggered, increase tasks version.
-	if err := increaseTaskVersion(ctx, run.OwnerID, run.RepoID); err != nil {
-		return err
+	// if there is a job in the waiting status, increase tasks version.
+	if hasWaiting {
+		if err := increaseTaskVersion(ctx, run.OwnerID, run.RepoID); err != nil {
+			return err
+		}
 	}
 
 	return commiter.Commit()
