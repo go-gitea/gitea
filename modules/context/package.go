@@ -33,7 +33,7 @@ type packageAssignmentCtx struct {
 // PackageAssignment returns a middleware to handle Context.Package assignment
 func PackageAssignment() func(ctx *Context) {
 	return func(ctx *Context) {
-		errorFn := func(status int, title string, obj interface{}) {
+		errorFn := func(status int, title string, obj any) {
 			err, ok := obj.(error)
 			if !ok {
 				err = fmt.Errorf("%s", obj)
@@ -57,7 +57,7 @@ func PackageAssignmentAPI() func(ctx *APIContext) {
 	}
 }
 
-func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string, interface{})) *Package {
+func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string, any)) *Package {
 	pkg := &Package{
 		Owner: ctx.ContextUser,
 	}

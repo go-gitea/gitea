@@ -69,7 +69,7 @@ func setResponseHeaders(resp http.ResponseWriter, h *headers) {
 }
 
 // https://github.com/apple/swift-package-manager/blob/main/Documentation/Registry.md#33-error-handling
-func apiError(ctx *context.Context, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj any) {
 	// https://www.rfc-editor.org/rfc/rfc7807
 	type Problem struct {
 		Status int    `json:"status"`

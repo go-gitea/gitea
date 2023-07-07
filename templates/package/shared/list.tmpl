@@ -1,4 +1,3 @@
-<div class="ui container">
 	{{template "base/alert" .}}
 	<form class="ui form ignore-dirty">
 		<div class="ui fluid action input">
@@ -16,12 +15,12 @@
 	<div class="ui {{if .PackageDescriptors}}issue list{{end}}">
 		{{range .PackageDescriptors}}
 			<li class="item gt-df gt-py-3">
-				<div class="issue-item-main gt-f1 gt-fc gt-df">
+				<div class="issue-item-main">
 					<div class="issue-item-top-row">
 						<a class="title" href="{{.FullWebLink}}">{{.Package.Name}}</a>
 						<span class="ui label">{{svg .Package.Type.SVGName 16}} {{.Package.Type.Name}}</span>
 					</div>
-					<div class="desc issue-item-bottom-row gt-df gt-ac gt-fw gt-my-1">
+					<div class="desc issue-item-bottom-row">
 						{{$timeStr := TimeSinceUnix .Version.CreatedUnix $.locale}}
 						{{$hasRepositoryAccess := false}}
 						{{if .Repository}}
@@ -37,7 +36,7 @@
 			</li>
 		{{else}}
 			{{if not .HasPackages}}
-				<div class="empty center">
+				<div class="gt-pt-5 empty center">
 					{{svg "octicon-package" 48}}
 					<h2>{{.locale.Tr "packages.empty"}}</h2>
 					{{if and .Repository .CanWritePackages}}
@@ -52,4 +51,3 @@
 		{{end}}
 		{{template "base/paginate" .}}
 	</div>
-</div>

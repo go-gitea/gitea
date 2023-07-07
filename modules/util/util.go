@@ -174,7 +174,7 @@ func ToTitleCaseNoLower(s string) string {
 }
 
 // ToInt64 transform a given int into int64.
-func ToInt64(number interface{}) (int64, error) {
+func ToInt64(number any) (int64, error) {
 	var value int64
 	switch v := number.(type) {
 	case int:
@@ -216,7 +216,7 @@ func ToInt64(number interface{}) (int64, error) {
 }
 
 // ToFloat64 transform a given int into float64.
-func ToFloat64(number interface{}) (float64, error) {
+func ToFloat64(number any) (float64, error) {
 	var value float64
 	switch v := number.(type) {
 	case int:
