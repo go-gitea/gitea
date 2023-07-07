@@ -58,6 +58,25 @@ func TestDetectMatched(t *testing.T) {
 			expected:     false,
 		},
 		{
+			desc:         "HookEventPullRequest(pull_request) `closed` action doesn't match GithubEventPullRequest(pull_request) with no activity type",
+			triggedEvent: webhook_module.HookEventPullRequest,
+			payload:      &api.PullRequestPayload{Action: api.HookIssueClosed},
+			yamlOn:       "on: pull_request",
+			expected:     false,
+		},
+		{
+			desc:         "HookEventPullRequest(pull_request) `closed` action doesn't match GithubEventPullRequest(pull_request) with branches",
+			triggedEvent: webhook_module.HookEventPullRequest,
+			payload: &api.PullRequestPayload{
+				Action: api.HookIssueClosed,
+				PullRequest: &api.PullRequest{
+					Base: &api.PRBranchInfo{},
+				},
+			},
+			yamlOn:   "on:\n  pull_request:\n    branches: [main]",
+			expected: false,
+		},
+		{
 			desc:         "HookEventPullRequest(pull_request) `label_updated` action matches githubEventPullRequest(pull_request) with `label` activity type",
 			triggedEvent: webhook_module.HookEventPullRequest,
 			payload:      &api.PullRequestPayload{Action: api.HookIssueLabelUpdated},
