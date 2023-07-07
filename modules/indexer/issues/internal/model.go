@@ -8,6 +8,7 @@ type IndexerData struct {
 	ID       int64    `json:"id"`
 	RepoID   int64    `json:"repo_id"`
 	State    string   `json:"state"` // open, closed, all
+	Type     string   `json:"type"`  // issue or pull
 	Title    string   `json:"title"`
 	Content  string   `json:"content"`
 	Comments []string `json:"comments"`

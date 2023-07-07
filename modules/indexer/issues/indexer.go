@@ -242,10 +242,15 @@ func UpdateIssueIndexer(issue *issues_model.Issue) {
 			comments = append(comments, comment.Content)
 		}
 	}
+	issueType := "issue"
+	if issue.IsPull {
+		issueType = "pull"
+	}
 	indexerData := &internal.IndexerData{
 		ID:       issue.ID,
 		RepoID:   issue.RepoID,
 		State:    string(issue.State()),
+		Type:     issueType,
 		Title:    issue.Title,
 		Content:  issue.Content,
 		Comments: comments,
