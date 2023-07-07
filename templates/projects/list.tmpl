@@ -1,10 +1,6 @@
-<div role="main" aria-label="{{.Title}}" class="page-content repository projects">
-	<div class="ui container">
 		{{if .CanWriteProjects}}
-			<div class="navbar">
-				<div class="ui right">
-					<a class="ui small green button" href="{{$.Link}}/new">{{.locale.Tr "repo.projects.new"}}</a>
-				</div>
+			<div class="gt-tr">
+				<a class="ui small green button" href="{{$.Link}}/new">{{.locale.Tr "repo.projects.new"}}</a>
 			</div>
 			<div class="divider"></div>
 		{{end}}
@@ -75,8 +71,6 @@
 
 			{{template "base/paginate" .}}
 		</div>
-	</div>
-</div>
 
 {{if $.CanWriteProjects}}
 <div class="ui g-modal-confirm delete modal">

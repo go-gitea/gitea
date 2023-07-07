@@ -497,23 +497,23 @@ func createUserInContext(ctx *context.Context, tpl base.TplName, form any, u *us
 					hasUser, err = user_model.GetUser(user)
 					if !hasUser || err != nil {
 						ctx.ServerError("UserLinkAccount", err)
-						return
+						return false
 					}
 				}
 
 				// TODO: probably we should respect 'remember' user's choice...
 				linkAccount(ctx, user, *gothUser, true)
-				return // user is already created here, all redirects are handled
+				return false // user is already created here, all redirects are handled
 			} else if setting.OAuth2Client.AccountLinking == setting.OAuth2AccountLinkingLogin {
 				showLinkingLogin(ctx, *gothUser)
-				return // user will be created only after linking login
+				return false // user will be created only after linking login
 			}
 		}
 
 		// handle error without template
 		if len(tpl) == 0 {
 			ctx.ServerError("CreateUser", err)
-			return
+			return false
 		}
 
 		// handle error with template
@@ -542,7 +542,7 @@ func createUserInContext(ctx *context.Context, tpl base.TplName, form any, u *us
 		default:
 			ctx.ServerError("CreateUser", err)
 		}
-		return
+		return false
 	}
 	log.Trace("Account created: %s", u.Name)
 	return true
@@ -559,7 +559,7 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.
 		u.SetLastLogin()
 		if err := user_model.UpdateUserCols(ctx, u, "is_admin", "is_active", "last_login_unix"); err != nil {
 			ctx.ServerError("UpdateUser", err)
-			return
+			return false
 		}
 	}
 
@@ -577,7 +577,7 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.
 		if setting.Service.RegisterManualConfirm {
 			ctx.Data["ManualActivationOnly"] = true
 			ctx.HTML(http.StatusOK, TplActivate)
-			return
+			return false
 		}
 
 		mailer.SendActivateAccountMail(ctx.Locale, u)
@@ -592,7 +592,7 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.
 				log.Error("Set cache(MailResendLimit) fail: %v", err)
 			}
 		}
-		return
+		return false
 	}
 
 	return true

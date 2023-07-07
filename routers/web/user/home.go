@@ -857,7 +857,7 @@ func UsernameSubRoute(ctx *context.Context) {
 		context_service.UserAssignmentWeb()(ctx)
 		if !ctx.Written() {
 			ctx.Data["EnableFeed"] = setting.Other.EnableFeed
-			Profile(ctx)
+			OwnerProfile(ctx)
 		}
 	}
 }
