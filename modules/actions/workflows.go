@@ -23,8 +23,6 @@ import (
 type DetectedWorkflow struct {
 	EntryName    string
 	TriggerEvent string
-	Commit       *git.Commit
-	Ref          string
 	Content      []byte
 }
 
@@ -120,7 +118,6 @@ func DetectWorkflows(commit *git.Commit, triggedEvent webhook_module.HookEventTy
 				dwf := &DetectedWorkflow{
 					EntryName:    entry.Name(),
 					TriggerEvent: evt.Name,
-					Commit:       commit,
 					Content:      content,
 				}
 				workflows = append(workflows, dwf)
