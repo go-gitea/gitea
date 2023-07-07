@@ -37,8 +37,6 @@ test('Test Login Form', async ({page}, workerInfo) => {
   await page.locator('input#password').fill('password');
   await page.locator('form button.ui.green.button:visible').click();
 
-  await page.waitForLoadState();
-
   await expect(page.url()).toBe(`${workerInfo.project.use.baseURL}/`);
 
   await save_visual(page);
