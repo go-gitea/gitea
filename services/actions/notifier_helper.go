@@ -152,7 +152,6 @@ func notify(ctx context.Context, input *notifyInput) error {
 	} else {
 		for _, wf := range workflows {
 			if wf.TriggerEvent != actions_module.GithubEventPullRequestTarget {
-				wf.Ref = ref
 				detectedWorkflows = append(detectedWorkflows, wf)
 			}
 		}
@@ -174,7 +173,6 @@ func notify(ctx context.Context, input *notifyInput) error {
 		} else {
 			for _, wf := range baseWorkflows {
 				if wf.TriggerEvent == actions_module.GithubEventPullRequestTarget {
-					wf.Ref = baseRef
 					detectedWorkflows = append(detectedWorkflows, wf)
 				}
 			}
@@ -212,8 +210,8 @@ func notify(ctx context.Context, input *notifyInput) error {
 			OwnerID:           input.Repo.OwnerID,
 			WorkflowID:        dwf.EntryName,
 			TriggerUserID:     input.Doer.ID,
-			Ref:               dwf.Ref,
-			CommitSHA:         dwf.Commit.ID.String(),
+			Ref:               ref,
+			CommitSHA:         commit.ID.String(),
 			IsForkPullRequest: isForkPullRequest,
 			Event:             input.Event,
 			EventPayload:      string(p),
