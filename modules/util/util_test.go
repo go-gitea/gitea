@@ -225,11 +225,11 @@ func TestToTitleCase(t *testing.T) {
 	assert.Equal(t, ToTitleCase(`FOO BAR BAZ`), `Foo Bar Baz`)
 }
 
-func TestToRef(t *testing.T) {
-	assert.Equal(t, "abc", *ToRef("abc"))
-	assert.Equal(t, 123, *ToRef(123))
+func TestToPointer(t *testing.T) {
+	assert.Equal(t, "abc", *ToPointer("abc"))
+	assert.Equal(t, 123, *ToPointer(123))
 	abc := "abc"
-	assert.False(t, &abc == ToRef(abc))
+	assert.False(t, &abc == ToPointer(abc))
 	val123 := 123
-	assert.False(t, &val123 == ToRef(val123))
+	assert.False(t, &val123 == ToPointer(val123))
 }
