@@ -137,6 +137,23 @@
   --color-pink-dark-2: #c21e7b;
   --color-brown-dark-2: #845232;
   --color-black-dark-2: #161617;
+  /* ansi colors used for actions console and console files */
+  --color-ansi-black: var(--color-black);
+  --color-ansi-red: var(--color-red);
+  --color-ansi-green: var(--color-green);
+  --color-ansi-yellow: var(--color-yellow);
+  --color-ansi-blue: var(--color-blue);
+  --color-ansi-magenta: var(--color-pink);
+  --color-ansi-cyan: var(--color-teal);
+  --color-ansi-white: var(--color-console-fg-subtle);
+  --color-ansi-bright-black: var(--color-black-light);
+  --color-ansi-bright-red: var(--color-red-light);
+  --color-ansi-bright-green: var(--color-green-light);
+  --color-ansi-bright-yellow: var(--color-yellow-light);
+  --color-ansi-bright-blue: var(--color-blue-light);
+  --color-ansi-bright-magenta: var(--color-pink-light);
+  --color-ansi-bright-cyan: var(--color-teal-light);
+  --color-ansi-bright-white: var(--color-console-fg);
   /* other colors */
   --color-grey: #707070;
   --color-grey-light: #838383;
@@ -214,8 +231,8 @@
   --color-placeholder-text: #aaa;
   --color-editor-line-highlight: var(--color-primary-light-6);
   --color-project-board-bg: var(--color-secondary-light-4);
-  --color-project-board-dark-label: #555555;
-  --color-project-board-light-label: #a6aab5;
+  --color-project-board-dark-label: #111111;
+  --color-project-board-light-label: #eeeeee;
   --color-caret: var(--color-text-dark);
   --color-reaction-bg: #0000000a;
   --color-reaction-hover-bg: var(--color-primary-light-5);
@@ -358,16 +375,6 @@ progress::-moz-progress-bar {
   opacity: 1 !important;
 }
 
-.svg {
-  display: inline-block;
-  vertical-align: text-top;
-  fill: currentcolor;
-}
-
-.middle .svg {
-  vertical-align: middle;
-}
-
 .unselectable,
 .button,
 .lines-num,
@@ -448,15 +455,6 @@ a.label,
   background-color: var(--color-markup-code-block);
 }
 
-.ui.divider {
-  color: var(--color-text);
-}
-
-.ui.divider:not(.vertical,.horizontal) {
-  border-top-color: var(--color-secondary) !important;
-  border-bottom: none !important;
-}
-
 .ui.dividing.header {
   border-bottom-color: var(--color-secondary);
 }
@@ -469,6 +467,11 @@ a.label,
 .page-content .new-menu {
   margin-top: -15px !important;
   padding-top: 15px !important;
+}
+
+/* fix Fomantic's line-height cutting off "g" on Windows Chrome with Segoe UI */
+.ui.input > input {
+  line-height: 1.3;
 }
 
 .ui.input.focus > input,
@@ -869,6 +872,31 @@ a.label,
   border-color: var(--color-secondary);
 }
 
+.ui.table > tfoot > tr > th,
+.ui.table > tfoot > tr > td {
+  border-color: var(--color-secondary);
+  background: var(--color-box-body);
+  color: var(--color-text);
+}
+
+/* reduce table padding, needed especially for dense admin tables */
+.ui.table > thead > tr > th,
+.ui.table > tbody > tr > td,
+.ui.table > tr > td {
+  padding: 6px 3px;
+}
+/* use more horizontal padding on first and last items for visuals */
+.ui.table > thead > tr > th:first-of-type,
+.ui.table > tbody > tr > td:first-of-type,
+.ui.table > tr > td:first-of-type {
+  padding-left: 10px;
+}
+.ui.table > thead > tr > th:last-of-type,
+.ui.table > tbody > tr > td:last-of-type,
+.ui.table > tr > td:last-of-type {
+  padding-right: 10px;
+}
+
 img.ui.avatar,
 .ui.avatar img,
 .ui.avatar svg {
@@ -928,102 +956,6 @@ img.ui.avatar,
   .ui.container.fluid.padded {
     padding: 0 8px;
   }
-}
-
-#navbar {
-  display: flex;
-  align-items: center;
-  background: var(--color-nav-bg);
-  border-bottom: 1px solid var(--color-secondary);
-  min-height: 52px;
-  margin: 0 !important;
-}
-
-#navbar a.item:hover {
-  background: var(--color-nav-hover-bg);
-}
-
-#navbar .navbar-mobile-right {
-  margin-left: auto;
-}
-
-#navbar .navbar-mobile-right a.item:hover {
-  background: transparent;
-}
-
-#navbar .secondary.menu > .item > .svg,
-#navbar .right.menu > .item > .svg {
-  margin-right: 0;
-}
-
-@media (max-width: 767.98px) {
-  /* hide all items */
-  #navbar .item {
-    display: none;
-  }
-  /* show the first navbar item (logo and its mobile right items) */
-  #navbar > .item:first-child {
-    display: flex;
-    padding-top: 5px;
-    padding-bottom: 5px;
-  }
-  #navbar .navbar-mobile-right > .item {
-    display: flex;
-  }
-  /* show items if the navbar is open */
-  #navbar.navbar-menu-open .item {
-    display: flex;
-  }
-  #navbar.navbar-menu-open > .item:first-child {
-    padding-bottom: 0;
-  }
-}
-
-@media (min-width: 767.98px) {
-  #navbar .navbar-mobile-right,
-  #navbar .mobile-only {
-    display: none;
-  }
-  #navbar .right.menu {
-    padding-right: 1em;
-  }
-}
-
-#navbar .navbar-mobile-right .item {
-  width: auto !important;
-}
-
-#navbar a.item .notification_count {
-  color: var(--color-nav-bg);
-  padding: 0 3.75px;
-  font-size: 12px;
-  line-height: 12px;
-  font-weight: var(--font-weight-bold);
-}
-
-#navbar a.item:hover .notification_count,
-#navbar a.item:hover .header-stopwatch-dot {
-  border-color: var(--color-nav-hover-bg);
-}
-
-#navbar a.item .notification_count,
-#navbar a.item .header-stopwatch-dot {
-  background: var(--color-primary);
-  border: 2px solid var(--color-nav-bg);
-  position: absolute;
-  left: 6px;
-  top: -9px;
-  min-width: 17px;
-  min-height: 17px;
-  border-radius: 17px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-#navbar .right.menu {
-  width: 100%;
-  justify-content: flex-end;
 }
 
 .ui.pagination.menu .active.item {
@@ -1701,6 +1633,7 @@ i.icon.centerlock {
 
 .ui.label {
   padding: 0.3em 0.5em;
+  transition: none;
 }
 
 .ui.label,
@@ -2132,11 +2065,6 @@ table th[data-sortt-desc] .svg {
   border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
-.ui.dropdown .menu > .divider {
-  border-top: 1px solid var(--color-secondary);
-  margin: 4px 0;
-}
-
 .ui.multiple.dropdown > .label {
   box-shadow: 0 0 0 1px var(--color-secondary) inset;
 }
@@ -2250,7 +2178,7 @@ table th[data-sortt-desc] .svg {
 }
 
 .truncated-item-name {
-  line-height: 2em;
+  line-height: 2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2272,7 +2200,7 @@ table th[data-sortt-desc] .svg {
 }
 
 .ui.dropdown {
-  line-height: 1em; /* the dropdown doesn't have default line-height, use this to make the dropdown icon align with plain dropdown */
+  line-height: 1; /* the dropdown doesn't have default line-height, use this to make the dropdown icon align with plain dropdown */
 }
 
 /* dropdown has some kinds of icons:
@@ -2280,6 +2208,17 @@ table th[data-sortt-desc] .svg {
 - "> .remove.icon": the "x" icon for clearing the dropdown, only used in selection dropdown
 - "> .ui.label > .delete.icon": the "x" icon for removing a label item in multiple selection dropdown
 */
+
+.ui.dropdown.mini.button,
+.ui.dropdown.tiny.button {
+  padding-right: 20px;
+}
+.ui.dropdown.button {
+  padding-right: 22px;
+}
+.ui.dropdown.large.button {
+  padding-right: 24px;
+}
 
 /* Gitea uses SVG images instead of Fomantic builtin "<i>" font icons, so we need to reset the icon styles */
 .ui.ui.dropdown > .icon.icon {

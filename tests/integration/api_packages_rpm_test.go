@@ -219,7 +219,7 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`, user.Name, user.Name, setting.AppN
 			assert.Contains(t, resp.Body.String(), "-----BEGIN PGP SIGNATURE-----")
 		})
 
-		decodeGzipXML := func(t testing.TB, resp *httptest.ResponseRecorder, v interface{}) {
+		decodeGzipXML := func(t testing.TB, resp *httptest.ResponseRecorder, v any) {
 			t.Helper()
 
 			zr, err := gzip.NewReader(resp.Body)

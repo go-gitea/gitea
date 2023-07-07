@@ -44,6 +44,7 @@ var CmdServ = cli.Command{
 	Name:        "serv",
 	Usage:       "This command should only be called by SSH shell",
 	Description: "Serv provides access auth for repositories",
+	Before:      PrepareConsoleLoggerLevel(log.FATAL),
 	Action:      runServ,
 	Flags: []cli.Flag{
 		cli.BoolFlag{
@@ -61,7 +62,7 @@ func setup(ctx context.Context, debug bool) {
 	} else {
 		setupConsoleLogger(log.FATAL, false, os.Stderr)
 	}
-	setting.Init(&setting.Options{})
+	setting.MustInstalled()
 	if debug {
 		setting.RunMode = "dev"
 	}
@@ -94,7 +95,7 @@ var (
 
 // fail prints message to stdout, it's mainly used for git serv and git hook commands.
 // The output will be passed to git client and shown to user.
-func fail(ctx context.Context, userMessage, logMsgFmt string, args ...interface{}) error {
+func fail(ctx context.Context, userMessage, logMsgFmt string, args ...any) error {
 	if userMessage == "" {
 		userMessage = "Internal Server Error (no specific error)"
 	}

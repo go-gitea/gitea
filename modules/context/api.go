@@ -108,7 +108,7 @@ func (ctx *APIContext) ServerError(title string, err error) {
 
 // Error responds with an error message to client with given obj as the message.
 // If status is 500, also it prints error to log.
-func (ctx *APIContext) Error(status int, title string, obj interface{}) {
+func (ctx *APIContext) Error(status int, title string, obj any) {
 	var message string
 	if err, ok := obj.(error); ok {
 		message = err.Error()
@@ -265,7 +265,7 @@ func APIContexter() func(http.Handler) http.Handler {
 
 // NotFound handles 404s for APIContext
 // String will replace message, errors will be added to a slice
-func (ctx *APIContext) NotFound(objs ...interface{}) {
+func (ctx *APIContext) NotFound(objs ...any) {
 	message := ctx.Tr("error.not_found")
 	var errors []string
 	for _, obj := range objs {
@@ -281,7 +281,7 @@ func (ctx *APIContext) NotFound(objs ...interface{}) {
 		}
 	}
 
-	ctx.JSON(http.StatusNotFound, map[string]interface{}{
+	ctx.JSON(http.StatusNotFound, map[string]any{
 		"message": message,
 		"url":     setting.API.SwaggerURL,
 		"errors":  errors,

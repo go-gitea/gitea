@@ -50,7 +50,7 @@ rules:
   declaration-no-important: null
   declaration-property-max-values: null
   declaration-property-unit-allowed-list: null
-  declaration-property-unit-disallowed-list: null
+  declaration-property-unit-disallowed-list: {line-height: [em]}
   declaration-property-value-allowed-list: null
   declaration-property-value-disallowed-list: null
   declaration-property-value-no-unknown: true

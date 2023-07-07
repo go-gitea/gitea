@@ -111,6 +111,19 @@ func TestDbfsBasic(t *testing.T) {
 
 	_, err = OpenFile(db.DefaultContext, "test2.txt", os.O_RDONLY)
 	assert.Error(t, err)
+
+	// test stat
+	f, err = OpenFile(db.DefaultContext, "test/test.txt", os.O_RDWR|os.O_CREATE)
+	assert.NoError(t, err)
+	stat, err := f.Stat()
+	assert.NoError(t, err)
+	assert.EqualValues(t, "test.txt", stat.Name())
+	assert.EqualValues(t, 0, stat.Size())
+	_, err = f.Write([]byte("0123456789"))
+	assert.NoError(t, err)
+	stat, err = f.Stat()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 10, stat.Size())
 }
 
 func TestDbfsReadWrite(t *testing.T) {

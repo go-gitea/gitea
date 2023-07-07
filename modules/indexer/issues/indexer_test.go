@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/indexer/issues/bleve"
 	"code.gitea.io/gitea/modules/setting"
 
 	_ "code.gitea.io/gitea/models"
@@ -42,27 +43,26 @@ func TestBleveSearchIssues(t *testing.T) {
 	setting.LoadQueueSettings()
 	InitIssueIndexer(true)
 	defer func() {
-		indexer := holder.get()
-		if bleveIndexer, ok := indexer.(*BleveIndexer); ok {
+		if bleveIndexer, ok := (*globalIndexer.Load()).(*bleve.Indexer); ok {
 			bleveIndexer.Close()
 		}
 	}()
 
 	time.Sleep(5 * time.Second)
 
-	ids, err := SearchIssuesByKeyword(context.TODO(), []int64{1}, "issue2")
+	ids, err := SearchIssuesByKeyword(context.TODO(), []int64{1}, "issue2", "")
 	assert.NoError(t, err)
 	assert.EqualValues(t, []int64{2}, ids)
 
-	ids, err = SearchIssuesByKeyword(context.TODO(), []int64{1}, "first")
+	ids, err = SearchIssuesByKeyword(context.TODO(), []int64{1}, "first", "")
 	assert.NoError(t, err)
 	assert.EqualValues(t, []int64{1}, ids)
 
-	ids, err = SearchIssuesByKeyword(context.TODO(), []int64{1}, "for")
+	ids, err = SearchIssuesByKeyword(context.TODO(), []int64{1}, "for", "")
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, []int64{1, 2, 3, 5, 11}, ids)
 
-	ids, err = SearchIssuesByKeyword(context.TODO(), []int64{1}, "good")
+	ids, err = SearchIssuesByKeyword(context.TODO(), []int64{1}, "good", "")
 	assert.NoError(t, err)
 	assert.EqualValues(t, []int64{1}, ids)
 }
@@ -73,19 +73,19 @@ func TestDBSearchIssues(t *testing.T) {
 	setting.Indexer.IssueType = "db"
 	InitIssueIndexer(true)
 
-	ids, err := SearchIssuesByKeyword(context.TODO(), []int64{1}, "issue2")
+	ids, err := SearchIssuesByKeyword(context.TODO(), []int64{1}, "issue2", "")
 	assert.NoError(t, err)
 	assert.EqualValues(t, []int64{2}, ids)
 
-	ids, err = SearchIssuesByKeyword(context.TODO(), []int64{1}, "first")
+	ids, err = SearchIssuesByKeyword(context.TODO(), []int64{1}, "first", "")
 	assert.NoError(t, err)
 	assert.EqualValues(t, []int64{1}, ids)
 
-	ids, err = SearchIssuesByKeyword(context.TODO(), []int64{1}, "for")
+	ids, err = SearchIssuesByKeyword(context.TODO(), []int64{1}, "for", "")
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, []int64{1, 2, 3, 5, 11}, ids)
 
-	ids, err = SearchIssuesByKeyword(context.TODO(), []int64{1}, "good")
+	ids, err = SearchIssuesByKeyword(context.TODO(), []int64{1}, "good", "")
 	assert.NoError(t, err)
 	assert.EqualValues(t, []int64{1}, ids)
 }

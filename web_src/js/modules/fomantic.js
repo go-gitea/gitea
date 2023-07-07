@@ -1,7 +1,10 @@
 import $ from 'jquery';
 import {initAriaCheckboxPatch} from './aria/checkbox.js';
 import {initAriaDropdownPatch} from './aria/dropdown.js';
+import {initAriaModalPatch} from './aria/modal.js';
 import {svg} from '../svg.js';
+
+export const fomanticMobileScreen = window.matchMedia('only screen and (max-width: 767.98px)');
 
 export function initGiteaFomantic() {
   // Silence fomantic's error logging when tabs are used without a target content element
@@ -24,6 +27,7 @@ export function initGiteaFomantic() {
   // Use the patches to improve accessibility, these patches are designed to be as independent as possible, make it easy to modify or remove in the future.
   initAriaCheckboxPatch();
   initAriaDropdownPatch();
+  initAriaModalPatch();
 }
 
 function initFomanticApiPatch() {

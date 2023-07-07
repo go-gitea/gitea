@@ -161,7 +161,7 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 	},
 }
 
-func fatal(format string, args ...interface{}) {
+func fatal(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, format+"\n", args...)
 	log.Fatal(format, args...)
 }
@@ -182,7 +182,7 @@ func runDump(ctx *cli.Context) error {
 		}
 		fileName += "." + outType
 	}
-	setting.Init(&setting.Options{})
+	setting.MustInstalled()
 
 	// make sure we are logging to the console no matter what the configuration tells us do to
 	// FIXME: don't use CfgProvider directly
@@ -236,7 +236,7 @@ func runDump(ctx *cli.Context) error {
 		return err
 	}
 
-	var iface interface{}
+	var iface any
 	if fileName == "-" {
 		iface, err = archiver.ByExtension(fmt.Sprintf(".%s", outType))
 	} else {

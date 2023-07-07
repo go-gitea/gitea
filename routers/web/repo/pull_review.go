@@ -28,6 +28,9 @@ const (
 // RenderNewCodeCommentForm will render the form for creating a new review comment
 func RenderNewCodeCommentForm(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
+	if ctx.Written() {
+		return
+	}
 	if !issue.IsPull {
 		return
 	}
@@ -52,10 +55,10 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 func CreateCodeComment(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CodeCommentForm)
 	issue := GetActionIssue(ctx)
-	if !issue.IsPull {
+	if ctx.Written() {
 		return
 	}
-	if ctx.Written() {
+	if !issue.IsPull {
 		return
 	}
 
@@ -153,13 +156,13 @@ func UpdateResolveConversation(ctx *context.Context) {
 		renderConversation(ctx, comment)
 		return
 	}
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"ok": true,
 	})
 }
 
 func renderConversation(ctx *context.Context, comment *issues_model.Comment) {
-	comments, err := issues_model.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line)
+	comments, err := issues_model.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line, ctx.Data["ShowOutdatedComments"].(bool))
 	if err != nil {
 		ctx.ServerError("FetchCodeCommentsByLine", err)
 		return
@@ -185,10 +188,10 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment) {
 func SubmitReview(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.SubmitReviewForm)
 	issue := GetActionIssue(ctx)
-	if !issue.IsPull {
+	if ctx.Written() {
 		return
 	}
-	if ctx.Written() {
+	if !issue.IsPull {
 		return
 	}
 	if ctx.HasError() {

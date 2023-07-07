@@ -37,17 +37,19 @@ func FixturesDir() string {
 	return fixturesDir
 }
 
-func fatalTestError(fmtStr string, args ...interface{}) {
+func fatalTestError(fmtStr string, args ...any) {
 	_, _ = fmt.Fprintf(os.Stderr, fmtStr, args...)
 	os.Exit(1)
 }
 
-// InitSettings initializes config provider and load common setttings for tests
+// InitSettings initializes config provider and load common settings for tests
 func InitSettings(extraConfigs ...string) {
-	setting.Init(&setting.Options{
-		AllowEmpty:  true,
-		ExtraConfig: strings.Join(extraConfigs, "\n"),
-	})
+	if setting.CustomConf == "" {
+		setting.CustomConf = filepath.Join(setting.CustomPath, "conf/app-unittest-tmp.ini")
+		_ = os.Remove(setting.CustomConf)
+	}
+	setting.InitCfgProvider(setting.CustomConf, strings.Join(extraConfigs, "\n"))
+	setting.LoadCommonSettings()
 
 	if err := setting.PrepareAppDataPath(); err != nil {
 		log.Fatalf("Can not prepare APP_DATA_PATH: %v", err)
@@ -69,7 +71,7 @@ type TestOptions struct {
 // MainTest a reusable TestMain(..) function for unit tests that need to use a
 // test database. Creates the test database, and sets necessary settings.
 func MainTest(m *testing.M, testOpts *TestOptions) {
-	setting.SetCustomPathAndConf("", "", "")
+	setting.CustomPath = filepath.Join(testOpts.GiteaRootPath, "custom")
 	InitSettings()
 
 	var err error

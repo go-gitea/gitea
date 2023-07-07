@@ -138,10 +138,6 @@
   background-color: var(--color-header-wrapper);
 }
 
-.repository .header-wrapper .ui.tabs.divider {
-  border-bottom: 0;
-}
-
 .repository .header-wrapper .ui.tabular .svg {
   margin-right: 5px;
 }
@@ -281,7 +277,8 @@
 }
 
 .repository.file.list #repo-files-table tbody .svg.octicon-file,
-.repository.file.list #repo-files-table tbody .svg.octicon-file-symlink-file {
+.repository.file.list #repo-files-table tbody .svg.octicon-file-symlink-file,
+.repository.file.list #repo-files-table tbody .svg.octicon-file-directory-symlink {
   color: var(--color-secondary-dark-7);
 }
 
@@ -477,7 +474,7 @@
 }
 
 .repository.file.list .non-diff-file-content .asciicast {
-  padding: 5px !important;
+  padding: 0 !important;
 }
 
 .non-diff-file-content .attached.segment,
@@ -590,6 +587,7 @@
 
 .repository.options .danger .ui.divider {
   margin: 0;
+  border-color: var(--color-error-border);
 }
 
 .repository.new.issue .comment.form .comment .avatar {
@@ -657,8 +655,25 @@
   .repository.view.issue .issue-title {
     flex-direction: column;
   }
+  .repository.view.issue .issue-title-buttons,
+  .repository.view.issue .edit-buttons {
+    width: 100%;
+    justify-content: space-between;
+  }
   .repository.view.issue .edit-buttons {
     margin-top: .5rem;
+  }
+  .comment.form .issue-content-left .avatar {
+    display: none;
+  }
+  .comment.form .issue-content-left .content {
+    margin-left: 0 !important;
+  }
+  .comment.form .issue-content-left .content::before,
+  .comment.form .issue-content-left .content::after,
+  .comment.form .content .form::before,
+  .comment.form .content .form::after {
+    display: none;
   }
 }
 
@@ -1011,7 +1026,7 @@
 
 .repository.view.issue .comment-list .comment .merge-section .divider {
   margin-left: -1rem;
-  margin-right: -1rem;
+  width: calc(100% + 2rem);
 }
 
 .repository.view.issue .comment-list .comment .merge-section.no-header::before,
@@ -1199,7 +1214,14 @@
   text-align: left;
 }
 
-.repository.compare.pull .choose.branch .svg {
+.repository .choose.branch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.repository .choose.branch .svg {
   margin-right: 10px;
 }
 
@@ -1291,10 +1313,9 @@
   padding: 5px 10px;
 }
 
-.repository #commits-table thead th:first-of-type {
-  padding-left: 15px;
+.repository #commits-table td:not(.message) {
+  white-space: nowrap;
 }
-
 .repository #commits-table thead .sha {
   width: 200px;
 }
@@ -1559,7 +1580,6 @@
 .repository .diff-detail-box {
   padding: 7px 0;
   background: var(--color-body);
-  line-height: 30px;
 }
 
 @media (max-width: 991.98px) {
@@ -1666,8 +1686,9 @@
   background-color: var(--color-teal);
 }
 
-.repository .diff-detail-box .button {
-  padding: 8px 12px;
+.repository .diff-detail-box .ui.button {
+  padding: 0 12px;
+  height: 30px;
 }
 
 .repository .diff-box .header:not(.resolved-placeholder) {
@@ -1701,6 +1722,10 @@
 .repository .diff-box .resolved-placeholder {
   display: flex;
   align-items: center;
+  font-size: 14px !important;
+  height: 36px;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .repository .diff-box .resolved-placeholder .button {
@@ -1725,10 +1750,6 @@
 .repository .diff-file-box .file-body.file-code .lines-num span.fold {
   display: block;
   text-align: center;
-}
-
-.repository .diff-file-box .code-diff {
-  font-size: 12px;
 }
 
 .repository .diff-file-box .code-diff td {
@@ -1876,63 +1897,19 @@
   flex: 1
 }
 
-.repository.packages .empty {
+.repository.packages .empty,
+.repository.actions .empty {
   padding-top: 70px;
   padding-bottom: 100px;
-}
-
-.repository.packages .empty .svg {
-  height: 48px;
 }
 
 .repository.packages .file-size {
   white-space: nowrap;
 }
 
-.repository.wiki.start .ui.segment {
-  padding-top: 70px;
-  padding-bottom: 100px;
-}
-
-.repository.wiki.start .ui.segment .svg {
-  height: 48px;
-}
-
-.repository.wiki.new .ui.attached.tabular.menu.previewtabs {
-  margin-bottom: 15px;
-}
-
 .file-view.markup {
   padding: 1em 2em;
 }
-
-.wiki-content-main {
-  padding: 1em 2em !important;
-  margin-left: 1em !important;
-}
-
-.wiki-pages-list .wiki-git-entry {
-  margin-left: 10px;
-  display: none;
-}
-
-.wiki-pages-list td:hover .wiki-git-entry {
-  display: inline-block;
-}
-
-@media (max-width: 767.98px) {
-  .repository.wiki .dividing.header .stackable.grid .button {
-    margin-top: 2px;
-    margin-bottom: 2px;
-  }
-}
-
-@media (max-width: 767.98px) {
-  .repository.wiki #clone-panel #repo-clone-url {
-    width: 160px;
-  }
-}
-
 .repository .activity-header {
   display: flex;
   justify-content: space-between;
@@ -1946,11 +1923,7 @@
 
 .repository.settings.collaboration .collaborator.list > .item {
   margin: 0;
-  line-height: 2em;
-}
-
-.repository.settings.collaboration .collaborator.list > .item:not(:last-child) {
-  border-bottom: 1px solid var(--color-secondary);
+  line-height: 2;
 }
 
 .repository.settings.collaboration #repo-collab-form #search-user-box .results {
@@ -2086,12 +2059,15 @@
 .repository .ui.segment.sub-menu .list {
   width: 100%;
   display: flex;
-  align-items: center;
+  align-items: stretch;
 }
 
 .repository .ui.segment.sub-menu .list .item {
   width: 100%;
   color: var(--color-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .repository .ui.segment.sub-menu .list .item:first-of-type {
@@ -2408,10 +2384,6 @@
   color: var(--color-text-light-2);
 }
 
-.settings .list.email > .item:not(:first-child) {
-  min-height: 60px;
-}
-
 .settings .list.collaborator > .item {
   padding: 0;
 }
@@ -2497,14 +2469,17 @@
   left: 7px;
 }
 
-.comment-header .actions a {
-  margin-right: 0 !important;
+.comment-header .actions a:not(.label) {
   padding: 0.5rem !important;
 }
 
-.comment-header-left > * + *,
-.comment-header-right > * + * {
-  margin-left: 0.25rem;
+.comment-header .actions .label {
+  margin: 0 !important;
+}
+
+.comment-header-left,
+.comment-header-right {
+  gap: 4px;
 }
 
 .comment-body {
@@ -2645,7 +2620,7 @@
 .labels-list .label {
   margin: 2px 0;
   display: inline-flex !important;
-  line-height: 1.3em; /* there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly */
+  line-height: 1.3; /* there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly */
 }
 
 /* Scoped labels with different colors on left and right */
@@ -2708,6 +2683,7 @@ tbody.commit-list {
 /* in the commit list, messages can wrap so we can use inline */
 .commit-list .message-wrapper {
   display: inline;
+  overflow-wrap: anywhere;
 }
 
 /* but in the repo-files-table we cannot */
@@ -2991,22 +2967,6 @@ tbody.commit-list {
   flex-direction: column;
 }
 
-.wiki-content-sidebar .ui.message.unicode-escape-prompt p,
-.wiki-content-footer .ui.message.unicode-escape-prompt p {
-  display: none;
-}
-
-.wiki-content-toc ul {
-  margin: 0;
-  list-style: none;
-  padding: 5px 0 5px 1em;
-}
-
-.wiki-content-toc ul ul {
-  border-left:  1px var(--color-secondary);
-  border-left-style: dashed;
-}
-
 /* fomantic's last-child selector does not work with hidden last child */
 .ui.buttons .unescape-button {
   border-top-right-radius: 0.28571429rem;
@@ -3160,16 +3120,43 @@ tbody.commit-list {
   }
 }
 
-.repository.migrate .card {
+.migrate-entries {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 25px;
+  margin: 0 !important;
+}
+
+@media (max-width: 767.98px) {
+  .migrate-entries {
+    grid-template-columns: repeat(1, 1fr);
+  }
+}
+
+.migrate-entry {
   transition: all 0.1s ease-in-out;
   box-shadow: none !important;
   border: 1px solid var(--color-secondary);
-  color: var(--color-text);
+  color: var(--color-text) !important;
+  width: auto !important;
+  margin: 0 !important;
 }
 
-.repository.migrate .card:hover {
+.migrate-entry:hover {
   transform: scale(105%);
   box-shadow: 0 0.5rem 1rem var(--color-shadow) !important;
+}
+
+.migrate-entry .description {
+  text-wrap: balance;
+}
+
+.commits-table .commits-table-right form {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 @media (max-width: 767.98px) {
@@ -3241,21 +3228,14 @@ tbody.commit-list {
     align-items: initial !important;
     margin-bottom: 6px;
   }
-  .commits-table .commits-table-right form {
-    display: flex;
-    flex-wrap: wrap;
-  }
   .commits-table .commits-table-right form > div:nth-child(1) {
-    order: 1;
+    order: 1; /* the "commit search" input */
   }
   .commits-table .commits-table-right form > div:nth-child(2) {
-    order: 3;
-    margin-left: 0.5rem;
-    margin-top: 0.5rem;
+    order: 3; /* the "search all" checkbox */
   }
   .commits-table .commits-table-right form > button:nth-child(3) {
-    order: 2;
-    margin-left: 0.25rem;
+    order: 2; /* the "search" button */
   }
   .commit-table {
     overflow-x: auto;
@@ -3263,17 +3243,6 @@ tbody.commit-list {
   .commit-table td.sha,
   .commit-table th.sha {
     display: none !important;
-  }
-  .commit-table .commit-list span.message-wrapper {
-    max-width: none;
-  }
-  .commit-table .commit-list tr td:last-child {
-    display: block;
-    width: max-content;
-  }
-  .commit-table .commit-list td.author {
-    display: block;
-    width: calc(100% + 0.5rem);
   }
   .commit-table .commit-list .copy-commit-sha {
     display: none !important;

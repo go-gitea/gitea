@@ -90,10 +90,11 @@ func (w *testLoggerWriterCloser) Reset() {
 
 // PrintCurrentTest prints the current test to os.Stdout
 func PrintCurrentTest(t testing.TB, skip ...int) func() {
+	t.Helper()
 	start := time.Now()
 	actualSkip := 1
 	if len(skip) > 0 {
-		actualSkip = skip[0]
+		actualSkip = skip[0] + 1
 	}
 	_, filename, line, _ := runtime.Caller(actualSkip)
 
@@ -136,7 +137,7 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 }
 
 // Printf takes a format and args and prints the string to os.Stdout
-func Printf(format string, args ...interface{}) {
+func Printf(format string, args ...any) {
 	if log.CanColorStdout {
 		for i := 0; i < len(args); i++ {
 			args[i] = log.NewColoredValue(args[i])
