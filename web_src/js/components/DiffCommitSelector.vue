@@ -102,7 +102,6 @@ export default {
   }
 };
 </script>
-
 <style scoped>
   .selected {
     background-color: var(--color-secondary-active) !important;
