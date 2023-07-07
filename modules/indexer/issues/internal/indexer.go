@@ -15,7 +15,7 @@ type Indexer interface {
 	internal.Indexer
 	Index(ctx context.Context, issue []*IndexerData) error
 	Delete(ctx context.Context, ids ...int64) error
-	Search(ctx context.Context, kw string, repoIDs []int64, limit, start int) (*SearchResult, error)
+	Search(ctx context.Context, kw string, repoIDs []int64, limit, start int, state string) (*SearchResult, error)
 }
 
 // NewDummyIndexer returns a dummy indexer
@@ -37,6 +37,6 @@ func (d *dummyIndexer) Delete(ctx context.Context, ids ...int64) error {
 	return fmt.Errorf("indexer is not ready")
 }
 
-func (d *dummyIndexer) Search(ctx context.Context, kw string, repoIDs []int64, limit, start int) (*SearchResult, error) {
+func (d *dummyIndexer) Search(ctx context.Context, kw string, repoIDs []int64, limit, start int, state string) (*SearchResult, error) {
 	return nil, fmt.Errorf("indexer is not ready")
 }
