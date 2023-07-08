@@ -53,7 +53,7 @@
 		</div>
 		{{end}}
 		{{if .Repository.IsArchived}}
-			<div class="ui warning message">
+			<div class="ui warning message gt-text-center">
 				{{if .Repository.ArchivedUnix.IsZero}}
 					{{.locale.Tr "repo.archive.title"}}
 				{{else}}
