@@ -3,6 +3,7 @@
 	{{template "repo/header" .}}
 	<div class="ui container {{if .IsBlame}}fluid padded{{end}}">
 		{{template "base/alert" .}}
+		{{template "repo/code/recently_pushed_new_branches" .}}
 		{{if and (not .HideRepoInfo) (not .IsBlame)}}
 		<div class="ui repo-description">
 			<div id="repo-desc">
@@ -83,7 +84,7 @@
 					<a href="{{.Repository.Link}}/find/{{.BranchNameSubURL}}" class="ui compact basic button">{{.locale.Tr "repo.find_file.go_to_file"}}</a>
 				{{end}}
 
-				{{if and .CanWriteCode .IsViewBranch (not .Repository.IsArchived) (not .IsViewFile)}}
+				{{if and .CanWriteCode .IsViewBranch (not .Repository.IsMirror) (not .Repository.IsArchived) (not .IsViewFile)}}
 					<button class="ui dropdown basic compact jump button gt-mr-2"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
 						{{.locale.Tr "repo.editor.add_file"}}
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
