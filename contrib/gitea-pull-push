@@ -1,0 +1,8 @@
+#!/bin/bash
+user=$(echo $1 | cut -d ':' -f 1)
+branch=$(echo $1 | cut -d ':' -f 2)
+
+repo=$2
+[ -z "$repo" ] && repo=gitea
+
+git push git@github.com:$user/$repo.git $branch:$branch $3 $4
