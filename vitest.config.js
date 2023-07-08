@@ -1,5 +1,5 @@
-import {defineConfig} from 'vitest/dist/config.js';
-import vue from '@vitejs/plugin-vue';
+import {defineConfig} from 'vitest/config';
+import vuePlugin from '@vitejs/plugin-vue';
 import {stringPlugin} from 'vite-string-plugin';
 
 export default defineConfig({
@@ -12,10 +12,9 @@ export default defineConfig({
     allowOnly: true,
     passWithNoTests: true,
     watch: false,
-    outputDiffLines: Infinity,
   },
   plugins: [
     stringPlugin(),
-    vue(),
+    vuePlugin(),
   ],
 });
