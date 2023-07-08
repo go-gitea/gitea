@@ -55,7 +55,6 @@
   "devDependencies": {
     "@eslint-community/eslint-plugin-eslint-comments": "3.2.1",
     "@playwright/test": "1.35.1",
-    "@rollup/pluginutils": "5.0.2",
     "@stoplight/spectral-cli": "6.8.0",
     "@vitejs/plugin-vue": "4.2.3",
     "eslint": "8.43.0",
@@ -79,6 +78,7 @@
     "stylelint-stylistic": "0.4.2",
     "svgo": "3.0.2",
     "updates": "14.2.8",
+    "vite-string-plugin": "1.1.0",
     "vitest": "0.32.2"
   },
   "browserslist": [
