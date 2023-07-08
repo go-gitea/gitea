@@ -11,12 +11,12 @@
 							<a class="ui green basic button link-action" href data-url="{{$.RepoLink}}/milestones/{{.MilestoneID}}/open">{{$.locale.Tr "repo.milestones.open"}}
 							</a>
 						{{else}}
-							<a class="ui red basic button link-action" href data-url="{{$.RepoLink}}/milestones/{{.MilestoneID}}/close">{{$.locale.Tr "repo.milestones.close"}}
+							<a class="ui compact small red basic button link-action" href data-url="{{$.RepoLink}}/milestones/{{.MilestoneID}}/close">{{$.locale.Tr "repo.milestones.close"}}
 							</a>
 						{{end}}
-						<a class="ui button" href="{{.RepoLink}}/milestones/{{.MilestoneID}}/edit">{{.locale.Tr "repo.milestones.edit"}}</a>
+						<a class="ui compact small button basic" href="{{.RepoLink}}/milestones/{{.MilestoneID}}/edit">{{.locale.Tr "repo.milestones.edit"}}</a>
 					{{end}}
-					<a class="ui primary button" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}?milestone={{.MilestoneID}}">{{.locale.Tr "repo.issues.new"}}</a>
+					<a class="ui compact small primary button" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}?milestone={{.MilestoneID}}">{{.locale.Tr "repo.issues.new"}}</a>
 				</div>
 			{{end}}
 		</div>
@@ -50,7 +50,7 @@
 		</div>
 		<div class="divider"></div>
 
-		<div id="issue-filters" class="issue-list-toolbar">
+		<div id="issue-filters" class="issue-list-toolbar milestone">
 			<div class="issue-list-toolbar-left">
 				{{template "repo/issue/openclose" .}}
 			</div>

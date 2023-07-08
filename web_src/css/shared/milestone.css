@@ -59,4 +59,15 @@
     flex-direction: column;
     gap: 8px;
   }
+
+  .issue-list-toolbar.milestone {
+    flex-direction: column;
+  }
+
+  .milestone > .issue-list-toolbar-right > .labels > .item {
+    flex-direction: row;
+    display: flex;
+    flex-wrap: wrap;
+    max-width: fit-content;
+  }
 }
