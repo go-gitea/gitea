@@ -129,12 +129,22 @@ func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
 
 	baseRef := ""
 	headRef := ""
+	ref := t.Job.Run.Ref
+	sha := t.Job.Run.CommitSHA
 	if pullPayload, err := t.Job.Run.GetPullRequestEventPayload(); err == nil && pullPayload.PullRequest != nil && pullPayload.PullRequest.Base != nil && pullPayload.PullRequest.Head != nil {
 		baseRef = pullPayload.PullRequest.Base.Ref
 		headRef = pullPayload.PullRequest.Head.Ref
+
+		// if the TriggerEvent is pull_request_target, ref and sha need to be set according to the base of pull request
+		// In GitHub's documentation, ref should be the branch or tag that triggered workflow. But when the TriggerEvent is pull_request_target,
+		// the ref will be the base branch.
+		if t.Job.Run.TriggerEvent == actions_module.GithubEventPullRequestTarget {
+			ref = git.BranchPrefix + pullPayload.PullRequest.Base.Name
+			sha = pullPayload.PullRequest.Base.Sha
+		}
 	}
 
-	refName := git.RefName(t.Job.Run.Ref)
+	refName := git.RefName(ref)
 
 	taskContext, err := structpb.NewStruct(map[string]any{
 		// standard contexts, see https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
@@ -153,7 +163,7 @@ func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
 		"graphql_url":       "",                                                   // string, The URL of the GitHub GraphQL API.
 		"head_ref":          headRef,                                              // string, The head_ref or source branch of the pull request in a workflow run. This property is only available when the event that triggers a workflow run is either pull_request or pull_request_target.
 		"job":               fmt.Sprint(t.JobID),                                  // string, The job_id of the current job.
-		"ref":               t.Job.Run.Ref,                                        // string, The fully-formed ref of the branch or tag that triggered the workflow run. For workflows triggered by push, this is the branch or tag ref that was pushed. For workflows triggered by pull_request, this is the pull request merge branch. For workflows triggered by release, this is the release tag created. For other triggers, this is the branch or tag ref that triggered the workflow run. This is only set if a branch or tag is available for the event type. The ref given is fully-formed, meaning that for branches the format is refs/heads/<branch_name>, for pull requests it is refs/pull/<pr_number>/merge, and for tags it is refs/tags/<tag_name>. For example, refs/heads/feature-branch-1.
+		"ref":               ref,                                                  // string, The fully-formed ref of the branch or tag that triggered the workflow run. For workflows triggered by push, this is the branch or tag ref that was pushed. For workflows triggered by pull_request, this is the pull request merge branch. For workflows triggered by release, this is the release tag created. For other triggers, this is the branch or tag ref that triggered the workflow run. This is only set if a branch or tag is available for the event type. The ref given is fully-formed, meaning that for branches the format is refs/heads/<branch_name>, for pull requests it is refs/pull/<pr_number>/merge, and for tags it is refs/tags/<tag_name>. For example, refs/heads/feature-branch-1.
 		"ref_name":          refName.ShortName(),                                  // string, The short ref name of the branch or tag that triggered the workflow run. This value matches the branch or tag name shown on GitHub. For example, feature-branch-1.
 		"ref_protected":     false,                                                // boolean, true if branch protections are configured for the ref that triggered the workflow run.
 		"ref_type":          refName.RefType(),                                    // string, The type of ref that triggered the workflow run. Valid values are branch or tag.
@@ -167,7 +177,7 @@ func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
 		"run_attempt":       fmt.Sprint(t.Job.Attempt),                            // string, A unique number for each attempt of a particular workflow run in a repository. This number begins at 1 for the workflow run's first attempt, and increments with each re-run.
 		"secret_source":     "Actions",                                            // string, The source of a secret used in a workflow. Possible values are None, Actions, Dependabot, or Codespaces.
 		"server_url":        setting.AppURL,                                       // string, The URL of the GitHub server. For example: https://github.com.
-		"sha":               t.Job.Run.CommitSHA,                                  // string, The commit SHA that triggered the workflow. The value of this commit SHA depends on the event that triggered the workflow. For more information, see "Events that trigger workflows." For example, ffac537e6cbbf934b08745a378932722df287a53.
+		"sha":               sha,                                                  // string, The commit SHA that triggered the workflow. The value of this commit SHA depends on the event that triggered the workflow. For more information, see "Events that trigger workflows." For example, ffac537e6cbbf934b08745a378932722df287a53.
 		"token":             t.Token,                                              // string, A token to authenticate on behalf of the GitHub App installed on your repository. This is functionally equivalent to the GITHUB_TOKEN secret. For more information, see "Automatic token authentication."
 		"triggering_actor":  "",                                                   // string, The username of the user that initiated the workflow run. If the workflow run is a re-run, this value may differ from github.actor. Any workflow re-runs will use the privileges of github.actor, even if the actor initiating the re-run (github.triggering_actor) has different privileges.
 		"workflow":          t.Job.Run.WorkflowID,                                 // string, The name of the workflow. If the workflow file doesn't specify a name, the value of this property is the full path of the workflow file in the repository.

@@ -725,7 +725,7 @@ func issueIDsFromSearch(ctx *context.Context, ctxUser *user_model.User, keyword 
 	if err != nil {
 		return nil, fmt.Errorf("GetRepoIDsForIssuesOptions: %w", err)
 	}
-	issueIDsFromSearch, err := issue_indexer.SearchIssuesByKeyword(ctx, searchRepoIDs, keyword)
+	issueIDsFromSearch, err := issue_indexer.SearchIssuesByKeyword(ctx, searchRepoIDs, keyword, ctx.FormString("state"))
 	if err != nil {
 		return nil, fmt.Errorf("SearchIssuesByKeyword: %w", err)
 	}
@@ -857,7 +857,7 @@ func UsernameSubRoute(ctx *context.Context) {
 		context_service.UserAssignmentWeb()(ctx)
 		if !ctx.Written() {
 			ctx.Data["EnableFeed"] = setting.Other.EnableFeed
-			Profile(ctx)
+			OwnerProfile(ctx)
 		}
 	}
 }
