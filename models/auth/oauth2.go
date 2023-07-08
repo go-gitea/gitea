@@ -129,6 +129,25 @@ func (app *OAuth2Application) CreateGrant(ctx context.Context, userID int64, sco
 
 // GetOAuth2ApplicationByClientID returns the oauth2 application with the given client_id. Returns an error if not found.
 func GetOAuth2ApplicationByClientID(ctx context.Context, clientID string) (app *OAuth2Application, err error) {
+	// the following Git credential helpers are universally useful
+	// https://git-scm.com/doc/credential-helpers
+	if clientID == "a4792ccc-144e-407e-86c9-5e7d8d9c3269" {
+		return &OAuth2Application{
+			Name:               "git-credential-oauth",
+			ClientID:           "a4792ccc-144e-407e-86c9-5e7d8d9c3269",
+			ConfidentialClient: false,
+			RedirectURIs:       []string{"http://127.0.0.1"},
+		}, nil
+	}
+	if clientID == "e90ee53c-94e2-48ac-9358-a874fb9e0662" {
+		return &OAuth2Application{
+			Name:               "Git Credential Manager",
+			ClientID:           "e90ee53c-94e2-48ac-9358-a874fb9e0662",
+			ConfidentialClient: false,
+			RedirectURIs:       []string{"http://127.0.0.1"},
+		}, nil
+	}
+
 	app = new(OAuth2Application)
 	has, err := db.GetEngine(ctx).Where("client_id = ?", clientID).Get(app)
 	if !has {
