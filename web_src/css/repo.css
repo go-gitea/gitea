@@ -231,6 +231,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 6px;
 }
 
 @media (max-width: 767.68px) {
