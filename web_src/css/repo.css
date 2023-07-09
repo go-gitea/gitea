@@ -231,6 +231,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 5px;
 }
 
 @media (max-width: 767.68px) {
@@ -2777,7 +2778,6 @@ tbody.commit-list {
 #repo-topics .repo-topic {
   font-weight: var(--font-weight-normal);
   cursor: pointer;
-  margin: 2px;
 }
 
 #new-dependency-drop-list.ui.selection.dropdown {
