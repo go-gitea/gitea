@@ -34,7 +34,7 @@ type Metadata struct {
 	BuildDate      int64    `json:"build-date"`
 	BaseDomain     string   `json:"base-domain"`
 	Packager       string   `json:"packager"`
-	Distribution   string   `json:"distribution"`
+	Distribution   []string `json:"distribution"`
 	Provides       []string `json:"provides"`
 	License        []string `json:"license"`
 	Arch           []string `json:"arch"`
@@ -43,6 +43,9 @@ type Metadata struct {
 	MakeDepends    []string `json:"make-depends"`
 	CheckDepends   []string `json:"check-depends"`
 	Backup         []string `json:"backup"`
+	// This list is created to ensure the consistency of pacman database file
+	// for specific combination of distribution and architecture.
+	DistroArch []string `json:"distro-arch"`
 }
 
 // Function that recieves arch package archive data and returns it's metadata.
@@ -57,7 +60,7 @@ func EjectMetadata(filename, distribution, domain string, pkg []byte) (*Metadata
 		CompressedSize: int64(len(pkg)),
 		MD5:            md5sum(pkg),
 		SHA256:         sha256sum(pkg),
-		Distribution:   distribution,
+		Distribution:   []string{distribution},
 	}
 	for _, line := range strings.Split(pkginfo, "\n") {
 		splt := strings.Split(line, " = ")
@@ -95,6 +98,7 @@ func EjectMetadata(filename, distribution, domain string, pkg []byte) (*Metadata
 			md.License = append(md.License, splt[1])
 		case "arch":
 			md.Arch = append(md.Arch, splt[1])
+			md.DistroArch = append(md.DistroArch, distribution+"-"+splt[1])
 		case "depend":
 			md.Depends = append(md.Depends, splt[1])
 		case "optdepend":
@@ -111,7 +115,7 @@ func EjectMetadata(filename, distribution, domain string, pkg []byte) (*Metadata
 }
 
 func getPkginfo(data []byte) (string, error) {
-	pkgreader := io.LimitReader(bytes.NewReader(data), 250000)
+	pkgreader := bytes.NewReader(data)
 	zstd := archiver.NewTarZstd()
 	err := zstd.Open(pkgreader, int64(250000))
 	if err != nil {
@@ -257,4 +261,21 @@ func writeToArchive(files map[string][]byte, buf io.Writer) error {
 		}
 	}
 	return nil
+}
+
+// This function can be used to create a list containing unique values from 2
+// passed arguements. The first is
+func UnifiedList(first, second []string) []string {
+	unique := map[string]struct{}{}
+	for _, v := range first {
+		unique[v] = struct{}{}
+	}
+	for _, v := range second {
+		unique[v] = struct{}{}
+	}
+	var archs []string
+	for k := range unique {
+		archs = append(archs, k)
+	}
+	return archs
 }

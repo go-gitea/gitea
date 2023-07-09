@@ -122,6 +122,16 @@ func Push(ctx *context.Context) {
 		return
 	}
 
+	// Add existing architectures and distros to current metadata.
+	err = arch_service.UpdateMetadata(ctx, &arch_service.UpdateMetadataParameters{
+		User: user,
+		Md:   md,
+	})
+	if err != nil {
+		apiError(ctx, http.StatusUnauthorized, err)
+		return
+	}
+
 	// Automatically connect repository for provided package if name matched.
 	err = arch_service.RepositoryAutoconnect(ctx, owner, md.Name, pkgid)
 	if err != nil {

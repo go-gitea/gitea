@@ -21,6 +21,39 @@ import (
 	pkg_service "code.gitea.io/gitea/services/packages"
 )
 
+type UpdateMetadataParameters struct {
+	User *user.User
+	Md   *arch.Metadata
+}
+
+// This function parses incoming metadata, gets existing if present, combines
+// architectures and creates new one with base parameters of new meta.
+func UpdateMetadata(ctx *context.Context, p *UpdateMetadataParameters) error {
+	ver, err := pkg_model.GetVersionByNameAndVersion(ctx, p.User.ID, pkg_model.TypeArch, p.Md.Name, p.Md.Version)
+	if err != nil {
+		return err
+	}
+
+	var currmd arch.Metadata
+	err = json.Unmarshal([]byte(ver.MetadataJSON), &currmd)
+	if err != nil {
+		return err
+	}
+
+	currmd.Arch = arch.UnifiedList(currmd.Arch, p.Md.Arch)
+	currmd.Distribution = arch.UnifiedList(currmd.Distribution, p.Md.Distribution)
+	currmd.DistroArch = arch.UnifiedList(currmd.DistroArch, p.Md.DistroArch)
+
+	b, err := json.Marshal(&currmd)
+	if err != nil {
+		return err
+	}
+
+	ver.MetadataJSON = string(b)
+
+	return pkg_model.UpdateVersion(ctx, ver)
+}
+
 // Parameters required to save new arch package.
 type SaveFileParams struct {
 	*org_model.Organization
@@ -32,8 +65,8 @@ type SaveFileParams struct {
 	IsLead   bool
 }
 
-// This function create new package, version and package file properties in
-// database, and write blob to file storage. If package/version/blob exists it
+// This function creates new package, version and package_file properties in
+// database, and writes blob to file storage. If package/version/blob exists it
 // will overwrite existing data. Package id and error will be returned.
 func SaveFile(ctx *context.Context, p *SaveFileParams) (int64, error) {
 	buf, err := packages.CreateHashedBufferFromReader(bytes.NewReader(p.Data))
@@ -143,7 +176,7 @@ func CreatePacmanDb(ctx *context.Context, owner, architecture, distro string) ([
 			if err != nil {
 				return nil, err
 			}
-			if checkArchitecture(architecture, md.Arch) && md.Distribution == distro {
+			if checkPackageCompatability(distro, architecture, md.DistroArch) {
 				mds = append(mds, &md)
 				break
 			}
@@ -163,13 +196,13 @@ func RemovePackage(ctx *context.Context, u *user.User, name, version string) err
 	return pkg_service.RemovePackageVersion(u, ver)
 }
 
-// Check wether package architecture is relevant for requestsed database.
-func checkArchitecture(architecture string, list []string) bool {
-	for _, v := range list {
-		if v == "any" {
+// This function will check, wether package should be added to resulting database.
+func checkPackageCompatability(distro, arch string, distroarchs []string) bool {
+	for _, distroarch := range distroarchs {
+		if distroarch == distro+"-any" {
 			return true
 		}
-		if v == architecture {
+		if distroarch == distro+"-"+arch {
 			return true
 		}
 	}
