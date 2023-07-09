@@ -93,7 +93,7 @@ func (q *WorkerPoolQueue[T]) GetQueueItemNumber() int {
 
 func (q *WorkerPoolQueue[T]) FlushWithContext(ctx context.Context, timeout time.Duration) (err error) {
 	if q.isBaseQueueDummy() {
-		return
+		return nil
 	}
 
 	log.Debug("Try to flush queue %q with timeout %v", q.GetName(), timeout)

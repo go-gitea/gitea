@@ -87,7 +87,7 @@ func (repo *Repository) CatFileBatchCheck(ctx context.Context) (WriteCloserError
 // Close this repository, in particular close the underlying gogitStorage if this is not nil
 func (repo *Repository) Close() (err error) {
 	if repo == nil {
-		return
+		return nil
 	}
 	if repo.batchCancel != nil {
 		repo.batchCancel()
