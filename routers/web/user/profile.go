@@ -287,9 +287,9 @@ func Action(ctx *context.Context) {
 	}
 
 	if err != nil {
-		ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.FormString("action")), err)
+		log.Error("Failed to apply action %q: %v", ctx.FormString("action"), err)
+		ctx.JSONError(fmt.Sprintf("Action %q failed", ctx.FormString("action")))
 		return
 	}
-	// FIXME: We should check this URL and make sure that it's a valid Gitea URL
-	ctx.RedirectToFirst(ctx.FormString("redirect_to"), ctx.ContextUser.HomeLink())
+	ctx.JSONOK()
 }
