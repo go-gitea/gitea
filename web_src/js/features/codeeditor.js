@@ -70,7 +70,7 @@ export async function createMonaco(textarea, filename, editorOpts) {
   textarea.parentNode.append(container);
 
   // https://github.com/microsoft/monaco-editor/issues/2427
-  // also, monaco can only pars 6-digit hex colors, so we convert the colors to that format
+  // also, monaco can only parse 6-digit hex colors, so we convert the colors to that format
   const styles = window.getComputedStyle(document.documentElement);
   const getProp = (name) => tinycolor(styles.getPropertyValue(name).trim()).toString('hex6');
 
