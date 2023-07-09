@@ -59,7 +59,7 @@
 
 
 .flex-card .flex-card-title {
-  display: flex;
+  display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
   gap: .25rem;

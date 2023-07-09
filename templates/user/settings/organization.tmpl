@@ -17,7 +17,7 @@
 							{{avatar $.Context . 28 "mini"}}
 						</div>
 						<div class="flex-card-main">
-							<a class="flex-card-title" href="{{.HomeLink}}">{{.Name}}</a>
+							<div class="flex-card-title">{{template "shared/user/name" .}}</div>
 							<div class="flex-text-body">
 								{{.Description}}
 							</div>
