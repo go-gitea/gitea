@@ -6,7 +6,7 @@ package repo
 import (
 	"net/http"
 
-	contributors_model "code.gitea.io/gitea/models/contributors"
+	contributors_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 )
@@ -38,7 +38,7 @@ func Contributors(ctx *context.Context) {
 
 // ContributorsData renders JSON of contributors along with their weekly commit statistics
 func ContributorsData(ctx *context.Context) {
-	if contributorStats, err := contributors_model.GetContributorStats(ctx, ctx.Repo.Repository, ctx.Repo.CommitID); err != nil {
+	if contributorStats, err := contributors_service.GetContributorStats(ctx, ctx.Repo.Repository, ctx.Repo.CommitID); err != nil {
 		ctx.ServerError("GetContributorStats", err)
 	} else {
 		ctx.JSON(http.StatusOK, contributorStats)
