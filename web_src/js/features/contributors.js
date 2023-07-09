@@ -1,10 +1,10 @@
 import {createApp} from 'vue';
-import RepoContributors from '../components/RepoContributors.vue';
 
-export function initRepoContributors() {
+export async function initRepoContributors() {
   const el = document.getElementById('repo-contributors-chart');
   if (!el) return;
 
+  const {default: RepoContributors} = await import('../components/RepoContributors.vue');
   try {
     const View = createApp(RepoContributors, {
       locale: {
