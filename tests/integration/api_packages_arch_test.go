@@ -247,15 +247,22 @@ xdsqIuddY4wgEtLbujbklbaSN0aTJE6iqrhVnjQXUWvIukbYynhuBABuizXCfp6H6UUYttf9XTDd
 ht719b7ZWR3+SRcXySXC/cP8DL/N12kaf8wQSBkjjLKkAPBDnLyL32YFQur67qtbXtxcd/23w375
 8vepr3/5vAL41/9/5syZ58uPAAAA///ViF8vAAgAAA==`
 
-	defer tests.PrepareTestEnv(t)()
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{
-		Name: "dancheg97",
-		ID:   2,
-	})
+	user := &user_model.User{
+		Name:               "dancheg97",
+		Email:              "dancheg97@fmnx.su",
+		Passwd:             "password",
+		IsAdmin:            false,
+		Theme:              setting.UI.DefaultTheme,
+		MustChangePassword: false,
+	}
+
+	err := user_model.CreateUser(user)
+	assert.NoError(t, err)
 
 	session := loginUser(t, "dancheg97")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll)
 
 	req := NewRequestWithJSON(t, "POST", "/api/v1/user/gpg_keys?token="+token, api.CreateGPGKeyOption{
 		ArmoredKey: gpgkey,
@@ -276,15 +283,13 @@ ht719b7ZWR3+SRcXySXC/cP8DL/N12kaf8wQSBkjjLKkAPBDnLyL32YFQur67qtbXtxcd/23w375
 
 	rootURL := fmt.Sprintf("/api/packages/%s/arch", user.Name)
 
-	// Add package gpg key to user in tests.
-
 	wayback, err := time.Parse(time.RFC3339, "2023-07-04T19:57:09+03:00")
 	assert.NoError(t, err)
 
 	patch := monkey.Patch(time.Now, func() time.Time { return wayback })
 	defer patch.Unpatch()
 
-	t.Run("push", func(t *testing.T) {
+	t.Run("Push", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "PUT", path.Join(rootURL, "/push"))
@@ -301,9 +306,9 @@ ht719b7ZWR3+SRcXySXC/cP8DL/N12kaf8wQSBkjjLKkAPBDnLyL32YFQur67qtbXtxcd/23w375
 		MakeRequest(t, req, http.StatusOK)
 	})
 
-	t.Run("get", func(t *testing.T) {
+	t.Run("Get", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-		t.Run("package", func(t *testing.T) {
+		t.Run("Package", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequest(t, "GET", path.Join(rootURL, "/archlinux/x86_64/randpkg-1-1-x86_64.pkg.tar.zst"))
@@ -315,7 +320,7 @@ ht719b7ZWR3+SRcXySXC/cP8DL/N12kaf8wQSBkjjLKkAPBDnLyL32YFQur67qtbXtxcd/23w375
 			assert.Equal(t, resp.Body.Bytes(), pkgData)
 		})
 
-		t.Run("database", func(t *testing.T) {
+		t.Run("Database", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
 			dbname := fmt.Sprintf("%s.%s.db", user.Name, setting.Domain)
@@ -330,7 +335,7 @@ ht719b7ZWR3+SRcXySXC/cP8DL/N12kaf8wQSBkjjLKkAPBDnLyL32YFQur67qtbXtxcd/23w375
 		})
 	})
 
-	t.Run("remove", func(t *testing.T) {
+	t.Run("Remove", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "PUT", path.Join(rootURL, "/push"))
