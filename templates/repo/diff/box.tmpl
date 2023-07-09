@@ -101,7 +101,7 @@
 										{{template "repo/diff/stats" dict "file" . "root" $}}
 									{{end}}
 								</div>
-								<span class="file gt-mono"><a class="muted file-link" title="{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}" href="#diff-{{$file.NameHash}}">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}</a>{{if .IsLFSFile}} ({{$.locale.Tr "repo.stored_lfs"}}){{end}}</span>
+								<span class="file gt-mono"><a class="muted file-link" title="{{if $file.IsRenamed}}{{$file.OldName}} → {{end}}{{$file.Name}}" href="#diff-{{$file.NameHash}}">{{if $file.IsRenamed}}{{$file.OldName}} → {{end}}{{$file.Name}}</a>{{if .IsLFSFile}} ({{$.locale.Tr "repo.stored_lfs"}}){{end}}</span>
 								<button class="btn interact-fg gt-p-3" data-clipboard-text="{{$file.Name}}">{{svg "octicon-copy" 14}}</button>
 								{{if $file.IsGenerated}}
 									<span class="ui label">{{$.locale.Tr "repo.diff.generated"}}</span>
@@ -110,7 +110,7 @@
 									<span class="ui label">{{$.locale.Tr "repo.diff.vendored"}}</span>
 								{{end}}
 								{{if and $file.Mode $file.OldMode}}
-									<span class="gt-ml-4 gt-mono">{{$file.OldMode}} &rarr; {{$file.Mode}}</span>
+									<span class="gt-ml-4 gt-mono">{{$file.OldMode}} → {{$file.Mode}}</span>
 								{{else if $file.Mode}}
 									<span class="gt-ml-4 gt-mono">{{$file.Mode}}</span>
 								{{end}}
