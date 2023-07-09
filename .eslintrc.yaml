@@ -22,7 +22,7 @@ plugins:
   - eslint-plugin-wc
 
 env:
-  es2022: true
+  es2024: true
   node: true
 
 overrides:
@@ -156,7 +156,7 @@ rules:
   import/no-restricted-paths: [0]
   import/no-self-import: [2]
   import/no-unassigned-import: [0]
-  import/no-unresolved: [2, {commonjs: true, ignore: ["\\?.+$"]}]
+  import/no-unresolved: [2, {commonjs: true, ignore: [\?.+$, ^vitest/]}]
   import/no-unused-modules: [2, {unusedExports: true}]
   import/no-useless-path-segments: [2, {commonjs: true}]
   import/no-webpack-loader-syntax: [2]
@@ -693,7 +693,7 @@ rules:
   unicorn/prefer-dom-node-remove: [2]
   unicorn/prefer-dom-node-text-content: [2]
   unicorn/prefer-event-target: [2]
-  unicorn/prefer-export-from: [2, {ignoreUsedVariables: true}]
+  unicorn/prefer-export-from: [0]
   unicorn/prefer-includes: [2]
   unicorn/prefer-json-parse-buffer: [0]
   unicorn/prefer-keyboard-event-key: [2]
