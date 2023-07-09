@@ -1,3 +1,4 @@
+import tinycolor from 'tinycolor2';
 import {basename, extname, isObject, isDarkTheme} from '../utils.js';
 import {onInputDebounce} from '../utils/dom.js';
 
@@ -69,33 +70,34 @@ export async function createMonaco(textarea, filename, editorOpts) {
   textarea.parentNode.append(container);
 
   // https://github.com/microsoft/monaco-editor/issues/2427
+  // also, monaco can only parse 6-digit hex colors, so we convert the colors to that format
   const styles = window.getComputedStyle(document.documentElement);
-  const getProp = (name) => styles.getPropertyValue(name).trim();
+  const getColor = (name) => tinycolor(styles.getPropertyValue(name).trim()).toString('hex6');
 
   monaco.editor.defineTheme('gitea', {
     base: isDarkTheme() ? 'vs-dark' : 'vs',
     inherit: true,
     rules: [
       {
-        background: getProp('--color-code-bg'),
+        background: getColor('--color-code-bg'),
       }
     ],
     colors: {
-      'editor.background': getProp('--color-code-bg'),
-      'editor.foreground': getProp('--color-text'),
-      'editor.inactiveSelectionBackground': getProp('--color-primary-light-4'),
-      'editor.lineHighlightBackground': getProp('--color-editor-line-highlight'),
-      'editor.selectionBackground': getProp('--color-primary-light-3'),
-      'editor.selectionForeground': getProp('--color-primary-light-3'),
-      'editorLineNumber.background': getProp('--color-code-bg'),
-      'editorLineNumber.foreground': getProp('--color-secondary-dark-6'),
-      'editorWidget.background': getProp('--color-body'),
-      'editorWidget.border': getProp('--color-secondary'),
-      'input.background': getProp('--color-input-background'),
-      'input.border': getProp('--color-input-border'),
-      'input.foreground': getProp('--color-input-text'),
-      'scrollbar.shadow': getProp('--color-shadow'),
-      'progressBar.background': getProp('--color-primary'),
+      'editor.background': getColor('--color-code-bg'),
+      'editor.foreground': getColor('--color-text'),
+      'editor.inactiveSelectionBackground': getColor('--color-primary-light-4'),
+      'editor.lineHighlightBackground': getColor('--color-editor-line-highlight'),
+      'editor.selectionBackground': getColor('--color-primary-light-3'),
+      'editor.selectionForeground': getColor('--color-primary-light-3'),
+      'editorLineNumber.background': getColor('--color-code-bg'),
+      'editorLineNumber.foreground': getColor('--color-secondary-dark-6'),
+      'editorWidget.background': getColor('--color-body'),
+      'editorWidget.border': getColor('--color-secondary'),
+      'input.background': getColor('--color-input-background'),
+      'input.border': getColor('--color-input-border'),
+      'input.foreground': getColor('--color-input-text'),
+      'scrollbar.shadow': getColor('--color-shadow'),
+      'progressBar.background': getColor('--color-primary'),
     }
   });
 
