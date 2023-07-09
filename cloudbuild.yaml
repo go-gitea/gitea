@@ -1,0 +1,42 @@
+steps:
+  # Bước 1: Clone mã nguồn từ kho GitHub
+  - name: 'gcr.io/cloud-builders/gitea'
+    args: ['clone', 'https://github.com/nnsang1309/gitea.git']
+    dir: '/workspace'
+
+  # Bước 2: Cài đặt và cấu hình Cloud SQL Proxy
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args: ['components', 'install', 'cloud_sql_proxy']
+
+  # Bước 3: Khởi động Cloud SQL Proxy và thiết lập kết nối đến Cloud SQL
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - 'beta'
+      - 'sql'
+      - 'instances'
+      - 'connect'
+      - 'gitea-docker:us-central1:gitea-mysql-instance'
+      - '--user=gitea'
+      - '--password=gitea'
+      - '--project=gitea-docker'
+      - '--quiet'
+      - '--dir=/workspace'
+    dir: '/workspace'
+
+  # Bước 4: Xây dựng Gitea từ mã nguồn
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gitea:latest'
+      - '.'
+    dir: '/workspace'
+
+  # Bước 5: Gắn thẻ và đẩy hình ảnh xây dựng lên Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'tag'
+      - 'gitea:latest'
+      - 'gcr.io/gitea-docker/gitea:latest'
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/gitea-docker/gitea:latest']
