@@ -2,18 +2,21 @@
 <div class="ui attached segment">
 	<p>{{.locale.Tr "settings.webauthn_desc" | Str2html}}</p>
 	{{template "user/auth/webauthn_error" .}}
-	<div class="ui key list">
+	<div class="flex-list">
 		{{range .WebAuthnCredentials}}
-			<div class="item">
-				<div class="right floated content">
+			<div class="flex-card">
+				<div class="flex-card-leading">
+					{{svg "octicon-key" 32}}
+				</div>
+				<div class="flex-card-main">
+					<div class="flex-card-title">{{.Name}}</div>
+					<span class="flex-card-body time">{{TimeSinceUnix .CreatedUnix $.locale}}</span>
+				</div>
+				<div class="flex-card-trailing">
 					<button class="ui red tiny button delete-button" data-modal-id="delete-registration" data-url="{{$.Link}}/webauthn/delete" data-id="{{.ID}}">
 					{{$.locale.Tr "settings.delete_key"}}
 					</button>
 				</div>
-				<div class="content">
-					<strong>{{.Name}}</strong>
-				</div>
-				<span class="time">{{TimeSinceUnix .CreatedUnix $.locale}}</span>
 			</div>
 		{{end}}
 	</div>

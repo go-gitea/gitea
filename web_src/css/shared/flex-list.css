@@ -1,0 +1,128 @@
+.flex-list {
+  list-style: none;
+}
+
+.flex-card {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.flex-card:not(:last-child) {
+  padding-bottom: 8px;
+}
+
+.flex-card-baseline {
+  align-items: baseline;
+}
+
+.flex-card-center {
+  align-items: center;
+}
+
+.flex-card .flex-card-leading {
+  display: flex;
+  align-items: flex-start;
+}
+
+.flex-card .flex-card-main {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.flex-card-header {
+  display: flex;
+  gap: .25rem;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.flex-card a:not(.label, .button):hover {
+  color: var(--color-primary) !important;
+}
+
+.flex-card .flex-card-icon svg {
+  margin-top: 1px;
+}
+
+.flex-card .flex-card-trailing {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-grow: 0;
+  flex-wrap: wrap;
+  justify-content: end;
+  flex-shrink: 2;
+}
+
+
+.flex-card .flex-card-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .25rem;
+  max-width: 100%;
+  color: var(--color-text);
+  font-size: 16px;
+  min-width: 0;
+  font-weight: var(--font-weight-semibold);
+}
+
+.flex-card .flex-card-title a {
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.flex-card .flex-card-body {
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .25rem;
+  color: var(--color-text-light-2);
+}
+
+.flex-card .flex-card-body a {
+  color: inherit;
+  overflow-wrap: anywhere;
+}
+
+.flex-card .flex-card-body .checklist progress {
+  margin-left: 2px;
+  width: 80px;
+  height: 6px;
+  display: inline-block;
+  border-radius: 3px;
+}
+
+.flex-card .flex-card-body .checklist progress::-webkit-progress-value {
+  background-color: var(--color-secondary-dark-4);
+}
+
+.flex-card .flex-card-body .checklist progress::-moz-progress-bar {
+  background-color: var(--color-secondary-dark-4);
+}
+
+.flex-list .branches {
+  display: inline-flex;
+}
+
+.flex-list .branches .branch {
+  background-color: var(--color-secondary-alpha-40);
+  border-radius: 3px;
+  padding: 0 4px;
+}
+
+.flex-list .branches .truncated-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 10em;
+}
+
+.flex-list > .flex-card + .flex-card {
+  border-top: 1px solid var(--color-secondary);
+  padding-top: 8px;
+}

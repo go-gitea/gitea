@@ -1,23 +1,30 @@
 <div class="ui attached segment">
-	<div class="ui key list">
-		<div class="item">
+	<div class="flex-list">
+		<div class="flex-card">
 			{{.locale.Tr "settings.oauth2_application_create_description"}}
 		</div>
-		{{range $app := .Applications}}
-			<div class="item">
-				<div class="right floated content">
-					<a href="{{$.Link}}/oauth2/{{$app.ID}}" class="ui primary tiny button">
+		{{range .Applications}}
+			<div class="flex-card">
+				<div class="flex-card-leading">
+					{{svg "octicon-apps" 32}}
+				</div>
+				<div class="flex-card-main">
+					<div class="flex-card-title">{{.Name}}</div>
+					<div class="flex-card-body">
+						{{$.locale.Tr "settings.oauth2_client_id"}}
+						<span class="ui label">{{.ClientID}}</span>
+					</div>
+				</div>
+				<div class="flex-card-trailing">
+					<a href="{{$.Link}}/oauth2/{{.ID}}" class="ui primary tiny button">
 						{{svg "octicon-pencil" 16 "gt-mr-2"}}
 						{{$.locale.Tr "settings.oauth2_application_edit"}}
 					</a>
 					<button class="ui red tiny button delete-button" data-modal-id="remove-gitea-oauth2-application"
-							data-url="{{$.Link}}/oauth2/{{$app.ID}}/delete">
+							data-url="{{$.Link}}/oauth2/{{.ID}}/delete">
 						{{svg "octicon-trash" 16 "gt-mr-2"}}
 						{{$.locale.Tr "settings.delete_key"}}
 					</button>
-				</div>
-				<div class="content">
-					<strong>{{$app.Name}}</strong>
 				</div>
 			</div>
 		{{end}}
