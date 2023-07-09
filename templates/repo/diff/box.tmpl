@@ -32,13 +32,7 @@
 			{{template "repo/diff/whitespace_dropdown" .}}
 			{{template "repo/diff/options_dropdown" .}}
 			{{if .PageIsPullFiles}}
-				<script>
-					window.config.pageData.commitInfo = {
-						issueLink: {{$.Issue.Link}},
-						queryParams: '?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}'
-					};
-				</script>
-				<div id="diff-commit-select">
+				<div id="diff-commit-select" data-issuelink="{{$.Issue.Link}}" data-queryparams="?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}">
 					{{/*
 						the following will be replaced by vue component
 						but this avoids any loading artifacts till the vue component is initialized
@@ -56,11 +50,11 @@
 	{{if not .DiffNotAvailable}}
 		{{if and .IsShowingOnlySingleCommit .PageIsPullFiles}}
 			<div class="ui info message">
-				<div class="text">{{.locale.Tr "repo.pulls.showing_only_single_commit" (ShortSha .BeforeCommitID)}}</div>
+				<div>{{.locale.Tr "repo.pulls.showing_only_single_commit" (ShortSha .BeforeCommitID)}}</div>
 			</div>
 		{{else if and (not .IsShowingAllCommits) .PageIsPullFiles}}
 			<div class="ui info message">
-				<div class="text">{{.locale.Tr "repo.pulls.showing_specified_commit_range" (ShortSha .BeforeCommitID) (ShortSha .AfterCommitID)}}</div>
+				<div>{{.locale.Tr "repo.pulls.showing_specified_commit_range" (ShortSha .BeforeCommitID) (ShortSha .AfterCommitID)}}</div>
 			</div>
 		{{end}}
 		<script id="diff-data-script" type="module">

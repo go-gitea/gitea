@@ -1,25 +1,34 @@
 <template>
   <div
     class="ui dropdown basic button custom"
-    @click.stop="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible"
+    @click.stop="toggleMenu()" @keyup.enter="toggleMenu()"
     :data-tooltip-content="locale.filter_changes_by_commit"
   >
     <svg-icon name="octicon-git-commit"/>
     <div class="menu left transition commit-selector-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
-      <a class="vertical item gt-df gt-fc gt-gap-1" :href="issueLink + '/files' + queryParams">
-        <div class="gt-ellipsis">{{ locale.show_all_commits }}</div>
-        <div class="gt-ellipsis text light-2">{{ locale.stats_num_commits }}</div>
-      </a>
+      <div class="vertical item gt-df gt-fc gt-gap-1 gt-border-secondary-top" @click="showAllChanges()">
+        <div class="gt-ellipsis">
+          {{ locale.show_all_commits }}
+        </div>
+        <div class="gt-ellipsis text light-2">
+          {{ locale.stats_num_commits }}
+        </div>
+      </div>
 
-      <div class="divider"/>
-      <a v-if="lastReviewCommitSha != null" class="vertical item gt-df gt-fc gt-gap-1" @click="changesSinceLastReviewClick()">
-        <div class="gt-ellipsis">{{ locale.show_changes_since_your_last_review }}</div>
-        <div class="gt-ellipsis text light-2">{{ commitsSinceLastReview }} commits</div>
-      </a>
+      <!-- only show the show changes since last review if there is a review AND we are commits ahead of the last review -->
+      <div v-if="lastReviewCommitSha != null && commitsSinceLastReview > 0" class="vertical item gt-df gt-fc gt-gap-1 gt-border-secondary-top" @click="changesSinceLastReviewClick()">
+        <div class="gt-ellipsis">
+          {{ locale.show_changes_since_your_last_review }}
+        </div>
+        <div class="gt-ellipsis text light-2">
+          {{ commitsSinceLastReview }} commits
+        </div>
+      </div>
+
+      <span class="info gt-border-secondary-top">{{ locale.select_commit_hold_shift_for_range }}</span>
 
       <template v-for="commit in commits" :key="commit.id">
-        <div class="divider"/>
-        <div class="vertical item gt-df gt-fr gt-gap-2" :class="{selected: commit.selected}" @click.exact="commitClicked(commit.id)" @click.shift.exact.stop.prevent="commitClickedShift(commit)">
+        <div class="vertical item gt-df gt-fr gt-gap-2 gt-border-secondary-top" :class="{selected: commit.selected}" @click.exact="commitClicked(commit.id)" @click.shift.exact.stop.prevent="commitClickedShift(commit)">
           <div class="gt-f1 gt-df gt-fc gt-gap-1">
             <div class="gt-ellipsis commit-list-summary">
               {{ commit.summary }}
@@ -46,13 +55,10 @@ import {SvgIcon} from '../svg.js';
 export default {
   components: {SvgIcon},
   data: () => {
-    const commitInfo = window.config.pageData.commitInfo;
     return {
       menuVisible: false,
       locale: {},
       commits: [],
-      queryParams: commitInfo.queryParams,
-      issueLink: commitInfo.issueLink,
       hoverActivated: false,
       lastReviewCommitSha: null
     };
@@ -63,20 +69,35 @@ export default {
         return this.commits.length - this.commits.findIndex((x) => x.id === this.lastReviewCommitSha) - 1;
       }
       return 0;
+    },
+    queryParams() {
+      return this.$el.parentNode.getAttribute('data-queryparams');
+    },
+    issueLink() {
+      return this.$el.parentNode.getAttribute('data-issuelink');
     }
   },
-  mounted() {
-    // fetch commit info
-    this.fetchCommits();
-  },
   methods: {
+    /** Opens our menu, loads commits before opening */
+    async toggleMenu() {
+      // load our commits when the menu is not yet visible (it'll be toggled after loading)
+      // and we got no commits
+      if (this.commits.length === 0 && this.menuVisible === false) {
+        await this.fetchCommits();
+      }
+      this.menuVisible = !this.menuVisible;
+    },
+    /** Load the commits to show in this dropdown */
     async fetchCommits() {
-        const resp = await fetch(`${this.issueLink}/commits/list`);
-        const results = await resp.json();
-        this.commits.push(...results.commits);
-        this.commits.reverse();
-        this.lastReviewCommitSha = results.lastReviewCommitSha != '' ? results.lastReviewCommitSha : null;
-        Object.assign(this.locale, results.locale);
+      const resp = await fetch(`${this.issueLink}/commits/list`);
+      const results = await resp.json();
+      this.commits.push(...results.commits);
+      this.commits.reverse();
+      this.lastReviewCommitSha = results.lastReviewCommitSha !== '' ? results.lastReviewCommitSha : null;
+      Object.assign(this.locale, results.locale);
+    },
+    showAllChanges() {
+      window.location = `${this.issueLink}/files${this.queryParams}`;
     },
     /** Called when user clicks on since last review */
     changesSinceLastReviewClick() {
@@ -117,5 +138,12 @@ export default {
 <style scoped>
   .selected {
     background-color: var(--color-secondary-active) !important;
+  }
+
+  .info {
+    display: inline-block;
+    padding: 7px 14px !important;
+    line-height: 1.4;
+    width: 100%;
   }
 </style>
