@@ -12,7 +12,7 @@
       >
         {{ dateFrom }}
       </relative-time>
-      {{ isLoading ? "Loading contributions..." : errorText ? "Loading contributions failed :(": "-" }}
+      {{ isLoading ? locale.loadingTitle : errorText ? locale.loadingTitleFailed: "-" }}
       <relative-time
         v-if="dateUntil !== null"
         format="datetime"
@@ -30,19 +30,19 @@
         <div class="ui dropdown jump" id="dropdown">
           <div class="ui basic compact button">
             <span class="text">
-              Contribution type: <strong>{{ type }}</strong>
+              {{ locale.filterLabel }} <strong>{{ locale.contributionType[type] }}</strong>
               <svg-icon name="octicon-triangle-down" :size="14"/>
             </span>
           </div>
           <div class="menu">
             <div :class="type === 'commits' ? 'active item' : 'item'">
-              Commits
+              {{ locale.contributionType.commits }}
             </div>
             <div :class="type === 'additions' ? 'active item' : 'item'">
-              Additions
+              {{ locale.contributionType.additions }}
             </div>
             <div :class="type === 'deletions' ? 'active item' : 'item'">
-              Deletions
+              {{ locale.contributionType.deletions }}
             </div>
           </div>
         </div>
@@ -53,7 +53,7 @@
       <div v-if="isLoading || errorText !== ''" class="gt-tc gt-m-auto">
         <div v-if="isLoading">
           <SvgIcon name="octicon-sync" class="gt-mr-3 job-status-rotate"/>
-          This might take a few minutes...
+          {{ locale.loadingInfo }}
         </div>
         <div v-else class="text red">
           <SvgIcon name="octicon-x-circle-fill"/>
@@ -80,10 +80,8 @@
           <div class="gt-ml-3">
             <a :href="contributor.home_link"><h4>{{ contributor.name }}</h4></a>
             <p class="gt-font-12">
-              <strong>{{ contributor.total_commits.toLocaleString() }} commits
-              </strong>
-              <strong class="text green">{{ contributor.total_additions.toLocaleString() }}++
-              </strong>
+              <strong>{{ contributor.total_commits.toLocaleString() }} {{ locale.contributionType.commits }}</strong>
+              <strong class="text green">{{ contributor.total_additions.toLocaleString() }}++ </strong>
               <strong class="text red">
                 {{ contributor.total_deletions.toLocaleString() }}--</strong>
             </p>
@@ -140,6 +138,12 @@ Chart.register(
 
 export default {
   components: {CLine, SvgIcon},
+  props: {
+    locale: {
+      type: Object,
+      required: true
+    },
+  },
   data: () => {
     return {
       isLoading: false,
@@ -180,7 +184,7 @@ export default {
       try {
         const response = await fetch(`${this.repoLink}/activity/contributors/data`);
         const data = await response.json();
-        const { total, ...rest } = data;
+        const {total, ...rest} = data;
         this.contributorsStats = rest;
         this.dateFrom = new Date(total.weeks[0].week);
         this.dateUntil = new Date();
