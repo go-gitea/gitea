@@ -190,6 +190,7 @@
 
 .repository #clone-panel #repo-clone-url {
   width: 320px;
+  border-radius: 0;
 }
 
 @media (min-width: 768px) and (max-width: 991.98px) {
@@ -230,6 +231,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 5px;
 }
 
 @media (max-width: 767.68px) {
@@ -2655,7 +2657,7 @@
   height: 30px;
 }
 
-.repo-button-row .button.dropdown {
+.repo-button-row .button.dropdown:not(.icon) {
   padding-right: 22px !important; /* normal buttons have !important paddings, so we need to override it for dropdown (Add File) icons */
 }
 
@@ -2776,7 +2778,6 @@ tbody.commit-list {
 #repo-topics .repo-topic {
   font-weight: var(--font-weight-normal);
   cursor: pointer;
-  margin: 2px;
 }
 
 #new-dependency-drop-list.ui.selection.dropdown {

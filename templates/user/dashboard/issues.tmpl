@@ -33,7 +33,7 @@
 					</a>
 					<div class="divider"></div>
 					<a class="{{if not $.RepoIDs}}active{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&q={{$.Keyword}}">
-						<span class="text truncate">All</span>
+						<span class="text truncate">{{.locale.Tr "all"}}</span>
 						<span>{{CountFmt .TotalIssueCount}}</span>
 					</a>
 					{{range .Repos}}
