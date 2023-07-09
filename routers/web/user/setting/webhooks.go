@@ -37,7 +37,7 @@ func Webhooks(ctx *context.Context) {
 
 // DeleteWebhook response for delete webhook
 func DeleteWebhook(ctx *context.Context) {
-	defer ctx.JSON(http.StatusOK, map[string]interface{}{
+	defer ctx.JSON(http.StatusOK, map[string]any{
 		"redirect": setting.AppSubURL + "/user/settings/hooks",
 	})
 

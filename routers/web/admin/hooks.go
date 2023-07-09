@@ -27,8 +27,8 @@ func DefaultOrSystemWebhooks(ctx *context.Context) {
 	ctx.Data["PageIsAdminSystemHooks"] = true
 	ctx.Data["PageIsAdminDefaultHooks"] = true
 
-	def := make(map[string]interface{}, len(ctx.Data))
-	sys := make(map[string]interface{}, len(ctx.Data))
+	def := make(map[string]any, len(ctx.Data))
+	sys := make(map[string]any, len(ctx.Data))
 	for k, v := range ctx.Data {
 		def[k] = v
 		sys[k] = v
@@ -62,7 +62,7 @@ func DefaultOrSystemWebhooks(ctx *context.Context) {
 
 // DeleteDefaultOrSystemWebhook handler to delete an admin-defined system or default webhook
 func DeleteDefaultOrSystemWebhook(ctx *context.Context) {
-	defer ctx.JSON(http.StatusOK, map[string]interface{}{
+	defer ctx.JSON(http.StatusOK, map[string]any{
 		"redirect": setting.AppSubURL + "/admin/hooks",
 	})
 

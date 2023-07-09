@@ -161,7 +161,6 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	}
 	ctx.Data["IsOrganizationOwner"] = ctx.Org.IsOwner
 	ctx.Data["IsOrganizationMember"] = ctx.Org.IsMember
-	ctx.Data["IsProjectEnabled"] = true
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["IsPublicMember"] = func(uid int64) bool {

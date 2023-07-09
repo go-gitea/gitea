@@ -23,7 +23,7 @@ type routerLoggerOptions struct {
 	Identity       *string
 	Start          *time.Time
 	ResponseWriter http.ResponseWriter
-	Ctx            map[string]interface{}
+	Ctx            map[string]any
 	RequestID      *string
 }
 
@@ -84,7 +84,7 @@ func AccessLogger() func(http.Handler) http.Handler {
 				Identity:       &identity,
 				Start:          &start,
 				ResponseWriter: rw,
-				Ctx: map[string]interface{}{
+				Ctx: map[string]any{
 					"RemoteAddr": req.RemoteAddr,
 					"RemoteHost": reqHost,
 					"Req":        req,

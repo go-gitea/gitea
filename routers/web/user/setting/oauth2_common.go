@@ -181,7 +181,7 @@ func (oa *OAuth2CommonHandlers) DeleteApp(ctx *context.Context) {
 	audit.Record(oa.auditActionSwitch(audit.UserOAuth2ApplicationRemove, audit.OrganizationOAuth2ApplicationRemove, audit.SystemOAuth2ApplicationRemove), oa.Doer, oa.Owner, app, "Removed OAuth2 application %s.", app.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.remove_oauth2_application_success"))
-	ctx.JSON(http.StatusOK, map[string]interface{}{"redirect": oa.BasePathList})
+	ctx.JSON(http.StatusOK, map[string]any{"redirect": oa.BasePathList})
 }
 
 // RevokeGrant revokes the grant
@@ -214,5 +214,5 @@ func (oa *OAuth2CommonHandlers) RevokeGrant(ctx *context.Context) {
 	audit.Record(audit.UserOAuth2ApplicationRevoke, oa.Doer, oa.Owner, grant, "Revoked OAuth2 grant for application %s.", app.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.revoke_oauth2_grant_success"))
-	ctx.JSON(http.StatusOK, map[string]interface{}{"redirect": oa.BasePathList})
+	ctx.JSON(http.StatusOK, map[string]any{"redirect": oa.BasePathList})
 }

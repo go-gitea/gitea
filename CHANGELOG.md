@@ -4,6 +4,54 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.19.4](https://github.com/go-gitea/gitea/releases/tag/v1.19.4) - 2023-07-04
+
+* SECURITY
+  * Fix open redirect check for more cases (#25143) (#25155)
+* API
+  * Return `404` in the API if the requested webhooks were not found (#24823) (#24830)
+  * Fix `organization` field being `null` in `GET /api/v1/teams/{id}` (#24694) (#24696)
+* ENHANCEMENTS
+  * Set `--font-weight-bold` to 600 (#24840)
+  * Make mailer SMTP check have timed context (#24751) (#24759)
+  * Do not select line numbers when selecting text from the action run logs (#24594) (#24596)
+* BUGFIXES
+  * Fix bug when change user name (#25637) (#25645)
+  * Fix task list checkbox toggle to work with YAML front matter (#25184) (#25236)
+  * Hide limited users if viewed by anonymous ghost (#25214) (#25224)
+  * Add `WithPullRequest` for `actionsNotifier` (#25144) (#25196)
+  * Fix parallelly generating index failure with Mysql (#24567) (#25081)
+  * GitLab migration: Sanitize response for reaction list (#25054) (#25059)
+  * Fix users cannot visit issue attachment bug (#25019) (#25027)
+  * Fix missing reference prefix of commits when sync mirror repository (#24994)
+  * Only validate changed columns when update user (#24867) (#24903)
+  * Make DeleteIssue use correct context (#24885)
+  * Fix topics deleted via API not being deleted in org page (#24825) (#24829)
+  * Fix Actions being enabled accidentally (#24802) (#24810)
+  * Fix missed table name on iterate lfs meta objects (#24768) (#24774)
+  * Fix safari cookie session bug (#24772)
+  * Respect original content when creating secrets (#24745) (#24746)
+  * Fix Pull Mirror out-of-sync bugs (#24732) (#24733)
+  * Fix run list broken when trigger user deleted (#24706) (#24709)
+  * Fix issues list page multiple selection update milestones (#24660) (#24663)
+  * Fix: release page for empty or non-existing target (#24659)
+  * Fix close org projects (#24588) (#24591)
+  * Refresh the refernce of the closed PR when reopening (#24231) (#24587)
+  * Fix the permission of team's `Actions` unit issue (#24536) (#24545)
+  * Bump go.etcd.io/bbolt and blevesearch deps (#23062) (#24519)
+  * Fix new wiki page mirror (#24518)
+  * Match unqualified references when syncing pulls as well (#23070)
+* DOCS
+  * Change branch name from master to main in some documents' links (#25126) (#25139)
+  * Remove unnecessary content on docs (#24976) (#25001)
+  * Unify doc links to use paths relative to doc folder (#24979) (#25000)
+  * Fix docs documenting invalid `@every` for `OLDER_THAN` cron settings (#24695) (#24698)
+* MISC
+  * Merge different languages for language stats (#24900) (#24921)
+  * Hiding Secrets options when Actions feature is disabled (#24792)
+  * Improve decryption failure message (#24573) (#24575)
+  * Makefile: Use portable !, not GNUish -not, with find(1). (#24565) (#24572)
+
 ## [1.19.3](https://github.com/go-gitea/gitea/releases/tag/1.19.3) - 2023-05-03
 
 * SECURITY

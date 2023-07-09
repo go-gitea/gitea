@@ -81,7 +81,7 @@ func ApplicationsPost(ctx *context.Context) {
 
 // DeleteApplication response for delete user access token
 func DeleteApplication(ctx *context.Context) {
-	defer ctx.JSON(http.StatusOK, map[string]interface{}{
+	defer ctx.JSON(http.StatusOK, map[string]any{
 		"redirect": setting.AppSubURL + "/user/settings/applications",
 	})
 

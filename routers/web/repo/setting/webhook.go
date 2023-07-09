@@ -2,7 +2,7 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package repo
+package setting
 
 import (
 	"errors"
@@ -170,7 +170,7 @@ func WebhooksNew(ctx *context.Context) {
 		return
 	}
 	if hookType == "discord" {
-		ctx.Data["DiscordHook"] = map[string]interface{}{
+		ctx.Data["DiscordHook"] = map[string]any{
 			"Username": "Gitea",
 		}
 	}
@@ -221,7 +221,7 @@ type webhookParams struct {
 	Secret      string
 	HTTPMethod  string
 	WebhookForm forms.WebhookForm
-	Meta        interface{}
+	Meta        any
 }
 
 func createWebhook(ctx *context.Context, params webhookParams) {
@@ -761,7 +761,7 @@ func ReplayWebhook(ctx *context.Context) {
 
 // DeleteWebhook delete a webhook
 func DeleteWebhook(ctx *context.Context) {
-	defer ctx.JSON(http.StatusOK, map[string]interface{}{
+	defer ctx.JSON(http.StatusOK, map[string]any{
 		"redirect": ctx.Repo.RepoLink + "/settings/hooks",
 	})
 

@@ -127,7 +127,7 @@ func (d *CodebaseDownloader) FormatCloneURL(opts base.MigrateOptions, remoteAddr
 	return opts.CloneAddr, nil
 }
 
-func (d *CodebaseDownloader) callAPI(endpoint string, parameter map[string]string, result interface{}) error {
+func (d *CodebaseDownloader) callAPI(endpoint string, parameter map[string]string, result any) error {
 	u, err := d.baseURL.Parse(endpoint)
 	if err != nil {
 		return err
