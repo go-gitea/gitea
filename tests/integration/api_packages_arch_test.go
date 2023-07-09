@@ -12,7 +12,9 @@ import (
 	"net/http"
 	"path"
 	"testing"
+	"time"
 
+	"bou.ke/monkey"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -274,8 +276,13 @@ ht719b7ZWR3+SRcXySXC/cP8DL/N12kaf8wQSBkjjLKkAPBDnLyL32YFQur67qtbXtxcd/23w375
 
 	rootURL := fmt.Sprintf("/api/packages/%s/arch", user.Name)
 
-	// Set test time to 2023-07-04T19:57:09+03:00 before test execution.
 	// Add package gpg key to user in tests.
+
+	wayback, err := time.Parse(time.RFC3339, "2023-07-04T19:57:09+03:00")
+	assert.NoError(t, err)
+
+	patch := monkey.Patch(time.Now, func() time.Time { return wayback })
+	defer patch.Unpatch()
 
 	t.Run("push", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()

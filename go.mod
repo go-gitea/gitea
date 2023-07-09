@@ -3,6 +3,7 @@ module code.gitea.io/gitea
 go 1.20
 
 require (
+	bou.ke/monkey v1.0.2
 	code.gitea.io/actions-proto-go v0.3.0
 	code.gitea.io/gitea-vet v0.2.2
 	code.gitea.io/sdk/gitea v0.15.1
