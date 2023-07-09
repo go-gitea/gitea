@@ -532,27 +532,6 @@ func GetOrgsCanCreateRepoByUserID(userID int64) ([]*Organization, error) {
 		Find(&orgs)
 }
 
-// GetOrgUsersByUserID returns all organization-user relations by user ID.
-func GetOrgUsersByUserID(uid int64, opts *SearchOrganizationsOptions) ([]*OrgUser, error) {
-	ous := make([]*OrgUser, 0, 10)
-	sess := db.GetEngine(db.DefaultContext).
-		Join("LEFT", "`user`", "`org_user`.org_id=`user`.id").
-		Where("`org_user`.uid=?", uid)
-	if !opts.All {
-		// Only show public organizations
-		sess.And("is_public=?", true)
-	}
-
-	if opts.PageSize != 0 {
-		sess = db.SetSessionPagination(sess, opts)
-	}
-
-	err := sess.
-		Asc("`user`.name").
-		Find(&ous)
-	return ous, err
-}
-
 // GetOrgUsersByOrgID returns all organization-user relations by organization ID.
 func GetOrgUsersByOrgID(ctx context.Context, opts *FindOrgMembersOpts) ([]*OrgUser, error) {
 	sess := db.GetEngine(ctx).Where("org_id=?", opts.OrgID)

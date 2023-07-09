@@ -79,7 +79,7 @@ func Test_AddHeaderAuthorizationEncryptedColWebhook(t *testing.T) {
 		return
 	}
 	for _, h := range hookTasks {
-		var m map[string]interface{}
+		var m map[string]any
 		err := json.Unmarshal([]byte(h.PayloadContent), &m)
 		assert.NoError(t, err)
 		assert.Nil(t, m["access_token"])

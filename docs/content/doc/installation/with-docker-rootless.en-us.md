@@ -119,7 +119,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
     ports:
       - "3000:3000"
-      - "222:22"
+      - "2222:2222"
 +    depends_on:
 +      - db
 +

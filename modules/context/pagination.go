@@ -32,7 +32,7 @@ func (p *Pagination) AddParam(ctx *Context, paramKey, ctxKey string) {
 	if !exists {
 		return
 	}
-	paramData := fmt.Sprintf("%v", ctx.Data[ctxKey]) // cast interface{} to string
+	paramData := fmt.Sprintf("%v", ctx.Data[ctxKey]) // cast any to string
 	urlParam := fmt.Sprintf("%s=%v", url.QueryEscape(paramKey), url.QueryEscape(paramData))
 	p.urlParams = append(p.urlParams, urlParam)
 }

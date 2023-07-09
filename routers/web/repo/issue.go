@@ -189,7 +189,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 
 	var issueIDs []int64
 	if len(keyword) > 0 {
-		issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, []int64{repo.ID}, keyword)
+		issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, []int64{repo.ID}, keyword, ctx.FormString("state"))
 		if err != nil {
 			if issue_indexer.IsAvailable(ctx) {
 				ctx.ServerError("issueIndexer.Search", err)
@@ -785,7 +785,13 @@ func RetrieveRepoMetas(ctx *context.Context, repo *repo_model.Repository, isPull
 		return nil
 	}
 
-	brs, _, err := ctx.Repo.GitRepo.GetBranchNames(0, 0)
+	brs, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
+		RepoID: ctx.Repo.Repository.ID,
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		IsDeletedBranch: util.OptionalBoolFalse,
+	})
 	if err != nil {
 		ctx.ServerError("GetBranches", err)
 		return nil
@@ -946,7 +952,7 @@ func renderErrorOfTemplates(ctx *context.Context, errs map[string]error) string 
 		lines = append(lines, fmt.Sprintf("%s: %v", file, errs[file]))
 	}
 
-	flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
+	flashError, err := ctx.RenderToString(tplAlertDetails, map[string]any{
 		"Message": ctx.Tr("repo.issues.choose.ignore_invalid_templates"),
 		"Summary": ctx.Tr("repo.issues.choose.invalid_templates", len(errs)),
 		"Details": utils.SanitizeFlashErrorString(strings.Join(lines, "\n")),
@@ -1916,9 +1922,12 @@ func ViewIssue(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplIssueView)
 }
 
+// checkBlockedByIssues return canRead and notPermitted
 func checkBlockedByIssues(ctx *context.Context, blockers []*issues_model.DependencyInfo) (canRead, notPermitted []*issues_model.DependencyInfo) {
-	var lastRepoID int64
-	var lastPerm access_model.Permission
+	var (
+		lastRepoID int64
+		lastPerm   access_model.Permission
+	)
 	for i, blocker := range blockers {
 		// Get the permissions for this repository
 		perm := lastPerm
@@ -1930,7 +1939,7 @@ func checkBlockedByIssues(ctx *context.Context, blockers []*issues_model.Depende
 				perm, err = access_model.GetUserRepoPermission(ctx, &blocker.Repository, ctx.Doer)
 				if err != nil {
 					ctx.ServerError("GetUserRepoPermission", err)
-					return
+					return nil, nil
 				}
 			}
 			lastRepoID = blocker.Repository.ID
@@ -1971,7 +1980,7 @@ func GetActionIssue(ctx *context.Context) *issues_model.Issue {
 		return nil
 	}
 	if err = issue.LoadAttributes(ctx); err != nil {
-		ctx.ServerError("LoadAttributes", nil)
+		ctx.ServerError("LoadAttributes", err)
 		return nil
 	}
 	return issue
@@ -2075,7 +2084,7 @@ func UpdateIssueTitle(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"title": issue.Title,
 	})
 }
@@ -2099,7 +2108,7 @@ func UpdateIssueRef(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"ref": ref,
 	})
 }
@@ -2140,7 +2149,7 @@ func UpdateIssueContent(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"content":     content,
 		"attachments": attachmentsHTML(ctx, issue.Attachments, issue.Content),
 	})
@@ -2200,7 +2209,7 @@ func UpdateIssueMilestone(ctx *context.Context) {
 		}
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"ok": true,
 	})
 }
@@ -2246,7 +2255,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 			}
 		}
 	}
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"ok": true,
 	})
 }
@@ -2371,7 +2380,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 		}
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"ok": true,
 	})
 }
@@ -2457,7 +2466,7 @@ func SearchIssues(ctx *context.Context) {
 	}
 	var issueIDs []int64
 	if len(keyword) > 0 && len(repoIDs) > 0 {
-		if issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, repoIDs, keyword); err != nil {
+		if issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, repoIDs, keyword, ctx.FormString("state")); err != nil {
 			ctx.Error(http.StatusInternalServerError, "SearchIssuesByKeyword", err.Error())
 			return
 		}
@@ -2605,7 +2614,7 @@ func ListIssues(ctx *context.Context) {
 	var issueIDs []int64
 	var labelIDs []int64
 	if len(keyword) > 0 {
-		issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, []int64{ctx.Repo.Repository.ID}, keyword)
+		issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, []int64{ctx.Repo.Repository.ID}, keyword, ctx.FormString("state"))
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 			return
@@ -2757,7 +2766,7 @@ func UpdateIssueStatus(ctx *context.Context) {
 		if issue.IsClosed != isClosed {
 			if err := issue_service.ChangeStatus(issue, ctx.Doer, "", isClosed); err != nil {
 				if issues_model.IsErrDependenciesLeft(err) {
-					ctx.JSON(http.StatusPreconditionFailed, map[string]interface{}{
+					ctx.JSON(http.StatusPreconditionFailed, map[string]any{
 						"error": ctx.Tr("repo.issues.dependency.issue_batch_close_blocked", issue.Index),
 					})
 					return
@@ -2972,7 +2981,7 @@ func UpdateCommentContent(ctx *context.Context) {
 	oldContent := comment.Content
 	comment.Content = ctx.FormString("content")
 	if len(comment.Content) == 0 {
-		ctx.JSON(http.StatusOK, map[string]interface{}{
+		ctx.JSON(http.StatusOK, map[string]any{
 			"content": "",
 		})
 		return
@@ -3006,7 +3015,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"content":     content,
 		"attachments": attachmentsHTML(ctx, comment.Attachments, comment.Content),
 	})
@@ -3116,14 +3125,14 @@ func ChangeIssueReaction(ctx *context.Context) {
 	}
 
 	if len(issue.Reactions) == 0 {
-		ctx.JSON(http.StatusOK, map[string]interface{}{
+		ctx.JSON(http.StatusOK, map[string]any{
 			"empty": true,
 			"html":  "",
 		})
 		return
 	}
 
-	html, err := ctx.RenderToString(tplReactions, map[string]interface{}{
+	html, err := ctx.RenderToString(tplReactions, map[string]any{
 		"ctxData":   ctx.Data,
 		"ActionURL": fmt.Sprintf("%s/issues/%d/reactions", ctx.Repo.RepoLink, issue.Index),
 		"Reactions": issue.Reactions.GroupByType(),
@@ -3132,7 +3141,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 		ctx.ServerError("ChangeIssueReaction.HTMLString", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"html": html,
 	})
 }
@@ -3218,14 +3227,14 @@ func ChangeCommentReaction(ctx *context.Context) {
 	}
 
 	if len(comment.Reactions) == 0 {
-		ctx.JSON(http.StatusOK, map[string]interface{}{
+		ctx.JSON(http.StatusOK, map[string]any{
 			"empty": true,
 			"html":  "",
 		})
 		return
 	}
 
-	html, err := ctx.RenderToString(tplReactions, map[string]interface{}{
+	html, err := ctx.RenderToString(tplReactions, map[string]any{
 		"ctxData":   ctx.Data,
 		"ActionURL": fmt.Sprintf("%s/comments/%d/reactions", ctx.Repo.RepoLink, comment.ID),
 		"Reactions": comment.Reactions.GroupByType(),
@@ -3234,7 +3243,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 		ctx.ServerError("ChangeCommentReaction.HTMLString", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"html": html,
 	})
 }
@@ -3276,6 +3285,9 @@ func filterXRefComments(ctx *context.Context, issue *issues_model.Issue) error {
 // GetIssueAttachments returns attachments for the issue
 func GetIssueAttachments(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
+	if ctx.Written() {
+		return
+	}
 	attachments := make([]*api.Attachment, len(issue.Attachments))
 	for i := 0; i < len(issue.Attachments); i++ {
 		attachments[i] = convert.ToAttachment(issue.Attachments[i])
@@ -3307,7 +3319,7 @@ func GetCommentAttachments(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, attachments)
 }
 
-func updateAttachments(ctx *context.Context, item interface{}, files []string) error {
+func updateAttachments(ctx *context.Context, item any, files []string) error {
 	var attachments []*repo_model.Attachment
 	switch content := item.(type) {
 	case *issues_model.Issue:
@@ -3351,7 +3363,7 @@ func updateAttachments(ctx *context.Context, item interface{}, files []string) e
 }
 
 func attachmentsHTML(ctx *context.Context, attachments []*repo_model.Attachment, content string) string {
-	attachHTML, err := ctx.RenderToString(tplAttachment, map[string]interface{}{
+	attachHTML, err := ctx.RenderToString(tplAttachment, map[string]any{
 		"ctxData":     ctx.Data,
 		"Attachments": attachments,
 		"Content":     content,

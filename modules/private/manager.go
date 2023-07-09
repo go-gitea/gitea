@@ -85,11 +85,11 @@ type LoggerOptions struct {
 	Logger string
 	Writer string
 	Mode   string
-	Config map[string]interface{}
+	Config map[string]any
 }
 
 // AddLogger adds a logger
-func AddLogger(ctx context.Context, logger, writer, mode string, config map[string]interface{}) ResponseExtra {
+func AddLogger(ctx context.Context, logger, writer, mode string, config map[string]any) ResponseExtra {
 	reqURL := setting.LocalURL + "api/internal/manager/add-logger"
 	req := newInternalRequest(ctx, reqURL, "POST", LoggerOptions{
 		Logger: logger,
