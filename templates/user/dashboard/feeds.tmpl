@@ -4,8 +4,8 @@
 			<div class="flex-card-leading">
 				{{avatarByAction $.Context .}}
 			</div>
-			<div class="flex-card-main">
-				<div class="gt-mb-4">
+			<div class="flex-card-main gt-gap-3">
+				<div>
 					{{if gt .ActUser.ID 0}}
 						<a href="{{AppSubUrl}}/{{.GetActUserName | PathEscape}}" title="{{.GetDisplayNameTitle}}">{{.GetDisplayName}}</a>
 					{{else}}
@@ -117,7 +117,7 @@
 				<div class="flex-card-body">{{$.locale.Tr "action.review_dismissed_reason"}}</div>
 				<div class="flex-card-body">{{index .GetIssueInfos 2 | RenderEmoji $.Context}}</div>
 				{{end}}
-				<div class="flex-card-body gt-mt-4">{{TimeSince .GetCreate $.locale}}</div>
+				<div class="flex-card-body">{{TimeSince .GetCreate $.locale}}</div>
 			</div>
 			<div class="flex-card-trailing">
 				{{svg (printf "octicon-%s" (ActionIcon .GetOpType)) 32}}

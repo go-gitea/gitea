@@ -39,7 +39,7 @@
 					</div>
 					<div class="flex-card-trailing">
 						{{if or (eq $.SignedUser.ID .ID) $.IsOrganizationOwner}}
-							{{if $isPublic }}
+							{{if $isPublic}}
 								<a class="ui tiny button link-action" href data-url="{{$.OrgLink}}/members/action/private?uid={{.ID}}">{{svg "octicon-eye-closed" 12 "icon"}}{{$.locale.Tr "org.members.public_helper"}}</a>
 							{{else}}
 								<a class="ui tiny button link-action" href data-url="{{$.OrgLink}}/members/action/public?uid={{.ID}}">{{svg "octicon-eye" 12 "icon"}}{{$.locale.Tr "org.members.private_helper"}}</a>
