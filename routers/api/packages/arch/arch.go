@@ -59,6 +59,7 @@ func Push(ctx *context.Context) {
 		return
 	}
 
+	// Check if message is outdated.
 	if time.Since(t) > time.Hour {
 		apiError(ctx, http.StatusUnauthorized, "outdated message")
 		return

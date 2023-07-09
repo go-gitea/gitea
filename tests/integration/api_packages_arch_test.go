@@ -249,6 +249,8 @@ ht719b7ZWR3+SRcXySXC/cP8DL/N12kaf8wQSBkjjLKkAPBDnLyL32YFQur67qtbXtxcd/23w375
 
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
+	setting.Packages.LimitSizeArch = 99999999999999
+
 	user := &user_model.User{
 		Name:               "dancheg97",
 		Email:              "dancheg97@fmnx.su",
@@ -267,7 +269,7 @@ ht719b7ZWR3+SRcXySXC/cP8DL/N12kaf8wQSBkjjLKkAPBDnLyL32YFQur67qtbXtxcd/23w375
 	req := NewRequestWithJSON(t, "POST", "/api/v1/user/gpg_keys?token="+token, api.CreateGPGKeyOption{
 		ArmoredKey: gpgkey,
 	})
-	MakeRequest(t, req, http.StatusOK)
+	MakeRequest(t, req, http.StatusCreated)
 
 	pkgData, err := base64.StdEncoding.DecodeString(pkg)
 	assert.NoError(t, err)
@@ -286,11 +288,10 @@ ht719b7ZWR3+SRcXySXC/cP8DL/N12kaf8wQSBkjjLKkAPBDnLyL32YFQur67qtbXtxcd/23w375
 	wayback, err := time.Parse(time.RFC3339, "2023-07-04T19:57:09+03:00")
 	assert.NoError(t, err)
 
-	patch := monkey.Patch(time.Now, func() time.Time { return wayback })
-	defer patch.Unpatch()
-
 	t.Run("Push", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
+
+		patch := monkey.Patch(time.Now, func() time.Time { return wayback })
 
 		req := NewRequest(t, "PUT", path.Join(rootURL, "/push"))
 
@@ -304,6 +305,8 @@ ht719b7ZWR3+SRcXySXC/cP8DL/N12kaf8wQSBkjjLKkAPBDnLyL32YFQur67qtbXtxcd/23w375
 		req.Body = io.NopCloser(bytes.NewReader(pkgData))
 
 		MakeRequest(t, req, http.StatusOK)
+
+		patch.Unpatch()
 	})
 
 	t.Run("Get", func(t *testing.T) {
@@ -338,6 +341,8 @@ ht719b7ZWR3+SRcXySXC/cP8DL/N12kaf8wQSBkjjLKkAPBDnLyL32YFQur67qtbXtxcd/23w375
 	t.Run("Remove", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
+		patch := monkey.Patch(time.Now, func() time.Time { return wayback })
+
 		req := NewRequest(t, "PUT", path.Join(rootURL, "/push"))
 
 		req.Header.Set("username", "dancheg97")
@@ -349,5 +354,7 @@ ht719b7ZWR3+SRcXySXC/cP8DL/N12kaf8wQSBkjjLKkAPBDnLyL32YFQur67qtbXtxcd/23w375
 		req.Body = io.NopCloser(bytes.NewReader(mdSigData))
 
 		MakeRequest(t, req, http.StatusOK)
+
+		patch.Unpatch()
 	})
 }

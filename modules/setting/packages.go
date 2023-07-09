@@ -24,6 +24,7 @@ var (
 		LimitTotalOwnerCount int64
 		LimitTotalOwnerSize  int64
 		LimitSizeAlpine      int64
+		LimitSizeArch        int64
 		LimitSizeCargo       int64
 		LimitSizeChef        int64
 		LimitSizeComposer    int64
