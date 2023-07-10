@@ -237,13 +237,13 @@ func FindProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, e
 
 	switch opts.SortType {
 	case "oldest":
-		e.Desc("created_unix")
+		e.Asc("created_unix")
 	case "recentupdate":
 		e.Desc("updated_unix")
 	case "leastupdate":
 		e.Asc("updated_unix")
 	default:
-		e.Asc("created_unix")
+		e.Desc("created_unix")
 	}
 
 	count, err := e.FindAndCount(&projects)
