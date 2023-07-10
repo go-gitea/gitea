@@ -1252,19 +1252,19 @@ func (c *Comment) HasOriginalAuthor() bool {
 
 func (c *Comment) LoadClosedIssueCommentContent(ctx context.Context) (err error) {
 	if c.Type != CommentTypeClose || c.Content == "" {
-		return
+		return nil
 	}
 	var ctnt ClosedIssueCommentContent
 	if err = json.Unmarshal([]byte(c.Content), &ctnt); err != nil {
-		return
+		return err
 	}
 	c.ClosedTranslation = ctnt.Tr
 	if ctnt.DuplicateIssueID <= 0 {
-		return
+		return nil
 	}
 
 	if c.DuplicateIssue, err = GetIssueByID(ctx, ctnt.DuplicateIssueID); err != nil {
-		return
+		return err
 	}
 	return c.DuplicateIssue.LoadRepo((ctx))
 }
