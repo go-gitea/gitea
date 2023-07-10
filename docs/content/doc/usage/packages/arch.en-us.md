@@ -41,7 +41,7 @@ pacman -Sy package
 
 ## GPG Verification
 
-Upload and remove operation are validated with [GnuPG](https://gnupg.org/). First, you need to export and upload your public gpg key to `SSH/GPG Keys` in account settings. This works similarly with SSH key. You can export gpg key with command:
+Upload and remove operation are validated with [GnuPG](https://gnupg.org/). First, you need to export and upload your public gpg key to `SSH/GPG Keys` in account settings. This works similarly to SSH keys. You can export gpg key with command:
 
 ```sh
 gpg --armor --export
@@ -166,3 +166,9 @@ curl -X DELETE \
   --header 'Content-Type: application/octet-stream' \
   --data-binary @md.sig
 ```
+
+## Clients
+
+You can generate client code with tools like [thunder client](https://marketplace.visualstudio.com/items?itemName=rangav.vscode-thunder-client), [postman](https://blog.postman.com/curl-and-postman-work-wonderfully-together/) or other code generators to write your own client.
+
+Also you can take a look at [pack](https://fmnx.su/core/pack) which provides `pacman` functionality with additional commands to build, sign and push your arch packages to gitea.
