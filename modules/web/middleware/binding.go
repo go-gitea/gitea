@@ -25,7 +25,7 @@ func init() {
 }
 
 // AssignForm assign form values back to the template data.
-func AssignForm(form interface{}, data map[string]interface{}) {
+func AssignForm(form any, data map[string]any) {
 	typ := reflect.TypeOf(form)
 	val := reflect.ValueOf(form)
 
@@ -79,7 +79,7 @@ func GetInclude(field reflect.StructField) string {
 }
 
 // Validate validate TODO:
-func Validate(errs binding.Errors, data map[string]interface{}, f Form, l translation.Locale) binding.Errors {
+func Validate(errs binding.Errors, data map[string]any, f Form, l translation.Locale) binding.Errors {
 	if errs.Len() == 0 {
 		return errs
 	}

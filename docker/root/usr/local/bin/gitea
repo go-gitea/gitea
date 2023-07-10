@@ -8,7 +8,7 @@
 #
 # And place the original in /usr/lib/gitea with working files in /data/gitea
 GITEA="/app/gitea/gitea"
-WORK_DIR="/app/gitea"
+WORK_DIR="/data/gitea"
 CUSTOM_PATH="/data/gitea"
 
 # Provide docker defaults
