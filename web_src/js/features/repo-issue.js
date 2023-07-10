@@ -109,7 +109,7 @@ export function initRepoIssueSidebarList() {
   });
 
   $('.menu .ui.dropdown.label-filter').on('keydown', (e) => {
-    if (e.altKey && e.keyCode === 13) {
+    if (e.altKey && e.key === 'Enter') {
       const selectedItems = $('.menu .ui.dropdown.label-filter .menu .item.selected');
       if (selectedItems.length > 0) {
         excludeLabel($(selectedItems[0]));
