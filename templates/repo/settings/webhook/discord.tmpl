@@ -8,11 +8,11 @@
 		</div>
 		<div class="field">
 			<label for="username">{{.locale.Tr "repo.settings.discord_username"}}</label>
-			<input id="username" name="username" value="{{.DiscordHook.Username}}" placeholder="e.g. Gitea">
+			<input id="username" name="username" value="{{.DiscordHook.Username}}" placeholder="Gitea">
 		</div>
 		<div class="field">
 			<label for="icon_url">{{.locale.Tr "repo.settings.discord_icon_url"}}</label>
-			<input id="icon_url" name="icon_url" value="{{.DiscordHook.IconURL}}" placeholder="e.g. https://example.com/assets/img/logo.svg">
+			<input id="icon_url" name="icon_url" value="{{.DiscordHook.IconURL}}" placeholder="https://example.com/assets/img/logo.svg">
 		</div>
 		{{template "repo/settings/webhook/settings" .}}
 	</form>

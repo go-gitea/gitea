@@ -3,6 +3,9 @@ import tippy from 'tippy.js';
 const visibleInstances = new Set();
 
 export function createTippy(target, opts = {}) {
+  // the callback functions should be destructured from opts,
+  // because we should use our own wrapper functions to handle them, do not let the user override them
+  const {onHide, onShow, onDestroy, ...other} = opts;
   const instance = tippy(target, {
     appendTo: document.body,
     animation: false,
@@ -13,9 +16,11 @@ export function createTippy(target, opts = {}) {
     maxWidth: 500, // increase over default 350px
     onHide: (instance) => {
       visibleInstances.delete(instance);
+      return onHide?.(instance);
     },
     onDestroy: (instance) => {
       visibleInstances.delete(instance);
+      return onDestroy?.(instance);
     },
     onShow: (instance) => {
       // hide other tooltip instances so only one tooltip shows at a time
@@ -25,17 +30,19 @@ export function createTippy(target, opts = {}) {
         }
       }
       visibleInstances.add(instance);
+      return onShow?.(instance);
     },
     arrow: `<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`,
-    ...(opts?.role && {theme: opts.role}),
-    ...opts,
+    role: 'menu', // HTML role attribute, only tooltips should use "tooltip"
+    theme: other.role || 'menu', // CSS theme, we support either "tooltip" or "menu"
+    ...other,
   });
 
   // for popups where content refers to a DOM element, we use the 'tippy-target' class
   // to initially hide the content, now we can remove it as the content has been removed
   // from the DOM by tippy
-  if (opts.content instanceof Element) {
-    opts.content.classList.remove('tippy-target');
+  if (other.content instanceof Element) {
+    other.content.classList.remove('tippy-target');
   }
 
   return instance;
@@ -68,6 +75,7 @@ function attachTooltip(target, content = null) {
     content,
     delay: 100,
     role: 'tooltip',
+    theme: 'tooltip',
     hideOnClick,
     placement: target.getAttribute('data-tooltip-placement') || 'top-start',
     ...(target.getAttribute('data-tooltip-interactive') === 'true' ? {interactive: true, aria: {content: 'describedby', expanded: false}} : {}),

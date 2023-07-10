@@ -1,14 +1,21 @@
 @import "./modules/normalize.css";
 @import "./modules/animations.css";
 @import "./modules/button.css";
+@import "./modules/select.css";
 @import "./modules/tippy.css";
 @import "./modules/modal.css";
 @import "./modules/breadcrumb.css";
 @import "./modules/card.css";
 @import "./modules/comment.css";
+@import "./modules/navbar.css";
+@import "./modules/toast.css";
+@import "./modules/divider.css";
+@import "./modules/svg.css";
 
 @import "./shared/issuelist.css";
+@import "./shared/milestone.css";
 @import "./shared/repoorg.css";
+@import "./shared/settings.css";
 
 @import "./features/dropzone.css";
 @import "./features/gitgraph.css";
@@ -41,6 +48,7 @@
 @import "./repo/issue-list.css";
 @import "./repo/list-header.css";
 @import "./repo/linebutton.css";
+@import "./repo/wiki.css";
 
 @import "./editor/fileeditor.css";
 @import "./editor/combomarkdowneditor.css";

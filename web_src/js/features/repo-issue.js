@@ -149,6 +149,7 @@ export function initRepoIssueSidebarList() {
       }
     }
   });
+  $('.ui.dropdown.label-filter, .ui.dropdown.select-label').dropdown('setting', {'hideDividers': 'empty'}).dropdown('refreshItems');
 }
 
 export function initRepoIssueCommentDelete() {
@@ -358,13 +359,6 @@ export function initRepoIssueComments() {
     ).then(() => window.location.reload());
   });
 
-  $('.dismiss-review-btn').on('click', function (e) {
-    e.preventDefault();
-    const $this = $(this);
-    const $dismissReviewModal = $this.next();
-    $dismissReviewModal.modal('show');
-  });
-
   $(document).on('click', (event) => {
     const urlTarget = $(':target');
     if (urlTarget.length === 0) return;
@@ -476,7 +470,6 @@ export function initRepoPullRequestReview() {
       content: $panel[0],
       placement: 'bottom',
       trigger: 'click',
-      role: 'menu',
       maxWidth: 'none',
       interactive: true,
       hideOnClick: true,
@@ -644,11 +637,6 @@ export function initSingleCommentEditor($commentForm) {
   const opts = {};
   const $statusButton = $('#status-button');
   if ($statusButton.length) {
-    $statusButton.on('click', (e) => {
-      e.preventDefault();
-      $('#status').val($statusButton.data('status-val'));
-      $('#comment-form').trigger('submit');
-    });
     opts.onContentChanged = (editor) => {
       $statusButton.text($statusButton.attr(editor.value().trim() ? 'data-status-and-comment' : 'data-status'));
     };

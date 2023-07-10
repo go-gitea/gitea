@@ -6,6 +6,8 @@ package security
 import (
 	"errors"
 	"net/http"
+	"strconv"
+	"time"
 
 	"code.gitea.io/gitea/models/auth"
 	wa "code.gitea.io/gitea/modules/auth/webauthn"
@@ -23,8 +25,8 @@ import (
 func WebAuthnRegister(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.WebauthnRegistrationForm)
 	if form.Name == "" {
-		ctx.Error(http.StatusConflict)
-		return
+		// Set name to the hexadecimal of the current time
+		form.Name = strconv.FormatInt(time.Now().UnixNano(), 16)
 	}
 
 	cred, err := auth.GetWebAuthnCredentialByName(ctx.Doer.ID, form.Name)
@@ -114,7 +116,7 @@ func WebauthnDelete(ctx *context.Context) {
 		ctx.ServerError("GetWebAuthnCredentialByID", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"redirect": setting.AppSubURL + "/user/settings/security",
 	})
 }

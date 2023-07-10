@@ -93,7 +93,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	defer gitRepo.Close()
 
 	if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
-		log.Error("Failed to update size for repository: %v", err)
+		return fmt.Errorf("Failed to update size for repository: %v", err)
 	}
 
 	addTags := make([]string, 0, len(optsList))
@@ -259,8 +259,8 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 
 				notification.NotifyPushCommits(ctx, pusher, repo, opts, commits)
 
-				if err = git_model.RemoveDeletedBranchByName(ctx, repo.ID, branch); err != nil {
-					log.Error("models.RemoveDeletedBranch %s/%s failed: %v", repo.ID, branch, err)
+				if err = git_model.UpdateBranch(ctx, repo.ID, opts.PusherID, branch, newCommit); err != nil {
+					return fmt.Errorf("git_model.UpdateBranch %s:%s failed: %v", repo.FullName(), branch, err)
 				}
 
 				// Cache for big repository
@@ -272,6 +272,10 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				if err = pull_service.CloseBranchPulls(pusher, repo.ID, branch); err != nil {
 					// close all related pulls
 					log.Error("close related pull request failed: %v", err)
+				}
+
+				if err := git_model.AddDeletedBranch(db.DefaultContext, repo.ID, branch, pusher.ID); err != nil {
+					return fmt.Errorf("AddDeletedBranch %s:%s failed: %v", repo.FullName(), branch, err)
 				}
 			}
 

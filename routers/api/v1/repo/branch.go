@@ -15,7 +15,9 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/convert"
@@ -76,7 +78,7 @@ func GetBranch(ctx *context.APIContext) {
 		return
 	}
 
-	br, err := convert.ToBranch(ctx, ctx.Repo.Repository, branch, c, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
+	br, err := convert.ToBranch(ctx, ctx.Repo.Repository, branch.Name, c, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "convert.ToBranch", err)
 		return
@@ -116,7 +118,53 @@ func DeleteBranch(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
+	if ctx.Repo.Repository.IsEmpty {
+		ctx.Error(http.StatusNotFound, "", "Git Repository is empty.")
+		return
+	}
+
+	if ctx.Repo.Repository.IsArchived {
+		ctx.Error(http.StatusForbidden, "", "Git Repository is archived.")
+		return
+	}
+
+	if ctx.Repo.Repository.IsMirror {
+		ctx.Error(http.StatusForbidden, "", "Git Repository is a mirror.")
+		return
+	}
+
 	branchName := ctx.Params("*")
+
+	if ctx.Repo.Repository.IsEmpty {
+		ctx.Error(http.StatusForbidden, "", "Git Repository is empty.")
+		return
+	}
+
+	// check whether branches of this repository has been synced
+	totalNumOfBranches, err := git_model.CountBranches(ctx, git_model.FindBranchOptions{
+		RepoID:          ctx.Repo.Repository.ID,
+		IsDeletedBranch: util.OptionalBoolFalse,
+	})
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "CountBranches", err)
+		return
+	}
+	if totalNumOfBranches == 0 { // sync branches immediately because non-empty repository should have at least 1 branch
+		_, err = repo_module.SyncRepoBranches(ctx, ctx.Repo.Repository.ID, 0)
+		if err != nil {
+			ctx.ServerError("SyncRepoBranches", err)
+			return
+		}
+	}
+
+	if ctx.Repo.Repository.IsArchived {
+		ctx.Error(http.StatusForbidden, "IsArchived", fmt.Errorf("can not delete branch of an archived repository"))
+		return
+	}
+	if ctx.Repo.Repository.IsMirror {
+		ctx.Error(http.StatusForbidden, "IsMirrored", fmt.Errorf("can not delete branch of an mirror repository"))
+		return
+	}
 
 	if err := repo_service.DeleteBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName); err != nil {
 		switch {
@@ -162,16 +210,29 @@ func CreateBranch(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Branch"
+	//   "403":
+	//     description: The branch is archived or a mirror.
 	//   "404":
 	//     description: The old branch does not exist.
 	//   "409":
 	//     description: The branch with the same name already exists.
 
-	opt := web.GetForm(ctx).(*api.CreateBranchRepoOption)
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.Error(http.StatusNotFound, "", "Git Repository is empty.")
 		return
 	}
+
+	if ctx.Repo.Repository.IsArchived {
+		ctx.Error(http.StatusForbidden, "", "Git Repository is archived.")
+		return
+	}
+
+	if ctx.Repo.Repository.IsMirror {
+		ctx.Error(http.StatusForbidden, "", "Git Repository is a mirror.")
+		return
+	}
+
+	opt := web.GetForm(ctx).(*api.CreateBranchRepoOption)
 
 	var oldCommit *git.Commit
 	var err error
@@ -203,14 +264,14 @@ func CreateBranch(ctx *context.APIContext) {
 
 	err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, oldCommit.ID.String(), opt.BranchName)
 	if err != nil {
-		if models.IsErrBranchDoesNotExist(err) {
+		if git_model.IsErrBranchNotExist(err) {
 			ctx.Error(http.StatusNotFound, "", "The old branch does not exist")
 		}
 		if models.IsErrTagAlreadyExists(err) {
 			ctx.Error(http.StatusConflict, "", "The branch with the same tag already exists.")
-		} else if models.IsErrBranchAlreadyExists(err) || git.IsErrPushOutOfDate(err) {
+		} else if git_model.IsErrBranchAlreadyExists(err) || git.IsErrPushOutOfDate(err) {
 			ctx.Error(http.StatusConflict, "", "The branch already exists.")
-		} else if models.IsErrBranchNameConflict(err) {
+		} else if git_model.IsErrBranchNameConflict(err) {
 			ctx.Error(http.StatusConflict, "", "The branch with the same name already exists.")
 		} else {
 			ctx.Error(http.StatusInternalServerError, "CreateNewBranchFromCommit", err)
@@ -236,7 +297,7 @@ func CreateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	br, err := convert.ToBranch(ctx, ctx.Repo.Repository, branch, commit, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
+	br, err := convert.ToBranch(ctx, ctx.Repo.Repository, branch.Name, commit, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "convert.ToBranch", err)
 		return
@@ -275,20 +336,43 @@ func ListBranches(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/BranchList"
 
-	var totalNumOfBranches int
+	var totalNumOfBranches int64
 	var apiBranches []*api.Branch
 
 	listOptions := utils.GetListOptions(ctx)
 
-	if !ctx.Repo.Repository.IsEmpty && ctx.Repo.GitRepo != nil {
+	if !ctx.Repo.Repository.IsEmpty {
+		if ctx.Repo.GitRepo == nil {
+			ctx.Error(http.StatusInternalServerError, "Load git repository failed", nil)
+			return
+		}
+
+		branchOpts := git_model.FindBranchOptions{
+			ListOptions:     listOptions,
+			RepoID:          ctx.Repo.Repository.ID,
+			IsDeletedBranch: util.OptionalBoolFalse,
+		}
+		var err error
+		totalNumOfBranches, err = git_model.CountBranches(ctx, branchOpts)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "CountBranches", err)
+			return
+		}
+		if totalNumOfBranches == 0 { // sync branches immediately because non-empty repository should have at least 1 branch
+			totalNumOfBranches, err = repo_module.SyncRepoBranches(ctx, ctx.Repo.Repository.ID, 0)
+			if err != nil {
+				ctx.ServerError("SyncRepoBranches", err)
+				return
+			}
+		}
+
 		rules, err := git_model.FindRepoProtectedBranchRules(ctx, ctx.Repo.Repository.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "FindMatchedProtectedBranchRules", err)
 			return
 		}
 
-		skip, _ := listOptions.GetStartEnd()
-		branches, total, err := ctx.Repo.GitRepo.GetBranches(skip, listOptions.PageSize)
+		branches, err := git_model.FindBranches(ctx, branchOpts)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetBranches", err)
 			return
@@ -296,11 +380,11 @@ func ListBranches(ctx *context.APIContext) {
 
 		apiBranches = make([]*api.Branch, 0, len(branches))
 		for i := range branches {
-			c, err := branches[i].GetCommit()
+			c, err := ctx.Repo.GitRepo.GetBranchCommit(branches[i].Name)
 			if err != nil {
 				// Skip if this branch doesn't exist anymore.
 				if git.IsErrNotExist(err) {
-					total--
+					totalNumOfBranches--
 					continue
 				}
 				ctx.Error(http.StatusInternalServerError, "GetCommit", err)
@@ -308,19 +392,17 @@ func ListBranches(ctx *context.APIContext) {
 			}
 
 			branchProtection := rules.GetFirstMatched(branches[i].Name)
-			apiBranch, err := convert.ToBranch(ctx, ctx.Repo.Repository, branches[i], c, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
+			apiBranch, err := convert.ToBranch(ctx, ctx.Repo.Repository, branches[i].Name, c, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "convert.ToBranch", err)
 				return
 			}
 			apiBranches = append(apiBranches, apiBranch)
 		}
-
-		totalNumOfBranches = total
 	}
 
-	ctx.SetLinkHeader(totalNumOfBranches, listOptions.PageSize)
-	ctx.SetTotalCountHeader(int64(totalNumOfBranches))
+	ctx.SetLinkHeader(int(totalNumOfBranches), listOptions.PageSize)
+	ctx.SetTotalCountHeader(totalNumOfBranches)
 	ctx.JSON(http.StatusOK, apiBranches)
 }
 
@@ -580,7 +662,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 				}()
 			}
 			// FIXME: since we only need to recheck files protected rules, we could improve this
-			matchedBranches, err := git_model.FindAllMatchedBranches(ctx, ctx.Repo.GitRepo, ruleName)
+			matchedBranches, err := git_model.FindAllMatchedBranches(ctx, ctx.Repo.Repository.ID, ruleName)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "FindAllMatchedBranches", err)
 				return
@@ -851,7 +933,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 			}
 
 			// FIXME: since we only need to recheck files protected rules, we could improve this
-			matchedBranches, err := git_model.FindAllMatchedBranches(ctx, ctx.Repo.GitRepo, protectBranch.RuleName)
+			matchedBranches, err := git_model.FindAllMatchedBranches(ctx, ctx.Repo.Repository.ID, protectBranch.RuleName)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "FindAllMatchedBranches", err)
 				return

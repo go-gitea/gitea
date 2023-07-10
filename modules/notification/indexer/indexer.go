@@ -29,6 +29,10 @@ func NewNotifier() base.Notifier {
 	return &indexerNotifier{}
 }
 
+func (r *indexerNotifier) NotifyAdoptRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
+	r.NotifyMigrateRepository(ctx, doer, u, repo)
+}
+
 func (r *indexerNotifier) NotifyCreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,
 	issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User,
 ) {
