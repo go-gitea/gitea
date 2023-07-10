@@ -779,7 +779,7 @@ func skipToNextDiffHead(input *bufio.Reader) (line string, err error) {
 	for {
 		lineBytes, isFragment, err = input.ReadLine()
 		if err != nil {
-			return
+			return "", err
 		}
 		if wasFragment {
 			wasFragment = isFragment
@@ -795,7 +795,7 @@ func skipToNextDiffHead(input *bufio.Reader) (line string, err error) {
 		var tail string
 		tail, err = input.ReadString('\n')
 		if err != nil {
-			return
+			return "", err
 		}
 		line += tail
 	}
@@ -821,22 +821,21 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			_, isFragment, err = input.ReadLine()
 			if err != nil {
 				// Now by the definition of ReadLine this cannot be io.EOF
-				err = fmt.Errorf("unable to ReadLine: %w", err)
-				return
+				return nil, false, fmt.Errorf("unable to ReadLine: %w", err)
 			}
 		}
 		sb.Reset()
 		lineBytes, isFragment, err = input.ReadLine()
 		if err != nil {
 			if err == io.EOF {
-				return
+				return lineBytes, isFragment, err
 			}
 			err = fmt.Errorf("unable to ReadLine: %w", err)
-			return
+			return nil, false, err
 		}
 		if lineBytes[0] == 'd' {
 			// End of hunks
-			return
+			return lineBytes, isFragment, err
 		}
 
 		switch lineBytes[0] {
@@ -853,8 +852,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 				lineBytes, isFragment, err = input.ReadLine()
 				if err != nil {
 					// Now by the definition of ReadLine this cannot be io.EOF
-					err = fmt.Errorf("unable to ReadLine: %w", err)
-					return
+					return nil, false, fmt.Errorf("unable to ReadLine: %w", err)
 				}
 				_, _ = sb.Write(lineBytes)
 			}
@@ -884,8 +882,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			}
 			// This is used only to indicate that the current file does not have a terminal newline
 			if !bytes.Equal(lineBytes, []byte("\\ No newline at end of file")) {
-				err = fmt.Errorf("unexpected line in hunk: %s", string(lineBytes))
-				return
+				return nil, false, fmt.Errorf("unexpected line in hunk: %s", string(lineBytes))
 			}
 			// Technically this should be the end the file!
 			// FIXME: we should be putting a marker at the end of the file if there is no terminal new line
@@ -953,8 +950,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			curSection.Lines = append(curSection.Lines, diffLine)
 		default:
 			// This is unexpected
-			err = fmt.Errorf("unexpected line in hunk: %s", string(lineBytes))
-			return
+			return nil, false, fmt.Errorf("unexpected line in hunk: %s", string(lineBytes))
 		}
 
 		line := string(lineBytes)
@@ -965,8 +961,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 				lineBytes, isFragment, err = input.ReadLine()
 				if err != nil {
 					// Now by the definition of ReadLine this cannot be io.EOF
-					err = fmt.Errorf("unable to ReadLine: %w", err)
-					return
+					return lineBytes, isFragment, fmt.Errorf("unable to ReadLine: %w", err)
 				}
 			}
 		}

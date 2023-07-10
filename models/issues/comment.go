@@ -749,7 +749,7 @@ func (c *Comment) LoadPushCommits(ctx context.Context) (err error) {
 
 	err = json.Unmarshal([]byte(c.Content), &data)
 	if err != nil {
-		return
+		return err
 	}
 
 	c.IsForcePush = data.IsForcePush
@@ -925,7 +925,7 @@ func createIssueDependencyComment(ctx context.Context, doer *user_model.User, is
 		cType = CommentTypeRemoveDependency
 	}
 	if err = issue.LoadRepo(ctx); err != nil {
-		return
+		return err
 	}
 
 	// Make two comments, one in each issue
@@ -937,7 +937,7 @@ func createIssueDependencyComment(ctx context.Context, doer *user_model.User, is
 		DependentIssueID: dependentIssue.ID,
 	}
 	if _, err = CreateComment(ctx, opts); err != nil {
-		return
+		return err
 	}
 
 	opts = &CreateCommentOptions{
@@ -1170,11 +1170,11 @@ func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullReques
 		return nil, fmt.Errorf("comment type %d cannot be used to create an auto merge comment", typ)
 	}
 	if err = pr.LoadIssue(ctx); err != nil {
-		return
+		return nil, err
 	}
 
 	if err = pr.LoadBaseRepo(ctx); err != nil {
-		return
+		return nil, err
 	}
 
 	comment, err = CreateComment(ctx, &CreateCommentOptions{
