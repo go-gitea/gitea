@@ -36,12 +36,13 @@ type ActionRun struct {
 	TriggerUser       *user_model.User       `xorm:"-"`
 	Ref               string
 	CommitSHA         string
-	IsForkPullRequest bool  // If this is triggered by a PR from a forked repository or an untrusted user, we need to check if it is approved and limit permissions when running the workflow.
-	NeedApproval      bool  // may need approval if it's a fork pull request
-	ApprovedBy        int64 `xorm:"index"` // who approved
-	Event             webhook_module.HookEventType
-	EventPayload      string `xorm:"LONGTEXT"`
-	Status            Status `xorm:"index"`
+	IsForkPullRequest bool                         // If this is triggered by a PR from a forked repository or an untrusted user, we need to check if it is approved and limit permissions when running the workflow.
+	NeedApproval      bool                         // may need approval if it's a fork pull request
+	ApprovedBy        int64                        `xorm:"index"` // who approved
+	Event             webhook_module.HookEventType // the webhook event that causes the workflow to run
+	EventPayload      string                       `xorm:"LONGTEXT"`
+	TriggerEvent      string                       // the trigger event defined in the `on` configuration of the triggered workflow
+	Status            Status                       `xorm:"index"`
 	Started           timeutil.TimeStamp
 	Stopped           timeutil.TimeStamp
 	Created           timeutil.TimeStamp `xorm:"created"`

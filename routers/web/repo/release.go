@@ -203,6 +203,7 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 	ctx.Data["Page"] = pager
 
 	if isTagList {
+		ctx.Data["PageIsViewCode"] = !ctx.Repo.Repository.UnitEnabled(ctx, unit.TypeReleases)
 		ctx.HTML(http.StatusOK, tplTagsList)
 	} else {
 		ctx.HTML(http.StatusOK, tplReleasesList)
@@ -349,7 +350,7 @@ func NewRelease(ctx *context.Context) {
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	ctx.Data["Assignees"] = makeSelfOnTop(ctx, assigneeUsers)
+	ctx.Data["Assignees"] = MakeSelfOnTop(ctx, assigneeUsers)
 
 	upload.AddUploadContext(ctx, "release")
 	ctx.HTML(http.StatusOK, tplReleaseNew)
@@ -517,7 +518,7 @@ func EditRelease(ctx *context.Context) {
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	ctx.Data["Assignees"] = makeSelfOnTop(ctx, assigneeUsers)
+	ctx.Data["Assignees"] = MakeSelfOnTop(ctx, assigneeUsers)
 
 	ctx.HTML(http.StatusOK, tplReleaseNew)
 }
@@ -607,13 +608,13 @@ func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
 	}
 
 	if isDelTag {
-		ctx.JSON(http.StatusOK, map[string]interface{}{
+		ctx.JSON(http.StatusOK, map[string]any{
 			"redirect": ctx.Repo.RepoLink + "/tags",
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"redirect": ctx.Repo.RepoLink + "/releases",
 	})
 }

@@ -64,7 +64,7 @@ func sendRepoTransferNotifyMailPerLang(lang string, newOwner, doer *user_model.U
 		subject = locale.Tr("mail.repo.transfer.subject_to", doer.DisplayName(), repo.FullName(), destination)
 	}
 
-	data := map[string]interface{}{
+	data := map[string]any{
 		"Doer":        doer,
 		"User":        repo.Owner,
 		"Repo":        repo.FullName(),

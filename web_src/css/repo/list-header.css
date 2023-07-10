@@ -8,7 +8,6 @@
 .list-header-sort {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   padding-left: 1rem;
   padding-right: 1rem;
 }
@@ -28,9 +27,32 @@
 
 .small-menu-items {
   min-height: 35.4px !important; /* match .small.button in height */
+  background: none !important; /* fomantic sets a color here which does not play well with active transparent color on the item, so unset and set the colors on the item */
 }
 
 .small-menu-items .item {
+  background: var(--color-menu) !important;
   padding-top: 6px !important;
   padding-bottom: 6px !important;
+}
+
+.small-menu-items .item:hover {
+  background: var(--color-hover) !important;
+}
+
+.small-menu-items .item.active {
+  background: var(--color-active) !important;
+}
+
+@media (max-width: 767.98px) {
+  .list-header-search {
+    order: 0;
+  }
+  .list-header-toggle {
+    order: 1;
+  }
+  .list-header-sort {
+    order: 2;
+    margin-left: auto;
+  }
 }

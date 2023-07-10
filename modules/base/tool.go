@@ -107,7 +107,7 @@ const TimeLimitCodeLength = 12 + 6 + 40
 
 // CreateTimeLimitCode create a time limit code
 // code format: 12 length date time string + 6 minutes string + 40 sha1 encoded string
-func CreateTimeLimitCode(data string, minutes int, startInf interface{}) string {
+func CreateTimeLimitCode(data string, minutes int, startInf any) string {
 	format := "200601021504"
 
 	var start, end time.Time
@@ -210,7 +210,7 @@ func EntryIcon(entry *git.TreeEntry) string {
 			return "file-symlink-file"
 		}
 		if te.IsDir() {
-			return "file-submodule"
+			return "file-directory-symlink"
 		}
 		return "file-symlink-file"
 	case entry.IsDir():
@@ -245,7 +245,7 @@ func SetupGiteaRoot() string {
 }
 
 // FormatNumberSI format a number
-func FormatNumberSI(data interface{}) string {
+func FormatNumberSI(data any) string {
 	var num int64
 	if num1, ok := data.(int64); ok {
 		num = num1

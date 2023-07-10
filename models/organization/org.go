@@ -532,27 +532,6 @@ func GetOrgsCanCreateRepoByUserID(userID int64) ([]*Organization, error) {
 		Find(&orgs)
 }
 
-// GetOrgUsersByUserID returns all organization-user relations by user ID.
-func GetOrgUsersByUserID(uid int64, opts *SearchOrganizationsOptions) ([]*OrgUser, error) {
-	ous := make([]*OrgUser, 0, 10)
-	sess := db.GetEngine(db.DefaultContext).
-		Join("LEFT", "`user`", "`org_user`.org_id=`user`.id").
-		Where("`org_user`.uid=?", uid)
-	if !opts.All {
-		// Only show public organizations
-		sess.And("is_public=?", true)
-	}
-
-	if opts.PageSize != 0 {
-		sess = db.SetSessionPagination(sess, opts)
-	}
-
-	err := sess.
-		Asc("`user`.name").
-		Find(&ous)
-	return ous, err
-}
-
 // GetOrgUsersByOrgID returns all organization-user relations by organization ID.
 func GetOrgUsersByOrgID(ctx context.Context, opts *FindOrgMembersOpts) ([]*OrgUser, error) {
 	sess := db.GetEngine(ctx).Where("org_id=?", opts.OrgID)
@@ -710,8 +689,8 @@ func (org *Organization) GetUserTeams(userID int64) ([]*Team, error) {
 type AccessibleReposEnvironment interface {
 	CountRepos() (int64, error)
 	RepoIDs(page, pageSize int) ([]int64, error)
-	Repos(page, pageSize int) ([]*repo_model.Repository, error)
-	MirrorRepos() ([]*repo_model.Repository, error)
+	Repos(page, pageSize int) (repo_model.RepositoryList, error)
+	MirrorRepos() (repo_model.RepositoryList, error)
 	AddKeyword(keyword string)
 	SetSort(db.SearchOrderBy)
 }
@@ -813,7 +792,7 @@ func (env *accessibleReposEnv) RepoIDs(page, pageSize int) ([]int64, error) {
 		Find(&repoIDs)
 }
 
-func (env *accessibleReposEnv) Repos(page, pageSize int) ([]*repo_model.Repository, error) {
+func (env *accessibleReposEnv) Repos(page, pageSize int) (repo_model.RepositoryList, error) {
 	repoIDs, err := env.RepoIDs(page, pageSize)
 	if err != nil {
 		return nil, fmt.Errorf("GetUserRepositoryIDs: %w", err)
@@ -842,7 +821,7 @@ func (env *accessibleReposEnv) MirrorRepoIDs() ([]int64, error) {
 		Find(&repoIDs)
 }
 
-func (env *accessibleReposEnv) MirrorRepos() ([]*repo_model.Repository, error) {
+func (env *accessibleReposEnv) MirrorRepos() (repo_model.RepositoryList, error) {
 	repoIDs, err := env.MirrorRepoIDs()
 	if err != nil {
 		return nil, fmt.Errorf("MirrorRepoIDs: %w", err)

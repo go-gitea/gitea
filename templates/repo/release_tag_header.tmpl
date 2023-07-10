@@ -3,11 +3,11 @@
 
 {{if $canReadReleases}}
 	<div class="gt-df">
-		<div class="gt-f1">
+		<div class="gt-f1 gt-df gt-ac">
 			<h2 class="ui compact small menu header small-menu-items">
-				<a class="{{if .PageIsReleaseList}}active {{end}}item" href="{{.RepoLink}}/releases">{{.locale.Tr "repo.release.releases"}}</a>
+				<a class="{{if .PageIsReleaseList}}active {{end}}item" href="{{.RepoLink}}/releases">{{.locale.PrettyNumber .ReleasesNum}} {{.locale.TrN .ReleasesNum "repo.release" "repo.releases"}}</a>
 				{{if $canReadCode}}
-					<a class="{{if .PageIsTagList}}active {{end}}item" href="{{.RepoLink}}/tags">{{.locale.Tr "repo.release.tags"}}</a>
+					<a class="{{if .PageIsTagList}}active {{end}}item" href="{{.RepoLink}}/tags">{{.locale.PrettyNumber .NumTags}} {{.locale.TrN .NumTags "repo.tag" "repo.tags"}}</a>
 				{{end}}
 			</h2>
 			{{if .EnableFeed}}
@@ -20,7 +20,7 @@
 			</a>
 		{{end}}
 	</div>
-	<div class="ui divider"></div>
+	<div class="divider"></div>
 {{else if $canReadCode}}
 	{{/* if the "repo.releases" unit is disabled, only show the "commits / branches / tags" sub menu */}}
 	{{template "repo/sub_menu" .}}

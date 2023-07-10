@@ -14,7 +14,7 @@
 				</div>
 				<div class="inline field">
 					<label>{{.locale.Tr "repo.repo_size"}}</label>
-					<span>{{FileSize .Repository.Size}}</span>
+					<span {{if not (eq .Repository.Size 0)}} data-tooltip-content="{{.Repository.SizeDetailsString}}"{{end}}>{{FileSize .Repository.Size}}</span>
 				</div>
 				<div class="inline field">
 					<label>{{.locale.Tr "repo.template"}}</label>
@@ -26,7 +26,7 @@
 				{{if not .Repository.IsFork}}
 					<div class="inline field">
 						<label>{{.locale.Tr "repo.visibility"}}</label>
-						<div class="ui checkbox">
+						<div class="ui checkbox" {{if and (not .Repository.IsPrivate) (gt .Repository.NumStars 0)}}data-tooltip-content="{{.locale.Tr "repo.stars_remove_warning"}}"{{end}}>
 							{{if .IsAdmin}}
 							<input name="private" type="checkbox" {{if .Repository.IsPrivate}}checked{{end}}>
 							{{else}}
@@ -44,29 +44,24 @@
 					<label for="website">{{.locale.Tr "repo.settings.site"}}</label>
 					<input id="website" name="website" type="url" maxlength="1024" value="{{.Repository.Website}}">
 				</div>
-
 				<div class="field">
 					<button class="ui green button">{{$.locale.Tr "repo.settings.update_settings"}}</button>
 				</div>
 			</form>
 
-			<div class="ui divider"></div>
-
+			<div class="divider"></div>
 			<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
 				{{.CsrfTokenHtml}}
 				<div class="inline field">
 					<label for="avatar">{{.locale.Tr "settings.choose_new_avatar"}}</label>
 					<input name="avatar" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
 				</div>
-
 				<div class="field">
 					<button class="ui green button">{{$.locale.Tr "settings.update_avatar"}}</button>
-					<a class="ui red button delete-post" data-request-url="{{.Link}}/avatar/delete" data-done-url="{{.Link}}">{{$.locale.Tr "settings.delete_current_avatar"}}</a>
+					<button class="ui red button link-action" data-url="{{.Link}}/avatar/delete" data-redirect="{{.Link}}">{{$.locale.Tr "settings.delete_current_avatar"}}</button>
 				</div>
 			</form>
-
 		</div>
-
 
 		{{/* These variables exist to make the logic in the Settings window easier to comprehend and are not used later on. */}}
 		{{$newMirrorsPartiallyEnabled := or (not .DisableNewPullMirrors) (not .DisableNewPushMirrors)}}
@@ -285,47 +280,35 @@
 				<input type="hidden" name="action" value="advanced">
 
 				{{$isCodeEnabled := .Repository.UnitEnabled $.Context $.UnitTypeCode}}
+				{{$isCodeGlobalDisabled := .UnitTypeCode.UnitGlobalDisabled}}
 				<div class="inline field">
 					<label>{{.locale.Tr "repo.code"}}</label>
-					{{if .UnitTypeCode.UnitGlobalDisabled}}
-					<div class="ui checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
-					{{else}}
-					<div class="ui checkbox">
-					{{end}}
+					<div class="ui checkbox{{if $isCodeGlobalDisabled}} disabled{{end}}"{{if $isCodeGlobalDisabled}} data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}"{{end}}>
 						<input class="enable-system" name="enable_code" type="checkbox"{{if $isCodeEnabled}} checked{{end}}>
 						<label>{{.locale.Tr "repo.code.desc"}}</label>
 					</div>
 				</div>
 
 				{{$isWikiEnabled := or (.Repository.UnitEnabled $.Context $.UnitTypeWiki) (.Repository.UnitEnabled $.Context $.UnitTypeExternalWiki)}}
+				{{$isWikiGlobalDisabled := .UnitTypeWiki.UnitGlobalDisabled}}
+				{{$isExternalWikiGlobalDisabled := .UnitTypeExternalWiki.UnitGlobalDisabled}}
+				{{$isBothWikiGlobalDisabled := and $isWikiGlobalDisabled $isExternalWikiGlobalDisabled}}
 				<div class="inline field">
 					<label>{{.locale.Tr "repo.wiki"}}</label>
-					{{if and (.UnitTypeWiki.UnitGlobalDisabled) (.UnitTypeExternalWiki.UnitGlobalDisabled)}}
-					<div class="ui checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
-					{{else}}
-					<div class="ui checkbox">
-					{{end}}
+					<div class="ui checkbox{{if $isBothWikiGlobalDisabled}} disabled{{end}}"{{if $isBothWikiGlobalDisabled}} data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}"{{end}}>
 						<input class="enable-system" name="enable_wiki" type="checkbox" data-target="#wiki_box" {{if $isWikiEnabled}}checked{{end}}>
 						<label>{{.locale.Tr "repo.settings.wiki_desc"}}</label>
 					</div>
 				</div>
-				<div class="field {{if not $isWikiEnabled}}disabled{{end}}" id="wiki_box">
+				<div class="field{{if not $isWikiEnabled}} disabled{{end}}" id="wiki_box">
 					<div class="field">
-						{{if .UnitTypeWiki.UnitGlobalDisabled}}
-						<div class="ui radio checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
-						{{else}}
-						<div class="ui radio checkbox">
-						{{end}}
+						<div class="ui radio checkbox{{if $isWikiGlobalDisabled}} disabled{{end}}"{{if $isWikiGlobalDisabled}} data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}"{{end}}>
 							<input class="enable-system-radio" tabindex="0" name="enable_external_wiki" type="radio" value="false" data-target="#external_wiki_box" {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalWiki)}}checked{{end}}>
 							<label>{{.locale.Tr "repo.settings.use_internal_wiki"}}</label>
 						</div>
 					</div>
 					<div class="field">
-						{{if .UnitTypeExternalWiki.UnitGlobalDisabled}}
-						<div class="ui radio checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
-						{{else}}
-						<div class="ui radio checkbox">
-						{{end}}
+						<div class="ui radio checkbox{{if $isExternalWikiGlobalDisabled}} disabled{{end}}"{{if $isExternalWikiGlobalDisabled}} data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}"{{end}}>
 							<input class="enable-system-radio" tabindex="0" name="enable_external_wiki" type="radio" value="true" data-target="#external_wiki_box" {{if .Repository.UnitEnabled $.Context $.UnitTypeExternalWiki}}checked{{end}}>
 							<label>{{.locale.Tr "repo.settings.use_external_wiki"}}</label>
 						</div>
@@ -337,27 +320,22 @@
 					</div>
 				</div>
 
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 
 				{{$isIssuesEnabled := or (.Repository.UnitEnabled $.Context $.UnitTypeIssues) (.Repository.UnitEnabled $.Context $.UnitTypeExternalTracker)}}
+				{{$isIssuesGlobalDisabled := .UnitTypeIssues.UnitGlobalDisabled}}
+				{{$isExternalTrackerGlobalDisabled := .UnitTypeExternalTracker.UnitGlobalDisabled}}
+				{{$isIssuesAndExternalGlobalDisabled := and $isIssuesGlobalDisabled $isExternalTrackerGlobalDisabled}}
 				<div class="inline field">
 					<label>{{.locale.Tr "repo.issues"}}</label>
-					{{if and (.UnitTypeIssues.UnitGlobalDisabled) (.UnitTypeExternalTracker.UnitGlobalDisabled)}}
-					<div class="ui checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
-					{{else}}
-					<div class="ui checkbox">
-					{{end}}
+					<div class="ui checkbox{{if $isIssuesAndExternalGlobalDisabled}} disabled{{end}}"{{if $isIssuesAndExternalGlobalDisabled}} data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}"{{end}}>
 						<input class="enable-system" name="enable_issues" type="checkbox" data-target="#issue_box" {{if $isIssuesEnabled}}checked{{end}}>
 						<label>{{.locale.Tr "repo.settings.issues_desc"}}</label>
 					</div>
 				</div>
 				<div class="field {{if not $isIssuesEnabled}}disabled{{end}}" id="issue_box">
 					<div class="field">
-						{{if .UnitTypeIssues.UnitGlobalDisabled}}
-						<div class="ui radio checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
-						{{else}}
-						<div class="ui radio checkbox">
-						{{end}}
+						<div class="ui radio checkbox{{if $isIssuesGlobalDisabled}} disabled{{end}}"{{if $isIssuesGlobalDisabled}} data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}"{{end}}>
 							<input class="enable-system-radio" tabindex="0" name="enable_external_tracker" type="radio" value="false" data-context="#internal_issue_box" data-target="#external_issue_box" {{if not (.Repository.UnitEnabled $.Context $.UnitTypeExternalTracker)}}checked{{end}}>
 							<label>{{.locale.Tr "repo.settings.use_internal_issue_tracker"}}</label>
 						</div>
@@ -389,11 +367,7 @@
 						</div>
 					</div>
 					<div class="field">
-						{{if .UnitTypeExternalTracker.UnitGlobalDisabled}}
-						<div class="ui radio checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
-						{{else}}
-						<div class="ui radio checkbox">
-						{{end}}
+						<div class="ui radio checkbox{{if $isExternalTrackerGlobalDisabled}} disabled{{end}}"{{if $isExternalTrackerGlobalDisabled}} data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}"{{end}}>
 							<input class="enable-system-radio" tabindex="0" name="enable_external_tracker" type="radio" value="true" data-context="#internal_issue_box" data-target="#external_issue_box" {{if .Repository.UnitEnabled $.Context $.UnitTypeExternalTracker}}checked{{end}}>
 							<label>{{.locale.Tr "repo.settings.use_external_issue_tracker"}}</label>
 						</div>
@@ -406,7 +380,7 @@
 						</div>
 						<div class="field">
 							<label for="tracker_url_format">{{.locale.Tr "repo.settings.tracker_url_format"}}</label>
-							<input id="tracker_url_format" name="tracker_url_format" type="url" value="{{(.Repository.MustGetUnit $.Context $.UnitTypeExternalTracker).ExternalTrackerConfig.ExternalTrackerFormat}}" placeholder="e.g. https://github.com/{user}/{repo}/issues/{index}">
+							<input id="tracker_url_format" name="tracker_url_format" type="url" value="{{(.Repository.MustGetUnit $.Context $.UnitTypeExternalTracker).ExternalTrackerConfig.ExternalTrackerFormat}}" placeholder="https://github.com/{user}/{repo}/issues/{index}">
 							<p class="help">{{.locale.Tr "repo.settings.tracker_url_format_desc" | Str2html}}</p>
 						</div>
 						<div class="inline fields">
@@ -440,42 +414,33 @@
 					</div>
 				</div>
 
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 
 				{{$isProjectsEnabled := .Repository.UnitEnabled $.Context $.UnitTypeProjects}}
+				{{$isProjectsGlobalDisabled := .UnitTypeProjects.UnitGlobalDisabled}}
 				<div class="inline field">
 					<label>{{.locale.Tr "repo.project_board"}}</label>
-					{{if .UnitTypeProjects.UnitGlobalDisabled}}
-					<div class="ui checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
-					{{else}}
-					<div class="ui checkbox">
-					{{end}}
+					<div class="ui checkbox{{if $isProjectsGlobalDisabled}} disabled{{end}}"{{if $isProjectsGlobalDisabled}} data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}"{{end}}>
 						<input class="enable-system" name="enable_projects" type="checkbox" {{if $isProjectsEnabled}}checked{{end}}>
 						<label>{{.locale.Tr "repo.settings.projects_desc"}}</label>
 					</div>
 				</div>
 
 				{{$isReleasesEnabled := .Repository.UnitEnabled $.Context $.UnitTypeReleases}}
+				{{$isReleasesGlobalDisabled := .UnitTypeReleases.UnitGlobalDisabled}}
 				<div class="inline field">
 					<label>{{.locale.Tr "repo.releases"}}</label>
-					{{if .UnitTypeReleases.UnitGlobalDisabled}}
-					<div class="ui checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
-					{{else}}
-					<div class="ui checkbox">
-					{{end}}
+					<div class="ui checkbox{{if $isReleasesGlobalDisabled}} disabled{{end}}"{{if $isReleasesGlobalDisabled}} data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}"{{end}}>
 						<input class="enable-system" name="enable_releases" type="checkbox" {{if $isReleasesEnabled}}checked{{end}}>
 						<label>{{.locale.Tr "repo.settings.releases_desc"}}</label>
 					</div>
 				</div>
 
 				{{$isPackagesEnabled := .Repository.UnitEnabled $.Context $.UnitTypePackages}}
+				{{$isPackagesGlobalDisabled := .UnitTypePackages.UnitGlobalDisabled}}
 				<div class="inline field">
 					<label>{{.locale.Tr "repo.packages"}}</label>
-					{{if .UnitTypePackages.UnitGlobalDisabled}}
-					<div class="ui checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
-					{{else}}
-					<div class="ui checkbox">
-					{{end}}
+					<div class="ui checkbox{{if $isPackagesGlobalDisabled}} disabled{{end}}"{{if $isPackagesGlobalDisabled}} data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}"{{end}}>
 						<input class="enable-system" name="enable_packages" type="checkbox" {{if $isPackagesEnabled}}checked{{end}}>
 						<label>{{.locale.Tr "repo.settings.packages_desc"}}</label>
 					</div>
@@ -483,13 +448,10 @@
 
 				{{if .EnableActions}}
 					{{$isActionsEnabled := .Repository.UnitEnabled $.Context $.UnitTypeActions}}
+					{{$isActionsGlobalDisabled := .UnitTypeActions.UnitGlobalDisabled}}
 					<div class="inline field">
 						<label>{{.locale.Tr "actions.actions"}}</label>
-						{{if .UnitTypeActions.UnitGlobalDisabled}}
-							<div class="ui checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
-						{{else}}
-							<div class="ui checkbox">
-						{{end}}
+							<div class="ui checkbox{{if $isActionsGlobalDisabled}} disabled{{end}}"{{if $isActionsGlobalDisabled}} data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}"{{end}}>
 							<input class="enable-system" name="enable_actions" type="checkbox" {{if $isActionsEnabled}}checked{{end}}>
 							<label>{{.locale.Tr "repo.settings.actions_desc"}}</label>
 						</div>
@@ -497,16 +459,13 @@
 				{{end}}
 
 				{{if not .IsMirror}}
-					<div class="ui divider"></div>
+					<div class="divider"></div>
 					{{$pullRequestEnabled := .Repository.UnitEnabled $.Context $.UnitTypePullRequests}}
+					{{$pullRequestGlobalDisabled := .UnitTypePullRequests.UnitGlobalDisabled}}
 					{{$prUnit := .Repository.MustGetUnit $.Context $.UnitTypePullRequests}}
 					<div class="inline field">
 						<label>{{.locale.Tr "repo.pulls"}}</label>
-						{{if .UnitTypePullRequests.UnitGlobalDisabled}}
-						<div class="ui checkbox disabled" data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}">
-						{{else}}
-						<div class="ui checkbox">
-						{{end}}
+						<div class="ui checkbox{{if $pullRequestGlobalDisabled}} disabled{{end}}"{{if $pullRequestGlobalDisabled}} data-tooltip-content="{{.locale.Tr "repo.unit_disabled"}}"{{end}}>
 							<input class="enable-system" name="enable_pulls" type="checkbox" data-target="#pull_box" {{if $pullRequestEnabled}}checked{{end}}>
 							<label>{{.locale.Tr "repo.settings.pulls_desc"}}</label>
 						</div>
@@ -614,7 +573,7 @@
 					</div>
 				{{end}}
 
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 				<div class="field">
 					<button class="ui green button">{{$.locale.Tr "repo.settings.update_settings"}}</button>
 				</div>
@@ -660,7 +619,7 @@
 					</div>
 				</div>
 
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 				<div class="field">
 					<button class="ui green button">{{$.locale.Tr "repo.settings.update_settings"}}</button>
 				</div>
@@ -687,7 +646,7 @@
 				</div>
 			</form>
 
-			<div class="ui divider"></div>
+			<div class="divider"></div>
 			<form class="ui form" method="post">
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="admin_index">
@@ -744,7 +703,7 @@
 						<p>{{.locale.Tr "repo.settings.convert_desc"}}</p>
 					</div>
 				</div>
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 			{{end}}
 			{{if and .Repository.IsFork .Repository.Owner.CanCreateRepo}}
 				<div class="item">
@@ -756,7 +715,7 @@
 						<p>{{.locale.Tr "repo.settings.convert_fork_desc"}}</p>
 					</div>
 				</div>
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 			{{end}}
 			<div class="item">
 				<div class="ui right">
@@ -781,7 +740,7 @@
 			</div>
 
 			{{if .Permission.CanRead $.UnitTypeWiki}}
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 
 				<div class="item">
 					<div class="ui right">
@@ -794,7 +753,7 @@
 				</div>
 			{{end}}
 
-			<div class="ui divider"></div>
+			<div class="divider"></div>
 
 			<div class="item">
 				<div class="ui right">
@@ -807,7 +766,7 @@
 			</div>
 
 			{{if not .Repository.IsMirror}}
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 
 				<div class="item">
 					<div class="ui right">
