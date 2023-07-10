@@ -35,7 +35,6 @@ vscode:
     - ms-azuretools.vscode-docker
     - zixuanchen.vitest-explorer
     - qwtel.sqlite-viewer
-    - GitHub.vscode-github-actions
     - GitHub.vscode-pull-request-github
 
 ports:
