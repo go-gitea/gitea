@@ -387,10 +387,13 @@ func FindRecentlyPushedNewBranches(ctx context.Context, repoID, userID int64, ex
 	branches := make(BranchList, 0, 2)
 	subQuery := builder.Select("head_branch").From("pull_request").
 		InnerJoin("issue", "issue.id = pull_request.issue_id").
-		Where(builder.Eq{
-			"pull_request.head_repo_id": repoID,
-			"issue.is_closed":           false,
-		})
+		Where(builder.And(
+			builder.Eq{"pull_request.head_repo_id": repoID},
+			builder.Or(
+				builder.Eq{"issue.is_closed": false},
+				builder.Eq{"pull_request.has_merged": true},
+			),
+		))
 	err := db.GetEngine(ctx).
 		Where("pusher_id=? AND is_deleted=?", userID, false).
 		And("name <> ?", excludeBranchName).
