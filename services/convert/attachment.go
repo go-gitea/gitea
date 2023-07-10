@@ -43,7 +43,7 @@ func toAttachment(repo *repo_model.Repository, a *repo_model.Attachment, getDown
 		DownloadCount: a.DownloadCount,
 		Size:          a.Size,
 		UUID:          a.UUID,
-		DownloadURL:   getDownloadURL(repo, a), // AssetDownloadURL(repo, a),
+		DownloadURL:   getDownloadURL(repo, a), // for web request json and api request json, return different download urls
 	}
 }
 

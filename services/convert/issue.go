@@ -19,7 +19,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-func ToIssue(ctx context.Context, issue *issues_model.Issue, doer *user_model.User) *api.Issue {
+func ToIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
 	return toIssue(ctx, issue, WebAssetDownloadURL)
 }
 
@@ -111,6 +111,15 @@ func toIssue(ctx context.Context, issue *issues_model.Issue, getDownloadURL func
 	}
 
 	return apiIssue
+}
+
+// ToIssueList converts an IssueList to API format
+func ToIssueList(ctx context.Context, il issues_model.IssueList) []*api.Issue {
+	result := make([]*api.Issue, len(il))
+	for i := range il {
+		result[i] = ToIssue(ctx, il[i])
+	}
+	return result
 }
 
 // ToAPIIssueList converts an IssueList to API format
