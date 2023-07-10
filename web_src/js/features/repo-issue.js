@@ -101,8 +101,6 @@ export function initRepoIssueSidebarList() {
         e.preventDefault();
         const href = $(this).attr('href');
         const id = $(this).data('label-id');
-        console.log('output', excludeLabel(href, id));
-        debugger
         window.location = excludeLabel(href, id);
       }
     });
@@ -114,8 +112,6 @@ export function initRepoIssueSidebarList() {
       if (selectedItems.length > 0) {
         const href = $(selectedItems[0]).attr('href');
         const id = $(selectedItems[0]).attr('label-id');
-        console.log('output', excludeLabel(href, id));
-        debugger
         window.location = excludeLabel(href, id);
       }
     }
