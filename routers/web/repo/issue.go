@@ -1919,18 +1919,15 @@ func ViewIssue(ctx *context.Context) {
 		return hiddenCommentTypes == nil || hiddenCommentTypes.Bit(int(commentType)) == 0
 	}
 	// For sidebar
-	brs, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
-		RepoID: ctx.Repo.Repository.ID,
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
-		IsDeletedBranch: util.OptionalBoolFalse,
-	})
+	PrepareBranchList(ctx)
+
+	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.ServerError("GetBranches", err)
+		ctx.ServerError("GetTagNamesByRepoID", err)
 		return
 	}
-	ctx.Data["Branches"] = brs
+	ctx.Data["Tags"] = tags
+
 	ctx.HTML(http.StatusOK, tplIssueView)
 }
 

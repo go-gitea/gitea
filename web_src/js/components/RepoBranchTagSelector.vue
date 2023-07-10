@@ -20,13 +20,13 @@
         <div class="header branch-tag-choice">
           <div class="ui grid">
             <div class="two column row">
-              <a class="reference column" href="#" @click="createTag = false; mode = 'branches'; focusSearchField()">
+              <a class="reference column" href="#" @click="createTag = false; mode = 'branches'; focusSearchField();this.fetchBranchesOrTags()">
                 <span class="text" :class="{black: mode === 'branches'}">
                   <svg-icon name="octicon-git-branch" :size="16" class-name="gt-mr-2"/>{{ textBranches }}
                 </span>
               </a>
               <template v-if="!noTag">
-                <a class="reference column" href="#" @click="createTag = true; mode = 'tags'; focusSearchField()">
+                <a class="reference column" href="#" @click="createTag = true; mode = 'tags'; focusSearchField();this.fetchBranchesOrTags()">
                   <span class="text" :class="{black: mode === 'tags'}">
                     <svg-icon name="octicon-tag" :size="16" class-name="gt-mr-2"/>{{ textTags }}
                   </span>
@@ -37,7 +37,7 @@
         </div>
       </template>
       <!-- TODO: is-loading not working properly because menu is not shown until data is done fetching, need to figure out a proper way -->
-      <div class="scrolling menu" :class="{'is-loading' : isLoading}" ref="scrollContainer">
+      <div class="scrolling menu" :class="{'is-loading': isLoading}" ref="scrollContainer">
         <div v-for="(item, index) in filteredItems" :key="item.name" class="item" :class="{selected: item.selected, active: active === index}" @click="selectItem(item)" :ref="'listItem' + index">
           {{ item.name }}
           <a v-if="enableFeed && mode === 'branches'" role="button" class="rss-icon ui compact right" :href="rssURLPrefix + item.url" target="_blank" @click.stop>
@@ -70,7 +70,7 @@
           </form>
         </div>
       </div>
-      <div class="message" v-if="showNoResults">
+      <div class="message" v-if="showNoResults && !isLoading">
         {{ noResults }}
       </div>
     </div>
@@ -117,6 +117,7 @@ const sfc = {
     menuVisible(visible) {
       if (visible) {
         this.focusSearchField();
+        this.fetchBranchesOrTags();
       }
     }
   },
@@ -139,9 +140,6 @@ const sfc = {
         this.menuVisible = false;
       }
     });
-  },
-  mounted() {
-    this.fetchBranchesAndTags();
   },
   methods: {
     selectItem(item) {
@@ -250,24 +248,28 @@ const sfc = {
         this.menuVisible = false;
       }
     },
-    async fetchBranchesAndTags() {
+    async fetchBranchesOrTags() {
+      if (!['branches', 'tags'].includes(this.mode)) return;
+      if ((this.mode === 'branches' && (!this.showBranchesInDropdown || !this.isBranchOrTagListInit[0])) 
+      || (this.mode === 'tags' && (this.noTag || !this.isBranchOrTagListInit[1]))) return;
+      if (this.isLoading) return;
+      this.isLoading = true;
+      console.log(this.isLoading);
+      this.isBranchOrTagListInit[this.mode === 'branches' ? 0: 1] = false;
       // the "data.defaultBranch" is ambiguous, it could be "branch name" or "tag name"
-      if (this.showBranchesInDropdown) {
-        const resp = await fetch(`${this.repoLink}/branches/list`);
-        const {results} = await resp.json();
-        for (const branch of results) {
-          this.items.push({name: branch, url: branch, branch: true, tag: false, selected: branch === this.defaultBranch});
+      const reqUrl = `${this.repoLink}/${this.mode}/list`;
+      const resp = await fetch(reqUrl);
+      const {results} = await resp.json();
+      for (const result of results) {
+        let selected = false;
+        if (this.mode === 'branches') {
+          selected = result === this.defaultBranch;
+        } else {
+          selected = result === (this.release ? this.release.tagName : this.defaultBranch)
         }
+        this.items.push({name: result, url: result, branch: this.mode === 'branches', tag: this.mode === 'tags', selected});
       }
       this.isLoading = false;
-      if (!this.noTag) {
-        const resp = await fetch(`${this.repoLink}/tags/list`);
-        const {results} = await resp.json();
-        for (const tag of results) {
-          const selected = tag === (this.release ? this.release.tagName : this.defaultBranch);
-          this.items.push({name: tag, url: tag, branch: false, tag: true, selected});
-        }
-      } 
     },
   }
 };
@@ -288,7 +290,8 @@ export function initRepoBranchTagSelector(selector) {
       isViewTree: false,
 
       active: 0,
-      isLoading: true,
+      isLoading: false,
+      isBranchOrTagListInit: [true, true],
       ...window.config.pageData.branchDropdownDataList[elIndex],
     };
 
@@ -306,5 +309,9 @@ export default sfc; // activate IDE's Vue plugin
 }
 .menu .item:hover .rss-icon {
   display: inline-block;
+}
+
+.scrolling.menu.is-loading {
+  height: 200px;
 }
 </style>

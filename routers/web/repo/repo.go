@@ -660,3 +660,20 @@ func GetTagList(ctx *context.Context) {
 	resp.Results = tags
 	ctx.JSON(http.StatusOK, resp)
 }
+
+func PrepareBranchList(ctx *context.Context) {
+	branchOpts := git_model.FindBranchOptions{
+		RepoID:          ctx.Repo.Repository.ID,
+		IsDeletedBranch: util.OptionalBoolFalse,
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+	}
+	branchOpts.ExcludeBranchNames = []string{ctx.Repo.Repository.DefaultBranch}
+	brs, err := git_model.FindBranchNames(ctx, branchOpts)
+	if err != nil {
+		ctx.ServerError("GetBranches", err)
+		return
+	}
+	ctx.Data["Branches"] = append(branchOpts.ExcludeBranchNames, brs...)
+}

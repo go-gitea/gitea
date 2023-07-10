@@ -755,18 +755,7 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["HeadBranches"] = headBranches
 
 	// For compare repo branches
-	brs, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
-		RepoID: ctx.Repo.Repository.ID,
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
-		IsDeletedBranch: util.OptionalBoolFalse,
-	})
-	if err != nil {
-		ctx.ServerError("GetBranches", err)
-		return
-	}
-	ctx.Data["Branches"] = brs
+	PrepareBranchList(ctx)
 
 	headTags, err := repo_model.GetTagNamesByRepoID(ctx, ci.HeadRepo.ID)
 	if err != nil {

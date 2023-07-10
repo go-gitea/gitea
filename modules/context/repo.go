@@ -660,12 +660,12 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 		return cancel
 	}
 
-	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
-	if err != nil {
-		ctx.ServerError("GetTagNamesByRepoID", err)
-		return cancel
-	}
-	ctx.Data["Tags"] = tags
+	// tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
+	// if err != nil {
+	// 	ctx.ServerError("GetTagNamesByRepoID", err)
+	// 	return cancel
+	// }
+	// ctx.Data["Tags"] = tags
 
 	branchOpts := git_model.FindBranchOptions{
 		RepoID:          ctx.Repo.Repository.ID,

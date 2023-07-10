@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/services/forms"
 	pull_service "code.gitea.io/gitea/services/pull"
 	"code.gitea.io/gitea/services/repository"
@@ -44,6 +45,8 @@ func ProtectedBranchRules(ctx *context.Context) {
 	}
 	ctx.Data["ProtectedBranches"] = rules
 
+	repo.PrepareBranchList(ctx)
+
 	ctx.HTML(http.StatusOK, tplBranches)
 }
 
@@ -51,6 +54,8 @@ func ProtectedBranchRules(ctx *context.Context) {
 func SetDefaultBranchPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.branches.update_default_branch")
 	ctx.Data["PageIsSettingsBranches"] = true
+
+	repo.PrepareBranchList(ctx)
 
 	repo := ctx.Repo.Repository
 
