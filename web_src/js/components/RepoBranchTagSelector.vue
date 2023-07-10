@@ -250,6 +250,7 @@ const sfc = {
     },
     async fetchBranchesOrTags() {
       if (!['branches', 'tags'].includes(this.mode)) return;
+      // only fetch when the current branch/tag list has not be initialized 
       if ((this.mode === 'branches' && !this.showBranchesInDropdown) || (this.mode === 'tags' && this.noTag)
       || !this.isListInit[this.mode]) return;
       if (this.isLoading) return;
@@ -290,6 +291,7 @@ export function initRepoBranchTagSelector(selector) {
 
       active: 0,
       isLoading: false,
+      // This means whether branch list/tag list needs initialize
       isListInit: {
         'branches': true,
         'tags': true,
@@ -315,5 +317,9 @@ export default sfc; // activate IDE's Vue plugin
 
 .scrolling.menu.is-loading {
   height: 200px;
+}
+
+.scrolling.menu.is-loading::after {
+  display: block !important; /* to override fomantic rule .ui.dropdown .menu .menu:after {display: none} */
 }
 </style>
