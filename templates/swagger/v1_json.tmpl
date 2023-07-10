@@ -11517,7 +11517,7 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/releases/{id}/assets/{asset}": {
+    "/repos/{owner}/{repo}/releases/{id}/assets/{attachment_id}": {
       "get": {
         "produces": [
           "application/json"
@@ -11554,7 +11554,7 @@
             "type": "integer",
             "format": "int64",
             "description": "id of the attachment to get",
-            "name": "asset",
+            "name": "attachment_id",
             "in": "path",
             "required": true
           }
@@ -11601,7 +11601,7 @@
             "type": "integer",
             "format": "int64",
             "description": "id of the attachment to delete",
-            "name": "asset",
+            "name": "attachment_id",
             "in": "path",
             "required": true
           }
@@ -11651,7 +11651,7 @@
             "type": "integer",
             "format": "int64",
             "description": "id of the attachment to edit",
-            "name": "asset",
+            "name": "attachment_id",
             "in": "path",
             "required": true
           },

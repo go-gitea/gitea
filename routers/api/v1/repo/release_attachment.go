@@ -19,7 +19,7 @@ import (
 
 // GetReleaseAttachment gets a single attachment of the release
 func GetReleaseAttachment(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/releases/{id}/assets/{asset} repository repoGetReleaseAttachment
+	// swagger:operation GET /repos/{owner}/{repo}/releases/{id}/assets/{attachment_id} repository repoGetReleaseAttachment
 	// ---
 	// summary: Get a release attachment
 	// produces:
@@ -41,7 +41,7 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
-	// - name: asset
+	// - name: attachment_id
 	//   in: path
 	//   description: id of the attachment to get
 	//   type: integer
@@ -52,7 +52,7 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Attachment"
 
 	releaseID := ctx.ParamsInt64(":id")
-	attachID := ctx.ParamsInt64(":asset")
+	attachID := ctx.ParamsInt64(":attachment_id")
 	attach, err := repo_model.GetAttachmentByID(ctx, attachID)
 	if err != nil {
 		if repo_model.IsErrAttachmentNotExist(err) {
@@ -214,7 +214,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 
 // EditReleaseAttachment updates the given attachment
 func EditReleaseAttachment(ctx *context.APIContext) {
-	// swagger:operation PATCH /repos/{owner}/{repo}/releases/{id}/assets/{asset} repository repoEditReleaseAttachment
+	// swagger:operation PATCH /repos/{owner}/{repo}/releases/{id}/assets/{attachment_id} repository repoEditReleaseAttachment
 	// ---
 	// summary: Edit a release attachment
 	// produces:
@@ -238,7 +238,7 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
-	// - name: asset
+	// - name: attachment_id
 	//   in: path
 	//   description: id of the attachment to edit
 	//   type: integer
@@ -256,7 +256,7 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 
 	// Check if release exists an load release
 	releaseID := ctx.ParamsInt64(":id")
-	attachID := ctx.ParamsInt64(":asset")
+	attachID := ctx.ParamsInt64(":attachment_id")
 	attach, err := repo_model.GetAttachmentByID(ctx, attachID)
 	if err != nil {
 		if repo_model.IsErrAttachmentNotExist(err) {
@@ -284,7 +284,7 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 
 // DeleteReleaseAttachment delete a given attachment
 func DeleteReleaseAttachment(ctx *context.APIContext) {
-	// swagger:operation DELETE /repos/{owner}/{repo}/releases/{id}/assets/{asset} repository repoDeleteReleaseAttachment
+	// swagger:operation DELETE /repos/{owner}/{repo}/releases/{id}/assets/{attachment_id} repository repoDeleteReleaseAttachment
 	// ---
 	// summary: Delete a release attachment
 	// produces:
@@ -306,7 +306,7 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
-	// - name: asset
+	// - name: attachment_id
 	//   in: path
 	//   description: id of the attachment to delete
 	//   type: integer
@@ -318,7 +318,7 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 
 	// Check if release exists an load release
 	releaseID := ctx.ParamsInt64(":id")
-	attachID := ctx.ParamsInt64(":asset")
+	attachID := ctx.ParamsInt64(":attachment_id")
 	attach, err := repo_model.GetAttachmentByID(ctx, attachID)
 	if err != nil {
 		if repo_model.IsErrAttachmentNotExist(err) {

@@ -352,7 +352,7 @@ func canUserWriteIssueCommentAttachment(ctx *context.APIContext, comment *issues
 }
 
 func getIssueCommentAttachmentSafeRead(ctx *context.APIContext, comment *issues_model.Comment) *repo_model.Attachment {
-	attachment, err := repo_model.GetAttachmentByID(ctx, ctx.ParamsInt64("asset"))
+	attachment, err := repo_model.GetAttachmentByID(ctx, ctx.ParamsInt64("attachment_id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetAttachmentByID", repo_model.IsErrAttachmentNotExist, err)
 		return nil

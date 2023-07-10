@@ -16,7 +16,7 @@ func AssetDownloadURL(repo *repo_model.Repository, attach *repo_model.Attachment
 		return attach.CustomDownloadURL
 	}
 
-	// /repos/{owner}/{repo}/releases/{id}/assets/{asset_id}
+	// /repos/{owner}/{repo}/releases/{id}/assets/{attachment_id}
 	return setting.AppURL + "api/repos/" + repo.FullName() + "/releases/" + strconv.FormatInt(attach.ReleaseID, 10) + "/assets/" + strconv.FormatInt(attach.ID, 10)
 }
 
