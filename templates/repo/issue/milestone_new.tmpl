@@ -3,21 +3,21 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		<div class="navbar">
-		{{template "repo/issue/navbar" .}}
-		{{if and (or .CanWriteIssues .CanWritePulls) .PageIsEditMilestone}}
-		<div class="ui right floated secondary menu">
-		<a class="ui green button" href="{{$.RepoLink}}/milestones/new">{{.locale.Tr "repo.milestones.new"}}</a>
-		</div>
-		{{end}}
+			{{template "repo/issue/navbar" .}}
+			{{if and (or .CanWriteIssues .CanWritePulls) .PageIsEditMilestone}}
+				<div class="ui right floated secondary menu">
+					<a class="ui green button" href="{{$.RepoLink}}/milestones/new">{{.locale.Tr "repo.milestones.new"}}</a>
+				</div>
+			{{end}}
 		</div>
 		<div class="divider"></div>
 		<h2 class="ui dividing header">
 			{{if .PageIsEditMilestone}}
-			{{.locale.Tr "repo.milestones.edit"}}
-			<div class="sub header">{{.locale.Tr "repo.milestones.edit_subheader"}}</div>
+				{{.locale.Tr "repo.milestones.edit"}}
+				<div class="sub header">{{.locale.Tr "repo.milestones.edit_subheader"}}</div>
 			{{else}}
-			{{.locale.Tr "repo.milestones.new"}}
-			<div class="sub header">{{.locale.Tr "repo.milestones.new_subheader"}}</div>
+				{{.locale.Tr "repo.milestones.new"}}
+				<div class="sub header">{{.locale.Tr "repo.milestones.new_subheader"}}</div>
 			{{end}}
 		</h2>
 		{{template "base/alert" .}}
@@ -25,8 +25,7 @@
 			{{.CsrfTokenHtml}}
 				<div class="field {{if .Err_Title}}error{{end}}">
 					<label>{{.locale.Tr "repo.milestones.title"}}</label>
-					<input name="title" placeholder="{{.locale.Tr "repo.milestones.title"}}" value="{{.title}}" autofocus
-						required maxlength="50">
+					<input name="title" placeholder="{{.locale.Tr "repo.milestones.title"}}" value="{{.title}}" autofocus required maxlength="50">
 				</div>
 				<div class="field {{if .Err_Deadline}}error{{end}}">
 					<label>
