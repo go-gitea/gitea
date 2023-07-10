@@ -86,24 +86,24 @@ export function initRepoIssueDue() {
   });
 }
 
+export function excludeLabel(href, labelId) {
+  const regStr = `labels=((?:-?[0-9]+%2c)*)(${labelId})((?:%2c-?[0-9]+)*)&`;
+  const newStr = 'labels=$1-$2$3&';
+  return href.replace(new RegExp(regStr), newStr);
+}
+
 export function initRepoIssueSidebarList() {
   initIssueSearchDropdown($('#new-dependency-drop-list'));
-
-  function excludeLabel(item) {
-    const href = $(item).attr('href');
-    const id = $(item).data('label-id');
-
-    const regStr = `labels=((?:-?[0-9]+%2c)*)(${id})((?:%2c-?[0-9]+)*)&`;
-    const newStr = 'labels=$1-$2$3&';
-
-    window.location = href.replace(new RegExp(regStr), newStr);
-  }
 
   $('.menu a.label-filter-item').each(function () {
     $(this).on('click', function (e) {
       if (e.altKey) {
         e.preventDefault();
-        excludeLabel(this);
+        const href = $(this).attr('href');
+        const id = $(this).data('label-id');
+        console.log('output', excludeLabel(href, id));
+        debugger
+        window.location = excludeLabel(href, id);
       }
     });
   });
@@ -112,7 +112,11 @@ export function initRepoIssueSidebarList() {
     if (e.altKey && e.key === 'Enter') {
       const selectedItems = $('.menu .ui.dropdown.label-filter .menu .item.selected');
       if (selectedItems.length > 0) {
-        excludeLabel($(selectedItems[0]));
+        const href = $(selectedItems[0]).attr('href');
+        const id = $(selectedItems[0]).attr('label-id');
+        console.log('output', excludeLabel(href, id));
+        debugger
+        window.location = excludeLabel(href, id);
       }
     }
   });
