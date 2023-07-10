@@ -11,7 +11,11 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-func AssetDownloadURL(repo *repo_model.Repository, attach *repo_model.Attachment) string {
+func WebAssetDownloadURL(repo *repo_model.Repository, attach *repo_model.Attachment) string {
+	return attach.DownloadURL()
+}
+
+func APIAssetDownloadURL(repo *repo_model.Repository, attach *repo_model.Attachment) string {
 	if attach.CustomDownloadURL != "" {
 		return attach.CustomDownloadURL
 	}
@@ -20,21 +24,18 @@ func AssetDownloadURL(repo *repo_model.Repository, attach *repo_model.Attachment
 	return setting.AppURL + "api/repos/" + repo.FullName() + "/releases/" + strconv.FormatInt(attach.ReleaseID, 10) + "/assets/" + strconv.FormatInt(attach.ID, 10)
 }
 
-// ToAttachment converts models.Attachment to api.Attachment
-func ToAttachment(a *repo_model.Attachment) *api.Attachment {
-	return &api.Attachment{
-		ID:            a.ID,
-		Name:          a.Name,
-		Created:       a.CreatedUnix.AsTime(),
-		DownloadCount: a.DownloadCount,
-		Size:          a.Size,
-		UUID:          a.UUID,
-		DownloadURL:   a.DownloadURL(),
-	}
+// ToAttachment converts models.Attachment to api.Attachment for API usage
+func ToAttachment(repo *repo_model.Repository, a *repo_model.Attachment) *api.Attachment {
+	return toAttachment(repo, a, WebAssetDownloadURL)
 }
 
 // ToAPIAttachment converts models.Attachment to api.Attachment for API usage
 func ToAPIAttachment(repo *repo_model.Repository, a *repo_model.Attachment) *api.Attachment {
+	return toAttachment(repo, a, APIAssetDownloadURL)
+}
+
+// toAttachment converts models.Attachment to api.Attachment for API usage
+func toAttachment(repo *repo_model.Repository, a *repo_model.Attachment, getDownloadURL func(repo *repo_model.Repository, attach *repo_model.Attachment) string) *api.Attachment {
 	return &api.Attachment{
 		ID:            a.ID,
 		Name:          a.Name,
@@ -42,14 +43,18 @@ func ToAPIAttachment(repo *repo_model.Repository, a *repo_model.Attachment) *api
 		DownloadCount: a.DownloadCount,
 		Size:          a.Size,
 		UUID:          a.UUID,
-		DownloadURL:   AssetDownloadURL(repo, a),
+		DownloadURL:   getDownloadURL(repo, a), // AssetDownloadURL(repo, a),
 	}
 }
 
 func ToAPIAttachments(repo *repo_model.Repository, attachments []*repo_model.Attachment) []*api.Attachment {
+	return toAttachments(repo, attachments, APIAssetDownloadURL)
+}
+
+func toAttachments(repo *repo_model.Repository, attachments []*repo_model.Attachment, getDownloadURL func(repo *repo_model.Repository, attach *repo_model.Attachment) string) []*api.Attachment {
 	converted := make([]*api.Attachment, 0, len(attachments))
 	for _, attachment := range attachments {
-		converted = append(converted, ToAPIAttachment(repo, attachment))
+		converted = append(converted, toAttachment(repo, attachment, getDownloadURL))
 	}
 	return converted
 }
