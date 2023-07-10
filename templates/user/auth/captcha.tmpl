@@ -22,7 +22,7 @@
 		<div id="captcha" data-captcha-type="m-captcha" class="m-captcha" data-sitekey="{{.McaptchaSitekey}}" data-instance-url="{{.McaptchaURL}}"></div>
 	</div>
 {{else if eq .CaptchaType "cfturnstile"}}
-	<div class="inline field captcha-field gt-tc">
+	<div class="inline field captcha-field gt-text-center">
 		<div id="captcha" data-captcha-type="cf-turnstile" data-sitekey="{{.CfTurnstileSitekey}}"></div>
 	</div>
 {{end}}{{end}}

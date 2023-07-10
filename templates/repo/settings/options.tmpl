@@ -44,29 +44,24 @@
 					<label for="website">{{.locale.Tr "repo.settings.site"}}</label>
 					<input id="website" name="website" type="url" maxlength="1024" value="{{.Repository.Website}}">
 				</div>
-
 				<div class="field">
 					<button class="ui green button">{{$.locale.Tr "repo.settings.update_settings"}}</button>
 				</div>
 			</form>
 
 			<div class="divider"></div>
-
 			<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
 				{{.CsrfTokenHtml}}
 				<div class="inline field">
 					<label for="avatar">{{.locale.Tr "settings.choose_new_avatar"}}</label>
 					<input name="avatar" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
 				</div>
-
 				<div class="field">
 					<button class="ui green button">{{$.locale.Tr "settings.update_avatar"}}</button>
 					<button class="ui red button link-action" data-url="{{.Link}}/avatar/delete" data-redirect="{{.Link}}">{{$.locale.Tr "settings.delete_current_avatar"}}</button>
 				</div>
 			</form>
-
 		</div>
-
 
 		{{/* These variables exist to make the logic in the Settings window easier to comprehend and are not used later on. */}}
 		{{$newMirrorsPartiallyEnabled := or (not .DisableNewPullMirrors) (not .DisableNewPushMirrors)}}

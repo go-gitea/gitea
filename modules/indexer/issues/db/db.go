@@ -36,7 +36,7 @@ func (i *Indexer) Delete(_ context.Context, _ ...int64) error {
 }
 
 // Search searches for issues
-func (i *Indexer) Search(ctx context.Context, kw string, repoIDs []int64, limit, start int) (*internal.SearchResult, error) {
+func (i *Indexer) Search(ctx context.Context, kw string, repoIDs []int64, limit, start int, state string) (*internal.SearchResult, error) {
 	total, ids, err := issues_model.SearchIssueIDsByKeyword(ctx, kw, repoIDs, limit, start)
 	if err != nil {
 		return nil, err

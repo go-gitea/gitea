@@ -50,7 +50,9 @@ func NewRoute() *Route {
 // Use supports two middlewares
 func (r *Route) Use(middlewares ...any) {
 	for _, m := range middlewares {
-		r.R.Use(toHandlerProvider(m))
+		if m != nil {
+			r.R.Use(toHandlerProvider(m))
+		}
 	}
 }
 
@@ -79,15 +81,23 @@ func (r *Route) getPattern(pattern string) string {
 }
 
 func (r *Route) wrapMiddlewareAndHandler(h []any) ([]func(http.Handler) http.Handler, http.HandlerFunc) {
-	handlerProviders := make([]func(http.Handler) http.Handler, 0, len(r.curMiddlewares)+len(h))
+	handlerProviders := make([]func(http.Handler) http.Handler, 0, len(r.curMiddlewares)+len(h)+1)
 	for _, m := range r.curMiddlewares {
-		handlerProviders = append(handlerProviders, toHandlerProvider(m))
+		if m != nil {
+			handlerProviders = append(handlerProviders, toHandlerProvider(m))
+		}
 	}
 	for _, m := range h {
-		handlerProviders = append(handlerProviders, toHandlerProvider(m))
+		if h != nil {
+			handlerProviders = append(handlerProviders, toHandlerProvider(m))
+		}
 	}
 	middlewares := handlerProviders[:len(handlerProviders)-1]
 	handlerFunc := handlerProviders[len(handlerProviders)-1](nil).ServeHTTP
+	mockPoint := RouteMockPoint(MockAfterMiddlewares)
+	if mockPoint != nil {
+		middlewares = append(middlewares, mockPoint)
+	}
 	return middlewares, handlerFunc
 }
 
