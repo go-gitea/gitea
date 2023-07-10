@@ -30,7 +30,7 @@ import (
 )
 
 func getIssuesSelection(t testing.TB, htmlDoc *HTMLDoc) *goquery.Selection {
-	issueList := htmlDoc.doc.Find(".flex-list")
+	issueList := htmlDoc.doc.Find("#issue-list")
 	assert.EqualValues(t, 1, issueList.Length())
 	return issueList.Find(".flex-card").Find(".issue-title")
 }
