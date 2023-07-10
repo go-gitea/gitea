@@ -382,7 +382,8 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 }
 
 // FindRecentlyPushedNewBranches return at most 2 new branches pushed by the user in 6 hours which has no opened PRs created
-func FindRecentlyPushedNewBranches(ctx context.Context, repoID, userID int64) (BranchList, error) {
+// except the indicate branch
+func FindRecentlyPushedNewBranches(ctx context.Context, repoID, userID int64, excludeBranchName string) (BranchList, error) {
 	branches := make(BranchList, 0, 2)
 	subQuery := builder.Select("head_branch").From("pull_request").
 		InnerJoin("issue", "issue.id = pull_request.issue_id").
@@ -390,9 +391,12 @@ func FindRecentlyPushedNewBranches(ctx context.Context, repoID, userID int64) (B
 			"pull_request.head_repo_id": repoID,
 			"issue.is_closed":           false,
 		})
-	err := db.GetEngine(ctx).
-		Where("pusher_id=? AND is_deleted=?", userID, false).
-		And("updated_unix >= ?", time.Now().Add(-time.Hour*6).Unix()).
+	sess := db.GetEngine(ctx).
+		Where("pusher_id=? AND is_deleted=?", userID, false)
+	if excludeBranchName != "" {
+		sess.And("name <> ?", excludeBranchName)
+	}
+	err := sess.And("updated_unix >= ?", time.Now().Add(-time.Hour*6).Unix()).
 		NotIn("name", subQuery).
 		OrderBy("branch.updated_unix DESC").
 		Limit(2).
