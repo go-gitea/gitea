@@ -21,7 +21,7 @@ func AssetDownloadURL(repo *repo_model.Repository, attach *repo_model.Attachment
 }
 
 // ToAttachment converts models.Attachment to api.Attachment
-func ToAttachment(repo *repo_model.Repository, a *repo_model.Attachment) *api.Attachment {
+func ToAttachment(a *repo_model.Attachment) *api.Attachment {
 	return &api.Attachment{
 		ID:            a.ID,
 		Name:          a.Name,
