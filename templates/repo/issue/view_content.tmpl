@@ -158,7 +158,7 @@
 					</div>
 				</div>
 				{{else if .Repository.IsArchived}}
-					<div class="ui warning message">
+					<div class="ui warning message gt-text-center">
 						{{if .Issue.IsPull}}
 							{{.locale.Tr "repo.archive.pull.nocomment"}}
 						{{else}}
@@ -168,7 +168,7 @@
 				{{end}}
 			{{else}} {{/* not .IsSigned */}}
 				{{if .Repository.IsArchived}}
-					<div class="ui warning message">
+					<div class="ui warning message gt-text-center">
 						{{if .Issue.IsPull}}
 							{{.locale.Tr "repo.archive.pull.nocomment"}}
 						{{else}}

@@ -165,7 +165,7 @@ async function updateNotificationTable() {
   if (notificationDiv.length > 0) {
     const data = await $.ajax({
       type: 'GET',
-      url: `${appSubUrl}/notifications?${notificationDiv.data('params')}`,
+      url: `${appSubUrl}/notifications${window.location.search}`,
       data: {
         'div-only': true,
         'sequence-number': ++notificationSequenceNumber,

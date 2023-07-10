@@ -121,7 +121,7 @@
 								<div class="header">
 									{{$.locale.Tr "repo.already_forked" .Name}}
 								</div>
-								<div class="content gt-tl">
+								<div class="content gt-text-left">
 									<div class="ui list">
 										{{range $.UserAndOrgForks}}
 											<div class="ui item gt-py-3">
@@ -207,7 +207,7 @@
 				{{end}}
 
 				{{if and (.Permission.CanRead $.UnitTypeReleases) (not .IsEmptyRepo)}}
-				<a class="{{if .PageIsReleaseList}}active {{end}}item" href="{{.RepoLink}}/releases">
+				<a class="{{if or .PageIsReleaseList .PageIsTagList}}active {{end}}item" href="{{.RepoLink}}/releases">
 					{{svg "octicon-tag"}} {{.locale.Tr "repo.releases"}}
 					{{if .NumReleases}}
 						<span class="ui small label">{{CountFmt .NumReleases}}</span>

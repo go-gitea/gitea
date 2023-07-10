@@ -207,7 +207,7 @@ func ChangeConfig(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"version": version + 1,
 	})
 }
