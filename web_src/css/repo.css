@@ -190,6 +190,7 @@
 
 .repository #clone-panel #repo-clone-url {
   width: 320px;
+  border-radius: 0;
 }
 
 @media (min-width: 768px) and (max-width: 991.98px) {
@@ -230,6 +231,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 5px;
 }
 
 @media (max-width: 767.68px) {
@@ -1313,10 +1315,9 @@
   padding: 5px 10px;
 }
 
-.repository #commits-table thead th:first-of-type {
-  padding-left: 15px;
+.repository #commits-table td:not(.message) {
+  white-space: nowrap;
 }
-
 .repository #commits-table thead .sha {
   width: 200px;
 }
@@ -2656,7 +2657,7 @@
   height: 30px;
 }
 
-.repo-button-row .button.dropdown {
+.repo-button-row .button.dropdown:not(.icon) {
   padding-right: 22px !important; /* normal buttons have !important paddings, so we need to override it for dropdown (Add File) icons */
 }
 
@@ -2684,6 +2685,7 @@ tbody.commit-list {
 /* in the commit list, messages can wrap so we can use inline */
 .commit-list .message-wrapper {
   display: inline;
+  overflow-wrap: anywhere;
 }
 
 /* but in the repo-files-table we cannot */
@@ -2776,7 +2778,6 @@ tbody.commit-list {
 #repo-topics .repo-topic {
   font-weight: var(--font-weight-normal);
   cursor: pointer;
-  margin: 2px;
 }
 
 #new-dependency-drop-list.ui.selection.dropdown {
@@ -3243,17 +3244,6 @@ tbody.commit-list {
   .commit-table td.sha,
   .commit-table th.sha {
     display: none !important;
-  }
-  .commit-table .commit-list span.message-wrapper {
-    max-width: none;
-  }
-  .commit-table .commit-list tr td:first-child,
-  .commit-table .commit-list tr td:last-child {
-    white-space: nowrap;
-  }
-  .commit-table .commit-list td.author {
-    display: block;
-    width: calc(100% + 0.5rem);
   }
   .commit-table .commit-list .copy-commit-sha {
     display: none !important;

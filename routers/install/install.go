@@ -56,6 +56,7 @@ func getSupportedDbTypeNames() (dbTypeNames []map[string]string) {
 func Contexter() func(next http.Handler) http.Handler {
 	rnd := templates.HTMLRenderer()
 	dbTypeNames := getSupportedDbTypeNames()
+	envConfigKeys := setting.CollectEnvConfigKeys()
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			base, baseCleanUp := context.NewBaseContext(resp, req)
@@ -70,11 +71,13 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.AppendContextValue(context.WebContextKey, ctx)
 			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
 			ctx.Data.MergeFrom(middleware.ContextData{
-				"locale":        ctx.Locale,
-				"Title":         ctx.Locale.Tr("install.install"),
-				"PageIsInstall": true,
-				"DbTypeNames":   dbTypeNames,
-				"AllLangs":      translation.AllLangs(),
+				"locale":         ctx.Locale,
+				"Title":          ctx.Locale.Tr("install.install"),
+				"PageIsInstall":  true,
+				"DbTypeNames":    dbTypeNames,
+				"EnvConfigKeys":  envConfigKeys,
+				"CustomConfFile": setting.CustomConf,
+				"AllLangs":       translation.AllLangs(),
 
 				"PasswordHashAlgorithms": hash.RecommendedHashAlgorithms,
 			})
@@ -218,7 +221,7 @@ func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
 			return false
 		}
 
-		log.Info("User confirmed reinstallation of Gitea into a pre-existing database")
+		log.Info("User confirmed re-installation of Gitea into a pre-existing database")
 	}
 
 	if hasPostInstallationUser || dbMigrationVersion > 0 {
@@ -502,6 +505,8 @@ func SubmitInstall(ctx *context.Context) {
 		return
 	}
 
+	setting.EnvironmentToConfig(cfg, os.Environ())
+
 	if err = cfg.SaveTo(setting.CustomConf); err != nil {
 		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 		return
@@ -568,6 +573,7 @@ func SubmitInstall(ctx *context.Context) {
 		}
 	}
 
+	setting.ClearEnvConfigKeys()
 	log.Info("First-time run install finished!")
 	InstallDone(ctx)
 

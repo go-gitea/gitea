@@ -24,7 +24,7 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
       </div>
     </div>
   </div>
-  <div class="comment-diff-data gt-tl gt-p-3 is-loading"></div>
+  <div class="comment-diff-data gt-text-left gt-p-3 is-loading"></div>
 </div>`);
   $dialog.appendTo($('body'));
   $dialog.find('.dialog-header-options').dropdown({
