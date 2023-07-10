@@ -250,12 +250,11 @@ const sfc = {
     },
     async fetchBranchesOrTags() {
       if (!['branches', 'tags'].includes(this.mode)) return;
-      if ((this.mode === 'branches' && (!this.showBranchesInDropdown || !this.isBranchOrTagListInit[0])) 
-      || (this.mode === 'tags' && (this.noTag || !this.isBranchOrTagListInit[1]))) return;
+      if ((this.mode === 'branches' && !this.showBranchesInDropdown) || (this.mode === 'tags' && this.noTag)
+      || !this.isListInit[this.mode]) return;
       if (this.isLoading) return;
       this.isLoading = true;
-      console.log(this.isLoading);
-      this.isBranchOrTagListInit[this.mode === 'branches' ? 0: 1] = false;
+      this.isListInit[this.mode] = false;
       // the "data.defaultBranch" is ambiguous, it could be "branch name" or "tag name"
       const reqUrl = `${this.repoLink}/${this.mode}/list`;
       const resp = await fetch(reqUrl);
@@ -291,7 +290,10 @@ export function initRepoBranchTagSelector(selector) {
 
       active: 0,
       isLoading: false,
-      isBranchOrTagListInit: [true, true],
+      isListInit: {
+        'branches': true,
+        'tags': true,
+      },
       ...window.config.pageData.branchDropdownDataList[elIndex],
     };
 
