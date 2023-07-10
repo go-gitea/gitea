@@ -13,8 +13,8 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-// ToComment converts a issues_model.Comment to the api.Comment format
-func ToComment(ctx context.Context, c *issues_model.Comment) *api.Comment {
+// ToAPIComment converts a issues_model.Comment to the api.Comment format for API usage
+func ToAPIComment(ctx context.Context, repo *repo_model.Repository, c *issues_model.Comment) *api.Comment {
 	return &api.Comment{
 		ID:          c.ID,
 		Poster:      ToUser(ctx, c.Poster, nil),
@@ -22,14 +22,14 @@ func ToComment(ctx context.Context, c *issues_model.Comment) *api.Comment {
 		IssueURL:    c.IssueURL(),
 		PRURL:       c.PRURL(),
 		Body:        c.Content,
-		Attachments: ToAttachments(c.Attachments),
+		Attachments: ToAPIAttachments(repo, c.Attachments),
 		Created:     c.CreatedUnix.AsTime(),
 		Updated:     c.UpdatedUnix.AsTime(),
 	}
 }
 
 // ToTimelineComment converts a issues_model.Comment to the api.TimelineComment format
-func ToTimelineComment(ctx context.Context, c *issues_model.Comment, doer *user_model.User) *api.TimelineComment {
+func ToTimelineComment(ctx context.Context, repo *repo_model.Repository, c *issues_model.Comment, doer *user_model.User) *api.TimelineComment {
 	err := c.LoadMilestone(ctx)
 	if err != nil {
 		log.Error("LoadMilestone: %v", err)
@@ -131,7 +131,7 @@ func ToTimelineComment(ctx context.Context, c *issues_model.Comment, doer *user_
 			log.Error("LoadPoster: %v", err)
 			return nil
 		}
-		comment.RefComment = ToComment(ctx, com)
+		comment.RefComment = ToAPIComment(ctx, repo, com)
 	}
 
 	if c.Label != nil {

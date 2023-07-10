@@ -64,7 +64,7 @@ func GetIssueAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToAttachment(attach))
+	ctx.JSON(http.StatusOK, convert.ToAPIAttachment(ctx.Repo.Repository, attach))
 }
 
 // ListIssueAttachments lists all attachments of the issue
@@ -194,7 +194,7 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToAttachment(attachment))
+	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx.Repo.Repository, attachment))
 }
 
 // EditIssueAttachment updates the given attachment
@@ -254,7 +254,7 @@ func EditIssueAttachment(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "UpdateAttachment", err)
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToAttachment(attachment))
+	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx.Repo.Repository, attachment))
 }
 
 // DeleteIssueAttachment delete a given attachment
@@ -332,7 +332,7 @@ func getIssueAttachmentSafeWrite(ctx *context.APIContext) *repo_model.Attachment
 }
 
 func getIssueAttachmentSafeRead(ctx *context.APIContext, issue *issues_model.Issue) *repo_model.Attachment {
-	attachment, err := repo_model.GetAttachmentByID(ctx, ctx.ParamsInt64("asset"))
+	attachment, err := repo_model.GetAttachmentByID(ctx, ctx.ParamsInt64("attachment_id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetAttachmentByID", repo_model.IsErrAttachmentNotExist, err)
 		return nil
