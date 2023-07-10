@@ -47,7 +47,7 @@ func TestAPIUserReposWithWrongToken(t *testing.T) {
 	wrong_token := fmt.Sprintf("Bearer %s", "wrong_token")
 	req := NewRequestf(t, "GET", "/api/v1/users/%s/repos", user.Name)
 	req = addTokenAuthHeader(req, wrong_token)
-	resp := MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusUnauthorized)
 
 	assert.Contains(t, resp.Body.String(), "user does not exist")
 }
