@@ -110,7 +110,7 @@ func TestProjectsSort(t *testing.T) {
 
 	for _, tt := range tests {
 		projects, count, err := FindProjects(db.DefaultContext, SearchOptions{
-			SortType: tt.sortType,
+			OrderBy: GetSearchOrderByBySortType(tt.sortType),
 		})
 		assert.NoError(t, err)
 		assert.EqualValues(t, int64(4), count)
