@@ -87,7 +87,7 @@ export function initRepoIssueDue() {
 }
 
 export function initRepoIssueSidebarList() {
-  initIssueSearchDropdown('#new-dependency-drop-list');
+  initIssueSearchDropdown($('#new-dependency-drop-list'));
 
   function excludeLabel(item) {
     const href = $(item).attr('href');
@@ -119,7 +119,7 @@ export function initRepoIssueSidebarList() {
   $('.ui.dropdown.label-filter, .ui.dropdown.select-label').dropdown('setting', {'hideDividers': 'empty'}).dropdown('refreshItems');
 }
 
-function initIssueSearchDropdown(selector) {
+function initIssueSearchDropdown($list) {
   const repolink = $('#repolink').val();
   const repoId = $('#repoId').val();
   const crossRepoSearch = $('#crossRepoSearch').val();
@@ -129,32 +129,31 @@ function initIssueSearchDropdown(selector) {
   if (crossRepoSearch === 'true') {
     issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${repoId}&type=${tp}&state=${state}`;
   }
-  $(selector)
-    .dropdown({
-      apiSettings: {
-        url: issueSearchUrl,
-        onResponse(response) {
-          const filteredResponse = {success: true, results: []};
-          const currIssueId = $(selector).data('issue-id');
-          // Parse the response from the api to work with our dropdown
-          $.each(response, (_i, issue) => {
-            // Don't list current issue in the dependency list.
-            if (issue.id === currIssueId) {
-              return;
-            }
-            filteredResponse.results.push({
-              name: `#${issue.number} ${htmlEscape(issue.title)
-              }<div class="text small dont-break-out">${htmlEscape(issue.repository.full_name)}</div>`,
-              value: issue.id,
-            });
+  $list.dropdown({
+    apiSettings: {
+      url: issueSearchUrl,
+      onResponse(response) {
+        const filteredResponse = {success: true, results: []};
+        const currIssueId = $list.data('issue-id');
+        // Parse the response from the api to work with our dropdown
+        $.each(response, (_i, issue) => {
+          // Don't list current issue in the dependency list.
+          if (issue.id === currIssueId) {
+            return;
+          }
+          filteredResponse.results.push({
+            name: `#${issue.number} ${htmlEscape(issue.title)
+            }<div class="text small dont-break-out">${htmlEscape(issue.repository.full_name)}</div>`,
+            value: issue.id,
           });
-          return filteredResponse;
-        },
-        cache: false,
+        });
+        return filteredResponse;
       },
+      cache: false,
+    },
 
-      fullTextSearch: true,
-    });
+    fullTextSearch: true,
+  });
 }
 
 export function initRepoIssueCommentDelete() {
@@ -706,12 +705,13 @@ function initRepoIssueStateButton() {
     // temporarily reset the input value
     $('#type').val('issue');
     $('#state').val('all');
-    initIssueSearchDropdown('#duplicate-issues-list');
+    const $duplicateDropdown = $('#duplicate-issues-list');
+    initIssueSearchDropdown($duplicateDropdown);
     const $duplicateModal = $('#duplicate-issue-modal');
     $duplicateModal.modal({
       onHidden() { // close modal
         // clear selected item in the dropdown
-        $('#duplicate-issues-list').dropdown('set exactly', []);
+        $duplicateDropdown.dropdown('set exactly', []);
         // restore the value of "type" and "state" input
         $('#type').val(originalType);
         $('#state').val(originalSate);
