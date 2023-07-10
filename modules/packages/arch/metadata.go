@@ -54,7 +54,7 @@ func EjectMetadata(filename, distribution, domain string, pkg []byte) (*Metadata
 	if err != nil {
 		return nil, err
 	}
-	var md = Metadata{
+	md := Metadata{
 		Filename:       filename,
 		BaseDomain:     domain,
 		CompressedSize: int64(len(pkg)),
@@ -108,7 +108,7 @@ func EjectMetadata(filename, distribution, domain string, pkg []byte) (*Metadata
 		case "checkdepend":
 			md.CheckDepends = append(md.CheckDepends, splt[1])
 		case "backup":
-			md.Depends = append(md.Backup, splt[1])
+			md.Backup = append(md.Backup, splt[1])
 		}
 	}
 	return &md, nil

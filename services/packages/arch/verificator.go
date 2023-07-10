@@ -14,6 +14,7 @@ import (
 	org "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
+
 	"github.com/keybase/go-crypto/openpgp"
 )
 

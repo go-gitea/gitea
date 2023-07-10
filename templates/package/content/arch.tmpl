@@ -48,7 +48,7 @@ Server = https://{{.PackageDescriptor.Metadata.BaseDomain}}/api/packages/{{.Pack
 				<td class="collapsing"><h5>Build date</h5></td>
 				<td>{{DateTime "short" .PackageDescriptor.Metadata.BuildDate}}</td>
 			</tr>
-			
+
 			{{range $key := .PackageDescriptor.Metadata.Provides}}
 			<tr>
 				<td class="collapsing"><h5>Provides</h5></td>
