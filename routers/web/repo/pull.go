@@ -729,7 +729,7 @@ func ViewPullCommits(ctx *context.Context) {
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.Doer.ID)
 
-	// For commits page
+	// For PR commits page
 	PrepareBranchList(ctx)
 	getBranchData(ctx, issue)
 	ctx.HTML(http.StatusOK, tplPullCommits)
