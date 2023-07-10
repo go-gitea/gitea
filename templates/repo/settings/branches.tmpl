@@ -41,13 +41,13 @@
 			<div class="ui attached segment">
 				<div class="flex-list">
 					{{range .ProtectedBranches}}
-						<div class="flex-card flex-card-center">
-							<div class="flex-card-main">
-								<div class="flex-card-title">
+						<div class="flex-item flex-item-center">
+							<div class="flex-item-main">
+								<div class="flex-item-title">
 									<div class="ui basic primary label">{{.RuleName}}</div>
 								</div>
 							</div>
-							<div class="flex-card-trailing">
+							<div class="flex-item-trailing">
 								<a class="rm ui tiny button" href="{{$.Repository.Link}}/settings/branches/edit?rule_name={{.RuleName}}">{{$.locale.Tr "repo.settings.edit_protected_branch"}}</a>
 								<button class="ui red tiny button delete-button" data-url="{{$.Repository.Link}}/settings/branches/{{.ID}}/delete" data-id="{{.ID}}">
 									{{$.locale.Tr "repo.settings.protected_branch.delete_rule"}}
@@ -55,7 +55,7 @@
 							</div>
 						</div>
 					{{else}}
-						<div class="flex-card center aligned">
+						<div class="flex-item center aligned">
 							{{.locale.Tr "repo.settings.no_protected_branch"}}
 						</div>
 					{{end}}

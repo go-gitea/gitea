@@ -1,10 +1,10 @@
 <div id="activity-feed" class="flex-list">
 	{{range .Feeds}}
-		<div class="flex-card">
-			<div class="flex-card-leading">
+		<div class="flex-item">
+			<div class="flex-item-leading">
 				{{avatarByAction $.Context .}}
 			</div>
-			<div class="flex-card-main gt-gap-3">
+			<div class="flex-item-main gt-gap-3">
 				<div>
 					{{if gt .ActUser.ID 0}}
 						<a href="{{AppSubUrl}}/{{.GetActUserName | PathEscape}}" title="{{.GetDisplayNameTitle}}">{{.GetDisplayName}}</a>
@@ -85,7 +85,7 @@
 						{{$repoLink := .GetRepoLink}}
 						{{range $push.Commits}}
 							{{$commitLink := printf "%s/commit/%s" $repoLink .Sha1}}
-							<div class="flex-card">
+							<div class="flex-item">
 								{{avatarHTML ($push.AvatarLink $.Context .AuthorEmail) 16 "" .AuthorName}}
 								<a class="commit-id" href="{{$commitLink}}">{{ShortSha .Sha1}}</a>
 								<span class="text truncate light grey">
@@ -94,7 +94,7 @@
 							</div>
 						{{end}}
 						{{if and (gt $push.Len 1) $push.CompareURL}}
-							<div class="flex-card">
+							<div class="flex-item">
 								<a href="{{AppSubUrl}}/{{$push.CompareURL}}">{{$.locale.Tr "action.compare_commits" $push.Len}} »</a>
 							</div>
 						{{end}}
@@ -107,19 +107,19 @@
 					<a href="{{.GetCommentLink}}" class="text truncate issue title">{{.GetIssueTitle | RenderEmoji $.Context | RenderCodeBlock}}</a>
 					{{$comment := index .GetIssueInfos 1}}
 					{{if gt (len $comment) 0}}
-						<div class="flex-card-body">{{$comment | RenderEmoji $.Context | RenderCodeBlock}}</div>
+						<div class="flex-item-body">{{$comment | RenderEmoji $.Context | RenderCodeBlock}}</div>
 					{{end}}
 				{{else if eq .GetOpType 11}}
-					<div class="flex-card-body">{{index .GetIssueInfos 1}}</div>
+					<div class="flex-item-body">{{index .GetIssueInfos 1}}</div>
 				{{else if or (eq .GetOpType 12) (eq .GetOpType 13) (eq .GetOpType 14) (eq .GetOpType 15)}}
 					<span class="text truncate issue title">{{.GetIssueTitle | RenderEmoji $.Context | RenderCodeBlock}}</span>
 				{{else if eq .GetOpType 25}}
-				<div class="flex-card-body">{{$.locale.Tr "action.review_dismissed_reason"}}</div>
-				<div class="flex-card-body">{{index .GetIssueInfos 2 | RenderEmoji $.Context}}</div>
+				<div class="flex-item-body">{{$.locale.Tr "action.review_dismissed_reason"}}</div>
+				<div class="flex-item-body">{{index .GetIssueInfos 2 | RenderEmoji $.Context}}</div>
 				{{end}}
-				<div class="flex-card-body">{{TimeSince .GetCreate $.locale}}</div>
+				<div class="flex-item-body">{{TimeSince .GetCreate $.locale}}</div>
 			</div>
-			<div class="flex-card-trailing">
+			<div class="flex-item-trailing">
 				{{svg (printf "octicon-%s" (ActionIcon .GetOpType)) 32}}
 			</div>
 		</div>

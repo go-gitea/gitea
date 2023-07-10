@@ -2,52 +2,52 @@
   list-style: none;
 }
 
-.flex-card {
+.flex-item {
   display: flex;
   gap: 8px;
   align-items: flex-start;
 }
 
-.flex-card:not(:last-child) {
+.flex-item:not(:last-child) {
   padding-bottom: 8px;
 }
 
-.flex-card-baseline {
+.flex-item-baseline {
   align-items: baseline;
 }
 
-.flex-card-center {
+.flex-item-center {
   align-items: center;
 }
 
-.flex-card .flex-card-leading {
+.flex-item .flex-item-leading {
   display: flex;
   align-items: flex-start;
 }
 
-.flex-card .flex-card-main {
+.flex-item .flex-item-main {
   display: flex;
   flex-direction: column;
   flex-grow: 1;
   min-width: 0;
 }
 
-.flex-card-header {
+.flex-item-header {
   display: flex;
   gap: .25rem;
   justify-content: space-between;
   flex-wrap: wrap;
 }
 
-.flex-card a:not(.label, .button):hover {
+.flex-item a:not(.label, .button):hover {
   color: var(--color-primary) !important;
 }
 
-.flex-card .flex-card-icon svg {
+.flex-item .flex-item-icon svg {
   margin-top: 1px;
 }
 
-.flex-card .flex-card-trailing {
+.flex-item .flex-item-trailing {
   display: flex;
   gap: 0.5rem;
   align-items: center;
@@ -57,7 +57,7 @@
   flex-shrink: 2;
 }
 
-.flex-card .flex-card-title {
+.flex-item .flex-item-title {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
@@ -69,12 +69,12 @@
   font-weight: var(--font-weight-semibold);
 }
 
-.flex-card .flex-card-title a {
+.flex-item .flex-item-title a {
   color: var(--color-text);
   overflow-wrap: anywhere;
 }
 
-.flex-card .flex-card-body {
+.flex-item .flex-item-body {
   font-size: 13px;
   display: flex;
   align-items: center;
@@ -83,12 +83,12 @@
   color: var(--color-text-light-2);
 }
 
-.flex-card .flex-card-body a {
+.flex-item .flex-item-body a {
   color: inherit;
   overflow-wrap: anywhere;
 }
 
-.flex-card .flex-card-body .checklist progress {
+.flex-item .flex-item-body .checklist progress {
   margin-left: 2px;
   width: 80px;
   height: 6px;
@@ -96,11 +96,11 @@
   border-radius: 3px;
 }
 
-.flex-card .flex-card-body .checklist progress::-webkit-progress-value {
+.flex-item .flex-item-body .checklist progress::-webkit-progress-value {
   background-color: var(--color-secondary-dark-4);
 }
 
-.flex-card .flex-card-body .checklist progress::-moz-progress-bar {
+.flex-item .flex-item-body .checklist progress::-moz-progress-bar {
   background-color: var(--color-secondary-dark-4);
 }
 
@@ -121,7 +121,7 @@
   max-width: 10em;
 }
 
-.flex-list > .flex-card + .flex-card {
+.flex-list > .flex-item + .flex-item {
   border-top: 1px solid var(--color-secondary);
   padding-top: 8px;
 }

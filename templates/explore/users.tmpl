@@ -6,18 +6,18 @@
 
 		<div class="flex-list">
 			{{range .Users}}
-				<div class="flex-card flex-card-center">
-					<div class="flex-card-leading">
+				<div class="flex-item flex-item-center">
+					<div class="flex-item-leading">
 						{{avatar $.Context . 48}}
 					</div>
-					<div class="flex-card-main">
-						<div class="flex-card-title">
+					<div class="flex-item-main">
+						<div class="flex-item-title">
 							{{template "shared/user/name" .}}
 							{{if .Visibility.IsPrivate}}
 								<span class="ui basic tiny label">{{$.locale.Tr "repo.desc.private"}}</span>
 							{{end}}
 						</div>
-						<div class="flex-card-body">
+						<div class="flex-item-body">
 							{{if .Location}}
 								<span class="flex-text-inline">{{svg "octicon-location"}}{{.Location}}</span>
 							{{end}}
@@ -32,7 +32,7 @@
 					</div>
 				</div>
 			{{else}}
-				<div class="flex-card">{{$.locale.Tr "explore.user_no_results"}}</div>
+				<div class="flex-item">{{$.locale.Tr "explore.user_no_results"}}</div>
 			{{end}}
 		</div>
 

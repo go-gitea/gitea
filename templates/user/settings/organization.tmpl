@@ -12,17 +12,17 @@
 			{{if .Orgs}}
 				<div class="flex-list">
 					{{range .Orgs}}
-					<div class="flex-card">
-						<div class="flex-card-leading">
+					<div class="flex-item">
+						<div class="flex-item-leading">
 							{{avatar $.Context . 28 "mini"}}
 						</div>
-						<div class="flex-card-main">
-							<div class="flex-card-title">{{template "shared/user/name" .}}</div>
+						<div class="flex-item-main">
+							<div class="flex-item-title">{{template "shared/user/name" .}}</div>
 							<div class="flex-text-body">
 								{{.Description}}
 							</div>
 						</div>
-						<div class="flex-card-trailing">
+						<div class="flex-item-trailing">
 							<form>
 								{{$.CsrfTokenHtml}}
 								<button class="ui red button delete-button" data-modal-id="leave-organization"

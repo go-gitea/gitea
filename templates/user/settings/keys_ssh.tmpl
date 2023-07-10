@@ -28,32 +28,32 @@
 		</form>
 	</div>
 	<div id="keys-ssh" class="flex-list">
-		<div class="flex-card">
+		<div class="flex-item">
 			{{.locale.Tr "settings.ssh_desc"}}
 		</div>
 		{{if .DisableSSH}}
-			<div class="flex-card">
+			<div class="flex-item">
 				{{.locale.Tr "settings.ssh_signonly"}}
 			</div>
 		{{end}}
 		{{range $index, $key := .Keys}}
-			<div class="flex-card">
-				<div class="flex-card-leading">
+			<div class="flex-item">
+				<div class="flex-item-leading">
 					<span class="text {{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{$.locale.Tr "settings.key_state_desc"}}"{{end}}>{{svg "octicon-key" 32}}</span>
 				</div>
-				<div class="flex-card-main">
+				<div class="flex-item-main">
 						{{if .Verified}}
-							<div class="flex-card-title flex-text-block" data-tooltip-content="{{$.locale.Tr "settings.ssh_key_verified_long"}}">{{svg "octicon-verified"}}{{$.locale.Tr "settings.ssh_key_verified"}}</div>
+							<div class="flex-item-title flex-text-block" data-tooltip-content="{{$.locale.Tr "settings.ssh_key_verified_long"}}">{{svg "octicon-verified"}}{{$.locale.Tr "settings.ssh_key_verified"}}</div>
 						{{end}}
-						<div class="flex-card-title">{{.Name}}</div>
-						<div class="flex-card-body">
+						<div class="flex-item-title">{{.Name}}</div>
+						<div class="flex-item-body">
 								{{.Fingerprint}}
 						</div>
-						<div class="flex-card-body">
+						<div class="flex-item-body">
 								<i>{{$.locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix) | Safe}} —	{{svg "octicon-info"}} {{if .HasUsed}}{{$.locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="text green"{{end}}>{{DateTime "short" .UpdatedUnix}}</span>{{else}}{{$.locale.Tr "settings.no_activity"}}{{end}}</i>
 						</div>
 				</div>
-				<div class="flex-card-trailing">
+				<div class="flex-item-trailing">
 					<button class="ui red tiny button delete-button{{if index $.ExternalKeys $index}} disabled{{end}}" data-modal-id="delete-ssh" data-url="{{$.Link}}/delete?type=ssh" data-id="{{.ID}}"{{if index $.ExternalKeys $index}} title="{{$.locale.Tr "settings.ssh_externally_managed"}}"{{end}}>
 						{{$.locale.Tr "settings.delete_key"}}
 					</button>

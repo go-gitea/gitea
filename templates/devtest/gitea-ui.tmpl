@@ -257,25 +257,25 @@
 	<div>
 		<h1>Flex List</h1>
 		<div class="flex-list">
-			<div class="flex-card">
-				<div class="flex-card-leading">
+			<div class="flex-item">
+				<div class="flex-item-leading">
 					{{svg "octicon-info" 32}}
 				</div>
-				<div class="flex-card-main">
-					<div class="flex-card-title">
-						Flex Card
+				<div class="flex-item-main">
+					<div class="flex-item-title">
+						Flex Item
 						<span class="ui basic label">
 							with label
 						</span>
 					</div>
-					<div class="flex-card-body">
+					<div class="flex-item-body">
 						consists of leading/main/trailing part
 					</div>
-					<div class="flex-card-body">
+					<div class="flex-item-body">
 						main part contains title and (multiple) body lines
 					</div>
 				</div>
-				<div class="flex-card-trailing">
+				<div class="flex-item-trailing">
 					<button class="ui tiny red button">
 						{{svg "octicon-warning" 12}} Button
 					</button>
@@ -284,19 +284,19 @@
 					</button>
 				</div>
 			</div>
-			<div class="flex-card">
-				<div class="flex-card-leading">
+			<div class="flex-item">
+				<div class="flex-item-leading">
 					{{svg "octicon-repo" 32}}
 				</div>
-				<div class="flex-card-main">
-					<div class="flex-card-header">
-						<div class="flex-card-title">
+				<div class="flex-item-main">
+					<div class="flex-item-header">
+						<div class="flex-item-title">
 							<a class="text primary" href="{{$.Link}}">
 								gitea-org / gitea
 							</a>
 							<span data-tooltip-content="{{$.locale.Tr "repo.fork"}}">{{svg "octicon-repo-forked"}}</span>
 						</div>
-						<div class="flex-card-trailing">
+						<div class="flex-item-trailing">
 							<a class="muted" href="{{$.Link}}">
 								<span class="flex-text-inline"><i class="color-icon gt-mr-3" style="background-color: aqua"></i>Go</span>
 							</a>
@@ -304,7 +304,7 @@
 							<a class="text grey flex-text-inline" href="{{$.Link}}">{{svg "octicon-git-branch" 16}}1234</a>
 						</div>
 					</div>
-					<div class="flex-card-body">
+					<div class="flex-item-body">
 						when inside header, the trailing part will wrap below the title
 					</div>
 				</div>

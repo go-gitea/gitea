@@ -6,15 +6,15 @@
 	</div>
 	{{end}}
 	{{range .Runs}}
-		<div class="flex-card flex-card-center">
-			<div class="flex-card-leading">
+		<div class="flex-item flex-item-center">
+			<div class="flex-item-leading">
 				{{template "repo/actions/status" (dict "status" .Status.String "locale" $.locale)}}
 			</div>
-			<div class="flex-card-main">
-				<a class="flex-card-title" title="{{.Title}}" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
+			<div class="flex-item-main">
+				<a class="flex-item-title" title="{{.Title}}" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
 					{{- .Title -}}
 				</a>
-				<div class="flex-card-body">
+				<div class="flex-item-body">
 					<b>{{if not $.CurWorkflow}}{{.WorkflowID}} {{end}}#{{.Index}}</b>
 					: {{$.locale.Tr "actions.runs.commit"}}
 					<a href="{{$.RepoLink}}/commit/{{.CommitSHA}}">{{ShortSha .CommitSHA}}</a>
@@ -22,7 +22,7 @@
 					<a href="{{.TriggerUser.HomeLink}}">{{.TriggerUser.GetDisplayName}}</a>
 				</div>
 			</div>
-			<div class="flex-card-trailing">
+			<div class="flex-item-trailing">
 				{{if .RefLink}}
 					<a class="ui label gt-px-2 gt-mx-0" href="{{.RefLink}}">{{.PrettyRef}}</a>
 				{{else}}

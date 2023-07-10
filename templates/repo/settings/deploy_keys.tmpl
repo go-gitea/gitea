@@ -45,20 +45,20 @@
 			{{if .Deploykeys}}
 				<div class="flex-list">
 					{{range .Deploykeys}}
-						<div class="flex-card">
-							<div class="flex-card-leading">
+						<div class="flex-item">
+							<div class="flex-item-leading">
 								<span class="text {{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{$.locale.Tr "settings.key_state_desc"}}"{{end}}>{{svg "octicon-key" 32}}</span>
 							</div>
-							<div class="flex-card-main">
-								<div class="flex-card-title">{{.Name}}</div>
-								<div class="flex-card-body">
+							<div class="flex-item-main">
+								<div class="flex-item-title">{{.Name}}</div>
+								<div class="flex-item-body">
 									{{.Fingerprint}}
 								</div>
-								<div class="flex-card-body">
+								<div class="flex-item-body">
 									<i>{{$.locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix) | Safe}} —  {{svg "octicon-info"}} {{if .HasUsed}}{{$.locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="text green"{{end}}>{{DateTime "short" .UpdatedUnix}}</span>{{else}}{{$.locale.Tr "settings.no_activity"}}{{end}} - <span>{{$.locale.Tr "settings.can_read_info"}}{{if not .IsReadOnly}} / {{$.locale.Tr "settings.can_write_info"}} {{end}}</span></i>
 								</div>
 							</div>
-							<div class="flex-card-trailing">
+							<div class="flex-item-trailing">
 								<button class="ui red tiny button delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
 									{{$.locale.Tr "settings.delete_key"}}
 								</button>

@@ -40,32 +40,32 @@
 		</form>
 	</div>
 	<div class="flex-list">
-		<div class="flex-card">
+		<div class="flex-item">
 			{{.locale.Tr "settings.gpg_desc"}}
 		</div>
 		{{range .GPGKeys}}
-			<div class="flex-card">
-				<div class="flex-card-leading">
+			<div class="flex-item">
+				<div class="flex-item-leading">
 					<span class="text {{if or .ExpiredUnix.IsZero ($.PageStartTime.Before .ExpiredUnix.AsTime)}}green{{end}}">{{svg "octicon-key" 32}}</span>
 				</div>
-				<div class="flex-card-main">
+				<div class="flex-item-main">
 					{{if .Verified}}
 						<span class="flex-text-block" data-tooltip-content="{{$.locale.Tr "settings.gpg_key_verified_long"}}">{{svg "octicon-verified"}} <strong>{{$.locale.Tr "settings.gpg_key_verified"}}</strong></span>
 					{{end}}
 					{{if gt (len .Emails) 0}}
 						<span class="flex-text-block" data-tooltip-content="{{$.locale.Tr "settings.gpg_key_matched_identities_long"}}">{{svg "octicon-mail"}} {{$.locale.Tr "settings.gpg_key_matched_identities"}} {{range .Emails}}<strong>{{.Email}} </strong>{{end}}</span>
 					{{end}}
-					<div class="flex-card-body">
+					<div class="flex-item-body">
 						<b>{{$.locale.Tr "settings.key_id"}}:</b> {{.PaddedKeyID}}
 						<b>{{$.locale.Tr "settings.subkeys"}}:</b> {{range .SubsKey}} {{.PaddedKeyID}} {{end}}
 					</div>
-					<div class="flex-card-body">
+					<div class="flex-item-body">
 						<i>{{$.locale.Tr "settings.added_on" (DateTime "short" .AddedUnix) | Safe}}</i>
 						-
 						<i>{{if not .ExpiredUnix.IsZero}}{{$.locale.Tr "settings.valid_until_date" (DateTime "short" .ExpiredUnix) | Safe}}{{else}}{{$.locale.Tr "settings.valid_forever"}}{{end}}</i>
 					</div>
 				</div>
-				<div class="flex-card-trailing">
+				<div class="flex-item-trailing">
 					<button class="ui red tiny button delete-button" data-modal-id="delete-gpg" data-url="{{$.Link}}/delete?type=gpg" data-id="{{.ID}}">
 						{{$.locale.Tr "settings.delete_key"}}
 					</button>

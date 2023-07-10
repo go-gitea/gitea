@@ -32,7 +32,7 @@ import (
 func getIssuesSelection(t testing.TB, htmlDoc *HTMLDoc) *goquery.Selection {
 	issueList := htmlDoc.doc.Find("#issue-list")
 	assert.EqualValues(t, 1, issueList.Length())
-	return issueList.Find(".flex-card").Find(".issue-title")
+	return issueList.Find(".flex-item").Find(".issue-title")
 }
 
 func getIssue(t *testing.T, repoID int64, issueSelection *goquery.Selection) *issues_model.Issue {

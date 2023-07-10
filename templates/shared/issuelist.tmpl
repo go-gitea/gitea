@@ -1,18 +1,18 @@
 <div id="issue-list" class="flex-list gt-pt-4">
 	{{$approvalCounts := .ApprovalCounts}}
 	{{range .Issues}}
-		<div class="flex-card flex-card-baseline">
-			<div class="flex-card-leading gt-ac">
+		<div class="flex-item flex-item-baseline">
+			<div class="flex-item-leading gt-ac">
 				{{if $.CanWriteIssuesOrPulls}}
 					<input type="checkbox" autocomplete="off" class="issue-checkbox gt-mr-4" data-issue-id={{.ID}} aria-label="{{$.locale.Tr "repo.issues.action_check"}} &quot;{{.Title}}&quot;">
 				{{end}}
-				<div class="flex-card-icon">
+				<div class="flex-item-icon">
 					{{template "shared/issueicon" .}}
 				</div>
 			</div>
-			<div class="flex-card-main">
-				<div class="flex-card-header">
-					<div class="flex-card-title">
+			<div class="flex-item-main">
+				<div class="flex-item-header">
+					<div class="flex-item-title">
 						<a class="gt-no-underline issue-title" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{RenderEmoji $.Context .Title | RenderCodeBlock}}</a>
 						{{if .IsPull}}
 							{{if (index $.CommitStatuses .PullRequest.ID)}}
@@ -26,7 +26,7 @@
 						</span>
 					</div>
 					{{if or .TotalTrackedTime .Assignees .NumComments}}
-					<div class="flex-card-trailing">
+					<div class="flex-item-trailing">
 						{{if .TotalTrackedTime}}
 						<div class="text grey flex-text-block">
 								{{svg "octicon-clock" 16}}
@@ -52,7 +52,7 @@
 					</div>
 					{{end}}
 				</div>
-				<div class="flex-card-body">
+				<div class="flex-item-body">
 					<a class="index" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
 						{{if eq $.listType "dashboard"}}
 							{{.Repo.FullName}}#{{.Index}}

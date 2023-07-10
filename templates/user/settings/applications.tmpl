@@ -5,19 +5,19 @@
 		</h4>
 		<div class="ui attached segment">
 			<div class="flex-list">
-				<div class="flex-card">
+				<div class="flex-item">
 					{{.locale.Tr "settings.tokens_desc"}}
 				</div>
 				{{range .Tokens}}
-					<div class="flex-card">
-						<div class="flex-card-leading">
+					<div class="flex-item">
+						<div class="flex-item-leading">
 							<span class="text {{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{$.locale.Tr "settings.token_state_desc"}}"{{end}}>
 								{{svg "fontawesome-send" 32}}
 							</span>
 						</div>
-						<div class="flex-card-main">
+						<div class="flex-item-main">
 							<details>
-								<summary><span class="flex-card-title">{{.Name}}</span></summary>
+								<summary><span class="flex-item-title">{{.Name}}</span></summary>
 								<p class="gt-my-2">
 									{{$.locale.Tr "settings.repo_and_org_access"}}:
 									{{if .DisplayPublicOnly}}
@@ -35,11 +35,11 @@
 								{{end}}
 								</ul>
 							</details>
-							<div class="flex-card-body">
+							<div class="flex-item-body">
 								<i>{{$.locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix) | Safe}} — {{svg "octicon-info"}} {{if .HasUsed}}{{$.locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="text green"{{end}}>{{DateTime "short" .UpdatedUnix}}</span>{{else}}{{$.locale.Tr "settings.no_activity"}}{{end}}</i>
 							</div>
 						</div>
-						<div class="flex-card-trailing">
+						<div class="flex-item-trailing">
 								<button class="ui red tiny button delete-button" data-modal-id="delete-token" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
 									{{svg "octicon-trash" 16 "gt-mr-2"}}
 									{{$.locale.Tr "settings.delete_token"}}

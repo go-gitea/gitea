@@ -7,24 +7,24 @@
 		<div class="flex-list">
 			{{range .Members}}
 				{{$isPublic := index $.MembersIsPublicMember .ID}}
-				<div class="flex-card {{if $.PublicOnly}}flex-card-center{{end}}">
-					<div class="flex-card-leading">
+				<div class="flex-item {{if $.PublicOnly}}flex-item-center{{end}}">
+					<div class="flex-item-leading">
 						<a href="{{.HomeLink}}">{{avatar $.Context . 48}}</a>
 					</div>
-					<div class="flex-card-main">
-						<div class="flex-card-title">
+					<div class="flex-item-main">
+						<div class="flex-item-title">
 							{{template "shared/user/name" .}}
 							{{if not $isPublic}}
 								<span class="ui basic tiny label">{{$.locale.Tr "org.members.private"}}</span>
 							{{end}}
 						</div>
 						{{if not $.PublicOnly}}
-							<div class="flex-card-body">
+							<div class="flex-item-body">
 								{{$.locale.Tr "org.members.member_role"}}
 								<strong class="flex-text-inline">{{if index $.MembersIsUserOrgOwner .ID}}{{svg "octicon-shield-lock"}} {{$.locale.Tr "org.members.owner"}}{{else}}{{$.locale.Tr "org.members.member"}}{{end}}</strong>
 							</div>
 							{{if $.IsOrganizationOwner}}
-							<div class="flex-card-body">
+							<div class="flex-item-body">
 								{{$.locale.Tr "admin.users.2fa"}}
 								<strong>
 									{{if index $.MembersTwoFaStatus .ID}}
@@ -37,7 +37,7 @@
 							{{end}}
 						{{end}}
 					</div>
-					<div class="flex-card-trailing">
+					<div class="flex-item-trailing">
 						{{if or (eq $.SignedUser.ID .ID) $.IsOrganizationOwner}}
 							{{if $isPublic}}
 								<a class="ui tiny button link-action" href data-url="{{$.OrgLink}}/members/action/private?uid={{.ID}}">{{svg "octicon-eye-closed" 12 "icon"}}{{$.locale.Tr "org.members.public_helper"}}</a>

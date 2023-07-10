@@ -1,7 +1,7 @@
 <div class="flex-list">
 	{{range .Repos}}
-		<div class="flex-card">
-			<div class="flex-card-leading">
+		<div class="flex-item">
+			<div class="flex-item-leading">
 				{{$avatar := (repoAvatar . 32)}}
 				{{if $avatar}}
 					{{$avatar}}
@@ -9,9 +9,9 @@
 					{{template "repo/icon" .}}
 				{{end}}
 			</div>
-			<div class="flex-card-main">
-				<div class="flex-card-header">
-					<div class="flex-card-title">
+			<div class="flex-item-main">
+				<div class="flex-item-header">
+					<div class="flex-item-title">
 						<a class="text primary name" href="{{.Link}}">
 							{{if or $.PageIsExplore $.PageIsProfileStarList}}{{if .Owner}}{{.Owner.Name}} / {{end}}{{end}}{{.Name}}
 						</a>
@@ -43,7 +43,7 @@
 							<span data-tooltip-content="{{$.locale.Tr "mirror"}}">{{svg "octicon-mirror"}}</span>
 						{{end}}
 					</div>
-					<div class="flex-card-trailing">
+					<div class="flex-item-trailing">
 						{{if .PrimaryLanguage}}
 							<a class="muted" href="{{$.Link}}?q={{$.Keyword}}&sort={{$.SortType}}&language={{.PrimaryLanguage.Language}}">
 								<span class="flex-text-inline"><i class="color-icon gt-mr-3" style="background-color: {{.PrimaryLanguage.Color}}"></i>{{.PrimaryLanguage.Language}}</span>
@@ -57,7 +57,7 @@
 				</div>
 				{{$description := .DescriptionHTML $.Context}}
 				{{if $description}}
-					<div class="flex-card-body">{{$description}}</div>
+					<div class="flex-item-body">{{$description}}</div>
 				{{end}}
 				{{if .Topics}}
 					<div class="label-list">
@@ -66,7 +66,7 @@
 					{{end}}
 					</div>
 				{{end}}
-				<div class="flex-card-body">{{$.locale.Tr "org.repo_updated"}} {{TimeSinceUnix .UpdatedUnix $.locale}}</div>
+				<div class="flex-item-body">{{$.locale.Tr "org.repo_updated"}} {{TimeSinceUnix .UpdatedUnix $.locale}}</div>
 			</div>
 		</div>
 	{{else}}

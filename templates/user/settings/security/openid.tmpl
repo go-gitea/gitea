@@ -3,18 +3,18 @@
 </h4>
 <div class="ui attached segment">
 	<div class="flex-list">
-		<div class="flex-card">
+		<div class="flex-item">
 			{{.locale.Tr "settings.openid_desc"}}
 		</div>
 		{{range .OpenIDs}}
-			<div class="flex-card flex-card-center">
-				<div class="flex-card-leading">
+			<div class="flex-item flex-item-center">
+				<div class="flex-item-leading">
 					{{svg "fontawesome-openid" 20}}
 				</div>
-				<div class="flex-card-main">
-					<div class="flex-card-title">{{.URI}}</div>
+				<div class="flex-item-main">
+					<div class="flex-item-title">{{.URI}}</div>
 				</div>
-				<div class="flex-card-trailing">
+				<div class="flex-item-trailing">
 					<form action="{{AppSubUrl}}/user/settings/security/openid/toggle_visibility" method="post">
 						{{$.CsrfTokenHtml}}
 						<input name="id" type="hidden" value="{{.ID}}">

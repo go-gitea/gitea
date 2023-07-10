@@ -3,21 +3,21 @@
 </h4>
 <div class="ui attached segment">
 	<div class="flex-list">
-		<div class="flex-card">
+		<div class="flex-item">
 			{{.locale.Tr "settings.authorized_oauth2_applications_description"}}
 		</div>
 		{{range .Grants}}
-			<div class="flex-card">
-				<div class="flex-card-leading">
+			<div class="flex-item">
+				<div class="flex-item-leading">
 					{{svg "octicon-key" 32}}
 				</div>
-				<div class="flex-card-main">
-					<div class="flex-card-title">{{.Application.Name}}</div>
-					<div class="flex-card-body">
+				<div class="flex-item-main">
+					<div class="flex-item-title">{{.Application.Name}}</div>
+					<div class="flex-item-body">
 						<i>{{$.locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix) | Safe}}</i>
 					</div>
 				</div>
-				<div class="flex-card-trailing">
+				<div class="flex-item-trailing">
 					<button class="ui red tiny button delete-button" data-modal-id="revoke-gitea-oauth2-grant"
 							data-url="{{AppSubUrl}}/user/settings/applications/oauth2/{{.ApplicationID}}/revoke/{{.ID}}">
 						{{$.locale.Tr "settings.revoke_key"}}

@@ -20,10 +20,10 @@
 </form>
 <div class="{{if .PackageDescriptors}}flex-list{{end}} gt-pt-4">
 	{{range .PackageDescriptors}}
-		<div class="flex-card">
-			<div class="flex-card-main">
-				<a class="flex-card-title" href="{{.FullWebLink}}">{{.Version.LowerVersion}}</a>
-				<div class="flex-card-body">
+		<div class="flex-item">
+			<div class="flex-item-main">
+				<a class="flex-item-title" href="{{.FullWebLink}}">{{.Version.LowerVersion}}</a>
+				<div class="flex-item-body">
 					{{$.locale.Tr "packages.published_by" (TimeSinceUnix .Version.CreatedUnix $.locale) .Creator.HomeLink (.Creator.GetDisplayName | Escape) | Safe}}
 				</div>
 			</div>

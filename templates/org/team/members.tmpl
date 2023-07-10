@@ -24,16 +24,16 @@
 				<div class="ui attached segment">
 					<div class="flex-list">
 						{{range .Team.Members}}
-							<div class="flex-card flex-card-center">
-								<div class="flex-card-leading">
+							<div class="flex-item flex-item-center">
+								<div class="flex-item-leading">
 									<a href="{{.HomeLink}}">{{avatar $.Context . 32}}</a>
 								</div>
-								<div class="flex-card-main">
-									<div class="flex-card-title">
+								<div class="flex-item-main">
+									<div class="flex-item-title">
 										{{template "shared/user/name" .}}
 									</div>
 								</div>
-								<div class="flex-card-trailing">
+								<div class="flex-item-trailing">
 									{{if and $.IsOrganizationOwner (not (and ($.Team.IsOwnerTeam) (eq (len $.Team.Members) 1)))}}
 										<form>
 											<button class="ui red button delete-button" data-modal-id="remove-team-member"
@@ -45,7 +45,7 @@
 								</div>
 							</div>
 						{{else}}
-							<div class="flex-card">
+							<div class="flex-item">
 								<span class="text grey italic">{{$.locale.Tr "org.teams.members.none"}}</span>
 							</div>
 						{{end}}

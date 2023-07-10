@@ -16,19 +16,19 @@
 	{{if .Variables}}
 	<div class="flex-list">
 		{{range .Variables}}
-		<div class="flex-card flex-card-center">
-			<div class="flex-card-leading">
+		<div class="flex-item flex-item-center">
+			<div class="flex-item-leading">
 				{{svg "octicon-pencil" 32}}
 			</div>
-			<div class="flex-card-main">
-				<div class="flex-card-title">
+			<div class="flex-item-main">
+				<div class="flex-item-title">
 					{{.Name}}
 				</div>
-				<div class="flex-card-body">
+				<div class="flex-item-body">
 					{{.Data}}
 				</div>
 			</div>
-			<div class="flex-card-trailing">
+			<div class="flex-item-trailing">
 				<span class="color-text-light-2">
 					{{$.locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix) | Safe}}
 				</span>
