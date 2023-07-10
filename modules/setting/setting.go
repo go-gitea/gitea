@@ -183,10 +183,14 @@ func loadRunModeFrom(rootCfg ConfigProvider) {
 	}
 }
 
+// HasInstallLock checks the install-lock in ConfigProvider directly, because sometimes the config file is not loaded into setting variables yet.
+func HasInstallLock(rootCfg ConfigProvider) bool {
+	return rootCfg.Section("security").Key("INSTALL_LOCK").MustBool(false)
+}
+
 func mustCurrentRunUserMatch(rootCfg ConfigProvider) {
 	// Does not check run user when the "InstallLock" is off.
-	installLock := rootCfg.Section("security").Key("INSTALL_LOCK").MustBool(false)
-	if installLock {
+	if HasInstallLock(rootCfg) {
 		currentUser, match := IsRunUserMatchCurrentUser(RunUser)
 		if !match {
 			log.Fatal("Expect user '%s' but current user is: %s", RunUser, currentUser)

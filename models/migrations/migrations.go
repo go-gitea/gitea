@@ -508,6 +508,10 @@ var migrations = []Migration{
 	// v262 -> v263
 	NewMigration("Add TriggerEvent to action_run table", v1_21.AddTriggerEventToActionRun),
 	// v263 -> v264
+	NewMigration("Add git_size and lfs_size columns to repository table", v1_21.AddGitSizeAndLFSSizeToRepositoryTable),
+	// v264 -> v265
+	NewMigration("Add branch table", v1_21.AddBranchTable),
+	// v265 -> v266
 	NewMigration("Add TimeEstimate to issue table", v1_21.AddTimeEstimateColumnToIssueTable),
 }
 

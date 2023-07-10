@@ -25,17 +25,17 @@ COMMA := ,
 
 XGO_VERSION := go-1.20.x
 
-AIR_PACKAGE ?= github.com/cosmtrek/air@v1.43.0
+AIR_PACKAGE ?= github.com/cosmtrek/air@v1.44.0
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.7.0
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.5.0
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.52.2
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.53.3
 GXZ_PAGAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.11
 MISSPELL_PACKAGE ?= github.com/client9/misspell/cmd/misspell@v0.3.4
-SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.30.4
+SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.30.5
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1.6.0
-GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@latest
-ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@latest
+GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v0.2.0
+ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.6.25
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -226,6 +226,8 @@ help:
 	@echo " - test-frontend                    test frontend files"
 	@echo " - test-backend                     test backend files"
 	@echo " - test-e2e[\#TestSpecificName]     test end to end using playwright"
+	@echo " - update-js                        update js dependencies"
+	@echo " - update-py                        update py dependencies"
 	@echo " - webpack                          build webpack files"
 	@echo " - svg                              build svg files"
 	@echo " - fomantic                         build fomantic files"
@@ -358,10 +360,10 @@ lint: lint-frontend lint-backend
 lint-fix: lint-frontend-fix lint-backend-fix
 
 .PHONY: lint-frontend
-lint-frontend: lint-js lint-css lint-md lint-swagger
+lint-frontend: lint-js lint-css
 
 .PHONY: lint-frontend-fix
-lint-frontend-fix: lint-js-fix lint-css-fix lint-md lint-swagger
+lint-frontend-fix: lint-js-fix lint-css-fix
 
 .PHONY: lint-backend
 lint-backend: lint-go lint-go-vet lint-editorconfig
@@ -924,12 +926,19 @@ node_modules: package-lock.json
 	poetry install
 	@touch .venv
 
-.PHONY: npm-update
-npm-update: node-check | node_modules
-	npx updates -cu
+.PHONY: update-js
+update-js: node-check | node_modules
+	npx updates -u -f package.json
 	rm -rf node_modules package-lock.json
 	npm install --package-lock
 	@touch node_modules
+
+.PHONY: update-py
+update-py: node-check | node_modules
+	npx updates -u -f pyproject.toml
+	rm -rf .venv poetry.lock
+	poetry install
+	@touch .venv
 
 .PHONY: fomantic
 fomantic:

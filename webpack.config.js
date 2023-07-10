@@ -11,6 +11,7 @@ import webpack from 'webpack';
 import {fileURLToPath} from 'node:url';
 import {readFileSync} from 'node:fs';
 import {env} from 'node:process';
+import {LightningCssMinifyPlugin} from 'lightningcss-loader';
 
 const {EsbuildPlugin} = EsBuildLoader;
 const {SourceMapDevToolPlugin, DefinePlugin} = webpack;
@@ -73,6 +74,12 @@ export default {
     'eventsource.sharedworker': [
       fileURLToPath(new URL('web_src/js/features/eventsource.sharedworker.js', import.meta.url)),
     ],
+    ...(!isProduction && {
+      devtest: [
+        fileURLToPath(new URL('web_src/js/standalone/devtest.js', import.meta.url)),
+        fileURLToPath(new URL('web_src/css/standalone/devtest.css', import.meta.url)),
+      ],
+    }),
     ...themes,
   },
   devtool: false,
@@ -90,9 +97,10 @@ export default {
       new EsbuildPlugin({
         target: 'es2015',
         minify: true,
-        css: true,
+        css: false,
         legalComments: 'none',
       }),
+      new LightningCssMinifyPlugin(),
     ],
     splitChunks: {
       chunks: 'async',

@@ -122,6 +122,23 @@
   --color-pink-dark-2: #a9246f;
   --color-brown-dark-2: #835b42;
   --color-black-dark-2: #252832;
+  /* ansi colors used for actions console and console files */
+  --color-ansi-black: var(--color-black);
+  --color-ansi-red: var(--color-red);
+  --color-ansi-green: var(--color-green);
+  --color-ansi-yellow: var(--color-yellow);
+  --color-ansi-blue: var(--color-blue);
+  --color-ansi-magenta: var(--color-pink);
+  --color-ansi-cyan: var(--color-teal);
+  --color-ansi-white: var(--color-console-fg-subtle);
+  --color-ansi-bright-black: var(--color-black-light);
+  --color-ansi-bright-red: var(--color-red-light);
+  --color-ansi-bright-green: var(--color-green-light);
+  --color-ansi-bright-yellow: var(--color-yellow-light);
+  --color-ansi-bright-blue: var(--color-blue-light);
+  --color-ansi-bright-magenta: var(--color-pink-light);
+  --color-ansi-bright-cyan: var(--color-teal-light);
+  --color-ansi-bright-white: var(--color-console-fg);
   /* other colors */
   --color-grey: #505665;
   --color-grey-light: #a1a6b7;

@@ -97,7 +97,7 @@ func RewriteAllPrincipalKeys(ctx context.Context) error {
 }
 
 func regeneratePrincipalKeys(ctx context.Context, t io.StringWriter) error {
-	if err := db.GetEngine(ctx).Where("type = ?", KeyTypePrincipal).Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
+	if err := db.GetEngine(ctx).Where("type = ?", KeyTypePrincipal).Iterate(new(PublicKey), func(idx int, bean any) (err error) {
 		_, err = t.WriteString((bean.(*PublicKey)).AuthorizedString())
 		return err
 	}); err != nil {

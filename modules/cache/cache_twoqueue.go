@@ -30,7 +30,7 @@ type TwoQueueCacheConfig struct {
 
 // MemoryItem represents a memory cache item.
 type MemoryItem struct {
-	Val     interface{}
+	Val     any
 	Created int64
 	Timeout int64
 }
@@ -43,7 +43,7 @@ func (item *MemoryItem) hasExpired() bool {
 var _ mc.Cache = &TwoQueueCache{}
 
 // Put puts value into cache with key and expire time.
-func (c *TwoQueueCache) Put(key string, val interface{}, timeout int64) error {
+func (c *TwoQueueCache) Put(key string, val any, timeout int64) error {
 	item := &MemoryItem{
 		Val:     val,
 		Created: time.Now().Unix(),
@@ -56,7 +56,7 @@ func (c *TwoQueueCache) Put(key string, val interface{}, timeout int64) error {
 }
 
 // Get gets cached value by given key.
-func (c *TwoQueueCache) Get(key string) interface{} {
+func (c *TwoQueueCache) Get(key string) any {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	cached, ok := c.cache.Get(key)
@@ -146,7 +146,7 @@ func (c *TwoQueueCache) Flush() error {
 	return nil
 }
 
-func (c *TwoQueueCache) checkAndInvalidate(key interface{}) {
+func (c *TwoQueueCache) checkAndInvalidate(key any) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	cached, ok := c.cache.Peek(key)
