@@ -171,6 +171,9 @@ func InitWorkPathAndCfgProvider(getEnvFn func(name string) string, args ArgWorkP
 
 	// only read the config but do not load/init anything more, because the AppWorkPath and CustomPath are not ready
 	InitCfgProvider(tmpCustomConf.Value)
+	if HasInstallLock(CfgProvider) {
+		ClearEnvConfigKeys() // if the instance has been installed, do not pass the environment variables to sub-processes
+	}
 	configWorkPath := ConfigSectionKeyString(CfgProvider.Section(""), "WORK_PATH")
 	if configWorkPath != "" {
 		if !filepath.IsAbs(configWorkPath) {
