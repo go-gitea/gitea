@@ -133,7 +133,7 @@ func SettingsPost(ctx *context.Context) {
 
 	if nameChanged {
 		if err := repo_model.UpdateRepositoryOwnerNames(org.ID, org.Name); err != nil {
-			ctx.ServerError("UpdateRepository", err)
+			ctx.ServerError("UpdateRepositoryOwnerNames", err)
 			return
 		}
 	}
