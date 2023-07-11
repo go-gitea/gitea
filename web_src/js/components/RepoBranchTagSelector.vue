@@ -20,13 +20,13 @@
         <div class="header branch-tag-choice">
           <div class="ui grid">
             <div class="two column row">
-              <a class="reference column" href="#" @click="createTag = false; mode = 'branches'; focusSearchField();this.fetchBranchesOrTags()">
+              <a class="reference column" href="#" @click="handleTabSwitch('branches')">
                 <span class="text" :class="{black: mode === 'branches'}">
                   <svg-icon name="octicon-git-branch" :size="16" class-name="gt-mr-2"/>{{ textBranches }}
                 </span>
               </a>
               <template v-if="!noTag">
-                <a class="reference column" href="#" @click="createTag = true; mode = 'tags'; focusSearchField();this.fetchBranchesOrTags()">
+                <a class="reference column" href="#" @click="handleTabSwitch('tags')">
                   <span class="text" :class="{black: mode === 'tags'}">
                     <svg-icon name="octicon-tag" :size="16" class-name="gt-mr-2"/>{{ textTags }}
                   </span>
@@ -36,7 +36,6 @@
           </div>
         </div>
       </template>
-      <!-- TODO: is-loading not working properly because menu is not shown until data is done fetching, need to figure out a proper way -->
       <div class="scrolling menu" :class="{'is-loading': isLoading}" ref="scrollContainer">
         <div v-for="(item, index) in filteredItems" :key="item.name" class="item" :class="{selected: item.selected, active: active === index}" @click="selectItem(item)" :ref="'listItem' + index">
           {{ item.name }}
@@ -90,6 +89,7 @@ const sfc = {
 
   computed: {
     filteredItems() {
+      // TODO: improve filter
       const items = this.items.filter((item) => {
         return ((this.mode === 'branches' && item.branch) || (this.mode === 'tags' && item.tag)) &&
           (!this.searchTerm || item.name.toLowerCase().includes(this.searchTerm.toLowerCase()));
@@ -248,14 +248,19 @@ const sfc = {
         this.menuVisible = false;
       }
     },
+    handleTabSwitch(mode) {
+      this.createTag = mode === 'tags';
+      this.mode = mode;
+      this.focusSearchField();
+      this.fetchBranchesOrTags();
+    },
     async fetchBranchesOrTags() {
-      if (!['branches', 'tags'].includes(this.mode)) return;
-      // only fetch when the current branch/tag list has not be initialized 
-      if ((this.mode === 'branches' && !this.showBranchesInDropdown) || (this.mode === 'tags' && this.noTag)
-      || !this.isListInit[this.mode]) return;
-      if (this.isLoading) return;
+      if (!['branches', 'tags'].includes(this.mode) || this.isLoading) return;
+      // only fetch when branch/tag list has not been initialized 
+      if (this.hasListInitialized[this.mode] 
+      || (this.mode === 'branches' && !this.showBranchesInDropdown) || (this.mode === 'tags' && this.noTag)) return;
       this.isLoading = true;
-      this.isListInit[this.mode] = false;
+      this.hasListInitialized[this.mode] = true;
       // the "data.defaultBranch" is ambiguous, it could be "branch name" or "tag name"
       const reqUrl = `${this.repoLink}/${this.mode}/list`;
       const resp = await fetch(reqUrl);
@@ -291,10 +296,10 @@ export function initRepoBranchTagSelector(selector) {
 
       active: 0,
       isLoading: false,
-      // This means whether branch list/tag list needs initialize
-      isListInit: {
-        'branches': true,
-        'tags': true,
+      // This means whether branch list/tag list has initialized
+      hasListInitialized: {
+        'branches': false,
+        'tags': false,
       },
       ...window.config.pageData.branchDropdownDataList[elIndex],
     };
