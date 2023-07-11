@@ -256,7 +256,7 @@ const sfc = {
     },
     async fetchBranchesOrTags() {
       if (!['branches', 'tags'].includes(this.mode) || this.isLoading) return;
-      // only fetch when branch/tag list has not been initialized 
+      // only fetch when branch/tag list has not been initialized
       if (this.hasListInitialized[this.mode] 
       || (this.mode === 'branches' && !this.showBranchesInDropdown) || (this.mode === 'tags' && this.noTag)) return;
       this.isLoading = true;
@@ -270,7 +270,7 @@ const sfc = {
         if (this.mode === 'branches') {
           selected = result === this.defaultBranch;
         } else {
-          selected = result === (this.release ? this.release.tagName : this.defaultBranch)
+          selected = result === (this.release ? this.release.tagName : this.defaultBranch);
         }
         this.items.push({name: result, url: result, branch: this.mode === 'branches', tag: this.mode === 'tags', selected});
       }
