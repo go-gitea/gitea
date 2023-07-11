@@ -395,22 +395,24 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 // FindRecentlyPushedNewBranches return at most 2 new branches pushed by the user in 6 hours which has no opened PRs created
 func FindRecentlyPushedNewBranches(ctx context.Context, repoID, userID int64, latestCommitID string) (BranchList, error) {
 	branches := make(BranchList, 0, 2)
+	// search all related repos
 	repoCond := builder.Select("id").From("repository").
 		Where(builder.Or(
 			builder.Eq{"id": repoID, "is_fork": false},
 			builder.Eq{"is_fork": true, "fork_id": repoID},
 		))
-
-	subQuery := builder.Select("head_branch").From("pull_request").
+	// avoid check branches which have already created PRs
+	usedBranchIDs := builder.Select("branch.id").From("branch").
+		InnerJoin("pull_request", "branch.name = pull_request.head_branch AND branch.repo_id = pull_request.head_repo_id").
 		InnerJoin("issue", "issue.id = pull_request.issue_id").
-		Where(builder.Eq{
-			"pull_request.head_repo_id": repoID,
-			"issue.is_closed":           false,
-		})
+		Where(builder.And(
+			builder.Eq{"issue.is_closed": false},
+			builder.In("pull_request.head_repo_id", repoCond),
+		))
 	err := db.GetEngine(ctx).
 		Where("commit_id != ? AND pusher_id = ? AND is_deleted = ?", latestCommitID, userID, false).
 		And("updated_unix >= ?", time.Now().Add(-time.Hour*6).Unix()).
-		NotIn("name", subQuery).
+		NotIn("id", usedBranchIDs).
 		In("repo_id", repoCond).
 		OrderBy("branch.updated_unix DESC").
 		Limit(2).

@@ -982,21 +982,23 @@ func renderCode(ctx *context.Context) {
 			ctx.ServerError("GetBaseRepo", err)
 			return
 		}
+
+		var latestCommit *git.Commit
 		baseRepo := ctx.Repo.Repository
-		latestCommit := ctx.Repo.Commit
+		gitRepo := ctx.Repo.GitRepo
 		if ctx.Repo.Repository.IsFork {
 			baseRepo = ctx.Repo.Repository.BaseRepo
 			repoPath := repo_model.RepoPath(baseRepo.OwnerName, baseRepo.Name)
-			gitRepo, err := git.OpenRepository(ctx, repoPath)
+			gitRepo, err = git.OpenRepository(ctx, repoPath)
 			if err != nil {
 				ctx.ServerError("OpenRepository", err)
 				return
 			}
-			latestCommit, err = gitRepo.GetBranchCommit(baseRepo.DefaultBranch)
-			if err != nil {
-				ctx.ServerError("GetBranchCommit", err)
-				return
-			}
+		}
+		latestCommit, err = gitRepo.GetBranchCommit(baseRepo.DefaultBranch)
+		if err != nil {
+			ctx.ServerError("GetBranchCommit", err)
+			return
 		}
 		branches, err := git_model.FindRecentlyPushedNewBranches(ctx, baseRepo.ID, ctx.Doer.ID, latestCommit.ID.String())
 		if err != nil {
