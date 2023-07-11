@@ -386,8 +386,7 @@ func UpdateIssueProject(ctx *context.Context) {
 	projectID := ctx.FormInt64("id")
 	for _, issue := range issues {
 		if issue.Project != nil {
-			oldProjectID := issue.Project.ID
-			if oldProjectID == projectID {
+			if issue.Project.ID == projectID {
 				continue
 			}
 		}
