@@ -4,9 +4,14 @@
 	<input type="hidden" id="repolink" value="{{$.RepoRelPath}}">
 	<input type="hidden" id="repoId" value="{{.Repository.ID}}">
 	<input type="hidden" id="issueIndex" value="{{.Issue.Index}}">
-	<!-- If the modal of "select duplicate issue" is opened, the following two input values will be temporarily reset. And they will be restored after closing. -->
-	<input type="hidden" id="type" value="{{.IssueType}}">
+
+	<!-- If the modal of "select duplicate issue" is opened, the following input value will be temporarily reset. And it will be restored after closing. -->
 	<input type="hidden" id="state" value="">
+
+	<!--  -->
+	<input type="hidden" id="duplicate_repo_id" value="">
+	<input type="hidden" id="duplicate_repo_full_name" value="">
+	<input type="hidden" id="duplicate_issue_number" value="">
 
 	{{$createdStr:= TimeSinceUnix .Issue.CreatedUnix $.locale}}
 	<div class="issue-content-left comment-list prevent-before-timeline">
@@ -101,6 +106,7 @@
 						<form class="ui segment form form-fetch-action" id="comment-form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/comments" method="post">
 							{{template "repo/issue/comment_tab" .}}
 							{{.CsrfTokenHtml}}
+							<input type="hidden" id="duplicate_issue_id" name="duplicate_issue_id" value="">
 							<div class="field footer">
 								<div class="text right">
 									{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}

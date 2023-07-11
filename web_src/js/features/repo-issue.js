@@ -123,11 +123,10 @@ function initIssueSearchDropdown($list) {
   const repolink = $('#repolink').val();
   const repoId = $('#repoId').val();
   const crossRepoSearch = $('#crossRepoSearch').val();
-  const tp = $('#type').val();
   const state = $('#state').val();
-  let issueSearchUrl = `${appSubUrl}/${repolink}/issues/search?q={query}&type=${tp}&state=${state}`;
+  let issueSearchUrl = `${appSubUrl}/${repolink}/issues/search?q={query}&state=${state}`;
   if (crossRepoSearch === 'true') {
-    issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${repoId}&type=${tp}&state=${state}`;
+    issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${repoId}&state=${state}`;
   }
   $list.dropdown({
     apiSettings: {
@@ -143,7 +142,7 @@ function initIssueSearchDropdown($list) {
           }
           filteredResponse.results.push({
             name: `#${issue.number} ${htmlEscape(issue.title)
-            }<div class="text small dont-break-out">${htmlEscape(issue.repository.full_name)}</div>`,
+            }<div class="text small dont-break-out" data-issue-number="${issue.number}" data-repo-id="${issue.repository.id}" data-repo-full-name="${issue.repository.full_name}">${htmlEscape(issue.repository.full_name)}</div>`,
             value: issue.id,
           });
         });
@@ -154,6 +153,19 @@ function initIssueSearchDropdown($list) {
 
     fullTextSearch: true,
   });
+
+  if (state !== 'all') return;
+  const onSearchDropdownChanged = (val, _text, $selectedItem) => {
+    if (!$selectedItem) return;
+    const $innerItem = $selectedItem.find('.text.small.dont-break-out');
+    if ($innerItem.length && $('#duplicate_repo_id').length) {
+      $('#duplicate_repo_id').val($innerItem.data('repo-id'));
+      $('#duplicate_repo_full_name').val($innerItem.data('repo-full-name'));
+      $('#duplicate_issue_number').val($innerItem.data('issue-number'));
+      $('#duplicate_issue_id').val(val);
+    }
+  };
+  $list.dropdown('setting', {selectOnKeydown: false, onChange: onSearchDropdownChanged});
 }
 
 export function initRepoIssueCommentDelete() {
@@ -695,43 +707,57 @@ function initRepoIssueStateButton() {
   const $statusDropdown = $('#status-dropdown');
   const selectedValue = $statusDropdown.find('input[type=hidden]').val();
 
-  $statusButton.on('click', (e) => {
-    if ($statusDropdown.find('input[type=hidden]').val() !== '4') return;
-    // if click the button of "close as duplicate", show modal to let users select issue firstly.
-    e.preventDefault();
-    // save the original value of "type" and "state" input
-    const originalType = $('#type').val();
-    const originalSate = $('#state').val();
-    // temporarily reset the input value
-    $('#type').val('issue');
-    $('#state').val('all');
-    const $duplicateDropdown = $('#duplicate-issues-list');
-    initIssueSearchDropdown($duplicateDropdown);
-    const $duplicateModal = $('#duplicate-issue-modal');
-    $duplicateModal.modal({
-      onHidden() { // close modal
-        // clear selected item in the dropdown
-        $duplicateDropdown.dropdown('set exactly', []);
-        // restore the value of "type" and "state" input
-        $('#type').val(originalType);
-        $('#state').val(originalSate);
-      },
-      onApprove() {
-        $('#duplicate_issue_id').val($duplicateModal.find('input[type=hidden]').val());
-        const $form = $('#comment-form');
-        $form[0].dispatchEvent(new SubmitEvent('submit', {bubbles: true, cancelable: true, submitter: $statusButton[0]}));
-      },
-    }).modal('show');
-  });
-
   const onCloseStatusChanged = (val) => {
     const editor = getComboMarkdownEditor($('#comment-form .combo-markdown-editor'));
     const buttonText = $statusDropdown.dropdown('get item').data(editor.value().trim() ? 'status-and-comment' : 'status');
     $statusButton.text(buttonText);
     $statusButton.attr('value', val === '-1' ? 'reopen' : 'close');
     $statusDropdown.find('input[type=hidden]').val(val);
+
+    if (val === '4') {
+      // if click the item of "close as duplicate" in dropdown, show modal to let users select issue firstly.
+      // save the original value of "state" input
+      const originalSate = $('#state').val();
+      // temporarily reset the input value
+      $('#type').val('issue');
+      $('#state').val('all');
+      const $duplicateDropdown = $('#duplicate-issues-list');
+      initIssueSearchDropdown($duplicateDropdown);
+      const $duplicateModal = $('#duplicate-issue-modal');
+      $duplicateModal.modal({
+        onHidden() { // close modal or click cancel
+          // restore the value of "state" input
+          $('#state').val(originalSate);
+          // get first item of the "statusDropdown"
+          const $defaultItem = $statusDropdown.find('.item').first();
+          const btnText = $defaultItem.data(editor.value().trim() ? 'status-and-comment' : 'status');
+          $statusButton.text(btnText);
+          $statusButton.attr('value', $defaultItem.data('value') === '-1' ? 'reopen' : 'close');
+          $statusDropdown.dropdown('set selected', $defaultItem.data('value'));
+        },
+        onApprove() {
+          const currentRepoId = $('#repoId').val();
+          const duplicateRepoId = $('#duplicate_repo_id').val();
+          const duplicateRepoFullName = $('#duplicate_repo_full_name').val();
+          const duplicateIssueNumber = $('#duplicate_issue_number').val();
+          const issueText = `(${duplicateRepoId === currentRepoId ? '' : duplicateRepoFullName}#${duplicateIssueNumber})`;
+          $statusButton.text(buttonText + issueText);
+          $('#duplicate_issue_id').val();
+        },
+      }).modal('show');
+    } else {
+      // clear some data
+      $('#duplicate_repo_id').val('');
+      $('#duplicate_repo_full_name').val('');
+      $('#duplicate_issue_number').val('');
+      $('#duplicate_issue_id').val('');
+    }
   };
-  $statusDropdown.dropdown('setting', {selectOnKeydown: false, onChange: onCloseStatusChanged});
+  $statusDropdown.dropdown('setting', {
+    selectOnKeydown: false,
+    allowReselection: true, // make user can re-select duplicate issue.
+    onChange: onCloseStatusChanged,
+  });
   $statusDropdown.dropdown('set selected', selectedValue);
   onCloseStatusChanged(selectedValue);
 }
