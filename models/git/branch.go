@@ -402,7 +402,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, baseRepo *repo_model.Rep
 	// search all related repos
 	repoCond := builder.Select("id").From("repository").
 		Where(builder.Or(
-			builder.Eq{"id": baseRepo.ID, "is_fork": false},
+			builder.Eq{"id": baseRepo.ID},
 			builder.Eq{"is_fork": true, "fork_id": baseRepo.ID},
 		))
 	// avoid check branches which have already created PRs
