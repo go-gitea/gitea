@@ -1,11 +1,7 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository settings edit">
-	{{template "repo/header" .}}
-	{{template "repo/settings/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings edit")}}
+	<div class="repo-setting-content">
 		{{if .Repository.IsArchived}}
-			<div class="ui warning message">
+			<div class="ui warning message gt-text-center">
 				{{.locale.Tr "repo.settings.archive.tagsettings_unavailable"}}
 			</div>
 		{{else}}
@@ -15,7 +11,7 @@
 
 			<div class="ui attached segment">
 				<div class="ui grid">
-					<div class="eight wide column">
+					<div class="sixteen wide column">
 						<div class="ui segment">
 							<form class="ui form" action="{{.Link}}" method="post">
 								{{.CsrfTokenHtml}}
@@ -92,14 +88,14 @@
 											{{if or .AllowlistUserIDs (and $.Owner.IsOrganization .AllowlistTeamIDs)}}
 												{{$userIDs := .AllowlistUserIDs}}
 												{{range $.Users}}
-													{{if contain $userIDs .ID}}
+													{{if SliceUtils.Contains $userIDs .ID}}
 														<a class="ui basic label" href="{{.HomeLink}}">{{avatar $.Context . 26}} {{.GetDisplayName}}</a>
 													{{end}}
 												{{end}}
 												{{if $.Owner.IsOrganization}}
 													{{$teamIDs := .AllowlistTeamIDs}}
 													{{range $.Teams}}
-														{{if contain $teamIDs .ID}}
+														{{if SliceUtils.Contains $teamIDs .ID}}
 															<a class="ui basic label" href="{{$.Owner.OrganisationLink}}/teams/{{PathEscape .LowerName}}">{{.Name}}</a>
 														{{end}}
 													{{end}}
@@ -127,5 +123,4 @@
 			</div>
 		{{end}}
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "repo/settings/layout_footer" .}}

@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content user notification" id="notification_subscriptions" data-params="{{.Page.GetParams}}" data-sequence-number="{{.SequenceNumber}}">
+<div role="main" aria-label="{{.Title}}" class="page-content user notification">
 	<div class="ui container">
 		<div class="ui top attached tabular menu">
 			<a href="{{AppSubUrl}}/notifications/subscriptions" class="{{if eq .Status 1}}active {{end}}item">
@@ -11,9 +11,9 @@
 		</div>
 		<div class="ui bottom attached active tab segment">
 			{{if eq .Status 1}}
-				<div id="issue-filters" class="ui stackable grid">
+				<div class="ui stackable grid">
 					<div class="six wide column">
-						<div class="ui compact tiny menu">
+						<div class="small-menu-items ui compact tiny menu">
 							<a class="{{if eq .State "all"}}active {{end}}item" href="{{$.Link}}?sort={{$.SortType}}&state=all&issueType={{$.IssueType}}&labels={{$.Labels}}">
 								{{.locale.Tr "all"}}
 							</a>
@@ -63,10 +63,10 @@
 					</div>
 				</div>
 				{{if eq (len .Issues) 0}}
-					<div class="ui divider"></div>
+					<div class="divider"></div>
 					{{.locale.Tr "notification.no_subscriptions"}}
 				{{else}}
-					{{template "shared/issuelist" mergeinto . "listType" "dashboard"}}
+					{{template "shared/issuelist" dict "." . "listType" "dashboard"}}
 				{{end}}
 			{{else}}
 				{{template "explore/repo_search" .}}

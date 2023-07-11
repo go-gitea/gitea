@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content user settings applications">
-	{{template "user/settings/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings applications")}}
+	<div class="user-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "settings.manage_access_token"}}
 		</h4>
@@ -22,15 +19,25 @@
 						<i class="text {{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{$.locale.Tr "settings.token_state_desc"}}"{{end}}>{{svg "fontawesome-send" 36}}</i>
 						<div class="content">
 							<details><summary><strong>{{.Name}}</strong></summary>
-								<p class="gt-my-2">{{$.locale.Tr "settings.scopes_list"}}</p>
+								<p class="gt-my-2">
+									{{$.locale.Tr "settings.repo_and_org_access"}}:
+									{{if .DisplayPublicOnly}}
+										{{$.locale.Tr "settings.permissions_public_only"}}
+									{{else}}
+										{{$.locale.Tr "settings.permissions_access_all"}}
+									{{end}}
+								</p>
+								<p class="gt-my-2">{{$.locale.Tr "settings.permissions_list"}}</p>
 								<ul class="gt-my-2">
 								{{range .Scope.StringSlice}}
-									<li>{{.}}</li>
+									{{if (ne . $.AccessTokenScopePublicOnly)}}
+										<li>{{.}}</li>
+									{{end}}
 								{{end}}
 								</ul>
 							</details>
 							<div class="activity meta">
-								<i>{{$.locale.Tr "settings.add_on"}} <span><time data-format="short-date" datetime="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</time></span> — {{svg "octicon-info"}} {{if .HasUsed}}{{$.locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}><time data-format="short-date" datetime="{{.UpdatedUnix.FormatLong}}">{{.UpdatedUnix.FormatShort}}</time></span>{{else}}{{$.locale.Tr "settings.no_activity"}}{{end}}</i>
+								<i>{{$.locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix) | Safe}} — {{svg "octicon-info"}} {{if .HasUsed}}{{$.locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{DateTime "short" .UpdatedUnix}}</span>{{else}}{{$.locale.Tr "settings.no_activity"}}{{end}}</i>
 							</div>
 						</div>
 					</div>
@@ -41,221 +48,43 @@
 			<h5 class="ui top header">
 				{{.locale.Tr "settings.generate_new_token"}}
 			</h5>
-			<p>{{.locale.Tr "settings.new_token_desc"}}</p>
-			<form class="ui form ignore-dirty" action="{{.Link}}" method="post">
+			<form id="scoped-access-form" class="ui form ignore-dirty" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<div class="field {{if .Err_Name}}error{{end}}">
 					<label for="name">{{.locale.Tr "settings.token_name"}}</label>
-					<input id="name" name="name" value="{{.name}}" autofocus required>
+					<input id="name" name="name" value="{{.name}}" autofocus required maxlength="255">
+				</div>
+				<div class="field">
+					<label>{{.locale.Tr "settings.repo_and_org_access"}}</label>
+					<label class="gt-cursor-pointer">
+						<input class="enable-system gt-mt-2 gt-mr-2" type="radio" name="scope" value="{{$.AccessTokenScopePublicOnly}}">
+						{{.locale.Tr "settings.permissions_public_only"}}
+					</label>
+					<label class="gt-cursor-pointer">
+						<input class="enable-system gt-mt-2 gt-mr-2" type="radio" name="scope" value="" checked>
+						{{.locale.Tr "settings.permissions_access_all"}}
+					</label>
 				</div>
 				<details class="ui optional field">
-					<summary class="gt-p-2">
-						{{.locale.Tr "settings.select_scopes"}}
+					<summary class="gt-pb-4 gt-pl-2">
+						{{.locale.Tr "settings.select_permissions"}}
 					</summary>
-					<div class="field gt-pl-2">
-						<div class="ui checkbox">
-							<input class="enable-system" type="checkbox" name="scope" value="repo">
-							<label>repo</label>
-						</div>
-					</div>
-					<div class="field gt-pl-4">
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="repo:status">
-								<label>repo:status</label>
-							</div>
-						</div>
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="public_repo">
-								<label>public_repo</label>
-							</div>
-						</div>
-					</div>
-					<div class="field">
-						<div class="ui checkbox">
-							<input class="enable-system" type="checkbox" name="scope" value="admin:org">
-							<label>admin:org</label>
-						</div>
-					</div>
-					<div class="field gt-pl-4">
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="write:org">
-								<label>write:org</label>
-							</div>
-						</div>
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="read:org">
-								<label>read:org</label>
-							</div>
-						</div>
-					</div>
-					<div class="field">
-						<div class="ui checkbox">
-							<input class="enable-system" type="checkbox" name="scope" value="admin:public_key">
-							<label>admin:public_key</label>
-						</div>
-					</div>
-					<div class="field gt-pl-4">
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="write:public_key">
-								<label>write:public_key</label>
-							</div>
-						</div>
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="read:public_key">
-								<label>read:public_key</label>
-							</div>
-						</div>
-					</div>
-					<div class="field">
-						<div class="ui checkbox">
-							<input class="enable-system" type="checkbox" name="scope" value="admin:repo_hook">
-							<label>admin:repo_hook</label>
-						</div>
-					</div>
-					<div class="field gt-pl-4">
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="write:repo_hook">
-								<label>write:repo_hook</label>
-							</div>
-						</div>
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="read:repo_hook">
-								<label>read:repo_hook</label>
-							</div>
-						</div>
-					</div>
-					<div class="field">
-						<div class="ui checkbox">
-							<input class="enable-system" type="checkbox" name="scope" value="admin:org_hook">
-							<label>admin:org_hook</label>
-						</div>
-					</div>
-					<div class="field">
-						<div class="ui checkbox">
-							<input class="enable-system" type="checkbox" name="scope" value="admin:user_hook">
-							<label>admin:user_hook</label>
-						</div>
-					</div>
-					<div class="field">
-						<div class="ui checkbox">
-							<input class="enable-system" type="checkbox" name="scope" value="notification">
-							<label>notification</label>
-						</div>
-					</div>
-					<div class="field">
-						<div class="ui checkbox">
-							<input class="enable-system" type="checkbox" name="scope" value="user">
-							<label>user</label>
-						</div>
-					</div>
-					<div class="field gt-pl-4">
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="read:user">
-								<label>read:user</label>
-							</div>
-						</div>
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="user:email">
-								<label>user:email</label>
-							</div>
-						</div>
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="user:follow">
-								<label>user:follow</label>
-							</div>
-						</div>
-					</div>
-					<div class="field">
-						<div class="ui checkbox">
-							<input class="enable-system" type="checkbox" name="scope" value="delete_repo">
-							<label>delete_repo</label>
-						</div>
-					</div>
-					<div class="field">
-						<div class="ui checkbox">
-							<input class="enable-system" type="checkbox" name="scope" value="package">
-							<label>package</label>
-						</div>
-					</div>
-					<div class="field gt-pl-4">
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="write:package">
-								<label>write:package</label>
-							</div>
-						</div>
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="read:package">
-								<label>read:package</label>
-							</div>
-						</div>
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="delete:package">
-								<label>delete:package</label>
-							</div>
-						</div>
-					</div>
-					<div class="field">
-						<div class="ui checkbox">
-							<input class="enable-system" type="checkbox" name="scope" value="admin:gpg_key">
-							<label>admin:gpg_key</label>
-						</div>
-					</div>
-					<div class="field gt-pl-4">
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="write:gpg_key">
-								<label>write:gpg_key</label>
-							</div>
-						</div>
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="read:gpg_key">
-								<label>read:gpg_key</label>
-							</div>
-						</div>
-					</div>
-					<div class="field">
-						<div class="ui checkbox">
-							<input class="enable-system" type="checkbox" name="scope" value="admin:application">
-							<label>admin:application</label>
-						</div>
-					</div>
-					<div class="field gt-pl-4">
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="write:application">
-								<label>write:application</label>
-							</div>
-						</div>
-						<div class="field">
-							<div class="ui checkbox">
-								<input class="enable-system" type="checkbox" name="scope" value="read:application">
-								<label>read:application</label>
-							</div>
-						</div>
-					</div>
-					<div class="field">
-						<div class="ui checkbox">
-							<input class="enable-system" type="checkbox" name="scope" value="sudo">
-							<label>sudo</label>
-						</div>
+					<p class="activity meta">
+						<i>{{$.locale.Tr "settings.access_token_desc" (printf `href="/api/swagger" target="_blank"`) (printf `href="https://docs.gitea.com/development/oauth2-provider#scopes" target="_blank"`) | Str2html}}</i>
+					</p>
+					<div class="scoped-access-token-mount">
+						<scoped-access-token-selector
+							:is-admin="{{if .IsAdmin}}true{{else}}false{{end}}"
+							no-access-label="{{.locale.Tr "settings.permission_no_access"}}"
+							read-label="{{.locale.Tr "settings.permission_read"}}"
+							write-label="{{.locale.Tr "settings.permission_write"}}"
+						></scoped-access-token-selector>
 					</div>
 				</details>
-				<button class="ui green button">
+				<div id="scoped-access-warning" class="ui warning message center gt-db gt-hidden">
+					{{.locale.Tr "settings.at_least_one_permission"}}
+				</div>
+				<button id="scoped-access-submit" class="ui green button">
 					{{.locale.Tr "settings.generate_token"}}
 				</button>
 			</form>
@@ -266,28 +95,16 @@
 			{{template "user/settings/applications_oauth2" .}}
 		{{end}}
 	</div>
-</div>
 
-<div class="ui small basic delete modal" id="delete-token">
-	<div class="ui icon header">
+<div class="ui g-modal-confirm delete modal" id="delete-token">
+	<div class="header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "settings.access_token_deletion"}}
 	</div>
 	<div class="content">
 		<p>{{.locale.Tr "settings.access_token_deletion_desc"}}</p>
 	</div>
-
-	<div class="actions">{{/* TODO: Convert to base/delete_modal_actions.tmpl */}}
-		<button class="ui green basic inverted cancel button">
-			{{svg "octicon-x"}}
-			{{.locale.Tr "settings.access_token_deletion_cancel_action"}}
-		</button>
-		<button class="ui red basic inverted ok button">
-			{{svg "octicon-check"}}
-			{{.locale.Tr "settings.access_token_deletion_confirm_action"}}
-		</button>
-	</div>
+	{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonColors" "yellow")}}
 </div>
 
-
-{{template "base/footer" .}}
+{{template "user/settings/layout_footer" .}}

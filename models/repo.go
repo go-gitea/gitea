@@ -35,12 +35,11 @@ import (
 	"xorm.io/builder"
 )
 
-// ItemsPerPage maximum items per page in forks, watchers and stars of a repo
-var ItemsPerPage = 40
-
 // Init initialize model
 func Init(ctx context.Context) error {
-	unit.LoadUnitConfig()
+	if err := unit.LoadUnitConfig(); err != nil {
+		return err
+	}
 	return system_model.Init(ctx)
 }
 
@@ -58,6 +57,12 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	tasks, err := actions_model.FindTasks(ctx, actions_model.FindTaskOptions{RepoID: repoID})
 	if err != nil {
 		return fmt.Errorf("find actions tasks of repo %v: %w", repoID, err)
+	}
+
+	// Query the artifacts of this repo, they will be needed after they have been deleted to remove artifacts files in ObjectStorage
+	artifacts, err := actions_model.ListArtifactsByRepoID(ctx, repoID)
+	if err != nil {
+		return fmt.Errorf("list actions artifacts of repo %v: %w", repoID, err)
 	}
 
 	// In case is a organization.
@@ -142,7 +147,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		&repo_model.Collaboration{RepoID: repoID},
 		&issues_model.Comment{RefRepoID: repoID},
 		&git_model.CommitStatus{RepoID: repoID},
-		&git_model.DeletedBranch{RepoID: repoID},
+		&git_model.Branch{RepoID: repoID},
 		&git_model.LFSLock{RepoID: repoID},
 		&repo_model.LanguageStat{RepoID: repoID},
 		&issues_model.Milestone{RepoID: repoID},
@@ -165,6 +170,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		&actions_model.ActionRunJob{RepoID: repoID},
 		&actions_model.ActionRun{RepoID: repoID},
 		&actions_model.ActionRunner{RepoID: repoID},
+		&actions_model.ActionArtifact{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %w", err)
 	}
@@ -337,6 +343,14 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		}
 	}
 
+	// delete actions artifacts in ObjectStorage after the repo have already been deleted
+	for _, art := range artifacts {
+		if err := storage.ActionsArtifacts.Delete(art.StoragePath); err != nil {
+			log.Error("remove artifact file %q: %v", art.StoragePath, err)
+			// go on
+		}
+	}
+
 	return nil
 }
 
@@ -442,7 +456,7 @@ func repoStatsCorrectNumClosedPulls(ctx context.Context, id int64) error {
 	return repo_model.UpdateRepoIssueNumbers(ctx, id, true, true)
 }
 
-func statsQuery(args ...interface{}) func(context.Context) ([]map[string][]byte, error) {
+func statsQuery(args ...any) func(context.Context) ([]map[string][]byte, error) {
 	return func(ctx context.Context) ([]map[string][]byte, error) {
 		return db.GetEngine(ctx).Query(args...)
 	}
@@ -614,14 +628,14 @@ func DoctorUserStarNum() (err error) {
 	for start := 0; ; start += batchSize {
 		users := make([]user_model.User, 0, batchSize)
 		if err = db.GetEngine(db.DefaultContext).Limit(batchSize, start).Where("type = ?", 0).Cols("id").Find(&users); err != nil {
-			return
+			return err
 		}
 		if len(users) == 0 {
 			break
 		}
 
 		if err = updateUserStarNumbers(users); err != nil {
-			return
+			return err
 		}
 	}
 

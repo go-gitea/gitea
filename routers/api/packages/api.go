@@ -4,29 +4,34 @@
 package packages
 
 import (
-	gocontext "context"
 	"net/http"
 	"regexp"
 	"strings"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/packages/alpine"
 	"code.gitea.io/gitea/routers/api/packages/cargo"
 	"code.gitea.io/gitea/routers/api/packages/chef"
 	"code.gitea.io/gitea/routers/api/packages/composer"
 	"code.gitea.io/gitea/routers/api/packages/conan"
 	"code.gitea.io/gitea/routers/api/packages/conda"
 	"code.gitea.io/gitea/routers/api/packages/container"
+	"code.gitea.io/gitea/routers/api/packages/cran"
+	"code.gitea.io/gitea/routers/api/packages/debian"
 	"code.gitea.io/gitea/routers/api/packages/generic"
+	"code.gitea.io/gitea/routers/api/packages/goproxy"
 	"code.gitea.io/gitea/routers/api/packages/helm"
 	"code.gitea.io/gitea/routers/api/packages/maven"
 	"code.gitea.io/gitea/routers/api/packages/npm"
 	"code.gitea.io/gitea/routers/api/packages/nuget"
 	"code.gitea.io/gitea/routers/api/packages/pub"
 	"code.gitea.io/gitea/routers/api/packages/pypi"
+	"code.gitea.io/gitea/routers/api/packages/rpm"
 	"code.gitea.io/gitea/routers/api/packages/rubygems"
 	"code.gitea.io/gitea/routers/api/packages/swift"
 	"code.gitea.io/gitea/routers/api/packages/vagrant"
@@ -36,6 +41,32 @@ import (
 
 func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 	return func(ctx *context.Context) {
+		if ctx.Data["IsApiToken"] == true {
+			scope, ok := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+			if ok { // it's a personal access token but not oauth2 token
+				scopeMatched := false
+				var err error
+				if accessMode == perm.AccessModeRead {
+					scopeMatched, err = scope.HasScope(auth_model.AccessTokenScopeReadPackage)
+					if err != nil {
+						ctx.Error(http.StatusInternalServerError, "HasScope", err.Error())
+						return
+					}
+				} else if accessMode == perm.AccessModeWrite {
+					scopeMatched, err = scope.HasScope(auth_model.AccessTokenScopeWritePackage)
+					if err != nil {
+						ctx.Error(http.StatusInternalServerError, "HasScope", err.Error())
+						return
+					}
+				}
+				if !scopeMatched {
+					ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea Package API"`)
+					ctx.Error(http.StatusUnauthorized, "reqPackageAccess", "user should have specific permission or be a site admin")
+					return
+				}
+			}
+		}
+
 		if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
 			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea Package API"`)
 			ctx.Error(http.StatusUnauthorized, "reqPackageAccess", "user should have specific permission or be a site admin")
@@ -44,37 +75,53 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 	}
 }
 
-// CommonRoutes provide endpoints for most package managers (except containers - see below)
-// These are mounted on `/api/packages` (not `/api/v1/packages`)
-func CommonRoutes(ctx gocontext.Context) *web.Route {
-	r := web.NewRoute()
-
-	r.Use(context.PackageContexter(ctx))
-
-	authMethods := []auth.Method{
-		&auth.OAuth2{},
-		&auth.Basic{},
-		&nuget.Auth{},
-		&conan.Auth{},
-		&chef.Auth{},
-	}
+func verifyAuth(r *web.Route, authMethods []auth.Method) {
 	if setting.Service.EnableReverseProxyAuth {
 		authMethods = append(authMethods, &auth.ReverseProxy{})
 	}
-
 	authGroup := auth.NewGroup(authMethods...)
+
 	r.Use(func(ctx *context.Context) {
 		var err error
 		ctx.Doer, err = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
 		if err != nil {
-			log.Error("Verify: %v", err)
+			log.Error("Failed to verify user: %v", err)
 			ctx.Error(http.StatusUnauthorized, "authGroup.Verify")
 			return
 		}
 		ctx.IsSigned = ctx.Doer != nil
 	})
+}
+
+// CommonRoutes provide endpoints for most package managers (except containers - see below)
+// These are mounted on `/api/packages` (not `/api/v1/packages`)
+func CommonRoutes() *web.Route {
+	r := web.NewRoute()
+
+	r.Use(context.PackageContexter())
+
+	verifyAuth(r, []auth.Method{
+		&auth.OAuth2{},
+		&auth.Basic{},
+		&nuget.Auth{},
+		&conan.Auth{},
+		&chef.Auth{},
+	})
 
 	r.Group("/{username}", func() {
+		r.Group("/alpine", func() {
+			r.Get("/key", alpine.GetRepositoryKey)
+			r.Group("/{branch}/{repository}", func() {
+				r.Put("", reqPackageAccess(perm.AccessModeWrite), alpine.UploadPackageFile)
+				r.Group("/{architecture}", func() {
+					r.Get("/APKINDEX.tar.gz", alpine.GetRepositoryFile)
+					r.Group("/{filename}", func() {
+						r.Get("", alpine.DownloadPackageFile)
+						r.Delete("", reqPackageAccess(perm.AccessModeWrite), alpine.DeletePackageFile)
+					})
+				})
+			})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/cargo", func() {
 			r.Group("/api/v1/crates", func() {
 				r.Get("", cargo.SearchPackages)
@@ -88,6 +135,12 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 					r.Get("/owners", cargo.ListOwners)
 				})
 			})
+			r.Get("/config.json", cargo.RepositoryConfig)
+			r.Get("/1/{package}", cargo.EnumeratePackageVersions)
+			r.Get("/2/{package}", cargo.EnumeratePackageVersions)
+			// Use dummy placeholders because these parts are not of interest
+			r.Get("/3/{_}/{package}", cargo.EnumeratePackageVersions)
+			r.Get("/{_}/{__}/{package}", cargo.EnumeratePackageVersions)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/chef", func() {
 			r.Group("/api/v1", func() {
@@ -242,6 +295,100 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 				conda.UploadPackageFile(ctx)
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/cran", func() {
+			r.Group("/src", func() {
+				r.Group("/contrib", func() {
+					r.Get("/PACKAGES", cran.EnumerateSourcePackages)
+					r.Get("/PACKAGES{format}", cran.EnumerateSourcePackages)
+					r.Get("/{filename}", cran.DownloadSourcePackageFile)
+				})
+				r.Put("", reqPackageAccess(perm.AccessModeWrite), cran.UploadSourcePackageFile)
+			})
+			r.Group("/bin", func() {
+				r.Group("/{platform}/contrib/{rversion}", func() {
+					r.Get("/PACKAGES", cran.EnumerateBinaryPackages)
+					r.Get("/PACKAGES{format}", cran.EnumerateBinaryPackages)
+					r.Get("/{filename}", cran.DownloadBinaryPackageFile)
+				})
+				r.Put("", reqPackageAccess(perm.AccessModeWrite), cran.UploadBinaryPackageFile)
+			})
+		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/debian", func() {
+			r.Get("/repository.key", debian.GetRepositoryKey)
+			r.Group("/dists/{distribution}", func() {
+				r.Get("/{filename}", debian.GetRepositoryFile)
+				r.Get("/by-hash/{algorithm}/{hash}", debian.GetRepositoryFileByHash)
+				r.Group("/{component}/{architecture}", func() {
+					r.Get("/{filename}", debian.GetRepositoryFile)
+					r.Get("/by-hash/{algorithm}/{hash}", debian.GetRepositoryFileByHash)
+				})
+			})
+			r.Group("/pool/{distribution}/{component}", func() {
+				r.Get("/{name}_{version}_{architecture}.deb", debian.DownloadPackageFile)
+				r.Group("", func() {
+					r.Put("/upload", debian.UploadPackageFile)
+					r.Delete("/{name}/{version}/{architecture}", debian.DeletePackageFile)
+				}, reqPackageAccess(perm.AccessModeWrite))
+			})
+		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/go", func() {
+			r.Put("/upload", reqPackageAccess(perm.AccessModeWrite), goproxy.UploadPackage)
+			r.Get("/sumdb/sum.golang.org/supported", func(ctx *context.Context) {
+				ctx.Status(http.StatusNotFound)
+			})
+
+			// Manual mapping of routes because the package name contains slashes which chi does not support
+			// https://go.dev/ref/mod#goproxy-protocol
+			r.Get("/*", func(ctx *context.Context) {
+				path := ctx.Params("*")
+
+				if strings.HasSuffix(path, "/@latest") {
+					ctx.SetParams("name", path[:len(path)-len("/@latest")])
+					ctx.SetParams("version", "latest")
+
+					goproxy.PackageVersionMetadata(ctx)
+					return
+				}
+
+				parts := strings.SplitN(path, "/@v/", 2)
+				if len(parts) != 2 {
+					ctx.Status(http.StatusNotFound)
+					return
+				}
+
+				ctx.SetParams("name", parts[0])
+
+				// <package/name>/@v/list
+				if parts[1] == "list" {
+					goproxy.EnumeratePackageVersions(ctx)
+					return
+				}
+
+				// <package/name>/@v/<version>.zip
+				if strings.HasSuffix(parts[1], ".zip") {
+					ctx.SetParams("version", parts[1][:len(parts[1])-len(".zip")])
+
+					goproxy.DownloadPackageFile(ctx)
+					return
+				}
+				// <package/name>/@v/<version>.info
+				if strings.HasSuffix(parts[1], ".info") {
+					ctx.SetParams("version", parts[1][:len(parts[1])-len(".info")])
+
+					goproxy.PackageVersionMetadata(ctx)
+					return
+				}
+				// <package/name>/@v/<version>.mod
+				if strings.HasSuffix(parts[1], ".mod") {
+					ctx.SetParams("version", parts[1][:len(parts[1])-len(".mod")])
+
+					goproxy.PackageVersionGoModContent(ctx)
+					return
+				}
+
+				ctx.Status(http.StatusNotFound)
+			})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/generic", func() {
 			r.Group("/{packagename}/{packageversion}", func() {
 				r.Delete("", reqPackageAccess(perm.AccessModeWrite), generic.DeletePackage)
@@ -365,6 +512,16 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 			r.Get("/files/{id}/{version}/{filename}", pypi.DownloadPackageFile)
 			r.Get("/simple/{id}", pypi.PackageMetadata)
 		}, reqPackageAccess(perm.AccessModeRead))
+		r.Group("/rpm", func() {
+			r.Get(".repo", rpm.GetRepositoryConfig)
+			r.Get("/repository.key", rpm.GetRepositoryKey)
+			r.Put("/upload", reqPackageAccess(perm.AccessModeWrite), rpm.UploadPackageFile)
+			r.Group("/package/{name}/{version}/{architecture}", func() {
+				r.Get("", rpm.DownloadPackageFile)
+				r.Delete("", reqPackageAccess(perm.AccessModeWrite), rpm.DeletePackageFile)
+			})
+			r.Get("/repodata/{filename}", rpm.GetRepositoryFile)
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/rubygems", func() {
 			r.Get("/specs.4.8.gz", rubygems.EnumeratePackages)
 			r.Get("/latest_specs.4.8.gz", rubygems.EnumeratePackagesLatest)
@@ -432,29 +589,14 @@ func CommonRoutes(ctx gocontext.Context) *web.Route {
 // ContainerRoutes provides endpoints that implement the OCI API to serve containers
 // These have to be mounted on `/v2/...` to comply with the OCI spec:
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md
-func ContainerRoutes(ctx gocontext.Context) *web.Route {
+func ContainerRoutes() *web.Route {
 	r := web.NewRoute()
 
-	r.Use(context.PackageContexter(ctx))
+	r.Use(context.PackageContexter())
 
-	authMethods := []auth.Method{
+	verifyAuth(r, []auth.Method{
 		&auth.Basic{},
 		&container.Auth{},
-	}
-	if setting.Service.EnableReverseProxyAuth {
-		authMethods = append(authMethods, &auth.ReverseProxy{})
-	}
-
-	authGroup := auth.NewGroup(authMethods...)
-	r.Use(func(ctx *context.Context) {
-		var err error
-		ctx.Doer, err = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
-		if err != nil {
-			log.Error("Failed to verify user: %v", err)
-			ctx.Error(http.StatusUnauthorized, "Verify")
-			return
-		}
-		ctx.IsSigned = ctx.Doer != nil
 	})
 
 	r.Get("", container.ReqContainerAccess, container.DetermineSupport)
@@ -492,7 +634,7 @@ func ContainerRoutes(ctx gocontext.Context) *web.Route {
 		)
 
 		// Manual mapping of routes because {image} can contain slashes which chi does not support
-		r.Route("/*", "HEAD,GET,POST,PUT,PATCH,DELETE", func(ctx *context.Context) {
+		r.RouteMethods("/*", "HEAD,GET,POST,PUT,PATCH,DELETE", func(ctx *context.Context) {
 			path := ctx.Params("*")
 			isHead := ctx.Req.Method == "HEAD"
 			isGet := ctx.Req.Method == "GET"

@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content user settings repos">
-	{{template "user/settings/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings repos")}}
+	<div class="user-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "settings.repos"}}
 		</h4>
@@ -12,7 +9,7 @@
 					<div class="ui middle aligned divided list">
 						{{range $dirI, $dir := .Dirs}}
 							{{$repo := index $.ReposMap $dir}}
-							<div class="item">
+							<div class="item {{if not $repo}}gt-py-2{{end}}">{{/* if not repo, then there are "adapt" buttons, so the padding shouldn't be that default large*/}}
 								<div class="content">
 									{{if $repo}}
 										{{if $repo.IsPrivate}}
@@ -26,58 +23,47 @@
 										{{else}}
 											<span class="icon">{{svg "octicon-repo"}}</span>
 										{{end}}
-										<a class="name" href="{{$repo.Link}}">{{$repo.OwnerName}}/{{$repo.Name}}</a>
-										<span>{{FileSize $repo.Size}}</span>
+										<a class="muted name" href="{{$repo.Link}}">{{$repo.OwnerName}}/{{$repo.Name}}</a>
+										<span class="text light-3" {{if not (eq $repo.Size 0)}} data-tooltip-content="{{$repo.SizeDetailsString}}"{{end}}>{{FileSize $repo.Size}}</span>
 										{{if $repo.IsFork}}
 											{{$.locale.Tr "repo.forked_from"}}
 											<span><a href="{{$repo.BaseRepo.Link}}">{{$repo.BaseRepo.OwnerName}}/{{$repo.BaseRepo.Name}}</a></span>
 										{{end}}
 									{{else}}
-										<span class="icon">{{svg "octicon-file-directory-fill"}}</span>
-										<span class="name">{{$.Owner.Name}}/{{$dir}}</span>
-										<div class="right floated content">
+										<span class="icon gt-dib gt-pt-3">{{svg "octicon-file-directory-fill"}}</span>
+										<span class="name gt-dib gt-pt-3">{{$.ContextUser.Name}}/{{$dir}}</span>
+										<div class="ui right">
 											{{if $.allowAdopt}}
-												<button class="ui button submit tiny green adopt show-modal" data-modal="#adopt-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-plus"}}</span><span class="label">{{$.locale.Tr "repo.adopt_preexisting_label"}}</span></button>
-												<div class="ui basic modal" id="adopt-unadopted-modal-{{$dirI}}">
-													{{svg "octicon-x" 16 "close inside"}}
+												<button class="ui button green show-modal gt-p-3" data-modal="#adopt-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-plus"}}</span><span class="label">{{$.locale.Tr "repo.adopt_preexisting_label"}}</span></button>
+												<div class="ui g-modal-confirm modal" id="adopt-unadopted-modal-{{$dirI}}">
 													<div class="header">
 														<span class="label">{{$.locale.Tr "repo.adopt_preexisting"}}</span>
 													</div>
 													<div class="content">
 														<p>{{$.locale.Tr "repo.adopt_preexisting_content" $dir}}</p>
 													</div>
-													<form class="ui form" method="POST" action="{{AppSubUrl}}/user/settings/repos/unadopted">
+													<form class="ui form" method="post" action="{{AppSubUrl}}/user/settings/repos/unadopted">
 														{{$.CsrfTokenHtml}}
 														<input type="hidden" name="id" value="{{$dir}}">
 														<input type="hidden" name="action" value="adopt">
-														<div class="actions">
-															<button class="ui red basic inverted cancel button">
-																{{svg "octicon-x"}}
-																{{$.locale.Tr "modal.no"}}
-															</button>
-															<button class="ui green basic inverted ok button">
-																{{svg "octicon-check"}}
-																{{$.locale.Tr "modal.yes"}}
-															</button>
-														</div>
+														{{template "base/modal_actions_confirm" $}}
 													</form>
 												</div>
 											{{end}}
 											{{if $.allowDelete}}
-												<button class="ui button submit tiny red delete show-modal" data-modal="#delete-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-x"}}</span><span class="label">{{$.locale.Tr "repo.delete_preexisting_label"}}</span></button>
-												<div class="ui basic modal" id="delete-unadopted-modal-{{$dirI}}">
-													{{svg "octicon-x" 16 "close inside"}}
+												<button class="ui button red show-modal gt-p-3" data-modal="#delete-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-x"}}</span><span class="label">{{$.locale.Tr "repo.delete_preexisting_label"}}</span></button>
+												<div class="ui g-modal-confirm modal" id="delete-unadopted-modal-{{$dirI}}">
 													<div class="header">
 														<span class="label">{{$.locale.Tr "repo.delete_preexisting"}}</span>
 													</div>
 													<div class="content">
 														<p>{{$.locale.Tr "repo.delete_preexisting_content" $dir}}</p>
 													</div>
-													<form class="ui form" method="POST" action="{{AppSubUrl}}/user/settings/repos/unadopted">
+													<form class="ui form" method="post" action="{{AppSubUrl}}/user/settings/repos/unadopted">
 														{{$.CsrfTokenHtml}}
 														<input type="hidden" name="id" value="{{$dir}}">
 														<input type="hidden" name="action" value="delete">
-														{{template "base/delete_modal_actions" $}}
+														{{template "base/modal_actions_confirm" $}}
 													</form>
 												</div>
 											{{end}}
@@ -129,16 +115,16 @@
 			{{end}}
 		</div>
 	</div>
-</div>
 
-<div class="ui small basic delete modal">
-	<div class="ui icon header">
+<div class="ui g-modal-confirm delete modal">
+	<div class="header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "settings.remove_account_link"}}
 	</div>
 	<div class="content">
 		<p>{{.locale.Tr "settings.remove_account_link_desc"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
-{{template "base/footer" .}}
+
+{{template "user/settings/layout_footer" .}}

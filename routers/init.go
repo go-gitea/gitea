@@ -28,7 +28,6 @@ import (
 	"code.gitea.io/gitea/modules/system"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	actions_router "code.gitea.io/gitea/routers/api/actions"
 	packages_router "code.gitea.io/gitea/routers/api/packages"
@@ -71,13 +70,6 @@ func mustInitCtx(ctx context.Context, fn func(ctx context.Context) error) {
 	}
 }
 
-// InitGitServices init new services for git, this is also called in `contrib/pr/checkout.go`
-func InitGitServices() {
-	setting.LoadSettings()
-	mustInit(storage.Init)
-	mustInit(repo_service.Init)
-}
-
 func syncAppConfForGit(ctx context.Context) error {
 	runtimeState := new(system.RuntimeState)
 	if err := system.AppState.Get(runtimeState); err != nil {
@@ -108,21 +100,16 @@ func syncAppConfForGit(ctx context.Context) error {
 	return nil
 }
 
-// GlobalInitInstalled is for global installed configuration.
-func GlobalInitInstalled(ctx context.Context) {
-	if !setting.InstallLock {
-		log.Fatal("Gitea is not installed")
-	}
+func InitWebInstallPage(ctx context.Context) {
+	translation.InitLocales(ctx)
+	setting.LoadSettingsForInstall()
+	mustInit(svg.Init)
+}
 
+// InitWebInstalled is for global installed configuration.
+func InitWebInstalled(ctx context.Context) {
 	mustInitCtx(ctx, git.InitFull)
-	log.Info("Git Version: %s (home: %s)", git.VersionInfo(), git.HomeDir())
-	log.Info("AppPath: %s", setting.AppPath)
-	log.Info("AppWorkPath: %s", setting.AppWorkPath)
-	log.Info("Custom path: %s", setting.CustomPath)
-	log.Info("Log path: %s", setting.Log.RootPath)
-	log.Info("Configuration file: %s", setting.CustomConf)
-	log.Info("Run Mode: %s", util.ToTitleCase(setting.RunMode))
-	log.Info("Gitea v%s%s", setting.AppVer, setting.AppBuiltWith)
+	log.Info("Git version: %s (home: %s)", git.VersionInfo(), git.HomeDir())
 
 	// Setup i18n
 	translation.InitLocales(ctx)
@@ -172,7 +159,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	mustInit(ssh.Init)
 
 	auth.Init()
-	svg.Init()
+	mustInit(svg.Init)
 
 	actions_service.Init()
 
@@ -181,30 +168,33 @@ func GlobalInitInstalled(ctx context.Context) {
 }
 
 // NormalRoutes represents non install routes
-func NormalRoutes(ctx context.Context) *web.Route {
-	ctx, _ = templates.HTMLRenderer(ctx)
+func NormalRoutes() *web.Route {
+	_ = templates.HTMLRenderer()
 	r := web.NewRoute()
-	for _, middle := range common.Middlewares() {
-		r.Use(middle)
-	}
+	r.Use(common.ProtocolMiddlewares()...)
 
-	r.Mount("/", web_routers.Routes(ctx))
-	r.Mount("/api/v1", apiv1.Routes(ctx))
+	r.Mount("/", web_routers.Routes())
+	r.Mount("/api/v1", apiv1.Routes())
 	r.Mount("/api/internal", private.Routes())
 
+	r.Post("/-/fetch-redirect", common.FetchRedirectDelegate)
+
 	if setting.Packages.Enabled {
-		// Add endpoints to match common package manager APIs
-
 		// This implements package support for most package managers
-		r.Mount("/api/packages", packages_router.CommonRoutes(ctx))
-
+		r.Mount("/api/packages", packages_router.CommonRoutes())
 		// This implements the OCI API (Note this is not preceded by /api but is instead /v2)
-		r.Mount("/v2", packages_router.ContainerRoutes(ctx))
+		r.Mount("/v2", packages_router.ContainerRoutes())
 	}
 
 	if setting.Actions.Enabled {
 		prefix := "/api/actions"
-		r.Mount(prefix, actions_router.Routes(ctx, prefix))
+		r.Mount(prefix, actions_router.Routes(prefix))
+
+		// TODO: Pipeline api used for runner internal communication with gitea server. but only artifact is used for now.
+		// In Github, it uses ACTIONS_RUNTIME_URL=https://pipelines.actions.githubusercontent.com/fLgcSHkPGySXeIFrg8W8OBSfeg3b5Fls1A1CwX566g8PayEGlg/
+		// TODO: this prefix should be generated with a token string with runner ?
+		prefix = "/api/actions_pipeline"
+		r.Mount(prefix, actions_router.ArtifactsRoutes(prefix))
 	}
 
 	return r

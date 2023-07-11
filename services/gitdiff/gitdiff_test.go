@@ -520,7 +520,7 @@ index 0000000..6bb8f39
  Docker Pulls
 + cut off
 + cut off`
-	result, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
+	_, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
 	if err != nil {
 		t.Errorf("ParsePatch failed: %s", err)
 	}
@@ -536,11 +536,10 @@ index 0000000..6bb8f39
  Docker Pulls
 + cut off
 + cut off`
-	result, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2), "")
+	_, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2), "")
 	if err != nil {
 		t.Errorf("ParsePatch failed: %s", err)
 	}
-	println(result)
 
 	diff2a := `diff --git "a/A \\ B" b/A/B
 --- "a/A \\ B"
@@ -553,11 +552,10 @@ index 0000000..6bb8f39
  Docker Pulls
 + cut off
 + cut off`
-	result, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2a), "")
+	_, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2a), "")
 	if err != nil {
 		t.Errorf("ParsePatch failed: %s", err)
 	}
-	println(result)
 
 	diff3 := `diff --git a/README.md b/README.md
 --- a/README.md
@@ -570,11 +568,10 @@ index 0000000..6bb8f39
  Docker Pulls
 + cut off
 + cut off`
-	result, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff3), "")
+	_, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff3), "")
 	if err != nil {
 		t.Errorf("ParsePatch failed: %s", err)
 	}
-	println(result)
 }
 
 func setupDefaultDiff() *Diff {
@@ -597,14 +594,24 @@ func setupDefaultDiff() *Diff {
 	}
 }
 
-func TestDiff_LoadComments(t *testing.T) {
+func TestDiff_LoadCommentsNoOutdated(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	diff := setupDefaultDiff()
-	assert.NoError(t, diff.LoadComments(db.DefaultContext, issue, user))
+	assert.NoError(t, diff.LoadComments(db.DefaultContext, issue, user, false))
 	assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, 2)
+}
+
+func TestDiff_LoadCommentsWithOutdated(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	diff := setupDefaultDiff()
+	assert.NoError(t, diff.LoadComments(db.DefaultContext, issue, user, true))
+	assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, 3)
 }
 
 func TestDiffLine_CanComment(t *testing.T) {

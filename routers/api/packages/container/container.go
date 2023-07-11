@@ -75,7 +75,7 @@ func setResponseHeaders(resp http.ResponseWriter, h *containerHeaders) {
 	resp.WriteHeader(h.Status)
 }
 
-func jsonResponse(ctx *context.Context, status int, obj interface{}) {
+func jsonResponse(ctx *context.Context, status int, obj any) {
 	setResponseHeaders(ctx.Resp, &containerHeaders{
 		Status:      status,
 		ContentType: "application/json",
@@ -203,23 +203,31 @@ func InitiateUploadBlob(ctx *context.Context) {
 			Digest:     mount,
 		})
 		if blob != nil {
-			if err := mountBlob(&packages_service.PackageInfo{Owner: ctx.Package.Owner, Name: image}, blob.Blob); err != nil {
+			accessible, err := packages_model.IsBlobAccessibleForUser(ctx, blob.Blob.ID, ctx.Doer)
+			if err != nil {
 				apiError(ctx, http.StatusInternalServerError, err)
 				return
 			}
 
-			setResponseHeaders(ctx.Resp, &containerHeaders{
-				Location:      fmt.Sprintf("/v2/%s/%s/blobs/%s", ctx.Package.Owner.LowerName, image, mount),
-				ContentDigest: mount,
-				Status:        http.StatusCreated,
-			})
-			return
+			if accessible {
+				if err := mountBlob(&packages_service.PackageInfo{Owner: ctx.Package.Owner, Name: image}, blob.Blob); err != nil {
+					apiError(ctx, http.StatusInternalServerError, err)
+					return
+				}
+
+				setResponseHeaders(ctx.Resp, &containerHeaders{
+					Location:      fmt.Sprintf("/v2/%s/%s/blobs/%s", ctx.Package.Owner.LowerName, image, mount),
+					ContentDigest: mount,
+					Status:        http.StatusCreated,
+				})
+				return
+			}
 		}
 	}
 
 	digest := ctx.FormTrim("digest")
 	if digest != "" {
-		buf, err := packages_module.CreateHashedBufferFromReader(ctx.Req.Body, 32*1024*1024)
+		buf, err := packages_module.CreateHashedBufferFromReader(ctx.Req.Body)
 		if err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
@@ -482,22 +490,7 @@ func GetBlob(ctx *context.Context) {
 		return
 	}
 
-	s, _, err := packages_service.GetPackageFileStream(ctx, blob.File)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	defer s.Close()
-
-	setResponseHeaders(ctx.Resp, &containerHeaders{
-		ContentDigest: blob.Properties.GetByName(container_module.PropertyDigest),
-		ContentType:   blob.Properties.GetByName(container_module.PropertyMediaType),
-		ContentLength: blob.Blob.Size,
-		Status:        http.StatusOK,
-	})
-	if _, err := io.Copy(ctx.Resp, s); err != nil {
-		log.Error("Error whilst copying content to response: %v", err)
-	}
+	serveBlob(ctx, blob)
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#deleting-blobs
@@ -538,7 +531,7 @@ func UploadManifest(ctx *context.Context) {
 	}
 
 	maxSize := maxManifestSize + 1
-	buf, err := packages_module.CreateHashedBufferFromReader(&io.LimitedReader{R: ctx.Req.Body, N: int64(maxSize)}, maxSize)
+	buf, err := packages_module.CreateHashedBufferFromReaderWithSize(&io.LimitedReader{R: ctx.Req.Body, N: int64(maxSize)}, maxSize)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -636,22 +629,7 @@ func GetManifest(ctx *context.Context) {
 		return
 	}
 
-	s, _, err := packages_service.GetPackageFileStream(ctx, manifest.File)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	defer s.Close()
-
-	setResponseHeaders(ctx.Resp, &containerHeaders{
-		ContentDigest: manifest.Properties.GetByName(container_module.PropertyDigest),
-		ContentType:   manifest.Properties.GetByName(container_module.PropertyMediaType),
-		ContentLength: manifest.Blob.Size,
-		Status:        http.StatusOK,
-	})
-	if _, err := io.Copy(ctx.Resp, s); err != nil {
-		log.Error("Error whilst copying content to response: %v", err)
-	}
+	serveBlob(ctx, manifest)
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#deleting-tags
@@ -684,6 +662,36 @@ func DeleteManifest(ctx *context.Context) {
 	setResponseHeaders(ctx.Resp, &containerHeaders{
 		Status: http.StatusAccepted,
 	})
+}
+
+func serveBlob(ctx *context.Context, pfd *packages_model.PackageFileDescriptor) {
+	s, u, _, err := packages_service.GetPackageBlobStream(ctx, pfd.File, pfd.Blob)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	headers := &containerHeaders{
+		ContentDigest: pfd.Properties.GetByName(container_module.PropertyDigest),
+		ContentType:   pfd.Properties.GetByName(container_module.PropertyMediaType),
+		ContentLength: pfd.Blob.Size,
+		Status:        http.StatusOK,
+	}
+
+	if u != nil {
+		headers.Status = http.StatusTemporaryRedirect
+		headers.Location = u.String()
+
+		setResponseHeaders(ctx.Resp, headers)
+		return
+	}
+
+	defer s.Close()
+
+	setResponseHeaders(ctx.Resp, headers)
+	if _, err := io.Copy(ctx.Resp, s); err != nil {
+		log.Error("Error whilst copying content to response: %v", err)
+	}
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#content-discovery

@@ -1,5 +1,6 @@
-<div class="ui secondary pointing tabular top attached borderless menu stackable new-menu navbar shadow-body">
-	<div class="new-menu-inner">
+<div class="four wide column">
+	<div class="ui fluid vertical menu">
+		<div class="header item">{{.locale.Tr "org.settings"}}</div>
 		<a class="{{if .PageIsSettingsOptions}}active {{end}}item" href="{{.RepoLink}}/settings">
 			{{.locale.Tr "repo.settings.options"}}
 		</a>
@@ -27,18 +28,26 @@
 		<a class="{{if .PageIsSettingsKeys}}active {{end}}item" href="{{.RepoLink}}/settings/keys">
 			{{.locale.Tr "repo.settings.deploy_keys"}}
 		</a>
-		<a class="{{if .PageIsSettingsSecrets}}active {{end}}item" href="{{.RepoLink}}/settings/secrets">
-			{{.locale.Tr "secrets.secrets"}}
-		</a>
 		{{if .LFSStartServer}}
 			<a class="{{if .PageIsSettingsLFS}}active {{end}}item" href="{{.RepoLink}}/settings/lfs">
 				{{.locale.Tr "repo.settings.lfs"}}
 			</a>
 		{{end}}
 		{{if and .EnableActions (not .UnitActionsGlobalDisabled) (.Permission.CanRead $.UnitTypeActions)}}
-			<a class="{{if .PageIsSettingsRunners}}active {{end}}item" href="{{.RepoLink}}/settings/runners">
-				{{.locale.Tr "actions.runners"}}
-			</a>
+		<details class="item toggleable-item" {{if or .PageIsSharedSettingsRunners .PageIsSharedSettingsSecrets .PageIsSharedSettingsVariables}}open{{end}}>
+			<summary>{{.locale.Tr "actions.actions"}}</summary>
+			<div class="menu">
+				<a class="{{if .PageIsSharedSettingsRunners}}active {{end}}item" href="{{.RepoLink}}/settings/actions/runners">
+					{{.locale.Tr "actions.runners"}}
+				</a>
+				<a class="{{if .PageIsSharedSettingsSecrets}}active {{end}}item" href="{{.RepoLink}}/settings/actions/secrets">
+					{{.locale.Tr "secrets.secrets"}}
+				</a>
+				<a class="{{if .PageIsSharedSettingsVariables}}active {{end}}item" href="{{.RepoLink}}/settings/actions/variables">
+					{{.locale.Tr "actions.variables"}}
+				</a>
+			</div>
+		</details>
 		{{end}}
 	</div>
 </div>

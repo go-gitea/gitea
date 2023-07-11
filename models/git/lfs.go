@@ -264,7 +264,7 @@ func LFSAutoAssociate(ctx context.Context, metas []*LFSMetaObject, user *user_mo
 
 	sess := db.GetEngine(ctx)
 
-	oids := make([]interface{}, len(metas))
+	oids := make([]any, len(metas))
 	oidMap := make(map[string]*LFSMetaObject, len(metas))
 	for i, meta := range metas {
 		oids[i] = meta.Oid
@@ -390,7 +390,7 @@ func IterateLFSMetaObjectsForRepo(ctx context.Context, repoID int64, f func(cont
 
 	for {
 		beans := make([]*CountLFSMetaObject, 0, batchSize)
-		sess := engine.Select("`lfs_meta_object`.*, COUNT(`l1`.oid) AS `count`").
+		sess := engine.Table("lfs_meta_object").Select("`lfs_meta_object`.*, COUNT(`l1`.oid) AS `count`").
 			Join("INNER", "`lfs_meta_object` AS l1", "`lfs_meta_object`.oid = `l1`.oid").
 			Where("`lfs_meta_object`.repository_id = ?", repoID)
 		if !opts.OlderThan.IsZero() {

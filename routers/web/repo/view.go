@@ -21,9 +21,11 @@ import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
+	issue_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/container"
@@ -39,6 +41,9 @@ import (
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
+	issue_service "code.gitea.io/gitea/services/issue"
+
+	"github.com/nektos/act/pkg/model"
 )
 
 const (
@@ -58,18 +63,18 @@ const (
 //	entries == ctx.Repo.Commit.SubTree(ctx.Repo.TreePath).ListEntries()
 //
 // FIXME: There has to be a more efficient way of doing this
-func findReadmeFileInEntries(ctx *context.Context, entries []*git.TreeEntry) (string, *git.TreeEntry, error) {
+func findReadmeFileInEntries(ctx *context.Context, entries []*git.TreeEntry, tryWellKnownDirs bool) (string, *git.TreeEntry, error) {
 	// Create a list of extensions in priority order
 	// 1. Markdown files - with and without localisation - e.g. README.en-us.md or README.md
 	// 2. Txt files - e.g. README.txt
 	// 3. No extension - e.g. README
-	exts := append(localizedExtensions(".md", ctx.Language()), ".txt", "") // sorted by priority
+	exts := append(localizedExtensions(".md", ctx.Locale.Language()), ".txt", "") // sorted by priority
 	extCount := len(exts)
 	readmeFiles := make([]*git.TreeEntry, extCount+1)
 
 	docsEntries := make([]*git.TreeEntry, 3) // (one of docs/, .gitea/ or .github/)
 	for _, entry := range entries {
-		if entry.IsDir() {
+		if tryWellKnownDirs && entry.IsDir() {
 			// as a special case for the top-level repo introduction README,
 			// fall back to subfolders, looking for e.g. docs/README.md, .gitea/README.zh-CN.txt, .github/README.txt, ...
 			// (note that docsEntries is ignored unless we are at the root)
@@ -130,7 +135,7 @@ func findReadmeFileInEntries(ctx *context.Context, entries []*git.TreeEntry) (st
 				return "", nil, err
 			}
 
-			subfolder, readmeFile, err := findReadmeFileInEntries(ctx, childEntries)
+			subfolder, readmeFile, err := findReadmeFileInEntries(ctx, childEntries, false)
 			if err != nil && !git.IsErrNotExist(err) {
 				return "", nil, err
 			}
@@ -154,17 +159,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefName)
 	}
 
-	// Check permission to add or upload new file.
-	if ctx.Repo.CanWrite(unit_model.TypeCode) && ctx.Repo.IsViewBranch {
-		ctx.Data["CanAddFile"] = !ctx.Repo.Repository.IsArchived
-		ctx.Data["CanUploadFile"] = setting.Repository.Upload.Enabled && !ctx.Repo.Repository.IsArchived
-	}
-
-	if ctx.Written() {
-		return
-	}
-
-	subfolder, readmeFile, err := findReadmeFileInEntries(ctx, entries)
+	subfolder, readmeFile, err := findReadmeFileInEntries(ctx, entries, true)
 	if err != nil {
 		ctx.ServerError("findReadmeFileInEntries", err)
 		return
@@ -346,11 +341,34 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["RawFileLink"] = rawLink + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 
 	if ctx.Repo.TreePath == ".editorconfig" {
-		_, editorconfigErr := ctx.Repo.GetEditorconfig(ctx.Repo.Commit)
-		ctx.Data["FileError"] = editorconfigErr
-	} else if ctx.Repo.IsIssueConfig(ctx.Repo.TreePath) {
-		_, issueConfigErr := ctx.Repo.GetIssueConfig(ctx.Repo.TreePath, ctx.Repo.Commit)
-		ctx.Data["FileError"] = issueConfigErr
+		_, editorconfigWarning, editorconfigErr := ctx.Repo.GetEditorconfig(ctx.Repo.Commit)
+		if editorconfigWarning != nil {
+			ctx.Data["FileWarning"] = strings.TrimSpace(editorconfigWarning.Error())
+		}
+		if editorconfigErr != nil {
+			ctx.Data["FileError"] = strings.TrimSpace(editorconfigErr.Error())
+		}
+	} else if issue_service.IsTemplateConfig(ctx.Repo.TreePath) {
+		_, issueConfigErr := issue_service.GetTemplateConfig(ctx.Repo.GitRepo, ctx.Repo.TreePath, ctx.Repo.Commit)
+		if issueConfigErr != nil {
+			ctx.Data["FileError"] = strings.TrimSpace(issueConfigErr.Error())
+		}
+	} else if actions.IsWorkflow(ctx.Repo.TreePath) {
+		content, err := actions.GetContentFromEntry(entry)
+		if err != nil {
+			log.Error("actions.GetContentFromEntry: %v", err)
+		}
+		_, workFlowErr := model.ReadWorkflow(bytes.NewReader(content))
+		if workFlowErr != nil {
+			ctx.Data["FileError"] = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", workFlowErr.Error())
+		}
+	} else if util.SliceContains([]string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}, ctx.Repo.TreePath) {
+		if data, err := blob.GetBlobContent(setting.UI.MaxDisplayFileSize); err == nil {
+			_, warnings := issue_model.GetCodeOwnersFromContent(ctx, data)
+			if len(warnings) > 0 {
+				ctx.Data["FileWarning"] = strings.Join(warnings, "\n")
+			}
+		}
 	}
 
 	isDisplayingSource := ctx.FormString("display") == "source"
@@ -372,6 +390,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["IsRepresentableAsText"] = isRepresentableAsText
 	ctx.Data["IsDisplayingSource"] = isDisplayingSource
 	ctx.Data["IsDisplayingRendered"] = isDisplayingRendered
+	ctx.Data["IsExecutable"] = entry.IsExecutable()
 
 	isTextSource := fInfo.isTextFile || isDisplayingSource
 	ctx.Data["IsTextSource"] = isTextSource
@@ -698,15 +717,19 @@ func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
 
 // Home render repository home page
 func Home(ctx *context.Context) {
-	if setting.EnableFeed {
+	if setting.Other.EnableFeed {
 		isFeed, _, showFeedType := feed.GetFeedType(ctx.Params(":reponame"), ctx.Req)
 		if isFeed {
-			feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
+			switch {
+			case ctx.Link == fmt.Sprintf("%s.%s", ctx.Repo.RepoLink, showFeedType):
+				feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
+			case ctx.Repo.TreePath == "":
+				feed.ShowBranchFeed(ctx, ctx.Repo.Repository, showFeedType)
+			case ctx.Repo.TreePath != "":
+				feed.ShowFileFeed(ctx, ctx.Repo.Repository, showFeedType)
+			}
 			return
 		}
-
-		ctx.Data["EnableFeed"] = true
-		ctx.Data["FeedURL"] = ctx.Repo.Repository.Link()
 	}
 
 	checkHomeCodeViewable(ctx)
@@ -864,21 +887,25 @@ func renderRepoTopics(ctx *context.Context) {
 
 func renderCode(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
+	ctx.Data["RepositoryUploadEnabled"] = setting.Repository.Upload.Enabled
 
-	if ctx.Repo.Repository.IsEmpty {
-		reallyEmpty := true
+	if ctx.Repo.Commit == nil || ctx.Repo.Repository.IsEmpty || ctx.Repo.Repository.IsBroken() {
+		showEmpty := true
 		var err error
 		if ctx.Repo.GitRepo != nil {
-			reallyEmpty, err = ctx.Repo.GitRepo.IsEmpty()
+			showEmpty, err = ctx.Repo.GitRepo.IsEmpty()
 			if err != nil {
-				ctx.ServerError("GitRepo.IsEmpty", err)
-				return
+				log.Error("GitRepo.IsEmpty: %v", err)
+				ctx.Repo.Repository.Status = repo_model.RepositoryBroken
+				showEmpty = true
+				ctx.Flash.Error(ctx.Tr("error.occurred"), true)
 			}
 		}
-		if reallyEmpty {
+		if showEmpty {
 			ctx.HTML(http.StatusOK, tplRepoEMPTY)
 			return
 		}
+
 		// the repo is not really empty, so we should update the modal in database
 		// such problem may be caused by:
 		// 1) an error occurs during pushing/receiving.  2) the user replaces an empty git repo manually
@@ -894,6 +921,14 @@ func renderCode(ctx *context.Context) {
 			ctx.ServerError("UpdateRepoSize", err)
 			return
 		}
+
+		// the repo's IsEmpty has been updated, redirect to this page to make sure middlewares can get the correct values
+		link := ctx.Link
+		if ctx.Req.URL.RawQuery != "" {
+			link += "?" + ctx.Req.URL.RawQuery
+		}
+		ctx.Redirect(link)
+		return
 	}
 
 	title := ctx.Repo.Repository.Owner.Name + "/" + ctx.Repo.Repository.Name
@@ -923,11 +958,9 @@ func renderCode(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.Repo.Repository.IsEmpty {
-		checkCitationFile(ctx, entry)
-		if ctx.Written() {
-			return
-		}
+	checkCitationFile(ctx, entry)
+	if ctx.Written() {
+		return
 	}
 
 	renderLanguageStats(ctx)
@@ -942,6 +975,18 @@ func renderCode(ctx *context.Context) {
 	}
 	if ctx.Written() {
 		return
+	}
+
+	if ctx.Doer != nil {
+		if err := ctx.Repo.Repository.GetBaseRepo(ctx); err != nil {
+			ctx.ServerError("GetBaseRepo", err)
+			return
+		}
+		ctx.Data["RecentlyPushedNewBranches"], err = git_model.FindRecentlyPushedNewBranches(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID, ctx.Repo.Repository.DefaultBranch)
+		if err != nil {
+			ctx.ServerError("GetRecentlyPushedBranches", err)
+			return
+		}
 	}
 
 	var treeNames []string
@@ -1010,7 +1055,7 @@ func Stars(ctx *context.Context) {
 
 // Forks render repository's forked users
 func Forks(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repos.forks")
+	ctx.Data["Title"] = ctx.Tr("repo.forks")
 
 	page := ctx.FormInt("page")
 	if page <= 0 {

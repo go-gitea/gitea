@@ -1,10 +1,12 @@
 ---
 date: "2018-05-22T11:00:00+00:00"
-title: "使用：反向代理"
+title: "反向代理"
 slug: "reverse-proxies"
-weight: 17
+weight: 16
 toc: false
 draft: false
+aliases:
+  - /zh-cn/reverse-proxies
 menu:
   sidebar:
     parent: "administration"

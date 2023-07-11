@@ -4,10 +4,12 @@
 package integration
 
 import (
+	"io"
 	"net/http"
 	"net/url"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -65,10 +67,10 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 
 	// Get user2's token
 	session := loginUser(t, user2.Name)
-	token2 := getTokenForLoggedInUser(t, session)
+	token2 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 	// Get user4's token
 	session = loginUser(t, user4.Name)
-	token4 := getTokenForLoggedInUser(t, session)
+	token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
 	// Make a new branch in repo1
 	newBranch := "test_branch"
@@ -158,4 +160,31 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	// Test access of org user3 private repo file by owner user2
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?token=%s", user3.Name, repo3.Name, treePath, token2)
 	MakeRequest(t, req, http.StatusOK)
+}
+
+func TestAPIGetContentsRefFormats(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		file := "README.md"
+		sha := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
+		content := "# repo1\n\nDescription for repo1"
+
+		noRef := setting.AppURL + "api/v1/repos/user2/repo1/raw/" + file
+		refInPath := setting.AppURL + "api/v1/repos/user2/repo1/raw/" + sha + "/" + file
+		refInQuery := setting.AppURL + "api/v1/repos/user2/repo1/raw/" + file + "?ref=" + sha
+
+		resp := MakeRequest(t, NewRequest(t, http.MethodGet, noRef), http.StatusOK)
+		raw, err := io.ReadAll(resp.Body)
+		assert.NoError(t, err)
+		assert.EqualValues(t, content, string(raw))
+
+		resp = MakeRequest(t, NewRequest(t, http.MethodGet, refInPath), http.StatusOK)
+		raw, err = io.ReadAll(resp.Body)
+		assert.NoError(t, err)
+		assert.EqualValues(t, content, string(raw))
+
+		resp = MakeRequest(t, NewRequest(t, http.MethodGet, refInQuery), http.StatusOK)
+		raw, err = io.ReadAll(resp.Body)
+		assert.NoError(t, err)
+		assert.EqualValues(t, content, string(raw))
+	})
 }

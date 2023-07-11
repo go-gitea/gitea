@@ -56,7 +56,7 @@ func (comments CommentList) getLabelIDs() []int64 {
 	return ids.Values()
 }
 
-func (comments CommentList) loadLabels(ctx context.Context) error { //nolint
+func (comments CommentList) loadLabels(ctx context.Context) error {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -415,7 +415,7 @@ func (comments CommentList) getReviewIDs() []int64 {
 	return ids.Values()
 }
 
-func (comments CommentList) loadReviews(ctx context.Context) error { //nolint
+func (comments CommentList) loadReviews(ctx context.Context) error {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -453,6 +453,14 @@ func (comments CommentList) loadReviews(ctx context.Context) error { //nolint
 
 	for _, comment := range comments {
 		comment.Review = reviews[comment.ReviewID]
+
+		// If the comment dismisses a review, we need to load the reviewer to show whose review has been dismissed.
+		// Otherwise, the reviewer is the poster of the comment, so we don't need to load it.
+		if comment.Type == CommentTypeDismissReview {
+			if err := comment.Review.LoadReviewer(ctx); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
@@ -460,42 +468,38 @@ func (comments CommentList) loadReviews(ctx context.Context) error { //nolint
 // loadAttributes loads all attributes
 func (comments CommentList) loadAttributes(ctx context.Context) (err error) {
 	if err = comments.LoadPosters(ctx); err != nil {
-		return
+		return err
 	}
 
 	if err = comments.loadLabels(ctx); err != nil {
-		return
+		return err
 	}
 
 	if err = comments.loadMilestones(ctx); err != nil {
-		return
+		return err
 	}
 
 	if err = comments.loadOldMilestones(ctx); err != nil {
-		return
+		return err
 	}
 
 	if err = comments.loadAssignees(ctx); err != nil {
-		return
+		return err
 	}
 
 	if err = comments.LoadAttachments(ctx); err != nil {
-		return
+		return err
 	}
 
 	if err = comments.loadReviews(ctx); err != nil {
-		return
+		return err
 	}
 
 	if err = comments.LoadIssues(ctx); err != nil {
-		return
+		return err
 	}
 
-	if err = comments.loadDependentIssues(ctx); err != nil {
-		return
-	}
-
-	return nil
+	return comments.loadDependentIssues(ctx)
 }
 
 // LoadAttributes loads attributes of the comments, except for attachments and

@@ -15,13 +15,13 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	setting.InitProviderAndLoadCommonSettingsForTest()
-	setting.LoadQueueSettings()
-
 	// for tests, allow only loopback IPs
 	setting.Webhook.AllowedHostList = hostmatcher.MatchBuiltinLoopback
 	unittest.MainTest(m, &unittest.TestOptions{
 		GiteaRootPath: filepath.Join("..", ".."),
-		SetUp:         Init,
+		SetUp: func() error {
+			setting.LoadQueueSettings()
+			return Init()
+		},
 	})
 }

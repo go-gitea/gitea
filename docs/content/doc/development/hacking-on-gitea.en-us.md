@@ -5,6 +5,8 @@ slug: "hacking-on-gitea"
 weight: 10
 toc: false
 draft: false
+aliases:
+  - /en-us/hacking-on-gitea
 menu:
   sidebar:
     parent: "development"
@@ -45,6 +47,9 @@ Gitea uses `gofmt` to format source code. However, the results of
 `gofmt` can differ by the version of `go`. Therefore it is
 recommended to install the version of Go that our continuous integration is
 running. As of last update, the Go version should be {{< go-version >}}.
+
+To lint the template files, ensure [Python](https://www.python.org/) and
+[Poetry](https://python-poetry.org/) are installed.
 
 ## Installing Make
 
@@ -121,9 +126,8 @@ to the Gitea sources. Otherwise, changes can't be pushed.
 ## Building Gitea (Basic)
 
 Take a look at our
-<a href='{{< relref "doc/installation/from-source.en-us.md" >}}'>instructions</a>
-for <a href='{{< relref "doc/installation/from-source.en-us.md" >}}'>building
-from source</a>.
+[instructions]({{< relref "doc/installation/from-source.en-us.md" >}})
+for [building from source]({{< relref "doc/installation/from-source.en-us.md" >}}).
 
 The simplest recommended way to build from source is:
 
@@ -264,7 +268,7 @@ OpenAPI 3 documentation.
 When creating new configuration options, it is not enough to add them to the
 `modules/setting` files. You should add information to `custom/conf/app.ini`
 and to the
-<a href='{{< relref "doc/administration/config-cheat-sheet.en-us.md" >}}'>configuration cheat sheet</a>
+[configuration cheat sheet]({{< relref "doc/administration/config-cheat-sheet.en-us.md" >}})
 found in `docs/content/doc/administer/config-cheat-sheet.en-us.md`
 
 ### Changing the logo

@@ -1,11 +1,7 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository settings edit">
-	{{template "repo/header" .}}
-	{{template "repo/settings/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings edit")}}
+	<div class="repo-setting-content">
 		{{if .Repository.IsArchived}}
-			<div class="ui warning message">
+			<div class="ui warning message gt-text-center">
 				{{.locale.Tr "repo.settings.archive.branchsettings_unavailable"}}
 			</div>
 		{{else}}
@@ -16,18 +12,13 @@
 				<p>
 					{{.locale.Tr "repo.settings.default_branch_desc"}}
 				</p>
-				<form class="ui form" action="{{.Link}}" method="post">
+				<form class="gt-df" action="{{.Link}}" method="post">
 					{{.CsrfTokenHtml}}
 					<input type="hidden" name="action" value="default_branch">
 					{{if not .Repository.IsEmpty}}
-					<div class="required inline field">
-						<div class="ui dropdown selection" tabindex="0">
-							<select name="branch">
-								<option value="{{.Repository.DefaultBranch}}">{{.Repository.DefaultBranch}}</option>
-								{{range .Branches}}
-									<option value="{{.}}">{{.}}</option>
-								{{end}}
-							</select>{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="ui dropdown selection gt-f1 gt-mr-3 gt-max-width-24rem">
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							<input type="hidden" name="branch" value="{{.Repository.DefaultBranch}}">
 							<div class="default text">{{.Repository.DefaultBranch}}</div>
 							<div class="menu">
 								{{range .Branches}}
@@ -36,7 +27,6 @@
 							</div>
 						</div>
 						<button class="ui green button">{{$.locale.Tr "repo.settings.branches.update_default_branch"}}</button>
-					</div>
 					{{end}}
 				</form>
 			</div>
@@ -70,41 +60,18 @@
 					</div>
 				</div>
 			</div>
-
-			{{if $.Repository.CanCreateBranch}}
-				<h4 class="ui top attached header">
-					{{.locale.Tr "repo.settings.rename_branch"}}
-				</h4>
-				<div class="ui attached segment">
-					<form class="ui form" action="{{$.Repository.Link}}/settings/rename_branch" method="post">
-						{{.CsrfTokenHtml}}
-						<div class="required field">
-							<label for="from">{{.locale.Tr "repo.settings.rename_branch_from"}}</label>
-							<input id="from" name="from" required>
-						</div>
-						<div class="required field {{if .Err_BranchName}}error{{end}}">
-							<label for="to">{{.locale.Tr "repo.settings.rename_branch_to"}}</label>
-							<input id="to" name="to" required>
-						</div>
-						<div class="field">
-							<button class="ui green button">{{$.locale.Tr "repo.settings.update_settings"}}</button>
-						</div>
-					</form>
-				</div>
-			{{end}}
 		{{end}}
 	</div>
-</div>
 
-<div class="ui small basic delete modal">
-	<div class="ui header">
-		{{svg "octicon-trash" 16 "gt-mr-2"}}
+<div class="ui g-modal-confirm delete modal">
+	<div class="header">
+		{{svg "octicon-trash"}}
 		{{.locale.Tr "repo.settings.protected_branch_deletion"}}
 	</div>
 	<div class="content">
 		<p>{{.locale.Tr "repo.settings.protected_branch_deletion_desc"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
 
-{{template "base/footer" .}}
+{{template "repo/settings/layout_footer" .}}

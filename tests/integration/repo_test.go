@@ -75,7 +75,10 @@ func testViewRepo(t *testing.T) {
 			}
 		})
 
-		f.commitTime, _ = s.Find("span.time-since").Attr("data-tooltip-content")
+		// convert "2017-06-14 21:54:21 +0800" to "Wed, 14 Jun 2017 13:54:21 UTC"
+		htmlTimeString, _ := s.Find("relative-time.time-since").Attr("datetime")
+		htmlTime, _ := time.Parse(time.RFC3339, htmlTimeString)
+		f.commitTime = htmlTime.In(time.Local).Format(time.RFC1123)
 		items = append(items, f)
 	})
 
@@ -167,7 +170,7 @@ func TestViewRepoWithSymlinks(t *testing.T) {
 	})
 	assert.Len(t, items, 5)
 	assert.Equal(t, "a: svg octicon-file-directory-fill", items[0])
-	assert.Equal(t, "link_b: svg octicon-file-submodule", items[1])
+	assert.Equal(t, "link_b: svg octicon-file-directory-symlink", items[1])
 	assert.Equal(t, "link_d: svg octicon-file-symlink-file", items[2])
 	assert.Equal(t, "link_hi: svg octicon-file-symlink-file", items[3])
 	assert.Equal(t, "link_link: svg octicon-file-symlink-file", items[4])
@@ -351,14 +354,13 @@ func TestViewRepoDirectoryReadme(t *testing.T) {
 
 			htmlDoc := NewHTMLParser(t, resp.Body)
 			_, exists := htmlDoc.doc.Find(".file-view").Attr("class")
-			fmt.Printf("%s", resp.Body)
 
 			assert.False(t, exists, "README should not have rendered")
 		})
 	}
 	missing("sp-ace", "/user2/readme-test/src/branch/sp-ace/")
 	missing("nested-special", "/user2/readme-test/src/branch/special-subdir-nested/subproject") // the special subdirs should only trigger on the repo root
-	// missing("special-subdir-nested", "/user2/readme-test/src/branch/special-subdir-nested/") // This is currently FAILING, due to a bug introduced in https://github.com/go-gitea/gitea/pull/22177
+	missing("special-subdir-nested", "/user2/readme-test/src/branch/special-subdir-nested/")
 	missing("symlink-loop", "/user2/readme-test/src/branch/symlink-loop/")
 }
 
@@ -373,7 +375,7 @@ func TestMarkDownReadmeImage(t *testing.T) {
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	src, exists := htmlDoc.doc.Find(`.markdown img`).Attr("src")
 	assert.True(t, exists, "Image not found in README")
-	assert.Equal(t, src, "/user2/repo1/media/branch/home-md-img-check/test-fake-img.jpg")
+	assert.Equal(t, "/user2/repo1/media/branch/home-md-img-check/test-fake-img.jpg", src)
 
 	req = NewRequest(t, "GET", "/user2/repo1/src/branch/home-md-img-check/README.md")
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -381,7 +383,7 @@ func TestMarkDownReadmeImage(t *testing.T) {
 	htmlDoc = NewHTMLParser(t, resp.Body)
 	src, exists = htmlDoc.doc.Find(`.markdown img`).Attr("src")
 	assert.True(t, exists, "Image not found in markdown file")
-	assert.Equal(t, src, "/user2/repo1/media/branch/home-md-img-check/test-fake-img.jpg")
+	assert.Equal(t, "/user2/repo1/media/branch/home-md-img-check/test-fake-img.jpg", src)
 }
 
 func TestMarkDownReadmeImageSubfolder(t *testing.T) {
@@ -396,7 +398,7 @@ func TestMarkDownReadmeImageSubfolder(t *testing.T) {
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	src, exists := htmlDoc.doc.Find(`.markdown img`).Attr("src")
 	assert.True(t, exists, "Image not found in README")
-	assert.Equal(t, src, "/user2/repo1/media/branch/sub-home-md-img-check/docs/test-fake-img.jpg")
+	assert.Equal(t, "/user2/repo1/media/branch/sub-home-md-img-check/docs/test-fake-img.jpg", src)
 
 	req = NewRequest(t, "GET", "/user2/repo1/src/branch/sub-home-md-img-check/docs/README.md")
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -404,5 +406,5 @@ func TestMarkDownReadmeImageSubfolder(t *testing.T) {
 	htmlDoc = NewHTMLParser(t, resp.Body)
 	src, exists = htmlDoc.doc.Find(`.markdown img`).Attr("src")
 	assert.True(t, exists, "Image not found in markdown file")
-	assert.Equal(t, src, "/user2/repo1/media/branch/sub-home-md-img-check/docs/test-fake-img.jpg")
+	assert.Equal(t, "/user2/repo1/media/branch/sub-home-md-img-check/docs/test-fake-img.jpg", src)
 }

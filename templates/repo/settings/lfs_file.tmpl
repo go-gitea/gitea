@@ -1,9 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository settings lfs">
-	{{template "repo/header" .}}
-	{{template "repo/settings/navbar" .}}
-	<div class="ui container repository file list">
-		{{template "base/alert" .}}
+{{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings lfs")}}
+	<div class="user-main-content twelve wide column content repository file list">
 		<div class="tab-size-8 non-diff-file-content">
 			<h4 class="ui top attached header">
 				<a href="{{.LFSFilesLink}}">{{.locale.Tr "repo.settings.lfs"}}</a> / <span class="truncate sha">{{.LFSFile.Oid}}</span>
@@ -23,7 +19,7 @@
 					{{else if .IsPlainText}}
 						<pre>{{if .FileContent}}{{.FileContent | Safe}}{{end}}</pre>
 					{{else if not .IsTextFile}}
-						<div class="view-raw ui center">
+						<div class="view-raw">
 							{{if .IsImageFile}}
 								<img src="{{$.RawFileLink}}">
 							{{else if .IsVideoFile}}
@@ -35,7 +31,7 @@
 									<strong>{{.locale.Tr "repo.audio_not_supported_in_browser"}}</strong>
 								</audio>
 							{{else if .IsPDFFile}}
-								<iframe width="100%" height="600px" src="{{AssetUrlPrefix}}/vendor/plugins/pdfjs/web/viewer.html?file={{$.RawFileLink}}"></iframe>
+								<div class="pdf-content is-loading" data-src="{{$.RawFileLink}}" data-fallback-button-text="{{.locale.Tr "diff.view_file"}}"></div>
 							{{else}}
 								<a href="{{$.RawFileLink}}" rel="nofollow" class="btn btn-gray btn-radius">{{.locale.Tr "repo.file_view_raw"}}</a>
 							{{end}}
@@ -48,7 +44,7 @@
 									<td><strong>{{.locale.Tr "repo.file_too_large"}}</strong></td>
 								{{else}}
 									<td class="lines-num">{{.LineNums}}</td>
-									<td class="lines-code"><pre><code class="{{.HighlightClass}}"><ol class="linenums">{{.FileContent}}</ol></code></pre></td>
+									<td class="lines-code"><pre><code class="{{.HighlightClass}}"><ol>{{.FileContent}}</ol></code></pre></td>
 								{{end}}
 								</tr>
 							</tbody>
@@ -58,5 +54,4 @@
 			</div>
 		</div>
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "repo/settings/layout_footer" .}}

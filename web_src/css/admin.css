@@ -4,79 +4,33 @@
   margin: 12px -1rem -1rem;
 }
 
-.admin .table.segment {
-  padding: 0;
-  font-size: 13px;
-  overflow-x: auto;
-}
-
-.admin .table.segment:not(.striped) thead th:last-child {
-  padding-right: 5px !important;
-}
-
-.admin .table.segment th {
-  padding-top: 5px;
-  padding-bottom: 5px;
-}
-
-.admin .table.segment:not(.select) th:first-of-type,
-.admin .table.segment:not(.select) td:first-of-type {
-  padding-left: 15px !important;
-}
-
-.admin .table.segment form tbody button[type="submit"] {
-  padding: 5px 8px;
-}
-
-.admin .settings .button.adopt,
-.admin .settings .button.delete {
-  margin-top: -15px;
-  margin-bottom: -15px;
-}
-
-.admin .settings .button.adopt .label,
-.admin .settings .button.delete .label {
-  vertical-align: middle;
-}
-
-.admin.user .email {
+.admin.user table.table .email {
   max-width: 200px;
 }
 
 .admin dl.admin-dl-horizontal {
-  padding: 20px;
+  padding: 1em;
   margin: 0;
+  display: flex;
+  flex-wrap: wrap;
 }
 
+.admin dl.admin-dl-horizontal dt,
 .admin dl.admin-dl-horizontal dd {
-  margin-left: 275px;
-}
-
-@media (max-width: 767px) {
-  .admin dl.admin-dl-horizontal dd {
-    margin-left: 5%;
-  }
+  line-height: 1;
+  padding: 5px 0;
 }
 
 .admin dl.admin-dl-horizontal dt {
-  font-weight: 600;
-  float: left;
-  width: 285px;
-  clear: left;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  width: 300px;
+  max-width: calc(100% - 100px - 1em);
+  font-weight: var(--font-weight-semibold);
 }
 
-@media (max-width: 767px) {
-  .admin dl.admin-dl-horizontal dt {
-    width: auto;
-    margin-right: 0.5em;
-  }
-}
-
-.admin.config #test-mail-btn {
-  margin-left: 5px;
+.admin dl.admin-dl-horizontal dd {
+  margin-left: auto;
+  width: calc(100% - 300px - 1em);
+  min-width: 100px;
 }
 
 .admin code,
@@ -85,26 +39,10 @@
   word-wrap: break-word;
 }
 
-@media (max-width: 767px) {
-  .admin #notice-table .notice-description {
-    max-width: 80vw;
-  }
+.admin .ui.table.segment {
+  overflow-x: auto; /* if the screen width is small, many wide tables (eg: user list) need scroll bars */
 }
 
-@media (min-width: 768px) and (max-width: 991px) {
-  .admin #notice-table .notice-description {
-    max-width: 360px;
-  }
-}
-
-@media (min-width: 992px) and (max-width: 1200px) {
-  .admin #notice-table .notice-description {
-    max-width: 510px;
-  }
-}
-
-@media (min-width: 1201px) {
-  .admin #notice-table .notice-description {
-    max-width: 640px;
-  }
+.admin .table th {
+  white-space: nowrap;
 }

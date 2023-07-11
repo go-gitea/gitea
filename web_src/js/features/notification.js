@@ -4,6 +4,30 @@ const {appSubUrl, csrfToken, notificationSettings, assetVersionEncoded} = window
 let notificationSequenceNumber = 0;
 
 export function initNotificationsTable() {
+  const table = document.getElementById('notification_table');
+  if (!table) return;
+
+  // when page restores from bfcache, delete previously clicked items
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) { // page was restored from bfcache
+      const table = document.getElementById('notification_table');
+      const unreadCountEl = document.querySelector('.notifications-unread-count');
+      let unreadCount = parseInt(unreadCountEl.textContent);
+      for (const item of table.querySelectorAll('.notifications-item[data-remove="true"]')) {
+        item.remove();
+        unreadCount -= 1;
+      }
+      unreadCountEl.textContent = unreadCount;
+    }
+  });
+
+  // mark clicked unread links for deletion on bfcache restore
+  for (const link of table.querySelectorAll('.notifications-item[data-status="1"] .notifications-link')) {
+    link.addEventListener('click', (e) => {
+      e.target.closest('.notifications-item').setAttribute('data-remove', 'true');
+    });
+  }
+
   $('#notification_table .button').on('click', function () {
     (async () => {
       const data = await updateNotification(
@@ -141,7 +165,7 @@ async function updateNotificationTable() {
   if (notificationDiv.length > 0) {
     const data = await $.ajax({
       type: 'GET',
-      url: `${appSubUrl}/notifications?${notificationDiv.data('params')}`,
+      url: `${appSubUrl}/notifications${window.location.search}`,
       data: {
         'div-only': true,
         'sequence-number': ++notificationSequenceNumber,

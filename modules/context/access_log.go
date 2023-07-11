@@ -5,15 +5,17 @@ package context
 
 import (
 	"bytes"
-	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
 	"text/template"
 	"time"
 
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web/middleware"
 )
 
 type routerLoggerOptions struct {
@@ -21,11 +23,9 @@ type routerLoggerOptions struct {
 	Identity       *string
 	Start          *time.Time
 	ResponseWriter http.ResponseWriter
-	Ctx            map[string]interface{}
+	Ctx            map[string]any
 	RequestID      *string
 }
-
-var signedUserNameStringPointerKey interface{} = "signedUserNameStringPointerKey"
 
 const keyOfRequestIDInTemplate = ".RequestID"
 
@@ -59,37 +59,43 @@ func AccessLogger() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			start := time.Now()
-			identity := "-"
-			r := req.WithContext(context.WithValue(req.Context(), signedUserNameStringPointerKey, &identity))
 
 			var requestID string
 			if needRequestID {
 				requestID = parseRequestIDFromRequestHeader(req)
 			}
 
-			next.ServeHTTP(w, r)
+			reqHost, _, err := net.SplitHostPort(req.RemoteAddr)
+			if err != nil {
+				reqHost = req.RemoteAddr
+			}
+
+			next.ServeHTTP(w, req)
 			rw := w.(ResponseWriter)
 
+			identity := "-"
+			data := middleware.GetContextData(req.Context())
+			if signedUser, ok := data[middleware.ContextDataKeySignedUser].(*user_model.User); ok {
+				identity = signedUser.Name
+			}
 			buf := bytes.NewBuffer([]byte{})
-			err := logTemplate.Execute(buf, routerLoggerOptions{
+			err = logTemplate.Execute(buf, routerLoggerOptions{
 				req:            req,
 				Identity:       &identity,
 				Start:          &start,
 				ResponseWriter: rw,
-				Ctx: map[string]interface{}{
+				Ctx: map[string]any{
 					"RemoteAddr": req.RemoteAddr,
+					"RemoteHost": reqHost,
 					"Req":        req,
 				},
 				RequestID: &requestID,
 			})
 			if err != nil {
-				log.Error("Could not set up chi access logger: %v", err.Error())
+				log.Error("Could not execute access logger template: %v", err.Error())
 			}
 
-			err = logger.SendLog(log.INFO, "", "", 0, buf.String(), "")
-			if err != nil {
-				log.Error("Could not set up chi access logger: %v", err.Error())
-			}
+			logger.Info("%s", buf.String())
 		})
 	}
 }

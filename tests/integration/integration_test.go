@@ -1,6 +1,7 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
+//nolint:forbidigo
 package integration
 
 import (
@@ -23,10 +24,12 @@ import (
 
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
+	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/testlogger"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
@@ -77,33 +80,33 @@ func NewNilResponseHashSumRecorder() *NilResponseHashSumRecorder {
 }
 
 func TestMain(m *testing.M) {
-	defer log.Close()
+	defer log.GetManager().Close()
 
 	managerCtx, cancel := context.WithCancel(context.Background())
 	graceful.InitManager(managerCtx)
 	defer cancel()
 
 	tests.InitTest(true)
-	c = routers.NormalRoutes(context.TODO())
+	c = routers.NormalRoutes()
 
 	// integration test settings...
 	if setting.CfgProvider != nil {
 		testingCfg := setting.CfgProvider.Section("integration-tests")
-		tests.SlowTest = testingCfg.Key("SLOW_TEST").MustDuration(tests.SlowTest)
-		tests.SlowFlush = testingCfg.Key("SLOW_FLUSH").MustDuration(tests.SlowFlush)
+		testlogger.SlowTest = testingCfg.Key("SLOW_TEST").MustDuration(testlogger.SlowTest)
+		testlogger.SlowFlush = testingCfg.Key("SLOW_FLUSH").MustDuration(testlogger.SlowFlush)
 	}
 
 	if os.Getenv("GITEA_SLOW_TEST_TIME") != "" {
 		duration, err := time.ParseDuration(os.Getenv("GITEA_SLOW_TEST_TIME"))
 		if err == nil {
-			tests.SlowTest = duration
+			testlogger.SlowTest = duration
 		}
 	}
 
 	if os.Getenv("GITEA_SLOW_FLUSH_TIME") != "" {
 		duration, err := time.ParseDuration(os.Getenv("GITEA_SLOW_FLUSH_TIME"))
 		if err == nil {
-			tests.SlowFlush = duration
+			testlogger.SlowFlush = duration
 		}
 	}
 
@@ -123,9 +126,12 @@ func TestMain(m *testing.M) {
 		fmt.Printf("Error initializing test database: %v\n", err)
 		os.Exit(1)
 	}
+
+	// FIXME: the console logger is deleted by mistake, so if there is any `log.Fatal`, developers won't see any error message.
+	// Instead, "No tests were found",  last nonsense log is "According to the configuration, subsequent logs will not be printed to the console"
 	exitCode := m.Run()
 
-	tests.WriterCloser.Reset()
+	testlogger.WriterCloser.Reset()
 
 	if err = util.RemoveAll(setting.Indexer.IssuePath); err != nil {
 		fmt.Printf("util.RemoveAll: %v\n", err)
@@ -290,7 +296,7 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...auth.
 	// Log the flash values on failure
 	if !assert.Equal(t, resp.Result().Header["Location"], []string{"/user/settings/applications"}) {
 		for _, cookie := range resp.Result().Cookies() {
-			if cookie.Name != "macaron_flash" {
+			if cookie.Name != gitea_context.CookieNameFlash {
 				continue
 			}
 			flash, _ := url.ParseQuery(cookie.Value)
@@ -313,7 +319,7 @@ func NewRequest(t testing.TB, method, urlStr string) *http.Request {
 	return NewRequestWithBody(t, method, urlStr, nil)
 }
 
-func NewRequestf(t testing.TB, method, urlFormat string, args ...interface{}) *http.Request {
+func NewRequestf(t testing.TB, method, urlFormat string, args ...any) *http.Request {
 	t.Helper()
 	return NewRequest(t, method, fmt.Sprintf(urlFormat, args...))
 }
@@ -334,7 +340,7 @@ func NewRequestWithURLValues(t testing.TB, method, urlStr string, urlValues url.
 	return req
 }
 
-func NewRequestWithJSON(t testing.TB, method, urlStr string, v interface{}) *http.Request {
+func NewRequestWithJSON(t testing.TB, method, urlStr string, v any) *http.Request {
 	t.Helper()
 
 	jsonBytes, err := json.Marshal(v)
@@ -365,10 +371,12 @@ const NoExpectedStatus = -1
 func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.ResponseRecorder {
 	t.Helper()
 	recorder := httptest.NewRecorder()
+	if req.RemoteAddr == "" {
+		req.RemoteAddr = "test-mock:12345"
+	}
 	c.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
-		if !assert.EqualValues(t, expectedStatus, recorder.Code,
-			"Request: %s %s", req.Method, req.URL.String()) {
+		if !assert.EqualValues(t, expectedStatus, recorder.Code, "Request: %s %s", req.Method, req.URL.String()) {
 			logUnexpectedResponse(t, recorder)
 		}
 	}
@@ -409,8 +417,10 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 		return
 	} else if len(respBytes) < 500 {
 		// if body is short, just log the whole thing
-		t.Log("Response:", string(respBytes))
+		t.Log("Response: ", string(respBytes))
 		return
+	} else {
+		t.Log("Response length: ", len(respBytes))
 	}
 
 	// log the "flash" error message, if one exists
@@ -425,7 +435,7 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 	}
 }
 
-func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v interface{}) {
+func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v any) {
 	t.Helper()
 
 	decoder := json.NewDecoder(resp.Body)

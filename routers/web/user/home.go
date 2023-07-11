@@ -30,6 +30,8 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/web/feed"
+	context_service "code.gitea.io/gitea/services/context"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 
@@ -95,7 +97,7 @@ func Dashboard(ctx *context.Context) {
 		uid = ctxUser.ID
 	}
 
-	ctx.PageData["dashboardRepoList"] = map[string]interface{}{
+	ctx.PageData["dashboardRepoList"] = map[string]any{
 		"searchLimit": setting.UI.User.RepoPagingNum,
 		"uid":         uid,
 	}
@@ -107,6 +109,7 @@ func Dashboard(ctx *context.Context) {
 			return
 		}
 		ctx.Data["HeatmapData"] = data
+		ctx.Data["HeatmapTotalContributions"] = activities_model.GetTotalContributionsInHeatmap(data)
 	}
 
 	feeds, count, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
@@ -518,10 +521,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	// Parse ctx.FormString("repos") and remember matched repo IDs for later.
 	// Gets set when clicking filters on the issues overview page.
-	repoIDs := getRepoIDs(ctx.FormString("repos"))
-	if len(repoIDs) > 0 {
-		opts.RepoCond = builder.In("issue.repo_id", repoIDs)
-	}
+	opts.RepoIDs = getRepoIDs(ctx.FormString("repos"))
 
 	// ------------------------------
 	// Get issues as defined by opts.
@@ -577,11 +577,10 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// -------------------------------
 	var issueStats *issues_model.IssueStats
 	if !forceEmpty {
-		statsOpts := issues_model.UserIssueStatsOptions{
-			UserID:     ctx.Doer.ID,
-			FilterMode: filterMode,
-			IsPull:     isPullList,
-			IsClosed:   isShowClosed,
+		statsOpts := issues_model.IssuesOptions{
+			User:       ctx.Doer,
+			IsPull:     util.OptionalBoolOf(isPullList),
+			IsClosed:   util.OptionalBoolOf(isShowClosed),
 			IssueIDs:   issueIDsFromSearch,
 			IsArchived: util.OptionalBoolFalse,
 			LabelIDs:   opts.LabelIDs,
@@ -590,7 +589,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			RepoCond:   opts.RepoCond,
 		}
 
-		issueStats, err = issues_model.GetUserIssueStats(statsOpts)
+		issueStats, err = issues_model.GetUserIssueStats(filterMode, statsOpts)
 		if err != nil {
 			ctx.ServerError("GetUserIssueStats Shown", err)
 			return
@@ -606,9 +605,9 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	} else {
 		shownIssues = int(issueStats.ClosedCount)
 	}
-	if len(repoIDs) != 0 {
+	if len(opts.RepoIDs) != 0 {
 		shownIssues = 0
-		for _, repoID := range repoIDs {
+		for _, repoID := range opts.RepoIDs {
 			shownIssues += int(issueCountByRepo[repoID])
 		}
 	}
@@ -619,8 +618,8 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	}
 	ctx.Data["TotalIssueCount"] = allIssueCount
 
-	if len(repoIDs) == 1 {
-		repo := showReposMap[repoIDs[0]]
+	if len(opts.RepoIDs) == 1 {
+		repo := showReposMap[opts.RepoIDs[0]]
 		if repo != nil {
 			ctx.Data["SingleRepoLink"] = repo.Link()
 		}
@@ -662,7 +661,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
-	ctx.Data["RepoIDs"] = repoIDs
+	ctx.Data["RepoIDs"] = opts.RepoIDs
 	ctx.Data["IsShowClosed"] = isShowClosed
 	ctx.Data["SelectLabels"] = selectedLabels
 
@@ -673,7 +672,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	}
 
 	// Convert []int64 to string
-	reposParam, _ := json.Marshal(repoIDs)
+	reposParam, _ := json.Marshal(opts.RepoIDs)
 
 	ctx.Data["ReposParam"] = string(reposParam)
 
@@ -726,7 +725,7 @@ func issueIDsFromSearch(ctx *context.Context, ctxUser *user_model.User, keyword 
 	if err != nil {
 		return nil, fmt.Errorf("GetRepoIDsForIssuesOptions: %w", err)
 	}
-	issueIDsFromSearch, err := issue_indexer.SearchIssuesByKeyword(ctx, searchRepoIDs, keyword)
+	issueIDsFromSearch, err := issue_indexer.SearchIssuesByKeyword(ctx, searchRepoIDs, keyword, ctx.FormString("state"))
 	if err != nil {
 		return nil, fmt.Errorf("SearchIssuesByKeyword: %w", err)
 	}
@@ -813,4 +812,52 @@ func ShowGPGKeys(ctx *context.Context) {
 	}
 	writer.Close()
 	ctx.PlainTextBytes(http.StatusOK, buf.Bytes())
+}
+
+func UsernameSubRoute(ctx *context.Context) {
+	// WORKAROUND to support usernames with "." in it
+	// https://github.com/go-chi/chi/issues/781
+	username := ctx.Params("username")
+	reloadParam := func(suffix string) (success bool) {
+		ctx.SetParams("username", strings.TrimSuffix(username, suffix))
+		context_service.UserAssignmentWeb()(ctx)
+		return !ctx.Written()
+	}
+	switch {
+	case strings.HasSuffix(username, ".png"):
+		if reloadParam(".png") {
+			AvatarByUserName(ctx)
+		}
+	case strings.HasSuffix(username, ".keys"):
+		if reloadParam(".keys") {
+			ShowSSHKeys(ctx)
+		}
+	case strings.HasSuffix(username, ".gpg"):
+		if reloadParam(".gpg") {
+			ShowGPGKeys(ctx)
+		}
+	case strings.HasSuffix(username, ".rss"):
+		if !setting.Other.EnableFeed {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+		if reloadParam(".rss") {
+			context_service.UserAssignmentWeb()(ctx)
+			feed.ShowUserFeedRSS(ctx)
+		}
+	case strings.HasSuffix(username, ".atom"):
+		if !setting.Other.EnableFeed {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+		if reloadParam(".atom") {
+			feed.ShowUserFeedAtom(ctx)
+		}
+	default:
+		context_service.UserAssignmentWeb()(ctx)
+		if !ctx.Written() {
+			ctx.Data["EnableFeed"] = setting.Other.EnableFeed
+			OwnerProfile(ctx)
+		}
+	}
 }

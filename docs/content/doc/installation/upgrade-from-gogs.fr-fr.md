@@ -2,9 +2,11 @@
 date: "2017-08-23T09:00:00+02:00"
 title: "Mise à jour depuis Gogs"
 slug: "upgrade-from-gogs"
-weight: 10
+weight: 101
 toc: false
 draft: false
+aliases:
+  - /fr-fr/upgrade-from-gogs
 menu:
   sidebar:
     parent: "installation"
@@ -20,7 +22,7 @@ menu:
 Veuillez suivre les étapes ci-dessous. Sur Unix, toute les commandes s'exécutent en tant que l'utilisateur utilisé pour votre installation de Gogs :
 
 * Crééer une sauvegarde de Gogs avec la commande `gogs dump`. Le fichier nouvellement créé `gogs-dump-[timestamp].zip` contient toutes les données de votre instance de Gogs.
-* Téléchargez le fichier correspondant à votre plateforme à partir de la [page de téléchargements](https://dl.gitea.io/gitea).
+* Téléchargez le fichier correspondant à votre plateforme à partir de la [page de téléchargements](https://dl.gitea.com/gitea).
 * Mettez la binaire dans le répertoire d'installation souhaité.
 * Copiez le fichier `gogs/custom/conf/app.ini` vers `gitea/custom/conf/app.ini`.
 * Si vous avez personnalisé les répertoires `templates, public` dans `gogs/custom/`, copiez-les vers `gitea/custom/`.

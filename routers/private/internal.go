@@ -38,12 +38,12 @@ func CheckInternalToken(next http.Handler) http.Handler {
 }
 
 // bind binding an obj to a handler
-func bind[T any](obj T) http.HandlerFunc {
-	return web.Wrap(func(ctx *context.PrivateContext) {
+func bind[T any](_ T) any {
+	return func(ctx *context.PrivateContext) {
 		theObj := new(T) // create a new form obj for every request but not use obj directly
 		binding.Bind(ctx.Req, theObj)
 		web.SetForm(ctx, theObj)
-	})
+	}
 }
 
 // Routes registers all internal APIs routes to web application.
@@ -67,16 +67,18 @@ func Routes() *web.Route {
 	r.Get("/serv/command/{keyid}/{owner}/{repo}", ServCommand)
 	r.Post("/manager/shutdown", Shutdown)
 	r.Post("/manager/restart", Restart)
+	r.Post("/manager/reload-templates", ReloadTemplates)
 	r.Post("/manager/flush-queues", bind(private.FlushOptions{}), FlushQueues)
 	r.Post("/manager/pause-logging", PauseLogging)
 	r.Post("/manager/resume-logging", ResumeLogging)
 	r.Post("/manager/release-and-reopen-logging", ReleaseReopenLogging)
 	r.Post("/manager/set-log-sql", SetLogSQL)
 	r.Post("/manager/add-logger", bind(private.LoggerOptions{}), AddLogger)
-	r.Post("/manager/remove-logger/{group}/{name}", RemoveLogger)
+	r.Post("/manager/remove-logger/{logger}/{writer}", RemoveLogger)
 	r.Get("/manager/processes", Processes)
 	r.Post("/mail/send", SendEmail)
 	r.Post("/restore_repo", RestoreRepo)
+	r.Post("/actions/generate_actions_runner_token", GenerateActionsRunnerToken)
 
 	return r
 }

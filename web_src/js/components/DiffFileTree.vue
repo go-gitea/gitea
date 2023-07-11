@@ -1,37 +1,33 @@
 <template>
-  <div
-    v-if="fileTreeIsVisible"
-    class="gt-mr-3 gt-mt-3 diff-detail-box"
-  >
+  <div v-if="store.fileTreeIsVisible" class="gt-mr-3 gt-mt-3 diff-detail-box">
     <!-- only render the tree if we're visible. in many cases this is something that doesn't change very often -->
     <div class="ui list">
-      <DiffFileTreeItem v-for="item in fileTree" :key="item.name" :item="item" />
+      <DiffFileTreeItem v-for="item in fileTree" :key="item.name" :item="item"/>
     </div>
-    <div v-if="isIncomplete" id="diff-too-many-files-stats" class="gt-pt-2">
-      <span class="gt-mr-2">{{ tooManyFilesMessage }}</span><a :class="['ui', 'basic', 'tiny', 'button', isLoadingNewData === true ? 'disabled' : '']" id="diff-show-more-files-stats" @click.stop="loadMoreData">{{ showMoreMessage }}</a>
+    <div v-if="store.isIncomplete" class="gt-pt-2">
+      <a :class="['ui', 'basic', 'tiny', 'button', store.isLoadingNewData ? 'disabled' : '']" @click.stop="loadMoreData">{{ store.showMoreMessage }}</a>
     </div>
   </div>
 </template>
 
 <script>
 import DiffFileTreeItem from './DiffFileTreeItem.vue';
-import {doLoadMoreFiles} from '../features/repo-diff.js';
+import {loadMoreFiles} from '../features/repo-diff.js';
 import {toggleElem} from '../utils/dom.js';
+import {diffTreeStore} from '../modules/stores.js';
+import {setFileFolding} from '../features/file-fold.js';
 
-const {pageData} = window.config;
 const LOCAL_STORAGE_KEY = 'diff_file_tree_visible';
 
 export default {
   components: {DiffFileTreeItem},
   data: () => {
-    const fileTreeIsVisible = localStorage.getItem(LOCAL_STORAGE_KEY) === 'true';
-    pageData.diffFileInfo.fileTreeIsVisible = fileTreeIsVisible;
-    return pageData.diffFileInfo;
+    return {store: diffTreeStore()};
   },
   computed: {
     fileTree() {
       const result = [];
-      for (const file of this.files) {
+      for (const file of this.store.files) {
         // Split file into directories
         const splits = file.Name.split('/');
         let index = 0;
@@ -93,22 +89,37 @@ export default {
     }
   },
   mounted() {
-    // replace the pageData.diffFileInfo.files with our watched data so we get updates
-    pageData.diffFileInfo.files = this.files;
-
+    // Default to true if unset
+    this.store.fileTreeIsVisible = localStorage.getItem(LOCAL_STORAGE_KEY) !== 'false';
     document.querySelector('.diff-toggle-file-tree-button').addEventListener('click', this.toggleVisibility);
+
+    this.hashChangeListener = () => {
+      this.store.selectedItem = window.location.hash;
+      this.expandSelectedFile();
+    };
+    this.hashChangeListener();
+    window.addEventListener('hashchange', this.hashChangeListener);
   },
   unmounted() {
     document.querySelector('.diff-toggle-file-tree-button').removeEventListener('click', this.toggleVisibility);
+    window.removeEventListener('hashchange', this.hashChangeListener);
   },
   methods: {
+    expandSelectedFile() {
+      // expand file if the selected file is folded
+      if (this.store.selectedItem) {
+        const box = document.querySelector(this.store.selectedItem);
+        const folded = box?.getAttribute('data-folded') === 'true';
+        if (folded) setFileFolding(box, box.querySelector('.fold-file'), false);
+      }
+    },
     toggleVisibility() {
-      this.updateVisibility(!this.fileTreeIsVisible);
+      this.updateVisibility(!this.store.fileTreeIsVisible);
     },
     updateVisibility(visible) {
-      this.fileTreeIsVisible = visible;
-      localStorage.setItem(LOCAL_STORAGE_KEY, this.fileTreeIsVisible);
-      this.updateState(this.fileTreeIsVisible);
+      this.store.fileTreeIsVisible = visible;
+      localStorage.setItem(LOCAL_STORAGE_KEY, this.store.fileTreeIsVisible);
+      this.updateState(this.store.fileTreeIsVisible);
     },
     updateState(visible) {
       const btn = document.querySelector('.diff-toggle-file-tree-button');
@@ -121,10 +132,7 @@ export default {
       toggleElem(toHide, visible);
     },
     loadMoreData() {
-      this.isLoadingNewData = true;
-      doLoadMoreFiles(this.link, this.diffEnd, () => {
-        this.isLoadingNewData = false;
-      });
+      loadMoreFiles(this.store.linkLoadMore);
     },
   },
 };

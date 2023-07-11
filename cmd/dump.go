@@ -112,6 +112,10 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 			Name:  "verbose, V",
 			Usage: "Show process details",
 		},
+		cli.BoolFlag{
+			Name:  "quiet, q",
+			Usage: "Only display warnings and errors",
+		},
 		cli.StringFlag{
 			Name:  "tempdir, t",
 			Value: os.TempDir(),
@@ -157,7 +161,7 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 	},
 }
 
-func fatal(format string, args ...interface{}) {
+func fatal(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, format+"\n", args...)
 	log.Fatal(format, args...)
 }
@@ -168,10 +172,7 @@ func runDump(ctx *cli.Context) error {
 	outType := ctx.String("type")
 	if fileName == "-" {
 		file = os.Stdout
-		err := log.DelLogger("console")
-		if err != nil {
-			fatal("Deleting default logger failed. Can not write to stdout: %v", err)
-		}
+		setupConsoleLogger(log.FATAL, log.CanColorStderr, os.Stderr)
 	} else {
 		for _, suffix := range outputTypeEnum.Enum {
 			if strings.HasSuffix(fileName, "."+suffix) {
@@ -181,8 +182,7 @@ func runDump(ctx *cli.Context) error {
 		}
 		fileName += "." + outType
 	}
-	setting.InitProviderFromExistingFile()
-	setting.LoadCommonSettings()
+	setting.MustInstalled()
 
 	// make sure we are logging to the console no matter what the configuration tells us do to
 	// FIXME: don't use CfgProvider directly
@@ -192,11 +192,24 @@ func runDump(ctx *cli.Context) error {
 	if _, err := setting.CfgProvider.Section("log.console").NewKey("STDERR", "true"); err != nil {
 		fatal("Setting console logger to stderr failed: %v", err)
 	}
+
+	// Set loglevel to Warn if quiet-mode is requested
+	if ctx.Bool("quiet") {
+		if _, err := setting.CfgProvider.Section("log.console").NewKey("LEVEL", "Warn"); err != nil {
+			fatal("Setting console log-level failed: %v", err)
+		}
+	}
+
 	if !setting.InstallLock {
 		log.Error("Is '%s' really the right config path?\n", setting.CustomConf)
 		return fmt.Errorf("gitea is not initialized")
 	}
 	setting.LoadSettings() // cannot access session settings otherwise
+
+	verbose := ctx.Bool("verbose")
+	if verbose && ctx.Bool("quiet") {
+		return fmt.Errorf("--quiet and --verbose cannot both be set")
+	}
 
 	stdCtx, cancel := installSignals()
 	defer cancel()
@@ -223,8 +236,7 @@ func runDump(ctx *cli.Context) error {
 		return err
 	}
 
-	verbose := ctx.Bool("verbose")
-	var iface interface{}
+	var iface any
 	if fileName == "-" {
 		iface, err = archiver.ByExtension(fmt.Sprintf(".%s", outType))
 	} else {
@@ -341,9 +353,9 @@ func runDump(ctx *cli.Context) error {
 		}
 
 		excludes = append(excludes, setting.RepoRootPath)
-		excludes = append(excludes, setting.LFS.Path)
-		excludes = append(excludes, setting.Attachment.Path)
-		excludes = append(excludes, setting.Packages.Path)
+		excludes = append(excludes, setting.LFS.Storage.Path)
+		excludes = append(excludes, setting.Attachment.Storage.Path)
+		excludes = append(excludes, setting.Packages.Storage.Path)
 		excludes = append(excludes, setting.Log.RootPath)
 		excludes = append(excludes, absFileName)
 		if err := addRecursiveExclude(w, "data", setting.AppDataPath, excludes, verbose); err != nil {

@@ -2,9 +2,11 @@
 date: "2016-12-26T16:00:00+02:00"
 title: "配置说明"
 slug: "config-cheat-sheet"
-weight: 20
+weight: 30
 toc: false
 draft: false
+aliases:
+  - /zh-cn/config-cheat-sheet
 menu:
   sidebar:
     parent: "administration"
@@ -16,7 +18,7 @@ menu:
 # 配置说明
 
 这是针对Gitea配置文件的说明，你可以了解Gitea的强大配置。需要说明的是，你的所有改变请修改 `custom/conf/app.ini` 文件而不是源文件。
-所有默认值可以通过 [app.example.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini) 查看到。
+所有默认值可以通过 [app.example.ini](https://github.com/go-gitea/gitea/blob/main/custom/conf/app.example.ini) 查看到。
 如果你发现 `%(X)s` 这样的内容，请查看 [ini](https://github.com/go-ini/ini/#recursive-values) 这里的说明。
 标注了 :exclamation: 的配置项表明除非你真的理解这个配置项的意义，否则最好使用默认值。
 
@@ -41,7 +43,6 @@ menu:
 - `DEFAULT_PRIVATE`: 默认创建的git工程为私有。 可以是`last`, `private` 或 `public`。默认值是 `last`表示用户最后创建的Repo的选择。
 - `DEFAULT_PUSH_CREATE_PRIVATE`: **true**:  通过 ``push-to-create`` 方式创建的仓库是否默认为私有仓库.
 - `MAX_CREATION_LIMIT`: 全局最大每个用户创建的git工程数目， `-1` 表示没限制。
-- `PULL_REQUEST_QUEUE_LENGTH`: 小心：合并请求测试队列的长度，尽量放大。
 
 ### Repository - Release (`repository.release`)
 
@@ -109,10 +110,6 @@ menu:
 - `ISSUE_INDEXER_CONN_STR`: ****: 工单索引连接字符串，仅当 ISSUE_INDEXER_TYPE 为 `elasticsearch` 时有效。例如: http://elastic:changeme@localhost:9200
 - `ISSUE_INDEXER_NAME`: **gitea_issues**: 工单索引名称，仅当 ISSUE_INDEXER_TYPE 为 `elasticsearch` 时有效。
 - `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: 工单索引文件存放路径，当索引类型为 `bleve` 时有效。
-- `ISSUE_INDEXER_QUEUE_TYPE`: **levelqueue**: 工单索引队列类型，当前支持 `channel`， `levelqueue` 或 `redis`。
-- `ISSUE_INDEXER_QUEUE_DIR`: **indexers/issues.queue**: 当 `ISSUE_INDEXER_QUEUE_TYPE` 为 `levelqueue` 时，保存索引队列的磁盘路径。
-- `ISSUE_INDEXER_QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: 当 `ISSUE_INDEXER_QUEUE_TYPE` 为 `redis` 时，保存Redis队列的连接字符串。
-- `ISSUE_INDEXER_QUEUE_BATCH_NUMBER`: **20**: 队列处理中批量提交数量。
 
 - `REPO_INDEXER_ENABLED`: **false**: 是否启用代码搜索（启用后会占用比较大的磁盘空间，如果是bleve可能需要占用约6倍存储空间）。
 - `REPO_INDEXER_TYPE`: **bleve**: 代码搜索引擎类型，可以为 `bleve` 或者 `elasticsearch`。
@@ -120,7 +117,6 @@ menu:
 - `REPO_INDEXER_CONN_STR`: ****: 代码搜索引擎连接字符串，当 `REPO_INDEXER_TYPE` 为 `elasticsearch` 时有效。例如： http://elastic:changeme@localhost:9200
 - `REPO_INDEXER_NAME`: **gitea_codes**: 代码搜索引擎的名字，当 `REPO_INDEXER_TYPE` 为 `elasticsearch` 时有效。
 
-- `UPDATE_BUFFER_LEN`: **20**: 代码索引请求的缓冲区长度。
 - `MAX_FILE_SIZE`: **1048576**: 进行解析的源代码文件的最大长度，小于该值时才会索引。
 
 ## Security (`security`)
@@ -218,8 +214,8 @@ menu:
 - `AVATAR_STORAGE_TYPE`: **local**: 头像存储类型，可以为 `local` 或 `minio`，分别支持本地文件系统和 minio 兼容的API。
 - `AVATAR_UPLOAD_PATH`: **data/avatars**: 存储头像的文件系统路径。
 - `AVATAR_MAX_WIDTH`: **4096**: 头像最大宽度，单位像素。
-- `AVATAR_MAX_HEIGHT`: **3072**: 头像最大高度，单位像素。
-- `AVATAR_MAX_FILE_SIZE`: **1048576** (1Mb): 头像最大大小。
+- `AVATAR_MAX_HEIGHT`: **4096**: 头像最大高度，单位像素。
+- `AVATAR_MAX_FILE_SIZE`: **1048576** (1MiB): 头像最大大小。
 
 - `REPOSITORY_AVATAR_STORAGE_TYPE`: **local**: 仓库头像存储类型，可以为 `local` 或 `minio`，分别支持本地文件系统和 minio 兼容的API。
 - `REPOSITORY_AVATAR_UPLOAD_PATH`: **data/repo-avatars**: 存储仓库头像的路径。
@@ -265,7 +261,7 @@ test01.xls: application/vnd.ms-excel; charset=binary
 - `LEVEL`: 日志级别，默认为 `Trace`。
 - `DISABLE_ROUTER_LOG`: 关闭日志中的路由日志。
 - `ENABLE_ACCESS_LOG`: 是否开启 Access Log, 默认为 false。
-- `ACCESS_LOG_TEMPLATE`: `access.log` 输出内容的模板，默认模板：**`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`**
+- `ACCESS_LOG_TEMPLATE`: `access.log` 输出内容的模板，默认模板：**`{{.Ctx.RemoteHost}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}" "{{.Ctx.Req.UserAgent}}"`**
   模板支持以下参数:
   - `Ctx`: 请求上下文。
   - `Identity`: 登录用户名，默认: “`-`”。
@@ -341,7 +337,7 @@ test01.xls: application/vnd.ms-excel; charset=binary
 ENABLED = false
 NEED_POSTPROCESS = true
 FILE_EXTENSIONS = .adoc,.asciidoc
-RENDER_COMMAND = "asciidoc --out-file=- -"
+RENDER_COMMAND = "asciidoctor --embedded --safe-mode=secure --out-file=- -"
 IS_INPUT_FILE = false
 ```
 
@@ -418,7 +414,7 @@ LFS 的存储配置。 如果 `STORAGE_TYPE` 为空，则此配置将从 `[stora
 
 ## Storage (`storage`)
 
-Attachments, lfs, avatars and etc 的默认存储配置。
+Attachments, lfs, avatars, repo-avatars, repo-archive, packages, actions_log, actions_artifact 的默认存储配置。
 
 - `STORAGE_TYPE`: **local**: 附件存储类型，`local` 将存储到本地文件夹， `minio` 将存储到 s3 兼容的对象存储服务中。
 - `SERVE_DIRECT`: **false**: 允许直接重定向到存储系统。当前，仅 Minio/S3 是支持的。
@@ -429,9 +425,59 @@ Attachments, lfs, avatars and etc 的默认存储配置。
 - `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
 - `MINIO_USE_SSL`: **false**: Minio enabled ssl，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
 
-你也可以自定义一个存储的名字如下：
+以下为推荐的 recommanded storage configuration for minio like below:
 
 ```ini
+[storage]
+STORAGE_TYPE = minio
+; uncomment when STORAGE_TYPE = local
+; PATH = storage root path
+; Minio endpoint to connect only available when STORAGE_TYPE is `minio`
+MINIO_ENDPOINT = localhost:9000
+; Minio accessKeyID to connect only available when STORAGE_TYPE is `minio`
+MINIO_ACCESS_KEY_ID =
+; Minio secretAccessKey to connect only available when STORAGE_TYPE is `minio`
+MINIO_SECRET_ACCESS_KEY =
+; Minio bucket to store the attachments only available when STORAGE_TYPE is `minio`
+MINIO_BUCKET = gitea
+; Minio location to create bucket only available when STORAGE_TYPE is `minio`
+MINIO_LOCATION = us-east-1
+; Minio enabled ssl only available when STORAGE_TYPE is `minio`
+MINIO_USE_SSL = false
+; Minio skip SSL verification available when STORAGE_TYPE is `minio`
+MINIO_INSECURE_SKIP_VERIFY = false
+SERVE_DIRECT = true
+```
+
+默认的，每一个存储都会有各自默认的 BasePath 在同一个minio中，默认值如下：
+
+| storage           | default base path  |
+| ----------------- | ------------------ |
+| attachments       | attachments/       |
+| lfs               | lfs/               |
+| avatars           | avatars/           |
+| repo-avatars      | repo-avatars/      |
+| repo-archive      | repo-archive/      |
+| packages          | packages/          |
+| actions_log       | actions_log/       |
+| actions_artifacts | actions_artifacts/ |
+
+同时 bucket, basepath or `SERVE_DIRECT` 是可以被覆写的，像如下所示：
+
+```ini
+[storage.actions_log]
+MINIO_BUCKET = gitea_actions_log
+SERVE_DIRECT = true
+MINIO_BASE_PATH = my_actions_log/ ; default is actions_log/ if blank
+```
+
+当然你也可以完全自定义，像如下
+
+```ini
+[lfs]
+STORAGE_TYPE = my_minio
+MINIO_BASE_PATH = my_lfs_basepath
+
 [storage.my_minio]
 STORAGE_TYPE = minio
 ; Minio endpoint to connect only available when STORAGE_TYPE is `minio`
@@ -448,9 +494,8 @@ MINIO_LOCATION = us-east-1
 MINIO_USE_SSL = false
 ; Minio skip SSL verification available when STORAGE_TYPE is `minio`
 MINIO_INSECURE_SKIP_VERIFY = false
+SERVE_DIRECT = true
 ```
-
-然后你在 `[attachment]`, `[lfs]` 等中可以把这个名字用作 `STORAGE_TYPE` 的值。
 
 ## Repository Archive Storage (`storage.repo-archive`)
 
@@ -483,5 +528,4 @@ PROXY_HOSTS = *.github.com
 
 ## Other (`other`)
 
-- `SHOW_FOOTER_BRANDING`: 为真则在页面底部显示Gitea的字样。
 - `SHOW_FOOTER_VERSION`: 为真则在页面底部显示Gitea的版本。

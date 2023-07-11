@@ -136,18 +136,18 @@ func init() {
 // LoadCodeComments loads CodeComments
 func (r *Review) LoadCodeComments(ctx context.Context) (err error) {
 	if r.CodeComments != nil {
-		return
+		return err
 	}
 	if err = r.loadIssue(ctx); err != nil {
-		return
+		return err
 	}
-	r.CodeComments, err = fetchCodeCommentsByReview(ctx, r.Issue, nil, r)
+	r.CodeComments, err = fetchCodeCommentsByReview(ctx, r.Issue, nil, r, false)
 	return err
 }
 
 func (r *Review) loadIssue(ctx context.Context) (err error) {
 	if r.Issue != nil {
-		return
+		return err
 	}
 	r.Issue, err = GetIssueByID(ctx, r.IssueID)
 	return err
@@ -156,16 +156,37 @@ func (r *Review) loadIssue(ctx context.Context) (err error) {
 // LoadReviewer loads reviewer
 func (r *Review) LoadReviewer(ctx context.Context) (err error) {
 	if r.ReviewerID == 0 || r.Reviewer != nil {
-		return
+		return err
 	}
 	r.Reviewer, err = user_model.GetPossibleUserByID(ctx, r.ReviewerID)
 	return err
 }
 
+// LoadReviewers loads reviewers
+func LoadReviewers(ctx context.Context, reviews []*Review) (err error) {
+	reviewerIds := make([]int64, len(reviews))
+	for i := 0; i < len(reviews); i++ {
+		reviewerIds[i] = reviews[i].ReviewerID
+	}
+	reviewers, err := user_model.GetPossibleUserByIDs(ctx, reviewerIds)
+	if err != nil {
+		return err
+	}
+
+	userMap := make(map[int64]*user_model.User, len(reviewers))
+	for _, reviewer := range reviewers {
+		userMap[reviewer.ID] = reviewer
+	}
+	for _, review := range reviews {
+		review.Reviewer = userMap[review.ReviewerID]
+	}
+	return nil
+}
+
 // LoadReviewerTeam loads reviewer team
 func (r *Review) LoadReviewerTeam(ctx context.Context) (err error) {
 	if r.ReviewerTeamID == 0 || r.ReviewerTeam != nil {
-		return
+		return nil
 	}
 
 	r.ReviewerTeam, err = organization.GetTeamByID(ctx, r.ReviewerTeamID)
@@ -175,18 +196,32 @@ func (r *Review) LoadReviewerTeam(ctx context.Context) (err error) {
 // LoadAttributes loads all attributes except CodeComments
 func (r *Review) LoadAttributes(ctx context.Context) (err error) {
 	if err = r.loadIssue(ctx); err != nil {
-		return
+		return err
 	}
 	if err = r.LoadCodeComments(ctx); err != nil {
-		return
+		return err
 	}
 	if err = r.LoadReviewer(ctx); err != nil {
-		return
+		return err
 	}
 	if err = r.LoadReviewerTeam(ctx); err != nil {
-		return
+		return err
 	}
 	return err
+}
+
+func (r *Review) HTMLTypeColorName() string {
+	switch r.Type {
+	case ReviewTypeApprove:
+		return "green"
+	case ReviewTypeComment:
+		return "grey"
+	case ReviewTypeReject:
+		return "red"
+	case ReviewTypeRequest:
+		return "yellow"
+	}
+	return "grey"
 }
 
 // GetReviewByID returns the review by the given ID
@@ -234,6 +269,27 @@ func FindReviews(ctx context.Context, opts FindReviewOptions) ([]*Review, error)
 	if opts.Page > 0 {
 		sess = db.SetSessionPagination(sess, &opts)
 	}
+	return reviews, sess.
+		Asc("created_unix").
+		Asc("id").
+		Find(&reviews)
+}
+
+// FindLatestReviews returns only latest reviews per user, passing FindReviewOptions
+func FindLatestReviews(ctx context.Context, opts FindReviewOptions) ([]*Review, error) {
+	reviews := make([]*Review, 0, 10)
+	cond := opts.toCond()
+	sess := db.GetEngine(ctx).Where(cond)
+	if opts.Page > 0 {
+		sess = db.SetSessionPagination(sess, &opts)
+	}
+
+	sess.In("id", builder.
+		Select("max ( id ) ").
+		From("review").
+		Where(cond).
+		GroupBy("reviewer_id"))
+
 	return reviews, sess.
 		Asc("created_unix").
 		Asc("id").
@@ -506,8 +562,8 @@ func GetReviews(ctx context.Context, opts *GetReviewOptions) ([]*Review, error) 
 	return reviews, sess.Find(&reviews)
 }
 
-// GetReviewersByIssueID gets the latest review of each reviewer for a pull request
-func GetReviewersByIssueID(issueID int64) ([]*Review, error) {
+// GetReviewsByIssueID gets the latest review of each reviewer for a pull request
+func GetReviewsByIssueID(issueID int64) ([]*Review, error) {
 	reviews := make([]*Review, 0, 10)
 
 	sess := db.GetEngine(db.DefaultContext)
@@ -1055,7 +1111,7 @@ func UpdateReviewsMigrationsByType(tp structs.GitServiceType, originalAuthorID s
 	_, err := db.GetEngine(db.DefaultContext).Table("review").
 		Where("original_author_id = ?", originalAuthorID).
 		And(migratedIssueCond(tp)).
-		Update(map[string]interface{}{
+		Update(map[string]any{
 			"reviewer_id":        posterID,
 			"original_author":    "",
 			"original_author_id": 0,

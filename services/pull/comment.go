@@ -90,7 +90,7 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 
 	ops.Content = string(dataJSON)
 
-	comment, err = issue_service.CreateComment(ops)
+	comment, err = issue_service.CreateComment(ctx, ops)
 
 	return comment, err
 }

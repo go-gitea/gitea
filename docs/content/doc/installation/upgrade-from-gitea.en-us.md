@@ -2,9 +2,11 @@
 date: "2021-09-02T16:00:00+08:00"
 title: "Upgrade from an old Gitea"
 slug: "upgrade-from-gitea"
-weight: 10
+weight: 100
 toc: false
 draft: false
+aliases:
+  - /en-us/upgrade-from-gitea
 menu:
   sidebar:
     parent: "installation"

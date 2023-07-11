@@ -16,13 +16,13 @@ import (
 var (
 	defaultLoggingFlags = []cli.Flag{
 		cli.StringFlag{
-			Name:  "group, g",
-			Usage: "Group to add logger to - will default to \"default\"",
+			Name:  "logger",
+			Usage: `Logger name - will default to "default"`,
 		}, cli.StringFlag{
-			Name:  "name, n",
-			Usage: "Name of the new logger - will default to mode",
+			Name:  "writer",
+			Usage: "Name of the log writer - will default to mode",
 		}, cli.StringFlag{
-			Name:  "level, l",
+			Name:  "level",
 			Usage: "Logging level for the new logger",
 		}, cli.StringFlag{
 			Name:  "stacktrace-level, L",
@@ -83,8 +83,8 @@ var (
 					cli.BoolFlag{
 						Name: "debug",
 					}, cli.StringFlag{
-						Name:  "group, g",
-						Usage: "Group to add logger to - will default to \"default\"",
+						Name:  "logger",
+						Usage: `Logger name - will default to "default"`,
 					},
 				},
 				Action: runRemoveLogger,
@@ -93,15 +93,6 @@ var (
 				Usage: "Add a logger",
 				Subcommands: []cli.Command{
 					{
-						Name:  "console",
-						Usage: "Add a console logger",
-						Flags: append(defaultLoggingFlags,
-							cli.BoolFlag{
-								Name:  "stderr",
-								Usage: "Output console logs to stderr - only relevant for console",
-							}),
-						Action: runAddConsoleLogger,
-					}, {
 						Name:  "file",
 						Usage: "Add a file logger",
 						Flags: append(defaultLoggingFlags, []cli.Flag{
@@ -148,28 +139,6 @@ var (
 							},
 						}...),
 						Action: runAddConnLogger,
-					}, {
-						Name:  "smtp",
-						Usage: "Add an SMTP logger",
-						Flags: append(defaultLoggingFlags, []cli.Flag{
-							cli.StringFlag{
-								Name:  "username, u",
-								Usage: "Mail server username",
-							}, cli.StringFlag{
-								Name:  "password, P",
-								Usage: "Mail server password",
-							}, cli.StringFlag{
-								Name:  "host, H",
-								Usage: "Mail server host (defaults to: 127.0.0.1:25)",
-							}, cli.StringSliceFlag{
-								Name:  "send-to, s",
-								Usage: "Email address(es) to send to",
-							}, cli.StringFlag{
-								Name:  "subject, S",
-								Usage: "Subject header of sent emails",
-							},
-						}...),
-						Action: runAddSMTPLogger,
 					},
 				},
 			}, {
@@ -194,48 +163,14 @@ func runRemoveLogger(c *cli.Context) error {
 	defer cancel()
 
 	setup(ctx, c.Bool("debug"))
-	group := c.String("group")
-	if len(group) == 0 {
-		group = log.DEFAULT
+	logger := c.String("logger")
+	if len(logger) == 0 {
+		logger = log.DEFAULT
 	}
-	name := c.Args().First()
+	writer := c.Args().First()
 
-	extra := private.RemoveLogger(ctx, group, name)
+	extra := private.RemoveLogger(ctx, logger, writer)
 	return handleCliResponseExtra(extra)
-}
-
-func runAddSMTPLogger(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
-	setup(ctx, c.Bool("debug"))
-	vals := map[string]interface{}{}
-	mode := "smtp"
-	if c.IsSet("host") {
-		vals["host"] = c.String("host")
-	} else {
-		vals["host"] = "127.0.0.1:25"
-	}
-
-	if c.IsSet("username") {
-		vals["username"] = c.String("username")
-	}
-	if c.IsSet("password") {
-		vals["password"] = c.String("password")
-	}
-
-	if !c.IsSet("send-to") {
-		return fmt.Errorf("Some recipients must be provided")
-	}
-	vals["sendTos"] = c.StringSlice("send-to")
-
-	if c.IsSet("subject") {
-		vals["subject"] = c.String("subject")
-	} else {
-		vals["subject"] = "Diagnostic message from Gitea"
-	}
-
-	return commonAddLogger(c, mode, vals)
 }
 
 func runAddConnLogger(c *cli.Context) error {
@@ -243,7 +178,7 @@ func runAddConnLogger(c *cli.Context) error {
 	defer cancel()
 
 	setup(ctx, c.Bool("debug"))
-	vals := map[string]interface{}{}
+	vals := map[string]any{}
 	mode := "conn"
 	vals["net"] = "tcp"
 	if c.IsSet("protocol") {
@@ -273,7 +208,7 @@ func runAddFileLogger(c *cli.Context) error {
 	defer cancel()
 
 	setup(ctx, c.Bool("debug"))
-	vals := map[string]interface{}{}
+	vals := map[string]any{}
 	mode := "file"
 	if c.IsSet("filename") {
 		vals["filename"] = c.String("filename")
@@ -301,25 +236,12 @@ func runAddFileLogger(c *cli.Context) error {
 	return commonAddLogger(c, mode, vals)
 }
 
-func runAddConsoleLogger(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
-	setup(ctx, c.Bool("debug"))
-	vals := map[string]interface{}{}
-	mode := "console"
-	if c.IsSet("stderr") && c.Bool("stderr") {
-		vals["stderr"] = c.Bool("stderr")
-	}
-	return commonAddLogger(c, mode, vals)
-}
-
-func commonAddLogger(c *cli.Context, mode string, vals map[string]interface{}) error {
+func commonAddLogger(c *cli.Context, mode string, vals map[string]any) error {
 	if len(c.String("level")) > 0 {
-		vals["level"] = log.FromString(c.String("level")).String()
+		vals["level"] = log.LevelFromString(c.String("level")).String()
 	}
 	if len(c.String("stacktrace-level")) > 0 {
-		vals["stacktraceLevel"] = log.FromString(c.String("stacktrace-level")).String()
+		vals["stacktraceLevel"] = log.LevelFromString(c.String("stacktrace-level")).String()
 	}
 	if len(c.String("expression")) > 0 {
 		vals["expression"] = c.String("expression")
@@ -333,18 +255,18 @@ func commonAddLogger(c *cli.Context, mode string, vals map[string]interface{}) e
 	if c.IsSet("color") {
 		vals["colorize"] = c.Bool("color")
 	}
-	group := "default"
-	if c.IsSet("group") {
-		group = c.String("group")
+	logger := log.DEFAULT
+	if c.IsSet("logger") {
+		logger = c.String("logger")
 	}
-	name := mode
-	if c.IsSet("name") {
-		name = c.String("name")
+	writer := mode
+	if c.IsSet("writer") {
+		writer = c.String("writer")
 	}
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	extra := private.AddLogger(ctx, group, name, mode, vals)
+	extra := private.AddLogger(ctx, logger, writer, mode, vals)
 	return handleCliResponseExtra(extra)
 }
 

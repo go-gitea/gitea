@@ -1,9 +1,6 @@
 import $ from 'jquery';
-import {attachTribute} from './tribute.js';
-import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
-import {initEasyMDEImagePaste} from './comp/ImagePaste.js';
-import {createCommentEasyMDE} from './comp/EasyMDE.js';
 import {hideElem, showElem} from '../utils/dom.js';
+import {initComboMarkdownEditor} from './comp/ComboMarkdownEditor.js';
 
 export function initRepoRelease() {
   $(document).on('click', '.remove-rel-attach', function() {
@@ -35,33 +32,22 @@ function initTagNameEditor() {
 
   document.getElementById('tag-name').addEventListener('keyup', (e) => {
     const value = e.target.value;
+    const tagHelper = document.getElementById('tag-helper');
     if (existingTags.includes(value)) {
       // If the tag already exists, hide the target branch selector.
       hideElem('#tag-target-selector');
-      document.getElementById('tag-helper').innerText = existingTagHelperText;
+      tagHelper.textContent = existingTagHelperText;
     } else {
       showElem('#tag-target-selector');
-      if (value) {
-        document.getElementById('tag-helper').innerText = newTagHelperText;
-      } else {
-        document.getElementById('tag-helper').innerText = defaultTagHelperText;
-      }
+      tagHelper.textContent = value ? newTagHelperText : defaultTagHelperText;
     }
   });
 }
 
 function initRepoReleaseEditor() {
-  const $editor = $('.repository.new.release .content-editor');
+  const $editor = $('.repository.new.release .combo-markdown-editor');
   if ($editor.length === 0) {
     return;
   }
-
-  (async () => {
-    const $textarea = $editor.find('textarea');
-    await attachTribute($textarea.get(), {mentions: true, emoji: true});
-    const easyMDE = await createCommentEasyMDE($textarea);
-    initCompMarkupContentPreviewTab($editor);
-    const $dropzone = $editor.parent().find('.dropzone');
-    initEasyMDEImagePaste(easyMDE, $dropzone);
-  })();
+  const _promise = initComboMarkdownEditor($editor);
 }

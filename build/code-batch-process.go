@@ -25,7 +25,7 @@ import (
 
 var optionLogVerbose bool
 
-func logVerbose(msg string, args ...interface{}) {
+func logVerbose(msg string, args ...any) {
 	if optionLogVerbose {
 		log.Printf(msg, args...)
 	}

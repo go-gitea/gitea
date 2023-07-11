@@ -1,6 +1,6 @@
 .user.profile .ui.card .header {
   display: block;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   font-size: 1.3rem;
   margin-top: -0.2rem;
   line-height: 1.3rem;
@@ -15,49 +15,46 @@
   padding: 0;
 }
 
-.user.profile .ui.card .extra.content ul {
+.user.profile .ui.card .extra.content > ul {
   margin: 0;
   padding: 0;
 }
 
-.user.profile .ui.card .extra.content ul li {
+.user.profile .ui.card .extra.content > ul > li {
   padding: 10px;
   list-style: none;
 }
 
-.user.profile .ui.card .extra.content ul li:not(:last-child) {
+.user.profile .ui.card .extra.content > ul > li:not(:last-child) {
   border-bottom: 1px solid var(--color-secondary);
 }
 
-.user.profile .ui.card .extra.content ul li .svg {
+.user.profile .ui.card .extra.content > ul > li .svg {
   margin-left: 1px;
   margin-right: 5px;
 }
 
-.user.profile .ui.card .extra.content ul li.follow .ui.button {
+.user.profile .ui.card .extra.content > ul > li.follow .ui.button {
   width: 100%;
 }
 
 .user.profile .ui.card #profile-avatar {
-  background: none;
   padding: 1rem 1rem 0.25rem;
   justify-content: center;
 }
 
 .user.profile .ui.card #profile-avatar img {
-  width: 100%;
+  max-width: 100%;
   height: auto;
-  object-fit: contain;
-  margin: 0;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .user.profile .ui.card #profile-avatar img {
     width: 30vw;
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .user.profile .ui.card {
     width: 100%;
   }
@@ -90,17 +87,6 @@
   padding: 8px 15px;
 }
 
-.user .button.adopt,
-.user .button.delete {
-  margin-top: -15px;
-  margin-bottom: -15px;
-}
-
-.user .button.adopt .label,
-.user .button.delete .label {
-  vertical-align: middle;
-}
-
 .user.link-account:not(.icon) {
   padding-top: 15px;
   padding-bottom: 5px;
@@ -117,7 +103,7 @@
   margin: -3px !important;
 }
 
-.user-orgs li {
+.user-orgs > li {
   display: flex;
   border-bottom: 0 !important;
   padding: 3px !important;
@@ -135,27 +121,36 @@
   object-fit: contain;
 }
 
-.user.notification table button {
-  padding: 3px 3px 3px 5px;
-}
-
-#notification_div .tab.segment {
-  overflow-x: auto;
-}
-
-#notification_div .tabular.menu .active.item {
-  background: var(--color-box-body);
+#readme_profile {
+  padding: 10px;
+  border-radius: 0.28571429rem;
+  background: var(--color-card);
+  border: 1px solid var(--color-secondary);
 }
 
 #notification_table {
-  border: none;
+  background: var(--color-box-body);
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
 }
 
-#notification_table tr {
-  cursor: default;
+.notifications-item:hover {
+  background: var(--color-hover);
 }
 
-#notification_table td a {
-  width: 100%;
-  display: inline-block;
+.notifications-buttons {
+  display: none;
+  min-width: 74px;
+}
+
+.notifications-updated {
+  display: flex;
+}
+
+.notifications-item:hover .notifications-buttons {
+  display: flex;
+}
+
+.notifications-item:hover .notifications-updated {
+  display: none;
 }

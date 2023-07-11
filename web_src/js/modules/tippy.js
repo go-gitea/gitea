@@ -1,24 +1,48 @@
 import tippy from 'tippy.js';
 
+const visibleInstances = new Set();
+
 export function createTippy(target, opts = {}) {
+  // the callback functions should be destructured from opts,
+  // because we should use our own wrapper functions to handle them, do not let the user override them
+  const {onHide, onShow, onDestroy, ...other} = opts;
   const instance = tippy(target, {
     appendTo: document.body,
     animation: false,
     allowHTML: false,
     hideOnClick: false,
-    interactiveBorder: 30,
+    interactiveBorder: 20,
     ignoreAttributes: true,
     maxWidth: 500, // increase over default 350px
+    onHide: (instance) => {
+      visibleInstances.delete(instance);
+      return onHide?.(instance);
+    },
+    onDestroy: (instance) => {
+      visibleInstances.delete(instance);
+      return onDestroy?.(instance);
+    },
+    onShow: (instance) => {
+      // hide other tooltip instances so only one tooltip shows at a time
+      for (const visibleInstance of visibleInstances) {
+        if (visibleInstance.props.role === 'tooltip') {
+          visibleInstance.hide();
+        }
+      }
+      visibleInstances.add(instance);
+      return onShow?.(instance);
+    },
     arrow: `<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`,
-    ...(opts?.role && {theme: opts.role}),
-    ...opts,
+    role: 'menu', // HTML role attribute, only tooltips should use "tooltip"
+    theme: other.role || 'menu', // CSS theme, we support either "tooltip" or "menu"
+    ...other,
   });
 
   // for popups where content refers to a DOM element, we use the 'tippy-target' class
   // to initially hide the content, now we can remove it as the content has been removed
   // from the DOM by tippy
-  if (opts.content instanceof Element) {
-    opts.content.classList.remove('tippy-target');
+  if (other.content instanceof Element) {
+    other.content.classList.remove('tippy-target');
   }
 
   return instance;
@@ -36,13 +60,23 @@ export function createTippy(target, opts = {}) {
  * @returns {null|tippy}
  */
 function attachTooltip(target, content = null) {
+  switchTitleToTooltip(target);
+
   content = content ?? target.getAttribute('data-tooltip-content');
   if (!content) return null;
+
+  // when element has a clipboard target, we update the tooltip after copy
+  // in which case it is undesirable to automatically hide it on click as
+  // it would momentarily flash the tooltip out and in.
+  const hasClipboardTarget = target.hasAttribute('data-clipboard-target');
+  const hideOnClick = !hasClipboardTarget;
 
   const props = {
     content,
     delay: 100,
     role: 'tooltip',
+    theme: 'tooltip',
+    hideOnClick,
     placement: target.getAttribute('data-tooltip-placement') || 'top-start',
     ...(target.getAttribute('data-tooltip-interactive') === 'true' ? {interactive: true, aria: {content: 'describedby', expanded: false}} : {}),
   };
@@ -53,6 +87,18 @@ function attachTooltip(target, content = null) {
     target._tippy.setProps(props);
   }
   return target._tippy;
+}
+
+function switchTitleToTooltip(target) {
+  const title = target.getAttribute('title');
+  if (title) {
+    target.setAttribute('data-tooltip-content', title);
+    target.setAttribute('aria-label', title);
+    // keep the attribute, in case there are some other "[title]" selectors
+    // and to prevent infinite loop with <relative-time> which will re-add
+    // title if it is absent
+    target.setAttribute('title', '');
+  }
 }
 
 /**
@@ -67,48 +113,57 @@ function lazyTooltipOnMouseHover(e) {
   attachTooltip(this);
 }
 
-/**
- * Activate the tooltip for all children elements
- * And if the element has no aria-label, use the tooltip content as aria-label
- * @param target {HTMLElement}
- */
-function attachChildrenLazyTooltip(target) {
-  for (const el of target.querySelectorAll('[data-tooltip-content]')) {
-    el.addEventListener('mouseover', lazyTooltipOnMouseHover, true);
+// Activate the tooltip for current element.
+// If the element has no aria-label, use the tooltip content as aria-label.
+function attachLazyTooltip(el) {
+  el.addEventListener('mouseover', lazyTooltipOnMouseHover, {capture: true});
 
-    // meanwhile, if the element has no aria-label, use the tooltip content as aria-label
-    if (!el.hasAttribute('aria-label')) {
-      const content = target.getAttribute('data-tooltip-content');
-      if (content) {
-        el.setAttribute('aria-label', content);
-      }
+  // meanwhile, if the element has no aria-label, use the tooltip content as aria-label
+  if (!el.hasAttribute('aria-label')) {
+    const content = el.getAttribute('data-tooltip-content');
+    if (content) {
+      el.setAttribute('aria-label', content);
     }
   }
 }
 
+// Activate the tooltip for all children elements.
+function attachChildrenLazyTooltip(target) {
+  for (const el of target.querySelectorAll('[data-tooltip-content]')) {
+    attachLazyTooltip(el);
+  }
+}
+
+const elementNodeTypes = new Set([Node.ELEMENT_NODE, Node.DOCUMENT_FRAGMENT_NODE]);
+
 export function initGlobalTooltips() {
-  // use MutationObserver to detect new elements added to the DOM, or attributes changed
-  const observer = new MutationObserver((mutationList) => {
-    for (const mutation of mutationList) {
+  // use MutationObserver to detect new "data-tooltip-content" elements added to the DOM, or attributes changed
+  const observerConnect = (observer) => observer.observe(document, {
+    subtree: true,
+    childList: true,
+    attributeFilter: ['data-tooltip-content', 'title']
+  });
+  const observer = new MutationObserver((mutationList, observer) => {
+    const pending = observer.takeRecords();
+    observer.disconnect();
+    for (const mutation of [...mutationList, ...pending]) {
       if (mutation.type === 'childList') {
         // mainly for Vue components and AJAX rendered elements
         for (const el of mutation.addedNodes) {
-          // handle all "tooltip" elements in added nodes which have 'querySelectorAll' method, skip non-related nodes (eg: "#text")
-          if ('querySelectorAll' in el) {
+          if (elementNodeTypes.has(el.nodeType)) {
             attachChildrenLazyTooltip(el);
+            if (el.hasAttribute('data-tooltip-content')) {
+              attachLazyTooltip(el);
+            }
           }
         }
       } else if (mutation.type === 'attributes') {
-        // sync the tooltip content if the attributes change
         attachTooltip(mutation.target);
       }
     }
+    observerConnect(observer);
   });
-  observer.observe(document, {
-    subtree: true,
-    childList: true,
-    attributeFilter: ['data-tooltip-content'],
-  });
+  observerConnect(observer);
 
   attachChildrenLazyTooltip(document.documentElement);
 }

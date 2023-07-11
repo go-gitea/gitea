@@ -2,14 +2,16 @@
 date: "2017-08-23T09:00:00+02:00"
 title: "Démarrer en tant que service Windows"
 slug: "windows-service"
-weight: 10
+weight: 50
 toc: false
 draft: false
+aliases:
+  - /fr-fr/windows-service
 menu:
   sidebar:
     parent: "installation"
     name: "Service Windows"
-    weight: 30
+    weight: 50
     identifier: "windows-service"
 ---
 

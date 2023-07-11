@@ -18,7 +18,7 @@ var FlashNow bool
 
 // Flash represents a one time data transfer between two requests.
 type Flash struct {
-	DataStore
+	DataStore ContextDataStore
 	url.Values
 	ErrorMsg, WarningMsg, InfoMsg, SuccessMsg string
 }
@@ -34,7 +34,7 @@ func (f *Flash) set(name, msg string, current ...bool) {
 	}
 
 	if isShow {
-		f.GetData()["Flash"] = f
+		f.DataStore.GetData()["Flash"] = f
 	} else {
 		f.Set(name, msg)
 	}

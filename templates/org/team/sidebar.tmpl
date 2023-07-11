@@ -34,12 +34,12 @@
 				<h3>{{.locale.Tr "org.team_access_desc"}}</h3>
 				<ul>
 					{{if .Team.IncludesAllRepositories}}
-						<li>{{.locale.Tr "org.teams.all_repositories" | Str2html}}
+						<li>{{.locale.Tr "org.teams.all_repositories" | Str2html}}</li>
 					{{else}}
-						<li>{{.locale.Tr "org.teams.specific_repositories" | Str2html}}
+						<li>{{.locale.Tr "org.teams.specific_repositories" | Str2html}}</li>
 					{{end}}
 					{{if .Team.CanCreateOrgRepo}}
-						<li>{{.locale.Tr "org.teams.can_create_org_repo"}}
+						<li>{{.locale.Tr "org.teams.can_create_org_repo"}}</li>
 					{{end}}
 				</ul>
 				{{if (eq .Team.AccessMode 2)}}
@@ -83,13 +83,12 @@
 		</div>
 	{{end}}
 </div>
-<div class="ui small basic delete modal" id="leave-team-sidebar">
-	<div class="ui icon header">
-		{{svg "octicon-x" 16 "close inside"}}
+<div class="ui g-modal-confirm delete modal" id="leave-team-sidebar">
+	<div class="header">
 		{{$.locale.Tr "org.teams.leave"}}
 	</div>
 	<div class="content">
 		<p>{{$.locale.Tr "org.teams.leave.detail" `<span class="name"></span>` | Safe}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>

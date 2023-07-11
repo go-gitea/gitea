@@ -6,11 +6,9 @@ package actions
 import (
 	"errors"
 	"net/http"
-	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
@@ -18,17 +16,17 @@ import (
 	"code.gitea.io/gitea/services/forms"
 )
 
-// RunnersList render common runners list page
-func RunnersList(ctx *context.Context, tplName base.TplName, opts actions_model.FindRunnerOptions) {
+// RunnersList prepares data for runners list
+func RunnersList(ctx *context.Context, opts actions_model.FindRunnerOptions) {
 	count, err := actions_model.CountRunners(ctx, opts)
 	if err != nil {
-		ctx.ServerError("AdminRunners", err)
+		ctx.ServerError("CountRunners", err)
 		return
 	}
 
 	runners, err := actions_model.FindRunners(ctx, opts)
 	if err != nil {
-		ctx.ServerError("AdminRunners", err)
+		ctx.ServerError("FindRunners", err)
 		return
 	}
 	if err := runners.LoadAttributes(ctx); err != nil {
@@ -58,13 +56,12 @@ func RunnersList(ctx *context.Context, tplName base.TplName, opts actions_model.
 	ctx.Data["RunnerRepoID"] = opts.RepoID
 
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
-	ctx.Data["Page"] = pager
 
-	ctx.HTML(http.StatusOK, tplName)
+	ctx.Data["Page"] = pager
 }
 
-// RunnerDetails render runner details page
-func RunnerDetails(ctx *context.Context, tplName base.TplName, page int, runnerID, ownerID, repoID int64) {
+// RunnerDetails prepares data for runners edit page
+func RunnerDetails(ctx *context.Context, page int, runnerID, ownerID, repoID int64) {
 	runner, err := actions_model.GetRunnerByID(ctx, runnerID)
 	if err != nil {
 		ctx.ServerError("GetRunnerByID", err)
@@ -111,8 +108,6 @@ func RunnerDetails(ctx *context.Context, tplName base.TplName, page int, runnerI
 	ctx.Data["Tasks"] = tasks
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
 	ctx.Data["Page"] = pager
-
-	ctx.HTML(http.StatusOK, tplName)
 }
 
 // RunnerDetailsEditPost response for edit runner details
@@ -130,9 +125,8 @@ func RunnerDetailsEditPost(ctx *context.Context, runnerID, ownerID, repoID int64
 
 	form := web.GetForm(ctx).(*forms.EditRunnerForm)
 	runner.Description = form.Description
-	runner.CustomLabels = splitLabels(form.CustomLabels)
 
-	err = actions_model.UpdateRunner(ctx, runner, "description", "custom_labels")
+	err = actions_model.UpdateRunner(ctx, runner, "description")
 	if err != nil {
 		log.Warn("RunnerDetailsEditPost.UpdateRunner failed: %v, url: %s", err, ctx.Req.URL)
 		ctx.Flash.Warning(ctx.Tr("actions.runners.update_runner_failed"))
@@ -166,7 +160,7 @@ func RunnerDeletePost(ctx *context.Context, runnerID int64,
 		log.Warn("DeleteRunnerPost.UpdateRunner failed: %v, url: %s", err, ctx.Req.URL)
 		ctx.Flash.Warning(ctx.Tr("actions.runners.delete_runner_failed"))
 
-		ctx.JSON(http.StatusOK, map[string]interface{}{
+		ctx.JSON(http.StatusOK, map[string]any{
 			"redirect": failedRedirectTo,
 		})
 		return
@@ -176,15 +170,7 @@ func RunnerDeletePost(ctx *context.Context, runnerID int64,
 
 	ctx.Flash.Success(ctx.Tr("actions.runners.delete_runner_success"))
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"redirect": successRedirectTo,
 	})
-}
-
-func splitLabels(s string) []string {
-	labels := strings.Split(s, ",")
-	for i, v := range labels {
-		labels[i] = strings.TrimSpace(v)
-	}
-	return labels
 }

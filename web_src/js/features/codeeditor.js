@@ -1,5 +1,6 @@
+import tinycolor from 'tinycolor2';
 import {basename, extname, isObject, isDarkTheme} from '../utils.js';
-import {debounce} from 'throttle-debounce';
+import {onInputDebounce} from '../utils/dom.js';
 
 const languagesByFilename = {};
 const languagesByExt = {};
@@ -14,7 +15,6 @@ const baseOptions = {
   overviewRulerLanes: 0,
   renderLineHighlight: 'all',
   renderLineHighlightOnlyWhenFocus: true,
-  renderWhitespace: 'none',
   rulers: false,
   scrollbar: {horizontalScrollbarSize: 6, verticalScrollbarSize: 6},
   scrollBeyondLastLine: false,
@@ -67,36 +67,37 @@ export async function createMonaco(textarea, filename, editorOpts) {
 
   const container = document.createElement('div');
   container.className = 'monaco-editor-container';
-  textarea.parentNode.appendChild(container);
+  textarea.parentNode.append(container);
 
   // https://github.com/microsoft/monaco-editor/issues/2427
+  // also, monaco can only parse 6-digit hex colors, so we convert the colors to that format
   const styles = window.getComputedStyle(document.documentElement);
-  const getProp = (name) => styles.getPropertyValue(name).trim();
+  const getColor = (name) => tinycolor(styles.getPropertyValue(name).trim()).toString('hex6');
 
   monaco.editor.defineTheme('gitea', {
     base: isDarkTheme() ? 'vs-dark' : 'vs',
     inherit: true,
     rules: [
       {
-        background: getProp('--color-code-bg'),
+        background: getColor('--color-code-bg'),
       }
     ],
     colors: {
-      'editor.background': getProp('--color-code-bg'),
-      'editor.foreground': getProp('--color-text'),
-      'editor.inactiveSelectionBackground': getProp('--color-primary-light-4'),
-      'editor.lineHighlightBackground': getProp('--color-editor-line-highlight'),
-      'editor.selectionBackground': getProp('--color-primary-light-3'),
-      'editor.selectionForeground': getProp('--color-primary-light-3'),
-      'editorLineNumber.background': getProp('--color-code-bg'),
-      'editorLineNumber.foreground': getProp('--color-secondary-dark-6'),
-      'editorWidget.background': getProp('--color-body'),
-      'editorWidget.border': getProp('--color-secondary'),
-      'input.background': getProp('--color-input-background'),
-      'input.border': getProp('--color-input-border'),
-      'input.foreground': getProp('--color-input-text'),
-      'scrollbar.shadow': getProp('--color-shadow'),
-      'progressBar.background': getProp('--color-primary'),
+      'editor.background': getColor('--color-code-bg'),
+      'editor.foreground': getColor('--color-text'),
+      'editor.inactiveSelectionBackground': getColor('--color-primary-light-4'),
+      'editor.lineHighlightBackground': getColor('--color-editor-line-highlight'),
+      'editor.selectionBackground': getColor('--color-primary-light-3'),
+      'editor.selectionForeground': getColor('--color-primary-light-3'),
+      'editorLineNumber.background': getColor('--color-code-bg'),
+      'editorLineNumber.foreground': getColor('--color-secondary-dark-6'),
+      'editorWidget.background': getColor('--color-body'),
+      'editorWidget.border': getColor('--color-secondary'),
+      'input.background': getColor('--color-input-background'),
+      'input.border': getColor('--color-input-border'),
+      'input.foreground': getColor('--color-input-text'),
+      'scrollbar.shadow': getColor('--color-shadow'),
+      'progressBar.background': getColor('--color-primary'),
     }
   });
 
@@ -136,7 +137,7 @@ function togglePreviewDisplay(previewable) {
   if (!previewTab) return;
 
   if (previewable) {
-    const newUrl = (previewTab.getAttribute('data-url') || '').replace(/(.*)\/.*/i, `$1/markup`);
+    const newUrl = (previewTab.getAttribute('data-url') || '').replace(/(.*)\/.*/, `$1/markup`);
     previewTab.setAttribute('data-url', newUrl);
     previewTab.style.display = '';
   } else {
@@ -165,7 +166,7 @@ export async function createCodeEditor(textarea, filenameInput) {
     ...getEditorConfigOptions(editorConfig),
   });
 
-  filenameInput.addEventListener('input', debounce(500, () => {
+  filenameInput.addEventListener('input', onInputDebounce(() => {
     const filename = filenameInput.value;
     const previewable = previewableExts.has(extname(filename));
     togglePreviewDisplay(previewable);

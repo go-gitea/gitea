@@ -2,14 +2,16 @@
 date: "2016-12-01T16:00:00+02:00"
 title: "Docker 安裝"
 slug: "install-with-docker"
-weight: 10
+weight: 70
 toc: false
 draft: false
+aliases:
+  - /zh-tw/install-with-docker
 menu:
   sidebar:
     parent: "installation"
     name: "Docker 安裝"
-    weight: 49
+    weight: 70
     identifier: "install-with-docker"
 ---
 

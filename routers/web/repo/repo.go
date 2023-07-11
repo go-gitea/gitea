@@ -12,13 +12,16 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -57,6 +60,22 @@ func MustBeAbleToUpload(ctx *context.Context) {
 	if !setting.Repository.Upload.Enabled {
 		ctx.NotFound("", nil)
 	}
+}
+
+func CommitInfoCache(ctx *context.Context) {
+	var err error
+	ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+	if err != nil {
+		ctx.ServerError("GetBranchCommit", err)
+		return
+	}
+	ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount()
+	if err != nil {
+		ctx.ServerError("GetCommitsCount", err)
+		return
+	}
+	ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
+	ctx.Repo.GitRepo.LastCommitCache = git.NewLastCommitCache(ctx.Repo.CommitsCount, ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, cache.GetCache())
 }
 
 func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
@@ -132,7 +151,7 @@ func Create(ctx *context.Context) {
 
 	// Give default value for template to render.
 	ctx.Data["Gitignores"] = repo_module.Gitignores
-	ctx.Data["LabelTemplates"] = repo_module.LabelTemplates
+	ctx.Data["LabelTemplateFiles"] = repo_module.LabelTemplateFiles
 	ctx.Data["Licenses"] = repo_module.Licenses
 	ctx.Data["Readmes"] = repo_module.Readmes
 	ctx.Data["readme"] = "Default"
@@ -162,7 +181,7 @@ func Create(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplCreate)
 }
 
-func handleCreateError(ctx *context.Context, owner *user_model.User, err error, name string, tpl base.TplName, form interface{}) {
+func handleCreateError(ctx *context.Context, owner *user_model.User, err error, name string, tpl base.TplName, form any) {
 	switch {
 	case repo_model.IsErrReachLimitOfRepo(err):
 		maxCreationLimit := owner.MaxCreationLimit()
@@ -200,7 +219,7 @@ func CreatePost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_repo")
 
 	ctx.Data["Gitignores"] = repo_module.Gitignores
-	ctx.Data["LabelTemplates"] = repo_module.LabelTemplates
+	ctx.Data["LabelTemplateFiles"] = repo_module.LabelTemplateFiles
 	ctx.Data["Licenses"] = repo_module.Licenses
 	ctx.Data["Readmes"] = repo_module.Readmes
 
@@ -373,7 +392,7 @@ func RedirectDownload(ctx *context.Context) {
 			return
 		}
 		if att != nil {
-			ctx.Redirect(att.DownloadURL())
+			ServeAttachment(ctx, att.UUID)
 			return
 		}
 	}
@@ -408,7 +427,7 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 	downloadName := ctx.Repo.Repository.Name + "-" + archiveName
 
 	rPath := archiver.RelativePath()
-	if setting.RepoArchive.ServeDirect {
+	if setting.RepoArchive.Storage.MinioConfig.ServeDirect {
 		// If we have a signed url (S3, object storage), redirect to this directly.
 		u, err := storage.RepoArchives.URL(rPath, downloadName)
 		if u != nil && err == nil {
@@ -463,7 +482,7 @@ func InitiateDownload(ctx *context.Context) {
 		completed = true
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"complete": completed,
 	})
 }
@@ -528,7 +547,7 @@ func SearchRepo(ctx *context.Context) {
 		if len(sortOrder) == 0 {
 			sortOrder = "asc"
 		}
-		if searchModeMap, ok := context.SearchOrderByMap[sortOrder]; ok {
+		if searchModeMap, ok := repo_model.SearchOrderByMap[sortOrder]; ok {
 			if orderBy, ok := searchModeMap[sortMode]; ok {
 				opts.OrderBy = orderBy
 			} else {
@@ -558,23 +577,46 @@ func SearchRepo(ctx *context.Context) {
 		return
 	}
 
-	results := make([]*api.Repository, len(repos))
+	// collect the latest commit of each repo
+	// at most there are dozens of repos (limited by MaxResponseItems), so it's not a big problem at the moment
+	repoBranchNames := make(map[int64]string, len(repos))
+	for _, repo := range repos {
+		repoBranchNames[repo.ID] = repo.DefaultBranch
+	}
+
+	repoIDsToLatestCommitSHAs, err := git_model.FindBranchesByRepoAndBranchName(ctx, repoBranchNames)
+	if err != nil {
+		log.Error("FindBranchesByRepoAndBranchName: %v", err)
+		return
+	}
+
+	// call the database O(1) times to get the commit statuses for all repos
+	repoToItsLatestCommitStatuses, err := git_model.GetLatestCommitStatusForPairs(ctx, repoIDsToLatestCommitSHAs, db.ListOptions{})
+	if err != nil {
+		log.Error("GetLatestCommitStatusForPairs: %v", err)
+		return
+	}
+
+	results := make([]*repo_service.WebSearchRepository, len(repos))
 	for i, repo := range repos {
-		results[i] = &api.Repository{
-			ID:       repo.ID,
-			FullName: repo.FullName(),
-			Fork:     repo.IsFork,
-			Private:  repo.IsPrivate,
-			Template: repo.IsTemplate,
-			Mirror:   repo.IsMirror,
-			Stars:    repo.NumStars,
-			HTMLURL:  repo.HTMLURL(),
-			Link:     repo.Link(),
-			Internal: !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
+		results[i] = &repo_service.WebSearchRepository{
+			Repository: &api.Repository{
+				ID:       repo.ID,
+				FullName: repo.FullName(),
+				Fork:     repo.IsFork,
+				Private:  repo.IsPrivate,
+				Template: repo.IsTemplate,
+				Mirror:   repo.IsMirror,
+				Stars:    repo.NumStars,
+				HTMLURL:  repo.HTMLURL(),
+				Link:     repo.Link(),
+				Internal: !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
+			},
+			LatestCommitStatus: git_model.CalcCommitStatus(repoToItsLatestCommitStatuses[repo.ID]),
 		}
 	}
 
-	ctx.JSON(http.StatusOK, api.SearchResults{
+	ctx.JSON(http.StatusOK, repo_service.WebSearchResults{
 		OK:   true,
 		Data: results,
 	})

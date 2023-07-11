@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content admin user">
-	{{template "admin/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin user")}}
+	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.users.user_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
 			<div class="ui right">
@@ -19,19 +16,19 @@
 						<span class="text">{{.locale.Tr "admin.users.list_status_filter.menu_text"}} {{svg "octicon-triangle-down" 14 "dropdown icon"}}</span>
 						<div class="menu">
 							<a class="item j-reset-status-filter">{{.locale.Tr "admin.users.list_status_filter.reset"}}</a>
-							<div class="ui divider"></div>
+							<div class="divider"></div>
 							<label class="item"><input type="radio" name="status_filter[is_admin]" value="1"> {{.locale.Tr "admin.users.list_status_filter.is_admin"}}</label>
 							<label class="item"><input type="radio" name="status_filter[is_admin]" value="0"> {{.locale.Tr "admin.users.list_status_filter.not_admin"}}</label>
-							<div class="ui divider"></div>
+							<div class="divider"></div>
 							<label class="item"><input type="radio" name="status_filter[is_active]" value="1"> {{.locale.Tr "admin.users.list_status_filter.is_active"}}</label>
 							<label class="item"><input type="radio" name="status_filter[is_active]" value="0"> {{.locale.Tr "admin.users.list_status_filter.not_active"}}</label>
-							<div class="ui divider"></div>
+							<div class="divider"></div>
 							<label class="item"><input type="radio" name="status_filter[is_restricted]" value="0"> {{.locale.Tr "admin.users.list_status_filter.not_restricted"}}</label>
 							<label class="item"><input type="radio" name="status_filter[is_restricted]" value="1"> {{.locale.Tr "admin.users.list_status_filter.is_restricted"}}</label>
-							<div class="ui divider"></div>
+							<div class="divider"></div>
 							<label class="item"><input type="radio" name="status_filter[is_prohibit_login]" value="0"> {{.locale.Tr "admin.users.list_status_filter.not_prohibit_login"}}</label>
 							<label class="item"><input type="radio" name="status_filter[is_prohibit_login]" value="1"> {{.locale.Tr "admin.users.list_status_filter.is_prohibit_login"}}</label>
-							<div class="ui divider"></div>
+							<div class="divider"></div>
 							<label class="item"><input type="radio" name="status_filter[is_2fa_enabled]" value="1"> {{.locale.Tr "admin.users.list_status_filter.is_2fa_enabled"}}</label>
 							<label class="item"><input type="radio" name="status_filter[is_2fa_enabled]" value="0"> {{.locale.Tr "admin.users.list_status_filter.not_2fa_enabled"}}</label>
 						</div>
@@ -54,8 +51,8 @@
 				</div>
 
 				<!-- Search Text -->
-				<div class="ui fluid action input" style="max-width: 70%;">
-					<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}..." autofocus>
+				<div class="ui fluid action input">
+					{{template "shared/searchinput" dict "locale" .locale "Value" .Keyword "AutoFocus" true}}
 					<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
 				</div>
 			</form>
@@ -94,9 +91,9 @@
 							<td>{{if .IsRestricted}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>{{if index $.UsersTwoFaStatus .ID}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>{{.NumRepos}}</td>
-							<td><span title="{{.CreatedUnix.FormatLong}}"><time data-format="short-date" datetime="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</time></span></td>
+							<td>{{DateTime "short" .CreatedUnix}}</td>
 							{{if .LastLoginUnix}}
-								<td><span title="{{.LastLoginUnix.FormatLong}}"><time data-format="short-date" datetime="{{.LastLoginUnix.FormatLong}}">{{.LastLoginUnix.FormatShort}}</time></span></td>
+								<td>{{DateTime "short" .LastLoginUnix}}</td>
 							{{else}}
 								<td><span>{{$.locale.Tr "admin.users.never_login"}}</span></td>
 							{{end}}
@@ -109,5 +106,4 @@
 
 		{{template "base/paginate" .}}
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "admin/layout_footer" .}}

@@ -1,12 +1,28 @@
 import $ from 'jquery';
-import {useLightTextOnBackground} from '../utils.js';
+import {useLightTextOnBackground} from '../utils/color.js';
+import tinycolor from 'tinycolor2';
 
 const {csrfToken} = window.config;
 
 function updateIssueCount(cards) {
   const parent = cards.parentElement;
   const cnt = parent.getElementsByClassName('board-card').length;
-  parent.getElementsByClassName('board-card-cnt')[0].innerText = cnt;
+  parent.getElementsByClassName('board-card-cnt')[0].textContent = cnt;
+}
+
+function createNewBoard(url, boardTitle, projectColorInput) {
+  $.ajax({
+    url,
+    data: JSON.stringify({title: boardTitle.val(), color: projectColorInput.val()}),
+    headers: {
+      'X-Csrf-Token': csrfToken,
+    },
+    contentType: 'application/json',
+    method: 'POST',
+  }).done(() => {
+    boardTitle.closest('form').removeClass('dirty');
+    window.location.reload();
+  });
 }
 
 function moveIssue({item, from, to, oldIndex}) {
@@ -15,10 +31,10 @@ function moveIssue({item, from, to, oldIndex}) {
   updateIssueCount(to);
 
   const columnSorting = {
-    issues: [...columnCards].map((card, i) => ({
+    issues: Array.from(columnCards, (card, i) => ({
       issueID: parseInt($(card).attr('data-issue')),
-      sorting: i
-    }))
+      sorting: i,
+    })),
   };
 
   $.ajax({
@@ -31,12 +47,12 @@ function moveIssue({item, from, to, oldIndex}) {
     type: 'POST',
     error: () => {
       from.insertBefore(item, from.children[oldIndex]);
-    }
+    },
   });
 }
 
 async function initRepoProjectSortable() {
-  const els = document.querySelectorAll('#project-board > .board');
+  const els = document.querySelectorAll('#project-board > .board.sortable');
   if (!els.length) return;
 
   const {Sortable} = await import(/* webpackChunkName: "sortable" */'sortablejs');
@@ -126,27 +142,37 @@ export function initRepoProject() {
     });
   });
 
-  $(document).on('click', '.set-default-project-board', async function (e) {
-    e.preventDefault();
+  $('.default-project-board-modal').each(function () {
+    const boardColumn = $(this).closest('.board-column');
+    const showButton = $(boardColumn).find('.default-project-board-show');
+    const commitButton = $(this).find('.actions > .ok.button');
 
-    await $.ajax({
-      method: 'POST',
-      url: $(this).data('url'),
-      headers: {
-        'X-Csrf-Token': csrfToken,
-      },
-      contentType: 'application/json',
-    });
-
-    window.location.reload();
-  });
-
-  $('.delete-project-board').each(function () {
-    $(this).click(function (e) {
+    $(commitButton).on('click', (e) => {
       e.preventDefault();
 
       $.ajax({
-        url: $(this).data('url'),
+        method: 'POST',
+        url: $(showButton).data('url'),
+        headers: {
+          'X-Csrf-Token': csrfToken,
+        },
+        contentType: 'application/json',
+      }).done(() => {
+        window.location.reload();
+      });
+    });
+  });
+
+  $('.show-delete-column-modal').each(function () {
+    const deleteColumnModal = $(`${$(this).attr('data-modal')}`);
+    const deleteColumnButton = deleteColumnModal.find('.actions > .ok.button');
+    const deleteUrl = $(this).attr('data-url');
+
+    deleteColumnButton.on('click', (e) => {
+      e.preventDefault();
+
+      $.ajax({
+        url: deleteUrl,
         headers: {
           'X-Csrf-Token': csrfToken,
         },
@@ -158,29 +184,35 @@ export function initRepoProject() {
     });
   });
 
-  $('#new_board_submit').click(function (e) {
+  $('#new_board_submit').on('click', (e) => {
     e.preventDefault();
-
     const boardTitle = $('#new_board');
     const projectColorInput = $('#new_board_color_picker');
+    if (!boardTitle.val()) {
+      return;
+    }
+    const url = $(this).data('url');
+    createNewBoard(url, boardTitle, projectColorInput);
+  });
 
-    $.ajax({
-      url: $(this).data('url'),
-      data: JSON.stringify({title: boardTitle.val(), color: projectColorInput.val()}),
-      headers: {
-        'X-Csrf-Token': csrfToken,
-      },
-      contentType: 'application/json',
-      method: 'POST',
-    }).done(() => {
-      boardTitle.closest('form').removeClass('dirty');
-      window.location.reload();
-    });
+  $('.new-board').on('input keyup', (e) => {
+    const boardTitle = $('#new_board');
+    const projectColorInput = $('#new_board_color_picker');
+    if (!boardTitle.val()) {
+      $('#new_board_submit').addClass('disabled');
+      return;
+    }
+    $('#new_board_submit').removeClass('disabled');
+    if (e.key === 'Enter') {
+      const url = $(this).data('url');
+      createNewBoard(url, boardTitle, projectColorInput);
+    }
   });
 }
 
 function setLabelColor(label, color) {
-  if (useLightTextOnBackground(color)) {
+  const {r, g, b} = tinycolor(color).toRgb();
+  if (useLightTextOnBackground(r, g, b)) {
     label.removeClass('dark-label').addClass('light-label');
   } else {
     label.removeClass('light-label').addClass('dark-label');

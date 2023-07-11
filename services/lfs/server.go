@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	auth_model "code.gitea.io/gitea/models/auth"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -76,6 +77,8 @@ func CheckAcceptMediaType(ctx *context.Context) {
 	}
 }
 
+var rangeHeaderRegexp = regexp.MustCompile(`bytes=(\d+)\-(\d*).*`)
+
 // DownloadHandler gets the content from the content store
 func DownloadHandler(ctx *context.Context) {
 	rc := getRequestContext(ctx)
@@ -91,8 +94,7 @@ func DownloadHandler(ctx *context.Context) {
 	toByte = meta.Size - 1
 	statusCode := http.StatusOK
 	if rangeHdr := ctx.Req.Header.Get("Range"); rangeHdr != "" {
-		regex := regexp.MustCompile(`bytes=(\d+)\-(\d*).*`)
-		match := regex.FindStringSubmatch(rangeHdr)
+		match := rangeHeaderRegexp.FindStringSubmatch(rangeHdr)
 		if len(match) > 1 {
 			statusCode = http.StatusPartialContent
 			fromByte, _ = strconv.ParseInt(match[1], 10, 32)
@@ -126,7 +128,6 @@ func DownloadHandler(ctx *context.Context) {
 		_, err = content.Seek(fromByte, io.SeekStart)
 		if err != nil {
 			log.Error("Whilst trying to read LFS OID[%s]: Unable to seek to %d Error: %v", meta.Oid, fromByte, err)
-
 			writeStatus(ctx, http.StatusInternalServerError)
 			return
 		}
@@ -334,10 +335,11 @@ func UploadHandler(ctx *context.Context) {
 			log.Error("Upload does not match LFS MetaObject [%s]. Error: %v", p.Oid, err)
 			writeStatusMessage(ctx, http.StatusUnprocessableEntity, err.Error())
 		} else {
+			log.Error("Error whilst uploadOrVerify LFS OID[%s]: %v", p.Oid, err)
 			writeStatus(ctx, http.StatusInternalServerError)
 		}
 		if _, err = git_model.RemoveLFSMetaObjectByOid(ctx, repository.ID, p.Oid); err != nil {
-			log.Error("Error whilst removing metaobject for LFS OID[%s]: %v", p.Oid, err)
+			log.Error("Error whilst removing MetaObject for LFS OID[%s]: %v", p.Oid, err)
 		}
 		return
 	}
@@ -365,6 +367,7 @@ func VerifyHandler(ctx *context.Context) {
 
 	status := http.StatusOK
 	if err != nil {
+		log.Error("Error whilst verifying LFS OID[%s]: %v", p.Oid, err)
 		status = http.StatusInternalServerError
 	} else if !ok {
 		status = http.StatusNotFound
@@ -372,7 +375,7 @@ func VerifyHandler(ctx *context.Context) {
 	writeStatus(ctx, status)
 }
 
-func decodeJSON(req *http.Request, v interface{}) error {
+func decodeJSON(req *http.Request, v any) error {
 	defer req.Body.Close()
 
 	dec := json.NewDecoder(req.Body)
@@ -422,6 +425,16 @@ func getAuthenticatedRepository(ctx *context.Context, rc *requestContext, requir
 		return nil
 	}
 
+	if requireWrite {
+		context.CheckRepoScopedToken(ctx, repository, auth_model.Write)
+	} else {
+		context.CheckRepoScopedToken(ctx, repository, auth_model.Read)
+	}
+
+	if ctx.Written() {
+		return nil
+	}
+
 	return repository
 }
 
@@ -440,7 +453,7 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 
 		if download {
 			var link *lfs_module.Link
-			if setting.LFS.ServeDirect {
+			if setting.LFS.Storage.MinioConfig.ServeDirect {
 				// If we have a signed url (S3, object storage), redirect to this directly.
 				u, err := storage.LFS.URL(pointer.RelativePath(), pointer.Oid)
 				if u != nil && err == nil {
@@ -539,7 +552,7 @@ func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repo
 	if !strings.Contains(tokenSHA, ".") {
 		return nil, nil
 	}
-	token, err := jwt.ParseWithClaims(tokenSHA, &Claims{}, func(t *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenSHA, &Claims{}, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
