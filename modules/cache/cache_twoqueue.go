@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 
 	mc "gitea.com/go-chi/cache"
-	lru "github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru/v2"
 )
 
 // TwoQueueCache represents a LRU 2Q cache adapter implementation
