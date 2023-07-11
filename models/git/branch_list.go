@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/util"
@@ -60,6 +61,26 @@ func (branches BranchList) LoadPusher(ctx context.Context) error {
 		if branch.Pusher == nil {
 			branch.Pusher = user_model.NewGhostUser()
 		}
+	}
+	return nil
+}
+
+func (branches BranchList) LoadRepo(ctx context.Context) error {
+	ids := container.Set[int64]{}
+	for _, branch := range branches {
+		if branch.RepoID > 0 {
+			ids.Add(branch.RepoID)
+		}
+	}
+	reposMap := make(map[int64]*repo_model.Repository, len(ids))
+	if err := db.GetEngine(ctx).In("id", ids.Values()).Find(&reposMap); err != nil {
+		return err
+	}
+	for _, branch := range branches {
+		if branch.RepoID <= 0 {
+			continue
+		}
+		branch.Repo = reposMap[branch.RepoID]
 	}
 	return nil
 }

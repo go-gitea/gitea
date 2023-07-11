@@ -982,11 +982,16 @@ func renderCode(ctx *context.Context) {
 			ctx.ServerError("GetBaseRepo", err)
 			return
 		}
-		ctx.Data["RecentlyPushedNewBranches"], err = git_model.FindRecentlyPushedNewBranches(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID)
+		branches, err := git_model.FindRecentlyPushedNewBranches(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID, ctx.Repo.CommitID)
 		if err != nil {
-			ctx.ServerError("GetRecentlyPushedBranches", err)
+			ctx.ServerError("FindRecentlyPushedNewBranches", err)
 			return
 		}
+		if err := branches.LoadRepo(ctx); err != nil {
+			ctx.ServerError("branches.LoadRepo", err)
+			return
+		}
+		ctx.Data["RecentlyPushedNewBranches"] = branches
 	}
 
 	var treeNames []string

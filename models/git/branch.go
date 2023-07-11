@@ -102,8 +102,9 @@ func (err ErrBranchesEqual) Unwrap() error {
 // for pagination, keyword search and filtering
 type Branch struct {
 	ID            int64
-	RepoID        int64  `xorm:"UNIQUE(s)"`
-	Name          string `xorm:"UNIQUE(s) NOT NULL"` // git's ref-name is case-sensitive internally, however, in some databases (mssql, mysql, by default), it's case-insensitive at the moment
+	RepoID        int64                  `xorm:"UNIQUE(s)"`
+	Repo          *repo_model.Repository `xorm:"-"`
+	Name          string                 `xorm:"UNIQUE(s) NOT NULL"` // git's ref-name is case-sensitive internally, however, in some databases (mssql, mysql, by default), it's case-insensitive at the moment
 	CommitID      string
 	CommitMessage string `xorm:"TEXT"` // it only stores the message summary (the first line)
 	PusherID      int64
@@ -133,6 +134,16 @@ func (b *Branch) LoadPusher(ctx context.Context) (err error) {
 		b.Pusher, err = user_model.GetUserByID(ctx, b.PusherID)
 		if user_model.IsErrUserNotExist(err) {
 			b.Pusher = user_model.NewGhostUser()
+			err = nil
+		}
+	}
+	return err
+}
+
+func (b *Branch) LoadRepo(ctx context.Context) (err error) {
+	if b.Repo == nil && b.RepoID > 0 {
+		b.Repo, err = repo_model.GetRepositoryByID(ctx, b.RepoID)
+		if repo_model.IsErrRepoNotExist(err) {
 			err = nil
 		}
 	}
@@ -382,8 +393,14 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 }
 
 // FindRecentlyPushedNewBranches return at most 2 new branches pushed by the user in 6 hours which has no opened PRs created
-func FindRecentlyPushedNewBranches(ctx context.Context, repoID, userID int64) (BranchList, error) {
+func FindRecentlyPushedNewBranches(ctx context.Context, repoID, userID int64, latestCommitID string) (BranchList, error) {
 	branches := make(BranchList, 0, 2)
+	repoCond := builder.Select("id").From("repository").
+		Where(builder.Or(
+			builder.Eq{"id": repoID, "is_fork": false},
+			builder.Eq{"is_fork": true, "fork_id": repoID},
+		))
+
 	subQuery := builder.Select("head_branch").From("pull_request").
 		InnerJoin("issue", "issue.id = pull_request.issue_id").
 		Where(builder.Eq{
@@ -391,9 +408,10 @@ func FindRecentlyPushedNewBranches(ctx context.Context, repoID, userID int64) (B
 			"issue.is_closed":           false,
 		})
 	err := db.GetEngine(ctx).
-		Where("repo_id=? AND pusher_id=? AND is_deleted=?", repoID, userID, false).
+		Where("commit_id != ? AND pusher_id = ? AND is_deleted = ?", latestCommitID, userID, false).
 		And("updated_unix >= ?", time.Now().Add(-time.Hour*6).Unix()).
 		NotIn("name", subQuery).
+		In("repo_id", repoCond).
 		OrderBy("branch.updated_unix DESC").
 		Limit(2).
 		Find(&branches)
