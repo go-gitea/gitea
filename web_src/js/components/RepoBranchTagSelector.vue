@@ -256,8 +256,8 @@ const sfc = {
     async fetchBranchesOrTags() {
       if (!['branches', 'tags'].includes(this.mode) || this.isLoading) return;
       // only fetch when branch/tag list has not been initialized
-      if (this.hasListInitialized[this.mode] 
-      || (this.mode === 'branches' && !this.showBranchesInDropdown) || (this.mode === 'tags' && this.noTag)) return;
+      if (this.hasListInitialized[this.mode] ||
+      (this.mode === 'branches' && !this.showBranchesInDropdown) || (this.mode === 'tags' && this.noTag)) return;
       this.isLoading = true;
       this.hasListInitialized[this.mode] = true;
       // the "data.defaultBranch" is ambiguous, it could be "branch name" or "tag name"
