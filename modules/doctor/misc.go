@@ -130,7 +130,7 @@ func checkEnablePushOptions(ctx context.Context, logger log.Logger, autofix bool
 func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) error {
 	numRepos := 0
 	numNeedUpdate := 0
-	cache, err := lru.New(512)
+	cache, err := lru.New[int64, any](512)
 	if err != nil {
 		logger.Critical("Unable to create cache: %v", err)
 		return err
