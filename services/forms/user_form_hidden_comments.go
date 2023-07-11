@@ -90,7 +90,7 @@ func IsUserHiddenCommentTypeGroupChecked(group string, hiddenCommentTypes *big.I
 	commentTypes, ok := hiddenCommentTypeGroups[group]
 	if !ok {
 		log.Critical("the group map for hidden comment types is out of sync, unknown group: %v", group)
-		return
+		return false
 	}
 	if hiddenCommentTypes == nil {
 		return false

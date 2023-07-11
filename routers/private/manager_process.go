@@ -49,7 +49,7 @@ func Processes(ctx *context.PrivateContext) {
 	}
 
 	if json {
-		ctx.JSON(http.StatusOK, map[string]interface{}{
+		ctx.JSON(http.StatusOK, map[string]any{
 			"TotalNumberOfGoroutines": goroutineCount,
 			"TotalNumberOfProcesses":  processCount,
 			"Processes":               processes,

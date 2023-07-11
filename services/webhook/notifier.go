@@ -386,7 +386,7 @@ func (m *webhookNotifier) NotifyUpdateComment(ctx context.Context, doer *user_mo
 	if err := PrepareWebhooks(ctx, EventSource{Repository: c.Issue.Repo}, eventType, &api.IssueCommentPayload{
 		Action:  api.HookIssueCommentEdited,
 		Issue:   convert.ToAPIIssue(ctx, c.Issue),
-		Comment: convert.ToComment(ctx, c),
+		Comment: convert.ToAPIComment(ctx, c.Issue.Repo, c),
 		Changes: &api.ChangesPayload{
 			Body: &api.ChangesFromPayload{
 				From: oldContent,
@@ -414,7 +414,7 @@ func (m *webhookNotifier) NotifyCreateIssueComment(ctx context.Context, doer *us
 	if err := PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, eventType, &api.IssueCommentPayload{
 		Action:     api.HookIssueCommentCreated,
 		Issue:      convert.ToAPIIssue(ctx, issue),
-		Comment:    convert.ToComment(ctx, comment),
+		Comment:    convert.ToAPIComment(ctx, repo, comment),
 		Repository: convert.ToRepo(ctx, repo, permission),
 		Sender:     convert.ToUser(ctx, doer, nil),
 		IsPull:     issue.IsPull,
@@ -451,7 +451,7 @@ func (m *webhookNotifier) NotifyDeleteComment(ctx context.Context, doer *user_mo
 	if err := PrepareWebhooks(ctx, EventSource{Repository: comment.Issue.Repo}, eventType, &api.IssueCommentPayload{
 		Action:     api.HookIssueCommentDeleted,
 		Issue:      convert.ToAPIIssue(ctx, comment.Issue),
-		Comment:    convert.ToComment(ctx, comment),
+		Comment:    convert.ToAPIComment(ctx, comment.Issue.Repo, comment),
 		Repository: convert.ToRepo(ctx, comment.Issue.Repo, permission),
 		Sender:     convert.ToUser(ctx, doer, nil),
 		IsPull:     comment.Issue.IsPull,
@@ -808,7 +808,7 @@ func sendReleaseHook(ctx context.Context, doer *user_model.User, rel *repo_model
 	permission, _ := access_model.GetUserRepoPermission(ctx, rel.Repo, doer)
 	if err := PrepareWebhooks(ctx, EventSource{Repository: rel.Repo}, webhook_module.HookEventRelease, &api.ReleasePayload{
 		Action:     action,
-		Release:    convert.ToRelease(ctx, rel),
+		Release:    convert.ToAPIRelease(ctx, rel.Repo, rel),
 		Repository: convert.ToRepo(ctx, rel.Repo, permission),
 		Sender:     convert.ToUser(ctx, doer, nil),
 	}); err != nil {
