@@ -262,15 +262,21 @@ func loadObjectsSizesViaCatFile(ctx *gitea_context.PrivateContext, opts *git.Run
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 
-	reducedObjectIDs := make([]string, 0, len(objectIDs))
+	// Prepare numWorker slices to store the work
+	reducedObjectIDs := make([][]string, 0, numWorkers)
+	for i := 0; i < numWorkers; i++ {
+		reducedObjectIDs[i] = make([]string, 0, len(objectIDs)/numWorkers+1)
+	}
 
 	// Loop over all objectIDs and find which ones are missing size information
+	i := 0
 	for _, objectID := range objectIDs {
 		_, exists := objectsSizes[objectID]
 
 		// If object doesn't yet have size in objectsSizes add it for further processing
 		if !exists {
-			reducedObjectIDs = append(reducedObjectIDs, objectID)
+			reducedObjectIDs[i%numWorkers] = append(reducedObjectIDs[i%numWorkers], objectID)
+			i++
 		}
 	}
 
@@ -280,12 +286,14 @@ func loadObjectsSizesViaCatFile(ctx *gitea_context.PrivateContext, opts *git.Run
 		go func(reducedObjectIDs []string) {
 			defer wg.Done()
 			for _, objectID := range reducedObjectIDs {
+				ctx := ctx
+				opts := opts
 				objectSize := calculateSizeOfObject(ctx, opts, objectID)
 				mu.Lock() // Protecting shared resource
 				objectsSizes[objectID] = objectSize
 				mu.Unlock() // Releasing shared resource for other goroutines
 			}
-		}(reducedObjectIDs)
+		}(reducedObjectIDs[(w-1)%numWorkers])
 	}
 
 	// Wait for all workers to finish processing.
