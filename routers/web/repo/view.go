@@ -987,7 +987,7 @@ func renderCode(ctx *context.Context) {
 		if ctx.Repo.Repository.IsFork {
 			baseRepo = ctx.Repo.Repository.BaseRepo
 		}
-		branches, err := git_model.FindRecentlyPushedNewBranches(ctx, baseRepo, ctx.Doer.ID)
+		branches, err := git_model.FindRecentlyPushedNewBranches(ctx, baseRepo, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("FindRecentlyPushedNewBranches", err)
 			return

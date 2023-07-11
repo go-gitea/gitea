@@ -393,7 +393,9 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 }
 
 // FindRecentlyPushedNewBranches return at most 2 new branches pushed by the user in 6 hours which has no opened PRs created
-func FindRecentlyPushedNewBranches(ctx context.Context, baseRepo *repo_model.Repository, userID int64) (BranchList, error) {
+// doer should not be nil
+// TODO use options to find the branches
+func FindRecentlyPushedNewBranches(ctx context.Context, baseRepo *repo_model.Repository, doer *user_model.User) (BranchList, error) {
 	branches := make(BranchList, 0, 2)
 	baseBranch, err := GetBranch(ctx, baseRepo.ID, baseRepo.DefaultBranch)
 	if err != nil {
@@ -406,7 +408,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, baseRepo *repo_model.Rep
 			builder.Eq{"is_fork": true, "fork_id": baseRepo.ID},
 		))
 	// avoid check branches which have already created PRs
-	// TODO add head_branch_id in pull_request table
+	// TODO add head_branch_id in pull_request table then we can get the branch id from pull_request table directly
 	invalidBranchCond := builder.Select("branch.id").From("branch").
 		InnerJoin("pull_request", "branch.name = pull_request.head_branch AND branch.repo_id = pull_request.head_repo_id").
 		InnerJoin("issue", "issue.id = pull_request.issue_id").
@@ -415,7 +417,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, baseRepo *repo_model.Rep
 			builder.In("pull_request.head_repo_id", repoCond),
 		))
 	err = db.GetEngine(ctx).
-		Where("id != ? AND commit_id != ? AND pusher_id = ? AND is_deleted = ?", baseBranch.ID, baseBranch.CommitID, userID, false).
+		Where("id != ? AND commit_id != ? AND pusher_id = ? AND is_deleted = ?", baseBranch.ID, baseBranch.CommitID, doer.ID, false).
 		And("updated_unix >= ?", time.Now().Add(-time.Hour*6).Unix()).
 		NotIn("id", invalidBranchCond).
 		In("repo_id", repoCond).
