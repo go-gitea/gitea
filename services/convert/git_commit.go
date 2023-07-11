@@ -198,8 +198,17 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 		affectedFileList := make([]*api.CommitAffectedFiles, 0, len(fileStatus.Added)+len(fileStatus.Removed)+len(fileStatus.Modified))
 		for _, files := range [][]string{fileStatus.Added, fileStatus.Removed, fileStatus.Modified} {
 			for _, filename := range files {
+				var filestatus = "unknown"
+				if contains(fileStatus.Added, filename) {
+					filestatus = "added"
+				} else if contains(fileStatus.Removed, filename) {
+					filestatus = "removed"
+				} else if contains(fileStatus.Modified, filename) {
+					filestatus = "modified"
+				}
 				affectedFileList = append(affectedFileList, &api.CommitAffectedFiles{
 					Filename: filename,
+					Status: filestatus
 				})
 			}
 		}
