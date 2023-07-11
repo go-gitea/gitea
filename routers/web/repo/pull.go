@@ -718,25 +718,20 @@ func GetPullCommits(ctx *context.Context) {
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
-	var prInfo *git.CompareInfo
-	var err error
+	baseBranch := pull.BaseBranch
 	if pull.HasMerged {
-		prInfo, err = baseGitRepo.GetCompareInfo(pull.BaseRepo.RepoPath(), pull.MergeBase, pull.GetGitRefName(), true, false)
-	} else {
-		prInfo, err = baseGitRepo.GetCompareInfo(pull.BaseRepo.RepoPath(), pull.BaseBranch, pull.GetGitRefName(), true, false)
+		baseBranch = pull.MergeBase
 	}
-
+	prInfo, err := baseGitRepo.GetCompareInfo(pull.BaseRepo.RepoPath(), baseBranch, pull.GetGitRefName(), true, false)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
 
 	resp := &pullCommitList{}
-	commits := make([]PullCommitInfo, len(prInfo.Commits))
+	commits := make([]PullCommitInfo, 0, len(prInfo.Commits))
 
-	for i := range prInfo.Commits {
-		commit := prInfo.Commits[i]
-
+	for _, commit := range prInfo.Commits {
 		var committerOrAuthorName string
 		var time string
 		if commit.Committer != nil {
@@ -747,12 +742,12 @@ func GetPullCommits(ctx *context.Context) {
 			time = commit.Author.When.String()
 		}
 
-		commits[i] = PullCommitInfo{
+		commits = append(commits, PullCommitInfo{
 			Summary:               commit.Summary(),
 			CommitterOrAuthorName: committerOrAuthorName,
 			ID:                    commit.ID.String(),
 			Time:                  time,
-		}
+		})
 	}
 
 	if ctx.IsSigned {
@@ -858,11 +853,11 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 		foundEndCommit := len(specifiedEndCommit) == 0
 
 		if !(foundStartCommit && foundEndCommit) {
-			for i := range prInfo.Commits {
-				if prInfo.Commits[i].ID.String() == specifiedStartCommit {
+			for _, commit := range prInfo.Commits {
+				if commit.ID.String() == specifiedStartCommit {
 					foundStartCommit = true
 				}
-				if prInfo.Commits[i].ID.String() == specifiedEndCommit {
+				if commit.ID.String() == specifiedEndCommit {
 					foundEndCommit = true
 				}
 
