@@ -16,7 +16,6 @@
 			{{$timeSince := TimeSince .UpdatedUnix.AsTime $.locale}}
 			{{$.locale.Tr "repo.pulls.recently_pushed_new_branches" (PathEscapeSegments $branchName) $timeSince | Safe}}
 		</div>
-		
 		<a aria-role="button" class="ui compact positive button gt-m-0" href="{{$pullRepo.ComposeBranchCompareURL $baseRepo (PathEscapeSegments .Name)}}">
 			{{$.locale.Tr "repo.pulls.compare_changes"}}
 		</a>
