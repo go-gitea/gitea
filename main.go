@@ -21,6 +21,7 @@ import (
 	_ "code.gitea.io/gitea/modules/markup/console"
 	_ "code.gitea.io/gitea/modules/markup/csv"
 	_ "code.gitea.io/gitea/modules/markup/markdown"
+	_ "code.gitea.io/gitea/modules/markup/openapi"
 	_ "code.gitea.io/gitea/modules/markup/orgmode"
 
 	"github.com/urfave/cli"

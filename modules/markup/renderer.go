@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 
+	"github.com/gobwas/glob"
 	"github.com/yuin/goldmark/ast"
 )
 
@@ -116,6 +117,10 @@ type Renderer interface {
 	Render(ctx *RenderContext, input io.Reader, output io.Writer) error
 }
 
+type GlobMatchRenderer interface {
+	MatchGlobs() []glob.Glob
+}
+
 // PostProcessRenderer defines an interface for renderers who need post process
 type PostProcessRenderer interface {
 	NeedPostProcess() bool
@@ -137,8 +142,9 @@ type RendererContentDetector interface {
 }
 
 var (
-	extRenderers = make(map[string]Renderer)
-	renderers    = make(map[string]Renderer)
+	extRenderers       = make(map[string]Renderer)
+	globMatchRenderers = make([]GlobMatchRenderer, 0)
+	renderers          = make(map[string]Renderer)
 )
 
 // RegisterRenderer registers a new markup file renderer
@@ -147,12 +153,28 @@ func RegisterRenderer(renderer Renderer) {
 	for _, ext := range renderer.Extensions() {
 		extRenderers[strings.ToLower(ext)] = renderer
 	}
+	gmRenderer, ok := renderer.(GlobMatchRenderer)
+	if ok {
+		globMatchRenderers = append(globMatchRenderers, gmRenderer)
+	}
 }
 
 // GetRendererByFileName get renderer by filename
 func GetRendererByFileName(filename string) Renderer {
 	extension := strings.ToLower(filepath.Ext(filename))
-	return extRenderers[extension]
+	renderer := extRenderers[extension]
+	if renderer != nil {
+		return renderer
+	}
+
+	for _, gmRenderer := range globMatchRenderers {
+		for _, mg := range gmRenderer.MatchGlobs() {
+			if mg.Match(filename) {
+				return gmRenderer.(Renderer)
+			}
+		}
+	}
+	return nil
 }
 
 // GetRendererByType returns a renderer according type
@@ -291,33 +313,34 @@ func renderByType(ctx *RenderContext, input io.Reader, output io.Writer) error {
 	return ErrUnsupportedRenderType{ctx.Type}
 }
 
-// ErrUnsupportedRenderExtension represents the error when extension doesn't supported to render
-type ErrUnsupportedRenderExtension struct {
-	Extension string
+// ErrUnsupportedRenderFile represents the error when extension or filename doesn't supported to render
+type ErrUnsupportedRenderFile struct {
+	RelativePath string
 }
 
-func IsErrUnsupportedRenderExtension(err error) bool {
-	_, ok := err.(ErrUnsupportedRenderExtension)
+func IsErrUnsupportedRenderFile(err error) bool {
+	_, ok := err.(ErrUnsupportedRenderFile)
 	return ok
 }
 
-func (err ErrUnsupportedRenderExtension) Error() string {
-	return fmt.Sprintf("Unsupported render extension: %s", err.Extension)
+func (err ErrUnsupportedRenderFile) Error() string {
+	return fmt.Sprintf("Unsupported render file: %s", err.RelativePath)
 }
 
 func renderFile(ctx *RenderContext, input io.Reader, output io.Writer) error {
-	extension := strings.ToLower(filepath.Ext(ctx.RelativePath))
-	if renderer, ok := extRenderers[extension]; ok {
-		if r, ok := renderer.(ExternalRenderer); ok && r.DisplayInIFrame() {
-			if !ctx.InStandalonePage {
-				// for an external render, it could only output its content in a standalone page
-				// otherwise, a <iframe> should be outputted to embed the external rendered page
-				return renderIFrame(ctx, output)
-			}
-		}
-		return render(ctx, renderer, input, output)
+	renderer := GetRendererByFileName(ctx.RelativePath)
+	if renderer == nil {
+		return ErrUnsupportedRenderFile{ctx.RelativePath}
 	}
-	return ErrUnsupportedRenderExtension{extension}
+
+	if r, ok := renderer.(ExternalRenderer); ok && r.DisplayInIFrame() {
+		if !ctx.InStandalonePage {
+			// for an external render, it could only output its content in a standalone page
+			// otherwise, a <iframe> should be outputted to embed the external rendered page
+			return renderIFrame(ctx, output)
+		}
+	}
+	return render(ctx, renderer, input, output)
 }
 
 // Type returns if markup format via the filename
