@@ -11,11 +11,11 @@ import (
 	lru "github.com/hashicorp/golang-lru/v2"
 )
 
-var lruCache *lru.Cache
+var lruCache *lru.Cache[string, any]
 
 func init() {
 	var err error
-	lruCache, err = lru.New(1000)
+	lruCache, err = lru.New[string, any](1000)
 	if err != nil {
 		log.Fatal("failed to new LRU cache, err: %v", err)
 	}

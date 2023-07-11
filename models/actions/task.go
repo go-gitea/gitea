@@ -57,13 +57,13 @@ type ActionTask struct {
 	Updated timeutil.TimeStamp `xorm:"updated index"`
 }
 
-var successfulTokenTaskCache *lru.Cache
+var successfulTokenTaskCache *lru.Cache[string, any]
 
 func init() {
 	db.RegisterModel(new(ActionTask), func() error {
 		if setting.SuccessfulTokensCacheSize > 0 {
 			var err error
-			successfulTokenTaskCache, err = lru.New(setting.SuccessfulTokensCacheSize)
+			successfulTokenTaskCache, err = lru.New[string, any](setting.SuccessfulTokensCacheSize)
 			if err != nil {
 				return fmt.Errorf("unable to allocate Task cache: %v", err)
 			}

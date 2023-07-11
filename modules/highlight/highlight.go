@@ -35,7 +35,7 @@ var (
 
 	once sync.Once
 
-	cache *lru.TwoQueueCache
+	cache *lru.TwoQueueCache[string, any]
 
 	githubStyles = styles.Get("github")
 )
@@ -46,7 +46,7 @@ func NewContext() {
 		highlightMapping = setting.GetHighlightMapping()
 
 		// The size 512 is simply a conservative rule of thumb
-		c, err := lru.New2Q(512)
+		c, err := lru.New2Q[string, any](512)
 		if err != nil {
 			panic(fmt.Sprintf("failed to initialize LRU cache for highlighter: %s", err))
 		}
