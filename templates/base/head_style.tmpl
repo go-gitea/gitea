@@ -6,3 +6,8 @@
 {{else if ne DefaultTheme "gitea"}}
 	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{DefaultTheme | PathEscape}}.css?v={{AssetVersion}}">
 {{end}}
+{{if .RenderResponse}}
+	{{range .RenderResponse.ExtraStyleFiles}}
+		<link rel="stylesheet" href="{{.}}">
+	{{end}}
+{{end}}

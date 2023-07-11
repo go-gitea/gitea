@@ -45,7 +45,7 @@ func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 }
 
 // Render implements markup.Renderer
-func (Renderer) Render(ctx *markup.RenderContext, _ io.Reader, output io.Writer) error {
+func (Renderer) Render(ctx *markup.RenderContext, _ io.Reader, output io.Writer) (*markup.RenderResponse, error) {
 	rawURL := fmt.Sprintf("%s/%s/%s/raw/%s/%s",
 		setting.AppSubURL,
 		url.PathEscape(ctx.Metas["user"]),
@@ -60,5 +60,5 @@ func (Renderer) Render(ctx *markup.RenderContext, _ io.Reader, output io.Writer)
 		playerSrcAttr,
 		rawURL,
 	))
-	return err
+	return nil, err
 }

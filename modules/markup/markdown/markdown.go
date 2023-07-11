@@ -205,7 +205,7 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 }
 
 // Note: The output of this method must get sanitized.
-func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
+func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) (*markup.RenderResponse, error) {
 	defer func() {
 		err := recover()
 		if err == nil {
@@ -221,7 +221,7 @@ func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 			log.Error("io.Copy failed: %v", err)
 		}
 	}()
-	return actualRender(ctx, input, output)
+	return nil, actualRender(ctx, input, output)
 }
 
 // MarkupName describes markup's name
@@ -255,7 +255,7 @@ func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 }
 
 // Render implements markup.Renderer
-func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
+func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) (*markup.RenderResponse, error) {
 	return render(ctx, input, output)
 }
 
@@ -264,7 +264,8 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 	if ctx.Type == "" {
 		ctx.Type = MarkupName
 	}
-	return markup.Render(ctx, input, output)
+	_, err := markup.Render(ctx, input, output)
+	return err
 }
 
 // RenderString renders Markdown string to HTML with all specific handling stuff and return string
@@ -285,7 +286,7 @@ func RenderRaw(ctx *markup.RenderContext, input io.Reader, output io.Writer) err
 	}()
 
 	go func() {
-		if err := render(ctx, input, wr); err != nil {
+		if _, err := render(ctx, input, wr); err != nil {
 			_ = wr.CloseWithError(err)
 			return
 		}

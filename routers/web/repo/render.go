@@ -63,7 +63,7 @@ func RenderFile(ctx *context.Context) {
 	}
 
 	ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'; sandbox allow-scripts")
-	err = markup.Render(&markup.RenderContext{
+	resp, err := markup.Render(&markup.RenderContext{
 		Ctx:              ctx,
 		RelativePath:     ctx.Repo.TreePath,
 		URLPrefix:        path.Dir(treeLink),
@@ -74,5 +74,9 @@ func RenderFile(ctx *context.Context) {
 	if err != nil {
 		ctx.ServerError("Render", err)
 		return
+	}
+
+	if resp != nil {
+		ctx.Data["ExtraStyleFiles"] = resp.ExtraStyleFiles
 	}
 }

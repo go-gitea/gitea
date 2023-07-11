@@ -299,7 +299,7 @@ func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.Tr
 		ctx.Data["IsMarkup"] = true
 		ctx.Data["MarkupType"] = markupType
 
-		ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
+		ctx.Data["RenderResponse"], ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
 			Ctx:          ctx,
 			RelativePath: path.Join(ctx.Repo.TreePath, readmeFile.Name()), // ctx.Repo.TreePath is the directory not the Readme so we must append the Readme filename (and path).
 			URLPrefix:    path.Join(readmeTreelink, subfolder),
@@ -462,7 +462,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			}
 			metas := ctx.Repo.Repository.ComposeDocumentMetas()
 			metas["BranchNameSubURL"] = ctx.Repo.BranchNameSubURL()
-			ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
+			ctx.Data["RenderResponse"], ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
 				Ctx:          ctx,
 				Type:         markupType,
 				RelativePath: ctx.Repo.TreePath,
@@ -564,7 +564,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			rd := io.MultiReader(bytes.NewReader(buf), dataRc)
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
-			ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
+			ctx.Data["RenderResponse"], ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
 				Ctx:          ctx,
 				RelativePath: ctx.Repo.TreePath,
 				URLPrefix:    path.Dir(treeLink),
@@ -593,7 +593,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	}
 }
 
-func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input io.Reader) (escaped *charset.EscapeStatus, output string, err error) {
+func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input io.Reader) (renderResp *markup.RenderResponse, escaped *charset.EscapeStatus, output string, err error) {
 	markupRd, markupWr := io.Pipe()
 	defer markupWr.Close()
 	done := make(chan struct{})
@@ -604,10 +604,10 @@ func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input i
 		output = sb.String()
 		close(done)
 	}()
-	err = markup.Render(renderCtx, input, markupWr)
+	resp, err := markup.Render(renderCtx, input, markupWr)
 	_ = markupWr.CloseWithError(err)
 	<-done
-	return escaped, output, err
+	return resp, escaped, output, err
 }
 
 func safeURL(address string) string {

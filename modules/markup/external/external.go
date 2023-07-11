@@ -77,7 +77,7 @@ func envMark(envName string) string {
 }
 
 // Render renders the data of the document to HTML via the external tool.
-func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
+func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) (*markup.RenderResponse, error) {
 	var (
 		urlRawPrefix = strings.Replace(ctx.URLPrefix, "/src/", "/raw/", 1)
 		command      = strings.NewReplacer(envMark("GITEA_PREFIX_SRC"), ctx.URLPrefix,
@@ -90,7 +90,7 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 		// write to temp file
 		f, err := os.CreateTemp("", "gitea_input")
 		if err != nil {
-			return fmt.Errorf("%s create temp file when rendering %s failed: %w", p.Name(), p.Command, err)
+			return nil, fmt.Errorf("%s create temp file when rendering %s failed: %w", p.Name(), p.Command, err)
 		}
 		tmpPath := f.Name()
 		defer func() {
@@ -102,12 +102,12 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 		_, err = io.Copy(f, input)
 		if err != nil {
 			f.Close()
-			return fmt.Errorf("%s write data to temp file when rendering %s failed: %w", p.Name(), p.Command, err)
+			return nil, fmt.Errorf("%s write data to temp file when rendering %s failed: %w", p.Name(), p.Command, err)
 		}
 
 		err = f.Close()
 		if err != nil {
-			return fmt.Errorf("%s close temp file when rendering %s failed: %w", p.Name(), p.Command, err)
+			return nil, fmt.Errorf("%s close temp file when rendering %s failed: %w", p.Name(), p.Command, err)
 		}
 		args = append(args, f.Name())
 	}
@@ -139,7 +139,7 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 	process.SetSysProcAttribute(cmd)
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("%s render run command %s %v failed: %w\nStderr: %s", p.Name(), commands[0], args, err, stderr.String())
+		return nil, fmt.Errorf("%s render run command %s %v failed: %w\nStderr: %s", p.Name(), commands[0], args, err, stderr.String())
 	}
-	return nil
+	return nil, nil
 }

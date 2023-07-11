@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/gobwas/glob"
 )
 
@@ -57,21 +58,27 @@ func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 }
 
 // Render implements markup.Renderer
-func (Renderer) Render(ctx *markup.RenderContext, _ io.Reader, output io.Writer) error {
+func (Renderer) Render(ctx *markup.RenderContext, _ io.Reader, output io.Writer) (*markup.RenderResponse, error) {
 	rawURL := fmt.Sprintf("%s/%s/%s/raw/%s/%s",
 		setting.AppSubURL,
 		url.PathEscape(ctx.Metas["user"]),
 		url.PathEscape(ctx.Metas["repo"]),
 		ctx.Metas["BranchNameSubURL"],
-		url.PathEscape(ctx.RelativePath),
+		ctx.RelativePath,
 	)
 
-	_, err := io.WriteString(output, fmt.Sprintf(
+	if _, err := io.WriteString(output, fmt.Sprintf(
 		`<div id="swagger-ui" data-source="%s"></div>
-		<script src="%s/js/swagger.js?v=%s"></script>`,
+		<script src="%s/assets/js/swagger.js?v=%s"></script>`,
 		rawURL,
-		setting.StaticURLPrefix+"/assets",
+		setting.StaticURLPrefix,
 		setting.AssetVersion,
-	))
-	return err
+	)); err != nil {
+		return nil, err
+	}
+	return &markup.RenderResponse{
+		ExtraStyleFiles: []string{
+			setting.StaticURLPrefix + "/assets/css/swagger.css?v=" + setting.AssetVersion,
+		},
+	}, nil
 }

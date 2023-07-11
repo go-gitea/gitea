@@ -57,15 +57,15 @@ func (Renderer) CanRender(filename string, input io.Reader) bool {
 }
 
 // Render renders terminal colors to HTML with all specific handling stuff.
-func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
+func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) (*markup.RenderResponse, error) {
 	buf, err := io.ReadAll(input)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	buf = trend.Render(buf)
 	buf = bytes.ReplaceAll(buf, []byte("\n"), []byte(`<br>`))
 	_, err = output.Write(buf)
-	return err
+	return nil, err
 }
 
 // Render renders terminal colors to HTML with all specific handling stuff.
@@ -73,7 +73,8 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 	if ctx.Type == "" {
 		ctx.Type = MarkupName
 	}
-	return markup.Render(ctx, input, output)
+	_, err := markup.Render(ctx, input, output)
+	return err
 }
 
 // RenderString renders terminal colors in string to HTML with all specific handling stuff and return string

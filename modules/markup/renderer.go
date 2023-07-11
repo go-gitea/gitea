@@ -109,12 +109,16 @@ func (ctx *RenderContext) AddCancel(fn func()) {
 	}
 }
 
+type RenderResponse struct {
+	ExtraStyleFiles []string
+}
+
 // Renderer defines an interface for rendering markup file to HTML
 type Renderer interface {
 	Name() string // markup format name
 	Extensions() []string
 	SanitizerRules() []setting.MarkupSanitizerRule
-	Render(ctx *RenderContext, input io.Reader, output io.Writer) error
+	Render(ctx *RenderContext, input io.Reader, output io.Writer) (*RenderResponse, error)
 }
 
 type GlobMatchRenderer interface {
@@ -197,19 +201,20 @@ func DetectRendererType(filename string, input io.Reader) string {
 }
 
 // Render renders markup file to HTML with all specific handling stuff.
-func Render(ctx *RenderContext, input io.Reader, output io.Writer) error {
+func Render(ctx *RenderContext, input io.Reader, output io.Writer) (*RenderResponse, error) {
 	if ctx.Type != "" {
 		return renderByType(ctx, input, output)
 	} else if ctx.RelativePath != "" {
 		return renderFile(ctx, input, output)
 	}
-	return errors.New("Render options both filename and type missing")
+	return nil, errors.New("Render options both filename and type missing")
 }
 
 // RenderString renders Markup string to HTML with all specific handling stuff and return string
 func RenderString(ctx *RenderContext, content string) (string, error) {
 	var buf strings.Builder
-	if err := Render(ctx, strings.NewReader(content), &buf); err != nil {
+	_, err := Render(ctx, strings.NewReader(content), &buf)
+	if err != nil {
 		return "", err
 	}
 	return buf.String(), nil
@@ -221,7 +226,7 @@ type nopCloser struct {
 
 func (nopCloser) Close() error { return nil }
 
-func renderIFrame(ctx *RenderContext, output io.Writer) error {
+func renderIFrame(ctx *RenderContext, output io.Writer) (*RenderResponse, error) {
 	// set height="0" ahead, otherwise the scrollHeight would be max(150, realHeight)
 	// at the moment, only "allow-scripts" is allowed for sandbox mode.
 	// "allow-same-origin" should never be used, it leads to XSS attack, and it makes the JS in iframe can access parent window's config and CSRF token
@@ -239,10 +244,10 @@ sandbox="allow-scripts"
 		ctx.Metas["BranchNameSubURL"],
 		url.PathEscape(ctx.RelativePath),
 	))
-	return err
+	return nil, err
 }
 
-func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
+func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) (*RenderResponse, error) {
 	var wg sync.WaitGroup
 	var err error
 	pr, pw := io.Pipe()
@@ -288,13 +293,14 @@ func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Wr
 		wg.Done()
 	}()
 
-	if err1 := renderer.Render(ctx, input, pw); err1 != nil {
-		return err1
+	resp, err1 := renderer.Render(ctx, input, pw)
+	if err1 != nil {
+		return nil, err1
 	}
 	_ = pw.Close()
 
 	wg.Wait()
-	return err
+	return resp, err
 }
 
 // ErrUnsupportedRenderType represents
@@ -306,11 +312,11 @@ func (err ErrUnsupportedRenderType) Error() string {
 	return fmt.Sprintf("Unsupported render type: %s", err.Type)
 }
 
-func renderByType(ctx *RenderContext, input io.Reader, output io.Writer) error {
+func renderByType(ctx *RenderContext, input io.Reader, output io.Writer) (*RenderResponse, error) {
 	if renderer, ok := renderers[ctx.Type]; ok {
 		return render(ctx, renderer, input, output)
 	}
-	return ErrUnsupportedRenderType{ctx.Type}
+	return nil, ErrUnsupportedRenderType{ctx.Type}
 }
 
 // ErrUnsupportedRenderFile represents the error when extension or filename doesn't supported to render
@@ -327,10 +333,10 @@ func (err ErrUnsupportedRenderFile) Error() string {
 	return fmt.Sprintf("Unsupported render file: %s", err.RelativePath)
 }
 
-func renderFile(ctx *RenderContext, input io.Reader, output io.Writer) error {
+func renderFile(ctx *RenderContext, input io.Reader, output io.Writer) (*RenderResponse, error) {
 	renderer := GetRendererByFileName(ctx.RelativePath)
 	if renderer == nil {
-		return ErrUnsupportedRenderFile{ctx.RelativePath}
+		return nil, ErrUnsupportedRenderFile{ctx.RelativePath}
 	}
 
 	if r, ok := renderer.(ExternalRenderer); ok && r.DisplayInIFrame() {
