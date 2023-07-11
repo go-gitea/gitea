@@ -39,14 +39,14 @@
 					<textarea name="content">{{.content}}</textarea>
 				</div>
 				<div class="divider"></div>
-				<div>
+				<div class="gt-text-right">
 					{{if .PageIsEditMilestone}}
-						<button class="ui green button">
-							{{.locale.Tr "repo.milestones.modify"}}
-						</button>
 						<a class="ui primary basic button" href="{{.RepoLink}}/milestones">
 							{{.locale.Tr "repo.milestones.cancel"}}
 						</a>
+						<button class="ui green button">
+							{{.locale.Tr "repo.milestones.modify"}}
+						</button>
 					{{else}}
 						<button class="ui green button">
 							{{.locale.Tr "repo.milestones.create"}}
