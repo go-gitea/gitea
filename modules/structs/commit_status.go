@@ -24,18 +24,15 @@ const (
 
 // NoBetterThan returns true if this State is no better than the given State
 func (css CommitStatusState) NoBetterThan(css2 CommitStatusState) bool {
-	switch css {
-	case CommitStatusError:
-		return true
-	case CommitStatusFailure:
-		return css2 != CommitStatusError
-	case CommitStatusWarning:
-		return css2 != CommitStatusError && css2 != CommitStatusFailure
-	case CommitStatusPending:
-		return css2 != CommitStatusError && css2 != CommitStatusFailure && css2 != CommitStatusWarning
-	default:
-		return css2 != CommitStatusError && css2 != CommitStatusFailure && css2 != CommitStatusWarning && css2 != CommitStatusPending
+	commitStatusPriorities := map[CommitStatusState]int{
+		CommitStatusError:   0,
+		CommitStatusFailure: 1,
+		CommitStatusWarning: 2,
+		CommitStatusPending: 3,
+		CommitStatusRunning: 4,
+		CommitStatusSuccess: 5,
 	}
+	return commitStatusPriorities[css] <= commitStatusPriorities[css2]
 }
 
 // IsPending represents if commit status state is pending
