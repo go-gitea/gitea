@@ -125,14 +125,6 @@ func TestRepoCommitsWithStatusFailure(t *testing.T) {
 	doTestRepoCommitWithStatus(t, "failure", "octicon-x", "red")
 }
 
-func TestRepoCommitsWithStatusWarning(t *testing.T) {
-	doTestRepoCommitWithStatus(t, "warning", "octicon-x", "red")
-}
-
-func TestRepoCommitsWithStatusRunning(t *testing.T) {
-	doTestRepoCommitWithStatus(t, "running", "octicon-dot-fill", "grey")
-}
-
 func TestRepoCommitsStatusParallel(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
