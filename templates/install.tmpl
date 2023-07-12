@@ -28,7 +28,7 @@
 						</div>
 					</div>
 
-					<div class="gt-hidden" data-db-setting-for="common-host">
+					<div class="gt-mt-4 gt-hidden" data-db-setting-for="common-host">
 						<div class="inline required field {{if .Err_DbSetting}}error{{end}}">
 							<label for="db_host">{{.locale.Tr "install.host"}}</label>
 							<input id="db_host" name="db_host" value="{{.db_host}}">
@@ -47,7 +47,7 @@
 						</div>
 					</div>
 
-					<div class="gt-hidden" data-db-setting-for="postgres">
+					<div class="gt-mt-4 gt-hidden" data-db-setting-for="postgres">
 						<div class="inline required field">
 							<label>{{.locale.Tr "install.ssl_mode"}}</label>
 							<div class="ui selection database type dropdown">
@@ -68,7 +68,7 @@
 						</div>
 					</div>
 
-					<div class="gt-hidden" data-db-setting-for="sqlite3">
+					<div class="gt-mt-4 gt-hidden" data-db-setting-for="sqlite3">
 						<div class="inline required field {{if or .Err_DbPath .Err_DbSetting}}error{{end}}">
 							<label for="db_path">{{.locale.Tr "install.path"}}</label>
 							<input id="db_path" name="db_path" value="{{.db_path}}">
