@@ -19,7 +19,6 @@ type IndexerData struct {
 	Comments []string `json:"comments"`
 
 	// Fields used for filtering
-	IsPublicRepo       bool     `json:"is_public_repo"` // So if the availability of a repository has changed, we should reindex all issues of the repository
 	IsPull             bool     `json:"is_pull"`
 	IsClosed           bool     `json:"is_closed"`     // So if the status of an issue has changed, we should reindex the issue.
 	Labels             []string `json:"labels"`        // So if the labels of an issue have changed, we should reindex the issue.
@@ -65,8 +64,7 @@ type SearchResult struct {
 type SearchOptions struct {
 	Keyword string // keyword to search
 
-	Repos          []int64 // repository IDs which the issues belong to
-	AllPublicRepos bool    // search all public repositories
+	Repos []int64 // repository IDs which the issues belong to
 
 	IsPull util.OptionalBool // if the issues is a pull request
 	Closed util.OptionalBool // if the issues is closed
