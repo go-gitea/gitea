@@ -174,6 +174,7 @@ export default {
   .commit-selector-menu {
     max-height: max(45vh, 200px);
     overflow-x: hidden;
+    border-top: 0;
   }
 
   .ui.dropdown .menu.commit-selector-menu > .item {
@@ -182,6 +183,6 @@ export default {
   }
 
   .commit-list-summary {
-    max-width: max(40vw, 200px);
+    max-width: min(380px, 96vw);
   }
 </style>
