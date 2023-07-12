@@ -92,4 +92,6 @@ type SearchOptions struct {
 
 	Skip  int // skip the first N results
 	Limit int // limit the number of results
+
+	SortBy string // sort by field, could be "created", "updated", "comments", "due_date", add "-" prefix to sort in descending order
 }
