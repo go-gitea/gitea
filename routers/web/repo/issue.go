@@ -785,18 +785,7 @@ func RetrieveRepoMetas(ctx *context.Context, repo *repo_model.Repository, isPull
 		return nil
 	}
 
-	brs, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
-		RepoID: ctx.Repo.Repository.ID,
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
-		IsDeletedBranch: util.OptionalBoolFalse,
-	})
-	if err != nil {
-		ctx.ServerError("GetBranches", err)
-		return nil
-	}
-	ctx.Data["Branches"] = brs
+	PrepareBranchList(ctx)
 
 	// Contains true if the user can create issue dependencies
 	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx.Doer, isPull)
@@ -920,6 +909,13 @@ func NewIssue(ctx *context.Context) {
 	}
 
 	RetrieveRepoMetas(ctx, ctx.Repo.Repository, false)
+
+	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.ServerError("GetTagNamesByRepoID", err)
+		return
+	}
+	ctx.Data["Tags"] = tags
 
 	_, templateErrs := issue_service.GetTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
 	if errs := setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates); len(errs) > 0 {
