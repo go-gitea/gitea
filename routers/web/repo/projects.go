@@ -74,7 +74,7 @@ func Projects(ctx *context.Context) {
 		RepoID:   repo.ID,
 		Page:     page,
 		IsClosed: util.OptionalBoolOf(isShowClosed),
-		SortType: sortType,
+		OrderBy:  project_model.GetSearchOrderByBySortType(sortType),
 		Type:     project_model.TypeRepository,
 	})
 	if err != nil {

@@ -102,6 +102,7 @@ func Install(ctx *context.Context) {
 	form.DbName = setting.Database.Name
 	form.DbPath = setting.Database.Path
 	form.DbSchema = setting.Database.Schema
+	form.SSLMode = setting.Database.SSLMode
 
 	curDBType := setting.Database.Type.String()
 	var isCurDBTypeSupported bool
