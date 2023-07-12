@@ -5,6 +5,7 @@ package integration
 
 import (
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -64,9 +65,9 @@ func TestPullRequestTargetEvent(t *testing.T) {
 		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, baseRepo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
-					Operation: "create",
-					TreePath:  ".gitea/workflows/pr.yml",
-					Content:   "name: test\non: pull_request_target\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo helloworld\n",
+					Operation:     "create",
+					TreePath:      ".gitea/workflows/pr.yml",
+					ContentReader: strings.NewReader("name: test\non: pull_request_target\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo helloworld\n"),
 				},
 			},
 			Message:   "add workflow",
@@ -92,9 +93,9 @@ func TestPullRequestTargetEvent(t *testing.T) {
 		addFileToForkedResp, err := files_service.ChangeRepoFiles(git.DefaultContext, forkedRepo, user3, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
-					Operation: "create",
-					TreePath:  "file_1.txt",
-					Content:   "file1",
+					Operation:     "create",
+					TreePath:      "file_1.txt",
+					ContentReader: strings.NewReader("file1"),
 				},
 			},
 			Message:   "add file1",

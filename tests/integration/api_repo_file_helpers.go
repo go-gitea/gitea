@@ -4,6 +4,8 @@
 package integration
 
 import (
+	"strings"
+
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -15,9 +17,9 @@ func createFileInBranch(user *user_model.User, repo *repo_model.Repository, tree
 	opts := &files_service.ChangeRepoFilesOptions{
 		Files: []*files_service.ChangeRepoFile{
 			{
-				Operation: "create",
-				TreePath:  treePath,
-				Content:   content,
+				Operation:     "create",
+				TreePath:      treePath,
+				ContentReader: strings.NewReader(content),
 			},
 		},
 		OldBranch: branchName,

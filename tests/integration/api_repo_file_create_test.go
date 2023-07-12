@@ -46,7 +46,7 @@ func getCreateFileOptions() api.CreateFileOptions {
 				Committer: time.Unix(978307190, 0),
 			},
 		},
-		Content: contentEncoded,
+		ContentBase64: contentEncoded,
 	}
 }
 

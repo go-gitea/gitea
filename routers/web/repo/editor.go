@@ -284,10 +284,10 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 		Message:      message,
 		Files: []*files_service.ChangeRepoFile{
 			{
-				Operation:    operation,
-				FromTreePath: ctx.Repo.TreePath,
-				TreePath:     form.TreePath,
-				Content:      strings.ReplaceAll(form.Content, "\r", ""),
+				Operation:     operation,
+				FromTreePath:  ctx.Repo.TreePath,
+				TreePath:      form.TreePath,
+				ContentReader: strings.NewReader(strings.ReplaceAll(form.Content, "\r", "")),
 			},
 		},
 		Signoff: form.Signoff,

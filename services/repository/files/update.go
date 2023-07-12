@@ -6,6 +6,7 @@ package files
 import (
 	"context"
 	"fmt"
+	"io"
 	"path"
 	"strings"
 	"time"
@@ -35,12 +36,12 @@ type CommitDateOptions struct {
 }
 
 type ChangeRepoFile struct {
-	Operation    string
-	TreePath     string
-	FromTreePath string
-	Content      string
-	SHA          string
-	Options      *RepoFileOptions
+	Operation     string
+	TreePath      string
+	FromTreePath  string
+	ContentReader io.Reader
+	SHA           string
+	Options       *RepoFileOptions
 }
 
 // ChangeRepoFilesOptions holds the repository files update options
@@ -387,7 +388,7 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 		}
 	}
 
-	treeObjectContent := file.Content
+	treeObjectContentReader := file.ContentReader
 	var lfsMetaObject *git_model.LFSMetaObject
 	if setting.LFS.StartServer && hasOldBranch {
 		// Check there is no way this can return multiple infos
@@ -402,17 +403,17 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 
 		if filename2attribute2info[file.Options.treePath] != nil && filename2attribute2info[file.Options.treePath]["filter"] == "lfs" {
 			// OK so we are supposed to LFS this data!
-			pointer, err := lfs.GeneratePointer(strings.NewReader(file.Content))
+			pointer, err := lfs.GeneratePointer(treeObjectContentReader)
 			if err != nil {
 				return err
 			}
 			lfsMetaObject = &git_model.LFSMetaObject{Pointer: pointer, RepositoryID: repoID}
-			treeObjectContent = pointer.StringContent()
+			treeObjectContentReader = strings.NewReader(pointer.StringContent())
 		}
 	}
 
 	// Add the object to the database
-	objectHash, err := t.HashObject(strings.NewReader(treeObjectContent))
+	objectHash, err := t.HashObject(treeObjectContentReader)
 	if err != nil {
 		return err
 	}
@@ -439,7 +440,7 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 			return err
 		}
 		if !exist {
-			if err := contentStore.Put(lfsMetaObject.Pointer, strings.NewReader(file.Content)); err != nil {
+			if err := contentStore.Put(lfsMetaObject.Pointer, file.ContentReader); err != nil {
 				if _, err2 := git_model.RemoveLFSMetaObjectByOid(ctx, repoID, lfsMetaObject.Oid); err2 != nil {
 					return fmt.Errorf("unable to remove failed inserted LFS object %s: %v (Prev Error: %w)", lfsMetaObject.Oid, err2, err)
 				}

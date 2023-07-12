@@ -44,7 +44,7 @@ func getUpdateFileOptions() *api.UpdateFileOptions {
 			},
 			SHA: "103ff9234cefeee5ec5361d22b49fbb04d385885",
 		},
-		Content: contentEncoded,
+		ContentBase64: contentEncoded,
 	}
 }
 

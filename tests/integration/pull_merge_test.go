@@ -370,9 +370,9 @@ func TestConflictChecking(t *testing.T) {
 		_, err = files_service.ChangeRepoFiles(git.DefaultContext, baseRepo, user, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
-					Operation: "create",
-					TreePath:  "important_file",
-					Content:   "Just a non-important file",
+					Operation:     "create",
+					TreePath:      "important_file",
+					ContentReader: strings.NewReader("Just a non-important file"),
 				},
 			},
 			Message:   "Add a important file",
@@ -385,9 +385,9 @@ func TestConflictChecking(t *testing.T) {
 		_, err = files_service.ChangeRepoFiles(git.DefaultContext, baseRepo, user, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
-					Operation: "create",
-					TreePath:  "important_file",
-					Content:   "Not the same content :P",
+					Operation:     "create",
+					TreePath:      "important_file",
+					ContentReader: strings.NewReader("Not the same content :P"),
 				},
 			},
 			Message:   "Add a important file",

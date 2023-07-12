@@ -26,7 +26,7 @@ type CreateFileOptions struct {
 	FileOptions
 	// content must be base64 encoded
 	// required: true
-	Content string `json:"content"`
+	ContentBase64 string `json:"content"`
 }
 
 // Branch returns branch name
@@ -54,7 +54,7 @@ type UpdateFileOptions struct {
 	DeleteFileOptions
 	// content must be base64 encoded
 	// required: true
-	Content string `json:"content"`
+	ContentBase64 string `json:"content"`
 	// from_path (optional) is the path of the original file which will be moved/renamed to the path in the URL
 	FromPath string `json:"from_path" binding:"MaxSize(500)"`
 }
@@ -74,7 +74,7 @@ type ChangeFileOperation struct {
 	// required: true
 	Path string `json:"path" binding:"Required;MaxSize(500)"`
 	// new or updated file content, must be base64 encoded
-	Content string `json:"content"`
+	ContentBase64 string `json:"content"`
 	// sha is the SHA for the file that already exists, required for update or delete
 	SHA string `json:"sha"`
 	// old path of the file to move
