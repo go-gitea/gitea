@@ -1,50 +1,51 @@
 <template>
-  <div
-    class="ui dropdown basic button custom"
-    @click.stop="toggleMenu()" @keyup.enter="toggleMenu()"
-    :data-tooltip-content="locale.filter_changes_by_commit"
-  >
-    <svg-icon name="octicon-git-commit"/>
-    <div class="menu left transition commit-selector-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
-      <div class="vertical item gt-df gt-fc gt-gap-1 gt-border-secondary-top" @click="showAllChanges()">
-        <div class="gt-ellipsis">
-          {{ locale.show_all_commits }}
-        </div>
-        <div class="gt-ellipsis text light-2">
-          {{ locale.stats_num_commits }}
-        </div>
-      </div>
-
-      <!-- only show the show changes since last review if there is a review AND we are commits ahead of the last review -->
-      <div v-if="lastReviewCommitSha != null && commitsSinceLastReview > 0" class="vertical item gt-df gt-fc gt-gap-1 gt-border-secondary-top" @click="changesSinceLastReviewClick()">
-        <div class="gt-ellipsis">
-          {{ locale.show_changes_since_your_last_review }}
-        </div>
-        <div class="gt-ellipsis text light-2">
-          {{ commitsSinceLastReview }} commits
-        </div>
-      </div>
-
-      <span class="info gt-border-secondary-top">{{ locale.select_commit_hold_shift_for_range }}</span>
-
-      <template v-for="commit in commits" :key="commit.id">
-        <div class="vertical item gt-df gt-fr gt-gap-2 gt-border-secondary-top" :class="{selected: commit.selected}" @click.exact="commitClicked(commit.id)" @click.shift.exact.stop.prevent="commitClickedShift(commit)">
-          <div class="gt-f1 gt-df gt-fc gt-gap-1">
-            <div class="gt-ellipsis commit-list-summary">
-              {{ commit.summary }}
-            </div>
-            <div class="gt-ellipsis text light-2">
-              {{ commit.committerOrAuthorName }}
-              <span class="text right">
-                <relative-time class="time-since" prefix="" :datetime="commit.time" data-tooltip-content data-tooltip-interactive="true">{{ commit.time }}</relative-time>
-              </span>
-            </div>
+  <div class="ui dropdown custom">
+    <button
+      class="ui basic button"
+      @click.stop="toggleMenu()" @keyup.enter="toggleMenu()"
+      :data-tooltip-content="locale.filter_changes_by_commit"
+    >
+      <svg-icon name="octicon-git-commit"/>
+    </button>
+    <div class="menu left transition commit-selector-menu" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak>
+      <div class="scrolling menu" :class="{'is-loading': isLoading}">
+        <div class="vertical item gt-df gt-fc gt-gap-1" @click="showAllChanges()">
+          <div class="gt-ellipsis">
+            {{ locale.show_all_commits }}
           </div>
-          <div class="gt-mono">
-            {{ commit.id }}
+          <div class="gt-ellipsis text light-2">
+            {{ locale.stats_num_commits }}
           </div>
         </div>
-      </template>
+        <!-- only show the show changes since last review if there is a review AND we are commits ahead of the last review -->
+        <div v-if="lastReviewCommitSha != null && commitsSinceLastReview > 0" class="vertical item gt-df gt-fc gt-gap-1 gt-border-secondary-top" @click="changesSinceLastReviewClick()">
+          <div class="gt-ellipsis">
+            {{ locale.show_changes_since_your_last_review }}
+          </div>
+          <div class="gt-ellipsis text light-2">
+            {{ commitsSinceLastReview }} commits
+          </div>
+        </div>
+        <span class="info gt-border-secondary-top">{{ locale.select_commit_hold_shift_for_range }}</span>
+        <template v-for="commit in commits" :key="commit.id">
+          <div class="vertical item gt-df gt-fr gt-gap-2 gt-border-secondary-top" :class="{selected: commit.selected}" @click.exact="commitClicked(commit.id)" @click.shift.exact.stop.prevent="commitClickedShift(commit)">
+            <div class="gt-f1 gt-df gt-fc gt-gap-1">
+              <div class="gt-ellipsis commit-list-summary">
+                {{ commit.summary }}
+              </div>
+              <div class="gt-ellipsis text light-2">
+                {{ commit.committerOrAuthorName }}
+                <span class="text right">
+                  <relative-time class="time-since" prefix="" :datetime="commit.time" data-tooltip-content data-tooltip-interactive="true">{{ commit.time }}</relative-time>
+                </span>
+              </div>
+            </div>
+            <div class="gt-mono">
+              {{ commit.id }}
+            </div>
+          </div>
+        </template>
+      </div>
     </div>
   </div>
 </template>
@@ -57,6 +58,7 @@ export default {
   data: () => {
     return {
       menuVisible: false,
+      isLoading: false,
       locale: {},
       commits: [],
       hoverActivated: false,
@@ -77,15 +79,27 @@ export default {
       return this.$el.parentNode.getAttribute('data-issuelink');
     }
   },
+  mounted() {
+    // Add a click listener to close this menu on click outside of this element
+    //  when the dropdown is currently visible opened
+    document.body.addEventListener('click', (event) => {
+      if (this.$el.contains(event.target)) return;
+      if (this.menuVisible) {
+        this.menuVisible = false;
+      }
+    });
+  },
   methods: {
     /** Opens our menu, loads commits before opening */
     async toggleMenu() {
+      this.menuVisible = !this.menuVisible;
       // load our commits when the menu is not yet visible (it'll be toggled after loading)
       // and we got no commits
-      if (this.commits.length === 0 && this.menuVisible === false) {
+      if (this.commits.length === 0 && this.menuVisible === true) {
+        this.isLoading = true;
         await this.fetchCommits();
+        this.isLoading = false;
       }
-      this.menuVisible = !this.menuVisible;
     },
     /** Load the commits to show in this dropdown */
     async fetchCommits() {
@@ -145,5 +159,29 @@ export default {
     padding: 7px 14px !important;
     line-height: 1.4;
     width: 100%;
+  }
+
+  .ui.dropdown .menu .menu.is-loading {
+    left: 0;
+    height: 200px;
+    width: 200px !important;
+  }
+
+  .ui.dropdown .menu .menu.is-loading::after {
+    display: block !important; /* to override fomantic rule .ui.dropdown .menu .menu:after {display: none} */
+  }
+
+  .commit-selector-menu {
+    max-height: max(45vh, 200px);
+    overflow-x: hidden;
+  }
+
+  .ui.dropdown .menu.commit-selector-menu > .item {
+    line-height: 1.4;
+    padding: 7px 14px !important;
+  }
+
+  .commit-list-summary {
+    max-width: max(40vw, 200px);
   }
 </style>

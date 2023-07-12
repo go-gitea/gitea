@@ -3351,24 +3351,3 @@ tbody.commit-list {
   font-size: 18px;
   margin-left: 4px;
 }
-
-.commit-list-summary {
-  max-width: max(40vw, 200px);
-}
-
-.commit-selector-menu {
-  max-height: max(45vh, 200px);
-  overflow-y: auto;
-}
-
-.ui.dropdown .menu.commit-selector-menu > .item.vertical {
-  padding: 7px 14px !important;
-}
-
-.ui.dropdown .menu.commit-selector-menu > .item {
-  line-height: 1.4;
-}
-
-.ui.dropdown .menu.commit-selector-menu > .divider {
-  margin: 0;
-}
