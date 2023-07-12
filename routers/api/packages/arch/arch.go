@@ -129,7 +129,7 @@ func Push(ctx *context.Context) {
 		Md:   md,
 	})
 	if err != nil {
-		apiError(ctx, http.StatusUnauthorized, err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
