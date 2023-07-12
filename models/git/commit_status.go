@@ -218,6 +218,7 @@ type CommitStatusOptions struct {
 	SortType string
 }
 
+// Deprecated: it will be removed after v1.22.0
 // compatibleCommitStatus compatible with old version status
 // and convert old version status to new version status
 func compatibleCommitStatus(statuses []*CommitStatus) {
