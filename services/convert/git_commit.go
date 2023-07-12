@@ -73,15 +73,6 @@ func ToPayloadCommit(ctx context.Context, repo *repo_model.Repository, c *git.Co
 	}
 }
 
-func contains(a []string, s string) bool {
-	for _, v := range a {
-		if v == s {
-			return true
-		}
-	}
-	return false
-}
-
 type ToCommitOptions struct {
 	Stat         bool
 	Verification bool
@@ -208,11 +199,11 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 		for _, files := range [][]string{fileStatus.Added, fileStatus.Removed, fileStatus.Modified} {
 			for _, filename := range files {
 				var filestatus = "unknown"
-				if contains(fileStatus.Added, filename) {
+				if util.SliceContainsString(fileStatus.Added, filename) {
 					filestatus = "added"
-				} else if contains(fileStatus.Removed, filename) {
+				} else if util.SliceContainsString(fileStatus.Removed, filename) {
 					filestatus = "removed"
-				} else if contains(fileStatus.Modified, filename) {
+				} else if util.SliceContainsString(fileStatus.Modified, filename) {
 					filestatus = "modified"
 				}
 				affectedFileList = append(affectedFileList, &api.CommitAffectedFiles{
