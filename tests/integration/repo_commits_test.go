@@ -126,11 +126,11 @@ func TestRepoCommitsWithStatusFailure(t *testing.T) {
 }
 
 func TestRepoCommitsWithStatusWarning(t *testing.T) {
-	doTestRepoCommitWithStatus(t, "warning", "gitea-exclamation", "yellow")
+	doTestRepoCommitWithStatus(t, "warning", "octicon-x", "red")
 }
 
 func TestRepoCommitsWithStatusRunning(t *testing.T) {
-	doTestRepoCommitWithStatus(t, "running", "octicon-dot-fill", "yellow")
+	doTestRepoCommitWithStatus(t, "running", "octicon-dot-fill", "grey")
 }
 
 func TestRepoCommitsStatusParallel(t *testing.T) {
