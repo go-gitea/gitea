@@ -11,7 +11,7 @@ draft: false
 # 關於 Gitea
 
 Gitea 是一個可自行託管的 Git 服務。你可以拿 GitHub、Bitbucket 或 Gitlab 來比較看看。
-Gitea 是從 [Gogs](http://gogs.io) Fork 出來的，請閱讀部落格文章 [Gitea 公告](https://blog.gitea.io/2016/12/welcome-to-gitea/)以了解我們 Fork 的理由。
+Gitea 是從 [Gogs](http://gogs.io) Fork 出來的，請閱讀部落格文章 [Gitea 公告](https://blog.gitea.com/welcome-to-gitea/)以了解我們 Fork 的理由。
 
 ## 目標
 
@@ -71,7 +71,7 @@ Gitea 是從 [Gogs](http://gogs.io) Fork 出來的，請閱讀部落格文章 [G
     - MSSQL
     - TiDB（MySQL 協議）
   - 設定檔
-    - [app.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
+    - [app.ini](https://github.com/go-gitea/gitea/blob/main/custom/conf/app.example.ini)
   - 管理員面板
     - 系統摘要
     - 維護操作
@@ -282,6 +282,6 @@ Gitea 是從 [Gogs](http://gogs.io) Fork 出來的，請閱讀部落格文章 [G
   - [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
   - [github.com/denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb)
 
-## 軟體和服務支援
+## 集成支持
 
-- [Drone](https://github.com/drone/drone) (CI)
+請訪問 [Awesome Gitea](https://gitea.com/gitea/awesome-gitea/) 獲得更多的第三方集成支持

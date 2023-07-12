@@ -104,6 +104,60 @@ GOOS=linux GOARCH=arm64 make build
 CC=aarch64-unknown-linux-gnu-gcc GOOS=linux GOARCH=arm64 TAGS="bindata sqlite sqlite_unlock_notify" make build
 ```
 
-## 需要帮助?
+## 使用Linux与Zig编译或交叉编译
 
-如果从本页中没有找到你需要的内容，请访问 [帮助页面]({{< relref "support.zh-cn.md" >}})
+按照[Getting Started of Zig](https://ziglang.org/learn/getting-started/#installing-zig)来安装zig。
+
+- 编译(Linux ➝ Linux)
+
+```sh
+CC="zig cc -target x86_64-linux-gnu" \
+CGO_ENABLED=1 \
+CGO_CFLAGS="-O2 -g -pthread" \
+CGO_LDFLAGS="-linkmode=external -v"
+GOOS=linux \
+GOARCH=amd64 \
+TAGS="bindata sqlite sqlite_unlock_notify" \
+make build
+```
+
+- 交叉编译(Linux ➝ Windows)
+
+```sh
+CC="zig cc -target x86_64-windows-gnu" \
+CGO_ENABLED=1 \
+CGO_CFLAGS="-O2 -g -pthread" \
+GOOS=windows \
+GOARCH=amd64 \
+TAGS="bindata sqlite sqlite_unlock_notify" \
+make build
+```
+
+## 使用Windows与Zig编译或交叉编译
+
+使用`GIT BASH`编译。
+
+- 编译(Windows ➝ Windows)
+
+```sh
+CC="zig cc -target x86_64-windows-gnu" \
+CGO_ENABLED=1 \
+CGO_CFLAGS="-O2 -g -pthread" \
+GOOS=windows \
+GOARCH=amd64 \
+TAGS="bindata sqlite sqlite_unlock_notify" \
+make build
+```
+
+- 交叉编译(Windows ➝ Linux)
+
+```sh
+CC="zig cc -target x86_64-linux-gnu" \
+CGO_ENABLED=1 \
+CGO_CFLAGS="-O2 -g -pthread" \
+CGO_LDFLAGS="-linkmode=external -v"
+GOOS=linux \
+GOARCH=amd64 \
+TAGS="bindata sqlite sqlite_unlock_notify" \
+make build
+```

@@ -14,18 +14,18 @@
         <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
           {{ locale.cancel }}
         </button>
-        <button class="ui basic small compact button secondary gt-mr-0" @click="rerun()" v-else-if="run.canRerun">
+        <button class="ui basic small compact button gt-mr-0" @click="rerun()" v-else-if="run.canRerun">
           {{ locale.rerun_all }}
         </button>
       </div>
       <div class="action-commit-summary">
         {{ run.commit.localeCommit }}
-        <a :href="run.commit.link">{{ run.commit.shortSHA }}</a>
+        <a class="muted" :href="run.commit.link">{{ run.commit.shortSHA }}</a>
+        {{ run.commit.localePushedBy }}
+        <a class="muted" :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
         <span class="ui label" v-if="run.commit.shortSHA">
           <a :href="run.commit.branch.link">{{ run.commit.branch.name }}</a>
         </span>
-        {{ run.commit.localePushedBy }}
-        <a :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
       </div>
     </div>
     <div class="action-view-body">
@@ -38,8 +38,8 @@
                 <span class="job-brief-name gt-mx-3 gt-ellipsis">{{ job.name }}</span>
               </a>
               <span class="job-brief-info">
-                <span class="step-summary-duration">{{ job.duration }}</span>
                 <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun gt-mx-3" @click="rerunJob(index)" v-if="job.canRerun && onHoverRerunIndex === job.id"/>
+                <span class="step-summary-duration">{{ job.duration }}</span>
               </span>
             </div>
           </div>
@@ -51,7 +51,7 @@
           <ul class="job-artifacts-list">
             <li class="job-artifacts-item" v-for="artifact in artifacts" :key="artifact.id">
               <a class="job-artifacts-link" target="_blank" :href="run.link+'/artifacts/'+artifact.id">
-                <SvgIcon name="octicon-file" class="ui text black job-artifacts-icon" />{{ artifact.name }}
+                <SvgIcon name="octicon-file" class="ui text black job-artifacts-icon"/>{{ artifact.name }}
               </a>
             </li>
           </ul>
@@ -60,14 +60,42 @@
 
       <div class="action-view-right">
         <div class="job-info-header">
-          <h3 class="job-info-header-title">
-            {{ currentJob.title }}
-          </h3>
-          <p class="job-info-header-detail">
-            {{ currentJob.detail }}
-          </p>
+          <div class="job-info-header-left">
+            <h3 class="job-info-header-title">
+              {{ currentJob.title }}
+            </h3>
+            <p class="job-info-header-detail">
+              {{ currentJob.detail }}
+            </p>
+          </div>
+          <div class="job-info-header-right">
+            <div class="ui top right pointing dropdown custom jump item" @click.stop="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
+              <button class="btn gt-interact-bg gt-p-3">
+                <SvgIcon name="octicon-gear" :size="18"/>
+              </button>
+              <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
+                <a class="item" :href="run.link+'/jobs/'+jobIndex+'/logs'" target="_blank">
+                  <i class="icon"><SvgIcon name="octicon-download"/></i>
+                  {{ locale.downloadLogs }}
+                </a>
+                <a class="item" @click="toggleTimeDisplay('seconds')">
+                  <i class="icon"><SvgIcon v-show="timeVisible['log-time-seconds']" name="octicon-check"/></i>
+                  {{ locale.showLogSeconds }}
+                </a>
+                <a class="item" @click="toggleTimeDisplay('stamp')">
+                  <i class="icon"><SvgIcon v-show="timeVisible['log-time-stamp']" name="octicon-check"/></i>
+                  {{ locale.showTimeStamps }}
+                </a>
+                <div class="divider"/>
+                <a class="item" @click="toggleFullScreen()">
+                  <i class="icon"><SvgIcon v-show="isFullScreen" name="octicon-check"/></i>
+                  {{ locale.showFullScreen }}
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="job-step-container">
+        <div class="job-step-container" ref="steps">
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
             <div class="job-step-summary" @click.stop="toggleStepLogs(i)" :class="currentJobStepsStates[i].expanded ? 'selected' : ''">
               <!-- If the job is done and the job step log is loaded for the first time, show the loading icon
@@ -81,7 +109,8 @@
               <span class="step-summary-duration">{{ jobStep.duration }}</span>
             </div>
 
-            <!-- the log elements could be a lot, do not use v-if to destroy/reconstruct the DOM -->
+            <!-- the log elements could be a lot, do not use v-if to destroy/reconstruct the DOM,
+            use native DOM elements for "log line" to improve performance, Vue is not suitable for managing so many reactive elements. -->
             <div class="job-step-logs" ref="logs" v-show="currentJobStepsStates[i].expanded"/>
           </div>
         </div>
@@ -94,11 +123,11 @@
 import {SvgIcon} from '../svg.js';
 import ActionRunStatus from './ActionRunStatus.vue';
 import {createApp} from 'vue';
-import AnsiToHTML from 'ansi-to-html';
+import {toggleElem} from '../utils/dom.js';
+import {getCurrentLocale} from '../utils.js';
+import {renderAnsi} from '../render/ansi.js';
 
 const {csrfToken} = window.config;
-
-const ansiLogRender = new AnsiToHTML({escapeXML: true});
 
 const sfc = {
   name: 'RepoActionView',
@@ -121,6 +150,12 @@ const sfc = {
       currentJobStepsStates: [],
       artifacts: [],
       onHoverRerunIndex: -1,
+      menuVisible: false,
+      isFullScreen: false,
+      timeVisible: {
+        'log-time-stamp': false,
+        'log-time-seconds': false,
+      },
 
       // provided by backend
       run: {
@@ -169,10 +204,19 @@ const sfc = {
     };
   },
 
-  mounted() {
+  async mounted() {
     // load job data and then auto-reload periodically
-    this.loadJob();
+    // need to await first loadJob so this.currentJobStepsStates is initialized and can be used in hashChangeListener
+    await this.loadJob();
     this.intervalID = setInterval(this.loadJob, 1000);
+    document.body.addEventListener('click', this.closeDropdown);
+    this.hashChangeListener();
+    window.addEventListener('hashchange', this.hashChangeListener);
+  },
+
+  beforeUnmount() {
+    document.body.removeEventListener('click', this.closeDropdown);
+    window.removeEventListener('hashchange', this.hashChangeListener);
   },
 
   unmounted() {
@@ -240,31 +284,47 @@ const sfc = {
       this.fetchPost(`${this.run.link}/approve`);
     },
 
-    createLogLine(line) {
+    createLogLine(line, startTime, stepIndex) {
       const div = document.createElement('div');
       div.classList.add('job-log-line');
+      div.setAttribute('id', `jobstep-${stepIndex}-${line.index}`);
       div._jobLogTime = line.timestamp;
 
-      const lineNumber = document.createElement('div');
-      lineNumber.className = 'line-num';
+      const lineNumber = document.createElement('a');
+      lineNumber.classList.add('line-num', 'muted');
       lineNumber.textContent = line.index;
+      lineNumber.setAttribute('href', `#jobstep-${stepIndex}-${line.index}`);
       div.append(lineNumber);
 
-      // TODO: Support displaying time optionally
+      // for "Show timestamps"
+      const logTimeStamp = document.createElement('span');
+      logTimeStamp.className = 'log-time-stamp';
+      const date = new Date(parseFloat(line.timestamp * 1000));
+      const timeStamp = date.toLocaleString(getCurrentLocale(), {timeZoneName: 'short'});
+      logTimeStamp.textContent = timeStamp;
+      toggleElem(logTimeStamp, this.timeVisible['log-time-stamp']);
+      // for "Show seconds"
+      const logTimeSeconds = document.createElement('span');
+      logTimeSeconds.className = 'log-time-seconds';
+      const seconds = Math.floor(parseFloat(line.timestamp) - parseFloat(startTime));
+      logTimeSeconds.textContent = `${seconds}s`;
+      toggleElem(logTimeSeconds, this.timeVisible['log-time-seconds']);
 
-      const logMessage = document.createElement('div');
+      const logMessage = document.createElement('span');
       logMessage.className = 'log-msg';
-      logMessage.innerHTML = ansiLogToHTML(line.message);
+      logMessage.innerHTML = renderAnsi(line.message);
+      div.append(logTimeStamp);
       div.append(logMessage);
+      div.append(logTimeSeconds);
 
       return div;
     },
 
-    appendLogs(stepIndex, logLines) {
+    appendLogs(stepIndex, logLines, startTime) {
       for (const line of logLines) {
         // TODO: group support: ##[group]GroupTitle , ##[endgroup]
         const el = this.getLogsContainer(stepIndex);
-        el.append(this.createLogLine(line));
+        el.append(this.createLogLine(line, startTime, stepIndex));
       }
     },
 
@@ -309,7 +369,7 @@ const sfc = {
         for (const logs of response.logs.stepsLog) {
           // save the cursor, it will be passed to backend next time
           this.currentJobStepsStates[logs.step].cursor = logs.cursor;
-          this.appendLogs(logs.step, logs.lines);
+          this.appendLogs(logs.step, logs.lines, logs.started);
         }
 
         if (this.run.done && this.intervalID) {
@@ -335,6 +395,61 @@ const sfc = {
 
     isDone(status) {
       return ['success', 'skipped', 'failure', 'cancelled'].includes(status);
+    },
+
+    closeDropdown() {
+      if (this.menuVisible) this.menuVisible = false;
+    },
+
+    // show at most one of log seconds and timestamp (can be both invisible)
+    toggleTimeDisplay(type) {
+      const toToggleTypes = [];
+      const other = type === 'seconds' ? 'stamp' : 'seconds';
+      this.timeVisible[`log-time-${type}`] = !this.timeVisible[`log-time-${type}`];
+      toToggleTypes.push(type);
+      if (this.timeVisible[`log-time-${type}`] && this.timeVisible[`log-time-${other}`]) {
+        this.timeVisible[`log-time-${other}`] = false;
+        toToggleTypes.push(other);
+      }
+      for (const toToggle of toToggleTypes) {
+        for (const el of this.$refs.steps.querySelectorAll(`.log-time-${toToggle}`)) {
+          toggleElem(el, this.timeVisible[`log-time-${toToggle}`]);
+        }
+      }
+    },
+
+    toggleFullScreen() {
+      this.isFullScreen = !this.isFullScreen;
+      const fullScreenEl = document.querySelector('.action-view-right');
+      const outerEl = document.querySelector('.full.height');
+      const actionBodyEl = document.querySelector('.action-view-body');
+      const headerEl = document.querySelector('#navbar');
+      const contentEl = document.querySelector('.page-content.repository');
+      const footerEl = document.querySelector('.page-footer');
+      toggleElem(headerEl, !this.isFullScreen);
+      toggleElem(contentEl, !this.isFullScreen);
+      toggleElem(footerEl, !this.isFullScreen);
+      // move .action-view-right to new parent
+      if (this.isFullScreen) {
+        outerEl.append(fullScreenEl);
+      } else {
+        actionBodyEl.append(fullScreenEl);
+      }
+    },
+    async hashChangeListener() {
+      const selectedLogStep = window.location.hash;
+      if (!selectedLogStep) return;
+      const [_, step, _line] = selectedLogStep.split('-');
+      if (!this.currentJobStepsStates[step]) return;
+      if (!this.currentJobStepsStates[step].expanded && this.currentJobStepsStates[step].cursor === null) {
+        this.currentJobStepsStates[step].expanded = true;
+        // need to await for load job if the step log is loaded for the first time
+        // so logline can be selected by querySelector
+        await this.loadJob();
+      }
+      const logLine = this.$refs.steps.querySelector(selectedLogStep);
+      if (!logLine) return;
+      logLine.querySelector('.line-num').click();
     }
   },
 };
@@ -360,6 +475,10 @@ export function initRepositoryActionView() {
       rerun: el.getAttribute('data-locale-rerun'),
       artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
       rerun_all: el.getAttribute('data-locale-rerun-all'),
+      showTimeStamps: el.getAttribute('data-locale-show-timestamps'),
+      showLogSeconds: el.getAttribute('data-locale-show-log-seconds'),
+      showFullScreen: el.getAttribute('data-locale-show-full-screen'),
+      downloadLogs: el.getAttribute('data-locale-download-logs'),
       status: {
         unknown: el.getAttribute('data-locale-status-unknown'),
         waiting: el.getAttribute('data-locale-status-waiting'),
@@ -369,58 +488,18 @@ export function initRepositoryActionView() {
         cancelled: el.getAttribute('data-locale-status-cancelled'),
         skipped: el.getAttribute('data-locale-status-skipped'),
         blocked: el.getAttribute('data-locale-status-blocked'),
-      }
+      },
     }
   });
   view.mount(el);
-}
-
-// some unhandled control sequences by AnsiToHTML
-// https://man7.org/linux/man-pages/man4/console_codes.4.html
-const ansiRegexpRemove = /\x1b\[\d+[A-H]/g; // Move cursor, treat them as no-op.
-const ansiRegexpNewLine = /\x1b\[\d?[JK]/g; // Erase display/line, treat them as a Carriage Return
-
-function ansiCleanControlSequences(line) {
-  if (line.includes('\x1b')) {
-    line = line.replace(ansiRegexpRemove, '');
-    line = line.replace(ansiRegexpNewLine, '\r');
-  }
-  return line;
-}
-
-export function ansiLogToHTML(line) {
-  if (line.endsWith('\r\n')) {
-    line = line.substring(0, line.length - 2);
-  } else if (line.endsWith('\n')) {
-    line = line.substring(0, line.length - 1);
-  }
-
-  // usually we do not need to process control chars like "\033[", let AnsiToHTML do it
-  // but AnsiToHTML has bugs, so we need to clean some control sequences first
-  line = ansiCleanControlSequences(line);
-
-  if (!line.includes('\r')) {
-    return ansiLogRender.toHtml(line);
-  }
-
-  // handle "\rReading...1%\rReading...5%\rReading...100%",
-  // convert it into a multiple-line string: "Reading...1%\nReading...5%\nReading...100%"
-  const lines = [];
-  for (const part of line.split('\r')) {
-    if (part === '') continue;
-    const partHtml = ansiLogRender.toHtml(part);
-    if (partHtml !== '') {
-      lines.push(partHtml);
-    }
-  }
-  // the log message element is with "white-space: break-spaces;", so use "\n" to break lines
-  return lines.join('\n');
 }
 
 </script>
 
 <style scoped>
 .action-view-body {
+  padding-top: 12px;
+  padding-bottom: 12px;
   display: flex;
   gap: 12px;
 }
@@ -430,7 +509,6 @@ export function ansiLogToHTML(line) {
 
 .action-view-header {
   margin-top: 8px;
-  margin-bottom: 4px;
 }
 
 .action-info-summary {
@@ -445,19 +523,14 @@ export function ansiLogToHTML(line) {
 
 .action-info-summary-title-text {
   font-size: 20px;
-  margin: 0 0 0 5px;
+  margin: 0 0 0 8px;
   flex: 1;
 }
 
 .action-commit-summary {
   display: flex;
   gap: 5px;
-  margin: 5px 0 0 25px;
-}
-
-.action-view-left, .action-view-right {
-  padding-top: 12px;
-  padding-bottom: 12px;
+  margin: 0 0 0 28px;
 }
 
 /* ================ */
@@ -539,6 +612,7 @@ export function ansiLogToHTML(line) {
 .job-brief-item .job-brief-link {
   display: flex;
   width: 100%;
+  min-width: 0;
 }
 
 .job-brief-item .job-brief-link span {
@@ -559,7 +633,6 @@ export function ansiLogToHTML(line) {
 .job-brief-item .job-brief-info {
   display: flex;
   align-items: center;
-  width: 55px;
 }
 
 /* ================ */
@@ -567,21 +640,95 @@ export function ansiLogToHTML(line) {
 
 .action-view-right {
   flex: 1;
-  color: var(--color-secondary-dark-3);
+  color: var(--color-console-fg-subtle);
   max-height: 100%;
   width: 70%;
   display: flex;
   flex-direction: column;
 }
 
+/* begin fomantic button overrides */
+
+.action-view-right .ui.button,
+.action-view-right .ui.button:focus {
+  background: transparent;
+  color: var(--color-console-fg-subtle);
+}
+
+.action-view-right .ui.button:hover {
+  background: var(--color-console-hover-bg);
+  color: var(--color-console-fg);
+}
+
+.action-view-right .ui.button:active {
+  background: var(--color-console-active-bg);
+  color: var(--color-console-fg);
+}
+
+/* end fomantic button overrides */
+
+/* begin fomantic dropdown menu overrides */
+
+.action-view-right .ui.dropdown .menu {
+  background: var(--color-console-menu-bg);
+  border-color: var(--color-console-menu-border);
+}
+
+.action-view-right .ui.dropdown .menu > .item {
+  color: var(--color-console-fg);
+}
+
+.action-view-right .ui.dropdown .menu > .item:hover {
+  color: var(--color-console-fg);
+  background: var(--color-console-hover-bg);
+}
+
+.action-view-right .ui.dropdown .menu > .item:active {
+  color: var(--color-console-fg);
+  background: var(--color-console-active-bg);
+}
+
+.action-view-right .ui.dropdown .menu > .divider {
+  border-top-color: var(--color-console-menu-border);
+}
+
+.action-view-right .ui.pointing.dropdown > .menu:not(.hidden)::after {
+  background: var(--color-console-menu-bg);
+  box-shadow: -1px -1px 0 0 var(--color-console-menu-border);
+}
+
+/* end fomantic dropdown menu overrides */
+
+/* selectors here are intentionally exact to only match fullscreen */
+
+.full.height > .action-view-right {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border-radius: 0;
+}
+
+.full.height > .action-view-right > .job-info-header {
+  border-radius: 0;
+}
+
+.full.height > .action-view-right > .job-step-container {
+  height: calc(100% - 60px);
+  border-radius: 0;
+}
+
 .job-info-header {
-  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 12px;
   border-bottom: 1px solid var(--color-console-border);
   background-color: var(--color-console-bg);
   position: sticky;
   top: 0;
   border-radius: var(--border-radius) var(--border-radius) 0 0;
   height: 60px;
+  z-index: 1;
 }
 
 .job-info-header .job-info-header-title {
@@ -591,7 +738,7 @@ export function ansiLogToHTML(line) {
 }
 
 .job-info-header .job-info-header-detail {
-  color: var(--color-secondary-dark-3);
+  color: var(--color-console-fg-subtle);
   font-size: 12px;
 }
 
@@ -599,6 +746,7 @@ export function ansiLogToHTML(line) {
   background-color: var(--color-console-bg);
   max-height: 100%;
   border-radius: 0 0 var(--border-radius) var(--border-radius);
+  z-index: 0;
 }
 
 .job-step-container .job-step-summary {
@@ -672,18 +820,34 @@ export function ansiLogToHTML(line) {
   display: flex;
 }
 
-.job-step-section .job-step-logs .job-log-line:hover {
+.job-log-line:hover,
+.job-log-line:target {
   background-color: var(--color-console-hover-bg);
 }
 
-.job-step-section .job-step-logs .job-log-line .line-num {
+.job-log-line:target {
+  scroll-margin-top: 95px;
+}
+
+/* class names 'log-time-seconds' and 'log-time-stamp' are used in the method toggleTimeDisplay */
+.job-log-line .line-num, .log-time-seconds {
   width: 48px;
   color: var(--color-grey-light);
   text-align: right;
   user-select: none;
 }
 
-.job-step-section .job-step-logs .job-log-line .log-time {
+.job-log-line:target > .line-num {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.log-time-seconds {
+  padding-right: 2px;
+}
+
+.job-log-line .log-time,
+.log-time-stamp {
   color: var(--color-grey-light);
   margin-left: 10px;
   white-space: nowrap;

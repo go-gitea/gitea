@@ -1,6 +1,6 @@
 {{if .Statuses}}
 	{{if and (eq (len .Statuses) 1) .Status.TargetURL}}
-		<a class="gt-vm gt-tdn" data-tippy="commit-statuses" href="{{.Status.TargetURL}}">
+		<a class="gt-vm gt-no-underline" data-tippy="commit-statuses" href="{{.Status.TargetURL}}">
 			{{template "repo/commit_status" .Status}}
 		</a>
 	{{else}}

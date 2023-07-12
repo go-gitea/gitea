@@ -181,7 +181,7 @@ func Create(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplCreate)
 }
 
-func handleCreateError(ctx *context.Context, owner *user_model.User, err error, name string, tpl base.TplName, form interface{}) {
+func handleCreateError(ctx *context.Context, owner *user_model.User, err error, name string, tpl base.TplName, form any) {
 	switch {
 	case repo_model.IsErrReachLimitOfRepo(err):
 		maxCreationLimit := owner.MaxCreationLimit()
@@ -427,7 +427,7 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 	downloadName := ctx.Repo.Repository.Name + "-" + archiveName
 
 	rPath := archiver.RelativePath()
-	if setting.RepoArchive.ServeDirect {
+	if setting.RepoArchive.Storage.MinioConfig.ServeDirect {
 		// If we have a signed url (S3, object storage), redirect to this directly.
 		u, err := storage.RepoArchives.URL(rPath, downloadName)
 		if u != nil && err == nil {
@@ -482,7 +482,7 @@ func InitiateDownload(ctx *context.Context) {
 		completed = true
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"complete": completed,
 	})
 }
@@ -579,13 +579,15 @@ func SearchRepo(ctx *context.Context) {
 
 	// collect the latest commit of each repo
 	// at most there are dozens of repos (limited by MaxResponseItems), so it's not a big problem at the moment
-	repoIDsToLatestCommitSHAs := make(map[int64]string, len(repos))
+	repoBranchNames := make(map[int64]string, len(repos))
 	for _, repo := range repos {
-		commitID, err := repo_service.GetBranchCommitID(ctx, repo, repo.DefaultBranch)
-		if err != nil {
-			continue
-		}
-		repoIDsToLatestCommitSHAs[repo.ID] = commitID
+		repoBranchNames[repo.ID] = repo.DefaultBranch
+	}
+
+	repoIDsToLatestCommitSHAs, err := git_model.FindBranchesByRepoAndBranchName(ctx, repoBranchNames)
+	if err != nil {
+		log.Error("FindBranchesByRepoAndBranchName: %v", err)
+		return
 	}
 
 	// call the database O(1) times to get the commit statuses for all repos

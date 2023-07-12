@@ -283,7 +283,7 @@ func (g *Manager) Err() error {
 }
 
 // Value allows the manager to be viewed as a context.Context done at Terminate
-func (g *Manager) Value(key interface{}) interface{} {
+func (g *Manager) Value(key any) any {
 	return g.managerCtx.Value(key)
 }
 

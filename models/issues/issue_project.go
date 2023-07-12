@@ -16,20 +16,16 @@ import (
 func (issue *Issue) LoadProject(ctx context.Context) (err error) {
 	if issue.Project == nil {
 		var p project_model.Project
-		if _, err = db.GetEngine(ctx).Table("project").
+		has, err := db.GetEngine(ctx).Table("project").
 			Join("INNER", "project_issue", "project.id=project_issue.project_id").
-			Where("project_issue.issue_id = ?", issue.ID).
-			Get(&p); err != nil {
+			Where("project_issue.issue_id = ?", issue.ID).Get(&p)
+		if err != nil {
 			return err
+		} else if has {
+			issue.Project = &p
 		}
-		issue.Project = &p
 	}
 	return err
-}
-
-// ProjectID return project id if issue was assigned to one
-func (issue *Issue) ProjectID() int64 {
-	return issue.projectID(db.DefaultContext)
 }
 
 func (issue *Issue) projectID(ctx context.Context) int64 {

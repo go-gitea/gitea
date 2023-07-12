@@ -17,6 +17,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -538,4 +539,48 @@ func TestCountIssues(t *testing.T) {
 	count, err := issues_model.CountIssues(db.DefaultContext, &issues_model.IssuesOptions{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 18, count)
+}
+
+func TestIssueLoadAttributes(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	setting.Service.EnableTimetracking = true
+
+	issueList := issues_model.IssueList{
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1}),
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 4}),
+	}
+
+	for _, issue := range issueList {
+		assert.NoError(t, issue.LoadAttributes(db.DefaultContext))
+		assert.EqualValues(t, issue.RepoID, issue.Repo.ID)
+		for _, label := range issue.Labels {
+			assert.EqualValues(t, issue.RepoID, label.RepoID)
+			unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: issue.ID, LabelID: label.ID})
+		}
+		if issue.PosterID > 0 {
+			assert.EqualValues(t, issue.PosterID, issue.Poster.ID)
+		}
+		if issue.AssigneeID > 0 {
+			assert.EqualValues(t, issue.AssigneeID, issue.Assignee.ID)
+		}
+		if issue.MilestoneID > 0 {
+			assert.EqualValues(t, issue.MilestoneID, issue.Milestone.ID)
+		}
+		if issue.IsPull {
+			assert.EqualValues(t, issue.ID, issue.PullRequest.IssueID)
+		}
+		for _, attachment := range issue.Attachments {
+			assert.EqualValues(t, issue.ID, attachment.IssueID)
+		}
+		for _, comment := range issue.Comments {
+			assert.EqualValues(t, issue.ID, comment.IssueID)
+		}
+		if issue.ID == int64(1) {
+			assert.Equal(t, int64(400), issue.TotalTrackedTime)
+			assert.NotNil(t, issue.Project)
+			assert.Equal(t, int64(1), issue.Project.ID)
+		} else {
+			assert.Nil(t, issue.Project)
+		}
+	}
 }

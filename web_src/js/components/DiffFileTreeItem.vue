@@ -10,7 +10,7 @@
       />
       <a
         v-if="item.isFile"
-        class="file gt-ellipsis"
+        :class="['file gt-ellipsis', {'viewed': item.file.IsViewed}]"
         :href="item.isFile ? '#diff-' + item.file.NameHash : ''"
       >{{ item.name }}</a>
       <SvgIcon
@@ -40,7 +40,7 @@
 
 <script>
 import {SvgIcon} from '../svg.js';
-import {DiffTreeStore} from '../modules/stores.js';
+import {diffTreeStore} from '../modules/stores.js';
 
 export default {
   components: {SvgIcon},
@@ -56,7 +56,7 @@ export default {
     },
   },
   data: () => ({
-    store: DiffTreeStore,
+    store: diffTreeStore(),
     collapsed: false,
   }),
   methods: {
@@ -147,5 +147,9 @@ a {
 a:hover {
   text-decoration: none;
   color: var(--color-text);
+}
+
+a.file.viewed {
+  color: var(--color-text-light-3);
 }
 </style>

@@ -51,14 +51,6 @@ func (app *OAuth2Application) TableName() string {
 	return "oauth2_application"
 }
 
-// PrimaryRedirectURI returns the first redirect uri or an empty string if empty
-func (app *OAuth2Application) PrimaryRedirectURI() string {
-	if len(app.RedirectURIs) == 0 {
-		return ""
-	}
-	return app.RedirectURIs[0]
-}
-
 // ContainsRedirectURI checks if redirectURI is allowed for app
 func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
 	if !app.ConfidentialClient {
@@ -314,9 +306,10 @@ func (code *OAuth2AuthorizationCode) TableName() string {
 }
 
 // GenerateRedirectURI generates a redirect URI for a successful authorization request. State will be used if not empty.
-func (code *OAuth2AuthorizationCode) GenerateRedirectURI(state string) (redirect *url.URL, err error) {
-	if redirect, err = url.Parse(code.RedirectURI); err != nil {
-		return
+func (code *OAuth2AuthorizationCode) GenerateRedirectURI(state string) (*url.URL, error) {
+	redirect, err := url.Parse(code.RedirectURI)
+	if err != nil {
+		return nil, err
 	}
 	q := redirect.Query()
 	if state != "" {

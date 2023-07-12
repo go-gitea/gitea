@@ -1,6 +1,19 @@
-<div class="ui right floated secondary filter menu">
+<div class="ui secondary filter menu gt-ac gt-mx-0">
+	<form class="ui form ignore-dirty gt-f1">
+		<input type="hidden" name="sort" value="{{$.SortType}}">
+		<input type="hidden" name="language" value="{{$.Language}}">
+		<div class="ui fluid action input">
+			{{template "shared/searchinput" dict "locale" .locale "Value" .Keyword "AutoFocus" true}}
+			{{if .PageIsExploreRepositories}}
+				<input type="hidden" name="only_show_relevant" value="{{.OnlyShowRelevant}}">
+			{{else}}
+				<input type="hidden" name="tab" value="repositories">
+			{{end}}
+			<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
+		</div>
+	</form>
 	<!-- Sort -->
-	<div class="ui right dropdown type jump item">
+	<div class="ui dropdown type jump item gt-mr-0">
 		<span class="text">
 			{{.locale.Tr "repo.issues.filter_sort"}}
 				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -21,20 +34,9 @@
 		</div>
 	</div>
 </div>
-<form class="ui form ignore-dirty" style="max-width: 90%">
-	<input type="hidden" name="sort" value="{{$.SortType}}">
-	<input type="hidden" name="language" value="{{$.Language}}">
-	<div class="ui fluid action input">
-		<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}…" autofocus>
-		{{if .PageIsExploreRepositories}}
-			<input type="hidden" name="only_show_relevant" value="{{.OnlyShowRelevant}}">
-		{{end}}
-		<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
-	</div>
-</form>
 {{if and .PageIsExploreRepositories .OnlyShowRelevant}}
 	<div class="ui message explore-relevancy-note">
 		<span data-tooltip-content="{{.locale.Tr "explore.relevant_repositories_tooltip"}}">{{.locale.Tr "explore.relevant_repositories" ((printf "%s%s" $.Link "?only_show_relevant=0")|Escape) | Safe}}</span>
 	</div>
 {{end}}
-<div class="ui divider"></div>
+<div class="divider"></div>

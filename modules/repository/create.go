@@ -330,7 +330,7 @@ func UpdateRepoSize(ctx context.Context, repo *repo_model.Repository) error {
 		return fmt.Errorf("updateSize: GetLFSMetaObjects: %w", err)
 	}
 
-	return repo_model.UpdateRepoSize(ctx, repo.ID, size+lfsSize)
+	return repo_model.UpdateRepoSize(ctx, repo.ID, size, lfsSize)
 }
 
 // CheckDaemonExportOK creates/removes git-daemon-export-ok for git-daemon...
@@ -395,6 +395,10 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 				IsPrivate: true,
 			})
 			if err != nil {
+				return err
+			}
+
+			if err = repo_model.ClearRepoStars(ctx, repo.ID); err != nil {
 				return err
 			}
 		}

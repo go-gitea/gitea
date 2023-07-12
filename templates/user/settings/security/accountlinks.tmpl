@@ -1,3 +1,5 @@
+{{/* No account links, no way to add account links: Menu will not be shown. */}}
+{{if or .AccountLinks .OrderedOAuth2Names}}
 <h4 class="ui top attached header">
 	{{.locale.Tr "settings.manage_account_links"}}
 	{{if .OrderedOAuth2Names}}
@@ -8,7 +10,7 @@
 					{{range $key := .OrderedOAuth2Names}}
 						{{$provider := index $.OAuth2Providers $key}}
 						<a class="item" href="{{AppSubUrl}}/user/oauth2/{{$key}}">
-							<img width="20" height="20" src="{{AppSubUrl}}{{$provider.Image}}" alt="{{$provider.DisplayName}}">
+							{{$provider.IconHTML}}
 							{{$provider.DisplayName}}
 						</a>
 					{{end}}
@@ -23,31 +25,30 @@
 		<div class="item">
 			{{.locale.Tr "settings.manage_account_links_desc"}}
 		</div>
-		{{if .AccountLinks}}
-			{{range $loginSource, $provider := .AccountLinks}}
-				<div class="item">
-					<div class="right floated content">
-							<button class="ui red tiny button delete-button" data-modal-id="delete-account-link" data-url="{{AppSubUrl}}/user/settings/security/account_link" data-id="{{$loginSource.ID}}">
-								{{$.locale.Tr "settings.delete_key"}}
-							</button>
-					</div>
-					<div class="content">
-						<strong>{{$provider}}</strong>
-						{{if $loginSource.IsActive}}<span class="text red">{{$.locale.Tr "repo.settings.active"}}</span>{{end}}
-					</div>
+		{{range $loginSource, $provider := .AccountLinks}}
+			<div class="item gt-df gt-ac">
+				<div class="gt-f1">
+					<span data-tooltip-content="{{$provider}}">
+						{{$loginSource.Name}}
+						{{if $loginSource.IsActive}}<span class="text primary">{{$.locale.Tr "repo.settings.active"}}</span>{{end}}
+					</span>
 				</div>
-			{{end}}
+				<button class="ui red tiny button delete-button" data-modal-id="delete-account-link" data-url="{{AppSubUrl}}/user/settings/security/account_link" data-id="{{$loginSource.ID}}">
+					{{$.locale.Tr "settings.delete_key"}}
+				</button>
+			</div>
 		{{end}}
 	</div>
-</div>
 
-<div class="ui g-modal-confirm delete modal" id="delete-account-link">
-	<div class="header">
-		{{svg "octicon-trash"}}
-		{{.locale.Tr "settings.remove_account_link"}}
+	<div class="ui g-modal-confirm delete modal" id="delete-account-link">
+		<div class="header">
+			{{svg "octicon-trash"}}
+			{{.locale.Tr "settings.remove_account_link"}}
+		</div>
+		<div class="content">
+			<p>{{.locale.Tr "settings.remove_account_link_desc"}}</p>
+		</div>
+		{{template "base/modal_actions_confirm" .}}
 	</div>
-	<div class="content">
-		<p>{{.locale.Tr "settings.remove_account_link_desc"}}</p>
-	</div>
-	{{template "base/modal_actions_confirm" .}}
 </div>
+{{end}}

@@ -6,20 +6,12 @@
 			</div>
 		{{end}}
 		<h4 class="ui top attached header">
-			{{.locale.Tr "admin.dashboard.statistic"}}
-		</h4>
-		<div class="ui attached segment">
-			<p>
-				{{.locale.Tr "admin.dashboard.statistic_info" .Stats.Counter.User .Stats.Counter.Org .Stats.Counter.PublicKey .Stats.Counter.Repo .Stats.Counter.Watch .Stats.Counter.Star .Stats.Counter.Action .Stats.Counter.Access .Stats.Counter.Issue .Stats.Counter.Comment .Stats.Counter.Oauth .Stats.Counter.Follow .Stats.Counter.Mirror .Stats.Counter.Release .Stats.Counter.AuthSource .Stats.Counter.Webhook .Stats.Counter.Milestone .Stats.Counter.Label .Stats.Counter.HookTask .Stats.Counter.Team .Stats.Counter.UpdateTask .Stats.Counter.Attachment | Str2html}}
-			</p>
-		</div>
-		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.dashboard.operations"}}
 		</h4>
 		<div class="ui attached table segment">
 			<form method="post" action="{{AppSubUrl}}/admin">
 				{{.CsrfTokenHtml}}
-				<table class="ui very basic table gt-px-4">
+				<table class="ui very basic table gt-mt-0 gt-px-4">
 					<tbody>
 						<tr>
 							<td>{{.locale.Tr "admin.dashboard.delete_inactive_accounts"}}</td>
@@ -69,6 +61,10 @@
 							<td>{{.locale.Tr "admin.dashboard.delete_generated_repository_avatars"}}</td>
 							<td class="text right"><button type="submit" class="ui green button" name="op" value="delete_generated_repository_avatars">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
+						<tr>
+							<td>{{.locale.Tr "admin.dashboard.sync_repo_branches"}}</td>
+							<td class="text right"><button type="submit" class="ui green button" name="op" value="sync_repo_branches">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
+						</tr>
 					</tbody>
 				</table>
 			</form>
@@ -78,12 +74,12 @@
 			{{.locale.Tr "admin.dashboard.system_status"}}
 		</h4>
 		<div class="ui attached table segment">
-			<dl class="dl-horizontal admin-dl-horizontal">
+			<dl class="admin-dl-horizontal">
 				<dt>{{.locale.Tr "admin.dashboard.server_uptime"}}</dt>
 				<dd><relative-time format="duration" datetime="{{.SysStatus.StartTime}}">{{.SysStatus.StartTime}}</relative-time></dd>
 				<dt>{{.locale.Tr "admin.dashboard.current_goroutine"}}</dt>
 				<dd>{{.SysStatus.NumGoroutine}}</dd>
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 				<dt>{{.locale.Tr "admin.dashboard.current_memory_usage"}}</dt>
 				<dd>{{.SysStatus.MemAllocated}}</dd>
 				<dt>{{.locale.Tr "admin.dashboard.total_memory_allocated"}}</dt>
@@ -96,7 +92,7 @@
 				<dd>{{.SysStatus.MemMallocs}}</dd>
 				<dt>{{.locale.Tr "admin.dashboard.memory_free_times"}}</dt>
 				<dd>{{.SysStatus.MemFrees}}</dd>
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 				<dt>{{.locale.Tr "admin.dashboard.current_heap_usage"}}</dt>
 				<dd>{{.SysStatus.HeapAlloc}}</dd>
 				<dt>{{.locale.Tr "admin.dashboard.heap_memory_obtained"}}</dt>
@@ -109,7 +105,7 @@
 				<dd>{{.SysStatus.HeapReleased}}</dd>
 				<dt>{{.locale.Tr "admin.dashboard.heap_objects"}}</dt>
 				<dd>{{.SysStatus.HeapObjects}}</dd>
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 				<dt>{{.locale.Tr "admin.dashboard.bootstrap_stack_usage"}}</dt>
 				<dd>{{.SysStatus.StackInuse}}</dd>
 				<dt>{{.locale.Tr "admin.dashboard.stack_memory_obtained"}}</dt>
@@ -128,7 +124,7 @@
 				<dd>{{.SysStatus.GCSys}}</dd>
 				<dt>{{.locale.Tr "admin.dashboard.other_system_allocation_obtained"}}</dt>
 				<dd>{{.SysStatus.OtherSys}}</dd>
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 				<dt>{{.locale.Tr "admin.dashboard.next_gc_recycle"}}</dt>
 				<dd>{{.SysStatus.NextGC}}</dd>
 				<dt>{{.locale.Tr "admin.dashboard.last_gc_time"}}</dt>

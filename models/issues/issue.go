@@ -222,8 +222,7 @@ func (issue *Issue) LoadPoster(ctx context.Context) (err error) {
 			if !user_model.IsErrUserNotExist(err) {
 				return fmt.Errorf("getUserByID.(poster) [%d]: %w", issue.PosterID, err)
 			}
-			err = nil
-			return
+			return nil
 		}
 	}
 	return err
@@ -316,27 +315,27 @@ func (issue *Issue) LoadMilestone(ctx context.Context) (err error) {
 // LoadAttributes loads the attribute of this issue.
 func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 	if err = issue.LoadRepo(ctx); err != nil {
-		return
+		return err
 	}
 
 	if err = issue.LoadPoster(ctx); err != nil {
-		return
+		return err
 	}
 
 	if err = issue.LoadLabels(ctx); err != nil {
-		return
+		return err
 	}
 
 	if err = issue.LoadMilestone(ctx); err != nil {
-		return
+		return err
 	}
 
 	if err = issue.LoadProject(ctx); err != nil {
-		return
+		return err
 	}
 
 	if err = issue.LoadAssignees(ctx); err != nil {
-		return
+		return err
 	}
 
 	if err = issue.LoadPullRequest(ctx); err != nil && !IsErrPullRequestNotExist(err) {
@@ -687,6 +686,8 @@ func (issue *Issue) HasOriginalAuthor() bool {
 	return issue.OriginalAuthor != "" && issue.OriginalAuthorID != 0
 }
 
+var ErrIssueMaxPinReached = util.NewInvalidArgumentErrorf("the max number of pinned issues has been readched")
+
 // IsPinned returns if a Issue is pinned
 func (issue *Issue) IsPinned() bool {
 	return issue.PinOrder != 0
@@ -707,12 +708,12 @@ func (issue *Issue) Pin(ctx context.Context, user *user_model.User) error {
 
 	// Check if the maximum allowed Pins reached
 	if maxPin >= setting.Repository.Issue.MaxPinned {
-		return fmt.Errorf("You have reached the max number of pinned Issues")
+		return ErrIssueMaxPinReached
 	}
 
 	_, err = db.GetEngine(ctx).Table("issue").
 		Where("id = ?", issue.ID).
-		Update(map[string]interface{}{
+		Update(map[string]any{
 			"pin_order": maxPin + 1,
 		})
 	if err != nil {
@@ -748,7 +749,7 @@ func (issue *Issue) Unpin(ctx context.Context, user *user_model.User) error {
 
 	_, err = db.GetEngine(ctx).Table("issue").
 		Where("id = ?", issue.ID).
-		Update(map[string]interface{}{
+		Update(map[string]any{
 			"pin_order": 0,
 		})
 	if err != nil {
@@ -820,7 +821,7 @@ func (issue *Issue) MovePin(ctx context.Context, newPosition int) error {
 
 	_, err = db.GetEngine(dbctx).Table("issue").
 		Where("id = ?", issue.ID).
-		Update(map[string]interface{}{
+		Update(map[string]any{
 			"pin_order": newPosition,
 		})
 	if err != nil {
@@ -856,10 +857,15 @@ func GetPinnedIssues(ctx context.Context, repoID int64, isPull bool) ([]*Issue, 
 // IsNewPinnedAllowed returns if a new Issue or Pull request can be pinned
 func IsNewPinAllowed(ctx context.Context, repoID int64, isPull bool) (bool, error) {
 	var maxPin int
-	_, err := db.GetEngine(ctx).SQL("SELECT MAX(pin_order) FROM issue WHERE repo_id = ? AND is_pull = ?", repoID, isPull).Get(&maxPin)
+	_, err := db.GetEngine(ctx).SQL("SELECT COUNT(pin_order) FROM issue WHERE repo_id = ? AND is_pull = ? AND pin_order > 0", repoID, isPull).Get(&maxPin)
 	if err != nil {
 		return false, err
 	}
 
 	return maxPin < setting.Repository.Issue.MaxPinned, nil
+}
+
+// IsErrIssueMaxPinReached returns if the error is, that the User can't pin more Issues
+func IsErrIssueMaxPinReached(err error) bool {
+	return err == ErrIssueMaxPinReached
 }

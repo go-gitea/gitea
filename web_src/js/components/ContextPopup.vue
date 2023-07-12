@@ -3,7 +3,7 @@
     <div v-if="loading" class="ui active centered inline loader"/>
     <div v-if="!loading && issue !== null">
       <p><small>{{ issue.repository.full_name }} on {{ createdAt }}</small></p>
-      <p><svg-icon :name="icon" :class="['text', color]" /> <strong>{{ issue.title }}</strong> #{{ issue.number }}</p>
+      <p><svg-icon :name="icon" :class="['text', color]"/> <strong>{{ issue.title }}</strong> #{{ issue.number }}</p>
       <p>{{ body }}</p>
       <div>
         <div
@@ -26,7 +26,8 @@
 <script>
 import $ from 'jquery';
 import {SvgIcon} from '../svg.js';
-import {useLightTextOnBackground, hexToRGBColor} from '../utils/color.js';
+import {useLightTextOnBackground} from '../utils/color.js';
+import tinycolor from 'tinycolor2';
 
 const {appSubUrl, i18n} = window.config;
 
@@ -77,7 +78,7 @@ export default {
     labels() {
       return this.issue.labels.map((label) => {
         let textColor;
-        const [r, g, b] = hexToRGBColor(label.color);
+        const {r, g, b} = tinycolor(label.color).toRgb();
         if (useLightTextOnBackground(r, g, b)) {
           textColor = '#eeeeee';
         } else {

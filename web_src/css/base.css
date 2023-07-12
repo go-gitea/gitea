@@ -12,6 +12,7 @@
   /* backgrounds */
   --checkbox-mask-checked: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 18 18" width="16" height="16"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg>');
   --checkbox-mask-indeterminate: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M2 7.75A.75.75 0 012.75 7h10a.75.75 0 010 1.5h-10A.75.75 0 012 7.75z"></path></svg>');
+  --octicon-chevron-right: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg>');
   /* non-color variables */
   --border-radius: 0.28571429rem;
   --opacity-disabled: 0.55;
@@ -43,6 +44,8 @@
   --color-primary-alpha-70: #4183c4b3;
   --color-primary-alpha-80: #4183c4cc;
   --color-primary-alpha-90: #4183c4e1;
+  --color-primary-hover: var(--color-primary-dark-1);
+  --color-primary-active: var(--color-primary-dark-2);
   --color-secondary: #dedede;
   --color-secondary-dark-1: #cecece;
   --color-secondary-dark-2: #bfbfbf;
@@ -70,12 +73,18 @@
   --color-secondary-alpha-70: #dededeb3;
   --color-secondary-alpha-80: #dededecc;
   --color-secondary-alpha-90: #dededee1;
-  /* console colors */
-  --color-console-fg: #ffffff;
-  --color-console-bg: #252a2f;
-  --color-console-border: #ffffff16;
+  --color-secondary-button: var(--color-secondary-dark-4);
+  --color-secondary-hover: var(--color-secondary-dark-5);
+  --color-secondary-active: var(--color-secondary-dark-6);
+  /* console colors - used for actions console and console files */
+  --color-console-fg: #eeeff2;
+  --color-console-fg-subtle: #959cab;
+  --color-console-bg: #262936;
+  --color-console-border: #383c47;
   --color-console-hover-bg: #ffffff16;
-  --color-console-active-bg: #353a3f;
+  --color-console-active-bg: #454a57;
+  --color-console-menu-bg: #383c47;
+  --color-console-menu-border: #5c6374;
   /* named colors */
   --color-red: #db2828;
   --color-orange: #f2711c;
@@ -102,6 +111,49 @@
   --color-pink-light: #e86bb1;
   --color-brown-light: #c58b66;
   --color-black-light: #525558;
+  /* dark 1 variants - produced via Sass scale-color(color, $lightness: -10%) */
+  --color-red-dark-1: #c82121;
+  --color-orange-dark-1: #e6630d;
+  --color-yellow-dark-1: #e5ac04;
+  --color-olive-dark-1: #a3b816;
+  --color-green-dark-1: #1ea73e;
+  --color-teal-dark-1: #00a39c;
+  --color-blue-dark-1: #1e78bb;
+  --color-violet-dark-1: #5a30b5;
+  --color-purple-dark-1: #932eb4;
+  --color-pink-dark-1: #db228a;
+  --color-brown-dark-1: #955d39;
+  --color-black-dark-1: #18191a;
+  /* dark 2 variants - produced via Sass scale-color(color, $lightness: -20%) */
+  --color-red-dark-2: #b11e1e;
+  --color-orange-dark-2: #cc580c;
+  --color-yellow-dark-2: #cc9903;
+  --color-olive-dark-2: #91a313;
+  --color-green-dark-2: #1a9537;
+  --color-teal-dark-2: #00918a;
+  --color-blue-dark-2: #1a6aa6;
+  --color-violet-dark-2: #502aa1;
+  --color-purple-dark-2: #8229a0;
+  --color-pink-dark-2: #c21e7b;
+  --color-brown-dark-2: #845232;
+  --color-black-dark-2: #161617;
+  /* ansi colors used for actions console and console files */
+  --color-ansi-black: var(--color-black);
+  --color-ansi-red: var(--color-red);
+  --color-ansi-green: var(--color-green);
+  --color-ansi-yellow: var(--color-yellow);
+  --color-ansi-blue: var(--color-blue);
+  --color-ansi-magenta: var(--color-pink);
+  --color-ansi-cyan: var(--color-teal);
+  --color-ansi-white: var(--color-console-fg-subtle);
+  --color-ansi-bright-black: var(--color-black-light);
+  --color-ansi-bright-red: var(--color-red-light);
+  --color-ansi-bright-green: var(--color-green-light);
+  --color-ansi-bright-yellow: var(--color-yellow-light);
+  --color-ansi-bright-blue: var(--color-blue-light);
+  --color-ansi-bright-magenta: var(--color-pink-light);
+  --color-ansi-bright-cyan: var(--color-teal-light);
+  --color-ansi-bright-white: var(--color-console-fg);
   /* other colors */
   --color-grey: #707070;
   --color-grey-light: #838383;
@@ -153,26 +205,24 @@
   --color-text-light-3: #a0a0a0;
   --color-box-header: #f7f7f7;
   --color-box-body: #ffffff;
-  --color-box-body-highlight: #f8f8f8;
+  --color-box-body-highlight: #fafafa;
   --color-footer: #ffffff;
   --color-timeline: #ececec;
   --color-input-text: #212121;
-  --color-input-background: #ffffff;
+  --color-input-background: #fafafa;
   --color-input-toggle-background: #dedede;
-  --color-input-border: #dedede;
-  --color-input-border-hover: #cecece;
-  --color-navbar: #f8f8f8;
-  --color-navbar-transparent: #f8f8f800;
+  --color-input-border: var(--color-secondary);
+  --color-input-border-hover: var(--color-secondary-dark-1);
   --color-light: #00000006;
   --color-light-mimic-enabled: rgba(0, 0, 0, calc(6 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #0000001d;
   --color-hover: #00000014;
-  --color-active: #0000001e;
-  --color-menu: #ffffff;
-  --color-card: #ffffff;
+  --color-active: #0000001b;
+  --color-menu: #fafafa;
+  --color-card: #fafafa;
   --color-markup-table-row: #00000008;
   --color-markup-code-block: #00000010;
-  --color-button: #ffffff;
+  --color-button: #fafafa;
   --color-code-bg: #ffffff;
   --color-code-sidebar-bg: #f5f5f5;
   --color-shadow: #00000030;
@@ -181,15 +231,16 @@
   --color-placeholder-text: #aaa;
   --color-editor-line-highlight: var(--color-primary-light-6);
   --color-project-board-bg: var(--color-secondary-light-4);
-  --color-project-board-dark-label: #555555;
-  --color-project-board-light-label: #a6aab5;
+  --color-project-board-dark-label: #111111;
+  --color-project-board-light-label: #eeeeee;
   --color-caret: var(--color-text-dark);
   --color-reaction-bg: #0000000a;
   --color-reaction-hover-bg: var(--color-primary-light-5);
   --color-reaction-active-bg: var(--color-primary-light-6);
   --color-tooltip-text: #ffffff;
   --color-tooltip-bg: #000000f0;
-  --color-header-bar: #ffffff;
+  --color-nav-bg: #ffffff;
+  --color-nav-hover-bg: #ebebeb;
   --color-label-text: #232323;
   --color-label-bg: #cacaca5b;
   --color-label-hover-bg: #cacacaa0;
@@ -232,17 +283,9 @@ body {
   color: var(--color-text);
   background-color: var(--color-body);
   tab-size: var(--tab-size);
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
   overflow-wrap: break-word;
-}
-
-@supports (overflow: overlay) {
-  body {
-    overflow: overlay; /* stylelint-disable-line */
-    scrollbar-gutter: stable;
-  }
 }
 
 table {
@@ -332,16 +375,6 @@ progress::-moz-progress-bar {
   opacity: 1 !important;
 }
 
-.svg {
-  display: inline-block;
-  vertical-align: text-top;
-  fill: currentcolor;
-}
-
-.middle .svg {
-  vertical-align: middle;
-}
-
 .unselectable,
 .button,
 .lines-num,
@@ -380,11 +413,6 @@ a.silenced:hover {
   text-decoration: none;
 }
 
-.delete-button,
-.delete-button:hover {
-  color: var(--color-red);
-}
-
 a.label,
 .repository-menu a,
 .ui.search .results a,
@@ -392,338 +420,6 @@ a.label,
 .ui.cards a.card,
 .issue-keyword a {
   text-decoration: none !important;
-}
-
-.ui.red.labels .label,
-.ui.ui.ui.red.label,
-.ui.red.button,
-.ui.red.buttons .button {
-  background: var(--color-red);
-}
-
-.ui.red.button:hover,
-.ui.red.buttons .button:hover {
-  background: var(--color-red-light);
-}
-
-.ui.basic.red.buttons .button,
-.ui.basic.red.button {
-  color: var(--color-red);
-  border-color: var(--color-red);
-}
-
-.ui.basic.red.buttons .button:hover,
-.ui.basic.red.button:hover {
-  color: var(--color-red-light);
-  border-color: var(--color-red-light);
-}
-
-.ui.orange.labels .label,
-.ui.ui.ui.orange.label,
-.ui.orange.button,
-.ui.orange.buttons .button {
-  background: var(--color-orange);
-}
-
-.ui.orange.button:hover,
-.ui.orange.buttons .button:hover {
-  background: var(--color-orange-light);
-}
-
-.ui.basic.orange.buttons .button,
-.ui.basic.orange.button {
-  color: var(--color-orange);
-  border-color: var(--color-orange);
-}
-
-.ui.basic.orange.buttons .button:hover,
-.ui.basic.orange.button:hover {
-  color: var(--color-orange-light);
-  border-color: var(--color-orange-light);
-}
-
-.ui.yellow.labels .label,
-.ui.ui.ui.yellow.label,
-.ui.yellow.button,
-.ui.yellow.buttons .button {
-  background: var(--color-yellow);
-}
-
-.ui.yellow.button:hover,
-.ui.yellow.buttons .button:hover {
-  background: var(--color-yellow-light);
-}
-
-.ui.basic.yellow.buttons .button,
-.ui.basic.yellow.button {
-  color: var(--color-yellow);
-  border-color: var(--color-yellow);
-}
-
-.ui.basic.yellow.buttons .button:hover,
-.ui.basic.yellow.button:hover {
-  color: var(--color-yellow-light);
-  border-color: var(--color-yellow-light);
-}
-
-.ui.olive.labels .label,
-.ui.ui.ui.olive.label,
-.ui.olive.button,
-.ui.olive.buttons .button {
-  background: var(--color-olive);
-}
-
-.ui.olive.button:hover,
-.ui.olive.buttons .button:hover {
-  background: var(--color-olive-light);
-}
-
-.ui.basic.olive.buttons .button,
-.ui.basic.olive.button {
-  color: var(--color-olive);
-  border-color: var(--color-olive);
-}
-
-.ui.basic.olive.buttons .button:hover,
-.ui.basic.olive.button:hover {
-  color: var(--color-olive-light);
-  border-color: var(--color-olive-light);
-}
-
-.ui.green.labels .label,
-.ui.ui.ui.green.label,
-.ui.green.button,
-.ui.green.buttons .button {
-  background: var(--color-green);
-}
-
-.ui.green.button:hover,
-.ui.green.buttons .button:hover {
-  background: var(--color-green-light);
-}
-
-.ui.basic.green.buttons .button,
-.ui.basic.green.button {
-  color: var(--color-green);
-  border-color: var(--color-green);
-}
-
-.ui.basic.green.buttons .button:hover,
-.ui.basic.green.button:hover {
-  color: var(--color-green-light);
-  border-color: var(--color-green-light);
-}
-
-.ui.teal.labels .label,
-.ui.ui.ui.teal.label,
-.ui.teal.button,
-.ui.teal.buttons .button {
-  background: var(--color-teal);
-}
-
-.ui.teal.button:hover,
-.ui.teal.buttons .button:hover {
-  background: var(--color-teal-light);
-}
-
-.ui.basic.teal.buttons .button,
-.ui.basic.teal.button {
-  color: var(--color-teal);
-  border-color: var(--color-teal);
-}
-
-.ui.basic.teal.buttons .button:hover,
-.ui.basic.teal.button:hover {
-  color: var(--color-teal-light);
-  border-color: var(--color-teal-light);
-}
-
-.ui.blue.labels .label,
-.ui.ui.ui.blue.label,
-.ui.blue.button,
-.ui.blue.buttons .button {
-  background: var(--color-blue);
-}
-
-.ui.blue.button:hover,
-.ui.blue.buttons .button:hover {
-  background: var(--color-blue-light);
-}
-
-.ui.basic.blue.buttons .button,
-.ui.basic.blue.button {
-  color: var(--color-blue);
-  border-color: var(--color-blue);
-}
-
-.ui.basic.blue.buttons .button:hover,
-.ui.basic.blue.button:hover {
-  color: var(--color-blue-light);
-  border-color: var(--color-blue-light);
-}
-
-.ui.violet.labels .label,
-.ui.ui.ui.violet.label,
-.ui.violet.button,
-.ui.violet.buttons .button {
-  background: var(--color-violet);
-}
-
-.ui.violet.button:hover,
-.ui.violet.buttons .button:hover {
-  background: var(--color-violet-light);
-}
-
-.ui.basic.violet.buttons .button,
-.ui.basic.violet.button {
-  color: var(--color-violet);
-  border-color: var(--color-violet);
-}
-
-.ui.basic.violet.buttons .button:hover,
-.ui.basic.violet.button:hover {
-  color: var(--color-violet-light);
-  border-color: var(--color-violet-light);
-}
-
-.ui.purple.labels .label,
-.ui.ui.ui.purple.label,
-.ui.purple.button,
-.ui.purple.buttons .button {
-  background: var(--color-purple);
-}
-
-.ui.purple.button:hover,
-.ui.purple.buttons .button:hover {
-  background: var(--color-purple-light);
-}
-
-.ui.basic.purple.buttons .button,
-.ui.basic.purple.button {
-  color: var(--color-purple);
-  border-color: var(--color-purple);
-}
-
-.ui.basic.purple.buttons .button:hover,
-.ui.basic.purple.button:hover {
-  color: var(--color-purple-light);
-  border-color: var(--color-purple-light);
-}
-
-.ui.pink.labels .label,
-.ui.ui.ui.pink.label,
-.ui.pink.button,
-.ui.pink.buttons .button {
-  background: var(--color-pink);
-}
-
-.ui.pink.button:hover,
-.ui.pink.buttons .button:hover {
-  background: var(--color-pink-light);
-}
-
-.ui.basic.pink.buttons .button,
-.ui.basic.pink.button {
-  color: var(--color-pink);
-  border-color: var(--color-pink);
-}
-
-.ui.basic.pink.buttons .button:hover,
-.ui.basic.pink.button:hover {
-  color: var(--color-pink-light);
-  border-color: var(--color-pink-light);
-}
-
-.ui.brown.labels .label,
-.ui.ui.ui.brown.label,
-.ui.brown.button,
-.ui.brown.buttons .button {
-  background: var(--color-brown);
-}
-
-.ui.brown.button:hover,
-.ui.brown.buttons .button:hover {
-  background: var(--color-brown-light);
-}
-
-.ui.basic.brown.buttons .button,
-.ui.basic.brown.button {
-  color: var(--color-brown);
-  border-color: var(--color-brown);
-}
-
-.ui.basic.brown.buttons .button:hover,
-.ui.basic.brown.button:hover {
-  color: var(--color-brown-light);
-  border-color: var(--color-brown-light);
-}
-
-.ui.grey.labels .label,
-.ui.ui.ui.grey.label,
-.ui.grey.button,
-.ui.grey.buttons .button {
-  background: var(--color-grey);
-}
-
-.ui.grey.button:hover,
-.ui.grey.buttons .button:hover {
-  background: var(--color-grey-light);
-}
-
-.ui.basic.grey.buttons .button,
-.ui.basic.grey.button {
-  color: var(--color-grey);
-  border-color: var(--color-grey);
-}
-
-.ui.basic.grey.buttons .button:hover,
-.ui.basic.grey.button:hover {
-  color: var(--color-grey-light);
-  border-color: var(--color-grey-light);
-}
-
-.ui.black.labels .label,
-.ui.ui.ui.black.label,
-.ui.black.button,
-.ui.black.buttons .button {
-  background: var(--color-black);
-}
-
-.ui.black.button:hover,
-.ui.black.buttons .button:hover {
-  background: var(--color-black-light);
-}
-
-.ui.basic.black.buttons .button,
-.ui.basic.black.button {
-  color: var(--color-black);
-  border-color: var(--color-black);
-}
-
-.ui.basic.black.buttons .button:hover,
-.ui.basic.black.button:hover {
-  color: var(--color-black-light);
-  border-color: var(--color-black-light);
-}
-
-.ui.negative.buttons .button,
-.ui.negative.button {
-  background: var(--color-red);
-}
-
-.ui.negative.buttons .button:hover,
-.ui.negative.button:hover {
-  background: var(--color-red-light);
-}
-
-.ui.positive.buttons .button,
-.ui.positive.button {
-  background: var(--color-green);
-}
-
-.ui.positive.buttons .button:hover,
-.ui.positive.button:hover {
-  background: var(--color-green-light);
 }
 
 .ui.search > .results {
@@ -759,17 +455,6 @@ a.label,
   background-color: var(--color-markup-code-block);
 }
 
-/* try to match button with no icons in height */
-.icon-button {
-  padding-top: 7.42px !important;
-  padding-bottom: 7.42px !important;
-}
-
-.ui.divider:not(.vertical,.horizontal) {
-  border-top-color: var(--color-secondary) !important;
-  border-bottom: none !important;
-}
-
 .ui.dividing.header {
   border-bottom-color: var(--color-secondary);
 }
@@ -782,6 +467,11 @@ a.label,
 .page-content .new-menu {
   margin-top: -15px !important;
   padding-top: 15px !important;
+}
+
+/* fix Fomantic's line-height cutting off "g" on Windows Chrome with Segoe UI */
+.ui.input > input {
+  line-height: 1.3;
 }
 
 .ui.input.focus > input,
@@ -802,8 +492,9 @@ a.label,
   border-right-color: transparent;
 }
 
+.ui.action.input:not([class*="left action"]) > input,
 .ui.action.input:not([class*="left action"]) > input:hover {
-  border-right-color: transparent;
+  border-right: 1px solid transparent;
 }
 
 .ui.action.input:not([class*="left action"]) > input:focus {
@@ -833,7 +524,8 @@ a.label,
 }
 
 .ui.menu .dropdown.item:hover,
-.ui.menu a.item:hover {
+.ui.menu a.item:hover,
+.ui.menu details.item summary:hover {
   color: var(--color-text);
   background: var(--color-hover);
 }
@@ -855,7 +547,7 @@ a.label,
   color: var(--color-text-light-3);
 }
 
-.ui.menu .item::before {
+.ui.menu .item::before, .ui.vertical.menu .item::before {
   background: var(--color-secondary);
 }
 
@@ -905,6 +597,7 @@ a.label,
 .ui.dropdown .menu .active.item {
   color: var(--color-text);
   background: var(--color-active);
+  border-radius: 0;
   font-weight: var(--font-weight-normal);
 }
 
@@ -973,7 +666,7 @@ a.label,
 }
 
 .ui.menu .dropdown.item .menu {
-  background: var(--color-menu);
+  background: var(--color-body);
 }
 
 .ui.menu .ui.dropdown .menu > .item {
@@ -997,6 +690,11 @@ a.label,
   border: 1px solid var(--color-secondary);
 }
 
+.ui.info.message .header,
+.ui.blue.message .header {
+  color: var(--color-blue);
+}
+
 .ui.info.message,
 .ui.attached.info.message,
 .ui.blue.message,
@@ -1004,6 +702,12 @@ a.label,
   background: var(--color-info-bg);
   color: var(--color-info-text);
   border-color: var(--color-info-border);
+}
+
+.ui.success.message .header,
+.ui.positive.message .header,
+.ui.green.message .header {
+  color: var(--color-green);
 }
 
 .ui.success.message,
@@ -1015,6 +719,12 @@ a.label,
   border-color: var(--color-success-border);
 }
 
+.ui.error.message .header,
+.ui.negative.message .header,
+.ui.red.message .header {
+  color: var(--color-red);
+}
+
 .ui.error.message,
 .ui.attached.error.message,
 .ui.red.message,
@@ -1024,6 +734,11 @@ a.label,
   background: var(--color-error-bg);
   color: var(--color-error-text);
   border-color: var(--color-error-border);
+}
+
+.ui.warning.message .header,
+.ui.yellow.message .header {
+  color: var(--color-yellow);
 }
 
 .ui.warning.message,
@@ -1149,11 +864,37 @@ a.label,
 
 .ui.table > thead > tr > th {
   background: var(--color-box-header);
+  border-color: var(--color-secondary);
   color: var(--color-text);
 }
 
 .ui.basic.table > tbody > tr {
   border-color: var(--color-secondary);
+}
+
+.ui.table > tfoot > tr > th,
+.ui.table > tfoot > tr > td {
+  border-color: var(--color-secondary);
+  background: var(--color-box-body);
+  color: var(--color-text);
+}
+
+/* reduce table padding, needed especially for dense admin tables */
+.ui.table > thead > tr > th,
+.ui.table > tbody > tr > td,
+.ui.table > tr > td {
+  padding: 6px 3px;
+}
+/* use more horizontal padding on first and last items for visuals */
+.ui.table > thead > tr > th:first-of-type,
+.ui.table > tbody > tr > td:first-of-type,
+.ui.table > tr > td:first-of-type {
+  padding-left: 10px;
+}
+.ui.table > thead > tr > th:last-of-type,
+.ui.table > tbody > tr > td:last-of-type,
+.ui.table > tr > td:last-of-type {
+  padding-right: 10px;
 }
 
 img.ui.avatar,
@@ -1189,94 +930,37 @@ img.ui.avatar,
 /* overwrite semantic width of containers inside the main page content div (div with class "page-content") */
 .page-content .ui.ui.ui.container:not(.fluid) {
   width: 1280px;
-  max-width: calc(100vw - 64px);
+  max-width: calc(100% - 64px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ui.container.fluid.padded {
+  padding: 0 32px;
 }
 
 /* enable fluid page widths for medium size viewports */
 @media (min-width: 768px) and (max-width: 1200px) {
-  .ui.ui.ui.container:not(.fluid) {
-    width: calc(100vw - 64px);
-  }
-}
-
-@media only screen and (max-width: 767px) {
   .page-content .ui.ui.ui.container:not(.fluid) {
-    width: auto; /* copied from semantic css */
-    max-width: 100%;
+    max-width: calc(100% - 32px);
+  }
+  .ui.container.fluid.padded {
+    padding: 0 16px;
   }
 }
 
-.following.bar {
-  margin: 0 !important;
-}
-
-.following.bar.light {
-  background: var(--color-header-bar);
-  border-bottom: 1px solid var(--color-secondary);
-}
-
-.following.bar .column .menu {
-  margin-top: 0;
-}
-
-.following.bar .fitted .svg {
-  margin-right: 0;
-  vertical-align: middle;
-}
-
-.following.bar .searchbox {
-  background-color: var(--color-input-background) !important;
-}
-
-.following.bar .text .svg {
-  width: 16px;
-  text-align: center;
-}
-
-.following.bar #navbar {
-  width: 100vw;
-  min-height: 52px;
-  padding: 0 16px;
-}
-
-@media (max-width: 767px) {
-  .following.bar #navbar {
-    padding-left: 4px;
-    padding-right: 0;
+@media (max-width: 767.98px) {
+  .page-content .ui.ui.ui.container:not(.fluid) {
+    max-width: calc(100% - 16px);
   }
-}
-
-.following.bar #navbar .brand {
-  margin: 0;
-}
-
-.following.bar #navbar .dropdown .avatar {
-  margin-right: 0 !important;
-}
-
-@media (max-width: 767px) {
-  .following.bar #navbar:not(.shown) > *:not(:first-child) {
-    display: none;
+  .ui.container.fluid.padded {
+    padding: 0 8px;
   }
-}
-
-.right.stackable.menu {
-  /* responsive fix: this makes sure that the right menu when the page */
-  /* is on mobile view will have elements stacked on top of each other. */
-  /* no, stackable won't work on right menus. */
-  margin-left: auto;
-  display: flex;
-  align-items: inherit;
-  flex-direction: inherit;
 }
 
 .ui.pagination.menu .active.item {
   color: var(--color-text);
   background: var(--color-active);
-}
-
-.ui.form .field > .selection.dropdown > .dropdown.icon {
-  height: auto;
 }
 
 .ui.loading.segment::before,
@@ -1460,10 +1144,6 @@ img.ui.avatar,
 /* FIXME: this is a serious pollution, do not use this for "float: right" anymore */
 .ui.right:not(.action) {
   float: right;
-}
-
-.ui.container.fluid.padded {
-  padding: 0 32px;
 }
 
 .ui.form .ui.button {
@@ -1726,7 +1406,7 @@ img.ui.avatar,
   line-height: 20px;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .ui.pagination.menu .item:not(.active,.navigation),
   .ui.pagination.menu .item.navigation span.navigation_label {
     display: none;
@@ -1800,64 +1480,16 @@ img.ui.avatar,
   text-align: center;
 }
 
-/* Conditional display */
-@media (min-width: 768px) {
-  .mobile-only,
-  .ui.button.mobile-only {
+@media (max-width: 767.98px) {
+  /* double selector so it wins over .gt-df etc */
+  .not-mobile.not-mobile {
     display: none !important;
-  }
-
-  /* has the same behaviour of sr-only, hiding the content for */
-  /* non-screenreaders, but is shown on mobile devices. */
-  .sr-mobile-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    border: 0;
-  }
-}
-
-@media (max-width: 767px) {
-  .not-mobile {
-    display: none !important;
-  }
-}
-
-/* Accessibility for screen readers */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  border: 0;
-}
-
-.sr-only-focusable:active,
-.sr-only-focusable:focus {
-  position: static;
-  width: auto;
-  height: auto;
-  margin: 0;
-  overflow: visible;
-  clip: auto;
-}
-
-@media (min-width: 768px) and (max-width: 991px) {
-  .ui.container {
-    width: 95%;
   }
 }
 
 .ui.menu.new-menu {
   margin-bottom: 15px;
-  background: var(--color-navbar);
+  background: var(--color-header-wrapper);
   border-bottom: 1px solid var(--color-secondary) !important;
   overflow: auto;
 }
@@ -1872,8 +1504,8 @@ img.ui.avatar,
 .ui.menu.new-menu::after {
   position: absolute;
   display: block;
-  background: linear-gradient(to right, var(--color-navbar-transparent), var(--color-navbar) 100%);
-  content: '';
+  background: linear-gradient(to right, var(--color-header-wrapper-transparent), var(--color-header-wrapper) 100%);
+  content: "";
   right: 0;
   height: 39px;
   width: 60px;
@@ -1889,7 +1521,7 @@ img.ui.avatar,
   margin-bottom: 0 !important; /* reset fomantic's margin, because the active menu has special bottom border */
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .ui.menu.new-menu .item {
     width: auto !important;
   }
@@ -2001,12 +1633,17 @@ i.icon.centerlock {
 
 .ui.label {
   padding: 0.3em 0.5em;
+  transition: none;
 }
 
 .ui.label,
 .ui.menu .item > .label {
   background: var(--color-label-bg);
   color: var(--color-label-text);
+}
+
+.ui.label > a {
+  opacity: .75; /* increase contrast over default fomantic .5 */
 }
 
 .ui.active.label {
@@ -2192,152 +1829,6 @@ a.ui.active.label:hover {
   font-size: 0.85714286rem;
 }
 
-.ui.button {
-  background: var(--color-button);
-  border: 1px solid var(--color-light-border);
-  color: var(--color-text);
-}
-
-.page-content .ui.button {
-  box-shadow: none !important;
-}
-
-.ui.button:focus,
-.ui.button:hover {
-  background: var(--color-hover);
-  color: var(--color-text);
-}
-
-.ui.active.button,
-.ui.button:active,
-.ui.active.button:active,
-.ui.active.button:hover {
-  background: var(--color-active);
-  color: var(--color-text);
-}
-
-.ui.button.no-text .icon {
-  margin: 0 !important;
-}
-
-.ui.buttons .button:first-child {
-  border-left: 1px solid var(--color-light-border);
-}
-
-.ui.buttons .button + .button {
-  border-left: none;
-}
-
-/* a ghost button is a button without border */
-.button.button-ghost {
-  background: transparent;
-  border: none;
-  color: inherit;
-  margin: 0;
-  padding: 0;
-}
-
-.button.button-ghost:hover {
-  background: var(--color-hover);
-}
-
-.button.button-ghost:active {
-  background: var(--color-active);
-}
-
-.two-toggle-buttons .button:not(.active):first-of-type {
-  border-right: none;
-}
-
-.two-toggle-buttons .button.active:last-of-type {
-  border-left: 1px solid var(--color-light-border);
-}
-
-.ui.labeled.button.disabled > .button,
-.ui.basic.buttons .button,
-.ui.basic.button {
-  color: var(--color-text-light);
-  background: var(--color-light);
-}
-
-.ui.basic.buttons .button:hover,
-.ui.basic.button:hover {
-  color: var(--color-text);
-  background: var(--color-hover);
-}
-
-.ui.basic.buttons .button:focus,
-.ui.basic.button:focus,
-.ui.basic.buttons .button:active,
-.ui.basic.button:active,
-.ui.basic.buttons .active.button,
-.ui.basic.active.button,
-.ui.basic.buttons .active.button:hover,
-.ui.basic.active.button:hover {
-  color: var(--color-text);
-  background: var(--color-active);
-}
-
-.ui.labeled.button > .label {
-  border-color: var(--color-light-border);
-}
-
-.ui.labeled.icon.buttons > .button > .icon,
-.ui.labeled.icon.button > .icon {
-  background: var(--color-hover);
-}
-
-.ui.primary.button,
-.ui.primary.buttons .button {
-  background-color: var(--color-primary) !important;
-  color: var(--color-primary-contrast) !important;
-}
-
-.ui.primary.button:hover,
-.ui.primary.buttons .button:hover {
-  background-color: var(--color-primary-dark-2) !important;
-}
-
-.ui.primary.button:focus,
-.ui.primary.buttons .button:focus {
-  background-color: var(--color-primary-dark-3) !important;
-}
-
-.ui.basic.primary.button,
-.ui.basic.primary.buttons .button {
-  box-shadow: inset 0 0 0 1px var(--color-primary) !important;
-  color: var(--color-primary-contrast) !important;
-}
-
-.ui.basic.primary.button:hover,
-.ui.basic.primary.buttons .button:hover {
-  box-shadow: inset 0 0 0 1px var(--color-primary-dark-2) !important;
-}
-
-.ui.basic.primary.button:focus,
-.ui.basic.primary.buttons .button:focus {
-  box-shadow: inset 0 0 0 1px var(--color-primary-dark-3) !important;
-}
-
-.ui.basic.secondary.buttons .button,
-.ui.basic.secondary.button {
-  color: var(--color-secondary-dark-6) !important;
-}
-
-.ui.basic.secondary.buttons .button:hover,
-.ui.basic.secondary.button:hover,
-.ui.basic.secondary.buttons .button:active,
-.ui.basic.secondary.button:active {
-  color: var(--color-secondary-dark-8) !important;
-  border-color: var(--color-secondary-dark-1) !important;
-}
-
-.ui.basic.secondary.button:focus,
-.ui.basic.secondary.buttons .button:focus {
-  color: var(--color-secondary-dark-8) !important;
-  border-color: var(--color-secondary-dark-3) !important;
-}
-
 .ui.primary.label,
 .ui.primary.labels .label,
 .ui.ui.ui.primary.label {
@@ -2459,7 +1950,7 @@ a.ui.ui.ui.basic.primary.label:hover {
 
 .ui.basic.labels .label,
 .ui.basic.label {
-  background: var(--color-light);
+  background: var(--color-button);
   border-color: var(--color-light-border);
   color: var(--color-text-light);
 }
@@ -2541,36 +2032,9 @@ a.ui.basic.label:hover {
 }
 
 /* if a .top.attached.header is followed by a .segment, add some margin */
-.ui.segments ~ .ui.top.attached.header,
-.ui.attached.segment ~ .ui.top.attached.header {
+.ui.segments + .ui.top.attached.header,
+.ui.attached.segment + .ui.top.attached.header {
   margin-top: 1rem;
-}
-
-.header-stopwatch-dot {
-  position: absolute;
-  left: 8px;
-  top: -8px;
-  width: 13px;
-  height: 13px;
-  background: var(--color-primary);
-  border: 2px solid var(--color-header-bar);
-  border-radius: 100%;
-}
-
-.notification_count {
-  position: absolute;
-  left: 7px;
-  top: -9px;
-  min-width: 1.5em;
-  text-align: center;
-  background: var(--color-primary);
-  border: 2px solid var(--color-header-bar);
-  color: var(--color-header-bar);
-  padding: 2.75px;
-  border-radius: 1em;
-  font-size: 11px;
-  font-weight: var(--font-weight-bold);
-  line-height: .7;
 }
 
 .rss-icon {
@@ -2589,35 +2053,6 @@ table th[data-sortt-desc] .svg {
   margin-left: 0.25rem;
 }
 
-.ui.dropdown .svg.dropdown.icon,
-.ui.dropdown .svg.remove.icon,
-.svg.dropdown.icon {
-  margin-top: 0 !important; /* reset the "ui.selection.dropdown > .dropdown.icon {margin-top}", for the Issue Dependencies dropdown */
-  margin-right: -0.5rem !important; /* fix up SVG dropdown triangles because Fomantic thinks they are icon fonts */
-  height: auto; /* reset the ".ui.dropdown > .dropdown.icon {height}", otherwise the icon would be too small */
-}
-
-.ui.selection.dropdown > .svg.search.icon,
-.ui.selection.dropdown > .svg.delete.icon,
-.ui.selection.dropdown > .svg.dropdown.icon {
-  top: 0 !important; /* reset the ".ui.selection.dropdown > .xxx.icon {top}" if the icon is svg instead of the fomantic icon */
-}
-
-.ui.selection.dropdown > .svg.remove.icon {
-  top: .5px;
-  right: 32px;
-  width: auto;
-}
-
-.ui.selection.dropdown > .svg.remove.icon:hover {
-  opacity: 1;
-}
-
-.ui.dropdown.no-text > .dropdown.icon {
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-}
-
 .ui.dropdown .menu .item {
   border-radius: 0;
 }
@@ -2628,11 +2063,6 @@ table th[data-sortt-desc] .svg {
 
 .ui.dropdown .menu .item:last-of-type {
   border-radius: 0 0 var(--border-radius) var(--border-radius);
-}
-
-.ui.dropdown .menu > .divider {
-  border-top: 1px solid var(--color-secondary);
-  margin: 4px 0;
 }
 
 .ui.multiple.dropdown > .label {
@@ -2653,19 +2083,6 @@ table th[data-sortt-desc] .svg {
   vertical-align: -0.075em;
 }
 
-@supports (-webkit-hyphens:none) {
-  body:not(.safari-above125) .emoji,
-  body:not(.safari-above125) .reaction {
-    font-size: inherit;
-    vertical-align: inherit;
-  }
-  body:not(.safari-above125) .emoji img,
-  body:not(.safari-above125) .reaction img {
-    font-size: 1.25em;
-    vertical-align: -0.225em !important;
-  }
-}
-
 .emoji img,
 .reaction img {
   border-width: 0 !important;
@@ -2678,7 +2095,6 @@ table th[data-sortt-desc] .svg {
 .minicolors-panel {
   background: var(--color-secondary-dark-1) !important;
 }
-
 
 /* https://github.com/go-gitea/gitea/pull/11486 */
 .ui.sub.header {
@@ -2762,7 +2178,7 @@ table th[data-sortt-desc] .svg {
 }
 
 .truncated-item-name {
-  line-height: 2em;
+  line-height: 2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2781,4 +2197,90 @@ table th[data-sortt-desc] .svg {
   float: left;
   width: 15px;
   height: 15px;
+}
+
+.ui.dropdown {
+  line-height: 1; /* the dropdown doesn't have default line-height, use this to make the dropdown icon align with plain dropdown */
+}
+
+/* dropdown has some kinds of icons:
+- "> .dropdown.icon": the arrow for opening the dropdown
+- "> .remove.icon": the "x" icon for clearing the dropdown, only used in selection dropdown
+- "> .ui.label > .delete.icon": the "x" icon for removing a label item in multiple selection dropdown
+*/
+
+.ui.dropdown.mini.button,
+.ui.dropdown.tiny.button {
+  padding-right: 20px;
+}
+.ui.dropdown.button {
+  padding-right: 22px;
+}
+.ui.dropdown.large.button {
+  padding-right: 24px;
+}
+
+/* Gitea uses SVG images instead of Fomantic builtin "<i>" font icons, so we need to reset the icon styles */
+.ui.ui.dropdown > .icon.icon {
+  position: initial; /* plain dropdown and button dropdown use flex layout for icons */
+  padding: 0;
+  margin: 0;
+  height: auto;
+}
+
+.ui.ui.dropdown > .icon.icon:hover {
+  opacity: 1;
+}
+
+.ui.ui.button.dropdown > .icon.icon,
+.ui.ui.selection.dropdown > .icon.icon {
+  position: absolute; /* selection dropdown uses absolute layout for icons */
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.ui.ui.dropdown > .dropdown.icon {
+  right: 0.5em;
+}
+
+.ui.ui.dropdown > .remove.icon {
+  right: 2em;
+}
+
+.ui.ui.button,
+.ui.ui.dropdown,
+.flex-items-inline > .item,
+.flex-text-inline {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .25rem;
+  vertical-align: middle;
+}
+
+.ui.ui.button {
+  justify-content: center;
+}
+
+.ui.dropdown .ui.label .svg {
+  vertical-align: middle;
+}
+
+.ui.ui.labeled.button {
+  gap: 0;
+  align-items: stretch;
+}
+
+.ui.ui.icon.input .icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-items-block > .item,
+.flex-text-block {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .25rem;
 }

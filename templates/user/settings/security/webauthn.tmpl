@@ -1,8 +1,7 @@
-<h4 class="ui top attached header">
-{{.locale.Tr "settings.webauthn"}}
-</h4>
+<h4 class="ui top attached header">{{.locale.Tr "settings.webauthn"}}</h4>
 <div class="ui attached segment">
 	<p>{{.locale.Tr "settings.webauthn_desc" | Str2html}}</p>
+	{{template "user/auth/webauthn_error" .}}
 	<div class="ui key list">
 		{{range .WebAuthnCredentials}}
 			<div class="item">
@@ -19,24 +18,20 @@
 		{{end}}
 	</div>
 	<div class="ui form">
-		{{.CsrfTokenHtml}}
 		<div class="required field">
 			<label for="nickname">{{.locale.Tr "settings.webauthn_nickname"}}</label>
 			<input id="nickname" name="nickname" type="text" required>
 		</div>
 		<button id="register-webauthn" class="ui green button">{{svg "octicon-key"}} {{.locale.Tr "settings.webauthn_register_key"}}</button>
 	</div>
-</div>
-
-{{template "user/auth/webauthn_error" .}}
-
-<div class="ui g-modal-confirm delete modal" id="delete-registration">
-	<div class="header">
-		{{svg "octicon-trash"}}
-	{{.locale.Tr "settings.webauthn_delete_key"}}
+	<div class="ui g-modal-confirm delete modal" id="delete-registration">
+		<div class="header">
+			{{svg "octicon-trash"}}
+			{{.locale.Tr "settings.webauthn_delete_key"}}
+		</div>
+		<div class="content">
+			<p>{{.locale.Tr "settings.webauthn_delete_key_desc"}}</p>
+		</div>
+		{{template "base/modal_actions_confirm" .}}
 	</div>
-	<div class="content">
-		<p>{{.locale.Tr "settings.webauthn_delete_key_desc"}}</p>
-	</div>
-	{{template "base/modal_actions_confirm" .}}
 </div>

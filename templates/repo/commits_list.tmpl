@@ -1,5 +1,5 @@
 <div class="ui attached table segment commit-table">
-		<table class="ui very basic striped table unstackable fixed" id="commits-table">
+		<table class="ui very basic striped table unstackable" id="commits-table">
 			<thead>
 				<tr>
 					<th class="three wide">{{.locale.Tr "repo.commits.author"}}</th>
@@ -52,7 +52,9 @@
 								{{if .Signature}}
 									{{template "repo/shabox_badge" dict "root" $ "verification" .Verification}}
 								{{end}}
-							{{if $.Reponame}}
+							{{if $.PageIsWiki}}
+								</a>
+							{{else if $.Reponame}}
 								</a>
 							{{else}}
 								</span>

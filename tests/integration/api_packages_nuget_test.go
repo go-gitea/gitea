@@ -35,7 +35,7 @@ func addNuGetAPIKeyHeader(request *http.Request, token string) *http.Request {
 	return request
 }
 
-func decodeXML(t testing.TB, resp *httptest.ResponseRecorder, v interface{}) {
+func decodeXML(t testing.TB, resp *httptest.ResponseRecorder, v any) {
 	t.Helper()
 
 	assert.NoError(t, xml.NewDecoder(resp.Body).Decode(v))
@@ -75,7 +75,7 @@ func TestPackageNuGet(t *testing.T) {
 	}
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	token := getUserToken(t, user.Name, auth_model.AccessTokenScopePackage)
+	token := getUserToken(t, user.Name, auth_model.AccessTokenScopeWritePackage)
 
 	packageName := "test.package"
 	packageVersion := "1.0.3"
