@@ -175,7 +175,7 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 	} else if len(orgs) > 0 {
 		ctx.Data["ContextUser"] = orgs[0]
 	} else {
-		msg := ctx.Tr("repo.no_fork_user")
+		msg := ctx.Tr("repo.fork_not_possible")
 		ctx.Data["Flash"] = ctx.Flash
 		ctx.Flash.Error(msg)
 		ctx.Data["CanForkRepo"] = false
