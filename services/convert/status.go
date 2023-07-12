@@ -52,6 +52,10 @@ func ToCombinedStatus(ctx context.Context, statuses []*git_model.CommitStatus, r
 			retStatus.State = status.State
 		}
 	}
+	// to align with GitHub, failure if any of the contexts report as error or failure
+	if retStatus.State.IsError() {
+		retStatus.State = api.CommitStatusFailure
+	}
 
 	return retStatus
 }
