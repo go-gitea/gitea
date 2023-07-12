@@ -25,19 +25,16 @@ func getPublicKeyFromResponse(b []byte, keyID *url.URL) (p crypto.PublicKey, err
 	person := ap.PersonNew(ap.IRI(keyID.String()))
 	err = person.UnmarshalJSON(b)
 	if err != nil {
-		err = fmt.Errorf("ActivityStreams type cannot be converted to one known to have publicKey property: %w", err)
-		return
+		return nil, fmt.Errorf("ActivityStreams type cannot be converted to one known to have publicKey property: %w", err)
 	}
 	pubKey := person.PublicKey
 	if pubKey.ID.String() != keyID.String() {
-		err = fmt.Errorf("cannot find publicKey with id: %s in %s", keyID, string(b))
-		return
+		return nil, fmt.Errorf("cannot find publicKey with id: %s in %s", keyID, string(b))
 	}
 	pubKeyPem := pubKey.PublicKeyPem
 	block, _ := pem.Decode([]byte(pubKeyPem))
 	if block == nil || block.Type != "PUBLIC KEY" {
-		err = fmt.Errorf("could not decode publicKeyPem to PUBLIC KEY pem block type")
-		return
+		return nil, fmt.Errorf("could not decode publicKeyPem to PUBLIC KEY pem block type")
 	}
 	p, err = x509.ParsePKIXPublicKey(block.Bytes)
 	return p, err
@@ -49,13 +46,12 @@ func fetch(iri *url.URL) (b []byte, err error) {
 	req.Header("User-Agent", "Gitea/"+setting.AppVer)
 	resp, err := req.Response()
 	if err != nil {
-		return
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		err = fmt.Errorf("url IRI fetch [%s] failed with status (%d): %s", iri, resp.StatusCode, resp.Status)
-		return
+		return nil, fmt.Errorf("url IRI fetch [%s] failed with status (%d): %s", iri, resp.StatusCode, resp.Status)
 	}
 	b, err = io.ReadAll(io.LimitReader(resp.Body, setting.Federation.MaxSize))
 	return b, err
@@ -67,21 +63,21 @@ func verifyHTTPSignatures(ctx *gitea_context.APIContext) (authenticated bool, er
 	// 1. Figure out what key we need to verify
 	v, err := httpsig.NewVerifier(r)
 	if err != nil {
-		return
+		return false, err
 	}
 	ID := v.KeyId()
 	idIRI, err := url.Parse(ID)
 	if err != nil {
-		return
+		return false, err
 	}
 	// 2. Fetch the public key of the other actor
 	b, err := fetch(idIRI)
 	if err != nil {
-		return
+		return false, err
 	}
 	pubKey, err := getPublicKeyFromResponse(b, idIRI)
 	if err != nil {
-		return
+		return false, err
 	}
 	// 3. Verify the other actor's key
 	algo := httpsig.Algorithm(setting.Federation.Algorithms[0])

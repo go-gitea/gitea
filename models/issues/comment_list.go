@@ -468,42 +468,38 @@ func (comments CommentList) loadReviews(ctx context.Context) error {
 // loadAttributes loads all attributes
 func (comments CommentList) loadAttributes(ctx context.Context) (err error) {
 	if err = comments.LoadPosters(ctx); err != nil {
-		return
+		return err
 	}
 
 	if err = comments.loadLabels(ctx); err != nil {
-		return
+		return err
 	}
 
 	if err = comments.loadMilestones(ctx); err != nil {
-		return
+		return err
 	}
 
 	if err = comments.loadOldMilestones(ctx); err != nil {
-		return
+		return err
 	}
 
 	if err = comments.loadAssignees(ctx); err != nil {
-		return
+		return err
 	}
 
 	if err = comments.LoadAttachments(ctx); err != nil {
-		return
+		return err
 	}
 
 	if err = comments.loadReviews(ctx); err != nil {
-		return
+		return err
 	}
 
 	if err = comments.LoadIssues(ctx); err != nil {
-		return
+		return err
 	}
 
-	if err = comments.loadDependentIssues(ctx); err != nil {
-		return
-	}
-
-	return nil
+	return comments.loadDependentIssues(ctx)
 }
 
 // LoadAttributes loads attributes of the comments, except for attachments and

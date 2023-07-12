@@ -171,7 +171,7 @@ func InitFull(ctx context.Context) (err error) {
 	}
 
 	if err = InitSimple(ctx); err != nil {
-		return
+		return err
 	}
 
 	// when git works with gnupg (commit signing), there should be a stable home for gnupg commands

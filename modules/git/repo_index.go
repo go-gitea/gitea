@@ -48,7 +48,7 @@ func (repo *Repository) readTreeToIndex(id SHA1, indexFilename ...string) error 
 func (repo *Repository) ReadTreeToTemporaryIndex(treeish string) (filename, tmpDir string, cancel context.CancelFunc, err error) {
 	tmpDir, err = os.MkdirTemp("", "index")
 	if err != nil {
-		return
+		return filename, tmpDir, cancel, err
 	}
 
 	filename = filepath.Join(tmpDir, ".tmp-index")
