@@ -31,7 +31,7 @@ Gitea Actions支持通过URL绝对路径定义actions，这意味着您可以使
 ### 使用Go编写Actions
 
 Gitea Actions支持使用Go编写Actions。
-请参阅[创建Go Actions](https://blog.gitea.io/2023/04/creating-go-actions/)。
+请参阅[创建Go Actions](https://blog.gitea.com/creating-go-actions/)。
 
 ## 不支持的工作流语法
 
