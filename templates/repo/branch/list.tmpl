@@ -33,7 +33,7 @@
 								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
 									<button class="btn interact-bg show-create-branch-modal gt-p-3"
 										data-modal="#create-branch-modal"
-										data-branch-from="{{$.DefaultBranchBranch}}"
+										data-branch-from="{{$.DefaultBranchBranch.DBBranch.Name}}"
 										data-branch-from-urlcomponent="{{PathEscapeSegments $.DefaultBranchBranch.DBBranch.Name}}"
 										data-tooltip-content="{{$.locale.Tr "repo.branch.new_branch_from" ($.DefaultBranchBranch.DBBranch.Name)}}"
 									>

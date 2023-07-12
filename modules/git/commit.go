@@ -435,7 +435,7 @@ func (c *Commit) GetBranchName() (string, error) {
 // LoadBranchName load branch name for commit
 func (c *Commit) LoadBranchName() (err error) {
 	if len(c.Branch) != 0 {
-		return
+		return nil
 	}
 
 	c.Branch, err = c.GetBranchName()

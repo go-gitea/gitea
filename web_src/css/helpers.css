@@ -8,10 +8,6 @@ Gitea's private styles use `g-` prefix.
 .gt-dif { display: inline-flex !important; }
 .gt-dib { display: inline-block !important; }
 .gt-ac { align-items: center !important; }
-.gt-ab { align-items: baseline !important; }
-.gt-tc { text-align: center !important; }
-.gt-tl { text-align: left !important; }
-.gt-tr { text-align: right !important; } /* TODO: rename these to "gt-text-right", etc. there are only a few */
 .gt-jc { justify-content: center !important; }
 .gt-js { justify-content: flex-start !important; }
 .gt-je { justify-content: flex-end !important; }
@@ -22,7 +18,6 @@ Gitea's private styles use `g-` prefix.
 .gt-vm { vertical-align: middle !important; }
 .gt-w-100 { width: 100% !important; }
 .gt-h-100 { height: 100% !important; }
-.gt-br-0 { border-radius: 0 !important; }
 
 .gt-mono {
   font-family: var(--fonts-monospace) !important;
@@ -89,6 +84,10 @@ Gitea's private styles use `g-` prefix.
 .gt-float-left { float: left !important; }
 .gt-float-right { float: right !important; }
 .gt-clear-both { clear: both !important; }
+
+.gt-text-center { text-align: center !important; }
+.gt-text-left { text-align: left !important; }
+.gt-text-right { text-align: right !important; }
 
 .gt-font-light { font-weight: var(--font-weight-light) !important; }
 .gt-font-normal { font-weight: var(--font-weight-normal) !important; }
