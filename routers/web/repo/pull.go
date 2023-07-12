@@ -695,12 +695,13 @@ type PullCommitInfo struct {
 	Summary               string `json:"summary"`
 	CommitterOrAuthorName string `json:"committer_or_author_name"`
 	ID                    string `json:"id"`
+	ShortSha              string `json:"short_sha"`
 	Time                  string `json:"time"`
 }
 
 type pullCommitList struct {
 	Commits             []PullCommitInfo  `json:"commits"`
-	LastReviewCommitSha string            `json:"lastReviewCommitSha"`
+	LastReviewCommitSha string            `json:"last_review_commit_sha"`
 	Locale              map[string]string `json:"locale"`
 }
 
@@ -746,6 +747,7 @@ func GetPullCommits(ctx *context.Context) {
 			Summary:               commit.Summary(),
 			CommitterOrAuthorName: committerOrAuthorName,
 			ID:                    commit.ID.String(),
+			ShortSha:              base.ShortSha(commit.ID.String()),
 			Time:                  time,
 		})
 	}
