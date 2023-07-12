@@ -142,7 +142,7 @@ func toCommitStatus(status actions_model.Status) api.CommitStatusState {
 	case actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusRunning:
 		return api.CommitStatusPending
 	default:
-		return api.CommitStatusFailure
+		return api.CommitStatusError
 	}
 }
 

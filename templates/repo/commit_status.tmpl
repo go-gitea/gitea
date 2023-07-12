@@ -1,9 +1,6 @@
 {{if eq .State "pending"}}
 	{{svg "octicon-dot-fill" 18 "commit-status icon text grey"}}
 {{end}}
-{{if eq .State "running"}}
-	{{svg "octicon-dot-fill" 18 "commit-status icon text yellow"}}
-{{end}}
 {{if eq .State "success"}}
 	{{svg "octicon-check" 18 "commit-status icon text green"}}
 {{end}}
@@ -12,7 +9,4 @@
 {{end}}
 {{if eq .State "failure"}}
 	{{svg "octicon-x" 18 "commit-status icon text red"}}
-{{end}}
-{{if eq .State "warning"}}
-	{{svg "gitea-exclamation" 18 "commit-status icon text yellow"}}
 {{end}}
