@@ -74,9 +74,37 @@ func generateIssueIndexMapping() (mapping.IndexMapping, error) {
 	textFieldMapping := bleve.NewTextFieldMapping()
 	textFieldMapping.Store = false
 	textFieldMapping.IncludeInAll = false
+
+	boolFieldMapping := bleve.NewBooleanFieldMapping()
+	boolFieldMapping.Store = false
+	boolFieldMapping.IncludeInAll = false
+
+	numberFieldMapping := bleve.NewNumericFieldMapping()
+	numberFieldMapping.Store = false
+	numberFieldMapping.IncludeInAll = false
+
 	docMapping.AddFieldMappingsAt("title", textFieldMapping)
 	docMapping.AddFieldMappingsAt("content", textFieldMapping)
 	docMapping.AddFieldMappingsAt("comments", textFieldMapping)
+
+	docMapping.AddFieldMappingsAt("is_pull", boolFieldMapping)
+	docMapping.AddFieldMappingsAt("is_closed", boolFieldMapping)
+	docMapping.AddFieldMappingsAt("labels", textFieldMapping)
+	docMapping.AddFieldMappingsAt("no_labels", boolFieldMapping)
+	docMapping.AddFieldMappingsAt("milestones", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("no_milestones", boolFieldMapping)
+	docMapping.AddFieldMappingsAt("projects", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("no_projects", boolFieldMapping)
+	docMapping.AddFieldMappingsAt("author", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("assignee", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("mentions", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("reviewers", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("requested_reviewers", numberFieldMapping)
+
+	docMapping.AddFieldMappingsAt("created_at", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("updated_at", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("closed_at", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("due_date", numberFieldMapping)
 
 	if err := addUnicodeNormalizeTokenFilter(mapping); err != nil {
 		return nil, err
