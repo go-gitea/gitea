@@ -31,7 +31,7 @@ Like `uses: https://github.com/actions/checkout@v3` or `uses: http://your_gitea.
 ### Actions written in Go
 
 Gitea Actions supports writing actions in Go.
-See [Creating Go Actions](https://blog.gitea.io/2023/04/creating-go-actions/).
+See [Creating Go Actions](https://blog.gitea.com/creating-go-actions/).
 
 ## Unsupported workflows syntax
 
