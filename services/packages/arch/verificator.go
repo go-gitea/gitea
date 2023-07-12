@@ -24,7 +24,7 @@ type IdentidyOwnerParameters struct {
 	Email string
 }
 
-// This function will find user related to provided email adress and check if
+// This function will find user related to provided email address and check if
 // he is able to push packages to provided namespace (user/organization/or
 // empty namespace allowed for admin users). Function will return user making
 // operation, organization or user owning the package.

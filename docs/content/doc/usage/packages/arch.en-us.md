@@ -58,27 +58,27 @@ mQENBGSYoJUBCADSJ6v8Egst/gNJVC2206o8JqTzRBxTULKm/DH5J7AzrhJBxC2/
 
 ## Upload packages
 
-1. Ensure, that your package have been signed with your gpg key (more about arch package signing)[https://wiki.archlinux.org/title/DeveloperWiki:Package_signing]. You can do that by running following command:
+1. Ensure, that your package have been signed with your gpg key (more about arch [package signing](https://wiki.archlinux.org/title/DeveloperWiki:Package_signing)). You can do that by running following command:
 
 ```sh
 gpg --verify package-ver-1-x86_64.pkg.tar.zst.sig
 ```
 
-2. Sign message metadata, which consists of package owner (namespace in gitea), package file name and send time. You can do that by running following command:
+1. Sign message metadata, which consists of package owner (namespace in gitea), package file name and send time. You can do that by running following command:
 
 ```sh
 echo -n {owner}{package}$(date --rfc-3339=seconds | tr " " T) >> md
 gpg --detach-sign md
 ```
 
-3. Decode message and metadata signatures to hex, by running following commands, save output somewhere.
+1. Decode message and metadata signatures to hex, by running following commands, save output somewhere.
 
 ```sh
 xxd -p md.sig >> md.sig.hex
 xxd -p package-1-1-x86_64.pkg.tar.zst.sig >> pkg.sig.hex
 ```
 
-4. Paste your parameters and push package with [curl](https://curl.se/). Important, that time should be the same with metadata (signed md file), since this value is verified with GnuPG.
+1. Paste your parameters and push package with [curl](https://curl.se/). Important, that time should be the same with metadata (signed md file), since this value is verified with GnuPG.
 
 ```sh
 curl -X PUT \
@@ -128,7 +128,7 @@ echo -n {owner}{package}$(date --rfc-3339=seconds | tr " " T) >> md
 gpg --detach-sign md
 ```
 
-2. Send delete message with [curl](https://curl.se/). Time should be the same with saved in `md` file.
+1. Send delete message with [curl](https://curl.se/). Time should be the same with saved in `md` file.
 
 ```sh
 curl -X DELETE \

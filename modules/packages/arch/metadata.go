@@ -48,7 +48,7 @@ type Metadata struct {
 	DistroArch []string `json:"distro-arch"`
 }
 
-// Function that recieves arch package archive data and returns it's metadata.
+// Function that receives arch package archive data and returns it's metadata.
 func EjectMetadata(filename, distribution, domain string, pkg []byte) (*Metadata, error) {
 	pkginfo, err := getPkginfo(pkg)
 	if err != nil {
@@ -263,8 +263,8 @@ func writeToArchive(files map[string][]byte, buf io.Writer) error {
 	return nil
 }
 
-// This function can be used to create a list containing unique values from 2
-// passed arguements. The first is
+// This function creates a list containing unique values formed of 2 passed
+// slices.
 func UnifiedList(first, second []string) []string {
 	unique := map[string]struct{}{}
 	for _, v := range first {
