@@ -96,64 +96,64 @@ var outputTypeEnum = &outputType{
 }
 
 // CmdDump represents the available dump sub-command.
-var CmdDump = cli.Command{
+var CmdDump = &cli.Command{
 	Name:  "dump",
 	Usage: "Dump Gitea files and database",
 	Description: `Dump compresses all related files and database into zip file.
 It can be used for backup and capture Gitea server image to send to maintainer`,
 	Action: runDump,
 	Flags: []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "file, f",
 			Value: fmt.Sprintf("gitea-dump-%d.zip", time.Now().Unix()),
 			Usage: "Name of the dump file which will be created. Supply '-' for stdout. See type for available types.",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "verbose, V",
 			Usage: "Show process details",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "quiet, q",
 			Usage: "Only display warnings and errors",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "tempdir, t",
 			Value: os.TempDir(),
 			Usage: "Temporary dir path",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "database, d",
 			Usage: "Specify the database SQL syntax",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "skip-repository, R",
 			Usage: "Skip the repository dumping",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "skip-log, L",
 			Usage: "Skip the log dumping",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "skip-custom-dir",
 			Usage: "Skip custom directory",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "skip-lfs-data",
 			Usage: "Skip LFS data",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "skip-attachment-data",
 			Usage: "Skip attachment data",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "skip-package-data",
 			Usage: "Skip package data",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "skip-index",
 			Usage: "Skip bleve index data",
 		},
-		cli.GenericFlag{
+		&cli.GenericFlag{
 			Name:  "type",
 			Value: outputTypeEnum,
 			Usage: fmt.Sprintf("Dump output format: %s", outputTypeEnum.Join()),

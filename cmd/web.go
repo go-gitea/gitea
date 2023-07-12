@@ -30,7 +30,7 @@ import (
 var PIDFile = "/run/gitea.pid"
 
 // CmdWeb represents the available web sub-command.
-var CmdWeb = cli.Command{
+var CmdWeb = &cli.Command{
 	Name:  "web",
 	Usage: "Start Gitea web server",
 	Description: `Gitea web server is the only thing you need to run,
@@ -38,26 +38,26 @@ and it takes care of all the other things for you`,
 	Before: PrepareConsoleLoggerLevel(log.INFO),
 	Action: runWeb,
 	Flags: []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "port, p",
 			Value: "3000",
 			Usage: "Temporary port number to prevent conflict",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "install-port",
 			Value: "3000",
 			Usage: "Temporary port number to run the install page on to prevent conflict",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "pid, P",
 			Value: PIDFile,
 			Usage: "Custom pid file path",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "quiet, q",
 			Usage: "Only display Fatal logging errors until logging is set-up",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "verbose",
 			Usage: "Set initial logging to TRACE level until logging is properly set-up",
 		},

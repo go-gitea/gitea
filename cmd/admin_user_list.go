@@ -13,12 +13,12 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var microcmdUserList = cli.Command{
+var microcmdUserList = &cli.Command{
 	Name:   "list",
 	Usage:  "List users",
 	Action: runListUsers,
 	Flags: []cli.Flag{
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "admin",
 			Usage: "List only admin users",
 		},

@@ -56,7 +56,7 @@ func init() {
 // GITEA_WORK_DIR=/tmp ./gitea help
 // GITEA_WORK_DIR=/tmp ./gitea help --work-path /tmp/other
 // GITEA_WORK_DIR=/tmp ./gitea help --config /tmp/app-other.ini
-var cmdHelp = cli.Command{
+var cmdHelp = &cli.Command{
 	Name:      "help",
 	Aliases:   []string{"h"},
 	Usage:     "Shows a list of commands or help for one command",
@@ -89,7 +89,7 @@ func main() {
 	app.EnableBashCompletion = true
 
 	// these sub-commands need to use config file
-	subCmdWithIni := []cli.Command{
+	subCmdWithIni := []*cli.Command{
 		cmd.CmdWeb,
 		cmd.CmdServ,
 		cmd.CmdHook,
@@ -108,7 +108,7 @@ func main() {
 		cmdHelp, // TODO: the "help" sub-command was used to show the more information for "work path" and "custom config", in the future, it should avoid doing so
 	}
 	// these sub-commands do not need the config file, and they do not depend on any path or environment variable.
-	subCmdStandalone := []cli.Command{
+	subCmdStandalone := []*cli.Command{
 		cmd.CmdCert,
 		cmd.CmdGenerate,
 		cmd.CmdDocs,
@@ -119,16 +119,16 @@ func main() {
 	// keep in mind that the short flags like "-C", "-c" and "-w" are globally polluted, they can't be used for sub-commands anymore.
 	globalFlags := []cli.Flag{
 		cli.HelpFlag,
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "custom-path, C",
 			Usage: "Set custom path (defaults to '{WorkPath}/custom')",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "config, c",
 			Value: setting.CustomConf,
 			Usage: "Set custom config file (defaults to '{WorkPath}/custom/conf/app.ini')",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "work-path, w",
 			Usage: "Set Gitea's working path (defaults to the Gitea's binary directory)",
 		},
@@ -141,7 +141,7 @@ func main() {
 	app.HideHelp = true // use our own help action to show helps (with more information like default config)
 	app.Before = cmd.PrepareConsoleLoggerLevel(log.INFO)
 	for i := range subCmdWithIni {
-		prepareSubcommands(&subCmdWithIni[i], globalFlags)
+		prepareSubcommands(subCmdWithIni[i], globalFlags)
 	}
 	app.Commands = append(app.Commands, subCmdWithIni...)
 	app.Commands = append(app.Commands, subCmdStandalone...)
@@ -162,17 +162,18 @@ func prepareSubcommands(command *cli.Command, defaultFlags []cli.Flag) {
 		command.Subcommands = append(command.Subcommands, cmdHelp)
 	}
 	for i := range command.Subcommands {
-		prepareSubcommands(&command.Subcommands[i], defaultFlags)
+		prepareSubcommands(command.Subcommands[i], defaultFlags)
 	}
 }
 
 // prepareWorkPathAndCustomConf wraps the Action to prepare the work path and custom config
 // It can't use "Before", because each level's sub-command's Before will be called one by one, so the "init" would be done multiple times
-func prepareWorkPathAndCustomConf(action any) func(ctx *cli.Context) error {
+func prepareWorkPathAndCustomConf(action cli.ActionFunc) func(ctx *cli.Context) error {
 	return func(ctx *cli.Context) error {
 		var args setting.ArgWorkPathAndCustomConf
-		curCtx := ctx
-		for curCtx != nil {
+		ctxLineage := ctx.Lineage()
+		for i := len(ctxLineage) - 1; i >= 0; i-- {
+			curCtx := ctxLineage[i]
 			if curCtx.IsSet("work-path") && args.WorkPath == "" {
 				args.WorkPath = curCtx.String("work-path")
 			}
@@ -182,14 +183,13 @@ func prepareWorkPathAndCustomConf(action any) func(ctx *cli.Context) error {
 			if curCtx.IsSet("config") && args.CustomConf == "" {
 				args.CustomConf = curCtx.String("config")
 			}
-			curCtx = curCtx.Parent()
 		}
 		setting.InitWorkPathAndCommonConfig(os.Getenv, args)
 		if ctx.Bool("help") || action == nil {
 			// the default behavior of "urfave/cli": "nil action" means "show help"
-			return cmdHelp.Action.(func(ctx *cli.Context) error)(ctx)
+			return cmdHelp.Action(ctx)
 		}
-		return action.(func(*cli.Context) error)(ctx)
+		return action(ctx)
 	}
 }
 

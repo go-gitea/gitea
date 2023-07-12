@@ -14,23 +14,23 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var microcmdUserDelete = cli.Command{
+var microcmdUserDelete = &cli.Command{
 	Name:  "delete",
 	Usage: "Delete specific user by id, name or email",
 	Flags: []cli.Flag{
-		cli.Int64Flag{
+		&cli.Int64Flag{
 			Name:  "id",
 			Usage: "ID of user of the user to delete",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "username,u",
 			Usage: "Username of the user to delete",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "email,e",
 			Usage: "Email of the user to delete",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "purge",
 			Usage: "Purge user, all their repositories, organizations and comments",
 		},

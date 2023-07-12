@@ -14,22 +14,22 @@ import (
 
 var (
 	// CmdActions represents the available actions sub-commands.
-	CmdActions = cli.Command{
+	CmdActions = &cli.Command{
 		Name:        "actions",
 		Usage:       "",
 		Description: "Commands for managing Gitea Actions",
-		Subcommands: []cli.Command{
+		Subcommands: []*cli.Command{
 			subcmdActionsGenRunnerToken,
 		},
 	}
 
-	subcmdActionsGenRunnerToken = cli.Command{
+	subcmdActionsGenRunnerToken = &cli.Command{
 		Name:    "generate-runner-token",
 		Usage:   "Generate a new token for a runner to use to register with the server",
 		Action:  runGenerateActionsRunnerToken,
 		Aliases: []string{"grt"},
 		Flags: []cli.Flag{
-			cli.StringFlag{
+			&cli.StringFlag{
 				Name:  "scope, s",
 				Value: "",
 				Usage: "{owner}[/{repo}] - leave empty for a global runner",

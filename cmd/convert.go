@@ -14,7 +14,7 @@ import (
 )
 
 // CmdConvert represents the available convert sub-command.
-var CmdConvert = cli.Command{
+var CmdConvert = &cli.Command{
 	Name:        "convert",
 	Usage:       "Convert the database",
 	Description: "A command to convert an existing MySQL database from utf8 to utf8mb4 or MSSQL database from varchar to nvarchar",

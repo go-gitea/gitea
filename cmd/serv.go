@@ -40,17 +40,17 @@ const (
 )
 
 // CmdServ represents the available serv sub-command.
-var CmdServ = cli.Command{
+var CmdServ = &cli.Command{
 	Name:        "serv",
 	Usage:       "This command should only be called by SSH shell",
 	Description: "Serv provides access auth for repositories",
 	Before:      PrepareConsoleLoggerLevel(log.FATAL),
 	Action:      runServ,
 	Flags: []cli.Flag{
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name: "enable-pprof",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name: "debug",
 		},
 	},
@@ -147,20 +147,20 @@ func runServ(c *cli.Context) error {
 		return nil
 	}
 
-	if len(c.Args()) < 1 {
+	if c.NArg() < 1 {
 		if err := cli.ShowSubcommandHelp(c); err != nil {
 			fmt.Printf("error showing subcommand help: %v\n", err)
 		}
 		return nil
 	}
 
-	keys := strings.Split(c.Args()[0], "-")
+	keys := strings.Split(c.Args().First(), "-")
 	if len(keys) != 2 || keys[0] != "key" {
-		return fail(ctx, "Key ID format error", "Invalid key argument: %s", c.Args()[0])
+		return fail(ctx, "Key ID format error", "Invalid key argument: %s", c.Args().First())
 	}
 	keyID, err := strconv.ParseInt(keys[1], 10, 64)
 	if err != nil {
-		return fail(ctx, "Key ID parsing error", "Invalid key argument: %s", c.Args()[1])
+		return fail(ctx, "Key ID parsing error", "Invalid key argument: %s", c.Args().Get(1))
 	}
 
 	cmd := os.Getenv("SSH_ORIGINAL_COMMAND")

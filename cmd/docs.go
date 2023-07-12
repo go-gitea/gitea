@@ -12,7 +12,7 @@ import (
 )
 
 // CmdDocs represents the available docs sub-command.
-var CmdDocs = cli.Command{
+var CmdDocs = &cli.Command{
 	Name:        "docs",
 	Usage:       "Output CLI documentation",
 	Description: "A command to output Gitea's CLI documentation, optionally to a file.",

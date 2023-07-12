@@ -12,20 +12,20 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var microcmdUserMustChangePassword = cli.Command{
+var microcmdUserMustChangePassword = &cli.Command{
 	Name:   "must-change-password",
 	Usage:  "Set the must change password flag for the provided users or all users",
 	Action: runMustChangePassword,
 	Flags: []cli.Flag{
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "all,A",
 			Usage: "All users must change password, except those explicitly excluded with --exclude",
 		},
-		cli.StringSliceFlag{
+		&cli.StringSliceFlag{
 			Name:  "exclude,e",
 			Usage: "Do not change the must-change-password flag for these users",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "unset",
 			Usage: "Instead of setting the must-change-password flag, unset it",
 		},
@@ -48,7 +48,7 @@ func runMustChangePassword(c *cli.Context) error {
 		return err
 	}
 
-	n, err := user_model.SetMustChangePassword(ctx, all, mustChangePassword, c.Args(), exclude)
+	n, err := user_model.SetMustChangePassword(ctx, all, mustChangePassword, c.Args().Slice(), exclude)
 	if err != nil {
 		return err
 	}

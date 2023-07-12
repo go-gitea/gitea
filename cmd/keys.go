@@ -15,28 +15,28 @@ import (
 )
 
 // CmdKeys represents the available keys sub-command
-var CmdKeys = cli.Command{
+var CmdKeys = &cli.Command{
 	Name:   "keys",
 	Usage:  "This command queries the Gitea database to get the authorized command for a given ssh key fingerprint",
 	Before: PrepareConsoleLoggerLevel(log.FATAL),
 	Action: runKeys,
 	Flags: []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "expected, e",
 			Value: "git",
 			Usage: "Expected user for whom provide key commands",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "username, u",
 			Value: "",
 			Usage: "Username trying to log in by SSH",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "type, t",
 			Value: "",
 			Usage: "Type of the SSH key provided to the SSH Server (requires content to be provided too)",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "content, k",
 			Value: "",
 			Usage: "Base64 encoded content of the SSH key provided to the SSH Server (requires type to be provided too)",
