@@ -196,19 +196,8 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 		}
 
 		affectedFileList := make([]*api.CommitAffectedFiles, 0, len(fileStatus.Added)+len(fileStatus.Removed)+len(fileStatus.Modified))
-		for sliceIndex, files := range [][]string{fileStatus.Added, fileStatus.Removed, fileStatus.Modified} {
+		for filestatus, files := range map[string][]string{"added": fileStatus.Added, "removed": fileStatus.Removed, "modified": fileStatus.Modified} {
 			for _, filename := range files {
-				var filestatus string
-				switch sliceIndex {
-					case 0:
-						filestatus = "added"
-					case 1:
-						filestatus = "removed"
-					case 2:
-						filestatus = "modified"
-					default:
-						filestatus = "unknown"
-				}
 				affectedFileList = append(affectedFileList, &api.CommitAffectedFiles{
 					Filename: filename,
 					Status: filestatus,
