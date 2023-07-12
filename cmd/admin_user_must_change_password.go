@@ -9,7 +9,7 @@ import (
 
 	user_model "code.gitea.io/gitea/models/user"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 var microcmdUserMustChangePassword = cli.Command{

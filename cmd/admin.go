@@ -26,7 +26,7 @@ import (
 	"code.gitea.io/gitea/services/auth/source/smtp"
 	repo_service "code.gitea.io/gitea/services/repository"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 var (

@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/services/auth/source/ldap"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 type (

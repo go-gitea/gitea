@@ -23,7 +23,7 @@ import (
 	"code.gitea.io/gitea/routers/install"
 
 	"github.com/felixge/fgprof"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 // PIDFile could be set from build tag

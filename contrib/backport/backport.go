@@ -18,7 +18,7 @@ import (
 	"syscall"
 
 	"github.com/google/go-github/v53/github"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 	"gopkg.in/yaml.v3"
 )
 

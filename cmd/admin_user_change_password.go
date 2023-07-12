@@ -12,7 +12,7 @@ import (
 	pwd "code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 var microcmdUserChangePassword = cli.Command{

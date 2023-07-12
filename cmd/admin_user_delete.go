@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	user_service "code.gitea.io/gitea/services/user"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 var microcmdUserDelete = cli.Command{

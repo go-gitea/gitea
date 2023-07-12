@@ -32,7 +32,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/kballard/go-shellquote"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 const (

@@ -19,7 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gobwas/glob"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 // CmdEmbedded represents the available extract sub-command.

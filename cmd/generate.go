@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 
 	"github.com/mattn/go-isatty"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 var (
