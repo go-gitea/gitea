@@ -74,7 +74,7 @@ func Projects(ctx *context.Context) {
 		RepoID:   repo.ID,
 		Page:     page,
 		IsClosed: util.OptionalBoolOf(isShowClosed),
-		SortType: sortType,
+		OrderBy:  project_model.GetSearchOrderByBySortType(sortType),
 		Type:     project_model.TypeRepository,
 	})
 	if err != nil {
@@ -203,7 +203,7 @@ func DeleteProject(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.projects.deletion_success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"redirect": ctx.Repo.RepoLink + "/projects",
 	})
 }
@@ -397,7 +397,7 @@ func UpdateIssueProject(ctx *context.Context) {
 		}
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"ok": true,
 	})
 }
@@ -452,7 +452,7 @@ func DeleteProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"ok": true,
 	})
 }
@@ -487,7 +487,7 @@ func AddBoardToProjectPost(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"ok": true,
 	})
 }
@@ -561,7 +561,7 @@ func EditProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"ok": true,
 	})
 }
@@ -578,7 +578,7 @@ func SetDefaultProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"ok": true,
 	})
 }
@@ -595,7 +595,7 @@ func UnSetDefaultProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"ok": true,
 	})
 }
@@ -699,7 +699,7 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"ok": true,
 	})
 }

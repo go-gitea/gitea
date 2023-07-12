@@ -76,7 +76,7 @@ func (b *Indexer) Index(ctx context.Context, issues []*internal.IndexerData) err
 		_, err := b.inner.Client.Index().
 			Index(b.inner.VersionedIndexName()).
 			Id(fmt.Sprintf("%d", issue.ID)).
-			BodyJson(map[string]interface{}{
+			BodyJson(map[string]any{
 				"id":       issue.ID,
 				"repo_id":  issue.RepoID,
 				"title":    issue.Title,
@@ -93,7 +93,7 @@ func (b *Indexer) Index(ctx context.Context, issues []*internal.IndexerData) err
 			elastic.NewBulkIndexRequest().
 				Index(b.inner.VersionedIndexName()).
 				Id(fmt.Sprintf("%d", issue.ID)).
-				Doc(map[string]interface{}{
+				Doc(map[string]any{
 					"id":       issue.ID,
 					"repo_id":  issue.RepoID,
 					"title":    issue.Title,
@@ -140,12 +140,12 @@ func (b *Indexer) Delete(ctx context.Context, ids ...int64) error {
 
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
-func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int) (*internal.SearchResult, error) {
+func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int, state string) (*internal.SearchResult, error) {
 	kwQuery := elastic.NewMultiMatchQuery(keyword, "title", "content", "comments")
 	query := elastic.NewBoolQuery()
 	query = query.Must(kwQuery)
 	if len(repoIDs) > 0 {
-		repoStrs := make([]interface{}, 0, len(repoIDs))
+		repoStrs := make([]any, 0, len(repoIDs))
 		for _, repoID := range repoIDs {
 			repoStrs = append(repoStrs, repoID)
 		}

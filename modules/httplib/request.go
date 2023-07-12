@@ -101,7 +101,7 @@ func (r *Request) Param(key, value string) *Request {
 
 // Body adds request raw body.
 // it supports string and []byte.
-func (r *Request) Body(data interface{}) *Request {
+func (r *Request) Body(data any) *Request {
 	switch t := data.(type) {
 	case string:
 		bf := bytes.NewBufferString(t)

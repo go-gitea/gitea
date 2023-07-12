@@ -171,7 +171,7 @@ func (n *actionsNotifier) NotifyCreateIssueComment(ctx context.Context, doer *us
 			WithPayload(&api.IssueCommentPayload{
 				Action:     api.HookIssueCommentCreated,
 				Issue:      convert.ToAPIIssue(ctx, issue),
-				Comment:    convert.ToComment(ctx, comment),
+				Comment:    convert.ToAPIComment(ctx, repo, comment),
 				Repository: convert.ToRepo(ctx, repo, permission),
 				Sender:     convert.ToUser(ctx, doer, nil),
 				IsPull:     true,
@@ -185,7 +185,7 @@ func (n *actionsNotifier) NotifyCreateIssueComment(ctx context.Context, doer *us
 		WithPayload(&api.IssueCommentPayload{
 			Action:     api.HookIssueCommentCreated,
 			Issue:      convert.ToAPIIssue(ctx, issue),
-			Comment:    convert.ToComment(ctx, comment),
+			Comment:    convert.ToAPIComment(ctx, repo, comment),
 			Repository: convert.ToRepo(ctx, repo, permission),
 			Sender:     convert.ToUser(ctx, doer, nil),
 			IsPull:     false,

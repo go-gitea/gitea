@@ -15,6 +15,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+
+	"xorm.io/builder"
 )
 
 // ErrBranchNotExist represents an error that branch with such name does not exist.
@@ -355,7 +357,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 	// 4. Update all not merged pull request base branch name
 	_, err = sess.Table("pull_request").Where("base_repo_id=? AND base_branch=? AND has_merged=?",
 		repo.ID, from, false).
-		Update(map[string]interface{}{"base_branch": to})
+		Update(map[string]any{"base_branch": to})
 	if err != nil {
 		return err
 	}
@@ -377,4 +379,25 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 	}
 
 	return committer.Commit()
+}
+
+// FindRecentlyPushedNewBranches return at most 2 new branches pushed by the user in 6 hours which has no opened PRs created
+// except the indicate branch
+func FindRecentlyPushedNewBranches(ctx context.Context, repoID, userID int64, excludeBranchName string) (BranchList, error) {
+	branches := make(BranchList, 0, 2)
+	subQuery := builder.Select("head_branch").From("pull_request").
+		InnerJoin("issue", "issue.id = pull_request.issue_id").
+		Where(builder.Eq{
+			"pull_request.head_repo_id": repoID,
+			"issue.is_closed":           false,
+		})
+	err := db.GetEngine(ctx).
+		Where("pusher_id=? AND is_deleted=?", userID, false).
+		And("name <> ?", excludeBranchName).
+		And("updated_unix >= ?", time.Now().Add(-time.Hour*6).Unix()).
+		NotIn("name", subQuery).
+		OrderBy("branch.updated_unix DESC").
+		Limit(2).
+		Find(&branches)
+	return branches, err
 }
