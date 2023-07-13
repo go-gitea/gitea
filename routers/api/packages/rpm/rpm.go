@@ -33,11 +33,12 @@ func apiError(ctx *context.Context, status int, obj any) {
 
 // https://dnf.readthedocs.io/en/latest/conf_ref.html
 func GetRepositoryConfig(ctx *context.Context) {
+	distribution := ctx.Params("distribution")
 	url := fmt.Sprintf("%sapi/packages/%s/rpm", setting.AppURL, ctx.Package.Owner.Name)
 
 	ctx.PlainText(http.StatusOK, `[gitea-`+ctx.Package.Owner.LowerName+`]
 name=`+ctx.Package.Owner.Name+` - `+setting.AppName+`
-baseurl=`+url+`
+baseurl=`+url+`/`+distribution+`
 enabled=1
 gpgcheck=1
 gpgkey=`+url+`/repository.key`)
@@ -59,6 +60,7 @@ func GetRepositoryKey(ctx *context.Context) {
 
 // Gets a pre-generated repository metadata file
 func GetRepositoryFile(ctx *context.Context) {
+	distribution := ctx.Params("distribution")
 	pv, err := rpm_service.GetOrCreateRepositoryVersion(ctx.Package.Owner.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -69,7 +71,8 @@ func GetRepositoryFile(ctx *context.Context) {
 		ctx,
 		pv,
 		&packages_service.PackageFileInfo{
-			Filename: ctx.Params("filename"),
+			Filename:     ctx.Params("filename"),
+			CompositeKey: distribution,
 		},
 	)
 	if err != nil {
@@ -85,6 +88,7 @@ func GetRepositoryFile(ctx *context.Context) {
 }
 
 func UploadPackageFile(ctx *context.Context) {
+	distribution := ctx.Params("distribution")
 	upload, close, err := ctx.UploadStream()
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -135,7 +139,8 @@ func UploadPackageFile(ctx *context.Context) {
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: fmt.Sprintf("%s-%s.%s.rpm", pck.Name, pck.Version, pck.FileMetadata.Architecture),
+				Filename:     fmt.Sprintf("%s-%s.%s.rpm", pck.Name, pck.Version, pck.FileMetadata.Architecture),
+				CompositeKey: distribution,
 			},
 			Creator: ctx.Doer,
 			Data:    buf,
@@ -157,7 +162,7 @@ func UploadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	if err := rpm_service.BuildRepositoryFiles(ctx, ctx.Package.Owner.ID); err != nil {
+	if err := rpm_service.BuildRepositoryFiles(ctx, ctx.Package.Owner.ID, distribution); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
@@ -197,6 +202,7 @@ func DeletePackageFile(webctx *context.Context) {
 	name := webctx.Params("name")
 	version := webctx.Params("version")
 	architecture := webctx.Params("architecture")
+	distribution := webctx.Params("distribution")
 
 	var pd *packages_model.PackageDescriptor
 
@@ -250,7 +256,7 @@ func DeletePackageFile(webctx *context.Context) {
 		notification.NotifyPackageDelete(webctx, webctx.Doer, pd)
 	}
 
-	if err := rpm_service.BuildRepositoryFiles(webctx, webctx.Package.Owner.ID); err != nil {
+	if err := rpm_service.BuildRepositoryFiles(webctx, webctx.Package.Owner.ID, distribution); err != nil {
 		apiError(webctx, http.StatusInternalServerError, err)
 		return
 	}

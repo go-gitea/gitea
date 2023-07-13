@@ -127,16 +127,17 @@ type packageData struct {
 type packageCache = map[*packages_model.PackageFile]*packageData
 
 // BuildSpecificRepositoryFiles builds metadata files for the repository
-func BuildRepositoryFiles(ctx context.Context, ownerID int64) error {
+func BuildRepositoryFiles(ctx context.Context, ownerID int64, distribution string) error {
 	pv, err := GetOrCreateRepositoryVersion(ownerID)
 	if err != nil {
 		return err
 	}
 
 	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
-		OwnerID:     ownerID,
-		PackageType: packages_model.TypeRpm,
-		Query:       "%.rpm",
+		OwnerID:      ownerID,
+		PackageType:  packages_model.TypeRpm,
+		Query:        "%.rpm",
+		CompositeKey: distribution,
 	})
 	if err != nil {
 		return err
@@ -198,15 +199,15 @@ func BuildRepositoryFiles(ctx context.Context, ownerID int64) error {
 		cache[pf] = pd
 	}
 
-	primary, err := buildPrimary(pv, pfs, cache)
+	primary, err := buildPrimary(pv, pfs, cache, distribution)
 	if err != nil {
 		return err
 	}
-	filelists, err := buildFilelists(pv, pfs, cache)
+	filelists, err := buildFilelists(pv, pfs, cache, distribution)
 	if err != nil {
 		return err
 	}
-	other, err := buildOther(pv, pfs, cache)
+	other, err := buildOther(pv, pfs, cache, distribution)
 	if err != nil {
 		return err
 	}
@@ -219,11 +220,12 @@ func BuildRepositoryFiles(ctx context.Context, ownerID int64) error {
 			filelists,
 			other,
 		},
+		distribution,
 	)
 }
 
 // https://docs.pulpproject.org/en/2.19/plugins/pulp_rpm/tech-reference/rpm.html#repomd-xml
-func buildRepomd(pv *packages_model.PackageVersion, ownerID int64, data []*repoData) error {
+func buildRepomd(pv *packages_model.PackageVersion, ownerID int64, data []*repoData, distribution string) error {
 	type Repomd struct {
 		XMLName  xml.Name    `xml:"repomd"`
 		Xmlns    string      `xml:"xmlns,attr"`
@@ -274,7 +276,8 @@ func buildRepomd(pv *packages_model.PackageVersion, ownerID int64, data []*repoD
 			pv,
 			&packages_service.PackageFileCreationInfo{
 				PackageFileInfo: packages_service.PackageFileInfo{
-					Filename: file.Name,
+					Filename:     file.Name,
+					CompositeKey: distribution,
 				},
 				Creator:           user_model.NewGhostUser(),
 				Data:              file.Data,
@@ -291,7 +294,7 @@ func buildRepomd(pv *packages_model.PackageVersion, ownerID int64, data []*repoD
 }
 
 // https://docs.pulpproject.org/en/2.19/plugins/pulp_rpm/tech-reference/rpm.html#primary-xml
-func buildPrimary(pv *packages_model.PackageVersion, pfs []*packages_model.PackageFile, c packageCache) (*repoData, error) {
+func buildPrimary(pv *packages_model.PackageVersion, pfs []*packages_model.PackageFile, c packageCache, distribution string) (*repoData, error) {
 	type Version struct {
 		Epoch   string `xml:"epoch,attr"`
 		Version string `xml:"ver,attr"`
@@ -430,11 +433,11 @@ func buildPrimary(pv *packages_model.PackageVersion, pfs []*packages_model.Packa
 		XmlnsRpm:     "http://linux.duke.edu/metadata/rpm",
 		PackageCount: len(pfs),
 		Packages:     packages,
-	})
+	}, distribution)
 }
 
 // https://docs.pulpproject.org/en/2.19/plugins/pulp_rpm/tech-reference/rpm.html#filelists-xml
-func buildFilelists(pv *packages_model.PackageVersion, pfs []*packages_model.PackageFile, c packageCache) (*repoData, error) { //nolint:dupl
+func buildFilelists(pv *packages_model.PackageVersion, pfs []*packages_model.PackageFile, c packageCache, distribution string) (*repoData, error) { //nolint:dupl
 	type Version struct {
 		Epoch   string `xml:"epoch,attr"`
 		Version string `xml:"ver,attr"`
@@ -477,11 +480,12 @@ func buildFilelists(pv *packages_model.PackageVersion, pfs []*packages_model.Pac
 		Xmlns:        "http://linux.duke.edu/metadata/other",
 		PackageCount: len(pfs),
 		Packages:     packages,
-	})
+	},
+		distribution)
 }
 
 // https://docs.pulpproject.org/en/2.19/plugins/pulp_rpm/tech-reference/rpm.html#other-xml
-func buildOther(pv *packages_model.PackageVersion, pfs []*packages_model.PackageFile, c packageCache) (*repoData, error) { //nolint:dupl
+func buildOther(pv *packages_model.PackageVersion, pfs []*packages_model.PackageFile, c packageCache, distribution string) (*repoData, error) { //nolint:dupl
 	type Version struct {
 		Epoch   string `xml:"epoch,attr"`
 		Version string `xml:"ver,attr"`
@@ -524,7 +528,7 @@ func buildOther(pv *packages_model.PackageVersion, pfs []*packages_model.Package
 		Xmlns:        "http://linux.duke.edu/metadata/other",
 		PackageCount: len(pfs),
 		Packages:     packages,
-	})
+	}, distribution)
 }
 
 // writtenCounter counts all written bytes
@@ -544,7 +548,7 @@ func (wc *writtenCounter) Written() int64 {
 	return wc.written
 }
 
-func addDataAsFileToRepo(pv *packages_model.PackageVersion, filetype string, obj any) (*repoData, error) {
+func addDataAsFileToRepo(pv *packages_model.PackageVersion, filetype string, obj any, distribution string) (*repoData, error) {
 	content, _ := packages_module.NewHashedBuffer()
 	gzw := gzip.NewWriter(content)
 	wc := &writtenCounter{}
@@ -567,7 +571,8 @@ func addDataAsFileToRepo(pv *packages_model.PackageVersion, filetype string, obj
 		pv,
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: filename,
+				Filename:     filename,
+				CompositeKey: distribution,
 			},
 			Creator:           user_model.NewGhostUser(),
 			Data:              content,
