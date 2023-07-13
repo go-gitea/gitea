@@ -322,6 +322,12 @@ type SearchOptions internal.SearchOptions
 // SearchIssues search issues by options.
 // It returns issue ids and a bool value indicates if the result is imprecise.
 func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, bool, error) {
+	if opts.Limit <= 0 {
+		// It's meaningless to search with limit <= 0, probably the caller missed to set it.
+		// If the caller really wants to search all issues, set limit to a large number.
+		opts.Limit = 50
+	}
+
 	indexer := *globalIndexer.Load()
 	result, err := indexer.Search(ctx, (*internal.SearchOptions)(opts))
 	if err != nil {
