@@ -169,6 +169,7 @@
 
 /* the label-filter is the first dropdown, it shouldn't be shown leftward, otherwise it may go out the viewport (left side) */
 .repository .filter.menu .ui.dropdown.label-filter .menu {
+  min-width: max-content;
   right: unset;
   left: 0;
 }
