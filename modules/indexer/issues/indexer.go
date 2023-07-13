@@ -319,15 +319,19 @@ func IsAvailable(ctx context.Context) bool {
 // SearchOptions indicates the options for searching issues
 type SearchOptions internal.SearchOptions
 
-// SearchResults indicates the search results
-type SearchResults internal.SearchResult
-
-// SearchIssues search issues by options
-func SearchIssues(ctx context.Context, opts *SearchOptions) (*SearchResults, error) {
+// SearchIssues search issues by options.
+// It returns issue ids and a bool value indicates if the result is imprecise.
+func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, bool, error) {
 	indexer := *globalIndexer.Load()
-	res, err := indexer.Search(ctx, (*internal.SearchOptions)(opts))
+	result, err := indexer.Search(ctx, (*internal.SearchOptions)(opts))
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
-	return (*SearchResults)(res), nil
+
+	ret := make([]int64, 0, len(result.Hits))
+	for _, hit := range result.Hits {
+		ret = append(ret, hit.ID)
+	}
+
+	return ret, result.Imprecise, nil
 }
