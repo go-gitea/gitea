@@ -8,17 +8,17 @@
       <svg-icon name="octicon-git-commit"/>
     </button>
     <div class="menu left transition commit-selector-menu" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak>
-      <div class="scrolling menu" :class="{'is-loading': isLoading}">
-        <div class="vertical item gt-df gt-fc gt-gap-1" @click="showAllChanges()">
+      <div class="scrolling menu gt-border-t-0" :class="{'is-loading': isLoading}">
+        <div class="vertical item gt-df gt-fc gt-gap-2" @click="showAllChanges()">
           <div class="gt-ellipsis">
             {{ locale.show_all_commits }}
           </div>
-          <div class="gt-ellipsis text light-2">
+          <div class="gt-ellipsis text light-2 gt-mb-0">
             {{ locale.stats_num_commits }}
           </div>
         </div>
         <!-- only show the show changes since last review if there is a review AND we are commits ahead of the last review -->
-        <div v-if="lastReviewCommitSha != null && commitsSinceLastReview > 0" class="vertical item gt-df gt-fc gt-gap-1 gt-border-secondary-top" @click="changesSinceLastReviewClick()">
+        <div v-if="lastReviewCommitSha != null && commitsSinceLastReview > 0" class="vertical item gt-df gt-fc gt-gap-2 gt-border-secondary-top" @click="changesSinceLastReviewClick()">
           <div class="gt-ellipsis">
             {{ locale.show_changes_since_your_last_review }}
           </div>
@@ -29,7 +29,7 @@
         <span class="info gt-border-secondary-top">{{ locale.select_commit_hold_shift_for_range }}</span>
         <template v-for="commit in commits" :key="commit.id">
           <div class="vertical item gt-df gt-fr gt-gap-2 gt-border-secondary-top" :class="{selected: commit.selected}" @click.exact="commitClicked(commit.id)" @click.shift.exact.stop.prevent="commitClickedShift(commit)">
-            <div class="gt-f1 gt-df gt-fc gt-gap-1">
+            <div class="gt-f1 gt-df gt-fc gt-gap-2">
               <div class="gt-ellipsis commit-list-summary">
                 {{ commit.summary }}
               </div>
@@ -172,9 +172,12 @@ export default {
   }
 
   .commit-selector-menu {
-    max-height: max(45vh, 200px);
     overflow-x: hidden;
     border-top: 0;
+  }
+
+  .commit-selector-menu .scrolling.menu {
+    max-height: 450px !important;
   }
 
   .ui.dropdown .menu.commit-selector-menu > .item {
