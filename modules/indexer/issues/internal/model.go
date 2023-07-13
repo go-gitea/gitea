@@ -19,19 +19,19 @@ type IndexerData struct {
 	Comments []string `json:"comments"`
 
 	// Fields used for filtering
-	IsPull             bool     `json:"is_pull"`
-	IsClosed           bool     `json:"is_closed"`     // So if the status of an issue has changed, we should reindex the issue.
-	Labels             []string `json:"labels"`        // So if the labels of an issue have changed, we should reindex the issue.
-	NoLabels           bool     `json:"no_labels"`     // True if Labels is empty
-	Milestones         []int64  `json:"milestones"`    // So if the milestones of an issue have changed, we should reindex the issue.
-	NoMilestones       bool     `json:"no_milestones"` // True if Milestones is empty
-	Projects           []int64  `json:"projects"`      // So if the projects of an issue have changed, we should reindex the issue.
-	NoProjects         bool     `json:"no_projects"`   // True if Projects is empty
-	Author             int64    `json:"author"`        // So if the author of an issue has changed, we should reindex the issue.
-	Assignee           int64    `json:"assignee"`      // So if the assignee of an issue has changed, we should reindex the issue.
-	Mentions           []int64  `json:"mentions"`
-	Reviewers          []int64  `json:"reviewers"`           // So if the reviewers of an issue have changed, we should reindex the issue.
-	RequestedReviewers []int64  `json:"requested_reviewers"` // So if the requested reviewers of an issue have changed, we should reindex the issue.
+	IsPull             bool    `json:"is_pull"`
+	IsClosed           bool    `json:"is_closed"`     // So if the status of an issue has changed, we should reindex the issue.
+	Labels             []int64 `json:"labels"`        // So if the labels of an issue have changed, we should reindex the issue.
+	NoLabels           bool    `json:"no_labels"`     // True if Labels is empty
+	Milestones         []int64 `json:"milestones"`    // So if the milestones of an issue have changed, we should reindex the issue.
+	NoMilestones       bool    `json:"no_milestones"` // True if Milestones is empty
+	Projects           []int64 `json:"projects"`      // So if the projects of an issue have changed, we should reindex the issue.
+	NoProjects         bool    `json:"no_projects"`   // True if Projects is empty
+	Author             int64   `json:"author"`        // So if the author of an issue has changed, we should reindex the issue.
+	Assignee           int64   `json:"assignee"`      // So if the assignee of an issue has changed, we should reindex the issue.
+	Mentions           []int64 `json:"mentions"`
+	Reviewers          []int64 `json:"reviewers"`           // So if the reviewers of an issue have changed, we should reindex the issue.
+	RequestedReviewers []int64 `json:"requested_reviewers"` // So if the requested reviewers of an issue have changed, we should reindex the issue.
 
 	// Fields used for sorting
 	CreatedAt    timeutil.TimeStamp `json:"created_at"`
@@ -69,9 +69,9 @@ type SearchOptions struct {
 	IsPull util.OptionalBool // if the issues is a pull request
 	Closed util.OptionalBool // if the issues is closed
 
-	Labels         []string // labels the issues have
-	ExcludedLabels []string // labels the issues don't have
-	NoLabels       bool     // if the issues have no labels
+	Labels         []int64 // labels the issues have
+	ExcludedLabels []int64 // labels the issues don't have
+	NoLabels       bool    // if the issues have no labels
 
 	Milestones   []int64 // milestones the issues have
 	NoMilestones bool    // if the issues have no milestones

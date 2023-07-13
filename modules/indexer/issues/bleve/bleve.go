@@ -73,7 +73,7 @@ func generateIssueIndexMapping() (mapping.IndexMapping, error) {
 
 	docMapping.AddFieldMappingsAt("is_pull", boolFieldMapping)
 	docMapping.AddFieldMappingsAt("is_closed", boolFieldMapping)
-	docMapping.AddFieldMappingsAt("labels", textFieldMapping)
+	docMapping.AddFieldMappingsAt("labels", numberFieldMapping)
 	docMapping.AddFieldMappingsAt("no_labels", boolFieldMapping)
 	docMapping.AddFieldMappingsAt("milestones", numberFieldMapping)
 	docMapping.AddFieldMappingsAt("no_milestones", boolFieldMapping)
