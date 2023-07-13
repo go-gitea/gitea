@@ -30,9 +30,9 @@ function formatLicenseText(licenseText) {
   return wrapAnsi(licenseText || '', 80).trim();
 }
 
-function cleanOutDirPlugin() {
+function cleanDirsPlugin() {
   return {
-    name: 'vite-clean-out-dir-plugin',
+    name: 'clean-dirs-plugin',
     buildStart: () => {
       for (const dir of outputDirs) {
         rmSync(new URL(dir, import.meta.url), {recursive: true, force: true});
@@ -53,7 +53,7 @@ export default defineConfig(({mode}) => {
   }
 
   return {
-    root: fileURLToPath(new URL(import.meta.url)),
+    root: dirname(fileURLToPath(new URL(import.meta.url))),
     base: '/',
     publicDir: false,
     logLevel: 'info',
@@ -103,7 +103,7 @@ export default defineConfig(({mode}) => {
       legalComments: 'none',
     },
     plugins: [
-      cleanOutDirPlugin(),
+      cleanDirsPlugin(),
       stringPlugin(),
       vuePlugin(),
       licensePlugin({
