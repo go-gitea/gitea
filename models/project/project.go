@@ -230,13 +230,13 @@ func CountProjects(ctx context.Context, opts SearchOptions) (int64, error) {
 func sortProjectSession(sess *xorm.Session, sortType string) {
 	switch sortType {
 	case "oldest":
-		sess.OrderBy(db.SearchOrderByOldest)
+		sess.OrderBy(db.SearchOrderByOldest.String())
 	case "recentupdate":
-		sess.OrderBy(db.SearchOrderByRecentUpdated)
+		sess.OrderBy(db.SearchOrderByRecentUpdated.String())
 	case "leastupdate":
-		sess.OrderBy(db.SearchOrderByLeastUpdated)
+		sess.OrderBy(db.SearchOrderByLeastUpdated.String())
 	default:
-		sess.OrderBy(db.SearchOrderByNewest)
+		sess.OrderBy(db.SearchOrderByNewest.String())
 	}
 }
 
