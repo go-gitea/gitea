@@ -62,7 +62,7 @@ func Projects(ctx *context.Context) {
 		OwnerID:  ctx.ContextUser.ID,
 		Page:     page,
 		IsClosed: util.OptionalBoolOf(isShowClosed),
-		OrderBy:  project_model.GetSearchOrderByBySortType(sortType),
+		OrderBy:  sortType,
 		Type:     projectType,
 	})
 	if err != nil {

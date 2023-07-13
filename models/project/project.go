@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 type (
@@ -196,7 +197,7 @@ type SearchOptions struct {
 	RepoID   int64
 	Page     int
 	IsClosed util.OptionalBool
-	OrderBy  db.SearchOrderBy
+	OrderBy  string
 	Type     Type
 }
 
@@ -226,22 +227,23 @@ func CountProjects(ctx context.Context, opts SearchOptions) (int64, error) {
 	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(Project))
 }
 
-func GetSearchOrderByBySortType(sortType string) db.SearchOrderBy {
+func sortProjectSession(sess *xorm.Session, sortType string) {
 	switch sortType {
 	case "oldest":
-		return db.SearchOrderByOldest
+		sess.OrderBy(db.SearchOrderByOldest)
 	case "recentupdate":
-		return db.SearchOrderByRecentUpdated
+		sess.OrderBy(db.SearchOrderByRecentUpdated)
 	case "leastupdate":
-		return db.SearchOrderByLeastUpdated
+		sess.OrderBy(db.SearchOrderByLeastUpdated)
 	default:
-		return db.SearchOrderByNewest
+		sess.OrderBy(db.SearchOrderByNewest)
 	}
 }
 
 // FindProjects returns a list of all projects that have been created in the repository
 func FindProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, error) {
-	e := db.GetEngine(ctx).Where(opts.toConds()).OrderBy(opts.OrderBy.String())
+	e := db.GetEngine(ctx).Where(opts.toConds())
+	sortProjectSession(e, opts.OrderBy)
 	projects := make([]*Project, 0, setting.UI.IssuePagingNum)
 
 	if opts.Page > 0 {
