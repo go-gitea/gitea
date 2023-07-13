@@ -412,17 +412,19 @@ func FindRecentlyPushedNewBranches(ctx context.Context, baseRepo *repo_model.Rep
 	invalidBranchCond := builder.Select("branch.id").From("branch").
 		InnerJoin("pull_request", "branch.name = pull_request.head_branch AND branch.repo_id = pull_request.head_repo_id").
 		InnerJoin("issue", "issue.id = pull_request.issue_id").
-		Where(builder.And(
-			builder.Eq{"issue.is_closed": false},
+		Where(builder.Or(
+			builder.Eq{"pull_request.has_merged": true},
 			builder.In("pull_request.head_repo_id", repoCond),
+			builder.Eq{"branch.id": baseBranch.ID},
 		))
-	err = db.GetEngine(ctx).
-		Where("id != ? AND commit_id != ? AND pusher_id = ? AND is_deleted = ?", baseBranch.ID, baseBranch.CommitID, doer.ID, false).
-		And("updated_unix >= ?", time.Now().Add(-time.Hour*6).Unix()).
-		NotIn("id", invalidBranchCond).
-		In("repo_id", repoCond).
-		OrderBy("branch.updated_unix DESC").
-		Limit(2).
-		Find(&branches)
+	cond := builder.And(
+		builder.Neq{"commit_id": baseBranch.CommitID}, // newly created branch have no changes, so skip them
+		builder.Eq{"pusher_id": doer.ID},
+		builder.Eq{"is_deleted": false},
+		builder.Gte{"updated_unix": time.Now().Add(-time.Hour * 6).Unix()},
+		builder.In("repo_id", repoCond),
+		builder.NotIn("id", invalidBranchCond),
+	)
+	err = db.GetEngine(ctx).Where(cond).OrderBy("branch.updated_unix DESC").Limit(2).Find(&branches)
 	return branches, err
 }
