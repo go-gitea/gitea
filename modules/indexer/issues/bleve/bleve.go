@@ -26,22 +26,6 @@ const (
 	issueIndexerLatestVersion = 3
 )
 
-// numericEqualityQuery a numeric equality query for the given value and field
-func numericEqualityQuery(value int64, field string) *query.NumericRangeQuery {
-	f := float64(value)
-	tru := true
-	q := bleve.NewNumericRangeInclusiveQuery(&f, &f, &tru, &tru)
-	q.SetField(field)
-	return q
-}
-
-func newMatchPhraseQuery(matchPhrase, field, analyzer string) *query.MatchPhraseQuery {
-	q := bleve.NewMatchPhraseQuery(matchPhrase)
-	q.FieldVal = field
-	q.Analyzer = analyzer
-	return q
-}
-
 const unicodeNormalizeName = "unicodeNormalize"
 
 func addUnicodeNormalizeTokenFilter(m *mapping.IndexMappingImpl) error {
@@ -169,7 +153,7 @@ func (b *Indexer) Delete(_ context.Context, ids ...int64) error {
 func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int, state string) (*internal.SearchResult, error) {
 	var repoQueriesP []*query.NumericRangeQuery
 	for _, repoID := range repoIDs {
-		repoQueriesP = append(repoQueriesP, numericEqualityQuery(repoID, "repo_id"))
+		repoQueriesP = append(repoQueriesP, inner_bleve.NumericEqualityQuery(repoID, "repo_id"))
 	}
 	repoQueries := make([]query.Query, len(repoQueriesP))
 	for i, v := range repoQueriesP {
@@ -179,9 +163,9 @@ func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, l
 	indexerQuery := bleve.NewConjunctionQuery(
 		bleve.NewDisjunctionQuery(repoQueries...),
 		bleve.NewDisjunctionQuery(
-			newMatchPhraseQuery(keyword, "title", issueIndexerAnalyzer),
-			newMatchPhraseQuery(keyword, "content", issueIndexerAnalyzer),
-			newMatchPhraseQuery(keyword, "comments", issueIndexerAnalyzer),
+			inner_bleve.MatchPhraseQuery(keyword, "title", issueIndexerAnalyzer),
+			inner_bleve.MatchPhraseQuery(keyword, "content", issueIndexerAnalyzer),
+			inner_bleve.MatchPhraseQuery(keyword, "comments", issueIndexerAnalyzer),
 		))
 	search := bleve.NewSearchRequestOptions(indexerQuery, limit, start, false)
 	search.SortBy([]string{"-_score"})
