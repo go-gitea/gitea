@@ -30,6 +30,11 @@ const (
 	watchdogTimeoutEnv = "WATCHDOG_USEC"
 )
 
+// GetListener returns a listener from a GetListener function, which must have the
+// signature: `func FunctioName(network, address string) (net.Listener, error)`.
+// This determines the implementation of net.Listener which the server will use.`
+var GetListener = DefaultGetListener
+
 // In order to keep the working directory the same as when we started we record
 // it at startup.
 var originalWD, _ = os.Getwd()
@@ -150,12 +155,12 @@ func CloseProvidedListeners() error {
 	return returnableError
 }
 
-var GetListener = DefaultGetListener
-
-// GetListener obtains a listener for the local network address. The network must be
+// DefaultGetListener obtains a listener for the local network address. The network must be
 // a stream-oriented network: "tcp", "tcp4", "tcp6", "unix" or "unixpacket". It
 // returns an provided net.Listener for the matching network and address, or
-// creates a new one using net.Listen.
+// creates a new one using net.Listen. This function can be replaced by changing the
+// GetListener variable at the top of this file, for example to listen on an onion service using
+// github.com/cretz/bine
 func DefaultGetListener(network, address string) (net.Listener, error) {
 	// Add a deferral to say that we've tried to grab a listener
 	defer GetManager().InformCleanup()
