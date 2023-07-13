@@ -132,7 +132,7 @@ If pre-built frontend files are present it is possible to only build the backend
 TAGS="bindata" make backend
 ```
 
-Webpack source maps are by default enabled in development builds and disabled in production builds. They can be enabled by setting the `VITE_ENABLE_SOURCEMAP=true` environment variable.
+Webpack source maps are by default enabled in development builds and disabled in production builds. They can be enabled by setting the `ENABLE_SOURCEMAP=true` environment variable.
 
 ## Test
 
