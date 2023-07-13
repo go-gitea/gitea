@@ -1,6 +1,6 @@
 .issue-list-toolbar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: wrap-reverse;
   justify-content: space-between;
   align-items: flex-start;
   gap: 1rem;
@@ -14,13 +14,9 @@
 .issue-list-toolbar-right .filter.menu {
   flex-direction: row;
   flex-wrap: wrap;
-  gap: 8px;
 }
 
 @media (max-width: 767.98px) {
-  .issue-list-toolbar {
-    flex-direction: column-reverse;
-  }
   .issue-list-toolbar-right .dropdown .menu {
     left: auto !important;
     right: auto !important;
