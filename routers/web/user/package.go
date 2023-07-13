@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
 	debian_module "code.gitea.io/gitea/modules/packages/debian"
+	rpm_module "code.gitea.io/gitea/modules/packages/rpm"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -212,6 +213,21 @@ func ViewPackageVersion(ctx *context.Context) {
 
 		ctx.Data["Distributions"] = distributions.Values()
 		ctx.Data["Components"] = components.Values()
+		ctx.Data["Architectures"] = architectures.Values()
+	case packages_model.TypeRpm:
+		distributions := make(container.Set[string])
+		architectures := make(container.Set[string])
+		for _, f := range pd.Files {
+			for _, pp := range f.Properties {
+				switch pp.Name {
+				case rpm_module.PropertyDistribution:
+					distributions.Add(pp.Value)
+				case rpm_module.PropertyArchitecture:
+					architectures.Add(pp.Value)
+				}
+			}
+		}
+		ctx.Data["Distributions"] = distributions.Values()
 		ctx.Data["Architectures"] = architectures.Values()
 	}
 

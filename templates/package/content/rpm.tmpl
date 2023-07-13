@@ -4,7 +4,7 @@
 		<div class="ui form">
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.rpm.registry"}}</label>
-				<div class="markup"><pre class="code-block"><code>dnf config-manager --add-repo <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm/distribution.repo"></gitea-origin-url></code></pre></div>
+				<div class="markup"><pre class="code-block"><code>dnf config-manager --add-repo <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm/$distribution.repo"></gitea-origin-url></code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.rpm.install"}}</label>
@@ -18,9 +18,25 @@
 		</div>
 	</div>
 
-	{{if or .PackageDescriptor.Metadata.Summary .PackageDescriptor.Metadata.Description}}
-		<h4 class="ui top attached header">{{.locale.Tr "packages.about"}}</h4>
-		{{if .PackageDescriptor.Metadata.Summary}}<div class="ui attached segment">{{.PackageDescriptor.Metadata.Summary}}</div>{{end}}
-		{{if .PackageDescriptor.Metadata.Description}}<div class="ui attached segment">{{.PackageDescriptor.Metadata.Description}}</div>{{end}}
-	{{end}}
+	<h4 class="ui top attached header">{{.locale.Tr "packages.rpm.package.info"}}</h4>
+	<div class="ui attached segment">
+		<table class="ui single line very basic table">
+			<tbody>
+				<tr>
+					<td class="collapsing"><h5>{{.locale.Tr "packages.rpm.package.distributions"}}</h5></td>
+					<td>{{StringUtils.Join .Distributions ", "}}</td>
+				</tr>
+				<tr>
+					<td class="collapsing"><h5>{{.locale.Tr "packages.rpm.package.architectures"}}</h5></td>
+					<td>{{StringUtils.Join .Architectures ", "}}</td>
+				</tr>
+				{{if .PackageDescriptor.Metadata.Summary}}
+				<tr>
+					<td class="collapsing"><h5>{{.locale.Tr "packages.rpm.package.summary"}}</h5></td>
+					<td>{{.PackageDescriptor.Metadata.Summary}}</td>
+				</tr>
+				{{end}}
+			</tbody>
+		</table>
+	</div>
 {{end}}
