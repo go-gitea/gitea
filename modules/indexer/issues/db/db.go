@@ -36,14 +36,15 @@ func (i *Indexer) Delete(_ context.Context, _ ...int64) error {
 }
 
 // Search searches for issues
-func (i *Indexer) Search(ctx context.Context, kw string, repoIDs []int64, limit, start int, state string) (*internal.SearchResult, error) {
-	total, ids, err := issues_model.SearchIssueIDsByKeyword(ctx, kw, repoIDs, limit, start)
+func (i *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (*internal.SearchResult, error) {
+	total, ids, err := issues_model.SearchIssueIDsByKeyword(ctx, options.Keyword, options.Repos, options.Limit, options.Skip)
 	if err != nil {
 		return nil, err
 	}
 	result := internal.SearchResult{
-		Total: total,
-		Hits:  make([]internal.Match, 0, limit),
+		Total:     total,
+		Hits:      make([]internal.Match, 0, options.Limit),
+		Imprecise: true,
 	}
 	for _, id := range ids {
 		result.Hits = append(result.Hits, internal.Match{

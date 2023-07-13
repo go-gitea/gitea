@@ -70,23 +70,28 @@ func (b *Indexer) Delete(_ context.Context, ids ...int64) error {
 
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
-func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int, state string) (*internal.SearchResult, error) {
-	repoFilters := make([]string, 0, len(repoIDs))
-	for _, repoID := range repoIDs {
+func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (*internal.SearchResult, error) {
+	repoFilters := make([]string, 0, len(options.Repos))
+	for _, repoID := range options.Repos {
 		repoFilters = append(repoFilters, "repo_id = "+strconv.FormatInt(repoID, 10))
 	}
 	filter := strings.Join(repoFilters, " OR ")
+
+	// TBC:
+	/*
 	if state == "open" || state == "closed" {
-		if filter != "" {
-			filter = "(" + filter + ") AND state = " + state
-		} else {
-			filter = "state = " + state
+			if filter != "" {
+				filter = "(" + filter + ") AND state = " + state
+			} else {
+				filter = "state = " + state
+			}
 		}
-	}
-	searchRes, err := b.inner.Client.Index(b.inner.VersionedIndexName()).Search(keyword, &meilisearch.SearchRequest{
+	 */
+
+	searchRes, err := b.inner.Client.Index(b.inner.VersionedIndexName()).Search(options.Keyword, &meilisearch.SearchRequest{
 		Filter: filter,
-		Limit:  int64(limit),
-		Offset: int64(start),
+		Limit:  int64(options.Limit),
+		Offset: int64(options.Skip),
 	})
 	if err != nil {
 		return nil, err
@@ -99,7 +104,8 @@ func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, l
 		})
 	}
 	return &internal.SearchResult{
-		Total: searchRes.TotalHits,
-		Hits:  hits,
+		Total:     searchRes.TotalHits,
+		Hits:      hits,
+		Imprecise: true,
 	}, nil
 }

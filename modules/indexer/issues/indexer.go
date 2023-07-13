@@ -290,12 +290,18 @@ func DeleteRepoIssueIndexer(ctx context.Context, repo *repo_model.Repository) {
 	}
 }
 
+// Deprecated: use SearchIssues instead
 // SearchIssuesByKeyword search issue ids by keywords and repo id
 // WARNNING: You have to ensure user have permission to visit repoIDs' issues
-func SearchIssuesByKeyword(ctx context.Context, repoIDs []int64, keyword, state string) ([]int64, error) {
+func SearchIssuesByKeyword(ctx context.Context, repoIDs []int64, keyword string) ([]int64, error) {
 	var issueIDs []int64
 	indexer := *globalIndexer.Load()
-	res, err := indexer.Search(ctx, keyword, repoIDs, 50, 0, state)
+	res, err := indexer.Search(ctx, &internal.SearchOptions{
+		Keyword: keyword,
+		Repos:   repoIDs,
+		Limit:   50,
+		Skip:    0,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -308,4 +314,20 @@ func SearchIssuesByKeyword(ctx context.Context, repoIDs []int64, keyword, state 
 // IsAvailable checks if issue indexer is available
 func IsAvailable(ctx context.Context) bool {
 	return (*globalIndexer.Load()).Ping(ctx) == nil
+}
+
+// SearchOptions indicates the options for searching issues
+type SearchOptions internal.SearchOptions
+
+// SearchResults indicates the search results
+type SearchResults internal.SearchResult
+
+// SearchIssues search issues by options
+func SearchIssues(ctx context.Context, opts *SearchOptions) (*SearchResults, error) {
+	indexer := *globalIndexer.Load()
+	res, err := indexer.Search(ctx, (*internal.SearchOptions)(opts))
+	if err != nil {
+		return nil, err
+	}
+	return (*SearchResults)(res), nil
 }

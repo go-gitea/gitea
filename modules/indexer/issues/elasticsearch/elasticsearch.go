@@ -140,13 +140,13 @@ func (b *Indexer) Delete(ctx context.Context, ids ...int64) error {
 
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
-func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int, state string) (*internal.SearchResult, error) {
-	kwQuery := elastic.NewMultiMatchQuery(keyword, "title", "content", "comments")
+func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (*internal.SearchResult, error) {
+	kwQuery := elastic.NewMultiMatchQuery(options.Keyword, "title", "content", "comments")
 	query := elastic.NewBoolQuery()
 	query = query.Must(kwQuery)
-	if len(repoIDs) > 0 {
-		repoStrs := make([]any, 0, len(repoIDs))
-		for _, repoID := range repoIDs {
+	if len(options.Repos) > 0 {
+		repoStrs := make([]any, 0, len(options.Repos))
+		for _, repoID := range options.Repos {
 			repoStrs = append(repoStrs, repoID)
 		}
 		repoQuery := elastic.NewTermsQuery("repo_id", repoStrs...)
@@ -156,13 +156,13 @@ func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, l
 		Index(b.inner.VersionedIndexName()).
 		Query(query).
 		Sort("_score", false).
-		From(start).Size(limit).
+		From(options.Skip).Size(options.Limit).
 		Do(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	hits := make([]internal.Match, 0, limit)
+	hits := make([]internal.Match, 0, options.Limit)
 	for _, hit := range searchResult.Hits.Hits {
 		id, _ := strconv.ParseInt(hit.Id, 10, 64)
 		hits = append(hits, internal.Match{
@@ -171,7 +171,8 @@ func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, l
 	}
 
 	return &internal.SearchResult{
-		Total: searchResult.TotalHits(),
-		Hits:  hits,
+		Total:     searchResult.TotalHits(),
+		Hits:      hits,
+		Imprecise: true,
 	}, nil
 }

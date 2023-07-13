@@ -150,9 +150,9 @@ func (b *Indexer) Delete(_ context.Context, ids ...int64) error {
 
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
-func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int, state string) (*internal.SearchResult, error) {
+func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (*internal.SearchResult, error) {
 	var repoQueriesP []*query.NumericRangeQuery
-	for _, repoID := range repoIDs {
+	for _, repoID := range options.Repos {
 		repoQueriesP = append(repoQueriesP, inner_bleve.NumericEqualityQuery(repoID, "repo_id"))
 	}
 	repoQueries := make([]query.Query, len(repoQueriesP))
@@ -163,11 +163,11 @@ func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, l
 	indexerQuery := bleve.NewConjunctionQuery(
 		bleve.NewDisjunctionQuery(repoQueries...),
 		bleve.NewDisjunctionQuery(
-			inner_bleve.MatchPhraseQuery(keyword, "title", issueIndexerAnalyzer),
-			inner_bleve.MatchPhraseQuery(keyword, "content", issueIndexerAnalyzer),
-			inner_bleve.MatchPhraseQuery(keyword, "comments", issueIndexerAnalyzer),
+			inner_bleve.MatchPhraseQuery(options.Keyword, "title", issueIndexerAnalyzer),
+			inner_bleve.MatchPhraseQuery(options.Keyword, "content", issueIndexerAnalyzer),
+			inner_bleve.MatchPhraseQuery(options.Keyword, "comments", issueIndexerAnalyzer),
 		))
-	search := bleve.NewSearchRequestOptions(indexerQuery, limit, start, false)
+	search := bleve.NewSearchRequestOptions(indexerQuery, options.Limit, options.Skip, false)
 	search.SortBy([]string{"-_score"})
 
 	result, err := b.inner.Indexer.SearchInContext(ctx, search)
@@ -175,8 +175,10 @@ func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, l
 		return nil, err
 	}
 
-	ret := internal.SearchResult{
-		Hits: make([]internal.Match, 0, len(result.Hits)),
+	ret := &internal.SearchResult{
+		Total:     int64(result.Total),
+		Hits:      make([]internal.Match, 0, len(result.Hits)),
+		Imprecise: true,
 	}
 	for _, hit := range result.Hits {
 		id, err := indexer_internal.ParseBase36(hit.ID)
@@ -187,5 +189,5 @@ func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, l
 			ID: id,
 		})
 	}
-	return &ret, nil
+	return ret, nil
 }
