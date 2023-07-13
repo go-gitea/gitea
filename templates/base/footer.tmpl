@@ -25,7 +25,7 @@
 		<script src='https://challenges.cloudflare.com/turnstile/v0/api.js'></script>
 	{{end}}
 {{end}}
-	<script src="{{AssetUrlPrefix}}/js/index.js?v={{AssetVersion}}" onerror="alert('Failed to load asset files from ' + this.src + '. Please make sure the asset files can be accessed.')"></script>
+	<script type="module" src="{{AssetUrlPrefix}}/js/index.js?v={{AssetVersion}}" onerror="alert('Failed to load asset files from ' + this.src + '. Please make sure the asset files can be accessed.')"></script>
 {{template "custom/footer" .}}
 </body>
 </html>
