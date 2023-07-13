@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	repo_model "code.gitea.io/gitea/models/repo"
+	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
@@ -72,6 +73,12 @@ func TestNewReleasesList(t *testing.T) {
 	test.LoadRepo(t, ctx, 57)
 	test.LoadGitRepo(t, ctx)
 	t.Cleanup(func() { ctx.Repo.GitRepo.Close() })
+
+	var err error
+	ctx.Data["NumReleases"], err = repo_model.GetReleaseCountByRepoID(ctx, ctx.Repo.Repository.ID, repo_model.FindReleasesOptions{
+		IncludeDrafts: ctx.Repo.CanWrite(unit_model.TypeReleases),
+	})
+	assert.NoError(t, err)
 
 	Releases(ctx)
 	releases := ctx.Data["Releases"].([]*repo_model.Release)
