@@ -114,10 +114,10 @@ GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list code.gitea.io/gitea/models/m
 
 FOMANTIC_WORK_DIR := web_src/fomantic
 
-WEBPACK_SOURCES := $(shell find web_src/js web_src/css -type f)
-WEBPACK_CONFIGS := webpack.config.js
-WEBPACK_DEST := public/js/index.js public/css/index.css
-WEBPACK_DEST_ENTRIES := public/js public/css public/fonts public/img/webpack
+VITE_SOURCES := $(shell find web_src/js web_src/css -type f)
+VITE_CONFIGS := vite.config.js
+VITE_DEST := public/js/index.js public/css/index.css
+VITE_DEST_ENTRIES := public/js public/css public/fonts public/img/bundled
 
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
 BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
@@ -228,7 +228,7 @@ help:
 	@echo " - test-e2e[\#TestSpecificName]     test end to end using playwright"
 	@echo " - update-js                        update js dependencies"
 	@echo " - update-py                        update py dependencies"
-	@echo " - webpack                          build webpack files"
+	@echo " - vite                             build vite files"
 	@echo " - svg                              build svg files"
 	@echo " - fomantic                         build fomantic files"
 	@echo " - generate                         run \"go generate\""
@@ -273,7 +273,7 @@ node-check:
 
 .PHONY: clean-all
 clean-all: clean
-	rm -rf $(WEBPACK_DEST_ENTRIES) node_modules
+	rm -rf $(VITE_DEST_ENTRIES) node_modules
 
 .PHONY: clean
 clean:
@@ -434,8 +434,8 @@ watch:
 
 .PHONY: watch-frontend
 watch-frontend: node-check node_modules
-	@rm -rf $(WEBPACK_DEST_ENTRIES)
-	NODE_ENV=development npx webpack --watch --progress
+	@rm -rf $(VITE_DEST_ENTRIES)
+	NODE_ENV=development npx vite build --watch
 
 .PHONY: watch-backend
 watch-backend: go-check
@@ -806,7 +806,7 @@ install: $(wildcard *.go)
 build: frontend backend
 
 .PHONY: frontend
-frontend: $(WEBPACK_DEST)
+frontend: $(VITE_DEST)
 
 .PHONY: backend
 backend: go-check generate-backend $(EXECUTABLE)
@@ -952,14 +952,14 @@ fomantic:
 	$(SED_INPLACE) -e 's/\r//g' $(FOMANTIC_WORK_DIR)/build/semantic.css $(FOMANTIC_WORK_DIR)/build/semantic.js
 	rm -f $(FOMANTIC_WORK_DIR)/build/*.min.*
 
-.PHONY: webpack
-webpack: $(WEBPACK_DEST)
+.PHONY: vite
+vite: $(VITE_DEST)
 
-$(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) package-lock.json
+$(VITE_DEST): $(VITE_SOURCES) $(VITE_CONFIGS) package-lock.json
 	@$(MAKE) -s node-check node_modules
-	rm -rf $(WEBPACK_DEST_ENTRIES)
-	npx webpack
-	@touch $(WEBPACK_DEST)
+	rm -rf $(VITE_DEST_ENTRIES)
+	npx vite build
+	@touch $(VITE_DEST)
 
 .PHONY: svg
 svg: node-check | node_modules
