@@ -321,7 +321,7 @@ type SearchOptions internal.SearchOptions
 
 // SearchIssues search issues by options.
 // It returns issue ids and a bool value indicates if the result is imprecise.
-func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, bool, error) {
+func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, error) {
 	if opts.Limit <= 0 {
 		// It's meaningless to search with limit <= 0, probably the caller missed to set it.
 		// If the caller really wants to search all issues, set limit to a large number.
@@ -331,7 +331,7 @@ func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, bool, erro
 	indexer := *globalIndexer.Load()
 	result, err := indexer.Search(ctx, (*internal.SearchOptions)(opts))
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	ret := make([]int64, 0, len(result.Hits))
@@ -339,5 +339,13 @@ func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, bool, erro
 		ret = append(ret, hit.ID)
 	}
 
-	return ret, result.Imprecise, nil
+	if result.Imprecise {
+		ret, err := filterIssuesByDB(ctx, ret, opts)
+		if err != nil {
+			return nil, err
+		}
+		return ret, nil
+	}
+
+	return ret, nil
 }
