@@ -13,6 +13,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	indexer_issues "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
@@ -488,4 +489,71 @@ func SearchIssueIDsByKeyword(ctx context.Context, kw string, repoIDs []int64, li
 	}
 
 	return total, ids, nil
+}
+
+func init() {
+	indexer_issues.RegisterFilterIssuesFunc(filterIssuesOfSearchResult)
+}
+
+func filterIssuesOfSearchResult(ctx context.Context, issuesIDs []int64, options *indexer_issues.SearchOptions) ([]int64, error) {
+	convertID := func(id *int64) int64 {
+		if id == nil {
+			return db.NoConditionID
+		}
+		return *id
+	}
+	convertIDs := func(ids []int64, no bool) []int64 {
+		if no {
+			return []int64{db.NoConditionID}
+		}
+		return ids
+	}
+	convertBool := func(b *bool) util.OptionalBool {
+		if b == nil {
+			return util.OptionalBoolNone
+		}
+		return util.OptionalBoolOf(*b)
+	}
+	convertLabelIDs := func(includes, excludes []int64, no bool) []int64 {
+		if no {
+			return []int64{0} // It's zero, not db.NoConditionID,
+		}
+		ret := make([]int64, 0, len(includes)+len(excludes))
+		ret = append(ret, includes...)
+		for _, id := range excludes {
+			ret = append(ret, -id)
+		}
+	}
+
+	opts := &IssuesOptions{
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		RepoIDs:            nil, // it's unnecessary since issuesIDs are already filtered by repoIDs
+		RepoCond:           nil, // it's unnecessary since issuesIDs are already filtered by repoIDs
+		AssigneeID:         convertID(options.AssigneeID),
+		PosterID:           convertID(options.PosterID),
+		MentionedID:        convertID(options.MentionID),
+		ReviewRequestedID:  convertID(options.ReviewRequestedID),
+		ReviewedID:         convertID(options.ReviewedID),
+		SubscriberID:       convertID(options.SubscriberID),
+		MilestoneIDs:       convertIDs(options.MilestoneIDs, options.NoMilestone),
+		ProjectID:          convertID(options.ProjectID),
+		ProjectBoardID:     convertID(options.ProjectBoardID),
+		IsClosed:           convertBool(options.IsClosed),
+		IsPull:             convertBool(options.IsPull),
+		LabelIDs:           convertLabelIDs(options.IncludedLabelIDs, options.ExcludedLabelIDs, options.NoLabel),
+		IncludedLabelNames: nil, // use LabelIDs instead
+		ExcludedLabelNames: nil, // use LabelIDs instead
+		IncludeMilestones:  nil, // use MilestoneIDs instead
+		SortType:           "",  // TBC
+		IssueIDs:           issuesIDs,
+		UpdatedAfterUnix:   0,
+		UpdatedBeforeUnix:  0,
+		PriorityRepoID:     0,
+		IsArchived:         0,
+		Org:                nil,
+		Team:               nil,
+		User:               nil,
+	}
 }

@@ -5,7 +5,6 @@ package internal
 
 import (
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // IndexerData data stored in the issue indexer
@@ -20,18 +19,20 @@ type IndexerData struct {
 
 	// Fields used for filtering
 	IsPull             bool    `json:"is_pull"`
-	IsClosed           bool    `json:"is_closed"`     // So if the status of an issue has changed, we should reindex the issue.
-	Labels             []int64 `json:"labels"`        // So if the labels of an issue have changed, we should reindex the issue.
-	NoLabels           bool    `json:"no_labels"`     // True if Labels is empty
-	Milestones         []int64 `json:"milestones"`    // So if the milestones of an issue have changed, we should reindex the issue.
-	NoMilestones       bool    `json:"no_milestones"` // True if Milestones is empty
-	Projects           []int64 `json:"projects"`      // So if the projects of an issue have changed, we should reindex the issue.
-	NoProjects         bool    `json:"no_projects"`   // True if Projects is empty
-	Author             int64   `json:"author"`        // So if the author of an issue has changed, we should reindex the issue.
-	Assignee           int64   `json:"assignee"`      // So if the assignee of an issue has changed, we should reindex the issue.
-	Mentions           []int64 `json:"mentions"`
-	Reviewers          []int64 `json:"reviewers"`           // So if the reviewers of an issue have changed, we should reindex the issue.
-	RequestedReviewers []int64 `json:"requested_reviewers"` // So if the requested reviewers of an issue have changed, we should reindex the issue.
+	IsClosed           bool    `json:"is_closed"`         // So if the status of an issue has changed, we should reindex the issue.
+	Labels             []int64 `json:"labels"`            // So if the labels of an issue have changed, we should reindex the issue.
+	NoLabels           bool    `json:"no_labels"`         // True if Labels is empty
+	MilestoneIDs       []int64 `json:"milestone_ids"`     // So if the milestones of an issue have changed, we should reindex the issue.
+	NoMilestone        bool    `json:"no_milestone"`      // True if Milestones is empty
+	ProjectIDs         []int64 `json:"project_ids"`       // So if the projects of an issue have changed, we should reindex the issue.
+	ProjectBoardIDs    []int64 `json:"project_board_ids"` // So if the projects of an issue have changed, we should reindex the issue.
+	NoProject          bool    `json:"no_project"`        // True if ProjectIDs is empty
+	PosterID           int64   `json:"poster_id"`
+	AssigneeID         int64   `json:"assignee_id"` // So if the assignee of an issue has changed, we should reindex the issue.
+	MentionIDs         []int64 `json:"mention_ids"`
+	ReviewedIDs        []int64 `json:"reviewed_ids"`         // So if the reviewers of an issue have changed, we should reindex the issue.
+	ReviewRequestedIDs []int64 `json:"review_requested_ids"` // So if the requested reviewers of an issue have changed, we should reindex the issue.
+	SubscriberIDs      []int64 `json:"subscriber_ids"`       // So if the subscribers of an issue have changed, we should reindex the issue.
 
 	// Fields used for sorting
 	CreatedAt    timeutil.TimeStamp `json:"created_at"`
@@ -66,29 +67,30 @@ type SearchOptions struct {
 
 	Repos []int64 // repository IDs which the issues belong to
 
-	IsPull util.OptionalBool // if the issues is a pull request
-	Closed util.OptionalBool // if the issues is closed
+	IsPull   *bool // if the issues is a pull request
+	IsClosed *bool // if the issues is closed
 
-	Labels         []int64 // labels the issues have
-	ExcludedLabels []int64 // labels the issues don't have
-	NoLabels       bool    // if the issues have no labels
+	IncludedLabelIDs []int64 // labels the issues have
+	ExcludedLabelIDs []int64 // labels the issues don't have
+	NoLabel          bool    // if the issues have no label, if true, IncludedLabelIDs and ExcludedLabelIDs will be ignored
 
-	Milestones   []int64 // milestones the issues have
-	NoMilestones bool    // if the issues have no milestones
+	MilestoneIDs []int64 // milestones the issues have
+	NoMilestone  bool    // if the issues have no milestones, if true, MilestoneIDs will be ignored
 
-	Projects   []int64 // projects the issues belong to
-	NoProjects bool    // if the issues have no projects
+	ProjectID      *int64 // project the issues belong to
+	ProjectBoardID *int64 // project board the issues belong to
 
-	Authors []int64 // authors of the issues
+	PosterID *int64 // poster of the issues
 
-	Assignees   []int64 // assignees of the issues
-	NoAssignees bool    // if the issues have no assignees
+	AssigneeID *int64 // assignee of the issues, zero means no assignee
 
-	Mentions []int64 // users mentioned in the issues
+	MentionID *int64 // mentioned user of the issues
 
-	Reviewers []int64 // reviewers of the issues
+	ReviewedID *int64 // reviewer of the issues
 
-	RequestReviewers []int64 // users requested to review the issues
+	ReviewRequestedID *int64 // requested reviewer of the issues
+
+	SubscriberID *int64 // subscriber of the issues
 
 	Skip  int // skip the first N results
 	Limit int // limit the number of results

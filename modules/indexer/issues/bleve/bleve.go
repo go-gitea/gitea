@@ -71,6 +71,7 @@ func generateIssueIndexMapping() (mapping.IndexMapping, error) {
 	docMapping.AddFieldMappingsAt("content", textFieldMapping)
 	docMapping.AddFieldMappingsAt("comments", textFieldMapping)
 
+	// TBC: IndexerData has been changed, but the mapping has not been updated
 	docMapping.AddFieldMappingsAt("is_pull", boolFieldMapping)
 	docMapping.AddFieldMappingsAt("is_closed", boolFieldMapping)
 	docMapping.AddFieldMappingsAt("labels", numberFieldMapping)
