@@ -1,17 +1,30 @@
-import {defineConfig, loadEnv} from 'vite';
+import {defineConfig} from 'vite';
+import {stringPlugin} from 'vite-string-plugin';
+import vuePlugin from '@vitejs/plugin-vue';
+import licensePlugin from 'rollup-plugin-license';
 import {fileURLToPath} from 'node:url';
 import {parse, dirname, extname} from 'node:path';
 import {rmSync, mkdirSync, readFileSync} from 'node:fs';
-import {stringPlugin} from 'vite-string-plugin';
+import {env} from 'node:process';
 import wrapAnsi from 'wrap-ansi';
 import fastGlob from 'fast-glob';
-import vue from '@vitejs/plugin-vue';
-import licensePlugin from 'rollup-plugin-license';
+
+const outputDirs = [
+  'public/js',
+  'public/css',
+  'public/fonts',
+  'public/img/bundled',
+];
 
 const glob = (pattern) => fastGlob.sync(pattern, {
   cwd: dirname(fileURLToPath(new URL(import.meta.url))),
   absolute: true,
 });
+
+const themes = {};
+for (const path of glob('web_src/css/themes/*.css')) {
+  themes[parse(path).name] = path;
+}
 
 function formatLicenseText(licenseText) {
   return wrapAnsi(licenseText || '', 80).trim();
@@ -21,41 +34,31 @@ function cleanOutDirPlugin() {
   return {
     name: 'vite-clean-out-dir-plugin',
     buildStart: () => {
-      rmSync(new URL('public/js', import.meta.url), {recursive: true, force: true});
-      rmSync(new URL('public/css', import.meta.url), {recursive: true, force: true});
-      rmSync(new URL('public/fonts', import.meta.url), {recursive: true, force: true});
-      mkdirSync(new URL('public/js', import.meta.url), {recursive: true});
-      mkdirSync(new URL('public/css', import.meta.url), {recursive: true});
-      mkdirSync(new URL('public/fonts', import.meta.url), {recursive: true});
+      for (const dir of outputDirs) {
+        rmSync(new URL(dir, import.meta.url), {recursive: true, force: true});
+        mkdirSync(new URL(dir, import.meta.url), {recursive: true});
+      }
     }
   };
 }
 
 export default defineConfig(({mode}) => {
-  const envDir = fileURLToPath(new URL(dirname(import.meta.url)));
-  const env = loadEnv(mode, envDir);
   const isProduction = mode !== 'development';
 
-  const themes = {};
-  for (const path of glob('web_src/css/themes/*.css')) {
-    themes[parse(path).name] = path;
-  }
-
   let sourceMapEnabled;
-  if ('VITE_ENABLE_SOURCEMAP' in env) {
-    sourceMapEnabled = env.VITE_ENABLE_SOURCEMAP === 'true';
+  if ('ENABLE_SOURCEMAP' in env) {
+    sourceMapEnabled = env.ENABLE_SOURCEMAP === 'true';
   } else {
     sourceMapEnabled = !isProduction;
   }
 
   return {
-    root: fileURLToPath(new URL('.', import.meta.url)),
+    root: fileURLToPath(new URL(import.meta.url)),
     base: '/',
     publicDir: false,
     logLevel: 'info',
     clearScreen: false,
     open: false,
-    envDir,
     build: {
       outDir: fileURLToPath(new URL('public', import.meta.url)),
       emptyOutDir: false,
@@ -102,7 +105,7 @@ export default defineConfig(({mode}) => {
     plugins: [
       cleanOutDirPlugin(),
       stringPlugin(),
-      vue(),
+      vuePlugin(),
       licensePlugin({
         thirdParty: {
           output: {
