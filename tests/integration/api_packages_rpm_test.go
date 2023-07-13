@@ -76,12 +76,12 @@ Mu0UFYgZ/bYnuvn/vz4wtCz8qMwsHUvP0PX3tbYFUctAPdrY6tiiDtcCddDECahx7SuVNP5dpmb5
 	t.Run("RepositoryConfig", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", rootURL+".repo")
+		req := NewRequest(t, "GET", rootURL+"/el9.repo")
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		expected := fmt.Sprintf(`[gitea-%s]
 name=%s - %s
-baseurl=%sapi/packages/%s/rpm
+baseurl=%sapi/packages/%s/rpm/el9
 enabled=1
 gpgcheck=1
 gpgkey=%sapi/packages/%s/rpm/repository.key`, user.Name, user.Name, setting.AppName, setting.AppURL, user.Name, setting.AppURL, user.Name)
@@ -100,7 +100,7 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`, user.Name, user.Name, setting.AppN
 	})
 
 	t.Run("Upload", func(t *testing.T) {
-		url := rootURL + "/upload"
+		url := rootURL + "/el9/upload"
 
 		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
 		MakeRequest(t, req, http.StatusUnauthorized)
@@ -138,7 +138,7 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`, user.Name, user.Name, setting.AppN
 	t.Run("Download", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s", rootURL, packageName, packageVersion, packageArchitecture))
+		req := NewRequest(t, "GET", fmt.Sprintf("%s/el9/package/%s/%s/%s", rootURL, packageName, packageVersion, packageArchitecture))
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		assert.Equal(t, content, resp.Body.Bytes())
@@ -147,7 +147,7 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`, user.Name, user.Name, setting.AppN
 	t.Run("Repository", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		url := rootURL + "/repodata"
+		url := rootURL + "/el9/repodata"
 
 		req := NewRequest(t, "GET", url+"/dummy.xml")
 		MakeRequest(t, req, http.StatusNotFound)
@@ -395,10 +395,10 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`, user.Name, user.Name, setting.AppN
 	t.Run("Delete", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "DELETE", fmt.Sprintf("%s/package/%s/%s/%s", rootURL, packageName, packageVersion, packageArchitecture))
+		req := NewRequest(t, "DELETE", fmt.Sprintf("%s/el9/package/%s/%s/%s", rootURL, packageName, packageVersion, packageArchitecture))
 		MakeRequest(t, req, http.StatusUnauthorized)
 
-		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/package/%s/%s/%s", rootURL, packageName, packageVersion, packageArchitecture))
+		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/el9/package/%s/%s/%s", rootURL, packageName, packageVersion, packageArchitecture))
 		req = AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusNoContent)
 
@@ -406,7 +406,7 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`, user.Name, user.Name, setting.AppN
 		assert.NoError(t, err)
 		assert.Empty(t, pvs)
 
-		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/package/%s/%s/%s", rootURL, packageName, packageVersion, packageArchitecture))
+		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/el9/package/%s/%s/%s", rootURL, packageName, packageVersion, packageArchitecture))
 		req = AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
