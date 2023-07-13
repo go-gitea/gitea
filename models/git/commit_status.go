@@ -254,17 +254,17 @@ func listCommitStatusesStatement(ctx context.Context, repo *repo_model.Repositor
 func sortCommitStatusesSession(sess *xorm.Session, sortType string) {
 	switch sortType {
 	case "oldest":
-		sess.Asc("created_unix")
+		sess.OrderBy(db.SearchOrderByOldest.String())
 	case "recentupdate":
-		sess.Desc("updated_unix")
+		sess.OrderBy(db.SearchOrderByRecentUpdated.String())
 	case "leastupdate":
-		sess.Asc("updated_unix")
+		sess.OrderBy(db.SearchOrderByLeastUpdated.String())
 	case "leastindex":
-		sess.Desc("index")
+		sess.OrderBy(db.SearchOrderByLeastIndex.String())
 	case "highestindex":
-		sess.Asc("index")
+		sess.OrderBy(db.SearchOrderByHighestIndex.String())
 	default:
-		sess.Desc("created_unix")
+		sess.OrderBy(db.SearchOrderByNewest.String())
 	}
 }
 
