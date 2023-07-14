@@ -108,7 +108,7 @@ const sfc = {
       return this.items.filter((item) => item.name.toLowerCase() === this.searchTerm.toLowerCase()).length === 0;
     },
     formActionUrl() {
-      return `${this.repoLink}/branches/_new/${pathEscapeSegments(this.branchNameSubURL)}`;
+      return `${this.repoLink}/branches/_new/${this.branchNameSubURL}`;
     },
   },
 
