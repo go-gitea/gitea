@@ -23,7 +23,8 @@
         "Vue.volar",
         "ms-azuretools.vscode-docker",
         "zixuanchen.vitest-explorer",
-        "qwtel.sqlite-viewer"
+        "qwtel.sqlite-viewer",
+        "GitHub.vscode-pull-request-github"
       ]
     }
   },
