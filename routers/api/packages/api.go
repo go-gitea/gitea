@@ -515,14 +515,14 @@ func CommonRoutes() *web.Route {
 		r.Group("/rpm", func() {
 			// old rpm
 			r.Get(".repo", func(ctx *context.Context) {
-				ctx.Redirect(setting.AppSubURL+strings.Replace(ctx.Base.Req.URL.Path, "/rpm.repo", "/rpm/default.repo", 1), 302)
+				ctx.Redirect(setting.AppSubURL + strings.Replace(ctx.Base.Req.URL.Path, "/rpm.repo", "/rpm/default.repo", 1))
 			})
 			r.Get("/repository.key", rpm.GetRepositoryKey)
 			r.Get("/repodata/{filename}", func(ctx *context.Context) {
-				ctx.Redirect(setting.AppSubURL+strings.Replace(ctx.Base.Req.URL.Path, "/rpm/repodata/", "/rpm/default/repodata/", 1))
+				ctx.Redirect(setting.AppSubURL + strings.Replace(ctx.Base.Req.URL.Path, "/rpm/repodata/", "/rpm/default/repodata/", 1))
 			})
 			r.Get("/package/{name}/{version}/{architecture}", func(ctx *context.Context) {
-				ctx.Redirect(setting.AppSubURL+strings.Replace(ctx.Base.Req.URL.Path, "/rpm/package/", "/rpm/default/package/", 1))
+				ctx.Redirect(setting.AppSubURL + strings.Replace(ctx.Base.Req.URL.Path, "/rpm/package/", "/rpm/default/package/", 1))
 			})
 			// new rpm
 			r.Group("/{distribution}", func() {
