@@ -56,9 +56,9 @@ dnf config-manager --add-repo https://{username}:{your_password_or_token}@gitea.
 PUT https://gitea.example.com/api/packages/{owner}/rpm/{distribution}/upload
 ```
 
-| 参数             | 描述                               |
-|----------------|----------------------------------|
-| `owner`        | 软件包的所有者                          |
+| 参数    | 描述           |
+| ------- | -------------- |
+| `owner` | 软件包的所有者 |
 | `distribution` | 软件包组名称，例如：`el7`、`el9`、`test-el9` |
 
 使用HTTP基本身份验证的示例请求：
@@ -69,16 +69,15 @@ curl --user your_username:your_password_or_token \
      https://gitea.example.com/api/packages/testuser/rpm/default/upload
 ```
 
-如果您使用 2FA 或 OAuth，请使用[个人访问令牌]({{< relref "doc/development/api-usage.zh-cn.md#通过-api-认证" >}})
-替代密码。您无法将具有相同名称的文件两次发布到软件包中。您必须先删除现有的软件包版本。
+如果您使用 2FA 或 OAuth，请使用[个人访问令牌]({{< relref "doc/development/api-usage.zh-cn.md#通过-api-认证" >}})替代密码。您无法将具有相同名称的文件两次发布到软件包中。您必须先删除现有的软件包版本。
 
 服务器将以以下HTTP状态码响应。
 
-| HTTP 状态码          | 含义                               |
-|-------------------|----------------------------------|
-| `201 Created`     | 软件包已发布                           |
-| `400 Bad Request` | 软件包无效                            |
-| `distribution`    | 软件包组名称，例如：`el7`、`el9`、`test-el9` |
+| HTTP 状态码       | 含义                                             |
+| ----------------- | ------------------------------------------------ |
+| `201 Created`     | 软件包已发布                                     |
+| `400 Bad Request` | 软件包无效                                       |
+| `409 Conflict`    | 具有相同参数组合的软件包文件已经存在于该软件包中 |
 
 ## 删除软件包
 
@@ -88,13 +87,13 @@ curl --user your_username:your_password_or_token \
 DELETE https://gitea.example.com/api/packages/{owner}/rpm/{distribution}/package/{package_name}/{package_version}/{architecture}
 ```
 
-| 参数                | 描述      |
-|-------------------|---------|
+| 参数              | 描述           |
+| ----------------- | -------------- |
 | `owner`           | 软件包的所有者 |
 | `distribution`    | 软件包组名称  |
-| `package_name`    | 软件包名称   |
-| `package_version` | 软件包版本   |
-| `architecture`    | 软件包架构   |
+| `package_name`    | 软件包名称     |
+| `package_version` | 软件包版本     |
+| `architecture`    | 软件包架构     |
 
 使用HTTP基本身份验证的示例请求：
 
@@ -105,9 +104,9 @@ curl --user your_username:your_token_or_password -X DELETE \
 
 服务器将以以下HTTP状态码响应：
 
-| HTTP 状态码         | 含义        |
-|------------------|-----------|
-| `204 No Content` | 成功        |
+| HTTP 状态码      | 含义               |
+| ---------------- | ------------------ |
+| `204 No Content` | 成功               |
 | `404 Not Found`  | 未找到软件包或文件 |
 
 ## 安装软件包

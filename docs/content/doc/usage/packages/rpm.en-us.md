@@ -34,13 +34,12 @@ To register the RPM registry add the url to the list of known apt sources:
 dnf config-manager --add-repo https://gitea.example.com/api/packages/{owner}/{distribution}.repo
 ```
 
-| Placeholder    | Description                                         |
-|----------------|-----------------------------------------------------|
-| `owner`        | The owner of the package.                           |
+| Placeholder | Description |
+| ----------- | ----------- |
+| `owner`     | The owner of the package. |
 | `distribution` | Package group name, e.g. `el7`, `el9` , `test-el9`. |
 
-If the registry is private, provide credentials in the url. You can use a password or a [personal access token]({{<
-relref "doc/development/api-usage.en-us.md#authentication" >}}):
+If the registry is private, provide credentials in the url. You can use a password or a [personal access token]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}):
 
 ```shell
 dnf config-manager --add-repo https://{username}:{your_password_or_token}@gitea.example.com/api/packages/{owner}/{distribution}.repo
@@ -56,9 +55,9 @@ To publish a RPM package (`*.rpm`), perform a HTTP PUT operation with the packag
 PUT https://gitea.example.com/api/packages/{owner}/rpm/{distribution}/upload
 ```
 
-| Parameter      | Description                                         |
-|----------------|-----------------------------------------------------|
-| `owner`        | The owner of the package.                           |
+| Parameter | Description |
+| --------- | ----------- |
+| `owner`   | The owner of the package. |
 | `distribution` | Package group name, e.g. `el7`, `el9` , `test-el9`. |
 
 Example request using HTTP Basic authentication:
@@ -69,33 +68,31 @@ curl --user your_username:your_password_or_token \
      https://gitea.example.com/api/packages/testuser/rpm/default/upload
 ```
 
-If you are using 2FA or OAuth use a [personal access token]({{< relref "
-doc/development/api-usage.en-us.md#authentication" >}}) instead of the password.
+If you are using 2FA or OAuth use a [personal access token]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}) instead of the password.
 You cannot publish a file with the same name twice to a package. You must delete the existing package version first.
 
 The server responds with the following HTTP Status codes.
 
-| HTTP Status Code  | Meaning                                                                              |
-|-------------------|--------------------------------------------------------------------------------------|
-| `201 Created`     | The package has been published.                                                      |
-| `400 Bad Request` | The package is invalid.                                                              |
+| HTTP Status Code  | Meaning |
+| ----------------- | ------- |
+| `201 Created`     | The package has been published. |
+| `400 Bad Request` | The package is invalid. |
 | `409 Conflict`    | A package file with the same combination of parameters exist already in the package. |
 
 ## Delete a package
 
-To delete a Debian package perform a HTTP DELETE operation. This will delete the package version too if there is no file
-left.
+To delete a Debian package perform a HTTP DELETE operation. This will delete the package version too if there is no file left.
 
 ```
 DELETE https://gitea.example.com/api/packages/{owner}/rpm/{distribution}/package/{package_name}/{package_version}/{architecture}
 ```
 
-| Parameter         | Description               |
-|-------------------|---------------------------|
+| Parameter         | Description |
+| ----------------- | ----------- |
 | `owner`           | The owner of the package. |
 | `distribution`    | The package distribution. |
-| `package_name`    | The package name.         |
-| `package_version` | The package version.      |
+| `package_name`    | The package name. |
+| `package_version` | The package version. |
 | `architecture`    | The package architecture. |
 
 Example request using HTTP Basic authentication:
@@ -107,10 +104,10 @@ curl --user your_username:your_token_or_password -X DELETE \
 
 The server responds with the following HTTP Status codes.
 
-| HTTP Status Code | Meaning                            |
-|------------------|------------------------------------|
-| `204 No Content` | Success                            |
-| `404 Not Found`  | The package or file was not found. |
+| HTTP Status Code  | Meaning |
+| ----------------- | ------- |
+| `204 No Content`  | Success |
+| `404 Not Found`   | The package or file was not found. |
 
 ## Install a package
 
