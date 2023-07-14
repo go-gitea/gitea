@@ -116,8 +116,8 @@ export default defineConfig(({mode}) => {
               const goModules = JSON.parse(goJson).map(({name, licenseText}) => {
                 return {name, body: formatLicenseText(licenseText)};
               });
-              const jsModules = dependencies.map(({name, version, licenseName, licenseText}) => {
-                return {name, version, licenseName, body: formatLicenseText(licenseText)};
+              const jsModules = dependencies.map(({name, version, licenseText}) => {
+                return {name, version, body: formatLicenseText(licenseText)};
               });
 
               const modules = [...goModules, ...jsModules].sort((a, b) => a.name.localeCompare(b.name));
