@@ -106,7 +106,7 @@ export default defineConfig(({mode}) => {
       cleanDirsPlugin(),
       stringPlugin(),
       vuePlugin(),
-      licensePlugin({
+      isProduction && licensePlugin({
         thirdParty: {
           output: {
             file: fileURLToPath(new URL('public/js/licenses.txt', import.meta.url)),
