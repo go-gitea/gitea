@@ -21,7 +21,7 @@ import (
 
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct { //nolint
-	db.ListOptions
+	db.Paginator
 	RepoIDs            []int64 // overwrites RepoCond if the length is not 0
 	RepoCond           builder.Cond
 	AssigneeID         int64
@@ -99,14 +99,9 @@ func applySorts(sess *xorm.Session, sortType string, priorityRepoID int64) {
 }
 
 func applyLimit(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
-	if opts.Page >= 0 && opts.PageSize > 0 {
-		var start int
-		if opts.Page == 0 {
-			start = 0
-		} else {
-			start = (opts.Page - 1) * opts.PageSize
-		}
-		sess.Limit(opts.PageSize, start)
+	if opts.Paginator != nil {
+		skip, take := opts.GetSkipTake()
+		sess.Limit(take, skip)
 	}
 	return sess
 }
@@ -435,7 +430,7 @@ func Issues(ctx context.Context, opts *IssuesOptions) ([]*Issue, error) {
 	applyConditions(sess, opts)
 	applySorts(sess, opts.SortType, opts.PriorityRepoID)
 
-	issues := make(IssueList, 0, opts.ListOptions.PageSize)
+	issues := IssueList{}
 	if err := sess.Find(&issues); err != nil {
 		return nil, fmt.Errorf("unable to query Issues: %w", err)
 	}
@@ -445,4 +440,30 @@ func Issues(ctx context.Context, opts *IssuesOptions) ([]*Issue, error) {
 	}
 
 	return issues, nil
+}
+
+// IssueIDs returns a list of issue ids by given conditions.
+func IssueIDs(ctx context.Context, opts *IssuesOptions, otherConds ...builder.Cond) ([]int64, int64, error) {
+	sess := db.GetEngine(ctx).
+		Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
+	applyConditions(sess, opts)
+	for _, cond := range otherConds {
+		sess.And(cond)
+	}
+
+	total, err := sess.Count(&Issue{})
+	if err != nil {
+		return nil, 0, err
+	}
+
+	applyLimit(sess, opts)
+	applySorts(sess, opts.SortType, opts.PriorityRepoID)
+
+	var res []int64
+	if err := sess.Select("`issue`.id").Table("issue").
+		Find(&res); err != nil {
+		return nil, 0, err
+	}
+
+	return res, total, nil
 }

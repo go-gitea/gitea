@@ -236,7 +236,7 @@ func SearchIssues(ctx *context.APIContext) {
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(includedLabelNames) > 0 || len(includedMilestones) > 0 {
 		issuesOpt := &issues_model.IssuesOptions{
-			ListOptions: db.ListOptions{
+			Paginator: &db.ListOptions{
 				Page:     ctx.FormInt("page"),
 				PageSize: limit,
 			},
@@ -279,7 +279,7 @@ func SearchIssues(ctx *context.APIContext) {
 			return
 		}
 
-		issuesOpt.ListOptions = db.ListOptions{
+		issuesOpt.Paginator = &db.ListOptions{
 			Page: -1,
 		}
 		if filteredCount, err = issues_model.CountIssues(ctx, issuesOpt); err != nil {
@@ -469,7 +469,7 @@ func ListIssues(ctx *context.APIContext) {
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
 		issuesOpt := &issues_model.IssuesOptions{
-			ListOptions:       listOptions,
+			Paginator:         &listOptions,
 			RepoIDs:           []int64{ctx.Repo.Repository.ID},
 			IsClosed:          isClosed,
 			IssueIDs:          issueIDs,
@@ -488,7 +488,7 @@ func ListIssues(ctx *context.APIContext) {
 			return
 		}
 
-		issuesOpt.ListOptions = db.ListOptions{
+		issuesOpt.Paginator = &db.ListOptions{
 			Page: -1,
 		}
 		if filteredCount, err = issues_model.CountIssues(ctx, issuesOpt); err != nil {

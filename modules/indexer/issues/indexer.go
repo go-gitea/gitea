@@ -319,17 +319,6 @@ func IsAvailable(ctx context.Context) bool {
 // SearchOptions indicates the options for searching issues
 type SearchOptions internal.SearchOptions
 
-const (
-	SearchOptionsSortByCreatedAsc   = internal.SearchOptionsSortByCreatedAsc
-	SearchOptionsSortByUpdatedAsc   = internal.SearchOptionsSortByUpdatedAsc
-	SearchOptionsSortByCommentsAsc  = internal.SearchOptionsSortByCommentsAsc
-	SearchOptionsSortByDueAsc       = internal.SearchOptionsSortByDueAsc
-	SearchOptionsSortByCreatedDesc  = internal.SearchOptionsSortByCreatedDesc
-	SearchOptionsSortByUpdatedDesc  = internal.SearchOptionsSortByUpdatedDesc
-	SearchOptionsSortByCommentsDesc = internal.SearchOptionsSortByCommentsDesc
-	SearchOptionsSortByDueDesc      = internal.SearchOptionsSortByDueDesc
-)
-
 // SearchIssues search issues by options.
 // It returns issue ids and a bool value indicates if the result is imprecise.
 func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, error) {

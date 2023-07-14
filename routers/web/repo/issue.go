@@ -254,7 +254,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		issues = []*issues_model.Issue{}
 	} else {
 		issues, err = issues_model.Issues(ctx, &issues_model.IssuesOptions{
-			ListOptions: db.ListOptions{
+			Paginator: &db.ListOptions{
 				Page:     pager.Paginater.Current(),
 				PageSize: setting.UI.IssuePagingNum,
 			},
@@ -2509,7 +2509,7 @@ func SearchIssues(ctx *context.Context) {
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(includedLabelNames) > 0 || len(includedMilestones) > 0 {
 		issuesOpt := &issues_model.IssuesOptions{
-			ListOptions: db.ListOptions{
+			Paginator: &db.ListOptions{
 				Page:     ctx.FormInt("page"),
 				PageSize: limit,
 			},
@@ -2553,7 +2553,7 @@ func SearchIssues(ctx *context.Context) {
 			return
 		}
 
-		issuesOpt.ListOptions = db.ListOptions{
+		issuesOpt.Paginator = &db.ListOptions{
 			Page: -1,
 		}
 		if filteredCount, err = issues_model.CountIssues(ctx, issuesOpt); err != nil {
@@ -2694,7 +2694,7 @@ func ListIssues(ctx *context.Context) {
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
 		issuesOpt := &issues_model.IssuesOptions{
-			ListOptions:       listOptions,
+			Paginator:         &listOptions,
 			RepoIDs:           []int64{ctx.Repo.Repository.ID},
 			IsClosed:          isClosed,
 			IssueIDs:          issueIDs,
@@ -2714,7 +2714,7 @@ func ListIssues(ctx *context.Context) {
 			return
 		}
 
-		issuesOpt.ListOptions = db.ListOptions{
+		issuesOpt.Paginator = &db.ListOptions{
 			Page: -1,
 		}
 		if filteredCount, err = issues_model.CountIssues(ctx, issuesOpt); err != nil {

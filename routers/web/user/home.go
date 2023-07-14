@@ -503,8 +503,10 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	if page <= 1 {
 		page = 1
 	}
-	opts.Page = page
-	opts.PageSize = setting.UI.IssuePagingNum
+	opts.Paginator = &db.ListOptions{
+		Page:     page,
+		PageSize: setting.UI.IssuePagingNum,
+	}
 
 	// Get IDs for labels (a filter option for issues/pulls).
 	// Required for IssuesOptions.
