@@ -18,27 +18,27 @@ type IndexerData struct {
 	Comments []string `json:"comments"`
 
 	// Fields used for filtering
-	IsPull             bool    `json:"is_pull"`
-	IsClosed           bool    `json:"is_closed"`         // So if the status of an issue has changed, we should reindex the issue.
-	Labels             []int64 `json:"labels"`            // So if the labels of an issue have changed, we should reindex the issue.
-	NoLabels           bool    `json:"no_labels"`         // True if Labels is empty
-	MilestoneIDs       []int64 `json:"milestone_ids"`     // So if the milestones of an issue have changed, we should reindex the issue.
-	NoMilestone        bool    `json:"no_milestone"`      // True if Milestones is empty
-	ProjectIDs         []int64 `json:"project_ids"`       // So if the projects of an issue have changed, we should reindex the issue.
-	ProjectBoardIDs    []int64 `json:"project_board_ids"` // So if the projects of an issue have changed, we should reindex the issue.
-	NoProject          bool    `json:"no_project"`        // True if ProjectIDs is empty
-	PosterID           int64   `json:"poster_id"`
-	AssigneeID         int64   `json:"assignee_id"` // So if the assignee of an issue has changed, we should reindex the issue.
-	MentionIDs         []int64 `json:"mention_ids"`
-	ReviewedIDs        []int64 `json:"reviewed_ids"`         // So if the reviewers of an issue have changed, we should reindex the issue.
-	ReviewRequestedIDs []int64 `json:"review_requested_ids"` // So if the requested reviewers of an issue have changed, we should reindex the issue.
-	SubscriberIDs      []int64 `json:"subscriber_ids"`       // So if the subscribers of an issue have changed, we should reindex the issue.
+	IsPull             bool               `json:"is_pull"`
+	IsClosed           bool               `json:"is_closed"`         // So if the status of an issue has changed, we should reindex the issue.
+	Labels             []int64            `json:"labels"`            // So if the labels of an issue have changed, we should reindex the issue.
+	NoLabels           bool               `json:"no_labels"`         // True if Labels is empty
+	MilestoneIDs       []int64            `json:"milestone_ids"`     // So if the milestones of an issue have changed, we should reindex the issue.
+	NoMilestone        bool               `json:"no_milestone"`      // True if Milestones is empty
+	ProjectIDs         []int64            `json:"project_ids"`       // So if the projects of an issue have changed, we should reindex the issue.
+	ProjectBoardIDs    []int64            `json:"project_board_ids"` // So if the projects of an issue have changed, we should reindex the issue.
+	NoProject          bool               `json:"no_project"`        // True if ProjectIDs is empty
+	PosterID           int64              `json:"poster_id"`
+	AssigneeID         int64              `json:"assignee_id"` // So if the assignee of an issue has changed, we should reindex the issue.
+	MentionIDs         []int64            `json:"mention_ids"`
+	ReviewedIDs        []int64            `json:"reviewed_ids"`         // So if the reviewers of an issue have changed, we should reindex the issue.
+	ReviewRequestedIDs []int64            `json:"review_requested_ids"` // So if the requested reviewers of an issue have changed, we should reindex the issue.
+	SubscriberIDs      []int64            `json:"subscriber_ids"`       // So if the subscribers of an issue have changed, we should reindex the issue.
+	UpdatedUnix        timeutil.TimeStamp `json:"updated_unix"`
 
 	// Fields used for sorting
-	CreatedAt    timeutil.TimeStamp `json:"created_at"`
-	UpdatedAt    timeutil.TimeStamp `json:"updated_at"`
+	CreatedUnix  timeutil.TimeStamp `json:"created_unix"`
+	DueUnix      timeutil.TimeStamp `json:"due_unix"`
 	CommentCount int64              `json:"comment_count"`
-	DueDate      timeutil.TimeStamp `json:"due_date"`
 }
 
 // Match represents on search result
@@ -65,7 +65,7 @@ type SearchResult struct {
 type SearchOptions struct {
 	Keyword string // keyword to search
 
-	Repos []int64 // repository IDs which the issues belong to
+	RepoIDs []int64 // repository IDs which the issues belong to
 
 	IsPull   *bool // if the issues is a pull request
 	IsClosed *bool // if the issues is closed
@@ -92,8 +92,24 @@ type SearchOptions struct {
 
 	SubscriberID *int64 // subscriber of the issues
 
+	UpdatedAfterUnix  *int64
+	UpdatedBeforeUnix *int64
+
 	Skip  int // skip the first N results
 	Limit int // limit the number of results
 
-	SortBy string // sort by field, could be "created", "updated", "comments", "due_date", add "-" prefix to sort in descending order
+	SortBy SearchOptionsSortBy // sort by field
 }
+
+type SearchOptionsSortBy string
+
+const (
+	SearchOptionsSortByCreatedAsc   SearchOptionsSortBy = "created"
+	SearchOptionsSortByUpdatedAsc   SearchOptionsSortBy = "updated"
+	SearchOptionsSortByCommentsAsc  SearchOptionsSortBy = "comments"
+	SearchOptionsSortByDueAsc       SearchOptionsSortBy = "due"
+	SearchOptionsSortByCreatedDesc  SearchOptionsSortBy = "-created"
+	SearchOptionsSortByUpdatedDesc  SearchOptionsSortBy = "-updated"
+	SearchOptionsSortByCommentsDesc SearchOptionsSortBy = "-comments"
+	SearchOptionsSortByDueDesc      SearchOptionsSortBy = "-due"
+)

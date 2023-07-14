@@ -71,8 +71,8 @@ func (b *Indexer) Delete(_ context.Context, ids ...int64) error {
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
 func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (*internal.SearchResult, error) {
-	repoFilters := make([]string, 0, len(options.Repos))
-	for _, repoID := range options.Repos {
+	repoFilters := make([]string, 0, len(options.RepoIDs))
+	for _, repoID := range options.RepoIDs {
 		repoFilters = append(repoFilters, "repo_id = "+strconv.FormatInt(repoID, 10))
 	}
 	filter := strings.Join(repoFilters, " OR ")

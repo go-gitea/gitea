@@ -298,7 +298,7 @@ func SearchIssuesByKeyword(ctx context.Context, repoIDs []int64, keyword string)
 	indexer := *globalIndexer.Load()
 	res, err := indexer.Search(ctx, &internal.SearchOptions{
 		Keyword: keyword,
-		Repos:   repoIDs,
+		RepoIDs: repoIDs,
 		Limit:   50,
 		Skip:    0,
 	})
@@ -318,6 +318,17 @@ func IsAvailable(ctx context.Context) bool {
 
 // SearchOptions indicates the options for searching issues
 type SearchOptions internal.SearchOptions
+
+const (
+	SearchOptionsSortByCreatedAsc   = internal.SearchOptionsSortByCreatedAsc
+	SearchOptionsSortByUpdatedAsc   = internal.SearchOptionsSortByUpdatedAsc
+	SearchOptionsSortByCommentsAsc  = internal.SearchOptionsSortByCommentsAsc
+	SearchOptionsSortByDueAsc       = internal.SearchOptionsSortByDueAsc
+	SearchOptionsSortByCreatedDesc  = internal.SearchOptionsSortByCreatedDesc
+	SearchOptionsSortByUpdatedDesc  = internal.SearchOptionsSortByUpdatedDesc
+	SearchOptionsSortByCommentsDesc = internal.SearchOptionsSortByCommentsDesc
+	SearchOptionsSortByDueDesc      = internal.SearchOptionsSortByDueDesc
+)
 
 // SearchIssues search issues by options.
 // It returns issue ids and a bool value indicates if the result is imprecise.
@@ -340,7 +351,7 @@ func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, error) {
 	}
 
 	if result.Imprecise {
-		ret, err := filterIssuesByDB(ctx, ret, opts)
+		ret, err := reFilter(ctx, ret, opts)
 		if err != nil {
 			return nil, err
 		}

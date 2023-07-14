@@ -448,6 +448,7 @@ func Issues(ctx context.Context, opts *IssuesOptions) ([]*Issue, error) {
 	return issues, nil
 }
 
+// Deprecated: use `searchIssues` or `indexer/issues.Search` instead
 // SearchIssueIDsByKeyword search issues on database
 func SearchIssueIDsByKeyword(ctx context.Context, kw string, repoIDs []int64, limit, start int) (int64, []int64, error) {
 	repoCond := builder.In("repo_id", repoIDs)
@@ -492,7 +493,50 @@ func SearchIssueIDsByKeyword(ctx context.Context, kw string, repoIDs []int64, li
 }
 
 func init() {
-	indexer_issues.RegisterFilterIssuesFunc(filterIssuesOfSearchResult)
+	indexer_issues.RegisterReFilterFunc(filterIssuesOfSearchResult)
+	indexer_issues.RegisterDBSearch(searchIssues)
+}
+
+func searchIssues(ctx context.Context, options *indexer_issues.SearchOptions) ([]int64, int64, error) {
+	repoCond := builder.In("repo_id", options.RepoIDs)
+	subQuery := builder.Select("id").From("issue").Where(repoCond)
+	cond := builder.And(
+		repoCond,
+		builder.Or(
+			db.BuildCaseInsensitiveLike("name", options.Keyword),
+			db.BuildCaseInsensitiveLike("content", options.Keyword),
+			builder.In("id", builder.Select("issue_id").
+				From("comment").
+				Where(builder.And(
+					builder.Eq{"type": CommentTypeComment},
+					builder.In("issue_id", subQuery),
+					db.BuildCaseInsensitiveLike("content", options.Keyword),
+				)),
+			),
+		),
+	)
+
+	ids := make([]int64, 0, options.Limit)
+	res := make([]struct {
+		ID          int64
+		UpdatedUnix int64
+	}, 0, options.Limit)
+	err := db.GetEngine(ctx).Distinct("id", "updated_unix").Table("issue").Where(cond).
+		OrderBy("`updated_unix` DESC").Limit(options.Limit, options.Skip).
+		Find(&res)
+	if err != nil {
+		return nil, 0, err
+	}
+	for _, r := range res {
+		ids = append(ids, r.ID)
+	}
+
+	total, err := db.GetEngine(ctx).Distinct("id").Table("issue").Where(cond).Count()
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return ids, total, nil
 }
 
 func filterIssuesOfSearchResult(ctx context.Context, issuesIDs []int64, options *indexer_issues.SearchOptions) ([]int64, error) {
@@ -523,6 +567,32 @@ func filterIssuesOfSearchResult(ctx context.Context, issuesIDs []int64, options 
 		for _, id := range excludes {
 			ret = append(ret, -id)
 		}
+		return ret
+	}
+	convertInt64 := func(i *int64) int64 {
+		if i == nil {
+			return 0
+		}
+		return *i
+	}
+	sortType := ""
+	switch options.SortBy {
+	case indexer_issues.SearchOptionsSortByCreatedAsc:
+		sortType = "oldest"
+	case indexer_issues.SearchOptionsSortByUpdatedAsc:
+		sortType = "leastupdate"
+	case indexer_issues.SearchOptionsSortByCommentsAsc:
+		sortType = "leastcomment"
+	case indexer_issues.SearchOptionsSortByDueAsc:
+		sortType = "farduedate"
+	case indexer_issues.SearchOptionsSortByCreatedDesc:
+		sortType = "" // default
+	case indexer_issues.SearchOptionsSortByUpdatedDesc:
+		sortType = "recentupdate"
+	case indexer_issues.SearchOptionsSortByCommentsDesc:
+		sortType = "mostcomment"
+	case indexer_issues.SearchOptionsSortByDueDesc:
+		sortType = "nearduedate"
 	}
 
 	opts := &IssuesOptions{
@@ -546,14 +616,24 @@ func filterIssuesOfSearchResult(ctx context.Context, issuesIDs []int64, options 
 		IncludedLabelNames: nil, // use LabelIDs instead
 		ExcludedLabelNames: nil, // use LabelIDs instead
 		IncludeMilestones:  nil, // use MilestoneIDs instead
-		SortType:           "",  // TBC
+		SortType:           sortType,
 		IssueIDs:           issuesIDs,
-		UpdatedAfterUnix:   0,
-		UpdatedBeforeUnix:  0,
-		PriorityRepoID:     0,
-		IsArchived:         0,
-		Org:                nil,
-		Team:               nil,
-		User:               nil,
+		UpdatedAfterUnix:   convertInt64(options.UpdatedAfterUnix),
+		UpdatedBeforeUnix:  convertInt64(options.UpdatedBeforeUnix),
+		PriorityRepoID:     0,   // don't use priority repo since it isn't supported by search to sort by priorityrepo
+		IsArchived:         0,   // it's unnecessary since issuesIDs are already filtered by repoIDs
+		Org:                nil, // it's unnecessary since issuesIDs are already filtered by repoIDs
+		Team:               nil, // it's unnecessary since issuesIDs are already filtered by repoIDs
+		User:               nil, // it's unnecessary since issuesIDs are already filtered by repoIDs
 	}
+	// FIXME: use a new function which returns ids only, to avoid unnecessary issues loading
+	issues, err := Issues(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	issueIDs := make([]int64, 0, len(issues))
+	for _, issue := range issues {
+		issueIDs = append(issueIDs, issue.ID)
+	}
+	return issueIDs, nil
 }

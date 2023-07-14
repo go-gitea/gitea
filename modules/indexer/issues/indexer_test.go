@@ -53,7 +53,7 @@ func TestBleveSearchIssues(t *testing.T) {
 	t.Run("issue2", func(t *testing.T) {
 		ids, err := SearchIssues(context.TODO(), &SearchOptions{
 			Keyword: "issue2",
-			Repos:   []int64{1},
+			RepoIDs: []int64{1},
 		})
 		assert.NoError(t, err)
 		assert.EqualValues(t, []int64{2}, ids)
@@ -62,7 +62,7 @@ func TestBleveSearchIssues(t *testing.T) {
 	t.Run("first", func(t *testing.T) {
 		ids, err := SearchIssues(context.TODO(), &SearchOptions{
 			Keyword: "first",
-			Repos:   []int64{1},
+			RepoIDs: []int64{1},
 		})
 		assert.NoError(t, err)
 		assert.EqualValues(t, []int64{1}, ids)
@@ -71,7 +71,7 @@ func TestBleveSearchIssues(t *testing.T) {
 	t.Run("for", func(t *testing.T) {
 		ids, err := SearchIssues(context.TODO(), &SearchOptions{
 			Keyword: "for",
-			Repos:   []int64{1},
+			RepoIDs: []int64{1},
 		})
 		assert.NoError(t, err)
 		assert.ElementsMatch(t, []int64{1, 2, 3, 5, 11}, ids)
@@ -80,7 +80,7 @@ func TestBleveSearchIssues(t *testing.T) {
 	t.Run("good", func(t *testing.T) {
 		ids, err := SearchIssues(context.TODO(), &SearchOptions{
 			Keyword: "good",
-			Repos:   []int64{1},
+			RepoIDs: []int64{1},
 		})
 		assert.NoError(t, err)
 		assert.EqualValues(t, []int64{1}, ids)
@@ -96,7 +96,7 @@ func TestDBSearchIssues(t *testing.T) {
 	t.Run("issue2", func(t *testing.T) {
 		ids, err := SearchIssues(context.TODO(), &SearchOptions{
 			Keyword: "issue2",
-			Repos:   []int64{1},
+			RepoIDs: []int64{1},
 		})
 		assert.NoError(t, err)
 		assert.EqualValues(t, []int64{2}, ids)
@@ -105,7 +105,7 @@ func TestDBSearchIssues(t *testing.T) {
 	t.Run("first", func(t *testing.T) {
 		ids, err := SearchIssues(context.TODO(), &SearchOptions{
 			Keyword: "first",
-			Repos:   []int64{1},
+			RepoIDs: []int64{1},
 		})
 		assert.NoError(t, err)
 		assert.EqualValues(t, []int64{1}, ids)
@@ -114,7 +114,7 @@ func TestDBSearchIssues(t *testing.T) {
 	t.Run("for", func(t *testing.T) {
 		ids, err := SearchIssues(context.TODO(), &SearchOptions{
 			Keyword: "for",
-			Repos:   []int64{1},
+			RepoIDs: []int64{1},
 		})
 		assert.NoError(t, err)
 		assert.ElementsMatch(t, []int64{1, 2, 3, 5, 11}, ids)
@@ -123,7 +123,7 @@ func TestDBSearchIssues(t *testing.T) {
 	t.Run("good", func(t *testing.T) {
 		ids, err := SearchIssues(context.TODO(), &SearchOptions{
 			Keyword: "good",
-			Repos:   []int64{1},
+			RepoIDs: []int64{1},
 		})
 		assert.NoError(t, err)
 		assert.EqualValues(t, []int64{1}, ids)

@@ -153,7 +153,7 @@ func (b *Indexer) Delete(_ context.Context, ids ...int64) error {
 // Returns the matching issue IDs
 func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (*internal.SearchResult, error) {
 	var repoQueriesP []*query.NumericRangeQuery
-	for _, repoID := range options.Repos {
+	for _, repoID := range options.RepoIDs {
 		repoQueriesP = append(repoQueriesP, inner_bleve.NumericEqualityQuery(repoID, "repo_id"))
 	}
 	repoQueries := make([]query.Query, len(repoQueriesP))

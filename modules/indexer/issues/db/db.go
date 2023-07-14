@@ -5,8 +5,8 @@ package db
 
 import (
 	"context"
+	"fmt"
 
-	issues_model "code.gitea.io/gitea/models/issues"
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_db "code.gitea.io/gitea/modules/indexer/internal/db"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
@@ -35,21 +35,12 @@ func (i *Indexer) Delete(_ context.Context, _ ...int64) error {
 	return nil
 }
 
+var SearchFunc func(ctx context.Context, options *internal.SearchOptions) (*internal.SearchResult, error)
+
 // Search searches for issues
 func (i *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (*internal.SearchResult, error) {
-	total, ids, err := issues_model.SearchIssueIDsByKeyword(ctx, options.Keyword, options.Repos, options.Limit, options.Skip)
-	if err != nil {
-		return nil, err
+	if SearchFunc != nil {
+		return SearchFunc(ctx, options)
 	}
-	result := internal.SearchResult{
-		Total:     total,
-		Hits:      make([]internal.Match, 0, options.Limit),
-		Imprecise: true,
-	}
-	for _, id := range ids {
-		result.Hits = append(result.Hits, internal.Match{
-			ID: id,
-		})
-	}
-	return &result, nil
+	return nil, fmt.Errorf("SearchFunc is not registered")
 }

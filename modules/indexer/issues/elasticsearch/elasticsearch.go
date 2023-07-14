@@ -144,9 +144,9 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	kwQuery := elastic.NewMultiMatchQuery(options.Keyword, "title", "content", "comments")
 	query := elastic.NewBoolQuery()
 	query = query.Must(kwQuery)
-	if len(options.Repos) > 0 {
-		repoStrs := make([]any, 0, len(options.Repos))
-		for _, repoID := range options.Repos {
+	if len(options.RepoIDs) > 0 {
+		repoStrs := make([]any, 0, len(options.RepoIDs))
+		for _, repoID := range options.RepoIDs {
 			repoStrs = append(repoStrs, repoID)
 		}
 		repoQuery := elastic.NewTermsQuery("repo_id", repoStrs...)
