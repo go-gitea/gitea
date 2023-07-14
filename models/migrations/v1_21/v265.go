@@ -1,18 +1,19 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_21
+package v1_21 //nolint
 
 import (
 	"code.gitea.io/gitea/modules/json"
-	rpmModule "code.gitea.io/gitea/modules/packages/rpm"
+	"code.gitea.io/gitea/modules/packages/rpm"
+
 	"xorm.io/xorm"
 )
 
 func RebuildRpmPackage(x *xorm.Engine) error {
 	sess := x.NewSession()
 	defer sess.Close()
-	defaultDistribution := rpmModule.RepositoryDefaultDistribution
+	defaultDistribution := rpm.RepositoryDefaultDistribution
 	// select all old rpm package
 	var oldRpmIds []int64
 	ss := sess.Cols("id").
@@ -39,7 +40,7 @@ func RebuildRpmPackage(x *xorm.Engine) error {
 			return err
 		}
 		// get rpm info
-		var rpmMetadata rpmModule.FileMetadata
+		var rpmMetadata rpm.FileMetadata
 		err = json.Unmarshal([]byte(metadata[2]), &rpmMetadata)
 		if err != nil {
 			return err
