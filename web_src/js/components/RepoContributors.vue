@@ -35,13 +35,13 @@
             </span>
           </div>
           <div class="menu">
-            <div :class="type === 'commits' ? 'active item' : 'item'">
+            <div :class="['item', {'active': type === 'commits'}]">
               {{ locale.contributionType.commits }}
             </div>
-            <div :class="type === 'additions' ? 'active item' : 'item'">
+            <div :class="['item', {'active': type === 'additions'}]">
               {{ locale.contributionType.additions }}
             </div>
-            <div :class="type === 'deletions' ? 'active item' : 'item'">
+            <div :class="['item', {'active': type === 'deletions'}]">
               {{ locale.contributionType.deletions }}
             </div>
           </div>
@@ -75,7 +75,7 @@
         <div class="ui top attached header gt-df gt-f1">
           <b class="ui right">#{{ index + 1 }}</b>
           <a :href="contributor.home_link">
-            <img height="40" width="40" :href="contributor.avatar_link" :src="contributor.avatar_link">
+            <img height="40" width="40" :src="contributor.avatar_link">
           </a>
           <div class="gt-ml-3">
             <a :href="contributor.home_link"><h4>{{ contributor.name }}</h4></a>

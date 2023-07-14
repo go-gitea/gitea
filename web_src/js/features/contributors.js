@@ -4,7 +4,7 @@ export async function initRepoContributors() {
   const el = document.getElementById('repo-contributors-chart');
   if (!el) return;
 
-  const {default: RepoContributors} = await import('../components/RepoContributors.vue');
+  const {default: RepoContributors} = await import(/* webpackChunkName: "contributors-graph" */'../components/RepoContributors.vue');
   try {
     const View = createApp(RepoContributors, {
       locale: {
