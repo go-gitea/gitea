@@ -20,7 +20,7 @@
 
 	<h4 class="ui top attached header">{{.locale.Tr "packages.rpm.package.info"}}</h4>
 	<div class="ui attached segment">
-		<table class="ui single line very basic table">
+		<table class="ui single very basic table">
 			<tbody>
 				<tr>
 					<td class="collapsing"><h5>{{.locale.Tr "packages.rpm.package.distributions"}}</h5></td>
@@ -34,6 +34,12 @@
 				<tr>
 					<td class="collapsing"><h5>{{.locale.Tr "packages.rpm.package.summary"}}</h5></td>
 					<td>{{.PackageDescriptor.Metadata.Summary}}</td>
+				</tr>
+				{{end}}
+				{{if .PackageDescriptor.Metadata.Description}}
+				<tr>
+					<td class="collapsing"><h5>{{.locale.Tr "packages.rpm.package.description"}}</h5></td>
+					<td>{{.PackageDescriptor.Metadata.Description}}</td>
 				</tr>
 				{{end}}
 			</tbody>
