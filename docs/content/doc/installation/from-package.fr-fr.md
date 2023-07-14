@@ -19,15 +19,15 @@ menu:
 
 ## Linux
 
-Nous n'avons pas encore publié de paquet pour Linux, nous allons mettre à jour cette page directement lorsque nous commencerons à publier des paquets pour toutes distributions Linux. En attendant, vous devriez suivre les [instructions d'installation]({{< relref "from-binary.fr-fr.md" >}}) avec le binaire pré-compilé.
+Nous n'avons pas encore publié de paquet pour Linux, nous allons mettre à jour cette page directement lorsque nous commencerons à publier des paquets pour toutes distributions Linux. En attendant, vous devriez suivre les [instructions d'installation]({{< relref "doc/installation/from-binary.fr-fr.md" >}}) avec le binaire pré-compilé.
 
 ## Windows
 
-Nous n'avons pas encore publié de paquet pour Windows, nous allons mettre à jour cette page directement lorsque nous commencerons à publier des paquets sous la forme de fichiers `MSI` ou via [Chocolatey](https://chocolatey.org/). En attendant, vous devriez suivre les [instructions d'installation]({{< relref "from-binary.fr-fr.md" >}}) avec le binaire pré-compilé.
+Nous n'avons pas encore publié de paquet pour Windows, nous allons mettre à jour cette page directement lorsque nous commencerons à publier des paquets sous la forme de fichiers `MSI` ou via [Chocolatey](https://chocolatey.org/). En attendant, vous devriez suivre les [instructions d'installation]({{< relref "doc/installation/from-binary.fr-fr.md" >}}) avec le binaire pré-compilé.
 
 ## macOS
 
-Actuellement, nous ne supportons que l'installation via `brew` pour macOS. Si vous n'utilisez pas [Homebrew](http://brew.sh/), vous pouvez suivre les [instructions d'installation]({{< relref "from-binary.fr-fr.md" >}}) avec le binaire pré-compilé. Pour installer Gitea depuis `brew`, utilisez les commandes suivantes :
+Actuellement, nous ne supportons que l'installation via `brew` pour macOS. Si vous n'utilisez pas [Homebrew](http://brew.sh/), vous pouvez suivre les [instructions d'installation]({{< relref "doc/installation/from-binary.fr-fr.md" >}}) avec le binaire pré-compilé. Pour installer Gitea depuis `brew`, utilisez les commandes suivantes :
 
 ```
 brew tap go-gitea/gitea

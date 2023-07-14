@@ -13,6 +13,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
@@ -321,7 +322,7 @@ func (a *actionNotifier) NotifyPushCommits(ctx context.Context, pusher *user_mod
 	opType := activities_model.ActionCommitRepo
 
 	// Check it's tag push or branch.
-	if opts.IsTag() {
+	if opts.RefFullName.IsTag() {
 		opType = activities_model.ActionPushTag
 		if opts.IsDelRef() {
 			opType = activities_model.ActionDeleteTag
@@ -337,16 +338,16 @@ func (a *actionNotifier) NotifyPushCommits(ctx context.Context, pusher *user_mod
 		Content:   string(data),
 		RepoID:    repo.ID,
 		Repo:      repo,
-		RefName:   opts.RefFullName,
+		RefName:   opts.RefFullName.String(),
 		IsPrivate: repo.IsPrivate,
 	}); err != nil {
 		log.Error("NotifyWatchers: %v", err)
 	}
 }
 
-func (a *actionNotifier) NotifyCreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
+func (a *actionNotifier) NotifyCreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string) {
 	opType := activities_model.ActionCommitRepo
-	if refType == "tag" {
+	if refFullName.IsTag() {
 		// has sent same action in `NotifyPushCommits`, so skip it.
 		return
 	}
@@ -357,15 +358,15 @@ func (a *actionNotifier) NotifyCreateRef(ctx context.Context, doer *user_model.U
 		RepoID:    repo.ID,
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
-		RefName:   refFullName,
+		RefName:   refFullName.String(),
 	}); err != nil {
 		log.Error("NotifyWatchers: %v", err)
 	}
 }
 
-func (a *actionNotifier) NotifyDeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
+func (a *actionNotifier) NotifyDeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName) {
 	opType := activities_model.ActionDeleteBranch
-	if refType == "tag" {
+	if refFullName.IsTag() {
 		// has sent same action in `NotifyPushCommits`, so skip it.
 		return
 	}
@@ -376,7 +377,7 @@ func (a *actionNotifier) NotifyDeleteRef(ctx context.Context, doer *user_model.U
 		RepoID:    repo.ID,
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
-		RefName:   refFullName,
+		RefName:   refFullName.String(),
 	}); err != nil {
 		log.Error("NotifyWatchers: %v", err)
 	}
@@ -396,14 +397,14 @@ func (a *actionNotifier) NotifySyncPushCommits(ctx context.Context, pusher *user
 		RepoID:    repo.ID,
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
-		RefName:   opts.RefFullName,
+		RefName:   opts.RefFullName.String(),
 		Content:   string(data),
 	}); err != nil {
 		log.Error("NotifyWatchers: %v", err)
 	}
 }
 
-func (a *actionNotifier) NotifySyncCreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
+func (a *actionNotifier) NotifySyncCreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string) {
 	if err := activities_model.NotifyWatchers(ctx, &activities_model.Action{
 		ActUserID: repo.OwnerID,
 		ActUser:   repo.MustOwner(ctx),
@@ -411,13 +412,13 @@ func (a *actionNotifier) NotifySyncCreateRef(ctx context.Context, doer *user_mod
 		RepoID:    repo.ID,
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
-		RefName:   refFullName,
+		RefName:   refFullName.String(),
 	}); err != nil {
 		log.Error("NotifyWatchers: %v", err)
 	}
 }
 
-func (a *actionNotifier) NotifySyncDeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
+func (a *actionNotifier) NotifySyncDeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName) {
 	if err := activities_model.NotifyWatchers(ctx, &activities_model.Action{
 		ActUserID: repo.OwnerID,
 		ActUser:   repo.MustOwner(ctx),
@@ -425,7 +426,7 @@ func (a *actionNotifier) NotifySyncDeleteRef(ctx context.Context, doer *user_mod
 		RepoID:    repo.ID,
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
-		RefName:   refFullName,
+		RefName:   refFullName.String(),
 	}); err != nil {
 		log.Error("NotifyWatchers: %v", err)
 	}
@@ -444,7 +445,7 @@ func (a *actionNotifier) NotifyNewRelease(ctx context.Context, rel *repo_model.R
 		Repo:      rel.Repo,
 		IsPrivate: rel.Repo.IsPrivate,
 		Content:   rel.Title,
-		RefName:   rel.TagName,
+		RefName:   rel.TagName, // FIXME: use a full ref name?
 	}); err != nil {
 		log.Error("NotifyWatchers: %v", err)
 	}

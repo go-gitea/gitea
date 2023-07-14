@@ -1,6 +1,1 @@
-<code {{if .diff.EscapeStatus.Escaped}}{{/*
-	*/}}class="code-inner has-escaped" {{/*
-	*/}}title="{{template "repo/diff/escape_title" .}}"{{/*
-	*/}}{{else}}{{/*
-	*/}}class="code-inner"{{/*
-	*/}}{{end}}>{{.diff.Content}}</code>
+<code class="code-inner{{if .diff.EscapeStatus.Escaped}} has-escaped{{end}}"{{if .diff.EscapeStatus.Escaped}} title="{{template "repo/diff/escape_title" .}}"{{end}}>{{.diff.Content}}</code>

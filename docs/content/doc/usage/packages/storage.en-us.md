@@ -28,7 +28,7 @@ If two identical files are uploaded only one blob is saved on the filesystem.
 This ensures no space is wasted for duplicated files.
 
 If two packages are uploaded with identical files, both packages will display the same size but on the filesystem they require only half of the size.
-Whenever a package gets deleted only the references to the underlaying blobs are removed.
+Whenever a package gets deleted, only the references to the underlying blobs are removed.
 The blobs get not removed at this moment, so they still require space on the filesystem.
 When a new package gets uploaded the existing blobs may get referenced again.
 
@@ -77,9 +77,9 @@ The cleanup rules are part of the [clean up job]({{< relref "doc/administration/
 The cleanup rule:
 
 1. Collects all packages of the package type for the owners registry.
-1. For every package it collects all versions.
-1. Excludes from the list the # versions based on the *Keep the most recent* value.
-1. Excludes from the list any versions matching the *Keep versions matching* value.
-1. Excludes from the list the versions more recent than the *Remove versions older than* value.
-1. Excludes from the list any versions not matching the *Remove versions matching* value.
-1. Deletes the remaining versions.
+2. For every package it collects all versions.
+3. Excludes from the list the # versions based on the *Keep the most recent* value.
+4. Excludes from the list any versions matching the *Keep versions matching* value.
+5. Excludes from the list the versions more recent than the *Remove versions older than* value.
+6. Excludes from the list any versions not matching the *Remove versions matching* value.
+7. Deletes the remaining versions.

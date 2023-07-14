@@ -26,7 +26,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 	"xorm.io/xorm/schemas"
@@ -367,17 +366,7 @@ func (a *Action) GetBranch() string {
 
 // GetRefLink returns the action's ref link.
 func (a *Action) GetRefLink() string {
-	switch {
-	case strings.HasPrefix(a.RefName, git.BranchPrefix):
-		return a.GetRepoLink() + "/src/branch/" + util.PathEscapeSegments(strings.TrimPrefix(a.RefName, git.BranchPrefix))
-	case strings.HasPrefix(a.RefName, git.TagPrefix):
-		return a.GetRepoLink() + "/src/tag/" + util.PathEscapeSegments(strings.TrimPrefix(a.RefName, git.TagPrefix))
-	case len(a.RefName) == git.SHAFullLength && git.IsValidSHAPattern(a.RefName):
-		return a.GetRepoLink() + "/src/commit/" + a.RefName
-	default:
-		// FIXME: we will just assume it's a branch - this was the old way - at some point we may want to enforce that there is always a ref here.
-		return a.GetRepoLink() + "/src/branch/" + util.PathEscapeSegments(strings.TrimPrefix(a.RefName, git.BranchPrefix))
-	}
+	return git.RefURL(a.GetRepoLink(), a.RefName)
 }
 
 // GetTag returns the action's repository tag.

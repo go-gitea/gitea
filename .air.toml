@@ -2,7 +2,7 @@ root = "."
 tmp_dir = ".air"
 
 [build]
-cmd = "make backend"
+cmd = "make --no-print-directory backend"
 bin = "gitea"
 delay = 1000
 include_ext = ["go", "tmpl"]

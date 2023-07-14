@@ -22,9 +22,9 @@ import (
 	"github.com/urfave/cli"
 )
 
-// Cmdembedded represents the available extract sub-command.
+// CmdEmbedded represents the available extract sub-command.
 var (
-	Cmdembedded = cli.Command{
+	CmdEmbedded = cli.Command{
 		Name:        "embedded",
 		Usage:       "Extract embedded resources",
 		Description: "A command for extracting embedded resources, like templates and images",
@@ -97,18 +97,7 @@ type assetFile struct {
 }
 
 func initEmbeddedExtractor(c *cli.Context) error {
-	// FIXME: there is a bug, if the user runs `gitea embedded` with a different user or root,
-	// The setting.Init (loadRunModeFrom) will fail and do log.Fatal
-	// But the console logger has been deleted, so nothing is printed, the user sees nothing and Gitea just exits.
-
-	// Silence the console logger
-	log.DelNamedLogger("console")
-	log.DelNamedLogger(log.DEFAULT)
-
-	// Read configuration file
-	setting.Init(&setting.Options{
-		AllowEmpty: true,
-	})
+	setupConsoleLogger(log.ERROR, log.CanColorStderr, os.Stderr)
 
 	patterns, err := compileCollectPatterns(c.Args())
 	if err != nil {

@@ -12,7 +12,7 @@
 			{{.CsrfTokenHtml}}
 			<div class="field {{if .Err_Title}}error{{end}}">
 				<label for="title">{{.locale.Tr "settings.key_name"}}</label>
-				<input id="ssh-key-title" name="title" value="{{.title}}" autofocus required>
+				<input id="ssh-key-title" name="title" value="{{.title}}" autofocus required maxlength="50">
 			</div>
 			<div class="field {{if .Err_Content}}error{{end}}">
 				<label for="content">{{.locale.Tr "settings.key_content"}}</label>
@@ -59,7 +59,7 @@
 								{{.Fingerprint}}
 						</div>
 						<div class="activity meta">
-								<i>{{$.locale.Tr "settings.add_on" (DateTime "short" .CreatedUnix) | Safe}} —	{{svg "octicon-info"}} {{if .HasUsed}}{{$.locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{DateTime "short" .UpdatedUnix}}</span>{{else}}{{$.locale.Tr "settings.no_activity"}}{{end}}</i>
+								<i>{{$.locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix) | Safe}} —	{{svg "octicon-info"}} {{if .HasUsed}}{{$.locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{DateTime "short" .UpdatedUnix}}</span>{{else}}{{$.locale.Tr "settings.no_activity"}}{{end}}</i>
 						</div>
 				</div>
 			</div>

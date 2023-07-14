@@ -31,7 +31,7 @@ func TestAPIListGitHooks(t *testing.T) {
 
 	// user1 is an admin user
 	session := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepoHook)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git?token=%s",
 		owner.Name, repo.Name, token)
 	resp := MakeRequest(t, req, http.StatusOK)
@@ -57,7 +57,7 @@ func TestAPIListGitHooksNoHooks(t *testing.T) {
 
 	// user1 is an admin user
 	session := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepoHook)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git?token=%s",
 		owner.Name, repo.Name, token)
 	resp := MakeRequest(t, req, http.StatusOK)
@@ -77,7 +77,7 @@ func TestAPIListGitHooksNoAccess(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepoHook)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git?token=%s",
 		owner.Name, repo.Name, token)
 	MakeRequest(t, req, http.StatusForbidden)
@@ -91,7 +91,7 @@ func TestAPIGetGitHook(t *testing.T) {
 
 	// user1 is an admin user
 	session := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepoHook)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git/pre-receive?token=%s",
 		owner.Name, repo.Name, token)
 	resp := MakeRequest(t, req, http.StatusOK)
@@ -108,7 +108,7 @@ func TestAPIGetGitHookNoAccess(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepoHook)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git/pre-receive?token=%s",
 		owner.Name, repo.Name, token)
 	MakeRequest(t, req, http.StatusForbidden)
@@ -122,7 +122,7 @@ func TestAPIEditGitHook(t *testing.T) {
 
 	// user1 is an admin user
 	session := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAdminRepoHook)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/hooks/git/pre-receive?token=%s",
 		owner.Name, repo.Name, token)
@@ -151,7 +151,7 @@ func TestAPIEditGitHookNoAccess(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepoHook)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/hooks/git/pre-receive?token=%s",
 		owner.Name, repo.Name, token)
 	req := NewRequestWithJSON(t, "PATCH", urlStr, &api.EditGitHookOption{
@@ -168,7 +168,7 @@ func TestAPIDeleteGitHook(t *testing.T) {
 
 	// user1 is an admin user
 	session := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAdminRepoHook)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/hooks/git/pre-receive?token=%s",
 		owner.Name, repo.Name, token)
@@ -190,7 +190,7 @@ func TestAPIDeleteGitHookNoAccess(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepoHook)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/hooks/git/pre-receive?token=%s",
 		owner.Name, repo.Name, token)
 	MakeRequest(t, req, http.StatusForbidden)

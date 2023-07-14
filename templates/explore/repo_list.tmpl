@@ -38,25 +38,25 @@
 						{{end}}
 					</div>
 				</div>
-				<div class="metas gt-df gt-ac text grey">
+				<div class="gt-font-13 gt-df gt-ac text grey">
 					{{if .PrimaryLanguage}}
 						<a class="muted" href="{{$.Link}}?q={{$.Keyword}}&sort={{$.SortType}}&language={{.PrimaryLanguage.Language}}">
 							<span class="gt-df gt-ac gt-mr-3"><i class="color-icon gt-mr-3" style="background-color: {{.PrimaryLanguage.Color}}"></i>{{.PrimaryLanguage.Language}}</span>
 						</a>
 					{{end}}
 					{{if not $.DisableStars}}
-						<span class="text grey gt-df gt-ac gt-mr-3">{{svg "octicon-star" 16 "gt-mr-3"}}{{.NumStars}}</span>
+						<a class="text grey gt-df gt-ac gt-mr-3" href="{{.Link}}/stars">{{svg "octicon-star" 16 "gt-mr-3"}}{{.NumStars}}</a>
 					{{end}}
-					<span class="text grey gt-df gt-ac gt-mr-3">{{svg "octicon-git-branch" 16 "gt-mr-3"}}{{.NumForks}}</span>
+					<a class="text grey gt-df gt-ac gt-mr-3" href="{{.Link}}/forks">{{svg "octicon-git-branch" 16 "gt-mr-3"}}{{.NumForks}}</a>
 				</div>
 			</div>
 			<div class="description">
 				{{$description := .DescriptionHTML $.Context}}
 				{{if $description}}<p>{{$description}}</p>{{end}}
 				{{if .Topics}}
-					<div class="ui tags">
+					<div class="gt-df gt-fw gt-gap-2 gt-mb-3">
 					{{range .Topics}}
-						{{if ne . ""}}<a href="{{AppSubUrl}}/explore/repos?q={{.}}&topic=1"><div class="ui small label topic">{{.}}</div></a>{{end}}
+						{{if ne . ""}}<a class="ui label" href="{{AppSubUrl}}/explore/repos?q={{.}}&topic=1">{{.}}</a>{{end}}
 					{{end}}
 					</div>
 				{{end}}

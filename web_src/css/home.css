@@ -2,7 +2,7 @@
   max-width: 220px;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .home .hero h1 {
     font-size: 3.5em;
   }
@@ -45,18 +45,26 @@
 
 .page-footer {
   display: flex;
+  justify-content: space-between;
   background-color: var(--color-footer);
   border-top: 1px solid var(--color-secondary);
-  line-height: 39px;
-  padding: 0 20px;
+  padding: 8px 20px;
 }
 
 .page-footer .left-links {
-  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25em;
 }
 
 .page-footer .right-links {
   min-width: 180px; /* make sure the menu dropdown doesn't overflow horizontally when language name is short */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
 }
 
 .page-footer .right-links > a {
@@ -74,7 +82,7 @@
 
 @media (max-width: 880px) {
   .page-footer {
-    display: block;
-    text-align: center;
+    flex-direction: column;
+    gap: 0.5em;
   }
 }

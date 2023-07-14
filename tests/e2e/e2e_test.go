@@ -31,14 +31,14 @@ import (
 var c *web.Route
 
 func TestMain(m *testing.M) {
-	defer log.Close()
+	defer log.GetManager().Close()
 
 	managerCtx, cancel := context.WithCancel(context.Background())
 	graceful.InitManager(managerCtx)
 	defer cancel()
 
 	tests.InitTest(false)
-	c = routers.NormalRoutes(context.TODO())
+	c = routers.NormalRoutes()
 
 	os.Unsetenv("GIT_AUTHOR_NAME")
 	os.Unsetenv("GIT_AUTHOR_EMAIL")

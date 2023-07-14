@@ -31,4 +31,4 @@ WORK_IN_PROGRESS_PREFIXES=WIP:,[WIP]
 
 ## 合併請求範本
 
-您可以在[問題與合併請求範本](../issue-pull-request-templates)找到更多關於合併請求範本的資訊。
+您可以在[問題與合併請求範本](issue-pull-request-templates)找到更多關於合併請求範本的資訊。

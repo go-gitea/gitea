@@ -6,35 +6,8 @@ package context
 import (
 	"io"
 	"net/http"
-	"net/url"
-	"strconv"
 	"strings"
-
-	"github.com/go-chi/chi/v5"
 )
-
-// RemoteAddr returns the client machine ip address
-func (ctx *Context) RemoteAddr() string {
-	return ctx.Req.RemoteAddr
-}
-
-// Params returns the param on route
-func (ctx *Context) Params(p string) string {
-	s, _ := url.PathUnescape(chi.URLParam(ctx.Req, strings.TrimPrefix(p, ":")))
-	return s
-}
-
-// ParamsInt64 returns the param on route as int64
-func (ctx *Context) ParamsInt64(p string) int64 {
-	v, _ := strconv.ParseInt(ctx.Params(p), 10, 64)
-	return v
-}
-
-// SetParams set params into routes
-func (ctx *Context) SetParams(k, v string) {
-	chiCtx := chi.RouteContext(ctx)
-	chiCtx.URLParams.Add(strings.TrimPrefix(k, ":"), url.PathEscape(v))
-}
 
 // UploadStream returns the request body or the first form file
 // Only form files need to get closed.

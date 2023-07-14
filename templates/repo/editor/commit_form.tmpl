@@ -41,17 +41,15 @@
 			</div>
 			{{if not .Repository.IsEmpty}}
 			<div class="field">
-				{{$pullRequestEnabled := .Repository.UnitEnabled $.Context $.UnitTypePullRequests}}
-				{{$prUnit := .Repository.MustGetUnit $.Context $.UnitTypePullRequests}}
 				<div class="ui radio checkbox">
-					{{if $pullRequestEnabled}}
+					{{if .CanCreatePullRequest}}
 						<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="commit-to-new-branch" button_text="{{.locale.Tr "repo.editor.propose_file_change"}}" {{if eq .commit_choice "commit-to-new-branch"}}checked{{end}}>
 					{{else}}
 						<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="commit-to-new-branch" button_text="{{.locale.Tr "repo.editor.commit_changes"}}" {{if eq .commit_choice "commit-to-new-branch"}}checked{{end}}>
 					{{end}}
 					<label>
 						{{svg "octicon-git-pull-request"}}
-						{{if $pullRequestEnabled}}
+						{{if .CanCreatePullRequest}}
 							{{.locale.Tr "repo.editor.create_new_branch" | Safe}}
 						{{else}}
 							{{.locale.Tr "repo.editor.create_new_branch_np" | Safe}}

@@ -88,22 +88,22 @@ func (m *Manager) FlushAll(ctx context.Context, timeout time.Duration) error {
 }
 
 // CreateSimpleQueue creates a simple queue from global setting config provider by name
-func CreateSimpleQueue[T any](name string, handler HandlerFuncT[T]) *WorkerPoolQueue[T] {
-	return createWorkerPoolQueue(name, setting.CfgProvider, handler, false)
+func CreateSimpleQueue[T any](ctx context.Context, name string, handler HandlerFuncT[T]) *WorkerPoolQueue[T] {
+	return createWorkerPoolQueue(ctx, name, setting.CfgProvider, handler, false)
 }
 
 // CreateUniqueQueue creates a unique queue from global setting config provider by name
-func CreateUniqueQueue[T any](name string, handler HandlerFuncT[T]) *WorkerPoolQueue[T] {
-	return createWorkerPoolQueue(name, setting.CfgProvider, handler, true)
+func CreateUniqueQueue[T any](ctx context.Context, name string, handler HandlerFuncT[T]) *WorkerPoolQueue[T] {
+	return createWorkerPoolQueue(ctx, name, setting.CfgProvider, handler, true)
 }
 
-func createWorkerPoolQueue[T any](name string, cfgProvider setting.ConfigProvider, handler HandlerFuncT[T], unique bool) *WorkerPoolQueue[T] {
+func createWorkerPoolQueue[T any](ctx context.Context, name string, cfgProvider setting.ConfigProvider, handler HandlerFuncT[T], unique bool) *WorkerPoolQueue[T] {
 	queueSetting, err := setting.GetQueueSettings(cfgProvider, name)
 	if err != nil {
 		log.Error("Failed to get queue settings for %q: %v", name, err)
 		return nil
 	}
-	w, err := NewWorkerPoolQueueBySetting(name, queueSetting, handler, unique)
+	w, err := NewWorkerPoolQueueWithContext(ctx, name, queueSetting, handler, unique)
 	if err != nil {
 		log.Error("Failed to create queue %q: %v", name, err)
 		return nil

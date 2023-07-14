@@ -161,7 +161,7 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 	},
 }
 
-func fatal(format string, args ...interface{}) {
+func fatal(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, format+"\n", args...)
 	log.Fatal(format, args...)
 }
@@ -172,10 +172,7 @@ func runDump(ctx *cli.Context) error {
 	outType := ctx.String("type")
 	if fileName == "-" {
 		file = os.Stdout
-		err := log.DelLogger("console")
-		if err != nil {
-			fatal("Deleting default logger failed. Can not write to stdout: %v", err)
-		}
+		setupConsoleLogger(log.FATAL, log.CanColorStderr, os.Stderr)
 	} else {
 		for _, suffix := range outputTypeEnum.Enum {
 			if strings.HasSuffix(fileName, "."+suffix) {
@@ -185,7 +182,7 @@ func runDump(ctx *cli.Context) error {
 		}
 		fileName += "." + outType
 	}
-	setting.Init(&setting.Options{})
+	setting.MustInstalled()
 
 	// make sure we are logging to the console no matter what the configuration tells us do to
 	// FIXME: don't use CfgProvider directly
@@ -239,7 +236,7 @@ func runDump(ctx *cli.Context) error {
 		return err
 	}
 
-	var iface interface{}
+	var iface any
 	if fileName == "-" {
 		iface, err = archiver.ByExtension(fmt.Sprintf(".%s", outType))
 	} else {
@@ -356,9 +353,9 @@ func runDump(ctx *cli.Context) error {
 		}
 
 		excludes = append(excludes, setting.RepoRootPath)
-		excludes = append(excludes, setting.LFS.Path)
-		excludes = append(excludes, setting.Attachment.Path)
-		excludes = append(excludes, setting.Packages.Path)
+		excludes = append(excludes, setting.LFS.Storage.Path)
+		excludes = append(excludes, setting.Attachment.Storage.Path)
+		excludes = append(excludes, setting.Packages.Storage.Path)
 		excludes = append(excludes, setting.Log.RootPath)
 		excludes = append(excludes, absFileName)
 		if err := addRecursiveExclude(w, "data", setting.AppDataPath, excludes, verbose); err != nil {

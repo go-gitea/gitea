@@ -42,7 +42,7 @@ func Stacktrace(ctx *context.Context) {
 func StacktraceCancel(ctx *context.Context) {
 	pid := ctx.Params("pid")
 	process.GetManager().Cancel(process.IDType(pid))
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"redirect": setting.AppSubURL + "/admin/monitor/stacktrace",
 	})
 }

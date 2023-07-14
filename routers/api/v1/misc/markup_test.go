@@ -7,19 +7,14 @@ import (
 	go_context "context"
 	"io"
 	"net/http"
-	"net/http/httptest"
-	"net/url"
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/modules/web/middleware"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -30,45 +25,16 @@ const (
 	AppSubURL = AppURL + Repo + "/"
 )
 
-func createContext(req *http.Request) (*context.Context, *httptest.ResponseRecorder) {
-	rnd := templates.HTMLRenderer()
-	resp := httptest.NewRecorder()
-	c := &context.Context{
-		Req:    req,
-		Resp:   context.NewResponse(resp),
-		Render: rnd,
-		Data:   make(middleware.ContextData),
-	}
-	defer c.Close()
-
-	return c, resp
-}
-
-func wrap(ctx *context.Context) *context.APIContext {
-	return &context.APIContext{
-		Context: ctx,
-	}
-}
-
 func testRenderMarkup(t *testing.T, mode, filePath, text, responseBody string, responseCode int) {
 	setting.AppURL = AppURL
-
 	options := api.MarkupOption{
 		Mode:     mode,
-		Text:     "",
+		Text:     text,
 		Context:  Repo,
 		Wiki:     true,
 		FilePath: filePath,
 	}
-	requrl, _ := url.Parse(util.URLJoin(AppURL, "api", "v1", "markup"))
-	req := &http.Request{
-		Method: "POST",
-		URL:    requrl,
-	}
-	m, resp := createContext(req)
-	ctx := wrap(m)
-
-	options.Text = text
+	ctx, resp := test.MockAPIContext(t, "POST /api/v1/markup")
 	web.SetForm(ctx, &options)
 	Markup(ctx)
 	assert.Equal(t, responseBody, resp.Body.String())
@@ -78,22 +44,13 @@ func testRenderMarkup(t *testing.T, mode, filePath, text, responseBody string, r
 
 func testRenderMarkdown(t *testing.T, mode, text, responseBody string, responseCode int) {
 	setting.AppURL = AppURL
-
 	options := api.MarkdownOption{
 		Mode:    mode,
-		Text:    "",
+		Text:    text,
 		Context: Repo,
 		Wiki:    true,
 	}
-	requrl, _ := url.Parse(util.URLJoin(AppURL, "api", "v1", "markdown"))
-	req := &http.Request{
-		Method: "POST",
-		URL:    requrl,
-	}
-	m, resp := createContext(req)
-	ctx := wrap(m)
-
-	options.Text = text
+	ctx, resp := test.MockAPIContext(t, "POST /api/v1/markdown")
 	web.SetForm(ctx, &options)
 	Markdown(ctx)
 	assert.Equal(t, responseBody, resp.Body.String())
@@ -200,20 +157,12 @@ var simpleCases = []string{
 
 func TestAPI_RenderSimple(t *testing.T) {
 	setting.AppURL = AppURL
-
 	options := api.MarkdownOption{
 		Mode:    "markdown",
 		Text:    "",
 		Context: Repo,
 	}
-	requrl, _ := url.Parse(util.URLJoin(AppURL, "api", "v1", "markdown"))
-	req := &http.Request{
-		Method: "POST",
-		URL:    requrl,
-	}
-	m, resp := createContext(req)
-	ctx := wrap(m)
-
+	ctx, resp := test.MockAPIContext(t, "POST /api/v1/markdown")
 	for i := 0; i < len(simpleCases); i += 2 {
 		options.Text = simpleCases[i]
 		web.SetForm(ctx, &options)
@@ -225,15 +174,7 @@ func TestAPI_RenderSimple(t *testing.T) {
 
 func TestAPI_RenderRaw(t *testing.T) {
 	setting.AppURL = AppURL
-
-	requrl, _ := url.Parse(util.URLJoin(AppURL, "api", "v1", "markdown"))
-	req := &http.Request{
-		Method: "POST",
-		URL:    requrl,
-	}
-	m, resp := createContext(req)
-	ctx := wrap(m)
-
+	ctx, resp := test.MockAPIContext(t, "POST /api/v1/markdown")
 	for i := 0; i < len(simpleCases); i += 2 {
 		ctx.Req.Body = io.NopCloser(strings.NewReader(simpleCases[i]))
 		MarkdownRaw(ctx)

@@ -22,10 +22,12 @@ import octiconDiffModified from '../../public/img/svg/octicon-diff-modified.svg'
 import octiconDiffRemoved from '../../public/img/svg/octicon-diff-removed.svg';
 import octiconDiffRenamed from '../../public/img/svg/octicon-diff-renamed.svg';
 import octiconDotFill from '../../public/img/svg/octicon-dot-fill.svg';
+import octiconDownload from '../../public/img/svg/octicon-download.svg';
 import octiconEye from '../../public/img/svg/octicon-eye.svg';
 import octiconFile from '../../public/img/svg/octicon-file.svg';
 import octiconFileDirectoryFill from '../../public/img/svg/octicon-file-directory-fill.svg';
 import octiconFilter from '../../public/img/svg/octicon-filter.svg';
+import octiconGear from '../../public/img/svg/octicon-gear.svg';
 import octiconGitBranch from '../../public/img/svg/octicon-git-branch.svg';
 import octiconGitMerge from '../../public/img/svg/octicon-git-merge.svg';
 import octiconGitPullRequest from '../../public/img/svg/octicon-git-pull-request.svg';
@@ -90,10 +92,12 @@ const svgs = {
   'octicon-diff-removed': octiconDiffRemoved,
   'octicon-diff-renamed': octiconDiffRenamed,
   'octicon-dot-fill': octiconDotFill,
+  'octicon-download': octiconDownload,
   'octicon-eye': octiconEye,
   'octicon-file': octiconFile,
   'octicon-file-directory-fill': octiconFileDirectoryFill,
   'octicon-filter': octiconFilter,
+  'octicon-gear': octiconGear,
   'octicon-git-branch': octiconGitBranch,
   'octicon-git-merge': octiconGitMerge,
   'octicon-git-pull-request': octiconGitPullRequest,
@@ -132,7 +136,7 @@ const svgs = {
   'octicon-tag': octiconTag,
   'octicon-triangle-down': octiconTriangleDown,
   'octicon-x': octiconX,
-  'octicon-x-circle-fill': octiconXCircleFill
+  'octicon-x-circle-fill': octiconXCircleFill,
 };
 
 // TODO: use a more general approach to access SVG icons.

@@ -34,14 +34,14 @@
 
 							<div class="text right actions">
 								<button class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</button>
-								<button data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}" class="ui primary button" id="new_board_submit">{{$.locale.Tr "repo.projects.column.new_submit"}}</button>
+								<button data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}" class="ui primary button disabled" id="new_board_submit">{{$.locale.Tr "repo.projects.column.new_submit"}}</button>
 							</div>
 						</form>
 					</div>
 				</div>
 			</div>
 		</div>
-		<div class="ui divider"></div>
+		<div class="divider"></div>
 		<div class="ui two column stackable grid">
 			<div class="column">
 				<h2 class="project-title">{{$.Project.Title}}</h2>
@@ -49,8 +49,8 @@
 			</div>
 			{{if and $.CanWriteProjects (not $.Repository.IsArchived)}}
 				<div class="column right aligned">
-					<div class="ui compact right small menu">
-						<a class="item" href="{{$.RepoLink}}/projects/{{.Project.ID}}/edit?redirect=project" data-id={{$.Project.ID}} data-title={{$.Project.Title}}>
+					<div class="ui compact right mini menu">
+						<a class="item" href="{{$.RepoLink}}/projects/{{.Project.ID}}/edit?redirect=project">
 							{{svg "octicon-pencil"}}
 							<span class="gt-mx-3">{{$.locale.Tr "repo.issues.label_edit"}}</span>
 						</a>
@@ -73,11 +73,11 @@
 				</div>
 			{{end}}
 		</div>
-		<div class="ui divider"></div>
+		<div class="divider"></div>
 	</div>
 	<div class="ui container fluid padded" id="project-board">
 
-		<div class="board">
+		<div class="board {{if .CanWriteProjects}}sortable{{end}}">
 			{{range $board := .Boards}}
 
 			<div class="ui segment board-column" style="background: {{.Color}} !important;" data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}">
@@ -150,7 +150,7 @@
 
 											<div class="text right actions">
 												<button class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</button>
-												<button data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}" class="ui primary button">{{$.locale.Tr "repo.projects.column.edit"}}</button>
+												<button data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}" class="ui primary button edit-column-button">{{$.locale.Tr "repo.projects.column.edit"}}</button>
 											</div>
 										</form>
 									</div>
@@ -181,7 +181,7 @@
 						</div>
 					{{end}}
 				</div>
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 
 				<div class="ui cards board" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="board_{{.ID}}">
 
@@ -198,24 +198,8 @@
 						{{end}}
 						<div class="content gt-p-0">
 							<div class="header">
-								<span class="gt-dif gt-ac gt-vm {{if .IsClosed}}red{{else}}green{{end}}">
-									{{if .IsPull}}
-										{{if .PullRequest.HasMerged}}
-											{{svg "octicon-git-merge" 16 "text purple"}}
-										{{else}}
-											{{if .IsClosed}}
-												{{svg "octicon-git-pull-request" 16 "text red"}}
-											{{else}}
-												{{svg "octicon-git-pull-request" 16 "text green"}}
-											{{end}}
-										{{end}}
-									{{else}}
-										{{if .IsClosed}}
-											{{svg "octicon-issue-closed" 16 "text red"}}
-										{{else}}
-											{{svg "octicon-issue-opened" 16 "text green"}}
-										{{end}}
-									{{end}}
+								<span class="gt-dif gt-ac gt-vm">
+									{{template "shared/issueicon" .}}
 								</span>
 								<a class="project-board-title gt-vm" href="{{.Link}}">
 									{{.Title}}

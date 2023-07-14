@@ -25,12 +25,17 @@
   display: inline-block;
 }
 
+.ui.modal {
+  background: var(--color-body);
+  box-shadow: 1px 3px 3px 0 var(--color-shadow), 1px 3px 15px 2px var(--color-shadow);
+}
+
 /* Gitea sometimes use a form in a modal dialog, then the "positive" button could submit the form directly */
 
 .ui.modal > .content,
 .ui.modal > form > .content {
-  background: var(--color-body);
   padding: 1.5em;
+  background: var(--color-body);
 }
 
 .ui.modal > .actions,

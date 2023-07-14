@@ -39,32 +39,26 @@
 			{{.locale.Tr "settings.manage_emails"}}
 		</h4>
 		<div class="ui attached segment">
-			<div class="ui email list">
+			<div class="ui list">
 				{{if $.EnableNotifyMail}}
 				<div class="item">
+					<div class="gt-mb-3">{{.locale.Tr "settings.email_desc"}}</div>
 					<form action="{{AppSubUrl}}/user/settings/account/email" class="ui form" method="post">
-						{{.locale.Tr "settings.email_desc"}}
-						<div class="right floated content">
-							<div class="field">
-								<button class="ui green button">{{$.locale.Tr "settings.email_notifications.submit"}}</button>
-							</div>
-						</div>
-						<div class="right floated content">
-							{{$.CsrfTokenHtml}}
-							<input name="_method" type="hidden" value="NOTIFICATION">
-							<div class="field">
-								<div class="ui selection dropdown" tabindex="0">
-									<input name="preference" type="hidden" value="{{.EmailNotificationsPreference}}">
-									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-									<div class="text"></div>
-									<div class="menu">
-										<div data-value="enabled" class="{{if eq .EmailNotificationsPreference "enabled"}}active selected {{end}}item">{{$.locale.Tr "settings.email_notifications.enable"}}</div>
-										<div data-value="andyourown" class="{{if eq .EmailNotificationsPreference "andyourown"}}active selected {{end}}item">{{$.locale.Tr "settings.email_notifications.andyourown"}}</div>
-										<div data-value="onmention" class="{{if eq .EmailNotificationsPreference "onmention"}}active selected {{end}}item">{{$.locale.Tr "settings.email_notifications.onmention"}}</div>
-										<div data-value="disabled" class="{{if eq .EmailNotificationsPreference "disabled"}}active selected {{end}}item">{{$.locale.Tr "settings.email_notifications.disable"}}</div>
-									</div>
+						{{$.CsrfTokenHtml}}
+						<input name="_method" type="hidden" value="NOTIFICATION">
+						<div class="gt-df gt-fw gt-gap-3">
+							<div class="ui selection dropdown">
+								<input name="preference" type="hidden" value="{{.EmailNotificationsPreference}}">
+								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+								<div class="text"></div>
+								<div class="menu">
+									<div data-value="enabled" class="{{if eq .EmailNotificationsPreference "enabled"}}active selected {{end}}item">{{$.locale.Tr "settings.email_notifications.enable"}}</div>
+									<div data-value="andyourown" class="{{if eq .EmailNotificationsPreference "andyourown"}}active selected {{end}}item">{{$.locale.Tr "settings.email_notifications.andyourown"}}</div>
+									<div data-value="onmention" class="{{if eq .EmailNotificationsPreference "onmention"}}active selected {{end}}item">{{$.locale.Tr "settings.email_notifications.onmention"}}</div>
+									<div data-value="disabled" class="{{if eq .EmailNotificationsPreference "disabled"}}active selected {{end}}item">{{$.locale.Tr "settings.email_notifications.disable"}}</div>
 								</div>
 							</div>
+							<button class="ui green button">{{$.locale.Tr "settings.email_notifications.submit"}}</button>
 						</div>
 					</form>
 				</div>
@@ -102,7 +96,7 @@
 								</form>
 							</div>
 						{{end}}
-						<div class="content">
+						<div class="content gt-py-3">
 							<strong>{{.Email}}</strong>
 							{{if .IsPrimary}}
 								<div class="ui primary label">{{$.locale.Tr "settings.primary"}}</div>
@@ -128,6 +122,10 @@
 					{{.locale.Tr "settings.add_email"}}
 				</button>
 			</form>
+			{{/* if ActivationsPending is false, then CanAddEmails must be true, so if CanAddEmails is false, ActivationsPending must be true */}}
+			{{if not .CanAddEmails}}
+				<div class="ui warning message">{{.locale.Tr "settings.can_not_add_email_activations_pending"}}</div>
+			{{end}}
 		</div>
 
 		<h4 class="ui top attached error header">
@@ -137,7 +135,7 @@
 			<div class="ui red message">
 				<p class="text left">{{svg "octicon-alert"}} {{.locale.Tr "settings.delete_prompt" | Str2html}}</p>
 				{{if .UserDeleteWithComments}}
-				<p class="text left" style="font-weight: bold;">{{.locale.Tr "settings.delete_with_all_comments" .UserDeleteWithCommentsMaxTime | Str2html}}</p>
+				<p class="text left gt-font-semibold">{{.locale.Tr "settings.delete_with_all_comments" .UserDeleteWithCommentsMaxTime | Str2html}}</p>
 				{{end}}
 			</div>
 			<form class="ui form ignore-dirty" id="delete-form" action="{{AppSubUrl}}/user/settings/account/delete" method="post">

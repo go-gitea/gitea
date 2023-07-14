@@ -18,8 +18,8 @@ params:
   description: Git with a cup of tea
   author: The Gitea Authors
   website: https://docs.gitea.io
-  version: 1.19.0
-  minGoVersion: 1.19
+  version: 1.19.0 # FIXME: this version was used as "latest stable release", but it always gets outdated and doesn't make sense
+  minGoVersion: 1.20
   goVersion: 1.20
   minNodeVersion: 16
   search: nav

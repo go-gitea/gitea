@@ -4,7 +4,7 @@
 package auth
 
 import (
-	stdContext "context"
+	go_context "context"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 
 	"code.gitea.io/gitea/models/auth"
@@ -39,6 +40,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
+	go_oauth2 "golang.org/x/oauth2"
 )
 
 const (
@@ -143,7 +145,7 @@ type AccessTokenResponse struct {
 	IDToken      string    `json:"id_token,omitempty"`
 }
 
-func newAccessTokenResponse(ctx stdContext.Context, grant *auth.OAuth2Grant, serverKey, clientKey oauth2.JWTSigningKey) (*AccessTokenResponse, *AccessTokenError) {
+func newAccessTokenResponse(ctx go_context.Context, grant *auth.OAuth2Grant, serverKey, clientKey oauth2.JWTSigningKey) (*AccessTokenResponse, *AccessTokenError) {
 	if setting.OAuth2.InvalidateRefreshTokens {
 		if err := grant.IncreaseCounter(ctx); err != nil {
 			return nil, &AccessTokenError{
@@ -695,7 +697,7 @@ func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, server
 	}
 	// "The authorization server MUST ... require client authentication for confidential clients"
 	// https://datatracker.ietf.org/doc/html/rfc6749#section-6
-	if !app.ValidateClientSecret([]byte(form.ClientSecret)) {
+	if app.ConfidentialClient && !app.ValidateClientSecret([]byte(form.ClientSecret)) {
 		errorDescription := "invalid client secret"
 		if form.ClientSecret == "" {
 			errorDescription = "invalid empty client secret"
@@ -753,7 +755,7 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 		})
 		return
 	}
-	if !app.ValidateClientSecret([]byte(form.ClientSecret)) {
+	if app.ConfidentialClient && !app.ValidateClientSecret([]byte(form.ClientSecret)) {
 		errorDescription := "invalid client secret"
 		if form.ClientSecret == "" {
 			errorDescription = "invalid empty client secret"
@@ -886,6 +888,17 @@ func SignInOAuth(ctx *context.Context) {
 func SignInOAuthCallback(ctx *context.Context) {
 	provider := ctx.Params(":provider")
 
+	if ctx.Req.FormValue("error") != "" {
+		var errorKeyValues []string
+		for k, vv := range ctx.Req.Form {
+			for _, v := range vv {
+				errorKeyValues = append(errorKeyValues, fmt.Sprintf("%s = %s", html.EscapeString(k), html.EscapeString(v)))
+			}
+		}
+		sort.Strings(errorKeyValues)
+		ctx.Flash.Error(strings.Join(errorKeyValues, "<br>"), true)
+	}
+
 	// first look if the provider is still active
 	authSource, err := auth.GetActiveOAuth2SourceByName(provider)
 	if err != nil {
@@ -894,7 +907,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 	}
 
 	if authSource == nil {
-		ctx.ServerError("SignIn", errors.New("No valid provider found, check configured callback url in provider"))
+		ctx.ServerError("SignIn", errors.New("no valid provider found, check configured callback url in provider"))
 		return
 	}
 
@@ -919,6 +932,9 @@ func SignInOAuthCallback(ctx *context.Context) {
 			}
 			ctx.Redirect(setting.AppSubURL + "/user/login")
 			return
+		}
+		if err, ok := err.(*go_oauth2.RetrieveError); ok {
+			ctx.Flash.Error("OAuth2 RetrieveError: "+err.Error(), true)
 		}
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -992,13 +1008,13 @@ func SignInOAuthCallback(ctx *context.Context) {
 	handleOAuth2SignIn(ctx, authSource, u, gothUser)
 }
 
-func claimValueToStringSet(claimValue interface{}) container.Set[string] {
+func claimValueToStringSet(claimValue any) container.Set[string] {
 	var groups []string
 
 	switch rawGroup := claimValue.(type) {
 	case []string:
 		groups = rawGroup
-	case []interface{}:
+	case []any:
 		for _, group := range rawGroup {
 			groups = append(groups, fmt.Sprintf("%s", group))
 		}
@@ -1051,7 +1067,7 @@ func setUserAdminAndRestrictedFromGroupClaims(source *oauth2.Source, u *user_mod
 }
 
 func showLinkingLogin(ctx *context.Context, gothUser goth.User) {
-	if err := updateSession(ctx, nil, map[string]interface{}{
+	if err := updateSession(ctx, nil, map[string]any{
 		"linkAccountGothUser": gothUser,
 	}); err != nil {
 		ctx.ServerError("updateSession", err)
@@ -1103,7 +1119,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 	// If this user is enrolled in 2FA and this source doesn't override it,
 	// we can't sign the user in just yet. Instead, redirect them to the 2FA authentication page.
 	if !needs2FA {
-		if err := updateSession(ctx, nil, map[string]interface{}{
+		if err := updateSession(ctx, nil, map[string]any{
 			"uid":   u.ID,
 			"uname": u.Name,
 		}); err != nil {
@@ -1173,7 +1189,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		}
 	}
 
-	if err := updateSession(ctx, nil, map[string]interface{}{
+	if err := updateSession(ctx, nil, map[string]any{
 		// User needs to use 2FA, save data and redirect to 2FA page.
 		"twofaUid":      u.ID,
 		"twofaRemember": false,

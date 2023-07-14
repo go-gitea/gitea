@@ -13,7 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
 )
@@ -24,19 +23,14 @@ var (
 	SlowFlush = 5 * time.Second
 )
 
-// TestLogger is a logger which will write to the testing log
-type TestLogger struct {
-	log.WriterLogger
-}
-
 var WriterCloser = &testLoggerWriterCloser{}
 
 type testLoggerWriterCloser struct {
 	sync.RWMutex
-	t []*testing.TB
+	t []testing.TB
 }
 
-func (w *testLoggerWriterCloser) pushT(t *testing.TB) {
+func (w *testLoggerWriterCloser) pushT(t testing.TB) {
 	w.Lock()
 	w.t = append(w.t, t)
 	w.Unlock()
@@ -48,7 +42,7 @@ func (w *testLoggerWriterCloser) Write(p []byte) (int, error) {
 	w.RLock()
 	defer w.RUnlock()
 
-	var t *testing.TB
+	var t testing.TB
 	if len(w.t) > 0 {
 		t = w.t[len(w.t)-1]
 	}
@@ -57,33 +51,13 @@ func (w *testLoggerWriterCloser) Write(p []byte) (int, error) {
 		p = p[:len(p)-1]
 	}
 
-	if t == nil || *t == nil {
+	if t == nil {
 		// if there is no running test, the log message should be outputted to console, to avoid losing important information.
 		// the "???" prefix is used to match the "===" and "+++" in PrintCurrentTest
 		return fmt.Fprintf(os.Stdout, "??? [TestLogger] %s\n", p)
 	}
 
-	defer func() {
-		err := recover()
-		if err == nil {
-			return
-		}
-		var errString string
-		errErr, ok := err.(error)
-		if ok {
-			errString = errErr.Error()
-		} else {
-			errString, ok = err.(string)
-		}
-		if !ok {
-			panic(err)
-		}
-		if !strings.HasPrefix(errString, "Log in goroutine after ") {
-			panic(err)
-		}
-	}()
-
-	(*t).Log(string(p))
+	t.Log(string(p))
 	return len(p), nil
 }
 
@@ -106,8 +80,8 @@ func (w *testLoggerWriterCloser) Reset() {
 			if t == nil {
 				continue
 			}
-			fmt.Fprintf(os.Stdout, "Unclosed logger writer in test: %s", (*t).Name())
-			(*t).Errorf("Unclosed logger writer in test: %s", (*t).Name())
+			_, _ = fmt.Fprintf(os.Stdout, "Unclosed logger writer in test: %s", t.Name())
+			t.Errorf("Unclosed logger writer in test: %s", t.Name())
 		}
 		w.t = nil
 	}
@@ -116,33 +90,34 @@ func (w *testLoggerWriterCloser) Reset() {
 
 // PrintCurrentTest prints the current test to os.Stdout
 func PrintCurrentTest(t testing.TB, skip ...int) func() {
+	t.Helper()
 	start := time.Now()
 	actualSkip := 1
 	if len(skip) > 0 {
-		actualSkip = skip[0]
+		actualSkip = skip[0] + 1
 	}
 	_, filename, line, _ := runtime.Caller(actualSkip)
 
 	if log.CanColorStdout {
-		fmt.Fprintf(os.Stdout, "=== %s (%s:%d)\n", fmt.Formatter(log.NewColoredValue(t.Name())), strings.TrimPrefix(filename, prefix), line)
+		_, _ = fmt.Fprintf(os.Stdout, "=== %s (%s:%d)\n", fmt.Formatter(log.NewColoredValue(t.Name())), strings.TrimPrefix(filename, prefix), line)
 	} else {
-		fmt.Fprintf(os.Stdout, "=== %s (%s:%d)\n", t.Name(), strings.TrimPrefix(filename, prefix), line)
+		_, _ = fmt.Fprintf(os.Stdout, "=== %s (%s:%d)\n", t.Name(), strings.TrimPrefix(filename, prefix), line)
 	}
-	WriterCloser.pushT(&t)
+	WriterCloser.pushT(t)
 	return func() {
 		took := time.Since(start)
 		if took > SlowTest {
 			if log.CanColorStdout {
-				fmt.Fprintf(os.Stdout, "+++ %s is a slow test (took %v)\n", fmt.Formatter(log.NewColoredValue(t.Name(), log.Bold, log.FgYellow)), fmt.Formatter(log.NewColoredValue(took, log.Bold, log.FgYellow)))
+				_, _ = fmt.Fprintf(os.Stdout, "+++ %s is a slow test (took %v)\n", fmt.Formatter(log.NewColoredValue(t.Name(), log.Bold, log.FgYellow)), fmt.Formatter(log.NewColoredValue(took, log.Bold, log.FgYellow)))
 			} else {
-				fmt.Fprintf(os.Stdout, "+++ %s is a slow test (took %v)\n", t.Name(), took)
+				_, _ = fmt.Fprintf(os.Stdout, "+++ %s is a slow test (took %v)\n", t.Name(), took)
 			}
 		}
 		timer := time.AfterFunc(SlowFlush, func() {
 			if log.CanColorStdout {
-				fmt.Fprintf(os.Stdout, "+++ %s ... still flushing after %v ...\n", fmt.Formatter(log.NewColoredValue(t.Name(), log.Bold, log.FgRed)), SlowFlush)
+				_, _ = fmt.Fprintf(os.Stdout, "+++ %s ... still flushing after %v ...\n", fmt.Formatter(log.NewColoredValue(t.Name(), log.Bold, log.FgRed)), SlowFlush)
 			} else {
-				fmt.Fprintf(os.Stdout, "+++ %s ... still flushing after %v ...\n", t.Name(), SlowFlush)
+				_, _ = fmt.Fprintf(os.Stdout, "+++ %s ... still flushing after %v ...\n", t.Name(), SlowFlush)
 			}
 		})
 		if err := queue.GetManager().FlushAll(context.Background(), time.Minute); err != nil {
@@ -152,9 +127,9 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 		flushTook := time.Since(start) - took
 		if flushTook > SlowFlush {
 			if log.CanColorStdout {
-				fmt.Fprintf(os.Stdout, "+++ %s had a slow clean-up flush (took %v)\n", fmt.Formatter(log.NewColoredValue(t.Name(), log.Bold, log.FgRed)), fmt.Formatter(log.NewColoredValue(flushTook, log.Bold, log.FgRed)))
+				_, _ = fmt.Fprintf(os.Stdout, "+++ %s had a slow clean-up flush (took %v)\n", fmt.Formatter(log.NewColoredValue(t.Name(), log.Bold, log.FgRed)), fmt.Formatter(log.NewColoredValue(flushTook, log.Bold, log.FgRed)))
 			} else {
-				fmt.Fprintf(os.Stdout, "+++ %s had a slow clean-up flush (took %v)\n", t.Name(), flushTook)
+				_, _ = fmt.Fprintf(os.Stdout, "+++ %s had a slow clean-up flush (took %v)\n", t.Name(), flushTook)
 			}
 		}
 		WriterCloser.popT()
@@ -162,46 +137,26 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 }
 
 // Printf takes a format and args and prints the string to os.Stdout
-func Printf(format string, args ...interface{}) {
+func Printf(format string, args ...any) {
 	if log.CanColorStdout {
 		for i := 0; i < len(args); i++ {
 			args[i] = log.NewColoredValue(args[i])
 		}
 	}
-	fmt.Fprintf(os.Stdout, "\t"+format, args...)
+	_, _ = fmt.Fprintf(os.Stdout, "\t"+format, args...)
 }
 
-// NewTestLogger creates a TestLogger as a log.LoggerProvider
-func NewTestLogger() log.LoggerProvider {
-	logger := &TestLogger{}
-	logger.Colorize = log.CanColorStdout
-	logger.Level = log.TRACE
-	return logger
+// TestLogEventWriter is a logger which will write to the testing log
+type TestLogEventWriter struct {
+	*log.EventWriterBaseImpl
 }
 
-// Init inits connection writer with json config.
-// json config only need key "level".
-func (log *TestLogger) Init(config string) error {
-	err := json.Unmarshal([]byte(config), log)
-	if err != nil {
-		return err
-	}
-	log.NewWriterLogger(WriterCloser)
-	return nil
-}
-
-// Flush when log should be flushed
-func (log *TestLogger) Flush() {
-}
-
-// ReleaseReopen does nothing
-func (log *TestLogger) ReleaseReopen() error {
-	return nil
-}
-
-// GetName returns the default name for this implementation
-func (log *TestLogger) GetName() string {
-	return "test"
+// NewTestLoggerWriter creates a TestLogEventWriter as a log.LoggerProvider
+func NewTestLoggerWriter(name string, mode log.WriterMode) log.EventWriter {
+	w := &TestLogEventWriter{}
+	w.EventWriterBaseImpl = log.NewEventWriterBase(name, "test-log-writer", mode)
+	w.OutputWriteCloser = WriterCloser
+	return w
 }
 
 func init() {

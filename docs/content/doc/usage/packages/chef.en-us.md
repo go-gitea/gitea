@@ -1,6 +1,6 @@
 ---
 date: "2023-01-20T00:00:00+00:00"
-title: "Chef Packages Repository"
+title: "Chef Package Registry"
 slug: "chef"
 weight: 5
 draft: false
@@ -13,7 +13,7 @@ menu:
     identifier: "chef"
 ---
 
-# Chef Packages Repository
+# Chef Package Registry
 
 Publish [Chef](https://chef.io/) cookbooks for your user or organization.
 

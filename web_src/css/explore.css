@@ -1,6 +1,6 @@
 .explore .navbar {
   margin-bottom: 15px !important;
-  background-color: var(--color-navbar) !important;
+  background-color: var(--color-header-wrapper) !important;
   border-width: 1px !important;
 }
 
@@ -28,16 +28,8 @@
   word-break: break-all;
 }
 
-.ui.repository.list .item .ui.header .metas {
-  font-size: 14px;
-}
-
 .ui.repository.list .item .time {
   font-size: 12px;
-}
-
-.ui.repository.list .item .ui.tags {
-  margin-bottom: 0.5rem;
 }
 
 .ui.repository.list .repo-title .labels {

@@ -8,11 +8,13 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"regexp"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
+	org_model "code.gitea.io/gitea/models/organization"
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -175,9 +177,10 @@ type PullRequest struct {
 
 	ChangedProtectedFiles []string `xorm:"TEXT JSON"`
 
-	IssueID int64  `xorm:"INDEX"`
-	Issue   *Issue `xorm:"-"`
-	Index   int64
+	IssueID            int64  `xorm:"INDEX"`
+	Issue              *Issue `xorm:"-"`
+	Index              int64
+	RequestedReviewers []*user_model.User `xorm:"-"`
 
 	HeadRepoID          int64                  `xorm:"INDEX"`
 	HeadRepo            *repo_model.Repository `xorm:"-"`
@@ -224,40 +227,27 @@ func DeletePullsByBaseRepoID(ctx context.Context, repoID int64) error {
 	return err
 }
 
-// ColorFormat writes a colored string to identify this struct
-func (pr *PullRequest) ColorFormat(s fmt.State) {
+func (pr *PullRequest) String() string {
 	if pr == nil {
-		log.ColorFprintf(s, "PR[%d]%s#%d[%s...%s:%s]",
-			log.NewColoredIDValue(0),
-			log.NewColoredValue("<nil>/<nil>"),
-			log.NewColoredIDValue(0),
-			log.NewColoredValue("<nil>"),
-			log.NewColoredValue("<nil>/<nil>"),
-			log.NewColoredValue("<nil>"),
-		)
-		return
+		return "<PullRequest nil>"
 	}
 
-	log.ColorFprintf(s, "PR[%d]", log.NewColoredIDValue(pr.ID))
+	s := new(strings.Builder)
+	fmt.Fprintf(s, "<PullRequest [%d]", pr.ID)
 	if pr.BaseRepo != nil {
-		log.ColorFprintf(s, "%s#%d[%s...", log.NewColoredValue(pr.BaseRepo.FullName()),
-			log.NewColoredIDValue(pr.Index), log.NewColoredValue(pr.BaseBranch))
+		fmt.Fprintf(s, "%s#%d[%s...", pr.BaseRepo.FullName(), pr.Index, pr.BaseBranch)
 	} else {
-		log.ColorFprintf(s, "Repo[%d]#%d[%s...", log.NewColoredIDValue(pr.BaseRepoID),
-			log.NewColoredIDValue(pr.Index), log.NewColoredValue(pr.BaseBranch))
+		fmt.Fprintf(s, "Repo[%d]#%d[%s...", pr.BaseRepoID, pr.Index, pr.BaseBranch)
 	}
 	if pr.HeadRepoID == pr.BaseRepoID {
-		log.ColorFprintf(s, "%s]", log.NewColoredValue(pr.HeadBranch))
+		fmt.Fprintf(s, "%s]", pr.HeadBranch)
 	} else if pr.HeadRepo != nil {
-		log.ColorFprintf(s, "%s:%s]", log.NewColoredValue(pr.HeadRepo.FullName()), log.NewColoredValue(pr.HeadBranch))
+		fmt.Fprintf(s, "%s:%s]", pr.HeadRepo.FullName(), pr.HeadBranch)
 	} else {
-		log.ColorFprintf(s, "Repo[%d]:%s]", log.NewColoredIDValue(pr.HeadRepoID), log.NewColoredValue(pr.HeadBranch))
+		fmt.Fprintf(s, "Repo[%d]:%s]", pr.HeadRepoID, pr.HeadBranch)
 	}
-}
-
-// String represents the pr as a simple string
-func (pr *PullRequest) String() string {
-	return log.ColorFormatAsString(pr)
+	s.WriteByte('>')
+	return s.String()
 }
 
 // MustHeadUserName returns the HeadRepo's username if failed return blank
@@ -311,6 +301,29 @@ func (pr *PullRequest) LoadHeadRepo(ctx context.Context) (err error) {
 			return fmt.Errorf("pr[%d].LoadHeadRepo[%d]: %w", pr.ID, pr.HeadRepoID, err)
 		}
 		pr.isHeadRepoLoaded = true
+	}
+	return nil
+}
+
+// LoadRequestedReviewers loads the requested reviewers.
+func (pr *PullRequest) LoadRequestedReviewers(ctx context.Context) error {
+	if len(pr.RequestedReviewers) > 0 {
+		return nil
+	}
+
+	reviews, err := GetReviewsByIssueID(pr.Issue.ID)
+	if err != nil {
+		return err
+	}
+
+	if len(reviews) > 0 {
+		err = LoadReviewers(ctx, reviews)
+		if err != nil {
+			return err
+		}
+		for _, review := range reviews {
+			pr.RequestedReviewers = append(pr.RequestedReviewers, review.Reviewer)
+		}
 	}
 	return nil
 }
@@ -391,7 +404,7 @@ func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
 	defer committer.Close()
 
 	// Note: This doesn't page as we only expect a very limited number of reviews
-	reviews, err := FindReviews(ctx, FindReviewOptions{
+	reviews, err := FindLatestReviews(ctx, FindReviewOptions{
 		Type:         ReviewTypeApprove,
 		IssueID:      pr.IssueID,
 		OfficialOnly: setting.Repository.PullRequest.DefaultMergeMessageOfficialApproversOnly,
@@ -875,4 +888,223 @@ func MergeBlockedByOfficialReviewRequests(ctx context.Context, protectBranch *gi
 // MergeBlockedByOutdatedBranch returns true if merge is blocked by an outdated head branch
 func MergeBlockedByOutdatedBranch(protectBranch *git_model.ProtectedBranch, pr *PullRequest) bool {
 	return protectBranch.BlockOnOutdatedBranch && pr.CommitsBehind > 0
+}
+
+func PullRequestCodeOwnersReview(ctx context.Context, pull *Issue, pr *PullRequest) error {
+	files := []string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}
+
+	if pr.IsWorkInProgress() {
+		return nil
+	}
+
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		return err
+	}
+
+	repo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
+	if err != nil {
+		return err
+	}
+	defer repo.Close()
+
+	branch, err := repo.GetDefaultBranch()
+	if err != nil {
+		return err
+	}
+
+	commit, err := repo.GetBranchCommit(branch)
+	if err != nil {
+		return err
+	}
+
+	var data string
+	for _, file := range files {
+		if blob, err := commit.GetBlobByPath(file); err == nil {
+			data, err = blob.GetBlobContent(setting.UI.MaxDisplayFileSize)
+			if err == nil {
+				break
+			}
+		}
+	}
+
+	rules, _ := GetCodeOwnersFromContent(ctx, data)
+	changedFiles, err := repo.GetFilesChangedBetween(git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName())
+	if err != nil {
+		return err
+	}
+
+	uniqUsers := make(map[int64]*user_model.User)
+	uniqTeams := make(map[string]*org_model.Team)
+	for _, rule := range rules {
+		for _, f := range changedFiles {
+			if (rule.Rule.MatchString(f) && !rule.Negative) || (!rule.Rule.MatchString(f) && rule.Negative) {
+				for _, u := range rule.Users {
+					uniqUsers[u.ID] = u
+				}
+				for _, t := range rule.Teams {
+					uniqTeams[fmt.Sprintf("%d/%d", t.OrgID, t.ID)] = t
+				}
+			}
+		}
+	}
+
+	for _, u := range uniqUsers {
+		if u.ID != pull.Poster.ID {
+			if _, err := AddReviewRequest(pull, u, pull.Poster); err != nil {
+				log.Warn("Failed add assignee user: %s to PR review: %s#%d, error: %s", u.Name, pr.BaseRepo.Name, pr.ID, err)
+				return err
+			}
+		}
+	}
+	for _, t := range uniqTeams {
+		if _, err := AddTeamReviewRequest(pull, t, pull.Poster); err != nil {
+			log.Warn("Failed add assignee team: %s to PR review: %s#%d, error: %s", t.Name, pr.BaseRepo.Name, pr.ID, err)
+			return err
+		}
+	}
+
+	return nil
+}
+
+// GetCodeOwnersFromContent returns the code owners configuration
+// Return empty slice if files missing
+// Return warning messages on parsing errors
+// We're trying to do the best we can when parsing a file.
+// Invalid lines are skipped. Non-existent users and teams too.
+func GetCodeOwnersFromContent(ctx context.Context, data string) ([]*CodeOwnerRule, []string) {
+	if len(data) == 0 {
+		return nil, nil
+	}
+
+	rules := make([]*CodeOwnerRule, 0)
+	lines := strings.Split(data, "\n")
+	warnings := make([]string, 0)
+
+	for i, line := range lines {
+		tokens := TokenizeCodeOwnersLine(line)
+		if len(tokens) == 0 {
+			continue
+		} else if len(tokens) < 2 {
+			warnings = append(warnings, fmt.Sprintf("Line: %d: incorrect format", i+1))
+			continue
+		}
+		rule, wr := ParseCodeOwnersLine(ctx, tokens)
+		for _, w := range wr {
+			warnings = append(warnings, fmt.Sprintf("Line: %d: %s", i+1, w))
+		}
+		if rule == nil {
+			continue
+		}
+
+		rules = append(rules, rule)
+	}
+
+	return rules, warnings
+}
+
+type CodeOwnerRule struct {
+	Rule     *regexp.Regexp
+	Negative bool
+	Users    []*user_model.User
+	Teams    []*org_model.Team
+}
+
+func ParseCodeOwnersLine(ctx context.Context, tokens []string) (*CodeOwnerRule, []string) {
+	var err error
+	rule := &CodeOwnerRule{
+		Users:    make([]*user_model.User, 0),
+		Teams:    make([]*org_model.Team, 0),
+		Negative: strings.HasPrefix(tokens[0], "!"),
+	}
+
+	warnings := make([]string, 0)
+
+	rule.Rule, err = regexp.Compile(fmt.Sprintf("^%s$", strings.TrimPrefix(tokens[0], "!")))
+	if err != nil {
+		warnings = append(warnings, fmt.Sprintf("incorrect codeowner regexp: %s", err))
+		return nil, warnings
+	}
+
+	for _, user := range tokens[1:] {
+		user = strings.TrimPrefix(user, "@")
+
+		// Only @org/team can contain slashes
+		if strings.Contains(user, "/") {
+			s := strings.Split(user, "/")
+			if len(s) != 2 {
+				warnings = append(warnings, fmt.Sprintf("incorrect codeowner group: %s", user))
+				continue
+			}
+			orgName := s[0]
+			teamName := s[1]
+
+			org, err := org_model.GetOrgByName(ctx, orgName)
+			if err != nil {
+				warnings = append(warnings, fmt.Sprintf("incorrect codeowner organization: %s", user))
+				continue
+			}
+			teams, err := org.LoadTeams()
+			if err != nil {
+				warnings = append(warnings, fmt.Sprintf("incorrect codeowner team: %s", user))
+				continue
+			}
+
+			for _, team := range teams {
+				if team.Name == teamName {
+					rule.Teams = append(rule.Teams, team)
+				}
+			}
+		} else {
+			u, err := user_model.GetUserByName(ctx, user)
+			if err != nil {
+				warnings = append(warnings, fmt.Sprintf("incorrect codeowner user: %s", user))
+				continue
+			}
+			rule.Users = append(rule.Users, u)
+		}
+	}
+
+	if (len(rule.Users) == 0) && (len(rule.Teams) == 0) {
+		warnings = append(warnings, "no users/groups matched")
+		return nil, warnings
+	}
+
+	return rule, warnings
+}
+
+func TokenizeCodeOwnersLine(line string) []string {
+	if len(line) == 0 {
+		return nil
+	}
+
+	line = strings.TrimSpace(line)
+	line = strings.ReplaceAll(line, "\t", " ")
+
+	tokens := make([]string, 0)
+
+	escape := false
+	token := ""
+	for _, char := range line {
+		if escape {
+			token += string(char)
+			escape = false
+		} else if string(char) == "\\" {
+			escape = true
+		} else if string(char) == "#" {
+			break
+		} else if string(char) == " " {
+			if len(token) > 0 {
+				tokens = append(tokens, token)
+				token = ""
+			}
+		} else {
+			token += string(char)
+		}
+	}
+
+	if len(token) > 0 {
+		tokens = append(tokens, token)
+	}
+
+	return tokens
 }

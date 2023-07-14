@@ -268,6 +268,57 @@ func TestLDAPUserSync(t *testing.T) {
 	}
 }
 
+func TestLDAPUserSyncWithEmptyUsernameAttribute(t *testing.T) {
+	if skipLDAPTests() {
+		t.Skip()
+		return
+	}
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user1")
+	csrf := GetCSRF(t, session, "/admin/auths/new")
+	payload := buildAuthSourceLDAPPayload(csrf, "", "", "", "")
+	payload["attribute_username"] = ""
+	req := NewRequestWithValues(t, "POST", "/admin/auths/new", payload)
+	session.MakeRequest(t, req, http.StatusSeeOther)
+
+	for _, u := range gitLDAPUsers {
+		req := NewRequest(t, "GET", "/admin/users?q="+u.UserName)
+		resp := session.MakeRequest(t, req, http.StatusOK)
+
+		htmlDoc := NewHTMLParser(t, resp.Body)
+
+		tr := htmlDoc.doc.Find("table.table tbody tr")
+		assert.True(t, tr.Length() == 0)
+	}
+
+	for _, u := range gitLDAPUsers {
+		req := NewRequestWithValues(t, "POST", "/user/login", map[string]string{
+			"_csrf":     csrf,
+			"user_name": u.UserName,
+			"password":  u.Password,
+		})
+		MakeRequest(t, req, http.StatusSeeOther)
+	}
+
+	auth.SyncExternalUsers(context.Background(), true)
+
+	authSource := unittest.AssertExistsAndLoadBean(t, &auth_model.Source{
+		Name: payload["name"],
+	})
+	unittest.AssertCount(t, &user_model.User{
+		LoginType:   auth_model.LDAP,
+		LoginSource: authSource.ID,
+	}, len(gitLDAPUsers))
+
+	for _, u := range gitLDAPUsers {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{
+			Name: u.UserName,
+		})
+		assert.True(t, user.IsActive)
+	}
+}
+
 func TestLDAPUserSyncWithGroupFilter(t *testing.T) {
 	if skipLDAPTests() {
 		t.Skip()

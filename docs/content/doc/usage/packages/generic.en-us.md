@@ -1,6 +1,6 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
-title: "Generic Packages Repository"
+title: "Generic Package Registry"
 slug: "generic"
 weight: 40
 draft: false
@@ -13,7 +13,7 @@ menu:
     identifier: "generic"
 ---
 
-# Generic Packages Repository
+# Generic Package Registry
 
 Publish generic files, like release binaries or other output, for your user or organization.
 
@@ -51,7 +51,7 @@ curl --user your_username:your_password_or_token \
 
 If you are using 2FA or OAuth use a [personal access token]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}) instead of the password.
 
-The server reponds with the following HTTP Status codes.
+The server responds with the following HTTP Status codes.
 
 | HTTP Status Code  | Meaning |
 | ----------------- | ------- |
@@ -83,7 +83,7 @@ curl --user your_username:your_token_or_password \
      https://gitea.example.com/api/packages/testuser/generic/test_package/1.0.0/file.bin
 ```
 
-The server reponds with the following HTTP Status codes.
+The server responds with the following HTTP Status codes.
 
 | HTTP Status Code  | Meaning |
 | ----------------- | ------- |
@@ -111,7 +111,7 @@ curl --user your_username:your_token_or_password -X DELETE \
      https://gitea.example.com/api/packages/testuser/generic/test_package/1.0.0
 ```
 
-The server reponds with the following HTTP Status codes.
+The server responds with the following HTTP Status codes.
 
 | HTTP Status Code  | Meaning |
 | ----------------- | ------- |
@@ -140,7 +140,7 @@ curl --user your_username:your_token_or_password -X DELETE \
      https://gitea.example.com/api/packages/testuser/generic/test_package/1.0.0/file.bin
 ```
 
-The server reponds with the following HTTP Status codes.
+The server responds with the following HTTP Status codes.
 
 | HTTP Status Code  | Meaning |
 | ----------------- | ------- |

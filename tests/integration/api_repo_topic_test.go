@@ -60,7 +60,7 @@ func TestAPIRepoTopic(t *testing.T) {
 	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 
 	// Get user2's token
-	token2 := getUserToken(t, user2.Name, auth_model.AccessTokenScopeRepo)
+	token2 := getUserToken(t, user2.Name, auth_model.AccessTokenScopeWriteRepository)
 
 	// Test read topics using login
 	url := fmt.Sprintf("/api/v1/repos/%s/%s/topics", user2.Name, repo2.Name)
@@ -140,7 +140,7 @@ func TestAPIRepoTopic(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// Get user4's token
-	token4 := getUserToken(t, user4.Name, auth_model.AccessTokenScopeRepo)
+	token4 := getUserToken(t, user4.Name, auth_model.AccessTokenScopeWriteRepository)
 
 	// Test read topics with write access
 	url = fmt.Sprintf("/api/v1/repos/%s/%s/topics?token=%s", user3.Name, repo3.Name, token4)

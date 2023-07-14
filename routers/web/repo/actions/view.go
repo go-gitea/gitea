@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -16,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/base"
 	context_module "code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -105,9 +107,10 @@ type ViewJobStep struct {
 }
 
 type ViewStepLog struct {
-	Step   int                `json:"step"`
-	Cursor int64              `json:"cursor"`
-	Lines  []*ViewStepLogLine `json:"lines"`
+	Step    int                `json:"step"`
+	Cursor  int64              `json:"cursor"`
+	Lines   []*ViewStepLogLine `json:"lines"`
+	Started int64              `json:"started"`
 }
 
 type ViewStepLogLine struct {
@@ -240,9 +243,10 @@ func ViewPost(ctx *context_module.Context) {
 			}
 
 			resp.Logs.StepsLog = append(resp.Logs.StepsLog, &ViewStepLog{
-				Step:   cursor.Step,
-				Cursor: cursor.Cursor + int64(len(logLines)),
-				Lines:  logLines,
+				Step:    cursor.Step,
+				Cursor:  cursor.Cursor + int64(len(logLines)),
+				Lines:   logLines,
+				Started: int64(step.Started),
 			})
 		}
 	}
@@ -305,6 +309,55 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob) erro
 
 	actions_service.CreateCommitStatus(ctx, job)
 	return nil
+}
+
+func Logs(ctx *context_module.Context) {
+	runIndex := ctx.ParamsInt64("run")
+	jobIndex := ctx.ParamsInt64("job")
+
+	job, _ := getRunJobs(ctx, runIndex, jobIndex)
+	if ctx.Written() {
+		return
+	}
+	if job.TaskID == 0 {
+		ctx.Error(http.StatusNotFound, "job is not started")
+		return
+	}
+
+	err := job.LoadRun(ctx)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	task, err := actions_model.GetTaskByID(ctx, job.TaskID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+	if task.LogExpired {
+		ctx.Error(http.StatusNotFound, "logs have been cleaned up")
+		return
+	}
+
+	reader, err := actions.OpenLogs(ctx, task.LogInStorage, task.LogFilename)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer reader.Close()
+
+	workflowName := job.Run.WorkflowID
+	if p := strings.Index(workflowName, "."); p > 0 {
+		workflowName = workflowName[0:p]
+	}
+	ctx.ServeContent(reader, &context_module.ServeHeaderOptions{
+		Filename:           fmt.Sprintf("%v-%v-%v.log", workflowName, job.Name, task.ID),
+		ContentLength:      &task.LogSize,
+		ContentType:        "text/plain",
+		ContentTypeCharset: "utf-8",
+		Disposition:        "attachment",
+	})
 }
 
 func Cancel(ctx *context_module.Context) {
@@ -417,4 +470,81 @@ func getRunJobs(ctx *context_module.Context, runIndex, jobIndex int64) (*actions
 		return jobs[jobIndex], jobs
 	}
 	return jobs[0], jobs
+}
+
+type ArtifactsViewResponse struct {
+	Artifacts []*ArtifactsViewItem `json:"artifacts"`
+}
+
+type ArtifactsViewItem struct {
+	Name string `json:"name"`
+	Size int64  `json:"size"`
+	ID   int64  `json:"id"`
+}
+
+func ArtifactsView(ctx *context_module.Context) {
+	runIndex := ctx.ParamsInt64("run")
+	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.Error(http.StatusNotFound, err.Error())
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+	artifacts, err := actions_model.ListUploadedArtifactsByRunID(ctx, run.ID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+	artifactsResponse := ArtifactsViewResponse{
+		Artifacts: make([]*ArtifactsViewItem, 0, len(artifacts)),
+	}
+	for _, art := range artifacts {
+		artifactsResponse.Artifacts = append(artifactsResponse.Artifacts, &ArtifactsViewItem{
+			Name: art.ArtifactName,
+			Size: art.FileSize,
+			ID:   art.ID,
+		})
+	}
+	ctx.JSON(http.StatusOK, artifactsResponse)
+}
+
+func ArtifactsDownloadView(ctx *context_module.Context) {
+	runIndex := ctx.ParamsInt64("run")
+	artifactID := ctx.ParamsInt64("id")
+
+	artifact, err := actions_model.GetArtifactByID(ctx, artifactID)
+	if errors.Is(err, util.ErrNotExist) {
+		ctx.Error(http.StatusNotFound, err.Error())
+	} else if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.Error(http.StatusNotFound, err.Error())
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+	if artifact.RunID != run.ID {
+		ctx.Error(http.StatusNotFound, "artifact not found")
+		return
+	}
+
+	f, err := storage.ActionsArtifacts.Open(artifact.StoragePath)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer f.Close()
+
+	ctx.ServeContent(f, &context_module.ServeHeaderOptions{
+		Filename:     artifact.ArtifactName,
+		LastModified: artifact.CreatedUnix.AsLocalTime(),
+	})
 }

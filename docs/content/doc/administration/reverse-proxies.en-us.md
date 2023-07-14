@@ -191,14 +191,6 @@ git.example.com {
 }
 ```
 
-If you still use Caddy v1, use:
-
-```apacheconf
-git.example.com {
-    proxy / localhost:3000
-}
-```
-
 ## Caddy with a sub-path
 
 In case you already have a site, and you want Gitea to share the domain name, you can setup Caddy to serve Gitea under a sub-path by adding the following to your server block in your Caddyfile:
@@ -209,14 +201,6 @@ git.example.com {
         uri strip_prefix /git
         reverse_proxy localhost:3000
     }
-}
-```
-
-Or, for Caddy v1:
-
-```apacheconf
-git.example.com {
-    proxy /git/ localhost:3000
 }
 ```
 

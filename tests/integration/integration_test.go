@@ -80,14 +80,14 @@ func NewNilResponseHashSumRecorder() *NilResponseHashSumRecorder {
 }
 
 func TestMain(m *testing.M) {
-	defer log.Close()
+	defer log.GetManager().Close()
 
 	managerCtx, cancel := context.WithCancel(context.Background())
 	graceful.InitManager(managerCtx)
 	defer cancel()
 
 	tests.InitTest(true)
-	c = routers.NormalRoutes(context.TODO())
+	c = routers.NormalRoutes()
 
 	// integration test settings...
 	if setting.CfgProvider != nil {
@@ -319,7 +319,7 @@ func NewRequest(t testing.TB, method, urlStr string) *http.Request {
 	return NewRequestWithBody(t, method, urlStr, nil)
 }
 
-func NewRequestf(t testing.TB, method, urlFormat string, args ...interface{}) *http.Request {
+func NewRequestf(t testing.TB, method, urlFormat string, args ...any) *http.Request {
 	t.Helper()
 	return NewRequest(t, method, fmt.Sprintf(urlFormat, args...))
 }
@@ -340,7 +340,7 @@ func NewRequestWithURLValues(t testing.TB, method, urlStr string, urlValues url.
 	return req
 }
 
-func NewRequestWithJSON(t testing.TB, method, urlStr string, v interface{}) *http.Request {
+func NewRequestWithJSON(t testing.TB, method, urlStr string, v any) *http.Request {
 	t.Helper()
 
 	jsonBytes, err := json.Marshal(v)
@@ -435,7 +435,7 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 	}
 }
 
-func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v interface{}) {
+func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v any) {
 	t.Helper()
 
 	decoder := json.NewDecoder(resp.Body)

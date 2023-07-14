@@ -34,8 +34,10 @@ The following package managers are currently supported:
 | [Conan]({{< relref "doc/usage/packages/conan.en-us.md" >}}) | C++ | `conan` |
 | [Conda]({{< relref "doc/usage/packages/conda.en-us.md" >}}) | - | `conda` |
 | [Container]({{< relref "doc/usage/packages/container.en-us.md" >}}) | - | any OCI compliant client |
+| [CRAN]({{< relref "doc/usage/packages/cran.en-us.md" >}}) | R | - |
 | [Debian]({{< relref "doc/usage/packages/debian.en-us.md" >}}) | - | `apt` |
 | [Generic]({{< relref "doc/usage/packages/generic.en-us.md" >}}) | - | any HTTP client |
+| [Go]({{< relref "doc/usage/packages/go.en-us.md" >}}) | Go | `go` |
 | [Helm]({{< relref "doc/usage/packages/helm.en-us.md" >}}) | - | any HTTP client, `cm-push` |
 | [Maven]({{< relref "doc/usage/packages/maven.en-us.md" >}}) | Java | `mvn`, `gradle` |
 | [npm]({{< relref "doc/usage/packages/npm.en-us.md" >}}) | JavaScript | `npm`, `yarn`, `pnpm` |

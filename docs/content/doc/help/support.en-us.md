@@ -17,6 +17,7 @@ menu:
 
 # Support Options
 
+- [Paid Commercial Support](https://about.gitea.com/)
 - [Discord](https://discord.gg/Gitea)
 - [Discourse Forum](https://discourse.gitea.io/)
 
@@ -35,30 +36,13 @@ menu:
     [log]
     LEVEL=debug
     MODE=console,file
-    ROUTER=console,file
-    XORM=console,file
-    ENABLE_XORM_LOG=true
-    FILE_NAME=gitea.log
-    [log.file.router]
-    FILE_NAME=router.log
-    [log.file.xorm]
-    FILE_NAME=xorm.log
     ```
 
 3. Any error messages you are seeing.
 4. When possible, try to replicate the issue on [try.gitea.io](https://try.gitea.io) and include steps so that others can reproduce the issue.
     - This will greatly improve the chance that the root of the issue can be quickly discovered and resolved.
-5. If you meet slow/hanging/deadlock problems, please report the stack trace when the problem occurs:
-    1. Enable pprof in `app.ini` and restart Gitea
-
-        ```ini
-        [server]
-        ENABLE_PPROF = true
-        ```
-
-    2. Trigger the bug, when Gitea gets stuck, use curl or browser to visit: `http://127.0.0.1:6060/debug/pprof/goroutine?debug=1` (IP must be `127.0.0.1` and port must be `6060`).
-    3. If you are using Docker, please use `docker exec -it <container-name> curl "http://127.0.0.1:6060/debug/pprof/goroutine?debug=1"`.
-    4. Report the output (the stack trace doesn't contain sensitive data)
+5. If you encounter slow/hanging/deadlock problems, please report the stack trace when the problem occurs.
+   Go to the "Site Admin" -> "Monitoring" -> "Stacktrace" -> "Download diagnosis report".
 
 ## Bugs
 

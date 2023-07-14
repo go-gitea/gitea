@@ -56,3 +56,13 @@ To deploy Gitea to Linode, have a look at the [Linode Marketplace](https://www.l
 [alwaysdata](https://www.alwaysdata.com/) has Gitea as an app in their marketplace.
 
 To deploy Gitea to alwaysdata, have a look at the [alwaysdata Marketplace](https://www.alwaysdata.com/en/marketplace/gitea/).
+
+## Exoscale
+
+[Exoscale](https://www.exoscale.com/) provides Gitea managed by [Glasskube](https://glasskube.eu/) in their marketplace.
+
+Exoscale is a European cloud service provider.
+
+The package is maintained and update via the open source [Glasskube Kubernetes Operator](https://github.com/glasskube/operator).
+
+To deploy Gitea to Exoscale, have a look at the [Exoscale Marketplace](https://www.exoscale.com/marketplace/listing/glasskube-gitea/).

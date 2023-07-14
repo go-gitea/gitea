@@ -1,6 +1,6 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
-title: "PyPI Packages Repository"
+title: "PyPI Package Registry"
 slug: "pypi"
 weight: 100
 draft: false
@@ -13,7 +13,7 @@ menu:
     identifier: "pypi"
 ---
 
-# PyPI Packages Repository
+# PyPI Package Registry
 
 Publish [PyPI](https://pypi.org/) packages for your user or organization.
 

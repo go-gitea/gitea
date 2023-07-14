@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -21,7 +22,7 @@ func TestAPIUserInfo(t *testing.T) {
 	user2 := "user31"
 
 	session := loginUser(t, user)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
 
 	t.Run("GetInfo", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()

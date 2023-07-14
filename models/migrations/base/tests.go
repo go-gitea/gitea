@@ -24,11 +24,13 @@ import (
 	"xorm.io/xorm"
 )
 
+// FIXME: this file shouldn't be in a normal package, it should only be compiled for tests
+
 // PrepareTestEnv prepares the test environment and reset the database. The skip parameter should usually be 0.
 // Provide models to be sync'd with the database - in particular any models you expect fixtures to be loaded from.
 //
 // fixtures in `models/migrations/fixtures/<TestName>` will be loaded automatically
-func PrepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.Engine, func()) {
+func PrepareTestEnv(t *testing.T, skip int, syncModels ...any) (*xorm.Engine, func()) {
 	t.Helper()
 	ourSkip := 2
 	ourSkip += skip
@@ -110,7 +112,7 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 }
 
 func MainTest(m *testing.M) {
-	log.Register("test", testlogger.NewTestLogger)
+	log.RegisterEventWriter("test", testlogger.NewTestLoggerWriter)
 
 	giteaRoot := base.SetupGiteaRoot()
 	if giteaRoot == "" {
@@ -145,16 +147,16 @@ func MainTest(m *testing.M) {
 		os.Exit(1)
 	}
 
+	setting.CustomPath = filepath.Join(setting.AppWorkPath, "custom")
 	setting.AppDataPath = tmpDataPath
 
-	setting.SetCustomPathAndConf("", "", "")
 	unittest.InitSettings()
 	if err = git.InitFull(context.Background()); err != nil {
 		fmt.Printf("Unable to InitFull: %v\n", err)
 		os.Exit(1)
 	}
 	setting.LoadDBSetting()
-	setting.InitLogs(true)
+	setting.InitLoggersForTest()
 
 	exitStatus := m.Run()
 

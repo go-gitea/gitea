@@ -26,7 +26,7 @@ func RenderPanicErrorPage(w http.ResponseWriter, req *http.Request, err any) {
 
 	defer func() {
 		if err := recover(); err != nil {
-			log.Error("Panic occurs again when rendering error page: %v", err)
+			log.Error("Panic occurs again when rendering error page: %v. Stack:\n%s", err, log.Stack(2))
 		}
 	}()
 

@@ -9,6 +9,8 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -72,6 +74,34 @@ func TestPullRequestsNewest(t *testing.T) {
 		assert.EqualValues(t, 2, prs[1].ID)
 		assert.EqualValues(t, 1, prs[2].ID)
 	}
+}
+
+func TestLoadRequestedReviewers(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
+	assert.NoError(t, pull.LoadIssue(db.DefaultContext))
+	issue := pull.Issue
+	assert.NoError(t, issue.LoadRepo(db.DefaultContext))
+	assert.Len(t, pull.RequestedReviewers, 0)
+
+	user1, err := user_model.GetUserByID(db.DefaultContext, 1)
+	assert.NoError(t, err)
+
+	comment, err := issues_model.AddReviewRequest(issue, user1, &user_model.User{})
+	assert.NoError(t, err)
+	assert.NotNil(t, comment)
+
+	assert.NoError(t, pull.LoadRequestedReviewers(db.DefaultContext))
+	assert.Len(t, pull.RequestedReviewers, 1)
+
+	comment, err = issues_model.RemoveReviewRequest(issue, user1, &user_model.User{})
+	assert.NoError(t, err)
+	assert.NotNil(t, comment)
+
+	pull.RequestedReviewers = nil
+	assert.NoError(t, pull.LoadRequestedReviewers(db.DefaultContext))
+	assert.Empty(t, pull.RequestedReviewers)
 }
 
 func TestPullRequestsOldest(t *testing.T) {
@@ -273,4 +303,37 @@ func TestDeleteOrphanedObjects(t *testing.T) {
 	countAfter, err := db.GetEngine(db.DefaultContext).Count(&issues_model.PullRequest{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, countBefore, countAfter)
+}
+
+func TestParseCodeOwnersLine(t *testing.T) {
+	type CodeOwnerTest struct {
+		Line   string
+		Tokens []string
+	}
+
+	given := []CodeOwnerTest{
+		{Line: "", Tokens: nil},
+		{Line: "# comment", Tokens: []string{}},
+		{Line: "!.* @user1 @org1/team1", Tokens: []string{"!.*", "@user1", "@org1/team1"}},
+		{Line: `.*\\.js @user2 #comment`, Tokens: []string{`.*\.js`, "@user2"}},
+		{Line: `docs/(aws|google|azure)/[^/]*\\.(md|txt) @user3 @org2/team2`, Tokens: []string{`docs/(aws|google|azure)/[^/]*\.(md|txt)`, "@user3", "@org2/team2"}},
+		{Line: `\#path @user3`, Tokens: []string{`#path`, "@user3"}},
+		{Line: `path\ with\ spaces/ @user3`, Tokens: []string{`path with spaces/`, "@user3"}},
+	}
+
+	for _, g := range given {
+		tokens := issues_model.TokenizeCodeOwnersLine(g.Line)
+		assert.Equal(t, g.Tokens, tokens, "Codeowners tokenizer failed")
+	}
+}
+
+func TestGetApprovers(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 5})
+	// Official reviews are already deduplicated. Allow unofficial reviews
+	// to assert that there are no duplicated approvers.
+	setting.Repository.PullRequest.DefaultMergeMessageOfficialApproversOnly = false
+	approvers := pr.GetApprovers()
+	expected := "Reviewed-by: User Five <user5@example.com>\nReviewed-by: User Six <user6@example.com>\n"
+	assert.EqualValues(t, expected, approvers)
 }

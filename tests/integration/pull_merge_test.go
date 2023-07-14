@@ -199,7 +199,7 @@ func TestCantMergeWorkInProgress(t *testing.T) {
 
 		resp := testPullCreate(t, session, "user1", "repo1", "master", "[wip] This is a pull title")
 
-		req := NewRequest(t, "GET", resp.Header().Get("Location"))
+		req := NewRequest(t, "GET", test.RedirectURL(resp))
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		text := strings.TrimSpace(htmlDoc.doc.Find(".merge-section > .item").Last().Text())
@@ -218,7 +218,7 @@ func TestCantMergeConflict(t *testing.T) {
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "base", "README.md", "Hello, World (Edited Twice)\n")
 
 		// Use API to create a conflicting pr
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 		req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls?token=%s", "user1", "repo1", token), &api.CreatePullRequestOption{
 			Head:  "conflict",
 			Base:  "base",
@@ -326,7 +326,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "conflict", "README.md", "Hello, World (Edited Once)\n")
 
 		// Use API to create a conflicting pr
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 		req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls?token=%s", "user1", "repo1", token), &api.CreatePullRequestOption{
 			Head:  "unrelated",
 			Base:  "base",
@@ -367,22 +367,30 @@ func TestConflictChecking(t *testing.T) {
 		assert.NotEmpty(t, baseRepo)
 
 		// create a commit on new branch.
-		_, err = files_service.CreateOrUpdateRepoFile(git.DefaultContext, baseRepo, user, &files_service.UpdateRepoFileOptions{
-			TreePath:  "important_file",
+		_, err = files_service.ChangeRepoFiles(git.DefaultContext, baseRepo, user, &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation: "create",
+					TreePath:  "important_file",
+					Content:   "Just a non-important file",
+				},
+			},
 			Message:   "Add a important file",
-			Content:   "Just a non-important file",
-			IsNewFile: true,
 			OldBranch: "main",
 			NewBranch: "important-secrets",
 		})
 		assert.NoError(t, err)
 
 		// create a commit on main branch.
-		_, err = files_service.CreateOrUpdateRepoFile(git.DefaultContext, baseRepo, user, &files_service.UpdateRepoFileOptions{
-			TreePath:  "important_file",
+		_, err = files_service.ChangeRepoFiles(git.DefaultContext, baseRepo, user, &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation: "create",
+					TreePath:  "important_file",
+					Content:   "Not the same content :P",
+				},
+			},
 			Message:   "Add a important file",
-			Content:   "Not the same content :P",
-			IsNewFile: true,
 			OldBranch: "main",
 			NewBranch: "main",
 		})

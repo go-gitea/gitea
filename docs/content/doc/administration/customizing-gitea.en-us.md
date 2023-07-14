@@ -282,6 +282,22 @@ Place custom files in corresponding sub-folder under `custom/options`.
 
 To add custom .gitignore, add a file with existing [.gitignore rules](https://git-scm.com/docs/gitignore) in it to `$GITEA_CUSTOM/options/gitignore`
 
+## Customizing the git configuration
+
+Starting with Gitea 1.20, you can customize the git configuration via the `git.config` section.
+
+### Enabling signed git pushes
+
+To enable signed git pushes, set these two options:
+
+```ini
+[git.config]
+receive.advertisePushOptions = true
+receive.certNonceSeed = <randomstring>
+```
+
+`certNonceSeed` should be set to a random string and be kept secret.
+
 ### Labels
 
 Starting with Gitea 1.19, you can add a file that follows the [YAML label format](https://github.com/go-gitea/gitea/blob/main/options/label/Advanced.yaml) to `$GITEA_CUSTOM/options/label`:

@@ -49,7 +49,7 @@ func Init() error {
 }
 
 // RenderHTML renders icons - arguments icon name (string), size (int), class (string)
-func RenderHTML(icon string, others ...interface{}) template.HTML {
+func RenderHTML(icon string, others ...any) template.HTML {
 	size, class := html.ParseSizeAndClass(defaultSize, "", others...)
 
 	if svgStr, ok := SVGs[icon]; ok {
@@ -62,5 +62,5 @@ func RenderHTML(icon string, others ...interface{}) template.HTML {
 		}
 		return template.HTML(svgStr)
 	}
-	return template.HTML("")
+	return ""
 }

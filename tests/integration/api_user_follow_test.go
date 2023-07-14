@@ -22,10 +22,10 @@ func TestAPIFollow(t *testing.T) {
 	user2 := "user1"
 
 	session1 := loginUser(t, user1)
-	token1 := getTokenForLoggedInUser(t, session1)
+	token1 := getTokenForLoggedInUser(t, session1, auth_model.AccessTokenScopeReadUser)
 
 	session2 := loginUser(t, user2)
-	token2 := getTokenForLoggedInUser(t, session2, auth_model.AccessTokenScopeUserFollow)
+	token2 := getTokenForLoggedInUser(t, session2, auth_model.AccessTokenScopeWriteUser)
 
 	t.Run("Follow", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()

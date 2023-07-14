@@ -117,6 +117,9 @@ type swaggerParameterBodies struct {
 	EditAttachmentOptions api.EditAttachmentOptions
 
 	// in:body
+	ChangeFilesOptions api.ChangeFilesOptions
+
+	// in:body
 	CreateFileOptions api.CreateFileOptions
 
 	// in:body
@@ -178,4 +181,10 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	CreatePushMirrorOption api.CreatePushMirrorOption
+
+	// in:body
+	UpdateUserAvatarOptions api.UpdateUserAvatarOption
+
+	// in:body
+	UpdateRepoAvatarOptions api.UpdateRepoAvatarOption
 }

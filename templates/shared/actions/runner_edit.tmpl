@@ -13,13 +13,13 @@
 				</div>
 				<div class="field gt-dib gt-mr-4">
 					<label>{{.locale.Tr "actions.runners.last_online"}}</label>
-					<span>{{if .LastOnline}}{{TimeSinceUnix .LastOnline $.locale}}{{else}}{{$.locale.Tr "never"}}{{end}}</span>
+					<span>{{if .Runner.LastOnline}}{{TimeSinceUnix .Runner.LastOnline $.locale}}{{else}}{{$.locale.Tr "never"}}{{end}}</span>
 				</div>
 				<div class="field gt-dib gt-mr-4">
-					<label>{{.locale.Tr "actions.runners.agent_labels"}}</label>
+					<label>{{.locale.Tr "actions.runners.labels"}}</label>
 					<span>
 						{{range .Runner.AgentLabels}}
-						<span>{{.}}</span>
+						<span class="ui label">{{.}}</span>
 						{{end}}
 					</span>
 				</div>
@@ -29,19 +29,14 @@
 				</div>
 			</div>
 
-			<div class="ui divider"></div>
+			<div class="divider"></div>
 
 			<div class="field">
 				<label for="description">{{.locale.Tr "actions.runners.description"}}</label>
 				<input id="description" name="description" value="{{.Runner.Description}}">
 			</div>
-			<div class="field" data-tooltip-content="Labels are comma-separated. Whitespace at the beginning, end, and around the commas are ignored.">
-				<label for="custom_labels">{{.locale.Tr "actions.runners.custom_labels"}}</label>
-				<input id="custom_labels" name="custom_labels" value="{{StringUtils.Join .Runner.CustomLabels `,`}}">
-				<p class="help">{{.locale.Tr "actions.runners.custom_labels_helper"}}</p>
-			</div>
 
-			<div class="ui divider"></div>
+			<div class="divider"></div>
 
 			<div class="field">
 				<button class="ui green button" data-url="{{.Link}}">{{.locale.Tr "actions.runners.update_runner"}}</button>
@@ -81,7 +76,7 @@
 				{{end}}
 				{{if not .Tasks}}
 				<tr>
-					<td colspan="5">{{.locale.Tr "runners.task_list.no_tasks"}}</td>
+					<td colspan="5">{{.locale.Tr "actions.runners.task_list.no_tasks"}}</td>
 				</tr>
 				{{end}}
 			</tbody>
