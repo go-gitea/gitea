@@ -264,6 +264,7 @@ func DeleteMilestone(ctx *context.Context) {
 // MilestoneIssuesAndPulls lists all the issues and pull requests of the milestone
 func MilestoneIssuesAndPulls(ctx *context.Context) {
 	milestoneID := ctx.ParamsInt64(":id")
+	projectID := ctx.FormInt64("project")
 	milestone, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, milestoneID)
 	if err != nil {
 		if issues_model.IsErrMilestoneNotExist(err) {
@@ -289,7 +290,7 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 	ctx.Data["Title"] = milestone.Name
 	ctx.Data["Milestone"] = milestone
 
-	issues(ctx, milestoneID, 0, util.OptionalBoolNone)
+	issues(ctx, milestoneID, projectID, util.OptionalBoolNone)
 
 	ret, _ := issue.GetTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
 	ctx.Data["NewIssueChooseTemplate"] = len(ret) > 0
