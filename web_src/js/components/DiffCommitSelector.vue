@@ -34,7 +34,7 @@
                 {{ commit.summary }}
               </div>
               <div class="gt-ellipsis text light-2">
-                {{ commit.committerOrAuthorName }}
+                {{ commit.committer_or_author_name }}
                 <span class="text right">
                   <relative-time class="time-since" prefix="" :datetime="commit.time" data-tooltip-content data-tooltip-interactive="true">{{ commit.time }}</relative-time>
                 </span>
