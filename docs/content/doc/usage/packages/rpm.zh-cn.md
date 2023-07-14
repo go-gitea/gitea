@@ -31,17 +31,18 @@ menu:
 要注册RPM注册表，请将 URL 添加到已知 `apt` 源列表中：
 
 ```shell
-dnf config-manager --add-repo https://gitea.example.com/api/packages/{owner}/rpm.repo
+dnf config-manager --add-repo https://gitea.example.com/api/packages/{owner}/{distribution}.repo
 ```
 
 | 占位符  | 描述           |
 | ------- | -------------- |
 | `owner` | 软件包的所有者 |
+| `distribution` | 一个任意的名称，例如：el7、el9 |
 
 如果注册表是私有的，请在URL中提供凭据。您可以使用密码或[个人访问令牌]({{< relref "doc/development/api-usage.zh-cn.md#通过-api-认证" >}})：
 
 ```shell
-dnf config-manager --add-repo https://{username}:{your_password_or_token}@gitea.example.com/api/packages/{owner}/rpm.repo
+dnf config-manager --add-repo https://{username}:{your_password_or_token}@gitea.example.com/api/packages/{owner}/{distribution}.repo
 ```
 
 您还必须将凭据添加到 `/etc/yum.repos.d` 中的 `rpm.repo` 文件中的URL中。
@@ -51,19 +52,20 @@ dnf config-manager --add-repo https://{username}:{your_password_or_token}@gitea.
 要发布RPM软件包（`*.rpm`），请执行带有软件包内容的 HTTP `PUT` 操作。
 
 ```
-PUT https://gitea.example.com/api/packages/{owner}/rpm/upload
+PUT https://gitea.example.com/api/packages/{owner}/rpm/{distribution}/upload
 ```
 
 | 参数    | 描述           |
 | ------- | -------------- |
 | `owner` | 软件包的所有者 |
+| `distribution` | 一个任意的名称，例如：el7、el9 |
 
 使用HTTP基本身份验证的示例请求：
 
 ```shell
 curl --user your_username:your_password_or_token \
      --upload-file path/to/file.rpm \
-     https://gitea.example.com/api/packages/testuser/rpm/upload
+     https://gitea.example.com/api/packages/testuser/rpm/default/upload
 ```
 
 如果您使用 2FA 或 OAuth，请使用[个人访问令牌]({{< relref "doc/development/api-usage.zh-cn.md#通过-api-认证" >}})替代密码。您无法将具有相同名称的文件两次发布到软件包中。您必须先删除现有的软件包版本。
@@ -81,21 +83,22 @@ curl --user your_username:your_password_or_token \
 要删除 RPM 软件包，请执行 HTTP `DELETE` 操作。如果没有文件剩余，这也将删除软件包版本。
 
 ```
-DELETE https://gitea.example.com/api/packages/{owner}/rpm/{package_name}/{package_version}/{architecture}
+DELETE https://gitea.example.com/api/packages/{owner}/rpm/{distribution}/package/{package_name}/{package_version}/{architecture}
 ```
 
-| 参数              | 描述           |
-| ----------------- | -------------- |
+| 参数              | 描述      |
+| ----------------- |---------|
 | `owner`           | 软件包的所有者 |
-| `package_name`    | 软件包名称     |
-| `package_version` | 软件包版本     |
-| `architecture`    | 软件包架构     |
+| `distribution`    | 软件包组名称  |
+| `package_name`    | 软件包名称   |
+| `package_version` | 软件包版本   |
+| `architecture`    | 软件包架构   |
 
 使用HTTP基本身份验证的示例请求：
 
 ```shell
 curl --user your_username:your_token_or_password -X DELETE \
-     https://gitea.example.com/api/packages/testuser/rpm/test-package/1.0.0/x86_64
+     https://gitea.example.com/api/packages/testuser/rpm/default/package/test-package/1.0.0/x86_64
 ```
 
 服务器将以以下HTTP状态码响应：
