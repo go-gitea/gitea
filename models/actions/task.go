@@ -18,7 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
-	lru "github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/nektos/act/pkg/jobparser"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"xorm.io/builder"
@@ -57,13 +57,13 @@ type ActionTask struct {
 	Updated timeutil.TimeStamp `xorm:"updated index"`
 }
 
-var successfulTokenTaskCache *lru.Cache
+var successfulTokenTaskCache *lru.Cache[string, any]
 
 func init() {
 	db.RegisterModel(new(ActionTask), func() error {
 		if setting.SuccessfulTokensCacheSize > 0 {
 			var err error
-			successfulTokenTaskCache, err = lru.New(setting.SuccessfulTokensCacheSize)
+			successfulTokenTaskCache, err = lru.New[string, any](setting.SuccessfulTokensCacheSize)
 			if err != nil {
 				return fmt.Errorf("unable to allocate Task cache: %v", err)
 			}
