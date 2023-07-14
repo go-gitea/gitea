@@ -472,7 +472,19 @@ func TestCorrectIssueStats(t *testing.T) {
 	wg.Wait()
 
 	// Now we will get all issueID's that match the "Bugs are nasty" query.
-	total, ids, err := issues_model.SearchIssueIDsByKeyword(context.TODO(), "Bugs are nasty", []int64{1}, issueAmount, 0)
+	issues, err := issues_model.Issues(context.TODO(), &issues_model.IssuesOptions{
+		ListOptions: db.ListOptions{
+			PageSize: issueAmount,
+		},
+		RepoIDs: []int64{1},
+	})
+	total := int64(len(issues))
+	var ids []int64
+	for _, issue := range issues {
+		if issue.Content == "Bugs are nasty" {
+			ids = append(ids, issue.ID)
+		}
+	}
 
 	// Just to be sure.
 	assert.NoError(t, err)
