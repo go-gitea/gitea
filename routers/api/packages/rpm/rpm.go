@@ -34,7 +34,7 @@ func apiError(ctx *context.Context, status int, obj any) {
 func getDistribution(ctx *context.Context) string {
 	distribution := strings.TrimSpace(ctx.Params("distribution"))
 	if len(distribution) == 0 {
-		return "default"
+		return rpm_module.RepositoryDefaultDistribution
 	}
 	return distribution
 }

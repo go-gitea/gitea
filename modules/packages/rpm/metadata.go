@@ -21,8 +21,9 @@ const (
 	SettingKeyPrivate    = "rpm.key.private"
 	SettingKeyPublic     = "rpm.key.public"
 
-	RepositoryPackage = "_rpm"
-	RepositoryVersion = "_repository"
+	RepositoryPackage             = "_rpm"
+	RepositoryVersion             = "_repository"
+	RepositoryDefaultDistribution = "default"
 )
 
 const (

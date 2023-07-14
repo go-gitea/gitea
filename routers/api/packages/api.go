@@ -513,6 +513,7 @@ func CommonRoutes() *web.Route {
 			r.Get("/simple/{id}", pypi.PackageMetadata)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/rpm", func() {
+			// old rpm
 			r.Get(".repo", rpm.GetRepositoryConfig)
 			r.Get("/repository.key", rpm.GetRepositoryKey)
 			r.Put("/upload", reqPackageAccess(perm.AccessModeWrite), rpm.UploadPackageFile)
@@ -521,6 +522,7 @@ func CommonRoutes() *web.Route {
 				r.Get("", rpm.DownloadPackageFile)
 				r.Delete("", reqPackageAccess(perm.AccessModeWrite), rpm.DeletePackageFile)
 			})
+			// new rpm
 			r.Get("/{distribution}.repo", rpm.GetRepositoryConfig)
 			r.Put("/{distribution}/upload", reqPackageAccess(perm.AccessModeWrite), rpm.UploadPackageFile)
 			r.Group("/{distribution}/package/{name}/{version}/{architecture}", func() {
