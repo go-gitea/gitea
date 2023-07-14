@@ -250,6 +250,7 @@ func CreatePost(ctx *context.Context) {
 			Webhooks:    form.Webhooks,
 			Avatar:      form.Avatar,
 			IssueLabels: form.Labels,
+			ProtectedBranch: form.ProtectedBranch,
 		}
 
 		if !opts.IsValid() {

@@ -238,6 +238,8 @@ type GenerateRepoOption struct {
 	Avatar bool `json:"avatar"`
 	// include labels in template repo
 	Labels bool `json:"labels"`
+	// include protected branches in template repo
+	ProtectedBranch bool `json:"protected_branch"`
 }
 
 // CreateBranchRepoOption options when creating a branch in a repository
