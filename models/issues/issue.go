@@ -551,7 +551,13 @@ func GetIssueWithAttrsByID(id int64) (*Issue, error) {
 
 // GetIssuesByIDs return issues with the given IDs.
 func GetIssuesByIDs(ctx context.Context, issueIDs []int64) (IssueList, error) {
-	issues := make([]*Issue, 0, 10)
+	issues := make([]*Issue, 0, len(issueIDs))
+	return issues, db.GetEngine(ctx).In("id", issueIDs).Find(&issues)
+}
+
+// GetIssuesMapByIDs return issues with the given IDs.
+func GetIssuesMapByIDs(ctx context.Context, issueIDs []int64) (map[int64]*Issue, error) {
+	issues := make(map[int64]*Issue, len(issueIDs))
 	return issues, db.GetEngine(ctx).In("id", issueIDs).Find(&issues)
 }
 
