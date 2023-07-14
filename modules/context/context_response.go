@@ -91,14 +91,14 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 }
 
 // RenderToString renders the template content to a string
-func (ctx *Context) RenderToString(name base.TplName, data map[string]interface{}) (string, error) {
+func (ctx *Context) RenderToString(name base.TplName, data map[string]any) (string, error) {
 	var buf strings.Builder
 	err := ctx.Render.HTML(&buf, http.StatusOK, string(name), data)
 	return buf.String(), err
 }
 
 // RenderWithErr used for page has form validation but need to prompt error to users.
-func (ctx *Context) RenderWithErr(msg string, tpl base.TplName, form interface{}) {
+func (ctx *Context) RenderWithErr(msg string, tpl base.TplName, form any) {
 	if form != nil {
 		middleware.AssignForm(form, ctx.Data)
 	}

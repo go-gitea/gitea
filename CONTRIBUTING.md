@@ -473,14 +473,14 @@ https://help.github.com/articles/signing-commits-with-gpg/
 ## Technical Oversight Committee (TOC)
 
 At the start of 2023, the `Owners` team was dissolved. Instead, the governance charter proposed a technical oversight committee (TOC) which expands the ownership team of the Gitea project from three elected positions to six positions. Three positions would be elected as it has been over the past years, and the other three would consist of appointed members from the Gitea company.
-https://blog.gitea.io/2023/02/gitea-quarterly-report-23q1/
+https://blog.gitea.com/quarterly-23q1/
 
 When the new community members have been elected, the old members will give up ownership to the newly elected members. For security reasons, TOC members or any account with write access (like a bot) must use 2FA.
 https://help.github.com/articles/securing-your-account-with-two-factor-authentication-2fa/
 
 ### Current TOC members
 
-- 2023-01-01 ~ 2023-12-31 - https://blog.gitea.io/2023/02/gitea-quarterly-report-23q1/
+- 2023-01-01 ~ 2023-12-31 - https://blog.gitea.com/quarterly-23q1/
   - Company
     - [Jason Song](https://gitea.com/wolfogre) <i@wolfogre.com>
     - [Lunny Xiao](https://gitea.com/lunny) <xiaolunwen@gmail.com>

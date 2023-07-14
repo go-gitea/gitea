@@ -264,7 +264,7 @@ func LFSAutoAssociate(ctx context.Context, metas []*LFSMetaObject, user *user_mo
 
 	sess := db.GetEngine(ctx)
 
-	oids := make([]interface{}, len(metas))
+	oids := make([]any, len(metas))
 	oidMap := make(map[string]*LFSMetaObject, len(metas))
 	for i, meta := range metas {
 		oids[i] = meta.Oid

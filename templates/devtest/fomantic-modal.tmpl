@@ -1,5 +1,18 @@
 {{template "base/head" .}}
 <div class="page-content devtest ui container">
+	{{template "base/alert" .}}
+
+	<button class="show-modal" data-modal="#test-modal-form">show modal form</button>
+	<div id="test-modal-form" class="ui mini modal">
+		<div class="header">Form dialog</div>
+		<form class="content" method="post">
+			<div class="ui input"><input name="user_input"></div>
+			{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonTypes" "confirm")}}
+		</form>
+	</div>
+
+	<div class="divider"></div>
+
 	<div class="ui g-modal-confirm modal" id="test-modal-default">
 		<div class="header">{{svg "octicon-file"}} Default dialog <span>title</span></div>
 		<div class="content">

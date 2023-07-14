@@ -138,7 +138,7 @@ func TestPullRequestTargetEvent(t *testing.T) {
 
 		// load and compare ActionRun
 		actionRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: baseRepo.ID})
-		assert.Equal(t, addWorkflowToBaseResp.Commit.SHA, actionRun.CommitSHA)
+		assert.Equal(t, addFileToForkedResp.Commit.SHA, actionRun.CommitSHA)
 		assert.Equal(t, actions_module.GithubEventPullRequestTarget, actionRun.TriggerEvent)
 	})
 }

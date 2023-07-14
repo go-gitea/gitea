@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/setting"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 )
 
 const (
@@ -23,8 +24,9 @@ func CodeSearch(ctx *context.Context) {
 		ctx.Redirect(ctx.ContextUser.HomeLink())
 		return
 	}
+	shared_user.PrepareContextForProfileBigAvatar(ctx)
+	shared_user.RenderUserHeader(ctx)
 
-	ctx.Data["IsProjectEnabled"] = true
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["Title"] = ctx.Tr("explore.code")

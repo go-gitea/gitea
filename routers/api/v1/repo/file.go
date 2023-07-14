@@ -219,7 +219,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	common.ServeContentByReadSeeker(ctx.Base, ctx.Repo.TreePath, lastModified, lfsDataRc)
 }
 
-func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, entry *git.TreeEntry, lastModified time.Time) {
+func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, entry *git.TreeEntry, lastModified *time.Time) {
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
@@ -227,23 +227,23 @@ func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, entry *git.TreeEn
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetTreeEntryByPath", err)
 		}
-		return
+		return nil, nil, nil
 	}
 
 	if entry.IsDir() || entry.IsSubModule() {
 		ctx.NotFound("getBlobForEntry", nil)
-		return
+		return nil, nil, nil
 	}
 
 	info, _, err := git.Entries([]*git.TreeEntry{entry}).GetCommitsInfo(ctx, ctx.Repo.Commit, path.Dir("/" + ctx.Repo.TreePath)[1:])
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetCommitsInfo", err)
-		return
+		return nil, nil, nil
 	}
 
 	if len(info) == 1 {
 		// Not Modified
-		lastModified = info[0].Commit.Committer.When
+		lastModified = &info[0].Commit.Committer.When
 	}
 	blob = entry.Blob()
 

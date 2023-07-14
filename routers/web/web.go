@@ -1260,20 +1260,20 @@ func registerRoutes(m *web.Route) {
 
 		m.Group("/blob_excerpt", func() {
 			m.Get("/{sha}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ExcerptBlob)
-		}, func(ctx *context.Context) (cancel gocontext.CancelFunc) {
+		}, func(ctx *context.Context) gocontext.CancelFunc {
 			if ctx.FormBool("wiki") {
 				ctx.Data["PageIsWiki"] = true
 				repo.MustEnableWiki(ctx)
-				return
+				return nil
 			}
 
 			reqRepoCodeReader(ctx)
 			if ctx.Written() {
-				return
+				return nil
 			}
-			cancel = context.RepoRef()(ctx)
+			cancel := context.RepoRef()(ctx)
 			if ctx.Written() {
-				return
+				return cancel
 			}
 
 			repo.MustBeNotEmpty(ctx)
@@ -1281,9 +1281,10 @@ func registerRoutes(m *web.Route) {
 		})
 
 		m.Group("/pulls/{index}", func() {
+			m.Get("", repo.SetWhitespaceBehavior, repo.GetPullDiffStats, repo.ViewIssue)
 			m.Get(".diff", repo.DownloadPullDiff)
 			m.Get(".patch", repo.DownloadPullPatch)
-			m.Get("/commits", context.RepoRef(), repo.ViewPullCommits)
+			m.Get("/commits", context.RepoRef(), repo.SetWhitespaceBehavior, repo.GetPullDiffStats, repo.ViewPullCommits)
 			m.Post("/merge", context.RepoMustNotBeArchived(), web.Bind(forms.MergePullRequestForm{}), repo.MergePullRequest)
 			m.Post("/cancel_auto_merge", context.RepoMustNotBeArchived(), repo.CancelAutoMergePullRequest)
 			m.Post("/update", repo.UpdatePullRequest)
