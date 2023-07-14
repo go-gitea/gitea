@@ -747,8 +747,15 @@
   right: 1px;
 }
 
+.repository.view.issue .pull.tabs.container {
+  width: 100%;
+  max-width: 100%;
+}
+
 .repository.view.issue .pull.tabular.menu {
-  margin-bottom: 1rem;
+  margin-bottom: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .repository.view.issue .pull.tabular.menu .svg {
