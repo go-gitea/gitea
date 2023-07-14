@@ -103,8 +103,8 @@
 							</div>
 							<span class="info">{{.locale.Tr "repo.issues.filter_label_exclude" | Safe}}</span>
 							<div class="divider"></div>
-							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels=0&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_label_select_no_label"}}</a>
-							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_label_no_select"}}</a>
+							<a class="{{if .AllLabels}}active selected {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_label_no_select"}}</a>
+							<a class="{{if .NoLabel}}active selected {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels=0&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_label_select_no_label"}}</a>
 							{{$previousExclusiveScope := "_no_scope"}}
 							{{range .Labels}}
 								{{$exclusiveScope := .ExclusiveScope}}

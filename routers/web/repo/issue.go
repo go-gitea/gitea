@@ -174,7 +174,11 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	// 0 means issues with no label
 	// blank means labels will not be filtered for issues
 	selectLabels := ctx.FormString("labels")
-	if len(selectLabels) > 0 {
+	if selectLabels == "" {
+		ctx.Data["AllLabels"] = true
+	} else if selectLabels == "0" {
+		ctx.Data["NoLabel"] = true
+	} else if len(selectLabels) > 0 {
 		labelIDs, err = base.StringsToInt64s(strings.Split(selectLabels, ","))
 		if err != nil {
 			ctx.ServerError("StringsToInt64s", err)
