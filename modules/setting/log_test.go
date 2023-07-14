@@ -30,7 +30,7 @@ func initLoggersByConfig(t *testing.T, config string) (*log.LoggerManager, func(
 	return manager, manager.Close
 }
 
-func toJSON(v interface{}) string {
+func toJSON(v any) string {
 	b, _ := json.MarshalIndent(v, "", "\t")
 	return string(b)
 }

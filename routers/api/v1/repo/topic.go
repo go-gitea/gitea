@@ -63,7 +63,7 @@ func ListTopics(ctx *context.APIContext) {
 	}
 
 	ctx.SetTotalCountHeader(total)
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"topics": topicNames,
 	})
 }
@@ -101,7 +101,7 @@ func UpdateTopics(ctx *context.APIContext) {
 	validTopics, invalidTopics := repo_model.SanitizeAndValidateTopics(topicNames)
 
 	if len(validTopics) > 25 {
-		ctx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]any{
 			"invalidTopics": nil,
 			"message":       "Exceeding maximum number of topics per repo",
 		})
@@ -109,7 +109,7 @@ func UpdateTopics(ctx *context.APIContext) {
 	}
 
 	if len(invalidTopics) > 0 {
-		ctx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]any{
 			"invalidTopics": invalidTopics,
 			"message":       "Topic names are invalid",
 		})
@@ -158,7 +158,7 @@ func AddTopic(ctx *context.APIContext) {
 	topicName := strings.TrimSpace(strings.ToLower(ctx.Params(":topic")))
 
 	if !repo_model.ValidateTopic(topicName) {
-		ctx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]any{
 			"invalidTopics": topicName,
 			"message":       "Topic name is invalid",
 		})
@@ -175,7 +175,7 @@ func AddTopic(ctx *context.APIContext) {
 		return
 	}
 	if count >= 25 {
-		ctx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]any{
 			"message": "Exceeding maximum allowed topics per repo.",
 		})
 		return
@@ -223,7 +223,7 @@ func DeleteTopic(ctx *context.APIContext) {
 	topicName := strings.TrimSpace(strings.ToLower(ctx.Params(":topic")))
 
 	if !repo_model.ValidateTopic(topicName) {
-		ctx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]any{
 			"invalidTopics": topicName,
 			"message":       "Topic name is invalid",
 		})
@@ -289,7 +289,7 @@ func TopicSearch(ctx *context.APIContext) {
 	}
 
 	ctx.SetTotalCountHeader(total)
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"topics": topicResponses,
 	})
 }

@@ -171,6 +171,12 @@ export function initAdminCommon() {
     }
   }
 
+  if ($('.admin.authentication').length > 0) {
+    $('#auth_name').on('input', function () {
+      $('#oauth2-callback-url').text(`${window.location.origin}/user/oauth2/${encodeURIComponent($(this).val())}/callback`);
+    }).trigger('input');
+  }
+
   // Notice
   if ($('.admin.notice')) {
     const $detailModal = $('#detail-modal');

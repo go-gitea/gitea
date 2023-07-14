@@ -1,12 +1,15 @@
-<style>
-	@media (prefers-color-scheme: dark) {
-		:root {
-			color-scheme: dark;
-		}
-	}
-</style>
+{{template "base/head" .}}
+
 <ul>
 	{{range .SubNames}}
 	<li><a href="{{AppSubUrl}}/devtest/{{.}}">{{.}}</a></li>
 	{{end}}
 </ul>
+
+<style>
+ul {
+	line-height: 2em;
+}
+</style>
+
+{{template "base/footer" .}}

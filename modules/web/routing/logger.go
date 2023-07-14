@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/web/types"
 )
 
 // NewLoggerHandler is a handler that will log routing to the router log taking account of
@@ -86,8 +86,8 @@ func logPrinter(logger log.Logger) func(trigger Event, record *requestRecord) {
 		}
 
 		var status int
-		if v, ok := record.responseWriter.(context.ResponseWriter); ok {
-			status = v.Status()
+		if v, ok := record.responseWriter.(types.ResponseStatusProvider); ok {
+			status = v.WrittenStatus()
 		}
 		logf := log.Info
 		if strings.HasPrefix(req.RequestURI, "/assets/") {

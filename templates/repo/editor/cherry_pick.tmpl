@@ -3,7 +3,7 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
-		<form class="ui edit form" method="post" action="{{.RepoLink}}/_cherrypick/{{.SHA}}/{{.BranchName  | PathEscapeSegments}}">
+		<form class="ui edit form" method="post" action="{{.RepoLink}}/_cherrypick/{{.SHA}}/{{.BranchName | PathEscapeSegments}}">
 			{{.CsrfTokenHtml}}
 			<input type="hidden" name="last_commit" value="{{.last_commit}}">
 			<input type="hidden" name="page_has_posted" value="true">
@@ -11,7 +11,7 @@
 			<div class="repo-editor-header">
 				<div class="ui breadcrumb field {{if .Err_TreePath}}error{{end}}">
 					{{$shaurl := printf "%s/commit/%s" $.RepoLink (PathEscape .SHA)}}
-					{{$shalink := printf "<a class=\"ui primary sha label\" href=\"%s\">%s</a>" (Escape $shaurl) (ShortSha .SHA)}}
+					{{$shalink := printf `<a class="ui primary sha label" href="%s">%s</a>` (Escape $shaurl) (ShortSha .SHA)}}
 					{{if eq .CherryPickType "revert"}}
 						{{.locale.Tr "repo.editor.revert" $shalink | Str2html}}
 					{{else}}

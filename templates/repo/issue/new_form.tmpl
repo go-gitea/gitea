@@ -1,4 +1,4 @@
-<form class="issue-content ui comment form" id="new-issue" action="{{.Link}}" method="post">
+<form class="issue-content ui comment form form-fetch-action" id="new-issue" action="{{.Link}}" method="post">
 	{{.CsrfTokenHtml}}
 	{{if .Flash}}
 		<div class="sixteen wide column">
@@ -35,7 +35,7 @@
 						{{template "repo/issue/comment_tab" .}}
 					{{end}}
 					<div class="text right">
-						<button class="ui green button loading-button" tabindex="6">
+						<button class="ui green button" tabindex="6">
 							{{if .PageIsComparePull}}
 								{{.locale.Tr "repo.pulls.create"}}
 							{{else}}
@@ -55,14 +55,14 @@
 		{{template "repo/issue/labels/labels_selector_field" .}}
 		{{template "repo/issue/labels/labels_sidebar" dict "root" $}}
 
-		<div class="ui divider"></div>
+		<div class="divider"></div>
 
 		<input id="milestone_id" name="milestone_id" type="hidden" value="{{.milestone_id}}">
 		<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating jump select-milestone dropdown">
-			<span class="text">
+			<span class="text flex-text-block">
 				<strong>{{.locale.Tr "repo.issues.new.milestone"}}</strong>
 				{{if .HasIssuesOrPullsWritePermission}}
-					{{svg "octicon-gear"}}
+					{{svg "octicon-gear" 16 "gt-ml-2"}}
 				{{end}}
 			</span>
 			<div class="menu">
@@ -82,14 +82,14 @@
 		</div>
 
 		{{if .IsProjectsEnabled}}
-		<div class="ui divider"></div>
+		<div class="divider"></div>
 
 		<input id="project_id" name="project_id" type="hidden" value="{{.project_id}}">
 		<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating jump select-project dropdown">
-			<span class="text">
+			<span class="text flex-text-block">
 				<strong>{{.locale.Tr "repo.issues.new.projects"}}</strong>
 				{{if .HasIssuesOrPullsWritePermission}}
-					{{svg "octicon-gear"}}
+					{{svg "octicon-gear" 16 "gt-ml-2"}}
 				{{end}}
 			</span>
 			<div class="menu">
@@ -141,13 +141,13 @@
 			</div>
 		</div>
 		{{end}}
-		<div class="ui divider"></div>
+		<div class="divider"></div>
 			<input id="assignee_ids" name="assignee_ids" type="hidden" value="{{.assignee_ids}}">
 			<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating jump select-assignees dropdown">
-				<span class="text">
+				<span class="text flex-text-block">
 					<strong>{{.locale.Tr "repo.issues.new.assignees"}}</strong>
 					{{if .HasIssuesOrPullsWritePermission}}
-						{{svg "octicon-gear"}}
+						{{svg "octicon-gear" 16 "gt-ml-2"}}
 					{{end}}
 				</span>
 				<div class="filter menu" data-id="#assignee_ids">
@@ -177,7 +177,7 @@
 				{{end}}
 			</div>
 		{{if and .PageIsComparePull (not (eq .HeadRepo.FullName .BaseCompareRepo.FullName)) .CanWriteToHeadRepo}}
-			<div class="ui divider"></div>
+			<div class="divider"></div>
 			<div class="inline field">
 				<div class="ui checkbox">
 					<label data-tooltip-content="{{.locale.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"><strong>{{.locale.Tr "repo.pulls.allow_edits_from_maintainers"}}</strong></label>

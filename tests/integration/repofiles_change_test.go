@@ -244,7 +244,7 @@ func getExpectedFileResponseForRepofilesUpdate(commitID, filename, lastCommitSHA
 func TestChangeRepoFilesForCreate(t *testing.T) {
 	// setup
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		ctx := test.MockContext(t, "user2/repo1")
+		ctx, _ := test.MockContext(t, "user2/repo1")
 		ctx.SetParams(":id", "1")
 		test.LoadRepo(t, ctx, 1)
 		test.LoadRepoCommit(t, ctx)
@@ -281,7 +281,7 @@ func TestChangeRepoFilesForCreate(t *testing.T) {
 func TestChangeRepoFilesForUpdate(t *testing.T) {
 	// setup
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		ctx := test.MockContext(t, "user2/repo1")
+		ctx, _ := test.MockContext(t, "user2/repo1")
 		ctx.SetParams(":id", "1")
 		test.LoadRepo(t, ctx, 1)
 		test.LoadRepoCommit(t, ctx)
@@ -315,7 +315,7 @@ func TestChangeRepoFilesForUpdate(t *testing.T) {
 func TestChangeRepoFilesForUpdateWithFileMove(t *testing.T) {
 	// setup
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		ctx := test.MockContext(t, "user2/repo1")
+		ctx, _ := test.MockContext(t, "user2/repo1")
 		ctx.SetParams(":id", "1")
 		test.LoadRepo(t, ctx, 1)
 		test.LoadRepoCommit(t, ctx)
@@ -366,7 +366,7 @@ func TestChangeRepoFilesForUpdateWithFileMove(t *testing.T) {
 func TestChangeRepoFilesWithoutBranchNames(t *testing.T) {
 	// setup
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		ctx := test.MockContext(t, "user2/repo1")
+		ctx, _ := test.MockContext(t, "user2/repo1")
 		ctx.SetParams(":id", "1")
 		test.LoadRepo(t, ctx, 1)
 		test.LoadRepoCommit(t, ctx)
@@ -402,7 +402,7 @@ func TestChangeRepoFilesForDelete(t *testing.T) {
 func testDeleteRepoFiles(t *testing.T, u *url.URL) {
 	// setup
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1")
+	ctx, _ := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)
 	test.LoadRepoCommit(t, ctx)
@@ -441,7 +441,7 @@ func TestChangeRepoFilesForDeleteWithoutBranchNames(t *testing.T) {
 func testDeleteRepoFilesWithoutBranchNames(t *testing.T, u *url.URL) {
 	// setup
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1")
+	ctx, _ := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)
 	test.LoadRepoCommit(t, ctx)
@@ -471,7 +471,7 @@ func testDeleteRepoFilesWithoutBranchNames(t *testing.T, u *url.URL) {
 func TestChangeRepoFilesErrors(t *testing.T) {
 	// setup
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		ctx := test.MockContext(t, "user2/repo1")
+		ctx, _ := test.MockContext(t, "user2/repo1")
 		ctx.SetParams(":id", "1")
 		test.LoadRepo(t, ctx, 1)
 		test.LoadRepoCommit(t, ctx)

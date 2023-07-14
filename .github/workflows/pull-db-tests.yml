@@ -12,7 +12,7 @@ jobs:
     uses: ./.github/workflows/files-changed.yml
 
   test-pgsql:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.frontend == 'true'
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     services:
@@ -59,7 +59,7 @@ jobs:
           USE_REPO_TEST_DIR: 1
 
   test-sqlite:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.frontend == 'true'
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
@@ -81,7 +81,7 @@ jobs:
           USE_REPO_TEST_DIR: 1
 
   test-unit:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     services:
@@ -147,7 +147,7 @@ jobs:
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
 
   test-mysql5:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.frontend == 'true'
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     services:
@@ -192,7 +192,7 @@ jobs:
           TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
 
   test-mysql8:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.frontend == 'true'
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     services:
@@ -222,7 +222,7 @@ jobs:
           USE_REPO_TEST_DIR: 1
 
   test-mssql:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.frontend == 'true'
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     services:

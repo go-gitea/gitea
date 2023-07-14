@@ -42,7 +42,7 @@ func runGenerateActionsRunnerToken(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setting.Init(&setting.Options{})
+	setting.MustInstalled()
 
 	scope := c.String("scope")
 

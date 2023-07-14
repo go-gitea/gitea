@@ -53,8 +53,6 @@ cpu.out
 /bin
 /dist
 /custom/*
-!/custom/conf
-/custom/conf/*
 !/custom/conf/app.example.ini
 /data
 /indexers
@@ -70,6 +68,7 @@ cpu.out
 /tests/*.ini
 /tests/**/*.git/**/*.sample
 /node_modules
+/.venv
 /yarn.lock
 /yarn-error.log
 /npm-debug.log*

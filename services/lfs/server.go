@@ -77,6 +77,8 @@ func CheckAcceptMediaType(ctx *context.Context) {
 	}
 }
 
+var rangeHeaderRegexp = regexp.MustCompile(`bytes=(\d+)\-(\d*).*`)
+
 // DownloadHandler gets the content from the content store
 func DownloadHandler(ctx *context.Context) {
 	rc := getRequestContext(ctx)
@@ -92,8 +94,7 @@ func DownloadHandler(ctx *context.Context) {
 	toByte = meta.Size - 1
 	statusCode := http.StatusOK
 	if rangeHdr := ctx.Req.Header.Get("Range"); rangeHdr != "" {
-		regex := regexp.MustCompile(`bytes=(\d+)\-(\d*).*`)
-		match := regex.FindStringSubmatch(rangeHdr)
+		match := rangeHeaderRegexp.FindStringSubmatch(rangeHdr)
 		if len(match) > 1 {
 			statusCode = http.StatusPartialContent
 			fromByte, _ = strconv.ParseInt(match[1], 10, 32)
@@ -374,7 +375,7 @@ func VerifyHandler(ctx *context.Context) {
 	writeStatus(ctx, status)
 }
 
-func decodeJSON(req *http.Request, v interface{}) error {
+func decodeJSON(req *http.Request, v any) error {
 	defer req.Body.Close()
 
 	dec := json.NewDecoder(req.Body)
@@ -452,7 +453,7 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 
 		if download {
 			var link *lfs_module.Link
-			if setting.LFS.ServeDirect {
+			if setting.LFS.Storage.MinioConfig.ServeDirect {
 				// If we have a signed url (S3, object storage), redirect to this directly.
 				u, err := storage.LFS.URL(pointer.RelativePath(), pointer.Oid)
 				if u != nil && err == nil {
@@ -551,7 +552,7 @@ func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repo
 	if !strings.Contains(tokenSHA, ".") {
 		return nil, nil
 	}
-	token, err := jwt.ParseWithClaims(tokenSHA, &Claims{}, func(t *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenSHA, &Claims{}, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}

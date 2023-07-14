@@ -4,10 +4,10 @@
 package auth
 
 import (
-	"context"
 	"errors"
 	"net/http"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/avatars"
@@ -32,13 +32,12 @@ var (
 	// sspiAuth is a global instance of the websspi authentication package,
 	// which is used to avoid acquiring the server credential handle on
 	// every request
-	sspiAuth *websspi.Authenticator
+	sspiAuth     *websspi.Authenticator
+	sspiAuthOnce sync.Once
 
 	// Ensure the struct implements the interface.
-	_ Method        = &SSPI{}
-	_ Named         = &SSPI{}
-	_ Initializable = &SSPI{}
-	_ Freeable      = &SSPI{}
+	_ Method = &SSPI{}
+	_ Named  = &SSPI{}
 )
 
 // SSPI implements the SingleSignOn interface and authenticates requests
@@ -47,25 +46,9 @@ var (
 // Returns nil if authentication fails.
 type SSPI struct{}
 
-// Init creates a new global websspi.Authenticator object
-func (s *SSPI) Init(ctx context.Context) error {
-	config := websspi.NewConfig()
-	var err error
-	sspiAuth, err = websspi.New(config)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 // Name represents the name of auth method
 func (s *SSPI) Name() string {
 	return "sspi"
-}
-
-// Free releases resources used by the global websspi.Authenticator object
-func (s *SSPI) Free() error {
-	return sspiAuth.Free()
 }
 
 // Verify uses SSPI (Windows implementation of SPNEGO) to authenticate the request.
@@ -73,6 +56,15 @@ func (s *SSPI) Free() error {
 // If negotiation should continue or authentication fails, immediately returns a 401 HTTP
 // response code, as required by the SPNEGO protocol.
 func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
+	var errInit error
+	sspiAuthOnce.Do(func() {
+		config := websspi.NewConfig()
+		sspiAuth, errInit = websspi.New(config)
+	})
+	if errInit != nil {
+		return nil, errInit
+	}
+
 	if !s.shouldAuthenticate(req) {
 		return nil, nil
 	}

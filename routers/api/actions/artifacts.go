@@ -82,6 +82,7 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	web_types "code.gitea.io/gitea/modules/web/types"
 )
 
 const (
@@ -102,7 +103,7 @@ type ArtifactContext struct {
 }
 
 func init() {
-	web.RegisterHandleTypeProvider[*ArtifactContext](func(req *http.Request) web.ResponseStatusProvider {
+	web.RegisterResponseStatusProvider[*ArtifactContext](func(req *http.Request) web_types.ResponseStatusProvider {
 		return req.Context().Value(artifactContextKey).(*ArtifactContext)
 	})
 }

@@ -51,6 +51,8 @@ a/b/c/d.json
 
 In any file matched by the above globs, certain variables will be expanded.
 
+Matching filenames and paths can also be expanded, and are conservatively sanitized to support cross-platform filesystems.
+
 All variables must be of the form `$VAR` or `${VAR}`. To escape an expansion, use a double `$$`, such as `$$VAR` or `$${VAR}`
 
 | Variable             | Expands To                                          | Transformable |

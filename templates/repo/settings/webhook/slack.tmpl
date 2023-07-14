@@ -8,20 +8,20 @@
 		</div>
 		<div class="required field {{if .Err_Channel}}error{{end}}">
 			<label for="channel">{{.locale.Tr "repo.settings.slack_channel"}}</label>
-			<input id="channel" name="channel" value="{{.SlackHook.Channel}}" placeholder="e.g. #general" required>
+			<input id="channel" name="channel" value="{{.SlackHook.Channel}}" placeholder="#general" required>
 		</div>
 
 		<div class="field">
 			<label for="username">{{.locale.Tr "repo.settings.slack_username"}}</label>
-			<input id="username" name="username" value="{{.SlackHook.Username}}" placeholder="e.g. Gitea">
+			<input id="username" name="username" value="{{.SlackHook.Username}}" placeholder="Gitea">
 		</div>
 		<div class="field">
 			<label for="icon_url">{{.locale.Tr "repo.settings.slack_icon_url"}}</label>
-			<input id="icon_url" name="icon_url" value="{{.SlackHook.IconURL}}" placeholder="e.g. https://example.com/img/favicon.png">
+			<input id="icon_url" name="icon_url" value="{{.SlackHook.IconURL}}" placeholder="https://example.com/img/favicon.png">
 		</div>
 		<div class="field">
 			<label for="color">{{.locale.Tr "repo.settings.slack_color"}}</label>
-			<input id="color" name="color" value="{{.SlackHook.Color}}" placeholder="e.g. #dd4b39, good, warning, danger">
+			<input id="color" name="color" value="{{.SlackHook.Color}}" placeholder="#dd4b39, good, warning, danger">
 		</div>
 		{{template "repo/settings/webhook/settings" .}}
 	</form>

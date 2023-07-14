@@ -1,7 +1,7 @@
 {{if and (not .Issue.IsPull) (not .PageIsComparePull)}}
 <input id="ref_selector" name="ref" type="hidden" value="{{.Reference}}">
 <input id="editing_mode" name="edit_mode" type="hidden" value="{{(or .IsIssueWriter .HasIssuesOrPullsWritePermission)}}">
-<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/ref" id="update_issueref_form">
+<form method="post" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/ref" id="update_issueref_form">
 	{{$.CsrfTokenHtml}}
 </form>
 
@@ -12,7 +12,7 @@
 	</div>
 	<div class="menu">
 		<div class="ui icon search input">
-			<i class="icon gt-df gt-ac gt-jc gt-m-0">{{svg "octicon-filter" 16}}</i>
+			<i class="icon">{{svg "octicon-filter" 16}}</i>
 			<input name="search" placeholder="{{.locale.Tr "repo.filter_branch_and_tag"}}...">
 		</div>
 		<div class="header">
@@ -50,5 +50,5 @@
 	</div>
 </div>
 
-<div class="ui divider"></div>
+<div class="divider"></div>
 {{end}}

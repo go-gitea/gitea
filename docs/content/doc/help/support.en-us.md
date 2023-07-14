@@ -17,6 +17,7 @@ menu:
 
 # Support Options
 
+- [Paid Commercial Support](https://about.gitea.com/)
 - [Discord](https://discord.gg/Gitea)
 - [Discourse Forum](https://discourse.gitea.io/)
 

@@ -390,6 +390,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["IsRepresentableAsText"] = isRepresentableAsText
 	ctx.Data["IsDisplayingSource"] = isDisplayingSource
 	ctx.Data["IsDisplayingRendered"] = isDisplayingRendered
+	ctx.Data["IsExecutable"] = entry.IsExecutable()
 
 	isTextSource := fInfo.isTextFile || isDisplayingSource
 	ctx.Data["IsTextSource"] = isTextSource
@@ -974,6 +975,18 @@ func renderCode(ctx *context.Context) {
 	}
 	if ctx.Written() {
 		return
+	}
+
+	if ctx.Doer != nil {
+		if err := ctx.Repo.Repository.GetBaseRepo(ctx); err != nil {
+			ctx.ServerError("GetBaseRepo", err)
+			return
+		}
+		ctx.Data["RecentlyPushedNewBranches"], err = git_model.FindRecentlyPushedNewBranches(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID, ctx.Repo.Repository.DefaultBranch)
+		if err != nil {
+			ctx.ServerError("GetRecentlyPushedBranches", err)
+			return
+		}
 	}
 
 	var treeNames []string

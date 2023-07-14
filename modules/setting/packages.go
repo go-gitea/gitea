@@ -4,12 +4,11 @@
 package setting
 
 import (
+	"fmt"
 	"math"
 	"net/url"
 	"os"
 	"path/filepath"
-
-	"code.gitea.io/gitea/modules/log"
 
 	"github.com/dustin/go-humanize"
 )
@@ -17,7 +16,7 @@ import (
 // Package registry settings
 var (
 	Packages = struct {
-		Storage
+		Storage           *Storage
 		Enabled           bool
 		ChunkedUploadPath string
 		RegistryHost      string
@@ -51,13 +50,21 @@ var (
 	}
 )
 
-func loadPackagesFrom(rootCfg ConfigProvider) {
-	sec := rootCfg.Section("packages")
-	if err := sec.MapTo(&Packages); err != nil {
-		log.Fatal("Failed to map Packages settings: %v", err)
+func loadPackagesFrom(rootCfg ConfigProvider) (err error) {
+	sec, _ := rootCfg.GetSection("packages")
+	if sec == nil {
+		Packages.Storage, err = getStorage(rootCfg, "packages", "", nil)
+		return err
 	}
 
-	Packages.Storage = getStorage(rootCfg, "packages", "", nil)
+	if err = sec.MapTo(&Packages); err != nil {
+		return fmt.Errorf("failed to map Packages settings: %v", err)
+	}
+
+	Packages.Storage, err = getStorage(rootCfg, "packages", "", sec)
+	if err != nil {
+		return err
+	}
 
 	appURL, _ := url.Parse(AppURL)
 	Packages.RegistryHost = appURL.Host
@@ -68,7 +75,7 @@ func loadPackagesFrom(rootCfg ConfigProvider) {
 	}
 
 	if err := os.MkdirAll(Packages.ChunkedUploadPath, os.ModePerm); err != nil {
-		log.Error("Unable to create chunked upload directory: %s (%v)", Packages.ChunkedUploadPath, err)
+		return fmt.Errorf("unable to create chunked upload directory: %s (%v)", Packages.ChunkedUploadPath, err)
 	}
 
 	Packages.LimitTotalOwnerSize = mustBytes(sec, "LIMIT_TOTAL_OWNER_SIZE")
@@ -93,6 +100,7 @@ func loadPackagesFrom(rootCfg ConfigProvider) {
 	Packages.LimitSizeRubyGems = mustBytes(sec, "LIMIT_SIZE_RUBYGEMS")
 	Packages.LimitSizeSwift = mustBytes(sec, "LIMIT_SIZE_SWIFT")
 	Packages.LimitSizeVagrant = mustBytes(sec, "LIMIT_SIZE_VAGRANT")
+	return nil
 }
 
 func mustBytes(section ConfigSection, key string) int64 {

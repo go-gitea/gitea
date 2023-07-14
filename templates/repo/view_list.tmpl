@@ -40,7 +40,7 @@
 	<tbody>
 		{{if .HasParentPath}}
 			<tr class="has-parent">
-				<td colspan="3">{{svg "octicon-reply"}}<a href="{{.BranchLink}}{{if .ParentPath}}{{PathEscapeSegments .ParentPath}}{{end}}">..</a></td>
+				<td colspan="3">{{svg "octicon-reply"}}<a class="muted" href="{{.BranchLink}}{{if .ParentPath}}{{PathEscapeSegments .ParentPath}}{{end}}">..</a></td>
 			</tr>
 		{{end}}
 		{{range $item := .Files}}

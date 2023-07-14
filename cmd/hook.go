@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -32,6 +33,7 @@ var (
 		Name:        "hook",
 		Usage:       "Delegate commands to corresponding Git hooks",
 		Description: "This should only be called by Git",
+		Before:      PrepareConsoleLoggerLevel(log.FATAL),
 		Subcommands: []cli.Command{
 			subcmdHookPreReceive,
 			subcmdHookUpdate,

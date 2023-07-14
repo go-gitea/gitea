@@ -17,10 +17,10 @@ menu:
 
 # Installation avec le binaire pré-compilé
 
-Tous les binaires sont livrés avec le support de SQLite, MySQL et PostgreSQL, et sont construits avec les ressources incorporées. Gardez à l'esprit que cela peut être différent pour les versions antérieures. L'installation basée sur nos binaires est assez simple, il suffit de choisir le fichier correspondant à votre plateforme à partir de la [page de téléchargement](https://dl.gitea.io/gitea). Copiez l'URL et remplacer l'URL dans les commandes suivantes par la nouvelle:
+Tous les binaires sont livrés avec le support de SQLite, MySQL et PostgreSQL, et sont construits avec les ressources incorporées. Gardez à l'esprit que cela peut être différent pour les versions antérieures. L'installation basée sur nos binaires est assez simple, il suffit de choisir le fichier correspondant à votre plateforme à partir de la [page de téléchargement](https://dl.gitea.com/gitea). Copiez l'URL et remplacer l'URL dans les commandes suivantes par la nouvelle:
 
 ```
-wget -O gitea https://dl.gitea.io/gitea/{{< version >}}/gitea-{{< version >}}-linux-amd64
+wget -O gitea https://dl.gitea.com/gitea/{{< version >}}/gitea-{{< version >}}-linux-amd64
 chmod +x gitea
 ```
 

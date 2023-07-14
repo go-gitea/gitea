@@ -15,7 +15,7 @@ import (
 // UserAssignmentWeb returns a middleware to handle context-user assignment for web routes
 func UserAssignmentWeb() func(ctx *context.Context) {
 	return func(ctx *context.Context) {
-		errorFn := func(status int, title string, obj interface{}) {
+		errorFn := func(status int, title string, obj any) {
 			err, ok := obj.(error)
 			if !ok {
 				err = fmt.Errorf("%s", obj)
@@ -58,7 +58,7 @@ func UserAssignmentAPI() func(ctx *context.APIContext) {
 	}
 }
 
-func userAssignment(ctx *context.Base, doer *user_model.User, errCb func(int, string, interface{})) (contextUser *user_model.User) {
+func userAssignment(ctx *context.Base, doer *user_model.User, errCb func(int, string, any)) (contextUser *user_model.User) {
 	username := ctx.Params(":username")
 
 	if doer != nil && doer.LowerName == strings.ToLower(username) {

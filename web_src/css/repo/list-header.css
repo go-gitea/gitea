@@ -8,7 +8,6 @@
 .list-header-sort {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   padding-left: 1rem;
   padding-right: 1rem;
 }
@@ -43,4 +42,17 @@
 
 .small-menu-items .item.active {
   background: var(--color-active) !important;
+}
+
+@media (max-width: 767.98px) {
+  .list-header-search {
+    order: 0;
+  }
+  .list-header-toggle {
+    order: 1;
+  }
+  .list-header-sort {
+    order: 2;
+    margin-left: auto;
+  }
 }

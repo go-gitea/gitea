@@ -265,10 +265,6 @@ var (
 	}
 	RepoRootPath string
 	ScriptType   = "bash"
-
-	RepoArchive = struct {
-		Storage
-	}{}
 )
 
 func loadRepositoryFrom(rootCfg ConfigProvider) {
@@ -359,5 +355,7 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 		Repository.Upload.TempPath = path.Join(AppWorkPath, Repository.Upload.TempPath)
 	}
 
-	RepoArchive.Storage = getStorage(rootCfg, "repo-archive", "", nil)
+	if err := loadRepoArchiveFrom(rootCfg); err != nil {
+		log.Fatal("loadRepoArchiveFrom: %v", err)
+	}
 }

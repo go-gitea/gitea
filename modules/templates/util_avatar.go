@@ -30,7 +30,7 @@ func AvatarHTML(src string, size int, class, name string) template.HTML {
 }
 
 // Avatar renders user avatars. args: user, size (int), class (string)
-func Avatar(ctx context.Context, item interface{}, others ...interface{}) template.HTML {
+func Avatar(ctx context.Context, item any, others ...any) template.HTML {
 	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, avatars.DefaultAvatarClass, others...)
 
 	switch t := item.(type) {
@@ -55,13 +55,13 @@ func Avatar(ctx context.Context, item interface{}, others ...interface{}) templa
 }
 
 // AvatarByAction renders user avatars from action. args: action, size (int), class (string)
-func AvatarByAction(ctx context.Context, action *activities_model.Action, others ...interface{}) template.HTML {
+func AvatarByAction(ctx context.Context, action *activities_model.Action, others ...any) template.HTML {
 	action.LoadActUser(ctx)
 	return Avatar(ctx, action.ActUser, others...)
 }
 
 // RepoAvatar renders repo avatars. args: repo, size(int), class (string)
-func RepoAvatar(repo *repo_model.Repository, others ...interface{}) template.HTML {
+func RepoAvatar(repo *repo_model.Repository, others ...any) template.HTML {
 	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, avatars.DefaultAvatarClass, others...)
 
 	src := repo.RelAvatarLink()
@@ -72,7 +72,7 @@ func RepoAvatar(repo *repo_model.Repository, others ...interface{}) template.HTM
 }
 
 // AvatarByEmail renders avatars by email address. args: email, name, size (int), class (string)
-func AvatarByEmail(ctx context.Context, email, name string, others ...interface{}) template.HTML {
+func AvatarByEmail(ctx context.Context, email, name string, others ...any) template.HTML {
 	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, avatars.DefaultAvatarClass, others...)
 	src := avatars.GenerateEmailAvatarFastLink(ctx, email, size*setting.Avatar.RenderedSizeFactor)
 
