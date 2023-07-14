@@ -523,13 +523,15 @@ func CommonRoutes() *web.Route {
 				r.Delete("", reqPackageAccess(perm.AccessModeWrite), rpm.DeletePackageFile)
 			})
 			// new rpm
-			r.Get("/{distribution}.repo", rpm.GetRepositoryConfig)
-			r.Put("/{distribution}/upload", reqPackageAccess(perm.AccessModeWrite), rpm.UploadPackageFile)
-			r.Group("/{distribution}/package/{name}/{version}/{architecture}", func() {
-				r.Get("", rpm.DownloadPackageFile)
-				r.Delete("", reqPackageAccess(perm.AccessModeWrite), rpm.DeletePackageFile)
+			r.Group("/{distribution}", func() {
+				r.Get(".repo", rpm.GetRepositoryConfig)
+				r.Put("/upload", reqPackageAccess(perm.AccessModeWrite), rpm.UploadPackageFile)
+				r.Group("/package/{name}/{version}/{architecture}", func() {
+					r.Get("", rpm.DownloadPackageFile)
+					r.Delete("", reqPackageAccess(perm.AccessModeWrite), rpm.DeletePackageFile)
+				})
+				r.Get("/repodata/{filename}", rpm.GetRepositoryFile)
 			})
-			r.Get("/{distribution}/repodata/{filename}", rpm.GetRepositoryFile)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/rubygems", func() {
 			r.Get("/specs.4.8.gz", rubygems.EnumeratePackages)
