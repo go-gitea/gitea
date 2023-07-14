@@ -7,7 +7,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issue_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
-	"code.gitea.io/gitea/modules/util"
 )
 
 func ToDBOptions(options *internal.SearchOptions) *issue_model.IssuesOptions {
@@ -22,12 +21,6 @@ func ToDBOptions(options *internal.SearchOptions) *issue_model.IssuesOptions {
 			return []int64{db.NoConditionID}
 		}
 		return ids
-	}
-	convertBool := func(b *bool) util.OptionalBool {
-		if b == nil {
-			return util.OptionalBoolNone
-		}
-		return util.OptionalBoolOf(*b)
 	}
 	convertLabelIDs := func(includes, excludes []int64, no bool) []int64 {
 		if no {
@@ -67,7 +60,7 @@ func ToDBOptions(options *internal.SearchOptions) *issue_model.IssuesOptions {
 	}
 
 	opts := &issue_model.IssuesOptions{
-		Paginator:          db.NewAbsoluteListOptions(options.Skip, options.Limit),
+		Paginator:          options.Paginator,
 		RepoIDs:            options.RepoIDs,
 		RepoCond:           nil,
 		AssigneeID:         convertID(options.AssigneeID),
@@ -79,8 +72,8 @@ func ToDBOptions(options *internal.SearchOptions) *issue_model.IssuesOptions {
 		MilestoneIDs:       convertIDs(options.MilestoneIDs, options.NoMilestone),
 		ProjectID:          convertID(options.ProjectID),
 		ProjectBoardID:     convertID(options.ProjectBoardID),
-		IsClosed:           convertBool(options.IsClosed),
-		IsPull:             convertBool(options.IsPull),
+		IsClosed:           options.IsClosed,
+		IsPull:             options.IsPull,
 		LabelIDs:           convertLabelIDs(options.IncludedLabelIDs, options.ExcludedLabelIDs, options.NoLabel),
 		IncludedLabelNames: nil,
 		ExcludedLabelNames: nil,

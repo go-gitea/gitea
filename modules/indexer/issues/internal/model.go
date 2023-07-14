@@ -4,7 +4,9 @@
 package internal
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // IndexerData data stored in the issue indexer
@@ -67,8 +69,8 @@ type SearchOptions struct {
 
 	RepoIDs []int64 // repository IDs which the issues belong to
 
-	IsPull   *bool // if the issues is a pull request
-	IsClosed *bool // if the issues is closed
+	IsPull   util.OptionalBool // if the issues is a pull request
+	IsClosed util.OptionalBool // if the issues is closed
 
 	IncludedLabelIDs []int64 // labels the issues have
 	ExcludedLabelIDs []int64 // labels the issues don't have
@@ -95,8 +97,7 @@ type SearchOptions struct {
 	UpdatedAfterUnix  *int64
 	UpdatedBeforeUnix *int64
 
-	Skip  int // skip the first N results
-	Limit int // limit the number of results
+	db.Paginator
 
 	SortBy SearchOptionsSortBy // sort by field
 }
@@ -104,12 +105,12 @@ type SearchOptions struct {
 type SearchOptionsSortBy string
 
 const (
-	SearchOptionsSortByCreatedAsc   SearchOptionsSortBy = "created"
-	SearchOptionsSortByUpdatedAsc   SearchOptionsSortBy = "updated"
-	SearchOptionsSortByCommentsAsc  SearchOptionsSortBy = "comments"
-	SearchOptionsSortByDueAsc       SearchOptionsSortBy = "due"
 	SearchOptionsSortByCreatedDesc  SearchOptionsSortBy = "-created"
 	SearchOptionsSortByUpdatedDesc  SearchOptionsSortBy = "-updated"
 	SearchOptionsSortByCommentsDesc SearchOptionsSortBy = "-comments"
 	SearchOptionsSortByDueDesc      SearchOptionsSortBy = "-due"
+	SearchOptionsSortByCreatedAsc   SearchOptionsSortBy = "created"
+	SearchOptionsSortByUpdatedAsc   SearchOptionsSortBy = "updated"
+	SearchOptionsSortByCommentsAsc  SearchOptionsSortBy = "comments"
+	SearchOptionsSortByDueAsc       SearchOptionsSortBy = "due"
 )

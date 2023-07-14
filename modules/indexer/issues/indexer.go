@@ -297,10 +297,9 @@ func SearchIssuesByKeyword(ctx context.Context, repoIDs []int64, keyword string)
 	var issueIDs []int64
 	indexer := *globalIndexer.Load()
 	res, err := indexer.Search(ctx, &internal.SearchOptions{
-		Keyword: keyword,
-		RepoIDs: repoIDs,
-		Limit:   50,
-		Skip:    0,
+		Keyword:   keyword,
+		RepoIDs:   repoIDs,
+		Paginator: db_model.NewAbsoluteListOptions(0, 50),
 	})
 	if err != nil {
 		return nil, err
@@ -319,19 +318,28 @@ func IsAvailable(ctx context.Context) bool {
 // SearchOptions indicates the options for searching issues
 type SearchOptions internal.SearchOptions
 
+const (
+	SearchOptionsSortByCreatedDesc  internal.SearchOptionsSortBy = "-created"
+	SearchOptionsSortByUpdatedDesc  internal.SearchOptionsSortBy = "-updated"
+	SearchOptionsSortByCommentsDesc internal.SearchOptionsSortBy = "-comments"
+	SearchOptionsSortByDueDesc      internal.SearchOptionsSortBy = "-due"
+	SearchOptionsSortByCreatedAsc   internal.SearchOptionsSortBy = "created"
+	SearchOptionsSortByUpdatedAsc   internal.SearchOptionsSortBy = "updated"
+	SearchOptionsSortByCommentsAsc  internal.SearchOptionsSortBy = "comments"
+	SearchOptionsSortByDueAsc       internal.SearchOptionsSortBy = "due"
+)
+
 // SearchIssues search issues by options.
 // It returns issue ids and a bool value indicates if the result is imprecise.
-func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, error) {
-	if opts.Limit <= 0 {
-		// It's meaningless to search with limit <= 0, probably the caller missed to set it.
-		// If the caller really wants to search all issues, set limit to a large number.
-		opts.Limit = 50
+func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, int64, error) {
+	if opts.Paginator == nil {
+		opts.Paginator = db_model.NewAbsoluteListOptions(0, 50)
 	}
 
 	indexer := *globalIndexer.Load()
 	result, err := indexer.Search(ctx, (*internal.SearchOptions)(opts))
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	ret := make([]int64, 0, len(result.Hits))
@@ -342,10 +350,10 @@ func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, error) {
 	if result.Imprecise {
 		ret, err := reFilter(ctx, ret, opts)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
-		return ret, nil
+		return ret, 0, nil
 	}
 
-	return ret, nil
+	return ret, result.Total, nil
 }

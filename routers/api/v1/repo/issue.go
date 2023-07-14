@@ -195,7 +195,7 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 	var issueIDs []int64
 	if len(keyword) > 0 && len(repoIDs) > 0 {
-		if issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, repoIDs, keyword, ctx.FormString("state")); err != nil {
+		if issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, repoIDs, keyword); err != nil {
 			ctx.Error(http.StatusInternalServerError, "SearchIssuesByKeyword", err)
 			return
 		}
@@ -384,23 +384,12 @@ func ListIssues(ctx *context.APIContext) {
 		isClosed = util.OptionalBoolFalse
 	}
 
-	var issues []*issues_model.Issue
-	var filteredCount int64
-
 	keyword := ctx.FormTrim("q")
 	if strings.IndexByte(keyword, 0) >= 0 {
 		keyword = ""
 	}
-	var issueIDs []int64
-	var labelIDs []int64
-	if len(keyword) > 0 {
-		issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, []int64{ctx.Repo.Repository.ID}, keyword, ctx.FormString("state"))
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "SearchIssuesByKeyword", err)
-			return
-		}
-	}
 
+	var labelIDs []int64
 	if splitted := strings.Split(ctx.FormString("labels"), ","); len(splitted) > 0 {
 		labelIDs, err = issues_model.GetLabelIDsInRepoByNames(ctx.Repo.Repository.ID, splitted)
 		if err != nil {
@@ -465,40 +454,53 @@ func ListIssues(ctx *context.APIContext) {
 		return
 	}
 
-	// Only fetch the issues if we either don't have a keyword or the search returned issues
-	// This would otherwise return all issues if no issues were found by the search.
-	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
-		issuesOpt := &issues_model.IssuesOptions{
-			Paginator:         &listOptions,
-			RepoIDs:           []int64{ctx.Repo.Repository.ID},
-			IsClosed:          isClosed,
-			IssueIDs:          issueIDs,
-			LabelIDs:          labelIDs,
-			MilestoneIDs:      mileIDs,
-			IsPull:            isPull,
-			UpdatedBeforeUnix: before,
-			UpdatedAfterUnix:  since,
-			PosterID:          createdByID,
-			AssigneeID:        assignedByID,
-			MentionedID:       mentionedByID,
-		}
-
-		if issues, err = issues_model.Issues(ctx, issuesOpt); err != nil {
-			ctx.Error(http.StatusInternalServerError, "Issues", err)
-			return
-		}
-
-		issuesOpt.Paginator = &db.ListOptions{
-			Page: -1,
-		}
-		if filteredCount, err = issues_model.CountIssues(ctx, issuesOpt); err != nil {
-			ctx.Error(http.StatusInternalServerError, "CountIssues", err)
-			return
+	searchOpt := &issue_indexer.SearchOptions{
+		Keyword:           keyword,
+		RepoIDs:           []int64{ctx.Repo.Repository.ID},
+		IsPull:            isPull,
+		IsClosed:          isClosed,
+		IncludedLabelIDs:  nil,
+		ExcludedLabelIDs:  nil,
+		NoLabel:           false,
+		MilestoneIDs:      nil,
+		NoMilestone:       false,
+		PosterID:          &createdByID,
+		AssigneeID:        &assignedByID,
+		MentionID:         &mentionedByID,
+		UpdatedAfterUnix:  &since,
+		UpdatedBeforeUnix: &before,
+		SortBy:            issue_indexer.SearchOptionsSortByCreatedDesc,
+	}
+	if len(labelIDs) == 0 && labelIDs[0] == 0 {
+		searchOpt.NoLabel = true
+	} else {
+		for _, labelID := range labelIDs {
+			if labelID > 0 {
+				searchOpt.IncludedLabelIDs = append(searchOpt.IncludedLabelIDs, labelID)
+			} else {
+				searchOpt.ExcludedLabelIDs = append(searchOpt.ExcludedLabelIDs, -labelID)
+			}
 		}
 	}
+	if len(mileIDs) == 0 && mileIDs[0] == db.NoConditionID {
+		searchOpt.NoMilestone = true
+	} else {
+		searchOpt.MilestoneIDs = mileIDs
+	}
 
-	ctx.SetLinkHeader(int(filteredCount), listOptions.PageSize)
-	ctx.SetTotalCountHeader(filteredCount)
+	ids, total, err := issue_indexer.SearchIssues(ctx, searchOpt)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "SearchIssues", err)
+		return
+	}
+	issues, err := issues_model.FindIssuesByIDs(ctx, ids)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "FindIssuesByIDs", err)
+		return
+	}
+
+	ctx.SetLinkHeader(int(total), listOptions.PageSize)
+	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, issues))
 }
 
