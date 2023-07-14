@@ -9,12 +9,17 @@ import (
 	gocontext "context"
 	"encoding/base64"
 	"fmt"
+	"image"
 	"io"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
 	"time"
+
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	admin_model "code.gitea.io/gitea/models/admin"
@@ -44,6 +49,9 @@ import (
 	issue_service "code.gitea.io/gitea/services/issue"
 
 	"github.com/nektos/act/pkg/model"
+
+	_ "golang.org/x/image/bmp"
+	_ "golang.org/x/image/webp"
 )
 
 const (
@@ -575,6 +583,15 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				ctx.ServerError("Render", err)
 				return
 			}
+		}
+	}
+
+	if fInfo.st.IsImage() && !fInfo.st.IsSvgImage() {
+		img, _, err := image.DecodeConfig(bytes.NewReader(buf))
+		if err == nil {
+			// There are Image formats go can't decode
+			// Instead of throwing an error in that case, we show the size only when we can decode
+			ctx.Data["ImageSize"] = fmt.Sprintf("%dx%d", img.Width, img.Height)
 		}
 	}
 
