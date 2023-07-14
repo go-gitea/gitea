@@ -511,7 +511,7 @@ func UpdateIssueDeadline(issue *Issue, deadlineUnix timeutil.TimeStamp, doer *us
 }
 
 // DeleteInIssue delete records in beans with external key issue_id = ?
-func DeleteInIssue(ctx context.Context, issueID int64, beans ...interface{}) error {
+func DeleteInIssue(ctx context.Context, issueID int64, beans ...any) error {
 	e := db.GetEngine(ctx)
 	for _, bean := range beans {
 		if _, err := e.In("issue_id", issueID).Delete(bean); err != nil {
@@ -538,10 +538,10 @@ func FindAndUpdateIssueMentions(ctx context.Context, issue *Issue, doer *user_mo
 // don't have access to reading it. Teams are expanded into their users, but organizations are ignored.
 func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *user_model.User, mentions []string) (users []*user_model.User, err error) {
 	if len(mentions) == 0 {
-		return
+		return nil, nil
 	}
 	if err = issue.LoadRepo(ctx); err != nil {
-		return
+		return nil, err
 	}
 
 	resolved := make(map[string]bool, 10)
@@ -635,7 +635,7 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 		}
 	}
 	if len(mentionUsers) == 0 {
-		return
+		return users, err
 	}
 
 	if users == nil {
@@ -673,7 +673,7 @@ func UpdateIssuesMigrationsByType(gitServiceType api.GitServiceType, originalAut
 	_, err := db.GetEngine(db.DefaultContext).Table("issue").
 		Where("repo_id IN (SELECT id FROM repository WHERE original_service_type = ?)", gitServiceType).
 		And("original_author_id = ?", originalAuthorID).
-		Update(map[string]interface{}{
+		Update(map[string]any{
 			"poster_id":          posterID,
 			"original_author":    "",
 			"original_author_id": 0,
@@ -686,7 +686,7 @@ func UpdateReactionsMigrationsByType(gitServiceType api.GitServiceType, original
 	_, err := db.GetEngine(db.DefaultContext).Table("reaction").
 		Where("original_author_id = ?", originalAuthorID).
 		And(migratedIssueCond(gitServiceType)).
-		Update(map[string]interface{}{
+		Update(map[string]any{
 			"user_id":            userID,
 			"original_author":    "",
 			"original_author_id": 0,
@@ -702,66 +702,66 @@ func DeleteIssuesByRepoID(ctx context.Context, repoID int64) (attachmentPaths []
 	// Delete content histories
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&ContentHistory{}); err != nil {
-		return
+		return nil, err
 	}
 
 	// Delete comments and attachments
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&Comment{}); err != nil {
-		return
+		return nil, err
 	}
 
 	// Dependencies for issues in this repository
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&IssueDependency{}); err != nil {
-		return
+		return nil, err
 	}
 
 	// Delete dependencies for issues in other repositories
 	if _, err = sess.In("dependency_id", deleteCond).
 		Delete(&IssueDependency{}); err != nil {
-		return
+		return nil, err
 	}
 
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&IssueUser{}); err != nil {
-		return
+		return nil, err
 	}
 
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&Reaction{}); err != nil {
-		return
+		return nil, err
 	}
 
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&IssueWatch{}); err != nil {
-		return
+		return nil, err
 	}
 
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&Stopwatch{}); err != nil {
-		return
+		return nil, err
 	}
 
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&TrackedTime{}); err != nil {
-		return
+		return nil, err
 	}
 
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&project_model.ProjectIssue{}); err != nil {
-		return
+		return nil, err
 	}
 
 	if _, err = sess.In("dependent_issue_id", deleteCond).
 		Delete(&Comment{}); err != nil {
-		return
+		return nil, err
 	}
 
 	var attachments []*repo_model.Attachment
 	if err = sess.In("issue_id", deleteCond).
 		Find(&attachments); err != nil {
-		return
+		return nil, err
 	}
 
 	for j := range attachments {
@@ -770,11 +770,11 @@ func DeleteIssuesByRepoID(ctx context.Context, repoID int64) (attachmentPaths []
 
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&repo_model.Attachment{}); err != nil {
-		return
+		return nil, err
 	}
 
 	if _, err = db.DeleteByBean(ctx, &Issue{RepoID: repoID}); err != nil {
-		return
+		return nil, err
 	}
 
 	return attachmentPaths, err

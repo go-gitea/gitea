@@ -203,6 +203,7 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 	ctx.Data["Page"] = pager
 
 	if isTagList {
+		ctx.Data["PageIsViewCode"] = !ctx.Repo.Repository.UnitEnabled(ctx, unit.TypeReleases)
 		ctx.HTML(http.StatusOK, tplTagsList)
 	} else {
 		ctx.HTML(http.StatusOK, tplReleasesList)
@@ -607,13 +608,13 @@ func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
 	}
 
 	if isDelTag {
-		ctx.JSON(http.StatusOK, map[string]interface{}{
+		ctx.JSON(http.StatusOK, map[string]any{
 			"redirect": ctx.Repo.RepoLink + "/tags",
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"redirect": ctx.Repo.RepoLink + "/releases",
 	})
 }

@@ -128,7 +128,7 @@ func (b *Base) Error(status int, contents ...string) {
 }
 
 // JSON render content as JSON
-func (b *Base) JSON(status int, content interface{}) {
+func (b *Base) JSON(status int, content any) {
 	b.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
 	b.Resp.WriteHeader(status)
 	if err := json.NewEncoder(b.Resp).Encode(content); err != nil {

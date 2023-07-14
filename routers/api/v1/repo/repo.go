@@ -378,7 +378,7 @@ func Generate(ctx *context.APIContext) {
 		ctxUser, err = user_model.GetUserByName(ctx, form.Owner)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
-				ctx.JSON(http.StatusNotFound, map[string]interface{}{
+				ctx.JSON(http.StatusNotFound, map[string]any{
 					"error": "request owner `" + form.Owner + "` does not exist",
 				})
 				return

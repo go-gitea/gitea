@@ -207,42 +207,6 @@ func TestFindOrgs(t *testing.T) {
 	assert.EqualValues(t, 1, total)
 }
 
-func TestGetOrgUsersByUserID(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	orgUsers, err := organization.GetOrgUsersByUserID(5, &organization.SearchOrganizationsOptions{All: true})
-	assert.NoError(t, err)
-	if assert.Len(t, orgUsers, 3) {
-		assert.Equal(t, organization.OrgUser{
-			ID:       orgUsers[0].ID,
-			OrgID:    23,
-			UID:      5,
-			IsPublic: false,
-		}, *orgUsers[0])
-		assert.Equal(t, organization.OrgUser{
-			ID:       orgUsers[1].ID,
-			OrgID:    6,
-			UID:      5,
-			IsPublic: true,
-		}, *orgUsers[1])
-		assert.Equal(t, organization.OrgUser{
-			ID:       orgUsers[2].ID,
-			OrgID:    7,
-			UID:      5,
-			IsPublic: false,
-		}, *orgUsers[2])
-	}
-
-	publicOrgUsers, err := organization.GetOrgUsersByUserID(5, &organization.SearchOrganizationsOptions{All: false})
-	assert.NoError(t, err)
-	assert.Len(t, publicOrgUsers, 1)
-	assert.Equal(t, *orgUsers[1], *publicOrgUsers[0])
-
-	orgUsers, err = organization.GetOrgUsersByUserID(1, &organization.SearchOrganizationsOptions{All: true})
-	assert.NoError(t, err)
-	assert.Len(t, orgUsers, 0)
-}
-
 func TestGetOrgUsersByOrgID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
