@@ -89,7 +89,6 @@ func SettingsPost(ctx *context.Context) {
 		// reset ctx.org.OrgLink with new name
 		ctx.Org.OrgLink = setting.AppSubURL + "/org/" + url.PathEscape(form.Name)
 		log.Trace("Organization name changed: %s -> %s", org.Name, form.Name)
-		nameChanged = false
 	}
 
 	// In case it's just a case change.
@@ -129,11 +128,6 @@ func SettingsPost(ctx *context.Context) {
 				ctx.ServerError("UpdateRepository", err)
 				return
 			}
-		}
-	} else if nameChanged {
-		if err := repo_model.UpdateRepositoryOwnerNames(org.ID, org.Name); err != nil {
-			ctx.ServerError("UpdateRepository", err)
-			return
 		}
 	}
 
