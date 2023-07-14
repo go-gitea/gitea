@@ -31,7 +31,7 @@ menu:
 要注册RPM注册表，请将 URL 添加到已知 `apt` 源列表中：
 
 ```shell
-dnf config-manager --add-repo https://gitea.example.com/api/packages/{owner}/{distribution}.repo
+dnf config-manager --add-repo https://gitea.example.com/api/packages/{owner}/rpm/{distribution}.repo
 ```
 
 | 占位符  | 描述           |
@@ -42,7 +42,7 @@ dnf config-manager --add-repo https://gitea.example.com/api/packages/{owner}/{di
 如果注册表是私有的，请在URL中提供凭据。您可以使用密码或[个人访问令牌]({{< relref "doc/development/api-usage.zh-cn.md#通过-api-认证" >}})：
 
 ```shell
-dnf config-manager --add-repo https://{username}:{your_password_or_token}@gitea.example.com/api/packages/{owner}/{distribution}.repo
+dnf config-manager --add-repo https://{username}:{your_password_or_token}@gitea.example.com/api/packages/{owner}/rpm/{distribution}.repo
 ```
 
 您还必须将凭据添加到 `/etc/yum.repos.d` 中的 `rpm.repo` 文件中的URL中。

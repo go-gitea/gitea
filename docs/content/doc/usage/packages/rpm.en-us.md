@@ -31,7 +31,7 @@ The following examples use `dnf`.
 To register the RPM registry add the url to the list of known apt sources:
 
 ```shell
-dnf config-manager --add-repo https://gitea.example.com/api/packages/{owner}/{distribution}.repo
+dnf config-manager --add-repo https://gitea.example.com/api/packages/{owner}/rpm/{distribution}.repo
 ```
 
 | Placeholder | Description |
@@ -42,7 +42,7 @@ dnf config-manager --add-repo https://gitea.example.com/api/packages/{owner}/{di
 If the registry is private, provide credentials in the url. You can use a password or a [personal access token]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}):
 
 ```shell
-dnf config-manager --add-repo https://{username}:{your_password_or_token}@gitea.example.com/api/packages/{owner}/{distribution}.repo
+dnf config-manager --add-repo https://{username}:{your_password_or_token}@gitea.example.com/api/packages/{owner}/rpm/{distribution}.repo
 ```
 
 You have to add the credentials to the urls in the `rpm.repo` file in `/etc/yum.repos.d` too.
