@@ -125,7 +125,7 @@
 										{{end}}
 									{{else if and .LatestPullRequest.HasMerged .MergeMovedOn}}
 										{{if and (not .DBBranch.IsDeleted) $.AllowsPulls (gt .CommitsAhead 0)}}
-										<a href="{{$.RepoLink}}/compare/{{PathEscapeSegments $.DefaultBranchBranch}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{$.Owner.Name}}:{{end}}{{.Name | PathEscapeSegments}}">
+										<a href="{{$.RepoLink}}/compare/{{PathEscapeSegments $.DefaultBranchBranch.DBBranch.Name}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{PathEscape $.Owner.Name}}:{{end}}{{PathEscapeSegments .DBBranch.Name}}">
 											<button id="new-pull-request" class="ui compact basic button gt-mr-0">{{if $.CanPull}}{{$.locale.Tr "repo.pulls.compare_changes"}}{{else}}{{$.locale.Tr "action.compare_branch"}}{{end}}</button>
 										</a>
 										{{end}}
