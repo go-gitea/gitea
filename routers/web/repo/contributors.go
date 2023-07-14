@@ -23,13 +23,7 @@ func Contributors(ctx *context.Context) {
 	ctx.Data["PageIsPulse"] = false
 	ctx.Data["PageIsContributors"] = true
 
-	ctx.Data["ContributionType"] = ctx.Params("contribution_type")
-	if ctx.Data["ContributionType"] == "" {
-		ctx.Data["ContributionType"] = "commits"
-	}
-	ctx.PageData["contributionType"] = ctx.Data["ContributionType"]
-
-	ctx.Data["ContributionTypeText"] = ctx.Tr("repo.contributors.contribution_type." + ctx.Data["ContributionType"].(string))
+	ctx.PageData["contributionType"] = "commits"
 
 	ctx.PageData["repoLink"] = ctx.Repo.RepoLink
 

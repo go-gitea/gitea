@@ -316,9 +316,13 @@ export default {
             },
             limits: {
               x: {
+                /* Check https://www.chartjs.org/chartjs-plugin-zoom/latest/guide/options.html#scale-limits
+                   to know what each option means */
                 min: 'original',
                 max: 'original',
-                minRange: 1210000000,
+
+                // number of milliseconds in 2 weeks. Minimum x range will be 2 weeks when you zoom on the graph
+                minRange: 2 * 7 * 24 * 60 * 60 * 1000,
               },
             },
             zoom: {
