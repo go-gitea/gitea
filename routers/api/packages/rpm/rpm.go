@@ -31,9 +31,17 @@ func apiError(ctx *context.Context, status int, obj any) {
 	})
 }
 
+func getDistribution(ctx *context.Context) string {
+	distribution := strings.TrimSpace(ctx.Params("distribution"))
+	if len(distribution) == 0 {
+		return "default"
+	}
+	return distribution
+}
+
 // https://dnf.readthedocs.io/en/latest/conf_ref.html
 func GetRepositoryConfig(ctx *context.Context) {
-	distribution := ctx.Params("distribution")
+	distribution := getDistribution(ctx)
 	url := fmt.Sprintf("%sapi/packages/%s/rpm", setting.AppURL, ctx.Package.Owner.Name)
 
 	ctx.PlainText(http.StatusOK, `[gitea-`+ctx.Package.Owner.LowerName+`]
@@ -60,7 +68,7 @@ func GetRepositoryKey(ctx *context.Context) {
 
 // Gets a pre-generated repository metadata file
 func GetRepositoryFile(ctx *context.Context) {
-	distribution := ctx.Params("distribution")
+	distribution := getDistribution(ctx)
 	pv, err := rpm_service.GetOrCreateRepositoryVersion(ctx.Package.Owner.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -88,7 +96,7 @@ func GetRepositoryFile(ctx *context.Context) {
 }
 
 func UploadPackageFile(ctx *context.Context) {
-	distribution := ctx.Params("distribution")
+	distribution := getDistribution(ctx)
 	upload, close, err := ctx.UploadStream()
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -204,7 +212,7 @@ func DeletePackageFile(webctx *context.Context) {
 	name := webctx.Params("name")
 	version := webctx.Params("version")
 	architecture := webctx.Params("architecture")
-	distribution := webctx.Params("distribution")
+	distribution := getDistribution(webctx)
 
 	var pd *packages_model.PackageDescriptor
 
