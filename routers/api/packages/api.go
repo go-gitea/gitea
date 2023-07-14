@@ -516,12 +516,8 @@ func CommonRoutes() *web.Route {
 			// old rpm
 			r.Get(".repo", rpm.GetRepositoryConfig)
 			r.Get("/repository.key", rpm.GetRepositoryKey)
-			r.Put("/upload", reqPackageAccess(perm.AccessModeWrite), rpm.UploadPackageFile)
 			r.Get("/repodata/{filename}", rpm.GetRepositoryFile)
-			r.Group("/package/{name}/{version}/{architecture}", func() {
-				r.Get("", rpm.DownloadPackageFile)
-				r.Delete("", reqPackageAccess(perm.AccessModeWrite), rpm.DeletePackageFile)
-			})
+			r.Get("/package/{name}/{version}/{architecture}", rpm.DownloadPackageFile)
 			// new rpm
 			r.Group("/{distribution}", func() {
 				r.Get(".repo", rpm.GetRepositoryConfig)
