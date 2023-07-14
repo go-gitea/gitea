@@ -10,10 +10,12 @@ import (
 )
 
 func RebuildRpmPackage(x *xorm.Engine) error {
+	sess := x.NewSession()
+	defer sess.Close()
 	defaultDistribution := rpmModule.RepositoryDefaultDistribution
 	// select all old rpm package
 	var oldRpmIds []int64
-	ss := x.Cols("id").
+	ss := sess.Cols("id").
 		Table("package_file").
 		Where("composite_key = ?", "").
 		And("lower_name like ?", "%.rpm")
@@ -26,8 +28,9 @@ func RebuildRpmPackage(x *xorm.Engine) error {
 	// and to avoid querying all of them resulting in large memory,
 	// a single RPM package is now used for updating.
 	for _, id := range oldRpmIds {
+
 		metadata := make([]string, 0, 3)
-		_, err := x.Cols("ref_type", "ref_id", "value").
+		_, err := sess.Cols("ref_type", "ref_id", "value").
 			Table("package_property").
 			Where("name = 'rpm.metdata'").
 			And("ref_id = ?", id).
@@ -41,7 +44,7 @@ func RebuildRpmPackage(x *xorm.Engine) error {
 		if err != nil {
 			return err
 		}
-		_, err = x.Exec(
+		_, err = sess.Exec(
 			"INSERT INTO package_property(ref_type, ref_id, name, value) values (?,?,?,?),(?,?,?,?)",
 			metadata[0], metadata[1], "rpm.distribution", defaultDistribution,
 			metadata[0], metadata[1], "rpm.architecture", rpmMetadata.Architecture,
@@ -50,7 +53,7 @@ func RebuildRpmPackage(x *xorm.Engine) error {
 			return err
 		}
 		// set default distribution
-		_, err = x.Table("package_file").
+		_, err = sess.Table("package_file").
 			Where("id = ?", id).
 			Update(map[string]any{
 				"composite_key": defaultDistribution,
@@ -60,7 +63,7 @@ func RebuildRpmPackage(x *xorm.Engine) error {
 		}
 	}
 	// set old rpm index file to default distribution
-	_, err = x.Table("package_file").
+	_, err = sess.Table("package_file").
 		Where(
 			"composite_key = '' AND " +
 				"lower_name IN" +
