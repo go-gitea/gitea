@@ -10,8 +10,8 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-// ToRelease convert a repo_model.Release to api.Release
-func ToRelease(ctx context.Context, r *repo_model.Release) *api.Release {
+// ToAPIRelease convert a repo_model.Release to api.Release
+func ToAPIRelease(ctx context.Context, repo *repo_model.Repository, r *repo_model.Release) *api.Release {
 	return &api.Release{
 		ID:           r.ID,
 		TagName:      r.TagName,
@@ -27,6 +27,6 @@ func ToRelease(ctx context.Context, r *repo_model.Release) *api.Release {
 		CreatedAt:    r.CreatedUnix.AsTime(),
 		PublishedAt:  r.CreatedUnix.AsTime(),
 		Publisher:    ToUser(ctx, r.Publisher, nil),
-		Attachments:  ToAttachments(r.Attachments),
+		Attachments:  ToAPIAttachments(repo, r.Attachments),
 	}
 }
