@@ -2768,10 +2768,8 @@ func UpdateIssueStatus(ctx *context.Context) {
 	}
 
 	for _, issue := range issues {
-		if issue.IsPull {
-			if issue.PullRequest.HasMerged {
-				continue
-			}
+		if issue.IsPull && issue.PullRequest.HasMerged {
+			continue
 		}
 		if issue.IsClosed != isClosed {
 			if err := issue_service.ChangeStatus(issue, ctx.Doer, "", isClosed); err != nil {
