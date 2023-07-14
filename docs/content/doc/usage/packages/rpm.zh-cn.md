@@ -34,13 +34,12 @@ menu:
 dnf config-manager --add-repo https://gitea.example.com/api/packages/{owner}/{distribution}.repo
 ```
 
-| 占位符            | 描述                 |
-|----------------|--------------------|
-| `owner`        | 软件包的所有者            |
+| 占位符  | 描述           |
+| ------- | -------------- |
+| `owner` | 软件包的所有者 |
 | `distribution` | 一个任意的名称，例如：el7、el9 |
 
-如果注册表是私有的，请在URL中提供凭据。您可以使用密码或[个人访问令牌]({{< relref "
-doc/development/api-usage.zh-cn.md#通过-api-认证" >}})：
+如果注册表是私有的，请在URL中提供凭据。您可以使用密码或[个人访问令牌]({{< relref "doc/development/api-usage.zh-cn.md#通过-api-认证" >}})：
 
 ```shell
 dnf config-manager --add-repo https://{username}:{your_password_or_token}@gitea.example.com/api/packages/{owner}/{distribution}.repo
