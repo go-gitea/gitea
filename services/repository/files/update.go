@@ -4,7 +4,6 @@
 package files
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"path"
@@ -12,21 +11,15 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
-
-	stdcharset "golang.org/x/net/html/charset"
-	"golang.org/x/text/transform"
 )
 
 // IdentityOptions for a person's identity like an author or committer
@@ -66,76 +59,7 @@ type ChangeRepoFilesOptions struct {
 type RepoFileOptions struct {
 	treePath     string
 	fromTreePath string
-	encoding     string
-	bom          bool
 	executable   bool
-}
-
-func detectEncodingAndBOM(entry *git.TreeEntry, repo *repo_model.Repository) (string, bool) {
-	reader, err := entry.Blob().DataAsync()
-	if err != nil {
-		// return default
-		return "UTF-8", false
-	}
-	defer reader.Close()
-	buf := make([]byte, 1024)
-	n, err := util.ReadAtMost(reader, buf)
-	if err != nil {
-		// return default
-		return "UTF-8", false
-	}
-	buf = buf[:n]
-
-	if setting.LFS.StartServer {
-		pointer, _ := lfs.ReadPointerFromBuffer(buf)
-		if pointer.IsValid() {
-			meta, err := git_model.GetLFSMetaObjectByOid(db.DefaultContext, repo.ID, pointer.Oid)
-			if err != nil && err != git_model.ErrLFSObjectNotExist {
-				// return default
-				return "UTF-8", false
-			}
-			if meta != nil {
-				dataRc, err := lfs.ReadMetaObject(pointer)
-				if err != nil {
-					// return default
-					return "UTF-8", false
-				}
-				defer dataRc.Close()
-				buf = make([]byte, 1024)
-				n, err = util.ReadAtMost(dataRc, buf)
-				if err != nil {
-					// return default
-					return "UTF-8", false
-				}
-				buf = buf[:n]
-			}
-		}
-	}
-
-	encoding, err := charset.DetectEncoding(buf)
-	if err != nil {
-		// just default to utf-8 and no bom
-		return "UTF-8", false
-	}
-	if encoding == "UTF-8" {
-		return encoding, bytes.Equal(buf[0:3], charset.UTF8BOM)
-	}
-	charsetEncoding, _ := stdcharset.Lookup(encoding)
-	if charsetEncoding == nil {
-		return "UTF-8", false
-	}
-
-	result, n, err := transform.String(charsetEncoding.NewDecoder(), string(buf))
-	if err != nil {
-		// return default
-		return "UTF-8", false
-	}
-
-	if n > 2 {
-		return encoding, bytes.Equal([]byte(result)[0:3], charset.UTF8BOM)
-	}
-
-	return encoding, false
 }
 
 // ChangeRepoFiles adds, updates or removes multiple files in the given repository
@@ -184,8 +108,6 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		file.Options = &RepoFileOptions{
 			treePath:     treePath,
 			fromTreePath: fromTreePath,
-			encoding:     "UTF-8",
-			bom:          false,
 			executable:   false,
 		}
 		treePaths = append(treePaths, treePath)
@@ -381,7 +303,6 @@ func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRep
 			// haven't been made. We throw an error if one wasn't provided.
 			return models.ErrSHAOrCommitIDNotProvided{}
 		}
-		file.Options.encoding, file.Options.bom = detectEncodingAndBOM(fromEntry, repo)
 		file.Options.executable = fromEntry.IsExecutable()
 	}
 	if file.Operation == "create" || file.Operation == "update" {
@@ -466,28 +387,8 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 		}
 	}
 
-	content := file.Content
-	if file.Options.bom {
-		content = string(charset.UTF8BOM) + content
-	}
-	if file.Options.encoding != "UTF-8" {
-		charsetEncoding, _ := stdcharset.Lookup(file.Options.encoding)
-		if charsetEncoding != nil {
-			result, _, err := transform.String(charsetEncoding.NewEncoder(), content)
-			if err != nil {
-				// Look if we can't encode back in to the original we should just stick with utf-8
-				log.Error("Error re-encoding %s (%s) as %s - will stay as UTF-8: %v", file.TreePath, file.FromTreePath, file.Options.encoding, err)
-				result = content
-			}
-			content = result
-		} else {
-			log.Error("Unknown encoding: %s", file.Options.encoding)
-		}
-	}
-	// Reset the opts.Content to our adjusted content to ensure that LFS gets the correct content
-	file.Content = content
+	treeObjectContent := file.Content
 	var lfsMetaObject *git_model.LFSMetaObject
-
 	if setting.LFS.StartServer && hasOldBranch {
 		// Check there is no way this can return multiple infos
 		filename2attribute2info, err := t.gitRepo.CheckAttribute(git.CheckAttributeOpts{
@@ -506,12 +407,12 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 				return err
 			}
 			lfsMetaObject = &git_model.LFSMetaObject{Pointer: pointer, RepositoryID: repoID}
-			content = pointer.StringContent()
+			treeObjectContent = pointer.StringContent()
 		}
 	}
 
 	// Add the object to the database
-	objectHash, err := t.HashObject(strings.NewReader(content))
+	objectHash, err := t.HashObject(strings.NewReader(treeObjectContent))
 	if err != nil {
 		return err
 	}
