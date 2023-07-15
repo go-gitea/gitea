@@ -175,10 +175,8 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 	} else if len(orgs) > 0 {
 		ctx.Data["ContextUser"] = orgs[0]
 	} else {
-		msg := ctx.Tr("repo.fork_no_valid_owners")
-		ctx.Data["Flash"] = ctx.Flash
-		ctx.Flash.Error(msg)
 		ctx.Data["CanForkRepo"] = false
+		ctx.Flash.Error(ctx.Tr("repo.fork_no_valid_owners"), true)
 		return nil
 	}
 
@@ -194,8 +192,7 @@ func Fork(ctx *context.Context) {
 	} else {
 		maxCreationLimit := ctx.Doer.MaxCreationLimit()
 		msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
-		ctx.Data["Flash"] = ctx.Flash
-		ctx.Flash.Error(msg)
+		ctx.Flash.Error(msg, true)
 	}
 
 	getForkRepository(ctx)
