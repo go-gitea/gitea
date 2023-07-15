@@ -36,6 +36,10 @@
   opacity: 1;
 }
 
+.ui.button.add-code-comment:focus {
+  opacity: 1;
+}
+
 .repository .diff-file-box .code-diff .add-comment-left,
 .repository .diff-file-box .code-diff .add-comment-right,
 .repository .diff-file-box .code-diff .add-code-comment .add-comment-left,
