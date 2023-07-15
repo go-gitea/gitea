@@ -5,17 +5,6 @@ package middleware
 
 import "net/url"
 
-// flashes enumerates all the flash types
-const (
-	SuccessFlash = "SuccessMsg"
-	ErrorFlash   = "ErrorMsg"
-	WarnFlash    = "WarningMsg"
-	InfoFlash    = "InfoMsg"
-)
-
-// FlashNow FIXME:
-var FlashNow bool
-
 // Flash represents a one time data transfer between two requests.
 type Flash struct {
 	DataStore ContextDataStore
@@ -27,15 +16,12 @@ func (f *Flash) set(name, msg string, current ...bool) {
 	if f.Values == nil {
 		f.Values = make(map[string][]string)
 	}
-	isShow := false
-	if (len(current) == 0 && FlashNow) ||
-		(len(current) > 0 && current[0]) {
-		isShow = true
-	}
-
-	if isShow {
+	showInCurrentPage := len(current) > 0 && current[0]
+	if showInCurrentPage {
+		// assign it to the context data, then the template can use ".Flash.XxxMsg" to render the message
 		f.DataStore.GetData()["Flash"] = f
 	} else {
+		// the message map will be saved into the cookie and be shown in next response (a new page response which decodes the cookie)
 		f.Set(name, msg)
 	}
 }
