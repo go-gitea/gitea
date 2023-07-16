@@ -2762,7 +2762,15 @@ func UpdateIssueStatus(ctx *context.Context) {
 		ctx.ServerError("LoadRepositories", err)
 		return
 	}
+	if err := issues.LoadPullRequests(ctx); err != nil {
+		ctx.ServerError("LoadPullRequests", err)
+		return
+	}
+
 	for _, issue := range issues {
+		if issue.IsPull && issue.PullRequest.HasMerged {
+			continue
+		}
 		if issue.IsClosed != isClosed {
 			if err := issue_service.ChangeStatus(issue, ctx.Doer, "", isClosed); err != nil {
 				if issues_model.IsErrDependenciesLeft(err) {
