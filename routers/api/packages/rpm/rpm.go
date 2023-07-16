@@ -36,8 +36,8 @@ func GetRepositoryConfig(ctx *context.Context) {
 	distribution := ctx.Params("distribution")
 	url := fmt.Sprintf("%sapi/packages/%s/rpm", setting.AppURL, ctx.Package.Owner.Name)
 
-	ctx.PlainText(http.StatusOK, `[gitea-`+ctx.Package.Owner.LowerName+`]
-name=`+ctx.Package.Owner.Name+` - `+setting.AppName+`
+	ctx.PlainText(http.StatusOK, `[gitea-`+ctx.Package.Owner.LowerName+`-`+distribution+`]
+name=`+ctx.Package.Owner.Name+` - `+setting.AppName+` - `+distribution+`
 baseurl=`+url+`/`+distribution+`
 enabled=1
 gpgcheck=1
@@ -175,7 +175,7 @@ func UploadPackageFile(ctx *context.Context) {
 func DownloadPackageFile(ctx *context.Context) {
 	name := ctx.Params("name")
 	version := ctx.Params("version")
-
+	distribution := ctx.Params("distribution")
 	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
@@ -185,9 +185,11 @@ func DownloadPackageFile(ctx *context.Context) {
 			Version:     version,
 		},
 		&packages_service.PackageFileInfo{
-			Filename: fmt.Sprintf("%s-%s.%s.rpm", name, version, ctx.Params("architecture")),
+			Filename:     fmt.Sprintf("%s-%s.%s.rpm", name, version, ctx.Params("architecture")),
+			CompositeKey: distribution,
 		},
 	)
+
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
