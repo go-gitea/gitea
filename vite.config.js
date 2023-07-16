@@ -58,10 +58,14 @@ export default defineConfig(({mode}) => {
     publicDir: false,
     logLevel: 'info',
     clearScreen: false,
+    appType: 'mpa',
     open: false,
     build: {
       outDir: fileURLToPath(new URL('public', import.meta.url)),
       emptyOutDir: false,
+      modulePreload: {
+        polyfill: false,
+      },
       rollupOptions: {
         input: {
           index: fileURLToPath(new URL('web_src/js/entry/index.js', import.meta.url)),
@@ -84,7 +88,7 @@ export default defineConfig(({mode}) => {
             if (/\.css$/i.test(name)) return `css/[name].[hash:8].css`;
             if (/\.(ttf|woff2?)$/i.test(name)) return `fonts/[name].[hash:8]${extname(name)}`;
             if (/\.png$/i.test(name)) return `img/bundled/[name].[hash:8]${extname(name)}`;
-            if (name === 'editor.main') return 'js/[name].[hash:8].js';
+            if (name === 'monaco') return 'js/[name].[hash:8].js';
             throw new Error(`Unable to match asset ${name} to path, please add it in vite.config.js`);
           },
         },
@@ -101,6 +105,14 @@ export default defineConfig(({mode}) => {
     },
     esbuild: {
       legalComments: 'none',
+    },
+    experimental: {
+      renderBuiltUrl: () => ({relative: true}),
+    },
+    server: {
+      port: parseInt(env.GITEA_DEV_FRONTEND_PORT) || 3001,
+      strictPort: true,
+      open: false,
     },
     plugins: [
       cleanDirsPlugin(),

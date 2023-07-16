@@ -59,7 +59,5 @@ func CommonTemplateContextData() ContextData {
 		"EnableSwagger":      setting.API.EnableSwagger,
 		"EnableOpenIDSignIn": setting.Service.EnableOpenIDSignIn,
 		"PageStartTime":      time.Now(),
-
-		"RunModeIsProd": setting.IsProd,
 	}
 }

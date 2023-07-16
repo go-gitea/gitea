@@ -38,7 +38,12 @@ function initGlobalErrorHandler() {
     processWindowErrorEvent(e);
   }
   // then, change _globalHandlerErrors to an object with push method, to process further error events directly
-  window._globalHandlerErrors = {'push': (e) => processWindowErrorEvent(e)};
+  window._globalHandlerErrors = new Proxy([], {
+    set: function(_target, _property, value) {
+      processWindowErrorEvent(value)
+      return true;
+    }
+  });
 }
 
 initGlobalErrorHandler();

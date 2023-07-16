@@ -435,7 +435,7 @@ watch:
 .PHONY: watch-frontend
 watch-frontend: node-check node_modules
 	@rm -rf $(VITE_DEST_ENTRIES)
-	NODE_ENV=development npx vite build --watch
+	NODE_ENV=development npx vite
 
 .PHONY: watch-backend
 watch-backend: go-check

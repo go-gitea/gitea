@@ -6,10 +6,12 @@ package web
 import (
 	gocontext "context"
 	"net/http"
+	"os"
 
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/metrics"
 	"code.gitea.io/gitea/modules/public"
@@ -108,7 +110,22 @@ func Routes() *web.Route {
 	routes := web.NewRoute()
 
 	routes.Head("/", misc.DummyOK) // for health check - doesn't need to be passed through gzip handler
-	routes.RouteMethods("/assets/*", "GET, HEAD", CorsHandler(), public.AssetsHandlerFunc("/assets/"))
+
+	if setting.IsProd { // use assets from embed or filesystem
+			routes.RouteMethods("/assets/*", "GET, HEAD", CorsHandler(), public.AssetsHandlerFunc("/assets/"))
+	} else { // reverse-proxy asset requests to webpack-dev-server
+		// this environment variable is intentionally not loaded from ini config
+		// because webpack also needs to parse it from the environment
+		port := os.Getenv("GITEA_DEV_FRONTEND_PORT")
+		if port == "" {
+			port = "3001"
+		}
+
+		routes.RouteMethods("/assets/*", "GET, HEAD", CorsHandler(),
+			httplib.MakeReverseProxyHandler("http://localhost:"+port, "/assets", true),
+		)
+	}
+
 	routes.RouteMethods("/avatars/*", "GET, HEAD", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
 	routes.RouteMethods("/repo-avatars/*", "GET, HEAD", storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 	routes.RouteMethods("/apple-touch-icon.png", "GET, HEAD", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))

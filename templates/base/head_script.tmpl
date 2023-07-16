@@ -4,13 +4,14 @@ If you are customizing Gitea, please do not change this file.
 If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 */}}
 <script>
-	window.addEventListener('error', function(e) {window._globalHandlerErrors=window._globalHandlerErrors||[]; window._globalHandlerErrors.push(e);});
+	window.addEventListener('error', function(e) {
+		window._globalHandlerErrors=window._globalHandlerErrors||[]; window._globalHandlerErrors.push(e);});
 	window.config = {
 		appUrl: '{{AppUrl}}',
 		appSubUrl: '{{AppSubUrl}}',
 		assetVersionEncoded: encodeURIComponent('{{AssetVersion}}'), // will be used in URL construction directly
 		assetUrlPrefix: '{{AssetUrlPrefix}}',
-		runModeIsProd: {{.RunModeIsProd}},
+		runMode: {{RunMode}},
 		customEmojis: {{CustomEmojis}},
 		csrfToken: '{{.CsrfToken}}',
 		pageData: {{.PageData}},
@@ -44,4 +45,10 @@ If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 	{{/* in case some pages don't render the pageData, we make sure it is an object to prevent null access */}}
 	window.config.pageData = window.config.pageData || {};
 </script>
-<script type="module" src="{{AssetUrlPrefix}}/js/webcomponents.js?v={{AssetVersion}}"></script>
+{{$prefix := ""}}
+{{if eq RunMode "dev"}}
+	{{$prefix = "http://localhost:3001"}}
+{{else}}
+	{{$prefix = AssetUrlPrefix}}
+{{end}}
+<script type="module" src="{{$prefix}}/js/webcomponents.js?v={{AssetVersion}}"></script>

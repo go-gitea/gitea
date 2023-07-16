@@ -59,7 +59,7 @@ function exportEditor(editor) {
 }
 
 export async function createMonaco(textarea, filename, editorOpts) {
-  const monaco = await import(/* webpackChunkName: "monaco" */'monaco-editor');
+  const monaco = await import('../modules/monaco.js');
 
   initLanguages(monaco);
   let {language, ...other} = editorOpts;

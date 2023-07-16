@@ -25,7 +25,16 @@
 		<script src='https://challenges.cloudflare.com/turnstile/v0/api.js'></script>
 	{{end}}
 {{end}}
-	<script type="module" src="{{AssetUrlPrefix}}/js/index.js?v={{AssetVersion}}" onerror="alert('Failed to load asset files from ' + this.src + '. Please make sure the asset files can be accessed.')"></script>
+	{{$prefix := ""}}
+	{{if eq RunMode "dev"}}
+		{{$prefix = "http://localhost:3001"}}
+	{{else}}
+		{{$prefix = AssetUrlPrefix}}
+	{{end}}
+	{{if eq RunMode "dev"}}
+	<script type="module" src="http://localhost:3001/@vite/client"></script>
+	{{end}}
+	<script type="module" src="{{$prefix}}/js/index.js?v={{AssetVersion}}" onerror="alert('Failed to load asset files from ' + this.src + '. Please make sure the asset files can be accessed.')"></script>
 {{template "custom/footer" .}}
 </body>
 </html>

@@ -100,6 +100,9 @@ func NewFuncMap() template.FuncMap {
 		"AppDomain": func() string { // documented in mail-templates.md
 			return setting.Domain
 		},
+		"RunMode": func() string {
+			return setting.RunMode
+		},
 		"AssetVersion": func() string {
 			return setting.AssetVersion
 		},

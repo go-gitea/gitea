@@ -1,8 +1,14 @@
-<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/index.css?v={{AssetVersion}}">
+{{$prefix := ""}}
+{{if eq RunMode "dev"}}
+	{{$prefix = "http://localhost:3001"}}
+{{else}}
+	{{$prefix = AssetUrlPrefix}}
+{{end}}
+<link rel="stylesheet" href="{{$prefix}}/css/index.css?v={{AssetVersion}}">
 {{if .IsSigned}}
 	{{if ne .SignedUser.Theme "gitea"}}
-		<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{.SignedUser.Theme | PathEscape}}.css?v={{AssetVersion}}">
+		<link rel="stylesheet" href="{{$prefix}}/css/theme-{{.SignedUser.Theme | PathEscape}}.css?v={{AssetVersion}}">
 	{{end}}
 {{else if ne DefaultTheme "gitea"}}
-	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{DefaultTheme | PathEscape}}.css?v={{AssetVersion}}">
+	<link rel="stylesheet" href="{{$prefix}}/css/theme-{{DefaultTheme | PathEscape}}.css?v={{AssetVersion}}">
 {{end}}
