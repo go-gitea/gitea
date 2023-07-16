@@ -123,7 +123,7 @@ func Push(ctx *context.Context) {
 		return
 	}
 
-	// Add existing architectures and distros to current metadata.
+	// Add new architectures and distribution info to package version metadata.
 	err = arch_service.UpdateMetadata(ctx, &arch_service.UpdateMetadataParameters{
 		User: user,
 		Md:   md,

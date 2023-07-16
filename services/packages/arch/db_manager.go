@@ -27,8 +27,9 @@ type UpdateMetadataParameters struct {
 	Md   *arch.Metadata
 }
 
-// This function parses incoming metadata, gets existing if present, combines
-// architectures and creates new one with base parameters of new meta.
+// This function gets existing package metadata for provided version present,
+// combines architecture and distribution info and creates new metadata with
+// combined set of parameters.
 func UpdateMetadata(ctx *context.Context, p *UpdateMetadataParameters) error {
 	ver, err := pkg_model.GetVersionByNameAndVersion(ctx, p.User.ID, pkg_model.TypeArch, p.Md.Name, p.Md.Version)
 	if err != nil {
