@@ -350,6 +350,12 @@ func registerRoutes(m *web.Route) {
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		})
 	})
+	wellKnownDir := wellKnownWebDir()
+	m.Get("/.well-known/*", func(ctx *context.Context) {
+		fsHandler := http.FileServer(wellKnownDir)
+		fs := http.StripPrefix("/.well-known/", fsHandler)
+		fs.ServeHTTP(ctx.Resp, ctx.Req)
+	})
 
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
