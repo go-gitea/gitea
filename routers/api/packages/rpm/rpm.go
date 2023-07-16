@@ -189,7 +189,6 @@ func DownloadPackageFile(ctx *context.Context) {
 			CompositeKey: distribution,
 		},
 	)
-
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
@@ -220,7 +219,7 @@ func DeletePackageFile(webctx *context.Context) {
 			ctx,
 			pv.ID,
 			fmt.Sprintf("%s-%s.%s.rpm", name, version, architecture),
-			packages_model.EmptyFileKey,
+			distribution,
 		)
 		if err != nil {
 			return err
