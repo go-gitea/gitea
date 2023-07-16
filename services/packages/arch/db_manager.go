@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -166,13 +167,18 @@ func CreatePacmanDb(ctx *context.Context, owner, architecture, distro string) ([
 	var mds []*arch.Metadata
 
 	for _, pkg := range pkgs {
-		vers, err := pkg_model.GetVersionsByPackageName(ctx, u.ID, pkg_model.TypeArch, pkg.Name)
+		versions, err := pkg_model.GetVersionsByPackageName(ctx, u.ID, pkg_model.TypeArch, pkg.Name)
 		if err != nil {
 			return nil, err
 		}
-		for i := len(vers) - 1; i >= 0; i-- {
+
+		sort.Slice(versions, func(i, j int) bool {
+			return versions[i].CreatedUnix > versions[j].CreatedUnix
+		})
+
+		for _, version := range versions {
 			var md arch.Metadata
-			err = json.Unmarshal([]byte(vers[i].MetadataJSON), &md)
+			err = json.Unmarshal([]byte(version.MetadataJSON), &md)
 			if err != nil {
 				return nil, err
 			}
