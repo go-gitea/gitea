@@ -196,7 +196,6 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 	}
 
 	ctx.Data["Releases"] = releases
-	ctx.Data["ReleasesNum"] = len(releases)
 
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
