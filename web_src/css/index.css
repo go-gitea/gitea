@@ -1,4 +1,5 @@
 @import "../fomantic/build/semantic.css";
+@import "easymde/dist/easymde.min.css";
 
 @import "./modules/normalize.css";
 @import "./modules/animations.css";
@@ -63,5 +64,3 @@
 @import "./review.css";
 @import "./actions.css";
 @import "./helpers.css";
-
-@import "easymde/dist/easymde.min.css";
