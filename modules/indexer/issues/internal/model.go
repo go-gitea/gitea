@@ -11,8 +11,9 @@ import (
 
 // IndexerData data stored in the issue indexer
 type IndexerData struct {
-	ID     int64 `json:"id"`
-	RepoID int64 `json:"repo_id"`
+	ID       int64 `json:"id"`
+	RepoID   int64 `json:"repo_id"`
+	IsPublic bool  `json:"is_public"` // If the repo is public, so if the visibility of the repo has changed, we should reindex the issues.
 
 	// Fields used for keyword searching
 	Title    string   `json:"title"`
@@ -67,7 +68,8 @@ type SearchResult struct {
 type SearchOptions struct {
 	Keyword string // keyword to search
 
-	RepoIDs []int64 // repository IDs which the issues belong to
+	RepoIDs   []int64 // repository IDs which the issues belong to
+	AllPublic bool    // if include all public repositories
 
 	IsPull   util.OptionalBool // if the issues is a pull request
 	IsClosed util.OptionalBool // if the issues is closed
@@ -113,4 +115,7 @@ const (
 	SearchOptionsSortByUpdatedAsc   SearchOptionsSortBy = "updated"
 	SearchOptionsSortByCommentsAsc  SearchOptionsSortBy = "comments"
 	SearchOptionsSortByDueAsc       SearchOptionsSortBy = "due"
+	// Unsupported sort types which are supported by issues.IssuesOptions.SortType:
+	//    - "priorityrepo"
+	//    - "project-column-sorting"
 )
