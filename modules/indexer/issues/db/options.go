@@ -16,17 +16,17 @@ func ToDBOptions(options *internal.SearchOptions) *issue_model.IssuesOptions {
 		}
 		return *id
 	}
-	convertIDs := func(ids []int64, no bool) []int64 {
-		if no {
+	convertIDs := func(ids []int64) []int64 {
+		if len(ids) == 0 {
 			return []int64{db.NoConditionID}
 		}
 		return ids
 	}
-	convertLabelIDs := func(includes, excludes []int64, no bool) []int64 {
-		if no {
-			return []int64{0} // Be careful, it's zero, not db.NoConditionID,
+	convertLabelIDs := func(includes, excludes []int64, includeNo bool) []int64 {
+		ret := make([]int64, 0, len(includes)+len(excludes)+1)
+		if includeNo {
+			ret = append(ret, 0)
 		}
-		ret := make([]int64, 0, len(includes)+len(excludes))
 		ret = append(ret, includes...)
 		for _, id := range excludes {
 			ret = append(ret, -id)
@@ -47,7 +47,7 @@ func ToDBOptions(options *internal.SearchOptions) *issue_model.IssuesOptions {
 		sortType = "leastupdate"
 	case internal.SearchOptionsSortByCommentsAsc:
 		sortType = "leastcomment"
-	case internal.SearchOptionsSortByDueAsc:
+	case internal.SearchOptionsSortByDeadlineAsc:
 		sortType = "farduedate"
 	case internal.SearchOptionsSortByCreatedDesc:
 		sortType = "" // default
@@ -55,7 +55,7 @@ func ToDBOptions(options *internal.SearchOptions) *issue_model.IssuesOptions {
 		sortType = "recentupdate"
 	case internal.SearchOptionsSortByCommentsDesc:
 		sortType = "mostcomment"
-	case internal.SearchOptionsSortByDueDesc:
+	case internal.SearchOptionsSortByDeadlineDesc:
 		sortType = "nearduedate"
 	}
 
@@ -69,12 +69,12 @@ func ToDBOptions(options *internal.SearchOptions) *issue_model.IssuesOptions {
 		ReviewRequestedID:  convertID(options.ReviewRequestedID),
 		ReviewedID:         convertID(options.ReviewedID),
 		SubscriberID:       convertID(options.SubscriberID),
-		MilestoneIDs:       convertIDs(options.MilestoneIDs, options.NoMilestone),
+		MilestoneIDs:       convertIDs(options.MilestoneIDs),
 		ProjectID:          convertID(options.ProjectID),
 		ProjectBoardID:     convertID(options.ProjectBoardID),
 		IsClosed:           options.IsClosed,
 		IsPull:             options.IsPull,
-		LabelIDs:           convertLabelIDs(options.IncludedLabelIDs, options.ExcludedLabelIDs, options.NoLabel),
+		LabelIDs:           convertLabelIDs(options.IncludedLabelIDs, options.ExcludedLabelIDs, options.ExcludedNoLabel),
 		IncludedLabelNames: nil,
 		ExcludedLabelNames: nil,
 		IncludeMilestones:  nil,

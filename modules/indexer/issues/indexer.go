@@ -65,50 +65,7 @@ func InitIssueIndexer(syncReindex bool) {
 	indexerInitWaitChannel := make(chan time.Duration, 1)
 
 	// Create the Queue
-	switch setting.Indexer.IssueType {
-	case "bleve", "elasticsearch", "meilisearch":
-		handler := func(items ...*IndexerMetadata) (unhandled []*IndexerMetadata) {
-			indexer := *globalIndexer.Load()
-			for _, item := range items {
-				log.Trace("IndexerMetadata Process: %d %v %t", item.ID, item.IDs, item.IsDelete)
-				if item.IsDelete {
-					if err := indexer.Delete(ctx, item.IDs...); err != nil {
-						log.Error("Issue indexer handler: failed to from index: %v Error: %v", item.IDs, err)
-						unhandled = append(unhandled, item)
-					}
-					continue
-				}
-				data, existed, err := getIssueIndexerData(ctx, item.ID)
-				if err != nil {
-					log.Error("Issue indexer handler: failed to get issue data of %d: %v", item.ID, err)
-					unhandled = append(unhandled, item)
-					continue
-				}
-				if !existed {
-					if err := indexer.Delete(ctx, item.ID); err != nil {
-						log.Error("Issue indexer handler: failed to delete issue %d from index: %v", item.ID, err)
-						unhandled = append(unhandled, item)
-					}
-					continue
-				}
-				if err := indexer.Index(ctx, data); err != nil {
-					log.Error("Issue indexer handler: failed to index issue %d: %v", item.ID, err)
-					unhandled = append(unhandled, item)
-					continue
-				}
-			}
-
-			return unhandled
-		}
-
-		issueIndexerQueue = queue.CreateUniqueQueue(ctx, "issue_indexer", handler)
-
-		if issueIndexerQueue == nil {
-			log.Fatal("Unable to create issue indexer queue")
-		}
-	default:
-		issueIndexerQueue = queue.CreateUniqueQueue[*IndexerMetadata](ctx, "issue_indexer", nil)
-	}
+	issueIndexerQueue = queue.CreateUniqueQueue(ctx, "issue_indexer", getIssueIndexerQueueHandler(ctx))
 
 	graceful.GetManager().RunAtTerminate(finished)
 
@@ -201,6 +158,44 @@ func InitIssueIndexer(syncReindex bool) {
 				log.Fatal("Issue Indexer Initialization timed-out after: %v", timeout)
 			}
 		}()
+	}
+}
+
+func getIssueIndexerQueueHandler(ctx context.Context) func(items ...*IndexerMetadata) []*IndexerMetadata {
+	return func(items ...*IndexerMetadata) []*IndexerMetadata {
+		var unhandled []*IndexerMetadata
+
+		indexer := *globalIndexer.Load()
+		for _, item := range items {
+			log.Trace("IndexerMetadata Process: %d %v %t", item.ID, item.IDs, item.IsDelete)
+			if item.IsDelete {
+				if err := indexer.Delete(ctx, item.IDs...); err != nil {
+					log.Error("Issue indexer handler: failed to from index: %v Error: %v", item.IDs, err)
+					unhandled = append(unhandled, item)
+				}
+				continue
+			}
+			data, existed, err := getIssueIndexerData(ctx, item.ID)
+			if err != nil {
+				log.Error("Issue indexer handler: failed to get issue data of %d: %v", item.ID, err)
+				unhandled = append(unhandled, item)
+				continue
+			}
+			if !existed {
+				if err := indexer.Delete(ctx, item.ID); err != nil {
+					log.Error("Issue indexer handler: failed to delete issue %d from index: %v", item.ID, err)
+					unhandled = append(unhandled, item)
+				}
+				continue
+			}
+			if err := indexer.Index(ctx, data); err != nil {
+				log.Error("Issue indexer handler: failed to index issue %d: %v", item.ID, err)
+				unhandled = append(unhandled, item)
+				continue
+			}
+		}
+
+		return unhandled
 	}
 }
 

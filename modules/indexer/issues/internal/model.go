@@ -22,14 +22,12 @@ type IndexerData struct {
 
 	// Fields used for filtering
 	IsPull             bool               `json:"is_pull"`
-	IsClosed           bool               `json:"is_closed"`         // So if the status of an issue has changed, we should reindex the issue.
-	Labels             []int64            `json:"labels"`            // So if the labels of an issue have changed, we should reindex the issue.
-	NoLabels           bool               `json:"no_labels"`         // True if Labels is empty
-	MilestoneIDs       []int64            `json:"milestone_ids"`     // So if the milestones of an issue have changed, we should reindex the issue.
-	NoMilestone        bool               `json:"no_milestone"`      // True if Milestones is empty
-	ProjectIDs         []int64            `json:"project_ids"`       // So if the projects of an issue have changed, we should reindex the issue.
-	ProjectBoardIDs    []int64            `json:"project_board_ids"` // So if the projects of an issue have changed, we should reindex the issue.
-	NoProject          bool               `json:"no_project"`        // True if ProjectIDs is empty
+	IsClosed           bool               `json:"is_closed"`        // So if the status of an issue has changed, we should reindex the issue.
+	Labels             []int64            `json:"labels"`           // So if the labels of an issue have changed, we should reindex the issue.
+	NoLabel            bool               `json:"no_label"`         // True if Labels is empty
+	MilestoneID        int64              `json:"milestone_id"`     // So if the milestones of an issue have changed, we should reindex the issue.
+	ProjectID          int64              `json:"project_id"`       // So if the projects of an issue have changed, we should reindex the issue.
+	ProjectBoardID     int64              `json:"project_board_id"` // So if the projects of an issue have changed, we should reindex the issue.
 	PosterID           int64              `json:"poster_id"`
 	AssigneeID         int64              `json:"assignee_id"` // So if the assignee of an issue has changed, we should reindex the issue.
 	MentionIDs         []int64            `json:"mention_ids"`
@@ -40,7 +38,7 @@ type IndexerData struct {
 
 	// Fields used for sorting
 	CreatedUnix  timeutil.TimeStamp `json:"created_unix"`
-	DueUnix      timeutil.TimeStamp `json:"due_unix"`
+	DeadlineUnix timeutil.TimeStamp `json:"deadline_unix"`
 	CommentCount int64              `json:"comment_count"`
 }
 
@@ -76,10 +74,9 @@ type SearchOptions struct {
 
 	IncludedLabelIDs []int64 // labels the issues have
 	ExcludedLabelIDs []int64 // labels the issues don't have
-	NoLabel          bool    // if the issues have no label, if true, IncludedLabelIDs and ExcludedLabelIDs will be ignored
+	ExcludedNoLabel  bool    // if include issues without labels
 
 	MilestoneIDs []int64 // milestones the issues have
-	NoMilestone  bool    // if the issues have no milestones, if true, MilestoneIDs will be ignored
 
 	ProjectID      *int64 // project the issues belong to
 	ProjectBoardID *int64 // project board the issues belong to
@@ -110,11 +107,11 @@ const (
 	SearchOptionsSortByCreatedDesc  SearchOptionsSortBy = "-created"
 	SearchOptionsSortByUpdatedDesc  SearchOptionsSortBy = "-updated"
 	SearchOptionsSortByCommentsDesc SearchOptionsSortBy = "-comments"
-	SearchOptionsSortByDueDesc      SearchOptionsSortBy = "-due"
+	SearchOptionsSortByDeadlineDesc SearchOptionsSortBy = "-deadline"
 	SearchOptionsSortByCreatedAsc   SearchOptionsSortBy = "created"
 	SearchOptionsSortByUpdatedAsc   SearchOptionsSortBy = "updated"
 	SearchOptionsSortByCommentsAsc  SearchOptionsSortBy = "comments"
-	SearchOptionsSortByDueAsc       SearchOptionsSortBy = "due"
+	SearchOptionsSortByDeadlineAsc  SearchOptionsSortBy = "deadline"
 	// Unsupported sort types which are supported by issues.IssuesOptions.SortType:
 	//    - "priorityrepo"
 	//    - "project-column-sorting"

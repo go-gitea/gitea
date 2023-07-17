@@ -34,11 +34,40 @@ func getIssueIndexerData(ctx context.Context, issueID int64) (*internal.IndexerD
 		}
 	}
 
+	if err := issue.LoadAttributes(ctx); err != nil {
+		return nil, false, err
+	}
+
+	labels := make([]int64, 0, len(issue.Labels))
+	for _, label := range issue.Labels {
+		labels = append(labels, label.ID)
+	}
+
+	// TBC: MentionIDs ReviewedIDs ReviewRequestedIDs SubscriberIDs
+
 	return &internal.IndexerData{
-		ID:       issue.ID,
-		RepoID:   issue.RepoID,
-		Title:    issue.Title,
-		Content:  issue.Content,
-		Comments: comments,
+		ID:                 issue.ID,
+		RepoID:             issue.RepoID,
+		IsPublic:           !issue.Repo.IsPrivate,
+		Title:              issue.Title,
+		Content:            issue.Content,
+		Comments:           comments,
+		IsPull:             issue.IsPull,
+		IsClosed:           issue.IsClosed,
+		Labels:             labels,
+		NoLabel:            len(labels) == 0,
+		MilestoneID:        issue.MilestoneID,
+		ProjectID:          issue.Project.ID,
+		ProjectBoardID:     issue.ProjectBoardID(),
+		PosterID:           issue.PosterID,
+		AssigneeID:         issue.AssigneeID,
+		MentionIDs:         nil,
+		ReviewedIDs:        nil,
+		ReviewRequestedIDs: nil,
+		SubscriberIDs:      nil,
+		UpdatedUnix:        issue.UpdatedUnix,
+		CreatedUnix:        issue.CreatedUnix,
+		DeadlineUnix:       issue.DeadlineUnix,
+		CommentCount:       int64(len(issue.Comments)),
 	}, true, nil
 }
