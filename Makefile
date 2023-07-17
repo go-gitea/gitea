@@ -117,7 +117,7 @@ FOMANTIC_WORK_DIR := web_src/fomantic
 WEBPACK_SOURCES := $(shell find web_src/js web_src/css -type f)
 WEBPACK_CONFIGS := webpack.config.js
 WEBPACK_DEST := public/static/index.js public/static/index.css
-WEBPACK_DEST_ENTRIES := /public/static
+WEBPACK_DEST_ENTRIES := public/static
 
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
 BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
