@@ -168,7 +168,8 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 			inner_bleve.MatchPhraseQuery(options.Keyword, "content", issueIndexerAnalyzer),
 			inner_bleve.MatchPhraseQuery(options.Keyword, "comments", issueIndexerAnalyzer),
 		))
-	search := bleve.NewSearchRequestOptions(indexerQuery, options.Limit, options.Skip, false)
+	skip, limit := indexer_internal.ParsePaginator(options.Paginator)
+	search := bleve.NewSearchRequestOptions(indexerQuery, limit, skip, false)
 	search.SortBy([]string{"-_score"})
 
 	result, err := b.inner.Indexer.SearchInContext(ctx, search)

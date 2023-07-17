@@ -152,17 +152,18 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		repoQuery := elastic.NewTermsQuery("repo_id", repoStrs...)
 		query = query.Must(repoQuery)
 	}
+	skip, limit := indexer_internal.ParsePaginator(options.Paginator)
 	searchResult, err := b.inner.Client.Search().
 		Index(b.inner.VersionedIndexName()).
 		Query(query).
 		Sort("_score", false).
-		From(options.Skip).Size(options.Limit).
+		From(skip).Size(limit).
 		Do(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	hits := make([]internal.Match, 0, options.Limit)
+	hits := make([]internal.Match, 0, limit)
 	for _, hit := range searchResult.Hits.Hits {
 		id, _ := strconv.ParseInt(hit.Id, 10, 64)
 		hits = append(hits, internal.Match{

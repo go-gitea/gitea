@@ -76,6 +76,7 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		repoFilters = append(repoFilters, "repo_id = "+strconv.FormatInt(repoID, 10))
 	}
 	filter := strings.Join(repoFilters, " OR ")
+	skip, limit := indexer_internal.ParsePaginator(options.Paginator)
 
 	// TBC:
 	/*
@@ -90,8 +91,8 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 
 	searchRes, err := b.inner.Client.Index(b.inner.VersionedIndexName()).Search(options.Keyword, &meilisearch.SearchRequest{
 		Filter: filter,
-		Limit:  int64(options.Limit),
-		Offset: int64(options.Skip),
+		Limit:  int64(limit),
+		Offset: int64(skip),
 	})
 	if err != nil {
 		return nil, err
