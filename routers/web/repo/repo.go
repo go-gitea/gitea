@@ -669,6 +669,7 @@ func PrepareBranchList(ctx *context.Context) {
 			ListAll: true,
 		},
 	}
+	// always put default branch on the top
 	branchOpts.ExcludeBranchNames = []string{ctx.Repo.Repository.DefaultBranch}
 	brs, err := git_model.FindBranchNames(ctx, branchOpts)
 	if err != nil {

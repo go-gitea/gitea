@@ -251,7 +251,7 @@ const sfc = {
       }
     },
     handleTabSwitch(mode) {
-      if (this.isLoading) return; 
+      if (this.isLoading) return;
       this.mode = mode;
       this.focusSearchField();
       this.fetchBranchesOrTags();
