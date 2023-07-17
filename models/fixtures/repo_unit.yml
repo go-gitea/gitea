@@ -607,3 +607,17 @@
   repo_id: 52
   type: 1
   created_unix: 946684810
+
+-
+  id: 91
+  repo_id: 44
+  type: 6
+  config: "{\"ExternalWikiURL\":\"https://${REPO_NAME}.${REPO_OWNER}.wiki.external\"}"
+  created_unix: 946684810
+
+-
+  id: 92
+  repo_id: 44
+  type: 7
+  config: "{\"ExternalTrackerURL\":\"https://${REPO_NAME}.${REPO_OWNER}.tracker.external\",\"ExternalTrackerFormat\":\"https://${REPO_NAME}.${REPO_OWNER}.tracker.external/{index}\",\"ExternalTrackerStyle\":\"numeric\"}"
+  created_unix: 946684810

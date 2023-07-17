@@ -238,6 +238,10 @@ type GenerateRepoOption struct {
 	Avatar bool `json:"avatar"`
 	// include labels in template repo
 	Labels bool `json:"labels"`
+	// include the external tracker in template repo
+	ExternalTracker bool `json:"external_tracker"`
+	// include the external wiki in template repo
+	ExternalWiki bool `json:"external_wiki"`
 }
 
 // CreateBranchRepoOption options when creating a branch in a repository

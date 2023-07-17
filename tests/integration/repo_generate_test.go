@@ -43,19 +43,32 @@ func testRepoGenerate(t *testing.T, session *TestSession, templateID, templateOw
 	_, exists = htmlDoc.doc.Find(fmt.Sprintf(".owner.dropdown .item[data-value=\"%d\"]", generateOwner.ID)).Attr("data-value")
 	assert.True(t, exists, fmt.Sprintf("Generate owner '%s' is not present in select box", generateOwnerName))
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
-		"_csrf":         htmlDoc.GetCSRF(),
-		"uid":           fmt.Sprintf("%d", generateOwner.ID),
-		"repo_name":     generateRepoName,
-		"repo_template": templateID,
-		"git_content":   "true",
+		"_csrf":            htmlDoc.GetCSRF(),
+		"uid":              fmt.Sprintf("%d", generateOwner.ID),
+		"repo_name":        generateRepoName,
+		"repo_template":    templateID,
+		"git_content":      "true",
+		"external_tracker": "true",
+		"external_wiki":    "true",
 	})
 	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	// Step4: check the existence of the generated repo
 	req = NewRequestf(t, "GET", "/%s/%s", generateOwnerName, generateRepoName)
-	session.MakeRequest(t, req, http.StatusOK)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 
-	// Step5: check substituted values in Readme
+	// Step5: check the external tracker url
+	htmlDoc = NewHTMLParser(t, resp.Body)
+	trackerLink, exists := htmlDoc.doc.Find(".ui.navbar a.item[href*=\"tracker.external\"]").Attr("href")
+	assert.True(t, exists)
+	assert.Equal(t, fmt.Sprintf("https://%s.%s.tracker.external", generateRepoName, generateOwnerName), trackerLink)
+
+	// Step6: check the external wiki url
+	wikiLink, exists := htmlDoc.doc.Find(".ui.navbar a.item[href*=\"wiki.external\"]").Attr("href")
+	assert.True(t, exists)
+	assert.Equal(t, fmt.Sprintf("https://%s.%s.wiki.external", generateRepoName, generateOwnerName), wikiLink)
+
+	// Step7: check substituted values in Readme
 	req = NewRequestf(t, "GET", "/%s/%s/raw/branch/master/README.md", generateOwnerName, generateRepoName)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	body := fmt.Sprintf(`# %s Readme
@@ -71,7 +84,7 @@ Clone URL: %s%s/%s.git`,
 		generateRepoName)
 	assert.Equal(t, body, resp.Body.String())
 
-	// Step6: check substituted values in substituted file path ${REPO_NAME}
+	// Step8: check substituted values in substituted file path ${REPO_NAME}
 	req = NewRequestf(t, "GET", "/%s/%s/raw/branch/master/%s.log", generateOwnerName, generateRepoName, generateRepoName)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	assert.Equal(t, generateRepoName, resp.Body.String())

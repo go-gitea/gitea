@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -96,6 +97,19 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 			}
 		}
 
+		// External Wiki
+		if opts.ExternalWiki && !unit.TypeExternalWiki.UnitGlobalDisabled() {
+			if err = repo_module.GenerateExternalWiki(ctx, templateRepo, generateRepo); err != nil {
+				return err
+			}
+		}
+
+		// External Tracker
+		if opts.ExternalTracker && !unit.TypeExternalTracker.UnitGlobalDisabled() {
+			if err = repo_module.GenerateExternalTracker(ctx, templateRepo, generateRepo); err != nil {
+				return err
+			}
+		}
 		return nil
 	}); err != nil {
 		return nil, err
