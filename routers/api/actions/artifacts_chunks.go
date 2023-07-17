@@ -165,6 +165,16 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 		return fmt.Errorf("merged file size is not equal to chunk length")
 	}
 
+	defer func() {
+		closeReaders() // close before delete
+		// drop chunks
+		for _, c := range chunks {
+			if err := st.Delete(c.Path); err != nil {
+				log.Warn("Error deleting chunk: %s, %v", c.Path, err)
+			}
+		}
+	}()
+
 	// save storage path to artifact
 	log.Debug("[artifact] merge chunks to artifact: %d, %s", artifact.ID, storagePath)
 	artifact.StoragePath = storagePath
@@ -173,13 +183,5 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 		return fmt.Errorf("update artifact error: %v", err)
 	}
 
-	closeReaders() // close before delete
-
-	// drop chunks
-	for _, c := range chunks {
-		if err := st.Delete(c.Path); err != nil {
-			return fmt.Errorf("delete chunk file error: %v", err)
-		}
-	}
 	return nil
 }
