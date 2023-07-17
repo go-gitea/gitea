@@ -110,6 +110,11 @@ func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issue
 		}
 	}
 
+	if mergeStyle == repo_model.MergeStyleRebase {
+		// for fast-forward rebase, do not amend the last commit if there is no template
+		return "", "", nil
+	}
+
 	// Squash merge has a different from other styles.
 	if mergeStyle == repo_model.MergeStyleSquash {
 		return fmt.Sprintf("%s (%s%d)", pr.Issue.Title, issueReference, pr.Issue.Index), "", nil
