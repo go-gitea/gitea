@@ -75,10 +75,6 @@ cpu.out
 /yarn.lock
 /yarn-error.log
 /npm-debug.log*
-/public/js
-/public/css
-/public/fonts
-/public/img/webpack
 /public/assets/js
 /public/assets/css
 /public/assets/fonts
