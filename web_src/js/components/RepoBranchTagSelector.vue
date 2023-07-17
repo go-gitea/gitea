@@ -40,7 +40,7 @@
         <div v-for="(item, index) in filteredItems" :key="item.name" class="item" :class="{selected: item.selected, active: active === index}" @click="selectItem(item)" :ref="'listItem' + index">
           {{ item.name }}
           <a v-show="enableFeed && mode === 'branches'" role="button" class="rss-icon ui compact right" :href="rssURLPrefix + item.url" target="_blank" @click.stop>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" class="svg octicon-rss"><path d="M2.002 2.725a.75.75 0 0 1 .797-.699C8.79 2.42 13.58 7.21 13.974 13.201a.75.75 0 0 1-1.497.098 10.502 10.502 0 0 0-9.776-9.776.747.747 0 0 1-.7-.798ZM2.84 7.05h-.002a7.002 7.002 0 0 1 6.113 6.111.75.75 0 0 1-1.49.178 5.503 5.503 0 0 0-4.8-4.8.75.75 0 0 1 .179-1.489ZM2 13a1 1 0 1 1 2 0 1 1 0 0 1-2 0Z"/></svg>
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" class="svg octicon-rss"><path d="M2.002 2.725a.75.75 0 0 1 .797-.699C8.79 2.42 13.58 7.21 13.974 13.201a.75.75 0 0 1-1.497.098 10.502 10.502 0 0 0-9.776-9.776.747.747 0 0 1-.7-.798ZM2.84 7.05h-.002a7.002 7.002 0 0 1 6.113 6.111.75.75 0 0 1-1.49.178 5.503 5.503 0 0 0-4.8-4.8.75.75 0 0 1 .179-1.489ZM2 13a1 1 0 1 1 2 0 1 1 0 0 1-2 0Z"/></svg>
           </a>
         </div>
         <div class="item" v-if="showCreateNewBranch" :class="{active: active === filteredItems.length}" :ref="'listItem' + filteredItems.length">
@@ -110,6 +110,9 @@ const sfc = {
     formActionUrl() {
       return `${this.repoLink}/branches/_new/${this.branchNameSubURL}`;
     },
+    createTag() {
+      return this.mode === 'tags';
+    }
   },
 
   watch: {
@@ -248,7 +251,7 @@ const sfc = {
       }
     },
     handleTabSwitch(mode) {
-      this.createTag = mode === 'tags';
+      if (this.isLoading) return; 
       this.mode = mode;
       this.focusSearchField();
       this.fetchBranchesOrTags();
@@ -259,21 +262,26 @@ const sfc = {
       if (this.hasListInitialized[this.mode] ||
       (this.mode === 'branches' && !this.showBranchesInDropdown) || (this.mode === 'tags' && this.noTag)) return;
       this.isLoading = true;
-      this.hasListInitialized[this.mode] = true;
-      // the "data.defaultBranch" is ambiguous, it could be "branch name" or "tag name"
-      const reqUrl = `${this.repoLink}/${this.mode}/list`;
-      const resp = await fetch(reqUrl);
-      const {results} = await resp.json();
-      for (const result of results) {
-        let selected = false;
-        if (this.mode === 'branches') {
-          selected = result === this.defaultBranch;
-        } else {
-          selected = result === (this.release ? this.release.tagName : this.defaultBranch);
+      try {
+        // the "data.defaultBranch" is ambiguous, it could be "branch name" or "tag name"
+        const reqUrl = `${this.repoLink}/${this.mode}/list`;
+        const resp = await fetch(reqUrl);
+        const {results} = await resp.json();
+        for (const result of results) {
+          let selected = false;
+          if (this.mode === 'branches') {
+            selected = result === this.defaultBranch;
+          } else {
+            selected = result === (this.release ? this.release.tagName : this.defaultBranch);
+          }
+          this.items.push({name: result, url: result, branch: this.mode === 'branches', tag: this.mode === 'tags', selected});
         }
-        this.items.push({name: result, url: result, branch: this.mode === 'branches', tag: this.mode === 'tags', selected});
+        this.hasListInitialized[this.mode] = true;
+      } catch (e) {
+        console.error(`Network error when fetching ${this.mode}`, e);
+      } finally {
+        this.isLoading = false;
       }
-      this.isLoading = false;
     },
   }
 };
@@ -323,7 +331,7 @@ export default sfc; // activate IDE's Vue plugin
   height: 200px;
 }
 
-.scrolling.menu.is-loading::after {
+.ui.dropdown .menu .scrolling.menu.is-loading::after {
   display: block !important; /* to override fomantic rule .ui.dropdown .menu .menu:after {display: none} */
 }
 </style>

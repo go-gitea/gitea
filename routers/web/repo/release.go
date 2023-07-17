@@ -355,6 +355,9 @@ func NewRelease(ctx *context.Context) {
 
 	// For New Release page
 	PrepareBranchList(ctx)
+	if ctx.Written() {
+		return
+	}
 
 	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {

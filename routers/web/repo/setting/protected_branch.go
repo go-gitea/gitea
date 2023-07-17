@@ -46,6 +46,9 @@ func ProtectedBranchRules(ctx *context.Context) {
 	ctx.Data["ProtectedBranches"] = rules
 
 	repo.PrepareBranchList(ctx)
+	if ctx.Written() {
+		return
+	}
 
 	ctx.HTML(http.StatusOK, tplBranches)
 }
@@ -56,6 +59,9 @@ func SetDefaultBranchPost(ctx *context.Context) {
 	ctx.Data["PageIsSettingsBranches"] = true
 
 	repo.PrepareBranchList(ctx)
+	if ctx.Written() {
+		return
+	}
 
 	repo := ctx.Repo.Repository
 

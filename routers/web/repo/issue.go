@@ -786,6 +786,9 @@ func RetrieveRepoMetas(ctx *context.Context, repo *repo_model.Repository, isPull
 	}
 
 	PrepareBranchList(ctx)
+	if ctx.Written() {
+		return nil
+	}
 
 	// Contains true if the user can create issue dependencies
 	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx.Doer, isPull)
@@ -1916,6 +1919,10 @@ func ViewIssue(ctx *context.Context) {
 	}
 	// For sidebar
 	PrepareBranchList(ctx)
+
+	if ctx.Written() {
+		return
+	}
 
 	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
