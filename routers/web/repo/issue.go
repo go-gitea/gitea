@@ -189,7 +189,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 
 	var issueIDs []int64
 	if len(keyword) > 0 {
-		issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, []int64{repo.ID}, keyword, ctx.FormString("state"))
+		issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, []int64{repo.ID}, keyword)
 		if err != nil {
 			if issue_indexer.IsAvailable(ctx) {
 				ctx.ServerError("issueIndexer.Search", err)
@@ -2466,7 +2466,8 @@ func SearchIssues(ctx *context.Context) {
 	}
 	var issueIDs []int64
 	if len(keyword) > 0 && len(repoIDs) > 0 {
-		if issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, repoIDs, keyword, ctx.FormString("state")); err != nil {
+		// TBC: use issue_indexer.SearchIssues instead
+		if issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, repoIDs, keyword); err != nil {
 			ctx.Error(http.StatusInternalServerError, "SearchIssuesByKeyword", err.Error())
 			return
 		}
@@ -2614,7 +2615,8 @@ func ListIssues(ctx *context.Context) {
 	var issueIDs []int64
 	var labelIDs []int64
 	if len(keyword) > 0 {
-		issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, []int64{ctx.Repo.Repository.ID}, keyword, ctx.FormString("state"))
+		// TBC: use issue_indexer.SearchIssues instead
+		issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, []int64{ctx.Repo.Repository.ID}, keyword)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 			return
