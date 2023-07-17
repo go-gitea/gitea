@@ -155,13 +155,13 @@ func Get(ctx *context.Context) {
 	// Packages are stored in different way from pacman databases, and loaded
 	// with LoadPackageFile function.
 	if strings.HasSuffix(file, "tar.zst") || strings.HasSuffix(file, "zst.sig") {
-		pkgdata, err := arch_service.LoadFile(ctx, distro, file)
+		pkg, err := arch_service.GetFileObject(ctx, distro, file)
 		if err != nil {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
 
-		ctx.ServeContent(bytes.NewReader(pkgdata), &context.ServeHeaderOptions{
+		ctx.ServeContent(pkg, &context.ServeHeaderOptions{
 			Filename:      file,
 			CacheDuration: time.Minute * 5,
 		})

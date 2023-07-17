@@ -6,7 +6,6 @@ package arch
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"sort"
 	"strings"
 
@@ -19,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/modules/packages/arch"
+	"code.gitea.io/gitea/modules/storage"
 	pkg_service "code.gitea.io/gitea/services/packages"
 )
 
@@ -107,7 +107,7 @@ func SaveFile(ctx *context.Context, p *SaveFileParams) (int64, error) {
 
 // Get data related to provided file name and distribution, and update download
 // counter if actual package file is retrieved from database.
-func LoadFile(ctx *context.Context, distro, file string) ([]byte, error) {
+func GetFileObject(ctx *context.Context, distro, file string) (storage.Object, error) {
 	db := db.GetEngine(ctx)
 
 	pkgfile := &pkg_model.PackageFile{CompositeKey: distro + "-" + file}
@@ -131,12 +131,7 @@ func LoadFile(ctx *context.Context, distro, file string) ([]byte, error) {
 
 	cs := packages.NewContentStore()
 
-	obj, err := cs.Get(packages.BlobHash256Key(blob.HashSHA256))
-	if err != nil {
-		return nil, err
-	}
-
-	return io.ReadAll(obj)
+	return cs.Get(packages.BlobHash256Key(blob.HashSHA256))
 }
 
 // Automatically connect repository to pushed package, if package with provided
