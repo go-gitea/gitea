@@ -336,6 +336,6 @@ export default sfc; // activate IDE's Vue plugin
 }
 
 .ui.dropdown .menu .scrolling.menu.is-loading::after {
-  display: block !important; /* to override fomantic rule .ui.dropdown .menu .menu:after {display: none} */
+  display: block; /* to override fomantic rule .ui.dropdown .menu .menu:after {display: none} */
 }
 </style>
