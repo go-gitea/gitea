@@ -264,6 +264,17 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileGi
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = total
 
+	if ctx.Doer != nil && (ctx.Doer.ID == ctx.ContextUser.ID || ctx.Doer.IsAdmin) {
+		ctx.Data["RepoCount"] = ctx.ContextUser.NumRepos
+	} else {
+		publicCount, err := repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{OwnerID: ctx.ContextUser.ID, Private: util.OptionalBoolFalse})
+		if err != nil {
+			ctx.ServerError("CountPublicRepos", err)
+			return
+		}
+		ctx.Data["RepoCount"] = publicCount
+	}
+
 	pager := context.NewPagination(total, pagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "tab", "TabName")
