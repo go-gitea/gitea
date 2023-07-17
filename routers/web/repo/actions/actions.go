@@ -6,6 +6,7 @@ package actions
 import (
 	"bytes"
 	"net/http"
+	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -105,6 +106,12 @@ func List(ctx *context.Context) {
 			for _, j := range wf.Jobs {
 				runsOnList := j.RunsOn()
 				for _, ro := range runsOnList {
+					if strings.Contains(ro, "${{") {
+						// Skip if it contains expressions.
+						// The expressions could be very complex and could not be evaluated here,
+						// so just skip it, it's OK since it's just a tooltip message.
+						continue
+					}
 					if !allRunnerLabels.Contains(ro) {
 						workflow.ErrMsg = ctx.Locale.Tr("actions.runs.no_matching_runner_helper", ro)
 						break
