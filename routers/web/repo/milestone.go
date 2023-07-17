@@ -38,18 +38,8 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["PageIsMilestones"] = true
 
 	isShowClosed := ctx.FormString("state") == "closed"
-	stats, err := issues_model.GetMilestonesStatsByRepoCond(builder.And(builder.Eq{"id": ctx.Repo.Repository.ID}))
-	if err != nil {
-		ctx.ServerError("MilestoneStats", err)
-		return
-	}
-	ctx.Data["OpenCount"] = stats.OpenCount
-	ctx.Data["ClosedCount"] = stats.ClosedCount
-
 	sortType := ctx.FormString("sort")
-
 	keyword := ctx.FormTrim("q")
-
 	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
@@ -74,6 +64,15 @@ func Milestones(ctx *context.Context) {
 		ctx.ServerError("GetMilestones", err)
 		return
 	}
+
+	stats, err := issues_model.GetMilestonesStatsByRepoCondAndKw(builder.And(builder.Eq{"id": ctx.Repo.Repository.ID}), keyword)
+	if err != nil {
+		ctx.ServerError("GetMilestoneStats", err)
+		return
+	}
+	ctx.Data["OpenCount"] = stats.OpenCount
+	ctx.Data["ClosedCount"] = stats.ClosedCount
+
 	if ctx.Repo.Repository.IsTimetrackerEnabled(ctx) {
 		if err := miles.LoadTotalTrackedTimes(); err != nil {
 			ctx.ServerError("LoadTotalTrackedTimes", err)
