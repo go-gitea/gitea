@@ -5,13 +5,15 @@ package internal
 
 // IndexerData data stored in the issue indexer
 type IndexerData struct {
-	ID       int64    `json:"id"`
-	RepoID   int64    `json:"repo_id"`
-	Title    string   `json:"title"`
-	Content  string   `json:"content"`
-	Comments []string `json:"comments"`
-	IsDelete bool     `json:"is_delete"`
-	IDs      []int64  `json:"ids"`
+	ID        int64    `json:"id"`
+	RepoID    int64    `json:"repo_id"`
+	State     string   `json:"state"` // open, closed, all
+	IssueType string   `json:"type"`  // issue or pull
+	Title     string   `json:"title"`
+	Content   string   `json:"content"`
+	Comments  []string `json:"comments"`
+	IsDelete  bool     `json:"is_delete"`
+	IDs       []int64  `json:"ids"`
 }
 
 // Match represents on search result

@@ -11,9 +11,12 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+
+	"xorm.io/builder"
 )
 
 // ErrBranchNotExist represents an error that branch with such name does not exist.
@@ -100,9 +103,9 @@ func (err ErrBranchesEqual) Unwrap() error {
 type Branch struct {
 	ID            int64
 	RepoID        int64  `xorm:"UNIQUE(s)"`
-	Name          string `xorm:"UNIQUE(s) NOT NULL"`
+	Name          string `xorm:"UNIQUE(s) NOT NULL"` // git's ref-name is case-sensitive internally, however, in some databases (mssql, mysql, by default), it's case-insensitive at the moment
 	CommitID      string
-	CommitMessage string `xorm:"TEXT"`
+	CommitMessage string `xorm:"TEXT"` // it only stores the message summary (the first line)
 	PusherID      int64
 	Pusher        *user_model.User `xorm:"-"`
 	IsDeleted     bool             `xorm:"index"`
@@ -204,14 +207,14 @@ func DeleteBranches(ctx context.Context, repoID, doerID int64, branchIDs []int64
 
 // UpdateBranch updates the branch information in the database. If the branch exist, it will update latest commit of this branch information
 // If it doest not exist, insert a new record into database
-func UpdateBranch(ctx context.Context, repoID int64, branchName, commitID, commitMessage string, pusherID int64, commitTime time.Time) error {
+func UpdateBranch(ctx context.Context, repoID, pusherID int64, branchName string, commit *git.Commit) error {
 	cnt, err := db.GetEngine(ctx).Where("repo_id=? AND name=?", repoID, branchName).
 		Cols("commit_id, commit_message, pusher_id, commit_time, is_deleted, updated_unix").
 		Update(&Branch{
-			CommitID:      commitID,
-			CommitMessage: commitMessage,
+			CommitID:      commit.ID.String(),
+			CommitMessage: commit.Summary(),
 			PusherID:      pusherID,
-			CommitTime:    timeutil.TimeStamp(commitTime.Unix()),
+			CommitTime:    timeutil.TimeStamp(commit.Committer.When.Unix()),
 			IsDeleted:     false,
 		})
 	if err != nil {
@@ -224,10 +227,10 @@ func UpdateBranch(ctx context.Context, repoID int64, branchName, commitID, commi
 	return db.Insert(ctx, &Branch{
 		RepoID:        repoID,
 		Name:          branchName,
-		CommitID:      commitID,
-		CommitMessage: commitMessage,
+		CommitID:      commit.ID.String(),
+		CommitMessage: commit.Summary(),
 		PusherID:      pusherID,
-		CommitTime:    timeutil.TimeStamp(commitTime.Unix()),
+		CommitTime:    timeutil.TimeStamp(commit.Committer.When.Unix()),
 	})
 }
 
@@ -354,7 +357,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 	// 4. Update all not merged pull request base branch name
 	_, err = sess.Table("pull_request").Where("base_repo_id=? AND base_branch=? AND has_merged=?",
 		repo.ID, from, false).
-		Update(map[string]interface{}{"base_branch": to})
+		Update(map[string]any{"base_branch": to})
 	if err != nil {
 		return err
 	}
@@ -376,4 +379,25 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 	}
 
 	return committer.Commit()
+}
+
+// FindRecentlyPushedNewBranches return at most 2 new branches pushed by the user in 6 hours which has no opened PRs created
+// except the indicate branch
+func FindRecentlyPushedNewBranches(ctx context.Context, repoID, userID int64, excludeBranchName string) (BranchList, error) {
+	branches := make(BranchList, 0, 2)
+	subQuery := builder.Select("head_branch").From("pull_request").
+		InnerJoin("issue", "issue.id = pull_request.issue_id").
+		Where(builder.Eq{
+			"pull_request.head_repo_id": repoID,
+			"issue.is_closed":           false,
+		})
+	err := db.GetEngine(ctx).
+		Where("pusher_id=? AND is_deleted=?", userID, false).
+		And("name <> ?", excludeBranchName).
+		And("updated_unix >= ?", time.Now().Add(-time.Hour*6).Unix()).
+		NotIn("name", subQuery).
+		OrderBy("branch.updated_unix DESC").
+		Limit(2).
+		Find(&branches)
+	return branches, err
 }

@@ -375,16 +375,6 @@ progress::-moz-progress-bar {
   opacity: 1 !important;
 }
 
-.svg {
-  display: inline-block;
-  vertical-align: text-top;
-  fill: currentcolor;
-}
-
-.middle .svg {
-  vertical-align: middle;
-}
-
 .unselectable,
 .button,
 .lines-num,
@@ -1643,6 +1633,7 @@ i.icon.centerlock {
 
 .ui.label {
   padding: 0.3em 0.5em;
+  transition: none;
 }
 
 .ui.label,

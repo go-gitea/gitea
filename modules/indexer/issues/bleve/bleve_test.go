@@ -77,7 +77,7 @@ func TestBleveIndexAndSearch(t *testing.T) {
 	}
 
 	for _, kw := range keywords {
-		res, err := indexer.Search(context.TODO(), kw.Keyword, []int64{2}, 10, 0)
+		res, err := indexer.Search(context.TODO(), kw.Keyword, []int64{2}, 10, 0, "")
 		assert.NoError(t, err)
 
 		ids := make([]int64, 0, len(res.Hits))

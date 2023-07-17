@@ -380,3 +380,9 @@ type NewIssuePinsAllowed struct {
 	Issues       bool `json:"issues"`
 	PullRequests bool `json:"pull_requests"`
 }
+
+// UpdateRepoAvatarUserOption options when updating the repo avatar
+type UpdateRepoAvatarOption struct {
+	// image must be base64 encoded
+	Image string `json:"image" binding:"Required"`
+}

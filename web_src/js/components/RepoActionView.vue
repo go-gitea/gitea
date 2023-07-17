@@ -20,12 +20,12 @@
       </div>
       <div class="action-commit-summary">
         {{ run.commit.localeCommit }}
-        <a :href="run.commit.link">{{ run.commit.shortSHA }}</a>
+        <a class="muted" :href="run.commit.link">{{ run.commit.shortSHA }}</a>
+        {{ run.commit.localePushedBy }}
+        <a class="muted" :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
         <span class="ui label" v-if="run.commit.shortSHA">
           <a :href="run.commit.branch.link">{{ run.commit.branch.name }}</a>
         </span>
-        {{ run.commit.localePushedBy }}
-        <a :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
       </div>
     </div>
     <div class="action-view-body">
@@ -204,15 +204,19 @@ const sfc = {
     };
   },
 
-  mounted() {
+  async mounted() {
     // load job data and then auto-reload periodically
-    this.loadJob();
+    // need to await first loadJob so this.currentJobStepsStates is initialized and can be used in hashChangeListener
+    await this.loadJob();
     this.intervalID = setInterval(this.loadJob, 1000);
     document.body.addEventListener('click', this.closeDropdown);
+    this.hashChangeListener();
+    window.addEventListener('hashchange', this.hashChangeListener);
   },
 
   beforeUnmount() {
     document.body.removeEventListener('click', this.closeDropdown);
+    window.removeEventListener('hashchange', this.hashChangeListener);
   },
 
   unmounted() {
@@ -280,14 +284,16 @@ const sfc = {
       this.fetchPost(`${this.run.link}/approve`);
     },
 
-    createLogLine(line, startTime) {
+    createLogLine(line, startTime, stepIndex) {
       const div = document.createElement('div');
       div.classList.add('job-log-line');
+      div.setAttribute('id', `jobstep-${stepIndex}-${line.index}`);
       div._jobLogTime = line.timestamp;
 
-      const lineNumber = document.createElement('div');
-      lineNumber.className = 'line-num';
+      const lineNumber = document.createElement('a');
+      lineNumber.classList.add('line-num', 'muted');
       lineNumber.textContent = line.index;
+      lineNumber.setAttribute('href', `#jobstep-${stepIndex}-${line.index}`);
       div.append(lineNumber);
 
       // for "Show timestamps"
@@ -318,7 +324,7 @@ const sfc = {
       for (const line of logLines) {
         // TODO: group support: ##[group]GroupTitle , ##[endgroup]
         const el = this.getLogsContainer(stepIndex);
-        el.append(this.createLogLine(line, startTime));
+        el.append(this.createLogLine(line, startTime, stepIndex));
       }
     },
 
@@ -429,6 +435,21 @@ const sfc = {
       } else {
         actionBodyEl.append(fullScreenEl);
       }
+    },
+    async hashChangeListener() {
+      const selectedLogStep = window.location.hash;
+      if (!selectedLogStep) return;
+      const [_, step, _line] = selectedLogStep.split('-');
+      if (!this.currentJobStepsStates[step]) return;
+      if (!this.currentJobStepsStates[step].expanded && this.currentJobStepsStates[step].cursor === null) {
+        this.currentJobStepsStates[step].expanded = true;
+        // need to await for load job if the step log is loaded for the first time
+        // so logline can be selected by querySelector
+        await this.loadJob();
+      }
+      const logLine = this.$refs.steps.querySelector(selectedLogStep);
+      if (!logLine) return;
+      logLine.querySelector('.line-num').click();
     }
   },
 };
@@ -477,6 +498,8 @@ export function initRepositoryActionView() {
 
 <style scoped>
 .action-view-body {
+  padding-top: 12px;
+  padding-bottom: 12px;
   display: flex;
   gap: 12px;
 }
@@ -486,7 +509,6 @@ export function initRepositoryActionView() {
 
 .action-view-header {
   margin-top: 8px;
-  margin-bottom: 4px;
 }
 
 .action-info-summary {
@@ -501,19 +523,14 @@ export function initRepositoryActionView() {
 
 .action-info-summary-title-text {
   font-size: 20px;
-  margin: 0 0 0 5px;
+  margin: 0 0 0 8px;
   flex: 1;
 }
 
 .action-commit-summary {
   display: flex;
   gap: 5px;
-  margin: 5px 0 0 25px;
-}
-
-.action-view-left, .action-view-right {
-  padding-top: 12px;
-  padding-bottom: 12px;
+  margin: 0 0 0 28px;
 }
 
 /* ================ */
@@ -729,6 +746,7 @@ export function initRepositoryActionView() {
   background-color: var(--color-console-bg);
   max-height: 100%;
   border-radius: 0 0 var(--border-radius) var(--border-radius);
+  z-index: 0;
 }
 
 .job-step-container .job-step-summary {
@@ -802,8 +820,13 @@ export function initRepositoryActionView() {
   display: flex;
 }
 
-.job-step-section .job-step-logs .job-log-line:hover {
+.job-log-line:hover,
+.job-log-line:target {
   background-color: var(--color-console-hover-bg);
+}
+
+.job-log-line:target {
+  scroll-margin-top: 95px;
 }
 
 /* class names 'log-time-seconds' and 'log-time-stamp' are used in the method toggleTimeDisplay */
@@ -812,6 +835,11 @@ export function initRepositoryActionView() {
   color: var(--color-grey-light);
   text-align: right;
   user-select: none;
+}
+
+.job-log-line:target > .line-num {
+  color: var(--color-primary);
+  text-decoration: underline;
 }
 
 .log-time-seconds {

@@ -456,7 +456,7 @@ func repoStatsCorrectNumClosedPulls(ctx context.Context, id int64) error {
 	return repo_model.UpdateRepoIssueNumbers(ctx, id, true, true)
 }
 
-func statsQuery(args ...interface{}) func(context.Context) ([]map[string][]byte, error) {
+func statsQuery(args ...any) func(context.Context) ([]map[string][]byte, error) {
 	return func(ctx context.Context) ([]map[string][]byte, error) {
 		return db.GetEngine(ctx).Query(args...)
 	}
@@ -628,14 +628,14 @@ func DoctorUserStarNum() (err error) {
 	for start := 0; ; start += batchSize {
 		users := make([]user_model.User, 0, batchSize)
 		if err = db.GetEngine(db.DefaultContext).Limit(batchSize, start).Where("type = ?", 0).Cols("id").Find(&users); err != nil {
-			return
+			return err
 		}
 		if len(users) == 0 {
 			break
 		}
 
 		if err = updateUserStarNumbers(users); err != nil {
-			return
+			return err
 		}
 	}
 

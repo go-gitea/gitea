@@ -18,18 +18,18 @@ import (
 // https://datatracker.ietf.org/doc/html/draft-ietf-appsawg-webfinger-14#section-4.4
 
 type webfingerJRD struct {
-	Subject    string                 `json:"subject,omitempty"`
-	Aliases    []string               `json:"aliases,omitempty"`
-	Properties map[string]interface{} `json:"properties,omitempty"`
-	Links      []*webfingerLink       `json:"links,omitempty"`
+	Subject    string           `json:"subject,omitempty"`
+	Aliases    []string         `json:"aliases,omitempty"`
+	Properties map[string]any   `json:"properties,omitempty"`
+	Links      []*webfingerLink `json:"links,omitempty"`
 }
 
 type webfingerLink struct {
-	Rel        string                 `json:"rel,omitempty"`
-	Type       string                 `json:"type,omitempty"`
-	Href       string                 `json:"href,omitempty"`
-	Titles     map[string]string      `json:"titles,omitempty"`
-	Properties map[string]interface{} `json:"properties,omitempty"`
+	Rel        string            `json:"rel,omitempty"`
+	Type       string            `json:"type,omitempty"`
+	Href       string            `json:"href,omitempty"`
+	Titles     map[string]string `json:"titles,omitempty"`
+	Properties map[string]any    `json:"properties,omitempty"`
 }
 
 // WebfingerQuery returns information about a resource

@@ -70,11 +70,11 @@ func checkIfNoneMatchIsValid(req *http.Request, etag string) bool {
 
 // HandleGenericETagTimeCache handles ETag-based caching with Last-Modified caching for a HTTP request.
 // It returns true if the request was handled.
-func HandleGenericETagTimeCache(req *http.Request, w http.ResponseWriter, etag string, lastModified time.Time) (handled bool) {
+func HandleGenericETagTimeCache(req *http.Request, w http.ResponseWriter, etag string, lastModified *time.Time) (handled bool) {
 	if len(etag) > 0 {
 		w.Header().Set("Etag", etag)
 	}
-	if !lastModified.IsZero() {
+	if lastModified != nil && !lastModified.IsZero() {
 		w.Header().Set("Last-Modified", lastModified.Format(http.TimeFormat))
 	}
 
@@ -84,7 +84,7 @@ func HandleGenericETagTimeCache(req *http.Request, w http.ResponseWriter, etag s
 			return true
 		}
 	}
-	if !lastModified.IsZero() {
+	if lastModified != nil && !lastModified.IsZero() {
 		ifModifiedSince := req.Header.Get("If-Modified-Since")
 		if ifModifiedSince != "" {
 			t, err := time.Parse(http.TimeFormat, ifModifiedSince)
