@@ -1,0 +1,14 @@
+<div style="border-radius: 10px;border: 2px solid;  padding: 2px;">
+	<h1>{{.TopicInfo.DisplayName}}</h1>
+	<p>
+		{{.TopicInfo.RenderedMarkdown|Safe}}
+	</p>
+	<p>
+		{{if .TopicInfo.WebsiteUrl}}
+			<a href="{{.TopicInfo.WebsiteUrl}}">Website</a>
+		{{end}}
+		{{if .TopicInfo.WikipediaUrl}}
+			<a href="{{.TopicInfo.WikipediaUrl}}">Wikipedia</a>
+		{{end}}
+	</p>
+</div>

@@ -3,6 +3,9 @@
 	{{template "explore/navbar" .}}
 	<div class="ui container">
 		{{template "explore/repo_search" .}}
+		{{if .TopicInfo}}
+			{{template "explore/topic_info" .}}
+		{{end}}
 		{{template "explore/repo_list" .}}
 		{{template "base/paginate" .}}
 	</div>

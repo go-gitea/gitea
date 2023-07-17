@@ -12,6 +12,7 @@ import (
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	"code.gitea.io/gitea/models/explore"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/graceful"
@@ -144,6 +145,13 @@ func DashboardPost(ctx *context.Context) {
 				}
 			}()
 			ctx.Flash.Success(ctx.Tr("admin.dashboard.sync_branch.started"))
+		case "update_topic_info":
+			go func() {
+				if err := explore.UpdateTopicInfo(graceful.GetManager().ShutdownContext()); err != nil {
+					log.Error("UpdateTopicInfo: %v", err)
+				}
+			}()
+			ctx.Flash.Success("Update topics")
 		default:
 			task := cron.GetTask(form.Op)
 			if task != nil {

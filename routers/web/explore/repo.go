@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models/db"
+	explore_model "code.gitea.io/gitea/models/explore"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -141,6 +142,23 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	ctx.Data["Total"] = count
 	ctx.Data["Repos"] = repos
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
+
+	if topicOnly {
+		topicInfo, err := explore_model.GetTopicInfoByName(ctx, keyword)
+		if err != nil {
+			ctx.ServerError("GetTopicInfoByName", err)
+			return
+		}
+
+		if topicInfo != nil {
+			err = topicInfo.RenderMarkdown(ctx)
+			if err != nil {
+				ctx.ServerError("TopicInfoRenderMarkdown", err)
+				return
+			}
+			ctx.Data["TopicInfo"] = topicInfo
+		}
+	}
 
 	pager := context.NewPagination(int(count), opts.PageSize, page, 5)
 	pager.SetDefaultParams(ctx)
