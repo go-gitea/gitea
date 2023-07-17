@@ -72,10 +72,7 @@ cpu.out
 /yarn.lock
 /yarn-error.log
 /npm-debug.log*
-/public/js
-/public/css
-/public/fonts
-/public/img/webpack
+/public/static
 /vendor
 /web_src/fomantic/node_modules
 /web_src/fomantic/build/*

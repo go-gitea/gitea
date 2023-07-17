@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import 'jquery.are-you-sure';
+import '../vendor/ays.js';
 import {createDropzone} from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';

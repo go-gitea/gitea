@@ -40,9 +40,8 @@ const filterCssImport = (url, ...args) => {
   const cssFile = args[1] || args[0]; // resourcePath is 2nd argument for url and 3rd for import
   const importedFile = url.replace(/[?#].+/, '').toLowerCase();
 
-  if (cssFile.includes('fomantic')) {
-    if (/brand-icons/.test(importedFile)) return false;
-    if (/(eot|ttf|otf|woff|svg)$/.test(importedFile)) return false;
+  if (cssFile.includes('fomantic') && /(eot|ttf|otf|woff|svg)$/.test(importedFile)) {
+    return false;
   }
 
   if (cssFile.includes('katex') && /(ttf|woff)$/.test(importedFile)) {
@@ -57,11 +56,7 @@ export default {
   mode: isProduction ? 'production' : 'development',
   entry: {
     index: [
-      fileURLToPath(new URL('web_src/js/jquery.js', import.meta.url)),
-      fileURLToPath(new URL('web_src/fomantic/build/semantic.js', import.meta.url)),
       fileURLToPath(new URL('web_src/js/index.js', import.meta.url)),
-      fileURLToPath(new URL('node_modules/easymde/dist/easymde.min.css', import.meta.url)),
-      fileURLToPath(new URL('web_src/fomantic/build/semantic.css', import.meta.url)),
       fileURLToPath(new URL('web_src/css/index.css', import.meta.url)),
     ],
     webcomponents: [
@@ -84,12 +79,17 @@ export default {
   },
   devtool: false,
   output: {
-    path: fileURLToPath(new URL('public', import.meta.url)),
-    filename: () => 'js/[name].js',
+    module: true,
+    publicPath: '',
+    path: fileURLToPath(new URL('public/static', import.meta.url)),
+    filename: () => '[name].js',
     chunkFilename: ({chunk}) => {
       const language = (/monaco.*languages?_.+?_(.+?)_/.exec(chunk.id) || [])[1];
-      return `js/${language ? `monaco-language-${language.toLowerCase()}` : `[name]`}.[contenthash:8].js`;
+      return `${language ? `monaco-language-${language.toLowerCase()}` : `[name]`}.[contenthash:8].js`;
     },
+  },
+  experiments: {
+    outputModule: true,
   },
   optimization: {
     minimize: isProduction,
@@ -154,14 +154,14 @@ export default {
         test: /\.(ttf|woff2?)$/,
         type: 'asset/resource',
         generator: {
-          filename: 'fonts/[name].[contenthash:8][ext]',
+          filename: '[name].[contenthash:8][ext]',
         }
       },
       {
         test: /\.png$/i,
         type: 'asset/resource',
         generator: {
-          filename: 'img/webpack/[name].[contenthash:8][ext]',
+          filename: '[name].[contenthash:8][ext]',
         }
       },
     ],
@@ -173,17 +173,17 @@ export default {
     }),
     new VueLoaderPlugin(),
     new MiniCssExtractPlugin({
-      filename: 'css/[name].css',
-      chunkFilename: 'css/[name].[contenthash:8].css',
+      filename: '[name].css',
+      chunkFilename: '[name].[contenthash:8].css',
     }),
     sourceMapEnabled && (new SourceMapDevToolPlugin({
       filename: '[file].[contenthash:8].map',
     })),
     new MonacoWebpackPlugin({
-      filename: 'js/monaco-[name].[contenthash:8].worker.js',
+      filename: 'monaco-[name].[contenthash:8].worker.js',
     }),
     isProduction ? new LicenseCheckerWebpackPlugin({
-      outputFilename: 'js/licenses.txt',
+      outputFilename: 'licenses.txt',
       outputWriter: ({dependencies}) => {
         const line = '-'.repeat(80);
         const goJson = readFileSync('assets/go-licenses.json', 'utf8');
@@ -201,12 +201,11 @@ export default {
         }).join('\n');
       },
       override: {
-        'jquery.are-you-sure@*': {licenseName: 'MIT'}, // https://github.com/codedance/jquery.AreYouSure/pull/147
         'khroma@*': {licenseName: 'MIT'}, // https://github.com/fabiospampinato/khroma/pull/33
       },
       emitError: true,
       allow: '(Apache-2.0 OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC OR CPAL-1.0 OR Unlicense OR EPL-1.0 OR EPL-2.0)',
-    }) : new AddAssetPlugin('js/licenses.txt', `Licenses are disabled during development`),
+    }) : new AddAssetPlugin('licenses.txt', `Licenses are disabled during development`),
   ],
   performance: {
     hints: false,
@@ -232,10 +231,6 @@ export default {
     chunksSort: 'name',
     colors: true,
     entrypoints: false,
-    excludeAssets: [
-      /^js\/monaco-language-.+\.js$/,
-      !isProduction && /^js\/licenses.txt$/,
-    ].filter(Boolean),
     groupAssetsByChunk: false,
     groupAssetsByEmitStatus: false,
     groupAssetsByInfo: false,
