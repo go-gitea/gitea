@@ -841,8 +841,8 @@ func EditIssue(ctx *context.APIContext) {
 	if statusChangeComment != nil {
 		notification.NotifyIssueChangeStatus(ctx, ctx.Doer, "", issue, statusChangeComment, issue.IsClosed)
 		if issue.ClosedStatus == issues_model.IssueClosedStatusDuplicate && issue.DuplicateIssueID > 0 {
-			if err := issues_model.TransferWatchersToDuplicateIssue(ctx, issue); err != nil {
-				ctx.Error(http.StatusInternalServerError, "TransferWatchersToDuplicateIssue", err)
+			if err := issues_model.CopyWatchersToDuplicateIssue(ctx, issue); err != nil {
+				ctx.Error(http.StatusInternalServerError, "CopyWatchersToDuplicateIssue", err)
 				return
 			}
 		}

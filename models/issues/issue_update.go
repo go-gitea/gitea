@@ -138,9 +138,8 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 	})
 }
 
-// TransferWatchersToDuplicateIssue transfer the watchers (including users who participated in the comments) of the original issue to the duplicate issue.
-// It can only be called after notification
-func TransferWatchersToDuplicateIssue(ctx context.Context, issue *Issue) error {
+// CopyWatchersToDuplicateIssue copy the watchers (including users who participated in the comments) of the original issue to the duplicate issue.
+func CopyWatchersToDuplicateIssue(ctx context.Context, issue *Issue) error {
 	if issue.DuplicateIssueID <= 0 {
 		return errors.New("the ID of duplicate issue cannot be zero")
 	}
@@ -157,9 +156,6 @@ func TransferWatchersToDuplicateIssue(ctx context.Context, issue *Issue) error {
 	subscribers := util.SliceUnion(participatingUserIDs, iws)
 	for _, sid := range subscribers {
 		if err := CreateOrUpdateIssueWatch(sid, issue.DuplicateIssueID, true); err != nil {
-			return err
-		}
-		if err := CreateOrUpdateIssueWatch(sid, issue.ID, false); err != nil {
 			return err
 		}
 	}
