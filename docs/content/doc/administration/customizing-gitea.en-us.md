@@ -56,21 +56,22 @@ is set under the "Configuration" tab on the site administration page.
 
 To make Gitea serve custom public files (like pages and images), use the folder
 `$GITEA_CUSTOM/public/` as the webroot. Symbolic links will be followed.
+At the moment, only files in the `public/assets/` folder are served.
 
-For example, a file `image.png` stored in `$GITEA_CUSTOM/public/`, can be accessed with
+For example, a file `image.png` stored in `$GITEA_CUSTOM/public/assets/`, can be accessed with
 the url `http://gitea.domain.tld/assets/image.png`.
 
 ## Changing the logo
 
 To build a custom logo and/or favicon clone the Gitea source repository, replace `assets/logo.svg` and/or `assets/favicon.svg` and run
-`make generate-images`. `assets/favicon.svg` is used for the favicon only. This will update below output files which you can then place in `$GITEA_CUSTOM/public/img` on your server:
+`make generate-images`. `assets/favicon.svg` is used for the favicon only. This will update below output files which you can then place in `$GITEA_CUSTOM/public/assets/img` on your server:
 
-- `public/img/logo.svg` - Used for site icon, app icon
-- `public/img/logo.png` - Used for Open Graph
-- `public/img/avatar_default.png` - Used as the default avatar image
-- `public/img/apple-touch-icon.png` - Used on iOS devices for bookmarks
-- `public/img/favicon.svg` - Used for favicon
-- `public/img/favicon.png` - Used as fallback for browsers that don't support SVG favicons
+- `public/assets/img/logo.svg` - Used for site icon, app icon
+- `public/assets/img/logo.png` - Used for Open Graph
+- `public/assets/img/avatar_default.png` - Used as the default avatar image
+- `public/assets/img/apple-touch-icon.png` - Used on iOS devices for bookmarks
+- `public/assets/img/favicon.svg` - Used for favicon
+- `public/assets/img/favicon.png` - Used as fallback for browsers that don't support SVG favicons
 
 In case the source image is not in vector format, you can attempt to convert a raster image using tools like [this](https://www.aconvert.com/image/png-to-svg/).
 
@@ -102,7 +103,7 @@ Dont forget to restart your Gitea to apply the changes.
 If all you want is to add extra links to the top navigation bar or footer, or extra tabs to the repository view, you can put them in `extra_links.tmpl` (links added to the navbar), `extra_links_footer.tmpl` (links added to the left side of footer), and `extra_tabs.tmpl` inside your `$GITEA_CUSTOM/templates/custom/` directory.
 
 For instance, let's say you are in Germany and must add the famously legally-required "Impressum"/about page, listing who is responsible for the site's content:
-just place it under your "$GITEA_CUSTOM/public/" directory (for instance `$GITEA_CUSTOM/public/impressum.html`) and put a link to it in either `$GITEA_CUSTOM/templates/custom/extra_links.tmpl` or `$GITEA_CUSTOM/templates/custom/extra_links_footer.tmpl`.
+just place it under your "$GITEA_CUSTOM/public/assets/" directory (for instance `$GITEA_CUSTOM/public/assets/impressum.html`) and put a link to it in either `$GITEA_CUSTOM/templates/custom/extra_links.tmpl` or `$GITEA_CUSTOM/templates/custom/extra_links_footer.tmpl`.
 
 To match the current style, the link should have the class name "item", and you can use `{{AppSubUrl}}` to get the base URL:
 `<a class="item" href="{{AppSubUrl}}/assets/impressum.html">Impressum</a>`
@@ -132,7 +133,7 @@ The data is encoded and sent to the PlantUML server which generates the picture.
 demo server at http://www.plantuml.com/plantuml, but if you (or your users) have sensitive data you
 can set up your own [PlantUML server](https://plantuml.com/server) instead. To set up PlantUML rendering,
 copy JavaScript files from https://gitea.com/davidsvantesson/plantuml-code-highlight and put them in your
-`$GITEA_CUSTOM/public` folder. Then add the following to `custom/footer.tmpl`:
+`$GITEA_CUSTOM/public/assets/` folder. Then add the following to `custom/footer.tmpl`:
 
 ```html
 <script>
@@ -204,7 +205,7 @@ You can display STL file directly in Gitea by adding:
 
 to the file `templates/custom/footer.tmpl`
 
-You also need to download the content of the library [Madeleine.js](https://github.com/beige90/Madeleine.js) and place it under `$GITEA_CUSTOM/public/` folder.
+You also need to download the content of the library [Madeleine.js](https://github.com/beige90/Madeleine.js) and place it under `$GITEA_CUSTOM/public/assets/` folder.
 
 You should end-up with a folder structure similar to:
 
@@ -212,7 +213,8 @@ You should end-up with a folder structure similar to:
 $GITEA_CUSTOM/templates
 -- custom
     `-- footer.tmpl
-$GITEA_CUSTOM/public
+
+$GITEA_CUSTOM/public/assets/
 -- Madeleine.js
    |-- LICENSE
    |-- README.md
@@ -366,7 +368,7 @@ The list of themes a user can choose from can be configured with the `THEMES` va
 
 To make a custom theme available to all users:
 
-1. Add a CSS file to `$GITEA_CUSTOM/public/css/theme-<theme-name>.css`.
+1. Add a CSS file to `$GITEA_CUSTOM/public/assets/css/theme-<theme-name>.css`.
   The value of `$GITEA_CUSTOM` of your instance can be queried by calling `gitea help` and looking up the value of "CustomPath".
 2. Add `<theme-name>` to the comma-separated list of setting `THEMES` in `app.ini`
 
