@@ -1,4 +1,4 @@
-{{if eq .State "pending"}}
+{{if or (eq .State "pending") (eq .State "running")}}
 	{{svg "octicon-dot-fill" 18 "commit-status icon text yellow"}}
 {{end}}
 {{if eq .State "success"}}
