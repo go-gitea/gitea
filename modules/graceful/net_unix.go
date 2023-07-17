@@ -30,11 +30,6 @@ const (
 	watchdogTimeoutEnv = "WATCHDOG_USEC"
 )
 
-// GetListener returns a listener from a GetListener function, which must have the
-// signature: `func FunctioName(network, address string) (net.Listener, error)`.
-// This determines the implementation of net.Listener which the server will use.`
-var GetListener = DefaultGetListener
-
 // In order to keep the working directory the same as when we started we record
 // it at startup.
 var originalWD, _ = os.Getwd()
