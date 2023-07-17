@@ -125,7 +125,7 @@ func Push(ctx *context.Context) {
 
 	// Add new architectures and distribution info to package version metadata.
 	err = arch_service.UpdateMetadata(ctx, &arch_service.UpdateMetadataParameters{
-		User: user,
+		User: org.AsUser(),
 		Md:   md,
 	})
 	if err != nil {
