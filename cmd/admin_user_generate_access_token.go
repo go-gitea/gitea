@@ -17,13 +17,15 @@ var microcmdUserGenerateAccessToken = &cli.Command{
 	Usage: "Generate an access token for a specific user",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "username,u",
-			Usage: "Username",
+			Name:    "username",
+			Aliases: []string{"u"},
+			Usage:   "Username",
 		},
 		&cli.StringFlag{
-			Name:  "token-name,t",
-			Usage: "Token name",
-			Value: "gitea-admin",
+			Name:    "token-name",
+			Aliases: []string{"t"},
+			Usage:   "Token name",
+			Value:   "gitea-admin",
 		},
 		&cli.BoolFlag{
 			Name:  "raw",

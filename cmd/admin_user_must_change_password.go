@@ -18,12 +18,14 @@ var microcmdUserMustChangePassword = &cli.Command{
 	Action: runMustChangePassword,
 	Flags: []cli.Flag{
 		&cli.BoolFlag{
-			Name:  "all,A",
-			Usage: "All users must change password, except those explicitly excluded with --exclude",
+			Name:    "all",
+			Aliases: []string{"A"},
+			Usage:   "All users must change password, except those explicitly excluded with --exclude",
 		},
 		&cli.StringSliceFlag{
-			Name:  "exclude,e",
-			Usage: "Do not change the must-change-password flag for these users",
+			Name:    "exclude",
+			Aliases: []string{"e"},
+			Usage:   "Do not change the must-change-password flag for these users",
 		},
 		&cli.BoolFlag{
 			Name:  "unset",

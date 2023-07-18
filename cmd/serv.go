@@ -119,7 +119,7 @@ func fail(ctx context.Context, userMessage, logMsgFmt string, args ...any) error
 		}
 		_ = private.SSHLog(ctx, true, logMsg)
 	}
-	return cli.NewExitError("", 1)
+	return cli.Exit("", 1)
 }
 
 // handleCliResponseExtra handles the extra response from the cli sub-commands
@@ -130,7 +130,7 @@ func handleCliResponseExtra(extra private.ResponseExtra) error {
 		_, _ = fmt.Fprintln(os.Stdout, extra.UserMsg)
 	}
 	if extra.HasError() {
-		return cli.NewExitError(extra.Error, 1)
+		return cli.Exit(extra.Error, 1)
 	}
 	return nil
 }

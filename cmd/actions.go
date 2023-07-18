@@ -30,9 +30,10 @@ var (
 		Aliases: []string{"grt"},
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:  "scope, s",
-				Value: "",
-				Usage: "{owner}[/{repo}] - leave empty for a global runner",
+				Name:    "scope",
+				Aliases: []string{"s"},
+				Value:   "",
+				Usage:   "{owner}[/{repo}] - leave empty for a global runner",
 			},
 		},
 	}

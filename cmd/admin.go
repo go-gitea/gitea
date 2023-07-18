@@ -267,8 +267,9 @@ var (
 				Value: "",
 			},
 			&cli.BoolFlag{
-				Name:  "force,f",
-				Usage: "A flag to bypass a confirmation step",
+				Name:    "force",
+				Aliases: []string{"f"},
+				Usage:   "A flag to bypass a confirmation step",
 			},
 		},
 	}

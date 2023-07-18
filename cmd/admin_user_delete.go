@@ -23,12 +23,14 @@ var microcmdUserDelete = &cli.Command{
 			Usage: "ID of user of the user to delete",
 		},
 		&cli.StringFlag{
-			Name:  "username,u",
-			Usage: "Username of the user to delete",
+			Name:    "username",
+			Aliases: []string{"u"},
+			Usage:   "Username of the user to delete",
 		},
 		&cli.StringFlag{
-			Name:  "email,e",
-			Usage: "Email of the user to delete",
+			Name:    "email",
+			Aliases: []string{"e"},
+			Usage:   "Email of the user to delete",
 		},
 		&cli.BoolFlag{
 			Name:  "purge",

@@ -41,8 +41,9 @@ var (
 		Action: runList,
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
-				Name:  "include-vendored,vendor",
-				Usage: "Include files under public/vendor as well",
+				Name:    "include-vendored",
+				Aliases: []string{"vendor"},
+				Usage:   "Include files under public/vendor as well",
 			},
 		},
 	}
@@ -53,8 +54,9 @@ var (
 		Action: runView,
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
-				Name:  "include-vendored,vendor",
-				Usage: "Include files under public/vendor as well",
+				Name:    "include-vendored",
+				Aliases: []string{"vendor"},
+				Usage:   "Include files under public/vendor as well",
 			},
 		},
 	}
@@ -65,8 +67,9 @@ var (
 		Action: runExtract,
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
-				Name:  "include-vendored,vendor",
-				Usage: "Include files under public/vendor as well",
+				Name:    "include-vendored",
+				Aliases: []string{"vendor"},
+				Usage:   "Include files under public/vendor as well",
 			},
 			&cli.BoolFlag{
 				Name:  "overwrite",
@@ -81,8 +84,9 @@ var (
 				Usage: "Extract to the 'custom' directory as per app.ini",
 			},
 			&cli.StringFlag{
-				Name:  "destination,dest-dir",
-				Usage: "Extract to the specified directory",
+				Name:    "destination",
+				Aliases: []string{"dest-dir"},
+				Usage:   "Extract to the specified directory",
 			},
 		},
 	}
