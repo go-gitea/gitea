@@ -110,8 +110,12 @@ func setupConsoleLogger(level log.Level, colorize bool, out io.Writer) {
 }
 
 func globalBool(c *cli.Context, name string) bool {
-	// FIXME: search every parent context
-	return c.Bool(name)
+	for _, ctx := range c.Lineage() {
+		if ctx.Bool(name) {
+			return true
+		}
+	}
+	return false
 }
 
 // PrepareConsoleLoggerLevel by default, use INFO level for console logger, but some sub-commands (for git/ssh protocol) shouldn't output any log to stdout.

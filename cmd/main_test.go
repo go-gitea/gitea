@@ -15,8 +15,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli/v2"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 func TestMain(m *testing.M) {
