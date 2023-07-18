@@ -41,7 +41,7 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 	}
 	log.Trace("Doing: Update")
 
-	handler := func(idx int, bean interface{}) error {
+	handler := func(idx int, bean any) error {
 		var repo *repo_model.Repository
 		var mirrorType mirror_module.SyncType
 		var referenceID int64
@@ -91,7 +91,7 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 
 	pullMirrorsRequested := 0
 	if pullLimit != 0 {
-		if err := repo_model.MirrorsIterate(pullLimit, func(idx int, bean interface{}) error {
+		if err := repo_model.MirrorsIterate(pullLimit, func(idx int, bean any) error {
 			if err := handler(idx, bean); err != nil {
 				return err
 			}
@@ -105,7 +105,7 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 
 	pushMirrorsRequested := 0
 	if pushLimit != 0 {
-		if err := repo_model.PushMirrorsIterate(ctx, pushLimit, func(idx int, bean interface{}) error {
+		if err := repo_model.PushMirrorsIterate(ctx, pushLimit, func(idx int, bean any) error {
 			if err := handler(idx, bean); err != nil {
 				return err
 			}

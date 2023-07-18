@@ -26,7 +26,7 @@ import (
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
-func apiError(ctx *context.Context, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj any) {
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.JSON(status, map[string]string{
 			"Message": message,
@@ -34,7 +34,7 @@ func apiError(ctx *context.Context, status int, obj interface{}) {
 	})
 }
 
-func xmlResponse(ctx *context.Context, status int, obj interface{}) {
+func xmlResponse(ctx *context.Context, status int, obj any) {
 	ctx.Resp.Header().Set("Content-Type", "application/atom+xml; charset=utf-8")
 	ctx.Resp.WriteHeader(status)
 	if _, err := ctx.Resp.Write([]byte(xml.Header)); err != nil {
@@ -361,7 +361,7 @@ func DownloadPackageFile(ctx *context.Context) {
 	packageVersion := ctx.Params("version")
 	filename := ctx.Params("filename")
 
-	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
@@ -381,12 +381,8 @@ func DownloadPackageFile(ctx *context.Context) {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	defer s.Close()
 
-	ctx.ServeContent(s, &context.ServeHeaderOptions{
-		Filename:     pf.Name,
-		LastModified: pf.CreatedUnix.AsLocalTime(),
-	})
+	helper.ServePackageFile(ctx, s, u, pf)
 }
 
 // UploadPackage creates a new package with the metadata contained in the uploaded nupgk file
@@ -599,7 +595,7 @@ func DownloadSymbolFile(ctx *context.Context) {
 		return
 	}
 
-	s, pf, err := packages_service.GetPackageFileStream(ctx, pfs[0])
+	s, u, pf, err := packages_service.GetPackageFileStream(ctx, pfs[0])
 	if err != nil {
 		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
 			apiError(ctx, http.StatusNotFound, err)
@@ -608,12 +604,8 @@ func DownloadSymbolFile(ctx *context.Context) {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	defer s.Close()
 
-	ctx.ServeContent(s, &context.ServeHeaderOptions{
-		Filename:     pf.Name,
-		LastModified: pf.CreatedUnix.AsLocalTime(),
-	})
+	helper.ServePackageFile(ctx, s, u, pf)
 }
 
 // DeletePackage hard deletes the package

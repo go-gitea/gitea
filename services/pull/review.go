@@ -320,7 +320,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 func DismissReview(ctx context.Context, reviewID, repoID int64, message string, doer *user_model.User, isDismiss, dismissPriors bool) (comment *issues_model.Comment, err error) {
 	review, err := issues_model.GetReviewByID(ctx, reviewID)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	if review.Type != issues_model.ReviewTypeApprove && review.Type != issues_model.ReviewTypeReject {
@@ -328,7 +328,7 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 	}
 
 	// load data for notify
-	if err = review.LoadAttributes(ctx); err != nil {
+	if err := review.LoadAttributes(ctx); err != nil {
 		return nil, err
 	}
 
@@ -337,8 +337,8 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 		return nil, fmt.Errorf("reviews's repository is not the same as the one we expect")
 	}
 
-	if err = issues_model.DismissReview(review, isDismiss); err != nil {
-		return
+	if err := issues_model.DismissReview(review, isDismiss); err != nil {
+		return nil, err
 	}
 
 	if dismissPriors {
@@ -361,11 +361,11 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 		return nil, nil
 	}
 
-	if err = review.Issue.LoadPullRequest(ctx); err != nil {
-		return
+	if err := review.Issue.LoadPullRequest(ctx); err != nil {
+		return nil, err
 	}
-	if err = review.Issue.LoadAttributes(ctx); err != nil {
-		return
+	if err := review.Issue.LoadAttributes(ctx); err != nil {
+		return nil, err
 	}
 
 	comment, err = issue_service.CreateComment(ctx, &issues_model.CreateCommentOptions{
@@ -377,7 +377,7 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 		Repo:     review.Issue.Repo,
 	})
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	comment.Review = review
@@ -386,5 +386,5 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 
 	notification.NotifyPullReviewDismiss(ctx, doer, review, comment)
 
-	return comment, err
+	return comment, nil
 }

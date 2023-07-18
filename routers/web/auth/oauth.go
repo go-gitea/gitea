@@ -1008,13 +1008,13 @@ func SignInOAuthCallback(ctx *context.Context) {
 	handleOAuth2SignIn(ctx, authSource, u, gothUser)
 }
 
-func claimValueToStringSet(claimValue interface{}) container.Set[string] {
+func claimValueToStringSet(claimValue any) container.Set[string] {
 	var groups []string
 
 	switch rawGroup := claimValue.(type) {
 	case []string:
 		groups = rawGroup
-	case []interface{}:
+	case []any:
 		for _, group := range rawGroup {
 			groups = append(groups, fmt.Sprintf("%s", group))
 		}
@@ -1067,7 +1067,7 @@ func setUserAdminAndRestrictedFromGroupClaims(source *oauth2.Source, u *user_mod
 }
 
 func showLinkingLogin(ctx *context.Context, gothUser goth.User) {
-	if err := updateSession(ctx, nil, map[string]interface{}{
+	if err := updateSession(ctx, nil, map[string]any{
 		"linkAccountGothUser": gothUser,
 	}); err != nil {
 		ctx.ServerError("updateSession", err)
@@ -1119,7 +1119,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 	// If this user is enrolled in 2FA and this source doesn't override it,
 	// we can't sign the user in just yet. Instead, redirect them to the 2FA authentication page.
 	if !needs2FA {
-		if err := updateSession(ctx, nil, map[string]interface{}{
+		if err := updateSession(ctx, nil, map[string]any{
 			"uid":   u.ID,
 			"uname": u.Name,
 		}); err != nil {
@@ -1189,7 +1189,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		}
 	}
 
-	if err := updateSession(ctx, nil, map[string]interface{}{
+	if err := updateSession(ctx, nil, map[string]any{
 		// User needs to use 2FA, save data and redirect to 2FA page.
 		"twofaUid":      u.ID,
 		"twofaRemember": false,

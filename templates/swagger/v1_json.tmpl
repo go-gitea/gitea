@@ -3606,6 +3606,9 @@
           "201": {
             "$ref": "#/responses/Branch"
           },
+          "403": {
+            "description": "The branch is archived or a mirror."
+          },
           "404": {
             "description": "The old branch does not exist."
           },
@@ -16122,7 +16125,7 @@
         "content": {
           "description": "new or updated file content, must be base64 encoded",
           "type": "string",
-          "x-go-name": "Content"
+          "x-go-name": "ContentBase64"
         },
         "from_path": {
           "description": "old path of the file to move",
@@ -16807,7 +16810,7 @@
         "content": {
           "description": "content must be base64 encoded",
           "type": "string",
-          "x-go-name": "Content"
+          "x-go-name": "ContentBase64"
         },
         "dates": {
           "$ref": "#/definitions/CommitDateOptions"
@@ -21684,7 +21687,7 @@
         "content": {
           "description": "content must be base64 encoded",
           "type": "string",
-          "x-go-name": "Content"
+          "x-go-name": "ContentBase64"
         },
         "dates": {
           "$ref": "#/definitions/CommitDateOptions"

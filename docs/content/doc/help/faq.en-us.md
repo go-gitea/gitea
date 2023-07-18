@@ -192,7 +192,7 @@ To add your own theme, currently the only way is to provide a complete theme (no
 
 As an example, let's say our theme is `arc-blue` (this is a real theme, and can be found [in this issue](https://github.com/go-gitea/gitea/issues/6011))
 
-Name the `.css` file `theme-arc-blue.css` and add it to your custom folder in `custom/public/css`
+Name the `.css` file `theme-arc-blue.css` and add it to your custom folder in `custom/public/assets/css`
 
 Allow users to use it by adding `arc-blue` to the list of `THEMES` in your `app.ini`
 

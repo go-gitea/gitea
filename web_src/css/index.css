@@ -10,6 +10,7 @@
 @import "./modules/navbar.css";
 @import "./modules/toast.css";
 @import "./modules/divider.css";
+@import "./modules/svg.css";
 
 @import "./shared/issuelist.css";
 @import "./shared/milestone.css";
