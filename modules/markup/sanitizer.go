@@ -81,7 +81,7 @@ func createDefaultPolicy() *bluemonday.Policy {
 	} else {
 		policy.AllowURLSchemesMatching(allowAllRegex)
 
-		// Even if every scheme is allowed, these three are blocked
+		// Even if every scheme is allowed, these three are blocked for security reasons
 		disallowScheme := func(*url.URL) bool {
 			return false
 		}
