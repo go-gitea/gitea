@@ -232,15 +232,15 @@ func populateIssueIndexer(ctx context.Context) {
 				return
 			default:
 			}
-			UpdateRepoIndexer(ctx, repo)
+			UpdateRepoIndexer(ctx, repo.ID)
 		}
 	}
 }
 
 // UpdateRepoIndexer add/update all issues of the repositories
-func UpdateRepoIndexer(ctx context.Context, repo *repo_model.Repository) {
+func UpdateRepoIndexer(ctx context.Context, repoID int64) {
 	is, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{
-		RepoIDs:  []int64{repo.ID},
+		RepoIDs:  []int64{repoID},
 		IsClosed: util.OptionalBoolNone,
 		IsPull:   util.OptionalBoolNone,
 	})
@@ -248,26 +248,22 @@ func UpdateRepoIndexer(ctx context.Context, repo *repo_model.Repository) {
 		log.Error("Issues: %v", err)
 		return
 	}
-	if err = issues_model.IssueList(is).LoadDiscussComments(ctx); err != nil {
-		log.Error("LoadDiscussComments: %v", err)
-		return
-	}
 	for _, issue := range is {
-		UpdateIssueIndexer(issue)
+		UpdateIssueIndexer(issue.ID)
 	}
 }
 
 // UpdateIssueIndexer add/update an issue to the issue indexer
-func UpdateIssueIndexer(issue *issues_model.Issue) {
-	if err := issueIndexerQueue.Push(&IndexerMetadata{ID: issue.ID}); err != nil {
-		log.Error("Unable to push to issue indexer: %v: Error: %v", issue.ID, err)
+func UpdateIssueIndexer(issueID int64) {
+	if err := issueIndexerQueue.Push(&IndexerMetadata{ID: issueID}); err != nil {
+		log.Error("Unable to push to issue indexer: %v: Error: %v", issueID, err)
 	}
 }
 
 // DeleteRepoIssueIndexer deletes repo's all issues indexes
-func DeleteRepoIssueIndexer(ctx context.Context, repo *repo_model.Repository) {
+func DeleteRepoIssueIndexer(ctx context.Context, repoID int64) {
 	var ids []int64
-	ids, err := issues_model.GetIssueIDsByRepoID(ctx, repo.ID)
+	ids, err := issues_model.GetIssueIDsByRepoID(ctx, repoID)
 	if err != nil {
 		log.Error("GetIssueIDsByRepoID failed: %v", err)
 		return
@@ -314,14 +310,14 @@ func IsAvailable(ctx context.Context) bool {
 type SearchOptions internal.SearchOptions
 
 const (
-	SearchOptionsSortByCreatedDesc  internal.SearchOptionsSortBy = "-created"
-	SearchOptionsSortByUpdatedDesc  internal.SearchOptionsSortBy = "-updated"
-	SearchOptionsSortByCommentsDesc internal.SearchOptionsSortBy = "-comments"
-	SearchOptionsSortByDueDesc      internal.SearchOptionsSortBy = "-due"
-	SearchOptionsSortByCreatedAsc   internal.SearchOptionsSortBy = "created"
-	SearchOptionsSortByUpdatedAsc   internal.SearchOptionsSortBy = "updated"
-	SearchOptionsSortByCommentsAsc  internal.SearchOptionsSortBy = "comments"
-	SearchOptionsSortByDueAsc       internal.SearchOptionsSortBy = "due"
+	SearchOptionsSortByCreatedDesc  = internal.SearchOptionsSortByCreatedDesc
+	SearchOptionsSortByUpdatedDesc  = internal.SearchOptionsSortByUpdatedDesc
+	SearchOptionsSortByCommentsDesc = internal.SearchOptionsSortByCommentsDesc
+	SearchOptionsSortByDeadlineDesc = internal.SearchOptionsSortByDeadlineDesc
+	SearchOptionsSortByCreatedAsc   = internal.SearchOptionsSortByCreatedAsc
+	SearchOptionsSortByUpdatedAsc   = internal.SearchOptionsSortByUpdatedAsc
+	SearchOptionsSortByCommentsAsc  = internal.SearchOptionsSortByCommentsAsc
+	SearchOptionsSortByDeadlineAsc  = internal.SearchOptionsSortByDeadlineAsc
 )
 
 // SearchIssues search issues by options.

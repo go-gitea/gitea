@@ -25,9 +25,9 @@ type IndexerData struct {
 	IsClosed           bool               `json:"is_closed"`        // So if the status of an issue has changed, we should reindex the issue.
 	Labels             []int64            `json:"labels"`           // So if the labels of an issue have changed, we should reindex the issue.
 	NoLabel            bool               `json:"no_label"`         // True if Labels is empty
-	MilestoneID        int64              `json:"milestone_id"`     // So if the milestones of an issue have changed, we should reindex the issue.
-	ProjectID          int64              `json:"project_id"`       // So if the projects of an issue have changed, we should reindex the issue.
-	ProjectBoardID     int64              `json:"project_board_id"` // So if the projects of an issue have changed, we should reindex the issue.
+	MilestoneID        int64              `json:"milestone_id"`     // So if the milestone of an issue has changed, we should reindex the issue.
+	ProjectID          int64              `json:"project_id"`       // So if the project of an issue have changed, we should reindex the issue.
+	ProjectBoardID     int64              `json:"project_board_id"` // So if the project board of an issue have changed, we should reindex the issue.
 	PosterID           int64              `json:"poster_id"`
 	AssigneeID         int64              `json:"assignee_id"` // So if the assignee of an issue has changed, we should reindex the issue.
 	MentionIDs         []int64            `json:"mention_ids"`
