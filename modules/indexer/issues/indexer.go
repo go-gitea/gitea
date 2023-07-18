@@ -5,6 +5,7 @@ package issues
 
 import (
 	"context"
+	"errors"
 	"os"
 	"runtime/pprof"
 	"sync/atomic"
@@ -257,6 +258,9 @@ func UpdateRepoIndexer(ctx context.Context, repoID int64) {
 func UpdateIssueIndexer(issueID int64) {
 	if err := issueIndexerQueue.Push(&IndexerMetadata{ID: issueID}); err != nil {
 		log.Error("Unable to push to issue indexer: %v: Error: %v", issueID, err)
+		if errors.Is(err, context.DeadlineExceeded) {
+			log.Error("It seems that issue indexer is slow and the queue is full. Please check the issue indexer or increase the queue size.")
+		}
 	}
 }
 

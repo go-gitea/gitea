@@ -249,16 +249,21 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	searchOpt := &issue_indexer.SearchOptions{
-		Keyword:           keyword,
-		RepoIDs:           repoIDs,
-		AllPublic:         allPublic,
-		IsPull:            isPull,
-		IsClosed:          isClosed,
-		IncludedLabelIDs:  includedLabels,
-		MilestoneIDs:      includedMilestones,
-		UpdatedAfterUnix:  &since,
-		UpdatedBeforeUnix: &before,
-		SortBy:            issue_indexer.SortByCreatedDesc,
+		Keyword:          keyword,
+		RepoIDs:          repoIDs,
+		AllPublic:        allPublic,
+		IsPull:           isPull,
+		IsClosed:         isClosed,
+		IncludedLabelIDs: includedLabels,
+		MilestoneIDs:     includedMilestones,
+		SortBy:           issue_indexer.SortByCreatedDesc,
+	}
+
+	if since != 0 {
+		searchOpt.UpdatedAfterUnix = &since
+	}
+	if before != 0 {
+		searchOpt.UpdatedBeforeUnix = &before
 	}
 
 	ctxUserID := int64(0)
