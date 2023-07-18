@@ -470,9 +470,8 @@ func ListIssues(ctx *context.APIContext) {
 		IsClosed:          isClosed,
 		IncludedLabelIDs:  nil,
 		ExcludedLabelIDs:  nil,
-		NoLabel:           false,
+		NoLabelOnly:       false,
 		MilestoneIDs:      nil,
-		NoMilestone:       false,
 		PosterID:          &createdByID,
 		AssigneeID:        &assignedByID,
 		MentionID:         &mentionedByID,
@@ -481,7 +480,7 @@ func ListIssues(ctx *context.APIContext) {
 		SortBy:            issue_indexer.SearchOptionsSortByCreatedDesc,
 	}
 	if len(labelIDs) == 0 && labelIDs[0] == 0 {
-		searchOpt.NoLabel = true
+		searchOpt.NoLabelOnly = true
 	} else {
 		for _, labelID := range labelIDs {
 			if labelID > 0 {
@@ -491,8 +490,9 @@ func ListIssues(ctx *context.APIContext) {
 			}
 		}
 	}
-	if len(mileIDs) == 0 && mileIDs[0] == db.NoConditionID {
-		searchOpt.NoMilestone = true
+
+	if len(mileIDs) == 1 && mileIDs[0] == db.NoConditionID {
+		searchOpt.MilestoneIDs = []int64{0}
 	} else {
 		searchOpt.MilestoneIDs = mileIDs
 	}

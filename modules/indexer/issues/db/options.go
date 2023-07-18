@@ -22,11 +22,11 @@ func ToDBOptions(options *internal.SearchOptions) *issue_model.IssuesOptions {
 		}
 		return ids
 	}
-	convertLabelIDs := func(includes, excludes []int64, includeNo bool) []int64 {
-		ret := make([]int64, 0, len(includes)+len(excludes)+1)
-		if includeNo {
-			ret = append(ret, 0)
+	convertLabelIDs := func(includes, excludes []int64, noLabelOnly bool) []int64 {
+		if noLabelOnly {
+			return []int64{0}
 		}
+		ret := make([]int64, 0, len(includes)+len(excludes))
 		ret = append(ret, includes...)
 		for _, id := range excludes {
 			ret = append(ret, -id)
@@ -74,7 +74,7 @@ func ToDBOptions(options *internal.SearchOptions) *issue_model.IssuesOptions {
 		ProjectBoardID:     convertID(options.ProjectBoardID),
 		IsClosed:           options.IsClosed,
 		IsPull:             options.IsPull,
-		LabelIDs:           convertLabelIDs(options.IncludedLabelIDs, options.ExcludedLabelIDs, options.ExcludedNoLabel),
+		LabelIDs:           convertLabelIDs(options.IncludedLabelIDs, options.ExcludedLabelIDs, options.NoLabelOnly),
 		IncludedLabelNames: nil,
 		ExcludedLabelNames: nil,
 		IncludeMilestones:  nil,

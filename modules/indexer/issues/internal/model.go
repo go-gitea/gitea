@@ -74,7 +74,7 @@ type SearchOptions struct {
 
 	IncludedLabelIDs []int64 // labels the issues have
 	ExcludedLabelIDs []int64 // labels the issues don't have
-	ExcludedNoLabel  bool    // if include issues without labels
+	NoLabelOnly      bool    // if the issues have no label, if true, IncludedLabelIDs and ExcludedLabelIDs will be ignored
 
 	MilestoneIDs []int64 // milestones the issues have
 
