@@ -224,6 +224,15 @@ func TestRender_links(t *testing.T) {
 	test(
 		"ftps://gitea.com",
 		`<p>ftps://gitea.com</p>`)
+	test(
+		"[a](http://domain)",
+		`<p><a href="http://domain" rel="nofollow">a</a></p>`)
+	test(
+		"[a](https://domain)",
+		`<p><a href="https://domain" rel="nofollow">a</a></p>`)
+	test(
+		"[a](javascript:foo)",
+		`<p>a</p>`)
 
 	// Restore previous settings
 	setting.Markdown.CustomURLSchemes = defaultCustom
