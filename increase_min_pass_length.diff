@@ -1,0 +1,39 @@
+diff --git a/custom/conf/app.example.ini b/custom/conf/app.example.ini
+index 83c713cb0..d3af33655 100644
+--- a/custom/conf/app.example.ini
++++ b/custom/conf/app.example.ini
+@@ -454,7 +454,7 @@ INTERNAL_TOKEN=
+ ;REVERSE_PROXY_TRUSTED_PROXIES = 127.0.0.0/8,::1/128
+ ;;
+ ;; The minimum password length for new Users
+-;MIN_PASSWORD_LENGTH = 6
++;MIN_PASSWORD_LENGTH = 8
+ ;;
+ ;; Set to true to allow users to import local server paths
+ ;IMPORT_LOCAL_PATHS = false
+diff --git a/docs/content/doc/administration/config-cheat-sheet.en-us.md b/docs/content/doc/administration/config-cheat-sheet.en-us.md
+index 9c307cbc4..c79ae64c0 100644
+--- a/docs/content/doc/administration/config-cheat-sheet.en-us.md
++++ b/docs/content/doc/administration/config-cheat-sheet.en-us.md
+@@ -561,7 +561,7 @@ And the following unique queues:
+     - `scrypt`:    `scrypt$65536$16$2$50`
+   - Adjusting the algorithm parameters using this functionality is done at your own risk.
+ - `CSRF_COOKIE_HTTP_ONLY`: **true**: Set false to allow JavaScript to read CSRF cookie.
+-- `MIN_PASSWORD_LENGTH`: **6**: Minimum password length for new users.
++- `MIN_PASSWORD_LENGTH`: **8**: Minimum password length for new users.
+ - `PASSWORD_COMPLEXITY`: **off**: Comma separated list of character classes required to pass minimum complexity. If left empty or no valid values are specified, checking is disabled (off):
+   - lower - use one or more lower latin characters
+   - upper - use one or more upper latin characters
+diff --git a/modules/setting/security.go b/modules/setting/security.go
+index 7064d7a00..90f614d4c 100644
+--- a/modules/setting/security.go
++++ b/modules/setting/security.go
+@@ -124,7 +124,7 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
+ 		ReverseProxyTrustedProxies = []string{"127.0.0.0/8", "::1/128"}
+ 	}
+ 
+-	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
++	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(8)
+ 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
+ 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(true)
+ 	DisableWebhooks = sec.Key("DISABLE_WEBHOOKS").MustBool(false)
