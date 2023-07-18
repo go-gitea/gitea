@@ -6,10 +6,13 @@ package issues
 import (
 	"context"
 
+	"code.gitea.io/gitea/models/db"
 	issue_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
 )
 
+// getIssueIndexerData returns the indexer data of an issue and a bool value indicating whether the issue exists.
 func getIssueIndexerData(ctx context.Context, issueID int64) (*internal.IndexerData, bool, error) {
 	issue, err := issue_model.GetIssueByID(ctx, issueID)
 	if err != nil {
@@ -43,7 +46,44 @@ func getIssueIndexerData(ctx context.Context, issueID int64) (*internal.IndexerD
 		labels = append(labels, label.ID)
 	}
 
-	// TBC: MentionIDs ReviewedIDs ReviewRequestedIDs SubscriberIDs
+	mentionIDs, err := issue_model.GetIssueMentionIDs(ctx, issueID)
+	if err != nil {
+		return nil, false, err
+	}
+
+	var (
+		reviewedIDs        []int64
+		reviewRequestedIDs []int64
+	)
+	{
+		reviews, err := issue_model.FindReviews(ctx, issue_model.FindReviewOptions{
+			ListOptions: db.ListOptions{
+				ListAll: true,
+			},
+			IssueID:      issueID,
+			OfficialOnly: false,
+		})
+		if err != nil {
+			return nil, false, err
+		}
+
+		reviewedIDsSet := make(container.Set[int64], len(reviews))
+		reviewRequestedIDsSet := make(container.Set[int64], len(reviews))
+		for _, review := range reviews {
+			if review.Type == issue_model.ReviewTypeRequest {
+				reviewRequestedIDsSet.Add(review.ReviewerID)
+			} else {
+				reviewedIDsSet.Add(review.ReviewerID)
+			}
+		}
+		reviewedIDs = reviewedIDsSet.Values()
+		reviewRequestedIDs = reviewRequestedIDsSet.Values()
+	}
+
+	subscriberIDs, err := issue_model.GetIssueWatchersIDs(ctx, issue.ID, true)
+	if err != nil {
+		return nil, false, err
+	}
 
 	return &internal.IndexerData{
 		ID:                 issue.ID,
@@ -61,10 +101,10 @@ func getIssueIndexerData(ctx context.Context, issueID int64) (*internal.IndexerD
 		ProjectBoardID:     issue.ProjectBoardID(),
 		PosterID:           issue.PosterID,
 		AssigneeID:         issue.AssigneeID,
-		MentionIDs:         nil,
-		ReviewedIDs:        nil,
-		ReviewRequestedIDs: nil,
-		SubscriberIDs:      nil,
+		MentionIDs:         mentionIDs,
+		ReviewedIDs:        reviewedIDs,
+		ReviewRequestedIDs: reviewRequestedIDs,
+		SubscriberIDs:      subscriberIDs,
 		UpdatedUnix:        issue.UpdatedUnix,
 		CreatedUnix:        issue.CreatedUnix,
 		DeadlineUnix:       issue.DeadlineUnix,
