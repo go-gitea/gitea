@@ -191,7 +191,7 @@ And so you could write some CSS:
 }
 ```
 
-Add your stylesheet to your custom directory e.g `custom/public/css/my-style-XXXXX.css` and import it using a custom header file `custom/templates/custom/header.tmpl`:
+Add your stylesheet to your custom directory e.g `custom/public/assets/css/my-style-XXXXX.css` and import it using a custom header file `custom/templates/custom/header.tmpl`:
 
 ```html
 <link rel="stylesheet" href="{{AppSubUrl}}/assets/css/my-style-XXXXX.css" />
