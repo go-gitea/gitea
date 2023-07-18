@@ -41,21 +41,21 @@ func ToDBOptions(options *internal.SearchOptions) *issue_model.IssuesOptions {
 	}
 	sortType := ""
 	switch options.SortBy {
-	case internal.SearchOptionsSortByCreatedAsc:
+	case internal.SortByCreatedAsc:
 		sortType = "oldest"
-	case internal.SearchOptionsSortByUpdatedAsc:
+	case internal.SortByUpdatedAsc:
 		sortType = "leastupdate"
-	case internal.SearchOptionsSortByCommentsAsc:
+	case internal.SortByCommentsAsc:
 		sortType = "leastcomment"
-	case internal.SearchOptionsSortByDeadlineAsc:
+	case internal.SortByDeadlineAsc:
 		sortType = "farduedate"
-	case internal.SearchOptionsSortByCreatedDesc:
+	case internal.SortByCreatedDesc:
 		sortType = "" // default
-	case internal.SearchOptionsSortByUpdatedDesc:
+	case internal.SortByUpdatedDesc:
 		sortType = "recentupdate"
-	case internal.SearchOptionsSortByCommentsDesc:
+	case internal.SortByCommentsDesc:
 		sortType = "mostcomment"
-	case internal.SearchOptionsSortByDeadlineDesc:
+	case internal.SortByDeadlineDesc:
 		sortType = "nearduedate"
 	}
 

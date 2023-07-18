@@ -23,8 +23,8 @@ type IndexerData struct {
 	// Fields used for filtering
 	IsPull             bool               `json:"is_pull"`
 	IsClosed           bool               `json:"is_closed"`        // So if the status of an issue has changed, we should reindex the issue.
-	Labels             []int64            `json:"labels"`           // So if the labels of an issue have changed, we should reindex the issue.
-	NoLabel            bool               `json:"no_label"`         // True if Labels is empty
+	LabelIDs           []int64            `json:"label_ids"`        // So if the labels of an issue have changed, we should reindex the issue.
+	NoLabel            bool               `json:"no_label"`         // True if LabelIDs is empty
 	MilestoneID        int64              `json:"milestone_id"`     // So if the milestone of an issue has changed, we should reindex the issue.
 	ProjectID          int64              `json:"project_id"`       // So if the project of an issue have changed, we should reindex the issue.
 	ProjectBoardID     int64              `json:"project_board_id"` // So if the project board of an issue have changed, we should reindex the issue.
@@ -87,8 +87,7 @@ type SearchOptions struct {
 
 	MentionID *int64 // mentioned user of the issues
 
-	ReviewedID *int64 // reviewer of the issues
-
+	ReviewedID        *int64 // reviewer of the issues
 	ReviewRequestedID *int64 // requested reviewer of the issues
 
 	SubscriberID *int64 // subscriber of the issues
@@ -98,20 +97,20 @@ type SearchOptions struct {
 
 	db.Paginator
 
-	SortBy SearchOptionsSortBy // sort by field
+	SortBy SortBy // sort by field
 }
 
-type SearchOptionsSortBy string
+type SortBy string
 
 const (
-	SearchOptionsSortByCreatedDesc  SearchOptionsSortBy = "-created"
-	SearchOptionsSortByUpdatedDesc  SearchOptionsSortBy = "-updated"
-	SearchOptionsSortByCommentsDesc SearchOptionsSortBy = "-comments"
-	SearchOptionsSortByDeadlineDesc SearchOptionsSortBy = "-deadline"
-	SearchOptionsSortByCreatedAsc   SearchOptionsSortBy = "created"
-	SearchOptionsSortByUpdatedAsc   SearchOptionsSortBy = "updated"
-	SearchOptionsSortByCommentsAsc  SearchOptionsSortBy = "comments"
-	SearchOptionsSortByDeadlineAsc  SearchOptionsSortBy = "deadline"
+	SortByCreatedDesc  SortBy = "-created_unix"
+	SortByUpdatedDesc  SortBy = "-updated_unix"
+	SortByCommentsDesc SortBy = "-comment_count"
+	SortByDeadlineDesc SortBy = "-deadline_unix"
+	SortByCreatedAsc   SortBy = "created_unix"
+	SortByUpdatedAsc   SortBy = "updated_unix"
+	SortByCommentsAsc  SortBy = "comment_count"
+	SortByDeadlineAsc  SortBy = "deadline_unix"
 	// Unsupported sort types which are supported by issues.IssuesOptions.SortType:
 	//    - "priorityrepo"
 	//    - "project-column-sorting"

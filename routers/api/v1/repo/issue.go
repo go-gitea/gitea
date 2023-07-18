@@ -258,7 +258,7 @@ func SearchIssues(ctx *context.APIContext) {
 		MilestoneIDs:      includedMilestones,
 		UpdatedAfterUnix:  &since,
 		UpdatedBeforeUnix: &before,
-		SortBy:            issue_indexer.SearchOptionsSortByCreatedDesc,
+		SortBy:            issue_indexer.SortByCreatedDesc,
 	}
 
 	ctxUserID := int64(0)
@@ -477,7 +477,7 @@ func ListIssues(ctx *context.APIContext) {
 		MentionID:         &mentionedByID,
 		UpdatedAfterUnix:  &since,
 		UpdatedBeforeUnix: &before,
-		SortBy:            issue_indexer.SearchOptionsSortByCreatedDesc,
+		SortBy:            issue_indexer.SortByCreatedDesc,
 	}
 	if len(labelIDs) == 0 && labelIDs[0] == 0 {
 		searchOpt.NoLabelOnly = true

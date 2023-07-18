@@ -310,14 +310,14 @@ func IsAvailable(ctx context.Context) bool {
 type SearchOptions internal.SearchOptions
 
 const (
-	SearchOptionsSortByCreatedDesc  = internal.SearchOptionsSortByCreatedDesc
-	SearchOptionsSortByUpdatedDesc  = internal.SearchOptionsSortByUpdatedDesc
-	SearchOptionsSortByCommentsDesc = internal.SearchOptionsSortByCommentsDesc
-	SearchOptionsSortByDeadlineDesc = internal.SearchOptionsSortByDeadlineDesc
-	SearchOptionsSortByCreatedAsc   = internal.SearchOptionsSortByCreatedAsc
-	SearchOptionsSortByUpdatedAsc   = internal.SearchOptionsSortByUpdatedAsc
-	SearchOptionsSortByCommentsAsc  = internal.SearchOptionsSortByCommentsAsc
-	SearchOptionsSortByDeadlineAsc  = internal.SearchOptionsSortByDeadlineAsc
+	SortByCreatedDesc  = internal.SortByCreatedDesc
+	SortByUpdatedDesc  = internal.SortByUpdatedDesc
+	SortByCommentsDesc = internal.SortByCommentsDesc
+	SortByDeadlineDesc = internal.SortByDeadlineDesc
+	SortByCreatedAsc   = internal.SortByCreatedAsc
+	SortByUpdatedAsc   = internal.SortByUpdatedAsc
+	SortByCommentsAsc  = internal.SortByCommentsAsc
+	SortByDeadlineAsc  = internal.SortByDeadlineAsc
 )
 
 // SearchIssues search issues by options.
