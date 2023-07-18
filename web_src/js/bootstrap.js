@@ -7,7 +7,7 @@ window.$ = window.jQuery = $;
 
 // This sets up the URL prefix used in webpack's chunk loading.
 // This file must be imported before any lazy-loading is being attempted.
-__webpack_public_path__ = `${window.config?.assetUrlPrefix}/static/`;
+__webpack_public_path__ = `${window.config?.assetUrlPrefix ?? '/assets'}/static/`;
 
 export function showGlobalErrorMessage(msg) {
   const pageContent = document.querySelector('.page-content');
