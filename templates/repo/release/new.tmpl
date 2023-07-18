@@ -104,26 +104,26 @@
 					</div>
 					<span class="help">{{.locale.Tr "repo.release.prerelease_helper"}}</span>
 					<div class="divider gt-mt-0"></div>
-					<div class="text right">
+					<div class="gt-df gt-je">
 						{{if .PageIsEditRelease}}
-							<a class="ui button" href="{{.RepoLink}}/releases">
+							<a class="ui small button" href="{{.RepoLink}}/releases">
 								{{.locale.Tr "repo.release.cancel"}}
 							</a>
-							<a class="ui red button delete-button" data-url="{{$.RepoLink}}/releases/delete" data-id="{{.ID}}">
+							<a class="ui small red button delete-button" data-url="{{$.RepoLink}}/releases/delete" data-id="{{.ID}}">
 								{{$.locale.Tr "repo.release.delete_release"}}
 							</a>
 							{{if .IsDraft}}
-								<button class="ui button" type="submit" name="draft" value="{{.locale.Tr "repo.release.save_draft"}}">{{.locale.Tr "repo.release.save_draft"}}</button>
-								<button class="ui primary button">
+								<button class="ui small button" type="submit" name="draft" value="{{.locale.Tr "repo.release.save_draft"}}">{{.locale.Tr "repo.release.save_draft"}}</button>
+								<button class="ui small primary button">
 									{{.locale.Tr "repo.release.publish"}}
 								</button>
 							{{else}}
-								<button class="ui primary button">
+								<button class="ui small primary button">
 									{{.locale.Tr "repo.release.edit_release"}}
 								</button>
 							{{end}}
 						{{else}}
-							<button class="ui primary button">
+							<button class="ui small primary button">
 								{{.locale.Tr "repo.release.publish"}}
 							</button>
 						{{end}}
