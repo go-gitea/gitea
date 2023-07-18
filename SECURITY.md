@@ -4,6 +4,8 @@ The Gitea maintainers take security seriously.
 
 If you discover a security issue, please bring it to their attention right away!
 
+Previous vulnerabilities are listed at https://about.gitea.com/security.
+
 ## Reporting a Vulnerability
 
 Please **DO NOT** file a public issue, instead send your report privately to `security@gitea.io`.

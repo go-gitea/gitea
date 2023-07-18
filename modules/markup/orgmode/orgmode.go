@@ -51,7 +51,7 @@ func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 // Render renders orgmode rawbytes to HTML
 func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	htmlWriter := org.NewHTMLWriter()
-	htmlWriter.HighlightCodeBlock = func(source, lang string, inline bool) string {
+	htmlWriter.HighlightCodeBlock = func(source, lang string, inline bool, params map[string]string) string {
 		defer func() {
 			if err := recover(); err != nil {
 				log.Error("Panic in HighlightCodeBlock: %v\n%s", err, log.Stack(2))
