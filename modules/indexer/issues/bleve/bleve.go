@@ -67,29 +67,30 @@ func generateIssueIndexMapping() (mapping.IndexMapping, error) {
 	numberFieldMapping.Store = false
 	numberFieldMapping.IncludeInAll = false
 
+	docMapping.AddFieldMappingsAt("is_public", boolFieldMapping)
+
 	docMapping.AddFieldMappingsAt("title", textFieldMapping)
 	docMapping.AddFieldMappingsAt("content", textFieldMapping)
 	docMapping.AddFieldMappingsAt("comments", textFieldMapping)
 
-	// TBC: IndexerData has been changed, but the mapping has not been updated
 	docMapping.AddFieldMappingsAt("is_pull", boolFieldMapping)
 	docMapping.AddFieldMappingsAt("is_closed", boolFieldMapping)
 	docMapping.AddFieldMappingsAt("labels", numberFieldMapping)
-	docMapping.AddFieldMappingsAt("no_labels", boolFieldMapping)
-	docMapping.AddFieldMappingsAt("milestones", numberFieldMapping)
-	docMapping.AddFieldMappingsAt("no_milestones", boolFieldMapping)
-	docMapping.AddFieldMappingsAt("projects", numberFieldMapping)
-	docMapping.AddFieldMappingsAt("no_projects", boolFieldMapping)
-	docMapping.AddFieldMappingsAt("author", numberFieldMapping)
-	docMapping.AddFieldMappingsAt("assignee", numberFieldMapping)
-	docMapping.AddFieldMappingsAt("mentions", numberFieldMapping)
-	docMapping.AddFieldMappingsAt("reviewers", numberFieldMapping)
-	docMapping.AddFieldMappingsAt("requested_reviewers", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("no_label", boolFieldMapping)
+	docMapping.AddFieldMappingsAt("milestone_id", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("project_id", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("project_board_id", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("poster_id", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("assignee_id", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("mention_ids", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("reviewed_ids", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("review_requested_ids", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("subscriber_ids", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("updated_unix", numberFieldMapping)
 
-	docMapping.AddFieldMappingsAt("created_at", numberFieldMapping)
-	docMapping.AddFieldMappingsAt("updated_at", numberFieldMapping)
-	docMapping.AddFieldMappingsAt("closed_at", numberFieldMapping)
-	docMapping.AddFieldMappingsAt("due_date", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("created_unix", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("deadline_unix", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("comment_count", numberFieldMapping)
 
 	if err := addUnicodeNormalizeTokenFilter(mapping); err != nil {
 		return nil, err
