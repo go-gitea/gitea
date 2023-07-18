@@ -1,4 +1,5 @@
 {{template "base/head" .}}
+<link rel="stylesheet" href="{{AssetUrlPrefix}}/static/devtest.css?v={{AssetVersion}}">
 <div class="page-content devtest ui container">
 	{{template "base/alert" .}}
 
@@ -47,16 +48,6 @@
 	</div>
 
 	<div class="modal-buttons"></div>
-	<script type="module">
-		for (const el of $('.ui.modal')) {
-			const $btn = $('<button>').text(`Show ${el.id}`).on('click', () => {
-				$(el).modal({onApprove() {alert('confirmed')}}).modal('show');
-			});
-			$('.modal-buttons').append($btn);
-		}
-	</script>
-	<style>
-		.modal-buttons button { margin: 5px; }
-	</style>
+	<script src="{{AssetUrlPrefix}}/static/devtest.js?v={{AssetVersion}}"></script>
 </div>
 {{template "base/footer" .}}

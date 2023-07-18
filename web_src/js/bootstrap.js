@@ -1,7 +1,3 @@
-import $ from 'jquery';
-
-window.$ = window.jQuery = $;
-
 // DO NOT IMPORT window.config HERE!
 // to make sure the error handler always works, we should never import `window.config`, because some user's custom template breaks it.
 
