@@ -1219,6 +1219,10 @@ img.ui.avatar,
   display: inline-block;
 }
 
+.ui td .text.truncate {
+  vertical-align: top;
+}
+
 .ui .text.thin {
   font-weight: var(--font-weight-normal);
 }
