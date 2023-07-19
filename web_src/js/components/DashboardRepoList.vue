@@ -153,7 +153,7 @@ import {SvgIcon} from '../svg.js';
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
 
 const commitStatus = {
-  pending: {name: 'octicon-dot-fill', color: 'grey'},
+  pending: {name: 'octicon-dot-fill', color: 'yellow'},
   running: {name: 'octicon-dot-fill', color: 'yellow'},
   success: {name: 'octicon-check', color: 'green'},
   error: {name: 'gitea-exclamation', color: 'red'},
