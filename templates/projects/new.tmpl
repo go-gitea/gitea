@@ -8,9 +8,9 @@
 	{{end}}
 </h2>
 {{template "base/alert" .}}
-<form class="ui form grid" action="{{.Link}}" method="post">
+<form class="ui form" action="{{.Link}}" method="post">
 	{{.CsrfTokenHtml}}
-	<div class="eleven wide column">
+	<div>
 		<input type="hidden" id="redirect" name="redirect" value="{{.redirect}}">
 		<div class="field {{if .Err_Title}}error{{end}}">
 			<label>{{.locale.Tr "repo.projects.title"}}</label>
@@ -55,7 +55,7 @@
 		</div>
 	</div>
 	<div class="divider"></div>
-	<div class="ui left">
+	<div class="gt-text-right">
 		<a class="ui cancel button" href="{{$.CancelLink}}">
 			{{.locale.Tr "repo.milestones.cancel"}}
 		</a>
