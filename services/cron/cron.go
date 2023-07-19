@@ -86,9 +86,6 @@ func ListTasks() TaskTable {
 
 	lock.Lock()
 	defer lock.Unlock()
-	for _, job := range jobs {
-		job.PreviousRun()
-	}
 
 	tTable := make([]*TaskTableRow, 0, len(tasks))
 	for _, task := range tasks {
