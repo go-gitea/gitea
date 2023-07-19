@@ -6,7 +6,7 @@ description: |
   an independent binary distribution across ALL platforms that Go supports,
   including Linux, Mac OS X, Windows and ARM.
 
-icon: public/img/logo.png
+icon: public/assets/img/logo.png
 confinement: strict
 base: core18
 adopt-info: gitea
@@ -49,7 +49,7 @@ parts:
       - LDFLAGS: ""
     override-pull: |
       snapcraftctl pull
-      
+
       last_committed_tag="$(git for-each-ref --sort=taggerdate --format '%(tag)' refs/tags | tail -n 1)"
       last_released_tag="$(snap info gitea | awk '$1 == "latest/candidate:" { print $2 }')"
       # If the latest tag from the upstream project has not been released to
@@ -57,7 +57,7 @@ parts:
       if [ "${last_committed_tag}" != "${last_released_tag}" ]; then
         git fetch
         git checkout "${last_committed_tag}"
-      fi          
+      fi
 
       version="$(git describe --always | sed -e 's/-/+git/;y/-/./')"
       [ -n "$(echo $version | grep "+git")" ] && grade=devel || grade=stable
