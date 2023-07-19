@@ -79,7 +79,7 @@ The server responds with the following HTTP Status codes.
 
 ## Delete a package
 
-To delete a Debian package perform a HTTP DELETE operation. This will delete the package version too if there is no file left.
+To delete an RPM package perform a HTTP DELETE operation. This will delete the package version too if there is no file left.
 
 ```
 DELETE https://gitea.example.com/api/packages/{owner}/rpm/{package_name}/{package_version}/{architecture}
