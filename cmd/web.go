@@ -172,6 +172,16 @@ func serveInstalled(ctx *cli.Context) error {
 		}
 	}
 
+	legacyPublicAssetFiles := []string{"img", "css", "js"}
+	for _, fn := range legacyPublicAssetFiles {
+		if _, err := os.Stat(filepath.Join(setting.CustomPath, "public", fn)); err == nil {
+			log.Error("Found legacy public asset %q in CustomPath. Please move it to %s/public/assets/%s", fn, setting.CustomPath, fn)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(setting.CustomPath, "robots.txt")); err == nil {
+		log.Error(`Found legacy public asset "robots.txt" in CustomPath. Please move it to %s/public/robots.txt`, setting.CustomPath)
+	}
+
 	routers.InitWebInstalled(graceful.GetManager().HammerContext())
 
 	// We check that AppDataPath exists here (it should have been created during installation)
