@@ -172,7 +172,7 @@ func serveInstalled(ctx *cli.Context) error {
 		}
 	}
 
-	legacyPublicAssetFiles := []string{"img", "css", "js"}
+	legacyPublicAssetFiles := []string{"img", "css", "js", "fonts"}
 	for _, fn := range legacyPublicAssetFiles {
 		if _, err := os.Stat(filepath.Join(setting.CustomPath, "public", fn)); err == nil {
 			log.Error("Found legacy public asset %q in CustomPath. Please move it to %s/public/assets/%s", fn, setting.CustomPath, fn)
