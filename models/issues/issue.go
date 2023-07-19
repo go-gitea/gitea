@@ -555,12 +555,6 @@ func GetIssuesByIDs(ctx context.Context, issueIDs []int64) (IssueList, error) {
 	return issues, db.GetEngine(ctx).In("id", issueIDs).Find(&issues)
 }
 
-// GetIssuesMapByIDs return issues with the given IDs.
-func GetIssuesMapByIDs(ctx context.Context, issueIDs []int64) (map[int64]*Issue, error) {
-	issues := make(map[int64]*Issue, len(issueIDs))
-	return issues, db.GetEngine(ctx).In("id", issueIDs).Find(&issues)
-}
-
 // GetIssueIDsByRepoID returns all issue ids by repo id
 func GetIssueIDsByRepoID(ctx context.Context, repoID int64) ([]int64, error) {
 	ids := make([]int64, 0, 10)
