@@ -176,7 +176,8 @@ func RegisterTask(name string, config Config, fun func(context.Context, *user_mo
 
 	if config.IsEnabled() {
 		// We cannot use the entry return as there is no way to lock it
-		if _, err = c.AddJob(name, config.GetSchedule(), task); err != nil {
+		tags := []string{name, config.GetSchedule()} // name and schedule can't be get from job, so we add them as tag
+		if _, err = s.CronWithSeconds(config.GetSchedule()).Tag(tags...).Do(task.Run); err != nil {
 			log.Error("Unable to register cron task with name: %s Error: %v", name, err)
 			return err
 		}
