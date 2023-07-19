@@ -49,7 +49,7 @@ require (
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/go-swagger/go-swagger v0.30.5
 	github.com/go-testfixtures/testfixtures/v3 v3.9.0
-	github.com/go-webauthn/webauthn v0.8.4
+	github.com/go-webauthn/webauthn v0.8.6
 	github.com/gobwas/glob v0.2.3
 	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f
 	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14

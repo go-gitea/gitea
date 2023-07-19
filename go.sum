@@ -455,8 +455,8 @@ github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0/go.mod h1:fyg78
 github.com/go-test/deep v1.0.7 h1:/VSMRlnY/JSyqxQUzQLKVMAskpY/NZKFA5j2P+0pP2M=
 github.com/go-testfixtures/testfixtures/v3 v3.9.0 h1:938g5V+GWLVejm3Hc+nWCuEXRlcglZDDlN/t1gWzcSY=
 github.com/go-testfixtures/testfixtures/v3 v3.9.0/go.mod h1:cdsKD2ApFBjdog9jRsz6EJqF+LClq/hrwE9K/1Dzo4s=
-github.com/go-webauthn/webauthn v0.8.4 h1:/emQ9b9Rj4flWO94Fo8KJeYvZ6VzPywXsmqyDA/WicY=
-github.com/go-webauthn/webauthn v0.8.4/go.mod h1:ZqEa9OnSCdQf6CJvTWTDCsUcPRi8F3h7XCIDINwbBgI=
+github.com/go-webauthn/webauthn v0.8.6 h1:bKMtL1qzd2WTFkf1mFTVbreYrwn7dsYmEPjTq6QN90E=
+github.com/go-webauthn/webauthn v0.8.6/go.mod h1:emwVLMCI5yx9evTTvr0r+aOZCdWJqMfbRhF0MufyUog=
 github.com/go-webauthn/x v0.1.4 h1:sGmIFhcY70l6k7JIDfnjVBiAAFEssga5lXIUXe0GtAs=
 github.com/go-webauthn/x v0.1.4/go.mod h1:75Ug0oK6KYpANh5hDOanfDI+dvPWHk788naJVG/37H8=
 github.com/gobuffalo/attrs v0.0.0-20190224210810-a9411de4debd/go.mod h1:4duuawTqi2wkkpB4ePgWMaai6/Kc6WEz83bhFwpHzj0=
