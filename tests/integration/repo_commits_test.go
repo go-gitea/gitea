@@ -110,7 +110,7 @@ func testRepoCommitsWithStatus(t *testing.T, resp, respOne *httptest.ResponseRec
 }
 
 func TestRepoCommitsWithStatusPending(t *testing.T) {
-	doTestRepoCommitWithStatus(t, "pending", "octicon-dot-fill", "grey")
+	doTestRepoCommitWithStatus(t, "pending", "octicon-dot-fill", "yellow")
 }
 
 func TestRepoCommitsWithStatusSuccess(t *testing.T) {
