@@ -81,6 +81,10 @@ func ListTasks() TaskTable {
 	jobMap := map[string]*gocron.Job{}
 	for _, job := range jobs {
 		// the first tag is the task name
+		tags := job.Tags()
+		if len(tags) == 0 { // should never happen
+			continue
+		}
 		jobMap[job.Tags()[0]] = job
 	}
 
@@ -95,7 +99,10 @@ func ListTasks() TaskTable {
 			prev time.Time
 		)
 		if e, ok := jobMap[task.Name]; ok {
-			spec = e.Tags()[1] // the second tag is the task spec
+			tags := e.Tags()
+			if len(tags) > 1 {
+				spec = tags[1] // the second tag is the task spec
+			}
 			next = e.NextRun()
 			prev = e.PreviousRun()
 		}

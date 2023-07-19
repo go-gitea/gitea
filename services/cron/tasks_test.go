@@ -7,7 +7,36 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIsScheduleWithSeconds(t *testing.T) {
+func TestAddTaskToScheduler(t *testing.T) {
+	assert.Len(t, s.Jobs(), 0)
+	defer s.Clear()
+
+	// no seconds
+	err := addTaskToScheduler(&Task{
+		Name: "task 1",
+		config: &BaseConfig{
+			Schedule: "5 4 * * *",
+		},
+	})
+	assert.NoError(t, err)
+	assert.Len(t, s.Jobs(), 1)
+	assert.Equal(t, "task 1", s.Jobs()[0].Tags()[0])
+	assert.Equal(t, "5 4 * * *", s.Jobs()[0].Tags()[1])
+
+	// with seconds
+	err = addTaskToScheduler(&Task{
+		Name: "task 2",
+		config: &BaseConfig{
+			Schedule: "30 5 4 * * *",
+		},
+	})
+	assert.NoError(t, err)
+	assert.Len(t, s.Jobs(), 2)
+	assert.Equal(t, "task 2", s.Jobs()[1].Tags()[0])
+	assert.Equal(t, "30 5 4 * * *", s.Jobs()[1].Tags()[1])
+}
+
+func TestScheduleHasSeconds(t *testing.T) {
 	tests := []struct {
 		schedule  string
 		hasSecond bool
@@ -23,7 +52,7 @@ func TestIsScheduleWithSeconds(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			assert.Equal(t, test.hasSecond, isScheduleWithSeconds(test.schedule))
+			assert.Equal(t, test.hasSecond, scheduleHasSeconds(test.schedule))
 		})
 	}
 }

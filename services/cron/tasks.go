@@ -177,15 +177,7 @@ func RegisterTask(name string, config Config, fun func(context.Context, *user_mo
 
 	if config.IsEnabled() {
 		// We cannot use the entry return as there is no way to lock it
-		tags := []string{name, config.GetSchedule()} // name and schedule can't be get from job, so we add them as tag
-		var scheduler *gocron.Scheduler
-		if isScheduleWithSeconds(config.GetSchedule()) {
-			scheduler = s.CronWithSeconds(config.GetSchedule())
-		} else {
-			scheduler = s.Cron(config.GetSchedule())
-		}
-		if _, err = scheduler.Tag(tags...).Do(task.Run); err != nil {
-			log.Error("Unable to register cron task with name: %s Error: %v", name, err)
+		if err := addTaskToScheduler(task); err != nil {
 			return err
 		}
 	}
@@ -208,7 +200,22 @@ func RegisterTaskFatal(name string, config Config, fun func(context.Context, *us
 	}
 }
 
-func isScheduleWithSeconds(schedule string) bool {
+func addTaskToScheduler(task *Task) error {
+	tags := []string{task.Name, task.config.GetSchedule()} // name and schedule can't be get from job, so we add them as tag
+	var scheduler *gocron.Scheduler
+	if scheduleHasSeconds(task.config.GetSchedule()) {
+		scheduler = s.CronWithSeconds(task.config.GetSchedule())
+	} else {
+		scheduler = s.Cron(task.config.GetSchedule())
+	}
+	if _, err := scheduler.Tag(tags...).Do(task.Run); err != nil {
+		log.Error("Unable to register cron task with name: %s Error: %v", task.Name, err)
+		return err
+	}
+	return nil
+}
+
+func scheduleHasSeconds(schedule string) bool {
 	numSpaceBlocks := 0
 	previousIsSpace := false
 	for _, c := range schedule {
