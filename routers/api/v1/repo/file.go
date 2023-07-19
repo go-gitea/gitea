@@ -408,6 +408,14 @@ func canReadFiles(r *context.Repository) bool {
 	return r.Permission.CanRead(unit.TypeCode)
 }
 
+func base64Reader(s string) (io.Reader, error) {
+	b, err := base64.StdEncoding.DecodeString(s)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewReader(b), nil
+}
+
 // ChangeFiles handles API call for modifying multiple files
 func ChangeFiles(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/contents repository repoChangeFiles
@@ -449,14 +457,19 @@ func ChangeFiles(ctx *context.APIContext) {
 		apiOpts.BranchName = ctx.Repo.Repository.DefaultBranch
 	}
 
-	files := []*files_service.ChangeRepoFile{}
+	var files []*files_service.ChangeRepoFile
 	for _, file := range apiOpts.Files {
+		contentReader, err := base64Reader(file.ContentBase64)
+		if err != nil {
+			ctx.Error(http.StatusUnprocessableEntity, "Invalid base64 content", err)
+			return
+		}
 		changeRepoFile := &files_service.ChangeRepoFile{
-			Operation:    file.Operation,
-			TreePath:     file.Path,
-			FromTreePath: file.FromPath,
-			Content:      file.Content,
-			SHA:          file.SHA,
+			Operation:     file.Operation,
+			TreePath:      file.Path,
+			FromTreePath:  file.FromPath,
+			ContentReader: contentReader,
+			SHA:           file.SHA,
 		}
 		files = append(files, changeRepoFile)
 	}
@@ -544,12 +557,18 @@ func CreateFile(ctx *context.APIContext) {
 		apiOpts.BranchName = ctx.Repo.Repository.DefaultBranch
 	}
 
+	contentReader, err := base64Reader(apiOpts.ContentBase64)
+	if err != nil {
+		ctx.Error(http.StatusUnprocessableEntity, "Invalid base64 content", err)
+		return
+	}
+
 	opts := &files_service.ChangeRepoFilesOptions{
 		Files: []*files_service.ChangeRepoFile{
 			{
-				Operation: "create",
-				TreePath:  ctx.Params("*"),
-				Content:   apiOpts.Content,
+				Operation:     "create",
+				TreePath:      ctx.Params("*"),
+				ContentReader: contentReader,
 			},
 		},
 		Message:   apiOpts.Message,
@@ -636,14 +655,20 @@ func UpdateFile(ctx *context.APIContext) {
 		apiOpts.BranchName = ctx.Repo.Repository.DefaultBranch
 	}
 
+	contentReader, err := base64Reader(apiOpts.ContentBase64)
+	if err != nil {
+		ctx.Error(http.StatusUnprocessableEntity, "Invalid base64 content", err)
+		return
+	}
+
 	opts := &files_service.ChangeRepoFilesOptions{
 		Files: []*files_service.ChangeRepoFile{
 			{
-				Operation:    "update",
-				Content:      apiOpts.Content,
-				SHA:          apiOpts.SHA,
-				FromTreePath: apiOpts.FromPath,
-				TreePath:     ctx.Params("*"),
+				Operation:     "update",
+				ContentReader: contentReader,
+				SHA:           apiOpts.SHA,
+				FromTreePath:  apiOpts.FromPath,
+				TreePath:      ctx.Params("*"),
 			},
 		},
 		Message:   apiOpts.Message,
@@ -707,14 +732,6 @@ func createOrUpdateFiles(ctx *context.APIContext, opts *files_service.ChangeRepo
 			UserID:   ctx.Doer.ID,
 			RepoName: ctx.Repo.Repository.LowerName,
 		}
-	}
-
-	for _, file := range opts.Files {
-		content, err := base64.StdEncoding.DecodeString(file.Content)
-		if err != nil {
-			return nil, err
-		}
-		file.Content = string(content)
 	}
 
 	return files_service.ChangeRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, opts)

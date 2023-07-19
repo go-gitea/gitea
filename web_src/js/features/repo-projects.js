@@ -1,6 +1,7 @@
 import $ from 'jquery';
 import {useLightTextOnBackground} from '../utils/color.js';
 import tinycolor from 'tinycolor2';
+import {createSortable} from '../modules/sortable.js';
 
 const {csrfToken} = window.config;
 
@@ -55,12 +56,10 @@ async function initRepoProjectSortable() {
   const els = document.querySelectorAll('#project-board > .board.sortable');
   if (!els.length) return;
 
-  const {Sortable} = await import(/* webpackChunkName: "sortable" */'sortablejs');
-
   // the HTML layout is: #project-board > .board > .board-column .board.cards > .board-card.card .content
   const mainBoard = els[0];
   let boardColumns = mainBoard.getElementsByClassName('board-column');
-  new Sortable(mainBoard, {
+  createSortable(mainBoard, {
     group: 'board-column',
     draggable: '.board-column',
     filter: '[data-id="0"]',
@@ -89,7 +88,7 @@ async function initRepoProjectSortable() {
 
   for (const boardColumn of boardColumns) {
     const boardCardList = boardColumn.getElementsByClassName('board')[0];
-    new Sortable(boardCardList, {
+    createSortable(boardCardList, {
       group: 'shared',
       animation: 150,
       ghostClass: 'card-ghost',
