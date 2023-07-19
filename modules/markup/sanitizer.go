@@ -6,6 +6,7 @@ package markup
 
 import (
 	"io"
+	"net/url"
 	"regexp"
 	"sync"
 
@@ -79,6 +80,14 @@ func createDefaultPolicy() *bluemonday.Policy {
 		policy.AllowURLSchemes(setting.Markdown.CustomURLSchemes...)
 	} else {
 		policy.AllowURLSchemesMatching(allowAllRegex)
+
+		// Even if every scheme is allowed, these three are blocked for security reasons
+		disallowScheme := func(*url.URL) bool {
+			return false
+		}
+		policy.AllowURLSchemeWithCustomPolicy("javascript", disallowScheme)
+		policy.AllowURLSchemeWithCustomPolicy("vbscript", disallowScheme)
+		policy.AllowURLSchemeWithCustomPolicy("data", disallowScheme)
 	}
 
 	// Allow classes for anchors
