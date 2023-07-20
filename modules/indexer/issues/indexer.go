@@ -285,18 +285,6 @@ func DeleteRepoIssueIndexer(ctx context.Context, repoID int64) {
 	}
 }
 
-// Deprecated: use SearchIssues instead
-// SearchIssuesByKeyword search issue ids by keywords and repo id
-// WARNNING: You have to ensure user have permission to visit repoIDs' issues
-func SearchIssuesByKeyword(ctx context.Context, repoIDs []int64, keyword string) ([]int64, error) {
-	ids, _, err := SearchIssues(ctx, &SearchOptions{
-		Keyword:   keyword,
-		RepoIDs:   repoIDs,
-		Paginator: db_model.NewAbsoluteListOptions(0, 50),
-	})
-	return ids, err
-}
-
 // IsAvailable checks if issue indexer is available
 func IsAvailable(ctx context.Context) bool {
 	return (*globalIndexer.Load()).Ping(ctx) == nil
