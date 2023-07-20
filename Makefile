@@ -272,7 +272,7 @@ node-check:
 
 .PHONY: clean-all
 clean-all: clean
-	rm -rf node_modules
+	@rm -rf $(filter-out public/assets/img, $(wildcard public/assets/*)) node_modules
 
 .PHONY: clean
 clean:
