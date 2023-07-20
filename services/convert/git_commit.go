@@ -200,7 +200,7 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 			for _, filename := range files {
 				affectedFileList = append(affectedFileList, &api.CommitAffectedFiles{
 					Filename: filename,
-					Status: filestatus,
+					Status:   filestatus,
 				})
 			}
 		}
