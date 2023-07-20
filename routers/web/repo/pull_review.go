@@ -28,6 +28,9 @@ const (
 // RenderNewCodeCommentForm will render the form for creating a new review comment
 func RenderNewCodeCommentForm(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
+	if ctx.Written() {
+		return
+	}
 	if !issue.IsPull {
 		return
 	}
@@ -52,10 +55,10 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 func CreateCodeComment(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CodeCommentForm)
 	issue := GetActionIssue(ctx)
-	if !issue.IsPull {
+	if ctx.Written() {
 		return
 	}
-	if ctx.Written() {
+	if !issue.IsPull {
 		return
 	}
 
@@ -185,10 +188,10 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment) {
 func SubmitReview(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.SubmitReviewForm)
 	issue := GetActionIssue(ctx)
-	if !issue.IsPull {
+	if ctx.Written() {
 		return
 	}
-	if ctx.Written() {
+	if !issue.IsPull {
 		return
 	}
 	if ctx.HasError() {

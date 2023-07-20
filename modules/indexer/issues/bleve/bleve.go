@@ -138,7 +138,7 @@ func (b *Indexer) Delete(_ context.Context, ids ...int64) error {
 
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
-func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int) (*internal.SearchResult, error) {
+func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int, state string) (*internal.SearchResult, error) {
 	var repoQueriesP []*query.NumericRangeQuery
 	for _, repoID := range repoIDs {
 		repoQueriesP = append(repoQueriesP, numericEqualityQuery(repoID, "repo_id"))

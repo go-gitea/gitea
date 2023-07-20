@@ -41,6 +41,7 @@ func MustEnableProjects(ctx *context.Context) {
 
 // Projects renders the home page of projects
 func Projects(ctx *context.Context) {
+	shared_user.PrepareContextForProfileBigAvatar(ctx)
 	ctx.Data["Title"] = ctx.Tr("repo.project_board")
 
 	sortType := ctx.FormTrim("sort")
@@ -61,7 +62,7 @@ func Projects(ctx *context.Context) {
 		OwnerID:  ctx.ContextUser.ID,
 		Page:     page,
 		IsClosed: util.OptionalBoolOf(isShowClosed),
-		SortType: sortType,
+		OrderBy:  project_model.GetSearchOrderByBySortType(sortType),
 		Type:     projectType,
 	})
 	if err != nil {
@@ -437,8 +438,7 @@ func UpdateIssueProject(ctx *context.Context) {
 	projectID := ctx.FormInt64("id")
 	for _, issue := range issues {
 		if issue.Project != nil {
-			oldProjectID := issue.Project.ID
-			if oldProjectID == projectID {
+			if issue.Project.ID == projectID {
 				continue
 			}
 		}

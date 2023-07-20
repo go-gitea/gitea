@@ -222,8 +222,7 @@ func (issue *Issue) LoadPoster(ctx context.Context) (err error) {
 			if !user_model.IsErrUserNotExist(err) {
 				return fmt.Errorf("getUserByID.(poster) [%d]: %w", issue.PosterID, err)
 			}
-			err = nil
-			return
+			return nil
 		}
 	}
 	return err
@@ -316,27 +315,27 @@ func (issue *Issue) LoadMilestone(ctx context.Context) (err error) {
 // LoadAttributes loads the attribute of this issue.
 func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 	if err = issue.LoadRepo(ctx); err != nil {
-		return
+		return err
 	}
 
 	if err = issue.LoadPoster(ctx); err != nil {
-		return
+		return err
 	}
 
 	if err = issue.LoadLabels(ctx); err != nil {
-		return
+		return err
 	}
 
 	if err = issue.LoadMilestone(ctx); err != nil {
-		return
+		return err
 	}
 
 	if err = issue.LoadProject(ctx); err != nil {
-		return
+		return err
 	}
 
 	if err = issue.LoadAssignees(ctx); err != nil {
-		return
+		return err
 	}
 
 	if err = issue.LoadPullRequest(ctx); err != nil && !IsErrPullRequestNotExist(err) {

@@ -5,16 +5,12 @@ package main
 
 import (
 	"os"
-	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/urfave/cli"
 )
-
-// EnvironmentPrefix environment variables prefixed with this represent ini values to write
-const EnvironmentPrefix = "GITEA"
 
 func main() {
 	app := cli.NewApp()
@@ -70,15 +66,6 @@ func main() {
 			Value: "",
 			Usage: "Destination file to write to",
 		},
-		cli.BoolFlag{
-			Name:  "clear",
-			Usage: "Clears the matched variables from the environment",
-		},
-		cli.StringFlag{
-			Name:  "prefix, p",
-			Value: EnvironmentPrefix,
-			Usage: "Environment prefix to look for - will be suffixed by __ (2 underscores)",
-		},
 	}
 	app.Action = runEnvironmentToIni
 	err := app.Run(os.Args)
@@ -88,6 +75,8 @@ func main() {
 }
 
 func runEnvironmentToIni(c *cli.Context) error {
+	// the config system may change the environment variables, so get a copy first, to be used later
+	env := append([]string{}, os.Environ()...)
 	setting.InitWorkPathAndCfgProvider(os.Getenv, setting.ArgWorkPathAndCustomConf{
 		WorkPath:   c.String("work-path"),
 		CustomPath: c.String("custom-path"),
@@ -99,9 +88,7 @@ func runEnvironmentToIni(c *cli.Context) error {
 		log.Fatal("Failed to load custom conf '%s': %v", setting.CustomConf, err)
 	}
 
-	prefixGitea := c.String("prefix") + "__"
-	suffixFile := "__FILE"
-	changed := setting.EnvironmentToConfig(cfg, prefixGitea, suffixFile, os.Environ())
+	changed := setting.EnvironmentToConfig(cfg, env)
 
 	// try to save the config file
 	destination := c.String("out")
@@ -113,20 +100,6 @@ func runEnvironmentToIni(c *cli.Context) error {
 		err = cfg.SaveTo(destination)
 		if err != nil {
 			return err
-		}
-	}
-
-	// clear Gitea's specific environment variables if requested
-	if c.Bool("clear") {
-		for _, kv := range os.Environ() {
-			idx := strings.IndexByte(kv, '=')
-			if idx < 0 {
-				continue
-			}
-			eKey := kv[:idx]
-			if strings.HasPrefix(eKey, prefixGitea) {
-				_ = os.Unsetenv(eKey)
-			}
 		}
 	}
 

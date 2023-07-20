@@ -298,26 +298,26 @@ func ClearIssueLabels(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption) (issue *issues_model.Issue, labels []*issues_model.Label, err error) {
-	issue, err = issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption) (*issues_model.Issue, []*issues_model.Label, error) {
+	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
-		return
+		return nil, nil, err
 	}
 
-	labels, err = issues_model.GetLabelsByIDs(form.Labels)
+	labels, err := issues_model.GetLabelsByIDs(form.Labels)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetLabelsByIDs", err)
-		return
+		return nil, nil, err
 	}
 
 	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.Status(http.StatusForbidden)
-		return
+		return nil, nil, nil
 	}
 
 	return issue, labels, err

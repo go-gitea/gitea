@@ -12,9 +12,30 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
+const (
+	EnvConfigKeyPrefixGitea = "GITEA__"
+	EnvConfigKeySuffixFile  = "__FILE"
+)
+
 const escapeRegexpString = "_0[xX](([0-9a-fA-F][0-9a-fA-F])+)_"
 
 var escapeRegex = regexp.MustCompile(escapeRegexpString)
+
+func CollectEnvConfigKeys() (keys []string) {
+	for _, env := range os.Environ() {
+		if strings.HasPrefix(env, EnvConfigKeyPrefixGitea) {
+			k, _, _ := strings.Cut(env, "=")
+			keys = append(keys, k)
+		}
+	}
+	return keys
+}
+
+func ClearEnvConfigKeys() {
+	for _, k := range CollectEnvConfigKeys() {
+		_ = os.Unsetenv(k)
+	}
+}
 
 // decodeEnvSectionKey will decode a portable string encoded Section__Key pair
 // Portable strings are considered to be of the form [A-Z0-9_]*
@@ -87,7 +108,7 @@ func decodeEnvironmentKey(prefixGitea, suffixFile, envKey string) (ok bool, sect
 	return ok, section, key, useFileValue
 }
 
-func EnvironmentToConfig(cfg ConfigProvider, prefixGitea, suffixFile string, envs []string) (changed bool) {
+func EnvironmentToConfig(cfg ConfigProvider, envs []string) (changed bool) {
 	for _, kv := range envs {
 		idx := strings.IndexByte(kv, '=')
 		if idx < 0 {
@@ -97,7 +118,7 @@ func EnvironmentToConfig(cfg ConfigProvider, prefixGitea, suffixFile string, env
 		// parse the environment variable to config section name and key name
 		envKey := kv[:idx]
 		envValue := kv[idx+1:]
-		ok, sectionName, keyName, useFileValue := decodeEnvironmentKey(prefixGitea, suffixFile, envKey)
+		ok, sectionName, keyName, useFileValue := decodeEnvironmentKey(EnvConfigKeyPrefixGitea, EnvConfigKeySuffixFile, envKey)
 		if !ok {
 			continue
 		}

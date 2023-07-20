@@ -24,7 +24,7 @@ import (
 // GetContentHistoryOverview get overview
 func GetContentHistoryOverview(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
-	if issue == nil {
+	if ctx.Written() {
 		return
 	}
 
@@ -43,11 +43,11 @@ func GetContentHistoryOverview(ctx *context.Context) {
 // GetContentHistoryList  get list
 func GetContentHistoryList(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
-	commentID := ctx.FormInt64("comment_id")
-	if issue == nil {
+	if ctx.Written() {
 		return
 	}
 
+	commentID := ctx.FormInt64("comment_id")
 	items, _ := issues_model.FetchIssueContentHistoryList(ctx, issue.ID, commentID)
 
 	// render history list to HTML for frontend dropdown items: (name, value)
@@ -113,7 +113,7 @@ func canSoftDeleteContentHistory(ctx *context.Context, issue *issues_model.Issue
 // GetContentHistoryDetail get detail
 func GetContentHistoryDetail(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
-	if issue == nil {
+	if ctx.Written() {
 		return
 	}
 
@@ -179,7 +179,7 @@ func GetContentHistoryDetail(ctx *context.Context) {
 // SoftDeleteContentHistory soft delete
 func SoftDeleteContentHistory(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
-	if issue == nil {
+	if ctx.Written() {
 		return
 	}
 
