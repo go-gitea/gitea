@@ -467,14 +467,11 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	searchOpt := &issue_indexer.SearchOptions{
-		Keyword:    keyword,
-		RepoIDs:    []int64{ctx.Repo.Repository.ID},
-		IsPull:     isPull,
-		IsClosed:   isClosed,
-		PosterID:   &createdByID,
-		AssigneeID: &assignedByID,
-		MentionID:  &mentionedByID,
-		SortBy:     issue_indexer.SortByCreatedDesc,
+		Keyword:  keyword,
+		RepoIDs:  []int64{ctx.Repo.Repository.ID},
+		IsPull:   isPull,
+		IsClosed: isClosed,
+		SortBy:   issue_indexer.SortByCreatedDesc,
 	}
 	if since != 0 {
 		searchOpt.UpdatedAfterUnix = &since
@@ -498,6 +495,16 @@ func ListIssues(ctx *context.APIContext) {
 		searchOpt.MilestoneIDs = []int64{0}
 	} else {
 		searchOpt.MilestoneIDs = mileIDs
+	}
+
+	if createdByID > 0 {
+		searchOpt.PosterID = &createdByID
+	}
+	if assignedByID > 0 {
+		searchOpt.AssigneeID = &assignedByID
+	}
+	if mentionedByID > 0 {
+		searchOpt.MentionID = &mentionedByID
 	}
 
 	ids, total, err := issue_indexer.SearchIssues(ctx, searchOpt)
