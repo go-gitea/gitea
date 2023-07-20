@@ -56,7 +56,7 @@ require (
 	github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
 	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/google/go-github/v53 v53.2.0
-  github.com/google/licenseclassifier/v2 v2.0.0
+	github.com/google/licenseclassifier/v2 v2.0.0
 	github.com/google/pprof v0.0.0-20230705174524-200ffdc848b8
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/feeds v1.1.1
