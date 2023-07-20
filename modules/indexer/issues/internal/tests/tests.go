@@ -39,7 +39,7 @@ func TestIndexer(t *testing.T, indexer internal.Indexer) {
 	)
 
 	t.Run("Index", func(t *testing.T) {
-		d := generateIndexerData()
+		d := generateDefaultIndexerData()
 		for _, v := range d {
 			ids = append(ids, v.ID)
 			data[v.ID] = v
@@ -58,9 +58,19 @@ func TestIndexer(t *testing.T, indexer internal.Indexer) {
 	t.Run("Search", func(t *testing.T) {
 		for _, c := range cases {
 			t.Run(c.Name, func(t *testing.T) {
-				if c.Before != nil {
-					c.Before(t, data, indexer)
+				if len(c.ExtraData) > 0 {
+					require.NoError(t, indexer.Index(context.Background(), c.ExtraData...))
+					for _, v := range c.ExtraData {
+						data[v.ID] = v
+					}
+					defer func() {
+						for _, v := range c.ExtraData {
+							require.NoError(t, indexer.Delete(context.Background(), v.ID))
+							delete(data, v.ID)
+						}
+					}()
 				}
+
 				result, err := indexer.Search(context.Background(), c.SearchOptions)
 				require.NoError(t, err)
 
@@ -77,10 +87,6 @@ func TestIndexer(t *testing.T, indexer internal.Indexer) {
 				if result.Imprecise {
 					// If an engine does not support complex queries, do not use TestIndexer to test it
 					t.Errorf("Expected imprecise to be false, got true")
-				}
-
-				if c.After != nil {
-					c.After(t, data, indexer)
 				}
 			})
 		}
@@ -110,16 +116,10 @@ var cases = []*testIndexerCase{
 	},
 	{
 		Name: "keyword",
-		Before: func(t *testing.T, _ map[int64]*internal.IndexerData, indexer internal.Indexer) {
-			newData := []*internal.IndexerData{
-				{ID: 1000, Title: "hi hello world"},
-				{ID: 1001, Content: "hi hello world"},
-				{ID: 1002, Comments: []string{"hi", "hello world"}},
-			}
-			assert.NoError(t, indexer.Index(context.Background(), newData...))
-		},
-		After: func(t *testing.T, data map[int64]*internal.IndexerData, indexer internal.Indexer) {
-			assert.NoError(t, indexer.Delete(context.Background(), 1000, 1001, 1002))
+		ExtraData: []*internal.IndexerData{
+			{ID: 1000, Title: "hi hello world"},
+			{ID: 1001, Content: "hi hello world"},
+			{ID: 1002, Comments: []string{"hi", "hello world"}},
 		},
 		SearchOptions: &internal.SearchOptions{
 			Keyword: "hello",
@@ -131,9 +131,8 @@ var cases = []*testIndexerCase{
 }
 
 type testIndexerCase struct {
-	Name   string
-	Before func(t *testing.T, data map[int64]*internal.IndexerData, indexer internal.Indexer)
-	After  func(t *testing.T, data map[int64]*internal.IndexerData, indexer internal.Indexer)
+	Name      string
+	ExtraData []*internal.IndexerData
 
 	SearchOptions *internal.SearchOptions
 
@@ -142,7 +141,7 @@ type testIndexerCase struct {
 	ExpectedTotal int64
 }
 
-func generateIndexerData() []*internal.IndexerData {
+func generateDefaultIndexerData() []*internal.IndexerData {
 	var id int64
 	var data []*internal.IndexerData
 	for repoID := int64(1); repoID <= 10; repoID++ {
