@@ -271,8 +271,9 @@ node-check:
 	fi
 
 .PHONY: clean-all
-clean-all: clean
-	@rm -rf $(filter-out public/assets/img, $(wildcard public/assets/*)) node_modules
+clean-all:
+	$(eval WEBPACK_ASSETS := $(filter-out public/assets/img, $(wildcard public/assets/*)))
+	@rm -rf $(WEBPACK_ASSETS) node_modules
 
 .PHONY: clean
 clean:
