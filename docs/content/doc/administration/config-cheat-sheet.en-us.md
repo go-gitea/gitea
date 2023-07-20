@@ -44,28 +44,27 @@ reported as part of the default configuration when running `gitea --help` or on 
 
 - _`AppPath`_: This is the absolute path of the running gitea binary.
 - _`AppWorkPath`_: This refers to "working path" of the `gitea` binary. It is determined by using the first set thing in the following hierarchy:
+  - The `WORK_PATH` option in `app.ini`
   - The `--work-path` flag passed to the binary
   - The environment variable `$GITEA_WORK_DIR`
   - A built-in value set at build time (see building from source)
-  - Otherwise it defaults to the directory of the _`AppPath`_
-  - If any of the above are relative paths then they are made absolute against
-the directory of the _`AppPath`_
+  - Otherwise, it defaults to the directory of the _`AppPath`_
+  - If any of the above are relative paths then they are made absolute against the directory of the _`AppPath`_
 - _`CustomPath`_: This is the base directory for custom templates and other options.
 It is determined by using the first set thing in the following hierarchy:
   - The `--custom-path` flag passed to the binary
   - The environment variable `$GITEA_CUSTOM`
   - A built-in value set at build time (see building from source)
-  - Otherwise it defaults to _`AppWorkPath`_`/custom`
+  - Otherwise, it defaults to _`AppWorkPath`_`/custom`
   - If any of the above are relative paths then they are made absolute against the
 the directory of the _`AppWorkPath`_
 - _`CustomConf`_: This is the path to the `app.ini` file.
   - The `--config` flag passed to the binary
   - A built-in value set at build time (see building from source)
-  - Otherwise it defaults to _`CustomPath`_`/conf/app.ini`
-  - If any of the above are relative paths then they are made absolute against the
-the directory of the _`CustomPath`_
+  - Otherwise, it defaults to _`CustomPath`_`/conf/app.ini`
+  - If any of the above are relative paths then they are made absolute against the directory of the _`CustomPath`_
 
-In addition there is _`StaticRootPath`_ which can be set as a built-in at build time, but will otherwise default to _`AppWorkPath`_
+In addition, there is _`StaticRootPath`_ which can be set as a built-in at build time, but will otherwise default to _`AppWorkPath`_
 
 ## Overall (`DEFAULT`)
 
@@ -74,6 +73,7 @@ In addition there is _`StaticRootPath`_ which can be set as a built-in at build 
    This should be a dedicated system (non-user) account. Setting this incorrectly will cause Gitea
    to not start.
 - `RUN_MODE`: **prod**: Application run mode, affects performance and debugging: `dev` or `prod`, default is `prod`. Mode `dev` makes Gitea easier to develop and debug, values other than `dev` are treated as `prod` which is for production use.
+- `WORK_PATH`: **_the-work-path_**: The working directory, see the comment of AppWorkPath above.
 
 ## Repository (`repository`)
 
@@ -224,9 +224,9 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `MAX_DISPLAY_FILE_SIZE`: **8388608**: Max size of files to be displayed (default is 8MiB)
 - `REACTIONS`: All available reactions users can choose on issues/prs and comments
     Values can be emoji alias (:smile:) or a unicode emoji.
-    For custom reactions, add a tightly cropped square image to public/img/emoji/reaction_name.png
+    For custom reactions, add a tightly cropped square image to public/assets/img/emoji/reaction_name.png
 - `CUSTOM_EMOJIS`: **gitea, codeberg, gitlab, git, github, gogs**: Additional Emojis not defined in the utf8 standard.
-    By default, we support Gitea (:gitea:), to add more copy them to public/img/emoji/emoji_name.png and
+    By default, we support Gitea (:gitea:), to add more copy them to public/assets/img/emoji/emoji_name.png and
     add it to this config.
 - `DEFAULT_SHOW_FULL_NAME`: **false**: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 - `SEARCH_REPO_DESCRIPTION`: **true**: Whether to search within description at repository search on explore page.
