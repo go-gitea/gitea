@@ -116,8 +116,8 @@ FOMANTIC_WORK_DIR := web_src/fomantic
 
 WEBPACK_SOURCES := $(shell find web_src/js web_src/css -type f)
 WEBPACK_CONFIGS := webpack.config.js
-WEBPACK_DEST := public/assets/static/index.js public/assets/static/index.css
-WEBPACK_DEST_ENTRIES := public/assets/static
+WEBPACK_DEST := public/assets/index.js public/assets/index.css
+WEBPACK_DEST_ENTRIES := public/assets
 
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
 BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
@@ -434,7 +434,6 @@ watch:
 
 .PHONY: watch-frontend
 watch-frontend: node-check node_modules
-	@rm -rf $(WEBPACK_DEST_ENTRIES)
 	NODE_ENV=development npx webpack --watch --progress
 
 .PHONY: watch-backend
@@ -957,7 +956,6 @@ webpack: $(WEBPACK_DEST)
 
 $(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) package-lock.json
 	@$(MAKE) -s node-check node_modules
-	rm -rf $(WEBPACK_DEST_ENTRIES)
 	npx webpack
 	@touch $(WEBPACK_DEST)
 

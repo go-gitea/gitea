@@ -81,8 +81,11 @@ export default {
   output: {
     module: true,
     publicPath: '',
-    path: fileURLToPath(new URL('public/assets/static', import.meta.url)),
+    path: fileURLToPath(new URL('public/assets', import.meta.url)),
     filename: () => '[name].js',
+    clean: {
+      keep: /^img\//,
+    },
     chunkFilename: ({chunk}) => {
       const language = (/monaco.*languages?_.+?_(.+?)_/.exec(chunk.id) || [])[1];
       return `${language ? `monaco-language-${language.toLowerCase()}` : `[name]`}.[contenthash:8].js`;
@@ -231,6 +234,10 @@ export default {
     chunksSort: 'name',
     colors: true,
     entrypoints: false,
+    excludeAssets: [
+      /^monaco-language-.+\.js$/,
+      !isProduction && /^licenses.txt$/,
+    ].filter(Boolean),
     groupAssetsByChunk: false,
     groupAssetsByEmitStatus: false,
     groupAssetsByInfo: false,

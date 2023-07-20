@@ -75,7 +75,8 @@ cpu.out
 /yarn.lock
 /yarn-error.log
 /npm-debug.log*
-/public/assets/static
+/public/assets/*
+!/public/assets/img
 /vendor
 /web_src/fomantic/node_modules
 /web_src/fomantic/build/*
