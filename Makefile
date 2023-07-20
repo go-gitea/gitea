@@ -117,7 +117,6 @@ FOMANTIC_WORK_DIR := web_src/fomantic
 WEBPACK_SOURCES := $(shell find web_src/js web_src/css -type f)
 WEBPACK_CONFIGS := webpack.config.js
 WEBPACK_DEST := public/assets/index.js public/assets/index.css
-WEBPACK_DEST_ENTRIES := public/assets
 
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
 BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
@@ -273,7 +272,7 @@ node-check:
 
 .PHONY: clean-all
 clean-all: clean
-	rm -rf $(WEBPACK_DEST_ENTRIES) node_modules
+	rm -rf node_modules
 
 .PHONY: clean
 clean:
