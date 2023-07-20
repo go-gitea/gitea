@@ -595,17 +595,13 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		}
 
 		if keyword != "" {
-			old := opts.Paginator
-			opts.Paginator = &db.ListOptions{
-				ListAll: true,
-			}
-			allIssueIDs, err := issueIDsFromSearch(ctx, keyword, opts)
+			statsOpts.RepoIDs = opts.RepoIDs
+			allIssueIDs, err := issueIDsFromSearch(ctx, keyword, &statsOpts)
 			if err != nil {
 				ctx.ServerError("issueIDsFromSearch", err)
 				return
 			}
 			statsOpts.IssueIDs = allIssueIDs
-			opts.Paginator = old
 		}
 
 		issueStats, err = issues_model.GetUserIssueStats(filterMode, statsOpts)
