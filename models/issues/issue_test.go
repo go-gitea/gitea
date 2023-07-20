@@ -73,7 +73,7 @@ func TestIssueAPIURL(t *testing.T) {
 func TestGetIssuesByIDs(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	testSuccess := func(expectedIssueIDs, nonExistentIssueIDs []int64) {
-		issues, err := issues_model.GetIssuesByIDs(db.DefaultContext, append(expectedIssueIDs, nonExistentIssueIDs...))
+		issues, err := issues_model.GetIssuesByIDs(db.DefaultContext, append(expectedIssueIDs, nonExistentIssueIDs...), true)
 		assert.NoError(t, err)
 		actualIssueIDs := make([]int64, len(issues))
 		for i, issue := range issues {
@@ -83,6 +83,7 @@ func TestGetIssuesByIDs(t *testing.T) {
 	}
 	testSuccess([]int64{1, 2, 3}, []int64{})
 	testSuccess([]int64{1, 2, 3}, []int64{unittest.NonexistentID})
+	testSuccess([]int64{3, 2, 1}, []int64{})
 }
 
 func TestGetParticipantIDsByIssue(t *testing.T) {

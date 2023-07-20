@@ -538,7 +538,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			ctx.ServerError("issueIDsFromSearch", err)
 			return
 		}
-		issues, err = issues_model.GetIssuesByIDs(ctx, issueIDs)
+		issues, err = issues_model.GetIssuesByIDs(ctx, issueIDs, true)
 		if err != nil {
 			ctx.ServerError("GetIssuesByIDs", err)
 			return
@@ -730,91 +730,11 @@ func getRepoIDs(reposQuery string) []int64 {
 }
 
 func issueIDsFromSearch(ctx *context.Context, keyword string, opts *issues_model.IssuesOptions) ([]int64, error) {
-	ids, _, err := issue_indexer.SearchIssues(ctx, convertOptionsToSearchOptions(keyword, opts))
+	ids, _, err := issue_indexer.SearchIssues(ctx, issue_indexer.ToSearchOptions(keyword, opts))
 	if err != nil {
 		return nil, fmt.Errorf("SearchIssues: %w", err)
 	}
 	return ids, nil
-}
-
-func convertOptionsToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *issue_indexer.SearchOptions {
-	searchOpt := &issue_indexer.SearchOptions{
-		Keyword:   keyword,
-		RepoIDs:   opts.RepoIDs,
-		AllPublic: false,
-		IsPull:    opts.IsPull,
-		IsClosed:  opts.IsClosed,
-	}
-
-	if len(opts.LabelIDs) == 1 && opts.LabelIDs[0] == 0 {
-		searchOpt.NoLabelOnly = true
-	} else {
-		for _, labelID := range opts.LabelIDs {
-			if labelID > 0 {
-				searchOpt.IncludedLabelIDs = append(searchOpt.IncludedLabelIDs, labelID)
-			} else {
-				searchOpt.ExcludedLabelIDs = append(searchOpt.ExcludedLabelIDs, -labelID)
-			}
-		}
-	}
-
-	if len(opts.MilestoneIDs) == 1 && opts.MilestoneIDs[0] == db.NoConditionID {
-		searchOpt.MilestoneIDs = []int64{0}
-	} else {
-		searchOpt.MilestoneIDs = opts.MilestoneIDs
-	}
-
-	if opts.AssigneeID > 0 {
-		searchOpt.AssigneeID = &opts.AssigneeID
-	}
-	if opts.PosterID > 0 {
-		searchOpt.PosterID = &opts.PosterID
-	}
-	if opts.MentionedID > 0 {
-		searchOpt.MentionID = &opts.MentionedID
-	}
-	if opts.ReviewedID > 0 {
-		searchOpt.ReviewedID = &opts.ReviewedID
-	}
-	if opts.ReviewRequestedID > 0 {
-		searchOpt.ReviewRequestedID = &opts.ReviewRequestedID
-	}
-	if opts.SubscriberID > 0 {
-		searchOpt.SubscriberID = &opts.SubscriberID
-	}
-
-	if opts.UpdatedAfterUnix > 0 {
-		searchOpt.UpdatedAfterUnix = &opts.UpdatedAfterUnix
-	}
-	if opts.UpdatedBeforeUnix > 0 {
-		searchOpt.UpdatedBeforeUnix = &opts.UpdatedBeforeUnix
-	}
-
-	searchOpt.Paginator = opts.Paginator
-
-	switch opts.SortType {
-	case "oldest":
-		searchOpt.SortBy = issue_indexer.SortByCreatedAsc
-	case "recentupdate":
-		searchOpt.SortBy = issue_indexer.SortByUpdatedDesc
-	case "leastupdate":
-		searchOpt.SortBy = issue_indexer.SortByUpdatedAsc
-	case "mostcomment":
-		searchOpt.SortBy = issue_indexer.SortByCommentsDesc
-	case "leastcomment":
-		searchOpt.SortBy = issue_indexer.SortByCommentsAsc
-	case "nearduedate":
-		searchOpt.SortBy = issue_indexer.SortByDeadlineAsc
-	case "farduedate":
-		searchOpt.SortBy = issue_indexer.SortByDeadlineDesc
-	case "priority", "priorityrepo", "project-column-sorting":
-		// Unsupported sort type for search
-		searchOpt.SortBy = issue_indexer.SortByUpdatedDesc
-	default:
-		searchOpt.SortBy = issue_indexer.SortByUpdatedDesc
-	}
-
-	return searchOpt
 }
 
 func loadRepoByIDs(ctxUser *user_model.User, issueCountByRepo map[int64]int64, unitType unit.Type) (map[int64]*repo_model.Repository, error) {

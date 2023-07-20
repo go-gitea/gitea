@@ -298,7 +298,7 @@ func SearchIssues(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "SearchIssues", err)
 		return
 	}
-	issues, err := issues_model.FindIssuesByIDs(ctx, ids)
+	issues, err := issues_model.GetIssuesByIDs(ctx, ids, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindIssuesByIDs", err)
 		return
@@ -517,7 +517,7 @@ func ListIssues(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "SearchIssues", err)
 		return
 	}
-	issues, err := issues_model.FindIssuesByIDs(ctx, ids)
+	issues, err := issues_model.GetIssuesByIDs(ctx, ids, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindIssuesByIDs", err)
 		return

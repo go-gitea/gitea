@@ -6,7 +6,6 @@ package issues
 import (
 	"context"
 	"fmt"
-	"sort"
 
 	"code.gitea.io/gitea/models/db"
 	project_model "code.gitea.io/gitea/models/project"
@@ -605,21 +604,4 @@ func (issues IssueList) GetApprovalCounts(ctx context.Context) (map[int64][]*Rev
 	}
 
 	return approvalCountMap, nil
-}
-
-func FindIssuesByIDs(ctx context.Context, ids []int64) (IssueList, error) {
-	sess := db.GetEngine(ctx).In("id", ids)
-	issues := make(IssueList, 0, len(ids))
-	if err := sess.Find(&issues); err != nil {
-		return nil, err
-	}
-
-	order := map[int64]int{}
-	for i, id := range ids {
-		order[id] = i
-	}
-	sort.Slice(issues, func(i, j int) bool {
-		return order[issues[i].ID] < order[issues[j].ID]
-	})
-	return issues, nil
 }

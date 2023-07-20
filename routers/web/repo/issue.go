@@ -150,7 +150,6 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		mentionedID       int64
 		reviewRequestedID int64
 		reviewedID        int64
-		forceEmpty        bool
 	)
 
 	if ctx.IsSigned {
@@ -187,19 +186,9 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		keyword = ""
 	}
 
-	var issueIDs []int64
-	if len(keyword) > 0 {
-		issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, []int64{repo.ID}, keyword)
-		if err != nil {
-			if issue_indexer.IsAvailable(ctx) {
-				ctx.ServerError("issueIndexer.Search", err)
-				return
-			}
-			ctx.Data["IssueIndexerUnavailable"] = true
-		}
-		if len(issueIDs) == 0 {
-			forceEmpty = true
-		}
+	if issue_indexer.IsAvailable(ctx) {
+		ctx.ServerError("issueIndexer.Search", err)
+		return
 	}
 
 	var mileIDs []int64
@@ -208,10 +197,8 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	}
 
 	var issueStats *issues_model.IssueStats
-	if forceEmpty {
-		issueStats = &issues_model.IssueStats{}
-	} else {
-		issueStats, err = issues_model.GetIssueStats(&issues_model.IssuesOptions{
+	{
+		statsOpts := &issues_model.IssuesOptions{
 			RepoIDs:           []int64{repo.ID},
 			LabelIDs:          labelIDs,
 			MilestoneIDs:      mileIDs,
@@ -222,8 +209,17 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			ReviewRequestedID: reviewRequestedID,
 			ReviewedID:        reviewedID,
 			IsPull:            isPullOption,
-			IssueIDs:          issueIDs,
-		})
+			IssueIDs:          nil,
+		}
+		if keyword != "" {
+			allIssueIDs, err := issueIDsFromSearch(ctx, keyword, statsOpts)
+			if err != nil {
+				ctx.ServerError("issueIDsFromSearch", err)
+				return
+			}
+			statsOpts.IssueIDs = allIssueIDs
+		}
+		issueStats, err = issues_model.GetIssueStats(statsOpts)
 		if err != nil {
 			ctx.ServerError("GetIssueStats", err)
 			return
@@ -250,10 +246,8 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
 
 	var issues []*issues_model.Issue
-	if forceEmpty {
-		issues = []*issues_model.Issue{}
-	} else {
-		issues, err = issues_model.Issues(ctx, &issues_model.IssuesOptions{
+	{
+		ids, err := issueIDsFromSearch(ctx, keyword, &issues_model.IssuesOptions{
 			Paginator: &db.ListOptions{
 				Page:     pager.Paginater.Current(),
 				PageSize: setting.UI.IssuePagingNum,
@@ -270,10 +264,14 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			IsPull:            isPullOption,
 			LabelIDs:          labelIDs,
 			SortType:          sortType,
-			IssueIDs:          issueIDs,
 		})
 		if err != nil {
-			ctx.ServerError("Issues", err)
+			ctx.ServerError("issueIDsFromSearch", err)
+			return
+		}
+		issues, err = issues_model.GetIssuesByIDs(ctx, ids, true)
+		if err != nil {
+			ctx.ServerError("GetIssuesByIDs", err)
 			return
 		}
 	}
@@ -423,6 +421,14 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	pager.AddParam(ctx, "assignee", "AssigneeID")
 	pager.AddParam(ctx, "poster", "PosterID")
 	ctx.Data["Page"] = pager
+}
+
+func issueIDsFromSearch(ctx *context.Context, keyword string, opts *issues_model.IssuesOptions) ([]int64, error) {
+	ids, _, err := issue_indexer.SearchIssues(ctx, issue_indexer.ToSearchOptions(keyword, opts))
+	if err != nil {
+		return nil, fmt.Errorf("SearchIssues: %w", err)
+	}
+	return ids, nil
 }
 
 // Issues render issues page
@@ -2575,7 +2581,7 @@ func SearchIssues(ctx *context.Context) {
 		ctx.Error(http.StatusInternalServerError, "SearchIssues", err.Error())
 		return
 	}
-	issues, err := issues_model.FindIssuesByIDs(ctx, ids)
+	issues, err := issues_model.GetIssuesByIDs(ctx, ids, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindIssuesByIDs", err.Error())
 		return
@@ -2747,7 +2753,7 @@ func ListIssues(ctx *context.Context) {
 		ctx.Error(http.StatusInternalServerError, "SearchIssues", err.Error())
 		return
 	}
-	issues, err := issues_model.FindIssuesByIDs(ctx, ids)
+	issues, err := issues_model.GetIssuesByIDs(ctx, ids, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindIssuesByIDs", err.Error())
 		return
