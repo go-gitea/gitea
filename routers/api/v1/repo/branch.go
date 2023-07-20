@@ -142,7 +142,7 @@ func DeleteBranch(ctx *context.APIContext) {
 
 	// check whether branches of this repository has been synced
 	totalNumOfBranches, err := git_model.CountBranches(ctx, git_model.FindBranchOptions{
-		RepoID:          ctx.Repo.Repository.ID,
+		RepoIDs:         []int64{ctx.Repo.Repository.ID},
 		IsDeletedBranch: util.OptionalBoolFalse,
 	})
 	if err != nil {
@@ -349,7 +349,7 @@ func ListBranches(ctx *context.APIContext) {
 
 		branchOpts := git_model.FindBranchOptions{
 			ListOptions:     listOptions,
-			RepoID:          ctx.Repo.Repository.ID,
+			RepoIDs:         []int64{ctx.Repo.Repository.ID},
 			IsDeletedBranch: util.OptionalBoolFalse,
 		}
 		var err error

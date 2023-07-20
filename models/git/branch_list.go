@@ -10,6 +10,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
@@ -87,23 +88,54 @@ func (branches BranchList) LoadRepo(ctx context.Context) error {
 
 type FindBranchOptions struct {
 	db.ListOptions
-	RepoID             int64
+	IDCond             builder.Cond
+	RepoIDs            []int64 // overwrites RepoCond if the length is not 0
+	RepoCond           builder.Cond
 	ExcludeBranchNames []string
+	CommitCond         builder.Cond
+	PusherID           int64
 	IsDeletedBranch    util.OptionalBool
+	UpdatedAfterUnix   timeutil.TimeStamp
+	UpdatedBeforeUnix  timeutil.TimeStamp
 	OrderBy            string
 }
 
 func (opts *FindBranchOptions) Cond() builder.Cond {
 	cond := builder.NewCond()
-	if opts.RepoID > 0 {
-		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	if opts.IDCond != nil {
+		cond = cond.And(opts.IDCond)
+	}
+
+	if len(opts.RepoIDs) == 1 {
+		opts.RepoCond = builder.Eq{"issue.repo_id": opts.RepoIDs[0]}
+	} else if len(opts.RepoIDs) > 1 {
+		opts.RepoCond = builder.In("issue.repo_id", opts.RepoIDs)
+	}
+	if opts.RepoCond != nil {
+		cond = cond.And(opts.RepoCond)
 	}
 
 	if len(opts.ExcludeBranchNames) > 0 {
 		cond = cond.And(builder.NotIn("name", opts.ExcludeBranchNames))
 	}
+
+	if opts.CommitCond != nil {
+		cond = cond.And(opts.CommitCond)
+	}
+
+	if opts.PusherID > 0 {
+		cond = cond.And(builder.Eq{"pusher_id": opts.PusherID})
+	}
+
 	if !opts.IsDeletedBranch.IsNone() {
 		cond = cond.And(builder.Eq{"is_deleted": opts.IsDeletedBranch.IsTrue()})
+	}
+
+	if opts.UpdatedAfterUnix != 0 {
+		cond = cond.And(builder.Gte{"updated_unix": opts.UpdatedAfterUnix})
+	}
+	if opts.UpdatedBeforeUnix != 0 {
+		cond = cond.And(builder.Lte{"updated_unix": opts.UpdatedBeforeUnix})
 	}
 	return cond
 }

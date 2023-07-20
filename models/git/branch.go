@@ -396,7 +396,6 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 // doer should not be nil
 // TODO use options to find the branches
 func FindRecentlyPushedNewBranches(ctx context.Context, baseRepo *repo_model.Repository, doer *user_model.User) (BranchList, error) {
-	branches := make(BranchList, 0, 2)
 	baseBranch, err := GetBranch(ctx, baseRepo.ID, baseRepo.DefaultBranch)
 	if err != nil {
 		return nil, err
@@ -417,14 +416,16 @@ func FindRecentlyPushedNewBranches(ctx context.Context, baseRepo *repo_model.Rep
 			builder.In("pull_request.head_repo_id", repoCond),
 			builder.Eq{"branch.id": baseBranch.ID},
 		))
-	cond := builder.And(
-		builder.Neq{"commit_id": baseBranch.CommitID}, // newly created branch have no changes, so skip them
-		builder.Eq{"pusher_id": doer.ID},
-		builder.Eq{"is_deleted": false},
-		builder.Gte{"updated_unix": time.Now().Add(-time.Hour * 6).Unix()},
-		builder.In("repo_id", repoCond),
-		builder.NotIn("id", invalidBranchCond),
-	)
-	err = db.GetEngine(ctx).Where(cond).OrderBy("branch.updated_unix DESC").Limit(2).Find(&branches)
-	return branches, err
+
+	opts := FindBranchOptions{
+		IDCond:          builder.NotIn("id", invalidBranchCond),
+		RepoCond:        builder.In("repo_id", repoCond),
+		CommitCond:      builder.Neq{"commit_id": baseBranch.CommitID}, // newly created branch have no changes, so skip them,
+		PusherID:        doer.ID,
+		IsDeletedBranch: util.OptionalBoolFalse,
+		OrderBy:         "branch.updated_unix DESC",
+	}
+	opts.PageSize = 2
+	opts.Page = 1
+	return FindBranches(ctx, opts)
 }
