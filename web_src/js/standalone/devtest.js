@@ -1,3 +1,4 @@
+import '../bootstrap.js';
 import '../jquery.js';
 import '../../fomantic/build/semantic.js';
 import $ from 'jquery';
