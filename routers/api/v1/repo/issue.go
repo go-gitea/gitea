@@ -467,20 +467,20 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	searchOpt := &issue_indexer.SearchOptions{
-		Keyword:           keyword,
-		RepoIDs:           []int64{ctx.Repo.Repository.ID},
-		IsPull:            isPull,
-		IsClosed:          isClosed,
-		IncludedLabelIDs:  nil,
-		ExcludedLabelIDs:  nil,
-		NoLabelOnly:       false,
-		MilestoneIDs:      nil,
-		PosterID:          &createdByID,
-		AssigneeID:        &assignedByID,
-		MentionID:         &mentionedByID,
-		UpdatedAfterUnix:  &since,
-		UpdatedBeforeUnix: &before,
-		SortBy:            issue_indexer.SortByCreatedDesc,
+		Keyword:    keyword,
+		RepoIDs:    []int64{ctx.Repo.Repository.ID},
+		IsPull:     isPull,
+		IsClosed:   isClosed,
+		PosterID:   &createdByID,
+		AssigneeID: &assignedByID,
+		MentionID:  &mentionedByID,
+		SortBy:     issue_indexer.SortByCreatedDesc,
+	}
+	if since != 0 {
+		searchOpt.UpdatedAfterUnix = &since
+	}
+	if before != 0 {
+		searchOpt.UpdatedBeforeUnix = &before
 	}
 	if len(labelIDs) == 0 && labelIDs[0] == 0 {
 		searchOpt.NoLabelOnly = true
