@@ -249,6 +249,10 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	searchOpt := &issue_indexer.SearchOptions{
+		Paginator: &db.ListOptions{
+			PageSize: limit,
+			Page:     ctx.FormInt("page"),
+		},
 		Keyword:          keyword,
 		RepoIDs:          repoIDs,
 		AllPublic:        allPublic,
@@ -467,11 +471,12 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	searchOpt := &issue_indexer.SearchOptions{
-		Keyword:  keyword,
-		RepoIDs:  []int64{ctx.Repo.Repository.ID},
-		IsPull:   isPull,
-		IsClosed: isClosed,
-		SortBy:   issue_indexer.SortByCreatedDesc,
+		Paginator: &listOptions,
+		Keyword:   keyword,
+		RepoIDs:   []int64{ctx.Repo.Repository.ID},
+		IsPull:    isPull,
+		IsClosed:  isClosed,
+		SortBy:    issue_indexer.SortByCreatedDesc,
 	}
 	if since != 0 {
 		searchOpt.UpdatedAfterUnix = &since

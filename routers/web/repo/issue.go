@@ -2525,6 +2525,10 @@ func SearchIssues(ctx *context.Context) {
 	}
 
 	searchOpt := &issue_indexer.SearchOptions{
+		Paginator: &db.ListOptions{
+			Page:     ctx.FormInt("page"),
+			PageSize: limit,
+		},
 		Keyword:          keyword,
 		RepoIDs:          repoIDs,
 		AllPublic:        allPublic,
