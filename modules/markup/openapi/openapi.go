@@ -36,7 +36,7 @@ func (Renderer) SanitizerDisabled() bool {
 
 // DisplayInIFrame represents whether render the content with an iframe
 func (Renderer) DisplayInIFrame() bool {
-	return false
+	return true
 }
 
 func (Renderer) MatchGlobs() []glob.Glob {
