@@ -289,20 +289,12 @@ func DeleteRepoIssueIndexer(ctx context.Context, repoID int64) {
 // SearchIssuesByKeyword search issue ids by keywords and repo id
 // WARNNING: You have to ensure user have permission to visit repoIDs' issues
 func SearchIssuesByKeyword(ctx context.Context, repoIDs []int64, keyword string) ([]int64, error) {
-	var issueIDs []int64
-	indexer := *globalIndexer.Load()
-	res, err := indexer.Search(ctx, &internal.SearchOptions{
+	ids, _, err := SearchIssues(ctx, &SearchOptions{
 		Keyword:   keyword,
 		RepoIDs:   repoIDs,
 		Paginator: db_model.NewAbsoluteListOptions(0, 50),
 	})
-	if err != nil {
-		return nil, err
-	}
-	for _, r := range res.Hits {
-		issueIDs = append(issueIDs, r.ID)
-	}
-	return issueIDs, nil
+	return ids, err
 }
 
 // IsAvailable checks if issue indexer is available
