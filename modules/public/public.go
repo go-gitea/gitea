@@ -73,7 +73,7 @@ func setWellKnownContentType(w http.ResponseWriter, file string) {
 
 func handleRequest(w http.ResponseWriter, req *http.Request, fs http.FileSystem, file string) bool {
 	// actually, fs (http.FileSystem) is designed to be a safe interface, relative paths won't bypass its parent directory, it's also fine to do a clean here
-	f, err := fs.Open(util.PathJoinRelX(file))
+	f, err := fs.Open(util.PathJoinRelX("assets", file))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return false

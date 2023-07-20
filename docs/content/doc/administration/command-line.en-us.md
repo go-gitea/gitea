@@ -31,9 +31,9 @@ All global options can be placed at the command level.
 
 - `--help`, `-h`: Show help text and exit. Optional.
 - `--version`, `-v`: Show version and exit. Optional. (example: `Gitea version 1.1.0+218-g7b907ed built with: bindata, sqlite`).
-- `--custom-path path`, `-C path`: Location of the Gitea custom folder. Optional. (default: `AppWorkPath`/custom or `$GITEA_CUSTOM`).
-- `--config path`, `-c path`: Gitea configuration file path. Optional. (default: `custom`/conf/app.ini).
-- `--work-path path`, `-w path`: Gitea `AppWorkPath`. Optional. (default: LOCATION_OF_GITEA_BINARY or `$GITEA_WORK_DIR`)
+- `--work-path path`, `-w path`: Gitea's work path. Optional. (default: the binary's path or `$GITEA_WORK_DIR`)
+- `--custom-path path`, `-C path`: Gitea's custom folder path. Optional. (default: `WorkPath`/custom or `$GITEA_CUSTOM`).
+- `--config path`, `-c path`: Gitea configuration file path. Optional. (default: `CustomPath`/conf/app.ini).
 
 NB: The defaults custom-path, config and work-path can also be
 changed at build time (if preferred).

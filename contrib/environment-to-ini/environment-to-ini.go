@@ -75,6 +75,8 @@ func main() {
 }
 
 func runEnvironmentToIni(c *cli.Context) error {
+	// the config system may change the environment variables, so get a copy first, to be used later
+	env := append([]string{}, os.Environ()...)
 	setting.InitWorkPathAndCfgProvider(os.Getenv, setting.ArgWorkPathAndCustomConf{
 		WorkPath:   c.String("work-path"),
 		CustomPath: c.String("custom-path"),
@@ -86,7 +88,7 @@ func runEnvironmentToIni(c *cli.Context) error {
 		log.Fatal("Failed to load custom conf '%s': %v", setting.CustomConf, err)
 	}
 
-	changed := setting.EnvironmentToConfig(cfg, os.Environ())
+	changed := setting.EnvironmentToConfig(cfg, env)
 
 	// try to save the config file
 	destination := c.String("out")
