@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"golang.org/x/image/draw"
+
 	_ "golang.org/x/image/webp" // for processing webp images
 )
 
