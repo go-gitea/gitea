@@ -122,7 +122,7 @@
 }
 
 #readme_profile {
-  padding: 10px;
+  padding: 1em 2em;
   border-radius: 0.28571429rem;
   background: var(--color-card);
   border: 1px solid var(--color-secondary);
