@@ -468,10 +468,12 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	ctx.Data["Keyword"] = keyword
 
 	accessibleRepos := container.Set[int64]{}
-	if ids, err := issues_model.GetRepoIDsForIssuesOptions(opts, ctxUser); err != nil {
-		ctx.ServerError("GetRepoIDsForIssuesOptions", err)
-		return
-	} else {
+	{
+		ids, err := issues_model.GetRepoIDsForIssuesOptions(opts, ctxUser)
+		if err != nil {
+			ctx.ServerError("GetRepoIDsForIssuesOptions", err)
+			return
+		}
 		for _, id := range ids {
 			accessibleRepos.Add(id)
 		}
