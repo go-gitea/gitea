@@ -266,25 +266,23 @@ func SearchIssues(ctx *context.APIContext) {
 		searchOpt.UpdatedBeforeUnix = &before
 	}
 
-	ctxUserID := int64(0)
 	if ctx.IsSigned {
-		ctxUserID = ctx.Doer.ID
-	}
-
-	if ctx.FormBool("created") {
-		searchOpt.PosterID = &ctxUserID
-	}
-	if ctx.FormBool("assigned") {
-		searchOpt.AssigneeID = &ctxUserID
-	}
-	if ctx.FormBool("mentioned") {
-		searchOpt.MentionID = &ctxUserID
-	}
-	if ctx.FormBool("review_requested") {
-		searchOpt.ReviewRequestedID = &ctxUserID
-	}
-	if ctx.FormBool("reviewed") {
-		searchOpt.ReviewedID = &ctxUserID
+		ctxUserID := ctx.Doer.ID
+		if ctx.FormBool("created") {
+			searchOpt.PosterID = &ctxUserID
+		}
+		if ctx.FormBool("assigned") {
+			searchOpt.AssigneeID = &ctxUserID
+		}
+		if ctx.FormBool("mentioned") {
+			searchOpt.MentionID = &ctxUserID
+		}
+		if ctx.FormBool("review_requested") {
+			searchOpt.ReviewRequestedID = &ctxUserID
+		}
+		if ctx.FormBool("reviewed") {
+			searchOpt.ReviewedID = &ctxUserID
+		}
 	}
 
 	// FIXME: It's unsupported to sort by priority repo when searching by indexer,
