@@ -1143,10 +1143,8 @@ func registerRoutes(m *web.Route) {
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("", func() {
-			m.Group("/{type:issues|pulls}", func() {
-				m.Get("", repo.Issues)
-				m.Get("/posters", repo.IssuePosters)
-			})
+			m.Get("/issues/posters", repo.IssuePosters) // it can't use {type:issues|pulls} because other routes like "/pulls/{index}" has higher priority
+			m.Get("/{type:issues|pulls}", repo.Issues)
 			m.Get("/{type:issues|pulls}/{index}", repo.ViewIssue)
 			m.Group("/{type:issues|pulls}/{index}/content-history", func() {
 				m.Get("/overview", repo.GetContentHistoryOverview)
@@ -1267,6 +1265,7 @@ func registerRoutes(m *web.Route) {
 			return cancel
 		})
 
+		m.Get("/pulls/posters", repo.PullPosters)
 		m.Group("/pulls/{index}", func() {
 			m.Get(".diff", repo.DownloadPullDiff)
 			m.Get(".patch", repo.DownloadPullPatch)
