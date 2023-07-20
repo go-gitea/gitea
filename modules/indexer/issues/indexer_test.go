@@ -51,7 +51,7 @@ func TestBleveSearchIssues(t *testing.T) {
 	time.Sleep(5 * time.Second)
 
 	t.Run("issue2", func(t *testing.T) {
-		ids, err := SearchIssues(context.TODO(), &SearchOptions{
+		ids, _, err := SearchIssues(context.TODO(), &SearchOptions{
 			Keyword: "issue2",
 			RepoIDs: []int64{1},
 		})
@@ -60,7 +60,7 @@ func TestBleveSearchIssues(t *testing.T) {
 	})
 
 	t.Run("first", func(t *testing.T) {
-		ids, err := SearchIssues(context.TODO(), &SearchOptions{
+		ids, _, err := SearchIssues(context.TODO(), &SearchOptions{
 			Keyword: "first",
 			RepoIDs: []int64{1},
 		})
@@ -69,7 +69,7 @@ func TestBleveSearchIssues(t *testing.T) {
 	})
 
 	t.Run("for", func(t *testing.T) {
-		ids, err := SearchIssues(context.TODO(), &SearchOptions{
+		ids, _, err := SearchIssues(context.TODO(), &SearchOptions{
 			Keyword: "for",
 			RepoIDs: []int64{1},
 		})
@@ -78,7 +78,7 @@ func TestBleveSearchIssues(t *testing.T) {
 	})
 
 	t.Run("good", func(t *testing.T) {
-		ids, err := SearchIssues(context.TODO(), &SearchOptions{
+		ids, _, err := SearchIssues(context.TODO(), &SearchOptions{
 			Keyword: "good",
 			RepoIDs: []int64{1},
 		})
@@ -94,7 +94,7 @@ func TestDBSearchIssues(t *testing.T) {
 	InitIssueIndexer(true)
 
 	t.Run("issue2", func(t *testing.T) {
-		ids, err := SearchIssues(context.TODO(), &SearchOptions{
+		ids, _, err := SearchIssues(context.TODO(), &SearchOptions{
 			Keyword: "issue2",
 			RepoIDs: []int64{1},
 		})
@@ -103,7 +103,7 @@ func TestDBSearchIssues(t *testing.T) {
 	})
 
 	t.Run("first", func(t *testing.T) {
-		ids, err := SearchIssues(context.TODO(), &SearchOptions{
+		ids, _, err := SearchIssues(context.TODO(), &SearchOptions{
 			Keyword: "first",
 			RepoIDs: []int64{1},
 		})
@@ -112,7 +112,7 @@ func TestDBSearchIssues(t *testing.T) {
 	})
 
 	t.Run("for", func(t *testing.T) {
-		ids, err := SearchIssues(context.TODO(), &SearchOptions{
+		ids, _, err := SearchIssues(context.TODO(), &SearchOptions{
 			Keyword: "for",
 			RepoIDs: []int64{1},
 		})
@@ -121,7 +121,7 @@ func TestDBSearchIssues(t *testing.T) {
 	})
 
 	t.Run("good", func(t *testing.T) {
-		ids, err := SearchIssues(context.TODO(), &SearchOptions{
+		ids, _, err := SearchIssues(context.TODO(), &SearchOptions{
 			Keyword: "good",
 			RepoIDs: []int64{1},
 		})
