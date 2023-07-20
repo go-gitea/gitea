@@ -13,7 +13,7 @@ import (
 type IndexerData struct {
 	ID       int64 `json:"id"`
 	RepoID   int64 `json:"repo_id"`
-	IsPublic bool  `json:"is_public"` // If the repo is public, so if the visibility of the repo has changed, we should reindex the issues.
+	IsPublic bool  `json:"is_public"` // If the repo is public
 
 	// Fields used for keyword searching
 	Title    string   `json:"title"`
@@ -22,18 +22,18 @@ type IndexerData struct {
 
 	// Fields used for filtering
 	IsPull             bool               `json:"is_pull"`
-	IsClosed           bool               `json:"is_closed"`        // So if the status of an issue has changed, we should reindex the issue.
-	LabelIDs           []int64            `json:"label_ids"`        // So if the labels of an issue have changed, we should reindex the issue.
-	NoLabel            bool               `json:"no_label"`         // True if LabelIDs is empty
-	MilestoneID        int64              `json:"milestone_id"`     // So if the milestone of an issue has changed, we should reindex the issue.
-	ProjectID          int64              `json:"project_id"`       // So if the project of an issue have changed, we should reindex the issue.
-	ProjectBoardID     int64              `json:"project_board_id"` // So if the project board of an issue have changed, we should reindex the issue.
+	IsClosed           bool               `json:"is_closed"`
+	LabelIDs           []int64            `json:"label_ids"`
+	NoLabel            bool               `json:"no_label"` // True if LabelIDs is empty
+	MilestoneID        int64              `json:"milestone_id"`
+	ProjectID          int64              `json:"project_id"`
+	ProjectBoardID     int64              `json:"project_board_id"`
 	PosterID           int64              `json:"poster_id"`
-	AssigneeID         int64              `json:"assignee_id"` // So if the assignee of an issue has changed, we should reindex the issue.
+	AssigneeID         int64              `json:"assignee_id"`
 	MentionIDs         []int64            `json:"mention_ids"`
-	ReviewedIDs        []int64            `json:"reviewed_ids"`         // So if the reviewers of an issue have changed, we should reindex the issue.
-	ReviewRequestedIDs []int64            `json:"review_requested_ids"` // So if the requested reviewers of an issue have changed, we should reindex the issue.
-	SubscriberIDs      []int64            `json:"subscriber_ids"`       // So if the subscribers of an issue have changed, we should reindex the issue.
+	ReviewedIDs        []int64            `json:"reviewed_ids"`
+	ReviewRequestedIDs []int64            `json:"review_requested_ids"`
+	SubscriberIDs      []int64            `json:"subscriber_ids"`
 	UpdatedUnix        timeutil.TimeStamp `json:"updated_unix"`
 
 	// Fields used for sorting
@@ -59,10 +59,6 @@ type SearchResult struct {
 }
 
 // SearchOptions represents search options
-// So the search engine should support:
-//   - Filter by boolean/int value
-//   - Filter by "array contains any of specified elements"
-//   - Filter by "array doesn't contain any of specified elements"
 type SearchOptions struct {
 	Keyword string // keyword to search
 
