@@ -245,7 +245,10 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		queries = append(queries, inner_bleve.NumericRangeInclusiveQuery(options.UpdatedAfterUnix, options.UpdatedBeforeUnix, "updated_unix"))
 	}
 
-	indexerQuery := bleve.NewConjunctionQuery(queries...)
+	var indexerQuery query.Query = bleve.NewConjunctionQuery(queries...)
+	if len(queries) == 0 {
+		indexerQuery = bleve.NewMatchAllQuery()
+	}
 
 	skip, limit := indexer_internal.ParsePaginator(options.Paginator)
 	search := bleve.NewSearchRequestOptions(indexerQuery, limit, skip, false)
