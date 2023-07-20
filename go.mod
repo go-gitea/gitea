@@ -81,9 +81,7 @@ require (
 	github.com/minio/sha256-simd v1.0.1
 	github.com/msteinert/pam v1.1.0
 	github.com/nektos/act v0.2.48
-	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/niklasfasching/go-org v1.7.0
-	github.com/oliamb/cutter v0.2.2
 	github.com/olivere/elastic/v7 v7.0.32
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0-rc4
