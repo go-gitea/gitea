@@ -5,6 +5,7 @@ package meilisearch
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -16,7 +17,7 @@ import (
 )
 
 const (
-	issueIndexerLatestVersion = 1
+	issueIndexerLatestVersion = 2
 )
 
 var _ internal.Indexer = &Indexer{}
@@ -78,16 +79,16 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	filter := strings.Join(repoFilters, " OR ")
 	skip, limit := indexer_internal.ParsePaginator(options.Paginator)
 
-	// TBC:
-	/*
-	if state == "open" || state == "closed" {
-			if filter != "" {
-				filter = "(" + filter + ") AND state = " + state
-			} else {
-				filter = "state = " + state
-			}
+	if !options.IsClosed.IsNone() {
+		condition := fmt.Sprintf("is_closed = %t", options.IsClosed.IsTrue())
+		if filter != "" {
+			filter = "(" + filter + ") AND " + condition
+		} else {
+			filter = "state = " + condition
 		}
-	 */
+	}
+
+	// TODO: support more conditions
 
 	searchRes, err := b.inner.Client.Index(b.inner.VersionedIndexName()).Search(options.Keyword, &meilisearch.SearchRequest{
 		Filter: filter,
