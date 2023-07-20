@@ -11,6 +11,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/util"
 
@@ -49,7 +50,7 @@ func TestGetDeletedBranches(t *testing.T) {
 		ListOptions: db.ListOptions{
 			ListAll: true,
 		},
-		RepoID:          repo.ID,
+		RepoIDs:         []int64{repo.ID},
 		IsDeletedBranch: util.OptionalBoolTrue,
 	})
 	assert.NoError(t, err)
@@ -182,4 +183,27 @@ func TestOnlyGetDeletedBranchOnCorrectRepo(t *testing.T) {
 	// Expect no error, and the returned branch to be not nil.
 	assert.NoError(t, err)
 	assert.NotNil(t, deletedBranch)
+}
+
+func TestFindRecentlyPushedNewBranches(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	// test new branch of the repo
+	branches, err := git_model.FindRecentlyPushedNewBranches(db.DefaultContext, repo, user1, 1689838760)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(branches))
+	assert.Equal(t, "new-branch-notification", branches[0].Name)
+
+	// TODO: test new branch from user fork repo
+
+	// TODO: test new branch from org fork repo
+
+	// TODO: test new branch from private user repo
+
+	// TODO: test new branch from private org with code permisstion repo
+
+	// TODO: test new branch from private org with no code permisstion repo
 }

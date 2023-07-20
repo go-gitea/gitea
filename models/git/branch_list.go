@@ -10,7 +10,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
@@ -95,8 +94,8 @@ type FindBranchOptions struct {
 	CommitCond         builder.Cond
 	PusherID           int64
 	IsDeletedBranch    util.OptionalBool
-	UpdatedAfterUnix   timeutil.TimeStamp
-	UpdatedBeforeUnix  timeutil.TimeStamp
+	CommitAfterUnix    int64
+	CommitBeforeUnix   int64
 	OrderBy            string
 }
 
@@ -131,11 +130,11 @@ func (opts *FindBranchOptions) Cond() builder.Cond {
 		cond = cond.And(builder.Eq{"is_deleted": opts.IsDeletedBranch.IsTrue()})
 	}
 
-	if opts.UpdatedAfterUnix != 0 {
-		cond = cond.And(builder.Gte{"updated_unix": opts.UpdatedAfterUnix})
+	if opts.CommitAfterUnix != 0 {
+		cond = cond.And(builder.Gte{"commit_time": opts.CommitAfterUnix})
 	}
-	if opts.UpdatedBeforeUnix != 0 {
-		cond = cond.And(builder.Lte{"updated_unix": opts.UpdatedBeforeUnix})
+	if opts.CommitBeforeUnix != 0 {
+		cond = cond.And(builder.Lte{"commit_time": opts.CommitBeforeUnix})
 	}
 	return cond
 }
