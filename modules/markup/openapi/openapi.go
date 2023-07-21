@@ -68,8 +68,19 @@ func (Renderer) Render(ctx *markup.RenderContext, _ io.Reader, output io.Writer)
 	)
 
 	if _, err := io.WriteString(output, fmt.Sprintf(
-		`<div id="swagger-ui" data-source="%s"></div>
-		<script src="%s/assets/js/swagger.js?v=%s"></script>`,
+		`<!DOCTYPE html>
+<html>
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="%s/assets/css/swagger.css?v=%s">
+</head>
+<body>
+	<div id="swagger-ui" data-source="%s"></div>
+	<script src="%s/assets/js/swagger.js?v=%s"></script>
+</body>
+</html>`,
+		setting.StaticURLPrefix,
+		setting.AssetVersion,
 		rawURL,
 		setting.StaticURLPrefix,
 		setting.AssetVersion,

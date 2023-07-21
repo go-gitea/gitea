@@ -62,12 +62,15 @@ func RenderFile(ctx *context.Context) {
 		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 	}
 
-	ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'; sandbox allow-scripts")
+	ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'; sandbox allow-same-origin")
+	ctx.Resp.Header().Add("Access-Control-Allow-Origin", "http://192.168.8.18:3000")
+	metaData := ctx.Repo.Repository.ComposeDocumentMetas()
+	metaData["BranchNameSubURL"] = ctx.Repo.BranchNameSubURL()
 	resp, err := markup.Render(&markup.RenderContext{
 		Ctx:              ctx,
 		RelativePath:     ctx.Repo.TreePath,
 		URLPrefix:        path.Dir(treeLink),
-		Metas:            ctx.Repo.Repository.ComposeDocumentMetas(),
+		Metas:            metaData,
 		GitRepo:          ctx.Repo.GitRepo,
 		InStandalonePage: true,
 	}, rd, ctx.Resp)
