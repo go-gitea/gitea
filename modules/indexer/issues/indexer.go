@@ -307,10 +307,6 @@ const (
 // SearchIssues search issues by options.
 // It returns issue ids and a bool value indicates if the result is imprecise.
 func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, int64, error) {
-	if opts.Paginator == nil {
-		opts.Paginator = db_model.NewAbsoluteListOptions(0, 50)
-	}
-
 	indexer := *globalIndexer.Load()
 	result, err := indexer.Search(ctx, (*internal.SearchOptions)(opts))
 	if err != nil {
