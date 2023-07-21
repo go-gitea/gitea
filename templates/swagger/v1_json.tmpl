@@ -16399,6 +16399,10 @@
         "filename": {
           "type": "string",
           "x-go-name": "Filename"
+        },
+        "status": {
+          "type": "string",
+          "x-go-name": "Status"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -18902,6 +18906,11 @@
           "type": "boolean",
           "x-go-name": "Private"
         },
+        "protected_branch": {
+          "description": "include protected branches in template repo",
+          "type": "boolean",
+          "x-go-name": "ProtectedBranch"
+        },
         "topics": {
           "description": "include topics in template repo",
           "type": "boolean",
@@ -19727,7 +19736,11 @@
             "git",
             "github",
             "gitea",
-            "gitlab"
+            "gitlab",
+            "gogs",
+            "onedev",
+            "gitbucket",
+            "codebase"
           ],
           "x-go-name": "Service"
         },

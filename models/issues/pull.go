@@ -316,15 +316,13 @@ func (pr *PullRequest) LoadRequestedReviewers(ctx context.Context) error {
 		return err
 	}
 
-	if len(reviews) > 0 {
-		err = LoadReviewers(ctx, reviews)
-		if err != nil {
-			return err
-		}
-		for _, review := range reviews {
-			pr.RequestedReviewers = append(pr.RequestedReviewers, review.Reviewer)
-		}
+	if err = reviews.LoadReviewers(ctx); err != nil {
+		return err
 	}
+	for _, review := range reviews {
+		pr.RequestedReviewers = append(pr.RequestedReviewers, review.Reviewer)
+	}
+
 	return nil
 }
 

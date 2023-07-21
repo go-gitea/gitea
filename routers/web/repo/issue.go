@@ -3503,8 +3503,15 @@ type userSearchResponse struct {
 
 // IssuePosters get posters for current repo's issues/pull requests
 func IssuePosters(ctx *context.Context) {
+	issuePosters(ctx, false)
+}
+
+func PullPosters(ctx *context.Context) {
+	issuePosters(ctx, true)
+}
+
+func issuePosters(ctx *context.Context, isPullList bool) {
 	repo := ctx.Repo.Repository
-	isPullList := ctx.Params(":type") == "pulls"
 	search := strings.TrimSpace(ctx.FormString("q"))
 	posters, err := repo_model.GetIssuePostersWithSearch(ctx, repo, isPullList, search, setting.UI.DefaultShowFullName)
 	if err != nil {

@@ -511,6 +511,8 @@ var migrations = []Migration{
 	NewMigration("Add git_size and lfs_size columns to repository table", v1_21.AddGitSizeAndLFSSizeToRepositoryTable),
 	// v264 -> v265
 	NewMigration("Add branch table", v1_21.AddBranchTable),
+	// v265 -> v266
+	NewMigration("Alter Actions Artifact table", v1_21.AlterActionArtifactTable),
 }
 
 // GetCurrentDBVersion returns the current db version

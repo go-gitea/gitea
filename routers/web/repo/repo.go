@@ -241,15 +241,16 @@ func CreatePost(ctx *context.Context) {
 	var err error
 	if form.RepoTemplate > 0 {
 		opts := repo_module.GenerateRepoOptions{
-			Name:        form.RepoName,
-			Description: form.Description,
-			Private:     form.Private,
-			GitContent:  form.GitContent,
-			Topics:      form.Topics,
-			GitHooks:    form.GitHooks,
-			Webhooks:    form.Webhooks,
-			Avatar:      form.Avatar,
-			IssueLabels: form.Labels,
+			Name:            form.RepoName,
+			Description:     form.Description,
+			Private:         form.Private,
+			GitContent:      form.GitContent,
+			Topics:          form.Topics,
+			GitHooks:        form.GitHooks,
+			Webhooks:        form.Webhooks,
+			Avatar:          form.Avatar,
+			IssueLabels:     form.Labels,
+			ProtectedBranch: form.ProtectedBranch,
 		}
 
 		if !opts.IsValid() {
