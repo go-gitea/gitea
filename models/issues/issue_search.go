@@ -99,10 +99,28 @@ func applySorts(sess *xorm.Session, sortType string, priorityRepoID int64) {
 }
 
 func applyLimit(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
-	if opts.Paginator != nil && !opts.Paginator.IsListAll() {
-		skip, take := opts.GetSkipTake()
-		sess.Limit(take, skip)
+	if opts.Paginator.IsListAll() {
+		return sess
 	}
+
+	// Warning: Do not use GetSkipTake() for *db.ListOptions
+	// Its implementation could reset the page size with setting.API.MaxResponseItems
+	if listOptions, ok := opts.Paginator.(*db.ListOptions); ok {
+		if listOptions.Page >= 0 && listOptions.PageSize > 0 {
+			var start int
+			if listOptions.Page == 0 {
+				start = 0
+			} else {
+				start = (listOptions.Page - 1) * listOptions.PageSize
+			}
+			sess.Limit(listOptions.PageSize, start)
+		}
+		return sess
+	}
+
+	start, limit := opts.Paginator.GetSkipTake()
+	sess.Limit(limit, start)
+
 	return sess
 }
 
