@@ -1,3 +1,25 @@
+.admin-container {
+  display: flex !important;
+  gap: 16px;
+}
+
+.admin-nav {
+  width: 240px;
+}
+
+.admin-main {
+  flex: 1;
+}
+
+@media (max-width: 767.98px) {
+  .admin-container {
+    flex-direction: column;
+  }
+  .admin-nav {
+    width: auto;
+  }
+}
+
 .admin.hooks .list > .item:not(:first-child) {
   border-top: 1px solid var(--color-secondary);
   padding: 0.25rem 1rem;

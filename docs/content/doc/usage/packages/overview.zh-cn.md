@@ -44,7 +44,7 @@ menu:
 | [NuGet]({{< relref "doc/usage/packages/nuget.zh-cn.md" >}})         | .NET       | `nuget`                   |
 | [Pub]({{< relref "doc/usage/packages/pub.zh-cn.md" >}})             | Dart       | `dart`, `flutter`         |
 | [PyPI]({{< relref "doc/usage/packages/pypi.zh-cn.md" >}})           | Python     | `pip`, `twine`            |
-| [RPM]({{< relref "doc/usage/packages/rpm.zh-cn.md" >}})             | -          | `yum`, `dnf`              |
+| [RPM]({{< relref "doc/usage/packages/rpm.zh-cn.md" >}})             | -          | `yum`, `dnf`, `zypper`    |
 | [RubyGems]({{< relref "doc/usage/packages/rubygems.zh-cn.md" >}})   | Ruby       | `gem`, `Bundler`          |
 | [Swift]({{< relref "doc/usage/packages/rubygems.zh-cn.md" >}})      | Swift      | `swift`                   |
 | [Vagrant]({{< relref "doc/usage/packages/vagrant.zh-cn.md" >}})     | -          | `vagrant`                 |
