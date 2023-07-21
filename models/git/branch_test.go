@@ -189,21 +189,33 @@ func TestFindRecentlyPushedNewBranches(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
-	// test new branch of the repo
-	branches, err := git_model.FindRecentlyPushedNewBranches(db.DefaultContext, repo, user1, 1689838760)
+	// test new branch of the repo and org fork repo
+	// user2 is the owner of the repo and the organization
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	branches, err := git_model.FindRecentlyPushedNewBranches(db.DefaultContext, repo, user2, 1689838760)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(branches))
+	assert.Equal(t, "new-commit", branches[0].Name)
+	assert.Equal(t, "org-fork-new-commit", branches[1].Name)
+
+	// test new branch from user public and private fork repo
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	branches, err = git_model.FindRecentlyPushedNewBranches(db.DefaultContext, repo, user1, 1689838760)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(branches))
-	assert.Equal(t, "new-branch-notification", branches[0].Name)
+	assert.Equal(t, "user-fork-new-commit", branches[0].Name)
 
-	// TODO: test new branch from user fork repo
+	// test new branch from private org with code permisstion repo
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	branches, err = git_model.FindRecentlyPushedNewBranches(db.DefaultContext, repo, user4, 1689838760)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(branches))
+	assert.Equal(t, "private-org-fork-new-commit", branches[0].Name)
 
-	// TODO: test new branch from org fork repo
-
-	// TODO: test new branch from private user repo
-
-	// TODO: test new branch from private org with code permisstion repo
-
-	// TODO: test new branch from private org with no code permisstion repo
+	// test new branch from private org with no code permisstion repo
+	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	branches, err = git_model.FindRecentlyPushedNewBranches(db.DefaultContext, repo, user5, 1689838760)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, len(branches))
 }

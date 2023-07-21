@@ -8,7 +8,7 @@
   default_branch: master
   num_watches: 4
   num_stars: 0
-  num_forks: 0
+  num_forks: 3
   num_issues: 2
   num_closed_issues: 1
   num_pulls: 3
@@ -1662,3 +1662,93 @@
   is_private: false
   status: 0
   num_issues: 0
+
+-
+  id: 58
+  owner_id: 1
+  owner_name: user1
+  lower_name: user_fork_repo1
+  name: user_fork_repo1
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: false
+  is_archived: false
+  is_mirror: false
+  status: 0
+  is_fork: true
+  fork_id: 1
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
+
+-
+  id: 59
+  owner_id: 3
+  owner_name: user3
+  lower_name: org_fork_repo1
+  name: org_fork_repo1
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: false
+  is_empty: false
+  is_archived: false
+  is_mirror: false
+  status: 0
+  is_fork: true
+  fork_id: 1
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
+
+-
+  id: 60
+  owner_id: 23
+  owner_name: privated_org
+  lower_name: private_org_fork_repo1
+  name: private_org_fork_repo1
+  num_watches: 0
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: true
+  is_empty: false
+  is_archived: false
+  is_mirror: false
+  status: 0
+  is_fork: true
+  fork_id: 1
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false

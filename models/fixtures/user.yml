@@ -29,7 +29,7 @@
   num_followers: 0
   num_following: 0
   num_stars: 0
-  num_repos: 0
+  num_repos: 1
   num_teams: 0
   num_members: 0
   visibility: 0
@@ -103,7 +103,7 @@
   num_followers: 0
   num_following: 0
   num_stars: 0
-  num_repos: 3
+  num_repos: 4
   num_teams: 5
   num_members: 3
   visibility: 0
@@ -843,9 +843,9 @@
   num_followers: 0
   num_following: 0
   num_stars: 0
-  num_repos: 2
-  num_teams: 2
-  num_members: 1
+  num_repos: 3
+  num_teams: 4
+  num_members: 2
   visibility: 2
   repo_admin_change_team_access: false
   theme: ""
