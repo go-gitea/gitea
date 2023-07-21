@@ -28,7 +28,7 @@ func AesEncrypt(key, text []byte) ([]byte, error) {
 	if _, err = io.ReadFull(rand.Reader, iv); err != nil {
 		return nil, fmt.Errorf("AesEncrypt unable to read IV: %w", err)
 	}
-	cfb := cipher.NewCFBEncryptor(block, iv)
+	cfb := cipher.NewCFBEncrypter(block, iv)
 	cfb.XORKeyStream(ciphertext[aes.BlockSize:], []byte(b))
 	return ciphertext, nil
 }

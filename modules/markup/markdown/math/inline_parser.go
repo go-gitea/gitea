@@ -55,7 +55,7 @@ func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.
 		return nil
 	}
 
-	precedingCharacter := block.PrecedingCharacter()
+	precedingCharacter := block.PrecendingCharacter()
 	if precedingCharacter < 256 && isAlphanumeric(byte(precedingCharacter)) {
 		// need to exclude things like `a$` from being considered a start
 		return nil
