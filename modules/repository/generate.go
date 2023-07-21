@@ -303,21 +303,23 @@ func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *repo_mo
 
 // GenerateRepoOptions contains the template units to generate
 type GenerateRepoOptions struct {
-	Name          string
-	DefaultBranch string
-	Description   string
-	Private       bool
-	GitContent    bool
-	Topics        bool
-	GitHooks      bool
-	Webhooks      bool
-	Avatar        bool
-	IssueLabels   bool
+	Name            string
+	DefaultBranch   string
+	Description     string
+	Private         bool
+	GitContent      bool
+	Topics          bool
+	GitHooks        bool
+	Webhooks        bool
+	Avatar          bool
+	IssueLabels     bool
+	ProtectedBranch bool
 }
 
 // IsValid checks whether at least one option is chosen for generation
 func (gro GenerateRepoOptions) IsValid() bool {
-	return gro.GitContent || gro.Topics || gro.GitHooks || gro.Webhooks || gro.Avatar || gro.IssueLabels // or other items as they are added
+	return gro.GitContent || gro.Topics || gro.GitHooks || gro.Webhooks || gro.Avatar ||
+		gro.IssueLabels || gro.ProtectedBranch // or other items as they are added
 }
 
 // GenerateRepository generates a repository from a template
