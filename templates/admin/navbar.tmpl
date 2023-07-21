@@ -34,6 +34,7 @@
 				{{end}}
 			</div>
 		</details>
+		<!-- Webhooks and OAuth can be both disabled here, so add this if statement to display different ui -->
 		{{if and (not DisableWebhooks) .EnableOAuth2}}
 			<details class="item toggleable-item" {{if or .PageIsAdminDefaultHooks .PageIsAdminSystemHooks .PageIsAdminApplications}}open{{end}}>
 				<summary>{{.locale.Tr "admin.integrations"}}</summary>
