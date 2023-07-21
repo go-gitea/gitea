@@ -1305,7 +1305,7 @@ Defaultly every storage has their default base path like below
 | actions_log       | actions_log/       |
 | actions_artifacts | actions_artifacts/ |
 
-And bucket, basepath or `SERVE_DIRECT` could be special or overrode, if you want to use a different you can:
+And bucket, basepath or `SERVE_DIRECT` could be special or overriden, if you want to use a different you can:
 
 ```ini
 [storage.actions_log]
