@@ -15,9 +15,11 @@ import (
 
 	_ "net/http/pprof" // Used for debugging if enabled and a web server is running
 
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/install"
@@ -173,6 +175,20 @@ func serveInstalled(ctx *cli.Context) error {
 				log.Error("Unable to update WORK_PATH=%s to config %q: %v\nYou must set it manually, otherwise there might be bugs when accessing the git repositories.", setting.AppWorkPath, setting.CustomConf, err)
 			}
 		}
+	}
+
+	// in old versions, user's custom web files are placed in "custom/public", and they were served as "http://domain.com/assets/xxx"
+	// now, Gitea only serves pre-defined files in the "custom/public" folder basing on the web root, the user should move their custom files to "custom/public/assets"
+	publicFiles, _ := public.AssetFS().ListFiles(".")
+	publicFilesSet := container.SetOf(publicFiles...)
+	publicFilesSet.Remove(".well-known")
+	publicFilesSet.Remove("assets")
+	publicFilesSet.Remove("robots.txt")
+	for _, fn := range publicFilesSet.Values() {
+		log.Error("Found legacy public asset %q in CustomPath. Please move it to %s/public/assets/%s", fn, setting.CustomPath, fn)
+	}
+	if _, err := os.Stat(filepath.Join(setting.CustomPath, "robots.txt")); err == nil {
+		log.Error(`Found legacy public asset "robots.txt" in CustomPath. Please move it to %s/public/robots.txt`, setting.CustomPath)
 	}
 
 	routers.InitWebInstalled(graceful.GetManager().HammerContext())

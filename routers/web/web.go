@@ -108,7 +108,7 @@ func Routes() *web.Route {
 	routes := web.NewRoute()
 
 	routes.Head("/", misc.DummyOK) // for health check - doesn't need to be passed through gzip handler
-	routes.Methods("GET, HEAD", "/assets/*", CorsHandler(), public.AssetsHandlerFunc("/assets/"))
+	routes.Methods("GET, HEAD", "/assets/*", CorsHandler(), public.FileHandlerFunc())
 	routes.Methods("GET, HEAD", "/avatars/*", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
 	routes.Methods("GET, HEAD", "/repo-avatars/*", storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 	routes.Methods("GET, HEAD", "/apple-touch-icon.png", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
@@ -132,15 +132,12 @@ func Routes() *web.Route {
 		routes.Methods("GET,HEAD", "/captcha/*", append(mid, captcha.Captchaer(context.GetImageCaptcha()))...)
 	}
 
-	if setting.HasRobotsTxt {
-		routes.Get("/robots.txt", append(mid, misc.RobotsTxt)...)
-	}
-
 	if setting.Metrics.Enabled {
 		prometheus.MustRegister(metrics.NewCollector())
 		routes.Get("/metrics", append(mid, Metrics)...)
 	}
 
+	routes.Get("/robots.txt", append(mid, misc.RobotsTxt)...)
 	routes.Get("/ssh_info", misc.SSHInfo)
 	routes.Get("/api/healthz", healthcheck.Check)
 
@@ -336,8 +333,7 @@ func registerRoutes(m *web.Route) {
 
 	// FIXME: not all routes need go through same middleware.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
-	// Routers.
-	// for health check
+
 	m.Get("/", Home)
 	m.Get("/sitemap.xml", sitemapEnabled, ignExploreSignIn, HomeSitemap)
 	m.Group("/.well-known", func() {
@@ -349,7 +345,8 @@ func registerRoutes(m *web.Route) {
 		m.Get("/change-password", func(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		})
-	})
+		m.Any("/*", CorsHandler(), public.FileHandlerFunc())
+	}, CorsHandler())
 
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
