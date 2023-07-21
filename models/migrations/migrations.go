@@ -513,6 +513,8 @@ var migrations = []Migration{
 	NewMigration("Add branch table", v1_21.AddBranchTable),
 	// v265 -> v266
 	NewMigration("Alter Actions Artifact table", v1_21.AlterActionArtifactTable),
+	// v266 -> v267
+	NewMigration("Reduce commit status", v1_21.ReduceCommitStatus),
 }
 
 // GetCurrentDBVersion returns the current db version
