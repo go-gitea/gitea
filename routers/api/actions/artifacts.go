@@ -119,7 +119,7 @@ func ArtifactsRoutes(prefix string) *web.Route {
 
 	m.Group(artifactRouteBase, func() {
 		// retrieve, list and confirm artifacts
-		m.Combo("").Get(r.listArtifacts).Post(r.getUploadArtifactURL).Patch(r.comfirmUploadArtifact)
+		m.Combo("").Get(r.listArtifacts).Post(r.getUploadArtifactURL).Patch(r.confirmUploadArtifact)
 		// handle container artifacts list and download
 		m.Group("/{artifact_id}", func() {
 			m.Put("/upload", r.uploadArtifact)
@@ -348,9 +348,9 @@ func (ar artifactRoutes) uploadArtifact(ctx *ArtifactContext) {
 	})
 }
 
-// comfirmUploadArtifact comfirm upload artifact.
+// confirmUploadArtifact confirm upload artifact.
 // if all chunks are uploaded, merge them to one file.
-func (ar artifactRoutes) comfirmUploadArtifact(ctx *ArtifactContext) {
+func (ar artifactRoutes) confirmUploadArtifact(ctx *ArtifactContext) {
 	_, runID, ok := ar.validateRunID(ctx)
 	if !ok {
 		return

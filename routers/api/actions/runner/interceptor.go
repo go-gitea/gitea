@@ -36,7 +36,7 @@ var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 		uuid := request.Header().Get(uuidHeaderKey)
 		token := request.Header().Get(tokenHeaderKey)
 		// TODO: version will be removed from request header after Gitea 1.20 released.
-		// And Gitea will not try to read version from reuqest header
+		// And Gitea will not try to read version from request header
 		version := request.Header().Get(versionHeaderKey)
 
 		runner, err := actions_model.GetRunnerByUUID(ctx, uuid)
@@ -53,7 +53,7 @@ var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 		cols := []string{"last_online"}
 
 		// TODO: version will be removed from request header after Gitea 1.20 released.
-		// And Gitea will not try to read version from reuqest header
+		// And Gitea will not try to read version from request header
 		version, _ = util.SplitStringAtByteN(version, 64)
 		if !util.IsEmptyString(version) && runner.Version != version {
 			runner.Version = version
