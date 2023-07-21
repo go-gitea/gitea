@@ -282,7 +282,7 @@ const sfc = {
           } else {
             selected = result === (this.release ? this.release.tagName : this.defaultBranch);
           }
-          this.items.push({name: result, url: result, branch: this.mode === 'branches', tag: this.mode === 'tags', selected});
+          this.items.push({name: result, url: pathEscapeSegments(result), branch: this.mode === 'branches', tag: this.mode === 'tags', selected});
         }
         this.hasListInitialized[this.mode] = true;
       } catch (e) {
