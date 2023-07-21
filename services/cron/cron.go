@@ -17,7 +17,7 @@ import (
 	"github.com/go-co-op/gocron"
 )
 
-var s = gocron.NewScheduler(time.Local)
+var scheduler = gocron.NewScheduler(time.Local)
 
 // Prevent duplicate running tasks.
 var taskStatusTable = sync.NewStatusTable()
@@ -39,11 +39,11 @@ func NewContext(original context.Context) {
 		}
 	}
 
-	s.StartAsync()
+	scheduler.StartAsync()
 	started = true
 	lock.Unlock()
 	graceful.GetManager().RunAtShutdown(context.Background(), func() {
-		s.Stop()
+		scheduler.Stop()
 		lock.Lock()
 		started = false
 		lock.Unlock()
@@ -77,7 +77,7 @@ type TaskTable []*TaskTableRow
 
 // ListTasks returns all running cron tasks.
 func ListTasks() TaskTable {
-	jobs := s.Jobs()
+	jobs := scheduler.Jobs()
 	jobMap := map[string]*gocron.Job{}
 	for _, job := range jobs {
 		// the first tag is the task name

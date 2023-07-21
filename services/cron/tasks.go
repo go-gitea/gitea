@@ -205,9 +205,9 @@ func addTaskToScheduler(task *Task) error {
 	tags := []string{task.Name, task.config.GetSchedule()} // name and schedule can't be get from job, so we add them as tag
 	var scheduler *gocron.Scheduler
 	if scheduleHasSeconds(task.config.GetSchedule()) {
-		scheduler = s.CronWithSeconds(task.config.GetSchedule())
+		scheduler = scheduler.CronWithSeconds(task.config.GetSchedule())
 	} else {
-		scheduler = s.Cron(task.config.GetSchedule())
+		scheduler = scheduler.Cron(task.config.GetSchedule())
 	}
 	if _, err := scheduler.Tag(tags...).Do(task.Run); err != nil {
 		log.Error("Unable to register cron task with name: %s Error: %v", task.Name, err)

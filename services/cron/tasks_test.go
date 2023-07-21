@@ -11,8 +11,8 @@ import (
 )
 
 func TestAddTaskToScheduler(t *testing.T) {
-	assert.Len(t, s.Jobs(), 0)
-	defer s.Clear()
+	assert.Len(t, scheduler.Jobs(), 0)
+	defer scheduler.Clear()
 
 	// no seconds
 	err := addTaskToScheduler(&Task{
@@ -22,9 +22,9 @@ func TestAddTaskToScheduler(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err)
-	assert.Len(t, s.Jobs(), 1)
-	assert.Equal(t, "task 1", s.Jobs()[0].Tags()[0])
-	assert.Equal(t, "5 4 * * *", s.Jobs()[0].Tags()[1])
+	assert.Len(t, scheduler.Jobs(), 1)
+	assert.Equal(t, "task 1", scheduler.Jobs()[0].Tags()[0])
+	assert.Equal(t, "5 4 * * *", scheduler.Jobs()[0].Tags()[1])
 
 	// with seconds
 	err = addTaskToScheduler(&Task{
@@ -34,9 +34,9 @@ func TestAddTaskToScheduler(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err)
-	assert.Len(t, s.Jobs(), 2)
-	assert.Equal(t, "task 2", s.Jobs()[1].Tags()[0])
-	assert.Equal(t, "30 5 4 * * *", s.Jobs()[1].Tags()[1])
+	assert.Len(t, scheduler.Jobs(), 2)
+	assert.Equal(t, "task 2", scheduler.Jobs()[1].Tags()[0])
+	assert.Equal(t, "30 5 4 * * *", scheduler.Jobs()[1].Tags()[1])
 }
 
 func TestScheduleHasSeconds(t *testing.T) {
