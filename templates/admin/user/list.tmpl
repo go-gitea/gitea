@@ -67,11 +67,21 @@
 							{{SortArrow "alphabetically" "reversealphabetically" $.SortType true}}
 						</th>
 						<th>{{.locale.Tr "email"}}</th>
-						<th>{{.locale.Tr "admin.users.activated"}}</th>
-						<th>{{.locale.Tr "admin.users.admin"}}</th>
-						<th>{{.locale.Tr "admin.users.restricted"}}</th>
-						<th>{{.locale.Tr "admin.users.2fa"}}</th>
-						<th>{{.locale.Tr "admin.users.repos"}}</th>
+						<th data-tooltip-content="{{.locale.Tr "admin.users.activated"}}">
+							{{svg "octicon-check-circle"}}
+						</th>
+						<th data-tooltip-content="{{.locale.Tr "admin.users.admin"}}">
+							{{svg "octicon-gear"}}
+						</th>
+						<th data-tooltip-content="{{.locale.Tr "admin.users.restricted"}}">
+							{{svg "octicon-skip"}}
+						</th>
+						<th data-tooltip-content="{{.locale.Tr "admin.users.2fa"}}">
+							{{svg "octicon-key"}}
+						</th>
+						<th data-tooltip-content="{{.locale.Tr "admin.users.repos"}}">
+							{{svg "octicon-repo"}}
+						</th>
 						<th>{{.locale.Tr "admin.users.created"}}</th>
 						<th data-sortt-asc="lastlogin" data-sortt-desc="reverselastlogin">
 							{{.locale.Tr "admin.users.last_login"}}

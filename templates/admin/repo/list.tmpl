@@ -19,21 +19,25 @@
 							{{.locale.Tr "admin.repos.name"}}
 							{{SortArrow "alphabetically" "reversealphabetically" $.SortType false}}
 						</th>
-						<th>{{.locale.Tr "admin.repos.watches"}}</th>
-						<th  data-sortt-asc="moststars" data-sortt-desc="feweststars">
-							{{.locale.Tr "admin.repos.stars"}}
+						<th data-tooltip-content="{{.locale.Tr "admin.repos.watches"}}">
+							{{svg "octicon-eye"}}
+						</th>
+						<th data-tooltip-content="{{.locale.Tr "admin.repos.stars"}}" data-sortt-asc="moststars" data-sortt-desc="feweststars">
+							{{svg "octicon-star"}}
 							{{SortArrow "moststars" "feweststars" $.SortType false}}
 						</th>
-						<th  data-sortt-asc="mostforks" data-sortt-desc="fewestforks">
-							{{.locale.Tr "admin.repos.forks"}}
+						<th data-tooltip-content="{{.locale.Tr "admin.repos.forks"}}" data-sortt-asc="mostforks" data-sortt-desc="fewestforks">
+							{{svg "octicon-repo-forked"}}
 							{{SortArrow "mostforks" "fewestforks" $.SortType false}}
 						</th>
-						<th>{{.locale.Tr "admin.repos.issues"}}</th>
-						<th  data-sortt-asc="gitsize" data-sortt-desc="reversegitsize">
+						<th data-tooltip-content="{{.locale.Tr "admin.repos.issues"}}">
+							{{svg "octicon-issue-opened"}}
+						</th>
+						<th data-sortt-asc="gitsize" data-sortt-desc="reversegitsize">
 							{{.locale.Tr "admin.repos.size"}}
 							{{SortArrow "gitsize" "reversegitsize" $.SortType false}}
 						</th>
-						<th  data-sortt-asc="lfssize" data-sortt-desc="reverselfssize">
+						<th data-sortt-asc="lfssize" data-sortt-desc="reverselfssize">
 							{{.locale.Tr "admin.repos.lfs_size"}}
 							{{SortArrow "lfssize" "reverselfssize" $.SortType false}}
 						</th>
