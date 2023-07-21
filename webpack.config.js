@@ -84,7 +84,7 @@ export default {
   },
   devtool: false,
   output: {
-    path: fileURLToPath(new URL('public', import.meta.url)),
+    path: fileURLToPath(new URL('public/assets', import.meta.url)),
     filename: () => 'js/[name].js',
     chunkFilename: ({chunk}) => {
       const language = (/monaco.*languages?_.+?_(.+?)_/.exec(chunk.id) || [])[1];
@@ -147,7 +147,7 @@ export default {
       },
       {
         test: /\.svg$/,
-        include: fileURLToPath(new URL('public/img/svg', import.meta.url)),
+        include: fileURLToPath(new URL('public/assets/img/svg', import.meta.url)),
         type: 'asset/source',
       },
       {

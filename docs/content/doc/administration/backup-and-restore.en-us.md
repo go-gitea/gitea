@@ -46,9 +46,9 @@ directory. There should be some output similar to the following:
 
 Inside the `gitea-dump-1482906742.zip` file, will be the following:
 
-- `app.ini` - Optional copy of configuration file if originally stored outside of the default `custom/` directory
+- `app.ini` - Optional copy of configuration file if originally stored outside the default `custom/` directory
 - `custom` - All config or customization files in `custom/`.
-- `data` - Data directory in <GITEA_WORK_DIR>, except sessions if you are using file session. This directory includes `attachments`, `avatars`, `lfs`, `indexers`, SQLite file if you are using SQLite.
+- `data` - Data directory (APP_DATA_PATH), except sessions if you are using file session. This directory includes `attachments`, `avatars`, `lfs`, `indexers`, SQLite file if you are using SQLite.
 - `gitea-db.sql` - SQL dump of database
 - `gitea-repo.zip` - Complete copy of the repository directory.
 - `log/` - Various logs. They are not needed for a recovery or migration.
@@ -138,16 +138,6 @@ chown -R git:git /data
 ```
 
 The default user in the gitea container is `git` (1000:1000). Please replace `2a83b293548e` with your gitea container id or name.
-
-These are the default paths used in the container:
-
-```text
-DEFAULT CONFIGURATION:
-     CustomPath:  /data/gitea (GITEA_CUSTOM)
-     CustomConf:  /data/gitea/conf/app.ini
-     AppPath:     /usr/local/bin/gitea
-     AppWorkPath: /usr/local/bin
-```
 
 ### Using Docker-rootless (`restore`)
 
