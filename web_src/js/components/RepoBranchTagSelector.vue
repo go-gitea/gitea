@@ -82,6 +82,7 @@ import {createApp, nextTick} from 'vue';
 import $ from 'jquery';
 import {SvgIcon} from '../svg.js';
 import {pathEscapeSegments} from '../utils/url.js';
+import {showErrorToast} from "../modules/toast.js";
 
 const sfc = {
   components: {SvgIcon},
@@ -283,7 +284,7 @@ const sfc = {
         }
         this.hasListInitialized[this.mode] = true;
       } catch (e) {
-        console.error(`Network error when fetching ${this.mode}`, e);
+        showErrorToast(`Network error when fetching ${this.mode}, error: ${e}`);
       } finally {
         this.isLoading = false;
       }
