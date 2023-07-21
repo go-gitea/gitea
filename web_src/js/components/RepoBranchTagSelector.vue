@@ -108,7 +108,7 @@ const sfc = {
       return this.items.filter((item) => item.name.toLowerCase() === this.searchTerm.toLowerCase()).length === 0;
     },
     formActionUrl() {
-      return `${this.repoLink}/branches/_new/${pathEscapeSegments(this.branchNameSubURL)}`;
+      return `${this.repoLink}/branches/_new/${this.branchNameSubURL}`;
     },
   },
 
@@ -274,15 +274,15 @@ export function initRepoBranchTagSelector(selector) {
 
     if (data.showBranchesInDropdown && data.branches) {
       for (const branch of data.branches) {
-        data.items.push({name: branch, url: branch, branch: true, tag: false, selected: branch === data.defaultBranch});
+        data.items.push({name: branch, url: pathEscapeSegments(branch), branch: true, tag: false, selected: branch === data.defaultBranch});
       }
     }
     if (!data.noTag && data.tags) {
       for (const tag of data.tags) {
         if (data.release) {
-          data.items.push({name: tag, url: tag, branch: false, tag: true, selected: tag === data.release.tagName});
+          data.items.push({name: tag, url: pathEscapeSegments(tag), branch: false, tag: true, selected: tag === data.release.tagName});
         } else {
-          data.items.push({name: tag, url: tag, branch: false, tag: true, selected: tag === data.defaultBranch});
+          data.items.push({name: tag, url: pathEscapeSegments(tag), branch: false, tag: true, selected: tag === data.defaultBranch});
         }
       }
     }
