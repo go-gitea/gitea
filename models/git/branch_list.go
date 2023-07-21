@@ -106,16 +106,16 @@ func (opts *FindBranchOptions) Cond() builder.Cond {
 	}
 
 	if len(opts.RepoIDs) == 1 {
-		opts.RepoCond = builder.Eq{"issue.repo_id": opts.RepoIDs[0]}
+		opts.RepoCond = builder.Eq{"branch.repo_id": opts.RepoIDs[0]}
 	} else if len(opts.RepoIDs) > 1 {
-		opts.RepoCond = builder.In("issue.repo_id", opts.RepoIDs)
+		opts.RepoCond = builder.In("branch.repo_id", opts.RepoIDs)
 	}
 	if opts.RepoCond != nil {
 		cond = cond.And(opts.RepoCond)
 	}
 
 	if len(opts.ExcludeBranchNames) > 0 {
-		cond = cond.And(builder.NotIn("name", opts.ExcludeBranchNames))
+		cond = cond.And(builder.NotIn("branch.name", opts.ExcludeBranchNames))
 	}
 
 	if opts.CommitCond != nil {
@@ -123,18 +123,18 @@ func (opts *FindBranchOptions) Cond() builder.Cond {
 	}
 
 	if opts.PusherID > 0 {
-		cond = cond.And(builder.Eq{"pusher_id": opts.PusherID})
+		cond = cond.And(builder.Eq{"branch.pusher_id": opts.PusherID})
 	}
 
 	if !opts.IsDeletedBranch.IsNone() {
-		cond = cond.And(builder.Eq{"is_deleted": opts.IsDeletedBranch.IsTrue()})
+		cond = cond.And(builder.Eq{"branch.is_deleted": opts.IsDeletedBranch.IsTrue()})
 	}
 
 	if opts.CommitAfterUnix != 0 {
-		cond = cond.And(builder.Gte{"commit_time": opts.CommitAfterUnix})
+		cond = cond.And(builder.Gte{"branch.commit_time": opts.CommitAfterUnix})
 	}
 	if opts.CommitBeforeUnix != 0 {
-		cond = cond.And(builder.Lte{"commit_time": opts.CommitBeforeUnix})
+		cond = cond.And(builder.Lte{"branch.commit_time": opts.CommitBeforeUnix})
 	}
 	return cond
 }
