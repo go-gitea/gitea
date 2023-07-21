@@ -4,10 +4,14 @@
 package actions
 
 import (
+	"archive/zip"
+	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -479,7 +483,6 @@ type ArtifactsViewResponse struct {
 type ArtifactsViewItem struct {
 	Name string `json:"name"`
 	Size int64  `json:"size"`
-	ID   int64  `json:"id"`
 }
 
 func ArtifactsView(ctx *context_module.Context) {
@@ -493,7 +496,7 @@ func ArtifactsView(ctx *context_module.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
-	artifacts, err := actions_model.ListUploadedArtifactsByRunID(ctx, run.ID)
+	artifacts, err := actions_model.ListUploadedArtifactsMeta(ctx, run.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
@@ -505,7 +508,6 @@ func ArtifactsView(ctx *context_module.Context) {
 		artifactsResponse.Artifacts = append(artifactsResponse.Artifacts, &ArtifactsViewItem{
 			Name: art.ArtifactName,
 			Size: art.FileSize,
-			ID:   art.ID,
 		})
 	}
 	ctx.JSON(http.StatusOK, artifactsResponse)
@@ -513,15 +515,8 @@ func ArtifactsView(ctx *context_module.Context) {
 
 func ArtifactsDownloadView(ctx *context_module.Context) {
 	runIndex := ctx.ParamsInt64("run")
-	artifactID := ctx.ParamsInt64("id")
+	artifactName := ctx.Params("artifact_name")
 
-	artifact, err := actions_model.GetArtifactByID(ctx, artifactID)
-	if errors.Is(err, util.ErrNotExist) {
-		ctx.Error(http.StatusNotFound, err.Error())
-	} else if err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
-		return
-	}
 	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
@@ -531,20 +526,49 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
-	if artifact.RunID != run.ID {
-		ctx.Error(http.StatusNotFound, "artifact not found")
-		return
-	}
 
-	f, err := storage.ActionsArtifacts.Open(artifact.StoragePath)
+	artifacts, err := actions_model.ListArtifactsByRunIDAndName(ctx, run.ID, artifactName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
-	defer f.Close()
+	if len(artifacts) == 0 {
+		ctx.Error(http.StatusNotFound, "artifact not found")
+		return
+	}
 
-	ctx.ServeContent(f, &context_module.ServeHeaderOptions{
-		Filename:     artifact.ArtifactName,
-		LastModified: artifact.CreatedUnix.AsLocalTime(),
-	})
+	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.zip; filename*=UTF-8''%s.zip", url.PathEscape(artifactName), artifactName))
+
+	writer := zip.NewWriter(ctx.Resp)
+	defer writer.Close()
+	for _, art := range artifacts {
+
+		f, err := storage.ActionsArtifacts.Open(art.StoragePath)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		var r io.ReadCloser
+		if art.ContentEncoding == "gzip" {
+			r, err = gzip.NewReader(f)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, err.Error())
+				return
+			}
+		} else {
+			r = f
+		}
+		defer r.Close()
+
+		w, err := writer.Create(art.ArtifactPath)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, err.Error())
+			return
+		}
+		if _, err := io.Copy(w, r); err != nil {
+			ctx.Error(http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
 }
