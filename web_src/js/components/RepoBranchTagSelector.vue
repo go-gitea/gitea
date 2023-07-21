@@ -48,12 +48,12 @@
         </div>
         <div class="item" v-if="showCreateNewBranch" :class="{active: active === filteredItems.length}" :ref="'listItem' + filteredItems.length">
           <a href="#" @click="createNewBranch()">
-            <div v-show="createTag">
+            <div v-show="shouldCreateTag">
               <i class="reference tags icon"/>
               <!-- eslint-disable-next-line vue/no-v-html -->
               <span v-html="textCreateTag.replace('%s', searchTerm)"/>
             </div>
-            <div v-show="!createTag">
+            <div v-show="!shouldCreateTag">
               <svg-icon name="octicon-git-branch"/>
               <!-- eslint-disable-next-line vue/no-v-html -->
               <span v-html="textCreateBranch.replace('%s', searchTerm)"/>
@@ -67,7 +67,7 @@
           <form ref="newBranchForm" :action="formActionUrl" method="post">
             <input type="hidden" name="_csrf" :value="csrfToken">
             <input type="hidden" name="new_branch_name" v-model="searchTerm">
-            <input type="hidden" name="create_tag" v-model="createTag">
+            <input type="hidden" name="create_tag" v-model="shouldCreateTag">
             <input type="hidden" name="current_path" v-model="treePath" v-if="treePath">
           </form>
         </div>
@@ -114,7 +114,7 @@ const sfc = {
     formActionUrl() {
       return `${this.repoLink}/branches/_new/${this.branchNameSubURL}`;
     },
-    createTag() {
+    shouldCreateTag() {
       return this.mode === 'tags';
     }
   },
