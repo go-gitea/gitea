@@ -43,11 +43,11 @@ func UnwrapLDAPSourceCfg(x *xorm.Engine) error {
 
 	// LoginSource represents an external way for authorizing users.
 	type LoginSource struct {
-		ID          int64 `xorm:"pk autoincr"`
-		Type        int
-		IsActivated bool   `xorm:"INDEX NOT NULL DEFAULT false"`
-		IsActive    bool   `xorm:"INDEX NOT NULL DEFAULT false"`
-		Cfg         string `xorm:"TEXT"`
+		ID        int64 `xorm:"pk autoincr"`
+		Type      int
+		IsActived bool   `xorm:"INDEX NOT NULL DEFAULT false"`
+		IsActive  bool   `xorm:"INDEX NOT NULL DEFAULT false"`
+		Cfg       string `xorm:"TEXT"`
 	}
 
 	const ldapType = 2
@@ -96,14 +96,14 @@ func UnwrapLDAPSourceCfg(x *xorm.Engine) error {
 		}
 	}
 
-	if _, err := x.SetExpr("is_active", "is_activated").Update(&LoginSource{}); err != nil {
+	if _, err := x.SetExpr("is_active", "is_actived").Update(&LoginSource{}); err != nil {
 		return fmt.Errorf("SetExpr Update failed:  %w", err)
 	}
 
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	if err := base.DropTableColumns(sess, "login_source", "is_activated"); err != nil {
+	if err := base.DropTableColumns(sess, "login_source", "is_actived"); err != nil {
 		return err
 	}
 
