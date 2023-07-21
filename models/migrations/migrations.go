@@ -514,6 +514,8 @@ var migrations = []Migration{
 	// v265 -> v266
 	NewMigration("Alter Actions Artifact table", v1_21.AlterActionArtifactTable),
 	// v266 -> v267
+  NewMigration("Reduce commit status", v1_21.ReduceCommitStatus),
+  // v267 -> v268
 	NewMigration("Migrate old rpm package index", v1_21.RebuildRpmPackage),
 }
 
