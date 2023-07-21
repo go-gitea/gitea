@@ -299,7 +299,6 @@ export function initRepoBranchTagSelector(selector) {
       searchTerm: '',
       refNameText: '',
       menuVisible: false,
-      createTag: false,
       release: null,
 
       isViewTag: false,
