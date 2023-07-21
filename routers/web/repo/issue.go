@@ -2762,7 +2762,15 @@ func UpdateIssueStatus(ctx *context.Context) {
 		ctx.ServerError("LoadRepositories", err)
 		return
 	}
+	if err := issues.LoadPullRequests(ctx); err != nil {
+		ctx.ServerError("LoadPullRequests", err)
+		return
+	}
+
 	for _, issue := range issues {
+		if issue.IsPull && issue.PullRequest.HasMerged {
+			continue
+		}
 		if issue.IsClosed != isClosed {
 			if err := issue_service.ChangeStatus(issue, ctx.Doer, "", isClosed); err != nil {
 				if issues_model.IsErrDependenciesLeft(err) {
@@ -3495,8 +3503,15 @@ type userSearchResponse struct {
 
 // IssuePosters get posters for current repo's issues/pull requests
 func IssuePosters(ctx *context.Context) {
+	issuePosters(ctx, false)
+}
+
+func PullPosters(ctx *context.Context) {
+	issuePosters(ctx, true)
+}
+
+func issuePosters(ctx *context.Context, isPullList bool) {
 	repo := ctx.Repo.Repository
-	isPullList := ctx.Params(":type") == "pulls"
 	search := strings.TrimSpace(ctx.FormString("q"))
 	posters, err := repo_model.GetIssuePostersWithSearch(ctx, repo, isPullList, search, setting.UI.DefaultShowFullName)
 	if err != nil {

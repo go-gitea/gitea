@@ -48,6 +48,12 @@ func TestDecodeEnvironmentKey(t *testing.T) {
 	assert.Equal(t, "", key)
 	assert.False(t, file)
 
+	ok, section, key, file = decodeEnvironmentKey(prefix, suffix, "GITEA____KEY")
+	assert.True(t, ok)
+	assert.Equal(t, "", section)
+	assert.Equal(t, "KEY", key)
+	assert.False(t, file)
+
 	ok, section, key, file = decodeEnvironmentKey(prefix, suffix, "GITEA__SEC__KEY")
 	assert.True(t, ok)
 	assert.Equal(t, "sec", section)
