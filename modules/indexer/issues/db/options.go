@@ -12,19 +12,22 @@ import (
 func ToDBOptions(options *internal.SearchOptions) *issue_model.IssuesOptions {
 	convertID := func(id *int64) int64 {
 		if id == nil {
+			return 0
+		}
+		if *id == 0 {
 			return db.NoConditionID
 		}
 		return *id
 	}
 	convertIDs := func(ids []int64) []int64 {
-		if len(ids) == 0 {
+		if len(ids) == 1 && ids[0] == 0 {
 			return []int64{db.NoConditionID}
 		}
 		return ids
 	}
 	convertLabelIDs := func(includes, excludes []int64, noLabelOnly bool) []int64 {
 		if noLabelOnly {
-			return []int64{0}
+			return []int64{0} // Be careful, it's zero, not db.NoConditionID
 		}
 		ret := make([]int64, 0, len(includes)+len(excludes))
 		ret = append(ret, includes...)
@@ -50,13 +53,15 @@ func ToDBOptions(options *internal.SearchOptions) *issue_model.IssuesOptions {
 	case internal.SortByDeadlineAsc:
 		sortType = "farduedate"
 	case internal.SortByCreatedDesc:
-		sortType = "" // default
+		sortType = "newest"
 	case internal.SortByUpdatedDesc:
 		sortType = "recentupdate"
 	case internal.SortByCommentsDesc:
 		sortType = "mostcomment"
 	case internal.SortByDeadlineDesc:
 		sortType = "nearduedate"
+	default:
+		sortType = "newest"
 	}
 
 	opts := &issue_model.IssuesOptions{
