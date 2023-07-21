@@ -231,9 +231,12 @@ func notify(ctx context.Context, input *notifyInput) error {
 			continue
 		}
 
-		// auto cancel running jobs in the same workflow
-		if err := actions_model.CancelRunningJobs(ctx, run); err != nil {
-			log.Error("CancelRunningJobs: %v", err)
+		// cancel running jobs if the event is push
+		if run.Event == webhook_module.HookEventPush {
+			// cancel running jobs of the same workflow
+			if err := actions_model.CancelRunningJobs(ctx, run); err != nil {
+				log.Error("CancelRunningJobs: %v", err)
+			}
 		}
 
 		if err := actions_model.InsertRun(ctx, run, jobs); err != nil {
