@@ -42,7 +42,7 @@ func ToDBOptions(options *internal.SearchOptions) *issue_model.IssuesOptions {
 		}
 		return *i
 	}
-	sortType := ""
+	var sortType string
 	switch options.SortBy {
 	case internal.SortByCreatedAsc:
 		sortType = "oldest"
