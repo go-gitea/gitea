@@ -152,13 +152,12 @@ import {SvgIcon} from '../svg.js';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
 
+// make sure this matches templates/repo/commit_status.tmpl
 const commitStatus = {
   pending: {name: 'octicon-dot-fill', color: 'yellow'},
-  running: {name: 'octicon-dot-fill', color: 'yellow'},
   success: {name: 'octicon-check', color: 'green'},
   error: {name: 'gitea-exclamation', color: 'red'},
   failure: {name: 'octicon-x', color: 'red'},
-  warning: {name: 'gitea-exclamation', color: 'yellow'},
 };
 
 const sfc = {

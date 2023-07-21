@@ -26,15 +26,15 @@ import (
 	"code.gitea.io/gitea/services/auth/source/smtp"
 	repo_service "code.gitea.io/gitea/services/repository"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 var (
 	// CmdAdmin represents the available admin sub-command.
-	CmdAdmin = cli.Command{
+	CmdAdmin = &cli.Command{
 		Name:  "admin",
 		Usage: "Command line interface to perform common administrative operations",
-		Subcommands: []cli.Command{
+		Subcommands: []*cli.Command{
 			subcmdUser,
 			subcmdRepoSyncReleases,
 			subcmdRegenerate,
@@ -43,37 +43,37 @@ var (
 		},
 	}
 
-	subcmdRepoSyncReleases = cli.Command{
+	subcmdRepoSyncReleases = &cli.Command{
 		Name:   "repo-sync-releases",
 		Usage:  "Synchronize repository releases with tags",
 		Action: runRepoSyncReleases,
 	}
 
-	subcmdRegenerate = cli.Command{
+	subcmdRegenerate = &cli.Command{
 		Name:  "regenerate",
 		Usage: "Regenerate specific files",
-		Subcommands: []cli.Command{
+		Subcommands: []*cli.Command{
 			microcmdRegenHooks,
 			microcmdRegenKeys,
 		},
 	}
 
-	microcmdRegenHooks = cli.Command{
+	microcmdRegenHooks = &cli.Command{
 		Name:   "hooks",
 		Usage:  "Regenerate git-hooks",
 		Action: runRegenerateHooks,
 	}
 
-	microcmdRegenKeys = cli.Command{
+	microcmdRegenKeys = &cli.Command{
 		Name:   "keys",
 		Usage:  "Regenerate authorized_keys file",
 		Action: runRegenerateKeys,
 	}
 
-	subcmdAuth = cli.Command{
+	subcmdAuth = &cli.Command{
 		Name:  "auth",
 		Usage: "Modify external auth providers",
-		Subcommands: []cli.Command{
+		Subcommands: []*cli.Command{
 			microcmdAuthAddOauth,
 			microcmdAuthUpdateOauth,
 			cmdAuthAddLdapBindDn,
@@ -87,44 +87,44 @@ var (
 		},
 	}
 
-	microcmdAuthList = cli.Command{
+	microcmdAuthList = &cli.Command{
 		Name:   "list",
 		Usage:  "List auth sources",
 		Action: runListAuth,
 		Flags: []cli.Flag{
-			cli.IntFlag{
+			&cli.IntFlag{
 				Name:  "min-width",
 				Usage: "Minimal cell width including any padding for the formatted table",
 				Value: 0,
 			},
-			cli.IntFlag{
+			&cli.IntFlag{
 				Name:  "tab-width",
 				Usage: "width of tab characters in formatted table (equivalent number of spaces)",
 				Value: 8,
 			},
-			cli.IntFlag{
+			&cli.IntFlag{
 				Name:  "padding",
 				Usage: "padding added to a cell before computing its width",
 				Value: 1,
 			},
-			cli.StringFlag{
+			&cli.StringFlag{
 				Name:  "pad-char",
 				Usage: `ASCII char used for padding if padchar == '\\t', the Writer will assume that the width of a '\\t' in the formatted output is tabwidth, and cells are left-aligned independent of align_left (for correct-looking results, tabwidth must correspond to the tab width in the viewer displaying the result)`,
 				Value: "\t",
 			},
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name:  "vertical-bars",
 				Usage: "Set to true to print vertical bars between columns",
 			},
 		},
 	}
 
-	idFlag = cli.Int64Flag{
+	idFlag = &cli.Int64Flag{
 		Name:  "id",
 		Usage: "ID of authentication source",
 	}
 
-	microcmdAuthDelete = cli.Command{
+	microcmdAuthDelete = &cli.Command{
 		Name:   "delete",
 		Usage:  "Delete specific auth source",
 		Flags:  []cli.Flag{idFlag},
@@ -132,207 +132,208 @@ var (
 	}
 
 	oauthCLIFlags = []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "name",
 			Value: "",
 			Usage: "Application Name",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "provider",
 			Value: "",
 			Usage: "OAuth2 Provider",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "key",
 			Value: "",
 			Usage: "Client ID (Key)",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "secret",
 			Value: "",
 			Usage: "Client Secret",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "auto-discover-url",
 			Value: "",
 			Usage: "OpenID Connect Auto Discovery URL (only required when using OpenID Connect as provider)",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "use-custom-urls",
 			Value: "false",
 			Usage: "Use custom URLs for GitLab/GitHub OAuth endpoints",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "custom-tenant-id",
 			Value: "",
 			Usage: "Use custom Tenant ID for OAuth endpoints",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "custom-auth-url",
 			Value: "",
 			Usage: "Use a custom Authorization URL (option for GitLab/GitHub)",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "custom-token-url",
 			Value: "",
 			Usage: "Use a custom Token URL (option for GitLab/GitHub)",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "custom-profile-url",
 			Value: "",
 			Usage: "Use a custom Profile URL (option for GitLab/GitHub)",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "custom-email-url",
 			Value: "",
 			Usage: "Use a custom Email URL (option for GitHub)",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "icon-url",
 			Value: "",
 			Usage: "Custom icon URL for OAuth2 login source",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "skip-local-2fa",
 			Usage: "Set to true to skip local 2fa for users authenticated by this source",
 		},
-		cli.StringSliceFlag{
+		&cli.StringSliceFlag{
 			Name:  "scopes",
 			Value: nil,
 			Usage: "Scopes to request when to authenticate against this OAuth2 source",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "required-claim-name",
 			Value: "",
 			Usage: "Claim name that has to be set to allow users to login with this source",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "required-claim-value",
 			Value: "",
 			Usage: "Claim value that has to be set to allow users to login with this source",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "group-claim-name",
 			Value: "",
 			Usage: "Claim name providing group names for this source",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "admin-group",
 			Value: "",
 			Usage: "Group Claim value for administrator users",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "restricted-group",
 			Value: "",
 			Usage: "Group Claim value for restricted users",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "group-team-map",
 			Value: "",
 			Usage: "JSON mapping between groups and org teams",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "group-team-map-removal",
 			Usage: "Activate automatic team membership removal depending on groups",
 		},
 	}
 
-	microcmdAuthUpdateOauth = cli.Command{
+	microcmdAuthUpdateOauth = &cli.Command{
 		Name:   "update-oauth",
 		Usage:  "Update existing Oauth authentication source",
 		Action: runUpdateOauth,
 		Flags:  append(oauthCLIFlags[:1], append([]cli.Flag{idFlag}, oauthCLIFlags[1:]...)...),
 	}
 
-	microcmdAuthAddOauth = cli.Command{
+	microcmdAuthAddOauth = &cli.Command{
 		Name:   "add-oauth",
 		Usage:  "Add new Oauth authentication source",
 		Action: runAddOauth,
 		Flags:  oauthCLIFlags,
 	}
 
-	subcmdSendMail = cli.Command{
+	subcmdSendMail = &cli.Command{
 		Name:   "sendmail",
 		Usage:  "Send a message to all users",
 		Action: runSendMail,
 		Flags: []cli.Flag{
-			cli.StringFlag{
+			&cli.StringFlag{
 				Name:  "title",
 				Usage: `a title of a message`,
 				Value: "",
 			},
-			cli.StringFlag{
+			&cli.StringFlag{
 				Name:  "content",
 				Usage: "a content of a message",
 				Value: "",
 			},
-			cli.BoolFlag{
-				Name:  "force,f",
-				Usage: "A flag to bypass a confirmation step",
+			&cli.BoolFlag{
+				Name:    "force",
+				Aliases: []string{"f"},
+				Usage:   "A flag to bypass a confirmation step",
 			},
 		},
 	}
 
 	smtpCLIFlags = []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "name",
 			Value: "",
 			Usage: "Application Name",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "auth-type",
 			Value: "PLAIN",
 			Usage: "SMTP Authentication Type (PLAIN/LOGIN/CRAM-MD5) default PLAIN",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "host",
 			Value: "",
 			Usage: "SMTP Host",
 		},
-		cli.IntFlag{
+		&cli.IntFlag{
 			Name:  "port",
 			Usage: "SMTP Port",
 		},
-		cli.BoolTFlag{
+		&cli.BoolFlag{
 			Name:  "force-smtps",
 			Usage: "SMTPS is always used on port 465. Set this to force SMTPS on other ports.",
 		},
-		cli.BoolTFlag{
+		&cli.BoolFlag{
 			Name:  "skip-verify",
 			Usage: "Skip TLS verify.",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "helo-hostname",
 			Value: "",
 			Usage: "Hostname sent with HELO. Leave blank to send current hostname",
 		},
-		cli.BoolTFlag{
+		&cli.BoolFlag{
 			Name:  "disable-helo",
 			Usage: "Disable SMTP helo.",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "allowed-domains",
 			Value: "",
 			Usage: "Leave empty to allow all domains. Separate multiple domains with a comma (',')",
 		},
-		cli.BoolTFlag{
+		&cli.BoolFlag{
 			Name:  "skip-local-2fa",
 			Usage: "Skip 2FA to log on.",
 		},
-		cli.BoolTFlag{
+		&cli.BoolFlag{
 			Name:  "active",
 			Usage: "This Authentication Source is Activated.",
 		},
 	}
 
-	microcmdAuthAddSMTP = cli.Command{
+	microcmdAuthAddSMTP = &cli.Command{
 		Name:   "add-smtp",
 		Usage:  "Add new SMTP authentication source",
 		Action: runAddSMTP,
 		Flags:  smtpCLIFlags,
 	}
 
-	microcmdAuthUpdateSMTP = cli.Command{
+	microcmdAuthUpdateSMTP = &cli.Command{
 		Name:   "update-smtp",
 		Usage:  "Update existing SMTP authentication source",
 		Action: runUpdateSMTP,
@@ -611,19 +612,19 @@ func parseSMTPConfig(c *cli.Context, conf *smtp.Source) error {
 		conf.AllowedDomains = c.String("allowed-domains")
 	}
 	if c.IsSet("force-smtps") {
-		conf.ForceSMTPS = c.BoolT("force-smtps")
+		conf.ForceSMTPS = c.Bool("force-smtps")
 	}
 	if c.IsSet("skip-verify") {
-		conf.SkipVerify = c.BoolT("skip-verify")
+		conf.SkipVerify = c.Bool("skip-verify")
 	}
 	if c.IsSet("helo-hostname") {
 		conf.HeloHostname = c.String("helo-hostname")
 	}
 	if c.IsSet("disable-helo") {
-		conf.DisableHelo = c.BoolT("disable-helo")
+		conf.DisableHelo = c.Bool("disable-helo")
 	}
 	if c.IsSet("skip-local-2fa") {
-		conf.SkipLocalTwoFA = c.BoolT("skip-local-2fa")
+		conf.SkipLocalTwoFA = c.Bool("skip-local-2fa")
 	}
 	return nil
 }
@@ -647,7 +648,7 @@ func runAddSMTP(c *cli.Context) error {
 	}
 	active := true
 	if c.IsSet("active") {
-		active = c.BoolT("active")
+		active = c.Bool("active")
 	}
 
 	var smtpConfig smtp.Source
@@ -696,7 +697,7 @@ func runUpdateSMTP(c *cli.Context) error {
 	}
 
 	if c.IsSet("active") {
-		source.IsActive = c.BoolT("active")
+		source.IsActive = c.Bool("active")
 	}
 
 	source.Cfg = smtpConfig
