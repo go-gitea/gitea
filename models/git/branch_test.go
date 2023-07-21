@@ -218,4 +218,6 @@ func TestFindRecentlyPushedNewBranches(t *testing.T) {
 	branches, err = git_model.FindRecentlyPushedNewBranches(db.DefaultContext, repo, user5, 1689838760)
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(branches))
+
+	// TODO:test pr branch
 }

@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -401,20 +402,30 @@ func FindRecentlyPushedNewBranches(ctx context.Context, baseRepo *repo_model.Rep
 	if err != nil {
 		return nil, err
 	}
+
 	// search all related repos
-	repoCond := builder.Select("id").From("repository").
-		Where(builder.Or(
-			builder.Eq{"id": baseRepo.ID},
-			builder.Eq{"is_fork": true, "fork_id": baseRepo.ID},
-		))
+	repoOpts := repo_model.SearchRepoOptions{
+		Actor:      doer,
+		Private:    true,
+		AllPublic:  false, // Include also all public repositories of users and public organisations
+		AllLimited: false, // Include also all public repositories of limited organisations
+		Fork:       util.OptionalBoolTrue,
+		ForkID:     baseRepo.ID,
+		Archived:   util.OptionalBoolFalse,
+	}
+	repoCond := repo_model.SearchRepositoryCondition(&repoOpts).
+		And(repo_model.AccessibleRepositoryCondition(doer, unit.TypeCode)).
+		Or(builder.Eq{"id": baseRepo.ID})
+	repoIds := builder.Select("id").From("repository").Where(repoCond)
+
 	// avoid check branches which have already created PRs
 	// TODO add head_branch_id in pull_request table then we can get the branch id from pull_request table directly
-	invalidBranchCond := builder.Select("branch.id").From("branch").
+	prBranchIds := builder.Select("branch.id").From("branch").
 		InnerJoin("pull_request", "branch.name = pull_request.head_branch AND branch.repo_id = pull_request.head_repo_id").
 		InnerJoin("issue", "issue.id = pull_request.issue_id").
 		Where(builder.Or(
 			builder.Eq{"pull_request.has_merged": true},
-			builder.In("pull_request.head_repo_id", repoCond),
+			builder.In("pull_request.head_repo_id", repoIds),
 			builder.Eq{"branch.id": baseBranch.ID},
 		))
 
@@ -422,8 +433,8 @@ func FindRecentlyPushedNewBranches(ctx context.Context, baseRepo *repo_model.Rep
 		commitAfterUnix = time.Now().Add(-time.Hour * 6).Unix()
 	}
 	opts := FindBranchOptions{
-		IDCond:          builder.NotIn("id", invalidBranchCond),
-		RepoCond:        builder.In("repo_id", repoCond),
+		IDCond:          builder.NotIn("id", prBranchIds),
+		RepoCond:        builder.In("repo_id", repoIds),
 		CommitCond:      builder.Neq{"commit_id": baseBranch.CommitID}, // newly created branch have no changes, so skip them,
 		PusherID:        doer.ID,
 		IsDeletedBranch: util.OptionalBoolFalse,

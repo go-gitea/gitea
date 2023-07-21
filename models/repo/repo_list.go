@@ -133,7 +133,8 @@ type SearchRepoOptions struct {
 	// None -> include forks AND non-forks
 	// True -> include just forks
 	// False -> include just non-forks
-	Fork util.OptionalBool
+	Fork   util.OptionalBool
+	ForkID int64 // If Fork option is True, you can use this option to limit the forks of a special repo by repo id.
 	// None -> include templates AND non-templates
 	// True -> include just templates
 	// False -> include just non-templates
@@ -467,6 +468,10 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 			cond = cond.And(builder.Eq{"is_fork": false})
 		} else {
 			cond = cond.And(builder.Eq{"is_fork": opts.Fork == util.OptionalBoolTrue})
+
+			if opts.ForkID > 0 && opts.Fork == util.OptionalBoolTrue {
+				cond = cond.And(builder.Eq{"fork_id": opts.ForkID})
+			}
 		}
 	}
 
