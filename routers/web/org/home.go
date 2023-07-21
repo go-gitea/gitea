@@ -16,7 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 )
 
 const (
@@ -159,15 +159,10 @@ func Home(ctx *context.Context) {
 	ctx.Data["PageIsViewRepositories"] = true
 	ctx.Data["IsFollowing"] = isFollowing
 
-	if !opts.PublicOnly {
-		ctx.Data["RepoCount"] = ctx.ContextUser.NumRepos
-	} else {
-		publicCount, err := repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{OwnerID: ctx.ContextUser.ID, Private: util.OptionalBoolFalse})
-		if err != nil {
-			ctx.ServerError("CountPublicRepos", err)
-			return
-		}
-		ctx.Data["RepoCount"] = publicCount
+	err = shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
 	}
 
 	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)

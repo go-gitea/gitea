@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // prepareContextForCommonProfile store some common data into context data for user's profile related pages (including the nav menu)
@@ -109,4 +110,37 @@ func RenderUserHeader(ctx *context.Context) {
 	_, profileReadmeBlob, profileClose := FindUserProfileReadme(ctx)
 	defer profileClose()
 	ctx.Data["HasProfileReadme"] = profileReadmeBlob != nil
+}
+
+func LoadHeaderCount(ctx *context.Context) error {
+	prepareContextForCommonProfile(ctx)
+
+	var err error
+	var showPrivate bool
+	if ctx.Doer == nil {
+		showPrivate = false
+	} else if ctx.ContextUser.IsAdmin {
+		showPrivate = true
+	} else if ctx.ContextUser.ID == ctx.Doer.ID {
+		showPrivate = true
+	} else if ctx.ContextUser.IsOrganization() {
+		showPrivate, err = ctx.Org.Organization.IsOrgMember(ctx.Doer.ID)
+		if err != nil {
+			return err
+		}
+	} else {
+		showPrivate = false
+	}
+
+	if showPrivate {
+		ctx.Data["RepoCount"] = ctx.ContextUser.NumRepos
+	} else {
+		repoCount, err := repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{OwnerID: ctx.ContextUser.ID, Private: util.OptionalBoolFalse})
+		if err != nil {
+			return err
+		}
+		ctx.Data["RepoCount"] = repoCount
+	}
+
+	return nil
 }
