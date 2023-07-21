@@ -1103,10 +1103,6 @@ func registerRoutes(m *web.Route) {
 
 	// Tags
 	m.Group("/{username}/{reponame}", func() {
-		m.Group("/branches", func() {
-			m.Get("/list", repo.GetBranchesList)
-		})
-
 		m.Group("/tags", func() {
 			m.Get("", repo.TagsList)
 			m.Get("/list", repo.GetTagList)
@@ -1251,6 +1247,7 @@ func registerRoutes(m *web.Route) {
 		}, repo.MustBeNotEmpty, dlSourceEnabled, reqRepoCodeReader)
 
 		m.Group("/branches", func() {
+			m.Get("/list", repo.GetBranchesList)
 			m.Get("", repo.Branches)
 		}, repo.MustBeNotEmpty, context.RepoRef(), reqRepoCodeReader)
 
