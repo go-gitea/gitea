@@ -38,12 +38,12 @@
       </template>
       <div class="scrolling menu" ref="scrollContainer">
         <svg-icon name="octicon-rss" symbol-id="svg-symbol-octicon-rss"/>
-        <div class="loading-indicator is-loading" v-if="isLoading"></div>
+        <div class="loading-indicator is-loading" v-if="isLoading"/>
         <div v-for="(item, index) in filteredItems" :key="item.name" class="item" :class="{selected: item.selected, active: active === index}" @click="selectItem(item)" :ref="'listItem' + index">
           {{ item.name }}
           <a v-show="enableFeed && mode === 'branches'" role="button" class="rss-icon ui compact right" :href="rssURLPrefix + item.url" target="_blank" @click.stop>
             <!-- creating a lot of Vue component is pretty slow, so we use a static SVG here -->
-            <svg width="14" height="14" class="svg octicon-rss"><use href="#svg-symbol-octicon-rss"></use></svg>
+            <svg width="14" height="14" class="svg octicon-rss"><use href="#svg-symbol-octicon-rss"/></svg>
           </a>
         </div>
         <div class="item" v-if="showCreateNewBranch" :class="{active: active === filteredItems.length}" :ref="'listItem' + filteredItems.length">
@@ -84,7 +84,7 @@ import {createApp, nextTick} from 'vue';
 import $ from 'jquery';
 import {SvgIcon} from '../svg.js';
 import {pathEscapeSegments} from '../utils/url.js';
-import {showErrorToast} from "../modules/toast.js";
+import {showErrorToast} from '../modules/toast.js';
 
 const sfc = {
   components: {SvgIcon},
