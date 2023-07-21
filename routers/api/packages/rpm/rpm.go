@@ -60,7 +60,6 @@ func GetRepositoryKey(ctx *context.Context) {
 
 // Gets a pre-generated repository metadata file
 func GetRepositoryFile(ctx *context.Context) {
-	distribution := ctx.Params("distribution")
 	pv, err := rpm_service.GetOrCreateRepositoryVersion(ctx.Package.Owner.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -72,7 +71,7 @@ func GetRepositoryFile(ctx *context.Context) {
 		pv,
 		&packages_service.PackageFileInfo{
 			Filename:     ctx.Params("filename"),
-			CompositeKey: distribution,
+			CompositeKey: ctx.Params("distribution"),
 		},
 	)
 	if err != nil {
@@ -88,7 +87,6 @@ func GetRepositoryFile(ctx *context.Context) {
 }
 
 func UploadPackageFile(ctx *context.Context) {
-	distribution := ctx.Params("distribution")
 	upload, close, err := ctx.UploadStream()
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -125,7 +123,7 @@ func UploadPackageFile(ctx *context.Context) {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-
+	distribution := ctx.Params("distribution")
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
@@ -175,7 +173,6 @@ func UploadPackageFile(ctx *context.Context) {
 func DownloadPackageFile(ctx *context.Context) {
 	name := ctx.Params("name")
 	version := ctx.Params("version")
-	distribution := ctx.Params("distribution")
 	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
@@ -186,7 +183,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		},
 		&packages_service.PackageFileInfo{
 			Filename:     fmt.Sprintf("%s-%s.%s.rpm", name, version, ctx.Params("architecture")),
-			CompositeKey: distribution,
+			CompositeKey: ctx.Params("distribution"),
 		},
 	)
 	if err != nil {
