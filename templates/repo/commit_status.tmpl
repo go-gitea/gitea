@@ -1,4 +1,4 @@
-{{if or (eq .State "pending") (eq .State "running")}}
+{{if eq .State "pending"}}
 	{{svg "octicon-dot-fill" 18 "commit-status icon text yellow"}}
 {{end}}
 {{if eq .State "success"}}
@@ -9,7 +9,4 @@
 {{end}}
 {{if eq .State "failure"}}
 	{{svg "octicon-x" 18 "commit-status icon text red"}}
-{{end}}
-{{if eq .State "warning"}}
-	{{svg "gitea-exclamation" 18 "commit-status icon text yellow"}}
 {{end}}
