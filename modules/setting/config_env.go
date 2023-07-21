@@ -86,7 +86,7 @@ func decodeEnvSectionKey(encoded string) (ok bool, section, key string) {
 		key += remaining
 	}
 	section = strings.ToLower(section)
-	ok = section != "" && key != ""
+	ok = key != ""
 	if !ok {
 		section = ""
 		key = ""
