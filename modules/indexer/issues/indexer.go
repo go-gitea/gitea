@@ -308,6 +308,17 @@ const (
 // It returns issue ids and a bool value indicates if the result is imprecise.
 func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, int64, error) {
 	indexer := *globalIndexer.Load()
+
+	if opts.Keyword == "" {
+		// This is a conservative shortcut.
+		// If the keyword is empty, db has better (at least not worse) performance to filter issues.
+		// When the keyword is empty, it tends to listing rather than searching issues.
+		// So if the user creates an issue and list issues immediately, the issue may not be listed because the indexer needs time to index the issue.
+		// Even worse, the external indexer like elastic search may not be available for a while,
+		// and the user may not be able to list issues completely until it is available again.
+		indexer = db.NewIndexer()
+	}
+
 	result, err := indexer.Search(ctx, (*internal.SearchOptions)(opts))
 	if err != nil {
 		return nil, 0, err
