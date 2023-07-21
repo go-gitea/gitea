@@ -39,7 +39,7 @@ func newIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *user_m
 	}
 
 	if err = issue.LoadRepo(ctx); err != nil {
-		return
+		return err
 	}
 
 	opts := &CreateCommentOptions{
@@ -168,7 +168,7 @@ func deleteIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *use
 	}
 
 	if err = issue.LoadRepo(ctx); err != nil {
-		return
+		return err
 	}
 
 	opts := &CreateCommentOptions{

@@ -47,7 +47,9 @@ func init() {
 // ./gitea -h
 // ./gitea web help
 // ./gitea web -h (due to cli lib limitation, this won't call our cmdHelp, so no extra info)
-// ./gitea admin help auth
+// ./gitea admin
+// ./gitea admin help
+// ./gitea admin auth help
 // ./gitea -c /tmp/app.ini -h
 // ./gitea -c /tmp/app.ini help
 // ./gitea help -c /tmp/app.ini
@@ -85,28 +87,36 @@ func main() {
 	app.Description = `By default, Gitea will start serving using the web-server with no argument, which can alternatively be run by running the subcommand "web".`
 	app.Version = Version + formatBuiltWith()
 	app.EnableBashCompletion = true
-	app.Commands = []cli.Command{
+
+	// these sub-commands need to use config file
+	subCmdWithIni := []cli.Command{
 		cmd.CmdWeb,
 		cmd.CmdServ,
 		cmd.CmdHook,
 		cmd.CmdDump,
-		cmd.CmdCert,
 		cmd.CmdAdmin,
-		cmd.CmdGenerate,
 		cmd.CmdMigrate,
 		cmd.CmdKeys,
 		cmd.CmdConvert,
 		cmd.CmdDoctor,
 		cmd.CmdManager,
-		cmd.Cmdembedded,
+		cmd.CmdEmbedded,
 		cmd.CmdMigrateStorage,
-		cmd.CmdDocs,
 		cmd.CmdDumpRepository,
 		cmd.CmdRestoreRepository,
 		cmd.CmdActions,
+		cmdHelp, // TODO: the "help" sub-command was used to show the more information for "work path" and "custom config", in the future, it should avoid doing so
+	}
+	// these sub-commands do not need the config file, and they do not depend on any path or environment variable.
+	subCmdStandalone := []cli.Command{
+		cmd.CmdCert,
+		cmd.CmdGenerate,
+		cmd.CmdDocs,
 	}
 
-	// default configuration flags
+	// shared configuration flags, they are for global and for each sub-command at the same time
+	// eg: such command is valid: "./gitea --config /tmp/app.ini web --config /tmp/app.ini", while it's discouraged indeed
+	// keep in mind that the short flags like "-C", "-c" and "-w" are globally polluted, they can't be used for sub-commands anymore.
 	globalFlags := []cli.Flag{
 		cli.HelpFlag,
 		cli.StringFlag{
@@ -126,13 +136,15 @@ func main() {
 
 	// Set the default to be equivalent to cmdWeb and add the default flags
 	app.Flags = append(app.Flags, globalFlags...)
-	app.Flags = append(app.Flags, cmd.CmdWeb.Flags...)
+	app.Flags = append(app.Flags, cmd.CmdWeb.Flags...) // TODO: the web flags polluted the global flags, they are not really global flags
 	app.Action = prepareWorkPathAndCustomConf(cmd.CmdWeb.Action)
 	app.HideHelp = true // use our own help action to show helps (with more information like default config)
-	app.Commands = append(app.Commands, cmdHelp)
-	for i := range app.Commands {
-		prepareSubcommands(&app.Commands[i], globalFlags)
+	app.Before = cmd.PrepareConsoleLoggerLevel(log.INFO)
+	for i := range subCmdWithIni {
+		prepareSubcommands(&subCmdWithIni[i], globalFlags)
 	}
+	app.Commands = append(app.Commands, subCmdWithIni...)
+	app.Commands = append(app.Commands, subCmdStandalone...)
 
 	err := app.Run(os.Args)
 	if err != nil {
@@ -156,11 +168,7 @@ func prepareSubcommands(command *cli.Command, defaultFlags []cli.Flag) {
 
 // prepareWorkPathAndCustomConf wraps the Action to prepare the work path and custom config
 // It can't use "Before", because each level's sub-command's Before will be called one by one, so the "init" would be done multiple times
-func prepareWorkPathAndCustomConf(a any) func(ctx *cli.Context) error {
-	if a == nil {
-		return nil
-	}
-	action := a.(func(*cli.Context) error)
+func prepareWorkPathAndCustomConf(action any) func(ctx *cli.Context) error {
 	return func(ctx *cli.Context) error {
 		var args setting.ArgWorkPathAndCustomConf
 		curCtx := ctx
@@ -177,10 +185,11 @@ func prepareWorkPathAndCustomConf(a any) func(ctx *cli.Context) error {
 			curCtx = curCtx.Parent()
 		}
 		setting.InitWorkPathAndCommonConfig(os.Getenv, args)
-		if ctx.Bool("help") {
+		if ctx.Bool("help") || action == nil {
+			// the default behavior of "urfave/cli": "nil action" means "show help"
 			return cmdHelp.Action.(func(ctx *cli.Context) error)(ctx)
 		}
-		return action(ctx)
+		return action.(func(*cli.Context) error)(ctx)
 	}
 }
 

@@ -22,9 +22,9 @@ import (
 	"github.com/urfave/cli"
 )
 
-// Cmdembedded represents the available extract sub-command.
+// CmdEmbedded represents the available extract sub-command.
 var (
-	Cmdembedded = cli.Command{
+	CmdEmbedded = cli.Command{
 		Name:        "embedded",
 		Usage:       "Extract embedded resources",
 		Description: "A command for extracting embedded resources, like templates and images",

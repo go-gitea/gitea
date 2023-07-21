@@ -113,7 +113,7 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 	}
 	defer f.Close()
 
-	bs, err := yaml.Marshal(map[string]interface{}{
+	bs, err := yaml.Marshal(map[string]any{
 		"name":         repo.Name,
 		"owner":        repo.Owner,
 		"description":  repo.Description,
@@ -228,7 +228,7 @@ func (g *RepositoryDumper) CreateTopics(topics ...string) error {
 	}
 	defer f.Close()
 
-	bs, err := yaml.Marshal(map[string]interface{}{
+	bs, err := yaml.Marshal(map[string]any{
 		"topics": topics,
 	})
 	if err != nil {
@@ -381,7 +381,7 @@ func (g *RepositoryDumper) CreateIssues(issues ...*base.Issue) error {
 	return nil
 }
 
-func (g *RepositoryDumper) createItems(dir string, itemFiles map[int64]*os.File, itemsMap map[int64][]interface{}) error {
+func (g *RepositoryDumper) createItems(dir string, itemFiles map[int64]*os.File, itemsMap map[int64][]any) error {
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		return err
 	}
@@ -395,7 +395,7 @@ func (g *RepositoryDumper) createItems(dir string, itemFiles map[int64]*os.File,
 	return nil
 }
 
-func (g *RepositoryDumper) encodeItems(number int64, items []interface{}, dir string, itemFiles map[int64]*os.File) error {
+func (g *RepositoryDumper) encodeItems(number int64, items []any, dir string, itemFiles map[int64]*os.File) error {
 	itemFile := itemFiles[number]
 	if itemFile == nil {
 		var err error
@@ -414,7 +414,7 @@ func (g *RepositoryDumper) encodeItems(number int64, items []interface{}, dir st
 
 // CreateComments creates comments of issues
 func (g *RepositoryDumper) CreateComments(comments ...*base.Comment) error {
-	commentsMap := make(map[int64][]interface{}, len(comments))
+	commentsMap := make(map[int64][]any, len(comments))
 	for _, comment := range comments {
 		commentsMap[comment.IssueIndex] = append(commentsMap[comment.IssueIndex], comment)
 	}
@@ -622,7 +622,7 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 
 // CreateReviews create pull request reviews
 func (g *RepositoryDumper) CreateReviews(reviews ...*base.Review) error {
-	reviewsMap := make(map[int64][]interface{}, len(reviews))
+	reviewsMap := make(map[int64][]any, len(reviews))
 	for _, review := range reviews {
 		reviewsMap[review.IssueIndex] = append(reviewsMap[review.IssueIndex], review)
 	}
@@ -643,7 +643,7 @@ func (g *RepositoryDumper) Finish() error {
 
 // DumpRepository dump repository according MigrateOptions to a local directory
 func DumpRepository(ctx context.Context, baseDir, ownerName string, opts base.MigrateOptions) error {
-	doer, err := user_model.GetAdminUser()
+	doer, err := user_model.GetAdminUser(ctx)
 	if err != nil {
 		return err
 	}
@@ -706,7 +706,7 @@ func updateOptionsUnits(opts *base.MigrateOptions, units []string) error {
 
 // RestoreRepository restore a repository from the disk directory
 func RestoreRepository(ctx context.Context, baseDir, ownerName, repoName string, units []string, validation bool) error {
-	doer, err := user_model.GetAdminUser()
+	doer, err := user_model.GetAdminUser(ctx)
 	if err != nil {
 		return err
 	}

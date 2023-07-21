@@ -9,6 +9,7 @@ import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
 import {createTippy} from '../modules/tippy.js';
 import {confirmModal} from './comp/ConfirmModal.js';
+import {showErrorToast} from '../modules/toast.js';
 
 const {appUrl, appSubUrl, csrfToken, i18n} = window.config;
 
@@ -236,7 +237,7 @@ export function initGlobalDropzone() {
           // Create a "Copy Link" element, to conveniently copy the image
           // or file link as Markdown to the clipboard
           const copyLinkElement = document.createElement('div');
-          copyLinkElement.className = 'gt-tc';
+          copyLinkElement.className = 'gt-text-center';
           // The a element has a hardcoded cursor: pointer because the default is overridden by .dropzone
           copyLinkElement.innerHTML = `<a href="#" style="cursor: pointer;">${svg('octicon-copy', 14, 'copy link')} Copy link</a>`;
           copyLinkElement.addEventListener('click', (e) => {
@@ -395,8 +396,6 @@ function initGlobalShowModal() {
     if (colorPickers.length > 0) {
       initCompColorPicker(); // FIXME: this might cause duplicate init
     }
-    // all non-"ok" buttons which do not have "type" should not submit the form, should not be triggered by "Enter"
-    $modal.find('form button:not(.ok):not([type])').attr('type', 'button');
     $modal.modal('setting', {
       onApprove: () => {
         // "form-fetch-action" can handle network errors gracefully,
@@ -441,7 +440,7 @@ export function initGlobalButtons() {
       return;
     }
     // should never happen, otherwise there is a bug in code
-    alert('Nothing to hide');
+    showErrorToast('Nothing to hide');
   });
 
   initGlobalShowModal();
@@ -462,5 +461,5 @@ export function checkAppUrl() {
     return;
   }
   showGlobalErrorMessage(`Your ROOT_URL in app.ini is "${appUrl}", it's unlikely matching the site you are visiting.
-Mismatched ROOT_URL config causes wrong URL links for web UI/mail content/webhook notification.`);
+Mismatched ROOT_URL config causes wrong URL links for web UI/mail content/webhook notification/OAuth2 sign-in.`);
 }
