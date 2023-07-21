@@ -1,12 +1,14 @@
 import {showElem} from '../utils/dom.js';
 
 async function loadBranchesAndTags(loadingButton, addHere) {
-  loadingButton.classList.add('disabled')
+  loadingButton.classList.add('disabled');
   let res;
   try {
-    res = await fetch(loadingButton.getAttribute('data-fetch-url'), { method: 'GET', });
+    res = await fetch(loadingButton.getAttribute('data-fetch-url'), {
+      method: 'GET',
+    });
   } finally {
-  loadingButton.classList.remove('disabled')
+    loadingButton.classList.remove('disabled');
   }
 
   if (!res.ok) {
@@ -16,10 +18,16 @@ async function loadBranchesAndTags(loadingButton, addHere) {
   const data = await res.json();
   showAreas('.branch-tag-area-divider');
   loadingButton.classList.add('gt-hidden');
-  addHere.querySelector('.branch-tag-area-text').textContent = loadingButton.getAttribute('data-contained-in-text');
+  addHere.querySelector('.branch-tag-area-text').textContent =
+    loadingButton.getAttribute('data-contained-in-text');
   addTags(data.tags, addHere.querySelector('.tag-area'));
   const branchArea = addHere.querySelector('.branch-area');
-  addBranches(data.branches, data.default_branch, branchArea.getAttribute('data-defaultbranch-tooltip'), branchArea);
+  addBranches(
+    data.branches,
+    data.default_branch,
+    branchArea.getAttribute('data-defaultbranch-tooltip'),
+    branchArea,
+  );
 }
 
 function addTags(tags, addHere) {
@@ -32,7 +40,12 @@ function addTags(tags, addHere) {
 function addBranches(branches, defaultBranch, defaultBranchTooltip, addHere) {
   if (branches.length > 0) showAreas('.branch-area,.branch-area-parent');
   for (const branch of branches) {
-    addLink(branch.web_link, branch.name, addHere, defaultBranch === branch.name ? defaultBranchTooltip : undefined);
+    addLink(
+      branch.web_link,
+      branch.name,
+      addHere,
+      defaultBranch === branch.name ? defaultBranchTooltip : undefined,
+    );
   }
 }
 
@@ -53,9 +66,14 @@ function addLink(href, text, addHere, tooltip) {
 }
 
 export function initLoadBranchesAndTagsButton() {
-  for (const loadButton of document.querySelectorAll('.load-tags-and-branches')) {
+  for (const loadButton of document.querySelectorAll(
+    '.load-tags-and-branches',
+  )) {
     loadButton.addEventListener('click', () => {
-      loadBranchesAndTags(loadButton, document.querySelector('.branch-and-tag-area'));
+      loadBranchesAndTags(
+        loadButton,
+        document.querySelector('.branch-and-tag-area'),
+      );
     });
   }
 }
