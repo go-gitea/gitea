@@ -868,7 +868,7 @@ func GetPinnedIssues(ctx context.Context, repoID int64, isPull bool) ([]*Issue, 
 		return nil, err
 	}
 
-	err = IssueList(issues).LoadAttributes()
+	err = IssueList(issues).LoadAttributes(ctx)
 	if err != nil {
 		return nil, err
 	}

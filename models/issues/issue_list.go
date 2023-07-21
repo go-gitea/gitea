@@ -564,8 +564,8 @@ func (issues IssueList) loadAttributes(ctx context.Context) error {
 
 // LoadAttributes loads attributes of the issues, except for attachments and
 // comments
-func (issues IssueList) LoadAttributes() error {
-	return issues.loadAttributes(db.DefaultContext)
+func (issues IssueList) LoadAttributes(ctx context.Context) error {
+	return issues.loadAttributes(ctx)
 }
 
 // LoadComments loads comments
