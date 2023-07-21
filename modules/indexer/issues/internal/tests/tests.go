@@ -21,76 +21,62 @@ import (
 )
 
 func TestIndexer(t *testing.T, indexer internal.Indexer) {
-	t.Run("Init", func(t *testing.T) {
-		if _, err := indexer.Init(nil); err != nil {
-			t.Fatalf("Init failed: %v", err)
-		}
-	})
+	_, err := indexer.Init(context.Background())
+	require.NoError(t, err)
 
-	t.Run("Ping", func(t *testing.T) {
-		if err := indexer.Ping(nil); err != nil {
-			t.Fatalf("Ping failed: %v", err)
-		}
-	})
+	require.NoError(t, indexer.Ping(context.Background()))
 
 	var (
 		ids  []int64
 		data = map[int64]*internal.IndexerData{}
 	)
-
-	t.Run("Index", func(t *testing.T) {
+	{
 		d := generateDefaultIndexerData()
 		for _, v := range d {
 			ids = append(ids, v.ID)
 			data[v.ID] = v
 		}
-		if err := indexer.Index(context.Background(), d...); err != nil {
-			t.Fatalf("Index failed: %v", err)
-		}
-	})
+		require.NoError(t, indexer.Index(context.Background(), d...))
+	}
 
-	defer t.Run("Delete", func(t *testing.T) {
-		if err := indexer.Delete(context.Background(), ids...); err != nil {
-			t.Fatalf("Delete failed: %v", err)
-		}
-	})
+	defer func() {
+		require.NoError(t, indexer.Delete(context.Background(), ids...))
+	}()
 
-	t.Run("Search", func(t *testing.T) {
-		for _, c := range cases {
-			t.Run(c.Name, func(t *testing.T) {
-				if len(c.ExtraData) > 0 {
-					require.NoError(t, indexer.Index(context.Background(), c.ExtraData...))
+	for _, c := range cases {
+		t.Run(c.Name, func(t *testing.T) {
+			if len(c.ExtraData) > 0 {
+				require.NoError(t, indexer.Index(context.Background(), c.ExtraData...))
+				for _, v := range c.ExtraData {
+					data[v.ID] = v
+				}
+				defer func() {
 					for _, v := range c.ExtraData {
-						data[v.ID] = v
+						require.NoError(t, indexer.Delete(context.Background(), v.ID))
+						delete(data, v.ID)
 					}
-					defer func() {
-						for _, v := range c.ExtraData {
-							require.NoError(t, indexer.Delete(context.Background(), v.ID))
-							delete(data, v.ID)
-						}
-					}()
-				}
+				}()
+			}
 
-				result, err := indexer.Search(context.Background(), c.SearchOptions)
-				require.NoError(t, err)
+			result, err := indexer.Search(context.Background(), c.SearchOptions)
+			require.NoError(t, err)
 
-				if c.Expected != nil {
-					c.Expected(t, data, result)
-				} else {
-					ids := make([]int64, 0, len(result.Hits))
-					for _, hit := range result.Hits {
-						ids = append(ids, hit.ID)
-					}
-					assert.Equal(t, c.ExpectedIDs, ids)
-					assert.Equal(t, c.ExpectedTotal, result.Total)
+			if c.Expected != nil {
+				c.Expected(t, data, result)
+			} else {
+				ids := make([]int64, 0, len(result.Hits))
+				for _, hit := range result.Hits {
+					ids = append(ids, hit.ID)
 				}
-				if result.Imprecise {
-					// If an engine does not support complex queries, do not use TestIndexer to test it
-					t.Errorf("Expected imprecise to be false, got true")
-				}
-			})
-		}
-	})
+				assert.Equal(t, c.ExpectedIDs, ids)
+				assert.Equal(t, c.ExpectedTotal, result.Total)
+			}
+			if result.Imprecise {
+				// If an engine does not support complex queries, do not use TestIndexer to test it
+				t.Errorf("Expected imprecise to be false, got true")
+			}
+		})
+	}
 }
 
 var cases = []*testIndexerCase{
