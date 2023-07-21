@@ -81,12 +81,20 @@ func TestIndexer(t *testing.T, indexer internal.Indexer) {
 
 var cases = []*testIndexerCase{
 	{
-		Name:          "empty",
+		Name:          "default",
 		SearchOptions: &internal.SearchOptions{},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, 50, len(result.Hits)) // the default limit is 50
 			assert.Equal(t, len(data), int(result.Total))
 		},
+	},
+	{
+		Name: "empty",
+		SearchOptions: &internal.SearchOptions{
+			Keyword: "f1dfac73-fda6-4a6b-b8a4-2408fcb8ef69",
+		},
+		ExpectedIDs:   []int64{},
+		ExpectedTotal: 0,
 	},
 	{
 		Name: "all",
