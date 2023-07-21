@@ -785,18 +785,10 @@ func RetrieveRepoMetas(ctx *context.Context, repo *repo_model.Repository, isPull
 		return nil
 	}
 
-	brs, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
-		RepoID: ctx.Repo.Repository.ID,
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
-		IsDeletedBranch: util.OptionalBoolFalse,
-	})
-	if err != nil {
-		ctx.ServerError("GetBranches", err)
+	PrepareBranchList(ctx)
+	if ctx.Written() {
 		return nil
 	}
-	ctx.Data["Branches"] = brs
 
 	// Contains true if the user can create issue dependencies
 	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx.Doer, isPull)
@@ -920,6 +912,13 @@ func NewIssue(ctx *context.Context) {
 	}
 
 	RetrieveRepoMetas(ctx, ctx.Repo.Repository, false)
+
+	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.ServerError("GetTagNamesByRepoID", err)
+		return
+	}
+	ctx.Data["Tags"] = tags
 
 	_, templateErrs := issue_service.GetTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
 	if errs := setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates); len(errs) > 0 {
@@ -1918,6 +1917,19 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["ShouldShowCommentType"] = func(commentType issues_model.CommentType) bool {
 		return hiddenCommentTypes == nil || hiddenCommentTypes.Bit(int(commentType)) == 0
 	}
+	// For sidebar
+	PrepareBranchList(ctx)
+
+	if ctx.Written() {
+		return
+	}
+
+	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.ServerError("GetTagNamesByRepoID", err)
+		return
+	}
+	ctx.Data["Tags"] = tags
 
 	ctx.HTML(http.StatusOK, tplIssueView)
 }
