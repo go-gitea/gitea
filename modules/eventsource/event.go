@@ -15,7 +15,7 @@ import (
 
 func wrapNewlines(w io.Writer, prefix, value []byte) (sum int64, err error) {
 	if len(value) == 0 {
-		return
+		return 0, nil
 	}
 	var n int
 	last := 0
@@ -23,24 +23,24 @@ func wrapNewlines(w io.Writer, prefix, value []byte) (sum int64, err error) {
 		n, err = w.Write(prefix)
 		sum += int64(n)
 		if err != nil {
-			return
+			return sum, err
 		}
 		n, err = w.Write(value[last : last+j+1])
 		sum += int64(n)
 		if err != nil {
-			return
+			return sum, err
 		}
 		last += j + 1
 	}
 	n, err = w.Write(prefix)
 	sum += int64(n)
 	if err != nil {
-		return
+		return sum, err
 	}
 	n, err = w.Write(value[last:])
 	sum += int64(n)
 	if err != nil {
-		return
+		return sum, err
 	}
 	n, err = w.Write([]byte("\n"))
 	sum += int64(n)

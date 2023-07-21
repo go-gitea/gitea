@@ -4,20 +4,16 @@
 package v1_21 //nolint
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
-
 	"xorm.io/xorm"
 )
 
-func CreateActionTasksVersionTable(x *xorm.Engine) error {
-	type ActionTasksVersion struct {
-		ID          int64 `xorm:"pk autoincr"`
-		OwnerID     int64 `xorm:"UNIQUE(owner_repo)"`
-		RepoID      int64 `xorm:"INDEX UNIQUE(owner_repo)"`
-		Version     int64
-		CreatedUnix timeutil.TimeStamp `xorm:"created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
+func AlterActionArtifactTable(x *xorm.Engine) error {
+	// ActionArtifact is a file that is stored in the artifact storage.
+	type ActionArtifact struct {
+		RunID        int64  `xorm:"index unique(runid_name_path)"` // The run id of the artifact
+		ArtifactPath string `xorm:"index unique(runid_name_path)"` // The path to the artifact when runner uploads it
+		ArtifactName string `xorm:"index unique(runid_name_path)"` // The name of the artifact when
 	}
 
-	return x.Sync(new(ActionTasksVersion))
+	return x.Sync(new(ActionArtifact))
 }

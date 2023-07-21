@@ -512,6 +512,8 @@ var migrations = []Migration{
 	// v264 -> v265
 	NewMigration("Add branch table", v1_21.AddBranchTable),
 	// v265 -> v266
+	NewMigration("Alter Actions Artifact table", v1_21.AlterActionArtifactTable),
+	// v265 -> v267
 	NewMigration("Add action_tasks_version table", v1_21.CreateActionTasksVersionTable),
 }
 

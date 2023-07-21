@@ -74,8 +74,10 @@ func loadPackagesFrom(rootCfg ConfigProvider) (err error) {
 		Packages.ChunkedUploadPath = filepath.ToSlash(filepath.Join(AppDataPath, Packages.ChunkedUploadPath))
 	}
 
-	if err := os.MkdirAll(Packages.ChunkedUploadPath, os.ModePerm); err != nil {
-		return fmt.Errorf("unable to create chunked upload directory: %s (%v)", Packages.ChunkedUploadPath, err)
+	if HasInstallLock(rootCfg) {
+		if err := os.MkdirAll(Packages.ChunkedUploadPath, os.ModePerm); err != nil {
+			return fmt.Errorf("unable to create chunked upload directory: %s (%v)", Packages.ChunkedUploadPath, err)
+		}
 	}
 
 	Packages.LimitTotalOwnerSize = mustBytes(sec, "LIMIT_TOTAL_OWNER_SIZE")

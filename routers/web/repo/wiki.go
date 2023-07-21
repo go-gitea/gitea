@@ -12,7 +12,6 @@ import (
 	"net/url"
 	"path/filepath"
 	"strings"
-	"time"
 
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -671,7 +670,7 @@ func WikiRaw(ctx *context.Context) {
 	}
 
 	if entry != nil {
-		if err = common.ServeBlob(ctx.Base, ctx.Repo.TreePath, entry.Blob(), time.Time{}); err != nil {
+		if err = common.ServeBlob(ctx.Base, ctx.Repo.TreePath, entry.Blob(), nil); err != nil {
 			ctx.ServerError("ServeBlob", err)
 		}
 		return

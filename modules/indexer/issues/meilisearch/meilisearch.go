@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	issueIndexerLatestVersion = 0
+	issueIndexerLatestVersion = 1
 )
 
 var _ internal.Indexer = &Indexer{}
@@ -70,12 +70,19 @@ func (b *Indexer) Delete(_ context.Context, ids ...int64) error {
 
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
-func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int) (*internal.SearchResult, error) {
+func (b *Indexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int, state string) (*internal.SearchResult, error) {
 	repoFilters := make([]string, 0, len(repoIDs))
 	for _, repoID := range repoIDs {
 		repoFilters = append(repoFilters, "repo_id = "+strconv.FormatInt(repoID, 10))
 	}
 	filter := strings.Join(repoFilters, " OR ")
+	if state == "open" || state == "closed" {
+		if filter != "" {
+			filter = "(" + filter + ") AND state = " + state
+		} else {
+			filter = "state = " + state
+		}
+	}
 	searchRes, err := b.inner.Client.Index(b.inner.VersionedIndexName()).Search(keyword, &meilisearch.SearchRequest{
 		Filter: filter,
 		Limit:  int64(limit),
