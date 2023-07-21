@@ -215,13 +215,13 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, erro
 }
 
 func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask, bool, error) {
-	dbCtx, commiter, err := db.TxContext(ctx)
+	ctx, commiter, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, false, err
 	}
 	defer commiter.Close()
 
-	e := db.GetEngine(dbCtx)
+	e := db.GetEngine(ctx)
 
 	jobCond := builder.NewCond()
 	if runner.RepoID != 0 {
