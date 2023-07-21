@@ -4,20 +4,23 @@
 package v1_21 //nolint
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
-
 	"xorm.io/xorm"
 )
 
-func CreateActionTasksVersionTable(x *xorm.Engine) error {
-	type ActionTasksVersion struct {
-		ID          int64 `xorm:"pk autoincr"`
-		OwnerID     int64 `xorm:"UNIQUE(owner_repo)"`
-		RepoID      int64 `xorm:"INDEX UNIQUE(owner_repo)"`
-		Version     int64
-		CreatedUnix timeutil.TimeStamp `xorm:"created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
+func ReduceCommitStatus(x *xorm.Engine) error {
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err := sess.Begin(); err != nil {
+		return err
 	}
 
-	return x.Sync(new(ActionTasksVersion))
+	if _, err := sess.Exec(`UPDATE commit_status SET state='pending' WHERE state='running'`); err != nil {
+		return err
+	}
+	if _, err := sess.Exec(`UPDATE commit_status SET state='failure' WHERE state='warning'`); err != nil {
+		return err
+	}
+
+	return sess.Commit()
 }
