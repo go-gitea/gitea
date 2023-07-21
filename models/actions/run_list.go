@@ -66,13 +66,13 @@ func (runs RunList) LoadRepos() error {
 
 type FindRunOptions struct {
 	db.ListOptions
-	RepoID           int64
-	OwnerID          int64
-	WorkflowFileName string
-	Ref              string
-	TriggerUserID    int64
-	Approved         bool // not util.OptionalBool, it works only when it's true
-	Status           []Status
+	RepoID        int64
+	OwnerID       int64
+	WorkflowID    string
+	Ref           string
+	TriggerUserID int64
+	Approved      bool // not util.OptionalBool, it works only when it's true
+	Status        []Status
 }
 
 func (opts FindRunOptions) toConds() builder.Cond {
@@ -83,8 +83,8 @@ func (opts FindRunOptions) toConds() builder.Cond {
 	if opts.OwnerID > 0 {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
 	}
-	if opts.WorkflowFileName != "" {
-		cond = cond.And(builder.Eq{"workflow_id": opts.WorkflowFileName})
+	if opts.WorkflowID != "" {
+		cond = cond.And(builder.Eq{"workflow_id": opts.WorkflowID})
 	}
 	if opts.TriggerUserID > 0 {
 		cond = cond.And(builder.Eq{"trigger_user_id": opts.TriggerUserID})

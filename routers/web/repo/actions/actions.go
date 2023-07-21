@@ -143,10 +143,10 @@ func List(ctx *context.Context) {
 			Page:     page,
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 		},
-		RepoID:           ctx.Repo.Repository.ID,
-		WorkflowFileName: workflow,
-		TriggerUserID:    actorID,
-		Status:           []actions_model.Status{actions_model.Status(status)},
+		RepoID:        ctx.Repo.Repository.ID,
+		WorkflowID:    workflow,
+		TriggerUserID: actorID,
+		Status:        []actions_model.Status{actions_model.Status(status)},
 	}
 
 	runs, total, err := actions_model.FindRuns(ctx, opts)

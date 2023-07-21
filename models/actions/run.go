@@ -167,9 +167,10 @@ func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) err
 // CancelRunningJobs cancels all running jobs of the runs which share the same repo and ref with the inputted run.
 func CancelRunningJobs(ctx context.Context, run *ActionRun) error {
 	runs, total, err := FindRuns(ctx, FindRunOptions{
-		RepoID: run.RepoID,
-		Ref:    run.Ref,
-		Status: []Status{StatusRunning, StatusWaiting},
+		RepoID:     run.RepoID,
+		Ref:        run.Ref,
+		WorkflowID: run.WorkflowID,
+		Status:     []Status{StatusRunning, StatusWaiting},
 	})
 	if err != nil {
 		return err
