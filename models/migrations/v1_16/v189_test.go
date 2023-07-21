@@ -14,11 +14,11 @@ import (
 
 // LoginSource represents an external way for authorizing users.
 type LoginSourceOriginalV189 struct {
-	ID        int64 `xorm:"pk autoincr"`
-	Type      int
-	IsActived bool   `xorm:"INDEX NOT NULL DEFAULT false"`
-	Cfg       string `xorm:"TEXT"`
-	Expected  string `xorm:"TEXT"`
+	ID          int64 `xorm:"pk autoincr"`
+	Type        int
+	IsActivated bool   `xorm:"INDEX NOT NULL DEFAULT false"`
+	Cfg         string `xorm:"TEXT"`
+	Expected    string `xorm:"TEXT"`
 }
 
 func (ls *LoginSourceOriginalV189) TableName() string {

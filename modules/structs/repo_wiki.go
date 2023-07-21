@@ -7,7 +7,7 @@ package structs
 type WikiCommit struct {
 	ID        string      `json:"sha"`
 	Author    *CommitUser `json:"author"`
-	Committer *CommitUser `json:"commiter"`
+	Committer *CommitUser `json:"committer"`
 	Message   string      `json:"message"`
 }
 

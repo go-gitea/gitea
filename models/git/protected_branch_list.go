@@ -50,7 +50,7 @@ func FindRepoProtectedBranchRules(ctx context.Context, repoID int64) (ProtectedB
 func FindAllMatchedBranches(ctx context.Context, repoID int64, ruleName string) ([]string, error) {
 	results := make([]string, 0, 10)
 	for page := 1; ; page++ {
-		brancheNames, err := FindBranchNames(ctx, FindBranchOptions{
+		branchNames, err := FindBranchNames(ctx, FindBranchOptions{
 			ListOptions: db.ListOptions{
 				PageSize: 100,
 				Page:     page,
@@ -63,12 +63,12 @@ func FindAllMatchedBranches(ctx context.Context, repoID int64, ruleName string) 
 		}
 		rule := glob.MustCompile(ruleName)
 
-		for _, branch := range brancheNames {
+		for _, branch := range branchNames {
 			if rule.Match(branch) {
 				results = append(results, branch)
 			}
 		}
-		if len(brancheNames) < 100 {
+		if len(branchNames) < 100 {
 			break
 		}
 	}

@@ -20,11 +20,11 @@ import (
 
 // DeleteOrganization completely and permanently deletes everything of organization.
 func DeleteOrganization(org *org_model.Organization) error {
-	ctx, commiter, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
-	defer commiter.Close()
+	defer committer.Close()
 
 	// Check ownership of repository.
 	count, err := repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{OwnerID: org.ID})
@@ -45,7 +45,7 @@ func DeleteOrganization(org *org_model.Organization) error {
 		return fmt.Errorf("DeleteOrganization: %w", err)
 	}
 
-	if err := commiter.Commit(); err != nil {
+	if err := committer.Commit(); err != nil {
 		return err
 	}
 

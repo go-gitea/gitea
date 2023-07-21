@@ -29,7 +29,7 @@ index d8e4c92..19dc8ad 100644
 @@ -1,9 +1,10 @@
  --some comment
 --- some comment 5
-+--some coment 2
++--some comment 2
 +-- some comment 3
  create or replace procedure test(p1 varchar2)
  is
@@ -134,7 +134,7 @@ func TestCutDiffAroundLine(t *testing.T) {
 @@ -1,9 +1,10 @@
  --some comment
 --- some comment 5
-+--some coment 2`
++--some comment 2`
 	assert.Equal(t, expected, minusDiff)
 
 	// Handle minus diffs properly
@@ -147,7 +147,7 @@ func TestCutDiffAroundLine(t *testing.T) {
 @@ -1,9 +1,10 @@
  --some comment
 --- some comment 5
-+--some coment 2
++--some comment 2
 +-- some comment 3`
 
 	assert.Equal(t, expected, minusDiff)

@@ -184,7 +184,7 @@ func (ref RefName) RefGroup() string {
 }
 
 // RefType returns the simple ref type of the reference, e.g. branch, tag
-// It's differrent from RefGroup, which is using the name of the directory under .git/refs
+// It's different from RefGroup, which is using the name of the directory under .git/refs
 // Here we using branch but not heads, using tag but not tags
 func (ref RefName) RefType() string {
 	var refType string

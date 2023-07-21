@@ -38,7 +38,7 @@ func camoHandleLink(link string) string {
 	if setting.Camo.Enabled {
 		lnkURL, err := url.Parse(link)
 		if err == nil && lnkURL.IsAbs() && !strings.HasPrefix(link, setting.AppURL) &&
-			(setting.Camo.Allways || lnkURL.Scheme != "https") {
+			(setting.Camo.Always || lnkURL.Scheme != "https") {
 			return CamoEncode(link)
 		}
 	}

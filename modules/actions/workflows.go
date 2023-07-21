@@ -95,7 +95,7 @@ func GetEventsFromContent(content []byte) ([]*jobparser.Event, error) {
 	return events, nil
 }
 
-func DetectWorkflows(commit *git.Commit, triggedEvent webhook_module.HookEventType, payload api.Payloader) ([]*DetectedWorkflow, error) {
+func DetectWorkflows(commit *git.Commit, triggeredEvent webhook_module.HookEventType, payload api.Payloader) ([]*DetectedWorkflow, error) {
 	entries, err := ListWorkflows(commit)
 	if err != nil {
 		return nil, err
@@ -113,8 +113,8 @@ func DetectWorkflows(commit *git.Commit, triggedEvent webhook_module.HookEventTy
 			continue
 		}
 		for _, evt := range events {
-			log.Trace("detect workflow %q for event %#v matching %q", entry.Name(), evt, triggedEvent)
-			if detectMatched(commit, triggedEvent, payload, evt) {
+			log.Trace("detect workflow %q for event %#v matching %q", entry.Name(), evt, triggeredEvent)
+			if detectMatched(commit, triggeredEvent, payload, evt) {
 				dwf := &DetectedWorkflow{
 					EntryName:    entry.Name(),
 					TriggerEvent: evt.Name,
@@ -128,19 +128,19 @@ func DetectWorkflows(commit *git.Commit, triggedEvent webhook_module.HookEventTy
 	return workflows, nil
 }
 
-func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType, payload api.Payloader, evt *jobparser.Event) bool {
-	if !canGithubEventMatch(evt.Name, triggedEvent) {
+func detectMatched(commit *git.Commit, triggeredEvent webhook_module.HookEventType, payload api.Payloader, evt *jobparser.Event) bool {
+	if !canGithubEventMatch(evt.Name, triggeredEvent) {
 		return false
 	}
 
-	switch triggedEvent {
+	switch triggeredEvent {
 	case // events with no activity types
 		webhook_module.HookEventCreate,
 		webhook_module.HookEventDelete,
 		webhook_module.HookEventFork,
 		webhook_module.HookEventWiki:
 		if len(evt.Acts()) != 0 {
-			log.Warn("Ignore unsupported %s event arguments %v", triggedEvent, evt.Acts())
+			log.Warn("Ignore unsupported %s event arguments %v", triggeredEvent, evt.Acts())
 		}
 		// no special filter parameters for these events, just return true if name matched
 		return true
@@ -188,7 +188,7 @@ func detectMatched(commit *git.Commit, triggedEvent webhook_module.HookEventType
 		return matchPackageEvent(commit, payload.(*api.PackagePayload), evt)
 
 	default:
-		log.Warn("unsupported event %q", triggedEvent)
+		log.Warn("unsupported event %q", triggeredEvent)
 		return false
 	}
 }

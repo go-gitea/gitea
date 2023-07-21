@@ -25,17 +25,17 @@ const (
 )
 
 // canGithubEventMatch check if the input Github event can match any Gitea event.
-func canGithubEventMatch(eventName string, triggedEvent webhook_module.HookEventType) bool {
+func canGithubEventMatch(eventName string, triggeredEvent webhook_module.HookEventType) bool {
 	switch eventName {
 	case GithubEventRegistryPackage:
-		return triggedEvent == webhook_module.HookEventPackage
+		return triggeredEvent == webhook_module.HookEventPackage
 
 	// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#gollum
 	case GithubEventGollum:
-		return triggedEvent == webhook_module.HookEventWiki
+		return triggeredEvent == webhook_module.HookEventWiki
 
 	case GithubEventIssues:
-		switch triggedEvent {
+		switch triggeredEvent {
 		case webhook_module.HookEventIssues,
 			webhook_module.HookEventIssueAssign,
 			webhook_module.HookEventIssueLabel,
@@ -47,7 +47,7 @@ func canGithubEventMatch(eventName string, triggedEvent webhook_module.HookEvent
 		}
 
 	case GithubEventPullRequest, GithubEventPullRequestTarget:
-		switch triggedEvent {
+		switch triggeredEvent {
 		case webhook_module.HookEventPullRequest,
 			webhook_module.HookEventPullRequestSync,
 			webhook_module.HookEventPullRequestAssign,
@@ -59,7 +59,7 @@ func canGithubEventMatch(eventName string, triggedEvent webhook_module.HookEvent
 		}
 
 	case GithubEventPullRequestReview:
-		switch triggedEvent {
+		switch triggeredEvent {
 		case webhook_module.HookEventPullRequestReviewApproved,
 			webhook_module.HookEventPullRequestReviewComment,
 			webhook_module.HookEventPullRequestReviewRejected:
@@ -70,6 +70,6 @@ func canGithubEventMatch(eventName string, triggedEvent webhook_module.HookEvent
 		}
 
 	default:
-		return eventName == string(triggedEvent)
+		return eventName == string(triggeredEvent)
 	}
 }

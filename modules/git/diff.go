@@ -94,7 +94,7 @@ func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diff
 }
 
 // ParseDiffHunkString parse the diffhunk content and return
-func ParseDiffHunkString(diffhunk string) (leftLine, leftHunk, rightLine, righHunk int) {
+func ParseDiffHunkString(diffhunk string) (leftLine, leftHunk, rightLine, rightHunk int) {
 	ss := strings.Split(diffhunk, "@@")
 	ranges := strings.Split(ss[1][1:], " ")
 	leftRange := strings.Split(ranges[0], ",")
@@ -106,14 +106,14 @@ func ParseDiffHunkString(diffhunk string) (leftLine, leftHunk, rightLine, righHu
 		rightRange := strings.Split(ranges[1], ",")
 		rightLine, _ = strconv.Atoi(rightRange[0])
 		if len(rightRange) > 1 {
-			righHunk, _ = strconv.Atoi(rightRange[1])
+			rightHunk, _ = strconv.Atoi(rightRange[1])
 		}
 	} else {
 		log.Debug("Parse line number failed: %v", diffhunk)
 		rightLine = leftLine
-		righHunk = leftHunk
+		rightHunk = leftHunk
 	}
-	return leftLine, leftHunk, rightLine, righHunk
+	return leftLine, leftHunk, rightLine, rightHunk
 }
 
 // Example: @@ -1,8 +1,9 @@ => [..., 1, 8, 1, 9]

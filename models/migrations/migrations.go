@@ -160,7 +160,7 @@ var migrations = []Migration{
 	// v103 -> v104
 	NewMigration("Add WhitelistDeployKeys to protected branch", v1_11.AddWhitelistDeployKeysToBranches),
 	// v104 -> v105
-	NewMigration("remove unnecessary columns from label", v1_11.RemoveLabelUneededCols),
+	NewMigration("remove unnecessary columns from label", v1_11.RemoveLabelUnneededCols),
 	// v105 -> v106
 	NewMigration("add includes_all_repositories to teams", v1_11.AddTeamIncludesAllRepositories),
 	// v106 -> v107

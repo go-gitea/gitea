@@ -20,8 +20,8 @@ type ResourceIndex struct {
 }
 
 var (
-	// ErrResouceOutdated represents an error when request resource outdated
-	ErrResouceOutdated = errors.New("resource outdated")
+	// ErrResourceOutdated represents an error when request resource outdated
+	ErrResourceOutdated = errors.New("resource outdated")
 	// ErrGetResourceIndexFailed represents an error when resource index retries 3 times
 	ErrGetResourceIndexFailed = errors.New("get resource index failed")
 )

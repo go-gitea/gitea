@@ -120,7 +120,7 @@ func handleErrorResponse(resp *http.Response) error {
 	if err != nil {
 		return fmt.Errorf("Request failed with status %s", resp.Status)
 	}
-	log.Trace("ErrorRespone: %v", er)
+	log.Trace("ErrorResponse: %v", er)
 	return errors.New(er.Message)
 }
 

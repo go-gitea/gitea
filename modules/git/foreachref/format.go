@@ -72,7 +72,7 @@ func (f Format) Parser(r io.Reader) *Parser {
 	return NewParser(r, f)
 }
 
-// hexEscaped produces hex-escpaed characters from a string. For example, "\n\0"
+// hexEscaped produces hex-escaped characters from a string. For example, "\n\0"
 // would turn into "%0a%00".
 func (f Format) hexEscaped(delim []byte) string {
 	escaped := ""

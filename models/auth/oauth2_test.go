@@ -59,7 +59,7 @@ func TestOAuth2Application_ContainsRedirectURI_WithPort(t *testing.T) {
 	// not loopback
 	assert.False(t, app.ContainsRedirectURI("http://192.168.0.1:9954/"))
 	assert.False(t, app.ContainsRedirectURI("http://intranet:3456/"))
-	// unparseable
+	// unparsable
 	assert.False(t, app.ContainsRedirectURI(":"))
 }
 

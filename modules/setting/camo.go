@@ -9,7 +9,7 @@ var Camo = struct {
 	Enabled   bool
 	ServerURL string `ini:"SERVER_URL"`
 	HMACKey   string `ini:"HMAC_KEY"`
-	Allways   bool
+	Always    bool
 }{}
 
 func loadCamoFrom(rootCfg ConfigProvider) {
