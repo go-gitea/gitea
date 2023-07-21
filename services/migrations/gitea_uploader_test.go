@@ -30,9 +30,6 @@ import (
 )
 
 func TestGiteaUploadRepo(t *testing.T) {
-	// FIXME: Since no accesskey or user/password will trigger rate limit of github, just skip
-	t.Skip()
-
 	unittest.PrepareTestEnv(t)
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
