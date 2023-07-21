@@ -220,9 +220,8 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 		return nil, false, err
 	}
 	defer commiter.Close()
-	ctx = dbCtx.WithContext(ctx)
 
-	e := db.GetEngine(ctx)
+	e := db.GetEngine(dbCtx)
 
 	jobCond := builder.NewCond()
 	if runner.RepoID != 0 {
