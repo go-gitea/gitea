@@ -6,6 +6,8 @@ package git
 import (
 	"context"
 	"strings"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 // GetRefs returns all references of the repository.
@@ -16,18 +18,41 @@ func (repo *Repository) GetRefs() ([]*Reference, error) {
 // ListOccurrences lists all refs of the given refType the given commit appears in sorted by creation date DESC
 // refType should only be a literal "branch" or "tag" and nothing else
 func (repo *Repository) ListOccurrences(ctx context.Context, refType, commitSHA string) ([]string, error) {
+	if refType != "branch" && refType != "tag" {
+		return nil, util.NewInvalidArgumentErrorf("Can only use branch or 'tag' as 'refType'. Got '%s'", refType)
+	}
 	stdout, _, err := NewCommand(ctx, ToTrustedCmdArgs([]string{refType, "--no-color", "--sort=-creatordate", "--contains"})...).AddDynamicArguments(commitSHA).RunStdString(&RunOpts{Dir: repo.Path})
+	if err != nil {
+		return nil, err
+	}
 
 	refs := strings.Split(strings.TrimSpace(stdout), "\n")
+	if refType == "branch" {
+		return parseBranches(refs), nil
+	}
+	return parseTags(refs), nil
+}
+
+func parseBranches(refs []string) []string {
 	results := make([]string, 0, len(refs))
 	for _, ref := range refs {
-		if strings.HasPrefix(ref, "* ") { // main branch
+		if strings.HasPrefix(ref, "* ") { // current branch (main branch)
 			results = append(results, ref[len("* "):])
 		} else if strings.HasPrefix(ref, "  ") { // all other branches
 			results = append(results, ref[len("  "):])
-		} else if ref != "" { // tags
+		} else if ref != "" {
 			results = append(results, ref)
 		}
 	}
-	return results, err
+	return results
+}
+
+func parseTags(refs []string) []string {
+	results := make([]string, 0, len(refs))
+	for _, ref := range refs {
+		if ref != "" {
+			results = append(results, ref)
+		}
+	}
+	return results
 }

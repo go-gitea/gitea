@@ -1,15 +1,12 @@
-const {csrfToken} = window.config;
+import {showElem} from '../utils/dom.js';
 
 async function loadBranchesAndTags(loadingButton, addHere) {
-  loadingButton.setAttribute('disabled', 'disabled');
+  loadingButton.classList.add('disabled')
   let res;
   try {
-    res = await fetch(loadingButton.getAttribute('data-fetch-url'), {
-      method: 'GET',
-      headers: {'X-Csrf-Token': csrfToken},
-    });
+    res = await fetch(loadingButton.getAttribute('data-fetch-url'), { method: 'GET', });
   } finally {
-    loadingButton.removeAttribute('disabled');
+  loadingButton.classList.remove('disabled')
   }
 
   if (!res.ok) {
@@ -28,19 +25,19 @@ async function loadBranchesAndTags(loadingButton, addHere) {
 function addTags(tags, addHere) {
   if (tags.length > 0) showAreas('.tag-area,.tag-area-parent');
   for (const tag of tags) {
-    addLink(tag.web_url, tag.name, addHere);
+    addLink(tag.web_link, tag.name, addHere);
   }
 }
 
 function addBranches(branches, defaultBranch, defaultBranchTooltip, addHere) {
   if (branches.length > 0) showAreas('.branch-area,.branch-area-parent');
   for (const branch of branches) {
-    addLink(branch.web_url, branch.name, addHere, defaultBranch === branch.name ? defaultBranchTooltip : undefined);
+    addLink(branch.web_link, branch.name, addHere, defaultBranch === branch.name ? defaultBranchTooltip : undefined);
   }
 }
 
 function showAreas(selector) {
-  for (const branchArea of document.querySelectorAll(selector)) branchArea.classList.remove('gt-hidden');
+  for (const branchArea of document.querySelectorAll(selector)) showElem(branchArea);
 }
 
 function addLink(href, text, addHere, tooltip) {

@@ -20,7 +20,7 @@ type ContainedLinks struct { // TODO: better name?
 
 type namedLink struct { // TODO: better name?
 	Name    string `json:"name"`
-	WebLink string `json:"web_url"`
+	WebLink string `json:"web_link"`
 }
 
 // CreateNewBranch creates a new repository branch
