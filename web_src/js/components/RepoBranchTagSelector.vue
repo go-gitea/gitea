@@ -36,7 +36,8 @@
           </div>
         </div>
       </template>
-      <div class="scrolling menu" :class="{'is-loading': isLoading}" ref="scrollContainer">
+      <div class="scrolling menu" ref="scrollContainer">
+        <div class="loading-indicator is-loading" v-if="isLoading"></div>
         <div v-for="(item, index) in filteredItems" :key="item.name" class="item" :class="{selected: item.selected, active: active === index}" @click="selectItem(item)" :ref="'listItem' + index">
           {{ item.name }}
           <a v-show="enableFeed && mode === 'branches'" role="button" class="rss-icon ui compact right" :href="rssURLPrefix + item.url" target="_blank" @click.stop>
@@ -331,11 +332,7 @@ export default sfc; // activate IDE's Vue plugin
   display: inline-block;
 }
 
-.scrolling.menu.is-loading {
-  height: 200px;
-}
-
-.ui.dropdown .menu .scrolling.menu.is-loading::after {
-  display: block; /* to override fomantic rule .ui.dropdown .menu .menu:after {display: none} */
+.scrolling.menu .loading-indicator {
+  height: 4em;
 }
 </style>
