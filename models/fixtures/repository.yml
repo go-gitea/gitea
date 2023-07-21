@@ -1665,8 +1665,8 @@
 
 -
   id: 58
-  owner_id: 1
-  owner_name: user1
+  owner_id: 8
+  owner_name: user8
   lower_name: user_fork_repo1
   name: user_fork_repo1
   num_watches: 0
@@ -1695,8 +1695,8 @@
 
 -
   id: 59
-  owner_id: 3
-  owner_name: user3
+  owner_id: 37
+  owner_name: org37
   lower_name: org_fork_repo1
   name: org_fork_repo1
   num_watches: 0
@@ -1725,8 +1725,8 @@
 
 -
   id: 60
-  owner_id: 23
-  owner_name: privated_org
+  owner_id: 38
+  owner_name: private_org38
   lower_name: private_org_fork_repo1
   name: private_org_fork_repo1
   num_watches: 0

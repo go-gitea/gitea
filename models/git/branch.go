@@ -395,7 +395,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 
 // FindRecentlyPushedNewBranches return at most 2 new branches pushed by the user in 6 hours which has no opened PRs created
 // doer should not be nil
-// if commitAfterUnix is 0, will find the branches commited in recently 6 hours
+// if commitAfterUnix is 0, will find the branches committed in recently 6 hours
 // TODO use options to find the branches
 func FindRecentlyPushedNewBranches(ctx context.Context, baseRepo *repo_model.Repository, doer *user_model.User, commitAfterUnix int64) (BranchList, error) {
 	baseBranch, err := GetBranch(ctx, baseRepo.ID, baseRepo.DefaultBranch)
