@@ -6,6 +6,7 @@ package integration
 import (
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -104,9 +105,9 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_mod
 	_, err = files_service.ChangeRepoFiles(git.DefaultContext, baseRepo, actor, &files_service.ChangeRepoFilesOptions{
 		Files: []*files_service.ChangeRepoFile{
 			{
-				Operation: "create",
-				TreePath:  "File_A",
-				Content:   "File A",
+				Operation:     "create",
+				TreePath:      "File_A",
+				ContentReader: strings.NewReader("File A"),
 			},
 		},
 		Message:   "Add File A",
@@ -131,9 +132,9 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_mod
 	_, err = files_service.ChangeRepoFiles(git.DefaultContext, headRepo, actor, &files_service.ChangeRepoFilesOptions{
 		Files: []*files_service.ChangeRepoFile{
 			{
-				Operation: "create",
-				TreePath:  "File_B",
-				Content:   "File B",
+				Operation:     "create",
+				TreePath:      "File_B",
+				ContentReader: strings.NewReader("File B"),
 			},
 		},
 		Message:   "Add File on PR branch",
