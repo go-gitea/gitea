@@ -37,11 +37,13 @@
         </div>
       </template>
       <div class="scrolling menu" ref="scrollContainer">
+        <svg-icon name="octicon-rss" symbol-id="svg-symbol-octicon-rss"/>
         <div class="loading-indicator is-loading" v-if="isLoading"></div>
         <div v-for="(item, index) in filteredItems" :key="item.name" class="item" :class="{selected: item.selected, active: active === index}" @click="selectItem(item)" :ref="'listItem' + index">
           {{ item.name }}
           <a v-show="enableFeed && mode === 'branches'" role="button" class="rss-icon ui compact right" :href="rssURLPrefix + item.url" target="_blank" @click.stop>
-            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" class="svg octicon-rss"><path d="M2.002 2.725a.75.75 0 0 1 .797-.699C8.79 2.42 13.58 7.21 13.974 13.201a.75.75 0 0 1-1.497.098 10.502 10.502 0 0 0-9.776-9.776.747.747 0 0 1-.7-.798ZM2.84 7.05h-.002a7.002 7.002 0 0 1 6.113 6.111.75.75 0 0 1-1.49.178 5.503 5.503 0 0 0-4.8-4.8.75.75 0 0 1 .179-1.489ZM2 13a1 1 0 1 1 2 0 1 1 0 0 1-2 0Z"/></svg>
+            <!-- creating a lot of Vue component is pretty slow, so we use a static SVG here -->
+            <svg width="14" height="14" class="svg octicon-rss"><use href="#svg-symbol-octicon-rss"></use></svg>
           </a>
         </div>
         <div class="item" v-if="showCreateNewBranch" :class="{active: active === filteredItems.length}" :ref="'listItem' + filteredItems.length">
