@@ -165,7 +165,7 @@ func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) err
 }
 
 // CancelRunningJobs cancels all running and waiting jobs associated with a specific workflow.
-func CancelRunningJobs(ctx context.Context, repoID int64, ref string, workflowID string) error {
+func CancelRunningJobs(ctx context.Context, repoID int64, ref, workflowID string) error {
 	// Find all runs in the specified repository, reference, and workflow with statuses 'Running' or 'Waiting'.
 	runs, total, err := FindRuns(ctx, FindRunOptions{
 		RepoID:     repoID,
