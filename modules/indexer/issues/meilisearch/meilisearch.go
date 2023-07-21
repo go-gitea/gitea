@@ -84,7 +84,7 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		if filter != "" {
 			filter = "(" + filter + ") AND " + condition
 		} else {
-			filter = "state = " + condition
+			filter = condition
 		}
 	}
 
