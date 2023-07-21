@@ -322,7 +322,8 @@ func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, int64, err
 		ret = append(ret, hit.ID)
 	}
 
-	if result.Imprecise {
+	if len(result.Hits) > 0 && result.Imprecise {
+		// The result is imprecise, we need to filter the result again.
 		ret, err := reFilter(ctx, ret, opts)
 		if err != nil {
 			return nil, 0, err

@@ -50,25 +50,28 @@ func (i *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	//        So that's the root problem:
 	//        The notification is defined in modules, but it's using lots of things should be in services.
 
-	repoCond := builder.In("repo_id", options.RepoIDs)
-	subQuery := builder.Select("id").From("issue").Where(repoCond)
-	cond := builder.And(
-		repoCond,
-		builder.Or(
-			builder.If(options.Keyword != "",
-				db.BuildCaseInsensitiveLike("issue.name", options.Keyword),
-				db.BuildCaseInsensitiveLike("issue.content", options.Keyword),
-				builder.In("id", builder.Select("issue_id").
-					From("comment").
-					Where(builder.And(
-						builder.Eq{"type": issue_model.CommentTypeComment},
-						builder.In("issue_id", subQuery),
-						db.BuildCaseInsensitiveLike("content", options.Keyword),
-					)),
-				),
+	cond := builder.NewCond()
+
+	if options.Keyword != "" {
+		repoCond := builder.In("repo_id", options.RepoIDs)
+		if len(options.RepoIDs) == 1 {
+			repoCond = builder.Eq{"repo_id": options.RepoIDs[0]}
+		}
+		subQuery := builder.Select("id").From("issue").Where(repoCond)
+
+		cond = builder.Or(
+			db.BuildCaseInsensitiveLike("issue.name", options.Keyword),
+			db.BuildCaseInsensitiveLike("issue.content", options.Keyword),
+			builder.In("issue.id", builder.Select("issue_id").
+				From("comment").
+				Where(builder.And(
+					builder.Eq{"type": issue_model.CommentTypeComment},
+					builder.In("issue_id", subQuery),
+					db.BuildCaseInsensitiveLike("content", options.Keyword),
+				)),
 			),
-		),
-	)
+		)
+	}
 
 	opt := ToDBOptions(options)
 
@@ -86,6 +89,6 @@ func (i *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	return &internal.SearchResult{
 		Total:     total,
 		Hits:      hits,
-		Imprecise: true,
+		Imprecise: false,
 	}, nil
 }
