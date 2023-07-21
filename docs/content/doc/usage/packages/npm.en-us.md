@@ -1,6 +1,6 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
-title: "npm Packages Repository"
+title: "npm Package Registry"
 slug: "npm"
 weight: 70
 draft: false
@@ -13,7 +13,7 @@ menu:
     identifier: "npm"
 ---
 
-# npm Packages Repository
+# npm Package Registry
 
 Publish [npm](https://www.npmjs.com/) packages for your user or organization.
 

@@ -1,6 +1,6 @@
 ---
 date: "2023-05-10T00:00:00+00:00"
-title: "Go Packages Repository"
+title: "Go Package Registry"
 slug: "go"
 weight: 45
 draft: false
@@ -13,7 +13,7 @@ menu:
     identifier: "go"
 ---
 
-# Go Packages Repository
+# Go Package Registry
 
 Publish Go packages for your user or organization.
 

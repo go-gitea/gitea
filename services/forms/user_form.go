@@ -27,7 +27,6 @@ type InstallForm struct {
 	DbPasswd string
 	DbName   string
 	SSLMode  string
-	Charset  string `binding:"Required;In(utf8,utf8mb4)"`
 	DbPath   string
 	DbSchema string
 
@@ -367,12 +366,22 @@ func (f *AddKeyForm) Validate(req *http.Request, errs binding.Errors) binding.Er
 
 // AddSecretForm for adding secrets
 type AddSecretForm struct {
-	Title   string `binding:"Required;MaxSize(50)"`
-	Content string `binding:"Required"`
+	Name string `binding:"Required;MaxSize(255)"`
+	Data string `binding:"Required;MaxSize(65535)"`
 }
 
 // Validate validates the fields
 func (f *AddSecretForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+type EditVariableForm struct {
+	Name string `binding:"Required;MaxSize(255)"`
+	Data string `binding:"Required;MaxSize(65535)"`
+}
+
+func (f *EditVariableForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
@@ -398,7 +407,7 @@ func (f *NewAccessTokenForm) GetScope() (auth_model.AccessTokenScope, error) {
 // EditOAuth2ApplicationForm form for editing oauth2 applications
 type EditOAuth2ApplicationForm struct {
 	Name               string `binding:"Required;MaxSize(255)" form:"application_name"`
-	RedirectURI        string `binding:"Required" form:"redirect_uri"`
+	RedirectURIs       string `binding:"Required" form:"redirect_uris"`
 	ConfidentialClient bool   `form:"confidential_client"`
 }
 

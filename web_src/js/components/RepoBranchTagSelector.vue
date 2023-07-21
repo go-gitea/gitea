@@ -4,7 +4,7 @@
       <span class="text gt-df gt-ac gt-mr-2">
         <template v-if="release">{{ textReleaseCompare }}</template>
         <template v-else>
-          <svg-icon v-if="isViewTag" name="octicon-tag" />
+          <svg-icon v-if="isViewTag" name="octicon-tag"/>
           <svg-icon v-else name="octicon-git-branch"/>
           <strong ref="dropdownRefName" class="gt-ml-3">{{ refNameText }}</strong>
         </template>
@@ -13,7 +13,7 @@
     </button>
     <div class="menu transition" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
       <div class="ui icon search input">
-        <i class="icon gt-df gt-ac gt-jc gt-m-0"><svg-icon name="octicon-filter" :size="16"/></i>
+        <i class="icon"><svg-icon name="octicon-filter" :size="16"/></i>
         <input name="search" ref="searchField" autocomplete="off" v-model="searchTerm" @keydown="keydown($event)" :placeholder="searchFieldPlaceholder">
       </div>
       <template v-if="showBranchesInDropdown">
@@ -108,7 +108,7 @@ const sfc = {
       return this.items.filter((item) => item.name.toLowerCase() === this.searchTerm.toLowerCase()).length === 0;
     },
     formActionUrl() {
-      return `${this.repoLink}/branches/_new/${pathEscapeSegments(this.branchNameSubURL)}`;
+      return `${this.repoLink}/branches/_new/${this.branchNameSubURL}`;
     },
   },
 
@@ -274,15 +274,15 @@ export function initRepoBranchTagSelector(selector) {
 
     if (data.showBranchesInDropdown && data.branches) {
       for (const branch of data.branches) {
-        data.items.push({name: branch, url: branch, branch: true, tag: false, selected: branch === data.defaultBranch});
+        data.items.push({name: branch, url: pathEscapeSegments(branch), branch: true, tag: false, selected: branch === data.defaultBranch});
       }
     }
     if (!data.noTag && data.tags) {
       for (const tag of data.tags) {
         if (data.release) {
-          data.items.push({name: tag, url: tag, branch: false, tag: true, selected: tag === data.release.tagName});
+          data.items.push({name: tag, url: pathEscapeSegments(tag), branch: false, tag: true, selected: tag === data.release.tagName});
         } else {
-          data.items.push({name: tag, url: tag, branch: false, tag: true, selected: tag === data.defaultBranch});
+          data.items.push({name: tag, url: pathEscapeSegments(tag), branch: false, tag: true, selected: tag === data.defaultBranch});
         }
       }
     }
@@ -296,10 +296,10 @@ export default sfc; // activate IDE's Vue plugin
 </script>
 
 <style scoped>
-.menu .item a {
+.menu .item .rss-icon {
   display: none; /* only show RSS icon on hover */
 }
-.menu .item:hover a {
+.menu .item:hover .rss-icon {
   display: inline-block;
 }
 </style>

@@ -37,14 +37,11 @@ func Run(t *admin_model.Task) error {
 
 // Init will start the service to get all unfinished tasks and run them
 func Init() error {
-	taskQueue = queue.CreateSimpleQueue("task", handler)
-
+	taskQueue = queue.CreateSimpleQueue(graceful.GetManager().ShutdownContext(), "task", handler)
 	if taskQueue == nil {
-		return fmt.Errorf("Unable to create Task Queue")
+		return fmt.Errorf("unable to create task queue")
 	}
-
-	go graceful.GetManager().RunWithShutdownFns(taskQueue.Run)
-
+	go graceful.GetManager().RunWithCancel(taskQueue)
 	return nil
 }
 

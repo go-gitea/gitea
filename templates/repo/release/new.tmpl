@@ -84,7 +84,7 @@
 				{{end}}
 			</div>
 			<div class="ui container">
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 				<div class="ui text right">
 					{{if not .PageIsEditRelease}}
 						<div class="tag-message field">
@@ -123,7 +123,7 @@
 							{{end}}
 						{{else}}
 							{{if not .tag_name}}
-								<button class="ui grey button" type="submit" name="tag_only" value="{{.locale.Tr "repo.release.add_tag"}}">{{.locale.Tr "repo.release.add_tag"}}</button>
+								<button class="ui button" type="submit" name="tag_only" value="{{.locale.Tr "repo.release.add_tag"}}">{{.locale.Tr "repo.release.add_tag"}}</button>
 							{{end}}
 							<button class="ui button" type="submit" name="draft" value="{{.locale.Tr "repo.release.save_draft"}}">{{.locale.Tr "repo.release.save_draft"}}</button>
 							<button class="ui primary button">

@@ -1,6 +1,6 @@
 ---
 date: "2022-11-20T00:00:00+00:00"
-title: "Cargo Packages Repository"
+title: "Cargo Package Registry"
 slug: "cargo"
 weight: 5
 draft: false
@@ -13,7 +13,7 @@ menu:
     identifier: "cargo"
 ---
 
-# Cargo Packages Repository
+# Cargo Package Registry
 
 Publish [Cargo](https://doc.rust-lang.org/stable/cargo/) packages for your user or organization.
 

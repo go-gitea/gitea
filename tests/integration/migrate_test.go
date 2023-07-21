@@ -67,7 +67,7 @@ func TestMigrateGiteaForm(t *testing.T) {
 		repoName := "repo1"
 		repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: ownerName})
 		session := loginUser(t, ownerName)
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeReadMisc)
 
 		// Step 0: verify the repo is available
 		req := NewRequestf(t, "GET", fmt.Sprintf("/%s/%s", ownerName, repoName))

@@ -71,6 +71,7 @@ type FindRunOptions struct {
 	WorkflowFileName string
 	TriggerUserID    int64
 	Approved         bool // not util.OptionalBool, it works only when it's true
+	Status           Status
 }
 
 func (opts FindRunOptions) toConds() builder.Cond {
@@ -90,6 +91,9 @@ func (opts FindRunOptions) toConds() builder.Cond {
 	if opts.Approved {
 		cond = cond.And(builder.Gt{"approved_by": 0})
 	}
+	if opts.Status > StatusUnknown {
+		cond = cond.And(builder.Eq{"status": opts.Status})
+	}
 	return cond
 }
 
@@ -105,4 +109,35 @@ func FindRuns(ctx context.Context, opts FindRunOptions) (RunList, int64, error) 
 
 func CountRuns(ctx context.Context, opts FindRunOptions) (int64, error) {
 	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(ActionRun))
+}
+
+type StatusInfo struct {
+	Status          int
+	DisplayedStatus string
+}
+
+// GetStatusInfoList returns a slice of StatusInfo
+func GetStatusInfoList(ctx context.Context) []StatusInfo {
+	// same as those in aggregateJobStatus
+	allStatus := []Status{StatusSuccess, StatusFailure, StatusWaiting, StatusRunning}
+	statusInfoList := make([]StatusInfo, 0, 4)
+	for _, s := range allStatus {
+		statusInfoList = append(statusInfoList, StatusInfo{
+			Status:          int(s),
+			DisplayedStatus: s.String(),
+		})
+	}
+	return statusInfoList
+}
+
+// GetActors returns a slice of Actors
+func GetActors(ctx context.Context, repoID int64) ([]*user_model.User, error) {
+	actors := make([]*user_model.User, 0, 10)
+
+	return actors, db.GetEngine(ctx).Where(builder.In("id", builder.Select("`action_run`.trigger_user_id").From("`action_run`").
+		GroupBy("`action_run`.trigger_user_id").
+		Where(builder.Eq{"`action_run`.repo_id": repoID}))).
+		Cols("id", "name", "full_name", "avatar", "avatar_email", "use_custom_avatar").
+		OrderBy(user_model.GetOrderByName()).
+		Find(&actors)
 }

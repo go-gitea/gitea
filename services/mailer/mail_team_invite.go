@@ -34,7 +34,7 @@ func MailTeamInvite(ctx context.Context, inviter *user_model.User, team *org_mod
 	locale := translation.NewLocale(inviter.Language)
 
 	subject := locale.Tr("mail.team_invite.subject", inviter.DisplayName(), org.DisplayName())
-	mailMeta := map[string]interface{}{
+	mailMeta := map[string]any{
 		"Inviter":      inviter,
 		"Organization": org,
 		"Team":         team,

@@ -401,7 +401,9 @@ func NewContext(ctx context.Context) {
 		Sender = &smtpSender{}
 	}
 
-	mailQueue = queue.CreateSimpleQueue("mail", func(items ...*Message) []*Message {
+	subjectTemplates, bodyTemplates = templates.Mailer(ctx)
+
+	mailQueue = queue.CreateSimpleQueue(graceful.GetManager().ShutdownContext(), "mail", func(items ...*Message) []*Message {
 		for _, msg := range items {
 			gomailMsg := msg.ToMessage()
 			log.Trace("New e-mail sending request %s: %s", gomailMsg.GetHeader("To"), msg.Info)
@@ -413,10 +415,10 @@ func NewContext(ctx context.Context) {
 		}
 		return nil
 	})
-
-	go graceful.GetManager().RunWithShutdownFns(mailQueue.Run)
-
-	subjectTemplates, bodyTemplates = templates.Mailer(ctx)
+	if mailQueue == nil {
+		log.Fatal("Unable to create mail queue")
+	}
+	go graceful.GetManager().RunWithCancel(mailQueue)
 }
 
 // SendAsync send mail asynchronously

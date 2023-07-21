@@ -12,7 +12,7 @@
 			{{.CsrfTokenHtml}}
 			<div class="field {{if .Err_Title}}error{{end}}">
 				<label for="title">{{.locale.Tr "settings.key_name"}}</label>
-				<input id="ssh-key-title" name="title" value="{{.title}}" autofocus required>
+				<input id="ssh-key-title" name="title" value="{{.title}}" autofocus required maxlength="50">
 			</div>
 			<div class="field {{if .Err_Content}}error{{end}}">
 				<label for="content">{{.locale.Tr "settings.key_content"}}</label>

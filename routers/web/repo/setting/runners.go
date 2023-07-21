@@ -21,9 +21,11 @@ const (
 	tplRepoRunners     base.TplName = "repo/settings/actions"
 	tplOrgRunners      base.TplName = "org/settings/actions"
 	tplAdminRunners    base.TplName = "admin/actions"
+	tplUserRunners     base.TplName = "user/settings/actions"
 	tplRepoRunnerEdit  base.TplName = "repo/settings/runner_edit"
 	tplOrgRunnerEdit   base.TplName = "org/settings/runners_edit"
 	tplAdminRunnerEdit base.TplName = "admin/runners/edit"
+	tplUserRunnerEdit  base.TplName = "user/settings/runner_edit"
 )
 
 type runnersCtx struct {
@@ -32,6 +34,7 @@ type runnersCtx struct {
 	IsRepo             bool
 	IsOrg              bool
 	IsAdmin            bool
+	IsUser             bool
 	RunnersTemplate    base.TplName
 	RunnerEditTemplate base.TplName
 	RedirectLink       string
@@ -71,6 +74,17 @@ func getRunnersCtx(ctx *context.Context) (*runnersCtx, error) {
 		}, nil
 	}
 
+	if ctx.Data["PageIsUserSettings"] == true {
+		return &runnersCtx{
+			OwnerID:            ctx.Doer.ID,
+			RepoID:             0,
+			IsUser:             true,
+			RunnersTemplate:    tplUserRunners,
+			RunnerEditTemplate: tplUserRunnerEdit,
+			RedirectLink:       setting.AppSubURL + "/user/settings/actions/runners/",
+		}, nil
+	}
+
 	return nil, errors.New("unable to set Runners context")
 }
 
@@ -102,7 +116,7 @@ func Runners(ctx *context.Context) {
 	if rCtx.IsRepo {
 		opts.RepoID = rCtx.RepoID
 		opts.WithAvailable = true
-	} else if rCtx.IsOrg {
+	} else if rCtx.IsOrg || rCtx.IsUser {
 		opts.OwnerID = rCtx.OwnerID
 		opts.WithAvailable = true
 	}

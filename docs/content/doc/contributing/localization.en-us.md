@@ -2,7 +2,7 @@
 date: "2016-12-01T16:00:00+02:00"
 title: "Localization"
 slug: "localization"
-weight: 10
+weight: 70
 toc: false
 draft: false
 aliases:
@@ -11,7 +11,7 @@ menu:
   sidebar:
     parent: "contributing"
     name: "Localization"
-    weight: 20
+    weight: 70
     identifier: "localization"
 ---
 
@@ -20,7 +20,7 @@ menu:
 Gitea's localization happens through our [Crowdin project](https://crowdin.com/project/gitea).
 
 For changes to an **English** translation, a pull request can be made that changes the appropriate key in
-the [english locale](https://github.com/go-gitea/gitea/blob/master/options/locale/locale_en-US.ini).
+the [english locale](https://github.com/go-gitea/gitea/blob/main/options/locale/locale_en-US.ini).
 
 For changes to a **non-English** translation, refer to the Crowdin project above.
 
@@ -33,3 +33,7 @@ After a translation has been accepted, it will be reflected in the main reposito
 At the time of writing, this means that a changed translation may not appear until the following Gitea release.
 
 If you use a bleeding edge build, it should appear as soon as you update after the change is synced.
+
+# How to Contribute
+
+Different Languages have different translation guidelines. Please visit the respective page for more information.

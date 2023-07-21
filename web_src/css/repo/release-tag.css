@@ -119,7 +119,7 @@
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .repository.new.release .field button {
     margin-bottom: 1em;
   }

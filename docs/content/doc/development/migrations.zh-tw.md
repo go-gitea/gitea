@@ -31,11 +31,11 @@ Gitea 定義了一些基本物件於套件 [modules/migration](https://github.co
 - 您必須實作一個 `DownloaderFactory`，它用來偵測 URL 是否符合並建立上述的 `Downloader`。
   - 您需要在 `init()` 透過 `RegisterDownloaderFactory` 來註冊 `DownloaderFactory`。
 
-您可以在 [downloader.go](https://github.com/go-gitea/gitea/blob/master/modules/migration/downloader.go) 中找到這些介面。
+您可以在 [downloader.go](https://github.com/go-gitea/gitea/blob/main/modules/migration/downloader.go) 中找到這些介面。
 
 ## Uploader 介面
 
 目前只有 `GiteaLocalUploader` 被實作出來，所以我們只能通過 `Uploader` 儲存已下載的資料到本地的 Gitea 實例。
 目前尚未支援其它 Uploader。
 
-您可以在 [uploader.go](https://github.com/go-gitea/gitea/blob/master/modules/migration/uploader.go) 中找到這些介面。
+您可以在 [uploader.go](https://github.com/go-gitea/gitea/blob/main/modules/migration/uploader.go) 中找到這些介面。

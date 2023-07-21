@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path"
 	"sync"
 	"testing"
@@ -52,7 +51,7 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 	assert.NotEmpty(t, commitURL)
 
 	// Call API to add status for commit
-	ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeRepo)
+	ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository)
 	t.Run("CreateStatus", doAPICreateCommitStatus(ctx, path.Base(commitURL), api.CreateStatusOption{
 		State:       api.CommitStatusState(state),
 		TargetURL:   "http://test.ci/",
@@ -111,7 +110,7 @@ func testRepoCommitsWithStatus(t *testing.T, resp, respOne *httptest.ResponseRec
 }
 
 func TestRepoCommitsWithStatusPending(t *testing.T) {
-	doTestRepoCommitWithStatus(t, "pending", "octicon-dot-fill", "grey")
+	doTestRepoCommitWithStatus(t, "pending", "octicon-dot-fill", "yellow")
 }
 
 func TestRepoCommitsWithStatusSuccess(t *testing.T) {
@@ -135,9 +134,6 @@ func TestRepoCommitsWithStatusRunning(t *testing.T) {
 }
 
 func TestRepoCommitsStatusParallel(t *testing.T) {
-	if os.Getenv("CI") != "" {
-		t.Skip("Skipping because test is flaky on CI")
-	}
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
@@ -157,7 +153,7 @@ func TestRepoCommitsStatusParallel(t *testing.T) {
 		wg.Add(1)
 		go func(parentT *testing.T, i int) {
 			parentT.Run(fmt.Sprintf("ParallelCreateStatus_%d", i), func(t *testing.T) {
-				ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeRepoStatus)
+				ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository)
 				runBody := doAPICreateCommitStatus(ctx, path.Base(commitURL), api.CreateStatusOption{
 					State:       api.CommitStatusPending,
 					TargetURL:   "http://test.ci/",
@@ -188,7 +184,7 @@ func TestRepoCommitsStatusMultiple(t *testing.T) {
 	assert.NotEmpty(t, commitURL)
 
 	// Call API to add status for commit
-	ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeRepo)
+	ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository)
 	t.Run("CreateStatus", doAPICreateCommitStatus(ctx, path.Base(commitURL), api.CreateStatusOption{
 		State:       api.CommitStatusSuccess,
 		TargetURL:   "http://test.ci/",

@@ -123,6 +123,13 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 		}
 
 		_, _ = issue_service.CreateComment(ctx, ops)
+
+		if !pr.IsWorkInProgress() {
+			if err := issues_model.PullRequestCodeOwnersReview(ctx, pull, pr); err != nil {
+				return err
+			}
+		}
+
 	}
 
 	return nil
@@ -163,7 +170,7 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 		return err
 	}
 	if branchesEqual {
-		return models.ErrBranchesEqual{
+		return git_model.ErrBranchesEqual{
 			HeadBranchName: pr.HeadBranch,
 			BaseBranchName: targetBranch,
 		}
@@ -302,6 +309,17 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 							if err := issues_model.MarkReviewsAsStale(pr.IssueID); err != nil {
 								log.Error("MarkReviewsAsStale: %v", err)
 							}
+
+							// dismiss all approval reviews if protected branch rule item enabled.
+							pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+							if err != nil {
+								log.Error("GetFirstMatchProtectedBranchRule: %v", err)
+							}
+							if pb != nil && pb.DismissStaleApprovals {
+								if err := DismissApprovalReviews(ctx, doer, pr); err != nil {
+									log.Error("DismissApprovalReviews: %v", err)
+								}
+							}
 						}
 						if err := issues_model.MarkReviewsAsNotStale(pr.IssueID, newCommitID); err != nil {
 							log.Error("MarkReviewsAsNotStale: %v", err)
@@ -331,7 +349,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 		for _, pr := range prs {
 			divergence, err := GetDiverging(ctx, pr)
 			if err != nil {
-				if models.IsErrBranchDoesNotExist(err) && !git.IsBranchExist(ctx, pr.HeadRepo.RepoPath(), pr.HeadBranch) {
+				if git_model.IsErrBranchNotExist(err) && !git.IsBranchExist(ctx, pr.HeadRepo.RepoPath(), pr.HeadBranch) {
 					log.Warn("Cannot test PR %s/%d: head_branch %s no longer exists", pr.BaseRepo.Name, pr.IssueID, pr.HeadBranch)
 				} else {
 					log.Error("GetDiverging: %v", err)

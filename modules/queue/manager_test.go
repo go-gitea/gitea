@@ -29,7 +29,7 @@ func TestManager(t *testing.T) {
 		if err != nil {
 			return nil, err
 		}
-		return NewWorkerPoolQueueBySetting(name, qs, func(s ...int) (unhandled []int) { return nil }, false)
+		return newWorkerPoolQueueForTest(name, qs, func(s ...int) (unhandled []int) { return nil }, false)
 	}
 
 	// test invalid CONN_STR
@@ -80,7 +80,7 @@ MAX_WORKERS = 2
 
 	assert.NoError(t, err)
 
-	q1 := createWorkerPoolQueue[string]("no-such", cfgProvider, nil, false)
+	q1 := createWorkerPoolQueue[string](context.Background(), "no-such", cfgProvider, nil, false)
 	assert.Equal(t, "no-such", q1.GetName())
 	assert.Equal(t, "dummy", q1.GetType()) // no handler, so it becomes dummy
 	assert.Equal(t, filepath.Join(setting.AppDataPath, "queues/dir1"), q1.baseConfig.DataFullDir)
@@ -96,7 +96,7 @@ MAX_WORKERS = 2
 	assert.Equal(t, "string", q1.GetItemTypeName())
 	qid1 := GetManager().qidCounter
 
-	q2 := createWorkerPoolQueue("sub", cfgProvider, func(s ...int) (unhandled []int) { return nil }, false)
+	q2 := createWorkerPoolQueue(context.Background(), "sub", cfgProvider, func(s ...int) (unhandled []int) { return nil }, false)
 	assert.Equal(t, "sub", q2.GetName())
 	assert.Equal(t, "level", q2.GetType())
 	assert.Equal(t, filepath.Join(setting.AppDataPath, "queues/dir2"), q2.baseConfig.DataFullDir)

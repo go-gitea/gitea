@@ -1,7 +1,7 @@
 ---
 date: "2023-03-08T00:00:00+00:00"
-title: "RPM Packages Repository"
-slug: "packages/rpm"
+title: "RPM Package Registry"
+slug: "rpm"
 draft: false
 toc: false
 menu:
@@ -12,7 +12,7 @@ menu:
     identifier: "rpm"
 ---
 
-# RPM Packages Repository
+# RPM Package Registry
 
 Publish [RPM](https://rpm.org/) packages for your user or organization.
 
@@ -22,7 +22,7 @@ Publish [RPM](https://rpm.org/) packages for your user or organization.
 
 ## Requirements
 
-To work with the RPM registry, you need to use a package manager like `yum` or `dnf` to consume packages.
+To work with the RPM registry, you need to use a package manager like `yum`, `dnf` or `zypper` to consume packages.
 
 The following examples use `dnf`.
 
@@ -79,7 +79,7 @@ The server responds with the following HTTP Status codes.
 
 ## Delete a package
 
-To delete a Debian package perform a HTTP DELETE operation. This will delete the package version too if there is no file left.
+To delete an RPM package perform a HTTP DELETE operation. This will delete the package version too if there is no file left.
 
 ```
 DELETE https://gitea.example.com/api/packages/{owner}/rpm/{package_name}/{package_version}/{architecture}

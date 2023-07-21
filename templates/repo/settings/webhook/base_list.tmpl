@@ -50,7 +50,7 @@
 			<div class="item truncated-item-container">
 				<span class="text {{if eq .LastStatus 1}}green{{else if eq .LastStatus 2}}red{{else}}grey{{end}} gt-mr-3">{{svg "octicon-dot-fill" 22}}</span>
 				<a class="text truncate gt-f1 gt-mr-3" title="{{.URL}}" href="{{$.BaseLink}}/{{.ID}}">{{.URL}}</a>
-				<a class="muted gt-p-3" href="{{$.BaseLink}}/{{.ID}}">{{svg "octicon-pencil"}}</a></span>
+				<a class="muted gt-p-3" href="{{$.BaseLink}}/{{.ID}}">{{svg "octicon-pencil"}}</a>
 				<a class="delete-button gt-p-3" data-url="{{$.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trash"}}</a>
 			</div>
 		{{end}}

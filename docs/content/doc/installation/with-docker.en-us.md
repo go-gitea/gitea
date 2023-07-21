@@ -36,7 +36,7 @@ image as a service. Since there is no database available, one can be initialized
 Create a directory like `gitea` and paste the following content into a file named `docker-compose.yml`.
 Note that the volume should be owned by the user/group with the UID/GID specified in the config file.
 If you don't give the volume correct permissions, the container may not start.
-For a stable release you can use `:latest`, `:1` or specify a certain release like `:{{< version >}}`, but if you'd like to use the latest development version of Gitea then you could use the `:dev` tag. If you'd like to run the latest commit from a release branch you can use the `:1.x-dev` tag, where x is the minor version of Gitea. (e.g. `:1.16-dev`)
+For a stable release you can use `:latest`, `:1` or specify a certain release like `:{{< version >}}`, but if you'd like to use the latest development version of Gitea then you could use the `:nightly` tag. If you'd like to run the latest commit from a release branch you can use the `:1.x-nightly` tag, where x is the minor version of Gitea. (e.g. `:1.16-nightly`)
 
 ```yaml
 version: "3"
@@ -287,9 +287,18 @@ docker-compose up -d
 
 ## Managing Deployments With Environment Variables
 
-In addition to the environment variables above, any settings in `app.ini` can be set or overridden with an environment variable of the form: `GITEA__SECTION_NAME__KEY_NAME`. These settings are applied each time the docker container starts. Full information [here](https://github.com/go-gitea/gitea/tree/master/contrib/environment-to-ini).
+In addition to the environment variables above, any settings in `app.ini` can be set
+or overridden with an environment variable of the form: `GITEA__SECTION_NAME__KEY_NAME`.
+These settings are applied each time the docker container starts, and won't be passed into Gitea's sub-processes.
+Full information [here](https://github.com/go-gitea/gitea/tree/master/contrib/environment-to-ini).
 
-These environment variables can be passed to the docker container in `docker-compose.yml`. The following example will enable an smtp mail server if the required env variables `GITEA__mailer__FROM`, `GITEA__mailer__HOST`, `GITEA__mailer__PASSWD` are set on the host or in a `.env` file in the same directory as `docker-compose.yml`:
+These environment variables can be passed to the docker container in `docker-compose.yml`.
+The following example will enable an smtp mail server if the required env variables
+`GITEA__mailer__FROM`, `GITEA__mailer__HOST`, `GITEA__mailer__PASSWD` are set on the host
+or in a `.env` file in the same directory as `docker-compose.yml`.
+
+The settings can be also set or overridden with the content of a file by defining an environment variable of the form:
+`GITEA__section_name__KEY_NAME__FILE` that points to a file.
 
 ```bash
 ...

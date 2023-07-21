@@ -31,7 +31,7 @@
 							<input id="location" name="location"  value="{{.Org.Location}}" maxlength="50">
 						</div>
 
-						<div class="ui divider"></div>
+						<div class="divider"></div>
 						<div class="field" id="visibility_box">
 							<label for="visibility">{{.locale.Tr "org.settings.visibility"}}</label>
 							<div class="field">
@@ -65,11 +65,11 @@
 						</div>
 
 						{{if .SignedUser.IsAdmin}}
-						<div class="ui divider"></div>
+						<div class="divider"></div>
 
 						<div class="inline field {{if .Err_MaxRepoCreation}}error{{end}}">
 							<label for="max_repo_creation">{{.locale.Tr "admin.users.max_repo_creation"}}</label>
-							<input id="max_repo_creation" name="max_repo_creation" type="number" value="{{.Org.MaxRepoCreation}}">
+							<input id="max_repo_creation" name="max_repo_creation" type="number" min="-1" value="{{.Org.MaxRepoCreation}}">
 							<p class="help">{{.locale.Tr "admin.users.max_repo_creation_desc"}}</p>
 						</div>
 						{{end}}
@@ -79,7 +79,7 @@
 						</div>
 					</form>
 
-					<div class="ui divider"></div>
+					<div class="divider"></div>
 
 					<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
 						{{.CsrfTokenHtml}}
@@ -90,7 +90,7 @@
 
 						<div class="field">
 							<button class="ui green button">{{$.locale.Tr "settings.update_avatar"}}</button>
-							<a class="ui red button delete-post" data-request-url="{{.Link}}/avatar/delete" data-done-url="{{.Link}}">{{$.locale.Tr "settings.delete_current_avatar"}}</a>
+							<button class="ui red button link-action" data-url="{{.Link}}/avatar/delete" data-redirect="{{.Link}}">{{$.locale.Tr "settings.delete_current_avatar"}}</button>
 						</div>
 					</form>
 				</div>

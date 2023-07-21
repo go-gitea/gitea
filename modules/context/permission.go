@@ -90,7 +90,7 @@ func RequireRepoReaderOr(unitTypes ...unit.Type) func(ctx *Context) {
 		}
 		if log.IsTrace() {
 			var format string
-			var args []interface{}
+			var args []any
 			if ctx.IsSigned {
 				format = "Permission Denied: User %-v cannot read ["
 				args = append(args, ctx.Doer)
@@ -111,28 +111,36 @@ func RequireRepoReaderOr(unitTypes ...unit.Type) func(ctx *Context) {
 	}
 }
 
-// RequireRepoScopedToken check whether personal access token has repo scope
-func CheckRepoScopedToken(ctx *Context, repo *repo_model.Repository) {
+// CheckRepoScopedToken check whether personal access token has repo scope
+func CheckRepoScopedToken(ctx *Context, repo *repo_model.Repository, level auth_model.AccessTokenScopeLevel) {
 	if !ctx.IsBasicAuth || ctx.Data["IsApiToken"] != true {
 		return
 	}
 
-	var err error
 	scope, ok := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
 	if ok { // it's a personal access token but not oauth2 token
 		var scopeMatched bool
-		scopeMatched, err = scope.HasScope(auth_model.AccessTokenScopeRepo)
+
+		requiredScopes := auth_model.GetRequiredScopes(level, auth_model.AccessTokenScopeCategoryRepository)
+
+		// check if scope only applies to public resources
+		publicOnly, err := scope.PublicOnly()
 		if err != nil {
 			ctx.ServerError("HasScope", err)
 			return
 		}
-		if !scopeMatched && !repo.IsPrivate {
-			scopeMatched, err = scope.HasScope(auth_model.AccessTokenScopePublicRepo)
-			if err != nil {
-				ctx.ServerError("HasScope", err)
-				return
-			}
+
+		if publicOnly && repo.IsPrivate {
+			ctx.Error(http.StatusForbidden)
+			return
 		}
+
+		scopeMatched, err = scope.HasScope(requiredScopes...)
+		if err != nil {
+			ctx.ServerError("HasScope", err)
+			return
+		}
+
 		if !scopeMatched {
 			ctx.Error(http.StatusForbidden)
 			return

@@ -121,7 +121,7 @@
 								<div class="header">
 									{{$.locale.Tr "repo.already_forked" .Name}}
 								</div>
-								<div class="content gt-tl">
+								<div class="content gt-text-left">
 									<div class="ui list">
 										{{range $.UserAndOrgForks}}
 											<div class="ui item gt-py-3">
@@ -132,7 +132,7 @@
 										{{end}}
 									</div>
 									{{if $.CanSignedUserFork}}
-									<div class="ui divider"></div>
+									<div class="divider"></div>
 									<a href="{{AppSubUrl}}/repo/fork/{{.ID}}">
 										{{$.locale.Tr "repo.fork_to_different_account"}}
 									</a>
@@ -169,7 +169,7 @@
 
 				{{if .Permission.CanRead $.UnitTypeExternalTracker}}
 					<a class="{{if .PageIsIssueList}}active {{end}}item" href="{{.RepoExternalIssuesLink}}" target="_blank" rel="noopener noreferrer">
-						{{svg "octicon-link-external"}} {{.locale.Tr "repo.issues"}} </span>
+						{{svg "octicon-link-external"}} {{.locale.Tr "repo.issues"}}
 					</a>
 				{{end}}
 
@@ -207,7 +207,7 @@
 				{{end}}
 
 				{{if and (.Permission.CanRead $.UnitTypeReleases) (not .IsEmptyRepo)}}
-				<a class="{{if .PageIsReleaseList}}active {{end}}item" href="{{.RepoLink}}/releases">
+				<a class="{{if or .PageIsReleaseList .PageIsTagList}}active {{end}}item" href="{{.RepoLink}}/releases">
 					{{svg "octicon-tag"}} {{.locale.Tr "repo.releases"}}
 					{{if .NumReleases}}
 						<span class="ui small label">{{CountFmt .NumReleases}}</span>

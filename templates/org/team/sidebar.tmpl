@@ -34,12 +34,12 @@
 				<h3>{{.locale.Tr "org.team_access_desc"}}</h3>
 				<ul>
 					{{if .Team.IncludesAllRepositories}}
-						<li>{{.locale.Tr "org.teams.all_repositories" | Str2html}}
+						<li>{{.locale.Tr "org.teams.all_repositories" | Str2html}}</li>
 					{{else}}
-						<li>{{.locale.Tr "org.teams.specific_repositories" | Str2html}}
+						<li>{{.locale.Tr "org.teams.specific_repositories" | Str2html}}</li>
 					{{end}}
 					{{if .Team.CanCreateOrgRepo}}
-						<li>{{.locale.Tr "org.teams.can_create_org_repo"}}
+						<li>{{.locale.Tr "org.teams.can_create_org_repo"}}</li>
 					{{end}}
 				</ul>
 				{{if (eq .Team.AccessMode 2)}}

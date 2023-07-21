@@ -174,7 +174,7 @@ func FilenameIsImage(filename string) bool {
 	return strings.HasPrefix(mimeType, "image/")
 }
 
-func TabSizeClass(ec interface{}, filename string) string {
+func TabSizeClass(ec any, filename string) string {
 	var (
 		value *editorconfig.Editorconfig
 		ok    bool

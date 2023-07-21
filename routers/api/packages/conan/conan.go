@@ -47,7 +47,7 @@ var (
 	)
 )
 
-func jsonResponse(ctx *context.Context, status int, obj interface{}) {
+func jsonResponse(ctx *context.Context, status int, obj any) {
 	// https://github.com/conan-io/conan/issues/6613
 	ctx.Resp.Header().Set("Content-Type", "application/json")
 	ctx.Status(status)
@@ -56,7 +56,7 @@ func jsonResponse(ctx *context.Context, status int, obj interface{}) {
 	}
 }
 
-func apiError(ctx *context.Context, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj any) {
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		jsonResponse(ctx, status, map[string]string{
 			"message": message,
@@ -453,7 +453,7 @@ func downloadFile(ctx *context.Context, fileFilter container.Set[string], fileKe
 		return
 	}
 
-	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
@@ -474,12 +474,8 @@ func downloadFile(ctx *context.Context, fileFilter container.Set[string], fileKe
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	defer s.Close()
 
-	ctx.ServeContent(s, &context.ServeHeaderOptions{
-		Filename:     pf.Name,
-		LastModified: pf.CreatedUnix.AsLocalTime(),
-	})
+	helper.ServePackageFile(ctx, s, u, pf)
 }
 
 // DeleteRecipeV1 deletes the requested recipe(s)
@@ -800,13 +796,13 @@ func listRevisionFiles(ctx *context.Context, fileKey string) {
 		return
 	}
 
-	files := make(map[string]interface{})
+	files := make(map[string]any)
 	for _, pf := range pfs {
 		files[pf.Name] = nil
 	}
 
 	type FileList struct {
-		Files map[string]interface{} `json:"files"`
+		Files map[string]any `json:"files"`
 	}
 
 	jsonResponse(ctx, http.StatusOK, &FileList{

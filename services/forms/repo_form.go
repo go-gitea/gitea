@@ -42,14 +42,15 @@ type CreateRepoForm struct {
 	Readme        string
 	Template      bool
 
-	RepoTemplate int64
-	GitContent   bool
-	Topics       bool
-	GitHooks     bool
-	Webhooks     bool
-	Avatar       bool
-	Labels       bool
-	TrustModel   string
+	RepoTemplate    int64
+	GitContent      bool
+	Topics          bool
+	GitHooks        bool
+	Webhooks        bool
+	Avatar          bool
+	Labels          bool
+	ProtectedBranch bool
+	TrustModel      string
 }
 
 // Validate validates the fields
@@ -228,30 +229,31 @@ func (f *ProtectBranchForm) Validate(req *http.Request, errs binding.Errors) bin
 
 // WebhookForm form for changing web hook
 type WebhookForm struct {
-	Events               string
-	Create               bool
-	Delete               bool
-	Fork                 bool
-	Issues               bool
-	IssueAssign          bool
-	IssueLabel           bool
-	IssueMilestone       bool
-	IssueComment         bool
-	Release              bool
-	Push                 bool
-	PullRequest          bool
-	PullRequestAssign    bool
-	PullRequestLabel     bool
-	PullRequestMilestone bool
-	PullRequestComment   bool
-	PullRequestReview    bool
-	PullRequestSync      bool
-	Wiki                 bool
-	Repository           bool
-	Package              bool
-	Active               bool
-	BranchFilter         string `binding:"GlobPattern"`
-	AuthorizationHeader  string
+	Events                   string
+	Create                   bool
+	Delete                   bool
+	Fork                     bool
+	Issues                   bool
+	IssueAssign              bool
+	IssueLabel               bool
+	IssueMilestone           bool
+	IssueComment             bool
+	Release                  bool
+	Push                     bool
+	PullRequest              bool
+	PullRequestAssign        bool
+	PullRequestLabel         bool
+	PullRequestMilestone     bool
+	PullRequestComment       bool
+	PullRequestReview        bool
+	PullRequestSync          bool
+	PullRequestReviewRequest bool
+	Wiki                     bool
+	Repository               bool
+	Package                  bool
+	Active                   bool
+	BranchFilter             string `binding:"GlobPattern"`
+	AuthorizationHeader      string
 }
 
 // PushOnly if the hook will be triggered when push

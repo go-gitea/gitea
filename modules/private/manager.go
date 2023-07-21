@@ -29,6 +29,13 @@ func Restart(ctx context.Context) ResponseExtra {
 	return requestJSONClientMsg(req, "Restarting")
 }
 
+// ReloadTemplates calls the internal reload-templates function
+func ReloadTemplates(ctx context.Context) ResponseExtra {
+	reqURL := setting.LocalURL + "api/internal/manager/reload-templates"
+	req := newInternalRequest(ctx, reqURL, "POST")
+	return requestJSONClientMsg(req, "Reloaded")
+}
+
 // FlushOptions represents the options for the flush call
 type FlushOptions struct {
 	Timeout     time.Duration
@@ -78,11 +85,11 @@ type LoggerOptions struct {
 	Logger string
 	Writer string
 	Mode   string
-	Config map[string]interface{}
+	Config map[string]any
 }
 
 // AddLogger adds a logger
-func AddLogger(ctx context.Context, logger, writer, mode string, config map[string]interface{}) ResponseExtra {
+func AddLogger(ctx context.Context, logger, writer, mode string, config map[string]any) ResponseExtra {
 	reqURL := setting.LocalURL + "api/internal/manager/add-logger"
 	req := newInternalRequest(ctx, reqURL, "POST", LoggerOptions{
 		Logger: logger,

@@ -38,7 +38,7 @@
 							<p class="center">{{.locale.Tr "auth.manual_activation_only"}}</p>
 						{{else}}
 							<p>{{.locale.Tr "auth.has_unconfirmed_mail" (.SignedUser.Name|Escape) (.SignedUser.Email|Escape) | Str2html}}</p>
-							<div class="ui divider"></div>
+							<div class="divider"></div>
 							<div class="text right">
 								<button class="ui primary button">{{.locale.Tr "auth.resend_mail"}}</button>
 							</div>

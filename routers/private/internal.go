@@ -67,6 +67,7 @@ func Routes() *web.Route {
 	r.Get("/serv/command/{keyid}/{owner}/{repo}", ServCommand)
 	r.Post("/manager/shutdown", Shutdown)
 	r.Post("/manager/restart", Restart)
+	r.Post("/manager/reload-templates", ReloadTemplates)
 	r.Post("/manager/flush-queues", bind(private.FlushOptions{}), FlushQueues)
 	r.Post("/manager/pause-logging", PauseLogging)
 	r.Post("/manager/resume-logging", ResumeLogging)

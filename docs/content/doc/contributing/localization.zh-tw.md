@@ -2,7 +2,7 @@
 date: "2016-12-01T16:00:00+02:00"
 title: "在地化"
 slug: "localization"
-weight: 20
+weight: 70
 toc: false
 draft: false
 aliases:
@@ -11,7 +11,7 @@ menu:
   sidebar:
     parent: "contributing"
     name: "在地化"
-    weight: 20
+    weight: 70
     identifier: "localization"
 ---
 
@@ -19,7 +19,7 @@ menu:
 
 我們在 [Crowdin 專案](https://crowdin.com/project/gitea)上進行在地化工作。
 
-**英語系**的翻譯，可在修改[英文語言檔](https://github.com/go-gitea/gitea/blob/master/options/locale/locale_en-US.ini)後提出合併請求。
+**英語系**的翻譯，可在修改[英文語言檔](https://github.com/go-gitea/gitea/blob/main/options/locale/locale_en-US.ini)後提出合併請求。
 
 **非英語系**的翻譯，請前往上述的 Crowdin 專案。
 

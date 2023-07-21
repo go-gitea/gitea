@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -33,9 +34,7 @@ var localMetas = map[string]string{
 }
 
 func TestMain(m *testing.M) {
-	setting.Init(&setting.Options{
-		AllowEmpty: true,
-	})
+	unittest.InitSettings()
 	if err := git.InitSimple(context.Background()); err != nil {
 		log.Fatal("git init failed, err: %v", err)
 	}
@@ -518,5 +517,42 @@ func TestMathBlock(t *testing.T) {
 		assert.NoError(t, err, "Unexpected error in testcase: %q", test.testcase)
 		assert.Equal(t, test.expected, res, "Unexpected result in testcase %q", test.testcase)
 
+	}
+}
+
+func TestTaskList(t *testing.T) {
+	testcases := []struct {
+		testcase string
+		expected string
+	}{
+		{
+			// data-source-position should take into account YAML frontmatter.
+			`---
+foo: bar
+---
+- [ ] task 1`,
+			`<details><summary><i class="icon table"></i></summary><table>
+<thead>
+<tr>
+<th>foo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>bar</td>
+</tr>
+</tbody>
+</table>
+</details><ul>
+<li class="task-list-item"><input type="checkbox" disabled="" data-source-position="19"/>task 1</li>
+</ul>
+`,
+		},
+	}
+
+	for _, test := range testcases {
+		res, err := RenderString(&markup.RenderContext{Ctx: git.DefaultContext}, test.testcase)
+		assert.NoError(t, err, "Unexpected error in testcase: %q", test.testcase)
+		assert.Equal(t, test.expected, res, "Unexpected result in testcase %q", test.testcase)
 	}
 }

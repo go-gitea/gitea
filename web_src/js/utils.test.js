@@ -2,7 +2,7 @@ import {expect, test} from 'vitest';
 import {
   basename, extname, isObject, stripTags, joinPaths, parseIssueHref,
   parseUrl, translateMonth, translateDay, blobToDataURI,
-  toAbsoluteUrl,
+  toAbsoluteUrl, encodeURLEncodedBase64, decodeURLEncodedBase64,
 } from './utils.js';
 
 test('basename', () => {
@@ -131,4 +131,19 @@ test('toAbsoluteUrl', () => {
   expect(toAbsoluteUrl('/user/repo')).toEqual('http://localhost:3000/user/repo');
 
   expect(() => toAbsoluteUrl('path')).toThrowError('unsupported');
+});
+
+const uint8array = (s) => new TextEncoder().encode(s);
+test('encodeURLEncodedBase64, decodeURLEncodedBase64', () => {
+  expect(encodeURLEncodedBase64(uint8array('AA?'))).toEqual('QUE_'); // standard base64: "QUE/"
+  expect(encodeURLEncodedBase64(uint8array('AA~'))).toEqual('QUF-'); // standard base64: "QUF+"
+
+  expect(decodeURLEncodedBase64('QUE/')).toEqual(uint8array('AA?'));
+  expect(decodeURLEncodedBase64('QUF+')).toEqual(uint8array('AA~'));
+  expect(decodeURLEncodedBase64('QUE_')).toEqual(uint8array('AA?'));
+  expect(decodeURLEncodedBase64('QUF-')).toEqual(uint8array('AA~'));
+
+  expect(encodeURLEncodedBase64(uint8array('a'))).toEqual('YQ'); // standard base64: "YQ=="
+  expect(decodeURLEncodedBase64('YQ')).toEqual(uint8array('a'));
+  expect(decodeURLEncodedBase64('YQ==')).toEqual(uint8array('a'));
 });

@@ -16,6 +16,7 @@ import (
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
@@ -49,14 +50,7 @@ func (ctx *Context) RedirectToFirst(location ...string) {
 			continue
 		}
 
-		// Unfortunately browsers consider a redirect Location with preceding "//" and "/\" as meaning redirect to "http(s)://REST_OF_PATH"
-		// Therefore we should ignore these redirect locations to prevent open redirects
-		if len(loc) > 1 && loc[0] == '/' && (loc[1] == '/' || loc[1] == '\\') {
-			continue
-		}
-
-		u, err := url.Parse(loc)
-		if err != nil || ((u.Scheme != "" || u.Host != "") && !strings.HasPrefix(strings.ToLower(loc), strings.ToLower(setting.AppURL))) {
+		if httplib.IsRiskyRedirectURL(loc) {
 			continue
 		}
 
@@ -97,14 +91,14 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 }
 
 // RenderToString renders the template content to a string
-func (ctx *Context) RenderToString(name base.TplName, data map[string]interface{}) (string, error) {
+func (ctx *Context) RenderToString(name base.TplName, data map[string]any) (string, error) {
 	var buf strings.Builder
 	err := ctx.Render.HTML(&buf, http.StatusOK, string(name), data)
 	return buf.String(), err
 }
 
 // RenderWithErr used for page has form validation but need to prompt error to users.
-func (ctx *Context) RenderWithErr(msg string, tpl base.TplName, form interface{}) {
+func (ctx *Context) RenderWithErr(msg string, tpl base.TplName, form any) {
 	if form != nil {
 		middleware.AssignForm(form, ctx.Data)
 	}

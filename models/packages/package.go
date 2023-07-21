@@ -37,6 +37,7 @@ const (
 	TypeConan     Type = "conan"
 	TypeConda     Type = "conda"
 	TypeContainer Type = "container"
+	TypeCran      Type = "cran"
 	TypeDebian    Type = "debian"
 	TypeGeneric   Type = "generic"
 	TypeGo        Type = "go"
@@ -60,6 +61,7 @@ var TypeList = []Type{
 	TypeConan,
 	TypeConda,
 	TypeContainer,
+	TypeCran,
 	TypeDebian,
 	TypeGeneric,
 	TypeGo,
@@ -92,6 +94,8 @@ func (pt Type) Name() string {
 		return "Conda"
 	case TypeContainer:
 		return "Container"
+	case TypeCran:
+		return "CRAN"
 	case TypeDebian:
 		return "Debian"
 	case TypeGeneric:
@@ -139,6 +143,8 @@ func (pt Type) SVGName() string {
 		return "gitea-conda"
 	case TypeContainer:
 		return "octicon-container"
+	case TypeCran:
+		return "gitea-cran"
 	case TypeDebian:
 		return "gitea-debian"
 	case TypeGeneric:

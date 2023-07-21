@@ -3,8 +3,7 @@
 		{{.locale.Tr "repo.settings.recent_deliveries"}}
 		{{if .Permission.IsAdmin}}
 			<div class="ui right">
-				<button class="ui teal tiny button" id="test-delivery" data-tooltip-content=
-				"{{.locale.Tr "repo.settings.webhook.test_delivery_desc"}}" data-link="{{.Link}}/test" data-redirect="{{.Link}}">{{.locale.Tr "repo.settings.webhook.test_delivery"}}</button>
+				<button class="ui teal tiny button" id="test-delivery" data-tooltip-content="{{.locale.Tr "repo.settings.webhook.test_delivery_desc"}}" data-link="{{.Link}}/test" data-redirect="{{.Link}}">{{.locale.Tr "repo.settings.webhook.test_delivery"}}</button>
 			</div>
 		{{end}}
 	</h4>

@@ -27,7 +27,7 @@ import (
 
 // NewFuncMap returns functions for injecting to templates
 func NewFuncMap() template.FuncMap {
-	return map[string]interface{}{
+	return map[string]any{
 		"DumpVar": dumpVar,
 
 		// -----------------------------------------------------------------
@@ -118,9 +118,6 @@ func NewFuncMap() template.FuncMap {
 		"CustomEmojis": func() map[string]string {
 			return setting.UI.CustomEmojisMap
 		},
-		"ThemeColorMetaTag": func() string {
-			return setting.UI.ThemeColorMetaTag
-		},
 		"MetaAuthor": func() string {
 			return setting.UI.Meta.Author
 		},
@@ -129,9 +126,6 @@ func NewFuncMap() template.FuncMap {
 		},
 		"MetaKeywords": func() string {
 			return setting.UI.Meta.Keywords
-		},
-		"UseServiceWorker": func() bool {
-			return setting.UI.UseServiceWorker
 		},
 		"EnableTimetracking": func() bool {
 			return setting.Service.EnableTimetracking
@@ -148,8 +142,8 @@ func NewFuncMap() template.FuncMap {
 		"DefaultTheme": func() string {
 			return setting.UI.DefaultTheme
 		},
-		"NotificationSettings": func() map[string]interface{} {
-			return map[string]interface{}{
+		"NotificationSettings": func() map[string]any {
+			return map[string]any{
 				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
 				"TimeoutStep":           int(setting.UI.Notification.TimeoutStep / time.Millisecond),
 				"MaxTimeout":            int(setting.UI.Notification.MaxTimeout / time.Millisecond),
