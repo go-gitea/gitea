@@ -242,7 +242,7 @@ func applyConditions(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
 	applyLabelsCondition(sess, opts)
 
 	if opts.User != nil {
-		sess.And(issuePullAccessibleRepoCond("issue.repo_id", opts.User.ID, opts.Org, opts.Team, opts.IsPull.IsTrue()))
+		sess.And(issuePullAccessibleRepoCond("issue.repo_id", opts.User, opts.Org, opts.Team, opts.IsPull.IsTrue()))
 	}
 
 	return sess
@@ -291,7 +291,8 @@ func teamUnitsRepoCond(id string, userID, orgID, teamID int64, units ...unit.Typ
 }
 
 // issuePullAccessibleRepoCond userID must not be zero, this condition require join repository table
-func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organization.Organization, team *organization.Team, isPull bool) builder.Cond {
+// user should not be nil
+func issuePullAccessibleRepoCond(repoIDstr string, user *user_model.User, org *organization.Organization, team *organization.Team, isPull bool) builder.Cond {
 	cond := builder.NewCond()
 	unitType := unit.TypeIssues
 	if isPull {
@@ -299,23 +300,23 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organizati
 	}
 	if org != nil {
 		if team != nil {
-			cond = cond.And(teamUnitsRepoCond(repoIDstr, userID, org.ID, team.ID, unitType)) // special team member repos
+			cond = cond.And(teamUnitsRepoCond(repoIDstr, user.ID, org.ID, team.ID, unitType)) // special team member repos
 		} else {
 			cond = cond.And(
 				builder.Or(
-					repo_model.UserOrgUnitRepoCond(repoIDstr, userID, org.ID, unitType), // team member repos
-					repo_model.UserOrgPublicUnitRepoCond(userID, org.ID),                // user org public non-member repos, TODO: check repo has issues
+					repo_model.UserOrgUnitRepoCond(repoIDstr, user.ID, org.ID, unitType), // team member repos
+					repo_model.UserOrgPublicUnitRepoCond(user.ID, org.ID),                // user org public non-member repos, TODO: check repo has issues
 				),
 			)
 		}
 	} else {
 		cond = cond.And(
 			builder.Or(
-				repo_model.UserOwnedRepoCond(userID),                           // owned repos
-				repo_model.UserUnitAccessRepoCond(repoIDstr, userID, unitType), // user can access repo in a unit independent way
-				UserAssignedIssueCond(userID),                                  // user has been assigned accessible public repos
-				UserMentionedIssueCond(userID),                                 // user has been mentioned accessible public repos
-				UserCreateIssueCond(userID, isPull),                            // user has created issue/pr accessible public repos
+				repo_model.UserOwnedRepoCond(user.ID),                        // owned repos
+				repo_model.UserUnitAccessRepoCond(repoIDstr, user, unitType), // user can access repo in a unit independent way
+				UserAssignedIssueCond(user.ID),                               // user has been assigned accessible public repos
+				UserMentionedIssueCond(user.ID),                              // user has been mentioned accessible public repos
+				UserCreateIssueCond(user.ID, isPull),                         // user has created issue/pr accessible public repos
 			),
 		)
 	}

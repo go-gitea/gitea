@@ -210,7 +210,7 @@ func GetUserIssueStats(filterMode int, opts IssuesOptions) (*IssueStats, error) 
 	}
 
 	if opts.User != nil {
-		cond = cond.And(issuePullAccessibleRepoCond("issue.repo_id", opts.User.ID, opts.Org, opts.Team, opts.IsPull.IsTrue()))
+		cond = cond.And(issuePullAccessibleRepoCond("issue.repo_id", opts.User, opts.Org, opts.Team, opts.IsPull.IsTrue()))
 	}
 
 	sess := func(cond builder.Cond) *xorm.Session {

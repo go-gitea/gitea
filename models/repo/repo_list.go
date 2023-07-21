@@ -257,28 +257,15 @@ func UserAccessRepoCond(idStr string, userID int64) builder.Cond {
 }
 
 // UserUnitAccessRepoCond returns a condition for selecting all repositories a user has unit independent access to and can access the special unit
-func UserUnitAccessRepoCond(idStr string, userID int64, unitType unit.Type) builder.Cond {
+func UserUnitAccessRepoCond(idStr string, user *user_model.User, unitType unit.Type) builder.Cond {
 	return builder.In(idStr, builder.Select("`access`.repo_id").
 		From("`access`").
 		Join("INNER", "repository", "`repository`.id = `access`.repo_id").
-		Join("INNER", "`user`", "`user`.id = `repository`.owner_id").
-		Where(
-			builder.And(
-				builder.Eq{"`access`.user_id": userID},
-				builder.Gt{"`access`.mode": int(perm.AccessModeNone)},
-				builder.Or(
-					// if repo is an org repo, user need to have unit access permission of the team or be a collaborator of this repo
-					builder.And(
-						builder.Eq{"`user`.type": int(user_model.UserTypeOrganization)},
-						builder.Or(
-							builder.In("`access`.repo_id", userOrgTeamUnitRepoBuilder(userID, unitType)),
-							UserCollaborationRepoCond("`access`.repo_id", userID),
-						),
-					),
-					builder.Eq{"`user`.type": int(user_model.UserTypeIndividual)},
-				),
-			),
-		),
+		Where(builder.And(
+			builder.Eq{"`access`.user_id": user.ID},
+			builder.Gt{"`access`.mode": int(perm.AccessModeNone)},
+			AccessibleRepositoryCondition(user, unitType),
+		)),
 	)
 }
 
