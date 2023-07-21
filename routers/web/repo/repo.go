@@ -636,15 +636,17 @@ func GetBranchesList(ctx *context.Context) {
 			ListAll: true,
 		},
 	}
-	branchOpts.ExcludeBranchNames = []string{ctx.Repo.Repository.DefaultBranch}
 	branches, err := git_model.FindBranchNames(ctx, branchOpts)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
 	resp := &branchTagSearchResponse{}
-	// always put default branch on the top
-	branches = append(branchOpts.ExcludeBranchNames, branches...)
+	// always put default branch on the top if it exists
+	if util.SliceContains(branches, ctx.Repo.Repository.DefaultBranch) {
+		branches = util.SliceRemoveAll(branches, ctx.Repo.Repository.DefaultBranch)
+		branches = append([]string{ctx.Repo.Repository.DefaultBranch}, branches...)
+	}
 	resp.Results = branches
 	ctx.JSON(http.StatusOK, resp)
 }
