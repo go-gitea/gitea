@@ -56,8 +56,8 @@ func (i *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		repoCond,
 		builder.Or(
 			builder.If(options.Keyword != "",
-				db.BuildCaseInsensitiveLike("name", options.Keyword),
-				db.BuildCaseInsensitiveLike("content", options.Keyword),
+				db.BuildCaseInsensitiveLike("issue.name", options.Keyword),
+				db.BuildCaseInsensitiveLike("issue.content", options.Keyword),
 				builder.In("id", builder.Select("issue_id").
 					From("comment").
 					Where(builder.And(

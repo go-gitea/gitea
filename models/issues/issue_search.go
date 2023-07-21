@@ -451,17 +451,12 @@ func IssueIDs(ctx context.Context, opts *IssuesOptions, otherConds ...builder.Co
 		sess.And(cond)
 	}
 
-	total, err := sess.Count(&Issue{})
-	if err != nil {
-		return nil, 0, err
-	}
-
 	applyLimit(sess, opts)
 	applySorts(sess, opts.SortType, opts.PriorityRepoID)
 
 	var res []int64
-	if err := sess.Select("`issue`.id").Table("issue").
-		Find(&res); err != nil {
+	total, err := sess.Select("`issue`.id").Table(&Issue{}).FindAndCount(&res)
+	if err != nil {
 		return nil, 0, err
 	}
 
