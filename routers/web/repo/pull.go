@@ -729,6 +729,11 @@ func ViewPullCommits(ctx *context.Context) {
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.Doer.ID)
 
+	// For PR commits page
+	PrepareBranchList(ctx)
+	if ctx.Written() {
+		return
+	}
 	getBranchData(ctx, issue)
 	ctx.HTML(http.StatusOK, tplPullCommits)
 }
@@ -893,6 +898,11 @@ func ViewPullFiles(ctx *context.Context) {
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
 
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	// For files changed page
+	PrepareBranchList(ctx)
+	if ctx.Written() {
+		return
+	}
 	upload.AddUploadContext(ctx, "comment")
 
 	ctx.HTML(http.StatusOK, tplPullFiles)
