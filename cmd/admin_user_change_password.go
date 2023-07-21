@@ -12,23 +12,25 @@ import (
 	pwd "code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
-var microcmdUserChangePassword = cli.Command{
+var microcmdUserChangePassword = &cli.Command{
 	Name:   "change-password",
 	Usage:  "Change a user's password",
 	Action: runChangePassword,
 	Flags: []cli.Flag{
-		cli.StringFlag{
-			Name:  "username,u",
-			Value: "",
-			Usage: "The user to change password for",
+		&cli.StringFlag{
+			Name:    "username",
+			Aliases: []string{"u"},
+			Value:   "",
+			Usage:   "The user to change password for",
 		},
-		cli.StringFlag{
-			Name:  "password,p",
-			Value: "",
-			Usage: "New password to set for user",
+		&cli.StringFlag{
+			Name:    "password",
+			Aliases: []string{"p"},
+			Value:   "",
+			Usage:   "New password to set for user",
 		},
 	},
 }

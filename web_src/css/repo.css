@@ -3359,3 +3359,7 @@ tbody.commit-list {
   font-size: 18px;
   margin-left: 4px;
 }
+
+#cherry-pick-modal .scrolling.menu {
+  max-height: 200px;
+}
