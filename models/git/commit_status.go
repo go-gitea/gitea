@@ -218,18 +218,6 @@ type CommitStatusOptions struct {
 	SortType string
 }
 
-// compatibleCommitStatus compatible with old version status
-// and convert old version status to new version status
-func compatibleCommitStatus(statuses []*CommitStatus) {
-	for i := range statuses {
-		if statuses[i].State == "warning" {
-			statuses[i].State = api.CommitStatusFailure
-		} else if statuses[i].State == "running" {
-			statuses[i].State = api.CommitStatusPending
-		}
-	}
-}
-
 // GetCommitStatuses returns all statuses for a given commit.
 func GetCommitStatuses(ctx context.Context, repo *repo_model.Repository, sha string, opts *CommitStatusOptions) ([]*CommitStatus, int64, error) {
 	if opts.Page <= 0 {
@@ -251,16 +239,13 @@ func GetCommitStatuses(ctx context.Context, repo *repo_model.Repository, sha str
 	findSession := listCommitStatusesStatement(ctx, repo, sha, opts)
 	findSession = db.SetSessionPagination(findSession, opts)
 	sortCommitStatusesSession(findSession, opts.SortType)
-	err = findSession.Find(&statuses)
-	// TODO: compatible with old version status,it will be removed in the future
-	compatibleCommitStatus(statuses)
-	return statuses, maxResults, err
+	return statuses, maxResults, findSession.Find(&statuses)
 }
 
 func listCommitStatusesStatement(ctx context.Context, repo *repo_model.Repository, sha string, opts *CommitStatusOptions) *xorm.Session {
 	sess := db.GetEngine(ctx).Where("repo_id = ?", repo.ID).And("sha = ?", sha)
 	switch opts.State {
-	case "pending", "success", "error", "failure":
+	case "pending", "success", "error", "failure", "warning":
 		sess.And("state = ?", opts.State)
 	}
 	return sess
@@ -309,10 +294,7 @@ func GetLatestCommitStatus(ctx context.Context, repoID int64, sha string, listOp
 	if len(ids) == 0 {
 		return statuses, count, nil
 	}
-	err = db.GetEngine(ctx).In("id", ids).Find(&statuses)
-	// TODO: compatible with old version status,it will be removed in the future
-	compatibleCommitStatus(statuses)
-	return statuses, count, err
+	return statuses, count, db.GetEngine(ctx).In("id", ids).Find(&statuses)
 }
 
 // GetLatestCommitStatusForPairs returns all statuses with a unique context for a given list of repo-sha pairs
@@ -351,8 +333,6 @@ func GetLatestCommitStatusForPairs(ctx context.Context, repoIDsToLatestCommitSHA
 	statuses := make([]*CommitStatus, 0, len(ids))
 	if len(ids) > 0 {
 		err = db.GetEngine(ctx).In("id", ids).Find(&statuses)
-		// TODO: compatible with old version status,it will be removed in the future
-		compatibleCommitStatus(statuses)
 		if err != nil {
 			return nil, err
 		}
@@ -400,8 +380,6 @@ func GetLatestCommitStatusForRepoCommitIDs(ctx context.Context, repoID int64, co
 	statuses := make([]*CommitStatus, 0, len(ids))
 	if len(ids) > 0 {
 		err = db.GetEngine(ctx).In("id", ids).Find(&statuses)
-		// TODO: compatible with old version status,it will be removed in the future
-		compatibleCommitStatus(statuses)
 		if err != nil {
 			return nil, err
 		}
