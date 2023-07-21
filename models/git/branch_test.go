@@ -207,8 +207,8 @@ func TestFindRecentlyPushedNewBranches(t *testing.T) {
 	assert.Equal(t, "user-fork-new-commit", branches[0].Name)
 
 	// test new branch from private org with code permisstion repo
-	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
-	branches, err = git_model.FindRecentlyPushedNewBranches(db.DefaultContext, repo, user4, 1689838760)
+	user18 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 18})
+	branches, err = git_model.FindRecentlyPushedNewBranches(db.DefaultContext, repo, user18, 1689838760)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(branches))
 	assert.Equal(t, "private-org-fork-new-commit", branches[0].Name)
