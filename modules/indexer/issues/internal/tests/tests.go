@@ -84,7 +84,7 @@ var cases = []*testIndexerCase{
 		Name:          "default",
 		SearchOptions: &internal.SearchOptions{},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, 50, len(result.Hits)) // the default limit is 50
+			assert.Equal(t, len(data), len(result.Hits))
 			assert.Equal(t, len(data), int(result.Total))
 		},
 	},
@@ -97,14 +97,14 @@ var cases = []*testIndexerCase{
 		ExpectedTotal: 0,
 	},
 	{
-		Name: "all",
+		Name: "with limit",
 		SearchOptions: &internal.SearchOptions{
 			Paginator: &db.ListOptions{
-				ListAll: true,
+				PageSize: 5,
 			},
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Equal(t, len(data), len(result.Hits)) // the default limit is 50
+			assert.Equal(t, 5, len(result.Hits))
 			assert.Equal(t, len(data), int(result.Total))
 		},
 	},
