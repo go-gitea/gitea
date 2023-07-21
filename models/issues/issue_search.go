@@ -99,7 +99,7 @@ func applySorts(sess *xorm.Session, sortType string, priorityRepoID int64) {
 }
 
 func applyLimit(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
-	if opts.Paginator.IsListAll() {
+	if opts.Paginator == nil || opts.Paginator.IsListAll() {
 		return sess
 	}
 
