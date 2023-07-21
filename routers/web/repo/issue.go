@@ -2720,7 +2720,7 @@ func ListIssues(ctx *context.Context) {
 	if before != 0 {
 		searchOpt.UpdatedBeforeUnix = &before
 	}
-	if len(labelIDs) == 0 && labelIDs[0] == 0 {
+	if len(labelIDs) == 1 && labelIDs[0] == 0 {
 		searchOpt.NoLabelOnly = true
 	} else {
 		for _, labelID := range labelIDs {
