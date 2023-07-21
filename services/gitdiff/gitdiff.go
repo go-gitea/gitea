@@ -168,7 +168,7 @@ func (d *DiffLine) GetExpandDirection() DiffLineExpandDirection {
 }
 
 func getDiffLineSectionInfo(treePath, line string, lastLeftIdx, lastRightIdx int) *DiffLineSectionInfo {
-	leftLine, leftHunk, rightLine, righHunk := git.ParseDiffHunkString(line)
+	leftLine, leftHunk, rightLine, rightHunk := git.ParseDiffHunkString(line)
 
 	return &DiffLineSectionInfo{
 		Path:          treePath,
@@ -177,7 +177,7 @@ func getDiffLineSectionInfo(treePath, line string, lastLeftIdx, lastRightIdx int
 		LeftIdx:       leftLine,
 		RightIdx:      rightLine,
 		LeftHunkSize:  leftHunk,
-		RightHunkSize: righHunk,
+		RightHunkSize: rightHunk,
 	}
 }
 

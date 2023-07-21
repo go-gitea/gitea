@@ -57,19 +57,19 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		}
 
 		baseBranchName := opts.RefFullNames[i].ForBranchName()
-		curentTopicBranch := ""
+		currentTopicBranch := ""
 		if !gitRepo.IsBranchExist(baseBranchName) {
 			// try match refs/for/<target-branch>/<topic-branch>
 			for p, v := range baseBranchName {
 				if v == '/' && gitRepo.IsBranchExist(baseBranchName[:p]) && p != len(baseBranchName)-1 {
-					curentTopicBranch = baseBranchName[p+1:]
+					currentTopicBranch = baseBranchName[p+1:]
 					baseBranchName = baseBranchName[:p]
 					break
 				}
 			}
 		}
 
-		if len(topicBranch) == 0 && len(curentTopicBranch) == 0 {
+		if len(topicBranch) == 0 && len(currentTopicBranch) == 0 {
 			results = append(results, private.HookProcReceiveRefResult{
 				OriginalRef: opts.RefFullNames[i],
 				OldOID:      opts.OldCommitIDs[i],
@@ -82,17 +82,17 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		var headBranch string
 		userName := strings.ToLower(opts.UserName)
 
-		if len(curentTopicBranch) == 0 {
-			curentTopicBranch = topicBranch
+		if len(currentTopicBranch) == 0 {
+			currentTopicBranch = topicBranch
 		}
 
 		// because different user maybe want to use same topic,
 		// So it's better to make sure the topic branch name
 		// has user name prefix
-		if !strings.HasPrefix(curentTopicBranch, userName+"/") {
-			headBranch = userName + "/" + curentTopicBranch
+		if !strings.HasPrefix(currentTopicBranch, userName+"/") {
+			headBranch = userName + "/" + currentTopicBranch
 		} else {
-			headBranch = curentTopicBranch
+			headBranch = currentTopicBranch
 		}
 
 		pr, err := issues_model.GetUnmergedPullRequest(ctx, repo.ID, repo.ID, headBranch, baseBranchName, issues_model.PullRequestFlowAGit)
