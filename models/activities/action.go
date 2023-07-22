@@ -394,7 +394,7 @@ func (a *Action) GetIssueInfos() []string {
 // with the action.
 func (a *Action) GetIssueTitle() string {
 	index, _ := strconv.ParseInt(a.GetIssueInfos()[0], 10, 64)
-	issue, err := issues_model.GetIssueByIndex(a.RepoID, index)
+	issue, err := issues_model.GetIssueByIndex(db.DefaultContext, a.RepoID, index)
 	if err != nil {
 		log.Error("GetIssueByIndex: %v", err)
 		return "500 when get issue"
@@ -406,7 +406,7 @@ func (a *Action) GetIssueTitle() string {
 // this action.
 func (a *Action) GetIssueContent() string {
 	index, _ := strconv.ParseInt(a.GetIssueInfos()[0], 10, 64)
-	issue, err := issues_model.GetIssueByIndex(a.RepoID, index)
+	issue, err := issues_model.GetIssueByIndex(db.DefaultContext, a.RepoID, index)
 	if err != nil {
 		log.Error("GetIssueByIndex: %v", err)
 		return "500 when get issue"

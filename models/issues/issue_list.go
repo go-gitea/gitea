@@ -526,7 +526,7 @@ func (issues IssueList) loadTotalTrackedTimes(ctx context.Context) (err error) {
 }
 
 // loadAttributes loads all attributes, expect for attachments and comments
-func (issues IssueList) loadAttributes(ctx context.Context) error {
+func (issues IssueList) LoadAttributes(ctx context.Context) error {
 	if _, err := issues.LoadRepositories(ctx); err != nil {
 		return fmt.Errorf("issue.loadAttributes: LoadRepositories: %w", err)
 	}
@@ -560,12 +560,6 @@ func (issues IssueList) loadAttributes(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-// LoadAttributes loads attributes of the issues, except for attachments and
-// comments
-func (issues IssueList) LoadAttributes() error {
-	return issues.loadAttributes(db.DefaultContext)
 }
 
 // LoadComments loads comments
