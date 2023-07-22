@@ -17,8 +17,6 @@ menu:
 
 # Email 设置
 
-**目录**
-
 Gitea 具有邮件功能，用于发送事务性邮件（例如注册确认邮件）。它可以配置为使用 Sendmail（或兼容的 MTA，例如 Postfix 和 msmtp）或直接使用 SMTP 服务器。
 
 ## 使用 Sendmail

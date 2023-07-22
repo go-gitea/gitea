@@ -17,8 +17,6 @@ menu:
 
 从Gitea **1.19**版本开始，Gitea Actions成为了内置的CI/CD解决方案。
 
-**目录**
-
 ## 名称
 
 Gitea Actions与[GitHub Actions](https://github.com/features/actions)相似且兼容，它的名称也受到了它的启发。

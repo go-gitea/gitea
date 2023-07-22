@@ -17,8 +17,6 @@ menu:
 
 为您的用户或组织发布 [Composer](https://getcomposer.org/) 软件包。
 
-**目录**
-
 ## 要求
 
 要使用 Composer 软件包注册表，您可以使用 [Composer](https://getcomposer.org/download/) 消费，并使用类似 `curl` 的 HTTP 上传客户端发布软件包。

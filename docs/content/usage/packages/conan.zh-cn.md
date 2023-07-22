@@ -17,8 +17,6 @@ menu:
 
 为您的用户或组织发布 [Conan](https://conan.io/) 软件包。
 
-**目录**
-
 ## 要求
 
 要使用 [conan](https://conan.io/downloads.html) 软件包注册表，您需要使用 conan 命令行工具来消费和发布软件包。
