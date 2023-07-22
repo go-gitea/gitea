@@ -56,7 +56,11 @@ is set under the "Configuration" tab on the site administration page.
 
 To make Gitea serve custom public files (like pages and images), use the folder
 `$GITEA_CUSTOM/public/` as the webroot. Symbolic links will be followed.
-At the moment, only files in the `public/assets/` folder are served.
+At the moment, only the following files are served:
+
+- `public/robots.txt`
+- files in the `public/.well-known/` folder
+- files in the `public/assets/` folder
 
 For example, a file `image.png` stored in `$GITEA_CUSTOM/public/assets/`, can be accessed with
 the url `http://gitea.domain.tld/assets/image.png`.
