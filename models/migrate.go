@@ -115,7 +115,6 @@ func UpdateMilestones(ms ...*issues_model.Milestone) (err error) {
 		}
 	}
 
-	// TODO: is this correct?
 	if _, err = sess.ID(ms[0].RepoID).Update(&repo_model.Repository{
 		NumMilestones:       len(ms),
 		NumOpenMilestones:   openCount,
@@ -197,7 +196,7 @@ func UpsertIssues(issues ...*issues_model.Issue) error {
 
 func updateIssue(ctx context.Context, issue *issues_model.Issue) error {
 	sess := db.GetEngine(ctx)
-	if _, err := sess.NoAutoTime().ID(issue.ID).Update(issue); err != nil {
+	if _, err := sess.NoAutoTime().ID(issue.ID).AllCols().Update(issue); err != nil {
 		return err
 	}
 	issueLabels := resolveIssueLabels(issue.ID, issue.Labels)
@@ -224,7 +223,7 @@ func updateIssue(ctx context.Context, issue *issues_model.Issue) error {
 				return err
 			}
 			if exists {
-				if _, err := sess.ID(reaction.ID).Update(&reaction); err != nil {
+				if _, err := sess.ID(reaction.ID).AllCols().Update(&reaction); err != nil {
 					return err
 				}
 			} else {
@@ -329,7 +328,7 @@ func UpsertIssueComments(comments []*issues_model.Comment) error {
 		} else {
 			if _, err := sess.NoAutoTime().Where(
 				"original_id = ?", comment.IssueID, comment.OriginalID,
-			).Update(comment); err != nil {
+			).AllCols().Update(comment); err != nil {
 				return err
 			}
 		}
@@ -353,7 +352,7 @@ func UpsertIssueComments(comments []*issues_model.Comment) error {
 					if _, err := sess.Where(
 						"issue_id = ? AND comment_id = ? AND type = ?",
 						reaction.IssueID, reaction.CommentID, reaction.Type,
-					).Update(&reaction); err != nil {
+					).AllCols().Update(&reaction); err != nil {
 						return err
 					}
 				} else {
@@ -414,7 +413,7 @@ func UpsertPullRequests(prs ...*issues_model.PullRequest) error {
 				return err
 			}
 		} else {
-			if _, err := sess.NoAutoTime().ID(pr.ID).Update(pr); err != nil {
+			if _, err := sess.NoAutoTime().ID(pr.ID).AllCols().Update(pr); err != nil {
 				return err
 			}
 		}
@@ -480,7 +479,9 @@ func UpsertReleases(rels ...*repo_model.Release) error {
 				}
 			}
 		} else {
-			if _, err := sess.NoAutoTime().Where("repo_id = ? AND tag_name = ?", rel.RepoID, rel.TagName).Update(rel); err != nil {
+			if _, err := sess.NoAutoTime().
+				Where("repo_id = ? AND tag_name = ?", rel.RepoID, rel.TagName).
+				AllCols().Update(rel); err != nil {
 				return err
 			}
 
