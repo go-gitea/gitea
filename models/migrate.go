@@ -328,7 +328,7 @@ func UpsertIssueComments(comments []*issues_model.Comment) error {
 			}
 		} else {
 			if _, err := sess.NoAutoTime().Where(
-				"issue_id = ? AND original_id = ?", comment.IssueID, comment.OriginalID,
+				"original_id = ?", comment.IssueID, comment.OriginalID,
 			).Update(comment); err != nil {
 				return err
 			}
