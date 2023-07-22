@@ -27,7 +27,7 @@ const defaultSize = 16
 
 // Init discovers SVGs and populates the `SVGs` variable
 func Init() error {
-	files, err := public.AssetFS().ListFiles("img/svg")
+	files, err := public.AssetFS().ListFiles("assets/img/svg")
 	if err != nil {
 		return err
 	}
@@ -38,7 +38,7 @@ func Init() error {
 		if path.Ext(file) != ".svg" {
 			continue
 		}
-		bs, err := public.AssetFS().ReadFile("img/svg", file)
+		bs, err := public.AssetFS().ReadFile("assets/img/svg", file)
 		if err != nil {
 			log.Error("Failed to read SVG file %s: %v", file, err)
 		} else {

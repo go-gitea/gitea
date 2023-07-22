@@ -50,12 +50,12 @@ require (
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/go-swagger/go-swagger v0.30.5
 	github.com/go-testfixtures/testfixtures/v3 v3.9.0
-	github.com/go-webauthn/webauthn v0.8.4
+	github.com/go-webauthn/webauthn v0.8.6
 	github.com/gobwas/glob v0.2.3
 	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f
 	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
 	github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
-	github.com/golang-jwt/jwt/v4 v4.5.0
+	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/google/go-github/v53 v53.2.0
 	github.com/google/pprof v0.0.0-20230705174524-200ffdc848b8
 	github.com/google/uuid v1.3.0
@@ -77,14 +77,12 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.17
 	github.com/meilisearch/meilisearch-go v0.25.0
 	github.com/mholt/archiver/v3 v3.5.1
-	github.com/microcosm-cc/bluemonday v1.0.24
+	github.com/microcosm-cc/bluemonday v1.0.25
 	github.com/minio/minio-go/v7 v7.0.60
 	github.com/minio/sha256-simd v1.0.1
 	github.com/msteinert/pam v1.1.0
 	github.com/nektos/act v0.2.48
-	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/niklasfasching/go-org v1.7.0
-	github.com/oliamb/cutter v0.2.2
 	github.com/olivere/elastic/v7 v7.0.32
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0-rc4
@@ -101,7 +99,7 @@ require (
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tstranex/u2f v1.0.0
 	github.com/ulikunitz/xz v0.5.11
-	github.com/urfave/cli v1.22.14
+	github.com/urfave/cli/v2 v2.25.7
 	github.com/xanzy/go-gitlab v0.86.0
 	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/yohcop/openid-go v1.0.1
@@ -197,6 +195,7 @@ require (
 	github.com/go-openapi/validate v0.22.1 // indirect
 	github.com/go-webauthn/x v0.1.4 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
+	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/golang/geo v0.0.0-20230421003525-6adc56603217 // indirect
@@ -280,6 +279,7 @@ require (
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
+	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/zeebo/blake3 v0.2.3 // indirect
 	go.etcd.io/bbolt v1.3.7 // indirect
 	go.mongodb.org/mongo-driver v1.12.0 // indirect

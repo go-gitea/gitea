@@ -241,15 +241,16 @@ func CreatePost(ctx *context.Context) {
 	var err error
 	if form.RepoTemplate > 0 {
 		opts := repo_module.GenerateRepoOptions{
-			Name:        form.RepoName,
-			Description: form.Description,
-			Private:     form.Private,
-			GitContent:  form.GitContent,
-			Topics:      form.Topics,
-			GitHooks:    form.GitHooks,
-			Webhooks:    form.Webhooks,
-			Avatar:      form.Avatar,
-			IssueLabels: form.Labels,
+			Name:            form.RepoName,
+			Description:     form.Description,
+			Private:         form.Private,
+			GitContent:      form.GitContent,
+			Topics:          form.Topics,
+			GitHooks:        form.GitHooks,
+			Webhooks:        form.Webhooks,
+			Avatar:          form.Avatar,
+			IssueLabels:     form.Labels,
+			ProtectedBranch: form.ProtectedBranch,
 		}
 
 		if !opts.IsValid() {
@@ -620,4 +621,65 @@ func SearchRepo(ctx *context.Context) {
 		OK:   true,
 		Data: results,
 	})
+}
+
+type branchTagSearchResponse struct {
+	Results []string `json:"results"`
+}
+
+// GetBranchesList get branches for current repo'
+func GetBranchesList(ctx *context.Context) {
+	branchOpts := git_model.FindBranchOptions{
+		RepoID:          ctx.Repo.Repository.ID,
+		IsDeletedBranch: util.OptionalBoolFalse,
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+	}
+	branches, err := git_model.FindBranchNames(ctx, branchOpts)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+	resp := &branchTagSearchResponse{}
+	// always put default branch on the top if it exists
+	if util.SliceContains(branches, ctx.Repo.Repository.DefaultBranch) {
+		branches = util.SliceRemoveAll(branches, ctx.Repo.Repository.DefaultBranch)
+		branches = append([]string{ctx.Repo.Repository.DefaultBranch}, branches...)
+	}
+	resp.Results = branches
+	ctx.JSON(http.StatusOK, resp)
+}
+
+// GetTagList get tag list for current repo
+func GetTagList(ctx *context.Context) {
+	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+	resp := &branchTagSearchResponse{}
+	resp.Results = tags
+	ctx.JSON(http.StatusOK, resp)
+}
+
+func PrepareBranchList(ctx *context.Context) {
+	branchOpts := git_model.FindBranchOptions{
+		RepoID:          ctx.Repo.Repository.ID,
+		IsDeletedBranch: util.OptionalBoolFalse,
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+	}
+	brs, err := git_model.FindBranchNames(ctx, branchOpts)
+	if err != nil {
+		ctx.ServerError("GetBranches", err)
+		return
+	}
+	// always put default branch on the top if it exists
+	if util.SliceContains(brs, ctx.Repo.Repository.DefaultBranch) {
+		brs = util.SliceRemoveAll(brs, ctx.Repo.Repository.DefaultBranch)
+		brs = append([]string{ctx.Repo.Repository.DefaultBranch}, brs...)
+	}
+	ctx.Data["Branches"] = brs
 }
