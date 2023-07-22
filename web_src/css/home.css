@@ -74,8 +74,7 @@
 }
 
 .page-footer .ui.dropdown.language .menu {
-  height: 500px;
-  max-height: calc(100vh - 60px);
+  max-height: min(500px, calc(100vh - 60px));
   overflow-y: auto;
   margin-bottom: 10px;
 }
