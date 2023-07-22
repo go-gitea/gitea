@@ -574,6 +574,7 @@ func (g *GithubDownloaderV3) getAllCommentsSince(page, perPage int, since *time.
 			Created:     comment.GetCreatedAt().Time,
 			Updated:     comment.GetUpdatedAt().Time,
 			Reactions:   reactions,
+			OriginalID:  comment.GetID(),
 		})
 	}
 
