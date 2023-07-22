@@ -374,8 +374,8 @@ func UpsertIssueComments(comments []*issues_model.Comment) error {
 }
 
 // InsertPullRequests inserted pull requests
-func InsertPullRequests(prs ...*issues_model.PullRequest) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func InsertPullRequests(ctx context.Context, prs ...*issues_model.PullRequest) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}

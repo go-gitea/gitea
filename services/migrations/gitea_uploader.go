@@ -580,16 +580,17 @@ func (g *GiteaLocalUploader) preparePullRequests(prs ...*base.PullRequest) ([]*i
 
 // CreatePullRequests creates pull requests
 func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error {
+	ctx := db.DefaultContext
 	gprs, err := g.preparePullRequests(prs...)
 	if err != nil {
 		return err
 	}
-	if err := models.InsertPullRequests(gprs...); err != nil {
+	if err := models.InsertPullRequests(ctx, gprs...); err != nil {
 		return err
 	}
 	for _, pr := range gprs {
 		g.issues[pr.Issue.Index] = pr.Issue
-		pull.AddToTaskQueue(pr)
+		pull.AddToTaskQueue(ctx, pr)
 	}
 	return nil
 }
@@ -1059,6 +1060,7 @@ func (g *GiteaLocalUploader) PatchComments(comments ...*base.Comment) error {
 
 func (g *GiteaLocalUploader) PatchPullRequests(prs ...*base.PullRequest) error {
 	gprs, err := g.preparePullRequests(prs...)
+	ctx := db.DefaultContext
 	if err != nil {
 		return err
 	}
@@ -1067,7 +1069,7 @@ func (g *GiteaLocalUploader) PatchPullRequests(prs ...*base.PullRequest) error {
 	}
 	for _, pr := range gprs {
 		g.issues[pr.Issue.Index] = pr.Issue
-		pull.AddToTaskQueue(pr)
+		pull.AddToTaskQueue(ctx, pr)
 	}
 	return nil
 }
