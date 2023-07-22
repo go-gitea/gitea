@@ -18,7 +18,7 @@ menu:
 # Secrets
 
 Secrets allow you to store sensitive information in your user, organization or repository.
-Secrets are available on Gitea 1.19+ and are only visible in 1.20+ when ACTIONS are enabled 
+Secrets are available on Gitea 1.19+ and are only visible in 1.20+ when ACTIONS are enabled.
 
 # Naming your secrets
 
