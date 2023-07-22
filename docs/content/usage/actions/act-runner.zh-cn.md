@@ -17,7 +17,6 @@ menu:
 
 本页面将详细介绍[Act Runner](https://gitea.com/gitea/act_runner)，这是Gitea Actions的Runner。
 
-**目录**
 
 
 ## 要求

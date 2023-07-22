@@ -21,7 +21,6 @@ menu:
 
 其次你需要[安装Node.js](https://nodejs.org/zh-cn/download/)，Node.js 和 npm 将用于构建 Gitea 前端。
 
-**目录**
 
 
 ## 下载

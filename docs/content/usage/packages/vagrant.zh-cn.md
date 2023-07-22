@@ -17,7 +17,6 @@ menu:
 
 为您的用户或组织发布 [Vagrant](https://www.vagrantup.com/) 软件包。
 
-**目录**
 
 
 ## 要求

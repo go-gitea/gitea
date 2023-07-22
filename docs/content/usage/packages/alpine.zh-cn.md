@@ -16,7 +16,6 @@ menu:
 
 在您的用户或组织中发布 [Alpine](https://pkgs.alpinelinux.org/) 软件包。
 
-**目录**
 
 
 ## 要求

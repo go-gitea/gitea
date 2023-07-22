@@ -17,7 +17,6 @@ menu:
 
 # 邮件模板
 
-**目录**
 
 
 为了定制特定操作的电子邮件主题和内容，可以使用模板来自定义 Gitea。这些功能的模板位于 [`custom` 目录](https://docs.gitea.io/en-us/customizing-gitea/) 下。

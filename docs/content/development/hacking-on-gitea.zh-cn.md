@@ -17,7 +17,6 @@ menu:
 
 # Hacking on Gitea
 
-**目录**
 
 
 ## 快速入门

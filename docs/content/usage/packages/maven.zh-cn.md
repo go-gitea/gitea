@@ -17,7 +17,6 @@ menu:
 
 为您的用户或组织发布 [Maven](https://maven.apache.org) 软件包。
 
-**目录**
 
 
 ## 要求

@@ -16,7 +16,6 @@ menu:
 
 将 [R](https://www.r-project.org/) 软件包发布到您的用户或组织的类似 [CRAN](https://cran.r-project.org/) 的注册表。
 
-**目录**
 
 
 ## 要求

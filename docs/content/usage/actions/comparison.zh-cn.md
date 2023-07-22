@@ -17,7 +17,6 @@ menu:
 
 尽管Gitea Actions旨在与GitHub Actions兼容，但它们之间存在一些差异。
 
-**目录**
 
 
 ## 额外功能

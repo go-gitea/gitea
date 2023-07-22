@@ -17,7 +17,6 @@ menu:
 
 为您的用户或组织发布 [Cargo](https://doc.rust-lang.org/stable/cargo/) 软件包。
 
-**目录**
 
 
 ## 要求

@@ -17,7 +17,6 @@ menu:
 
 本页面将指导您使用Gitea Actions的过程。
 
-**目录**
 
 
 ## 设置Gitea

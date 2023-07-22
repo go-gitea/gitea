@@ -17,7 +17,6 @@ menu:
 
 为您的用户或组织发布 [Chef](https://chef.io/) cookbooks。
 
-**目录**
 
 
 ## 要求

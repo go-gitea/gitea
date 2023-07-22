@@ -17,7 +17,6 @@ menu:
 
 为您的用户或组织发布 [Conda](https://docs.conda.io/en/latest/) 软件包。
 
-**目录**
 
 
 ## 要求

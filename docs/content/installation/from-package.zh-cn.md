@@ -15,7 +15,6 @@ menu:
     identifier: "install-from-package"
 ---
 
-**目录**
 
 
 # 官方包管理器

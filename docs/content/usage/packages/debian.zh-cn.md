@@ -16,7 +16,6 @@ menu:
 
 为您的用户或组织发布 [Debian](https://www.debian.org/distrib/packages) 软件包。
 
-**目录**
 
 
 ## 要求

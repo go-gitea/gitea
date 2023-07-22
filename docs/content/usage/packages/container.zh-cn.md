@@ -18,7 +18,6 @@ menu:
 为您的用户或组织发布符合  [Open Container Initiative(OCI)](https://opencontainers.org/) 规范的镜像。
 该容器注册表遵循 OCI 规范，并支持所有兼容的镜像类型，如 [Docker](https://www.docker.com/) 和 [Helm Charts](https://helm.sh/)。
 
-**目录**
 
 
 ## 目录

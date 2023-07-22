@@ -17,7 +17,6 @@ menu:
 
 发布适用于您的用户或组织的 [NuGet](https://www.nuget.org/) 软件包。软件包注册表支持 V2 和 V3 API 协议，并且您还可以使用 [NuGet 符号软件包](https://docs.microsoft.com/en-us/nuget/create-packages/symbol-packages-snupkg)。
 
-**目录**
 
 
 ## 要求
