@@ -15,8 +15,6 @@ menu:
 
 # Reverse Proxies
 
-
-
 ## Nginx
 
 If you want Nginx to serve your Gitea instance, add the following `server` section to the `http` section of `nginx.conf`:

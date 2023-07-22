@@ -17,9 +17,6 @@ menu:
 
 为您的用户或组织发布 [PyPI](https://pypi.org/) 软件包。
 
-**目录**
-
-
 ## 要求
 
 要使用 PyPI 软件包注册表，您需要使用 [pip](https://pypi.org/project/pip/) 工具来消费和使用 [twine](https://pypi.org/project/twine/) 工具来发布软件包。

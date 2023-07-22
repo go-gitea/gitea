@@ -15,7 +15,6 @@ menu:
 
 # Authentication
 
-
 ## LDAP (Lightweight Directory Access Protocol)
 
 Both the LDAP via BindDN and the simple auth LDAP share the following fields:

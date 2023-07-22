@@ -15,8 +15,6 @@ menu:
 
 # Guidelines for Refactoring
 
-
-
 ## Background
 
 Since the first line of code was written at Feb 12, 2014, Gitea has grown to be a large project.

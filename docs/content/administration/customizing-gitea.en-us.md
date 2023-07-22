@@ -46,8 +46,6 @@ is set under the "Configuration" tab on the site administration page.
 
 **Note:** Gitea must perform a full restart to see configuration changes.
 
-
-
 ## Serving custom public files
 
 To make Gitea serve custom public files (like pages and images), use the folder

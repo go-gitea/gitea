@@ -17,8 +17,6 @@ menu:
 
 Publish [Maven](https://maven.apache.org) packages for your user or organization.
 
-
-
 ## Requirements
 
 To work with the Maven package registry, you can use [Maven](https://maven.apache.org/install.html) or [Gradle](https://gradle.org/install/).

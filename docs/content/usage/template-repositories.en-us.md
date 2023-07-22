@@ -15,8 +15,6 @@ menu:
 
 # Template Repositories
 
-
-
 Gitea `1.11.0` and above includes template repositories, and one feature implemented with them is auto-expansion of specific variables within your template files.
 
 To tell Gitea which files to expand, you must include a `template` file inside the `.gitea` directory of the template repository.

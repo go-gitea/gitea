@@ -17,8 +17,6 @@ menu:
 
 This document describes the storage of the package registry and how it can be managed.
 
-
-
 ## Deduplication
 
 The package registry has a build-in deduplication of uploaded blobs.

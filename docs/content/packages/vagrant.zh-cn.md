@@ -17,9 +17,6 @@ menu:
 
 为您的用户或组织发布 [Vagrant](https://www.vagrantup.com/) 软件包。
 
-**目录**
-
-
 ## 要求
 
 要使用 Vagrant 软件包注册表，您需要安装 [Vagrant](https://www.vagrantup.com/downloads) 并使用类似于 `curl` 的工具进行 HTTP 请求。

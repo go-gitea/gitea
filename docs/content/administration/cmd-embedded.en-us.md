@@ -15,8 +15,6 @@ menu:
 
 # Embedded data extraction tool
 
-
-
 Gitea's executable contains all the resources required to run: templates, images, style-sheets
 and translations. Any of them can be overridden by placing a replacement in a matching path
 inside the `custom` directory (see [Customizing Gitea](administration/customizing-gitea.md)).

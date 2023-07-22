@@ -17,7 +17,6 @@ menu:
 
 **目錄**
 
-
 為了幫助您判斷 Gitea 是否適合您的需求，這裡列出了它和其它自託管 Git 服務的比較。
 
 請注意我們不會經常檢查其它產品的功能異動，所以這份清單可能過期，如果您在下方表格中找到需要更新的資料，請在 [GitHub 的 Issue](https://github.com/go-gitea/gitea/issues) 回報。

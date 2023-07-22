@@ -15,8 +15,6 @@ menu:
 
 # OAuth2 provider
 
-
-
 Gitea supports acting as an OAuth2 provider to allow third party applications to access its resources with the user's consent. This feature is available since release 1.8.0.
 
 ## Endpoints

@@ -15,8 +15,6 @@ menu:
 
 # Command Line
 
-
-
 ## Usage
 
 `gitea [global options] command [command or global options] [arguments...]`

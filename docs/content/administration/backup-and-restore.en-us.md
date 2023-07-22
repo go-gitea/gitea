@@ -18,8 +18,6 @@ menu:
 Gitea currently has a `dump` command that will save the installation to a ZIP file. This
 file can be unpacked and used to restore an instance.
 
-
-
 ## Backup Consistency
 
 To ensure the consistency of the Gitea instance, it must be shutdown during backup.

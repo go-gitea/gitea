@@ -18,8 +18,6 @@ menu:
 Publish [Open Container Initiative](https://opencontainers.org/) compliant images for your user or organization.
 The container registry follows the OCI specs and supports all compatible images like [Docker](https://www.docker.com/) and [Helm Charts](https://helm.sh/).
 
-
-
 ## Requirements
 
 To work with the Container registry, you can use the tools for your specific image type.

@@ -47,7 +47,6 @@ Gitea 附帶了一個運行狀況檢查端點 `/api/healthz`，你可以像這�
 ```
 HTTP/1.1 200 OK
 
-
 {
   "status": "pass",
   "description": "Gitea: Git with a cup of tea",

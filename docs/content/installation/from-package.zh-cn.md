@@ -15,9 +15,6 @@ menu:
 
 # 使用包管理器安装
 
-**目录**
-
-
 ## Alpine Linux
 
 Gitea 已经包含在 Alpine Linux 的[社区存储库](https://pkgs.alpinelinux.org/packages?name=gitea&branch=edge)中，版本与 Gitea 官方保持同步。

@@ -17,8 +17,6 @@ menu:
 
 Publish [Conan](https://conan.io/) packages for your user or organization.
 
-
-
 ## Requirements
 
 To work with the Conan package registry, you need to use the [conan](https://conan.io/downloads.html) command line tool to consume and publish packages.

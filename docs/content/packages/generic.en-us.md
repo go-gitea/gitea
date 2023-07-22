@@ -17,8 +17,6 @@ menu:
 
 Publish generic files, like release binaries or other output, for your user or organization.
 
-
-
 ## Authenticate to the package registry
 
 To authenticate to the Package Registry, you need to provide [custom HTTP headers or use HTTP Basic authentication](development/api-usage.md#authentication).

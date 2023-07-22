@@ -35,8 +35,6 @@ executable path, you will have to manage this yourself.
 obtain the same version as our continuous integration, see the advice given in
 [Hacking on Gitea](development/hacking-on-gitea.md)
 
-
-
 ## Download
 
 First, we must retrieve the source code. Since, the advent of go modules, the

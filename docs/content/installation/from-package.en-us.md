@@ -15,8 +15,6 @@ menu:
 
 # Installation from package
 
-
-
 ## Alpine Linux
 
 Alpine Linux has [Gitea](https://pkgs.alpinelinux.org/packages?name=gitea&branch=edge) in its community repository which follows the latest stable version.

@@ -19,8 +19,6 @@ This page contains some common questions and answers.
 
 For more help resources, check all [Support Options](help/seek-help.md).
 
-
-
 ## Difference between 1.x and 1.x.x downloads
 
 Version 1.7.x will be used for this example.

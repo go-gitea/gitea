@@ -19,9 +19,6 @@ menu:
 
 其次你需要[安装Node.js](https://nodejs.org/zh-cn/download/)，Node.js 和 npm 将用于构建 Gitea 前端。
 
-**目录**
-
-
 ## 下载
 
 你需要获取Gitea的源码，最方便的方式是使用 `git` 命令。执行以下命令：

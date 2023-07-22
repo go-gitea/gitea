@@ -15,8 +15,6 @@ menu:
 
 # GPG Commit Signatures
 
-
-
 Gitea will verify GPG commit signatures in the provided tree by
 checking if the commits are signed by a key within the Gitea database,
 or if the commit matches the default key for Git.

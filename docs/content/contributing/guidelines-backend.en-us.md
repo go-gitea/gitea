@@ -15,8 +15,6 @@ menu:
 
 # Guidelines for Backend Development
 
-
-
 ## Background
 
 Gitea uses Golang as the backend programming language. It uses many third-party packages and also write some itself.

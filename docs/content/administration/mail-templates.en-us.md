@@ -15,8 +15,6 @@ menu:
 
 # Mail templates
 
-
-
 To craft the e-mail subject and contents for certain operations, Gitea can be customized by using templates. The templates
 for these functions are located under the [`custom` directory](https://docs.gitea.io/en-us/customizing-gitea/).
 Gitea has an internal template that serves as default in case there's no custom alternative.

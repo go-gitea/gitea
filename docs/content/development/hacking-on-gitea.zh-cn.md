@@ -15,9 +15,6 @@ menu:
 
 # Hacking on Gitea
 
-**目录**
-
-
 ## 快速入门
 
 要获得快速工作的开发环境，您可以使用 Gitpod。

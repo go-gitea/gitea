@@ -17,8 +17,6 @@ menu:
 
 Publish [Chef](https://chef.io/) cookbooks for your user or organization.
 
-
-
 ## Requirements
 
 To work with the Chef package registry, you have to use [`knife`](https://docs.chef.io/workstation/knife/).

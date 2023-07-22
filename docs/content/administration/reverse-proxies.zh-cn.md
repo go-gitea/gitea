@@ -15,9 +15,6 @@ menu:
 
 # 反向代理
 
-**目录**
-
-
 ## 使用 Nginx 作为反向代理服务
 
 如果您想使用 Nginx 作为 Gitea 的反向代理服务，您可以参照以下 `nginx.conf` 配置中 `server` 的 `http` 部分：

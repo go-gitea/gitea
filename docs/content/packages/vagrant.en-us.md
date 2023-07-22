@@ -17,8 +17,6 @@ menu:
 
 Publish [Vagrant](https://www.vagrantup.com/) packages for your user or organization.
 
-
-
 ## Requirements
 
 To work with the Vagrant package registry, you need [Vagrant](https://www.vagrantup.com/downloads) and a tool to make HTTP requests like `curl`.

@@ -17,9 +17,6 @@ menu:
 
 # 前端开发指南
 
-**目录**
-
-
 ## 背景
 
 Gitea 在其前端中使用[Fomantic-UI](https://fomantic-ui.com/introduction/getting-started.html)（基于[jQuery](https://api.jquery.com)）和 [Vue3](https://vuejs.org/)。

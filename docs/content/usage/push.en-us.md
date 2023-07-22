@@ -13,8 +13,6 @@ menu:
     identifier: "push"
 ---
 
-
-
 There are some additional features when pushing commits to Gitea server.
 
 # Open PR through Push

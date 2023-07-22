@@ -15,8 +15,6 @@ menu:
 
 # Automatically Linked References in Issues, Pull Requests and Commit Messages
 
-
-
 When an issue, pull request or comment is posted, the text description is parsed
 in search for references. These references will be shown as links in the Issue View
 and, in some cases, produce certain _actions_.

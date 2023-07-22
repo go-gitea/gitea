@@ -58,7 +58,6 @@ Gitea 附带了一个运行状况检查接口 `/api/healthz`，你可以像这�
 ```
 HTTP/1.1 200 OK
 
-
 {
   "status": "pass",
   "description": "Gitea: Git with a cup of tea",
