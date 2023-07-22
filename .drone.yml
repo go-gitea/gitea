@@ -897,7 +897,8 @@ steps:
   - name: build-docs
     image: golang:1.20
     commands:
-      - make docs
+      - cd docs
+      - bash scripts/trans-copy.sh
 
 ---
 kind: pipeline
