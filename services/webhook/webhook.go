@@ -111,7 +111,11 @@ func handler(items ...int64) []int64 {
 	for _, taskID := range items {
 		task, err := webhook_model.GetHookTaskByID(ctx, taskID)
 		if err != nil {
-			log.Warn("GetHookTaskByID[%d] failed: %v", taskID, err)
+			if webhook_model.IsErrHookTaskNotExist(err) {
+				log.Warn("GetHookTaskByID[%d] warn: %v", taskID, err)
+			} else {
+				log.Error("GetHookTaskByID[%d] failed: %v", taskID, err)
+			}
 			continue
 		}
 
