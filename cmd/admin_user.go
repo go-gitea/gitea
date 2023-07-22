@@ -4,13 +4,13 @@
 package cmd
 
 import (
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
-var subcmdUser = cli.Command{
+var subcmdUser = &cli.Command{
 	Name:  "user",
 	Usage: "Modify users",
-	Subcommands: []cli.Command{
+	Subcommands: []*cli.Command{
 		microcmdUserCreate,
 		microcmdUserList,
 		microcmdUserChangePassword,

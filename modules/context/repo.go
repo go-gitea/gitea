@@ -660,13 +660,6 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 		return cancel
 	}
 
-	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
-	if err != nil {
-		ctx.ServerError("GetTagNamesByRepoID", err)
-		return cancel
-	}
-	ctx.Data["Tags"] = tags
-
 	branchOpts := git_model.FindBranchOptions{
 		RepoID:          ctx.Repo.Repository.ID,
 		IsDeletedBranch: util.OptionalBoolFalse,
@@ -680,7 +673,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 		return cancel
 	}
 
-	// non empty repo should have at least 1 branch, so this repository's branches haven't been synced yet
+	// non-empty repo should have at least 1 branch, so this repository's branches haven't been synced yet
 	if branchesTotal == 0 { // fallback to do a sync immediately
 		branchesTotal, err = repo_module.SyncRepoBranches(ctx, ctx.Repo.Repository.ID, 0)
 		if err != nil {
@@ -689,24 +682,19 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 		}
 	}
 
-	// FIXME: use paganation and async loading
-	branchOpts.ExcludeBranchNames = []string{ctx.Repo.Repository.DefaultBranch}
-	brs, err := git_model.FindBranchNames(ctx, branchOpts)
-	if err != nil {
-		ctx.ServerError("GetBranches", err)
-		return cancel
-	}
-	// always put default branch on the top
-	ctx.Data["Branches"] = append(branchOpts.ExcludeBranchNames, brs...)
 	ctx.Data["BranchesCount"] = branchesTotal
 
-	// If not branch selected, try default one.
-	// If default branch doesn't exist, fall back to some other branch.
+	// If no branch is set in the request URL, try to guess a default one.
 	if len(ctx.Repo.BranchName) == 0 {
 		if len(ctx.Repo.Repository.DefaultBranch) > 0 && gitRepo.IsBranchExist(ctx.Repo.Repository.DefaultBranch) {
 			ctx.Repo.BranchName = ctx.Repo.Repository.DefaultBranch
-		} else if len(brs) > 0 {
-			ctx.Repo.BranchName = brs[0]
+		} else {
+			ctx.Repo.BranchName, _ = gitRepo.GetDefaultBranch()
+			if ctx.Repo.BranchName == "" {
+				// If it still can't get a default branch, fall back to default branch from setting.
+				// Something might be wrong. Either site admin should fix the repo sync or Gitea should fix a potential bug.
+				ctx.Repo.BranchName = setting.Repository.DefaultBranch
+			}
 		}
 		ctx.Repo.RefName = ctx.Repo.BranchName
 	}
