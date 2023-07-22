@@ -4,6 +4,34 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.20.1](https://github.com/go-gitea/gitea/releases/tag/1.20.1) - 2023-07-22
+
+* SECURITY
+  * Disallow dangerous URL schemes (#25960) (#25964)
+* ENHANCEMENTS
+  * Show the mismatched ROOT_URL warning on the sign-in page if OAuth2 is enabled (#25947) (#25972)
+  * Make pending commit status yellow again (#25935) (#25968)
+* BUGFIXES
+  * Fix version in rpm repodata/primary.xml.gz (#26009) (#26048)
+  * Fix env config parsing for "GITEA____APP_NAME" (#26001) (#26013)
+  * ParseScope with owner/repo always sets owner to zero (#25987) (#25989)
+  * Fix SSPI auth panic (#25955) (#25969)
+  * Avoid creating directories when loading config (#25944) (#25957)
+  * Make environment-to-ini work with INSTALL_LOCK=true (#25926) (#25937)
+  * Ignore `runs-on` with expressions when warning no matched runners (#25917) (#25933)
+  * Avoid opening/closing PRs which are already merged (#25883) (#25903)
+* DOCS
+  * RPM Registry: Show zypper commands for SUSE based distros as well (#25981) (#26020)
+  * Correctly refer to dev tags as nightly in the docker docs (#26004) (#26019)
+  * Update path related documents (#25417) (#25982)
+* MISC
+  * Adding remaining enum for migration repo model type. (#26021) (#26034)
+  * Fix the route for pull-request's authors (#26016) (#26018)
+  * Fix commit status color on dashboard repolist (#25993) (#25998)
+  * Avoid hard-coding height in language dropdown menu (#25986) (#25997)
+  * Add shutting down notice (#25920) (#25922)
+  * Fix incorrect milestone count when provide a keyword (#25880) (#25904)
+
 ## [1.20.0](https://github.com/go-gitea/gitea/releases/tag/v1.20.0) - 2023-07-16
 
 * BREAKING

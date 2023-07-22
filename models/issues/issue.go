@@ -354,7 +354,7 @@ func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 		return err
 	}
 
-	if err = issue.Comments.loadAttributes(ctx); err != nil {
+	if err = issue.Comments.LoadAttributes(ctx); err != nil {
 		return err
 	}
 	if issue.IsTimetrackerEnabled(ctx) {
@@ -502,7 +502,7 @@ func (issue *Issue) GetLastEventLabelFake() string {
 }
 
 // GetIssueByIndex returns raw issue without loading attributes by index in a repository.
-func GetIssueByIndex(repoID, index int64) (*Issue, error) {
+func GetIssueByIndex(ctx context.Context, repoID, index int64) (*Issue, error) {
 	if index < 1 {
 		return nil, ErrIssueNotExist{}
 	}
@@ -510,7 +510,7 @@ func GetIssueByIndex(repoID, index int64) (*Issue, error) {
 		RepoID: repoID,
 		Index:  index,
 	}
-	has, err := db.GetEngine(db.DefaultContext).Get(issue)
+	has, err := db.GetEngine(ctx).Get(issue)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -520,12 +520,12 @@ func GetIssueByIndex(repoID, index int64) (*Issue, error) {
 }
 
 // GetIssueWithAttrsByIndex returns issue by index in a repository.
-func GetIssueWithAttrsByIndex(repoID, index int64) (*Issue, error) {
-	issue, err := GetIssueByIndex(repoID, index)
+func GetIssueWithAttrsByIndex(ctx context.Context, repoID, index int64) (*Issue, error) {
+	issue, err := GetIssueByIndex(ctx, repoID, index)
 	if err != nil {
 		return nil, err
 	}
-	return issue, issue.LoadAttributes(db.DefaultContext)
+	return issue, issue.LoadAttributes(ctx)
 }
 
 // GetIssueByID returns an issue by given ID.
@@ -846,7 +846,7 @@ func GetPinnedIssues(ctx context.Context, repoID int64, isPull bool) ([]*Issue, 
 		return nil, err
 	}
 
-	err = IssueList(issues).LoadAttributes()
+	err = IssueList(issues).LoadAttributes(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -64,7 +64,7 @@ func ListIssueComments(ctx *context.APIContext) {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
 	}
-	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetRawIssueByIndex", err)
 		return
@@ -161,7 +161,7 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
 	}
-	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetRawIssueByIndex", err)
 		return
@@ -351,7 +351,7 @@ func CreateIssueComment(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	form := web.GetForm(ctx).(*api.CreateIssueCommentOption)
-	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		return
