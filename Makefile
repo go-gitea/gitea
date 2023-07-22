@@ -346,7 +346,7 @@ lint: lint-frontend lint-backend
 
 .PHONY: lint-frontend
 lint-frontend: node_modules
-	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js docs/assets/js tests/e2e
+	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js tests/e2e
 	npx stylelint --color --max-warnings=0 web_src/css
 	npx spectral lint -q -F hint $(SWAGGER_SPEC)
 	npx markdownlint docs *.md
@@ -817,14 +817,11 @@ release-sources: | $(DIST_DIRS)
 
 .PHONY: release-docs
 release-docs: | $(DIST_DIRS) docs
-	tar -czf $(DIST)/release/gitea-docs-$(VERSION).tar.gz -C ./docs/public .
+	tar -czf $(DIST)/release/gitea-docs-$(VERSION).tar.gz -C ./docs .
 
 .PHONY: docs
 docs:
-	@hash hugo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		curl -sL https://github.com/gohugoio/hugo/releases/download/v$(HUGO_VERSION)/hugo_$(HUGO_VERSION)_Linux-64bit.tar.gz | tar zxf - -C /tmp && mv /tmp/hugo /usr/bin/hugo && chmod +x /usr/bin/hugo; \
-	fi
-	cd docs; make trans-copy clean build-offline;
+	cd docs; bash scripts/trans-copy.sh;
 
 .PHONY: deps
 deps: deps-frontend deps-backend
