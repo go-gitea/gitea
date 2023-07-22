@@ -248,12 +248,13 @@ func notify(ctx context.Context, input *notifyInput) error {
 			log.Error("InsertRun: %v", err)
 			continue
 		}
-		if jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: run.ID}); err != nil {
-			log.Error("FindRunJobs: %v", err)
-		} else {
-			CreateCommitStatus(ctx, jobs...)
-		}
 
+		alljobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: run.ID})
+		if err != nil {
+			log.Error("FindRunJobs: %v", err)
+			continue
+		}
+		CreateCommitStatus(ctx, alljobs...)
 	}
 	return nil
 }
