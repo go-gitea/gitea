@@ -596,6 +596,7 @@ func (g *GithubDownloaderV3) convertGithubReview(r *github.PullRequestReview) *b
 		Content:      r.GetBody(),
 		CreatedAt:    r.GetSubmittedAt().Time,
 		State:        r.GetState(),
+		OriginalID:   r.GetID(),
 	}
 }
 
@@ -629,17 +630,18 @@ func (g *GithubDownloaderV3) convertGithubReviewComments(cs []*github.PullReques
 		}
 
 		rcs = append(rcs, &base.ReviewComment{
-			ID:        c.GetID(),
-			InReplyTo: c.GetInReplyTo(),
-			Content:   c.GetBody(),
-			TreePath:  c.GetPath(),
-			DiffHunk:  c.GetDiffHunk(),
-			Position:  c.GetPosition(),
-			CommitID:  c.GetCommitID(),
-			PosterID:  c.GetUser().GetID(),
-			Reactions: reactions,
-			CreatedAt: c.GetCreatedAt().Time,
-			UpdatedAt: c.GetUpdatedAt().Time,
+			ID:         c.GetID(),
+			InReplyTo:  c.GetInReplyTo(),
+			Content:    c.GetBody(),
+			TreePath:   c.GetPath(),
+			DiffHunk:   c.GetDiffHunk(),
+			Position:   c.GetPosition(),
+			CommitID:   c.GetCommitID(),
+			PosterID:   c.GetUser().GetID(),
+			Reactions:  reactions,
+			CreatedAt:  c.GetCreatedAt().Time,
+			UpdatedAt:  c.GetUpdatedAt().Time,
+			OriginalID: c.GetID(),
 		})
 	}
 	return rcs, nil

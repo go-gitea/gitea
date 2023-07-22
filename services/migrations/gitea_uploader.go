@@ -883,6 +883,7 @@ func (g *GiteaLocalUploader) prepareReviews(reviews ...*base.Review) ([]*issues_
 			Official:    review.Official,
 			CreatedUnix: timeutil.TimeStamp(review.CreatedAt.Unix()),
 			UpdatedUnix: timeutil.TimeStamp(review.CreatedAt.Unix()),
+			OriginalID:  review.OriginalID,
 		}
 
 		if err := g.remapUser(review, &cm); err != nil {
@@ -902,7 +903,7 @@ func (g *GiteaLocalUploader) prepareReviews(reviews ...*base.Review) ([]*issues_
 			g.prCache[issue.ID] = pr
 		}
 		if pr.MergeBase == "" {
-			// No mergebase -> no basis for any patches
+			// No merge base -> no basis for any patches
 			log.Warn("PR #%d in %s/%s: does not have a merge base, all review comments will be ignored", pr.Index, g.repoOwner, g.repoName)
 			continue
 		}

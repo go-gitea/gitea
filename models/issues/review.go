@@ -111,6 +111,7 @@ type Review struct {
 	ReviewerTeam     *organization.Team `xorm:"-"`
 	OriginalAuthor   string
 	OriginalAuthorID int64
+	OriginalID       int64
 	Issue            *Issue `xorm:"-"`
 	IssueID          int64  `xorm:"index"`
 	Content          string `xorm:"TEXT"`
@@ -557,7 +558,7 @@ func UpsertReviews(reviews []*Review) error {
 	sess := db.GetEngine(ctx)
 
 	for _, review := range reviews {
-		exists, err := sess.Where("issue_id = ? AND created_unix", review.IssueID, review.CreatedUnix).Exist(&Review{})
+		exists, err := sess.Where("original_id = ?", review.OriginalID).Exist(&Review{})
 		if err != nil {
 			return err
 		}
@@ -581,12 +582,12 @@ func UpsertReviews(reviews []*Review) error {
 				}
 			}
 		} else {
-			if _, err = sess.NoAutoTime().Where("issue_id = ? AND created_unix = ?", review.IssueID, review.CreatedUnix).Update(review); err != nil {
+			if _, err = sess.NoAutoTime().Where("original_id = ?", review.OriginalID).Update(review); err != nil {
 				return err
 			}
 
 			// Get id of the review
-			if err = sess.NoAutoTime().Where("issue_id = ? AND created_unix = ?", review.IssueID, review.CreatedUnix).Find(review); err != nil {
+			if err = sess.NoAutoTime().Where("original_id = ?", review.OriginalID).Find(review); err != nil {
 				return err
 			}
 
@@ -601,7 +602,7 @@ func UpsertReviews(reviews []*Review) error {
 					return err
 				}
 			} else {
-				if _, err := sess.NoAutoTime().Where("review_id = ? AND created_unix = ?", review.ID, comment.CreatedUnix).Update(comment); err != nil {
+				if _, err := sess.NoAutoTime().Where("original_id = ?", comment.OriginalID).Update(comment); err != nil {
 					return err
 				}
 			}
@@ -622,7 +623,7 @@ func UpsertReviews(reviews []*Review) error {
 							return err
 						}
 					} else {
-						if _, err := sess.NoAutoTime().Where("review_id = ? AND created_unix = ?", review.ID, comment.CreatedUnix).Update(comment); err != nil {
+						if _, err := sess.NoAutoTime().Where("original_id = ?", comment.OriginalID).Update(comment); err != nil {
 							return err
 						}
 					}
@@ -635,7 +636,7 @@ func UpsertReviews(reviews []*Review) error {
 }
 
 func existsCommentByReviewIDAndCreatedUnix(sess db.Engine, comment *Comment) (bool, error) {
-	return sess.Where("review_id = ? AND created_unix = ?", comment.ReviewID, comment.CreatedUnix).Exist(&Comment{})
+	return sess.Where("original_id = ?", comment.OriginalID).Exist(&Comment{})
 }
 
 func generateCommentFromReview(review *Review) *Comment {
@@ -649,6 +650,7 @@ func generateCommentFromReview(review *Review) *Comment {
 		ReviewID:         review.ID,
 		CreatedUnix:      review.CreatedUnix,
 		UpdatedUnix:      review.UpdatedUnix,
+		OriginalID:       review.OriginalID,
 	}
 }
 

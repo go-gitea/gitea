@@ -366,7 +366,7 @@ func UpsertIssueComments(comments []*issues_model.Comment) error {
 	}
 
 	for issueID := range issueIDs {
-		if _, err := db.Exec(ctx, "UPDATE issue set num_comments = (SELECT count(*) FROM comment WHERE issue_id = ? AND `type`=?) WHERE id = ?",
+		if _, err := db.Exec(ctx, "UPDATE issue SET num_comments = (SELECT count(*) FROM comment WHERE issue_id = ? AND `type`=?) WHERE id = ?",
 			issueID, issues_model.CommentTypeComment, issueID); err != nil {
 			return err
 		}
