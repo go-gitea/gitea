@@ -113,6 +113,8 @@ func TestIsAudio(t *testing.T) {
 	assert.True(t, DetectContentType([]byte("ID3Toy\000")).IsAudio())
 	assert.True(t, DetectContentType([]byte("ID3Toy\n====\t* hi 🌞, ...")).IsText())          // test ID3 tag for plain text
 	assert.True(t, DetectContentType([]byte("ID3Toy\n====\t* hi 🌞, ..."+"🌛"[0:2])).IsText()) // test ID3 tag with incomplete UTF8 char
+
+	assert.True(t, DetectContentType([]byte("OggS\x00\x02\x00\x00\x00\x00\x00\x00\x00\x00\x7e\x46\x00\x00\x00\x00\x00\x00\x1f\xf6\xb4\xfc\x01\x1e\x01\x76\x6f\x72")).IsAudio()) // application/ogg
 }
 
 func TestDetectContentTypeFromReader(t *testing.T) {

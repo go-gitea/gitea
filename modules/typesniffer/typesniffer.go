@@ -62,7 +62,7 @@ func (ct SniffedType) IsVideo() bool {
 
 // IsAudio detects if data is an video format
 func (ct SniffedType) IsAudio() bool {
-	return strings.Contains(ct.contentType, "audio/")
+	return strings.Contains(ct.contentType, "audio/") || strings.Contains(ct.contentType, "application/ogg")
 }
 
 // IsRepresentableAsText returns true if file content can be represented as
