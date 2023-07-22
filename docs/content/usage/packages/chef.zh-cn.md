@@ -19,7 +19,6 @@ menu:
 
 **目录**
 
-
 ## 要求
 
 要使用 Chef 软件包注册表，您需要使用 [`knife`](https://docs.chef.io/workstation/knife/).

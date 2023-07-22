@@ -19,7 +19,6 @@ menu:
 
 **目录**
 
-
 Gitea 的可执行文件包含了运行所需的所有资源：模板、图片、样式表和翻译文件。你可以通过在 `custom` 目录下的相应路径中放置替换文件来覆盖其中的任何资源（详见 [自定义 Gitea 配置](administration/customizing-gitea.md)）。
 
 要获取嵌入资源的副本以进行编辑，可以使用 CLI 中的 `embedded` 命令，通过操作系统的 shell 执行。

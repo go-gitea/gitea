@@ -19,7 +19,6 @@ menu:
 
 **目录**
 
-
 ## 要求
 
 要使用 npm 包注册表，您需要安装 [Node.js](https://nodejs.org/en/download/)  以及与之配套的软件包管理器，例如 [Yarn](https://classic.yarnpkg.com/en/docs/install) 或 [npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm/) 本身。

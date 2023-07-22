@@ -21,7 +21,6 @@ menu:
 
 **目录**
 
-
 ## 模板介绍
 
 Gitea 支持两种格式的模板：Markdown 和 YAML。

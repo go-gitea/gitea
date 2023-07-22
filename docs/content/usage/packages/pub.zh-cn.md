@@ -19,7 +19,6 @@ menu:
 
 **目录**
 
-
 ## 要求
 
 要使用Pub软件包注册表，您需要使用 [dart](https://dart.dev/tools/dart-tool) 和/或 [flutter](https://docs.flutter.dev/reference/flutter-cli). 工具。

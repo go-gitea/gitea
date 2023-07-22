@@ -17,8 +17,6 @@ menu:
 
 # API Usage
 
-
-
 ## Enabling/configuring API access
 
 By default, `ENABLE_SWAGGER` is true, and

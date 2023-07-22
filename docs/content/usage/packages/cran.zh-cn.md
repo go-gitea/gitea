@@ -18,7 +18,6 @@ menu:
 
 **目录**
 
-
 ## 要求
 
 要使用CRAN软件包注册表，您需要安装 [R](https://cran.r-project.org/)。

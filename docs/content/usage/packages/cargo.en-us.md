@@ -17,8 +17,6 @@ menu:
 
 Publish [Cargo](https://doc.rust-lang.org/stable/cargo/) packages for your user or organization.
 
-
-
 ## Requirements
 
 To work with the Cargo package registry, you need [Rust and Cargo](https://www.rust-lang.org/tools/install).

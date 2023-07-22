@@ -17,8 +17,6 @@ menu:
 
 # Merge Message templates
 
-
-
 ## File names
 
 Possible file names for PR default merge message templates:

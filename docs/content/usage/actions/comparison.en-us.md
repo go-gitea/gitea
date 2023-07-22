@@ -17,8 +17,6 @@ menu:
 
 Even though Gitea Actions is designed to be compatible with GitHub Actions, there are some differences between them.
 
-
-
 ## Additional features
 
 ### Absolute action URLs

@@ -15,8 +15,6 @@ menu:
     identifier: "install-from-package"
 ---
 
-
-
 # Official packages
 
 ## macOS

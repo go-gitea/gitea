@@ -16,8 +16,6 @@ menu:
 
 Publish [Alpine](https://pkgs.alpinelinux.org/) packages for your user or organization.
 
-
-
 ## Requirements
 
 To work with the Alpine registry, you need to use a HTTP client like `curl` to upload and a package manager like `apk` to consume packages.

@@ -17,8 +17,6 @@ menu:
 
 Starting with Gitea **1.19**, Gitea Actions are available as a built-in CI/CD solution.
 
-
-
 ## Name
 
 It is similar and compatible to [GitHub Actions](https://github.com/features/actions), and its name is inspired by it too.

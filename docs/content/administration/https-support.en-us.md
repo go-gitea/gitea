@@ -17,8 +17,6 @@ menu:
 
 # HTTPS setup to encrypt connections to Gitea
 
-
-
 ## Using the built-in server
 
 Before you enable HTTPS, make sure that you have valid SSL/TLS certificates.

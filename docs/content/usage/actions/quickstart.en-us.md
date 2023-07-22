@@ -17,8 +17,6 @@ menu:
 
 This page will guide you through the process of using Gitea Actions.
 
-
-
 ## Set up Gitea
 
 First of all, you need a Gitea instance.

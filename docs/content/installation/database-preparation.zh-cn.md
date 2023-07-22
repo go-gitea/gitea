@@ -25,7 +25,6 @@ menu:
 
 **目录**
 
-
 ## MySQL
 
 1. 对于远程数据库设置，您需要让 MySQL 监听您的 IP 地址。编辑数据库实例上的 `/etc/mysql/my.cnf` 文件中的 `bind-address` 选项为：

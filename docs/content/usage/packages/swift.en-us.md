@@ -17,8 +17,6 @@ menu:
 
 Publish [Swift](https://www.swift.org/) packages for your user or organization.
 
-
-
 ## Requirements
 
 To work with the Swift package registry, you need to use [swift](https://www.swift.org/getting-started/) to consume and a HTTP client (like `curl`) to publish packages.

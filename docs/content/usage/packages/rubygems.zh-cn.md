@@ -19,7 +19,6 @@ menu:
 
 **目录**
 
-
 ## 要求
 
 要使用RubyGems软件包注册表，您需要使用 [gem](https://guides.rubygems.org/command-reference/) 命令行工具来消费和发布软件包。

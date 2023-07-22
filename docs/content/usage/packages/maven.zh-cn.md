@@ -19,7 +19,6 @@ menu:
 
 **目录**
 
-
 ## 要求
 
 要使用 Maven 软件包注册表，您可以使用 [Maven](https://maven.apache.org/install.html) 或 [Gradle](https://gradle.org/install/)。

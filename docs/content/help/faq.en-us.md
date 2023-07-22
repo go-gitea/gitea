@@ -21,8 +21,6 @@ This page contains some common questions and answers.
 
 For more help resources, check all [Support Options](help/support.md).
 
-
-
 ## Difference between 1.x and 1.x.x downloads, how can I get latest stable release with bug fixes?
 
 Version 1.20.x will be used for this example.

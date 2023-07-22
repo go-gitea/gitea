@@ -17,8 +17,6 @@ menu:
 
 Gitea Actions has multiple components. This document describes them individually.
 
-
-
 ## Act
 
 The [nektos/act](https://github.com/nektos/act) project is an excellent tool that allows you to run your GitHub Actions locally.

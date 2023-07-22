@@ -19,7 +19,6 @@ menu:
 
 **目录**
 
-
 ## 名称
 
 Gitea Actions与[GitHub Actions](https://github.com/features/actions)相似且兼容，它的名称也受到了它的启发。

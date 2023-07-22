@@ -20,8 +20,6 @@ menu:
 All downloads come with SQLite, MySQL and PostgreSQL support, and are built with
 embedded assets. This can be different from Gogs.
 
-
-
 ## Download
 
 You can find the file matching your platform from the [downloads page](https://dl.gitea.com/gitea/) after navigating to the version you want to download.

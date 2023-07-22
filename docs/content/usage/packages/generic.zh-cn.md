@@ -19,7 +19,6 @@ menu:
 
 **目录**
 
-
 ## 身份验证软件包注册表
 
 要身份验证软件包注册表，您需要提供[自定义 HTTP 头或使用 HTTP 基本身份验证](development/api-usage.md#通过-api-认证)。

@@ -16,8 +16,6 @@ menu:
 
 Publish [RPM](https://rpm.org/) packages for your user or organization.
 
-
-
 ## Requirements
 
 To work with the RPM registry, you need to use a package manager like `yum`, `dnf` or `zypper` to consume packages.

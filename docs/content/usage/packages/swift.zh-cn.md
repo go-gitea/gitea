@@ -19,7 +19,6 @@ menu:
 
 **目录**
 
-
 ## 要求
 
 要使用 Swift 软件包注册表，您需要使用 [swift](https://www.swift.org/getting-started/) 消费软件包，并使用 HTTP 客户端（如 `curl`）发布软件包。

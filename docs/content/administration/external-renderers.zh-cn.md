@@ -19,7 +19,6 @@ menu:
 
 **目录**
 
-
 Gitea 通过外部二进制文件支持自定义文件渲染（例如 Jupyter notebooks、asciidoc 等），只需要进行以下步骤：
 
 - 安装外部二进制文件

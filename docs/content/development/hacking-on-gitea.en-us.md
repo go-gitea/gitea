@@ -17,8 +17,6 @@ menu:
 
 # Hacking on Gitea
 
-
-
 ## Quickstart
 
 To get a quick working development environment you could use Gitpod.

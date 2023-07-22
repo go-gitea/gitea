@@ -19,7 +19,6 @@ Gitea Actions由多个组件组成。本文档将对它们进行逐个描述。
 
 **目录**
 
-
 ## Act
 
 [nektos/act](https://github.com/nektos/act) 项目是一个优秀的工具，允许你在本地运行GitHub Actions。

@@ -17,8 +17,6 @@ menu:
 
 This page contains some common questions and answers about Gitea Actions.
 
-
-
 ## Why is Actions not enabled by default?
 
 We know it's annoying to enable Actions for the whole instance and each repository one by one, but not everyone likes or needs this feature.

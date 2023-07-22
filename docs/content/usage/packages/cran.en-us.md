@@ -16,8 +16,6 @@ menu:
 
 Publish [R](https://www.r-project.org/) packages to a [CRAN](https://cran.r-project.org/)-like registry for your user or organization.
 
-
-
 ## Requirements
 
 To work with the CRAN package registry, you need to install [R](https://cran.r-project.org/).

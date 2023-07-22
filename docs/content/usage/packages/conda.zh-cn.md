@@ -19,7 +19,6 @@ menu:
 
 **目录**
 
-
 ## 要求
 
 要使用 Conda 软件包注册表，您需要使用 [conda](https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html) 命令行工具。

@@ -25,8 +25,6 @@ The logging configuration of Gitea mainly consists of 3 types of components:
 
 There is a fully functional log output by default, so it is not necessary to define one.
 
-
-
 ## Collecting Logs for Help
 
 To collect logs for help and issue report, see [Support Options](help/support.md).

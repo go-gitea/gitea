@@ -19,7 +19,6 @@ menu:
 
 **目录**
 
-
 ## 要求
 
 要使用 NuGet 软件包注册表，您可以使用命令行界面工具，以及各种集成开发环境（IDE）中的 NuGet 功能，如 Visual Studio。有关 NuGet 客户端的更多信息，请参[阅官方文档](https://docs.microsoft.com/en-us/nuget/install-nuget-client-tools)。
