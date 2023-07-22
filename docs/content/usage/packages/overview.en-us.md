@@ -17,8 +17,6 @@ menu:
 
 Starting with Gitea **1.17**, the Package Registry can be used as a public or private registry for common package managers.
 
-
-
 ## Supported package managers
 
 The following package managers are currently supported:

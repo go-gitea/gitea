@@ -17,8 +17,6 @@ menu:
 
 # Environment variables
 
-
-
 This is an inventory of Gitea environment variables. They change Gitea behaviour.
 
 Initialize them before Gitea command to be effective, for example:

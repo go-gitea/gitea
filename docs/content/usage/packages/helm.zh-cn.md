@@ -17,8 +17,6 @@ menu:
 
 为您的用户或组织发布 [Helm](https://helm.sh/) charts。
 
-
-
 ## 要求
 
 要使用 Helm Chart 注册表，可以使用诸如 `curl` 或 [`helm cm-push`](https://github.com/chartmuseum/helm-push/) 插件之类的简单HTTP客户端。

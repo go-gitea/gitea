@@ -17,8 +17,6 @@ menu:
 
 # Upgrade from Gogs
 
-
-
 Gogs, version 0.9.146 and older, can be easily migrated to Gitea.
 
 There are some basic steps to follow. On a Linux system run as the Gogs user:

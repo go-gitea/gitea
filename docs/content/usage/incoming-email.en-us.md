@@ -19,8 +19,6 @@ menu:
 
 Gitea supports the execution of several actions through incoming mails. This page describes how to set this up.
 
-
-
 ## Requirements
 
 Handling incoming email messages requires an IMAP-enabled email account.

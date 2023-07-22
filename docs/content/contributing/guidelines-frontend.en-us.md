@@ -17,8 +17,6 @@ menu:
 
 # Guidelines for Frontend Development
 
-
-
 ## Background
 
 Gitea uses [Fomantic-UI](https://fomantic-ui.com/introduction/getting-started.html) (based on [jQuery](https://api.jquery.com)) and [Vue3](https://vuejs.org/) for its frontend.

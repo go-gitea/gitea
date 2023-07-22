@@ -15,8 +15,6 @@ menu:
     identifier: "install-from-package"
 ---
 
-
-
 # 官方包管理器
 
 ## macOS

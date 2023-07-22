@@ -16,8 +16,6 @@ menu:
 
 Publish [Debian](https://www.debian.org/distrib/packages) packages for your user or organization.
 
-
-
 ## Requirements
 
 To work with the Debian registry, you need to use a HTTP client like `curl` to upload and a package manager like `apt` to consume packages.

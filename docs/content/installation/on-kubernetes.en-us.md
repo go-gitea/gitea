@@ -49,7 +49,6 @@ a successful health check response will respond with http code `200`, here's exa
 ```
 HTTP/1.1 200 OK
 
-
 {
   "status": "pass",
   "description": "Gitea: Git with a cup of tea",

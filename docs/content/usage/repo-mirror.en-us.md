@@ -19,8 +19,6 @@ menu:
 
 Repository mirroring allows for the mirroring of repositories to and from external sources. You can use it to mirror branches, tags, and commits between repositories.
 
-
-
 ## Use cases
 
 The following are some possible use cases for repository mirroring:

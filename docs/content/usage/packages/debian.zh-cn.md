@@ -16,8 +16,6 @@ menu:
 
 为您的用户或组织发布 [Debian](https://www.debian.org/distrib/packages) 软件包。
 
-
-
 ## 要求
 
 要使用 Debian 注册表，您需要使用类似于 `curl` 的 HTTP 客户端进行上传，并使用类似于 `apt` 的软件包管理器消费软件包。

@@ -17,8 +17,6 @@ menu:
 
 本页面将详细介绍[Act Runner](https://gitea.com/gitea/act_runner)，这是Gitea Actions的Runner。
 
-
-
 ## 要求
 
 建议在Docker容器中运行Job，因此您需要首先安装Docker。

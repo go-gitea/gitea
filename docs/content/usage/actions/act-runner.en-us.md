@@ -17,8 +17,6 @@ menu:
 
 This page will introduce the [act runner](https://gitea.com/gitea/act_runner) in detail, which is the runner of Gitea Actions.
 
-
-
 ## Requirements
 
 It is recommended to run jobs in a docker container, so you need to install docker first.

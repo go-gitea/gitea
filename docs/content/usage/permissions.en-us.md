@@ -17,8 +17,6 @@ menu:
 
 # Permissions
 
-
-
 Gitea supports permissions for repository so that you can give different access for different people. At first, we need to know about `Unit`.
 
 ## Unit

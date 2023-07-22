@@ -17,8 +17,6 @@ menu:
 
 为您的用户或组织发布 [Chef](https://chef.io/) cookbooks。
 
-
-
 ## 要求
 
 要使用 Chef 软件包注册表，您需要使用 [`knife`](https://docs.chef.io/workstation/knife/).

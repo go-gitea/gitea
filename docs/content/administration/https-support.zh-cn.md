@@ -15,8 +15,6 @@ menu:
 
 # HTTPS setup to encrypt connections to Gitea
 
-
-
 ## 使用内置服务器
 
 在启用HTTPS之前，确保您拥有有效的SSL/TLS证书。

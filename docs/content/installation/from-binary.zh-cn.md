@@ -19,8 +19,6 @@ menu:
 
 所有打包的二进制程序均包含 SQLite，MySQL 和 PostgreSQL 的数据库连接支持，同时网站的静态资源均已嵌入到可执行程序中，这一点和曾经的 Gogs 有所不同。
 
-
-
 ## 下载
 
 你可以从 [下载页面](https://dl.gitea.com/gitea/) 选择对应平台的二进制文件。

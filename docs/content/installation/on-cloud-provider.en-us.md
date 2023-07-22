@@ -17,8 +17,6 @@ menu:
 
 # Installation on Cloud Provider
 
-
-
 ## Cloudron
 
 Gitea is available as a 1-click install on [Cloudron](https://cloudron.io).

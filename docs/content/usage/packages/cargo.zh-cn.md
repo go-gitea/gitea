@@ -17,8 +17,6 @@ menu:
 
 为您的用户或组织发布 [Cargo](https://doc.rust-lang.org/stable/cargo/) 软件包。
 
-
-
 ## 要求
 
 若要使用 Cargo 软件包注册表, 您需要安装 [Rust 和 Cargo](https://www.rust-lang.org/tools/install).

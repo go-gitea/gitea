@@ -17,8 +17,6 @@ menu:
 
 # 在云服务器上安装 Gitea
 
-
-
 ## Cloudron
 
 Gitea 可以在 [Cloudron](https://cloudron.io) 上进行一键安装。

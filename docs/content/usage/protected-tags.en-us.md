@@ -19,8 +19,6 @@ menu:
 
 Protected tags allow control over who has permission to create or update Git tags. Each rule allows you to match either an individual tag name, or use an appropriate pattern to control multiple tags at once.
 
-
-
 ## Setting up protected tags
 
 To protect a tag, you need to follow these steps:

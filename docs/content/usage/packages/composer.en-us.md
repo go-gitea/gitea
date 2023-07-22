@@ -17,8 +17,6 @@ menu:
 
 Publish [Composer](https://getcomposer.org/) packages for your user or organization.
 
-
-
 ## Requirements
 
 To work with the Composer package registry, you can use [Composer](https://getcomposer.org/download/) to consume and a HTTP upload client like `curl` to publish packages.
