@@ -26,10 +26,6 @@
   margin: 12px -1rem -1rem;
 }
 
-.admin.user table.table .email {
-  max-width: 200px;
-}
-
 .admin dl.admin-dl-horizontal {
   padding: 1em;
   margin: 0;
