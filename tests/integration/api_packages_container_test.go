@@ -34,6 +34,7 @@ func TestPackageContainer(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadPackage)
+	privateUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 31})
 
 	has := func(l packages_model.PackagePropertyList, name string) bool {
 		for _, pp := range l {
@@ -262,7 +263,16 @@ func TestPackageContainer(t *testing.T) {
 			t.Run("UploadBlob/Mount", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				req := NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads?mount=%s", url, unknownDigest))
+				privateBlobDigest := "sha256:6ccce4863b70f258d691f59609d31b4502e1ba5199942d3bc5d35d17a4ce771d"
+				req := NewRequestWithBody(t, "POST", fmt.Sprintf("%sv2/%s/%s/blobs/uploads?digest=%s", setting.AppURL, privateUser.Name, image, privateBlobDigest), strings.NewReader("gitea"))
+				req = AddBasicAuthHeader(req, privateUser.Name)
+				MakeRequest(t, req, http.StatusCreated)
+
+				req = NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads?mount=%s", url, unknownDigest))
+				addTokenAuthHeader(req, userToken)
+				MakeRequest(t, req, http.StatusAccepted)
+
+				req = NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads?mount=%s", url, privateBlobDigest))
 				addTokenAuthHeader(req, userToken)
 				MakeRequest(t, req, http.StatusAccepted)
 

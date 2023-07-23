@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type packageClaims struct {
@@ -53,7 +53,7 @@ func ParseAuthorizationToken(req *http.Request) (int64, error) {
 		return 0, fmt.Errorf("split token failed")
 	}
 
-	token, err := jwt.ParseWithClaims(parts[1], &packageClaims{}, func(t *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(parts[1], &packageClaims{}, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}

@@ -111,7 +111,7 @@
 						{{$.locale.Tr "repo.issues.opened_by_fake" $createdStr (.Issue.Poster.GetDisplayName|Escape) | Safe}}
 					{{end}}
 					·
-					{{$.locale.Tr "repo.issues.num_comments" .Issue.NumComments}}
+					{{$.locale.TrN .Issue.NumComments "repo.issues.num_comments_1" "repo.issues.num_comments" .Issue.NumComments}}
 				</span>
 			{{end}}
 		</div>

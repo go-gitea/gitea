@@ -122,8 +122,8 @@ func Config(ctx *context.Context) {
 	ctx.Data["GitVersion"] = git.VersionInfo()
 
 	ctx.Data["GitStorageConfiguration"] = git_storage.Configuration()
+	ctx.Data["AppDataPath"] = setting.AppDataPath
 	ctx.Data["CustomRootPath"] = setting.CustomPath
-	ctx.Data["StaticRootPath"] = setting.StaticRootPath
 	ctx.Data["LogRootPath"] = setting.Log.RootPath
 	ctx.Data["ScriptType"] = setting.ScriptType
 	ctx.Data["ReverseProxyAuthUser"] = setting.ReverseProxyAuthUser
@@ -208,7 +208,7 @@ func ChangeConfig(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"version": version + 1,
 	})
 }

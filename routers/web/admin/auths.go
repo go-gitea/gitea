@@ -60,7 +60,7 @@ func Authentications(ctx *context.Context) {
 
 type dropdownItem struct {
 	Name string
-	Type interface{}
+	Type any
 }
 
 var (
@@ -454,7 +454,7 @@ func DeleteAuthSource(ctx *context.Context) {
 		} else {
 			ctx.Flash.Error(fmt.Sprintf("auth_service.DeleteSource: %v", err))
 		}
-		ctx.JSON(http.StatusOK, map[string]interface{}{
+		ctx.JSON(http.StatusOK, map[string]any{
 			"redirect": setting.AppSubURL + "/admin/auths/" + url.PathEscape(ctx.Params(":authid")),
 		})
 		return
@@ -462,7 +462,7 @@ func DeleteAuthSource(ctx *context.Context) {
 	log.Trace("Authentication deleted by admin(%s): %d", ctx.Doer.Name, source.ID)
 
 	ctx.Flash.Success(ctx.Tr("admin.auths.deletion_success"))
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"redirect": setting.AppSubURL + "/admin/auths",
 	})
 }

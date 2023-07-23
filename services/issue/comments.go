@@ -36,13 +36,13 @@ func CreateComment(ctx context.Context, opts *issues_model.CreateCommentOptions)
 }
 
 // CreateRefComment creates a commit reference comment to issue.
-func CreateRefComment(doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content, commitSHA string) error {
+func CreateRefComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content, commitSHA string) error {
 	if len(commitSHA) == 0 {
 		return fmt.Errorf("cannot create reference with empty commit SHA")
 	}
 
 	// Check if same reference from same commit has already existed.
-	has, err := db.GetEngine(db.DefaultContext).Get(&issues_model.Comment{
+	has, err := db.GetEngine(ctx).Get(&issues_model.Comment{
 		Type:      issues_model.CommentTypeCommitRef,
 		IssueID:   issue.ID,
 		CommitSHA: commitSHA,
@@ -53,7 +53,7 @@ func CreateRefComment(doer *user_model.User, repo *repo_model.Repository, issue 
 		return nil
 	}
 
-	_, err = CreateComment(db.DefaultContext, &issues_model.CreateCommentOptions{
+	_, err = CreateComment(ctx, &issues_model.CreateCommentOptions{
 		Type:      issues_model.CommentTypeCommitRef,
 		Doer:      doer,
 		Repo:      repo,

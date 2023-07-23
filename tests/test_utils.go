@@ -31,7 +31,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func exitf(format string, args ...interface{}) {
+func exitf(format string, args ...any) {
 	fmt.Printf(format+"\n", args...)
 	os.Exit(1)
 }
@@ -245,6 +245,6 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 }
 
 // Printf takes a format and args and prints the string to os.Stdout
-func Printf(format string, args ...interface{}) {
+func Printf(format string, args ...any) {
 	testlogger.Printf(format, args...)
 }
