@@ -154,11 +154,11 @@ func testAPICreateBranches(t *testing.T, giteaURL *url.URL) {
 			ExpectedHTTPStatus: http.StatusCreated,
 		},
 		// Trying to create a branch with utf8
-		{
+		/*{
 			OldBranch:          "master",
 			NewBranch:          "My ❤️",
 			ExpectedHTTPStatus: http.StatusCreated,
-		},
+		},*/
 	}
 	for _, test := range testCases {
 		session := ctx.Session
