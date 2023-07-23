@@ -12,62 +12,16 @@ import (
 	"net/http"
 	"path"
 	"testing"
-	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
-	"bou.ke/monkey"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPackageArch(t *testing.T) {
-	const gpgkey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
-
-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
-8Iu2wss37Re8PI2n7enU+iNe1UN81ZMojf/V
-=5NFR
------END PGP PUBLIC KEY BLOCK-----`
-
 	const firstPackage = `KLUv/QRY1QwBGoVZQ0SgriRpAxihjQU4nU1abf1BN6nGKR/bld+8hZmisY00IpH7u7t3+4kQSpHb
 p1+3roM678K21giRyF40KUz2hNLQrAXR9A4E6QPnA/X6wzHZ2cgbLKlm0Edvp0eNJLW+Dl3H7bKL
 TevnR1bIGyutpv/6ugOzr3o9SbqpSabOgdSVpFpKn7cy2UkrHb2eI5eNr7TSsmAdqZMRB2nZeKP1
@@ -232,17 +186,6 @@ vhhZgJPEjDBykHKdhqD/WZdOE97TwlbySg8l5oY9yUBrV0iim+FuqX+bD/X82IzE11597SG2V50z
 K1/Xdvx76yOUHSO0t/731d/LyGxEVoD2ITwM5GgJgTYnOByaI4mkr9iz6OeIwHVgcTFYcQ+lMP5c
 jMF9gK0ZWKyVAYH5FFhDJAm+lxWpcBu0Fnpj56LGqcaDORsvIVkA`
 	firstPackageSignatureData, err := base64.StdEncoding.DecodeString(firstPackageSignature)
-	assert.NoError(t, err)
-
-	const firstPackageMetadataSignature = `iQGzBAABCAAdFiEEQ6WNuVKuWHQJqhdSETT46/mKoG8FAmSsMPgACgkQETT46/mKoG948wv+IkNg
-3zLDySwDxcBXmuhAtMMgUs4D+rypUp6qZI+N/WAWtV7niWEmZI3RQRzSmHn7NpmXPiQyGIa6ViET
-bjfmbVhU/iaFLIQa3UY7dJCT8x0QVQNCvmLEWzAkqQMiY4QKaitetw+nA6gw/MAL9UNWLiRlCj4I
-K8ySQdZr1dtSTTw/KK2t6kgFbEVpwLauKZrT6Vw3LVU5biuq76918JG7k49po4wUQ62a8Er7WqOV
-4DyhNMKqcbfKd+9/WRVqTMHep7dC2fzbq1/MFx3TNL/vGKl5uMrpePyTN74AmxqfQWNwLDXYPxsD
-/y4vPYer/KQdIs8omDpNaxkTrAvsFizKfxsFlPRt6uknu0WKY15SUXRI3fIG+vFXigW1JNVtuynH
-KyH0USuoUzrfn7hKPp5ubusdeDTwr5GXDBM7qEpBxGce8YMVNYQUTDdK9D+D25fMMb5DkQa8zKjy
-GXcSu4lwxHmarGlD45/DQrYH7tSpVqj2cBaAxtkn/ocpoPawta67`
-	firstPackageMetadataSignatureData, err := base64.StdEncoding.DecodeString(firstPackageMetadataSignature)
 	assert.NoError(t, err)
 
 	const firstPackageDatabase = `H4sIAAAAAAAA/+ySwY7TMBCGe56nyGWOTcd2PE4QQoQmZSPaBTWUAxfkON626rYbNV6p8PSoXYTY
@@ -423,18 +366,6 @@ V2DfzGUB63cabGvZKvYMynHjfaxo8MwKVjUzgvWqMfNL2P5QpQ6S`
 	assert.NoError(t, err)
 	_ = secondPackageSignatureData
 
-	const secondPackageMetadataSignature = `iQGzBAABCAAdFiEEQ6WNuVKuWHQJqhdSETT46/mKoG8FAmSsMPoACgkQETT46/mKoG/GCQv9Hr4T
-DYBG2KpgzEeC3vwy4YvHbrYc+TwZWeRRS5xgpk+mG6xJqRitHhi8K8quP0Z4/PChr8yZE2ZHgKOv
-2Oul8fYA9z6xAmGP9vNSVjUJM4T0zWMB9uO6g7ZWh62BTTVoWWA19PRQxlcRg6uonso5ZfXpYbit
-RpfNSKRXqo3KgrLNpx1neXMoFZb3fuUW4Nc69qdjpCcJ/UrEVfyN/SD719JrIn9WQiidud0sBtA0
-5F/DF456UXgpDSb+LDSkGMlWcHBz8VoTs3XMW+w50dC03IJI4Yji+TLMrjrUNVNeR50D9siAjeRr
-ihGI33HB0kTQv7kw6iG+H/me1bI/pI20slA4KabMEmoiyO6a4XCwTObl6/mpcTvpDQqLgvmLHgEQ
-+oKANt0BiOrtDlLhGBdIM9NXkVfWQGF0MwZVTn/agH/qB95JNNT8DH1+beEDOna9HjImyOtp9Z13
-HkZaMSkzwZmNAopA9pYpm0dIBquFCxaX+hKkoeLma2JMtCOHaV4Y`
-	secondPackageMetadataSignatureData, err := base64.StdEncoding.DecodeString(secondPackageMetadataSignature)
-	assert.NoError(t, err)
-	_ = secondPackageMetadataSignatureData
-
 	const secondPackageDatabase = `H4sIAAAAAAAA/+ySQY/TMBCFe55fkcscm47teJwghAhNyka0C2ooBy7Icbxt1U02arJSl1+P2kWI
 7RVVCNHvMh7rSfZ7eoPvh263HouxmNS+d6MLQERkjDlNIjqfxMS/zqd7IUlFo4Au8ZlzHvvB7kf0
 x2+dm/tHwFkxz2/TRY7wWxXGh5i/cRR2u3U42H34vR8A8IUMAN+l5Yv9S74si4+3CGIsADDLyynC
@@ -444,53 +375,28 @@ H2zT3fvQPTSTn/aOhtLl9AbhORqw7dMxglUxz7L0c44gOI6TRCvFAPgpnX5I3+dLhMy223sbzB6a
 bfu02wSva9u6jV8n5u1d0x7C/vENwN9uwZUrV/5HfgQAAP//SZpudwAIAAA=`
 	secondPackageDatabaseData, err := base64.StdEncoding.DecodeString(secondPackageDatabase)
 	assert.NoError(t, err)
-	_ = secondPackageDatabaseData
 
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	setting.Packages.LimitSizeArch = 99999999999999
 
-	user := &user_model.User{
-		Name:   "dancheg97",
-		Email:  "dancheg97@fmnx.su",
-		Passwd: "password",
-	}
-
-	err = user_model.CreateUser(user)
-	assert.NoError(t, err)
-
-	session := loginUser(t, "dancheg97")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll)
-
-	req := NewRequestWithJSON(t, "POST", "/api/v1/user/gpg_keys?token="+token, api.CreateGPGKeyOption{
-		ArmoredKey: gpgkey,
-	})
-	MakeRequest(t, req, http.StatusCreated)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	rootURL := fmt.Sprintf("/api/packages/%s/arch", user.Name)
-
-	wayback, err := time.Parse(time.RFC3339, "2023-07-10T19:25:28+03:00")
-	assert.NoError(t, err)
 
 	t.Run("PushFirstPackage", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		patch := monkey.Patch(time.Now, func() time.Time { return wayback })
-
 		req := NewRequest(t, "PUT", path.Join(rootURL, "/push"))
 
 		req.Header.Set("filename", "testpkg-1-1-x86_64.pkg.tar.zst")
-		req.Header.Set("email", "dancheg97@fmnx.su")
-		req.Header.Set("time", "2023-07-10T19:25:28+03:00")
 		req.Header.Set("distro", "archlinux")
-		req.Header.Set("metasign", hex.EncodeToString(firstPackageMetadataSignatureData))
 		req.Header.Set("pkgsign", hex.EncodeToString(firstPackageSignatureData))
 		req.Header.Set("Content-Type", "application/octet-stream")
 		req.Body = io.NopCloser(bytes.NewReader(firstPackageData))
+		req = AddBasicAuthHeader(req, user.Name)
 
 		MakeRequest(t, req, http.StatusOK)
-
-		patch.Unpatch()
 	})
 
 	t.Run("GetFirstPackage", func(t *testing.T) {
@@ -518,22 +424,16 @@ bfu02wSva9u6jV8n5u1d0x7C/vENwN9uwZUrV/5HfgQAAP//SZpudwAIAAA=`
 	t.Run("PushSecond", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		patch := monkey.Patch(time.Now, func() time.Time { return wayback })
-
 		req := NewRequest(t, "PUT", path.Join(rootURL, "/push"))
 
 		req.Header.Set("filename", "testpkg-1-1-any.pkg.tar.zst")
-		req.Header.Set("email", "dancheg97@fmnx.su")
-		req.Header.Set("time", "2023-07-10T19:25:30+03:00")
 		req.Header.Set("distro", "archlinux")
-		req.Header.Set("metasign", hex.EncodeToString(secondPackageMetadataSignatureData))
 		req.Header.Set("pkgsign", hex.EncodeToString(secondPackageSignatureData))
 		req.Header.Set("Content-Type", "application/octet-stream")
 		req.Body = io.NopCloser(bytes.NewReader(secondPackageData))
+		req = AddBasicAuthHeader(req, user.Name)
 
 		MakeRequest(t, req, http.StatusOK)
-
-		patch.Unpatch()
 	})
 
 	t.Run("GetSecondPackage", func(t *testing.T) {
@@ -561,20 +461,13 @@ bfu02wSva9u6jV8n5u1d0x7C/vENwN9uwZUrV/5HfgQAAP//SZpudwAIAAA=`
 	t.Run("RemoveFirst", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		patch := monkey.Patch(time.Now, func() time.Time { return wayback })
-
 		req := NewRequest(t, "DELETE", path.Join(rootURL, "/remove"))
 
-		req.Header.Set("username", "dancheg97")
-		req.Header.Set("email", "dancheg97@fmnx.su")
-		req.Header.Set("target", "testpkg")
-		req.Header.Set("time", "2023-07-10T19:25:28+03:00")
+		req.Header.Set("package", "testpkg")
 		req.Header.Set("version", "1-1")
-		req.Header.Set("Content-Type", "application/octet-stream")
-		req.Body = io.NopCloser(bytes.NewReader(firstPackageMetadataSignatureData))
+		req = AddBasicAuthHeader(req, user.Name)
 
 		MakeRequest(t, req, http.StatusOK)
 
-		patch.Unpatch()
 	})
 }

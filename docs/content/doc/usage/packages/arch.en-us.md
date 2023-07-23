@@ -48,10 +48,11 @@ xxd -p package-1-1-x86_64.pkg.tar.zst.sig >> package-signature-hex
 ```sh
 curl -X PUT \
   'https://{domain}/api/packages/{owner}/arch/push' \
-  --header 'filename: package-1-1-x86_64.pkg.tar.zst' \
-  --header 'distro: archlinux' \
-  --header 'pkgsign: {package-signature-hex}' \
-  --header 'Content-Type: application/octet-stream' \
+  -H 'Authorization: {your-authorization-token}' \
+  -H 'filename: package-1-1-x86_64.pkg.tar.zst' \
+  -H 'distro: archlinux' \
+  -H 'sign: {package-signature-hex}' \
+  -H 'Content-Type: application/octet-stream' \
   --data-binary '@/path/to/package/file/package-1-1-x86_64.pkg.tar.zst'
 ```
 
@@ -62,8 +63,9 @@ curl -X PUT \
 ```sh
 curl -X DELETE \
   http://localhost:3000/api/packages/{user}/arch/remove \
-  --header "target: package" \
-  --header "version: {version-release}"
+  -H 'Authorization: {your-authorization-token}' \
+  -H "target: package" \
+  -H "version: {version-release}"
 ```
 
 ## Clients
