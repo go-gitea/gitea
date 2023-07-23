@@ -345,13 +345,7 @@ func EnumeratePackageVersionsV3(ctx *context.Context) {
 		return
 	}
 
-	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	resp := createPackageVersionsResponse(pds)
+	resp := createPackageVersionsResponse(pvs)
 
 	ctx.JSON(http.StatusOK, resp)
 }
