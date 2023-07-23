@@ -214,17 +214,5 @@ func addTaskToScheduler(task *Task) error {
 }
 
 func scheduleHasSeconds(schedule string) bool {
-	numSpaceBlocks := 0
-	previousIsSpace := false
-	for _, c := range schedule {
-		if c == ' ' {
-			if !previousIsSpace {
-				numSpaceBlocks++
-				previousIsSpace = true
-			}
-		} else {
-			previousIsSpace = false
-		}
-	}
-	return numSpaceBlocks == 5
+	return len(strings.Fields(schedule)) >= 6
 }
