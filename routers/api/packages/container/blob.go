@@ -172,7 +172,7 @@ func createFileForBlob(ctx context.Context, pv *packages_model.PackageVersion, p
 	return nil
 }
 
-func deleteBlob(ctx context.Context,ownerID int64, image, digest string) error {
+func deleteBlob(ctx context.Context, ownerID int64, image, digest string) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		pfds, err := container_model.GetContainerBlobs(ctx, &container_model.BlobSearchOptions{
 			OwnerID: ownerID,

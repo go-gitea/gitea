@@ -48,7 +48,7 @@ var (
 		Name:   "repo-sync-releases",
 		Usage:  "Synchronize repository releases with tags",
 		Action: runRepoSyncReleases,
-}
+	}
 
 	subcmdRegenerate = &cli.Command{
 		Name:  "regenerate",

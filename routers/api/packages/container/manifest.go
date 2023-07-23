@@ -79,7 +79,7 @@ func processManifest(ctx context.Context, mci *manifestCreationInfo, buf *packag
 	return "", errManifestInvalid
 }
 
-func processImageManifest(ctx context.Context,mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (string, error) {
+func processImageManifest(ctx context.Context, mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (string, error) {
 	manifestDigest := ""
 
 	err := func() error {
@@ -300,7 +300,7 @@ func processImageManifestIndex(ctx context.Context, mci *manifestCreationInfo, b
 	return manifestDigest, nil
 }
 
-func notifyPackageCreate(ctx context.Context,doer *user_model.User, pv *packages_model.PackageVersion) error {
+func notifyPackageCreate(ctx context.Context, doer *user_model.User, pv *packages_model.PackageVersion) error {
 	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
 	if err != nil {
 		return err
