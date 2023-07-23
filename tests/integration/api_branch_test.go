@@ -135,11 +135,29 @@ func testAPICreateBranches(t *testing.T, giteaURL *url.URL) {
 			NewBranch:          "branch_2",
 			ExpectedHTTPStatus: http.StatusCreated,
 		},
+		// Trying to create a Case insensive branch name
+		{
+			OldBranch:          "new_branch_from_master_1",
+			NewBranch:          "Branch_2",
+			ExpectedHTTPStatus: http.StatusCreated,
+		},
 		// Trying to create from a branch which does not exist
 		{
 			OldBranch:          "does_not_exist",
 			NewBranch:          "new_branch_from_non_existent",
 			ExpectedHTTPStatus: http.StatusNotFound,
+		},
+		// Trying to create a branch with utf8
+		{
+			OldBranch:          "master",
+			NewBranch:          "主版本",
+			ExpectedHTTPStatus: http.StatusCreated,
+		},
+		// Trying to create a branch with utf8
+		{
+			OldBranch:          "master",
+			NewBranch:          "My ❤️",
+			ExpectedHTTPStatus: http.StatusCreated,
 		},
 	}
 	for _, test := range testCases {
