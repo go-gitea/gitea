@@ -26,6 +26,7 @@ First, you need to update your pacman configuration, adding following lines:
 
 ```conf
 [{owner}.{domain}]
+SigLevel = Optional TrustAll
 Server = https://{domain}/api/packages/{owner}/arch/{distribution}/{architecture}
 ```
 
