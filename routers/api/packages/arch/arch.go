@@ -23,19 +23,9 @@ func Push(ctx *context.Context) {
 	var (
 		owner    = ctx.Params("username")
 		filename = ctx.Req.Header.Get("filename")
-		email    = ctx.Req.Header.Get("email")
 		distro   = ctx.Req.Header.Get("distro")
-		sendtime = ctx.Req.Header.Get("time")
-		pkgsign  = ctx.Req.Header.Get("pkgsign")
-		metasign = ctx.Req.Header.Get("metasign")
+		sign     = ctx.Req.Header.Get("sign")
 	)
-
-	// Decoding package signature.
-	sigdata, err := hex.DecodeString(pkgsign)
-	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
-		return
-	}
 
 	// Read package to memory for signature validation.
 	pkgdata, err := io.ReadAll(ctx.Req.Body)
@@ -45,33 +35,6 @@ func Push(ctx *context.Context) {
 	}
 	defer ctx.Req.Body.Close()
 
-	// Get user and organization owning arch package.
-	user, org, err := arch_service.IdentifyOwner(ctx, owner, email)
-	if err != nil {
-		apiError(ctx, http.StatusUnauthorized, err)
-		return
-	}
-
-	// Decoding time when message was created.
-	t, err := time.Parse(time.RFC3339, sendtime)
-	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
-		return
-	}
-
-	// Check if message is outdated.
-	if time.Since(t) > time.Hour {
-		apiError(ctx, http.StatusUnauthorized, "outdated message")
-		return
-	}
-
-	// Decoding signature related to metadata.
-	msigdata, err := hex.DecodeString(metasign)
-	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
-		return
-	}
-
 	// Parse metadata contained in arch package archive.
 	md, err := arch_module.EjectMetadata(filename, distro, setting.Domain, pkgdata)
 	if err != nil {
@@ -79,53 +42,40 @@ func Push(ctx *context.Context) {
 		return
 	}
 
-	// Validating metadata signature, to ensure that operation push operation
-	// is initiated by original package owner.
-	sendmetadata := []byte(owner + md.Name + sendtime)
-	err = arch_service.ValidateSignature(ctx, sendmetadata, msigdata, user)
-	if err != nil {
-		apiError(ctx, http.StatusUnauthorized, err)
-		return
-	}
-
-	// Validate package signature with any of user's GnuPG keys.
-	err = arch_service.ValidateSignature(ctx, pkgdata, sigdata, user)
-	if err != nil {
-		apiError(ctx, http.StatusUnauthorized, err)
-		return
-	}
-
 	// Save file related to arch package.
 	pkgid, err := arch_service.SaveFile(ctx, &arch_service.SaveFileParams{
-		Organization: org,
-		User:         user,
-		Metadata:     md,
-		Filename:     filename,
-		Data:         pkgdata,
-		Distro:       distro,
+		Creator:  ctx.Doer,
+		Owner:    ctx.Package.Owner,
+		Metadata: md,
+		Filename: filename,
+		Data:     pkgdata,
+		Distro:   distro,
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	// Save file related to arch package signature.
-	_, err = arch_service.SaveFile(ctx, &arch_service.SaveFileParams{
-		Organization: org,
-		User:         user,
-		Metadata:     md,
-		Data:         sigdata,
-		Filename:     filename + ".sig",
-		Distro:       distro,
-	})
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
+	// Decoding package signature, if present saving with package as file.
+	sigdata, err := hex.DecodeString(sign)
+	if err == nil {
+		_, err = arch_service.SaveFile(ctx, &arch_service.SaveFileParams{
+			Creator:  ctx.Doer,
+			Owner:    ctx.Package.Owner,
+			Metadata: md,
+			Data:     sigdata,
+			Filename: filename + ".sig",
+			Distro:   distro,
+		})
+		if err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
 	}
 
 	// Add new architectures and distribution info to package version metadata.
 	err = arch_service.UpdateMetadata(ctx, &arch_service.UpdateMetadataParameters{
-		User: org.AsUser(),
+		User: ctx.Package.Owner,
 		Md:   md,
 	})
 	if err != nil {
@@ -190,50 +140,12 @@ func Get(ctx *context.Context) {
 // Remove specific package version, related files and pacman database entry.
 func Remove(ctx *context.Context) {
 	var (
-		owner   = ctx.Params("username")
-		email   = ctx.Req.Header.Get("email")
-		target  = ctx.Req.Header.Get("target")
-		stime   = ctx.Req.Header.Get("time")
-		version = ctx.Req.Header.Get("version")
+		pkg = ctx.Req.Header.Get("package")
+		ver = ctx.Req.Header.Get("version")
 	)
 
-	// Parse sent time and check if it is within last minute.
-	t, err := time.Parse(time.RFC3339, stime)
-	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
-		return
-	}
-
-	if time.Since(t) > time.Minute {
-		apiError(ctx, http.StatusUnauthorized, "outdated message")
-		return
-	}
-
-	// Get user owning the package.
-	user, org, err := arch_service.IdentifyOwner(ctx, owner, email)
-	if err != nil {
-		apiError(ctx, http.StatusUnauthorized, err)
-		return
-	}
-
-	// Read signature data from request body.
-	sigdata, err := io.ReadAll(ctx.Req.Body)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	defer ctx.Req.Body.Close()
-
-	// Validate package signature with any of user's GnuPG keys.
-	mesdata := []byte(owner + target + stime)
-	err = arch_service.ValidateSignature(ctx, mesdata, sigdata, user)
-	if err != nil {
-		apiError(ctx, http.StatusUnauthorized, err)
-		return
-	}
-
 	// Remove package files and pacman database entry.
-	err = arch_service.RemovePackage(ctx, org.AsUser(), target, version)
+	err := arch_service.RemovePackage(ctx, ctx.Package.Owner, pkg, ver)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

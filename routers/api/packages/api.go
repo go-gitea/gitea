@@ -124,8 +124,8 @@ func CommonRoutes() *web.Route {
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/arch", func() {
-			r.Put("/push", arch.Push)
-			r.Delete("/remove", arch.Remove)
+			r.Put("/push", arch.Push, reqPackageAccess(perm.AccessModeWrite))
+			r.Delete("/remove", arch.Remove, reqPackageAccess(perm.AccessModeWrite))
 			r.Get("/{distro}/{arch}/{file}", arch.Get)
 		})
 		r.Group("/cargo", func() {

@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
-	org_model "code.gitea.io/gitea/models/organization"
 	pkg_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/user"
@@ -58,9 +57,9 @@ func UpdateMetadata(ctx *context.Context, p *UpdateMetadataParameters) error {
 
 // Parameters required to save new arch package.
 type SaveFileParams struct {
-	*org_model.Organization
-	*user.User
-	*arch.Metadata
+	Creator  *user.User
+	Owner    *user.User
+	Metadata *arch.Metadata
 	Data     []byte
 	Filename string
 	Distro   string
@@ -80,12 +79,12 @@ func SaveFile(ctx *context.Context, p *SaveFileParams) (int64, error) {
 	pv, _, err := pkg_service.CreatePackageOrAddFileToExisting(
 		&pkg_service.PackageCreationInfo{
 			PackageInfo: pkg_service.PackageInfo{
-				Owner:       p.Organization.AsUser(),
+				Owner:       p.Owner,
 				PackageType: pkg_model.TypeArch,
 				Name:        p.Metadata.Name,
 				Version:     p.Metadata.Version,
 			},
-			Creator:  p.User,
+			Creator:  p.Creator,
 			Metadata: p.Metadata,
 		},
 		&pkg_service.PackageFileCreationInfo{
@@ -93,7 +92,7 @@ func SaveFile(ctx *context.Context, p *SaveFileParams) (int64, error) {
 				Filename:     p.Filename,
 				CompositeKey: p.Distro + "-" + p.Filename,
 			},
-			Creator:           p.User,
+			Creator:           p.Creator,
 			Data:              buf,
 			OverwriteExisting: true,
 			IsLead:            p.IsLead,
