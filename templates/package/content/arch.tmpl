@@ -97,6 +97,13 @@ Server = https://{{.PackageDescriptor.Metadata.BaseDomain}}/api/packages/{{.Pack
 				<td>{{$key}}</td>
 			</tr>
 			{{end}}
+
+			{{range $key := .PackageDescriptor.Metadata.DistroArch}}
+			<tr>
+				<td class="collapsing"><h5>Available</h5></td>
+				<td>{{$key}}</td>
+			</tr>
+			{{end}}
 		</tbody>
 	</table>
 	</div>

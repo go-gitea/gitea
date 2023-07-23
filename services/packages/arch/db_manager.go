@@ -42,7 +42,6 @@ func UpdateMetadata(ctx *context.Context, p *UpdateMetadataParameters) error {
 	}
 
 	currmd.Arch = arch.UnifiedList(currmd.Arch, p.Md.Arch)
-	currmd.Distribution = arch.UnifiedList(currmd.Distribution, p.Md.Distribution)
 	currmd.DistroArch = arch.UnifiedList(currmd.DistroArch, p.Md.DistroArch)
 
 	b, err := json.Marshal(&currmd)

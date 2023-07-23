@@ -34,7 +34,6 @@ type Metadata struct {
 	BuildDate      int64    `json:"build-date"`
 	BaseDomain     string   `json:"base-domain"`
 	Packager       string   `json:"packager"`
-	Distribution   []string `json:"distribution"`
 	Provides       []string `json:"provides"`
 	License        []string `json:"license"`
 	Arch           []string `json:"arch"`
@@ -44,7 +43,10 @@ type Metadata struct {
 	CheckDepends   []string `json:"check-depends"`
 	Backup         []string `json:"backup"`
 	// This list is created to ensure the consistency of pacman database file
-	// for specific combination of distribution and architecture.
+	// for specific combination of distribution and architecture. This value
+	// is used when creating pacman database, to ensure that only packages
+	// with specific combination of distribution and architecture are present
+	// in pacman database file.
 	DistroArch []string `json:"distro-arch"`
 }
 
@@ -60,7 +62,6 @@ func EjectMetadata(filename, distribution, domain string, pkg []byte) (*Metadata
 		CompressedSize: int64(len(pkg)),
 		MD5:            md5sum(pkg),
 		SHA256:         sha256sum(pkg),
-		Distribution:   []string{distribution},
 	}
 	for _, line := range strings.Split(pkginfo, "\n") {
 		splt := strings.Split(line, " = ")
