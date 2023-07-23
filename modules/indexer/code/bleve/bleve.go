@@ -51,7 +51,7 @@ func numericEqualityQuery(value int64, field string) *query.NumericRangeQuery {
 }
 
 func addUnicodeNormalizeTokenFilter(m *mapping.IndexMappingImpl) error {
-	return m.AddCustomTokenFilter(unicodeNormalizeName, map[string]interface{}{
+	return m.AddCustomTokenFilter(unicodeNormalizeName, map[string]any{
 		"type": unicodenorm.Name,
 		"form": unicodenorm.NFC,
 	})
@@ -101,7 +101,7 @@ func generateBleveIndexMapping() (mapping.IndexMapping, error) {
 	mapping := bleve.NewIndexMapping()
 	if err := addUnicodeNormalizeTokenFilter(mapping); err != nil {
 		return nil, err
-	} else if err := mapping.AddCustomAnalyzer(repoIndexerAnalyzer, map[string]interface{}{
+	} else if err := mapping.AddCustomAnalyzer(repoIndexerAnalyzer, map[string]any{
 		"type":          analyzer_custom.Name,
 		"char_filters":  []string{},
 		"tokenizer":     unicode.Name,

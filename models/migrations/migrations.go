@@ -512,6 +512,10 @@ var migrations = []Migration{
 	// v264 -> v265
 	NewMigration("Add branch table", v1_21.AddBranchTable),
 	// v265 -> v266
+	NewMigration("Alter Actions Artifact table", v1_21.AlterActionArtifactTable),
+	// v266 -> v267
+	NewMigration("Reduce commit status", v1_21.ReduceCommitStatus),
+	// v267 -> v268
 	NewMigration("Change Branch name column collation to support case sensitive", v1_21.BranchColumnNameCollation),
 }
 
