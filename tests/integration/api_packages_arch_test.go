@@ -468,6 +468,5 @@ bfu02wSva9u6jV8n5u1d0x7C/vENwN9uwZUrV/5HfgQAAP//SZpudwAIAAA=`
 		req = AddBasicAuthHeader(req, user.Name)
 
 		MakeRequest(t, req, http.StatusOK)
-
 	})
 }

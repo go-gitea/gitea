@@ -38,13 +38,13 @@ pacman -Sy package
 
 ## Upload packages
 
-1. Decode message and metadata signatures to hex, by running following commands, save output somewhere.
+1. Decode message and metadata signatures to hex, by running following commands, save output.
 
 ```sh
 xxd -p package-1-1-x86_64.pkg.tar.zst.sig >> package-signature-hex
 ```
 
-2. Paste your parameters and push package with [curl](https://curl.se/). Important, that time should be the same with metadata (signed md file), since this value is verified with GnuPG.
+2. Paste your parameters and push package with [curl](https://curl.se/).
 
 ```sh
 curl -X PUT \
@@ -59,7 +59,7 @@ curl -X PUT \
 
 ## Delete packages
 
-1. Send delete message with [curl](https://curl.se/). Time should be the same with saved in `md` file.
+Send delete message with [curl](https://curl.se/).
 
 ```sh
 curl -X DELETE \
