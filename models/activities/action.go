@@ -391,10 +391,10 @@ func (a *Action) GetIssueInfos() []string {
 }
 
 // GetIssueTitle returns the title of first issue associated
-// with the action.
+// with the action. This function will be invoked in template so keep db.DefaultContext here
 func (a *Action) GetIssueTitle() string {
 	index, _ := strconv.ParseInt(a.GetIssueInfos()[0], 10, 64)
-	issue, err := issues_model.GetIssueByIndex(a.RepoID, index)
+	issue, err := issues_model.GetIssueByIndex(db.DefaultContext, a.RepoID, index)
 	if err != nil {
 		log.Error("GetIssueByIndex: %v", err)
 		return "500 when get issue"
@@ -404,9 +404,9 @@ func (a *Action) GetIssueTitle() string {
 
 // GetIssueContent returns the content of first issue associated with
 // this action.
-func (a *Action) GetIssueContent() string {
+func (a *Action) GetIssueContent(ctx context.Context) string {
 	index, _ := strconv.ParseInt(a.GetIssueInfos()[0], 10, 64)
-	issue, err := issues_model.GetIssueByIndex(a.RepoID, index)
+	issue, err := issues_model.GetIssueByIndex(ctx, a.RepoID, index)
 	if err != nil {
 		log.Error("GetIssueByIndex: %v", err)
 		return "500 when get issue"
