@@ -74,7 +74,7 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPr
 		meta["mode"] = "document"
 	}
 
-	resp, err := markup.Render(&markup.RenderContext{
+	err := markup.Render(&markup.RenderContext{
 		Ctx:          ctx,
 		URLPrefix:    urlPrefix,
 		Metas:        meta,
@@ -88,9 +88,5 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPr
 		} else {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 		}
-		return
-	}
-	if resp != nil {
-		ctx.Data["ExtraStyleFiles"] = resp.ExtraStyleFiles
 	}
 }

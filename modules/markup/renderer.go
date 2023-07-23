@@ -109,16 +109,12 @@ func (ctx *RenderContext) AddCancel(fn func()) {
 	}
 }
 
-type RenderResponse struct {
-	ExtraStyleFiles []string
-}
-
 // Renderer defines an interface for rendering markup file to HTML
 type Renderer interface {
 	Name() string // markup format name
 	Extensions() []string
 	SanitizerRules() []setting.MarkupSanitizerRule
-	Render(ctx *RenderContext, input io.Reader, output io.Writer) (*RenderResponse, error)
+	Render(ctx *RenderContext, input io.Reader, output io.Writer) error
 }
 
 type GlobMatchRenderer interface {
@@ -130,13 +126,21 @@ type PostProcessRenderer interface {
 	NeedPostProcess() bool
 }
 
-// PostProcessRenderer defines an interface for external renderers
-type ExternalRenderer interface {
+type SanitizerDisabledRenderer interface {
 	// SanitizerDisabled disabled sanitize if return true
 	SanitizerDisabled() bool
+}
+
+// PostProcessRenderer defines an interface for external renderers
+type ExternalRenderer interface {
+	SanitizerDisabledRenderer
 
 	// DisplayInIFrame represents whether render the content with an iframe
 	DisplayInIFrame() bool
+}
+
+type NewPageRenderer interface {
+	DisplayInNewPage() bool
 }
 
 // RendererContentDetector detects if the content can be rendered
@@ -201,19 +205,19 @@ func DetectRendererType(filename string, input io.Reader) string {
 }
 
 // Render renders markup file to HTML with all specific handling stuff.
-func Render(ctx *RenderContext, input io.Reader, output io.Writer) (*RenderResponse, error) {
+func Render(ctx *RenderContext, input io.Reader, output io.Writer) error {
 	if ctx.Type != "" {
 		return renderByType(ctx, input, output)
 	} else if ctx.RelativePath != "" {
 		return renderFile(ctx, input, output)
 	}
-	return nil, errors.New("Render options both filename and type missing")
+	return errors.New("Render options both filename and type missing")
 }
 
 // RenderString renders Markup string to HTML with all specific handling stuff and return string
 func RenderString(ctx *RenderContext, content string) (string, error) {
 	var buf strings.Builder
-	_, err := Render(ctx, strings.NewReader(content), &buf)
+	err := Render(ctx, strings.NewReader(content), &buf)
 	if err != nil {
 		return "", err
 	}
@@ -226,7 +230,7 @@ type nopCloser struct {
 
 func (nopCloser) Close() error { return nil }
 
-func renderIFrame(ctx *RenderContext, output io.Writer) (*RenderResponse, error) {
+func renderIFrame(ctx *RenderContext, output io.Writer) error {
 	// set height="0" ahead, otherwise the scrollHeight would be max(150, realHeight)
 	// at the moment, only "allow-scripts" is allowed for sandbox mode.
 	// "allow-same-origin" should never be used, it leads to XSS attack, and it makes the JS in iframe can access parent window's config and CSRF token
@@ -244,10 +248,10 @@ sandbox="allow-same-origin"
 		ctx.Metas["BranchNameSubURL"],
 		url.PathEscape(ctx.RelativePath),
 	))
-	return nil, err
+	return err
 }
 
-func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) (*RenderResponse, error) {
+func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
 	var wg sync.WaitGroup
 	var err error
 	pr, pw := io.Pipe()
@@ -260,7 +264,7 @@ func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Wr
 	var pw2 io.WriteCloser
 
 	var sanitizerDisabled bool
-	if r, ok := renderer.(ExternalRenderer); ok {
+	if r, ok := renderer.(SanitizerDisabledRenderer); ok {
 		sanitizerDisabled = r.SanitizerDisabled()
 	}
 
@@ -293,14 +297,14 @@ func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Wr
 		wg.Done()
 	}()
 
-	resp, err1 := renderer.Render(ctx, input, pw)
+	err1 := renderer.Render(ctx, input, pw)
 	if err1 != nil {
-		return nil, err1
+		return err1
 	}
 	_ = pw.Close()
 
 	wg.Wait()
-	return resp, err
+	return err
 }
 
 // ErrUnsupportedRenderType represents
@@ -312,11 +316,11 @@ func (err ErrUnsupportedRenderType) Error() string {
 	return fmt.Sprintf("Unsupported render type: %s", err.Type)
 }
 
-func renderByType(ctx *RenderContext, input io.Reader, output io.Writer) (*RenderResponse, error) {
+func renderByType(ctx *RenderContext, input io.Reader, output io.Writer) error {
 	if renderer, ok := renderers[ctx.Type]; ok {
 		return render(ctx, renderer, input, output)
 	}
-	return nil, ErrUnsupportedRenderType{ctx.Type}
+	return ErrUnsupportedRenderType{ctx.Type}
 }
 
 // ErrUnsupportedRenderFile represents the error when extension or filename doesn't supported to render
@@ -333,10 +337,30 @@ func (err ErrUnsupportedRenderFile) Error() string {
 	return fmt.Sprintf("Unsupported render file: %s", err.RelativePath)
 }
 
-func renderFile(ctx *RenderContext, input io.Reader, output io.Writer) (*RenderResponse, error) {
+func renderButton(ctx *RenderContext, output io.Writer) error {
+	_, err := io.WriteString(output, fmt.Sprintf(`
+<div>
+<a href="%s%s/%s/render/%s/%s">View in New Page</a>
+</div>`,
+		setting.AppURL,
+		url.PathEscape(ctx.Metas["user"]),
+		url.PathEscape(ctx.Metas["repo"]),
+		ctx.Metas["BranchNameSubURL"],
+		url.PathEscape(ctx.RelativePath),
+	))
+	return err
+}
+
+func renderFile(ctx *RenderContext, input io.Reader, output io.Writer) error {
 	renderer := GetRendererByFileName(ctx.RelativePath)
 	if renderer == nil {
-		return nil, ErrUnsupportedRenderFile{ctx.RelativePath}
+		return ErrUnsupportedRenderFile{ctx.RelativePath}
+	}
+
+	if r, ok := renderer.(NewPageRenderer); ok && r.DisplayInNewPage() {
+		if !ctx.InStandalonePage {
+			return renderButton(ctx, output)
+		}
 	}
 
 	if r, ok := renderer.(ExternalRenderer); ok && r.DisplayInIFrame() {

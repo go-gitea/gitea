@@ -34,9 +34,8 @@ func (Renderer) SanitizerDisabled() bool {
 	return true
 }
 
-// DisplayInIFrame represents whether render the content with an iframe
-func (Renderer) DisplayInIFrame() bool {
-	return false
+func (Renderer) DisplayInNewPage() bool {
+	return true
 }
 
 func (Renderer) MatchGlobs() []glob.Glob {
@@ -58,8 +57,8 @@ func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 }
 
 // Render implements markup.Renderer
-func (Renderer) Render(ctx *markup.RenderContext, _ io.Reader, output io.Writer) (*markup.RenderResponse, error) {
-	renderURL := fmt.Sprintf("%s/%s/%s/render/%s/%s",
+func (Renderer) Render(ctx *markup.RenderContext, _ io.Reader, output io.Writer) error {
+	rawURL := fmt.Sprintf("%s/%s/%s/raw/%s/%s",
 		setting.AppSubURL,
 		url.PathEscape(ctx.Metas["user"]),
 		url.PathEscape(ctx.Metas["repo"]),
@@ -68,14 +67,24 @@ func (Renderer) Render(ctx *markup.RenderContext, _ io.Reader, output io.Writer)
 	)
 
 	if _, err := io.WriteString(output, fmt.Sprintf(
-		`<a class="btn btn-primary" href="%s">View in a standalone page</a>`,
-		renderURL,
+		`<!DOCTYPE html>
+<html>
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="%s/assets/css/swagger.css?v=%s">
+</head>
+<body>
+	<div id="swagger-ui" data-source="%s"></div>
+	<script src="%s/assets/js/swagger.js?v=%s"></script>
+</body>
+</html>`,
+		setting.StaticURLPrefix,
+		setting.AssetVersion,
+		rawURL,
+		setting.StaticURLPrefix,
+		setting.AssetVersion,
 	)); err != nil {
-		return nil, err
+		return err
 	}
-	return &markup.RenderResponse{
-		ExtraStyleFiles: []string{
-			setting.StaticURLPrefix + "/assets/css/swagger.css?v=" + setting.AssetVersion,
-		},
-	}, nil
+	return nil
 }

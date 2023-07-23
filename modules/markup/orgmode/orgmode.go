@@ -49,7 +49,7 @@ func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 }
 
 // Render renders orgmode rawbytes to HTML
-func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) (*markup.RenderResponse, error) {
+func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	htmlWriter := org.NewHTMLWriter()
 	htmlWriter.HighlightCodeBlock = func(source, lang string, inline bool, params map[string]string) string {
 		defer func() {
@@ -109,23 +109,23 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) (*mark
 
 	res, err := org.New().Silent().Parse(input, "").Write(w)
 	if err != nil {
-		return nil, fmt.Errorf("orgmode.Render failed: %w", err)
+		return fmt.Errorf("orgmode.Render failed: %w", err)
 	}
 	_, err = io.Copy(output, strings.NewReader(res))
-	return nil, err
+	return err
 }
 
 // RenderString renders orgmode string to HTML string
 func RenderString(ctx *markup.RenderContext, content string) (string, error) {
 	var buf strings.Builder
-	if _, err := Render(ctx, strings.NewReader(content), &buf); err != nil {
+	if err := Render(ctx, strings.NewReader(content), &buf); err != nil {
 		return "", err
 	}
 	return buf.String(), nil
 }
 
 // Render renders orgmode string to HTML string
-func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) (*markup.RenderResponse, error) {
+func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	return Render(ctx, input, output)
 }
 
