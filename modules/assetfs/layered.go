@@ -215,8 +215,9 @@ func (l *LayeredFS) WatchLocalChanges(ctx context.Context, callback func()) {
 			log.Error("Unable to list directories for asset local file-system %q: %v", layer.localPath, err)
 			continue
 		}
+		layerDirs = append(layerDirs, ".")
 		for _, dir := range layerDirs {
-			if err = watcher.Add(util.FilePathJoinAbs(layer.localPath, dir)); err != nil {
+			if err = watcher.Add(util.FilePathJoinAbs(layer.localPath, dir)); err != nil && !os.IsNotExist(err) {
 				log.Error("Unable to watch directory %s: %v", dir, err)
 			}
 		}

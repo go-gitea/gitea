@@ -169,6 +169,7 @@
 
 /* the label-filter is the first dropdown, it shouldn't be shown leftward, otherwise it may go out the viewport (left side) */
 .repository .filter.menu .ui.dropdown.label-filter .menu {
+  min-width: max-content;
   right: unset;
   left: 0;
 }
@@ -190,6 +191,7 @@
 
 .repository #clone-panel #repo-clone-url {
   width: 320px;
+  border-radius: 0;
 }
 
 @media (min-width: 768px) and (max-width: 991.98px) {
@@ -230,6 +232,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 5px;
 }
 
 @media (max-width: 767.68px) {
@@ -744,8 +747,15 @@
   right: 1px;
 }
 
+.repository.view.issue .pull.tabs.container {
+  width: 100%;
+  max-width: 100%;
+}
+
 .repository.view.issue .pull.tabular.menu {
-  margin-bottom: 1rem;
+  margin-bottom: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .repository.view.issue .pull.tabular.menu .svg {
@@ -2655,7 +2665,7 @@
   height: 30px;
 }
 
-.repo-button-row .button.dropdown {
+.repo-button-row .button.dropdown:not(.icon) {
   padding-right: 22px !important; /* normal buttons have !important paddings, so we need to override it for dropdown (Add File) icons */
 }
 
@@ -2776,7 +2786,6 @@ tbody.commit-list {
 #repo-topics .repo-topic {
   font-weight: var(--font-weight-normal);
   cursor: pointer;
-  margin: 2px;
 }
 
 #new-dependency-drop-list.ui.selection.dropdown {
@@ -3349,4 +3358,8 @@ tbody.commit-list {
   flex: 1;
   font-size: 18px;
   margin-left: 4px;
+}
+
+#cherry-pick-modal .scrolling.menu {
+  max-height: 200px;
 }

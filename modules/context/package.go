@@ -108,18 +108,28 @@ func determineAccessMode(ctx *Base, pkg *Package, doer *user_model.User) (perm.A
 
 		if doer != nil && !doer.IsGhost() {
 			// 1. If user is logged in, check all team packages permissions
-			teams, err := organization.GetUserOrgTeams(ctx, org.ID, doer.ID)
+			var err error
+			accessMode, err = org.GetOrgUserMaxAuthorizeLevel(doer.ID)
 			if err != nil {
 				return accessMode, err
 			}
-			for _, t := range teams {
-				perm := t.UnitAccessMode(ctx, unit.TypePackages)
-				if accessMode < perm {
-					accessMode = perm
+			// If access mode is less than write check every team for more permissions
+			// The minimum possible access mode is read for org members
+			if accessMode < perm.AccessModeWrite {
+				teams, err := organization.GetUserOrgTeams(ctx, org.ID, doer.ID)
+				if err != nil {
+					return accessMode, err
+				}
+				for _, t := range teams {
+					perm := t.UnitAccessMode(ctx, unit.TypePackages)
+					if accessMode < perm {
+						accessMode = perm
+					}
 				}
 			}
-		} else if organization.HasOrgOrUserVisible(ctx, pkg.Owner, doer) {
-			// 2. If user is non-login, check if org is visible to non-login user
+		}
+		if accessMode == perm.AccessModeNone && organization.HasOrgOrUserVisible(ctx, pkg.Owner, doer) {
+			// 2. If user is unauthorized or no org member, check if org is visible
 			accessMode = perm.AccessModeRead
 		}
 	} else {

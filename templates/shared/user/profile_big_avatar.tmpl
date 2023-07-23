@@ -99,15 +99,13 @@
 			{{if and .IsSigned (ne .SignedUserID .ContextUser.ID)}}
 			<li class="follow">
 				{{if $.IsFollowing}}
-					<form method="post" action="{{.Link}}?action=unfollow&redirect_to={{$.Link}}">
-						{{$.CsrfTokenHtml}}
-						<button type="submit" class="ui basic red button">{{svg "octicon-person"}} {{.locale.Tr "user.unfollow"}}</button>
-					</form>
+					<button class="ui basic red button link-action" data-url="{{.ContextUser.HomeLink}}?action=unfollow">
+						{{svg "octicon-person"}} {{.locale.Tr "user.unfollow"}}
+					</button>
 				{{else}}
-					<form method="post" action="{{.Link}}?action=follow&redirect_to={{$.Link}}">
-						{{$.CsrfTokenHtml}}
-						<button type="submit" class="ui basic green button">{{svg "octicon-person"}} {{.locale.Tr "user.follow"}}</button>
-					</form>
+					<button class="ui basic green button link-action" data-url="{{.ContextUser.HomeLink}}?action=follow">
+						{{svg "octicon-person"}} {{.locale.Tr "user.follow"}}
+					</button>
 				{{end}}
 			</li>
 			{{end}}

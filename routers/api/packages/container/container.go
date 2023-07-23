@@ -203,17 +203,25 @@ func InitiateUploadBlob(ctx *context.Context) {
 			Digest:     mount,
 		})
 		if blob != nil {
-			if err := mountBlob(&packages_service.PackageInfo{Owner: ctx.Package.Owner, Name: image}, blob.Blob); err != nil {
+			accessible, err := packages_model.IsBlobAccessibleForUser(ctx, blob.Blob.ID, ctx.Doer)
+			if err != nil {
 				apiError(ctx, http.StatusInternalServerError, err)
 				return
 			}
 
-			setResponseHeaders(ctx.Resp, &containerHeaders{
-				Location:      fmt.Sprintf("/v2/%s/%s/blobs/%s", ctx.Package.Owner.LowerName, image, mount),
-				ContentDigest: mount,
-				Status:        http.StatusCreated,
-			})
-			return
+			if accessible {
+				if err := mountBlob(&packages_service.PackageInfo{Owner: ctx.Package.Owner, Name: image}, blob.Blob); err != nil {
+					apiError(ctx, http.StatusInternalServerError, err)
+					return
+				}
+
+				setResponseHeaders(ctx.Resp, &containerHeaders{
+					Location:      fmt.Sprintf("/v2/%s/%s/blobs/%s", ctx.Package.Owner.LowerName, image, mount),
+					ContentDigest: mount,
+					Status:        http.StatusCreated,
+				})
+				return
+			}
 		}
 	}
 

@@ -538,10 +538,10 @@ func FindAndUpdateIssueMentions(ctx context.Context, issue *Issue, doer *user_mo
 // don't have access to reading it. Teams are expanded into their users, but organizations are ignored.
 func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *user_model.User, mentions []string) (users []*user_model.User, err error) {
 	if len(mentions) == 0 {
-		return
+		return nil, nil
 	}
 	if err = issue.LoadRepo(ctx); err != nil {
-		return
+		return nil, err
 	}
 
 	resolved := make(map[string]bool, 10)
@@ -635,7 +635,7 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 		}
 	}
 	if len(mentionUsers) == 0 {
-		return
+		return users, err
 	}
 
 	if users == nil {
@@ -702,66 +702,66 @@ func DeleteIssuesByRepoID(ctx context.Context, repoID int64) (attachmentPaths []
 	// Delete content histories
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&ContentHistory{}); err != nil {
-		return
+		return nil, err
 	}
 
 	// Delete comments and attachments
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&Comment{}); err != nil {
-		return
+		return nil, err
 	}
 
 	// Dependencies for issues in this repository
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&IssueDependency{}); err != nil {
-		return
+		return nil, err
 	}
 
 	// Delete dependencies for issues in other repositories
 	if _, err = sess.In("dependency_id", deleteCond).
 		Delete(&IssueDependency{}); err != nil {
-		return
+		return nil, err
 	}
 
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&IssueUser{}); err != nil {
-		return
+		return nil, err
 	}
 
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&Reaction{}); err != nil {
-		return
+		return nil, err
 	}
 
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&IssueWatch{}); err != nil {
-		return
+		return nil, err
 	}
 
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&Stopwatch{}); err != nil {
-		return
+		return nil, err
 	}
 
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&TrackedTime{}); err != nil {
-		return
+		return nil, err
 	}
 
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&project_model.ProjectIssue{}); err != nil {
-		return
+		return nil, err
 	}
 
 	if _, err = sess.In("dependent_issue_id", deleteCond).
 		Delete(&Comment{}); err != nil {
-		return
+		return nil, err
 	}
 
 	var attachments []*repo_model.Attachment
 	if err = sess.In("issue_id", deleteCond).
 		Find(&attachments); err != nil {
-		return
+		return nil, err
 	}
 
 	for j := range attachments {
@@ -770,11 +770,11 @@ func DeleteIssuesByRepoID(ctx context.Context, repoID int64) (attachmentPaths []
 
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&repo_model.Attachment{}); err != nil {
-		return
+		return nil, err
 	}
 
 	if _, err = db.DeleteByBean(ctx, &Issue{RepoID: repoID}); err != nil {
-		return
+		return nil, err
 	}
 
 	return attachmentPaths, err

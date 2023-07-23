@@ -789,6 +789,12 @@ func CompareDiff(ctx *context.Context) {
 	}
 	ctx.Data["HeadBranches"] = headBranches
 
+	// For compare repo branches
+	PrepareBranchList(ctx)
+	if ctx.Written() {
+		return
+	}
+
 	headTags, err := repo_model.GetTagNamesByRepoID(ctx, ci.HeadRepo.ID)
 	if err != nil {
 		ctx.ServerError("GetTagNamesByRepoID", err)

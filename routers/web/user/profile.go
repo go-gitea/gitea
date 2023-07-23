@@ -232,7 +232,11 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileGi
 		if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
 			log.Error("failed to GetBlobContent: %v", err)
 		} else {
-			if profileContent, err := markdown.RenderString(&markup.RenderContext{Ctx: ctx, GitRepo: profileGitRepo}, bytes); err != nil {
+			if profileContent, err := markdown.RenderString(&markup.RenderContext{
+				Ctx:     ctx,
+				GitRepo: profileGitRepo,
+				Metas:   map[string]string{"mode": "document"},
+			}, bytes); err != nil {
 				log.Error("failed to RenderString: %v", err)
 			} else {
 				ctx.Data["ProfileReadme"] = profileContent
@@ -287,9 +291,9 @@ func Action(ctx *context.Context) {
 	}
 
 	if err != nil {
-		ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.FormString("action")), err)
+		log.Error("Failed to apply action %q: %v", ctx.FormString("action"), err)
+		ctx.JSONError(fmt.Sprintf("Action %q failed", ctx.FormString("action")))
 		return
 	}
-	// FIXME: We should check this URL and make sure that it's a valid Gitea URL
-	ctx.RedirectToFirst(ctx.FormString("redirect_to"), ctx.ContextUser.HomeLink())
+	ctx.JSONOK()
 }

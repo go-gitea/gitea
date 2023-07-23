@@ -1,8 +1,8 @@
 <div class="issue list">
 	{{$approvalCounts := .ApprovalCounts}}
 	{{range .Issues}}
-		<li class="item gt-df gt-py-3">
-			<div class="issue-item-left gt-df gt-items-start">
+		<li class="item">
+			<div class="issue-item-left">
 				{{if $.CanWriteIssuesOrPulls}}
 					<input type="checkbox" autocomplete="off" class="issue-checkbox gt-mt-2 gt-mr-4" data-issue-id={{.ID}} aria-label="{{$.locale.Tr "repo.issues.action_check"}} &quot;{{.Title}}&quot;">
 				{{end}}
@@ -11,21 +11,49 @@
 				</div>
 			</div>
 			<div class="issue-item-main">
-				<div class="issue-item-top-row">
-					<a class="title gt-no-underline issue-title" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{RenderEmoji $.Context .Title | RenderCodeBlock}}</a>
-					{{if .IsPull}}
-						{{if (index $.CommitStatuses .PullRequest.ID)}}
-							{{template "repo/commit_statuses" dict "Status" (index $.CommitLastStatus .PullRequest.ID) "Statuses" (index $.CommitStatuses .PullRequest.ID) "root" $}}
+				<div class="issue-item-header">
+					<div class="issue-item-title">
+						<a class="title gt-no-underline issue-title" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{RenderEmoji $.Context .Title | RenderCodeBlock}}</a>
+						{{if .IsPull}}
+							{{if (index $.CommitStatuses .PullRequest.ID)}}
+								{{template "repo/commit_statuses" dict "Status" (index $.CommitLastStatus .PullRequest.ID) "Statuses" (index $.CommitStatuses .PullRequest.ID) "root" $}}
+							{{end}}
 						{{end}}
+						<span class="labels-list gt-ml-2">
+							{{range .Labels}}
+								<a href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{RenderLabel $.Context .}}</a>
+							{{end}}
+						</span>
+					</div>
+					{{if or .TotalTrackedTime .Assignees .NumComments}}
+					<div class="issue-item-right">
+						{{if .TotalTrackedTime}}
+						<div class="text grey flex-text-block">
+								{{svg "octicon-clock" 16}}
+								{{.TotalTrackedTime | Sec2Time}}
+						</div>
+						{{end}}
+						{{if .Assignees}}
+						<div class="text grey">
+							{{range .Assignees}}
+								<a class="ui assignee gt-no-underline" href="{{.HomeLink}}" data-tooltip-content="{{.GetDisplayName}}">
+									{{avatar $.Context . 20}}
+								</a>
+							{{end}}
+						</div>
+						{{end}}
+						{{if .NumComments}}
+						<div class="text grey">
+							<a class="gt-no-underline muted flex-text-inline" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
+								{{svg "octicon-comment" 16}}{{.NumComments}}
+							</a>
+						</div>
+						{{end}}
+					</div>
 					{{end}}
-					<span class="labels-list gt-ml-2">
-						{{range .Labels}}
-							<a href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{RenderLabel $.Context .}}</a>
-						{{end}}
-					</span>
 				</div>
-				<div class="desc issue-item-bottom-row">
-					<a class="index gt-ml-0 gt-mr-2" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
+				<div class="issue-item-body">
+					<a class="index" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
 						{{if eq $.listType "dashboard"}}
 							{{.Repo.FullName}}#{{.Index}}
 						{{else}}
@@ -41,14 +69,14 @@
 						{{$.locale.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
 					{{end}}
 					{{if .IsPull}}
-						<div class="branches gt-df gt-ac">
+						<div class="branches flex-text-inline">
 							<div class="branch">
 								<a href="{{.PullRequest.BaseRepo.Link}}/src/branch/{{PathEscapeSegments .PullRequest.BaseBranch}}">
 									{{/* inline to remove the spaces between spans */}}
 									{{if ne .RepoID .PullRequest.BaseRepoID}}<span class="truncated-name">{{.PullRequest.BaseRepo.OwnerName}}</span>:{{end}}<span class="truncated-name">{{.PullRequest.BaseBranch}}</span>
 								</a>
 							</div>
-							{{svg "gitea-double-chevron-left" 12 "gt-mx-1"}}
+							{{svg "gitea-double-chevron-left" 12}}
 							{{if .PullRequest.HeadRepo}}
 							<div class="branch">
 								<a href="{{.PullRequest.HeadRepo.Link}}/src/branch/{{PathEscapeSegments .PullRequest.HeadBranch}}">
@@ -60,32 +88,32 @@
 						</div>
 					{{end}}
 					{{if and .Milestone (ne $.listType "milestone")}}
-						<a class="milestone" {{if $.RepoLink}}href="{{$.RepoLink}}/milestone/{{.Milestone.ID}}"{{else}}href="{{.Repo.Link}}/milestone/{{.Milestone.ID}}"{{end}}>
-							{{svg "octicon-milestone" 14 "gt-mr-2"}}{{.Milestone.Name}}
+						<a class="milestone flex-text-inline" {{if $.RepoLink}}href="{{$.RepoLink}}/milestone/{{.Milestone.ID}}"{{else}}href="{{.Repo.Link}}/milestone/{{.Milestone.ID}}"{{end}}>
+							{{svg "octicon-milestone" 14}}{{.Milestone.Name}}
 						</a>
 					{{end}}
 					{{if .Project}}
-						<a class="project" href="{{.Project.Link}}">
-							{{svg .Project.IconName 14 "gt-mr-2"}}{{.Project.Title}}
+						<a class="project flex-text-inline" href="{{.Project.Link}}">
+							{{svg .Project.IconName 14}}{{.Project.Title}}
 						</a>
 					{{end}}
 					{{if .Ref}}
-						<a class="ref" {{if $.RepoLink}}href="{{index $.IssueRefURLs .ID}}"{{else}}href="{{.Repo.Link}}{{index $.IssueRefURLs .ID}}"{{end}}>
-							{{svg "octicon-git-branch" 14 "gt-mr-2"}}{{index $.IssueRefEndNames .ID}}
+						<a class="ref flex-text-inline" {{if $.RepoLink}}href="{{index $.IssueRefURLs .ID}}"{{else}}href="{{.Repo.Link}}{{index $.IssueRefURLs .ID}}"{{end}}>
+							{{svg "octicon-git-branch" 14}}{{index $.IssueRefEndNames .ID}}
 						</a>
 					{{end}}
 					{{$tasks := .GetTasks}}
 					{{if gt $tasks 0}}
 						{{$tasksDone := .GetTasksDone}}
-						<span class="checklist">
-							{{svg "octicon-checklist" 14 "gt-mr-2"}}{{$tasksDone}} / {{$tasks}}
+						<span class="checklist flex-text-inline">
+							{{svg "octicon-checklist" 14}}{{$tasksDone}} / {{$tasks}}
 							<progress value="{{$tasksDone}}" max="{{$tasks}}"></progress>
 						</span>
 					{{end}}
 					{{if ne .DeadlineUnix 0}}
-						<span class="due-date" data-tooltip-content="{{$.locale.Tr "repo.issues.due_date"}}">
+						<span class="due-date flex-text-inline" data-tooltip-content="{{$.locale.Tr "repo.issues.due_date"}}">
 							<span{{if .IsOverdue}} class="text red"{{end}}>
-								{{svg "octicon-calendar" 14 "gt-mr-2"}}
+								{{svg "octicon-calendar" 14}}
 								{{DateTime "short" .DeadlineUnix}}
 							</span>
 						</span>
@@ -95,25 +123,25 @@
 						{{$rejectOfficial := call $approvalCounts .ID "reject"}}
 						{{$waitingOfficial := call $approvalCounts .ID "waiting"}}
 						{{if gt $approveOfficial 0}}
-							<span class="approvals gt-df gt-ac green">
-								{{svg "octicon-check" 14 "gt-mr-1"}}
+							<span class="approvals green flex-text-inline">
+								{{svg "octicon-check" 14}}
 								{{$.locale.TrN $approveOfficial "repo.pulls.approve_count_1" "repo.pulls.approve_count_n" $approveOfficial}}
 							</span>
 						{{end}}
 						{{if gt $rejectOfficial 0}}
-							<span class="rejects gt-df gt-ac red">
-								{{svg "octicon-diff" 14 "gt-mr-2"}}
+							<span class="rejects red flex-text-inline">
+								{{svg "octicon-diff" 14}}
 								{{$.locale.TrN $rejectOfficial "repo.pulls.reject_count_1" "repo.pulls.reject_count_n" $rejectOfficial}}
 							</span>
 						{{end}}
 						{{if gt $waitingOfficial 0}}
-							<span class="waiting gt-df gt-ac">
-								{{svg "octicon-eye" 14 "gt-mr-2"}}
+							<span class="waiting flex-text-inline">
+								{{svg "octicon-eye" 14}}
 								{{$.locale.TrN $waitingOfficial "repo.pulls.waiting_count_1" "repo.pulls.waiting_count_n" $waitingOfficial}}
 							</span>
 						{{end}}
 						{{if and (not .PullRequest.HasMerged) (gt (len .PullRequest.ConflictedFiles) 0)}}
-							<span class="conflicting gt-df gt-ac">
+							<span class="conflicting flex-text-inline">
 								{{svg "octicon-x" 14}}
 								{{$.locale.TrN (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n" (len .PullRequest.ConflictedFiles)}}
 							</span>
@@ -121,32 +149,6 @@
 					{{end}}
 				</div>
 			</div>
-			{{if or .TotalTrackedTime .Assignees .NumComments}}
-			<div class="issue-item-icons-right gt-df gt-p-2">
-				{{if .TotalTrackedTime}}
-				<div class="issue-item-icon-right text grey">
-						{{svg "octicon-clock" 16 "gt-mr-2"}}
-						{{.TotalTrackedTime | Sec2Time}}
-				</div>
-				{{end}}
-				{{if .Assignees}}
-				<div class="issue-item-icon-right text grey">
-					{{range .Assignees}}
-						<a class="ui assignee gt-no-underline" href="{{.HomeLink}}" data-tooltip-content="{{.GetDisplayName}}">
-							{{avatar $.Context . 20}}
-						</a>
-					{{end}}
-				</div>
-				{{end}}
-				{{if .NumComments}}
-				<div class="issue-item-icon-right text grey">
-					<a class="gt-no-underline muted" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
-						{{svg "octicon-comment" 16 "gt-mr-2"}}{{.NumComments}}
-					</a>
-				</div>
-				{{end}}
-			</div>
-			{{end}}
 		</li>
 	{{end}}
 	{{if .IssueIndexerUnavailable}}
