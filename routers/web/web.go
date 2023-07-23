@@ -1310,9 +1310,7 @@ func registerRoutes(m *web.Route) {
 			m.Get("/blob/{sha}", context.RepoRefByType(context.RepoRefBlob), repo.DownloadByID)
 			// "/*" route is deprecated, and kept for backward compatibility
 			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.SingleDownload)
-		}, repo.MustBeNotEmpty, reqRepoCodeReader, func(ctx *context.Context) {
-			ctx.Resp.Header().Add("Access-Control-Allow-Origin", "*")
-		})
+		}, repo.MustBeNotEmpty, reqRepoCodeReader)
 
 		m.Group("/render", func() {
 			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.RenderFile)
@@ -1350,9 +1348,7 @@ func registerRoutes(m *web.Route) {
 			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.Home)
 			// "/*" route is deprecated, and kept for backward compatibility
 			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.Home)
-		}, repo.SetEditorconfigIfExists, func(ctx *context.Context) {
-			ctx.Resp.Header().Add("Access-Control-Allow-Origin", "*")
-		})
+		}, repo.SetEditorconfigIfExists)
 
 		m.Group("", func() {
 			m.Get("/forks", repo.Forks)

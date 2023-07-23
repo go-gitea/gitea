@@ -62,8 +62,7 @@ func RenderFile(ctx *context.Context) {
 		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 	}
 
-	ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'; sandbox allow-same-origin allow-scripts")
-	ctx.Resp.Header().Add("Access-Control-Allow-Origin", "http://192.168.8.18:3000")
+	ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'; sandbox allow-scripts allow-same-origin")
 	metaData := ctx.Repo.Repository.ComposeDocumentMetas()
 	metaData["BranchNameSubURL"] = ctx.Repo.BranchNameSubURL()
 	err = markup.Render(&markup.RenderContext{
@@ -76,5 +75,6 @@ func RenderFile(ctx *context.Context) {
 	}, rd, ctx.Resp)
 	if err != nil {
 		ctx.ServerError("Render", err)
+		return
 	}
 }

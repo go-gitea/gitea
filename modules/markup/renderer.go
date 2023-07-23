@@ -217,8 +217,7 @@ func Render(ctx *RenderContext, input io.Reader, output io.Writer) error {
 // RenderString renders Markup string to HTML with all specific handling stuff and return string
 func RenderString(ctx *RenderContext, content string) (string, error) {
 	var buf strings.Builder
-	err := Render(ctx, strings.NewReader(content), &buf)
-	if err != nil {
+	if err := Render(ctx, strings.NewReader(content), &buf); err != nil {
 		return "", err
 	}
 	return buf.String(), nil
@@ -240,9 +239,9 @@ func renderIFrame(ctx *RenderContext, output io.Writer) error {
 name="giteaExternalRender"
 onload="this.height=giteaExternalRender.document.documentElement.scrollHeight"
 width="100%%" height="0" scrolling="no" frameborder="0" style="overflow: hidden"
-sandbox="allow-same-origin"
+sandbox="allow-scripts"
 ></iframe>`,
-		setting.AppURL,
+		setting.AppSubURL,
 		url.PathEscape(ctx.Metas["user"]),
 		url.PathEscape(ctx.Metas["repo"]),
 		ctx.Metas["BranchNameSubURL"],
@@ -297,8 +296,7 @@ func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Wr
 		wg.Done()
 	}()
 
-	err1 := renderer.Render(ctx, input, pw)
-	if err1 != nil {
+	if err1 := renderer.Render(ctx, input, pw); err1 != nil {
 		return err1
 	}
 	_ = pw.Close()

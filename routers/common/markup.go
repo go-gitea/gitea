@@ -74,15 +74,14 @@ func RenderMarkup(ctx *context.Base, repo *context.Repository, mode, text, urlPr
 		meta["mode"] = "document"
 	}
 
-	err := markup.Render(&markup.RenderContext{
+	if err := markup.Render(&markup.RenderContext{
 		Ctx:          ctx,
 		URLPrefix:    urlPrefix,
 		Metas:        meta,
 		IsWiki:       wiki,
 		Type:         markupType,
 		RelativePath: relativePath,
-	}, strings.NewReader(text), ctx.Resp)
-	if err != nil {
+	}, strings.NewReader(text), ctx.Resp); err != nil {
 		if markup.IsErrUnsupportedRenderFile(err) {
 			ctx.Error(http.StatusUnprocessableEntity, err.Error())
 		} else {
