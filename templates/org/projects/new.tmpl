@@ -1,6 +1,9 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content organization projects edit-project new">
+	{{template "shared/user/org_profile_avatar" .}}
+	<div class="ui container">
 	{{template "user/overview/header" .}}
 	{{template "projects/new" .}}
+	</div>
 </div>
 {{template "base/footer" .}}

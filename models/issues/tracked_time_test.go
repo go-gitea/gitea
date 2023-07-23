@@ -25,7 +25,7 @@ func TestAddTime(t *testing.T) {
 	assert.NoError(t, err)
 
 	// 3661 = 1h 1min 1s
-	trackedTime, err := issues_model.AddTime(user3, issue1, 3661, time.Now())
+	trackedTime, err := issues_model.AddTime(db.DefaultContext, user3, issue1, 3661, time.Now())
 	assert.NoError(t, err)
 	assert.Equal(t, int64(3), trackedTime.UserID)
 	assert.Equal(t, int64(1), trackedTime.IssueID)
@@ -35,7 +35,7 @@ func TestAddTime(t *testing.T) {
 	assert.Equal(t, int64(3661), tt.Time)
 
 	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{Type: issues_model.CommentTypeAddTimeManual, PosterID: 3, IssueID: 1})
-	assert.Equal(t, "1 hour 1 minute", comment.Content)
+	assert.Equal(t, "|3661", comment.Content)
 }
 
 func TestGetTrackedTimes(t *testing.T) {

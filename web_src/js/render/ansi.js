@@ -11,6 +11,7 @@ export function renderAnsi(line) {
   // the output of future renders, because ansi_up is stateful and remembers things like
   // unclosed opening tags for colors.
   const ansi_up = new (AnsiUp.default || AnsiUp)();
+  ansi_up.use_classes = true;
 
   if (line.endsWith('\r\n')) {
     line = line.substring(0, line.length - 2);

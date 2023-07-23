@@ -514,20 +514,6 @@
   padding-left: 2em;
 }
 
-.repository.wiki.revisions .ui.container > .ui.stackable.grid {
-  -ms-flex-direction: row-reverse;
-  flex-direction: row-reverse;
-}
-
-.repository.wiki.revisions .ui.container > .ui.stackable.grid > .header {
-  margin-top: 0;
-}
-
-.repository.wiki.revisions .ui.container > .ui.stackable.grid > .header .sub.header {
-  padding-left: 52px;
-  word-break: break-word;
-}
-
 .file-revisions-btn {
   display: block;
   float: left;

@@ -32,10 +32,6 @@
   font-size: 12px;
 }
 
-.ui.repository.list .item .ui.tags {
-  margin-bottom: 0.5rem;
-}
-
 .ui.repository.list .repo-title .labels {
   word-break: normal;
   flex-shrink: 0;

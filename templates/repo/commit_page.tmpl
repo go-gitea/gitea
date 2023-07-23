@@ -26,7 +26,8 @@
 							{{.locale.Tr "repo.diff.browse_source"}}
 						</a>
 						{{if and ($.Permission.CanWrite $.UnitTypeCode) (not $.Repository.IsArchived) (not .IsDeleted)}}{{- /* */ -}}
-							<div class="ui primary tiny floating dropdown icon button">{{.locale.Tr "repo.commit.operations"}}
+							<div class="ui dropdown primary tiny button">
+								{{.locale.Tr "repo.commit.operations"}}
 								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 								<div class="menu">
 									<div class="ui header">{{.locale.Tr "repo.commit.operations"}}</div>
@@ -188,7 +189,7 @@
 				</div>
 		</div>
 		{{if .Commit.Signature}}
-			<div class="ui bottom attached message gt-tl gt-df gt-ac gt-sb commit-header-row gt-fw {{$class}}">
+			<div class="ui bottom attached message gt-text-left gt-df gt-ac gt-sb commit-header-row gt-fw {{$class}}">
 				<div class="gt-df gt-ac">
 					{{if .Verification.Verified}}
 						{{if ne .Verification.SigningUser.ID 0}}

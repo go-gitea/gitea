@@ -41,6 +41,7 @@ func MustEnableProjects(ctx *context.Context) {
 
 // Projects renders the home page of projects
 func Projects(ctx *context.Context) {
+	shared_user.PrepareContextForProfileBigAvatar(ctx)
 	ctx.Data["Title"] = ctx.Tr("repo.project_board")
 
 	sortType := ctx.FormTrim("sort")
@@ -61,7 +62,7 @@ func Projects(ctx *context.Context) {
 		OwnerID:  ctx.ContextUser.ID,
 		Page:     page,
 		IsClosed: util.OptionalBoolOf(isShowClosed),
-		SortType: sortType,
+		OrderBy:  project_model.GetSearchOrderByBySortType(sortType),
 		Type:     projectType,
 	})
 	if err != nil {
@@ -218,7 +219,7 @@ func DeleteProject(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.projects.deletion_success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"redirect": ctx.ContextUser.HomeLink() + "/-/projects",
 	})
 }
@@ -383,7 +384,7 @@ func ViewProject(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplProjectsView)
 }
 
-func getActionIssues(ctx *context.Context) []*issues_model.Issue {
+func getActionIssues(ctx *context.Context) issues_model.IssueList {
 	commaSeparatedIssueIDs := ctx.FormString("issue_ids")
 	if len(commaSeparatedIssueIDs) == 0 {
 		return nil
@@ -429,11 +430,17 @@ func UpdateIssueProject(ctx *context.Context) {
 		return
 	}
 
+	if err := issues.LoadProjects(ctx); err != nil {
+		ctx.ServerError("LoadProjects", err)
+		return
+	}
+
 	projectID := ctx.FormInt64("id")
 	for _, issue := range issues {
-		oldProjectID := issue.ProjectID()
-		if oldProjectID == projectID {
-			continue
+		if issue.Project != nil {
+			if issue.Project.ID == projectID {
+				continue
+			}
 		}
 
 		if err := issues_model.ChangeProjectAssign(issue, ctx.Doer, projectID); err != nil {
@@ -442,7 +449,7 @@ func UpdateIssueProject(ctx *context.Context) {
 		}
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"ok": true,
 	})
 }
@@ -490,7 +497,7 @@ func DeleteProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"ok": true,
 	})
 }
@@ -519,7 +526,7 @@ func AddBoardToProjectPost(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"ok": true,
 	})
 }
@@ -587,7 +594,7 @@ func EditProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"ok": true,
 	})
 }
@@ -604,7 +611,7 @@ func SetDefaultProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"ok": true,
 	})
 }
@@ -621,7 +628,7 @@ func UnsetDefaultProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"ok": true,
 	})
 }
@@ -723,7 +730,7 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"ok": true,
 	})
 }

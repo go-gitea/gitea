@@ -11,7 +11,7 @@ draft: false
 # 關於 Gitea
 
 Gitea 是一個可自行託管的 Git 服務。你可以拿 GitHub、Bitbucket 或 Gitlab 來比較看看。
-Gitea 是從 [Gogs](http://gogs.io) Fork 出來的，請閱讀部落格文章 [Gitea 公告](https://blog.gitea.io/2016/12/welcome-to-gitea/)以了解我們 Fork 的理由。
+Gitea 是從 [Gogs](http://gogs.io) Fork 出來的，請閱讀部落格文章 [Gitea 公告](https://blog.gitea.com/welcome-to-gitea/)以了解我們 Fork 的理由。
 
 ## 目標
 

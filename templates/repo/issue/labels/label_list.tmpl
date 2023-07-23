@@ -22,10 +22,10 @@
 <div class="ui attached segment">
 	{{if and (not $.PageIsOrgSettingsLabels) (or $.CanWriteIssues $.CanWritePulls) (eq .NumLabels 0) (not $.Repository.IsArchived)}}
 		{{template "repo/issue/labels/label_load_template" .}}
-		<div class="ui divider"></div>
+		<div class="divider"></div>
 	{{else if and ($.PageIsOrgSettingsLabels) (eq .NumLabels 0)}}
 		{{template "repo/issue/labels/label_load_template" .}}
-		<div class="ui divider"></div>
+		<div class="divider"></div>
 	{{end}}
 
 	<ul class="issue-label-list">
