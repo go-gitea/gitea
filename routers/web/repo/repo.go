@@ -630,7 +630,7 @@ type branchTagSearchResponse struct {
 // GetBranchesList get branches for current repo'
 func GetBranchesList(ctx *context.Context) {
 	branchOpts := git_model.FindBranchOptions{
-		RepoID:          ctx.Repo.Repository.ID,
+		RepoIDs:         []int64{ctx.Repo.Repository.ID},
 		IsDeletedBranch: util.OptionalBoolFalse,
 		ListOptions: db.ListOptions{
 			ListAll: true,
@@ -665,7 +665,7 @@ func GetTagList(ctx *context.Context) {
 
 func PrepareBranchList(ctx *context.Context) {
 	branchOpts := git_model.FindBranchOptions{
-		RepoID:          ctx.Repo.Repository.ID,
+		RepoIDs:         []int64{ctx.Repo.Repository.ID},
 		IsDeletedBranch: util.OptionalBoolFalse,
 		ListOptions: db.ListOptions{
 			ListAll: true,
