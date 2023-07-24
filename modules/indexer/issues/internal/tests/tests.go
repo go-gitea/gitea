@@ -257,6 +257,147 @@ var cases = []*testIndexerCase{
 		ExpectedIDs:   []int64{1003, 1001, 1000},
 		ExpectedTotal: 3,
 	},
+	{
+		Name: "milestone",
+		SearchOptions: &internal.SearchOptions{
+			Paginator: &db.ListOptions{
+				PageSize: 5,
+			},
+			MilestoneIDs: []int64{1, 2, 6},
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Equal(t, 5, len(result.Hits))
+			for _, v := range result.Hits {
+				assert.Contains(t, []int64{1, 2, 6}, data[v.ID].MilestoneID)
+			}
+			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
+				return v.MilestoneID == 1 || v.MilestoneID == 2 || v.MilestoneID == 6
+			}), result.Total)
+		},
+	},
+	{
+		Name: "no milestone",
+		SearchOptions: &internal.SearchOptions{
+			Paginator: &db.ListOptions{
+				PageSize: 5,
+			},
+			MilestoneIDs: []int64{0},
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Equal(t, 5, len(result.Hits))
+			for _, v := range result.Hits {
+				assert.Equal(t, int64(0), data[v.ID].MilestoneID)
+			}
+			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
+				return v.MilestoneID == 0
+			}), result.Total)
+		},
+	},
+	{
+		Name: "project",
+		SearchOptions: &internal.SearchOptions{
+			Paginator: &db.ListOptions{
+				PageSize: 5,
+			},
+			ProjectID: func() *int64 {
+				id := int64(1)
+				return &id
+			}(),
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Equal(t, 5, len(result.Hits))
+			for _, v := range result.Hits {
+				assert.Equal(t, int64(1), data[v.ID].ProjectID)
+			}
+			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
+				return v.ProjectID == 1
+			}), result.Total)
+		},
+	},
+	{
+		Name: "no project",
+		SearchOptions: &internal.SearchOptions{
+			Paginator: &db.ListOptions{
+				PageSize: 5,
+			},
+			ProjectID: func() *int64 {
+				id := int64(0)
+				return &id
+			}(),
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Equal(t, 5, len(result.Hits))
+			for _, v := range result.Hits {
+				assert.Equal(t, int64(0), data[v.ID].ProjectID)
+			}
+			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
+				return v.ProjectID == 0
+			}), result.Total)
+		},
+	},
+	{
+		Name: "project board",
+		SearchOptions: &internal.SearchOptions{
+			Paginator: &db.ListOptions{
+				PageSize: 5,
+			},
+			ProjectBoardID: func() *int64 {
+				id := int64(1)
+				return &id
+			}(),
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Equal(t, 5, len(result.Hits))
+			for _, v := range result.Hits {
+				assert.Equal(t, int64(1), data[v.ID].ProjectBoardID)
+			}
+			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
+				return v.ProjectBoardID == 1
+			}), result.Total)
+		},
+	},
+	{
+		Name: "no project board",
+		SearchOptions: &internal.SearchOptions{
+			Paginator: &db.ListOptions{
+				PageSize: 5,
+			},
+			ProjectBoardID: func() *int64 {
+				id := int64(0)
+				return &id
+			}(),
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Equal(t, 5, len(result.Hits))
+			for _, v := range result.Hits {
+				assert.Equal(t, int64(0), data[v.ID].ProjectBoardID)
+			}
+			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
+				return v.ProjectBoardID == 0
+			}), result.Total)
+		},
+	},
+	{
+		Name: "poster",
+		SearchOptions: &internal.SearchOptions{
+			Paginator: &db.ListOptions{
+				PageSize: 5,
+			},
+			PosterID: func() *int64 {
+				id := int64(1)
+				return &id
+			}(),
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Equal(t, 5, len(result.Hits))
+			for _, v := range result.Hits {
+				assert.Equal(t, int64(1), data[v.ID].PosterID)
+			}
+			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
+				return v.PosterID == 0
+			}), result.Total)
+		},
+	},
 	// TODO: add more cases
 }
 
