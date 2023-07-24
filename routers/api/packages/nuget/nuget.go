@@ -25,7 +25,7 @@ import (
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
-func apiError(ctx *context.Context, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj any) {
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.JSON(status, map[string]string{
 			"Message": message,
@@ -33,7 +33,7 @@ func apiError(ctx *context.Context, status int, obj interface{}) {
 	})
 }
 
-func xmlResponse(ctx *context.Context, status int, obj interface{}) {
+func xmlResponse(ctx *context.Context, status int, obj any) {
 	ctx.Resp.Header().Set("Content-Type", "application/atom+xml; charset=utf-8")
 	ctx.Resp.WriteHeader(status)
 	if _, err := ctx.Resp.Write([]byte(xml.Header)); err != nil {

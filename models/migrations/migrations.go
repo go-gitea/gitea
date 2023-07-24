@@ -512,7 +512,11 @@ var migrations = []Migration{
 	// v264 -> v265
 	NewMigration("Add branch table", v1_21.AddBranchTable),
 	// v265 -> v266
-	NewMigration("Fix missing admin team unit records", v1_21.FixMissingAdminTeamUnitRecords),
+	NewMigration("Alter Actions Artifact table", v1_21.AlterActionArtifactTable),
+	// v266 -> v267
+	NewMigration("Reduce commit status", v1_21.ReduceCommitStatus),
+    // v267 -> v268
+    NewMigration("Fix missing admin team unit records", v1_21.FixMissingAdminTeamUnitRecords),
 }
 
 // GetCurrentDBVersion returns the current db version

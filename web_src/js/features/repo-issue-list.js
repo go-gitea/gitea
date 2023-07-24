@@ -2,9 +2,9 @@ import $ from 'jquery';
 import {updateIssuesMeta} from './repo-issue.js';
 import {toggleElem} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
-import {Sortable} from 'sortablejs';
 import {confirmModal} from './comp/ConfirmModal.js';
 import {showErrorToast} from '../modules/toast.js';
+import {createSortable} from '../modules/sortable.js';
 
 function initRepoIssueListCheckboxes() {
   const $issueSelectAll = $('.issue-checkbox-all');
@@ -176,7 +176,7 @@ async function pinMoveEnd(e) {
   });
 }
 
-function initIssuePinSort() {
+async function initIssuePinSort() {
   const pinDiv = document.getElementById('issue-pins');
 
   if (pinDiv === null) return;
@@ -189,7 +189,7 @@ function initIssuePinSort() {
   // If only one issue pinned, we don't need to make this Sortable
   if (pinDiv.children.length < 2) return;
 
-  new Sortable(pinDiv, {
+  createSortable(pinDiv, {
     group: 'shared',
     animation: 150,
     ghostClass: 'card-ghost',

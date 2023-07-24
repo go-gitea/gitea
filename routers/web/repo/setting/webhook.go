@@ -145,7 +145,7 @@ func WebhooksNew(ctx *context.Context) {
 		return
 	}
 	if hookType == "discord" {
-		ctx.Data["DiscordHook"] = map[string]interface{}{
+		ctx.Data["DiscordHook"] = map[string]any{
 			"Username": "Gitea",
 		}
 	}
@@ -196,7 +196,7 @@ type webhookParams struct {
 	Secret      string
 	HTTPMethod  string
 	WebhookForm forms.WebhookForm
-	Meta        interface{}
+	Meta        any
 }
 
 func createWebhook(ctx *context.Context, params webhookParams) {
@@ -729,7 +729,7 @@ func DeleteWebhook(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"redirect": ctx.Repo.RepoLink + "/settings/hooks",
 	})
 }

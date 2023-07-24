@@ -24,7 +24,7 @@ import (
 	alpine_service "code.gitea.io/gitea/services/packages/alpine"
 )
 
-func apiError(ctx *context.Context, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj any) {
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.PlainText(status, message)
 	})

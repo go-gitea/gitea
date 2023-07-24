@@ -19,11 +19,19 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
+func ToIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
+	return toIssue(ctx, issue, WebAssetDownloadURL)
+}
+
 // ToAPIIssue converts an Issue to API format
 // it assumes some fields assigned with values:
 // Required - Poster, Labels,
 // Optional - Milestone, Assignee, PullRequest
 func ToAPIIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
+	return toIssue(ctx, issue, APIAssetDownloadURL)
+}
+
+func toIssue(ctx context.Context, issue *issues_model.Issue, getDownloadURL func(repo *repo_model.Repository, attach *repo_model.Attachment) string) *api.Issue {
 	if err := issue.LoadLabels(ctx); err != nil {
 		return &api.Issue{}
 	}
@@ -40,7 +48,7 @@ func ToAPIIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
 		Poster:      ToUser(ctx, issue.Poster, nil),
 		Title:       issue.Title,
 		Body:        issue.Content,
-		Attachments: ToAttachments(issue.Attachments),
+		Attachments: toAttachments(issue.Repo, issue.Attachments, getDownloadURL),
 		Ref:         issue.Ref,
 		State:       issue.State(),
 		IsLocked:    issue.IsLocked,
@@ -103,6 +111,15 @@ func ToAPIIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
 	}
 
 	return apiIssue
+}
+
+// ToIssueList converts an IssueList to API format
+func ToIssueList(ctx context.Context, il issues_model.IssueList) []*api.Issue {
+	result := make([]*api.Issue, len(il))
+	for i := range il {
+		result[i] = ToIssue(ctx, il[i])
+	}
+	return result
 }
 
 // ToAPIIssueList converts an IssueList to API format

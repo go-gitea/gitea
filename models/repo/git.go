@@ -11,7 +11,7 @@ type MergeStyle string
 const (
 	// MergeStyleMerge create merge commit
 	MergeStyleMerge MergeStyle = "merge"
-	// MergeStyleRebase rebase before merging
+	// MergeStyleRebase rebase before merging, and fast-forward
 	MergeStyleRebase MergeStyle = "rebase"
 	// MergeStyleRebaseMerge rebase before merging with merge commit (--no-ff)
 	MergeStyleRebaseMerge MergeStyle = "rebase-merge"

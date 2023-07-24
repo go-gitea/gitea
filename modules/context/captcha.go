@@ -60,7 +60,7 @@ const (
 
 // VerifyCaptcha verifies Captcha data
 // No-op if captchas are not enabled
-func VerifyCaptcha(ctx *Context, tpl base.TplName, form interface{}) {
+func VerifyCaptcha(ctx *Context, tpl base.TplName, form any) {
 	if !setting.Service.EnableCaptcha {
 		return
 	}

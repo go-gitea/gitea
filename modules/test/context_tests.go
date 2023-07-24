@@ -154,7 +154,7 @@ func (tr *mockRender) TemplateLookup(tmpl string) (templates.TemplateExecutor, e
 	return nil, nil
 }
 
-func (tr *mockRender) HTML(w io.Writer, status int, _ string, _ interface{}) error {
+func (tr *mockRender) HTML(w io.Writer, status int, _ string, _ any) error {
 	if resp, ok := w.(http.ResponseWriter); ok {
 		resp.WriteHeader(status)
 	}

@@ -37,7 +37,7 @@ var versionMatcher = regexp.MustCompile(`\Av?` +
 	`(?:\+[a-z0-9]+(?:[-_\.][a-z0-9]+)*)?` + // local version
 	`\z`)
 
-func apiError(ctx *context.Context, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj any) {
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.PlainText(status, message)
 	})

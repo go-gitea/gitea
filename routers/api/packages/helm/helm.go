@@ -26,7 +26,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func apiError(ctx *context.Context, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj any) {
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		type Error struct {
 			Error string `json:"error"`

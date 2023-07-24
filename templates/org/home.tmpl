@@ -20,16 +20,13 @@
 			</div>
 		</div>
 		<div class="right menu">
-			<form method="post" action="{{.Link}}?action={{if $.IsFollowing}}unfollow{{else}}follow{{end}}&redirect_to={{$.Link}}">
-				{{$.CsrfTokenHtml}}
-				<button type="submit" class="ui basic button gt-mr-0">
-					{{if $.IsFollowing}}
-						{{.locale.Tr "user.unfollow"}}
-					{{else}}
-						{{.locale.Tr "user.follow"}}
-					{{end}}
-				</button>
-			</form>
+			<button class="link-action ui basic button gt-mr-0" data-url="{{.Org.HomeLink}}?action={{if $.IsFollowing}}unfollow{{else}}follow{{end}}">
+				{{if $.IsFollowing}}
+					{{.locale.Tr "user.unfollow"}}
+				{{else}}
+					{{.locale.Tr "user.follow"}}
+				{{end}}
+			</button>
 		</div>
 	</div>
 
