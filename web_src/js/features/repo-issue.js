@@ -703,7 +703,7 @@ function initRepoIssueStateButton() {
   };
   $statusDropdown.dropdown('setting', {
     selectOnKeydown: false,
-    allowReselection: true, // make user can re-select duplicate issue.
+    allowReselection: true, 
     onChange: onCloseStatusChanged,
   });
   $statusDropdown.dropdown('set selected', selectedValue);
