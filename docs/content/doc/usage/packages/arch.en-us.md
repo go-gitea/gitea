@@ -38,22 +38,16 @@ pacman -Sy package
 
 ## Upload packages
 
-1. Decode message and metadata signatures to hex, by running following commands, save output.
-
-```sh
-xxd -p package-1-1-x86_64.pkg.tar.zst.sig >> package-signature-hex
-```
-
-2. Paste your parameters and push package with [curl](https://curl.se/).
+Get into folder with package and signature, push package with [curl](https://curl.se/).
 
 ```sh
 curl -X PUT \
   'https://{domain}/api/packages/{owner}/arch/push' \
-  -H 'Authorization: {your-authorization-token}' \
-  -H 'filename: package-1-1-x86_64.pkg.tar.zst' \
-  -H 'distro: archlinux' \
-  -H 'sign: {package-signature-hex}' \
-  -H 'Content-Type: application/octet-stream' \
+  -H "Authorization: {your-authorization-token}" \
+  -H "filename: package-1-1-x86_64.pkg.tar.zst" \
+  -H "distro: archlinux" \
+  -H "sign: $(xxd -p package-1-1-x86_64.pkg.tar.zst.sig | tr -d '\n')"
+  -H "Content-Type: application/octet-stream" \
   --data-binary '@/path/to/package/file/package-1-1-x86_64.pkg.tar.zst'
 ```
 
@@ -64,7 +58,7 @@ Send delete message with [curl](https://curl.se/).
 ```sh
 curl -X DELETE \
   http://localhost:3000/api/packages/{user}/arch/remove \
-  -H 'Authorization: {your-authorization-token}' \
+  -H "Authorization: {your-authorization-token}" \
   -H "target: package" \
   -H "version: {version-release}"
 ```
