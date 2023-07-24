@@ -190,7 +190,7 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 			for _, labelID := range options.IncludedLabelIDs {
 				includeQueries = append(includeQueries, inner_bleve.NumericEqualityQuery(labelID, "label_ids"))
 			}
-			queries = append(queries, bleve.NewDisjunctionQuery(includeQueries...))
+			queries = append(queries, bleve.NewConjunctionQuery(includeQueries...))
 		}
 		if len(options.ExcludedLabelIDs) > 0 {
 			var excludeQueries []query.Query
@@ -199,7 +199,7 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 				q.AddMustNot(inner_bleve.NumericEqualityQuery(labelID, "label_ids"))
 				excludeQueries = append(excludeQueries, q)
 			}
-			queries = append(queries, bleve.NewConjunctionQuery(excludeQueries...)) // Be careful, it's conjunction here, not disjunction.
+			queries = append(queries, bleve.NewConjunctionQuery(excludeQueries...))
 		}
 	}
 
