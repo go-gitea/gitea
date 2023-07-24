@@ -191,8 +191,8 @@ func TestFindRecentlyPushedNewBranches(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
-	user8 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 8})
 	user18 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 18})
+	user39 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 39})
 
 	tests := []struct {
 		name  string
@@ -209,7 +209,7 @@ func TestFindRecentlyPushedNewBranches(t *testing.T) {
 		},
 		{
 			name:  "new branch from user fork repo",
-			actor: user8,
+			actor: user39,
 			count: 1,
 			want:  []string{"user-fork-new-commit"},
 		},

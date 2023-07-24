@@ -205,7 +205,7 @@ func TestSearchRepository(t *testing.T) {
 		{
 			name:  "PublicAndPrivateRepositoriesOfUser2IncludingCollaborative",
 			opts:  &repo_model.SearchRepoOptions{ListOptions: db.ListOptions{Page: 1, PageSize: 10}, OwnerID: 18, Private: true},
-			count: 4,
+			count: 5,
 		},
 		{
 			name:  "PublicAndPrivateRepositoriesOfUser3IncludingCollaborative",

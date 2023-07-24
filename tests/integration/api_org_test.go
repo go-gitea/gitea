@@ -170,7 +170,7 @@ func TestAPIGetAll(t *testing.T) {
 	var apiOrgList []*api.Organization
 
 	DecodeJSON(t, resp, &apiOrgList)
-	assert.Len(t, apiOrgList, 11)
+	assert.Len(t, apiOrgList, 13)
 	assert.Equal(t, "Limited Org 36", apiOrgList[1].FullName)
 	assert.Equal(t, "limited", apiOrgList[1].Visibility)
 
@@ -179,7 +179,7 @@ func TestAPIGetAll(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &apiOrgList)
-	assert.Len(t, apiOrgList, 7)
+	assert.Len(t, apiOrgList, 8)
 	assert.Equal(t, "org25", apiOrgList[0].FullName)
 	assert.Equal(t, "public", apiOrgList[0].Visibility)
 }
