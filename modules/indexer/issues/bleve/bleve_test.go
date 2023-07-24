@@ -9,7 +9,7 @@ import (
 	"code.gitea.io/gitea/modules/indexer/issues/internal/tests"
 )
 
-func TestIndexer(t *testing.T) {
+func TestBleveIndexer(t *testing.T) {
 	dir := t.TempDir()
 	indexer := NewIndexer(dir)
 	defer indexer.Close()

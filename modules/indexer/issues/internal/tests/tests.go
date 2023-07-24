@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -120,6 +121,107 @@ var cases = []*testIndexerCase{
 		},
 		ExpectedIDs:   []int64{1002, 1001, 1000},
 		ExpectedTotal: 3,
+	},
+	{
+		Name: "repo ids",
+		ExtraData: []*internal.IndexerData{
+			{ID: 1001, Title: "hello world", RepoID: 1, IsPublic: false},
+			{ID: 1002, Title: "hello world", RepoID: 1, IsPublic: false},
+			{ID: 1003, Title: "hello world", RepoID: 2, IsPublic: true},
+			{ID: 1004, Title: "hello world", RepoID: 2, IsPublic: true},
+			{ID: 1005, Title: "hello world", RepoID: 3, IsPublic: true},
+			{ID: 1006, Title: "hello world", RepoID: 4, IsPublic: false},
+			{ID: 1007, Title: "hello world", RepoID: 5, IsPublic: false},
+		},
+		SearchOptions: &internal.SearchOptions{
+			Keyword: "hello",
+			RepoIDs: []int64{1, 4},
+		},
+		ExpectedIDs:   []int64{1006, 1002, 1001},
+		ExpectedTotal: 3,
+	},
+	{
+		Name: "repo ids and public",
+		ExtraData: []*internal.IndexerData{
+			{ID: 1001, Title: "hello world", RepoID: 1, IsPublic: false},
+			{ID: 1002, Title: "hello world", RepoID: 1, IsPublic: false},
+			{ID: 1003, Title: "hello world", RepoID: 2, IsPublic: true},
+			{ID: 1004, Title: "hello world", RepoID: 2, IsPublic: true},
+			{ID: 1005, Title: "hello world", RepoID: 3, IsPublic: true},
+			{ID: 1006, Title: "hello world", RepoID: 4, IsPublic: false},
+			{ID: 1007, Title: "hello world", RepoID: 5, IsPublic: false},
+		},
+		SearchOptions: &internal.SearchOptions{
+			Keyword:   "hello",
+			RepoIDs:   []int64{1, 4},
+			AllPublic: true,
+		},
+		ExpectedIDs:   []int64{1006, 1005, 1004, 1003, 1002, 1001},
+		ExpectedTotal: 6,
+	},
+	{
+		Name: "issue only",
+		SearchOptions: &internal.SearchOptions{
+			Paginator: &db.ListOptions{
+				PageSize: 5,
+			},
+			IsPull: util.OptionalBoolFalse,
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Equal(t, 5, len(result.Hits))
+			for _, v := range result.Hits {
+				assert.False(t, data[v.ID].IsPull)
+			}
+			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool { return !v.IsPull }), result.Total)
+		},
+	},
+	{
+		Name: "pull only",
+		SearchOptions: &internal.SearchOptions{
+			Paginator: &db.ListOptions{
+				PageSize: 5,
+			},
+			IsPull: util.OptionalBoolTrue,
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Equal(t, 5, len(result.Hits))
+			for _, v := range result.Hits {
+				assert.True(t, data[v.ID].IsPull)
+			}
+			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool { return v.IsPull }), result.Total)
+		},
+	},
+	{
+		Name: "opened only",
+		SearchOptions: &internal.SearchOptions{
+			Paginator: &db.ListOptions{
+				PageSize: 5,
+			},
+			IsClosed: util.OptionalBoolFalse,
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Equal(t, 5, len(result.Hits))
+			for _, v := range result.Hits {
+				assert.False(t, data[v.ID].IsClosed)
+			}
+			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool { return !v.IsClosed }), result.Total)
+		},
+	},
+	{
+		Name: "closed only",
+		SearchOptions: &internal.SearchOptions{
+			Paginator: &db.ListOptions{
+				PageSize: 5,
+			},
+			IsClosed: util.OptionalBoolTrue,
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Equal(t, 5, len(result.Hits))
+			for _, v := range result.Hits {
+				assert.True(t, data[v.ID].IsClosed)
+			}
+			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool { return v.IsClosed }), result.Total)
+		},
 	},
 	{
 		Name: "labels",
@@ -231,4 +333,14 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 	}
 
 	return data
+}
+
+func countIndexerData(data map[int64]*internal.IndexerData, f func(v *internal.IndexerData) bool) int64 {
+	var count int64
+	for _, v := range data {
+		if f(v) {
+			count++
+		}
+	}
+	return count
 }
