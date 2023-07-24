@@ -299,6 +299,23 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Flash.Info(ctx.Tr("repo.settings.mirror_sync_in_progress"))
 		ctx.Redirect(repo.Link() + "/settings")
 
+	case "push-mirror-update":
+		if !setting.Mirror.Enabled {
+			ctx.NotFound("", nil)
+			return
+		}
+
+		m, err := selectPushMirrorByForm(ctx, form, repo)
+		if err != nil {
+			ctx.NotFound("", nil)
+			return
+		}
+
+		mirror_module.AddPushMirrorToQueue(m.ID)
+
+		ctx.Flash.Info("Mirror sync updated")
+		ctx.Redirect(repo.Link() + "/settings")
+
 	case "push-mirror-remove":
 		if !setting.Mirror.Enabled {
 			ctx.NotFound("", nil)

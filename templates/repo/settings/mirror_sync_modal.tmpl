@@ -1,0 +1,31 @@
+<div class="ui small modal" id="mirror-sync-update">
+	<div class="header">
+		Edit mirror sync
+	</div>
+	<div class="content">
+		<form class="ui form ignore-dirty" action="{{$.Link}}/edit" method="post">
+			{{.CsrfTokenHtml}}
+			<input id="mirror-id" name="id" type="hidden">
+			<div class="field">
+				<label for="name">{{$.locale.Tr "repo.settings.mirror_settings.mirrored_repository"}}</label>
+				<div class="ui small input">
+					<input class="disable" name="mirror-address" id="mirror-address" readonly>
+				</div>
+			</div>
+			<div class="inline field">
+				<label for="push_mirror_interval">{{.locale.Tr "repo.mirror_interval" .MinimumMirrorInterval}}</label>
+				<input id="push_mirror_interval" name="push_mirror_interval" autofocus>
+			</div>
+		</form>
+	</div>
+	<div class="actions">
+		<button class="ui small basic cancel button">
+			{{svg "octicon-x"}}
+			{{.locale.Tr "cancel"}}
+		</button>
+		<button class="ui primary small approve button">
+			{{svg "fontawesome-save"}}
+			{{.locale.Tr "save"}}
+		</button>
+	</div>
+</div>
