@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/url"
@@ -297,10 +298,12 @@ var (
 		&cli.BoolFlag{
 			Name:  "force-smtps",
 			Usage: "SMTPS is always used on port 465. Set this to force SMTPS on other ports.",
+			Value: true,
 		},
 		&cli.BoolFlag{
 			Name:  "skip-verify",
 			Usage: "Skip TLS verify.",
+			Value: true,
 		},
 		&cli.StringFlag{
 			Name:  "helo-hostname",
@@ -310,6 +313,7 @@ var (
 		&cli.BoolFlag{
 			Name:  "disable-helo",
 			Usage: "Disable SMTP helo.",
+			Value: true,
 		},
 		&cli.StringFlag{
 			Name:  "allowed-domains",
@@ -319,10 +323,12 @@ var (
 		&cli.BoolFlag{
 			Name:  "skip-local-2fa",
 			Usage: "Skip 2FA to log on.",
+			Value: true,
 		},
 		&cli.BoolFlag{
 			Name:  "active",
 			Usage: "This Authentication Source is Activated.",
+			Value: true,
 		},
 	}
 
@@ -373,7 +379,7 @@ func runRepoSyncReleases(_ *cli.Context) error {
 				continue
 			}
 
-			oldnum, err := getReleaseCount(repo.ID)
+			oldnum, err := getReleaseCount(ctx, repo.ID)
 			if err != nil {
 				log.Warn(" GetReleaseCountByRepoID: %v", err)
 			}
@@ -385,7 +391,7 @@ func runRepoSyncReleases(_ *cli.Context) error {
 				continue
 			}
 
-			count, err = getReleaseCount(repo.ID)
+			count, err = getReleaseCount(ctx, repo.ID)
 			if err != nil {
 				log.Warn(" GetReleaseCountByRepoID: %v", err)
 				gitRepo.Close()
@@ -401,9 +407,9 @@ func runRepoSyncReleases(_ *cli.Context) error {
 	return nil
 }
 
-func getReleaseCount(id int64) (int64, error) {
+func getReleaseCount(ctx context.Context, id int64) (int64, error) {
 	return repo_model.GetReleaseCountByRepoID(
-		db.DefaultContext,
+		ctx,
 		id,
 		repo_model.FindReleasesOptions{
 			IncludeTags: true,
