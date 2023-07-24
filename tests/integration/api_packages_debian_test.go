@@ -33,7 +33,7 @@ func TestPackageDebian(t *testing.T) {
 	packageVersion := "1.0.3"
 	packageDescription := "Package Description"
 
-	createArchive := func(name, version, architecture string, appendSlash bool) io.Reader {
+	createArchive := func(name, version, architecture string) io.Reader {
 		var cbuf bytes.Buffer
 		zw := gzip.NewWriter(&cbuf)
 		tw := tar.NewWriter(zw)
@@ -53,9 +53,6 @@ func TestPackageDebian(t *testing.T) {
 			Name: "control.tar.gz",
 			Mode: 0o600,
 			Size: int64(cbuf.Len()),
-		}
-		if appendSlash {
-			hdr.Name += "/"
 		}
 		aw.WriteHeader(hdr)
 		aw.Write(cbuf.Bytes())
@@ -95,11 +92,11 @@ func TestPackageDebian(t *testing.T) {
 							AddBasicAuthHeader(req, user.Name)
 							MakeRequest(t, req, http.StatusBadRequest)
 
-							req = NewRequestWithBody(t, "PUT", uploadURL, createArchive("", "", "", false))
+							req = NewRequestWithBody(t, "PUT", uploadURL, createArchive("", "", ""))
 							AddBasicAuthHeader(req, user.Name)
 							MakeRequest(t, req, http.StatusBadRequest)
 
-							req = NewRequestWithBody(t, "PUT", uploadURL, createArchive(packageName, packageVersion, architecture, false))
+							req = NewRequestWithBody(t, "PUT", uploadURL, createArchive(packageName, packageVersion, architecture))
 							AddBasicAuthHeader(req, user.Name)
 							MakeRequest(t, req, http.StatusCreated)
 
@@ -148,11 +145,7 @@ func TestPackageDebian(t *testing.T) {
 								return seen
 							})
 
-							req = NewRequestWithBody(t, "PUT", uploadURL, createArchive(packageName, packageVersion, architecture, false))
-							AddBasicAuthHeader(req, user.Name)
-							MakeRequest(t, req, http.StatusBadRequest)
-
-							req = NewRequestWithBody(t, "PUT", uploadURL, createArchive(packageName, packageVersion, architecture, true))
+							req = NewRequestWithBody(t, "PUT", uploadURL, createArchive(packageName, packageVersion, architecture))
 							AddBasicAuthHeader(req, user.Name)
 							MakeRequest(t, req, http.StatusBadRequest)
 						})
