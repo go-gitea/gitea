@@ -32,7 +32,6 @@ type Metadata struct {
 	SHA256         string   `json:"sha256"`
 	URL            string   `json:"url"`
 	BuildDate      int64    `json:"build-date"`
-	BaseDomain     string   `json:"base-domain"`
 	Packager       string   `json:"packager"`
 	Provides       []string `json:"provides"`
 	License        []string `json:"license"`
@@ -51,14 +50,13 @@ type Metadata struct {
 }
 
 // Function that receives arch package archive data and returns it's metadata.
-func EjectMetadata(filename, distribution, domain string, pkg []byte) (*Metadata, error) {
+func EjectMetadata(filename, distribution string, pkg []byte) (*Metadata, error) {
 	pkginfo, err := getPkginfo(pkg)
 	if err != nil {
 		return nil, err
 	}
 	md := Metadata{
 		Filename:       filename,
-		BaseDomain:     domain,
 		CompressedSize: int64(len(pkg)),
 		MD5:            md5sum(pkg),
 		SHA256:         sha256sum(pkg),

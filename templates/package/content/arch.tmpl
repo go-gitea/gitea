@@ -5,7 +5,7 @@
 
 			<div class="field">
 				<label>{{svg "octicon-note"}} {{.locale.Tr "packages.arch.pacmanconf"}}</label>
-				<div class="markup"><pre class="code-block"><code>[{{.PackageDescriptor.Owner.LowerName}}.{{.PackageDescriptor.Metadata.BaseDomain}}]
+				<div class="markup"><pre class="code-block"><code>[{{.PackageDescriptor.Owner.LowerName}}.{{.RegistryHost}}]
 SigLevel = Optional TrustAll
 Server = {{AppUrl}}api/packages/{{.PackageDescriptor.Owner.LowerName}}/arch/archlinux/x86_64</code></pre></div>
 			</div>

@@ -13,7 +13,6 @@ import (
 
 	"code.gitea.io/gitea/modules/context"
 	arch_module "code.gitea.io/gitea/modules/packages/arch"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	arch_service "code.gitea.io/gitea/services/packages/arch"
 )
@@ -27,7 +26,7 @@ func Push(ctx *context.Context) {
 		sign     = ctx.Req.Header.Get("sign")
 	)
 
-	// Read package to memory for signature validation.
+	// Read package to memory for package validation.
 	pkgdata, err := io.ReadAll(ctx.Req.Body)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -36,7 +35,7 @@ func Push(ctx *context.Context) {
 	defer ctx.Req.Body.Close()
 
 	// Parse metadata contained in arch package archive.
-	md, err := arch_module.EjectMetadata(filename, distro, setting.Domain, pkgdata)
+	md, err := arch_module.EjectMetadata(filename, distro, pkgdata)
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
