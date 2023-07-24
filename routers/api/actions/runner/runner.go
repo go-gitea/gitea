@@ -127,20 +127,39 @@ func (s *Service) Declare(
 // FetchTask assigns a task to the runner
 func (s *Service) FetchTask(
 	ctx context.Context,
-	_ *connect.Request[runnerv1.FetchTaskRequest],
+	req *connect.Request[runnerv1.FetchTaskRequest],
 ) (*connect.Response[runnerv1.FetchTaskResponse], error) {
 	runner := GetRunner(ctx)
 
 	var task *runnerv1.Task
-	if t, ok, err := pickTask(ctx, runner); err != nil {
-		log.Error("pick task failed: %v", err)
-		return nil, status.Errorf(codes.Internal, "pick task: %v", err)
-	} else if ok {
-		task = t
+	tasksVersion := req.Msg.TasksVersion // task version from runner
+	latestVersion, err := actions_model.GetTasksVersionByScope(ctx, runner.OwnerID, runner.RepoID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "query tasks version failed: %v", err)
+	} else if latestVersion == 0 {
+		if err := actions_model.IncreaseTaskVersion(ctx, runner.OwnerID, runner.RepoID); err != nil {
+			return nil, status.Errorf(codes.Internal, "fail to increase task version: %v", err)
+		}
+		// if we don't increase the value of `latestVersion` here,
+		// the response of FetchTask will return tasksVersion as zero.
+		// and the runner will treat it as an old version of Gitea.
+		latestVersion++
 	}
 
+	if tasksVersion != latestVersion {
+		// if the task version in request is not equal to the version in db,
+		// it means there may still be some tasks not be assgined.
+		// try to pick a task for the runner that send the request.
+		if t, ok, err := pickTask(ctx, runner); err != nil {
+			log.Error("pick task failed: %v", err)
+			return nil, status.Errorf(codes.Internal, "pick task: %v", err)
+		} else if ok {
+			task = t
+		}
+	}
 	res := connect.NewResponse(&runnerv1.FetchTaskResponse{
-		Task: task,
+		Task:         task,
+		TasksVersion: latestVersion,
 	})
 	return res, nil
 }
