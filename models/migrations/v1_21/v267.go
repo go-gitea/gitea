@@ -10,7 +10,7 @@ import (
 // UpdateActionsRefIndex updates the index of actions ref field
 func UpdateActionsRefIndex(x *xorm.Engine) error {
 	type ActionRun struct {
-		Ref string `xorm:"index"` // the ref of the run
+		Ref string `xorm:"index"` // the commit/tag/… causing the run
 	}
 	return x.Sync(new(ActionRun))
 }
