@@ -23,7 +23,7 @@ type reflectionValue struct {
 	v reflect.Value
 }
 
-func reflectionWrap(v interface{}) *reflectionValue {
+func reflectionWrap(v any) *reflectionValue {
 	return &reflectionValue{v: reflect.ValueOf(v)}
 }
 

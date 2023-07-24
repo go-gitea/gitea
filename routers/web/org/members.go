@@ -101,7 +101,7 @@ func MembersAction(ctx *context.Context) {
 		err = models.RemoveOrgUser(org.ID, uid)
 		if organization.IsErrLastOrgOwner(err) {
 			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
-			ctx.JSON(http.StatusOK, map[string]interface{}{
+			ctx.JSON(http.StatusOK, map[string]any{
 				"redirect": ctx.Org.OrgLink + "/members",
 			})
 			return
@@ -110,12 +110,12 @@ func MembersAction(ctx *context.Context) {
 		err = models.RemoveOrgUser(org.ID, ctx.Doer.ID)
 		if err == nil {
 			ctx.Flash.Success(ctx.Tr("form.organization_leave_success", org.DisplayName()))
-			ctx.JSON(http.StatusOK, map[string]interface{}{
+			ctx.JSON(http.StatusOK, map[string]any{
 				"redirect": "", // keep the user stay on current page, in case they want to do other operations.
 			})
 		} else if organization.IsErrLastOrgOwner(err) {
 			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
-			ctx.JSON(http.StatusOK, map[string]interface{}{
+			ctx.JSON(http.StatusOK, map[string]any{
 				"redirect": ctx.Org.OrgLink + "/members",
 			})
 		} else {
@@ -126,7 +126,7 @@ func MembersAction(ctx *context.Context) {
 
 	if err != nil {
 		log.Error("Action(%s): %v", ctx.Params(":action"), err)
-		ctx.JSON(http.StatusOK, map[string]interface{}{
+		ctx.JSON(http.StatusOK, map[string]any{
 			"ok":  false,
 			"err": err.Error(),
 		})
@@ -138,7 +138,7 @@ func MembersAction(ctx *context.Context) {
 		redirect = setting.AppSubURL + "/"
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"redirect": redirect,
 	})
 }

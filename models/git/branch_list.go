@@ -64,11 +64,6 @@ func (branches BranchList) LoadPusher(ctx context.Context) error {
 	return nil
 }
 
-const (
-	BranchOrderByNameAsc        = "name ASC"
-	BranchOrderByCommitTimeDesc = "commit_time DESC"
-)
-
 type FindBranchOptions struct {
 	db.ListOptions
 	RepoID             int64
@@ -102,7 +97,8 @@ func orderByBranches(sess *xorm.Session, opts FindBranchOptions) *xorm.Session {
 	}
 
 	if opts.OrderBy == "" {
-		opts.OrderBy = BranchOrderByCommitTimeDesc
+		// the commit_time might be the same, so add the "name" to make sure the order is stable
+		opts.OrderBy = "commit_time DESC, name ASC"
 	}
 	return sess.OrderBy(opts.OrderBy)
 }
@@ -129,4 +125,21 @@ func FindBranchNames(ctx context.Context, opts FindBranchOptions) ([]string, err
 		return nil, err
 	}
 	return branches, nil
+}
+
+func FindBranchesByRepoAndBranchName(ctx context.Context, repoBranches map[int64]string) (map[int64]string, error) {
+	cond := builder.NewCond()
+	for repoID, branchName := range repoBranches {
+		cond = cond.Or(builder.And(builder.Eq{"repo_id": repoID}, builder.Eq{"name": branchName}))
+	}
+	var branches []*Branch
+	if err := db.GetEngine(ctx).
+		Where(cond).Find(&branches); err != nil {
+		return nil, err
+	}
+	branchMap := make(map[int64]string, len(branches))
+	for _, branch := range branches {
+		branchMap[branch.RepoID] = branch.CommitID
+	}
+	return branchMap, nil
 }

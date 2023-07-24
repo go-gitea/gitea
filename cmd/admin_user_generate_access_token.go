@@ -9,27 +9,29 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
-var microcmdUserGenerateAccessToken = cli.Command{
+var microcmdUserGenerateAccessToken = &cli.Command{
 	Name:  "generate-access-token",
 	Usage: "Generate an access token for a specific user",
 	Flags: []cli.Flag{
-		cli.StringFlag{
-			Name:  "username,u",
-			Usage: "Username",
+		&cli.StringFlag{
+			Name:    "username",
+			Aliases: []string{"u"},
+			Usage:   "Username",
 		},
-		cli.StringFlag{
-			Name:  "token-name,t",
-			Usage: "Token name",
-			Value: "gitea-admin",
+		&cli.StringFlag{
+			Name:    "token-name",
+			Aliases: []string{"t"},
+			Usage:   "Token name",
+			Value:   "gitea-admin",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "raw",
 			Usage: "Display only the token value",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "scopes",
 			Value: "",
 			Usage: "Comma separated list of scopes to apply to access token",

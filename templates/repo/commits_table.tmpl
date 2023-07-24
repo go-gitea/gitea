@@ -8,23 +8,23 @@
 			{{.locale.Tr "repo.commits.no_commits" $.BaseBranch $.HeadBranch}} {{if .RefName}}({{.RefName}}){{end}}
 		{{end}}
 	</div>
-	<div class="commits-table-right gt-df gt-ac">
+	<div class="commits-table-right">
 		{{if .PageIsCommits}}
 			<form class="ignore-dirty" action="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/search">
 				<div class="ui tiny search input">
 					<input name="q" placeholder="{{.locale.Tr "repo.commits.search"}}" value="{{.Keyword}}" autofocus>
 				</div>
-				&nbsp;
-				<div class="ui checkbox">
-					<input type="checkbox" name="all" id="all" value="true" {{.All}}>
-					<label for="all">{{.locale.Tr "repo.commits.search_all"}} &nbsp;&nbsp;</label>
+
+				<div class="ui tiny checkbox">
+					<input type="checkbox" name="all" value="true" {{.All}}>
+					<label>{{.locale.Tr "repo.commits.search_all"}}</label>
 				</div>
 				<button class="ui primary tiny button gt-mr-0" data-panel="#add-deploy-key-panel" data-tooltip-content={{.locale.Tr "repo.commits.search.tooltip"}}>{{.locale.Tr "repo.commits.find"}}</button>
 			</form>
 		{{else if .IsDiffCompare}}
-			<a href="{{$.CommitRepoLink}}/commit/{{.BeforeCommitID | PathEscape}}" class="ui green sha label">{{if not .BaseIsCommit}}{{if .BaseIsBranch}}{{svg "octicon-git-branch"}}{{else if .BaseIsTag}}{{svg "octicon-tag"}}{{end}}{{.BaseBranch}}{{else}}{{ShortSha .BaseBranch}}{{end}}</a>
+			<a href="{{$.CommitRepoLink}}/commit/{{.BeforeCommitID | PathEscape}}" class="ui green sha label gt-mx-0">{{if not .BaseIsCommit}}{{if .BaseIsBranch}}{{svg "octicon-git-branch"}}{{else if .BaseIsTag}}{{svg "octicon-tag"}}{{end}}{{.BaseBranch}}{{else}}{{ShortSha .BaseBranch}}{{end}}</a>
 			...
-			<a href="{{$.CommitRepoLink}}/commit/{{.AfterCommitID | PathEscape}}" class="ui green sha label">{{if not .HeadIsCommit}}{{if .HeadIsBranch}}{{svg "octicon-git-branch"}}{{else if .HeadIsTag}}{{svg "octicon-tag"}}{{end}}{{.HeadBranch}}{{else}}{{ShortSha .HeadBranch}}{{end}}</a>
+			<a href="{{$.CommitRepoLink}}/commit/{{.AfterCommitID | PathEscape}}" class="ui green sha label gt-mx-0">{{if not .HeadIsCommit}}{{if .HeadIsBranch}}{{svg "octicon-git-branch"}}{{else if .HeadIsTag}}{{svg "octicon-tag"}}{{end}}{{.HeadBranch}}{{else}}{{ShortSha .HeadBranch}}{{end}}</a>
 		{{end}}
 	</div>
 </h4>
