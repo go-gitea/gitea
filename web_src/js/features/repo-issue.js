@@ -703,7 +703,7 @@ function initRepoIssueStateButton() {
   };
   $statusDropdown.dropdown('setting', {
     selectOnKeydown: false,
-    allowReselection: true, 
+    allowReselection: true,
     onChange: onCloseStatusChanged,
   });
   $statusDropdown.dropdown('set selected', selectedValue);
