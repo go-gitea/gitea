@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/url"
@@ -373,7 +374,7 @@ func runRepoSyncReleases(_ *cli.Context) error {
 				continue
 			}
 
-			oldnum, err := getReleaseCount(repo.ID)
+			oldnum, err := getReleaseCount(ctx, repo.ID)
 			if err != nil {
 				log.Warn(" GetReleaseCountByRepoID: %v", err)
 			}
@@ -385,7 +386,7 @@ func runRepoSyncReleases(_ *cli.Context) error {
 				continue
 			}
 
-			count, err = getReleaseCount(repo.ID)
+			count, err = getReleaseCount(ctx, repo.ID)
 			if err != nil {
 				log.Warn(" GetReleaseCountByRepoID: %v", err)
 				gitRepo.Close()
@@ -401,9 +402,9 @@ func runRepoSyncReleases(_ *cli.Context) error {
 	return nil
 }
 
-func getReleaseCount(id int64) (int64, error) {
+func getReleaseCount(ctx context.Context, id int64) (int64, error) {
 	return repo_model.GetReleaseCountByRepoID(
-		db.DefaultContext,
+		ctx,
 		id,
 		repo_model.FindReleasesOptions{
 			IncludeTags: true,
