@@ -143,7 +143,9 @@ func (aReq *ArchiveRequest) Await(ctx context.Context) (*repo_model.RepoArchiver
 		return nil, fmt.Errorf("models.GetRepoArchiver: %w", err)
 	}
 
-	archiver.TagName = aReq.TagName
+	if archiver != nil {
+		archiver.TagName = aReq.TagName
+	}
 
 	if archiver != nil && archiver.Status == repo_model.ArchiverReady {
 		// Archive already generated, we're done.

@@ -12,7 +12,7 @@ import (
 )
 
 // RepoArchiveDownloadCount counts all archive downloads for a tag
-type RepoArchiveDownloadCount struct {
+type RepoArchiveDownloadCount struct { //nolint:revive
 	ID     int64           `xorm:"pk autoincr"`
 	RepoID int64           `xorm:"index unique(s)"`
 	Type   git.ArchiveType `xorm:"unique(s)"`
@@ -33,9 +33,8 @@ func CountArchiveDownload(ctx context.Context, repoID int64, tp git.ArchiveType,
 	}
 
 	if has {
-		// The archive already exists in the database, so let's add to the the counter
-		counter.Count += 1
-		_, err = db.GetEngine(ctx).ID(counter.ID).Update(counter)
+		// The archive already exists in the database, so let's increase the counter
+		_, err = db.GetEngine(ctx).Incr("count").ID(counter.ID).Update(new(RepoArchiveDownloadCount))
 		return err
 	}
 
@@ -74,4 +73,10 @@ func GetTagDownloadCount(ctx context.Context, repoID int64, tag string) (*api.Ta
 	}
 
 	return tagCounter, nil
+}
+
+// DeleteTagArchiveDownloadCount delets the tag from the table
+func DeleteTagArchiveDownloadCount(ctx context.Context, repoID int64, tag string) error {
+	_, err := db.GetEngine(ctx).Exec("DELETE FROM repo_archive_download_count WHERE repo_id = ? AND tag = ?", repoID, tag)
+	return err
 }
