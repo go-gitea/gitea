@@ -440,7 +440,7 @@ func Issues(ctx context.Context, opts *IssuesOptions) ([]*Issue, error) {
 		return nil, fmt.Errorf("unable to query Issues: %w", err)
 	}
 
-	if err := issues.LoadAttributes(); err != nil {
+	if err := issues.LoadAttributes(ctx); err != nil {
 		return nil, fmt.Errorf("unable to LoadAttributes for Issues: %w", err)
 	}
 

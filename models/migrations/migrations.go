@@ -512,6 +512,12 @@ var migrations = []Migration{
 	// v264 -> v265
 	NewMigration("Add branch table", v1_21.AddBranchTable),
 	// v265 -> v266
+	NewMigration("Alter Actions Artifact table", v1_21.AlterActionArtifactTable),
+	// v266 -> v267
+	NewMigration("Reduce commit status", v1_21.ReduceCommitStatus),
+	// v267 -> v268
+	NewMigration("Add action_tasks_version table", v1_21.CreateActionTasksVersionTable),
+	// v268 -> v269
 	NewMigration("Add column of closed_status and duplicate_issue_id to issue table", v1_21.AddClosedStatusAndDuplicateIssueIDToIssue),
 }
 

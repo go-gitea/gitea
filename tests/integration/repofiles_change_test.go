@@ -6,6 +6,7 @@ package integration
 import (
 	"net/url"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -24,9 +25,9 @@ func getCreateRepoFilesOptions(repo *repo_model.Repository) *files_service.Chang
 	return &files_service.ChangeRepoFilesOptions{
 		Files: []*files_service.ChangeRepoFile{
 			{
-				Operation: "create",
-				TreePath:  "new/file.txt",
-				Content:   "This is a NEW file",
+				Operation:     "create",
+				TreePath:      "new/file.txt",
+				ContentReader: strings.NewReader("This is a NEW file"),
 			},
 		},
 		OldBranch: repo.DefaultBranch,
@@ -41,10 +42,10 @@ func getUpdateRepoFilesOptions(repo *repo_model.Repository) *files_service.Chang
 	return &files_service.ChangeRepoFilesOptions{
 		Files: []*files_service.ChangeRepoFile{
 			{
-				Operation: "update",
-				TreePath:  "README.md",
-				SHA:       "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
-				Content:   "This is UPDATED content for the README file",
+				Operation:     "update",
+				TreePath:      "README.md",
+				SHA:           "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
+				ContentReader: strings.NewReader("This is UPDATED content for the README file"),
 			},
 		},
 		OldBranch: repo.DefaultBranch,

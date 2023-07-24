@@ -4,16 +4,16 @@
 package v1_21 //nolint
 
 import (
-	issues_model "code.gitea.io/gitea/models/issues"
-
 	"xorm.io/xorm"
 )
 
-func AddClosedStatusAndDuplicateIssueIDToIssue(x *xorm.Engine) error {
-	type Issue struct {
-		ClosedStatus     issues_model.IssueClosedStatus `xorm:"INDEX NOT NULL DEFAULT 0"`
-		DuplicateIssueID int64                          `xorm:"NOT NULL DEFAULT 0"`
+func AlterActionArtifactTable(x *xorm.Engine) error {
+	// ActionArtifact is a file that is stored in the artifact storage.
+	type ActionArtifact struct {
+		RunID        int64  `xorm:"index unique(runid_name_path)"` // The run id of the artifact
+		ArtifactPath string `xorm:"index unique(runid_name_path)"` // The path to the artifact when runner uploads it
+		ArtifactName string `xorm:"index unique(runid_name_path)"` // The name of the artifact when
 	}
 
-	return x.Sync(new(Issue))
+	return x.Sync(new(ActionArtifact))
 }

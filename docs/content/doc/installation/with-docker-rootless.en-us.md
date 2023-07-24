@@ -67,7 +67,7 @@ sudo chown 1000:1000 config/ data/
 
 > If you don't give the volume correct permissions, the container may not start.
 
-For a stable release you could use `:latest-rootless`, `:1-rootless` or specify a certain release like `:{{< version >}}-rootless`, but if you'd like to use the latest development version then `:dev-rootless` would be an appropriate tag. If you'd like to run the latest commit from a release branch you can use the `:1.x-dev-rootless` tag, where x is the minor version of Gitea. (e.g. `:1.16-dev-rootless`)
+For a stable release you could use `:latest-rootless`, `:1-rootless` or specify a certain release like `:{{< version >}}-rootless`, but if you'd like to use the latest development version then `:nightly-rootless` would be an appropriate tag. If you'd like to run the latest commit from a release branch you can use the `:1.x-nightly-rootless` tag, where x is the minor version of Gitea. (e.g. `:1.16-nightly-rootless`)
 
 ## Custom port
 
