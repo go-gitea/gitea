@@ -591,7 +591,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		if err == nil {
 			// There are Image formats go can't decode
 			// Instead of throwing an error in that case, we show the size only when we can decode
-			ctx.Data["ImageSize"] = fmt.Sprintf("%dx%d", img.Width, img.Height)
+			ctx.Data["ImageSize"] = fmt.Sprintf("%dx%dpx", img.Width, img.Height)
 		}
 	}
 
