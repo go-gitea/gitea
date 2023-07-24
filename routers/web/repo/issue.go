@@ -186,11 +186,6 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		keyword = ""
 	}
 
-	if issue_indexer.IsAvailable(ctx) {
-		ctx.ServerError("issueIndexer.Search", err)
-		return
-	}
-
 	var mileIDs []int64
 	if milestoneID > 0 || milestoneID == db.NoConditionID { // -1 to get those issues which have no any milestone assigned
 		mileIDs = []int64{milestoneID}
@@ -214,7 +209,11 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		if keyword != "" {
 			allIssueIDs, err := issueIDsFromSearch(ctx, keyword, statsOpts)
 			if err != nil {
-				ctx.ServerError("issueIDsFromSearch", err)
+				if issue_indexer.IsAvailable(ctx) {
+					ctx.ServerError("issueIDsFromSearch", err)
+					return
+				}
+				ctx.Data["IssueIndexerUnavailable"] = true
 				return
 			}
 			statsOpts.IssueIDs = allIssueIDs
@@ -266,7 +265,11 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			SortType:          sortType,
 		})
 		if err != nil {
-			ctx.ServerError("issueIDsFromSearch", err)
+			if issue_indexer.IsAvailable(ctx) {
+				ctx.ServerError("issueIDsFromSearch", err)
+				return
+			}
+			ctx.Data["IssueIndexerUnavailable"] = true
 			return
 		}
 		issues, err = issues_model.GetIssuesByIDs(ctx, ids, true)
