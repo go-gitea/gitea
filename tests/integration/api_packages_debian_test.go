@@ -55,7 +55,7 @@ func TestPackageDebian(t *testing.T) {
 			Size: int64(cbuf.Len()),
 		}
 		if appendSlash {
-			hdr.Name = hdr.Name + "/"
+			hdr.Name += "/"
 		}
 		aw.WriteHeader(hdr)
 		aw.Write(cbuf.Bytes())
