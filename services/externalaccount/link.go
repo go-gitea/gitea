@@ -13,8 +13,8 @@ import (
 
 // Store represents a thing that stores things
 type Store interface {
-	Get(interface{}) interface{}
-	Set(interface{}, interface{}) error
+	Get(any) any
+	Set(any, any) error
 	Release() error
 }
 

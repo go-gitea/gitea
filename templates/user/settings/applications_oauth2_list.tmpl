@@ -22,7 +22,19 @@
 			</div>
 		{{end}}
 	</div>
+
+	<div class="ui g-modal-confirm delete modal" id="remove-gitea-oauth2-application">
+		<div class="header">
+			{{svg "octicon-trash"}}
+			{{.locale.Tr "settings.remove_oauth2_application"}}
+		</div>
+		<div class="content">
+			<p>{{.locale.Tr "settings.oauth2_application_remove_description"}}</p>
+		</div>
+		{{template "base/modal_actions_confirm" .}}
+	</div>
 </div>
+
 <div class="ui attached bottom segment">
 	<h5 class="ui top header">
 		{{.locale.Tr "settings.create_oauth2_application"}}
@@ -45,15 +57,4 @@
 			{{.locale.Tr "settings.create_oauth2_application_button"}}
 		</button>
 	</form>
-</div>
-
-<div class="ui g-modal-confirm delete modal" id="remove-gitea-oauth2-application">
-	<div class="header">
-		{{svg "octicon-trash"}}
-		{{.locale.Tr "settings.remove_oauth2_application"}}
-	</div>
-	<div class="content">
-		<p>{{.locale.Tr "settings.oauth2_application_remove_description"}}</p>
-	</div>
-	{{template "base/modal_actions_confirm" .}}
 </div>

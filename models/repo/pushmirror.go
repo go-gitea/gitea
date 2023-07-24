@@ -127,7 +127,7 @@ func GetPushMirrorsSyncedOnCommit(ctx context.Context, repoID int64) ([]*PushMir
 }
 
 // PushMirrorsIterate iterates all push-mirror repositories.
-func PushMirrorsIterate(ctx context.Context, limit int, f func(idx int, bean interface{}) error) error {
+func PushMirrorsIterate(ctx context.Context, limit int, f func(idx int, bean any) error) error {
 	sess := db.GetEngine(ctx).
 		Where("last_update + (`interval` / ?) <= ?", time.Second, time.Now().Unix()).
 		And("`interval` != 0").

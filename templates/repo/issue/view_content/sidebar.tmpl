@@ -127,7 +127,7 @@
 	<div class="divider"></div>
 
 	<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-milestone dropdown">
-		<a class="text gt-df gt-ac muted">
+		<a class="text muted flex-text-block">
 			<strong>{{.locale.Tr "repo.issues.new.milestone"}}</strong>
 			{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
 				{{svg "octicon-gear" 16 "gt-ml-2"}}
@@ -153,7 +153,7 @@
 		<div class="divider"></div>
 
 		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-project dropdown">
-			<a class="text gt-df gt-ac muted">
+			<a class="text muted flex-text-block">
 				<strong>{{.locale.Tr "repo.issues.new.projects"}}</strong>
 				{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
 					{{svg "octicon-gear" 16 "gt-ml-2"}}
@@ -207,7 +207,7 @@
 
 	<input id="assignee_id" name="assignee_id" type="hidden" value="{{.assignee_id}}">
 	<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-assignees-modify dropdown">
-		<a class="text gt-df gt-ac muted">
+		<a class="text muted flex-text-block">
 			<strong>{{.locale.Tr "repo.issues.new.assignees"}}</strong>
 			{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
 				{{svg "octicon-gear" 16 "gt-ml-2"}}

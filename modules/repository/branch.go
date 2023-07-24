@@ -77,9 +77,9 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 				RepoID:        repo.ID,
 				Name:          branch,
 				CommitID:      commit.ID.String(),
-				CommitMessage: commit.CommitMessage,
+				CommitMessage: commit.Summary(),
 				PusherID:      doerID,
-				CommitTime:    timeutil.TimeStamp(commit.Author.When.Unix()),
+				CommitTime:    timeutil.TimeStamp(commit.Committer.When.Unix()),
 			})
 		} else if commit.ID.String() != dbb.CommitID {
 			toUpdate = append(toUpdate, &git_model.Branch{
@@ -87,9 +87,9 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 				RepoID:        repo.ID,
 				Name:          branch,
 				CommitID:      commit.ID.String(),
-				CommitMessage: commit.CommitMessage,
+				CommitMessage: commit.Summary(),
 				PusherID:      doerID,
-				CommitTime:    timeutil.TimeStamp(commit.Author.When.Unix()),
+				CommitTime:    timeutil.TimeStamp(commit.Committer.When.Unix()),
 			})
 		}
 	}
