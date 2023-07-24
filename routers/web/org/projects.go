@@ -62,7 +62,7 @@ func Projects(ctx *context.Context) {
 		OwnerID:  ctx.ContextUser.ID,
 		Page:     page,
 		IsClosed: util.OptionalBoolOf(isShowClosed),
-		SortType: sortType,
+		OrderBy:  project_model.GetSearchOrderByBySortType(sortType),
 		Type:     projectType,
 	})
 	if err != nil {
@@ -438,8 +438,7 @@ func UpdateIssueProject(ctx *context.Context) {
 	projectID := ctx.FormInt64("id")
 	for _, issue := range issues {
 		if issue.Project != nil {
-			oldProjectID := issue.Project.ID
-			if oldProjectID == projectID {
+			if issue.Project.ID == projectID {
 				continue
 			}
 		}
