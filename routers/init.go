@@ -101,20 +101,21 @@ func syncAppConfForGit(ctx context.Context) error {
 }
 
 func InitWebInstallPage(ctx context.Context) {
-	translation.InitLocales(ctx)
 	setting.LoadSettingsForInstall()
+
+	translation.InitLocales(ctx)
 	mustInit(svg.Init)
 }
 
 // InitWebInstalled is for global installed configuration.
 func InitWebInstalled(ctx context.Context) {
-	mustInitCtx(ctx, git.InitFull)
-	log.Info("Git version: %s (home: %s)", git.VersionInfo(), git.HomeDir())
+	setting.LoadSettings()
 
 	// Setup i18n
 	translation.InitLocales(ctx)
+	mustInitCtx(ctx, git.InitFull)
+	log.Info("Git version: %s (home: %s)", git.VersionInfo(), git.HomeDir())
 
-	setting.LoadSettings()
 	mustInit(storage.Init)
 
 	mailer.NewContext(ctx)
