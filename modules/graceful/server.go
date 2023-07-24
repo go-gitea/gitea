@@ -38,6 +38,7 @@ var (
 // This determines the implementation of net.Listener which the server will use.`
 // It is implemented in this way so that downstreams may specify the type of listener
 // they want to provide Gitea on by default, such as with a hidden service or a p2p network
+// No need to worry about "breaking" if there would be a refactoring for the Listeners. No compatibility-guarantee for this mechanism
 var GetListener = DefaultGetListener
 
 func init() {
