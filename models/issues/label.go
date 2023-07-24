@@ -272,12 +272,12 @@ func GetLabelByID(ctx context.Context, labelID int64) (*Label, error) {
 }
 
 // GetLabelsByIDs returns a list of labels by IDs
-func GetLabelsByIDs(labelIDs []int64) ([]*Label, error) {
+func GetLabelsByIDs(labelIDs []int64, cols ...string) ([]*Label, error) {
 	labels := make([]*Label, 0, len(labelIDs))
 	return labels, db.GetEngine(db.DefaultContext).Table("label").
 		In("id", labelIDs).
 		Asc("name").
-		Cols("id", "repo_id", "org_id").
+		Cols(cols...).
 		Find(&labels)
 }
 
