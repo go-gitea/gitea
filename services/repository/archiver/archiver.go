@@ -172,6 +172,7 @@ func (aReq *ArchiveRequest) Await(ctx context.Context) (*repo_model.RepoArchiver
 				return nil, fmt.Errorf("repo_model.GetRepoArchiver: %w", err)
 			}
 			if archiver != nil && archiver.Status == repo_model.ArchiverReady {
+				archiver.TagName = aReq.TagName
 				return archiver, nil
 			}
 		}

@@ -51,7 +51,7 @@ func CountArchiveDownload(ctx context.Context, repoID int64, tp git.ArchiveType,
 }
 
 // GetTagDownloadCount returns the download count of a tag
-func GetTagDownloadCount(ctx context.Context, repoID int64, tag string) (*api.TagArchiveDownloadCount, error) {
+func GetTagArchiveDownloadCount(ctx context.Context, repoID int64, tag string) (*api.TagArchiveDownloadCount, error) {
 	tagCounter := new(api.TagArchiveDownloadCount)
 
 	var zipCounter RepoArchiveDownloadCount

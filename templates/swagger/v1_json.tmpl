@@ -15853,6 +15853,9 @@
       "description": "AnnotatedTag represents an annotated tag",
       "type": "object",
       "properties": {
+        "archive_download_count": {
+          "$ref": "#/definitions/TagArchiveDownloadCount"
+        },
         "message": {
           "type": "string",
           "x-go-name": "Message"
@@ -21346,6 +21349,9 @@
       "description": "Tag represents a repository tag",
       "type": "object",
       "properties": {
+        "archive_download_count": {
+          "$ref": "#/definitions/TagArchiveDownloadCount"
+        },
         "commit": {
           "$ref": "#/definitions/CommitMeta"
         },

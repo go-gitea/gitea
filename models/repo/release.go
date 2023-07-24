@@ -122,7 +122,7 @@ func (r *Release) LoadAttributes(ctx context.Context) error {
 // LoadArchiveDownloadCount loads the download count for the source archives
 func (r *Release) LoadArchiveDownloadCount(ctx context.Context) error {
 	var err error
-	r.ArchiveDownloadCount, err = GetTagDownloadCount(ctx, r.RepoID, r.TagName)
+	r.ArchiveDownloadCount, err = GetTagArchiveDownloadCount(ctx, r.RepoID, r.TagName)
 	return err
 }
 

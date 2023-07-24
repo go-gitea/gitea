@@ -58,7 +58,11 @@ func ListTags(ctx *context.APIContext) {
 
 	apiTags := make([]*api.Tag, len(tags))
 	for i := range tags {
-		apiTags[i] = convert.ToTag(ctx.Repo.Repository, tags[i])
+		apiTags[i], err = convert.ToTag(ctx, ctx.Repo.Repository, tags[i])
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "ConvertTotag", err)
+			return
+		}
 	}
 
 	ctx.SetTotalCountHeader(int64(total))
@@ -107,7 +111,14 @@ func GetAnnotatedTag(ctx *context.APIContext) {
 		if err != nil {
 			ctx.Error(http.StatusBadRequest, "GetAnnotatedTag", err)
 		}
-		ctx.JSON(http.StatusOK, convert.ToAnnotatedTag(ctx, ctx.Repo.Repository, tag, commit))
+
+		apiTag, err := convert.ToAnnotatedTag(ctx, ctx.Repo.Repository, tag, commit)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "ConvertToAnnotatedTag", err)
+			return
+		}
+
+		ctx.JSON(http.StatusOK, apiTag)
 	}
 }
 
@@ -146,7 +157,14 @@ func GetTag(ctx *context.APIContext) {
 		ctx.NotFound(tagName)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToTag(ctx.Repo.Repository, tag))
+
+	apiTag, err := convert.ToTag(ctx, ctx.Repo.Repository, tag)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "ConvertToTag", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, apiTag)
 }
 
 // CreateTag create a new git tag in a repository
@@ -212,7 +230,14 @@ func CreateTag(ctx *context.APIContext) {
 		ctx.InternalServerError(err)
 		return
 	}
-	ctx.JSON(http.StatusCreated, convert.ToTag(ctx.Repo.Repository, tag))
+
+	apiTag, err := convert.ToTag(ctx, ctx.Repo.Repository, tag)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "ConvertToTag", err)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, apiTag)
 }
 
 // DeleteTag delete a specific tag of in a repository by name

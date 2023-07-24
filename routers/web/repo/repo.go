@@ -432,6 +432,14 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 		// If we have a signed url (S3, object storage), redirect to this directly.
 		u, err := storage.RepoArchives.URL(rPath, downloadName)
 		if u != nil && err == nil {
+			if archiver.TagName != "" {
+				err = repo_model.CountArchiveDownload(ctx, ctx.Repo.Repository.ID, archiver.Type, archiver.TagName)
+				if err != nil {
+					ctx.ServerError("CountArchiveDownload", err)
+					return
+				}
+			}
+
 			ctx.Redirect(u.String())
 			return
 		}
