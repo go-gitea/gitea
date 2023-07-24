@@ -232,7 +232,11 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileGi
 		if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
 			log.Error("failed to GetBlobContent: %v", err)
 		} else {
-			if profileContent, err := markdown.RenderString(&markup.RenderContext{Ctx: ctx, GitRepo: profileGitRepo}, bytes); err != nil {
+			if profileContent, err := markdown.RenderString(&markup.RenderContext{
+				Ctx:     ctx,
+				GitRepo: profileGitRepo,
+				Metas:   map[string]string{"mode": "document"},
+			}, bytes); err != nil {
 				log.Error("failed to RenderString: %v", err)
 			} else {
 				ctx.Data["ProfileReadme"] = profileContent

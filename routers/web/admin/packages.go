@@ -85,7 +85,7 @@ func Packages(ctx *context.Context) {
 
 // DeletePackageVersion deletes a package version
 func DeletePackageVersion(ctx *context.Context) {
-	pv, err := packages_model.GetVersionByID(db.DefaultContext, ctx.FormInt64("id"))
+	pv, err := packages_model.GetVersionByID(ctx, ctx.FormInt64("id"))
 	if err != nil {
 		ctx.ServerError("GetRepositoryByID", err)
 		return

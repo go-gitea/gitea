@@ -15,7 +15,7 @@ If you are planning to contribute you'll want to download and install Hugo on
 your local machine.
 
 The installation of Hugo is out of the scope of this document, so please take
-the [official install instructions](https://gohugo.io/overview/installing/) to
+the [official install instructions](https://gohugo.io/installation/) to
 get Hugo up and running.
 
 ## Development
