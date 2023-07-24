@@ -393,55 +393,74 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 	return committer.Commit()
 }
 
-// FindRecentlyPushedNewBranches return at most 2 new branches pushed by the user in 6 hours which has no opened PRs created
-// doer should not be nil
-// if commitAfterUnix is 0, will find the branches committed in recently 6 hours
-// TODO use options to find the branches
-func FindRecentlyPushedNewBranches(ctx context.Context, baseRepo *repo_model.Repository, doer *user_model.User, commitAfterUnix int64) (BranchList, error) {
-	baseBranch, err := GetBranch(ctx, baseRepo.ID, baseRepo.DefaultBranch)
-	if err != nil {
-		return nil, err
-	}
+type FindRecentlyPushedNewBranchesOptions struct {
+	Actor           *user_model.User
+	Repo            *repo_model.Repository
+	BaseRepo        *repo_model.Repository
+	CommitAfterUnix int64
+}
 
-	// search all related repos
+// FindRecentlyPushedNewBranches return at most 2 new branches pushed by the user in 6 hours which has no opened PRs created
+// opts.Actor should not be nil
+// if opts.CommitAfterUnix is 0, we will find the branches committed in recently 6 hours
+func FindRecentlyPushedNewBranches(ctx context.Context, opts *FindRecentlyPushedNewBranchesOptions) (BranchList, error) {
+	// find all related repo ids
 	repoOpts := repo_model.SearchRepoOptions{
-		Actor:      doer,
+		Actor:      opts.Actor,
 		Private:    true,
 		AllPublic:  false, // Include also all public repositories of users and public organisations
 		AllLimited: false, // Include also all public repositories of limited organisations
 		Fork:       util.OptionalBoolTrue,
-		ForkID:     baseRepo.ID,
+		ForkFrom:   opts.BaseRepo.ID,
 		Archived:   util.OptionalBoolFalse,
 	}
-	repoCond := repo_model.SearchRepositoryCondition(&repoOpts).
-		And(repo_model.AccessibleRepositoryCondition(doer, unit.TypeCode)).
-		Or(builder.Eq{"id": baseRepo.ID})
-	repoIds := builder.Select("id").From("repository").Where(repoCond)
+	repoCond := repo_model.SearchRepositoryCondition(&repoOpts).And(repo_model.AccessibleRepositoryCondition(opts.Actor, unit.TypeCode))
+	if opts.Repo == opts.BaseRepo {
+		// should also include the brase repo's branches
+		repoCond = repoCond.Or(builder.Eq{"id": opts.BaseRepo.ID})
+	} else {
+		// in fork repo, we only detect the fork repo's branch
+		repoCond = repoCond.And(builder.Eq{"id": opts.Repo.ID})
+	}
+	repoIDs := builder.Select("id").From("repository").Where(repoCond)
 
-	// avoid check branches which have already created PRs
-	// TODO add head_branch_id in pull_request table then we can get the branch id from pull_request table directly
+	// find branches which have already created PRs
 	prBranchIds := builder.Select("branch.id").From("branch").
 		InnerJoin("pull_request", "branch.name = pull_request.head_branch AND branch.repo_id = pull_request.head_repo_id").
 		InnerJoin("issue", "issue.id = pull_request.issue_id").
-		Where(builder.Or(
-			builder.Eq{"pull_request.has_merged": true},
-			builder.In("pull_request.head_repo_id", repoIds),
-			builder.Eq{"branch.id": baseBranch.ID},
+		Where(builder.And(
+			builder.Eq{"pull_request.base_repo_id": opts.BaseRepo.ID},
+			builder.Eq{"pull_request.base_branch": opts.BaseRepo.DefaultBranch},
+			builder.In("pull_request.head_repo_id", repoIDs),
+			builder.Or(
+				builder.Eq{"issue.is_closed": true},
+				builder.Eq{"pull_request.has_merged": true},
+			),
 		))
 
-	if commitAfterUnix == 0 {
-		commitAfterUnix = time.Now().Add(-time.Hour * 6).Unix()
+	if opts.CommitAfterUnix == 0 {
+		opts.CommitAfterUnix = time.Now().Add(-time.Hour * 6).Unix()
 	}
-	opts := FindBranchOptions{
-		IDCond:          builder.NotIn("id", prBranchIds),
-		RepoCond:        builder.In("repo_id", repoIds),
-		CommitCond:      builder.Neq{"commit_id": baseBranch.CommitID}, // newly created branch have no changes, so skip them,
-		PusherID:        doer.ID,
+
+	baseBranch, err := GetBranch(ctx, opts.BaseRepo.ID, opts.BaseRepo.DefaultBranch)
+	if err != nil {
+		return nil, err
+	}
+
+	findBranchOpts := FindBranchOptions{
+		RepoCond:        builder.In("branch.repo_id", repoIDs),
+		CommitCond:      builder.Neq{"branch.commit_id": baseBranch.CommitID}, // newly created branch have no changes, so skip them,
+		PusherID:        opts.Actor.ID,
 		IsDeletedBranch: util.OptionalBoolFalse,
-		CommitAfterUnix: commitAfterUnix,
+		CommitAfterUnix: opts.CommitAfterUnix,
 		OrderBy:         "branch.updated_unix DESC",
+		// should not use branch name here, because if there are branches with same name in different repos,
+		// we can not detect them correctly
+		PullRequestCond: builder.NotIn("branch.id", prBranchIds),
 	}
-	opts.PageSize = 2
-	opts.Page = 1
-	return FindBranches(ctx, opts)
+	// only display top 2 latest branch
+	findBranchOpts.PageSize = 2
+	findBranchOpts.Page = 1
+
+	return FindBranches(ctx, findBranchOpts)
 }

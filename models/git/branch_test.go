@@ -189,35 +189,61 @@ func TestFindRecentlyPushedNewBranches(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-
-	// test new branch of the repo and org fork repo
-	// user2 is the owner of the repo and the organization
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	branches, err := git_model.FindRecentlyPushedNewBranches(db.DefaultContext, repo, user2, 1689838760)
-	assert.NoError(t, err)
-	assert.Equal(t, 2, len(branches))
-	assert.Equal(t, "new-commit", branches[0].Name)
-	assert.Equal(t, "org-fork-new-commit", branches[1].Name)
-
-	// test new branch from user fork repo
-	user8 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 8})
-	branches, err = git_model.FindRecentlyPushedNewBranches(db.DefaultContext, repo, user8, 1689838760)
-	assert.NoError(t, err)
-	assert.Equal(t, 1, len(branches))
-	assert.Equal(t, "user-fork-new-commit", branches[0].Name)
-
-	// test new branch from private org with code permisstion repo
-	user18 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 18})
-	branches, err = git_model.FindRecentlyPushedNewBranches(db.DefaultContext, repo, user18, 1689838760)
-	assert.NoError(t, err)
-	assert.Equal(t, 1, len(branches))
-	assert.Equal(t, "private-org-fork-new-commit", branches[0].Name)
-
-	// test new branch from private org with no code permisstion repo
 	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
-	branches, err = git_model.FindRecentlyPushedNewBranches(db.DefaultContext, repo, user5, 1689838760)
-	assert.NoError(t, err)
-	assert.Equal(t, 0, len(branches))
+	user8 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 8})
+	user18 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 18})
+
+	tests := []struct {
+		name  string
+		actor *user_model.User
+		count int
+		want  []string
+	}{
+		// user2 is the owner of the repo and the organization
+		{
+			name:  "new branch of the repo and org fork repo",
+			actor: user2,
+			count: 2,
+			want:  []string{"new-commit", "org-fork-new-commit"},
+		},
+		{
+			name:  "new branch from user fork repo",
+			actor: user8,
+			count: 1,
+			want:  []string{"user-fork-new-commit"},
+		},
+		{
+			name:  "new branch from private org with code permisstion repo",
+			actor: user18,
+			count: 1,
+			want:  []string{"private-org-fork-new-commit"},
+		},
+		{
+			name:  "new branch from private org with no code permisstion repo",
+			actor: user5,
+			count: 0,
+			want:  []string{"new-commit", "org-fork-new-commit"},
+		},
+	}
+
+	opts := &git_model.FindRecentlyPushedNewBranchesOptions{
+		Repo:            repo,
+		BaseRepo:        repo,
+		CommitAfterUnix: 1689838760,
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts.Actor = tt.actor
+			branches, err := git_model.FindRecentlyPushedNewBranches(db.DefaultContext, opts)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.count, len(branches))
+
+			for i := 1; i < tt.count; i++ {
+				assert.Equal(t, tt.want[i], branches[i].Name)
+			}
+		})
+	}
 
 	// TODO:test pr branch
 }

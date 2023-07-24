@@ -983,11 +983,15 @@ func renderCode(ctx *context.Context) {
 			return
 		}
 
-		baseRepo := ctx.Repo.Repository
-		if ctx.Repo.Repository.IsFork {
-			baseRepo = ctx.Repo.Repository.BaseRepo
+		opts := &git_model.FindRecentlyPushedNewBranchesOptions{
+			Actor:    ctx.Doer,
+			Repo:     ctx.Repo.Repository,
+			BaseRepo: ctx.Repo.Repository,
 		}
-		branches, err := git_model.FindRecentlyPushedNewBranches(ctx, baseRepo, ctx.Doer, 0)
+		if ctx.Repo.Repository.IsFork {
+			opts.BaseRepo = ctx.Repo.Repository.BaseRepo
+		}
+		branches, err := git_model.FindRecentlyPushedNewBranches(ctx, opts)
 		if err != nil {
 			ctx.ServerError("FindRecentlyPushedNewBranches", err)
 			return

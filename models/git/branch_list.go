@@ -87,7 +87,6 @@ func (branches BranchList) LoadRepo(ctx context.Context) error {
 
 type FindBranchOptions struct {
 	db.ListOptions
-	IDCond             builder.Cond
 	RepoIDs            []int64 // overwrites RepoCond if the length is not 0
 	RepoCond           builder.Cond
 	ExcludeBranchNames []string
@@ -97,13 +96,13 @@ type FindBranchOptions struct {
 	CommitAfterUnix    int64
 	CommitBeforeUnix   int64
 	OrderBy            string
+
+	// find branch by pull request
+	PullRequestCond builder.Cond
 }
 
 func (opts *FindBranchOptions) Cond() builder.Cond {
 	cond := builder.NewCond()
-	if opts.IDCond != nil {
-		cond = cond.And(opts.IDCond)
-	}
 
 	if len(opts.RepoIDs) == 1 {
 		opts.RepoCond = builder.Eq{"branch.repo_id": opts.RepoIDs[0]}
@@ -136,6 +135,11 @@ func (opts *FindBranchOptions) Cond() builder.Cond {
 	if opts.CommitBeforeUnix != 0 {
 		cond = cond.And(builder.Lte{"branch.commit_time": opts.CommitBeforeUnix})
 	}
+
+	if opts.PullRequestCond != nil {
+		cond = cond.And(opts.PullRequestCond)
+	}
+
 	return cond
 }
 
