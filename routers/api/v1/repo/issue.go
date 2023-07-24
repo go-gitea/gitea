@@ -210,7 +210,7 @@ func SearchIssues(ctx *context.APIContext) {
 		isPull = util.OptionalBoolNone
 	}
 
-	var includedLabels []int64
+	var includedAnyLabels []int64
 	{
 
 		labels := ctx.FormTrim("labels")
@@ -218,7 +218,7 @@ func SearchIssues(ctx *context.APIContext) {
 		if len(labels) > 0 {
 			includedLabelNames = strings.Split(labels, ",")
 		}
-		includedLabels, err = issues_model.GetLabelIDsByNames(ctx, includedLabelNames)
+		includedAnyLabels, err = issues_model.GetLabelIDsByNames(ctx, includedLabelNames)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetLabelIDsByNames", err)
 			return
@@ -253,14 +253,14 @@ func SearchIssues(ctx *context.APIContext) {
 			PageSize: limit,
 			Page:     ctx.FormInt("page"),
 		},
-		Keyword:          keyword,
-		RepoIDs:          repoIDs,
-		AllPublic:        allPublic,
-		IsPull:           isPull,
-		IsClosed:         isClosed,
-		IncludedLabelIDs: includedLabels,
-		MilestoneIDs:     includedMilestones,
-		SortBy:           issue_indexer.SortByCreatedDesc,
+		Keyword:             keyword,
+		RepoIDs:             repoIDs,
+		AllPublic:           allPublic,
+		IsPull:              isPull,
+		IsClosed:            isClosed,
+		IncludedAnyLabelIDs: includedAnyLabels,
+		MilestoneIDs:        includedMilestones,
+		SortBy:              issue_indexer.SortByCreatedDesc,
 	}
 
 	if since != 0 {
