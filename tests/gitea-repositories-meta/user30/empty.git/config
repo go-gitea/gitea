@@ -1,6 +1,6 @@
 [core]
-	bare = true
 	repositoryformatversion = 0
-	filemode = false
-	symlinks = false
+	filemode = true
+	bare = true
 	ignorecase = true
+	precomposeunicode = true
