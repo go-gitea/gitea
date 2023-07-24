@@ -32,11 +32,5 @@ func ChangeStatus(ctx context.Context, issue *issues_model.Issue, doer *user_mod
 
 	notification.NotifyIssueChangeStatus(ctx, doer, commitID, issue, comment, issue.IsClosed)
 
-	if issue.ClosedStatus == issues_model.IssueClosedStatusDuplicate && issue.DuplicateIssueID > 0 {
-		if err := issues_model.CopyWatchersToDuplicateIssue(ctx, issue); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }

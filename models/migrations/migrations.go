@@ -518,7 +518,7 @@ var migrations = []Migration{
 	// v267 -> v268
 	NewMigration("Add action_tasks_version table", v1_21.CreateActionTasksVersionTable),
 	// v268 -> v269
-	NewMigration("Add column of closed_status and duplicate_issue_id to issue table", v1_21.AddClosedStatusAndDuplicateIssueIDToIssue),
+	NewMigration("Add column of closed_status to issue table", v1_21.AddClosedStatusToIssue),
 }
 
 // GetCurrentDBVersion returns the current db version

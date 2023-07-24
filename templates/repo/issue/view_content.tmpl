@@ -5,14 +5,6 @@
 	<input type="hidden" id="repoId" value="{{.Repository.ID}}">
 	<input type="hidden" id="issueIndex" value="{{.Issue.Index}}">
 
-	<!-- If the modal of "select duplicate issue" is opened, the following input value will be temporarily reset. And it will be restored after closing. -->
-	<input type="hidden" id="state" value="">
-
-	<!--  -->
-	<input type="hidden" id="duplicate_repo_id" value="">
-	<input type="hidden" id="duplicate_repo_full_name" value="">
-	<input type="hidden" id="duplicate_issue_number" value="">
-
 	{{$createdStr:= TimeSinceUnix .Issue.CreatedUnix $.locale}}
 	<div class="issue-content-left comment-list prevent-before-timeline">
 		<div class="ui timeline">
@@ -106,7 +98,6 @@
 						<form class="ui segment form form-fetch-action" id="comment-form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/comments" method="post">
 							{{template "repo/issue/comment_tab" .}}
 							{{.CsrfTokenHtml}}
-							<input type="hidden" id="duplicate_issue_id" name="duplicate_issue_id" value="">
 							<div class="field footer">
 								<div class="text right">
 									{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
@@ -136,7 +127,6 @@
 												</span>
 											</button>
 											{{if not .Issue.IsPull}}
-												<input type="hidden" id="duplicate_issue_id" name="duplicate_issue_id" value="0">
 												<div id="status-dropdown" class="ui dropdown icon button gt-ml-0">
 													<input type="hidden" name="closed_status" value="{{if eq $statusValue "reopen"}}-1{{else}}{{.Issue.ClosedStatus}}{{end}}">
 													{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -235,18 +225,4 @@
 		<p>{{.locale.Tr "repo.branch.delete_desc" | Str2html}}</p>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
-</div>
-
-<div class="ui mini modal" id="duplicate-issue-modal">
-	<div class="header">{{.locale.Tr "repo.issues.duplicate.header"}}</div>
-	<div class="content">
-		<div>{{.locale.Tr "repo.issues.duplicate.label"}}</div>
-		<div class="ui search selection dropdown gt-mt-3 gt-w-100" id="duplicate-issues-list" data-issue-id="{{.Issue.ID}}">
-			<input type="hidden" name="duplicateIssueId">
-			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-			<input type="text" class="search">
-			<div class="default text">{{.locale.Tr "repo.issues.duplicate.header"}}</div>
-		</div>
-	</div>
-	{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonTypes" "confirm")}}
 </div>

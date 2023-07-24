@@ -300,7 +300,6 @@ type Comment struct {
 	IsForcePush bool                                `xorm:"-"`
 
 	ClosedTranslation string `xorm:"-"`
-	DuplicateIssue    *Issue `xorm:"-"`
 }
 
 func init() {
@@ -1259,12 +1258,5 @@ func (c *Comment) LoadClosedIssueCommentContent(ctx context.Context) (err error)
 		return err
 	}
 	c.ClosedTranslation = ctnt.Tr
-	if ctnt.DuplicateIssueID <= 0 {
-		return nil
-	}
-
-	if c.DuplicateIssue, err = GetIssueByID(ctx, ctnt.DuplicateIssueID); err != nil {
-		return err
-	}
-	return c.DuplicateIssue.LoadRepo((ctx))
+	return nil
 }

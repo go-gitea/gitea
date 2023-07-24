@@ -1286,11 +1286,6 @@ var issueCloseBtnItems = []IssueCloseBtnItem{
 		Status:           "repo.issues.close_as.stale",
 		StatusAndComment: "repo.issues.comment_and_close_as.stale",
 	},
-	{
-		Value:            issues_model.IssueClosedStatusDuplicate,
-		Status:           "repo.issues.close_as.duplicate",
-		StatusAndComment: "repo.issues.comment_and_close_as.duplicate",
-	},
 }
 
 // ViewIssue render issue view page
@@ -3008,7 +3003,6 @@ func closeOrReopenIssue(ctx *context.Context, form *forms.CreateCommentForm, iss
 		} else {
 			issue.IsClosed = form.Status == "close"
 			issue.ClosedStatus = issues_model.IssueClosedStatus(0)
-			issue.DuplicateIssueID = form.DuplicateIssueID
 			if issue.IsClosed {
 				issue.ClosedStatus = form.ClosedStatus
 			}

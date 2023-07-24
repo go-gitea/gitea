@@ -819,7 +819,6 @@ func EditIssue(ctx *context.APIContext) {
 		}
 		issue.IsClosed = api.StateClosed == api.StateType(*form.State)
 		issue.ClosedStatus = issues_model.IssueClosedStatus(0)
-		issue.DuplicateIssueID = form.DuplicateIssueID
 		if issue.IsClosed {
 			issue.ClosedStatus = issues_model.IssueClosedStatus(form.ClosedStatus)
 		}
@@ -840,12 +839,6 @@ func EditIssue(ctx *context.APIContext) {
 
 	if statusChangeComment != nil {
 		notification.NotifyIssueChangeStatus(ctx, ctx.Doer, "", issue, statusChangeComment, issue.IsClosed)
-		if issue.ClosedStatus == issues_model.IssueClosedStatusDuplicate && issue.DuplicateIssueID > 0 {
-			if err := issues_model.CopyWatchersToDuplicateIssue(ctx, issue); err != nil {
-				ctx.Error(http.StatusInternalServerError, "CopyWatchersToDuplicateIssue", err)
-				return
-			}
-		}
 	}
 
 	// Refetch from database to assign some automatic values

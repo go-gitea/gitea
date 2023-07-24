@@ -9,10 +9,9 @@ import (
 	"xorm.io/xorm"
 )
 
-func AddClosedStatusAndDuplicateIssueIDToIssue(x *xorm.Engine) error {
+func AddClosedStatusToIssue(x *xorm.Engine) error {
 	type Issue struct {
-		ClosedStatus     issues_model.IssueClosedStatus `xorm:"INDEX NOT NULL DEFAULT 0"`
-		DuplicateIssueID int64                          `xorm:"NOT NULL DEFAULT 0"`
+		ClosedStatus issues_model.IssueClosedStatus `xorm:"INDEX NOT NULL DEFAULT 0"`
 	}
 
 	return x.Sync(new(Issue))

@@ -102,8 +102,6 @@ const (
 	IssueClosedStatusResolved
 	// IssueClosedStatusStale close issue as stale.
 	IssueClosedStatusStale
-	// IssueClosedStatusDuplicate close issue as duplicate.
-	IssueClosedStatusDuplicate
 )
 
 var issueClosedCommentTrMap = map[IssueClosedStatus]string{
@@ -111,12 +109,10 @@ var issueClosedCommentTrMap = map[IssueClosedStatus]string{
 	IssueClosedStatusArchived:    "repo.issues.closed_as_archived_at",
 	IssueClosedStatusResolved:    "repo.issues.closed_as_resolved_at",
 	IssueClosedStatusStale:       "repo.issues.closed_as_stale_at",
-	IssueClosedStatusDuplicate:   "repo.issues.closed_as_duplicate_at",
 }
 
 type ClosedIssueCommentContent struct {
-	Tr               string `json:"tr"`
-	DuplicateIssueID int64  `json:"duplicate_issue_id"`
+	Tr string `json:"tr"`
 }
 
 // Issue represents an issue or pull request of repository.
@@ -141,7 +137,6 @@ type Issue struct {
 	Assignee         *user_model.User  `xorm:"-"`
 	IsClosed         bool              `xorm:"INDEX"`
 	ClosedStatus     IssueClosedStatus `xorm:"INDEX NOT NULL DEFAULT 0"`
-	DuplicateIssueID int64             `xorm:"NOT NULL DEFAULT 0"`
 	IsRead           bool              `xorm:"-"`
 	IsPull           bool              `xorm:"INDEX"` // Indicates whether is a pull request or not.
 	PullRequest      *PullRequest      `xorm:"-"`
