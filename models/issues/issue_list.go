@@ -157,7 +157,9 @@ func (issues IssueList) loadLabels(ctx context.Context) error {
 		if left < limit {
 			limit = left
 		}
-		rows, err := db.GetEngine(ctx).Table("label").
+		sess := db.GetEngine(ctx).Table("label") // debug:
+		sess.MustLogSQL(true)
+		rows, err := sess.
 			Join("LEFT", "issue_label", "issue_label.label_id = label.id").
 			In("issue_label.issue_id", issueIDs[:limit]).
 			Asc("label.name").
