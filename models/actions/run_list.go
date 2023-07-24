@@ -69,7 +69,7 @@ type FindRunOptions struct {
 	RepoID        int64
 	OwnerID       int64
 	WorkflowID    string
-	Ref           string
+	Ref           string // the commit/tag/… that caused this workflow
 	TriggerUserID int64
 	Approved      bool // not util.OptionalBool, it works only when it's true
 	Status        []Status
