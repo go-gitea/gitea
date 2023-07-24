@@ -543,6 +543,15 @@ func registerRoutes(m *web.Route) {
 	m.Get("/avatar/{hash}", user.AvatarByEmailHash)
 
 	adminReq := auth_service.VerifyAuthWithOptions(&auth_service.VerifyOptions{SignInRequired: true, AdminRequired: true})
+	displayDeprecatedWarning := func(ctx *context.Context) {
+		if len(setting.DeprecatedWarnings) > 0 {
+			content := setting.DeprecatedWarnings[0].String()
+			if len(setting.DeprecatedWarnings) > 1 {
+				content += fmt.Sprintf(" (and %d more)", len(setting.DeprecatedWarnings)-1)
+			}
+			ctx.Flash.Error(content)
+		}
+	}
 
 	// ***** START: Admin *****
 	m.Group("/admin", func() {
@@ -648,15 +657,7 @@ func registerRoutes(m *web.Route) {
 	}, adminReq, ctxDataSet(
 		"EnableOAuth2", setting.OAuth2.Enable,
 		"EnablePackages", setting.Packages.Enabled,
-	), func(ctx *context.Context) {
-		if len(setting.DeprecatedWarnings) > 0 {
-			content := setting.DeprecatedWarnings[0].String()
-			if len(setting.DeprecatedWarnings) > 1 {
-				content += fmt.Sprintf(" (and %d more)", len(setting.DeprecatedWarnings)-1)
-			}
-			ctx.Flash.Error(content)
-		}
-	})
+	), displayDeprecatedWarning)
 	// ***** END: Admin *****
 
 	m.Group("", func() {
