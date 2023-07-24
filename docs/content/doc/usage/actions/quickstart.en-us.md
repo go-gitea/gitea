@@ -65,7 +65,7 @@ It is always a bad idea to use a loopback address such as `127.0.0.1` or `localh
 If you are unsure which address to use, the LAN address is usually the right choice.
 
 `token` is used for authentication and identification, such as `P2U1U0oB4XaRCi8azcngmPCLbRpUGapalhmddh23`.
-It is one-time use only and cannot be used to register multiple runners.  
+It is one-time use only and cannot be used to register multiple runners.
 You can obtain different levels of 'tokens' from the following places to create the corresponding level of' runners':
 
 - Instance level: The admin settings page, like `<your_gitea.com>/admin/actions/runners`.
