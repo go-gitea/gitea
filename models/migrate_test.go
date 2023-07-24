@@ -122,7 +122,7 @@ func TestMigrate_InsertPullRequests(t *testing.T) {
 		Issue: i,
 	}
 
-	err := InsertPullRequests(p)
+	err := InsertPullRequests(db.DefaultContext, p)
 	assert.NoError(t, err)
 
 	_ = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{IssueID: i.ID})

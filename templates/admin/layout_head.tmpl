@@ -1,8 +1,8 @@
 {{template "base/head" .ctxData}}
 <div role="main" aria-label="{{.ctxData.Title}}" class="page-content {{.pageClass}}">
-	<div class="ui container stackable grid">
+	<div class="ui container admin-container">
 		{{template "admin/navbar" .ctxData}}
-		<div class="twelve wide column">
+		<div class="admin-main">
 			{{template "base/alert" .ctxData}}
 			{{/* block: admin-setting-content */}}
 
