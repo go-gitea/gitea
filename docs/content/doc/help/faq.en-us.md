@@ -59,11 +59,12 @@ https://github.com/loganinak/MigrateGitlabToGogs
 ## Where does Gitea store what file
 
 - _`AppWorkPath`_
-  - The `--work-path` flag
+  - The `WORK_PATH` option in `app.ini`
+  - Else the `--work-path` flag
   - Else Environment variable `GITEA_WORK_DIR`
   - Else a built-in value set at build time
   - Else the directory that contains the Gitea binary
-- `%(APP_DATA_PATH)` (default for database, indexers, etc.)
+- `AppDataPath` (default for database, indexers, etc.)
   - `APP_DATA_PATH` from `app.ini`
   - Else _`AppWorkPath`_`/data`
 - _`CustomPath`_ (custom templates)
@@ -112,9 +113,6 @@ Gitea's custom templates must be added to the correct location or Gitea will not
 The correct path for the template(s) will be relative to the `CustomPath`
 
 1. To find `CustomPath`, look for Custom File Root Path in Site Administration -> Configuration
-
-    If that doesn't exist, you can try `echo $GITEA_CUSTOM`
-
 2. If you are still unable to find a path, the default can be [calculated above](#where-does-gitea-store-what-file)
 3. Once you have figured out the correct custom path, you can refer to the [customizing Gitea]({{< relref "doc/administration/customizing-gitea.en-us.md" >}}) page to add your template to the correct location.
 
@@ -192,7 +190,7 @@ To add your own theme, currently the only way is to provide a complete theme (no
 
 As an example, let's say our theme is `arc-blue` (this is a real theme, and can be found [in this issue](https://github.com/go-gitea/gitea/issues/6011))
 
-Name the `.css` file `theme-arc-blue.css` and add it to your custom folder in `custom/public/css`
+Name the `.css` file `theme-arc-blue.css` and add it to your custom folder in `custom/public/assets/css`
 
 Allow users to use it by adding `arc-blue` to the list of `THEMES` in your `app.ini`
 

@@ -14,52 +14,52 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
-var microcmdUserCreate = cli.Command{
+var microcmdUserCreate = &cli.Command{
 	Name:   "create",
 	Usage:  "Create a new user in database",
 	Action: runCreateUser,
 	Flags: []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "name",
 			Usage: "Username. DEPRECATED: use username instead",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "username",
 			Usage: "Username",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "password",
 			Usage: "User password",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "email",
 			Usage: "User email address",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "admin",
 			Usage: "User is an admin",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "random-password",
 			Usage: "Generate a random password for the user",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "must-change-password",
 			Usage: "Set this option to false to prevent forcing the user to change their password after initial login, (Default: true)",
 		},
-		cli.IntFlag{
+		&cli.IntFlag{
 			Name:  "random-password-length",
 			Usage: "Length of the random password to be generated",
 			Value: 12,
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "access-token",
 			Usage: "Generate access token for the user",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "restricted",
 			Usage: "Make a restricted user account",
 		},

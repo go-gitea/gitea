@@ -52,6 +52,7 @@ Gitea's private styles use `g-` prefix.
   text-overflow: ellipsis;
 }
 
+.gt-max-width-12rem { max-width: 12rem !important; }
 .gt-max-width-24rem { max-width: 24rem !important; }
 
 /* below class names match Tailwind CSS */
