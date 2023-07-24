@@ -50,7 +50,7 @@ func TestGetDeletedBranches(t *testing.T) {
 		ListOptions: db.ListOptions{
 			ListAll: true,
 		},
-		RepoIDs:         []int64{repo.ID},
+		RepoID:          repo.ID,
 		IsDeletedBranch: util.OptionalBoolTrue,
 	})
 	assert.NoError(t, err)

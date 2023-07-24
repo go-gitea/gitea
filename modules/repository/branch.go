@@ -53,7 +53,7 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 			ListOptions: db.ListOptions{
 				ListAll: true,
 			},
-			RepoIDs: []int64{repo.ID},
+			RepoID: repo.ID,
 		})
 		if err != nil {
 			return 0, err

@@ -661,7 +661,7 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 	}
 
 	branchOpts := git_model.FindBranchOptions{
-		RepoIDs:         []int64{ctx.Repo.Repository.ID},
+		RepoID:          ctx.Repo.Repository.ID,
 		IsDeletedBranch: util.OptionalBoolFalse,
 		ListOptions: db.ListOptions{
 			ListAll: true,

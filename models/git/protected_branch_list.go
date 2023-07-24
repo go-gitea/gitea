@@ -55,7 +55,7 @@ func FindAllMatchedBranches(ctx context.Context, repoID int64, ruleName string) 
 				PageSize: 100,
 				Page:     page,
 			},
-			RepoIDs:         []int64{repoID},
+			RepoID:          repoID,
 			IsDeletedBranch: util.OptionalBoolFalse,
 		})
 		if err != nil {
