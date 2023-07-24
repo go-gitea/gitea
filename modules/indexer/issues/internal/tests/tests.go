@@ -138,6 +138,23 @@ var cases = []*testIndexerCase{
 		ExpectedIDs:   []int64{1001, 1000},
 		ExpectedTotal: 2,
 	},
+	{
+		Name: "include any labels",
+		ExtraData: []*internal.IndexerData{
+			{ID: 1000, Title: "hello a", LabelIDs: []int64{2000, 2001, 2002}},
+			{ID: 1001, Title: "hello b", LabelIDs: []int64{2001}},
+			{ID: 1002, Title: "hello c", LabelIDs: []int64{2000, 2001, 2003}},
+			{ID: 1003, Title: "hello d", LabelIDs: []int64{2002}},
+			{ID: 1004, Title: "hello e", LabelIDs: []int64{}},
+		},
+		SearchOptions: &internal.SearchOptions{
+			Keyword:             "hello",
+			IncludedAnyLabelIDs: []int64{2001, 2002},
+			ExcludedLabelIDs:    []int64{2003},
+		},
+		ExpectedIDs:   []int64{1003, 1001, 1000},
+		ExpectedTotal: 3,
+	},
 	// TODO: add more cases
 }
 

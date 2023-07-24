@@ -73,7 +73,10 @@ func (i *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		)
 	}
 
-	opt := ToDBOptions(options)
+	opt, err := ToDBOptions(ctx, options)
+	if err != nil {
+		return nil, err
+	}
 
 	ids, total, err := issue_model.IssueIDs(ctx, opt, cond)
 	if err != nil {

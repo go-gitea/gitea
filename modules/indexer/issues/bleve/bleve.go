@@ -191,6 +191,12 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 				includeQueries = append(includeQueries, inner_bleve.NumericEqualityQuery(labelID, "label_ids"))
 			}
 			queries = append(queries, bleve.NewConjunctionQuery(includeQueries...))
+		} else if len(options.IncludedAnyLabelIDs) > 0 {
+			var includeQueries []query.Query
+			for _, labelID := range options.IncludedAnyLabelIDs {
+				includeQueries = append(includeQueries, inner_bleve.NumericEqualityQuery(labelID, "label_ids"))
+			}
+			queries = append(queries, bleve.NewDisjunctionQuery(includeQueries...))
 		}
 		if len(options.ExcludedLabelIDs) > 0 {
 			var excludeQueries []query.Query

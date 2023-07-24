@@ -68,9 +68,10 @@ type SearchOptions struct {
 	IsPull   util.OptionalBool // if the issues is a pull request
 	IsClosed util.OptionalBool // if the issues is closed
 
-	IncludedLabelIDs []int64 // labels the issues have
-	ExcludedLabelIDs []int64 // labels the issues don't have
-	NoLabelOnly      bool    // if the issues have no label, if true, IncludedLabelIDs and ExcludedLabelIDs will be ignored
+	IncludedLabelIDs    []int64 // labels the issues have
+	ExcludedLabelIDs    []int64 // labels the issues don't have
+	IncludedAnyLabelIDs []int64 // labels the issues have at least one. It will be ignored if IncludedLabelIDs is not empty. It's an uncommon filter, but it has been supported accidentally by issues.IssuesOptions.IncludedLabelNames.
+	NoLabelOnly         bool    // if the issues have no label, if true, IncludedLabelIDs and ExcludedLabelIDs, IncludedAnyLabelIDs will be ignored
 
 	MilestoneIDs []int64 // milestones the issues have
 

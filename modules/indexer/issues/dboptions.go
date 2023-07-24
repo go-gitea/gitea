@@ -27,6 +27,8 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 				searchOpt.ExcludedLabelIDs = append(searchOpt.ExcludedLabelIDs, -labelID)
 			}
 		}
+		// opts.IncludedLabelNames and opts.ExcludedLabelNames are not supported here.
+		// It's not a TO DO, it's just unnecessary.
 	}
 
 	if len(opts.MilestoneIDs) == 1 && opts.MilestoneIDs[0] == db.NoConditionID {

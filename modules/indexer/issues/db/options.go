@@ -4,12 +4,16 @@
 package db
 
 import (
+	"context"
+	"fmt"
+
 	"code.gitea.io/gitea/models/db"
 	issue_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
 )
 
-func ToDBOptions(options *internal.SearchOptions) *issue_model.IssuesOptions {
+func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_model.IssuesOptions, error) {
 	convertID := func(id *int64) int64 {
 		if id == nil {
 			return 0
@@ -18,23 +22,6 @@ func ToDBOptions(options *internal.SearchOptions) *issue_model.IssuesOptions {
 			return db.NoConditionID
 		}
 		return *id
-	}
-	convertIDs := func(ids []int64) []int64 {
-		if len(ids) == 1 && ids[0] == 0 {
-			return []int64{db.NoConditionID}
-		}
-		return ids
-	}
-	convertLabelIDs := func(includes, excludes []int64, noLabelOnly bool) []int64 {
-		if noLabelOnly {
-			return []int64{0} // Be careful, it's zero, not db.NoConditionID
-		}
-		ret := make([]int64, 0, len(includes)+len(excludes))
-		ret = append(ret, includes...)
-		for _, id := range excludes {
-			ret = append(ret, -id)
-		}
-		return ret
 	}
 	convertInt64 := func(i *int64) int64 {
 		if i == nil {
@@ -74,12 +61,10 @@ func ToDBOptions(options *internal.SearchOptions) *issue_model.IssuesOptions {
 		ReviewRequestedID:  convertID(options.ReviewRequestedID),
 		ReviewedID:         convertID(options.ReviewedID),
 		SubscriberID:       convertID(options.SubscriberID),
-		MilestoneIDs:       convertIDs(options.MilestoneIDs),
 		ProjectID:          convertID(options.ProjectID),
 		ProjectBoardID:     convertID(options.ProjectBoardID),
 		IsClosed:           options.IsClosed,
 		IsPull:             options.IsPull,
-		LabelIDs:           convertLabelIDs(options.IncludedLabelIDs, options.ExcludedLabelIDs, options.NoLabelOnly),
 		IncludedLabelNames: nil,
 		ExcludedLabelNames: nil,
 		IncludeMilestones:  nil,
@@ -93,5 +78,37 @@ func ToDBOptions(options *internal.SearchOptions) *issue_model.IssuesOptions {
 		Team:               nil,
 		User:               nil,
 	}
-	return opts
+
+	if len(options.MilestoneIDs) == 1 && options.MilestoneIDs[0] == 0 {
+		opts.MilestoneIDs = []int64{db.NoConditionID}
+	} else {
+		opts.MilestoneIDs = options.MilestoneIDs
+	}
+
+	if options.NoLabelOnly {
+		opts.LabelIDs = []int64{0} // Be careful, it's zero, not db.NoConditionID
+	} else {
+		opts.LabelIDs = make([]int64, 0, len(options.IncludedLabelIDs)+len(options.ExcludedLabelIDs))
+		opts.LabelIDs = append(opts.LabelIDs, options.IncludedLabelIDs...)
+		for _, id := range options.ExcludedLabelIDs {
+			opts.LabelIDs = append(opts.LabelIDs, -id)
+		}
+
+		if len(options.IncludedLabelIDs) == 0 && len(options.IncludedAnyLabelIDs) > 0 {
+			_ = ctx // issue_model.GetLabelsByIDs should be called with ctx, this line can be removed when it's done.
+			labels, err := issue_model.GetLabelsByIDs(options.IncludedAnyLabelIDs)
+			if err != nil {
+				return nil, fmt.Errorf("GetLabelsByIDs: %v", err)
+			}
+			set := container.Set[string]{}
+			for _, label := range labels {
+				if !set.Contains(label.Name) {
+					set.Add(label.Name)
+					opts.IncludedLabelNames = append(opts.IncludedLabelNames, label.Name)
+				}
+			}
+		}
+	}
+
+	return opts, nil
 }
