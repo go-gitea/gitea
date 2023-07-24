@@ -457,10 +457,12 @@ func FindRecentlyPushedNewBranches(ctx context.Context, opts *FindRecentlyPushed
 		// should not use branch name here, because if there are branches with same name in different repos,
 		// we can not detect them correctly
 		PullRequestCond: builder.NotIn("branch.id", prBranchIds),
+		// only display top 2 latest branch
+		ListOptions: db.ListOptions{
+			PageSize: 2,
+			Page:     1,
+		},
 	}
-	// only display top 2 latest branch
-	findBranchOpts.PageSize = 2
-	findBranchOpts.Page = 1
 
 	return FindBranches(ctx, findBranchOpts)
 }
