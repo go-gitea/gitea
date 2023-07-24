@@ -480,6 +480,7 @@ func GetLabelsByOrgID(ctx context.Context, orgID int64, sortType string, listOpt
 // It doesn't filter them by repo or org, so it could return labels belonging to different repos/orgs.
 // It's used for filtering issues via indexer, otherwise it would be useless.
 // Since it could return labels with the same name, so the length of returned ids could be more than the length of names.
+// TBC: incorrect, it should return labels belonging to the same repo/org.
 func GetLabelIDsByNames(ctx context.Context, labelNames []string) ([]int64, error) {
 	labelIDs := make([]int64, 0, len(labelNames))
 	return labelIDs, db.GetEngine(ctx).Table("label").
