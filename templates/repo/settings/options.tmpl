@@ -203,7 +203,16 @@
 							<td>{{$.locale.Tr "repo.settings.mirror_settings.direction.push"}}</td>
 							<td>{{if .LastUpdateUnix}}{{DateTime "full" .LastUpdateUnix}}{{else}}{{$.locale.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label" data-tooltip-content="{{.LastError}}">{{$.locale.Tr "error"}}</div>{{end}}</td>
 							<td class="right aligned">
-								<button data-modal="#mirror-sync-update" data-sync-time="{{.Interval}}"data-mirror-address="{{$address.Address}}" data-mirror-push-id={{.ID}}  class="ui tiny button show-modal inline text-thin mirror-sync-update-button" data-tooltip-content="Edit mirror sync time">{{svg "octicon-pencil" 14}}</button>
+								<button
+									data-modal="#mirror-sync-update"
+									data-id={{.ID}}
+									data-interval="{{.Interval}}"
+									data-mirror-address="{{$address.Address}}"
+									class="ui tiny button show-modal inline text-thin mirror-sync-update-button"
+									data-tooltip-content="Edit mirror sync time"
+								>
+									{{svg "octicon-pencil" 14}}
+								</button>
 								<form method="post" class="gt-dib">
 									{{$.CsrfTokenHtml}}
 									<input type="hidden" name="action" value="push-mirror-sync">
