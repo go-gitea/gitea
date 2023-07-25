@@ -92,3 +92,16 @@ To set up a mirror from Gitea to Bitbucket, you need to follow these steps:
 4. Select **Add Push Mirror** to save the configuration.
 
 The repository pushes shortly thereafter. To force a push, select the **Synchronize Now** button.
+
+### Mirror an existing ssh repository
+
+Currently gitea supports no ssh push mirrors. You can work around this by adding a `post-receive` hook to your gitea repository that pushes manually.
+
+1. Make sure the user running gitea has access to the git repo you are trying to mirror to from shell.
+2. On the Webinterface at the repository settings > git hooks add a post-receive hook for the mirror. I.e.
+
+```
+#!/usr/bin/env bash
+git push --mirror --quiet git@github.com:username/repository.git &>/dev/null &
+echo "GitHub mirror initiated .."
+```
