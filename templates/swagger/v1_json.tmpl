@@ -18722,6 +18722,37 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "FundingProvider": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "text": {
+          "type": "string",
+          "x-go-name": "Text"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "FundingSettings": {
+      "type": "object",
+      "properties": {
+        "providers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FundingProvider"
+          },
+          "x-go-name": "Providers"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "GPGKey": {
       "description": "GPGKey a user GPG key to sign commit and tag in repository",
       "type": "object",
@@ -21016,6 +21047,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "RepoFundingEntry": {
+      "description": "RepoFundingEntry is a funding option for a repo",
       "type": "object",
       "properties": {
         "text": {
@@ -22447,6 +22479,12 @@
       "description": "FilesResponse",
       "schema": {
         "$ref": "#/definitions/FilesResponse"
+      }
+    },
+    "FundingSettings": {
+      "description": "FundingSettings",
+      "schema": {
+        "$ref": "#/definitions/FundingSettings"
       }
     },
     "GPGKey": {

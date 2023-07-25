@@ -389,6 +389,7 @@ type UpdateRepoAvatarOption struct {
 	Image string `json:"image" binding:"Required"`
 }
 
+// RepoFundingEntry is a funding option for a repo
 type RepoFundingEntry struct {
 	Text string `json:"text"`
 	URL  string `json:"url"`

@@ -66,6 +66,13 @@
 							</div>
 						</form>
 					{{end}}
+					{{if $.Funding}}
+						<div class="ui labeled button">
+							<button class="ui compact small basic show-modal button" data-modal="#funding-modal">
+								{{svg "octicon-heart"}}{{$.locale.Tr "sponsor.button_text"}}
+							</button>
+						</div>
+					{{end}}
 					<form method="post" action="{{$.RepoLink}}/action/{{if $.IsWatchingRepo}}un{{end}}watch?redirect_to={{$.Link}}">
 						{{$.CsrfTokenHtml}}
 						<div class="ui labeled button" {{if not $.IsSigned}}data-tooltip-content="{{$.locale.Tr "repo.watch_guest_user"}}"{{end}}>
@@ -251,3 +258,9 @@
 	</div>
 	<div class="ui tabs divider"></div>
 </div>
+
+{{if .Funding}}
+	<div class="ui small modal" id="funding-modal">
+		{{template "shared/funding" .}}
+	</div>
+{{end}}

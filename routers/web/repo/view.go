@@ -53,7 +53,6 @@ const (
 	tplWatchers     base.TplName = "repo/watchers"
 	tplForks        base.TplName = "repo/forks"
 	tplMigrating    base.TplName = "repo/migrate/migrating"
-	tplFunding      base.TplName = "repo/funding"
 )
 
 // locate a README for a tree in one of the supported paths.
@@ -1090,19 +1089,4 @@ func Forks(ctx *context.Context) {
 	ctx.Data["Forks"] = forks
 
 	ctx.HTML(http.StatusOK, tplForks)
-}
-
-// Funding render repository's funding page
-func Funding(ctx *context.Context) {
-	ctx.Data["Title"] = "Funding"
-
-	funding, err := ctx.Repo.FundingFromDefaultBranch()
-	if err != nil {
-		ctx.ServerError("FundingFromDefaultBranch", err)
-		return
-	}
-
-	ctx.Data["Funding"] = funding
-
-	ctx.HTML(http.StatusOK, tplFunding)
 }

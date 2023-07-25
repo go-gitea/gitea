@@ -1,0 +1,10 @@
+<div class="header">
+	{{.locale.Tr "sponsor.header_text" .FundingName}}
+</div>
+<div class="content">
+	<ul>
+		{{range .Funding}}
+			<li><a href="{{.URL}}">{{.Text}}</a></li>
+		{{end}}
+	</ul>
+</div>

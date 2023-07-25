@@ -653,6 +653,9 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 	}
 	ctx.Repo.GitRepo = gitRepo
 
+	ctx.Data["Funding"], _ = ctx.Repo.FundingFromDefaultBranch()
+	ctx.Data["FundingName"] = repo.FullName()
+
 	// We opened it, we should close it
 	cancel := func() {
 		// If it's been set to nil then assume someone else has closed it.
