@@ -12,9 +12,9 @@
 			{{end}}
 		</h2>
 		{{template "base/alert" .}}
-		<form class="ui form stackable grid" action="{{.Link}}" method="post">
+		<form class="ui form" action="{{.Link}}" method="post">
 			{{.CsrfTokenHtml}}
-			<div class="ui seven wide column target">
+			<div class="ui seven wide target">
 				<div class="inline field {{if .Err_TagName}}error{{end}}">
 					{{if .PageIsEditRelease}}
 						<b>{{.tag_name}}</b><span class="at">@</span><strong>{{.tag_target}}</strong>
@@ -44,7 +44,7 @@
 					{{end}}
 				</div>
 			</div>
-			<div class="eleven wide column gt-pt-0">
+			<div class="eleven wide gt-pt-0">
 				<div class="field {{if .Err_Title}}error{{end}}">
 					<input name="title" aria-label="{{.locale.Tr "repo.release.title"}}" placeholder="{{.locale.Tr "repo.release.title"}}" value="{{.title}}" autofocus maxlength="255">
 				</div>
@@ -83,9 +83,9 @@
 					</div>
 				{{end}}
 			</div>
-			<div class="ui container">
-				<div class="divider"></div>
-				<div class="ui text right">
+			<div class="divider"></div>
+			<div class="ui">
+				<div>
 					{{if not .PageIsEditRelease}}
 						<div class="tag-message field">
 							<div class="ui checkbox">
@@ -103,30 +103,27 @@
 						</div>
 					</div>
 					<span class="help">{{.locale.Tr "repo.release.prerelease_helper"}}</span>
-					<div class="field">
+					<div class="divider gt-mt-0"></div>
+					<div class="gt-df gt-je">
 						{{if .PageIsEditRelease}}
-							<a class="ui button" href="{{.RepoLink}}/releases">
+							<a class="ui small button" href="{{.RepoLink}}/releases">
 								{{.locale.Tr "repo.release.cancel"}}
 							</a>
-							<a class="ui red button delete-button" data-url="{{$.RepoLink}}/releases/delete" data-id="{{.ID}}">
+							<a class="ui small red button delete-button" data-url="{{$.RepoLink}}/releases/delete" data-id="{{.ID}}">
 								{{$.locale.Tr "repo.release.delete_release"}}
 							</a>
 							{{if .IsDraft}}
-								<button class="ui button" type="submit" name="draft" value="{{.locale.Tr "repo.release.save_draft"}}">{{.locale.Tr "repo.release.save_draft"}}</button>
-								<button class="ui primary button">
+								<button class="ui small button" type="submit" name="draft" value="{{.locale.Tr "repo.release.save_draft"}}">{{.locale.Tr "repo.release.save_draft"}}</button>
+								<button class="ui small primary button">
 									{{.locale.Tr "repo.release.publish"}}
 								</button>
 							{{else}}
-								<button class="ui primary button">
+								<button class="ui small primary button">
 									{{.locale.Tr "repo.release.edit_release"}}
 								</button>
 							{{end}}
 						{{else}}
-							{{if not .tag_name}}
-								<button class="ui button" type="submit" name="tag_only" value="{{.locale.Tr "repo.release.add_tag"}}">{{.locale.Tr "repo.release.add_tag"}}</button>
-							{{end}}
-							<button class="ui button" type="submit" name="draft" value="{{.locale.Tr "repo.release.save_draft"}}">{{.locale.Tr "repo.release.save_draft"}}</button>
-							<button class="ui primary button">
+							<button class="ui small primary button">
 								{{.locale.Tr "repo.release.publish"}}
 							</button>
 						{{end}}
