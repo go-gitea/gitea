@@ -300,7 +300,7 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "push-mirror-update":
-		if setting.Mirror.DisableNewPush {
+		if !setting.Mirror.Enabled {
 			ctx.NotFound("", nil)
 			return
 		}
