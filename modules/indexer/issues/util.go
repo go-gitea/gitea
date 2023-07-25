@@ -5,11 +5,15 @@ package issues
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"code.gitea.io/gitea/models/db"
 	issue_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/queue"
 )
 
 // getIssueIndexerData returns the indexer data of an issue and a bool value indicating whether the issue exists.
@@ -115,4 +119,48 @@ func getIssueIndexerData(ctx context.Context, issueID int64) (*internal.IndexerD
 		DeadlineUnix:       issue.DeadlineUnix,
 		CommentCount:       int64(len(issue.Comments)),
 	}, true, nil
+}
+
+func updateRepoIndexer(ctx context.Context, repoID int64) error {
+	ids, err := issue_model.GetIssueIDsByRepoID(ctx, repoID)
+	if err != nil {
+		return fmt.Errorf("issue_model.GetIssueIDsByRepoID: %w", err)
+	}
+	for _, id := range ids {
+		if err := updateIssueIndexer(id); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func updateIssueIndexer(issueID int64) error {
+	return pushIssueIndexerQueue(&IndexerMetadata{ID: issueID})
+}
+
+func deleteRepoIssueIndexer(ctx context.Context, repoID int64) error {
+	var ids []int64
+	ids, err := issue_model.GetIssueIDsByRepoID(ctx, repoID)
+	if err != nil {
+		return fmt.Errorf("issue_model.GetIssueIDsByRepoID: %w", err)
+	}
+
+	if len(ids) == 0 {
+		return nil
+	}
+	return pushIssueIndexerQueue(&IndexerMetadata{
+		IDs:      ids,
+		IsDelete: true,
+	})
+}
+
+func pushIssueIndexerQueue(data *IndexerMetadata) error {
+	err := issueIndexerQueue.Push(data)
+	if errors.Is(err, queue.ErrAlreadyInQueue) {
+		return nil
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		log.Warn("It seems that issue indexer is slow and the queue is full. Please check the issue indexer or increase the queue size.")
+	}
+	return err
 }

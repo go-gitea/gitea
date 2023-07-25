@@ -5,14 +5,12 @@ package issues
 
 import (
 	"context"
-	"errors"
 	"os"
 	"runtime/pprof"
 	"sync/atomic"
 	"time"
 
 	db_model "code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/indexer/issues/bleve"
@@ -227,61 +225,41 @@ func populateIssueIndexer(ctx context.Context) {
 		}
 
 		for _, repo := range repos {
-			select {
-			case <-ctx.Done():
-				log.Info("Issue Indexer population shutdown before completion")
-				return
-			default:
+			for {
+				select {
+				case <-ctx.Done():
+					log.Info("Issue Indexer population shutdown before completion")
+					return
+				default:
+				}
+				if err := updateRepoIndexer(ctx, repo.ID); err != nil {
+					log.Warn("Retry to populate issue indexer for repo %d: %v", repo.ID, err)
+					continue
+				}
+				break
 			}
-			UpdateRepoIndexer(ctx, repo.ID)
 		}
 	}
 }
 
 // UpdateRepoIndexer add/update all issues of the repositories
 func UpdateRepoIndexer(ctx context.Context, repoID int64) {
-	is, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{
-		RepoIDs:  []int64{repoID},
-		IsClosed: util.OptionalBoolNone,
-		IsPull:   util.OptionalBoolNone,
-	})
-	if err != nil {
-		log.Error("Issues: %v", err)
-		return
-	}
-	for _, issue := range is {
-		UpdateIssueIndexer(issue.ID)
+	if err := updateRepoIndexer(ctx, repoID); err != nil {
+		log.Error("Unable to push repo %d to issue indexer: %v", repoID, err)
 	}
 }
 
 // UpdateIssueIndexer add/update an issue to the issue indexer
 func UpdateIssueIndexer(issueID int64) {
-	if err := issueIndexerQueue.Push(&IndexerMetadata{ID: issueID}); err != nil {
-		log.Error("Unable to push to issue indexer: %v: Error: %v", issueID, err)
-		if errors.Is(err, context.DeadlineExceeded) {
-			log.Error("It seems that issue indexer is slow and the queue is full. Please check the issue indexer or increase the queue size.")
-		}
+	if err := updateIssueIndexer(issueID); err != nil {
+		log.Error("Unable to push issue %d to issue indexer: %v", issueID, err)
 	}
 }
 
 // DeleteRepoIssueIndexer deletes repo's all issues indexes
 func DeleteRepoIssueIndexer(ctx context.Context, repoID int64) {
-	var ids []int64
-	ids, err := issues_model.GetIssueIDsByRepoID(ctx, repoID)
-	if err != nil {
-		log.Error("GetIssueIDsByRepoID failed: %v", err)
-		return
-	}
-
-	if len(ids) == 0 {
-		return
-	}
-	indexerData := &IndexerMetadata{
-		IDs:      ids,
-		IsDelete: true,
-	}
-	if err := issueIndexerQueue.Push(indexerData); err != nil {
-		log.Error("Unable to push to issue indexer: %v: Error: %v", indexerData, err)
+	if err := deleteRepoIssueIndexer(ctx, repoID); err != nil {
+		log.Error("Unable to push deleted repo %d to issue indexer: %v", repoID, err)
 	}
 }
 
