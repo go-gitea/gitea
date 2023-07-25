@@ -26,8 +26,8 @@ export function initOrgTeamSearchRepoBox() {
         const items = [];
         $.each(response.data, (_i, item) => {
           items.push({
-            title: item.full_name.split('/')[1],
-            description: item.full_name
+            title: item.repository.full_name.split('/')[1],
+            description: item.repository.full_name
           });
         });
 

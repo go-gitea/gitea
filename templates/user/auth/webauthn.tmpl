@@ -1,22 +1,23 @@
 {{template "base/head" .}}
-<div class="user signin webauthn-prompt">
-	<div class="ui middle centered very relaxed page grid">
+<div role="main" aria-label="{{.Title}}" class="page-content user signin webauthn-prompt">
+	<div class="ui page grid">
 		<div class="column center aligned">
-				<h3 class="ui top attached header">
-				{{.locale.Tr "twofa"}}
-				</h3>
-				<div class="ui attached segment">
-					{{svg "octicon-key" 56}}
-					<h3>{{.locale.Tr "webauthn_insert_key"}}</h3>
-					{{template "base/alert" .}}
-					<p>{{.locale.Tr "webauthn_sign_in"}}</p>
-				</div>
-				<div class="ui attached segment"><div class="ui active indeterminate inline loader"></div> {{.locale.Tr "webauthn_press_button"}} </div>
-				<div class="ui attached segment">
-					<a href="{{AppSubUrl}}/user/two_factor">{{.locale.Tr "webauthn_use_twofa"}}</a>
-				</div>
+			{{template "user/auth/webauthn_error" .}}
+			<h3 class="ui top attached header">{{.locale.Tr "twofa"}}</h3>
+			<div class="ui attached segment">
+				{{svg "octicon-key" 56}}
+				<h3>{{.locale.Tr "webauthn_insert_key"}}</h3>
+				{{template "base/alert" .}}
+				<p>{{.locale.Tr "webauthn_sign_in"}}</p>
+			</div>
+			<div class="ui attached segment">
+				<div class="ui active indeterminate inline loader"></div>
+				{{.locale.Tr "webauthn_press_button"}}
+			</div>
+			<div class="ui attached segment">
+				<a href="{{AppSubUrl}}/user/two_factor">{{.locale.Tr "webauthn_use_twofa"}}</a>
+			</div>
 		</div>
 	</div>
 </div>
-{{template "user/auth/webauthn_error" .}}
 {{template "base/footer" .}}

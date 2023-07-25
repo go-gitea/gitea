@@ -5,6 +5,8 @@ slug: "git-lfs-setup"
 weight: 12
 toc: false
 draft: false
+aliases:
+  - /en-us/git-lfs-setup
 menu:
   sidebar:
     parent: "administration"

@@ -5,6 +5,8 @@ slug: "upgrade-from-gitea"
 weight: 100
 toc: false
 draft: false
+aliases:
+  - /en-us/upgrade-from-gitea
 menu:
   sidebar:
     parent: "installation"

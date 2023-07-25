@@ -120,7 +120,7 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 			isExternal = true
 		}
 
-		links := make([]interface{}, len(indices))
+		links := make([]any, len(indices))
 		for i, index := range indices {
 			links[i] = numericIssueLink(util.URLJoin(TestRepoURL, path), "ref-issue", index, marker)
 		}
@@ -204,7 +204,7 @@ func TestRender_IssueIndexPattern4(t *testing.T) {
 
 	// alphanumeric: render inputs with valid mentions
 	test := func(s, expectedFmt string, names ...string) {
-		links := make([]interface{}, len(names))
+		links := make([]any, len(names))
 		for i, name := range names {
 			links[i] = externalIssueLink("https://someurl.com/someUser/someRepo/", "ref-issue ref-external-issue", name)
 		}
@@ -226,7 +226,7 @@ func TestRender_IssueIndexPattern5(t *testing.T) {
 	test := func(s, expectedFmt, pattern string, ids, names []string) {
 		metas := regexpMetas
 		metas["regexp"] = pattern
-		links := make([]interface{}, len(ids))
+		links := make([]any, len(ids))
 		for i, id := range ids {
 			links[i] = link(util.URLJoin("https://someurl.com/someUser/someRepo/", id), "ref-issue ref-external-issue", names[i])
 		}

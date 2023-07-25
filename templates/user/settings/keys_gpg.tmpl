@@ -18,7 +18,7 @@
 					<p>{{.locale.Tr "settings.gpg_token_required"}}</p>
 				</div>
 				<div class="field">
-					<label for="token">{{.locale.Tr "settings.gpg_token"}}
+					<label for="token">{{.locale.Tr "settings.gpg_token"}}</label>
 					<input readonly="" value="{{.TokenToSign}}">
 					<div class="help">
 						<p>{{.locale.Tr "settings.gpg_token_help"}}</p>
@@ -68,9 +68,9 @@
 						<b>{{$.locale.Tr "settings.subkeys"}}:</b> {{range .SubsKey}} {{.PaddedKeyID}} {{end}}
 					</div>
 					<div class="activity meta">
-						<i>{{$.locale.Tr "settings.add_on"}} <span>{{DateTime "short" .AddedUnix.FormatLong .AddedUnix.FormatShort}}</span></i>
+						<i>{{$.locale.Tr "settings.added_on" (DateTime "short" .AddedUnix) | Safe}}</i>
 						-
-						<i>{{if not .ExpiredUnix.IsZero}}{{$.locale.Tr "settings.valid_until"}} <span>{{DateTime "short" .ExpiredUnix.FormatLong .ExpiredUnix.FormatShort}}</span>{{else}}{{$.locale.Tr "settings.valid_forever"}}{{end}}</i>
+						<i>{{if not .ExpiredUnix.IsZero}}{{$.locale.Tr "settings.valid_until_date" (DateTime "short" .ExpiredUnix) | Safe}}{{else}}{{$.locale.Tr "settings.valid_forever"}}{{end}}</i>
 					</div>
 				</div>
 			</div>

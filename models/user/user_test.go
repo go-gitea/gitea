@@ -526,3 +526,21 @@ func TestIsUserVisibleToViewer(t *testing.T) {
 	test(user31, user33, true)
 	test(user31, nil, false)
 }
+
+func Test_ValidateUser(t *testing.T) {
+	oldSetting := setting.Service.AllowedUserVisibilityModesSlice
+	defer func() {
+		setting.Service.AllowedUserVisibilityModesSlice = oldSetting
+	}()
+	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, false, true}
+	kases := map[*user_model.User]bool{
+		{ID: 1, Visibility: structs.VisibleTypePublic}:                            true,
+		{ID: 2, Visibility: structs.VisibleTypeLimited}:                           false,
+		{ID: 2, Visibility: structs.VisibleTypeLimited, Email: "invalid"}:         false,
+		{ID: 2, Visibility: structs.VisibleTypePrivate, Email: "valid@valid.com"}: true,
+	}
+	for kase, expected := range kases {
+		err := user_model.ValidateUser(kase)
+		assert.EqualValues(t, expected, err == nil, fmt.Sprintf("case: %+v", kase))
+	}
+}

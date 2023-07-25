@@ -10,12 +10,14 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/repository"
 )
 
 // Notifier defines an interface to notify receiver
 type Notifier interface {
 	Run()
+	NotifyAdoptRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository)
 	NotifyCreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository)
 	NotifyMigrateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository)
 	NotifyDeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository)
@@ -27,7 +29,7 @@ type Notifier interface {
 	NotifyDeleteIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue)
 	NotifyIssueChangeMilestone(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldMilestoneID int64)
 	NotifyIssueChangeAssignee(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, assignee *user_model.User, removed bool, comment *issues_model.Comment)
-	NotifyPullReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment)
+	NotifyPullRequestReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment)
 	NotifyIssueChangeContent(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldContent string)
 	NotifyIssueClearLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue)
 	NotifyIssueChangeTitle(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldTitle string)
@@ -54,11 +56,11 @@ type Notifier interface {
 	NotifyUpdateRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release)
 	NotifyDeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release)
 	NotifyPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits)
-	NotifyCreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string)
-	NotifyDeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refType, refFullName string)
+	NotifyCreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string)
+	NotifyDeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName)
 	NotifySyncPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits)
-	NotifySyncCreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string)
-	NotifySyncDeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refType, refFullName string)
+	NotifySyncCreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string)
+	NotifySyncDeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName)
 	NotifyRepoPendingTransfer(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository)
 	NotifyPackageCreate(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor)
 	NotifyPackageDelete(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor)

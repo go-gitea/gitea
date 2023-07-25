@@ -31,3 +31,18 @@
 .monaco-scrollable-element > .scrollbar > .slider:active {
   background: var(--color-primary-dark-2) !important;
 }
+
+/* fomantic styles destroy this element only visible on IOS, restore it */
+.monaco-editor .iPadShowKeyboard {
+  border: none !important;
+  width: 58px !important;
+  min-width: 0 !important;
+  height: 36px !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  position: absolute !important;
+  resize: none !important;
+  overflow: hidden !important;
+  border-radius: 4px !important;
+}

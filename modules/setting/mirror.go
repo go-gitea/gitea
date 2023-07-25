@@ -30,7 +30,7 @@ func loadMirrorFrom(rootCfg ConfigProvider) {
 	// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
 	// if these are removed, the warning will not be shown
 	deprecatedSetting(rootCfg, "repository", "DISABLE_MIRRORS", "mirror", "ENABLED", "v1.19.0")
-	if rootCfg.Section("repository").Key("DISABLE_MIRRORS").MustBool(false) {
+	if ConfigSectionKeyBool(rootCfg.Section("repository"), "DISABLE_MIRRORS") {
 		Mirror.DisableNewPull = true
 	}
 

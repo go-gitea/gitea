@@ -79,13 +79,13 @@ func Code(ctx *context.Context) {
 	if (len(repoIDs) > 0) || isAdmin {
 		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(ctx, repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
 		if err != nil {
-			if code_indexer.IsAvailable() {
+			if code_indexer.IsAvailable(ctx) {
 				ctx.ServerError("SearchResults", err)
 				return
 			}
 			ctx.Data["CodeIndexerUnavailable"] = true
 		} else {
-			ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable()
+			ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable(ctx)
 		}
 
 		loadRepoIDs := make([]int64, 0, len(searchResults))

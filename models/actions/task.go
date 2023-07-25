@@ -18,7 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
-	lru "github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/nektos/act/pkg/jobparser"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"xorm.io/builder"
@@ -57,13 +57,13 @@ type ActionTask struct {
 	Updated timeutil.TimeStamp `xorm:"updated index"`
 }
 
-var successfulTokenTaskCache *lru.Cache
+var successfulTokenTaskCache *lru.Cache[string, any]
 
 func init() {
 	db.RegisterModel(new(ActionTask), func() error {
 		if setting.SuccessfulTokensCacheSize > 0 {
 			var err error
-			successfulTokenTaskCache, err = lru.New(setting.SuccessfulTokensCacheSize)
+			successfulTokenTaskCache, err = lru.New[string, any](setting.SuccessfulTokensCacheSize)
 			if err != nil {
 				return fmt.Errorf("unable to allocate Task cache: %v", err)
 			}
@@ -215,12 +215,11 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, erro
 }
 
 func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask, bool, error) {
-	dbCtx, commiter, err := db.TxContext(ctx)
+	ctx, commiter, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, false, err
 	}
 	defer commiter.Close()
-	ctx = dbCtx.WithContext(ctx)
 
 	e := db.GetEngine(ctx)
 
@@ -241,11 +240,9 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 
 	// TODO: a more efficient way to filter labels
 	var job *ActionRunJob
-	labels := runner.AgentLabels
-	labels = append(labels, runner.CustomLabels...)
-	log.Trace("runner labels: %v", labels)
+	log.Trace("runner labels: %v", runner.AgentLabels)
 	for _, v := range jobs {
-		if isSubset(labels, v.RunsOn) {
+		if isSubset(runner.AgentLabels, v.RunsOn) {
 			job = v
 			break
 		}
@@ -291,7 +288,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	}
 
 	task.LogFilename = logFileName(job.Run.Repo.FullName(), task.ID)
-	if _, err := e.ID(task.ID).Cols("log_filename").Update(task); err != nil {
+	if err := UpdateTask(ctx, task, "log_filename"); err != nil {
 		return nil, false, err
 	}
 
@@ -346,6 +343,9 @@ func UpdateTask(ctx context.Context, task *ActionTask, cols ...string) error {
 	return err
 }
 
+// UpdateTaskByState updates the task by the state.
+// It will always update the task if the state is not final, even there is no change.
+// So it will update ActionTask.Updated to avoid the task being judged as a zombie task.
 func UpdateTaskByState(ctx context.Context, state *runnerv1.TaskState) (*ActionTask, error) {
 	stepStates := map[int64]*runnerv1.StepState{}
 	for _, v := range state.Steps {
@@ -367,9 +367,18 @@ func UpdateTaskByState(ctx context.Context, state *runnerv1.TaskState) (*ActionT
 		return nil, util.ErrNotExist
 	}
 
+	if task.Status.IsDone() {
+		// the state is final, do nothing
+		return task, nil
+	}
+
+	// state.Result is not unspecified means the task is finished
 	if state.Result != runnerv1.Result_RESULT_UNSPECIFIED {
 		task.Status = Status(state.Result)
 		task.Stopped = timeutil.TimeStamp(state.StoppedAt.AsTime().Unix())
+		if err := UpdateTask(ctx, task, "status", "stopped"); err != nil {
+			return nil, err
+		}
 		if _, err := UpdateRunJob(ctx, &ActionRunJob{
 			ID:      task.JobID,
 			Status:  task.Status,
@@ -377,10 +386,12 @@ func UpdateTaskByState(ctx context.Context, state *runnerv1.TaskState) (*ActionT
 		}, nil); err != nil {
 			return nil, err
 		}
-	}
-
-	if _, err := e.ID(task.ID).Update(task); err != nil {
-		return nil, err
+	} else {
+		// Force update ActionTask.Updated to avoid the task being judged as a zombie task
+		task.Updated = timeutil.TimeStampNow()
+		if err := UpdateTask(ctx, task, "updated"); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := task.LoadAttributes(ctx); err != nil {
@@ -440,7 +451,7 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 		return err
 	}
 
-	if _, err := e.ID(task.ID).Update(task); err != nil {
+	if err := UpdateTask(ctx, task, "status", "stopped"); err != nil {
 		return err
 	}
 

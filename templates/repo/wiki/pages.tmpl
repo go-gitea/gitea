@@ -5,7 +5,7 @@
 		<h2 class="ui header gt-df gt-ac gt-sb">
 			<span>{{.locale.Tr "repo.wiki.pages"}}</span>
 			<span>
-				{{if and .CanWriteWiki (not .IsRepositoryMirror)}}
+				{{if and .CanWriteWiki (not .Repository.IsMirror)}}
 					<a class="ui green small button" href="{{.RepoLink}}/wiki?action=_new">{{.locale.Tr "repo.wiki.new_page_button"}}</a>
 				{{end}}
 			</span>

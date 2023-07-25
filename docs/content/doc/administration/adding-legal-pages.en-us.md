@@ -5,6 +5,8 @@ slug: adding-legal-pages
 weight: 110
 toc: false
 draft: false
+aliases:
+  - /en-us/adding-legal-pages
 menu:
   sidebar:
     parent: "administration"

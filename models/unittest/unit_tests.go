@@ -19,42 +19,52 @@ import (
 const NonexistentID = int64(math.MaxInt64)
 
 type testCond struct {
-	query interface{}
-	args  []interface{}
+	query any
+	args  []any
 }
 
+type testOrderBy string
+
 // Cond create a condition with arguments for a test
-func Cond(query interface{}, args ...interface{}) interface{} {
+func Cond(query any, args ...any) any {
 	return &testCond{query: query, args: args}
 }
 
-func whereConditions(e db.Engine, conditions []interface{}) db.Engine {
+// OrderBy creates "ORDER BY" a test query
+func OrderBy(orderBy string) any {
+	return testOrderBy(orderBy)
+}
+
+func whereOrderConditions(e db.Engine, conditions []any) db.Engine {
+	orderBy := "id" // query must have the "ORDER BY", otherwise the result is not deterministic
 	for _, condition := range conditions {
 		switch cond := condition.(type) {
 		case *testCond:
 			e = e.Where(cond.query, cond.args...)
+		case testOrderBy:
+			orderBy = string(cond)
 		default:
 			e = e.Where(cond)
 		}
 	}
-	return e
+	return e.OrderBy(orderBy)
 }
 
 // LoadBeanIfExists loads beans from fixture database if exist
-func LoadBeanIfExists(bean interface{}, conditions ...interface{}) (bool, error) {
+func LoadBeanIfExists(bean any, conditions ...any) (bool, error) {
 	e := db.GetEngine(db.DefaultContext)
-	return whereConditions(e, conditions).Get(bean)
+	return whereOrderConditions(e, conditions).Get(bean)
 }
 
 // BeanExists for testing, check if a bean exists
-func BeanExists(t assert.TestingT, bean interface{}, conditions ...interface{}) bool {
+func BeanExists(t assert.TestingT, bean any, conditions ...any) bool {
 	exists, err := LoadBeanIfExists(bean, conditions...)
 	assert.NoError(t, err)
 	return exists
 }
 
 // AssertExistsAndLoadBean assert that a bean exists and load it from the test database
-func AssertExistsAndLoadBean[T any](t assert.TestingT, bean T, conditions ...interface{}) T {
+func AssertExistsAndLoadBean[T any](t assert.TestingT, bean T, conditions ...any) T {
 	exists, err := LoadBeanIfExists(bean, conditions...)
 	assert.NoError(t, err)
 	assert.True(t, exists,
@@ -64,9 +74,9 @@ func AssertExistsAndLoadBean[T any](t assert.TestingT, bean T, conditions ...int
 }
 
 // AssertExistsAndLoadMap assert that a row exists and load it from the test database
-func AssertExistsAndLoadMap(t assert.TestingT, table string, conditions ...interface{}) map[string]string {
+func AssertExistsAndLoadMap(t assert.TestingT, table string, conditions ...any) map[string]string {
 	e := db.GetEngine(db.DefaultContext).Table(table)
-	res, err := whereConditions(e, conditions).Query()
+	res, err := whereOrderConditions(e, conditions).Query()
 	assert.NoError(t, err)
 	assert.True(t, len(res) == 1,
 		"Expected to find one row in %s (with conditions %+v), but found %d",
@@ -84,15 +94,15 @@ func AssertExistsAndLoadMap(t assert.TestingT, table string, conditions ...inter
 }
 
 // GetCount get the count of a bean
-func GetCount(t assert.TestingT, bean interface{}, conditions ...interface{}) int {
+func GetCount(t assert.TestingT, bean any, conditions ...any) int {
 	e := db.GetEngine(db.DefaultContext)
-	count, err := whereConditions(e, conditions).Count(bean)
+	count, err := whereOrderConditions(e, conditions).Count(bean)
 	assert.NoError(t, err)
 	return int(count)
 }
 
 // AssertNotExistsBean assert that a bean does not exist in the test database
-func AssertNotExistsBean(t assert.TestingT, bean interface{}, conditions ...interface{}) {
+func AssertNotExistsBean(t assert.TestingT, bean any, conditions ...any) {
 	exists, err := LoadBeanIfExists(bean, conditions...)
 	assert.NoError(t, err)
 	assert.False(t, exists)
@@ -100,20 +110,20 @@ func AssertNotExistsBean(t assert.TestingT, bean interface{}, conditions ...inte
 
 // AssertExistsIf asserts that a bean exists or does not exist, depending on
 // what is expected.
-func AssertExistsIf(t assert.TestingT, expected bool, bean interface{}, conditions ...interface{}) {
+func AssertExistsIf(t assert.TestingT, expected bool, bean any, conditions ...any) {
 	exists, err := LoadBeanIfExists(bean, conditions...)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, exists)
 }
 
 // AssertSuccessfulInsert assert that beans is successfully inserted
-func AssertSuccessfulInsert(t assert.TestingT, beans ...interface{}) {
+func AssertSuccessfulInsert(t assert.TestingT, beans ...any) {
 	err := db.Insert(db.DefaultContext, beans...)
 	assert.NoError(t, err)
 }
 
 // AssertCount assert the count of a bean
-func AssertCount(t assert.TestingT, bean, expected interface{}) {
+func AssertCount(t assert.TestingT, bean, expected any) {
 	assert.EqualValues(t, expected, GetCount(t, bean))
 }
 

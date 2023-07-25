@@ -4,10 +4,8 @@
 package httpcache
 
 import (
-	"encoding/base64"
-	"fmt"
+	"io"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -37,38 +35,9 @@ func SetCacheControlInHeader(h http.Header, maxAge time.Duration, additionalDire
 	h.Set("Cache-Control", strings.Join(append(directives, additionalDirectives...), ", "))
 }
 
-// generateETag generates an ETag based on size, filename and file modification time
-func generateETag(fi os.FileInfo) string {
-	etag := fmt.Sprint(fi.Size()) + fi.Name() + fi.ModTime().UTC().Format(http.TimeFormat)
-	return `"` + base64.StdEncoding.EncodeToString([]byte(etag)) + `"`
-}
-
-// HandleTimeCache handles time-based caching for a HTTP request
-func HandleTimeCache(req *http.Request, w http.ResponseWriter, fi os.FileInfo) (handled bool) {
-	return HandleGenericTimeCache(req, w, fi.ModTime())
-}
-
-// HandleGenericTimeCache handles time-based caching for a HTTP request
-func HandleGenericTimeCache(req *http.Request, w http.ResponseWriter, lastModified time.Time) (handled bool) {
+func ServeContentWithCacheControl(w http.ResponseWriter, req *http.Request, name string, modTime time.Time, content io.ReadSeeker) {
 	SetCacheControlInHeader(w.Header(), setting.StaticCacheTime)
-
-	ifModifiedSince := req.Header.Get("If-Modified-Since")
-	if ifModifiedSince != "" {
-		t, err := time.Parse(http.TimeFormat, ifModifiedSince)
-		if err == nil && lastModified.Unix() <= t.Unix() {
-			w.WriteHeader(http.StatusNotModified)
-			return true
-		}
-	}
-
-	w.Header().Set("Last-Modified", lastModified.Format(http.TimeFormat))
-	return false
-}
-
-// HandleFileETagCache handles ETag-based caching for a HTTP request
-func HandleFileETagCache(req *http.Request, w http.ResponseWriter, fi os.FileInfo) (handled bool) {
-	etag := generateETag(fi)
-	return HandleGenericETagCache(req, w, etag)
+	http.ServeContent(w, req, name, modTime, content)
 }
 
 // HandleGenericETagCache handles ETag-based caching for a HTTP request.
@@ -101,11 +70,11 @@ func checkIfNoneMatchIsValid(req *http.Request, etag string) bool {
 
 // HandleGenericETagTimeCache handles ETag-based caching with Last-Modified caching for a HTTP request.
 // It returns true if the request was handled.
-func HandleGenericETagTimeCache(req *http.Request, w http.ResponseWriter, etag string, lastModified time.Time) (handled bool) {
+func HandleGenericETagTimeCache(req *http.Request, w http.ResponseWriter, etag string, lastModified *time.Time) (handled bool) {
 	if len(etag) > 0 {
 		w.Header().Set("Etag", etag)
 	}
-	if !lastModified.IsZero() {
+	if lastModified != nil && !lastModified.IsZero() {
 		w.Header().Set("Last-Modified", lastModified.Format(http.TimeFormat))
 	}
 
@@ -115,7 +84,7 @@ func HandleGenericETagTimeCache(req *http.Request, w http.ResponseWriter, etag s
 			return true
 		}
 	}
-	if !lastModified.IsZero() {
+	if lastModified != nil && !lastModified.IsZero() {
 		ifModifiedSince := req.Header.Get("If-Modified-Since")
 		if ifModifiedSince != "" {
 			t, err := time.Parse(http.TimeFormat, ifModifiedSince)

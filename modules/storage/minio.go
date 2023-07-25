@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/minio/minio-go/v7"
@@ -41,25 +42,9 @@ func (m *minioObject) Stat() (os.FileInfo, error) {
 	return &minioFileInfo{oi}, nil
 }
 
-// MinioStorageType is the type descriptor for minio storage
-const MinioStorageType Type = "minio"
-
-// MinioStorageConfig represents the configuration for a minio storage
-type MinioStorageConfig struct {
-	Endpoint           string `ini:"MINIO_ENDPOINT"`
-	AccessKeyID        string `ini:"MINIO_ACCESS_KEY_ID"`
-	SecretAccessKey    string `ini:"MINIO_SECRET_ACCESS_KEY"`
-	Bucket             string `ini:"MINIO_BUCKET"`
-	Location           string `ini:"MINIO_LOCATION"`
-	BasePath           string `ini:"MINIO_BASE_PATH"`
-	UseSSL             bool   `ini:"MINIO_USE_SSL"`
-	InsecureSkipVerify bool   `ini:"MINIO_INSECURE_SKIP_VERIFY"`
-	ChecksumAlgorithm  string `ini:"MINIO_CHECKSUM_ALGORITHM"`
-}
-
 // MinioStorage returns a minio bucket storage
 type MinioStorage struct {
-	cfg      *MinioStorageConfig
+	cfg      *setting.MinioStorageConfig
 	ctx      context.Context
 	client   *minio.Client
 	bucket   string
@@ -87,13 +72,8 @@ func convertMinioErr(err error) error {
 }
 
 // NewMinioStorage returns a minio storage
-func NewMinioStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error) {
-	configInterface, err := toConfig(MinioStorageConfig{}, cfg)
-	if err != nil {
-		return nil, convertMinioErr(err)
-	}
-	config := configInterface.(MinioStorageConfig)
-
+func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, error) {
+	config := cfg.MinioConfig
 	if config.ChecksumAlgorithm != "" && config.ChecksumAlgorithm != "default" && config.ChecksumAlgorithm != "md5" {
 		return nil, fmt.Errorf("invalid minio checksum algorithm: %s", config.ChecksumAlgorithm)
 	}
@@ -129,7 +109,11 @@ func NewMinioStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error
 }
 
 func (m *MinioStorage) buildMinioPath(p string) string {
-	return util.PathJoinRelX(m.basePath, p)
+	p = util.PathJoinRelX(m.basePath, p)
+	if p == "." {
+		p = "" // minio doesn't use dot as relative path
+	}
+	return p
 }
 
 // Open opens a file
@@ -189,7 +173,7 @@ func (m minioFileInfo) Mode() os.FileMode {
 	return os.ModePerm
 }
 
-func (m minioFileInfo) Sys() interface{} {
+func (m minioFileInfo) Sys() any {
 	return nil
 }
 
@@ -224,14 +208,15 @@ func (m *MinioStorage) URL(path, name string) (*url.URL, error) {
 }
 
 // IterateObjects iterates across the objects in the miniostorage
-func (m *MinioStorage) IterateObjects(prefix string, fn func(path string, obj Object) error) error {
+func (m *MinioStorage) IterateObjects(dirName string, fn func(path string, obj Object) error) error {
 	opts := minio.GetObjectOptions{}
 	lobjectCtx, cancel := context.WithCancel(m.ctx)
 	defer cancel()
 
 	basePath := m.basePath
-	if prefix != "" {
-		basePath = m.buildMinioPath(prefix)
+	if dirName != "" {
+		// ending slash is required for avoiding matching like "foo/" and "foobar/" with prefix "foo"
+		basePath = m.buildMinioPath(dirName) + "/"
 	}
 
 	for mObjInfo := range m.client.ListObjects(lobjectCtx, m.bucket, minio.ListObjectsOptions{
@@ -244,7 +229,7 @@ func (m *MinioStorage) IterateObjects(prefix string, fn func(path string, obj Ob
 		}
 		if err := func(object *minio.Object, fn func(path string, obj Object) error) error {
 			defer object.Close()
-			return fn(strings.TrimPrefix(mObjInfo.Key, basePath), &minioObject{object})
+			return fn(strings.TrimPrefix(mObjInfo.Key, m.basePath), &minioObject{object})
 		}(object, fn); err != nil {
 			return convertMinioErr(err)
 		}
@@ -253,5 +238,5 @@ func (m *MinioStorage) IterateObjects(prefix string, fn func(path string, obj Ob
 }
 
 func init() {
-	RegisterStorageType(MinioStorageType, NewMinioStorage)
+	RegisterStorageType(setting.MinioStorageType, NewMinioStorage)
 }

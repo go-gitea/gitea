@@ -49,15 +49,16 @@ func Profile(ctx *context.Context) {
 
 // HandleUsernameChange handle username changes from user settings and admin interface
 func HandleUsernameChange(ctx *context.Context, user *user_model.User, newName string) error {
-	// Non-local users are not allowed to change their username.
-	if !user.IsLocal() {
-		ctx.Flash.Error(ctx.Tr("form.username_change_not_local_user"))
-		return fmt.Errorf(ctx.Tr("form.username_change_not_local_user"))
-	}
-
+	oldName := user.Name
 	// rename user
 	if err := user_service.RenameUser(ctx, user, newName); err != nil {
 		switch {
+		// Noop as username is not changed
+		case user_model.IsErrUsernameNotChanged(err):
+			ctx.Flash.Error(ctx.Tr("form.username_has_not_been_changed"))
+		// Non-local users are not allowed to change their username.
+		case user_model.IsErrUserIsNotLocal(err):
+			ctx.Flash.Error(ctx.Tr("form.username_change_not_local_user"))
 		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Flash.Error(ctx.Tr("form.username_been_taken"))
 		case user_model.IsErrEmailAlreadyUsed(err):
@@ -73,7 +74,7 @@ func HandleUsernameChange(ctx *context.Context, user *user_model.User, newName s
 		}
 		return err
 	}
-
+	log.Trace("User name changed: %s -> %s", oldName, newName)
 	return nil
 }
 

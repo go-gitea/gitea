@@ -10,7 +10,7 @@ draft: false
 
 # A propos de Gitea
 
-Gitea est un service Git auto-hébergé très simple à installer et à utiliser. Il est similaire à GitHub, Bitbucket ou Gitlab. Le développement initial provient sur [Gogs] (http://gogs.io), mais nous l'avons forké puis renommé Gitea. Si vous souhaitez en savoir plus sur les raisons pour lesquelles nous avons fait cela, lisez [cette publication] (https://blog.gitea.io/2016/12/welcome-to-gitea/) sur le blog.
+Gitea est un service Git auto-hébergé très simple à installer et à utiliser. Il est similaire à GitHub, Bitbucket ou Gitlab. Le développement initial provient sur [Gogs] (http://gogs.io), mais nous l'avons forké puis renommé Gitea. Si vous souhaitez en savoir plus sur les raisons pour lesquelles nous avons fait cela, lisez [cette publication] (https://blog.gitea.com/welcome-to-gitea/) sur le blog.
 
 ## Objectif
 
@@ -70,7 +70,7 @@ Le but de ce projet est de fournir de la manière la plus simple, la plus rapide
     - MSSQL
     - [TiDB](https://github.com/pingcap/tidb) (MySQL protocol)
   - Fichier de configuration
-    - Voir [ici](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
+    - Voir [ici](https://github.com/go-gitea/gitea/blob/main/custom/conf/app.example.ini)
   - Panel d'administration
     - Statistiques
     - Actions

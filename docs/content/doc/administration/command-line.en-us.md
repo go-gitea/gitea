@@ -5,6 +5,8 @@ slug: "command-line"
 weight: 1
 toc: false
 draft: false
+aliases:
+  - /en-us/command-line
 menu:
   sidebar:
     parent: "administration"
@@ -29,9 +31,9 @@ All global options can be placed at the command level.
 
 - `--help`, `-h`: Show help text and exit. Optional.
 - `--version`, `-v`: Show version and exit. Optional. (example: `Gitea version 1.1.0+218-g7b907ed built with: bindata, sqlite`).
-- `--custom-path path`, `-C path`: Location of the Gitea custom folder. Optional. (default: `AppWorkPath`/custom or `$GITEA_CUSTOM`).
-- `--config path`, `-c path`: Gitea configuration file path. Optional. (default: `custom`/conf/app.ini).
-- `--work-path path`, `-w path`: Gitea `AppWorkPath`. Optional. (default: LOCATION_OF_GITEA_BINARY or `$GITEA_WORK_DIR`)
+- `--work-path path`, `-w path`: Gitea's work path. Optional. (default: the binary's path or `$GITEA_WORK_DIR`)
+- `--custom-path path`, `-C path`: Gitea's custom folder path. Optional. (default: `WorkPath`/custom or `$GITEA_CUSTOM`).
+- `--config path`, `-c path`: Gitea configuration file path. Optional. (default: `CustomPath`/conf/app.ini).
 
 NB: The defaults custom-path, config and work-path can also be
 changed at build time (if preferred).
@@ -106,6 +108,14 @@ Admin operations:
         - `--all`, `-A`: Force a password change for all users
         - `--exclude username`, `-e username`: Exclude the given user. Can be set multiple times.
         - `--unset`: Revoke forced password change for the given users
+    - `generate-access-token`:
+      - Options:
+        - `--username value`, `-u value`: Username. Required.
+        - `--token-name value`, `-t value`: Token name. Required.
+        - `--scopes value`: Comma-separated list of scopes. Scopes follow the format `[read|write]:<block>` or `all` where `<block>` is one of the available visual groups you can see when opening the API page showing the available routes (for example `repo`).
+      - Examples:
+        - `gitea admin user generate-access-token --username myname --token-name mytoken`
+        - `gitea admin user generate-access-token --help`
   - `regenerate`
     - Options:
       - `hooks`: Regenerate Git Hooks for all repositories
@@ -223,7 +233,7 @@ Admin operations:
         - `--synchronize-users`: Enable user synchronization.
         - `--page-size value`: Search page size.
       - Examples:
-        - `gitea admin auth add-ldap --name ldap --security-protocol unencrypted --host mydomain.org --port 389 --user-search-base "ou=Users,dc=mydomain,dc=org" --user-filter "(&(objectClass=posixAccount)(uid=%s))" --email-attribute mail`
+        - `gitea admin auth add-ldap --name ldap --security-protocol unencrypted --host mydomain.org --port 389 --user-search-base "ou=Users,dc=mydomain,dc=org" --user-filter "(&(objectClass=posixAccount)(|(uid=%[1]s)(mail=%[1]s)))" --email-attribute mail`
     - `update-ldap`: Update existing LDAP (via Bind DN) authentication source
       - Options:
         - `--id value`: ID of authentication source. Required.

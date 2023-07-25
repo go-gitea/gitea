@@ -5,6 +5,8 @@ slug: "install-on-kubernetes"
 weight: 80
 toc: false
 draft: false
+aliases:
+  - /en-us/install-on-kubernetes
 menu:
   sidebar:
     parent: "installation"
@@ -20,7 +22,7 @@ Gitea provides a Helm Chart to allow for installation on kubernetes.
 A non-customized install can be done with:
 
 ```
-helm repo add gitea-charts https://dl.gitea.io/charts/
+helm repo add gitea-charts https://dl.gitea.com/charts/
 helm install gitea gitea-charts/gitea
 ```
 

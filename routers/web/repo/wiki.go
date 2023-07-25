@@ -12,7 +12,6 @@ import (
 	"net/url"
 	"path/filepath"
 	"strings"
-	"time"
 
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -273,6 +272,16 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		return nil, nil
 	}
 
+	if rctx.SidebarTocNode != nil {
+		sb := &strings.Builder{}
+		err = markdown.SpecializedMarkdown().Renderer().Render(sb, nil, rctx.SidebarTocNode)
+		if err != nil {
+			log.Error("Failed to render wiki sidebar TOC: %v", err)
+		} else {
+			ctx.Data["sidebarTocContent"] = sb.String()
+		}
+	}
+
 	if !isSideBar {
 		buf.Reset()
 		ctx.Data["sidebarEscapeStatus"], ctx.Data["sidebarContent"], err = renderFn(sidebarContent)
@@ -301,16 +310,6 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		ctx.Data["footerPresent"] = footerContent != nil
 	} else {
 		ctx.Data["footerPresent"] = false
-	}
-
-	if rctx.SidebarTocNode != nil {
-		sb := &strings.Builder{}
-		err = markdown.SpecializedMarkdown().Renderer().Render(sb, nil, rctx.SidebarTocNode)
-		if err != nil {
-			log.Error("Failed to render wiki sidebar TOC: %v", err)
-		} else {
-			ctx.Data["sidebarTocContent"] = sb.String()
-		}
 	}
 
 	// get commit count - wiki revisions
@@ -376,7 +375,12 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	}
 
 	// get Commit Count
-	commitsHistory, err := wikiRepo.CommitsByFileAndRange(wiki_service.DefaultBranch, pageFilename, page)
+	commitsHistory, err := wikiRepo.CommitsByFileAndRange(
+		git.CommitsByFileAndRangeOptions{
+			Revision: wiki_service.DefaultBranch,
+			File:     pageFilename,
+			Page:     page,
+		})
 	if err != nil {
 		if wikiRepo != nil {
 			wikiRepo.Close()
@@ -666,7 +670,7 @@ func WikiRaw(ctx *context.Context) {
 	}
 
 	if entry != nil {
-		if err = common.ServeBlob(ctx, entry.Blob(), time.Time{}); err != nil {
+		if err = common.ServeBlob(ctx.Base, ctx.Repo.TreePath, entry.Blob(), nil); err != nil {
 			ctx.ServerError("ServeBlob", err)
 		}
 		return
@@ -786,7 +790,7 @@ func DeleteWikiPagePost(ctx *context.Context) {
 
 	notification.NotifyDeleteWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(wikiName))
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"redirect": ctx.Repo.RepoLink + "/wiki/",
 	})
 }

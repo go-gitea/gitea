@@ -5,6 +5,8 @@ slug: "oauth2-provider"
 weight: 41
 toc: false
 draft: false
+aliases:
+  - /zh-tw/oauth2-provider
 menu:
   sidebar:
     parent: "development"

@@ -79,16 +79,24 @@ func TeamsAction(ctx *context.Context) {
 				ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
 			} else {
 				log.Error("Action(%s): %v", ctx.Params(":action"), err)
-				ctx.JSON(http.StatusOK, map[string]interface{}{
+				ctx.JSON(http.StatusOK, map[string]any{
 					"ok":  false,
 					"err": err.Error(),
 				})
 				return
 			}
 		}
+
+		redirect := ctx.Org.OrgLink + "/teams/"
+		if isOrgMember, err := org_model.IsOrganizationMember(ctx, ctx.Org.Organization.ID, ctx.Doer.ID); err != nil {
+			ctx.ServerError("IsOrganizationMember", err)
+			return
+		} else if !isOrgMember {
+			redirect = setting.AppSubURL + "/"
+		}
 		ctx.JSON(http.StatusOK,
-			map[string]interface{}{
-				"redirect": ctx.Org.OrgLink + "/teams/",
+			map[string]any{
+				"redirect": redirect,
 			})
 		return
 	case "remove":
@@ -109,7 +117,7 @@ func TeamsAction(ctx *context.Context) {
 				ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
 			} else {
 				log.Error("Action(%s): %v", ctx.Params(":action"), err)
-				ctx.JSON(http.StatusOK, map[string]interface{}{
+				ctx.JSON(http.StatusOK, map[string]any{
 					"ok":  false,
 					"err": err.Error(),
 				})
@@ -117,7 +125,7 @@ func TeamsAction(ctx *context.Context) {
 			}
 		}
 		ctx.JSON(http.StatusOK,
-			map[string]interface{}{
+			map[string]any{
 				"redirect": ctx.Org.OrgLink + "/teams/" + url.PathEscape(ctx.Org.Team.LowerName),
 			})
 		return
@@ -191,7 +199,7 @@ func TeamsAction(ctx *context.Context) {
 			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
 		} else {
 			log.Error("Action(%s): %v", ctx.Params(":action"), err)
-			ctx.JSON(http.StatusOK, map[string]interface{}{
+			ctx.JSON(http.StatusOK, map[string]any{
 				"ok":  false,
 				"err": err.Error(),
 			})
@@ -248,7 +256,7 @@ func TeamsRepoAction(ctx *context.Context) {
 	}
 
 	if action == "addall" || action == "removeall" {
-		ctx.JSON(http.StatusOK, map[string]interface{}{
+		ctx.JSON(http.StatusOK, map[string]any{
 			"redirect": ctx.Org.OrgLink + "/teams/" + url.PathEscape(ctx.Org.Team.LowerName) + "/repositories",
 		})
 		return
@@ -406,7 +414,7 @@ func SearchTeam(ctx *context.Context) {
 	teams, maxResults, err := org_model.SearchTeam(opts)
 	if err != nil {
 		log.Error("SearchTeam failed: %v", err)
-		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+		ctx.JSON(http.StatusInternalServerError, map[string]any{
 			"ok":    false,
 			"error": "SearchTeam internal failure",
 		})
@@ -416,7 +424,7 @@ func SearchTeam(ctx *context.Context) {
 	apiTeams, err := convert.ToTeams(ctx, teams, false)
 	if err != nil {
 		log.Error("convert ToTeams failed: %v", err)
-		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+		ctx.JSON(http.StatusInternalServerError, map[string]any{
 			"ok":    false,
 			"error": "SearchTeam failed to get units",
 		})
@@ -424,7 +432,7 @@ func SearchTeam(ctx *context.Context) {
 	}
 
 	ctx.SetTotalCountHeader(maxResults)
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"ok":   true,
 		"data": apiTeams,
 	})
@@ -522,7 +530,7 @@ func DeleteTeam(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("org.teams.delete_team_success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"redirect": ctx.Org.OrgLink + "/teams",
 	})
 }

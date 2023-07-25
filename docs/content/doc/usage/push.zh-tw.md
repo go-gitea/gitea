@@ -5,6 +5,8 @@ slug: "push"
 weight: 15
 toc: false
 draft: false
+aliases:
+  - /zh-tw/push-options
 menu:
   sidebar:
     parent: "usage"

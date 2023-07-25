@@ -515,6 +515,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 // CreatePullRequests creates pull requests
 func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error {
 	gprs := make([]*issues_model.PullRequest, 0, len(prs))
+	ctx := db.DefaultContext
 	for _, pr := range prs {
 		gpr, err := g.newPullRequest(pr)
 		if err != nil {
@@ -527,12 +528,12 @@ func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error 
 
 		gprs = append(gprs, gpr)
 	}
-	if err := models.InsertPullRequests(gprs...); err != nil {
+	if err := models.InsertPullRequests(ctx, gprs...); err != nil {
 		return err
 	}
 	for _, pr := range gprs {
 		g.issues[pr.Issue.Index] = pr.Issue
-		pull.AddToTaskQueue(pr)
+		pull.AddToTaskQueue(ctx, pr)
 	}
 	return nil
 }
@@ -923,9 +924,8 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 func (g *GiteaLocalUploader) Rollback() error {
 	if g.repo != nil && g.repo.ID > 0 {
 		g.gitRepo.Close()
-		if err := models.DeleteRepository(g.doer, g.repo.OwnerID, g.repo.ID); err != nil {
-			return err
-		}
+
+		// do not delete the repository, otherwise the end users won't be able to see the last error message
 	}
 	return nil
 }

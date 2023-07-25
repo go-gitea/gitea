@@ -8,33 +8,33 @@ import (
 )
 
 const (
-	githubEventPullRequest              = "pull_request"
-	githubEventPullRequestTarget        = "pull_request_target"
-	githubEventPullRequestReviewComment = "pull_request_review_comment"
-	githubEventPullRequestReview        = "pull_request_review"
-	githubEventRegistryPackage          = "registry_package"
-	githubEventCreate                   = "create"
-	githubEventDelete                   = "delete"
-	githubEventFork                     = "fork"
-	githubEventPush                     = "push"
-	githubEventIssues                   = "issues"
-	githubEventIssueComment             = "issue_comment"
-	githubEventRelease                  = "release"
-	githubEventPullRequestComment       = "pull_request_comment"
-	githubEventGollum                   = "gollum"
+	GithubEventPullRequest              = "pull_request"
+	GithubEventPullRequestTarget        = "pull_request_target"
+	GithubEventPullRequestReviewComment = "pull_request_review_comment"
+	GithubEventPullRequestReview        = "pull_request_review"
+	GithubEventRegistryPackage          = "registry_package"
+	GithubEventCreate                   = "create"
+	GithubEventDelete                   = "delete"
+	GithubEventFork                     = "fork"
+	GithubEventPush                     = "push"
+	GithubEventIssues                   = "issues"
+	GithubEventIssueComment             = "issue_comment"
+	GithubEventRelease                  = "release"
+	GithubEventPullRequestComment       = "pull_request_comment"
+	GithubEventGollum                   = "gollum"
 )
 
 // canGithubEventMatch check if the input Github event can match any Gitea event.
 func canGithubEventMatch(eventName string, triggedEvent webhook_module.HookEventType) bool {
 	switch eventName {
-	case githubEventRegistryPackage:
+	case GithubEventRegistryPackage:
 		return triggedEvent == webhook_module.HookEventPackage
 
 	// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#gollum
-	case githubEventGollum:
+	case GithubEventGollum:
 		return triggedEvent == webhook_module.HookEventWiki
 
-	case githubEventIssues:
+	case GithubEventIssues:
 		switch triggedEvent {
 		case webhook_module.HookEventIssues,
 			webhook_module.HookEventIssueAssign,
@@ -46,7 +46,7 @@ func canGithubEventMatch(eventName string, triggedEvent webhook_module.HookEvent
 			return false
 		}
 
-	case githubEventPullRequest, githubEventPullRequestTarget:
+	case GithubEventPullRequest, GithubEventPullRequestTarget:
 		switch triggedEvent {
 		case webhook_module.HookEventPullRequest,
 			webhook_module.HookEventPullRequestSync,
@@ -58,7 +58,7 @@ func canGithubEventMatch(eventName string, triggedEvent webhook_module.HookEvent
 			return false
 		}
 
-	case githubEventPullRequestReview:
+	case GithubEventPullRequestReview:
 		switch triggedEvent {
 		case webhook_module.HookEventPullRequestReviewApproved,
 			webhook_module.HookEventPullRequestReviewComment,

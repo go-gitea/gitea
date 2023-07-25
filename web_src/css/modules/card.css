@@ -1,0 +1,134 @@
+/* Below styles are a subset of the full fomantic card styles which are */
+/* needed to get all current uses of fomantic cards working. */
+/* TODO: remove all these styles and use custom styling instead  */
+
+.ui.card:last-child {
+  margin-bottom: 0;
+}
+.ui.card:first-child {
+  margin-top: 0;
+}
+
+.ui.cards > .card,
+.ui.card {
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+  width: 290px;
+  min-height: 0;
+  padding: 0;
+  background: var(--color-card);
+  border: 1px solid var(--color-secondary);
+  box-shadow: none;
+  word-wrap: break-word;
+}
+
+.ui.card {
+  margin: 1em 0;
+}
+
+.ui.cards {
+  display: flex;
+  margin: -0.875em -0.5em;
+  flex-wrap: wrap;
+}
+
+.ui.cards > .card {
+  display: flex;
+  margin: 0.875em 0.5em;
+  float: none;
+}
+
+.ui.cards > .card > .content,
+.ui.card > .content {
+  border-top: 1px solid var(--color-secondary);
+  max-width: 100%;
+  padding: 1em;
+  font-size: 1em;
+}
+
+.ui.cards > .card > .content > .meta + .description,
+.ui.cards > .card > .content > .header + .description,
+.ui.card > .content > .meta + .description,
+.ui.card > .content > .header + .description {
+  margin-top: .5em;
+}
+
+.ui.cards > .card > .content > .header:not(.ui),
+.ui.card > .content > .header:not(.ui) {
+  font-weight: var(--font-weight-medium);
+  font-size: 1.28571429em;
+  margin-top: -.21425em;
+  line-height: 1.28571429;
+}
+
+.ui.cards > .card > .content:first-child,
+.ui.card > .content:first-child {
+  border-top: none;
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+.ui.cards > .card > :last-child,
+.ui.card > :last-child {
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.ui.cards > .card > :only-child,
+.ui.card > :only-child {
+  border-radius: var(--border-radius) !important;
+}
+
+.ui.cards > .card > .extra,
+.ui.card > .extra,
+.ui.cards > .card > .extra a:not(.ui),
+.ui.card > .extra a:not(.ui) {
+  color: var(--color-text);
+}
+
+.ui.cards > .card > .extra a:not(.ui):hover,
+.ui.card > .extra a:not(.ui):hover {
+  color: var(--color-primary);
+}
+
+.ui.cards > .card > .content > .header,
+.ui.card > .content > .header {
+  color: var(--color-text);
+}
+
+.ui.cards > .card > .content > .description,
+.ui.card > .content > .description {
+  color: var(--color-text);
+}
+
+.ui.cards > .card .meta > a:not(.ui),
+.ui.card .meta > a:not(.ui) {
+  color: var(--color-text-light-2);
+}
+
+.ui.cards > .card .meta > a:not(.ui):hover,
+.ui.card .meta > a:not(.ui):hover {
+  color: var(--color-text);
+}
+
+.ui.cards a.card:hover,
+a.ui.card:hover {
+  border: 1px solid var(--color-secondary);
+  background: var(--color-card);
+}
+
+.ui.cards > .card > .extra,
+.ui.card > .extra {
+  color: var(--color-text);
+  border-top-color: var(--color-secondary-light-1) !important;
+}
+
+.ui.three.cards {
+  margin-left: -1em;
+  margin-right: -1em;
+}
+
+.ui.three.cards > .card {
+  width: calc(33.33333333333333% - 2em);
+  margin-left: 1em;
+  margin-right: 1em;
+}

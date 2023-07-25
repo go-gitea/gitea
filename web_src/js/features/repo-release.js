@@ -32,17 +32,14 @@ function initTagNameEditor() {
 
   document.getElementById('tag-name').addEventListener('keyup', (e) => {
     const value = e.target.value;
+    const tagHelper = document.getElementById('tag-helper');
     if (existingTags.includes(value)) {
       // If the tag already exists, hide the target branch selector.
       hideElem('#tag-target-selector');
-      document.getElementById('tag-helper').innerText = existingTagHelperText;
+      tagHelper.textContent = existingTagHelperText;
     } else {
       showElem('#tag-target-selector');
-      if (value) {
-        document.getElementById('tag-helper').innerText = newTagHelperText;
-      } else {
-        document.getElementById('tag-helper').innerText = defaultTagHelperText;
-      }
+      tagHelper.textContent = value ? newTagHelperText : defaultTagHelperText;
     }
   });
 }

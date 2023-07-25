@@ -40,7 +40,7 @@
 	<tbody>
 		{{if .HasParentPath}}
 			<tr class="has-parent">
-				<td colspan="3">{{svg "octicon-reply"}}<a href="{{.BranchLink}}{{if .ParentPath}}{{PathEscapeSegments .ParentPath}}{{end}}">..</a></td>
+				<td colspan="3">{{svg "octicon-reply"}}<a class="muted" href="{{.BranchLink}}{{if .ParentPath}}{{PathEscapeSegments .ParentPath}}{{end}}">..</a></td>
 			</tr>
 		{{end}}
 		{{range $item := .Files}}
@@ -61,13 +61,15 @@
 						{{else}}
 							{{if $entry.IsDir}}
 								{{$subJumpablePathName := $entry.GetSubJumpablePathName}}
-								{{$subJumpablePath := SubJumpablePath $subJumpablePathName}}
 								{{svg "octicon-file-directory-fill"}}
 								<a class="muted" href="{{$.TreeLink}}/{{PathEscapeSegments $subJumpablePathName}}" title="{{$subJumpablePathName}}">
-									{{if eq (len $subJumpablePath) 2}}
-										<span class="color-text-light-2">{{index  $subJumpablePath 0}}</span>{{index  $subJumpablePath 1}}
+									{{$subJumpablePathFields := StringUtils.Split $subJumpablePathName "/"}}
+									{{$subJumpablePathFieldLast := (Eval (len $subJumpablePathFields) "-" 1)}}
+									{{if eq $subJumpablePathFieldLast 0}}
+										{{$subJumpablePathName}}
 									{{else}}
-										{{index $subJumpablePath 0}}
+										{{$subJumpablePathPrefixes := slice $subJumpablePathFields 0 $subJumpablePathFieldLast}}
+										<span class="text light-2">{{StringUtils.Join $subJumpablePathPrefixes "/"}}</span>/{{index $subJumpablePathFields $subJumpablePathFieldLast}}
 									{{end}}
 								</a>
 							{{else}}

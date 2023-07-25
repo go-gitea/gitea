@@ -5,6 +5,8 @@ slug: "faq"
 weight: 5
 toc: false
 draft: false
+aliases:
+  - /en-us/faq
 menu:
   sidebar:
     parent: "help"
@@ -17,27 +19,25 @@ menu:
 
 This page contains some common questions and answers.
 
-For more help resources, check all [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}}).
+For more help resources, check all [Support Options]({{< relref "doc/help/support.en-us.md" >}}).
 
 **Table of Contents**
 
 {{< toc >}}
 
-## Difference between 1.x and 1.x.x downloads
+## Difference between 1.x and 1.x.x downloads, how can I get latest stable release with bug fixes?
 
-Version 1.7.x will be used for this example.
+Version 1.20.x will be used for this example.
 
-**NOTE:** this example applies to Docker images as well!
+On our [downloads page](https://dl.gitea.com/gitea/) you will see a 1.20 directory, as well as directories for 1.20.0, 1.20.1.
 
-On our [downloads page](https://dl.gitea.io/gitea/) you will see a 1.7 directory, as well as directories for 1.7.0, 1.7.1, 1.7.2, 1.7.3, 1.7.4, 1.7.5, and 1.7.6.
+The 1.20 directory is the nightly build, which is built on each merged commit to the [`release/v1.20`](https://github.com/go-gitea/gitea/tree/release/v1.20) branch.
 
-The 1.7 and 1.7.0 directories are **not** the same. The 1.7 directory is built on each merged commit to the [`release/v1.7`](https://github.com/go-gitea/gitea/tree/release/v1.7) branch.
+The 1.20.0 directory is a release build that was created when the [`v1.20.0`](https://github.com/go-gitea/gitea/releases/tag/v1.20.0) tag was created.
 
-The 1.7.0 directory, however, is a build that was created when the [`v1.7.0`](https://github.com/go-gitea/gitea/releases/tag/v1.7.0) tag was created.
+The nightly builds (1.x) downloads will change as commits are merged to their respective branch, they contain the latest changes/fixes before a tag release is built.
 
-This means that 1.x downloads will change as commits are merged to their respective branch (think of it as a separate "main" branch for each release).
-
-On the other hand, 1.x.x downloads should never change.
+If a bug fix is targeted on 1.20.1 but 1.20.1 is not released yet, you can get the "1.20-nightly" build to get the bug fix.
 
 ## How to migrate from Gogs/GitHub/etc. to Gitea
 
@@ -59,11 +59,12 @@ https://github.com/loganinak/MigrateGitlabToGogs
 ## Where does Gitea store what file
 
 - _`AppWorkPath`_
-  - The `--work-path` flag
+  - The `WORK_PATH` option in `app.ini`
+  - Else the `--work-path` flag
   - Else Environment variable `GITEA_WORK_DIR`
   - Else a built-in value set at build time
   - Else the directory that contains the Gitea binary
-- `%(APP_DATA_PATH)` (default for database, indexers, etc.)
+- `AppDataPath` (default for database, indexers, etc.)
   - `APP_DATA_PATH` from `app.ini`
   - Else _`AppWorkPath`_`/data`
 - _`CustomPath`_ (custom templates)
@@ -112,9 +113,6 @@ Gitea's custom templates must be added to the correct location or Gitea will not
 The correct path for the template(s) will be relative to the `CustomPath`
 
 1. To find `CustomPath`, look for Custom File Root Path in Site Administration -> Configuration
-
-    If that doesn't exist, you can try `echo $GITEA_CUSTOM`
-
 2. If you are still unable to find a path, the default can be [calculated above](#where-does-gitea-store-what-file)
 3. Once you have figured out the correct custom path, you can refer to the [customizing Gitea]({{< relref "doc/administration/customizing-gitea.en-us.md" >}}) page to add your template to the correct location.
 
@@ -134,7 +132,7 @@ A "login prohibited" user is a user that is not allowed to log in to Gitea anymo
 
 ## Setting up logging
 
-- [Official Docs]({{< relref "doc/administration/logging-documentation.en-us.md" >}})
+- [Official Docs]({{< relref "doc/administration/logging-config.en-us.md" >}})
 
 ## What is Swagger?
 
@@ -192,7 +190,7 @@ To add your own theme, currently the only way is to provide a complete theme (no
 
 As an example, let's say our theme is `arc-blue` (this is a real theme, and can be found [in this issue](https://github.com/go-gitea/gitea/issues/6011))
 
-Name the `.css` file `theme-arc-blue.css` and add it to your custom folder in `custom/public/css`
+Name the `.css` file `theme-arc-blue.css` and add it to your custom folder in `custom/public/assets/css`
 
 Allow users to use it by adding `arc-blue` to the list of `THEMES` in your `app.ini`
 
@@ -396,19 +394,9 @@ Please run `gitea convert`, or run `ALTER DATABASE database_name CHARACTER SET u
 for the database_name and run `ALTER TABLE table_name CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`
 for each table in the database.
 
-You will also need to change the app.ini database charset to `CHARSET=utf8mb4`.
-
 ## Why are Emoji displaying only as placeholders or in monochrome
 
 Gitea requires the system or browser to have one of the supported Emoji fonts installed, which are Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji and Twemoji Mozilla. Generally, the operating system should already provide one of these fonts, but especially on Linux, it may be necessary to install them manually.
-
-## Stdout logging on SystemD and Docker
-
-Stdout on systemd goes to the journal by default. Try using `journalctl`, `journalctl  -u gitea`, or `journalctl <path-to-gitea-binary>`.
-
-Similarly, stdout on docker can be viewed using `docker logs <container>`.
-
-To collect logs for help and issue report, see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}}).
 
 ## Initial logging
 
@@ -452,12 +440,6 @@ gitea doctor recreate-table
 
 It is highly recommended to back-up your database before running these commands.
 
-## Why are tabs/indents wrong when viewing files
-
-If you are using Cloudflare, turn off the auto-minify option in the dashboard.
-
-`Speed` -> `Optimization` -> Uncheck `HTML` within the `Auto-Minify` settings.
-
 ## How to adopt repositories from disk
 
 - Add your (bare) repositories to the correct spot for your configuration (`repository.ROOT`), ensuring they are in the correct layout `<REPO_ROOT>/[user]/[repo].git`.
@@ -468,3 +450,17 @@ If you are using Cloudflare, turn off the auto-minify option in the dashboard.
   - Users can also be given similar permissions via config [`ALLOW_ADOPTION_OF_UNADOPTED_REPOSITORIES`]({{< relref "doc/administration/config-cheat-sheet.en-us.md#repository" >}}).
 - If the above steps are done correctly, you should be able to select repositories to adopt.
   - If no repositories are found, enable [debug logging]({{< relref "doc/administration/config-cheat-sheet.en-us.md#repository" >}}) to check for any specific errors.
+
+## Gitea can't start on NFS
+
+In most cases, it's caused by broken NFS lock system. You can try to stop Gitea process and
+run `flock -n /data-nfs/gitea/queues/LOCK echo 'lock acquired'` to see whether the lock can be acquired immediately.
+If the lock can't be acquired, NFS might report some errors like `lockd: cannot monitor node-3, statd: server rpc.statd not responding, timed out` in its server logs.
+
+Then the NFS lock could be reset by:
+
+```bash
+# /etc/init.d/nfs stop
+# rm -rf /var/lib/nfs/sm/*
+# /etc/init.d/nfs start
+```

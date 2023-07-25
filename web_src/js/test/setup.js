@@ -3,7 +3,7 @@ window.config = {
   pageData: {},
   i18n: {},
   appSubUrl: '',
-  tributeValues: [
+  mentionValues: [
     {key: 'user1 User 1', value: 'user1', name: 'user1', fullname: 'User 1', avatar: 'https://avatar1.com'},
     {key: 'user2 User 2', value: 'user2', name: 'user2', fullname: 'User 2', avatar: 'https://avatar2.com'},
     {key: 'user3 User 3', value: 'user3', name: 'user3', fullname: 'User 3', avatar: 'https://avatar3.com'},

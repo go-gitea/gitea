@@ -1,10 +1,13 @@
 ---
 date: "2020-07-06T16:00:00+02:00"
-title: "Usage: Push"
+title: "Push"
 slug: "push"
 weight: 15
 toc: false
 draft: false
+aliases:
+  - /en-us/push-to-create
+  - /en-us/push-options
 menu:
   sidebar:
     parent: "usage"

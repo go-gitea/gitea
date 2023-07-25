@@ -1,12 +1,29 @@
 import $ from 'jquery';
-import {useLightTextOnBackground} from '../utils.js';
+import {useLightTextOnBackground} from '../utils/color.js';
+import tinycolor from 'tinycolor2';
+import {createSortable} from '../modules/sortable.js';
 
 const {csrfToken} = window.config;
 
 function updateIssueCount(cards) {
   const parent = cards.parentElement;
   const cnt = parent.getElementsByClassName('board-card').length;
-  parent.getElementsByClassName('board-card-cnt')[0].innerText = cnt;
+  parent.getElementsByClassName('board-card-cnt')[0].textContent = cnt;
+}
+
+function createNewBoard(url, boardTitle, projectColorInput) {
+  $.ajax({
+    url,
+    data: JSON.stringify({title: boardTitle.val(), color: projectColorInput.val()}),
+    headers: {
+      'X-Csrf-Token': csrfToken,
+    },
+    contentType: 'application/json',
+    method: 'POST',
+  }).done(() => {
+    boardTitle.closest('form').removeClass('dirty');
+    window.location.reload();
+  });
 }
 
 function moveIssue({item, from, to, oldIndex}) {
@@ -15,10 +32,10 @@ function moveIssue({item, from, to, oldIndex}) {
   updateIssueCount(to);
 
   const columnSorting = {
-    issues: [...columnCards].map((card, i) => ({
+    issues: Array.from(columnCards, (card, i) => ({
       issueID: parseInt($(card).attr('data-issue')),
-      sorting: i
-    }))
+      sorting: i,
+    })),
   };
 
   $.ajax({
@@ -31,20 +48,18 @@ function moveIssue({item, from, to, oldIndex}) {
     type: 'POST',
     error: () => {
       from.insertBefore(item, from.children[oldIndex]);
-    }
+    },
   });
 }
 
 async function initRepoProjectSortable() {
-  const els = document.querySelectorAll('#project-board > .board');
+  const els = document.querySelectorAll('#project-board > .board.sortable');
   if (!els.length) return;
-
-  const {Sortable} = await import(/* webpackChunkName: "sortable" */'sortablejs');
 
   // the HTML layout is: #project-board > .board > .board-column .board.cards > .board-card.card .content
   const mainBoard = els[0];
   let boardColumns = mainBoard.getElementsByClassName('board-column');
-  new Sortable(mainBoard, {
+  createSortable(mainBoard, {
     group: 'board-column',
     draggable: '.board-column',
     filter: '[data-id="0"]',
@@ -73,7 +88,7 @@ async function initRepoProjectSortable() {
 
   for (const boardColumn of boardColumns) {
     const boardCardList = boardColumn.getElementsByClassName('board')[0];
-    new Sortable(boardCardList, {
+    createSortable(boardCardList, {
       group: 'shared',
       animation: 150,
       ghostClass: 'card-ghost',
@@ -168,29 +183,35 @@ export function initRepoProject() {
     });
   });
 
-  $('#new_board_submit').on('click', function (e) {
+  $('#new_board_submit').on('click', (e) => {
     e.preventDefault();
-
     const boardTitle = $('#new_board');
     const projectColorInput = $('#new_board_color_picker');
+    if (!boardTitle.val()) {
+      return;
+    }
+    const url = $(this).data('url');
+    createNewBoard(url, boardTitle, projectColorInput);
+  });
 
-    $.ajax({
-      url: $(this).data('url'),
-      data: JSON.stringify({title: boardTitle.val(), color: projectColorInput.val()}),
-      headers: {
-        'X-Csrf-Token': csrfToken,
-      },
-      contentType: 'application/json',
-      method: 'POST',
-    }).done(() => {
-      boardTitle.closest('form').removeClass('dirty');
-      window.location.reload();
-    });
+  $('.new-board').on('input keyup', (e) => {
+    const boardTitle = $('#new_board');
+    const projectColorInput = $('#new_board_color_picker');
+    if (!boardTitle.val()) {
+      $('#new_board_submit').addClass('disabled');
+      return;
+    }
+    $('#new_board_submit').removeClass('disabled');
+    if (e.key === 'Enter') {
+      const url = $(this).data('url');
+      createNewBoard(url, boardTitle, projectColorInput);
+    }
   });
 }
 
 function setLabelColor(label, color) {
-  if (useLightTextOnBackground(color)) {
+  const {r, g, b} = tinycolor(color).toRgb();
+  if (useLightTextOnBackground(r, g, b)) {
     label.removeClass('dark-label').addClass('light-label');
   } else {
     label.removeClass('light-label').addClass('dark-label');

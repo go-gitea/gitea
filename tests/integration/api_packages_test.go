@@ -34,7 +34,7 @@ func TestPackageAPI(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 	session := loginUser(t, user.Name)
 	tokenReadPackage := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadPackage)
-	tokenDeletePackage := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeDeletePackage)
+	tokenDeletePackage := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWritePackage)
 
 	packageName := "test-package"
 	packageVersion := "1.0.3"
@@ -157,29 +157,227 @@ func TestPackageAccess(t *testing.T) {
 	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 	inactive := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 9})
-	privatedOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 23})
+	limitedUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 33})
+	privateUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 31})
+	privateOrgMember := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 23}) // user has package write access
+	limitedOrgMember := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 36}) // user has package write access
+	publicOrgMember := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 25})  // user has package read access
+	privateOrgNoMember := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 35})
+	limitedOrgNoMember := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 22})
+	publicOrgNoMember := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 17})
 
-	uploadPackage := func(doer, owner *user_model.User, expectedStatus int) {
-		url := fmt.Sprintf("/api/packages/%s/generic/test-package/1.0/file.bin", owner.Name)
+	uploadPackage := func(doer, owner *user_model.User, filename string, expectedStatus int) {
+		url := fmt.Sprintf("/api/packages/%s/generic/test-package/1.0/%s.bin", owner.Name, filename)
 		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
-		AddBasicAuthHeader(req, doer.Name)
+		if doer != nil {
+			AddBasicAuthHeader(req, doer.Name)
+		}
 		MakeRequest(t, req, expectedStatus)
 	}
 
-	uploadPackage(user, inactive, http.StatusUnauthorized)
-	uploadPackage(inactive, inactive, http.StatusUnauthorized)
-	uploadPackage(inactive, user, http.StatusUnauthorized)
-	uploadPackage(admin, inactive, http.StatusCreated)
-	uploadPackage(admin, user, http.StatusCreated)
+	downloadPackage := func(doer, owner *user_model.User, expectedStatus int) {
+		url := fmt.Sprintf("/api/packages/%s/generic/test-package/1.0/admin.bin", owner.Name)
+		req := NewRequest(t, "GET", url)
+		if doer != nil {
+			AddBasicAuthHeader(req, doer.Name)
+		}
+		MakeRequest(t, req, expectedStatus)
+	}
 
-	// team.authorize is write, but team_unit.access_mode is none
-	// so the user can not upload packages or get package list
-	uploadPackage(user, privatedOrg, http.StatusUnauthorized)
+	type Target struct {
+		Owner          *user_model.User
+		ExpectedStatus int
+	}
 
-	session := loginUser(t, user.Name)
-	tokenReadPackage := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadPackage)
-	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s?token=%s", privatedOrg.Name, tokenReadPackage))
-	MakeRequest(t, req, http.StatusForbidden)
+	t.Run("Upload", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		cases := []struct {
+			Doer     *user_model.User
+			Filename string
+			Targets  []Target
+		}{
+			{ // Admins can upload to every owner
+				Doer:     admin,
+				Filename: "admin",
+				Targets: []Target{
+					{admin, http.StatusCreated},
+					{inactive, http.StatusCreated},
+					{user, http.StatusCreated},
+					{limitedUser, http.StatusCreated},
+					{privateUser, http.StatusCreated},
+					{privateOrgMember, http.StatusCreated},
+					{limitedOrgMember, http.StatusCreated},
+					{publicOrgMember, http.StatusCreated},
+					{privateOrgNoMember, http.StatusCreated},
+					{limitedOrgNoMember, http.StatusCreated},
+					{publicOrgNoMember, http.StatusCreated},
+				},
+			},
+			{ // Without credentials no upload should be possible
+				Doer:     nil,
+				Filename: "nil",
+				Targets: []Target{
+					{admin, http.StatusUnauthorized},
+					{inactive, http.StatusUnauthorized},
+					{user, http.StatusUnauthorized},
+					{limitedUser, http.StatusUnauthorized},
+					{privateUser, http.StatusUnauthorized},
+					{privateOrgMember, http.StatusUnauthorized},
+					{limitedOrgMember, http.StatusUnauthorized},
+					{publicOrgMember, http.StatusUnauthorized},
+					{privateOrgNoMember, http.StatusUnauthorized},
+					{limitedOrgNoMember, http.StatusUnauthorized},
+					{publicOrgNoMember, http.StatusUnauthorized},
+				},
+			},
+			{ // Inactive users can't upload anywhere
+				Doer:     inactive,
+				Filename: "inactive",
+				Targets: []Target{
+					{admin, http.StatusUnauthorized},
+					{inactive, http.StatusUnauthorized},
+					{user, http.StatusUnauthorized},
+					{limitedUser, http.StatusUnauthorized},
+					{privateUser, http.StatusUnauthorized},
+					{privateOrgMember, http.StatusUnauthorized},
+					{limitedOrgMember, http.StatusUnauthorized},
+					{publicOrgMember, http.StatusUnauthorized},
+					{privateOrgNoMember, http.StatusUnauthorized},
+					{limitedOrgNoMember, http.StatusUnauthorized},
+					{publicOrgNoMember, http.StatusUnauthorized},
+				},
+			},
+			{ // Normal users can upload to self and orgs in which they are members and have package write access
+				Doer:     user,
+				Filename: "user",
+				Targets: []Target{
+					{admin, http.StatusUnauthorized},
+					{inactive, http.StatusUnauthorized},
+					{user, http.StatusCreated},
+					{limitedUser, http.StatusUnauthorized},
+					{privateUser, http.StatusUnauthorized},
+					{privateOrgMember, http.StatusCreated},
+					{limitedOrgMember, http.StatusCreated},
+					{publicOrgMember, http.StatusUnauthorized},
+					{privateOrgNoMember, http.StatusUnauthorized},
+					{limitedOrgNoMember, http.StatusUnauthorized},
+					{publicOrgNoMember, http.StatusUnauthorized},
+				},
+			},
+		}
+
+		for _, c := range cases {
+			for _, t := range c.Targets {
+				uploadPackage(c.Doer, t.Owner, c.Filename, t.ExpectedStatus)
+			}
+		}
+	})
+
+	t.Run("Download", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		cases := []struct {
+			Doer     *user_model.User
+			Filename string
+			Targets  []Target
+		}{
+			{ // Admins can access everything
+				Doer: admin,
+				Targets: []Target{
+					{admin, http.StatusOK},
+					{inactive, http.StatusOK},
+					{user, http.StatusOK},
+					{limitedUser, http.StatusOK},
+					{privateUser, http.StatusOK},
+					{privateOrgMember, http.StatusOK},
+					{limitedOrgMember, http.StatusOK},
+					{publicOrgMember, http.StatusOK},
+					{privateOrgNoMember, http.StatusOK},
+					{limitedOrgNoMember, http.StatusOK},
+					{publicOrgNoMember, http.StatusOK},
+				},
+			},
+			{ // Without credentials only public owners are accessible
+				Doer: nil,
+				Targets: []Target{
+					{admin, http.StatusOK},
+					{inactive, http.StatusOK},
+					{user, http.StatusOK},
+					{limitedUser, http.StatusUnauthorized},
+					{privateUser, http.StatusUnauthorized},
+					{privateOrgMember, http.StatusUnauthorized},
+					{limitedOrgMember, http.StatusUnauthorized},
+					{publicOrgMember, http.StatusOK},
+					{privateOrgNoMember, http.StatusUnauthorized},
+					{limitedOrgNoMember, http.StatusUnauthorized},
+					{publicOrgNoMember, http.StatusOK},
+				},
+			},
+			{ // Inactive users have no access
+				Doer: inactive,
+				Targets: []Target{
+					{admin, http.StatusUnauthorized},
+					{inactive, http.StatusUnauthorized},
+					{user, http.StatusUnauthorized},
+					{limitedUser, http.StatusUnauthorized},
+					{privateUser, http.StatusUnauthorized},
+					{privateOrgMember, http.StatusUnauthorized},
+					{limitedOrgMember, http.StatusUnauthorized},
+					{publicOrgMember, http.StatusUnauthorized},
+					{privateOrgNoMember, http.StatusUnauthorized},
+					{limitedOrgNoMember, http.StatusUnauthorized},
+					{publicOrgNoMember, http.StatusUnauthorized},
+				},
+			},
+			{ // Normal users can access self, public or limited users/orgs and private orgs in which they are members
+				Doer: user,
+				Targets: []Target{
+					{admin, http.StatusOK},
+					{inactive, http.StatusOK},
+					{user, http.StatusOK},
+					{limitedUser, http.StatusOK},
+					{privateUser, http.StatusUnauthorized},
+					{privateOrgMember, http.StatusOK},
+					{limitedOrgMember, http.StatusOK},
+					{publicOrgMember, http.StatusOK},
+					{privateOrgNoMember, http.StatusUnauthorized},
+					{limitedOrgNoMember, http.StatusOK},
+					{publicOrgNoMember, http.StatusOK},
+				},
+			},
+		}
+
+		for _, c := range cases {
+			for _, target := range c.Targets {
+				downloadPackage(c.Doer, target.Owner, target.ExpectedStatus)
+			}
+		}
+	})
+
+	t.Run("API", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		session := loginUser(t, user.Name)
+		tokenReadPackage := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadPackage)
+
+		for _, target := range []Target{
+			{admin, http.StatusOK},
+			{inactive, http.StatusOK},
+			{user, http.StatusOK},
+			{limitedUser, http.StatusOK},
+			{privateUser, http.StatusForbidden},
+			{privateOrgMember, http.StatusOK},
+			{limitedOrgMember, http.StatusOK},
+			{publicOrgMember, http.StatusOK},
+			{privateOrgNoMember, http.StatusForbidden},
+			{limitedOrgNoMember, http.StatusOK},
+			{publicOrgNoMember, http.StatusOK},
+		} {
+			req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s?token=%s", target.Owner.Name, tokenReadPackage))
+			MakeRequest(t, req, target.ExpectedStatus)
+		}
+	})
 }
 
 func TestPackageQuota(t *testing.T) {

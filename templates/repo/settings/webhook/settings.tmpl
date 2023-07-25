@@ -238,6 +238,16 @@
 				</div>
 			</div>
 		</div>
+		<!-- Pull Request Review Request -->
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
+					<input name="pull_request_review_request" type="checkbox" tabindex="0" {{if .Webhook.PullRequestReviewRequest}}checked{{end}}>
+					<label>{{.locale.Tr "repo.settings.event_pull_request_review_request"}}</label>
+					<span class="help">{{.locale.Tr "repo.settings.event_pull_request_review_request_desc"}}</span>
+				</div>
+			</div>
+		</div>
 	</div>
 </div>
 
@@ -257,7 +267,7 @@
 	{{end}}
 </div>
 
-<div class="ui divider"></div>
+<div class="divider"></div>
 
 <div class="inline field">
 	<div class="ui checkbox">

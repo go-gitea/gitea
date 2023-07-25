@@ -296,6 +296,13 @@ type swaggerFileResponse struct {
 	Body api.FileResponse `json:"body"`
 }
 
+// FilesResponse
+// swagger:response FilesResponse
+type swaggerFilesResponse struct {
+	// in: body
+	Body api.FilesResponse `json:"body"`
+}
+
 // ContentsResponse
 // swagger:response ContentsResponse
 type swaggerContentsResponse struct {
@@ -401,9 +408,16 @@ type swaggerRepoIssueConfigValidation struct {
 	Body api.IssueConfigValidation `json:"body"`
 }
 
-// RepoFunding
+// RepoNewIssuePinsAllowed
+// swagger:response RepoNewIssuePinsAllowed
+type swaggerRepoNewIssuePinsAllowed struct {
+	// in:body
+	Body api.NewIssuePinsAllowed `json:"body"`
+ 
+ // RepoFunding
 // swagger:response RepoFunding
 type swaggerRepoFunding struct {
 	// in:body
 	Body []api.RepoFundingEntry `json:"body"`
+}
 }

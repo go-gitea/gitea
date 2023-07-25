@@ -2,14 +2,16 @@
 date: "2021-10-13T16:00:00+02:00"
 title: "Guidelines for Frontend Development"
 slug: "guidelines-frontend"
-weight: 20
+weight: 30
 toc: false
 draft: false
+aliases:
+  - /en-us/guidelines-frontend
 menu:
   sidebar:
     parent: "contributing"
     name: "Guidelines for Frontend"
-    weight: 20
+    weight: 30
     identifier: "guidelines-frontend"
 ---
 

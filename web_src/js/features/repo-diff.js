@@ -4,8 +4,9 @@ import {initRepoIssueContentHistory} from './repo-issue-content.js';
 import {initDiffFileTree} from './repo-diff-filetree.js';
 import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.js';
 import {initViewedCheckboxListenerFor, countAndUpdateViewedFiles, initExpandAndCollapseFilesButton} from './pull-view-file.js';
+import {initImageDiff} from './imagediff.js';
 
-const {csrfToken} = window.config;
+const {csrfToken, pageData} = window.config;
 
 function initRepoDiffReviewButton() {
   const $reviewBox = $('#review-box');
@@ -62,9 +63,9 @@ function initRepoDiffConversationForm() {
 
     $form.closest('.conversation-holder').replaceWith($newConversationHolder);
     if ($form.closest('tr').data('line-type') === 'same') {
-      $(`[data-path="${path}"] a.add-code-comment[data-idx="${idx}"]`).addClass('invisible');
+      $(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`).addClass('invisible');
     } else {
-      $(`[data-path="${path}"] a.add-code-comment[data-side="${side}"][data-idx="${idx}"]`).addClass('invisible');
+      $(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`).addClass('invisible');
     }
     $newConversationHolder.find('.dropdown').dropdown();
     initCompReactionSelector($newConversationHolder);
@@ -117,39 +118,32 @@ function onShowMoreFiles() {
   initRepoIssueContentHistory();
   initViewedCheckboxListenerFor();
   countAndUpdateViewedFiles();
+  initImageDiff();
 }
 
-export function doLoadMoreFiles(link, diffEnd, callback) {
-  const url = `${link}?skip-to=${diffEnd}&file-only=true`;
-  loadMoreFiles(url, callback);
-}
-
-function loadMoreFiles(url, callback) {
+export function loadMoreFiles(url) {
   const $target = $('a#diff-show-more-files');
-  if ($target.hasClass('disabled')) {
-    callback();
+  if ($target.hasClass('disabled') || pageData.diffFileInfo.isLoadingNewData) {
     return;
   }
+
+  pageData.diffFileInfo.isLoadingNewData = true;
   $target.addClass('disabled');
   $.ajax({
     type: 'GET',
     url,
   }).done((resp) => {
-    if (!resp) {
-      $target.removeClass('disabled');
-      callback(resp);
-      return;
-    }
-    $('#diff-incomplete').replaceWith($(resp).find('#diff-file-boxes').children());
-    // By simply rerunning the script we add the new data to our existing
-    // pagedata object. this triggers vue and the filetree and filelist will
-    // render the new elements.
-    $('body').append($(resp).find('script#diff-data-script'));
+    const $resp = $(resp);
+    // the response is a full HTML page, we need to extract the relevant contents:
+    // 1. append the newly loaded file list items to the existing list
+    $('#diff-incomplete').replaceWith($resp.find('#diff-file-boxes').children());
+    // 2. re-execute the script to append the newly loaded items to the JS variables to refresh the DiffFileTree
+    $('body').append($resp.find('script#diff-data-script'));
+
     onShowMoreFiles();
-    callback(resp);
-  }).fail(() => {
+  }).always(() => {
     $target.removeClass('disabled');
-    callback();
+    pageData.diffFileInfo.isLoadingNewData = false;
   });
 }
 
@@ -158,7 +152,8 @@ function initRepoDiffShowMore() {
     e.preventDefault();
 
     const $target = $(e.target);
-    loadMoreFiles($target.data('href'), () => {});
+    const linkLoadMore = $target.attr('data-href');
+    loadMoreFiles(linkLoadMore);
   });
 
   $(document).on('click', 'a.diff-load-button', (e) => {

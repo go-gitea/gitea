@@ -5,6 +5,8 @@ slug: "windows-service"
 weight: 50
 toc: false
 draft: false
+aliases:
+  - /en-us/windows-service
 menu:
   sidebar:
     parent: "installation"

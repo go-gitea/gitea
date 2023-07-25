@@ -1,7 +1,7 @@
 {{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings edit")}}
 	<div class="repo-setting-content">
 		{{if .Repository.IsArchived}}
-			<div class="ui warning message">
+			<div class="ui warning message gt-text-center">
 				{{.locale.Tr "repo.settings.archive.tagsettings_unavailable"}}
 			</div>
 		{{else}}
@@ -11,7 +11,7 @@
 
 			<div class="ui attached segment">
 				<div class="ui grid">
-					<div class="eight wide column">
+					<div class="sixteen wide column">
 						<div class="ui segment">
 							<form class="ui form" action="{{.Link}}" method="post">
 								{{.CsrfTokenHtml}}

@@ -5,6 +5,8 @@ slug: "install-on-kubernetes"
 weight: 80
 toc: false
 draft: false
+aliases:
+  - /zh-tw/install-on-kubernetes
 menu:
   sidebar:
     parent: "installation"
@@ -20,7 +22,7 @@ Gitea 提供 Helm Chart 用來安裝於 kubernetes。
 非自訂安裝可使用下列指令：
 
 ```
-helm repo add gitea-charts https://dl.gitea.io/charts/
+helm repo add gitea-charts https://dl.gitea.com/charts/
 helm install gitea gitea-charts/gitea
 ```
 

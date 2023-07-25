@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/testlogger"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
@@ -79,33 +80,33 @@ func NewNilResponseHashSumRecorder() *NilResponseHashSumRecorder {
 }
 
 func TestMain(m *testing.M) {
-	defer log.Close()
+	defer log.GetManager().Close()
 
 	managerCtx, cancel := context.WithCancel(context.Background())
 	graceful.InitManager(managerCtx)
 	defer cancel()
 
 	tests.InitTest(true)
-	c = routers.NormalRoutes(context.TODO())
+	c = routers.NormalRoutes()
 
 	// integration test settings...
 	if setting.CfgProvider != nil {
 		testingCfg := setting.CfgProvider.Section("integration-tests")
-		tests.SlowTest = testingCfg.Key("SLOW_TEST").MustDuration(tests.SlowTest)
-		tests.SlowFlush = testingCfg.Key("SLOW_FLUSH").MustDuration(tests.SlowFlush)
+		testlogger.SlowTest = testingCfg.Key("SLOW_TEST").MustDuration(testlogger.SlowTest)
+		testlogger.SlowFlush = testingCfg.Key("SLOW_FLUSH").MustDuration(testlogger.SlowFlush)
 	}
 
 	if os.Getenv("GITEA_SLOW_TEST_TIME") != "" {
 		duration, err := time.ParseDuration(os.Getenv("GITEA_SLOW_TEST_TIME"))
 		if err == nil {
-			tests.SlowTest = duration
+			testlogger.SlowTest = duration
 		}
 	}
 
 	if os.Getenv("GITEA_SLOW_FLUSH_TIME") != "" {
 		duration, err := time.ParseDuration(os.Getenv("GITEA_SLOW_FLUSH_TIME"))
 		if err == nil {
-			tests.SlowFlush = duration
+			testlogger.SlowFlush = duration
 		}
 	}
 
@@ -130,7 +131,7 @@ func TestMain(m *testing.M) {
 	// Instead, "No tests were found",  last nonsense log is "According to the configuration, subsequent logs will not be printed to the console"
 	exitCode := m.Run()
 
-	tests.WriterCloser.Reset()
+	testlogger.WriterCloser.Reset()
 
 	if err = util.RemoveAll(setting.Indexer.IssuePath); err != nil {
 		fmt.Printf("util.RemoveAll: %v\n", err)
@@ -318,7 +319,7 @@ func NewRequest(t testing.TB, method, urlStr string) *http.Request {
 	return NewRequestWithBody(t, method, urlStr, nil)
 }
 
-func NewRequestf(t testing.TB, method, urlFormat string, args ...interface{}) *http.Request {
+func NewRequestf(t testing.TB, method, urlFormat string, args ...any) *http.Request {
 	t.Helper()
 	return NewRequest(t, method, fmt.Sprintf(urlFormat, args...))
 }
@@ -339,7 +340,7 @@ func NewRequestWithURLValues(t testing.TB, method, urlStr string, urlValues url.
 	return req
 }
 
-func NewRequestWithJSON(t testing.TB, method, urlStr string, v interface{}) *http.Request {
+func NewRequestWithJSON(t testing.TB, method, urlStr string, v any) *http.Request {
 	t.Helper()
 
 	jsonBytes, err := json.Marshal(v)
@@ -434,7 +435,7 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 	}
 }
 
-func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v interface{}) {
+func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v any) {
 	t.Helper()
 
 	decoder := json.NewDecoder(resp.Body)

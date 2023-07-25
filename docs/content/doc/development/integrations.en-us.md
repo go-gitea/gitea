@@ -5,6 +5,8 @@ slug: "integrations"
 weight: 65
 toc: false
 draft: false
+aliases:
+  - /en-us/integrations
 menu:
   sidebar:
     parent: "development"

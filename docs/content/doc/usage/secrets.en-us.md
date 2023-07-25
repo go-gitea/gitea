@@ -1,10 +1,12 @@
 ---
 date: "2022-12-19T21:26:00+08:00"
 title: "Secrets"
-slug: "usage/secrets"
+slug: "secrets"
 weight: 50
 draft: false
 toc: false
+aliases:
+  - /en-us/secrets
 menu:
   sidebar:
     parent: "usage"
@@ -16,7 +18,7 @@ menu:
 # Secrets
 
 Secrets allow you to store sensitive information in your user, organization or repository.
-Secrets are available on Gitea 1.19+.
+Secrets are available on Gitea 1.19+ and are only visible in 1.20+ when ACTIONS are enabled.
 
 # Naming your secrets
 
