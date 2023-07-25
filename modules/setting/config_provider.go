@@ -316,17 +316,14 @@ func mustMapSetting(rootCfg ConfigProvider, sectionName string, setting any) {
 	}
 }
 
+// DeprecatedWarnings contains the warning message for various deprecations, including: setting option, file/folder, etc
+var DeprecatedWarnings []string
+
 func deprecatedSetting(rootCfg ConfigProvider, oldSection, oldKey, newSection, newKey, version string) {
 	if rootCfg.Section(oldSection).HasKey(oldKey) {
-		dw := DeprecatedWarning{
-			OldSection: oldSection,
-			OldKey:     oldKey,
-			NewSection: newSection,
-			NewKey:     newKey,
-			Version:    version,
-		}
-		log.Error("%v", dw.String())
-		DeprecatedWarnings = append(DeprecatedWarnings, dw)
+		msg := fmt.Sprintf("Deprecated config option `[%s]` `%s` present. Use `[%s]` `%s` instead. This fallback will be/has been removed in %s", oldSection, oldKey, newSection, newKey, version)
+		log.Error("%v", msg)
+		DeprecatedWarnings = append(DeprecatedWarnings, msg)
 	}
 }
 
