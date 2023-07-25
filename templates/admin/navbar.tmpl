@@ -4,35 +4,60 @@
 		<a class="{{if .PageIsAdminDashboard}}active {{end}}item" href="{{AppSubUrl}}/admin">
 			{{.locale.Tr "admin.dashboard"}}
 		</a>
-		<a class="{{if .PageIsAdminUsers}}active {{end}}item" href="{{AppSubUrl}}/admin/users">
-			{{.locale.Tr "admin.users"}}
-		</a>
-		<a class="{{if .PageIsAdminOrganizations}}active {{end}}item" href="{{AppSubUrl}}/admin/orgs">
-			{{.locale.Tr "admin.organizations"}}
-		</a>
-		<a class="{{if .PageIsAdminRepositories}}active {{end}}item" href="{{AppSubUrl}}/admin/repos">
-			{{.locale.Tr "admin.repositories"}}
-		</a>
-		{{if .EnablePackages}}
-			<a class="{{if .PageIsAdminPackages}}active {{end}}item" href="{{AppSubUrl}}/admin/packages">
-				{{.locale.Tr "packages.title"}}
-			</a>
-		{{end}}
-		{{if not DisableWebhooks}}
+		<details class="item toggleable-item" {{if or .PageIsAdminUsers .PageIsAdminEmails .PageIsAdminOrganizations .PageIsAdminAuthentications}}open{{end}}>
+			<summary>{{.locale.Tr "admin.identity_access"}}</summary>
+			<div class="menu">
+				<a class="{{if .PageIsAdminAuthentications}}active {{end}}item" href="{{AppSubUrl}}/admin/auths">
+					{{.locale.Tr "admin.authentication"}}
+				</a>
+				<a class="{{if .PageIsAdminOrganizations}}active {{end}}item" href="{{AppSubUrl}}/admin/orgs">
+					{{.locale.Tr "admin.organizations"}}
+				</a>
+				<a class="{{if .PageIsAdminUsers}}active {{end}}item" href="{{AppSubUrl}}/admin/users">
+					{{.locale.Tr "admin.users"}}
+				</a>
+				<a class="{{if .PageIsAdminEmails}}active {{end}}item" href="{{AppSubUrl}}/admin/emails">
+					{{.locale.Tr "admin.emails"}}
+				</a>
+			</div>
+		</details>
+		<details class="item toggleable-item" {{if or .PageIsAdminRepositories (and .EnablePackages .PageIsAdminPackages)}}open{{end}}>
+			<summary>{{.locale.Tr "admin.assets"}}</summary>
+			<div class="menu">
+				{{if .EnablePackages}}
+					<a class="{{if .PageIsAdminPackages}}active {{end}}item" href="{{AppSubUrl}}/admin/packages">
+						{{.locale.Tr "packages.title"}}
+					</a>
+				{{end}}
+				<a class="{{if .PageIsAdminRepositories}}active {{end}}item" href="{{AppSubUrl}}/admin/repos">
+					{{.locale.Tr "admin.repositories"}}
+				</a>
+			</div>
+		</details>
+		<!-- Webhooks and OAuth can be both disabled here, so add this if statement to display different ui -->
+		{{if and (not DisableWebhooks) .EnableOAuth2}}
+			<details class="item toggleable-item" {{if or .PageIsAdminDefaultHooks .PageIsAdminSystemHooks .PageIsAdminApplications}}open{{end}}>
+				<summary>{{.locale.Tr "admin.integrations"}}</summary>
+				<div class="menu">
+					<a class="{{if .PageIsAdminApplications}}active {{end}}item" href="{{AppSubUrl}}/admin/applications">
+						{{.locale.Tr "settings.applications"}}
+					</a>
+					<a class="{{if or .PageIsAdminDefaultHooks .PageIsAdminSystemHooks}}active {{end}}item" href="{{AppSubUrl}}/admin/hooks">
+						{{.locale.Tr "admin.hooks"}}
+					</a>
+				</div>
+			</details>
+		{{else}}
+			{{if not DisableWebhooks}}
 			<a class="{{if or .PageIsAdminDefaultHooks .PageIsAdminSystemHooks}}active {{end}}item" href="{{AppSubUrl}}/admin/hooks">
 				{{.locale.Tr "admin.hooks"}}
 			</a>
-		{{end}}
-		<a class="{{if .PageIsAdminAuthentications}}active {{end}}item" href="{{AppSubUrl}}/admin/auths">
-			{{.locale.Tr "admin.authentication"}}
-		</a>
-		<a class="{{if .PageIsAdminEmails}}active {{end}}item" href="{{AppSubUrl}}/admin/emails">
-			{{.locale.Tr "admin.emails"}}
-		</a>
-		{{if .EnableOAuth2}}
-			<a class="{{if .PageIsAdminApplications}}active {{end}}item" href="{{AppSubUrl}}/admin/applications">
-				{{.locale.Tr "settings.applications"}}
-			</a>
+			{{end}}
+			{{if .EnableOAuth2}}
+				<a class="{{if .PageIsAdminApplications}}active {{end}}item" href="{{AppSubUrl}}/admin/applications">
+					{{.locale.Tr "settings.applications"}}
+				</a>
+			{{end}}
 		{{end}}
 		{{if .EnableActions}}
 		<details class="item toggleable-item" {{if .PageIsSharedSettingsRunners}}open{{end}}>
