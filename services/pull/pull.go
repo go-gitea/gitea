@@ -859,7 +859,7 @@ func IsHeadEqualWithBranch(ctx context.Context, pr *issues_model.PullRequest, br
 	return baseCommit.HasPreviousCommit(headCommit.ID)
 }
 
-type PullCommitInfo struct {
+type CommitInfo struct {
 	Summary               string `json:"summary"`
 	CommitterOrAuthorName string `json:"committer_or_author_name"`
 	ID                    string `json:"id"`
@@ -868,7 +868,7 @@ type PullCommitInfo struct {
 }
 
 // GetPullCommits returns all commits on given pull request and the last review commit sha
-func GetPullCommits(ctx *gitea_context.Context, issue *issues_model.Issue) ([]PullCommitInfo, string, error) {
+func GetPullCommits(ctx *gitea_context.Context, issue *issues_model.Issue) ([]CommitInfo, string, error) {
 	pull := issue.PullRequest
 
 	baseGitRepo := ctx.Repo.GitRepo
@@ -885,7 +885,7 @@ func GetPullCommits(ctx *gitea_context.Context, issue *issues_model.Issue) ([]Pu
 		return nil, "", err
 	}
 
-	commits := make([]PullCommitInfo, 0, len(prInfo.Commits))
+	commits := make([]CommitInfo, 0, len(prInfo.Commits))
 
 	for _, commit := range prInfo.Commits {
 		var committerOrAuthorName string
@@ -898,7 +898,7 @@ func GetPullCommits(ctx *gitea_context.Context, issue *issues_model.Issue) ([]Pu
 			time = commit.Author.When.String()
 		}
 
-		commits = append(commits, PullCommitInfo{
+		commits = append(commits, CommitInfo{
 			Summary:               commit.Summary(),
 			CommitterOrAuthorName: committerOrAuthorName,
 			ID:                    commit.ID.String(),
@@ -907,7 +907,7 @@ func GetPullCommits(ctx *gitea_context.Context, issue *issues_model.Issue) ([]Pu
 		})
 	}
 
-	var lastReviewCommitId string
+	var lastReviewCommitID string
 	if ctx.IsSigned {
 		// get last review of current user and store information in context (if available)
 		lastreview, err := issues_model.FindLatestReviews(ctx, issues_model.FindReviewOptions{
@@ -920,9 +920,9 @@ func GetPullCommits(ctx *gitea_context.Context, issue *issues_model.Issue) ([]Pu
 			return nil, "", err
 		}
 		if len(lastreview) > 0 {
-			lastReviewCommitId = lastreview[0].CommitID
+			lastReviewCommitID = lastreview[0].CommitID
 		}
 	}
 
-	return commits, lastReviewCommitId, nil
+	return commits, lastReviewCommitID, nil
 }

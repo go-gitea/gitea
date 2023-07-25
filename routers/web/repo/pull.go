@@ -695,9 +695,9 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 }
 
 type pullCommitList struct {
-	Commits             []pull_service.PullCommitInfo `json:"commits"`
-	LastReviewCommitSha string                        `json:"last_review_commit_sha"`
-	Locale              map[string]string             `json:"locale"`
+	Commits             []pull_service.CommitInfo `json:"commits"`
+	LastReviewCommitSha string                    `json:"last_review_commit_sha"`
+	Locale              map[string]string         `json:"locale"`
 }
 
 // GetPullCommits get all commits for given pull request
