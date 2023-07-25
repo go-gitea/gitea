@@ -12,11 +12,9 @@
 				{{range .LFSFiles}}
 					<tr>
 						<td>
-							<span class="text sha label">
-								<a href="{{$.Link}}/show/{{.Oid}}" title="{{.Oid}}" class="ui detail icon button brown truncate">
-									{{ShortSha .Oid}}
-								</a>
-							</span>
+							<a href="{{$.Link}}/show/{{.Oid}}" title="{{.Oid}}" class="ui brown button gt-mono">
+								{{ShortSha .Oid}}
+							</a>
 						</td>
 						<td>{{FileSize .Size}}</td>
 						<td>{{TimeSince .CreatedUnix.AsTime $.locale}}</td>
