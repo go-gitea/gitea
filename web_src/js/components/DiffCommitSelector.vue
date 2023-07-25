@@ -107,7 +107,7 @@ export default {
       const results = await resp.json();
       this.commits.push(...results.commits);
       this.commits.reverse();
-      this.lastReviewCommitSha = results.last_review_commit_sha !== '' ? results.last_review_commit_sha : null;
+      this.lastReviewCommitSha = results.last_review_commit_sha ?? null;
       Object.assign(this.locale, results.locale);
     },
     showAllChanges() {
