@@ -236,7 +236,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 			// cancel running jobs of the same workflow
 			if err := actions_model.CancelRunningJobs(
 				ctx,
-				run.ID,
+				run.RepoID,
 				run.Ref,
 				run.WorkflowID,
 			); err != nil {
