@@ -544,7 +544,7 @@ export function initRepository() {
     initRepoIssueDependencyDelete();
     initRepoIssueCodeCommentCancel();
     initRepoPullRequestUpdate();
-    initCompReactionSelector();
+    initCompReactionSelector($(document));
 
     initRepoPullRequestMergeForm();
   }

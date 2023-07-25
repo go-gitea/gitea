@@ -6,7 +6,8 @@ package user
 import (
 	"context"
 	"fmt"
-	"io"
+	"os"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -17,29 +18,105 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/agit"
 	"code.gitea.io/gitea/services/packages"
+	container_service "code.gitea.io/gitea/services/packages/container"
 )
 
 // RenameUser renames a user
 func RenameUser(ctx context.Context, u *user_model.User, newUserName string) error {
+	// Non-local users are not allowed to change their username.
+	if !u.IsOrganization() && !u.IsLocal() {
+		return user_model.ErrUserIsNotLocal{
+			UID:  u.ID,
+			Name: u.Name,
+		}
+	}
+
+	if newUserName == u.Name {
+		return user_model.ErrUsernameNotChanged{
+			UID:  u.ID,
+			Name: u.Name,
+		}
+	}
+
+	if err := user_model.IsUsableUsername(newUserName); err != nil {
+		return err
+	}
+
+	onlyCapitalization := strings.EqualFold(newUserName, u.Name)
+	oldUserName := u.Name
+
+	if onlyCapitalization {
+		u.Name = newUserName
+		if err := user_model.UpdateUserCols(ctx, u, "name"); err != nil {
+			u.Name = oldUserName
+			return err
+		}
+		return repo_model.UpdateRepositoryOwnerNames(u.ID, newUserName)
+	}
+
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
-	if err := renameUser(ctx, u, newUserName); err != nil {
+
+	isExist, err := user_model.IsUserExist(ctx, u.ID, newUserName)
+	if err != nil {
 		return err
 	}
-	if err := committer.Commit(); err != nil {
+	if isExist {
+		return user_model.ErrUserAlreadyExist{
+			Name: newUserName,
+		}
+	}
+
+	if err = repo_model.UpdateRepositoryOwnerName(ctx, oldUserName, newUserName); err != nil {
 		return err
 	}
-	return err
+
+	if err = user_model.NewUserRedirect(ctx, u.ID, oldUserName, newUserName); err != nil {
+		return err
+	}
+
+	if err := agit.UserNameChanged(ctx, u, newUserName); err != nil {
+		return err
+	}
+	if err := container_service.UpdateRepositoryNames(ctx, u, newUserName); err != nil {
+		return err
+	}
+
+	u.Name = newUserName
+	u.LowerName = strings.ToLower(newUserName)
+	if err := user_model.UpdateUserCols(ctx, u, "name", "lower_name"); err != nil {
+		u.Name = oldUserName
+		u.LowerName = strings.ToLower(oldUserName)
+		return err
+	}
+
+	// Do not fail if directory does not exist
+	if err = util.Rename(user_model.UserPath(oldUserName), user_model.UserPath(newUserName)); err != nil && !os.IsNotExist(err) {
+		u.Name = oldUserName
+		u.LowerName = strings.ToLower(oldUserName)
+		return fmt.Errorf("rename user directory: %w", err)
+	}
+
+	if err = committer.Commit(); err != nil {
+		u.Name = oldUserName
+		u.LowerName = strings.ToLower(oldUserName)
+		if err2 := util.Rename(user_model.UserPath(newUserName), user_model.UserPath(oldUserName)); err2 != nil && !os.IsNotExist(err2) {
+			log.Critical("Unable to rollback directory change during failed username change from: %s to: %s. DB Error: %v. Filesystem Error: %v", oldUserName, newUserName, err, err2)
+			return fmt.Errorf("failed to rollback directory change during failed username change from: %s to: %s. DB Error: %w. Filesystem Error: %v", oldUserName, newUserName, err, err2)
+		}
+		return err
+	}
+	return nil
 }
 
 // DeleteUser completely and permanently deletes everything of a user,
@@ -239,51 +316,4 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) error {
 	}
 
 	return user_model.DeleteInactiveEmailAddresses(ctx)
-}
-
-// UploadAvatar saves custom avatar for user.
-func UploadAvatar(u *user_model.User, data []byte) error {
-	avatarData, err := avatar.ProcessAvatarImage(data)
-	if err != nil {
-		return err
-	}
-
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	u.UseCustomAvatar = true
-	u.Avatar = avatar.HashAvatar(u.ID, data)
-	if err = user_model.UpdateUserCols(ctx, u, "use_custom_avatar", "avatar"); err != nil {
-		return fmt.Errorf("updateUser: %w", err)
-	}
-
-	if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
-		_, err := w.Write(avatarData)
-		return err
-	}); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %w", u.CustomAvatarRelativePath(), err)
-	}
-
-	return committer.Commit()
-}
-
-// DeleteAvatar deletes the user's custom avatar.
-func DeleteAvatar(u *user_model.User) error {
-	aPath := u.CustomAvatarRelativePath()
-	log.Trace("DeleteAvatar[%d]: %s", u.ID, aPath)
-	if len(u.Avatar) > 0 {
-		if err := storage.Avatars.Delete(aPath); err != nil {
-			return fmt.Errorf("Failed to remove %s: %w", aPath, err)
-		}
-	}
-
-	u.UseCustomAvatar = false
-	u.Avatar = ""
-	if _, err := db.GetEngine(db.DefaultContext).ID(u.ID).Cols("avatar, use_custom_avatar").Update(u); err != nil {
-		return fmt.Errorf("UpdateUser: %w", err)
-	}
-	return nil
 }

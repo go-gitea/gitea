@@ -33,9 +33,11 @@ func StartSyncMirrors(queueHandle func(data ...*SyncRequest) []*SyncRequest) {
 	if !setting.Mirror.Enabled {
 		return
 	}
-	mirrorQueue = queue.CreateUniqueQueue("mirror", queueHandle)
-
-	go graceful.GetManager().RunWithShutdownFns(mirrorQueue.Run)
+	mirrorQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "mirror", queueHandle)
+	if mirrorQueue == nil {
+		log.Fatal("Unable to create mirror queue")
+	}
+	go graceful.GetManager().RunWithCancel(mirrorQueue)
 }
 
 // AddPullMirrorToQueue adds repoID to mirror queue

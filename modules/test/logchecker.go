@@ -4,7 +4,8 @@
 package test
 
 import (
-	"strconv"
+	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -14,9 +15,7 @@ import (
 )
 
 type LogChecker struct {
-	logger          *log.MultiChannelledLogger
-	loggerName      string
-	eventLoggerName string
+	*log.EventWriterBaseImpl
 
 	filterMessages []string
 	filtered       []bool
@@ -27,54 +26,44 @@ type LogChecker struct {
 	mu sync.Mutex
 }
 
-func (lc *LogChecker) LogEvent(event *log.Event) error {
+func (lc *LogChecker) Run(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case event, ok := <-lc.Queue:
+			if !ok {
+				return
+			}
+			lc.checkLogEvent(event)
+		}
+	}
+}
+
+func (lc *LogChecker) checkLogEvent(event *log.EventFormatted) {
 	lc.mu.Lock()
 	defer lc.mu.Unlock()
 	for i, msg := range lc.filterMessages {
-		if strings.Contains(event.GetMsg(), msg) {
+		if strings.Contains(event.Origin.MsgSimpleText, msg) {
 			lc.filtered[i] = true
 		}
 	}
-	if strings.Contains(event.GetMsg(), lc.stopMark) {
+	if strings.Contains(event.Origin.MsgSimpleText, lc.stopMark) {
 		lc.stopped = true
 	}
-	return nil
-}
-
-func (lc *LogChecker) Close() {}
-
-func (lc *LogChecker) Flush() {}
-
-func (lc *LogChecker) GetLevel() log.Level {
-	return log.TRACE
-}
-
-func (lc *LogChecker) GetStacktraceLevel() log.Level {
-	return log.NONE
-}
-
-func (lc *LogChecker) GetName() string {
-	return lc.eventLoggerName
-}
-
-func (lc *LogChecker) ReleaseReopen() error {
-	return nil
 }
 
 var checkerIndex int64
 
-func NewLogChecker(loggerName string) (logChecker *LogChecker, cancel func()) {
-	logger := log.GetLogger(loggerName)
+func NewLogChecker(namePrefix string) (logChecker *LogChecker, cancel func()) {
+	logger := log.GetManager().GetLogger(namePrefix)
 	newCheckerIndex := atomic.AddInt64(&checkerIndex, 1)
-	lc := &LogChecker{
-		logger:          logger,
-		loggerName:      loggerName,
-		eventLoggerName: "TestLogChecker-" + strconv.FormatInt(newCheckerIndex, 10),
-	}
-	if err := logger.AddLogger(lc); err != nil {
-		panic(err) // it's impossible
-	}
-	return lc, func() { _, _ = logger.DelLogger(lc.GetName()) }
+	writerName := namePrefix + "-" + fmt.Sprint(newCheckerIndex)
+
+	lc := &LogChecker{}
+	lc.EventWriterBaseImpl = log.NewEventWriterBase(writerName, "test-log-checker", log.WriterMode{})
+	logger.AddWriters(lc)
+	return lc, func() { _ = logger.RemoveWriter(writerName) }
 }
 
 // Filter will make the `Check` function to check if these logs are outputted.

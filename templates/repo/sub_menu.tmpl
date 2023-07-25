@@ -7,14 +7,14 @@
 					<a href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}">{{svg "octicon-history"}} <b>{{.locale.PrettyNumber .CommitsCount}}</b> {{.locale.TrN .CommitsCount "repo.commit" "repo.commits"}}</a>
 				</div>
 				<div class="item{{if .PageIsBranches}} active{{end}}">
-					<a href="{{.RepoLink}}/branches">{{svg "octicon-git-branch"}} <b>{{.BranchesCount}}</b> {{.locale.TrN .BranchesCount "repo.branch" "repo.branches"}}</a>
+					<a href="{{.RepoLink}}/branches">{{svg "octicon-git-branch"}} <b>{{.locale.PrettyNumber .BranchesCount}}</b> {{.locale.TrN .BranchesCount "repo.branch" "repo.branches"}}</a>
 				</div>
 				{{if $.Permission.CanRead $.UnitTypeCode}}
 					<div class="item{{if .PageIsTagList}} active{{end}}">
-						<a href="{{.RepoLink}}/tags">{{svg "octicon-tag"}} <b>{{.NumTags}}</b> {{.locale.TrN .NumTags "repo.tag" "repo.tags"}}</a>
+						<a href="{{.RepoLink}}/tags">{{svg "octicon-tag"}} <b>{{.locale.PrettyNumber .NumTags}}</b> {{.locale.TrN .NumTags "repo.tag" "repo.tags"}}</a>
 					</div>
 				{{end}}
-				<div class="item">
+				<div class="item" {{if not (eq .Repository.Size 0)}}data-tooltip-content="{{.Repository.SizeDetailsString}}"{{end}}>
 					{{$fileSizeFormatted := FileSize .Repository.Size}}{{/* the formatted string is always "{val} {unit}" */}}
 					{{$fileSizeFields := StringUtils.Split $fileSizeFormatted " "}}
 					<span>{{svg "octicon-database"}} <b>{{.locale.PrettyNumber (index $fileSizeFields 0)}}</b> {{index $fileSizeFields 1}}</span>
@@ -28,7 +28,7 @@
 			{{range .LanguageStats}}
 			<div class="item gt-df gt-ac gt-jc">
 				<i class="color-icon gt-mr-3" style="background-color: {{.Color}}"></i>
-				<span class="gt-bold gt-mr-3">
+				<span class="gt-font-semibold gt-mr-3">
 					{{if eq .Language "other"}}
 						{{$.locale.Tr "repo.language_other"}}
 					{{else}}

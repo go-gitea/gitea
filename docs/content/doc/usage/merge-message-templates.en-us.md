@@ -48,3 +48,10 @@ You can use the following variables enclosed in `${}` inside these templates whi
 - PullRequestIndex: Pull request's index number
 - PullRequestReference: Pull request's reference char with index number. i.e. #1, !2
 - ClosingIssues: return a string contains all issues which will be closed by this pull request i.e. `close #1, close #2`
+
+## Rebase
+
+When rebasing without a merge commit, `REBASE_TEMPLATE.md` modifies the message of the last commit. The following additional variables are available in this template:
+
+- CommitTitle: Commit's title
+- CommitBody: Commits's body text

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -28,9 +29,7 @@ var localMetas = map[string]string{
 }
 
 func TestMain(m *testing.M) {
-	setting.Init(&setting.Options{
-		AllowEmpty: true,
-	})
+	unittest.InitSettings()
 	if err := git.InitSimple(context.Background()); err != nil {
 		log.Fatal("git init failed, err: %v", err)
 	}

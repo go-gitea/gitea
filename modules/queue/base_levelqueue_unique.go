@@ -6,18 +6,21 @@ package queue
 import (
 	"context"
 	"sync"
-	"unsafe"
+	"sync/atomic"
 
 	"code.gitea.io/gitea/modules/nosql"
+	"code.gitea.io/gitea/modules/queue/lqinternal"
 
 	"gitea.com/lunny/levelqueue"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
 type baseLevelQueueUnique struct {
-	internal *levelqueue.UniqueQueue
-	conn     string
-	cfg      *BaseConfig
+	internal atomic.Pointer[levelqueue.UniqueQueue]
+
+	conn string
+	cfg  *BaseConfig
+	db   *leveldb.DB
 
 	mu sync.Mutex // the levelqueue.UniqueQueue is not thread-safe, there is no mutex protecting the underlying queue&set together
 }
@@ -29,39 +32,42 @@ func newBaseLevelQueueUnique(cfg *BaseConfig) (baseQueue, error) {
 	if err != nil {
 		return nil, err
 	}
-	q := &baseLevelQueueUnique{conn: conn, cfg: cfg}
-	q.internal, err = levelqueue.NewUniqueQueue(db, []byte(cfg.QueueFullName), []byte(cfg.SetFullName), false)
+	q := &baseLevelQueueUnique{conn: conn, cfg: cfg, db: db}
+	lq, err := levelqueue.NewUniqueQueue(db, []byte(cfg.QueueFullName), []byte(cfg.SetFullName), false)
 	if err != nil {
 		return nil, err
 	}
-
+	q.internal.Store(lq)
 	return q, nil
 }
 
 func (q *baseLevelQueueUnique) PushItem(ctx context.Context, data []byte) error {
-	return baseLevelQueueCommon(q.cfg, q.internal, &q.mu).PushItem(ctx, data)
+	c := baseLevelQueueCommon(q.cfg, &q.mu, func() baseLevelQueuePushPoper { return q.internal.Load() })
+	return c.PushItem(ctx, data)
 }
 
 func (q *baseLevelQueueUnique) PopItem(ctx context.Context) ([]byte, error) {
-	return baseLevelQueueCommon(q.cfg, q.internal, &q.mu).PopItem(ctx)
+	c := baseLevelQueueCommon(q.cfg, &q.mu, func() baseLevelQueuePushPoper { return q.internal.Load() })
+	return c.PopItem(ctx)
 }
 
 func (q *baseLevelQueueUnique) HasItem(ctx context.Context, data []byte) (bool, error) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
-	return q.internal.Has(data)
+	return q.internal.Load().Has(data)
 }
 
 func (q *baseLevelQueueUnique) Len(ctx context.Context) (int, error) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
-	return int(q.internal.Len()), nil
+	return int(q.internal.Load().Len()), nil
 }
 
 func (q *baseLevelQueueUnique) Close() error {
 	q.mu.Lock()
 	defer q.mu.Unlock()
-	err := q.internal.Close()
+	err := q.internal.Load().Close()
+	q.db = nil // the db is not managed by us, it's managed by the nosql manager
 	_ = nosql.GetManager().CloseLevelDB(q.conn)
 	return err
 }
@@ -69,28 +75,14 @@ func (q *baseLevelQueueUnique) Close() error {
 func (q *baseLevelQueueUnique) RemoveAll(ctx context.Context) error {
 	q.mu.Lock()
 	defer q.mu.Unlock()
-
-	type levelUniqueQueue struct {
-		q   *levelqueue.Queue
-		set *levelqueue.Set
-		db  *leveldb.DB
-	}
-	lq := (*levelUniqueQueue)(unsafe.Pointer(q.internal))
-
-	for lq.q.Len() > 0 {
-		if _, err := lq.q.LPop(); err != nil {
-			return err
-		}
-	}
-
-	// the "set" must be cleared after the "list" because there is no transaction.
-	// it's better to have duplicate items than losing items.
-	members, err := lq.set.Members()
+	lqinternal.RemoveLevelQueueKeys(q.db, []byte(q.cfg.QueueFullName))
+	lqinternal.RemoveLevelQueueKeys(q.db, []byte(q.cfg.SetFullName))
+	lq, err := levelqueue.NewUniqueQueue(q.db, []byte(q.cfg.QueueFullName), []byte(q.cfg.SetFullName), false)
 	if err != nil {
-		return err // seriously corrupted
+		return err
 	}
-	for _, v := range members {
-		_, _ = lq.set.Remove(v)
-	}
+	old := q.internal.Load()
+	q.internal.Store(lq)
+	_ = old.Close() // Not ideal for concurrency. Luckily, the levelqueue only sets its db=nil because it doesn't manage the db, so far so good
 	return nil
 }

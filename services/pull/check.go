@@ -43,9 +43,9 @@ var (
 )
 
 // AddToTaskQueue adds itself to pull request test task queue.
-func AddToTaskQueue(pr *issues_model.PullRequest) {
+func AddToTaskQueue(ctx context.Context, pr *issues_model.PullRequest) {
 	pr.Status = issues_model.PullRequestStatusChecking
-	err := pr.UpdateColsIfNotMerged(db.DefaultContext, "status")
+	err := pr.UpdateColsIfNotMerged(ctx, "status")
 	if err != nil {
 		log.Error("AddToTaskQueue(%-v).UpdateCols.(add to queue): %v", pr, err)
 		return
@@ -369,14 +369,14 @@ func testPR(id int64) {
 }
 
 // CheckPRsForBaseBranch check all pulls with baseBrannch
-func CheckPRsForBaseBranch(baseRepo *repo_model.Repository, baseBranchName string) error {
-	prs, err := issues_model.GetUnmergedPullRequestsByBaseInfo(baseRepo.ID, baseBranchName)
+func CheckPRsForBaseBranch(ctx context.Context, baseRepo *repo_model.Repository, baseBranchName string) error {
+	prs, err := issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, baseRepo.ID, baseBranchName)
 	if err != nil {
 		return err
 	}
 
 	for _, pr := range prs {
-		AddToTaskQueue(pr)
+		AddToTaskQueue(ctx, pr)
 	}
 
 	return nil
@@ -384,13 +384,13 @@ func CheckPRsForBaseBranch(baseRepo *repo_model.Repository, baseBranchName strin
 
 // Init runs the task queue to test all the checking status pull requests
 func Init() error {
-	prPatchCheckerQueue = queue.CreateUniqueQueue("pr_patch_checker", handler)
+	prPatchCheckerQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "pr_patch_checker", handler)
 
 	if prPatchCheckerQueue == nil {
-		return fmt.Errorf("Unable to create pr_patch_checker Queue")
+		return fmt.Errorf("unable to create pr_patch_checker queue")
 	}
 
-	go graceful.GetManager().RunWithShutdownFns(prPatchCheckerQueue.Run)
+	go graceful.GetManager().RunWithCancel(prPatchCheckerQueue)
 	go graceful.GetManager().RunWithShutdownContext(InitializePullRequests)
 	return nil
 }

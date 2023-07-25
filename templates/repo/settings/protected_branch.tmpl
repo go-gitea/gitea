@@ -157,6 +157,9 @@
 						</div>
 					</div>
 					<div id="statuscheck_contexts_box" class="checkbox-sub-item field {{if not .Rule.EnableStatusCheck}}disabled{{end}}">
+						<label>{{.locale.Tr "repo.settings.protect_status_check_patterns"}}</label>
+						<textarea id="status_check_contexts" name="status_check_contexts" rows="3">{{.status_check_contexts}}</textarea>
+						<p class="help">{{.locale.Tr "repo.settings.protect_status_check_patterns_desc"}}</p>
 						<table class="ui celled table">
 							<thead>
 								<tr>
@@ -164,13 +167,11 @@
 								</tr>
 							</thead>
 							<tbody>
-							{{range $.branch_status_check_contexts}}
+							{{range $.recent_status_checks}}
 								<tr>
 									<td>
-										<span class="ui checkbox">
-											<label>{{.}}</label>
-											<input name="status_check_contexts" value="{{.}}" type="checkbox" {{if SliceUtils.Contains $.Rule.StatusCheckContexts .}}checked{{end}}>
-										</span>
+										<span>{{.}}</span>
+										<span class="status-check-matched-mark gt-hidden" data-status-check="{{.}}">{{$.locale.Tr "repo.settings.protect_status_check_matched"}}</span>
 									</td>
 								</tr>
 							{{else}}
@@ -251,11 +252,10 @@
 						<p class="help">{{.locale.Tr "repo.settings.block_outdated_branch_desc"}}</p>
 					</div>
 				</div>
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 
 				<div class="field">
 					<button class="ui green button">{{$.locale.Tr "repo.settings.protected_branch.save_rule"}}</button>
-					<button class="ui gray button">{{$.locale.Tr "cancel"}}</button>
 				</div>
 			</div>
 		</form>

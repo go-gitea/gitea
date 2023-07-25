@@ -13,9 +13,13 @@
 
 		if (httpsBtn) {
 			httpsBtn.textContent = window.origin.split(':')[0].toUpperCase();
-			httpsBtn.classList[!isSSH ? 'add' : 'remove']('primary');
+			httpsBtn.classList.toggle('primary', !isSSH);
+			httpsBtn.classList.toggle('basic', isSSH);
 		}
-		if (sshBtn) sshBtn.classList[isSSH ? 'add' : 'remove']('primary');
+		if (sshBtn) {
+			sshBtn.classList.toggle('primary', isSSH);
+			sshBtn.classList.toggle('basic', !isSSH);
+		}
 
 		const btn = isSSH ? sshBtn : httpsBtn;
 		if (!btn) return;

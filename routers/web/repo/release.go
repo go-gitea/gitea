@@ -196,13 +196,13 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 	}
 
 	ctx.Data["Releases"] = releases
-	ctx.Data["ReleasesNum"] = len(releases)
 
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
 	if isTagList {
+		ctx.Data["PageIsViewCode"] = !ctx.Repo.Repository.UnitEnabled(ctx, unit.TypeReleases)
 		ctx.HTML(http.StatusOK, tplTagsList)
 	} else {
 		ctx.HTML(http.StatusOK, tplReleasesList)
@@ -349,9 +349,23 @@ func NewRelease(ctx *context.Context) {
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	ctx.Data["Assignees"] = makeSelfOnTop(ctx, assigneeUsers)
+	ctx.Data["Assignees"] = MakeSelfOnTop(ctx, assigneeUsers)
 
 	upload.AddUploadContext(ctx, "release")
+
+	// For New Release page
+	PrepareBranchList(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.ServerError("GetTagNamesByRepoID", err)
+		return
+	}
+	ctx.Data["Tags"] = tags
+
 	ctx.HTML(http.StatusOK, tplReleaseNew)
 }
 
@@ -360,6 +374,13 @@ func NewReleasePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewReleaseForm)
 	ctx.Data["Title"] = ctx.Tr("repo.release.new_release")
 	ctx.Data["PageIsReleaseList"] = true
+
+	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.ServerError("GetTagNamesByRepoID", err)
+		return
+	}
+	ctx.Data["Tags"] = tags
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplReleaseNew)
@@ -517,7 +538,7 @@ func EditRelease(ctx *context.Context) {
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	ctx.Data["Assignees"] = makeSelfOnTop(ctx, assigneeUsers)
+	ctx.Data["Assignees"] = MakeSelfOnTop(ctx, assigneeUsers)
 
 	ctx.HTML(http.StatusOK, tplReleaseNew)
 }
@@ -607,13 +628,13 @@ func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
 	}
 
 	if isDelTag {
-		ctx.JSON(http.StatusOK, map[string]interface{}{
+		ctx.JSON(http.StatusOK, map[string]any{
 			"redirect": ctx.Repo.RepoLink + "/tags",
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"redirect": ctx.Repo.RepoLink + "/releases",
 	})
 }

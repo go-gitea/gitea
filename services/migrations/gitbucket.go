@@ -62,13 +62,11 @@ func (g *GitBucketDownloader) String() string {
 	return fmt.Sprintf("migration from gitbucket server %s %s/%s", g.baseURL, g.repoOwner, g.repoName)
 }
 
-// ColorFormat provides a basic color format for a GitBucketDownloader
-func (g *GitBucketDownloader) ColorFormat(s fmt.State) {
+func (g *GitBucketDownloader) LogString() string {
 	if g == nil {
-		log.ColorFprintf(s, "<nil: GitBucketDownloader>")
-		return
+		return "<GitBucketDownloader nil>"
 	}
-	log.ColorFprintf(s, "migration from gitbucket server %s %s/%s", g.baseURL, g.repoOwner, g.repoName)
+	return fmt.Sprintf("<GitBucketDownloader %s %s/%s>", g.baseURL, g.repoOwner, g.repoName)
 }
 
 // NewGitBucketDownloader creates a GitBucket downloader

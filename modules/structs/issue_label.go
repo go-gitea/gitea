@@ -44,3 +44,13 @@ type IssueLabelsOption struct {
 	// list of label IDs
 	Labels []int64 `json:"labels"`
 }
+
+// LabelTemplate info of a Label template
+type LabelTemplate struct {
+	Name string `json:"name"`
+	// example: false
+	Exclusive bool `json:"exclusive"`
+	// example: 00aabb
+	Color       string `json:"color"`
+	Description string `json:"description"`
+}

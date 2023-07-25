@@ -9,7 +9,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-// Email structure holds a data for sending general emails
 type GenerateTokenRequest struct {
 	Scope string
 }

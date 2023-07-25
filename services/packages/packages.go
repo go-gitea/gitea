@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -20,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -42,7 +44,7 @@ type PackageCreationInfo struct {
 	PackageInfo
 	SemverCompatible  bool
 	Creator           *user_model.User
-	Metadata          interface{}
+	Metadata          any
 	PackageProperties map[string]string
 	VersionProperties map[string]string
 }
@@ -365,10 +367,14 @@ func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 		typeSpecificSize = setting.Packages.LimitSizeConda
 	case packages_model.TypeContainer:
 		typeSpecificSize = setting.Packages.LimitSizeContainer
+	case packages_model.TypeCran:
+		typeSpecificSize = setting.Packages.LimitSizeCran
 	case packages_model.TypeDebian:
 		typeSpecificSize = setting.Packages.LimitSizeDebian
 	case packages_model.TypeGeneric:
 		typeSpecificSize = setting.Packages.LimitSizeGeneric
+	case packages_model.TypeGo:
+		typeSpecificSize = setting.Packages.LimitSizeGo
 	case packages_model.TypeHelm:
 		typeSpecificSize = setting.Packages.LimitSizeHelm
 	case packages_model.TypeMaven:
@@ -558,70 +564,62 @@ func DeletePackageFile(ctx context.Context, pf *packages_model.PackageFile) erro
 }
 
 // GetFileStreamByPackageNameAndVersion returns the content of the specific package file
-func GetFileStreamByPackageNameAndVersion(ctx context.Context, pvi *PackageInfo, pfi *PackageFileInfo) (io.ReadSeekCloser, *packages_model.PackageFile, error) {
+func GetFileStreamByPackageNameAndVersion(ctx context.Context, pvi *PackageInfo, pfi *PackageFileInfo) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
 	log.Trace("Getting package file stream: %v, %v, %s, %s, %s, %s", pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version, pfi.Filename, pfi.CompositeKey)
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
 	if err != nil {
 		if err == packages_model.ErrPackageNotExist {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		log.Error("Error getting package: %v", err)
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	return GetFileStreamByPackageVersion(ctx, pv, pfi)
 }
 
-// GetFileStreamByPackageVersionAndFileID returns the content of the specific package file
-func GetFileStreamByPackageVersionAndFileID(ctx context.Context, owner *user_model.User, versionID, fileID int64) (io.ReadSeekCloser, *packages_model.PackageFile, error) {
-	log.Trace("Getting package file stream: %v, %v, %v", owner.ID, versionID, fileID)
-
-	pv, err := packages_model.GetVersionByID(ctx, versionID)
-	if err != nil {
-		if err != packages_model.ErrPackageNotExist {
-			log.Error("Error getting package version: %v", err)
-		}
-		return nil, nil, err
-	}
-
-	p, err := packages_model.GetPackageByID(ctx, pv.PackageID)
-	if err != nil {
-		log.Error("Error getting package: %v", err)
-		return nil, nil, err
-	}
-
-	if p.OwnerID != owner.ID {
-		return nil, nil, packages_model.ErrPackageNotExist
-	}
-
-	pf, err := packages_model.GetFileForVersionByID(ctx, versionID, fileID)
-	if err != nil {
-		log.Error("Error getting file: %v", err)
-		return nil, nil, err
-	}
-
-	return GetPackageFileStream(ctx, pf)
-}
-
 // GetFileStreamByPackageVersion returns the content of the specific package file
-func GetFileStreamByPackageVersion(ctx context.Context, pv *packages_model.PackageVersion, pfi *PackageFileInfo) (io.ReadSeekCloser, *packages_model.PackageFile, error) {
+func GetFileStreamByPackageVersion(ctx context.Context, pv *packages_model.PackageVersion, pfi *PackageFileInfo) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
 	pf, err := packages_model.GetFileForVersionByName(ctx, pv.ID, pfi.Filename, pfi.CompositeKey)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	return GetPackageFileStream(ctx, pf)
 }
 
 // GetPackageFileStream returns the content of the specific package file
-func GetPackageFileStream(ctx context.Context, pf *packages_model.PackageFile) (io.ReadSeekCloser, *packages_model.PackageFile, error) {
+func GetPackageFileStream(ctx context.Context, pf *packages_model.PackageFile) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
 	pb, err := packages_model.GetBlobByID(ctx, pf.BlobID)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	s, err := packages_module.NewContentStore().Get(packages_module.BlobHash256Key(pb.HashSHA256))
+	return GetPackageBlobStream(ctx, pf, pb)
+}
+
+// GetPackageBlobStream returns the content of the specific package blob
+// If the storage supports direct serving and it's enabled, only the direct serving url is returned.
+func GetPackageBlobStream(ctx context.Context, pf *packages_model.PackageFile, pb *packages_model.PackageBlob) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
+	key := packages_module.BlobHash256Key(pb.HashSHA256)
+
+	cs := packages_module.NewContentStore()
+
+	var s io.ReadSeekCloser
+	var u *url.URL
+	var err error
+
+	if cs.ShouldServeDirect() {
+		u, err = cs.GetServeDirectURL(key, pf.Name)
+		if err != nil && !errors.Is(err, storage.ErrURLNotSupported) {
+			log.Error("Error getting serve direct url: %v", err)
+		}
+	}
+	if u == nil {
+		s, err = cs.Get(key)
+	}
+
 	if err == nil {
 		if pf.IsLead {
 			if err := packages_model.IncrementDownloadCounter(ctx, pf.VersionID); err != nil {
@@ -629,7 +627,7 @@ func GetPackageFileStream(ctx context.Context, pf *packages_model.PackageFile) (
 			}
 		}
 	}
-	return s, pf, err
+	return s, u, pf, err
 }
 
 // RemoveAllPackages for User

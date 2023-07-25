@@ -25,7 +25,7 @@ func TestAPIListReleases(t *testing.T) {
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	token := getUserToken(t, user2.LowerName, auth_model.AccessTokenScopeRepo)
+	token := getUserToken(t, user2.LowerName, auth_model.AccessTokenScopeReadRepository)
 
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/releases", user2.Name, repo.Name))
 	link.RawQuery = url.Values{"token": {token}}.Encode()
@@ -101,7 +101,7 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, owner.LowerName)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 	gitRepo, err := git.OpenRepository(git.DefaultContext, repo.RepoPath())
 	assert.NoError(t, err)
@@ -153,7 +153,7 @@ func TestAPICreateReleaseToDefaultBranch(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, owner.LowerName)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 	createNewReleaseUsingAPI(t, session, token, owner, repo, "v0.0.1", "", "v0.0.1", "test")
 }
@@ -164,7 +164,7 @@ func TestAPICreateReleaseToDefaultBranchOnExistingTag(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, owner.LowerName)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 	gitRepo, err := git.OpenRepository(git.DefaultContext, repo.RepoPath())
 	assert.NoError(t, err)
@@ -232,7 +232,7 @@ func TestAPIDeleteReleaseByTagName(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, owner.LowerName)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 	createNewReleaseUsingAPI(t, session, token, owner, repo, "release-tag", "", "Release Tag", "test")
 

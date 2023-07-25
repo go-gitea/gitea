@@ -105,3 +105,30 @@
   official: true
   updated_unix: 1603196749
   created_unix: 1603196749
+
+-
+  id: 13
+  type: 1
+  reviewer_id: 5
+  issue_id: 11
+  content: "old review from user5"
+  updated_unix: 946684820
+  created_unix: 946684820
+
+-
+  id: 14
+  type: 1
+  reviewer_id: 5
+  issue_id: 11
+  content: "duplicate review from user5 (latest)"
+  updated_unix: 946684830
+  created_unix: 946684830
+
+-
+  id: 15
+  type: 1
+  reviewer_id: 6
+  issue_id: 11
+  content: "singular review from user6 and final review for this pr"
+  updated_unix: 946684831
+  created_unix: 946684831

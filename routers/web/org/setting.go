@@ -22,8 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/services/forms"
-	"code.gitea.io/gitea/services/org"
-	container_service "code.gitea.io/gitea/services/packages/container"
+	org_service "code.gitea.io/gitea/services/org"
 	repo_service "code.gitea.io/gitea/services/repository"
 	user_service "code.gitea.io/gitea/services/user"
 )
@@ -67,38 +66,29 @@ func SettingsPost(ctx *context.Context) {
 	nameChanged := org.Name != form.Name
 
 	// Check if organization name has been changed.
-	if org.LowerName != strings.ToLower(form.Name) {
-		isExist, err := user_model.IsUserExist(ctx, org.ID, form.Name)
-		if err != nil {
-			ctx.ServerError("IsUserExist", err)
-			return
-		} else if isExist {
+	if nameChanged {
+		err := org_service.RenameOrganization(ctx, org, form.Name)
+		switch {
+		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Data["OrgName"] = true
 			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tplSettingsOptions, &form)
 			return
-		} else if err = user_model.ChangeUserName(ctx, org.AsUser(), form.Name); err != nil {
-			switch {
-			case db.IsErrNameReserved(err):
-				ctx.Data["OrgName"] = true
-				ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplSettingsOptions, &form)
-			case db.IsErrNamePatternNotAllowed(err):
-				ctx.Data["OrgName"] = true
-				ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplSettingsOptions, &form)
-			default:
-				ctx.ServerError("ChangeUserName", err)
-			}
+		case db.IsErrNameReserved(err):
+			ctx.Data["OrgName"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplSettingsOptions, &form)
 			return
-		}
-
-		if err := container_service.UpdateRepositoryNames(ctx, org.AsUser(), form.Name); err != nil {
-			ctx.ServerError("UpdateRepositoryNames", err)
+		case db.IsErrNamePatternNotAllowed(err):
+			ctx.Data["OrgName"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplSettingsOptions, &form)
+			return
+		case err != nil:
+			ctx.ServerError("org_service.RenameOrganization", err)
 			return
 		}
 
 		// reset ctx.org.OrgLink with new name
 		ctx.Org.OrgLink = setting.AppSubURL + "/org/" + url.PathEscape(form.Name)
 		log.Trace("Organization name changed: %s -> %s", org.Name, form.Name)
-		nameChanged = false
 	}
 
 	// In case it's just a case change.
@@ -138,11 +128,6 @@ func SettingsPost(ctx *context.Context) {
 				ctx.ServerError("UpdateRepository", err)
 				return
 			}
-		}
-	} else if nameChanged {
-		if err := repo_model.UpdateRepositoryOwnerNames(org.ID, org.Name); err != nil {
-			ctx.ServerError("UpdateRepository", err)
-			return
 		}
 	}
 
@@ -186,7 +171,7 @@ func SettingsDelete(ctx *context.Context) {
 			return
 		}
 
-		if err := org.DeleteOrganization(ctx.Org.Organization); err != nil {
+		if err := org_service.DeleteOrganization(ctx.Org.Organization); err != nil {
 			if models.IsErrUserOwnRepos(err) {
 				ctx.Flash.Error(ctx.Tr("form.org_still_own_repo"))
 				ctx.Redirect(ctx.Org.OrgLink + "/settings/delete")
@@ -233,7 +218,7 @@ func DeleteWebhook(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"redirect": ctx.Org.OrgLink + "/settings/hooks",
 	})
 }

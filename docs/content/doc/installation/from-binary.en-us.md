@@ -80,6 +80,7 @@ git --version
 Create a user to run Gitea (e.g. `git`)
 
 ```sh
+# On Ubuntu/Debian:
 adduser \
    --system \
    --shell /bin/bash \
@@ -87,6 +88,17 @@ adduser \
    --group \
    --disabled-password \
    --home /home/git \
+   git
+
+# On Fedora/RHEL/CentOS:
+groupadd --system git
+adduser \
+   --system \
+   --shell /bin/bash \
+   --comment 'Git Version Control' \
+   --gid git \
+   --home-dir /home/git \
+   --create-home \
    git
 ```
 
@@ -147,7 +159,7 @@ After you complete the above steps, you can run Gitea two ways:
 
 ### 1. Creating a service file to start Gitea automatically (recommended)
 
-See how to create [Linux service]({{< relref "run-as-service-in-ubuntu.en-us.md" >}})
+See how to create [Linux service]({{< relref "doc/installation/run-as-service-in-ubuntu.en-us.md" >}})
 
 ### 2. Running from command-line/terminal
 
@@ -188,7 +200,7 @@ Older Linux distributions (such as Debian 7 and CentOS 6) may not be able to loa
 Gitea binary, usually producing an error such as `./gitea: /lib/x86_64-linux-gnu/libc.so.6:
 version 'GLIBC\_2.14' not found (required by ./gitea)`. This is due to the integrated
 SQLite support in the binaries provided by dl.gitea.com. In this situation, it is usually
-possible to [install from source]({{< relref "from-source.en-us.md" >}}), without including
+possible to [install from source]({{< relref "doc/installation/from-source.en-us.md" >}}), without including
 SQLite support.
 
 ### Running Gitea on another port

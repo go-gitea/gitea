@@ -1,4 +1,4 @@
-<div class="ui dropdown tiny basic button icon-button" data-tooltip-content="{{.locale.Tr "repo.diff.options_button"}}">
+<div class="ui dropdown tiny basic button" data-tooltip-content="{{.locale.Tr "repo.diff.options_button"}}">
 	{{svg "octicon-kebab-horizontal"}}
 	<div class="menu">
 		<a class="item" id="show-file-list-btn">{{.locale.Tr "repo.diff.show_diff_stats"}}</a>
@@ -14,5 +14,20 @@
 		{{end}}
 		<a id="expand-files-btn" class="item">{{.locale.Tr "repo.pulls.expand_files"}}</a>
 		<a id="collapse-files-btn"class="item">{{.locale.Tr "repo.pulls.collapse_files"}}</a>
+		{{if .Issue.Index}}
+			{{if .ShowOutdatedComments}}
+				<a class="item" href="?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated=false">
+					<label class="gt-pointer-events-none">
+						{{.locale.Tr "repo.issues.review.option.hide_outdated_comments"}}
+					</label>
+				</a>
+			{{else}}
+				<a class="item" href="?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated=true">
+					<label class="gt-pointer-events-none">
+						{{.locale.Tr "repo.issues.review.option.show_outdated_comments"}}
+					</label>
+				</a>
+			{{end}}
+		{{end}}
 	</div>
 </div>

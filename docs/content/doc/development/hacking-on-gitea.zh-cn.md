@@ -115,8 +115,8 @@ git fetch --all --prune
 ## 构建 Gitea（基本）
 
 看看我们的
-<a href='{{ < relref "doc/installation/from-source.en-us.md" > }}'>说明</a>
-关于如何 <a href='{{ < relref "doc/installation/from-source.en-us.md" > }}'>从源代码构建</a> 。
+[说明]({{< relref "doc/installation/from-source.zh-cn.md" >}})
+关于如何[从源代码构建]({{< relref "doc/installation/from-source.zh-cn.md" >}}) 。
 
 从源代码构建的最简单推荐方法是：
 
@@ -249,8 +249,8 @@ make swagger-check
 ### 创建新的配置选项
 
 创建新的配置选项时，将它们添加到 `modules/setting` 的对应文件。您应该将信息添加到 `custom/conf/app.ini`
-并到 <a href = '{{ < relref "doc/administration/config-cheat-sheet.en-us.md" > }}'>配置备忘单</a>
-在 `docs/content/doc/advanced/config-cheat-sheet.en-us.md` 中找到
+并到[配置备忘单]({{< relref "doc/administration/config-cheat-sheet.zh-cn.md" >}})
+在 `docs/content/doc/advanced/config-cheat-sheet.zh-cn.md` 中找到
 
 ### 更改Logo
 

@@ -6,6 +6,7 @@ package doctor
 import (
 	"context"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 
@@ -26,27 +27,9 @@ type Check struct {
 	Priority                   int
 }
 
-type wrappedLevelLogger struct {
-	log.LevelLogger
-}
-
-func (w *wrappedLevelLogger) Log(skip int, level log.Level, format string, v ...interface{}) error {
-	return w.LevelLogger.Log(
-		skip+1,
-		level,
-		" - %s "+format,
-		append(
-			[]interface{}{
-				log.NewColoredValueBytes(
-					fmt.Sprintf("[%s]", strings.ToUpper(level.String()[0:1])),
-					level.Color()),
-			}, v...)...)
-}
-
-func initDBDisableConsole(ctx context.Context, disableConsole bool) error {
-	setting.Init(&setting.Options{})
+func initDBSkipLogger(ctx context.Context) error {
+	setting.MustInstalled()
 	setting.LoadDBSetting()
-	setting.InitSQLLog(disableConsole)
 	if err := db.InitEngine(ctx); err != nil {
 		return fmt.Errorf("db.InitEngine: %w", err)
 	}
@@ -57,30 +40,61 @@ func initDBDisableConsole(ctx context.Context, disableConsole bool) error {
 	return nil
 }
 
+type doctorCheckLogger struct {
+	colorize bool
+}
+
+var _ log.BaseLogger = (*doctorCheckLogger)(nil)
+
+func (d *doctorCheckLogger) Log(skip int, level log.Level, format string, v ...any) {
+	_, _ = fmt.Fprintf(os.Stdout, format+"\n", v...)
+}
+
+func (d *doctorCheckLogger) GetLevel() log.Level {
+	return log.TRACE
+}
+
+type doctorCheckStepLogger struct {
+	colorize bool
+}
+
+var _ log.BaseLogger = (*doctorCheckStepLogger)(nil)
+
+func (d *doctorCheckStepLogger) Log(skip int, level log.Level, format string, v ...any) {
+	levelChar := fmt.Sprintf("[%s]", strings.ToUpper(level.String()[0:1]))
+	var levelArg any = levelChar
+	if d.colorize {
+		levelArg = log.NewColoredValue(levelChar, level.ColorAttributes()...)
+	}
+	args := append([]any{levelArg}, v...)
+	_, _ = fmt.Fprintf(os.Stdout, " - %s "+format+"\n", args...)
+}
+
+func (d *doctorCheckStepLogger) GetLevel() log.Level {
+	return log.TRACE
+}
+
 // Checks is the list of available commands
 var Checks []*Check
 
 // RunChecks runs the doctor checks for the provided list
-func RunChecks(ctx context.Context, logger log.Logger, autofix bool, checks []*Check) error {
-	wrappedLogger := log.LevelLoggerLogger{
-		LevelLogger: &wrappedLevelLogger{logger},
-	}
-
+func RunChecks(ctx context.Context, colorize, autofix bool, checks []*Check) error {
+	// the checks output logs by a special logger, they do not use the default logger
+	logger := log.BaseLoggerToGeneralLogger(&doctorCheckLogger{colorize: colorize})
+	loggerStep := log.BaseLoggerToGeneralLogger(&doctorCheckStepLogger{colorize: colorize})
 	dbIsInit := false
 	for i, check := range checks {
 		if !dbIsInit && !check.SkipDatabaseInitialization {
 			// Only open database after the most basic configuration check
-			setting.Log.EnableXORMLog = false
-			if err := initDBDisableConsole(ctx, true); err != nil {
+			if err := initDBSkipLogger(ctx); err != nil {
 				logger.Error("Error whilst initializing the database: %v", err)
 				logger.Error("Check if you are using the right config file. You can use a --config directive to specify one.")
 				return nil
 			}
 			dbIsInit = true
 		}
-		logger.Info("[%d] %s", log.NewColoredIDValue(i+1), check.Title)
-		logger.Flush()
-		if err := check.Run(ctx, &wrappedLogger, autofix); err != nil {
+		logger.Info("\n[%d] %s", i+1, check.Title)
+		if err := check.Run(ctx, loggerStep, autofix); err != nil {
 			if check.AbortIfFailed {
 				logger.Critical("FAIL")
 				return err
@@ -88,9 +102,9 @@ func RunChecks(ctx context.Context, logger log.Logger, autofix bool, checks []*C
 			logger.Error("ERROR")
 		} else {
 			logger.Info("OK")
-			logger.Flush()
 		}
 	}
+	logger.Info("\nAll done.")
 	return nil
 }
 

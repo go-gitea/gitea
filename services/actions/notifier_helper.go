@@ -217,6 +217,47 @@ func notify(ctx context.Context, input *notifyInput) error {
 	err = commit.LoadBranchName()
 	if err != nil {
 		return fmt.Errorf("commit.GetBranchName: %w", err)
+  }
+
+	var detectedWorkflows []*actions_module.DetectedWorkflow
+	workflows, err := actions_module.DetectWorkflows(commit, input.Event, input.Payload)
+	if err != nil {
+		return fmt.Errorf("DetectWorkflows: %w", err)
+	}
+	if len(workflows) == 0 {
+		log.Trace("repo %s with commit %s couldn't find workflows", input.Repo.RepoPath(), commit.ID)
+	} else {
+		for _, wf := range workflows {
+			if wf.TriggerEvent != actions_module.GithubEventPullRequestTarget {
+				detectedWorkflows = append(detectedWorkflows, wf)
+			}
+		}
+	}
+
+	if input.PullRequest != nil {
+		// detect pull_request_target workflows
+		baseRef := git.BranchPrefix + input.PullRequest.BaseBranch
+		baseCommit, err := gitRepo.GetCommit(baseRef)
+		if err != nil {
+			return fmt.Errorf("gitRepo.GetCommit: %w", err)
+		}
+		baseWorkflows, err := actions_module.DetectWorkflows(baseCommit, input.Event, input.Payload)
+		if err != nil {
+			return fmt.Errorf("DetectWorkflows: %w", err)
+		}
+		if len(baseWorkflows) == 0 {
+			log.Trace("repo %s with commit %s couldn't find pull_request_target workflows", input.Repo.RepoPath(), baseCommit.ID)
+		} else {
+			for _, wf := range baseWorkflows {
+				if wf.TriggerEvent == actions_module.GithubEventPullRequestTarget {
+					detectedWorkflows = append(detectedWorkflows, wf)
+				}
+			}
+		}
+	}
+
+	if len(detectedWorkflows) == 0 {
+		return nil
 	}
 
 	workflows, schedules, err := actions_module.DetectWorkflows(commit, input.Event, input.Payload)
@@ -228,8 +269,63 @@ func notify(ctx context.Context, input *notifyInput) error {
 		log.Error("handle schedules: %v", err)
 	}
 
+
 	if err := handleWorkflows(ctx, workflows, commit, input); err != nil {
 		log.Error("handle workflows: %v", err)
+  }
+
+	for _, dwf := range detectedWorkflows {
+		run := &actions_model.ActionRun{
+			Title:             strings.SplitN(commit.CommitMessage, "\n", 2)[0],
+			RepoID:            input.Repo.ID,
+			OwnerID:           input.Repo.OwnerID,
+			WorkflowID:        dwf.EntryName,
+			TriggerUserID:     input.Doer.ID,
+			Ref:               ref,
+			CommitSHA:         commit.ID.String(),
+			IsForkPullRequest: isForkPullRequest,
+			Event:             input.Event,
+			EventPayload:      string(p),
+			TriggerEvent:      dwf.TriggerEvent,
+			Status:            actions_model.StatusWaiting,
+		}
+		if need, err := ifNeedApproval(ctx, run, input.Repo, input.Doer); err != nil {
+			log.Error("check if need approval for repo %d with user %d: %v", input.Repo.ID, input.Doer.ID, err)
+			continue
+		} else {
+			run.NeedApproval = need
+		}
+
+		jobs, err := jobparser.Parse(dwf.Content)
+		if err != nil {
+			log.Error("jobparser.Parse: %v", err)
+			continue
+		}
+
+		// cancel running jobs if the event is push
+		if run.Event == webhook_module.HookEventPush {
+			// cancel running jobs of the same workflow
+			if err := actions_model.CancelRunningJobs(
+				ctx,
+				run.RepoID,
+				run.Ref,
+				run.WorkflowID,
+			); err != nil {
+				log.Error("CancelRunningJobs: %v", err)
+			}
+		}
+
+		if err := actions_model.InsertRun(ctx, run, jobs); err != nil {
+			log.Error("InsertRun: %v", err)
+			continue
+		}
+
+		alljobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: run.ID})
+		if err != nil {
+			log.Error("FindRunJobs: %v", err)
+			continue
+		}
+		CreateCommitStatus(ctx, alljobs...)
 	}
 
 	return nil
@@ -245,14 +341,14 @@ func notifyRelease(ctx context.Context, doer *user_model.User, rel *repo_model.R
 		return
 	}
 
-	mode, _ := access_model.AccessLevel(ctx, doer, rel.Repo)
+	permission, _ := access_model.GetUserRepoPermission(ctx, rel.Repo, doer)
 
 	newNotifyInput(rel.Repo, doer, webhook_module.HookEventRelease).
-		WithRef(git.TagPrefix + rel.TagName).
+		WithRef(git.RefNameFromTag(rel.TagName).String()).
 		WithPayload(&api.ReleasePayload{
 			Action:     action,
-			Release:    convert.ToRelease(ctx, rel),
-			Repository: convert.ToRepo(ctx, rel.Repo, mode),
+			Release:    convert.ToAPIRelease(ctx, rel.Repo, rel),
+			Repository: convert.ToRepo(ctx, rel.Repo, permission),
 			Sender:     convert.ToUser(ctx, doer, nil),
 		}).
 		Notify(ctx)
@@ -282,8 +378,10 @@ func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_mo
 }
 
 func ifNeedApproval(ctx context.Context, run *actions_model.ActionRun, repo *repo_model.Repository, user *user_model.User) (bool, error) {
-	// don't need approval if it's not a fork PR
-	if !run.IsForkPullRequest {
+	// 1. don't need approval if it's not a fork PR
+	// 2. don't need approval if the event is `pull_request_target` since the workflow will run in the context of base branch
+	// 		see https://docs.github.com/en/actions/managing-workflow-runs/approving-workflow-runs-from-public-forks#about-workflow-runs-from-public-forks
+	if !run.IsForkPullRequest || run.TriggerEvent == actions_module.GithubEventPullRequestTarget {
 		return false, nil
 	}
 

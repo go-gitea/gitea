@@ -24,7 +24,7 @@ func (c *Context) GetParent() *Context {
 }
 
 // Value is part of the interface for context.Context. We mostly defer to the internal context - but we return this in response to the ProcessContextKey
-func (c *Context) Value(key interface{}) interface{} {
+func (c *Context) Value(key any) any {
 	if key == ProcessContextKey {
 		return c
 	}
@@ -32,7 +32,7 @@ func (c *Context) Value(key interface{}) interface{} {
 }
 
 // ProcessContextKey is the key under which process contexts are stored
-var ProcessContextKey interface{} = "process-context"
+var ProcessContextKey any = "process-context"
 
 // GetContext will return a process context if one exists
 func GetContext(ctx context.Context) *Context {

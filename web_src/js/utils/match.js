@@ -3,7 +3,7 @@ import emojis from '../../../assets/emoji.json';
 const maxMatches = 6;
 
 function sortAndReduce(map) {
-  const sortedMap = new Map([...map.entries()].sort((a, b) => a[1] - b[1]));
+  const sortedMap = new Map(Array.from(map.entries()).sort((a, b) => a[1] - b[1]));
   return Array.from(sortedMap.keys()).slice(0, maxMatches);
 }
 
@@ -32,7 +32,7 @@ export function matchMention(queryText) {
 
   // results is a map of weights, lower is better
   const results = new Map();
-  for (const obj of window.config.tributeValues) {
+  for (const obj of window.config.mentionValues) {
     const index = obj.key.toLowerCase().indexOf(query);
     if (index === -1) continue;
     const existing = results.get(obj);

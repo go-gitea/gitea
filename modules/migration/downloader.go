@@ -34,4 +34,4 @@ type DownloaderFactory interface {
 }
 
 // DownloaderContext has opaque information only relevant to a given downloader
-type DownloaderContext interface{}
+type DownloaderContext any

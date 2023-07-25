@@ -1,0 +1,211 @@
+#create-page-form form {
+  margin: auto;
+}
+
+#create-page-form form .ui.message {
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  #create-page-form form {
+    width: 800px !important;
+  }
+  #create-page-form form .header {
+    padding-left: 280px !important;
+  }
+  #create-page-form form .inline.field > label,
+  #create-page-form form .inline.field.captcha-field > span {
+    text-align: right;
+    width: 250px !important;
+    word-wrap: break-word;
+  }
+  #create-page-form form .help {
+    margin-left: 265px !important;
+  }
+  #create-page-form form .optional .title {
+    margin-left: 250px !important;
+  }
+  #create-page-form form .inline.field > input,
+  #create-page-form form .inline.field > textarea {
+    width: 50%;
+  }
+}
+
+@media (max-width: 767.98px) {
+  #create-page-form form .optional .title {
+    margin-left: 15px;
+  }
+  #create-page-form form .inline.field > label {
+    display: block;
+  }
+}
+
+.organization .head .ui.header .ui.right {
+  margin-top: 5px;
+}
+
+.organization.new.org form {
+  margin: auto;
+}
+
+.organization.new.org form .ui.message {
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .organization.new.org form {
+    width: 800px !important;
+  }
+  .organization.new.org form .header {
+    padding-left: 280px !important;
+  }
+  .organization.new.org form .inline.field > label,
+  .organization.new.org form .inline.field.captcha-field > span {
+    text-align: right;
+    width: 250px !important;
+    word-wrap: break-word;
+  }
+  .organization.new.org form .help {
+    margin-left: 265px !important;
+  }
+  .organization.new.org form .optional .title {
+    margin-left: 250px !important;
+  }
+  .organization.new.org form .inline.field > input,
+  .organization.new.org form .inline.field > textarea {
+    width: 50%;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .organization.new.org form .optional .title {
+    margin-left: 15px;
+  }
+  .organization.new.org form .inline.field > label {
+    display: block;
+  }
+}
+
+.organization.new.org form .header {
+  padding-left: 0 !important;
+  text-align: center;
+}
+
+.organization.options input {
+  min-width: 300px;
+}
+
+.organization.profile .org-avatar {
+  width: 100px;
+  height: 100px;
+  margin-right: 15px;
+}
+
+.organization.profile #org-info {
+  overflow-wrap: anywhere;
+  flex: 1;
+}
+
+.organization.profile #org-info .ui.header {
+  display: flex;
+  align-items: center;
+  font-size: 36px;
+  margin-bottom: 0;
+}
+
+.organization.profile #org-info .desc {
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.organization.profile #org-info .meta .item {
+  display: inline-block;
+  margin-right: 10px;
+}
+
+.organization.profile #org-info .meta .item .icon {
+  margin-right: 5px;
+}
+
+.organization.profile .ui.top.header .ui.right {
+  margin-top: 0;
+}
+
+.organization.profile .teams .item {
+  padding: 10px 15px;
+}
+
+.organization.teams .members .ui.avatar,
+.organization.profile .members .ui.avatar {
+  width: 48px;
+  height: 48px;
+  margin-right: 5px;
+  margin-bottom: 5px;
+}
+
+.organization.invite #invite-box {
+  margin: 50px auto auto;
+  width: 500px !important;
+}
+
+.organization.invite #invite-box #search-user-box input {
+  margin-left: 0;
+  width: 300px;
+}
+
+.organization.invite #invite-box .ui.button {
+  margin-left: 5px;
+  margin-top: -3px;
+}
+
+.organization.invite .ui.avatar {
+  width: 100%;
+  height: 100%;
+}
+
+.organization.members .list .item {
+  margin-left: 0;
+  margin-right: 0;
+  border-bottom: 1px solid var(--color-secondary);
+}
+
+.organization.members .list .item .ui.avatar {
+  width: 48px;
+  height: 48px;
+  margin-right: 1rem;
+  align-self: flex-start;
+}
+
+.organization.members .list .item .meta {
+  line-height: 24px;
+  word-break: break-word;
+  min-width: 2em;
+}
+
+.organization.teams .detail .item {
+  padding: 10px 15px;
+}
+
+.organization.teams .detail .item:not(:last-child) {
+  border-bottom: 1px solid var(--color-secondary);
+}
+
+.organization.teams .repositories .item,
+.organization.teams .members .item {
+  padding: 10px 19px;
+}
+
+.organization.teams .repositories .item:not(:last-child),
+.organization.teams .members .item:not(:last-child) {
+  border-bottom: 1px solid var(--color-secondary);
+}
+
+.organization.teams .repositories .item .button,
+.organization.teams .members .item .button {
+  padding: 9px 10px;
+  margin: 0;
+}
+
+.org-team-navbar .active.item {
+  background: var(--color-box-body) !important;
+}

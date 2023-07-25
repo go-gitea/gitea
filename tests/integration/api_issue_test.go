@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -30,7 +32,7 @@ func TestAPIListIssues(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadIssue)
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/issues", owner.Name, repo.Name))
 
 	link.RawQuery = url.Values{"token": {token}, "state": {"all"}}.Encode()
@@ -81,7 +83,7 @@ func TestAPICreateIssue(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID})
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues?state=all&token=%s", owner.Name, repoBefore.Name, token)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{
 		Body:     body,
@@ -106,6 +108,49 @@ func TestAPICreateIssue(t *testing.T) {
 	assert.Equal(t, repoBefore.NumClosedIssues, repoAfter.NumClosedIssues)
 }
 
+func TestAPICreateIssueParallel(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	const body, title = "apiTestBody", "apiTestTitle"
+
+	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID})
+
+	session := loginUser(t, owner.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues?state=all&token=%s", owner.Name, repoBefore.Name, token)
+
+	var wg sync.WaitGroup
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func(parentT *testing.T, i int) {
+			parentT.Run(fmt.Sprintf("ParallelCreateIssue_%d", i), func(t *testing.T) {
+				newTitle := title + strconv.Itoa(i)
+				newBody := body + strconv.Itoa(i)
+				req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{
+					Body:     newBody,
+					Title:    newTitle,
+					Assignee: owner.Name,
+				})
+				resp := MakeRequest(t, req, http.StatusCreated)
+				var apiIssue api.Issue
+				DecodeJSON(t, resp, &apiIssue)
+				assert.Equal(t, newBody, apiIssue.Body)
+				assert.Equal(t, newTitle, apiIssue.Title)
+
+				unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{
+					RepoID:     repoBefore.ID,
+					AssigneeID: owner.ID,
+					Content:    newBody,
+					Title:      newTitle,
+				})
+
+				wg.Done()
+			})
+		}(t, i)
+	}
+	wg.Wait()
+}
+
 func TestAPIEditIssue(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
@@ -117,7 +162,7 @@ func TestAPIEditIssue(t *testing.T) {
 	assert.Equal(t, api.StateOpen, issueBefore.State())
 
 	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
 	// update values of issue
 	issueState := "closed"
@@ -171,7 +216,7 @@ func TestAPIEditIssue(t *testing.T) {
 func TestAPISearchIssues(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	token := getUserToken(t, "user2")
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadIssue)
 
 	// as this API was used in the frontend, it uses UI page size
 	expectedIssueCount := 16 // from the fixtures
@@ -180,7 +225,7 @@ func TestAPISearchIssues(t *testing.T) {
 	}
 
 	link, _ := url.Parse("/api/v1/repos/issues/search")
-	query := url.Values{"token": {getUserToken(t, "user1")}}
+	query := url.Values{"token": {getUserToken(t, "user1", auth_model.AccessTokenScopeReadIssue)}}
 	var apiIssues []*api.Issue
 
 	link.RawQuery = query.Encode()
@@ -278,7 +323,7 @@ func TestAPISearchIssuesWithLabels(t *testing.T) {
 	}
 
 	link, _ := url.Parse("/api/v1/repos/issues/search")
-	query := url.Values{"token": {getUserToken(t, "user1")}}
+	query := url.Values{"token": {getUserToken(t, "user1", auth_model.AccessTokenScopeReadIssue)}}
 	var apiIssues []*api.Issue
 
 	link.RawQuery = query.Encode()

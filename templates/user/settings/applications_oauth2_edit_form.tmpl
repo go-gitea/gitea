@@ -1,54 +1,52 @@
-<div class="ui container">
-	<h4 class="ui top attached header">
-		{{.locale.Tr "settings.edit_oauth2_application"}}
-	</h4>
-	<div class="ui attached segment">
-		<p>{{.locale.Tr "settings.oauth2_application_create_description"}}</p>
+<h4 class="ui top attached header">
+	{{.locale.Tr "settings.edit_oauth2_application"}}
+</h4>
+<div class="ui attached segment">
+	<p>{{.locale.Tr "settings.oauth2_application_create_description"}}</p>
+</div>
+<div class="ui attached segment form ignore-dirty">
+	{{.CsrfTokenHtml}}
+	<div class="field">
+		<label for="client-id">{{.locale.Tr "settings.oauth2_client_id"}}</label>
+		<input id="client-id" readonly value="{{.App.ClientID}}">
 	</div>
-	<div class="ui attached segment form ignore-dirty">
-		{{.CsrfTokenHtml}}
+	{{if .ClientSecret}}
 		<div class="field">
-			<label for="client-id">{{.locale.Tr "settings.oauth2_client_id"}}</label>
-			<input id="client-id" readonly value="{{.App.ClientID}}">
+			<label for="client-secret">{{.locale.Tr "settings.oauth2_client_secret"}}</label>
+			<input id="client-secret" type="text" readonly value="{{.ClientSecret}}">
 		</div>
-		{{if .ClientSecret}}
-			<div class="field">
-				<label for="client-secret">{{.locale.Tr "settings.oauth2_client_secret"}}</label>
-				<input id="client-secret" type="text" readonly value="{{.ClientSecret}}">
-			</div>
-		{{else}}
-			<div class="field">
-				<label for="client-secret">{{.locale.Tr "settings.oauth2_client_secret"}}</label>
-				<input id="client-secret" type="password" readonly value="averysecuresecret">
-			</div>
-		{{end}}
-		<div class="item">
-			<!-- TODO add regenerate secret functionality */ -->
-			<form class="ui form ignore-dirty" action="{{.FormActionPath}}/regenerate_secret" method="post">
-				{{.CsrfTokenHtml}}
-				{{.locale.Tr "settings.oauth2_regenerate_secret_hint"}}
-				<button class="ui button button-ghost" type="submit">{{.locale.Tr "settings.oauth2_regenerate_secret"}}</button>
-			</form>
+	{{else}}
+		<div class="field">
+			<label for="client-secret">{{.locale.Tr "settings.oauth2_client_secret"}}</label>
+			<input id="client-secret" type="password" readonly value="averysecuresecret">
 		</div>
-	</div>
-	<div class="ui attached bottom segment">
-		<form class="ui form ignore-dirty" action="{{.FormActionPath}}" method="post">
+	{{end}}
+	<div class="item">
+		<!-- TODO add regenerate secret functionality */ -->
+		<form class="ui form ignore-dirty" action="{{.FormActionPath}}/regenerate_secret" method="post">
 			{{.CsrfTokenHtml}}
-			<div class="field {{if .Err_AppName}}error{{end}}">
-				<label for="application-name">{{.locale.Tr "settings.oauth2_application_name"}}</label>
-				<input id="application-name" value="{{.App.Name}}" name="application_name" required>
-			</div>
-			<div class="field {{if .Err_RedirectURI}}error{{end}}">
-				<label for="redirect-uri">{{.locale.Tr "settings.oauth2_redirect_uri"}}</label>
-				<input type="url" name="redirect_uri" value="{{.App.PrimaryRedirectURI}}" id="redirect-uri">
-			</div>
-			<div class="field ui checkbox {{if .Err_ConfidentialClient}}error{{end}}">
-				<label>{{.locale.Tr "settings.oauth2_confidential_client"}}</label>
-				<input type="checkbox" name="confidential_client" {{if .App.ConfidentialClient}}checked{{end}}>
-			</div>
-			<button class="ui green button">
-				{{.locale.Tr "settings.save_application"}}
-			</button>
+			{{.locale.Tr "settings.oauth2_regenerate_secret_hint"}}
+			<button class="ui mini button gt-ml-3" type="submit">{{.locale.Tr "settings.oauth2_regenerate_secret"}}</button>
 		</form>
 	</div>
+</div>
+<div class="ui attached bottom segment">
+	<form class="ui form ignore-dirty" action="{{.FormActionPath}}" method="post">
+		{{.CsrfTokenHtml}}
+		<div class="field {{if .Err_AppName}}error{{end}}">
+			<label for="application-name">{{.locale.Tr "settings.oauth2_application_name"}}</label>
+			<input id="application-name" value="{{.App.Name}}" name="application_name" required maxlength="255">
+		</div>
+		<div class="field {{if .Err_RedirectURI}}error{{end}}">
+			<label for="redirect-uris">{{.locale.Tr "settings.oauth2_redirect_uris"}}</label>
+			<textarea name="redirect_uris" id="redirect-uris" required>{{StringUtils.Join .App.RedirectURIs "\n"}}</textarea>
+		</div>
+		<div class="field ui checkbox {{if .Err_ConfidentialClient}}error{{end}}">
+			<label>{{.locale.Tr "settings.oauth2_confidential_client"}}</label>
+			<input type="checkbox" name="confidential_client" {{if .App.ConfidentialClient}}checked{{end}}>
+		</div>
+		<button class="ui green button">
+			{{.locale.Tr "settings.save_application"}}
+		</button>
+	</form>
 </div>

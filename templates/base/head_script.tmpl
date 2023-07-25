@@ -12,13 +12,12 @@ If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 		assetUrlPrefix: '{{AssetUrlPrefix}}',
 		runModeIsProd: {{.RunModeIsProd}},
 		customEmojis: {{CustomEmojis}},
-		useServiceWorker: {{UseServiceWorker}},
 		csrfToken: '{{.CsrfToken}}',
 		pageData: {{.PageData}},
 		notificationSettings: {{NotificationSettings}}, {{/*a map provided by NewFuncMap in helper.go*/}}
 		enableTimeTracking: {{EnableTimetracking}},
 		{{if or .Participants .Assignees .MentionableTeams}}
-		tributeValues: Array.from(new Map([
+		mentionValues: Array.from(new Map([
 			{{- range .Participants -}}
 				['{{.Name}}', {key: '{{.Name}} {{.FullName}}', value: '{{.Name}}', name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.AvatarLink $.Context}}'}],
 			{{- end -}}
@@ -33,11 +32,13 @@ If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 		mermaidMaxSourceCharacters: {{MermaidMaxSourceCharacters}},
 		{{/* this global i18n object should only contain general texts. for specialized texts, it should be provided inside the related modules by: (1) API response (2) HTML data-attribute (3) PageData */}}
 		i18n: {
-			copy_success: '{{.locale.Tr "copy_success"}}',
-			copy_error: '{{.locale.Tr "copy_error"}}',
-			error_occurred: '{{.locale.Tr "error.occurred"}}',
-			network_error: '{{.locale.Tr "error.network_error"}}',
-			remove_label_str: '{{.locale.Tr "remove_label_str"}}',
+			copy_success: {{.locale.Tr "copy_success"}},
+			copy_error: {{.locale.Tr "copy_error"}},
+			error_occurred: {{.locale.Tr "error.occurred"}},
+			network_error: {{.locale.Tr "error.network_error"}},
+			remove_label_str: {{.locale.Tr "remove_label_str"}},
+			modal_confirm: {{.locale.Tr "modal.confirm"}},
+			modal_cancel: {{.locale.Tr "modal.cancel"}},
 		},
 	};
 	{{/* in case some pages don't render the pageData, we make sure it is an object to prevent null access */}}

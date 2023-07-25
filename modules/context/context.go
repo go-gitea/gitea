@@ -5,7 +5,6 @@
 package context
 
 import (
-	"context"
 	"html"
 	"html/template"
 	"io"
@@ -22,7 +21,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
+	web_types "code.gitea.io/gitea/modules/web/types"
 
 	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
@@ -31,104 +32,74 @@ import (
 // Render represents a template render
 type Render interface {
 	TemplateLookup(tmpl string) (templates.TemplateExecutor, error)
-	HTML(w io.Writer, status int, name string, data interface{}) error
+	HTML(w io.Writer, status int, name string, data any) error
 }
 
 // Context represents context of a request.
 type Context struct {
-	Resp   ResponseWriter
-	Req    *http.Request
-	Render Render
+	*Base
 
-	Data     middleware.ContextData // data used by MVC templates
-	PageData map[string]any         // data used by JavaScript modules in one page, it's `window.config.pageData`
+	Render   Render
+	PageData map[string]any // data used by JavaScript modules in one page, it's `window.config.pageData`
 
-	Locale  translation.Locale
 	Cache   cache.Cache
 	Csrf    CSRFProtector
 	Flash   *middleware.Flash
 	Session session.Store
 
-	Link        string // current request URL (without query string)
-	Doer        *user_model.User
+	Link string // current request URL (without query string)
+
+	Doer        *user_model.User // current signed-in user
 	IsSigned    bool
 	IsBasicAuth bool
 
-	ContextUser *user_model.User
-	Repo        *Repository
-	Org         *Organization
-	Package     *Package
+	ContextUser *user_model.User // the user which is being visited, in most cases it differs from Doer
+
+	Repo    *Repository
+	Org     *Organization
+	Package *Package
 }
 
-// Close frees all resources hold by Context
-func (ctx *Context) Close() error {
-	var err error
-	if ctx.Req != nil && ctx.Req.MultipartForm != nil {
-		err = ctx.Req.MultipartForm.RemoveAll() // remove the temp files buffered to tmp directory
-	}
-	// TODO: close opened repo, and more
-	return err
+func init() {
+	web.RegisterResponseStatusProvider[*Context](func(req *http.Request) web_types.ResponseStatusProvider {
+		return req.Context().Value(WebContextKey).(*Context)
+	})
 }
 
 // TrHTMLEscapeArgs runs ".Locale.Tr()" but pre-escapes all arguments with html.EscapeString.
 // This is useful if the locale message is intended to only produce HTML content.
 func (ctx *Context) TrHTMLEscapeArgs(msg string, args ...string) string {
-	trArgs := make([]interface{}, len(args))
+	trArgs := make([]any, len(args))
 	for i, arg := range args {
 		trArgs[i] = html.EscapeString(arg)
 	}
 	return ctx.Locale.Tr(msg, trArgs...)
 }
 
-func (ctx *Context) Tr(msg string, args ...any) string {
-	return ctx.Locale.Tr(msg, args...)
+type webContextKeyType struct{}
+
+var WebContextKey = webContextKeyType{}
+
+func GetWebContext(req *http.Request) *Context {
+	ctx, _ := req.Context().Value(WebContextKey).(*Context)
+	return ctx
 }
 
-func (ctx *Context) TrN(cnt any, key1, keyN string, args ...any) string {
-	return ctx.Locale.TrN(cnt, key1, keyN, args...)
+// ValidateContext is a special context for form validation middleware. It may be different from other contexts.
+type ValidateContext struct {
+	*Base
 }
 
-// Deadline is part of the interface for context.Context and we pass this to the request context
-func (ctx *Context) Deadline() (deadline time.Time, ok bool) {
-	return ctx.Req.Context().Deadline()
-}
-
-// Done is part of the interface for context.Context and we pass this to the request context
-func (ctx *Context) Done() <-chan struct{} {
-	return ctx.Req.Context().Done()
-}
-
-// Err is part of the interface for context.Context and we pass this to the request context
-func (ctx *Context) Err() error {
-	return ctx.Req.Context().Err()
-}
-
-// Value is part of the interface for context.Context and we pass this to the request context
-func (ctx *Context) Value(key interface{}) interface{} {
-	if key == git.RepositoryContextKey && ctx.Repo != nil {
-		return ctx.Repo.GitRepo
+// GetValidateContext gets a context for middleware form validation
+func GetValidateContext(req *http.Request) (ctx *ValidateContext) {
+	if ctxAPI, ok := req.Context().Value(apiContextKey).(*APIContext); ok {
+		ctx = &ValidateContext{Base: ctxAPI.Base}
+	} else if ctxWeb, ok := req.Context().Value(WebContextKey).(*Context); ok {
+		ctx = &ValidateContext{Base: ctxWeb.Base}
+	} else {
+		panic("invalid context, expect either APIContext or Context")
 	}
-	if key == translation.ContextKey && ctx.Locale != nil {
-		return ctx.Locale
-	}
-	return ctx.Req.Context().Value(key)
-}
-
-type contextKeyType struct{}
-
-var contextKey interface{} = contextKeyType{}
-
-// WithContext set up install context in request
-func WithContext(req *http.Request, ctx *Context) *http.Request {
-	return req.WithContext(context.WithValue(req.Context(), contextKey, ctx))
-}
-
-// GetContext retrieves install context from request
-func GetContext(req *http.Request) *Context {
-	if ctx, ok := req.Context().Value(contextKey).(*Context); ok {
-		return ctx
-	}
-	return nil
+	return ctx
 }
 
 // Contexter initializes a classic context for a request.
@@ -150,20 +121,17 @@ func Contexter() func(next http.Handler) http.Handler {
 	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			ctx := Context{
-				Resp:    NewResponse(resp),
+			base, baseCleanUp := NewBaseContext(resp, req)
+			ctx := &Context{
+				Base:    base,
 				Cache:   mc.GetCache(),
-				Locale:  middleware.Locale(resp, req),
 				Link:    setting.AppSubURL + strings.TrimSuffix(req.URL.EscapedPath(), "/"),
 				Render:  rnd,
 				Session: session.GetSession(req),
-				Repo: &Repository{
-					PullRequest: &PullRequest{},
-				},
-				Org:  &Organization{},
-				Data: middleware.GetContextData(req.Context()),
+				Repo:    &Repository{PullRequest: &PullRequest{}},
+				Org:     &Organization{},
 			}
-			defer ctx.Close()
+			defer baseCleanUp()
 
 			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
 			ctx.Data["Context"] = &ctx
@@ -175,15 +143,17 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.PageData = map[string]any{}
 			ctx.Data["PageData"] = ctx.PageData
 
-			ctx.Req = WithContext(req, &ctx)
-			ctx.Csrf = PrepareCSRFProtector(csrfOpts, &ctx)
+			ctx.Base.AppendContextValue(WebContextKey, ctx)
+			ctx.Base.AppendContextValueFunc(git.RepositoryContextKey, func() any { return ctx.Repo.GitRepo })
+
+			ctx.Csrf = PrepareCSRFProtector(csrfOpts, ctx)
 
 			// Get the last flash message from cookie
 			lastFlashCookie := middleware.GetSiteCookie(ctx.Req, CookieNameFlash)
 			if vals, _ := url.ParseQuery(lastFlashCookie); len(vals) > 0 {
 				// store last Flash message into the template data, to render it
 				ctx.Data["Flash"] = &middleware.Flash{
-					DataStore:  &ctx,
+					DataStore:  ctx,
 					Values:     vals,
 					ErrorMsg:   vals.Get("error"),
 					SuccessMsg: vals.Get("success"),
@@ -193,7 +163,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			}
 
 			// prepare an empty Flash message for current request
-			ctx.Flash = &middleware.Flash{DataStore: &ctx, Values: url.Values{}}
+			ctx.Flash = &middleware.Flash{DataStore: ctx, Values: url.Values{}}
 			ctx.Resp.Before(func(resp ResponseWriter) {
 				if val := ctx.Flash.Encode(); val != "" {
 					middleware.SetSiteCookie(ctx.Resp, CookieNameFlash, val, 0)
@@ -234,4 +204,25 @@ func Contexter() func(next http.Handler) http.Handler {
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})
 	}
+}
+
+// HasError returns true if error occurs in form validation.
+// Attention: this function changes ctx.Data and ctx.Flash
+func (ctx *Context) HasError() bool {
+	hasErr, ok := ctx.Data["HasError"]
+	if !ok {
+		return false
+	}
+	ctx.Flash.ErrorMsg = ctx.GetErrMsg()
+	ctx.Data["Flash"] = ctx.Flash
+	return hasErr.(bool)
+}
+
+// GetErrMsg returns error message in form validation.
+func (ctx *Context) GetErrMsg() string {
+	msg, _ := ctx.Data["ErrorMsg"].(string)
+	if msg == "" {
+		msg = "invalid form data"
+	}
+	return msg
 }

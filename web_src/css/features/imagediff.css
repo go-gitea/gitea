@@ -26,7 +26,7 @@
 }
 
 .image-diff-container .diff-side-by-side .side .side-header {
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-semibold);
 }
 
 .image-diff-container .diff-swipe {
@@ -50,11 +50,7 @@
   overflow: hidden;
 }
 
-.image-diff-container
-  .diff-swipe
-  .swipe-frame
-  .swipe-container
-  .after-container {
+.image-diff-container .diff-swipe .swipe-frame .swipe-container .after-container {
   position: absolute;
   right: 0;
 }

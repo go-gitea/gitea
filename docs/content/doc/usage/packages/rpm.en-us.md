@@ -1,7 +1,7 @@
 ---
 date: "2023-03-08T00:00:00+00:00"
-title: "RPM Packages Repository"
-slug: "packages/rpm"
+title: "RPM Package Registry"
+slug: "rpm"
 draft: false
 toc: false
 menu:
@@ -12,7 +12,7 @@ menu:
     identifier: "rpm"
 ---
 
-# RPM Packages Repository
+# RPM Package Registry
 
 Publish [RPM](https://rpm.org/) packages for your user or organization.
 
@@ -22,7 +22,7 @@ Publish [RPM](https://rpm.org/) packages for your user or organization.
 
 ## Requirements
 
-To work with the RPM registry, you need to use a package manager like `yum` or `dnf` to consume packages.
+To work with the RPM registry, you need to use a package manager like `yum`, `dnf` or `zypper` to consume packages.
 
 The following examples use `dnf`.
 
@@ -69,7 +69,7 @@ curl --user your_username:your_password_or_token \
 If you are using 2FA or OAuth use a [personal access token]({{< relref "doc/development/api-usage.en-us.md#authentication" >}}) instead of the password.
 You cannot publish a file with the same name twice to a package. You must delete the existing package version first.
 
-The server reponds with the following HTTP Status codes.
+The server responds with the following HTTP Status codes.
 
 | HTTP Status Code  | Meaning |
 | ----------------- | ------- |
@@ -79,7 +79,7 @@ The server reponds with the following HTTP Status codes.
 
 ## Delete a package
 
-To delete a Debian package perform a HTTP DELETE operation. This will delete the package version too if there is no file left.
+To delete an RPM package perform a HTTP DELETE operation. This will delete the package version too if there is no file left.
 
 ```
 DELETE https://gitea.example.com/api/packages/{owner}/rpm/{package_name}/{package_version}/{architecture}
@@ -99,7 +99,7 @@ curl --user your_username:your_token_or_password -X DELETE \
      https://gitea.example.com/api/packages/testuser/rpm/test-package/1.0.0/x86_64
 ```
 
-The server reponds with the following HTTP Status codes.
+The server responds with the following HTTP Status codes.
 
 | HTTP Status Code  | Meaning |
 | ----------------- | ------- |

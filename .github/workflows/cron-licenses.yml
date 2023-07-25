@@ -3,16 +3,18 @@ name: cron-licenses
 on:
   schedule:
     - cron: "7 0 * * 1" # every Monday at 00:07 UTC
+  workflow_dispatch:
 
 jobs:
   cron-licenses:
-    if: github.repository == "go-gitea/gitea"
     runs-on: ubuntu-latest
+    if: github.repository == 'go-gitea/gitea'
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
-          go-version: ">=1.20.1"
+          go-version: ">=1.20"
+          check-latest: true
       - run: make generate-license generate-gitignore
         timeout-minutes: 40
       - name: push translations to repo

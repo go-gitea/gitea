@@ -1,6 +1,6 @@
 ---
 date: "2022-07-31T00:00:00+00:00"
-title: "Pub Packages Repository"
+title: "Pub Package Registry"
 slug: "pub"
 weight: 90
 draft: false
@@ -13,7 +13,7 @@ menu:
     identifier: "pub"
 ---
 
-# Pub Packages Repository
+# Pub Package Registry
 
 Publish [Pub](https://dart.dev/guides/packages) packages for your user or organization.
 

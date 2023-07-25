@@ -4,11 +4,12 @@
 package test
 
 import (
-	scontext "context"
+	gocontext "context"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -25,63 +26,117 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// MockContext mock context for unit tests
-// TODO: move this function to other packages, because it depends on "models" package
-func MockContext(t *testing.T, path string) *context.Context {
-	resp := &mockResponseWriter{}
-	ctx := context.Context{
-		Render: &mockRender{},
-		Data:   make(middleware.ContextData),
-		Flash: &middleware.Flash{
-			Values: make(url.Values),
-		},
-		Resp:   context.NewResponse(resp),
-		Locale: &translation.MockLocale{},
+func mockRequest(t *testing.T, reqPath string) *http.Request {
+	method, path, found := strings.Cut(reqPath, " ")
+	if !found {
+		method = "GET"
+		path = reqPath
 	}
-	defer ctx.Close()
-
 	requestURL, err := url.Parse(path)
 	assert.NoError(t, err)
-	req := &http.Request{
-		URL:  requestURL,
-		Form: url.Values{},
+	req := &http.Request{Method: method, URL: requestURL, Form: url.Values{}}
+	req = req.WithContext(middleware.WithContextData(req.Context()))
+	return req
+}
+
+// MockContext mock context for unit tests
+// TODO: move this function to other packages, because it depends on "models" package
+func MockContext(t *testing.T, reqPath string) (*context.Context, *httptest.ResponseRecorder) {
+	resp := httptest.NewRecorder()
+	req := mockRequest(t, reqPath)
+	base, baseCleanUp := context.NewBaseContext(resp, req)
+	base.Data = middleware.GetContextData(req.Context())
+	base.Locale = &translation.MockLocale{}
+	ctx := &context.Context{
+		Base:   base,
+		Render: &mockRender{},
+		Flash:  &middleware.Flash{Values: url.Values{}},
 	}
+	_ = baseCleanUp // during test, it doesn't need to do clean up. TODO: this can be improved later
 
 	chiCtx := chi.NewRouteContext()
-	req = req.WithContext(scontext.WithValue(req.Context(), chi.RouteCtxKey, chiCtx))
-	ctx.Req = context.WithContext(req, &ctx)
-	return &ctx
+	ctx.Base.AppendContextValue(chi.RouteCtxKey, chiCtx)
+	return ctx, resp
+}
+
+// MockAPIContext mock context for unit tests
+// TODO: move this function to other packages, because it depends on "models" package
+func MockAPIContext(t *testing.T, reqPath string) (*context.APIContext, *httptest.ResponseRecorder) {
+	resp := httptest.NewRecorder()
+	req := mockRequest(t, reqPath)
+	base, baseCleanUp := context.NewBaseContext(resp, req)
+	base.Data = middleware.GetContextData(req.Context())
+	base.Locale = &translation.MockLocale{}
+	ctx := &context.APIContext{Base: base}
+	_ = baseCleanUp // during test, it doesn't need to do clean up. TODO: this can be improved later
+
+	chiCtx := chi.NewRouteContext()
+	ctx.Base.AppendContextValue(chi.RouteCtxKey, chiCtx)
+	return ctx, resp
 }
 
 // LoadRepo load a repo into a test context.
-func LoadRepo(t *testing.T, ctx *context.Context, repoID int64) {
-	ctx.Repo = &context.Repository{}
-	ctx.Repo.Repository = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
+func LoadRepo(t *testing.T, ctx gocontext.Context, repoID int64) {
+	var doer *user_model.User
+	repo := &context.Repository{}
+	switch ctx := ctx.(type) {
+	case *context.Context:
+		ctx.Repo = repo
+		doer = ctx.Doer
+	case *context.APIContext:
+		ctx.Repo = repo
+		doer = ctx.Doer
+	default:
+		assert.Fail(t, "context is not *context.Context or *context.APIContext")
+		return
+	}
+
+	repo.Repository = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
 	var err error
-	ctx.Repo.Owner, err = user_model.GetUserByID(ctx, ctx.Repo.Repository.OwnerID)
+	repo.Owner, err = user_model.GetUserByID(ctx, repo.Repository.OwnerID)
 	assert.NoError(t, err)
-	ctx.Repo.RepoLink = ctx.Repo.Repository.Link()
-	ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, ctx.Repo.Repository, ctx.Doer)
+	repo.RepoLink = repo.Repository.Link()
+	repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo.Repository, doer)
 	assert.NoError(t, err)
 }
 
 // LoadRepoCommit loads a repo's commit into a test context.
-func LoadRepoCommit(t *testing.T, ctx *context.Context) {
-	gitRepo, err := git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
+func LoadRepoCommit(t *testing.T, ctx gocontext.Context) {
+	var repo *context.Repository
+	switch ctx := ctx.(type) {
+	case *context.Context:
+		repo = ctx.Repo
+	case *context.APIContext:
+		repo = ctx.Repo
+	default:
+		assert.Fail(t, "context is not *context.Context or *context.APIContext")
+		return
+	}
+
+	gitRepo, err := git.OpenRepository(ctx, repo.Repository.RepoPath())
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 	branch, err := gitRepo.GetHEADBranch()
 	assert.NoError(t, err)
 	assert.NotNil(t, branch)
 	if branch != nil {
-		ctx.Repo.Commit, err = gitRepo.GetBranchCommit(branch.Name)
+		repo.Commit, err = gitRepo.GetBranchCommit(branch.Name)
 		assert.NoError(t, err)
 	}
 }
 
 // LoadUser load a user into a test context.
-func LoadUser(t *testing.T, ctx *context.Context, userID int64) {
-	ctx.Doer = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID})
+func LoadUser(t *testing.T, ctx gocontext.Context, userID int64) {
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID})
+	switch ctx := ctx.(type) {
+	case *context.Context:
+		ctx.Doer = doer
+	case *context.APIContext:
+		ctx.Doer = doer
+	default:
+		assert.Fail(t, "context is not *context.Context or *context.APIContext")
+		return
+	}
 }
 
 // LoadGitRepo load a git repo into a test context. Requires that ctx.Repo has
@@ -93,39 +148,13 @@ func LoadGitRepo(t *testing.T, ctx *context.Context) {
 	assert.NoError(t, err)
 }
 
-type mockResponseWriter struct {
-	httptest.ResponseRecorder
-	size int
-}
-
-func (rw *mockResponseWriter) Write(b []byte) (int, error) {
-	rw.size += len(b)
-	return rw.ResponseRecorder.Write(b)
-}
-
-func (rw *mockResponseWriter) Status() int {
-	return rw.ResponseRecorder.Code
-}
-
-func (rw *mockResponseWriter) Written() bool {
-	return rw.ResponseRecorder.Code > 0
-}
-
-func (rw *mockResponseWriter) Size() int {
-	return rw.size
-}
-
-func (rw *mockResponseWriter) Push(target string, opts *http.PushOptions) error {
-	return nil
-}
-
 type mockRender struct{}
 
 func (tr *mockRender) TemplateLookup(tmpl string) (templates.TemplateExecutor, error) {
 	return nil, nil
 }
 
-func (tr *mockRender) HTML(w io.Writer, status int, _ string, _ interface{}) error {
+func (tr *mockRender) HTML(w io.Writer, status int, _ string, _ any) error {
 	if resp, ok := w.(http.ResponseWriter); ok {
 		resp.WriteHeader(status)
 	}

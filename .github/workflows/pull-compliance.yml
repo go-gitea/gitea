@@ -1,13 +1,19 @@
 name: compliance
 
-on: [pull_request]
+on:
+  pull_request:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
+  files-changed:
+    uses: ./.github/workflows/files-changed.yml
+
   lint-backend:
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    needs: files-changed
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -19,7 +25,35 @@ jobs:
       - run: make lint-backend
         env:
           TAGS: bindata sqlite sqlite_unlock_notify
+
+  lint-templates:
+    if: needs.files-changed.outputs.templates == 'true'
+    needs: files-changed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - run: pip install poetry
+      - run: make deps-py
+      - run: make lint-templates
+
+  lint-swagger:
+    if: needs.files-changed.outputs.swagger == 'true'
+    needs: files-changed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 20
+      - run: make deps-frontend
+      - run: make lint-swagger
+
   lint-go-windows:
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    needs: files-changed
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -33,7 +67,10 @@ jobs:
           TAGS: bindata sqlite sqlite_unlock_notify
           GOOS: windows
           GOARCH: amd64
+
   lint-go-gogit:
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    needs: files-changed
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -45,7 +82,10 @@ jobs:
       - run: make lint-go
         env:
           TAGS: bindata gogit sqlite sqlite_unlock_notify
+
   checks-backend:
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    needs: files-changed
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -55,7 +95,10 @@ jobs:
           check-latest: true
       - run: make deps-backend deps-tools
       - run: make --always-make checks-backend # ensure the "go-licenses" make target runs
+
   frontend:
+    if: needs.files-changed.outputs.frontend == 'true' || needs.files-changed.outputs.actions == 'true'
+    needs: files-changed
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -65,7 +108,12 @@ jobs:
       - run: make deps-frontend
       - run: make lint-frontend
       - run: make checks-frontend
+      - run: make test-frontend
+      - run: make frontend
+
   backend:
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    needs: files-changed
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -73,12 +121,9 @@ jobs:
         with:
           go-version: ">=1.20"
           check-latest: true
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 20
-      - run: make deps-backend deps-tools
-      - run: make deps-frontend
-      - run: make frontend
+      # no frontend build here as backend should be able to build
+      # even without any frontend files
+      - run: make deps-backend
       - run: go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
       - name: build-backend-arm64
         run: make backend # test cross compile
@@ -97,3 +142,25 @@ jobs:
         env:
           GOOS: linux
           GOARCH: 386
+
+  docs:
+    if: needs.files-changed.outputs.docs == 'true' || needs.files-changed.outputs.actions == 'true'
+    needs: files-changed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 20
+      - run: make deps-frontend
+      - run: make lint-md
+      - run: make docs # test if build could succeed
+
+  actions:
+    if: needs.files-changed.outputs.actions == 'true' || needs.files-changed.outputs.actions == 'true'
+    needs: files-changed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+      - run: make lint-actions

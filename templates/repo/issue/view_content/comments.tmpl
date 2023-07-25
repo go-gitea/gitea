@@ -11,21 +11,23 @@
 		26 = DELETE_TIME_MANUAL, 27 = REVIEW_REQUEST, 28 = MERGE_PULL_REQUEST,
 		29 = PULL_PUSH_EVENT, 30 = PROJECT_CHANGED, 31 = PROJECT_BOARD_CHANGED
 		32 = DISMISSED_REVIEW, 33 = COMMENT_TYPE_CHANGE_ISSUE_REF, 34 = PR_SCHEDULE_TO_AUTO_MERGE,
-		35 = CANCEL_SCHEDULED_AUTO_MERGE_PR -->
+		35 = CANCEL_SCHEDULED_AUTO_MERGE_PR, 36 = PIN_ISSUE, 37 = UNPIN_ISSUE -->
 		{{if eq .Type 0}}
 			<div class="timeline-item comment" id="{{.HashTag}}">
 			{{if .OriginalAuthor}}
-				<span class="timeline-avatar"><img src="{{AppSubUrl}}/assets/img/avatar_default.png"></span>
+				<span class="timeline-avatar">
+					<img src="{{AppSubUrl}}/assets/img/avatar_default.png" width="40" height="40">
+				</span>
 			{{else}}
 				<a class="timeline-avatar"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
-					{{avatar $.Context .Poster}}
+					{{avatar $.Context .Poster 40}}
 				</a>
 			{{end}}
 				<div class="content comment-container">
 					<div class="ui top attached header comment-header gt-df gt-ac gt-sb" role="heading" aria-level="3">
 						<div class="comment-header-left gt-df gt-ac">
 							{{if .OriginalAuthor}}
-								<span class="text black gt-bold gt-mr-2">
+								<span class="text black gt-font-semibold gt-mr-2">
 									{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 									{{.OriginalAuthor}}
 								</span>
@@ -38,7 +40,7 @@
 							{{else}}
 								{{if gt .Poster.ID 0}}
 									<a class="inline-timeline-avatar" href="{{.Poster.HomeLink}}">
-										{{avatar $.Context .Poster}}
+										{{avatar $.Context .Poster 24}}
 									</a>
 								{{end}}
 								<span class="text grey muted-links">
@@ -85,9 +87,7 @@
 					</div>
 					{{$reactions := .Reactions.GroupByType}}
 					{{if $reactions}}
-						<div class="ui attached segment reactions" role="note">
-							{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
-						</div>
+						{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
 					{{end}}
 				</div>
 			</div>
@@ -249,7 +249,7 @@
 				{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{$.locale.Tr "repo.issues.start_tracking_history"  $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.start_tracking_history" $createdStr | Safe}}
 				</span>
 			</div>
 		{{else if eq .Type 13}}
@@ -258,12 +258,17 @@
 				{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{$.locale.Tr "repo.issues.stop_tracking_history"  $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.stop_tracking_history" $createdStr | Safe}}
 				</span>
 				{{template "repo/issue/view_content/comments_delete_time" dict "ctxData" $ "comment" .}}
 				<div class="detail">
 					{{svg "octicon-clock"}}
-					<span class="text grey muted-links">{{.Content}}</span>
+					{{if .RenderedContent}}
+						{{/* compatibility with time comments made before v1.21 */}}
+						<span class="text grey muted-links">{{.RenderedContent}}</span>
+					{{else}}
+						<span class="text grey muted-links">{{.Content|Sec2Time}}</span>
+					{{end}}
 				</div>
 			</div>
 		{{else if eq .Type 14}}
@@ -272,12 +277,17 @@
 				{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{$.locale.Tr "repo.issues.add_time_history"  $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.add_time_history" $createdStr | Safe}}
 				</span>
 				{{template "repo/issue/view_content/comments_delete_time" dict "ctxData" $ "comment" .}}
 				<div class="detail">
 					{{svg "octicon-clock"}}
-					<span class="text grey muted-links">{{.Content}}</span>
+					{{if .RenderedContent}}
+						{{/* compatibility with time comments made before v1.21 */}}
+						<span class="text grey muted-links">{{.RenderedContent}}</span>
+					{{else}}
+						<span class="text grey muted-links">{{.Content|Sec2Time}}</span>
+					{{end}}
 				</div>
 			</div>
 		{{else if eq .Type 15}}
@@ -286,7 +296,7 @@
 				{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
-					{{$.locale.Tr "repo.issues.cancel_tracking_history"  $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.cancel_tracking_history" $createdStr | Safe}}
 				</span>
 			</div>
 		{{else if eq .Type 16}}
@@ -375,8 +385,8 @@
 					{{/* Some timeline avatars need a offset to correctly allign with their speech
 							bubble. The condition depends on review type and for positive reviews whether
 							there is a comment element or not */}}
-					<a class="timeline-avatar{{if or (and (eq .Review.Type 1) (or .Content .Attachments)) (eq .Review.Type 2) (eq .Review.Type 3)}} timeline-avatar-offset{{end}}"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
-						{{avatar $.Context .Poster}}
+					<a class="timeline-avatar{{if or (and (eq .Review.Type 1) (or .Content .Attachments)) (and (eq .Review.Type 2) (or .Content .Attachments)) (eq .Review.Type 3)}} timeline-avatar-offset{{end}}"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
+						{{avatar $.Context .Poster 40}}
 					</a>
 					{{end}}
 					<span class="badge{{if eq .Review.Type 1}} gt-bg-green gt-text-white{{else if eq .Review.Type 3}} gt-bg-red gt-text-white{{end}}">{{svg (printf "octicon-%s" .Review.Type.Icon)}}</span>
@@ -413,12 +423,12 @@
 							<div class="comment-header-left gt-df gt-ac">
 								{{if gt .Poster.ID 0}}
 									<a class="inline-timeline-avatar" href="{{.Poster.HomeLink}}">
-										{{avatar $.Context .Poster}}
+										{{avatar $.Context .Poster 24}}
 									</a>
 								{{end}}
 								<span class="text grey muted-links">
 									{{if .OriginalAuthor}}
-										<span class="text black gt-bold">
+										<span class="text black gt-font-semibold">
 											{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 											{{.OriginalAuthor}}
 										</span>
@@ -469,9 +479,7 @@
 						</div>
 						{{$reactions := .Reactions.GroupByType}}
 						{{if $reactions}}
-							<div class="ui attached segment reactions">
-									{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
-							</div>
+							{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
 						{{end}}
 					</div>
 				</div>
@@ -482,7 +490,7 @@
 					{{range $filename, $lines := .Review.CodeComments}}
 						{{range $line, $comms := $lines}}
 								<div class="ui segments">
-									<div class="ui segment gt-py-3 gt-df gt-ac gt-sb">
+									<div class="ui segment collapsible-comment-box gt-py-3 gt-df gt-ac gt-sb">
 										{{$invalid := (index $comms 0).Invalidated}}
 										{{$resolved := (index $comms 0).IsResolved}}
 										{{$resolveDoer := (index $comms 0).ResolveDoer}}
@@ -490,7 +498,7 @@
 										<div class="gt-df gt-ac">
 											<a href="{{(index $comms 0).CodeCommentLink}}" class="file-comment gt-ml-3 gt-word-break">{{$filename}}</a>
 											{{if $invalid}}
-												<span class="ui label basic small gt-ml-3">
+												<span class="ui label basic small gt-ml-3" data-tooltip-content="{{$.locale.Tr "repo.issues.review.outdated_description"}}">
 													{{$.locale.Tr "repo.issues.review.outdated"}}
 												</span>
 											{{end}}
@@ -541,12 +549,12 @@
 															<div class="comment-header-left gt-df gt-ac">
 																{{if not .OriginalAuthor}}
 																	<a class="avatar">
-																		{{avatar $.Context .Poster}}
+																		{{avatar $.Context .Poster 20}}
 																	</a>
 																{{end}}
 																<span class="text grey muted-links">
 																	{{if .OriginalAuthor}}
-																		<span class="text black gt-bold">
+																		<span class="text black gt-font-semibold">
 																			{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 																			{{.OriginalAuthor}}
 																		</span>
@@ -593,9 +601,7 @@
 														</div>
 														{{$reactions := .Reactions.GroupByType}}
 														{{if $reactions}}
-															<div class="ui attached segment reactions">
-																{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
-															</div>
+															{{template "repo/issue/view_content/reactions" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
 														{{end}}
 													</div>
 												</div>
@@ -676,11 +682,16 @@
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
 
-					{{$.locale.Tr "repo.issues.del_time_history"  $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.del_time_history" $createdStr | Safe}}
 				</span>
 				<div class="detail">
 					{{svg "octicon-clock"}}
-					<span class="text grey muted-links">{{.Content}}</span>
+					{{if .RenderedContent}}
+						{{/* compatibility with time comments made before v1.21 */}}
+						<span class="text grey muted-links">{{.RenderedContent}}</span>
+					{{else}}
+						<span class="text grey muted-links">- {{.Content|Sec2Time}}</span>
+					{{end}}
 				</div>
 			</div>
 		{{else if eq .Type 27}}
@@ -723,7 +734,7 @@
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
 					{{if .IsForcePush}}
-						{{$.locale.Tr "repo.issues.force_push_codes" ($.Issue.PullRequest.HeadBranch|Escape) (ShortSha .OldCommit) (($.Issue.Repo.CommitLink .OldCommit)|Escape)  (ShortSha .NewCommit) (($.Issue.Repo.CommitLink .NewCommit)|Escape) $createdStr | Safe}}
+						{{$.locale.Tr "repo.issues.force_push_codes" ($.Issue.PullRequest.HeadBranch|Escape) (ShortSha .OldCommit) (($.Issue.Repo.CommitLink .OldCommit)|Escape) (ShortSha .NewCommit) (($.Issue.Repo.CommitLink .NewCommit)|Escape) $createdStr | Safe}}
 					{{else}}
 						{{$.locale.TrN (len .Commits) "repo.issues.push_commit_1" "repo.issues.push_commits_n" (len .Commits) $createdStr | Safe}}
 					{{end}}
@@ -768,10 +779,9 @@
 			<div class="timeline-item-group">
 				<div class="timeline-item event" id="{{.HashTag}}">
 					<a class="timeline-avatar"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
-						<img src="{{.Poster.AvatarLink $.Context}}">
+						<img src="{{.Poster.AvatarLink $.Context}}" width="40" height="40">
 					</a>
 					<span class="badge grey">{{svg "octicon-x" 16}}</span>
-					{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
 					<span class="text grey muted-links">
 						{{template "shared/user/authorlink" .Poster}}
 						{{$reviewerName := ""}}
@@ -789,7 +799,7 @@
 							<div class="ui top attached header comment-header-left gt-df gt-ac arrow-top">
 								{{if gt .Poster.ID 0}}
 									<a class="inline-timeline-avatar" href="{{.Poster.HomeLink}}">
-										{{avatar $.Context .Poster}}
+										{{avatar $.Context .Poster 24}}
 									</a>
 								{{end}}
 								<span class="text grey muted-links">
@@ -831,6 +841,16 @@
 					{{template "shared/user/authorlink" .Poster}}
 					{{if eq .Type 34}}{{$.locale.Tr "repo.pulls.auto_merge_newly_scheduled_comment" $createdStr | Safe}}
 					{{else}}{{$.locale.Tr "repo.pulls.auto_merge_canceled_schedule_comment" $createdStr | Safe}}{{end}}
+				</span>
+			</div>
+		{{else if or (eq .Type 36) (eq .Type 37)}}
+			<div class="timeline-item event" id="{{.HashTag}}">
+				<span class="badge">{{svg "octicon-pin" 16}}</span>
+				{{template "shared/user/avatarlink" dict "Context" $.Context "user" .Poster}}
+				<span class="text grey muted-links">
+					{{template "shared/user/authorlink" .Poster}}
+					{{if eq .Type 36}}{{$.locale.Tr "repo.issues.pin_comment" $createdStr | Safe}}
+					{{else}}{{$.locale.Tr "repo.issues.unpin_comment" $createdStr | Safe}}{{end}}
 				</span>
 			</div>
 		{{end}}

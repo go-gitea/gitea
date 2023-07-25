@@ -3,10 +3,12 @@ name: cron-translations
 on:
   schedule:
     - cron: "7 0 * * *" # every day at 00:07 UTC
+  workflow_dispatch:
 
 jobs:
   crowdin-pull:
     runs-on: ubuntu-latest
+    if: github.repository == 'go-gitea/gitea'
     steps:
       - uses: actions/checkout@v3
       - name: download from crowdin
@@ -31,6 +33,7 @@ jobs:
           ssh_key: ${{ secrets.DEPLOY_KEY }}
   crowdin-push:
     runs-on: ubuntu-latest
+    if: github.repository == 'go-gitea/gitea'
     steps:
       - uses: actions/checkout@v3
       - name: push translations to crowdin
@@ -38,6 +41,7 @@ jobs:
         env:
           CROWDIN_KEY: ${{ secrets.CROWDIN_KEY }}
           PLUGIN_UPLOAD: true
+          PLUGIN_EXPORT_DIR: options/locale/
           PLUGIN_IGNORE_BRANCH: true
           PLUGIN_PROJECT_IDENTIFIER: gitea
           PLUGIN_FILES: |
