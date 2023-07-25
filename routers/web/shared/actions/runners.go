@@ -160,7 +160,7 @@ func RunnerDeletePost(ctx *context.Context, runnerID int64,
 		log.Warn("DeleteRunnerPost.UpdateRunner failed: %v, url: %s", err, ctx.Req.URL)
 		ctx.Flash.Warning(ctx.Tr("actions.runners.delete_runner_failed"))
 
-		ctx.JSON(http.StatusOK, map[string]interface{}{
+		ctx.JSON(http.StatusOK, map[string]any{
 			"redirect": failedRedirectTo,
 		})
 		return
@@ -170,7 +170,7 @@ func RunnerDeletePost(ctx *context.Context, runnerID int64,
 
 	ctx.Flash.Success(ctx.Tr("actions.runners.delete_runner_success"))
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"redirect": successRedirectTo,
 	})
 }

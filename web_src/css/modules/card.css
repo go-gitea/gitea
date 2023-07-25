@@ -59,7 +59,7 @@
   font-weight: var(--font-weight-medium);
   font-size: 1.28571429em;
   margin-top: -.21425em;
-  line-height: 1.28571429em;
+  line-height: 1.28571429;
 }
 
 .ui.cards > .card > .content:first-child,

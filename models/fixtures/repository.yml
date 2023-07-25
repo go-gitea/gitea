@@ -141,7 +141,7 @@
   num_projects: 0
   num_closed_projects: 0
   is_private: true
-  is_empty: true
+  is_empty: false
   is_archived: false
   is_mirror: true
   status: 0

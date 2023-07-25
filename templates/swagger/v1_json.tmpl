@@ -620,6 +620,9 @@
           "403": {
             "$ref": "#/responses/forbidden"
           },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
           "422": {
             "$ref": "#/responses/validationError"
           }
@@ -1591,6 +1594,63 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/orgs/{org}/avatar": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Update Avatar",
+        "operationId": "orgUpdateAvatar",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/UpdateUserAvatarOption"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Delete Avatar",
+        "operationId": "orgDeleteAvatar",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
           }
         }
       }
@@ -3174,6 +3234,77 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/avatar": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Update avatar",
+        "operationId": "repoUpdateAvatar",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/UpdateRepoAvatarOption"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete avatar",
+        "operationId": "repoDeleteAvatar",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/branch_protections": {
       "get": {
         "produces": [
@@ -3477,6 +3608,9 @@
         "responses": {
           "201": {
             "$ref": "#/responses/Branch"
+          },
+          "403": {
+            "description": "The branch is archived or a mirror."
           },
           "404": {
             "description": "The old branch does not exist."
@@ -10729,7 +10863,7 @@
           }
         ],
         "responses": {
-          "201": {
+          "200": {
             "$ref": "#/responses/PushMirror"
           },
           "400": {
@@ -13787,6 +13921,47 @@
         }
       }
     },
+    "/user/avatar": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Update Avatar",
+        "operationId": "userUpdateAvatar",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/UpdateUserAvatarOption"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Delete Avatar",
+        "operationId": "userDeleteAvatar",
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      }
+    },
     "/user/emails": {
       "get": {
         "produces": [
@@ -15953,7 +16128,7 @@
         "content": {
           "description": "new or updated file content, must be base64 encoded",
           "type": "string",
-          "x-go-name": "Content"
+          "x-go-name": "ContentBase64"
         },
         "from_path": {
           "description": "old path of the file to move",
@@ -16227,6 +16402,10 @@
         "filename": {
           "type": "string",
           "x-go-name": "Filename"
+        },
+        "status": {
+          "type": "string",
+          "x-go-name": "Status"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -16638,7 +16817,7 @@
         "content": {
           "description": "content must be base64 encoded",
           "type": "string",
-          "x-go-name": "Content"
+          "x-go-name": "ContentBase64"
         },
         "dates": {
           "$ref": "#/definitions/CommitDateOptions"
@@ -18730,6 +18909,11 @@
           "type": "boolean",
           "x-go-name": "Private"
         },
+        "protected_branch": {
+          "description": "include protected branches in template repo",
+          "type": "boolean",
+          "x-go-name": "ProtectedBranch"
+        },
         "topics": {
           "description": "include topics in template repo",
           "type": "boolean",
@@ -19555,7 +19739,11 @@
             "git",
             "github",
             "gitea",
-            "gitlab"
+            "gitlab",
+            "gogs",
+            "onedev",
+            "gitbucket",
+            "codebase"
           ],
           "x-go-name": "Service"
         },
@@ -21515,7 +21703,7 @@
         "content": {
           "description": "content must be base64 encoded",
           "type": "string",
-          "x-go-name": "Content"
+          "x-go-name": "ContentBase64"
         },
         "dates": {
           "$ref": "#/definitions/CommitDateOptions"
@@ -21544,6 +21732,30 @@
           "description": "Add a Signed-off-by trailer by the committer at the end of the commit log message.",
           "type": "boolean",
           "x-go-name": "Signoff"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "UpdateRepoAvatarOption": {
+      "description": "UpdateRepoAvatarUserOption options when updating the repo avatar",
+      "type": "object",
+      "properties": {
+        "image": {
+          "description": "image must be base64 encoded",
+          "type": "string",
+          "x-go-name": "Image"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "UpdateUserAvatarOption": {
+      "description": "UpdateUserAvatarUserOption options when updating the user avatar",
+      "type": "object",
+      "properties": {
+        "image": {
+          "description": "image must be base64 encoded",
+          "type": "string",
+          "x-go-name": "Image"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -22837,7 +23049,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/CreatePushMirrorOption"
+        "$ref": "#/definitions/UpdateRepoAvatarOption"
       }
     },
     "redirect": {

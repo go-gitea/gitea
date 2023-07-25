@@ -114,7 +114,7 @@ func VersionInfo() string {
 		return "(git not found)"
 	}
 	format := "%s"
-	args := []interface{}{gitVersion.Original()}
+	args := []any{gitVersion.Original()}
 	// Since git wire protocol has been released from git v2.18
 	if setting.Git.EnableAutoGitWireProtocol && CheckGitVersionAtLeast("2.18") == nil {
 		format += ", Wire Protocol %s Enabled"
@@ -171,7 +171,7 @@ func InitFull(ctx context.Context) (err error) {
 	}
 
 	if err = InitSimple(ctx); err != nil {
-		return
+		return err
 	}
 
 	// when git works with gnupg (commit signing), there should be a stable home for gnupg commands
@@ -188,7 +188,6 @@ func InitFull(ctx context.Context) (err error) {
 	if CheckGitVersionAtLeast("2.9") == nil {
 		globalCommandArgs = append(globalCommandArgs, "-c", "credential.helper=")
 	}
-
 	SupportProcReceive = CheckGitVersionAtLeast("2.29") == nil
 
 	if setting.LFS.StartServer {

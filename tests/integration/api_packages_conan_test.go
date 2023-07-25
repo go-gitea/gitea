@@ -177,7 +177,7 @@ func uploadConanPackageV2(t *testing.T, baseURL, token, name, version, user, cha
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var list *struct {
-		Files map[string]interface{} `json:"files"`
+		Files map[string]any `json:"files"`
 	}
 	DecodeJSON(t, resp, &list)
 	assert.Len(t, list.Files, 1)

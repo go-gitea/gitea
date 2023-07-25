@@ -17,7 +17,7 @@ var (
 	// AppPath represents the path to the gitea binary
 	AppPath string
 
-	// AppWorkPath is the "working directory" of Gitea. It maps to the environment variable GITEA_WORK_DIR.
+	// AppWorkPath is the "working directory" of Gitea. It maps to the: WORK_PATH in app.ini, "--work-path" flag, environment variable GITEA_WORK_DIR.
 	// If that is not set it is the default set here by the linker or failing that the directory of AppPath.
 	// It is used as the base path for several other paths.
 	AppWorkPath string
@@ -89,6 +89,12 @@ func (s *stringWithDefault) Set(v string) {
 
 // InitWorkPathAndCommonConfig will set AppWorkPath, CustomPath and CustomConf, init default config provider by CustomConf and load common settings,
 func InitWorkPathAndCommonConfig(getEnvFn func(name string) string, args ArgWorkPathAndCustomConf) {
+	InitWorkPathAndCfgProvider(getEnvFn, args)
+	LoadCommonSettings()
+}
+
+// InitWorkPathAndCfgProvider will set AppWorkPath, CustomPath and CustomConf, init default config provider by CustomConf
+func InitWorkPathAndCfgProvider(getEnvFn func(name string) string, args ArgWorkPathAndCustomConf) {
 	tryAbsPath := func(paths ...string) string {
 		s := paths[len(paths)-1]
 		for i := len(paths) - 2; i >= 0; i-- {
@@ -165,6 +171,9 @@ func InitWorkPathAndCommonConfig(getEnvFn func(name string) string, args ArgWork
 
 	// only read the config but do not load/init anything more, because the AppWorkPath and CustomPath are not ready
 	InitCfgProvider(tmpCustomConf.Value)
+	if HasInstallLock(CfgProvider) {
+		ClearEnvConfigKeys() // if the instance has been installed, do not pass the environment variables to sub-processes
+	}
 	configWorkPath := ConfigSectionKeyString(CfgProvider.Section(""), "WORK_PATH")
 	if configWorkPath != "" {
 		if !filepath.IsAbs(configWorkPath) {
@@ -186,6 +195,4 @@ func InitWorkPathAndCommonConfig(getEnvFn func(name string) string, args ArgWork
 	AppWorkPath = tmpWorkPath.Value
 	CustomPath = tmpCustomPath.Value
 	CustomConf = tmpCustomConf.Value
-
-	LoadCommonSettings()
 }

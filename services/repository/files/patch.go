@@ -58,7 +58,7 @@ func (opts *ApplyDiffPatchOptions) Validate(ctx context.Context, repo *repo_mode
 	if opts.NewBranch != opts.OldBranch {
 		existingBranch, err := gitRepo.GetBranch(opts.NewBranch)
 		if existingBranch != nil {
-			return models.ErrBranchAlreadyExists{
+			return git_model.ErrBranchAlreadyExists{
 				BranchName: opts.NewBranch,
 			}
 		}

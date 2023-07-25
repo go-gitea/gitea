@@ -39,7 +39,7 @@ var (
 
 var ErrTemplateNotInitialized = errors.New("template system is not initialized, check your log for errors")
 
-func (h *HTMLRender) HTML(w io.Writer, status int, name string, data interface{}) error {
+func (h *HTMLRender) HTML(w io.Writer, status int, name string, data any) error {
 	if respWriter, ok := w.(http.ResponseWriter); ok {
 		if respWriter.Header().Get("Content-Type") == "" {
 			respWriter.Header().Set("Content-Type", "text/html; charset=utf-8")

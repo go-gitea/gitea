@@ -346,6 +346,53 @@ func GetLatestCommitStatusForPairs(ctx context.Context, repoIDsToLatestCommitSHA
 	return repoStatuses, nil
 }
 
+// GetLatestCommitStatusForRepoCommitIDs returns all statuses with a unique context for a given list of repo-sha pairs
+func GetLatestCommitStatusForRepoCommitIDs(ctx context.Context, repoID int64, commitIDs []string) (map[string][]*CommitStatus, error) {
+	type result struct {
+		ID  int64
+		Sha string
+	}
+
+	results := make([]result, 0, len(commitIDs))
+
+	sess := db.GetEngine(ctx).Table(&CommitStatus{})
+
+	// Create a disjunction of conditions for each repoID and SHA pair
+	conds := make([]builder.Cond, 0, len(commitIDs))
+	for _, sha := range commitIDs {
+		conds = append(conds, builder.Eq{"sha": sha})
+	}
+	sess = sess.Where(builder.Eq{"repo_id": repoID}.And(builder.Or(conds...))).
+		Select("max( id ) as id, sha").
+		GroupBy("context_hash, sha").OrderBy("max( id ) desc")
+
+	err := sess.Find(&results)
+	if err != nil {
+		return nil, err
+	}
+
+	ids := make([]int64, 0, len(results))
+	repoStatuses := make(map[string][]*CommitStatus)
+	for _, result := range results {
+		ids = append(ids, result.ID)
+	}
+
+	statuses := make([]*CommitStatus, 0, len(ids))
+	if len(ids) > 0 {
+		err = db.GetEngine(ctx).In("id", ids).Find(&statuses)
+		if err != nil {
+			return nil, err
+		}
+
+		// Group the statuses by repo ID
+		for _, status := range statuses {
+			repoStatuses[status.SHA] = append(repoStatuses[status.SHA], status)
+		}
+	}
+
+	return repoStatuses, nil
+}
+
 // FindRepoRecentCommitStatusContexts returns repository's recent commit status contexts
 func FindRepoRecentCommitStatusContexts(ctx context.Context, repoID int64, before time.Duration) ([]string, error) {
 	start := timeutil.TimeStampNow().AddDuration(-before)

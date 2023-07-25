@@ -65,13 +65,6 @@ func (a *Attachment) DownloadURL() string {
 	return setting.AppURL + "attachments/" + url.PathEscape(a.UUID)
 }
 
-//    _____   __    __                .__                           __
-//   /  _  \_/  |__/  |______    ____ |  |__   _____   ____   _____/  |_
-//  /  /_\  \   __\   __\__  \ _/ ___\|  |  \ /     \_/ __ \ /    \   __\
-// /    |    \  |  |  |  / __ \\  \___|   Y  \  Y Y  \  ___/|   |  \  |
-// \____|__  /__|  |__| (____  /\___  >___|  /__|_|  /\___  >___|  /__|
-//         \/                \/     \/     \/      \/     \/     \/
-
 // ErrAttachmentNotExist represents a "AttachmentNotExist" kind of error.
 type ErrAttachmentNotExist struct {
 	ID   int64

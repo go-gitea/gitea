@@ -49,17 +49,17 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 }
 
 // ChangeTitle changes the title of this issue, as the given user.
-func ChangeTitle(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, title string) (err error) {
+func ChangeTitle(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, title string) error {
 	oldTitle := issue.Title
 	issue.Title = title
 
-	if err = issues_model.ChangeIssueTitle(ctx, issue, doer, oldTitle); err != nil {
-		return
+	if err := issues_model.ChangeIssueTitle(ctx, issue, doer, oldTitle); err != nil {
+		return err
 	}
 
 	if issue.IsPull && issues_model.HasWorkInProgressPrefix(oldTitle) && !issues_model.HasWorkInProgressPrefix(title) {
-		if err = issues_model.PullRequestCodeOwnersReview(ctx, issue, issue.PullRequest); err != nil {
-			return
+		if err := issues_model.PullRequestCodeOwnersReview(ctx, issue, issue.PullRequest); err != nil {
+			return err
 		}
 	}
 

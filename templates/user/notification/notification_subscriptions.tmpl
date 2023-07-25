@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content user notification" id="notification_subscriptions" data-params="{{.Page.GetParams}}" data-sequence-number="{{.SequenceNumber}}">
+<div role="main" aria-label="{{.Title}}" class="page-content user notification">
 	<div class="ui container">
 		<div class="ui top attached tabular menu">
 			<a href="{{AppSubUrl}}/notifications/subscriptions" class="{{if eq .Status 1}}active {{end}}item">
@@ -63,7 +63,7 @@
 					</div>
 				</div>
 				{{if eq (len .Issues) 0}}
-					<div class="ui divider"></div>
+					<div class="divider"></div>
 					{{.locale.Tr "notification.no_subscriptions"}}
 				{{else}}
 					{{template "shared/issuelist" dict "." . "listType" "dashboard"}}
