@@ -515,7 +515,7 @@ var migrations = []Migration{
 	NewMigration("Alter Actions Artifact table", v1_21.AlterActionArtifactTable),
 	// v266 -> v267
 	NewMigration("Reduce commit status", v1_21.ReduceCommitStatus),
-	// v267 -> v268
+	// v268 -> v269
 	NewMigration("Update Action Ref", v1_21.UpdateActionsRefIndex),
 }
 
