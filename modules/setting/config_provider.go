@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
 
 	"gopkg.in/ini.v1" //nolint:depguard
 )
@@ -189,28 +188,31 @@ func NewConfigProviderFromData(configContent string) (ConfigProvider, error) {
 
 // NewConfigProviderFromFile load configuration from file.
 // NOTE: do not print any log except error.
-func NewConfigProviderFromFile(file string, extraConfigs ...string) (ConfigProvider, error) {
+func NewConfigProviderFromFile(file string, allowNotExist bool) (ConfigProvider, error) {
+	if !allowNotExist && file == "" {
+		return nil, fmt.Errorf("config file is empty but allowNotExist is false")
+	}
+
 	cfg := ini.Empty(ini.LoadOptions{KeyValueDelimiterOnWrite: " = "})
 	loadedFromEmpty := true
 
 	if file != "" {
-		isFile, err := util.IsFile(file)
+		f, err := os.Stat(file)
 		if err != nil {
-			return nil, fmt.Errorf("unable to check if %q is a file. Error: %v", file, err)
-		}
-		if isFile {
+			if !os.IsNotExist(err) {
+				return nil, fmt.Errorf("unable to stat config file %q: %v", file, err)
+			}
+
+			if !allowNotExist {
+				return nil, fmt.Errorf("config file %q does not exist", file)
+			}
+		} else if f.IsDir() {
+			return nil, fmt.Errorf("config file %q is a directory", file)
+		} else {
 			if err = cfg.Append(file); err != nil {
 				return nil, fmt.Errorf("failed to load config file %q: %v", file, err)
 			}
 			loadedFromEmpty = false
-		}
-	}
-
-	if len(extraConfigs) > 0 {
-		for _, s := range extraConfigs {
-			if err := cfg.Append([]byte(s)); err != nil {
-				return nil, fmt.Errorf("unable to append more config: %v", err)
-			}
 		}
 	}
 
@@ -303,7 +305,7 @@ func (p *iniConfigProvider) PrepareSaving() (ConfigProvider, error) {
 	if p.file == "" {
 		return nil, errors.New("no config file to save")
 	}
-	return NewConfigProviderFromFile(p.file)
+	return NewConfigProviderFromFile(p.file, false)
 }
 
 func (p *iniConfigProvider) IsLoadedFromEmpty() bool {

@@ -146,7 +146,7 @@ func serveInstall(ctx *cli.Context) error {
 }
 
 func serveInstalled(ctx *cli.Context) error {
-	setting.InitCfgProvider(setting.CustomConf)
+	setting.InitCfgProvider(setting.CustomConf, false)
 	setting.LoadCommonSettings()
 	setting.MustInstalled()
 

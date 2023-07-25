@@ -373,7 +373,7 @@ func SubmitInstall(ctx *context.Context) {
 	}
 
 	// Save settings.
-	cfg, err := setting.NewConfigProviderFromFile(setting.CustomConf)
+	cfg, err := setting.NewConfigProviderFromFile(setting.CustomConf, true)
 	if err != nil {
 		log.Error("Failed to load custom conf '%s': %v", setting.CustomConf, err)
 	}
@@ -519,7 +519,7 @@ func SubmitInstall(ctx *context.Context) {
 	// ---- All checks are passed
 
 	// Reload settings (and re-initialize database connection)
-	setting.InitCfgProvider(setting.CustomConf)
+	setting.InitCfgProvider(setting.CustomConf, false)
 	setting.LoadCommonSettings()
 	setting.MustInstalled()
 	setting.LoadDBSetting()
