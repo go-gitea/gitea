@@ -17,8 +17,6 @@ menu:
 
 # 认证
 
-{{< toc >}}
-
 ## 轻量级目录访问协议（Lightweight Directory Access Protocol，LDAP）
 
 通过BindDN的LDAP和简单认证方式LDAP共享以下字段:
@@ -269,9 +267,9 @@ Gitea支持通过Windows内置的安全支持提供程序接口（Security Suppo
    - 您不是在运行`gitea.exe`的同一台服务器上运行Web浏览器。应该在与服务器不同的域加入计算机（客户端）上运行Web浏览器。如果客户端和服务器都在同一台计算机上运行，则NTLM将优先于Kerberos。
    - 主机上只有一个`HTTP/...`的SPN。
    - SPN中只包含主机名，不包含端口号。
-   - 将Web应用程序的URL添加到“本地站点”。
+   - 将Web应用程序的URL添加到"本地站点"。
    - 服务器和客户端的时钟差异不超过5分钟（取决于组策略）。
-   - 在Internet Explorer中启用了“集成Windows身份验证”（在“高级设置”下）。
+   - 在Internet Explorer中启用了"集成Windows身份验证"（在"高级设置"下）。
 
 遵循这些步骤，您应该能够成功启用和使用SSPI单点登录认证（SSO）。
 
