@@ -298,10 +298,12 @@ var (
 		&cli.BoolFlag{
 			Name:  "force-smtps",
 			Usage: "SMTPS is always used on port 465. Set this to force SMTPS on other ports.",
+			Value: true,
 		},
 		&cli.BoolFlag{
 			Name:  "skip-verify",
 			Usage: "Skip TLS verify.",
+			Value: true,
 		},
 		&cli.StringFlag{
 			Name:  "helo-hostname",
@@ -311,6 +313,7 @@ var (
 		&cli.BoolFlag{
 			Name:  "disable-helo",
 			Usage: "Disable SMTP helo.",
+			Value: true,
 		},
 		&cli.StringFlag{
 			Name:  "allowed-domains",
@@ -320,10 +323,12 @@ var (
 		&cli.BoolFlag{
 			Name:  "skip-local-2fa",
 			Usage: "Skip 2FA to log on.",
+			Value: true,
 		},
 		&cli.BoolFlag{
 			Name:  "active",
 			Usage: "This Authentication Source is Activated.",
+			Value: true,
 		},
 	}
 

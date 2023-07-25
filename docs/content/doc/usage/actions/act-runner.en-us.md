@@ -110,9 +110,9 @@ Note that the repository may still use instance-level or organization-level runn
 
 The level of the runner determines where to obtain the registration token.
 
-- Instance level: The admin settings page, like `<your_gitea.com>/admin/runners`.
-- Organization level: The organization settings page, like `<your_gitea.com>/<org>/settings/runners`.
-- Repository level: The repository settings page, like `<your_gitea.com>/<owner>/<repo>/settings/runners`.
+- Instance level: The admin settings page, like `<your_gitea.com>/admin/actions/runners`.
+- Organization level: The organization settings page, like `<your_gitea.com>/<org>/settings/actions/runners`.
+- Repository level: The repository settings page, like `<your_gitea.com>/<owner>/<repo>/settings/actions/runners`.
 
 If you cannot see the settings page, please make sure that you have the right permissions and that Actions have been enabled.
 
