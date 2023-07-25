@@ -51,6 +51,7 @@ const (
 	tplWatchers     base.TplName = "repo/watchers"
 	tplForks        base.TplName = "repo/forks"
 	tplMigrating    base.TplName = "repo/migrate/migrating"
+	tplFunding      base.TplName = "repo/funding"
 )
 
 // locate a README for a tree in one of the supported paths.
@@ -359,6 +360,11 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		_, workFlowErr := model.ReadWorkflow(bytes.NewReader(content))
 		if workFlowErr != nil {
 			ctx.Data["FileError"] = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", workFlowErr.Error())
+		}
+	} else if ctx.Repo.IsFunding(ctx.Repo.TreePath) {
+		_, fundingErr := ctx.Repo.GetFunding(ctx.Repo.TreePath, ctx.Repo.Commit)
+		if fundingErr != nil {
+			ctx.Data["FileError"] = strings.TrimSpace(fundingErr.Error())
 		}
 	}
 
@@ -1055,4 +1061,19 @@ func Forks(ctx *context.Context) {
 	ctx.Data["Forks"] = forks
 
 	ctx.HTML(http.StatusOK, tplForks)
+}
+
+// Funding render repository's funding page
+func Funding(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("repo.forks")
+
+	funding, err := ctx.FundingFromDefaultBranch()
+	if err != nil {
+		ctx.ServerError("FundingFromDefaultBranch", err)
+		return
+	}
+
+	ctx.Data["Funding"] = funding
+
+	ctx.HTML(http.StatusOK, tplFunding)
 }

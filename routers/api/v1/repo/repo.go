@@ -1256,3 +1256,28 @@ func ListRepoActivityFeeds(ctx *context.APIContext) {
 
 	ctx.JSON(http.StatusOK, convert.ToActivities(ctx, feeds, ctx.Doer))
 }
+
+// GetFunding returns the funding for a repo
+func GetFunding(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/funding repository repoGetFunding
+	// ---
+	// summary: Returns the funding for a repo
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/RepoFunding"
+	funding, _ := ctx.FundingFromDefaultBranch()
+	ctx.JSON(http.StatusOK, funding)
+}

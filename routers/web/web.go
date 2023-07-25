@@ -1460,6 +1460,7 @@ func RegisterRoutes(m *web.Route) {
 
 		m.Group("", func() {
 			m.Get("/forks", repo.Forks)
+			m.Get("/funding", repo.Funding)
 		}, context.RepoRef(), reqRepoCodeReader)
 		m.Get("/commit/{sha:([a-f0-9]{7,40})}.{ext:patch|diff}",
 			repo.MustBeNotEmpty, reqRepoCodeReader, repo.RawDiff)

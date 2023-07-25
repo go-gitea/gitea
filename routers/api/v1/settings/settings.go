@@ -83,3 +83,18 @@ func GetGeneralAttachmentSettings(ctx *context.APIContext) {
 		MaxSize:      setting.Attachment.MaxSize,
 	})
 }
+
+// GetFundingSettingss returns funding settings
+func GetFundingSettings(ctx *context.APIContext) {
+	// swagger:operation GET /settings/funding settings getFundingSetting
+	// ---
+	// summary: Get instance's global funding settings
+	// produces:
+	// - application/json
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/FundingSettings"
+	ctx.JSON(http.StatusOK, api.FundingSettings{
+		Providers: setting.FundingProviders,
+	})
+}

@@ -287,6 +287,8 @@ func loadCommonSettingsFrom(cfg ConfigProvider) {
 	loadMirrorFrom(cfg)
 	loadMarkupFrom(cfg)
 	loadOtherFrom(cfg)
+	loadBuiltinFundingProviders()
+	loadCustomFundingProvidersFrom(cfg)
 }
 
 func loadRunModeFrom(rootCfg ConfigProvider) {

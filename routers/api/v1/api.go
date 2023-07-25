@@ -724,6 +724,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 			m.Get("/api", settings.GetGeneralAPISettings)
 			m.Get("/attachment", settings.GetGeneralAttachmentSettings)
 			m.Get("/repository", settings.GetGeneralRepoSettings)
+			m.Get("/funding", settings.GetFundingSettings)
 		})
 
 		// Notifications (requires 'notification' scope)
@@ -1180,6 +1181,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 				m.Get("/issue_config/validate", context.ReferencesGitRepo(), repo.ValidateIssueConfig)
 				m.Get("/languages", reqRepoReader(unit.TypeCode), repo.GetLanguages)
 				m.Get("/activities/feeds", repo.ListRepoActivityFeeds)
+				m.Get("/funding", context.ReferencesGitRepo(), repo.GetFunding)
 			}, repoAssignment())
 		})
 

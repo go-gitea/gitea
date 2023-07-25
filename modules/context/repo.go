@@ -56,6 +56,10 @@ var IssueConfigCandidates = []string{
 	".github/issue_template/config",
 }
 
+var FundingCandidates = []string{
+	".gitea/FUNDING",
+}
+
 // PullRequest contains information to make a pull request
 type PullRequest struct {
 	BaseRepo       *repo_model.Repository
@@ -1214,4 +1218,91 @@ func (ctx *Context) HasIssueTemplatesOrContactLinks() bool {
 
 	issueConfig, _ := ctx.IssueConfigFromDefaultBranch()
 	return len(issueConfig.ContactLinks) > 0
+}
+
+func getFundingEntry(provider *api.FundingProvider, text string) *api.RepoFundingEntry {
+	entry := new(api.RepoFundingEntry)
+	entry.Text = fmt.Sprintf(provider.Text, text)
+	entry.URL = fmt.Sprintf(provider.URL, text)
+	return entry
+}
+
+// GetFundinloads the given funding file.
+// It never returns a nil config.
+func (r *Repository) GetFunding(path string, commit *git.Commit) ([]*api.RepoFundingEntry, error) {
+	if r.GitRepo == nil {
+		return nil, nil
+	}
+
+	var err error
+
+	treeEntry, err := commit.GetTreeEntryByPath(path)
+	if err != nil {
+		return nil, err
+	}
+
+	reader, err := treeEntry.Blob().DataAsync()
+	if err != nil {
+		log.Debug("DataAsync: %v", err)
+		return nil, nil
+	}
+
+	defer reader.Close()
+
+	configContent, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	fundingMap := make(map[string]string)
+	if err := yaml.Unmarshal(configContent, &fundingMap); err != nil {
+		return nil, err
+	}
+
+	entryList := make([]*api.RepoFundingEntry, 0)
+	for providerName, fundingData := range fundingMap {
+		provider := setting.GetFundingProviderByName(providerName)
+		if provider == nil {
+			return nil, fmt.Errorf("Funding Provider %s not found", providerName)
+		}
+
+		entryList = append(entryList, getFundingEntry(provider, fundingData))
+	}
+
+	return entryList, nil
+}
+
+// FundingFromDefaultBranch returns the funding for this repo.
+// It never returns a nil config.
+func (ctx *Context) FundingFromDefaultBranch() ([]*api.RepoFundingEntry, error) {
+	if ctx.Repo.Repository.IsEmpty {
+		return nil, nil
+	}
+
+	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, configName := range FundingCandidates {
+		if _, err := commit.GetTreeEntryByPath(configName + ".yaml"); err == nil {
+			return ctx.Repo.GetFunding(configName+".yaml", commit)
+		}
+
+		if _, err := commit.GetTreeEntryByPath(configName + ".yml"); err == nil {
+			return ctx.Repo.GetFunding(configName+".yml", commit)
+		}
+	}
+
+	return nil, nil
+}
+
+// IsFunding returns if the given path is a funding file.
+func (r *Repository) IsFunding(path string) bool {
+	for _, name := range FundingCandidates {
+		if path == name+".yaml" || path == name+".yml" {
+			return true
+		}
+	}
+	return false
 }

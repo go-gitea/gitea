@@ -400,3 +400,10 @@ type swaggerRepoIssueConfigValidation struct {
 	// in:body
 	Body api.IssueConfigValidation `json:"body"`
 }
+
+// RepoFunding
+// swagger:response RepoFunding
+type swaggerRepoFunding struct {
+	// in:body
+	Body []api.RepoFundingEntry `json:"body"`
+}

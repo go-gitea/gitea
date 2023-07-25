@@ -4312,6 +4312,39 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/funding": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Returns the funding for a repo",
+        "operationId": "repoGetFunding",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RepoFunding"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/git/blobs/{sha}": {
       "get": {
         "produces": [
@@ -12609,6 +12642,23 @@
         }
       }
     },
+    "/settings/funding": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "settings"
+        ],
+        "summary": "Get instance's global funding settings",
+        "operationId": "getFundingSetting",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/FundingSettings"
+          }
+        }
+      }
+    },
     "/settings/repository": {
       "get": {
         "produces": [
@@ -20066,6 +20116,20 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "RepoFundingEntry": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "x-go-name": "Text"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "RepoTopicOptions": {
       "description": "RepoTopicOptions a collection of repo topic names",
       "type": "object",
@@ -21831,6 +21895,15 @@
       "description": "RepoCollaboratorPermission",
       "schema": {
         "$ref": "#/definitions/RepoCollaboratorPermission"
+      }
+    },
+    "RepoFunding": {
+      "description": "RepoFunding",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/RepoFundingEntry"
+        }
       }
     },
     "RepoIssueConfig": {

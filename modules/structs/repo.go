@@ -367,3 +367,8 @@ type RepoTransfer struct {
 	Recipient *User   `json:"recipient"`
 	Teams     []*Team `json:"teams"`
 }
+
+type RepoFundingEntry struct {
+	Text string `json:"text"`
+	URL  string `json:"url"`
+}
