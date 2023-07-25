@@ -137,8 +137,13 @@ export default {
         // find all selected commits and generate a link
         if (this.commits[0].selected) {
           // first commit is selected - generate a short url with only target sha
-          const lastCommit = this.commits.findLast((x) => x.selected);
-          window.location = `${this.issueLink}/files/${lastCommit.id}${this.queryParams}`;
+          const lastCommitIdx = this.commits.findLastIndex((x) => x.selected);
+          if (lastCommitIdx === this.commits.length - 1) {
+            // user selected all commits - just show the normal diff page
+            window.location = `${this.issueLink}/files${this.queryParams}`;
+          } else {
+            window.location = `${this.issueLink}/files/${this.commits[lastCommitIdx].id}${this.queryParams}`;
+          }
         } else {
           const start = this.commits[this.commits.findIndex((x) => x.selected) - 1].id;
           const end = this.commits.findLast((x) => x.selected).id;
