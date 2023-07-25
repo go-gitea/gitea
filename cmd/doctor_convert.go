@@ -10,18 +10,18 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
-// CmdConvert represents the available convert sub-command.
-var CmdConvert = cli.Command{
+// cmdDoctorConvert represents the available convert sub-command.
+var cmdDoctorConvert = &cli.Command{
 	Name:        "convert",
 	Usage:       "Convert the database",
 	Description: "A command to convert an existing MySQL database from utf8 to utf8mb4 or MSSQL database from varchar to nvarchar",
-	Action:      runConvert,
+	Action:      runDoctorConvert,
 }
 
-func runConvert(ctx *cli.Context) error {
+func runDoctorConvert(ctx *cli.Context) error {
 	stdCtx, cancel := installSignals()
 	defer cancel()
 

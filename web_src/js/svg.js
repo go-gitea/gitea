@@ -187,9 +187,10 @@ export const SvgIcon = {
     name: {type: String, required: true},
     size: {type: Number, default: 16},
     className: {type: String, default: ''},
+    symbolId: {type: String}
   },
   render() {
-    const {svgOuter, svgInnerHtml} = svgParseOuterInner(this.name);
+    let {svgOuter, svgInnerHtml} = svgParseOuterInner(this.name);
     // https://vuejs.org/guide/extras/render-function.html#creating-vnodes
     // the `^` is used for attr, set SVG attributes like 'width', `aria-hidden`, `viewBox`, etc
     const attrs = {};
@@ -209,7 +210,10 @@ export const SvgIcon = {
     if (this.className) {
       classes.push(...this.className.split(/\s+/).filter(Boolean));
     }
-
+    if (this.symbolId) {
+      classes.push('gt-hidden', 'svg-symbol-container');
+      svgInnerHtml = `<symbol id="${this.symbolId}" viewBox="${attrs['^viewBox']}">${svgInnerHtml}</symbol>`;
+    }
     // create VNode
     return h('svg', {
       ...attrs,
