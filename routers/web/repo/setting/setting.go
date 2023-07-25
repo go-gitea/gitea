@@ -311,8 +311,7 @@ func SettingsPost(ctx *context.Context) {
 
 		interval, err := time.ParseDuration(form.PushMirrorInterval)
 		if err != nil || (interval != 0 && interval < setting.Mirror.MinInterval) {
-			ctx.Data["Err_PushMirrorInterval"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &forms.RepoSettingForm{})
 			return
 		}
 
