@@ -1665,10 +1665,10 @@
 
 -
   id: 58
-  owner_id: 39
-  owner_name: user39
-  lower_name: user_fork_repo1
-  name: user_fork_repo1
+  owner_id: 40
+  owner_name: user40
+  lower_name: user_fork_repo
+  name: user_fork_repo
   num_watches: 0
   num_stars: 0
   num_forks: 0
