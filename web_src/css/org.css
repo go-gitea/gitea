@@ -118,13 +118,11 @@
   margin-bottom: 10px;
 }
 
-.organization.profile #org-info .meta .item {
-  display: inline-block;
-  margin-right: 10px;
-}
-
-.organization.profile #org-info .meta .item .icon {
-  margin-right: 5px;
+.organization.profile #org-info .meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .organization.profile .ui.top.header .ui.right {
