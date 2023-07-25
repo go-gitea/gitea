@@ -1057,19 +1057,15 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 }
 
 func ViewPullFilesForSingleCommit(ctx *context.Context) {
-	commitToShow := ctx.Params("sha")
-	viewPullFiles(ctx, "", commitToShow, true, true)
+	viewPullFiles(ctx, "", ctx.Params("sha"), true, true)
 }
 
-func ViewPullFilesForRangeOrStartingFromCommit(ctx *context.Context) {
-	commitToShow := ctx.Params("sha")
-	if strings.Contains(commitToShow, "..") {
-		// it's a diff range that should be shown
-		parts := strings.Split(commitToShow, "..")
-		viewPullFiles(ctx, parts[0], parts[1], true, false)
-	} else {
-		viewPullFiles(ctx, "", commitToShow, true, false)
-	}
+func ViewPullFilesForRange(ctx *context.Context) {
+	viewPullFiles(ctx, ctx.Params("shaFrom"), ctx.Params("shaTo"), true, false)
+}
+
+func ViewPullFilesStartingFromCommit(ctx *context.Context) {
+	viewPullFiles(ctx, "", ctx.Params("sha"), true, false)
 }
 
 func ViewPullFilesForAllCommitsOfPr(ctx *context.Context) {
