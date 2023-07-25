@@ -694,18 +694,10 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 	return compareInfo
 }
 
-type PullCommitInfo struct {
-	Summary               string `json:"summary"`
-	CommitterOrAuthorName string `json:"committer_or_author_name"`
-	ID                    string `json:"id"`
-	ShortSha              string `json:"short_sha"`
-	Time                  string `json:"time"`
-}
-
 type pullCommitList struct {
-	Commits             []PullCommitInfo  `json:"commits"`
-	LastReviewCommitSha string            `json:"last_review_commit_sha"`
-	Locale              map[string]string `json:"locale"`
+	Commits             []pull_service.PullCommitInfo `json:"commits"`
+	LastReviewCommitSha string                        `json:"last_review_commit_sha"`
+	Locale              map[string]string             `json:"locale"`
 }
 
 // GetPullCommits get all commits for given pull request
@@ -714,63 +706,12 @@ func GetPullCommits(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	pull := issue.PullRequest
+	resp := &pullCommitList{}
 
-	baseGitRepo := ctx.Repo.GitRepo
-
-	if err := pull.LoadBaseRepo(ctx); err != nil {
-		ctx.JSON(http.StatusInternalServerError, err)
-		return
-	}
-	baseBranch := pull.BaseBranch
-	if pull.HasMerged {
-		baseBranch = pull.MergeBase
-	}
-	prInfo, err := baseGitRepo.GetCompareInfo(pull.BaseRepo.RepoPath(), baseBranch, pull.GetGitRefName(), true, false)
+	commits, lastReviewCommitSha, err := pull_service.GetPullCommits(ctx, issue)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
-	}
-
-	resp := &pullCommitList{}
-	commits := make([]PullCommitInfo, 0, len(prInfo.Commits))
-
-	for _, commit := range prInfo.Commits {
-		var committerOrAuthorName string
-		var time string
-		if commit.Committer != nil {
-			committerOrAuthorName = commit.Committer.Name
-			time = commit.Committer.When.String()
-		} else {
-			committerOrAuthorName = commit.Author.Name
-			time = commit.Author.When.String()
-		}
-
-		commits = append(commits, PullCommitInfo{
-			Summary:               commit.Summary(),
-			CommitterOrAuthorName: committerOrAuthorName,
-			ID:                    commit.ID.String(),
-			ShortSha:              base.ShortSha(commit.ID.String()),
-			Time:                  time,
-		})
-	}
-
-	if ctx.IsSigned {
-		// get last review of current user and store information in context (if available)
-		lastreview, err := issues_model.FindLatestReviews(ctx, issues_model.FindReviewOptions{
-			IssueID:    issue.ID,
-			ReviewerID: ctx.Doer.ID,
-			Type:       issues_model.ReviewTypeUnknown,
-		})
-
-		if err != nil && !issues_model.IsErrReviewNotExist(err) {
-			ctx.ServerError("GetReviewByIssueIDAndUserID", err)
-			return
-		}
-
-		if len(lastreview) > 0 {
-			resp.LastReviewCommitSha = lastreview[0].CommitID
-		}
 	}
 
 	// Get the needed locale
@@ -784,6 +725,7 @@ func GetPullCommits(ctx *context.Context) {
 	}
 
 	resp.Commits = commits
+	resp.LastReviewCommitSha = lastReviewCommitSha
 
 	ctx.JSON(http.StatusOK, resp)
 }
