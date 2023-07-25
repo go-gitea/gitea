@@ -381,8 +381,8 @@ func IterateLFSMetaObjectsForRepo(ctx context.Context, repoID int64, f func(cont
 	batchSize := setting.Database.IterateBufferSize
 	engine := db.GetEngine(ctx)
 	type CountLFSMetaObject struct {
-		Count int64
-		LFSMetaObject
+		Count         int64
+		LFSMetaObject `xorm:"extends"`
 	}
 
 	id := int64(0)
