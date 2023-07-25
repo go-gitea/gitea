@@ -303,7 +303,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 		return
 	}
 	for _, branchName := range matchedBranches {
-		if err = pull_service.CheckPRsForBaseBranch(ctx.Repo.Repository, branchName); err != nil {
+		if err = pull_service.CheckPRsForBaseBranch(ctx, ctx.Repo.Repository, branchName); err != nil {
 			ctx.ServerError("CheckPRsForBaseBranch", err)
 			return
 		}

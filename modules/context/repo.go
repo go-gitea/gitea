@@ -66,13 +66,13 @@ type Repository struct {
 }
 
 // CanWriteToBranch checks if the branch is writable by the user
-func (r *Repository) CanWriteToBranch(user *user_model.User, branch string) bool {
-	return issues_model.CanMaintainerWriteToBranch(r.Permission, branch, user)
+func (r *Repository) CanWriteToBranch(ctx context.Context, user *user_model.User, branch string) bool {
+	return issues_model.CanMaintainerWriteToBranch(ctx, r.Permission, branch, user)
 }
 
 // CanEnableEditor returns true if repository is editable and user has proper access level.
-func (r *Repository) CanEnableEditor(user *user_model.User) bool {
-	return r.IsViewBranch && r.CanWriteToBranch(user, r.BranchName) && r.Repository.CanEnableEditor() && !r.Repository.IsArchived
+func (r *Repository) CanEnableEditor(ctx context.Context, user *user_model.User) bool {
+	return r.IsViewBranch && r.CanWriteToBranch(ctx, user, r.BranchName) && r.Repository.CanEnableEditor() && !r.Repository.IsArchived
 }
 
 // CanCreateBranch returns true if repository is editable and user has proper access level.
@@ -118,7 +118,7 @@ func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.Use
 
 	sign, keyID, _, err := asymkey_service.SignCRUDAction(ctx, r.Repository.RepoPath(), doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
 
-	canCommit := r.CanEnableEditor(doer) && userCanPush
+	canCommit := r.CanEnableEditor(ctx, doer) && userCanPush
 	if requireSigned {
 		canCommit = canCommit && sign
 	}
@@ -134,7 +134,7 @@ func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.Use
 
 	return CanCommitToBranchResults{
 		CanCommitToBranch: canCommit,
-		EditorEnabled:     r.CanEnableEditor(doer),
+		EditorEnabled:     r.CanEnableEditor(ctx, doer),
 		UserCanPush:       userCanPush,
 		RequireSigned:     requireSigned,
 		WillSign:          sign,
