@@ -2,7 +2,7 @@
   <div class="ui dropdown custom">
     <button
       class="ui basic button"
-      @click.stop="toggleMenu()" @keyup.enter="toggleMenu()"
+      @click.stop="toggleMenu()"
       :data-tooltip-content="locale.filter_changes_by_commit"
     >
       <svg-icon name="octicon-git-commit"/>
