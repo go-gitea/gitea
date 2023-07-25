@@ -152,7 +152,12 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		repoQuery := elastic.NewTermsQuery("repo_id", repoStrs...)
 		query = query.Must(repoQuery)
 	}
-	skip, limit := indexer_internal.ParsePaginator(options.Paginator)
+
+	// See https://stackoverflow.com/questions/35206409/elasticsearch-2-1-result-window-is-too-large-index-max-result-window/35221900
+	// TODO: make it configurable since it's configurable in elasticsearch
+	const maxPageSize = 10000
+
+	skip, limit := indexer_internal.ParsePaginator(options.Paginator, maxPageSize)
 	searchResult, err := b.inner.Client.Search().
 		Index(b.inner.VersionedIndexName()).
 		Query(query).
