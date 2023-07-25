@@ -150,10 +150,14 @@ func List(ctx *context.Context) {
 			Page:     page,
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 		},
-		RepoID:           ctx.Repo.Repository.ID,
-		WorkflowFileName: workflow,
-		TriggerUserID:    actorID,
-		Status:           actions_model.Status(status),
+		RepoID:        ctx.Repo.Repository.ID,
+		WorkflowID:    workflow,
+		TriggerUserID: actorID,
+	}
+
+	// if status is not StatusUnknown, it means user has selected a status filter
+	if actions_model.Status(status) != actions_model.StatusUnknown {
+		opts.Status = []actions_model.Status{actions_model.Status(status)}
 	}
 
 	runs, total, err := actions_model.FindRuns(ctx, opts)
