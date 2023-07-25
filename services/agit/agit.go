@@ -197,7 +197,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			return nil, fmt.Errorf("Failed to update pull ref. Error: %w", err)
 		}
 
-		pull_service.AddToTaskQueue(pr)
+		pull_service.AddToTaskQueue(ctx, pr)
 		pusher, err := user_model.GetUserByID(ctx, opts.UserID)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to get user. Error: %w", err)
