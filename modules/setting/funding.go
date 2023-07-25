@@ -10,9 +10,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-var (
-	FundingProviders []*api.FundingProvider
-)
+var FundingProviders []*api.FundingProvider
 
 func loadBuiltinFundingProviders() {
 	FundingProviders = append(FundingProviders, &api.FundingProvider{

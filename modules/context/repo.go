@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"html"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -27,10 +28,12 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
+	"gopkg.in/yaml.v3"
 )
 
 var FundingCandidates = []string{
@@ -1114,23 +1117,23 @@ func (r *Repository) GetFunding(path string, commit *git.Commit) ([]*api.RepoFun
 
 // FundingFromDefaultBranch returns the funding for this repo.
 // It never returns a nil config.
-func (ctx *Context) FundingFromDefaultBranch() ([]*api.RepoFundingEntry, error) {
-	if ctx.Repo.Repository.IsEmpty {
+func (r *Repository) FundingFromDefaultBranch() ([]*api.RepoFundingEntry, error) {
+	if r.Repository.IsEmpty {
 		return nil, nil
 	}
 
-	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+	commit, err := r.GitRepo.GetBranchCommit(r.Repository.DefaultBranch)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, configName := range FundingCandidates {
 		if _, err := commit.GetTreeEntryByPath(configName + ".yaml"); err == nil {
-			return ctx.Repo.GetFunding(configName+".yaml", commit)
+			return r.GetFunding(configName+".yaml", commit)
 		}
 
 		if _, err := commit.GetTreeEntryByPath(configName + ".yml"); err == nil {
-			return ctx.Repo.GetFunding(configName+".yml", commit)
+			return r.GetFunding(configName+".yml", commit)
 		}
 	}
 

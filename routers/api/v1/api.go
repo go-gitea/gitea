@@ -770,7 +770,7 @@ func Routes() *web.Route {
 				m.Get("/api", settings.GetGeneralAPISettings)
 				m.Get("/attachment", settings.GetGeneralAttachmentSettings)
 				m.Get("/repository", settings.GetGeneralRepoSettings)
-        m.Get("/funding", settings.GetFundingSettings)
+				m.Get("/funding", settings.GetFundingSettings)
 			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryMisc))
 

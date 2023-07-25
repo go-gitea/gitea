@@ -367,6 +367,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		_, fundingErr := ctx.Repo.GetFunding(ctx.Repo.TreePath, ctx.Repo.Commit)
 		if fundingErr != nil {
 			ctx.Data["FileError"] = strings.TrimSpace(fundingErr.Error())
+		}
 	} else if util.SliceContains([]string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}, ctx.Repo.TreePath) {
 		if data, err := blob.GetBlobContent(setting.UI.MaxDisplayFileSize); err == nil {
 			_, warnings := issue_model.GetCodeOwnersFromContent(ctx, data)
@@ -1093,9 +1094,9 @@ func Forks(ctx *context.Context) {
 
 // Funding render repository's funding page
 func Funding(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.forks")
+	ctx.Data["Title"] = "Funding"
 
-	funding, err := ctx.FundingFromDefaultBranch()
+	funding, err := ctx.Repo.FundingFromDefaultBranch()
 	if err != nil {
 		ctx.ServerError("FundingFromDefaultBranch", err)
 		return

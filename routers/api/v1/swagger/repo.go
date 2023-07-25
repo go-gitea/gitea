@@ -413,11 +413,11 @@ type swaggerRepoIssueConfigValidation struct {
 type swaggerRepoNewIssuePinsAllowed struct {
 	// in:body
 	Body api.NewIssuePinsAllowed `json:"body"`
- 
- // RepoFunding
+}
+
+// RepoFunding
 // swagger:response RepoFunding
 type swaggerRepoFunding struct {
 	// in:body
 	Body []api.RepoFundingEntry `json:"body"`
-}
 }
