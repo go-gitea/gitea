@@ -66,7 +66,11 @@ Runner和Job容器（由Runner启动以执行Job）将连接到此地址。
 
 `token` 用于身份验证和标识，例如 `P2U1U0oB4XaRCi8azcngmPCLbRpUGapalhmddh23`。
 它只能使用一次，并且不能用于注册多个Runner。
-您可以从 `<your_gitea.com>/admin/runners` 获取令牌。
+您可以从以下位置获取不同级别的`token`,从而创建出相应级别的`runner`
+
+- 实例级别：管理员设置页面，例如 `<your_gitea.com>/admin/actions/runners`。
+- 组织级别：组织设置页面，例如 `<your_gitea.com>/<org>/settings/actions/runners`。
+- 存储库级别：存储库设置页面，例如 `<your_gitea.com>/<owner>/<repo>/settings/actions/runners`。
 
 ![register runner](/images/usage/actions/register-runner.png)
 

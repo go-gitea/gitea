@@ -41,6 +41,7 @@ require (
 	github.com/go-ap/jsonld v0.0.0-20221030091449-f2a191312c73
 	github.com/go-chi/chi/v5 v5.0.8
 	github.com/go-chi/cors v1.2.1
+	github.com/go-co-op/gocron v1.30.1
 	github.com/go-enry/go-enry/v2 v2.8.4
 	github.com/go-fed/httpsig v1.1.1-0.20201223112313-55836744818e
 	github.com/go-git/go-billy/v5 v5.4.1
@@ -52,7 +53,6 @@ require (
 	github.com/go-webauthn/webauthn v0.8.6
 	github.com/gobwas/glob v0.2.3
 	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f
-	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
 	github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
 	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/google/go-github/v53 v53.2.0
@@ -253,6 +253,7 @@ require (
 	github.com/rhysd/actionlint v1.6.25 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/robfig/cron v1.2.0 // indirect
+	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/rs/xid v1.5.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
