@@ -32,16 +32,16 @@
       <div class="action-view-left">
         <div class="job-group-section">
           <div class="job-brief-list">
-            <div class="job-brief-item" :class="parseInt(jobIndex) === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id" @mouseenter="onHoverRerunIndex = job.id" @mouseleave="onHoverRerunIndex = -1">
-              <a class="job-brief-link" :href="run.link+'/jobs/'+index">
+            <a class="job-brief-item" :href="run.link+'/jobs/'+index" :class="parseInt(jobIndex) === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id" @mouseenter="onHoverRerunIndex = job.id" @mouseleave="onHoverRerunIndex = -1">
+              <div class="job-brief-link">
                 <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
                 <span class="job-brief-name gt-mx-3 gt-ellipsis">{{ job.name }}</span>
-              </a>
+              </div>
               <span class="job-brief-info">
                 <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun gt-mx-3" @click="rerunJob(index)" v-if="job.canRerun && onHoverRerunIndex === job.id"/>
                 <span class="step-summary-duration">{{ job.duration }}</span>
               </span>
-            </div>
+            </a>
           </div>
         </div>
         <div class="job-artifacts" v-if="artifacts.length > 0">
@@ -585,6 +585,7 @@ export function initRepositoryActionView() {
   flex-wrap: nowrap;
   justify-content: space-between;
   align-items: center;
+  color: var(--color-text);
 }
 
 .job-brief-item:hover {
@@ -623,7 +624,6 @@ export function initRepositoryActionView() {
 .job-brief-item .job-brief-link .job-brief-name {
   display: block;
   width: 70%;
-  color: var(--color-text);
 }
 
 .job-brief-item .job-brief-link:hover {
