@@ -220,7 +220,8 @@ func (ar artifactRoutes) uploadArtifact(ctx *ArtifactContext) {
 	}
 
 	// create or get artifact with name and path
-	artifact, err := actions.CreateArtifact(ctx, task, artifactName, artifactPath)
+	expiredDays := setting.Actions.ArtifactRetentionDays
+	artifact, err := actions.CreateArtifact(ctx, task, artifactName, artifactPath, expiredDays)
 	if err != nil {
 		log.Error("Error create or get artifact: %v", err)
 		ctx.Error(http.StatusInternalServerError, "Error create or get artifact")
