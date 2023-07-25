@@ -109,9 +109,9 @@ docker run -v $(pwd)/config.yaml:/config.yaml -e CONFIG_FILE=/config.yaml ...
 
 Runner级别决定了从哪里获取注册令牌。
 
-- 实例级别：管理员设置页面，例如 `<your_gitea.com>/admin/runners`。
-- 组织级别：组织设置页面，例如 `<your_gitea.com>/<org>/settings/runners`。
-- 存储库级别：存储库设置页面，例如 `<your_gitea.com>/<owner>/<repo>/settings/runners`。
+- 实例级别：管理员设置页面，例如 `<your_gitea.com>/admin/actions/runners`。
+- 组织级别：组织设置页面，例如 `<your_gitea.com>/<org>/settings/actions/runners`。
+- 存储库级别：存储库设置页面，例如 `<your_gitea.com>/<owner>/<repo>/settings/actions/runners`。
 
 如果您无法看到设置页面，请确保您具有正确的权限并且已启用 Actions。
 

@@ -518,7 +518,9 @@ var migrations = []Migration{
 	// v267 -> v268
 	NewMigration("Add action_tasks_version table", v1_21.CreateActionTasksVersionTable),
 	// v268 -> v269
-	NewMigration("Drop deleted branch table", v1_21.DropDeletedBranchTable),
+	NewMigration("Update Action Ref", v1_21.UpdateActionsRefIndex),
+    // v268 -> v269
+    NewMigration("Drop deleted branch table", v1_21.DropDeletedBranchTable),
 }
 
 // GetCurrentDBVersion returns the current db version
