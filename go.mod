@@ -119,8 +119,8 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 	mvdan.cc/xurls/v2 v2.5.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
-	xorm.io/builder v0.3.12
-	xorm.io/xorm v1.3.3-0.20230725123841-e8facc9984e5
+	xorm.io/builder v0.3.13
+	xorm.io/xorm v1.3.3-0.20230725140343-2e2bcf245871
 )
 
 require (
