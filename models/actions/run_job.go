@@ -111,6 +111,13 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		return affected, nil
 	}
 
+	if affected != 0 && util.SliceContains(cols, "status") && job.Status.IsWaiting() {
+		// if the status of job changes to waiting again, increase tasks version.
+		if err := IncreaseTaskVersion(ctx, job.OwnerID, job.RepoID); err != nil {
+			return affected, err
+		}
+	}
+
 	if job.RunID == 0 {
 		var err error
 		if job, err = GetRunJobByID(ctx, job.ID); err != nil {
