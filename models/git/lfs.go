@@ -6,7 +6,6 @@ package git
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
@@ -370,8 +369,8 @@ func IterateRepositoryIDsWithLFSMetaObjects(ctx context.Context, f func(ctx cont
 
 // IterateLFSMetaObjectsForRepoOptions provides options for IterateLFSMetaObjectsForRepo
 type IterateLFSMetaObjectsForRepoOptions struct {
-	OlderThan                 time.Time
-	UpdatedLessRecentlyThan   time.Time
+	OlderThan                 timeutil.TimeStamp
+	UpdatedLessRecentlyThan   timeutil.TimeStamp
 	OrderByUpdated            bool
 	LoopFunctionAlwaysUpdates bool
 }
