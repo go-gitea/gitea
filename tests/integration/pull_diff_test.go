@@ -43,7 +43,7 @@ func doTestPRDiff(t *testing.T, prDiffURL string, reviewBtnDisabled bool, expect
 	doc := NewHTMLParser(t, resp.Body)
 
 	// Assert all files are visible.
-	fileContents := doc.doc.Find("div.file-content")
+	fileContents := doc.doc.Find(".file-content")
 	numberOfFiles := fileContents.Length()
 
 	assert.Equal(t, len(expectedFilenames), numberOfFiles)
