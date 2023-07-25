@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/urfave/cli/v2"
 )
@@ -23,9 +24,13 @@ func cmdHelp() *cli.Command {
 		Usage:     "Shows a list of commands or help for one command",
 		ArgsUsage: "[command]",
 		Action: func(c *cli.Context) (err error) {
-			args := c.Args()
-			if args.Present() {
-				err = cli.ShowCommandHelp(c, args.First())
+			lineage := c.Lineage() // The order is from child to parent: help, doctor, Gitea, {Command:nil}
+			targetCmdIdx := 0
+			if c.Command.Name == "help" {
+				targetCmdIdx = 1
+			}
+			if lineage[targetCmdIdx+1].Command != nil {
+				err = cli.ShowCommandHelp(lineage[targetCmdIdx+1], lineage[targetCmdIdx].Command.Name)
 			} else {
 				err = cli.ShowAppHelp(c)
 			}
@@ -94,9 +99,8 @@ func prepareSubcommandWithConfig(command *cli.Command, globalFlags []cli.Flag) {
 func prepareWorkPathAndCustomConf(action cli.ActionFunc) func(ctx *cli.Context) error {
 	return func(ctx *cli.Context) error {
 		var args setting.ArgWorkPathAndCustomConf
-		ctxLineage := ctx.Lineage()
-		for i := len(ctxLineage) - 1; i >= 0; i-- {
-			curCtx := ctxLineage[i]
+		// from children to parent, check the global flags
+		for _, curCtx := range ctx.Lineage() {
 			if curCtx.IsSet("work-path") && args.WorkPath == "" {
 				args.WorkPath = curCtx.String("work-path")
 			}
@@ -159,7 +163,6 @@ func NewMainApp() *cli.App {
 		CmdAdmin,
 		CmdMigrate,
 		CmdKeys,
-		CmdConvert,
 		CmdDoctor,
 		CmdManager,
 		CmdEmbedded,
@@ -169,6 +172,10 @@ func NewMainApp() *cli.App {
 		CmdActions,
 		cmdHelp(), // the "help" sub-command was used to show the more information for "work path" and "custom config"
 	}
+
+	cmdConvert := util.ToPointer(*cmdDoctorConvert)
+	cmdConvert.Hidden = true // still support the legacy "./gitea doctor" by the hidden sub-command, remove it in next release
+	subCmdWithConfig = append(subCmdWithConfig, cmdConvert)
 
 	// these sub-commands do not need the config file, and they do not depend on any path or environment variable.
 	subCmdStandalone := []*cli.Command{
