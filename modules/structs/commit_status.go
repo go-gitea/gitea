@@ -4,7 +4,7 @@
 package structs
 
 // CommitStatusState holds the state of a CommitStatus
-// It can be "pending", "success", "error", "failure", and "warning"
+// It can be "pending", "success", "error", "failure"
 type CommitStatusState string
 
 const (
@@ -19,6 +19,7 @@ const (
 )
 
 // NoBetterThan returns true if this State is no better than the given State
+// the function only handles the 4 states above
 func (css CommitStatusState) NoBetterThan(css2 CommitStatusState) bool {
 	commitStatusPriorities := map[CommitStatusState]int{
 		CommitStatusError:   0,
@@ -26,6 +27,15 @@ func (css CommitStatusState) NoBetterThan(css2 CommitStatusState) bool {
 		CommitStatusPending: 2,
 		CommitStatusSuccess: 3,
 	}
+	// NoBetterThan only handles the 4 states above
+	if _, exist := commitStatusPriorities[css]; !exist {
+		return false
+	}
+
+	if _, exist := commitStatusPriorities[css2]; !exist {
+		return false
+	}
+
 	return commitStatusPriorities[css] <= commitStatusPriorities[css2]
 }
 
