@@ -109,8 +109,13 @@
   background-color: var(--color-secondary-alpha-30);
 }
 
-#git-graph-container #rev-list .tags a.button {
+#git-graph-container #rev-list .commit-refs .button {
   padding: 2px 4px;
+  margin-right: 0.25em;
+  display: inline-block;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 #git-graph-container #rev-list .sha.label {
