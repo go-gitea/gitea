@@ -18,15 +18,16 @@ const (
 	CommitStatusFailure CommitStatusState = "failure"
 )
 
+var commitStatusPriorities = map[CommitStatusState]int{
+	CommitStatusError:   0,
+	CommitStatusFailure: 1,
+	CommitStatusPending: 2,
+	CommitStatusSuccess: 3,
+}
+
 // NoBetterThan returns true if this State is no better than the given State
 // the function only handles the 4 states above
 func (css CommitStatusState) NoBetterThan(css2 CommitStatusState) bool {
-	commitStatusPriorities := map[CommitStatusState]int{
-		CommitStatusError:   0,
-		CommitStatusFailure: 1,
-		CommitStatusPending: 2,
-		CommitStatusSuccess: 3,
-	}
 	// NoBetterThan only handles the 4 states above
 	if _, exist := commitStatusPriorities[css]; !exist {
 		return false
