@@ -48,9 +48,7 @@ func DeleteAccountLink(ctx *context.Context) {
 		}
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": setting.AppSubURL + "/user/settings/security",
-	})
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/security")
 }
 
 func loadSecurityData(ctx *context.Context) {
