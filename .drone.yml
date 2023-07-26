@@ -898,22 +898,7 @@ steps:
     image: golang:1.20
     commands:
       - cd docs
-      - make trans-copy clean build
-
-  - name: publish-docs
-    image: techknowlogick/drone-netlify:latest
-    pull: always
-    settings:
-      path: docs/public/
-      site_id: d2260bae-7861-4c02-8646-8f6440b12672
-    environment:
-      NETLIFY_TOKEN:
-        from_secret: netlify_token
-    when:
-      branch:
-        - main
-      event:
-        - push
+      - bash scripts/trans-copy.sh
 
 ---
 kind: pipeline
