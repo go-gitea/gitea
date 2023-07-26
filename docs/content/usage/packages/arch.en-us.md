@@ -43,11 +43,11 @@ Get into folder with package and signature, push package with [curl](https://cur
 ```sh
 curl -X PUT \
   'https://{domain}/api/packages/{owner}/arch/push' \
-  -H "Authorization: {your-authorization-token}" \
-  -H "filename: package-1-1-x86_64.pkg.tar.zst" \
-  -H "distro: archlinux" \
-  -H "sign: $(xxd -p package-1-1-x86_64.pkg.tar.zst.sig | tr -d '\n')"
-  -H "Content-Type: application/octet-stream" \
+  --header "Authorization: {your-authorization-token}" \
+  --header "filename: package-1-1-x86_64.pkg.tar.zst" \
+  --header "distro: archlinux" \
+  --header "sign: $(xxd -p package-1-1-x86_64.pkg.tar.zst.sig | tr -d '\n')"
+  --header "Content-Type: application/octet-stream" \
   --data-binary '@/path/to/package/file/package-1-1-x86_64.pkg.tar.zst'
 ```
 
@@ -58,9 +58,9 @@ Send delete message with [curl](https://curl.se/).
 ```sh
 curl -X DELETE \
   http://localhost:3000/api/packages/{user}/arch/remove \
-  -H "Authorization: {your-authorization-token}" \
-  -H "target: package" \
-  -H "version: {version-release}"
+  --header "Authorization: {your-authorization-token}" \
+  --header "target: package" \
+  --header "version: {version-release}"
 ```
 
 ## Clients
