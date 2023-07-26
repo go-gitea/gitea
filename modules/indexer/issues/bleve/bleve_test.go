@@ -14,5 +14,5 @@ func TestBleveIndexer(t *testing.T) {
 	indexer := NewIndexer(dir)
 	defer indexer.Close()
 
-	tests.TestIndexer(t, indexer, 0)
+	tests.TestIndexer(t, indexer)
 }

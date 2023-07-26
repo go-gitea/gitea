@@ -42,8 +42,5 @@ func TestElasticsearchIndexer(t *testing.T) {
 	indexer := NewIndexer(url, fmt.Sprintf("test_elasticsearch_indexer_%d", time.Now().Unix()))
 	defer indexer.Close()
 
-	// When writing to elasticsearch, it can take a while for the data to be available for search
-	delayAfterWrite := time.Second
-
-	tests.TestIndexer(t, indexer, delayAfterWrite)
+	tests.TestIndexer(t, indexer)
 }

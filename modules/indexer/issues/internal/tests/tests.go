@@ -22,7 +22,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestIndexer(t *testing.T, indexer internal.Indexer, delayAfterWrite time.Duration) {
+func TestIndexer(t *testing.T, indexer internal.Indexer) {
 	_, err := indexer.Init(context.Background())
 	require.NoError(t, err)
 
@@ -37,7 +37,7 @@ func TestIndexer(t *testing.T, indexer internal.Indexer, delayAfterWrite time.Du
 			data[v.ID] = v
 		}
 		require.NoError(t, indexer.Index(context.Background(), d...))
-		time.Sleep(delayAfterWrite)
+		require.NoError(t, waitData(indexer, int64(len(data))))
 	}
 
 	defer func() {
@@ -48,16 +48,16 @@ func TestIndexer(t *testing.T, indexer internal.Indexer, delayAfterWrite time.Du
 		t.Run(c.Name, func(t *testing.T) {
 			if len(c.ExtraData) > 0 {
 				require.NoError(t, indexer.Index(context.Background(), c.ExtraData...))
-				time.Sleep(delayAfterWrite)
 				for _, v := range c.ExtraData {
 					data[v.ID] = v
 				}
+				require.NoError(t, waitData(indexer, int64(len(data))))
 				defer func() {
 					for _, v := range c.ExtraData {
 						require.NoError(t, indexer.Delete(context.Background(), v.ID))
 						delete(data, v.ID)
 					}
-					time.Sleep(delayAfterWrite)
+					require.NoError(t, waitData(indexer, int64(len(data))))
 				}()
 			}
 
@@ -781,4 +781,26 @@ func countIndexerData(data map[int64]*internal.IndexerData, f func(v *internal.I
 		}
 	}
 	return count
+}
+
+// waitData waits for the indexer to index all data.
+// Some engines like Elasticsearch index data asynchronously, so we need to wait for a while.
+func waitData(indexer internal.Indexer, total int64) error {
+	var actual int64
+	for i := 0; i < 100; i++ {
+		result, err := indexer.Search(context.Background(), &internal.SearchOptions{
+			Paginator: &db.ListOptions{
+				PageSize: 0,
+			},
+		})
+		if err != nil {
+			return err
+		}
+		actual = result.Total
+		if actual == total {
+			return nil
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return fmt.Errorf("waitData: expected %d, actual %d", total, actual)
 }
