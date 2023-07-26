@@ -11,9 +11,9 @@ import (
 
 // Store represents a session store
 type Store interface {
-	Get(interface{}) interface{}
-	Set(interface{}, interface{}) error
-	Delete(interface{}) error
+	Get(any) any
+	Set(any, any) error
+	Delete(any) error
 }
 
 // RegenerateSession regenerates the underlying session and returns the new store

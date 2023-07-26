@@ -123,6 +123,13 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 		}
 
 		_, _ = issue_service.CreateComment(ctx, ops)
+
+		if !pr.IsWorkInProgress() {
+			if err := issues_model.PullRequestCodeOwnersReview(ctx, pull, pr); err != nil {
+				return err
+			}
+		}
+
 	}
 
 	return nil
@@ -163,7 +170,7 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 		return err
 	}
 	if branchesEqual {
-		return models.ErrBranchesEqual{
+		return git_model.ErrBranchesEqual{
 			HeadBranchName: pr.HeadBranch,
 			BaseBranchName: targetBranch,
 		}
@@ -258,7 +265,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 		// TODO: graceful: AddTestPullRequestTask needs to become a queue!
 
 		// GetUnmergedPullRequestsByHeadInfo() only return open and unmerged PR.
-		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(repoID, branch)
+		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, repoID, branch)
 		if err != nil {
 			log.Error("Find pull requests [head_repo_id: %d, head_branch: %s]: %v", repoID, branch, err)
 			return
@@ -275,7 +282,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 				continue
 			}
 
-			AddToTaskQueue(pr)
+			AddToTaskQueue(ctx, pr)
 			comment, err := CreatePushPullComment(ctx, doer, pr, oldCommitID, newCommitID)
 			if err == nil && comment != nil {
 				notification.NotifyPullRequestPushCommits(ctx, doer, pr, comment)
@@ -284,7 +291,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 
 		if isSync {
 			requests := issues_model.PullRequestList(prs)
-			if err = requests.LoadAttributes(); err != nil {
+			if err = requests.LoadAttributes(ctx); err != nil {
 				log.Error("PullRequestList.LoadAttributes: %v", err)
 			}
 			if invalidationErr := checkForInvalidation(ctx, requests, repoID, doer, branch); invalidationErr != nil {
@@ -301,6 +308,17 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 							// Mark old reviews as stale if diff to mergebase has changed
 							if err := issues_model.MarkReviewsAsStale(pr.IssueID); err != nil {
 								log.Error("MarkReviewsAsStale: %v", err)
+							}
+
+							// dismiss all approval reviews if protected branch rule item enabled.
+							pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+							if err != nil {
+								log.Error("GetFirstMatchProtectedBranchRule: %v", err)
+							}
+							if pb != nil && pb.DismissStaleApprovals {
+								if err := DismissApprovalReviews(ctx, doer, pr); err != nil {
+									log.Error("DismissApprovalReviews: %v", err)
+								}
 							}
 						}
 						if err := issues_model.MarkReviewsAsNotStale(pr.IssueID, newCommitID); err != nil {
@@ -323,7 +341,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 		}
 
 		log.Trace("AddTestPullRequestTask [base_repo_id: %d, base_branch: %s]: finding pull requests", repoID, branch)
-		prs, err = issues_model.GetUnmergedPullRequestsByBaseInfo(repoID, branch)
+		prs, err = issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, repoID, branch)
 		if err != nil {
 			log.Error("Find pull requests [base_repo_id: %d, base_branch: %s]: %v", repoID, branch, err)
 			return
@@ -331,7 +349,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 		for _, pr := range prs {
 			divergence, err := GetDiverging(ctx, pr)
 			if err != nil {
-				if models.IsErrBranchDoesNotExist(err) && !git.IsBranchExist(ctx, pr.HeadRepo.RepoPath(), pr.HeadBranch) {
+				if git_model.IsErrBranchNotExist(err) && !git.IsBranchExist(ctx, pr.HeadRepo.RepoPath(), pr.HeadBranch) {
 					log.Warn("Cannot test PR %s/%d: head_branch %s no longer exists", pr.BaseRepo.Name, pr.IssueID, pr.HeadBranch)
 				} else {
 					log.Error("GetDiverging: %v", err)
@@ -342,7 +360,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 					log.Error("UpdateCommitDivergence: %v", err)
 				}
 			}
-			AddToTaskQueue(pr)
+			AddToTaskQueue(ctx, pr)
 		}
 	})
 }
@@ -496,25 +514,25 @@ func (errs errlist) Error() string {
 }
 
 // CloseBranchPulls close all the pull requests who's head branch is the branch
-func CloseBranchPulls(doer *user_model.User, repoID int64, branch string) error {
-	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(repoID, branch)
+func CloseBranchPulls(ctx context.Context, doer *user_model.User, repoID int64, branch string) error {
+	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, repoID, branch)
 	if err != nil {
 		return err
 	}
 
-	prs2, err := issues_model.GetUnmergedPullRequestsByBaseInfo(repoID, branch)
+	prs2, err := issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, repoID, branch)
 	if err != nil {
 		return err
 	}
 
 	prs = append(prs, prs2...)
-	if err := issues_model.PullRequestList(prs).LoadAttributes(); err != nil {
+	if err := issues_model.PullRequestList(prs).LoadAttributes(ctx); err != nil {
 		return err
 	}
 
 	var errs errlist
 	for _, pr := range prs {
-		if err = issue_service.ChangeStatus(pr.Issue, doer, "", true); err != nil && !issues_model.IsErrPullWasClosed(err) && !issues_model.IsErrDependenciesLeft(err) {
+		if err = issue_service.ChangeStatus(ctx, pr.Issue, doer, "", true); err != nil && !issues_model.IsErrPullWasClosed(err) && !issues_model.IsErrDependenciesLeft(err) {
 			errs = append(errs, err)
 		}
 	}
@@ -533,12 +551,12 @@ func CloseRepoBranchesPulls(ctx context.Context, doer *user_model.User, repo *re
 
 	var errs errlist
 	for _, branch := range branches {
-		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(repo.ID, branch.Name)
+		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, repo.ID, branch.Name)
 		if err != nil {
 			return err
 		}
 
-		if err = issues_model.PullRequestList(prs).LoadAttributes(); err != nil {
+		if err = issues_model.PullRequestList(prs).LoadAttributes(ctx); err != nil {
 			return err
 		}
 
@@ -548,7 +566,7 @@ func CloseRepoBranchesPulls(ctx context.Context, doer *user_model.User, repo *re
 			if pr.BaseRepoID == repo.ID {
 				continue
 			}
-			if err = issue_service.ChangeStatus(pr.Issue, doer, "", true); err != nil && !issues_model.IsErrPullWasClosed(err) {
+			if err = issue_service.ChangeStatus(ctx, pr.Issue, doer, "", true); err != nil && !issues_model.IsErrPullWasClosed(err) {
 				errs = append(errs, err)
 			}
 		}

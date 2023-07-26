@@ -32,7 +32,7 @@ func int64SliceToCommaSeparated(a []int64) string {
 func TestInitializeLabels(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	assert.NoError(t, repository.LoadRepoConfig())
-	ctx := test.MockContext(t, "user2/repo1/labels/initialize")
+	ctx, _ := test.MockContext(t, "user2/repo1/labels/initialize")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 2)
 	web.SetForm(ctx, &forms.InitializeLabelsForm{TemplateName: "Default"})
@@ -57,7 +57,7 @@ func TestRetrieveLabels(t *testing.T) {
 		{1, "leastissues", []int64{2, 1}},
 		{2, "", []int64{}},
 	} {
-		ctx := test.MockContext(t, "user/repo/issues")
+		ctx, _ := test.MockContext(t, "user/repo/issues")
 		test.LoadUser(t, ctx, 2)
 		test.LoadRepo(t, ctx, testCase.RepoID)
 		ctx.Req.Form.Set("sort", testCase.Sort)
@@ -75,7 +75,7 @@ func TestRetrieveLabels(t *testing.T) {
 
 func TestNewLabel(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1/labels/edit")
+	ctx, _ := test.MockContext(t, "user2/repo1/labels/edit")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
 	web.SetForm(ctx, &forms.CreateLabelForm{
@@ -93,7 +93,7 @@ func TestNewLabel(t *testing.T) {
 
 func TestUpdateLabel(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1/labels/edit")
+	ctx, _ := test.MockContext(t, "user2/repo1/labels/edit")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
 	web.SetForm(ctx, &forms.CreateLabelForm{
@@ -113,7 +113,7 @@ func TestUpdateLabel(t *testing.T) {
 
 func TestDeleteLabel(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1/labels/delete")
+	ctx, _ := test.MockContext(t, "user2/repo1/labels/delete")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
 	ctx.Req.Form.Set("id", "2")
@@ -126,7 +126,7 @@ func TestDeleteLabel(t *testing.T) {
 
 func TestUpdateIssueLabel_Clear(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1/issues/labels")
+	ctx, _ := test.MockContext(t, "user2/repo1/issues/labels")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
 	ctx.Req.Form.Set("issue_ids", "1,3")
@@ -151,7 +151,7 @@ func TestUpdateIssueLabel_Toggle(t *testing.T) {
 		{"toggle", []int64{1, 2}, 2, true},
 	} {
 		unittest.PrepareTestEnv(t)
-		ctx := test.MockContext(t, "user2/repo1/issues/labels")
+		ctx, _ := test.MockContext(t, "user2/repo1/issues/labels")
 		test.LoadUser(t, ctx, 2)
 		test.LoadRepo(t, ctx, 1)
 		ctx.Req.Form.Set("issue_ids", int64SliceToCommaSeparated(testCase.IssueIDs))

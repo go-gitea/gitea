@@ -15,17 +15,17 @@ import (
 // ObjectCache provides thread-safe cache operations.
 type ObjectCache struct {
 	lock  sync.RWMutex
-	cache map[string]interface{}
+	cache map[string]any
 }
 
 func newObjectCache() *ObjectCache {
 	return &ObjectCache{
-		cache: make(map[string]interface{}, 10),
+		cache: make(map[string]any, 10),
 	}
 }
 
 // Set add obj to cache
-func (oc *ObjectCache) Set(id string, obj interface{}) {
+func (oc *ObjectCache) Set(id string, obj any) {
 	oc.lock.Lock()
 	defer oc.lock.Unlock()
 
@@ -33,7 +33,7 @@ func (oc *ObjectCache) Set(id string, obj interface{}) {
 }
 
 // Get get cached obj by id
-func (oc *ObjectCache) Get(id string) (interface{}, bool) {
+func (oc *ObjectCache) Get(id string) (any, bool) {
 	oc.lock.RLock()
 	defer oc.lock.RUnlock()
 

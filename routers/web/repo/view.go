@@ -21,6 +21,7 @@ import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
+	issue_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -197,7 +198,7 @@ type fileInfo struct {
 	st         typesniffer.SniffedType
 }
 
-func getFileReader(repoID int64, blob *git.Blob) ([]byte, io.ReadCloser, *fileInfo, error) {
+func getFileReader(ctx gocontext.Context, repoID int64, blob *git.Blob) ([]byte, io.ReadCloser, *fileInfo, error) {
 	dataRc, err := blob.DataAsync()
 	if err != nil {
 		return nil, nil, nil, err
@@ -220,7 +221,7 @@ func getFileReader(repoID int64, blob *git.Blob) ([]byte, io.ReadCloser, *fileIn
 		return buf, dataRc, &fileInfo{isTextFile, false, blob.Size(), nil, st}, nil
 	}
 
-	meta, err := git_model.GetLFSMetaObjectByOid(db.DefaultContext, repoID, pointer.Oid)
+	meta, err := git_model.GetLFSMetaObjectByOid(ctx, repoID, pointer.Oid)
 	if err != nil && err != git_model.ErrLFSObjectNotExist { // fallback to plain file
 		return buf, dataRc, &fileInfo{isTextFile, false, blob.Size(), nil, st}, nil
 	}
@@ -264,7 +265,7 @@ func renderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.Tr
 	ctx.Data["ReadmeExist"] = true
 	ctx.Data["FileIsSymlink"] = readmeFile.IsLink()
 
-	buf, dataRc, fInfo, err := getFileReader(ctx.Repo.Repository.ID, target.Blob())
+	buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, target.Blob())
 	if err != nil {
 		ctx.ServerError("getFileReader", err)
 		return
@@ -327,7 +328,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["IsViewFile"] = true
 	ctx.Data["HideRepoInfo"] = true
 	blob := entry.Blob()
-	buf, dataRc, fInfo, err := getFileReader(ctx.Repo.Repository.ID, blob)
+	buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, blob)
 	if err != nil {
 		ctx.ServerError("getFileReader", err)
 		return
@@ -361,6 +362,13 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		if workFlowErr != nil {
 			ctx.Data["FileError"] = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", workFlowErr.Error())
 		}
+	} else if util.SliceContains([]string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}, ctx.Repo.TreePath) {
+		if data, err := blob.GetBlobContent(setting.UI.MaxDisplayFileSize); err == nil {
+			_, warnings := issue_model.GetCodeOwnersFromContent(ctx, data)
+			if len(warnings) > 0 {
+				ctx.Data["FileWarning"] = strings.Join(warnings, "\n")
+			}
+		}
 	}
 
 	isDisplayingSource := ctx.FormString("display") == "source"
@@ -382,6 +390,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["IsRepresentableAsText"] = isRepresentableAsText
 	ctx.Data["IsDisplayingSource"] = isDisplayingSource
 	ctx.Data["IsDisplayingRendered"] = isDisplayingRendered
+	ctx.Data["IsExecutable"] = entry.IsExecutable()
 
 	isTextSource := fInfo.isTextFile || isDisplayingSource
 	ctx.Data["IsTextSource"] = isTextSource
@@ -521,7 +530,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			ctx.Data["LineEscapeStatus"] = statuses
 		}
 		if !fInfo.isLFSFile {
-			if ctx.Repo.CanEnableEditor(ctx.Doer) {
+			if ctx.Repo.CanEnableEditor(ctx, ctx.Doer) {
 				if lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID {
 					ctx.Data["CanEditFile"] = false
 					ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
@@ -531,7 +540,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				}
 			} else if !ctx.Repo.IsViewBranch {
 				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-			} else if !ctx.Repo.CanWriteToBranch(ctx.Doer, ctx.Repo.BranchName) {
+			} else if !ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, ctx.Repo.BranchName) {
 				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
 			}
 		}
@@ -569,7 +578,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		}
 	}
 
-	if ctx.Repo.CanEnableEditor(ctx.Doer) {
+	if ctx.Repo.CanEnableEditor(ctx, ctx.Doer) {
 		if lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID {
 			ctx.Data["CanDeleteFile"] = false
 			ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
@@ -579,7 +588,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		}
 	} else if !ctx.Repo.IsViewBranch {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-	} else if !ctx.Repo.CanWriteToBranch(ctx.Doer, ctx.Repo.BranchName) {
+	} else if !ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, ctx.Repo.BranchName) {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_have_write_access")
 	}
 }
@@ -966,6 +975,18 @@ func renderCode(ctx *context.Context) {
 	}
 	if ctx.Written() {
 		return
+	}
+
+	if ctx.Doer != nil {
+		if err := ctx.Repo.Repository.GetBaseRepo(ctx); err != nil {
+			ctx.ServerError("GetBaseRepo", err)
+			return
+		}
+		ctx.Data["RecentlyPushedNewBranches"], err = git_model.FindRecentlyPushedNewBranches(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID, ctx.Repo.Repository.DefaultBranch)
+		if err != nil {
+			ctx.ServerError("GetRecentlyPushedBranches", err)
+			return
+		}
 	}
 
 	var treeNames []string

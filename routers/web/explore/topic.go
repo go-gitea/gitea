@@ -35,7 +35,7 @@ func TopicSearch(ctx *context.Context) {
 	}
 
 	ctx.SetTotalCountHeader(total)
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"topics": topicResponses,
 	})
 }

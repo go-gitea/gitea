@@ -93,7 +93,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	defer gitRepo.Close()
 
 	if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
-		log.Error("Failed to update size for repository: %v", err)
+		return fmt.Errorf("Failed to update size for repository: %v", err)
 	}
 
 	addTags := make([]string, 0, len(optsList))
@@ -222,7 +222,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				commits := repo_module.GitToPushCommits(l)
 				commits.HeadCommit = repo_module.CommitToPushCommit(newCommit)
 
-				if err := issue_service.UpdateIssuesCommit(pusher, repo, commits.Commits, refName); err != nil {
+				if err := issue_service.UpdateIssuesCommit(ctx, pusher, repo, commits.Commits, refName); err != nil {
 					log.Error("updateIssuesCommit: %v", err)
 				}
 
@@ -257,11 +257,11 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					commits.Commits = commits.Commits[:setting.UI.FeedMaxCommitNum]
 				}
 
-				notification.NotifyPushCommits(ctx, pusher, repo, opts, commits)
-
-				if err = git_model.RemoveDeletedBranchByName(ctx, repo.ID, branch); err != nil {
-					log.Error("models.RemoveDeletedBranch %s/%s failed: %v", repo.ID, branch, err)
+				if err = git_model.UpdateBranch(ctx, repo.ID, opts.PusherID, branch, newCommit); err != nil {
+					return fmt.Errorf("git_model.UpdateBranch %s:%s failed: %v", repo.FullName(), branch, err)
 				}
+
+				notification.NotifyPushCommits(ctx, pusher, repo, opts, commits)
 
 				// Cache for big repository
 				if err := CacheRef(graceful.GetManager().HammerContext(), repo, gitRepo, opts.RefFullName); err != nil {
@@ -269,9 +269,13 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				}
 			} else {
 				notification.NotifyDeleteRef(ctx, pusher, repo, opts.RefFullName)
-				if err = pull_service.CloseBranchPulls(pusher, repo.ID, branch); err != nil {
+				if err = pull_service.CloseBranchPulls(ctx, pusher, repo.ID, branch); err != nil {
 					// close all related pulls
 					log.Error("close related pull request failed: %v", err)
+				}
+
+				if err := git_model.AddDeletedBranch(ctx, repo.ID, branch, pusher.ID); err != nil {
+					return fmt.Errorf("AddDeletedBranch %s:%s failed: %v", repo.FullName(), branch, err)
 				}
 			}
 

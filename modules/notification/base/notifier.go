@@ -17,6 +17,7 @@ import (
 // Notifier defines an interface to notify receiver
 type Notifier interface {
 	Run()
+	NotifyAdoptRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository)
 	NotifyCreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository)
 	NotifyMigrateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository)
 	NotifyDeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository)

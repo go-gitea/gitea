@@ -1,11 +1,9 @@
 import {encodeURLEncodedBase64, decodeURLEncodedBase64} from '../utils.js';
-import {showElem, hideElem} from '../utils/dom.js';
+import {showElem} from '../utils/dom.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
 export async function initUserAuthWebAuthn() {
-  hideElem('#webauthn-error');
-
   const elPrompt = document.querySelector('.user.signin.webauthn-prompt');
   if (!elPrompt) {
     return;
@@ -25,10 +23,10 @@ export async function initUserAuthWebAuthn() {
   for (const cred of options.publicKey.allowCredentials) {
     cred.id = decodeURLEncodedBase64(cred.id);
   }
-  const credential = await navigator.credentials.get({
-    publicKey: options.publicKey
-  });
   try {
+    const credential = await navigator.credentials.get({
+      publicKey: options.publicKey
+    });
     await verifyAssertion(credential);
   } catch (err) {
     if (!options.publicKey.extensions?.appid) {
@@ -36,10 +34,10 @@ export async function initUserAuthWebAuthn() {
       return;
     }
     delete options.publicKey.extensions.appid;
-    const credential = await navigator.credentials.get({
-      publicKey: options.publicKey
-    });
     try {
+      const credential = await navigator.credentials.get({
+        publicKey: options.publicKey
+      });
       await verifyAssertion(credential);
     } catch (err) {
       webAuthnError('general', err.message);
@@ -48,7 +46,7 @@ export async function initUserAuthWebAuthn() {
 }
 
 async function verifyAssertion(assertedCredential) {
-  // Move data into Arrays incase it is super long
+  // Move data into Arrays in case it is super long
   const authData = new Uint8Array(assertedCredential.response.authenticatorData);
   const clientDataJSON = new Uint8Array(assertedCredential.response.clientDataJSON);
   const rawId = new Uint8Array(assertedCredential.rawId);
@@ -137,15 +135,11 @@ function webAuthnError(errorType, message) {
 
 function detectWebAuthnSupport() {
   if (!window.isSecureContext) {
-    document.getElementById('register-button').disabled = true;
-    document.getElementById('login-button').disabled = true;
     webAuthnError('insecure');
     return false;
   }
 
   if (typeof window.PublicKeyCredential !== 'function') {
-    document.getElementById('register-button').disabled = true;
-    document.getElementById('login-button').disabled = true;
     webAuthnError('browser');
     return false;
   }
@@ -158,15 +152,13 @@ export function initUserAuthWebAuthnRegister() {
   if (!elRegister) {
     return;
   }
-
-  hideElem('#webauthn-error');
-
-  elRegister.addEventListener('click', (e) => {
+  if (!detectWebAuthnSupport()) {
+    elRegister.disabled = true;
+    return;
+  }
+  elRegister.addEventListener('click', async (e) => {
     e.preventDefault();
-    if (!detectWebAuthnSupport()) {
-      return;
-    }
-    webAuthnRegisterRequest();
+    await webAuthnRegisterRequest();
   });
 }
 
@@ -203,15 +195,12 @@ async function webAuthnRegisterRequest() {
     }
   }
 
-  let credential;
   try {
-    credential = await navigator.credentials.create({
+    const credential = await navigator.credentials.create({
       publicKey: options.publicKey
     });
+    await webauthnRegistered(credential);
   } catch (err) {
     webAuthnError('unknown', err);
-    return;
   }
-
-  webauthnRegistered(credential);
 }

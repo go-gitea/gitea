@@ -15,7 +15,7 @@ import (
 )
 
 type TemplateExecutor interface {
-	Execute(wr io.Writer, data interface{}) error
+	Execute(wr io.Writer, data any) error
 }
 
 type ScopedTemplate struct {

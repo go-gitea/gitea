@@ -26,7 +26,7 @@ type CreateFileOptions struct {
 	FileOptions
 	// content must be base64 encoded
 	// required: true
-	Content string `json:"content"`
+	ContentBase64 string `json:"content"`
 }
 
 // Branch returns branch name
@@ -54,7 +54,7 @@ type UpdateFileOptions struct {
 	DeleteFileOptions
 	// content must be base64 encoded
 	// required: true
-	Content string `json:"content"`
+	ContentBase64 string `json:"content"`
 	// from_path (optional) is the path of the original file which will be moved/renamed to the path in the URL
 	FromPath string `json:"from_path" binding:"MaxSize(500)"`
 }
@@ -71,11 +71,11 @@ type ChangeFileOperation struct {
 	// enum: create,update,delete
 	Operation string `json:"operation" binding:"Required"`
 	// path to the existing or new file
-	Path string `json:"path" binding:"MaxSize(500)"`
-	// content must be base64 encoded
 	// required: true
-	Content string `json:"content"`
-	// sha is the SHA for the file that already exists, required for update, delete
+	Path string `json:"path" binding:"Required;MaxSize(500)"`
+	// new or updated file content, must be base64 encoded
+	ContentBase64 string `json:"content"`
+	// sha is the SHA for the file that already exists, required for update or delete
 	SHA string `json:"sha"`
 	// old path of the file to move
 	FromPath string `json:"from_path"`
@@ -85,7 +85,9 @@ type ChangeFileOperation struct {
 // Note: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
 type ChangeFilesOptions struct {
 	FileOptions
-	Files []*ChangeFileOperation `json:"files"`
+	// list of file operations
+	// required: true
+	Files []*ChangeFileOperation `json:"files" binding:"Required"`
 }
 
 // Branch returns branch name
@@ -164,7 +166,7 @@ type FilesResponse struct {
 
 // FileDeleteResponse contains information about a repo's file that was deleted
 type FileDeleteResponse struct {
-	Content      interface{}                `json:"content"` // to be set to nil
+	Content      any                        `json:"content"` // to be set to nil
 	Commit       *FileCommitResponse        `json:"commit"`
 	Verification *PayloadCommitVerification `json:"verification"`
 }

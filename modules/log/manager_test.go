@@ -23,7 +23,7 @@ func TestSharedWorker(t *testing.T) {
 	loggerTest := m.GetLogger("test")
 	loggerTest.AddWriters(w)
 	loggerTest.Info("msg-1")
-	loggerTest.RemoveAllWriters() // the shared writer is not closed here
+	loggerTest.ReplaceAllWriters() // the shared writer is not closed here
 	loggerTest.Info("never seen")
 
 	// the shared writer can still be used later

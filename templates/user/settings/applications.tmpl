@@ -69,20 +69,17 @@
 					<summary class="gt-pb-4 gt-pl-2">
 						{{.locale.Tr "settings.select_permissions"}}
 					</summary>
-					<div class="activity meta">
-						<i>{{$.locale.Tr "settings.scoped_token_desc" (printf `href="/api/swagger" target="_blank"`) (printf `href="https://docs.gitea.com/development/oauth2-provider#scopes" target="_blank"`) | Str2html}}</i>
+					<p class="activity meta">
+						<i>{{$.locale.Tr "settings.access_token_desc" (printf `href="/api/swagger" target="_blank"`) (printf `href="https://docs.gitea.com/development/oauth2-provider#scopes" target="_blank"`) | Str2html}}</i>
+					</p>
+					<div class="scoped-access-token-mount">
+						<scoped-access-token-selector
+							:is-admin="{{if .IsAdmin}}true{{else}}false{{end}}"
+							no-access-label="{{.locale.Tr "settings.permission_no_access"}}"
+							read-label="{{.locale.Tr "settings.permission_read"}}"
+							write-label="{{.locale.Tr "settings.permission_write"}}"
+						></scoped-access-token-selector>
 					</div>
-					<scoped-access-token-category category="activitypub"></scoped-access-token-category>
-					{{if .IsAdmin}}
-						<scoped-access-token-category category="admin"></scoped-access-token-category>
-					{{end}}
-					<scoped-access-token-category category="issue"></scoped-access-token-category>
-					<scoped-access-token-category category="misc"></scoped-access-token-category>
-					<scoped-access-token-category category="notification"></scoped-access-token-category>
-					<scoped-access-token-category category="organization"></scoped-access-token-category>
-					<scoped-access-token-category category="package"></scoped-access-token-category>
-					<scoped-access-token-category category="repository"></scoped-access-token-category>
-					<scoped-access-token-category category="user"></scoped-access-token-category>
 				</details>
 				<div id="scoped-access-warning" class="ui warning message center gt-db gt-hidden">
 					{{.locale.Tr "settings.at_least_one_permission"}}
