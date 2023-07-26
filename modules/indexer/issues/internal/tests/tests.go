@@ -610,7 +610,7 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				ListAll: true,
 			},
-			SortBy: internal.SortByCommentsDesc,
+			SortBy: internal.SortByDeadlineDesc,
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, len(data), len(result.Hits))
@@ -628,7 +628,7 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				ListAll: true,
 			},
-			SortBy: internal.SortByCreatedDesc,
+			SortBy: internal.SortByCreatedAsc,
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, len(data), len(result.Hits))
@@ -646,7 +646,7 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				ListAll: true,
 			},
-			SortBy: internal.SortByUpdatedDesc,
+			SortBy: internal.SortByUpdatedAsc,
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, len(data), len(result.Hits))
@@ -664,7 +664,7 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				ListAll: true,
 			},
-			SortBy: internal.SortByCommentsDesc,
+			SortBy: internal.SortByCommentsAsc,
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, len(data), len(result.Hits))
@@ -682,7 +682,7 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				ListAll: true,
 			},
-			SortBy: internal.SortByCommentsDesc,
+			SortBy: internal.SortByDeadlineAsc,
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Equal(t, len(data), len(result.Hits))
