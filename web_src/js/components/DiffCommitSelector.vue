@@ -18,7 +18,7 @@
           </div>
         </div>
         <!-- only show the show changes since last review if there is a review AND we are commits ahead of the last review -->
-        <div v-if="lastReviewCommitSha != null && commitsSinceLastReview > 0" class="vertical item gt-df gt-fc gt-gap-2 gt-border-secondary-top" @click="changesSinceLastReviewClick()">
+        <div v-if="lastReviewCommitSha != null" class="vertical item gt-df gt-fc gt-gap-2 gt-border-secondary-top" :class="{disabled: commitsSinceLastReview === 0}" @click="changesSinceLastReviewClick()">
           <div class="gt-ellipsis">
             {{ locale.show_changes_since_your_last_review }}
           </div>
@@ -108,6 +108,11 @@ export default {
       this.commits.push(...results.commits);
       this.commits.reverse();
       this.lastReviewCommitSha = results.last_review_commit_sha || null;
+      if (this.lastReviewCommitSha && this.commits.findIndex((x) => x.id === this.lastReviewCommitSha) === -1) {
+        // the lastreviewcommit is not available (probably due to a force push)
+        // reset the last review commit sha
+        this.lastReviewCommitSha = null;
+      }
       Object.assign(this.locale, results.locale);
     },
     showAllChanges() {
