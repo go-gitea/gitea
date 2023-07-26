@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/container"
 	"github.com/mholt/archiver/v3"
 )
 
@@ -247,16 +248,8 @@ func writeToArchive(files map[string][]byte, buf io.Writer) error {
 // This function creates a list containing unique values formed of 2 passed
 // slices.
 func UnifiedList(first, second []string) []string {
-	unique := map[string]struct{}{}
-	for _, v := range first {
-		unique[v] = struct{}{}
-	}
-	for _, v := range second {
-		unique[v] = struct{}{}
-	}
-	var archs []string
-	for k := range unique {
-		archs = append(archs, k)
-	}
-	return archs
+	set := make(container.Set[string], len(first)+len(second))
+	set.AddMultiple(first...)
+	set.AddMultiple(second...)
+	return set.Values()
 }
