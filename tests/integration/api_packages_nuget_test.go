@@ -419,7 +419,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				defer tests.PrintCurrentTest(t)()
 
 				for i, c := range cases {
-					req := NewRequest(t, "GET", fmt.Sprintf("%s/Search()?searchTerm='%s'&skip=%d&take=%d", url, c.Query, c.Skip, c.Take))
+					req := NewRequest(t, "GET", fmt.Sprintf("%s/Search()?searchTerm='%s'&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take))
 					req = AddBasicAuthHeader(req, user.Name)
 					resp := MakeRequest(t, req, http.StatusOK)
 
@@ -429,7 +429,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 					assert.Equal(t, c.ExpectedTotal, result.Count, "case %d: unexpected total hits", i)
 					assert.Len(t, result.Entries, c.ExpectedResults, "case %d: unexpected result count", i)
 
-					req = NewRequest(t, "GET", fmt.Sprintf("%s/Search()/$count?searchTerm='%s'&skip=%d&take=%d", url, c.Query, c.Skip, c.Take))
+					req = NewRequest(t, "GET", fmt.Sprintf("%s/Search()/$count?searchTerm='%s'&$skip=%d&$top=%d", url, c.Query, c.Skip, c.Take))
 					req = AddBasicAuthHeader(req, user.Name)
 					resp = MakeRequest(t, req, http.StatusOK)
 
