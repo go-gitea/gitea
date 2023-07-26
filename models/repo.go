@@ -216,6 +216,11 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		return fmt.Errorf("unable to delete projects for repo[%d]: %w", repoID, err)
 	}
 
+	// Remove archive download count
+	if err := repo_model.DeleteRepoArchiveDownloadCount(ctx, repo.ID); err != nil {
+		return err
+	}
+
 	// Remove LFS objects
 	var lfsObjects []*git_model.LFSMetaObject
 	if err = sess.Where("repository_id=?", repoID).Find(&lfsObjects); err != nil {

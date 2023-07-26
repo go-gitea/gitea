@@ -75,8 +75,14 @@ func GetTagArchiveDownloadCount(ctx context.Context, repoID int64, tag string) (
 	return tagCounter, nil
 }
 
-// DeleteTagArchiveDownloadCount delets the tag from the table
+// DeleteTagArchiveDownloadCount deletes the tag from the repo_archive_download_count table
 func DeleteTagArchiveDownloadCount(ctx context.Context, repoID int64, tag string) error {
 	_, err := db.GetEngine(ctx).Exec("DELETE FROM repo_archive_download_count WHERE repo_id = ? AND tag = ?", repoID, tag)
+	return err
+}
+
+// DeleteRepoArchiveDownloadCount deletes the repo from the repo_archive_download_count table
+func DeleteRepoArchiveDownloadCount(ctx context.Context, repoID int64) error {
+	_, err := db.GetEngine(ctx).Exec("DELETE FROM repo_archive_download_count WHERE repo_id = ?", repoID)
 	return err
 }
