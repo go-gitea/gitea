@@ -18,6 +18,9 @@ import (
 
 const (
 	issueIndexerLatestVersion = 2
+
+	// TODO: make this configurable if necessary
+	maxTotalHits = 10000
 )
 
 var _ internal.Indexer = &Indexer{}
@@ -30,7 +33,45 @@ type Indexer struct {
 
 // NewIndexer creates a new meilisearch indexer
 func NewIndexer(url, apiKey, indexerName string) *Indexer {
-	inner := inner_meilisearch.NewIndexer(url, apiKey, indexerName, issueIndexerLatestVersion)
+	settings := &meilisearch.Settings{
+		SearchableAttributes: []string{
+			"title",
+			"content",
+			"comments",
+		},
+		DisplayedAttributes: []string{
+			"id",
+		},
+		FilterableAttributes: []string{
+			"repo_id",
+			"is_public",
+			"is_pull",
+			"is_closed",
+			"label_ids",
+			"no_label",
+			"milestone_id",
+			"project_id",
+			"project_board_id",
+			"poster_id",
+			"assignee_id",
+			"mention_ids",
+			"reviewed_ids",
+			"review_requested_ids",
+			"subscriber_ids",
+			"updated_unix",
+		},
+		SortableAttributes: []string{
+			"updated_unix",
+			"created_unix",
+			"deadline_unix",
+			"comment_count",
+		},
+		Pagination: &meilisearch.Pagination{
+			MaxTotalHits: maxTotalHits,
+		},
+	}
+
+	inner := inner_meilisearch.NewIndexer(url, apiKey, indexerName, issueIndexerLatestVersion, settings)
 	indexer := &Indexer{
 		inner:   inner,
 		Indexer: inner,
