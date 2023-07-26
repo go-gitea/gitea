@@ -361,32 +361,18 @@ AuthorizedKeysCommand /path/to/gitea keys -e git -u %u -t %t -k %k
 
 迁移数据库。该命令可用于在首次启动服务器之前运行其他命令。此命令是幂等的。
 
-### convert
+### doctor check
 
-将现有的 MySQL 数据库从 utf8 转换为 utf8mb4。
+对 Gitea 实例进行诊断，可以修复一些可修复的问题。
+默认只运行部分检查，额外的检查可以参考：
 
-### doctor
+- `gitea doctor check --list` - 列出所有可用的检查
+- `gitea doctor check --all` - 运行所有可用的检查
+- `gitea doctor check --default` - 运行默认的检查
+- `gitea doctor check --run [check(s),]...` - 运行指定的名字的检查
 
-根据给定的配置诊断当前 Gitea 实例的问题。目前有以下检查清单:
-
-- 检查 OpenSSH 的 authorized_keys 文件是否正确
-  当您的 Gitea 实例支持 OpenSSH 时，当您的 Gitea 实例添加或更改任何公钥时，Gitea 实例的二进制路径将被写入 `authorized_keys` 文件。
-  有时，如果您在升级时移动或重命名了 Gitea 二进制文件，并且您没有在管理面板上运行“使用 Gitea 的 SSH 密钥更新「.ssh/authorized_keys」文件”操作。那么通过 SSH 的所有拉取/推送操作将无法正常工作。
-  此检查将帮助您检查它是否正常工作。
-
-对于贡献者，如果您想添加更多的检查项，您可以编写一个新的函数，如 `func(ctx *cli.Context) ([]string, error)`，并将其追加到 `doctor.go` 文件中。
-
-```go
-var checklist = []check{
-	{
-		title: "Check if OpenSSH authorized_keys file id correct",
-		f:     runDoctorLocationMoved,
-    },
-    // more checks please append here
-}
-```
-
-此函数将接收一个命令行上下文，并返回有关问题或错误的详细信息列表。
+有些问题可以通过设置 `--fix` 选项进行自动修复。
+额外的日志可以通过 `--log-file=...` 进行设置。
 
 #### doctor recreate-table
 
@@ -415,6 +401,10 @@ gitea doctor recreate-table
 ```
 
 强烈建议在运行这些命令之前备份您的数据库。
+
+### doctor convert
+
+将现有的 MySQL 数据库从 utf8 转换为 utf8mb4，或者把 MSSQL 数据库从 varchar 转换为 nvarchar。
 
 ### manager
 
