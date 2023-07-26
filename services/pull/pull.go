@@ -10,6 +10,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
@@ -889,13 +890,13 @@ func GetPullCommits(ctx *gitea_context.Context, issue *issues_model.Issue) ([]Co
 
 	for _, commit := range prInfo.Commits {
 		var committerOrAuthorName string
-		var time string
+		var commitTime time.Time
 		if commit.Committer != nil {
 			committerOrAuthorName = commit.Committer.Name
-			time = commit.Committer.When.String()
+			commitTime = commit.Committer.When
 		} else {
 			committerOrAuthorName = commit.Author.Name
-			time = commit.Author.When.String()
+			commitTime = commit.Author.When
 		}
 
 		commits = append(commits, CommitInfo{
@@ -903,7 +904,7 @@ func GetPullCommits(ctx *gitea_context.Context, issue *issues_model.Issue) ([]Co
 			CommitterOrAuthorName: committerOrAuthorName,
 			ID:                    commit.ID.String(),
 			ShortSha:              base.ShortSha(commit.ID.String()),
-			Time:                  time,
+			Time:                  commitTime.Format(time.RFC3339),
 		})
 	}
 
