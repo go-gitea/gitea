@@ -114,7 +114,7 @@ func SearchPackages(ctx *context.Context) {
 // EnumeratePackages lists all package names
 // https://packagist.org/apidoc#list-packages
 func EnumeratePackages(ctx *context.Context) {
-	ps, err := packages_model.GetPackagesByType(db.DefaultContext, ctx.Package.Owner.ID, packages_model.TypeComposer)
+	ps, err := packages_model.GetPackagesByType(ctx, ctx.Package.Owner.ID, packages_model.TypeComposer)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

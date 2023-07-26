@@ -100,6 +100,7 @@ func SettingsPost(ctx *context.Context) {
 	}
 
 	org.FullName = form.FullName
+	org.Email = form.Email
 	org.Description = form.Description
 	org.Website = form.Website
 	org.Location = form.Location
@@ -218,9 +219,7 @@ func DeleteWebhook(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": ctx.Org.OrgLink + "/settings/hooks",
-	})
+	ctx.JSONRedirect(ctx.Org.OrgLink + "/settings/hooks")
 }
 
 // Labels render organization labels page
