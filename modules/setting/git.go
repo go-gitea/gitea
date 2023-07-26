@@ -5,6 +5,7 @@ package setting
 
 import (
 	"path/filepath"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -12,9 +13,10 @@ import (
 
 // Git settings
 var Git = struct {
-	Path                      string
-	HomePath                  string
-	DisableDiffHighlight      bool
+	Path                 string
+	HomePath             string
+	DisableDiffHighlight bool
+
 	MaxGitDiffLines           int
 	MaxGitDiffLineCharacters  int
 	MaxGitDiffFiles           int
@@ -67,11 +69,46 @@ var Git = struct {
 	},
 }
 
-func newGit() {
-	sec := Cfg.Section("git")
+type GitConfigType struct {
+	Options map[string]string // git config key is case-insensitive, always use lower-case
+}
 
+func (c *GitConfigType) SetOption(key, val string) {
+	c.Options[strings.ToLower(key)] = val
+}
+
+func (c *GitConfigType) GetOption(key string) string {
+	return c.Options[strings.ToLower(key)]
+}
+
+var GitConfig = GitConfigType{
+	Options: make(map[string]string),
+}
+
+func loadGitFrom(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("git")
 	if err := sec.MapTo(&Git); err != nil {
 		log.Fatal("Failed to map Git settings: %v", err)
+	}
+
+	secGitConfig := rootCfg.Section("git.config")
+	GitConfig.Options = make(map[string]string)
+	GitConfig.SetOption("diff.algorithm", "histogram")
+	GitConfig.SetOption("core.logAllRefUpdates", "true")
+	GitConfig.SetOption("gc.reflogExpire", "90")
+
+	secGitReflog := rootCfg.Section("git.reflog")
+	if secGitReflog.HasKey("ENABLED") {
+		deprecatedSetting(rootCfg, "git.reflog", "ENABLED", "git.config", "core.logAllRefUpdates", "1.21")
+		GitConfig.SetOption("core.logAllRefUpdates", secGitReflog.Key("ENABLED").In("true", []string{"true", "false"}))
+	}
+	if secGitReflog.HasKey("EXPIRATION") {
+		deprecatedSetting(rootCfg, "git.reflog", "EXPIRATION", "git.config", "core.reflogExpire", "1.21")
+		GitConfig.SetOption("gc.reflogExpire", secGitReflog.Key("EXPIRATION").String())
+	}
+
+	for _, key := range secGitConfig.Keys() {
+		GitConfig.SetOption(key.Name(), key.String())
 	}
 
 	Git.HomePath = sec.Key("HOME_PATH").MustString("home")

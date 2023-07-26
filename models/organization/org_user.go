@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 
@@ -51,6 +52,20 @@ func IsOrganizationOwner(ctx context.Context, orgID, uid int64) (bool, error) {
 		return false, err
 	}
 	return IsTeamMember(ctx, orgID, ownerTeam.ID, uid)
+}
+
+// IsOrganizationAdmin returns true if given user is in the owner team or an admin team.
+func IsOrganizationAdmin(ctx context.Context, orgID, uid int64) (bool, error) {
+	teams, err := GetUserOrgTeams(ctx, orgID, uid)
+	if err != nil {
+		return false, err
+	}
+	for _, t := range teams {
+		if t.AccessMode >= perm.AccessModeAdmin {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // IsOrganizationMember returns true if given user is member of organization.

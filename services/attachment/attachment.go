@@ -19,14 +19,14 @@ import (
 )
 
 // NewAttachment creates a new attachment object, but do not verify.
-func NewAttachment(attach *repo_model.Attachment, file io.Reader) (*repo_model.Attachment, error) {
+func NewAttachment(attach *repo_model.Attachment, file io.Reader, size int64) (*repo_model.Attachment, error) {
 	if attach.RepoID == 0 {
 		return nil, fmt.Errorf("attachment %s should belong to a repository", attach.Name)
 	}
 
 	err := db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		attach.UUID = uuid.New().String()
-		size, err := storage.Attachments.Save(attach.RelativePath(), file, -1)
+		size, err := storage.Attachments.Save(attach.RelativePath(), file, size)
 		if err != nil {
 			return fmt.Errorf("Create: %w", err)
 		}
@@ -39,7 +39,7 @@ func NewAttachment(attach *repo_model.Attachment, file io.Reader) (*repo_model.A
 }
 
 // UploadAttachment upload new attachment into storage and update database
-func UploadAttachment(file io.Reader, allowedTypes string, opts *repo_model.Attachment) (*repo_model.Attachment, error) {
+func UploadAttachment(file io.Reader, allowedTypes string, fileSize int64, opts *repo_model.Attachment) (*repo_model.Attachment, error) {
 	buf := make([]byte, 1024)
 	n, _ := util.ReadAtMost(file, buf)
 	buf = buf[:n]
@@ -48,5 +48,5 @@ func UploadAttachment(file io.Reader, allowedTypes string, opts *repo_model.Atta
 		return nil, err
 	}
 
-	return NewAttachment(opts, io.MultiReader(bytes.NewReader(buf), file))
+	return NewAttachment(opts, io.MultiReader(bytes.NewReader(buf), file), fileSize)
 }

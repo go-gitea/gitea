@@ -85,6 +85,11 @@ func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		if entries[e].IsDir() {
 			copy(treeURL[copyPos:], entries[e].ID.String())
 			tree.Entries[i].URL = string(treeURL)
+		} else if entries[e].IsSubModule() {
+			// In Github Rest API Version=2022-11-28, if a tree entry is a submodule,
+			// its url will be returned as an empty string.
+			// So the URL will be set to "" here.
+			tree.Entries[i].URL = ""
 		} else {
 			copy(blobURL[copyPos:], entries[e].ID.String())
 			tree.Entries[i].URL = string(blobURL)

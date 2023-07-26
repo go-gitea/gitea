@@ -73,7 +73,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 
 		var content, desc, title string
 
-		link := &feeds.Link{Href: act.GetCommentLink()}
+		link := &feeds.Link{Href: act.GetCommentHTMLURL()}
 
 		// title
 		title = act.ActUser.DisplayName() + " "
@@ -220,7 +220,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 
 			case activities_model.ActionCreateIssue, activities_model.ActionCreatePullRequest:
 				desc = strings.Join(act.GetIssueInfos(), "#")
-				content = renderMarkdown(ctx, act, act.GetIssueContent())
+				content = renderMarkdown(ctx, act, act.GetIssueContent(ctx))
 			case activities_model.ActionCommentIssue, activities_model.ActionApprovePullRequest, activities_model.ActionRejectPullRequest, activities_model.ActionCommentPull:
 				desc = act.GetIssueTitle()
 				comment := act.GetIssueInfos()[1]

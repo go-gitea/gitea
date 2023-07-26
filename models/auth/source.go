@@ -317,7 +317,14 @@ func UpdateSource(source *Source) error {
 		}
 	}
 
-	_, err := db.GetEngine(db.DefaultContext).ID(source.ID).AllCols().Update(source)
+	has, err := db.GetEngine(db.DefaultContext).Where("name=? AND id!=?", source.Name, source.ID).Exist(new(Source))
+	if err != nil {
+		return err
+	} else if has {
+		return ErrSourceAlreadyExist{source.Name}
+	}
+
+	_, err = db.GetEngine(db.DefaultContext).ID(source.ID).AllCols().Update(source)
 	if err != nil {
 		return err
 	}

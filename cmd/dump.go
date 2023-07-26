@@ -22,7 +22,7 @@ import (
 
 	"gitea.com/go-chi/session"
 	"github.com/mholt/archiver/v3"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 func addReader(w archiver.Writer, r io.ReadCloser, info os.FileInfo, customName string, verbose bool) error {
@@ -96,60 +96,71 @@ var outputTypeEnum = &outputType{
 }
 
 // CmdDump represents the available dump sub-command.
-var CmdDump = cli.Command{
+var CmdDump = &cli.Command{
 	Name:  "dump",
 	Usage: "Dump Gitea files and database",
 	Description: `Dump compresses all related files and database into zip file.
 It can be used for backup and capture Gitea server image to send to maintainer`,
 	Action: runDump,
 	Flags: []cli.Flag{
-		cli.StringFlag{
-			Name:  "file, f",
-			Value: fmt.Sprintf("gitea-dump-%d.zip", time.Now().Unix()),
-			Usage: "Name of the dump file which will be created. Supply '-' for stdout. See type for available types.",
+		&cli.StringFlag{
+			Name:    "file",
+			Aliases: []string{"f"},
+			Value:   fmt.Sprintf("gitea-dump-%d.zip", time.Now().Unix()),
+			Usage:   "Name of the dump file which will be created. Supply '-' for stdout. See type for available types.",
 		},
-		cli.BoolFlag{
-			Name:  "verbose, V",
-			Usage: "Show process details",
+		&cli.BoolFlag{
+			Name:    "verbose",
+			Aliases: []string{"V"},
+			Usage:   "Show process details",
 		},
-		cli.StringFlag{
-			Name:  "tempdir, t",
-			Value: os.TempDir(),
-			Usage: "Temporary dir path",
+		&cli.BoolFlag{
+			Name:    "quiet",
+			Aliases: []string{"q"},
+			Usage:   "Only display warnings and errors",
 		},
-		cli.StringFlag{
-			Name:  "database, d",
-			Usage: "Specify the database SQL syntax",
+		&cli.StringFlag{
+			Name:    "tempdir",
+			Aliases: []string{"t"},
+			Value:   os.TempDir(),
+			Usage:   "Temporary dir path",
 		},
-		cli.BoolFlag{
-			Name:  "skip-repository, R",
-			Usage: "Skip the repository dumping",
+		&cli.StringFlag{
+			Name:    "database",
+			Aliases: []string{"d"},
+			Usage:   "Specify the database SQL syntax",
 		},
-		cli.BoolFlag{
-			Name:  "skip-log, L",
-			Usage: "Skip the log dumping",
+		&cli.BoolFlag{
+			Name:    "skip-repository",
+			Aliases: []string{"R"},
+			Usage:   "Skip the repository dumping",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
+			Name:    "skip-log",
+			Aliases: []string{"L"},
+			Usage:   "Skip the log dumping",
+		},
+		&cli.BoolFlag{
 			Name:  "skip-custom-dir",
 			Usage: "Skip custom directory",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "skip-lfs-data",
 			Usage: "Skip LFS data",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "skip-attachment-data",
 			Usage: "Skip attachment data",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "skip-package-data",
 			Usage: "Skip package data",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "skip-index",
 			Usage: "Skip bleve index data",
 		},
-		cli.GenericFlag{
+		&cli.GenericFlag{
 			Name:  "type",
 			Value: outputTypeEnum,
 			Usage: fmt.Sprintf("Dump output format: %s", outputTypeEnum.Join()),
@@ -157,7 +168,7 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 	},
 }
 
-func fatal(format string, args ...interface{}) {
+func fatal(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, format+"\n", args...)
 	log.Fatal(format, args...)
 }
@@ -168,10 +179,7 @@ func runDump(ctx *cli.Context) error {
 	outType := ctx.String("type")
 	if fileName == "-" {
 		file = os.Stdout
-		err := log.DelLogger("console")
-		if err != nil {
-			fatal("Deleting default logger failed. Can not write to stdout: %v", err)
-		}
+		setupConsoleLogger(log.FATAL, log.CanColorStderr, os.Stderr)
 	} else {
 		for _, suffix := range outputTypeEnum.Enum {
 			if strings.HasSuffix(fileName, "."+suffix) {
@@ -181,20 +189,34 @@ func runDump(ctx *cli.Context) error {
 		}
 		fileName += "." + outType
 	}
-	setting.LoadFromExisting()
+	setting.MustInstalled()
 
 	// make sure we are logging to the console no matter what the configuration tells us do to
-	if _, err := setting.Cfg.Section("log").NewKey("MODE", "console"); err != nil {
+	// FIXME: don't use CfgProvider directly
+	if _, err := setting.CfgProvider.Section("log").NewKey("MODE", "console"); err != nil {
 		fatal("Setting logging mode to console failed: %v", err)
 	}
-	if _, err := setting.Cfg.Section("log.console").NewKey("STDERR", "true"); err != nil {
+	if _, err := setting.CfgProvider.Section("log.console").NewKey("STDERR", "true"); err != nil {
 		fatal("Setting console logger to stderr failed: %v", err)
 	}
+
+	// Set loglevel to Warn if quiet-mode is requested
+	if ctx.Bool("quiet") {
+		if _, err := setting.CfgProvider.Section("log.console").NewKey("LEVEL", "Warn"); err != nil {
+			fatal("Setting console log-level failed: %v", err)
+		}
+	}
+
 	if !setting.InstallLock {
 		log.Error("Is '%s' really the right config path?\n", setting.CustomConf)
 		return fmt.Errorf("gitea is not initialized")
 	}
-	setting.NewServices() // cannot access session settings otherwise
+	setting.LoadSettings() // cannot access session settings otherwise
+
+	verbose := ctx.Bool("verbose")
+	if verbose && ctx.Bool("quiet") {
+		return fmt.Errorf("--quiet and --verbose cannot both be set")
+	}
 
 	stdCtx, cancel := installSignals()
 	defer cancel()
@@ -221,8 +243,7 @@ func runDump(ctx *cli.Context) error {
 		return err
 	}
 
-	verbose := ctx.Bool("verbose")
-	var iface interface{}
+	var iface any
 	if fileName == "-" {
 		iface, err = archiver.ByExtension(fmt.Sprintf(".%s", outType))
 	} else {
@@ -248,7 +269,9 @@ func runDump(ctx *cli.Context) error {
 
 		if ctx.IsSet("skip-lfs-data") && ctx.Bool("skip-lfs-data") {
 			log.Info("Skip dumping LFS data")
-		} else if err := storage.LFS.IterateObjects(func(objPath string, object storage.Object) error {
+		} else if !setting.LFS.StartServer {
+			log.Info("LFS isn't enabled. Skip dumping LFS data")
+		} else if err := storage.LFS.IterateObjects("", func(objPath string, object storage.Object) error {
 			info, err := object.Stat()
 			if err != nil {
 				return err
@@ -270,13 +293,14 @@ func runDump(ctx *cli.Context) error {
 		fatal("Failed to create tmp file: %v", err)
 	}
 	defer func() {
+		_ = dbDump.Close()
 		if err := util.Remove(dbDump.Name()); err != nil {
 			log.Warn("Unable to remove temporary file: %s: Error: %v", dbDump.Name(), err)
 		}
 	}()
 
 	targetDBType := ctx.String("database")
-	if len(targetDBType) > 0 && targetDBType != setting.Database.Type {
+	if len(targetDBType) > 0 && targetDBType != setting.Database.Type.String() {
 		log.Info("Dumping database %s => %s...", setting.Database.Type, targetDBType)
 	} else {
 		log.Info("Dumping database...")
@@ -322,7 +346,7 @@ func runDump(ctx *cli.Context) error {
 		log.Info("Packing data directory...%s", setting.AppDataPath)
 
 		var excludes []string
-		if setting.Cfg.Section("session").Key("PROVIDER").Value() == "file" {
+		if setting.SessionConfig.OriginalProvider == "file" {
 			var opts session.Options
 			if err = json.Unmarshal([]byte(setting.SessionConfig.ProviderConfig), &opts); err != nil {
 				return err
@@ -336,10 +360,10 @@ func runDump(ctx *cli.Context) error {
 		}
 
 		excludes = append(excludes, setting.RepoRootPath)
-		excludes = append(excludes, setting.LFS.Path)
-		excludes = append(excludes, setting.Attachment.Path)
-		excludes = append(excludes, setting.Packages.Path)
-		excludes = append(excludes, setting.LogRootPath)
+		excludes = append(excludes, setting.LFS.Storage.Path)
+		excludes = append(excludes, setting.Attachment.Storage.Path)
+		excludes = append(excludes, setting.Packages.Storage.Path)
+		excludes = append(excludes, setting.Log.RootPath)
 		excludes = append(excludes, absFileName)
 		if err := addRecursiveExclude(w, "data", setting.AppDataPath, excludes, verbose); err != nil {
 			fatal("Failed to include data directory: %v", err)
@@ -348,7 +372,7 @@ func runDump(ctx *cli.Context) error {
 
 	if ctx.IsSet("skip-attachment-data") && ctx.Bool("skip-attachment-data") {
 		log.Info("Skip dumping attachment data")
-	} else if err := storage.Attachments.IterateObjects(func(objPath string, object storage.Object) error {
+	} else if err := storage.Attachments.IterateObjects("", func(objPath string, object storage.Object) error {
 		info, err := object.Stat()
 		if err != nil {
 			return err
@@ -361,7 +385,9 @@ func runDump(ctx *cli.Context) error {
 
 	if ctx.IsSet("skip-package-data") && ctx.Bool("skip-package-data") {
 		log.Info("Skip dumping package data")
-	} else if err := storage.Packages.IterateObjects(func(objPath string, object storage.Object) error {
+	} else if !setting.Packages.Enabled {
+		log.Info("Packages isn't enabled. Skip dumping package data")
+	} else if err := storage.Packages.IterateObjects("", func(objPath string, object storage.Object) error {
 		info, err := object.Stat()
 		if err != nil {
 			return err
@@ -378,12 +404,12 @@ func runDump(ctx *cli.Context) error {
 	if ctx.IsSet("skip-log") && ctx.Bool("skip-log") {
 		log.Info("Skip dumping log files")
 	} else {
-		isExist, err := util.IsExist(setting.LogRootPath)
+		isExist, err := util.IsExist(setting.Log.RootPath)
 		if err != nil {
-			log.Error("Unable to check if %s exists. Error: %v", setting.LogRootPath, err)
+			log.Error("Unable to check if %s exists. Error: %v", setting.Log.RootPath, err)
 		}
 		if isExist {
-			if err := addRecursiveExclude(w, "log", setting.LogRootPath, []string{absFileName}, verbose); err != nil {
+			if err := addRecursiveExclude(w, "log", setting.Log.RootPath, []string{absFileName}, verbose); err != nil {
 				fatal("Failed to include log: %v", err)
 			}
 		}

@@ -7,10 +7,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	ini "gopkg.in/ini.v1"
 )
 
-func Test_GetCronSettings(t *testing.T) {
+func Test_getCronSettings(t *testing.T) {
 	type BaseStruct struct {
 		Base   bool
 		Second string
@@ -23,11 +22,12 @@ func Test_GetCronSettings(t *testing.T) {
 
 	iniStr := `
 [cron.test]
-Base = true
-Second = white rabbit
-Extend = true
+BASE = true
+SECOND = white rabbit
+EXTEND = true
 `
-	Cfg, _ = ini.Load([]byte(iniStr))
+	cfg, err := NewConfigProviderFromData(iniStr)
+	assert.NoError(t, err)
 
 	extended := &Extended{
 		BaseStruct: BaseStruct{
@@ -35,8 +35,7 @@ Extend = true
 		},
 	}
 
-	_, err := GetCronSettings("test", extended)
-
+	_, err = getCronSettings(cfg, "test", extended)
 	assert.NoError(t, err)
 	assert.True(t, extended.Base)
 	assert.EqualValues(t, extended.Second, "white rabbit")

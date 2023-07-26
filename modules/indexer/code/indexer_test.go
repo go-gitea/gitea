@@ -5,11 +5,15 @@ package code
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/indexer/code/bleve"
+	"code.gitea.io/gitea/modules/indexer/code/elasticsearch"
+	"code.gitea.io/gitea/modules/indexer/code/internal"
 
 	_ "code.gitea.io/gitea/models"
 
@@ -22,7 +26,7 @@ func TestMain(m *testing.M) {
 	})
 }
 
-func testIndexer(name string, t *testing.T, indexer Indexer) {
+func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 	t.Run(name, func(t *testing.T) {
 		var repoID int64 = 1
 		err := index(git.DefaultContext, indexer, repoID)
@@ -69,7 +73,7 @@ func testIndexer(name string, t *testing.T, indexer Indexer) {
 			t.Run(kw.Keyword, func(t *testing.T) {
 				total, res, langs, err := indexer.Search(context.TODO(), kw.RepoIDs, "", kw.Keyword, 1, 10, false)
 				assert.NoError(t, err)
-				assert.EqualValues(t, len(kw.IDs), total)
+				assert.Len(t, kw.IDs, int(total))
 				assert.Len(t, langs, kw.Langs)
 
 				ids := make([]int64, 0, len(res))
@@ -81,6 +85,48 @@ func testIndexer(name string, t *testing.T, indexer Indexer) {
 			})
 		}
 
-		assert.NoError(t, indexer.Delete(repoID))
+		assert.NoError(t, indexer.Delete(context.Background(), repoID))
 	})
+}
+
+func TestBleveIndexAndSearch(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+
+	dir := t.TempDir()
+
+	idx := bleve.NewIndexer(dir)
+	_, err := idx.Init(context.Background())
+	if err != nil {
+		assert.Fail(t, "Unable to create bleve indexer Error: %v", err)
+		if idx != nil {
+			idx.Close()
+		}
+		return
+	}
+	defer idx.Close()
+
+	testIndexer("beleve", t, idx)
+}
+
+func TestESIndexAndSearch(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+
+	u := os.Getenv("TEST_INDEXER_CODE_ES_URL")
+	if u == "" {
+		t.SkipNow()
+		return
+	}
+
+	indexer := elasticsearch.NewIndexer(u, "gitea_codes")
+	if _, err := indexer.Init(context.Background()); err != nil {
+		assert.Fail(t, "Unable to init ES indexer Error: %v", err)
+		if indexer != nil {
+			indexer.Close()
+		}
+		return
+	}
+
+	defer indexer.Close()
+
+	testIndexer("elastic_search", t, indexer)
 }

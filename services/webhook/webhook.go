@@ -77,7 +77,7 @@ func IsValidHookTaskType(name string) bool {
 }
 
 // hookQueue is a global queue of web hooks
-var hookQueue queue.UniqueQueue
+var hookQueue *queue.WorkerPoolQueue[int64]
 
 // getPayloadBranch returns branch for hook event, if applicable.
 func getPayloadBranch(p api.Payloader) string {
@@ -105,13 +105,13 @@ type EventSource struct {
 }
 
 // handle delivers hook tasks
-func handle(data ...queue.Data) []queue.Data {
+func handler(items ...int64) []int64 {
 	ctx := graceful.GetManager().HammerContext()
 
-	for _, taskID := range data {
-		task, err := webhook_model.GetHookTaskByID(ctx, taskID.(int64))
+	for _, taskID := range items {
+		task, err := webhook_model.GetHookTaskByID(ctx, taskID)
 		if err != nil {
-			log.Error("GetHookTaskByID[%d] failed: %v", taskID.(int64), err)
+			log.Error("GetHookTaskByID[%d] failed: %v", taskID, err)
 			continue
 		}
 
@@ -229,16 +229,16 @@ func PrepareWebhooks(ctx context.Context, source EventSource, event webhook_modu
 		owner = source.Repository.MustOwner(ctx)
 	}
 
-	// check if owner is an org and append additional webhooks
-	if owner != nil && owner.IsOrganization() {
-		orgHooks, err := webhook_model.ListWebhooksByOpts(ctx, &webhook_model.ListWebhookOptions{
-			OrgID:    owner.ID,
+	// append additional webhooks of a user or organization
+	if owner != nil {
+		ownerHooks, err := webhook_model.ListWebhooksByOpts(ctx, &webhook_model.ListWebhookOptions{
+			OwnerID:  owner.ID,
 			IsActive: util.OptionalBoolTrue,
 		})
 		if err != nil {
 			return fmt.Errorf("ListWebhooksByOpts: %w", err)
 		}
-		ws = append(ws, orgHooks...)
+		ws = append(ws, ownerHooks...)
 	}
 
 	// Add any admin-defined system webhooks

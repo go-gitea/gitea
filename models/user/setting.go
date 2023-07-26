@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/cache"
 	setting_module "code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -40,6 +41,10 @@ type ErrUserSettingIsNotExist struct {
 // Error implements error
 func (err ErrUserSettingIsNotExist) Error() string {
 	return fmt.Sprintf("Setting[%s] is not exist", err.Key)
+}
+
+func (err ErrUserSettingIsNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // IsErrUserSettingIsNotExist return true if err is ErrSettingIsNotExist

@@ -166,7 +166,7 @@ Note: This user hasn't uploaded any GPG keys.
 	// Import key
 	// User1 <user1@example.com>
 	session := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteGPGKey)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser)
 	testCreateGPGKey(t, session.MakeRequest, token, http.StatusCreated, `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 mQENBFyy/VUBCADJ7zbM20Z1RWmFoVgp5WkQfI2rU1Vj9cQHes9i42wVLLtcbPeo
@@ -239,6 +239,19 @@ func testExportUserGPGKeys(t *testing.T, user, expected string) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	// t.Log(resp.Body.String())
 	assert.Equal(t, expected, resp.Body.String())
+}
+
+func TestGetUserRss(t *testing.T) {
+	user34 := "the_34-user.with.all.allowedChars"
+	req := NewRequestf(t, "GET", "/%s.rss", user34)
+	resp := MakeRequest(t, req, http.StatusOK)
+	if assert.EqualValues(t, "application/rss+xml;charset=utf-8", resp.Header().Get("Content-Type")) {
+		rssDoc := NewHTMLParser(t, resp.Body).Find("channel")
+		title, _ := rssDoc.ChildrenFiltered("title").Html()
+		assert.EqualValues(t, "Feed of &#34;the_1-user.with.all.allowedChars&#34;", title)
+		description, _ := rssDoc.ChildrenFiltered("description").Html()
+		assert.EqualValues(t, "&lt;p dir=&#34;auto&#34;&gt;some &lt;a href=&#34;https://commonmark.org/&#34; rel=&#34;nofollow&#34;&gt;commonmark&lt;/a&gt;!&lt;/p&gt;\n", description)
+	}
 }
 
 func TestListStopWatches(t *testing.T) {

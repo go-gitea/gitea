@@ -12,7 +12,7 @@ import (
 
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // NewInternalToken generate a new value intended to be used by INTERNAL_TOKEN.

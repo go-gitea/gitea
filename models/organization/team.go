@@ -94,29 +94,15 @@ func init() {
 	db.RegisterModel(new(TeamInvite))
 }
 
-// ColorFormat provides a basic color format for a Team
-func (t *Team) ColorFormat(s fmt.State) {
+func (t *Team) LogString() string {
 	if t == nil {
-		log.ColorFprintf(s, "%d:%s (OrgID: %d) %-v",
-			log.NewColoredIDValue(0),
-			"<nil>",
-			log.NewColoredIDValue(0),
-			0)
-		return
+		return "<Team nil>"
 	}
-	log.ColorFprintf(s, "%d:%s (OrgID: %d) %-v",
-		log.NewColoredIDValue(t.ID),
-		t.Name,
-		log.NewColoredIDValue(t.OrgID),
-		t.AccessMode)
+	return fmt.Sprintf("<Team %d:%s OrgID=%d AccessMode=%s>", t.ID, t.Name, t.OrgID, t.AccessMode.LogString())
 }
 
-// GetUnits return a list of available units for a team
-func (t *Team) GetUnits() error {
-	return t.getUnits(db.DefaultContext)
-}
-
-func (t *Team) getUnits(ctx context.Context) (err error) {
+// LoadUnits load a list of available units for a team
+func (t *Team) LoadUnits(ctx context.Context) (err error) {
 	if t.Units != nil {
 		return nil
 	}
@@ -193,7 +179,7 @@ func (t *Team) UnitEnabled(ctx context.Context, tp unit.Type) bool {
 
 // UnitAccessMode returns if the team has the given unit type enabled
 func (t *Team) UnitAccessMode(ctx context.Context, tp unit.Type) perm.AccessMode {
-	if err := t.getUnits(ctx); err != nil {
+	if err := t.LoadUnits(ctx); err != nil {
 		log.Warn("Error loading team (ID: %d) units: %s", t.ID, err.Error())
 	}
 

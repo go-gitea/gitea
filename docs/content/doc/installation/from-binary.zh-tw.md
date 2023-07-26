@@ -2,23 +2,25 @@
 date: "2016-12-01T16:00:00+02:00"
 title: "執行檔安裝"
 slug: "install-from-binary"
-weight: 10
+weight: 15
 toc: false
 draft: false
+aliases:
+  - /zh-tw/install-from-binary
 menu:
   sidebar:
     parent: "installation"
     name: "執行檔"
-    weight: 20
+    weight: 15
     identifier: "install-from-binary"
 ---
 
 # 從執行檔安裝
 
-所有的執行檔皆支援 SQLite, MySQL and PostgreSQL，且所有檔案都已經包在執行檔內，這一點跟之前的版本有所不同。關於執行檔的安裝方式非常簡單，只要從[下載頁面](https://dl.gitea.io/gitea)選擇相對應平台，複製下載連結，使用底下指令就可以完成了:
+所有的執行檔皆支援 SQLite, MySQL and PostgreSQL，且所有檔案都已經包在執行檔內，這一點跟之前的版本有所不同。關於執行檔的安裝方式非常簡單，只要從[下載頁面](https://dl.gitea.com/gitea)選擇相對應平台，複製下載連結，使用底下指令就可以完成了:
 
 ```
-wget -O gitea https://dl.gitea.io/gitea/{{< version >}}/gitea-{{< version >}}-linux-amd64
+wget -O gitea https://dl.gitea.com/gitea/{{< version >}}/gitea-{{< version >}}-linux-amd64
 chmod +x gitea
 ```
 

@@ -10,9 +10,9 @@ import (
 
 // Permission represents a set of permissions
 type Permission struct {
-	Admin bool `json:"admin"`
-	Push  bool `json:"push"`
-	Pull  bool `json:"pull"`
+	Admin bool `json:"admin"` // Admin indicates if the user is an administrator of the repository.
+	Push  bool `json:"push"`  // Push indicates if the user can push code to the repository.
+	Pull  bool `json:"pull"`  // Pull indicates if the user can pull code from the repository.
 }
 
 // InternalTracker represents settings for internal tracker
@@ -63,6 +63,7 @@ type Repository struct {
 	Language      string      `json:"language"`
 	LanguagesURL  string      `json:"languages_url"`
 	HTMLURL       string      `json:"html_url"`
+	Link          string      `json:"link"`
 	SSHURL        string      `json:"ssh_url"`
 	CloneURL      string      `json:"clone_url"`
 	OriginalURL   string      `json:"original_url"`
@@ -79,6 +80,7 @@ type Repository struct {
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
 	Updated                       time.Time        `json:"updated_at"`
+	ArchivedAt                    time.Time        `json:"archived_at"`
 	Permissions                   *Permission      `json:"permissions,omitempty"`
 	HasIssues                     bool             `json:"has_issues"`
 	InternalTracker               *InternalTracker `json:"internal_tracker,omitempty"`
@@ -87,6 +89,9 @@ type Repository struct {
 	ExternalWiki                  *ExternalWiki    `json:"external_wiki,omitempty"`
 	HasPullRequests               bool             `json:"has_pull_requests"`
 	HasProjects                   bool             `json:"has_projects"`
+	HasReleases                   bool             `json:"has_releases"`
+	HasPackages                   bool             `json:"has_packages"`
+	HasActions                    bool             `json:"has_actions"`
 	IgnoreWhitespaceConflicts     bool             `json:"ignore_whitespace_conflicts"`
 	AllowMerge                    bool             `json:"allow_merge_commits"`
 	AllowRebase                   bool             `json:"allow_rebase"`
@@ -95,6 +100,7 @@ type Repository struct {
 	AllowRebaseUpdate             bool             `json:"allow_rebase_update"`
 	DefaultDeleteBranchAfterMerge bool             `json:"default_delete_branch_after_merge"`
 	DefaultMergeStyle             string           `json:"default_merge_style"`
+	DefaultAllowMaintainerEdit    bool             `json:"default_allow_maintainer_edit"`
 	AvatarURL                     string           `json:"avatar_url"`
 	Internal                      bool             `json:"internal"`
 	MirrorInterval                string           `json:"mirror_interval"`
@@ -166,6 +172,12 @@ type EditRepoOption struct {
 	HasPullRequests *bool `json:"has_pull_requests,omitempty"`
 	// either `true` to enable project unit, or `false` to disable them.
 	HasProjects *bool `json:"has_projects,omitempty"`
+	// either `true` to enable releases unit, or `false` to disable them.
+	HasReleases *bool `json:"has_releases,omitempty"`
+	// either `true` to enable packages unit, or `false` to disable them.
+	HasPackages *bool `json:"has_packages,omitempty"`
+	// either `true` to enable actions unit, or `false` to disable them.
+	HasActions *bool `json:"has_actions,omitempty"`
 	// either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace.
 	IgnoreWhitespaceConflicts *bool `json:"ignore_whitespace_conflicts,omitempty"`
 	// either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits.
@@ -186,6 +198,8 @@ type EditRepoOption struct {
 	DefaultDeleteBranchAfterMerge *bool `json:"default_delete_branch_after_merge,omitempty"`
 	// set to a merge style to be used by this repository: "merge", "rebase", "rebase-merge", or "squash".
 	DefaultMergeStyle *string `json:"default_merge_style,omitempty"`
+	// set to `true` to allow edits from maintainers by default
+	DefaultAllowMaintainerEdit *bool `json:"default_allow_maintainer_edit,omitempty"`
 	// set to `true` to archive this repository.
 	Archived *bool `json:"archived,omitempty"`
 	// set to a string like `8h30m0s` to set the mirror interval time
@@ -224,6 +238,8 @@ type GenerateRepoOption struct {
 	Avatar bool `json:"avatar"`
 	// include labels in template repo
 	Labels bool `json:"labels"`
+	// include protected branches in template repo
+	ProtectedBranch bool `json:"protected_branch"`
 }
 
 // CreateBranchRepoOption options when creating a branch in a repository
@@ -235,10 +251,16 @@ type CreateBranchRepoOption struct {
 	// unique: true
 	BranchName string `json:"new_branch_name" binding:"Required;GitRefName;MaxSize(100)"`
 
+	// Deprecated: true
 	// Name of the old branch to create from
 	//
 	// unique: true
 	OldBranchName string `json:"old_branch_name" binding:"GitRefName;MaxSize(100)"`
+
+	// Name of the old branch/tag/commit to create from
+	//
+	// unique: true
+	OldRefName string `json:"old_ref_name" binding:"GitRefName;MaxSize(100)"`
 }
 
 // TransferRepoOption options when transfer a repository's ownership
@@ -307,7 +329,7 @@ type MigrateRepoOptions struct {
 	// required: true
 	RepoName string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
 
-	// enum: git,github,gitea,gitlab
+	// enum: git,github,gitea,gitlab,gogs,onedev,gitbucket,codebase
 	Service      string `json:"service"`
 	AuthUsername string `json:"auth_username"`
 	AuthPassword string `json:"auth_password"`
@@ -353,4 +375,16 @@ type RepoTransfer struct {
 	Doer      *User   `json:"doer"`
 	Recipient *User   `json:"recipient"`
 	Teams     []*Team `json:"teams"`
+}
+
+// NewIssuePinsAllowed represents an API response that says if new Issue Pins are allowed
+type NewIssuePinsAllowed struct {
+	Issues       bool `json:"issues"`
+	PullRequests bool `json:"pull_requests"`
+}
+
+// UpdateRepoAvatarUserOption options when updating the repo avatar
+type UpdateRepoAvatarOption struct {
+	// image must be base64 encoded
+	Image string `json:"image" binding:"Required"`
 }

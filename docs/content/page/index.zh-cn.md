@@ -10,7 +10,7 @@ draft: false
 
 # 关于Gitea
 
-Gitea 是一个自己托管的Git服务程序。他和GitHub, Bitbucket or Gitlab等比较类似。他是从 [Gogs](http://gogs.io) 发展而来，不过我们已经Fork并且命名为Gitea。对于我们Fork的原因可以看 [这里](https://blog.gitea.io/2016/12/welcome-to-gitea/)。
+Gitea 是一个自己托管的Git服务程序。他和GitHub, Bitbucket or Gitlab等比较类似。他是从 [Gogs](http://gogs.io) 发展而来，不过我们已经Fork并且命名为Gitea。对于我们Fork的原因可以看 [这里](https://blog.gitea.com/welcome-to-gitea/)。
 
 ## 目标
 
@@ -64,10 +64,6 @@ Gitea的首要目标是创建一个极易安装，运行非常快速，安装和
   - [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
   - [github.com/denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb)
 
-## 软件及服务支持
+## 集成支持
 
-- [Drone](https://github.com/drone/drone) (CI)
-
-## 需要帮助?
-
-如果从本页中没有找到你需要的内容，请访问 [帮助页面]({{< relref "seek-help.zh-cn.md" >}})
+请访问 [Awesome Gitea](https://gitea.com/gitea/awesome-gitea/) 获得更多的第三方集成支持

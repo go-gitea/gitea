@@ -6,7 +6,6 @@ package repository
 import (
 	"context"
 	"fmt"
-	"image/png"
 	"io"
 	"strconv"
 	"strings"
@@ -20,8 +19,8 @@ import (
 
 // UploadAvatar saves custom avatar for repository.
 // FIXME: split uploads to different subdirs in case we have massive number of repos.
-func UploadAvatar(repo *repo_model.Repository, data []byte) error {
-	m, err := avatar.Prepare(data)
+func UploadAvatar(ctx context.Context, repo *repo_model.Repository, data []byte) error {
+	avatarData, err := avatar.ProcessAvatarImage(data)
 	if err != nil {
 		return err
 	}
@@ -31,7 +30,7 @@ func UploadAvatar(repo *repo_model.Repository, data []byte) error {
 		return nil
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -47,9 +46,7 @@ func UploadAvatar(repo *repo_model.Repository, data []byte) error {
 	}
 
 	if err := storage.SaveFrom(storage.RepoAvatars, repo.CustomAvatarRelativePath(), func(w io.Writer) error {
-		if err := png.Encode(w, *m); err != nil {
-			log.Error("Encode: %v", err)
-		}
+		_, err := w.Write(avatarData)
 		return err
 	}); err != nil {
 		return fmt.Errorf("UploadAvatar %s failed: Failed to remove old repo avatar %s: %w", repo.RepoPath(), newAvatar, err)
@@ -65,7 +62,7 @@ func UploadAvatar(repo *repo_model.Repository, data []byte) error {
 }
 
 // DeleteAvatar deletes the repos's custom avatar.
-func DeleteAvatar(repo *repo_model.Repository) error {
+func DeleteAvatar(ctx context.Context, repo *repo_model.Repository) error {
 	// Avatar not exists
 	if len(repo.Avatar) == 0 {
 		return nil
@@ -74,7 +71,7 @@ func DeleteAvatar(repo *repo_model.Repository) error {
 	avatarPath := repo.CustomAvatarRelativePath()
 	log.Trace("DeleteAvatar[%d]: %s", repo.ID, avatarPath)
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -102,7 +99,7 @@ func RemoveRandomAvatars(ctx context.Context) error {
 		}
 		stringifiedID := strconv.FormatInt(repository.ID, 10)
 		if repository.Avatar == stringifiedID {
-			return DeleteAvatar(repository)
+			return DeleteAvatar(ctx, repository)
 		}
 		return nil
 	})

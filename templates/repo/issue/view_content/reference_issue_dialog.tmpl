@@ -3,7 +3,7 @@
 		{{.locale.Tr "repo.issues.context.reference_issue"}}
 	</div>
 	<div class="content" style="text-align:left">
-		<form class="ui form" action="{{Printf "%s/issues/new" .Repository.Link}}" method="post">
+		<form class="ui form" action="{{printf "%s/issues/new" .Repository.Link}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="ui segment content">
 				<div class="field">

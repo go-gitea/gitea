@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content user reset password">
+<div role="main" aria-label="{{.Title}}" class="page-content user reset password">
 	<div class="ui middle very relaxed page grid">
 		<div class="column">
 			<form class="ui form ignore-dirty" action="{{.Link}}" method="post">
@@ -48,7 +48,7 @@
 						</div>
 						{{end}}
 						{{end}}
-						<div class="ui divider"></div>
+						<div class="divider"></div>
 						<div class="inline field">
 							<label></label>
 							<button class="ui primary button">{{.locale.Tr "auth.reset_password_helper"}}</button>

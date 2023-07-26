@@ -67,7 +67,7 @@ func SendTestMail(email string) error {
 // sendUserMail sends a mail to the user
 func sendUserMail(language string, u *user_model.User, tpl base.TplName, code, subject, info string) {
 	locale := translation.NewLocale(language)
-	data := map[string]interface{}{
+	data := map[string]any{
 		"DisplayName":       u.DisplayName(),
 		"ActiveCodeLives":   timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, locale),
 		"ResetPwdCodeLives": timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, locale),
@@ -118,7 +118,7 @@ func SendActivateEmailMail(u *user_model.User, email *user_model.EmailAddress) {
 		return
 	}
 	locale := translation.NewLocale(u.Language)
-	data := map[string]interface{}{
+	data := map[string]any{
 		"DisplayName":     u.DisplayName(),
 		"ActiveCodeLives": timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, locale),
 		"Code":            u.GenerateEmailActivateCode(email.Email),
@@ -151,7 +151,7 @@ func SendRegisterNotifyMail(u *user_model.User) {
 	}
 	locale := translation.NewLocale(u.Language)
 
-	data := map[string]interface{}{
+	data := map[string]any{
 		"DisplayName": u.DisplayName(),
 		"Username":    u.Name,
 		"Language":    locale.Language(),
@@ -184,7 +184,7 @@ func SendCollaboratorMail(u, doer *user_model.User, repo *repo_model.Repository)
 	repoName := repo.FullName()
 
 	subject := locale.Tr("mail.repo.collaborator.added.subject", doer.DisplayName(), repoName)
-	data := map[string]interface{}{
+	data := map[string]any{
 		"Subject":  subject,
 		"RepoName": repoName,
 		"Link":     repo.HTMLURL(),
@@ -258,7 +258,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	}
 	locale := translation.NewLocale(lang)
 
-	mailMeta := map[string]interface{}{
+	mailMeta := map[string]any{
 		"FallbackSubject": fallback,
 		"Body":            body,
 		"Link":            link,

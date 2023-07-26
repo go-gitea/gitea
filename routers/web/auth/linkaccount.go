@@ -13,9 +13,12 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	auth_service "code.gitea.io/gitea/services/auth"
+	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/forms"
 
@@ -58,7 +61,7 @@ func LinkAccount(ctx *context.Context) {
 	ctx.Data["email"] = email
 
 	if len(email) != 0 {
-		u, err := user_model.GetUserByEmail(email)
+		u, err := user_model.GetUserByEmail(ctx, email)
 		if err != nil && !user_model.IsErrUserNotExist(err) {
 			ctx.ServerError("UserSignIn", err)
 			return
@@ -78,6 +81,32 @@ func LinkAccount(ctx *context.Context) {
 	}
 
 	ctx.HTML(http.StatusOK, tplLinkAccount)
+}
+
+func handleSignInError(ctx *context.Context, userName string, ptrForm any, tmpl base.TplName, invoker string, err error) {
+	if errors.Is(err, util.ErrNotExist) {
+		ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tmpl, ptrForm)
+	} else if errors.Is(err, util.ErrInvalidArgument) {
+		ctx.Data["user_exists"] = true
+		ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tmpl, ptrForm)
+	} else if user_model.IsErrUserProhibitLogin(err) {
+		ctx.Data["user_exists"] = true
+		log.Info("Failed authentication attempt for %s from %s: %v", userName, ctx.RemoteAddr(), err)
+		ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
+		ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
+	} else if user_model.IsErrUserInactive(err) {
+		ctx.Data["user_exists"] = true
+		if setting.Service.RegisterEmailConfirm {
+			ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
+			ctx.HTML(http.StatusOK, TplActivate)
+		} else {
+			log.Info("Failed authentication attempt for %s from %s: %v", userName, ctx.RemoteAddr(), err)
+			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
+			ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
+		}
+	} else {
+		ctx.ServerError(invoker, err)
+	}
 }
 
 // LinkAccountPostSignIn handle the coupling of external account with another account using signIn
@@ -115,12 +144,7 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 
 	u, _, err := auth_service.UserSignIn(signInForm.UserName, signInForm.Password)
 	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			ctx.Data["user_exists"] = true
-			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplLinkAccount, &signInForm)
-		} else {
-			ctx.ServerError("UserLinkAccount", err)
-		}
+		handleSignInError(ctx, signInForm.UserName, &signInForm, tplLinkAccount, "UserLinkAccount", err)
 		return
 	}
 
@@ -150,7 +174,7 @@ func linkAccount(ctx *context.Context, u *user_model.User, gothUser goth.User, r
 		return
 	}
 
-	if err := updateSession(ctx, nil, map[string]interface{}{
+	if err := updateSession(ctx, nil, map[string]any{
 		// User needs to use 2FA, save data and redirect to 2FA page.
 		"twofaUid":      u.ID,
 		"twofaRemember": remember,
@@ -264,6 +288,12 @@ func LinkAccountPostRegister(ctx *context.Context) {
 
 	if !createAndHandleCreatedUser(ctx, tplLinkAccount, form, u, nil, &gothUser, false) {
 		// error already handled
+		return
+	}
+
+	source := authSource.Cfg.(*oauth2.Source)
+	if err := syncGroupsToTeams(ctx, source, &gothUser, u); err != nil {
+		ctx.ServerError("SyncGroupsToTeams", err)
 		return
 	}
 

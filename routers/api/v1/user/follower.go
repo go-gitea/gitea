@@ -17,7 +17,7 @@ import (
 func responseAPIUsers(ctx *context.APIContext, users []*user_model.User) {
 	apiUsers := make([]*api.User, len(users))
 	for i := range users {
-		apiUsers[i] = convert.ToUser(users[i], ctx.Doer)
+		apiUsers[i] = convert.ToUser(ctx, users[i], ctx.Doer)
 	}
 	ctx.JSON(http.StatusOK, &apiUsers)
 }

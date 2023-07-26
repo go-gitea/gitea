@@ -8,8 +8,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
-
-	"gopkg.in/ini.v1"
 )
 
 // ExternalMarkupRenderers represents the external markup renderers
@@ -24,6 +22,20 @@ const (
 	RenderContentModeNoSanitizer = "no-sanitizer"
 	RenderContentModeIframe      = "iframe"
 )
+
+// Markdown settings
+var Markdown = struct {
+	EnableHardLineBreakInComments  bool
+	EnableHardLineBreakInDocuments bool
+	CustomURLSchemes               []string `ini:"CUSTOM_URL_SCHEMES"`
+	FileExtensions                 []string
+	EnableMath                     bool
+}{
+	EnableHardLineBreakInComments:  true,
+	EnableHardLineBreakInDocuments: false,
+	FileExtensions:                 strings.Split(".md,.markdown,.mdown,.mkd,.livemd", ","),
+	EnableMath:                     true,
+}
 
 // MarkupRenderer defines the external parser configured in ini
 type MarkupRenderer struct {
@@ -46,12 +58,14 @@ type MarkupSanitizerRule struct {
 	AllowDataURIImages bool
 }
 
-func newMarkup() {
-	MermaidMaxSourceCharacters = Cfg.Section("markup").Key("MERMAID_MAX_SOURCE_CHARACTERS").MustInt(5000)
+func loadMarkupFrom(rootCfg ConfigProvider) {
+	mustMapSetting(rootCfg, "markdown", &Markdown)
+
+	MermaidMaxSourceCharacters = rootCfg.Section("markup").Key("MERMAID_MAX_SOURCE_CHARACTERS").MustInt(5000)
 	ExternalMarkupRenderers = make([]*MarkupRenderer, 0, 10)
 	ExternalSanitizerRules = make([]MarkupSanitizerRule, 0, 10)
 
-	for _, sec := range Cfg.Section("markup").ChildSections() {
+	for _, sec := range rootCfg.Section("markup").ChildSections() {
 		name := strings.TrimPrefix(sec.Name(), "markup.")
 		if name == "" {
 			log.Warn("name is empty, markup " + sec.Name() + "ignored")
@@ -66,7 +80,7 @@ func newMarkup() {
 	}
 }
 
-func newMarkupSanitizer(name string, sec *ini.Section) {
+func newMarkupSanitizer(name string, sec ConfigSection) {
 	rule, ok := createMarkupSanitizerRule(name, sec)
 	if ok {
 		if strings.HasPrefix(name, "sanitizer.") {
@@ -83,7 +97,7 @@ func newMarkupSanitizer(name string, sec *ini.Section) {
 	}
 }
 
-func createMarkupSanitizerRule(name string, sec *ini.Section) (MarkupSanitizerRule, bool) {
+func createMarkupSanitizerRule(name string, sec ConfigSection) (MarkupSanitizerRule, bool) {
 	var rule MarkupSanitizerRule
 
 	ok := false
@@ -125,7 +139,7 @@ func createMarkupSanitizerRule(name string, sec *ini.Section) (MarkupSanitizerRu
 	return rule, true
 }
 
-func newMarkupRenderer(name string, sec *ini.Section) {
+func newMarkupRenderer(name string, sec ConfigSection) {
 	extensionReg := regexp.MustCompile(`\.\w`)
 
 	extensions := sec.Key("FILE_EXTENSIONS").Strings(",")

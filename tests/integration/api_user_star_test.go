@@ -22,13 +22,13 @@ func TestAPIStar(t *testing.T) {
 	repo := "user2/repo1"
 
 	session := loginUser(t, user)
-	token := getTokenForLoggedInUser(t, session)
-	tokenWithRepoScope := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
+	tokenWithUserScope := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
 
 	t.Run("Star", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "PUT", fmt.Sprintf("/api/v1/user/starred/%s?token=%s", repo, tokenWithRepoScope))
+		req := NewRequest(t, "PUT", fmt.Sprintf("/api/v1/user/starred/%s?token=%s", repo, tokenWithUserScope))
 		MakeRequest(t, req, http.StatusNoContent)
 	})
 
@@ -49,7 +49,7 @@ func TestAPIStar(t *testing.T) {
 	t.Run("GetMyStarredRepos", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/starred?token=%s", tokenWithRepoScope))
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/starred?token=%s", tokenWithUserScope))
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		assert.Equal(t, "1", resp.Header().Get("X-Total-Count"))
@@ -63,17 +63,17 @@ func TestAPIStar(t *testing.T) {
 	t.Run("IsStarring", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/starred/%s?token=%s", repo, tokenWithRepoScope))
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/starred/%s?token=%s", repo, tokenWithUserScope))
 		MakeRequest(t, req, http.StatusNoContent)
 
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/starred/%s?token=%s", repo+"notexisting", tokenWithRepoScope))
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/starred/%s?token=%s", repo+"notexisting", tokenWithUserScope))
 		MakeRequest(t, req, http.StatusNotFound)
 	})
 
 	t.Run("Unstar", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/user/starred/%s?token=%s", repo, tokenWithRepoScope))
+		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/user/starred/%s?token=%s", repo, tokenWithUserScope))
 		MakeRequest(t, req, http.StatusNoContent)
 	})
 }

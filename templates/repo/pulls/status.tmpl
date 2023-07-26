@@ -26,7 +26,7 @@
 					{{if $.is_context_required}}
 						{{if (call $.is_context_required .Context)}}<div class="ui label">{{$.locale.Tr "repo.pulls.status_checks_requested"}}</div>{{end}}
 					{{end}}
-					<span class="ui">{{if .TargetURL}}<a href="{{.TargetURL}}">{{$.locale.Tr "repo.pulls.status_checks_details"}}</a>{{end}}</span>
+					<span>{{if .TargetURL}}<a href="{{.TargetURL}}">{{$.locale.Tr "repo.pulls.status_checks_details"}}</a>{{end}}</span>
 				</div>
 			</div>
 		</div>

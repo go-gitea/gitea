@@ -10,6 +10,7 @@ import (
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/tests"
 
@@ -20,7 +21,7 @@ func TestUserHeatmap(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
 	normalUsername := "user2"
-	token := getUserToken(t, adminUsername)
+	token := getUserToken(t, adminUsername, auth_model.AccessTokenScopeReadUser)
 
 	fakeNow := time.Date(2011, 10, 20, 0, 0, 0, 0, time.Local)
 	timeutil.Set(fakeNow)

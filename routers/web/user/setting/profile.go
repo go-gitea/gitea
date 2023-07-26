@@ -27,9 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/services/agit"
 	"code.gitea.io/gitea/services/forms"
-	container_service "code.gitea.io/gitea/services/packages/container"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
@@ -42,7 +40,7 @@ const (
 
 // Profile render user's profile page
 func Profile(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings.profile")
 	ctx.Data["PageIsSettingsProfile"] = true
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
@@ -51,51 +49,32 @@ func Profile(ctx *context.Context) {
 
 // HandleUsernameChange handle username changes from user settings and admin interface
 func HandleUsernameChange(ctx *context.Context, user *user_model.User, newName string) error {
-	// Non-local users are not allowed to change their username.
-	if !user.IsLocal() {
-		ctx.Flash.Error(ctx.Tr("form.username_change_not_local_user"))
-		return fmt.Errorf(ctx.Tr("form.username_change_not_local_user"))
-	}
-
-	// Check if user name has been changed
-	if user.LowerName != strings.ToLower(newName) {
-		if err := user_model.ChangeUserName(user, newName); err != nil {
-			switch {
-			case user_model.IsErrUserAlreadyExist(err):
-				ctx.Flash.Error(ctx.Tr("form.username_been_taken"))
-			case user_model.IsErrEmailAlreadyUsed(err):
-				ctx.Flash.Error(ctx.Tr("form.email_been_used"))
-			case db.IsErrNameReserved(err):
-				ctx.Flash.Error(ctx.Tr("user.form.name_reserved", newName))
-			case db.IsErrNamePatternNotAllowed(err):
-				ctx.Flash.Error(ctx.Tr("user.form.name_pattern_not_allowed", newName))
-			case db.IsErrNameCharsNotAllowed(err):
-				ctx.Flash.Error(ctx.Tr("user.form.name_chars_not_allowed", newName))
-			default:
-				ctx.ServerError("ChangeUserName", err)
-			}
-			return err
+	oldName := user.Name
+	// rename user
+	if err := user_service.RenameUser(ctx, user, newName); err != nil {
+		switch {
+		// Noop as username is not changed
+		case user_model.IsErrUsernameNotChanged(err):
+			ctx.Flash.Error(ctx.Tr("form.username_has_not_been_changed"))
+		// Non-local users are not allowed to change their username.
+		case user_model.IsErrUserIsNotLocal(err):
+			ctx.Flash.Error(ctx.Tr("form.username_change_not_local_user"))
+		case user_model.IsErrUserAlreadyExist(err):
+			ctx.Flash.Error(ctx.Tr("form.username_been_taken"))
+		case user_model.IsErrEmailAlreadyUsed(err):
+			ctx.Flash.Error(ctx.Tr("form.email_been_used"))
+		case db.IsErrNameReserved(err):
+			ctx.Flash.Error(ctx.Tr("user.form.name_reserved", newName))
+		case db.IsErrNamePatternNotAllowed(err):
+			ctx.Flash.Error(ctx.Tr("user.form.name_pattern_not_allowed", newName))
+		case db.IsErrNameCharsNotAllowed(err):
+			ctx.Flash.Error(ctx.Tr("user.form.name_chars_not_allowed", newName))
+		default:
+			ctx.ServerError("ChangeUserName", err)
 		}
-	} else {
-		if err := repo_model.UpdateRepositoryOwnerNames(user.ID, newName); err != nil {
-			ctx.ServerError("UpdateRepository", err)
-			return err
-		}
-	}
-
-	// update all agit flow pull request header
-	err := agit.UserNameChanged(user, newName)
-	if err != nil {
-		ctx.ServerError("agit.UserNameChanged", err)
 		return err
 	}
-
-	if err := container_service.UpdateRepositoryNames(ctx, user, newName); err != nil {
-		ctx.ServerError("UpdateRepositoryNames", err)
-		return err
-	}
-
-	log.Trace("User name changed: %s -> %s", user.Name, newName)
+	log.Trace("User name changed: %s -> %s", oldName, newName)
 	return nil
 }
 
@@ -137,11 +116,8 @@ func ProfilePost(ctx *context.Context) {
 		return
 	}
 
-	// Update the language to the one we just set
-	middleware.SetLocaleCookie(ctx.Resp, ctx.Doer.Language, 0)
-
 	log.Trace("User settings updated: %s", ctx.Doer.Name)
-	ctx.Flash.Success(translation.NewLocale(ctx.Doer.Language).Tr("settings.update_profile_success"))
+	ctx.Flash.Success(ctx.Tr("settings.update_profile_success"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings")
 }
 
@@ -219,7 +195,7 @@ func DeleteAvatar(ctx *context.Context) {
 
 // Organization render all the organization of the user
 func Organization(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings.organization")
 	ctx.Data["PageIsSettingsOrganization"] = true
 
 	opts := organization.FindOrgOptions{
@@ -254,7 +230,7 @@ func Organization(ctx *context.Context) {
 
 // Repos display a list of all repositories of the user
 func Repos(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings.repos")
 	ctx.Data["PageIsSettingsRepos"] = true
 	ctx.Data["allowAdopt"] = ctx.IsUserSiteAdmin() || setting.Repository.AllowAdoptionOfUnadoptedRepositories
 	ctx.Data["allowDelete"] = ctx.IsUserSiteAdmin() || setting.Repository.AllowDeleteOfUnadoptedRepositories
@@ -351,7 +327,7 @@ func Repos(ctx *context.Context) {
 
 		ctx.Data["Repos"] = repos
 	}
-	ctx.Data["Owner"] = ctxUser
+	ctx.Data["ContextUser"] = ctxUser
 	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
@@ -360,7 +336,7 @@ func Repos(ctx *context.Context) {
 
 // Appearance render user's appearance settings
 func Appearance(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings.appearance")
 	ctx.Data["PageIsSettingsAppearance"] = true
 
 	var hiddenCommentTypes *big.Int

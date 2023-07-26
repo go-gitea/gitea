@@ -3,21 +3,23 @@
 
 package setting
 
-// settings
+// Avatar settings
+
 var (
-	// Picture settings
 	Avatar = struct {
-		Storage
+		Storage *Storage
 
 		MaxWidth           int
 		MaxHeight          int
 		MaxFileSize        int64
+		MaxOriginSize      int64
 		RenderedSizeFactor int
 	}{
 		MaxWidth:           4096,
-		MaxHeight:          3072,
+		MaxHeight:          4096,
 		MaxFileSize:        1048576,
-		RenderedSizeFactor: 3,
+		MaxOriginSize:      262144,
+		RenderedSizeFactor: 2,
 	}
 
 	GravatarSource        string
@@ -25,28 +27,32 @@ var (
 	EnableFederatedAvatar bool // Depreciated: migrated to database
 
 	RepoAvatar = struct {
-		Storage
+		Storage *Storage
 
 		Fallback      string
 		FallbackImage string
 	}{}
 )
 
-func newPictureService() {
-	sec := Cfg.Section("picture")
+func loadAvatarsFrom(rootCfg ConfigProvider) error {
+	sec := rootCfg.Section("picture")
 
-	avatarSec := Cfg.Section("avatar")
+	avatarSec := rootCfg.Section("avatar")
 	storageType := sec.Key("AVATAR_STORAGE_TYPE").MustString("")
 	// Specifically default PATH to AVATAR_UPLOAD_PATH
-	avatarSec.Key("PATH").MustString(
-		sec.Key("AVATAR_UPLOAD_PATH").String())
+	avatarSec.Key("PATH").MustString(sec.Key("AVATAR_UPLOAD_PATH").String())
 
-	Avatar.Storage = getStorage("avatars", storageType, avatarSec)
+	var err error
+	Avatar.Storage, err = getStorage(rootCfg, "avatars", storageType, avatarSec)
+	if err != nil {
+		return err
+	}
 
 	Avatar.MaxWidth = sec.Key("AVATAR_MAX_WIDTH").MustInt(4096)
-	Avatar.MaxHeight = sec.Key("AVATAR_MAX_HEIGHT").MustInt(3072)
+	Avatar.MaxHeight = sec.Key("AVATAR_MAX_HEIGHT").MustInt(4096)
 	Avatar.MaxFileSize = sec.Key("AVATAR_MAX_FILE_SIZE").MustInt64(1048576)
-	Avatar.RenderedSizeFactor = sec.Key("AVATAR_RENDERED_SIZE_FACTOR").MustInt(3)
+	Avatar.MaxOriginSize = sec.Key("AVATAR_MAX_ORIGIN_SIZE").MustInt64(262144)
+	Avatar.RenderedSizeFactor = sec.Key("AVATAR_RENDERED_SIZE_FACTOR").MustInt(2)
 
 	switch source := sec.Key("GRAVATAR_SOURCE").MustString("gravatar"); source {
 	case "duoshuo":
@@ -60,11 +66,11 @@ func newPictureService() {
 	}
 
 	DisableGravatar = sec.Key("DISABLE_GRAVATAR").MustBool(GetDefaultDisableGravatar())
-	deprecatedSettingDB("", "DISABLE_GRAVATAR")
+	deprecatedSettingDB(rootCfg, "", "DISABLE_GRAVATAR")
 	EnableFederatedAvatar = sec.Key("ENABLE_FEDERATED_AVATAR").MustBool(GetDefaultEnableFederatedAvatar(DisableGravatar))
-	deprecatedSettingDB("", "ENABLE_FEDERATED_AVATAR")
+	deprecatedSettingDB(rootCfg, "", "ENABLE_FEDERATED_AVATAR")
 
-	newRepoAvatarService()
+	return nil
 }
 
 func GetDefaultDisableGravatar() bool {
@@ -82,17 +88,22 @@ func GetDefaultEnableFederatedAvatar(disableGravatar bool) bool {
 	return v
 }
 
-func newRepoAvatarService() {
-	sec := Cfg.Section("picture")
+func loadRepoAvatarFrom(rootCfg ConfigProvider) error {
+	sec := rootCfg.Section("picture")
 
-	repoAvatarSec := Cfg.Section("repo-avatar")
+	repoAvatarSec := rootCfg.Section("repo-avatar")
 	storageType := sec.Key("REPOSITORY_AVATAR_STORAGE_TYPE").MustString("")
 	// Specifically default PATH to AVATAR_UPLOAD_PATH
-	repoAvatarSec.Key("PATH").MustString(
-		sec.Key("REPOSITORY_AVATAR_UPLOAD_PATH").String())
+	repoAvatarSec.Key("PATH").MustString(sec.Key("REPOSITORY_AVATAR_UPLOAD_PATH").String())
 
-	RepoAvatar.Storage = getStorage("repo-avatars", storageType, repoAvatarSec)
+	var err error
+	RepoAvatar.Storage, err = getStorage(rootCfg, "repo-avatars", storageType, repoAvatarSec)
+	if err != nil {
+		return err
+	}
 
 	RepoAvatar.Fallback = sec.Key("REPOSITORY_AVATAR_FALLBACK").MustString("none")
-	RepoAvatar.FallbackImage = sec.Key("REPOSITORY_AVATAR_FALLBACK_IMAGE").MustString("/assets/img/repo_default.png")
+	RepoAvatar.FallbackImage = sec.Key("REPOSITORY_AVATAR_FALLBACK_IMAGE").MustString(AppSubURL + "/assets/img/repo_default.png")
+
+	return nil
 }

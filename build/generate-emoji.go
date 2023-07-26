@@ -25,7 +25,7 @@ import (
 
 const (
 	gemojiURL         = "https://raw.githubusercontent.com/github/gemoji/master/db/emoji.json"
-	maxUnicodeVersion = 14
+	maxUnicodeVersion = 15
 )
 
 var flagOut = flag.String("o", "modules/emoji/emoji_data.go", "out")
@@ -60,13 +60,13 @@ func main() {
 	// generate data
 	buf, err := generate()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("generate err: %v", err)
 	}
 
 	// write
 	err = os.WriteFile(*flagOut, buf, 0o644)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("WriteFile err: %v", err)
 	}
 }
 

@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -26,7 +25,7 @@ var repoWorkingPool = sync.NewExclusivePool()
 
 // TransferOwnership transfers all corresponding setting from old user to new one.
 func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository, teams []*organization.Team) error {
-	if err := repo.GetOwner(ctx); err != nil {
+	if err := repo.LoadOwner(ctx); err != nil {
 		return err
 	}
 	for _, team := range teams {
@@ -61,7 +60,7 @@ func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, rep
 }
 
 // ChangeRepositoryName changes all corresponding setting from old repository name to new one.
-func ChangeRepositoryName(doer *user_model.User, repo *repo_model.Repository, newRepoName string) error {
+func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, newRepoName string) error {
 	log.Trace("ChangeRepositoryName: %s/%s -> %s", doer.Name, repo.Name, newRepoName)
 
 	oldRepoName := repo.Name
@@ -78,7 +77,7 @@ func ChangeRepositoryName(doer *user_model.User, repo *repo_model.Repository, ne
 	repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 
 	repo.Name = newRepoName
-	notification.NotifyRenameRepository(db.DefaultContext, doer, repo, oldRepoName)
+	notification.NotifyRenameRepository(ctx, doer, repo, oldRepoName)
 
 	return nil
 }

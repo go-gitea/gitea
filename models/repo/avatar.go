@@ -85,12 +85,7 @@ func (repo *Repository) relAvatarLink(ctx context.Context) string {
 }
 
 // AvatarLink returns a link to the repository's avatar.
-func (repo *Repository) AvatarLink() string {
-	return repo.avatarLink(db.DefaultContext)
-}
-
-// avatarLink returns user avatar absolute link.
-func (repo *Repository) avatarLink(ctx context.Context) string {
+func (repo *Repository) AvatarLink(ctx context.Context) string {
 	link := repo.relAvatarLink(ctx)
 	// we only prepend our AppURL to our known (relative, internal) avatar link to get an absolute URL
 	if strings.HasPrefix(link, "/") && !strings.HasPrefix(link, "//") {

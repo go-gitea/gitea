@@ -2,9 +2,11 @@
 date: "2016-12-01T16:00:00+02:00"
 title: "使用包管理器安装"
 slug: "install-from-package"
-weight: 10
+weight: 20
 toc: false
 draft: false
+aliases:
+  - /zh-cn/install-from-package
 menu:
   sidebar:
     parent: "installation"
@@ -13,11 +15,22 @@ menu:
     identifier: "install-from-package"
 ---
 
-# 使用包管理器安装
-
 **目录**
 
 {{< toc >}}
+
+# 官方包管理器
+
+## macOS
+
+macOS 平台下当前我们仅支持通过 `brew` 来安装。如果你没有安装 [Homebrew](http://brew.sh/)，你也可以查看 [从二进制安装]({{< relref "doc/installation/from-binary.zh-cn.md" >}})。在你安装了 `brew` 之后， 你可以执行以下命令：
+
+```
+brew tap gitea/tap https://gitea.com/gitea/homebrew-gitea
+brew install gitea
+```
+
+# 非官方包管理器
 
 ## Alpine Linux
 
@@ -64,16 +77,7 @@ OpenSUSE 构建服务为 [openSUSE 和 SLE](https://software.opensuse.org/downlo
 choco install gitea
 ```
 
-你也可以 [从二进制安装]({{< relref "from-binary.zh-cn.md" >}}) 。
-
-## macOS
-
-macOS 平台下当前我们仅支持通过 `brew` 来安装。如果你没有安装 [Homebrew](http://brew.sh/)，你也可以查看 [从二进制安装]({{< relref "from-binary.zh-cn.md" >}})。在你安装了 `brew` 之后， 你可以执行以下命令：
-
-```
-brew tap gitea/tap https://gitea.com/gitea/homebrew-gitea
-brew install gitea
-```
+你也可以 [从二进制安装]({{< relref "doc/installation/from-binary.zh-cn.md" >}}) 。
 
 ## FreeBSD
 
@@ -102,7 +106,3 @@ make install clean
 如果这里没有找到你喜欢的包管理器，可以使用 Gitea 第三方软件包。这里有一个完整的列表： [awesome-gitea](https://gitea.com/gitea/awesome-gitea/src/branch/master/README.md#user-content-packages)。
 
 如果你知道其他 Gitea 第三方软件包，请发送 PR 来添加它。
-
-## 需要帮助?
-
-如果从本页中没有找到你需要的内容，请访问 [帮助页面]({{< relref "seek-help.zh-cn.md" >}})

@@ -20,7 +20,7 @@ func TestIsProjectTypeValid(t *testing.T) {
 		typ   Type
 		valid bool
 	}{
-		{TypeIndividual, false},
+		{TypeIndividual, true},
 		{TypeRepository, true},
 		{TypeOrganization, true},
 		{UnknownType, false},
@@ -53,6 +53,7 @@ func TestProject(t *testing.T) {
 	project := &Project{
 		Type:        TypeRepository,
 		BoardType:   BoardTypeBasicKanban,
+		CardType:    CardTypeTextOnly,
 		Title:       "New Project",
 		RepoID:      1,
 		CreatedUnix: timeutil.TimeStampNow(),
@@ -80,4 +81,43 @@ func TestProject(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.True(t, projectFromDB.IsClosed)
+}
+
+func TestProjectsSort(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	tests := []struct {
+		sortType string
+		wants    []int64
+	}{
+		{
+			sortType: "default",
+			wants:    []int64{1, 3, 2, 4},
+		},
+		{
+			sortType: "oldest",
+			wants:    []int64{4, 2, 3, 1},
+		},
+		{
+			sortType: "recentupdate",
+			wants:    []int64{1, 3, 2, 4},
+		},
+		{
+			sortType: "leastupdate",
+			wants:    []int64{4, 2, 3, 1},
+		},
+	}
+
+	for _, tt := range tests {
+		projects, count, err := FindProjects(db.DefaultContext, SearchOptions{
+			OrderBy: GetSearchOrderByBySortType(tt.sortType),
+		})
+		assert.NoError(t, err)
+		assert.EqualValues(t, int64(4), count)
+		if assert.Len(t, projects, 4) {
+			for i := range projects {
+				assert.EqualValues(t, tt.wants[i], projects[i].ID)
+			}
+		}
+	}
 }

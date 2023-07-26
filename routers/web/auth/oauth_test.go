@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,7 +26,7 @@ func createAndParseToken(t *testing.T, grant *auth.OAuth2Grant) *oauth2.OIDCToke
 	assert.Nil(t, terr)
 	assert.NotNil(t, response)
 
-	parsedToken, err := jwt.ParseWithClaims(response.IDToken, &oauth2.OIDCToken{}, func(token *jwt.Token) (interface{}, error) {
+	parsedToken, err := jwt.ParseWithClaims(response.IDToken, &oauth2.OIDCToken{}, func(token *jwt.Token) (any, error) {
 		assert.NotNil(t, token.Method)
 		assert.Equal(t, signingKey.SigningMethod().Alg(), token.Method.Alg())
 		return signingKey.VerifyKey(), nil
@@ -69,7 +69,7 @@ func TestNewAccessTokenResponse_OIDCToken(t *testing.T) {
 	assert.Equal(t, user.Name, oidcToken.Name)
 	assert.Equal(t, user.Name, oidcToken.PreferredUsername)
 	assert.Equal(t, user.HTMLURL(), oidcToken.Profile)
-	assert.Equal(t, user.AvatarLink(), oidcToken.Picture)
+	assert.Equal(t, user.AvatarLink(db.DefaultContext), oidcToken.Picture)
 	assert.Equal(t, user.Website, oidcToken.Website)
 	assert.Equal(t, user.UpdatedUnix, oidcToken.UpdatedAt)
 	assert.Equal(t, user.Email, oidcToken.Email)
@@ -87,7 +87,7 @@ func TestNewAccessTokenResponse_OIDCToken(t *testing.T) {
 	assert.Equal(t, user.FullName, oidcToken.Name)
 	assert.Equal(t, user.Name, oidcToken.PreferredUsername)
 	assert.Equal(t, user.HTMLURL(), oidcToken.Profile)
-	assert.Equal(t, user.AvatarLink(), oidcToken.Picture)
+	assert.Equal(t, user.AvatarLink(db.DefaultContext), oidcToken.Picture)
 	assert.Equal(t, user.Website, oidcToken.Website)
 	assert.Equal(t, user.UpdatedUnix, oidcToken.UpdatedAt)
 	assert.Equal(t, user.Email, oidcToken.Email)

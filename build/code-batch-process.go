@@ -25,7 +25,7 @@ import (
 
 var optionLogVerbose bool
 
-func logVerbose(msg string, args ...interface{}) {
+func logVerbose(msg string, args ...any) {
 	if optionLogVerbose {
 		log.Printf(msg, args...)
 	}
@@ -65,7 +65,6 @@ func newFileCollector(fileFilter string, batchSize int) (*fileCollector, error) 
 			"modules",
 			"routers",
 			"services",
-			"tools",
 		}
 		co.includePatterns = append(co.includePatterns, regexp.MustCompile(`.*\.go$`))
 

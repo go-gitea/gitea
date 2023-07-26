@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
-	secret_model "code.gitea.io/gitea/models/secret"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/base"
@@ -23,8 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/services/forms"
-	"code.gitea.io/gitea/services/org"
-	container_service "code.gitea.io/gitea/services/packages/container"
+	org_service "code.gitea.io/gitea/services/org"
 	repo_service "code.gitea.io/gitea/services/repository"
 	user_service "code.gitea.io/gitea/services/user"
 )
@@ -38,12 +36,6 @@ const (
 	tplSettingsHooks base.TplName = "org/settings/hooks"
 	// tplSettingsLabels template path for render labels settings
 	tplSettingsLabels base.TplName = "org/settings/labels"
-	// tplSettingsSecrets template path for render secrets settings
-	tplSettingsSecrets base.TplName = "org/settings/secrets"
-	// tplSettingsRunners template path for render runners settings
-	tplSettingsRunners base.TplName = "org/settings/runners"
-	// tplSettingsRunnersEdit template path for render runners edit settings
-	tplSettingsRunnersEdit base.TplName = "org/settings/runners_edit"
 )
 
 // Settings render the main settings page
@@ -53,6 +45,7 @@ func Settings(ctx *context.Context) {
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
 	ctx.Data["RepoAdminChangeTeamAccess"] = ctx.Org.Organization.RepoAdminChangeTeamAccess
+	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.HTML(http.StatusOK, tplSettingsOptions)
 }
 
@@ -73,38 +66,29 @@ func SettingsPost(ctx *context.Context) {
 	nameChanged := org.Name != form.Name
 
 	// Check if organization name has been changed.
-	if org.LowerName != strings.ToLower(form.Name) {
-		isExist, err := user_model.IsUserExist(ctx, org.ID, form.Name)
-		if err != nil {
-			ctx.ServerError("IsUserExist", err)
-			return
-		} else if isExist {
+	if nameChanged {
+		err := org_service.RenameOrganization(ctx, org, form.Name)
+		switch {
+		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Data["OrgName"] = true
 			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tplSettingsOptions, &form)
 			return
-		} else if err = user_model.ChangeUserName(org.AsUser(), form.Name); err != nil {
-			switch {
-			case db.IsErrNameReserved(err):
-				ctx.Data["OrgName"] = true
-				ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplSettingsOptions, &form)
-			case db.IsErrNamePatternNotAllowed(err):
-				ctx.Data["OrgName"] = true
-				ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplSettingsOptions, &form)
-			default:
-				ctx.ServerError("ChangeUserName", err)
-			}
+		case db.IsErrNameReserved(err):
+			ctx.Data["OrgName"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplSettingsOptions, &form)
 			return
-		}
-
-		if err := container_service.UpdateRepositoryNames(ctx, org.AsUser(), form.Name); err != nil {
-			ctx.ServerError("UpdateRepositoryNames", err)
+		case db.IsErrNamePatternNotAllowed(err):
+			ctx.Data["OrgName"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplSettingsOptions, &form)
+			return
+		case err != nil:
+			ctx.ServerError("org_service.RenameOrganization", err)
 			return
 		}
 
 		// reset ctx.org.OrgLink with new name
 		ctx.Org.OrgLink = setting.AppSubURL + "/org/" + url.PathEscape(form.Name)
 		log.Trace("Organization name changed: %s -> %s", org.Name, form.Name)
-		nameChanged = false
 	}
 
 	// In case it's just a case change.
@@ -116,6 +100,7 @@ func SettingsPost(ctx *context.Context) {
 	}
 
 	org.FullName = form.FullName
+	org.Email = form.Email
 	org.Description = form.Description
 	org.Website = form.Website
 	org.Location = form.Location
@@ -140,15 +125,10 @@ func SettingsPost(ctx *context.Context) {
 		}
 		for _, repo := range repos {
 			repo.OwnerName = org.Name
-			if err := repo_service.UpdateRepository(repo, true); err != nil {
+			if err := repo_service.UpdateRepository(ctx, repo, true); err != nil {
 				ctx.ServerError("UpdateRepository", err)
 				return
 			}
-		}
-	} else if nameChanged {
-		if err := repo_model.UpdateRepositoryOwnerNames(org.ID, org.Name); err != nil {
-			ctx.ServerError("UpdateRepository", err)
-			return
 		}
 	}
 
@@ -192,7 +172,7 @@ func SettingsDelete(ctx *context.Context) {
 			return
 		}
 
-		if err := org.DeleteOrganization(ctx.Org.Organization); err != nil {
+		if err := org_service.DeleteOrganization(ctx.Org.Organization); err != nil {
 			if models.IsErrUserOwnRepos(err) {
 				ctx.Flash.Error(ctx.Tr("form.org_still_own_repo"))
 				ctx.Redirect(ctx.Org.OrgLink + "/settings/delete")
@@ -221,9 +201,9 @@ func Webhooks(ctx *context.Context) {
 	ctx.Data["BaseLinkNew"] = ctx.Org.OrgLink + "/settings/hooks"
 	ctx.Data["Description"] = ctx.Tr("org.settings.hooks_desc")
 
-	ws, err := webhook.ListWebhooksByOpts(ctx, &webhook.ListWebhookOptions{OrgID: ctx.Org.Organization.ID})
+	ws, err := webhook.ListWebhooksByOpts(ctx, &webhook.ListWebhookOptions{OwnerID: ctx.Org.Organization.ID})
 	if err != nil {
-		ctx.ServerError("GetWebhooksByOrgId", err)
+		ctx.ServerError("ListWebhooksByOpts", err)
 		return
 	}
 
@@ -233,13 +213,13 @@ func Webhooks(ctx *context.Context) {
 
 // DeleteWebhook response for delete webhook
 func DeleteWebhook(ctx *context.Context) {
-	if err := webhook.DeleteWebhookByOrgID(ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
-		ctx.Flash.Error("DeleteWebhookByOrgID: " + err.Error())
+	if err := webhook.DeleteWebhookByOwnerID(ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
+		ctx.Flash.Error("DeleteWebhookByOwnerID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"redirect": ctx.Org.OrgLink + "/settings/hooks",
 	})
 }
@@ -249,55 +229,6 @@ func Labels(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.labels")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsOrgSettingsLabels"] = true
-	ctx.Data["RequireTribute"] = true
-	ctx.Data["LabelTemplates"] = repo_module.LabelTemplates
+	ctx.Data["LabelTemplateFiles"] = repo_module.LabelTemplateFiles
 	ctx.HTML(http.StatusOK, tplSettingsLabels)
-}
-
-// Secrets render organization secrets page
-func Secrets(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.secrets")
-	ctx.Data["PageIsOrgSettings"] = true
-	ctx.Data["PageIsOrgSettingsSecrets"] = true
-
-	secrets, err := secret_model.FindSecrets(ctx, secret_model.FindSecretsOptions{OwnerID: ctx.Org.Organization.ID})
-	if err != nil {
-		ctx.ServerError("FindSecrets", err)
-		return
-	}
-	ctx.Data["Secrets"] = secrets
-
-	ctx.HTML(http.StatusOK, tplSettingsSecrets)
-}
-
-// SecretsPost add secrets
-func SecretsPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.AddSecretForm)
-
-	_, err := secret_model.InsertEncryptedSecret(ctx, ctx.Org.Organization.ID, 0, form.Title, form.Content)
-	if err != nil {
-		ctx.Flash.Error(ctx.Tr("secrets.creation.failed"))
-		log.Error("validate secret: %v", err)
-		ctx.Redirect(ctx.Org.OrgLink + "/settings/secrets")
-		return
-	}
-
-	log.Trace("Org %d: secret added", ctx.Org.Organization.ID)
-	ctx.Flash.Success(ctx.Tr("secrets.creation.success", form.Title))
-	ctx.Redirect(ctx.Org.OrgLink + "/settings/secrets")
-}
-
-// SecretsDelete delete secrets
-func SecretsDelete(ctx *context.Context) {
-	id := ctx.FormInt64("id")
-	if _, err := db.DeleteByBean(ctx, &secret_model.Secret{ID: id}); err != nil {
-		ctx.Flash.Error(ctx.Tr("secrets.deletion.failed"))
-		log.Error("delete secret %d: %v", id, err)
-	} else {
-		ctx.Flash.Success(ctx.Tr("secrets.deletion.success"))
-	}
-
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": ctx.Org.OrgLink + "/settings/secrets",
-	})
 }

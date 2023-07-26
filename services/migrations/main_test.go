@@ -59,6 +59,7 @@ func assertCommentsEqual(t *testing.T, expected, actual []*base.Comment) {
 
 func assertLabelEqual(t *testing.T, expected, actual *base.Label) {
 	assert.Equal(t, expected.Name, actual.Name)
+	assert.Equal(t, expected.Exclusive, actual.Exclusive)
 	assert.Equal(t, expected.Color, actual.Color)
 	assert.Equal(t, expected.Description, actual.Description)
 }

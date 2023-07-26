@@ -8,6 +8,6 @@ draft: false
 menu:
   sidebar:
     name: "幫助"
-    weight: 5
+    weight: 100
     identifier: "help"
 ---

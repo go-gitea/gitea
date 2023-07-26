@@ -61,11 +61,7 @@ func registerGarbageCollectRepositories() {
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		rhcConfig := config.(*RepoHealthCheckConfig)
 		// the git args are set by config, they can be safe to be trusted
-		args := make([]git.CmdArg, 0, len(rhcConfig.Args))
-		for _, arg := range rhcConfig.Args {
-			args = append(args, git.CmdArg(arg))
-		}
-		return repo_service.GitGcRepos(ctx, rhcConfig.Timeout, args...)
+		return repo_service.GitGcRepos(ctx, rhcConfig.Timeout, git.ToTrustedCmdArgs(rhcConfig.Args))
 	})
 }
 
@@ -154,7 +150,7 @@ func registerUpdateGiteaChecker() {
 			RunAtStart: false,
 			Schedule:   "@every 168h",
 		},
-		HTTPEndpoint: "https://dl.gitea.io/gitea/version.json",
+		HTTPEndpoint: "https://dl.gitea.com/gitea/version.json",
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		updateCheckerConfig := config.(*UpdateCheckerConfig)
 		return updatechecker.GiteaUpdateChecker(updateCheckerConfig.HTTPEndpoint)

@@ -314,8 +314,8 @@ type WhitelistOptions struct {
 // This function also performs check if whitelist user and team's IDs have been changed
 // to avoid unnecessary whitelist delete and regenerate.
 func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, protectBranch *ProtectedBranch, opts WhitelistOptions) (err error) {
-	if err = repo.GetOwner(ctx); err != nil {
-		return fmt.Errorf("GetOwner: %v", err)
+	if err = repo.LoadOwner(ctx); err != nil {
+		return fmt.Errorf("LoadOwner: %v", err)
 	}
 
 	whitelist, err := updateUserWhitelist(ctx, repo, protectBranch.WhitelistUserIDs, opts.UserIDs)

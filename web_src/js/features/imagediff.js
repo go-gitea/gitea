@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import {hideElem} from '../utils/dom.js';
 
 function getDefaultSvgBoundsIfUndefined(svgXml, src) {
   const DefaultSize = 300;
@@ -64,8 +65,9 @@ export function initImageDiff() {
     };
   }
 
-  $('.image-diff').each(function() {
+  $('.image-diff:not([data-image-diff-loaded])').each(function() {
     const $container = $(this);
+    $container.attr('data-image-diff-loaded', 'true');
 
     // the container may be hidden by "viewed" checkbox, so use the parent's width for reference
     const diffContainerWidth = Math.max($container.closest('.diff-file-box').width() - 300, 100);
@@ -104,7 +106,7 @@ export function initImageDiff() {
               if (bounds) {
                 info.$image.attr('width', bounds.width);
                 info.$image.attr('height', bounds.height);
-                info.$boundsInfo.hide();
+                hideElem(info.$boundsInfo);
               }
             }
           }
@@ -128,8 +130,8 @@ export function initImageDiff() {
         initOverlay(createContext($imageAfter[2], $imageBefore[2]));
       }
 
-      $container.find('> .loader').hide();
-      $container.find('> .hide').removeClass('hide');
+      $container.find('> .gt-hidden').removeClass('gt-hidden');
+      hideElem($container.find('.ui.loader'));
     }
 
     function initSideBySide(sizes) {
@@ -154,7 +156,7 @@ export function initImageDiff() {
         height: sizes.size1.height * factor
       });
       sizes.image1.parent().css({
-        margin: `${sizes.ratio[1] * factor + 15}px ${sizes.ratio[0] * factor}px ${sizes.ratio[1] * factor}px`,
+        margin: `10px auto`,
         width: sizes.size1.width * factor + 2,
         height: sizes.size1.height * factor + 2
       });
@@ -163,7 +165,7 @@ export function initImageDiff() {
         height: sizes.size2.height * factor
       });
       sizes.image2.parent().css({
-        margin: `${sizes.ratio[3] * factor}px ${sizes.ratio[2] * factor}px`,
+        margin: `10px auto`,
         width: sizes.size2.width * factor + 2,
         height: sizes.size2.height * factor + 2
       });
@@ -254,16 +256,15 @@ export function initImageDiff() {
         width: sizes.size2.width * factor + 2,
         height: sizes.size2.height * factor + 2
       });
+
+      // some inner elements are `position: absolute`, so the container's height must be large enough
+      // the "css(width, height)" is somewhat hacky and not easy to understand, it could be improved in the future
       sizes.image2.parent().parent().css({
         width: sizes.max.width * factor + 2,
-        height: sizes.max.height * factor + 2
-      });
-      $container.find('.onion-skin').css({
-        width: sizes.max.width * factor + 2,
-        height: sizes.max.height * factor + 4
+        height: sizes.max.height * factor + 2 + 20 /* extra height for inner "position: absolute" elements */,
       });
 
-      const $range = $container.find("input[type='range'");
+      const $range = $container.find("input[type='range']");
       const onInput = () => sizes.image1.parent().css({
         opacity: $range.val() / 100
       });

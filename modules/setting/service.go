@@ -10,6 +10,17 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
+
+	"github.com/gobwas/glob"
+)
+
+// enumerates all the types of captchas
+const (
+	ImageCaptcha = "image"
+	ReCaptcha    = "recaptcha"
+	HCaptcha     = "hcaptcha"
+	MCaptcha     = "mcaptcha"
+	CfTurnstile  = "cfturnstile"
 )
 
 // Service settings
@@ -24,8 +35,8 @@ var Service = struct {
 	ResetPwdCodeLives                       int
 	RegisterEmailConfirm                    bool
 	RegisterManualConfirm                   bool
-	EmailDomainWhitelist                    []string
-	EmailDomainBlocklist                    []string
+	EmailDomainAllowList                    []glob.Glob
+	EmailDomainBlockList                    []glob.Glob
 	DisableRegistration                     bool
 	AllowOnlyInternalRegistration           bool
 	AllowOnlyExternalRegistration           bool
@@ -46,6 +57,8 @@ var Service = struct {
 	RecaptchaSecret                         string
 	RecaptchaSitekey                        string
 	RecaptchaURL                            string
+	CfTurnstileSecret                       string
+	CfTurnstileSitekey                      string
 	HcaptchaSecret                          string
 	HcaptchaSitekey                         string
 	McaptchaSecret                          string
@@ -103,8 +116,22 @@ func (a AllowedVisibility) ToVisibleTypeSlice() (result []structs.VisibleType) {
 	return result
 }
 
-func newService() {
-	sec := Cfg.Section("service")
+func CompileEmailGlobList(sec ConfigSection, keys ...string) (globs []glob.Glob) {
+	for _, key := range keys {
+		list := sec.Key(key).Strings(",")
+		for _, s := range list {
+			if g, err := glob.Compile(s); err == nil {
+				globs = append(globs, g)
+			} else {
+				log.Error("Skip invalid email allow/block list expression %q: %v", s, err)
+			}
+		}
+	}
+	return globs
+}
+
+func loadServiceFrom(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("service")
 	Service.ActiveCodeLives = sec.Key("ACTIVE_CODE_LIVE_MINUTES").MustInt(180)
 	Service.ResetPwdCodeLives = sec.Key("RESET_PASSWD_CODE_LIVE_MINUTES").MustInt(180)
 	Service.DisableRegistration = sec.Key("DISABLE_REGISTRATION").MustBool()
@@ -119,8 +146,11 @@ func newService() {
 	} else {
 		Service.RegisterManualConfirm = false
 	}
-	Service.EmailDomainWhitelist = sec.Key("EMAIL_DOMAIN_WHITELIST").Strings(",")
-	Service.EmailDomainBlocklist = sec.Key("EMAIL_DOMAIN_BLOCKLIST").Strings(",")
+	if sec.HasKey("EMAIL_DOMAIN_WHITELIST") {
+		deprecatedSetting(rootCfg, "service", "EMAIL_DOMAIN_WHITELIST", "service", "EMAIL_DOMAIN_ALLOWLIST", "1.21")
+	}
+	Service.EmailDomainAllowList = CompileEmailGlobList(sec, "EMAIL_DOMAIN_WHITELIST", "EMAIL_DOMAIN_ALLOWLIST")
+	Service.EmailDomainBlockList = CompileEmailGlobList(sec, "EMAIL_DOMAIN_BLOCKLIST")
 	Service.ShowRegistrationButton = sec.Key("SHOW_REGISTRATION_BUTTON").MustBool(!(Service.DisableRegistration || Service.AllowOnlyExternalRegistration))
 	Service.ShowMilestonesDashboardPage = sec.Key("SHOW_MILESTONES_DASHBOARD_PAGE").MustBool(true)
 	Service.RequireSignInView = sec.Key("REQUIRE_SIGNIN_VIEW").MustBool()
@@ -137,6 +167,8 @@ func newService() {
 	Service.RecaptchaSecret = sec.Key("RECAPTCHA_SECRET").MustString("")
 	Service.RecaptchaSitekey = sec.Key("RECAPTCHA_SITEKEY").MustString("")
 	Service.RecaptchaURL = sec.Key("RECAPTCHA_URL").MustString("https://www.google.com/recaptcha/")
+	Service.CfTurnstileSecret = sec.Key("CF_TURNSTILE_SECRET").MustString("")
+	Service.CfTurnstileSitekey = sec.Key("CF_TURNSTILE_SITEKEY").MustString("")
 	Service.HcaptchaSecret = sec.Key("HCAPTCHA_SECRET").MustString("")
 	Service.HcaptchaSitekey = sec.Key("HCAPTCHA_SITEKEY").MustString("")
 	Service.McaptchaURL = sec.Key("MCAPTCHA_URL").MustString("https://demo.mcaptcha.org/")
@@ -180,11 +212,13 @@ func newService() {
 	}
 	Service.ValidSiteURLSchemes = schemes
 
-	if err := Cfg.Section("service.explore").MapTo(&Service.Explore); err != nil {
-		log.Fatal("Failed to map service.explore settings: %v", err)
-	}
+	mustMapSetting(rootCfg, "service.explore", &Service.Explore)
 
-	sec = Cfg.Section("openid")
+	loadOpenIDSetting(rootCfg)
+}
+
+func loadOpenIDSetting(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("openid")
 	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(!InstallLock)
 	Service.EnableOpenIDSignUp = sec.Key("ENABLE_OPENID_SIGNUP").MustBool(!Service.DisableRegistration && Service.EnableOpenIDSignIn)
 	pats := sec.Key("WHITELISTED_URIS").Strings(" ")

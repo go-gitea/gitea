@@ -36,7 +36,7 @@ func TestUploadAttachment(t *testing.T) {
 		RepoID:     1,
 		UploaderID: user.ID,
 		Name:       filepath.Base(fPath),
-	}, f)
+	}, f, -1)
 	assert.NoError(t, err)
 
 	attachment, err := repo_model.GetAttachmentByUUID(db.DefaultContext, attach.UUID)

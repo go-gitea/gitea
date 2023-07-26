@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"sync"
 
 	"code.gitea.io/gitea/modules/log"
@@ -81,4 +82,17 @@ func Proxy() func(req *http.Request) (*url.URL, error) {
 		}
 		return http.ProxyFromEnvironment(req)
 	}
+}
+
+// EnvWithProxy returns os.Environ(), with a https_proxy env, if the given url
+// needs to be proxied.
+func EnvWithProxy(u *url.URL) []string {
+	envs := os.Environ()
+	if strings.EqualFold(u.Scheme, "http") || strings.EqualFold(u.Scheme, "https") {
+		if Match(u.Host) {
+			envs = append(envs, "https_proxy="+GetProxyURL())
+		}
+	}
+
+	return envs
 }

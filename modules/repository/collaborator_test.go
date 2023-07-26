@@ -23,7 +23,7 @@ func TestRepository_AddCollaborator(t *testing.T) {
 
 	testSuccess := func(repoID, userID int64) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
-		assert.NoError(t, repo.GetOwner(db.DefaultContext))
+		assert.NoError(t, repo.LoadOwner(db.DefaultContext))
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID})
 		assert.NoError(t, AddCollaborator(db.DefaultContext, repo, user))
 		unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repoID}, &user_model.User{ID: userID})

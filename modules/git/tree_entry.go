@@ -101,6 +101,16 @@ func (te *TreeEntry) FollowLinks() (*TreeEntry, error) {
 	return entry, nil
 }
 
+// returns the Tree pointed to by this TreeEntry, or nil if this is not a tree
+func (te *TreeEntry) Tree() *Tree {
+	t, err := te.ptree.repo.getTree(te.ID)
+	if err != nil {
+		return nil
+	}
+	t.ptree = te.ptree
+	return t
+}
+
 // GetSubJumpablePathName return the full path of subdirectory jumpable ( contains only one directory )
 func (te *TreeEntry) GetSubJumpablePathName() string {
 	if te.IsSubModule() || !te.IsDir() {

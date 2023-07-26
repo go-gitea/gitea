@@ -31,10 +31,8 @@ var IncomingEmail = struct {
 	MaximumMessageSize:   10485760,
 }
 
-func newIncomingEmail() {
-	if err := Cfg.Section("email.incoming").MapTo(&IncomingEmail); err != nil {
-		log.Fatal("Unable to map [email.incoming] section on to IncomingEmail. Error: %v", err)
-	}
+func loadIncomingEmailFrom(rootCfg ConfigProvider) {
+	mustMapSetting(rootCfg, "email.incoming", &IncomingEmail)
 
 	if !IncomingEmail.Enabled {
 		return

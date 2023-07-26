@@ -47,3 +47,20 @@ func defaultI18nNames() (res []string) {
 	}
 	return res
 }
+
+var (
+	// I18n settings
+	Langs []string
+	Names []string
+)
+
+func loadI18nFrom(rootCfg ConfigProvider) {
+	Langs = rootCfg.Section("i18n").Key("LANGS").Strings(",")
+	if len(Langs) == 0 {
+		Langs = defaultI18nLangs()
+	}
+	Names = rootCfg.Section("i18n").Key("NAMES").Strings(",")
+	if len(Names) == 0 {
+		Names = defaultI18nNames()
+	}
+}
