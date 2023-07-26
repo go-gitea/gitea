@@ -15,18 +15,7 @@ import (
 
 // SearchVersions gets all versions of packages matching the search options
 func SearchVersions(ctx context.Context, opts *packages_model.PackageSearchOptions) ([]*packages_model.PackageVersion, int64, error) {
-	var cond builder.Cond = builder.Eq{
-		"package.is_internal": opts.IsInternal.IsTrue(),
-		"package.owner_id":    opts.OwnerID,
-		"package.type":        packages_model.TypeNuGet,
-	}
-	if opts.Name.Value != "" {
-		if opts.Name.ExactMatch {
-			cond = cond.And(builder.Eq{"package.lower_name": strings.ToLower(opts.Name.Value)})
-		} else {
-			cond = cond.And(builder.Like{"package.lower_name", strings.ToLower(opts.Name.Value)})
-		}
-	}
+	cond := toConds(opts)
 
 	e := db.GetEngine(ctx)
 
@@ -38,7 +27,7 @@ func SearchVersions(ctx context.Context, opts *packages_model.PackageSearchOptio
 	}
 
 	inner := builder.
-		Dialect(db.BuilderDialect()).
+		Dialect(db.BuilderDialect()). // builder needs the sql dialect to build the Limit() below
 		Select("*").
 		From("package").
 		Where(cond).
@@ -59,6 +48,12 @@ func SearchVersions(ctx context.Context, opts *packages_model.PackageSearchOptio
 
 // CountPackages counts all packages matching the search options
 func CountPackages(ctx context.Context, opts *packages_model.PackageSearchOptions) (int64, error) {
+	return db.GetEngine(ctx).
+		Where(toConds(opts)).
+		Count(&packages_model.Package{})
+}
+
+func toConds(opts *packages_model.PackageSearchOptions) builder.Cond {
 	var cond builder.Cond = builder.Eq{
 		"package.is_internal": opts.IsInternal.IsTrue(),
 		"package.owner_id":    opts.OwnerID,
@@ -71,8 +66,5 @@ func CountPackages(ctx context.Context, opts *packages_model.PackageSearchOption
 			cond = cond.And(builder.Like{"package.lower_name", strings.ToLower(opts.Name.Value)})
 		}
 	}
-
-	return db.GetEngine(ctx).
-		Where(cond).
-		Count(&packages_model.Package{})
+	return cond
 }
