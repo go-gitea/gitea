@@ -51,3 +51,13 @@ Gitea 可以在 [Vultr](https://www.vultr.com) 的市场中被找到。
 [alwaysdata](https://www.alwaysdata.com/) 将 Gitea 作为其市场中的一个 droplet.
 
 要将 Gitea 部署到 alwaysdata, 请参考 [alwaysdata Marketplace](https://www.alwaysdata.com/en/marketplace/gitea/).
+
+## Exoscale
+
+[Exoscale](https://www.exoscale.com/) 在其市场中提供由 [Glasskube](https://glasskube.eu/) 管理的 Gitea。
+
+Exoscale 是一家欧洲的云服务提供商。
+
+该软件包通过开源的 [Glasskube Kubernetes Operator](https://github.com/glasskube/operator) 进行维护和更新。
+
+要在 Exoscale 上部署 Gitea，请参考 [Exoscale Marketplace](https://www.exoscale.com/marketplace/listing/glasskube-gitea/)。
