@@ -210,7 +210,7 @@ func InitiateUploadBlob(ctx *context.Context) {
 			}
 
 			if accessible {
-				if err := mountBlob(&packages_service.PackageInfo{Owner: ctx.Package.Owner, Name: image}, blob.Blob); err != nil {
+				if err := mountBlob(ctx, &packages_service.PackageInfo{Owner: ctx.Package.Owner, Name: image}, blob.Blob); err != nil {
 					apiError(ctx, http.StatusInternalServerError, err)
 					return
 				}
@@ -239,7 +239,7 @@ func InitiateUploadBlob(ctx *context.Context) {
 			return
 		}
 
-		if _, err := saveAsPackageBlob(
+		if _, err := saveAsPackageBlob(ctx,
 			buf,
 			&packages_service.PackageCreationInfo{
 				PackageInfo: packages_service.PackageInfo{
@@ -384,7 +384,7 @@ func EndUploadBlob(ctx *context.Context) {
 		return
 	}
 
-	if _, err := saveAsPackageBlob(
+	if _, err := saveAsPackageBlob(ctx,
 		uploader,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
@@ -502,7 +502,7 @@ func DeleteBlob(ctx *context.Context) {
 		return
 	}
 
-	if err := deleteBlob(ctx.Package.Owner.ID, ctx.Params("image"), d); err != nil {
+	if err := deleteBlob(ctx, ctx.Package.Owner.ID, ctx.Params("image"), d); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
@@ -543,7 +543,7 @@ func UploadManifest(ctx *context.Context) {
 		return
 	}
 
-	digest, err := processManifest(mci, buf)
+	digest, err := processManifest(ctx, mci, buf)
 	if err != nil {
 		var namedError *namedError
 		if errors.As(err, &namedError) {
