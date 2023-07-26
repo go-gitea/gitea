@@ -22,7 +22,6 @@ import (
 	"code.gitea.io/gitea/modules/gitgraph"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
 	git_service "code.gitea.io/gitea/services/repository"
 )
@@ -263,7 +262,7 @@ func LoadBranchesAndTags(ctx *context.Context) {
 		ctx.JSON(http.StatusOK, response)
 		return
 	}
-	ctx.NotFoundOrServerError(fmt.Sprintf("could not load branches and tags the commit %s belongs to", ctx.Params("sha")), func(err error) bool { return errors.Is(err, util.ErrNotExist) }, err)
+	ctx.NotFoundOrServerError(fmt.Sprintf("could not load branches and tags the commit %s belongs to", ctx.Params("sha")), git.IsErrNotExist, err)
 }
 
 // Diff show different from current commit to previous commit

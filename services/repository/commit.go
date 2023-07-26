@@ -23,7 +23,7 @@ type namedLink struct { // TODO: better name?
 	WebLink string `json:"web_link"`
 }
 
-// CreateNewBranch creates a new repository branch
+// LoadBranchesAndTags creates a new repository branch
 func LoadBranchesAndTags(ctx context.Context, baseRepo *gitea_ctx.Repository, commitSHA string) (*ContainedLinks, error) {
 	containedTags, err := baseRepo.GitRepo.ListOccurrences(ctx, "tag", commitSHA)
 	if err != nil {
@@ -35,15 +35,24 @@ func LoadBranchesAndTags(ctx context.Context, baseRepo *gitea_ctx.Repository, co
 	}
 
 	result := &ContainedLinks{
-		ContainedInDefaultBranch: util.SliceContains(containedBranches, baseRepo.Repository.DefaultBranch), DefaultBranch: baseRepo.Repository.DefaultBranch,
-		Branches: make([]*namedLink, 0, len(containedBranches)), Tags: make([]*namedLink, 0, len(containedTags)),
+		ContainedInDefaultBranch: util.SliceContains(containedBranches, baseRepo.Repository.DefaultBranch),
+
+		DefaultBranch: baseRepo.Repository.DefaultBranch,
+		Branches:      make([]*namedLink, 0, len(containedBranches)),
+		Tags:          make([]*namedLink, 0, len(containedTags)),
 	}
 	for _, tag := range containedTags {
-		result.Tags = append(result.Tags, &namedLink{Name: tag, WebLink: fmt.Sprintf("%s/src/tag/%s", baseRepo.RepoLink, util.PathEscapeSegments(tag))}) // TODO: Use a common method to get the link to a branch/tag instead of hardcoding it here
+		// TODO: Use a common method to get the link to a branch/tag instead of hard-coding it here
+		result.Tags = append(result.Tags, &namedLink{
+			Name:    tag,
+			WebLink: fmt.Sprintf("%s/src/tag/%s", baseRepo.RepoLink, util.PathEscapeSegments(tag)),
+		})
 	}
 	for _, branch := range containedBranches {
-		result.Branches = append(result.Branches, &namedLink{Name: branch, WebLink: fmt.Sprintf("%s/src/branch/%s", baseRepo.RepoLink, util.PathEscapeSegments(branch))})
+		result.Branches = append(result.Branches, &namedLink{
+			Name:    branch,
+			WebLink: fmt.Sprintf("%s/src/branch/%s", baseRepo.RepoLink, util.PathEscapeSegments(branch)),
+		})
 	}
-
 	return result, nil
 }

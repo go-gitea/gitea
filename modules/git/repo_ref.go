@@ -18,10 +18,15 @@ func (repo *Repository) GetRefs() ([]*Reference, error) {
 // ListOccurrences lists all refs of the given refType the given commit appears in sorted by creation date DESC
 // refType should only be a literal "branch" or "tag" and nothing else
 func (repo *Repository) ListOccurrences(ctx context.Context, refType, commitSHA string) ([]string, error) {
-	if refType != "branch" && refType != "tag" {
-		return nil, util.NewInvalidArgumentErrorf("Can only use branch or 'tag' as 'refType'. Got '%s'", refType)
+	cmd := NewCommand(ctx)
+	if refType == "branch" {
+		cmd.AddArguments("branch")
+	} else if refType == "tag" {
+		cmd.AddArguments("tag")
+	} else {
+		return nil, util.NewInvalidArgumentErrorf(`can only use "branch" or "tag" for refType, but got %q`, refType)
 	}
-	stdout, _, err := NewCommand(ctx, ToTrustedCmdArgs([]string{refType, "--no-color", "--sort=-creatordate", "--contains"})...).AddDynamicArguments(commitSHA).RunStdString(&RunOpts{Dir: repo.Path})
+	stdout, _, err := cmd.AddArguments("--no-color", "--sort=-creatordate", "--contains").AddDynamicArguments(commitSHA).RunStdString(&RunOpts{Dir: repo.Path})
 	if err != nil {
 		return nil, err
 	}

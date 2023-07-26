@@ -18,8 +18,7 @@ async function loadBranchesAndTags(loadingButton, addHere) {
   const data = await res.json();
   showAreas('.branch-tag-area-divider');
   loadingButton.classList.add('gt-hidden');
-  addHere.querySelector('.branch-tag-area-text').textContent =
-    loadingButton.getAttribute('data-contained-in-text');
+  addHere.querySelector('.branch-tag-area-text').textContent = loadingButton.getAttribute('data-contained-in-text');
   addTags(data.tags, addHere.querySelector('.tag-area'));
   const branchArea = addHere.querySelector('.branch-area');
   addBranches(
