@@ -4,7 +4,6 @@
 package models
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -28,7 +27,6 @@ func TestFixtureGeneration(t *testing.T) {
 			return
 		}
 		data := string(util.NormalizeEOL(bytes))
-		fmt.Println(expected)
 		assert.True(t, data == expected, "Differences detected for %s.yml", name)
 	}
 
