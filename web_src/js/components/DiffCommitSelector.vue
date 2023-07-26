@@ -26,7 +26,7 @@
             {{ commitsSinceLastReview }} commits
           </div>
         </div>
-        <span class="info gt-border-secondary-top">{{ locale.select_commit_hold_shift_for_range }}</span>
+        <span class="info gt-border-secondary-top text light-2">{{ locale.select_commit_hold_shift_for_range }}</span>
         <template v-for="commit in commits" :key="commit.id">
           <div class="vertical item gt-df gt-fr gt-gap-2 gt-border-secondary-top" :class="{selected: commit.selected}" @click.exact="commitClicked(commit.id)" @click.shift.exact.stop.prevent="commitClickedShift(commit)">
             <div class="gt-f1 gt-df gt-fc gt-gap-2">
