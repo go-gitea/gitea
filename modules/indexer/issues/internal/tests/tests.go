@@ -1,7 +1,7 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-// This package contains tests for the indexer module.
+// This package contains tests for issues indexer modules.
 // All the code in this package is only used for testing.
 // Do not put any production code in this package to avoid it being included in the final binary.
 
@@ -110,7 +110,7 @@ var cases = []*testIndexerCase{
 		},
 	},
 	{
-		Name: "keyword",
+		Name: "Keyword",
 		ExtraData: []*internal.IndexerData{
 			{ID: 1000, Title: "hi hello world"},
 			{ID: 1001, Content: "hi hello world"},
@@ -123,7 +123,7 @@ var cases = []*testIndexerCase{
 		ExpectedTotal: 3,
 	},
 	{
-		Name: "repo ids",
+		Name: "RepoIDs",
 		ExtraData: []*internal.IndexerData{
 			{ID: 1001, Title: "hello world", RepoID: 1, IsPublic: false},
 			{ID: 1002, Title: "hello world", RepoID: 1, IsPublic: false},
@@ -141,7 +141,7 @@ var cases = []*testIndexerCase{
 		ExpectedTotal: 3,
 	},
 	{
-		Name: "repo ids and public",
+		Name: "RepoIDs and AllPublic",
 		ExtraData: []*internal.IndexerData{
 			{ID: 1001, Title: "hello world", RepoID: 1, IsPublic: false},
 			{ID: 1002, Title: "hello world", RepoID: 1, IsPublic: false},
@@ -258,7 +258,7 @@ var cases = []*testIndexerCase{
 		ExpectedTotal: 3,
 	},
 	{
-		Name: "milestone",
+		Name: "MilestoneIDs",
 		SearchOptions: &internal.SearchOptions{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
@@ -276,7 +276,7 @@ var cases = []*testIndexerCase{
 		},
 	},
 	{
-		Name: "no milestone",
+		Name: "no MilestoneIDs",
 		SearchOptions: &internal.SearchOptions{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
@@ -294,7 +294,7 @@ var cases = []*testIndexerCase{
 		},
 	},
 	{
-		Name: "project",
+		Name: "ProjectID",
 		SearchOptions: &internal.SearchOptions{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
@@ -315,7 +315,7 @@ var cases = []*testIndexerCase{
 		},
 	},
 	{
-		Name: "no project",
+		Name: "no ProjectID",
 		SearchOptions: &internal.SearchOptions{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
@@ -336,7 +336,7 @@ var cases = []*testIndexerCase{
 		},
 	},
 	{
-		Name: "project board",
+		Name: "ProjectBoardID",
 		SearchOptions: &internal.SearchOptions{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
@@ -357,7 +357,7 @@ var cases = []*testIndexerCase{
 		},
 	},
 	{
-		Name: "no project board",
+		Name: "no ProjectBoardID",
 		SearchOptions: &internal.SearchOptions{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
@@ -378,7 +378,7 @@ var cases = []*testIndexerCase{
 		},
 	},
 	{
-		Name: "poster",
+		Name: "PosterID",
 		SearchOptions: &internal.SearchOptions{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
@@ -394,11 +394,306 @@ var cases = []*testIndexerCase{
 				assert.Equal(t, int64(1), data[v.ID].PosterID)
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.PosterID == 0
+				return v.PosterID == 1
 			}), result.Total)
 		},
 	},
-	// TODO: add more cases
+	{
+		Name: "AssigneeID",
+		SearchOptions: &internal.SearchOptions{
+			Paginator: &db.ListOptions{
+				PageSize: 5,
+			},
+			AssigneeID: func() *int64 {
+				id := int64(1)
+				return &id
+			}(),
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Equal(t, 5, len(result.Hits))
+			for _, v := range result.Hits {
+				assert.Equal(t, int64(1), data[v.ID].AssigneeID)
+			}
+			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
+				return v.AssigneeID == 1
+			}), result.Total)
+		},
+	},
+	{
+		Name: "no AssigneeID",
+		SearchOptions: &internal.SearchOptions{
+			Paginator: &db.ListOptions{
+				PageSize: 5,
+			},
+			AssigneeID: func() *int64 {
+				id := int64(0)
+				return &id
+			}(),
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Equal(t, 5, len(result.Hits))
+			for _, v := range result.Hits {
+				assert.Equal(t, int64(0), data[v.ID].AssigneeID)
+			}
+			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
+				return v.AssigneeID == 0
+			}), result.Total)
+		},
+	},
+	{
+		Name: "MentionID",
+		SearchOptions: &internal.SearchOptions{
+			Paginator: &db.ListOptions{
+				PageSize: 5,
+			},
+			MentionID: func() *int64 {
+				id := int64(1)
+				return &id
+			}(),
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Equal(t, 5, len(result.Hits))
+			for _, v := range result.Hits {
+				assert.Contains(t, data[v.ID].MentionIDs, int64(1))
+			}
+			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
+				return util.SliceContains(v.MentionIDs, 1)
+			}), result.Total)
+		},
+	},
+	{
+		Name: "ReviewedID",
+		SearchOptions: &internal.SearchOptions{
+			Paginator: &db.ListOptions{
+				PageSize: 5,
+			},
+			ReviewedID: func() *int64 {
+				id := int64(1)
+				return &id
+			}(),
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Equal(t, 5, len(result.Hits))
+			for _, v := range result.Hits {
+				assert.Contains(t, data[v.ID].ReviewedIDs, int64(1))
+			}
+			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
+				return util.SliceContains(v.ReviewedIDs, 1)
+			}), result.Total)
+		},
+	},
+	{
+		Name: "ReviewRequestedID",
+		SearchOptions: &internal.SearchOptions{
+			Paginator: &db.ListOptions{
+				PageSize: 5,
+			},
+			ReviewRequestedID: func() *int64 {
+				id := int64(1)
+				return &id
+			}(),
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Equal(t, 5, len(result.Hits))
+			for _, v := range result.Hits {
+				assert.Contains(t, data[v.ID].ReviewRequestedIDs, int64(1))
+			}
+			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
+				return util.SliceContains(v.ReviewRequestedIDs, 1)
+			}), result.Total)
+		},
+	},
+	{
+		Name: "SubscriberID",
+		SearchOptions: &internal.SearchOptions{
+			Paginator: &db.ListOptions{
+				PageSize: 5,
+			},
+			SubscriberID: func() *int64 {
+				id := int64(1)
+				return &id
+			}(),
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Equal(t, 5, len(result.Hits))
+			for _, v := range result.Hits {
+				assert.Contains(t, data[v.ID].SubscriberIDs, int64(1))
+			}
+			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
+				return util.SliceContains(v.SubscriberIDs, 1)
+			}), result.Total)
+		},
+	},
+	{
+		Name: "updated",
+		SearchOptions: &internal.SearchOptions{
+			Paginator: &db.ListOptions{
+				PageSize: 5,
+			},
+			UpdatedAfterUnix: func() *int64 {
+				var t int64 = 20
+				return &t
+			}(),
+			UpdatedBeforeUnix: func() *int64 {
+				var t int64 = 30
+				return &t
+			}(),
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Equal(t, 5, len(result.Hits))
+			for _, v := range result.Hits {
+				assert.GreaterOrEqual(t, data[v.ID].UpdatedUnix, int64(20))
+				assert.LessOrEqual(t, data[v.ID].UpdatedUnix, int64(30))
+			}
+			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
+				return data[v.ID].UpdatedUnix >= 20 && data[v.ID].UpdatedUnix <= 30
+			}), result.Total)
+		},
+	},
+	{
+		Name: "SortByCreatedDesc",
+		SearchOptions: &internal.SearchOptions{
+			Paginator: &db.ListOptions{
+				ListAll: true,
+			},
+			SortBy: internal.SortByCreatedDesc,
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Equal(t, len(data), len(result.Hits))
+			assert.Equal(t, len(data), int(result.Total))
+			for i, v := range result.Hits {
+				if i < len(result.Hits)-1 {
+					assert.GreaterOrEqual(t, data[v.ID].CreatedUnix, data[result.Hits[i+1].ID].CreatedUnix)
+				}
+			}
+		},
+	},
+	{
+		Name: "SortByUpdatedDesc",
+		SearchOptions: &internal.SearchOptions{
+			Paginator: &db.ListOptions{
+				ListAll: true,
+			},
+			SortBy: internal.SortByUpdatedDesc,
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Equal(t, len(data), len(result.Hits))
+			assert.Equal(t, len(data), int(result.Total))
+			for i, v := range result.Hits {
+				if i < len(result.Hits)-1 {
+					assert.GreaterOrEqual(t, data[v.ID].UpdatedUnix, data[result.Hits[i+1].ID].UpdatedUnix)
+				}
+			}
+		},
+	},
+	{
+		Name: "SortByCommentsDesc",
+		SearchOptions: &internal.SearchOptions{
+			Paginator: &db.ListOptions{
+				ListAll: true,
+			},
+			SortBy: internal.SortByCommentsDesc,
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Equal(t, len(data), len(result.Hits))
+			assert.Equal(t, len(data), int(result.Total))
+			for i, v := range result.Hits {
+				if i < len(result.Hits)-1 {
+					assert.GreaterOrEqual(t, data[v.ID].CommentCount, data[result.Hits[i+1].ID].CommentCount)
+				}
+			}
+		},
+	},
+	{
+		Name: "SortByDeadlineDesc",
+		SearchOptions: &internal.SearchOptions{
+			Paginator: &db.ListOptions{
+				ListAll: true,
+			},
+			SortBy: internal.SortByCommentsDesc,
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Equal(t, len(data), len(result.Hits))
+			assert.Equal(t, len(data), int(result.Total))
+			for i, v := range result.Hits {
+				if i < len(result.Hits)-1 {
+					assert.GreaterOrEqual(t, data[v.ID].DeadlineUnix, data[result.Hits[i+1].ID].DeadlineUnix)
+				}
+			}
+		},
+	},
+	{
+		Name: "SortByCreatedAsc",
+		SearchOptions: &internal.SearchOptions{
+			Paginator: &db.ListOptions{
+				ListAll: true,
+			},
+			SortBy: internal.SortByCreatedDesc,
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Equal(t, len(data), len(result.Hits))
+			assert.Equal(t, len(data), int(result.Total))
+			for i, v := range result.Hits {
+				if i < len(result.Hits)-1 {
+					assert.LessOrEqual(t, data[v.ID].CreatedUnix, data[result.Hits[i+1].ID].CreatedUnix)
+				}
+			}
+		},
+	},
+	{
+		Name: "SortByUpdatedAsc",
+		SearchOptions: &internal.SearchOptions{
+			Paginator: &db.ListOptions{
+				ListAll: true,
+			},
+			SortBy: internal.SortByUpdatedDesc,
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Equal(t, len(data), len(result.Hits))
+			assert.Equal(t, len(data), int(result.Total))
+			for i, v := range result.Hits {
+				if i < len(result.Hits)-1 {
+					assert.LessOrEqual(t, data[v.ID].UpdatedUnix, data[result.Hits[i+1].ID].UpdatedUnix)
+				}
+			}
+		},
+	},
+	{
+		Name: "SortByCommentsAsc",
+		SearchOptions: &internal.SearchOptions{
+			Paginator: &db.ListOptions{
+				ListAll: true,
+			},
+			SortBy: internal.SortByCommentsDesc,
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Equal(t, len(data), len(result.Hits))
+			assert.Equal(t, len(data), int(result.Total))
+			for i, v := range result.Hits {
+				if i < len(result.Hits)-1 {
+					assert.LessOrEqual(t, data[v.ID].CommentCount, data[result.Hits[i+1].ID].CommentCount)
+				}
+			}
+		},
+	},
+	{
+		Name: "SortByDeadlineAsc",
+		SearchOptions: &internal.SearchOptions{
+			Paginator: &db.ListOptions{
+				ListAll: true,
+			},
+			SortBy: internal.SortByCommentsDesc,
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Equal(t, len(data), len(result.Hits))
+			assert.Equal(t, len(data), int(result.Total))
+			for i, v := range result.Hits {
+				if i < len(result.Hits)-1 {
+					assert.LessOrEqual(t, data[v.ID].DeadlineUnix, data[result.Hits[i+1].ID].DeadlineUnix)
+				}
+			}
+		},
+	},
 }
 
 type testIndexerCase struct {
@@ -426,23 +721,23 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 
 			labelIDs := make([]int64, id%5)
 			for i := range labelIDs {
-				labelIDs[i] = int64(i)
+				labelIDs[i] = int64(i) + 1 // LabelID should not be 0
 			}
 			mentionIDs := make([]int64, id%6)
 			for i := range mentionIDs {
-				mentionIDs[i] = int64(i)
+				mentionIDs[i] = int64(i) + 1 // MentionID should not be 0
 			}
 			reviewedIDs := make([]int64, id%7)
 			for i := range reviewedIDs {
-				reviewedIDs[i] = int64(i)
+				reviewedIDs[i] = int64(i) + 1 // ReviewID should not be 0
 			}
 			reviewRequestedIDs := make([]int64, id%8)
 			for i := range reviewRequestedIDs {
-				reviewRequestedIDs[i] = int64(i)
+				reviewRequestedIDs[i] = int64(i) + 1 // ReviewRequestedID should not be 0
 			}
 			subscriberIDs := make([]int64, id%9)
 			for i := range subscriberIDs {
-				subscriberIDs[i] = int64(i)
+				subscriberIDs[i] = int64(i) + 1 // SubscriberID should not be 0
 			}
 
 			data = append(data, &internal.IndexerData{
@@ -459,7 +754,7 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 				MilestoneID:        issueIndex % 4,
 				ProjectID:          issueIndex % 5,
 				ProjectBoardID:     issueIndex % 6,
-				PosterID:           id % 10,
+				PosterID:           id%10 + 1, // PosterID should not be 0
 				AssigneeID:         issueIndex % 10,
 				MentionIDs:         mentionIDs,
 				ReviewedIDs:        reviewedIDs,
