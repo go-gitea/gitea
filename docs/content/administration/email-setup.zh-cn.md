@@ -31,7 +31,7 @@ Gitea 具有邮件功能，用于发送事务性邮件（例如注册确认邮�
 [mailer]
 ENABLED       = true
 FROM          = gitea@mydomain.com
-MAILER_TYPE   = sendmail
+PROTOCOL   = sendmail
 SENDMAIL_PATH = /usr/sbin/sendmail
 SENDMAIL_ARGS = "--" ; 大多数 "sendmail" 程序都接受选项，使用 "--" 将防止电子邮件地址被解释为选项。
 ```
@@ -44,10 +44,9 @@ SENDMAIL_ARGS = "--" ; 大多数 "sendmail" 程序都接受选项，使用 "--" 
 [mailer]
 ENABLED        = true
 FROM           = gitea@mydomain.com
-MAILER_TYPE    = smtp
+PROTOCOL    = smtps
 SMTP_ADDR      = mail.mydomain.com
 SMTP_PORT      = 587
-IS_TLS_ENABLED = true
 USER           = gitea@mydomain.com
 PASSWD         = `password`
 ```
@@ -80,8 +79,7 @@ SMTP_PORT      = 465
 FROM           = example.user@gmail.com
 USER           = example.user
 PASSWD         = `***`
-MAILER_TYPE    = smtp
-IS_TLS_ENABLED = true
+PROTOCOL    = smtps
 ```
 
 请注意，您需要创建并使用一个 [应用密码](https://support.google.com/accounts/answer/185833?hl=en) 并在您的 Google 帐户上启用 2FA。您将无法直接使用您的 Google 帐户密码。
