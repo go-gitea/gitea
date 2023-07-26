@@ -1,4 +1,5 @@
 .admin-container {
+  margin-top: 15px;
   display: flex !important;
   gap: 16px;
 }
@@ -24,10 +25,6 @@
   border-top: 1px solid var(--color-secondary);
   padding: 0.25rem 1rem;
   margin: 12px -1rem -1rem;
-}
-
-.admin.user table.table .email {
-  max-width: 200px;
 }
 
 .admin dl.admin-dl-horizontal {
