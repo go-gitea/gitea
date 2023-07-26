@@ -113,12 +113,6 @@ func getSearchTerm(ctx *context.Context) string {
 // https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Core/NuGet.Protocol/LegacyFeed/V2FeedQueryBuilder.cs
 func SearchServiceV2(ctx *context.Context) {
 	skip, take := ctx.FormInt("$skip"), ctx.FormInt("$top")
-	if skip == 0 {
-		skip = ctx.FormInt("skip")
-	}
-	if take == 0 {
-		take = ctx.FormInt("take")
-	}
 	paginator := db.NewAbsoluteListOptions(skip, take)
 
 	pvs, total, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
