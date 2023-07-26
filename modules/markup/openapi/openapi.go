@@ -18,11 +18,13 @@ func init() {
 	markup.RegisterRenderer(Renderer{})
 }
 
-// Renderer implements markup.Renderer for asciicast files.
-// See https://github.com/asciinema/asciinema/blob/develop/doc/asciicast-v2.md
+// Renderer implements markup.Renderer for openapi files.
 type Renderer struct{}
 
-var _ markup.GlobMatchRenderer = (*Renderer)(nil)
+var (
+	_ markup.RendererRelativePathDetector = (*Renderer)(nil)
+	g                                     = glob.MustCompile("**{openapi,OpenAPI,swagger}.{yml,yaml,json,JSON,Yaml,YML}", '/')
+)
 
 // Name implements markup.Renderer
 func (Renderer) Name() string {
@@ -38,10 +40,8 @@ func (Renderer) DisplayInNewPage() bool {
 	return true
 }
 
-func (Renderer) MatchGlobs() []glob.Glob {
-	return []glob.Glob{
-		glob.MustCompile("**{openapi,OpenAPI,swagger}.{yml,yaml,json,JSON,Yaml,YML}", '/'),
-	}
+func (Renderer) CanRenderRelativePath(relativePath string) bool {
+	return g.Match(relativePath)
 }
 
 // Extensions implements markup.Renderer

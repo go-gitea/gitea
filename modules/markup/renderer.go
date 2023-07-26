@@ -17,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/gobwas/glob"
 	"github.com/yuin/goldmark/ast"
 )
 
@@ -117,10 +116,6 @@ type Renderer interface {
 	Render(ctx *RenderContext, input io.Reader, output io.Writer) error
 }
 
-type GlobMatchRenderer interface {
-	MatchGlobs() []glob.Glob
-}
-
 // PostProcessRenderer defines an interface for renderers who need post process
 type PostProcessRenderer interface {
 	NeedPostProcess() bool
@@ -149,10 +144,14 @@ type RendererContentDetector interface {
 	CanRender(filename string, input io.Reader) bool
 }
 
+// RendererRelativePathDetector detects if the content can be rendered according relative file path
+type RendererRelativePathDetector interface {
+	CanRenderRelativePath(relativePath string) bool
+}
+
 var (
-	extRenderers       = make(map[string]Renderer)
-	globMatchRenderers = make([]GlobMatchRenderer, 0)
-	renderers          = make(map[string]Renderer)
+	extRenderers = make(map[string]Renderer)
+	renderers    = make(map[string]Renderer)
 )
 
 // RegisterRenderer registers a new markup file renderer
@@ -160,10 +159,6 @@ func RegisterRenderer(renderer Renderer) {
 	renderers[renderer.Name()] = renderer
 	for _, ext := range renderer.Extensions() {
 		extRenderers[strings.ToLower(ext)] = renderer
-	}
-	gmRenderer, ok := renderer.(GlobMatchRenderer)
-	if ok {
-		globMatchRenderers = append(globMatchRenderers, gmRenderer)
 	}
 }
 
@@ -174,12 +169,14 @@ func GetRendererByFileName(filename string) Renderer {
 	if renderer != nil {
 		return renderer
 	}
+	return GetRendererByRelativePathInterface(filename)
+}
 
-	for _, gmRenderer := range globMatchRenderers {
-		for _, mg := range gmRenderer.MatchGlobs() {
-			if mg.Match(filename) {
-				return gmRenderer.(Renderer)
-			}
+// GetRendererByRelativePathInterface returns a renderer according relative file path
+func GetRendererByRelativePathInterface(relativePath string) Renderer {
+	for _, renderer := range renderers {
+		if detector, ok := renderer.(RendererRelativePathDetector); ok && detector.CanRenderRelativePath(relativePath) {
+			return renderer
 		}
 	}
 	return nil
@@ -235,7 +232,7 @@ func renderIFrame(ctx *RenderContext, output io.Writer) error {
 	// "allow-same-origin" should never be used, it leads to XSS attack, and it makes the JS in iframe can access parent window's config and CSRF token
 	// TODO: when using dark theme, if the rendered content doesn't have proper style, the default text color is black, which is not easy to read
 	_, err := io.WriteString(output, fmt.Sprintf(`
-<iframe src="%s%s/%s/render/%s/%s"
+<iframe src="%s/%s/%s/render/%s/%s"
 name="giteaExternalRender"
 onload="this.height=giteaExternalRender.document.documentElement.scrollHeight"
 width="100%%" height="0" scrolling="no" frameborder="0" style="overflow: hidden"
@@ -338,13 +335,14 @@ func (err ErrUnsupportedRenderFile) Error() string {
 func renderButton(ctx *RenderContext, output io.Writer) error {
 	_, err := io.WriteString(output, fmt.Sprintf(`
 <div>
-<a href="%s%s/%s/render/%s/%s">View in New Page</a>
+<a href="%s/%s/%s/render/%s/%s">%s</a>
 </div>`,
-		setting.AppURL,
+		setting.AppSubURL,
 		url.PathEscape(ctx.Metas["user"]),
 		url.PathEscape(ctx.Metas["repo"]),
 		ctx.Metas["BranchNameSubURL"],
 		url.PathEscape(ctx.RelativePath),
+		"View in New Page", // TODO: how to get to know the i18n here?
 	))
 	return err
 }
