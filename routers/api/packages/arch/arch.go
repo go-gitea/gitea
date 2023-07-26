@@ -43,7 +43,7 @@ func Push(ctx *context.Context) {
 
 	// Save file related to arch package.
 	pkgid, err := arch_service.SaveFile(ctx, &arch_service.SaveFileParams{
-		Creator:  ctx.Doer,
+		Creator:  ctx.ContextUser,
 		Owner:    ctx.Package.Owner,
 		Metadata: md,
 		Filename: filename,
@@ -59,7 +59,7 @@ func Push(ctx *context.Context) {
 	sigdata, err := hex.DecodeString(sign)
 	if err == nil {
 		_, err = arch_service.SaveFile(ctx, &arch_service.SaveFileParams{
-			Creator:  ctx.Doer,
+			Creator:  ctx.ContextUser,
 			Owner:    ctx.Package.Owner,
 			Metadata: md,
 			Data:     sigdata,
