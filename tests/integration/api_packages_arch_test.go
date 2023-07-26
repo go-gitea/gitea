@@ -378,8 +378,6 @@ bfu02wSva9u6jV8n5u1d0x7C/vENwN9uwZUrV/5HfgQAAP//SZpudwAIAAA=`
 
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	setting.Packages.LimitSizeArch = 99999999999999
-
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	rootURL := fmt.Sprintf("/api/packages/%s/arch", user.Name)
