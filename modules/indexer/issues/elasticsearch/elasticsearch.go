@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"code.gitea.io/gitea/modules/graceful"
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
@@ -17,7 +18,7 @@ import (
 )
 
 const (
-	issueIndexerLatestVersion = 0
+	issueIndexerLatestVersion = 1
 )
 
 var _ internal.Indexer = &Indexer{}
@@ -39,32 +40,40 @@ func NewIndexer(url, indexerName string) *Indexer {
 }
 
 const (
-	defaultMapping = `{
-		"mappings": {
-			"properties": {
-				"id": {
-					"type": "integer",
-					"index": true
-				},
-				"repo_id": {
-					"type": "integer",
-					"index": true
-				},
-				"title": {
-					"type": "text",
-					"index": true
-				},
-				"content": {
-					"type": "text",
-					"index": true
-				},
-				"comments": {
-					"type" : "text",
-					"index": true
-				}
-			}
+	defaultMapping = `
+{
+	"mappings": {
+		"properties": {
+			"id": { "type": "integer", "index": true },
+			"repo_id": { "type": "integer", "index": true },
+			"is_public": { "type": "boolean", "index": true },
+
+			"title": {  "type": "text", "index": true },
+			"content": { "type": "text", "index": true },
+			"comments": { "type" : "text", "index": true },
+
+			"is_pull": { "type": "boolean", "index": true },
+			"is_closed": { "type": "boolean", "index": true },
+			"label_ids": { "type": "integer", "index": true },
+			"no_label": { "type": "boolean", "index": true },
+			"milestone_id": { "type": "integer", "index": true },
+			"project_id": { "type": "integer", "index": true },
+			"project_board_id": { "type": "integer", "index": true },
+			"poster_id": { "type": "integer", "index": true },
+			"assignee_id": { "type": "integer", "index": true },
+			"mention_ids": { "type": "integer", "index": true },
+			"reviewed_ids": { "type": "integer", "index": true },
+			"review_requested_ids": { "type": "integer", "index": true },
+			"subscriber_ids": { "type": "integer", "index": true },
+			"updated_unix": { "type": "integer", "index": true },
+
+			"created_unix": { "type": "integer", "index": true },
+			"deadline_unix": { "type": "integer", "index": true },
+			"comment_count": { "type": "integer", "index": true }
 		}
-	}`
+	}
+}
+`
 )
 
 // Index will save the index data
@@ -76,13 +85,7 @@ func (b *Indexer) Index(ctx context.Context, issues ...*internal.IndexerData) er
 		_, err := b.inner.Client.Index().
 			Index(b.inner.VersionedIndexName()).
 			Id(fmt.Sprintf("%d", issue.ID)).
-			BodyJson(map[string]any{
-				"id":       issue.ID,
-				"repo_id":  issue.RepoID,
-				"title":    issue.Title,
-				"content":  issue.Content,
-				"comments": issue.Comments,
-			}).
+			BodyJson(issue).
 			Do(ctx)
 		return err
 	}
@@ -93,13 +96,7 @@ func (b *Indexer) Index(ctx context.Context, issues ...*internal.IndexerData) er
 			elastic.NewBulkIndexRequest().
 				Index(b.inner.VersionedIndexName()).
 				Id(fmt.Sprintf("%d", issue.ID)).
-				Doc(map[string]any{
-					"id":       issue.ID,
-					"repo_id":  issue.RepoID,
-					"title":    issue.Title,
-					"content":  issue.Content,
-					"comments": issue.Comments,
-				}),
+				Doc(issue),
 		)
 	}
 
@@ -141,16 +138,98 @@ func (b *Indexer) Delete(ctx context.Context, ids ...int64) error {
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
 func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (*internal.SearchResult, error) {
-	kwQuery := elastic.NewMultiMatchQuery(options.Keyword, "title", "content", "comments")
 	query := elastic.NewBoolQuery()
-	query = query.Must(kwQuery)
+
+	if options.Keyword != "" {
+		query.Must(elastic.NewMultiMatchQuery(options.Keyword, "title", "content", "comments"))
+	}
+
 	if len(options.RepoIDs) > 0 {
-		repoStrs := make([]any, 0, len(options.RepoIDs))
-		for _, repoID := range options.RepoIDs {
-			repoStrs = append(repoStrs, repoID)
+		q := elastic.NewBoolQuery()
+		q.Should(elastic.NewTermsQuery("repo_id", toAnySlice(options.RepoIDs)...))
+		if options.AllPublic {
+			q.Should(elastic.NewTermQuery("is_public", true))
 		}
-		repoQuery := elastic.NewTermsQuery("repo_id", repoStrs...)
-		query = query.Must(repoQuery)
+		query.Must(q)
+	}
+
+	if !options.IsPull.IsNone() {
+		query.Must(elastic.NewTermQuery("is_pull", options.IsPull.IsTrue()))
+	}
+	if !options.IsClosed.IsNone() {
+		query.Must(elastic.NewTermQuery("is_closed", options.IsClosed.IsTrue()))
+	}
+
+	if options.NoLabelOnly {
+		// queries = append(queries, inner_bleve.BoolFieldQuery(true, "no_label"))
+		query.Must(elastic.NewTermQuery("no_label", true))
+	} else {
+		if len(options.IncludedLabelIDs) > 0 {
+			q := elastic.NewBoolQuery()
+			for _, labelID := range options.IncludedLabelIDs {
+				q.Must(elastic.NewTermQuery("label_ids", labelID))
+			}
+			query.Must(q)
+		} else if len(options.IncludedAnyLabelIDs) > 0 {
+			query.Must(elastic.NewTermsQuery("label_ids", toAnySlice(options.IncludedAnyLabelIDs)...))
+		}
+		if len(options.ExcludedLabelIDs) > 0 {
+			q := elastic.NewBoolQuery()
+			for _, labelID := range options.ExcludedLabelIDs {
+				q.MustNot(elastic.NewTermQuery("label_ids", labelID))
+			}
+			query.Must(q)
+		}
+	}
+
+	if len(options.MilestoneIDs) > 0 {
+		query.Must(elastic.NewTermsQuery("milestone_id", toAnySlice(options.MilestoneIDs)...))
+	}
+
+	if options.ProjectID != nil {
+		query.Must(elastic.NewTermQuery("project_id", *options.ProjectID))
+	}
+	if options.ProjectBoardID != nil {
+		query.Must(elastic.NewTermQuery("project_board_id", *options.ProjectBoardID))
+	}
+
+	if options.PosterID != nil {
+		query.Must(elastic.NewTermQuery("poster_id", *options.PosterID))
+	}
+
+	if options.AssigneeID != nil {
+		query.Must(elastic.NewTermQuery("assignee_id", *options.AssigneeID))
+	}
+
+	if options.MentionID != nil {
+		query.Must(elastic.NewTermQuery("mention_ids", *options.MentionID))
+	}
+
+	if options.ReviewedID != nil {
+		query.Must(elastic.NewTermQuery("reviewed_ids", *options.ReviewedID))
+	}
+	if options.ReviewRequestedID != nil {
+		query.Must(elastic.NewTermQuery("review_requested_ids", *options.ReviewRequestedID))
+	}
+
+	if options.SubscriberID != nil {
+		query.Must(elastic.NewTermQuery("subscriber_ids", *options.SubscriberID))
+	}
+
+	if options.UpdatedAfterUnix != nil || options.UpdatedBeforeUnix != nil {
+		q := elastic.NewRangeQuery("updated_unix")
+		if options.UpdatedAfterUnix != nil {
+			q.Gte(*options.UpdatedAfterUnix)
+		}
+		if options.UpdatedBeforeUnix != nil {
+			q.Lte(*options.UpdatedBeforeUnix)
+		}
+		query.Must(q)
+	}
+
+	sortBy := []elastic.Sorter{
+		parseSortBy(options.SortBy),
+		elastic.NewFieldSort("id").Desc(),
 	}
 
 	// See https://stackoverflow.com/questions/35206409/elasticsearch-2-1-result-window-is-too-large-index-max-result-window/35221900
@@ -161,7 +240,7 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	searchResult, err := b.inner.Client.Search().
 		Index(b.inner.VersionedIndexName()).
 		Query(query).
-		Sort("_score", false).
+		SortBy(sortBy...).
 		From(skip).Size(limit).
 		Do(ctx)
 	if err != nil {
@@ -179,6 +258,23 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	return &internal.SearchResult{
 		Total:     searchResult.TotalHits(),
 		Hits:      hits,
-		Imprecise: true,
+		Imprecise: false,
 	}, nil
+}
+
+func toAnySlice[T any](s []T) []any {
+	ret := make([]any, 0, len(s))
+	for _, item := range s {
+		ret = append(ret, item)
+	}
+	return ret
+}
+
+func parseSortBy(sortBy internal.SortBy) elastic.Sorter {
+	field := strings.TrimPrefix(string(sortBy), "-")
+	ret := elastic.NewFieldSort(field)
+	if strings.HasPrefix(string(sortBy), "-") {
+		ret.Desc()
+	}
+	return ret
 }
