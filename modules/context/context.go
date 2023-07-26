@@ -226,3 +226,15 @@ func (ctx *Context) GetErrMsg() string {
 	}
 	return msg
 }
+
+func (ctx *Context) JSONRedirect(redirect string) {
+	ctx.JSON(http.StatusOK, map[string]any{"redirect": redirect})
+}
+
+func (ctx *Context) JSONOK() {
+	ctx.JSON(http.StatusOK, map[string]any{"ok": true}) // this is only a dummy response, frontend seldom uses it
+}
+
+func (ctx *Context) JSONError(msg string) {
+	ctx.JSON(http.StatusBadRequest, map[string]any{"errorMessage": msg})
+}
