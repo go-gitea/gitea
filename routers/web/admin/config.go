@@ -179,9 +179,7 @@ func Config(ctx *context.Context) {
 func ChangeConfig(ctx *context.Context) {
 	key := strings.TrimSpace(ctx.FormString("key"))
 	if key == "" {
-		ctx.JSON(http.StatusOK, map[string]string{
-			"redirect": ctx.Req.URL.String(),
-		})
+		ctx.JSONRedirect(ctx.Req.URL.String())
 		return
 	}
 	value := ctx.FormString("value")
