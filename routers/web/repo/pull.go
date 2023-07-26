@@ -1423,9 +1423,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 	}
 
 	defer func() {
-		ctx.JSON(http.StatusOK, map[string]any{
-			"redirect": issue.Link(),
-		})
+		ctx.JSONRedirect(issue.Link())
 	}()
 
 	// Check if branch has no new commits
