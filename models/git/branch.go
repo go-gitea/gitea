@@ -394,6 +394,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 }
 
 type FindRecentlyPushedNewBranchesOptions struct {
+	db.ListOptions
 	Actor           *user_model.User
 	Repo            *repo_model.Repository
 	BaseRepo        *repo_model.Repository
@@ -447,6 +448,12 @@ func FindRecentlyPushedNewBranches(ctx context.Context, opts *FindRecentlyPushed
 		return nil, err
 	}
 
+	// defalutly we only display top 2 latest branch
+	if opts.ListOptions.PageSize == 0 && opts.ListOptions.Page == 0 {
+		opts.ListOptions.PageSize = 2
+		opts.ListOptions.Page = 1
+	}
+
 	findBranchOpts := FindBranchOptions{
 		RepoCond:        builder.In("branch.repo_id", repoIDs),
 		CommitCond:      builder.Neq{"branch.commit_id": baseBranch.CommitID}, // newly created branch have no changes, so skip them,
@@ -457,11 +464,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, opts *FindRecentlyPushed
 		// should not use branch name here, because if there are branches with same name in different repos,
 		// we can not detect them correctly
 		PullRequestCond: builder.NotIn("branch.id", prBranchIds),
-		// only display top 2 latest branch
-		ListOptions: db.ListOptions{
-			PageSize: 2,
-			Page:     1,
-		},
+		ListOptions:     opts.ListOptions,
 	}
 
 	return FindBranches(ctx, findBranchOpts)
