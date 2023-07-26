@@ -15,8 +15,8 @@ async function loadBranchesAndTags(area, loadingButton) {
 }
 
 function addTags(area, tags) {
-  toggleElem(area.querySelectorAll('.tag-area-parent'), tags.length > 0);
   const tagArea = area.querySelector('.tag-area');
+  toggleElem(tagArea, tags.length > 0);
   for (const tag of tags) {
     addLink(tagArea, tag.web_link, tag.name);
   }
@@ -24,8 +24,8 @@ function addTags(area, tags) {
 
 function addBranches(area, branches, defaultBranch) {
   const defaultBranchTooltip = area.getAttribute('data-text-default-branch-tooltip');
-  toggleElem(area.querySelectorAll('.branch-area-parent'), branches.length > 0);
   const branchArea = area.querySelector('.branch-area');
+  toggleElem(branchArea, branches.length > 0);
   for (const branch of branches) {
     const tooltip = defaultBranch === branch.name ? defaultBranchTooltip : null;
     addLink(branchArea, branch.web_link, branch.name, tooltip);
@@ -34,11 +34,11 @@ function addBranches(area, branches, defaultBranch) {
 
 function addLink(parent, href, text, tooltip) {
   const link = document.createElement('a');
-  link.classList.add('muted', 'gt-px-2', 'gt-rounded');
+  link.classList.add('muted', 'gt-px-2');
   link.href = href;
   link.textContent = text;
   if (tooltip) {
-    link.classList.add('gt-border-secondary');
+    link.classList.add('gt-border-secondary', 'gt-rounded');
     link.setAttribute('data-tooltip-content', tooltip);
   }
   parent.append(link);
@@ -46,7 +46,7 @@ function addLink(parent, href, text, tooltip) {
 
 export function initLoadBranchesAndTagsButton() {
   for (const area of document.querySelectorAll('.branch-and-tag-area')) {
-    const loadButton = area.querySelector('.load-branches-and-tags');
-    loadButton.addEventListener('click', () => loadBranchesAndTags(area, loadButton));
+    const btn = area.querySelector('.load-branches-and-tags');
+    btn.addEventListener('click', () => loadBranchesAndTags(area, btn));
   }
 }
