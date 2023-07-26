@@ -197,7 +197,6 @@ help:
 	@echo " - clean                            delete backend and integration files"
 	@echo " - clean-all                        delete backend, frontend and integration files"
 	@echo " - deps                             install dependencies"
-	@echo " - deps-docs                        install docs dependencies"
 	@echo " - deps-frontend                    install frontend dependencies"
 	@echo " - deps-backend                     install backend dependencies"
 	@echo " - deps-tools                       install tool dependencies"
@@ -373,11 +372,11 @@ lint-backend-fix: lint-go-fix lint-go-vet lint-editorconfig
 
 .PHONY: lint-js
 lint-js: node_modules
-	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js docs/assets/js tests/e2e
+	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js tests/e2e
 
 .PHONY: lint-js-fix
 lint-js-fix: node_modules
-	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js docs/assets/js tests/e2e --fix
+	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js tests/e2e --fix
 
 .PHONY: lint-css
 lint-css: node_modules
@@ -879,20 +878,14 @@ release-sources: | $(DIST_DIRS)
 
 .PHONY: release-docs
 release-docs: | $(DIST_DIRS) docs
-	tar -czf $(DIST)/release/gitea-docs-$(VERSION).tar.gz -C ./docs/public .
+	tar -czf $(DIST)/release/gitea-docs-$(VERSION).tar.gz -C ./docs .
 
 .PHONY: docs
-docs: deps-docs
-	cd docs; make trans-copy clean build-offline;
-
-.PHONY: deps-docs
-deps-docs:
-	@hash hugo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		curl -sL https://github.com/gohugoio/hugo/releases/download/v$(HUGO_VERSION)/hugo_$(HUGO_VERSION)_Linux-64bit.tar.gz | tar zxf - -C /tmp && mkdir -p ~/go/bin && mv /tmp/hugo ~/go/bin/hugo && chmod +x ~/go/bin/hugo; \
-	fi
+docs:
+	cd docs; bash scripts/trans-copy.sh;
 
 .PHONY: deps
-deps: deps-frontend deps-backend deps-tools deps-docs deps-py
+deps: deps-frontend deps-backend deps-tools deps-py
 
 .PHONY: deps-py
 deps-py: .venv
