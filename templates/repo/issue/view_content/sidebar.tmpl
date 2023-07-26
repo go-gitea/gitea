@@ -322,7 +322,7 @@
 								<button class="ui red cancel button">{{.locale.Tr "repo.issues.add_time_cancel"}}</button>
 							</div>
 						</div>
-						<button class="ui fluid button green issue-add-time gt-mt-3" data-tooltip-content='{{.locale.Tr "repo.issues.add_time"}}'>{{.locale.Tr "repo.issues.add_time_short"}}</button>
+						<button class="ui fluid button issue-add-time gt-mt-3" data-tooltip-content='{{.locale.Tr "repo.issues.add_time"}}'>{{.locale.Tr "repo.issues.add_time_short"}}</button>
 					{{end}}
 				</div>
 			</div>
@@ -381,7 +381,7 @@
 				<form class="ui fluid action input issue-due-form" action="{{AppSubUrl}}/{{PathEscape .Repository.Owner.Name}}/{{PathEscape .Repository.Name}}/issues/{{.Issue.Index}}/deadline" method="post" id="update-issue-deadline-form">
 					{{$.CsrfTokenHtml}}
 					<input required placeholder="{{.locale.Tr "repo.issues.due_date_form"}}" {{if gt .Issue.DeadlineUnix 0}}value="{{.Issue.DeadlineUnix.Format "2006-01-02"}}"{{end}} type="date" name="deadlineDate" id="deadlineDate">
-					<button class="ui green icon button">
+					<button class="ui icon button">
 						{{if ne .Issue.DeadlineUnix 0}}
 							{{svg "octicon-pencil"}}
 						{{else}}
@@ -507,7 +507,7 @@
 								<input type="text" class="search">
 								<div class="default text">{{.locale.Tr "repo.issues.dependency.add"}}</div>
 							</div>
-							<button class="ui green icon button">
+							<button class="ui icon button">
 								{{svg "octicon-plus"}}
 							</button>
 						</div>
@@ -643,7 +643,7 @@
 				</form>
 			</div>
 		</div>
-		<button class="gt-mt-2 fluid ui show-modal button negative" data-modal="#delete">
+		<button class="gt-mt-2 fluid ui show-modal button" data-modal="#delete">
 			{{svg "octicon-trash"}}
 			{{.locale.Tr "repo.issues.delete"}}
 		</button>
