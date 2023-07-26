@@ -31,27 +31,27 @@
 					<span class="message gt-dib gt-ellipsis gt-mr-3">
 						<span>{{RenderCommitMessage $.Context $commit.Subject $.RepoLink $.Repository.ComposeMetas}}</span>
 					</span>
-					<span class="tags gt-df gt-ac gt-mr-2">
+					<span class="commit-refs gt-df gt-ac gt-mr-2">
 						{{range $commit.Refs}}
 							{{$refGroup := .RefGroup}}
 							{{if eq $refGroup "pull"}}
 								{{if or (not $.HidePRRefs) (SliceUtils.Contains $.SelectedBranches .Name)}}
 									<!-- it's intended to use issues not pulls, if it's a pull you will get redirected -->
-									<a class="ui labelled icon button basic tiny gt-mr-2" href="{{$.RepoLink}}/{{if $.Repository.UnitEnabled $.Context $.UnitTypePullRequests}}pulls{{else}}issues{{end}}/{{.ShortName|PathEscape}}">
-										{{svg "octicon-git-pull-request" 16 "gt-mr-2"}}#{{.ShortName}}
+									<a class="ui labelled basic tiny button" href="{{$.RepoLink}}/{{if $.Repository.UnitEnabled $.Context $.UnitTypePullRequests}}pulls{{else}}issues{{end}}/{{.ShortName|PathEscape}}">
+										{{svg "octicon-git-pull-request"}} #{{.ShortName}}
 									</a>
 								{{end}}
 							{{else if eq $refGroup "tags"}}
-								<a class="ui labelled icon button basic tiny gt-mr-2" href="{{$.RepoLink}}/src/tag/{{.ShortName|PathEscape}}">
-									{{svg "octicon-tag" 16 "gt-mr-2"}}{{.ShortName}}
+								<a class="ui labelled basic tiny button" href="{{$.RepoLink}}/src/tag/{{.ShortName|PathEscape}}">
+									{{svg "octicon-tag"}} {{.ShortName}}
 								</a>
 							{{else if eq $refGroup "remotes"}}
-								<a class="ui labelled icon button basic tiny gt-mr-2" href="{{$.RepoLink}}/src/commit/{{$commit.Rev|PathEscape}}">
-									{{svg "octicon-cross-reference" 16 "gt-mr-2"}}{{.ShortName}}
+								<a class="ui labelled basic tiny button" href="{{$.RepoLink}}/src/commit/{{$commit.Rev|PathEscape}}">
+									{{svg "octicon-cross-reference"}} {{.ShortName}}
 								</a>
 							{{else if eq $refGroup "heads"}}
-								<a class="ui labelled icon button basic tiny gt-mr-2" href="{{$.RepoLink}}/src/branch/{{.ShortName|PathEscape}}">
-									{{svg "octicon-git-branch" 16 "gt-mr-2"}}{{.ShortName}}
+								<a class="ui labelled basic tiny button" href="{{$.RepoLink}}/src/branch/{{.ShortName|PathEscape}}">
+									{{svg "octicon-git-branch"}} {{.ShortName}}
 								</a>
 							{{else}}
 								<!-- Unknown ref type .Name -->

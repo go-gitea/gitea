@@ -133,9 +133,7 @@ func DeleteCollaboration(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.remove_collaborator_success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": ctx.Repo.RepoLink + "/settings/collaboration",
-	})
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/collaboration")
 }
 
 // AddTeamPost response for adding a team to a repository
@@ -204,7 +202,5 @@ func DeleteTeam(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.remove_team_success"))
-	ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": ctx.Repo.RepoLink + "/settings/collaboration",
-	})
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/collaboration")
 }

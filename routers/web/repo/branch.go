@@ -162,9 +162,7 @@ func RestoreBranchPost(ctx *context.Context) {
 }
 
 func redirect(ctx *context.Context) {
-	ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": ctx.Repo.RepoLink + "/branches?page=" + url.QueryEscape(ctx.FormString("page")),
-	})
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/branches?page=" + url.QueryEscape(ctx.FormString("page")))
 }
 
 // CreateBranch creates new branch in repository

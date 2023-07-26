@@ -289,6 +289,7 @@ func ToOrganization(ctx context.Context, org *organization.Organization) *api.Or
 		Name:                      org.Name,
 		UserName:                  org.Name,
 		FullName:                  org.FullName,
+		Email:                     org.Email,
 		Description:               org.Description,
 		Website:                   org.Website,
 		Location:                  org.Location,

@@ -255,6 +255,7 @@ func Create(ctx *context.APIContext) {
 	org := &organization.Organization{
 		Name:                      form.UserName,
 		FullName:                  form.FullName,
+		Email:                     form.Email,
 		Description:               form.Description,
 		Website:                   form.Website,
 		Location:                  form.Location,
@@ -299,7 +300,15 @@ func Get(ctx *context.APIContext) {
 		ctx.NotFound("HasOrgOrUserVisible", nil)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToOrganization(ctx, ctx.Org.Organization))
+
+	org := convert.ToOrganization(ctx, ctx.Org.Organization)
+
+	// Don't show Mail, when User is not logged in
+	if ctx.Doer == nil {
+		org.Email = ""
+	}
+
+	ctx.JSON(http.StatusOK, org)
 }
 
 // Edit change an organization's information
@@ -328,6 +337,7 @@ func Edit(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.EditOrgOption)
 	org := ctx.Org.Organization
 	org.FullName = form.FullName
+	org.Email = form.Email
 	org.Description = form.Description
 	org.Website = form.Website
 	org.Location = form.Location
