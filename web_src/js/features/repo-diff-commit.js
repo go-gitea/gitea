@@ -44,7 +44,7 @@ function addLink(parent, href, text, tooltip) {
   parent.append(link);
 }
 
-export function initLoadBranchesAndTagsButton() {
+export function initRepoDiffCommitBranchesAndTags() {
   for (const area of document.querySelectorAll('.branch-and-tag-area')) {
     const btn = area.querySelector('.load-branches-and-tags');
     btn.addEventListener('click', () => loadBranchesAndTags(area, btn));
