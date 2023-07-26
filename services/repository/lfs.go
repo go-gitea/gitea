@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 // GarbageCollectLFSMetaObjectsOptions provides options for GarbageCollectLFSMetaObjects function
@@ -122,8 +123,8 @@ func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.R
 		//
 		// It is likely that a week is potentially excessive but it should definitely be enough that any
 		// unassociated LFS object is genuinely unassociated.
-		OlderThan:                 opts.OlderThan,
-		UpdatedLessRecentlyThan:   opts.UpdatedLessRecentlyThan,
+		OlderThan:                 timeutil.TimeStamp(opts.OlderThan.Unix()),
+		UpdatedLessRecentlyThan:   timeutil.TimeStamp(opts.UpdatedLessRecentlyThan.Unix()),
 		OrderByUpdated:            true,
 		LoopFunctionAlwaysUpdates: true,
 	})
