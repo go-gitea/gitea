@@ -11,6 +11,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
@@ -21,11 +22,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestIndexer(t *testing.T, indexer internal.Indexer) {
+func TestIndexer(t *testing.T, indexer internal.Indexer, delayAfterWrite time.Duration) {
 	_, err := indexer.Init(context.Background())
 	require.NoError(t, err)
-
-	require.NoError(t, indexer.Ping(context.Background()))
 
 	var (
 		ids  []int64
@@ -38,6 +37,7 @@ func TestIndexer(t *testing.T, indexer internal.Indexer) {
 			data[v.ID] = v
 		}
 		require.NoError(t, indexer.Index(context.Background(), d...))
+		time.Sleep(delayAfterWrite)
 	}
 
 	defer func() {
@@ -48,6 +48,7 @@ func TestIndexer(t *testing.T, indexer internal.Indexer) {
 		t.Run(c.Name, func(t *testing.T) {
 			if len(c.ExtraData) > 0 {
 				require.NoError(t, indexer.Index(context.Background(), c.ExtraData...))
+				time.Sleep(delayAfterWrite)
 				for _, v := range c.ExtraData {
 					data[v.ID] = v
 				}
@@ -56,6 +57,7 @@ func TestIndexer(t *testing.T, indexer internal.Indexer) {
 						require.NoError(t, indexer.Delete(context.Background(), v.ID))
 						delete(data, v.ID)
 					}
+					time.Sleep(delayAfterWrite)
 				}()
 			}
 

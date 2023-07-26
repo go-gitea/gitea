@@ -227,6 +227,9 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		query.Must(q)
 	}
 
+	if options.SortBy == "" {
+		options.SortBy = internal.SortByCreatedAsc
+	}
 	sortBy := []elastic.Sorter{
 		parseSortBy(options.SortBy),
 		elastic.NewFieldSort("id").Desc(),
