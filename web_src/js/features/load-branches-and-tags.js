@@ -1,11 +1,11 @@
-import {showElem, toggleElem} from '../utils/dom.js';
+import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 
 async function loadBranchesAndTags(area, loadingButton) {
   loadingButton.classList.add('disabled');
   try {
     const res = await fetch(loadingButton.getAttribute('data-fetch-url'));
     const data = await res.json();
-    loadingButton.classList.add('gt-hidden');
+    hideElem(loadingButton);
     addTags(area, data.tags);
     addBranches(area, data.branches, data.default_branch);
     showElem(area.querySelectorAll('.branch-and-tag-detail'));

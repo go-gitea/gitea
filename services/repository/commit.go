@@ -12,10 +12,9 @@ import (
 )
 
 type ContainedLinks struct { // TODO: better name?
-	Branches                 []*namedLink `json:"branches"`
-	Tags                     []*namedLink `json:"tags"`
-	ContainedInDefaultBranch bool         `json:"contained_in_default_branch"`
-	DefaultBranch            string       `json:"default_branch"`
+	Branches      []*namedLink `json:"branches"`
+	Tags          []*namedLink `json:"tags"`
+	DefaultBranch string       `json:"default_branch"`
 }
 
 type namedLink struct { // TODO: better name?
@@ -35,8 +34,6 @@ func LoadBranchesAndTags(ctx context.Context, baseRepo *gitea_ctx.Repository, co
 	}
 
 	result := &ContainedLinks{
-		ContainedInDefaultBranch: util.SliceContains(containedBranches, baseRepo.Repository.DefaultBranch),
-
 		DefaultBranch: baseRepo.Repository.DefaultBranch,
 		Branches:      make([]*namedLink, 0, len(containedBranches)),
 		Tags:          make([]*namedLink, 0, len(containedTags)),
