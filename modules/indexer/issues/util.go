@@ -155,6 +155,13 @@ func deleteRepoIssueIndexer(ctx context.Context, repoID int64) error {
 }
 
 func pushIssueIndexerQueue(data *IndexerMetadata) error {
+	if issueIndexerQueue == nil {
+		// Some unit tests will trigger indexing, but the queue is not initialized.
+		// It's OK to ignore it, but log a warning message in case it's not a unit test.
+		log.Warn("Trying to push %+v to issue indexer queue, but the queue is not initialized, it's OK if it's a unit test", data)
+		return nil
+	}
+
 	err := issueIndexerQueue.Push(data)
 	if errors.Is(err, queue.ErrAlreadyInQueue) {
 		return nil
