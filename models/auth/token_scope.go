@@ -16,7 +16,7 @@ type AccessTokenScopeCategory int
 const (
 	AccessTokenScopeCategoryActivityPub = iota
 	AccessTokenScopeCategoryAdmin
-	AccessTokenScopeCategoryMisc
+	AccessTokenScopeCategoryMisc // WARN: this is now just a placeholder, don't remove it which will change the following values
 	AccessTokenScopeCategoryNotification
 	AccessTokenScopeCategoryOrganization
 	AccessTokenScopeCategoryPackage
