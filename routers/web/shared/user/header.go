@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // prepareContextForCommonProfile store some common data into context data for user's profile related pages (including the nav menu)
@@ -83,7 +84,7 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 	}
 }
 
-func FindUserProfileReadme(ctx *context.Context) (profileGitRepo *git.Repository, profileReadmeBlob *git.Blob, profileClose func()) {
+func FindUserProfile(ctx *context.Context) (profileGitRepo *git.Repository, profileReadmeBlob *git.Blob, funding []*api.RepoFundingEntry, profileClose func()) {
 	profileDbRepo, err := repo_model.GetRepositoryByName(ctx.ContextUser.ID, ".profile")
 	if err == nil && !profileDbRepo.IsEmpty {
 		if profileGitRepo, err = git.OpenRepository(ctx, profileDbRepo.RepoPath()); err != nil {
@@ -93,10 +94,11 @@ func FindUserProfileReadme(ctx *context.Context) (profileGitRepo *git.Repository
 				log.Error("FindUserProfileReadme failed to GetBranchCommit: %v", err)
 			} else {
 				profileReadmeBlob, _ = commit.GetBlobByPath("README.md")
+				funding, _ = repo_model.GetFundingFromCommit(profileDbRepo, commit)
 			}
 		}
 	}
-	return profileGitRepo, profileReadmeBlob, func() {
+	return profileGitRepo, profileReadmeBlob, funding, func() {
 		if profileGitRepo != nil {
 			_ = profileGitRepo.Close()
 		}
@@ -106,7 +108,10 @@ func FindUserProfileReadme(ctx *context.Context) (profileGitRepo *git.Repository
 func RenderUserHeader(ctx *context.Context) {
 	prepareContextForCommonProfile(ctx)
 
-	_, profileReadmeBlob, profileClose := FindUserProfileReadme(ctx)
+	_, profileReadmeBlob, funding, profileClose := FindUserProfile(ctx)
 	defer profileClose()
 	ctx.Data["HasProfileReadme"] = profileReadmeBlob != nil
+
+	ctx.Data["Funding"] = funding
+	ctx.Data["FundingName"] = ctx.ContextUser.Name
 }

@@ -362,8 +362,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		if workFlowErr != nil {
 			ctx.Data["FileError"] = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", workFlowErr.Error())
 		}
-	} else if ctx.Repo.IsFunding(ctx.Repo.TreePath) {
-		_, fundingErr := ctx.Repo.GetFunding(ctx.Repo.TreePath, ctx.Repo.Commit)
+	} else if repo_model.IsFundingConfig(ctx.Repo.TreePath) {
+		_, fundingErr := repo_model.GetFundingFromPath(ctx.Repo.Repository, ctx.Repo.TreePath, ctx.Repo.Commit)
 		if fundingErr != nil {
 			ctx.Data["FileError"] = strings.TrimSpace(fundingErr.Error())
 		}

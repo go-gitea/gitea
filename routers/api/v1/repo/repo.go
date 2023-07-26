@@ -1286,6 +1286,6 @@ func GetFunding(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepoFunding"
-	funding, _ := ctx.Repo.FundingFromDefaultBranch()
+	funding, _ := repo_model.GetFundingFromDefaultBranch(ctx, ctx.Repo.Repository)
 	ctx.JSON(http.StatusOK, funding)
 }
