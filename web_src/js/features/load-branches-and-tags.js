@@ -1,76 +1,52 @@
-import {showElem} from '../utils/dom.js';
+import {showElem, toggleElem} from '../utils/dom.js';
 
-async function loadBranchesAndTags(loadingButton, addHere) {
+async function loadBranchesAndTags(area, loadingButton) {
   loadingButton.classList.add('disabled');
-  let res;
   try {
-    res = await fetch(loadingButton.getAttribute('data-fetch-url'), {
-      method: 'GET',
-    });
+    const res = await fetch(loadingButton.getAttribute('data-fetch-url'));
+    const data = await res.json();
+    loadingButton.classList.add('gt-hidden');
+    addTags(area, data.tags);
+    addBranches(area, data.branches, data.default_branch);
+    showElem(area.querySelectorAll('.branch-and-tag-detail'));
   } finally {
     loadingButton.classList.remove('disabled');
   }
-
-  if (!res.ok) {
-    return;
-  }
-
-  const data = await res.json();
-  showAreas('.branch-tag-area-divider');
-  loadingButton.classList.add('gt-hidden');
-  addHere.querySelector('.branch-tag-area-text').textContent = loadingButton.getAttribute('data-contained-in-text');
-  addTags(data.tags, addHere.querySelector('.tag-area'));
-  const branchArea = addHere.querySelector('.branch-area');
-  addBranches(
-    data.branches,
-    data.default_branch,
-    branchArea.getAttribute('data-defaultbranch-tooltip'),
-    branchArea,
-  );
 }
 
-function addTags(tags, addHere) {
-  if (tags.length > 0) showAreas('.tag-area,.tag-area-parent');
+function addTags(area, tags) {
+  toggleElem(area.querySelectorAll('.tag-area-parent'), tags.length > 0);
+  const tagArea = area.querySelector('.tag-area');
   for (const tag of tags) {
-    addLink(tag.web_link, tag.name, addHere);
+    addLink(tagArea, tag.web_link, tag.name);
   }
 }
 
-function addBranches(branches, defaultBranch, defaultBranchTooltip, addHere) {
-  if (branches.length > 0) showAreas('.branch-area,.branch-area-parent');
+function addBranches(area, branches, defaultBranch) {
+  const defaultBranchTooltip = area.getAttribute('data-text-default-branch-tooltip');
+  toggleElem(area.querySelectorAll('.branch-area-parent'), branches.length > 0);
+  const branchArea = area.querySelector('.branch-area');
   for (const branch of branches) {
-    addLink(
-      branch.web_link,
-      branch.name,
-      addHere,
-      defaultBranch === branch.name ? defaultBranchTooltip : undefined,
-    );
+    const tooltip = defaultBranch === branch.name ? defaultBranchTooltip : null;
+    addLink(branchArea, branch.web_link, branch.name, tooltip);
   }
 }
 
-function showAreas(selector) {
-  for (const branchArea of document.querySelectorAll(selector)) showElem(branchArea);
-}
-
-function addLink(href, text, addHere, tooltip) {
+function addLink(parent, href, text, tooltip) {
   const link = document.createElement('a');
-  link.classList.add('muted', 'gt-px-3', 'gt-rounded');
+  link.classList.add('muted', 'gt-px-2', 'gt-rounded');
+  link.href = href;
+  link.textContent = text;
   if (tooltip) {
     link.classList.add('gt-border-secondary');
     link.setAttribute('data-tooltip-content', tooltip);
   }
-  link.href = href;
-  link.textContent = text;
-  addHere.append(link);
+  parent.append(link);
 }
 
 export function initLoadBranchesAndTagsButton() {
-  for (const loadButton of document.querySelectorAll('.load-tags-and-branches')) {
-    loadButton.addEventListener('click', () => {
-      loadBranchesAndTags(
-        loadButton,
-        document.querySelector('.branch-and-tag-area'),
-      );
-    });
+  for (const area of document.querySelectorAll('.branch-and-tag-area')) {
+    const loadButton = area.querySelector('.load-branches-and-tags');
+    loadButton.addEventListener('click', () => loadBranchesAndTags(area, loadButton));
   }
 }

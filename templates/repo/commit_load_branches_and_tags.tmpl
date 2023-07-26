@@ -1,13 +1,12 @@
-<div class="branch-and-tag-area">
-	<button class="ui button ellipsis-button gt-mt-3 load-tags-and-branches" data-fetch-url="{{.RepoLink}}/commit/{{.CommitID}}/load-branches-and-tags" data-tooltip-content="{{.locale.Tr "repo.commit.load_referencing_branches_and_tags"}}" data-contained-in-text="{{.locale.Tr "repo.commit.contained_in"}}" aria-expanded="false">...</button>
-	<div class="ui divider branch-tag-area-divider gt-hidden"></div>
-	<div class="branch-tag-area-text gt-df"></div>
-	<div class="branch-area-parent gt-df gt-ac gt-my-3 gt-gap-2 gt-hidden">
-		{{svg "octicon-git-branch" 16 "gt-min-w-16"}}
-		<div class="branch-area gt-df gt-ac gt-fw gt-hidden" data-defaultbranch-tooltip="{{.locale.Tr "repo.commit.contained_in_default_branch"}}"></div>
-	</div>
-	<div class="tag-area-parent gt-df gt-ac gt-my-3 gt-gap-2 gt-hidden">
-		{{svg "octicon-tag" 16 "gt-min-w-16"}}
-		<div class="tag-area gt-df gt-ac gt-fw gt-hidden"></div>
+<div class="branch-and-tag-area" data-text-default-branch-tooltip="{{.locale.Tr "repo.commit.contained_in_default_branch"}}">
+	<button class="ui button ellipsis-button load-branches-and-tags gt-mt-3" aria-expanded="false"
+		data-fetch-url="{{.RepoLink}}/commit/{{.CommitID}}/load-branches-and-tags"
+		data-tooltip-content="{{.locale.Tr "repo.commit.load_referencing_branches_and_tags"}}"
+	>...</button>
+	<div class="branch-and-tag-detail gt-hidden">
+		<div class="divider"></div>
+		<div>{{.locale.Tr "repo.commit.contained_in"}}</div>
+		<div class="branch-area flex-text-block gt-mt-3">{{svg "octicon-git-branch"}}</div>
+		<div class="tag-area flex-text-block gt-mt-3">{{svg "octicon-tag"}}</div>
 	</div>
 </div>
