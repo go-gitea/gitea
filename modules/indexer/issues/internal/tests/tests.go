@@ -26,6 +26,8 @@ func TestIndexer(t *testing.T, indexer internal.Indexer) {
 	_, err := indexer.Init(context.Background())
 	require.NoError(t, err)
 
+	require.NoError(t, indexer.Ping(context.Background()))
+
 	var (
 		ids  []int64
 		data = map[int64]*internal.IndexerData{}
