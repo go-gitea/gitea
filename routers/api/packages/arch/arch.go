@@ -150,7 +150,7 @@ func Remove(ctx *context.Context) {
 		return
 	}
 
-	ctx.Resp.WriteHeader(http.StatusOK)
+	ctx.Status(http.StatusOK)
 }
 
 func apiError(ctx *context.Context, status int, obj interface{}) {
