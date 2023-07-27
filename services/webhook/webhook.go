@@ -5,8 +5,8 @@ package webhook
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"github.com/pkg/errors"
 	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
