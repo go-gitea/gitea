@@ -22,6 +22,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/services/forms"
 	pull_service "code.gitea.io/gitea/services/pull"
 	"code.gitea.io/gitea/services/repository"
@@ -45,6 +46,11 @@ func ProtectedBranchRules(ctx *context.Context) {
 	}
 	ctx.Data["ProtectedBranches"] = rules
 
+	repo.PrepareBranchList(ctx)
+	if ctx.Written() {
+		return
+	}
+
 	ctx.HTML(http.StatusOK, tplBranches)
 }
 
@@ -52,6 +58,11 @@ func ProtectedBranchRules(ctx *context.Context) {
 func SetDefaultBranchPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.branches.update_default_branch")
 	ctx.Data["PageIsSettingsBranches"] = true
+
+	repo.PrepareBranchList(ctx)
+	if ctx.Written() {
+		return
+	}
 
 	repo := ctx.Repo.Repository
 
@@ -297,7 +308,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 		return
 	}
 	for _, branchName := range matchedBranches {
-		if err = pull_service.CheckPRsForBaseBranch(ctx.Repo.Repository, branchName); err != nil {
+		if err = pull_service.CheckPRsForBaseBranch(ctx, ctx.Repo.Repository, branchName); err != nil {
 			ctx.ServerError("CheckPRsForBaseBranch", err)
 			return
 		}
@@ -312,41 +323,31 @@ func DeleteProtectedBranchRulePost(ctx *context.Context) {
 	ruleID := ctx.ParamsInt64("id")
 	if ruleID <= 0 {
 		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", fmt.Sprintf("%d", ruleID)))
-		ctx.JSON(http.StatusOK, map[string]any{
-			"redirect": fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink),
-		})
+		ctx.JSONRedirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
 		return
 	}
 
 	rule, err := git_model.GetProtectedBranchRuleByID(ctx, ctx.Repo.Repository.ID, ruleID)
 	if err != nil {
 		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", fmt.Sprintf("%d", ruleID)))
-		ctx.JSON(http.StatusOK, map[string]any{
-			"redirect": fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink),
-		})
+		ctx.JSONRedirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
 		return
 	}
 
 	if rule == nil {
 		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", fmt.Sprintf("%d", ruleID)))
-		ctx.JSON(http.StatusOK, map[string]any{
-			"redirect": fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink),
-		})
+		ctx.JSONRedirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
 		return
 	}
 
 	if err := git_model.DeleteProtectedBranch(ctx, ctx.Repo.Repository.ID, ruleID); err != nil {
 		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", rule.RuleName))
-		ctx.JSON(http.StatusOK, map[string]any{
-			"redirect": fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink),
-		})
+		ctx.JSONRedirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
 		return
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.remove_protected_branch_success", rule.RuleName))
-	ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink),
-	})
+	ctx.JSONRedirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
 }
 
 // RenameBranchPost responses for rename a branch

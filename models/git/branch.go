@@ -394,6 +394,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, repoID, userID int64, ex
 	err := db.GetEngine(ctx).
 		Where("pusher_id=? AND is_deleted=?", userID, false).
 		And("name <> ?", excludeBranchName).
+		And("repo_id = ?", repoID).
 		And("updated_unix >= ?", time.Now().Add(-time.Hour*6).Unix()).
 		NotIn("name", subQuery).
 		OrderBy("branch.updated_unix DESC").

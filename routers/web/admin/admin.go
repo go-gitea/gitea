@@ -113,6 +113,16 @@ func updateSystemStatus() {
 	sysStatus.NumGC = m.NumGC
 }
 
+func prepareDeprecatedWarningsAlert(ctx *context.Context) {
+	if len(setting.DeprecatedWarnings) > 0 {
+		content := setting.DeprecatedWarnings[0]
+		if len(setting.DeprecatedWarnings) > 1 {
+			content += fmt.Sprintf(" (and %d more)", len(setting.DeprecatedWarnings)-1)
+		}
+		ctx.Flash.Error(content, true)
+	}
+}
+
 // Dashboard show admin panel dashboard
 func Dashboard(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
@@ -123,6 +133,7 @@ func Dashboard(ctx *context.Context) {
 	updateSystemStatus()
 	ctx.Data["SysStatus"] = sysStatus
 	ctx.Data["SSH"] = setting.SSH
+	prepareDeprecatedWarningsAlert(ctx)
 	ctx.HTML(http.StatusOK, tplDashboard)
 }
 
