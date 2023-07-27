@@ -35,9 +35,10 @@ func TestGetRefEndNamesAndURLs(t *testing.T) {
 func TestIssue_DeleteIssue(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
+	issueCount := 10
 	issueIDs, err := issues_model.GetIssueIDsByRepoID(db.DefaultContext, 1)
 	assert.NoError(t, err)
-	assert.Len(t, issueIDs, 5)
+	assert.Len(t, issueIDs, issueCount)
 
 	issue := &issues_model.Issue{
 		RepoID: 1,
@@ -48,7 +49,7 @@ func TestIssue_DeleteIssue(t *testing.T) {
 	assert.NoError(t, err)
 	issueIDs, err = issues_model.GetIssueIDsByRepoID(db.DefaultContext, 1)
 	assert.NoError(t, err)
-	assert.Len(t, issueIDs, 4)
+	assert.Len(t, issueIDs, issueCount-1)
 
 	// check attachment removal
 	attachments, err := repo_model.GetAttachmentsByIssueID(db.DefaultContext, 4)
