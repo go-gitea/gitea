@@ -34,6 +34,7 @@ func TestElasticsearchIndexer(t *testing.T) {
 			break
 		}
 		t.Logf("Waiting for elasticsearch to be up: %v", err)
+		time.Sleep(time.Second)
 	}
 	if !ok {
 		t.Fatalf("Failed to wait for elasticsearch to be up")

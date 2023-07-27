@@ -36,6 +36,7 @@ func TestMeilisearchIndexer(t *testing.T) {
 			break
 		}
 		t.Logf("Waiting for meilisearch to be up: %v", err)
+		time.Sleep(time.Second)
 	}
 	if !ok {
 		t.Fatalf("Failed to wait for meilisearch to be up")
