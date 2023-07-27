@@ -254,10 +254,10 @@ func registerRoutes(m *web.Route) {
 		}
 	}
 
-	reqUnitAccess := func(unitType unit.Type, accessMode perm.AccessMode, ignGlobal bool) func(ctx *context.Context) {
+	reqUnitAccess := func(unitType unit.Type, accessMode perm.AccessMode, ignoreGlobal bool) func(ctx *context.Context) {
 		return func(ctx *context.Context) {
-			// only check global disabled units if ignGlobal is false
-			if !ignGlobal && unitType.UnitGlobalDisabled() {
+			// only check global disabled units when ignoreGlobal is false
+			if !ignoreGlobal && unitType.UnitGlobalDisabled() {
 				ctx.NotFound(unitType.String(), nil)
 				return
 			}
