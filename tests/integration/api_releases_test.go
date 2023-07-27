@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -39,7 +40,7 @@ func TestAPIListReleases(t *testing.T) {
 				assert.False(t, release.IsDraft)
 				assert.False(t, release.IsPrerelease)
 				assert.Len(t, release.Attachments, 1)
-				assert.EqualValues(t, "http://localhost:3003/api/repos/user2/repo1/releases/1/assets/9", release.Attachments[0].DownloadURL)
+				assert.EqualValues(t, setting.AppURL+"api/repos/user2/repo1/releases/1/assets/9", release.Attachments[0].DownloadURL)
 			case 4:
 				assert.True(t, release.IsDraft)
 				assert.False(t, release.IsPrerelease)
