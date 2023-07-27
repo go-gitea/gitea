@@ -7,7 +7,7 @@
 				<label>{{svg "octicon-note"}} {{.locale.Tr "packages.arch.pacmanconf"}}</label>
 				<div class="markup"><pre class="code-block"><code>[{{.PackageDescriptor.Owner.LowerName}}.{{.RegistryHost}}]
 SigLevel = Optional TrustAll
-Server = <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/arch/archlinux/x86_64"></gitea-origin-url></code></pre></div>
+Server = <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/arch/$distribution/$arch"></gitea-origin-url></code></pre></div>
 			</div>
 
 			<div class="field">
