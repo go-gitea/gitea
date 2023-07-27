@@ -50,11 +50,11 @@
 	{{if not .DiffNotAvailable}}
 		{{if and .IsShowingOnlySingleCommit .PageIsPullFiles}}
 			<div class="ui info message">
-				<div>{{.locale.Tr "repo.pulls.showing_only_single_commit" (ShortSha .BeforeCommitID)}}</div>
+				<div>{{.locale.Tr "repo.pulls.showing_only_single_commit" (ShortSha .BeforeCommitID)}} - <a href="{{$.Issue.Link}}/files?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}">{{.locale.Tr "repo.pulls.show_all_commits"}}</a></div>
 			</div>
 		{{else if and (not .IsShowingAllCommits) .PageIsPullFiles}}
 			<div class="ui info message">
-				<div>{{.locale.Tr "repo.pulls.showing_specified_commit_range" (ShortSha .BeforeCommitID) (ShortSha .AfterCommitID)}}</div>
+				<div>{{.locale.Tr "repo.pulls.showing_specified_commit_range" (ShortSha .BeforeCommitID) (ShortSha .AfterCommitID)}} - <a href="{{$.Issue.Link}}/files?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}">{{.locale.Tr "repo.pulls.show_all_commits"}}</a></div>
 			</div>
 		{{end}}
 		<script id="diff-data-script" type="module">
