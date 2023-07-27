@@ -105,7 +105,5 @@ func DeleteDeployKey(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.deploy_key_deletion_success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": ctx.Repo.RepoLink + "/settings/keys",
-	})
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/keys")
 }
