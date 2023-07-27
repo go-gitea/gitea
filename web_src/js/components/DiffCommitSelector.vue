@@ -34,7 +34,7 @@
         </div>
         <span class="info gt-border-secondary-top text light-2">{{ locale.select_commit_hold_shift_for_range }}</span>
         <template v-for="commit in commits" :key="commit.id">
-          <div class="vertical item gt-df gt-fr gt-gap-2 gt-border-secondary-top" role="menuitem" tabindex="-1" :class="{selected: commit.selected}" @keydown.enter.exact="commitClicked(commit.id)" @click.exact="commitClicked(commit.id)" @keydown.enter.shift.exact="commitClickedShift(commit)" @click.shift.exact.stop.prevent="commitClickedShift(commit)">
+          <div class="vertical item gt-df gt-fr gt-gap-2 gt-border-secondary-top" @mouseover.shift="highlight(commit)" role="menuitem" tabindex="-1" :class="{selection: commit.selected, hovered: commit.hovered}" @keydown.enter.exact="commitClicked(commit.id)" @click.exact="commitClicked(commit.id)" @keydown.enter.shift.exact="commitClickedShift(commit)" @click.shift.exact.stop.prevent="commitClickedShift(commit)">
             <div class="gt-f1 gt-df gt-fc gt-gap-2">
               <div class="gt-ellipsis commit-list-summary">
                 {{ commit.summary }}
@@ -95,6 +95,20 @@ export default {
       }
     });
 
+    // Add an eventlistener for shift keyup
+    // only is active if hoverActivated is true.
+    document.addEventListener('keyup', (evt) => {
+      if (!this.hoverActivated) return;
+      if (evt.key === 'Shift' || evt.key === 'ShiftLeft' || evt.key === 'ShiftRight') {
+        // shift is not pressed anymore -> deactivate hovering and reset hovered and selected
+        this.hoverActivated = false;
+        for (const commit of this.commits) {
+          commit.hovered = false;
+          commit.selected = false;
+        }
+      }
+    });
+
     this.$el.addEventListener('keyup', (event) => {
       if (!this.menuVisible) return;
       const item = document.activeElement;
@@ -118,6 +132,18 @@ export default {
     });
   },
   methods: {
+    highlight(commit) {
+      if (!this.hoverActivated) return;
+      const indexSelected = this.commits.findIndex((x) => x.selected);
+      const indexCurrentElem = this.commits.findIndex((x) => x.id === commit.id);
+      for (const [idx, commit] of this.commits.entries()) {
+        if (idx >= Math.min(indexSelected, indexCurrentElem) && idx <= Math.max(indexSelected, indexCurrentElem)) {
+          commit.hovered = true;
+        } else {
+          commit.hovered = false;
+        }
+      }
+    },
     /** Focus given element */
     focusElem(elem, prevElem) {
       if (elem) {
@@ -151,7 +177,10 @@ export default {
     async fetchCommits() {
       const resp = await fetch(`${this.issueLink}/commits/list`);
       const results = await resp.json();
-      this.commits.push(...results.commits);
+      this.commits.push(...results.commits.map((x) => {
+        x.hovered = false;
+        return x;
+      }));
       this.commits.reverse();
       this.lastReviewCommitSha = results.last_review_commit_sha || null;
       if (this.lastReviewCommitSha && this.commits.findIndex((x) => x.id === this.lastReviewCommitSha) === -1) {
@@ -206,8 +235,11 @@ export default {
 };
 </script>
 <style scoped>
-  .selected {
-    background-color: var(--color-secondary-active) !important;
+  .hovered:not(.selection) {
+    background-color: var(--color-small-accent) !important;
+  }
+  .selection {
+    background-color: var(--color-accent) !important;
   }
 
   .info {
