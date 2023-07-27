@@ -14,8 +14,9 @@ import (
 )
 
 func TestMeilisearchIndexer(t *testing.T) {
-	url := "" // TODO: set meilisearch in unit tests
-	key := ""
+	// The meilisearch instance started by pull-db-tests.yml > test-unit > services > meilisearch
+	url := "http://meilisearch:7700"
+	key := "" // auth has been disabled in test environment
 
 	if os.Getenv("CI") == "" {
 		// Make it possible to run tests against a local meilisearch instance

@@ -98,6 +98,12 @@ jobs:
           discovery.type: single-node
         ports:
           - "9200:9200"
+      meilisearch:
+        image: getmeili/meilisearch:v1.2.0
+        env:
+          MEILI_ENV: development # disable auth
+        ports:
+          - "7700:7700"
       smtpimap:
         image: tabascoterrier/docker-imap-devel:latest
         ports:
