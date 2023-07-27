@@ -55,9 +55,9 @@ func TestAPIUserSearchNotLoggedIn(t *testing.T) {
 		assert.Contains(t, user.UserName, query)
 		modelUser = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: user.ID})
 		if modelUser.KeepEmailPrivate {
-			assert.EqualValues(t, fmt.Sprintf("%s@%s", modelUser.LowerName, setting.Service.NoReplyAddress), user.Email)
+			assert.EqualValues(t, modelUser.GetPlaceholderEmail(), user.Email)
 		} else {
-			assert.EqualValues(t, modelUser.Email, user.Email)
+			assert.EqualValues(t, modelUser.GetPlaceholderEmail(), user.Email)
 		}
 	}
 }
