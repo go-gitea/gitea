@@ -385,11 +385,13 @@ bfu02wSva9u6jV8n5u1d0x7C/vENwN9uwZUrV/5HfgQAAP//SZpudwAIAAA=`
 	t.Run("PushFirstPackage", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "PUT", path.Join(rootURL, "/push"))
+		req := NewRequest(t, "PUT", path.Join(
+			rootURL, "/push",
+			"testpkg-1-1-x86_64.pkg.tar.zst",
+			"archlinux",
+			hex.EncodeToString(firstPackageSignatureData),
+		))
 
-		req.Header.Set("filename", "testpkg-1-1-x86_64.pkg.tar.zst")
-		req.Header.Set("distro", "archlinux")
-		req.Header.Set("pkgsign", hex.EncodeToString(firstPackageSignatureData))
 		req.Header.Set("Content-Type", "application/octet-stream")
 		req.Body = io.NopCloser(bytes.NewReader(firstPackageData))
 		req = AddBasicAuthHeader(req, user.Name)
@@ -422,11 +424,13 @@ bfu02wSva9u6jV8n5u1d0x7C/vENwN9uwZUrV/5HfgQAAP//SZpudwAIAAA=`
 	t.Run("PushSecond", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "PUT", path.Join(rootURL, "/push"))
+		req := NewRequest(t, "PUT", path.Join(
+			rootURL, "/push",
+			"testpkg-1-1-any.pkg.tar.zst",
+			"archlinux",
+			hex.EncodeToString(secondPackageSignatureData),
+		))
 
-		req.Header.Set("filename", "testpkg-1-1-any.pkg.tar.zst")
-		req.Header.Set("distro", "archlinux")
-		req.Header.Set("pkgsign", hex.EncodeToString(secondPackageSignatureData))
 		req.Header.Set("Content-Type", "application/octet-stream")
 		req.Body = io.NopCloser(bytes.NewReader(secondPackageData))
 		req = AddBasicAuthHeader(req, user.Name)
@@ -459,10 +463,12 @@ bfu02wSva9u6jV8n5u1d0x7C/vENwN9uwZUrV/5HfgQAAP//SZpudwAIAAA=`
 	t.Run("RemoveFirst", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "DELETE", path.Join(rootURL, "/remove"))
+		req := NewRequest(t, "DELETE", path.Join(
+			rootURL, "/remove",
+			"testpkg",
+			"1-1",
+		))
 
-		req.Header.Set("package", "testpkg")
-		req.Header.Set("version", "1-1")
 		req = AddBasicAuthHeader(req, user.Name)
 
 		MakeRequest(t, req, http.StatusOK)

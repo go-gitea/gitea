@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/modules/context"
 	arch_module "code.gitea.io/gitea/modules/packages/arch"
@@ -21,9 +20,9 @@ import (
 func Push(ctx *context.Context) {
 	var (
 		owner    = ctx.Params("username")
-		filename = ctx.Req.Header.Get("filename")
-		distro   = ctx.Req.Header.Get("distro")
-		sign     = ctx.Req.Header.Get("sign")
+		filename = ctx.Params("filename")
+		distro   = ctx.Params("distro")
+		sign     = ctx.Params("sign")
 	)
 
 	// Read package to memory for package validation.
@@ -111,7 +110,7 @@ func Get(ctx *context.Context) {
 		}
 
 		ctx.ServeContent(pkg, &context.ServeHeaderOptions{
-			Filename:      file,
+			Filename: file,
 		})
 		return
 	}
@@ -126,8 +125,7 @@ func Get(ctx *context.Context) {
 		}
 
 		ctx.ServeContent(bytes.NewReader(db), &context.ServeHeaderOptions{
-			Filename:      file,
-			CacheDuration: time.Minute * 5,
+			Filename: file,
 		})
 		return
 	}
@@ -138,8 +136,8 @@ func Get(ctx *context.Context) {
 // Remove specific package version, related files and pacman database entry.
 func Remove(ctx *context.Context) {
 	var (
-		pkg = ctx.Req.Header.Get("package")
-		ver = ctx.Req.Header.Get("version")
+		pkg = ctx.Params("package")
+		ver = ctx.Params("version")
 	)
 
 	// Remove package files and pacman database entry.
