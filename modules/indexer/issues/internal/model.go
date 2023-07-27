@@ -107,6 +107,15 @@ const (
 	SortByCommentsAsc  SortBy = "comment_count"
 	SortByDeadlineAsc  SortBy = "deadline_unix"
 	// Unsupported sort types which are supported by issues.IssuesOptions.SortType:
-	//    - "priorityrepo"
-	//    - "project-column-sorting"
+	//
+	//  - "priorityrepo":
+	//                    It's impossible to support it in the indexer.
+	//                    It is based on the specified repository in the request, so we cannot add static field to the indexer.
+	//                    If we do something like that query the issues in the specified repository first then append other issues,
+	//                    it will break the pagination.
+	//
+	// - "project-column-sorting":
+	//                    Although it's possible to support it by adding project.ProjectIssue.Sorting to the indexer,
+	//                    but what if the issue belongs to multiple projects?
+	//                    Since it's unsupported to search issues with keyword in project page, we don't need to support it.
 )
