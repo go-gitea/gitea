@@ -18,7 +18,7 @@ func createTestCache() {
 		Adapter: "memory",
 		TTL:     time.Minute,
 	})
-	setting.CacheService.TTL = 30
+	setting.CacheService.TTL = 24 * time.Hour
 }
 
 func TestNewContext(t *testing.T) {
