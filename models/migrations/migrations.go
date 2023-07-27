@@ -521,8 +521,8 @@ var migrations = []Migration{
 	NewMigration("Update Action Ref", v1_21.UpdateActionsRefIndex),
 	// v269 -> v270
 	NewMigration("Drop deleted branch table", v1_21.DropDeletedBranchTable),
-    // v270 -> v271
-    NewMigration("Add Repository Licenses", v1_21.AddRepositoryLicenses),
+	// v270 -> v271
+	NewMigration("Add Repository Licenses", v1_21.AddRepositoryLicenses),
 }
 
 // GetCurrentDBVersion returns the current db version
