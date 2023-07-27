@@ -4,7 +4,17 @@
 <div class="content">
 	<ul>
 		{{range .Funding}}
-			<li><a href="{{.URL}}">{{.Text}}</a></li>
+			<li>
+				<div class="ui">
+					{{if .Icon}}
+						<img class="ui" src="{{.Icon}}" width="16" height="16">
+					{{else}}
+						{{svg "octicon-heart"}}
+					{{end}}
+
+					<a href="{{.URL}}">{{.Text}}</a>
+				</div>
+			</li>
 		{{end}}
 	</ul>
 </div>

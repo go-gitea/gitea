@@ -40,6 +40,7 @@ type FundingProvider struct {
 	Name string `json:"name"`
 	Text string `json:"text"`
 	URL  string `json:"url"`
+	Icon string `json:"icon"`
 }
 
 type FundingSettings struct {

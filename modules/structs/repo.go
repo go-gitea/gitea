@@ -393,4 +393,5 @@ type UpdateRepoAvatarOption struct {
 type RepoFundingEntry struct {
 	Text string `json:"text"`
 	URL  string `json:"url"`
+	Icon string `json:"icon"`
 }

@@ -17,12 +17,14 @@ func loadBuiltinFundingProviders() {
 		Name: "custom",
 		Text: "%s",
 		URL:  "%s",
+		Icon: "img/svg/octicon-link.svg",
 	})
 
 	FundingProviders = append(FundingProviders, &api.FundingProvider{
 		Name: "ko_fi",
 		Text: "Ko-Fi/%s",
 		URL:  "https://ko-fi.com/%s",
+		Icon: "img/funding/ko_fi.svg",
 	})
 }
 
@@ -38,6 +40,7 @@ func loadCustomFundingProvidersFrom(rootCfg ConfigProvider) {
 		provider.Name = name
 		provider.Text = sec.Key("Text").MustString("")
 		provider.URL = sec.Key("URL").MustString("")
+		provider.Icon = sec.Key("Icon").MustString("")
 
 		FundingProviders = append(FundingProviders, provider)
 	}

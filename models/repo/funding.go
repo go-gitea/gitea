@@ -25,6 +25,11 @@ func getFundingEntry(provider *api.FundingProvider, text string) *api.RepoFundin
 	entry := new(api.RepoFundingEntry)
 	entry.Text = fmt.Sprintf(provider.Text, text)
 	entry.URL = fmt.Sprintf(provider.URL, text)
+
+	if provider.Icon != "" {
+		entry.Icon = setting.AppSubURL + "/assets/" + provider.Icon
+	}
+
 	return entry
 }
 
