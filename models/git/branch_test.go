@@ -195,67 +195,82 @@ func TestFindRecentlyPushedNewBranches(t *testing.T) {
 	user42 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 42})
 
 	tests := []struct {
-		name            string
-		actor           *user_model.User
-		count           int
-		commitAfterUnix int64
-		want            []string
+		name  string
+		opts  *git_model.FindRecentlyPushedNewBranchesOptions
+		count int
+		want  []int64
 	}{
-		// user2 is the owner of the repo and the organization
+		// user39 is the owner of the repo and the organization
+		// in repo 1, user39 has opening/closed/merged pr and closed/merged pr with deleted branch
 		{
-			name:            "new branch of the repo",
-			actor:           user39,
-			count:           2,
-			commitAfterUnix: 1489927670,
-			want:            []string{"new-commit", "org-fork-new-commit"},
+			name: "new branch of the repo, org fork repo, pr branches and deleted branch",
+			opts: &git_model.FindRecentlyPushedNewBranchesOptions{
+				Actor:           user39,
+				CommitAfterUnix: 1489927670,
+				ListOptions: db.ListOptions{
+					PageSize: 10,
+					Page:     1,
+				},
+			},
+			count: 2,
+			want:  []int64{5, 17}, // "new-commit", "org-fork-new-commit"
+		},
+		// we have 2 branches with the same name in repo1 and repo58
+		// and repo58's branch has a pr, but repo1's branch doesn't
+		// in this case, we should get repo1's branch but not repo58's branch
+		{
+			name: "new branch from user fork repo and same name branch",
+			opts: &git_model.FindRecentlyPushedNewBranchesOptions{
+				Actor:           user40,
+				CommitAfterUnix: 1489927670,
+				ListOptions: db.ListOptions{
+					PageSize: 10,
+					Page:     1,
+				},
+			},
+			count: 2,
+			want:  []int64{14, 24}, // "user-fork-new-commit", "same-name-branch-in-pr"
 		},
 		{
-			name:            "new branch of org fork repo",
-			actor:           user39,
-			count:           1,
-			commitAfterUnix: 1489927690,
-			want:            []string{"org-fork-new-commit"},
+			name: "new branch from private org with code permisstion repo",
+			opts: &git_model.FindRecentlyPushedNewBranchesOptions{
+				Actor:           user41,
+				CommitAfterUnix: 1489927670,
+			},
+			count: 1,
+			want:  []int64{20}, // "private-org-fork-new-commit"
 		},
 		{
-			name:            "new branch from user fork repo",
-			actor:           user40,
-			count:           1,
-			commitAfterUnix: 1489927670,
-			want:            []string{"user-fork-new-commit"},
+			name: "new branch from private org with no code permisstion repo",
+			opts: &git_model.FindRecentlyPushedNewBranchesOptions{
+				Actor:           user42,
+				CommitAfterUnix: 1489927670,
+			},
+			count: 0,
+			want:  []int64{},
 		},
 		{
-			name:            "new branch from private org with code permisstion repo",
-			actor:           user41,
-			count:           1,
-			commitAfterUnix: 1489927670,
-			want:            []string{"private-org-fork-new-commit"},
-		},
-		{
-			name:            "new branch from private org with no code permisstion repo",
-			actor:           user42,
-			count:           0,
-			commitAfterUnix: 1489927670,
-			want:            []string{"new-commit", "org-fork-new-commit"},
+			name: "test commitAfterUnix option",
+			opts: &git_model.FindRecentlyPushedNewBranchesOptions{
+				Actor:           user39,
+				CommitAfterUnix: 1489927690,
+			},
+			count: 1,
+			want:  []int64{17}, // "org-fork-new-commit"
 		},
 	}
 
-	opts := &git_model.FindRecentlyPushedNewBranchesOptions{
-		Repo:     repo,
-		BaseRepo: repo,
-	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			opts.Actor = tt.actor
-			opts.CommitAfterUnix = tt.commitAfterUnix
-			branches, err := git_model.FindRecentlyPushedNewBranches(db.DefaultContext, opts)
+			tt.opts.Repo = repo
+			tt.opts.BaseRepo = repo
+			branches, err := git_model.FindRecentlyPushedNewBranches(db.DefaultContext, tt.opts)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.count, len(branches))
 
 			for i := 1; i < tt.count; i++ {
-				assert.Equal(t, tt.want[i], branches[i].Name)
+				assert.Equal(t, tt.want[i], branches[i].ID)
 			}
 		})
 	}
-
-	// TODO:test pr branch
 }

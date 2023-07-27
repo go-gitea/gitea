@@ -429,15 +429,10 @@ func FindRecentlyPushedNewBranches(ctx context.Context, opts *FindRecentlyPushed
 	// find branches which have already created PRs
 	prBranchIds := builder.Select("branch.id").From("branch").
 		InnerJoin("pull_request", "branch.name = pull_request.head_branch AND branch.repo_id = pull_request.head_repo_id").
-		InnerJoin("issue", "issue.id = pull_request.issue_id").
 		Where(builder.And(
 			builder.Eq{"pull_request.base_repo_id": opts.BaseRepo.ID},
 			builder.Eq{"pull_request.base_branch": opts.BaseRepo.DefaultBranch},
 			builder.In("pull_request.head_repo_id", repoIDs),
-			builder.Or(
-				builder.Eq{"issue.is_closed": true},
-				builder.Eq{"pull_request.has_merged": true},
-			),
 		))
 
 	if opts.CommitAfterUnix == 0 {
@@ -449,7 +444,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, opts *FindRecentlyPushed
 		return nil, err
 	}
 
-	if opts.ListOptions.PageSize == 0 && opts.ListOptions.Page == 0 {
+	if opts.ListOptions.PageSize == 0 {
 		opts.ListOptions.PageSize = 2
 		opts.ListOptions.Page = 1
 	}
