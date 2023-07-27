@@ -112,7 +112,6 @@ func Get(ctx *context.Context) {
 
 		ctx.ServeContent(pkg, &context.ServeHeaderOptions{
 			Filename:      file,
-			CacheDuration: time.Minute * 5,
 		})
 		return
 	}
