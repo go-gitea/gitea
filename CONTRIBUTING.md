@@ -34,7 +34,7 @@
       - [Backport PRs](#backport-prs)
   - [Documentation](#documentation)
   - [API v1](#api-v1)
-    - [GitHub API compatability](#github-api-compatability)
+    - [GitHub API compatibility](#github-api-compatibility)
     - [Adding/Maintaining API routes](#addingmaintaining-api-routes)
     - [When to use what HTTP method](#when-to-use-what-http-method)
     - [Requirements for API routes](#requirements-for-api-routes)
@@ -339,7 +339,7 @@ If you add a new feature or change an existing aspect of Gitea, the documentatio
 
 The API is documented by [swagger](http://try.gitea.io/api/swagger) and is based on [the GitHub API](https://docs.github.com/en/rest).
 
-### GitHub API compatability
+### GitHub API compatibility
 
 Gitea's API should use the same endpoints and fields as the GitHub API as far as possible, unless there are good reasons to deviate. \
 If Gitea provides functionality that GitHub does not, a new endpoint can be created. \
