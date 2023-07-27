@@ -76,10 +76,6 @@ func TestIndexer(t *testing.T, indexer internal.Indexer) {
 				assert.Equal(t, c.ExpectedIDs, ids)
 				assert.Equal(t, c.ExpectedTotal, result.Total)
 			}
-			if result.Imprecise {
-				// If an engine does not support complex queries, do not use TestIndexer to test it
-				t.Errorf("Expected imprecise to be false, got true")
-			}
 		})
 	}
 }
@@ -706,7 +702,7 @@ type testIndexerCase struct {
 
 	SearchOptions *internal.SearchOptions
 
-	Expected      func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) // if nil, use ExpectedIDs, ExpectedTotal and ExpectedImprecise
+	Expected      func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) // if nil, use ExpectedIDs, ExpectedTotal
 	ExpectedIDs   []int64
 	ExpectedTotal int64
 }

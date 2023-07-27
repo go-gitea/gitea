@@ -271,9 +271,8 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}
 
 	ret := &internal.SearchResult{
-		Total:     int64(result.Total),
-		Hits:      make([]internal.Match, 0, len(result.Hits)),
-		Imprecise: false,
+		Total: int64(result.Total),
+		Hits:  make([]internal.Match, 0, len(result.Hits)),
 	}
 	for _, hit := range result.Hits {
 		id, err := indexer_internal.ParseBase36(hit.ID)

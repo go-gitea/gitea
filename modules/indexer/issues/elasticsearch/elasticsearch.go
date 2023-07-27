@@ -258,9 +258,8 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}
 
 	return &internal.SearchResult{
-		Total:     searchResult.TotalHits(),
-		Hits:      hits,
-		Imprecise: false,
+		Total: searchResult.TotalHits(),
+		Hits:  hits,
 	}, nil
 }
 

@@ -52,10 +52,6 @@ type Match struct {
 type SearchResult struct {
 	Total int64
 	Hits  []Match
-
-	// Imprecise indicates that the result is not accurate, and it needs second filtering and sorting by database.
-	// It could be removed when all engines support filtering and sorting.
-	Imprecise bool
 }
 
 // SearchOptions represents search options
