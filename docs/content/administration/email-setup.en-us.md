@@ -31,7 +31,7 @@ Note: For Internet-facing sites consult documentation of your MTA for instructio
 [mailer]
 ENABLED       = true
 FROM          = gitea@mydomain.com
-MAILER_TYPE   = sendmail
+PROTOCOL      = sendmail
 SENDMAIL_PATH = /usr/sbin/sendmail
 SENDMAIL_ARGS = "--" ; most "sendmail" programs take options, "--" will prevent an email address being interpreted as an option.
 ```
@@ -44,10 +44,9 @@ Directly use SMTP server as relay. This option is useful if you don't want to se
 [mailer]
 ENABLED        = true
 FROM           = gitea@mydomain.com
-MAILER_TYPE    = smtp
+PROTOCOL       = smtps
 SMTP_ADDR      = mail.mydomain.com
 SMTP_PORT      = 587
-IS_TLS_ENABLED = true
 USER           = gitea@mydomain.com
 PASSWD         = `password`
 ```
@@ -80,7 +79,7 @@ SMTP_PORT      = 465
 FROM           = example.user@gmail.com
 USER           = example.user
 PASSWD         = `***`
-MAILER_TYPE    = smtp
+PROTOCOL       = smtp
 IS_TLS_ENABLED = true
 ```
 
