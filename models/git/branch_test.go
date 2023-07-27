@@ -188,7 +188,7 @@ func TestOnlyGetDeletedBranchOnCorrectRepo(t *testing.T) {
 func TestFindRecentlyPushedNewBranches(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 58})
 	user39 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 39})
 	user40 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 40})
 	user41 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 41})
@@ -213,11 +213,11 @@ func TestFindRecentlyPushedNewBranches(t *testing.T) {
 				},
 			},
 			count: 2,
-			want:  []int64{5, 17}, // "new-commit", "org-fork-new-commit"
+			want:  []int64{6, 18}, // "new-commit", "org-fork-new-commit"
 		},
-		// we have 2 branches with the same name in repo1 and repo58
-		// and repo58's branch has a pr, but repo1's branch doesn't
-		// in this case, we should get repo1's branch but not repo58's branch
+		// we have 2 branches with the same name in repo58 and repo59
+		// and repo59's branch has a pr, but repo58's branch doesn't
+		// in this case, we should get repo58's branch but not repo59's branch
 		{
 			name: "new branch from user fork repo and same name branch",
 			opts: &git_model.FindRecentlyPushedNewBranchesOptions{
@@ -229,7 +229,7 @@ func TestFindRecentlyPushedNewBranches(t *testing.T) {
 				},
 			},
 			count: 2,
-			want:  []int64{14, 24}, // "user-fork-new-commit", "same-name-branch-in-pr"
+			want:  []int64{15, 25}, // "user-fork-new-commit", "same-name-branch-in-pr"
 		},
 		{
 			name: "new branch from private org with code permisstion repo",
@@ -238,7 +238,7 @@ func TestFindRecentlyPushedNewBranches(t *testing.T) {
 				CommitAfterUnix: 1489927670,
 			},
 			count: 1,
-			want:  []int64{20}, // "private-org-fork-new-commit"
+			want:  []int64{21}, // "private-org-fork-new-commit"
 		},
 		{
 			name: "new branch from private org with no code permisstion repo",
@@ -256,7 +256,7 @@ func TestFindRecentlyPushedNewBranches(t *testing.T) {
 				CommitAfterUnix: 1489927690,
 			},
 			count: 1,
-			want:  []int64{17}, // "org-fork-new-commit"
+			want:  []int64{18}, // "org-fork-new-commit"
 		},
 	}
 

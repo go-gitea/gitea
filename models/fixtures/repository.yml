@@ -8,11 +8,11 @@
   default_branch: master
   num_watches: 4
   num_stars: 0
-  num_forks: 3
+  num_forks: 0
   num_issues: 2
   num_closed_issues: 1
-  num_pulls: 8
-  num_closed_pulls: 2
+  num_pulls: 3
+  num_closed_pulls: 0
   num_milestones: 3
   num_closed_milestones: 1
   num_projects: 1
@@ -1665,6 +1665,37 @@
 
 -
   id: 58
+  owner_id: 2
+  owner_name: user2
+  lower_name: repo58
+  name: repo58
+  default_branch: master
+  num_watches: 0
+  num_stars: 0
+  num_forks: 3
+  num_issues: 0
+  num_closed_issues: 0
+  num_pulls: 5
+  num_closed_pulls: 2
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_projects: 0
+  num_closed_projects: 0
+  is_private: true
+  is_empty: false
+  is_archived: false
+  is_mirror: false
+  status: 0
+  is_fork: false
+  fork_id: 0
+  is_template: false
+  template_id: 0
+  size: 0
+  is_fsck_enabled: true
+  close_issues_via_commit_in_any_branch: false
+
+-
+  id: 59
   owner_id: 40
   owner_name: user40
   lower_name: user_fork_repo
@@ -1686,7 +1717,7 @@
   is_mirror: false
   status: 0
   is_fork: true
-  fork_id: 1
+  fork_id: 58
   is_template: false
   template_id: 0
   size: 0
@@ -1694,7 +1725,7 @@
   close_issues_via_commit_in_any_branch: false
 
 -
-  id: 59
+  id: 60
   owner_id: 37
   owner_name: org37
   lower_name: org_fork_repo1
@@ -1716,7 +1747,7 @@
   is_mirror: false
   status: 0
   is_fork: true
-  fork_id: 1
+  fork_id: 58
   is_template: false
   template_id: 0
   size: 0
@@ -1724,7 +1755,7 @@
   close_issues_via_commit_in_any_branch: false
 
 -
-  id: 60
+  id: 61
   owner_id: 38
   owner_name: private_org38
   lower_name: private_org_fork_repo1
@@ -1746,7 +1777,7 @@
   is_mirror: false
   status: 0
   is_fork: true
-  fork_id: 1
+  fork_id: 58
   is_template: false
   template_id: 0
   size: 0

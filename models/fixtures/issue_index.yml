@@ -1,6 +1,6 @@
 -
   group_id: 1
-  max_index: 10
+  max_index: 5
 
 -
   group_id: 2
@@ -36,4 +36,8 @@
 
 -
   group_id: 58
+  max_index: 5
+
+-
+  group_id: 59
   max_index: 1

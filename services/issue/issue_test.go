@@ -35,7 +35,7 @@ func TestGetRefEndNamesAndURLs(t *testing.T) {
 func TestIssue_DeleteIssue(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	issueCount := 10
+	issueCount := 5
 	issueIDs, err := issues_model.GetIssueIDsByRepoID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 	assert.Len(t, issueIDs, issueCount)

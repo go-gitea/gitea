@@ -219,7 +219,7 @@ func TestAPISearchIssues(t *testing.T) {
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadIssue)
 
 	// as this API was used in the frontend, it uses UI page size
-	expectedIssueCount := 16 // from the fixtures
+	expectedIssueCount := 20 // from the fixtures
 	if expectedIssueCount > setting.UI.IssuePagingNum {
 		expectedIssueCount = setting.UI.IssuePagingNum
 	}
@@ -243,7 +243,7 @@ func TestAPISearchIssues(t *testing.T) {
 	req = NewRequest(t, "GET", link.String())
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 9)
+	assert.Len(t, apiIssues, 13)
 	query.Del("since")
 	query.Del("before")
 
@@ -252,22 +252,22 @@ func TestAPISearchIssues(t *testing.T) {
 	req = NewRequest(t, "GET", link.String())
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 2)
+	assert.Len(t, apiIssues, 4)
 
 	query.Set("state", "all")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.EqualValues(t, "18", resp.Header().Get("X-Total-Count"))
-	assert.Len(t, apiIssues, 18)
+	assert.EqualValues(t, "24", resp.Header().Get("X-Total-Count"))
+	assert.Len(t, apiIssues, 20)
 
 	query.Add("limit", "10")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.EqualValues(t, "18", resp.Header().Get("X-Total-Count"))
+	assert.EqualValues(t, "24", resp.Header().Get("X-Total-Count"))
 	assert.Len(t, apiIssues, 10)
 
 	query = url.Values{"assigned": {"true"}, "state": {"all"}, "token": {token}}
@@ -296,7 +296,7 @@ func TestAPISearchIssues(t *testing.T) {
 	req = NewRequest(t, "GET", link.String())
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 7)
+	assert.Len(t, apiIssues, 10)
 
 	query = url.Values{"owner": {"user3"}, "token": {token}} // organization
 	link.RawQuery = query.Encode()
@@ -317,7 +317,7 @@ func TestAPISearchIssuesWithLabels(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	// as this API was used in the frontend, it uses UI page size
-	expectedIssueCount := 16 // from the fixtures
+	expectedIssueCount := 21 // from the fixtures
 	if expectedIssueCount > setting.UI.IssuePagingNum {
 		expectedIssueCount = setting.UI.IssuePagingNum
 	}
