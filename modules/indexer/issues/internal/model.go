@@ -37,6 +37,8 @@ type IndexerData struct {
 	UpdatedUnix        timeutil.TimeStamp `json:"updated_unix"`
 
 	// Fields used for sorting
+	// UpdatedUnix is both used for filtering and sorting.
+	// ID is used for sorting too, to make the sorting stable.
 	CreatedUnix  timeutil.TimeStamp `json:"created_unix"`
 	DeadlineUnix timeutil.TimeStamp `json:"deadline_unix"`
 	CommentCount int64              `json:"comment_count"`
