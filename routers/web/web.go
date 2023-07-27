@@ -374,12 +374,10 @@ func registerRoutes(m *web.Route) {
 	m.Get("/milestones", reqSignIn, reqMilestonesDashboardPageEnabled, user.Milestones)
 
 	// ***** START: User *****
-	// Group without signOut required to allow logged-in users to access this route for redirection purposes
+	// "user/login" doesn't need signOut, then logged-in users can still access this route for redirection purposes by "/user/login?redirec_to=..."
+	m.Get("/user/login", auth.SignIn)
 	m.Group("/user", func() {
-		m.Get("/login", auth.SignIn)
 		m.Post("/login", web.Bind(forms.SignInForm{}), auth.SignInPost)
-	})
-	m.Group("/user", func() {
 		m.Group("", func() {
 			m.Combo("/login/openid").
 				Get(auth.SignInOpenID).
