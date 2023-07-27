@@ -43,15 +43,13 @@ func changeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User,
 
 	// Nothing should be performed if current status is same as target status
 	if currentIssue.IsClosed == issue.IsClosed {
-		if issue.IsPull {
-			return nil, ErrPullWasClosed{
+		if !issue.IsPull {
+			return nil, ErrIssueWasClosed{
 				ID: issue.ID,
 			}
 		}
-		if currentIssue.ClosedStatus == issue.ClosedStatus {
-			return nil, ErrIssueIsClosed{
-				ID: issue.ID,
-			}
+		return nil, ErrPullWasClosed{
+			ID: issue.ID,
 		}
 	}
 
