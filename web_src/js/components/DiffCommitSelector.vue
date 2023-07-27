@@ -2,14 +2,20 @@
   <div class="ui dropdown custom">
     <button
       class="ui basic button"
+      id="expand-button"
       @click.stop="toggleMenu()"
       :data-tooltip-content="locale.filter_changes_by_commit"
+      aria-haspopup="true"
+      tabindex="0"
+      aria-controls="commit-selector-menu"
+      :aria-label="locale.filter_changes_by_commit"
+      aria-activedescendant="show-all-changes"
     >
       <svg-icon name="octicon-git-commit"/>
     </button>
-    <div class="menu left transition commit-selector-menu" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak>
+    <div class="menu left transition commit-selector-menu" id="commit-selector-menu" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak :aria-expanded="menuVisible ? 'true': 'false'">
       <div class="scrolling menu gt-border-t-0" :class="{'is-loading': isLoading}">
-        <div class="vertical item gt-df gt-fc gt-gap-2" @click="showAllChanges()">
+        <div class="vertical item gt-df gt-fc gt-gap-2" id="show-all-changes" @keydown.enter="showAllChanges()" @click="showAllChanges()" role="menuitem" tabindex="-1">
           <div class="gt-ellipsis">
             {{ locale.show_all_commits }}
           </div>
@@ -18,7 +24,7 @@
           </div>
         </div>
         <!-- only show the show changes since last review if there is a review AND we are commits ahead of the last review -->
-        <div v-if="lastReviewCommitSha != null" class="vertical item gt-df gt-fc gt-gap-2 gt-border-secondary-top" :class="{disabled: commitsSinceLastReview === 0}" @click="changesSinceLastReviewClick()">
+        <div v-if="lastReviewCommitSha != null" role="menuitem" tabindex="-1" class="vertical item gt-df gt-fc gt-gap-2 gt-border-secondary-top" :class="{disabled: commitsSinceLastReview === 0}" @keydown.enter="changesSinceLastReviewClick()" @click="changesSinceLastReviewClick()">
           <div class="gt-ellipsis">
             {{ locale.show_changes_since_your_last_review }}
           </div>
@@ -28,7 +34,7 @@
         </div>
         <span class="info gt-border-secondary-top text light-2">{{ locale.select_commit_hold_shift_for_range }}</span>
         <template v-for="commit in commits" :key="commit.id">
-          <div class="vertical item gt-df gt-fr gt-gap-2 gt-border-secondary-top" :class="{selected: commit.selected}" @click.exact="commitClicked(commit.id)" @click.shift.exact.stop.prevent="commitClickedShift(commit)">
+          <div class="vertical item gt-df gt-fr gt-gap-2 gt-border-secondary-top" role="menuitem" tabindex="-1" :class="{selected: commit.selected}" @keydown.enter.exact="commitClicked(commit.id)" @click.exact="commitClicked(commit.id)" @keydown.enter.shift.exact="commitClickedShift(commit)" @click.shift.exact.stop.prevent="commitClickedShift(commit)">
             <div class="gt-f1 gt-df gt-fc gt-gap-2">
               <div class="gt-ellipsis commit-list-summary">
                 {{ commit.summary }}
@@ -85,11 +91,41 @@ export default {
     document.body.addEventListener('click', (event) => {
       if (this.$el.contains(event.target)) return;
       if (this.menuVisible) {
-        this.menuVisible = false;
+        this.toggleMenu();
+      }
+    });
+
+    this.$el.addEventListener('keyup', (event) => {
+      if (!this.menuVisible) return;
+      const item = document.activeElement;
+      switch (event.key) {
+        case 'ArrowDown':
+          // Arrowdown -> select next element
+          event.preventDefault();
+          this.focusElem(item.nextElementSibling, item);
+          break;
+        case 'ArrowUp':
+          // ArrowUp -> select previous element
+          event.preventDefault();
+          this.focusElem(item.previousElementSibling, item);
+          break;
+        case 'Escape':
+          // Escape -> close menu
+          item.tabIndex = -1;
+          this.toggleMenu();
+          break;
       }
     });
   },
   methods: {
+    /** Focus given element */
+    focusElem(elem, prevElem) {
+      if (elem) {
+        elem.tabIndex = 0;
+        prevElem.tabIndex = -1;
+        elem.focus();
+      }
+    },
     /** Opens our menu, loads commits before opening */
     async toggleMenu() {
       this.menuVisible = !this.menuVisible;
@@ -100,6 +136,16 @@ export default {
         await this.fetchCommits();
         this.isLoading = false;
       }
+      // set correct tabindex to allow easier navigation
+      this.$nextTick(() => {
+        const expandBtn = this.$el.querySelector('#expand-button');
+        const showAllChanges = this.$el.querySelector('#show-all-changes');
+        if (this.menuVisible) {
+          this.focusElem(showAllChanges, expandBtn);
+        } else {
+          this.focusElem(expandBtn, showAllChanges);
+        }
+      });
     },
     /** Load the commits to show in this dropdown */
     async fetchCommits() {
@@ -197,5 +243,10 @@ export default {
 
   .commit-list-summary {
     max-width: min(380px, 96vw);
+  }
+
+  .item:focus {
+    color: var(--color-text);
+    background: var(--color-hover);
   }
 </style>
