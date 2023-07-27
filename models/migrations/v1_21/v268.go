@@ -4,15 +4,13 @@
 package v1_21 //nolint
 
 import (
-	issues_model "code.gitea.io/gitea/models/issues"
-
 	"xorm.io/xorm"
 )
 
-func AddClosedStatusToIssue(x *xorm.Engine) error {
-	type Issue struct {
-		ClosedStatus issues_model.IssueClosedStatus `xorm:"INDEX NOT NULL DEFAULT 0"`
+// UpdateActionsRefIndex updates the index of actions ref field
+func UpdateActionsRefIndex(x *xorm.Engine) error {
+	type ActionRun struct {
+		Ref string `xorm:"index"` // the commit/tag/… causing the run
 	}
-
-	return x.Sync(new(Issue))
+	return x.Sync(new(ActionRun))
 }

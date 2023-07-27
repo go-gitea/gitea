@@ -116,7 +116,5 @@ func WebauthnDelete(ctx *context.Context) {
 		ctx.ServerError("GetWebAuthnCredentialByID", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": setting.AppSubURL + "/user/settings/security",
-	})
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/security")
 }
