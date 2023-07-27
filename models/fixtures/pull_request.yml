@@ -146,7 +146,7 @@
   id: 12
   type: 0 # gitea pull request
   status: 2 # mergable
-  issue_id: 25
+  issue_id: 24
   index: 1
   head_repo_id: 58
   base_repo_id: 1
