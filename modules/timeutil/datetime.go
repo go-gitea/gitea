@@ -64,7 +64,7 @@ func ParseDateTimeGraceful(datetime any) (time.Time, error) {
 	switch val := datetime.(type) {
 	case string:
 		if timestamp, err := strconv.ParseInt(val, 10, 64); err == nil {
-			return ParseDateTimeGraceful(timestamp)
+			return time.Unix(val, 0), nil
 		}
 
 		t, err := time.Parse(time.RFC3339, val)

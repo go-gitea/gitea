@@ -104,10 +104,10 @@ func TestParseDateTimeGraceful(t *testing.T) {
 
 		if testCase.isFail == true {
 			assert.NotNil(t, err)
+			assert.True(t, actual.IsZero())
 		} else {
 			assert.Nil(t, err)
+			assert.EqualValues(t, testCase.expected, actual.Unix())
 		}
-
-		assert.EqualValues(t, testCase.expected, actual.Unix())
 	}
 }
