@@ -5,7 +5,6 @@ package meilisearch
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -65,6 +64,7 @@ func NewIndexer(url, apiKey, indexerName string) *Indexer {
 			"created_unix",
 			"deadline_unix",
 			"comment_count",
+			"id",
 		},
 		Pagination: &meilisearch.Pagination{
 			MaxTotalHits: maxTotalHits,
@@ -113,28 +113,101 @@ func (b *Indexer) Delete(_ context.Context, ids ...int64) error {
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
 func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (*internal.SearchResult, error) {
-	repoFilters := make([]string, 0, len(options.RepoIDs))
-	for _, repoID := range options.RepoIDs {
-		repoFilters = append(repoFilters, "repo_id = "+strconv.FormatInt(repoID, 10))
-	}
-	filter := strings.Join(repoFilters, " OR ")
-	skip, limit := indexer_internal.ParsePaginator(options.Paginator)
+	query := inner_meilisearch.FilterAnd{}
 
+	if len(options.RepoIDs) > 0 {
+		q := &inner_meilisearch.FilterOr{}
+		q.Or(inner_meilisearch.NewFilterIn("repo_id", options.RepoIDs...))
+		if options.AllPublic {
+			q.Or(inner_meilisearch.NewFilterEq("is_public", true))
+		}
+		query.And(q)
+	}
+
+	if !options.IsPull.IsNone() {
+		query.And(inner_meilisearch.NewFilterEq("is_pull", options.IsPull.IsTrue()))
+	}
 	if !options.IsClosed.IsNone() {
-		condition := fmt.Sprintf("is_closed = %t", options.IsClosed.IsTrue())
-		if filter != "" {
-			filter = "(" + filter + ") AND " + condition
-		} else {
-			filter = condition
+		query.And(inner_meilisearch.NewFilterEq("is_closed", options.IsClosed.IsTrue()))
+	}
+
+	if options.NoLabelOnly {
+		query.And(inner_meilisearch.NewFilterEq("no_label", true))
+	} else {
+		if len(options.IncludedLabelIDs) > 0 {
+			q := &inner_meilisearch.FilterAnd{}
+			for _, labelID := range options.IncludedLabelIDs {
+				q.And(inner_meilisearch.NewFilterEq("label_ids", labelID))
+			}
+			query.And(q)
+		} else if len(options.IncludedAnyLabelIDs) > 0 {
+			query.And(inner_meilisearch.NewFilterIn("label_ids", options.IncludedAnyLabelIDs...))
+		}
+		if len(options.ExcludedLabelIDs) > 0 {
+			q := &inner_meilisearch.FilterAnd{}
+			for _, labelID := range options.ExcludedLabelIDs {
+				q.And(inner_meilisearch.NewFilterNot(inner_meilisearch.NewFilterEq("label_ids", labelID)))
+			}
+			query.And(q)
 		}
 	}
 
-	// TODO: support more conditions
+	if len(options.MilestoneIDs) > 0 {
+		query.And(inner_meilisearch.NewFilterIn("milestone_id", options.MilestoneIDs...))
+	}
+
+	if options.ProjectID != nil {
+		query.And(inner_meilisearch.NewFilterEq("project_id", *options.ProjectID))
+	}
+	if options.ProjectBoardID != nil {
+		query.And(inner_meilisearch.NewFilterEq("project_board_id", *options.ProjectBoardID))
+	}
+
+	if options.PosterID != nil {
+		query.And(inner_meilisearch.NewFilterEq("poster_id", *options.PosterID))
+	}
+
+	if options.AssigneeID != nil {
+		query.And(inner_meilisearch.NewFilterEq("assignee_id", *options.AssigneeID))
+	}
+
+	if options.MentionID != nil {
+		query.And(inner_meilisearch.NewFilterEq("mention_ids", *options.MentionID))
+	}
+
+	if options.ReviewedID != nil {
+		query.And(inner_meilisearch.NewFilterEq("reviewed_ids", *options.ReviewedID))
+	}
+	if options.ReviewRequestedID != nil {
+		query.And(inner_meilisearch.NewFilterEq("review_requested_ids", *options.ReviewRequestedID))
+	}
+
+	if options.SubscriberID != nil {
+		query.And(inner_meilisearch.NewFilterEq("subscriber_ids", *options.SubscriberID))
+	}
+
+	if options.UpdatedAfterUnix != nil {
+		query.And(inner_meilisearch.NewFilterGte("updated_unix", *options.UpdatedAfterUnix))
+	}
+	if options.UpdatedBeforeUnix != nil {
+		query.And(inner_meilisearch.NewFilterLte("updated_unix", *options.UpdatedBeforeUnix))
+	}
+
+	if options.SortBy == "" {
+		options.SortBy = internal.SortByCreatedAsc
+	}
+	sortBy := []string{
+		parseSortBy(options.SortBy),
+		"id:desc",
+	}
+
+	skip, limit := indexer_internal.ParsePaginator(options.Paginator, maxTotalHits)
 
 	searchRes, err := b.inner.Client.Index(b.inner.VersionedIndexName()).Search(options.Keyword, &meilisearch.SearchRequest{
-		Filter: filter,
+		Filter: query.Statement(),
 		Limit:  int64(limit),
 		Offset: int64(skip),
+		Sort:   sortBy,
 	})
 	if err != nil {
 		return nil, err
@@ -146,9 +219,18 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 			ID: int64(hit.(map[string]any)["id"].(float64)),
 		})
 	}
+
 	return &internal.SearchResult{
-		Total:     searchRes.TotalHits,
+		Total:     searchRes.EstimatedTotalHits,
 		Hits:      hits,
-		Imprecise: true,
+		Imprecise: false,
 	}, nil
+}
+
+func parseSortBy(sortBy internal.SortBy) string {
+	field := strings.TrimPrefix(string(sortBy), "-")
+	if strings.HasPrefix(string(sortBy), "-") {
+		return field + ":desc"
+	}
+	return field + ":asc"
 }

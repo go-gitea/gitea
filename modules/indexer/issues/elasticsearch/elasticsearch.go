@@ -161,7 +161,6 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}
 
 	if options.NoLabelOnly {
-		// queries = append(queries, inner_bleve.BoolFieldQuery(true, "no_label"))
 		query.Must(elastic.NewTermQuery("no_label", true))
 	} else {
 		if len(options.IncludedLabelIDs) > 0 {
