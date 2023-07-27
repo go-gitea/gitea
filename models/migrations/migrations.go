@@ -518,7 +518,11 @@ var migrations = []Migration{
 	// v267 -> v268
 	NewMigration("Add action_tasks_version table", v1_21.CreateActionTasksVersionTable),
 	// v268 -> v269
-	NewMigration("Fix missing admin team unit records", v1_21.FixMissingAdminTeamUnitRecords),
+	NewMigration("Update Action Ref", v1_21.UpdateActionsRefIndex),
+	// v269 -> v270
+	NewMigration("Drop deleted branch table", v1_21.DropDeletedBranchTable),
+    // v270 -> v271
+    NewMigration("Fix missing admin team unit records", v1_21.FixMissingAdminTeamUnitRecords),
 }
 
 // GetCurrentDBVersion returns the current db version

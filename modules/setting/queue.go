@@ -5,6 +5,7 @@ package setting
 
 import (
 	"path/filepath"
+	"runtime"
 
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -25,18 +26,24 @@ type QueueSettings struct {
 	MaxWorkers  int
 }
 
-var queueSettingsDefault = QueueSettings{
-	Type:    "level",         // dummy, channel, level, redis
-	Datadir: "queues/common", // relative to AppDataPath
-	Length:  100,             // queue length before a channel queue will block
-
-	QueueName:   "_queue",
-	SetName:     "_unique",
-	BatchLength: 20,
-	MaxWorkers:  10,
-}
-
 func GetQueueSettings(rootCfg ConfigProvider, name string) (QueueSettings, error) {
+	queueSettingsDefault := QueueSettings{
+		Type:    "level",         // dummy, channel, level, redis
+		Datadir: "queues/common", // relative to AppDataPath
+		Length:  100,             // queue length before a channel queue will block
+
+		QueueName:   "_queue",
+		SetName:     "_unique",
+		BatchLength: 20,
+		MaxWorkers:  runtime.NumCPU() / 2,
+	}
+	if queueSettingsDefault.MaxWorkers < 1 {
+		queueSettingsDefault.MaxWorkers = 1
+	}
+	if queueSettingsDefault.MaxWorkers > 10 {
+		queueSettingsDefault.MaxWorkers = 10
+	}
+
 	// deep copy default settings
 	cfg := QueueSettings{}
 	if cfgBs, err := json.Marshal(queueSettingsDefault); err != nil {

@@ -255,9 +255,7 @@ func DeleteMilestone(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.milestones.deletion_success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": ctx.Repo.RepoLink + "/milestones",
-	})
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/milestones")
 }
 
 // MilestoneIssuesAndPulls lists all the issues and pull requests of the milestone
