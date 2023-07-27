@@ -38,6 +38,8 @@ func TestAPIListReleases(t *testing.T) {
 			case 1:
 				assert.False(t, release.IsDraft)
 				assert.False(t, release.IsPrerelease)
+				assert.Len(t, release.Attachments, 1)
+				assert.EqualValues(t, "http://localhost:3003/api/repos/user2/repo1/releases/1/assets/9", release.Attachments[0].DownloadURL)
 			case 4:
 				assert.True(t, release.IsDraft)
 				assert.False(t, release.IsPrerelease)
