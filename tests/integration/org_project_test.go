@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	unit_model "code.gitea.io/gitea/models/unit"
-
 	"code.gitea.io/gitea/tests"
 )
 
