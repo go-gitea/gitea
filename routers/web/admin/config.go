@@ -171,6 +171,8 @@ func Config(ctx *context.Context) {
 
 	ctx.Data["Loggers"] = log.GetManager().DumpLoggers()
 
+	prepareDeprecatedWarningsAlert(ctx)
+
 	ctx.HTML(http.StatusOK, tplConfig)
 }
 
