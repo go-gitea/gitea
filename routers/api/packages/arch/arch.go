@@ -133,7 +133,7 @@ func Get(ctx *context.Context) {
 		return
 	}
 
-	ctx.Resp.WriteHeader(http.StatusNotFound)
+	ctx.Status(http.StatusNotFound)
 }
 
 // Remove specific package version, related files and pacman database entry.
