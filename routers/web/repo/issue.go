@@ -248,7 +248,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	}
 	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
 
-	var issues []*issues_model.Issue
+	var issues issues_model.IssueList
 	{
 		ids, err := issueIDsFromSearch(ctx, keyword, &issues_model.IssuesOptions{
 			Paginator: &db.ListOptions{
@@ -283,8 +283,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		}
 	}
 
-	issueList := issues_model.IssueList(issues)
-	approvalCounts, err := issueList.GetApprovalCounts(ctx)
+	approvalCounts, err := issues.GetApprovalCounts(ctx)
 	if err != nil {
 		ctx.ServerError("ApprovalCounts", err)
 		return
@@ -304,6 +303,11 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, issues)
 	if err != nil {
 		ctx.ServerError("GetIssuesAllCommitStatus", err)
+		return
+	}
+
+	if err := issues.LoadAttributes(ctx); err != nil {
+		ctx.ServerError("issues.LoadAttributes", err)
 		return
 	}
 
