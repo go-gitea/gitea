@@ -201,7 +201,7 @@ func TestFindRecentlyPushedNewBranches(t *testing.T) {
 		want  []int64
 	}{
 		// user39 is the owner of the repo and the organization
-		// in repo 1, user39 has opening/closed/merged pr and closed/merged pr with deleted branch
+		// in repo58, user39 has opening/closed/merged pr and closed/merged pr with deleted branch
 		{
 			name: "new branch of the repo, org fork repo, pr branches and deleted branch",
 			opts: &git_model.FindRecentlyPushedNewBranchesOptions{
