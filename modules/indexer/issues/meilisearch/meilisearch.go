@@ -33,6 +33,13 @@ type Indexer struct {
 // NewIndexer creates a new meilisearch indexer
 func NewIndexer(url, apiKey, indexerName string) *Indexer {
 	settings := &meilisearch.Settings{
+		// The default ranking rules of meilisearch are: ["words", "typo", "proximity", "attribute", "sort", "exactness"]
+		// So even if we specify the sort order, it could not be respected because the priority of "sort" is so low.
+		// So we need to specify the ranking rules to make sure the sort order is respected.
+		// See https://www.meilisearch.com/docs/learn/core_concepts/relevancy
+		RankingRules: []string{"sort", // make sure "sort" has the highest priority
+			"words", "typo", "proximity", "attribute", "exactness"},
+
 		SearchableAttributes: []string{
 			"title",
 			"content",
