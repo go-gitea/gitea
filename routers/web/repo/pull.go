@@ -758,7 +758,7 @@ func ViewPullCommitFiles(ctx *context.Context) {
 		return
 	}
 
-	var index int = -1
+	index := -1
 	for i, commit := range prInfo.Commits {
 		if commit.ID.String() == ctx.Params("sha") {
 			index = i
