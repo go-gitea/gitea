@@ -34,7 +34,7 @@ type ActionRun struct {
 	Index             int64                  `xorm:"index unique(repo_index)"` // a unique number for each run of a repository
 	TriggerUserID     int64                  `xorm:"index"`
 	TriggerUser       *user_model.User       `xorm:"-"`
-	Ref               string
+	Ref               string                 `xorm:"index"` // the commit/tag/… that caused the run
 	CommitSHA         string
 	IsForkPullRequest bool                         // If this is triggered by a PR from a forked repository or an untrusted user, we need to check if it is approved and limit permissions when running the workflow.
 	NeedApproval      bool                         // may need approval if it's a fork pull request
@@ -162,6 +162,73 @@ func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) err
 		).
 		Update(repo)
 	return err
+}
+
+// CancelRunningJobs cancels all running and waiting jobs associated with a specific workflow.
+func CancelRunningJobs(ctx context.Context, repoID int64, ref, workflowID string) error {
+	// Find all runs in the specified repository, reference, and workflow with statuses 'Running' or 'Waiting'.
+	runs, total, err := FindRuns(ctx, FindRunOptions{
+		RepoID:     repoID,
+		Ref:        ref,
+		WorkflowID: workflowID,
+		Status:     []Status{StatusRunning, StatusWaiting},
+	})
+	if err != nil {
+		return err
+	}
+
+	// If there are no runs found, there's no need to proceed with cancellation, so return nil.
+	if total == 0 {
+		return nil
+	}
+
+	// Iterate over each found run and cancel its associated jobs.
+	for _, run := range runs {
+		// Find all jobs associated with the current run.
+		jobs, _, err := FindRunJobs(ctx, FindRunJobOptions{
+			RunID: run.ID,
+		})
+		if err != nil {
+			return err
+		}
+
+		// Iterate over each job and attempt to cancel it.
+		for _, job := range jobs {
+			// Skip jobs that are already in a terminal state (completed, cancelled, etc.).
+			status := job.Status
+			if status.IsDone() {
+				continue
+			}
+
+			// If the job has no associated task (probably an error), set its status to 'Cancelled' and stop it.
+			if job.TaskID == 0 {
+				job.Status = StatusCancelled
+				job.Stopped = timeutil.TimeStampNow()
+
+				// Update the job's status and stopped time in the database.
+				n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}, "status", "stopped")
+				if err != nil {
+					return err
+				}
+
+				// If the update affected 0 rows, it means the job has changed in the meantime, so we need to try again.
+				if n == 0 {
+					return fmt.Errorf("job has changed, try again")
+				}
+
+				// Continue with the next job.
+				continue
+			}
+
+			// If the job has an associated task, try to stop the task, effectively cancelling the job.
+			if err := StopTask(ctx, job.TaskID, StatusCancelled); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Return nil to indicate successful cancellation of all running and waiting jobs.
+	return nil
 }
 
 // InsertRun inserts a run
