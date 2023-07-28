@@ -105,6 +105,15 @@ ALLOWED_USER_VISIBILITY_MODES = limited,private
 			assert.Equal(t, structs.VisibleTypeLimited, Service.DefaultUserVisibilityMode)
 			assert.Equal(t, []string{"limited", "private"}, Service.AllowedUserVisibilityModes)
 		},
+		`
+[service]
+DEFAULT_USER_VISIBILITY = public
+ALLOWED_USER_VISIBILITY_MODES = public, limit, privated
+`: func() {
+			assert.Equal(t, "public", Service.DefaultUserVisibility)
+			assert.Equal(t, structs.VisibleTypePublic, Service.DefaultUserVisibilityMode)
+			assert.Equal(t, []string{"public"}, Service.AllowedUserVisibilityModes)
+		},
 	}
 
 	for kase, fun := range kases {
@@ -113,6 +122,11 @@ ALLOWED_USER_VISIBILITY_MODES = limited,private
 			assert.NoError(t, err)
 			loadServiceFrom(cfg)
 			fun()
+			// reset
+			Service.AllowedUserVisibilityModesSlice = []bool{true, true, true}
+			Service.AllowedUserVisibilityModes = []string{}
+			Service.DefaultUserVisibility = ""
+			Service.DefaultUserVisibilityMode = structs.VisibleTypePublic
 		})
 	}
 }
