@@ -374,8 +374,9 @@ func registerRoutes(m *web.Route) {
 	m.Get("/milestones", reqSignIn, reqMilestonesDashboardPageEnabled, user.Milestones)
 
 	// ***** START: User *****
+	// "user/login" doesn't need signOut, then logged-in users can still access this route for redirection purposes by "/user/login?redirec_to=..."
+	m.Get("/user/login", auth.SignIn)
 	m.Group("/user", func() {
-		m.Get("/login", auth.SignIn)
 		m.Post("/login", web.Bind(forms.SignInForm{}), auth.SignInPost)
 		m.Group("", func() {
 			m.Combo("/login/openid").
@@ -1336,6 +1337,7 @@ func registerRoutes(m *web.Route) {
 		m.Group("", func() {
 			m.Get("/graph", repo.Graph)
 			m.Get("/commit/{sha:([a-f0-9]{7,40})$}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
+			m.Get("/commit/{sha:([a-f0-9]{7,40})$}/load-branches-and-tags", repo.LoadBranchesAndTags)
 			m.Get("/cherry-pick/{sha:([a-f0-9]{7,40})$}", repo.SetEditorconfigIfExists, repo.CherryPick)
 		}, repo.MustBeNotEmpty, context.RepoRef(), reqRepoCodeReader)
 

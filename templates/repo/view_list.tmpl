@@ -28,7 +28,7 @@
 					{{$commitLink:= printf "%s/commit/%s" .RepoLink (PathEscape .LatestCommit.ID.String)}}
 					<span class="grey commit-summary" title="{{.LatestCommit.Summary}}"><span class="message-wrapper">{{RenderCommitMessageLinkSubject $.Context .LatestCommit.Message $.RepoLink $commitLink $.Repository.ComposeMetas}}</span>
 						{{if IsMultilineCommitMessage .LatestCommit.Message}}
-							<button class="ui button ellipsis-button" aria-expanded="false">...</button>
+							<button class="ui button js-toggle-commit-body ellipsis-button" aria-expanded="false">...</button>
 							<pre class="commit-body gt-hidden">{{RenderCommitBody $.Context .LatestCommit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
 						{{end}}
 					</span>
