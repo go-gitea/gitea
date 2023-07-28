@@ -190,6 +190,7 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	Service.AutoWatchOnChanges = sec.Key("AUTO_WATCH_ON_CHANGES").MustBool(false)
 	modes := sec.Key("ALLOWED_USER_VISIBILITY_MODES").Strings(",")
 	if len(modes) != 0 {
+		Service.AllowedUserVisibilityModes = []string{}
 		Service.AllowedUserVisibilityModesSlice = []bool{false, false, false}
 		for _, sMode := range modes {
 			if tp, ok := structs.VisibilityModes[sMode]; ok { // remove unsupported modes
@@ -203,6 +204,7 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 
 	if len(Service.AllowedUserVisibilityModes) == 0 {
 		Service.AllowedUserVisibilityModes = []string{"public", "limited", "private"}
+		Service.AllowedUserVisibilityModesSlice = []bool{true, true, true}
 	}
 
 	Service.DefaultUserVisibility = sec.Key("DEFAULT_USER_VISIBILITY").String()
