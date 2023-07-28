@@ -160,7 +160,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 }
 
 func renderConversation(ctx *context.Context, comment *issues_model.Comment) {
-	comments, err := issues_model.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line, ctx.Data["ShowOutdatedComments"].(bool))
+	comments, err := issues_model.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line, showOutdatedComments(ctx))
 	if err != nil {
 		ctx.ServerError("FetchCodeCommentsByLine", err)
 		return

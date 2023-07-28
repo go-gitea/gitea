@@ -738,24 +738,59 @@ func ViewPullCommits(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplPullCommits)
 }
 
+func ViewPullCommitFiles(ctx *context.Context) {
+	ctx.Data["PageIsPullCommits"] = true
+	issue := checkPullInfo(ctx)
+	if ctx.Written() {
+		return
+	}
+	var prInfo *git.CompareInfo
+	if issue.PullRequest.HasMerged {
+		prInfo = PrepareMergedViewPullInfo(ctx, issue)
+	} else {
+		prInfo = PrepareViewPullInfo(ctx, issue)
+	}
+
+	if ctx.Written() {
+		return
+	} else if prInfo == nil {
+		ctx.NotFound("ViewPullCommits", nil)
+		return
+	}
+
+	var index int = -1
+	for i, commit := range prInfo.Commits {
+		if commit.ID.String() == ctx.Params("sha") {
+			index = i
+			break
+		}
+	}
+	if index == -1 {
+		ctx.NotFound("ViewPullCommitFiles", nil)
+		return
+	}
+
+	var startCommitID string
+	if index == len(prInfo.Commits)-1 {
+		startCommitID = issue.PullRequest.MergeBase
+	} else {
+		startCommitID = prInfo.Commits[index+1].ID.String()
+	}
+
+	baseViewPullCommitFiles(ctx, issue.PullRequest, startCommitID, ctx.Params("sha"))
+}
+
 // ViewPullFiles render pull request changed files list page
 func ViewPullFiles(ctx *context.Context) {
-	ctx.Data["PageIsPullList"] = true
 	ctx.Data["PageIsPullFiles"] = true
-
+	var startCommitID string
+	var endCommitID string
+	var prInfo *git.CompareInfo
 	issue := checkPullInfo(ctx)
 	if ctx.Written() {
 		return
 	}
 	pull := issue.PullRequest
-
-	var (
-		startCommitID string
-		endCommitID   string
-		gitRepo       = ctx.Repo.GitRepo
-	)
-
-	var prInfo *git.CompareInfo
 	if pull.HasMerged {
 		prInfo = PrepareMergedViewPullInfo(ctx, issue)
 	} else {
@@ -769,7 +804,7 @@ func ViewPullFiles(ctx *context.Context) {
 		return
 	}
 
-	headCommitID, err := gitRepo.GetRefCommitID(pull.GetGitRefName())
+	headCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(pull.GetGitRefName())
 	if err != nil {
 		ctx.ServerError("GetRefCommitID", err)
 		return
@@ -777,6 +812,18 @@ func ViewPullFiles(ctx *context.Context) {
 
 	startCommitID = prInfo.MergeBase
 	endCommitID = headCommitID
+	baseViewPullCommitFiles(ctx, pull, startCommitID, endCommitID)
+}
+
+func showOutdatedComments(ctx *context.Context) bool {
+	show, ok := ctx.Data["ShowOutdatedComments"].(bool)
+	return ok && show
+}
+
+func baseViewPullCommitFiles(ctx *context.Context, pull *issues_model.PullRequest, startCommitID, endCommitID string) {
+	ctx.Data["PageIsPullList"] = true
+
+	gitRepo := ctx.Repo.GitRepo
 
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
@@ -801,6 +848,8 @@ func ViewPullFiles(ctx *context.Context) {
 
 	var methodWithError string
 	var diff *gitdiff.Diff
+	var err error
+	issue := pull.Issue
 	if !ctx.IsSigned {
 		diff, err = gitdiff.GetDiff(gitRepo, diffOptions, files...)
 		methodWithError = "GetDiff"
@@ -818,7 +867,7 @@ func ViewPullFiles(ctx *context.Context) {
 		"numberOfViewedFiles": diff.NumViewedFiles,
 	}
 
-	if err = diff.LoadComments(ctx, issue, ctx.Doer, ctx.Data["ShowOutdatedComments"].(bool)); err != nil {
+	if err = diff.LoadComments(ctx, issue, ctx.Doer, showOutdatedComments(ctx)); err != nil {
 		ctx.ServerError("LoadComments", err)
 		return
 	}
