@@ -1353,7 +1353,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		attachments []string
 	)
 
-	ci := ParseCompareInfo(ctx)
+	ci := parseCompareInfo(ctx)
 	defer func() {
 		if ci != nil && ci.HeadGitRepo != nil {
 			ci.HeadGitRepo.Close()

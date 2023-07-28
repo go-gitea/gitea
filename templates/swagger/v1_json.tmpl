@@ -4157,6 +4157,55 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/compare/{diffpath}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "compare commits",
+        "operationId": "repoCompare",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the base repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the base repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "compare info of refs",
+            "name": "diffpath",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "do not response diff patch",
+            "name": "skip-patch",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/GitCompareResponse"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/contents": {
       "get": {
         "produces": [
@@ -18956,6 +19005,102 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "GitCompareFile": {
+      "description": "GitCompareFile response one changed file",
+      "type": "object",
+      "properties": {
+        "additions": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Additions"
+        },
+        "changes": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Changes"
+        },
+        "deletions": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Deletions"
+        },
+        "filename": {
+          "type": "string",
+          "x-go-name": "FileName"
+        },
+        "old_filename": {
+          "type": "string",
+          "x-go-name": "OldFileName"
+        },
+        "patch": {
+          "type": "string",
+          "x-go-name": "Patch"
+        },
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "status": {
+          "type": "string",
+          "x-go-name": "Status"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "GitCompareResponse": {
+      "description": "GitCompareResponse returns a git compare result",
+      "type": "object",
+      "properties": {
+        "ahead_by": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "AheadBy"
+        },
+        "base_commit": {
+          "$ref": "#/definitions/Commit"
+        },
+        "behind_by": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "BehindBy"
+        },
+        "commits": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Commit"
+          },
+          "x-go-name": "Commits"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/GitCompareFile"
+          },
+          "x-go-name": "Files"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "merge_base_commit": {
+          "$ref": "#/definitions/Commit"
+        },
+        "permalink_url": {
+          "type": "string",
+          "x-go-name": "PermalinkURL"
+        },
+        "total_commits": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalCommits"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "GitEntry": {
       "description": "GitEntry represents a git tree",
       "type": "object",
@@ -22421,6 +22566,12 @@
       "description": "GitBlobResponse",
       "schema": {
         "$ref": "#/definitions/GitBlobResponse"
+      }
+    },
+    "GitCompareResponse": {
+      "description": "GitCompareResponse",
+      "schema": {
+        "$ref": "#/definitions/GitCompareResponse"
       }
     },
     "GitHook": {
