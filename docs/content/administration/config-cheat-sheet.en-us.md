@@ -853,7 +853,7 @@ Default templates for project boards:
   - `ResponseWriter`: the responseWriter from the request.
   - `RequestID`: the value matching REQUEST_ID_HEADERS（default: `-`, if not matched）.
   - You must be very careful to ensure that this template does not throw errors or panics as this template runs outside the panic/recovery script.
-- `REQUEST_ID_HEADERS`: **_empty_**: You can configure multiple values that are splited by comma here. It will match in the order of configuration, and the first match will be finally printed in the access log.
+- `REQUEST_ID_HEADERS`: **_empty_**: You can configure multiple values that are split by comma here. It will match in the order of configuration, and the first match will be finally printed in the access log.
   - e.g.
   - In the Request Header:        X-Request-ID: **test-id-123**
   - Configuration in app.ini:     REQUEST_ID_HEADERS = X-Request-ID
@@ -1268,7 +1268,7 @@ Default storage configuration for attachments, lfs, avatars, repo-avatars, repo-
 - `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `STORAGE_TYPE` is `minio`
 - `MINIO_INSECURE_SKIP_VERIFY`: **false**: Minio skip SSL verification available when STORAGE_TYPE is `minio`
 
-The recommanded storage configuration for minio like below:
+The recommended storage configuration for minio like below:
 
 ```ini
 [storage]

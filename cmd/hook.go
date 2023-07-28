@@ -696,7 +696,7 @@ Gitea or set your environment appropriately.`, "")
 type pktLineType int64
 
 const (
-	// UnKnow type
+	// unknown type
 	pktLineTypeUnknow pktLineType = 0
 	// flush-pkt "0000"
 	pktLineTypeFlush pktLineType = iota

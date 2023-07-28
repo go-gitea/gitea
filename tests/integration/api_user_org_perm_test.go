@@ -128,12 +128,12 @@ func TestUnknowUser(t *testing.T) {
 	session := loginUser(t, "user1")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadOrganization)
 
-	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/unknow/orgs/org25/permissions?token=%s", token))
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/unknown/orgs/org25/permissions?token=%s", token))
 	resp := MakeRequest(t, req, http.StatusNotFound)
 
 	var apiError api.APIError
 	DecodeJSON(t, resp, &apiError)
-	assert.Equal(t, "user redirect does not exist [name: unknow]", apiError.Message)
+	assert.Equal(t, "user redirect does not exist [name: unknown]", apiError.Message)
 }
 
 func TestUnknowOrganization(t *testing.T) {
@@ -142,7 +142,7 @@ func TestUnknowOrganization(t *testing.T) {
 	session := loginUser(t, "user1")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadOrganization)
 
-	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/user1/orgs/unknow/permissions?token=%s", token))
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/user1/orgs/unknown/permissions?token=%s", token))
 	resp := MakeRequest(t, req, http.StatusNotFound)
 	var apiError api.APIError
 	DecodeJSON(t, resp, &apiError)

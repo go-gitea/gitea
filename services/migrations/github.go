@@ -305,7 +305,7 @@ func (g *GithubDownloaderV3) GetLabels() ([]*base.Label, error) {
 }
 
 func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease) *base.Release {
-	// GitHub allows commitish to be a reference.
+	// GitHub allows committish to be a reference.
 	// In this case, we need to remove the prefix, i.e. convert "refs/heads/main" to "main".
 	targetCommitish := strings.TrimPrefix(rel.GetTargetCommitish(), git.BranchPrefix)
 

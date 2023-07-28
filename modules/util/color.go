@@ -11,7 +11,7 @@ import (
 
 // Check similar implementation in web_src/js/utils/color.js and keep synchronization
 
-// Return R, G, B values defined in reletive luminance
+// Return R, G, B values defined in relative luminance
 func getLuminanceRGB(channel float64) float64 {
 	sRGB := channel / 255
 	if sRGB <= 0.03928 {

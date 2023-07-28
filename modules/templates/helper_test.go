@@ -48,7 +48,7 @@ func TestSubjectBodySeparator(t *testing.T) {
 	test("Multiple\n---\n-------\n---\nSeparators",
 		"Multiple\n",
 		"\n-------\n---\nSeparators")
-	test("Insuficient\n--\nSeparators",
+	test("Insufficient\n--\nSeparators",
 		"",
-		"Insuficient\n--\nSeparators")
+		"Insufficient\n--\nSeparators")
 }

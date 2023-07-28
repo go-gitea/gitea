@@ -173,8 +173,8 @@ func AddTime(ctx context.Context, user *user_model.User, issue *Issue, amount in
 		Issue: issue,
 		Repo:  issue.Repo,
 		Doer:  user,
-		// Content before v1.21 did store the formated string instead of seconds,
-		// so use "|" as delimeter to mark the new format
+		// Content before v1.21 did store the formatted string instead of seconds,
+		// so use "|" as delimiter to mark the new format
 		Content: fmt.Sprintf("|%d", amount),
 		Type:    CommentTypeAddTimeManual,
 		TimeID:  t.ID,
@@ -253,8 +253,8 @@ func DeleteIssueUserTimes(issue *Issue, user *user_model.User) error {
 		Issue: issue,
 		Repo:  issue.Repo,
 		Doer:  user,
-		// Content before v1.21 did store the formated string instead of seconds,
-		// so use "|" as delimeter to mark the new format
+		// Content before v1.21 did store the formatted string instead of seconds,
+		// so use "|" as delimiter to mark the new format
 		Content: fmt.Sprintf("|%d", removedTime),
 		Type:    CommentTypeDeleteTimeManual,
 	}); err != nil {
@@ -284,8 +284,8 @@ func DeleteTime(t *TrackedTime) error {
 		Issue: t.Issue,
 		Repo:  t.Issue.Repo,
 		Doer:  t.User,
-		// Content before v1.21 did store the formated string instead of seconds,
-		// so use "|" as delimeter to mark the new format
+		// Content before v1.21 did store the formatted string instead of seconds,
+		// so use "|" as delimiter to mark the new format
 		Content: fmt.Sprintf("|%d", t.Time),
 		Type:    CommentTypeDeleteTimeManual,
 	}); err != nil {

@@ -113,7 +113,7 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revisio
 		}
 		fields := strings.Split(line, "\t")
 		if len(fields) < 2 {
-			log.Warn("Unparseable output for diff --name-status: `%s`)", line)
+			log.Warn("Unparsable output for diff --name-status: `%s`)", line)
 			continue
 		}
 		filename := fields[1]
@@ -133,12 +133,12 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revisio
 			changes.RemovedFilenames = append(changes.RemovedFilenames, filename)
 		case 'R', 'C':
 			if len(fields) < 3 {
-				log.Warn("Unparseable output for diff --name-status: `%s`)", line)
+				log.Warn("Unparsable output for diff --name-status: `%s`)", line)
 				continue
 			}
 			dest := fields[2]
 			if len(dest) == 0 {
-				log.Warn("Unparseable output for diff --name-status: `%s`)", line)
+				log.Warn("Unparsable output for diff --name-status: `%s`)", line)
 				continue
 			}
 			if dest[0] == '"' {

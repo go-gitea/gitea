@@ -23,7 +23,7 @@ make clean build
 act_runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest
 ```
 
-Warning: This file defines many jobs, so it will be resource-intensive and therefor not recommended.
+Warning: This file defines many jobs, so it will be resource-intensive and therefore not recommended.
 
 ### Run single job
 

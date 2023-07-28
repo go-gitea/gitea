@@ -423,7 +423,7 @@ Attachments, lfs, avatars, repo-avatars, repo-archive, packages, actions_log, ac
 - `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
 - `MINIO_USE_SSL`: **false**: Minio enabled ssl，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
 
-以下为推荐的 recommanded storage configuration for minio like below:
+以下为推荐的 recommended storage configuration for minio like below:
 
 ```ini
 [storage]

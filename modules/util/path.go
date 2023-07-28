@@ -46,7 +46,7 @@ func PathJoinRel(elem ...string) string {
 }
 
 // PathJoinRelX joins the path elements into a single path like PathJoinRel,
-// and covert all backslashes to slashes. (X means "extended", also means the combination of `\` and `/`).
+// and convert all backslashes to slashes. (X means "extended", also means the combination of `\` and `/`).
 // It's caller's duty to make every element not bypass its own directly level, to avoid security issues.
 // It returns similar results as PathJoinRel except:
 //

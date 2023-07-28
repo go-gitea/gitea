@@ -28,7 +28,7 @@
 		<div class="gt-df gt-fc gt-gap-3">
 			<progress class="milestone-progress-big" value="{{.Milestone.Completeness}}" max="100"></progress>
 			<div class="gt-df gt-gap-4">
-				<div classs="gt-df gt-ac">
+				<div class="gt-df gt-ac">
 					{{$closedDate:= TimeSinceUnix .Milestone.ClosedDateUnix $.locale}}
 					{{if .IsClosed}}
 						{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.closed" $closedDate | Safe}}

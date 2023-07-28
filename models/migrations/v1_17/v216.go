@@ -4,4 +4,4 @@
 package v1_17 //nolint
 
 // This migration added non-ideal indices to the action table which on larger datasets slowed things down
-// it has been superceded by v218.go
+// it has been superseded by v218.go

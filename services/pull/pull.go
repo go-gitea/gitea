@@ -785,7 +785,7 @@ func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList
 
 		statuses, lastStatus, err := getAllCommitStatus(gitRepo, issue.PullRequest)
 		if err != nil {
-			log.Error("getAllCommitStatus: cant get commit statuses of pull [%d]: %v", issue.PullRequest.ID, err)
+			log.Error("getAllCommitStatus: can't get commit statuses of pull [%d]: %v", issue.PullRequest.ID, err)
 			continue
 		}
 		res[issue.PullRequest.ID] = statuses

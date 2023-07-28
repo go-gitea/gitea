@@ -257,7 +257,7 @@ func TestGetLabelsByIssueID(t *testing.T) {
 func TestUpdateLabel(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1})
-	// make sure update wont overwrite it
+	// make sure update won't overwrite it
 	update := &issues_model.Label{
 		ID:          label.ID,
 		Color:       "#ffff00",

@@ -102,11 +102,11 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 			targetType := targetSec.Key("STORAGE_TYPE").String()
 			if targetType == "" {
 				if !IsValidStorageType(StorageType(typ)) {
-					return nil, fmt.Errorf("unknow storage type %q", typ)
+					return nil, fmt.Errorf("unknown storage type %q", typ)
 				}
 				targetSec.Key("STORAGE_TYPE").SetValue(typ)
 			} else if !IsValidStorageType(StorageType(targetType)) {
-				return nil, fmt.Errorf("unknow storage type %q for section storage.%v", targetType, typ)
+				return nil, fmt.Errorf("unknown storage type %q for section storage.%v", targetType, typ)
 			}
 		}
 	}

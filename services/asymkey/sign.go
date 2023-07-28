@@ -73,7 +73,7 @@ type ErrWontSign struct {
 }
 
 func (e *ErrWontSign) Error() string {
-	return fmt.Sprintf("wont sign: %s", e.Reason)
+	return fmt.Sprintf("won't sign: %s", e.Reason)
 }
 
 // IsErrWontSign checks if an error is a ErrWontSign

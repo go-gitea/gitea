@@ -19,7 +19,7 @@ This document describes the storage of the package registry and how it can be ma
 
 ## Deduplication
 
-The package registry has a build-in deduplication of uploaded blobs.
+The package registry has a built-in deduplication of uploaded blobs.
 If two identical files are uploaded only one blob is saved on the filesystem.
 This ensures no space is wasted for duplicated files.
 

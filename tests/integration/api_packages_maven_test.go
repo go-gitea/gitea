@@ -107,7 +107,7 @@ func TestPackageMaven(t *testing.T) {
 	t.Run("UploadVerifySHA1", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		t.Run("Missmatch", func(t *testing.T) {
+		t.Run("Mismatch", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
 			putFile(t, fmt.Sprintf("/%s/%s.sha1", packageVersion, filename), "test", http.StatusBadRequest)

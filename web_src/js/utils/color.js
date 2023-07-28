@@ -1,5 +1,5 @@
 // Check similar implementation in modules/util/color.go and keep synchronization
-// Return R, G, B values defined in reletive luminance
+// Return R, G, B values defined in relative luminance
 function getLuminanceRGB(channel) {
   const sRGB = channel / 255;
   return (sRGB <= 0.03928) ? sRGB / 12.92 : ((sRGB + 0.055) / 1.055) ** 2.4;
