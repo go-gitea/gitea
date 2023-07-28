@@ -8,12 +8,12 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 * ENHANCEMENTS
   * Calculate MAX_WORKERS default value by CPU number (#26177) (#26183)
+  * Display deprecated warning in admin panel pages as well as in the log file (#26094) (#26154)
+  
+* BUGFIXES
   * Fix handling of plenty Nuget package versions (#26075) (#26173)
   * Fix UI regression of asciinema player (#26159) (#26162)
-  * Display deprecated warning in admin panel pages as well as in the log file (#26094) (#26154)
   * Fix LFS object list style (#26133) (#26147)
-  * Docusaurus-ify 1.20 (#26052)
-* BUGFIXES
   * Fix allowed user types setting problem (#26200) (#26206)
   * Prevent primary key update on migration (#26192) (#26199)
   * Fix bug when pushing to a pull request which enabled dismiss approval automatically (#25882) (#26158)
@@ -28,11 +28,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix handling of Debian files with trailing slash (#26087) (#26098)
   * Fix Missing 404 swagger response docs for /admin/users/{username} (#26086) (#26089)
   * Use stderr as fallback if the log file can't be opened (#26074) (#26083)
-* DOCS
-  * Fix typos in Contributing.md (#26170) (#26172)
-  * Update email-setup.en-us.md (#26068) (#26166)
-  * Added ssh mirror workaround description (#26096) (#26136)
-* MISC
   * Increase table cell horizontal padding (#26140) (#26142)
   * Fix wrong workflow status when rerun a job in an already finished workflow (#26119) (#26124)
   * Fix duplicated url prefix on issue context menu (#26066) (#26067)
