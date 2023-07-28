@@ -5,10 +5,9 @@ package arch
 
 import (
 	"archive/tar"
+	"bufio"
 	"bytes"
 	"compress/gzip"
-	"crypto/md5"
-	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -17,11 +16,30 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/container"
+	pkg_module "code.gitea.io/gitea/modules/packages"
 	"github.com/mholt/archiver/v3"
 )
 
-// Metadata for arch package.
+// JSON with pacakage parameters that are not related to specific
+// architecture/distribution that will be stored in sql database.
 type Metadata struct {
+	Name         string
+	Version      string
+	URL          string   `json:"url"`
+	Description  string   `json:"description"`
+	Provides     []string `json:"provides,omitempty"`
+	License      []string `json:"license,omitempty"`
+	Depends      []string `json:"depends,omitempty"`
+	OptDepends   []string `json:"opt-depends,omitempty"`
+	MakeDepends  []string `json:"make-depends,omitempty"`
+	CheckDepends []string `json:"check-depends,omitempty"`
+	Backup       []string `json:"backup,omitempty"`
+	DistroArch   []string `json:"distro-arch,omitempty"`
+}
+
+// Package description file that will be saved as .desc file in object storage.
+// Resulting file will be used to create pacman database.
+type DbDesc struct {
 	Filename       string   `json:"filename"`
 	Name           string   `json:"name"`
 	Base           string   `json:"base"`
@@ -34,33 +52,31 @@ type Metadata struct {
 	URL            string   `json:"url"`
 	BuildDate      int64    `json:"build-date"`
 	Packager       string   `json:"packager"`
-	Provides       []string `json:"provides"`
-	License        []string `json:"license"`
-	Arch           []string `json:"arch"`
-	Depends        []string `json:"depends"`
-	OptDepends     []string `json:"opt-depends"`
-	MakeDepends    []string `json:"make-depends"`
-	CheckDepends   []string `json:"check-depends"`
-	Backup         []string `json:"backup"`
-	// This list is created to ensure the consistency of pacman database file
-	// for specific combination of distribution and architecture. This value
-	// is used when creating pacman database, to ensure that only packages
-	// with specific combination of distribution and architecture are present
-	// in pacman database file.
-	DistroArch []string `json:"distro-arch"`
+	Provides       []string `json:"provides,omitempty"`
+	License        []string `json:"license,omitempty"`
+	Arch           []string `json:"arch,omitempty"`
+	Depends        []string `json:"depends,omitempty"`
+	OptDepends     []string `json:"opt-depends,omitempty"`
+	MakeDepends    []string `json:"make-depends,omitempty"`
+	CheckDepends   []string `json:"check-depends,omitempty"`
+	Backup         []string `json:"backup,omitempty"`
 }
 
 // Function that receives arch package archive data and returns it's metadata.
-func EjectMetadata(filename, distribution string, pkg []byte) (*Metadata, error) {
-	pkginfo, err := getPkginfo(pkg)
+func EjectMetadata(filename, distribution string, buf *pkg_module.HashedBuffer) (*DbDesc, error) {
+	pkginfo, err := getPkginfo(buf)
 	if err != nil {
 		return nil, err
 	}
-	md := Metadata{
+
+	// Add package blob parameters to arch related desc.
+	hashMD5, _, hashSHA256, _ := buf.Sums()
+	md := DbDesc{
 		Filename:       filename,
-		CompressedSize: int64(len(pkg)),
-		MD5:            md5sum(pkg),
-		SHA256:         sha256sum(pkg),
+		Name:           filename,
+		CompressedSize: buf.Size(),
+		MD5:            hex.EncodeToString(hashMD5),
+		SHA256:         hex.EncodeToString(hashSHA256),
 	}
 	for _, line := range strings.Split(pkginfo, "\n") {
 		splt := strings.Split(line, " = ")
@@ -98,7 +114,6 @@ func EjectMetadata(filename, distribution string, pkg []byte) (*Metadata, error)
 			md.License = append(md.License, splt[1])
 		case "arch":
 			md.Arch = append(md.Arch, splt[1])
-			md.DistroArch = append(md.DistroArch, distribution+"-"+splt[1])
 		case "depend":
 			md.Depends = append(md.Depends, splt[1])
 		case "optdepend":
@@ -114,10 +129,10 @@ func EjectMetadata(filename, distribution string, pkg []byte) (*Metadata, error)
 	return &md, nil
 }
 
-func getPkginfo(data []byte) (string, error) {
-	pkgreader := bytes.NewReader(data)
+func getPkginfo(data io.Reader) (string, error) {
+	br := bufio.NewReader(data)
 	zstd := archiver.NewTarZstd()
-	err := zstd.Open(pkgreader, int64(250000))
+	err := zstd.Open(br, int64(250000))
 	if err != nil {
 		return ``, err
 	}
@@ -137,19 +152,9 @@ func getPkginfo(data []byte) (string, error) {
 	}
 }
 
-func md5sum(data []byte) string {
-	sum := md5.Sum(data)
-	return hex.EncodeToString(sum[:])
-}
-
-func sha256sum(data []byte) string {
-	sum := sha256.Sum256(data)
-	return hex.EncodeToString(sum[:])
-}
-
 // This function returns pacman package description in unarchived raw database
 // format.
-func (m *Metadata) GetDbDesc() string {
+func (m *DbDesc) GetDbDesc() string {
 	return strings.Join(rmEmptyStrings([]string{
 		formatField("FILENAME", m.Filename),
 		formatField("NAME", m.Name),
@@ -200,13 +205,7 @@ func rmEmptyStrings(s []string) []string {
 }
 
 // Create pacman database archive based on provided package metadata structs.
-func CreatePacmanDb(mds []*Metadata) ([]byte, error) {
-	entries := make(map[string][]byte)
-
-	for _, md := range mds {
-		entries[md.Name+"-"+md.Version+"/desc"] = []byte(md.GetDbDesc())
-	}
-
+func CreatePacmanDb(entries map[string][]byte) ([]byte, error) {
 	var out bytes.Buffer
 
 	// Write entries to new buffer and return it.

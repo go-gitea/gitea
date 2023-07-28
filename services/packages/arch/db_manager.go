@@ -4,8 +4,8 @@
 package arch
 
 import (
-	"bytes"
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 
@@ -41,7 +41,6 @@ func UpdateMetadata(ctx *context.Context, p *UpdateMetadataParameters) error {
 		return err
 	}
 
-	currmd.Arch = arch.UnifiedList(currmd.Arch, p.Md.Arch)
 	currmd.DistroArch = arch.UnifiedList(currmd.DistroArch, p.Md.DistroArch)
 
 	b, err := json.Marshal(&currmd)
@@ -59,7 +58,7 @@ type SaveFileParams struct {
 	Creator  *user.User
 	Owner    *user.User
 	Metadata *arch.Metadata
-	Data     []byte
+	Buf      packages.HashedSizeReader
 	Filename string
 	Distro   string
 	IsLead   bool
@@ -69,13 +68,7 @@ type SaveFileParams struct {
 // database, and writes blob to file storage. If package/version/blob exists it
 // will overwrite existing data. Package id and error will be returned.
 func SaveFile(ctx *context.Context, p *SaveFileParams) (int64, error) {
-	buf, err := packages.CreateHashedBufferFromReader(bytes.NewReader(p.Data))
-	if err != nil {
-		return 0, err
-	}
-	defer buf.Close()
-
-	pv, _, err := pkg_service.CreatePackageOrAddFileToExisting(
+	ver, _, err := pkg_service.CreatePackageOrAddFileToExisting(
 		&pkg_service.PackageCreationInfo{
 			PackageInfo: pkg_service.PackageInfo{
 				Owner:       p.Owner,
@@ -92,7 +85,7 @@ func SaveFile(ctx *context.Context, p *SaveFileParams) (int64, error) {
 				CompositeKey: p.Distro + "-" + p.Filename,
 			},
 			Creator:           p.Creator,
-			Data:              buf,
+			Data:              p.Buf,
 			OverwriteExisting: true,
 			IsLead:            p.IsLead,
 		},
@@ -100,7 +93,7 @@ func SaveFile(ctx *context.Context, p *SaveFileParams) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	return pv.PackageID, nil
+	return ver.ID, nil
 }
 
 // Get data related to provided file name and distribution, and update download
@@ -158,7 +151,7 @@ func CreatePacmanDb(ctx *context.Context, owner, architecture, distro string) ([
 		return nil, err
 	}
 
-	var mds []*arch.Metadata
+	var entries = make(map[string][]byte)
 
 	for _, pkg := range pkgs {
 		versions, err := pkg_model.GetVersionsByPackageName(ctx, u.ID, pkg_model.TypeArch, pkg.Name)
@@ -176,14 +169,30 @@ func CreatePacmanDb(ctx *context.Context, owner, architecture, distro string) ([
 			if err != nil {
 				return nil, err
 			}
-			if checkPackageCompatability(distro, architecture, md.DistroArch) {
-				mds = append(mds, &md)
+			var found bool
+			for _, da := range md.DistroArch {
+				if da == distro+"-"+architecture {
+					desckey := pkg.Name + "-" + version.Version + "-" + architecture + ".desc"
+					descfile, err := GetFileObject(ctx, distro, desckey)
+					if err != nil {
+						return nil, err
+					}
+					descbytes, err := io.ReadAll(descfile)
+					if err != nil {
+						return nil, err
+					}
+					entries[pkg.Name+"-"+version.Version+"/desc"] = descbytes
+					found = true
+					break
+				}
+			}
+			if found {
 				break
 			}
 		}
 	}
 
-	return arch.CreatePacmanDb(mds)
+	return arch.CreatePacmanDb(entries)
 }
 
 // Remove specific package version related to provided user or organization.
@@ -194,17 +203,4 @@ func RemovePackage(ctx *context.Context, u *user.User, name, version string) err
 	}
 
 	return pkg_service.RemovePackageVersion(u, ver)
-}
-
-// This function will check, wether package should be added to resulting database.
-func checkPackageCompatability(distro, arch string, distroarchs []string) bool {
-	for _, distroarch := range distroarchs {
-		if distroarch == distro+"-any" {
-			return true
-		}
-		if distroarch == distro+"-"+arch {
-			return true
-		}
-	}
-	return false
 }
