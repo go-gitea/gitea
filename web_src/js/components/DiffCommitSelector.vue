@@ -101,20 +101,48 @@ export default {
     }
   },
   mounted() {
-    // Add a click listener to close this menu on click outside of this element
-    //  when the dropdown is currently visible opened
-    document.body.addEventListener('click', (event) => {
+    document.body.addEventListener('click', this.onBodyClick);
+    this.$el.addEventListener('keydown', this.onKeyDown);
+    this.$el.addEventListener('keyup', this.onKeyUp);
+  },
+  unmounted() {
+    document.body.removeEventListener('click', this.onBodyClick);
+    this.$el.removeEventListener('keydown', this.onKeyDown);
+    this.$el.removeEventListener('keyup', this.onKeyUp);
+  },
+  methods: {
+    onBodyClick(event) {
+      // close this menu on click outside of this element when the dropdown is currently visible opened
       if (this.$el.contains(event.target)) return;
       if (this.menuVisible) {
         this.toggleMenu();
       }
-    });
-
-    // Add an eventlistener for shift keyup
-    // only is active if hoverActivated is true.
-    document.addEventListener('keyup', (evt) => {
-      if (!this.hoverActivated) return;
-      if (evt.key === 'Shift' || evt.key === 'ShiftLeft' || evt.key === 'ShiftRight') {
+    },
+    onKeyDown(event) {
+      if (!this.menuVisible) return;
+      const item = document.activeElement;
+      if (!this.$el.contains(item)) return;
+      switch (event.key) {
+        case 'ArrowDown': // select next element
+          event.preventDefault();
+          this.focusElem(item.nextElementSibling, item);
+          break;
+        case 'ArrowUp': // select previous element
+          event.preventDefault();
+          this.focusElem(item.previousElementSibling, item);
+          break;
+        case 'Escape': // close menu
+          event.preventDefault();
+          item.tabIndex = -1;
+          this.toggleMenu();
+          break;
+      }
+    },
+    onKeyUp(event) {
+      if (!this.menuVisible) return;
+      const item = document.activeElement;
+      if (!this.$el.contains(item)) return;
+      if (event.key === 'Shift' && this.hoverActivated) {
         // shift is not pressed anymore -> deactivate hovering and reset hovered and selected
         this.hoverActivated = false;
         for (const commit of this.commits) {
@@ -122,31 +150,7 @@ export default {
           commit.selected = false;
         }
       }
-    });
-
-    this.$el.addEventListener('keyup', (event) => {
-      if (!this.menuVisible) return;
-      const item = document.activeElement;
-      switch (event.key) {
-        case 'ArrowDown':
-          // Arrowdown -> select next element
-          event.preventDefault();
-          this.focusElem(item.nextElementSibling, item);
-          break;
-        case 'ArrowUp':
-          // ArrowUp -> select previous element
-          event.preventDefault();
-          this.focusElem(item.previousElementSibling, item);
-          break;
-        case 'Escape':
-          // Escape -> close menu
-          item.tabIndex = -1;
-          this.toggleMenu();
-          break;
-      }
-    });
-  },
-  methods: {
+    },
     highlight(commit) {
       if (!this.hoverActivated) return;
       const indexSelected = this.commits.findIndex((x) => x.selected);
