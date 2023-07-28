@@ -1,5 +1,5 @@
 <div>
-	<div class="diff-detail-box diff-box sticky gt-df gt-sb gt-ac gt-fw">
+	<div class="diff-detail-box diff-box sticky gt-df gt-sb gt-ac">
 		<div class="gt-df gt-ac gt-fw">
 			{{if not .DiffNotAvailable}}
 				<button class="diff-toggle-file-tree-button gt-df gt-ac not-mobile" data-show-text="{{.locale.Tr "repo.diff.show_file_tree"}}" data-hide-text="{{.locale.Tr "repo.diff.hide_file_tree"}}">
@@ -82,7 +82,7 @@
 					{{$showFileViewToggle := or $isImage (and (not $file.IsIncomplete) $isCsv)}}
 					{{$isExpandable := or (gt $file.Addition 0) (gt $file.Deletion 0) $file.IsBin}}
 					{{$isReviewFile := and $.IsSigned $.PageIsPullFiles (not $.IsArchived)}}
-					<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}} gt-mt-3" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if or ($file.ShouldBeHidden) (not $isExpandable)}}data-folded="true"{{end}}>
+					<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}} gt-mt-0" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if or ($file.ShouldBeHidden) (not $isExpandable)}}data-folded="true"{{end}}>
 						<h4 class="diff-file-header sticky-2nd-row ui top attached normal header gt-df gt-ac gt-sb gt-fw">
 							<div class="diff-file-name gt-df gt-ac gt-gap-2 gt-fw">
 								<button class="fold-file btn interact-bg gt-p-2{{if not $isExpandable}} gt-invisible{{end}}">

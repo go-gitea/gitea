@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/gitdiff"
+	git_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
@@ -255,6 +256,15 @@ func FileHistory(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplCommits)
 }
 
+func LoadBranchesAndTags(ctx *context.Context) {
+	response, err := git_service.LoadBranchesAndTags(ctx, ctx.Repo, ctx.Params("sha"))
+	if err == nil {
+		ctx.JSON(http.StatusOK, response)
+		return
+	}
+	ctx.NotFoundOrServerError(fmt.Sprintf("could not load branches and tags the commit %s belongs to", ctx.Params("sha")), git.IsErrNotExist, err)
+}
+
 // Diff show different from current commit to previous commit
 func Diff(ctx *context.Context) {
 	ctx.Data["PageIsDiff"] = true
@@ -374,11 +384,6 @@ func Diff(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["TagName"], err = commit.GetTagName()
-	if err != nil {
-		ctx.ServerError("commit.GetTagName", err)
-		return
-	}
 	ctx.HTML(http.StatusOK, tplCommitPage)
 }
 
