@@ -9,7 +9,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * ENHANCEMENTS
   * Calculate MAX_WORKERS default value by CPU number (#26177) (#26183)
   * Display deprecated warning in admin panel pages as well as in the log file (#26094) (#26154)
-  
 * BUGFIXES
   * Fix handling of plenty Nuget package versions (#26075) (#26173)
   * Fix UI regression of asciinema player (#26159) (#26162)
