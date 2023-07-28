@@ -1303,7 +1303,7 @@ Defaultly every storage has their default base path like below
 | actions_log       | actions_log/       |
 | actions_artifacts | actions_artifacts/ |
 
-And bucket, basepath or `SERVE_DIRECT` could be special or overrided, if you want to use a different you can:
+And bucket, basepath or `SERVE_DIRECT` could be special or overridden, if you want to use a different you can:
 
 ```ini
 [storage.actions_log]
@@ -1388,7 +1388,7 @@ Please note that using `self` is not recommended for most cases, as it could mak
 Additionally, it requires you to mirror all the actions you need to your Gitea instance, which may not be worth it.
 Therefore, please use `self` only if you understand what you are doing.
 
-In earlier versions (<= 1.19), `DEFAULT_ACTIONS_URL` cound be set to any custom URLs like `https://gitea.com` or `http://your-git-server,https://gitea.com`, and the default value was `https://gitea.com`.
+In earlier versions (<= 1.19), `DEFAULT_ACTIONS_URL` could be set to any custom URLs like `https://gitea.com` or `http://your-git-server,https://gitea.com`, and the default value was `https://gitea.com`.
 However, later updates removed those options, and now the only options are `github` and `self`, with the default value being `github`.
 However, if you want to use actions from other git server, you can use a complete URL in `uses` field, it's supported by Gitea (but not GitHub).
 Like `uses: https://gitea.com/actions/checkout@v3` or `uses: http://your-git-server/actions/checkout@v3`.

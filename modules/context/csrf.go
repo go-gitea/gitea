@@ -179,7 +179,7 @@ func PrepareCSRFProtector(opt CsrfOptions, ctx *Context) CSRFProtector {
 	if uidChanged {
 		_ = ctx.Session.Set(opt.oldSessionKey, x.ID)
 	} else if cookieToken != "" {
-		// If cookie token presents, re-use existing unexpired token, else generate a new one.
+		// If cookie token presents, reuse existing unexpired token, else generate a new one.
 		if issueTime, ok := ParseCsrfToken(cookieToken); ok {
 			dur := time.Since(issueTime) // issueTime is not a monotonic-clock, the server time may change a lot to an early time.
 			if dur >= -CsrfTokenRegenerationInterval && dur <= CsrfTokenRegenerationInterval {

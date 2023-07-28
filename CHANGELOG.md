@@ -901,7 +901,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix sticky header in diff view (#23554) (#23568)
   * Refactor merge/update git command calls (#23366) (#23544)
   * Fix review comment context menu clipped bug (#23523) (#23543)
-  * Imrove scroll behavior to hash issuecomment(scroll position, auto expand if file is folded, and on refreshing) (#23513) (#23540)
+  * Improve scroll behavior to hash issuecomment(scroll position, auto expand if file is folded, and on refreshing) (#23513) (#23540)
   * Increase horizontal page padding (#23507) (#23537)
   * Use octicon-verified for gpg signatures (#23529) (#23536)
   * Make time tooltips interactive (#23526) (#23527)
@@ -3481,7 +3481,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix bug on avatar middleware (#15124) (#15125)
   * Fix another clusterfuzz identified issue (#15096) (#15114)
 * API
-  * Fix nil exeption for get pull reviews API #15104 (#15106)
+  * Fix nil exception for get pull reviews API #15104 (#15106)
 * BUGFIXES
   * Fix markdown rendering in milestone content (#15056) (#15092)
 
@@ -3515,7 +3515,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix a couple of issues with a feeds (#14897) (#14903)
   * When transfering repository and database transaction failed, rollback the renames (#14864) (#14902)
   * Fix race in local storage (#14888) (#14901)
-  * Fix 500 on pull view page if user is not loged in (#14885) (#14886)
+  * Fix 500 on pull view page if user is not logged in (#14885) (#14886)
 * DOCS
   * Fix how lfs data path is set (#14855) (#14884)
 
@@ -5134,7 +5134,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should __not__ be 
   * Check for either escaped or unescaped wiki filenames (#8408)
   * Allow users with explicit read access to give approvals (#8382)
   * Fix editor commit to new branch if PR disabled (#8375)
-  * readd .markdown class to all markup renderers (#8357)
+  * re-add .markdown class to all markup renderers (#8357)
   * Upgrade xorm to v0.7.9 to fix some bugs (#8354)
   * Fix column name ambiguity in GetUserIssueStats() (#8347)
   * Change general form binding to gogs form (#8334)
@@ -5303,7 +5303,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should __not__ be 
   * Include thread related headers in issue/coment mail (#7484)
   * Refuse merge until all required status checks success (#7481)
   * convert all js var to let/const (#7464)
-  * Only create branches for opened pull requestes when migrating from github (#7463)
+  * Only create branches for opened pull requests when migrating from github (#7463)
   * jQuery 3 (#7425)
   * Add notification placeholder (#7409)
   * Search Commits via Commit Hash (#7400)
@@ -5353,7 +5353,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should __not__ be 
   * Add Extra Info to Branches Page (#7461)
   * Bump lodash from 4.17.11 to 4.17.14 (#7459)
   * wiki history improvements (#7391)
-  * ui fixes - compare view and archieved repo issues (#7345)
+  * ui fixes - compare view and archived repo issues (#7345)
   * dark theme scrollbars (#7269)
   * wiki - editor - add buttons 'inline code', 'empty checkbox', 'checked checkbox' (#7243)
   * Fix Statuses API only shows first 10 statuses: Add paging and extend API GetCommitStatuses (#7141)
@@ -5587,7 +5587,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should __not__ be 
   * Fix #732: Add LFS objects to base repository on merging  (#7082)
   * Install page - Handle invalid administrator username better (#7060)
   * Workaround for posting single comments in split diff view (#7052)
-  * Fix possbile mysql invalid connnection error (#7051)
+  * Fix possible mysql invalid connection error (#7051)
   * Fix charset was not saved after installation finished (#7048)
   * Handle insecure and ports in go get (#7041)
   * Avoid bad database state after failed migration (#7040)
@@ -5849,7 +5849,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should __not__ be 
 ## [1.8.2](https://github.com/go-gitea/gitea/releases/tag/v1.8.2) - 2019-05-29
 
 * BUGFIXES
-  * Fix possbile mysql invalid connnection error (#7051) (#7071)
+  * Fix possible mysql invalid connection error (#7051) (#7071)
   * Handle invalid administrator username on install page (#7060) (#7063)
   * Disable arm7 builds (#7037) (#7042)
   * Fix default for allowing new organization creation for new users (#7017) (#7034)
@@ -6477,7 +6477,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should __not__ be 
   * Don't display buttons if there are no system notifications (#4280)
   * Issue due date api (#3890)
 * BUGFIXES
-  * dont' send assign webhooks when creating issue (#5365)
+  * Don't send assign webhooks when creating issue (#5365)
   * Fix create team, update team missing units (#5188)
   * Fix file edit change preview functionality (#5300)
   * *ix bug when users have serval teams with different units on different repositories (#5307)
@@ -7392,7 +7392,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should __not__ be 
   * Don't recreate database in integration tests (#1697)
   * remove sqlite tag when integration test with mysql/postgres and recreate database when init integration test (#1693)
   * MySQL, Postgres integration tests in drone (#1638)
-  * improve integration test to resue models/fixtures and store git repos with tests (#1627)
+  * improve integration test to reuse models/fixtures and store git repos with tests (#1627)
   * Improve govendor testing (#1623)
   * Integration test framework (#1290)
   * Unit tests for issue_list (#1209)
@@ -7443,7 +7443,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should __not__ be 
   * Only run coverage on merges/pushes to master (#1783)
   * Remove stale rule from Makefile (#1782)
   * feat: upgrade drone docker image to support multi-stage build. (#1732)
-  * Realy don't cache apk index (#1694)
+  * Really don't cache apk index (#1694)
   * Limit clone depth when drone-building (#1644)
   * Refactor Dockerfile (#1632)
   * Check if missing/modified/unused deps in vendor and fix errors (#1468)

@@ -205,7 +205,7 @@ func EventFormatTextMessage(mode *WriterMode, event *Event, msgFormat string, ms
 			msg = []byte(fmt.Sprintf(msgFormat, msgArgs...))
 		}
 	}
-	// try to re-use the pre-formatted simple text message
+	// try to reuse the pre-formatted simple text message
 	if len(msg) == 0 {
 		msg = []byte(event.MsgSimpleText)
 	}

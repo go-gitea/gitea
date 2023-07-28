@@ -11,7 +11,7 @@ The default version will read from `docs/config.yml`. You can override this
 using the option `--version`.
 
 The upstream branches will be fetched, using the remote `origin`. This can
-be overrided using `--upstream`, and fetching can be avoided using
+be overridden using `--upstream`, and fetching can be avoided using
 `--no-fetch`.
 
 By default the branch created will be called `backport-$PR-$VERSION`. You

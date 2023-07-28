@@ -146,7 +146,7 @@ func ViewPost(ctx *context_module.Context) {
 	resp.State.Run.CanApprove = run.NeedApproval && ctx.Repo.CanWrite(unit.TypeActions)
 	resp.State.Run.CanRerun = run.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions)
 	resp.State.Run.Done = run.Status.IsDone()
-	resp.State.Run.Jobs = make([]*ViewJob, 0, len(jobs)) // marshal to '[]' instead fo 'null' in json
+	resp.State.Run.Jobs = make([]*ViewJob, 0, len(jobs)) // marshal to '[]' instead of 'null' in json
 	resp.State.Run.Status = run.Status.String()
 	for _, v := range jobs {
 		resp.State.Run.Jobs = append(resp.State.Run.Jobs, &ViewJob{
@@ -195,8 +195,8 @@ func ViewPost(ctx *context_module.Context) {
 	if run.NeedApproval {
 		resp.State.CurrentJob.Detail = ctx.Locale.Tr("actions.need_approval_desc")
 	}
-	resp.State.CurrentJob.Steps = make([]*ViewJobStep, 0) // marshal to '[]' instead fo 'null' in json
-	resp.Logs.StepsLog = make([]*ViewStepLog, 0)          // marshal to '[]' instead fo 'null' in json
+	resp.State.CurrentJob.Steps = make([]*ViewJobStep, 0) // marshal to '[]' instead of 'null' in json
+	resp.Logs.StepsLog = make([]*ViewStepLog, 0)          // marshal to '[]' instead of 'null' in json
 	if task != nil {
 		steps := actions.FullSteps(task)
 
@@ -215,7 +215,7 @@ func ViewPost(ctx *context_module.Context) {
 
 			step := steps[cursor.Step]
 
-			logLines := make([]*ViewStepLogLine, 0) // marshal to '[]' instead fo 'null' in json
+			logLines := make([]*ViewStepLogLine, 0) // marshal to '[]' instead of 'null' in json
 
 			index := step.LogIndex + cursor.Cursor
 			validCursor := cursor.Cursor >= 0 &&
