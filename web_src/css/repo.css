@@ -1594,7 +1594,7 @@
 
 @media (max-width: 991.98px) {
   .repository .diff-detail-box {
-    flex-direction: column;
+    flex-direction: row;
     align-items: flex-start;
   }
 }
