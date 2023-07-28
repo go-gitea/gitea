@@ -114,7 +114,7 @@ func FindLatestReviews(ctx context.Context, opts FindReviewOptions) (ReviewList,
 	}
 
 	sess.In("id", builder.
-		Select("max ( id ) ").
+		Select("max(id)").
 		From("review").
 		Where(cond).
 		GroupBy("reviewer_id"))
