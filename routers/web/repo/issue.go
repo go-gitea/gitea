@@ -539,8 +539,18 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		ctx.ServerError("GetProjects", err)
 		return
 	}
+	projects3, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
+		OwnerID:  repo.OwnerID,
+		Page:     -1,
+		IsClosed: util.OptionalBoolFalse,
+		Type:     project_model.TypeIndividual,
+	})
+	if err != nil {
+		ctx.ServerError("GetProjects", err)
+		return
+	}
 
-	ctx.Data["OpenProjects"] = append(projects, projects2...)
+	ctx.Data["OpenProjects"] = append(projects, append(projects2, projects3...)...)
 
 	projects, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
 		RepoID:   repo.ID,
@@ -562,8 +572,18 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		ctx.ServerError("GetProjects", err)
 		return
 	}
+	projects3, _, err = project_model.FindProjects(ctx, project_model.SearchOptions{
+		OwnerID:  repo.OwnerID,
+		Page:     -1,
+		IsClosed: util.OptionalBoolTrue,
+		Type:     project_model.TypeIndividual,
+	})
+	if err != nil {
+		ctx.ServerError("GetProjects", err)
+		return
+	}
 
-	ctx.Data["ClosedProjects"] = append(projects, projects2...)
+	ctx.Data["ClosedProjects"] = append(projects, append(projects2, projects3...)...)
 }
 
 // repoReviewerSelection items to bee shown
