@@ -216,7 +216,7 @@
 							{{avatar $.Context .Verification.SigningUser 28 "gt-mr-3"}}
 							{{if .Verification.SigningUser.FullName}}
 								{{/* Use the same scheme as the one used in commits. */}}
-								<a href="{{.Verification.SigningUser.HomeLink}}"><strong> {{.Verification.SigningUser.FullName}} ({{.Verification.SigningUser.GetDisplayName}})</strong></a>
+								<a href="{{.Verification.SigningUser.HomeLink}}"><strong> {{.Verification.SigningUser.Name}} ({{.Verification.SigningUser.FullName}})</strong></a>
 							{{else}}
 								<a href="{{.Verification.SigningUser.HomeLink}}"><strong> ({{.Verification.SigningUser.GetDisplayName}})</strong></a>
 							{{end}}
