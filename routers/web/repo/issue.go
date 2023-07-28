@@ -222,11 +222,20 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			}
 			statsOpts.IssueIDs = allIssueIDs
 		}
-		issueStats, err = issues_model.GetIssueStats(statsOpts)
-		if err != nil {
-			ctx.ServerError("GetIssueStats", err)
-			return
+		if keyword != "" && len(statsOpts.IssueIDs) == 0 {
+			// So it did search with the keyword, but no issue found.
+			// Just set issueStats to empty.
+			issueStats = &issues_model.IssueStats{}
+		} else {
+			// So it did search with the keyword, and found some issues. It needs to get issueStats of these issues.
+			// Or the keyword is empty, so it doesn't need issueIDs as filter, just get issueStats with statsOpts.
+			issueStats, err = issues_model.GetIssueStats(statsOpts)
+			if err != nil {
+				ctx.ServerError("GetIssueStats", err)
+				return
+			}
 		}
+
 	}
 
 	isShowClosed := ctx.FormString("state") == "closed"

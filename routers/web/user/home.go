@@ -485,10 +485,22 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	// Filter repos and count issues in them. Count will be used later.
 	// USING NON-FINAL STATE OF opts FOR A QUERY.
-	issueCountByRepo, err := issues_model.CountIssuesByRepo(ctx, opts)
-	if err != nil {
-		ctx.ServerError("CountIssuesByRepo", err)
-		return
+	var issueCountByRepo map[int64]int64
+	{
+		issueIDs, err := issueIDsFromSearch(ctx, keyword, opts)
+		if err != nil {
+			ctx.ServerError("issueIDsFromSearch", err)
+			return
+		}
+		if len(issueIDs) > 0 { // else, no issues found, just leave issueCountByRepo empty
+			opts.IssueIDs = issueIDs
+			issueCountByRepo, err = issues_model.CountIssuesByRepo(ctx, opts)
+			if err != nil {
+				ctx.ServerError("CountIssuesByRepo", err)
+				return
+			}
+			opts.IssueIDs = nil // reset, the opts will be used later
+		}
 	}
 
 	// Make sure page number is at least 1. Will be posted to ctx.Data.
@@ -506,6 +518,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	var labelIDs []int64
 	selectedLabels := ctx.FormString("labels")
 	if len(selectedLabels) > 0 && selectedLabels != "0" {
+		var err error
 		labelIDs, err = base.StringsToInt64s(strings.Split(selectedLabels, ","))
 		if err != nil {
 			ctx.ServerError("StringsToInt64s", err)
@@ -606,10 +619,18 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			statsOpts.IssueIDs = allIssueIDs
 		}
 
-		issueStats, err = issues_model.GetUserIssueStats(filterMode, statsOpts)
-		if err != nil {
-			ctx.ServerError("GetUserIssueStats Shown", err)
-			return
+		if keyword != "" && len(statsOpts.IssueIDs) == 0 {
+			// So it did search with the keyword, but no issue found.
+			// Just set issueStats to empty.
+			issueStats = &issues_model.IssueStats{}
+		} else {
+			// So it did search with the keyword, and found some issues. It needs to get issueStats of these issues.
+			// Or the keyword is empty, so it doesn't need issueIDs as filter, just get issueStats with statsOpts.
+			issueStats, err = issues_model.GetUserIssueStats(filterMode, statsOpts)
+			if err != nil {
+				ctx.ServerError("GetUserIssueStats", err)
+				return
+			}
 		}
 	}
 
