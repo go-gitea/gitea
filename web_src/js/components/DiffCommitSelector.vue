@@ -2,20 +2,21 @@
   <div class="ui dropdown custom">
     <button
       class="ui basic button"
-      id="expand-button"
+      id="diff-commit-list-expand"
       @click.stop="toggleMenu()"
       :data-tooltip-content="locale.filter_changes_by_commit"
       aria-haspopup="true"
       tabindex="0"
-      aria-controls="commit-selector-menu"
+      aria-controls="diff-commit-selector-menu"
       :aria-label="locale.filter_changes_by_commit"
-      aria-activedescendant="show-all-changes"
+      aria-activedescendant="diff-commit-list-show-all"
     >
       <svg-icon name="octicon-git-commit"/>
     </button>
-    <div class="menu left transition commit-selector-menu" id="commit-selector-menu" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak :aria-expanded="menuVisible ? 'true': 'false'">
-      <div class="scrolling menu gt-border-t-0" :class="{'is-loading': isLoading}">
-        <div class="vertical item gt-df gt-fc gt-gap-2" id="show-all-changes" @keydown.enter="showAllChanges()" @click="showAllChanges()" role="menuitem" tabindex="-1">
+    <div class="menu left transition" id="diff-commit-selector-menu" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak :aria-expanded="menuVisible ? 'true': 'false'">
+      <div class="scrolling menu gt-border-t-0">
+        <div class="loading-indicator is-loading" v-if="isLoading"/>
+        <div v-if="!isLoading" class="vertical item gt-df gt-fc gt-gap-2" id="diff-commit-list-show-all" role="menuitem" tabindex="-1" @keydown.enter="showAllChanges()" @click="showAllChanges()">
           <div class="gt-ellipsis">
             {{ locale.show_all_commits }}
           </div>
@@ -24,7 +25,13 @@
           </div>
         </div>
         <!-- only show the show changes since last review if there is a review AND we are commits ahead of the last review -->
-        <div v-if="lastReviewCommitSha != null" role="menuitem" tabindex="-1" class="vertical item gt-df gt-fc gt-gap-2 gt-border-secondary-top" :class="{disabled: commitsSinceLastReview === 0}" @keydown.enter="changesSinceLastReviewClick()" @click="changesSinceLastReviewClick()">
+        <div
+          v-if="lastReviewCommitSha != null" role="menuitem" tabindex="-1"
+          class="vertical item gt-df gt-fc gt-gap-2 gt-border-secondary-top"
+          :class="{disabled: commitsSinceLastReview === 0}"
+          @keydown.enter="changesSinceLastReviewClick()"
+          @click="changesSinceLastReviewClick()"
+        >
           <div class="gt-ellipsis">
             {{ locale.show_changes_since_your_last_review }}
           </div>
@@ -32,9 +39,19 @@
             {{ commitsSinceLastReview }} commits
           </div>
         </div>
-        <span class="info gt-border-secondary-top text light-2">{{ locale.select_commit_hold_shift_for_range }}</span>
+        <span v-if="!isLoading" class="info gt-border-secondary-top text light-2">{{ locale.select_commit_hold_shift_for_range }}</span>
         <template v-for="commit in commits" :key="commit.id">
-          <div class="vertical item gt-df gt-fr gt-gap-2 gt-border-secondary-top" @mouseover.shift="highlight(commit)" role="menuitem" tabindex="-1" :class="{selection: commit.selected, hovered: commit.hovered}" @keydown.enter.exact="commitClicked(commit.id)" @click.exact="commitClicked(commit.id)" @keydown.enter.shift.exact="commitClickedShift(commit)" @click.shift.exact.stop.prevent="commitClickedShift(commit)">
+          <div
+            class="vertical item gt-df gt-fr gt-gap-2 gt-border-secondary-top" role="menuitem" tabindex="-1"
+            :class="{selection: commit.selected, hovered: commit.hovered}"
+            @keydown.enter.exact="commitClicked(commit.id)"
+            @keydown.enter.shift.exact="commitClickedShift(commit)"
+            @mouseover.shift="highlight(commit)"
+            @click.exact="commitClicked(commit.id)"
+            @click.ctrl.exact="commitClicked(commit.id, true)"
+            @click.meta.exact="commitClicked(commit.id, true)"
+            @click.shift.exact.stop.prevent="commitClickedShift(commit)"
+          >
             <div class="gt-f1 gt-df gt-fc gt-gap-2">
               <div class="gt-ellipsis commit-list-summary">
                 {{ commit.summary }}
@@ -137,11 +154,7 @@ export default {
       const indexSelected = this.commits.findIndex((x) => x.selected);
       const indexCurrentElem = this.commits.findIndex((x) => x.id === commit.id);
       for (const [idx, commit] of this.commits.entries()) {
-        if (idx >= Math.min(indexSelected, indexCurrentElem) && idx <= Math.max(indexSelected, indexCurrentElem)) {
-          commit.hovered = true;
-        } else {
-          commit.hovered = false;
-        }
+        commit.hovered = Math.min(indexSelected, indexCurrentElem) <= idx && idx <= Math.max(indexSelected, indexCurrentElem);
       }
     },
     /** Focus given element */
@@ -164,8 +177,8 @@ export default {
       }
       // set correct tabindex to allow easier navigation
       this.$nextTick(() => {
-        const expandBtn = this.$el.querySelector('#expand-button');
-        const showAllChanges = this.$el.querySelector('#show-all-changes');
+        const expandBtn = this.$el.querySelector('#diff-commit-list-expand');
+        const showAllChanges = this.$el.querySelector('#diff-commit-list-show-all');
         if (this.menuVisible) {
           this.focusElem(showAllChanges, expandBtn);
         } else {
@@ -198,8 +211,13 @@ export default {
       window.location = `${this.issueLink}/files/${this.lastReviewCommitSha}..${this.commits.at(-1).id}${this.queryParams}`;
     },
     /** Clicking on a single commit opens this specific commit */
-    commitClicked(commitId) {
-      window.location = `${this.issueLink}/commits/${commitId}${this.queryParams}`;
+    commitClicked(commitId, newWindow = false) {
+      const url = `${this.issueLink}/commits/${commitId}${this.queryParams}`;
+      if (newWindow) {
+        window.open(url);
+      } else {
+        window.location = url;
+      }
     },
     /**
      * When a commit is clicked with shift this enables the range
@@ -249,36 +267,31 @@ export default {
     width: 100%;
   }
 
-  .ui.dropdown .menu .menu.is-loading {
-    left: 0;
-    height: 200px;
-    width: 200px !important;
-  }
-
-  .ui.dropdown .menu .menu.is-loading::after {
-    display: block !important; /* to override fomantic rule .ui.dropdown .menu .menu:after {display: none} */
-  }
-
-  .commit-selector-menu {
+  #diff-commit-selector-menu {
     overflow-x: hidden;
     border-top: 0;
   }
 
-  .commit-selector-menu .scrolling.menu {
+  #diff-commit-selector-menu .scrolling.menu {
     max-height: 450px !important;
   }
 
-  .ui.dropdown .menu.commit-selector-menu > .item {
+  #diff-commit-selector-menu .loading-indicator {
+    height: 200px;
+    width: 350px;
+  }
+
+  #diff-commit-selector-menu > .item {
     line-height: 1.4;
     padding: 7px 14px !important;
   }
 
-  .commit-list-summary {
-    max-width: min(380px, 96vw);
-  }
-
-  .item:focus {
+  #diff-commit-selector-menu > .item:focus {
     color: var(--color-text);
     background: var(--color-hover);
+  }
+
+  #diff-commit-selector-menu .commit-list-summary {
+    max-width: min(380px, 96vw);
   }
 </style>
