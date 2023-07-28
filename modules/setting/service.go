@@ -199,7 +199,9 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 				log.Warn("ALLOWED_USER_VISIBILITY_MODES %s is unsupported", sMode)
 			}
 		}
-	} else {
+	}
+
+	if len(Service.AllowedUserVisibilityModes) == 0 {
 		Service.AllowedUserVisibilityModes = []string{"public", "limited", "private"}
 	}
 
