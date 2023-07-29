@@ -90,6 +90,11 @@ import {initRepoDiffCommitBranchesAndTags} from './features/repo-diff-commit.js'
 // Init Gitea's Fomantic settings
 initGiteaFomantic();
 
+if (process.env.NODE_ENV === 'development' && window.location.pathname.startsWith(`${window.config.appSubUrl}/devtest`)) {
+  import('./modules/devtest.js');
+  import('../css/modules/devtest.css');
+}
+
 onDomReady(() => {
   initGlobalCommon();
 
