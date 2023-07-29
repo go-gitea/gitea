@@ -26,7 +26,12 @@
 }
 
 .user.profile .ui.card .extra.content > ul > li:not(:last-child) {
+  display: flex;
   border-bottom: 1px solid var(--color-secondary);
+}
+
+.user.profile .ui.card .extra.content > ul > li:not(:last-child) > :nth-child(2) {
+    flex-grow: 1;
 }
 
 .user.profile .ui.card .extra.content > ul > li .svg {

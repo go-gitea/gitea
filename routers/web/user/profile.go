@@ -52,6 +52,7 @@ func userProfile(ctx *context.Context) {
 
 	ctx.Data["Title"] = ctx.ContextUser.DisplayName()
 	ctx.Data["PageIsUserProfile"] = true
+	ctx.Data["EnableOSMButton"] = setting.Service.EnableOSMButton
 
 	// prepare heatmap data
 	if setting.Service.EnableUserHeatmap {

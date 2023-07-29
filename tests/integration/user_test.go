@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -12,6 +13,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
@@ -274,5 +276,43 @@ func TestListStopWatches(t *testing.T) {
 		assert.EqualValues(t, repo.Name, apiWatches[0].RepoName)
 		assert.EqualValues(t, repo.OwnerName, apiWatches[0].RepoOwnerName)
 		assert.Greater(t, apiWatches[0].Seconds, int64(0))
+	}
+}
+
+func TestGetOpenStreetMapLink(t *testing.T) {
+	setting.Service.EnableOSMButton = true
+	defer tests.PrepareTestEnv(t)()
+
+	testLocations := map[string]string{
+		"Αθήνα":                         "%ce%91%ce%b8%ce%ae%ce%bd%ce%b1",
+		"  Αθήνα":                       "%20%20%ce%91%ce%b8%ce%ae%ce%bd%ce%b1",
+		"Barbarossabrunnen, Düsseldorf": "Barbarossabrunnen%2c%20D%c3%bcsseldorf",
+		"39.91025,116.40753":            "39.91025%2c116.40753",
+		"པེ་ཅིང་གྲོང་ཁྱེར།": "%e0%bd%94%e0%bd%ba%e0%bc%8b%e0%bd%85%e0%bd%b2%e0%bd%84%e0%bc%8b%e0%bd%82%e0%be%b2%e0%bd%bc%e0%bd%84%e0%bc%8b%e0%bd%81%e0%be%b1%e0%bd%ba%e0%bd%a2%e0%bc%8d",
+		"Internet Archive":                         "Internet%20Archive",
+		"Schönhauser Allee 2, Berlin, Deutschland": "Sch%c3%b6nhauser%20Allee%202%2c%20Berlin%2c%20Deutschland",
+		"Miestna knižnica Podunajské Biskupice":    "Miestna%20kni%c5%benica%20Podunajsk%c3%a9%20Biskupice",
+		"東京タワー":                                    "%e6%9d%b1%e4%ba%ac%e3%82%bf%e3%83%af%e3%83%bc",
+		"Carnarvon Space & Technology Centre":      "Carnarvon%20Space%20%26%20Technology%20Centre",
+	}
+
+	session := loginUser(t, "user2")
+	for location, encodedLocation := range testLocations {
+		t.Run(location, func(t *testing.T) {
+			req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
+				"_csrf":    GetCSRF(t, session, "/user/settings"),
+				"name":     "user2",
+				"email":    "user@example.com",
+				"language": "en-US",
+				"location": location,
+			})
+			session.MakeRequest(t, req, http.StatusSeeOther)
+
+			req = NewRequest(t, "GET", "/user2/")
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			htmlDoc := NewHTMLParser(t, resp.Body)
+
+			htmlDoc.AssertElement(t, fmt.Sprintf("a[href='https://www.openstreetmap.org/search?query=%s']", encodedLocation), true)
+		})
 	}
 }
