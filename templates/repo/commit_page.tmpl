@@ -150,12 +150,15 @@
 					{{- /* .Verification.CommittingUser: User model */ -}}
 					{{if .Author}}
 						{{avatar $.Context .Author 28 "gt-mr-3"}}
+						<a href="{{.Author.HomeLink}}">
 						{{if eq .Commit.Author.Name .Author.Name}}
-							<a href="{{.Author.HomeLink}}"><strong>{{.Commit.Author.Name}}{{if and DefaultShowFullName .Author.FullName}} ({{.Author.FullName}}{{end}})</strong></a>
+							{{- /* show as: "UserName (FullName)" */ -}}
+							<strong>{{.Commit.Author.Name}}{{if and DefaultShowFullName .Author.FullName}} ({{.Author.FullName}}){{end}}</strong>
 						{{else}}
-							{{/* If the account name and username don't match, use an alternative "also known as" format */}}
-							<a href="{{.Author.HomeLink}}"><strong>{{.Commit.Author.Name}} ({{.Author.Name}}{{if and DefaultShowFullName .Author.FullName}} / {{.Author.FullName}}{{end}})</strong></a>
+							{{/* If the committer name and username don't match, use an alternative "CommitterName (UserName / FullName)" format */}}
+							<strong>{{.Commit.Author.Name}} ({{.Author.Name}}{{if and DefaultShowFullName .Author.FullName}} / {{.Author.FullName}}{{end}})</strong>
 						{{end}}
+						</a>
 					{{else}}
 						{{avatarByEmail $.Context .Commit.Author.Email .Commit.Author.Email 28 "gt-mr-3"}}
 						<strong>{{.Commit.Author.Name}}</strong>
@@ -166,9 +169,11 @@
 						{{if ne .Verification.CommittingUser.ID 0}}
 							{{avatar $.Context .Verification.CommittingUser 28 "gt-mx-3"}}
 							{{if eq .Commit.Committer.Name .Verification.CommittingUser.Name}}
-								<a href="{{.Verification.CommittingUser.HomeLink}}"><strong>{{.Commit.Committer.Name}} ({{.Verification.CommittingUser.Name}}{{if and DefaultShowFullName .Verification.CommittingUser.FullName}} / {{.Verification.CommittingUser.FullName}}{{end}})</strong></a>
+								{{- /* show as: "UserName (FullName)" */ -}}
+								<a href="{{.Verification.CommittingUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}{{if and DefaultShowFullName .Verification.CommittingUser.FullName}} ({{.Verification.CommittingUser.FullName}}){{end}}</strong></a>
 							{{else}}
-								<a href="{{.Verification.CommittingUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong></a>
+								{{- /* show as: "CommitterName (UserName / FullName)" */ -}}
+								<a href="{{.Verification.CommittingUser.HomeLink}}"><strong>{{.Commit.Committer.Name}} ({{.Verification.CommittingUser.Name}}{{if and DefaultShowFullName .Verification.CommittingUser.FullName}} / {{.Verification.CommittingUser.FullName}}{{end}})</strong></a>
 							{{end}}
 						{{else}}
 							{{avatarByEmail $.Context .Commit.Committer.Email .Commit.Committer.Name 28 "gt-mr-3"}}
