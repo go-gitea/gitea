@@ -6,7 +6,6 @@ package webhook
 import (
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
-	_ "github.com/mattn/go-sqlite3"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
