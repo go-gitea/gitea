@@ -13,7 +13,6 @@ import {confirmModal} from './comp/ConfirmModal.js';
 import {showErrorToast} from '../modules/toast.js';
 
 const {appUrl, appSubUrl, csrfToken, i18n} = window.config;
-const {copy_success, copy_error} = i18n;
 
 export function initGlobalFormDirtyLeaveConfirm() {
   // Warn users that try to leave a page after entering data into a form.
@@ -251,7 +250,7 @@ export function initGlobalDropzone() {
               fileMarkdown = `<video src="/attachments/${file.uuid}" title="${htmlEscape(file.name)}" controls></video>`;
             }
             const success = await clippie(fileMarkdown);
-            showTemporaryTooltip(e.target, success ? copy_success : copy_error);
+            showTemporaryTooltip(e.target, success ? i18n.copy_success : i18n.copy_error);
           });
           file.previewTemplate.append(copyLinkElement);
         });
