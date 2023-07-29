@@ -16,7 +16,7 @@ async function loadBranchesAndTags(area, loadingButton) {
 
 function addTags(area, tags) {
   const tagArea = area.querySelector('.tag-area');
-  toggleElem(tagArea, tags.length > 0);
+  toggleElem(tagArea.parentElement, tags.length > 0);
   for (const tag of tags) {
     addLink(tagArea, tag.web_link, tag.name);
   }
@@ -25,7 +25,7 @@ function addTags(area, tags) {
 function addBranches(area, branches, defaultBranch) {
   const defaultBranchTooltip = area.getAttribute('data-text-default-branch-tooltip');
   const branchArea = area.querySelector('.branch-area');
-  toggleElem(branchArea, branches.length > 0);
+  toggleElem(branchArea.parentElement, branches.length > 0);
   for (const branch of branches) {
     const tooltip = defaultBranch === branch.name ? defaultBranchTooltip : null;
     addLink(branchArea, branch.web_link, branch.name, tooltip);
