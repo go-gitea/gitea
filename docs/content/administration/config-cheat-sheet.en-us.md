@@ -488,7 +488,7 @@ Configuration at `[queue]` will set defaults for queues with overrides for indiv
 - `CONN_STR`: **redis://127.0.0.1:6379/0**: Connection string for the redis queue type. For `redis-cluster` use `redis+cluster://127.0.0.1:6379/0`. Options can be set using query params. Similarly, LevelDB options can also be set using: **leveldb://relative/path?option=value** or **leveldb:///absolute/path?option=value**, and will override `DATADIR`
 - `QUEUE_NAME`: **_queue**: The suffix for default redis and disk queue name. Individual queues will default to **`name`**`QUEUE_NAME` but can be overridden in the specific `queue.name` section.
 - `SET_NAME`: **_unique**: The suffix that will be added to the default redis and disk queue `set` name for unique queues. Individual queues will default to **`name`**`QUEUE_NAME`_`SET_NAME`_ but can be overridden in the specific `queue.name` section.
-- `MAX_WORKERS`: **10**: Maximum number of worker go-routines for the queue.
+- `MAX_WORKERS`: **(dynamic)**: Maximum number of worker go-routines for the queue. Default value is "CpuNum/2" clipped to between 1 and 10.
 
 Gitea creates the following non-unique queues:
 
