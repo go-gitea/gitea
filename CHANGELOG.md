@@ -4,12 +4,13 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.20.2](https://github.com/go-gitea/gitea/releases/tag/1.20.2) - 2023-07-28
+## [1.20.2](https://github.com/go-gitea/gitea/releases/tag/1.20.2) - 2023-07-29
 
 * ENHANCEMENTS
   * Calculate MAX_WORKERS default value by CPU number (#26177) (#26183)
   * Display deprecated warning in admin panel pages as well as in the log file (#26094) (#26154)
 * BUGFIXES
+  * Fix allowed user types setting problem (#26200) (#26206)
   * Fix handling of plenty Nuget package versions (#26075) (#26173)
   * Fix UI regression of asciinema player (#26159) (#26162)
   * Fix LFS object list style (#26133) (#26147)
