@@ -254,9 +254,10 @@ func registerRoutes(m *web.Route) {
 		}
 	}
 
-	reqUnitAccess := func(unitType unit.Type, accessMode perm.AccessMode) func(ctx *context.Context) {
+	reqUnitAccess := func(unitType unit.Type, accessMode perm.AccessMode, ignoreGlobal bool) func(ctx *context.Context) {
 		return func(ctx *context.Context) {
-			if unitType.UnitGlobalDisabled() {
+			// only check global disabled units when ignoreGlobal is false
+			if !ignoreGlobal && unitType.UnitGlobalDisabled() {
 				ctx.NotFound(unitType.String(), nil)
 				return
 			}
@@ -832,7 +833,7 @@ func registerRoutes(m *web.Route) {
 			m.Group("", func() {
 				m.Get("", org.Projects)
 				m.Get("/{id}", org.ViewProject)
-			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead))
+			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
 			m.Group("", func() { //nolint:dupl
 				m.Get("/new", org.RenderNewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
@@ -853,17 +854,17 @@ func registerRoutes(m *web.Route) {
 						m.Post("/move", org.MoveIssues)
 					})
 				})
-			}, reqSignIn, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite), func(ctx *context.Context) {
+			}, reqSignIn, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.Context) {
 				if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
 					ctx.NotFound("NewProject", nil)
 					return
 				}
 			})
-		}, repo.MustEnableProjects)
+		})
 
 		m.Group("", func() {
 			m.Get("/code", user.CodeSearch)
-		}, reqUnitAccess(unit.TypeCode, perm.AccessModeRead))
+		}, reqUnitAccess(unit.TypeCode, perm.AccessModeRead, false))
 	}, ignSignIn, context_service.UserAssignmentWeb(), context.OrgAssignment()) // for "/{username}/-" (packages, projects, code)
 
 	// ***** Release Attachment Download without Signin
