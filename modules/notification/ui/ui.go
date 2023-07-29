@@ -229,7 +229,7 @@ func (ns *notificationService) NotifyIssueChangeAssignee(ctx context.Context, do
 	}
 }
 
-func (ns *notificationService) NotifyPullReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
+func (ns *notificationService) NotifyPullRequestReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
 	if isRequest {
 		opts := issueNotificationOpts{
 			IssueID:              issue.ID,

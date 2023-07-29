@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -57,7 +56,7 @@ func TestSessionFileCreation(t *testing.T) {
 	oldSessionConfig := setting.SessionConfig.ProviderConfig
 	defer func() {
 		setting.SessionConfig.ProviderConfig = oldSessionConfig
-		c = routers.NormalRoutes(context.TODO())
+		c = routers.NormalRoutes()
 	}()
 
 	var config session.Options
@@ -76,7 +75,7 @@ func TestSessionFileCreation(t *testing.T) {
 
 	setting.SessionConfig.ProviderConfig = string(newConfigBytes)
 
-	c = routers.NormalRoutes(context.TODO())
+	c = routers.NormalRoutes()
 
 	t.Run("NoSessionOnViewIssue", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()

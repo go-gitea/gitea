@@ -1,26 +1,25 @@
-<div class="ui dropdown tiny basic button icon-button" data-tooltip-content="{{.locale.Tr "repo.diff.whitespace_button"}}">
+<div class="ui dropdown tiny basic button" data-tooltip-content="{{.locale.Tr "repo.diff.whitespace_button"}}">
 	{{svg "gitea-whitespace"}}
-	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 	<div class="menu">
-		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=show-all">
+		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=show-all&show-outdated={{$.ShowOutdatedComments}}">
 			<label class="gt-pointer-events-none">
 				<input class="gt-mr-3 gt-pointer-events-none" type="radio"{{if eq .WhitespaceBehavior "show-all"}} checked{{end}}>
 				{{.locale.Tr "repo.diff.whitespace_show_everything"}}
 			</label>
 		</a>
-		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-all">
+		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-all&show-outdated={{$.ShowOutdatedComments}}">
 			<label class="gt-pointer-events-none">
 				<input class="gt-mr-3 gt-pointer-events-none" type="radio"{{if eq .WhitespaceBehavior "ignore-all"}} checked{{end}}>
 				{{.locale.Tr "repo.diff.whitespace_ignore_all_whitespace"}}
-				<label>
+			</label>
 		</a>
-		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-change">
+		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-change&show-outdated={{$.ShowOutdatedComments}}">
 			<label class="gt-pointer-events-none">
 				<input class="gt-mr-3 gt-pointer-events-none" type="radio"{{if eq .WhitespaceBehavior "ignore-change"}} checked{{end}}>
 				{{.locale.Tr "repo.diff.whitespace_ignore_amount_changes"}}
 			</label>
 		</a>
-		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-eol">
+		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-eol&show-outdated={{$.ShowOutdatedComments}}">
 			<label class="gt-pointer-events-none">
 				<input class="gt-mr-3 gt-pointer-events-none" type="radio"{{if eq .WhitespaceBehavior "ignore-eol"}} checked{{end}}>
 				{{.locale.Tr "repo.diff.whitespace_ignore_at_eol"}}
@@ -28,4 +27,4 @@
 		</a>
 	</div>
 </div>
-<a class="ui tiny basic button icon-button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}&whitespace={{$.WhitespaceBehavior}}" data-tooltip-content="{{if .IsSplitStyle}}{{.locale.Tr "repo.diff.show_unified_view"}}{{else}}{{.locale.Tr "repo.diff.show_split_view"}}{{end}}">{{if .IsSplitStyle}}{{svg "gitea-join"}}{{else}}{{svg "gitea-split"}}{{end}}</a>
+<a class="ui tiny basic button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}" data-tooltip-content="{{if .IsSplitStyle}}{{.locale.Tr "repo.diff.show_unified_view"}}{{else}}{{.locale.Tr "repo.diff.show_split_view"}}{{end}}">{{if .IsSplitStyle}}{{svg "gitea-join"}}{{else}}{{svg "gitea-split"}}{{end}}</a>

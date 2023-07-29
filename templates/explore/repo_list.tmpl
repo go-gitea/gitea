@@ -38,7 +38,7 @@
 						{{end}}
 					</div>
 				</div>
-				<div class="metas gt-df gt-ac text grey">
+				<div class="gt-font-13 gt-df gt-ac text grey">
 					{{if .PrimaryLanguage}}
 						<a class="muted" href="{{$.Link}}?q={{$.Keyword}}&sort={{$.SortType}}&language={{.PrimaryLanguage.Language}}">
 							<span class="gt-df gt-ac gt-mr-3"><i class="color-icon gt-mr-3" style="background-color: {{.PrimaryLanguage.Color}}"></i>{{.PrimaryLanguage.Language}}</span>
@@ -54,9 +54,9 @@
 				{{$description := .DescriptionHTML $.Context}}
 				{{if $description}}<p>{{$description}}</p>{{end}}
 				{{if .Topics}}
-					<div class="ui tags">
+					<div class="gt-df gt-fw gt-gap-2 gt-mb-3">
 					{{range .Topics}}
-						{{if ne . ""}}<a href="{{AppSubUrl}}/explore/repos?q={{.}}&topic=1"><div class="ui small label topic">{{.}}</div></a>{{end}}
+						{{if ne . ""}}<a class="ui label" href="{{AppSubUrl}}/explore/repos?q={{.}}&topic=1">{{.}}</a>{{end}}
 					{{end}}
 					</div>
 				{{end}}

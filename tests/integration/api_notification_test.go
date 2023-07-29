@@ -28,7 +28,7 @@ func TestAPINotification(t *testing.T) {
 	thread5 := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 5})
 	assert.NoError(t, thread5.LoadAttributes(db.DefaultContext))
 	session := loginUser(t, user2.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeNotification)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteNotification, auth_model.AccessTokenScopeWriteRepository)
 
 	// -- GET /notifications --
 	// test filter
@@ -146,7 +146,7 @@ func TestAPINotificationPUT(t *testing.T) {
 	thread5 := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 5})
 	assert.NoError(t, thread5.LoadAttributes(db.DefaultContext))
 	session := loginUser(t, user2.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeNotification)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteNotification)
 
 	// Check notifications are as expected
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications?all=true&token=%s", token))

@@ -6,9 +6,7 @@
 	<div class="singular-commit" id="{{$tag}}">
 		<span class="badge badge-commit">{{svg "octicon-git-commit"}}</span>
 		{{if .User}}
-			<a href="{{.User.HomeLink}}">
-				{{avatar $.root.Context .User}}
-			</a>
+			<a class="avatar" href="{{.User.HomeLink}}">{{avatar $.root.Context .User}}</a>
 		{{else}}
 			{{avatarByEmail $.root.Context .Author.Email .Author.Name}}
 		{{end}}
@@ -42,7 +40,7 @@
 
 		<span class="gt-mono commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject $.root.Context .Message ($.comment.Issue.PullRequest.BaseRepo.Link|Escape) $commitLink $.comment.Issue.PullRequest.BaseRepo.ComposeMetas}}</span>
 		{{if IsMultilineCommitMessage .Message}}
-			<button class="ui button ellipsis-button" aria-expanded="false">...</button>
+			<button class="ui button js-toggle-commit-body ellipsis-button" aria-expanded="false">...</button>
 		{{end}}
 		{{if IsMultilineCommitMessage .Message}}
 			<pre class="commit-body gt-hidden">{{RenderCommitBody $.root.Context .Message ($.comment.Issue.PullRequest.BaseRepo.Link|Escape) $.comment.Issue.PullRequest.BaseRepo.ComposeMetas}}</pre>

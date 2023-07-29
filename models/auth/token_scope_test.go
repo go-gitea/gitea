@@ -4,44 +4,35 @@
 package auth
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
+type scopeTestNormalize struct {
+	in  AccessTokenScope
+	out AccessTokenScope
+	err error
+}
+
 func TestAccessTokenScope_Normalize(t *testing.T) {
-	tests := []struct {
-		in  AccessTokenScope
-		out AccessTokenScope
-		err error
-	}{
+	tests := []scopeTestNormalize{
 		{"", "", nil},
-		{"repo", "repo", nil},
-		{"repo,repo:status", "repo", nil},
-		{"repo,public_repo", "repo", nil},
-		{"admin:public_key,write:public_key", "admin:public_key", nil},
-		{"admin:public_key,read:public_key", "admin:public_key", nil},
-		{"write:public_key,read:public_key", "write:public_key", nil}, // read is include in write
-		{"admin:repo_hook,write:repo_hook", "admin:repo_hook", nil},
-		{"admin:repo_hook,read:repo_hook", "admin:repo_hook", nil},
-		{"repo,admin:repo_hook,read:repo_hook", "repo", nil}, // admin:repo_hook is a child scope of repo
-		{"repo,read:repo_hook", "repo", nil},                 // read:repo_hook is a child scope of repo
-		{"user", "user", nil},
-		{"user,read:user", "user", nil},
-		{"user,admin:org,write:org", "admin:org,user", nil},
-		{"admin:org,write:org,user", "admin:org,user", nil},
-		{"package", "package", nil},
-		{"package,write:package", "package", nil},
-		{"package,write:package,delete:package", "package", nil},
-		{"write:package,read:package", "write:package", nil},                  // read is include in write
-		{"write:package,delete:package", "write:package,delete:package", nil}, // write and delete are not include in each other
-		{"admin:gpg_key", "admin:gpg_key", nil},
-		{"admin:gpg_key,write:gpg_key", "admin:gpg_key", nil},
-		{"admin:gpg_key,write:gpg_key,user", "user,admin:gpg_key", nil},
-		{"admin:application,write:application,user", "user,admin:application", nil},
+		{"write:misc,write:notification,read:package,write:notification,public-only", "public-only,write:misc,write:notification,read:package", nil},
 		{"all", "all", nil},
-		{"repo,admin:org,admin:public_key,admin:repo_hook,admin:org_hook,admin:user_hook,notification,user,delete_repo,package,admin:gpg_key,admin:application", "all", nil},
-		{"repo,admin:org,admin:public_key,admin:repo_hook,admin:org_hook,admin:user_hook,notification,user,delete_repo,package,admin:gpg_key,admin:application,sudo", "all,sudo", nil},
+		{"write:activitypub,write:admin,write:misc,write:notification,write:organization,write:package,write:issue,write:repository,write:user", "all", nil},
+		{"write:activitypub,write:admin,write:misc,write:notification,write:organization,write:package,write:issue,write:repository,write:user,public-only", "public-only,all", nil},
+	}
+
+	for _, scope := range []string{"activitypub", "admin", "misc", "notification", "organization", "package", "issue", "repository", "user"} {
+		tests = append(tests,
+			scopeTestNormalize{AccessTokenScope(fmt.Sprintf("read:%s", scope)), AccessTokenScope(fmt.Sprintf("read:%s", scope)), nil},
+			scopeTestNormalize{AccessTokenScope(fmt.Sprintf("write:%s", scope)), AccessTokenScope(fmt.Sprintf("write:%s", scope)), nil},
+			scopeTestNormalize{AccessTokenScope(fmt.Sprintf("write:%[1]s,read:%[1]s", scope)), AccessTokenScope(fmt.Sprintf("write:%s", scope)), nil},
+			scopeTestNormalize{AccessTokenScope(fmt.Sprintf("read:%[1]s,write:%[1]s", scope)), AccessTokenScope(fmt.Sprintf("write:%s", scope)), nil},
+			scopeTestNormalize{AccessTokenScope(fmt.Sprintf("read:%[1]s,write:%[1]s,write:%[1]s", scope)), AccessTokenScope(fmt.Sprintf("write:%s", scope)), nil},
+		)
 	}
 
 	for _, test := range tests {
@@ -53,31 +44,46 @@ func TestAccessTokenScope_Normalize(t *testing.T) {
 	}
 }
 
+type scopeTestHasScope struct {
+	in    AccessTokenScope
+	scope AccessTokenScope
+	out   bool
+	err   error
+}
+
 func TestAccessTokenScope_HasScope(t *testing.T) {
-	tests := []struct {
-		in    AccessTokenScope
-		scope AccessTokenScope
-		out   bool
-		err   error
-	}{
-		{"repo", "repo", true, nil},
-		{"repo", "repo:status", true, nil},
-		{"repo", "public_repo", true, nil},
-		{"repo", "admin:org", false, nil},
-		{"repo", "admin:public_key", false, nil},
-		{"repo:status", "repo", false, nil},
-		{"repo:status", "public_repo", false, nil},
-		{"admin:org", "write:org", true, nil},
-		{"admin:org", "read:org", true, nil},
-		{"admin:org", "admin:org", true, nil},
-		{"user", "read:user", true, nil},
-		{"package", "write:package", true, nil},
+	tests := []scopeTestHasScope{
+		{"read:admin", "write:package", false, nil},
+		{"all", "write:package", true, nil},
+		{"write:package", "all", false, nil},
+		{"public-only", "read:issue", false, nil},
+	}
+
+	for _, scope := range []string{"activitypub", "admin", "misc", "notification", "organization", "package", "issue", "repository", "user"} {
+		tests = append(tests,
+			scopeTestHasScope{
+				AccessTokenScope(fmt.Sprintf("read:%s", scope)),
+				AccessTokenScope(fmt.Sprintf("read:%s", scope)), true, nil,
+			},
+			scopeTestHasScope{
+				AccessTokenScope(fmt.Sprintf("write:%s", scope)),
+				AccessTokenScope(fmt.Sprintf("write:%s", scope)), true, nil,
+			},
+			scopeTestHasScope{
+				AccessTokenScope(fmt.Sprintf("write:%s", scope)),
+				AccessTokenScope(fmt.Sprintf("read:%s", scope)), true, nil,
+			},
+			scopeTestHasScope{
+				AccessTokenScope(fmt.Sprintf("read:%s", scope)),
+				AccessTokenScope(fmt.Sprintf("write:%s", scope)), false, nil,
+			},
+		)
 	}
 
 	for _, test := range tests {
 		t.Run(string(test.in), func(t *testing.T) {
-			scope, err := test.in.HasScope(test.scope)
-			assert.Equal(t, test.out, scope)
+			hasScope, err := test.in.HasScope(test.scope)
+			assert.Equal(t, test.out, hasScope)
 			assert.Equal(t, test.err, err)
 		})
 	}

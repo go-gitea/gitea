@@ -64,10 +64,66 @@ func postgresGetCommitStatusIndex(ctx context.Context, repoID int64, sha string)
 	return strconv.ParseInt(string(res[0]["max_index"]), 10, 64)
 }
 
+func mysqlGetCommitStatusIndex(ctx context.Context, repoID int64, sha string) (int64, error) {
+	if _, err := db.GetEngine(ctx).Exec("INSERT INTO `commit_status_index` (repo_id, sha, max_index) "+
+		"VALUES (?,?,1) ON DUPLICATE KEY UPDATE max_index = max_index+1",
+		repoID, sha); err != nil {
+		return 0, err
+	}
+
+	var idx int64
+	_, err := db.GetEngine(ctx).SQL("SELECT max_index FROM `commit_status_index` WHERE repo_id = ? AND sha = ?",
+		repoID, sha).Get(&idx)
+	if err != nil {
+		return 0, err
+	}
+	if idx == 0 {
+		return 0, errors.New("cannot get the correct index")
+	}
+	return idx, nil
+}
+
+func mssqlGetCommitStatusIndex(ctx context.Context, repoID int64, sha string) (int64, error) {
+	if _, err := db.GetEngine(ctx).Exec(`
+MERGE INTO commit_status_index WITH (HOLDLOCK) AS target
+USING (SELECT ? AS repo_id, ? AS sha) AS source
+(repo_id, sha)
+ON target.repo_id = source.repo_id AND target.sha = source.sha
+WHEN MATCHED
+	THEN UPDATE
+			SET max_index = max_index + 1
+WHEN NOT MATCHED
+	THEN INSERT (repo_id, sha, max_index)
+			VALUES (?, ?, 1);
+`, repoID, sha, repoID, sha); err != nil {
+		return 0, err
+	}
+
+	var idx int64
+	_, err := db.GetEngine(ctx).SQL("SELECT max_index FROM `commit_status_index` WHERE repo_id = ? AND sha = ?",
+		repoID, sha).Get(&idx)
+	if err != nil {
+		return 0, err
+	}
+	if idx == 0 {
+		return 0, errors.New("cannot get the correct index")
+	}
+	return idx, nil
+}
+
 // GetNextCommitStatusIndex retried 3 times to generate a resource index
 func GetNextCommitStatusIndex(ctx context.Context, repoID int64, sha string) (int64, error) {
-	if setting.Database.Type.IsPostgreSQL() {
+	if !git.IsValidSHAPattern(sha) {
+		return 0, git.ErrInvalidSHA{SHA: sha}
+	}
+
+	switch {
+	case setting.Database.Type.IsPostgreSQL():
 		return postgresGetCommitStatusIndex(ctx, repoID, sha)
+	case setting.Database.Type.IsMySQL():
+		return mysqlGetCommitStatusIndex(ctx, repoID, sha)
+	case setting.Database.Type.IsMSSQL():
+		return mssqlGetCommitStatusIndex(ctx, repoID, sha)
 	}
 
 	e := db.GetEngine(ctx)
@@ -75,7 +131,7 @@ func GetNextCommitStatusIndex(ctx context.Context, repoID int64, sha string) (in
 	// try to update the max_index to next value, and acquire the write-lock for the record
 	res, err := e.Exec("UPDATE `commit_status_index` SET max_index=max_index+1 WHERE repo_id=? AND sha=?", repoID, sha)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("update failed: %w", err)
 	}
 	affected, err := res.RowsAffected()
 	if err != nil {
@@ -86,18 +142,18 @@ func GetNextCommitStatusIndex(ctx context.Context, repoID int64, sha string) (in
 		_, errIns := e.Exec("INSERT INTO `commit_status_index` (repo_id, sha, max_index) VALUES (?, ?, 0)", repoID, sha)
 		res, err = e.Exec("UPDATE `commit_status_index` SET max_index=max_index+1 WHERE repo_id=? AND sha=?", repoID, sha)
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("update2 failed: %w", err)
 		}
 		affected, err = res.RowsAffected()
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("RowsAffected failed: %w", err)
 		}
 		// if the update still can not update any records, the record must not exist and there must be some errors (insert error)
 		if affected == 0 {
 			if errIns == nil {
 				return 0, errors.New("impossible error when GetNextCommitStatusIndex, insert and update both succeeded but no record is updated")
 			}
-			return 0, errIns
+			return 0, fmt.Errorf("insert failed: %w", errIns)
 		}
 	}
 
@@ -105,7 +161,7 @@ func GetNextCommitStatusIndex(ctx context.Context, repoID int64, sha string) (in
 	var newIdx int64
 	has, err := e.SQL("SELECT max_index FROM `commit_status_index` WHERE repo_id=? AND sha=?", repoID, sha).Get(&newIdx)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("select failed: %w", err)
 	}
 	if !has {
 		return 0, errors.New("impossible error when GetNextCommitStatusIndex, upsert succeeded but no record can be selected")
@@ -138,7 +194,7 @@ func (status *CommitStatus) APIURL(ctx context.Context) string {
 // CalcCommitStatus returns commit status state via some status, the commit statues should order by id desc
 func CalcCommitStatus(statuses []*CommitStatus) *CommitStatus {
 	var lastStatus *CommitStatus
-	var state api.CommitStatusState
+	state := api.CommitStatusSuccess
 	for _, status := range statuses {
 		if status.State.NoBetterThan(state) {
 			state = status.State
@@ -284,6 +340,53 @@ func GetLatestCommitStatusForPairs(ctx context.Context, repoIDsToLatestCommitSHA
 		// Group the statuses by repo ID
 		for _, status := range statuses {
 			repoStatuses[status.RepoID] = append(repoStatuses[status.RepoID], status)
+		}
+	}
+
+	return repoStatuses, nil
+}
+
+// GetLatestCommitStatusForRepoCommitIDs returns all statuses with a unique context for a given list of repo-sha pairs
+func GetLatestCommitStatusForRepoCommitIDs(ctx context.Context, repoID int64, commitIDs []string) (map[string][]*CommitStatus, error) {
+	type result struct {
+		ID  int64
+		Sha string
+	}
+
+	results := make([]result, 0, len(commitIDs))
+
+	sess := db.GetEngine(ctx).Table(&CommitStatus{})
+
+	// Create a disjunction of conditions for each repoID and SHA pair
+	conds := make([]builder.Cond, 0, len(commitIDs))
+	for _, sha := range commitIDs {
+		conds = append(conds, builder.Eq{"sha": sha})
+	}
+	sess = sess.Where(builder.Eq{"repo_id": repoID}.And(builder.Or(conds...))).
+		Select("max( id ) as id, sha").
+		GroupBy("context_hash, sha").OrderBy("max( id ) desc")
+
+	err := sess.Find(&results)
+	if err != nil {
+		return nil, err
+	}
+
+	ids := make([]int64, 0, len(results))
+	repoStatuses := make(map[string][]*CommitStatus)
+	for _, result := range results {
+		ids = append(ids, result.ID)
+	}
+
+	statuses := make([]*CommitStatus, 0, len(ids))
+	if len(ids) > 0 {
+		err = db.GetEngine(ctx).In("id", ids).Find(&statuses)
+		if err != nil {
+			return nil, err
+		}
+
+		// Group the statuses by repo ID
+		for _, status := range statuses {
+			repoStatuses[status.SHA] = append(repoStatuses[status.SHA], status)
 		}
 	}
 
