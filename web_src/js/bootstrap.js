@@ -33,7 +33,7 @@ if (!window.config) {
 
 // we added an event handler for window error at the very beginning of <script> of page head
 // the handler calls `_globalHandlerErrors.push` (array method) to record all errors occur,
-// now we display any errors that had occured
+// now we display any errors that had occurred
 for (const e of window._globalHandlerErrors) {
   processWindowErrorEvent(e);
 }
