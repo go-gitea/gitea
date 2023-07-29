@@ -85,6 +85,7 @@ import {initGiteaFomantic} from './modules/fomantic.js';
 import {onDomReady} from './utils/dom.js';
 import {initRepoIssueList} from './features/repo-issue-list.js';
 import {initCommonIssueListQuickGoto} from './features/common-issue-list.js';
+import {initRepoDiffCommitBranchesAndTags} from './features/repo-diff-commit.js';
 
 // Init Gitea's Fomantic settings
 initGiteaFomantic();
@@ -143,6 +144,7 @@ onDomReady(() => {
   initRepoCodeView();
   initRepoCommentForm();
   initRepoEllipsisButton();
+  initRepoDiffCommitBranchesAndTags();
   initRepoCommitLastCommitLoader();
   initRepoEditor();
   initRepoGraphGit();
