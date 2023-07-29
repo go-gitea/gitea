@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import {showInfoToast, showWarningToast, showErrorToast} from '../modules/toast.js';
+import {showInfoToast, showWarningToast, showErrorToast} from './toast.js';
 
 document.getElementById('info-toast')?.addEventListener('click', () => {
   showInfoToast('success 😀');
