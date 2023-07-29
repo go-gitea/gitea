@@ -28,10 +28,10 @@ var taskQueue *queue.WorkerPoolQueue[*admin_model.Task]
 // Run a task
 func Run(t *admin_model.Task) error {
 	switch t.Type {
-	case structs.TaskTypeMigrateRepo:
-		return runMigrateTask(t)
-	default:
-		return fmt.Errorf("Unknown task type: %d", t.Type)
+		case structs.TaskTypeMigrateRepo:
+			return runMigrateTask(t)
+		default:
+			return fmt.Errorf("Unknown task type: %d", t.Type)
 	}
 }
 
@@ -125,4 +125,9 @@ func CreateMigrateTask(doer, u *user_model.User, opts base.MigrateOptions) (*adm
 	}
 
 	return task, nil
+}
+
+// RetryMigrateTask retry a migrate task
+func RetryMigrateTask(t *admin_model.Task) error {
+	return taskQueue.Push(t)
 }
