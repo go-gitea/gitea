@@ -29,17 +29,16 @@ func htmlLinkFormatter(url, text string) string {
 }
 
 // getPullRequestInfo gets the information for a pull request
-func getPullRequestInfo(p *api.PullRequestPayload) (string, string, string, string, string, string) {
+func getPullRequestInfo(p *api.PullRequestPayload) (title, link, by, operator, operateResult, assignees string) {
 	if p.PullRequest.HasMerged {
 		p.Action = "merged"
 	}
-	title := fmt.Sprintf("[PullRequest-%s #%d]: %s", p.Repository.FullName, p.PullRequest.Index, p.Action)
+	title = fmt.Sprintf("[PullRequest-%s #%d]: %s\n%s", p.Repository.FullName, p.PullRequest.Index, p.Action, p.PullRequest.Title)
 	assignList := p.PullRequest.Assignees
-	list := make([]string, len(assignList))
-	var assignees string
-	var operateResult string
+	assignStringList := make([]string, len(assignList))
+
 	for i, user := range assignList {
-		list[i] = user.UserName
+		assignStringList[i] = user.UserName
 	}
 	if p.Action == api.HookIssueAssigned {
 		operateResult = fmt.Sprintf("%s assign this to %s", p.Sender.UserName, assignList[len(assignList)-1].UserName)
@@ -48,25 +47,23 @@ func getPullRequestInfo(p *api.PullRequestPayload) (string, string, string, stri
 	} else if p.Action == api.HookIssueMilestoned {
 		operateResult = fmt.Sprintf("%s/milestone/%d", p.Repository.HTMLURL, p.PullRequest.Milestone.ID)
 	}
-	link := p.PullRequest.HTMLURL
-	by := fmt.Sprintf("PullRequest by %s", p.PullRequest.Poster.UserName)
-	if len(list) > 0 {
-		assignees = fmt.Sprintf("Assignees: %s", strings.Join(list, ", "))
+	link = p.PullRequest.HTMLURL
+	by = fmt.Sprintf("PullRequest by %s", p.PullRequest.Poster.UserName)
+	if len(assignStringList) > 0 {
+		assignees = fmt.Sprintf("Assignees: %s", strings.Join(assignStringList, ", "))
 	}
-	operator := fmt.Sprintf("Operator: %s", p.Sender.UserName)
+	operator = fmt.Sprintf("Operator: %s", p.Sender.UserName)
 	return title, link, by, operator, operateResult, assignees
 }
 
 // getIssuesInfo gets the information for an issue
-func getIssuesInfo(p *api.IssuePayload) (string, string, string, string, string, string) {
-	issueTitle := fmt.Sprintf("[Issue-%s #%d]: %s", p.Repository.FullName, p.Issue.Index, p.Action)
+func getIssuesInfo(p *api.IssuePayload) (issueTitle, link, by, operator, operateResult, assignees string) {
+	issueTitle = fmt.Sprintf("[Issue-%s #%d]: %s\n%s", p.Repository.FullName, p.Issue.Index, p.Action, p.Issue.Title)
 	assignList := p.Issue.Assignees
-	list := make([]string, len(assignList))
-	var assignees string
-	var operateResult string
+	assignStringList := make([]string, len(assignList))
 
 	for i, user := range assignList {
-		list[i] = user.UserName
+		assignStringList[i] = user.UserName
 	}
 	if p.Action == api.HookIssueAssigned {
 		operateResult = fmt.Sprintf("%s assign this to %s", p.Sender.UserName, assignList[len(assignList)-1].UserName)
@@ -75,22 +72,26 @@ func getIssuesInfo(p *api.IssuePayload) (string, string, string, string, string,
 	} else if p.Action == api.HookIssueMilestoned {
 		operateResult = fmt.Sprintf("%s/milestone/%d", p.Repository.HTMLURL, p.Issue.Milestone.ID)
 	}
-	link := p.Issue.HTMLURL
-	by := fmt.Sprintf("Issue by %s", p.Issue.Poster.UserName)
-	if len(list) > 0 {
-		assignees = fmt.Sprintf("Assignees: %s", strings.Join(list, ", "))
+	link = p.Issue.HTMLURL
+	by = fmt.Sprintf("Issue by %s", p.Issue.Poster.UserName)
+	if len(assignStringList) > 0 {
+		assignees = fmt.Sprintf("Assignees: %s", strings.Join(assignStringList, ", "))
 	}
-	operator := fmt.Sprintf("Operator: %s", p.Sender.UserName)
+	operator = fmt.Sprintf("Operator: %s", p.Sender.UserName)
 	return issueTitle, link, by, operator, operateResult, assignees
 }
 
-// getIssuesCommentInfo gets the information for an issue comment
-func getIssuesCommentInfo(p *api.IssueCommentPayload) (string, string, string, string) {
-	issueTitle := fmt.Sprintf("[Issue Comment-%s #%d]: %s", p.Repository.FullName, p.Issue.Index, p.Action)
-	issueLink := p.Issue.HTMLURL
-	issueBy := fmt.Sprintf("Issue by %s", p.Issue.Poster.UserName)
-	operator := fmt.Sprintf("Operator: %s", p.Sender.UserName)
-	return issueTitle, issueLink, issueBy, operator
+// getIssuesCommentInfo gets the information for a comment
+func getIssuesCommentInfo(p *api.IssueCommentPayload) (title, link, by, operator string) {
+	title = fmt.Sprintf("[Comment-%s #%d]: %s\n%s", p.Repository.FullName, p.Issue.Index, p.Action, p.Issue.Title)
+	link = p.Issue.HTMLURL
+	if p.IsPull {
+		by = fmt.Sprintf("PullRequest by %s", p.Issue.Poster.UserName)
+	} else {
+		by = fmt.Sprintf("Issue by %s", p.Issue.Poster.UserName)
+	}
+	operator = fmt.Sprintf("Operator: %s", p.Sender.UserName)
+	return title, link, by, operator
 }
 
 func getIssuesPayloadInfo(p *api.IssuePayload, linkFormatter linkFormatter, withSender bool) (string, string, string, int) {

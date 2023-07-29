@@ -101,12 +101,12 @@ func (f *FeishuPayload) Issue(p *api.IssuePayload) (api.Payloader, error) {
 	var res api.Payloader
 	if assignees != "" {
 		if p.Action == api.HookIssueAssigned || p.Action == api.HookIssueUnassigned || p.Action == api.HookIssueMilestoned {
-			res = newFeishuTextPayload(title + "\r\n" + link + "\r\n" + by + "\r\n" + operator + "\r\n" + result + "\r\n" + assignees + "\r\n\r\n" + p.Issue.Body)
+			res = newFeishuTextPayload(fmt.Sprintf("%s\n%s\n%s\n%s\n%s\n%s\n\n%s", title, link, by, operator, result, assignees, p.Issue.Body))
 		} else {
-			res = newFeishuTextPayload(title + "\r\n" + link + "\r\n" + by + "\r\n" + operator + "\r\n" + assignees + "\r\n\r\n" + p.Issue.Body)
+			res = newFeishuTextPayload(fmt.Sprintf("%s\n%s\n%s\n%s\n%s\n\n%s", title, link, by, operator, assignees, p.Issue.Body))
 		}
 	} else {
-		res = newFeishuTextPayload(title + "\r\n" + link + "\r\n" + by + "\r\n" + operator + "\r\n\r\n" + p.Issue.Body)
+		res = newFeishuTextPayload(fmt.Sprintf("%s\n%s\n%s\n%s\n\n%s", title, link, by, operator, p.Issue.Body))
 	}
 	return res, nil
 }
@@ -114,7 +114,7 @@ func (f *FeishuPayload) Issue(p *api.IssuePayload) (api.Payloader, error) {
 // IssueComment implements PayloadConvertor IssueComment method
 func (f *FeishuPayload) IssueComment(p *api.IssueCommentPayload) (api.Payloader, error) {
 	title, link, by, operator := getIssuesCommentInfo(p)
-	return newFeishuTextPayload(title + "\r\n" + link + "\r\n" + by + "\r\n" + operator + "\r\n\r\n" + p.Comment.Body), nil
+	return newFeishuTextPayload(fmt.Sprintf("%s\n%s\n%s\n%s\n\n%s", title, link, by, operator, p.Comment.Body)), nil
 }
 
 // PullRequest implements PayloadConvertor PullRequest method
@@ -123,12 +123,12 @@ func (f *FeishuPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, e
 	var res api.Payloader
 	if assignees != "" {
 		if p.Action == api.HookIssueAssigned || p.Action == api.HookIssueUnassigned || p.Action == api.HookIssueMilestoned {
-			res = newFeishuTextPayload(title + "\r\n" + link + "\r\n" + by + "\r\n" + operator + "\r\n" + result + "\r\n" + assignees + "\r\n\r\n" + p.PullRequest.Body)
+			res = newFeishuTextPayload(fmt.Sprintf("%s\n%s\n%s\n%s\n%s\n%s\n\n%s", title, link, by, operator, result, assignees, p.PullRequest.Body))
 		} else {
-			res = newFeishuTextPayload(title + "\r\n" + link + "\r\n" + by + "\r\n" + operator + "\r\n" + assignees + "\r\n\r\n" + p.PullRequest.Body)
+			res = newFeishuTextPayload(fmt.Sprintf("%s\n%s\n%s\n%s\n%s\n\n%s", title, link, by, operator, assignees, p.PullRequest.Body))
 		}
 	} else {
-		res = newFeishuTextPayload(title + "\r\n" + link + "\r\n" + by + "\r\n" + operator + "\r\n\r\n" + p.PullRequest.Body)
+		res = newFeishuTextPayload(fmt.Sprintf("%s\n%s\n%s\n%s\n\n%s", title, link, by, operator, p.PullRequest.Body))
 	}
 	return res, nil
 }
