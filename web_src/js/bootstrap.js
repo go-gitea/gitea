@@ -27,18 +27,20 @@ function processWindowErrorEvent(e) {
   showGlobalErrorMessage(`JavaScript error: ${e.message} (${e.filename} @ ${e.lineno}:${e.colno}). Open browser console to see more details.`);
 }
 
-function initGlobalErrorHandler() {
-  if (!window.config) {
-    showGlobalErrorMessage(`Gitea JavaScript code couldn't run correctly, please check your custom templates`);
-  }
-  // we added an event handler for window error at the very beginning of <script> of page head
-  // the handler calls `_globalHandlerErrors.push` (array method) to record all errors occur before this init
-  // then in this init, we can collect all error events and show them
-  for (const e of window._globalHandlerErrors || []) {
-    processWindowErrorEvent(e);
-  }
-  // then, change _globalHandlerErrors to an object with push method, to process further error events directly
-  window._globalHandlerErrors = {'push': (e) => processWindowErrorEvent(e)};
+if (!window.config) {
+  showGlobalErrorMessage(`Gitea JavaScript code couldn't run correctly, please check your custom templates`);
 }
 
-initGlobalErrorHandler();
+// we added an event handler for window error at the very beginning of <script> of page head
+// the handler calls `_globalHandlerErrors.push` (array method) to record all errors occur
+// before this init. Then in this init, we can collect all error events and show them
+for (const e of window._globalHandlerErrors) {
+  processWindowErrorEvent(e);
+}
+
+// watch for further mutations on the array
+window._globalHandlerErrors = new Proxy(window._globalHandlerErrors, {
+  set: (_target, _property, value) => {
+    processWindowErrorEvent(value);
+  }
+});
