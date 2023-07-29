@@ -150,7 +150,7 @@ func registerUpdateGiteaChecker() {
 			RunAtStart: false,
 			Schedule:   "@every 168h",
 		},
-		HTTPEndpoint: "https://dl.gitea.io/gitea/version.json",
+		HTTPEndpoint: "https://dl.gitea.com/gitea/version.json",
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		updateCheckerConfig := config.(*UpdateCheckerConfig)
 		return updatechecker.GiteaUpdateChecker(updateCheckerConfig.HTTPEndpoint)

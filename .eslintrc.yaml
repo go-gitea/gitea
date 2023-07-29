@@ -22,18 +22,19 @@ plugins:
   - eslint-plugin-wc
 
 env:
-  es2022: true
+  es2024: true
   node: true
 
-globals:
-  __webpack_public_path__: true
-
 overrides:
-  - files: ["web_src/**/*.js", "docs/**/*.js"]
+  - files: ["web_src/**/*"]
+    globals:
+      __webpack_public_path__: true
+      process: false # https://github.com/webpack/webpack/issues/15833
+  - files: ["web_src/**/*", "docs/**/*"]
     env:
       browser: true
       node: false
-  - files: ["web_src/**/*worker.js"]
+  - files: ["web_src/**/*worker.*"]
     env:
       worker: true
     rules:
@@ -42,7 +43,7 @@ overrides:
     rules:
       import/no-unresolved: [0]
       import/no-extraneous-dependencies: [0]
-  - files: ["*.config.js"]
+  - files: ["*.config.*"]
     rules:
       import/no-unused-modules: [0]
 
@@ -155,7 +156,7 @@ rules:
   import/no-restricted-paths: [0]
   import/no-self-import: [2]
   import/no-unassigned-import: [0]
-  import/no-unresolved: [2, {commonjs: true, ignore: ["\\?.+$"]}]
+  import/no-unresolved: [2, {commonjs: true, ignore: [\?.+$, ^vitest/]}]
   import/no-unused-modules: [2, {unusedExports: true}]
   import/no-useless-path-segments: [2, {commonjs: true}]
   import/no-webpack-loader-syntax: [2]
@@ -419,7 +420,7 @@ rules:
   no-restricted-exports: [0]
   no-restricted-globals: [2, addEventListener, blur, close, closed, confirm, defaultStatus, defaultstatus, error, event, external, find, focus, frameElement, frames, history, innerHeight, innerWidth, isFinite, isNaN, length, location, locationbar, menubar, moveBy, moveTo, name, onblur, onerror, onfocus, onload, onresize, onunload, open, opener, opera, outerHeight, outerWidth, pageXOffset, pageYOffset, parent, print, removeEventListener, resizeBy, resizeTo, screen, screenLeft, screenTop, screenX, screenY, scroll, scrollbars, scrollBy, scrollTo, scrollX, scrollY, self, status, statusbar, stop, toolbar, top, __dirname, __filename]
   no-restricted-imports: [0]
-  no-restricted-syntax: [2, WithStatement, ForInStatement, LabeledStatement]
+  no-restricted-syntax: [2, WithStatement, ForInStatement, LabeledStatement, SequenceExpression]
   no-return-assign: [0]
   no-return-await: [0]
   no-script-url: [2]
@@ -665,7 +666,6 @@ rules:
   unicorn/no-unnecessary-await: [2]
   unicorn/no-unreadable-array-destructuring: [0]
   unicorn/no-unreadable-iife: [2]
-  unicorn/no-unsafe-regex: [0]
   unicorn/no-unused-properties: [2]
   unicorn/no-useless-fallback-in-spread: [2]
   unicorn/no-useless-length-check: [2]
@@ -692,7 +692,7 @@ rules:
   unicorn/prefer-dom-node-remove: [2]
   unicorn/prefer-dom-node-text-content: [2]
   unicorn/prefer-event-target: [2]
-  unicorn/prefer-export-from: [2, {ignoreUsedVariables: true}]
+  unicorn/prefer-export-from: [0]
   unicorn/prefer-includes: [2]
   unicorn/prefer-json-parse-buffer: [0]
   unicorn/prefer-keyboard-event-key: [2]

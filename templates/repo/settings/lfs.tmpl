@@ -12,18 +12,16 @@
 				{{range .LFSFiles}}
 					<tr>
 						<td>
-							<span class="text sha label">
-								<a href="{{$.Link}}/show/{{.Oid}}" title="{{.Oid}}" class="ui detail icon button brown truncate">
-									{{ShortSha .Oid}}
-								</a>
-							</span>
+							<a href="{{$.Link}}/show/{{.Oid}}" title="{{.Oid}}" class="ui brown button gt-mono">
+								{{ShortSha .Oid}}
+							</a>
 						</td>
 						<td>{{FileSize .Size}}</td>
 						<td>{{TimeSince .CreatedUnix.AsTime $.locale}}</td>
 						<td class="right aligned">
 							<a class="ui primary button" href="{{$.Link}}/find?oid={{.Oid}}&size={{.Size}}">{{$.locale.Tr "repo.settings.lfs_findcommits"}}</a>
-							<button class="ui basic show-modal icon button" data-modal="#delete-{{.Oid}}">
-								<span class="btn-octicon btn-octicon-danger"  data-tooltip-content="{{$.locale.Tr "repo.editor.delete_this_file"}}">{{svg "octicon-trash"}}</span>
+							<button class="ui basic show-modal icon button red" data-modal="#delete-{{.Oid}}">
+								<span class="btn-octicon btn-octicon-danger" data-tooltip-content="{{$.locale.Tr "repo.editor.delete_this_file"}}">{{svg "octicon-trash"}}</span>
 							</button>
 						</td>
 					</tr>

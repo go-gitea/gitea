@@ -1,22 +1,13 @@
-<div class="ui small modal" id="webauthn-error">
+<div id="webauthn-error" class="ui negative message gt-hidden">
 	<div class="header">{{.locale.Tr "webauthn_error"}}</div>
-	<div class="content">
-		<div class="ui negative message">
-			<div class="header">
-			{{.locale.Tr "webauthn_error"}}
-			</div>
-			<div class="gt-hidden" data-webauthn-error-msg="browser"><p>{{.locale.Tr "webauthn_unsupported_browser"}}</div>
-			<div class="gt-hidden" data-webauthn-error-msg="unknown"><p>{{.locale.Tr "webauthn_error_unknown"}}</div>
-			<div class="gt-hidden" data-webauthn-error-msg="insecure"><p>{{.locale.Tr "webauthn_error_insecure"}}</div>
-			<div class="gt-hidden" data-webauthn-error-msg="unable-to-process"><p>{{.locale.Tr "webauthn_error_unable_to_process"}}</div>
-			<div class="gt-hidden" data-webauthn-error-msg="duplicated"><p>{{.locale.Tr "webauthn_error_duplicated"}}</div>
-			<div class="gt-hidden" data-webauthn-error-msg="empty"><p>{{.locale.Tr "webauthn_error_empty"}}</div>
-			<div class="gt-hidden" data-webauthn-error-msg="timeout"><p>{{.locale.Tr "webauthn_error_timeout"}}</div>
-			<div class="gt-hidden" data-webauthn-error-msg="general"></div>
-		</div>
-	</div>
-	<div class="actions">
-		<button onclick="window.location.reload()" class="success ui button gt-hidden webauthn_error_timeout">{{.locale.Tr "webauthn_reload"}}</button>
-		<button class="ui cancel button">{{.locale.Tr "cancel"}}</button>
+	<div id="webauthn-error-msg" class="gt-pt-3"></div>
+	<div class="gt-hidden">
+		<div data-webauthn-error-msg="browser">{{.locale.Tr "webauthn_unsupported_browser"}}</div>
+		<div data-webauthn-error-msg="unknown">{{.locale.Tr "webauthn_error_unknown"}}</div>
+		<div data-webauthn-error-msg="insecure">{{.locale.Tr "webauthn_error_insecure"}}</div>
+		<div data-webauthn-error-msg="unable-to-process">{{.locale.Tr "webauthn_error_unable_to_process"}}</div>
+		<div data-webauthn-error-msg="duplicated">{{.locale.Tr "webauthn_error_duplicated"}}</div>
+		<div data-webauthn-error-msg="empty">{{.locale.Tr "webauthn_error_empty"}}</div>
+		<div data-webauthn-error-msg="timeout">{{.locale.Tr "webauthn_error_timeout"}}</div>
 	</div>
 </div>

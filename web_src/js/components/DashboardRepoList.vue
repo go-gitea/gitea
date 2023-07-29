@@ -12,15 +12,14 @@
         </div>
         <a class="gt-df gt-ac muted" :href="subUrl + '/repo/create' + (isOrganization ? '?org=' + organizationId : '')" :data-tooltip-content="textNewRepo">
           <svg-icon name="octicon-plus"/>
-          <span class="sr-only">{{ textNewRepo }}</span>
         </a>
       </h4>
       <div class="ui attached segment repos-search">
         <div class="ui fluid right action left icon input" :class="{loading: isLoading}">
-          <input @input="changeReposFilter(reposFilter)" v-model="searchQuery" ref="search" @keydown="reposFilterKeyControl" :placeholder="textSearchRepos">
+          <input type="search" spellcheck="false" maxlength="255" @input="changeReposFilter(reposFilter)" v-model="searchQuery" ref="search" @keydown="reposFilterKeyControl" :placeholder="textSearchRepos">
           <i class="icon gt-df gt-ac gt-jc"><svg-icon name="octicon-search" :size="16"/></i>
           <div class="ui dropdown icon button" :title="textFilter">
-            <i class="icon gt-df gt-ac gt-jc gt-m-0"><svg-icon name="octicon-filter" :size="16"/></i>
+            <svg-icon name="octicon-filter" :size="16"/>
             <div class="menu">
               <a class="item" @click="toggleArchivedFilter()">
                 <div class="ui checkbox" ref="checkboxArchivedFilter" :title="checkboxArchivedFilterTitle">
@@ -121,7 +120,6 @@
         </div>
         <a class="gt-df gt-ac muted" v-if="canCreateOrganization" :href="subUrl + '/org/create'" :data-tooltip-content="textNewOrg">
           <svg-icon name="octicon-plus"/>
-          <span class="sr-only">{{ textNewOrg }}</span>
         </a>
       </h4>
       <div v-if="organizations.length" class="ui attached table segment gt-rounded-bottom">
@@ -154,13 +152,12 @@ import {SvgIcon} from '../svg.js';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
 
+// make sure this matches templates/repo/commit_status.tmpl
 const commitStatus = {
-  pending: {name: 'octicon-dot-fill', color: 'grey'},
-  running: {name: 'octicon-dot-fill', color: 'yellow'},
+  pending: {name: 'octicon-dot-fill', color: 'yellow'},
   success: {name: 'octicon-check', color: 'green'},
   error: {name: 'gitea-exclamation', color: 'red'},
   failure: {name: 'octicon-x', color: 'red'},
-  warning: {name: 'gitea-exclamation', color: 'yellow'},
 };
 
 const sfc = {

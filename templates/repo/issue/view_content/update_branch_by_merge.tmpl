@@ -1,8 +1,8 @@
 {{if and (gt $.Issue.PullRequest.CommitsBehind 0) (not $.Issue.IsClosed) (not $.Issue.PullRequest.IsChecking) (not $.IsPullFilesConflicted) (not $.IsPullRequestBroken)}}
-	<div class="ui divider"></div>
+	<div class="divider"></div>
 	<div class="item item-section">
-		<div class="item-section-left">
-			<i class="icon icon-octicon">{{svg "octicon-alert"}}</i>
+		<div class="item-section-left flex-text-inline">
+			{{svg "octicon-alert"}}
 			{{$.locale.Tr "repo.pulls.outdated_with_base_branch"}}
 		</div>
 		<div class="item-section-right">
@@ -14,9 +14,8 @@
 								{{$.locale.Tr "repo.pulls.update_branch"}}
 							</span>
 						</button>
-
-						<div class="ui dropdown icon button no-text">
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="ui dropdown icon button">
+							{{svg "octicon-triangle-down"}}
 							<div class="menu">
 								<a class="item active selected" data-do="{{$.Link}}/update">{{$.locale.Tr "repo.pulls.update_branch"}}</a>
 								<a class="item" data-do="{{$.Link}}/update?style=rebase">{{$.locale.Tr "repo.pulls.update_branch_rebase"}}</a>

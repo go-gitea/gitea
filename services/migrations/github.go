@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/structs"
 
-	"github.com/google/go-github/v52/github"
+	"github.com/google/go-github/v53/github"
 	"golang.org/x/oauth2"
 )
 
@@ -487,7 +487,7 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 			Updated:      issue.GetUpdatedAt().Time,
 			Labels:       labels,
 			Reactions:    reactions,
-			Closed:       &issue.ClosedAt.Time,
+			Closed:       issue.ClosedAt.GetTime(),
 			IsLocked:     issue.GetLocked(),
 			Assignees:    assignees,
 			ForeignIndex: int64(*issue.Number),

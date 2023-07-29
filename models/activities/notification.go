@@ -343,7 +343,7 @@ func getIssueNotification(ctx context.Context, userID, issueID int64) (*Notifica
 // NotificationsForUser returns notifications for a given user and status
 func NotificationsForUser(ctx context.Context, user *user_model.User, statuses []NotificationStatus, page, perPage int) (notifications NotificationList, err error) {
 	if len(statuses) == 0 {
-		return
+		return nil, nil
 	}
 
 	sess := db.GetEngine(ctx).
@@ -372,16 +372,16 @@ func CountUnread(ctx context.Context, userID int64) int64 {
 // LoadAttributes load Repo Issue User and Comment if not loaded
 func (n *Notification) LoadAttributes(ctx context.Context) (err error) {
 	if err = n.loadRepo(ctx); err != nil {
-		return
+		return err
 	}
 	if err = n.loadIssue(ctx); err != nil {
-		return
+		return err
 	}
 	if err = n.loadUser(ctx); err != nil {
-		return
+		return err
 	}
 	if err = n.loadComment(ctx); err != nil {
-		return
+		return err
 	}
 	return err
 }

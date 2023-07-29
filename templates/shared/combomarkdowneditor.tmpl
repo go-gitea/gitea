@@ -19,7 +19,7 @@ Template Attributes:
 	</div>
 	{{end}}
 	<div class="ui tab active" data-tab-panel="markdown-writer">
-		<markdown-toolbar class="gt-gap-3">
+		<markdown-toolbar>
 			<div class="markdown-toolbar-group">
 				<md-header class="markdown-toolbar-button" data-tooltip-content="{{.locale.Tr "editor.buttons.heading.tooltip"}}">{{svg "octicon-heading"}}</md-header>
 				<md-bold class="markdown-toolbar-button" data-tooltip-content="{{.locale.Tr "editor.buttons.bold.tooltip"}}">{{svg "octicon-bold"}}</md-bold>
@@ -44,7 +44,7 @@ Template Attributes:
 				<button class="markdown-toolbar-button markdown-switch-easymde" data-tooltip-content="{{.locale.Tr "editor.buttons.switch_to_legacy.tooltip"}}">{{svg "octicon-arrow-switch"}}</button>
 			</div>
 		</markdown-toolbar>
-		<text-expander keys=": @">
+		<text-expander keys=": @" suffix="">
 			<textarea class="markdown-text-editor js-quick-submit"{{if .TextareaName}} name="{{.TextareaName}}"{{end}}{{if .TextareaPlaceholder}} placeholder="{{.TextareaPlaceholder}}"{{end}}{{if .TextareaAriaLabel}} aria-label="{{.TextareaAriaLabel}}"{{end}}>{{.TextareaContent}}</textarea>
 		</text-expander>
 		<script>

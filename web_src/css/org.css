@@ -31,7 +31,7 @@
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   #create-page-form form .optional .title {
     margin-left: 15px;
   }
@@ -77,7 +77,7 @@
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .organization.new.org form .optional .title {
     margin-left: 15px;
   }
@@ -103,6 +103,7 @@
 
 .organization.profile #org-info {
   overflow-wrap: anywhere;
+  flex: 1;
 }
 
 .organization.profile #org-info .ui.header {
@@ -117,13 +118,11 @@
   margin-bottom: 10px;
 }
 
-.organization.profile #org-info .meta .item {
-  display: inline-block;
-  margin-right: 10px;
-}
-
-.organization.profile #org-info .meta .item .icon {
-  margin-right: 5px;
+.organization.profile #org-info .meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .organization.profile .ui.top.header .ui.right {
@@ -203,29 +202,6 @@
 .organization.teams .members .item .button {
   padding: 9px 10px;
   margin: 0;
-}
-
-.organization.teams #add-repo-form input,
-.organization.teams #repo-multiple-form input,
-.organization.teams #add-member-form input {
-  margin-left: 0;
-}
-
-.organization.teams #add-repo-form .ui.button,
-.organization.teams #repo-multiple-form .ui.button,
-.organization.teams #add-member-form .ui.button {
-  margin-left: 5px;
-  margin-top: -3px;
-}
-
-.organization.teams #repo-top-segment {
-  height: 60px;
-}
-
-@media (max-width: 767px) {
-  .organization.teams #repo-top-segment {
-    height: 100px;
-  }
 }
 
 .org-team-navbar .active.item {

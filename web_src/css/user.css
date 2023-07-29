@@ -48,13 +48,13 @@
   height: auto;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .user.profile .ui.card #profile-avatar img {
     width: 30vw;
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .user.profile .ui.card {
     width: 100%;
   }
@@ -122,7 +122,7 @@
 }
 
 #readme_profile {
-  padding: 10px;
+  padding: 1em 2em;
   border-radius: 0.28571429rem;
   background: var(--color-card);
   border: 1px solid var(--color-secondary);

@@ -35,7 +35,7 @@
   width: 15%;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .dashboard.feeds .filter.menu .item .floating.label,
   .dashboard.issues .filter.menu .item .floating.label {
     top: 10px;
@@ -60,7 +60,7 @@
   left: auto !important;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .dashboard.feeds .filter.menu,
   .dashboard.issues .filter.menu {
     width: 100%;
@@ -90,7 +90,7 @@
   max-width: 100%;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .dashboard .dashboard-navbar .ui.dropdown > .menu {
     position: static;
   }

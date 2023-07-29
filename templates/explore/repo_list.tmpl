@@ -54,9 +54,9 @@
 				{{$description := .DescriptionHTML $.Context}}
 				{{if $description}}<p>{{$description}}</p>{{end}}
 				{{if .Topics}}
-					<div class="ui tags">
+					<div class="gt-df gt-fw gt-gap-2 gt-mb-3">
 					{{range .Topics}}
-						{{if ne . ""}}<a href="{{AppSubUrl}}/explore/repos?q={{.}}&topic=1"><div class="ui small label topic">{{.}}</div></a>{{end}}
+						{{if ne . ""}}<a class="ui label" href="{{AppSubUrl}}/explore/repos?q={{.}}&topic=1">{{.}}</a>{{end}}
 					{{end}}
 					</div>
 				{{end}}

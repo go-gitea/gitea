@@ -157,7 +157,15 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		if err = repo_module.CreateDelegateHooks(repoPath); err != nil {
 			return fmt.Errorf("createDelegateHooks: %w", err)
 		}
-		return nil
+
+		gitRepo, err := git.OpenRepository(txCtx, repo.RepoPath())
+		if err != nil {
+			return fmt.Errorf("OpenRepository: %w", err)
+		}
+		defer gitRepo.Close()
+
+		_, err = repo_module.SyncRepoBranchesWithRepo(txCtx, repo, gitRepo, doer.ID)
+		return err
 	})
 	needsRollbackInPanic = false
 	if err != nil {
