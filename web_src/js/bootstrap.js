@@ -40,8 +40,10 @@ for (const e of window._globalHandlerErrors) {
 
 // watch for further mutations on the array
 window._globalHandlerErrors = new Proxy(window._globalHandlerErrors, {
-  set: (_target, _property, value) => {
-    processWindowErrorEvent(value);
-    return true;
+  set: (target, property, value) => {
+    if (property !== 'length') {
+      processWindowErrorEvent(value);
+    }
+    return Reflect.set(target, property, value);
   }
 });
