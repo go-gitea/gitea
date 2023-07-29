@@ -42,5 +42,6 @@ for (const e of window._globalHandlerErrors) {
 window._globalHandlerErrors = new Proxy(window._globalHandlerErrors, {
   set: (_target, _property, value) => {
     processWindowErrorEvent(value);
+    return true;
   }
 });
