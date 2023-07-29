@@ -1,6 +1,3 @@
-import '../bootstrap.js';
-import '../jquery.js';
-import '../../fomantic/build/semantic.js';
 import $ from 'jquery';
 import {showInfoToast, showWarningToast, showErrorToast} from '../modules/toast.js';
 
