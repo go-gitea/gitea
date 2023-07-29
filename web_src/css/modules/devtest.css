@@ -1,20 +1,20 @@
-.button-sample-groups {
+.devtest .button-sample-groups {
   margin: 0; padding: 0;
 }
 
-.button-sample-groups .sample-group {
+.devtest .button-sample-groups .sample-group {
   list-style: none; margin: 0; padding: 0;
 }
 
-.button-sample-groups .sample-group .ui.button {
+.devtest .button-sample-groups .sample-group .ui.button {
   margin-bottom: 5px;
 }
 
-h1, h2 {
+.devtest h1, .devtest h2 {
   margin: 0;
   padding: 10px 0;
 }
 
-.modal-buttons button {
+.devtest .modal-buttons button {
   margin: 5px;
 }
