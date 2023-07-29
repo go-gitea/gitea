@@ -69,6 +69,11 @@ export default {
     'eventsource.sharedworker': [
       fileURLToPath(new URL('web_src/js/features/eventsource.sharedworker.js', import.meta.url)),
     ],
+    ...(!isProduction && {
+      devtest: [
+        fileURLToPath(new URL('web_src/css/modules/devtest.css', import.meta.url)),
+      ],
+    }),
     ...themes,
   },
   devtool: false,
