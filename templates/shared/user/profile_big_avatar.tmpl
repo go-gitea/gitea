@@ -29,10 +29,8 @@
 					<span>{{.ContextUser.Location}}</span>
 					{{if .UserLocationMapURL}}
 						{{/* We presume that the UserLocationMapURL is safe, as it is provided by the site administrator. */}}
-						<a href="{{.UserLocationMapURL | Safe}}{{.ContextUser.Location}}" rel="nofollow noreferrer">
-							<i class="ui right" data-tooltip-content="{{.locale.Tr "user.redirect_to_osm"}}">
-								{{svg "octicon-link-external"}}
-							</i>
+						<a class="ui right muted" href="{{.UserLocationMapURL | Safe}}{{.ContextUser.Location}}" rel="nofollow noreferrer" data-tooltip-content="{{.locale.Tr "user.show_on_map"}}">
+							{{svg "octicon-link-external"}}
 						</a>
 					{{end}}
 				</li>
