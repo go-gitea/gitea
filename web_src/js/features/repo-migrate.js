@@ -58,7 +58,7 @@ export function initRepoMigrationStatusChecker() {
 }
 
 async function doMigrationRetry(e) {
-  await fetch($(e.target).attr('task-retry-url'), {
+  await fetch($(e.target).attr('data-migrating-task-retry-url'), {
     method: 'post',
     headers: {
       'X-Csrf-Token': csrfToken,

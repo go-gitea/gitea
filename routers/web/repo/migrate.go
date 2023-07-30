@@ -263,9 +263,7 @@ func MigrateRetryPost(ctx *context.Context) {
 	if err := task.RetryMigrateTask(ctx.Repo.Repository.ID); err != nil {
 		log.Error("Retry task failed: %v", err)
 		ctx.ServerError("task.RetryMigrateTask", err)
-		return
 	}
-	ctx.Redirect(ctx.Repo.Repository.Link())
 }
 
 func MigrateCancelPost(ctx *context.Context) {

@@ -138,6 +138,8 @@ func RetryMigrateTask(repoID int64) error {
 		return nil
 	}
 
+	// TODO Need to removing the storage/database garbage brought by the failed task
+
 	// Reset task status and messages
 	migratingTask.Status = structs.TaskStatusQueued
 	migratingTask.Message = ""
