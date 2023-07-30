@@ -19,8 +19,6 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/dustin/go-humanize"
@@ -198,28 +196,6 @@ func Int64sContains(intsSlice []int64, a int64) bool {
 // https://github.com/golang/go/blob/c3b4918/src/go/scanner/scanner.go#L342
 func IsLetter(ch rune) bool {
 	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_' || ch >= 0x80 && unicode.IsLetter(ch)
-}
-
-// EntryIcon returns the octicon class for displaying files/directories
-func EntryIcon(entry *git.TreeEntry) string {
-	switch {
-	case entry.IsLink():
-		te, err := entry.FollowLink()
-		if err != nil {
-			log.Debug(err.Error())
-			return "file-symlink-file"
-		}
-		if te.IsDir() {
-			return "file-directory-symlink"
-		}
-		return "file-symlink-file"
-	case entry.IsDir():
-		return "file-directory-fill"
-	case entry.IsSubModule():
-		return "file-submodule"
-	}
-
-	return "file"
 }
 
 // SetupGiteaRoot Sets GITEA_ROOT if it is not already set and returns the value

@@ -16,6 +16,7 @@ import (
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
+	"code.gitea.io/gitea/modules/fileicon"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
@@ -58,7 +59,7 @@ func NewFuncMap() template.FuncMap {
 		"avatarByAction": AvatarByAction,
 		"avatarByEmail":  AvatarByEmail,
 		"repoAvatar":     RepoAvatar,
-		"EntryIcon":      base.EntryIcon,
+		"FileIcon":       fileicon.FileIcon,
 		"MigrationIcon":  MigrationIcon,
 		"ActionIcon":     ActionIcon,
 

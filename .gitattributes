@@ -8,3 +8,4 @@
 /web_src/fomantic/_site/globals/site.variables linguist-language=Less
 /web_src/js/vendor/** -text -eol linguist-vendored
 Dockerfile.* linguist-language=Dockerfile
+options/fileicon/material.tgz filter=lfs diff=lfs merge=lfs -text

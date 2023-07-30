@@ -232,9 +232,8 @@ help:
 	@echo " - fomantic                         build fomantic files"
 	@echo " - generate                         run \"go generate\""
 	@echo " - fmt                              format the Go code"
-	@echo " - generate-license                 update license files"
-	@echo " - generate-gitignore               update gitignore files"
 	@echo " - generate-manpage                 generate manpage"
+	@echo " - generate-options                 generate licenses/gitignores/fileicons in options directory"
 	@echo " - generate-swagger                 generate the swagger spec from code comments"
 	@echo " - swagger-validate                 check if the swagger spec is valid"
 	@echo " - go-licenses                      regenerate go licenses"
@@ -990,13 +989,11 @@ update-translations:
 	mv ./translations/*.ini ./options/locale/
 	rmdir ./translations
 
-.PHONY: generate-license
-generate-license:
-	$(GO) run build/generate-licenses.go
-
-.PHONY: generate-gitignore
-generate-gitignore:
-	$(GO) run build/generate-gitignores.go
+.PHONY: generate-options
+generate-options:
+	$(GO) run build/generate-options-license.go
+	$(GO) run build/generate-options-gitignore.go
+	$(GO) run build/generate-options-fileicon.go
 
 .PHONY: generate-images
 generate-images: | node_modules
