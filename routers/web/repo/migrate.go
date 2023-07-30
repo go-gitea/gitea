@@ -260,18 +260,10 @@ func setMigrationContextData(ctx *context.Context, serviceType structs.GitServic
 }
 
 func MigrateRetryPost(ctx *context.Context) {
-	migratingTask, err := admin_model.GetMigratingTask(ctx.Repo.Repository.ID)
-	if err != nil {
-		log.Error("GetMigratingTask: %v", err)
-		ctx.Redirect(ctx.Repo.Repository.Link())
+	if err := task.RetryMigrateTask(ctx.Repo.Repository.ID); err != nil {
+		log.Error("Retry task failed: %v", err)
+		ctx.ServerError("task.RetryMigrateTask", err)
 		return
-	}
-	if migratingTask.Status != structs.TaskStatusRunning {
-		if err := task.RetryMigrateTask(migratingTask); err != nil {
-			log.Error("Retry task failed: %v", err)
-			ctx.ServerError("task.RetryMigrateTask", err)
-			return
-		}
 	}
 	ctx.Redirect(ctx.Repo.Repository.Link())
 }
