@@ -73,7 +73,8 @@ var Service = struct {
 	AllowCrossRepositoryDependencies        bool
 	DefaultAllowOnlyContributorsToTrackTime bool
 	NoReplyAddress                          string
-	EnableOSMButton                         bool
+	EnableLocationButton                    bool
+	LocationQueryURL			string
 	EnableUserHeatmap                       bool
 	AutoWatchNewRepos                       bool
 	AutoWatchOnChanges                      bool
@@ -186,7 +187,8 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	Service.AllowCrossRepositoryDependencies = sec.Key("ALLOW_CROSS_REPOSITORY_DEPENDENCIES").MustBool(true)
 	Service.DefaultAllowOnlyContributorsToTrackTime = sec.Key("DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME").MustBool(true)
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply." + Domain)
-	Service.EnableOSMButton = sec.Key("ENABLE_OSM_BUTTON").MustBool(true)
+	Service.EnableLocationButton = sec.Key("ENABLE_OSM_BUTTON").MustBool(true)
+	Service.LocationQueryURL = sec.Key("LOCATION_QUERY_URL").MustString("https://www.openstreetmap.org/search?query=")
 	Service.EnableUserHeatmap = sec.Key("ENABLE_USER_HEATMAP").MustBool(true)
 	Service.AutoWatchNewRepos = sec.Key("AUTO_WATCH_NEW_REPOS").MustBool(true)
 	Service.AutoWatchOnChanges = sec.Key("AUTO_WATCH_ON_CHANGES").MustBool(false)
