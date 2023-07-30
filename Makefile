@@ -29,12 +29,12 @@ AIR_PACKAGE ?= github.com/cosmtrek/air@v1.44.0
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.7.0
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.5.0
 GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.53.3
-GXZ_PAGAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.11
+GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.11
 MISSPELL_PACKAGE ?= github.com/client9/misspell/cmd/misspell@v0.3.4
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.30.5
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1.6.0
-GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v0.2.0
+GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1.0.0
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.6.25
 
 DOCKER_IMAGE ?= gitea/gitea
@@ -864,7 +864,7 @@ release-check: | $(DIST_DIRS)
 
 .PHONY: release-compress
 release-compress: | $(DIST_DIRS)
-	cd $(DIST)/release/; for file in `find . -type f -name "*"`; do echo "compressing $${file}" && $(GO) run $(GXZ_PAGAGE) -k -9 $${file}; done;
+	cd $(DIST)/release/; for file in `find . -type f -name "*"`; do echo "compressing $${file}" && $(GO) run $(GXZ_PACKAGE) -k -9 $${file}; done;
 
 .PHONY: release-sources
 release-sources: | $(DIST_DIRS)
@@ -903,7 +903,7 @@ deps-tools:
 	$(GO) install $(EDITORCONFIG_CHECKER_PACKAGE)
 	$(GO) install $(GOFUMPT_PACKAGE)
 	$(GO) install $(GOLANGCI_LINT_PACKAGE)
-	$(GO) install $(GXZ_PAGAGE)
+	$(GO) install $(GXZ_PACKAGE)
 	$(GO) install $(MISSPELL_PACKAGE)
 	$(GO) install $(SWAGGER_PACKAGE)
 	$(GO) install $(XGO_PACKAGE)
