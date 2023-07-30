@@ -27,10 +27,9 @@
 				<li>
 					{{svg "octicon-location"}}
 					<span>{{.ContextUser.Location}}</span>
-					{{/* Checking whether .LocationQueryURL is empty is arguably excessive, but makes this functionality foolproof */}}
-					{{if and .EnableLocationButton .LocationQueryURL}}
-						{{/* We presume that the LocationQueryURL is safe, as it is provided by the site administrator. */}}
-						<a href="{{.LocationQueryURL | Safe}}{{.ContextUser.Location}}" rel="nofollow noreferrer">
+					{{if .UserLocationMapURL}}
+						{{/* We presume that the UserLocationMapURL is safe, as it is provided by the site administrator. */}}
+						<a href="{{.UserLocationMapURL | Safe}}{{.ContextUser.Location}}" rel="nofollow noreferrer">
 							<i class="ui right" data-tooltip-content="{{.locale.Tr "user.redirect_to_osm"}}">
 								{{svg "octicon-link-external"}}
 							</i>
@@ -81,7 +80,7 @@
 					</li>
 				{{end}}
 			{{end}}
-			<li>{{svg "octicon-clock"}} {{.locale.Tr "user.joined_on" (DateTime "short" .ContextUser.CreatedUnix) | Safe}}</li>
+			<li>{{svg "octicon-clock"}} <span>{{.locale.Tr "user.joined_on" (DateTime "short" .ContextUser.CreatedUnix) | Safe}}</span></li>
 			{{if and .Orgs .HasOrgsVisible}}
 			<li>
 				<ul class="user-orgs">
