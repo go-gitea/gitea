@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -277,4 +276,24 @@ func TestListStopWatches(t *testing.T) {
 		assert.EqualValues(t, repo.OwnerName, apiWatches[0].RepoOwnerName)
 		assert.Greater(t, apiWatches[0].Seconds, int64(0))
 	}
+}
+
+func TestUserLocationMapLink(t *testing.T) {
+	setting.Service.UserLocationMapURL = "https://example/foo/"
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+	req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
+		"_csrf":    GetCSRF(t, session, "/user/settings"),
+		"name":     "user2",
+		"email":    "user@example.com",
+		"language": "en-US",
+		"location": "A/b",
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+
+	req = NewRequest(t, "GET", "/user2/")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	htmlDoc.AssertElement(t, `a[href="https://example/foo/A%2Fb"]`, true)
 }
