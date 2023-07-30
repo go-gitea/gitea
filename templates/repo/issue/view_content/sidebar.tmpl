@@ -299,19 +299,28 @@
 						{{$.CsrfTokenHtml}}
 					</form>
 					{{if $.IsStopwatchRunning}}
-						<button class="ui fluid button issue-stop-time">{{.locale.Tr "repo.issues.stop_tracking"}}</button>
-						<button class="ui fluid negative button issue-cancel-time gt-mt-3">{{.locale.Tr "repo.issues.cancel_tracking"}}</button>
+						<button class="ui fluid button issue-stop-time">
+							{{svg "octicon-stopwatch" 16 "gt-mr-3"}}
+							{{.locale.Tr "repo.issues.stop_tracking"}}
+						</button>
+						<button class="ui fluid button issue-cancel-time gt-mt-3">
+							{{svg "octicon-trash" 16 "gt-mr-3"}}
+							{{.locale.Tr "repo.issues.cancel_tracking"}}
+						</button>
 					{{else}}
 						{{if .HasUserStopwatch}}
 							<div class="ui warning message">
 								{{.locale.Tr "repo.issues.tracking_already_started" (.OtherStopwatchURL|Escape) | Safe}}
 							</div>
 						{{end}}
-						<button class="ui fluid button issue-start-time" data-tooltip-content='{{.locale.Tr "repo.issues.start_tracking"}}'>{{.locale.Tr "repo.issues.start_tracking_short"}}</button>
+						<button class="ui fluid button issue-start-time" data-tooltip-content='{{.locale.Tr "repo.issues.start_tracking"}}'>
+							{{svg "octicon-stopwatch" 16 "gt-mr-3"}}
+							{{.locale.Tr "repo.issues.start_tracking_short"}}
+						</button>
 						<div class="ui mini modal issue-start-time-modal">
 							<div class="header">{{.locale.Tr "repo.issues.add_time"}}</div>
 							<div class="content">
-								<form method="post" id="add_time_manual_form" action="{{.Issue.Link}}/times/add" class="ui action input fluid">
+								<form method="post" id="add_time_manual_form" action="{{.Issue.Link}}/times/add" class="ui input fluid gt-gap-3">
 									{{$.CsrfTokenHtml}}
 									<input placeholder='{{.locale.Tr "repo.issues.add_time_hours"}}' type="number" name="hours">
 									<input placeholder='{{.locale.Tr "repo.issues.add_time_minutes"}}' type="number" name="minutes" class="ui compact">
@@ -322,7 +331,10 @@
 								<button class="ui red cancel button">{{.locale.Tr "repo.issues.add_time_cancel"}}</button>
 							</div>
 						</div>
-						<button class="ui fluid button green issue-add-time gt-mt-3" data-tooltip-content='{{.locale.Tr "repo.issues.add_time"}}'>{{.locale.Tr "repo.issues.add_time_short"}}</button>
+						<button class="ui fluid button issue-add-time gt-mt-3" data-tooltip-content='{{.locale.Tr "repo.issues.add_time"}}'>
+							{{svg "octicon-plus" 16 "gt-mr-3"}}
+							{{.locale.Tr "repo.issues.add_time_short"}}
+						</button>
 					{{end}}
 				</div>
 			</div>
@@ -381,7 +393,7 @@
 				<form class="ui fluid action input issue-due-form" action="{{AppSubUrl}}/{{PathEscape .Repository.Owner.Name}}/{{PathEscape .Repository.Name}}/issues/{{.Issue.Index}}/deadline" method="post" id="update-issue-deadline-form">
 					{{$.CsrfTokenHtml}}
 					<input required placeholder="{{.locale.Tr "repo.issues.due_date_form"}}" {{if gt .Issue.DeadlineUnix 0}}value="{{.Issue.DeadlineUnix.Format "2006-01-02"}}"{{end}} type="date" name="deadlineDate" id="deadlineDate">
-					<button class="ui green icon button">
+					<button class="ui icon button">
 						{{if ne .Issue.DeadlineUnix 0}}
 							{{svg "octicon-pencil"}}
 						{{else}}
@@ -417,7 +429,7 @@
 					{{range .BlockingDependencies}}
 						<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} gt-df gt-ac gt-sb">
 							<div class="item-left gt-df gt-jc gt-fc gt-f1">
-								<a class="title" href="{{.Issue.Link}}" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}">
+								<a class="title muted" href="{{.Issue.Link}}" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}">
 									#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}
 								</a>
 								<div class="text small">
@@ -449,7 +461,7 @@
 					{{range .BlockedByDependencies}}
 						<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} gt-df gt-ac gt-sb">
 							<div class="item-left gt-df gt-jc gt-fc gt-f1">
-								<a class="title" href="{{.Issue.Link}}" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}">
+								<a class="title muted" href="{{.Issue.Link}}" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}">
 									#{{.Issue.Index}} {{.Issue.Title | RenderEmoji $.Context}}
 								</a>
 								<div class="text small">
@@ -507,7 +519,7 @@
 								<input type="text" class="search">
 								<div class="default text">{{.locale.Tr "repo.issues.dependency.add"}}</div>
 							</div>
-							<button class="ui green icon button">
+							<button class="ui icon button">
 								{{svg "octicon-plus"}}
 							</button>
 						</div>
@@ -643,7 +655,7 @@
 				</form>
 			</div>
 		</div>
-		<button class="gt-mt-2 fluid ui show-modal button negative" data-modal="#delete">
+		<button class="gt-mt-2 fluid ui show-modal button" data-modal="#delete">
 			{{svg "octicon-trash"}}
 			{{.locale.Tr "repo.issues.delete"}}
 		</button>
