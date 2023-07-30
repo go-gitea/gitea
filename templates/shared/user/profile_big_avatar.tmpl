@@ -29,7 +29,7 @@
 					<span>{{.ContextUser.Location}}</span>
 					{{if .UserLocationMapURL}}
 						{{/* We presume that the UserLocationMapURL is safe, as it is provided by the site administrator. */}}
-						<a class="ui muted" href="{{.UserLocationMapURL | Safe}}{{.ContextUser.Location}}" rel="nofollow noreferrer" data-tooltip-content="{{.locale.Tr "user.show_on_map"}}">
+						<a href="{{.UserLocationMapURL | Safe}}{{.ContextUser.Location}}" rel="nofollow noreferrer" data-tooltip-content="{{.locale.Tr "user.show_on_map"}}">
 							{{svg "octicon-link-external"}}
 						</a>
 					{{end}}
