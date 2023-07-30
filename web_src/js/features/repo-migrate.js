@@ -7,7 +7,7 @@ export function initRepoMigrationStatusChecker() {
   const $repoMigrating = $('#repo_migrating');
   if (!$repoMigrating.length) return;
 
-  $('#repo_migrating_retry').click(doRetry);
+  $('#repo_migrating_retry').on('click', doMigrationRetry);
 
   const task = $repoMigrating.attr('data-migrating-task-id');
 
@@ -57,7 +57,7 @@ export function initRepoMigrationStatusChecker() {
   syncTaskStatus(); // no await
 }
 
-async function doRetry(e) {
+async function doMigrationRetry(e) {
   await fetch($(e.target).attr('task-retry-url'), {
     method: 'post',
     headers: {
