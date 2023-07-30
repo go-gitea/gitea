@@ -953,8 +953,10 @@ func registerRoutes(m *web.Route) {
 				addSettingVariablesRoutes()
 			}, actions.MustEnableActions)
 			// the follow handler must be under "settings", otherwise this incomplete repo can't be accessed
-			m.Post("/migrate/retry", repo.MigrateRetryPost)
-			m.Post("/migrate/cancel", repo.MigrateCancelPost)
+			m.Group("/migrate", func() {
+				m.Post("/retry", repo.MigrateRetryPost)
+				m.Post("/cancel", repo.MigrateCancelPost)
+			})
 		}, ctxDataSet("PageIsRepoSettings", true, "LFSStartServer", setting.LFS.StartServer))
 	}, reqSignIn, context.RepoAssignment, context.UnitTypes(), reqRepoAdmin, context.RepoRef())
 
