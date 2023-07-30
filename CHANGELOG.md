@@ -4,6 +4,34 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.20.2](https://github.com/go-gitea/gitea/releases/tag/1.20.2) - 2023-07-29
+
+* ENHANCEMENTS
+  * Calculate MAX_WORKERS default value by CPU number (#26177) (#26183)
+  * Display deprecated warning in admin panel pages as well as in the log file (#26094) (#26154)
+* BUGFIXES
+  * Fix allowed user types setting problem (#26200) (#26206)
+  * Fix handling of plenty Nuget package versions (#26075) (#26173)
+  * Fix UI regression of asciinema player (#26159) (#26162)
+  * Fix LFS object list style (#26133) (#26147)
+  * Fix allowed user types setting problem (#26200) (#26206)
+  * Prevent primary key update on migration (#26192) (#26199)
+  * Fix bug when pushing to a pull request which enabled dismiss approval automatically (#25882) (#26158)
+  * Fix bugs in LFS meta garbage collection (#26122) (#26157)
+  * Update xorm version (#26128) (#26150)
+  * Remove "misc" scope check from public API endpoints (#26134) (#26149)
+  * Fix CLI allowing creation of access tokens with existing name (#26071) (#26144)
+  * Fix incorrect router logger (#26137) (#26143)
+  * Improve commit graph alignment and truncating (#26112) (#26127)
+  * Avoid writing config file if not installed (#26107) (#26113)
+  * Fix escape problems in the branch selector (#25875) (#26103)
+  * Fix handling of Debian files with trailing slash (#26087) (#26098)
+  * Fix Missing 404 swagger response docs for /admin/users/{username} (#26086) (#26089)
+  * Use stderr as fallback if the log file can't be opened (#26074) (#26083)
+  * Increase table cell horizontal padding (#26140) (#26142)
+  * Fix wrong workflow status when rerun a job in an already finished workflow (#26119) (#26124)
+  * Fix duplicated url prefix on issue context menu (#26066) (#26067)
+
 ## [1.20.1](https://github.com/go-gitea/gitea/releases/tag/1.20.1) - 2023-07-22
 
 * SECURITY

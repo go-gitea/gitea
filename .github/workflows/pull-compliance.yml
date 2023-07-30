@@ -154,7 +154,7 @@ jobs:
           node-version: 20
       - run: make deps-frontend
       - run: make lint-md
-      - run: make docs # test if build could succeed
+      - run: make docs
 
   actions:
     if: needs.files-changed.outputs.actions == 'true' || needs.files-changed.outputs.actions == 'true'

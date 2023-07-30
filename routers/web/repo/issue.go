@@ -174,7 +174,11 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	// 0 means issues with no label
 	// blank means labels will not be filtered for issues
 	selectLabels := ctx.FormString("labels")
-	if len(selectLabels) > 0 {
+	if selectLabels == "" {
+		ctx.Data["AllLabels"] = true
+	} else if selectLabels == "0" {
+		ctx.Data["NoLabel"] = true
+	} else if len(selectLabels) > 0 {
 		labelIDs, err = base.StringsToInt64s(strings.Split(selectLabels, ","))
 		if err != nil {
 			ctx.ServerError("StringsToInt64s", err)
@@ -514,6 +518,12 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 }
 
 func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
+	// Distinguish whether the owner of the repository
+	// is an individual or an organization
+	repoOwnerType := project_model.TypeIndividual
+	if repo.Owner.IsOrganization() {
+		repoOwnerType = project_model.TypeOrganization
+	}
 	var err error
 	projects, _, err := project_model.FindProjects(ctx, project_model.SearchOptions{
 		RepoID:   repo.ID,
@@ -529,7 +539,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		OwnerID:  repo.OwnerID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolFalse,
-		Type:     project_model.TypeOrganization,
+		Type:     repoOwnerType,
 	})
 	if err != nil {
 		ctx.ServerError("GetProjects", err)
@@ -552,7 +562,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		OwnerID:  repo.OwnerID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolTrue,
-		Type:     project_model.TypeOrganization,
+		Type:     repoOwnerType,
 	})
 	if err != nil {
 		ctx.ServerError("GetProjects", err)
@@ -2221,9 +2231,7 @@ func UpdateIssueMilestone(ctx *context.Context) {
 		}
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }
 
 // UpdateIssueAssignee change issue's or pull's assignee
@@ -2267,9 +2275,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 			}
 		}
 	}
-	ctx.JSON(http.StatusOK, map[string]any{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }
 
 // UpdatePullReviewRequest add or remove review request
@@ -2392,9 +2398,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 		}
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }
 
 // SearchIssues searches for issues across the repositories that the user has access to

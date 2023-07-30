@@ -230,16 +230,31 @@ func notify(ctx context.Context, input *notifyInput) error {
 			log.Error("jobparser.Parse: %v", err)
 			continue
 		}
+
+		// cancel running jobs if the event is push
+		if run.Event == webhook_module.HookEventPush {
+			// cancel running jobs of the same workflow
+			if err := actions_model.CancelRunningJobs(
+				ctx,
+				run.RepoID,
+				run.Ref,
+				run.WorkflowID,
+			); err != nil {
+				log.Error("CancelRunningJobs: %v", err)
+			}
+		}
+
 		if err := actions_model.InsertRun(ctx, run, jobs); err != nil {
 			log.Error("InsertRun: %v", err)
 			continue
 		}
-		if jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: run.ID}); err != nil {
-			log.Error("FindRunJobs: %v", err)
-		} else {
-			CreateCommitStatus(ctx, jobs...)
-		}
 
+		alljobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: run.ID})
+		if err != nil {
+			log.Error("FindRunJobs: %v", err)
+			continue
+		}
+		CreateCommitStatus(ctx, alljobs...)
 	}
 	return nil
 }
