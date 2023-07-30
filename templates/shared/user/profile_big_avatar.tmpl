@@ -78,7 +78,7 @@
 					</li>
 				{{end}}
 			{{end}}
-			<li>{{svg "octicon-clock"}} <span>{{.locale.Tr "user.joined_on" (DateTime "short" .ContextUser.CreatedUnix) | Safe}}</span></li>
+			<li>{{svg "octicon-calendar"}} <span>{{.locale.Tr "user.joined_on" (DateTime "short" .ContextUser.CreatedUnix) | Safe}}</span></li>
 			{{if and .Orgs .HasOrgsVisible}}
 			<li>
 				<ul class="user-orgs">
