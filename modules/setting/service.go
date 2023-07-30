@@ -74,7 +74,7 @@ var Service = struct {
 	DefaultAllowOnlyContributorsToTrackTime bool
 	NoReplyAddress                          string
 	EnableLocationButton                    bool
-	LocationQueryURL			string
+	LocationQueryURL                        string
 	EnableUserHeatmap                       bool
 	AutoWatchNewRepos                       bool
 	AutoWatchOnChanges                      bool
