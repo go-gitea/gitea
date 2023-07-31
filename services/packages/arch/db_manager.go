@@ -171,7 +171,7 @@ func CreatePacmanDb(ctx *context.Context, owner, architecture, distro string) ([
 			}
 			var found bool
 			for _, da := range md.DistroArch {
-				if da == distro+"-"+architecture {
+				if da == distro+"-"+architecture || da == distro+"-any" {
 					desckey := pkg.Name + "-" + version.Version + "-" + architecture + ".desc"
 					descfile, err := GetFileObject(ctx, distro, desckey)
 					if err != nil {
