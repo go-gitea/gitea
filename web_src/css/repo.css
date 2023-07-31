@@ -1594,7 +1594,7 @@
 
 @media (max-width: 991.98px) {
   .repository .diff-detail-box {
-    flex-direction: column;
+    flex-direction: row;
     align-items: flex-start;
   }
 }
@@ -3358,4 +3358,8 @@ tbody.commit-list {
   flex: 1;
   font-size: 18px;
   margin-left: 4px;
+}
+
+#cherry-pick-modal .scrolling.menu {
+  max-height: 200px;
 }

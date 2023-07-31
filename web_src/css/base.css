@@ -633,6 +633,11 @@ a.label,
   color: var(--color-text-light-2);
 }
 
+.ui.dropdown > .text > .description,
+.ui.dropdown .menu > .item > .description {
+  color: var(--color-text-light-2);
+}
+
 .ui.list .list > .item .header,
 .ui.list > .item .header {
   color: var(--color-text-dark);
@@ -883,7 +888,7 @@ a.label,
 .ui.table > thead > tr > th,
 .ui.table > tbody > tr > td,
 .ui.table > tr > td {
-  padding: 6px 3px;
+  padding: 6px 5px;
 }
 /* use more horizontal padding on first and last items for visuals */
 .ui.table > thead > tr > th:first-of-type,
