@@ -422,7 +422,6 @@ rules:
   no-restricted-imports: [0]
   no-restricted-syntax: [2, WithStatement, ForInStatement, LabeledStatement, SequenceExpression]
   no-return-assign: [0]
-  no-return-await: [0]
   no-script-url: [2]
   no-self-assign: [2, {props: true}]
   no-self-compare: [2]

@@ -11,6 +11,7 @@
 @import "./modules/toast.css";
 @import "./modules/divider.css";
 @import "./modules/svg.css";
+@import "./modules/flexcontainer.css";
 
 @import "./shared/issuelist.css";
 @import "./shared/milestone.css";
