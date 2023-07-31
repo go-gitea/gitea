@@ -70,6 +70,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -170,8 +171,9 @@ func (ar artifactRoutes) buildArtifactURL(runID int64, artifactHash, suffix stri
 }
 
 type getUploadArtifactRequest struct {
-	Type string
-	Name string
+	Type          string
+	Name          string
+	RetentionDays int64
 }
 
 type getUploadArtifactResponse struct {
@@ -180,7 +182,7 @@ type getUploadArtifactResponse struct {
 
 // getUploadArtifactURL generates a URL for uploading an artifact
 func (ar artifactRoutes) getUploadArtifactURL(ctx *ArtifactContext) {
-	_, runID, ok := validateRunID(ctx)
+	task, runID, ok := validateRunID(ctx)
 	if !ok {
 		return
 	}
@@ -190,6 +192,12 @@ func (ar artifactRoutes) getUploadArtifactURL(ctx *ArtifactContext) {
 		log.Error("Error decode request body: %v", err)
 		ctx.Error(http.StatusInternalServerError, "Error decode request body")
 		return
+	}
+
+	// set retention days
+	if req.RetentionDays > 0 {
+		cacheKey := fmt.Sprintf("actions_artifact_retention_days_%d_%d", task.ID, runID)
+		cache.GetCache().Put(cacheKey, req.RetentionDays, 0)
 	}
 
 	// use md5(artifact_name) to create upload url
@@ -219,8 +227,14 @@ func (ar artifactRoutes) uploadArtifact(ctx *ArtifactContext) {
 		return
 	}
 
-	// create or get artifact with name and path
+	// get artifact retention days
 	expiredDays := setting.Actions.ArtifactRetentionDays
+	cacheKey := fmt.Sprintf("actions_artifact_retention_days_%d_%d", task.ID, runID)
+	if v := cache.GetCache().Get(cacheKey); v != nil {
+		expiredDays = v.(int64)
+	}
+
+	// create or get artifact with name and path
 	artifact, err := actions.CreateArtifact(ctx, task, artifactName, artifactPath, expiredDays)
 	if err != nil {
 		log.Error("Error create or get artifact: %v", err)
