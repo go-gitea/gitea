@@ -62,13 +62,6 @@ func NewMaterialIconProvider(fs http.FileSystem, packFile string) *MaterialIconP
 	return &MaterialIconProvider{fs: fs, packFile: packFile, reloadInterval: time.Second}
 }
 
-func (m *MaterialIconProvider) preprocessSvgContent(s string) string {
-	if !strings.HasPrefix(s, "<svg") {
-		return s
-	}
-	return `<svg class="svg svg-extpack-material" width="16" height="16" ` + s[4:]
-}
-
 func (m *MaterialIconProvider) loadDataFromPack(pack http.File) (*materialIconsData, error) {
 	gzf, err := gzip.NewReader(pack)
 	if err != nil {
@@ -97,8 +90,8 @@ func (m *MaterialIconProvider) loadDataFromPack(pack http.File) (*materialIconsD
 	}
 
 	for name, icon := range iconsData.IconDefinitions {
-		iconContent := string(files[path.Join("package/dist", icon.IconPath)])
-		iconsData.IconDefinitions[name].IconContent = m.preprocessSvgContent(iconContent)
+		iconContent := files[path.Join("package/dist", icon.IconPath)]
+		iconsData.IconDefinitions[name].IconContent = string(svg.Normalize(iconContent, 16))
 	}
 
 	return &iconsData, nil
