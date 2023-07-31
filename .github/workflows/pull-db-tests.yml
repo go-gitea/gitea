@@ -98,6 +98,12 @@ jobs:
           discovery.type: single-node
         ports:
           - "9200:9200"
+      meilisearch:
+        image: getmeili/meilisearch:v1.2.0
+        env:
+          MEILI_ENV: development # disable auth
+        ports:
+          - "7700:7700"
       smtpimap:
         image: tabascoterrier/docker-imap-devel:latest
         ports:
@@ -128,7 +134,7 @@ jobs:
           go-version: ">=1.20"
           check-latest: true
       - name: Add hosts to /etc/hosts
-        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql elasticsearch smtpimap" | sudo tee -a /etc/hosts'
+        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql elasticsearch meilisearch smtpimap" | sudo tee -a /etc/hosts'
       - run: make deps-backend
       - run: make backend
         env:
