@@ -522,6 +522,8 @@ var migrations = []Migration{
 	// v269 -> v270
 	NewMigration("Drop deleted branch table", v1_21.DropDeletedBranchTable),
 	// v270 -> v271
+	NewMigration("Fix PackageProperty typo", v1_21.FixPackagePropertyTypo),
+	// v271 -> v272
 	NewMigration("Add column of closed_status to issue table", v1_21.AddClosedStatusToIssue),
 }
 

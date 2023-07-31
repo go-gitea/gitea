@@ -4,15 +4,23 @@
 package v1_21 //nolint
 
 import (
-	issues_model "code.gitea.io/gitea/models/issues"
-
 	"xorm.io/xorm"
 )
 
-func AddClosedStatusToIssue(x *xorm.Engine) error {
-	type Issue struct {
-		ClosedStatus issues_model.IssueClosedStatus `xorm:"INDEX NOT NULL DEFAULT 0"`
+func FixPackagePropertyTypo(x *xorm.Engine) error {
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err := sess.Begin(); err != nil {
+		return err
 	}
 
-	return x.Sync(new(Issue))
+	if _, err := sess.Exec(`UPDATE package_property SET name = 'rpm.metadata' WHERE name = 'rpm.metdata'`); err != nil {
+		return err
+	}
+	if _, err := sess.Exec(`UPDATE package_property SET name = 'conda.metadata' WHERE name = 'conda.metdata'`); err != nil {
+		return err
+	}
+
+	return sess.Commit()
 }
