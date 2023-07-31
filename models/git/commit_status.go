@@ -283,9 +283,9 @@ func GetLatestCommitStatus(ctx context.Context, repoID int64, sha string, listOp
 		Where("repo_id = ?", repoID).And("sha = ?", sha).
 		Select("max( id ) as id").
 		GroupBy("context_hash").OrderBy("max( id ) desc")
-
-	sess = db.SetSessionPagination(sess, &listOptions)
-
+	if !listOptions.IsListAll() {
+		sess = db.SetSessionPagination(sess, &listOptions)
+	}
 	count, err := sess.FindAndCount(&ids)
 	if err != nil {
 		return nil, count, err
