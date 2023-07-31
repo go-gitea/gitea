@@ -309,6 +309,23 @@
   id: 19
   repo_id: 58
   index: 1
+  poster_id: 2
+  original_author_id: 0
+  name: issue for pr
+  content: content
+  milestone_id: 0
+  priority: 0
+  is_closed: false
+  is_pull: true
+  num_comments: 0
+  created_unix: 946684830
+  updated_unix: 978307200
+  is_locked: false
+
+-
+  id: 20
+  repo_id: 59
+  index: 1
   poster_id: 39
   original_author_id: 0
   name: opening pr for recently new branch search test 
@@ -323,8 +340,8 @@
   is_locked: false
 
 -
-  id: 20
-  repo_id: 58
+  id: 21
+  repo_id: 59
   index: 2
   poster_id: 39
   original_author_id: 0
@@ -340,8 +357,8 @@
   is_locked: false
 
 -
-  id: 21
-  repo_id: 58
+  id: 22
+  repo_id: 59
   index: 3
   poster_id: 39
   original_author_id: 0
@@ -357,8 +374,8 @@
   is_locked: false
 
 -
-  id: 22
-  repo_id: 58
+  id: 23
+  repo_id: 59
   index: 4
   poster_id: 39
   original_author_id: 0
@@ -374,8 +391,8 @@
   is_locked: false
 
 -
-  id: 23
-  repo_id: 58
+  id: 24
+  repo_id: 59
   index: 5
   poster_id: 39
   original_author_id: 0
@@ -391,8 +408,8 @@
   is_locked: false
 
 -
-  id: 24
-  repo_id: 59
+  id: 25
+  repo_id: 60
   index: 1
   poster_id: 40
   original_author_id: 0

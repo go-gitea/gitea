@@ -85,9 +85,9 @@
   index: 1
   head_repo_id: 58
   base_repo_id: 58
-  head_branch: opening-pr
-  base_branch: master
-  merge_base: cb24c347e328d83c1e0c3c908a6b2c0a2fcb8a3d
+  head_branch: branch1
+  base_branch: main
+  merge_base: cbff181af4c9c7fee3cf6c106699e07d9a3f54e6
   has_merged: false
 
 -
@@ -95,10 +95,10 @@
   type: 0 # gitea pull request
   status: 2 # mergable
   issue_id: 20
-  index: 2
-  head_repo_id: 58
-  base_repo_id: 58
-  head_branch: closed-pr
+  index: 1
+  head_repo_id: 59
+  base_repo_id: 59
+  head_branch: opening-pr
   base_branch: master
   merge_base: cb24c347e328d83c1e0c3c908a6b2c0a2fcb8a3d
   has_merged: false
@@ -106,50 +106,63 @@
 -
   id: 9
   type: 0 # gitea pull request
-  status: 3 # manually merged
+  status: 2 # mergable
   issue_id: 21
+  index: 2
+  head_repo_id: 59
+  base_repo_id: 59
+  head_branch: closed-pr
+  base_branch: master
+  merge_base: cb24c347e328d83c1e0c3c908a6b2c0a2fcb8a3d
+  has_merged: false
+
+-
+  id: 10
+  type: 0 # gitea pull request
+  status: 3 # manually merged
+  issue_id: 22
   index: 3
-  head_repo_id: 58
-  base_repo_id: 58
+  head_repo_id: 59
+  base_repo_id: 59
   head_branch: merged-pr
   base_branch: master
   merge_base: cb24c347e328d83c1e0c3c908a6b2c0a2fcb8a3d
   has_merged: true
 
 -
-  id: 10
+  id: 11
   type: 0 # gitea pull request
   status: 2 # mergable
-  issue_id: 22
+  issue_id: 23
   index: 4
-  head_repo_id: 58
-  base_repo_id: 58
+  head_repo_id: 59
+  base_repo_id: 59
   head_branch: closed-pr-with-deleted-branch
   base_branch: master
   merge_base: cb24c347e328d83c1e0c3c908a6b2c0a2fcb8a3d
   has_merged: false
 
 -
-  id: 11
+  id: 12
   type: 0 # gitea pull request
   status: 3 # manually merged
-  issue_id: 23
+  issue_id: 24
   index: 5
-  head_repo_id: 58
-  base_repo_id: 58
+  head_repo_id: 59
+  base_repo_id: 59
   head_branch: merged-pr-with-deleted-branch
   base_branch: master
   merge_base: cb24c347e328d83c1e0c3c908a6b2c0a2fcb8a3d
   has_merged: true
 
 -
-  id: 12
+  id: 13
   type: 0 # gitea pull request
   status: 2 # mergable
-  issue_id: 24
+  issue_id: 25
   index: 1
-  head_repo_id: 59
-  base_repo_id: 58
+  head_repo_id: 60
+  base_repo_id: 59
   head_branch: same-name-branch-in-pr
   base_branch: master
   merge_base: cb24c347e328d83c1e0c3c908a6b2c0a2fcb8a3d
