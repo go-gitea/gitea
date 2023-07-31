@@ -8,7 +8,9 @@
 					{{if $avatar}}
 						{{$avatar}}
 					{{else}}
-						{{template "repo/icon" .}}
+						<div class="gt-mr-3">
+							{{template "repo/icon" .}}
+						</div>
 					{{end}}
 					<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
 					<div class="gt-mx-2">/</div>
