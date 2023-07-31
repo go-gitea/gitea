@@ -23,6 +23,7 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	issue_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/actions"
@@ -982,10 +983,18 @@ func renderCode(ctx *context.Context) {
 			ctx.ServerError("GetBaseRepo", err)
 			return
 		}
-		ctx.Data["RecentlyPushedNewBranches"], err = git_model.FindRecentlyPushedNewBranches(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID, ctx.Repo.Repository.DefaultBranch)
-		if err != nil {
-			ctx.ServerError("GetRecentlyPushedBranches", err)
-			return
+
+		showRecentlyPushedNewBranches := true
+		if ctx.Repo.Repository.IsMirror ||
+			!ctx.Repo.Repository.UnitEnabled(ctx, unit.TypePullRequests) {
+			showRecentlyPushedNewBranches = false
+		}
+		if showRecentlyPushedNewBranches {
+			ctx.Data["RecentlyPushedNewBranches"], err = git_model.FindRecentlyPushedNewBranches(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID, ctx.Repo.Repository.DefaultBranch)
+			if err != nil {
+				ctx.ServerError("GetRecentlyPushedBranches", err)
+				return
+			}
 		}
 	}
 
