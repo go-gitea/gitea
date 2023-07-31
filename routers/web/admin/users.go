@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
@@ -32,6 +33,7 @@ import (
 const (
 	tplUsers    base.TplName = "admin/user/list"
 	tplUserNew  base.TplName = "admin/user/new"
+	tplUserView base.TplName = "admin/user/view"
 	tplUserEdit base.TplName = "admin/user/edit"
 )
 
@@ -247,6 +249,45 @@ func prepareUserInfo(ctx *context.Context) *user_model.User {
 	ctx.Data["TwoFactorEnabled"] = hasTOTP || hasWebAuthn
 
 	return u
+}
+
+func ViewUser(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("admin.users.details")
+	ctx.Data["PageIsAdminUsers"] = true
+	ctx.Data["DisableRegularOrgCreation"] = setting.Admin.DisableRegularOrgCreation
+	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
+	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
+
+	u := prepareUserInfo(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	repos, count, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		OwnerID: u.ID,
+		OrderBy: db.SearchOrderByAlphabetically,
+		Private: true,
+	})
+	if err != nil {
+		ctx.ServerError("SearchRepository", err)
+		return
+	}
+
+	ctx.Data["Repos"] = repos
+	ctx.Data["ReposTotal"] = int(count)
+
+	emails, err := user_model.GetEmailAddresses(ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("GetEmailAddresses", err)
+		return
+	}
+	ctx.Data["Emails"] = emails
+	ctx.Data["EmailsTotal"] = len(emails)
+
+	ctx.HTML(http.StatusOK, tplUserView)
 }
 
 // EditUser show editing user page

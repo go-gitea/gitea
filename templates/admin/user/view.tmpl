@@ -1,0 +1,101 @@
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin view user")}}
+
+<div class="admin-setting-content">
+	<div class="ui two column stackable grid">
+		<div class="column">
+			<h4 class="ui top attached header">
+				{{.Title}}
+				<div class="ui right">
+					<a class="ui primary tiny button" href="{{.Link}}/edit">{{.locale.Tr "admin.users.edit"}}</a>
+				</div>
+			</h4>
+			<div class="ui attached segment">
+				<div class="flex-list">
+					<div class="flex-item">
+						<div class="flex-item-leading">
+							{{avatar $.Context .User 48}}
+						</div>
+						<div class="flex-item-main">
+							<div class="flex-item-title">
+								{{template "shared/user/name" .User}}
+								{{if .User.IsAdmin}}
+									<span class="ui basic label">{{.locale.Tr "admin.users.admin"}}</span>
+								{{end}}
+							</div>
+							<div class="flex-item-body">
+								{{$.locale.Tr "admin.users.activated"}}
+								<strong>
+									{{if .User.IsActive}}
+										{{svg "octicon-check"}}
+									{{else}}
+										{{svg "octicon-x"}}
+									{{end}}
+								</strong>
+							</div>
+							<div class="flex-item-body">
+								{{$.locale.Tr "admin.users.restricted"}}
+								<strong>
+									{{if .User.IsRestricted}}
+										{{svg "octicon-check"}}
+									{{else}}
+										{{svg "octicon-x"}}
+									{{end}}
+								</strong>
+							</div>
+							<div class="flex-item-body">
+								{{$.locale.Tr "admin.users.2fa"}}
+								<strong>
+									{{if .TwoFactorEnabled}}
+										<span class="text green">{{svg "octicon-check"}}</span>
+									{{else}}
+										{{svg "octicon-x"}}
+									{{end}}
+								</strong>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="column">
+			<h4 class="ui top attached header">
+				{{.locale.Tr "admin.emails"}}
+				<div class="ui right">
+					{{.EmailsTotal}}
+				</div>
+			</h4>
+			<div class="ui attached segment">
+				<div class="flex-list">
+					{{range .Emails}}
+						<div class="flex-item">
+							<div class="flex-item-main">
+								<div class="flex-text-block">
+									{{.Email}}
+									{{if .IsPrimary}}
+										<div class="ui primary label">{{$.locale.Tr "settings.primary"}}</div>
+									{{end}}
+									{{if .IsActivated}}
+										<div class="ui green label">{{$.locale.Tr "settings.activated"}}</div>
+									{{else}}
+										<div class="ui label">{{$.locale.Tr "settings.requires_activation"}}</div>
+									{{end}}
+								</div>
+							</div>
+						</div>
+					{{end}}
+				</div>
+			</div>
+		</div>
+	</div>
+	<h4 class="ui top attached header">
+		{{.locale.Tr "admin.repositories"}}
+		<div class="ui right">
+			{{.ReposTotal}}
+		</div>
+	</h4>
+	<div class="ui attached segment">
+		{{template "explore/repo_list" .}}
+	</div>
+</div>
+
+{{template "admin/layout_footer" .}}
