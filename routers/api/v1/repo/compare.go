@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"bytes"
 	"net/http"
 
 	user_model "code.gitea.io/gitea/models/user"
@@ -166,6 +167,8 @@ func Compare(ctx *context.APIContext) {
 				apiDiffFile.Status = "modified"
 			} else if diffFile.Type == gitdiff.DiffFileCopy {
 				apiDiffFile.Status = "copied"
+			} else {
+				apiDiffFile.Status = "unknow"
 			}
 
 			if skipPatch {
@@ -173,11 +176,14 @@ func Compare(ctx *context.APIContext) {
 				continue
 			}
 
+			var patchBuilder bytes.Buffer
 			for _, diffSec := range diffFile.Sections {
 				for _, diffLine := range diffSec.Lines {
-					apiDiffFile.Patch += diffLine.Content + "\n"
+					patchBuilder.WriteString(diffLine.Content)
+					patchBuilder.WriteString("\n")
 				}
 			}
+			apiDiffFile.Patch = patchBuilder.String()
 
 			result.Files = append(result.Files, apiDiffFile)
 		}
