@@ -5,4 +5,5 @@
 /modules/public/bindata.go
 /modules/templates/bindata.go
 /vendor
+/public/assets
 node_modules
