@@ -24,19 +24,28 @@
 	<div class="extra content gt-word-break">
 		<ul>
 			{{if .ContextUser.Location}}
-				<li>{{svg "octicon-location"}} {{.ContextUser.Location}}</li>
+				<li>
+					{{svg "octicon-location"}}
+					<span class="gt-f1">{{.ContextUser.Location}}</span>
+					{{if .UserLocationMapURL}}
+						{{/* We presume that the UserLocationMapURL is safe, as it is provided by the site administrator. */}}
+						<a href="{{.UserLocationMapURL | Safe}}{{.ContextUser.Location | QueryEscape}}" rel="nofollow noreferrer" data-tooltip-content="{{.locale.Tr "user.show_on_map"}}">
+							{{svg "octicon-link-external"}}
+						</a>
+					{{end}}
+				</li>
 			{{end}}
 			{{if (eq .SignedUserID .ContextUser.ID)}}
 				<li>
 					{{svg "octicon-mail"}}
-					<a href="mailto:{{.ContextUser.Email}}" rel="nofollow">{{.ContextUser.Email}}</a>
+					<a class="gt-f1" href="mailto:{{.ContextUser.Email}}" rel="nofollow">{{.ContextUser.Email}}</a>
 					<a href="{{AppSubUrl}}/user/settings#keep-email-private">
 						{{if .ShowUserEmail}}
-							<i class="ui right" data-tooltip-content="{{.locale.Tr "user.email_visibility.limited"}}">
+							<i data-tooltip-content="{{.locale.Tr "user.email_visibility.limited"}}">
 								{{svg "octicon-unlock"}}
 							</i>
 						{{else}}
-							<i class="ui right" data-tooltip-content="{{.locale.Tr "user.email_visibility.private"}}">
+							<i data-tooltip-content="{{.locale.Tr "user.email_visibility.private"}}">
 								{{svg "octicon-lock"}}
 							</i>
 						{{end}}
@@ -69,7 +78,7 @@
 					</li>
 				{{end}}
 			{{end}}
-			<li>{{svg "octicon-calendar"}} {{.locale.Tr "user.joined_on" (DateTime "short" .ContextUser.CreatedUnix) | Safe}}</li>
+			<li>{{svg "octicon-calendar"}} <span>{{.locale.Tr "user.joined_on" (DateTime "short" .ContextUser.CreatedUnix) | Safe}}</span></li>
 			{{if and .Orgs .HasOrgsVisible}}
 			<li>
 				<ul class="user-orgs">
