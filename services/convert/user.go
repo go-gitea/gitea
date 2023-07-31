@@ -51,7 +51,7 @@ func toUser(ctx context.Context, user *user_model.User, signed, authed bool) *ap
 		ID:          user.ID,
 		UserName:    user.Name,
 		FullName:    user.FullName,
-		Email:       user.GetEmail(),
+		Email:       user.GetPlaceholderEmail(),
 		AvatarURL:   user.AvatarLink(ctx),
 		Created:     user.CreatedUnix.AsTime(),
 		Restricted:  user.IsRestricted,
