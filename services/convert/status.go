@@ -33,7 +33,7 @@ func ToCommitStatus(ctx context.Context, status *git_model.CommitStatus) *api.Co
 }
 
 // ToCombinedStatus converts List of CommitStatus to a CombinedStatus
-func ToCombinedStatus(ctx context.Context, statuses []*git_model.CommitStatus, repo *api.Repository) *api.CombinedStatus {
+func ToCombinedStatus(ctx context.Context, statuses []*git_model.CommitStatus, status *git_model.CommitStatus, repo *api.Repository) *api.CombinedStatus {
 	if len(statuses) == 0 {
 		return nil
 	}
@@ -46,12 +46,10 @@ func ToCombinedStatus(ctx context.Context, statuses []*git_model.CommitStatus, r
 	}
 
 	retStatus.Statuses = make([]*api.CommitStatus, 0, len(statuses))
-	for _, status := range statuses {
-		retStatus.Statuses = append(retStatus.Statuses, ToCommitStatus(ctx, status))
-		if retStatus.State == "" || status.State.NoBetterThan(retStatus.State) {
-			retStatus.State = status.State
-		}
+	for _, s := range statuses {
+		retStatus.Statuses = append(retStatus.Statuses, ToCommitStatus(ctx, s))
 	}
+	retStatus.State = status.State
 	// According to https://docs.github.com/en/rest/commits/statuses?apiVersion=2022-11-28#get-the-combined-status-for-a-specific-reference
 	// > Additionally, a combined state is returned. The state is one of:
 	// > failure if any of the contexts report as error or failure

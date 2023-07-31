@@ -842,12 +842,12 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		ctx.Data["LatestCommitVerification"] = verification
 		ctx.Data["LatestCommitUser"] = user_model.ValidateCommitWithEmail(ctx, latestCommit)
 
-		statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptions{})
+		statuses, status, _, err := git_model.GetLatestCommitStatuses(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptions{})
 		if err != nil {
-			log.Error("GetLatestCommitStatus: %v", err)
+			log.Error("GetLatestCommitStatuses: %v", err)
 		}
 
-		ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(statuses)
+		ctx.Data["LatestCommitStatus"] = status
 		ctx.Data["LatestCommitStatuses"] = statuses
 	}
 

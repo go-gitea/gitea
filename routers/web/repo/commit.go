@@ -349,12 +349,12 @@ func Diff(ctx *context.Context) {
 	ctx.Data["Commit"] = commit
 	ctx.Data["Diff"] = diff
 
-	statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, commitID, db.ListOptions{})
+	statuses, status, _, err := git_model.GetLatestCommitStatuses(ctx, ctx.Repo.Repository.ID, commitID, db.ListOptions{})
 	if err != nil {
-		log.Error("GetLatestCommitStatus: %v", err)
+		log.Error("GetLatestCommitStatuses: %v", err)
 	}
 
-	ctx.Data["CommitStatus"] = git_model.CalcCommitStatus(statuses)
+	ctx.Data["CommitStatus"] = status
 	ctx.Data["CommitStatuses"] = statuses
 
 	verification := asymkey_model.ParseCommitWithSignature(ctx, commit)

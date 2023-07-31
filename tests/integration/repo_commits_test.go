@@ -35,7 +35,7 @@ func TestRepoCommits(t *testing.T) {
 	assert.NotEmpty(t, commitURL)
 }
 
-func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
+func doTestRepoCommitWithStatus(t *testing.T, state int, classes ...string) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
@@ -89,7 +89,7 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 	testRepoCommitsWithStatus(t, session.MakeRequest(t, req, http.StatusOK), session.MakeRequest(t, reqOne, http.StatusOK), state)
 }
 
-func testRepoCommitsWithStatus(t *testing.T, resp, respOne *httptest.ResponseRecorder, state string) {
+func testRepoCommitsWithStatus(t *testing.T, resp, respOne *httptest.ResponseRecorder, state int) {
 	var statuses []*api.CommitStatus
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), &statuses))
 	var status api.CombinedStatus
@@ -110,19 +110,19 @@ func testRepoCommitsWithStatus(t *testing.T, resp, respOne *httptest.ResponseRec
 }
 
 func TestRepoCommitsWithStatusPending(t *testing.T) {
-	doTestRepoCommitWithStatus(t, "pending", "octicon-dot-fill", "yellow")
+	doTestRepoCommitWithStatus(t, 3, "octicon-dot-fill", "yellow")
 }
 
 func TestRepoCommitsWithStatusSuccess(t *testing.T) {
-	doTestRepoCommitWithStatus(t, "success", "octicon-check", "green")
+	doTestRepoCommitWithStatus(t, 4, "octicon-check", "green")
 }
 
 func TestRepoCommitsWithStatusError(t *testing.T) {
-	doTestRepoCommitWithStatus(t, "error", "gitea-exclamation", "red")
+	doTestRepoCommitWithStatus(t, 1, "gitea-exclamation", "red")
 }
 
 func TestRepoCommitsWithStatusFailure(t *testing.T) {
-	doTestRepoCommitWithStatus(t, "failure", "octicon-x", "red")
+	doTestRepoCommitWithStatus(t, 2, "octicon-x", "red")
 }
 
 func TestRepoCommitsStatusParallel(t *testing.T) {

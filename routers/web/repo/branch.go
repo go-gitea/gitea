@@ -62,15 +62,10 @@ func Branches(ctx *context.Context) {
 		commitIDs = append(commitIDs, branch.DBBranch.CommitID)
 	}
 
-	commitStatuses, err := git_model.GetLatestCommitStatusForRepoCommitIDs(ctx, ctx.Repo.Repository.ID, commitIDs)
+	commitStatuses, commitStatus, err := git_model.GetLatestCommitStatusesForRepoCommitIDs(ctx, ctx.Repo.Repository.ID, commitIDs)
 	if err != nil {
 		ctx.ServerError("LoadBranches", err)
 		return
-	}
-
-	commitStatus := make(map[string]*git_model.CommitStatus)
-	for commitID, cs := range commitStatuses {
-		commitStatus[commitID] = git_model.CalcCommitStatus(cs)
 	}
 
 	ctx.Data["Branches"] = branches

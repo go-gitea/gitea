@@ -75,7 +75,7 @@ func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 	}
 	ctxname := fmt.Sprintf("%s / %s (%s)", runName, job.Name, event)
 	state := toCommitStatus(job.Status)
-	if statuses, _, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, db.ListOptions{}); err == nil {
+	if statuses, _, _, err := git_model.GetLatestCommitStatuses(ctx, repo.ID, sha, db.ListOptions{}); err == nil {
 		for _, v := range statuses {
 			if v.Context == ctxname {
 				if v.State == state {
@@ -86,7 +86,7 @@ func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 			}
 		}
 	} else {
-		return fmt.Errorf("GetLatestCommitStatus: %w", err)
+		return fmt.Errorf("GetLatestCommitStatuses: %w", err)
 	}
 
 	description := ""

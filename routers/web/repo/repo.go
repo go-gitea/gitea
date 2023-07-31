@@ -592,7 +592,7 @@ func SearchRepo(ctx *context.Context) {
 	}
 
 	// call the database O(1) times to get the commit statuses for all repos
-	repoToItsLatestCommitStatuses, err := git_model.GetLatestCommitStatusForPairs(ctx, repoIDsToLatestCommitSHAs, db.ListOptions{})
+	_, repoToItsLatestCommitStatus, err := git_model.GetLatestCommitStatusesForPairs(ctx, repoIDsToLatestCommitSHAs, db.ListOptions{})
 	if err != nil {
 		log.Error("GetLatestCommitStatusForPairs: %v", err)
 		return
@@ -613,7 +613,7 @@ func SearchRepo(ctx *context.Context) {
 				Link:     repo.Link(),
 				Internal: !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
 			},
-			LatestCommitStatus: git_model.CalcCommitStatus(repoToItsLatestCommitStatuses[repo.ID]),
+			LatestCommitStatus: repoToItsLatestCommitStatus[repo.ID],
 		}
 	}
 

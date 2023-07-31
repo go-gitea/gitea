@@ -469,14 +469,14 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) 
 
 	if len(compareInfo.Commits) != 0 {
 		sha := compareInfo.Commits[0].ID.String()
-		commitStatuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, sha, db.ListOptions{})
+		commitStatuses, commitStatus, _, err := git_model.GetLatestCommitStatuses(ctx, ctx.Repo.Repository.ID, sha, db.ListOptions{})
 		if err != nil {
-			ctx.ServerError("GetLatestCommitStatus", err)
+			ctx.ServerError("GetLatestCommitStatuses", err)
 			return nil
 		}
 		if len(commitStatuses) != 0 {
 			ctx.Data["LatestCommitStatuses"] = commitStatuses
-			ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(commitStatuses)
+			ctx.Data["LatestCommitStatus"] = commitStatus
 		}
 	}
 
@@ -531,14 +531,14 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 			ctx.ServerError(fmt.Sprintf("GetRefCommitID(%s)", pull.GetGitRefName()), err)
 			return nil
 		}
-		commitStatuses, _, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, db.ListOptions{})
+		commitStatuses, commitStatus, _, err := git_model.GetLatestCommitStatuses(ctx, repo.ID, sha, db.ListOptions{})
 		if err != nil {
-			ctx.ServerError("GetLatestCommitStatus", err)
+			ctx.ServerError("GetLatestCommitStatuses", err)
 			return nil
 		}
 		if len(commitStatuses) > 0 {
 			ctx.Data["LatestCommitStatuses"] = commitStatuses
-			ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(commitStatuses)
+			ctx.Data["LatestCommitStatus"] = commitStatus
 		}
 
 		compareInfo, err := baseGitRepo.GetCompareInfo(pull.BaseRepo.RepoPath(),
@@ -623,14 +623,14 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 		return nil
 	}
 
-	commitStatuses, _, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, db.ListOptions{})
+	commitStatuses, commitStatus, _, err := git_model.GetLatestCommitStatuses(ctx, repo.ID, sha, db.ListOptions{})
 	if err != nil {
-		ctx.ServerError("GetLatestCommitStatus", err)
+		ctx.ServerError("GetLatestCommitStatuses", err)
 		return nil
 	}
 	if len(commitStatuses) > 0 {
 		ctx.Data["LatestCommitStatuses"] = commitStatuses
-		ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(commitStatuses)
+		ctx.Data["LatestCommitStatus"] = commitStatus
 	}
 
 	if pb != nil && pb.EnableStatusCheck {
@@ -642,7 +642,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 			}
 			return false
 		}
-		ctx.Data["RequiredStatusCheckState"] = pull_service.MergeRequiredContextsCommitStatus(commitStatuses, pb.StatusCheckContexts)
+		ctx.Data["RequiredStatusCheckState"] = pull_service.MergeRequiredContextsCommitStatus(commitStatuses, commitStatus, pb.StatusCheckContexts)
 	}
 
 	ctx.Data["HeadBranchMovedOn"] = headBranchSha != sha

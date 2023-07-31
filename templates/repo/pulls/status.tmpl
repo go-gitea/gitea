@@ -1,16 +1,14 @@
 {{if $.LatestCommitStatus}}
 	{{if not $.Issue.PullRequest.HasMerged}}
 		<div class="ui top attached header">
-			{{if eq .LatestCommitStatus.State "pending"}}
-				{{$.locale.Tr "repo.pulls.status_checking"}}
-			{{else if eq .LatestCommitStatus.State "success"}}
-				{{$.locale.Tr "repo.pulls.status_checks_success"}}
-			{{else if eq .LatestCommitStatus.State "warning"}}
-				{{$.locale.Tr "repo.pulls.status_checks_warning"}}
-			{{else if eq .LatestCommitStatus.State "failure"}}
+			{{if eq .LatestCommitStatus.State 1}}
 				{{$.locale.Tr "repo.pulls.status_checks_failure"}}
-			{{else if eq .LatestCommitStatus.State "error"}}
+			{{else if eq .LatestCommitStatus.State 2}}
 				{{$.locale.Tr "repo.pulls.status_checks_error"}}
+			{{else if eq .LatestCommitStatus.State 3}}
+				{{$.locale.Tr "repo.pulls.status_checking"}}
+			{{else if eq .LatestCommitStatus.State 4}}
+				{{$.locale.Tr "repo.pulls.status_checks_success"}}
 			{{else}}
 				{{$.locale.Tr "repo.pulls.status_checking"}}
 			{{end}}
