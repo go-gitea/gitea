@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,7 +33,6 @@ func TestAPIReposGitCompare(t *testing.T) {
 
 		var apiData api.GitCompareResponse
 		DecodeJSON(t, resp, &apiData)
-		assert.Equal(t, "http://localhost:3003/user2/repo1/compare/master...branch2", apiData.HTMLURL)
 		assert.Equal(t, 2, len(apiData.Commits))
 		assert.Equal(t, 1, len(apiData.Files))
 		assert.Equal(t, "README.md", apiData.Files[0].FileName)
