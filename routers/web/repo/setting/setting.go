@@ -328,6 +328,10 @@ func SettingsPost(ctx *context.Context) {
 			ctx.ServerError("UpdatePushMirrorInterval", err)
 			return
 		}
+		// Background why we are adding it to Queue
+		// If we observed its implementation in the context of `push-mirror-sync` where it
+		// is evident that pushing to the queue is necessary for updates.
+		// So, there are updates within the given interval, it is necessary to update the queue accordingly.
 		mirror_module.AddPushMirrorToQueue(m.ID)
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(repo.Link() + "/settings")
