@@ -469,7 +469,7 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) 
 
 	if len(compareInfo.Commits) != 0 {
 		sha := compareInfo.Commits[0].ID.String()
-		commitStatuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, sha, db.ListOptions{})
+		commitStatuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, sha, db.ListOptions{ListAll: true})
 		if err != nil {
 			ctx.ServerError("GetLatestCommitStatus", err)
 			return nil
@@ -531,7 +531,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 			ctx.ServerError(fmt.Sprintf("GetRefCommitID(%s)", pull.GetGitRefName()), err)
 			return nil
 		}
-		commitStatuses, _, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, db.ListOptions{})
+		commitStatuses, _, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, db.ListOptions{ListAll: true})
 		if err != nil {
 			ctx.ServerError("GetLatestCommitStatus", err)
 			return nil
@@ -623,7 +623,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 		return nil
 	}
 
-	commitStatuses, _, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, db.ListOptions{})
+	commitStatuses, _, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, db.ListOptions{ListAll: true})
 	if err != nil {
 		ctx.ServerError("GetLatestCommitStatus", err)
 		return nil
