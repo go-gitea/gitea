@@ -27,6 +27,7 @@ var UI = struct {
 	DefaultShowFullName   bool
 	DefaultTheme          string
 	Themes                []string
+	FileIconTheme         string
 	Reactions             []string
 	ReactionsLookup       container.Set[string] `ini:"-"`
 	CustomEmojis          []string
@@ -77,6 +78,7 @@ var UI = struct {
 	ReactionMaxUserNum:  10,
 	MaxDisplayFileSize:  8388608,
 	DefaultTheme:        `auto`,
+	FileIconTheme:       `material`,
 	Themes:              []string{`auto`, `gitea`, `arc-green`},
 	Reactions:           []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
 	CustomEmojis:        []string{`git`, `gitea`, `codeberg`, `gitlab`, `github`, `gogs`},

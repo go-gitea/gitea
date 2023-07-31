@@ -8,6 +8,7 @@ import (
 	"html/template"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
 )
 
@@ -28,6 +29,8 @@ func fileIconBasic(ctx context.Context, entry *git.TreeEntry) template.HTML {
 }
 
 func FileIcon(ctx context.Context, entry *git.TreeEntry) template.HTML {
-	// TODO: if it needs to use different file icon provider for different users, it could use ctx to check user setting and call fileIconBasic(ctx, entry)
-	return DefaultMaterialIconProvider().FileIcon(ctx, entry)
+	if setting.UI.FileIconTheme == "material" {
+		return DefaultMaterialIconProvider().FileIcon(ctx, entry)
+	}
+	return fileIconBasic(ctx, entry)
 }

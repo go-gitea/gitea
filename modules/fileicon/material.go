@@ -144,12 +144,16 @@ func (m *MaterialIconProvider) FileIcon(ctx context.Context, entry *git.TreeEntr
 
 	if entry.IsLink() {
 		if te, err := entry.FollowLink(); err == nil && te.IsDir() {
-			return svg.RenderHTML("octicon-file-directory-symlink") // TODO: find some better icons for them
+			return svg.RenderHTML("material-folder-symlink")
 		}
 		return svg.RenderHTML("octicon-file-symlink-file") // TODO: find some better icons for them
 	}
 
 	name := m.findIconName(entry)
+	if name == "folder" {
+		// the material icon pack's "folder" icon doesn't look good, so use our built-in one
+		return svg.RenderHTML("material-folder-generic")
+	}
 	if iconDef, ok := m.materialIcons.IconDefinitions[name]; ok && iconDef.IconContent != "" {
 		return template.HTML(iconDef.IconContent)
 	}
