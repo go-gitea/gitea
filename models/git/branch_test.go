@@ -188,7 +188,7 @@ func TestOnlyGetDeletedBranchOnCorrectRepo(t *testing.T) {
 func TestFindRecentlyPushedNewBranches(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 58})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 59})
 	user39 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 39})
 	user40 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 40})
 	user41 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 41})
