@@ -6,6 +6,7 @@ package markup
 
 import (
 	"io"
+	"net/url"
 	"regexp"
 	"sync"
 
@@ -79,6 +80,14 @@ func createDefaultPolicy() *bluemonday.Policy {
 		policy.AllowURLSchemes(setting.Markdown.CustomURLSchemes...)
 	} else {
 		policy.AllowURLSchemesMatching(allowAllRegex)
+
+		// Even if every scheme is allowed, these three are blocked for security reasons
+		disallowScheme := func(*url.URL) bool {
+			return false
+		}
+		policy.AllowURLSchemeWithCustomPolicy("javascript", disallowScheme)
+		policy.AllowURLSchemeWithCustomPolicy("vbscript", disallowScheme)
+		policy.AllowURLSchemeWithCustomPolicy("data", disallowScheme)
 	}
 
 	// Allow classes for anchors
@@ -86,6 +95,9 @@ func createDefaultPolicy() *bluemonday.Policy {
 
 	// Allow classes for task lists
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`task-list-item`)).OnElements("li")
+
+	// Allow classes for org mode list item status.
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^(unchecked|checked|indeterminate)$`)).OnElements("li")
 
 	// Allow icons
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^icon(\s+[\p{L}\p{N}_-]+)+$`)).OnElements("i")

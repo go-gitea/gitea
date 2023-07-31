@@ -243,7 +243,9 @@ func sortProjectSession(sess *xorm.Session, sortType string) {
 // FindProjects returns a list of all projects that have been created in the repository
 func FindProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, error) {
 	e := db.GetEngine(ctx).Where(opts.toConds())
-	sortProjectSession(e, opts.OrderBy)
+	if opts.OrderBy.String() != "" {
+		sortProjectSession(e, opts.OrderBy)
+	}
 	projects := make([]*Project, 0, setting.UI.IssuePagingNum)
 
 	if opts.Page > 0 {

@@ -194,7 +194,7 @@ func (status *CommitStatus) APIURL(ctx context.Context) string {
 // CalcCommitStatus returns commit status state via some status, the commit statues should order by id desc
 func CalcCommitStatus(statuses []*CommitStatus) *CommitStatus {
 	var lastStatus *CommitStatus
-	var state api.CommitStatusState
+	state := api.CommitStatusSuccess
 	for _, status := range statuses {
 		if status.State.NoBetterThan(state) {
 			state = status.State
