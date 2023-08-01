@@ -86,20 +86,14 @@ export function initRepoIssueDue() {
   });
 }
 
-export function excludeLabel(href, labelId) {
-  const regStr = `labels=((?:-?[0-9]+%2c)*)(${labelId})((?:%2c-?[0-9]+)*)&`;
-  const newStr = 'labels=$1-$2$3&';
-  return href.replace(new RegExp(regStr), newStr);
-}
-
 export function initRepoIssueSidebarList() {
   const repolink = $('#repolink').val();
   const repoId = $('#repoId').val();
   const crossRepoSearch = $('#crossRepoSearch').val();
-  const state = $('#state').val();
-  let issueSearchUrl = `${appSubUrl}/${repolink}/issues/search?q={query}&state=${state}`;
+  const tp = $('#type').val();
+  let issueSearchUrl = `${appSubUrl}/${repolink}/issues/search?q={query}&type=${tp}`;
   if (crossRepoSearch === 'true') {
-    issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${repoId}&state=${state}`;
+    issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${repoId}&type=${tp}`;
   }
   $('#new-dependency-drop-list')
     .dropdown({
@@ -107,7 +101,7 @@ export function initRepoIssueSidebarList() {
         url: issueSearchUrl,
         onResponse(response) {
           const filteredResponse = {success: true, results: []};
-          const currIssueId = $list.data('issue-id');
+          const currIssueId =  $('#new-dependency-drop-list').data('issue-id');
           // Parse the response from the api to work with our dropdown
           $.each(response, (_i, issue) => {
             // Don't list current issue in the dependency list.
@@ -127,14 +121,22 @@ export function initRepoIssueSidebarList() {
 
       fullTextSearch: true,
     });
+  
+  function excludeLabel(item) {
+    const href = $(item).attr('href');
+    const id = $(item).data('label-id');
+
+    const regStr = `labels=((?:-?[0-9]+%2c)*)(${id})((?:%2c-?[0-9]+)*)&`;
+    const newStr = 'labels=$1-$2$3&';
+
+    window.location = href.replace(new RegExp(regStr), newStr);
+  }
 
   $('.menu a.label-filter-item').each(function () {
     $(this).on('click', function (e) {
       if (e.altKey) {
         e.preventDefault();
-        const href = $(this).attr('href');
-        const id = $(this).data('label-id');
-        window.location = excludeLabel(href, id);
+        excludeLabel(this);
       }
     });
   });
@@ -143,9 +145,7 @@ export function initRepoIssueSidebarList() {
     if (e.altKey && e.key === 'Enter') {
       const selectedItems = $('.menu .ui.dropdown.label-filter .menu .item.selected');
       if (selectedItems.length > 0) {
-        const href = $(selectedItems[0]).attr('href');
-        const id = $(selectedItems[0]).attr('label-id');
-        window.location = excludeLabel(href, id);
+        excludeLabel($(selectedItems[0]));
       }
     }
   });
