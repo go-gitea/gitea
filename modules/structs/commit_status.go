@@ -30,7 +30,13 @@ func (css CommitStatusState) String() string {
 	return commitStatusNames[css]
 }
 
+func (css CommitStatusState) IsValid() bool {
+	_, ok := commitStatusNames[css]
+	return ok
+}
+
 // NoBetterThan returns true if this State is no better than the given State
+// You should ensure the States are valid by call IsValid()
 func (css CommitStatusState) NoBetterThan(css2 CommitStatusState) bool {
 	return int(css) <= int(css2)
 }
