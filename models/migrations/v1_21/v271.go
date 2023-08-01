@@ -5,6 +5,7 @@ package v1_21 //nolint
 
 import (
 	"code.gitea.io/gitea/modules/log"
+
 	"xorm.io/xorm"
 )
 
@@ -29,7 +30,7 @@ func ConvertCommitStatusStateIntoInt(x *xorm.Engine) error {
 		State CommitStatusState `xorm:"INDEX NOT NULL"`
 	}
 
-	var commitStatusConvertMap = map[string]CommitStatusState{
+	commitStatusConvertMap := map[string]CommitStatusState{
 		"error":   CommitStatusError,
 		"failure": CommitStatusFailure,
 		"pending": CommitStatusPending,
