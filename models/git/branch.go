@@ -401,11 +401,17 @@ type FindRecentlyPushedNewBranchesOptions struct {
 	CommitAfterUnix int64
 }
 
+type RecentlyPushedNewBranch struct {
+	BranchName       string
+	BranchCompareURL string
+	UpdatedUnix      timeutil.TimeStamp
+}
+
 // FindRecentlyPushedNewBranches return at most 2 new branches pushed by the user in 6 hours which has no opened PRs created
 // opts.Actor should not be nil
 // if opts.CommitAfterUnix is 0, we will find the branches committed in recently 6 hours
 // if opts.ListOptions is not set, we will only display top 2 latest branch
-func FindRecentlyPushedNewBranches(ctx context.Context, opts *FindRecentlyPushedNewBranchesOptions) (BranchList, error) {
+func FindRecentlyPushedNewBranches(ctx context.Context, opts *FindRecentlyPushedNewBranchesOptions) ([]*RecentlyPushedNewBranch, error) {
 	// find all related repo ids
 	repoOpts := repo_model.SearchRepoOptions{
 		Actor:      opts.Actor,
@@ -418,7 +424,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, opts *FindRecentlyPushed
 	}
 	repoCond := repo_model.SearchRepositoryCondition(&repoOpts).And(repo_model.AccessibleRepositoryCondition(opts.Actor, unit.TypeCode))
 	if opts.Repo == opts.BaseRepo {
-		// should also include the brase repo's branches
+		// should also include the base repo's branches
 		repoCond = repoCond.Or(builder.Eq{"id": opts.BaseRepo.ID})
 	} else {
 		// in fork repo, we only detect the fork repo's branch
@@ -462,5 +468,25 @@ func FindRecentlyPushedNewBranches(ctx context.Context, opts *FindRecentlyPushed
 		ListOptions:     opts.ListOptions,
 	}
 
-	return FindBranches(ctx, findBranchOpts)
+	branches, err := FindBranches(ctx, findBranchOpts)
+	if err != nil {
+		return nil, err
+	}
+	if err := branches.LoadRepo(ctx); err != nil {
+		return nil, err
+	}
+
+	newBranches := make([]*RecentlyPushedNewBranch, 0, len(branches))
+	for _, branch := range branches {
+		branchName := branch.Name
+		if branch.Repo.ID != opts.BaseRepo.ID && branch.Repo.ID != opts.Repo.ID {
+			branchName = fmt.Sprintf("%s:%s", branch.Repo.FullName(), branchName)
+		}
+		newBranches = append(newBranches, &RecentlyPushedNewBranch{
+			BranchName:       branchName,
+			BranchCompareURL: branch.Repo.ComposeBranchCompareURL(opts.BaseRepo, branch.Name),
+			UpdatedUnix:      branch.UpdatedUnix,
+		})
+	}
+	return newBranches, nil
 }

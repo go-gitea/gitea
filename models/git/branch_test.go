@@ -198,7 +198,7 @@ func TestFindRecentlyPushedNewBranches(t *testing.T) {
 		name  string
 		opts  *git_model.FindRecentlyPushedNewBranchesOptions
 		count int
-		want  []int64
+		want  []string
 	}{
 		// user39 is the owner of the repo and the organization
 		// in repo58, user39 has opening/closed/merged pr and closed/merged pr with deleted branch
@@ -213,11 +213,11 @@ func TestFindRecentlyPushedNewBranches(t *testing.T) {
 				},
 			},
 			count: 2,
-			want:  []int64{6, 18}, // "new-commit", "org-fork-new-commit"
+			want:  []string{"new-commit", "org37/org_fork_repo61:org-fork-new-commit"},
 		},
-		// we have 2 branches with the same name in repo58 and repo59
-		// and repo59's branch has a pr, but repo58's branch doesn't
-		// in this case, we should get repo58's branch but not repo59's branch
+		// we have 2 branches with the same name in repo59 and repo60
+		// and repo60's branch has a pr, but repo59's branch doesn't
+		// in this case, we should get repo59's branch but not repo60's branch
 		{
 			name: "new branch from user fork repo and same name branch",
 			opts: &git_model.FindRecentlyPushedNewBranchesOptions{
@@ -229,7 +229,7 @@ func TestFindRecentlyPushedNewBranches(t *testing.T) {
 				},
 			},
 			count: 2,
-			want:  []int64{15, 25}, // "user-fork-new-commit", "same-name-branch-in-pr"
+			want:  []string{"user40/user_fork_repo60:user-fork-new-commit", "same-name-branch-in-pr"},
 		},
 		{
 			name: "new branch from private org with code permisstion repo",
@@ -238,7 +238,7 @@ func TestFindRecentlyPushedNewBranches(t *testing.T) {
 				CommitAfterUnix: 1489927670,
 			},
 			count: 1,
-			want:  []int64{21}, // "private-org-fork-new-commit"
+			want:  []string{"private_org38/private_org_fork_repo62:private-org-fork-new-commit"},
 		},
 		{
 			name: "new branch from private org with no code permisstion repo",
@@ -247,7 +247,7 @@ func TestFindRecentlyPushedNewBranches(t *testing.T) {
 				CommitAfterUnix: 1489927670,
 			},
 			count: 0,
-			want:  []int64{},
+			want:  []string{},
 		},
 		{
 			name: "test commitAfterUnix option",
@@ -256,7 +256,7 @@ func TestFindRecentlyPushedNewBranches(t *testing.T) {
 				CommitAfterUnix: 1489927690,
 			},
 			count: 1,
-			want:  []int64{18}, // "org-fork-new-commit"
+			want:  []string{"org37/org_fork_repo61:org-fork-new-commit"},
 		},
 	}
 
@@ -265,11 +265,12 @@ func TestFindRecentlyPushedNewBranches(t *testing.T) {
 			tt.opts.Repo = repo
 			tt.opts.BaseRepo = repo
 			branches, err := git_model.FindRecentlyPushedNewBranches(db.DefaultContext, tt.opts)
+
 			assert.NoError(t, err)
 			assert.Equal(t, tt.count, len(branches))
 
-			for i := 1; i < tt.count; i++ {
-				assert.Equal(t, tt.want[i], branches[i].ID)
+			for i := 0; i < tt.count; i++ {
+				assert.Equal(t, tt.want[i], branches[i].BranchName)
 			}
 		})
 	}

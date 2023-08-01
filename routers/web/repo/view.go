@@ -991,16 +991,11 @@ func renderCode(ctx *context.Context) {
 		if ctx.Repo.Repository.IsFork {
 			opts.BaseRepo = ctx.Repo.Repository.BaseRepo
 		}
-		branches, err := git_model.FindRecentlyPushedNewBranches(ctx, opts)
+		ctx.Data["RecentlyPushedNewBranches"], err = git_model.FindRecentlyPushedNewBranches(ctx, opts)
 		if err != nil {
 			ctx.ServerError("FindRecentlyPushedNewBranches", err)
 			return
 		}
-		if err := branches.LoadRepo(ctx); err != nil {
-			ctx.ServerError("branches.LoadRepo", err)
-			return
-		}
-		ctx.Data["RecentlyPushedNewBranches"] = branches
 	}
 
 	var treeNames []string

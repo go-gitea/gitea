@@ -1698,8 +1698,8 @@
   id: 59
   owner_id: 2
   owner_name: user2
-  lower_name: repo58
-  name: repo58
+  lower_name: repo59
+  name: repo59
   default_branch: master
   num_watches: 0
   num_stars: 0
@@ -1729,8 +1729,8 @@
   id: 60
   owner_id: 40
   owner_name: user40
-  lower_name: user_fork_repo
-  name: user_fork_repo
+  lower_name: user_fork_repo60
+  name: user_fork_repo60
   num_watches: 0
   num_stars: 0
   num_forks: 0
@@ -1759,8 +1759,8 @@
   id: 61
   owner_id: 37
   owner_name: org37
-  lower_name: org_fork_repo1
-  name: org_fork_repo1
+  lower_name: org_fork_repo61
+  name: org_fork_repo61
   num_watches: 0
   num_stars: 0
   num_forks: 0
@@ -1789,8 +1789,8 @@
   id: 62
   owner_id: 38
   owner_name: private_org38
-  lower_name: private_org_fork_repo1
-  name: private_org_fork_repo1
+  lower_name: private_org_fork_repo62
+  name: private_org_fork_repo62
   num_watches: 0
   num_stars: 0
   num_forks: 0
