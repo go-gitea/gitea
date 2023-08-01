@@ -270,10 +270,15 @@ func GetLatestCommitStatuses(ctx context.Context, repoID int64, sha string, list
 	}
 
 	status := &CommitStatus{}
-	_, err = db.GetEngine(ctx).Select("*, min( state ) as state").In("id", idCond).Get(status)
+	_, err = db.GetEngine(ctx).
+		Where(builder.And(
+			builder.In("id", idCond),
+			builder.In("state", minStateCond(idCond, "")),
+		)).Get(status)
 	if err != nil {
 		return nil, nil, count, err
 	}
+
 	return statuses, status, count, nil
 }
 
@@ -303,8 +308,11 @@ func GetLatestCommitStatusesForPairs(ctx context.Context, repoIDsToLatestCommitS
 		repoStatuses[status.RepoID] = append(repoStatuses[status.RepoID], status)
 	}
 
-	err = db.GetEngine(ctx).Select("*, min( state ) as state").In("id", idCond).
-		GroupBy("repo_id").Find(&statuses)
+	err = db.GetEngine(ctx).
+		Where(builder.And(
+			builder.In("id", idCond),
+			builder.In("state", minStateCond(idCond, "repo_id")),
+		)).Find(&statuses)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -331,8 +339,7 @@ func GetLatestCommitStatusesForRepoCommitIDs(ctx context.Context, repoID int64, 
 		Where(builder.Eq{"repo_id": repoID}.And(builder.Or(conds...))).
 		GroupBy("context_hash, sha")
 
-	err := db.GetEngine(ctx).In("id", idCond).
-		OrderBy(db.SearchOrderByIDReverse.String()).Find(&statuses)
+	err := db.GetEngine(ctx).In("id", idCond).OrderBy(db.SearchOrderByIDReverse.String()).Find(&statuses)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -343,8 +350,11 @@ func GetLatestCommitStatusesForRepoCommitIDs(ctx context.Context, repoID int64, 
 		repoStatuses[status.SHA] = append(repoStatuses[status.SHA], status)
 	}
 
-	err = db.GetEngine(ctx).Select("*, min( state ) as state").In("id", idCond).
-		GroupBy("sha").Find(&statuses)
+	err = db.GetEngine(ctx).
+		Where(builder.And(
+			builder.In("id", idCond),
+			builder.In("state", minStateCond(idCond, "sha")),
+		)).Find(&statuses)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -355,6 +365,16 @@ func GetLatestCommitStatusesForRepoCommitIDs(ctx context.Context, repoID int64, 
 		repoStatus[status.SHA] = status
 	}
 	return repoStatuses, repoStatus, err
+}
+
+func minStateCond(idCond *builder.Builder, groupBy string) *builder.Builder {
+	cond := builder.Select("min( state ) as state").From("commit_status").
+		Where(builder.In("id", idCond))
+
+	if groupBy != "" {
+		cond = cond.GroupBy(groupBy)
+	}
+	return cond
 }
 
 // FindRepoRecentCommitStatusContexts returns repository's recent commit status contexts
