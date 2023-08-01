@@ -87,18 +87,6 @@
   }
 }
 
-.projects-header {
-  margin-bottom: 1rem;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.projects-toolbar {
-  display: flex;
-  justify-content: space-between;
-  padding-left: 4px;
-}
-
 .repository .issue-content-right .menu {
   overflow-x: auto;
   max-height: 500px;
