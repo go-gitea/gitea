@@ -14,30 +14,37 @@
 </h4>
 <div class="ui attached segment">
 	{{if .Variables}}
-	<div class="ui list">
-		{{range $i, $v := .Variables}}
-		<div class="item gt-df gt-ac gt-fw {{if gt $i 0}} gt-py-4{{end}}">
-			<div class="content gt-f1 gt-ellipsis">
-				<strong>{{$v.Name}}</strong>
-				<div class="print meta gt-ellipsis">{{$v.Data}}</div>
+	<div class="flex-list">
+		{{range .Variables}}
+		<div class="flex-item flex-item-center">
+			<div class="flex-item-leading">
+				{{svg "octicon-pencil" 32}}
 			</div>
-			<div class="content">
-				<span class="color-text-light-2 gt-mr-5">
-					{{$.locale.Tr "settings.added_on" (DateTime "short" $v.CreatedUnix) | Safe}}
+			<div class="flex-item-main">
+				<div class="flex-item-title">
+					{{.Name}}
+				</div>
+				<div class="flex-item-body">
+					{{.Data}}
+				</div>
+			</div>
+			<div class="flex-item-trailing">
+				<span class="color-text-light-2">
+					{{$.locale.Tr "settings.added_on" (DateTime "short" .CreatedUnix) | Safe}}
 				</span>
 				<button class="btn interact-bg gt-p-3 show-modal"
 					data-tooltip-content="{{$.locale.Tr "variables.edit"}}"
 					data-modal="#edit-variable-modal"
-					data-modal-form.action="{{$.Link}}/{{$v.ID}}/edit"
+					data-modal-form.action="{{$.Link}}/{{.ID}}/edit"
 					data-modal-header="{{$.locale.Tr "actions.variables.edit"}}"
-					data-modal-dialog-variable-name="{{$v.Name}}"
-					data-modal-dialog-variable-data="{{$v.Data}}"
+					data-modal-dialog-variable-name="{{.Name}}"
+					data-modal-dialog-variable-data="{{.Data}}"
 				>
 					{{svg "octicon-pencil"}}
 				</button>
 				<button class="btn interact-bg gt-p-3 link-action"
 					data-tooltip-content="{{$.locale.Tr "actions.variables.deletion"}}"
-					data-url="{{$.Link}}/{{$v.ID}}/delete"
+					data-url="{{$.Link}}/{{.ID}}/delete"
 					data-modal-confirm="{{$.locale.Tr "actions.variables.deletion.description"}}"
 				>
 					{{svg "octicon-trash"}}

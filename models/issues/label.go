@@ -272,12 +272,12 @@ func GetLabelByID(ctx context.Context, labelID int64) (*Label, error) {
 }
 
 // GetLabelsByIDs returns a list of labels by IDs
-func GetLabelsByIDs(labelIDs []int64) ([]*Label, error) {
+func GetLabelsByIDs(labelIDs []int64, cols ...string) ([]*Label, error) {
 	labels := make([]*Label, 0, len(labelIDs))
 	return labels, db.GetEngine(db.DefaultContext).Table("label").
 		In("id", labelIDs).
 		Asc("name").
-		Cols("id", "repo_id", "org_id").
+		Cols(cols...).
 		Find(&labels)
 }
 
@@ -474,6 +474,18 @@ func GetLabelsByOrgID(ctx context.Context, orgID int64, sortType string, listOpt
 	}
 
 	return labels, sess.Find(&labels)
+}
+
+// GetLabelIDsByNames returns a list of labelIDs by names.
+// It doesn't filter them by repo or org, so it could return labels belonging to different repos/orgs.
+// It's used for filtering issues via indexer, otherwise it would be useless.
+// Since it could return labels with the same name, so the length of returned ids could be more than the length of names.
+func GetLabelIDsByNames(ctx context.Context, labelNames []string) ([]int64, error) {
+	labelIDs := make([]int64, 0, len(labelNames))
+	return labelIDs, db.GetEngine(ctx).Table("label").
+		In("name", labelNames).
+		Cols("id").
+		Find(&labelIDs)
 }
 
 // CountLabelsByOrgID count all labels that belong to given organization by ID.
