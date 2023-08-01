@@ -23,7 +23,6 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	issue_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/actions"
@@ -986,7 +985,7 @@ func renderCode(ctx *context.Context) {
 
 		showRecentlyPushedNewBranches := true
 		if ctx.Repo.Repository.IsMirror ||
-			!ctx.Repo.Repository.UnitEnabled(ctx, unit.TypePullRequests) {
+			!ctx.Repo.Repository.UnitEnabled(ctx, unit_model.TypePullRequests) {
 			showRecentlyPushedNewBranches = false
 		}
 		if showRecentlyPushedNewBranches {
