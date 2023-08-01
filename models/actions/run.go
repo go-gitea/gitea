@@ -96,11 +96,7 @@ func (run *ActionRun) LoadAttributes(ctx context.Context) error {
 		return err
 	}
 
-	if err := run.LoadTriggerUser(ctx); err != nil {
-		return err
-	}
-
-	return nil
+	return run.LoadTriggerUser(ctx)
 }
 
 // LoadRepo load Repo if not loaded
@@ -116,11 +112,7 @@ func (run *ActionRun) LoadRepo(ctx context.Context) error {
 		}
 		run.Repo = repo
 	}
-	if err := run.Repo.LoadAttributes(ctx); err != nil {
-		return err
-	}
-
-	return nil
+	return run.Repo.LoadAttributes(ctx)
 }
 
 // LoadTriggerUser load TriggerUser if not loaded
@@ -367,7 +359,7 @@ func GetRunByCommitSHA(ctx context.Context, repoID int64, commitSHA string) (*Ac
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, fmt.Errorf("run with commitSHA %d %d: %w", repoID, commitSHA, util.ErrNotExist)
+		return nil, fmt.Errorf("run with commitSHA %d %s: %w", repoID, commitSHA, util.ErrNotExist)
 	}
 
 	return run, nil
