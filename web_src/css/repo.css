@@ -1009,7 +1009,7 @@
     width: 100%;
     margin: 0;
   }
-  .repository.view.issue .comment-list .comment .content .form .button:not(:last-child) {
+  .repository.view.issue .comment-list .comment .content .form .button:not(.comment-button) {
     margin-bottom: 1rem;
   }
 }

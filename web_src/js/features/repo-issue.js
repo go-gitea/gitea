@@ -93,7 +93,40 @@ export function excludeLabel(href, labelId) {
 }
 
 export function initRepoIssueSidebarList() {
-  initIssueSearchDropdown($('#new-dependency-drop-list'));
+  const repolink = $('#repolink').val();
+  const repoId = $('#repoId').val();
+  const crossRepoSearch = $('#crossRepoSearch').val();
+  const state = $('#state').val();
+  let issueSearchUrl = `${appSubUrl}/${repolink}/issues/search?q={query}&state=${state}`;
+  if (crossRepoSearch === 'true') {
+    issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${repoId}&state=${state}`;
+  }
+  $('#new-dependency-drop-list')
+    .dropdown({
+      apiSettings: {
+        url: issueSearchUrl,
+        onResponse(response) {
+          const filteredResponse = {success: true, results: []};
+          const currIssueId = $list.data('issue-id');
+          // Parse the response from the api to work with our dropdown
+          $.each(response, (_i, issue) => {
+            // Don't list current issue in the dependency list.
+            if (issue.id === currIssueId) {
+              return;
+            }
+            filteredResponse.results.push({
+              name: `#${issue.number} ${htmlEscape(issue.title)
+              }<div class="text small dont-break-out">${htmlEscape(issue.repository.full_name)}</div>`,
+              value: issue.id,
+            });
+          });
+          return filteredResponse;
+        },
+        cache: false,
+      },
+
+      fullTextSearch: true,
+    });
 
   $('.menu a.label-filter-item').each(function () {
     $(this).on('click', function (e) {
@@ -117,42 +150,6 @@ export function initRepoIssueSidebarList() {
     }
   });
   $('.ui.dropdown.label-filter, .ui.dropdown.select-label').dropdown('setting', {'hideDividers': 'empty'}).dropdown('refreshItems');
-}
-
-function initIssueSearchDropdown($list) {
-  const repolink = $('#repolink').val();
-  const repoId = $('#repoId').val();
-  const crossRepoSearch = $('#crossRepoSearch').val();
-  const state = $('#state').val();
-  let issueSearchUrl = `${appSubUrl}/${repolink}/issues/search?q={query}&state=${state}`;
-  if (crossRepoSearch === 'true') {
-    issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${repoId}&state=${state}`;
-  }
-  $list.dropdown({
-    apiSettings: {
-      url: issueSearchUrl,
-      onResponse(response) {
-        const filteredResponse = {success: true, results: []};
-        const currIssueId = $list.data('issue-id');
-        // Parse the response from the api to work with our dropdown
-        $.each(response, (_i, issue) => {
-          // Don't list current issue in the dependency list.
-          if (issue.id === currIssueId) {
-            return;
-          }
-          filteredResponse.results.push({
-            name: `#${issue.number} ${htmlEscape(issue.title)
-            }<div class="text small dont-break-out">${htmlEscape(issue.repository.full_name)}</div>`,
-            value: issue.id,
-          });
-        });
-        return filteredResponse;
-      },
-      cache: false,
-    },
-
-    fullTextSearch: true,
-  });
 }
 
 export function initRepoIssueCommentDelete() {
