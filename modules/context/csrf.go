@@ -205,7 +205,9 @@ func PrepareCSRFProtector(opt CsrfOptions, ctx *Context) CSRFProtector {
 }
 
 func (c *csrfProtector) validateToken(ctx *Context, token string) {
-	if !ValidCsrfToken(token, c.opt.Secret, c.ID, "POST", time.Now()) {
+	if err := ValidCsrfToken(token, c.opt.Secret, c.ID, "POST", time.Now()); err != nil {
+		log.Error("Failed to validate CSRF token %q (secret=%v..., id=%v): %v", token, c.opt.Secret[:2], c.ID, err)
+		log.Error("CSRF in header: %q, in cookie: %q, in request: %q", ctx.Req.Header.Get(c.opt.Header), ctx.GetSiteCookie(c.opt.Cookie), ctx.Req.FormValue(c.opt.Form))
 		c.DeleteCookie(ctx)
 		if middleware.IsAPIPath(ctx.Req) {
 			// currently, there should be no access to the APIPath with CSRF token. because templates shouldn't use the `/api/` endpoints.

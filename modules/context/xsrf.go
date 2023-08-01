@@ -73,27 +73,30 @@ func ParseCsrfToken(token string) (issueTime time.Time, ok bool) {
 }
 
 // ValidCsrfToken returns true if token is a valid and unexpired token returned by Generate.
-func ValidCsrfToken(token, key, userID, actionID string, now time.Time) bool {
+func ValidCsrfToken(token, key, userID, actionID string, now time.Time) error {
 	issueTime, ok := ParseCsrfToken(token)
 	if !ok {
-		return false
+		return fmt.Errorf("ParseCsrfToken failed for token %q", token)
 	}
 
 	// Check that the token is not expired.
 	if now.Sub(issueTime) >= CsrfTokenTimeout {
-		return false
+		return fmt.Errorf("CSRF token %q is expeired", token)
 	}
 
 	// Check that the token is not from the future.
 	// Allow 1-minute grace period in case the token is being verified on a
 	// machine whose clock is behind the machine that issued the token.
 	if issueTime.After(now.Add(1 * time.Minute)) {
-		return false
+		return fmt.Errorf("CSRF token %q is in future", token)
 	}
 
 	expected := GenerateCsrfToken(key, userID, actionID, issueTime)
 
 	// Check that the token matches the expected value.
 	// Use constant time comparison to avoid timing attacks.
-	return subtle.ConstantTimeCompare([]byte(token), []byte(expected)) == 1
+	if subtle.ConstantTimeCompare([]byte(token), []byte(expected)) != 1 {
+		return fmt.Errorf("CSRF token %q does not match expected value %q", token, expected)
+	}
+	return nil
 }

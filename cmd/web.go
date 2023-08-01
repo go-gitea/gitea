@@ -103,6 +103,8 @@ func createPIDFile(pidPath string) {
 }
 
 func serveInstall(ctx *cli.Context) error {
+	log.Warn("This is a special build for testing CSRF token issues")
+
 	log.Info("Gitea version: %s%s", setting.AppVer, setting.AppBuiltWith)
 	log.Info("App path: %s", setting.AppPath)
 	log.Info("Work path: %s", setting.AppWorkPath)
@@ -144,6 +146,8 @@ func serveInstalled(ctx *cli.Context) error {
 	setting.InitCfgProvider(setting.CustomConf)
 	setting.LoadCommonSettings()
 	setting.MustInstalled()
+
+	log.Warn("This is a special build for testing CSRF token issues")
 
 	log.Info("Gitea version: %s%s", setting.AppVer, setting.AppBuiltWith)
 	log.Info("App path: %s", setting.AppPath)
