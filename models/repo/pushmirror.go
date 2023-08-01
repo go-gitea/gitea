@@ -85,6 +85,12 @@ func UpdatePushMirror(ctx context.Context, m *PushMirror) error {
 	return err
 }
 
+// UpdatePushMirrorInterval updates the push-mirror
+func UpdatePushMirrorInterval(ctx context.Context, m *PushMirror) error {
+	_, err := db.GetEngine(ctx).ID(m.ID).Cols("interval").Update(m)
+	return err
+}
+
 func DeletePushMirrors(ctx context.Context, opts PushMirrorOptions) error {
 	if opts.RepoID > 0 {
 		_, err := db.GetEngine(ctx).Where(opts.toConds()).Delete(&PushMirror{})
