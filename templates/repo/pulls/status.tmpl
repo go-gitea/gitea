@@ -12,7 +12,11 @@
 			{{else}}
 				{{$.locale.Tr "repo.pulls.status_checking"}}
 			{{end}}
+
+			<div class="ui right">
+				<span>{{if $.TargetRunURL}}<a href="{{$.TargetRunURL}}">{{$.locale.Tr "repo.pulls.status_checks_details"}}</a>{{end}}</span>
 			</div>
+		</div>
 	{{end}}
 
 	{{range $.LatestCommitStatuses}}
