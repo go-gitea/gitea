@@ -1010,6 +1010,9 @@
     width: 100%;
     margin: 0;
   }
+  .repository.view.issue .comment-list .comment .content .form .buttons .ui.button {
+    margin-left: 0;
+  }
   .repository.view.issue .comment-list .comment .content .form .buttons .ui.dropdown {
     flex: none;
   }
