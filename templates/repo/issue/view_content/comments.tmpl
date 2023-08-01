@@ -114,8 +114,12 @@
 						{{$.locale.Tr "repo.pulls.closed_at" .EventTag $createdStr | Safe}}
 					{{else}}
 						{{$trans := "repo.issues.closed_at"}}
-						{{if not (eq .ClosedTranslation "")}}
-							{{$trans = .ClosedTranslation}}
+						{{if eq .ClosedStatus 1}}
+							{{$trans = "repo.issues.closed_as_archived_at"}}
+						{{else if eq .ClosedStatus 2}}
+							{{$trans = "repo.issues.closed_as_resolved_at"}}
+						{{else if eq .ClosedStatus 3}}
+							{{$trans = "repo.issues.closed_as_stale_at"}}
 						{{end}}
 						{{$.locale.Tr $trans .EventTag $createdStr | Safe}}
 					{{end}}

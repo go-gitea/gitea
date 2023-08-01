@@ -5,6 +5,7 @@ package issues
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -18,7 +19,6 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/references"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -109,7 +109,7 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 	var content string
 	if !issue.IsPull && issue.IsClosed {
 		c := &ClosedIssueCommentContent{
-			Tr: issueClosedCommentTrMap[issue.ClosedStatus],
+			ClosedStatus: issue.ClosedStatus,
 		}
 		data, err := json.Marshal(c)
 		if err != nil {

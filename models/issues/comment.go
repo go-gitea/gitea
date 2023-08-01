@@ -299,7 +299,7 @@ type Comment struct {
 	CommitsNum  int64                               `xorm:"-"`
 	IsForcePush bool                                `xorm:"-"`
 
-	ClosedTranslation string `xorm:"-"`
+	ClosedStatus IssueClosedStatus `xorm:"-"`
 }
 
 func init() {
@@ -1257,6 +1257,6 @@ func (c *Comment) LoadClosedIssueCommentContent(ctx context.Context) (err error)
 	if err = json.Unmarshal([]byte(c.Content), &ctnt); err != nil {
 		return err
 	}
-	c.ClosedTranslation = ctnt.Tr
+	c.ClosedStatus = ctnt.ClosedStatus
 	return nil
 }

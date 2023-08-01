@@ -104,15 +104,8 @@ const (
 	IssueClosedStatusStale
 )
 
-var issueClosedCommentTrMap = map[IssueClosedStatus]string{
-	IssueClosedStatusCommonClose: "repo.issues.closed_at",
-	IssueClosedStatusArchived:    "repo.issues.closed_as_archived_at",
-	IssueClosedStatusResolved:    "repo.issues.closed_as_resolved_at",
-	IssueClosedStatusStale:       "repo.issues.closed_as_stale_at",
-}
-
 type ClosedIssueCommentContent struct {
-	Tr string `json:"tr"`
+	ClosedStatus IssueClosedStatus `json:"closed_status"`
 }
 
 // Issue represents an issue or pull request of repository.
