@@ -102,8 +102,11 @@ MODE = file, file-error
 
 ; by default, the "file" mode will record logs to %(log.ROOT_PATH)/gitea.log, so we don't need to set it
 ; [log.file]
+; by default, the MODE (actually it's the output writer of this logger) is taken from the section name, so we don't need to set it either
+; MODE = file
 
 [log.file-error]
+MODE = file
 LEVEL = Error
 FILE_NAME = file-error.log
 ```
