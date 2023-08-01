@@ -21,7 +21,7 @@ import (
 
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct { //nolint
-	db.ListOptions
+	db.Paginator
 	RepoIDs            []int64 // overwrites RepoCond if the length is not 0
 	RepoCond           builder.Cond
 	AssigneeID         int64
@@ -99,15 +99,28 @@ func applySorts(sess *xorm.Session, sortType string, priorityRepoID int64) {
 }
 
 func applyLimit(sess *xorm.Session, opts *IssuesOptions) *xorm.Session {
-	if opts.Page >= 0 && opts.PageSize > 0 {
-		var start int
-		if opts.Page == 0 {
-			start = 0
-		} else {
-			start = (opts.Page - 1) * opts.PageSize
-		}
-		sess.Limit(opts.PageSize, start)
+	if opts.Paginator == nil || opts.Paginator.IsListAll() {
+		return sess
 	}
+
+	// Warning: Do not use GetSkipTake() for *db.ListOptions
+	// Its implementation could reset the page size with setting.API.MaxResponseItems
+	if listOptions, ok := opts.Paginator.(*db.ListOptions); ok {
+		if listOptions.Page >= 0 && listOptions.PageSize > 0 {
+			var start int
+			if listOptions.Page == 0 {
+				start = 0
+			} else {
+				start = (listOptions.Page - 1) * listOptions.PageSize
+			}
+			sess.Limit(listOptions.PageSize, start)
+		}
+		return sess
+	}
+
+	start, limit := opts.Paginator.GetSkipTake()
+	sess.Limit(limit, start)
+
 	return sess
 }
 
@@ -435,7 +448,7 @@ func Issues(ctx context.Context, opts *IssuesOptions) ([]*Issue, error) {
 	applyConditions(sess, opts)
 	applySorts(sess, opts.SortType, opts.PriorityRepoID)
 
-	issues := make(IssueList, 0, opts.ListOptions.PageSize)
+	issues := IssueList{}
 	if err := sess.Find(&issues); err != nil {
 		return nil, fmt.Errorf("unable to query Issues: %w", err)
 	}
@@ -447,45 +460,23 @@ func Issues(ctx context.Context, opts *IssuesOptions) ([]*Issue, error) {
 	return issues, nil
 }
 
-// SearchIssueIDsByKeyword search issues on database
-func SearchIssueIDsByKeyword(ctx context.Context, kw string, repoIDs []int64, limit, start int) (int64, []int64, error) {
-	repoCond := builder.In("repo_id", repoIDs)
-	subQuery := builder.Select("id").From("issue").Where(repoCond)
-	cond := builder.And(
-		repoCond,
-		builder.Or(
-			db.BuildCaseInsensitiveLike("name", kw),
-			db.BuildCaseInsensitiveLike("content", kw),
-			builder.In("id", builder.Select("issue_id").
-				From("comment").
-				Where(builder.And(
-					builder.Eq{"type": CommentTypeComment},
-					builder.In("issue_id", subQuery),
-					db.BuildCaseInsensitiveLike("content", kw),
-				)),
-			),
-		),
-	)
+// IssueIDs returns a list of issue ids by given conditions.
+func IssueIDs(ctx context.Context, opts *IssuesOptions, otherConds ...builder.Cond) ([]int64, int64, error) {
+	sess := db.GetEngine(ctx).
+		Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
+	applyConditions(sess, opts)
+	for _, cond := range otherConds {
+		sess.And(cond)
+	}
 
-	ids := make([]int64, 0, limit)
-	res := make([]struct {
-		ID          int64
-		UpdatedUnix int64
-	}, 0, limit)
-	err := db.GetEngine(ctx).Distinct("id", "updated_unix").Table("issue").Where(cond).
-		OrderBy("`updated_unix` DESC").Limit(limit, start).
-		Find(&res)
+	applyLimit(sess, opts)
+	applySorts(sess, opts.SortType, opts.PriorityRepoID)
+
+	var res []int64
+	total, err := sess.Select("`issue`.id").Table(&Issue{}).FindAndCount(&res)
 	if err != nil {
-		return 0, nil, err
-	}
-	for _, r := range res {
-		ids = append(ids, r.ID)
+		return nil, 0, err
 	}
 
-	total, err := db.GetEngine(ctx).Distinct("id").Table("issue").Where(cond).Count()
-	if err != nil {
-		return 0, nil, err
-	}
-
-	return total, ids, nil
+	return res, total, nil
 }

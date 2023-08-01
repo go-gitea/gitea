@@ -648,6 +648,7 @@ And the following unique queues:
 - `DEFAULT_USER_IS_RESTRICTED`: **false**: Give new users restricted permissions by default
 - `DEFAULT_ENABLE_DEPENDENCIES`: **true**: Enable this to have dependencies enabled by default.
 - `ALLOW_CROSS_REPOSITORY_DEPENDENCIES` : **true** Enable this to allow dependencies on issues from any repository where the user is granted access.
+- `USER_LOCATION_MAP_URL`: **""**: A map service URL to show user's location on a map. The location will be appended to the URL as escaped query parameter.
 - `ENABLE_USER_HEATMAP`: **true**: Enable this to display the heatmap on users profiles.
 - `ENABLE_TIMETRACKING`: **true**: Enable Timetracking feature.
 - `DEFAULT_ENABLE_TIMETRACKING`: **true**: Allow repositories to use timetracking by default.
