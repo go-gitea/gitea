@@ -12,12 +12,6 @@ export default defineConfig({
     allowOnly: true,
     passWithNoTests: true,
     watch: false,
-    alias: [
-      {
-        find: /^monaco-editor$/,
-        replacement: 'node_modules/monaco-editor/esm/vs/editor/editor.api',
-      },
-    ],
   },
   plugins: [
     stringPlugin(),
