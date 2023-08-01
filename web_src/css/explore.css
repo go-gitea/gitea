@@ -10,6 +10,28 @@
   margin-right: 5px;
 }
 
+.explore .filter .ui.right .menu {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.explore .filter .ui.dropdown {
+  float: right;
+}
+
+@media (max-width: 600px) {
+  .explore .filter {
+    flex-direction: column;
+  }
+  .explore .filter form {
+    min-width: 100%;
+  }
+  .explore .filter > div {
+    align-self: end;
+    margin-top: .25em;
+  }
+}
+
 .ui.repository.branches .info {
   font-size: 12px;
   color: var(--color-text-light);
