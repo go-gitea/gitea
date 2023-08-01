@@ -487,10 +487,19 @@ func UpdateIssueByAPI(issue *Issue, doer *user_model.User) (statusChangeComment 
 		}
 	}
 
-	if currentIssue.IsClosed != issue.IsClosed {
-		statusChangeComment, err = doChangeIssueStatus(ctx, issue, doer, false)
-		if err != nil {
-			return nil, false, err
+	if issue.IsPull {
+		if currentIssue.IsClosed != issue.IsClosed {
+			statusChangeComment, err = doChangeIssueStatus(ctx, issue, doer, false)
+			if err != nil {
+				return nil, false, err
+			}
+		}
+	} else {
+		if currentIssue.IsClosed != issue.IsClosed || currentIssue.ClosedStatus != issue.ClosedStatus {
+			statusChangeComment, err = doChangeIssueStatus(ctx, issue, doer, false)
+			if err != nil {
+				return nil, false, err
+			}
 		}
 	}
 
