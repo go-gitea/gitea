@@ -64,7 +64,7 @@ func Branches(ctx *context.Context) {
 
 	commitStatuses, commitStatus, err := git_model.GetLatestCommitStatusesForRepoCommitIDs(ctx, ctx.Repo.Repository.ID, commitIDs)
 	if err != nil {
-		ctx.ServerError("LoadBranches", err)
+		ctx.ServerError("GetLatestCommitStatusesForRepoCommitIDs", err)
 		return
 	}
 
