@@ -1,13 +1,13 @@
 <!-- make sure this matches the color logic in web_src/js/components/DashboardRepoList.vue -->
-{{if eq .State 1}}
+{{if .State.IsError}}
 	{{svg "gitea-exclamation" 18 "commit-status icon text red"}}
 {{end}}
-{{if eq .State 2}}
+{{if .State.IsFailure}}
 	{{svg "octicon-x" 18 "commit-status icon text red"}}
 {{end}}
-{{if eq .State 3}}
+{{if .State.IsPending}}
 	{{svg "octicon-dot-fill" 18 "commit-status icon text yellow"}}
 {{end}}
-{{if eq .State 4}}
+{{if .State.IsSuccess}}
 	{{svg "octicon-check" 18 "commit-status icon text green"}}
 {{end}}
