@@ -1212,6 +1212,7 @@ func registerRoutes(m *web.Route) {
 				m.Post("/artifacts", actions.ArtifactsView)
 				m.Get("/artifacts/{artifact_name}", actions.ArtifactsDownloadView)
 				m.Post("/rerun", reqRepoActionsWriter, actions.RerunAll)
+				m.Post("/delete", reqRepoActionsWriter, actions.Delete)
 			})
 		}, reqRepoActionsReader, actions.MustEnableActions)
 

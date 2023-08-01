@@ -305,6 +305,35 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 	return commiter.Commit()
 }
 
+func DeleteRunJobs(ctx context.Context, jobs []*ActionRunJob) error {
+	for _, job := range jobs {
+		if err := db.DeleteBeans(ctx, job); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func DeleteRun(ctx context.Context, run *ActionRun) error {
+	if run.Repo == nil {
+		repo, err := repo_model.GetRepositoryByID(ctx, run.RepoID)
+		if err != nil {
+			return err
+		}
+		run.Repo = repo
+	}
+
+	if err := db.DeleteBeans(ctx, run); err != nil {
+		return err
+	}
+
+	if err := updateRepoRunsNumbers(ctx, run.Repo); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func GetRunByID(ctx context.Context, id int64) (*ActionRun, error) {
 	var run ActionRun
 	has, err := db.GetEngine(ctx).Where("id=?", id).Get(&run)

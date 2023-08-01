@@ -405,6 +405,36 @@ func Cancel(ctx *context_module.Context) {
 	ctx.JSON(http.StatusOK, struct{}{})
 }
 
+func Delete(ctx *context_module.Context) {
+
+	runIndex := ctx.ParamsInt64("run")
+
+	_, jobs := getRunJobs(ctx, runIndex, -1)
+	if ctx.Written() {
+		return
+	}
+
+	run, err := actions_model.GetRunByID(ctx, runIndex)
+	if err != nil {
+		ctx.Error(http.StatusNotFound, err.Error())
+		return
+	}
+
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+
+		if err := actions_model.DeleteRunJobs(ctx, jobs); err != nil {
+			return err
+		}
+		if err := actions_model.DeleteRun(ctx, run); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+}
+
 func Approve(ctx *context_module.Context) {
 	runIndex := ctx.ParamsInt64("run")
 
