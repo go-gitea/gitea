@@ -116,7 +116,7 @@
 										{{end}}
 										<div class="ui buttons gt-vm">
 											<button id="status-button"
-												class="ui button"
+												class="ui button dropdown-item"
 												name="status"
 												value="{{$statusValue}}"
 												data-status="{{$.locale.Tr $buttonTranslationKey}}"
@@ -127,7 +127,7 @@
 												</span>
 											</button>
 											{{if not .Issue.IsPull}}
-												<div id="status-dropdown" class="ui dropdown icon button gt-ml-0">
+												<div id="status-dropdown" class="ui dropdown icon button gt-ml-0 dropdown-item">
 													<input type="hidden" name="closed_status" value="{{if eq $statusValue "reopen"}}-1{{else}}{{.Issue.ClosedStatus}}{{end}}">
 													{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 													<div class="menu">
