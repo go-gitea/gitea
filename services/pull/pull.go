@@ -50,6 +50,12 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 	pr.CommitsAhead = divergence.Ahead
 	pr.CommitsBehind = divergence.Behind
 
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
 	if err := issues_model.NewPullRequest(ctx, repo, pull, labelIDs, uuids, pr); err != nil {
 		return err
 	}
@@ -67,28 +73,14 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 	// in the db and there is no way to cancel that transaction we have to proceed - therefore
 	// create new context and work from there
 	prCtx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("NewPullRequest: %s:%d", repo.FullName(), pr.Index))
-	defer finished()
-
 	if pr.Flow == issues_model.PullRequestFlowGithub {
 		err = PushToBaseRepo(prCtx, pr)
 	} else {
 		err = UpdateRef(prCtx, pr)
 	}
+	finished()
 	if err != nil {
 		return err
-	}
-
-	mentions, err := issues_model.FindAndUpdateIssueMentions(ctx, pull, pull.Poster, pull.Content)
-	if err != nil {
-		return err
-	}
-
-	notification.NotifyNewPullRequest(prCtx, pr, mentions)
-	if len(pull.Labels) > 0 {
-		notification.NotifyIssueChangeLabels(prCtx, pull.Poster, pull, pull.Labels, nil)
-	}
-	if pull.Milestone != nil {
-		notification.NotifyIssueChangeMilestone(prCtx, pull.Poster, pull, 0)
 	}
 
 	// add first push codes comment
@@ -125,14 +117,33 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 			Content:     string(dataJSON),
 		}
 
-		_, _ = issue_service.CreateComment(ctx, ops)
+		if _, err = issue_service.CreateComment(ctx, ops); err != nil {
+			return err
+		}
 
 		if !pr.IsWorkInProgress() {
 			if err := issues_model.PullRequestCodeOwnersReview(ctx, pull, pr); err != nil {
 				return err
 			}
 		}
+	}
 
+	if err := committer.Commit(); err != nil {
+		// TODO: cleanup
+		return err
+	}
+
+	mentions, err := issues_model.FindAndUpdateIssueMentions(ctx, pull, pull.Poster, pull.Content)
+	if err != nil {
+		return err
+	}
+
+	notification.NotifyNewPullRequest(prCtx, pr, mentions)
+	if len(pull.Labels) > 0 {
+		notification.NotifyIssueChangeLabels(prCtx, pull.Poster, pull, pull.Labels, nil)
+	}
+	if pull.Milestone != nil {
+		notification.NotifyIssueChangeMilestone(prCtx, pull.Poster, pull, 0)
 	}
 
 	return nil
