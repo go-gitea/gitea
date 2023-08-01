@@ -164,35 +164,62 @@ func CreatePacmanDb(ctx *context.Context, owner, architecture, distro string) ([
 		})
 
 		for _, version := range versions {
-			var md arch.Metadata
-			err = json.Unmarshal([]byte(version.MetadataJSON), &md)
+			desc, err := GetPacmanDbDesc(ctx, &DescParams{
+				Version: version,
+				Arch:    architecture,
+				Distro:  distro,
+			})
 			if err != nil {
 				return nil, err
 			}
-			var found bool
-			for _, da := range md.DistroArch {
-				if da == distro+"-"+architecture || da == distro+"-any" {
-					desckey := pkg.Name + "-" + version.Version + "-" + architecture + ".desc"
-					descfile, err := GetFileObject(ctx, distro, desckey)
-					if err != nil {
-						return nil, err
-					}
-					descbytes, err := io.ReadAll(descfile)
-					if err != nil {
-						return nil, err
-					}
-					entries[pkg.Name+"-"+version.Version+"/desc"] = descbytes
-					found = true
-					break
-				}
+			if desc == nil {
+				continue
 			}
-			if found {
-				break
-			}
+			entries[pkg.Name+"-"+version.Version+"/desc"] = desc
+			break
 		}
 	}
 
 	return arch.CreatePacmanDb(entries)
+}
+
+type DescParams struct {
+	Version *pkg_model.PackageVersion
+	Arch    string
+	Distro  string
+}
+
+// Checks if desc file exists for required architecture or any and returns it
+// in form of byte slice.
+func GetPacmanDbDesc(ctx *context.Context, p *DescParams) ([]byte, error) {
+	var md arch.Metadata
+	err := json.Unmarshal([]byte(p.Version.MetadataJSON), &md)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, distroarch := range md.DistroArch {
+		var storagekey string
+
+		if distroarch == p.Distro+"-"+p.Arch {
+			storagekey = md.Name + "-" + md.Version + "-" + p.Arch + ".desc"
+		}
+		if distroarch == p.Distro+"-any" {
+			storagekey = md.Name + "-" + md.Version + "-any.desc"
+		}
+
+		if storagekey == "" {
+			continue
+		}
+
+		descfile, err := GetFileObject(ctx, p.Distro, storagekey)
+		if err != nil {
+			return nil, err
+		}
+
+		return io.ReadAll(descfile)
+	}
+	return nil, nil
 }
 
 // Remove specific package version related to provided user or organization.

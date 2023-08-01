@@ -38,7 +38,7 @@ type Metadata struct {
 }
 
 // Package description file that will be saved as .desc file in object storage.
-// Resulting file will be used to create pacman database.
+// This file will be used to create pacman database.
 type DbDesc struct {
 	Filename       string   `json:"filename"`
 	Name           string   `json:"name"`

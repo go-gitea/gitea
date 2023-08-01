@@ -23,7 +23,7 @@ Server = <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescri
 
 	<h4 class="ui top attached header">{{.locale.Tr "packages.arch.properties"}}</h4>
 	<div class="ui attached segment">
-	<table class="ui single line very basic table">
+	<table class="ui very basic compact table">
 		<tbody>
 			<tr>
 				<td class="collapsing"><h5>Description</h5></td>
@@ -47,7 +47,7 @@ Server = <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescri
 			{{if .PackageDescriptor.Metadata.OptDepends}}
 			<tr>
 				<td class="collapsing"><h5>Optional depends</h5></td>
-				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.OptDepends " "}}</td>
+				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.OptDepends ", "}}</td>
 			</tr>
 			{{end}}
 
@@ -57,22 +57,28 @@ Server = <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescri
 				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.MakeDepends " "}}</td>
 			</tr>
 			{{end}}
-			
+
 			{{if .PackageDescriptor.Metadata.CheckDepends}}
 			<tr>
 				<td class="collapsing"><h5>Check depends</h5></td>
 				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.CheckDepends " "}}</td>
 			</tr>
 			{{end}}
-			
+
 			{{if .PackageDescriptor.Metadata.Backup}}
 			<tr>
 				<td class="collapsing"><h5>Backup file</h5></td>
 				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.Backup " "}}</td>
 			</tr>
 			{{end}}
+
+			{{if .PackageDescriptor.Metadata.DistroArch}}
+			<tr>
+				<td class="collapsing"><h5>Available for</h5></td>
+				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.DistroArch ", "}}</td>
+			</tr>
+			{{end}}
 		</tbody>
 	</table>
 	</div>
-
 {{end}}
