@@ -74,10 +74,6 @@
                 <SvgIcon name="octicon-gear" :size="18"/>
               </button>
               <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
-                <a :class="['item', currentJob.steps.length === 0 ? 'disabled' : '']" :href="run.link+'/jobs/'+jobIndex+'/logs'" target="_blank">
-                  <i class="icon"><SvgIcon name="octicon-download"/></i>
-                  {{ locale.downloadLogs }}
-                </a>
                 <a class="item" @click="toggleTimeDisplay('seconds')">
                   <i class="icon"><SvgIcon :name="timeVisible['log-time-seconds'] ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
                   {{ locale.showLogSeconds }}
@@ -86,10 +82,14 @@
                   <i class="icon"><SvgIcon :name="timeVisible['log-time-stamp'] ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
                   {{ locale.showTimeStamps }}
                 </a>
-                <div class="divider"/>
                 <a class="item" @click="toggleFullScreen()">
-                  <i class="icon"><SvgIcon :name="isFullScreen ? 'octicon-screen-normal' : 'octicon-screen-full'"/></i>
+                  <i class="icon"><SvgIcon :name="isFullScreen ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
                   {{ locale.showFullScreen }}
+                </a>
+                <div class="divider"/>
+                <a :class="['item', currentJob.steps.length === 0 ? 'disabled' : '']" :href="run.link+'/jobs/'+jobIndex+'/logs'" target="_blank">
+                  <i class="icon"><SvgIcon name="octicon-download"/></i>
+                  {{ locale.downloadLogs }}
                 </a>
               </div>
             </div>
@@ -403,18 +403,9 @@ const sfc = {
 
     // show at most one of log seconds and timestamp (can be both invisible)
     toggleTimeDisplay(type) {
-      const toToggleTypes = [];
-      const other = type === 'seconds' ? 'stamp' : 'seconds';
       this.timeVisible[`log-time-${type}`] = !this.timeVisible[`log-time-${type}`];
-      toToggleTypes.push(type);
-      if (this.timeVisible[`log-time-${type}`] && this.timeVisible[`log-time-${other}`]) {
-        this.timeVisible[`log-time-${other}`] = false;
-        toToggleTypes.push(other);
-      }
-      for (const toToggle of toToggleTypes) {
-        for (const el of this.$refs.steps.querySelectorAll(`.log-time-${toToggle}`)) {
-          toggleElem(el, this.timeVisible[`log-time-${toToggle}`]);
-        }
+      for (const el of this.$refs.steps.querySelectorAll(`.log-time-${type}`)) {
+        toggleElem(el, this.timeVisible[`log-time-${type}`]);
       }
     },
 
