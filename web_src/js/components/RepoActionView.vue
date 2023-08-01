@@ -401,7 +401,6 @@ const sfc = {
       if (this.menuVisible) this.menuVisible = false;
     },
 
-    // show at most one of log seconds and timestamp (can be both invisible)
     toggleTimeDisplay(type) {
       this.timeVisible[`log-time-${type}`] = !this.timeVisible[`log-time-${type}`];
       for (const el of this.$refs.steps.querySelectorAll(`.log-time-${type}`)) {
