@@ -268,6 +268,7 @@ PATH = /data/gitea
 
 [repo-archive]
 `
+
 	cfg, err := NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 
@@ -304,6 +305,7 @@ PATH = /data/gitea
 [repo-archive]
 PATH = archives
 `
+	AppDataPath = "/tmp/data"
 	cfg, err := NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 
