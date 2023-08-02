@@ -255,9 +255,9 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 				matchTimes++
 			}
 		case "paths":
-			filesChanged, err := commit.GetFilesChangedSinceCommit(pushPayload.Before)
+			filesChanged, err := commit.GetFilesChanged()
 			if err != nil {
-				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
+				log.Error("GetFilesChanged [commit_sha1: %s]: %v", commit.ID.String(), err)
 			} else {
 				patterns, err := workflowpattern.CompilePatterns(vals...)
 				if err != nil {
@@ -268,9 +268,9 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 				}
 			}
 		case "paths-ignore":
-			filesChanged, err := commit.GetFilesChangedSinceCommit(pushPayload.Before)
+			filesChanged, err := commit.GetFilesChanged()
 			if err != nil {
-				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
+				log.Error("GetFilesChanged [commit_sha1: %s]: %v", commit.ID.String(), err)
 			} else {
 				patterns, err := workflowpattern.CompilePatterns(vals...)
 				if err != nil {

@@ -305,6 +305,11 @@ func (c *Commit) GetFilesChangedSinceCommit(pastCommit string) ([]string, error)
 	return c.repo.GetFilesChangedBetween(pastCommit, c.ID.String())
 }
 
+// GetFilesChanged get the changed file names of the commit
+func (c *Commit) GetFilesChanged() ([]string, error) {
+	return c.repo.GetCommitFilesChanged(c.ID.String())
+}
+
 // FileChangedSinceCommit Returns true if the file given has changed since the the past commit
 // YOU MUST ENSURE THAT pastCommit is a valid commit ID.
 func (c *Commit) FileChangedSinceCommit(filename, pastCommit string) (bool, error) {

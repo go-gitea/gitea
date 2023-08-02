@@ -295,6 +295,22 @@ func (repo *Repository) GetFilesChangedBetween(base, head string) ([]string, err
 	return split, err
 }
 
+// GetCommitFilesChanged get the changed file names of the specified commit
+func (repo *Repository) GetCommitFilesChanged(commitID string) ([]string, error) {
+	stdout, _, err := NewCommand(repo.Ctx, "diff-tree", "--no-commit-id", "--name-only", "-r").AddDynamicArguments(commitID).RunStdString(&RunOpts{Dir: repo.Path})
+	if err != nil {
+		return nil, err
+	}
+	split := strings.Split(stdout, "\n")
+
+	// Because Git will always emit filenames with a terminal NUL ignore the last entry in the split - which will always be empty.
+	if len(split) > 0 {
+		split = split[:len(split)-1]
+	}
+
+	return split, err
+}
+
 // GetDiffFromMergeBase generates and return patch data from merge base to head
 func (repo *Repository) GetDiffFromMergeBase(base, head string, w io.Writer) error {
 	stderr := new(bytes.Buffer)
