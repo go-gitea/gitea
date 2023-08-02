@@ -167,16 +167,17 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 		targetPath := ConfigSectionKeyString(targetSec, "PATH", "")
 		if targetPath == "" {
 			targetPath = AppDataPath
+		} else if !filepath.IsAbs(targetPath) {
+			targetPath = filepath.Join(AppDataPath, targetPath)
 		}
 
 		if extraConfigSec == nil {
 			storage.Path = filepath.Join(targetPath, name)
 		} else {
 			storage.Path = ConfigSectionKeyString(extraConfigSec, "PATH", filepath.Join(targetPath, name))
-		}
-
-		if !filepath.IsAbs(storage.Path) {
-			storage.Path = filepath.Join(AppWorkPath, storage.Path)
+			if !filepath.IsAbs(storage.Path) {
+				storage.Path = filepath.Join(AppDataPath, storage.Path)
+			}
 		}
 
 	case string(MinioStorageType):
