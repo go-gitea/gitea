@@ -522,7 +522,9 @@ var migrations = []Migration{
 	// v269 -> v270
 	NewMigration("Drop deleted branch table", v1_21.DropDeletedBranchTable),
 	// v270 -> v271
-	NewMigration("Migrate old rpm package index", v1_21.RebuildRpmPackage),
+	NewMigration("Fix PackageProperty typo", v1_21.FixPackagePropertyTypo),
+	// v271 -> v272
+  NewMigration("Migrate old rpm package index", v1_21.RebuildRpmPackage),
 }
 
 // GetCurrentDBVersion returns the current db version

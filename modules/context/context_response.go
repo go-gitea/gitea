@@ -166,6 +166,7 @@ func (ctx *Context) serverErrorInternal(logMsg string, logErr error) {
 // NotFoundOrServerError use error check function to determine if the error
 // is about not found. It responds with 404 status code for not found error,
 // or error context description for logging purpose of 500 server error.
+// TODO: remove the "errCheck" and use util.ErrNotFound to check
 func (ctx *Context) NotFoundOrServerError(logMsg string, errCheck func(error) bool, logErr error) {
 	if errCheck(logErr) {
 		ctx.notFoundInternal(logMsg, logErr)
