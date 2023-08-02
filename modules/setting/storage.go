@@ -153,6 +153,12 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 		return nil, fmt.Errorf("invalid storage type %q", targetType)
 	}
 
+	// extra config section will be read SERVE_DIRECT, PATH, MINIO_BASE_PATH, MINIO_BUCKET to override the targetsec when possible
+	extraConfigSec := sec
+	if extraConfigSec == nil {
+		extraConfigSec = storageNameSec
+	}
+
 	var storage Storage
 	storage.Type = StorageType(targetType)
 
@@ -161,11 +167,6 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 		targetPath := ConfigSectionKeyString(targetSec, "PATH", "")
 		if targetPath == "" {
 			targetPath = AppDataPath
-		}
-
-		extraConfigSec := sec
-		if extraConfigSec == nil {
-			extraConfigSec = storageNameSec
 		}
 
 		if extraConfigSec == nil {
@@ -179,21 +180,16 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 		}
 
 	case string(MinioStorageType):
-		storage.MinioConfig.BasePath = name + "/"
-
 		if err := targetSec.MapTo(&storage.MinioConfig); err != nil {
 			return nil, fmt.Errorf("map minio config failed: %v", err)
-		}
-		// extra config section will be read SERVE_DIRECT, PATH, MINIO_BASE_PATH to override the targetsec
-		extraConfigSec := sec
-		if extraConfigSec == nil {
-			extraConfigSec = storageNameSec
 		}
 
 		if extraConfigSec != nil {
 			storage.MinioConfig.ServeDirect = ConfigSectionKeyBool(extraConfigSec, "SERVE_DIRECT", storage.MinioConfig.ServeDirect)
 			storage.MinioConfig.BasePath = ConfigSectionKeyString(extraConfigSec, "MINIO_BASE_PATH", storage.MinioConfig.BasePath)
 			storage.MinioConfig.Bucket = ConfigSectionKeyString(extraConfigSec, "MINIO_BUCKET", storage.MinioConfig.Bucket)
+		} else {
+			storage.MinioConfig.BasePath = name + "/"
 		}
 	}
 
