@@ -151,6 +151,10 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			}
 		}
 
+		if _, err := SyncRepoBranchesWithRepo(ctx, repo, gitRepo, u.ID); err != nil {
+			return repo, fmt.Errorf("SyncRepoBranchesWithRepo: %v", err)
+		}
+
 		if !opts.Releases {
 			// note: this will greatly improve release (tag) sync
 			// for pull-mirrors with many tags
@@ -169,7 +173,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		}
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}

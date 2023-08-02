@@ -273,4 +273,16 @@
   id: 46
   team_id: 17
   type: 9 # package
-  access_mode: 0
+  access_mode: 2
+
+-
+  id: 47
+  team_id: 20
+  type: 9 # package
+  access_mode: 2
+
+-
+  id: 48
+  team_id: 2
+  type: 8
+  access_mode: 2

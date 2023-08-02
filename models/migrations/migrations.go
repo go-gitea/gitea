@@ -508,6 +508,22 @@ var migrations = []Migration{
 	// v262 -> v263
 	NewMigration("Add TriggerEvent to action_run table", v1_21.AddTriggerEventToActionRun),
 	// v263 -> v264
+	NewMigration("Add git_size and lfs_size columns to repository table", v1_21.AddGitSizeAndLFSSizeToRepositoryTable),
+	// v264 -> v265
+	NewMigration("Add branch table", v1_21.AddBranchTable),
+	// v265 -> v266
+	NewMigration("Alter Actions Artifact table", v1_21.AlterActionArtifactTable),
+	// v266 -> v267
+	NewMigration("Reduce commit status", v1_21.ReduceCommitStatus),
+	// v267 -> v268
+	NewMigration("Add action_tasks_version table", v1_21.CreateActionTasksVersionTable),
+	// v268 -> v269
+	NewMigration("Update Action Ref", v1_21.UpdateActionsRefIndex),
+	// v269 -> v270
+	NewMigration("Drop deleted branch table", v1_21.DropDeletedBranchTable),
+	// v270 -> v271
+	NewMigration("Fix PackageProperty typo", v1_21.FixPackagePropertyTypo),
+	// v271 -> v272
 	NewMigration("Add start_line and is_multi_line Column in comment table", v1_21.AddStartLineAndIsMultiLineToComment),
 }
 

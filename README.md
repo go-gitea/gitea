@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://gitea.io/">
-    <img alt="Gitea" src="https://raw.githubusercontent.com/go-gitea/gitea/main/public/img/gitea.svg" width="220"/>
+    <img alt="Gitea" src="https://raw.githubusercontent.com/go-gitea/gitea/main/public/assets/img/gitea.svg" width="220"/>
   </a>
 </p>
 <h1 align="center">Gitea - Git with a cup of tea</h1>
@@ -64,7 +64,7 @@ architectures that are supported by Go, including Linux, macOS, and
 Windows on x86, amd64, ARM and PowerPC architectures.
 You can try it out using [the online demo](https://try.gitea.io/).
 This project has been
-[forked](https://blog.gitea.io/2016/12/welcome-to-gitea/) from
+[forked](https://blog.gitea.com/welcome-to-gitea/) from
 [Gogs](https://gogs.io) since November of 2016, but a lot has changed.
 
 ## Building

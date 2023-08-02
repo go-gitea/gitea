@@ -12,6 +12,7 @@ import (
 	"path"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -30,7 +31,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func exitf(format string, args ...interface{}) {
+func exitf(format string, args ...any) {
 	fmt.Printf(format+"\n", args...)
 	os.Exit(1)
 }
@@ -42,6 +43,9 @@ func InitTest(requireGitea bool) {
 	if giteaRoot == "" {
 		exitf("Environment variable $GITEA_ROOT not set")
 	}
+
+	// Speedup tests that rely on the event source ticker.
+	setting.UI.Notification.EventSourceUpdateTime = time.Second
 
 	setting.IsInTesting = true
 	setting.AppWorkPath = giteaRoot
@@ -247,6 +251,6 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 }
 
 // Printf takes a format and args and prints the string to os.Stdout
-func Printf(format string, args ...interface{}) {
+func Printf(format string, args ...any) {
 	testlogger.Printf(format, args...)
 }

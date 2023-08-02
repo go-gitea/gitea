@@ -17,12 +17,10 @@
   content: "";
   position: absolute;
   display: block;
-  height: 4rem;
-  aspect-ratio: 1 / 1;
   left: 50%;
   top: 50%;
-  max-height: 100%;
-  max-width: 100%;
+  height: min(4em, 66.6%);
+  aspect-ratio: 1;
   transform: translate(-50%, -50%);
   animation: isloadingspin 500ms infinite linear;
   border-width: 4px;
@@ -33,6 +31,15 @@
 
 .is-loading.small-loading-icon::after {
   border-width: 2px;
+}
+
+/* for single form button, the loading state should be on the button, but not go semi-transparent, just replace the text on the button with the loader. */
+form.single-button-form.is-loading > * {
+  opacity: 1;
+}
+
+form.single-button-form.is-loading .button {
+  color: transparent;
 }
 
 .markup pre.is-loading,

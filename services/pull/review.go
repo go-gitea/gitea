@@ -333,11 +333,57 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 	return review, comm, nil
 }
 
+// DismissApprovalReviews dismiss all approval reviews because of new commits
+func DismissApprovalReviews(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest) error {
+	reviews, err := issues_model.FindReviews(ctx, issues_model.FindReviewOptions{
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		IssueID:   pull.IssueID,
+		Type:      issues_model.ReviewTypeApprove,
+		Dismissed: util.OptionalBoolFalse,
+	})
+	if err != nil {
+		return err
+	}
+
+	if err := reviews.LoadIssues(ctx); err != nil {
+		return err
+	}
+
+	return db.WithTx(ctx, func(subCtx context.Context) error {
+		for _, review := range reviews {
+			if err := issues_model.DismissReview(subCtx, review, true); err != nil {
+				return err
+			}
+
+			comment, err := issue_service.CreateComment(ctx, &issues_model.CreateCommentOptions{
+				Doer:     doer,
+				Content:  "New commits pushed, approval review dismissed automatically according to repository settings",
+				Type:     issues_model.CommentTypeDismissReview,
+				ReviewID: review.ID,
+				Issue:    review.Issue,
+				Repo:     review.Issue.Repo,
+			})
+			if err != nil {
+				return err
+			}
+
+			comment.Review = review
+			comment.Poster = doer
+			comment.Issue = review.Issue
+
+			notification.NotifyPullReviewDismiss(ctx, doer, review, comment)
+		}
+		return nil
+	})
+}
+
 // DismissReview dismissing stale review by repo admin
 func DismissReview(ctx context.Context, reviewID, repoID int64, message string, doer *user_model.User, isDismiss, dismissPriors bool) (comment *issues_model.Comment, err error) {
 	review, err := issues_model.GetReviewByID(ctx, reviewID)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	if review.Type != issues_model.ReviewTypeApprove && review.Type != issues_model.ReviewTypeReject {
@@ -345,7 +391,7 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 	}
 
 	// load data for notify
-	if err = review.LoadAttributes(ctx); err != nil {
+	if err := review.LoadAttributes(ctx); err != nil {
 		return nil, err
 	}
 
@@ -354,12 +400,12 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 		return nil, fmt.Errorf("reviews's repository is not the same as the one we expect")
 	}
 
-	if err = issues_model.DismissReview(review, isDismiss); err != nil {
-		return
+	if err := issues_model.DismissReview(ctx, review, isDismiss); err != nil {
+		return nil, err
 	}
 
 	if dismissPriors {
-		reviews, err := issues_model.GetReviews(ctx, &issues_model.GetReviewOptions{
+		reviews, err := issues_model.FindReviews(ctx, issues_model.FindReviewOptions{
 			IssueID:    review.IssueID,
 			ReviewerID: review.ReviewerID,
 			Dismissed:  util.OptionalBoolFalse,
@@ -368,7 +414,7 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 			return nil, err
 		}
 		for _, oldReview := range reviews {
-			if err = issues_model.DismissReview(oldReview, true); err != nil {
+			if err = issues_model.DismissReview(ctx, oldReview, true); err != nil {
 				return nil, err
 			}
 		}
@@ -378,11 +424,8 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 		return nil, nil
 	}
 
-	if err = review.Issue.LoadPullRequest(ctx); err != nil {
-		return
-	}
-	if err = review.Issue.LoadAttributes(ctx); err != nil {
-		return
+	if err := review.Issue.LoadAttributes(ctx); err != nil {
+		return nil, err
 	}
 
 	comment, err = issue_service.CreateComment(ctx, &issues_model.CreateCommentOptions{
@@ -394,7 +437,7 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 		Repo:     review.Issue.Repo,
 	})
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	comment.Review = review
@@ -403,5 +446,5 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 
 	notification.NotifyPullReviewDismiss(ctx, doer, review, comment)
 
-	return comment, err
+	return comment, nil
 }

@@ -1,4 +1,4 @@
-<form class="ui form ignore-dirty" style="max-width: 100%">
+<form class="ui form ignore-dirty">
 	<div class="ui fluid action input">
 		{{template "shared/searchinput" dict "locale" .locale "Value" .Keyword "AutoFocus" true "Disabled" .CodeIndexerUnavailable}}
 		<div class="ui dropdown selection {{if .CodeIndexerUnavailable}} disabled{{end}}" data-tooltip-content="{{.locale.Tr "explore.search.type.tooltip"}}">

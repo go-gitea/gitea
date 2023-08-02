@@ -53,7 +53,7 @@ func (ctx *PrivateContext) Err() error {
 	return ctx.Base.Err()
 }
 
-var privateContextKey interface{} = "default_private_context"
+var privateContextKey any = "default_private_context"
 
 // GetPrivateContext returns a context for Private routes
 func GetPrivateContext(req *http.Request) *PrivateContext {

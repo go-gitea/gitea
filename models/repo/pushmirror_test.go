@@ -41,7 +41,7 @@ func TestPushMirrorsIterate(t *testing.T) {
 
 	time.Sleep(1 * time.Millisecond)
 
-	repo_model.PushMirrorsIterate(db.DefaultContext, 1, func(idx int, bean interface{}) error {
+	repo_model.PushMirrorsIterate(db.DefaultContext, 1, func(idx int, bean any) error {
 		m, ok := bean.(*repo_model.PushMirror)
 		assert.True(t, ok)
 		assert.Equal(t, "test-1", m.RemoteName)

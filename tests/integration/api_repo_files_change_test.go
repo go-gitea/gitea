@@ -44,13 +44,13 @@ func getChangeFilesOptions() *api.ChangeFilesOptions {
 		},
 		Files: []*api.ChangeFileOperation{
 			{
-				Operation: "create",
-				Content:   newContentEncoded,
+				Operation:     "create",
+				ContentBase64: newContentEncoded,
 			},
 			{
-				Operation: "update",
-				Content:   updateContentEncoded,
-				SHA:       "103ff9234cefeee5ec5361d22b49fbb04d385885",
+				Operation:     "update",
+				ContentBase64: updateContentEncoded,
+				SHA:           "103ff9234cefeee5ec5361d22b49fbb04d385885",
 			},
 			{
 				Operation: "delete",
