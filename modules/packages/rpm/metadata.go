@@ -15,17 +15,17 @@ import (
 )
 
 const (
-	PropertyMetadata = "rpm.metadata"
+	PropertyMetadata     = "rpm.metadata"
 	PropertyDistribution = "rpm.distribution"
 	PropertyArchitecture = "rpm.architecture"
-  
+
 	SettingKeyPrivate = "rpm.key.private"
 	SettingKeyPublic  = "rpm.key.public"
 
 	RepositoryPackage = "_rpm"
 	RepositoryVersion = "_repository"
-  
-  RepositoryDefaultDistribution = "default"
+
+	RepositoryDefaultDistribution = "default"
 )
 
 const (
