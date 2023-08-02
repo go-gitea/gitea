@@ -107,13 +107,8 @@ func testLocalStoragePath(t *testing.T, appDataPath, iniStr string, cases []test
 		storage := *c.storagePtr
 
 		assert.EqualValues(t, "local", storage.Type)
-
 		assert.True(t, filepath.IsAbs(storage.Path))
-		expected, err := filepath.Abs(c.expectedPath)
-		assert.NoError(t, err)
-		actual, err := filepath.Abs(storage.Path)
-		assert.NoError(t, err)
-		assert.EqualValues(t, expected, actual)
+		assert.EqualValues(t, filepath.Clean(c.expectedPath), filepath.Clean(storage.Path))
 	}
 }
 
