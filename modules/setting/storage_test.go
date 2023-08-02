@@ -196,6 +196,7 @@ func Test_getStorageInheritStorageTypeLocalRelativePath(t *testing.T) {
 STORAGE_TYPE = local
 PATH = storages
 `
+	AppDataPath = "/tmp/data"
 	cfg, err := NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
 
