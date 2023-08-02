@@ -3285,14 +3285,14 @@ tbody.commit-list {
 }
 
 .ui.segment.pr-status-list {
-  padding: 0 0.1em;
+  padding: 0 0.1em 0 0;
   max-height: 30vh;
   overflow-x: auto;
   transition: max-height 0.4s;
 }
 
 .ui.segment.pr-status-list.hide{
-  padding: 0 0.1em;
+  padding: 0 0.1em 0 0;
   max-height: 0;
   transition: max-height 0.4s;
 }
