@@ -33,6 +33,13 @@
 				<div class="desc gt-ml-2 gt-mt-3 gt-hidden label-exclusive-warning">
 					{{svg "octicon-alert"}} {{.locale.Tr "repo.issues.label_exclusive_warning" | Safe}}
 				</div>
+				<br>
+			</div>
+			<div class="field">
+				<div class="ui checkbox">
+					<input class="label-archive-input" name="is_archived" type="checkbox">
+					<label>{{.locale.Tr "repo.issues.label_archive"}}</label>
+				</div>
 			</div>
 			<div class="field">
 				<label for="description">{{.locale.Tr "repo.issues.label_description"}}</label>

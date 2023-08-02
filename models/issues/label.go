@@ -90,6 +90,7 @@ type Label struct {
 	NumClosedIssues int
 	CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix     timeutil.TimeStamp `xorm:"INDEX updated"`
+	ArchivedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
 
 	NumOpenIssues     int    `xorm:"-"`
 	NumOpenRepoIssues int64  `xorm:"-"`
