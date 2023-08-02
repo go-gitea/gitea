@@ -185,12 +185,12 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 			return nil, fmt.Errorf("map minio config failed: %v", err)
 		}
 
+		storage.MinioConfig.BasePath = name + "/"
+
 		if extraConfigSec != nil {
 			storage.MinioConfig.ServeDirect = ConfigSectionKeyBool(extraConfigSec, "SERVE_DIRECT", storage.MinioConfig.ServeDirect)
 			storage.MinioConfig.BasePath = ConfigSectionKeyString(extraConfigSec, "MINIO_BASE_PATH", storage.MinioConfig.BasePath)
 			storage.MinioConfig.Bucket = ConfigSectionKeyString(extraConfigSec, "MINIO_BUCKET", storage.MinioConfig.Bucket)
-		} else {
-			storage.MinioConfig.BasePath = name + "/"
 		}
 	}
 
