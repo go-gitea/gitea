@@ -40,19 +40,19 @@ var (
 // RubyUserMarshal is a Ruby object that has a marshal_load function.
 type RubyUserMarshal struct {
 	Name  string
-	Value interface{}
+	Value any
 }
 
 // RubyUserDef is a Ruby object that has a _load function.
 type RubyUserDef struct {
 	Name  string
-	Value interface{}
+	Value any
 }
 
 // RubyObject is a default Ruby object.
 type RubyObject struct {
 	Name   string
-	Member map[string]interface{}
+	Member map[string]any
 }
 
 // MarshalEncoder mimics Rubys Marshal class.
@@ -71,7 +71,7 @@ func NewMarshalEncoder(w io.Writer) *MarshalEncoder {
 }
 
 // Encode encodes the given type
-func (e *MarshalEncoder) Encode(v interface{}) error {
+func (e *MarshalEncoder) Encode(v any) error {
 	if _, err := e.w.Write([]byte{majorVersion, minorVersion}); err != nil {
 		return err
 	}
@@ -83,7 +83,7 @@ func (e *MarshalEncoder) Encode(v interface{}) error {
 	return e.w.Flush()
 }
 
-func (e *MarshalEncoder) marshal(v interface{}) error {
+func (e *MarshalEncoder) marshal(v any) error {
 	if v == nil {
 		return e.marshalNil()
 	}

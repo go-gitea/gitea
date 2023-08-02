@@ -85,6 +85,12 @@ func UpdatePushMirror(ctx context.Context, m *PushMirror) error {
 	return err
 }
 
+// UpdatePushMirrorInterval updates the push-mirror
+func UpdatePushMirrorInterval(ctx context.Context, m *PushMirror) error {
+	_, err := db.GetEngine(ctx).ID(m.ID).Cols("interval").Update(m)
+	return err
+}
+
 func DeletePushMirrors(ctx context.Context, opts PushMirrorOptions) error {
 	if opts.RepoID > 0 {
 		_, err := db.GetEngine(ctx).Where(opts.toConds()).Delete(&PushMirror{})
@@ -127,7 +133,7 @@ func GetPushMirrorsSyncedOnCommit(ctx context.Context, repoID int64) ([]*PushMir
 }
 
 // PushMirrorsIterate iterates all push-mirror repositories.
-func PushMirrorsIterate(ctx context.Context, limit int, f func(idx int, bean interface{}) error) error {
+func PushMirrorsIterate(ctx context.Context, limit int, f func(idx int, bean any) error) error {
 	sess := db.GetEngine(ctx).
 		Where("last_update + (`interval` / ?) <= ?", time.Second, time.Now().Unix()).
 		And("`interval` != 0").

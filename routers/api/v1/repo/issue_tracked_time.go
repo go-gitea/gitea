@@ -75,7 +75,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		ctx.NotFound("Timetracker is disabled")
 		return
 	}
-	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound(err)
@@ -121,7 +121,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		}
 	}
 
-	count, err := issues_model.CountTrackedTimes(opts)
+	count, err := issues_model.CountTrackedTimes(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -132,7 +132,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "GetTrackedTimes", err)
 		return
 	}
-	if err = trackedTimes.LoadAttributes(); err != nil {
+	if err = trackedTimes.LoadAttributes(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
@@ -179,7 +179,7 @@ func AddTime(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	form := web.GetForm(ctx).(*api.AddTimeOption)
-	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound(err)
@@ -214,12 +214,12 @@ func AddTime(ctx *context.APIContext) {
 		created = form.Created
 	}
 
-	trackedTime, err := issues_model.AddTime(user, issue, form.Time, created)
+	trackedTime, err := issues_model.AddTime(ctx, user, issue, form.Time, created)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "AddTime", err)
 		return
 	}
-	if err = trackedTime.LoadAttributes(); err != nil {
+	if err = trackedTime.LoadAttributes(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
@@ -260,7 +260,7 @@ func ResetIssueTime(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound(err)
@@ -331,7 +331,7 @@ func DeleteTime(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound(err)
@@ -443,7 +443,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "GetTrackedTimes", err)
 		return
 	}
-	if err = trackedTimes.LoadAttributes(); err != nil {
+	if err = trackedTimes.LoadAttributes(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
@@ -540,7 +540,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		}
 	}
 
-	count, err := issues_model.CountTrackedTimes(opts)
+	count, err := issues_model.CountTrackedTimes(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -551,7 +551,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "GetTrackedTimes", err)
 		return
 	}
-	if err = trackedTimes.LoadAttributes(); err != nil {
+	if err = trackedTimes.LoadAttributes(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
@@ -601,7 +601,7 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 		return
 	}
 
-	count, err := issues_model.CountTrackedTimes(opts)
+	count, err := issues_model.CountTrackedTimes(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -613,7 +613,7 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 		return
 	}
 
-	if err = trackedTimes.LoadAttributes(); err != nil {
+	if err = trackedTimes.LoadAttributes(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}

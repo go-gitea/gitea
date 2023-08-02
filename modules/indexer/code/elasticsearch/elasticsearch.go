@@ -133,7 +133,7 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 		elastic.NewBulkIndexRequest().
 			Index(b.inner.VersionedIndexName()).
 			Id(id).
-			Doc(map[string]interface{}{
+			Doc(map[string]any{
 				"repo_id":    repo.ID,
 				"content":    string(charset.ToUTF8DropErrors(fileContents)),
 				"commit_id":  sha,
@@ -234,7 +234,7 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 		}
 
 		repoID, fileName := internal.ParseIndexerID(hit.Id)
-		res := make(map[string]interface{})
+		res := make(map[string]any)
 		if err := json.Unmarshal(hit.Source, &res); err != nil {
 			return 0, nil, nil, err
 		}
@@ -285,7 +285,7 @@ func (b *Indexer) Search(ctx context.Context, repoIDs []int64, language, keyword
 	query := elastic.NewBoolQuery()
 	query = query.Must(kwQuery)
 	if len(repoIDs) > 0 {
-		repoStrs := make([]interface{}, 0, len(repoIDs))
+		repoStrs := make([]any, 0, len(repoIDs))
 		for _, repoID := range repoIDs {
 			repoStrs = append(repoStrs, repoID)
 		}

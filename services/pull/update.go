@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -168,7 +167,7 @@ func GetDiverging(ctx context.Context, pr *issues_model.PullRequest) (*git.Diver
 	log.Trace("GetDiverging[%-v]: compare commits", pr)
 	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
 	if err != nil {
-		if !models.IsErrBranchDoesNotExist(err) {
+		if !git_model.IsErrBranchNotExist(err) {
 			log.Error("CreateTemporaryRepoForPR %-v: %v", pr, err)
 		}
 		return nil, err

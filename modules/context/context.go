@@ -32,7 +32,7 @@ import (
 // Render represents a template render
 type Render interface {
 	TemplateLookup(tmpl string) (templates.TemplateExecutor, error)
-	HTML(w io.Writer, status int, name string, data interface{}) error
+	HTML(w io.Writer, status int, name string, data any) error
 }
 
 // Context represents context of a request.
@@ -69,7 +69,7 @@ func init() {
 // TrHTMLEscapeArgs runs ".Locale.Tr()" but pre-escapes all arguments with html.EscapeString.
 // This is useful if the locale message is intended to only produce HTML content.
 func (ctx *Context) TrHTMLEscapeArgs(msg string, args ...string) string {
-	trArgs := make([]interface{}, len(args))
+	trArgs := make([]any, len(args))
 	for i, arg := range args {
 		trArgs[i] = html.EscapeString(arg)
 	}
@@ -225,4 +225,16 @@ func (ctx *Context) GetErrMsg() string {
 		msg = "invalid form data"
 	}
 	return msg
+}
+
+func (ctx *Context) JSONRedirect(redirect string) {
+	ctx.JSON(http.StatusOK, map[string]any{"redirect": redirect})
+}
+
+func (ctx *Context) JSONOK() {
+	ctx.JSON(http.StatusOK, map[string]any{"ok": true}) // this is only a dummy response, frontend seldom uses it
+}
+
+func (ctx *Context) JSONError(msg string) {
+	ctx.JSON(http.StatusBadRequest, map[string]any{"errorMessage": msg})
 }

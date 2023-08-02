@@ -121,7 +121,7 @@ func (d *OneDevDownloader) LogString() string {
 	return fmt.Sprintf("<OneDevDownloader %s [%d]/%s>", d.baseURL, d.repoID, d.repoName)
 }
 
-func (d *OneDevDownloader) callAPI(endpoint string, parameter map[string]string, result interface{}) error {
+func (d *OneDevDownloader) callAPI(endpoint string, parameter map[string]string, result any) error {
 	u, err := d.baseURL.Parse(endpoint)
 	if err != nil {
 		return err
@@ -400,9 +400,9 @@ func (d *OneDevDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 	}
 
 	rawChanges := make([]struct {
-		Date   time.Time              `json:"date"`
-		UserID int64                  `json:"userId"`
-		Data   map[string]interface{} `json:"data"`
+		Date   time.Time      `json:"date"`
+		UserID int64          `json:"userId"`
+		Data   map[string]any `json:"data"`
 	}, 0, 100)
 
 	if context.IsPullRequest {
