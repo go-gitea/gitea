@@ -3304,6 +3304,14 @@ tbody.commit-list {
   align-items: center;
 }
 
+.pr-status:first-child {
+  border-top: none !important;
+}
+
+.pr-status:last-child {
+  border-bottom: none !important;
+}
+
 .pr-status .commit-status {
   margin: 1em;
   flex-shrink: 0;
