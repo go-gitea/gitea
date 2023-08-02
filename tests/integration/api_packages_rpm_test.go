@@ -79,8 +79,8 @@ Mu0UFYgZ/bYnuvn/vz4wtCz8qMwsHUvP0PX3tbYFUctAPdrY6tiiDtcCddDECahx7SuVNP5dpmb5
 		req := NewRequest(t, "GET", rootURL+"/el9.repo")
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		expected := fmt.Sprintf(`[gitea-%s]
-name=%s - %s
+		expected := fmt.Sprintf(`[gitea-%s-el9]
+name=%s - %s - el9
 baseurl=%sapi/packages/%s/rpm/el9
 enabled=1
 gpgcheck=1
@@ -196,15 +196,15 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`, user.Name, user.Name, setting.AppN
 				switch d.Type {
 				case "primary":
 					assert.EqualValues(t, 718, d.Size)
-					assert.EqualValues(t, 1731, d.OpenSize)
+					assert.EqualValues(t, 1729, d.OpenSize)
 					assert.Equal(t, "repodata/primary.xml.gz", d.Location.Href)
 				case "filelists":
-					assert.EqualValues(t, 258, d.Size)
-					assert.EqualValues(t, 328, d.OpenSize)
+					assert.EqualValues(t, 257, d.Size)
+					assert.EqualValues(t, 326, d.OpenSize)
 					assert.Equal(t, "repodata/filelists.xml.gz", d.Location.Href)
 				case "other":
-					assert.EqualValues(t, 308, d.Size)
-					assert.EqualValues(t, 396, d.OpenSize)
+					assert.EqualValues(t, 306, d.Size)
+					assert.EqualValues(t, 394, d.OpenSize)
 					assert.Equal(t, "repodata/other.xml.gz", d.Location.Href)
 				}
 			}
