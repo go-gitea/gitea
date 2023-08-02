@@ -81,8 +81,9 @@ Gitea token scopes are as follows:
 ## Pre-configured Applications
 
 Gitea creates OAuth applications for the following services by default on startup:
-  - [git-credential-oauth](https://github.com/hickford/git-credential-oauth)
-  - [Git Credential Manager](https://github.com/git-ecosystem/git-credential-manager)
+
+- [git-credential-oauth](https://github.com/hickford/git-credential-oauth)
+- [Git Credential Manager](https://github.com/git-ecosystem/git-credential-manager)
 
 as we assume that these are universally useful.
 
