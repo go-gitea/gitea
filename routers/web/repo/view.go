@@ -9,12 +9,17 @@ import (
 	gocontext "context"
 	"encoding/base64"
 	"fmt"
+	"image"
 	"io"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
 	"time"
+
+	_ "image/gif"  // for processing gif images
+	_ "image/jpeg" // for processing jpeg images
+	_ "image/png"  // for processing png images
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	admin_model "code.gitea.io/gitea/models/admin"
@@ -44,6 +49,9 @@ import (
 	issue_service "code.gitea.io/gitea/services/issue"
 
 	"github.com/nektos/act/pkg/model"
+
+	_ "golang.org/x/image/bmp"  // for processing bmp images
+	_ "golang.org/x/image/webp" // for processing webp images
 )
 
 const (
@@ -462,6 +470,15 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		}
 	}
 
+	if fInfo.st.IsImage() && !fInfo.st.IsSvgImage() {
+		img, _, err := image.DecodeConfig(bytes.NewReader(buf))
+		if err == nil {
+			// There are Image formats go can't decode
+			// Instead of throwing an error in that case, we show the size only when we can decode
+			ctx.Data["ImageSize"] = fmt.Sprintf("%dx%dpx", img.Width, img.Height)
+		}
+	}
+
 	if ctx.Repo.CanEnableEditor(ctx, ctx.Doer) {
 		if lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID {
 			ctx.Data["CanDeleteFile"] = false
@@ -726,7 +743,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		ctx.Data["LatestCommitVerification"] = verification
 		ctx.Data["LatestCommitUser"] = user_model.ValidateCommitWithEmail(ctx, latestCommit)
 
-		statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptions{})
+		statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptions{ListAll: true})
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		}
@@ -866,10 +883,18 @@ func renderCode(ctx *context.Context) {
 			ctx.ServerError("GetBaseRepo", err)
 			return
 		}
-		ctx.Data["RecentlyPushedNewBranches"], err = git_model.FindRecentlyPushedNewBranches(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID, ctx.Repo.Repository.DefaultBranch)
-		if err != nil {
-			ctx.ServerError("GetRecentlyPushedBranches", err)
-			return
+
+		showRecentlyPushedNewBranches := true
+		if ctx.Repo.Repository.IsMirror ||
+			!ctx.Repo.Repository.UnitEnabled(ctx, unit_model.TypePullRequests) {
+			showRecentlyPushedNewBranches = false
+		}
+		if showRecentlyPushedNewBranches {
+			ctx.Data["RecentlyPushedNewBranches"], err = git_model.FindRecentlyPushedNewBranches(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID, ctx.Repo.Repository.DefaultBranch)
+			if err != nil {
+				ctx.ServerError("GetRecentlyPushedBranches", err)
+				return
+			}
 		}
 	}
 
