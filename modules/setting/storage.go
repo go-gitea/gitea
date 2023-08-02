@@ -84,6 +84,8 @@ func getDefaultStorageSection(rootCfg ConfigProvider) ConfigSection {
 	return storageSec
 }
 
+// getStorage will find target section and extra special section first and then read override
+// items from extra section
 func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*Storage, error) {
 	if name == "" {
 		return nil, errors.New("no name for storage")
@@ -116,19 +118,31 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 	if targetSec == nil {
 		targetSec = sec
 	}
+
+	targetSecIsStoragename := false
 	if targetSec == nil {
 		targetSec = storageNameSec
+		targetSecIsStoragename = storageNameSec != nil
 	}
+
 	if targetSec == nil {
 		targetSec = getDefaultStorageSection(rootCfg)
 	} else {
 		targetType := targetSec.Key("STORAGE_TYPE").String()
 		switch {
 		case targetType == "":
-			if targetSec.Key("PATH").String() == "" {
-				targetSec = getDefaultStorageSection(rootCfg)
+			if targetSec != storageNameSec && storageNameSec != nil {
+				targetSec = storageNameSec
+				targetSecIsStoragename = true
+				if targetSec.Key("STORAGE_TYPE").String() == "" {
+					return nil, fmt.Errorf("storage section %s.%s has no STORAGE_TYPE", storageSectionName, name)
+				}
 			} else {
-				targetSec.Key("STORAGE_TYPE").SetValue("local")
+				if targetSec.Key("PATH").String() == "" {
+					targetSec = getDefaultStorageSection(rootCfg)
+				} else {
+					targetSec.Key("STORAGE_TYPE").SetValue("local")
+				}
 			}
 		default:
 			newTargetSec, _ := rootCfg.GetSection(storageSectionName + "." + targetType)
@@ -171,10 +185,17 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 			targetPath = filepath.Join(AppDataPath, targetPath)
 		}
 
-		if extraConfigSec == nil {
-			storage.Path = filepath.Join(targetPath, name)
+		var fallbackPath string
+		if targetSecIsStoragename {
+			fallbackPath = targetPath
 		} else {
-			storage.Path = ConfigSectionKeyString(extraConfigSec, "PATH", filepath.Join(targetPath, name))
+			fallbackPath = filepath.Join(targetPath, name)
+		}
+
+		if extraConfigSec == nil {
+			storage.Path = fallbackPath
+		} else {
+			storage.Path = ConfigSectionKeyString(extraConfigSec, "PATH", fallbackPath)
 			if !filepath.IsAbs(storage.Path) {
 				storage.Path = filepath.Join(AppDataPath, storage.Path)
 			}

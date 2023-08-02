@@ -368,3 +368,110 @@ PATH = /data/gitea/archives
 	assert.EqualValues(t, "local", RepoAvatar.Storage.Type)
 	assert.EqualValues(t, "/data/gitea/repo-avatars", RepoAvatar.Storage.Path)
 }
+
+func Test_getStorageInheritStorageTypeLocalPathOverride3(t *testing.T) {
+	iniStr := `
+[storage.repo-archive]
+STORAGE_TYPE = local
+PATH = /data/gitea/archives
+`
+	AppDataPath = "/tmp/data"
+	cfg, err := NewConfigProviderFromData(iniStr)
+	assert.NoError(t, err)
+
+	assert.NoError(t, loadPackagesFrom(cfg))
+	assert.EqualValues(t, "local", Packages.Storage.Type)
+	assert.EqualValues(t, filepath.Join(AppDataPath, "packages"), Packages.Storage.Path)
+
+	assert.NoError(t, loadRepoArchiveFrom(cfg))
+	assert.EqualValues(t, "local", RepoArchive.Storage.Type)
+	assert.EqualValues(t, "/data/gitea/archives", RepoArchive.Storage.Path)
+
+	assert.NoError(t, loadActionsFrom(cfg))
+	assert.EqualValues(t, "local", Actions.LogStorage.Type)
+	assert.EqualValues(t, filepath.Join(AppDataPath, "actions_log"), Actions.LogStorage.Path)
+
+	assert.EqualValues(t, "local", Actions.ArtifactStorage.Type)
+	assert.EqualValues(t, filepath.Join(AppDataPath, "actions_artifacts"), Actions.ArtifactStorage.Path)
+
+	assert.NoError(t, loadAvatarsFrom(cfg))
+	assert.EqualValues(t, "local", Avatar.Storage.Type)
+	assert.EqualValues(t, filepath.Join(AppDataPath, "avatars"), Avatar.Storage.Path)
+
+	assert.NoError(t, loadRepoAvatarFrom(cfg))
+	assert.EqualValues(t, "local", RepoAvatar.Storage.Type)
+	assert.EqualValues(t, filepath.Join(AppDataPath, "repo-avatars"), RepoAvatar.Storage.Path)
+}
+
+func Test_getStorageInheritStorageTypeLocalPathOverride4(t *testing.T) {
+	iniStr := `
+[storage.repo-archive]
+STORAGE_TYPE = local
+PATH = /data/gitea/archives
+
+[repo-archive]
+PATH = /tmp/gitea/archives
+`
+	AppDataPath = "/tmp/data"
+	cfg, err := NewConfigProviderFromData(iniStr)
+	assert.NoError(t, err)
+
+	assert.NoError(t, loadPackagesFrom(cfg))
+	assert.EqualValues(t, "local", Packages.Storage.Type)
+	assert.EqualValues(t, filepath.Join(AppDataPath, "packages"), Packages.Storage.Path)
+
+	assert.NoError(t, loadRepoArchiveFrom(cfg))
+	assert.EqualValues(t, "local", RepoArchive.Storage.Type)
+	assert.EqualValues(t, "/tmp/gitea/archives", RepoArchive.Storage.Path)
+
+	assert.NoError(t, loadActionsFrom(cfg))
+	assert.EqualValues(t, "local", Actions.LogStorage.Type)
+	assert.EqualValues(t, filepath.Join(AppDataPath, "actions_log"), Actions.LogStorage.Path)
+
+	assert.EqualValues(t, "local", Actions.ArtifactStorage.Type)
+	assert.EqualValues(t, filepath.Join(AppDataPath, "actions_artifacts"), Actions.ArtifactStorage.Path)
+
+	assert.NoError(t, loadAvatarsFrom(cfg))
+	assert.EqualValues(t, "local", Avatar.Storage.Type)
+	assert.EqualValues(t, filepath.Join(AppDataPath, "avatars"), Avatar.Storage.Path)
+
+	assert.NoError(t, loadRepoAvatarFrom(cfg))
+	assert.EqualValues(t, "local", RepoAvatar.Storage.Type)
+	assert.EqualValues(t, filepath.Join(AppDataPath, "repo-avatars"), RepoAvatar.Storage.Path)
+}
+
+func Test_getStorageInheritStorageTypeLocalPathOverride5(t *testing.T) {
+	iniStr := `
+[storage.repo-archive]
+STORAGE_TYPE = local
+PATH = /data/gitea/archives
+
+[repo-archive]
+`
+	AppDataPath = "/tmp/data"
+	cfg, err := NewConfigProviderFromData(iniStr)
+	assert.NoError(t, err)
+
+	assert.NoError(t, loadPackagesFrom(cfg))
+	assert.EqualValues(t, "local", Packages.Storage.Type)
+	assert.EqualValues(t, filepath.Join(AppDataPath, "packages"), Packages.Storage.Path)
+
+	assert.NoError(t, loadRepoArchiveFrom(cfg))
+	assert.EqualValues(t, "local", RepoArchive.Storage.Type)
+	assert.EqualValues(t, "/data/gitea/archives", RepoArchive.Storage.Path)
+
+	assert.NoError(t, loadActionsFrom(cfg))
+	assert.EqualValues(t, "local", Actions.LogStorage.Type)
+	assert.EqualValues(t, filepath.Join(AppDataPath, "actions_log"), Actions.LogStorage.Path)
+
+	assert.EqualValues(t, "local", Actions.ArtifactStorage.Type)
+	assert.EqualValues(t, filepath.Join(AppDataPath, "actions_artifacts"), Actions.ArtifactStorage.Path)
+
+	assert.NoError(t, loadAvatarsFrom(cfg))
+	assert.EqualValues(t, "local", Avatar.Storage.Type)
+	assert.EqualValues(t, filepath.Join(AppDataPath, "avatars"), Avatar.Storage.Path)
+
+	assert.NoError(t, loadRepoAvatarFrom(cfg))
+	assert.EqualValues(t, "local", RepoAvatar.Storage.Type)
+	assert.EqualValues(t, filepath.Join(AppDataPath, "repo-avatars"), RepoAvatar.Storage.Path)
+}
