@@ -64,7 +64,15 @@ func Init(ctx context.Context) error {
 		},
 	}
 
-	registeredOAuth2Apps, _ := GetOAuth2ApplicationsByUserID(ctx, 0)
+	var clientIDs []string
+	for _, app := range defaultApplications {
+		clientIDs = append(clientIDs, app.ClientID)
+	}
+
+	var registeredOAuth2Apps []*OAuth2Application
+	if err := db.GetEngine(ctx).In("client_id", clientIDs).Find(&registeredOAuth2Apps); err != nil {
+		return err
+	}
 
 	var enabledOAuth2Apps []*OAuth2Application
 	for _, entry := range setting.OAuth2.DefaultApplications {
