@@ -118,20 +118,20 @@ func testLocalStoragePath(t *testing.T, appDataPath, iniStr string, cases []test
 }
 
 func Test_getStorageInheritStorageTypeLocal(t *testing.T) {
-	testLocalStoragePath(t, "/tmp/data", `
+	testLocalStoragePath(t, "/appdata", `
 [storage]
 STORAGE_TYPE = local
 `, []testLocalStoragePathCase{
-		{loadPackagesFrom, &Packages.Storage, "/tmp/data/packages"},
-		{loadRepoArchiveFrom, &RepoArchive.Storage, "/tmp/data/repo-archive"},
-		{loadActionsFrom, &Actions.LogStorage, "/tmp/data/actions_log"},
-		{loadAvatarsFrom, &Avatar.Storage, "/tmp/data/avatars"},
-		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/tmp/data/repo-avatars"},
+		{loadPackagesFrom, &Packages.Storage, "/appdata/packages"},
+		{loadRepoArchiveFrom, &RepoArchive.Storage, "/appdata/repo-archive"},
+		{loadActionsFrom, &Actions.LogStorage, "/appdata/actions_log"},
+		{loadAvatarsFrom, &Avatar.Storage, "/appdata/avatars"},
+		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/appdata/repo-avatars"},
 	})
 }
 
 func Test_getStorageInheritStorageTypeLocalPath(t *testing.T) {
-	testLocalStoragePath(t, "/tmp/data", `
+	testLocalStoragePath(t, "/appdata", `
 [storage]
 STORAGE_TYPE = local
 PATH = /data/gitea
@@ -145,21 +145,21 @@ PATH = /data/gitea
 }
 
 func Test_getStorageInheritStorageTypeLocalRelativePath(t *testing.T) {
-	testLocalStoragePath(t, "/tmp/data", `
+	testLocalStoragePath(t, "/appdata", `
 [storage]
 STORAGE_TYPE = local
 PATH = storages
 `, []testLocalStoragePathCase{
-		{loadPackagesFrom, &Packages.Storage, "/tmp/data/storages/packages"},
-		{loadRepoArchiveFrom, &RepoArchive.Storage, "/tmp/data/storages/repo-archive"},
-		{loadActionsFrom, &Actions.LogStorage, "/tmp/data/storages/actions_log"},
-		{loadAvatarsFrom, &Avatar.Storage, "/tmp/data/storages/avatars"},
-		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/tmp/data/storages/repo-avatars"},
+		{loadPackagesFrom, &Packages.Storage, "/appdata/storages/packages"},
+		{loadRepoArchiveFrom, &RepoArchive.Storage, "/appdata/storages/repo-archive"},
+		{loadActionsFrom, &Actions.LogStorage, "/appdata/storages/actions_log"},
+		{loadAvatarsFrom, &Avatar.Storage, "/appdata/storages/avatars"},
+		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/appdata/storages/repo-avatars"},
 	})
 }
 
 func Test_getStorageInheritStorageTypeLocalPathOverride(t *testing.T) {
-	testLocalStoragePath(t, "/tmp/data", `
+	testLocalStoragePath(t, "/appdata", `
 [storage]
 STORAGE_TYPE = local
 PATH = /data/gitea
@@ -176,7 +176,7 @@ PATH = /data/gitea/the-archives-dir
 }
 
 func Test_getStorageInheritStorageTypeLocalPathOverrideEmpty(t *testing.T) {
-	testLocalStoragePath(t, "/tmp/data", `
+	testLocalStoragePath(t, "/appdata", `
 [storage]
 STORAGE_TYPE = local
 PATH = /data/gitea
@@ -192,7 +192,7 @@ PATH = /data/gitea
 }
 
 func Test_getStorageInheritStorageTypeLocalRelativePathOverride(t *testing.T) {
-	testLocalStoragePath(t, "/tmp/data", `
+	testLocalStoragePath(t, "/appdata", `
 [storage]
 STORAGE_TYPE = local
 PATH = /data/gitea
@@ -201,7 +201,7 @@ PATH = /data/gitea
 PATH = the-archives-dir
 `, []testLocalStoragePathCase{
 		{loadPackagesFrom, &Packages.Storage, "/data/gitea/packages"},
-		{loadRepoArchiveFrom, &RepoArchive.Storage, "/tmp/data/the-archives-dir"},
+		{loadRepoArchiveFrom, &RepoArchive.Storage, "/appdata/the-archives-dir"},
 		{loadActionsFrom, &Actions.LogStorage, "/data/gitea/actions_log"},
 		{loadAvatarsFrom, &Avatar.Storage, "/data/gitea/avatars"},
 		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/data/gitea/repo-avatars"},
@@ -209,21 +209,21 @@ PATH = the-archives-dir
 }
 
 func Test_getStorageInheritStorageTypeLocalPathOverride3(t *testing.T) {
-	testLocalStoragePath(t, "/tmp/data", `
+	testLocalStoragePath(t, "/appdata", `
 [storage.repo-archive]
 STORAGE_TYPE = local
 PATH = /data/gitea/archives
 `, []testLocalStoragePathCase{
-		{loadPackagesFrom, &Packages.Storage, "/tmp/data/packages"},
+		{loadPackagesFrom, &Packages.Storage, "/appdata/packages"},
 		{loadRepoArchiveFrom, &RepoArchive.Storage, "/data/gitea/archives"},
-		{loadActionsFrom, &Actions.LogStorage, "/tmp/data/actions_log"},
-		{loadAvatarsFrom, &Avatar.Storage, "/tmp/data/avatars"},
-		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/tmp/data/repo-avatars"},
+		{loadActionsFrom, &Actions.LogStorage, "/appdata/actions_log"},
+		{loadAvatarsFrom, &Avatar.Storage, "/appdata/avatars"},
+		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/appdata/repo-avatars"},
 	})
 }
 
 func Test_getStorageInheritStorageTypeLocalPathOverride4(t *testing.T) {
-	testLocalStoragePath(t, "/tmp/data", `
+	testLocalStoragePath(t, "/appdata", `
 [storage.repo-archive]
 STORAGE_TYPE = local
 PATH = /data/gitea/archives
@@ -231,26 +231,26 @@ PATH = /data/gitea/archives
 [repo-archive]
 PATH = /tmp/gitea/archives
 `, []testLocalStoragePathCase{
-		{loadPackagesFrom, &Packages.Storage, "/tmp/data/packages"},
+		{loadPackagesFrom, &Packages.Storage, "/appdata/packages"},
 		{loadRepoArchiveFrom, &RepoArchive.Storage, "/tmp/gitea/archives"},
-		{loadActionsFrom, &Actions.LogStorage, "/tmp/data/actions_log"},
-		{loadAvatarsFrom, &Avatar.Storage, "/tmp/data/avatars"},
-		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/tmp/data/repo-avatars"},
+		{loadActionsFrom, &Actions.LogStorage, "/appdata/actions_log"},
+		{loadAvatarsFrom, &Avatar.Storage, "/appdata/avatars"},
+		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/appdata/repo-avatars"},
 	})
 }
 
 func Test_getStorageInheritStorageTypeLocalPathOverride5(t *testing.T) {
-	testLocalStoragePath(t, "/tmp/data", `
+	testLocalStoragePath(t, "/appdata", `
 [storage.repo-archive]
 STORAGE_TYPE = local
 PATH = /data/gitea/archives
 
 [repo-archive]
 `, []testLocalStoragePathCase{
-		{loadPackagesFrom, &Packages.Storage, "/tmp/data/packages"},
+		{loadPackagesFrom, &Packages.Storage, "/appdata/packages"},
 		{loadRepoArchiveFrom, &RepoArchive.Storage, "/data/gitea/archives"},
-		{loadActionsFrom, &Actions.LogStorage, "/tmp/data/actions_log"},
-		{loadAvatarsFrom, &Avatar.Storage, "/tmp/data/avatars"},
-		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/tmp/data/repo-avatars"},
+		{loadActionsFrom, &Actions.LogStorage, "/appdata/actions_log"},
+		{loadAvatarsFrom, &Avatar.Storage, "/appdata/avatars"},
+		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/appdata/repo-avatars"},
 	})
 }
