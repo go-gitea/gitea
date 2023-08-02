@@ -50,85 +50,81 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 	pr.CommitsAhead = divergence.Ahead
 	pr.CommitsBehind = divergence.Behind
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err := issues_model.NewPullRequest(ctx, repo, pull, labelIDs, uuids, pr); err != nil {
-		return err
-	}
-
-	for _, assigneeID := range assigneeIDs {
-		if err := issue_service.AddAssigneeIfNotAssigned(ctx, pull, pull.Poster, assigneeID); err != nil {
-			return err
-		}
-	}
-
-	pr.Issue = pull
-	pull.PullRequest = pr
-
 	// Now - even if the request context has been cancelled as the PR has been created
 	// in the db and there is no way to cancel that transaction we have to proceed - therefore
 	// create new context and work from there
 	prCtx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("NewPullRequest: %s:%d", repo.FullName(), pr.Index))
 	defer finished()
-	if pr.Flow == issues_model.PullRequestFlowGithub {
-		err = PushToBaseRepo(prCtx, pr)
-	} else {
-		err = UpdateRef(prCtx, pr)
-	}
-	if err != nil {
-		return err
-	}
 
-	// add first push codes comment
-	baseGitRepo, err := git.OpenRepository(prCtx, pr.BaseRepo.RepoPath())
-	if err != nil {
-		return err
-	}
-	defer baseGitRepo.Close()
-
-	compareInfo, err := baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(),
-		git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName(), false, false)
-	if err != nil {
-		return err
-	}
-
-	if len(compareInfo.Commits) > 0 {
-		data := issues_model.PushActionContent{IsForcePush: false}
-		data.CommitIDs = make([]string, 0, len(compareInfo.Commits))
-		for i := len(compareInfo.Commits) - 1; i >= 0; i-- {
-			data.CommitIDs = append(data.CommitIDs, compareInfo.Commits[i].ID.String())
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		if err := issues_model.NewPullRequest(ctx, repo, pull, labelIDs, uuids, pr); err != nil {
+			return err
 		}
 
-		dataJSON, err := json.Marshal(data)
+		for _, assigneeID := range assigneeIDs {
+			if err := issue_service.AddAssigneeIfNotAssigned(ctx, pull, pull.Poster, assigneeID); err != nil {
+				return err
+			}
+		}
+
+		pr.Issue = pull
+		pull.PullRequest = pr
+
+		if pr.Flow == issues_model.PullRequestFlowGithub {
+			err = PushToBaseRepo(prCtx, pr)
+		} else {
+			err = UpdateRef(prCtx, pr)
+		}
 		if err != nil {
 			return err
 		}
 
-		ops := &issues_model.CreateCommentOptions{
-			Type:        issues_model.CommentTypePullRequestPush,
-			Doer:        pull.Poster,
-			Repo:        repo,
-			Issue:       pr.Issue,
-			IsForcePush: false,
-			Content:     string(dataJSON),
+		// add first push codes comment
+		baseGitRepo, err := git.OpenRepository(prCtx, pr.BaseRepo.RepoPath())
+		if err != nil {
+			return err
 		}
+		defer baseGitRepo.Close()
 
-		if _, err = issue_service.CreateComment(ctx, ops); err != nil {
+		compareInfo, err := baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(),
+			git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName(), false, false)
+		if err != nil {
 			return err
 		}
 
-		if !pr.IsWorkInProgress() {
-			if err := issues_model.PullRequestCodeOwnersReview(ctx, pull, pr); err != nil {
+		if len(compareInfo.Commits) > 0 {
+			data := issues_model.PushActionContent{IsForcePush: false}
+			data.CommitIDs = make([]string, 0, len(compareInfo.Commits))
+			for i := len(compareInfo.Commits) - 1; i >= 0; i-- {
+				data.CommitIDs = append(data.CommitIDs, compareInfo.Commits[i].ID.String())
+			}
+
+			dataJSON, err := json.Marshal(data)
+			if err != nil {
 				return err
 			}
-		}
-	}
 
-	if err := committer.Commit(); err != nil {
+			ops := &issues_model.CreateCommentOptions{
+				Type:        issues_model.CommentTypePullRequestPush,
+				Doer:        pull.Poster,
+				Repo:        repo,
+				Issue:       pr.Issue,
+				IsForcePush: false,
+				Content:     string(dataJSON),
+			}
+
+			if _, err = issue_service.CreateComment(ctx, ops); err != nil {
+				return err
+			}
+
+			if !pr.IsWorkInProgress() {
+				if err := issues_model.PullRequestCodeOwnersReview(ctx, pull, pr); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}); err != nil {
 		// TODO: cleanup
 		return err
 	}
