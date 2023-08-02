@@ -14,21 +14,29 @@
 			{{else}}
 				{{$.locale.Tr "repo.pulls.status_checking"}}
 			{{end}}
-			</div>
-	{{end}}
-
-	{{range $.LatestCommitStatuses}}
-		<div class="ui attached segment pr-status">
-			{{template "repo/commit_status" .}}
-			<div class="status-context">
-				<span>{{.Context}} <span class="text grey">{{.Description}}</span></span>
-				<div class="ui status-details">
-					{{if $.is_context_required}}
-						{{if (call $.is_context_required .Context)}}<div class="ui label">{{$.locale.Tr "repo.pulls.status_checks_requested"}}</div>{{end}}
-					{{end}}
-					<span>{{if .TargetURL}}<a href="{{.TargetURL}}">{{$.locale.Tr "repo.pulls.status_checks_details"}}</a>{{end}}</span>
-				</div>
+			<div class="ui right">
+				<a class="hide-all-checks muted" 
+				data-show-all="{{$.locale.Tr "repo.pulls.status_checks_show_all"}}"
+				data-hide-all="{{$.locale.Tr "repo.pulls.status_checks_hide_all"}}">
+				{{$.locale.Tr "repo.pulls.status_checks_hide_all"}}</a>
 			</div>
 		</div>
 	{{end}}
+
+	<div class="ui attached segment pr-status-list">
+		{{range $.LatestCommitStatuses}}
+			<div class="ui attached segment pr-status">
+				{{template "repo/commit_status" .}}
+				<div class="status-context">
+					<span>{{.Context}} <span class="text grey">{{.Description}}</span></span>
+					<div class="ui status-details">
+						{{if $.is_context_required}}
+							{{if (call $.is_context_required .Context)}}<div class="ui label">{{$.locale.Tr "repo.pulls.status_checks_requested"}}</div>{{end}}
+						{{end}}
+						<span>{{if .TargetURL}}<a href="{{.TargetURL}}">{{$.locale.Tr "repo.pulls.status_checks_details"}}</a>{{end}}</span>
+					</div>
+				</div>
+			</div>
+		{{end}}
+	</div>
 {{end}}
