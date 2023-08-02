@@ -299,6 +299,43 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Flash.Info(ctx.Tr("repo.settings.mirror_sync_in_progress"))
 		ctx.Redirect(repo.Link() + "/settings")
 
+	case "push-mirror-update":
+		if !setting.Mirror.Enabled {
+			ctx.NotFound("", nil)
+			return
+		}
+
+		// This section doesn't require repo_name/RepoName to be set in the form, don't show it
+		// as an error on the UI for this action
+		ctx.Data["Err_RepoName"] = nil
+
+		interval, err := time.ParseDuration(form.PushMirrorInterval)
+		if err != nil || (interval != 0 && interval < setting.Mirror.MinInterval) {
+			ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &forms.RepoSettingForm{})
+			return
+		}
+
+		id, err := strconv.ParseInt(form.PushMirrorID, 10, 64)
+		if err != nil {
+			ctx.ServerError("UpdatePushMirrorIntervalPushMirrorID", err)
+			return
+		}
+		m := &repo_model.PushMirror{
+			ID:       id,
+			Interval: interval,
+		}
+		if err := repo_model.UpdatePushMirrorInterval(ctx, m); err != nil {
+			ctx.ServerError("UpdatePushMirrorInterval", err)
+			return
+		}
+		// Background why we are adding it to Queue
+		// If we observed its implementation in the context of `push-mirror-sync` where it
+		// is evident that pushing to the queue is necessary for updates.
+		// So, there are updates within the given interval, it is necessary to update the queue accordingly.
+		mirror_module.AddPushMirrorToQueue(m.ID)
+		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
+		ctx.Redirect(repo.Link() + "/settings")
+
 	case "push-mirror-remove":
 		if !setting.Mirror.Enabled {
 			ctx.NotFound("", nil)
