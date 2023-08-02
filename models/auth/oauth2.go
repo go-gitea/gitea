@@ -39,6 +39,7 @@ type OAuth2Application struct {
 	RedirectURIs       []string           `xorm:"redirect_uris JSON TEXT"`
 	CreatedUnix        timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix        timeutil.TimeStamp `xorm:"INDEX updated"`
+	Locked             bool               `xorm:"NOT NULL DEFAULT FALSE"`
 }
 
 func init() {
@@ -48,22 +49,60 @@ func init() {
 }
 
 func Init(ctx context.Context) error {
-	if setting.OAuth2.GitCredentialHelpers {
-		// the following Git credential helpers are universally useful
-		// https://git-scm.com/doc/credential-helpers
-		_ = db.Insert(ctx, []OAuth2Application{
-			{
-				Name:         "git-credential-oauth",
-				ClientID:     "a4792ccc-144e-407e-86c9-5e7d8d9c3269",
-				RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
-			},
-			{
-				Name:         "Git Credential Manager",
-				ClientID:     "e90ee53c-94e2-48ac-9358-a874fb9e0662",
-				RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
-			},
-		})
+	defaultApplications := []*OAuth2Application{
+		{
+			Name:         "git-credential-oauth",
+			ClientID:     "a4792ccc-144e-407e-86c9-5e7d8d9c3269",
+			RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
+			Locked:       true,
+		},
+		{
+			Name:         "Git Credential Manager",
+			ClientID:     "e90ee53c-94e2-48ac-9358-a874fb9e0662",
+			RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
+			Locked:       true,
+		},
 	}
+
+	registeredOAuth2Apps, _ := GetOAuth2ApplicationsByUserID(ctx, 0)
+
+	var enabledOAuth2Apps []*OAuth2Application
+	for _, entry := range setting.OAuth2.DefaultApplications {
+		app := util.SliceFind(defaultApplications, func(a *OAuth2Application) bool { return a.Name == entry })
+		if app != -1 {
+			enabledOAuth2Apps = append(enabledOAuth2Apps, defaultApplications[app])
+		}
+	}
+
+	var disabledOAuth2Apps []*OAuth2Application
+	for _, entry := range defaultApplications {
+		app := util.SliceFind(enabledOAuth2Apps, func(a *OAuth2Application) bool { return a.ClientID == entry.ClientID })
+		registeredApp := util.SliceFind(registeredOAuth2Apps, func(a *OAuth2Application) bool { return a.ClientID == entry.ClientID })
+		if app == -1 && registeredApp != -1 {
+			disabledOAuth2Apps = append(disabledOAuth2Apps, registeredOAuth2Apps[registeredApp])
+		}
+	}
+
+	var createOAuth2Apps []*OAuth2Application
+	for _, app := range enabledOAuth2Apps {
+		registeredApp := util.SliceFind(registeredOAuth2Apps, func(a *OAuth2Application) bool { return a.ClientID == app.ClientID })
+		if registeredApp == -1 {
+			createOAuth2Apps = append(createOAuth2Apps, app)
+		}
+	}
+
+	if len(createOAuth2Apps) > 0 {
+		if err := db.Insert(ctx, createOAuth2Apps); err != nil {
+			return err
+		}
+	}
+
+	for _, app := range disabledOAuth2Apps {
+		if err := deleteOAuth2Application(ctx, app.ID, 0); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

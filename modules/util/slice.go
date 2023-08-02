@@ -88,3 +88,13 @@ func SliceRemoveAllFunc[T comparable](slice []T, targetFunc func(T) bool) []T {
 	}
 	return slice[:idx]
 }
+
+// SliceFind returns the element id of the first element that matches the condition, otherwise -1
+func SliceFind[T any](slice []T, condFunc func(T) bool) int {
+	for i, e := range slice {
+		if condFunc(e) {
+			return i
+		}
+	}
+	return -1
+}
