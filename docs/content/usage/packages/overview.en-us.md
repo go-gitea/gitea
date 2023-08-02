@@ -24,6 +24,7 @@ The following package managers are currently supported:
 | Name | Language | Package client |
 | ---- | -------- | -------------- |
 | [Alpine](usage/packages/alpine.md) | - | `apk` |
+| [Arch](usage/packages/arch.md) | - | `pacman`,`yay`,`paru`,`pikaur`,`aura`,`pack` |
 | [Cargo](usage/packages/cargo.md) | Rust | `cargo` |
 | [Chef](usage/packages/chef.md) | - | `knife` |
 | [Composer](usage/packages/composer.md) | PHP | `composer` |
