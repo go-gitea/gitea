@@ -92,386 +92,165 @@ STORAGE_TYPE = minio
 	assert.EqualValues(t, "repo-avatars/", RepoAvatar.Storage.MinioConfig.BasePath)
 }
 
-func Test_getStorageInheritStorageTypeLocal(t *testing.T) {
-	iniStr := `
-[storage]
-STORAGE_TYPE = local
-`
-	cfg, err := NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-
-	assert.NoError(t, loadPackagesFrom(cfg))
-	assert.EqualValues(t, "local", Packages.Storage.Type)
-	assert.EqualValues(t, filepath.Join(AppDataPath, "packages"), Packages.Storage.Path)
-
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
-	assert.EqualValues(t, "local", RepoArchive.Storage.Type)
-	assert.EqualValues(t, filepath.Join(AppDataPath, "repo-archive"), RepoArchive.Storage.Path)
-
-	assert.NoError(t, loadActionsFrom(cfg))
-	assert.EqualValues(t, "local", Actions.LogStorage.Type)
-	assert.EqualValues(t, filepath.Join(AppDataPath, "actions_log"), Actions.LogStorage.Path)
-
-	assert.EqualValues(t, "local", Actions.ArtifactStorage.Type)
-	assert.EqualValues(t, filepath.Join(AppDataPath, "actions_artifacts"), Actions.ArtifactStorage.Path)
-
-	assert.NoError(t, loadAvatarsFrom(cfg))
-	assert.EqualValues(t, "local", Avatar.Storage.Type)
-	assert.EqualValues(t, filepath.Join(AppDataPath, "avatars"), Avatar.Storage.Path)
-
-	assert.NoError(t, loadRepoAvatarFrom(cfg))
-	assert.EqualValues(t, "local", RepoAvatar.Storage.Type)
-	assert.EqualValues(t, filepath.Join(AppDataPath, "repo-avatars"), RepoAvatar.Storage.Path)
+type testLocalStoragePathCase struct {
+	loader       func(rootCfg ConfigProvider) error
+	storagePtr   **Storage
+	expectedPath string
 }
 
-func Test_getStorageInheritStorageTypeLocalDataPath(t *testing.T) {
-	iniStr := `
-[storage]
-STORAGE_TYPE = local
-`
+func testLocalStoragePath(t *testing.T, appDataPath, iniStr string, cases []testLocalStoragePathCase) {
 	cfg, err := NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
-	AppDataPath = "/tmp/gitea"
+	AppDataPath = appDataPath
+	for _, c := range cases {
+		assert.NoError(t, c.loader(cfg))
+		storage := *c.storagePtr
 
-	assert.NoError(t, loadPackagesFrom(cfg))
-	assert.EqualValues(t, "local", Packages.Storage.Type)
-	assert.EqualValues(t, "/tmp/gitea/packages", Packages.Storage.Path)
+		assert.EqualValues(t, "local", storage.Type)
 
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
-	assert.EqualValues(t, "local", RepoArchive.Storage.Type)
-	assert.EqualValues(t, "/tmp/gitea/repo-archive", RepoArchive.Storage.Path)
+		assert.True(t, filepath.IsAbs(storage.Path))
+		expected, err := filepath.Abs(c.expectedPath)
+		assert.NoError(t, err)
+		actual, err := filepath.Abs(storage.Path)
+		assert.NoError(t, err)
+		assert.EqualValues(t, expected, actual)
+	}
+}
 
-	assert.NoError(t, loadActionsFrom(cfg))
-	assert.EqualValues(t, "local", Actions.LogStorage.Type)
-	assert.EqualValues(t, "/tmp/gitea/actions_log", Actions.LogStorage.Path)
-
-	assert.EqualValues(t, "local", Actions.ArtifactStorage.Type)
-	assert.EqualValues(t, "/tmp/gitea/actions_artifacts", Actions.ArtifactStorage.Path)
-
-	assert.NoError(t, loadAvatarsFrom(cfg))
-	assert.EqualValues(t, "local", Avatar.Storage.Type)
-	assert.EqualValues(t, "/tmp/gitea/avatars", Avatar.Storage.Path)
-
-	assert.NoError(t, loadRepoAvatarFrom(cfg))
-	assert.EqualValues(t, "local", RepoAvatar.Storage.Type)
-	assert.EqualValues(t, "/tmp/gitea/repo-avatars", RepoAvatar.Storage.Path)
+func Test_getStorageInheritStorageTypeLocal(t *testing.T) {
+	testLocalStoragePath(t, "/tmp/data", `
+[storage]
+STORAGE_TYPE = local
+`, []testLocalStoragePathCase{
+		{loadPackagesFrom, &Packages.Storage, "/tmp/data/packages"},
+		{loadRepoArchiveFrom, &RepoArchive.Storage, "/tmp/data/repo-archive"},
+		{loadActionsFrom, &Actions.LogStorage, "/tmp/data/actions_log"},
+		{loadAvatarsFrom, &Avatar.Storage, "/tmp/data/avatars"},
+		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/tmp/data/repo-avatars"},
+	})
 }
 
 func Test_getStorageInheritStorageTypeLocalPath(t *testing.T) {
-	iniStr := `
+	testLocalStoragePath(t, "/tmp/data", `
 [storage]
 STORAGE_TYPE = local
 PATH = /data/gitea
-`
-	cfg, err := NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-
-	assert.NoError(t, loadPackagesFrom(cfg))
-	assert.EqualValues(t, "local", Packages.Storage.Type)
-	assert.EqualValues(t, "/data/gitea/packages", Packages.Storage.Path)
-
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
-	assert.EqualValues(t, "local", RepoArchive.Storage.Type)
-	assert.EqualValues(t, "/data/gitea/repo-archive", RepoArchive.Storage.Path)
-
-	assert.NoError(t, loadActionsFrom(cfg))
-	assert.EqualValues(t, "local", Actions.LogStorage.Type)
-	assert.EqualValues(t, "/data/gitea/actions_log", Actions.LogStorage.Path)
-
-	assert.EqualValues(t, "local", Actions.ArtifactStorage.Type)
-	assert.EqualValues(t, "/data/gitea/actions_artifacts", Actions.ArtifactStorage.Path)
-
-	assert.NoError(t, loadAvatarsFrom(cfg))
-	assert.EqualValues(t, "local", Avatar.Storage.Type)
-	assert.EqualValues(t, "/data/gitea/avatars", Avatar.Storage.Path)
-
-	assert.NoError(t, loadRepoAvatarFrom(cfg))
-	assert.EqualValues(t, "local", RepoAvatar.Storage.Type)
-	assert.EqualValues(t, "/data/gitea/repo-avatars", RepoAvatar.Storage.Path)
+`, []testLocalStoragePathCase{
+		{loadPackagesFrom, &Packages.Storage, "/data/gitea/packages"},
+		{loadRepoArchiveFrom, &RepoArchive.Storage, "/data/gitea/repo-archive"},
+		{loadActionsFrom, &Actions.LogStorage, "/data/gitea/actions_log"},
+		{loadAvatarsFrom, &Avatar.Storage, "/data/gitea/avatars"},
+		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/data/gitea/repo-avatars"},
+	})
 }
 
 func Test_getStorageInheritStorageTypeLocalRelativePath(t *testing.T) {
-	iniStr := `
+	testLocalStoragePath(t, "/tmp/data", `
 [storage]
 STORAGE_TYPE = local
 PATH = storages
-`
-	AppDataPath = "/tmp/data"
-	cfg, err := NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-
-	assert.NoError(t, loadPackagesFrom(cfg))
-	assert.EqualValues(t, "local", Packages.Storage.Type)
-	assert.EqualValues(t, filepath.Join(AppDataPath, "storages", "packages"), Packages.Storage.Path)
-
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
-	assert.EqualValues(t, "local", RepoArchive.Storage.Type)
-	assert.EqualValues(t, filepath.Join(AppDataPath, "storages", "repo-archive"), RepoArchive.Storage.Path)
-
-	assert.NoError(t, loadActionsFrom(cfg))
-	assert.EqualValues(t, "local", Actions.LogStorage.Type)
-	assert.EqualValues(t, filepath.Join(AppDataPath, "storages", "actions_log"), Actions.LogStorage.Path)
-
-	assert.EqualValues(t, "local", Actions.ArtifactStorage.Type)
-	assert.EqualValues(t, filepath.Join(AppDataPath, "storages", "actions_artifacts"), Actions.ArtifactStorage.Path)
-
-	assert.NoError(t, loadAvatarsFrom(cfg))
-	assert.EqualValues(t, "local", Avatar.Storage.Type)
-	assert.EqualValues(t, filepath.Join(AppDataPath, "storages", "avatars"), Avatar.Storage.Path)
-
-	assert.NoError(t, loadRepoAvatarFrom(cfg))
-	assert.EqualValues(t, "local", RepoAvatar.Storage.Type)
-	assert.EqualValues(t, filepath.Join(AppDataPath, "storages", "repo-avatars"), RepoAvatar.Storage.Path)
+`, []testLocalStoragePathCase{
+		{loadPackagesFrom, &Packages.Storage, "/tmp/data/storages/packages"},
+		{loadRepoArchiveFrom, &RepoArchive.Storage, "/tmp/data/storages/repo-archive"},
+		{loadActionsFrom, &Actions.LogStorage, "/tmp/data/storages/actions_log"},
+		{loadAvatarsFrom, &Avatar.Storage, "/tmp/data/storages/avatars"},
+		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/tmp/data/storages/repo-avatars"},
+	})
 }
 
 func Test_getStorageInheritStorageTypeLocalPathOverride(t *testing.T) {
-	iniStr := `
+	testLocalStoragePath(t, "/tmp/data", `
 [storage]
 STORAGE_TYPE = local
 PATH = /data/gitea
 
 [repo-archive]
-PATH = /data/gitea/archives
-`
-	cfg, err := NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-
-	assert.NoError(t, loadPackagesFrom(cfg))
-	assert.EqualValues(t, "local", Packages.Storage.Type)
-	assert.EqualValues(t, "/data/gitea/packages", Packages.Storage.Path)
-
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
-	assert.EqualValues(t, "local", RepoArchive.Storage.Type)
-	assert.EqualValues(t, "/data/gitea/archives", RepoArchive.Storage.Path)
-
-	assert.NoError(t, loadActionsFrom(cfg))
-	assert.EqualValues(t, "local", Actions.LogStorage.Type)
-	assert.EqualValues(t, "/data/gitea/actions_log", Actions.LogStorage.Path)
-
-	assert.EqualValues(t, "local", Actions.ArtifactStorage.Type)
-	assert.EqualValues(t, "/data/gitea/actions_artifacts", Actions.ArtifactStorage.Path)
-
-	assert.NoError(t, loadAvatarsFrom(cfg))
-	assert.EqualValues(t, "local", Avatar.Storage.Type)
-	assert.EqualValues(t, "/data/gitea/avatars", Avatar.Storage.Path)
-
-	assert.NoError(t, loadRepoAvatarFrom(cfg))
-	assert.EqualValues(t, "local", RepoAvatar.Storage.Type)
-	assert.EqualValues(t, "/data/gitea/repo-avatars", RepoAvatar.Storage.Path)
+PATH = /data/gitea/the-archives-dir
+`, []testLocalStoragePathCase{
+		{loadPackagesFrom, &Packages.Storage, "/data/gitea/packages"},
+		{loadRepoArchiveFrom, &RepoArchive.Storage, "/data/gitea/the-archives-dir"},
+		{loadActionsFrom, &Actions.LogStorage, "/data/gitea/actions_log"},
+		{loadAvatarsFrom, &Avatar.Storage, "/data/gitea/avatars"},
+		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/data/gitea/repo-avatars"},
+	})
 }
 
 func Test_getStorageInheritStorageTypeLocalPathOverrideEmpty(t *testing.T) {
-	iniStr := `
+	testLocalStoragePath(t, "/tmp/data", `
 [storage]
 STORAGE_TYPE = local
 PATH = /data/gitea
 
 [repo-archive]
-`
-
-	cfg, err := NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-
-	assert.NoError(t, loadPackagesFrom(cfg))
-	assert.EqualValues(t, "local", Packages.Storage.Type)
-	assert.EqualValues(t, "/data/gitea/packages", Packages.Storage.Path)
-
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
-	assert.EqualValues(t, "local", RepoArchive.Storage.Type)
-	assert.EqualValues(t, "/data/gitea/repo-archive", RepoArchive.Storage.Path)
-
-	assert.NoError(t, loadActionsFrom(cfg))
-	assert.EqualValues(t, "local", Actions.LogStorage.Type)
-	assert.EqualValues(t, "/data/gitea/actions_log", Actions.LogStorage.Path)
-
-	assert.EqualValues(t, "local", Actions.ArtifactStorage.Type)
-	assert.EqualValues(t, "/data/gitea/actions_artifacts", Actions.ArtifactStorage.Path)
-
-	assert.NoError(t, loadAvatarsFrom(cfg))
-	assert.EqualValues(t, "local", Avatar.Storage.Type)
-	assert.EqualValues(t, "/data/gitea/avatars", Avatar.Storage.Path)
-
-	assert.NoError(t, loadRepoAvatarFrom(cfg))
-	assert.EqualValues(t, "local", RepoAvatar.Storage.Type)
-	assert.EqualValues(t, "/data/gitea/repo-avatars", RepoAvatar.Storage.Path)
+`, []testLocalStoragePathCase{
+		{loadPackagesFrom, &Packages.Storage, "/data/gitea/packages"},
+		{loadRepoArchiveFrom, &RepoArchive.Storage, "/data/gitea/repo-archive"},
+		{loadActionsFrom, &Actions.LogStorage, "/data/gitea/actions_log"},
+		{loadAvatarsFrom, &Avatar.Storage, "/data/gitea/avatars"},
+		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/data/gitea/repo-avatars"},
+	})
 }
 
 func Test_getStorageInheritStorageTypeLocalRelativePathOverride(t *testing.T) {
-	iniStr := `
+	testLocalStoragePath(t, "/tmp/data", `
 [storage]
 STORAGE_TYPE = local
 PATH = /data/gitea
 
 [repo-archive]
-PATH = archives
-`
-	AppDataPath = "/tmp/data"
-	cfg, err := NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-
-	assert.NoError(t, loadPackagesFrom(cfg))
-	assert.EqualValues(t, "local", Packages.Storage.Type)
-	assert.EqualValues(t, "/data/gitea/packages", Packages.Storage.Path)
-
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
-	assert.EqualValues(t, "local", RepoArchive.Storage.Type)
-	assert.EqualValues(t, filepath.Join(AppDataPath, "archives"), RepoArchive.Storage.Path)
-
-	assert.NoError(t, loadActionsFrom(cfg))
-	assert.EqualValues(t, "local", Actions.LogStorage.Type)
-	assert.EqualValues(t, "/data/gitea/actions_log", Actions.LogStorage.Path)
-
-	assert.EqualValues(t, "local", Actions.ArtifactStorage.Type)
-	assert.EqualValues(t, "/data/gitea/actions_artifacts", Actions.ArtifactStorage.Path)
-
-	assert.NoError(t, loadAvatarsFrom(cfg))
-	assert.EqualValues(t, "local", Avatar.Storage.Type)
-	assert.EqualValues(t, "/data/gitea/avatars", Avatar.Storage.Path)
-
-	assert.NoError(t, loadRepoAvatarFrom(cfg))
-	assert.EqualValues(t, "local", RepoAvatar.Storage.Type)
-	assert.EqualValues(t, "/data/gitea/repo-avatars", RepoAvatar.Storage.Path)
-}
-
-func Test_getStorageInheritStorageTypeLocalPathOverride2(t *testing.T) {
-	iniStr := `
-[storage]
-STORAGE_TYPE = local
-PATH = /data/gitea
-
-[storage.repo-archive]
-PATH = /data/gitea/archives
-`
-	cfg, err := NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-
-	assert.NoError(t, loadPackagesFrom(cfg))
-	assert.EqualValues(t, "local", Packages.Storage.Type)
-	assert.EqualValues(t, "/data/gitea/packages", Packages.Storage.Path)
-
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
-	assert.EqualValues(t, "local", RepoArchive.Storage.Type)
-	assert.EqualValues(t, "/data/gitea/archives", RepoArchive.Storage.Path)
-
-	assert.NoError(t, loadActionsFrom(cfg))
-	assert.EqualValues(t, "local", Actions.LogStorage.Type)
-	assert.EqualValues(t, "/data/gitea/actions_log", Actions.LogStorage.Path)
-
-	assert.EqualValues(t, "local", Actions.ArtifactStorage.Type)
-	assert.EqualValues(t, "/data/gitea/actions_artifacts", Actions.ArtifactStorage.Path)
-
-	assert.NoError(t, loadAvatarsFrom(cfg))
-	assert.EqualValues(t, "local", Avatar.Storage.Type)
-	assert.EqualValues(t, "/data/gitea/avatars", Avatar.Storage.Path)
-
-	assert.NoError(t, loadRepoAvatarFrom(cfg))
-	assert.EqualValues(t, "local", RepoAvatar.Storage.Type)
-	assert.EqualValues(t, "/data/gitea/repo-avatars", RepoAvatar.Storage.Path)
+PATH = the-archives-dir
+`, []testLocalStoragePathCase{
+		{loadPackagesFrom, &Packages.Storage, "/data/gitea/packages"},
+		{loadRepoArchiveFrom, &RepoArchive.Storage, "/tmp/data/the-archives-dir"},
+		{loadActionsFrom, &Actions.LogStorage, "/data/gitea/actions_log"},
+		{loadAvatarsFrom, &Avatar.Storage, "/data/gitea/avatars"},
+		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/data/gitea/repo-avatars"},
+	})
 }
 
 func Test_getStorageInheritStorageTypeLocalPathOverride3(t *testing.T) {
-	iniStr := `
+	testLocalStoragePath(t, "/tmp/data", `
 [storage.repo-archive]
 STORAGE_TYPE = local
 PATH = /data/gitea/archives
-`
-	AppDataPath = "/tmp/data"
-	cfg, err := NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-
-	assert.NoError(t, loadPackagesFrom(cfg))
-	assert.EqualValues(t, "local", Packages.Storage.Type)
-	assert.EqualValues(t, filepath.Join(AppDataPath, "packages"), Packages.Storage.Path)
-
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
-	assert.EqualValues(t, "local", RepoArchive.Storage.Type)
-	assert.EqualValues(t, "/data/gitea/archives", RepoArchive.Storage.Path)
-
-	assert.NoError(t, loadActionsFrom(cfg))
-	assert.EqualValues(t, "local", Actions.LogStorage.Type)
-	assert.EqualValues(t, filepath.Join(AppDataPath, "actions_log"), Actions.LogStorage.Path)
-
-	assert.EqualValues(t, "local", Actions.ArtifactStorage.Type)
-	assert.EqualValues(t, filepath.Join(AppDataPath, "actions_artifacts"), Actions.ArtifactStorage.Path)
-
-	assert.NoError(t, loadAvatarsFrom(cfg))
-	assert.EqualValues(t, "local", Avatar.Storage.Type)
-	assert.EqualValues(t, filepath.Join(AppDataPath, "avatars"), Avatar.Storage.Path)
-
-	assert.NoError(t, loadRepoAvatarFrom(cfg))
-	assert.EqualValues(t, "local", RepoAvatar.Storage.Type)
-	assert.EqualValues(t, filepath.Join(AppDataPath, "repo-avatars"), RepoAvatar.Storage.Path)
+`, []testLocalStoragePathCase{
+		{loadPackagesFrom, &Packages.Storage, "/tmp/data/packages"},
+		{loadRepoArchiveFrom, &RepoArchive.Storage, "/data/gitea/archives"},
+		{loadActionsFrom, &Actions.LogStorage, "/tmp/data/actions_log"},
+		{loadAvatarsFrom, &Avatar.Storage, "/tmp/data/avatars"},
+		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/tmp/data/repo-avatars"},
+	})
 }
 
 func Test_getStorageInheritStorageTypeLocalPathOverride4(t *testing.T) {
-	iniStr := `
+	testLocalStoragePath(t, "/tmp/data", `
 [storage.repo-archive]
 STORAGE_TYPE = local
 PATH = /data/gitea/archives
 
 [repo-archive]
 PATH = /tmp/gitea/archives
-`
-	AppDataPath = "/tmp/data"
-	cfg, err := NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-
-	assert.NoError(t, loadPackagesFrom(cfg))
-	assert.EqualValues(t, "local", Packages.Storage.Type)
-	assert.EqualValues(t, filepath.Join(AppDataPath, "packages"), Packages.Storage.Path)
-
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
-	assert.EqualValues(t, "local", RepoArchive.Storage.Type)
-	assert.EqualValues(t, "/tmp/gitea/archives", RepoArchive.Storage.Path)
-
-	assert.NoError(t, loadActionsFrom(cfg))
-	assert.EqualValues(t, "local", Actions.LogStorage.Type)
-	assert.EqualValues(t, filepath.Join(AppDataPath, "actions_log"), Actions.LogStorage.Path)
-
-	assert.EqualValues(t, "local", Actions.ArtifactStorage.Type)
-	assert.EqualValues(t, filepath.Join(AppDataPath, "actions_artifacts"), Actions.ArtifactStorage.Path)
-
-	assert.NoError(t, loadAvatarsFrom(cfg))
-	assert.EqualValues(t, "local", Avatar.Storage.Type)
-	assert.EqualValues(t, filepath.Join(AppDataPath, "avatars"), Avatar.Storage.Path)
-
-	assert.NoError(t, loadRepoAvatarFrom(cfg))
-	assert.EqualValues(t, "local", RepoAvatar.Storage.Type)
-	assert.EqualValues(t, filepath.Join(AppDataPath, "repo-avatars"), RepoAvatar.Storage.Path)
+`, []testLocalStoragePathCase{
+		{loadPackagesFrom, &Packages.Storage, "/tmp/data/packages"},
+		{loadRepoArchiveFrom, &RepoArchive.Storage, "/tmp/gitea/archives"},
+		{loadActionsFrom, &Actions.LogStorage, "/tmp/data/actions_log"},
+		{loadAvatarsFrom, &Avatar.Storage, "/tmp/data/avatars"},
+		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/tmp/data/repo-avatars"},
+	})
 }
 
 func Test_getStorageInheritStorageTypeLocalPathOverride5(t *testing.T) {
-	iniStr := `
+	testLocalStoragePath(t, "/tmp/data", `
 [storage.repo-archive]
 STORAGE_TYPE = local
 PATH = /data/gitea/archives
 
 [repo-archive]
-`
-	AppDataPath = "/tmp/data"
-	cfg, err := NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-
-	assert.NoError(t, loadPackagesFrom(cfg))
-	assert.EqualValues(t, "local", Packages.Storage.Type)
-	assert.EqualValues(t, filepath.Join(AppDataPath, "packages"), Packages.Storage.Path)
-
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
-	assert.EqualValues(t, "local", RepoArchive.Storage.Type)
-	assert.EqualValues(t, "/data/gitea/archives", RepoArchive.Storage.Path)
-
-	assert.NoError(t, loadActionsFrom(cfg))
-	assert.EqualValues(t, "local", Actions.LogStorage.Type)
-	assert.EqualValues(t, filepath.Join(AppDataPath, "actions_log"), Actions.LogStorage.Path)
-
-	assert.EqualValues(t, "local", Actions.ArtifactStorage.Type)
-	assert.EqualValues(t, filepath.Join(AppDataPath, "actions_artifacts"), Actions.ArtifactStorage.Path)
-
-	assert.NoError(t, loadAvatarsFrom(cfg))
-	assert.EqualValues(t, "local", Avatar.Storage.Type)
-	assert.EqualValues(t, filepath.Join(AppDataPath, "avatars"), Avatar.Storage.Path)
-
-	assert.NoError(t, loadRepoAvatarFrom(cfg))
-	assert.EqualValues(t, "local", RepoAvatar.Storage.Type)
-	assert.EqualValues(t, filepath.Join(AppDataPath, "repo-avatars"), RepoAvatar.Storage.Path)
+`, []testLocalStoragePathCase{
+		{loadPackagesFrom, &Packages.Storage, "/tmp/data/packages"},
+		{loadRepoArchiveFrom, &RepoArchive.Storage, "/data/gitea/archives"},
+		{loadActionsFrom, &Actions.LogStorage, "/tmp/data/actions_log"},
+		{loadAvatarsFrom, &Avatar.Storage, "/tmp/data/avatars"},
+		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/tmp/data/repo-avatars"},
+	})
 }
