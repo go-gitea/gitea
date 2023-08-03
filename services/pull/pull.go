@@ -71,9 +71,9 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 		pull.PullRequest = pr
 
 		if pr.Flow == issues_model.PullRequestFlowGithub {
-			err = PushToBaseRepo(prCtx, pr)
+			err = PushToBaseRepo(ctx, pr)
 		} else {
-			err = UpdateRef(prCtx, pr)
+			err = UpdateRef(ctx, pr)
 		}
 		if err != nil {
 			return err
