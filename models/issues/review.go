@@ -194,9 +194,8 @@ func (r *Review) HTMLTypeColorName() string {
 	case ReviewTypeApprove:
 		if r.Stale {
 			return "yellow"
-		} else {
-			return "green"
 		}
+		return "green"
 	case ReviewTypeComment:
 		return "grey"
 	case ReviewTypeReject:
