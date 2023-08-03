@@ -1,31 +1,42 @@
-{{if $.LatestCommitStatus}}
-	{{if not $.Issue.PullRequest.HasMerged}}
-		<div class="ui top attached header">
-			{{if eq .LatestCommitStatus.State "pending"}}
-				{{$.locale.Tr "repo.pulls.status_checking"}}
-			{{else if eq .LatestCommitStatus.State "success"}}
-				{{$.locale.Tr "repo.pulls.status_checks_success"}}
-			{{else if eq .LatestCommitStatus.State "warning"}}
-				{{$.locale.Tr "repo.pulls.status_checks_warning"}}
-			{{else if eq .LatestCommitStatus.State "failure"}}
-				{{$.locale.Tr "repo.pulls.status_checks_failure"}}
-			{{else if eq .LatestCommitStatus.State "error"}}
-				{{$.locale.Tr "repo.pulls.status_checks_error"}}
-			{{else}}
-				{{$.locale.Tr "repo.pulls.status_checking"}}
-			{{end}}
-			<div class="ui right">
-				<a class="hide-all-checks muted"
-				data-show-all="{{$.locale.Tr "repo.pulls.status_checks_show_all"}}"
-				data-hide-all="{{$.locale.Tr "repo.pulls.status_checks_hide_all"}}">
-				{{$.locale.Tr "repo.pulls.status_checks_hide_all"}}</a>
-			</div>
-		</div>
-	{{end}}
+{{/*
+Template Attributes:
+* locale: passed through for localization
+* CommitStatus: summary of all commit status state
+* CommitStatuses: all commit status elements
+* IsTippy: whether this template is the content of tippy
+* is_context_required: Used in pull request commit status check table
+*/}}
 
-	<div class="ui attached segment pr-status-list">
-		{{range $.LatestCommitStatuses}}
-			<div class="ui attached segment pr-status">
+{{if .CommitStatus}}
+<div class="{{if .IsTippy}}tippy-commit-status{{else}}pr-commit-status{{end}}">
+	<div class="ui attached header top">
+		{{if eq .CommitStatus.State "pending"}}
+			{{.locale.Tr "repo.pulls.status_checking"}}
+		{{else if eq .CommitStatus.State "success"}}
+			{{.locale.Tr "repo.pulls.status_checks_success"}}
+		{{else if eq .CommitStatus.State "warning"}}
+			{{.locale.Tr "repo.pulls.status_checks_warning"}}
+		{{else if eq .CommitStatus.State "failure"}}
+			{{.locale.Tr "repo.pulls.status_checks_failure"}}
+		{{else if eq .CommitStatus.State "error"}}
+			{{.locale.Tr "repo.pulls.status_checks_error"}}
+		{{else}}
+			{{.locale.Tr "repo.pulls.status_checking"}}
+		{{end}}
+
+		{{if not .IsTippy}}
+		<div class="ui right">
+			<a class="hide-all-checks muted"
+			data-show-all="{{.locale.Tr "repo.pulls.status_checks_show_all"}}"
+			data-hide-all="{{.locale.Tr "repo.pulls.status_checks_hide_all"}}">
+			{{.locale.Tr "repo.pulls.status_checks_hide_all"}}</a>
+		</div>
+		{{end}}
+	</div>
+
+	<div class="ui attached segment commit-status-list">
+		{{range .CommitStatuses}}
+			<div class="ui attached segment commit-status-item">
 				{{template "repo/commit_status" .}}
 				<div class="status-context">
 					<span>{{.Context}} <span class="text grey">{{.Description}}</span></span>
@@ -39,4 +50,5 @@
 			</div>
 		{{end}}
 	</div>
+</div>
 {{end}}

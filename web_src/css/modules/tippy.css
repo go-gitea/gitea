@@ -37,7 +37,7 @@
 
 .tippy-content {
   position: relative;
-  padding: 1rem;
+  padding: 0;
   z-index: 1;
 }
 

@@ -3284,50 +3284,60 @@ tbody.commit-list {
   }
 }
 
-.ui.segment.pr-status-list {
+.ui.segment.commit-status-list {
   padding: 0;
   max-height: 30vh;
   overflow-x: hidden;
   transition: max-height 0.4s;
+  border-bottom: 0 !important;
 }
 
-.ui.segment.pr-status-list.hide{
+.pr-commit-status.hide {
+  border-bottom: 0 !important;
+}
+
+.pr-commit-status.hide .ui.attached.header {
+  border-bottom: 0 !important;
+}
+
+.pr-commit-status.hide .commit-status-list {
   padding: 0;
   max-height: 0;
   overflow-x: hidden;
   transition: max-height 0.4s;
+  border: 0;
 }
 
-.pr-status {
+.commit-status-item {
   padding: 0 !important; /* To clear fomantic's padding on .ui.segment elements */
   display: flex;
   align-items: center;
 }
 
-.pr-status:first-child {
+.commit-status-item:first-child {
   border-top: none !important;
 }
 
-.pr-status:last-child {
+.commit-status-item:last-child {
   border-bottom: none !important;
 }
 
-.pr-status .commit-status {
+.commit-status-item .commit-status {
   margin: 1em;
   flex-shrink: 0;
 }
 
-.pr-status .status-context {
+.commit-status-item .status-context {
   display: flex;
   justify-content: space-between;
   width: 100%;
 }
 
-.pr-status .status-context > span {
+.commit-status-item .status-context > span {
   padding: 1em 0;
 }
 
-.pr-status .status-details {
+.commit-status-item .status-details {
   display: flex;
   padding-right: 0.5em;
   align-items: center;
@@ -3335,15 +3345,23 @@ tbody.commit-list {
 }
 
 @media (max-width: 767.98px) {
-  .pr-status .status-details {
+  .commit-status-item .status-details {
     flex-direction: column;
     align-items: flex-end;
     justify-content: center;
   }
 }
 
-.pr-status .status-details > span {
+.commit-status-item .status-details > span {
   padding-right: 0.5em; /* To match the alignment with the "required" label */
+}
+
+.tippy-commit-status {
+  max-width: 100vw;
+}
+
+.tippy-commit-status .ui.attached.header {
+  border-top: 0 !important;
 }
 
 .search-fullname {

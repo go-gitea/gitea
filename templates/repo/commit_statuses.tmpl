@@ -9,14 +9,12 @@
 		</span>
 	{{end}}
 	<div class="tippy-target ui relaxed list divided">
-		{{range .Statuses}}
-			<div class="ui item singular-status gt-df">
-				{{template "repo/commit_status" .}}
-				<span class="ui gt-ml-3 gt-f1">{{.Context}} <span class="text grey">{{.Description}}</span></span>
-				{{if .TargetURL}}
-					<a class="gt-ml-3" href="{{.TargetURL}}" target="_blank" rel="noopener noreferrer">{{$.root.locale.Tr "repo.pulls.status_checks_details"}}</a>
-				{{end}}
-			</div>
-		{{end}}
+		{{template "repo/pulls/status" (dict
+			"locale" .root.locale
+			"CommitStatuses" .Statuses
+			"CommitStatus" .Status
+			"IsTippy" true
+			"is_context_required" .root.is_context_required
+		)}}
 	</div>
 {{end}}
