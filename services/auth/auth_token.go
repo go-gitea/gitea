@@ -18,6 +18,8 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+// Based on https://paragonie.com/blog/2015/04/secure-authentication-php-with-long-term-persistence#secure-remember-me-cookies
+
 var (
 	ErrAuthTokenInvalidFormat = util.NewInvalidArgumentErrorf("auth token has an invalid format")
 	ErrAuthTokenExpired       = util.NewInvalidArgumentErrorf("auth token has expired")
