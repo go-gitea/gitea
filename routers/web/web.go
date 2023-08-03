@@ -108,12 +108,12 @@ func Routes() *web.Route {
 	routes := web.NewRoute()
 
 	routes.Head("/", misc.DummyOK) // for health check - doesn't need to be passed through gzip handler
-	routes.RouteMethods("/assets/*", "GET, HEAD", CorsHandler(), public.AssetsHandlerFunc("/assets/"))
-	routes.RouteMethods("/avatars/*", "GET, HEAD", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
-	routes.RouteMethods("/repo-avatars/*", "GET, HEAD", storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
-	routes.RouteMethods("/apple-touch-icon.png", "GET, HEAD", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
-	routes.RouteMethods("/apple-touch-icon-precomposed.png", "GET, HEAD", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
-	routes.RouteMethods("/favicon.ico", "GET, HEAD", misc.StaticRedirect("/assets/img/favicon.png"))
+	routes.Methods("GET, HEAD", "/assets/*", CorsHandler(), public.FileHandlerFunc())
+	routes.Methods("GET, HEAD", "/avatars/*", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
+	routes.Methods("GET, HEAD", "/repo-avatars/*", storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
+	routes.Methods("GET, HEAD", "/apple-touch-icon.png", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
+	routes.Methods("GET, HEAD", "/apple-touch-icon-precomposed.png", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
+	routes.Methods("GET, HEAD", "/favicon.ico", misc.StaticRedirect("/assets/img/favicon.png"))
 
 	_ = templates.HTMLRenderer()
 
@@ -129,11 +129,7 @@ func Routes() *web.Route {
 
 	if setting.Service.EnableCaptcha {
 		// The captcha http.Handler should only fire on /captcha/* so we can just mount this on that url
-		routes.RouteMethods("/captcha/*", "GET,HEAD", append(mid, captcha.Captchaer(context.GetImageCaptcha()))...)
-	}
-
-	if setting.HasRobotsTxt {
-		routes.Get("/robots.txt", append(mid, misc.RobotsTxt)...)
+		routes.Methods("GET,HEAD", "/captcha/*", append(mid, captcha.Captchaer(context.GetImageCaptcha()))...)
 	}
 
 	if setting.Metrics.Enabled {
@@ -141,6 +137,7 @@ func Routes() *web.Route {
 		routes.Get("/metrics", append(mid, Metrics)...)
 	}
 
+	routes.Get("/robots.txt", append(mid, misc.RobotsTxt)...)
 	routes.Get("/ssh_info", misc.SSHInfo)
 	routes.Get("/api/healthz", healthcheck.Check)
 
@@ -257,9 +254,10 @@ func registerRoutes(m *web.Route) {
 		}
 	}
 
-	reqUnitAccess := func(unitType unit.Type, accessMode perm.AccessMode) func(ctx *context.Context) {
+	reqUnitAccess := func(unitType unit.Type, accessMode perm.AccessMode, ignoreGlobal bool) func(ctx *context.Context) {
 		return func(ctx *context.Context) {
-			if unitType.UnitGlobalDisabled() {
+			// only check global disabled units when ignoreGlobal is false
+			if !ignoreGlobal && unitType.UnitGlobalDisabled() {
 				ctx.NotFound(unitType.String(), nil)
 				return
 			}
@@ -336,8 +334,7 @@ func registerRoutes(m *web.Route) {
 
 	// FIXME: not all routes need go through same middleware.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
-	// Routers.
-	// for health check
+
 	m.Get("/", Home)
 	m.Get("/sitemap.xml", sitemapEnabled, ignExploreSignIn, HomeSitemap)
 	m.Group("/.well-known", func() {
@@ -349,7 +346,8 @@ func registerRoutes(m *web.Route) {
 		m.Get("/change-password", func(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		})
-	})
+		m.Any("/*", CorsHandler(), public.FileHandlerFunc())
+	}, CorsHandler())
 
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
@@ -377,8 +375,9 @@ func registerRoutes(m *web.Route) {
 	m.Get("/milestones", reqSignIn, reqMilestonesDashboardPageEnabled, user.Milestones)
 
 	// ***** START: User *****
+	// "user/login" doesn't need signOut, then logged-in users can still access this route for redirection purposes by "/user/login?redirec_to=..."
+	m.Get("/user/login", auth.SignIn)
 	m.Group("/user", func() {
-		m.Get("/login", auth.SignIn)
 		m.Post("/login", web.Bind(forms.SignInForm{}), auth.SignInPost)
 		m.Group("", func() {
 			m.Combo("/login/openid").
@@ -773,7 +772,7 @@ func registerRoutes(m *web.Route) {
 					addSettingVariablesRoutes()
 				}, actions.MustEnableActions)
 
-				m.RouteMethods("/delete", "GET,POST", org.SettingsDelete)
+				m.Methods("GET,POST", "/delete", org.SettingsDelete)
 
 				m.Group("/packages", func() {
 					m.Get("", org.Packages)
@@ -834,7 +833,7 @@ func registerRoutes(m *web.Route) {
 			m.Group("", func() {
 				m.Get("", org.Projects)
 				m.Get("/{id}", org.ViewProject)
-			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead))
+			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
 			m.Group("", func() { //nolint:dupl
 				m.Get("/new", org.RenderNewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
@@ -855,17 +854,17 @@ func registerRoutes(m *web.Route) {
 						m.Post("/move", org.MoveIssues)
 					})
 				})
-			}, reqSignIn, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite), func(ctx *context.Context) {
+			}, reqSignIn, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.Context) {
 				if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
 					ctx.NotFound("NewProject", nil)
 					return
 				}
 			})
-		}, repo.MustEnableProjects)
+		})
 
 		m.Group("", func() {
 			m.Get("/code", user.CodeSearch)
-		}, reqUnitAccess(unit.TypeCode, perm.AccessModeRead))
+		}, reqUnitAccess(unit.TypeCode, perm.AccessModeRead, false))
 	}, ignSignIn, context_service.UserAssignmentWeb(), context.OrgAssignment()) // for "/{username}/-" (packages, projects, code)
 
 	// ***** Release Attachment Download without Signin
@@ -1108,6 +1107,7 @@ func registerRoutes(m *web.Route) {
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("/tags", func() {
 			m.Get("", repo.TagsList)
+			m.Get("/list", repo.GetTagList)
 			m.Get(".rss", feedEnabled, repo.TagsListFeedRSS)
 			m.Get(".atom", feedEnabled, repo.TagsListFeedAtom)
 		}, ctxDataSet("EnableFeed", setting.Other.EnableFeed),
@@ -1151,10 +1151,8 @@ func registerRoutes(m *web.Route) {
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("", func() {
-			m.Group("/{type:issues|pulls}", func() {
-				m.Get("", repo.Issues)
-				m.Get("/posters", repo.IssuePosters)
-			})
+			m.Get("/issues/posters", repo.IssuePosters) // it can't use {type:issues|pulls} because other routes like "/pulls/{index}" has higher priority
+			m.Get("/{type:issues|pulls}", repo.Issues)
 			m.Get("/{type:issues|pulls}/{index}", repo.ViewIssue)
 			m.Group("/{type:issues|pulls}/{index}/content-history", func() {
 				m.Get("/overview", repo.GetContentHistoryOverview)
@@ -1212,7 +1210,7 @@ func registerRoutes(m *web.Route) {
 				m.Post("/cancel", reqRepoActionsWriter, actions.Cancel)
 				m.Post("/approve", reqRepoActionsWriter, actions.Approve)
 				m.Post("/artifacts", actions.ArtifactsView)
-				m.Get("/artifacts/{id}", actions.ArtifactsDownloadView)
+				m.Get("/artifacts/{artifact_name}", actions.ArtifactsDownloadView)
 				m.Post("/rerun", reqRepoActionsWriter, actions.RerunAll)
 			})
 		}, reqRepoActionsReader, actions.MustEnableActions)
@@ -1251,6 +1249,7 @@ func registerRoutes(m *web.Route) {
 		}, repo.MustBeNotEmpty, dlSourceEnabled, reqRepoCodeReader)
 
 		m.Group("/branches", func() {
+			m.Get("/list", repo.GetBranchesList)
 			m.Get("", repo.Branches)
 		}, repo.MustBeNotEmpty, context.RepoRef(), reqRepoCodeReader)
 
@@ -1276,18 +1275,25 @@ func registerRoutes(m *web.Route) {
 			return cancel
 		})
 
+		m.Get("/pulls/posters", repo.PullPosters)
 		m.Group("/pulls/{index}", func() {
 			m.Get("", repo.SetWhitespaceBehavior, repo.GetPullDiffStats, repo.ViewIssue)
 			m.Get(".diff", repo.DownloadPullDiff)
 			m.Get(".patch", repo.DownloadPullPatch)
-			m.Get("/commits", context.RepoRef(), repo.SetWhitespaceBehavior, repo.GetPullDiffStats, repo.ViewPullCommits)
+			m.Group("/commits", func() {
+				m.Get("", context.RepoRef(), repo.SetWhitespaceBehavior, repo.GetPullDiffStats, repo.ViewPullCommits)
+				m.Get("/list", context.RepoRef(), repo.GetPullCommits)
+				m.Get("/{sha:[a-f0-9]{7,40}}", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForSingleCommit)
+			})
 			m.Post("/merge", context.RepoMustNotBeArchived(), web.Bind(forms.MergePullRequestForm{}), repo.MergePullRequest)
 			m.Post("/cancel_auto_merge", context.RepoMustNotBeArchived(), repo.CancelAutoMergePullRequest)
 			m.Post("/update", repo.UpdatePullRequest)
 			m.Post("/set_allow_maintainer_edit", web.Bind(forms.UpdateAllowEditsForm{}), repo.SetAllowEdits)
 			m.Post("/cleanup", context.RepoMustNotBeArchived(), context.RepoRef(), repo.CleanUpPullRequest)
 			m.Group("/files", func() {
-				m.Get("", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFiles)
+				m.Get("", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForAllCommitsOfPr)
+				m.Get("/{sha:[a-f0-9]{7,40}}", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesStartingFromCommit)
+				m.Get("/{shaFrom:[a-f0-9]{7,40}}..{shaTo:[a-f0-9]{7,40}}", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForRange)
 				m.Group("/reviews", func() {
 					m.Get("/new_comment", repo.RenderNewCodeCommentForm)
 					m.Post("/comments", web.Bind(forms.CodeCommentForm{}), repo.SetShowOutdatedComments, repo.CreateCodeComment)
@@ -1338,6 +1344,7 @@ func registerRoutes(m *web.Route) {
 		m.Group("", func() {
 			m.Get("/graph", repo.Graph)
 			m.Get("/commit/{sha:([a-f0-9]{7,40})$}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
+			m.Get("/commit/{sha:([a-f0-9]{7,40})$}/load-branches-and-tags", repo.LoadBranchesAndTags)
 			m.Get("/cherry-pick/{sha:([a-f0-9]{7,40})$}", repo.SetEditorconfigIfExists, repo.CherryPick)
 		}, repo.MustBeNotEmpty, context.RepoRef(), reqRepoCodeReader)
 

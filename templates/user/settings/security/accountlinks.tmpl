@@ -21,21 +21,29 @@
 </h4>
 
 <div class="ui attached segment">
-	<div class="ui key list">
-		<div class="item">
+	<div class="flex-list">
+		<div class="flex-item">
 			{{.locale.Tr "settings.manage_account_links_desc"}}
 		</div>
 		{{range $loginSource, $provider := .AccountLinks}}
-			<div class="item gt-df gt-ac">
-				<div class="gt-f1">
-					<span data-tooltip-content="{{$provider}}">
-						{{$loginSource.Name}}
-						{{if $loginSource.IsActive}}<span class="text primary">{{$.locale.Tr "repo.settings.active"}}</span>{{end}}
-					</span>
+			<div class="flex-item">
+				{{$providerData := index $.OAuth2Providers $loginSource.Name}}
+				<div class="flex-item-leading">
+					{{$providerData.IconHTML}}
 				</div>
-				<button class="ui red tiny button delete-button" data-modal-id="delete-account-link" data-url="{{AppSubUrl}}/user/settings/security/account_link" data-id="{{$loginSource.ID}}">
-					{{$.locale.Tr "settings.delete_key"}}
-				</button>
+				<div class="flex-item-main">
+					<span class="flex-item-title" data-tooltip-content="{{$provider}}">
+						{{$loginSource.Name}}
+					</span>
+					{{if $loginSource.IsActive}}
+					<span class="flex-text-body text primary">{{$.locale.Tr "repo.settings.active"}}</span>
+					{{end}}
+				</div>
+				<div class="flex-item-trailing">
+					<button class="ui red tiny button delete-button" data-modal-id="delete-account-link" data-url="{{AppSubUrl}}/user/settings/security/account_link" data-id="{{$loginSource.ID}}">
+						{{$.locale.Tr "settings.delete_key"}}
+					</button>
+				</div>
 			</div>
 		{{end}}
 	</div>

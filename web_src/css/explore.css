@@ -10,33 +10,6 @@
   margin-right: 5px;
 }
 
-.ui.repository.list .item {
-  padding-bottom: 1.5rem;
-}
-
-.ui.repository.list .item:not(:first-child) {
-  border-top: 1px solid var(--color-secondary);
-  padding-top: 1.5rem;
-}
-
-.ui.repository.list .item .ui.header {
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.ui.repository.list .item .ui.header .name {
-  word-break: break-all;
-}
-
-.ui.repository.list .item .time {
-  font-size: 12px;
-}
-
-.ui.repository.list .repo-title .labels {
-  word-break: normal;
-  flex-shrink: 0;
-}
-
 .ui.repository.branches .info {
   font-size: 12px;
   color: var(--color-text-light);
@@ -57,28 +30,4 @@
 /* fix alignment of PR popup in branches table */
 .ui.repository.branches table .ui.popup {
   text-align: left;
-}
-
-.ui.user.list .item {
-  padding-bottom: 25px;
-  display: flex;
-}
-
-.ui.user.list .item:not(:first-child) {
-  border-top: 1px solid var(--color-secondary);
-  padding-top: 25px;
-}
-
-.ui.user.list .item img.ui.avatar {
-  width: 40px;
-  height: 40px;
-  margin-right: 10px;
-}
-
-.ui.user.list .item .description {
-  margin-top: 5px;
-}
-
-.ui.user.list .item .description .svg:not(:first-child) {
-  margin-left: 5px;
 }

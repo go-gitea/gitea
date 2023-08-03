@@ -10,15 +10,15 @@ import (
 
 	user_model "code.gitea.io/gitea/models/user"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
-var microcmdUserList = cli.Command{
+var microcmdUserList = &cli.Command{
 	Name:   "list",
 	Usage:  "List users",
 	Action: runListUsers,
 	Flags: []cli.Flag{
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "admin",
 			Usage: "List only admin users",
 		},

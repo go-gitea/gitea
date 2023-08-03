@@ -10,6 +10,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
@@ -17,7 +18,9 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
+	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
@@ -265,7 +268,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 		// TODO: graceful: AddTestPullRequestTask needs to become a queue!
 
 		// GetUnmergedPullRequestsByHeadInfo() only return open and unmerged PR.
-		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(repoID, branch)
+		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, repoID, branch)
 		if err != nil {
 			log.Error("Find pull requests [head_repo_id: %d, head_branch: %s]: %v", repoID, branch, err)
 			return
@@ -282,7 +285,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 				continue
 			}
 
-			AddToTaskQueue(pr)
+			AddToTaskQueue(ctx, pr)
 			comment, err := CreatePushPullComment(ctx, doer, pr, oldCommitID, newCommitID)
 			if err == nil && comment != nil {
 				notification.NotifyPullRequestPushCommits(ctx, doer, pr, comment)
@@ -291,7 +294,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 
 		if isSync {
 			requests := issues_model.PullRequestList(prs)
-			if err = requests.LoadAttributes(); err != nil {
+			if err = requests.LoadAttributes(ctx); err != nil {
 				log.Error("PullRequestList.LoadAttributes: %v", err)
 			}
 			if invalidationErr := checkForInvalidation(ctx, requests, repoID, doer, branch); invalidationErr != nil {
@@ -308,6 +311,17 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 							// Mark old reviews as stale if diff to mergebase has changed
 							if err := issues_model.MarkReviewsAsStale(pr.IssueID); err != nil {
 								log.Error("MarkReviewsAsStale: %v", err)
+							}
+
+							// dismiss all approval reviews if protected branch rule item enabled.
+							pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+							if err != nil {
+								log.Error("GetFirstMatchProtectedBranchRule: %v", err)
+							}
+							if pb != nil && pb.DismissStaleApprovals {
+								if err := DismissApprovalReviews(ctx, doer, pr); err != nil {
+									log.Error("DismissApprovalReviews: %v", err)
+								}
 							}
 						}
 						if err := issues_model.MarkReviewsAsNotStale(pr.IssueID, newCommitID); err != nil {
@@ -330,7 +344,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 		}
 
 		log.Trace("AddTestPullRequestTask [base_repo_id: %d, base_branch: %s]: finding pull requests", repoID, branch)
-		prs, err = issues_model.GetUnmergedPullRequestsByBaseInfo(repoID, branch)
+		prs, err = issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, repoID, branch)
 		if err != nil {
 			log.Error("Find pull requests [base_repo_id: %d, base_branch: %s]: %v", repoID, branch, err)
 			return
@@ -349,7 +363,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 					log.Error("UpdateCommitDivergence: %v", err)
 				}
 			}
-			AddToTaskQueue(pr)
+			AddToTaskQueue(ctx, pr)
 		}
 	})
 }
@@ -503,25 +517,25 @@ func (errs errlist) Error() string {
 }
 
 // CloseBranchPulls close all the pull requests who's head branch is the branch
-func CloseBranchPulls(doer *user_model.User, repoID int64, branch string) error {
-	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(repoID, branch)
+func CloseBranchPulls(ctx context.Context, doer *user_model.User, repoID int64, branch string) error {
+	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, repoID, branch)
 	if err != nil {
 		return err
 	}
 
-	prs2, err := issues_model.GetUnmergedPullRequestsByBaseInfo(repoID, branch)
+	prs2, err := issues_model.GetUnmergedPullRequestsByBaseInfo(ctx, repoID, branch)
 	if err != nil {
 		return err
 	}
 
 	prs = append(prs, prs2...)
-	if err := issues_model.PullRequestList(prs).LoadAttributes(); err != nil {
+	if err := issues_model.PullRequestList(prs).LoadAttributes(ctx); err != nil {
 		return err
 	}
 
 	var errs errlist
 	for _, pr := range prs {
-		if err = issue_service.ChangeStatus(pr.Issue, doer, "", true); err != nil && !issues_model.IsErrPullWasClosed(err) && !issues_model.IsErrDependenciesLeft(err) {
+		if err = issue_service.ChangeStatus(ctx, pr.Issue, doer, "", true); err != nil && !issues_model.IsErrPullWasClosed(err) && !issues_model.IsErrDependenciesLeft(err) {
 			errs = append(errs, err)
 		}
 	}
@@ -540,12 +554,12 @@ func CloseRepoBranchesPulls(ctx context.Context, doer *user_model.User, repo *re
 
 	var errs errlist
 	for _, branch := range branches {
-		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(repo.ID, branch.Name)
+		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, repo.ID, branch.Name)
 		if err != nil {
 			return err
 		}
 
-		if err = issues_model.PullRequestList(prs).LoadAttributes(); err != nil {
+		if err = issues_model.PullRequestList(prs).LoadAttributes(ctx); err != nil {
 			return err
 		}
 
@@ -555,7 +569,7 @@ func CloseRepoBranchesPulls(ctx context.Context, doer *user_model.User, repo *re
 			if pr.BaseRepoID == repo.ID {
 				continue
 			}
-			if err = issue_service.ChangeStatus(pr.Issue, doer, "", true); err != nil && !issues_model.IsErrPullWasClosed(err) {
+			if err = issue_service.ChangeStatus(ctx, pr.Issue, doer, "", true); err != nil && !issues_model.IsErrPullWasClosed(err) {
 				errs = append(errs, err)
 			}
 		}
@@ -790,7 +804,7 @@ func getAllCommitStatus(gitRepo *git.Repository, pr *issues_model.PullRequest) (
 		return nil, nil, shaErr
 	}
 
-	statuses, _, err = git_model.GetLatestCommitStatus(db.DefaultContext, pr.BaseRepo.ID, sha, db.ListOptions{})
+	statuses, _, err = git_model.GetLatestCommitStatus(db.DefaultContext, pr.BaseRepo.ID, sha, db.ListOptions{ListAll: true})
 	lastStatus = git_model.CalcCommitStatus(statuses)
 	return statuses, lastStatus, err
 }
@@ -844,4 +858,72 @@ func IsHeadEqualWithBranch(ctx context.Context, pr *issues_model.PullRequest, br
 		}
 	}
 	return baseCommit.HasPreviousCommit(headCommit.ID)
+}
+
+type CommitInfo struct {
+	Summary               string `json:"summary"`
+	CommitterOrAuthorName string `json:"committer_or_author_name"`
+	ID                    string `json:"id"`
+	ShortSha              string `json:"short_sha"`
+	Time                  string `json:"time"`
+}
+
+// GetPullCommits returns all commits on given pull request and the last review commit sha
+func GetPullCommits(ctx *gitea_context.Context, issue *issues_model.Issue) ([]CommitInfo, string, error) {
+	pull := issue.PullRequest
+
+	baseGitRepo := ctx.Repo.GitRepo
+
+	if err := pull.LoadBaseRepo(ctx); err != nil {
+		return nil, "", err
+	}
+	baseBranch := pull.BaseBranch
+	if pull.HasMerged {
+		baseBranch = pull.MergeBase
+	}
+	prInfo, err := baseGitRepo.GetCompareInfo(pull.BaseRepo.RepoPath(), baseBranch, pull.GetGitRefName(), true, false)
+	if err != nil {
+		return nil, "", err
+	}
+
+	commits := make([]CommitInfo, 0, len(prInfo.Commits))
+
+	for _, commit := range prInfo.Commits {
+		var committerOrAuthorName string
+		var commitTime time.Time
+		if commit.Committer != nil {
+			committerOrAuthorName = commit.Committer.Name
+			commitTime = commit.Committer.When
+		} else {
+			committerOrAuthorName = commit.Author.Name
+			commitTime = commit.Author.When
+		}
+
+		commits = append(commits, CommitInfo{
+			Summary:               commit.Summary(),
+			CommitterOrAuthorName: committerOrAuthorName,
+			ID:                    commit.ID.String(),
+			ShortSha:              base.ShortSha(commit.ID.String()),
+			Time:                  commitTime.Format(time.RFC3339),
+		})
+	}
+
+	var lastReviewCommitID string
+	if ctx.IsSigned {
+		// get last review of current user and store information in context (if available)
+		lastreview, err := issues_model.FindLatestReviews(ctx, issues_model.FindReviewOptions{
+			IssueID:    issue.ID,
+			ReviewerID: ctx.Doer.ID,
+			Type:       issues_model.ReviewTypeUnknown,
+		})
+
+		if err != nil && !issues_model.IsErrReviewNotExist(err) {
+			return nil, "", err
+		}
+		if len(lastreview) > 0 {
+			lastReviewCommitID = lastreview[0].CommitID
+		}
+	}
+
+	return commits, lastReviewCommitID, nil
 }

@@ -465,8 +465,9 @@ func (comments CommentList) loadReviews(ctx context.Context) error {
 	return nil
 }
 
-// loadAttributes loads all attributes
-func (comments CommentList) loadAttributes(ctx context.Context) (err error) {
+// LoadAttributes loads attributes of the comments, except for attachments and
+// comments
+func (comments CommentList) LoadAttributes(ctx context.Context) (err error) {
 	if err = comments.LoadPosters(ctx); err != nil {
 		return err
 	}
@@ -500,10 +501,4 @@ func (comments CommentList) loadAttributes(ctx context.Context) (err error) {
 	}
 
 	return comments.loadDependentIssues(ctx)
-}
-
-// LoadAttributes loads attributes of the comments, except for attachments and
-// comments
-func (comments CommentList) LoadAttributes() error {
-	return comments.loadAttributes(db.DefaultContext)
 }
