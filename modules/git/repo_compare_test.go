@@ -141,6 +141,11 @@ func TestGetCommitFilesChanged(t *testing.T) {
 			[]string{"file2.txt"},
 		},
 		{
+			"95bb4d39648ee7e325106df01a621c530863a653",
+			"8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2",
+			[]string{"file2.txt"},
+		},
+		{
 			EmptyTreeSHA,
 			"8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2",
 			[]string{"file1.txt", "file2.txt"},
