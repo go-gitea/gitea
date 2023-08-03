@@ -79,8 +79,7 @@ SMTP_PORT      = 465
 FROM           = example.user@gmail.com
 USER           = example.user
 PASSWD         = `***`
-PROTOCOL       = smtp
-IS_TLS_ENABLED = true
+PROTOCOL       = smtps
 ```
 
 Note that you'll need to create and use an [App password](https://support.google.com/accounts/answer/185833?hl=en) by enabling 2FA on your Google
