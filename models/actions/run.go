@@ -306,7 +306,7 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 }
 
 func DeleteRunJobs(ctx context.Context, jobs []*ActionRunJob) error {
-	return db.DeleteBeans(ctx, jobs...)
+	return db.DeleteBeans(ctx, jobs)
 }
 
 func DeleteRun(ctx context.Context, run *ActionRun) error {
