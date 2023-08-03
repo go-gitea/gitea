@@ -4,6 +4,7 @@
 package activities_test
 
 import (
+	"context"
 	"testing"
 
 	activities_model "code.gitea.io/gitea/models/activities"
@@ -108,4 +109,18 @@ func TestUpdateNotificationStatuses(t *testing.T) {
 		&activities_model.Notification{ID: notfRead.ID, Status: activities_model.NotificationStatusRead})
 	unittest.AssertExistsAndLoadBean(t,
 		&activities_model.Notification{ID: notfPinned.ID, Status: activities_model.NotificationStatusPinned})
+}
+
+func TestSetIssueReadBy(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+		assert.NoError(t, activities_model.SetIssueReadBy(ctx, issue.ID, user.ID))
+		return nil
+	})
+
+	cnt, err := activities_model.GetNotificationCount(db.DefaultContext, user, activities_model.NotificationStatusUnread)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, cnt)
 }
