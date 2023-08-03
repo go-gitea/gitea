@@ -39,39 +39,39 @@
 			</button>
 		</form>
 	</div>
-	<div class="ui key list gt-mt-0">
-		<div class="item">
+	<div class="flex-list">
+		<div class="flex-item">
 			{{.locale.Tr "settings.gpg_desc"}}
 		</div>
 		{{range .GPGKeys}}
-			<div class="item">
-				<div class="right floated content">
+			<div class="flex-item">
+				<div class="flex-item-leading">
+					<span class="text {{if or .ExpiredUnix.IsZero ($.PageStartTime.Before .ExpiredUnix.AsTime)}}green{{end}}">{{svg "octicon-key" 32}}</span>
+				</div>
+				<div class="flex-item-main">
+					{{if .Verified}}
+						<span class="flex-text-block" data-tooltip-content="{{$.locale.Tr "settings.gpg_key_verified_long"}}">{{svg "octicon-verified"}} <strong>{{$.locale.Tr "settings.gpg_key_verified"}}</strong></span>
+					{{end}}
+					{{if gt (len .Emails) 0}}
+						<span class="flex-text-block" data-tooltip-content="{{$.locale.Tr "settings.gpg_key_matched_identities_long"}}">{{svg "octicon-mail"}} {{$.locale.Tr "settings.gpg_key_matched_identities"}} {{range .Emails}}<strong>{{.Email}} </strong>{{end}}</span>
+					{{end}}
+					<div class="flex-item-body">
+						<b>{{$.locale.Tr "settings.key_id"}}:</b> {{.PaddedKeyID}}
+						<b>{{$.locale.Tr "settings.subkeys"}}:</b> {{range .SubsKey}} {{.PaddedKeyID}} {{end}}
+					</div>
+					<div class="flex-item-body">
+						<i>{{$.locale.Tr "settings.added_on" (DateTime "short" .AddedUnix) | Safe}}</i>
+						-
+						<i>{{if not .ExpiredUnix.IsZero}}{{$.locale.Tr "settings.valid_until_date" (DateTime "short" .ExpiredUnix) | Safe}}{{else}}{{$.locale.Tr "settings.valid_forever"}}{{end}}</i>
+					</div>
+				</div>
+				<div class="flex-item-trailing">
 					<button class="ui red tiny button delete-button" data-modal-id="delete-gpg" data-url="{{$.Link}}/delete?type=gpg" data-id="{{.ID}}">
 						{{$.locale.Tr "settings.delete_key"}}
 					</button>
 					{{if and (not .Verified) (ne $.VerifyingID .KeyID)}}
 						<a class="ui primary tiny button" href="{{$.Link}}?verify_gpg={{.KeyID}}">{{$.locale.Tr "settings.gpg_key_verify"}}</a>
 					{{end}}
-				</div>
-				<div class="left floated content">
-					<span class="text {{if or .ExpiredUnix.IsZero ($.PageStartTime.Before .ExpiredUnix.AsTime)}}green{{end}}">{{svg "octicon-key" 32}}</span>
-				</div>
-				<div class="content">
-					{{if .Verified}}
-						<span data-tooltip-content="{{$.locale.Tr "settings.gpg_key_verified_long"}}">{{svg "octicon-verified"}} <strong>{{$.locale.Tr "settings.gpg_key_verified"}}</strong></span>
-					{{end}}
-					{{if gt (len .Emails) 0}}
-						<span data-tooltip-content="{{$.locale.Tr "settings.gpg_key_matched_identities_long"}}">{{svg "octicon-mail"}} {{$.locale.Tr "settings.gpg_key_matched_identities"}} {{range .Emails}}<strong>{{.Email}} </strong>{{end}}</span>
-					{{end}}
-					<div class="print meta">
-						<b>{{$.locale.Tr "settings.key_id"}}:</b> {{.PaddedKeyID}}
-						<b>{{$.locale.Tr "settings.subkeys"}}:</b> {{range .SubsKey}} {{.PaddedKeyID}} {{end}}
-					</div>
-					<div class="activity meta">
-						<i>{{$.locale.Tr "settings.added_on" (DateTime "short" .AddedUnix) | Safe}}</i>
-						-
-						<i>{{if not .ExpiredUnix.IsZero}}{{$.locale.Tr "settings.valid_until_date" (DateTime "short" .ExpiredUnix) | Safe}}{{else}}{{$.locale.Tr "settings.valid_forever"}}{{end}}</i>
-					</div>
 				</div>
 			</div>
 			{{if and (not .Verified) (eq $.VerifyingID .KeyID)}}
