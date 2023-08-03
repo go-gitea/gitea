@@ -26,14 +26,7 @@
 				{{if not .Repository.IsFork}}
 					<div class="inline field">
 						<label>{{.locale.Tr "repo.visibility"}}</label>
-						<div class="ui checkbox" {{if not .Repository.IsPrivate}}data-tooltip-content="{{.locale.Tr "repo.visibility.update_error"}}"{{end}}>
-							{{if .IsAdmin}}
-							<input name="private" type="checkbox" {{if .Repository.IsPrivate}}checked{{else}}readonly{{end}}>
-							{{else}}
-							<input name="private" type="checkbox" {{if .Repository.IsPrivate}}checked{{end}}{{if or ($.ForcePrivate)  (not .Repository.IsPrivate)}} readonly{{end}}>
-							{{end}}
-							<label>{{.locale.Tr "repo.visibility_helper" | Safe}} </label>
-						</div>
+						<span>{{if .Repository.IsPrivate}}{{.locale.Tr "settings.visibility.private"}}{{else}}{{.locale.Tr "settings.visibility.public"}}{{end}}</span>
 					</div>
 				{{end}}
 				<div class="field {{if .Err_Description}}error{{end}}">
@@ -753,20 +746,37 @@
 				</div>
 			{{end}}
 
-			{{if and (not .Repository.IsFork) (not .Repository.IsPrivate)}}
+			{{if not .Repository.IsFork}}
 				<div class="divider"></div>
 
 				<div class="item">
 					<div class="ui right">
-						<button class="ui basic red show-modal button" data-modal="#repo-visibility-modal">{{.locale.Tr "repo.visibility_helper" | Safe}}</button>
+						<button class="ui basic red show-modal button" data-modal="#repo-visibility-modal">
+							{{.locale.Tr "repo.visibility_helper" | Safe}}
+							{{if not .Repository.IsPrivate}}
+								{{.locale.Tr "settings.visibility.private"}}
+							{{else}}
+								{{.locale.Tr "settings.visibility.public"}}
+							{{end}}
+							</button>
 					</div>
 					<div>
-						<h5>{{.locale.Tr "repo.visibility_helper" | Safe}}</h5>
+						<h5>
+							{{.locale.Tr "repo.visibility_helper" | Safe}}
+							{{if not .Repository.IsPrivate}}
+								{{.locale.Tr "settings.visibility.private"}}
+							{{else}}
+								{{.locale.Tr "settings.visibility.public"}}
+							{{end}}
+						</h5>
 						{{if and (not .Repository.IsPrivate) (gt .Repository.NumStars 0)}}
 						<p>{{.locale.Tr "repo.stars_remove_warning"}}</p>
 						{{end}}
-						{{if .Repository.NumForks}}
+						{{if and (not .Repository.IsPrivate) (.Repository.NumForks)}}
 						<p class="text red">{{.locale.Tr "repo.visibility_fork_helper"}}</p>
+						{{end}}
+						{{if .Repository.IsPrivate}}
+						<p class="text red">{{.locale.Tr "repo.visibility_credential"}}</p>
 						{{end}}
 					</div>
 				</div>
@@ -979,19 +989,24 @@
 	</div>
 	{{end}}
 
-	{{if and (not .Repository.IsFork) (not .Repository.IsPrivate)}}
+	{{if not .Repository.IsFork}}
 	<div class="ui small modal" id="repo-visibility-modal">
 		<div class="header">
 			{{.locale.Tr "repo.visibility"}}
 		</div>
 		<div class="content">
 			<div class="ui warning message">
+				{{if not .Repository.IsPrivate}}
 				{{.locale.Tr "repo.stars_remove_warning"}}<br>
 				{{.locale.Tr "repo.visibility_fork_helper"}}
+				{{else}}
+				{{.locale.Tr "repo.visibility_credential"}}
+				{{end}}
 			</div>
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
-				<input type="hidden" name="action" value="make-private">
+				<input type="hidden" name="action" value="change-visiblity">
+				<input type="hidden" name="Private" value {{if .Repository.IsPrivate}}false{{else}}true{{end}}>
 				<div class="field">
 					<label>
 						{{.locale.Tr "repo.settings.transfer_form_title"}}
@@ -1005,7 +1020,14 @@
 
 				<div class="text right actions">
 					<button class="ui cancel button">{{.locale.Tr "settings.cancel"}}</button>
-					<button class="ui red button">{{.locale.Tr "repo.visibility_helper"}}</button>
+					<button class="ui red button">
+						{{.locale.Tr "repo.visibility_helper"}}
+						{{if not .Repository.IsPrivate}}
+							{{.locale.Tr "settings.visibility.private"}}
+						{{else}}
+							{{.locale.Tr "settings.visibility.public"}}
+						{{end}}
+					</button>
 				</div>
 			</form>
 		</div>

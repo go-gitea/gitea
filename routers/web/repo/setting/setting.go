@@ -168,19 +168,7 @@ func SettingsPost(ctx *context.Context) {
 			form.Private = repo.BaseRepo.IsPrivate || repo.BaseRepo.Owner.Visibility == structs.VisibleTypePrivate
 		}
 
-		if form.Private {
-			ctx.RenderWithErr(ctx.Tr("repo.visibility.update_error"), tplSettingsOptions, form)
-		}
-
-		visibilityChanged := repo.IsPrivate != form.Private
-		// when ForcePrivate enabled, you could change public repo to private, but only admin users can change private to public
-		if visibilityChanged && setting.Repository.ForcePrivate && !form.Private && !ctx.Doer.IsAdmin {
-			ctx.RenderWithErr(ctx.Tr("form.repository_force_private"), tplSettingsOptions, form)
-			return
-		}
-
-		repo.IsPrivate = form.Private
-		if err := repo_service.UpdateRepository(ctx, repo, visibilityChanged); err != nil {
+		if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
 			ctx.ServerError("UpdateRepository", err)
 			return
 		}
@@ -819,7 +807,7 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.wiki_deletion_success"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 
-	case "make-private":
+	case "change-visiblity":
 		if ctx.HasError() {
 			ctx.HTML(http.StatusOK, tplSettingsOptions)
 			return
@@ -833,7 +821,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		private := true
+		private := form.Private
 
 		if repo.IsFork {
 			private = repo.BaseRepo.IsPrivate || repo.BaseRepo.Owner.Visibility == structs.VisibleTypePrivate
