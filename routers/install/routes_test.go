@@ -1,21 +1,41 @@
-// Copyright 2021 The Gitea Authors. All rights reserved.
+// Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package install
 
 import (
-	"context"
+	"net/http/httptest"
+	"path/filepath"
 	"testing"
+
+	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRoutes(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	routes := Routes(ctx)
-	assert.NotNil(t, routes)
-	assert.EqualValues(t, "/", routes.R.Routes()[0].Pattern)
-	assert.Nil(t, routes.R.Routes()[0].SubRoutes)
-	assert.Len(t, routes.R.Routes()[0].Handlers, 2)
+	r := Routes()
+	assert.NotNil(t, r)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/", nil)
+	r.ServeHTTP(w, req)
+	assert.EqualValues(t, 200, w.Code)
+	assert.Contains(t, w.Body.String(), `class="page-content install"`)
+
+	w = httptest.NewRecorder()
+	req = httptest.NewRequest("GET", "/no-such", nil)
+	r.ServeHTTP(w, req)
+	assert.EqualValues(t, 404, w.Code)
+
+	w = httptest.NewRecorder()
+	req = httptest.NewRequest("GET", "/assets/img/gitea.svg", nil)
+	r.ServeHTTP(w, req)
+	assert.EqualValues(t, 200, w.Code)
+}
+
+func TestMain(m *testing.M) {
+	unittest.MainTest(m, &unittest.TestOptions{
+		GiteaRootPath: filepath.Join("..", ".."),
+	})
 }

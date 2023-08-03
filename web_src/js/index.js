@@ -2,6 +2,7 @@
 import './bootstrap.js';
 
 import {initRepoActivityTopAuthorsChart} from './components/RepoActivityTopAuthors.vue';
+import {initScopedAccessTokenCategories} from './components/ScopedAccessTokenSelector.vue';
 import {initDashboardRepoList} from './components/DashboardRepoList.vue';
 
 import {initGlobalCopyToClipboardListener} from './features/clipboard.js';
@@ -11,7 +12,6 @@ import {initHeatmap} from './features/heatmap.js';
 import {initImageDiff} from './features/imagediff.js';
 import {initRepoMigration} from './features/repo-migration.js';
 import {initRepoProject} from './features/repo-projects.js';
-import {initServiceWorker} from './features/serviceworker.js';
 import {initTableSort} from './features/tablesort.js';
 import {initAdminUserListSearchForm} from './features/admin/users.js';
 import {initAdminConfigs} from './features/admin/config.js';
@@ -21,6 +21,7 @@ import {initRepoIssueContentHistory} from './features/repo-issue-content.js';
 import {initStopwatch} from './features/stopwatch.js';
 import {initFindFileInRepo} from './features/repo-findfile.js';
 import {initCommentContent, initMarkupContent} from './markup/content.js';
+import {initPdfViewer} from './render/pdf.js';
 
 import {initUserAuthLinkAccountView, initUserAuthOauth2} from './features/user-auth.js';
 import {
@@ -30,7 +31,7 @@ import {
   initRepoIssueWipTitle,
   initRepoPullRequestMergeInstruction,
   initRepoPullRequestAllowMaintainerEdit,
-  initRepoPullRequestReview, initRepoIssueSidebarList,
+  initRepoPullRequestReview, initRepoIssueSidebarList
 } from './features/repo-issue.js';
 import {
   initRepoEllipsisButton,
@@ -74,7 +75,6 @@ import {initRepoBranchButton} from './features/repo-branch.js';
 import {initCommonOrganization} from './features/common-organization.js';
 import {initRepoWikiForm} from './features/repo-wiki.js';
 import {initRepoCommentForm, initRepository} from './features/repo-legacy.js';
-import {initFormattingReplacements} from './features/formatting.js';
 import {initCopyContent} from './features/copycontent.js';
 import {initCaptcha} from './features/captcha.js';
 import {initRepositoryActionView} from './components/RepoActionView.vue';
@@ -82,11 +82,9 @@ import {initGlobalTooltips} from './modules/tippy.js';
 import {initGiteaFomantic} from './modules/fomantic.js';
 import {onDomReady} from './utils/dom.js';
 import {initRepoIssueList} from './features/repo-issue-list.js';
+import {initCommonIssueListQuickGoto} from './features/common-issue-list.js';
+import {initRepoDiffCommitBranchesAndTags} from './features/repo-diff-commit.js';
 
-// Run time-critical code as soon as possible. This is safe to do because this
-// script appears at the end of <body> and rendered HTML is accessible at that point.
-// TODO: replace them with CustomElements
-initFormattingReplacements();
 // Init Gitea's Fomantic settings
 initGiteaFomantic();
 
@@ -103,6 +101,7 @@ onDomReady(() => {
   initGlobalLinkActions();
 
   initCommonOrganization();
+  initCommonIssueListQuickGoto();
 
   initCompSearchUserBox();
   initCompWebHookEditor();
@@ -118,7 +117,6 @@ onDomReady(() => {
   initImageDiff();
   initMarkupAnchors();
   initMarkupContent();
-  initServiceWorker();
   initSshKeyFormParser();
   initStopwatch();
   initTableSort();
@@ -144,6 +142,7 @@ onDomReady(() => {
   initRepoCodeView();
   initRepoCommentForm();
   initRepoEllipsisButton();
+  initRepoDiffCommitBranchesAndTags();
   initRepoCommitLastCommitLoader();
   initRepoEditor();
   initRepoGraphGit();
@@ -180,4 +179,6 @@ onDomReady(() => {
   initUserAuthWebAuthnRegister();
   initUserSettings();
   initRepoDiffView();
+  initPdfViewer();
+  initScopedAccessTokenCategories();
 });

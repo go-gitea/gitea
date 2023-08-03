@@ -24,7 +24,7 @@ func TestAPITeamUser(t *testing.T) {
 
 	normalUsername := "user2"
 	session := loginUser(t, normalUsername)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrg)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadOrganization)
 	req := NewRequest(t, "GET", "/api/v1/teams/1/members/user1?token="+token)
 	MakeRequest(t, req, http.StatusNotFound)
 

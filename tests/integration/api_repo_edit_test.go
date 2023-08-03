@@ -147,10 +147,10 @@ func TestAPIRepoEdit(t *testing.T) {
 
 		// Get user2's token
 		session := loginUser(t, user2.Name)
-		token2 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+		token2 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 		// Get user4's token
 		session = loginUser(t, user4.Name)
-		token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+		token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 		// Test editing a repo1 which user2 owns, changing name and many properties
 		origRepoEditOption := getRepoEditOptionFromRepo(repo1)
@@ -194,10 +194,10 @@ func TestAPIRepoEdit(t *testing.T) {
 		// check repo1 was written to database
 		repo1edited = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 		repo1editedOption = getRepoEditOptionFromRepo(repo1edited)
-		assert.Equal(t, *repo1editedOption.HasIssues, true)
+		assert.True(t, *repo1editedOption.HasIssues)
 		assert.Nil(t, repo1editedOption.ExternalTracker)
 		assert.Equal(t, *repo1editedOption.InternalTracker, *repoEditOption.InternalTracker)
-		assert.Equal(t, *repo1editedOption.HasWiki, true)
+		assert.True(t, *repo1editedOption.HasWiki)
 		assert.Nil(t, repo1editedOption.ExternalWiki)
 
 		// Test editing repo1 to use external issue and wiki
@@ -216,9 +216,9 @@ func TestAPIRepoEdit(t *testing.T) {
 		// check repo1 was written to database
 		repo1edited = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 		repo1editedOption = getRepoEditOptionFromRepo(repo1edited)
-		assert.Equal(t, *repo1editedOption.HasIssues, true)
+		assert.True(t, *repo1editedOption.HasIssues)
 		assert.Equal(t, *repo1editedOption.ExternalTracker, *repoEditOption.ExternalTracker)
-		assert.Equal(t, *repo1editedOption.HasWiki, true)
+		assert.True(t, *repo1editedOption.HasWiki)
 		assert.Equal(t, *repo1editedOption.ExternalWiki, *repoEditOption.ExternalWiki)
 
 		repoEditOption.ExternalTracker.ExternalTrackerStyle = "regexp"
@@ -229,7 +229,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		assert.NotNil(t, repo)
 		repo1edited = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 		repo1editedOption = getRepoEditOptionFromRepo(repo1edited)
-		assert.Equal(t, *repo1editedOption.HasIssues, true)
+		assert.True(t, *repo1editedOption.HasIssues)
 		assert.Equal(t, *repo1editedOption.ExternalTracker, *repoEditOption.ExternalTracker)
 
 		// Do some tests with invalid URL for external tracker and wiki
@@ -259,9 +259,9 @@ func TestAPIRepoEdit(t *testing.T) {
 		repo1edited = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 		repo1editedOption = getRepoEditOptionFromRepo(repo1edited)
 		assert.Equal(t, *repo1editedOption.Description, *repoEditOption.Description)
-		assert.Equal(t, *repo1editedOption.HasIssues, true)
+		assert.True(t, *repo1editedOption.HasIssues)
 		assert.NotNil(t, *repo1editedOption.ExternalTracker)
-		assert.Equal(t, *repo1editedOption.HasWiki, true)
+		assert.True(t, *repo1editedOption.HasWiki)
 		assert.NotNil(t, *repo1editedOption.ExternalWiki)
 
 		// reset repo in db

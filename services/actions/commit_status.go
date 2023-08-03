@@ -75,7 +75,7 @@ func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 	}
 	ctxname := fmt.Sprintf("%s / %s (%s)", runName, job.Name, event)
 	state := toCommitStatus(job.Status)
-	if statuses, _, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, db.ListOptions{}); err == nil {
+	if statuses, _, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, db.ListOptions{ListAll: true}); err == nil {
 		for _, v := range statuses {
 			if v.Context == ctxname {
 				if v.State == state {
@@ -108,6 +108,11 @@ func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 		description = "Blocked by required conditions"
 	}
 
+	index, err := getIndexOfJob(ctx, job)
+	if err != nil {
+		return fmt.Errorf("getIndexOfJob: %w", err)
+	}
+
 	creator := user_model.NewActionsUser()
 	if err := git_model.NewCommitStatus(ctx, git_model.NewCommitStatusOptions{
 		Repo:    repo,
@@ -115,7 +120,7 @@ func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 		Creator: creator,
 		CommitStatus: &git_model.CommitStatus{
 			SHA:         sha,
-			TargetURL:   run.Link(),
+			TargetURL:   fmt.Sprintf("%s/jobs/%d", run.Link(), index),
 			Description: description,
 			Context:     ctxname,
 			CreatorID:   creator.ID,
@@ -134,11 +139,23 @@ func toCommitStatus(status actions_model.Status) api.CommitStatusState {
 		return api.CommitStatusSuccess
 	case actions_model.StatusFailure, actions_model.StatusCancelled:
 		return api.CommitStatusFailure
-	case actions_model.StatusWaiting, actions_model.StatusBlocked:
+	case actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusRunning:
 		return api.CommitStatusPending
-	case actions_model.StatusRunning:
-		return api.CommitStatusRunning
 	default:
 		return api.CommitStatusError
 	}
+}
+
+func getIndexOfJob(ctx context.Context, job *actions_model.ActionRunJob) (int, error) {
+	// TODO: store job index as a field in ActionRunJob to avoid this
+	jobs, err := actions_model.GetRunJobsByRunID(ctx, job.RunID)
+	if err != nil {
+		return 0, err
+	}
+	for i, v := range jobs {
+		if v.ID == job.ID {
+			return i, nil
+		}
+	}
+	return 0, nil
 }

@@ -64,7 +64,6 @@ func Packages(ctx *context.Context) {
 	}
 
 	ctx.Data["Title"] = ctx.Tr("packages.title")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminPackages"] = true
 	ctx.Data["Query"] = query
 	ctx.Data["PackageType"] = packageType
@@ -86,7 +85,7 @@ func Packages(ctx *context.Context) {
 
 // DeletePackageVersion deletes a package version
 func DeletePackageVersion(ctx *context.Context) {
-	pv, err := packages_model.GetVersionByID(db.DefaultContext, ctx.FormInt64("id"))
+	pv, err := packages_model.GetVersionByID(ctx, ctx.FormInt64("id"))
 	if err != nil {
 		ctx.ServerError("GetRepositoryByID", err)
 		return
@@ -98,7 +97,5 @@ func DeletePackageVersion(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/admin/packages?page=" + url.QueryEscape(ctx.FormString("page")) + "&q=" + url.QueryEscape(ctx.FormString("q")) + "&type=" + url.QueryEscape(ctx.FormString("type")),
-	})
+	ctx.JSONRedirect(setting.AppSubURL + "/admin/packages?page=" + url.QueryEscape(ctx.FormString("page")) + "&q=" + url.QueryEscape(ctx.FormString("q")) + "&type=" + url.QueryEscape(ctx.FormString("type")))
 }

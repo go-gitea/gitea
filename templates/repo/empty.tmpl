@@ -6,8 +6,12 @@
 			<div class="sixteen wide column content">
 				{{template "base/alert" .}}
 				{{if .Repository.IsArchived}}
-					<div class="ui warning message">
-						{{.locale.Tr "repo.archive.title"}}
+					<div class="ui warning message gt-text-center">
+						{{if .Repository.ArchivedUnix.IsZero}}
+							{{.locale.Tr "repo.archive.title"}}
+						{{else}}
+							{{.locale.Tr "repo.archive.title_date" (DateTime "long" .Repository.ArchivedUnix) | Safe}}
+						{{end}}
 					</div>
 				{{end}}
 				{{if .Repository.IsBroken}}
@@ -21,13 +25,26 @@
 					<div class="ui attached guide table segment empty-repo-guide">
 						<div class="item">
 							<h3>{{.locale.Tr "repo.clone_this_repo"}} <small>{{.locale.Tr "repo.clone_helper" "http://git-scm.com/book/en/Git-Basics-Getting-a-Git-Repository" | Str2html}}</small></h3>
-							<div class="ui action small input">
-								{{template "repo/clone_buttons" .}}
+
+							<div class="repo-button-row">
+								{{if and .CanWriteCode (not .Repository.IsArchived)}}
+									<a class="ui small button" href="{{.RepoLink}}/_new/{{.BranchName | PathEscapeSegments}}/">
+										{{.locale.Tr "repo.editor.new_file"}}
+									</a>
+									{{if .RepositoryUploadEnabled}}
+									<a class="ui small button" href="{{.RepoLink}}/_upload/{{.BranchName | PathEscapeSegments}}/">
+										{{.locale.Tr "repo.editor.upload_file"}}
+									</a>
+									{{end}}
+								{{end}}
+								<div class="ui action small input gt-df gt-f1">
+									{{template "repo/clone_buttons" .}}
+								</div>
 							</div>
 						</div>
 
 						{{if not .Repository.IsArchived}}
-							<div class="ui divider"></div>
+							<div class="divider gt-my-0"></div>
 
 							<div class="item">
 								<h3>{{.locale.Tr "repo.create_new_repo_command"}}</h3>
@@ -41,7 +58,7 @@ git remote add origin <span class="js-clone-url">{{$.CloneButtonOriginLink.HTTPS
 git push -u origin {{.Repository.DefaultBranch}}</code></pre>
 								</div>
 							</div>
-							<div class="ui divider"></div>
+							<div class="divider"></div>
 
 							<div class="item">
 								<h3>{{.locale.Tr "repo.push_exist_repo"}}</h3>
@@ -50,13 +67,13 @@ git push -u origin {{.Repository.DefaultBranch}}</code></pre>
 git push -u origin {{.Repository.DefaultBranch}}</code></pre>
 								</div>
 							</div>
-							{{template "repo/clone_script" .}}
 						{{end}}
 					{{else}}
 						<div class="ui segment center">
 							{{.locale.Tr "repo.empty_message"}}
 						</div>
 					{{end}}
+					{{template "repo/clone_script" .}}
 				</div>
 			</div>
 		</div>

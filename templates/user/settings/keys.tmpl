@@ -1,12 +1,7 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content user settings sshkeys">
-	{{template "user/settings/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings sshkeys")}}
+	<div class="user-setting-content">
 		{{template "user/settings/keys_ssh" .}}
 		{{template "user/settings/keys_principal" .}}
 		{{template "user/settings/keys_gpg" .}}
 	</div>
-</div>
-
-{{template "base/footer" .}}
+{{template "user/settings/layout_footer" .}}

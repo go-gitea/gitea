@@ -24,7 +24,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/references"
@@ -34,8 +33,8 @@ import (
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 
-// GetDefaultMergeMessage returns default message used when merging pull request
-func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issues_model.PullRequest, mergeStyle repo_model.MergeStyle) (message, body string, err error) {
+// getMergeMessage composes the message used when merging a pull request.
+func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issues_model.PullRequest, mergeStyle repo_model.MergeStyle, extraVars map[string]string) (message, body string, err error) {
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return "", "", err
 	}
@@ -81,6 +80,9 @@ func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr
 				vars["HeadRepoOwnerName"] = pr.HeadRepo.OwnerName
 				vars["HeadRepoName"] = pr.HeadRepo.Name
 			}
+			for extraKey, extraValue := range extraVars {
+				vars[extraKey] = extraValue
+			}
 			refs, err := pr.ResolveCrossReferences(ctx)
 			if err == nil {
 				closeIssueIndexes := make([]string, 0, len(refs))
@@ -107,6 +109,11 @@ func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr
 		}
 	}
 
+	if mergeStyle == repo_model.MergeStyleRebase {
+		// for fast-forward rebase, do not amend the last commit if there is no template
+		return "", "", nil
+	}
+
 	// Squash merge has a different from other styles.
 	if mergeStyle == repo_model.MergeStyleSquash {
 		return fmt.Sprintf("%s (%s%d)", pr.Issue.Title, issueReference, pr.Issue.Index), "", nil
@@ -131,6 +138,11 @@ func expandDefaultMergeMessage(template string, vars map[string]string) (message
 	}
 	mapping := func(s string) string { return vars[s] }
 	return os.Expand(message, mapping), os.Expand(body, mapping)
+}
+
+// GetDefaultMergeMessage returns default message used when merging pull request
+func GetDefaultMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issues_model.PullRequest, mergeStyle repo_model.MergeStyle) (message, body string, err error) {
+	return getMergeMessage(ctx, baseGitRepo, pr, mergeStyle, nil)
 }
 
 // Merge merges pull request to base repository.
@@ -169,10 +181,7 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 		go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false, "", "")
 	}()
 
-	// Run the merge in the hammer context to prevent cancellation
-	hammerCtx := graceful.GetManager().HammerContext()
-
-	pr.MergedCommitID, err = doMergeAndPush(hammerCtx, pr, doer, mergeStyle, expectedHeadCommitID, message)
+	pr.MergedCommitID, err = doMergeAndPush(ctx, pr, doer, mergeStyle, expectedHeadCommitID, message)
 	if err != nil {
 		return err
 	}
@@ -181,47 +190,47 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	pr.Merger = doer
 	pr.MergerID = doer.ID
 
-	if _, err := pr.SetMerged(hammerCtx); err != nil {
+	if _, err := pr.SetMerged(ctx); err != nil {
 		log.Error("SetMerged %-v: %v", pr, err)
 	}
 
-	if err := pr.LoadIssue(hammerCtx); err != nil {
+	if err := pr.LoadIssue(ctx); err != nil {
 		log.Error("LoadIssue %-v: %v", pr, err)
 	}
 
-	if err := pr.Issue.LoadRepo(hammerCtx); err != nil {
+	if err := pr.Issue.LoadRepo(ctx); err != nil {
 		log.Error("pr.Issue.LoadRepo %-v: %v", pr, err)
 	}
-	if err := pr.Issue.Repo.LoadOwner(hammerCtx); err != nil {
+	if err := pr.Issue.Repo.LoadOwner(ctx); err != nil {
 		log.Error("LoadOwner for %-v: %v", pr, err)
 	}
 
 	if wasAutoMerged {
-		notification.NotifyAutoMergePullRequest(hammerCtx, doer, pr)
+		notification.NotifyAutoMergePullRequest(ctx, doer, pr)
 	} else {
-		notification.NotifyMergePullRequest(hammerCtx, doer, pr)
+		notification.NotifyMergePullRequest(ctx, doer, pr)
 	}
 
 	// Reset cached commit count
 	cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))
 
 	// Resolve cross references
-	refs, err := pr.ResolveCrossReferences(hammerCtx)
+	refs, err := pr.ResolveCrossReferences(ctx)
 	if err != nil {
 		log.Error("ResolveCrossReferences: %v", err)
 		return nil
 	}
 
 	for _, ref := range refs {
-		if err = ref.LoadIssue(hammerCtx); err != nil {
+		if err = ref.LoadIssue(ctx); err != nil {
 			return err
 		}
-		if err = ref.Issue.LoadRepo(hammerCtx); err != nil {
+		if err = ref.Issue.LoadRepo(ctx); err != nil {
 			return err
 		}
 		close := ref.RefAction == references.XRefActionCloses
 		if close != ref.Issue.IsClosed {
-			if err = issue_service.ChangeStatus(ref.Issue, doer, pr.MergedCommitID, close); err != nil {
+			if err = issue_service.ChangeStatus(ctx, ref.Issue, doer, pr.MergedCommitID, close); err != nil {
 				// Allow ErrDependenciesLeft
 				if !issues_model.IsErrDependenciesLeft(err) {
 					return err

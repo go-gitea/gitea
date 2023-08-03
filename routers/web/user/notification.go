@@ -186,7 +186,7 @@ func NotificationStatusPost(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	ctx.Data["Link"] = setting.AppURL + "notifications"
+	ctx.Data["Link"] = setting.AppSubURL + "/notifications"
 	ctx.Data["SequenceNumber"] = ctx.Req.PostFormValue("sequence-number")
 
 	ctx.HTML(http.StatusOK, tplNotificationDiv)
@@ -263,7 +263,7 @@ func NotificationSubscriptions(ctx *context.Context) {
 		return
 	}
 	issues, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{
-		ListOptions: db.ListOptions{
+		Paginator: &db.ListOptions{
 			PageSize: setting.UI.IssuePagingNum,
 			Page:     page,
 		},

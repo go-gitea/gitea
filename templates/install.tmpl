@@ -1,6 +1,6 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content install">
-	<div class="ui middle very relaxed page grid">
+	<div class="ui grid install-config-container">
 		<div class="sixteen wide center aligned centered column">
 			<h3 class="ui top attached header">
 				{{.locale.Tr "install.title"}}
@@ -28,7 +28,7 @@
 						</div>
 					</div>
 
-					<div class="gt-hidden" data-db-setting-for="common-host">
+					<div class="gt-mt-4 gt-hidden" data-db-setting-for="common-host">
 						<div class="inline required field {{if .Err_DbSetting}}error{{end}}">
 							<label for="db_host">{{.locale.Tr "install.host"}}</label>
 							<input id="db_host" name="db_host" value="{{.db_host}}">
@@ -44,11 +44,10 @@
 						<div class="inline required field {{if .Err_DbSetting}}error{{end}}">
 							<label for="db_name">{{.locale.Tr "install.db_name"}}</label>
 							<input id="db_name" name="db_name" value="{{.db_name}}">
-							<span class="help">{{.locale.Tr "install.db_helper"}}</span>
 						</div>
 					</div>
 
-					<div class="gt-hidden" data-db-setting-for="postgres">
+					<div class="gt-mt-4 gt-hidden" data-db-setting-for="postgres">
 						<div class="inline required field">
 							<label>{{.locale.Tr "install.ssl_mode"}}</label>
 							<div class="ui selection database type dropdown">
@@ -69,21 +68,7 @@
 						</div>
 					</div>
 
-					<div class="gt-hidden" data-db-setting-for="mysql">
-						<div class="inline required field">
-							<label>{{.locale.Tr "install.charset"}}</label>
-							<div class="ui selection database type dropdown">
-								<input type="hidden" name="charset" value="{{if .charset}}{{.charset}}{{else}}utf8mb4{{end}}">
-								<div class="default text">utf8mb4</div>
-								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-								<div class="menu">
-									<div class="item" data-value="utf8mb4">utf8mb4</div>
-								</div>
-							</div>
-						</div>
-					</div>
-
-					<div class="gt-hidden" data-db-setting-for="sqlite3">
+					<div class="gt-mt-4 gt-hidden" data-db-setting-for="sqlite3">
 						<div class="inline required field {{if or .Err_DbPath .Err_DbSetting}}error{{end}}">
 							<label for="db_path">{{.locale.Tr "install.path"}}</label>
 							<input id="db_path" name="db_path" value="{{.db_path}}">
@@ -134,12 +119,12 @@
 					</div>
 					<div class="inline required field {{if .Err_RunUser}}error{{end}}">
 						<label for="run_user">{{.locale.Tr "install.run_user"}}</label>
-						<input id="run_user" name="run_user" value="{{.run_user}}" required>
+						<input id="run_user" name="run_user" value="{{.run_user}}" readonly>
 						<span class="help">{{.locale.Tr "install.run_user_helper"}}</span>
 					</div>
 					<div class="inline required field">
 						<label for="domain">{{.locale.Tr "install.domain"}}</label>
-						<input id="domain" name="domain" value="{{.domain}}" placeholder="e.g. try.gitea.io" required>
+						<input id="domain" name="domain" value="{{.domain}}" placeholder="try.gitea.io" required>
 						<span class="help">{{.locale.Tr "install.domain_helper"}}</span>
 					</div>
 					<div class="inline field">
@@ -154,7 +139,7 @@
 					</div>
 					<div class="inline required field">
 						<label for="app_url">{{.locale.Tr "install.app_url"}}</label>
-						<input id="app_url" name="app_url" value="{{.app_url}}" placeholder="e.g. https://try.gitea.io" required>
+						<input id="app_url" name="app_url" value="{{.app_url}}" placeholder="https://try.gitea.io" required>
 						<span class="help">{{.locale.Tr "install.app_url_helper"}}</span>
 					</div>
 					<div class="inline required field">
@@ -164,19 +149,18 @@
 					</div>
 					<div class="inline field">
 						<div class="ui checkbox">
-							<label for="enable_update_checker">{{.locale.Tr "install.enable_update_checker"}}</label>
+							<label>{{.locale.Tr "install.enable_update_checker"}}</label>
 							<input name="enable_update_checker" type="checkbox">
 						</div>
 						<span class="help">{{.locale.Tr "install.enable_update_checker_helper"}}</span>
 					</div>
-
 
 					<!-- Optional Settings -->
 					<h4 class="ui dividing header">{{.locale.Tr "install.optional_title"}}</h4>
 
 					<!-- Email -->
 					<details class="optional field">
-						<summary class="title gt-py-3{{if .Err_SMTP}} text red{{end}}">
+						<summary class="right-content gt-py-3{{if .Err_SMTP}} text red{{end}}">
 							{{.locale.Tr "install.email_title"}}
 						</summary>
 						<div class="inline field">
@@ -216,7 +200,7 @@
 
 					<!-- Server and other services -->
 					<details class="optional field">
-						<summary class="title gt-py-3{{if .Err_Services}} text red{{end}}">
+						<summary class="right-content gt-py-3{{if .Err_Services}} text red{{end}}">
 							{{.locale.Tr "install.server_service_title"}}
 						</summary>
 						<div class="inline field">
@@ -314,13 +298,17 @@
 
 					<!-- Admin -->
 					<details class="optional field">
-						<summary class="title gt-py-3{{if .Err_Admin}} text red{{end}}">
+						<summary class="right-content gt-py-3{{if .Err_Admin}} text red{{end}}">
 							{{.locale.Tr "install.admin_title"}}
 						</summary>
 						<p class="center">{{.locale.Tr "install.admin_setting_desc"}}</p>
 						<div class="inline field {{if .Err_AdminName}}error{{end}}">
 							<label for="admin_name">{{.locale.Tr "install.admin_name"}}</label>
 							<input id="admin_name" name="admin_name" value="{{.admin_name}}">
+						</div>
+						<div class="inline field {{if .Err_AdminEmail}}error{{end}}">
+							<label for="admin_email">{{.locale.Tr "install.admin_email"}}</label>
+							<input id="admin_email" name="admin_email" type="email" value="{{.admin_email}}">
 						</div>
 						<div class="inline field {{if .Err_AdminPasswd}}error{{end}}">
 							<label for="admin_passwd">{{.locale.Tr "install.admin_password"}}</label>
@@ -330,16 +318,29 @@
 							<label for="admin_confirm_passwd">{{.locale.Tr "install.confirm_password"}}</label>
 							<input id="admin_confirm_passwd" name="admin_confirm_passwd" autocomplete="new-password" type="password" value="{{.admin_confirm_passwd}}">
 						</div>
-						<div class="inline field {{if .Err_AdminEmail}}error{{end}}">
-							<label for="admin_email">{{.locale.Tr "install.admin_email"}}</label>
-							<input id="admin_email" name="admin_email" type="email" value="{{.admin_email}}">
-						</div>
 					</details>
 
-					<div class="ui divider"></div>
+					{{if .EnvConfigKeys}}
+					<!-- Environment Config -->
+					<h4 class="ui dividing header">{{.locale.Tr "install.env_config_keys"}}</h4>
 					<div class="inline field">
-						<label></label>
-						<button class="ui primary button">{{.locale.Tr "install.install_btn_confirm"}}</button>
+						<div class="right-content">
+							{{.locale.Tr "install.env_config_keys_prompt"}}
+						</div>
+						<div class="right-content gt-mt-3">
+							{{range .EnvConfigKeys}}<span class="ui label">{{.}}</span>{{end}}
+						</div>
+					</div>
+					{{end}}
+
+					<div class="divider"></div>
+					<div class="inline field">
+						<div class="right-content">
+							These configuration options will be written into: {{.CustomConfFile}}
+						</div>
+						<div class="right-content gt-mt-3">
+							<button class="ui primary button">{{.locale.Tr "install.install_btn_confirm"}}</button>
+						</div>
 					</div>
 				</form>
 			</div>

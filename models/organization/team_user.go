@@ -63,8 +63,8 @@ func GetTeamMembers(ctx context.Context, opts *SearchMembersOptions) ([]*user_mo
 				Where(builder.Eq{"team_id": opts.TeamID}),
 		)
 	}
-	if opts.PageSize > 0 && opts.Page > -1 {
-		sess = sess.Limit(opts.PageSize, opts.Page*opts.PageSize)
+	if opts.PageSize > 0 && opts.Page > 0 {
+		sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 	}
 	if err := sess.OrderBy("full_name, name").Find(&members); err != nil {
 		return nil, err

@@ -1,7 +1,8 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository settings options">
-	{{template "user/overview/header" .}}
+	{{template "shared/user/org_profile_avatar" .}}
 	<div class="ui container">
+		{{template "user/overview/header" .}}
 		{{template "base/alert" .}}
 		<p><a href="{{.PackageDescriptor.FullWebLink}}">{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</a> / <strong>{{.locale.Tr "repo.settings"}}</strong></p>
 		<h4 class="ui top attached header">
@@ -20,7 +21,7 @@
 							{{$repoID = .PackageDescriptor.Repository.ID}}
 						{{end}}
 						<input type="hidden" name="repo_id" value="{{$repoID}}">
-						<i class="dropdown icon"></i>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="default text">{{.locale.Tr "packages.settings.link.select"}}</div>
 						<div class="menu">
 							{{range .Repos}}
@@ -51,13 +52,13 @@
 						{{.locale.Tr "packages.settings.delete"}}
 					</div>
 					<div class="content">
-						<div class="ui warning message text left gt-word-break">
+						<div class="ui warning message gt-word-break">
 							{{.locale.Tr "packages.settings.delete.notice" .PackageDescriptor.Package.Name .PackageDescriptor.Version.Version}}
 						</div>
 						<form class="ui form" action="{{.Link}}" method="post">
 							{{.CsrfTokenHtml}}
 							<input type="hidden" name="action" value="delete">
-							{{template "base/delete_modal_actions" .}}
+							{{template "base/modal_actions_confirm" .}}
 						</form>
 					</div>
 				</div>

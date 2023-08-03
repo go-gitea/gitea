@@ -52,84 +52,63 @@ func (err ErrCommentNotExist) Unwrap() error {
 // CommentType defines whether a comment is just a simple comment, an action (like close) or a reference.
 type CommentType int
 
-// define unknown comment type
-const (
-	CommentTypeUnknown CommentType = -1
-)
+// CommentTypeUndefined is used to search for comments of any type
+const CommentTypeUndefined CommentType = -1
 
-// Enumerate all the comment types
 const (
-	// 0 Plain comment, can be associated with a commit (CommitID > 0) and a line (LineNum > 0)
-	CommentTypeComment CommentType = iota
-	CommentTypeReopen              // 1
-	CommentTypeClose               // 2
+	CommentTypeComment CommentType = iota // 0 Plain comment, can be associated with a commit (CommitID > 0) and a line (LineNum > 0)
 
-	// 3 References.
-	CommentTypeIssueRef
-	// 4 Reference from a commit (not part of a pull request)
-	CommentTypeCommitRef
-	// 5 Reference from a comment
-	CommentTypeCommentRef
-	// 6 Reference from a pull request
-	CommentTypePullRef
-	// 7 Labels changed
-	CommentTypeLabel
-	// 8 Milestone changed
-	CommentTypeMilestone
-	// 9 Assignees changed
-	CommentTypeAssignees
-	// 10 Change Title
-	CommentTypeChangeTitle
-	// 11 Delete Branch
-	CommentTypeDeleteBranch
-	// 12 Start a stopwatch for time tracking
-	CommentTypeStartTracking
-	// 13 Stop a stopwatch for time tracking
-	CommentTypeStopTracking
-	// 14 Add time manual for time tracking
-	CommentTypeAddTimeManual
-	// 15 Cancel a stopwatch for time tracking
-	CommentTypeCancelTracking
-	// 16 Added a due date
-	CommentTypeAddedDeadline
-	// 17 Modified the due date
-	CommentTypeModifiedDeadline
-	// 18 Removed a due date
-	CommentTypeRemovedDeadline
-	// 19 Dependency added
-	CommentTypeAddDependency
-	// 20 Dependency removed
-	CommentTypeRemoveDependency
-	// 21 Comment a line of code
-	CommentTypeCode
-	// 22 Reviews a pull request by giving general feedback
-	CommentTypeReview
-	// 23 Lock an issue, giving only collaborators access
-	CommentTypeLock
-	// 24 Unlocks a previously locked issue
-	CommentTypeUnlock
-	// 25 Change pull request's target branch
-	CommentTypeChangeTargetBranch
-	// 26 Delete time manual for time tracking
-	CommentTypeDeleteTimeManual
-	// 27 add or remove Request from one
-	CommentTypeReviewRequest
-	// 28 merge pull request
-	CommentTypeMergePull
-	// 29 push to PR head branch
-	CommentTypePullRequestPush
-	// 30 Project changed
-	CommentTypeProject
-	// 31 Project board changed
-	CommentTypeProjectBoard
-	// 32 Dismiss Review
-	CommentTypeDismissReview
-	// 33 Change issue ref
-	CommentTypeChangeIssueRef
-	// 34 pr was scheduled to auto merge when checks succeed
-	CommentTypePRScheduledToAutoMerge
-	// 35 pr was un scheduled to auto merge when checks succeed
-	CommentTypePRUnScheduledToAutoMerge
+	CommentTypeReopen // 1
+	CommentTypeClose  // 2
+
+	CommentTypeIssueRef   // 3 References.
+	CommentTypeCommitRef  // 4 Reference from a commit (not part of a pull request)
+	CommentTypeCommentRef // 5 Reference from a comment
+	CommentTypePullRef    // 6 Reference from a pull request
+
+	CommentTypeLabel        // 7 Labels changed
+	CommentTypeMilestone    // 8 Milestone changed
+	CommentTypeAssignees    // 9 Assignees changed
+	CommentTypeChangeTitle  // 10 Change Title
+	CommentTypeDeleteBranch // 11 Delete Branch
+
+	CommentTypeStartTracking    // 12 Start a stopwatch for time tracking
+	CommentTypeStopTracking     // 13 Stop a stopwatch for time tracking
+	CommentTypeAddTimeManual    // 14 Add time manual for time tracking
+	CommentTypeCancelTracking   // 15 Cancel a stopwatch for time tracking
+	CommentTypeAddedDeadline    // 16 Added a due date
+	CommentTypeModifiedDeadline // 17 Modified the due date
+	CommentTypeRemovedDeadline  // 18 Removed a due date
+
+	CommentTypeAddDependency    // 19 Dependency added
+	CommentTypeRemoveDependency // 20 Dependency removed
+
+	CommentTypeCode   // 21 Comment a line of code
+	CommentTypeReview // 22 Reviews a pull request by giving general feedback
+
+	CommentTypeLock   // 23 Lock an issue, giving only collaborators access
+	CommentTypeUnlock // 24 Unlocks a previously locked issue
+
+	CommentTypeChangeTargetBranch // 25 Change pull request's target branch
+
+	CommentTypeDeleteTimeManual // 26 Delete time manual for time tracking
+
+	CommentTypeReviewRequest   // 27 add or remove Request from one
+	CommentTypeMergePull       // 28 merge pull request
+	CommentTypePullRequestPush // 29 push to PR head branch
+
+	CommentTypeProject      // 30 Project changed
+	CommentTypeProjectBoard // 31 Project board changed
+
+	CommentTypeDismissReview // 32 Dismiss Review
+
+	CommentTypeChangeIssueRef // 33 Change issue ref
+
+	CommentTypePRScheduledToAutoMerge   // 34 pr was scheduled to auto merge when checks succeed
+	CommentTypePRUnScheduledToAutoMerge // 35 pr was un scheduled to auto merge when checks succeed
+
+	CommentTypePin   // 36 pin Issue
+	CommentTypeUnpin // 37 unpin Issue
 )
 
 var commentStrings = []string{
@@ -169,6 +148,8 @@ var commentStrings = []string{
 	"change_issue_ref",
 	"pull_scheduled_merge",
 	"pull_cancel_scheduled_merge",
+	"pin",
+	"unpin",
 }
 
 func (t CommentType) String() string {
@@ -181,7 +162,23 @@ func AsCommentType(typeName string) CommentType {
 			return CommentType(index)
 		}
 	}
-	return CommentTypeUnknown
+	return CommentTypeUndefined
+}
+
+func (t CommentType) HasContentSupport() bool {
+	switch t {
+	case CommentTypeComment, CommentTypeCode, CommentTypeReview, CommentTypeDismissReview:
+		return true
+	}
+	return false
+}
+
+func (t CommentType) HasAttachmentSupport() bool {
+	switch t {
+	case CommentTypeComment, CommentTypeCode, CommentTypeReview:
+		return true
+	}
+	return false
 }
 
 // RoleDescriptor defines comment tag type
@@ -752,7 +749,7 @@ func (c *Comment) LoadPushCommits(ctx context.Context) (err error) {
 
 	err = json.Unmarshal([]byte(c.Content), &data)
 	if err != nil {
-		return
+		return err
 	}
 
 	c.IsForcePush = data.IsForcePush
@@ -928,7 +925,7 @@ func createIssueDependencyComment(ctx context.Context, doer *user_model.User, is
 		cType = CommentTypeRemoveDependency
 	}
 	if err = issue.LoadRepo(ctx); err != nil {
-		return
+		return err
 	}
 
 	// Make two comments, one in each issue
@@ -940,7 +937,7 @@ func createIssueDependencyComment(ctx context.Context, doer *user_model.User, is
 		DependentIssueID: dependentIssue.ID,
 	}
 	if _, err = CreateComment(ctx, opts); err != nil {
-		return
+		return err
 	}
 
 	opts = &CreateCommentOptions{
@@ -1039,7 +1036,7 @@ func (opts *FindCommentsOptions) ToConds() builder.Cond {
 	if opts.Before > 0 {
 		cond = cond.And(builder.Lte{"comment.updated_unix": opts.Before})
 	}
-	if opts.Type != CommentTypeUnknown {
+	if opts.Type != CommentTypeUndefined {
 		cond = cond.And(builder.Eq{"comment.type": opts.Type})
 	}
 	if opts.Line != 0 {
@@ -1055,7 +1052,7 @@ func (opts *FindCommentsOptions) ToConds() builder.Cond {
 }
 
 // FindComments returns all comments according options
-func FindComments(ctx context.Context, opts *FindCommentsOptions) ([]*Comment, error) {
+func FindComments(ctx context.Context, opts *FindCommentsOptions) (CommentList, error) {
 	comments := make([]*Comment, 0, 10)
 	sess := db.GetEngine(ctx).Where(opts.ToConds())
 	if opts.RepoID > 0 {
@@ -1134,7 +1131,7 @@ func DeleteComment(ctx context.Context, comment *Comment) error {
 	}
 	if _, err := e.Table("action").
 		Where("comment_id = ?", comment.ID).
-		Update(map[string]interface{}{
+		Update(map[string]any{
 			"is_deleted": true,
 		}); err != nil {
 		return err
@@ -1159,7 +1156,7 @@ func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID 
 				}),
 		)).
 		And("comment.original_author_id = ?", originalAuthorID).
-		Update(map[string]interface{}{
+		Update(map[string]any{
 			"poster_id":          posterID,
 			"original_author":    "",
 			"original_author_id": 0,
@@ -1173,11 +1170,11 @@ func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullReques
 		return nil, fmt.Errorf("comment type %d cannot be used to create an auto merge comment", typ)
 	}
 	if err = pr.LoadIssue(ctx); err != nil {
-		return
+		return nil, err
 	}
 
 	if err = pr.LoadBaseRepo(ctx); err != nil {
-		return
+		return nil, err
 	}
 
 	comment, err = CreateComment(ctx, &CreateCommentOptions{

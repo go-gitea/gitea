@@ -1,7 +1,7 @@
 <template>
   <div v-show="show" :title="item.name">
     <!--title instead of tooltip above as the tooltip needs too much work with the current methods, i.e. not being loaded or staying open for "too long"-->
-    <div class="item" :class="[item.isFile ? 'filewrapper gt-p-1 gt-ac' : '', selectedFile === genCompleteFileHash(item.file?.NameHash) ? 'selected' : '']">
+    <div class="item" :class="[item.isFile ? 'filewrapper gt-p-1 gt-ac' : '', store.selectedItem === '#diff-' + item.file?.NameHash ? 'selected' : '']">
       <!-- Files -->
       <SvgIcon
         v-if="item.isFile"
@@ -10,7 +10,7 @@
       />
       <a
         v-if="item.isFile"
-        class="file gt-ellipsis"
+        :class="['file gt-ellipsis', {'viewed': item.file.IsViewed}]"
         :href="item.isFile ? '#diff-' + item.file.NameHash : ''"
       >{{ item.name }}</a>
       <SvgIcon
@@ -32,7 +32,7 @@
         <span class="gt-ellipsis">{{ item.name }}</span>
       </div>
       <div v-show="!collapsed">
-        <DiffFileTreeItem v-for="childItem in item.children" :key="childItem.name" :item="childItem" class="list" :selected-file="selectedFile"/>
+        <DiffFileTreeItem v-for="childItem in item.children" :key="childItem.name" :item="childItem" class="list"/>
       </div>
     </div>
   </div>
@@ -40,6 +40,7 @@
 
 <script>
 import {SvgIcon} from '../svg.js';
+import {diffTreeStore} from '../modules/stores.js';
 
 export default {
   components: {SvgIcon},
@@ -53,13 +54,9 @@ export default {
       required: false,
       default: true
     },
-    selectedFile: {
-      type: String,
-      default: '',
-      required: true
-    }
   },
   data: () => ({
+    store: diffTreeStore(),
     collapsed: false,
   }),
   methods: {
@@ -79,9 +76,6 @@ export default {
       };
       return diffTypes[pType];
     },
-    genCompleteFileHash(hash) {
-      return `#diff-${hash}`;
-    }
   },
 };
 </script>
@@ -153,5 +147,9 @@ a {
 a:hover {
   text-decoration: none;
   color: var(--color-text);
+}
+
+a.file.viewed {
+  color: var(--color-text-light-3);
 }
 </style>

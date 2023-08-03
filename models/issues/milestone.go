@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -65,7 +64,6 @@ type Milestone struct {
 	DeadlineString string `xorm:"-"`
 
 	TotalTrackedTime int64 `xorm:"-"`
-	TimeSinceUpdate  int64 `xorm:"-"`
 }
 
 func init() {
@@ -84,9 +82,6 @@ func (m *Milestone) BeforeUpdate() {
 // AfterLoad is invoked from XORM after setting the value of a field of
 // this object.
 func (m *Milestone) AfterLoad() {
-	if !m.UpdatedUnix.IsZero() {
-		m.TimeSinceUpdate = time.Now().Unix() - m.UpdatedUnix.AsTime().Unix()
-	}
 	m.NumOpenIssues = m.NumIssues - m.NumClosedIssues
 	if m.DeadlineUnix.Year() == 9999 {
 		return
@@ -399,6 +394,18 @@ func GetMilestones(opts GetMilestonesOption) (MilestoneList, int64, error) {
 	miles := make([]*Milestone, 0, opts.PageSize)
 	total, err := sess.FindAndCount(&miles)
 	return miles, total, err
+}
+
+// GetMilestoneIDsByNames returns a list of milestone ids by given names.
+// It doesn't filter them by repo, so it could return milestones belonging to different repos.
+// It's used for filtering issues via indexer, otherwise it would be useless.
+// Since it could return milestones with the same name, so the length of returned ids could be more than the length of names.
+func GetMilestoneIDsByNames(ctx context.Context, names []string) ([]int64, error) {
+	var ids []int64
+	return ids, db.GetEngine(ctx).Table("milestone").
+		Where(db.BuildCaseInsensitiveIn("name", names)).
+		Cols("id").
+		Find(&ids)
 }
 
 // SearchMilestones search milestones

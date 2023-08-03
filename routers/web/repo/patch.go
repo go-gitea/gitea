@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -94,9 +95,9 @@ func NewDiffPatchPost(ctx *context.Context) {
 		Content:      strings.ReplaceAll(form.Content, "\r", ""),
 	})
 	if err != nil {
-		if models.IsErrBranchAlreadyExists(err) {
+		if git_model.IsErrBranchAlreadyExists(err) {
 			// User has specified a branch that already exists
-			branchErr := err.(models.ErrBranchAlreadyExists)
+			branchErr := err.(git_model.ErrBranchAlreadyExists)
 			ctx.Data["Err_NewBranchName"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchErr.BranchName), tplEditFile, &form)
 			return

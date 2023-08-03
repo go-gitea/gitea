@@ -52,3 +52,11 @@ func TestGitArgument(t *testing.T) {
 	assert.True(t, isSafeArgumentValue("x"))
 	assert.False(t, isSafeArgumentValue("-x"))
 }
+
+func TestCommandString(t *testing.T) {
+	cmd := NewCommandContextNoGlobals(context.Background(), "a", "-m msg", "it's a test", `say "hello"`)
+	assert.EqualValues(t, cmd.prog+` a "-m msg" "it's a test" "say \"hello\""`, cmd.String())
+
+	cmd = NewCommandContextNoGlobals(context.Background(), "url: https://a:b@c/")
+	assert.EqualValues(t, cmd.prog+` "url: https://sanitized-credential@c/"`, cmd.toString(true))
+}

@@ -6,6 +6,10 @@
   margin: 0 0.5em;
 }
 
+.board.sortable .board-card {
+  cursor: move;
+}
+
 .board-column {
   background-color: var(--color-project-board-bg) !important;
   border: 1px solid var(--color-secondary) !important;
@@ -80,7 +84,6 @@
 .board-card {
   margin: 4px 2px !important;
   border-radius: 5px !important;
-  cursor: move;
   width: calc(100% - 4px) !important;
   padding: 0.5rem !important;
   min-height: auto !important;

@@ -19,7 +19,7 @@ import (
 
 func TestNewUserPost_MustChangePassword(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "admin/users/new")
+	ctx, _ := test.MockContext(t, "admin/users/new")
 
 	u := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 		IsAdmin: true,
@@ -56,7 +56,7 @@ func TestNewUserPost_MustChangePassword(t *testing.T) {
 
 func TestNewUserPost_MustChangePasswordFalse(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "admin/users/new")
+	ctx, _ := test.MockContext(t, "admin/users/new")
 
 	u := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 		IsAdmin: true,
@@ -93,7 +93,7 @@ func TestNewUserPost_MustChangePasswordFalse(t *testing.T) {
 
 func TestNewUserPost_InvalidEmail(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "admin/users/new")
+	ctx, _ := test.MockContext(t, "admin/users/new")
 
 	u := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 		IsAdmin: true,
@@ -123,7 +123,7 @@ func TestNewUserPost_InvalidEmail(t *testing.T) {
 
 func TestNewUserPost_VisibilityDefaultPublic(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "admin/users/new")
+	ctx, _ := test.MockContext(t, "admin/users/new")
 
 	u := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 		IsAdmin: true,
@@ -161,7 +161,7 @@ func TestNewUserPost_VisibilityDefaultPublic(t *testing.T) {
 
 func TestNewUserPost_VisibilityPrivate(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "admin/users/new")
+	ctx, _ := test.MockContext(t, "admin/users/new")
 
 	u := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 		IsAdmin: true,

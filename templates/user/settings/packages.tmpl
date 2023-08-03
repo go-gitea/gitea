@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content user settings packages">
-	{{template "user/settings/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings packages")}}
+	<div class="user-setting-content">
 		{{template "package/shared/cleanup_rules/list" .}}
 		{{template "package/shared/cargo" .}}
 
@@ -19,10 +16,9 @@
 					<button class="ui green button">{{$.locale.Tr "packages.owner.settings.chef.keypair"}}</button>
 				</form>
 				<div class="field">
-					<label>{{.locale.Tr "packages.chef.documentation" | Safe}}</label>
+					<label>{{.locale.Tr "packages.registry.documentation" "Chef" "https://docs.gitea.io/en-us/usage/packages/chef/" | Safe}}</label>
 				</div>
 			</div>
 		</div>
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "user/settings/layout_footer" .}}

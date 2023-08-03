@@ -1,13 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content organization settings webhooks">
-	{{template "org/header" .}}
-	<div class="ui container">
-		<div class="ui grid">
-			{{template "org/settings/navbar" .}}
-			<div class="twelve wide column content">
+{{template "org/settings/layout_head" (dict "ctxData" . "pageClass" "organization settings webhooks")}}
+			<div class="org-setting-content">
 				{{template "repo/settings/webhook/list" .}}
 			</div>
-		</div>
-	</div>
-</div>
-{{template "base/footer" .}}
+{{template "org/settings/layout_footer" .}}

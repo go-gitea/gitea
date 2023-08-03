@@ -52,7 +52,7 @@ After=network.target
 # Uncomment the next line if you have repos with lots of files and get a HTTP 500 error because of that
 # LimitNOFILE=524288:524288
 RestartSec=2s
-Type=simple
+Type=notify
 User=git
 Group=git
 WorkingDirectory=/var/lib/gitea/
@@ -62,6 +62,7 @@ WorkingDirectory=/var/lib/gitea/
 ExecStart=/usr/local/bin/gitea web --config /etc/gitea/app.ini
 Restart=always
 Environment=USER=git HOME=/home/git GITEA_WORK_DIR=/var/lib/gitea
+WatchdogSec=30s
 # If you install Git to directory prefix other than default PATH (which happens
 # for example if you install other versions of Git side-to-side with
 # distribution version), uncomment below line and add that prefix to PATH

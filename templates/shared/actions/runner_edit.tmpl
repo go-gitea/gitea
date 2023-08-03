@@ -1,5 +1,4 @@
 <div class="runner-container">
-	{{template "base/alert" .}}
 	<h4 class="ui top attached header">
 		{{.locale.Tr "actions.runners.runner_title"}} {{.Runner.ID}} {{.Runner.Name}}
 	</h4>
@@ -8,41 +7,36 @@
 			{{template "base/disable_form_autofill"}}
 			{{.CsrfTokenHtml}}
 			<div class="runner-basic-info">
-				<div class="field gt-dib gt-mr-4 disabled">
+				<div class="field gt-dib gt-mr-4">
 					<label>{{.locale.Tr "actions.runners.status"}}</label>
 					<span class="runner-status-{{if .Runner.IsOnline}}online{{else}}offline{{end}}">{{.Runner.StatusLocaleName $.locale}}</span>
 				</div>
-				<div class="field gt-dib gt-mr-4 disabled">
+				<div class="field gt-dib gt-mr-4">
 					<label>{{.locale.Tr "actions.runners.last_online"}}</label>
-					<span>{{TimeSinceUnix .Runner.LastOnline $.locale}}</span>
+					<span>{{if .Runner.LastOnline}}{{TimeSinceUnix .Runner.LastOnline $.locale}}{{else}}{{$.locale.Tr "never"}}{{end}}</span>
 				</div>
-				<div class="field gt-dib gt-mr-4 disabled">
-					<label>{{.locale.Tr "actions.runners.agent_labels"}}</label>
+				<div class="field gt-dib gt-mr-4">
+					<label>{{.locale.Tr "actions.runners.labels"}}</label>
 					<span>
 						{{range .Runner.AgentLabels}}
-						<span>{{.}}</span>
+						<span class="ui label">{{.}}</span>
 						{{end}}
 					</span>
 				</div>
-				<div class="field gt-dib gt-mr-4 disabled">
+				<div class="field gt-dib gt-mr-4">
 					<label>{{.locale.Tr "actions.runners.owner_type"}}</label>
-					<span>{{.Runner.OwnType}}</span>
+					<span data-tooltip-content="{{.Runner.BelongsToOwnerName}}">{{.Runner.BelongsToOwnerType.LocaleString $.locale}}</span>
 				</div>
 			</div>
 
-			<div class="ui divider"></div>
+			<div class="divider"></div>
 
 			<div class="field">
 				<label for="description">{{.locale.Tr "actions.runners.description"}}</label>
 				<input id="description" name="description" value="{{.Runner.Description}}">
 			</div>
-			<div class="field" data-tooltip-content="Labels are comma-separated. Whitespace at the beginning, end, and around the commas are ignored.">
-				<label for="custom_labels">{{.locale.Tr "actions.runners.custom_labels"}}</label>
-				<input id="custom_labels" name="custom_labels" value="{{Join .Runner.CustomLabels `,`}}">
-				<p class="help">{{.locale.Tr "actions.runners.custom_labels_helper"}}</p>
-			</div>
 
-			<div class="ui divider"></div>
+			<div class="divider"></div>
 
 			<div class="field">
 				<button class="ui green button" data-url="{{.Link}}">{{.locale.Tr "actions.runners.update_runner"}}</button>
@@ -82,21 +76,21 @@
 				{{end}}
 				{{if not .Tasks}}
 				<tr>
-					<td colspan="5">{{.locale.Tr "runners.task_list.no_tasks"}}</td>
+					<td colspan="5">{{.locale.Tr "actions.runners.task_list.no_tasks"}}</td>
 				</tr>
 				{{end}}
 			</tbody>
 		</table>
 		{{template "base/paginate" .}}
 	</div>
-	<div class="ui small basic delete modal" id="runner-delete-modal">
-		<div class="ui icon header">
+	<div class="ui g-modal-confirm delete modal" id="runner-delete-modal">
+		<div class="header">
 			{{svg "octicon-trash"}}
 			{{.locale.Tr "actions.runners.delete_runner_header"}}
 		</div>
 		<div class="content">
 			<p>{{.locale.Tr "actions.runners.delete_runner_notice" | Safe}}</p>
 		</div>
-		{{template "base/delete_modal_actions" .}}
+		{{template "base/modal_actions_confirm" .}}
 	</div>
 </div>

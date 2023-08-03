@@ -80,7 +80,7 @@ func InitRepository(ctx context.Context, repoPath string, bare bool) error {
 // IsEmpty Check if repository is empty.
 func (repo *Repository) IsEmpty() (bool, error) {
 	var errbuf, output strings.Builder
-	if err := NewCommand(repo.Ctx, "show-ref", "--head", "^HEAD$").
+	if err := NewCommand(repo.Ctx).AddOptionFormat("--git-dir=%s", repo.Path).AddArguments("show-ref", "--head", "^HEAD$").
 		Run(&RunOpts{
 			Dir:    repo.Path,
 			Stdout: &output,
@@ -209,49 +209,22 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	} else {
 		cmd.SetDescription(fmt.Sprintf("push branch %s to %s (force: %t, mirror: %t)", opts.Branch, opts.Remote, opts.Force, opts.Mirror))
 	}
-	var outbuf, errbuf strings.Builder
 
-	if opts.Timeout == 0 {
-		opts.Timeout = -1
-	}
-
-	err := cmd.Run(&RunOpts{
-		Env:     opts.Env,
-		Timeout: opts.Timeout,
-		Dir:     repoPath,
-		Stdout:  &outbuf,
-		Stderr:  &errbuf,
-	})
+	stdout, stderr, err := cmd.RunStdString(&RunOpts{Env: opts.Env, Timeout: opts.Timeout, Dir: repoPath})
 	if err != nil {
-		if strings.Contains(errbuf.String(), "non-fast-forward") {
-			return &ErrPushOutOfDate{
-				StdOut: outbuf.String(),
-				StdErr: errbuf.String(),
-				Err:    err,
-			}
-		} else if strings.Contains(errbuf.String(), "! [remote rejected]") {
-			err := &ErrPushRejected{
-				StdOut: outbuf.String(),
-				StdErr: errbuf.String(),
-				Err:    err,
-			}
+		if strings.Contains(stderr, "non-fast-forward") {
+			return &ErrPushOutOfDate{StdOut: stdout, StdErr: stderr, Err: err}
+		} else if strings.Contains(stderr, "! [remote rejected]") {
+			err := &ErrPushRejected{StdOut: stdout, StdErr: stderr, Err: err}
 			err.GenerateMessage()
 			return err
-		} else if strings.Contains(errbuf.String(), "matches more than one") {
-			err := &ErrMoreThanOne{
-				StdOut: outbuf.String(),
-				StdErr: errbuf.String(),
-				Err:    err,
-			}
-			return err
+		} else if strings.Contains(stderr, "matches more than one") {
+			return &ErrMoreThanOne{StdOut: stdout, StdErr: stderr, Err: err}
 		}
+		return fmt.Errorf("push failed: %w - %s\n%s", err, stderr, stdout)
 	}
 
-	if errbuf.Len() > 0 && err != nil {
-		return fmt.Errorf("%w - %s", err, errbuf.String())
-	}
-
-	return err
+	return nil
 }
 
 // GetLatestCommitTime returns time for latest commit in repository (across all branches)
@@ -271,35 +244,28 @@ type DivergeObject struct {
 	Behind int
 }
 
-func checkDivergence(ctx context.Context, repoPath, baseBranch, targetBranch string) (int, error) {
-	branches := fmt.Sprintf("%s..%s", baseBranch, targetBranch)
-	cmd := NewCommand(ctx, "rev-list", "--count").AddDynamicArguments(branches)
+// GetDivergingCommits returns the number of commits a targetBranch is ahead or behind a baseBranch
+func GetDivergingCommits(ctx context.Context, repoPath, baseBranch, targetBranch string) (do DivergeObject, err error) {
+	cmd := NewCommand(ctx, "rev-list", "--count", "--left-right").
+		AddDynamicArguments(baseBranch + "..." + targetBranch)
 	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
 	if err != nil {
-		return -1, err
+		return do, err
 	}
-	outInteger, errInteger := strconv.Atoi(strings.Trim(stdout, "\n"))
-	if errInteger != nil {
-		return -1, errInteger
-	}
-	return outInteger, nil
-}
-
-// GetDivergingCommits returns the number of commits a targetBranch is ahead or behind a baseBranch
-func GetDivergingCommits(ctx context.Context, repoPath, baseBranch, targetBranch string) (DivergeObject, error) {
-	// $(git rev-list --count master..feature) commits ahead of master
-	ahead, errorAhead := checkDivergence(ctx, repoPath, baseBranch, targetBranch)
-	if errorAhead != nil {
-		return DivergeObject{}, errorAhead
+	left, right, found := strings.Cut(strings.Trim(stdout, "\n"), "\t")
+	if !found {
+		return do, fmt.Errorf("git rev-list output is missing a tab: %q", stdout)
 	}
 
-	// $(git rev-list --count feature..master) commits behind master
-	behind, errorBehind := checkDivergence(ctx, repoPath, targetBranch, baseBranch)
-	if errorBehind != nil {
-		return DivergeObject{}, errorBehind
+	do.Behind, err = strconv.Atoi(left)
+	if err != nil {
+		return do, err
 	}
-
-	return DivergeObject{ahead, behind}, nil
+	do.Ahead, err = strconv.Atoi(right)
+	if err != nil {
+		return do, err
+	}
+	return do, nil
 }
 
 // CreateBundle create bundle content to the target path

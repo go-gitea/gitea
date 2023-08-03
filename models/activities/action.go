@@ -26,7 +26,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 	"xorm.io/xorm/schemas"
@@ -367,17 +366,7 @@ func (a *Action) GetBranch() string {
 
 // GetRefLink returns the action's ref link.
 func (a *Action) GetRefLink() string {
-	switch {
-	case strings.HasPrefix(a.RefName, git.BranchPrefix):
-		return a.GetRepoLink() + "/src/branch/" + util.PathEscapeSegments(strings.TrimPrefix(a.RefName, git.BranchPrefix))
-	case strings.HasPrefix(a.RefName, git.TagPrefix):
-		return a.GetRepoLink() + "/src/tag/" + util.PathEscapeSegments(strings.TrimPrefix(a.RefName, git.TagPrefix))
-	case len(a.RefName) == git.SHAFullLength && git.IsValidSHAPattern(a.RefName):
-		return a.GetRepoLink() + "/src/commit/" + a.RefName
-	default:
-		// FIXME: we will just assume it's a branch - this was the old way - at some point we may want to enforce that there is always a ref here.
-		return a.GetRepoLink() + "/src/branch/" + util.PathEscapeSegments(strings.TrimPrefix(a.RefName, git.BranchPrefix))
-	}
+	return git.RefURL(a.GetRepoLink(), a.RefName)
 }
 
 // GetTag returns the action's repository tag.
@@ -402,10 +391,10 @@ func (a *Action) GetIssueInfos() []string {
 }
 
 // GetIssueTitle returns the title of first issue associated
-// with the action.
+// with the action. This function will be invoked in template so keep db.DefaultContext here
 func (a *Action) GetIssueTitle() string {
 	index, _ := strconv.ParseInt(a.GetIssueInfos()[0], 10, 64)
-	issue, err := issues_model.GetIssueByIndex(a.RepoID, index)
+	issue, err := issues_model.GetIssueByIndex(db.DefaultContext, a.RepoID, index)
 	if err != nil {
 		log.Error("GetIssueByIndex: %v", err)
 		return "500 when get issue"
@@ -415,9 +404,9 @@ func (a *Action) GetIssueTitle() string {
 
 // GetIssueContent returns the content of first issue associated with
 // this action.
-func (a *Action) GetIssueContent() string {
+func (a *Action) GetIssueContent(ctx context.Context) string {
 	index, _ := strconv.ParseInt(a.GetIssueInfos()[0], 10, 64)
-	issue, err := issues_model.GetIssueByIndex(a.RepoID, index)
+	issue, err := issues_model.GetIssueByIndex(ctx, a.RepoID, index)
 	if err != nil {
 		log.Error("GetIssueByIndex: %v", err)
 		return "500 when get issue"
@@ -494,12 +483,27 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 			).From("`user`"),
 		))
 	} else if !opts.Actor.IsAdmin {
-		cond = cond.And(builder.In("act_user_id",
-			builder.Select("`user`.id").Where(
-				builder.Eq{"keep_activity_private": false}.
-					And(builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))).
-				Or(builder.Eq{"id": opts.Actor.ID}).From("`user`"),
-		))
+		uidCond := builder.Select("`user`.id").From("`user`").Where(
+			builder.Eq{"keep_activity_private": false}.
+				And(builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))).
+			Or(builder.Eq{"id": opts.Actor.ID})
+
+		if opts.RequestedUser != nil {
+			if opts.RequestedUser.IsOrganization() {
+				// An organization can always see the activities whose `act_user_id` is the same as its id.
+				uidCond = uidCond.Or(builder.Eq{"id": opts.RequestedUser.ID})
+			} else {
+				// A user can always see the activities of the organizations to which the user belongs.
+				uidCond = uidCond.Or(
+					builder.Eq{"type": user_model.UserTypeOrganization}.
+						And(builder.In("`user`.id", builder.Select("org_id").
+							Where(builder.Eq{"uid": opts.RequestedUser.ID}).
+							From("team_user"))),
+				)
+			}
+		}
+
+		cond = cond.And(builder.In("act_user_id", uidCond))
 	}
 
 	// check readable repositories by doer/actor

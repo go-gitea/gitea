@@ -15,22 +15,22 @@ func GetKeyPair(user *user_model.User) (pub, priv string, err error) {
 	var settings map[string]*user_model.Setting
 	settings, err = user_model.GetSettings(user.ID, []string{user_model.UserActivityPubPrivPem, user_model.UserActivityPubPubPem})
 	if err != nil {
-		return
+		return pub, priv, err
 	} else if len(settings) == 0 {
 		if priv, pub, err = util.GenerateKeyPair(rsaBits); err != nil {
-			return
+			return pub, priv, err
 		}
 		if err = user_model.SetUserSetting(user.ID, user_model.UserActivityPubPrivPem, priv); err != nil {
-			return
+			return pub, priv, err
 		}
 		if err = user_model.SetUserSetting(user.ID, user_model.UserActivityPubPubPem, pub); err != nil {
-			return
+			return pub, priv, err
 		}
-		return
+		return pub, priv, err
 	} else {
 		priv = settings[user_model.UserActivityPubPrivPem].SettingValue
 		pub = settings[user_model.UserActivityPubPubPem].SettingValue
-		return
+		return pub, priv, err
 	}
 }
 

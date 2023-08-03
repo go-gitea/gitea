@@ -33,7 +33,7 @@ func TestParseImageConfig(t *testing.T) {
 	assert.Equal(t, projectURL, metadata.ProjectURL)
 	assert.Equal(t, repositoryURL, metadata.RepositoryURL)
 	assert.Equal(t, documentationURL, metadata.DocumentationURL)
-	assert.Equal(t, []string{"do it 1", "do it 2"}, metadata.ImageLayers)
+	assert.ElementsMatch(t, []string{"do it 1", "do it 2"}, metadata.ImageLayers)
 	assert.Equal(
 		t,
 		map[string]string{

@@ -12,7 +12,6 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -21,10 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-)
-
-const (
-	tplBlame base.TplName = "repo/home"
 )
 
 type blameRow struct {
@@ -140,7 +135,7 @@ func RefBlame(ctx *context.Context) {
 
 	renderBlame(ctx, blameParts, commitNames, previousCommits)
 
-	ctx.HTML(http.StatusOK, tplBlame)
+	ctx.HTML(http.StatusOK, tplRepoHome)
 }
 
 func processBlameParts(ctx *context.Context, blameParts []git.BlamePart) (map[string]*user_model.UserCommit, map[string]string) {

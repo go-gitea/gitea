@@ -42,37 +42,26 @@ type CSRFProtector interface {
 	GetToken() string
 	// Validate validates the token in http context.
 	Validate(ctx *Context)
+	// DeleteCookie deletes the cookie
+	DeleteCookie(ctx *Context)
 }
 
 type csrfProtector struct {
-	// Header name value for setting and getting csrf token.
-	Header string
-	// Form name value for setting and getting csrf token.
-	Form string
-	// Cookie name value for setting and getting csrf token.
-	Cookie string
-	// Cookie domain
-	CookieDomain string
-	// Cookie path
-	CookiePath string
-	// Cookie HttpOnly flag value used for the csrf token.
-	CookieHTTPOnly bool
+	opt CsrfOptions
 	// Token generated to pass via header, cookie, or hidden form value.
 	Token string
 	// This value must be unique per user.
 	ID string
-	// Secret used along with the unique id above to generate the Token.
-	Secret string
 }
 
 // GetHeaderName returns the name of the HTTP header for csrf token.
 func (c *csrfProtector) GetHeaderName() string {
-	return c.Header
+	return c.opt.Header
 }
 
 // GetFormName returns the name of the form value for csrf token.
 func (c *csrfProtector) GetFormName() string {
-	return c.Form
+	return c.opt.Form
 }
 
 // GetToken returns the current token. This is typically used
@@ -138,23 +127,32 @@ func prepareDefaultCsrfOptions(opt CsrfOptions) CsrfOptions {
 	if opt.SessionKey == "" {
 		opt.SessionKey = "uid"
 	}
+	if opt.CookieLifeTime == 0 {
+		opt.CookieLifeTime = int(CsrfTokenTimeout.Seconds())
+	}
+
 	opt.oldSessionKey = "_old_" + opt.SessionKey
 	return opt
+}
+
+func newCsrfCookie(c *csrfProtector, value string) *http.Cookie {
+	return &http.Cookie{
+		Name:     c.opt.Cookie,
+		Value:    value,
+		Path:     c.opt.CookiePath,
+		Domain:   c.opt.CookieDomain,
+		MaxAge:   c.opt.CookieLifeTime,
+		Secure:   c.opt.Secure,
+		HttpOnly: c.opt.CookieHTTPOnly,
+		SameSite: c.opt.SameSite,
+	}
 }
 
 // PrepareCSRFProtector returns a CSRFProtector to be used for every request.
 // Additionally, depending on options set, generated tokens will be sent via Header and/or Cookie.
 func PrepareCSRFProtector(opt CsrfOptions, ctx *Context) CSRFProtector {
 	opt = prepareDefaultCsrfOptions(opt)
-	x := &csrfProtector{
-		Secret:         opt.Secret,
-		Header:         opt.Header,
-		Form:           opt.Form,
-		Cookie:         opt.Cookie,
-		CookieDomain:   opt.CookieDomain,
-		CookiePath:     opt.CookiePath,
-		CookieHTTPOnly: opt.CookieHTTPOnly,
-	}
+	x := &csrfProtector{opt: opt}
 
 	if opt.Origin && len(ctx.Req.Header.Get("Origin")) > 0 {
 		return x
@@ -175,7 +173,7 @@ func PrepareCSRFProtector(opt CsrfOptions, ctx *Context) CSRFProtector {
 
 	oldUID := ctx.Session.Get(opt.oldSessionKey)
 	uidChanged := oldUID == nil || oldUID.(string) != x.ID
-	cookieToken := ctx.GetCookie(opt.Cookie)
+	cookieToken := ctx.GetSiteCookie(opt.Cookie)
 
 	needsNew := true
 	if uidChanged {
@@ -193,21 +191,10 @@ func PrepareCSRFProtector(opt CsrfOptions, ctx *Context) CSRFProtector {
 
 	if needsNew {
 		// FIXME: actionId.
-		x.Token = GenerateCsrfToken(x.Secret, x.ID, "POST", time.Now())
+		x.Token = GenerateCsrfToken(x.opt.Secret, x.ID, "POST", time.Now())
 		if opt.SetCookie {
-			var expires interface{}
-			if opt.CookieLifeTime == 0 {
-				expires = time.Now().Add(CsrfTokenTimeout)
-			}
-			middleware.SetCookie(ctx.Resp, opt.Cookie, x.Token,
-				opt.CookieLifeTime,
-				opt.CookiePath,
-				opt.CookieDomain,
-				opt.Secure,
-				opt.CookieHTTPOnly,
-				expires,
-				middleware.SameSite(opt.SameSite),
-			)
+			cookie := newCsrfCookie(x, x.Token)
+			ctx.Resp.Header().Add("Set-Cookie", cookie.String())
 		}
 	}
 
@@ -218,8 +205,8 @@ func PrepareCSRFProtector(opt CsrfOptions, ctx *Context) CSRFProtector {
 }
 
 func (c *csrfProtector) validateToken(ctx *Context, token string) {
-	if !ValidCsrfToken(token, c.Secret, c.ID, "POST", time.Now()) {
-		middleware.DeleteCSRFCookie(ctx.Resp)
+	if !ValidCsrfToken(token, c.opt.Secret, c.ID, "POST", time.Now()) {
+		c.DeleteCookie(ctx)
 		if middleware.IsAPIPath(ctx.Req) {
 			// currently, there should be no access to the APIPath with CSRF token. because templates shouldn't use the `/api/` endpoints.
 			http.Error(ctx.Resp, "Invalid CSRF token.", http.StatusBadRequest)
@@ -244,4 +231,12 @@ func (c *csrfProtector) Validate(ctx *Context) {
 		return
 	}
 	c.validateToken(ctx, "") // no csrf token, use an empty token to respond error
+}
+
+func (c *csrfProtector) DeleteCookie(ctx *Context) {
+	if c.opt.SetCookie {
+		cookie := newCsrfCookie(c, "")
+		cookie.MaxAge = -1
+		ctx.Resp.Header().Add("Set-Cookie", cookie.String())
+	}
 }

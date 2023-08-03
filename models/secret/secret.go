@@ -5,37 +5,16 @@ package secret
 
 import (
 	"context"
-	"fmt"
-	"regexp"
+	"errors"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	secret_module "code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
-
-type ErrSecretInvalidValue struct {
-	Name *string
-	Data *string
-}
-
-func (err ErrSecretInvalidValue) Error() string {
-	if err.Name != nil {
-		return fmt.Sprintf("secret name %q is invalid", *err.Name)
-	}
-	if err.Data != nil {
-		return fmt.Sprintf("secret data %q is invalid", *err.Data)
-	}
-	return util.ErrInvalidArgument.Error()
-}
-
-func (err ErrSecretInvalidValue) Unwrap() error {
-	return util.ErrInvalidArgument
-}
 
 // Secret represents a secret
 type Secret struct {
@@ -59,7 +38,7 @@ func newSecret(ownerID, repoID int64, name, data string) *Secret {
 
 // InsertEncryptedSecret Creates, encrypts, and validates a new secret with yet unencrypted data and insert into database
 func InsertEncryptedSecret(ctx context.Context, ownerID, repoID int64, name, data string) (*Secret, error) {
-	encrypted, err := secret_module.EncryptSecret(setting.SecretKey, strings.TrimSpace(data))
+	encrypted, err := secret_module.EncryptSecret(setting.SecretKey, data)
 	if err != nil {
 		return nil, err
 	}
@@ -74,24 +53,11 @@ func init() {
 	db.RegisterModel(new(Secret))
 }
 
-var (
-	secretNameReg            = regexp.MustCompile("^[A-Z_][A-Z0-9_]*$")
-	forbiddenSecretPrefixReg = regexp.MustCompile("^GIT(EA|HUB)_")
-)
-
-// Validate validates the required fields and formats.
 func (s *Secret) Validate() error {
-	switch {
-	case len(s.Name) == 0 || len(s.Name) > 50:
-		return ErrSecretInvalidValue{Name: &s.Name}
-	case len(s.Data) == 0:
-		return ErrSecretInvalidValue{Data: &s.Data}
-	case !secretNameReg.MatchString(s.Name) ||
-		forbiddenSecretPrefixReg.MatchString(s.Name):
-		return ErrSecretInvalidValue{Name: &s.Name}
-	default:
-		return nil
+	if s.OwnerID == 0 && s.RepoID == 0 {
+		return errors.New("the secret is not bound to any scope")
 	}
+	return nil
 }
 
 type FindSecretsOptions struct {

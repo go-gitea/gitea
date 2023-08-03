@@ -297,6 +297,31 @@
           }
         }
       },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Delete a hook",
+        "operationId": "adminDeleteHook",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the hook to delete",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      },
       "patch": {
         "consumes": [
           "application/json"
@@ -595,6 +620,9 @@
           "403": {
             "$ref": "#/responses/forbidden"
           },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
           "422": {
             "$ref": "#/responses/validationError"
           }
@@ -858,29 +886,140 @@
         }
       }
     },
-    "/amdin/hooks/{id}": {
-      "delete": {
+    "/gitignore/templates": {
+      "get": {
         "produces": [
           "application/json"
         ],
         "tags": [
-          "admin"
+          "miscellaneous"
         ],
-        "summary": "Delete a hook",
-        "operationId": "adminDeleteHook",
+        "summary": "Returns a list of all gitignore templates",
+        "operationId": "listGitignoresTemplates",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/GitignoreTemplateList"
+          }
+        }
+      }
+    },
+    "/gitignore/templates/{name}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Returns information about a gitignore template",
+        "operationId": "getGitignoreTemplateInfo",
         "parameters": [
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the hook to delete",
-            "name": "id",
+            "type": "string",
+            "description": "name of the template",
+            "name": "name",
             "in": "path",
             "required": true
           }
         ],
         "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
+          "200": {
+            "$ref": "#/responses/GitignoreTemplateInfo"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/label/templates": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Returns a list of all label templates",
+        "operationId": "listLabelTemplates",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/LabelTemplateList"
+          }
+        }
+      }
+    },
+    "/label/templates/{name}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Returns all labels in a template",
+        "operationId": "getLabelTemplateInfo",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the template",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/LabelTemplateInfo"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/licenses": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Returns a list of all license templates",
+        "operationId": "listLicenseTemplates",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/LicenseTemplateList"
+          }
+        }
+      }
+    },
+    "/licenses/{name}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Returns information about a license template",
+        "operationId": "getLicenseTemplateInfo",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the license",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/LicenseTemplateInfo"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -1455,6 +1594,63 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/orgs/{org}/avatar": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Update Avatar",
+        "operationId": "orgUpdateAvatar",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/UpdateUserAvatarOption"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Delete Avatar",
+        "operationId": "orgDeleteAvatar",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
           }
         }
       }
@@ -2319,19 +2515,24 @@
           },
           {
             "enum": [
+              "alpine",
               "cargo",
               "chef",
               "composer",
               "conan",
               "conda",
               "container",
+              "cran",
+              "debian",
               "generic",
+              "go",
               "helm",
               "maven",
               "npm",
               "nuget",
               "pub",
               "pypi",
+              "rpm",
               "rubygems",
               "swift",
               "vagrant"
@@ -3033,6 +3234,77 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/avatar": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Update avatar",
+        "operationId": "repoUpdateAvatar",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/UpdateRepoAvatarOption"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete avatar",
+        "operationId": "repoDeleteAvatar",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/branch_protections": {
       "get": {
         "produces": [
@@ -3336,6 +3608,9 @@
         "responses": {
           "201": {
             "$ref": "#/responses/Branch"
+          },
+          "403": {
+            "description": "The branch is archived or a mirror."
           },
           "404": {
             "description": "The old branch does not exist."
@@ -3703,6 +3978,18 @@
             "in": "query"
           },
           {
+            "type": "boolean",
+            "description": "include verification for every commit (disable for speedup, default 'true')",
+            "name": "verification",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include a list of affected files for every commit (disable for speedup, default 'true')",
+            "name": "files",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -3712,6 +3999,12 @@
             "type": "integer",
             "description": "page size of results (ignored if used with 'path')",
             "name": "limit",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "commits that match the given specifier will not be listed.",
+            "name": "not",
             "in": "query"
           }
         ],
@@ -3902,6 +4195,57 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Modify multiple files in a repository",
+        "operationId": "repoChangeFiles",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ChangeFilesOptions"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/FilesResponse"
+          },
+          "403": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -4388,6 +4732,24 @@
             "name": "sha",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "include diff stats for every commit (disable for speedup, default 'true')",
+            "name": "stat",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include verification for every commit (disable for speedup, default 'true')",
+            "name": "verification",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include a list of affected files for every commit (disable for speedup, default 'true')",
+            "name": "files",
+            "in": "query"
           }
         ],
         "responses": {
@@ -6014,6 +6376,39 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/issues/pinned": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List a repo's pinned issues",
+        "operationId": "repoListPinnedIssues",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/IssueList"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/issues/{index}": {
       "get": {
         "produces": [
@@ -7238,6 +7633,144 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/issues/{index}/pin": {
+      "post": {
+        "tags": [
+          "issue"
+        ],
+        "summary": "Pin an Issue",
+        "operationId": "pinIssue",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of issue to pin",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "issue"
+        ],
+        "summary": "Unpin an Issue",
+        "operationId": "unpinIssue",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of issue to unpin",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/issues/{index}/pin/{position}": {
+      "patch": {
+        "tags": [
+          "issue"
+        ],
+        "summary": "Moves the Pin to the given Position",
+        "operationId": "moveIssuePin",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "the new position",
+            "name": "position",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -8833,6 +9366,39 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/new_pin_allowed": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Returns if new Issue Pins are allowed",
+        "operationId": "repoNewPinAllowed",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RepoNewIssuePinsAllowed"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/notifications": {
       "get": {
         "consumes": [
@@ -9121,6 +9687,39 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/pulls/pinned": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List a repo's pinned pull requests",
+        "operationId": "repoListPinnedPullRequests",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PullRequestList"
           }
         }
       }
@@ -10264,7 +10863,7 @@
           }
         ],
         "responses": {
-          "201": {
+          "200": {
             "$ref": "#/responses/PushMirror"
           },
           "400": {
@@ -13322,6 +13921,47 @@
         }
       }
     },
+    "/user/avatar": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Update Avatar",
+        "operationId": "userUpdateAvatar",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/UpdateUserAvatarOption"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Delete Avatar",
+        "operationId": "userDeleteAvatar",
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      }
+    },
     "/user/emails": {
       "get": {
         "produces": [
@@ -15477,6 +16117,94 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ChangeFileOperation": {
+      "description": "ChangeFileOperation for creating, updating or deleting a file",
+      "type": "object",
+      "required": [
+        "operation",
+        "path"
+      ],
+      "properties": {
+        "content": {
+          "description": "new or updated file content, must be base64 encoded",
+          "type": "string",
+          "x-go-name": "ContentBase64"
+        },
+        "from_path": {
+          "description": "old path of the file to move",
+          "type": "string",
+          "x-go-name": "FromPath"
+        },
+        "operation": {
+          "description": "indicates what to do with the file",
+          "type": "string",
+          "enum": [
+            "create",
+            "update",
+            "delete"
+          ],
+          "x-go-name": "Operation"
+        },
+        "path": {
+          "description": "path to the existing or new file",
+          "type": "string",
+          "x-go-name": "Path"
+        },
+        "sha": {
+          "description": "sha is the SHA for the file that already exists, required for update or delete",
+          "type": "string",
+          "x-go-name": "SHA"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "ChangeFilesOptions": {
+      "description": "ChangeFilesOptions options for creating, updating or deleting multiple files\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
+      "type": "object",
+      "required": [
+        "files"
+      ],
+      "properties": {
+        "author": {
+          "$ref": "#/definitions/Identity"
+        },
+        "branch": {
+          "description": "branch (optional) to base this file from. if not given, the default branch is used",
+          "type": "string",
+          "x-go-name": "BranchName"
+        },
+        "committer": {
+          "$ref": "#/definitions/Identity"
+        },
+        "dates": {
+          "$ref": "#/definitions/CommitDateOptions"
+        },
+        "files": {
+          "description": "list of file operations",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ChangeFileOperation"
+          },
+          "x-go-name": "Files"
+        },
+        "message": {
+          "description": "message (optional) for the commit of this file. if not supplied, a default message will be used",
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "new_branch": {
+          "description": "new_branch (optional) will make a new branch from `branch` before creating the file",
+          "type": "string",
+          "x-go-name": "NewBranchName"
+        },
+        "signoff": {
+          "description": "Add a Signed-off-by trailer by the committer at the end of the commit log message.",
+          "type": "boolean",
+          "x-go-name": "Signoff"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "ChangedFile": {
       "description": "ChangedFile store information about files affected by the pull request",
       "type": "object",
@@ -15674,6 +16402,10 @@
         "filename": {
           "type": "string",
           "x-go-name": "Filename"
+        },
+        "status": {
+          "type": "string",
+          "x-go-name": "Status"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -15782,7 +16514,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "CommitStatusState": {
-      "description": "CommitStatusState holds the state of a CommitStatus\nIt can be \"pending\", \"success\", \"error\", \"failure\", and \"warning\"",
+      "description": "CommitStatusState holds the state of a CommitStatus\nIt can be \"pending\", \"success\", \"error\" and \"failure\"",
       "type": "string",
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
@@ -16035,10 +16767,16 @@
           "x-go-name": "BranchName"
         },
         "old_branch_name": {
-          "description": "Name of the old branch to create from",
+          "description": "Deprecated: true\nName of the old branch to create from",
           "type": "string",
           "uniqueItems": true,
           "x-go-name": "OldBranchName"
+        },
+        "old_ref_name": {
+          "description": "Name of the old branch/tag/commit to create from",
+          "type": "string",
+          "uniqueItems": true,
+          "x-go-name": "OldRefName"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -16079,7 +16817,7 @@
         "content": {
           "description": "content must be base64 encoded",
           "type": "string",
-          "x-go-name": "Content"
+          "x-go-name": "ContentBase64"
         },
         "dates": {
           "$ref": "#/definitions/CommitDateOptions"
@@ -16386,6 +17124,10 @@
         "description": {
           "type": "string",
           "x-go-name": "Description"
+        },
+        "email": {
+          "type": "string",
+          "x-go-name": "Email"
         },
         "full_name": {
           "type": "string",
@@ -16741,10 +17483,12 @@
           },
           "x-go-name": "Units",
           "example": [
+            "repo.actions",
             "repo.code",
             "repo.issues",
             "repo.ext_issues",
             "repo.wiki",
+            "repo.ext_wiki",
             "repo.pulls",
             "repo.releases",
             "repo.projects",
@@ -16757,16 +17501,7 @@
             "type": "string"
           },
           "x-go-name": "UnitsMap",
-          "example": {
-            "repo.code": "read",
-            "repo.ext_issues": "none",
-            "repo.ext_wiki": "none",
-            "repo.issues": "write",
-            "repo.projects": "none",
-            "repo.pulls": "owner",
-            "repo.releases": "none",
-            "repo.wiki": "admin"
-          }
+          "example": "{\"repo.actions\",\"repo.packages\",\"repo.code\":\"read\",\"repo.issues\":\"write\",\"repo.ext_issues\":\"none\",\"repo.wiki\":\"admin\",\"repo.pulls\":\"owner\",\"repo.releases\":\"none\",\"repo.projects\":\"none\",\"repo.ext_wiki\":\"none\"}"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -17304,6 +18039,10 @@
         "description": {
           "type": "string",
           "x-go-name": "Description"
+        },
+        "email": {
+          "type": "string",
+          "x-go-name": "Email"
         },
         "full_name": {
           "type": "string",
@@ -17906,6 +18645,26 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "FilesResponse": {
+      "description": "FilesResponse contains information about multiple files from a repo",
+      "type": "object",
+      "properties": {
+        "commit": {
+          "$ref": "#/definitions/FileCommitResponse"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ContentsResponse"
+          },
+          "x-go-name": "Files"
+        },
+        "verification": {
+          "$ref": "#/definitions/PayloadCommitVerification"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "GPGKey": {
       "description": "GPGKey a user GPG key to sign commit and tag in repository",
       "type": "object",
@@ -18151,6 +18910,11 @@
           "type": "boolean",
           "x-go-name": "Private"
         },
+        "protected_branch": {
+          "description": "include protected branches in template repo",
+          "type": "boolean",
+          "x-go-name": "ProtectedBranch"
+        },
         "topics": {
           "description": "include topics in template repo",
           "type": "boolean",
@@ -18294,6 +19058,21 @@
         "url": {
           "type": "string",
           "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "GitignoreTemplateInfo": {
+      "description": "GitignoreTemplateInfo name and text of a gitignore template",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "source": {
+          "type": "string",
+          "x-go-name": "Source"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -18465,6 +19244,11 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "OriginalAuthorID"
+        },
+        "pin_order": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "PinOrder"
         },
         "pull_request": {
           "$ref": "#/definitions/PullRequestMeta"
@@ -18706,6 +19490,77 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "LabelTemplate": {
+      "description": "LabelTemplate info of a Label template",
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "string",
+          "x-go-name": "Color",
+          "example": "00aabb"
+        },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "exclusive": {
+          "type": "boolean",
+          "x-go-name": "Exclusive",
+          "example": false
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "LicenseTemplateInfo": {
+      "description": "LicensesInfo contains information about a License",
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "string",
+          "x-go-name": "Body"
+        },
+        "implementation": {
+          "type": "string",
+          "x-go-name": "Implementation"
+        },
+        "key": {
+          "type": "string",
+          "x-go-name": "Key"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "LicensesTemplateListEntry": {
+      "description": "LicensesListEntry is used for the API",
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string",
+          "x-go-name": "Key"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "MarkdownOption": {
       "description": "MarkdownOption markdown options",
       "type": "object",
@@ -18885,7 +19740,11 @@
             "git",
             "github",
             "gitea",
-            "gitlab"
+            "gitlab",
+            "gogs",
+            "onedev",
+            "gitbucket",
+            "codebase"
           ],
           "x-go-name": "Service"
         },
@@ -18951,6 +19810,21 @@
           "type": "string",
           "format": "date-time",
           "x-go-name": "Updated"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "NewIssuePinsAllowed": {
+      "description": "NewIssuePinsAllowed represents an API response that says if new Issue Pins are allowed",
+      "type": "object",
+      "properties": {
+        "issues": {
+          "type": "boolean",
+          "x-go-name": "Issues"
+        },
+        "pull_requests": {
+          "type": "boolean",
+          "x-go-name": "PullRequests"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -19226,6 +20100,10 @@
         "description": {
           "type": "string",
           "x-go-name": "Description"
+        },
+        "email": {
+          "type": "string",
+          "x-go-name": "Email"
         },
         "full_name": {
           "type": "string",
@@ -19664,6 +20542,18 @@
         "patch_url": {
           "type": "string",
           "x-go-name": "PatchURL"
+        },
+        "pin_order": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "PinOrder"
+        },
+        "requested_reviewers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/User"
+          },
+          "x-go-name": "RequestedReviewers"
         },
         "state": {
           "$ref": "#/definitions/StateType"
@@ -20130,6 +21020,11 @@
         "archived": {
           "type": "boolean",
           "x-go-name": "Archived"
+        },
+        "archived_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "ArchivedAt"
         },
         "avatar_url": {
           "type": "string",
@@ -20813,7 +21708,7 @@
         "content": {
           "description": "content must be base64 encoded",
           "type": "string",
-          "x-go-name": "Content"
+          "x-go-name": "ContentBase64"
         },
         "dates": {
           "$ref": "#/definitions/CommitDateOptions"
@@ -20842,6 +21737,30 @@
           "description": "Add a Signed-off-by trailer by the committer at the end of the commit log message.",
           "type": "boolean",
           "x-go-name": "Signoff"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "UpdateRepoAvatarOption": {
+      "description": "UpdateRepoAvatarUserOption options when updating the repo avatar",
+      "type": "object",
+      "properties": {
+        "image": {
+          "description": "image must be base64 encoded",
+          "type": "string",
+          "x-go-name": "Image"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "UpdateUserAvatarOption": {
+      "description": "UpdateUserAvatarUserOption options when updating the user avatar",
+      "type": "object",
+      "properties": {
+        "image": {
+          "description": "image must be base64 encoded",
+          "type": "string",
+          "x-go-name": "Image"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -21453,6 +22372,12 @@
         "$ref": "#/definitions/FileResponse"
       }
     },
+    "FilesResponse": {
+      "description": "FilesResponse",
+      "schema": {
+        "$ref": "#/definitions/FilesResponse"
+      }
+    },
     "GPGKey": {
       "description": "GPGKey",
       "schema": {
@@ -21519,6 +22444,21 @@
         "$ref": "#/definitions/GitTreeResponse"
       }
     },
+    "GitignoreTemplateInfo": {
+      "description": "GitignoreTemplateInfo",
+      "schema": {
+        "$ref": "#/definitions/GitignoreTemplateInfo"
+      }
+    },
+    "GitignoreTemplateList": {
+      "description": "GitignoreTemplateList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
     "Hook": {
       "description": "Hook",
       "schema": {
@@ -21579,6 +22519,24 @@
         }
       }
     },
+    "LabelTemplateInfo": {
+      "description": "LabelTemplateInfo",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/LabelTemplate"
+        }
+      }
+    },
+    "LabelTemplateList": {
+      "description": "LabelTemplateList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
     "LanguageStatistics": {
       "description": "LanguageStatistics",
       "schema": {
@@ -21586,6 +22544,21 @@
         "additionalProperties": {
           "type": "integer",
           "format": "int64"
+        }
+      }
+    },
+    "LicenseTemplateInfo": {
+      "description": "LicenseTemplateInfo",
+      "schema": {
+        "$ref": "#/definitions/LicenseTemplateInfo"
+      }
+    },
+    "LicenseTemplateList": {
+      "description": "LicenseTemplateList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/LicensesTemplateListEntry"
         }
       }
     },
@@ -21847,6 +22820,12 @@
         "$ref": "#/definitions/IssueConfigValidation"
       }
     },
+    "RepoNewIssuePinsAllowed": {
+      "description": "RepoNewIssuePinsAllowed",
+      "schema": {
+        "$ref": "#/definitions/NewIssuePinsAllowed"
+      }
+    },
     "Repository": {
       "description": "Repository",
       "schema": {
@@ -22075,7 +23054,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/CreatePushMirrorOption"
+        "$ref": "#/definitions/UpdateRepoAvatarOption"
       }
     },
     "redirect": {

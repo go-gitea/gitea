@@ -20,7 +20,7 @@
 
 					<div class="inline field {{if .Err_Auth}}error{{end}}">
 						<label for="auth_token">{{.locale.Tr "access_token"}}</label>
-						<input id="auth_token" name="auth_token" value="{{.auth_token}}" {{if not .auth_token}}data-need-clear="true"{{end}}>
+						<input id="auth_token" name="auth_token" type="password" autocomplete="new-password" value="{{.auth_token}}" {{if not .auth_token}}data-need-clear="true"{{end}}>
 						<a target="_blank" href="https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html">{{svg "octicon-question"}}</a>
 					</div>
 
@@ -66,7 +66,7 @@
 						</div>
 					</div>
 
-					<div class="ui divider"></div>
+					<div class="divider"></div>
 
 					<div class="inline required field {{if .Err_Owner}}error{{end}}">
 						<label>{{.locale.Tr "repo.owner"}}</label>
@@ -94,7 +94,7 @@
 
 					<div class="inline required field {{if .Err_RepoName}}error{{end}}">
 						<label for="repo_name">{{.locale.Tr "repo.repo_name"}}</label>
-						<input id="repo_name" name="repo_name" value="{{.repo_name}}" required>
+						<input id="repo_name" name="repo_name" value="{{.repo_name}}" required maxlength="100">
 					</div>
 					<div class="inline field">
 						<label>{{.locale.Tr "repo.visibility"}}</label>
@@ -110,7 +110,7 @@
 					</div>
 					<div class="inline field {{if .Err_Description}}error{{end}}">
 						<label for="description">{{.locale.Tr "repo.repo_desc"}}</label>
-						<textarea id="description" name="description">{{.description}}</textarea>
+						<textarea id="description" name="description" maxlength="2048">{{.description}}</textarea>
 					</div>
 
 					<div class="inline field">

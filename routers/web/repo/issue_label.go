@@ -157,9 +157,7 @@ func DeleteLabel(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.issues.label_deletion_success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": ctx.Repo.RepoLink + "/labels",
-	})
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/labels")
 }
 
 // UpdateIssueLabel change issue's labels
@@ -226,7 +224,5 @@ func UpdateIssueLabel(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }

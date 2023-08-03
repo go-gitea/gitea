@@ -47,8 +47,13 @@ var (
 	illegalCharacters    = regexp.MustCompile(`[\\/:"<>|?\*]`)
 )
 
-func apiError(ctx *context.Context, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj any) {
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
+		// The maven client does not present the error message to the user. Log it for users with access to server logs.
+		if status == http.StatusBadRequest || status == http.StatusInternalServerError {
+			log.Error(message)
+		}
+
 		ctx.PlainText(status, message)
 	})
 }
@@ -210,21 +215,15 @@ func servePackageFile(ctx *context.Context, params parameters, serveContent bool
 		return
 	}
 
-	s, err := packages_module.NewContentStore().Get(packages_module.BlobHash256Key(pb.HashSHA256))
+	s, u, _, err := packages_service.GetPackageBlobStream(ctx, pf, pb)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
-	}
-	defer s.Close()
-
-	if pf.IsLead {
-		if err := packages_model.IncrementDownloadCounter(ctx, pv.ID); err != nil {
-			log.Error("Error incrementing download counter: %v", err)
-		}
+		return
 	}
 
 	opts.Filename = pf.Name
 
-	ctx.ServeContent(s, opts)
+	helper.ServePackageFile(ctx, s, u, pf, opts)
 }
 
 // UploadPackageFile adds a file to the package. If the package does not exist, it gets created.
@@ -245,7 +244,7 @@ func UploadPackageFile(ctx *context.Context) {
 
 	packageName := params.GroupID + "-" + params.ArtifactID
 
-	buf, err := packages_module.CreateHashedBufferFromReader(ctx.Req.Body, 32*1024*1024)
+	buf, err := packages_module.CreateHashedBufferFromReader(ctx.Req.Body)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -326,7 +325,8 @@ func UploadPackageFile(ctx *context.Context) {
 		var err error
 		pvci.Metadata, err = maven_module.ParsePackageMetaData(buf)
 		if err != nil {
-			log.Error("Error parsing package metadata: %v", err)
+			apiError(ctx, http.StatusBadRequest, err)
+			return
 		}
 
 		if pvci.Metadata != nil {

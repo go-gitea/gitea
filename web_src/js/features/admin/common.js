@@ -10,7 +10,6 @@ export function initAdminCommon() {
   }
 
   // check whether appUrl(ROOT_URL) is correct, if not, show an error message
-  // only admin pages need this check because most templates are using relative URLs now
   checkAppUrl();
 
   // New user
@@ -21,7 +20,7 @@ export function initAdminCommon() {
         $('#login_name').removeAttr('required');
         hideElem($('.non-local'));
         showElem($('.local'));
-        $('#user_name').focus();
+        $('#user_name').trigger('focus');
 
         if ($(this).data('password') === 'required') {
           $('#password').attr('required', 'required');
@@ -33,7 +32,7 @@ export function initAdminCommon() {
         $('#login_name').attr('required', 'required');
         showElem($('.non-local'));
         hideElem($('.local'));
-        $('#login_name').focus();
+        $('#login_name').trigger('focus');
 
         $('#password').removeAttr('required');
       }
@@ -171,6 +170,12 @@ export function initAdminCommon() {
     }
   }
 
+  if ($('.admin.authentication').length > 0) {
+    $('#auth_name').on('input', function () {
+      $('#oauth2-callback-url').text(`${window.location.origin}/user/oauth2/${encodeURIComponent($(this).val())}/callback`);
+    }).trigger('input');
+  }
+
   // Notice
   if ($('.admin.notice')) {
     const $detailModal = $('#detail-modal');
@@ -178,7 +183,7 @@ export function initAdminCommon() {
     // Attach view detail modals
     $('.view-detail').on('click', function () {
       $detailModal.find('.content pre').text($(this).parents('tr').find('.notice-description').text());
-      $detailModal.find('.sub.header').text($(this).parents('tr').find('.notice-created-time').text());
+      $detailModal.find('.sub.header').text($(this).parents('tr').find('relative-time').attr('title'));
       $detailModal.modal('show');
       return false;
     });
