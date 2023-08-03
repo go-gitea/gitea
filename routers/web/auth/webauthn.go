@@ -153,5 +153,5 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 	}
 	_ = ctx.Session.Delete("twofaUid")
 
-	ctx.JSON(http.StatusOK, map[string]string{"redirect": redirect})
+	ctx.JSONRedirect(redirect)
 }

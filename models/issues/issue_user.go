@@ -84,3 +84,13 @@ func UpdateIssueUsersByMentions(ctx context.Context, issueID int64, uids []int64
 	}
 	return nil
 }
+
+// GetIssueMentionIDs returns all mentioned user IDs of an issue.
+func GetIssueMentionIDs(ctx context.Context, issueID int64) ([]int64, error) {
+	var ids []int64
+	return ids, db.GetEngine(ctx).Table(IssueUser{}).
+		Where("issue_id=?", issueID).
+		And("is_mentioned=?", true).
+		Select("uid").
+		Find(&ids)
+}

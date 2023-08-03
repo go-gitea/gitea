@@ -70,7 +70,7 @@
 							{{end}}
 							</span>
 							{{if IsMultilineCommitMessage .Message}}
-							<button class="ui button ellipsis-button" aria-expanded="false">...</button>
+							<button class="ui button js-toggle-commit-body ellipsis-button" aria-expanded="false">...</button>
 							{{end}}
 							{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses "root" $}}
 							{{if IsMultilineCommitMessage .Message}}

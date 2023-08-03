@@ -1,4 +1,4 @@
-{{if .CanWriteProjects}}
+{{if and $.CanWriteProjects (not $.Repository.IsArchived)}}
 	<div class="gt-text-right">
 		<a class="ui small green button" href="{{$.Link}}/new">{{.locale.Tr "repo.projects.new"}}</a>
 	</div>
@@ -72,7 +72,7 @@
 	{{template "base/paginate" .}}
 </div>
 
-{{if $.CanWriteProjects}}
+{{if and $.CanWriteProjects (not $.Repository.IsArchived)}}
 <div class="ui g-modal-confirm delete modal">
 	<div class="header">
 		{{svg "octicon-trash"}}

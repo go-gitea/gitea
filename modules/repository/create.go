@@ -23,6 +23,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
+	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -418,6 +419,10 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 				return fmt.Errorf("updateRepository[%d]: %w", forkRepos[i].ID, err)
 			}
 		}
+
+		// If visibility is changed, we need to update the issue indexer.
+		// Since the data in the issue indexer have field to indicate if the repo is public or not.
+		issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
 	}
 
 	return nil

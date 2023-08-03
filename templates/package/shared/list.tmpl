@@ -12,15 +12,15 @@
 		<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
 	</div>
 </form>
-<div class="ui {{if .PackageDescriptors}}issue list{{end}}">
+<div class="{{if .PackageDescriptors}}flex-list{{end}} gt-pt-4">
 	{{range .PackageDescriptors}}
-		<li class="item">
-			<div class="issue-item-main">
-				<div class="issue-item-title">
-					<a class="title" href="{{.FullWebLink}}">{{.Package.Name}}</a>
+		<div class="flex-item">
+			<div class="flex-item-main">
+				<div class="flex-item-title">
+					<a href="{{.FullWebLink}}">{{.Package.Name}}</a>
 					<span class="ui label">{{svg .Package.Type.SVGName 16}} {{.Package.Type.Name}}</span>
 				</div>
-				<div class="issue-item-body">
+				<div class="flex-item-body">
 					{{$timeStr := TimeSinceUnix .Version.CreatedUnix $.locale}}
 					{{$hasRepositoryAccess := false}}
 					{{if .Repository}}
@@ -33,10 +33,10 @@
 					{{end}}
 				</div>
 			</div>
-		</li>
+		</div>
 	{{else}}
 		{{if not .HasPackages}}
-			<div class="gt-pt-5 empty center">
+			<div class="empty center">
 				{{svg "octicon-package" 48}}
 				<h2>{{.locale.Tr "packages.empty"}}</h2>
 				{{if and .Repository .CanWritePackages}}

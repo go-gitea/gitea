@@ -56,7 +56,7 @@
 									<button class="btn interact-bg gt-p-3 show-modal show-rename-branch-modal"
 										data-is-default-branch="true"
 										data-modal="#rename-branch-modal"
-										data-old-branch-name="{{$.DefaultBranchBranch}}"
+										data-old-branch-name="{{$.DefaultBranchBranch.DBBranch.Name}}"
 										data-tooltip-content="{{$.locale.Tr "repo.branch.rename" ($.DefaultBranchBranch.DBBranch.Name)}}"
 									>
 										{{svg "octicon-pencil"}}
