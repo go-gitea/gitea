@@ -96,6 +96,9 @@ func createDefaultPolicy() *bluemonday.Policy {
 	// Allow classes for task lists
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`task-list-item`)).OnElements("li")
 
+	// Allow classes for org mode list item status.
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^(unchecked|checked|indeterminate)$`)).OnElements("li")
+
 	// Allow icons
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^icon(\s+[\p{L}\p{N}_-]+)+$`)).OnElements("i")
 

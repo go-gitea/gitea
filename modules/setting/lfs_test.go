@@ -22,6 +22,30 @@ func Test_getStorageInheritNameSectionTypeForLFS(t *testing.T) {
 	assert.EqualValues(t, "lfs/", LFS.Storage.MinioConfig.BasePath)
 
 	iniStr = `
+[server]
+LFS_CONTENT_PATH = path_ignored
+[lfs]
+PATH = path_used
+`
+	cfg, err = NewConfigProviderFromData(iniStr)
+	assert.NoError(t, err)
+	assert.NoError(t, loadLFSFrom(cfg))
+
+	assert.EqualValues(t, "local", LFS.Storage.Type)
+	assert.Contains(t, LFS.Storage.Path, "path_used")
+
+	iniStr = `
+[server]
+LFS_CONTENT_PATH = deprecatedpath
+`
+	cfg, err = NewConfigProviderFromData(iniStr)
+	assert.NoError(t, err)
+	assert.NoError(t, loadLFSFrom(cfg))
+
+	assert.EqualValues(t, "local", LFS.Storage.Type)
+	assert.Contains(t, LFS.Storage.Path, "deprecatedpath")
+
+	iniStr = `
 [storage.lfs]
 STORAGE_TYPE = minio
 `
