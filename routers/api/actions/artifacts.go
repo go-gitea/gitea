@@ -197,7 +197,9 @@ func (ar artifactRoutes) getUploadArtifactURL(ctx *ArtifactContext) {
 	// set retention days
 	if req.RetentionDays > 0 {
 		cacheKey := fmt.Sprintf("actions_artifact_retention_days_%d_%d", task.ID, runID)
-		cache.GetCache().Put(cacheKey, req.RetentionDays, 0)
+		if err := cache.GetCache().Put(cacheKey, req.RetentionDays, 0); err != nil {
+			log.Warn("Error set cache %s: %v", cacheKey, err)
+		}
 	}
 
 	// use md5(artifact_name) to create upload url

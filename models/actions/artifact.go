@@ -131,15 +131,16 @@ func ListUploadedArtifactsByRunID(ctx context.Context, runID int64) ([]*ActionAr
 type ActionArtifactMeta struct {
 	ArtifactName string
 	FileSize     int64
+	Status       int64
 }
 
 // ListUploadedArtifactsMeta returns all uploaded artifacts meta of a run
 func ListUploadedArtifactsMeta(ctx context.Context, runID int64) ([]*ActionArtifactMeta, error) {
 	arts := make([]*ActionArtifactMeta, 0, 10)
 	return arts, db.GetEngine(ctx).Table("action_artifact").
-		Where("run_id=? AND status=?", runID, ArtifactStatusUploadConfirmed).
+		Where("run_id=? AND (status=? OR status=?)", runID, ArtifactStatusUploadConfirmed, ArtifactStatusExpired).
 		GroupBy("artifact_name").
-		Select("artifact_name, sum(file_size) as file_size").
+		Select("artifact_name, sum(file_size) as file_size, max(status) as status").
 		Find(&arts)
 }
 

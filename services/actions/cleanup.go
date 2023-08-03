@@ -11,13 +11,10 @@ import (
 
 // Cleanup removes expired actions logs, data and artifacts
 func Cleanup(taskCtx context.Context, olderThan time.Duration) error {
+	// clean up expired actions logs
 
 	// clean up expired artifacts
-	if err := CleanupArtifacts(taskCtx); err != nil {
-		return err
-	}
-
-	return nil
+	return CleanupArtifacts(taskCtx)
 }
 
 // CleanupArtifacts removes expired artifacts and set records expired status
