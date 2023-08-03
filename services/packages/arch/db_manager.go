@@ -151,7 +151,7 @@ func CreatePacmanDb(ctx *context.Context, owner, architecture, distro string) ([
 		return nil, err
 	}
 
-	var entries = make(map[string][]byte)
+	entries := make(map[string][]byte)
 
 	for _, pkg := range pkgs {
 		versions, err := pkg_model.GetVersionsByPackageName(ctx, u.ID, pkg_model.TypeArch, pkg.Name)
