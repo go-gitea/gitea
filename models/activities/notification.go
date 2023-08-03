@@ -742,7 +742,7 @@ func GetUIDsAndNotificationCounts(since, until timeutil.TimeStamp) ([]UserIDCoun
 
 // SetIssueReadBy sets issue to be read by given user.
 func SetIssueReadBy(ctx context.Context, issueID, userID int64) error {
-	if err := issues_model.UpdateIssueUserByRead(userID, issueID); err != nil {
+	if err := issues_model.UpdateIssueUserByRead(ctx, userID, issueID); err != nil {
 		return err
 	}
 
