@@ -13,6 +13,7 @@ import (
 	pkg_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/packages"
@@ -22,15 +23,21 @@ import (
 )
 
 type UpdateMetadataParameters struct {
-	User *user.User
-	Md   *arch.Metadata
+	User     *user.User
+	Metadata *arch.Metadata
+	DbDesc   *arch.DbDesc
 }
 
-// This function gets existing package metadata for provided version present,
-// combines architecture and distribution info and creates new metadata with
-// combined set of parameters.
+// Update package metadata stored in SQL database with new combination of
+// distribution and architecture.
 func UpdateMetadata(ctx *context.Context, p *UpdateMetadataParameters) error {
-	ver, err := pkg_model.GetVersionByNameAndVersion(ctx, p.User.ID, pkg_model.TypeArch, p.Md.Name, p.Md.Version)
+	ver, err := pkg_model.GetVersionByNameAndVersion(
+		ctx,
+		p.User.ID,
+		pkg_model.TypeArch,
+		p.DbDesc.Name,
+		p.DbDesc.Version,
+	)
 	if err != nil {
 		return err
 	}
@@ -41,7 +48,7 @@ func UpdateMetadata(ctx *context.Context, p *UpdateMetadataParameters) error {
 		return err
 	}
 
-	currmd.DistroArch = arch.UnifiedList(currmd.DistroArch, p.Md.DistroArch)
+	currmd.DistroArch = uniqueSlice(currmd.DistroArch, p.Metadata.DistroArch)
 
 	b, err := json.Marshal(&currmd)
 	if err != nil {
@@ -53,6 +60,14 @@ func UpdateMetadata(ctx *context.Context, p *UpdateMetadataParameters) error {
 	return pkg_model.UpdateVersion(ctx, ver)
 }
 
+// Creates a list containing unique values formed of 2 passed slices.
+func uniqueSlice(first, second []string) []string {
+	set := make(container.Set[string], len(first)+len(second))
+	set.AddMultiple(first...)
+	set.AddMultiple(second...)
+	return set.Values()
+}
+
 // Parameters required to save new arch package.
 type SaveFileParams struct {
 	Creator  *user.User
@@ -62,10 +77,12 @@ type SaveFileParams struct {
 	Filename string
 	Distro   string
 	IsLead   bool
+	PkgName  string
+	PkgVer   string
 }
 
-// This function creates new package, version and package_file properties in
-// database, and writes blob to file storage. If package/version/blob exists it
+// Creates new package, version and package_file properties in database,
+// and writes blob to file storage. If package/version/blob exists it
 // will overwrite existing data. Package id and error will be returned.
 func SaveFile(ctx *context.Context, p *SaveFileParams) (int64, error) {
 	ver, _, err := pkg_service.CreatePackageOrAddFileToExisting(
@@ -73,8 +90,8 @@ func SaveFile(ctx *context.Context, p *SaveFileParams) (int64, error) {
 			PackageInfo: pkg_service.PackageInfo{
 				Owner:       p.Owner,
 				PackageType: pkg_model.TypeArch,
-				Name:        p.Metadata.Name,
-				Version:     p.Metadata.Version,
+				Name:        p.PkgName,
+				Version:     p.PkgVer,
 			},
 			Creator:  p.Creator,
 			Metadata: p.Metadata,
@@ -96,8 +113,8 @@ func SaveFile(ctx *context.Context, p *SaveFileParams) (int64, error) {
 	return ver.ID, nil
 }
 
-// Get data related to provided file name and distribution, and update download
-// counter if actual package file is retrieved from database.
+// Get data related to provided filename and distribution, for package files
+// update download counter.
 func GetFileObject(ctx *context.Context, distro, file string) (storage.Object, error) {
 	db := db.GetEngine(ctx)
 
@@ -125,8 +142,8 @@ func GetFileObject(ctx *context.Context, distro, file string) (storage.Object, e
 	return cs.Get(packages.BlobHash256Key(blob.HashSHA256))
 }
 
-// Automatically connect repository to pushed package, if package with provided
-// with provided name exists in namespace scope.
+// Automatically connect repository with source code to published package, if
+// repository with the same name exists in user/organization scope.
 func RepositoryAutoconnect(ctx *context.Context, owner, repository string, pkgid int64) error {
 	repo, err := repo.GetRepositoryByOwnerAndName(ctx, owner, repository)
 	if err == nil {
@@ -138,8 +155,11 @@ func RepositoryAutoconnect(ctx *context.Context, owner, repository string, pkgid
 	return nil
 }
 
-// This function is collecting information about packages in some organization/
-// user space, and created pacman database archive based on package metadata.
+// Finds all arch packages in user/organization scope, each package version
+// starting from latest in descending order is checked to be compatible with
+// requested combination of architecture and distribution. When/If the first
+// compatible version is found, related desc file will be loaded from object
+// storage and added to database archive.
 func CreatePacmanDb(ctx *context.Context, owner, architecture, distro string) ([]byte, error) {
 	u, err := user.GetUserByName(ctx, owner)
 	if err != nil {
@@ -164,10 +184,11 @@ func CreatePacmanDb(ctx *context.Context, owner, architecture, distro string) ([
 		})
 
 		for _, version := range versions {
-			desc, err := GetPacmanDbDesc(ctx, &DescParams{
+			desc, err := LoadDbDescFile(ctx, &DescParams{
 				Version: version,
 				Arch:    architecture,
 				Distro:  distro,
+				PkgName: pkg.Name,
 			})
 			if err != nil {
 				return nil, err
@@ -187,11 +208,12 @@ type DescParams struct {
 	Version *pkg_model.PackageVersion
 	Arch    string
 	Distro  string
+	PkgName string
 }
 
-// Checks if desc file exists for required architecture or any and returns it
-// in form of byte slice.
-func GetPacmanDbDesc(ctx *context.Context, p *DescParams) ([]byte, error) {
+// Get pacman desc file from object storage if combination of distribution and
+// architecture is supported (checked in metadata).
+func LoadDbDescFile(ctx *context.Context, p *DescParams) ([]byte, error) {
 	var md arch.Metadata
 	err := json.Unmarshal([]byte(p.Version.MetadataJSON), &md)
 	if err != nil {
@@ -202,10 +224,10 @@ func GetPacmanDbDesc(ctx *context.Context, p *DescParams) ([]byte, error) {
 		var storagekey string
 
 		if distroarch == p.Distro+"-"+p.Arch {
-			storagekey = md.Name + "-" + md.Version + "-" + p.Arch + ".desc"
+			storagekey = p.PkgName + "-" + p.Version.Version + "-" + p.Arch + ".desc"
 		}
 		if distroarch == p.Distro+"-any" {
-			storagekey = md.Name + "-" + md.Version + "-any.desc"
+			storagekey = p.PkgName + "-" + p.Version.Version + "-any.desc"
 		}
 
 		if storagekey == "" {
@@ -220,14 +242,4 @@ func GetPacmanDbDesc(ctx *context.Context, p *DescParams) ([]byte, error) {
 		return io.ReadAll(descfile)
 	}
 	return nil, nil
-}
-
-// Remove specific package version related to provided user or organization.
-func RemovePackage(ctx *context.Context, u *user.User, name, version string) error {
-	ver, err := pkg_model.GetVersionByNameAndVersion(ctx, u.ID, pkg_model.TypeArch, name, version)
-	if err != nil {
-		return err
-	}
-
-	return pkg_service.RemovePackageVersion(u, ver)
 }

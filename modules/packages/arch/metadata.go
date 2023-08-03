@@ -15,7 +15,6 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/container"
 	pkg_module "code.gitea.io/gitea/modules/packages"
 
 	"github.com/mholt/archiver/v3"
@@ -24,8 +23,6 @@ import (
 // JSON with pacakage parameters that are not related to specific
 // architecture/distribution that will be stored in sql database.
 type Metadata struct {
-	Name         string
-	Version      string
 	URL          string   `json:"url"`
 	Description  string   `json:"description"`
 	Provides     []string `json:"provides,omitempty"`
@@ -64,7 +61,7 @@ type DbDesc struct {
 }
 
 // Function that receives arch package archive data and returns it's metadata.
-func EjectMetadata(filename, distribution string, buf *pkg_module.HashedBuffer) (*DbDesc, error) {
+func EjectMetadata(filename, distro string, buf *pkg_module.HashedBuffer) (*DbDesc, error) {
 	pkginfo, err := getPkginfo(buf)
 	if err != nil {
 		return nil, err
@@ -84,52 +81,58 @@ func EjectMetadata(filename, distribution string, buf *pkg_module.HashedBuffer) 
 		if len(splt) != 2 {
 			continue
 		}
-		switch splt[0] {
+		var (
+			parameter = splt[0]
+			value     = splt[1]
+		)
+
+		switch parameter {
 		case "pkgname":
-			md.Name = splt[1]
+			md.Name = value
 		case "pkgbase":
-			md.Base = splt[1]
+			md.Base = value
 		case "pkgver":
-			md.Version = splt[1]
+			md.Version = value
 		case "pkgdesc":
-			md.Description = splt[1]
+			md.Description = value
 		case "url":
-			md.URL = splt[1]
+			md.URL = value
 		case "packager":
-			md.Packager = splt[1]
+			md.Packager = value
 		case "builddate":
-			num, err := strconv.ParseInt(splt[1], 10, 64)
+			num, err := strconv.ParseInt(value, 10, 64)
 			if err != nil {
 				return nil, err
 			}
 			md.BuildDate = num
 		case "size":
-			num, err := strconv.ParseInt(splt[1], 10, 64)
+			num, err := strconv.ParseInt(value, 10, 64)
 			if err != nil {
 				return nil, err
 			}
 			md.InstalledSize = num
 		case "provides":
-			md.Provides = append(md.Provides, splt[1])
+			md.Provides = append(md.Provides, value)
 		case "license":
-			md.License = append(md.License, splt[1])
+			md.License = append(md.License, value)
 		case "arch":
-			md.Arch = append(md.Arch, splt[1])
+			md.Arch = append(md.Arch, value)
 		case "depend":
-			md.Depends = append(md.Depends, splt[1])
+			md.Depends = append(md.Depends, value)
 		case "optdepend":
-			md.OptDepends = append(md.OptDepends, splt[1])
+			md.OptDepends = append(md.OptDepends, value)
 		case "makedepend":
-			md.MakeDepends = append(md.MakeDepends, splt[1])
+			md.MakeDepends = append(md.MakeDepends, value)
 		case "checkdepend":
-			md.CheckDepends = append(md.CheckDepends, splt[1])
+			md.CheckDepends = append(md.CheckDepends, value)
 		case "backup":
-			md.Backup = append(md.Backup, splt[1])
+			md.Backup = append(md.Backup, value)
 		}
 	}
 	return &md, nil
 }
 
+// Eject .PKGINFO file as string from package archive.
 func getPkginfo(data io.Reader) (string, error) {
 	br := bufio.NewReader(data)
 	zstd := archiver.NewTarZstd()
@@ -153,8 +156,7 @@ func getPkginfo(data io.Reader) (string, error) {
 	}
 }
 
-// This function returns pacman package description in unarchived raw database
-// format.
+// Create pacman package description file.
 func (m *DbDesc) GetDbDesc() string {
 	return strings.Join(rmEmptyStrings([]string{
 		formatField("FILENAME", m.Filename),
@@ -243,13 +245,4 @@ func writeToArchive(files map[string][]byte, buf io.Writer) error {
 		}
 	}
 	return nil
-}
-
-// This function creates a list containing unique values formed of 2 passed
-// slices.
-func UnifiedList(first, second []string) []string {
-	set := make(container.Set[string], len(first)+len(second))
-	set.AddMultiple(first...)
-	set.AddMultiple(second...)
-	return set.Values()
 }

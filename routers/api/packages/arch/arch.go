@@ -10,10 +10,12 @@ import (
 	"net/http"
 	"strings"
 
+	pkg_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
 	pkg_module "code.gitea.io/gitea/modules/packages"
 	arch_module "code.gitea.io/gitea/modules/packages/arch"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	pkg_service "code.gitea.io/gitea/services/packages"
 	arch_service "code.gitea.io/gitea/services/packages/arch"
 )
 
@@ -56,8 +58,6 @@ func Push(ctx *context.Context) {
 
 	// Metadata related to SQL database.
 	dbmd := &arch_module.Metadata{
-		Name:         pkgmd.Name,
-		Version:      pkgmd.Version,
 		URL:          pkgmd.URL,
 		Description:  pkgmd.Description,
 		Provides:     pkgmd.Provides,
@@ -74,10 +74,12 @@ func Push(ctx *context.Context) {
 	pkgid, err := arch_service.SaveFile(ctx, &arch_service.SaveFileParams{
 		Creator:  ctx.ContextUser,
 		Owner:    ctx.Package.Owner,
-		Filename: filename,
-		Buf:      buf,
 		Metadata: dbmd,
+		Buf:      buf,
+		Filename: filename,
 		Distro:   distro,
+		PkgName:  pkgmd.Name,
+		PkgVer:   pkgmd.Version,
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -100,6 +102,8 @@ func Push(ctx *context.Context) {
 		Buf:      buf,
 		Metadata: dbmd,
 		Distro:   distro,
+		PkgName:  pkgmd.Name,
+		PkgVer:   pkgmd.Version,
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -124,6 +128,8 @@ func Push(ctx *context.Context) {
 			Filename: filename + ".sig",
 			Metadata: dbmd,
 			Distro:   distro,
+			PkgName:  pkgmd.Name,
+			PkgVer:   pkgmd.Version,
 		})
 		if err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -133,8 +139,9 @@ func Push(ctx *context.Context) {
 
 	// Add new architectures and distribution info to package version metadata.
 	err = arch_service.UpdateMetadata(ctx, &arch_service.UpdateMetadataParameters{
-		User: ctx.Package.Owner,
-		Md:   dbmd,
+		User:     ctx.Package.Owner,
+		Metadata: dbmd,
+		DbDesc:   pkgmd,
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -142,7 +149,7 @@ func Push(ctx *context.Context) {
 	}
 
 	// Automatically connect repository for provided package if name matched.
-	err = arch_service.RepositoryAutoconnect(ctx, owner, dbmd.Name, pkgid)
+	err = arch_service.RepositoryAutoconnect(ctx, owner, pkgmd.Name, pkgid)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -160,8 +167,7 @@ func Get(ctx *context.Context) {
 		arch   = ctx.Params("arch")
 	)
 
-	// Packages are stored in different way from pacman databases, and loaded
-	// with LoadPackageFile function.
+	// Packages and signatures are loaded directly from object storage.
 	if strings.HasSuffix(file, "tar.zst") || strings.HasSuffix(file, "zst.sig") {
 		pkg, err := arch_service.GetFileObject(ctx, distro, file)
 		if err != nil {
@@ -175,8 +181,9 @@ func Get(ctx *context.Context) {
 		return
 	}
 
-	// Pacman databases is not stored in gitea's storage, it is created for
-	// incoming request and cached.
+	// Pacman databases is not stored in giteas storage and created 'on-request'
+	// for user/organization scope with accordance to requested architecture
+	// and distribution.
 	if strings.HasSuffix(file, ".db.tar.gz") || strings.HasSuffix(file, ".db") {
 		db, err := arch_service.CreatePacmanDb(ctx, owner, arch, distro)
 		if err != nil {
@@ -200,8 +207,13 @@ func Remove(ctx *context.Context) {
 		ver = ctx.Params("version")
 	)
 
-	// Remove package files and pacman database entry.
-	err := arch_service.RemovePackage(ctx, ctx.Package.Owner, pkg, ver)
+	version, err := pkg_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, pkg_model.TypeArch, pkg, ver)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	err = pkg_service.RemovePackageVersion(ctx.Package.Owner, version)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
