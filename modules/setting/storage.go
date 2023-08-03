@@ -201,7 +201,6 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 			storage.Path = fallbackPath
 		} else {
 			storage.Path = ConfigSectionKeyString(extraConfigSec, "PATH", fallbackPath)
-			fmt.Println("----", targetSec.Name(), targetPath, fallbackPath, storage.Path)
 			if !filepath.IsAbs(storage.Path) {
 				storage.Path = filepath.Join(targetPath, storage.Path)
 			}
