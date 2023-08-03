@@ -119,3 +119,42 @@ func TestReadWritePullHead(t *testing.T) {
 	err = repo.RemoveReference(PullPrefix + "1/head")
 	assert.NoError(t, err)
 }
+
+func TestGetCommitFilesChanged(t *testing.T) {
+	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
+	clonedPath, err := cloneRepo(t, bareRepo1Path)
+	if err != nil {
+		assert.NoError(t, err)
+		return
+	}
+	repo, err := openRepositoryWithDefaultContext(clonedPath)
+	if err != nil {
+		assert.NoError(t, err)
+		return
+	}
+	defer repo.Close()
+
+	testCases := []struct {
+		CommitID      string
+		ExpectedFiles []string
+	}{
+		{
+			"95bb4d39648ee7e325106df01a621c530863a653",
+			[]string{"file1.txt"},
+		},
+		{
+			"8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2",
+			[]string{"file2.txt"},
+		},
+	}
+
+	for _, tc := range testCases {
+		id, err := repo.ConvertToSHA1(tc.CommitID)
+		assert.NoError(t, err)
+		commit, err := repo.getCommit(id)
+		assert.NoError(t, err)
+		changedFiles, err := repo.GetCommitFilesChanged(commit)
+		assert.NoError(t, err)
+		assert.ElementsMatch(t, changedFiles, tc.ExpectedFiles)
+	}
+}
