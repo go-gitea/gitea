@@ -149,11 +149,7 @@ func TestGetCommitFilesChanged(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		id, err := repo.ConvertToSHA1(tc.CommitID)
-		assert.NoError(t, err)
-		commit, err := repo.getCommit(id)
-		assert.NoError(t, err)
-		changedFiles, err := repo.GetCommitFilesChanged(commit)
+		changedFiles, err := repo.GetCommitFilesChanged(tc.CommitID)
 		assert.NoError(t, err)
 		assert.ElementsMatch(t, changedFiles, tc.ExpectedFiles)
 	}

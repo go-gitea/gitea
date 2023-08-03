@@ -302,12 +302,15 @@ func (c *Commit) SearchCommits(opts SearchCommitsOptions) ([]*Commit, error) {
 
 // GetFilesChangedSinceCommit get all changed file names between pastCommit to current revision
 func (c *Commit) GetFilesChangedSinceCommit(pastCommit string) ([]string, error) {
+	if pastCommit == EmptySHA {
+		return c.GetFilesChanged()
+	}
 	return c.repo.GetFilesChangedBetween(pastCommit, c.ID.String())
 }
 
 // GetFilesChanged get the changed file names of the commit
 func (c *Commit) GetFilesChanged() ([]string, error) {
-	return c.repo.GetCommitFilesChanged(c)
+	return c.repo.GetCommitFilesChanged(c.ID.String())
 }
 
 // FileChangedSinceCommit Returns true if the file given has changed since the the past commit

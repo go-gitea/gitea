@@ -255,15 +255,7 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 				matchTimes++
 			}
 		case "paths":
-			var (
-				filesChanged []string
-				err          error
-			)
-			if pushPayload.Before != git.EmptySHA {
-				filesChanged, err = commit.GetFilesChangedSinceCommit(pushPayload.Before)
-			} else {
-				filesChanged, err = commit.GetFilesChanged()
-			}
+			filesChanged, err := commit.GetFilesChangedSinceCommit(pushPayload.Before)
 			if err != nil {
 				log.Error("GetFilesChanged [commit_sha1: %s]: %v", commit.ID.String(), err)
 			} else {
@@ -276,15 +268,7 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 				}
 			}
 		case "paths-ignore":
-			var (
-				filesChanged []string
-				err          error
-			)
-			if pushPayload.Before != git.EmptySHA {
-				filesChanged, err = commit.GetFilesChangedSinceCommit(pushPayload.Before)
-			} else {
-				filesChanged, err = commit.GetFilesChanged()
-			}
+			filesChanged, err := commit.GetFilesChangedSinceCommit(pushPayload.Before)
 			if err != nil {
 				log.Error("GetFilesChanged [commit_sha1: %s]: %v", commit.ID.String(), err)
 			} else {

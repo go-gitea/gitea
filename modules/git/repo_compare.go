@@ -296,17 +296,22 @@ func (repo *Repository) GetFilesChangedBetween(base, head string) ([]string, err
 }
 
 // GetCommitFilesChanged get the changed file names of the specified commit
-func (repo *Repository) GetCommitFilesChanged(commit *Commit) ([]string, error) {
-	var (
-		stdout string
-		err    error
-	)
+func (repo *Repository) GetCommitFilesChanged(commitID string) ([]string, error) {
+	id, err := repo.ConvertToSHA1(commitID)
+	if err != nil {
+		return nil, err
+	}
+	commit, err := repo.getCommit(id)
+	if err != nil {
+		return nil, err
+	}
+	var stdout string
 	if len(commit.Parents) == 0 {
 		// if the commit is the root commit, diff-tree cannot show the changed files
 		// we need to use ls-tree in this case
-		stdout, _, err = NewCommand(repo.Ctx, "ls-tree", "--name-only", "-r").AddDynamicArguments(commit.ID.String()).RunStdString(&RunOpts{Dir: repo.Path})
+		stdout, _, err = NewCommand(repo.Ctx, "ls-tree", "--name-only", "-r").AddDynamicArguments(commitID).RunStdString(&RunOpts{Dir: repo.Path})
 	} else {
-		stdout, _, err = NewCommand(repo.Ctx, "diff-tree", "--no-commit-id", "--name-only", "-r").AddDynamicArguments(commit.ID.String()).RunStdString(&RunOpts{Dir: repo.Path})
+		stdout, _, err = NewCommand(repo.Ctx, "diff-tree", "--no-commit-id", "--name-only", "-r").AddDynamicArguments(commitID).RunStdString(&RunOpts{Dir: repo.Path})
 	}
 	if err != nil {
 		return nil, err
