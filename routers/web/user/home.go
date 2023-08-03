@@ -281,6 +281,19 @@ func Milestones(ctx *context.Context) {
 		}
 	}
 
+	showRepoIds := make(container.Set[int64], len(showRepos))
+	for _, repo := range showRepos {
+		if repo.ID > 0 {
+			showRepoIds.Add(repo.ID)
+		}
+	}
+	if len(repoIDs) == 0 {
+		repoIDs = showRepoIds.Values()
+	}
+	repoIDs = util.SliceRemoveAllFunc(repoIDs, func(v int64) bool {
+		return !showRepoIds.Contains(v)
+	})
+
 	var pagerCount int
 	if isShowClosed {
 		ctx.Data["State"] = "closed"
@@ -298,9 +311,7 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["MilestoneStats"] = milestoneStats
 	ctx.Data["SortType"] = sortType
 	ctx.Data["Keyword"] = keyword
-	if milestoneStats.Total() != totalMilestoneStats.Total() {
-		ctx.Data["RepoIDs"] = repoIDs
-	}
+	ctx.Data["RepoIDs"] = repoIDs
 	ctx.Data["IsShowClosed"] = isShowClosed
 
 	pager := context.NewPagination(pagerCount, setting.UI.IssuePagingNum, page, 5)
