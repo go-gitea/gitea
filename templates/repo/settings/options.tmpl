@@ -752,21 +752,19 @@
 				<div class="item">
 					<div class="ui right">
 						<button class="ui basic red show-modal button" data-modal="#repo-visibility-modal">
-							{{.locale.Tr "repo.visibility_helper" | Safe}}
 							{{if not .Repository.IsPrivate}}
-								{{.locale.Tr "settings.visibility.private"}}
+								{{.locale.Tr "repo.visibility_helper_private" | Safe}}
 							{{else}}
-								{{.locale.Tr "settings.visibility.public"}}
+								{{.locale.Tr "repo.visibility_helper_public" | Safe}}
 							{{end}}
 							</button>
 					</div>
 					<div>
 						<h5>
-							{{.locale.Tr "repo.visibility_helper" | Safe}}
 							{{if not .Repository.IsPrivate}}
-								{{.locale.Tr "settings.visibility.private"}}
+								{{.locale.Tr "repo.visibility_helper_private" | Safe}}
 							{{else}}
-								{{.locale.Tr "settings.visibility.public"}}
+								{{.locale.Tr "repo.visibility_helper_public" | Safe}}
 							{{end}}
 						</h5>
 						{{if and (not .Repository.IsPrivate) (gt .Repository.NumStars 0)}}
@@ -1021,11 +1019,10 @@
 				<div class="text right actions">
 					<button class="ui cancel button">{{.locale.Tr "settings.cancel"}}</button>
 					<button class="ui red button">
-						{{.locale.Tr "repo.visibility_helper"}}
 						{{if not .Repository.IsPrivate}}
-							{{.locale.Tr "settings.visibility.private"}}
+							{{.locale.Tr "repo.visibility_helper_private"}}
 						{{else}}
-							{{.locale.Tr "settings.visibility.public"}}
+							{{.locale.Tr "repo.visibility_helper_public"}}
 						{{end}}
 					</button>
 				</div>
