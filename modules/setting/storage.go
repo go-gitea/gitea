@@ -92,6 +92,7 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 	}
 
 	var targetSec ConfigSection
+	// check typ first
 	if typ != "" {
 		var err error
 		targetSec, err = rootCfg.GetSection(storageSectionName + "." + typ)
@@ -113,13 +114,17 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 		}
 	}
 
-	storageNameSec, _ := rootCfg.GetSection(storageSectionName + "." + name)
-
-	if targetSec == nil {
-		targetSec = sec
+	if targetSec == nil && sec != nil {
+		secTyp := sec.Key("STORAGE_TYPE").String()
+		if IsValidStorageType(StorageType(secTyp)) {
+			targetSec = sec
+		} else if secTyp != "" {
+			targetSec, _ = rootCfg.GetSection(storageSectionName + "." + secTyp)
+		}
 	}
 
 	targetSecIsStoragename := false
+	storageNameSec, _ := rootCfg.GetSection(storageSectionName + "." + name)
 	if targetSec == nil {
 		targetSec = storageNameSec
 		targetSecIsStoragename = storageNameSec != nil
@@ -196,8 +201,9 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 			storage.Path = fallbackPath
 		} else {
 			storage.Path = ConfigSectionKeyString(extraConfigSec, "PATH", fallbackPath)
+			fmt.Println("----", targetSec.Name(), targetPath, fallbackPath, storage.Path)
 			if !filepath.IsAbs(storage.Path) {
-				storage.Path = filepath.Join(AppDataPath, storage.Path)
+				storage.Path = filepath.Join(targetPath, storage.Path)
 			}
 		}
 

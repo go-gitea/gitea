@@ -196,7 +196,7 @@ PATH = /data/gitea
 PATH = the-archives-dir
 `, []testLocalStoragePathCase{
 		{loadPackagesFrom, &Packages.Storage, "/data/gitea/packages"},
-		{loadRepoArchiveFrom, &RepoArchive.Storage, "/appdata/the-archives-dir"},
+		{loadRepoArchiveFrom, &RepoArchive.Storage, "/data/gitea/the-archives-dir"},
 		{loadActionsFrom, &Actions.LogStorage, "/data/gitea/actions_log"},
 		{loadAvatarsFrom, &Avatar.Storage, "/data/gitea/avatars"},
 		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/data/gitea/repo-avatars"},
