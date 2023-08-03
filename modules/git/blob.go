@@ -1,7 +1,6 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -9,7 +8,9 @@ import (
 	"bytes"
 	"encoding/base64"
 	"io"
-	"io/ioutil"
+
+	"code.gitea.io/gitea/modules/typesniffer"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // This file contains common functions between the gogit and !gogit variants for git Blobs
@@ -19,20 +20,21 @@ func (b *Blob) Name() string {
 	return b.name
 }
 
-// GetBlobContent Gets the content of the blob as raw text
-func (b *Blob) GetBlobContent() (string, error) {
+// GetBlobContent Gets the limited content of the blob as raw text
+func (b *Blob) GetBlobContent(limit int64) (string, error) {
+	if limit <= 0 {
+		return "", nil
+	}
 	dataRc, err := b.DataAsync()
 	if err != nil {
 		return "", err
 	}
 	defer dataRc.Close()
-	buf := make([]byte, 1024)
-	n, _ := dataRc.Read(buf)
-	buf = buf[:n]
-	return string(buf), nil
+	buf, err := util.ReadWithLimit(dataRc, int(limit))
+	return string(buf), err
 }
 
-// GetBlobLineCount gets line count of lob as raw text
+// GetBlobLineCount gets line count of the blob
 func (b *Blob) GetBlobLineCount() (int, error) {
 	reader, err := b.DataAsync()
 	if err != nil {
@@ -40,10 +42,14 @@ func (b *Blob) GetBlobLineCount() (int, error) {
 	}
 	defer reader.Close()
 	buf := make([]byte, 32*1024)
-	count := 0
+	count := 1
 	lineSep := []byte{'\n'}
+
+	c, err := reader.Read(buf)
+	if c == 0 && err == io.EOF {
+		return 0, nil
+	}
 	for {
-		c, err := reader.Read(buf)
 		count += bytes.Count(buf[:c], lineSep)
 		switch {
 		case err == io.EOF:
@@ -51,6 +57,7 @@ func (b *Blob) GetBlobLineCount() (int, error) {
 		case err != nil:
 			return count, err
 		}
+		c, err = reader.Read(buf)
 	}
 }
 
@@ -76,9 +83,20 @@ func (b *Blob) GetBlobContentBase64() (string, error) {
 		}
 	}()
 
-	out, err := ioutil.ReadAll(pr)
+	out, err := io.ReadAll(pr)
 	if err != nil {
 		return "", err
 	}
 	return string(out), nil
+}
+
+// GuessContentType guesses the content type of the blob.
+func (b *Blob) GuessContentType() (typesniffer.SniffedType, error) {
+	r, err := b.DataAsync()
+	if err != nil {
+		return typesniffer.SniffedType{}, err
+	}
+	defer r.Close()
+
+	return typesniffer.DetectContentTypeFromReader(r)
 }

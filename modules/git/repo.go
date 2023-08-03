@@ -1,20 +1,24 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
 import (
 	"bytes"
-	"container/list"
 	"context"
 	"fmt"
+	"io"
+	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"code.gitea.io/gitea/modules/proxy"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // GPGSettings represents the default GPG settings for this repository
@@ -30,13 +34,13 @@ const prettyLogFormat = `--pretty=format:%H`
 
 // GetAllCommitsCount returns count of all commits in repository
 func (repo *Repository) GetAllCommitsCount() (int64, error) {
-	return AllCommitsCount(repo.Path, false)
+	return AllCommitsCount(repo.Ctx, repo.Path, false)
 }
 
-func (repo *Repository) parsePrettyFormatLogToList(logs []byte) (*list.List, error) {
-	l := list.New()
+func (repo *Repository) parsePrettyFormatLogToList(logs []byte) ([]*Commit, error) {
+	var commits []*Commit
 	if len(logs) == 0 {
-		return l, nil
+		return commits, nil
 	}
 
 	parts := bytes.Split(logs, []byte{'\n'})
@@ -46,79 +50,81 @@ func (repo *Repository) parsePrettyFormatLogToList(logs []byte) (*list.List, err
 		if err != nil {
 			return nil, err
 		}
-		l.PushBack(commit)
+		commits = append(commits, commit)
 	}
 
-	return l, nil
+	return commits, nil
 }
 
 // IsRepoURLAccessible checks if given repository URL is accessible.
-func IsRepoURLAccessible(url string) bool {
-	_, err := NewCommand("ls-remote", "-q", "-h", url, "HEAD").Run()
+func IsRepoURLAccessible(ctx context.Context, url string) bool {
+	_, _, err := NewCommand(ctx, "ls-remote", "-q", "-h").AddDynamicArguments(url, "HEAD").RunStdString(nil)
 	return err == nil
 }
 
 // InitRepository initializes a new Git repository.
-func InitRepository(repoPath string, bare bool) error {
+func InitRepository(ctx context.Context, repoPath string, bare bool) error {
 	err := os.MkdirAll(repoPath, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	cmd := NewCommand("init")
+	cmd := NewCommand(ctx, "init")
 	if bare {
 		cmd.AddArguments("--bare")
 	}
-	_, err = cmd.RunInDir(repoPath)
+	_, _, err = cmd.RunStdString(&RunOpts{Dir: repoPath})
 	return err
 }
 
 // IsEmpty Check if repository is empty.
 func (repo *Repository) IsEmpty() (bool, error) {
-	var errbuf strings.Builder
-	if err := NewCommand("log", "-1").RunInDirPipeline(repo.Path, nil, &errbuf); err != nil {
-		if strings.Contains(errbuf.String(), "fatal: bad default revision 'HEAD'") ||
-			strings.Contains(errbuf.String(), "fatal: your current branch 'master' does not have any commits yet") {
+	var errbuf, output strings.Builder
+	if err := NewCommand(repo.Ctx).AddOptionFormat("--git-dir=%s", repo.Path).AddArguments("show-ref", "--head", "^HEAD$").
+		Run(&RunOpts{
+			Dir:    repo.Path,
+			Stdout: &output,
+			Stderr: &errbuf,
+		}); err != nil {
+		if err.Error() == "exit status 1" && errbuf.String() == "" {
 			return true, nil
 		}
-		return true, fmt.Errorf("check empty: %v - %s", err, errbuf.String())
+		return true, fmt.Errorf("check empty: %w - %s", err, errbuf.String())
 	}
 
-	return false, nil
+	return strings.TrimSpace(output.String()) == "", nil
 }
 
 // CloneRepoOptions options when clone a repository
 type CloneRepoOptions struct {
-	Timeout    time.Duration
-	Mirror     bool
-	Bare       bool
-	Quiet      bool
-	Branch     string
-	Shared     bool
-	NoCheckout bool
-	Depth      int
+	Timeout       time.Duration
+	Mirror        bool
+	Bare          bool
+	Quiet         bool
+	Branch        string
+	Shared        bool
+	NoCheckout    bool
+	Depth         int
+	Filter        string
+	SkipTLSVerify bool
 }
 
 // Clone clones original repository to target path.
-func Clone(from, to string, opts CloneRepoOptions) (err error) {
-	return CloneWithContext(DefaultContext, from, to, opts)
-}
-
-// CloneWithContext clones original repository to target path.
-func CloneWithContext(ctx context.Context, from, to string, opts CloneRepoOptions) (err error) {
-	cargs := make([]string, len(GlobalCommandArgs))
-	copy(cargs, GlobalCommandArgs)
-	return CloneWithArgs(ctx, from, to, cargs, opts)
+func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
+	return CloneWithArgs(ctx, globalCommandArgs, from, to, opts)
 }
 
 // CloneWithArgs original repository to target path.
-func CloneWithArgs(ctx context.Context, from, to string, args []string, opts CloneRepoOptions) (err error) {
+func CloneWithArgs(ctx context.Context, args TrustedCmdArgs, from, to string, opts CloneRepoOptions) (err error) {
 	toDir := path.Dir(to)
 	if err = os.MkdirAll(toDir, os.ModePerm); err != nil {
 		return err
 	}
 
 	cmd := NewCommandContextNoGlobals(ctx, args...).AddArguments("clone")
+	if opts.SkipTLSVerify {
+		cmd.AddArguments("-c", "http.sslVerify=false")
+	}
 	if opts.Mirror {
 		cmd.AddArguments("--mirror")
 	}
@@ -135,205 +141,96 @@ func CloneWithArgs(ctx context.Context, from, to string, args []string, opts Clo
 		cmd.AddArguments("--no-checkout")
 	}
 	if opts.Depth > 0 {
-		cmd.AddArguments("--depth", strconv.Itoa(opts.Depth))
+		cmd.AddArguments("--depth").AddDynamicArguments(strconv.Itoa(opts.Depth))
 	}
-
+	if opts.Filter != "" {
+		cmd.AddArguments("--filter").AddDynamicArguments(opts.Filter)
+	}
 	if len(opts.Branch) > 0 {
-		cmd.AddArguments("-b", opts.Branch)
+		cmd.AddArguments("-b").AddDynamicArguments(opts.Branch)
 	}
-	cmd.AddArguments("--", from, to)
+	cmd.AddDashesAndList(from, to)
 
-	if opts.Timeout <= 0 {
-		opts.Timeout = -1
-	}
-
-	_, err = cmd.RunTimeout(opts.Timeout)
-	return err
-}
-
-// PullRemoteOptions options when pull from remote
-type PullRemoteOptions struct {
-	Timeout time.Duration
-	All     bool
-	Rebase  bool
-	Remote  string
-	Branch  string
-}
-
-// Pull pulls changes from remotes.
-func Pull(repoPath string, opts PullRemoteOptions) error {
-	cmd := NewCommand("pull")
-	if opts.Rebase {
-		cmd.AddArguments("--rebase")
-	}
-	if opts.All {
-		cmd.AddArguments("--all")
+	if strings.Contains(from, "://") && strings.Contains(from, "@") {
+		cmd.SetDescription(fmt.Sprintf("clone branch %s from %s to %s (shared: %t, mirror: %t, depth: %d)", opts.Branch, util.SanitizeCredentialURLs(from), to, opts.Shared, opts.Mirror, opts.Depth))
 	} else {
-		cmd.AddArguments("--", opts.Remote, opts.Branch)
+		cmd.SetDescription(fmt.Sprintf("clone branch %s from %s to %s (shared: %t, mirror: %t, depth: %d)", opts.Branch, from, to, opts.Shared, opts.Mirror, opts.Depth))
 	}
 
 	if opts.Timeout <= 0 {
 		opts.Timeout = -1
 	}
 
-	_, err := cmd.RunInDirTimeout(opts.Timeout, repoPath)
-	return err
+	envs := os.Environ()
+	u, err := url.Parse(from)
+	if err == nil {
+		envs = proxy.EnvWithProxy(u)
+	}
+
+	stderr := new(bytes.Buffer)
+	if err = cmd.Run(&RunOpts{
+		Timeout: opts.Timeout,
+		Env:     envs,
+		Stdout:  io.Discard,
+		Stderr:  stderr,
+	}); err != nil {
+		return ConcatenateError(err, stderr.String())
+	}
+	return nil
 }
 
 // PushOptions options when push to remote
 type PushOptions struct {
-	Remote string
-	Branch string
-	Force  bool
-	Env    []string
+	Remote  string
+	Branch  string
+	Force   bool
+	Mirror  bool
+	Env     []string
+	Timeout time.Duration
 }
 
 // Push pushs local commits to given remote branch.
-func Push(repoPath string, opts PushOptions) error {
-	cmd := NewCommand("push")
+func Push(ctx context.Context, repoPath string, opts PushOptions) error {
+	cmd := NewCommand(ctx, "push")
 	if opts.Force {
 		cmd.AddArguments("-f")
 	}
-	cmd.AddArguments("--", opts.Remote, opts.Branch)
-	var outbuf, errbuf strings.Builder
+	if opts.Mirror {
+		cmd.AddArguments("--mirror")
+	}
+	remoteBranchArgs := []string{opts.Remote}
+	if len(opts.Branch) > 0 {
+		remoteBranchArgs = append(remoteBranchArgs, opts.Branch)
+	}
+	cmd.AddDashesAndList(remoteBranchArgs...)
 
-	err := cmd.RunInDirTimeoutEnvPipeline(opts.Env, -1, repoPath, &outbuf, &errbuf)
+	if strings.Contains(opts.Remote, "://") && strings.Contains(opts.Remote, "@") {
+		cmd.SetDescription(fmt.Sprintf("push branch %s to %s (force: %t, mirror: %t)", opts.Branch, util.SanitizeCredentialURLs(opts.Remote), opts.Force, opts.Mirror))
+	} else {
+		cmd.SetDescription(fmt.Sprintf("push branch %s to %s (force: %t, mirror: %t)", opts.Branch, opts.Remote, opts.Force, opts.Mirror))
+	}
+
+	stdout, stderr, err := cmd.RunStdString(&RunOpts{Env: opts.Env, Timeout: opts.Timeout, Dir: repoPath})
 	if err != nil {
-		if strings.Contains(errbuf.String(), "non-fast-forward") {
-			return &ErrPushOutOfDate{
-				StdOut: outbuf.String(),
-				StdErr: errbuf.String(),
-				Err:    err,
-			}
-		} else if strings.Contains(errbuf.String(), "! [remote rejected]") {
-			err := &ErrPushRejected{
-				StdOut: outbuf.String(),
-				StdErr: errbuf.String(),
-				Err:    err,
-			}
+		if strings.Contains(stderr, "non-fast-forward") {
+			return &ErrPushOutOfDate{StdOut: stdout, StdErr: stderr, Err: err}
+		} else if strings.Contains(stderr, "! [remote rejected]") {
+			err := &ErrPushRejected{StdOut: stdout, StdErr: stderr, Err: err}
 			err.GenerateMessage()
 			return err
+		} else if strings.Contains(stderr, "matches more than one") {
+			return &ErrMoreThanOne{StdOut: stdout, StdErr: stderr, Err: err}
 		}
+		return fmt.Errorf("push failed: %w - %s\n%s", err, stderr, stdout)
 	}
 
-	if errbuf.Len() > 0 && err != nil {
-		return fmt.Errorf("%v - %s", err, errbuf.String())
-	}
-
-	return err
-}
-
-// CheckoutOptions options when heck out some branch
-type CheckoutOptions struct {
-	Timeout   time.Duration
-	Branch    string
-	OldBranch string
-}
-
-// Checkout checkouts a branch
-func Checkout(repoPath string, opts CheckoutOptions) error {
-	cmd := NewCommand("checkout")
-	if len(opts.OldBranch) > 0 {
-		cmd.AddArguments("-b")
-	}
-
-	if opts.Timeout <= 0 {
-		opts.Timeout = -1
-	}
-
-	cmd.AddArguments(opts.Branch)
-
-	if len(opts.OldBranch) > 0 {
-		cmd.AddArguments(opts.OldBranch)
-	}
-
-	_, err := cmd.RunInDirTimeout(opts.Timeout, repoPath)
-	return err
-}
-
-// ResetHEAD resets HEAD to given revision or head of branch.
-func ResetHEAD(repoPath string, hard bool, revision string) error {
-	cmd := NewCommand("reset")
-	if hard {
-		cmd.AddArguments("--hard")
-	}
-	_, err := cmd.AddArguments(revision).RunInDir(repoPath)
-	return err
-}
-
-// MoveFile moves a file to another file or directory.
-func MoveFile(repoPath, oldTreeName, newTreeName string) error {
-	_, err := NewCommand("mv").AddArguments(oldTreeName, newTreeName).RunInDir(repoPath)
-	return err
-}
-
-// CountObject represents repository count objects report
-type CountObject struct {
-	Count       int64
-	Size        int64
-	InPack      int64
-	Packs       int64
-	SizePack    int64
-	PrunePack   int64
-	Garbage     int64
-	SizeGarbage int64
-}
-
-const (
-	statCount        = "count: "
-	statSize         = "size: "
-	statInpack       = "in-pack: "
-	statPacks        = "packs: "
-	statSizePack     = "size-pack: "
-	statPrunePackage = "prune-package: "
-	statGarbage      = "garbage: "
-	statSizeGarbage  = "size-garbage: "
-)
-
-// CountObjects returns the results of git count-objects on the repoPath
-func CountObjects(repoPath string) (*CountObject, error) {
-	cmd := NewCommand("count-objects", "-v")
-	stdout, err := cmd.RunInDir(repoPath)
-	if err != nil {
-		return nil, err
-	}
-
-	return parseSize(stdout), nil
-}
-
-// parseSize parses the output from count-objects and return a CountObject
-func parseSize(objects string) *CountObject {
-	repoSize := new(CountObject)
-	for _, line := range strings.Split(objects, "\n") {
-		switch {
-		case strings.HasPrefix(line, statCount):
-			repoSize.Count, _ = strconv.ParseInt(line[7:], 10, 64)
-		case strings.HasPrefix(line, statSize):
-			repoSize.Size, _ = strconv.ParseInt(line[6:], 10, 64)
-			repoSize.Size *= 1024
-		case strings.HasPrefix(line, statInpack):
-			repoSize.InPack, _ = strconv.ParseInt(line[9:], 10, 64)
-		case strings.HasPrefix(line, statPacks):
-			repoSize.Packs, _ = strconv.ParseInt(line[7:], 10, 64)
-		case strings.HasPrefix(line, statSizePack):
-			repoSize.Count, _ = strconv.ParseInt(line[11:], 10, 64)
-			repoSize.Count *= 1024
-		case strings.HasPrefix(line, statPrunePackage):
-			repoSize.PrunePack, _ = strconv.ParseInt(line[16:], 10, 64)
-		case strings.HasPrefix(line, statGarbage):
-			repoSize.Garbage, _ = strconv.ParseInt(line[9:], 10, 64)
-		case strings.HasPrefix(line, statSizeGarbage):
-			repoSize.SizeGarbage, _ = strconv.ParseInt(line[14:], 10, 64)
-			repoSize.SizeGarbage *= 1024
-		}
-	}
-	return repoSize
+	return nil
 }
 
 // GetLatestCommitTime returns time for latest commit in repository (across all branches)
-func GetLatestCommitTime(repoPath string) (time.Time, error) {
-	cmd := NewCommand("for-each-ref", "--sort=-committerdate", "refs/heads/", "--count", "1", "--format=%(committerdate)")
-	stdout, err := cmd.RunInDir(repoPath)
+func GetLatestCommitTime(ctx context.Context, repoPath string) (time.Time, error) {
+	cmd := NewCommand(ctx, "for-each-ref", "--sort=-committerdate", BranchPrefix, "--count", "1", "--format=%(committerdate)")
+	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
 	if err != nil {
 		return time.Time{}, err
 	}
@@ -347,33 +244,66 @@ type DivergeObject struct {
 	Behind int
 }
 
-func checkDivergence(repoPath string, baseBranch string, targetBranch string) (int, error) {
-	branches := fmt.Sprintf("%s..%s", baseBranch, targetBranch)
-	cmd := NewCommand("rev-list", "--count", branches)
-	stdout, err := cmd.RunInDir(repoPath)
+// GetDivergingCommits returns the number of commits a targetBranch is ahead or behind a baseBranch
+func GetDivergingCommits(ctx context.Context, repoPath, baseBranch, targetBranch string) (do DivergeObject, err error) {
+	cmd := NewCommand(ctx, "rev-list", "--count", "--left-right").
+		AddDynamicArguments(baseBranch + "..." + targetBranch)
+	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
 	if err != nil {
-		return -1, err
+		return do, err
 	}
-	outInteger, errInteger := strconv.Atoi(strings.Trim(stdout, "\n"))
-	if errInteger != nil {
-		return -1, errInteger
+	left, right, found := strings.Cut(strings.Trim(stdout, "\n"), "\t")
+	if !found {
+		return do, fmt.Errorf("git rev-list output is missing a tab: %q", stdout)
 	}
-	return outInteger, nil
+
+	do.Behind, err = strconv.Atoi(left)
+	if err != nil {
+		return do, err
+	}
+	do.Ahead, err = strconv.Atoi(right)
+	if err != nil {
+		return do, err
+	}
+	return do, nil
 }
 
-// GetDivergingCommits returns the number of commits a targetBranch is ahead or behind a baseBranch
-func GetDivergingCommits(repoPath string, baseBranch string, targetBranch string) (DivergeObject, error) {
-	// $(git rev-list --count master..feature) commits ahead of master
-	ahead, errorAhead := checkDivergence(repoPath, baseBranch, targetBranch)
-	if errorAhead != nil {
-		return DivergeObject{}, errorAhead
+// CreateBundle create bundle content to the target path
+func (repo *Repository) CreateBundle(ctx context.Context, commit string, out io.Writer) error {
+	tmp, err := os.MkdirTemp(os.TempDir(), "gitea-bundle")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmp)
+
+	env := append(os.Environ(), "GIT_OBJECT_DIRECTORY="+filepath.Join(repo.Path, "objects"))
+	_, _, err = NewCommand(ctx, "init", "--bare").RunStdString(&RunOpts{Dir: tmp, Env: env})
+	if err != nil {
+		return err
 	}
 
-	// $(git rev-list --count feature..master) commits behind master
-	behind, errorBehind := checkDivergence(repoPath, targetBranch, baseBranch)
-	if errorBehind != nil {
-		return DivergeObject{}, errorBehind
+	_, _, err = NewCommand(ctx, "reset", "--soft").AddDynamicArguments(commit).RunStdString(&RunOpts{Dir: tmp, Env: env})
+	if err != nil {
+		return err
 	}
 
-	return DivergeObject{ahead, behind}, nil
+	_, _, err = NewCommand(ctx, "branch", "-m", "bundle").RunStdString(&RunOpts{Dir: tmp, Env: env})
+	if err != nil {
+		return err
+	}
+
+	tmpFile := filepath.Join(tmp, "bundle")
+	_, _, err = NewCommand(ctx, "bundle", "create").AddDynamicArguments(tmpFile, "bundle", "HEAD").RunStdString(&RunOpts{Dir: tmp, Env: env})
+	if err != nil {
+		return err
+	}
+
+	fi, err := os.Open(tmpFile)
+	if err != nil {
+		return err
+	}
+	defer fi.Close()
+
+	_, err = io.Copy(out, fi)
+	return err
 }

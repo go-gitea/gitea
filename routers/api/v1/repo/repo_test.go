@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -8,8 +7,8 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/context"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
@@ -18,12 +17,12 @@ import (
 )
 
 func TestRepoEdit(t *testing.T) {
-	models.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 
-	ctx := test.MockContext(t, "user2/repo1")
+	ctx, _ := test.MockAPIContext(t, "user2/repo1")
 	test.LoadRepo(t, ctx, 1)
 	test.LoadUser(t, ctx, 2)
-	ctx.Repo.Owner = ctx.User
+	ctx.Repo.Owner = ctx.Doer
 	description := "new description"
 	website := "http://wwww.newwebsite.com"
 	private := true
@@ -54,34 +53,32 @@ func TestRepoEdit(t *testing.T) {
 		Archived:                  &archived,
 	}
 
-	var apiCtx = &context.APIContext{Context: ctx, Org: nil}
-	web.SetForm(apiCtx, &opts)
-	Edit(apiCtx)
+	web.SetForm(ctx, &opts)
+	Edit(ctx)
 
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
-	models.AssertExistsAndLoadBean(t, &models.Repository{
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{
 		ID: 1,
-	}, models.Cond("name = ? AND is_archived = 1", *opts.Name))
+	}, unittest.Cond("name = ? AND is_archived = 1", *opts.Name))
 }
 
 func TestRepoEditNameChange(t *testing.T) {
-	models.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 
-	ctx := test.MockContext(t, "user2/repo1")
+	ctx, _ := test.MockAPIContext(t, "user2/repo1")
 	test.LoadRepo(t, ctx, 1)
 	test.LoadUser(t, ctx, 2)
-	ctx.Repo.Owner = ctx.User
+	ctx.Repo.Owner = ctx.Doer
 	name := "newname"
 	opts := api.EditRepoOption{
 		Name: &name,
 	}
 
-	var apiCtx = &context.APIContext{Context: ctx, Org: nil}
-	web.SetForm(apiCtx, &opts)
-	Edit(apiCtx)
+	web.SetForm(ctx, &opts)
+	Edit(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 
-	models.AssertExistsAndLoadBean(t, &models.Repository{
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{
 		ID: 1,
-	}, models.Cond("name = ?", opts.Name))
+	}, unittest.Cond("name = ?", opts.Name))
 }

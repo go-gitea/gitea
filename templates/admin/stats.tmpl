@@ -1,0 +1,17 @@
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin monitor")}}
+<div class="admin-setting-content">
+	<h4 class="ui top attached header">
+		{{.locale.Tr "admin.dashboard.statistic"}}
+	</h4>
+	<div class="ui attached table segment">
+		<table class="ui very basic striped table unstackable">
+			{{range $statsKey := .StatsKeys}}
+			<tr>
+				<td width="200">{{$statsKey}}</td>
+				<td>{{index $.StatsCounter $statsKey}}</td>
+			</tr>
+			{{end}}
+		</table>
+	</div>
+</div>
+{{template "admin/layout_footer" .}}

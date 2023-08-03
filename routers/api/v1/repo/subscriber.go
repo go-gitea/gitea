@@ -1,16 +1,16 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
 import (
 	"net/http"
 
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // ListSubscribers list a repo's subscribers (i.e. watchers)
@@ -43,14 +43,16 @@ func ListSubscribers(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/UserList"
 
-	subscribers, err := ctx.Repo.Repository.GetWatchers(utils.GetListOptions(ctx))
+	subscribers, err := repo_model.GetRepoWatchers(ctx.Repo.Repository.ID, utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetWatchers", err)
+		ctx.Error(http.StatusInternalServerError, "GetRepoWatchers", err)
 		return
 	}
 	users := make([]*api.User, len(subscribers))
 	for i, subscriber := range subscribers {
-		users[i] = convert.ToUser(subscriber, ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
+		users[i] = convert.ToUser(ctx, subscriber, ctx.Doer)
 	}
+
+	ctx.SetTotalCountHeader(int64(ctx.Repo.Repository.NumWatches))
 	ctx.JSON(http.StatusOK, users)
 }

@@ -1,0 +1,39 @@
+From 6e8e2a6f9efd71dbe6917816343ed8415ad696c3 Mon Sep 17 00:00:00 2001
+From: 99rgosse <renaud@mycompany.com>
+Date: Fri, 26 Mar 2021 12:44:22 +0000
+Subject: [PATCH] Update gitea_import_actions.py
+
+---
+ gitea_import_actions.py | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/gitea_import_actions.py b/gitea_import_actions.py
+index f0d72cd..7b31963 100644
+--- a/gitea_import_actions.py
++++ b/gitea_import_actions.py
+@@ -3,14 +3,14 @@
+ # git log --pretty=format:'%H,%at,%s' --date=default > /tmp/commit.log
+ # to get the commits logfile for a repository
+
+-import mysql.connector as mariadb
++import psycopg2
+
+ # set the following variables to fit your need...
+ USERID = 1
+ REPOID = 1
+ BRANCH = "master"
+
+-mydb = mariadb.connect(
++mydb = psycopg2.connect(
+   host="localhost",
+   user="user",
+   passwd="password",
+@@ -31,4 +31,4 @@ with open("/tmp/commit.log") as f:
+
+ mydb.commit()
+
+-print("actions inserted.")
+\ No newline at end of file
++print("actions inserted.")
+--
+GitLab

@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package structs
 
@@ -36,9 +35,12 @@ type PullReview struct {
 	CommitID          string          `json:"commit_id"`
 	Stale             bool            `json:"stale"`
 	Official          bool            `json:"official"`
+	Dismissed         bool            `json:"dismissed"`
 	CodeCommentsCount int             `json:"comments_count"`
 	// swagger:strfmt date-time
 	Submitted time.Time `json:"submitted_at"`
+	// swagger:strfmt date-time
+	Updated time.Time `json:"updated_at"`
 
 	HTMLURL     string `json:"html_url"`
 	HTMLPullURL string `json:"pull_request_url"`
@@ -48,7 +50,8 @@ type PullReview struct {
 type PullReviewComment struct {
 	ID       int64  `json:"id"`
 	Body     string `json:"body"`
-	Reviewer *User  `json:"user"`
+	Poster   *User  `json:"user"`
+	Resolver *User  `json:"resolver"`
 	ReviewID int64  `json:"pull_request_review_id"`
 
 	// swagger:strfmt date-time
@@ -90,6 +93,12 @@ type CreatePullReviewComment struct {
 type SubmitPullReviewOptions struct {
 	Event ReviewStateType `json:"event"`
 	Body  string          `json:"body"`
+}
+
+// DismissPullReviewOptions are options to dismiss a pull review
+type DismissPullReviewOptions struct {
+	Message string `json:"message"`
+	Priors  bool   `json:"priors"`
 }
 
 // PullReviewRequestOptions are options to add or remove pull review requests

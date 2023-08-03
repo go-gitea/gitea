@@ -1,8 +1,7 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
-// +build gogit
+//go:build gogit
 
 package git
 
@@ -10,12 +9,13 @@ import (
 	"bytes"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
-// ParseTreeEntries parses the output of a `git ls-tree` command.
+// ParseTreeEntries parses the output of a `git ls-tree -l` command.
 func ParseTreeEntries(data []byte) ([]*TreeEntry, error) {
 	return parseTreeEntries(data, nil)
 }
@@ -23,7 +23,7 @@ func ParseTreeEntries(data []byte) ([]*TreeEntry, error) {
 func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 	entries := make([]*TreeEntry, 0, 10)
 	for pos := 0; pos < len(data); {
-		// expect line to be of the form "<mode> <type> <sha>\t<filename>"
+		// expect line to be of the form "<mode> <type> <sha> <space-padded-size>\t<filename>"
 		entry := new(TreeEntry)
 		entry.gogitTreeEntry = &object.TreeEntry{}
 		entry.ptree = ptree
@@ -55,13 +55,22 @@ func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 		}
 		id, err := NewIDFromString(string(data[pos : pos+40]))
 		if err != nil {
-			return nil, fmt.Errorf("Invalid ls-tree output: %v", err)
+			return nil, fmt.Errorf("Invalid ls-tree output: %w", err)
 		}
 		entry.ID = id
 		entry.gogitTreeEntry.Hash = id
 		pos += 41 // skip over sha and trailing space
 
-		end := pos + bytes.IndexByte(data[pos:], '\n')
+		end := pos + bytes.IndexByte(data[pos:], '\t')
+		if end < pos {
+			return nil, fmt.Errorf("Invalid ls-tree -l output: %s", string(data))
+		}
+		entry.size, _ = strconv.ParseInt(strings.TrimSpace(string(data[pos:end])), 10, 64)
+		entry.sized = true
+
+		pos = end + 1
+
+		end = pos + bytes.IndexByte(data[pos:], '\n')
 		if end < pos {
 			return nil, fmt.Errorf("Invalid ls-tree output: %s", string(data))
 		}
@@ -70,7 +79,7 @@ func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 		if data[pos] == '"' {
 			entry.gogitTreeEntry.Name, err = strconv.Unquote(string(data[pos:end]))
 			if err != nil {
-				return nil, fmt.Errorf("Invalid ls-tree output: %v", err)
+				return nil, fmt.Errorf("Invalid ls-tree output: %w", err)
 			}
 		} else {
 			entry.gogitTreeEntry.Name = string(data[pos:end])

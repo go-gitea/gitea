@@ -9,14 +9,12 @@ _test
 
 # IntelliJ
 .idea
+# Goland's output filename can not be set manually
+/go_build_*
 
 # MS VSCode
 .vscode
 __debug_bin
-
-# Architecture specific extensions/prefixes
-*.[568vq]
-[568vq].out
 
 *.cgo1.go
 *.cgo2.c
@@ -32,7 +30,10 @@ _testmain.go
 
 *coverage.out
 coverage.all
+cpu.out
 
+/modules/migration/bindata.go
+/modules/migration/bindata.go.hash
 /modules/options/bindata.go
 /modules/options/bindata.go.hash
 /modules/public/bindata.go
@@ -42,6 +43,7 @@ coverage.all
 
 *.db
 *.log
+*.log.*.gz
 
 /gitea
 /gitea-vet
@@ -51,35 +53,31 @@ coverage.all
 /bin
 /dist
 /custom/*
-!/custom/conf
-/custom/conf/*
 !/custom/conf/app.example.ini
 /data
 /indexers
 /log
 /public/img/avatar
-/integrations/gitea-integration-mysql
-/integrations/gitea-integration-mysql8
-/integrations/gitea-integration-pgsql
-/integrations/gitea-integration-sqlite
-/integrations/gitea-integration-mssql
-/integrations/indexers-mysql
-/integrations/indexers-mysql8
-/integrations/indexers-pgsql
-/integrations/indexers-sqlite
-/integrations/indexers-mssql
-/integrations/sqlite.ini
-/integrations/mysql.ini
-/integrations/mysql8.ini
-/integrations/pgsql.ini
-/integrations/mssql.ini
+/tests/integration/gitea-integration-*
+/tests/integration/indexers-*
+/tests/e2e/gitea-e2e-*
+/tests/e2e/indexers-*
+/tests/e2e/reports
+/tests/e2e/test-artifacts
+/tests/e2e/test-snapshots
+/tests/*.ini
+/tests/**/*.git/**/*.sample
 /node_modules
+/.venv
 /yarn.lock
-/public/js
-/public/serviceworker.js
-/public/css
-/public/fonts
-/public/img/webpack
+/yarn-error.log
+/npm-debug.log*
+/public/assets/js
+/public/assets/css
+/public/assets/fonts
+/public/assets/img/webpack
+/vendor
+/web_src/fomantic/node_modules
 /web_src/fomantic/build/*
 !/web_src/fomantic/build/semantic.js
 !/web_src/fomantic/build/semantic.css
@@ -93,6 +91,7 @@ coverage.all
 !/web_src/fomantic/build/themes/default/assets/fonts/outline-icons.woff2
 /VERSION
 /.air
+/.go-licenses
 
 # Snapcraft
 snap/.snapcraft/
@@ -106,3 +105,6 @@ prime/
 
 # Make evidence files
 /.make_evidence
+
+# Manpage
+/man

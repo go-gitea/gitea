@@ -1,20 +1,22 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cmd
 
 import (
 	"fmt"
-	"net/http"
 
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
-	"github.com/urfave/cli"
+
+	"github.com/urfave/cli/v2"
 )
 
 func runSendMail(c *cli.Context) error {
-	setting.NewContext()
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	setting.MustInstalled()
 
 	if err := argsSet(c, "title"); err != nil {
 		return err
@@ -39,13 +41,10 @@ func runSendMail(c *cli.Context) error {
 		}
 	}
 
-	status, message := private.SendEmail(subject, body, nil)
-	if status != http.StatusOK {
-		fmt.Printf("error: %s\n", message)
-		return nil
+	respText, extra := private.SendEmail(ctx, subject, body, nil)
+	if extra.HasError() {
+		return handleCliResponseExtra(extra)
 	}
-
-	fmt.Printf("Success: %s\n", message)
-
+	_, _ = fmt.Printf("Sent %s email(s) to all users\n", respText)
 	return nil
 }

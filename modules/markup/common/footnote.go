@@ -1,7 +1,6 @@
 // Copyright 2019 Yusuke Inuzuka
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 // Most of what follows is a subtly changed version of github.com/yuin/goldmark/extension/footnote.go
 
@@ -10,7 +9,6 @@ package common
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"strconv"
 	"unicode"
 
@@ -125,9 +123,9 @@ type Footnote struct {
 // Dump implements Node.Dump.
 func (n *Footnote) Dump(source []byte, level int) {
 	m := map[string]string{}
-	m["Index"] = fmt.Sprintf("%v", n.Index)
-	m["Ref"] = fmt.Sprintf("%s", n.Ref)
-	m["Name"] = fmt.Sprintf("%v", n.Name)
+	m["Index"] = strconv.Itoa(n.Index)
+	m["Ref"] = string(n.Ref)
+	m["Name"] = string(n.Name)
 	ast.DumpHelper(n, source, level, m, nil)
 }
 
@@ -179,8 +177,7 @@ func NewFootnoteList() *FootnoteList {
 
 var footnoteListKey = parser.NewContextKey()
 
-type footnoteBlockParser struct {
-}
+type footnoteBlockParser struct{}
 
 var defaultFootnoteBlockParser = &footnoteBlockParser{}
 
@@ -205,9 +202,8 @@ func (b *footnoteBlockParser) Open(parent ast.Node, reader text.Reader, pc parse
 		return nil, parser.NoChildren
 	}
 	open := pos + 1
-	closes := 0
-	closure := util.FindClosure(line[pos+1:], '[', ']', false, false)
-	closes = pos + 1 + closure
+	closure := util.FindClosure(line[pos+1:], '[', ']', false, false) //nolint
+	closes := pos + 1 + closure
 	next := closes + 1
 	if closure > -1 {
 		if next >= len(line) || line[next] != ':' {
@@ -266,8 +262,7 @@ func (b *footnoteBlockParser) CanAcceptIndentedLine() bool {
 	return false
 }
 
-type footnoteParser struct {
-}
+type footnoteParser struct{}
 
 var defaultFootnoteParser = &footnoteParser{}
 
@@ -297,7 +292,7 @@ func (s *footnoteParser) Parse(parent ast.Node, block text.Reader, pc parser.Con
 		return nil
 	}
 	open := pos
-	closure := util.FindClosure(line[pos:], '[', ']', false, false)
+	closure := util.FindClosure(line[pos:], '[', ']', false, false) //nolint
 	if closure < 0 {
 		return nil
 	}
@@ -338,8 +333,7 @@ func (s *footnoteParser) Parse(parent ast.Node, block text.Reader, pc parser.Con
 	return NewFootnoteLink(index, name)
 }
 
-type footnoteASTTransformer struct {
-}
+type footnoteASTTransformer struct{}
 
 var defaultFootnoteASTTransformer = &footnoteASTTransformer{}
 
@@ -358,7 +352,7 @@ func (a *footnoteASTTransformer) Transform(node *ast.Document, reader text.Reade
 	}
 	pc.Set(footnoteListKey, nil)
 	for footnote := list.FirstChild(); footnote != nil; {
-		var container ast.Node = footnote
+		container := footnote
 		next := footnote.NextSibling()
 		if fc := container.LastChild(); fc != nil && ast.IsParagraph(fc) {
 			container = fc
@@ -415,7 +409,6 @@ func (r *FootnoteHTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegist
 func (r *FootnoteHTMLRenderer) renderFootnoteLink(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
 		n := node.(*FootnoteLink)
-		n.Dump(source, 0)
 		is := strconv.Itoa(n.Index)
 		_, _ = w.WriteString(`<sup id="fnref:`)
 		_, _ = w.Write(n.Name)
@@ -431,7 +424,6 @@ func (r *FootnoteHTMLRenderer) renderFootnoteLink(w util.BufWriter, source []byt
 func (r *FootnoteHTMLRenderer) renderFootnoteBackLink(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
 		n := node.(*FootnoteBackLink)
-		fmt.Fprintf(os.Stdout, "source:\n%s\n", string(n.Text(source)))
 		_, _ = w.WriteString(` <a href="#fnref:`)
 		_, _ = w.Write(n.Name)
 		_, _ = w.WriteString(`" class="footnote-backref" role="doc-backlink">`)
@@ -444,7 +436,6 @@ func (r *FootnoteHTMLRenderer) renderFootnoteBackLink(w util.BufWriter, source [
 func (r *FootnoteHTMLRenderer) renderFootnote(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*Footnote)
 	if entering {
-		fmt.Fprintf(os.Stdout, "source:\n%s\n", string(n.Text(source)))
 		_, _ = w.WriteString(`<li id="fn:`)
 		_, _ = w.Write(n.Name)
 		_, _ = w.WriteString(`" role="doc-endnote"`)

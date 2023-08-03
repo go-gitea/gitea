@@ -1,11 +1,9 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package base
 
 import (
-	"encoding/base64"
 	"os"
 	"testing"
 	"time"
@@ -116,51 +114,6 @@ func TestFileSize(t *testing.T) {
 	assert.Equal(t, "2.0 EiB", FileSize(size))
 }
 
-func TestPrettyNumber(t *testing.T) {
-	assert.Equal(t, "23,342,432", PrettyNumber(23342432))
-	assert.Equal(t, "0", PrettyNumber(0))
-	assert.Equal(t, "-100,000", PrettyNumber(-100000))
-}
-
-func TestSubtract(t *testing.T) {
-	toFloat64 := func(n interface{}) float64 {
-		switch v := n.(type) {
-		case int:
-			return float64(v)
-		case int8:
-			return float64(v)
-		case int16:
-			return float64(v)
-		case int32:
-			return float64(v)
-		case int64:
-			return float64(v)
-		case float32:
-			return float64(v)
-		case float64:
-			return v
-		default:
-			return 0.0
-		}
-	}
-	values := []interface{}{
-		int(-3),
-		int8(14),
-		int16(81),
-		int32(-156),
-		int64(1528),
-		float32(3.5),
-		float64(-15.348),
-	}
-	for _, left := range values {
-		for _, right := range values {
-			expected := toFloat64(left) - toFloat64(right)
-			sub := Subtract(left, right)
-			assert.InDelta(t, expected, sub, 1e-3)
-		}
-	}
-}
-
 func TestEllipsisString(t *testing.T) {
 	assert.Equal(t, "...", EllipsisString("foobar", 0))
 	assert.Equal(t, "...", EllipsisString("foobar", 1))
@@ -170,6 +123,10 @@ func TestEllipsisString(t *testing.T) {
 	assert.Equal(t, "fo...", EllipsisString("foobar", 5))
 	assert.Equal(t, "foobar", EllipsisString("foobar", 6))
 	assert.Equal(t, "foobar", EllipsisString("foobar", 10))
+	assert.Equal(t, "测...", EllipsisString("测试文本一二三四", 4))
+	assert.Equal(t, "测试...", EllipsisString("测试文本一二三四", 5))
+	assert.Equal(t, "测试文...", EllipsisString("测试文本一二三四", 6))
+	assert.Equal(t, "测试文本一二三四", EllipsisString("测试文本一二三四", 10))
 }
 
 func TestTruncateString(t *testing.T) {
@@ -181,6 +138,10 @@ func TestTruncateString(t *testing.T) {
 	assert.Equal(t, "fooba", TruncateString("foobar", 5))
 	assert.Equal(t, "foobar", TruncateString("foobar", 6))
 	assert.Equal(t, "foobar", TruncateString("foobar", 7))
+	assert.Equal(t, "测试文本", TruncateString("测试文本一二三四", 4))
+	assert.Equal(t, "测试文本一", TruncateString("测试文本一二三四", 5))
+	assert.Equal(t, "测试文本一二", TruncateString("测试文本一二三四", 6))
+	assert.Equal(t, "测试文本一二三", TruncateString("测试文本一二三四", 7))
 }
 
 func TestStringsToInt64s(t *testing.T) {
@@ -206,19 +167,10 @@ func TestInt64sToStrings(t *testing.T) {
 	)
 }
 
-func TestInt64sToMap(t *testing.T) {
-	assert.Equal(t, map[int64]bool{}, Int64sToMap([]int64{}))
-	assert.Equal(t,
-		map[int64]bool{1: true, 4: true, 16: true},
-		Int64sToMap([]int64{1, 4, 16}),
-	)
-}
-
 func TestInt64sContains(t *testing.T) {
-	assert.Equal(t, map[int64]bool{}, Int64sToMap([]int64{}))
-	assert.Equal(t, true, Int64sContains([]int64{6, 44324, 4324, 32, 1, 2323}, 1))
-	assert.Equal(t, true, Int64sContains([]int64{2323}, 2323))
-	assert.Equal(t, false, Int64sContains([]int64{6, 44324, 4324, 32, 1, 2323}, 232))
+	assert.True(t, Int64sContains([]int64{6, 44324, 4324, 32, 1, 2323}, 1))
+	assert.True(t, Int64sContains([]int64{2323}, 2323))
+	assert.False(t, Int64sContains([]int64{6, 44324, 4324, 32, 1, 2323}, 232))
 }
 
 func TestIsLetter(t *testing.T) {
@@ -238,102 +190,11 @@ func TestIsLetter(t *testing.T) {
 	assert.False(t, IsLetter(0x93))
 }
 
-func TestDetectContentTypeLongerThanSniffLen(t *testing.T) {
-	// Pre-condition: Shorter than sniffLen detects SVG.
-	assert.Equal(t, "image/svg+xml", DetectContentType([]byte(`<!-- Comment --><svg></svg>`)))
-	// Longer than sniffLen detects something else.
-	assert.Equal(t, "text/plain; charset=utf-8", DetectContentType([]byte(`<!--
-Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment
-Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment
-Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment
-Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment
-Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment
-Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment
-Comment Comment Comment --><svg></svg>`)))
-}
-
-// IsRepresentableAsText
-
-func TestIsTextFile(t *testing.T) {
-	assert.True(t, IsTextFile([]byte{}))
-	assert.True(t, IsTextFile([]byte("lorem ipsum")))
-}
-
-func TestIsImageFile(t *testing.T) {
-	png, _ := base64.StdEncoding.DecodeString("iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAG0lEQVQYlWN4+vTpf3SMDTAMBYXYBLFpHgoKAeiOf0SGE9kbAAAAAElFTkSuQmCC")
-	assert.True(t, IsImageFile(png))
-	assert.False(t, IsImageFile([]byte("plain text")))
-}
-
-func TestIsSVGImageFile(t *testing.T) {
-	assert.True(t, IsSVGImageFile([]byte("<svg></svg>")))
-	assert.True(t, IsSVGImageFile([]byte("    <svg></svg>")))
-	assert.True(t, IsSVGImageFile([]byte(`<svg width="100"></svg>`)))
-	assert.True(t, IsSVGImageFile([]byte("<svg/>")))
-	assert.True(t, IsSVGImageFile([]byte(`<?xml version="1.0" encoding="UTF-8"?><svg></svg>`)))
-	assert.True(t, IsSVGImageFile([]byte(`<!-- Comment -->
-	<svg></svg>`)))
-	assert.True(t, IsSVGImageFile([]byte(`<!-- Multiple -->
-	<!-- Comments -->
-	<svg></svg>`)))
-	assert.True(t, IsSVGImageFile([]byte(`<!-- Multiline
-	Comment -->
-	<svg></svg>`)))
-	assert.True(t, IsSVGImageFile([]byte(`<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1 Basic//EN"
-	"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11-basic.dtd">
-	<svg></svg>`)))
-	assert.True(t, IsSVGImageFile([]byte(`<?xml version="1.0" encoding="UTF-8"?>
-	<!-- Comment -->
-	<svg></svg>`)))
-	assert.True(t, IsSVGImageFile([]byte(`<?xml version="1.0" encoding="UTF-8"?>
-	<!-- Multiple -->
-	<!-- Comments -->
-	<svg></svg>`)))
-	assert.True(t, IsSVGImageFile([]byte(`<?xml version="1.0" encoding="UTF-8"?>
-	<!-- Multline
-	Comment -->
-	<svg></svg>`)))
-	assert.True(t, IsSVGImageFile([]byte(`<?xml version="1.0" encoding="UTF-8"?>
-	<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-	<!-- Multline
-	Comment -->
-	<svg></svg>`)))
-	assert.False(t, IsSVGImageFile([]byte{}))
-	assert.False(t, IsSVGImageFile([]byte("svg")))
-	assert.False(t, IsSVGImageFile([]byte("<svgfoo></svgfoo>")))
-	assert.False(t, IsSVGImageFile([]byte("text<svg></svg>")))
-	assert.False(t, IsSVGImageFile([]byte("<html><body><svg></svg></body></html>")))
-	assert.False(t, IsSVGImageFile([]byte(`<script>"<svg></svg>"</script>`)))
-	assert.False(t, IsSVGImageFile([]byte(`<!-- <svg></svg> inside comment -->
-	<foo></foo>`)))
-	assert.False(t, IsSVGImageFile([]byte(`<?xml version="1.0" encoding="UTF-8"?>
-	<!-- <svg></svg> inside comment -->
-	<foo></foo>`)))
-}
-
-func TestIsPDFFile(t *testing.T) {
-	pdf, _ := base64.StdEncoding.DecodeString("JVBERi0xLjYKJcOkw7zDtsOfCjIgMCBvYmoKPDwvTGVuZ3RoIDMgMCBSL0ZpbHRlci9GbGF0ZURlY29kZT4+CnN0cmVhbQp4nF3NPwsCMQwF8D2f4s2CNYk1baF0EHRwOwg4iJt/NsFb/PpevUE4Mjwe")
-	assert.True(t, IsPDFFile(pdf))
-	assert.False(t, IsPDFFile([]byte("plain text")))
-}
-
-func TestIsVideoFile(t *testing.T) {
-	mp4, _ := base64.StdEncoding.DecodeString("AAAAGGZ0eXBtcDQyAAAAAGlzb21tcDQyAAEI721vb3YAAABsbXZoZAAAAADaBlwX2gZcFwAAA+gA")
-	assert.True(t, IsVideoFile(mp4))
-	assert.False(t, IsVideoFile([]byte("plain text")))
-}
-
-func TestIsAudioFile(t *testing.T) {
-	mp3, _ := base64.StdEncoding.DecodeString("SUQzBAAAAAABAFRYWFgAAAASAAADbWFqb3JfYnJhbmQAbXA0MgBUWFhYAAAAEQAAA21pbm9yX3Zl")
-	assert.True(t, IsAudioFile(mp3))
-	assert.False(t, IsAudioFile([]byte("plain text")))
-}
-
 // TODO: Test EntryIcon
 
 func TestSetupGiteaRoot(t *testing.T) {
 	_ = os.Setenv("GITEA_ROOT", "test")
-	assert.EqualValues(t, "test", SetupGiteaRoot())
+	assert.Equal(t, "test", SetupGiteaRoot())
 	_ = os.Setenv("GITEA_ROOT", "")
 	assert.NotEqual(t, "test", SetupGiteaRoot())
 }

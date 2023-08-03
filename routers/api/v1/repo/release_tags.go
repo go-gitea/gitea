@@ -1,22 +1,21 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
 import (
-	"errors"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/services/convert"
 	releaseservice "code.gitea.io/gitea/services/release"
 )
 
-// GetReleaseTag get a single release of a repository by its tagname
-func GetReleaseTag(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/releases/tags/{tag} repository repoGetReleaseTag
+// GetReleaseByTag get a single release of a repository by tag name
+func GetReleaseByTag(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/releases/tags/{tag} repository repoGetReleaseByTag
 	// ---
 	// summary: Get a release by tag name
 	// produces:
@@ -34,7 +33,7 @@ func GetReleaseTag(ctx *context.APIContext) {
 	//   required: true
 	// - name: tag
 	//   in: path
-	//   description: tagname of the release to get
+	//   description: tag name of the release to get
 	//   type: string
 	//   required: true
 	// responses:
@@ -45,9 +44,9 @@ func GetReleaseTag(ctx *context.APIContext) {
 
 	tag := ctx.Params(":tag")
 
-	release, err := models.GetRelease(ctx.Repo.Repository.ID, tag)
+	release, err := repo_model.GetRelease(ctx.Repo.Repository.ID, tag)
 	if err != nil {
-		if models.IsErrReleaseNotExist(err) {
+		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.NotFound()
 			return
 		}
@@ -60,18 +59,18 @@ func GetReleaseTag(ctx *context.APIContext) {
 		return
 	}
 
-	if err = release.LoadAttributes(); err != nil {
+	if err = release.LoadAttributes(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToRelease(release))
+	ctx.JSON(http.StatusOK, convert.ToAPIRelease(ctx, ctx.Repo.Repository, release))
 }
 
-// DeleteReleaseTag delete a tag from a repository
-func DeleteReleaseTag(ctx *context.APIContext) {
-	// swagger:operation DELETE /repos/{owner}/{repo}/releases/tags/{tag} repository repoDeleteReleaseTag
+// DeleteReleaseByTag delete a release from a repository by tag name
+func DeleteReleaseByTag(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/releases/tags/{tag} repository repoDeleteReleaseByTag
 	// ---
-	// summary: Delete a release tag
+	// summary: Delete a release by tag name
 	// parameters:
 	// - name: owner
 	//   in: path
@@ -85,7 +84,7 @@ func DeleteReleaseTag(ctx *context.APIContext) {
 	//   required: true
 	// - name: tag
 	//   in: path
-	//   description: name of the tag to delete
+	//   description: tag name of the release to delete
 	//   type: string
 	//   required: true
 	// responses:
@@ -93,28 +92,33 @@ func DeleteReleaseTag(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     "$ref": "#/responses/conflict"
+	//   "405":
+	//     "$ref": "#/responses/empty"
 
 	tag := ctx.Params(":tag")
 
-	release, err := models.GetRelease(ctx.Repo.Repository.ID, tag)
+	release, err := repo_model.GetRelease(ctx.Repo.Repository.ID, tag)
 	if err != nil {
-		if models.IsErrReleaseNotExist(err) {
-			ctx.Error(http.StatusNotFound, "GetRelease", err)
+		if repo_model.IsErrReleaseNotExist(err) {
+			ctx.NotFound()
 			return
 		}
 		ctx.Error(http.StatusInternalServerError, "GetRelease", err)
 		return
 	}
 
-	if !release.IsTag {
-		ctx.Error(http.StatusConflict, "IsTag", errors.New("a tag attached to a release cannot be deleted directly"))
+	if release.IsTag {
+		ctx.NotFound()
 		return
 	}
 
-	if err := releaseservice.DeleteReleaseByID(release.ID, ctx.User, true); err != nil {
+	if err = releaseservice.DeleteReleaseByID(ctx, release.ID, ctx.Doer, false); err != nil {
+		if models.IsErrProtectedTagName(err) {
+			ctx.Error(http.StatusMethodNotAllowed, "delTag", "user not allowed to delete protected tag")
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, "DeleteReleaseByID", err)
+		return
 	}
 
 	ctx.Status(http.StatusNoContent)

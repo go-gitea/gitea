@@ -1,0 +1,18 @@
+{{if eq .PackageDescriptor.Package.Type "generic"}}
+	<h4 class="ui top attached header">{{.locale.Tr "packages.installation"}}</h4>
+	<div class="ui attached segment">
+		<div class="ui form">
+			<div class="field">
+				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.generic.download"}}</label>
+				<div class="markup"><pre class="code-block"><code>
+{{- range .PackageDescriptor.Files -}}
+curl <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/generic/{{$.PackageDescriptor.Package.Name}}/{{$.PackageDescriptor.Version.Version}}/{{.File.Name}}"></gitea-origin-url>
+{{end -}}
+				</code></pre></div>
+			</div>
+			<div class="field">
+				<label>{{.locale.Tr "packages.registry.documentation" "Generic" "https://docs.gitea.io/en-us/usage/packages/generic" | Safe}}</label>
+			</div>
+		</div>
+	</div>
+{{end}}

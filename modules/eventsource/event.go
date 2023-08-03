@@ -1,58 +1,58 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package eventsource
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
 	"time"
+
+	"code.gitea.io/gitea/modules/json"
 )
 
-func wrapNewlines(w io.Writer, prefix []byte, value []byte) (sum int64, err error) {
+func wrapNewlines(w io.Writer, prefix, value []byte) (sum int64, err error) {
 	if len(value) == 0 {
-		return
+		return 0, nil
 	}
-	n := 0
+	var n int
 	last := 0
 	for j := bytes.IndexByte(value, '\n'); j > -1; j = bytes.IndexByte(value[last:], '\n') {
 		n, err = w.Write(prefix)
 		sum += int64(n)
 		if err != nil {
-			return
+			return sum, err
 		}
 		n, err = w.Write(value[last : last+j+1])
 		sum += int64(n)
 		if err != nil {
-			return
+			return sum, err
 		}
 		last += j + 1
 	}
 	n, err = w.Write(prefix)
 	sum += int64(n)
 	if err != nil {
-		return
+		return sum, err
 	}
 	n, err = w.Write(value[last:])
 	sum += int64(n)
 	if err != nil {
-		return
+		return sum, err
 	}
 	n, err = w.Write([]byte("\n"))
 	sum += int64(n)
-	return
+	return sum, err
 }
 
 // Event is an eventsource event, not all fields need to be set
 type Event struct {
 	// Name represents the value of the event: tag in the stream
 	Name string
-	// Data is either JSONified []byte or interface{} that can be JSONd
-	Data interface{}
+	// Data is either JSONified []byte or any that can be JSONd
+	Data any
 	// ID represents the ID of an event
 	ID string
 	// Retry tells the receiver only to attempt to reconnect to the source after this time
@@ -63,7 +63,7 @@ type Event struct {
 // The return value n is the number of bytes written. Any error encountered during the write is also returned.
 func (e *Event) WriteTo(w io.Writer) (int64, error) {
 	sum := int64(0)
-	nint := 0
+	var nint int
 	n, err := wrapNewlines(w, []byte("event: "), []byte(e.Name))
 	sum += n
 	if err != nil {
@@ -89,7 +89,6 @@ func (e *Event) WriteTo(w io.Writer) (int64, error) {
 		if err != nil {
 			return sum, err
 		}
-
 	}
 
 	n, err = wrapNewlines(w, []byte("id: "), []byte(e.ID))

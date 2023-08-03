@@ -1,5 +1,3 @@
-self.name = 'eventsource.sharedworker.js';
-
 const sourcesByUrl = {};
 const sourcesByPort = {};
 
@@ -10,8 +8,10 @@ class Source {
     this.listening = {};
     this.clients = [];
     this.listen('open');
+    this.listen('close');
     this.listen('logout');
     this.listen('notification-count');
+    this.listen('stopwatches');
     this.listen('error');
   }
 
@@ -45,9 +45,8 @@ class Source {
   listen(eventType) {
     if (this.listening[eventType]) return;
     this.listening[eventType] = true;
-    const self = this;
     this.eventSource.addEventListener(eventType, (event) => {
-      self.notifyClients({
+      this.notifyClients({
         type: eventType,
         data: event.data
       });
@@ -68,9 +67,16 @@ class Source {
   }
 }
 
-self.onconnect = (e) => {
+self.addEventListener('connect', (e) => {
   for (const port of e.ports) {
     port.addEventListener('message', (event) => {
+      if (!self.EventSource) {
+        // some browsers (like PaleMoon, Firefox<53) don't support EventSource in SharedWorkerGlobalScope.
+        // this event handler needs EventSource when doing "new Source(url)", so just post a message back to the caller,
+        // in case the caller would like to use a fallback method to do its work.
+        port.postMessage({type: 'no-event-source'});
+        return;
+      }
       if (event.data.type === 'start') {
         const url = event.data.url;
         if (sourcesByUrl[url]) {
@@ -132,4 +138,4 @@ self.onconnect = (e) => {
     });
     port.start();
   }
-};
+});

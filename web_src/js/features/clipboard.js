@@ -1,22 +1,34 @@
-export default async function initClipboard() {
-  const els = document.querySelectorAll('.clipboard');
-  if (!els || !els.length) return;
+import {showTemporaryTooltip} from '../modules/tippy.js';
+import {toAbsoluteUrl} from '../utils.js';
+import {clippie} from 'clippie';
 
-  const {default: ClipboardJS} = await import(/* webpackChunkName: "clipboard" */'clipboard');
+const {copy_success, copy_error} = window.config.i18n;
 
-  const clipboard = new ClipboardJS(els);
-  clipboard.on('success', (e) => {
-    e.clearSelection();
-    $(e.trigger).popup('destroy');
-    e.trigger.dataset.content = e.trigger.dataset.success;
-    $(e.trigger).popup('show');
-    e.trigger.dataset.content = e.trigger.dataset.original;
-  });
+// For all DOM elements with [data-clipboard-target] or [data-clipboard-text],
+// this copy-to-clipboard will work for them
+export function initGlobalCopyToClipboardListener() {
+  document.addEventListener('click', (e) => {
+    let target = e.target;
+    // in case <button data-clipboard-text><svg></button>, so we just search
+    // up to 3 levels for performance
+    for (let i = 0; i < 3 && target; i++) {
+      let txt = target.getAttribute('data-clipboard-text');
+      if (txt && target.getAttribute('data-clipboard-text-type') === 'url') {
+        txt = toAbsoluteUrl(txt);
+      }
+      const text = txt || document.querySelector(target.getAttribute('data-clipboard-target'))?.value;
 
-  clipboard.on('error', (e) => {
-    $(e.trigger).popup('destroy');
-    e.trigger.dataset.content = e.trigger.dataset.error;
-    $(e.trigger).popup('show');
-    e.trigger.dataset.content = e.trigger.dataset.original;
+      if (text) {
+        e.preventDefault();
+
+        (async() => {
+          const success = await clippie(text);
+          showTemporaryTooltip(target, success ? copy_success : copy_error);
+        })();
+
+        break;
+      }
+      target = target.parentElement;
+    }
   });
 }

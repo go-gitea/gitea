@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package nosql
 
@@ -45,7 +44,6 @@ func ToRedisURI(connection string) *url.URL {
 	if len(fields) == 1 {
 		// It's a comma delimited string, then...
 		fields = strings.Split(connection, ",")
-
 	}
 	for _, f := range fields {
 		items := strings.SplitN(f, "=", 2)

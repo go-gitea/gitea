@@ -1,12 +1,11 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package swagger
 
 import (
-	auth "code.gitea.io/gitea/modules/forms"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/forms"
 )
 
 // not actually a response, just a hack to get go-swagger to include definitions
@@ -42,6 +41,8 @@ type swaggerParameterBodies struct {
 	CreateIssueCommentOption api.CreateIssueCommentOption
 	// in:body
 	EditIssueCommentOption api.EditIssueCommentOption
+	// in:body
+	IssueMeta api.IssueMeta
 
 	// in:body
 	IssueLabelsOption api.IssueLabelsOption
@@ -50,10 +51,15 @@ type swaggerParameterBodies struct {
 	CreateKeyOption api.CreateKeyOption
 
 	// in:body
+	RenameUserOption api.RenameUserOption
+
+	// in:body
 	CreateLabelOption api.CreateLabelOption
 	// in:body
 	EditLabelOption api.EditLabelOption
 
+	// in:body
+	MarkupOption api.MarkupOption
 	// in:body
 	MarkdownOption api.MarkdownOption
 
@@ -72,7 +78,7 @@ type swaggerParameterBodies struct {
 	// in:body
 	EditPullRequestOption api.EditPullRequestOption
 	// in:body
-	MergePullRequestOption auth.MergePullRequestForm
+	MergePullRequestOption forms.MergePullRequestForm
 
 	// in:body
 	CreateReleaseOption api.CreateReleaseOption
@@ -87,6 +93,8 @@ type swaggerParameterBodies struct {
 	TransferRepoOption api.TransferRepoOption
 	// in:body
 	CreateForkOption api.CreateForkOption
+	// in:body
+	GenerateRepoOption api.GenerateRepoOption
 
 	// in:body
 	CreateStatusOption api.CreateStatusOption
@@ -106,10 +114,10 @@ type swaggerParameterBodies struct {
 	EditUserOption api.EditUserOption
 
 	// in:body
-	MigrateRepoForm auth.MigrateRepoForm
+	EditAttachmentOptions api.EditAttachmentOptions
 
 	// in:body
-	EditAttachmentOptions api.EditAttachmentOptions
+	ChangeFilesOptions api.ChangeFilesOptions
 
 	// in:body
 	CreateFileOptions api.CreateFileOptions
@@ -151,8 +159,32 @@ type swaggerParameterBodies struct {
 	SubmitPullReviewOptions api.SubmitPullReviewOptions
 
 	// in:body
+	DismissPullReviewOptions api.DismissPullReviewOptions
+
+	// in:body
 	MigrateRepoOptions api.MigrateRepoOptions
 
 	// in:body
 	PullReviewRequestOptions api.PullReviewRequestOptions
+
+	// in:body
+	CreateTagOption api.CreateTagOption
+
+	// in:body
+	CreateAccessTokenOption api.CreateAccessTokenOption
+
+	// in:body
+	UserSettingsOptions api.UserSettingsOptions
+
+	// in:body
+	CreateWikiPageOptions api.CreateWikiPageOptions
+
+	// in:body
+	CreatePushMirrorOption api.CreatePushMirrorOption
+
+	// in:body
+	UpdateUserAvatarOptions api.UpdateUserAvatarOption
+
+	// in:body
+	UpdateRepoAvatarOptions api.UpdateRepoAvatarOption
 }

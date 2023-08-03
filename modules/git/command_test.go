@@ -1,41 +1,62 @@
-// Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
-
-// +build race
+// Copyright 2022 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
 
 package git
 
 import (
 	"context"
 	"testing"
-	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func TestRunInDirTimeoutPipelineNoTimeout(t *testing.T) {
+func TestRunWithContextStd(t *testing.T) {
+	cmd := NewCommand(context.Background(), "--version")
+	stdout, stderr, err := cmd.RunStdString(&RunOpts{})
+	assert.NoError(t, err)
+	assert.Empty(t, stderr)
+	assert.Contains(t, stdout, "git version")
 
-	maxLoops := 1000
-
-	// 'git --version' does not block so it must be finished before the timeout triggered.
-	cmd := NewCommand("--version")
-	for i := 0; i < maxLoops; i++ {
-		if err := cmd.RunInDirTimeoutPipeline(-1, "", nil, nil); err != nil {
-			t.Fatal(err)
-		}
+	cmd = NewCommand(context.Background(), "--no-such-arg")
+	stdout, stderr, err = cmd.RunStdString(&RunOpts{})
+	if assert.Error(t, err) {
+		assert.Equal(t, stderr, err.Stderr())
+		assert.Contains(t, err.Stderr(), "unknown option:")
+		assert.Contains(t, err.Error(), "exit status 129 - unknown option:")
+		assert.Empty(t, stdout)
 	}
+
+	cmd = NewCommand(context.Background())
+	cmd.AddDynamicArguments("-test")
+	assert.ErrorIs(t, cmd.Run(&RunOpts{}), ErrBrokenCommand)
+
+	cmd = NewCommand(context.Background())
+	cmd.AddDynamicArguments("--test")
+	assert.ErrorIs(t, cmd.Run(&RunOpts{}), ErrBrokenCommand)
+
+	subCmd := "version"
+	cmd = NewCommand(context.Background()).AddDynamicArguments(subCmd) // for test purpose only, the sub-command should never be dynamic for production
+	stdout, stderr, err = cmd.RunStdString(&RunOpts{})
+	assert.NoError(t, err)
+	assert.Empty(t, stderr)
+	assert.Contains(t, stdout, "git version")
 }
 
-func TestRunInDirTimeoutPipelineAlwaysTimeout(t *testing.T) {
+func TestGitArgument(t *testing.T) {
+	assert.True(t, isValidArgumentOption("-x"))
+	assert.True(t, isValidArgumentOption("--xx"))
+	assert.False(t, isValidArgumentOption(""))
+	assert.False(t, isValidArgumentOption("x"))
 
-	maxLoops := 1000
+	assert.True(t, isSafeArgumentValue(""))
+	assert.True(t, isSafeArgumentValue("x"))
+	assert.False(t, isSafeArgumentValue("-x"))
+}
 
-	// 'git hash-object --stdin' blocks on stdin so we can have the timeout triggered.
-	cmd := NewCommand("hash-object", "--stdin")
-	for i := 0; i < maxLoops; i++ {
-		if err := cmd.RunInDirTimeoutPipeline(1*time.Microsecond, "", nil, nil); err != nil {
-			if err != context.DeadlineExceeded {
-				t.Fatalf("Testing %d/%d: %v", i, maxLoops, err)
-			}
-		}
-	}
+func TestCommandString(t *testing.T) {
+	cmd := NewCommandContextNoGlobals(context.Background(), "a", "-m msg", "it's a test", `say "hello"`)
+	assert.EqualValues(t, cmd.prog+` a "-m msg" "it's a test" "say \"hello\""`, cmd.String())
+
+	cmd = NewCommandContextNoGlobals(context.Background(), "url: https://a:b@c/")
+	assert.EqualValues(t, cmd.prog+` "url: https://sanitized-credential@c/"`, cmd.toString(true))
 }

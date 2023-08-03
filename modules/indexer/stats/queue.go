@@ -1,44 +1,44 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package stats
 
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // statsQueue represents a queue to handle repository stats updates
-var statsQueue queue.UniqueQueue
+var statsQueue *queue.WorkerPoolQueue[int64]
 
 // handle passed PR IDs and test the PRs
-func handle(data ...queue.Data) {
-	for _, datum := range data {
-		opts := datum.(int64)
+func handler(items ...int64) []int64 {
+	for _, opts := range items {
 		if err := indexer.Index(opts); err != nil {
-			log.Error("stats queue indexer.Index(%d) failed: %v", opts, err)
+			if !setting.IsInTesting {
+				log.Error("stats queue indexer.Index(%d) failed: %v", opts, err)
+			}
 		}
 	}
+	return nil
 }
 
 func initStatsQueue() error {
-	statsQueue = queue.CreateUniqueQueue("repo_stats_update", handle, int64(0)).(queue.UniqueQueue)
+	statsQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "repo_stats_update", handler)
 	if statsQueue == nil {
-		return fmt.Errorf("Unable to create repo_stats_update Queue")
+		return fmt.Errorf("unable to create repo_stats_update queue")
 	}
-
-	go graceful.GetManager().RunWithShutdownFns(statsQueue.Run)
-
+	go graceful.GetManager().RunWithCancel(statsQueue)
 	return nil
 }
 
 // UpdateRepoIndexer update a repository's entries in the indexer
-func UpdateRepoIndexer(repo *models.Repository) error {
+func UpdateRepoIndexer(repo *repo_model.Repository) error {
 	if err := statsQueue.Push(repo.ID); err != nil {
 		if err != queue.ErrAlreadyInQueue {
 			return err

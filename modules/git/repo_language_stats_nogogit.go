@@ -1,64 +1,186 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
-// +build !gogit
+//go:build !gogit
 
 package git
 
 import (
+	"bufio"
 	"bytes"
 	"io"
-	"io/ioutil"
+	"math"
+	"strings"
 
 	"code.gitea.io/gitea/modules/analyze"
+	"code.gitea.io/gitea/modules/log"
 
 	"github.com/go-enry/go-enry/v2"
 )
 
 // GetLanguageStats calculates language stats for git repository at specified commit
 func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, error) {
-	// FIXME: We can be more efficient here...
-	//
-	// We're expecting that we will be reading a lot of blobs and the trees
-	// Thus we should use a shared `cat-file --batch` to get all of this data
-	// And keep the buffers around with resets as necessary.
-	//
-	// It's more complicated so...
-	commit, err := repo.GetCommit(commitID)
+	// We will feed the commit IDs in order into cat-file --batch, followed by blobs as necessary.
+	// so let's create a batch stdin and stdout
+	batchStdinWriter, batchReader, cancel := repo.CatFileBatch(repo.Ctx)
+	defer cancel()
+
+	writeID := func(id string) error {
+		_, err := batchStdinWriter.Write([]byte(id + "\n"))
+		return err
+	}
+
+	if err := writeID(commitID); err != nil {
+		return nil, err
+	}
+	shaBytes, typ, size, err := ReadBatchLine(batchReader)
+	if typ != "commit" {
+		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)
+		return nil, ErrNotExist{commitID, ""}
+	}
+
+	sha, err := NewIDFromString(string(shaBytes))
 	if err != nil {
-		log("Unable to get commit for: %s", commitID)
+		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)
+		return nil, ErrNotExist{commitID, ""}
+	}
+
+	commit, err := CommitFromReader(repo, sha, io.LimitReader(batchReader, size))
+	if err != nil {
+		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)
+		return nil, err
+	}
+	if _, err = batchReader.Discard(1); err != nil {
 		return nil, err
 	}
 
 	tree := commit.Tree
 
-	entries, err := tree.ListEntriesRecursive()
+	entries, err := tree.ListEntriesRecursiveWithSize()
 	if err != nil {
 		return nil, err
 	}
 
+	checker, deferable := repo.CheckAttributeReader(commitID)
+	defer deferable()
+
+	contentBuf := bytes.Buffer{}
+	var content []byte
+
+	// sizes contains the current calculated size of all files by language
 	sizes := make(map[string]int64)
+	// by default we will only count the sizes of programming languages or markup languages
+	// unless they are explicitly set using linguist-language
+	includedLanguage := map[string]bool{}
+	// or if there's only one language in the repository
+	firstExcludedLanguage := ""
+	firstExcludedLanguageSize := int64(0)
+
 	for _, f := range entries {
-		if f.Size() == 0 || enry.IsVendor(f.Name()) || enry.IsDotFile(f.Name()) ||
+		select {
+		case <-repo.Ctx.Done():
+			return sizes, repo.Ctx.Err()
+		default:
+		}
+
+		contentBuf.Reset()
+		content = contentBuf.Bytes()
+
+		if f.Size() == 0 {
+			continue
+		}
+
+		notVendored := false
+		notGenerated := false
+
+		if checker != nil {
+			attrs, err := checker.CheckPath(f.Name())
+			if err == nil {
+				if vendored, has := attrs["linguist-vendored"]; has {
+					if vendored == "set" || vendored == "true" {
+						continue
+					}
+					notVendored = vendored == "false"
+				}
+				if generated, has := attrs["linguist-generated"]; has {
+					if generated == "set" || generated == "true" {
+						continue
+					}
+					notGenerated = generated == "false"
+				}
+				if language, has := attrs["linguist-language"]; has && language != "unspecified" && language != "" {
+					// group languages, such as Pug -> HTML; SCSS -> CSS
+					group := enry.GetLanguageGroup(language)
+					if len(group) != 0 {
+						language = group
+					}
+
+					// this language will always be added to the size
+					sizes[language] += f.Size()
+					continue
+				} else if language, has := attrs["gitlab-language"]; has && language != "unspecified" && language != "" {
+					// strip off a ? if present
+					if idx := strings.IndexByte(language, '?'); idx >= 0 {
+						language = language[:idx]
+					}
+					if len(language) != 0 {
+						// group languages, such as Pug -> HTML; SCSS -> CSS
+						group := enry.GetLanguageGroup(language)
+						if len(group) != 0 {
+							language = group
+						}
+
+						// this language will always be added to the size
+						sizes[language] += f.Size()
+						continue
+					}
+				}
+
+			}
+		}
+
+		if (!notVendored && analyze.IsVendor(f.Name())) || enry.IsDotFile(f.Name()) ||
 			enry.IsDocumentation(f.Name()) || enry.IsConfiguration(f.Name()) {
 			continue
 		}
 
 		// If content can not be read or file is too big just do detection by filename
-		var content []byte
+
 		if f.Size() <= bigFileSize {
-			content, _ = readFile(f, fileSizeLimit)
+			if err := writeID(f.ID.String()); err != nil {
+				return nil, err
+			}
+			_, _, size, err := ReadBatchLine(batchReader)
+			if err != nil {
+				log.Debug("Error reading blob: %s Err: %v", f.ID.String(), err)
+				return nil, err
+			}
+
+			sizeToRead := size
+			discard := int64(1)
+			if size > fileSizeLimit {
+				sizeToRead = fileSizeLimit
+				discard = size - fileSizeLimit + 1
+			}
+
+			_, err = contentBuf.ReadFrom(io.LimitReader(batchReader, sizeToRead))
+			if err != nil {
+				return nil, err
+			}
+			content = contentBuf.Bytes()
+			err = discardFull(batchReader, discard)
+			if err != nil {
+				return nil, err
+			}
 		}
-		if enry.IsGenerated(f.Name(), content) {
+		if !notGenerated && enry.IsGenerated(f.Name(), content) {
 			continue
 		}
 
-		// TODO: Use .gitattributes file for linguist overrides
 		// FIXME: Why can't we split this and the IsGenerated tests to avoid reading the blob unless absolutely necessary?
 		// - eg. do the all the detection tests using filename first before reading content.
 		language := analyze.GetCodeLanguage(f.Name(), content)
-		if language == enry.OtherLanguage || language == "" {
+		if language == "" {
 			continue
 		}
 
@@ -68,42 +190,43 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 			language = group
 		}
 
-		sizes[language] += f.Size()
-
+		included, checked := includedLanguage[language]
+		if !checked {
+			langType := enry.GetLanguageType(language)
+			included = langType == enry.Programming || langType == enry.Markup
+			includedLanguage[language] = included
+		}
+		if included {
+			sizes[language] += f.Size()
+		} else if len(sizes) == 0 && (firstExcludedLanguage == "" || firstExcludedLanguage == language) {
+			firstExcludedLanguage = language
+			firstExcludedLanguageSize += f.Size()
+		}
 		continue
 	}
 
-	// filter special languages unless they are the only language
-	if len(sizes) > 1 {
-		for language := range sizes {
-			langtype := enry.GetLanguageType(language)
-			if langtype != enry.Programming && langtype != enry.Markup {
-				delete(sizes, language)
-			}
-		}
+	// If there are no included languages add the first excluded language
+	if len(sizes) == 0 && firstExcludedLanguage != "" {
+		sizes[firstExcludedLanguage] = firstExcludedLanguageSize
 	}
 
-	return sizes, nil
+	return mergeLanguageStats(sizes), nil
 }
 
-func readFile(entry *TreeEntry, limit int64) ([]byte, error) {
-	// FIXME: We can probably be a little more efficient here... see above
-	r, err := entry.Blob().DataAsync()
-	if err != nil {
-		return nil, err
+func discardFull(rd *bufio.Reader, discard int64) error {
+	if discard > math.MaxInt32 {
+		n, err := rd.Discard(math.MaxInt32)
+		discard -= int64(n)
+		if err != nil {
+			return err
+		}
 	}
-	defer r.Close()
-
-	if limit <= 0 {
-		return ioutil.ReadAll(r)
+	for discard > 0 {
+		n, err := rd.Discard(int(discard))
+		discard -= int64(n)
+		if err != nil {
+			return err
+		}
 	}
-
-	size := entry.Size()
-	if limit > 0 && size > limit {
-		size = limit
-	}
-	buf := bytes.NewBuffer(nil)
-	buf.Grow(int(size))
-	_, err = io.Copy(buf, io.LimitReader(r, limit))
-	return buf.Bytes(), err
+	return nil
 }

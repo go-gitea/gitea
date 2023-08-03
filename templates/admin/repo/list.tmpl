@@ -1,43 +1,45 @@
-{{template "base/head" .}}
-<div class="page-content admin user">
-	{{template "admin/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin")}}
+	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "admin.repos.repo_manage_panel"}} ({{.i18n.Tr "admin.total" .Total}})
+			{{.locale.Tr "admin.repos.repo_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
 			<div class="ui right">
-				<a class="ui blue tiny button" href="{{AppSubUrl}}/admin/repos/unadopted">{{.i18n.Tr "admin.repos.unadopted"}}</a>
-            </div>
+				<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/repos/unadopted">{{.locale.Tr "admin.repos.unadopted"}}</a>
+			</div>
 		</h4>
 		<div class="ui attached segment">
 			{{template "admin/repo/search" .}}
 		</div>
 		<div class="ui attached table segment">
-			<table class="ui very basic striped table">
+			<table class="ui very basic striped table unstackable">
 				<thead>
 					<tr>
 						<th data-sortt-asc="oldest" data-sortt-desc="newest">ID{{SortArrow "oldest" "newest" $.SortType false}}</th>
-						<th>{{.i18n.Tr "admin.repos.owner"}}</th>
+						<th>{{.locale.Tr "admin.repos.owner"}}</th>
 						<th data-sortt-asc="alphabetically" data-sortt-desc="reversealphabetically">
-							{{.i18n.Tr "admin.repos.name"}}
+							{{.locale.Tr "admin.repos.name"}}
 							{{SortArrow "alphabetically" "reversealphabetically" $.SortType false}}
 						</th>
-						<th>{{.i18n.Tr "admin.repos.watches"}}</th>
+						<th>{{.locale.Tr "admin.repos.watches"}}</th>
 						<th  data-sortt-asc="moststars" data-sortt-desc="feweststars">
-							{{.i18n.Tr "admin.repos.stars"}}
+							{{.locale.Tr "admin.repos.stars"}}
 							{{SortArrow "moststars" "feweststars" $.SortType false}}
 						</th>
 						<th  data-sortt-asc="mostforks" data-sortt-desc="fewestforks">
-							{{.i18n.Tr "admin.repos.forks"}}
+							{{.locale.Tr "admin.repos.forks"}}
 							{{SortArrow "mostforks" "fewestforks" $.SortType false}}
 						</th>
-						<th>{{.i18n.Tr "admin.repos.issues"}}</th>
-						<th  data-sortt-asc="size" data-sortt-desc="reversesize">
-							{{.i18n.Tr "admin.repos.size"}}
-							{{SortArrow "size" "reversesize" $.SortType false}}
+						<th>{{.locale.Tr "admin.repos.issues"}}</th>
+						<th  data-sortt-asc="gitsize" data-sortt-desc="reversegitsize">
+							{{.locale.Tr "admin.repos.size"}}
+							{{SortArrow "gitsize" "reversegitsize" $.SortType false}}
 						</th>
-						<th>{{.i18n.Tr "admin.users.created"}}</th>
-						<th>{{.i18n.Tr "admin.notices.op"}}</th>
+						<th  data-sortt-asc="lfssize" data-sortt-desc="reverselfssize">
+							{{.locale.Tr "admin.repos.lfs_size"}}
+							{{SortArrow "lfssize" "reverselfssize" $.SortType false}}
+						</th>
+						<th>{{.locale.Tr "admin.auths.updated"}}</th>
+						<th>{{.locale.Tr "admin.users.created"}}</th>
+						<th>{{.locale.Tr "admin.notices.op"}}</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -45,24 +47,48 @@
 						<tr>
 							<td>{{.ID}}</td>
 							<td>
-								<a href="{{AppSubUrl}}/{{.Owner.Name}}">{{.Owner.Name}}</a>
+								<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
 								{{if .Owner.Visibility.IsPrivate}}
 									<span class="text gold">{{svg "octicon-lock"}}</span>
 								{{end}}
 							</td>
 							<td>
-								<a href="{{AppSubUrl}}/{{.Owner.Name}}/{{.Name}}">{{.Name}}</a>
-								{{if .IsPrivate}}
-									<span class="text gold">{{svg "octicon-lock"}}</span>
+								<a href="{{.Link}}">{{.Name}}</a>
+								{{if .IsArchived}}
+									<span class="ui basic mini label">{{$.locale.Tr "repo.desc.archived"}}</span>
+								{{end}}
+								{{if .IsTemplate}}
+									{{if .IsPrivate}}
+										<span class="ui basic mini label">{{$.locale.Tr "repo.desc.private_template"}}</span>
+									{{else}}
+										{{if .Owner.Visibility.IsPrivate}}
+											<span class="ui basic mini label">{{$.locale.Tr "repo.desc.internal_template"}}</span>
+										{{end}}
+									{{end}}
+								{{else}}
+									{{if .IsPrivate}}
+										<span class="ui basic mini label">{{$.locale.Tr "repo.desc.private"}}</span>
+									{{else}}
+										{{if .Owner.Visibility.IsPrivate}}
+											<span class="ui basic mini label">{{$.locale.Tr "repo.desc.internal"}}</span>
+										{{end}}
+									{{end}}
+								{{end}}
+								{{if .IsFork}}
+									{{svg "octicon-repo-forked"}}
+								{{else if .IsMirror}}
+									{{svg "octicon-mirror"}}
 								{{end}}
 							</td>
 							<td>{{.NumWatches}}</td>
 							<td>{{.NumStars}}</td>
 							<td>{{.NumForks}}</td>
 							<td>{{.NumIssues}}</td>
-							<td>{{SizeFmt .Size}}</td>
-							<td><span title="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</span></td>
-							<td><a class="delete-button" href="" data-url="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}" data-id="{{.ID}}" data-name="{{.Name}}">{{svg "octicon-trashcan"}}</a></td>
+							<td>{{FileSize .GitSize}}</td>
+							<td>{{FileSize .LFSSize}}</td>
+							<td>{{DateTime "short" .UpdatedUnix}}</td>
+							<td>{{DateTime "short" .CreatedUnix}}</td>
+							<td><a class="delete-button" href="" data-url="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}" data-id="{{.ID}}" data-name="{{.Name}}">{{svg "octicon-trash"}}</a></td>
 						</tr>
 					{{end}}
 				</tbody>
@@ -71,18 +97,18 @@
 
 		{{template "base/paginate" .}}
 	</div>
-</div>
 
-<div class="ui small basic delete modal">
-	<div class="ui icon header">
-		{{svg "octicon-trashcan"}}
-		{{.i18n.Tr "repo.settings.delete"}}
+<div class="ui g-modal-confirm delete modal">
+	<div class="header">
+		{{svg "octicon-trash"}}
+		{{.locale.Tr "repo.settings.delete"}}
 	</div>
 	<div class="content">
-		<p>{{.i18n.Tr "repo.settings.delete_desc"}}</p>
-		{{.i18n.Tr "repo.settings.delete_notices_2" `<span class="name"></span>` | Safe}}<br>
-		{{.i18n.Tr "repo.settings.delete_notices_fork_1"}}<br>
+		<p>{{.locale.Tr "repo.settings.delete_desc"}}</p>
+		{{.locale.Tr "repo.settings.delete_notices_2" `<span class="name"></span>` | Safe}}<br>
+		{{.locale.Tr "repo.settings.delete_notices_fork_1"}}<br>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
-{{template "base/footer" .}}
+
+{{template "admin/layout_footer" .}}

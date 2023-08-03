@@ -1,16 +1,14 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package mdstripper
 
 import (
 	"bytes"
+	"io"
 	"net/url"
 	"strings"
 	"sync"
-
-	"io"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/common"
@@ -142,17 +140,19 @@ func (r *stripRenderer) AddOptions(...renderer.Option) {
 }
 
 // StripMarkdown parses markdown content by removing all markup and code blocks
-//	in order to extract links and other references
+// in order to extract links and other references
 func StripMarkdown(rawBytes []byte) (string, []string) {
 	buf, links := StripMarkdownBytes(rawBytes)
 	return string(buf), links
 }
 
-var stripParser parser.Parser
-var once = sync.Once{}
+var (
+	stripParser parser.Parser
+	once        = sync.Once{}
+)
 
 // StripMarkdownBytes parses markdown content by removing all markup and code blocks
-//	in order to extract links and other references
+// in order to extract links and other references
 func StripMarkdownBytes(rawBytes []byte) ([]byte, []string) {
 	once.Do(func() {
 		gdMarkdown := goldmark.New(

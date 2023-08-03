@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package eventsource
 
@@ -13,6 +12,7 @@ type Manager struct {
 	mutex sync.Mutex
 
 	messengers map[int64]*Messenger
+	connection chan struct{}
 }
 
 var manager *Manager
@@ -20,6 +20,7 @@ var manager *Manager
 func init() {
 	manager = &Manager{
 		messengers: make(map[int64]*Messenger),
+		connection: make(chan struct{}, 1),
 	}
 }
 
@@ -35,6 +36,10 @@ func (m *Manager) Register(uid int64) <-chan *Event {
 	if !ok {
 		messenger = NewMessenger(uid)
 		m.messengers[uid] = messenger
+	}
+	select {
+	case m.connection <- struct{}{}:
+	default:
 	}
 	m.mutex.Unlock()
 	return messenger.Register()

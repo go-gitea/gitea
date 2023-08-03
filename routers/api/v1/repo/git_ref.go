@@ -1,15 +1,16 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
 import (
 	"net/http"
+	"net/url"
 
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // GetGitAllRefs get ref or an list all the refs of a repository
@@ -32,7 +33,7 @@ func GetGitAllRefs(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/Reference"
+	// #   "$ref": "#/responses/Reference" TODO: swagger doesnt support different output formats by ref
 	//     "$ref": "#/responses/ReferenceList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
@@ -65,7 +66,7 @@ func GetGitRefs(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/Reference"
+	// #   "$ref": "#/responses/Reference" TODO: swagger doesnt support different output formats by ref
 	//     "$ref": "#/responses/ReferenceList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
@@ -73,22 +74,8 @@ func GetGitRefs(ctx *context.APIContext) {
 	getGitRefsInternal(ctx, ctx.Params("*"))
 }
 
-func getGitRefs(ctx *context.APIContext, filter string) ([]*git.Reference, string, error) {
-	gitRepo, err := git.OpenRepository(ctx.Repo.Repository.RepoPath())
-	if err != nil {
-		return nil, "OpenRepository", err
-	}
-	defer gitRepo.Close()
-
-	if len(filter) > 0 {
-		filter = "refs/" + filter
-	}
-	refs, err := gitRepo.GetRefsFiltered(filter)
-	return refs, "GetRefsFiltered", err
-}
-
 func getGitRefsInternal(ctx *context.APIContext, filter string) {
-	refs, lastMethodName, err := getGitRefs(ctx, filter)
+	refs, lastMethodName, err := utils.GetGitRefs(ctx, filter)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, lastMethodName, err)
 		return
@@ -103,11 +90,11 @@ func getGitRefsInternal(ctx *context.APIContext, filter string) {
 	for i := range refs {
 		apiRefs[i] = &api.Reference{
 			Ref: refs[i].Name,
-			URL: ctx.Repo.Repository.APIURL() + "/git/" + refs[i].Name,
+			URL: ctx.Repo.Repository.APIURL() + "/git/" + util.PathEscapeSegments(refs[i].Name),
 			Object: &api.GitObject{
 				SHA:  refs[i].Object.String(),
 				Type: refs[i].Type,
-				URL:  ctx.Repo.Repository.APIURL() + "/git/" + refs[i].Type + "s/" + refs[i].Object.String(),
+				URL:  ctx.Repo.Repository.APIURL() + "/git/" + url.PathEscape(refs[i].Type) + "s/" + url.PathEscape(refs[i].Object.String()),
 			},
 		}
 	}

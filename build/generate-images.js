@@ -1,13 +1,8 @@
 #!/usr/bin/env node
-'use strict';
-
-const imageminZopfli = require('imagemin-zopfli');
-const Svgo = require('svgo');
-const {fabric} = require('fabric');
-const {readFile, writeFile} = require('fs').promises;
-const {resolve} = require('path');
-
-const logoFile = resolve(__dirname, '../assets/logo.svg');
+import imageminZopfli from 'imagemin-zopfli';
+import {optimize} from 'svgo';
+import {fabric} from 'fabric';
+import {readFile, writeFile} from 'node:fs/promises';
 
 function exit(err) {
   if (err) console.error(err);
@@ -22,16 +17,20 @@ function loadSvg(svg) {
   });
 }
 
-async function generate(svg, outputFile, {size, bg}) {
-  if (outputFile.endsWith('.svg')) {
-    const svgo = new Svgo({
+async function generate(svg, path, {size, bg}) {
+  const outputFile = new URL(path, import.meta.url);
+
+  if (String(outputFile).endsWith('.svg')) {
+    const {data} = optimize(svg, {
       plugins: [
-        {removeDimensions: true},
-        {addAttributesToSVGElement: {attributes: [{width: size}, {height: size}]}},
+        'preset-default',
+        'removeDimensions',
+        {
+          name: 'addAttributesToSVGElement',
+          params: {attributes: [{width: size}, {height: size}]}
+        },
       ],
     });
-
-    const {data} = await svgo.optimize(svg);
     await writeFile(outputFile, data);
     return;
   }
@@ -66,17 +65,18 @@ async function generate(svg, outputFile, {size, bg}) {
 
 async function main() {
   const gitea = process.argv.slice(2).includes('gitea');
-  const svg = await readFile(logoFile, 'utf8');
+  const logoSvg = await readFile(new URL('../assets/logo.svg', import.meta.url), 'utf8');
+  const faviconSvg = await readFile(new URL('../assets/favicon.svg', import.meta.url), 'utf8');
 
   await Promise.all([
-    generate(svg, resolve(__dirname, '../public/img/logo.svg'), {size: 32}),
-    generate(svg, resolve(__dirname, '../public/img/logo.png'), {size: 512}),
-    generate(svg, resolve(__dirname, '../public/img/favicon.png'), {size: 180}),
-    generate(svg, resolve(__dirname, '../public/img/avatar_default.png'), {size: 200}),
-    generate(svg, resolve(__dirname, '../public/img/apple-touch-icon.png'), {size: 180, bg: true}),
-    gitea && generate(svg, resolve(__dirname, '../public/img/gitea.svg'), {size: 32}),
+    generate(logoSvg, '../public/assets/img/logo.svg', {size: 32}),
+    generate(logoSvg, '../public/assets/img/logo.png', {size: 512}),
+    generate(faviconSvg, '../public/assets/img/favicon.svg', {size: 32}),
+    generate(faviconSvg, '../public/assets/img/favicon.png', {size: 180}),
+    generate(logoSvg, '../public/assets/img/avatar_default.png', {size: 200}),
+    generate(logoSvg, '../public/assets/img/apple-touch-icon.png', {size: 180, bg: true}),
+    gitea && generate(logoSvg, '../public/assets/img/gitea.svg', {size: 32}),
   ]);
 }
 
 main().then(exit).catch(exit);
-

@@ -1,94 +1,46 @@
-// Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// Copyright 2023 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
 
 package mirror
 
 import (
-	"context"
-	"path/filepath"
 	"testing"
-
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
-	migration "code.gitea.io/gitea/modules/migrations/base"
-	"code.gitea.io/gitea/modules/repository"
-	release_service "code.gitea.io/gitea/services/release"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMain(m *testing.M) {
-	models.MainTest(m, filepath.Join("..", ".."))
-}
+func Test_parseRemoteUpdateOutput(t *testing.T) {
+	output := `
+ * [new tag]         v0.1.8     -> v0.1.8
+ * [new branch]      master     -> origin/master
+ - [deleted]         (none)     -> origin/test1
+ - [deleted]         (none)     -> tag1
+ + f895a1e...957a993 test2      -> origin/test2  (forced update)
+   957a993..a87ba5f  test3      -> origin/test3
+`
+	results := parseRemoteUpdateOutput(output, "origin")
+	assert.Len(t, results, 6)
+	assert.EqualValues(t, "refs/tags/v0.1.8", results[0].refName.String())
+	assert.EqualValues(t, gitShortEmptySha, results[0].oldCommitID)
+	assert.EqualValues(t, "", results[0].newCommitID)
 
-func TestRelease_MirrorDelete(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.EqualValues(t, "refs/heads/master", results[1].refName.String())
+	assert.EqualValues(t, gitShortEmptySha, results[1].oldCommitID)
+	assert.EqualValues(t, "", results[1].newCommitID)
 
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	repoPath := models.RepoPath(user.Name, repo.Name)
+	assert.EqualValues(t, "refs/heads/test1", results[2].refName.String())
+	assert.EqualValues(t, "", results[2].oldCommitID)
+	assert.EqualValues(t, gitShortEmptySha, results[2].newCommitID)
 
-	opts := migration.MigrateOptions{
-		RepoName:    "test_mirror",
-		Description: "Test mirror",
-		Private:     false,
-		Mirror:      true,
-		CloneAddr:   repoPath,
-		Wiki:        true,
-		Releases:    false,
-	}
+	assert.EqualValues(t, "refs/tags/tag1", results[3].refName.String())
+	assert.EqualValues(t, "", results[3].oldCommitID)
+	assert.EqualValues(t, gitShortEmptySha, results[3].newCommitID)
 
-	mirrorRepo, err := repository.CreateRepository(user, user, models.CreateRepoOptions{
-		Name:        opts.RepoName,
-		Description: opts.Description,
-		IsPrivate:   opts.Private,
-		IsMirror:    opts.Mirror,
-		Status:      models.RepositoryBeingMigrated,
-	})
-	assert.NoError(t, err)
+	assert.EqualValues(t, "refs/heads/test2", results[4].refName.String())
+	assert.EqualValues(t, "f895a1e", results[4].oldCommitID)
+	assert.EqualValues(t, "957a993", results[4].newCommitID)
 
-	mirror, err := repository.MigrateRepositoryGitData(context.Background(), user, mirrorRepo, opts)
-	assert.NoError(t, err)
-
-	gitRepo, err := git.OpenRepository(repoPath)
-	assert.NoError(t, err)
-	defer gitRepo.Close()
-
-	findOptions := models.FindReleasesOptions{IncludeDrafts: true, IncludeTags: true}
-	initCount, err := models.GetReleaseCountByRepoID(mirror.ID, findOptions)
-	assert.NoError(t, err)
-
-	assert.NoError(t, release_service.CreateRelease(gitRepo, &models.Release{
-		RepoID:       repo.ID,
-		PublisherID:  user.ID,
-		TagName:      "v0.2",
-		Target:       "master",
-		Title:        "v0.2 is released",
-		Note:         "v0.2 is released",
-		IsDraft:      false,
-		IsPrerelease: false,
-		IsTag:        true,
-	}, nil))
-
-	err = mirror.GetMirror()
-	assert.NoError(t, err)
-
-	_, ok := runSync(mirror.Mirror)
-	assert.True(t, ok)
-
-	count, err := models.GetReleaseCountByRepoID(mirror.ID, findOptions)
-	assert.NoError(t, err)
-	assert.EqualValues(t, initCount+1, count)
-
-	release, err := models.GetRelease(repo.ID, "v0.2")
-	assert.NoError(t, err)
-	assert.NoError(t, release_service.DeleteReleaseByID(release.ID, user, true))
-
-	_, ok = runSync(mirror.Mirror)
-	assert.True(t, ok)
-
-	count, err = models.GetReleaseCountByRepoID(mirror.ID, findOptions)
-	assert.NoError(t, err)
-	assert.EqualValues(t, initCount, count)
+	assert.EqualValues(t, "refs/heads/test3", results[5].refName.String())
+	assert.EqualValues(t, "957a993", results[5].oldCommitID)
+	assert.EqualValues(t, "a87ba5f", results[5].newCommitID)
 }

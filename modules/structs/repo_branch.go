@@ -1,6 +1,5 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package structs
 
@@ -23,7 +22,9 @@ type Branch struct {
 
 // BranchProtection represents a branch protection for a repository
 type BranchProtection struct {
+	// Deprecated: true
 	BranchName                    string   `json:"branch_name"`
+	RuleName                      string   `json:"rule_name"`
 	EnablePush                    bool     `json:"enable_push"`
 	EnablePushWhitelist           bool     `json:"enable_push_whitelist"`
 	PushWhitelistUsernames        []string `json:"push_whitelist_usernames"`
@@ -44,6 +45,7 @@ type BranchProtection struct {
 	DismissStaleApprovals         bool     `json:"dismiss_stale_approvals"`
 	RequireSignedCommits          bool     `json:"require_signed_commits"`
 	ProtectedFilePatterns         string   `json:"protected_file_patterns"`
+	UnprotectedFilePatterns       string   `json:"unprotected_file_patterns"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
@@ -52,7 +54,9 @@ type BranchProtection struct {
 
 // CreateBranchProtectionOption options for creating a branch protection
 type CreateBranchProtectionOption struct {
+	// Deprecated: true
 	BranchName                    string   `json:"branch_name"`
+	RuleName                      string   `json:"rule_name"`
 	EnablePush                    bool     `json:"enable_push"`
 	EnablePushWhitelist           bool     `json:"enable_push_whitelist"`
 	PushWhitelistUsernames        []string `json:"push_whitelist_usernames"`
@@ -73,6 +77,7 @@ type CreateBranchProtectionOption struct {
 	DismissStaleApprovals         bool     `json:"dismiss_stale_approvals"`
 	RequireSignedCommits          bool     `json:"require_signed_commits"`
 	ProtectedFilePatterns         string   `json:"protected_file_patterns"`
+	UnprotectedFilePatterns       string   `json:"unprotected_file_patterns"`
 }
 
 // EditBranchProtectionOption options for editing a branch protection
@@ -97,4 +102,5 @@ type EditBranchProtectionOption struct {
 	DismissStaleApprovals         *bool    `json:"dismiss_stale_approvals"`
 	RequireSignedCommits          *bool    `json:"require_signed_commits"`
 	ProtectedFilePatterns         *string  `json:"protected_file_patterns"`
+	UnprotectedFilePatterns       *string  `json:"unprotected_file_patterns"`
 }

@@ -1,0 +1,108 @@
+.dashboard.feeds .context.user.menu,
+.dashboard.issues .context.user.menu {
+  z-index: 101;
+  min-width: 200px;
+}
+
+.dashboard.feeds .context.user.menu .ui.header,
+.dashboard.issues .context.user.menu .ui.header {
+  font-size: 1rem;
+  text-transform: none;
+}
+
+.dashboard.feeds .filter.menu,
+.dashboard.issues .filter.menu {
+  width: initial;
+}
+
+.dashboard.feeds .filter.menu .item,
+.dashboard.issues .filter.menu .item {
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dashboard.feeds .filter.menu .item .text.truncate,
+.dashboard.issues .filter.menu .item .text.truncate {
+  width: 75%;
+}
+
+.dashboard.feeds .filter.menu .item .floating.label,
+.dashboard.issues .filter.menu .item .floating.label {
+  top: 7px;
+  left: 90%;
+  width: 15%;
+}
+
+@media (max-width: 767.98px) {
+  .dashboard.feeds .filter.menu .item .floating.label,
+  .dashboard.issues .filter.menu .item .floating.label {
+    top: 10px;
+    left: auto;
+    width: auto;
+    right: 13px;
+  }
+}
+
+/* Sort */
+.dashboard.feeds .filter.menu .jump.item,
+.dashboard.issues .filter.menu .jump.item {
+  margin: 1px;
+  padding-right: 0;
+}
+
+.dashboard.feeds .filter.menu .menu,
+.dashboard.issues .filter.menu .menu {
+  max-height: 300px;
+  overflow-x: auto;
+  right: 0 !important;
+  left: auto !important;
+}
+
+@media (max-width: 767.98px) {
+  .dashboard.feeds .filter.menu,
+  .dashboard.issues .filter.menu {
+    width: 100%;
+  }
+}
+
+.dashboard.feeds .right.stackable.menu > .item.active,
+.dashboard.issues .right.stackable.menu > .item.active {
+  color: var(--color-red);
+}
+
+.dashboard .dashboard-repos,
+.dashboard .dashboard-orgs {
+  margin: 0 1px; /* Accommodate for Semantic's 1px hacks on .attached elements */
+}
+
+.dashboard .dashboard-navbar {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.dashboard .dashboard-navbar .org-visibility .label {
+  margin-left: 5px;
+}
+
+.dashboard .dashboard-navbar .ui.dropdown {
+  max-width: 100%;
+}
+
+@media (max-width: 767.98px) {
+  .dashboard .dashboard-navbar .ui.dropdown > .menu {
+    position: static;
+  }
+}
+
+.feeds .commit-id {
+  font-family: var(--fonts-monospace);
+}
+
+.feeds code {
+  padding: 2px 4px;
+  border-radius: 3px;
+  background-color: var(--color-markup-code-block);
+  word-break: break-all;
+}

@@ -1,18 +1,20 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issue
 
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestIssue_AddLabels(t *testing.T) {
-	var tests = []struct {
+	tests := []struct {
 		issueID  int64
 		labelIDs []int64
 		doerID   int64
@@ -23,22 +25,22 @@ func TestIssue_AddLabels(t *testing.T) {
 		{2, []int64{}, 1},     // pull-request, empty
 	}
 	for _, test := range tests {
-		assert.NoError(t, models.PrepareTestDatabase())
-		issue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: test.issueID}).(*models.Issue)
-		labels := make([]*models.Label, len(test.labelIDs))
+		assert.NoError(t, unittest.PrepareTestDatabase())
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: test.issueID})
+		labels := make([]*issues_model.Label, len(test.labelIDs))
 		for i, labelID := range test.labelIDs {
-			labels[i] = models.AssertExistsAndLoadBean(t, &models.Label{ID: labelID}).(*models.Label)
+			labels[i] = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: labelID})
 		}
-		doer := models.AssertExistsAndLoadBean(t, &models.User{ID: test.doerID}).(*models.User)
+		doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: test.doerID})
 		assert.NoError(t, AddLabels(issue, doer, labels))
 		for _, labelID := range test.labelIDs {
-			models.AssertExistsAndLoadBean(t, &models.IssueLabel{IssueID: test.issueID, LabelID: labelID})
+			unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: test.issueID, LabelID: labelID})
 		}
 	}
 }
 
 func TestIssue_AddLabel(t *testing.T) {
-	var tests = []struct {
+	tests := []struct {
 		issueID int64
 		labelID int64
 		doerID  int64
@@ -49,11 +51,11 @@ func TestIssue_AddLabel(t *testing.T) {
 		{2, 1, 2}, // pull-request, already-added label
 	}
 	for _, test := range tests {
-		assert.NoError(t, models.PrepareTestDatabase())
-		issue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: test.issueID}).(*models.Issue)
-		label := models.AssertExistsAndLoadBean(t, &models.Label{ID: test.labelID}).(*models.Label)
-		doer := models.AssertExistsAndLoadBean(t, &models.User{ID: test.doerID}).(*models.User)
+		assert.NoError(t, unittest.PrepareTestDatabase())
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: test.issueID})
+		label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: test.labelID})
+		doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: test.doerID})
 		assert.NoError(t, AddLabel(issue, doer, label))
-		models.AssertExistsAndLoadBean(t, &models.IssueLabel{IssueID: test.issueID, LabelID: test.labelID})
+		unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: test.issueID, LabelID: test.labelID})
 	}
 }

@@ -1,23 +1,27 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
 import (
-	"container/list"
 	"crypto/md5"
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	pushCommits := NewPushCommits()
 	pushCommits.Commits = []*PushCommit{
@@ -46,12 +50,13 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 			Message:        "good signed commit",
 		},
 	}
-	pushCommits.Len = len(pushCommits.Commits)
+	pushCommits.HeadCommit = &PushCommit{Sha1: "69554a6"}
 
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository)
-	payloadCommits, err := pushCommits.ToAPIPayloadCommits(repo.RepoPath(), "/user2/repo16")
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 16})
+	payloadCommits, headCommit, err := pushCommits.ToAPIPayloadCommits(git.DefaultContext, repo.RepoPath(), "/user2/repo16")
 	assert.NoError(t, err)
-	assert.EqualValues(t, 3, len(payloadCommits))
+	assert.Len(t, payloadCommits, 3)
+	assert.NotNil(t, headCommit)
 
 	assert.Equal(t, "69554a6", payloadCommits[0].ID)
 	assert.Equal(t, "not signed commit", payloadCommits[0].Message)
@@ -85,10 +90,29 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 	assert.EqualValues(t, []string{"readme.md"}, payloadCommits[2].Added)
 	assert.EqualValues(t, []string{}, payloadCommits[2].Removed)
 	assert.EqualValues(t, []string{}, payloadCommits[2].Modified)
+
+	assert.Equal(t, "69554a6", headCommit.ID)
+	assert.Equal(t, "not signed commit", headCommit.Message)
+	assert.Equal(t, "/user2/repo16/commit/69554a6", headCommit.URL)
+	assert.Equal(t, "User2", headCommit.Committer.Name)
+	assert.Equal(t, "user2", headCommit.Committer.UserName)
+	assert.Equal(t, "User2", headCommit.Author.Name)
+	assert.Equal(t, "user2", headCommit.Author.UserName)
+	assert.EqualValues(t, []string{}, headCommit.Added)
+	assert.EqualValues(t, []string{}, headCommit.Removed)
+	assert.EqualValues(t, []string{"readme.md"}, headCommit.Modified)
+}
+
+func enableGravatar(t *testing.T) {
+	err := system_model.SetSettingNoVersion(db.DefaultContext, system_model.KeyPictureDisableGravatar, "false")
+	assert.NoError(t, err)
+	setting.GravatarSource = "https://secure.gravatar.com/avatar"
+	err = system_model.Init(db.DefaultContext)
+	assert.NoError(t, err)
 }
 
 func TestPushCommits_AvatarLink(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	pushCommits := NewPushCommits()
 	pushCommits.Commits = []*PushCommit{
@@ -109,17 +133,16 @@ func TestPushCommits_AvatarLink(t *testing.T) {
 			Message:        "message2",
 		},
 	}
-	pushCommits.Len = len(pushCommits.Commits)
+
+	enableGravatar(t)
 
 	assert.Equal(t,
-		"https://secure.gravatar.com/avatar/ab53a2911ddf9b4817ac01ddcd3d975f?d=identicon&s=56",
-		pushCommits.AvatarLink("user2@example.com"))
+		"https://secure.gravatar.com/avatar/ab53a2911ddf9b4817ac01ddcd3d975f?d=identicon&s="+strconv.Itoa(28*setting.Avatar.RenderedSizeFactor),
+		pushCommits.AvatarLink(db.DefaultContext, "user2@example.com"))
 
 	assert.Equal(t,
-		"https://secure.gravatar.com/avatar/"+
-			fmt.Sprintf("%x", md5.Sum([]byte("nonexistent@example.com")))+
-			"?d=identicon&s=56",
-		pushCommits.AvatarLink("nonexistent@example.com"))
+		fmt.Sprintf("https://secure.gravatar.com/avatar/%x?d=identicon&s=%d", md5.Sum([]byte("nonexistent@example.com")), 28*setting.Avatar.RenderedSizeFactor),
+		pushCommits.AvatarLink(db.DefaultContext, "nonexistent@example.com"))
 }
 
 func TestCommitToPushCommit(t *testing.T) {
@@ -162,22 +185,22 @@ func TestListToPushCommits(t *testing.T) {
 	hash2, err := git.NewIDFromString(hexString2)
 	assert.NoError(t, err)
 
-	l := list.New()
-	l.PushBack(&git.Commit{
-		ID:            hash1,
-		Author:        sig,
-		Committer:     sig,
-		CommitMessage: "Message1",
-	})
-	l.PushBack(&git.Commit{
-		ID:            hash2,
-		Author:        sig,
-		Committer:     sig,
-		CommitMessage: "Message2",
-	})
+	l := []*git.Commit{
+		{
+			ID:            hash1,
+			Author:        sig,
+			Committer:     sig,
+			CommitMessage: "Message1",
+		},
+		{
+			ID:            hash2,
+			Author:        sig,
+			Committer:     sig,
+			CommitMessage: "Message2",
+		},
+	}
 
-	pushCommits := ListToPushCommits(l)
-	assert.Equal(t, 2, pushCommits.Len)
+	pushCommits := GitToPushCommits(l)
 	if assert.Len(t, pushCommits.Commits, 2) {
 		assert.Equal(t, "Message1", pushCommits.Commits[0].Message)
 		assert.Equal(t, hexString1, pushCommits.Commits[0].Sha1)

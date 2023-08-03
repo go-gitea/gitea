@@ -4,18 +4,26 @@
 	<style>
 		.footer { font-size:small; color:#666;}
 	</style>
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<title>{{.Subject}}</title>
 </head>
 
+{{$repo_url := printf "<a href='%s'>%s</a>" (Escape .Issue.Repo.HTMLURL) (Escape .Issue.Repo.FullName)}}
+{{$link := printf "<a href='%s'>#%d</a>" (Escape .Link) .Issue.Index}}
 <body>
-	<p>@{{.Doer.Name}} assigned you to the {{if .IsPull}}pull request{{else}}issue{{end}} <a href="{{.Link}}">#{{.Issue.Index}}</a> in repository {{.Repo}}.</p>
+	<p>
+		{{if .IsPull}}
+			{{.locale.Tr "mail.issue_assigned.pull" .Doer.Name $link $repo_url | Str2html}}
+		{{else}}
+			{{.locale.Tr "mail.issue_assigned.issue" .Doer.Name $link $repo_url | Str2html}}
+		{{end}}
+	</p>
 	<div class="footer">
-	    <p>
-	        ---
-	        <br>
-	        <a href="{{.Link}}">View it on {{AppName}}</a>.
-	    </p>
+		<p>
+			---
+			<br>
+			<a href="{{.Link}}">{{.locale.Tr "mail.view_it_on" AppName}}</a>.
+		</p>
 	</div>
 </body>
 </html>

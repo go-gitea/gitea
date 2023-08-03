@@ -1,7 +1,6 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cmd
 
@@ -12,43 +11,43 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 
 	"github.com/mattn/go-isatty"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 var (
 	// CmdGenerate represents the available generate sub-command.
-	CmdGenerate = cli.Command{
+	CmdGenerate = &cli.Command{
 		Name:  "generate",
 		Usage: "Command line interface for running generators",
-		Subcommands: []cli.Command{
+		Subcommands: []*cli.Command{
 			subcmdSecret,
 		},
 	}
 
-	subcmdSecret = cli.Command{
+	subcmdSecret = &cli.Command{
 		Name:  "secret",
 		Usage: "Generate a secret token",
-		Subcommands: []cli.Command{
+		Subcommands: []*cli.Command{
 			microcmdGenerateInternalToken,
 			microcmdGenerateLfsJwtSecret,
 			microcmdGenerateSecretKey,
 		},
 	}
 
-	microcmdGenerateInternalToken = cli.Command{
+	microcmdGenerateInternalToken = &cli.Command{
 		Name:   "INTERNAL_TOKEN",
 		Usage:  "Generate a new INTERNAL_TOKEN",
 		Action: runGenerateInternalToken,
 	}
 
-	microcmdGenerateLfsJwtSecret = cli.Command{
+	microcmdGenerateLfsJwtSecret = &cli.Command{
 		Name:    "JWT_SECRET",
 		Aliases: []string{"LFS_JWT_SECRET"},
 		Usage:   "Generate a new JWT_SECRET",
 		Action:  runGenerateLfsJwtSecret,
 	}
 
-	microcmdGenerateSecretKey = cli.Command{
+	microcmdGenerateSecretKey = &cli.Command{
 		Name:   "SECRET_KEY",
 		Usage:  "Generate a new SECRET_KEY",
 		Action: runGenerateSecretKey,
@@ -71,7 +70,7 @@ func runGenerateInternalToken(c *cli.Context) error {
 }
 
 func runGenerateLfsJwtSecret(c *cli.Context) error {
-	JWTSecretBase64, err := generate.NewJwtSecret()
+	JWTSecretBase64, err := generate.NewJwtSecretBase64()
 	if err != nil {
 		return err
 	}

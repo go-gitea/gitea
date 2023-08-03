@@ -1,173 +1,118 @@
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package public
 
 import (
-	"log"
+	"bytes"
+	"io"
 	"net/http"
+	"os"
 	"path"
-	"path/filepath"
 	"strings"
+	"time"
 
+	"code.gitea.io/gitea/modules/assetfs"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/httpcache"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
-// Options represents the available options to configure the handler.
-type Options struct {
-	Directory   string
-	IndexFile   string
-	SkipLogging bool
-	FileSystem  http.FileSystem
-	Prefix      string
+func CustomAssets() *assetfs.Layer {
+	return assetfs.Local("custom", setting.CustomPath, "public")
 }
 
-// KnownPublicEntries list all direct children in the `public` directory
-var KnownPublicEntries = []string{
-	"css",
-	"img",
-	"js",
-	"serviceworker.js",
-	"vendor",
-	"favicon.ico",
+func AssetFS() *assetfs.LayeredFS {
+	return assetfs.Layered(CustomAssets(), BuiltinAssets())
 }
 
-// Custom implements the static handler for serving custom assets.
-func Custom(opts *Options) func(next http.Handler) http.Handler {
-	return opts.staticHandler(path.Join(setting.CustomPath, "public"))
-}
-
-// staticFileSystem implements http.FileSystem interface.
-type staticFileSystem struct {
-	dir *http.Dir
-}
-
-func newStaticFileSystem(directory string) staticFileSystem {
-	if !filepath.IsAbs(directory) {
-		directory = filepath.Join(setting.AppWorkPath, directory)
-	}
-	dir := http.Dir(directory)
-	return staticFileSystem{&dir}
-}
-
-func (fs staticFileSystem) Open(name string) (http.File, error) {
-	return fs.dir.Open(name)
-}
-
-// StaticHandler sets up a new middleware for serving static files in the
-func StaticHandler(dir string, opts *Options) func(next http.Handler) http.Handler {
-	return opts.staticHandler(dir)
-}
-
-func (opts *Options) staticHandler(dir string) func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		// Defaults
-		if len(opts.IndexFile) == 0 {
-			opts.IndexFile = "index.html"
+// FileHandlerFunc implements the static handler for serving files in "public" assets
+func FileHandlerFunc() http.HandlerFunc {
+	assetFS := AssetFS()
+	return func(resp http.ResponseWriter, req *http.Request) {
+		if req.Method != "GET" && req.Method != "HEAD" {
+			resp.WriteHeader(http.StatusNotFound)
+			return
 		}
-		// Normalize the prefix if provided
-		if opts.Prefix != "" {
-			// Ensure we have a leading '/'
-			if opts.Prefix[0] != '/' {
-				opts.Prefix = "/" + opts.Prefix
-			}
-			// Remove any trailing '/'
-			opts.Prefix = strings.TrimRight(opts.Prefix, "/")
-		}
-		if opts.FileSystem == nil {
-			opts.FileSystem = newStaticFileSystem(dir)
-		}
-
-		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			if !opts.handle(w, req, opts) {
-				next.ServeHTTP(w, req)
-			}
-		})
+		handleRequest(resp, req, assetFS, req.URL.Path)
 	}
 }
 
 // parseAcceptEncoding parse Accept-Encoding: deflate, gzip;q=1.0, *;q=0.5 as compress methods
-func parseAcceptEncoding(val string) map[string]bool {
+func parseAcceptEncoding(val string) container.Set[string] {
 	parts := strings.Split(val, ";")
-	var types = make(map[string]bool)
+	types := make(container.Set[string])
 	for _, v := range strings.Split(parts[0], ",") {
-		types[strings.TrimSpace(v)] = true
+		types.Add(strings.TrimSpace(v))
 	}
 	return types
 }
 
-func (opts *Options) handle(w http.ResponseWriter, req *http.Request, opt *Options) bool {
-	if req.Method != "GET" && req.Method != "HEAD" {
-		return false
+// setWellKnownContentType will set the Content-Type if the file is a well-known type.
+// See the comments of detectWellKnownMimeType
+func setWellKnownContentType(w http.ResponseWriter, file string) {
+	mimeType := detectWellKnownMimeType(path.Ext(file))
+	if mimeType != "" {
+		w.Header().Set("Content-Type", mimeType)
 	}
+}
 
-	file := req.URL.Path
-	// if we have a prefix, filter requests by stripping the prefix
-	if opt.Prefix != "" {
-		if !strings.HasPrefix(file, opt.Prefix) {
-			return false
-		}
-		file = file[len(opt.Prefix):]
-		if file != "" && file[0] != '/' {
-			return false
-		}
-	}
-
-	f, err := opt.FileSystem.Open(file)
+func handleRequest(w http.ResponseWriter, req *http.Request, fs http.FileSystem, file string) {
+	// actually, fs (http.FileSystem) is designed to be a safe interface, relative paths won't bypass its parent directory, it's also fine to do a clean here
+	f, err := fs.Open(util.PathJoinRelX(file))
 	if err != nil {
-		// 404 requests to any known entries in `public`
-		if path.Base(opts.Directory) == "public" {
-			parts := strings.Split(file, "/")
-			if len(parts) < 2 {
-				return false
-			}
-			for _, entry := range KnownPublicEntries {
-				if entry == parts[1] {
-					w.WriteHeader(404)
-					return true
-				}
-			}
+		if os.IsNotExist(err) {
+			w.WriteHeader(http.StatusNotFound)
+			return
 		}
-		return false
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Error("[Static] Open %q failed: %v", file, err)
+		return
 	}
 	defer f.Close()
 
 	fi, err := f.Stat()
 	if err != nil {
-		log.Printf("[Static] %q exists, but fails to open: %v", file, err)
-		return true
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Error("[Static] %q exists, but fails to open: %v", file, err)
+		return
 	}
 
-	// Try to serve index file
+	// need to serve index file? (no at the moment)
 	if fi.IsDir() {
-		// Redirect if missing trailing slash.
-		if !strings.HasSuffix(req.URL.Path, "/") {
-			http.Redirect(w, req, path.Clean(req.URL.Path+"/"), http.StatusFound)
-			return true
-		}
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
-		f, err = opt.FileSystem.Open(file)
-		if err != nil {
-			return false // Discard error.
-		}
-		defer f.Close()
+	serveContent(w, req, fi, fi.ModTime(), f)
+}
 
-		fi, err = f.Stat()
-		if err != nil || fi.IsDir() {
-			return false
+type GzipBytesProvider interface {
+	GzipBytes() []byte
+}
+
+// serveContent serve http content
+func serveContent(w http.ResponseWriter, req *http.Request, fi os.FileInfo, modtime time.Time, content io.ReadSeeker) {
+	setWellKnownContentType(w, fi.Name())
+
+	encodings := parseAcceptEncoding(req.Header.Get("Accept-Encoding"))
+	if encodings.Contains("gzip") {
+		// try to provide gzip content directly from bindata (provided by vfsgen۰CompressedFileInfo)
+		if compressed, ok := fi.(GzipBytesProvider); ok {
+			rdGzip := bytes.NewReader(compressed.GzipBytes())
+			// all gzipped static files (from bindata) are managed by Gitea, so we can make sure every file has the correct ext name
+			// then we can get the correct Content-Type, we do not need to do http.DetectContentType on the decompressed data
+			if w.Header().Get("Content-Type") == "" {
+				w.Header().Set("Content-Type", "application/octet-stream")
+			}
+			w.Header().Set("Content-Encoding", "gzip")
+			httpcache.ServeContentWithCacheControl(w, req, fi.Name(), modtime, rdGzip)
+			return
 		}
 	}
 
-	if !opt.SkipLogging {
-		log.Println("[Static] Serving " + file)
-	}
-
-	if httpcache.HandleEtagCache(req, w, fi) {
-		return true
-	}
-
-	ServeContent(w, req, fi, fi.ModTime(), f)
-	return true
+	httpcache.ServeContentWithCacheControl(w, req, fi.Name(), modtime, content)
+	return
 }

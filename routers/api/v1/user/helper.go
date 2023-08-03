@@ -1,24 +1,23 @@
 // Copyright 2021 The Gitea Authors.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 )
 
 // GetUserByParamsName get user by name
-func GetUserByParamsName(ctx *context.APIContext, name string) *models.User {
+func GetUserByParamsName(ctx *context.APIContext, name string) *user_model.User {
 	username := ctx.Params(name)
-	user, err := models.GetUserByName(username)
+	user, err := user_model.GetUserByName(ctx, username)
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
-			if redirectUserID, err := models.LookupUserRedirect(username); err == nil {
-				context.RedirectToUser(ctx.Context, username, redirectUserID)
+		if user_model.IsErrUserNotExist(err) {
+			if redirectUserID, err2 := user_model.LookupUserRedirect(username); err2 == nil {
+				context.RedirectToUser(ctx.Base, username, redirectUserID)
 			} else {
 				ctx.NotFound("GetUserByName", err)
 			}
@@ -31,6 +30,6 @@ func GetUserByParamsName(ctx *context.APIContext, name string) *models.User {
 }
 
 // GetUserByParams returns user whose name is presented in URL (":username").
-func GetUserByParams(ctx *context.APIContext) *models.User {
+func GetUserByParams(ctx *context.APIContext) *user_model.User {
 	return GetUserByParamsName(ctx, ":username")
 }

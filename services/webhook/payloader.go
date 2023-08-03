@@ -1,12 +1,11 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package webhook
 
 import (
-	"code.gitea.io/gitea/models"
 	api "code.gitea.io/gitea/modules/structs"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
 
 // PayloadConvertor defines the interface to convert system webhook payload to external payload
@@ -19,38 +18,41 @@ type PayloadConvertor interface {
 	IssueComment(*api.IssueCommentPayload) (api.Payloader, error)
 	Push(*api.PushPayload) (api.Payloader, error)
 	PullRequest(*api.PullRequestPayload) (api.Payloader, error)
-	Review(*api.PullRequestPayload, models.HookEventType) (api.Payloader, error)
+	Review(*api.PullRequestPayload, webhook_module.HookEventType) (api.Payloader, error)
 	Repository(*api.RepositoryPayload) (api.Payloader, error)
 	Release(*api.ReleasePayload) (api.Payloader, error)
+	Wiki(*api.WikiPayload) (api.Payloader, error)
 }
 
-func convertPayloader(s PayloadConvertor, p api.Payloader, event models.HookEventType) (api.Payloader, error) {
+func convertPayloader(s PayloadConvertor, p api.Payloader, event webhook_module.HookEventType) (api.Payloader, error) {
 	switch event {
-	case models.HookEventCreate:
+	case webhook_module.HookEventCreate:
 		return s.Create(p.(*api.CreatePayload))
-	case models.HookEventDelete:
+	case webhook_module.HookEventDelete:
 		return s.Delete(p.(*api.DeletePayload))
-	case models.HookEventFork:
+	case webhook_module.HookEventFork:
 		return s.Fork(p.(*api.ForkPayload))
-	case models.HookEventIssues, models.HookEventIssueAssign, models.HookEventIssueLabel, models.HookEventIssueMilestone:
+	case webhook_module.HookEventIssues, webhook_module.HookEventIssueAssign, webhook_module.HookEventIssueLabel, webhook_module.HookEventIssueMilestone:
 		return s.Issue(p.(*api.IssuePayload))
-	case models.HookEventIssueComment, models.HookEventPullRequestComment:
+	case webhook_module.HookEventIssueComment, webhook_module.HookEventPullRequestComment:
 		pl, ok := p.(*api.IssueCommentPayload)
 		if ok {
 			return s.IssueComment(pl)
 		}
 		return s.PullRequest(p.(*api.PullRequestPayload))
-	case models.HookEventPush:
+	case webhook_module.HookEventPush:
 		return s.Push(p.(*api.PushPayload))
-	case models.HookEventPullRequest, models.HookEventPullRequestAssign, models.HookEventPullRequestLabel,
-		models.HookEventPullRequestMilestone, models.HookEventPullRequestSync:
+	case webhook_module.HookEventPullRequest, webhook_module.HookEventPullRequestAssign, webhook_module.HookEventPullRequestLabel,
+		webhook_module.HookEventPullRequestMilestone, webhook_module.HookEventPullRequestSync, webhook_module.HookEventPullRequestReviewRequest:
 		return s.PullRequest(p.(*api.PullRequestPayload))
-	case models.HookEventPullRequestReviewApproved, models.HookEventPullRequestReviewRejected, models.HookEventPullRequestReviewComment:
+	case webhook_module.HookEventPullRequestReviewApproved, webhook_module.HookEventPullRequestReviewRejected, webhook_module.HookEventPullRequestReviewComment:
 		return s.Review(p.(*api.PullRequestPayload), event)
-	case models.HookEventRepository:
+	case webhook_module.HookEventRepository:
 		return s.Repository(p.(*api.RepositoryPayload))
-	case models.HookEventRelease:
+	case webhook_module.HookEventRelease:
 		return s.Release(p.(*api.ReleasePayload))
+	case webhook_module.HookEventWiki:
+		return s.Wiki(p.(*api.WikiPayload))
 	}
 	return s, nil
 }

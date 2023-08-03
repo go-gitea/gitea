@@ -1,0 +1,11 @@
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings security")}}
+	<div class="user-setting-content">
+		{{template "user/settings/security/twofa" .}}
+		{{template "user/settings/security/webauthn" .}}
+		{{template "user/settings/security/accountlinks" .}}
+		{{if .EnableOpenIDSignIn}}
+		{{template "user/settings/security/openid" .}}
+		{{end}}
+	</div>
+
+{{template "user/settings/layout_footer" .}}

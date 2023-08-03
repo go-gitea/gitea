@@ -60,8 +60,8 @@
   head_repo_id: 1
   base_repo_id: 1
   head_branch: pr-to-update
-  base_branch: branch1
-  merge_base: 1234567890abcdef
+  base_branch: branch2
+  merge_base: 985f0301dba5e7b34be866819cd15ad3d8f508ee
   has_merged: false
 
 -
@@ -75,4 +75,17 @@
   head_branch: test_branch
   base_branch: master
   merge_base: 2a47ca4b614a9f5a
+  has_merged: false
+
+-
+  id: 7
+  type: 0 # gitea pull request
+  status: 2 # mergable
+  issue_id: 19
+  index: 1
+  head_repo_id: 58
+  base_repo_id: 58
+  head_branch: branch1
+  base_branch: main
+  merge_base: cbff181af4c9c7fee3cf6c106699e07d9a3f54e6
   has_merged: false

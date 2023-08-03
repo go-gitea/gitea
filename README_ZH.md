@@ -1,28 +1,25 @@
 <p align="center">
   <a href="https://gitea.io/">
-    <img alt="Gitea" src="https://raw.githubusercontent.com/go-gitea/gitea/master/public/img/gitea.svg" width="220"/>
+    <img alt="Gitea" src="https://raw.githubusercontent.com/go-gitea/gitea/main/public/assets/img/gitea.svg" width="220"/>
   </a>
 </p>
 <h1 align="center">Gitea - Git with a cup of tea</h1>
 
 <p align="center">
   <a href="https://drone.gitea.io/go-gitea/gitea" title="Build Status">
-    <img src="https://drone.gitea.io/api/badges/go-gitea/gitea/status.svg?ref=refs/heads/master">
+    <img src="https://drone.gitea.io/api/badges/go-gitea/gitea/status.svg?ref=refs/heads/main">
   </a>
   <a href="https://discord.gg/Gitea" title="Join the Discord chat at https://discord.gg/Gitea">
     <img src="https://img.shields.io/discord/322538954119184384.svg">
   </a>
-  <a href="https://microbadger.com/images/gitea/gitea" title="Get your own image badge on microbadger.com">
-    <img src="https://images.microbadger.com/badges/image/gitea/gitea.svg">
+  <a href="https://app.codecov.io/gh/go-gitea/gitea" title="Codecov">
+    <img src="https://codecov.io/gh/go-gitea/gitea/branch/main/graph/badge.svg">
   </a>
-  <a href="https://codecov.io/gh/go-gitea/gitea" title="Codecov">
-    <img src="https://codecov.io/gh/go-gitea/gitea/branch/master/graph/badge.svg">
-  </a>
-  <a href="https://godoc.org/code.gitea.io/gitea" title="Go Report Card">
+  <a href="https://goreportcard.com/report/code.gitea.io/gitea" title="Go Report Card">
     <img src="https://goreportcard.com/badge/code.gitea.io/gitea">
   </a>
-  <a href="https://godoc.org/code.gitea.io/gitea" title="GoDoc">
-    <img src="https://godoc.org/code.gitea.io/gitea?status.svg">
+  <a href="https://pkg.go.dev/code.gitea.io/gitea" title="GoDoc">
+    <img src="https://pkg.go.dev/badge/code.gitea.io/gitea?status.svg">
   </a>
   <a href="https://github.com/go-gitea/gitea/releases/latest" title="GitHub release">
     <img src="https://img.shields.io/github/release/go-gitea/gitea.svg">
@@ -36,19 +33,25 @@
   <a href="https://opensource.org/licenses/MIT" title="License: MIT">
     <img src="https://img.shields.io/badge/License-MIT-blue.svg">
   </a>
+  <a href="https://gitpod.io/#https://github.com/go-gitea/gitea">
+  <img
+    src="https://img.shields.io/badge/Contribute%20with-Gitpod-908a85?logo=gitpod"
+    alt="Contribute with Gitpod"
+  />
+  </a>
   <a href="https://crowdin.com/project/gitea" title="Crowdin">
     <img src="https://badges.crowdin.net/gitea/localized.svg">
   </a>
-  <a href="https://www.tickgit.com/browse?repo=github.com/go-gitea/gitea" title="TODOs">
-    <img src="https://badgen.net/https/api.tickgit.com/badgen/github.com/go-gitea/gitea">
+  <a href="https://www.tickgit.com/browse?repo=github.com/go-gitea/gitea&branch=main" title="TODOs">
+    <img src="https://badgen.net/https/api.tickgit.com/badgen/github.com/go-gitea/gitea/main">
   </a>
-  <a href="https://img.shields.io/bountysource/team/gitea" title="Bountysource">
+  <a href="https://app.bountysource.com/teams/gitea" title="Bountysource">
     <img src="https://img.shields.io/bountysource/team/gitea/activity">
   </a>
 </p>
 
 <p align="center">
-  <a href="README.md">View the english version of this document</a>
+  <a href="README.md">View this document in English</a>
 </p>
 
 ## 目标
@@ -71,6 +74,11 @@ Gitea 的首要目标是创建一个极易安装，运行非常快速，安装�
 
 Fork -> Patch -> Push -> Pull Request
 
+## 翻译
+
+多语言翻译是基于Crowdin进行的.
+[![Crowdin](https://badges.crowdin.net/gitea/localized.svg)](https://crowdin.com/project/gitea)
+
 ## 作者
 
 * [Maintainers](https://github.com/orgs/go-gitea/people)
@@ -79,12 +87,12 @@ Fork -> Patch -> Push -> Pull Request
 
 ## 授权许可
 
-本项目采用 MIT 开源授权许可证，完整的授权说明已放置在 [LICENSE](https://github.com/go-gitea/gitea/blob/master/LICENSE) 文件中。
+本项目采用 MIT 开源授权许可证，完整的授权说明已放置在 [LICENSE](https://github.com/go-gitea/gitea/blob/main/LICENSE) 文件中。
 
 ## 截图
 
-|![Dashboard](https://dl.gitea.io/screenshots/home_timeline.png)|![User Profile](https://dl.gitea.io/screenshots/user_profile.png)|![Global Issues](https://dl.gitea.io/screenshots/global_issues.png)|
+|![Dashboard](https://dl.gitea.com/screenshots/home_timeline.png)|![User Profile](https://dl.gitea.com/screenshots/user_profile.png)|![Global Issues](https://dl.gitea.com/screenshots/global_issues.png)|
 |:---:|:---:|:---:|
-|![Branches](https://dl.gitea.io/screenshots/branches.png)|![Web Editor](https://dl.gitea.io/screenshots/web_editor.png)|![Activity](https://dl.gitea.io/screenshots/activity.png)|
-|![New Migration](https://dl.gitea.io/screenshots/migration.png)|![Migrating](https://dl.gitea.io/screenshots/migration.gif)|![Pull Request View](https://image.ibb.co/e02dSb/6.png)
-![Pull Request Dark](https://dl.gitea.io/screenshots/pull_requests_dark.png)|![Diff Review Dark](https://dl.gitea.io/screenshots/review_dark.png)|![Diff Dark](https://dl.gitea.io/screenshots/diff_dark.png)|
+|![Branches](https://dl.gitea.com/screenshots/branches.png)|![Web Editor](https://dl.gitea.com/screenshots/web_editor.png)|![Activity](https://dl.gitea.com/screenshots/activity.png)|
+|![New Migration](https://dl.gitea.com/screenshots/migration.png)|![Migrating](https://dl.gitea.com/screenshots/migration.gif)|![Pull Request View](https://image.ibb.co/e02dSb/6.png)
+![Pull Request Dark](https://dl.gitea.com/screenshots/pull_requests_dark.png)|![Diff Review Dark](https://dl.gitea.com/screenshots/review_dark.png)|![Diff Dark](https://dl.gitea.com/screenshots/diff_dark.png)|

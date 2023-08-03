@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cmd
 
@@ -9,11 +8,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 // CmdDocs represents the available docs sub-command.
-var CmdDocs = cli.Command{
+var CmdDocs = &cli.Command{
 	Name:        "docs",
 	Usage:       "Output CLI documentation",
 	Description: "A command to output Gitea's CLI documentation, optionally to a file.",
@@ -24,8 +23,9 @@ var CmdDocs = cli.Command{
 			Usage: "Output man pages instead",
 		},
 		&cli.StringFlag{
-			Name:  "output, o",
-			Usage: "Path to output to instead of stdout (will overwrite if exists)",
+			Name:    "output",
+			Aliases: []string{"o"},
+			Usage:   "Path to output to instead of stdout (will overwrite if exists)",
 		},
 	},
 }
@@ -43,7 +43,11 @@ func runDocs(ctx *cli.Context) error {
 		// Clean up markdown. The following bug was fixed in v2, but is present in v1.
 		// It affects markdown output (even though the issue is referring to man pages)
 		// https://github.com/urfave/cli/issues/1040
-		docs = docs[strings.Index(docs, "#"):]
+		firstHashtagIndex := strings.Index(docs, "#")
+
+		if firstHashtagIndex > 0 {
+			docs = docs[firstHashtagIndex:]
+		}
 	}
 
 	out := os.Stdout

@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package validation
 
@@ -9,6 +8,9 @@ import (
 	"regexp"
 	"strings"
 
+	"code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/git"
+
 	"gitea.com/go-chi/binding"
 	"github.com/gobwas/glob"
 )
@@ -16,43 +18,26 @@ import (
 const (
 	// ErrGitRefName is git reference name error
 	ErrGitRefName = "GitRefNameError"
-
 	// ErrGlobPattern is returned when glob pattern is invalid
 	ErrGlobPattern = "GlobPattern"
+	// ErrRegexPattern is returned when a regex pattern is invalid
+	ErrRegexPattern = "RegexPattern"
+	// ErrUsername is username error
+	ErrUsername = "UsernameError"
+	// ErrInvalidGroupTeamMap is returned when a group team mapping is invalid
+	ErrInvalidGroupTeamMap = "InvalidGroupTeamMap"
 )
-
-var (
-	// GitRefNamePatternInvalid is regular expression with unallowed characters in git reference name
-	// They cannot have ASCII control characters (i.e. bytes whose values are lower than \040, or \177 DEL), space, tilde ~, caret ^, or colon : anywhere.
-	// They cannot have question-mark ?, asterisk *, or open bracket [ anywhere
-	GitRefNamePatternInvalid = regexp.MustCompile(`[\000-\037\177 \\~^:?*[]+`)
-)
-
-// CheckGitRefAdditionalRulesValid check name is valid on additional rules
-func CheckGitRefAdditionalRulesValid(name string) bool {
-
-	// Additional rules as described at https://www.kernel.org/pub/software/scm/git/docs/git-check-ref-format.html
-	if strings.HasPrefix(name, "/") || strings.HasSuffix(name, "/") ||
-		strings.HasSuffix(name, ".") || strings.Contains(name, "..") ||
-		strings.Contains(name, "//") || strings.Contains(name, "@{") ||
-		name == "@" {
-		return false
-	}
-	parts := strings.Split(name, "/")
-	for _, part := range parts {
-		if strings.HasSuffix(part, ".lock") || strings.HasPrefix(part, ".") {
-			return false
-		}
-	}
-
-	return true
-}
 
 // AddBindingRules adds additional binding rules
 func AddBindingRules() {
 	addGitRefNameBindingRule()
 	addValidURLBindingRule()
+	addValidSiteURLBindingRule()
 	addGlobPatternRule()
+	addRegexPatternRule()
+	addGlobOrRegexPatternRule()
+	addUsernamePatternRule()
+	addValidGroupTeamMapRule()
 }
 
 func addGitRefNameBindingRule() {
@@ -61,19 +46,13 @@ func addGitRefNameBindingRule() {
 		IsMatch: func(rule string) bool {
 			return strings.HasPrefix(rule, "GitRefName")
 		},
-		IsValid: func(errs binding.Errors, name string, val interface{}) (bool, binding.Errors) {
+		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
 			str := fmt.Sprintf("%v", val)
 
-			if GitRefNamePatternInvalid.MatchString(str) {
+			if !git.IsValidRefPattern(str) {
 				errs.Add([]string{name}, ErrGitRefName, "GitRefName")
 				return false, errs
 			}
-
-			if !CheckGitRefAdditionalRulesValid(str) {
-				errs.Add([]string{name}, ErrGitRefName, "GitRefName")
-				return false, errs
-			}
-
 			return true, errs
 		},
 	})
@@ -85,9 +64,27 @@ func addValidURLBindingRule() {
 		IsMatch: func(rule string) bool {
 			return strings.HasPrefix(rule, "ValidUrl")
 		},
-		IsValid: func(errs binding.Errors, name string, val interface{}) (bool, binding.Errors) {
+		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
 			str := fmt.Sprintf("%v", val)
 			if len(str) != 0 && !IsValidURL(str) {
+				errs.Add([]string{name}, binding.ERR_URL, "Url")
+				return false, errs
+			}
+
+			return true, errs
+		},
+	})
+}
+
+func addValidSiteURLBindingRule() {
+	// URL validation rule
+	binding.AddRule(&binding.Rule{
+		IsMatch: func(rule string) bool {
+			return strings.HasPrefix(rule, "ValidSiteUrl")
+		},
+		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
+			str := fmt.Sprintf("%v", val)
+			if len(str) != 0 && !IsValidSiteURL(str) {
 				errs.Add([]string{name}, binding.ERR_URL, "Url")
 				return false, errs
 			}
@@ -102,14 +99,85 @@ func addGlobPatternRule() {
 		IsMatch: func(rule string) bool {
 			return rule == "GlobPattern"
 		},
-		IsValid: func(errs binding.Errors, name string, val interface{}) (bool, binding.Errors) {
-			str := fmt.Sprintf("%v", val)
+		IsValid: globPatternValidator,
+	})
+}
 
-			if len(str) != 0 {
-				if _, err := glob.Compile(str); err != nil {
-					errs.Add([]string{name}, ErrGlobPattern, err.Error())
-					return false, errs
-				}
+func globPatternValidator(errs binding.Errors, name string, val any) (bool, binding.Errors) {
+	str := fmt.Sprintf("%v", val)
+
+	if len(str) != 0 {
+		if _, err := glob.Compile(str); err != nil {
+			errs.Add([]string{name}, ErrGlobPattern, err.Error())
+			return false, errs
+		}
+	}
+
+	return true, errs
+}
+
+func addRegexPatternRule() {
+	binding.AddRule(&binding.Rule{
+		IsMatch: func(rule string) bool {
+			return rule == "RegexPattern"
+		},
+		IsValid: regexPatternValidator,
+	})
+}
+
+func regexPatternValidator(errs binding.Errors, name string, val any) (bool, binding.Errors) {
+	str := fmt.Sprintf("%v", val)
+
+	if _, err := regexp.Compile(str); err != nil {
+		errs.Add([]string{name}, ErrRegexPattern, err.Error())
+		return false, errs
+	}
+
+	return true, errs
+}
+
+func addGlobOrRegexPatternRule() {
+	binding.AddRule(&binding.Rule{
+		IsMatch: func(rule string) bool {
+			return rule == "GlobOrRegexPattern"
+		},
+		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
+			str := strings.TrimSpace(fmt.Sprintf("%v", val))
+
+			if len(str) >= 2 && strings.HasPrefix(str, "/") && strings.HasSuffix(str, "/") {
+				return regexPatternValidator(errs, name, str[1:len(str)-1])
+			}
+			return globPatternValidator(errs, name, val)
+		},
+	})
+}
+
+func addUsernamePatternRule() {
+	binding.AddRule(&binding.Rule{
+		IsMatch: func(rule string) bool {
+			return rule == "Username"
+		},
+		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
+			str := fmt.Sprintf("%v", val)
+			if !IsValidUsername(str) {
+				errs.Add([]string{name}, ErrUsername, "invalid username")
+				return false, errs
+			}
+			return true, errs
+		},
+	})
+}
+
+func addValidGroupTeamMapRule() {
+	binding.AddRule(&binding.Rule{
+		IsMatch: func(rule string) bool {
+			return strings.HasPrefix(rule, "ValidGroupTeamMap")
+		},
+		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
+			_, err := auth.UnmarshalGroupTeamMapping(fmt.Sprintf("%v", val))
+			if err != nil {
+				errs.Add([]string{name}, ErrInvalidGroupTeamMap, err.Error())
+				return false, errs
 			}
 
 			return true, errs

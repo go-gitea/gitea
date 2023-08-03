@@ -2,7 +2,15 @@
 
 if [ ! -d /data/git/.ssh ]; then
     mkdir -p /data/git/.ssh
-    chmod 700 /data/git/.ssh
+fi
+
+# Set the correct permissions on the .ssh directory and authorized_keys file,
+# or sshd will refuse to use them and lead to clone/push/pull failures.
+# It could happen when users have copied their data to a new volume and changed the file permission by accident,
+# and it would be very hard to troubleshoot unless users know how to check the logs of sshd which is started by s6.
+chmod 700 /data/git/.ssh
+if [ -f /data/git/.ssh/authorized_keys ]; then
+    chmod 600 /data/git/.ssh/authorized_keys
 fi
 
 if [ ! -f /data/git/.ssh/environment ]; then
@@ -23,7 +31,7 @@ if [ ! -f ${GITEA_CUSTOM}/conf/app.ini ]; then
         INSTALL_LOCK=true
     fi
 
-    # Substitude the environment variables in the template
+    # Substitute the environment variables in the template
     APP_NAME=${APP_NAME:-"Gitea: Git with a cup of tea"} \
     RUN_MODE=${RUN_MODE:-"prod"} \
     DOMAIN=${DOMAIN:-"localhost"} \
@@ -47,6 +55,9 @@ if [ ! -f ${GITEA_CUSTOM}/conf/app.ini ]; then
 
     chown ${USER}:git ${GITEA_CUSTOM}/conf/app.ini
 fi
+
+# Replace app.ini settings with env variables in the form GITEA__SECTION_NAME__KEY_NAME
+environment-to-ini --config ${GITEA_CUSTOM}/conf/app.ini
 
 # only chown if current owner is not already the gitea ${USER}. No recursive check to save time
 if ! [[ $(ls -ld /data/gitea | awk '{print $3}') = ${USER} ]]; then chown -R ${USER}:git /data/gitea; fi

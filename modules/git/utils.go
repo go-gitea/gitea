@@ -1,6 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -13,20 +12,20 @@ import (
 	"sync"
 )
 
-// ObjectCache provides thread-safe cache opeations.
+// ObjectCache provides thread-safe cache operations.
 type ObjectCache struct {
 	lock  sync.RWMutex
-	cache map[string]interface{}
+	cache map[string]any
 }
 
 func newObjectCache() *ObjectCache {
 	return &ObjectCache{
-		cache: make(map[string]interface{}, 10),
+		cache: make(map[string]any, 10),
 	}
 }
 
 // Set add obj to cache
-func (oc *ObjectCache) Set(id string, obj interface{}) {
+func (oc *ObjectCache) Set(id string, obj any) {
 	oc.lock.Lock()
 	defer oc.lock.Unlock()
 
@@ -34,7 +33,7 @@ func (oc *ObjectCache) Set(id string, obj interface{}) {
 }
 
 // Get get cached obj by id
-func (oc *ObjectCache) Get(id string) (interface{}, bool) {
+func (oc *ObjectCache) Get(id string) (any, bool) {
 	oc.lock.RLock()
 	defer oc.lock.RUnlock()
 
@@ -77,45 +76,6 @@ func ConcatenateError(err error, stderr string) error {
 	return fmt.Errorf("%w - %s", err, stderr)
 }
 
-// RefEndName return the end name of a ref name
-func RefEndName(refStr string) string {
-	if strings.HasPrefix(refStr, BranchPrefix) {
-		return refStr[len(BranchPrefix):]
-	}
-
-	if strings.HasPrefix(refStr, TagPrefix) {
-		return refStr[len(TagPrefix):]
-	}
-
-	return refStr
-}
-
-// RefURL returns the absolute URL for a ref in a repository
-func RefURL(repoURL, ref string) string {
-	refName := RefEndName(ref)
-	switch {
-	case strings.HasPrefix(ref, BranchPrefix):
-		return repoURL + "/src/branch/" + refName
-	case strings.HasPrefix(ref, TagPrefix):
-		return repoURL + "/src/tag/" + refName
-	default:
-		return repoURL + "/src/commit/" + refName
-	}
-}
-
-// SplitRefName splits a full refname to reftype and simple refname
-func SplitRefName(refStr string) (string, string) {
-	if strings.HasPrefix(refStr, BranchPrefix) {
-		return BranchPrefix, refStr[len(BranchPrefix):]
-	}
-
-	if strings.HasPrefix(refStr, TagPrefix) {
-		return TagPrefix, refStr[len(TagPrefix):]
-	}
-
-	return "", refStr
-}
-
 // ParseBool returns the boolean value represented by the string as per git's git_config_bool
 // true will be returned for the result if the string is empty, but valid will be false.
 // "true", "yes", "on" are all true, true
@@ -123,7 +83,7 @@ func SplitRefName(refStr string) (string, string) {
 // 0 is false, true
 // Any other integer is true, true
 // Anything else will return false, false
-func ParseBool(value string) (result bool, valid bool) {
+func ParseBool(value string) (result, valid bool) {
 	// Empty strings are true but invalid
 	if len(value) == 0 {
 		return true, false
@@ -161,7 +121,7 @@ func (l *LimitedReaderCloser) Read(p []byte) (n int, err error) {
 	}
 	n, err = l.R.Read(p)
 	l.N -= int64(n)
-	return
+	return n, err
 }
 
 // Close implements io.Closer

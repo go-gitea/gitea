@@ -1,13 +1,13 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package session
 
 import (
-	"encoding/json"
 	"fmt"
 	"sync"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"gitea.com/go-chi/session"
 	couchbase "gitea.com/go-chi/session/couchbase"
@@ -39,6 +39,8 @@ func (o *VirtualSessionProvider) Init(gclifetime int64, config string) error {
 		o.provider = &session.FileProvider{}
 	case "redis":
 		o.provider = &RedisProvider{}
+	case "db":
+		o.provider = &DBProvider{}
 	case "mysql":
 		o.provider = &mysql.MysqlProvider{}
 	case "postgres":
@@ -60,7 +62,7 @@ func (o *VirtualSessionProvider) Read(sid string) (session.RawStore, error) {
 	if o.provider.Exist(sid) {
 		return o.provider.Read(sid)
 	}
-	kv := make(map[interface{}]interface{})
+	kv := make(map[any]any)
 	kv["_old_uid"] = "0"
 	return NewVirtualStore(o, sid, kv), nil
 }
@@ -105,12 +107,12 @@ type VirtualStore struct {
 	p        *VirtualSessionProvider
 	sid      string
 	lock     sync.RWMutex
-	data     map[interface{}]interface{}
+	data     map[any]any
 	released bool
 }
 
 // NewVirtualStore creates and returns a virtual session store.
-func NewVirtualStore(p *VirtualSessionProvider, sid string, kv map[interface{}]interface{}) *VirtualStore {
+func NewVirtualStore(p *VirtualSessionProvider, sid string, kv map[any]any) *VirtualStore {
 	return &VirtualStore{
 		p:    p,
 		sid:  sid,
@@ -119,7 +121,7 @@ func NewVirtualStore(p *VirtualSessionProvider, sid string, kv map[interface{}]i
 }
 
 // Set sets value to given key in session.
-func (s *VirtualStore) Set(key, val interface{}) error {
+func (s *VirtualStore) Set(key, val any) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -128,7 +130,7 @@ func (s *VirtualStore) Set(key, val interface{}) error {
 }
 
 // Get gets value by given key in session.
-func (s *VirtualStore) Get(key interface{}) interface{} {
+func (s *VirtualStore) Get(key any) any {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
@@ -136,7 +138,7 @@ func (s *VirtualStore) Get(key interface{}) interface{} {
 }
 
 // Delete delete a key from session.
-func (s *VirtualStore) Delete(key interface{}) error {
+func (s *VirtualStore) Delete(key any) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -190,6 +192,6 @@ func (s *VirtualStore) Flush() error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	s.data = make(map[interface{}]interface{})
+	s.data = make(map[any]any)
 	return nil
 }

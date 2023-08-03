@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package util
 
@@ -41,9 +40,11 @@ const (
 	needsSingleQuote = "!\n"
 )
 
-var doubleQuoteEscaper = strings.NewReplacer(`$`, `\$`, "`", "\\`", `"`, `\"`, `\`, `\\`)
-var singleQuoteEscaper = strings.NewReplacer(`'`, `'\''`)
-var singleQuoteCoalescer = strings.NewReplacer(`''\'`, `\'`, `\'''`, `\'`)
+var (
+	doubleQuoteEscaper   = strings.NewReplacer(`$`, `\$`, "`", "\\`", `"`, `\"`, `\`, `\\`)
+	singleQuoteEscaper   = strings.NewReplacer(`'`, `'\''`)
+	singleQuoteCoalescer = strings.NewReplacer(`''\'`, `\'`, `\'''`, `\'`)
+)
 
 // ShellEscape will escape the provided string.
 // We can't just use go-shellquote here because our preferences for escaping differ from those in that we want:
