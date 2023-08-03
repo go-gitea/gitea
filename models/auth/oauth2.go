@@ -329,6 +329,13 @@ func DeleteOAuth2Application(id, userid int64) error {
 		return err
 	}
 	defer committer.Close()
+	app, err := GetOAuth2ApplicationByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if app.Locked {
+		return fmt.Errorf("failed to delete OAuth2 application: application is locked: %s", app.ClientID)
+	}
 	if err := deleteOAuth2Application(ctx, id, userid); err != nil {
 		return err
 	}
