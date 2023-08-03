@@ -124,7 +124,6 @@ menu:
 - `INSTALL_LOCK`: 是否允许运行安装向导，(跟管理员账号有关，十分重要)。
 - `SECRET_KEY`: 全局服务器安全密钥 **最好改成你自己的** (当你运行安装向导的时候会被设置为一个随机值)。
 - `LOGIN_REMEMBER_DAYS`: Cookie 保存时间，单位天。
-- `COOKIE_USERNAME`: 保存用户名的 cookie 名称。
 - `COOKIE_REMEMBER_NAME`: 保存自动登录信息的 cookie 名称。
 - `REVERSE_PROXY_AUTHENTICATION_USER`: 反向代理认证的 HTTP 头名称。
 

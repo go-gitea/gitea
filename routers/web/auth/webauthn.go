@@ -26,8 +26,7 @@ var tplWebAuthn base.TplName = "user/auth/webauthn"
 func WebAuthn(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("twofa")
 
-	// Check auto-login.
-	if checkAutoLogin(ctx) {
+	if CheckAutoLogin(ctx) {
 		return
 	}
 

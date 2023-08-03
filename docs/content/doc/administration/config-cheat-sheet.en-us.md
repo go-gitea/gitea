@@ -519,7 +519,6 @@ And the following unique queues:
 - `SECRET_KEY`: **\<random at every install\>**: Global secret key. This key is VERY IMPORTANT, if you lost it, the data encrypted by it (like 2FA secret) can't be decrypted anymore.
 - `SECRET_KEY_URI`: **\<empty\>**: Instead of defining SECRET_KEY, this option can be used to use the key stored in a file (example value: `file:/etc/gitea/secret_key`). It shouldn't be lost like SECRET_KEY.
 - `LOGIN_REMEMBER_DAYS`: **7**: Cookie lifetime, in days.
-- `COOKIE_USERNAME`: **gitea\_awesome**: Name of the cookie used to store the current username.
 - `COOKIE_REMEMBER_NAME`: **gitea\_incredible**: Name of cookie used to store authentication
    information.
 - `REVERSE_PROXY_AUTHENTICATION_USER`: **X-WEBAUTH-USER**: Header name for reverse proxy
@@ -955,6 +954,12 @@ Default templates for project boards:
 
 - `SCHEDULE`: **@midnight** : Interval as a duration between each synchronization, it will always attempt synchronization when the instance starts.
 - `UPDATE_EXISTING`: **true**: Create new users, update existing user data and disable users that are not in external source anymore (default) or only create new users if UPDATE_EXISTING is set to false.
+
+#### Cron - Cleanup auth tokens (`cron.cleanup_auth_tokens`)
+
+- `ENABLED`: **true**: Enable cleanup of expired auth tokens.
+- `RUN_AT_START`: **false**: Run job at start time (if ENABLED).
+- `SCHEDULE`: **@midnight**: Cron syntax for the job.
 
 ### Extended cron tasks (not enabled by default)
 

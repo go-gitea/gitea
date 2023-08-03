@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	auth_model "code.gitea.io/gitea/models/auth"
 	git_model "code.gitea.io/gitea/models/git"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
@@ -156,6 +157,16 @@ func registerCleanupPackages() {
 	})
 }
 
+func registerCleanupAuthTokens() {
+	RegisterTaskFatal("cleanup_auth_tokens", &BaseConfig{
+		Enabled:    true,
+		RunAtStart: true,
+		Schedule:   "@midnight",
+	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
+		return auth_model.DeleteExpiredAuthTokens(ctx)
+	})
+}
+
 func initBasicTasks() {
 	if setting.Mirror.Enabled {
 		registerUpdateMirrorTask()
@@ -172,4 +183,5 @@ func initBasicTasks() {
 	if setting.Packages.Enabled {
 		registerCleanupPackages()
 	}
+	registerCleanupAuthTokens()
 }
