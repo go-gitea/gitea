@@ -21,27 +21,35 @@
 						</form>
 					</div>
 				{{end}}
-				<div class="ui bottom attached table segment members">
-					{{range .Team.Members}}
-						<div class="item gt-df gt-ac gt-fw">
-							<a href="{{.HomeLink}}">{{avatar $.Context . 48 "gt-mr-3 gt-mb-0"}}</a>
-							<a class="gt-f1" href="{{.HomeLink}}">
-								<strong>{{.DisplayName}}</strong>
-							</a>
-							{{if and $.IsOrganizationOwner (not (and ($.Team.IsOwnerTeam) (eq (len $.Team.Members) 1)))}}
-								<form>
-									<button class="ui red button delete-button" data-modal-id="remove-team-member"
-										data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove" data-datauid="{{.ID}}"
-										data-name="{{.DisplayName}}"
-										data-data-team-name="{{$.Team.Name}}">{{$.locale.Tr "org.members.remove"}}</button>
-								</form>
-							{{end}}
-						</div>
-					{{else}}
-						<div class="item">
-							<span class="text grey italic">{{$.locale.Tr "org.teams.members.none"}}</span>
-						</div>
-					{{end}}
+				<div class="ui attached segment">
+					<div class="flex-list">
+						{{range .Team.Members}}
+							<div class="flex-item flex-item-center">
+								<div class="flex-item-leading">
+									<a href="{{.HomeLink}}">{{avatar $.Context . 32}}</a>
+								</div>
+								<div class="flex-item-main">
+									<div class="flex-item-title">
+										{{template "shared/user/name" .}}
+									</div>
+								</div>
+								<div class="flex-item-trailing">
+									{{if and $.IsOrganizationOwner (not (and ($.Team.IsOwnerTeam) (eq (len $.Team.Members) 1)))}}
+										<form>
+											<button class="ui red button delete-button" data-modal-id="remove-team-member"
+												data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove" data-datauid="{{.ID}}"
+												data-name="{{.DisplayName}}"
+												data-data-team-name="{{$.Team.Name}}">{{$.locale.Tr "org.members.remove"}}</button>
+										</form>
+									{{end}}
+								</div>
+							</div>
+						{{else}}
+							<div class="flex-item">
+								<span class="text grey italic">{{$.locale.Tr "org.teams.members.none"}}</span>
+							</div>
+						{{end}}
+					</div>
 				</div>
 				{{if and .Invites $.IsOrganizationOwner}}
 				<h4 class="ui top attached header">{{$.locale.Tr "org.teams.invite_team_member.list"}}</h4>

@@ -87,18 +87,6 @@
   }
 }
 
-.projects-header {
-  margin-bottom: 1rem;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.projects-toolbar {
-  display: flex;
-  justify-content: space-between;
-  padding-left: 4px;
-}
-
 .repository .issue-content-right .menu {
   overflow-x: auto;
   max-height: 500px;
@@ -582,15 +570,6 @@
 .repository.options #interval {
   width: 100px !important;
   min-width: 100px;
-}
-
-.repository.options .danger .item {
-  padding: 20px 15px;
-}
-
-.repository.options .danger .ui.divider {
-  margin: 0;
-  border-color: var(--color-error-border);
 }
 
 .repository.new.issue .comment.form .comment .avatar {
@@ -1925,15 +1904,6 @@
   flex-wrap: wrap;
 }
 
-.repository.settings.collaboration .collaborator.list {
-  padding: 0;
-}
-
-.repository.settings.collaboration .collaborator.list > .item {
-  margin: 0;
-  line-height: 2;
-}
-
 .repository.settings.collaboration #repo-collab-form #search-user-box .results {
   left: 7px;
 }
@@ -2385,15 +2355,6 @@
 .settings .list > .item .info .tab.segment {
   border: 0;
   padding: 10px 0 0;
-}
-
-.settings .list.key .meta {
-  padding-top: 5px;
-  color: var(--color-text-light-2);
-}
-
-.settings .list.collaborator > .item {
-  padding: 0;
 }
 
 .ui.vertical.menu .header.item {
