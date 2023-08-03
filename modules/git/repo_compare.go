@@ -280,43 +280,19 @@ func (repo *Repository) GetPatch(base, head string, w io.Writer) error {
 }
 
 // GetFilesChangedBetween returns a list of all files that have been changed between the given commits
+// If base is undefined empty SHA (zeros), it only returns the files changed in the head commit
 func (repo *Repository) GetFilesChangedBetween(base, head string) ([]string, error) {
-	stdout, _, err := NewCommand(repo.Ctx, "diff", "--name-only", "-z").AddDynamicArguments(base + ".." + head).RunStdString(&RunOpts{Dir: repo.Path})
+	var stdout string
+	var err error
+	if base == EmptySHA {
+		stdout, _, err = NewCommand(repo.Ctx, "diff-tree", "--name-only", "--root", "--no-commit-id", "-r", "-z").AddDynamicArguments(head).RunStdString(&RunOpts{Dir: repo.Path})
+	} else {
+		stdout, _, err = NewCommand(repo.Ctx, "diff", "--name-only", "-z").AddDynamicArguments(base + ".." + head).RunStdString(&RunOpts{Dir: repo.Path})
+	}
 	if err != nil {
 		return nil, err
 	}
 	split := strings.Split(stdout, "\000")
-
-	// Because Git will always emit filenames with a terminal NUL ignore the last entry in the split - which will always be empty.
-	if len(split) > 0 {
-		split = split[:len(split)-1]
-	}
-
-	return split, err
-}
-
-// GetCommitFilesChanged get the changed file names of the specified commit
-func (repo *Repository) GetCommitFilesChanged(commitID string) ([]string, error) {
-	id, err := repo.ConvertToSHA1(commitID)
-	if err != nil {
-		return nil, err
-	}
-	commit, err := repo.getCommit(id)
-	if err != nil {
-		return nil, err
-	}
-	var stdout string
-	if len(commit.Parents) == 0 {
-		// if the commit is the root commit, diff-tree cannot show the changed files
-		// we need to use ls-tree in this case
-		stdout, _, err = NewCommand(repo.Ctx, "ls-tree", "--name-only", "-r").AddDynamicArguments(commitID).RunStdString(&RunOpts{Dir: repo.Path})
-	} else {
-		stdout, _, err = NewCommand(repo.Ctx, "diff-tree", "--no-commit-id", "--name-only", "-r").AddDynamicArguments(commitID).RunStdString(&RunOpts{Dir: repo.Path})
-	}
-	if err != nil {
-		return nil, err
-	}
-	split := strings.Split(stdout, "\n")
 
 	// Because Git will always emit filenames with a terminal NUL ignore the last entry in the split - which will always be empty.
 	if len(split) > 0 {
