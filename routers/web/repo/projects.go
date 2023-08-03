@@ -216,9 +216,7 @@ func DeleteProject(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.projects.deletion_success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": ctx.Repo.RepoLink + "/projects",
-	})
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/projects")
 }
 
 // RenderEditProject allows a project to be edited
@@ -410,9 +408,7 @@ func UpdateIssueProject(ctx *context.Context) {
 		}
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }
 
 // DeleteProjectBoard allows for the deletion of a project board
@@ -465,9 +461,7 @@ func DeleteProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }
 
 // AddBoardToProjectPost allows a new board to be added to a project.
@@ -500,9 +494,7 @@ func AddBoardToProjectPost(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }
 
 func checkProjectBoardChangePermissions(ctx *context.Context) (*project_model.Project, *project_model.Board) {
@@ -574,9 +566,7 @@ func EditProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }
 
 // SetDefaultProjectBoard set default board for uncategorized issues/pulls
@@ -591,9 +581,7 @@ func SetDefaultProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }
 
 // UnSetDefaultProjectBoard unset default board for uncategorized issues/pulls
@@ -608,9 +596,7 @@ func UnSetDefaultProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }
 
 // MoveIssues moves or keeps issues in a column and sorts them inside that column
@@ -712,7 +698,5 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }

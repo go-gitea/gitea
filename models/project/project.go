@@ -388,7 +388,10 @@ func GetSearchOrderByBySortType(sortType string) db.SearchOrderBy {
 
 // FindProjects returns a list of all projects that have been created in the repository
 func FindProjects(ctx context.Context, opts SearchOptions) (ProjectList, int64, error) {
-	e := db.GetEngine(ctx).Where(opts.toConds()).OrderBy(opts.OrderBy.String())
+	e := db.GetEngine(ctx).Where(opts.toConds())
+	if opts.OrderBy.String() != "" {
+		e = e.OrderBy(opts.OrderBy.String())
+	}
 	projects := make(ProjectList, 0, setting.UI.IssuePagingNum)
 
 	if opts.Page > 0 {
