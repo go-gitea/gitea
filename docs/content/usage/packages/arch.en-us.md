@@ -45,7 +45,7 @@ Following command will upload arch package and related signature to gitea. Examp
 ```sh
 curl -X PUT \
   https://{domain}/api/packages/{owner}/arch/push/{package-1-1-x86_64.pkg.tar.zst}/{archlinux}/$(xxd -p package-1-1-x86_64.pkg.tar.zst.sig | tr -d '\n') \
-  --header "{username}:{password}" \
+  --user your_username:your_token_or_password \
   --header "Content-Type: application/octet-stream" \
   --data-binary '@/path/to/package/file/package-1-1-x86_64.pkg.tar.zst'
 ```
@@ -56,10 +56,10 @@ Delete operation will remove specific package version, and all package files rel
 
 ```sh
 curl -X DELETE \
-  https://{domain}/api/packages/{user}/arch/remove{package}/{version} \
-  --header "{username}:{password}"
+  https://{domain}/api/packages/{user}/arch/remove/{package}/{version} \
+  --user your_username:your_token_or_password
 ```
 
 ## Clients
 
-Any `pacman` compatible package manager/AUR-helper can be used to install packages from gitea ([yay](https://github.com/Jguer/yay), [paru](https://github.com/Morganamilo/paru), [pikaur](https://github.com/actionless/pikaur), [aura](https://github.com/fosskers/aura)). Alternatively, you can try [pack](https://fmnx.su/core/pack) which supports full gitea API (install/push/remove). Also, any HTTP client can be used to execute push/remove operations ([curl](https://curl.se/), [postman](https://www.postman.com/), [thunder-client](https://www.thunderclient.com/)).
+Any `pacman` compatible package manager/AUR-helper can be used to install packages from gitea ([yay](https://github.com/Jguer/yay), [paru](https://github.com/Morganamilo/paru), [pikaur](https://github.com/actionless/pikaur), [aura](https://github.com/fosskers/aura)). Alternatively, you can try [pack](https://fmnx.su/core/pack) which supports full gitea API (install/push/remove). Also, any HTTP client can be used to execute get/push/remove operations ([curl](https://curl.se/), [postman](https://www.postman.com/), [thunder-client](https://www.thunderclient.com/)).
