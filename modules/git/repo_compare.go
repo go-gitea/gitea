@@ -287,7 +287,7 @@ func (repo *Repository) GetFilesChangedBetween(base, head string) ([]string, err
 	if base == EmptySHA {
 		cmd.AddDynamicArguments(head)
 	} else {
-		cmd.AddDynamicArguments(base + ".." + head)
+		cmd.AddDynamicArguments(base, head)
 	}
 	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repo.Path})
 	if err != nil {
