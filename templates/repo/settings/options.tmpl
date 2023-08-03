@@ -753,18 +753,18 @@
 					<div class="ui right">
 						<button class="ui basic red show-modal button" data-modal="#repo-visibility-modal">
 							{{if not .Repository.IsPrivate}}
-								{{.locale.Tr "repo.visibility_helper_private" | Safe}}
+								{{.locale.Tr "repo.visibility_helper_private"}}
 							{{else}}
-								{{.locale.Tr "repo.visibility_helper_public" | Safe}}
+								{{.locale.Tr "repo.visibility_helper_public"}}
 							{{end}}
 							</button>
 					</div>
 					<div>
 						<h5>
 							{{if not .Repository.IsPrivate}}
-								{{.locale.Tr "repo.visibility_helper_private" | Safe}}
+								{{.locale.Tr "repo.visibility_helper_private"}}
 							{{else}}
-								{{.locale.Tr "repo.visibility_helper_public" | Safe}}
+								{{.locale.Tr "repo.visibility_helper_public"}}
 							{{end}}
 						</h5>
 						{{if and (not .Repository.IsPrivate) (gt .Repository.NumStars 0)}}
