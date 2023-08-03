@@ -32,3 +32,36 @@
     order: 2 !important;
   }
 }
+
+#issue-list .flex-item-body .branches {
+  display: inline-flex;
+}
+
+#issue-list .flex-item-body .branches .branch {
+  background-color: var(--color-secondary-alpha-40);
+  border-radius: 3px;
+  padding: 0 4px;
+}
+
+#issue-list .flex-item-body .branches .truncated-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 10em;
+}
+
+#issue-list .flex-item-body .checklist progress {
+  margin-left: 2px;
+  width: 80px;
+  height: 6px;
+  display: inline-block;
+  border-radius: 3px;
+}
+
+#issue-list .flex-item-body .checklist progress::-webkit-progress-value {
+  background-color: var(--color-secondary-dark-4);
+}
+
+#issue-list .flex-item-body .checklist progress::-moz-progress-bar {
+  background-color: var(--color-secondary-dark-4);
+}

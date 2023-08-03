@@ -13,6 +13,7 @@ import (
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -354,7 +355,7 @@ func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 		return err
 	}
 
-	if err = issue.Comments.loadAttributes(ctx); err != nil {
+	if err = issue.Comments.LoadAttributes(ctx); err != nil {
 		return err
 	}
 	if issue.IsTimetrackerEnabled(ctx) {
@@ -502,7 +503,7 @@ func (issue *Issue) GetLastEventLabelFake() string {
 }
 
 // GetIssueByIndex returns raw issue without loading attributes by index in a repository.
-func GetIssueByIndex(repoID, index int64) (*Issue, error) {
+func GetIssueByIndex(ctx context.Context, repoID, index int64) (*Issue, error) {
 	if index < 1 {
 		return nil, ErrIssueNotExist{}
 	}
@@ -510,7 +511,7 @@ func GetIssueByIndex(repoID, index int64) (*Issue, error) {
 		RepoID: repoID,
 		Index:  index,
 	}
-	has, err := db.GetEngine(db.DefaultContext).Get(issue)
+	has, err := db.GetEngine(ctx).Get(issue)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -520,12 +521,12 @@ func GetIssueByIndex(repoID, index int64) (*Issue, error) {
 }
 
 // GetIssueWithAttrsByIndex returns issue by index in a repository.
-func GetIssueWithAttrsByIndex(repoID, index int64) (*Issue, error) {
-	issue, err := GetIssueByIndex(repoID, index)
+func GetIssueWithAttrsByIndex(ctx context.Context, repoID, index int64) (*Issue, error) {
+	issue, err := GetIssueByIndex(ctx, repoID, index)
 	if err != nil {
 		return nil, err
 	}
-	return issue, issue.LoadAttributes(db.DefaultContext)
+	return issue, issue.LoadAttributes(ctx)
 }
 
 // GetIssueByID returns an issue by given ID.
@@ -550,9 +551,30 @@ func GetIssueWithAttrsByID(id int64) (*Issue, error) {
 }
 
 // GetIssuesByIDs return issues with the given IDs.
-func GetIssuesByIDs(ctx context.Context, issueIDs []int64) (IssueList, error) {
-	issues := make([]*Issue, 0, 10)
-	return issues, db.GetEngine(ctx).In("id", issueIDs).Find(&issues)
+// If keepOrder is true, the order of the returned issues will be the same as the given IDs.
+func GetIssuesByIDs(ctx context.Context, issueIDs []int64, keepOrder ...bool) (IssueList, error) {
+	issues := make([]*Issue, 0, len(issueIDs))
+
+	if err := db.GetEngine(ctx).In("id", issueIDs).Find(&issues); err != nil {
+		return nil, err
+	}
+
+	if len(keepOrder) > 0 && keepOrder[0] {
+		m := make(map[int64]*Issue, len(issues))
+		appended := container.Set[int64]{}
+		for _, issue := range issues {
+			m[issue.ID] = issue
+		}
+		issues = issues[:0]
+		for _, id := range issueIDs {
+			if issue, ok := m[id]; ok && !appended.Contains(id) { // make sure the id is existed and not appended
+				appended.Add(id)
+				issues = append(issues, issue)
+			}
+		}
+	}
+
+	return issues, nil
 }
 
 // GetIssueIDsByRepoID returns all issue ids by repo id
@@ -846,7 +868,7 @@ func GetPinnedIssues(ctx context.Context, repoID int64, isPull bool) ([]*Issue, 
 		return nil, err
 	}
 
-	err = IssueList(issues).LoadAttributes()
+	err = IssueList(issues).LoadAttributes(ctx)
 	if err != nil {
 		return nil, err
 	}
