@@ -844,9 +844,18 @@ func EditIssue(ctx *context.APIContext) {
 			}
 		}
 		issue.IsClosed = api.StateClosed == api.StateType(*form.State)
-		issue.ClosedStatus = issues_model.IssueClosedStatus(0)
-		if issue.IsClosed {
-			issue.ClosedStatus = issues_model.IssueClosedStatus(form.ClosedStatus)
+		issue.ClosedStatus = issues_model.IssueClosedStatusCommonClose
+		if issue.IsClosed && form.ClosedStatus != nil {
+			switch *form.ClosedStatus {
+			case api.ClosedStatusArchived:
+				issue.ClosedStatus = issues_model.IssueClosedStatusArchived
+			case api.ClosedStatusResolved:
+				issue.ClosedStatus = issues_model.IssueClosedStatusResolved
+			case api.ClosedStatusStale:
+				issue.ClosedStatus = issues_model.IssueClosedStatusStale
+			default:
+				issue.ClosedStatus = issues_model.IssueClosedStatusCommonClose
+			}
 		}
 	}
 	statusChangeComment, titleChanged, err := issues_model.UpdateIssueByAPI(issue, ctx.Doer)
