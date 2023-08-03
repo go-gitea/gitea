@@ -91,7 +91,7 @@
 
 			{{if .IsSigned}}
 				{{if and (or .IsRepoAdmin .HasIssuesOrPullsWritePermission (not .Issue.IsLocked)) (not .Repository.IsArchived)}}
-				<div class="timeline-item comment form">
+				<div class="timeline-item comment form gt-pt-0">
 					<a class="timeline-avatar" href="{{.SignedUser.HomeLink}}">
 						{{avatar $.Context .SignedUser 40}}
 					</a>
