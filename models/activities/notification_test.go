@@ -120,7 +120,7 @@ func TestSetIssueReadBy(t *testing.T) {
 		return nil
 	})
 
-	cnt, err := activities_model.GetNotificationCount(db.DefaultContext, user, activities_model.NotificationStatusUnread)
+	nt, err := activities_model.GetIssueNotification(db.DefaultContext, user.ID, issue.ID)
 	assert.NoError(t, err)
-	assert.EqualValues(t, 0, cnt)
+	assert.EqualValues(t, activities_model.NotificationStatusRead, nt.Status)
 }
