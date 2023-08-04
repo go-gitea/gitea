@@ -796,11 +796,6 @@ func Routes() *web.Route {
 				}
 
 				m.Get("/repos", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), reqExploreSignIn(), user.ListUserRepos)
-				m.Group("/tokens", func() {
-					m.Combo("").Get(user.ListAccessTokens).
-						Post(bind(api.CreateAccessTokenOption{}), reqToken(), user.CreateAccessToken)
-					m.Combo("/{id}").Delete(reqToken(), user.DeleteAccessToken)
-				}, reqBasicAuth())
 
 				m.Get("/activities/feeds", user.ListUserActivityFeeds)
 			}, context_service.UserAssignmentAPI())
@@ -823,6 +818,15 @@ func Routes() *web.Route {
 				m.Get("/subscriptions", user.GetWatchedRepos)
 			}, context_service.UserAssignmentAPI())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
+
+		// User (requires user scope)
+		m.Group("user", func() {
+			m.Group("/tokens", func() {
+				m.Combo("").Get(user.ListAccessTokens).
+					Post(bind(api.CreateAccessTokenOption{}), reqToken(), user.CreateAccessToken)
+				m.Combo("/{id}").Delete(reqToken(), user.DeleteAccessToken)
+			}, reqBasicAuth())
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser))
 
 		// Users (requires user scope)
 		m.Group("/user", func() {

@@ -21,17 +21,12 @@ import (
 
 // ListAccessTokens list all the access tokens
 func ListAccessTokens(ctx *context.APIContext) {
-	// swagger:operation GET /users/{username}/tokens user userGetTokens
+	// swagger:operation GET /user/tokens user userGetTokens
 	// ---
 	// summary: List the authenticated user's access tokens
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: username
-	//   in: path
-	//   description: username of user
-	//   type: string
-	//   required: true
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -73,7 +68,7 @@ func ListAccessTokens(ctx *context.APIContext) {
 
 // CreateAccessToken create access tokens
 func CreateAccessToken(ctx *context.APIContext) {
-	// swagger:operation POST /users/{username}/tokens user userCreateToken
+	// swagger:operation POST /user/tokens user userCreateToken
 	// ---
 	// summary: Create an access token
 	// consumes:
@@ -81,11 +76,6 @@ func CreateAccessToken(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: username
-	//   in: path
-	//   description: username of user
-	//   required: true
-	//   type: string
 	// - name: body
 	//   in: body
 	//   schema:
@@ -134,17 +124,12 @@ func CreateAccessToken(ctx *context.APIContext) {
 
 // DeleteAccessToken delete access tokens
 func DeleteAccessToken(ctx *context.APIContext) {
-	// swagger:operation DELETE /users/{username}/tokens/{token} user userDeleteAccessToken
+	// swagger:operation DELETE /user/tokens/{token} user userDeleteAccessToken
 	// ---
 	// summary: delete an access token
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: username
-	//   in: path
-	//   description: username of user
-	//   type: string
-	//   required: true
 	// - name: token
 	//   in: path
 	//   description: token to be deleted, identified by ID and if not available by name
