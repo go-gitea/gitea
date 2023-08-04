@@ -2,7 +2,7 @@
 {{/* Then the merge box will not be displayed because this page already contains enough information */}}
 {{else}}
 <div class="timeline-item comment merge box">
-	<a class="timeline-avatar text {{if .Issue.PullRequest.HasMerged}}purple
+	<div class="timeline-avatar text {{if .Issue.PullRequest.HasMerged}}purple
 	{{- else if .Issue.IsClosed}}grey
 	{{- else if .IsPullWorkInProgress}}grey
 	{{- else if .IsFilesConflicted}}grey
@@ -18,7 +18,7 @@
 	{{- else if .Issue.PullRequest.IsChecking}}yellow
 	{{- else if .Issue.PullRequest.IsEmpty}}grey
 	{{- else if .Issue.PullRequest.CanAutoMerge}}green
-	{{- else}}red{{end}}">{{svg "octicon-git-merge" 40}}</a>
+	{{- else}}red{{end}}">{{svg "octicon-git-merge" 40}}</div>
 	<div class="content">
 		{{template "repo/pulls/status" .}}
 		{{$showGeneralMergeForm := false}}
