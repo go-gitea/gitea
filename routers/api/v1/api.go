@@ -1355,6 +1355,18 @@ func Routes() *web.Route {
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(false, true), reqToken(), reqTeamMembership())
 
 		m.Group("/admin", func() {
+			m.Group("/users", func() {
+				m.Group("/{username}", func() {
+					m.Group("/tokens", func() {
+						m.Combo("").Get(admin.ListAccessTokens).
+							Post(bind(api.CreateAccessTokenOption{}), reqToken(), admin.CreateAccessToken)
+						m.Combo("/{id}").Delete(reqToken(), admin.DeleteAccessToken)
+					})
+				}, context_service.UserAssignmentAPI())
+			})
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryAdmin), reqBasicAuth(), reqSiteAdmin())
+
+		m.Group("/admin", func() {
 			m.Group("/cron", func() {
 				m.Get("", admin.ListCronTasks)
 				m.Post("/{task}", admin.PostCronTask)
