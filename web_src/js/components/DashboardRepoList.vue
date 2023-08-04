@@ -77,8 +77,10 @@
                 <svg-icon name="octicon-archive" :size="16"/>
               </div>
             </a>
-            <!-- the commit status icon logic is taken from templates/repo/commit_status.tmpl -->
-            <svg-icon v-if="repo.latest_commit_status_state" :name="statusIcon(repo.latest_commit_status_state)" :class-name="'gt-ml-3 commit-status icon text ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
+            <a class="repo-list-status-link" v-if="repo.latest_commit_status_state" :href="repo.latest_commit_status_state_link" :data-tooltip-content="repo.latest_commit_status_state">
+              <!-- the commit status icon logic is taken from templates/repo/commit_status.tmpl -->
+              <svg-icon :name="statusIcon(repo.latest_commit_status_state)" :class-name="'gt-ml-3 commit-status icon text ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
+            </a>
           </li>
         </ul>
         <div v-if="showMoreReposLink" class="center gt-py-3 gt-border-secondary-top">
@@ -394,7 +396,7 @@ const sfc = {
       }
 
       if (searchedURL === this.searchURL) {
-        this.repos = json.data.map((webSearchRepo) => {return {...webSearchRepo.repository, latest_commit_status_state: webSearchRepo.latest_commit_status.State}});
+        this.repos = json.data.map((webSearchRepo) => {return {...webSearchRepo.repository, latest_commit_status_state: webSearchRepo.latest_commit_status.State, latest_commit_status_state_link: webSearchRepo.latest_commit_status.TargetURL}});
         const count = response.headers.get('X-Total-Count');
         if (searchedQuery === '' && searchedMode === '' && this.archivedFilter === 'both') {
           this.reposTotalCount = count;
@@ -501,6 +503,10 @@ ul li:not(:last-child) {
 
 .repo-list-link .svg {
   color: var(--color-text-light-2);
+}
+
+.repo-list-status-link {
+  padding: 6px 0;
 }
 
 .repo-list-icon {
