@@ -92,6 +92,20 @@
 							<a class="item" href="{{.RepoLink}}/_new/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
 								{{.locale.Tr "repo.editor.new_file"}}
 							</a>
+							{{if and .EnableActions (not .UnitActionsGlobalDisabled) .CanWriteActions}}
+							<div class="item">
+								<i class="dropdown icon"></i>
+								<span class="text">{{.locale.Tr "repo.editor.new_workflow"}}</span>
+								<div class="menu">
+									<a class="item" href="{{.RepoLink}}/_new/{{.BranchName | PathEscapeSegments}}/.gitea/workflows/{{.TreePath | PathEscapeSegments}}">
+										Gitea
+									</a>
+									<a class="item" href="{{.RepoLink}}/_new/{{.BranchName | PathEscapeSegments}}/.github/workflows/{{.TreePath | PathEscapeSegments}}">
+										GitHub
+									</a>
+								</div>
+							</div>
+							{{end}}
 							{{if .RepositoryUploadEnabled}}
 							<a class="item" href="{{.RepoLink}}/_upload/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
 								{{.locale.Tr "repo.editor.upload_file"}}
