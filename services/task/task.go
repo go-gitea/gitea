@@ -126,3 +126,27 @@ func CreateMigrateTask(doer, u *user_model.User, opts base.MigrateOptions) (*adm
 
 	return task, nil
 }
+
+// RetryMigrateTask retry a migrate task
+func RetryMigrateTask(repoID int64) error {
+	migratingTask, err := admin_model.GetMigratingTask(repoID)
+	if err != nil {
+		log.Error("GetMigratingTask: %v", err)
+		return err
+	}
+	if migratingTask.Status == structs.TaskStatusQueued || migratingTask.Status == structs.TaskStatusRunning {
+		return nil
+	}
+
+	// TODO Need to removing the storage/database garbage brought by the failed task
+
+	// Reset task status and messages
+	migratingTask.Status = structs.TaskStatusQueued
+	migratingTask.Message = ""
+	if err = migratingTask.UpdateCols("status", "message"); err != nil {
+		log.Error("task.UpdateCols failed: %v", err)
+		return err
+	}
+
+	return taskQueue.Push(migratingTask)
+}
