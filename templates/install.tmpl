@@ -323,10 +323,10 @@
 					{{if .EnvConfigKeys}}
 					<!-- Environment Config -->
 					<h4 class="ui dividing header">{{.locale.Tr "install.env_config_keys"}}</h4>
+					<p>
+						{{.locale.Tr "install.env_config_keys_prompt"}}
+					</p>
 					<div class="inline field">
-						<div class="right-content">
-							{{.locale.Tr "install.env_config_keys_prompt"}}
-						</div>
 						<div class="right-content gt-mt-3">
 							{{range .EnvConfigKeys}}<span class="ui label">{{.}}</span>{{end}}
 						</div>
