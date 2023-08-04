@@ -33,11 +33,11 @@
         <div class="job-group-section">
           <div class="job-brief-list">
             <a class="job-brief-item" :href="run.link+'/jobs/'+index" :class="parseInt(jobIndex) === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id" @mouseenter="onHoverRerunIndex = job.id" @mouseleave="onHoverRerunIndex = -1">
-              <div class="job-brief-link">
+              <div class="job-brief-item-left">
                 <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
                 <span class="job-brief-name gt-mx-3 gt-ellipsis">{{ job.name }}</span>
               </div>
-              <span class="job-brief-info">
+              <span class="job-brief-item-right">
                 <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun gt-mx-3" @click="rerunJob(index)" v-if="job.canRerun && onHoverRerunIndex === job.id"/>
                 <span class="step-summary-duration">{{ job.duration }}</span>
               </span>
@@ -610,27 +610,27 @@ export function initRepositoryActionView() {
   transform: scale(130%);
 }
 
-.job-brief-item .job-brief-link {
+.job-brief-item .job-brief-item-left {
   display: flex;
   width: 100%;
   min-width: 0;
 }
 
-.job-brief-item .job-brief-link span {
+.job-brief-item .job-brief-item-left span {
   display: flex;
   align-items: center;
 }
 
-.job-brief-item .job-brief-link .job-brief-name {
+.job-brief-item .job-brief-item-left .job-brief-name {
   display: block;
   width: 70%;
 }
 
-.job-brief-item .job-brief-link:hover {
+.job-brief-item .job-brief-item-left:hover {
   text-decoration: none;
 }
 
-.job-brief-item .job-brief-info {
+.job-brief-item .job-brief-item-right {
   display: flex;
   align-items: center;
 }
