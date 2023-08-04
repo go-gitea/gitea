@@ -4,7 +4,6 @@
 package org
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
 	"net/http"
 
 	"code.gitea.io/gitea/models/db"
@@ -12,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/label"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
 )

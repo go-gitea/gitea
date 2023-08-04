@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
 	"net/http"
 	"strconv"
 
@@ -13,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/label"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/convert"

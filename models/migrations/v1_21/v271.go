@@ -4,7 +4,9 @@
 package v1_21 //nolint
 import (
 	"code.gitea.io/gitea/modules/timeutil"
+
 	"fmt"
+
 	"xorm.io/xorm"
 )
 
@@ -24,7 +26,7 @@ func AddArchivedUnixColumInLabelTable(x *xorm.Engine) error {
 		return fmt.Errorf("Sync2: %w", err)
 	}
 
-	_, err := sess.Exec(`UPDATE label SET archived_unix=0`)
+	_, err := sess.Exec("UPDATE label SET archived_unix=0")
 	if err != nil {
 		return err
 	}
