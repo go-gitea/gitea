@@ -138,7 +138,7 @@ func (oa *OAuth2CommonHandlers) DeleteApp(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("settings.remove_oauth2_application_success"))
-	ctx.JSON(http.StatusOK, map[string]any{"redirect": oa.BasePathList})
+	ctx.JSONRedirect(oa.BasePathList)
 }
 
 // RevokeGrant revokes the grant
@@ -149,5 +149,5 @@ func (oa *OAuth2CommonHandlers) RevokeGrant(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("settings.revoke_oauth2_grant_success"))
-	ctx.JSON(http.StatusOK, map[string]any{"redirect": oa.BasePathList})
+	ctx.JSONRedirect(oa.BasePathList)
 }
