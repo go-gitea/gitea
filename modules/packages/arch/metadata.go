@@ -60,22 +60,29 @@ type DbDesc struct {
 	Backup         []string `json:"backup,omitempty"`
 }
 
+type EjectParams struct {
+	Filename     string
+	Distribution string
+	Buffer       *pkg_module.HashedBuffer
+}
+
 // Function that receives arch package archive data and returns it's metadata.
-func EjectMetadata(filename, distro string, buf *pkg_module.HashedBuffer) (*DbDesc, error) {
-	pkginfo, err := getPkginfo(buf)
+func EjectMetadata(p *EjectParams) (*DbDesc, error) {
+	pkginfo, err := getPkginfo(p.Buffer)
 	if err != nil {
 		return nil, err
 	}
 
 	// Add package blob parameters to arch related desc.
-	hashMD5, _, hashSHA256, _ := buf.Sums()
+	hashMD5, _, hashSHA256, _ := p.Buffer.Sums()
 	md := DbDesc{
-		Filename:       filename,
-		Name:           filename,
-		CompressedSize: buf.Size(),
+		Filename:       p.Filename,
+		Name:           p.Filename,
+		CompressedSize: p.Buffer.Size(),
 		MD5:            hex.EncodeToString(hashMD5),
 		SHA256:         hex.EncodeToString(hashSHA256),
 	}
+
 	for _, line := range strings.Split(pkginfo, "\n") {
 		splt := strings.Split(line, " = ")
 		if len(splt) != 2 {

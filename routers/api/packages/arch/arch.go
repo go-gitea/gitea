@@ -45,7 +45,11 @@ func Push(ctx *context.Context) {
 	defer buf.Close()
 
 	// Parse metadata related to package contained in arch package archive.
-	pkgmd, err := arch_module.EjectMetadata(filename, distro, buf)
+	desc, err := arch_module.EjectMetadata(&arch_module.EjectParams{
+		Filename:     filename,
+		Distribution: distro,
+		Buffer:       buf,
+	})
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
@@ -57,36 +61,36 @@ func Push(ctx *context.Context) {
 	}
 
 	// Metadata related to SQL database.
-	dbmd := &arch_module.Metadata{
-		URL:          pkgmd.URL,
-		Description:  pkgmd.Description,
-		Provides:     pkgmd.Provides,
-		License:      pkgmd.License,
-		Depends:      pkgmd.Depends,
-		OptDepends:   pkgmd.OptDepends,
-		MakeDepends:  pkgmd.MakeDepends,
-		CheckDepends: pkgmd.CheckDepends,
-		Backup:       pkgmd.Backup,
-		DistroArch:   []string{distro + "-" + pkgmd.Arch[0]},
+	md := &arch_module.Metadata{
+		URL:          desc.URL,
+		Description:  desc.Description,
+		Provides:     desc.Provides,
+		License:      desc.License,
+		Depends:      desc.Depends,
+		OptDepends:   desc.OptDepends,
+		MakeDepends:  desc.MakeDepends,
+		CheckDepends: desc.CheckDepends,
+		Backup:       desc.Backup,
+		DistroArch:   []string{distro + "-" + desc.Arch[0]},
 	}
 
 	// Save file related to arch package.
 	pkgid, err := arch_service.SaveFile(ctx, &arch_service.SaveFileParams{
 		Creator:  ctx.ContextUser,
 		Owner:    ctx.Package.Owner,
-		Metadata: dbmd,
+		Metadata: md,
 		Buf:      buf,
 		Filename: filename,
 		Distro:   distro,
-		PkgName:  pkgmd.Name,
-		PkgVer:   pkgmd.Version,
+		PkgName:  desc.Name,
+		PkgVer:   desc.Version,
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	r := io.NopCloser(bytes.NewReader([]byte(pkgmd.GetDbDesc())))
+	r := io.NopCloser(bytes.NewReader([]byte(desc.GetDbDesc())))
 	buf, err = pkg_module.CreateHashedBufferFromReader(r)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -98,12 +102,12 @@ func Push(ctx *context.Context) {
 	_, err = arch_service.SaveFile(ctx, &arch_service.SaveFileParams{
 		Creator:  ctx.ContextUser,
 		Owner:    ctx.Package.Owner,
-		Filename: pkgmd.Name + "-" + pkgmd.Version + "-" + pkgmd.Arch[0] + ".desc",
+		Filename: desc.Name + "-" + desc.Version + "-" + desc.Arch[0] + ".desc",
 		Buf:      buf,
-		Metadata: dbmd,
+		Metadata: md,
 		Distro:   distro,
-		PkgName:  pkgmd.Name,
-		PkgVer:   pkgmd.Version,
+		PkgName:  desc.Name,
+		PkgVer:   desc.Version,
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -126,10 +130,10 @@ func Push(ctx *context.Context) {
 			Owner:    ctx.Package.Owner,
 			Buf:      buf,
 			Filename: filename + ".sig",
-			Metadata: dbmd,
+			Metadata: md,
 			Distro:   distro,
-			PkgName:  pkgmd.Name,
-			PkgVer:   pkgmd.Version,
+			PkgName:  desc.Name,
+			PkgVer:   desc.Version,
 		})
 		if err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -140,16 +144,16 @@ func Push(ctx *context.Context) {
 	// Add new architectures and distribution info to package version metadata.
 	err = arch_service.UpdateMetadata(ctx, &arch_service.UpdateMetadataParameters{
 		User:     ctx.Package.Owner,
-		Metadata: dbmd,
-		DbDesc:   pkgmd,
+		Metadata: md,
+		DbDesc:   desc,
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	// Automatically connect repository for provided package if name matched.
-	err = arch_service.RepositoryAutoconnect(ctx, owner, pkgmd.Name, pkgid)
+	// Automatically connect repository with souce code if name matched.
+	err = arch_service.RepoConnect(ctx, owner, desc.Name, pkgid)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -185,7 +189,11 @@ func Get(ctx *context.Context) {
 	// for user/organization scope with accordance to requested architecture
 	// and distribution.
 	if strings.HasSuffix(file, ".db.tar.gz") || strings.HasSuffix(file, ".db") {
-		db, err := arch_service.CreatePacmanDb(ctx, owner, arch, distro)
+		db, err := arch_service.CreatePacmanDb(ctx, &arch_service.PacmanDbParams{
+			Owner:        owner,
+			Architecture: arch,
+			Distribution: distro,
+		})
 		if err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
@@ -207,7 +215,9 @@ func Remove(ctx *context.Context) {
 		ver = ctx.Params("version")
 	)
 
-	version, err := pkg_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, pkg_model.TypeArch, pkg, ver)
+	version, err := pkg_model.GetVersionByNameAndVersion(
+		ctx, ctx.Package.Owner.ID, pkg_model.TypeArch, pkg, ver,
+	)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

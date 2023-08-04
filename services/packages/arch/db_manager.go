@@ -11,7 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	pkg_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/repo"
+	repository "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
@@ -144,10 +144,10 @@ func GetFileObject(ctx *context.Context, distro, file string) (storage.Object, e
 
 // Automatically connect repository with source code to published package, if
 // repository with the same name exists in user/organization scope.
-func RepositoryAutoconnect(ctx *context.Context, owner, repository string, pkgid int64) error {
-	repo, err := repo.GetRepositoryByOwnerAndName(ctx, owner, repository)
+func RepoConnect(ctx *context.Context, owner, repo string, pkgid int64) error {
+	r, err := repository.GetRepositoryByOwnerAndName(ctx, owner, repo)
 	if err == nil {
-		err = pkg_model.SetRepositoryLink(ctx, pkgid, repo.ID)
+		err = pkg_model.SetRepositoryLink(ctx, pkgid, r.ID)
 		if err != nil {
 			return err
 		}
@@ -155,13 +155,19 @@ func RepositoryAutoconnect(ctx *context.Context, owner, repository string, pkgid
 	return nil
 }
 
+type PacmanDbParams struct {
+	Owner        string
+	Architecture string
+	Distribution string
+}
+
 // Finds all arch packages in user/organization scope, each package version
 // starting from latest in descending order is checked to be compatible with
 // requested combination of architecture and distribution. When/If the first
 // compatible version is found, related desc file will be loaded from object
 // storage and added to database archive.
-func CreatePacmanDb(ctx *context.Context, owner, architecture, distro string) ([]byte, error) {
-	u, err := user.GetUserByName(ctx, owner)
+func CreatePacmanDb(ctx *context.Context, p *PacmanDbParams) ([]byte, error) {
+	u, err := user.GetUserByName(ctx, p.Owner)
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +180,9 @@ func CreatePacmanDb(ctx *context.Context, owner, architecture, distro string) ([
 	entries := make(map[string][]byte)
 
 	for _, pkg := range pkgs {
-		versions, err := pkg_model.GetVersionsByPackageName(ctx, u.ID, pkg_model.TypeArch, pkg.Name)
+		versions, err := pkg_model.GetVersionsByPackageName(
+			ctx, u.ID, pkg_model.TypeArch, pkg.Name,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -186,8 +194,8 @@ func CreatePacmanDb(ctx *context.Context, owner, architecture, distro string) ([
 		for _, version := range versions {
 			desc, err := LoadDbDescFile(ctx, &DescParams{
 				Version: version,
-				Arch:    architecture,
-				Distro:  distro,
+				Arch:    p.Architecture,
+				Distro:  p.Distribution,
 				PkgName: pkg.Name,
 			})
 			if err != nil {
@@ -221,20 +229,20 @@ func LoadDbDescFile(ctx *context.Context, p *DescParams) ([]byte, error) {
 	}
 
 	for _, distroarch := range md.DistroArch {
-		var storagekey string
+		var file string
 
 		if distroarch == p.Distro+"-"+p.Arch {
-			storagekey = p.PkgName + "-" + p.Version.Version + "-" + p.Arch + ".desc"
+			file = p.PkgName + "-" + p.Version.Version + "-" + p.Arch + ".desc"
 		}
 		if distroarch == p.Distro+"-any" {
-			storagekey = p.PkgName + "-" + p.Version.Version + "-any.desc"
+			file = p.PkgName + "-" + p.Version.Version + "-any.desc"
 		}
 
-		if storagekey == "" {
+		if file == "" {
 			continue
 		}
 
-		descfile, err := GetFileObject(ctx, p.Distro, storagekey)
+		descfile, err := GetFileObject(ctx, p.Distro, file)
 		if err != nil {
 			return nil, err
 		}

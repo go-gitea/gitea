@@ -8,14 +8,12 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"io"
 	"net/http"
 	"path"
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -157,10 +155,14 @@ H/p7XvruIemeWh6SgfsOAIv9+grBts8v3TfVdrMpvpQIQhkyOtfaAOBNsf5UfCz3CE17aLundn7z
 	t.Run("PushFirstPackage", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "PUT", path.Join(rootURL, "/push", "package-1-1-x86_64.pkg.tar.zst", "archlinux", hex.EncodeToString(firstPackageSignatureData)))
+		req := NewRequestWithBody(t, "PUT",
+			path.Join(
+				rootURL, "push", "package-1-1-x86_64.pkg.tar.zst",
+				"archlinux", hex.EncodeToString(firstPackageSignatureData),
+			),
+			bytes.NewReader(firstPackageData),
+		)
 
-		req.Header.Set("Content-Type", "application/octet-stream")
-		req.Body = io.NopCloser(bytes.NewReader(firstPackageData))
 		req = AddBasicAuthHeader(req, user.Name)
 
 		MakeRequest(t, req, http.StatusOK)
@@ -169,7 +171,9 @@ H/p7XvruIemeWh6SgfsOAIv9+grBts8v3TfVdrMpvpQIQhkyOtfaAOBNsf5UfCz3CE17aLundn7z
 	t.Run("GetFirstPackage", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", path.Join(rootURL, "/archlinux/x86_64/package-1-1-x86_64.pkg.tar.zst"))
+		req := NewRequest(t, "GET",
+			rootURL+"/archlinux/x86_64/package-1-1-x86_64.pkg.tar.zst",
+		)
 
 		resp := MakeRequest(t, req, http.StatusOK)
 
@@ -179,7 +183,7 @@ H/p7XvruIemeWh6SgfsOAIv9+grBts8v3TfVdrMpvpQIQhkyOtfaAOBNsf5UfCz3CE17aLundn7z
 	t.Run("GetFirstDatabase", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", path.Join(rootURL, "/archlinux/x86_64/"+fmt.Sprintf("%s.%s.db", user.Name, setting.Domain)))
+		req := NewRequest(t, "GET", rootURL+"/archlinux/x86_64/test.db")
 
 		resp := MakeRequest(t, req, http.StatusOK)
 
@@ -189,7 +193,9 @@ H/p7XvruIemeWh6SgfsOAIv9+grBts8v3TfVdrMpvpQIQhkyOtfaAOBNsf5UfCz3CE17aLundn7z
 	t.Run("GetFirstSignature", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", path.Join(rootURL, "/archlinux/x86_64/package-1-1-x86_64.pkg.tar.zst.sig"))
+		req := NewRequest(t, "GET",
+			rootURL+"/archlinux/x86_64/package-1-1-x86_64.pkg.tar.zst.sig",
+		)
 
 		resp := MakeRequest(t, req, http.StatusOK)
 
@@ -199,10 +205,14 @@ H/p7XvruIemeWh6SgfsOAIv9+grBts8v3TfVdrMpvpQIQhkyOtfaAOBNsf5UfCz3CE17aLundn7z
 	t.Run("PushSecond", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "PUT", path.Join(rootURL, "/push", "package-1-1-any.pkg.tar.zst", "archlinux", hex.EncodeToString(secondPackageSignatureData)))
+		req := NewRequestWithBody(t, "PUT",
+			path.Join(
+				rootURL, "push", "package-1-1-any.pkg.tar.zst",
+				"archlinux", hex.EncodeToString(secondPackageSignatureData),
+			),
+			bytes.NewReader(secondPackageData),
+		)
 
-		req.Header.Set("Content-Type", "application/octet-stream")
-		req.Body = io.NopCloser(bytes.NewReader(secondPackageData))
 		req = AddBasicAuthHeader(req, user.Name)
 
 		MakeRequest(t, req, http.StatusOK)
@@ -211,7 +221,9 @@ H/p7XvruIemeWh6SgfsOAIv9+grBts8v3TfVdrMpvpQIQhkyOtfaAOBNsf5UfCz3CE17aLundn7z
 	t.Run("GetSecondPackage", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", path.Join(rootURL, "/archlinux/any/package-1-1-any.pkg.tar.zst"))
+		req := NewRequest(t, "GET",
+			rootURL+"/archlinux/any/package-1-1-any.pkg.tar.zst",
+		)
 
 		resp := MakeRequest(t, req, http.StatusOK)
 
@@ -221,7 +233,7 @@ H/p7XvruIemeWh6SgfsOAIv9+grBts8v3TfVdrMpvpQIQhkyOtfaAOBNsf5UfCz3CE17aLundn7z
 	t.Run("GetSecondDatabase", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", path.Join(rootURL, "/archlinux/any/"+fmt.Sprintf("%s.%s.db.tar.gz", user.Name, setting.Domain)))
+		req := NewRequest(t, "GET", rootURL+"/archlinux/any/test2.db")
 
 		resp := MakeRequest(t, req, http.StatusOK)
 
@@ -231,7 +243,9 @@ H/p7XvruIemeWh6SgfsOAIv9+grBts8v3TfVdrMpvpQIQhkyOtfaAOBNsf5UfCz3CE17aLundn7z
 	t.Run("GetSecondSignature", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", path.Join(rootURL, "/archlinux/any/package-1-1-any.pkg.tar.zst.sig"))
+		req := NewRequest(t, "GET",
+			rootURL+"/archlinux/any/package-1-1-any.pkg.tar.zst.sig",
+		)
 
 		resp := MakeRequest(t, req, http.StatusOK)
 
@@ -241,7 +255,7 @@ H/p7XvruIemeWh6SgfsOAIv9+grBts8v3TfVdrMpvpQIQhkyOtfaAOBNsf5UfCz3CE17aLundn7z
 	t.Run("Remove", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "DELETE", path.Join(rootURL, "/remove", "package", "1-1"))
+		req := NewRequest(t, "DELETE", rootURL+"/remove/package/1-1")
 
 		req = AddBasicAuthHeader(req, user.Name)
 
