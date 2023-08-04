@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
-	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
@@ -558,14 +557,14 @@ func ListAccessTokens(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/AccessTokenList"
 
-	opts := auth_model.ListAccessTokensOptions{UserID: ctx.ContextUser.ID, ListOptions: utils.GetListOptions(ctx)}
+	opts := auth.ListAccessTokensOptions{UserID: ctx.ContextUser.ID, ListOptions: utils.GetListOptions(ctx)}
 
-	count, err := auth_model.CountAccessTokens(opts)
+	count, err := auth.CountAccessTokens(opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
-	tokens, err := auth_model.ListAccessTokens(opts)
+	tokens, err := auth.ListAccessTokens(opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -612,12 +611,12 @@ func CreateAccessToken(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.CreateAccessTokenOption)
 
-	t := &auth_model.AccessToken{
+	t := &auth.AccessToken{
 		UID:  ctx.ContextUser.ID,
 		Name: form.Name,
 	}
 
-	exist, err := auth_model.AccessTokenByNameExists(t)
+	exist, err := auth.AccessTokenByNameExists(t)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -627,14 +626,14 @@ func CreateAccessToken(ctx *context.APIContext) {
 		return
 	}
 
-	scope, err := auth_model.AccessTokenScope(strings.Join(form.Scopes, ",")).Normalize()
+	scope, err := auth.AccessTokenScope(strings.Join(form.Scopes, ",")).Normalize()
 	if err != nil {
 		ctx.Error(http.StatusBadRequest, "AccessTokenScope.Normalize", fmt.Errorf("invalid access token scope provided: %w", err))
 		return
 	}
 	t.Scope = scope
 
-	if err := auth_model.NewAccessToken(t); err != nil {
+	if err := auth.NewAccessToken(t); err != nil {
 		ctx.Error(http.StatusInternalServerError, "NewAccessToken", err)
 		return
 	}
@@ -648,7 +647,7 @@ func CreateAccessToken(ctx *context.APIContext) {
 
 // DeleteAccessToken delete access tokens
 func DeleteAccessToken(ctx *context.APIContext) {
-	// swagger:operation DELETE /admin/users/{username}/tokens admin adminDeleteAccessToken
+	// swagger:operation DELETE /admin/users/{username}/tokens/{token} admin adminDeleteAccessToken
 	// ---
 	// summary: delete an access token of {username} by admin
 	// produces:
@@ -676,7 +675,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 	tokenID, _ := strconv.ParseInt(token, 0, 64)
 
 	if tokenID == 0 {
-		tokens, err := auth_model.ListAccessTokens(auth_model.ListAccessTokensOptions{
+		tokens, err := auth.ListAccessTokens(auth.ListAccessTokensOptions{
 			Name:   token,
 			UserID: ctx.ContextUser.ID,
 		})
@@ -701,8 +700,8 @@ func DeleteAccessToken(ctx *context.APIContext) {
 		return
 	}
 
-	if err := auth_model.DeleteAccessTokenByID(tokenID, ctx.Doer.ID); err != nil {
-		if auth_model.IsErrAccessTokenNotExist(err) {
+	if err := auth.DeleteAccessTokenByID(tokenID, ctx.Doer.ID); err != nil {
+		if auth.IsErrAccessTokenNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "DeleteAccessTokenByID", err)
