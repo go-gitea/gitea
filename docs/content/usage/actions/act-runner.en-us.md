@@ -245,8 +245,7 @@ You can find more useful images on [act images](https://github.com/nektos/act/bl
 If you want to run jobs in the host directly, you can change it to `ubuntu-22.04:host` or just `ubuntu-22.04`, the `:host` is optional.
 However, we suggest you to use a special name like `linux_amd64:host` or `windows:host` to avoid misusing it.
 
-One more thing is that it is recommended to register the runner if you want to change the labels.
-It may be annoying to do this, so we may provide a better way to do it in the future.
+After Gitea 1.21 released, you can change labels by modfiying `container.labels` in configuration file (if you don't have a configuration file, please refer to [configuration tutorials](#configuration)), and runner will declare the new labels which you defined in configuration file after executing `./act_runner daemon --config config.yaml`.
 
 ## Running
 
@@ -261,3 +260,32 @@ After you have registered the runner, you can run it by running the following co
 The runner will fetch jobs from the Gitea instance and run them automatically.
 
 Since act runner is still in development, it is recommended to check the latest version and upgrade it regularly.
+
+## Configuration variable
+
+You can create configuration varibales with user, organization, repository level. And the level of the variable depends on which setting panel you created in.
+
+### Naming conventions
+
+The following rules apply to variable names:
+
+- Varibale names can only contain alphanumeric characters (`[a-z]`, `[A-Z]`, `[0-9]`) or underscores (`_`). Spaces are not allowed.
+
+- Varibale names must not start with the `GITHUB_` and `GITEA_` prefix.
+
+- Varibale names must not start with a number.
+
+- Varibale names are not case-sensitive.
+
+- Varibale names must be unique at the level they are created at.
+
+- Varibale names must not be 'CI'.
+
+### Using varibales
+
+After creating configuration varibales, they will be automatically filled in the `vars` context. They are available to you with expression like `{{ vars.VARIABLE_NAME }}` in workflow.
+
+### Precedence
+
+If a variable with the same name exists at multiple levels, the variable at the lowest level takes precedence(the level of organization and user is higher than repository's).
+For example, if an organization-level variable has the same name as a repository-level variable, then the repository-level variable takes precedence.
