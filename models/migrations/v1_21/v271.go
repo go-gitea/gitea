@@ -4,9 +4,7 @@
 package v1_21 //nolint
 import (
 	"code.gitea.io/gitea/modules/timeutil"
-
 	"fmt"
-
 	"xorm.io/xorm"
 )
 

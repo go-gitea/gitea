@@ -112,11 +112,12 @@ func NewLabel(ctx *context.Context) {
 	}
 
 	l := &issues_model.Label{
-		RepoID:      ctx.Repo.Repository.ID,
-		Name:        form.Title,
-		Exclusive:   form.Exclusive,
-		Description: form.Description,
-		Color:       form.Color,
+		RepoID:       ctx.Repo.Repository.ID,
+		Name:         form.Title,
+		Exclusive:    form.Exclusive,
+		Description:  form.Description,
+		Color:        form.Color,
+		ArchivedUnix: timeutil.TimeStamp(0),
 	}
 	if err := issues_model.NewLabel(ctx, l); err != nil {
 		ctx.ServerError("NewLabel", err)
