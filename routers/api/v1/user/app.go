@@ -184,6 +184,109 @@ func DeleteAccessToken(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
+// ListAccessTokens list all the access tokens
+func ListAccessTokensDeprecated(ctx *context.APIContext) {
+	// swagger:operation GET /users/{username}/tokens user userGetTokensDeprecated
+	// ---
+	// summary: List the authenticated user's access tokens
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of user
+	//   type: string
+	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/AccessTokenList"
+	//   "403":
+	//     "$ref": "#/responses/error"
+	// Deprecated: true
+	if ctx.Doer != ctx.ContextUser {
+		ctx.Error(http.StatusForbidden, "ListAccessTokens", errors.New("can only list access tokens for yourself"))
+		return
+	}
+	ListAccessTokens(ctx)
+}
+
+// CreateAccessTokenDeprecated create access tokens
+func CreateAccessTokenDeprecated(ctx *context.APIContext) {
+	// swagger:operation POST /users/{username}/tokens user CreateAccessTokenDeprecated
+	// ---
+	// summary: Create an access token
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of user
+	//   required: true
+	//   type: string
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateAccessTokenOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/AccessToken"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/error"
+	// Deprecated: true
+	if ctx.Doer != ctx.ContextUser {
+		ctx.Error(http.StatusForbidden, "", errors.New("Can't create token for another user"))
+		return
+	}
+	CreateAccessToken(ctx)
+}
+
+// DeleteAccessToken delete access tokens
+func DeleteAccessTokenDeprecated(ctx *context.APIContext) {
+	// swagger:operation DELETE /users/{username}/tokens/{token} user userDeleteAccessTokenDeprecated
+	// ---
+	// summary: delete an access token
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of user
+	//   type: string
+	//   required: true
+	// - name: token
+	//   in: path
+	//   description: token to be deleted, identified by ID and if not available by name
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/error"
+	// Deprecated: true
+	if ctx.Doer != ctx.ContextUser {
+		ctx.Error(http.StatusForbidden, "", "You can only delete your own tokens.")
+		return
+	}
+	DeleteAccessToken(ctx)
+}
+
 // CreateOauth2Application is the handler to create a new OAuth2 Application for the authenticated user
 func CreateOauth2Application(ctx *context.APIContext) {
 	// swagger:operation POST /user/applications/oauth2 user userCreateOAuth2Application
