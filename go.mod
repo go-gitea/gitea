@@ -107,7 +107,7 @@ require (
 	github.com/yuin/goldmark-meta v1.1.0
 	golang.org/x/crypto v0.11.0
 	golang.org/x/image v0.9.0
-	golang.org/x/net v0.12.0
+	golang.org/x/net v0.13.0
 	golang.org/x/oauth2 v0.10.0
 	golang.org/x/sys v0.10.0
 	golang.org/x/text v0.11.0
@@ -119,8 +119,8 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 	mvdan.cc/xurls/v2 v2.5.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
-	xorm.io/builder v0.3.12
-	xorm.io/xorm v1.3.3-0.20230623150031-18f8e7a86c75
+	xorm.io/builder v0.3.13
+	xorm.io/xorm v1.3.3-0.20230725140238-59b727260d35
 )
 
 require (
