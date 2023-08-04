@@ -261,7 +261,6 @@ The runner will fetch jobs from the Gitea instance and run them automatically.
 
 Since act runner is still in development, it is recommended to check the latest version and upgrade it regularly.
 
-
 ## Configuration variable
 
 You can create configuration varibales with user, organization, repository level. And the level of the variable depends on which setting panel you created in.
@@ -288,5 +287,5 @@ After creating configuration varibales, they will be automatically filled in the
 
 ### Precedence
 
-If a variable with the same name exists at multiple levels, the variable at the lowest level takes precedence(the level of organization and user is higher than repository's). 
-For example, if an organization-level variable has the same name as a repository-level variable, then the repository-level variable takes precedence. 
+If a variable with the same name exists at multiple levels, the variable at the lowest level takes precedence(the level of organization and user is higher than repository's).
+For example, if an organization-level variable has the same name as a repository-level variable, then the repository-level variable takes precedence.
