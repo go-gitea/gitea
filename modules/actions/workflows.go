@@ -406,7 +406,7 @@ func matchPullRequestEvent(gitRepo *git.Repository, commit *git.Commit, prPayloa
 		case "paths":
 			filesChanged, err := headCommit.GetFilesChangedSinceCommit(prPayload.PullRequest.Base.Ref)
 			if err != nil {
-				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
+				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", headCommit.ID.String(), err)
 			} else {
 				patterns, err := workflowpattern.CompilePatterns(vals...)
 				if err != nil {
@@ -419,7 +419,7 @@ func matchPullRequestEvent(gitRepo *git.Repository, commit *git.Commit, prPayloa
 		case "paths-ignore":
 			filesChanged, err := headCommit.GetFilesChangedSinceCommit(prPayload.PullRequest.Base.Ref)
 			if err != nil {
-				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
+				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", headCommit.ID.String(), err)
 			} else {
 				patterns, err := workflowpattern.CompilePatterns(vals...)
 				if err != nil {
