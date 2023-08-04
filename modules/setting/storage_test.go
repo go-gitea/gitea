@@ -4,6 +4,7 @@
 package setting
 
 import (
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -89,4 +90,162 @@ STORAGE_TYPE = minio
 	assert.EqualValues(t, "minio", RepoAvatar.Storage.Type)
 	assert.EqualValues(t, "gitea", RepoAvatar.Storage.MinioConfig.Bucket)
 	assert.EqualValues(t, "repo-avatars/", RepoAvatar.Storage.MinioConfig.BasePath)
+}
+
+type testLocalStoragePathCase struct {
+	loader       func(rootCfg ConfigProvider) error
+	storagePtr   **Storage
+	expectedPath string
+}
+
+func testLocalStoragePath(t *testing.T, appDataPath, iniStr string, cases []testLocalStoragePathCase) {
+	cfg, err := NewConfigProviderFromData(iniStr)
+	assert.NoError(t, err)
+	AppDataPath = appDataPath
+	for _, c := range cases {
+		assert.NoError(t, c.loader(cfg))
+		storage := *c.storagePtr
+
+		assert.EqualValues(t, "local", storage.Type)
+		assert.True(t, filepath.IsAbs(storage.Path))
+		assert.EqualValues(t, filepath.Clean(c.expectedPath), filepath.Clean(storage.Path))
+	}
+}
+
+func Test_getStorageInheritStorageTypeLocal(t *testing.T) {
+	testLocalStoragePath(t, "/appdata", `
+[storage]
+STORAGE_TYPE = local
+`, []testLocalStoragePathCase{
+		{loadPackagesFrom, &Packages.Storage, "/appdata/packages"},
+		{loadRepoArchiveFrom, &RepoArchive.Storage, "/appdata/repo-archive"},
+		{loadActionsFrom, &Actions.LogStorage, "/appdata/actions_log"},
+		{loadAvatarsFrom, &Avatar.Storage, "/appdata/avatars"},
+		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/appdata/repo-avatars"},
+	})
+}
+
+func Test_getStorageInheritStorageTypeLocalPath(t *testing.T) {
+	testLocalStoragePath(t, "/appdata", `
+[storage]
+STORAGE_TYPE = local
+PATH = /data/gitea
+`, []testLocalStoragePathCase{
+		{loadPackagesFrom, &Packages.Storage, "/data/gitea/packages"},
+		{loadRepoArchiveFrom, &RepoArchive.Storage, "/data/gitea/repo-archive"},
+		{loadActionsFrom, &Actions.LogStorage, "/data/gitea/actions_log"},
+		{loadAvatarsFrom, &Avatar.Storage, "/data/gitea/avatars"},
+		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/data/gitea/repo-avatars"},
+	})
+}
+
+func Test_getStorageInheritStorageTypeLocalRelativePath(t *testing.T) {
+	testLocalStoragePath(t, "/appdata", `
+[storage]
+STORAGE_TYPE = local
+PATH = storages
+`, []testLocalStoragePathCase{
+		{loadPackagesFrom, &Packages.Storage, "/appdata/storages/packages"},
+		{loadRepoArchiveFrom, &RepoArchive.Storage, "/appdata/storages/repo-archive"},
+		{loadActionsFrom, &Actions.LogStorage, "/appdata/storages/actions_log"},
+		{loadAvatarsFrom, &Avatar.Storage, "/appdata/storages/avatars"},
+		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/appdata/storages/repo-avatars"},
+	})
+}
+
+func Test_getStorageInheritStorageTypeLocalPathOverride(t *testing.T) {
+	testLocalStoragePath(t, "/appdata", `
+[storage]
+STORAGE_TYPE = local
+PATH = /data/gitea
+
+[repo-archive]
+PATH = /data/gitea/the-archives-dir
+`, []testLocalStoragePathCase{
+		{loadPackagesFrom, &Packages.Storage, "/data/gitea/packages"},
+		{loadRepoArchiveFrom, &RepoArchive.Storage, "/data/gitea/the-archives-dir"},
+		{loadActionsFrom, &Actions.LogStorage, "/data/gitea/actions_log"},
+		{loadAvatarsFrom, &Avatar.Storage, "/data/gitea/avatars"},
+		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/data/gitea/repo-avatars"},
+	})
+}
+
+func Test_getStorageInheritStorageTypeLocalPathOverrideEmpty(t *testing.T) {
+	testLocalStoragePath(t, "/appdata", `
+[storage]
+STORAGE_TYPE = local
+PATH = /data/gitea
+
+[repo-archive]
+`, []testLocalStoragePathCase{
+		{loadPackagesFrom, &Packages.Storage, "/data/gitea/packages"},
+		{loadRepoArchiveFrom, &RepoArchive.Storage, "/data/gitea/repo-archive"},
+		{loadActionsFrom, &Actions.LogStorage, "/data/gitea/actions_log"},
+		{loadAvatarsFrom, &Avatar.Storage, "/data/gitea/avatars"},
+		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/data/gitea/repo-avatars"},
+	})
+}
+
+func Test_getStorageInheritStorageTypeLocalRelativePathOverride(t *testing.T) {
+	testLocalStoragePath(t, "/appdata", `
+[storage]
+STORAGE_TYPE = local
+PATH = /data/gitea
+
+[repo-archive]
+PATH = the-archives-dir
+`, []testLocalStoragePathCase{
+		{loadPackagesFrom, &Packages.Storage, "/data/gitea/packages"},
+		{loadRepoArchiveFrom, &RepoArchive.Storage, "/data/gitea/the-archives-dir"},
+		{loadActionsFrom, &Actions.LogStorage, "/data/gitea/actions_log"},
+		{loadAvatarsFrom, &Avatar.Storage, "/data/gitea/avatars"},
+		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/data/gitea/repo-avatars"},
+	})
+}
+
+func Test_getStorageInheritStorageTypeLocalPathOverride3(t *testing.T) {
+	testLocalStoragePath(t, "/appdata", `
+[storage.repo-archive]
+STORAGE_TYPE = local
+PATH = /data/gitea/archives
+`, []testLocalStoragePathCase{
+		{loadPackagesFrom, &Packages.Storage, "/appdata/packages"},
+		{loadRepoArchiveFrom, &RepoArchive.Storage, "/data/gitea/archives"},
+		{loadActionsFrom, &Actions.LogStorage, "/appdata/actions_log"},
+		{loadAvatarsFrom, &Avatar.Storage, "/appdata/avatars"},
+		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/appdata/repo-avatars"},
+	})
+}
+
+func Test_getStorageInheritStorageTypeLocalPathOverride4(t *testing.T) {
+	testLocalStoragePath(t, "/appdata", `
+[storage.repo-archive]
+STORAGE_TYPE = local
+PATH = /data/gitea/archives
+
+[repo-archive]
+PATH = /tmp/gitea/archives
+`, []testLocalStoragePathCase{
+		{loadPackagesFrom, &Packages.Storage, "/appdata/packages"},
+		{loadRepoArchiveFrom, &RepoArchive.Storage, "/tmp/gitea/archives"},
+		{loadActionsFrom, &Actions.LogStorage, "/appdata/actions_log"},
+		{loadAvatarsFrom, &Avatar.Storage, "/appdata/avatars"},
+		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/appdata/repo-avatars"},
+	})
+}
+
+func Test_getStorageInheritStorageTypeLocalPathOverride5(t *testing.T) {
+	testLocalStoragePath(t, "/appdata", `
+[storage.repo-archive]
+STORAGE_TYPE = local
+PATH = /data/gitea/archives
+
+[repo-archive]
+`, []testLocalStoragePathCase{
+		{loadPackagesFrom, &Packages.Storage, "/appdata/packages"},
+		{loadRepoArchiveFrom, &RepoArchive.Storage, "/data/gitea/archives"},
+		{loadActionsFrom, &Actions.LogStorage, "/appdata/actions_log"},
+		{loadAvatarsFrom, &Avatar.Storage, "/appdata/avatars"},
+		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/appdata/repo-avatars"},
+	})
 }

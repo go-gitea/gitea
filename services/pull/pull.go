@@ -125,7 +125,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 			Content:     string(dataJSON),
 		}
 
-		_, _ = issue_service.CreateComment(ctx, ops)
+		_, _ = issues_model.CreateComment(ctx, ops)
 
 		if !pr.IsWorkInProgress() {
 			if err := issues_model.PullRequestCodeOwnersReview(ctx, pull, pr); err != nil {
@@ -231,7 +231,7 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 		OldRef: oldBranch,
 		NewRef: targetBranch,
 	}
-	if _, err = issue_service.CreateComment(ctx, options); err != nil {
+	if _, err = issues_model.CreateComment(ctx, options); err != nil {
 		return fmt.Errorf("CreateChangeTargetBranchComment: %w", err)
 	}
 
