@@ -763,7 +763,7 @@ func setIssueNotificationStatusReadIfUnread(ctx context.Context, userID, issueID
 
 	notification.Status = NotificationStatusRead
 
-	_, err = db.GetEngine(ctx).ID(notification.ID).Update(notification)
+	_, err = db.GetEngine(ctx).ID(notification.ID).Cols("status").Update(notification)
 	return err
 }
 

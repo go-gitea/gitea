@@ -115,10 +115,9 @@ func TestSetIssueReadBy(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
-	db.WithTx(db.DefaultContext, func(ctx context.Context) error {
-		assert.NoError(t, activities_model.SetIssueReadBy(ctx, issue.ID, user.ID))
-		return nil
-	})
+	assert.NoError(t, db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+		return activities_model.SetIssueReadBy(ctx, issue.ID, user.ID)
+	}))
 
 	nt, err := activities_model.GetIssueNotification(db.DefaultContext, user.ID, issue.ID)
 	assert.NoError(t, err)
