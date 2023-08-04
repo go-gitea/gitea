@@ -245,7 +245,8 @@ You can find more useful images on [act images](https://github.com/nektos/act/bl
 If you want to run jobs in the host directly, you can change it to `ubuntu-22.04:host` or just `ubuntu-22.04`, the `:host` is optional.
 However, we suggest you to use a special name like `linux_amd64:host` or `windows:host` to avoid misusing it.
 
-After Gitea 1.21 released, you can change labels by modfiying `container.labels` in configuration file (if you don't have a configuration file, please refer to [configuration tutorials](#configuration)), and runner will declare the new labels which you defined in configuration file after executing `./act_runner daemon --config config.yaml`.
+Starting with Gitea 1.21, you can change labels by modifying `container.labels` in the runner configuration file (if you don't have a configuration file, please refer to [configuration tutorials](#configuration)).
+The runner will use these new labels as soon as you restart it, i.e., by calling `./act_runner daemon --config config.yaml`.
 
 ## Running
 
@@ -263,29 +264,31 @@ Since act runner is still in development, it is recommended to check the latest 
 
 ## Configuration variable
 
-You can create configuration varibales with user, organization, repository level. And the level of the variable depends on which setting panel you created in.
+You can create configuration variables on the user, organization and repository level.
+The level of the variable depends on where you created it.
 
 ### Naming conventions
 
 The following rules apply to variable names:
 
-- Varibale names can only contain alphanumeric characters (`[a-z]`, `[A-Z]`, `[0-9]`) or underscores (`_`). Spaces are not allowed.
+- Variable names can only contain alphanumeric characters (`[a-z]`, `[A-Z]`, `[0-9]`) or underscores (`_`). Spaces are not allowed.
 
-- Varibale names must not start with the `GITHUB_` and `GITEA_` prefix.
+- Variable names must not start with the `GITHUB_` and `GITEA_` prefix.
 
-- Varibale names must not start with a number.
+- Variable names must not start with a number.
 
-- Varibale names are not case-sensitive.
+- Variable names are case-insensitive.
 
-- Varibale names must be unique at the level they are created at.
+- Variable names must be unique at the level they are created at.
 
-- Varibale names must not be 'CI'.
+- Variable names must not be `CI`.
 
-### Using varibales
+### Using variable
 
-After creating configuration varibales, they will be automatically filled in the `vars` context. They are available to you with expression like `{{ vars.VARIABLE_NAME }}` in workflow.
+After creating configuration variables, they will be automatically filled in the `vars` context.
+They can be accessed through expressions like `{{ vars.VARIABLE_NAME }}` in the workflow.
 
 ### Precedence
 
-If a variable with the same name exists at multiple levels, the variable at the lowest level takes precedence(the level of organization and user is higher than repository's).
-For example, if an organization-level variable has the same name as a repository-level variable, then the repository-level variable takes precedence.
+If a variable with the same name exists at multiple levels, the variable at the lowest level takes precedence:
+A repository variable will always be chosen over an organization/user variable.
