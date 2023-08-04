@@ -4,6 +4,7 @@
 package org
 
 import (
+	"code.gitea.io/gitea/modules/timeutil"
 	"net/http"
 	"strconv"
 	"strings"
@@ -208,6 +209,11 @@ func EditLabel(ctx *context.APIContext) {
 	}
 	if form.Description != nil {
 		l.Description = *form.Description
+	}
+	if form.IsArchived != nil {
+		l.ArchivedUnix = timeutil.TimeStampNow()
+	} else {
+		l.ArchivedUnix = timeutil.TimeStamp(0)
 	}
 	if err := issues_model.UpdateLabel(l); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateLabel", err)

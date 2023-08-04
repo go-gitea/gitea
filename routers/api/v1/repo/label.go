@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"code.gitea.io/gitea/modules/timeutil"
 	"net/http"
 	"strconv"
 
@@ -151,13 +152,17 @@ func CreateLabel(ctx *context.APIContext) {
 		return
 	}
 	form.Color = color
-
 	l := &issues_model.Label{
 		Name:        form.Name,
 		Exclusive:   form.Exclusive,
 		Color:       form.Color,
 		RepoID:      ctx.Repo.Repository.ID,
 		Description: form.Description,
+	}
+	if form.IsArchived {
+		l.ArchivedUnix = timeutil.TimeStampNow()
+	} else {
+		l.ArchivedUnix = timeutil.TimeStamp(0)
 	}
 	if err := issues_model.NewLabel(ctx, l); err != nil {
 		ctx.Error(http.StatusInternalServerError, "NewLabel", err)
@@ -230,6 +235,11 @@ func EditLabel(ctx *context.APIContext) {
 	}
 	if form.Description != nil {
 		l.Description = *form.Description
+	}
+	if form.IsArchived != nil {
+		l.ArchivedUnix = timeutil.TimeStampNow()
+	} else {
+		l.ArchivedUnix = timeutil.TimeStamp(0)
 	}
 	if err := issues_model.UpdateLabel(l); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateLabel", err)

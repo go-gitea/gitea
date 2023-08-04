@@ -4,7 +4,7 @@
 package org
 
 import (
-	"fmt"
+	"code.gitea.io/gitea/modules/timeutil"
 	"net/http"
 
 	"code.gitea.io/gitea/models/db"
@@ -61,8 +61,6 @@ func NewLabel(ctx *context.Context) {
 // UpdateLabel update a label's name and color
 func UpdateLabel(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateLabelForm)
-	fmt.Println(form)
-	fmt.Println("$$$$$$$$$$$$")
 	l, err := issues_model.GetLabelInOrgByID(ctx, ctx.Org.Organization.ID, form.ID)
 	if err != nil {
 		switch {
@@ -78,6 +76,11 @@ func UpdateLabel(ctx *context.Context) {
 	l.Exclusive = form.Exclusive
 	l.Description = form.Description
 	l.Color = form.Color
+	if form.IsArchived {
+		l.ArchivedUnix = timeutil.TimeStampNow()
+	} else {
+		l.ArchivedUnix = timeutil.TimeStamp(0)
+	}
 	if err := issues_model.UpdateLabel(l); err != nil {
 		ctx.ServerError("UpdateLabel", err)
 		return

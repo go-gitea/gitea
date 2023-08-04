@@ -90,7 +90,6 @@ type Label struct {
 	NumClosedIssues int
 	CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix     timeutil.TimeStamp `xorm:"INDEX updated"`
-	ArchivedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
 
 	NumOpenIssues     int    `xorm:"-"`
 	NumOpenRepoIssues int64  `xorm:"-"`
@@ -98,6 +97,8 @@ type Label struct {
 	QueryString       string `xorm:"-"`
 	IsSelected        bool   `xorm:"-"`
 	IsExcluded        bool   `xorm:"-"`
+
+	ArchivedUnix timeutil.TimeStamp `xorm:"DEFAULT 0"`
 }
 
 func init() {
@@ -152,6 +153,11 @@ func (l *Label) LoadSelectedLabelsAfterClick(currentSelectedLabels []int64, curr
 // BelongsToOrg returns true if label is an organization label
 func (l *Label) BelongsToOrg() bool {
 	return l.OrgID > 0
+}
+
+// IsArchived returns true if label is an archived
+func (l *Label) IsArchived() bool {
+	return l.ArchivedUnix > 0
 }
 
 // BelongsToRepo returns true if label is a repository label
@@ -212,7 +218,7 @@ func UpdateLabel(l *Label) error {
 	}
 	l.Color = color
 
-	return updateLabelCols(db.DefaultContext, l, "name", "description", "color", "exclusive")
+	return updateLabelCols(db.DefaultContext, l, "name", "description", "color", "exclusive", "archived_unix")
 }
 
 // DeleteLabel delete a label
