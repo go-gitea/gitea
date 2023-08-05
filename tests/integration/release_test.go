@@ -21,6 +21,10 @@ import (
 )
 
 func createNewRelease(t *testing.T, session *TestSession, repoURL, tag, title string, preRelease, draft bool) {
+	createNewReleaseTarget(t, session, repoURL, tag, title, "master", preRelease, draft)
+}
+
+func createNewReleaseTarget(t *testing.T, session *TestSession, repoURL, tag, title, target string, preRelease, draft bool) {
 	req := NewRequest(t, "GET", repoURL+"/releases/new")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
@@ -31,7 +35,7 @@ func createNewRelease(t *testing.T, session *TestSession, repoURL, tag, title st
 	postData := map[string]string{
 		"_csrf":      htmlDoc.GetCSRF(),
 		"tag_name":   tag,
-		"tag_target": "master",
+		"tag_target": target,
 		"title":      title,
 		"content":    "",
 	}
@@ -238,4 +242,13 @@ func TestViewTagsList(t *testing.T) {
 	})
 
 	assert.EqualValues(t, []string{"v1.0", "delete-tag", "v1.1"}, tagNames)
+}
+
+func TestReleaseOnCommit(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+	createNewReleaseTarget(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", "65f1bf27bc3bf70f64657658635e66094edbcb4d", false, false)
+
+	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", translation.NewLocale("en-US").Tr("repo.release.stable"), 4)
 }
