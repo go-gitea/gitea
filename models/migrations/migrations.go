@@ -523,8 +523,6 @@ var migrations = []Migration{
 	NewMigration("Drop deleted branch table", v1_21.DropDeletedBranchTable),
 	// v270 -> v271
 	NewMigration("Fix PackageProperty typo", v1_21.FixPackagePropertyTypo),
-	// v271 -> v272
-	NewMigration("Add locked property to OAuth2 application", v1_21.OAuth2ApplicationAddLockedProperty),
 }
 
 // GetCurrentDBVersion returns the current db version
