@@ -431,16 +431,8 @@ func (diffFile *DiffFile) ModeTranslationKey(mode string) string {
 	switch mode {
 	case "040000":
 		return "git.filemode.directory"
-	case "100600":
-		return "git.filemode.normal_file_rw0_000_000"
-	case "100640":
-		return "git.filemode.normal_file_rw0_r00_000"
 	case "100644":
 		return "git.filemode.normal_file"
-	case "100700":
-		return "git.filemode.executable_file_rwx_000_000"
-	case "100750":
-		return "git.filemode.executable_file_rwx_r0x_000"
 	case "100755":
 		return "git.filemode.executable_file"
 	case "120000":
