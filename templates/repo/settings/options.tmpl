@@ -680,7 +680,9 @@
 				{{end}}
 				<h4 class="ui header">{{.locale.Tr "repo.settings.admin_stats_indexer"}}</h4>
 				<div class="inline fields">
-					<label>{{.locale.Tr "repo.settings.admin_indexer_commit_sha"}}</label>
+					{{if and .StatsIndexerStatus .StatsIndexerStatus.CommitSha}}
+						<label>{{.locale.Tr "repo.settings.admin_indexer_commit_sha"}}</label>
+					{{end}}
 					<span class="field">
 						{{if and .StatsIndexerStatus .StatsIndexerStatus.CommitSha}}
 							<a rel="nofollow" class="ui sha label" href="{{.RepoLink}}/commit/{{.StatsIndexerStatus.CommitSha}}">
