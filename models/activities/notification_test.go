@@ -113,7 +113,7 @@ func TestUpdateNotificationStatuses(t *testing.T) {
 
 func TestSetIssueReadBy(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
 	assert.NoError(t, db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		return activities_model.SetIssueReadBy(ctx, issue.ID, user.ID)
