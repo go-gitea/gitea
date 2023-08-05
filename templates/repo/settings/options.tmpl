@@ -682,7 +682,7 @@
 				<div class="inline fields">
 					<label>{{.locale.Tr "repo.settings.admin_indexer_commit_sha"}}</label>
 					<span class="field">
-						{{if .StatsIndexerStatus}}
+						{{if and .StatsIndexerStatus .StatsIndexerStatus.CommitSha}}
 							<a rel="nofollow" class="ui sha label" href="{{.RepoLink}}/commit/{{.StatsIndexerStatus.CommitSha}}">
 								<span class="shortsha">{{ShortSha .StatsIndexerStatus.CommitSha}}</span>
 							</a>
