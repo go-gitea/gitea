@@ -146,11 +146,11 @@ func main() {
 	app.Commands = append(app.Commands, subCmdWithIni...)
 	app.Commands = append(app.Commands, subCmdStandalone...)
 
-	err := app.Run(os.Args)
-	if err != nil {
-		_, _ = fmt.Fprintf(app.Writer, "\nFailed to run with %s: %v\n", os.Args, err)
+	cli.OsExiter = func(code int) {
+		log.GetManager().Close()
+		os.Exit(code)
 	}
-
+	_ = cmd.RunMainApp(app, os.Args...) // all errors should have been handled by the RunMainApp
 	log.GetManager().Close()
 }
 
