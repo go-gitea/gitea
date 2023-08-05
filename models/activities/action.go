@@ -685,7 +685,7 @@ func NotifyWatchersActions(acts []*Action) error {
 }
 
 // DeleteIssueActions delete all actions related with issueID
-func DeleteIssueActions(ctx context.Context, repoID, issueID int64) error {
+func DeleteIssueActions(ctx context.Context, repoID, issueID, issueIndex int64) error {
 	// delete actions assigned to this issue
 	subQuery := builder.Select("`id`").
 		From("`comment`").
@@ -696,7 +696,7 @@ func DeleteIssueActions(ctx context.Context, repoID, issueID int64) error {
 
 	_, err := db.GetEngine(ctx).Table("action").Where("repo_id = ?", repoID).
 		In("op_type", ActionCreateIssue, ActionCreatePullRequest).
-		Where("content LIKE ?", strconv.FormatInt(issueID, 10)+"|%").
+		Where("content LIKE ?", strconv.FormatInt(issueIndex, 10)+"|%").
 		Delete(&Action{})
 	return err
 }
