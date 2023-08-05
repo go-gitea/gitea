@@ -405,14 +405,9 @@ func Cancel(ctx *context_module.Context) {
 	ctx.JSON(http.StatusOK, struct{}{})
 }
 
+// Delete deletes a run and all its jobs.
 func Delete(ctx *context_module.Context) {
-
 	runIndex := ctx.ParamsInt64("run")
-
-	_, jobs := getRunJobs(ctx, runIndex, -1)
-	if ctx.Written() {
-		return
-	}
 
 	run, err := actions_model.GetRunByID(ctx, runIndex)
 	if err != nil {
@@ -420,13 +415,48 @@ func Delete(ctx *context_module.Context) {
 		return
 	}
 
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
+	_, jobs := getRunJobs(ctx, runIndex, -1)
+	if ctx.Written() {
+		return
+	}
 
-		if err := actions_model.DeleteRunJobs(ctx, jobs); err != nil {
-			return err
+	// Initializes a transaction where it will:
+	// 1. Get all the tasks associate with each job as well as the task steps
+	// 2. Delete all the task steps, tasks, jobs and run itself.
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		for _, job := range jobs {
+
+			if job.TaskID == 0 {
+				return fmt.Errorf("job not associate with any task")
+			}
+			if job.Status == actions_model.StatusRunning {
+				return fmt.Errorf("job is running, can't delete")
+			}
+
+			task, err := actions_model.GetTaskByID(ctx, job.TaskID)
+			if err != nil {
+				return fmt.Errorf("error while getting task: %v", err)
+			}
+
+			taskSteps, err := actions_model.GetTaskStepsByTaskID(ctx, task.ID)
+			if err != nil {
+				return fmt.Errorf("error while getting task steps: %v", err)
+			}
+
+			if err := actions_model.DeleteTaskSteps(ctx, taskSteps); err != nil {
+				return fmt.Errorf("error while deleting task steps: %v", err)
+			}
+
+			if err := actions_model.DeleteTask(ctx, task); err != nil {
+				return fmt.Errorf("error while deleting task: %v", err)
+			}
+
+			if err := actions_model.DeleteRunJob(ctx, job); err != nil {
+				return fmt.Errorf("error while deleting run job: %v", err)
+			}
 		}
 		if err := actions_model.DeleteRun(ctx, run); err != nil {
-			return err
+			return fmt.Errorf("error while deleting run: %v", err)
 		}
 		return nil
 	}); err != nil {

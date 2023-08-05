@@ -305,8 +305,21 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 	return commiter.Commit()
 }
 
-func DeleteRunJobs(ctx context.Context, jobs []*ActionRunJob) error {
-	return db.DeleteBeans(ctx, jobs)
+func DeleteTaskSteps(ctx context.Context, steps []*ActionTaskStep) error {
+	for _, step := range steps {
+		if err := db.DeleteBeans(ctx, step); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func DeleteTask(ctx context.Context, actionTask *ActionTask) error {
+	return db.DeleteBeans(ctx, actionTask)
+}
+
+func DeleteRunJob(ctx context.Context, job *ActionRunJob) error {
+	return db.DeleteBeans(ctx, job)
 }
 
 func DeleteRun(ctx context.Context, run *ActionRun) error {
@@ -322,11 +335,7 @@ func DeleteRun(ctx context.Context, run *ActionRun) error {
 		return err
 	}
 
-	if err := updateRepoRunsNumbers(ctx, run.Repo); err != nil {
-		return err
-	}
-
-	return nil
+	return updateRepoRunsNumbers(ctx, run.Repo)
 }
 
 func GetRunByID(ctx context.Context, id int64) (*ActionRun, error) {
