@@ -150,8 +150,12 @@ func checkCommandFlags(c any) bool {
 	return ok
 }
 
-func NewMainApp() *cli.App {
+func NewMainApp(version, versionExtra string) *cli.App {
 	app := cli.NewApp()
+	app.Name = "Gitea"
+	app.Usage = "A painless self-hosted Git service"
+	app.Description = `By default, Gitea will start serving using the web-server with no argument, which can alternatively be run by running the subcommand "web".`
+	app.Version = version + versionExtra
 	app.EnableBashCompletion = true
 
 	// these sub-commands need to use config file
@@ -200,4 +204,19 @@ func NewMainApp() *cli.App {
 		panic("some flags are incorrect") // this is a runtime check to help developers
 	}
 	return app
+}
+
+func RunMainApp(app *cli.App, args ...string) error {
+	err := app.Run(args)
+	if err == nil {
+		return nil
+	}
+	if strings.HasPrefix(err.Error(), "flag provided but not defined:") {
+		// the cli package should already have output the error message, so just exit
+		cli.OsExiter(1)
+		return err
+	}
+	_, _ = fmt.Fprintf(app.ErrWriter, "Command error: %v\n", err)
+	cli.OsExiter(1)
+	return err
 }
