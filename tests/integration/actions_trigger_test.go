@@ -67,7 +67,7 @@ func TestPullRequestTargetEvent(t *testing.T) {
 				{
 					Operation:     "create",
 					TreePath:      ".gitea/workflows/pr.yml",
-					ContentReader: strings.NewReader("name: test\non: pull_request_target\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo helloworld\n"),
+					ContentReader: strings.NewReader("name: test\non:\n  pull_request_target:\n    paths:\n      - 'file_*.txt'\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo helloworld\n"),
 				},
 			},
 			Message:   "add workflow",
@@ -138,8 +138,60 @@ func TestPullRequestTargetEvent(t *testing.T) {
 		assert.NoError(t, err)
 
 		// load and compare ActionRun
+		assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: baseRepo.ID}))
 		actionRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: baseRepo.ID})
 		assert.Equal(t, addFileToForkedResp.Commit.SHA, actionRun.CommitSHA)
 		assert.Equal(t, actions_module.GithubEventPullRequestTarget, actionRun.TriggerEvent)
+
+		// add another file whose name cannot match the specified path
+		addFileToForkedResp, err = files_service.ChangeRepoFiles(git.DefaultContext, forkedRepo, user3, &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation:     "create",
+					TreePath:      "foo.txt",
+					ContentReader: strings.NewReader("foo"),
+				},
+			},
+			Message:   "add foo.txt",
+			OldBranch: "main",
+			NewBranch: "fork-branch-2",
+			Author: &files_service.IdentityOptions{
+				Name:  user3.Name,
+				Email: user3.Email,
+			},
+			Committer: &files_service.IdentityOptions{
+				Name:  user3.Name,
+				Email: user3.Email,
+			},
+			Dates: &files_service.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
+			},
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, addFileToForkedResp)
+
+		// create Pull
+		pullIssue = &issues_model.Issue{
+			RepoID:   baseRepo.ID,
+			Title:    "A mismatched path cannot trigger pull-request-target-event",
+			PosterID: user3.ID,
+			Poster:   user3,
+			IsPull:   true,
+		}
+		pullRequest = &issues_model.PullRequest{
+			HeadRepoID: forkedRepo.ID,
+			BaseRepoID: baseRepo.ID,
+			HeadBranch: "fork-branch-2",
+			BaseBranch: "main",
+			HeadRepo:   forkedRepo,
+			BaseRepo:   baseRepo,
+			Type:       issues_model.PullRequestGitea,
+		}
+		err = pull_service.NewPullRequest(git.DefaultContext, baseRepo, pullIssue, nil, nil, pullRequest, nil)
+		assert.NoError(t, err)
+
+		// the new pull request cannot trigger actions, so there is still only 1 record
+		assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: baseRepo.ID}))
 	})
 }
