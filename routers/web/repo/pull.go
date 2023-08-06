@@ -362,6 +362,9 @@ func setMergeTarget(ctx *context.Context, pull *issues_model.PullRequest) {
 // GetPullDiffStats get Pull Requests diff stats
 func GetPullDiffStats(ctx *context.Context) {
 	issue := checkPullInfo(ctx)
+	if issue == nil {
+		return
+	}
 	pull := issue.PullRequest
 
 	mergeBaseCommitID := GetMergedBaseCommitID(ctx, issue)
