@@ -79,8 +79,9 @@ SMTP_PORT      = 465
 FROM           = example.user@gmail.com
 USER           = example.user
 PASSWD         = `***`
-PROTOCOL       = smtp
-IS_TLS_ENABLED = true
+PROTOCOL       = smtps ; Gitea >= 1.19.0
+; PROTOCOL       = smtp  ; Gitea < 1.19.0
+; IS_TLS_ENABLED = true  ; Gitea < 1.19.0
 ```
 
 Note that you'll need to create and use an [App password](https://support.google.com/accounts/answer/185833?hl=en) by enabling 2FA on your Google
