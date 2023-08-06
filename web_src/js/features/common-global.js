@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import 'jquery.are-you-sure';
+import {clippie} from 'clippie';
 import {createDropzone} from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
@@ -7,8 +8,9 @@ import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
 import {svg} from '../svg.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
+import {showTemporaryTooltip} from '../modules/tippy.js';
 
-const {appUrl, csrfToken} = window.config;
+const {appUrl, csrfToken, i18n} = window.config;
 
 export function initGlobalFormDirtyLeaveConfirm() {
   // Warn users that try to leave a page after entering data into a form.
@@ -146,7 +148,7 @@ export function initGlobalDropzone() {
           copyLinkElement.className = 'gt-text-center';
           // The a element has a hardcoded cursor: pointer because the default is overridden by .dropzone
           copyLinkElement.innerHTML = `<a href="#" style="cursor: pointer;">${svg('octicon-copy', 14, 'copy link')} Copy link</a>`;
-          copyLinkElement.addEventListener('click', (e) => {
+          copyLinkElement.addEventListener('click', async (e) => {
             e.preventDefault();
             let fileMarkdown = `[${file.name}](/attachments/${file.uuid})`;
             if (file.type.startsWith('image/')) {
@@ -154,7 +156,8 @@ export function initGlobalDropzone() {
             } else if (file.type.startsWith('video/')) {
               fileMarkdown = `<video src="/attachments/${file.uuid}" title="${htmlEscape(file.name)}" controls></video>`;
             }
-            navigator.clipboard.writeText(fileMarkdown);
+            const success = await clippie(fileMarkdown);
+            showTemporaryTooltip(e.target, success ? i18n.copy_success : i18n.copy_error);
           });
           file.previewTemplate.append(copyLinkElement);
         });

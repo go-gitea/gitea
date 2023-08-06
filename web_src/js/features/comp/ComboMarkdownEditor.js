@@ -68,7 +68,10 @@ class ComboMarkdownEditor {
     this.textarea.id = `_combo_markdown_editor_${String(elementIdCounter++)}`;
     this.textarea.addEventListener('input', (e) => this.options?.onContentChanged?.(this, e));
     this.applyEditorHeights(this.textarea, this.options.editorHeights);
-    this.textareaAutosize = autosize(this.textarea, {viewportMarginBottom: 130});
+
+    if (this.textarea.getAttribute('data-disable-autosize') !== 'true') {
+      this.textareaAutosize = autosize(this.textarea, {viewportMarginBottom: 130});
+    }
 
     this.textareaMarkdownToolbar = this.container.querySelector('markdown-toolbar');
     this.textareaMarkdownToolbar.setAttribute('for', this.textarea.id);
@@ -246,7 +249,7 @@ class ComboMarkdownEditor {
     } else {
       this.textarea.value = v;
     }
-    this.textareaAutosize.resizeToFit();
+    this.textareaAutosize?.resizeToFit();
   }
 
   focus() {
