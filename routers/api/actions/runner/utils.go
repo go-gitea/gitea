@@ -121,7 +121,7 @@ func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
 	ref, sha, baseRef, headRef := t.Job.Run.RefShaBaseRefAndHeadRef()
 	refName := git.RefName(ref)
 
-	taskContext, err := structpb.NewStruct(map[string]any{
+	contextMap := map[string]any{
 		// standard contexts, see https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
 		"action":            "",                                                   // string, The name of the action currently running, or the id of a step. GitHub removes special characters, and uses the name __run when the current step runs a script without an id. If you use the same action more than once in the same job, the name will include a suffix with the sequence number with underscore before it. For example, the first script you run will have the name __run, and the second script will be named __run_2. Similarly, the second invocation of actions/checkout will be actionscheckout2.
 		"action_path":       "",                                                   // string, The path where an action is located. This property is only supported in composite actions. You can use this path to access files located in the same repository as the action.
@@ -160,7 +160,18 @@ func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
 
 		// additional contexts
 		"gitea_default_actions_url": setting.Actions.DefaultActionsURL.URL(),
-	})
+	}
+
+	if t.Job.MayCreateIDToken() {
+		// The "a=1" is a dummy variable. If an audience is passed to
+		// github/core.js's getIdToken(), it appends it to the URL as "&audience=".
+		// If the URL doesn't at least have a '?', the "&audience=" part will be
+		// interpreted as part of the path.
+		contextMap["actions_id_token_request_url"] = fmt.Sprintf("%sapi/v1/actions/id-token/request?a=1", setting.AppURL)
+		contextMap["actions_id_token_request_token"] = t.Token
+	}
+
+	taskContext, err := structpb.NewStruct(contextMap)
 	if err != nil {
 		log.Error("structpb.NewStruct failed: %v", err)
 	}
