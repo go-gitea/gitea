@@ -56,15 +56,19 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 	prCtx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("NewPullRequest: %s:%d", repo.FullName(), pr.Index))
 	defer finished()
 
+	assigneeCommentMap := make(map[int64]*issues_model.Comment)
+
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := issues_model.NewPullRequest(ctx, repo, pull, labelIDs, uuids, pr); err != nil {
 			return err
 		}
 
 		for _, assigneeID := range assigneeIDs {
-			if err := issue_service.AddAssigneeIfNotAssigned(ctx, pull, pull.Poster, assigneeID, false); err != nil {
+			comment, err := issue_service.AddAssigneeIfNotAssigned(ctx, pull, pull.Poster, assigneeID, false)
+			if err != nil {
 				return err
 			}
+			assigneeCommentMap[assigneeID] = comment
 		}
 
 		pr.Issue = pull
@@ -140,6 +144,15 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 	}
 	if pull.Milestone != nil {
 		notification.NotifyIssueChangeMilestone(ctx, pull.Poster, pull, 0)
+	}
+	if len(assigneeIDs) > 0 {
+		for _, assigneeID := range assigneeIDs {
+			assignee, err := user_model.GetUserByID(ctx, assigneeID)
+			if err != nil {
+				return ErrDependenciesLeft
+			}
+			notification.NotifyIssueChangeAssignee(ctx, pull.Poster, pull, assignee, false, assigneeCommentMap[assigneeID])
+		}
 	}
 
 	return nil
