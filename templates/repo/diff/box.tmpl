@@ -130,7 +130,9 @@
 									<span class="ui label">{{$.locale.Tr "repo.diff.vendored"}}</span>
 								{{end}}
 								{{if and $file.Mode $file.OldMode}}
-									<span class="gt-ml-4 gt-mono">{{$.locale.Tr ($file.ModeTranslationKey $file.OldMode)}} → {{$.locale.Tr ($file.ModeTranslationKey $file.Mode)}}</span>
+									{{$old := $.locale.Tr ($file.ModeTranslationKey $file.OldMode)}}
+									{{$new := $.locale.Tr ($file.ModeTranslationKey $file.Mode)}}
+									<span class="gt-ml-4 gt-mono">{{$.locale.Tr "git.filemode.changed_filemode" $old $new}}</span>
 								{{else if $file.Mode}}
 									<span class="gt-ml-4 gt-mono">{{$.locale.Tr ($file.ModeTranslationKey $file.Mode)}}</span>
 								{{end}}
