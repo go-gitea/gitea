@@ -10,6 +10,7 @@ Template Attributes:
 * TextareaPlaceholder: placeholder attribute for the textarea
 * TextareaAriaLabel: aria-label attribute for the textarea
 * DropzoneParentContainer: container for file upload (leave it empty if no upload)
+* DisableAutosize: whether to disable automatic height resizing
 */}}
 <div {{if .ContainerId}}id="{{.ContainerId}}"{{end}} class="combo-markdown-editor {{.ContainerClasses}}" data-dropzone-parent-container="{{.DropzoneParentContainer}}">
 	{{if .MarkdownPreviewUrl}}
@@ -45,7 +46,7 @@ Template Attributes:
 			</div>
 		</markdown-toolbar>
 		<text-expander keys=": @" suffix="">
-			<textarea class="markdown-text-editor js-quick-submit"{{if .TextareaName}} name="{{.TextareaName}}"{{end}}{{if .TextareaPlaceholder}} placeholder="{{.TextareaPlaceholder}}"{{end}}{{if .TextareaAriaLabel}} aria-label="{{.TextareaAriaLabel}}"{{end}}>{{.TextareaContent}}</textarea>
+			<textarea class="markdown-text-editor js-quick-submit"{{if .TextareaName}} name="{{.TextareaName}}"{{end}}{{if .TextareaPlaceholder}} placeholder="{{.TextareaPlaceholder}}"{{end}}{{if .TextareaAriaLabel}} aria-label="{{.TextareaAriaLabel}}"{{end}}{{if .DisableAutosize}} data-disable-autosize="{{.DisableAutosize}}"{{end}}>{{.TextareaContent}}</textarea>
 		</text-expander>
 		<script>
 			if (localStorage?.getItem('markdown-editor-monospace') === 'true') {

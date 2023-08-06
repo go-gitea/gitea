@@ -1,0 +1,27 @@
+{{$size := 26}}
+{{if .Size}}
+	{{$size = .Size}}
+{{end}}
+{{if eq .HookType "gitea"}}
+	<img width="{{$size}}" height="{{$size}}" src="{{AssetUrlPrefix}}/img/gitea.svg">
+{{else if eq .HookType "gogs"}}
+	<img width="{{$size}}" height="{{$size}}" src="{{AssetUrlPrefix}}/img/gogs.ico">
+{{else if eq .HookType "slack"}}
+	<img width="{{$size}}" height="{{$size}}" src="{{AssetUrlPrefix}}/img/slack.png">
+{{else if eq .HookType "discord"}}
+	<img width="{{$size}}" height="{{$size}}" src="{{AssetUrlPrefix}}/img/discord.png">
+{{else if eq .HookType "dingtalk"}}
+	<img width="{{$size}}" height="{{$size}}" src="{{AssetUrlPrefix}}/img/dingtalk.ico">
+{{else if eq .HookType "telegram"}}
+	<img width="{{$size}}" height="{{$size}}" src="{{AssetUrlPrefix}}/img/telegram.png">
+{{else if eq .HookType "msteams"}}
+	<img width="{{$size}}" height="{{$size}}" src="{{AssetUrlPrefix}}/img/msteams.png">
+{{else if eq .HookType "feishu"}}
+	<img width="{{$size}}" height="{{$size}}" src="{{AssetUrlPrefix}}/img/feishu.png">
+{{else if eq .HookType "matrix"}}
+	{{svg "gitea-matrix" $size "img"}}
+{{else if eq .HookType "wechatwork"}}
+	<img width="{{$size}}" height="{{$size}}" src="{{AssetUrlPrefix}}/img/wechatwork.png">
+{{else if eq .HookType "packagist"}}
+	<img width="{{$size}}" height="{{$size}}" src="{{AssetUrlPrefix}}/img/packagist.png">
+{{end}}
