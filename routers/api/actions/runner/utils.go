@@ -117,31 +117,8 @@ func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
 	event := map[string]any{}
 	_ = json.Unmarshal([]byte(t.Job.Run.EventPayload), &event)
 
-	// TriggerEvent is added in https://github.com/go-gitea/gitea/pull/25229
-	// This fallback is for the old ActionRun that doesn't have the TriggerEvent field
-	// and should be removed in 1.22
-	eventName := t.Job.Run.TriggerEvent
-	if eventName == "" {
-		eventName = t.Job.Run.Event.Event()
-	}
-
-	baseRef := ""
-	headRef := ""
-	ref := t.Job.Run.Ref
-	sha := t.Job.Run.CommitSHA
-	if pullPayload, err := t.Job.Run.GetPullRequestEventPayload(); err == nil && pullPayload.PullRequest != nil && pullPayload.PullRequest.Base != nil && pullPayload.PullRequest.Head != nil {
-		baseRef = pullPayload.PullRequest.Base.Ref
-		headRef = pullPayload.PullRequest.Head.Ref
-
-		// if the TriggerEvent is pull_request_target, ref and sha need to be set according to the base of pull request
-		// In GitHub's documentation, ref should be the branch or tag that triggered workflow. But when the TriggerEvent is pull_request_target,
-		// the ref will be the base branch.
-		if t.Job.Run.TriggerEvent == actions_module.GithubEventPullRequestTarget {
-			ref = git.BranchPrefix + pullPayload.PullRequest.Base.Name
-			sha = pullPayload.PullRequest.Base.Sha
-		}
-	}
-
+	eventName := t.Job.Run.EventName()
+	ref, sha, baseRef, headRef := t.Job.Run.RefShaBaseRefAndHeadRef()
 	refName := git.RefName(ref)
 
 	taskContext, err := structpb.NewStruct(map[string]any{
