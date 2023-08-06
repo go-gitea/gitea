@@ -947,14 +947,14 @@ func PullRequestCodeOwnersReview(ctx context.Context, pull *Issue, pr *PullReque
 
 	for _, u := range uniqUsers {
 		if u.ID != pull.Poster.ID {
-			if _, err := AddReviewRequest(pull, u, pull.Poster); err != nil {
+			if _, err := AddReviewRequest(ctx, pull, u, pull.Poster); err != nil {
 				log.Warn("Failed add assignee user: %s to PR review: %s#%d, error: %s", u.Name, pr.BaseRepo.Name, pr.ID, err)
 				return err
 			}
 		}
 	}
 	for _, t := range uniqTeams {
-		if _, err := AddTeamReviewRequest(pull, t, pull.Poster); err != nil {
+		if _, err := AddTeamReviewRequest(ctx, pull, t, pull.Poster); err != nil {
 			log.Warn("Failed add assignee team: %s to PR review: %s#%d, error: %s", t.Name, pr.BaseRepo.Name, pr.ID, err)
 			return err
 		}

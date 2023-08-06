@@ -197,7 +197,7 @@ func AddAssigneeIfNotAssigned(ctx context.Context, issue *issues_model.Issue, do
 		return repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: assigneeID, RepoName: issue.Repo.Name}
 	}
 
-	_, _, err = ToggleAssignee(ctx, issue, doer, assigneeID)
+	_, _, err = issues_model.ToggleIssueAssignee(ctx, issue, doer, assigneeID)
 	if err != nil {
 		return err
 	}

@@ -134,12 +134,12 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 		return err
 	}
 
-	notification.NotifyNewPullRequest(prCtx, pr, mentions)
+	notification.NotifyNewPullRequest(ctx, pr, mentions)
 	if len(pull.Labels) > 0 {
-		notification.NotifyIssueChangeLabels(prCtx, pull.Poster, pull, pull.Labels, nil)
+		notification.NotifyIssueChangeLabels(ctx, pull.Poster, pull, pull.Labels, nil)
 	}
 	if pull.Milestone != nil {
-		notification.NotifyIssueChangeMilestone(prCtx, pull.Poster, pull, 0)
+		notification.NotifyIssueChangeMilestone(ctx, pull.Poster, pull, 0)
 	}
 
 	return nil
