@@ -38,9 +38,7 @@ func Security(ctx *context.Context) {
 
 // DeleteAccountLink delete a single account link
 func DeleteAccountLink(ctx *context.Context) {
-	defer ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": setting.AppSubURL + "/user/settings/security",
-	})
+	defer ctx.JSONRedirect(setting.AppSubURL + "/user/settings/security")
 
 	elu := &user_model.ExternalLoginUser{UserID: ctx.Doer.ID, LoginSourceID: ctx.FormInt64("id")}
 	if has, err := user_model.GetExternalLogin(elu); err != nil || !has {

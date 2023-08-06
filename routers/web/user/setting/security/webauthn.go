@@ -129,7 +129,5 @@ func WebauthnDelete(ctx *context.Context) {
 		audit.Record(audit.UserWebAuthRemove, ctx.Doer, ctx.Doer, cred, "User %s removed WebAuthn key %s.", ctx.Doer.Name, cred.Name)
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": setting.AppSubURL + "/user/settings/security",
-	})
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/security")
 }

@@ -62,9 +62,7 @@ func DefaultOrSystemWebhooks(ctx *context.Context) {
 
 // DeleteDefaultOrSystemWebhook handler to delete an admin-defined system or default webhook
 func DeleteDefaultOrSystemWebhook(ctx *context.Context) {
-	defer ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": setting.AppSubURL + "/admin/hooks",
-	})
+	defer ctx.JSONRedirect(setting.AppSubURL + "/admin/hooks")
 
 	hook, err := webhook.GetSystemOrDefaultWebhook(ctx, ctx.FormInt64("id"))
 	if err != nil {

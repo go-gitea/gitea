@@ -390,7 +390,7 @@ func reqRepoWriter(unitTypes ...unit.Type) func(ctx *context.APIContext) {
 // reqRepoBranchWriter user should have a permission to write to a branch, or be a site admin
 func reqRepoBranchWriter(ctx *context.APIContext) {
 	options, ok := web.GetForm(ctx).(api.FileOptionInterface)
-	if !ok || (!ctx.Repo.CanWriteToBranch(ctx.Doer, options.Branch()) && !ctx.IsUserSiteAdmin()) {
+	if !ok || (!ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, options.Branch()) && !ctx.IsUserSiteAdmin()) {
 		ctx.Error(http.StatusForbidden, "reqRepoBranchWriter", "user should have a permission to write to this branch")
 		return
 	}
@@ -755,7 +755,7 @@ func Routes() *web.Route {
 			}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryActivityPub))
 		}
 
-		// Misc (requires 'misc' scope)
+		// Misc (public accessible)
 		m.Group("", func() {
 			m.Get("/version", misc.Version)
 			m.Get("/signing-key.gpg", misc.SigningKey)
@@ -775,7 +775,7 @@ func Routes() *web.Route {
 				m.Get("/attachment", settings.GetGeneralAttachmentSettings)
 				m.Get("/repository", settings.GetGeneralRepoSettings)
 			})
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryMisc))
+		})
 
 		// Notifications (requires 'notifications' scope)
 		m.Group("/notifications", func() {
@@ -1038,7 +1038,7 @@ func Routes() *web.Route {
 						m.Group("/assets", func() {
 							m.Combo("").Get(repo.ListReleaseAttachments).
 								Post(reqToken(), reqRepoWriter(unit.TypeReleases), repo.CreateReleaseAttachment)
-							m.Combo("/{asset}").Get(repo.GetReleaseAttachment).
+							m.Combo("/{attachment_id}").Get(repo.GetReleaseAttachment).
 								Patch(reqToken(), reqRepoWriter(unit.TypeReleases), bind(api.EditAttachmentOptions{}), repo.EditReleaseAttachment).
 								Delete(reqToken(), reqRepoWriter(unit.TypeReleases), repo.DeleteReleaseAttachment)
 						})
@@ -1183,7 +1183,7 @@ func Routes() *web.Route {
 								m.Combo("").
 									Get(repo.ListIssueCommentAttachments).
 									Post(reqToken(), mustNotBeArchived, repo.CreateIssueCommentAttachment)
-								m.Combo("/{asset}").
+								m.Combo("/{attachment_id}").
 									Get(repo.GetIssueCommentAttachment).
 									Patch(reqToken(), mustNotBeArchived, bind(api.EditAttachmentOptions{}), repo.EditIssueCommentAttachment).
 									Delete(reqToken(), mustNotBeArchived, repo.DeleteIssueCommentAttachment)
@@ -1235,7 +1235,7 @@ func Routes() *web.Route {
 							m.Combo("").
 								Get(repo.ListIssueAttachments).
 								Post(reqToken(), mustNotBeArchived, repo.CreateIssueAttachment)
-							m.Combo("/{asset}").
+							m.Combo("/{attachment_id}").
 								Get(repo.GetIssueAttachment).
 								Patch(reqToken(), mustNotBeArchived, bind(api.EditAttachmentOptions{}), repo.EditIssueAttachment).
 								Delete(reqToken(), mustNotBeArchived, repo.DeleteIssueAttachment)

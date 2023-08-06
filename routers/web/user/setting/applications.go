@@ -81,9 +81,7 @@ func ApplicationsPost(ctx *context.Context) {
 
 // DeleteApplication response for delete user access token
 func DeleteApplication(ctx *context.Context) {
-	defer ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": setting.AppSubURL + "/user/settings/applications",
-	})
+	defer ctx.JSONRedirect(setting.AppSubURL + "/user/settings/applications")
 
 	t := &auth_model.AccessToken{UID: ctx.Doer.ID}
 	has, err := db.GetByID(ctx, ctx.FormInt64("id"), t)

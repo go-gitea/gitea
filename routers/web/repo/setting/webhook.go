@@ -761,9 +761,7 @@ func ReplayWebhook(ctx *context.Context) {
 
 // DeleteWebhook delete a webhook
 func DeleteWebhook(ctx *context.Context) {
-	defer ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": ctx.Repo.RepoLink + "/settings/hooks",
-	})
+	defer ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/hooks")
 
 	hook, err := webhook.GetWebhookByRepoID(ctx.Repo.Repository.ID, ctx.FormInt64("id"))
 	if err != nil {
