@@ -27,7 +27,7 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 	}
 
 	for _, assigneeID := range assigneeIDs {
-		if err := AddAssigneeIfNotAssigned(ctx, issue, issue.Poster, assigneeID); err != nil {
+		if err := AddAssigneeIfNotAssigned(ctx, issue, issue.Poster, assigneeID, false); err != nil {
 			return err
 		}
 	}
@@ -128,7 +128,7 @@ func UpdateAssignees(ctx context.Context, issue *issues_model.Issue, oneAssignee
 	// has access to the repo.
 	for _, assignee := range allNewAssignees {
 		// Extra method to prevent double adding (which would result in removing)
-		err = AddAssigneeIfNotAssigned(ctx, issue, doer, assignee.ID)
+		err = AddAssigneeIfNotAssigned(ctx, issue, doer, assignee.ID, true)
 		if err != nil {
 			return err
 		}
@@ -173,7 +173,7 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, gitRepo *git.Reposi
 
 // AddAssigneeIfNotAssigned adds an assignee only if he isn't already assigned to the issue.
 // Also checks for access of assigned user
-func AddAssigneeIfNotAssigned(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, assigneeID int64) (err error) {
+func AddAssigneeIfNotAssigned(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, assigneeID int64, notify bool) (err error) {
 	assignee, err := user_model.GetUserByID(ctx, assigneeID)
 	if err != nil {
 		return err
@@ -197,12 +197,12 @@ func AddAssigneeIfNotAssigned(ctx context.Context, issue *issues_model.Issue, do
 		return repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: assigneeID, RepoName: issue.Repo.Name}
 	}
 
-	_, _, err = issues_model.ToggleIssueAssignee(ctx, issue, doer, assigneeID)
-	if err != nil {
-		return err
+	if notify {
+		_, _, err = ToggleAssigneeWithNotify(ctx, issue, doer, assigneeID)
+	} else {
+		_, _, err = issues_model.ToggleIssueAssignee(ctx, issue, doer, assigneeID)
 	}
-
-	return nil
+	return err
 }
 
 // GetRefEndNamesAndURLs retrieves the ref end names (e.g. refs/heads/branch-name -> branch-name)
