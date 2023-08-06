@@ -125,7 +125,7 @@ func TestDetectMatched(t *testing.T) {
 			evts, err := GetEventsFromContent([]byte(tc.yamlOn))
 			assert.NoError(t, err)
 			assert.Len(t, evts, 1)
-			assert.Equal(t, tc.expected, detectMatched(tc.commit, tc.triggedEvent, tc.payload, evts[0]))
+			assert.Equal(t, tc.expected, detectMatched(nil, tc.commit, tc.triggedEvent, tc.payload, evts[0]))
 		})
 	}
 }

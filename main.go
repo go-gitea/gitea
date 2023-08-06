@@ -5,7 +5,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"runtime"
 	"strings"
@@ -21,6 +20,8 @@ import (
 	_ "code.gitea.io/gitea/modules/markup/csv"
 	_ "code.gitea.io/gitea/modules/markup/markdown"
 	_ "code.gitea.io/gitea/modules/markup/orgmode"
+
+	"github.com/urfave/cli/v2"
 )
 
 // these flags will be set by the build flags
@@ -37,17 +38,12 @@ func init() {
 }
 
 func main() {
-	app := cmd.NewMainApp()
-	app.Name = "Gitea"
-	app.Usage = "A painless self-hosted Git service"
-	app.Description = `By default, Gitea will start serving using the web-server with no argument, which can alternatively be run by running the subcommand "web".`
-	app.Version = Version + formatBuiltWith()
-
-	err := app.Run(os.Args)
-	if err != nil {
-		_, _ = fmt.Fprintf(app.Writer, "\nFailed to run with %s: %v\n", os.Args, err)
+	cli.OsExiter = func(code int) {
+		log.GetManager().Close()
+		os.Exit(code)
 	}
-
+	app := cmd.NewMainApp(Version, formatBuiltWith())
+	_ = cmd.RunMainApp(app, os.Args...) // all errors should have been handled by the RunMainApp
 	log.GetManager().Close()
 }
 
