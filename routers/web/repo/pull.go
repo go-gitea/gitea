@@ -299,7 +299,7 @@ func ForkPost(ctx *context.Context) {
 	ctx.Redirect(ctxUser.HomeLink() + "/" + url.PathEscape(repo.Name))
 }
 
-func getPullInfo(ctx *context.Context) (*issues_model.Issue, bool) {
+func getPullInfo(ctx *context.Context) (issue *issues_model.Issue, ok bool) {
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
