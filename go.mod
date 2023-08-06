@@ -303,7 +303,7 @@ replace github.com/hashicorp/go-version => github.com/6543/go-version v1.3.1
 
 replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142115-2c99e1ffdfa0
 
-replace github.com/nektos/act => gitea.com/gitea/act v0.243.4
+replace github.com/nektos/act => gitea.com/sorenisanerd/act v0.246.2-0.20230806181409-a9e947b70bf6
 
 exclude github.com/gofrs/uuid v3.2.0+incompatible
 

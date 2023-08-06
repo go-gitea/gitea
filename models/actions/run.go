@@ -45,6 +45,7 @@ type ActionRun struct {
 	EventPayload      string                       `xorm:"LONGTEXT"`
 	TriggerEvent      string                       // the trigger event defined in the `on` configuration of the triggered workflow
 	Status            Status                       `xorm:"index"`
+	Permissions       Permissions                  `xorm:"-"`
 	Version           int                          `xorm:"version default 0"` // Status could be updated concomitantly, so an optimistic lock is needed
 	Started           timeutil.TimeStamp
 	Stopped           timeutil.TimeStamp
@@ -280,7 +281,7 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 			hasWaiting = true
 		}
 		job.Name, _ = util.SplitStringAtByteN(job.Name, 255)
-		runJobs = append(runJobs, &ActionRunJob{
+		runJob := &ActionRunJob{
 			RunID:             run.ID,
 			RepoID:            run.RepoID,
 			OwnerID:           run.OwnerID,
@@ -292,7 +293,18 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 			Needs:             needs,
 			RunsOn:            job.RunsOn(),
 			Status:            status,
-		})
+		}
+
+		// Parse the job's permissions
+		if err := job.RawPermissions.Decode(&runJob.Permissions); err != nil {
+			return err
+		}
+
+		// Merge the job's permissions with the workflow permissions.
+		// Job permissions take precedence.
+		runJob.Permissions.Merge(run.Permissions)
+
+		runJobs = append(runJobs, runJob)
 	}
 	if err := db.Insert(ctx, runJobs); err != nil {
 		return err
