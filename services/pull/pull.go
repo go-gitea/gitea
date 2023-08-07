@@ -43,11 +43,20 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("NewPullRequest: %s:%d", repo.FullName(), pr.Index))
 	defer finished()
 
-	if err := TestPatch(pr); err != nil {
+	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
+	if err != nil {
+		if !git_model.IsErrBranchNotExist(err) {
+			log.Error("CreateTemporaryRepoForPR %-v: %v", pr, err)
+		}
+		return err
+	}
+	defer cancel()
+
+	if err := testPatch(ctx, prCtx, pr); err != nil {
 		return err
 	}
 
-	divergence, err := GetDiverging(ctx, pr)
+	divergence, err := git.GetDivergingCommits(ctx, prCtx.tmpBasePath, baseBranch, trackingBranch)
 	if err != nil {
 		return err
 	}
