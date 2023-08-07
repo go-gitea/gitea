@@ -172,6 +172,20 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	ctx.Org.OrgLink = org.AsUser().OrganisationLink()
 	ctx.Data["OrgLink"] = ctx.Org.OrgLink
 
+	// Member
+	opts := &organization.FindOrgMembersOpts{
+		OrgID:      org.ID,
+		PublicOnly: true,
+	}
+	if ctx.Doer != nil {
+		opts.PublicOnly = !ctx.Org.IsMember && !ctx.Doer.IsAdmin
+	}
+	ctx.Data["NumMembers"], err = organization.CountOrgMembers(opts)
+	if err != nil {
+		ctx.ServerError("CountOrgMembers", err)
+		return
+	}
+
 	// Team.
 	if ctx.Org.IsMember {
 		shouldSeeAllTeams := false
@@ -203,6 +217,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 				return
 			}
 		}
+		ctx.Data["NumTeams"] = len(ctx.Org.Teams)
 	}
 
 	teamName := ctx.Params(":team")

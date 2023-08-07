@@ -124,23 +124,12 @@ func Home(ctx *context.Context) {
 	}
 
 	if ctx.Doer != nil {
-		isMember, err := org.IsOrgMember(ctx.Doer.ID)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "IsOrgMember")
-			return
-		}
-		opts.PublicOnly = !isMember && !ctx.Doer.IsAdmin
+		opts.PublicOnly = !ctx.Org.IsMember && !ctx.Doer.IsAdmin
 	}
 
 	members, _, err := organization.FindOrgMembers(opts)
 	if err != nil {
 		ctx.ServerError("FindOrgMembers", err)
-		return
-	}
-
-	membersCount, err := organization.CountOrgMembers(opts)
-	if err != nil {
-		ctx.ServerError("CountOrgMembers", err)
 		return
 	}
 
@@ -151,7 +140,6 @@ func Home(ctx *context.Context) {
 
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = count
-	ctx.Data["MembersTotal"] = membersCount
 	ctx.Data["Members"] = members
 	ctx.Data["Teams"] = ctx.Org.Teams
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
@@ -163,6 +151,8 @@ func Home(ctx *context.Context) {
 	pager.AddParam(ctx, "language", "Language")
 	ctx.Data["Page"] = pager
 	ctx.Data["ContextUser"] = ctx.ContextUser
+
+	ctx.Data["ShowMemberTeamBoard"] = ctx.Org.IsMember || len(members) > 0
 
 	ctx.HTML(http.StatusOK, tplOrgHome)
 }

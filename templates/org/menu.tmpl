@@ -21,13 +21,13 @@
 			{{svg "octicon-code"}}&nbsp;{{$.locale.Tr "org.code"}}
 		</a>
 		{{end}}
-		{{if .IsOrganizationMember}}
+		{{if .NumMembers}}
 			<a class="{{if $.PageIsOrgMembers}}active {{end}}item" href="{{$.OrgLink}}/members">
 				{{svg "octicon-person"}}&nbsp;{{$.locale.Tr "org.members"}}
-				{{if .NumMembers}}
-					<div class="ui small label">{{.NumMembers}}</div>
-				{{end}}
+				<div class="ui small label">{{.NumMembers}}</div>
 			</a>
+		{{end}}
+		{{if .IsOrganizationMember}}
 			<a class="{{if $.PageIsOrgTeams}}active {{end}}item" href="{{$.OrgLink}}/teams">
 				{{svg "octicon-people"}}&nbsp;{{$.locale.Tr "org.teams"}}
 				{{if .NumTeams}}
