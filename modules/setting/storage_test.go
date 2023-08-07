@@ -117,6 +117,9 @@ func Test_getStorageInheritStorageTypeLocal(t *testing.T) {
 [storage]
 STORAGE_TYPE = local
 `, []testLocalStoragePathCase{
+		{loadAttachmentFrom, &Attachment.Storage, "/appdata/attachments"},
+		{loadLFSFrom, &LFS.Storage, "/appdata/lfs"},
+		{loadActionsFrom, &Actions.ArtifactStorage, "/appdata/actions_artifacts"},
 		{loadPackagesFrom, &Packages.Storage, "/appdata/packages"},
 		{loadRepoArchiveFrom, &RepoArchive.Storage, "/appdata/repo-archive"},
 		{loadActionsFrom, &Actions.LogStorage, "/appdata/actions_log"},
@@ -131,6 +134,9 @@ func Test_getStorageInheritStorageTypeLocalPath(t *testing.T) {
 STORAGE_TYPE = local
 PATH = /data/gitea
 `, []testLocalStoragePathCase{
+		{loadAttachmentFrom, &Attachment.Storage, "/data/gitea/attachments"},
+		{loadLFSFrom, &LFS.Storage, "/data/gitea/lfs"},
+		{loadActionsFrom, &Actions.ArtifactStorage, "/data/gitea/actions_artifacts"},
 		{loadPackagesFrom, &Packages.Storage, "/data/gitea/packages"},
 		{loadRepoArchiveFrom, &RepoArchive.Storage, "/data/gitea/repo-archive"},
 		{loadActionsFrom, &Actions.LogStorage, "/data/gitea/actions_log"},
@@ -145,6 +151,9 @@ func Test_getStorageInheritStorageTypeLocalRelativePath(t *testing.T) {
 STORAGE_TYPE = local
 PATH = storages
 `, []testLocalStoragePathCase{
+		{loadAttachmentFrom, &Attachment.Storage, "/appdata/storages/attachments"},
+		{loadLFSFrom, &LFS.Storage, "/appdata/storages/lfs"},
+		{loadActionsFrom, &Actions.ArtifactStorage, "/appdata/storages/actions_artifacts"},
 		{loadPackagesFrom, &Packages.Storage, "/appdata/storages/packages"},
 		{loadRepoArchiveFrom, &RepoArchive.Storage, "/appdata/storages/repo-archive"},
 		{loadActionsFrom, &Actions.LogStorage, "/appdata/storages/actions_log"},
@@ -162,6 +171,9 @@ PATH = /data/gitea
 [repo-archive]
 PATH = /data/gitea/the-archives-dir
 `, []testLocalStoragePathCase{
+		{loadAttachmentFrom, &Attachment.Storage, "/data/gitea/attachments"},
+		{loadLFSFrom, &LFS.Storage, "/data/gitea/lfs"},
+		{loadActionsFrom, &Actions.ArtifactStorage, "/data/gitea/actions_artifacts"},
 		{loadPackagesFrom, &Packages.Storage, "/data/gitea/packages"},
 		{loadRepoArchiveFrom, &RepoArchive.Storage, "/data/gitea/the-archives-dir"},
 		{loadActionsFrom, &Actions.LogStorage, "/data/gitea/actions_log"},
@@ -178,6 +190,9 @@ PATH = /data/gitea
 
 [repo-archive]
 `, []testLocalStoragePathCase{
+		{loadAttachmentFrom, &Attachment.Storage, "/data/gitea/attachments"},
+		{loadLFSFrom, &LFS.Storage, "/data/gitea/lfs"},
+		{loadActionsFrom, &Actions.ArtifactStorage, "/data/gitea/actions_artifacts"},
 		{loadPackagesFrom, &Packages.Storage, "/data/gitea/packages"},
 		{loadRepoArchiveFrom, &RepoArchive.Storage, "/data/gitea/repo-archive"},
 		{loadActionsFrom, &Actions.LogStorage, "/data/gitea/actions_log"},
@@ -195,6 +210,9 @@ PATH = /data/gitea
 [repo-archive]
 PATH = the-archives-dir
 `, []testLocalStoragePathCase{
+		{loadAttachmentFrom, &Attachment.Storage, "/data/gitea/attachments"},
+		{loadLFSFrom, &LFS.Storage, "/data/gitea/lfs"},
+		{loadActionsFrom, &Actions.ArtifactStorage, "/data/gitea/actions_artifacts"},
 		{loadPackagesFrom, &Packages.Storage, "/data/gitea/packages"},
 		{loadRepoArchiveFrom, &RepoArchive.Storage, "/data/gitea/the-archives-dir"},
 		{loadActionsFrom, &Actions.LogStorage, "/data/gitea/actions_log"},
@@ -209,6 +227,9 @@ func Test_getStorageInheritStorageTypeLocalPathOverride3(t *testing.T) {
 STORAGE_TYPE = local
 PATH = /data/gitea/archives
 `, []testLocalStoragePathCase{
+		{loadAttachmentFrom, &Attachment.Storage, "/appdata/attachments"},
+		{loadLFSFrom, &LFS.Storage, "/appdata/lfs"},
+		{loadActionsFrom, &Actions.ArtifactStorage, "/appdata/actions_artifacts"},
 		{loadPackagesFrom, &Packages.Storage, "/appdata/packages"},
 		{loadRepoArchiveFrom, &RepoArchive.Storage, "/data/gitea/archives"},
 		{loadActionsFrom, &Actions.LogStorage, "/appdata/actions_log"},
@@ -226,6 +247,9 @@ PATH = /data/gitea/archives
 [repo-archive]
 PATH = /tmp/gitea/archives
 `, []testLocalStoragePathCase{
+		{loadAttachmentFrom, &Attachment.Storage, "/appdata/attachments"},
+		{loadLFSFrom, &LFS.Storage, "/appdata/lfs"},
+		{loadActionsFrom, &Actions.ArtifactStorage, "/appdata/actions_artifacts"},
 		{loadPackagesFrom, &Packages.Storage, "/appdata/packages"},
 		{loadRepoArchiveFrom, &RepoArchive.Storage, "/tmp/gitea/archives"},
 		{loadActionsFrom, &Actions.LogStorage, "/appdata/actions_log"},
@@ -242,6 +266,9 @@ PATH = /data/gitea/archives
 
 [repo-archive]
 `, []testLocalStoragePathCase{
+		{loadAttachmentFrom, &Attachment.Storage, "/appdata/attachments"},
+		{loadLFSFrom, &LFS.Storage, "/appdata/lfs"},
+		{loadActionsFrom, &Actions.ArtifactStorage, "/appdata/actions_artifacts"},
 		{loadPackagesFrom, &Packages.Storage, "/appdata/packages"},
 		{loadRepoArchiveFrom, &RepoArchive.Storage, "/data/gitea/archives"},
 		{loadActionsFrom, &Actions.LogStorage, "/appdata/actions_log"},
