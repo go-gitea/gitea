@@ -77,7 +77,7 @@
                 <svg-icon name="octicon-archive" :size="16"/>
               </div>
             </a>
-            <a class="gt-df gt-ac" v-if="repo.latest_commit_status_state" :href="repo.latest_commit_status_state_link" :data-tooltip-content="repo.latest_commit_status_state">
+            <a class="gt-df gt-ac" v-if="repo.latest_commit_status_state" :href="repo.latest_commit_status_state_link" :data-tooltip-content="repo.locale_latest_commit_status_state">
               <!-- the commit status icon logic is taken from templates/repo/commit_status.tmpl -->
               <svg-icon :name="statusIcon(repo.latest_commit_status_state)" :class-name="'gt-ml-3 commit-status icon text ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
             </a>
@@ -396,7 +396,14 @@ const sfc = {
       }
 
       if (searchedURL === this.searchURL) {
-        this.repos = json.data.map((webSearchRepo) => {return {...webSearchRepo.repository, latest_commit_status_state: webSearchRepo.latest_commit_status.State, latest_commit_status_state_link: webSearchRepo.latest_commit_status.TargetURL}});
+        this.repos = json.data.map((webSearchRepo) => {
+          return {
+            ...webSearchRepo.repository,
+            latest_commit_status_state: webSearchRepo.latest_commit_status.State,
+            locale_latest_commit_status_state: webSearchRepo.locale_latest_commit_status,
+            latest_commit_status_state_link: webSearchRepo.latest_commit_status.TargetURL
+          };
+        });
         const count = response.headers.get('X-Total-Count');
         if (searchedQuery === '' && searchedMode === '' && this.archivedFilter === 'both') {
           this.reposTotalCount = count;
