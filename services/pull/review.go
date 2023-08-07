@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	issue_service "code.gitea.io/gitea/services/issue"
 )
 
 var notEnoughLines = regexp.MustCompile(`fatal: file .* has only \d+ lines?`)
@@ -248,7 +247,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 			return nil, err
 		}
 	}
-	return issue_service.CreateComment(ctx, &issues_model.CreateCommentOptions{
+	return issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
 		Type:        issues_model.CommentTypeCode,
 		Doer:        doer,
 		Repo:        repo,
@@ -340,7 +339,7 @@ func DismissApprovalReviews(ctx context.Context, doer *user_model.User, pull *is
 				return err
 			}
 
-			comment, err := issue_service.CreateComment(ctx, &issues_model.CreateCommentOptions{
+			comment, err := issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
 				Doer:     doer,
 				Content:  "New commits pushed, approval review dismissed automatically according to repository settings",
 				Type:     issues_model.CommentTypeDismissReview,
@@ -411,7 +410,7 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 		return nil, err
 	}
 
-	comment, err = issue_service.CreateComment(ctx, &issues_model.CreateCommentOptions{
+	comment, err = issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
 		Doer:     doer,
 		Content:  message,
 		Type:     issues_model.CommentTypeDismissReview,

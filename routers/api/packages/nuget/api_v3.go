@@ -166,10 +166,10 @@ type PackageVersionsResponse struct {
 	Versions []string `json:"versions"`
 }
 
-func createPackageVersionsResponse(pds []*packages_model.PackageDescriptor) *PackageVersionsResponse {
-	versions := make([]string, 0, len(pds))
-	for _, pd := range pds {
-		versions = append(versions, pd.Version.Version)
+func createPackageVersionsResponse(pvs []*packages_model.PackageVersion) *PackageVersionsResponse {
+	versions := make([]string, 0, len(pvs))
+	for _, pv := range pvs {
+		versions = append(versions, pv.Version)
 	}
 
 	return &PackageVersionsResponse{

@@ -4,10 +4,13 @@
 package user
 
 import (
+	"fmt"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -92,6 +95,67 @@ func TestCreateUser(t *testing.T) {
 	assert.NoError(t, user_model.CreateUser(user))
 
 	assert.NoError(t, DeleteUser(db.DefaultContext, user, false))
+}
+
+func TestRenameUser(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 21})
+
+	t.Run("Non-Local", func(t *testing.T) {
+		u := &user_model.User{
+			Type:      user_model.UserTypeIndividual,
+			LoginType: auth.OAuth2,
+		}
+		assert.ErrorIs(t, RenameUser(db.DefaultContext, u, "user_rename"), user_model.ErrUserIsNotLocal{})
+	})
+
+	t.Run("Same username", func(t *testing.T) {
+		assert.ErrorIs(t, RenameUser(db.DefaultContext, user, user.Name), user_model.ErrUsernameNotChanged{UID: user.ID, Name: user.Name})
+	})
+
+	t.Run("Non usable username", func(t *testing.T) {
+		usernames := []string{"--diff", "aa.png", ".well-known", "search", "aaa.atom"}
+		for _, username := range usernames {
+			t.Run(username, func(t *testing.T) {
+				assert.Error(t, user_model.IsUsableUsername(username))
+				assert.Error(t, RenameUser(db.DefaultContext, user, username))
+			})
+		}
+	})
+
+	t.Run("Only capitalization", func(t *testing.T) {
+		caps := strings.ToUpper(user.Name)
+		unittest.AssertNotExistsBean(t, &user_model.User{ID: user.ID, Name: caps})
+		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user.ID, OwnerName: user.Name})
+
+		assert.NoError(t, RenameUser(db.DefaultContext, user, caps))
+
+		unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: user.ID, Name: caps})
+		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user.ID, OwnerName: caps})
+	})
+
+	t.Run("Already exists", func(t *testing.T) {
+		existUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+		assert.ErrorIs(t, RenameUser(db.DefaultContext, user, existUser.Name), user_model.ErrUserAlreadyExist{Name: existUser.Name})
+		assert.ErrorIs(t, RenameUser(db.DefaultContext, user, existUser.LowerName), user_model.ErrUserAlreadyExist{Name: existUser.LowerName})
+		newUsername := fmt.Sprintf("uSEr%d", existUser.ID)
+		assert.ErrorIs(t, RenameUser(db.DefaultContext, user, newUsername), user_model.ErrUserAlreadyExist{Name: newUsername})
+	})
+
+	t.Run("Normal", func(t *testing.T) {
+		oldUsername := user.Name
+		newUsername := "User_Rename"
+
+		assert.NoError(t, RenameUser(db.DefaultContext, user, newUsername))
+		unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: user.ID, Name: newUsername, LowerName: strings.ToLower(newUsername)})
+
+		redirectUID, err := user_model.LookupUserRedirect(oldUsername)
+		assert.NoError(t, err)
+		assert.EqualValues(t, user.ID, redirectUID)
+
+		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user.ID, OwnerName: user.Name})
+	})
 }
 
 func TestCreateUser_Issue5882(t *testing.T) {
