@@ -2,9 +2,38 @@
 
 This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
-been added to each release, please refer to the [blog](https://blog.gitea.io).
+been added to each release, please refer to the [blog](https://blog.gitea.com).
 
-## [1.20.2](https://github.com/go-gitea/gitea/releases/tag/1.20.2) - 2023-07-29
+## [1.20.3](https://github.com/go-gitea/gitea/releases/tag/v1.20.3) - 2023-08-07
+
+* BREAKING
+  * Fix the wrong derive path (#26271) (#26318)
+* SECURITY
+  * Fix API leaking Usermail if not logged in (#25097) (#26350)
+* ENHANCEMENTS
+  * Display human-readable text instead of cryptic filemodes (#26352) (#26358)
+  * Hide `last indexed SHA` when a repo could not be indexed yet (#26340) (#26345)
+  * Fix the topic validation rule and suport dots (#26286) (#26303)
+  * Fix due date rendering the wrong date in issue (#26268) (#26274)
+  * Don't autosize textarea in diff view (#26233) (#26244)
+  * Fix commit compare style (#26209) (#26226)
+  * Warn instead of reporting an error when a webhook cannot be found (#26039) (#26211)
+* BUGFIXES
+  * Bypass MariaDB performance bug of the "IN" sub-query, fix incorrect IssueIndex (#26279) (#26368)
+  * Fix incorrect CLI exit code and duplicate error message (#26346) (#26347)
+  * Prevent newline errors with Debian packages (#26332) (#26342)
+  * Fix bug with sqlite load read (#26305) (#26339)
+  * Make git batch operations use parent context timeout instead of default timeout (#26325) (#26330)
+  * Support getting changed files when commit ID is `EmptySHA` (#26290) (#26316)
+  * Clarify the logger's MODE config option (#26267) (#26281)
+  * Use shared template for webhook icons (#26242) (#26246)
+  * Fix pull request check list is limited (#26179) (#26245)
+  * Fix attachment clipboard copy on insecure origin (#26224) (#26231)
+  * Fix access check for org-level project (#26182) (#26223)
+* MISC
+  * Upgrade x/net to 0.13.0 (#26301)
+
+## [1.20.2](https://github.com/go-gitea/gitea/releases/tag/v1.20.2) - 2023-07-29
 
 * ENHANCEMENTS
   * Calculate MAX_WORKERS default value by CPU number (#26177) (#26183)
@@ -32,7 +61,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix wrong workflow status when rerun a job in an already finished workflow (#26119) (#26124)
   * Fix duplicated url prefix on issue context menu (#26066) (#26067)
 
-## [1.20.1](https://github.com/go-gitea/gitea/releases/tag/1.20.1) - 2023-07-22
+## [1.20.1](https://github.com/go-gitea/gitea/releases/tag/v1.20.1) - 2023-07-22
 
 * SECURITY
   * Disallow dangerous URL schemes (#25960) (#25964)
