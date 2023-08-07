@@ -84,15 +84,12 @@ func getDefaultStorageSection(rootCfg ConfigProvider) ConfigSection {
 	return storageSec
 }
 
-// getStorage will find target section and extra special section first and then read override
-// items from extra section
 func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*Storage, error) {
 	if name == "" {
 		return nil, errors.New("no name for storage")
 	}
 
 	var targetSec ConfigSection
-	// check typ first
 	if typ != "" {
 		var err error
 		targetSec, err = rootCfg.GetSection(storageSectionName + "." + typ)
@@ -114,40 +111,24 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 		}
 	}
 
-	if targetSec == nil && sec != nil {
-		secTyp := sec.Key("STORAGE_TYPE").String()
-		if IsValidStorageType(StorageType(secTyp)) {
-			targetSec = sec
-		} else if secTyp != "" {
-			targetSec, _ = rootCfg.GetSection(storageSectionName + "." + secTyp)
-		}
-	}
-
-	targetSecIsStoragename := false
 	storageNameSec, _ := rootCfg.GetSection(storageSectionName + "." + name)
+
+	if targetSec == nil {
+		targetSec = sec
+	}
 	if targetSec == nil {
 		targetSec = storageNameSec
-		targetSecIsStoragename = storageNameSec != nil
 	}
-
 	if targetSec == nil {
 		targetSec = getDefaultStorageSection(rootCfg)
 	} else {
 		targetType := targetSec.Key("STORAGE_TYPE").String()
 		switch {
 		case targetType == "":
-			if targetSec != storageNameSec && storageNameSec != nil {
-				targetSec = storageNameSec
-				targetSecIsStoragename = true
-				if targetSec.Key("STORAGE_TYPE").String() == "" {
-					return nil, fmt.Errorf("storage section %s.%s has no STORAGE_TYPE", storageSectionName, name)
-				}
+			if targetSec.Key("PATH").String() == "" {
+				targetSec = getDefaultStorageSection(rootCfg)
 			} else {
-				if targetSec.Key("PATH").String() == "" {
-					targetSec = getDefaultStorageSection(rootCfg)
-				} else {
-					targetSec.Key("STORAGE_TYPE").SetValue("local")
-				}
+				targetSec.Key("STORAGE_TYPE").SetValue("local")
 			}
 		default:
 			newTargetSec, _ := rootCfg.GetSection(storageSectionName + "." + targetType)
@@ -172,46 +153,26 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 		return nil, fmt.Errorf("invalid storage type %q", targetType)
 	}
 
-	// extra config section will be read SERVE_DIRECT, PATH, MINIO_BASE_PATH, MINIO_BUCKET to override the targetsec when possible
-	extraConfigSec := sec
-	if extraConfigSec == nil {
-		extraConfigSec = storageNameSec
-	}
-
 	var storage Storage
 	storage.Type = StorageType(targetType)
 
 	switch targetType {
 	case string(LocalStorageType):
-		targetPath := ConfigSectionKeyString(targetSec, "PATH", "")
-		if targetPath == "" {
-			targetPath = AppDataPath
-		} else if !filepath.IsAbs(targetPath) {
-			targetPath = filepath.Join(AppDataPath, targetPath)
+		storage.Path = ConfigSectionKeyString(targetSec, "PATH", filepath.Join(AppDataPath, name))
+		if !filepath.IsAbs(storage.Path) {
+			storage.Path = filepath.Join(AppWorkPath, storage.Path)
 		}
-
-		var fallbackPath string
-		if targetSecIsStoragename {
-			fallbackPath = targetPath
-		} else {
-			fallbackPath = filepath.Join(targetPath, name)
-		}
-
-		if extraConfigSec == nil {
-			storage.Path = fallbackPath
-		} else {
-			storage.Path = ConfigSectionKeyString(extraConfigSec, "PATH", fallbackPath)
-			if !filepath.IsAbs(storage.Path) {
-				storage.Path = filepath.Join(targetPath, storage.Path)
-			}
-		}
-
 	case string(MinioStorageType):
+		storage.MinioConfig.BasePath = name + "/"
+
 		if err := targetSec.MapTo(&storage.MinioConfig); err != nil {
 			return nil, fmt.Errorf("map minio config failed: %v", err)
 		}
-
-		storage.MinioConfig.BasePath = name + "/"
+		// extra config section will be read SERVE_DIRECT, PATH, MINIO_BASE_PATH to override the targetsec
+		extraConfigSec := sec
+		if extraConfigSec == nil {
+			extraConfigSec = storageNameSec
+		}
 
 		if extraConfigSec != nil {
 			storage.MinioConfig.ServeDirect = ConfigSectionKeyBool(extraConfigSec, "SERVE_DIRECT", storage.MinioConfig.ServeDirect)
