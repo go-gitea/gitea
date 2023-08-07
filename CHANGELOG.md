@@ -4,7 +4,7 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
-## [1.20.3](https://github.com/go-gitea/gitea/releases/tag/1.20.3) - 2023-08-07
+## [1.20.3](https://github.com/go-gitea/gitea/releases/tag/v1.20.3) - 2023-08-07
 
 * BREAKING
   * Fix the wrong derive path (#26271) (#26318)
@@ -33,7 +33,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 * MISC
   * Upgrade x/net to 0.13.0 (#26301)
 
-## [1.20.2](https://github.com/go-gitea/gitea/releases/tag/1.20.2) - 2023-07-29
+## [1.20.2](https://github.com/go-gitea/gitea/releases/tag/v1.20.2) - 2023-07-29
 
 * ENHANCEMENTS
   * Calculate MAX_WORKERS default value by CPU number (#26177) (#26183)
@@ -61,7 +61,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix wrong workflow status when rerun a job in an already finished workflow (#26119) (#26124)
   * Fix duplicated url prefix on issue context menu (#26066) (#26067)
 
-## [1.20.1](https://github.com/go-gitea/gitea/releases/tag/1.20.1) - 2023-07-22
+## [1.20.1](https://github.com/go-gitea/gitea/releases/tag/v1.20.1) - 2023-07-22
 
 * SECURITY
   * Disallow dangerous URL schemes (#25960) (#25964)
