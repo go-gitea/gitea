@@ -22,11 +22,16 @@
   height: min(4em, 66.6%);
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
-  animation: isloadingspin 500ms infinite linear;
   border-width: 4px;
   border-style: solid;
   border-color: var(--color-secondary) var(--color-secondary) var(--color-secondary-dark-8) var(--color-secondary-dark-8);
   border-radius: 100%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .is-loading::after {
+    animation: isloadingspin 500ms infinite linear;
+  }
 }
 
 .is-loading.small-loading-icon::after {
@@ -102,6 +107,43 @@ code.language-math.is-loading::after {
   }
 }
 
+@keyframes pulse-opacity {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pulse {
+    animation-name: pulse;
+  }
+}
+
 .pulse {
-  animation: pulse 2s linear;
+  animation: pulse-opacity 2s linear;
+}
+
+/***
+ * Hacky half-fix for reduced motion. To properly fix this, Fomantic-UI should
+ * implement reduced motion. This was reported upstream at
+ * https://github.com/fomantic/Fomantic-UI/issues/2872. Fixing this upstream is
+ * likely going to take a while, because the codebase is not easy to work
+ * with. As reduced motion is an accessibility feature, we need to support it
+ * even if upstream doesn't.
+ */
+
+@media (prefers-reduced-motion: reduce) {
+  .transition.flip,
+  .transition.fly,
+  .transition.slide,
+  .transition.swing,
+  .transition.zoom {
+    animation-duration: 0ms !important;
+  }
 }
