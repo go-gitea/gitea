@@ -39,6 +39,10 @@ var pullWorkingPool = sync.NewExclusivePool()
 
 // NewPullRequest creates new pull request with labels for repository.
 func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, pr *issues_model.PullRequest, assigneeIDs []int64) error {
+	// add the creation of pull request to process management
+	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("NewPullRequest: %s:%d", repo.FullName(), pr.Index))
+	defer finished()
+
 	if err := TestPatch(pr); err != nil {
 		return err
 	}
@@ -50,16 +54,10 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 	pr.CommitsAhead = divergence.Ahead
 	pr.CommitsBehind = divergence.Behind
 
-	// Now - even if the request context has been cancelled as the PR has been created
-	// in the db and there is no way to cancel that transaction we have to proceed - therefore
-	// create new context and work from there
-	prCtx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("NewPullRequest: %s:%d", repo.FullName(), pr.Index))
-	defer finished()
-
 	assigneeCommentMap := make(map[int64]*issues_model.Comment)
 
 	// add first push codes comment
-	baseGitRepo, err := git.OpenRepository(prCtx, pr.BaseRepo.RepoPath())
+	baseGitRepo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
 	if err != nil {
 		return err
 	}
