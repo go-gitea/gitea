@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"strings"
 
-	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
@@ -44,10 +43,6 @@ func RefBlame(ctx *context.Context) {
 		ctx.NotFound("Blame FileName", nil)
 		return
 	}
-
-	userName := ctx.Repo.Owner.Name
-	repoName := ctx.Repo.Repository.Name
-	commitID := ctx.Repo.CommitID
 
 	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
 	treeLink := branchLink
@@ -101,12 +96,16 @@ func RefBlame(ctx *context.Context) {
 		return
 	}
 
-	blameReader, err := git.CreateBlameReader(ctx, repo_model.RepoPath(userName, repoName), commitID, fileName)
+	bypassBlameIgnore := ctx.FormString("bypass-blame-ignore") == "true"
+
+	blameReader, err := git.CreateBlameReader(ctx, ctx.Repo.Repository.RepoPath(), ctx.Repo.Commit, fileName, bypassBlameIgnore)
 	if err != nil {
 		ctx.NotFound("CreateBlameReader", err)
 		return
 	}
 	defer blameReader.Close()
+
+	ctx.Data["UsesIgnoreRevs"] = blameReader.UsesIgnoreRevs()
 
 	blameParts := make([]git.BlamePart, 0)
 

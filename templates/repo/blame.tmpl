@@ -1,3 +1,8 @@
+{{if .UsesIgnoreRevs}}
+<div class="ui info message">
+	<p><a href="{{.RepoLink}}/src/{{.BranchNameSubURL}}/.git-blame-ignore-revs">{{.locale.Tr "repo.blame.ignore_revs"}}</a></p>
+</div>
+{{end}}
 <div class="{{TabSizeClass .Editorconfig .FileName}} non-diff-file-content">
 	<h4 class="file-header ui top attached header gt-df gt-ac gt-sb gt-fw">
 		<div class="file-header-left gt-df gt-ac gt-py-3 gt-pr-4">

@@ -10,6 +10,8 @@ import (
 	"io"
 	"os"
 	"regexp"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 // BlamePart represents block of blame - continuous lines with one sha
@@ -26,6 +28,11 @@ type BlameReader struct {
 	bufferedReader *bufio.Reader
 	done           chan error
 	lastSha        *string
+	ignoreRevsFile *os.File
+}
+
+func (r *BlameReader) UsesIgnoreRevs() bool {
+	return r.ignoreRevsFile != nil
 }
 
 var shaLineRegex = regexp.MustCompile("^([a-z0-9]{40})")
@@ -98,17 +105,32 @@ func (r *BlameReader) Close() error {
 	r.bufferedReader = nil
 	_ = r.reader.Close()
 	_ = r.output.Close()
+	if r.ignoreRevsFile != nil {
+		_ = util.Remove(r.ignoreRevsFile.Name())
+	}
 	return err
 }
 
 // CreateBlameReader creates reader for given repository, commit and file
-func CreateBlameReader(ctx context.Context, repoPath, commitID, file string) (*BlameReader, error) {
-	cmd := NewCommandContextNoGlobals(ctx, "blame", "--porcelain").
-		AddDynamicArguments(commitID).
+func CreateBlameReader(ctx context.Context, repoPath string, commit *Commit, file string, bypassBlameIgnore bool) (*BlameReader, error) {
+	cmd := NewCommandContextNoGlobals(ctx, "blame", "--porcelain")
+
+	var ignoreRevsFile *os.File
+	if !bypassBlameIgnore {
+		ignoreRevsFile = tryCreateBlameIgnoreRevsFile(commit)
+		if ignoreRevsFile != nil {
+			cmd.AddOptionValues("--ignore-revs-file", ignoreRevsFile.Name())
+		}
+	}
+
+	cmd.AddDynamicArguments(commit.ID.String()).
 		AddDashesAndList(file).
 		SetDescription(fmt.Sprintf("GetBlame [repo_path: %s]", repoPath))
 	reader, stdout, err := os.Pipe()
 	if err != nil {
+		if ignoreRevsFile != nil {
+			_ = util.Remove(ignoreRevsFile.Name())
+		}
 		return nil, err
 	}
 
@@ -134,5 +156,35 @@ func CreateBlameReader(ctx context.Context, repoPath, commitID, file string) (*B
 		reader:         reader,
 		bufferedReader: bufferedReader,
 		done:           done,
+		ignoreRevsFile: ignoreRevsFile,
 	}, nil
+}
+
+func tryCreateBlameIgnoreRevsFile(commit *Commit) *os.File {
+	entry, err := commit.GetTreeEntryByPath(".git-blame-ignore-revs")
+	if err != nil {
+		return nil
+	}
+
+	r, err := entry.Blob().DataAsync()
+	if err != nil {
+		return nil
+	}
+	defer r.Close()
+
+	f, err := os.CreateTemp("", "gitea_git-blame-ignore-revs")
+	if err != nil {
+		return nil
+	}
+	defer f.Close()
+
+	_, err = io.Copy(f, r)
+	if err != nil {
+		defer func() {
+			_ = util.Remove(f.Name())
+		}()
+		return nil
+	}
+
+	return f
 }
