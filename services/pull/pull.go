@@ -38,7 +38,7 @@ import (
 var pullWorkingPool = sync.NewExclusivePool()
 
 // NewPullRequest creates new pull request with labels for repository.
-func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issues_model.Issue, labelIDs []int64, uuids []string, pr *issues_model.PullRequest, assigneeIDs []int64) error {
+func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, pr *issues_model.PullRequest, assigneeIDs []int64) error {
 	if err := TestPatch(pr); err != nil {
 		return err
 	}
@@ -58,21 +58,28 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 
 	assigneeCommentMap := make(map[int64]*issues_model.Comment)
 
+	// add first push codes comment
+	baseGitRepo, err := git.OpenRepository(prCtx, pr.BaseRepo.RepoPath())
+	if err != nil {
+		return err
+	}
+	defer baseGitRepo.Close()
+
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if err := issues_model.NewPullRequest(ctx, repo, pull, labelIDs, uuids, pr); err != nil {
+		if err := issues_model.NewPullRequest(ctx, repo, issue, labelIDs, uuids, pr); err != nil {
 			return err
 		}
 
 		for _, assigneeID := range assigneeIDs {
-			comment, err := issue_service.AddAssigneeIfNotAssigned(ctx, pull, pull.Poster, assigneeID, false)
+			comment, err := issue_service.AddAssigneeIfNotAssigned(ctx, issue, issue.Poster, assigneeID, false)
 			if err != nil {
 				return err
 			}
 			assigneeCommentMap[assigneeID] = comment
 		}
 
-		pr.Issue = pull
-		pull.PullRequest = pr
+		pr.Issue = issue
+		issue.PullRequest = pr
 
 		if pr.Flow == issues_model.PullRequestFlowGithub {
 			err = PushToBaseRepo(ctx, pr)
@@ -83,67 +90,65 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 			return err
 		}
 
-		// add first push codes comment
-		baseGitRepo, err := git.OpenRepository(prCtx, pr.BaseRepo.RepoPath())
-		if err != nil {
-			return err
-		}
-		defer baseGitRepo.Close()
-
 		compareInfo, err := baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(),
 			git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName(), false, false)
 		if err != nil {
 			return err
 		}
+		if len(compareInfo.Commits) == 0 {
+			return nil
+		}
 
-		if len(compareInfo.Commits) > 0 {
-			data := issues_model.PushActionContent{IsForcePush: false}
-			data.CommitIDs = make([]string, 0, len(compareInfo.Commits))
-			for i := len(compareInfo.Commits) - 1; i >= 0; i-- {
-				data.CommitIDs = append(data.CommitIDs, compareInfo.Commits[i].ID.String())
-			}
+		data := issues_model.PushActionContent{IsForcePush: false}
+		data.CommitIDs = make([]string, 0, len(compareInfo.Commits))
+		for i := len(compareInfo.Commits) - 1; i >= 0; i-- {
+			data.CommitIDs = append(data.CommitIDs, compareInfo.Commits[i].ID.String())
+		}
 
-			dataJSON, err := json.Marshal(data)
-			if err != nil {
+		dataJSON, err := json.Marshal(data)
+		if err != nil {
+			return err
+		}
+
+		ops := &issues_model.CreateCommentOptions{
+			Type:        issues_model.CommentTypePullRequestPush,
+			Doer:        issue.Poster,
+			Repo:        repo,
+			Issue:       pr.Issue,
+			IsForcePush: false,
+			Content:     string(dataJSON),
+		}
+
+		if _, err = issues_model.CreateComment(ctx, ops); err != nil {
+			return err
+		}
+
+		if !pr.IsWorkInProgress() {
+			if err := issues_model.PullRequestCodeOwnersReview(ctx, issue, pr); err != nil {
 				return err
-			}
-
-			ops := &issues_model.CreateCommentOptions{
-				Type:        issues_model.CommentTypePullRequestPush,
-				Doer:        pull.Poster,
-				Repo:        repo,
-				Issue:       pr.Issue,
-				IsForcePush: false,
-				Content:     string(dataJSON),
-			}
-
-			if _, err = issues_model.CreateComment(ctx, ops); err != nil {
-				return err
-			}
-
-			if !pr.IsWorkInProgress() {
-				if err := issues_model.PullRequestCodeOwnersReview(ctx, pull, pr); err != nil {
-					return err
-				}
 			}
 		}
 		return nil
 	}); err != nil {
-		// TODO: cleanup
+		// cleanup: this will only remove the reference, the real commit will be clean up when next GC
+		if err1 := baseGitRepo.RemoveReference(pr.GetGitRefName()); err1 != nil {
+			log.Error("RemoveReference: %v", err1)
+		}
 		return err
 	}
+	baseGitRepo.Close()
 
-	mentions, err := issues_model.FindAndUpdateIssueMentions(ctx, pull, pull.Poster, pull.Content)
+	mentions, err := issues_model.FindAndUpdateIssueMentions(ctx, issue, issue.Poster, issue.Content)
 	if err != nil {
 		return err
 	}
 
 	notification.NotifyNewPullRequest(ctx, pr, mentions)
-	if len(pull.Labels) > 0 {
-		notification.NotifyIssueChangeLabels(ctx, pull.Poster, pull, pull.Labels, nil)
+	if len(issue.Labels) > 0 {
+		notification.NotifyIssueChangeLabels(ctx, issue.Poster, issue, issue.Labels, nil)
 	}
-	if pull.Milestone != nil {
-		notification.NotifyIssueChangeMilestone(ctx, pull.Poster, pull, 0)
+	if issue.Milestone != nil {
+		notification.NotifyIssueChangeMilestone(ctx, issue.Poster, issue, 0)
 	}
 	if len(assigneeIDs) > 0 {
 		for _, assigneeID := range assigneeIDs {
@@ -151,7 +156,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 			if err != nil {
 				return ErrDependenciesLeft
 			}
-			notification.NotifyIssueChangeAssignee(ctx, pull.Poster, pull, assignee, false, assigneeCommentMap[assigneeID])
+			notification.NotifyIssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assigneeID])
 		}
 	}
 
