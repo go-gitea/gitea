@@ -98,7 +98,7 @@ func TeamsAction(ctx *context.Context) {
 				redirect = ctx.Org.Organization.HomeLink()
 			}
 		}
-		ctx.JSON(http.StatusOK, map[string]any{"redirect": redirect})
+		ctx.JSONRedirect(redirect)
 		return
 	case "remove":
 		if !ctx.Org.IsOwner {
