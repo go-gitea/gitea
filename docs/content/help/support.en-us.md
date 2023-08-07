@@ -17,9 +17,10 @@ menu:
 
 # Support Options
 
-- [Paid Commercial Support](https://about.gitea.com/)
 - [Discord](https://discord.gg/Gitea)
 - [Discourse Forum](https://discourse.gitea.io/)
+- [Matrix](https://matrix.to/#/#gitea-space:matrix.org)
+- [Paid Commercial Support](https://about.gitea.com/)
 
 **NOTE:** When asking for support, it may be a good idea to have the following available so that the person helping has all the info they need:
 
