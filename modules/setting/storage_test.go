@@ -238,6 +238,23 @@ PATH = /data/gitea/archives
 	})
 }
 
+func Test_getStorageInheritStorageTypeLocalPathOverride3_5(t *testing.T) {
+	testLocalStoragePath(t, "/appdata", `
+[storage.repo-archive]
+STORAGE_TYPE = local
+PATH = a-relative-path
+`, []testLocalStoragePathCase{
+		{loadAttachmentFrom, &Attachment.Storage, "/appdata/attachments"},
+		{loadLFSFrom, &LFS.Storage, "/appdata/lfs"},
+		{loadActionsFrom, &Actions.ArtifactStorage, "/appdata/actions_artifacts"},
+		{loadPackagesFrom, &Packages.Storage, "/appdata/packages"},
+		{loadRepoArchiveFrom, &RepoArchive.Storage, "/appdata/a-relative-path"},
+		{loadActionsFrom, &Actions.LogStorage, "/appdata/actions_log"},
+		{loadAvatarsFrom, &Avatar.Storage, "/appdata/avatars"},
+		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/appdata/repo-avatars"},
+	})
+}
+
 func Test_getStorageInheritStorageTypeLocalPathOverride4(t *testing.T) {
 	testLocalStoragePath(t, "/appdata", `
 [storage.repo-archive]
