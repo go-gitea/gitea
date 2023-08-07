@@ -685,18 +685,34 @@ func NotifyWatchersActions(acts []*Action) error {
 }
 
 // DeleteIssueActions delete all actions related with issueID
-func DeleteIssueActions(ctx context.Context, repoID, issueID int64) error {
+func DeleteIssueActions(ctx context.Context, repoID, issueID, issueIndex int64) error {
 	// delete actions assigned to this issue
-	subQuery := builder.Select("`id`").
-		From("`comment`").
-		Where(builder.Eq{"`issue_id`": issueID})
-	if _, err := db.GetEngine(ctx).In("comment_id", subQuery).Delete(&Action{}); err != nil {
-		return err
+	e := db.GetEngine(ctx)
+
+	// MariaDB has a performance bug: https://jira.mariadb.org/browse/MDEV-16289
+	// so here it uses "DELETE ... WHERE IN" with pre-queried IDs.
+	var lastCommentID int64
+	commentIDs := make([]int64, 0, db.DefaultMaxInSize)
+	for {
+		commentIDs = commentIDs[:0]
+		err := e.Select("`id`").Table(&issues_model.Comment{}).
+			Where(builder.Eq{"issue_id": issueID}).And("`id` > ?", lastCommentID).
+			OrderBy("`id`").Limit(db.DefaultMaxInSize).
+			Find(&commentIDs)
+		if err != nil {
+			return err
+		} else if len(commentIDs) == 0 {
+			break
+		} else if _, err = db.GetEngine(ctx).In("comment_id", commentIDs).Delete(&Action{}); err != nil {
+			return err
+		} else {
+			lastCommentID = commentIDs[len(commentIDs)-1]
+		}
 	}
 
-	_, err := db.GetEngine(ctx).Table("action").Where("repo_id = ?", repoID).
+	_, err := e.Where("repo_id = ?", repoID).
 		In("op_type", ActionCreateIssue, ActionCreatePullRequest).
-		Where("content LIKE ?", strconv.FormatInt(issueID, 10)+"|%").
+		Where("content LIKE ?", strconv.FormatInt(issueIndex, 10)+"|%"). // "IssueIndex|content..."
 		Delete(&Action{})
 	return err
 }
