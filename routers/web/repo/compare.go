@@ -299,13 +299,6 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		}
 	}
 
-	if ci.DirectComparison() {
-		ctx.Data["PageIsComparePull"] = false
-	}
-
-	ctx.Data["BaseName"] = baseRepo.OwnerName
-	ctx.Data["BaseBranch"] = ci.BaseBranch
-
 	if ci.HeadOwner != "" {
 		ci.HeadUser, err = user_model.GetUserByName(ctx, ci.HeadOwner)
 		if err != nil {
@@ -329,8 +322,17 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 			}
 			ci.HeadRepo.Owner = ci.HeadUser
 		}
+	} else {
+		ci.HeadUser = baseRepo.Owner
+		ci.HeadRepo = baseRepo
 	}
 
+	if ci.DirectComparison() {
+		ctx.Data["PageIsComparePull"] = false
+	}
+
+	ctx.Data["BaseName"] = baseRepo.OwnerName
+	ctx.Data["BaseBranch"] = ci.BaseBranch
 	ctx.Data["HeadUser"] = ci.HeadUser
 	ctx.Data["HeadBranch"] = ci.HeadBranch
 	ctx.Repo.PullRequest.SameRepo = ci.IsSameRepo()
