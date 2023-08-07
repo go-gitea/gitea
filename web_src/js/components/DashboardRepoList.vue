@@ -69,15 +69,15 @@
       </div>
       <div v-if="repos.length" class="ui attached table segment gt-rounded-bottom">
         <ul class="repo-owner-name-list">
-          <li class="gt-df gt-ac" v-for="repo, index in repos" :class="{'active': index === activeIndex}" :key="repo.id">
-            <a class="repo-list-link muted gt-df gt-ac gt-f1" :href="repo.link">
+          <li class="gt-df gt-ac gt-py-3" v-for="repo, index in repos" :class="{'active': index === activeIndex}" :key="repo.id">
+            <a class="repo-list-link muted gt-df gt-ac gt-f1 gt-gap-3" :href="repo.link">
               <svg-icon :name="repoIcon(repo)" :size="16" class-name="repo-list-icon"/>
               <div class="text truncate">{{ repo.full_name }}</div>
               <div v-if="repo.archived">
                 <svg-icon name="octicon-archive" :size="16"/>
               </div>
             </a>
-            <a class="repo-list-status-link" v-if="repo.latest_commit_status_state" :href="repo.latest_commit_status_state_link" :data-tooltip-content="repo.latest_commit_status_state">
+            <a class="gt-df gt-ac" v-if="repo.latest_commit_status_state" :href="repo.latest_commit_status_state_link" :data-tooltip-content="repo.latest_commit_status_state">
               <!-- the commit status icon logic is taken from templates/repo/commit_status.tmpl -->
               <svg-icon :name="statusIcon(repo.latest_commit_status_state)" :class-name="'gt-ml-3 commit-status icon text ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
             </a>
@@ -496,17 +496,11 @@ ul li:not(:last-child) {
 }
 
 .repo-list-link {
-  padding: 6px 0;
-  gap: 6px;
   min-width: 0; /* for text truncation */
 }
 
 .repo-list-link .svg {
   color: var(--color-text-light-2);
-}
-
-.repo-list-status-link {
-  padding: 6px 0;
 }
 
 .repo-list-icon {
