@@ -1301,7 +1301,7 @@ img.ui.avatar,
 }
 
 .ui .text.truncate {
-  overflow: hidden;
+  overflow-x: clip;
   text-overflow: ellipsis;
   white-space: nowrap;
   display: inline-block;
