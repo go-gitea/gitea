@@ -70,7 +70,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -182,7 +181,7 @@ type getUploadArtifactResponse struct {
 
 // getUploadArtifactURL generates a URL for uploading an artifact
 func (ar artifactRoutes) getUploadArtifactURL(ctx *ArtifactContext) {
-	task, runID, ok := validateRunID(ctx)
+	_, runID, ok := validateRunID(ctx)
 	if !ok {
 		return
 	}
@@ -195,17 +194,16 @@ func (ar artifactRoutes) getUploadArtifactURL(ctx *ArtifactContext) {
 	}
 
 	// set retention days
+	req.RetentionDays = 17
+	retentionQuery := ""
 	if req.RetentionDays > 0 {
-		cacheKey := fmt.Sprintf("actions_artifact_retention_days_%d_%d", task.ID, runID)
-		if err := cache.GetCache().Put(cacheKey, req.RetentionDays, 0); err != nil {
-			log.Warn("Error set cache %s: %v", cacheKey, err)
-		}
+		retentionQuery = fmt.Sprintf("?retentionDays=%d", req.RetentionDays)
 	}
 
 	// use md5(artifact_name) to create upload url
 	artifactHash := fmt.Sprintf("%x", md5.Sum([]byte(req.Name)))
 	resp := getUploadArtifactResponse{
-		FileContainerResourceURL: ar.buildArtifactURL(runID, artifactHash, "upload"),
+		FileContainerResourceURL: ar.buildArtifactURL(runID, artifactHash, "upload"+retentionQuery),
 	}
 	log.Debug("[artifact] get upload url: %s", resp.FileContainerResourceURL)
 	ctx.JSON(http.StatusOK, resp)
@@ -231,10 +229,16 @@ func (ar artifactRoutes) uploadArtifact(ctx *ArtifactContext) {
 
 	// get artifact retention days
 	expiredDays := setting.Actions.ArtifactRetentionDays
-	cacheKey := fmt.Sprintf("actions_artifact_retention_days_%d_%d", task.ID, runID)
-	if v := cache.GetCache().Get(cacheKey); v != nil {
-		expiredDays = v.(int64)
+	if queryRetentionDays := ctx.Req.URL.Query().Get("retentionDays"); queryRetentionDays != "" {
+		expiredDays, err = strconv.ParseInt(queryRetentionDays, 10, 64)
+		if err != nil {
+			log.Error("Error parse retention days: %v", err)
+			ctx.Error(http.StatusBadRequest, "Error parse retention days")
+			return
+		}
 	}
+	log.Debug("[artifact] upload chunk, name: %s, path: %s, size: %d, retention days: %d",
+		artifactName, artifactPath, fileRealTotalSize, expiredDays)
 
 	// create or get artifact with name and path
 	artifact, err := actions.CreateArtifact(ctx, task, artifactName, artifactPath, expiredDays)
