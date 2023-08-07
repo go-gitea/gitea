@@ -84,6 +84,8 @@ func getDefaultStorageSection(rootCfg ConfigProvider) ConfigSection {
 	return storageSec
 }
 
+var storagePaths = make(map[string]string)
+
 // getStorage will find target section and extra special section first and then read override
 // items from extra section
 func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*Storage, error) {
@@ -219,6 +221,11 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 			storage.MinioConfig.Bucket = ConfigSectionKeyString(extraConfigSec, "MINIO_BUCKET", storage.MinioConfig.Bucket)
 		}
 	}
+
+	if storageTarget, ok := storagePaths[storage.Path]; ok && storageTarget != name {
+		return nil, fmt.Errorf("storage path %q is being used by %q and %q and all storage paths must be unique to prevent data loss. Please set [storage.%s].PATH and [storage.%s].PATH to unique paths.", storage.Path, storageTarget, name, storageTarget, name)
+	}
+	storagePaths[storage.Path] = name
 
 	return &storage, nil
 }
