@@ -854,8 +854,8 @@ func (issue *Issue) MovePin(ctx context.Context, newPosition int) error {
 }
 
 // GetPinnedIssues returns the pinned Issues for the given Repo and type
-func GetPinnedIssues(ctx context.Context, repoID int64, isPull bool) ([]*Issue, error) {
-	issues := make([]*Issue, 0)
+func GetPinnedIssues(ctx context.Context, repoID int64, isPull bool) (IssueList, error) {
+	issues := make(IssueList, 0)
 
 	err := db.GetEngine(ctx).
 		Table("issue").
@@ -868,7 +868,7 @@ func GetPinnedIssues(ctx context.Context, repoID int64, isPull bool) ([]*Issue, 
 		return nil, err
 	}
 
-	err = IssueList(issues).LoadAttributes(ctx)
+	err = issues.LoadAttributes(ctx)
 	if err != nil {
 		return nil, err
 	}
