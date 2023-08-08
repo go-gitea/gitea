@@ -208,6 +208,11 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 			}
 		}
 
+		if storageTarget, ok := storagePaths[storage.Path]; ok && storageTarget != name {
+			return nil, fmt.Errorf("storage path %q is being used by %q and %q and all storage paths must be unique to prevent data loss. Please set [storage.%s].PATH and [storage.%s].PATH to unique paths. For more information, see https://github.com/go-gitea/gitea/pull/26380", storage.Path, storageTarget, name, storageTarget, name)
+		}
+		storagePaths[storage.Path] = name
+
 	case string(MinioStorageType):
 		if err := targetSec.MapTo(&storage.MinioConfig); err != nil {
 			return nil, fmt.Errorf("map minio config failed: %v", err)
@@ -221,11 +226,6 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 			storage.MinioConfig.Bucket = ConfigSectionKeyString(extraConfigSec, "MINIO_BUCKET", storage.MinioConfig.Bucket)
 		}
 	}
-
-	if storageTarget, ok := storagePaths[storage.Path]; ok && storageTarget != name {
-		return nil, fmt.Errorf("storage path %q is being used by %q and %q and all storage paths must be unique to prevent data loss. Please set [storage.%s].PATH and [storage.%s].PATH to unique paths. For more information, see https://github.com/go-gitea/gitea/pull/26380", storage.Path, storageTarget, name, storageTarget, name)
-	}
-	storagePaths[storage.Path] = name
 
 	return &storage, nil
 }
