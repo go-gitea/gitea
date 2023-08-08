@@ -441,7 +441,7 @@ func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *user_model.User) ([]i
 }
 
 // Issues returns a list of issues by given conditions.
-func Issues(ctx context.Context, opts *IssuesOptions) ([]*Issue, error) {
+func Issues(ctx context.Context, opts *IssuesOptions) (IssueList, error) {
 	sess := db.GetEngine(ctx).
 		Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 	applyLimit(sess, opts)

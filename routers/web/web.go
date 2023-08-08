@@ -597,6 +597,7 @@ func registerRoutes(m *web.Route) {
 		m.Group("/packages", func() {
 			m.Get("", admin.Packages)
 			m.Post("/delete", admin.DeletePackageVersion)
+			m.Post("/cleanup", admin.CleanupExpiredData)
 		}, packagesEnabled)
 
 		m.Group("/hooks", func() {
