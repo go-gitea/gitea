@@ -5,7 +5,6 @@
 package templates
 
 import (
-	"context"
 	"fmt"
 	"html"
 	"html/template"
@@ -13,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/markup"
@@ -103,9 +101,6 @@ func NewFuncMap() template.FuncMap {
 		},
 		"AssetVersion": func() string {
 			return setting.AssetVersion
-		},
-		"DisableGravatar": func(ctx context.Context) bool {
-			return system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar)
 		},
 		"DefaultShowFullName": func() bool {
 			return setting.UI.DefaultShowFullName
