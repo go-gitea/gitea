@@ -170,11 +170,13 @@
 				<span class="no-select item {{if .HasSelectedLabel}}gt-hidden{{end}}">
 					{{.locale.Tr "repo.issues.new.no_assignees"}}
 				</span>
+				<div class="selected">
 				{{range .Assignees}}
 					<a class="item gt-p-2 muted gt-hidden" id="assignee_{{.ID}}" href="{{$.RepoLink}}/issues?assignee={{.ID}}">
 						{{avatar $.Context . 28 "gt-mr-3 gt-vm"}}{{.GetDisplayName}}
 					</a>
 				{{end}}
+				</div>
 			</div>
 		{{if and .PageIsComparePull (not (eq .HeadRepo.FullName .BaseCompareRepo.FullName)) .CanWriteToHeadRepo}}
 			<div class="divider"></div>
