@@ -30,11 +30,11 @@ func init() {
 }
 
 func accessLevel(ctx context.Context, user *user_model.User, repo *repo_model.Repository) (perm.AccessMode, error) {
-	if a, err := accessLevels(ctx, user, []*repo_model.Repository{repo}); err != nil {
+	a, err := accessLevels(ctx, user, []*repo_model.Repository{repo})
+	if err != nil {
 		return perm.AccessModeNone, err
-	} else {
-		return a[repo.ID], nil
 	}
+	return a[repo.ID], nil
 }
 
 func accessLevels(ctx context.Context, user *user_model.User, repos []*repo_model.Repository) (map[int64]perm.AccessMode, error) {
