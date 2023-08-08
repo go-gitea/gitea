@@ -146,7 +146,7 @@ func WebPathFromRequest(s string) WebPath {
 }
 
 func UserTitleToWebPath(base, title string) WebPath {
-	// TODO: the old wiki code's behavior is always using %2F, instead of subdirectory.
+	// TODO: no support for subdirectory, because the old wiki code's behavior is always using %2F, instead of subdirectory.
 	// So we do not add the support for writing slashes in title at the moment.
 	title = strings.TrimSpace(title)
 	title = util.PathJoinRelX(base, escapeSegToWeb(title, false))
