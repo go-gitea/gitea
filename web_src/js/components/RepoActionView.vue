@@ -626,10 +626,6 @@ export function initRepositoryActionView() {
   width: 70%;
 }
 
-.job-brief-item .job-brief-item-left:hover {
-  text-decoration: none;
-}
-
 .job-brief-item .job-brief-item-right {
   display: flex;
   align-items: center;
