@@ -4,14 +4,9 @@
 		<div class="repo-header">
 			<div class="repo-title-wrap gt-df gt-fc">
 				<div class="repo-title" role="heading" aria-level="1">
-					{{$avatar := (repoAvatar . 32 "gt-mr-3")}}
-					{{if $avatar}}
-						{{$avatar}}
-					{{else}}
-						<div class="gt-mr-3">
-							{{template "repo/icon" .}}
-						</div>
-					{{end}}
+					<div class="gt-mr-3">
+						{{template "repo/icon" .}}
+					</div>
 					<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
 					<div class="gt-mx-2">/</div>
 					<a href="{{$.RepoLink}}">{{.Name}}</a>
