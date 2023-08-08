@@ -1,9 +1,11 @@
+// Copyright 2023 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
 package common
 
 import "testing"
 
 func TestCleanValue(t *testing.T) {
-	var tests = []struct {
+	tests := []struct {
 		param  string
 		expect string
 	}{
@@ -32,7 +34,13 @@ func TestCleanValue(t *testing.T) {
 		{"  tes a a   a  a  ", "tes-a-a---a--a"},
 		{"Header with \"double quotes\"", "header-with-double-quotes"},
 		{"Placeholder to force scrolling on link's click", "placeholder-to-force-scrolling-on-links-click"},
-		{"Placeholder to force scrolling on link's click", "placeholder-to-force-scrolling-on-links-click"},
+		{"tes（）", "tes"},
+		{"tes…@a", "tesa"},
+		{"tes￥& a", "tes-a"},
+		{"tes= a", "tes-a"},
+		{"tes|a", "tesa"},
+		{"tes\a", "tesa"},
+		{"tes/a", "tesa"},
 	}
 	for _, test := range tests {
 		if got := CleanValue([]byte(test.param)); string(got) != test.expect {
