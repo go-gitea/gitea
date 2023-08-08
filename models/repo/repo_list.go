@@ -62,6 +62,26 @@ func RepositoryListOfMap(repoMap map[int64]*Repository) RepositoryList {
 	return RepositoryList(ValuesRepository(repoMap))
 }
 
+func (repos RepositoryList) LoadOwners(ctx context.Context) error {
+	set := make(container.Set[int64])
+	for i := range repos {
+		set.Add(repos[i].OwnerID)
+	}
+
+	users := make(map[int64]*user_model.User, len(set))
+	if err := db.GetEngine(ctx).
+		Where("id > 0").
+		In("id", set.Values()).
+		Find(&users); err != nil {
+		return fmt.Errorf("find users: %w", err)
+	}
+	for i := range repos {
+		repos[i].Owner = users[repos[i].OwnerID]
+	}
+
+	return nil
+}
+
 // LoadAttributes loads the attributes for the given RepositoryList
 func (repos RepositoryList) LoadAttributes(ctx context.Context) error {
 	if len(repos) == 0 {
@@ -106,6 +126,29 @@ func (repos RepositoryList) LoadAttributes(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (repos RepositoryList) LoadUnits(ctx context.Context) error {
+	// filter out repos without units
+	var repoIDs []int64
+	for _, repo := range repos {
+		if repo.Units == nil {
+			repoIDs = append(repoIDs, repo.ID)
+		}
+	}
+
+	repoUnits, err := getUnitsForRepoIDs(ctx, repoIDs)
+	if err != nil {
+		return err
+	}
+
+	for _, repo := range repos {
+		if units, ok := repoUnits[repo.ID]; ok {
+			repo.Units = units
+		}
+	}
+
+	return err
 }
 
 // SearchRepoOptions holds the search options
