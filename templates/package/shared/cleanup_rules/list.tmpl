@@ -5,10 +5,41 @@
 	</div>
 </h4>
 <div class="ui attached segment">
-	<div class="ui key list">
+	<div class="flex-list">
 		{{range .CleanupRules}}
-			<div class="item">
-				<div class="right floated content">
+			<div class="flex-item">
+				<div class="flex-item-leading">
+					{{svg .Type.SVGName 32}}
+				</div>
+				<div class="flex-item-main">
+					<div class="flex-item-title">
+						<a class="item" href="{{$.Link}}/rules/{{.ID}}">{{.Type.Name}}</a>
+					</div>
+					<div class="flex-item-body">
+						<i>{{if .Enabled}}{{$.locale.Tr "enabled"}}{{else}}{{$.locale.Tr "disabled"}}{{end}}</i>
+					</div>
+					{{if .KeepCount}}
+					<div class="flex-item-body">
+						<i>{{$.locale.Tr "packages.owner.settings.cleanuprules.keep.count"}}:</i> {{if eq .KeepCount 1}}{{$.locale.Tr "packages.owner.settings.cleanuprules.keep.count.1"}}{{else}}{{$.locale.Tr "packages.owner.settings.cleanuprules.keep.count.n" .KeepCount}}{{end}}
+					</div>
+					{{end}}
+					{{if .KeepPattern}}
+					<div class="flex-item-body">
+						<i>{{$.locale.Tr "packages.owner.settings.cleanuprules.keep.pattern"}}:</i> {{StringUtils.EllipsisString .KeepPattern 100}}
+					</div>
+					{{end}}
+					{{if .RemoveDays}}
+					<div class="flex-item-body">
+						<i>{{$.locale.Tr "packages.owner.settings.cleanuprules.remove.days"}}:</i> {{$.locale.Tr "tool.days" .RemoveDays}}
+					</div>
+					{{end}}
+					{{if .RemovePattern}}
+					<div class="flex-item-body">
+						<i>{{$.locale.Tr "packages.owner.settings.cleanuprules.remove.pattern"}}:</i> {{StringUtils.EllipsisString .RemovePattern 100}}
+					</div>
+					{{end}}
+				</div>
+				<div class="flex-item-trailing">
 					<div class="ui dropdown tiny basic button">
 						{{svg "octicon-kebab-horizontal"}}
 						<div class="menu">
@@ -16,15 +47,6 @@
 							<a class="item" href="{{$.Link}}/rules/{{.ID}}/preview">{{$.locale.Tr "packages.owner.settings.cleanuprules.preview"}}</a>
 						</div>
 					</div>
-				</div>
-				<i class="icon">{{svg .Type.SVGName 36}}</i>
-				<div class="content">
-					<a class="item" href="{{$.Link}}/rules/{{.ID}}"><strong>{{.Type.Name}}</strong></a>
-					<div><i>{{if .Enabled}}{{$.locale.Tr "enabled"}}{{else}}{{$.locale.Tr "disabled"}}{{end}}</i></div>
-					{{if .KeepCount}}<div><i>{{$.locale.Tr "packages.owner.settings.cleanuprules.keep.count"}}:</i> {{if eq .KeepCount 1}}{{$.locale.Tr "packages.owner.settings.cleanuprules.keep.count.1"}}{{else}}{{$.locale.Tr "packages.owner.settings.cleanuprules.keep.count.n" .KeepCount}}{{end}}</div>{{end}}
-					{{if .KeepPattern}}<div><i>{{$.locale.Tr "packages.owner.settings.cleanuprules.keep.pattern"}}:</i> {{StringUtils.EllipsisString .KeepPattern 100}}</div>{{end}}
-					{{if .RemoveDays}}<div><i>{{$.locale.Tr "packages.owner.settings.cleanuprules.remove.days"}}:</i> {{$.locale.Tr "tool.days" .RemoveDays}}</div>{{end}}
-					{{if .RemovePattern}}<div><i>{{$.locale.Tr "packages.owner.settings.cleanuprules.remove.pattern"}}:</i> {{StringUtils.EllipsisString .RemovePattern 100}}</div>{{end}}
 				</div>
 			</div>
 		{{else}}
