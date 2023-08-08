@@ -119,14 +119,9 @@ func Home(ctx *context.Context) {
 
 	opts := &organization.FindOrgMembersOpts{
 		OrgID:       org.ID,
-		PublicOnly:  true,
+		PublicOnly:  ctx.Org.PublicMemberOnly,
 		ListOptions: db.ListOptions{Page: 1, PageSize: 25},
 	}
-
-	if ctx.Doer != nil {
-		opts.PublicOnly = !ctx.Org.IsMember && !ctx.Doer.IsAdmin
-	}
-
 	members, _, err := organization.FindOrgMembers(opts)
 	if err != nil {
 		ctx.ServerError("FindOrgMembers", err)
