@@ -2,7 +2,10 @@
 // SPDX-License-Identifier: MIT
 package common
 
-import "testing"
+import (
+	"github.com/stretchr/testify/assert"
+	"testing"
+)
 
 func TestCleanValue(t *testing.T) {
 	tests := []struct {
@@ -35,6 +38,10 @@ func TestCleanValue(t *testing.T) {
 		{"Header with \"double quotes\"", "header-with-double-quotes"},
 		{"Placeholder to force scrolling on link's click", "placeholder-to-force-scrolling-on-links-click"},
 		{"tes（）", "tes"},
+		{"tes（0）", "tes0"},
+		{"tes{0}", "tes0"},
+		{"tes[0]", "tes0"},
+		{"test【0】", "test0"},
 		{"tes…@a", "tesa"},
 		{"tes￥& a", "tes-a"},
 		{"tes= a", "tes-a"},
@@ -43,8 +50,6 @@ func TestCleanValue(t *testing.T) {
 		{"tes/a", "tesa"},
 	}
 	for _, test := range tests {
-		if got := CleanValue([]byte(test.param)); string(got) != test.expect {
-			t.Errorf("CleanValue(%q) = %q, want %q", test.param, got, test.expect)
-		}
+		assert.Equal(t, []byte(test.expect), CleanValue([]byte(test.param)), test.param)
 	}
 }
