@@ -147,7 +147,7 @@ func Home(ctx *context.Context) {
 	ctx.Data["Page"] = pager
 	ctx.Data["ContextUser"] = ctx.ContextUser
 
-	ctx.Data["ShowMemberTeamBoard"] = ctx.Org.IsMember || len(members) > 0
+	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
 
 	ctx.HTML(http.StatusOK, tplOrgHome)
 }

@@ -37,13 +37,13 @@
 
 	<div class="ui container">
 		<div class="ui mobile reversed stackable grid">
-			<div class="ui {{if .ShowMemberTeamBoard}}eleven wide{{end}} column">
+			<div class="ui {{if .ShowMemberAndTeamTab}}eleven wide{{end}} column">
 				{{template "explore/repo_search" .}}
 				{{template "explore/repo_list" .}}
 				{{template "base/paginate" .}}
 			</div>
 
-			{{if .ShowMemberTeamBoard}}
+			{{if .ShowMemberAndTeamTab}}
 			<div class="ui five wide column">
 				{{if .CanCreateOrgRepo}}
 					<div class="center aligned">
