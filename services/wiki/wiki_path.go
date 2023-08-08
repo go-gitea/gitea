@@ -22,7 +22,7 @@ import (
 //   - "/wiki/100%25+Free"
 //   - "/wiki/2000-01-02+meeting.-"
 //   - If a segment has a suffix "DashMarker(.-)", it means that there is no dash-space conversion for this segment.
-//   - If a WebPath is a "*.md" pattern, then use it directly as GitPath, to make users can access the raw file.
+//   - If a WebPath is a "*.md" pattern, then use the unescaped value directly as GitPath, to make users can access the raw file.
 // * Git Path (only space doesn't need to be escaped):
 //   - "/.wiki.git/Home-Page.md"
 //   - "/.wiki.git/100%25 Free.md"
@@ -91,7 +91,8 @@ func WebPathSegments(s WebPath) []string {
 
 func WebPathToGitPath(s WebPath) string {
 	if strings.HasSuffix(string(s), ".md") {
-		return string(s)
+		ret, _ := url.PathUnescape(string(s))
+		return util.PathJoinRelX(ret)
 	}
 
 	a := strings.Split(string(s), "/")
@@ -124,7 +125,10 @@ func GitPathToWebPath(s string) (wp WebPath, err error) {
 func WebPathToUserTitle(s WebPath) (dir, display string) {
 	dir = path.Dir(string(s))
 	display = path.Base(string(s))
-	display = strings.TrimSuffix(display, ".md")
+	if strings.HasSuffix(display, ".md") {
+		display = strings.TrimSuffix(display, ".md")
+		display, _ = url.PathUnescape(display)
+	}
 	display, _ = unescapeSegment(display)
 	return dir, display
 }
@@ -141,8 +145,7 @@ func WebPathFromRequest(s string) WebPath {
 }
 
 func UserTitleToWebPath(base, title string) WebPath {
-	// TODO: ctx.Params does un-escaping, so the URL "/wiki/abc%2Fdef" becomes "wiki path = `abc/def`", which is incorrect.
-	// And the old wiki code's behavior is always using %2F, instead of subdirectory.
+	// TODO: the old wiki code's behavior is always using %2F, instead of subdirectory.
 	// So we do not add the support for writing slashes in title at the moment.
 	title = strings.TrimSpace(title)
 	title = util.PathJoinRelX(base, escapeSegToWeb(title, false))
