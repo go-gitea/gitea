@@ -177,9 +177,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 		OrgID:      org.ID,
 		PublicOnly: true,
 	}
-	if ctx.Doer != nil {
-		opts.PublicOnly = !ctx.Org.IsMember && !ctx.Doer.IsAdmin
-	}
+	opts.PublicOnly = ctx.Doer == nil || !ctx.Org.IsMember && !ctx.Doer.IsAdmin
 	ctx.Data["NumMembers"], err = organization.CountOrgMembers(opts)
 	if err != nil {
 		ctx.ServerError("CountOrgMembers", err)
