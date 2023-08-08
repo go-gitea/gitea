@@ -4,8 +4,9 @@
 package arch
 
 import (
+	"encoding/hex"
+	"errors"
 	"fmt"
-	"io"
 	"sort"
 	"strings"
 
@@ -19,10 +20,9 @@ import (
 	"code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/modules/packages/arch"
 	"code.gitea.io/gitea/modules/storage"
-	pkg_service "code.gitea.io/gitea/services/packages"
 )
 
-type UpdateMetadataParameters struct {
+type UpdateMetadataParams struct {
 	User     *user.User
 	Metadata *arch.Metadata
 	DbDesc   *arch.DbDesc
@@ -30,13 +30,10 @@ type UpdateMetadataParameters struct {
 
 // Update package metadata stored in SQL database with new combination of
 // distribution and architecture.
-func UpdateMetadata(ctx *context.Context, p *UpdateMetadataParameters) error {
+func UpdateMetadata(ctx *context.Context, p *UpdateMetadataParams) error {
 	ver, err := pkg_model.GetVersionByNameAndVersion(
-		ctx,
-		p.User.ID,
-		pkg_model.TypeArch,
-		p.DbDesc.Name,
-		p.DbDesc.Version,
+		ctx, p.User.ID, pkg_model.TypeArch,
+		p.DbDesc.Name, p.DbDesc.Version,
 	)
 	if err != nil {
 		return err
@@ -68,51 +65,6 @@ func uniqueSlice(first, second []string) []string {
 	return set.Values()
 }
 
-// Parameters required to save new arch package.
-type SaveFileParams struct {
-	Creator  *user.User
-	Owner    *user.User
-	Metadata *arch.Metadata
-	Buf      packages.HashedSizeReader
-	Filename string
-	Distro   string
-	IsLead   bool
-	PkgName  string
-	PkgVer   string
-}
-
-// Creates new package, version and package_file properties in database,
-// and writes blob to file storage. If package/version/blob exists it
-// will overwrite existing data. Package id and error will be returned.
-func SaveFile(ctx *context.Context, p *SaveFileParams) (int64, error) {
-	ver, _, err := pkg_service.CreatePackageOrAddFileToExisting(
-		&pkg_service.PackageCreationInfo{
-			PackageInfo: pkg_service.PackageInfo{
-				Owner:       p.Owner,
-				PackageType: pkg_model.TypeArch,
-				Name:        p.PkgName,
-				Version:     p.PkgVer,
-			},
-			Creator:  p.Creator,
-			Metadata: p.Metadata,
-		},
-		&pkg_service.PackageFileCreationInfo{
-			PackageFileInfo: pkg_service.PackageFileInfo{
-				Filename:     p.Filename,
-				CompositeKey: p.Distro + "-" + p.Filename,
-			},
-			Creator:           p.Creator,
-			Data:              p.Buf,
-			OverwriteExisting: true,
-			IsLead:            p.IsLead,
-		},
-	)
-	if err != nil {
-		return 0, err
-	}
-	return ver.ID, nil
-}
-
 // Get data related to provided filename and distribution, for package files
 // update download counter.
 func GetFileObject(ctx *context.Context, distro, file string) (storage.Object, error) {
@@ -142,6 +94,40 @@ func GetFileObject(ctx *context.Context, distro, file string) (storage.Object, e
 	return cs.Get(packages.BlobHash256Key(blob.HashSHA256))
 }
 
+// Get package property and transform it to string.
+func GetProperty(ctx *context.Context, owner, key string) ([]byte, error) {
+	u, err := user.GetUserByName(ctx, owner)
+	if err != nil {
+		return nil, err
+	}
+
+	k := strings.Split(key, "-")
+
+	ver, err := pkg_model.GetVersionByNameAndVersion(
+		ctx, u.ID, pkg_model.TypeArch, strings.Join(k[1:len(k)-3], "-"),
+		strings.Join(k[len(k)-3:len(k)-1], "-"),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	pp, err := pkg_model.GetPropertiesByName(ctx, 0, ver.ID, key)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, property := range pp {
+		switch {
+		case strings.HasSuffix(key, ".desc"):
+			return []byte(property.Value), nil
+		case strings.HasSuffix(key, ".sig"):
+			return hex.DecodeString(property.Value)
+		}
+	}
+
+	return nil, errors.New("unable to find package signature")
+}
+
 // Automatically connect repository with source code to published package, if
 // repository with the same name exists in user/organization scope.
 func RepoConnect(ctx *context.Context, owner, repo string, pkgid int64) error {
@@ -155,7 +141,7 @@ func RepoConnect(ctx *context.Context, owner, repo string, pkgid int64) error {
 	return nil
 }
 
-type PacmanDbParams struct {
+type DbParams struct {
 	Owner        string
 	Architecture string
 	Distribution string
@@ -166,7 +152,7 @@ type PacmanDbParams struct {
 // requested combination of architecture and distribution. When/If the first
 // compatible version is found, related desc file will be loaded from object
 // storage and added to database archive.
-func CreatePacmanDb(ctx *context.Context, p *PacmanDbParams) ([]byte, error) {
+func CreatePacmanDb(ctx *context.Context, p *DbParams) ([]byte, error) {
 	u, err := user.GetUserByName(ctx, p.Owner)
 	if err != nil {
 		return nil, err
@@ -197,6 +183,7 @@ func CreatePacmanDb(ctx *context.Context, p *PacmanDbParams) ([]byte, error) {
 				Arch:    p.Architecture,
 				Distro:  p.Distribution,
 				PkgName: pkg.Name,
+				Owner:   p.Owner,
 			})
 			if err != nil {
 				return nil, err
@@ -217,6 +204,7 @@ type DescParams struct {
 	Arch    string
 	Distro  string
 	PkgName string
+	Owner   string
 }
 
 // Get pacman desc file from object storage if combination of distribution and
@@ -229,25 +217,23 @@ func LoadDbDescFile(ctx *context.Context, p *DescParams) ([]byte, error) {
 	}
 
 	for _, distroarch := range md.DistroArch {
-		var file string
+		var arch string
 
 		if distroarch == p.Distro+"-"+p.Arch {
-			file = p.PkgName + "-" + p.Version.Version + "-" + p.Arch + ".desc"
+			arch = p.Arch
 		}
 		if distroarch == p.Distro+"-any" {
-			file = p.PkgName + "-" + p.Version.Version + "-any.desc"
+			arch = "any"
 		}
 
-		if file == "" {
+		if arch == "" {
 			continue
 		}
 
-		descfile, err := GetFileObject(ctx, p.Distro, file)
-		if err != nil {
-			return nil, err
-		}
-
-		return io.ReadAll(descfile)
+		return GetProperty(ctx, p.Owner, fmt.Sprintf(
+			"%s-%s-%s-%s.pkg.tar.zst.desc",
+			p.Distro, p.PkgName, p.Version.Version, arch,
+		))
 	}
 	return nil, nil
 }

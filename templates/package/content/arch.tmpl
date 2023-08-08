@@ -33,14 +33,14 @@ Server = <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescri
 			{{if .PackageDescriptor.Metadata.Provides}}
 			<tr>
 				<td class="collapsing"><h5>Provides</h5></td>
-				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.Provides " "}}</td>
+				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.Provides ", "}}</td>
 			</tr>
 			{{end}}
 
 			{{if .PackageDescriptor.Metadata.Depends}}
 			<tr>
 				<td class="collapsing"><h5>Depends</h5></td>
-				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.Depends " "}}</td>
+				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.Depends ", "}}</td>
 			</tr>
 			{{end}}
 
@@ -54,21 +54,21 @@ Server = <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescri
 			{{if .PackageDescriptor.Metadata.MakeDepends}}
 			<tr>
 				<td class="collapsing"><h5>Make depends</h5></td>
-				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.MakeDepends " "}}</td>
+				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.MakeDepends ", "}}</td>
 			</tr>
 			{{end}}
 
 			{{if .PackageDescriptor.Metadata.CheckDepends}}
 			<tr>
 				<td class="collapsing"><h5>Check depends</h5></td>
-				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.CheckDepends " "}}</td>
+				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.CheckDepends ", "}}</td>
 			</tr>
 			{{end}}
 
 			{{if .PackageDescriptor.Metadata.Backup}}
 			<tr>
 				<td class="collapsing"><h5>Backup file</h5></td>
-				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.Backup " "}}</td>
+				<td>{{StringUtils.Join $.PackageDescriptor.Metadata.Backup ", "}}</td>
 			</tr>
 			{{end}}
 

@@ -136,6 +136,7 @@ func EjectMetadata(p *EjectParams) (*DbDesc, error) {
 			md.Backup = append(md.Backup, value)
 		}
 	}
+
 	return &md, nil
 }
 
@@ -164,7 +165,7 @@ func getPkginfo(data io.Reader) (string, error) {
 }
 
 // Create pacman package description file.
-func (m *DbDesc) GetDbDesc() string {
+func (m *DbDesc) String() string {
 	return strings.Join(rmEmptyStrings([]string{
 		formatField("FILENAME", m.Filename),
 		formatField("NAME", m.Name),

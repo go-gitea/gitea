@@ -5,7 +5,6 @@ package arch
 
 import (
 	"bytes"
-	"encoding/hex"
 	"io"
 	"net/http"
 	"strings"
@@ -44,7 +43,6 @@ func Push(ctx *context.Context) {
 	}
 	defer buf.Close()
 
-	// Parse metadata related to package contained in arch package archive.
 	desc, err := arch_module.EjectMetadata(&arch_module.EjectParams{
 		Filename:     filename,
 		Distribution: distro,
@@ -55,12 +53,12 @@ func Push(ctx *context.Context) {
 		return
 	}
 
-	if _, err := buf.Seek(0, io.SeekStart); err != nil {
+	_, err = buf.Seek(0, io.SeekStart)
+	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	// Metadata related to SQL database.
 	md := &arch_module.Metadata{
 		URL:          desc.URL,
 		Description:  desc.Description,
@@ -74,75 +72,46 @@ func Push(ctx *context.Context) {
 		DistroArch:   []string{distro + "-" + desc.Arch[0]},
 	}
 
-	// Save file related to arch package.
-	pkgid, err := arch_service.SaveFile(ctx, &arch_service.SaveFileParams{
-		Creator:  ctx.ContextUser,
-		Owner:    ctx.Package.Owner,
-		Metadata: md,
-		Buf:      buf,
-		Filename: filename,
-		Distro:   distro,
-		PkgName:  desc.Name,
-		PkgVer:   desc.Version,
-	})
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	r := io.NopCloser(bytes.NewReader([]byte(desc.GetDbDesc())))
-	buf, err = pkg_module.CreateHashedBufferFromReader(r)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	defer buf.Close()
-
-	// Save file related to arch package description for pacman database.
-	_, err = arch_service.SaveFile(ctx, &arch_service.SaveFileParams{
-		Creator:  ctx.ContextUser,
-		Owner:    ctx.Package.Owner,
-		Filename: desc.Name + "-" + desc.Version + "-" + desc.Arch[0] + ".desc",
-		Buf:      buf,
-		Metadata: md,
-		Distro:   distro,
-		PkgName:  desc.Name,
-		PkgVer:   desc.Version,
-	})
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	// Decoding package signature, if present saving with package as file.
-	sigdata, err := hex.DecodeString(sign)
-	if err == nil {
-		r := io.NopCloser(bytes.NewReader(sigdata))
-		buf, err := pkg_module.CreateHashedBufferFromReader(r)
-		if err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
-		defer buf.Close()
-
-		_, err = arch_service.SaveFile(ctx, &arch_service.SaveFileParams{
+	ver, _, err := pkg_service.CreatePackageOrAddFileToExisting(
+		&pkg_service.PackageCreationInfo{
+			PackageInfo: pkg_service.PackageInfo{
+				Owner:       ctx.Package.Owner,
+				PackageType: pkg_model.TypeArch,
+				Name:        desc.Name,
+				Version:     desc.Version,
+			},
 			Creator:  ctx.ContextUser,
-			Owner:    ctx.Package.Owner,
-			Buf:      buf,
-			Filename: filename + ".sig",
 			Metadata: md,
-			Distro:   distro,
-			PkgName:  desc.Name,
-			PkgVer:   desc.Version,
-		})
-		if err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
+		},
+		&pkg_service.PackageFileCreationInfo{
+			PackageFileInfo: pkg_service.PackageFileInfo{
+				Filename:     filename,
+				CompositeKey: distro + "-" + filename,
+			},
+			OverwriteExisting: true,
+			IsLead:            true,
+			Creator:           ctx.ContextUser,
+			Data:              buf,
+		},
+	)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
 	}
 
-	// Add new architectures and distribution info to package version metadata.
-	err = arch_service.UpdateMetadata(ctx, &arch_service.UpdateMetadataParameters{
+	_, err = pkg_model.InsertProperty(ctx, 0, ver.ID, distro+"-"+filename+".desc", desc.String())
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	_, err = pkg_model.InsertProperty(ctx, 0, ver.ID, distro+"-"+filename+".sig", sign)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	err = arch_service.UpdateMetadata(ctx, &arch_service.UpdateMetadataParams{
 		User:     ctx.Package.Owner,
 		Metadata: md,
 		DbDesc:   desc,
@@ -152,8 +121,7 @@ func Push(ctx *context.Context) {
 		return
 	}
 
-	// Automatically connect repository with souce code if name matched.
-	err = arch_service.RepoConnect(ctx, owner, desc.Name, pkgid)
+	err = arch_service.RepoConnect(ctx, owner, desc.Name, ver.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -171,8 +139,8 @@ func Get(ctx *context.Context) {
 		arch   = ctx.Params("arch")
 	)
 
-	// Packages and signatures are loaded directly from object storage.
-	if strings.HasSuffix(file, "tar.zst") || strings.HasSuffix(file, "zst.sig") {
+	// Packages are loaded directly from object storage.
+	if strings.HasSuffix(file, ".pkg.tar.zst") {
 		pkg, err := arch_service.GetFileObject(ctx, distro, file)
 		if err != nil {
 			apiError(ctx, http.StatusNotFound, err)
@@ -185,11 +153,25 @@ func Get(ctx *context.Context) {
 		return
 	}
 
-	// Pacman databases is not stored in giteas storage and created 'on-request'
+	// Signatures are loaded from package properties in SQL db.
+	if strings.HasSuffix(file, ".pkg.tar.zst.sig") {
+		sign, err := arch_service.GetProperty(ctx, owner, distro+"-"+file)
+		if err != nil {
+			apiError(ctx, http.StatusNotFound, err)
+			return
+		}
+
+		ctx.ServeContent(bytes.NewReader(sign), &context.ServeHeaderOptions{
+			Filename: file,
+		})
+		return
+	}
+
+	// Pacman databases is not stored in gitea storage and created 'on-request'
 	// for user/organization scope with accordance to requested architecture
 	// and distribution.
 	if strings.HasSuffix(file, ".db.tar.gz") || strings.HasSuffix(file, ".db") {
-		db, err := arch_service.CreatePacmanDb(ctx, &arch_service.PacmanDbParams{
+		db, err := arch_service.CreatePacmanDb(ctx, &arch_service.DbParams{
 			Owner:        owner,
 			Architecture: arch,
 			Distribution: distro,
