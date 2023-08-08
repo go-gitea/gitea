@@ -116,10 +116,10 @@
 				</table>
 				<div class="code-line-menu ui vertical pointing menu tippy-target">
 					{{if $.Permission.CanRead $.UnitTypeIssues}}
-						<a class="item ref-in-new-issue" data-url-issue-new="{{.RepoLink}}/issues/new" data-url-param-body-link="{{.Repository.Link}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}" rel="nofollow noindex">{{.locale.Tr "repo.issues.context.reference_issue"}}</a>
+						<a class="item ref-in-new-issue" data-url-issue-new="{{.RepoLink}}/issues/new" data-url-param-body-link="{{.Repository.Link}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}{{if $.HasSourceRenderedToggle}}?display=source{{end}}" rel="nofollow noindex">{{.locale.Tr "repo.issues.context.reference_issue"}}</a>
 					{{end}}
 					<a class="item view_git_blame" href="{{.Repository.Link}}/blame/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}">{{.locale.Tr "repo.view_git_blame"}}</a>
-					<a class="item copy-line-permalink" data-url="{{.Repository.Link}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}">{{.locale.Tr "repo.file_copy_permalink"}}</a>
+					<a class="item copy-line-permalink" data-url="{{.Repository.Link}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}{{if $.HasSourceRenderedToggle}}?display=source{{end}}">{{.locale.Tr "repo.file_copy_permalink"}}</a>
 				</div>
 				{{end}}
 			{{end}}
