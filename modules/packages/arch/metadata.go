@@ -32,7 +32,6 @@ type Metadata struct {
 	MakeDepends  []string `json:"make-depends,omitempty"`
 	CheckDepends []string `json:"check-depends,omitempty"`
 	Backup       []string `json:"backup,omitempty"`
-	DistroArch   []string `json:"distro-arch,omitempty"`
 }
 
 // Package description file that will be saved as .desc file in object storage.

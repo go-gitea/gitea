@@ -5,6 +5,7 @@ package arch
 
 import (
 	"bytes"
+	"encoding/hex"
 	"io"
 	"net/http"
 	"strings"
@@ -59,17 +60,15 @@ func Push(ctx *context.Context) {
 		return
 	}
 
-	md := &arch_module.Metadata{
-		URL:          desc.URL,
-		Description:  desc.Description,
-		Provides:     desc.Provides,
-		License:      desc.License,
-		Depends:      desc.Depends,
-		OptDepends:   desc.OptDepends,
-		MakeDepends:  desc.MakeDepends,
-		CheckDepends: desc.CheckDepends,
-		Backup:       desc.Backup,
-		DistroArch:   []string{distro + "-" + desc.Arch[0]},
+	props := map[string]string{
+		distro + "-" + filename + ".desc": desc.String(),
+	}
+	if sign != "" {
+		_, err := hex.DecodeString(sign)
+		if err != nil {
+			apiError(ctx, http.StatusBadRequest, err)
+		}
+		props[distro+"-"+filename+".sig"] = sign
 	}
 
 	ver, _, err := pkg_service.CreatePackageOrAddFileToExisting(
@@ -80,8 +79,18 @@ func Push(ctx *context.Context) {
 				Name:        desc.Name,
 				Version:     desc.Version,
 			},
-			Creator:  ctx.ContextUser,
-			Metadata: md,
+			Creator: ctx.ContextUser,
+			Metadata: &arch_module.Metadata{
+				URL:          desc.URL,
+				Description:  desc.Description,
+				Provides:     desc.Provides,
+				License:      desc.License,
+				Depends:      desc.Depends,
+				OptDepends:   desc.OptDepends,
+				MakeDepends:  desc.MakeDepends,
+				CheckDepends: desc.CheckDepends,
+				Backup:       desc.Backup,
+			},
 		},
 		&pkg_service.PackageFileCreationInfo{
 			PackageFileInfo: pkg_service.PackageFileInfo{
@@ -92,30 +101,9 @@ func Push(ctx *context.Context) {
 			IsLead:            true,
 			Creator:           ctx.ContextUser,
 			Data:              buf,
+			Properties:        props,
 		},
 	)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	_, err = pkg_model.InsertProperty(ctx, 0, ver.ID, distro+"-"+filename+".desc", desc.String())
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	_, err = pkg_model.InsertProperty(ctx, 0, ver.ID, distro+"-"+filename+".sig", sign)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	err = arch_service.UpdateMetadata(ctx, &arch_service.UpdateMetadataParams{
-		User:     ctx.Package.Owner,
-		Metadata: md,
-		DbDesc:   desc,
-	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -153,15 +141,21 @@ func Get(ctx *context.Context) {
 		return
 	}
 
-	// Signatures are loaded from package properties in SQL db.
+	// Signatures are loaded from package file properties in SQL db.
 	if strings.HasSuffix(file, ".pkg.tar.zst.sig") {
-		sign, err := arch_service.GetProperty(ctx, owner, distro+"-"+file)
+		p, err := pkg_model.GetPropertieWithUniqueName(ctx, distro+"-"+file)
 		if err != nil {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
 
-		ctx.ServeContent(bytes.NewReader(sign), &context.ServeHeaderOptions{
+		b, err := hex.DecodeString(p.Value)
+		if err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+
+		ctx.ServeContent(bytes.NewReader(b), &context.ServeHeaderOptions{
 			Filename: file,
 		})
 		return

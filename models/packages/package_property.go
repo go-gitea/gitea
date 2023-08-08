@@ -60,6 +60,19 @@ func GetPropertiesByName(ctx context.Context, refType PropertyType, refID int64,
 	return pps, db.GetEngine(ctx).Where("ref_type = ? AND ref_id = ? AND name = ?", refType, refID, name).Find(&pps)
 }
 
+// GetPropertieWithUniqueName gets propertie with unique name
+func GetPropertieWithUniqueName(ctx context.Context, name string) (*PackageProperty, error) {
+	p := &PackageProperty{Name: name}
+	has, err := db.GetEngine(ctx).Get(p)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, ErrPackagePropertyNotExist
+	}
+	return p, nil
+}
+
 // UpdateProperty updates a property
 func UpdateProperty(ctx context.Context, pp *PackageProperty) error {
 	_, err := db.GetEngine(ctx).ID(pp.ID).Update(pp)
