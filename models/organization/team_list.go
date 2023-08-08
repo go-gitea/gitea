@@ -143,6 +143,7 @@ func GetUserReposTeams(ctx context.Context, userID int64, repoIDs []int64) (map[
 	var queryResult RepoTeamList
 
 	err := db.GetEngine(ctx).
+		Select("team.*, repository.*").
 		Join("INNER", "repository", "team.org_id = repository.owner_id").
 		Join("INNER", "team_user", "team_user.team_id = team.id").
 		Join("INNER", "team_repo", "team_repo.team_id = team.id").
