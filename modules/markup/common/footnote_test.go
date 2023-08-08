@@ -39,7 +39,7 @@ func TestCleanValue(t *testing.T) {
 		{"tes￥& a", "tes-a"},
 		{"tes= a", "tes-a"},
 		{"tes|a", "tesa"},
-		{"tes\a", "tesa"},
+		{"tes\\a", "tesa"},
 		{"tes/a", "tesa"},
 	}
 	for _, test := range tests {
