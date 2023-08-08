@@ -5,6 +5,7 @@
 package context
 
 import (
+	"context"
 	"html"
 	"html/template"
 	"io"
@@ -31,13 +32,15 @@ import (
 
 // Render represents a template render
 type Render interface {
-	TemplateLookup(tmpl string) (templates.TemplateExecutor, error)
-	HTML(w io.Writer, status int, name string, data any) error
+	TemplateLookup(tmpl string, templateCtx context.Context) (templates.TemplateExecutor, error)
+	HTML(w io.Writer, status int, name string, data any, templateCtx context.Context) error
 }
 
 // Context represents context of a request.
 type Context struct {
 	*Base
+
+	TemplateContext TemplateContext
 
 	Render   Render
 	PageData map[string]any // data used by JavaScript modules in one page, it's `window.config.pageData`
@@ -59,6 +62,8 @@ type Context struct {
 	Org     *Organization
 	Package *Package
 }
+
+type TemplateContext map[string]any
 
 func init() {
 	web.RegisterResponseStatusProvider[*Context](func(req *http.Request) web_types.ResponseStatusProvider {
@@ -133,8 +138,12 @@ func Contexter() func(next http.Handler) http.Handler {
 			}
 			defer baseCleanUp()
 
+			// TODO: "install.go" also shares the same logic, which should be refactored to a general function
+			ctx.TemplateContext = NewTemplateContext(ctx)
+			ctx.TemplateContext["Locale"] = ctx.Locale
+
 			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
-			ctx.Data["Context"] = &ctx
+			ctx.Data["Context"] = ctx // TODO: use "ctx" in template and remove this
 			ctx.Data["CurrentURL"] = setting.AppSubURL + req.URL.RequestURI()
 			ctx.Data["Link"] = ctx.Link
 			ctx.Data["locale"] = ctx.Locale
