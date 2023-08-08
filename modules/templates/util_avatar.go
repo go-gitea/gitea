@@ -68,17 +68,6 @@ func (au *AvatarUtils) AvatarByAction(action *activities_model.Action, others ..
 	return au.Avatar(action.ActUser, others...)
 }
 
-// RepoAvatar renders repo avatars. args: repo, size(int), class (string)
-func RepoAvatar(repo *repo_model.Repository, others ...any) template.HTML {
-	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, avatars.DefaultAvatarClass, others...)
-
-	src := repo.RelAvatarLink()
-	if src != "" {
-		return AvatarHTML(src, size, class, repo.FullName())
-	}
-	return template.HTML("")
-}
-
 // AvatarByEmail renders avatars by email address. args: email, name, size (int), class (string)
 func (au *AvatarUtils) AvatarByEmail(email, name string, others ...any) template.HTML {
 	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, avatars.DefaultAvatarClass, others...)
