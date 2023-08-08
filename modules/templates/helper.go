@@ -59,7 +59,6 @@ func NewFuncMap() template.FuncMap {
 		"avatarHTML":     AvatarHTML,
 		"avatarByAction": AvatarByAction,
 		"avatarByEmail":  AvatarByEmail,
-		"repoAvatar":     RepoAvatar,
 		"EntryIcon":      base.EntryIcon,
 		"MigrationIcon":  MigrationIcon,
 		"ActionIcon":     ActionIcon,
