@@ -3,8 +3,9 @@
 package common
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCleanValue(t *testing.T) {
@@ -48,6 +49,10 @@ func TestCleanValue(t *testing.T) {
 		{"tes|a", "tesa"},
 		{"tes\\a", "tesa"},
 		{"tes/a", "tesa"},
+		{"a啊啊b", "a啊啊b"},
+		{"c🤔️🤔️d", "cd"},
+		{"a⚡a", "aa"},
+		{"e.~f", "ef"},
 	}
 	for _, test := range tests {
 		assert.Equal(t, []byte(test.expect), CleanValue([]byte(test.param)), test.param)
