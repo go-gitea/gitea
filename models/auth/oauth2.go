@@ -284,6 +284,10 @@ func UpdateOAuth2Application(opts UpdateOAuth2ApplicationOptions) (*OAuth2Applic
 	if app.UID != opts.UserID {
 		return nil, fmt.Errorf("UID mismatch")
 	}
+	builtinApps := BuiltinApplications()
+	if _, builtin := builtinApps[app.ClientID]; builtin {
+		return nil, fmt.Errorf("failed to edit OAuth2 application: application is locked: %s", app.ClientID)
+	}
 
 	app.Name = opts.Name
 	app.RedirectURIs = opts.RedirectURIs
