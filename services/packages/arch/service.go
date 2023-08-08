@@ -97,15 +97,21 @@ func CreatePacmanDb(ctx *context.Context, p *DbParams) ([]byte, error) {
 		})
 
 		for _, version := range versions {
-			p, err := pkg_model.GetPropertieWithUniqueName(ctx, fmt.Sprintf(
+			pp, err := pkg_model.GetPropertieWithUniqueName(ctx, fmt.Sprintf(
 				"%s-%s-%s-%s.pkg.tar.zst.desc",
 				p.Distribution, pkg.Name, version.Version, p.Architecture,
 			))
 			if err != nil {
-				return nil, err
+				pp, err = pkg_model.GetPropertieWithUniqueName(ctx, fmt.Sprintf(
+					"%s-%s-%s-any.pkg.tar.zst.desc",
+					p.Distribution, pkg.Name, version.Version,
+				))
+				if err != nil {
+					return nil, err
+				}
 			}
 
-			entries[pkg.Name+"-"+version.Version+"/desc"] = []byte(p.Value)
+			entries[pkg.Name+"-"+version.Version+"/desc"] = []byte(pp.Value)
 			break
 		}
 	}
