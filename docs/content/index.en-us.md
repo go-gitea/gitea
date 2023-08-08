@@ -283,10 +283,11 @@ You can try it out using [the online demo](https://try.gitea.io/).
 
 - Web server framework: [Chi](http://github.com/go-chi/chi)
 - ORM: [XORM](https://xorm.io)
-- UI frameworks:
+- UI:
   - [jQuery](https://jquery.com)
   - [Fomantic UI](https://fomantic-ui.com)
   - [Vue3](https://vuejs.org)
+  - [svg-spinners by Utkarsh Verma](https://github.com/n3r4zzurr0/svg-spinners)
   - and various components (see package.json)
 - Editors:
   - [CodeMirror](https://codemirror.net)

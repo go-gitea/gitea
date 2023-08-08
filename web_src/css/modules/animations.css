@@ -1,8 +1,3 @@
-@keyframes isloadingspin {
-  0% { transform: translate(-50%, -50%) rotate(0deg); }
-  100% { transform: translate(-50%, -50%) rotate(360deg); }
-}
-
 .is-loading {
   pointer-events: none !important;
   position: relative !important;
@@ -22,20 +17,28 @@
   height: min(4em, 66.6%);
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
-  border-width: 4px;
-  border-style: solid;
-  border-color: var(--color-secondary) var(--color-secondary) var(--color-secondary-dark-8) var(--color-secondary-dark-8);
-  border-radius: 100%;
+  mask-size: cover;
+  -webkit-mask-size: cover;
+  mask-image: var(--spinner-ring);
+  -webkit-mask-image: var(--spinner-ring);
+  background: currentcolor;
+}
+
+.is-loading.small-loading-icon::after {
+  mask-image: var(--spinner-bar);
+  -webkit-mask-image: var(--spinner-bar);
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .is-loading::after {
-    animation: isloadingspin 500ms infinite linear;
+      mask-image: var(--spinner-ring-animated);
+      -webkit-mask-image: var(--spinner-ring-animated);
   }
-}
 
-.is-loading.small-loading-icon::after {
-  border-width: 2px;
+  .is-loading.small-loading-icon::after {
+    mask-image: var(--spinner-bar-animated);
+    -webkit-mask-image: var(--spinner-bar-animated);
+  }
 }
 
 /* for single form button, the loading state should be on the button, but not go semi-transparent, just replace the text on the button with the loader. */
