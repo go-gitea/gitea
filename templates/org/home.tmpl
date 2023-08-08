@@ -54,7 +54,7 @@
 					</div>
 					<div class="divider"></div>
 				{{end}}
-				{{if gt .NumMembers 0}}
+				{{if .NumMembers}}
 					<h4 class="ui top attached header gt-df">
 						<strong class="gt-f1">{{.locale.Tr "org.members"}}</strong>
 						<a class="text grey gt-dif gt-ac" href="{{.OrgLink}}/members"><span>{{.NumMembers}}</span> {{svg "octicon-chevron-right"}}</a>
