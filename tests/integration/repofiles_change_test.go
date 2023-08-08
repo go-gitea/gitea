@@ -6,6 +6,7 @@ package integration
 import (
 	"net/url"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -24,9 +25,9 @@ func getCreateRepoFilesOptions(repo *repo_model.Repository) *files_service.Chang
 	return &files_service.ChangeRepoFilesOptions{
 		Files: []*files_service.ChangeRepoFile{
 			{
-				Operation: "create",
-				TreePath:  "new/file.txt",
-				Content:   "This is a NEW file",
+				Operation:     "create",
+				TreePath:      "new/file.txt",
+				ContentReader: strings.NewReader("This is a NEW file"),
 			},
 		},
 		OldBranch: repo.DefaultBranch,
@@ -41,10 +42,10 @@ func getUpdateRepoFilesOptions(repo *repo_model.Repository) *files_service.Chang
 	return &files_service.ChangeRepoFilesOptions{
 		Files: []*files_service.ChangeRepoFile{
 			{
-				Operation: "update",
-				TreePath:  "README.md",
-				SHA:       "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
-				Content:   "This is UPDATED content for the README file",
+				Operation:     "update",
+				TreePath:      "README.md",
+				SHA:           "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
+				ContentReader: strings.NewReader("This is UPDATED content for the README file"),
 			},
 		},
 		OldBranch: repo.DefaultBranch,
@@ -244,7 +245,7 @@ func getExpectedFileResponseForRepofilesUpdate(commitID, filename, lastCommitSHA
 func TestChangeRepoFilesForCreate(t *testing.T) {
 	// setup
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		ctx := test.MockContext(t, "user2/repo1")
+		ctx, _ := test.MockContext(t, "user2/repo1")
 		ctx.SetParams(":id", "1")
 		test.LoadRepo(t, ctx, 1)
 		test.LoadRepoCommit(t, ctx)
@@ -281,7 +282,7 @@ func TestChangeRepoFilesForCreate(t *testing.T) {
 func TestChangeRepoFilesForUpdate(t *testing.T) {
 	// setup
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		ctx := test.MockContext(t, "user2/repo1")
+		ctx, _ := test.MockContext(t, "user2/repo1")
 		ctx.SetParams(":id", "1")
 		test.LoadRepo(t, ctx, 1)
 		test.LoadRepoCommit(t, ctx)
@@ -315,7 +316,7 @@ func TestChangeRepoFilesForUpdate(t *testing.T) {
 func TestChangeRepoFilesForUpdateWithFileMove(t *testing.T) {
 	// setup
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		ctx := test.MockContext(t, "user2/repo1")
+		ctx, _ := test.MockContext(t, "user2/repo1")
 		ctx.SetParams(":id", "1")
 		test.LoadRepo(t, ctx, 1)
 		test.LoadRepoCommit(t, ctx)
@@ -366,7 +367,7 @@ func TestChangeRepoFilesForUpdateWithFileMove(t *testing.T) {
 func TestChangeRepoFilesWithoutBranchNames(t *testing.T) {
 	// setup
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		ctx := test.MockContext(t, "user2/repo1")
+		ctx, _ := test.MockContext(t, "user2/repo1")
 		ctx.SetParams(":id", "1")
 		test.LoadRepo(t, ctx, 1)
 		test.LoadRepoCommit(t, ctx)
@@ -402,7 +403,7 @@ func TestChangeRepoFilesForDelete(t *testing.T) {
 func testDeleteRepoFiles(t *testing.T, u *url.URL) {
 	// setup
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1")
+	ctx, _ := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)
 	test.LoadRepoCommit(t, ctx)
@@ -441,7 +442,7 @@ func TestChangeRepoFilesForDeleteWithoutBranchNames(t *testing.T) {
 func testDeleteRepoFilesWithoutBranchNames(t *testing.T, u *url.URL) {
 	// setup
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1")
+	ctx, _ := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)
 	test.LoadRepoCommit(t, ctx)
@@ -471,7 +472,7 @@ func testDeleteRepoFilesWithoutBranchNames(t *testing.T, u *url.URL) {
 func TestChangeRepoFilesErrors(t *testing.T) {
 	// setup
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		ctx := test.MockContext(t, "user2/repo1")
+		ctx, _ := test.MockContext(t, "user2/repo1")
 		ctx.SetParams(":id", "1")
 		test.LoadRepo(t, ctx, 1)
 		test.LoadRepoCommit(t, ctx)

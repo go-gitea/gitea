@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -28,9 +29,7 @@ var localMetas = map[string]string{
 }
 
 func TestMain(m *testing.M) {
-	setting.Init(&setting.Options{
-		AllowEmpty: true,
-	})
+	unittest.InitSettings()
 	if err := git.InitSimple(context.Background()); err != nil {
 		log.Fatal("git init failed, err: %v", err)
 	}
@@ -528,6 +527,42 @@ func Test_ParseClusterFuzz(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotContains(t, res.String(), "<html")
+}
+
+func TestPostProcess_RenderDocument(t *testing.T) {
+	setting.AppURL = TestAppURL
+
+	localMetas := map[string]string{
+		"user": "go-gitea",
+		"repo": "gitea",
+		"mode": "document",
+	}
+
+	test := func(input, expected string) {
+		var res strings.Builder
+		err := PostProcess(&RenderContext{
+			Ctx:       git.DefaultContext,
+			URLPrefix: "https://example.com",
+			Metas:     localMetas,
+		}, strings.NewReader(input), &res)
+		assert.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(res.String()))
+	}
+
+	// Issue index shouldn't be post processing in an document.
+	test(
+		"#1",
+		"#1")
+
+	// Test that other post processing still works.
+	test(
+		":gitea:",
+		`<span class="emoji" aria-label="gitea"><img alt=":gitea:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/gitea.png"/></span>`)
+	test(
+		"Some text with 😄 in the middle",
+		`Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span> in the middle`)
+	test("http://localhost:3000/person/repo/issues/4#issuecomment-1234",
+		`<a href="http://localhost:3000/person/repo/issues/4#issuecomment-1234" class="ref-issue">person/repo#4 (comment)</a>`)
 }
 
 func TestIssue16020(t *testing.T) {

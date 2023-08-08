@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import 'jquery.are-you-sure';
+import {clippie} from 'clippie';
 import {createDropzone} from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
@@ -7,7 +8,9 @@ import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
 import {svg} from '../svg.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
-import {createTippy} from '../modules/tippy.js';
+import {createTippy, showTemporaryTooltip} from '../modules/tippy.js';
+import {confirmModal} from './comp/ConfirmModal.js';
+import {showErrorToast} from '../modules/toast.js';
 
 const {appUrl, appSubUrl, csrfToken, i18n} = window.config;
 
@@ -235,10 +238,10 @@ export function initGlobalDropzone() {
           // Create a "Copy Link" element, to conveniently copy the image
           // or file link as Markdown to the clipboard
           const copyLinkElement = document.createElement('div');
-          copyLinkElement.className = 'gt-tc';
+          copyLinkElement.className = 'gt-text-center';
           // The a element has a hardcoded cursor: pointer because the default is overridden by .dropzone
           copyLinkElement.innerHTML = `<a href="#" style="cursor: pointer;">${svg('octicon-copy', 14, 'copy link')} Copy link</a>`;
-          copyLinkElement.addEventListener('click', (e) => {
+          copyLinkElement.addEventListener('click', async (e) => {
             e.preventDefault();
             let fileMarkdown = `[${file.name}](/attachments/${file.uuid})`;
             if (file.type.startsWith('image/')) {
@@ -246,7 +249,8 @@ export function initGlobalDropzone() {
             } else if (file.type.startsWith('video/')) {
               fileMarkdown = `<video src="/attachments/${file.uuid}" title="${htmlEscape(file.name)}" controls></video>`;
             }
-            navigator.clipboard.writeText(fileMarkdown);
+            const success = await clippie(fileMarkdown);
+            showTemporaryTooltip(e.target, success ? i18n.copy_success : i18n.copy_error);
           });
           file.previewTemplate.append(copyLinkElement);
         });
@@ -264,14 +268,14 @@ export function initGlobalDropzone() {
   }
 }
 
-function linkAction(e) {
+async function linkAction(e) {
   e.preventDefault();
 
   // A "link-action" can post AJAX request to its "data-url"
-  // Then the browser is redirect to: the "redirect" in response, or "data-redirect" attribute, or current URL by reloading.
-  // If the "link-action" has "data-modal-confirm(-html)" attribute, a confirm modal dialog will be shown before taking action.
+  // Then the browser is redirected to: the "redirect" in response, or "data-redirect" attribute, or current URL by reloading.
+  // If the "link-action" has "data-modal-confirm" attribute, a confirm modal dialog will be shown before taking action.
 
-  const $this = $(e.target);
+  const $this = $(this);
   const redirect = $this.attr('data-redirect');
 
   const doRequest = () => {
@@ -291,33 +295,16 @@ function linkAction(e) {
     });
   };
 
-  const modalConfirmHtml = htmlEscape($this.attr('data-modal-confirm') || '');
-  if (!modalConfirmHtml) {
+  const modalConfirmContent = htmlEscape($this.attr('data-modal-confirm') || '');
+  if (!modalConfirmContent) {
     doRequest();
     return;
   }
 
-  const okButtonColor = $this.hasClass('red') || $this.hasClass('yellow') || $this.hasClass('orange') || $this.hasClass('negative') ? 'orange' : 'green';
-
-  const $modal = $(`
-<div class="ui g-modal-confirm modal">
-  <div class="content">${modalConfirmHtml}</div>
-  <div class="actions">
-    <button class="ui basic cancel button">${svg('octicon-x')} ${i18n.modal_cancel}</button>
-    <button class="ui ${okButtonColor} ok button">${svg('octicon-check')} ${i18n.modal_confirm}</button>
-  </div>
-</div>
-`);
-
-  $modal.appendTo(document.body);
-  $modal.modal({
-    onApprove() {
-      doRequest();
-    },
-    onHidden() {
-      $modal.remove();
-    },
-  }).modal('show');
+  const isRisky = $this.hasClass('red') || $this.hasClass('yellow') || $this.hasClass('orange') || $this.hasClass('negative');
+  if (await confirmModal({content: modalConfirmContent, buttonColor: isRisky ? 'orange' : 'green'})) {
+    doRequest();
+  }
 }
 
 export function initGlobalLinkActions() {
@@ -370,6 +357,57 @@ export function initGlobalLinkActions() {
   $('.link-action').on('click', linkAction);
 }
 
+function initGlobalShowModal() {
+  // A ".show-modal" button will show a modal dialog defined by its "data-modal" attribute.
+  // Each "data-modal-{target}" attribute will be filled to target element's value or text-content.
+  // * First, try to query '#target'
+  // * Then, try to query '.target'
+  // * Then, try to query 'target' as HTML tag
+  // If there is a ".{attr}" part like "data-modal-form.action", then the form's "action" attribute will be set.
+  $('.show-modal').on('click', function (e) {
+    e.preventDefault();
+    const $el = $(this);
+    const modalSelector = $el.attr('data-modal');
+    const $modal = $(modalSelector);
+    if (!$modal.length) {
+      throw new Error('no modal for this action');
+    }
+    const modalAttrPrefix = 'data-modal-';
+    for (const attrib of this.attributes) {
+      if (!attrib.name.startsWith(modalAttrPrefix)) {
+        continue;
+      }
+
+      const attrTargetCombo = attrib.name.substring(modalAttrPrefix.length);
+      const [attrTargetName, attrTargetAttr] = attrTargetCombo.split('.');
+      // try to find target by: "#target" -> ".target" -> "target tag"
+      let $attrTarget = $modal.find(`#${attrTargetName}`);
+      if (!$attrTarget.length) $attrTarget = $modal.find(`.${attrTargetName}`);
+      if (!$attrTarget.length) $attrTarget = $modal.find(`${attrTargetName}`);
+      if (!$attrTarget.length) continue; // TODO: show errors in dev mode to remind developers that there is a bug
+
+      if (attrTargetAttr) {
+        $attrTarget[0][attrTargetAttr] = attrib.value;
+      } else if ($attrTarget.is('input') || $attrTarget.is('textarea')) {
+        $attrTarget.val(attrib.value); // FIXME: add more supports like checkbox
+      } else {
+        $attrTarget.text(attrib.value); // FIXME: it should be more strict here, only handle div/span/p
+      }
+    }
+    const colorPickers = $modal.find('.color-picker');
+    if (colorPickers.length > 0) {
+      initCompColorPicker(); // FIXME: this might cause duplicate init
+    }
+    $modal.modal('setting', {
+      onApprove: () => {
+        // "form-fetch-action" can handle network errors gracefully,
+        // so keep the modal dialog to make users can re-submit the form if anything wrong happens.
+        if ($modal.find('.form-fetch-action').length) return false;
+      },
+    }).modal('show');
+  });
+}
+
 export function initGlobalButtons() {
   // There are many "cancel button" elements in modal dialogs, Fomantic UI expects they are button-like elements but never submit a form.
   // However, Gitea misuses the modal dialog and put the cancel buttons inside forms, so we must prevent the form submission.
@@ -404,30 +442,10 @@ export function initGlobalButtons() {
       return;
     }
     // should never happen, otherwise there is a bug in code
-    alert('Nothing to hide');
+    showErrorToast('Nothing to hide');
   });
 
-  $('.show-modal').on('click', function (e) {
-    e.preventDefault();
-    const modalDiv = $($(this).attr('data-modal'));
-    for (const attrib of this.attributes) {
-      if (!attrib.name.startsWith('data-modal-')) {
-        continue;
-      }
-      const id = attrib.name.substring(11);
-      const target = modalDiv.find(`#${id}`);
-      if (target.is('input')) {
-        target.val(attrib.value);
-      } else {
-        target.text(attrib.value);
-      }
-    }
-    modalDiv.modal('show');
-    const colorPickers = $($(this).attr('data-modal')).find('.color-picker');
-    if (colorPickers.length > 0) {
-      initCompColorPicker();
-    }
-  });
+  initGlobalShowModal();
 }
 
 /**
@@ -445,5 +463,5 @@ export function checkAppUrl() {
     return;
   }
   showGlobalErrorMessage(`Your ROOT_URL in app.ini is "${appUrl}", it's unlikely matching the site you are visiting.
-Mismatched ROOT_URL config causes wrong URL links for web UI/mail content/webhook notification.`);
+Mismatched ROOT_URL config causes wrong URL links for web UI/mail content/webhook notification/OAuth2 sign-in.`);
 }

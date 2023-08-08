@@ -12,9 +12,9 @@ import (
 )
 
 // ClearLabels clears all of an issue's labels
-func ClearLabels(issue *issues_model.Issue, doer *user_model.User) (err error) {
-	if err = issues_model.ClearIssueLabels(issue, doer); err != nil {
-		return
+func ClearLabels(issue *issues_model.Issue, doer *user_model.User) error {
+	if err := issues_model.ClearIssueLabels(issue, doer); err != nil {
+		return err
 	}
 
 	notification.NotifyIssueClearLabels(db.DefaultContext, doer, issue)

@@ -26,7 +26,8 @@
 							{{.locale.Tr "repo.diff.browse_source"}}
 						</a>
 						{{if and ($.Permission.CanWrite $.UnitTypeCode) (not $.Repository.IsArchived) (not .IsDeleted)}}{{- /* */ -}}
-							<div class="ui primary tiny floating dropdown icon button">{{.locale.Tr "repo.commit.operations"}}
+							<div class="ui dropdown primary tiny button">
+								{{.locale.Tr "repo.commit.operations"}}
 								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 								<div class="menu">
 									<div class="ui header">{{.locale.Tr "repo.commit.operations"}}</div>
@@ -136,12 +137,7 @@
 			{{if IsMultilineCommitMessage .Commit.Message}}
 				<pre class="commit-body gt-mt-0">{{RenderCommitBody $.Context .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
 			{{end}}
-			{{if .BranchName}}
-				<span class="text grey gt-mr-3">{{svg "octicon-git-branch" 16 "gt-mr-2"}}{{.BranchName}}</span>
-			{{end}}
-			{{if .TagName}}
-				<span class="text grey gt-mr-3">{{svg "octicon-tag" 16 "gt-mr-2"}}{{.TagName}}</span>
-			{{end}}
+			{{template "repo/commit_load_branches_and_tags" .}}
 		</div>
 		<div class="ui attached segment gt-df gt-ac gt-sb gt-py-2 commit-header-row gt-fw {{$class}}">
 				<div class="gt-df gt-ac author">
@@ -188,7 +184,7 @@
 				</div>
 		</div>
 		{{if .Commit.Signature}}
-			<div class="ui bottom attached message gt-tl gt-df gt-ac gt-sb commit-header-row gt-fw {{$class}}">
+			<div class="ui bottom attached message gt-text-left gt-df gt-ac gt-sb commit-header-row gt-fw {{$class}}">
 				<div class="gt-df gt-ac">
 					{{if .Verification.Verified}}
 						{{if ne .Verification.SigningUser.ID 0}}

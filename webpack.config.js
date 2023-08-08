@@ -11,6 +11,7 @@ import webpack from 'webpack';
 import {fileURLToPath} from 'node:url';
 import {readFileSync} from 'node:fs';
 import {env} from 'node:process';
+import {LightningCssMinifyPlugin} from 'lightningcss-loader';
 
 const {EsbuildPlugin} = EsBuildLoader;
 const {SourceMapDevToolPlugin, DefinePlugin} = webpack;
@@ -73,11 +74,17 @@ export default {
     'eventsource.sharedworker': [
       fileURLToPath(new URL('web_src/js/features/eventsource.sharedworker.js', import.meta.url)),
     ],
+    ...(!isProduction && {
+      devtest: [
+        fileURLToPath(new URL('web_src/js/standalone/devtest.js', import.meta.url)),
+        fileURLToPath(new URL('web_src/css/standalone/devtest.css', import.meta.url)),
+      ],
+    }),
     ...themes,
   },
   devtool: false,
   output: {
-    path: fileURLToPath(new URL('public', import.meta.url)),
+    path: fileURLToPath(new URL('public/assets', import.meta.url)),
     filename: () => 'js/[name].js',
     chunkFilename: ({chunk}) => {
       const language = (/monaco.*languages?_.+?_(.+?)_/.exec(chunk.id) || [])[1];
@@ -90,9 +97,10 @@ export default {
       new EsbuildPlugin({
         target: 'es2015',
         minify: true,
-        css: true,
+        css: false,
         legalComments: 'none',
       }),
+      new LightningCssMinifyPlugin(),
     ],
     splitChunks: {
       chunks: 'async',
@@ -139,7 +147,7 @@ export default {
       },
       {
         test: /\.svg$/,
-        include: fileURLToPath(new URL('public/img/svg', import.meta.url)),
+        include: fileURLToPath(new URL('public/assets/img/svg', import.meta.url)),
         type: 'asset/source',
       },
       {
@@ -199,7 +207,7 @@ export default {
       emitError: true,
       allow: '(Apache-2.0 OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC OR CPAL-1.0 OR Unlicense OR EPL-1.0 OR EPL-2.0)',
     }) : new AddAssetPlugin('js/licenses.txt', `Licenses are disabled during development`),
-  ].filter(Boolean),
+  ],
   performance: {
     hints: false,
     maxEntrypointSize: Infinity,

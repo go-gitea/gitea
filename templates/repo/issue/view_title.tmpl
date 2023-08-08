@@ -70,9 +70,9 @@
 							{{$.locale.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref | Safe}}
 						</span>
 					{{end}}
-					<span id="pull-desc-edit" class="gt-hidden">
+					<span id="pull-desc-edit" class="gt-hidden flex-text-block">
 						<div class="ui floating filter dropdown">
-							<div class="ui basic small button">
+							<div class="ui basic small button gt-mr-0">
 								<span class="text">{{.locale.Tr "repo.pulls.compare_compare"}}: {{$.HeadTarget}}</span>
 							</div>
 						</div>
@@ -111,7 +111,7 @@
 						{{$.locale.Tr "repo.issues.opened_by_fake" $createdStr (.Issue.Poster.GetDisplayName|Escape) | Safe}}
 					{{end}}
 					·
-					{{$.locale.Tr "repo.issues.num_comments" .Issue.NumComments}}
+					{{$.locale.TrN .Issue.NumComments "repo.issues.num_comments_1" "repo.issues.num_comments" .Issue.NumComments}}
 				</span>
 			{{end}}
 		</div>

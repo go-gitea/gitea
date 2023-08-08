@@ -284,10 +284,10 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 		Message:      message,
 		Files: []*files_service.ChangeRepoFile{
 			{
-				Operation:    operation,
-				FromTreePath: ctx.Repo.TreePath,
-				TreePath:     form.TreePath,
-				Content:      strings.ReplaceAll(form.Content, "\r", ""),
+				Operation:     operation,
+				FromTreePath:  ctx.Repo.TreePath,
+				TreePath:      form.TreePath,
+				ContentReader: strings.NewReader(strings.ReplaceAll(form.Content, "\r", "")),
 			},
 		},
 		Signoff: form.Signoff,
@@ -327,10 +327,10 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 			} else {
 				ctx.Error(http.StatusInternalServerError, err.Error())
 			}
-		} else if models.IsErrBranchAlreadyExists(err) {
+		} else if git_model.IsErrBranchAlreadyExists(err) {
 			// For when a user specifies a new branch that already exists
 			ctx.Data["Err_NewBranchName"] = true
-			if branchErr, ok := err.(models.ErrBranchAlreadyExists); ok {
+			if branchErr, ok := err.(git_model.ErrBranchAlreadyExists); ok {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchErr.BranchName), tplEditFile, &form)
 			} else {
 				ctx.Error(http.StatusInternalServerError, err.Error())
@@ -344,7 +344,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 			if len(errPushRej.Message) == 0 {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected_no_message"), tplEditFile, &form)
 			} else {
-				flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
+				flashError, err := ctx.RenderToString(tplAlertDetails, map[string]any{
 					"Message": ctx.Tr("repo.editor.push_rejected"),
 					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
 					"Details": utils.SanitizeFlashErrorString(errPushRej.Message),
@@ -356,7 +356,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 				ctx.RenderWithErr(flashError, tplEditFile, &form)
 			}
 		} else {
-			flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
+			flashError, err := ctx.RenderToString(tplAlertDetails, map[string]any{
 				"Message": ctx.Tr("repo.editor.fail_to_update_file", form.TreePath),
 				"Summary": ctx.Tr("repo.editor.fail_to_update_file_summary"),
 				"Details": utils.SanitizeFlashErrorString(err.Error()),
@@ -529,9 +529,9 @@ func DeleteFilePost(ctx *context.Context) {
 			} else {
 				ctx.Error(http.StatusInternalServerError, err.Error())
 			}
-		} else if models.IsErrBranchAlreadyExists(err) {
+		} else if git_model.IsErrBranchAlreadyExists(err) {
 			// For when a user specifies a new branch that already exists
-			if branchErr, ok := err.(models.ErrBranchAlreadyExists); ok {
+			if branchErr, ok := err.(git_model.ErrBranchAlreadyExists); ok {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchErr.BranchName), tplDeleteFile, &form)
 			} else {
 				ctx.Error(http.StatusInternalServerError, err.Error())
@@ -543,7 +543,7 @@ func DeleteFilePost(ctx *context.Context) {
 			if len(errPushRej.Message) == 0 {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected_no_message"), tplDeleteFile, &form)
 			} else {
-				flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
+				flashError, err := ctx.RenderToString(tplAlertDetails, map[string]any{
 					"Message": ctx.Tr("repo.editor.push_rejected"),
 					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
 					"Details": utils.SanitizeFlashErrorString(errPushRej.Message),
@@ -685,7 +685,11 @@ func UploadFilePost(ctx *context.Context) {
 
 	message := strings.TrimSpace(form.CommitSummary)
 	if len(message) == 0 {
-		message = ctx.Tr("repo.editor.upload_files_to_dir", form.TreePath)
+		dir := form.TreePath
+		if dir == "" {
+			dir = "/"
+		}
+		message = ctx.Tr("repo.editor.upload_files_to_dir", dir)
 	}
 
 	form.CommitMessage = strings.TrimSpace(form.CommitMessage)
@@ -727,10 +731,10 @@ func UploadFilePost(ctx *context.Context) {
 		} else if git.IsErrBranchNotExist(err) {
 			branchErr := err.(git.ErrBranchNotExist)
 			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_does_not_exist", branchErr.Name), tplUploadFile, &form)
-		} else if models.IsErrBranchAlreadyExists(err) {
+		} else if git_model.IsErrBranchAlreadyExists(err) {
 			// For when a user specifies a new branch that already exists
 			ctx.Data["Err_NewBranchName"] = true
-			branchErr := err.(models.ErrBranchAlreadyExists)
+			branchErr := err.(git_model.ErrBranchAlreadyExists)
 			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchErr.BranchName), tplUploadFile, &form)
 		} else if git.IsErrPushOutOfDate(err) {
 			ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+util.PathEscapeSegments(ctx.Repo.CommitID)+"..."+util.PathEscapeSegments(form.NewBranchName)), tplUploadFile, &form)
@@ -739,7 +743,7 @@ func UploadFilePost(ctx *context.Context) {
 			if len(errPushRej.Message) == 0 {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected_no_message"), tplUploadFile, &form)
 			} else {
-				flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
+				flashError, err := ctx.RenderToString(tplAlertDetails, map[string]any{
 					"Message": ctx.Tr("repo.editor.push_rejected"),
 					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
 					"Details": utils.SanitizeFlashErrorString(errPushRej.Message),

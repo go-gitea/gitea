@@ -1,11 +1,13 @@
 import $ from 'jquery';
 import {hideElem, showElem} from '../utils/dom.js';
 
-const {appSubUrl} = window.config;
+const {appSubUrl, csrfToken} = window.config;
 
 export function initRepoMigrationStatusChecker() {
   const $repoMigrating = $('#repo_migrating');
   if (!$repoMigrating.length) return;
+
+  $('#repo_migrating_retry').on('click', doMigrationRetry);
 
   const task = $repoMigrating.attr('data-migrating-task-id');
 
@@ -31,6 +33,7 @@ export function initRepoMigrationStatusChecker() {
     if (data.status === 3) {
       hideElem('#repo_migrating_progress');
       hideElem('#repo_migrating');
+      showElem('#repo_migrating_retry');
       showElem('#repo_migrating_failed');
       showElem('#repo_migrating_failed_image');
       $('#repo_migrating_failed_error').text(data.message);
@@ -52,4 +55,15 @@ export function initRepoMigrationStatusChecker() {
   };
 
   syncTaskStatus(); // no await
+}
+
+async function doMigrationRetry(e) {
+  await fetch($(e.target).attr('data-migrating-task-retry-url'), {
+    method: 'post',
+    headers: {
+      'X-Csrf-Token': csrfToken,
+      'Content-Type': 'application/json',
+    },
+  });
+  window.location.reload();
 }

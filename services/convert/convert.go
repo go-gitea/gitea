@@ -50,26 +50,26 @@ func ToEmailSearch(email *user_model.SearchEmailResult) *api.Email {
 }
 
 // ToBranch convert a git.Commit and git.Branch to an api.Branch
-func ToBranch(ctx context.Context, repo *repo_model.Repository, b *git.Branch, c *git.Commit, bp *git_model.ProtectedBranch, user *user_model.User, isRepoAdmin bool) (*api.Branch, error) {
+func ToBranch(ctx context.Context, repo *repo_model.Repository, branchName string, c *git.Commit, bp *git_model.ProtectedBranch, user *user_model.User, isRepoAdmin bool) (*api.Branch, error) {
 	if bp == nil {
 		var hasPerm bool
 		var canPush bool
 		var err error
 		if user != nil {
-			hasPerm, err = access_model.HasAccessUnit(db.DefaultContext, user, repo, unit.TypeCode, perm.AccessModeWrite)
+			hasPerm, err = access_model.HasAccessUnit(ctx, user, repo, unit.TypeCode, perm.AccessModeWrite)
 			if err != nil {
 				return nil, err
 			}
 
-			perms, err := access_model.GetUserRepoPermission(db.DefaultContext, repo, user)
+			perms, err := access_model.GetUserRepoPermission(ctx, repo, user)
 			if err != nil {
 				return nil, err
 			}
-			canPush = issues_model.CanMaintainerWriteToBranch(perms, b.Name, user)
+			canPush = issues_model.CanMaintainerWriteToBranch(ctx, perms, branchName, user)
 		}
 
 		return &api.Branch{
-			Name:                b.Name,
+			Name:                branchName,
 			Commit:              ToPayloadCommit(ctx, repo, c),
 			Protected:           false,
 			RequiredApprovals:   0,
@@ -81,7 +81,7 @@ func ToBranch(ctx context.Context, repo *repo_model.Repository, b *git.Branch, c
 	}
 
 	branch := &api.Branch{
-		Name:                b.Name,
+		Name:                branchName,
 		Commit:              ToPayloadCommit(ctx, repo, c),
 		Protected:           true,
 		RequiredApprovals:   bp.RequiredApprovals,
@@ -94,13 +94,13 @@ func ToBranch(ctx context.Context, repo *repo_model.Repository, b *git.Branch, c
 	}
 
 	if user != nil {
-		permission, err := access_model.GetUserRepoPermission(db.DefaultContext, repo, user)
+		permission, err := access_model.GetUserRepoPermission(ctx, repo, user)
 		if err != nil {
 			return nil, err
 		}
 		bp.Repo = repo
-		branch.UserCanPush = bp.CanUserPush(db.DefaultContext, user)
-		branch.UserCanMerge = git_model.IsUserMergeWhitelisted(db.DefaultContext, bp, user.ID, permission)
+		branch.UserCanPush = bp.CanUserPush(ctx, user)
+		branch.UserCanMerge = git_model.IsUserMergeWhitelisted(ctx, bp, user.ID, permission)
 	}
 
 	return branch, nil
@@ -289,6 +289,7 @@ func ToOrganization(ctx context.Context, org *organization.Organization) *api.Or
 		Name:                      org.Name,
 		UserName:                  org.Name,
 		FullName:                  org.FullName,
+		Email:                     org.Email,
 		Description:               org.Description,
 		Website:                   org.Website,
 		Location:                  org.Location,

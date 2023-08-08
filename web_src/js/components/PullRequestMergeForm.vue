@@ -27,13 +27,9 @@
           <div class="field">
             <textarea name="merge_message_field" rows="5" :placeholder="mergeForm.mergeMessageFieldPlaceHolder" v-model="mergeMessageFieldValue"/>
             <template v-if="mergeMessageFieldValue !== mergeForm.defaultMergeMessage">
-              <button @click.prevent="clearMergeMessage" class="ui tertiary button">
+              <button @click.prevent="clearMergeMessage" class="btn gt-mt-2 gt-p-2 interact-fg" :data-tooltip-content="mergeForm.textClearMergeMessageHint">
                 {{ mergeForm.textClearMergeMessage }}
               </button>
-              <div class="ui label">
-                <!-- TODO: Convert to tooltip once we can use tooltips in Vue templates -->
-                {{ mergeForm.textClearMergeMessageHint }}
-              </div>
             </template>
           </div>
         </template>

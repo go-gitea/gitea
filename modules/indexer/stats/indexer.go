@@ -11,6 +11,7 @@ import (
 )
 
 // Indexer defines an interface to index repository stats
+// TODO: this indexer is quite different from the others, maybe this package should be moved out from module/indexer
 type Indexer interface {
 	Index(id int64) error
 	Close()

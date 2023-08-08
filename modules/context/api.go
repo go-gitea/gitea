@@ -20,6 +20,8 @@ import (
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web"
+	web_types "code.gitea.io/gitea/modules/web/types"
 
 	"gitea.com/go-chi/cache"
 )
@@ -39,6 +41,12 @@ type APIContext struct {
 	Repo    *Repository
 	Org     *APIOrganization
 	Package *Package
+}
+
+func init() {
+	web.RegisterResponseStatusProvider[*APIContext](func(req *http.Request) web_types.ResponseStatusProvider {
+		return req.Context().Value(apiContextKey).(*APIContext)
+	})
 }
 
 // Currently, we have the following common fields in error response:
@@ -100,7 +108,7 @@ func (ctx *APIContext) ServerError(title string, err error) {
 
 // Error responds with an error message to client with given obj as the message.
 // If status is 500, also it prints error to log.
-func (ctx *APIContext) Error(status int, title string, obj interface{}) {
+func (ctx *APIContext) Error(status int, title string, obj any) {
 	var message string
 	if err, ok := obj.(error); ok {
 		message = err.Error()
@@ -257,7 +265,7 @@ func APIContexter() func(http.Handler) http.Handler {
 
 // NotFound handles 404s for APIContext
 // String will replace message, errors will be added to a slice
-func (ctx *APIContext) NotFound(objs ...interface{}) {
+func (ctx *APIContext) NotFound(objs ...any) {
 	message := ctx.Tr("error.not_found")
 	var errors []string
 	for _, obj := range objs {
@@ -273,7 +281,7 @@ func (ctx *APIContext) NotFound(objs ...interface{}) {
 		}
 	}
 
-	ctx.JSON(http.StatusNotFound, map[string]interface{}{
+	ctx.JSON(http.StatusNotFound, map[string]any{
 		"message": message,
 		"url":     setting.API.SwaggerURL,
 		"errors":  errors,
@@ -286,7 +294,7 @@ func ReferencesGitRepo(allowEmpty ...bool) func(ctx *APIContext) (cancel context
 	return func(ctx *APIContext) (cancel context.CancelFunc) {
 		// Empty repository does not have reference information.
 		if ctx.Repo.Repository.IsEmpty && !(len(allowEmpty) != 0 && allowEmpty[0]) {
-			return
+			return nil
 		}
 
 		// For API calls.
@@ -295,7 +303,7 @@ func ReferencesGitRepo(allowEmpty ...bool) func(ctx *APIContext) (cancel context
 			gitRepo, err := git.OpenRepository(ctx, repoPath)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "RepoRef Invalid repo "+repoPath, err)
-				return
+				return cancel
 			}
 			ctx.Repo.GitRepo = gitRepo
 			// We opened it, we should close it
