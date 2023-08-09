@@ -30,9 +30,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/lfs"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/kballard/go-shellquote"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 const (
@@ -40,17 +40,17 @@ const (
 )
 
 // CmdServ represents the available serv sub-command.
-var CmdServ = cli.Command{
+var CmdServ = &cli.Command{
 	Name:        "serv",
 	Usage:       "This command should only be called by SSH shell",
 	Description: "Serv provides access auth for repositories",
 	Before:      PrepareConsoleLoggerLevel(log.FATAL),
 	Action:      runServ,
 	Flags: []cli.Flag{
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name: "enable-pprof",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name: "debug",
 		},
 	},
@@ -119,7 +119,7 @@ func fail(ctx context.Context, userMessage, logMsgFmt string, args ...any) error
 		}
 		_ = private.SSHLog(ctx, true, logMsg)
 	}
-	return cli.NewExitError("", 1)
+	return cli.Exit("", 1)
 }
 
 // handleCliResponseExtra handles the extra response from the cli sub-commands
@@ -130,7 +130,7 @@ func handleCliResponseExtra(extra private.ResponseExtra) error {
 		_, _ = fmt.Fprintln(os.Stdout, extra.UserMsg)
 	}
 	if extra.HasError() {
-		return cli.NewExitError(extra.Error, 1)
+		return cli.Exit(extra.Error, 1)
 	}
 	return nil
 }
@@ -147,20 +147,20 @@ func runServ(c *cli.Context) error {
 		return nil
 	}
 
-	if len(c.Args()) < 1 {
+	if c.NArg() < 1 {
 		if err := cli.ShowSubcommandHelp(c); err != nil {
 			fmt.Printf("error showing subcommand help: %v\n", err)
 		}
 		return nil
 	}
 
-	keys := strings.Split(c.Args()[0], "-")
+	keys := strings.Split(c.Args().First(), "-")
 	if len(keys) != 2 || keys[0] != "key" {
-		return fail(ctx, "Key ID format error", "Invalid key argument: %s", c.Args()[0])
+		return fail(ctx, "Key ID format error", "Invalid key argument: %s", c.Args().First())
 	}
 	keyID, err := strconv.ParseInt(keys[1], 10, 64)
 	if err != nil {
-		return fail(ctx, "Key ID parsing error", "Invalid key argument: %s", c.Args()[1])
+		return fail(ctx, "Key ID parsing error", "Invalid key argument: %s", c.Args().Get(1))
 	}
 
 	cmd := os.Getenv("SSH_ORIGINAL_COMMAND")

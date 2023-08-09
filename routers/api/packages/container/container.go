@@ -203,17 +203,25 @@ func InitiateUploadBlob(ctx *context.Context) {
 			Digest:     mount,
 		})
 		if blob != nil {
-			if err := mountBlob(&packages_service.PackageInfo{Owner: ctx.Package.Owner, Name: image}, blob.Blob); err != nil {
+			accessible, err := packages_model.IsBlobAccessibleForUser(ctx, blob.Blob.ID, ctx.Doer)
+			if err != nil {
 				apiError(ctx, http.StatusInternalServerError, err)
 				return
 			}
 
-			setResponseHeaders(ctx.Resp, &containerHeaders{
-				Location:      fmt.Sprintf("/v2/%s/%s/blobs/%s", ctx.Package.Owner.LowerName, image, mount),
-				ContentDigest: mount,
-				Status:        http.StatusCreated,
-			})
-			return
+			if accessible {
+				if err := mountBlob(ctx, &packages_service.PackageInfo{Owner: ctx.Package.Owner, Name: image}, blob.Blob); err != nil {
+					apiError(ctx, http.StatusInternalServerError, err)
+					return
+				}
+
+				setResponseHeaders(ctx.Resp, &containerHeaders{
+					Location:      fmt.Sprintf("/v2/%s/%s/blobs/%s", ctx.Package.Owner.LowerName, image, mount),
+					ContentDigest: mount,
+					Status:        http.StatusCreated,
+				})
+				return
+			}
 		}
 	}
 
@@ -231,7 +239,7 @@ func InitiateUploadBlob(ctx *context.Context) {
 			return
 		}
 
-		if _, err := saveAsPackageBlob(
+		if _, err := saveAsPackageBlob(ctx,
 			buf,
 			&packages_service.PackageCreationInfo{
 				PackageInfo: packages_service.PackageInfo{
@@ -376,7 +384,7 @@ func EndUploadBlob(ctx *context.Context) {
 		return
 	}
 
-	if _, err := saveAsPackageBlob(
+	if _, err := saveAsPackageBlob(ctx,
 		uploader,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
@@ -494,7 +502,7 @@ func DeleteBlob(ctx *context.Context) {
 		return
 	}
 
-	if err := deleteBlob(ctx.Package.Owner.ID, ctx.Params("image"), d); err != nil {
+	if err := deleteBlob(ctx, ctx.Package.Owner.ID, ctx.Params("image"), d); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
@@ -535,7 +543,7 @@ func UploadManifest(ctx *context.Context) {
 		return
 	}
 
-	digest, err := processManifest(mci, buf)
+	digest, err := processManifest(ctx, mci, buf)
 	if err != nil {
 		var namedError *namedError
 		if errors.As(err, &namedError) {

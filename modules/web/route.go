@@ -50,7 +50,9 @@ func NewRoute() *Route {
 // Use supports two middlewares
 func (r *Route) Use(middlewares ...any) {
 	for _, m := range middlewares {
-		r.R.Use(toHandlerProvider(m))
+		if m != nil {
+			r.R.Use(toHandlerProvider(m))
+		}
 	}
 }
 
@@ -79,19 +81,27 @@ func (r *Route) getPattern(pattern string) string {
 }
 
 func (r *Route) wrapMiddlewareAndHandler(h []any) ([]func(http.Handler) http.Handler, http.HandlerFunc) {
-	handlerProviders := make([]func(http.Handler) http.Handler, 0, len(r.curMiddlewares)+len(h))
+	handlerProviders := make([]func(http.Handler) http.Handler, 0, len(r.curMiddlewares)+len(h)+1)
 	for _, m := range r.curMiddlewares {
-		handlerProviders = append(handlerProviders, toHandlerProvider(m))
+		if m != nil {
+			handlerProviders = append(handlerProviders, toHandlerProvider(m))
+		}
 	}
 	for _, m := range h {
-		handlerProviders = append(handlerProviders, toHandlerProvider(m))
+		if h != nil {
+			handlerProviders = append(handlerProviders, toHandlerProvider(m))
+		}
 	}
 	middlewares := handlerProviders[:len(handlerProviders)-1]
 	handlerFunc := handlerProviders[len(handlerProviders)-1](nil).ServeHTTP
+	mockPoint := RouteMockPoint(MockAfterMiddlewares)
+	if mockPoint != nil {
+		middlewares = append(middlewares, mockPoint)
+	}
 	return middlewares, handlerFunc
 }
 
-func (r *Route) Methods(method, pattern string, h []any) {
+func (r *Route) Methods(method, pattern string, h ...any) {
 	middlewares, handlerFunc := r.wrapMiddlewareAndHandler(h)
 	fullPattern := r.getPattern(pattern)
 	if strings.Contains(method, ",") {
@@ -116,49 +126,44 @@ func (r *Route) Any(pattern string, h ...any) {
 	r.R.With(middlewares...).HandleFunc(r.getPattern(pattern), handlerFunc)
 }
 
-// RouteMethods delegate special methods, it is an alias of "Methods", while the "pattern" is the first parameter
-func (r *Route) RouteMethods(pattern, methods string, h ...any) {
-	r.Methods(methods, pattern, h)
-}
-
 // Delete delegate delete method
 func (r *Route) Delete(pattern string, h ...any) {
-	r.Methods("DELETE", pattern, h)
+	r.Methods("DELETE", pattern, h...)
 }
 
 // Get delegate get method
 func (r *Route) Get(pattern string, h ...any) {
-	r.Methods("GET", pattern, h)
+	r.Methods("GET", pattern, h...)
 }
 
 // GetOptions delegate get and options method
 func (r *Route) GetOptions(pattern string, h ...any) {
-	r.Methods("GET,OPTIONS", pattern, h)
+	r.Methods("GET,OPTIONS", pattern, h...)
 }
 
 // PostOptions delegate post and options method
 func (r *Route) PostOptions(pattern string, h ...any) {
-	r.Methods("POST,OPTIONS", pattern, h)
+	r.Methods("POST,OPTIONS", pattern, h...)
 }
 
 // Head delegate head method
 func (r *Route) Head(pattern string, h ...any) {
-	r.Methods("HEAD", pattern, h)
+	r.Methods("HEAD", pattern, h...)
 }
 
 // Post delegate post method
 func (r *Route) Post(pattern string, h ...any) {
-	r.Methods("POST", pattern, h)
+	r.Methods("POST", pattern, h...)
 }
 
 // Put delegate put method
 func (r *Route) Put(pattern string, h ...any) {
-	r.Methods("PUT", pattern, h)
+	r.Methods("PUT", pattern, h...)
 }
 
 // Patch delegate patch method
 func (r *Route) Patch(pattern string, h ...any) {
-	r.Methods("PATCH", pattern, h)
+	r.Methods("PATCH", pattern, h...)
 }
 
 // ServeHTTP implements http.Handler

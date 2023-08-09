@@ -10,7 +10,6 @@ export function initAdminCommon() {
   }
 
   // check whether appUrl(ROOT_URL) is correct, if not, show an error message
-  // only admin pages need this check because most templates are using relative URLs now
   checkAppUrl();
 
   // New user
