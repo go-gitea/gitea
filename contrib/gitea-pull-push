@@ -1,4 +1,6 @@
 #!/bin/bash
+# $1 = user:branch as per copy button
+# $2 = repo name
 user=$(echo $1 | cut -d ':' -f 1)
 branch=$(echo $1 | cut -d ':' -f 2)
 

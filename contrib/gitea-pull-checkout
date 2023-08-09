@@ -1,10 +1,11 @@
 #!/bin/bash
+# $1 = "user:branch" as per copy button on PR page
+# $2 = PR number to keep track of branches that were created for reviewing PRs instead of from you yourself
+# $3 = repo name, defaults to "gitea"
 user=$(echo $1 | cut -d ':' -f 1)
 branch=$(echo $1 | cut -d ':' -f 2)
 
-repo=$2
-[ -z "$repo" ] && repo=gitea
+repo="${3:-gitea}"
 
-git fetch "git@github.com:$user/$repo.git" "$branch:$branch"
-git checkout "$branch"
-echo "git push git@github.com:$user/$repo.git $branch:$branch"
+git fetch "git@github.com:$user/$repo.git" "$branch:$2-$branch"
+git checkout "$2-$branch"
