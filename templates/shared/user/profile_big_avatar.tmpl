@@ -20,10 +20,10 @@
 		{{if or .NumFollowers .NumFollowing}}
 			<div class="gt-mt-3">
 				{{if and .NumFollowers (not .NumFollowing)}}
-					<a class="muted" href="{{.ContextUser.HomeLink}}?tab=followers">{{svg "octicon-person" 18 "gt-mr-2"}}{{.NumFollowers}} {{.locale.Tr "user.followers"}}</a>
+					<a class="muted" href="{{.ContextUser.HomeLink}}?tab=followers">{{svg "octicon-person" 18 "gt-mr-2"}}{{.NumFollowers}} {{.locale.Tr "user.followers"}}</a> · <span>0 {{.locale.Tr "user.following"}}</span>
 				{{end}}
 				{{if and (not .NumFollowers) .NumFollowing}}
-					<a class="muted" href="{{.ContextUser.HomeLink}}?tab=following">{{svg "octicon-person" 18 "gt-mr-2"}}{{.NumFollowing}} {{.locale.Tr "user.following"}}</a>
+					<span>{{svg "octicon-person" 18 "gt-mr-2"}}0 {{.locale.Tr "user.followers"}}</span> · <a class="muted" href="{{.ContextUser.HomeLink}}?tab=following">{{.NumFollowing}} {{.locale.Tr "user.following"}}</a>
 				{{end}}
 				{{if and .NumFollowers .NumFollowing}}
 					<a class="muted" href="{{.ContextUser.HomeLink}}?tab=followers">{{svg "octicon-person" 18 "gt-mr-2"}}{{.NumFollowers}} {{.locale.Tr "user.followers"}}</a> · <a class="muted" href="{{.ContextUser.HomeLink}}?tab=following">{{.NumFollowing}} {{.locale.Tr "user.following"}}</a>
