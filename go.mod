@@ -41,6 +41,7 @@ require (
 	github.com/go-ap/jsonld v0.0.0-20221030091449-f2a191312c73
 	github.com/go-chi/chi/v5 v5.0.8
 	github.com/go-chi/cors v1.2.1
+	github.com/go-co-op/gocron v1.30.1
 	github.com/go-enry/go-enry/v2 v2.8.4
 	github.com/go-fed/httpsig v1.1.1-0.20201223112313-55836744818e
 	github.com/go-git/go-billy/v5 v5.4.1
@@ -52,7 +53,6 @@ require (
 	github.com/go-webauthn/webauthn v0.8.6
 	github.com/gobwas/glob v0.2.3
 	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f
-	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
 	github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
 	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/google/go-github/v53 v53.2.0
@@ -98,7 +98,7 @@ require (
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tstranex/u2f v1.0.0
 	github.com/ulikunitz/xz v0.5.11
-	github.com/urfave/cli v1.22.14
+	github.com/urfave/cli/v2 v2.25.7
 	github.com/xanzy/go-gitlab v0.86.0
 	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/yohcop/openid-go v1.0.1
@@ -107,7 +107,7 @@ require (
 	github.com/yuin/goldmark-meta v1.1.0
 	golang.org/x/crypto v0.11.0
 	golang.org/x/image v0.9.0
-	golang.org/x/net v0.12.0
+	golang.org/x/net v0.13.0
 	golang.org/x/oauth2 v0.10.0
 	golang.org/x/sys v0.10.0
 	golang.org/x/text v0.11.0
@@ -119,8 +119,8 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 	mvdan.cc/xurls/v2 v2.5.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
-	xorm.io/builder v0.3.12
-	xorm.io/xorm v1.3.3-0.20230623150031-18f8e7a86c75
+	xorm.io/builder v0.3.13
+	xorm.io/xorm v1.3.3-0.20230725140238-59b727260d35
 )
 
 require (
@@ -253,6 +253,7 @@ require (
 	github.com/rhysd/actionlint v1.6.25 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/robfig/cron v1.2.0 // indirect
+	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/rs/xid v1.5.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
@@ -278,6 +279,7 @@ require (
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
+	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/zeebo/blake3 v0.2.3 // indirect
 	go.etcd.io/bbolt v1.3.7 // indirect
 	go.mongodb.org/mongo-driver v1.12.0 // indirect

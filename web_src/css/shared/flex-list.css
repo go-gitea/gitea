@@ -1,0 +1,94 @@
+.flex-list {
+  list-style: none;
+}
+
+.flex-item {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.flex-item:not(:last-child) {
+  padding-bottom: 8px;
+}
+
+.flex-item-baseline {
+  align-items: baseline;
+}
+
+.flex-item-center {
+  align-items: center;
+}
+
+.flex-item .flex-item-leading {
+  display: flex;
+  align-items: flex-start;
+}
+
+.flex-item .flex-item-main {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.flex-item-header {
+  display: flex;
+  gap: .25rem;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.flex-item a:not(.label, .button):hover {
+  color: var(--color-primary) !important;
+}
+
+.flex-item .flex-item-icon svg {
+  margin-top: 1px;
+}
+
+.flex-item .flex-item-trailing {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-grow: 0;
+  flex-wrap: wrap;
+  justify-content: end;
+  flex-shrink: 2;
+}
+
+.flex-item .flex-item-title {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .25rem;
+  max-width: 100%;
+  color: var(--color-text);
+  font-size: 16px;
+  min-width: 0;
+  font-weight: var(--font-weight-semibold);
+}
+
+.flex-item .flex-item-title a {
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.flex-item .flex-item-body {
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .25rem;
+  color: var(--color-text-light-2);
+}
+
+.flex-item .flex-item-body a {
+  color: inherit;
+  overflow-wrap: anywhere;
+}
+
+.flex-list > .flex-item + .flex-item {
+  border-top: 1px solid var(--color-secondary);
+  padding-top: 8px;
+}

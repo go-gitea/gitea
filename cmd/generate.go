@@ -11,43 +11,43 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 
 	"github.com/mattn/go-isatty"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 var (
 	// CmdGenerate represents the available generate sub-command.
-	CmdGenerate = cli.Command{
+	CmdGenerate = &cli.Command{
 		Name:  "generate",
 		Usage: "Command line interface for running generators",
-		Subcommands: []cli.Command{
+		Subcommands: []*cli.Command{
 			subcmdSecret,
 		},
 	}
 
-	subcmdSecret = cli.Command{
+	subcmdSecret = &cli.Command{
 		Name:  "secret",
 		Usage: "Generate a secret token",
-		Subcommands: []cli.Command{
+		Subcommands: []*cli.Command{
 			microcmdGenerateInternalToken,
 			microcmdGenerateLfsJwtSecret,
 			microcmdGenerateSecretKey,
 		},
 	}
 
-	microcmdGenerateInternalToken = cli.Command{
+	microcmdGenerateInternalToken = &cli.Command{
 		Name:   "INTERNAL_TOKEN",
 		Usage:  "Generate a new INTERNAL_TOKEN",
 		Action: runGenerateInternalToken,
 	}
 
-	microcmdGenerateLfsJwtSecret = cli.Command{
+	microcmdGenerateLfsJwtSecret = &cli.Command{
 		Name:    "JWT_SECRET",
 		Aliases: []string{"LFS_JWT_SECRET"},
 		Usage:   "Generate a new JWT_SECRET",
 		Action:  runGenerateLfsJwtSecret,
 	}
 
-	microcmdGenerateSecretKey = cli.Command{
+	microcmdGenerateSecretKey = &cli.Command{
 		Name:   "SECRET_KEY",
 		Usage:  "Generate a new SECRET_KEY",
 		Action: runGenerateSecretKey,
