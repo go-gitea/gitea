@@ -53,17 +53,23 @@
 				</div>
 				{{if and .Invites $.IsOrganizationOwner}}
 				<h4 class="ui top attached header">{{$.locale.Tr "org.teams.invite_team_member.list"}}</h4>
-				<div class="ui bottom attached table segment members">
-					{{range .Invites}}
-						<div class="item gt-df gt-ac gt-fw">
-							<span class="gt-f1">{{.Email}}</span>
-							<form action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove_invite" method="post">
-								{{$.CsrfTokenHtml}}
-								<input type="hidden" name="iid" value="{{.ID}}">
-								<button class="ui red button">{{$.locale.Tr "org.members.remove"}}</button>
-							</form>
-						</div>
-					{{end}}
+				<div class="ui attached segment">
+					<div class="flex-list">
+						{{range .Invites}}
+							<div class="flex-item flex-item-center">
+								<div class="flex-item-main">
+									{{.Email}}
+								</div>
+								<div class="flex-item-trailing">
+									<form action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove_invite" method="post">
+										{{$.CsrfTokenHtml}}
+										<input type="hidden" name="iid" value="{{.ID}}">
+										<button class="ui red button">{{$.locale.Tr "org.members.remove"}}</button>
+									</form>
+								</div>
+							</div>
+						{{end}}
+					</div>
 				</div>
 				{{end}}
 			</div>
