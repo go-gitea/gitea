@@ -17,9 +17,17 @@
 		{{if .EnableFeed}}
 			<a href="{{.ContextUser.HomeLink}}.rss"><i class="ui text grey gt-ml-3" data-tooltip-content="{{.locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</i></a>
 		{{end}}
-		{{if or (or .NumFollowers .NumFollowing) (not .RunModeIsProd)}}
+		{{if or .NumFollowers .NumFollowing}}
 			<div class="gt-mt-3">
-				<a class="muted" href="{{.ContextUser.HomeLink}}?tab=followers">{{svg "octicon-person" 18 "gt-mr-2"}}{{.NumFollowers}} {{.locale.Tr "user.followers"}}</a> · <a class="muted" href="{{.ContextUser.HomeLink}}?tab=following">{{.NumFollowing}} {{.locale.Tr "user.following"}}</a>
+				{{if and .NumFollowers (not .NumFollowing)}}
+					<a class="muted" href="{{.ContextUser.HomeLink}}?tab=followers">{{svg "octicon-person" 18 "gt-mr-2"}}{{.NumFollowers}} {{.locale.Tr "user.followers"}}</a>
+				{{end}}
+				{{if and (not .NumFollowers) .NumFollowing}}
+					<a class="muted" href="{{.ContextUser.HomeLink}}?tab=following">{{svg "octicon-person" 18 "gt-mr-2"}}{{.NumFollowing}} {{.locale.Tr "user.following"}}</a>
+				{{end}}
+				{{if and .NumFollowers .NumFollowing}}
+					<a class="muted" href="{{.ContextUser.HomeLink}}?tab=followers">{{svg "octicon-person" 18 "gt-mr-2"}}{{.NumFollowers}} {{.locale.Tr "user.followers"}}</a> · <a class="muted" href="{{.ContextUser.HomeLink}}?tab=following">{{.NumFollowing}} {{.locale.Tr "user.following"}}</a>
+				{{end}}
 			</div>
 		{{end}}
 	</div>
