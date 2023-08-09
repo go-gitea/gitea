@@ -47,6 +47,14 @@ func (repos RepositoryList) Swap(i, j int) {
 	repos[i], repos[j] = repos[j], repos[i]
 }
 
+func (repos RepositoryList) GetRepoIDs() []int64 {
+	ids := make([]int64, len(repos))
+	for i := range repos {
+		ids[i] = repos[i].ID
+	}
+	return ids
+}
+
 // ValuesRepository converts a repository map to a list
 // FIXME: Remove in favor of maps.values when MIN_GO_VERSION >= 1.18
 func ValuesRepository(m map[int64]*Repository) []*Repository {

@@ -151,10 +151,7 @@ func GetUserRepoPermissions(ctx context.Context, repos repo_model.RepositoryList
 		}
 	}
 
-	repoIDs := make([]int64, 0, len(repos))
-	for _, repo := range repos {
-		repoIDs = append(repoIDs, repo.ID)
-	}
+	repoIDs := repos.GetRepoIDs()
 
 	var err error
 	collaborations := make(map[int64]bool)

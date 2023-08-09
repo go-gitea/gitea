@@ -37,7 +37,7 @@ func accessLevel(ctx context.Context, user *user_model.User, repo *repo_model.Re
 	return a[repo.ID], nil
 }
 
-func accessLevels(ctx context.Context, user *user_model.User, repos []*repo_model.Repository) (map[int64]perm.AccessMode, error) {
+func accessLevels(ctx context.Context, user *user_model.User, repos repo_model.RepositoryList) (map[int64]perm.AccessMode, error) {
 	modes := make(map[int64]perm.AccessMode, len(repos))
 	for _, repo := range repos {
 		modes[repo.ID] = perm.AccessModeNone
@@ -67,10 +67,7 @@ func accessLevels(ctx context.Context, user *user_model.User, repos []*repo_mode
 		}
 	}
 
-	repoIDs := make([]int64, 0, len(repos))
-	for _, repo := range repos {
-		repoIDs = append(repoIDs, repo.ID)
-	}
+	repoIDs := repos.GetRepoIDs()
 
 	var accesses []*Access
 	if err := db.GetEngine(ctx).Where("user_id = ?", userID).In("repo_id", repoIDs).Find(&accesses); err != nil {
