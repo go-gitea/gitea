@@ -615,7 +615,7 @@ func UserAssignedIssueCond(userID int64) builder.Cond {
 	)
 }
 
-// UserMentionedIssueCond return user metinoed issues list
+// UserMentionedIssueCond return user mentioned issues list
 func UserMentionedIssueCond(userID int64) builder.Cond {
 	return builder.And(
 		builder.Eq{
