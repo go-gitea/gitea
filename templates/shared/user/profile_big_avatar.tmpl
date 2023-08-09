@@ -19,14 +19,15 @@
 		{{end}}
 		{{if or .NumFollowers .NumFollowing}}
 			<div class="gt-mt-3">
+				{{/* The conditions here make the template a little bit more bloated, but more "looked after". The hardcoded 0 is a micro-optimization, as we have already checked that the value is 0 anyways. */}}
 				{{if and .NumFollowers (not .NumFollowing)}}
-					<a class="muted" href="{{.ContextUser.HomeLink}}?tab=followers">{{svg "octicon-person" 18 "gt-mr-2"}}{{.NumFollowers}} {{.locale.Tr "user.followers"}}</a> · <span>0 {{.locale.Tr "user.following"}}</span>
+					{{svg "octicon-person" 18 "gt-mr-2"}}<a class="muted" href="{{.ContextUser.HomeLink}}?tab=followers">{{.NumFollowers}} {{.locale.Tr "user.followers"}}</a> · <span>0 {{.locale.Tr "user.following"}}</span>
 				{{end}}
 				{{if and (not .NumFollowers) .NumFollowing}}
-					<span>{{svg "octicon-person" 18 "gt-mr-2"}}0 {{.locale.Tr "user.followers"}}</span> · <a class="muted" href="{{.ContextUser.HomeLink}}?tab=following">{{.NumFollowing}} {{.locale.Tr "user.following"}}</a>
+					{{svg "octicon-person" 18 "gt-mr-2"}}<span>0 {{.locale.Tr "user.followers"}}</span> · <a class="muted" href="{{.ContextUser.HomeLink}}?tab=following">{{.NumFollowing}} {{.locale.Tr "user.following"}}</a>
 				{{end}}
 				{{if and .NumFollowers .NumFollowing}}
-					<a class="muted" href="{{.ContextUser.HomeLink}}?tab=followers">{{svg "octicon-person" 18 "gt-mr-2"}}{{.NumFollowers}} {{.locale.Tr "user.followers"}}</a> · <a class="muted" href="{{.ContextUser.HomeLink}}?tab=following">{{.NumFollowing}} {{.locale.Tr "user.following"}}</a>
+					{{svg "octicon-person" 18 "gt-mr-2"}}<a class="muted" href="{{.ContextUser.HomeLink}}?tab=followers">{{.NumFollowers}} {{.locale.Tr "user.followers"}}</a> · <a class="muted" href="{{.ContextUser.HomeLink}}?tab=following">{{.NumFollowing}} {{.locale.Tr "user.following"}}</a>
 				{{end}}
 			</div>
 		{{end}}
