@@ -13,6 +13,10 @@
 									{{svg "octicon-alert" 16 "text red"}}
 								</span>
 							{{end}}
+
+							{{if $.ActionsConfig.IsWorkflowDisabled .Entry.Name}}
+								<div class="ui label">{{$.locale.Tr "disabled"}}</div>
+							{{end}}
 						</a>
 					{{end}}
 				</div>
@@ -57,6 +61,14 @@
 							{{end}}
 						</div>
 					</div>
+
+					{{if .AllowDisableOrEnableWorkflow}}
+						<form class="ui form ignore-dirty" action="{{$.Link}}/{{if .CurWorkflowDisabled}}enable{{else}}disable{{end}}?workflow={{$.CurWorkflow}}&actor={{.CurActor}}&status={{$.CurStatus}}" method="post">
+							{{.CsrfTokenHtml}}
+							<button class="ui tiny button">{{if .CurWorkflowDisabled}}{{.locale.Tr "enable"}}{{else}}{{.locale.Tr "disable"}}{{end}}</button>
+						</form>
+					{{end}}
+
 				</div>
 				{{template "repo/actions/runs_list" .}}
 			</div>
