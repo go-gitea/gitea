@@ -459,7 +459,7 @@ async function onEditContent(event) {
 }
 
 export function initRepository() {
-  if ($('.repository').length === 0) {
+  if ($('.page-content.repository').length === 0) {
     return;
   }
 

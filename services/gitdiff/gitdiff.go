@@ -427,6 +427,23 @@ func (diffFile *DiffFile) ShouldBeHidden() bool {
 	return diffFile.IsGenerated || diffFile.IsViewed
 }
 
+func (diffFile *DiffFile) ModeTranslationKey(mode string) string {
+	switch mode {
+	case "040000":
+		return "git.filemode.directory"
+	case "100644":
+		return "git.filemode.normal_file"
+	case "100755":
+		return "git.filemode.executable_file"
+	case "120000":
+		return "git.filemode.symbolic_link"
+	case "160000":
+		return "git.filemode.submodule"
+	default:
+		return mode
+	}
+}
+
 func getCommitFileLineCount(commit *git.Commit, filePath string) int {
 	blob, err := commit.GetBlobByPath(filePath)
 	if err != nil {
