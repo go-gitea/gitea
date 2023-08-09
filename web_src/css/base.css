@@ -633,6 +633,11 @@ a.label,
   color: var(--color-text-light-2);
 }
 
+.ui.dropdown > .text > .description,
+.ui.dropdown .menu > .item > .description {
+  color: var(--color-text-light-2);
+}
+
 .ui.list .list > .item .header,
 .ui.list > .item .header {
   color: var(--color-text-dark);
@@ -1213,7 +1218,7 @@ img.ui.avatar,
 }
 
 .ui .text.truncate {
-  overflow: hidden;
+  overflow-x: clip;
   text-overflow: ellipsis;
   white-space: nowrap;
   display: inline-block;

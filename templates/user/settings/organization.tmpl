@@ -10,10 +10,19 @@
 		</h4>
 		<div class="ui attached segment orgs">
 			{{if .Orgs}}
-				<div class="ui middle aligned divided list">
+				<div class="flex-list">
 					{{range .Orgs}}
-					<div class="item">
-						<div class="right floated content">
+					<div class="flex-item">
+						<div class="flex-item-leading">
+							{{avatar $.Context . 28 "mini"}}
+						</div>
+						<div class="flex-item-main">
+							<div class="flex-item-title">{{template "shared/user/name" .}}</div>
+							<div class="flex-text-body">
+								{{.Description}}
+							</div>
+						</div>
+						<div class="flex-item-trailing">
 							<form>
 								{{$.CsrfTokenHtml}}
 								<button class="ui red button delete-button" data-modal-id="leave-organization"
@@ -22,10 +31,6 @@
 												data-data-organization-name="{{.DisplayName}}">{{$.locale.Tr "org.members.leave"}}
 								</button>
 							</form>
-						</div>
-						<div class="content gt-df gt-ac gt-gap-3">
-							{{avatar $.Context . 28 "mini"}}
-							<a class="muted" href="{{.HomeLink}}">{{.Name}}</a>
 						</div>
 					</div>
 					{{end}}
