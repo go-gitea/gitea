@@ -248,7 +248,7 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) error {
 			issue.MilestoneID, err)
 	}
 
-	if err := activities_model.DeleteIssueActions(ctx, issue.RepoID, issue.ID); err != nil {
+	if err := activities_model.DeleteIssueActions(ctx, issue.RepoID, issue.ID, issue.Index); err != nil {
 		return err
 	}
 
