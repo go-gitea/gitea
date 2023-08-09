@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package auth
 
@@ -9,12 +8,11 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
@@ -61,10 +59,10 @@ func ForgotPasswdPost(ctx *context.Context) {
 	email := ctx.FormString("email")
 	ctx.Data["Email"] = email
 
-	u, err := user_model.GetUserByEmail(email)
+	u, err := user_model.GetUserByEmail(ctx, email)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale.Language())
+			ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale)
 			ctx.Data["IsResetSent"] = true
 			ctx.HTML(http.StatusOK, tplForgotPassword)
 			return
@@ -80,7 +78,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 		return
 	}
 
-	if ctx.Cache.IsExist("MailResendLimit_" + u.LowerName) {
+	if setting.CacheService.Enabled && ctx.Cache.IsExist("MailResendLimit_"+u.LowerName) {
 		ctx.Data["ResendLimited"] = true
 		ctx.HTML(http.StatusOK, tplForgotPassword)
 		return
@@ -88,11 +86,13 @@ func ForgotPasswdPost(ctx *context.Context) {
 
 	mailer.SendResetPasswordMail(u)
 
-	if err = ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
-		log.Error("Set cache(MailResendLimit) fail: %v", err)
+	if setting.CacheService.Enabled {
+		if err = ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
+			log.Error("Set cache(MailResendLimit) fail: %v", err)
+		}
 	}
 
-	ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale.Language())
+	ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale)
 	ctx.Data["IsResetSent"] = true
 	ctx.HTML(http.StatusOK, tplForgotPassword)
 }
@@ -103,7 +103,7 @@ func commonResetPassword(ctx *context.Context) (*user_model.User, *auth.TwoFacto
 	ctx.Data["Title"] = ctx.Tr("auth.reset_password")
 	ctx.Data["Code"] = code
 
-	if nil != ctx.User {
+	if nil != ctx.Doer {
 		ctx.Data["user_signed_in"] = true
 	}
 
@@ -133,8 +133,8 @@ func commonResetPassword(ctx *context.Context) (*user_model.User, *auth.TwoFacto
 	// Show the user that they are affecting the account that they intended to
 	ctx.Data["user_email"] = u.Email
 
-	if nil != ctx.User && u.ID != ctx.User.ID {
-		ctx.Flash.Error(ctx.Tr("auth.reset_password_wrong_user", ctx.User.Email, u.Email))
+	if nil != ctx.Doer && u.ID != ctx.Doer.ID {
+		ctx.Flash.Error(ctx.Tr("auth.reset_password_wrong_user", ctx.Doer.Email, u.Email))
 		return nil, nil
 	}
 
@@ -176,7 +176,7 @@ func ResetPasswdPost(ctx *context.Context) {
 	} else if !password.IsComplexEnough(passwd) {
 		ctx.Data["IsResetForm"] = true
 		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(password.BuildComplexityError(ctx), tplResetPassword, nil)
+		ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplResetPassword, nil)
 		return
 	} else if pwned, err := password.IsPwned(ctx, passwd); pwned || err != nil {
 		errMsg := ctx.Tr("auth.password_pwned")
@@ -232,7 +232,7 @@ func ResetPasswdPost(ctx *context.Context) {
 		return
 	}
 	u.MustChangePassword = false
-	if err := user_model.UpdateUserCols(db.DefaultContext, u, "must_change_password", "passwd", "passwd_hash_algo", "rands", "salt"); err != nil {
+	if err := user_model.UpdateUserCols(ctx, u, "must_change_password", "passwd", "passwd_hash_algo", "rands", "salt"); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
@@ -273,7 +273,7 @@ func MustChangePassword(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplMustChangePassword)
 }
 
-// MustChangePasswordPost response for updating a user's password after his/her
+// MustChangePasswordPost response for updating a user's password after their
 // account was created by an admin
 func MustChangePasswordPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.MustChangePasswordForm)
@@ -283,7 +283,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 		ctx.HTML(http.StatusOK, tplMustChangePassword)
 		return
 	}
-	u := ctx.User
+	u := ctx.Doer
 	// Make sure only requests for users who are eligible to change their password via
 	// this method passes through
 	if !u.MustChangePassword {
@@ -305,7 +305,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 
 	if !password.IsComplexEnough(form.Password) {
 		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(password.BuildComplexityError(ctx), tplMustChangePassword, &form)
+		ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplMustChangePassword, &form)
 		return
 	}
 	pwned, err := password.IsPwned(ctx, form.Password)
@@ -327,7 +327,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 
 	u.MustChangePassword = false
 
-	if err := user_model.UpdateUserCols(db.DefaultContext, u, "must_change_password", "passwd", "passwd_hash_algo", "salt"); err != nil {
+	if err := user_model.UpdateUserCols(ctx, u, "must_change_password", "passwd", "passwd_hash_algo", "salt"); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
@@ -336,7 +336,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 
 	log.Trace("User updated password: %s", u.Name)
 
-	if redirectTo := ctx.GetCookie("redirect_to"); len(redirectTo) > 0 && !utils.IsExternalURL(redirectTo) {
+	if redirectTo := ctx.GetSiteCookie("redirect_to"); len(redirectTo) > 0 && !utils.IsExternalURL(redirectTo) {
 		middleware.DeleteRedirectToCookie(ctx.Resp)
 		ctx.RedirectToFirst(redirectTo)
 		return

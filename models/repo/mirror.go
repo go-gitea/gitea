@@ -1,32 +1,21 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
 import (
-	"errors"
-	"fmt"
+	"context"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/modules/util"
 )
 
-var (
-	// ErrMirrorNotExist mirror does not exist error
-	ErrMirrorNotExist = errors.New("Mirror does not exist")
-)
-
-// RemoteMirrorer defines base methods for pull/push mirrors.
-type RemoteMirrorer interface {
-	GetRepository() *Repository
-	GetRemoteName() string
-}
+// ErrMirrorNotExist mirror does not exist error
+var ErrMirrorNotExist = util.NewNotExistErrorf("Mirror does not exist")
 
 // Mirror represents mirror information of a repository.
 type Mirror struct {
@@ -57,21 +46,16 @@ func (m *Mirror) BeforeInsert() {
 	}
 }
 
-// AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (m *Mirror) AfterLoad(session *xorm.Session) {
-	if m == nil {
-		return
+// GetRepository returns the repository.
+func (m *Mirror) GetRepository() *Repository {
+	if m.Repo != nil {
+		return m.Repo
 	}
-
 	var err error
-	m.Repo, err = getRepositoryByID(session, m.RepoID)
+	m.Repo, err = GetRepositoryByID(db.DefaultContext, m.RepoID)
 	if err != nil {
 		log.Error("getRepositoryByID[%d]: %v", m.ID, err)
 	}
-}
-
-// GetRepository returns the repository.
-func (m *Mirror) GetRepository() *Repository {
 	return m.Repo
 }
 
@@ -89,9 +73,10 @@ func (m *Mirror) ScheduleNextUpdate() {
 	}
 }
 
-func getMirrorByRepoID(e db.Engine, repoID int64) (*Mirror, error) {
+// GetMirrorByRepoID returns mirror information of a repository.
+func GetMirrorByRepoID(ctx context.Context, repoID int64) (*Mirror, error) {
 	m := &Mirror{RepoID: repoID}
-	has, err := e.Get(m)
+	has, err := db.GetEngine(ctx).Get(m)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -100,19 +85,17 @@ func getMirrorByRepoID(e db.Engine, repoID int64) (*Mirror, error) {
 	return m, nil
 }
 
-// GetMirrorByRepoID returns mirror information of a repository.
-func GetMirrorByRepoID(repoID int64) (*Mirror, error) {
-	return getMirrorByRepoID(db.GetEngine(db.DefaultContext), repoID)
-}
-
-func updateMirror(e db.Engine, m *Mirror) error {
-	_, err := e.ID(m.ID).AllCols().Update(m)
+// UpdateMirror updates the mirror
+func UpdateMirror(ctx context.Context, m *Mirror) error {
+	_, err := db.GetEngine(ctx).ID(m.ID).AllCols().Update(m)
 	return err
 }
 
-// UpdateMirror updates the mirror
-func UpdateMirror(m *Mirror) error {
-	return updateMirror(db.GetEngine(db.DefaultContext), m)
+// TouchMirror updates the mirror updatedUnix
+func TouchMirror(ctx context.Context, m *Mirror) error {
+	m.UpdatedUnix = timeutil.TimeStampNow()
+	_, err := db.GetEngine(ctx).ID(m.ID).Cols("updated_unix").Update(m)
+	return err
 }
 
 // DeleteMirrorByRepoID deletes a mirror by repoID
@@ -122,56 +105,19 @@ func DeleteMirrorByRepoID(repoID int64) error {
 }
 
 // MirrorsIterate iterates all mirror repositories.
-func MirrorsIterate(f func(idx int, bean interface{}) error) error {
-	return db.GetEngine(db.DefaultContext).
+func MirrorsIterate(limit int, f func(idx int, bean any) error) error {
+	sess := db.GetEngine(db.DefaultContext).
 		Where("next_update_unix<=?", time.Now().Unix()).
 		And("next_update_unix!=0").
-		OrderBy("updated_unix ASC").
-		Iterate(new(Mirror), f)
+		OrderBy("updated_unix ASC")
+	if limit > 0 {
+		sess = sess.Limit(limit)
+	}
+	return sess.Iterate(new(Mirror), f)
 }
 
 // InsertMirror inserts a mirror to database
-func InsertMirror(mirror *Mirror) error {
-	_, err := db.GetEngine(db.DefaultContext).Insert(mirror)
+func InsertMirror(ctx context.Context, mirror *Mirror) error {
+	_, err := db.GetEngine(ctx).Insert(mirror)
 	return err
-}
-
-// MirrorRepositoryList contains the mirror repositories
-type MirrorRepositoryList []*Repository
-
-func (repos MirrorRepositoryList) loadAttributes(e db.Engine) error {
-	if len(repos) == 0 {
-		return nil
-	}
-
-	// Load mirrors.
-	repoIDs := make([]int64, 0, len(repos))
-	for i := range repos {
-		if !repos[i].IsMirror {
-			continue
-		}
-
-		repoIDs = append(repoIDs, repos[i].ID)
-	}
-	mirrors := make([]*Mirror, 0, len(repoIDs))
-	if err := e.
-		Where("id > 0").
-		In("repo_id", repoIDs).
-		Find(&mirrors); err != nil {
-		return fmt.Errorf("find mirrors: %v", err)
-	}
-
-	set := make(map[int64]*Mirror)
-	for i := range mirrors {
-		set[mirrors[i].RepoID] = mirrors[i]
-	}
-	for i := range repos {
-		repos[i].Mirror = set[repos[i].ID]
-	}
-	return nil
-}
-
-// LoadAttributes loads the attributes for the given MirrorRepositoryList
-func (repos MirrorRepositoryList) LoadAttributes() error {
-	return repos.loadAttributes(db.GetEngine(db.DefaultContext))
 }

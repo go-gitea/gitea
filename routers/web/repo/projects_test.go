@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -15,7 +14,7 @@ import (
 
 func TestCheckProjectBoardChangePermissions(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1/projects/1/2")
+	ctx, _ := test.MockContext(t, "user2/repo1/projects/1/2")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
 	ctx.SetParams(":id", "1")

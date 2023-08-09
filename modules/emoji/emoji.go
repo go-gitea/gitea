@@ -1,7 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // Copyright 2015 Kenneth Shaw
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package emoji
 
@@ -44,9 +43,7 @@ var (
 )
 
 func loadMap() {
-
 	once.Do(func() {
-
 		// initialize
 		codeMap = make(map[string]int, len(GemojiData))
 		aliasMap = make(map[string]int, len(GemojiData))
@@ -87,7 +84,6 @@ func loadMap() {
 		codeReplacer = strings.NewReplacer(codePairs...)
 		aliasReplacer = strings.NewReplacer(aliasPairs...)
 	})
-
 }
 
 // FromCode retrieves the emoji data based on the provided unicode code (ie,

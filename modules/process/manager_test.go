@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package process
 
@@ -22,7 +21,7 @@ func TestGetManager(t *testing.T) {
 }
 
 func TestManager_AddContext(t *testing.T) {
-	pm := Manager{processes: make(map[IDType]*Process), next: 1}
+	pm := Manager{processMap: make(map[IDType]*process), next: 1}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -41,7 +40,7 @@ func TestManager_AddContext(t *testing.T) {
 }
 
 func TestManager_Cancel(t *testing.T) {
-	pm := Manager{processes: make(map[IDType]*Process), next: 1}
+	pm := Manager{processMap: make(map[IDType]*process), next: 1}
 
 	ctx, _, finished := pm.AddContext(context.Background(), "foo")
 	defer finished()
@@ -69,7 +68,7 @@ func TestManager_Cancel(t *testing.T) {
 }
 
 func TestManager_Remove(t *testing.T) {
-	pm := Manager{processes: make(map[IDType]*Process), next: 1}
+	pm := Manager{processMap: make(map[IDType]*process), next: 1}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -83,14 +82,13 @@ func TestManager_Remove(t *testing.T) {
 
 	assert.NotEqual(t, GetContext(p1Ctx).GetPID(), GetContext(p2Ctx).GetPID(), "expected to get different pids got %s == %s", GetContext(p2Ctx).GetPID(), GetContext(p1Ctx).GetPID())
 
-	pm.Remove(GetPID(p2Ctx))
+	finished()
 
-	_, exists := pm.processes[GetPID(p2Ctx)]
+	_, exists := pm.processMap[GetPID(p2Ctx)]
 	assert.False(t, exists, "PID %d is in the list but shouldn't", GetPID(p2Ctx))
 }
 
 func TestExecTimeoutNever(t *testing.T) {
-
 	// TODO Investigate how to improve the time elapsed per round.
 	maxLoops := 10
 	for i := 1; i < maxLoops; i++ {
@@ -102,7 +100,6 @@ func TestExecTimeoutNever(t *testing.T) {
 }
 
 func TestExecTimeoutAlways(t *testing.T) {
-
 	maxLoops := 100
 	for i := 1; i < maxLoops; i++ {
 		_, stderr, err := GetManager().ExecTimeout(100*time.Microsecond, "ExecTimeout", "sleep", "5")

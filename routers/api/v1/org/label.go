@@ -1,21 +1,20 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package org
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/modules/label"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // ListLabels list all the labels of an organization
@@ -43,13 +42,13 @@ func ListLabels(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/LabelList"
 
-	labels, err := models.GetLabelsByOrgID(ctx.Org.Organization.ID, ctx.FormString("sort"), utils.GetListOptions(ctx))
+	labels, err := issues_model.GetLabelsByOrgID(ctx, ctx.Org.Organization.ID, ctx.FormString("sort"), utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetLabelsByOrgID", err)
 		return
 	}
 
-	count, err := models.CountLabelsByOrgID(ctx.Org.Organization.ID)
+	count, err := issues_model.CountLabelsByOrgID(ctx.Org.Organization.ID)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -85,21 +84,21 @@ func CreateLabel(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.CreateLabelOption)
 	form.Color = strings.Trim(form.Color, " ")
-	if len(form.Color) == 6 {
-		form.Color = "#" + form.Color
-	}
-	if !models.LabelColorPattern.MatchString(form.Color) {
-		ctx.Error(http.StatusUnprocessableEntity, "ColorPattern", fmt.Errorf("bad color code: %s", form.Color))
+	color, err := label.NormalizeColor(form.Color)
+	if err != nil {
+		ctx.Error(http.StatusUnprocessableEntity, "Color", err)
 		return
 	}
+	form.Color = color
 
-	label := &models.Label{
+	label := &issues_model.Label{
 		Name:        form.Name,
+		Exclusive:   form.Exclusive,
 		Color:       form.Color,
 		OrgID:       ctx.Org.Organization.ID,
 		Description: form.Description,
 	}
-	if err := models.NewLabel(label); err != nil {
+	if err := issues_model.NewLabel(ctx, label); err != nil {
 		ctx.Error(http.StatusInternalServerError, "NewLabel", err)
 		return
 	}
@@ -131,17 +130,17 @@ func GetLabel(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Label"
 
 	var (
-		label *models.Label
+		label *issues_model.Label
 		err   error
 	)
 	strID := ctx.Params(":id")
 	if intID, err2 := strconv.ParseInt(strID, 10, 64); err2 != nil {
-		label, err = models.GetLabelInOrgByName(ctx.Org.Organization.ID, strID)
+		label, err = issues_model.GetLabelInOrgByName(ctx, ctx.Org.Organization.ID, strID)
 	} else {
-		label, err = models.GetLabelInOrgByID(ctx.Org.Organization.ID, intID)
+		label, err = issues_model.GetLabelInOrgByID(ctx, ctx.Org.Organization.ID, intID)
 	}
 	if err != nil {
-		if models.IsErrOrgLabelNotExist(err) {
+		if issues_model.IsErrOrgLabelNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetLabelByOrgID", err)
@@ -183,9 +182,9 @@ func EditLabel(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.EditLabelOption)
-	label, err := models.GetLabelInOrgByID(ctx.Org.Organization.ID, ctx.ParamsInt64(":id"))
+	l, err := issues_model.GetLabelInOrgByID(ctx, ctx.Org.Organization.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
-		if models.IsErrOrgLabelNotExist(err) {
+		if issues_model.IsErrOrgLabelNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetLabelByRepoID", err)
@@ -194,27 +193,28 @@ func EditLabel(ctx *context.APIContext) {
 	}
 
 	if form.Name != nil {
-		label.Name = *form.Name
+		l.Name = *form.Name
+	}
+	if form.Exclusive != nil {
+		l.Exclusive = *form.Exclusive
 	}
 	if form.Color != nil {
-		label.Color = strings.Trim(*form.Color, " ")
-		if len(label.Color) == 6 {
-			label.Color = "#" + label.Color
-		}
-		if !models.LabelColorPattern.MatchString(label.Color) {
-			ctx.Error(http.StatusUnprocessableEntity, "ColorPattern", fmt.Errorf("bad color code: %s", label.Color))
+		color, err := label.NormalizeColor(*form.Color)
+		if err != nil {
+			ctx.Error(http.StatusUnprocessableEntity, "Color", err)
 			return
 		}
+		l.Color = color
 	}
 	if form.Description != nil {
-		label.Description = *form.Description
+		l.Description = *form.Description
 	}
-	if err := models.UpdateLabel(label); err != nil {
+	if err := issues_model.UpdateLabel(l); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateLabel", err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToLabel(label, nil, ctx.Org.Organization.AsUser()))
+	ctx.JSON(http.StatusOK, convert.ToLabel(l, nil, ctx.Org.Organization.AsUser()))
 }
 
 // DeleteLabel delete a label for an organization
@@ -238,7 +238,7 @@ func DeleteLabel(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	if err := models.DeleteLabel(ctx.Org.Organization.ID, ctx.ParamsInt64(":id")); err != nil {
+	if err := issues_model.DeleteLabel(ctx.Org.Organization.ID, ctx.ParamsInt64(":id")); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteLabel", err)
 		return
 	}

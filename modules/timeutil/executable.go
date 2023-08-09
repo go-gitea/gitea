@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package timeutil
 
@@ -13,8 +12,10 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-var executablModTime = time.Now()
-var executablModTimeOnce sync.Once
+var (
+	executablModTime     = time.Now()
+	executablModTimeOnce sync.Once
+)
 
 // GetExecutableModTime get executable file modified time of current process.
 func GetExecutableModTime() time.Time {

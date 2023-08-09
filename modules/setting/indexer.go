@@ -1,10 +1,10 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
 import (
+	"net/url"
 	"path/filepath"
 	"strings"
 	"time"
@@ -14,71 +14,66 @@ import (
 	"github.com/gobwas/glob"
 )
 
-// enumerates all the indexer queue types
-const (
-	LevelQueueType   = "levelqueue"
-	ChannelQueueType = "channel"
-	RedisQueueType   = "redis"
-)
+// Indexer settings
+var Indexer = struct {
+	IssueType        string
+	IssuePath        string
+	IssueConnStr     string
+	IssueConnAuth    string
+	IssueIndexerName string
+	StartupTimeout   time.Duration
 
-var (
-	// Indexer settings
-	Indexer = struct {
-		IssueType             string
-		IssuePath             string
-		IssueConnStr          string
-		IssueIndexerName      string
-		IssueQueueType        string // DEPRECATED - replaced by queue.issue_indexer
-		IssueQueueDir         string // DEPRECATED - replaced by queue.issue_indexer
-		IssueQueueConnStr     string // DEPRECATED - replaced by queue.issue_indexer
-		IssueQueueBatchNumber int    // DEPRECATED - replaced by queue.issue_indexer
-		StartupTimeout        time.Duration
+	RepoIndexerEnabled   bool
+	RepoIndexerRepoTypes []string
+	RepoType             string
+	RepoPath             string
+	RepoConnStr          string
+	RepoIndexerName      string
+	MaxIndexerFileSize   int64
+	IncludePatterns      []glob.Glob
+	ExcludePatterns      []glob.Glob
+	ExcludeVendored      bool
+}{
+	IssueType:        "bleve",
+	IssuePath:        "indexers/issues.bleve",
+	IssueConnStr:     "",
+	IssueConnAuth:    "",
+	IssueIndexerName: "gitea_issues",
 
-		RepoIndexerEnabled bool
-		RepoType           string
-		RepoPath           string
-		RepoConnStr        string
-		RepoIndexerName    string
-		UpdateQueueLength  int // DEPRECATED - replaced by queue.issue_indexer
-		MaxIndexerFileSize int64
-		IncludePatterns    []glob.Glob
-		ExcludePatterns    []glob.Glob
-		ExcludeVendored    bool
-	}{
-		IssueType:        "bleve",
-		IssuePath:        "indexers/issues.bleve",
-		IssueConnStr:     "",
-		IssueIndexerName: "gitea_issues",
-		IssueQueueType:   LevelQueueType,
+	RepoIndexerEnabled:   false,
+	RepoIndexerRepoTypes: []string{"sources", "forks", "mirrors", "templates"},
+	RepoType:             "bleve",
+	RepoPath:             "indexers/repos.bleve",
+	RepoConnStr:          "",
+	RepoIndexerName:      "gitea_codes",
+	MaxIndexerFileSize:   1024 * 1024,
+	ExcludeVendored:      true,
+}
 
-		RepoIndexerEnabled: false,
-		RepoType:           "bleve",
-		RepoPath:           "indexers/repos.bleve",
-		RepoConnStr:        "",
-		RepoIndexerName:    "gitea_codes",
-		MaxIndexerFileSize: 1024 * 1024,
-		ExcludeVendored:    true,
-	}
-)
-
-func newIndexerService() {
-	sec := Cfg.Section("indexer")
+func loadIndexerFrom(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("indexer")
 	Indexer.IssueType = sec.Key("ISSUE_INDEXER_TYPE").MustString("bleve")
 	Indexer.IssuePath = filepath.ToSlash(sec.Key("ISSUE_INDEXER_PATH").MustString(filepath.ToSlash(filepath.Join(AppDataPath, "indexers/issues.bleve"))))
 	if !filepath.IsAbs(Indexer.IssuePath) {
 		Indexer.IssuePath = filepath.ToSlash(filepath.Join(AppWorkPath, Indexer.IssuePath))
 	}
 	Indexer.IssueConnStr = sec.Key("ISSUE_INDEXER_CONN_STR").MustString(Indexer.IssueConnStr)
+
+	if Indexer.IssueType == "meilisearch" {
+		u, err := url.Parse(Indexer.IssueConnStr)
+		if err != nil {
+			log.Warn("Failed to parse ISSUE_INDEXER_CONN_STR: %v", err)
+			u = &url.URL{}
+		}
+		Indexer.IssueConnAuth, _ = u.User.Password()
+		u.User = nil
+		Indexer.IssueConnStr = u.String()
+	}
+
 	Indexer.IssueIndexerName = sec.Key("ISSUE_INDEXER_NAME").MustString(Indexer.IssueIndexerName)
 
-	// The following settings are deprecated and can be overridden by settings in [queue] or [queue.issue_indexer]
-	Indexer.IssueQueueType = sec.Key("ISSUE_INDEXER_QUEUE_TYPE").MustString("")
-	Indexer.IssueQueueDir = filepath.ToSlash(sec.Key("ISSUE_INDEXER_QUEUE_DIR").MustString(""))
-	Indexer.IssueQueueConnStr = sec.Key("ISSUE_INDEXER_QUEUE_CONN_STR").MustString("")
-	Indexer.IssueQueueBatchNumber = sec.Key("ISSUE_INDEXER_QUEUE_BATCH_NUMBER").MustInt(0)
-	Indexer.UpdateQueueLength = sec.Key("UPDATE_BUFFER_LEN").MustInt(0)
-
 	Indexer.RepoIndexerEnabled = sec.Key("REPO_INDEXER_ENABLED").MustBool(false)
+	Indexer.RepoIndexerRepoTypes = strings.Split(sec.Key("REPO_INDEXER_REPO_TYPES").MustString("sources,forks,mirrors,templates"), ",")
 	Indexer.RepoType = sec.Key("REPO_INDEXER_TYPE").MustString("bleve")
 	Indexer.RepoPath = filepath.ToSlash(sec.Key("REPO_INDEXER_PATH").MustString(filepath.ToSlash(filepath.Join(AppDataPath, "indexers/repos.bleve"))))
 	if !filepath.IsAbs(Indexer.RepoPath) {

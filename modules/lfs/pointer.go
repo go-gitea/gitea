@@ -1,11 +1,9 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package lfs
 
 import (
-	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -14,6 +12,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/minio/sha256-simd"
 )
 
 const (
@@ -109,6 +109,13 @@ func (p Pointer) RelativePath() string {
 	}
 
 	return path.Join(p.Oid[0:2], p.Oid[2:4], p.Oid[4:])
+}
+
+func (p Pointer) LogString() string {
+	if p.Oid == "" && p.Size == 0 {
+		return "<LFSPointer empty>"
+	}
+	return fmt.Sprintf("<LFSPointer %s:%d>", p.Oid, p.Size)
 }
 
 // GeneratePointer generates a pointer for arbitrary content

@@ -1,176 +1,120 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
 import (
 	"path/filepath"
-	"strconv"
-	"time"
+	"runtime"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-
-	ini "gopkg.in/ini.v1"
 )
 
 // QueueSettings represent the settings for a queue from the ini
 type QueueSettings struct {
-	Name             string
-	DataDir          string
-	QueueLength      int `ini:"LENGTH"`
-	BatchLength      int
-	ConnectionString string
-	Type             string
-	QueueName        string
-	SetName          string
-	WrapIfNecessary  bool
-	MaxAttempts      int
-	Timeout          time.Duration
-	Workers          int
-	MaxWorkers       int
-	BlockTimeout     time.Duration
-	BoostTimeout     time.Duration
-	BoostWorkers     int
+	Name string // not an INI option, it is the name for [queue.the-name] section
+
+	Type    string
+	Datadir string
+	ConnStr string // for leveldb or redis
+	Length  int    // max queue length before blocking
+
+	QueueName, SetName string // the name suffix for storage (db key, redis key), "set" is for unique queue
+
+	BatchLength int
+	MaxWorkers  int
 }
 
-// Queue settings
-var Queue = QueueSettings{}
+func GetQueueSettings(rootCfg ConfigProvider, name string) (QueueSettings, error) {
+	queueSettingsDefault := QueueSettings{
+		Type:    "level",         // dummy, channel, level, redis
+		Datadir: "queues/common", // relative to AppDataPath
+		Length:  100,             // queue length before a channel queue will block
 
-// GetQueueSettings returns the queue settings for the appropriately named queue
-func GetQueueSettings(name string) QueueSettings {
-	q := QueueSettings{}
-	sec := Cfg.Section("queue." + name)
-	q.Name = name
+		QueueName:   "_queue",
+		SetName:     "_unique",
+		BatchLength: 20,
+		MaxWorkers:  runtime.NumCPU() / 2,
+	}
+	if queueSettingsDefault.MaxWorkers < 1 {
+		queueSettingsDefault.MaxWorkers = 1
+	}
+	if queueSettingsDefault.MaxWorkers > 10 {
+		queueSettingsDefault.MaxWorkers = 10
+	}
 
-	// DataDir is not directly inheritable
-	q.DataDir = filepath.ToSlash(filepath.Join(Queue.DataDir, "common"))
-	// QueueName is not directly inheritable either
-	q.QueueName = name + Queue.QueueName
-	for _, key := range sec.Keys() {
-		switch key.Name() {
-		case "DATADIR":
-			q.DataDir = key.MustString(q.DataDir)
-		case "QUEUE_NAME":
-			q.QueueName = key.MustString(q.QueueName)
-		case "SET_NAME":
-			q.SetName = key.MustString(q.SetName)
+	// deep copy default settings
+	cfg := QueueSettings{}
+	if cfgBs, err := json.Marshal(queueSettingsDefault); err != nil {
+		return cfg, err
+	} else if err = json.Unmarshal(cfgBs, &cfg); err != nil {
+		return cfg, err
+	}
+
+	cfg.Name = name
+	if sec, err := rootCfg.GetSection("queue"); err == nil {
+		if err = sec.MapTo(&cfg); err != nil {
+			log.Error("Failed to map queue common config for %q: %v", name, err)
+			return cfg, nil
 		}
 	}
-	if len(q.SetName) == 0 && len(Queue.SetName) > 0 {
-		q.SetName = q.QueueName + Queue.SetName
-	}
-	if !filepath.IsAbs(q.DataDir) {
-		q.DataDir = filepath.ToSlash(filepath.Join(AppDataPath, q.DataDir))
-	}
-	_, _ = sec.NewKey("DATADIR", q.DataDir)
-
-	// The rest are...
-	q.QueueLength = sec.Key("LENGTH").MustInt(Queue.QueueLength)
-	q.BatchLength = sec.Key("BATCH_LENGTH").MustInt(Queue.BatchLength)
-	q.ConnectionString = sec.Key("CONN_STR").MustString(Queue.ConnectionString)
-	q.Type = sec.Key("TYPE").MustString(Queue.Type)
-	q.WrapIfNecessary = sec.Key("WRAP_IF_NECESSARY").MustBool(Queue.WrapIfNecessary)
-	q.MaxAttempts = sec.Key("MAX_ATTEMPTS").MustInt(Queue.MaxAttempts)
-	q.Timeout = sec.Key("TIMEOUT").MustDuration(Queue.Timeout)
-	q.Workers = sec.Key("WORKERS").MustInt(Queue.Workers)
-	q.MaxWorkers = sec.Key("MAX_WORKERS").MustInt(Queue.MaxWorkers)
-	q.BlockTimeout = sec.Key("BLOCK_TIMEOUT").MustDuration(Queue.BlockTimeout)
-	q.BoostTimeout = sec.Key("BOOST_TIMEOUT").MustDuration(Queue.BoostTimeout)
-	q.BoostWorkers = sec.Key("BOOST_WORKERS").MustInt(Queue.BoostWorkers)
-
-	return q
-}
-
-// NewQueueService sets up the default settings for Queues
-// This is exported for tests to be able to use the queue
-func NewQueueService() {
-	sec := Cfg.Section("queue")
-	Queue.DataDir = filepath.ToSlash(sec.Key("DATADIR").MustString("queues/"))
-	if !filepath.IsAbs(Queue.DataDir) {
-		Queue.DataDir = filepath.ToSlash(filepath.Join(AppDataPath, Queue.DataDir))
-	}
-	Queue.QueueLength = sec.Key("LENGTH").MustInt(20)
-	Queue.BatchLength = sec.Key("BATCH_LENGTH").MustInt(20)
-	Queue.ConnectionString = sec.Key("CONN_STR").MustString("")
-	defaultType := sec.Key("TYPE").String()
-	Queue.Type = sec.Key("TYPE").MustString("persistable-channel")
-	Queue.WrapIfNecessary = sec.Key("WRAP_IF_NECESSARY").MustBool(true)
-	Queue.MaxAttempts = sec.Key("MAX_ATTEMPTS").MustInt(10)
-	Queue.Timeout = sec.Key("TIMEOUT").MustDuration(GracefulHammerTime + 30*time.Second)
-	Queue.Workers = sec.Key("WORKERS").MustInt(0)
-	Queue.MaxWorkers = sec.Key("MAX_WORKERS").MustInt(10)
-	Queue.BlockTimeout = sec.Key("BLOCK_TIMEOUT").MustDuration(1 * time.Second)
-	Queue.BoostTimeout = sec.Key("BOOST_TIMEOUT").MustDuration(5 * time.Minute)
-	Queue.BoostWorkers = sec.Key("BOOST_WORKERS").MustInt(1)
-	Queue.QueueName = sec.Key("QUEUE_NAME").MustString("_queue")
-	Queue.SetName = sec.Key("SET_NAME").MustString("")
-
-	// Now handle the old issue_indexer configuration
-	section := Cfg.Section("queue.issue_indexer")
-	directlySet := toDirectlySetKeysMap(section)
-	if !directlySet["TYPE"] && defaultType == "" {
-		switch Indexer.IssueQueueType {
-		case LevelQueueType:
-			_, _ = section.NewKey("TYPE", "level")
-		case ChannelQueueType:
-			_, _ = section.NewKey("TYPE", "persistable-channel")
-		case RedisQueueType:
-			_, _ = section.NewKey("TYPE", "redis")
-		case "":
-			_, _ = section.NewKey("TYPE", "level")
-		default:
-			log.Fatal("Unsupported indexer queue type: %v",
-				Indexer.IssueQueueType)
+	if sec, err := rootCfg.GetSection("queue." + name); err == nil {
+		if err = sec.MapTo(&cfg); err != nil {
+			log.Error("Failed to map queue spec config for %q: %v", name, err)
+			return cfg, nil
+		}
+		if sec.HasKey("CONN_STR") {
+			cfg.ConnStr = sec.Key("CONN_STR").String()
 		}
 	}
-	if !directlySet["LENGTH"] && Indexer.UpdateQueueLength != 0 {
-		_, _ = section.NewKey("LENGTH", strconv.Itoa(Indexer.UpdateQueueLength))
+
+	if cfg.Datadir == "" {
+		cfg.Datadir = queueSettingsDefault.Datadir
 	}
-	if !directlySet["BATCH_LENGTH"] && Indexer.IssueQueueBatchNumber != 0 {
-		_, _ = section.NewKey("BATCH_LENGTH", strconv.Itoa(Indexer.IssueQueueBatchNumber))
+	if !filepath.IsAbs(cfg.Datadir) {
+		cfg.Datadir = filepath.Join(AppDataPath, cfg.Datadir)
 	}
-	if !directlySet["DATADIR"] && Indexer.IssueQueueDir != "" {
-		_, _ = section.NewKey("DATADIR", Indexer.IssueQueueDir)
-	}
-	if !directlySet["CONN_STR"] && Indexer.IssueQueueConnStr != "" {
-		_, _ = section.NewKey("CONN_STR", Indexer.IssueQueueConnStr)
+	cfg.Datadir = filepath.ToSlash(cfg.Datadir)
+
+	if cfg.Type == "redis" && cfg.ConnStr == "" {
+		cfg.ConnStr = "redis://127.0.0.1:6379/0"
 	}
 
-	// Handle the old mailer configuration
-	handleOldLengthConfiguration("mailer", Cfg.Section("mailer").Key("SEND_BUFFER_LEN").MustInt(100))
+	if cfg.Length <= 0 {
+		cfg.Length = queueSettingsDefault.Length
+	}
+	if cfg.MaxWorkers <= 0 {
+		cfg.MaxWorkers = queueSettingsDefault.MaxWorkers
+	}
+	if cfg.BatchLength <= 0 {
+		cfg.BatchLength = queueSettingsDefault.BatchLength
+	}
 
-	// Handle the old test pull requests configuration
-	// Please note this will be a unique queue
-	handleOldLengthConfiguration("pr_patch_checker", Cfg.Section("repository").Key("PULL_REQUEST_QUEUE_LENGTH").MustInt(1000))
-
-	// Handle the old mirror queue configuration
-	// Please note this will be a unique queue
-	handleOldLengthConfiguration("mirror", Cfg.Section("repository").Key("MIRROR_QUEUE_LENGTH").MustInt(1000))
+	return cfg, nil
 }
 
-// handleOldLengthConfiguration allows fallback to older configuration. `[queue.name]` `LENGTH` will override this configuration, but
-// if that is left unset then we should fallback to the older configuration. (Except where the new length woul be <=0)
-func handleOldLengthConfiguration(queueName string, value int) {
-	// Don't override with 0
-	if value <= 0 {
-		return
-	}
-
-	section := Cfg.Section("queue." + queueName)
-	directlySet := toDirectlySetKeysMap(section)
-	if !directlySet["LENGTH"] {
-		_, _ = section.NewKey("LENGTH", strconv.Itoa(value))
-	}
+func LoadQueueSettings() {
+	loadQueueFrom(CfgProvider)
 }
 
-// toDirectlySetKeysMap returns a bool map of keys directly set by this section
-// Note: we cannot use section.HasKey(...) as that will immediately set the Key if a parent section has the Key
-// but this section does not.
-func toDirectlySetKeysMap(section *ini.Section) map[string]bool {
-	sectionMap := map[string]bool{}
-	for _, key := range section.Keys() {
-		sectionMap[key.Name()] = true
+func loadQueueFrom(rootCfg ConfigProvider) {
+	hasOld := false
+	handleOldLengthConfiguration := func(rootCfg ConfigProvider, newQueueName, oldSection, oldKey string) {
+		if rootCfg.Section(oldSection).HasKey(oldKey) {
+			hasOld = true
+			log.Error("Removed queue option: `[%s].%s`. Use new options in `[queue.%s]`", oldSection, oldKey, newQueueName)
+		}
 	}
-	return sectionMap
+	handleOldLengthConfiguration(rootCfg, "issue_indexer", "indexer", "ISSUE_INDEXER_QUEUE_TYPE")
+	handleOldLengthConfiguration(rootCfg, "issue_indexer", "indexer", "ISSUE_INDEXER_QUEUE_BATCH_NUMBER")
+	handleOldLengthConfiguration(rootCfg, "issue_indexer", "indexer", "ISSUE_INDEXER_QUEUE_DIR")
+	handleOldLengthConfiguration(rootCfg, "issue_indexer", "indexer", "ISSUE_INDEXER_QUEUE_CONN_STR")
+	handleOldLengthConfiguration(rootCfg, "issue_indexer", "indexer", "UPDATE_BUFFER_LEN")
+	handleOldLengthConfiguration(rootCfg, "mailer", "mailer", "SEND_BUFFER_LEN")
+	handleOldLengthConfiguration(rootCfg, "pr_patch_checker", "repository", "PULL_REQUEST_QUEUE_LENGTH")
+	handleOldLengthConfiguration(rootCfg, "mirror", "repository", "MIRROR_QUEUE_LENGTH")
+	if hasOld {
+		log.Fatal("Please update your app.ini to remove deprecated config options")
+	}
 }

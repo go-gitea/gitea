@@ -32,11 +32,9 @@ for i in "$@"; do
 done
 
 if [ -z "$APP_INI_SET" ]; then
-	CONF_ARG="-c \"$APP_INI\""
+	CONF_ARG=("-c" "${GITEA_APP_INI:-$APP_INI}")
 fi
 
 
 # Provide docker defaults
-GITEA_WORK_DIR="${GITEA_WORK_DIR:-$WORK_DIR}" exec -a "$0" "$GITEA" $CONF_ARG "$@"
-
-
+GITEA_WORK_DIR="${GITEA_WORK_DIR:-$WORK_DIR}" exec -a "$0" "$GITEA" "${CONF_ARG[@]}" "$@"

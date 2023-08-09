@@ -1,14 +1,14 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package mailer
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -17,20 +17,24 @@ import (
 )
 
 // SendRepoTransferNotifyMail triggers a notification e-mail when a pending repository transfer was created
-func SendRepoTransferNotifyMail(doer, newOwner *user_model.User, repo *repo_model.Repository) error {
+func SendRepoTransferNotifyMail(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) error {
 	if setting.MailService == nil {
 		// No mail service configured
 		return nil
 	}
 
 	if newOwner.IsOrganization() {
-		users, err := models.GetUsersWhoCanCreateOrgRepo(newOwner.ID)
+		users, err := organization.GetUsersWhoCanCreateOrgRepo(ctx, newOwner.ID)
 		if err != nil {
 			return err
 		}
 
 		langMap := make(map[string][]string)
 		for _, user := range users {
+			if !user.IsActive {
+				// don't send emails to inactive users
+				continue
+			}
 			langMap[user.Language] = append(langMap[user.Language], user.Email)
 		}
 
@@ -60,7 +64,7 @@ func sendRepoTransferNotifyMailPerLang(lang string, newOwner, doer *user_model.U
 		subject = locale.Tr("mail.repo.transfer.subject_to", doer.DisplayName(), repo.FullName(), destination)
 	}
 
-	data := map[string]interface{}{
+	data := map[string]any{
 		"Doer":        doer,
 		"User":        repo.Owner,
 		"Repo":        repo.FullName(),
@@ -69,17 +73,21 @@ func sendRepoTransferNotifyMailPerLang(lang string, newOwner, doer *user_model.U
 		"Language":    locale.Language(),
 		"Destination": destination,
 		// helper
-		"i18n":     locale,
-		"Str2html": templates.Str2html,
+		"locale":    locale,
+		"Str2html":  templates.Str2html,
+		"DotEscape": templates.DotEscape,
 	}
 
 	if err := bodyTemplates.ExecuteTemplate(&content, string(mailRepoTransferNotify), data); err != nil {
 		return err
 	}
 
-	msg := NewMessage(emails, subject, content.String())
-	msg.Info = fmt.Sprintf("UID: %d, repository pending transfer notification", newOwner.ID)
+	for _, to := range emails {
+		msg := NewMessage(to, subject, content.String())
+		msg.Info = fmt.Sprintf("UID: %d, repository pending transfer notification", newOwner.ID)
 
-	SendAsync(msg)
+		SendAsync(msg)
+	}
+
 	return nil
 }

@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
@@ -10,22 +9,20 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-var (
-	// Proxy settings
-	Proxy = struct {
-		Enabled       bool
-		ProxyURL      string
-		ProxyURLFixed *url.URL
-		ProxyHosts    []string
-	}{
-		Enabled:    false,
-		ProxyURL:   "",
-		ProxyHosts: []string{},
-	}
-)
+// Proxy settings
+var Proxy = struct {
+	Enabled       bool
+	ProxyURL      string
+	ProxyURLFixed *url.URL
+	ProxyHosts    []string
+}{
+	Enabled:    false,
+	ProxyURL:   "",
+	ProxyHosts: []string{},
+}
 
-func newProxyService() {
-	sec := Cfg.Section("proxy")
+func loadProxyFrom(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("proxy")
 	Proxy.Enabled = sec.Key("PROXY_ENABLED").MustBool(false)
 	Proxy.ProxyURL = sec.Key("PROXY_URL").MustString("")
 	if Proxy.ProxyURL != "" {

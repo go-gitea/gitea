@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package codeformat
 
@@ -20,8 +19,10 @@ var importPackageGroupOrders = map[string]int{
 
 var errInvalidCommentBetweenImports = errors.New("comments between imported packages are invalid, please move comments to the end of the package line")
 
-var importBlockBegin = []byte("\nimport (\n")
-var importBlockEnd = []byte("\n)")
+var (
+	importBlockBegin = []byte("\nimport (\n")
+	importBlockEnd   = []byte("\n)")
+)
 
 type importLineParsed struct {
 	group   string
@@ -59,8 +60,10 @@ func parseImportLine(line string) (*importLineParsed, error) {
 	return il, nil
 }
 
-type importLineGroup []*importLineParsed
-type importLineGroupMap map[string]importLineGroup
+type (
+	importLineGroup    []*importLineParsed
+	importLineGroupMap map[string]importLineGroup
+)
 
 func formatGoImports(contentBytes []byte) ([]byte, error) {
 	p1 := bytes.Index(contentBytes, importBlockBegin)
@@ -153,8 +156,8 @@ func formatGoImports(contentBytes []byte) ([]byte, error) {
 	return formattedBytes, nil
 }
 
-//FormatGoImports format the imports by our rules (see unit tests)
-func FormatGoImports(file string) error {
+// FormatGoImports format the imports by our rules (see unit tests)
+func FormatGoImports(file string, doWriteFile bool) error {
 	f, err := os.Open(file)
 	if err != nil {
 		return err
@@ -177,11 +180,16 @@ func FormatGoImports(file string) error {
 	if bytes.Equal(contentBytes, formattedBytes) {
 		return nil
 	}
-	f, err = os.OpenFile(file, os.O_TRUNC|os.O_WRONLY, 0644)
-	if err != nil {
+
+	if doWriteFile {
+		f, err = os.OpenFile(file, os.O_TRUNC|os.O_WRONLY, 0o644)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		_, err = f.Write(formattedBytes)
 		return err
 	}
-	defer f.Close()
-	_, err = f.Write(formattedBytes)
+
 	return err
 }

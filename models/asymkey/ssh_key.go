@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package asymkey
 
@@ -41,7 +40,7 @@ type PublicKey struct {
 	OwnerID       int64           `xorm:"INDEX NOT NULL"`
 	Name          string          `xorm:"NOT NULL"`
 	Fingerprint   string          `xorm:"INDEX NOT NULL"`
-	Content       string          `xorm:"TEXT NOT NULL"`
+	Content       string          `xorm:"MEDIUMTEXT NOT NULL"`
 	Mode          perm.AccessMode `xorm:"NOT NULL DEFAULT 2"`
 	Type          KeyType         `xorm:"NOT NULL DEFAULT 1"`
 	LoginSourceID int64           `xorm:"NOT NULL DEFAULT 0"`
@@ -75,16 +74,16 @@ func (key *PublicKey) AuthorizedString() string {
 	return AuthorizedStringForKey(key)
 }
 
-func addKey(e db.Engine, key *PublicKey) (err error) {
+func addKey(ctx context.Context, key *PublicKey) (err error) {
 	if len(key.Fingerprint) == 0 {
-		key.Fingerprint, err = calcFingerprint(key.Content)
+		key.Fingerprint, err = CalcFingerprint(key.Content)
 		if err != nil {
 			return err
 		}
 	}
 
 	// Save SSH key.
-	if _, err = e.Insert(key); err != nil {
+	if err = db.Insert(ctx, key); err != nil {
 		return err
 	}
 
@@ -95,24 +94,23 @@ func addKey(e db.Engine, key *PublicKey) (err error) {
 func AddPublicKey(ownerID int64, name, content string, authSourceID int64) (*PublicKey, error) {
 	log.Trace(content)
 
-	fingerprint, err := calcFingerprint(content)
+	fingerprint, err := CalcFingerprint(content)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}
 	defer committer.Close()
-	sess := db.GetEngine(ctx)
 
-	if err := checkKeyFingerprint(sess, fingerprint); err != nil {
+	if err := checkKeyFingerprint(ctx, fingerprint); err != nil {
 		return nil, err
 	}
 
 	// Key name of same user cannot be duplicated.
-	has, err := sess.
+	has, err := db.GetEngine(ctx).
 		Where("owner_id = ? AND name = ?", ownerID, name).
 		Get(new(PublicKey))
 	if err != nil {
@@ -130,8 +128,8 @@ func AddPublicKey(ownerID int64, name, content string, authSourceID int64) (*Pub
 		Type:          KeyTypeUser,
 		LoginSourceID: authSourceID,
 	}
-	if err = addKey(sess, key); err != nil {
-		return nil, fmt.Errorf("addKey: %v", err)
+	if err = addKey(ctx, key); err != nil {
+		return nil, fmt.Errorf("addKey: %w", err)
 	}
 
 	return key, committer.Commit()
@@ -151,29 +149,12 @@ func GetPublicKeyByID(keyID int64) (*PublicKey, error) {
 	return key, nil
 }
 
-func searchPublicKeyByContentWithEngine(e db.Engine, content string) (*PublicKey, error) {
-	key := new(PublicKey)
-	has, err := e.
-		Where("content like ?", content+"%").
-		Get(key)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrKeyNotExist{}
-	}
-	return key, nil
-}
-
 // SearchPublicKeyByContent searches content as prefix (leak e-mail part)
 // and returns public key found.
-func SearchPublicKeyByContent(content string) (*PublicKey, error) {
-	return searchPublicKeyByContentWithEngine(db.GetEngine(db.DefaultContext), content)
-}
-
-func searchPublicKeyByContentExactWithEngine(e db.Engine, content string) (*PublicKey, error) {
+func SearchPublicKeyByContent(ctx context.Context, content string) (*PublicKey, error) {
 	key := new(PublicKey)
-	has, err := e.
-		Where("content = ?", content).
+	has, err := db.GetEngine(ctx).
+		Where("content like ?", content+"%").
 		Get(key)
 	if err != nil {
 		return nil, err
@@ -185,8 +166,17 @@ func searchPublicKeyByContentExactWithEngine(e db.Engine, content string) (*Publ
 
 // SearchPublicKeyByContentExact searches content
 // and returns public key found.
-func SearchPublicKeyByContentExact(content string) (*PublicKey, error) {
-	return searchPublicKeyByContentExactWithEngine(db.GetEngine(db.DefaultContext), content)
+func SearchPublicKeyByContentExact(ctx context.Context, content string) (*PublicKey, error) {
+	key := new(PublicKey)
+	has, err := db.GetEngine(ctx).
+		Where("content = ?", content).
+		Get(key)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrKeyNotExist{}
+	}
+	return key, nil
 }
 
 // SearchPublicKey returns a list of public keys matching the provided arguments.
@@ -330,17 +320,16 @@ func PublicKeyIsExternallyManaged(id int64) (bool, error) {
 // deleteKeysMarkedForDeletion returns true if ssh keys needs update
 func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
 	// Start session
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return false, err
 	}
 	defer committer.Close()
-	sess := db.GetEngine(ctx)
 
 	// Delete keys marked for deletion
 	var sshKeysNeedUpdate bool
 	for _, KeyToDelete := range keys {
-		key, err := searchPublicKeyByContentWithEngine(sess, KeyToDelete)
+		key, err := SearchPublicKeyByContent(ctx, KeyToDelete)
 		if err != nil {
 			log.Error("SearchPublicKeyByContent: %v", err)
 			continue
@@ -420,14 +409,14 @@ func SynchronizePublicKeys(usr *user_model.User, s *auth.Source, sshPublicKeys [
 		sshKeySplit := strings.Split(v, " ")
 		if len(sshKeySplit) > 1 {
 			key := strings.Join(sshKeySplit[:2], " ")
-			if !util.ExistsInSlice(key, providedKeys) {
+			if !util.SliceContainsString(providedKeys, key) {
 				providedKeys = append(providedKeys, key)
 			}
 		}
 	}
 
 	// Check if Public Key sync is needed
-	if util.IsEqualSlice(giteaKeys, providedKeys) {
+	if util.SliceSortedEqual(giteaKeys, providedKeys) {
 		log.Trace("synchronizePublicKeys[%s]: Public Keys are already in sync for %s (Source:%v/DB:%v)", s.Name, usr.Name, len(providedKeys), len(giteaKeys))
 		return false
 	}
@@ -436,7 +425,7 @@ func SynchronizePublicKeys(usr *user_model.User, s *auth.Source, sshPublicKeys [
 	// Add new Public SSH Keys that doesn't already exist in DB
 	var newKeys []string
 	for _, key := range providedKeys {
-		if !util.ExistsInSlice(key, giteaKeys) {
+		if !util.SliceContainsString(giteaKeys, key) {
 			newKeys = append(newKeys, key)
 		}
 	}
@@ -447,7 +436,7 @@ func SynchronizePublicKeys(usr *user_model.User, s *auth.Source, sshPublicKeys [
 	// Mark keys from DB that no longer exist in the source for deletion
 	var giteaKeysToDelete []string
 	for _, giteaKey := range giteaKeys {
-		if !util.ExistsInSlice(giteaKey, providedKeys) {
+		if !util.SliceContainsString(providedKeys, giteaKey) {
 			log.Trace("synchronizePublicKeys[%s]: Marking Public SSH Key for deletion for user %s: %v", s.Name, usr.Name, giteaKey)
 			giteaKeysToDelete = append(giteaKeysToDelete, giteaKey)
 		}

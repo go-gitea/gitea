@@ -1,11 +1,12 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
 import (
+	"context"
 	"math"
+	"sort"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -43,7 +44,7 @@ func (stats LanguageStatList) LoadAttributes() {
 
 func (stats LanguageStatList) getLanguagePercentages() map[string]float32 {
 	langPerc := make(map[string]float32)
-	var otherPerc float32 = 100
+	var otherPerc float32
 	var total int64
 
 	for _, stat := range stats {
@@ -51,37 +52,64 @@ func (stats LanguageStatList) getLanguagePercentages() map[string]float32 {
 	}
 	if total > 0 {
 		for _, stat := range stats {
-			perc := float32(math.Round(float64(stat.Size)/float64(total)*1000) / 10)
+			perc := float32(float64(stat.Size) / float64(total) * 100)
 			if perc <= 0.1 {
+				otherPerc += perc
 				continue
 			}
-			otherPerc -= perc
 			langPerc[stat.Language] = perc
 		}
-		otherPerc = float32(math.Round(float64(otherPerc)*10) / 10)
 	}
 	if otherPerc > 0 {
 		langPerc["other"] = otherPerc
 	}
+	roundByLargestRemainder(langPerc, 100)
 	return langPerc
 }
 
-func getLanguageStats(e db.Engine, repo *Repository) (LanguageStatList, error) {
+// Rounds to 1 decimal point, target should be the expected sum of percs
+func roundByLargestRemainder(percs map[string]float32, target float32) {
+	leftToDistribute := int(target * 10)
+
+	keys := make([]string, 0, len(percs))
+
+	for k, v := range percs {
+		percs[k] = v * 10
+		floored := math.Floor(float64(percs[k]))
+		leftToDistribute -= int(floored)
+		keys = append(keys, k)
+	}
+
+	// Sort the keys by the largest remainder
+	sort.SliceStable(keys, func(i, j int) bool {
+		_, remainderI := math.Modf(float64(percs[keys[i]]))
+		_, remainderJ := math.Modf(float64(percs[keys[j]]))
+		return remainderI > remainderJ
+	})
+
+	// Increment the values in order of largest remainder
+	for _, k := range keys {
+		percs[k] = float32(math.Floor(float64(percs[k])))
+		if leftToDistribute > 0 {
+			percs[k]++
+			leftToDistribute--
+		}
+		percs[k] /= 10
+	}
+}
+
+// GetLanguageStats returns the language statistics for a repository
+func GetLanguageStats(ctx context.Context, repo *Repository) (LanguageStatList, error) {
 	stats := make(LanguageStatList, 0, 6)
-	if err := e.Where("`repo_id` = ?", repo.ID).Desc("`size`").Find(&stats); err != nil {
+	if err := db.GetEngine(ctx).Where("`repo_id` = ?", repo.ID).Desc("`size`").Find(&stats); err != nil {
 		return nil, err
 	}
 	return stats, nil
 }
 
-// GetLanguageStats returns the language statistics for a repository
-func GetLanguageStats(repo *Repository) (LanguageStatList, error) {
-	return getLanguageStats(db.GetEngine(db.DefaultContext), repo)
-}
-
 // GetTopLanguageStats returns the top language statistics for a repository
 func GetTopLanguageStats(repo *Repository, limit int) (LanguageStatList, error) {
-	stats, err := getLanguageStats(db.GetEngine(db.DefaultContext), repo)
+	stats, err := GetLanguageStats(db.DefaultContext, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -113,14 +141,14 @@ func GetTopLanguageStats(repo *Repository, limit int) (LanguageStatList, error) 
 
 // UpdateLanguageStats updates the language statistics for repository
 func UpdateLanguageStats(repo *Repository, commitID string, stats map[string]int64) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 	sess := db.GetEngine(ctx)
 
-	oldstats, err := getLanguageStats(sess, repo)
+	oldstats, err := GetLanguageStats(ctx, repo)
 	if err != nil {
 		return err
 	}
@@ -151,7 +179,7 @@ func UpdateLanguageStats(repo *Repository, commitID string, stats map[string]int
 		}
 		// Insert new language
 		if !upd {
-			if _, err := sess.Insert(&LanguageStat{
+			if err := db.Insert(ctx, &LanguageStat{
 				RepoID:    repo.ID,
 				CommitID:  commitID,
 				IsPrimary: llang == topLang,
@@ -176,7 +204,7 @@ func UpdateLanguageStats(repo *Repository, commitID string, stats map[string]int
 	}
 
 	// Update indexer status
-	if err = updateIndexerStatus(sess, repo, RepoIndexerTypeStats, commitID); err != nil {
+	if err = UpdateIndexerStatus(ctx, repo, RepoIndexerTypeStats, commitID); err != nil {
 		return err
 	}
 
@@ -185,15 +213,14 @@ func UpdateLanguageStats(repo *Repository, commitID string, stats map[string]int
 
 // CopyLanguageStat Copy originalRepo language stat information to destRepo (use for forked repo)
 func CopyLanguageStat(originalRepo, destRepo *Repository) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
-	sess := db.GetEngine(ctx)
 
 	RepoLang := make(LanguageStatList, 0, 6)
-	if err := sess.Where("`repo_id` = ?", originalRepo.ID).Desc("`size`").Find(&RepoLang); err != nil {
+	if err := db.GetEngine(ctx).Where("`repo_id` = ?", originalRepo.ID).Desc("`size`").Find(&RepoLang); err != nil {
 		return err
 	}
 	if len(RepoLang) > 0 {
@@ -204,10 +231,10 @@ func CopyLanguageStat(originalRepo, destRepo *Repository) error {
 		}
 		// update destRepo's indexer status
 		tmpCommitID := RepoLang[0].CommitID
-		if err := updateIndexerStatus(sess, destRepo, RepoIndexerTypeStats, tmpCommitID); err != nil {
+		if err := UpdateIndexerStatus(ctx, destRepo, RepoIndexerTypeStats, tmpCommitID); err != nil {
 			return err
 		}
-		if _, err := sess.Insert(&RepoLang); err != nil {
+		if err := db.Insert(ctx, &RepoLang); err != nil {
 			return err
 		}
 	}

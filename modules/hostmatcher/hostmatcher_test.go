@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package hostmatcher
 
@@ -38,6 +37,7 @@ func TestHostOrIPMatchesList(t *testing.T) {
 
 		{"", net.ParseIP("10.0.1.1"), true},
 		{"10.0.1.1", nil, true},
+		{"10.0.1.1:8080", nil, true},
 		{"", net.ParseIP("192.168.1.1"), true},
 		{"192.168.1.1", nil, true},
 		{"", net.ParseIP("fd00::1"), true},
@@ -48,6 +48,7 @@ func TestHostOrIPMatchesList(t *testing.T) {
 
 		{"mydomain.com", net.IPv4zero, false},
 		{"sub.mydomain.com", net.IPv4zero, true},
+		{"sub.mydomain.com:8080", net.IPv4zero, true},
 
 		{"", net.ParseIP("169.254.1.1"), true},
 		{"169.254.1.1", nil, true},

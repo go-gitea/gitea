@@ -1,35 +1,15 @@
-{{if not $.DisableHTTP}}
-	<button class="ui basic clone button no-transition" id="repo-clone-https" data-link="{{if $.PageIsWiki}}{{$.WikiCloneLink.HTTPS}}{{else}}{{$.CloneLink.HTTPS}}{{end}}">
-		{{if UseHTTPS}}HTTPS{{else}}HTTP{{end}}
+<!-- there is always at least one button (by context/repo.go) -->
+{{if $.CloneButtonShowHTTPS}}
+	<button class="ui small compact clone button gt-no-transition" id="repo-clone-https" data-link="{{$.CloneButtonOriginLink.HTTPS}}">
+		HTTPS
 	</button>
 {{end}}
-{{if and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH)}}
-	<button class="ui basic clone button no-transition" id="repo-clone-ssh" data-link="{{if $.PageIsWiki}}{{$.WikiCloneLink.SSH}}{{else}}{{$.CloneLink.SSH}}{{end}}">
+{{if $.CloneButtonShowSSH}}
+	<button class="ui small compact clone button gt-no-transition" id="repo-clone-ssh" data-link="{{$.CloneButtonOriginLink.SSH}}">
 		SSH
 	</button>
 {{end}}
-{{if not $.DisableHTTP}}
-	<input id="repo-clone-url" value="{{if $.PageIsWiki}}{{$.WikiCloneLink.HTTPS}}{{else}}{{$.CloneLink.HTTPS}}{{end}}" readonly>
-{{else if and (not .DisableSSH) (or $.IsSigned $.ExposeAnonSSH)}}
-	<input id="repo-clone-url" value="{{if $.PageIsWiki}}{{$.WikiCloneLink.SSH}}{{else}}{{$.CloneLink.SSH}}{{end}}" readonly>
-{{end}}
-{{if or (not $.DisableHTTP) (and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH))}}
-	<button class="ui basic icon button tooltip" id="clipboard-btn" data-content="{{.i18n.Tr "copy_url"}}" data-clipboard-target="#repo-clone-url">
-		{{svg "octicon-paste"}}
-	</button>
-{{end}}
-{{if not (and $.DisableHTTP $.DisableSSH)}}
-	<script defer>
-		const isSSH = localStorage.getItem('repo-clone-protocol') === 'ssh';
-		const sshButton = document.getElementById('repo-clone-ssh');
-		const httpsButton = document.getElementById('repo-clone-https');
-		const input = document.getElementById('repo-clone-url');
-		if (input) input.value = (isSSH ? sshButton : httpsButton).getAttribute('data-link');
-		if (sshButton) sshButton.classList[isSSH ? 'add' : 'remove']('primary');
-		if (httpsButton) httpsButton.classList[isSSH ? 'remove' : 'add']('primary');
-		setTimeout(() => {
-			if (sshButton) sshButton.classList.remove('no-transition');
-			if (httpsButton) httpsButton.classList.remove('no-transition');
-		}, 100);
-	</script>
-{{end}}
+<input id="repo-clone-url" size="20" class="js-clone-url" value="{{$.CloneButtonOriginLink.HTTPS}}" readonly>
+<button class="ui basic small compact icon button" id="clipboard-btn" data-tooltip-content="{{.locale.Tr "copy_url"}}" data-clipboard-target="#repo-clone-url" aria-label="{{.locale.Tr "copy_url"}}">
+	{{svg "octicon-copy" 14}}
+</button>

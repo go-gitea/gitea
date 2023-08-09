@@ -1,0 +1,92 @@
+name: release-nightly-assets
+
+on:
+  push:
+    branches: [ main, release/v* ]
+
+jobs:
+  nightly-binary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      # fetch all commits instead of only the last as some branches are long lived and could have many between versions
+      # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
+      - run: git fetch --unshallow --quiet --tags --force
+      - uses: actions/setup-go@v4
+        with:
+          go-version: ">=1.20"
+          check-latest: true
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 20
+      - run: make deps-frontend deps-backend
+      # xgo build
+      - run: make release
+        env:
+          TAGS: bindata sqlite sqlite_unlock_notify
+      - name: import gpg key
+        id: import_gpg
+        uses: crazy-max/ghaction-import-gpg@v5
+        with:
+          gpg_private_key: ${{ secrets.GPGSIGN_KEY }}
+          passphrase: ${{ secrets.GPGSIGN_PASSPHRASE }}
+      - name: sign binaries
+        run: |
+          for f in dist/release/*; do
+            echo '${{ secrets.GPGSIGN_PASSPHRASE }}' | gpg --pinentry-mode loopback --passphrase-fd 0 --batch --yes --detach-sign -u ${{ steps.import_gpg.outputs.fingerprint }} --output "$f.asc" "$f"
+          done
+      # clean branch name to get the folder name in S3
+      - name: Get cleaned branch name
+        id: clean_name
+        run: |
+          REF_NAME=$(echo "${{ github.ref }}" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\///' -e 's/release\/v//')
+          echo "Cleaned name is ${REF_NAME}"
+          echo "branch=${REF_NAME}" >> "$GITHUB_OUTPUT"
+      - name: upload binaries to s3
+        uses: jakejarvis/s3-sync-action@master
+        env:
+          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          SOURCE_DIR: dist/release
+          DEST_DIR: gitea/${{ steps.clean_name.outputs.branch }}
+  nightly-docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      # fetch all commits instead of only the last as some branches are long lived and could have many between versions
+      # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
+      - run: git fetch --unshallow --quiet --tags --force
+      - uses: docker/setup-qemu-action@v2
+      - uses: docker/setup-buildx-action@v2
+      - name: Get cleaned branch name
+        id: clean_name
+        run: |
+          # if main then say nightly otherwise cleanup name
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "branch=nightly" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          REF_NAME=$(echo "${{ github.ref }}" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\///' -e 's/release\/v//')
+          echo "branch=${REF_NAME}-nightly" >> "$GITHUB_OUTPUT"
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: build rootful docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: gitea/gitea:${{ steps.clean_name.outputs.branch }}
+      - name: build rootless docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          file: Dockerfile.rootless
+          tags: gitea/gitea:${{ steps.clean_name.outputs.branch }}-rootless

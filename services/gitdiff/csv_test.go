@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package gitdiff
 
@@ -16,7 +15,7 @@ import (
 )
 
 func TestCSVDiff(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		diff  string
 		base  string
 		head  string
@@ -35,7 +34,8 @@ func TestCSVDiff(t *testing.T) {
 a,a`,
 			cells: [][]TableDiffCellType{
 				{TableDiffCellAdd, TableDiffCellAdd},
-				{TableDiffCellAdd, TableDiffCellAdd}},
+				{TableDiffCellAdd, TableDiffCellAdd},
+			},
 		},
 		// case 1 - adding 1 row at end
 		{
@@ -53,7 +53,8 @@ a,a`,
 a,a
 b,b`,
 			cells: [][]TableDiffCellType{
-				{TableDiffCellUnchanged, TableDiffCellUnchanged}, {TableDiffCellUnchanged, TableDiffCellUnchanged},
+				{TableDiffCellUnchanged, TableDiffCellUnchanged},
+				{TableDiffCellUnchanged, TableDiffCellUnchanged},
 				{TableDiffCellAdd, TableDiffCellAdd},
 			},
 		},
@@ -72,7 +73,8 @@ b,b`,
 			head: `col1,col2
 b,b`,
 			cells: [][]TableDiffCellType{
-				{TableDiffCellUnchanged, TableDiffCellUnchanged}, {TableDiffCellDel, TableDiffCellDel},
+				{TableDiffCellUnchanged, TableDiffCellUnchanged},
+				{TableDiffCellDel, TableDiffCellDel},
 				{TableDiffCellUnchanged, TableDiffCellUnchanged},
 			},
 		},

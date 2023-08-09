@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package gitdiff
 
@@ -12,9 +11,11 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-const unmappedColumn = -1
-const maxRowsToInspect int = 10
-const minRatioToMatch float32 = 0.8
+const (
+	unmappedColumn           = -1
+	maxRowsToInspect int     = 10
+	minRatioToMatch  float32 = 0.8
+)
 
 // TableDiffCellType represents the type of a TableDiffCell.
 type TableDiffCellType uint8
@@ -172,7 +173,7 @@ func createCsvDiff(diffFile *DiffFile, baseReader, headReader *csv.Reader) ([]*T
 	// createDiffTableRow takes the row # of the `a` line and `b` line of a diff (starting from 1), 0 if the line doesn't exist (undefined)
 	// in the base or head respectively.
 	// Returns a TableDiffRow which has the row index
-	createDiffTableRow := func(aLineNum int, bLineNum int) (*TableDiffRow, error) {
+	createDiffTableRow := func(aLineNum, bLineNum int) (*TableDiffRow, error) {
 		// diffTableCells is a row of the diff table. It will have a cells for added, deleted, changed, and unchanged content, thus either
 		// the same size as the head table or bigger
 		diffTableCells := make([]*TableDiffCell, numDiffTableCols)

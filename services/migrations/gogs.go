@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migrations
 
@@ -30,8 +29,7 @@ func init() {
 }
 
 // GogsDownloaderFactory defines a gogs downloader factory
-type GogsDownloaderFactory struct {
-}
+type GogsDownloaderFactory struct{}
 
 // New returns a Downloader related to this factory according MigrateOptions
 func (f *GogsDownloaderFactory) New(ctx context.Context, opts base.MigrateOptions) (base.Downloader, error) {
@@ -74,6 +72,18 @@ type GogsDownloader struct {
 	transport          http.RoundTripper
 }
 
+// String implements Stringer
+func (g *GogsDownloader) String() string {
+	return fmt.Sprintf("migration from gogs server %s %s/%s", g.baseURL, g.repoOwner, g.repoName)
+}
+
+func (g *GogsDownloader) LogString() string {
+	if g == nil {
+		return "<GogsDownloader nil>"
+	}
+	return fmt.Sprintf("<GogsDownloader %s %s/%s>", g.baseURL, g.repoOwner, g.repoName)
+}
+
 // SetContext set context
 func (g *GogsDownloader) SetContext(ctx context.Context) {
 	g.ctx = ctx
@@ -81,7 +91,7 @@ func (g *GogsDownloader) SetContext(ctx context.Context) {
 
 // NewGogsDownloader creates a gogs Downloader via gogs API
 func NewGogsDownloader(ctx context.Context, baseURL, userName, password, token, repoOwner, repoName string) *GogsDownloader {
-	var downloader = GogsDownloader{
+	downloader := GogsDownloader{
 		ctx:       ctx,
 		baseURL:   baseURL,
 		userName:  userName,
@@ -95,7 +105,7 @@ func NewGogsDownloader(ctx context.Context, baseURL, userName, password, token, 
 		client = gogs.NewClient(baseURL, token)
 		downloader.userName = token
 	} else {
-		var transport = NewMigrationHTTPTransport()
+		transport := NewMigrationHTTPTransport()
 		transport.Proxy = func(req *http.Request) (*url.URL, error) {
 			req.SetBasicAuth(userName, password)
 			return proxy.Proxy()(req)
@@ -139,8 +149,8 @@ func (g *GogsDownloader) GetRepoInfo() (*base.Repository, error) {
 
 // GetMilestones returns milestones
 func (g *GogsDownloader) GetMilestones() ([]*base.Milestone, error) {
-	var perPage = 100
-	var milestones = make([]*base.Milestone, 0, perPage)
+	perPage := 100
+	milestones := make([]*base.Milestone, 0, perPage)
 
 	ms, err := g.client.ListRepoMilestones(g.repoOwner, g.repoName)
 	if err != nil {
@@ -162,8 +172,8 @@ func (g *GogsDownloader) GetMilestones() ([]*base.Milestone, error) {
 
 // GetLabels returns labels
 func (g *GogsDownloader) GetLabels() ([]*base.Label, error) {
-	var perPage = 100
-	var labels = make([]*base.Label, 0, perPage)
+	perPage := 100
+	labels := make([]*base.Label, 0, perPage)
 	ls, err := g.client.ListRepoLabels(g.repoOwner, g.repoName)
 	if err != nil {
 		return nil, err
@@ -203,14 +213,14 @@ func (g *GogsDownloader) GetIssues(page, _ int) ([]*base.Issue, bool, error) {
 }
 
 func (g *GogsDownloader) getIssues(page int, state string) ([]*base.Issue, bool, error) {
-	var allIssues = make([]*base.Issue, 0, 10)
+	allIssues := make([]*base.Issue, 0, 10)
 
 	issues, err := g.client.ListRepoIssues(g.repoOwner, g.repoName, gogs.ListIssueOption{
 		Page:  page,
 		State: state,
 	})
 	if err != nil {
-		return nil, false, fmt.Errorf("error while listing repos: %v", err)
+		return nil, false, fmt.Errorf("error while listing repos: %w", err)
 	}
 
 	for _, issue := range issues {
@@ -224,19 +234,20 @@ func (g *GogsDownloader) getIssues(page int, state string) ([]*base.Issue, bool,
 }
 
 // GetComments returns comments according issueNumber
-func (g *GogsDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
-	var allComments = make([]*base.Comment, 0, 100)
+func (g *GogsDownloader) GetComments(commentable base.Commentable) ([]*base.Comment, bool, error) {
+	allComments := make([]*base.Comment, 0, 100)
 
-	comments, err := g.client.ListIssueComments(g.repoOwner, g.repoName, opts.Context.ForeignID())
+	comments, err := g.client.ListIssueComments(g.repoOwner, g.repoName, commentable.GetForeignIndex())
 	if err != nil {
-		return nil, false, fmt.Errorf("error while listing repos: %v", err)
+		return nil, false, fmt.Errorf("error while listing repos: %w", err)
 	}
 	for _, comment := range comments {
 		if len(comment.Body) == 0 || comment.Poster == nil {
 			continue
 		}
 		allComments = append(allComments, &base.Comment{
-			IssueIndex:  opts.Context.LocalID(),
+			IssueIndex:  commentable.GetLocalIndex(),
+			Index:       comment.ID,
 			PosterID:    comment.Poster.ID,
 			PosterName:  comment.Poster.Login,
 			PosterEmail: comment.Poster.Email,
@@ -254,7 +265,7 @@ func (g *GogsDownloader) GetTopics() ([]string, error) {
 	return []string{}, nil
 }
 
-// FormatCloneURL add authentification into remote URLs
+// FormatCloneURL add authentication into remote URLs
 func (g *GogsDownloader) FormatCloneURL(opts MigrateOptions, remoteAddr string) (string, error) {
 	if len(opts.AuthToken) > 0 || len(opts.AuthUsername) > 0 {
 		u, err := url.Parse(remoteAddr)
@@ -276,7 +287,7 @@ func convertGogsIssue(issue *gogs.Issue) *base.Issue {
 	if issue.Milestone != nil {
 		milestone = issue.Milestone.Title
 	}
-	var labels = make([]*base.Label, 0, len(issue.Labels))
+	labels := make([]*base.Label, 0, len(issue.Labels))
 	for _, l := range issue.Labels {
 		labels = append(labels, convertGogsLabel(l))
 	}
@@ -288,19 +299,19 @@ func convertGogsIssue(issue *gogs.Issue) *base.Issue {
 	}
 
 	return &base.Issue{
-		Title:       issue.Title,
-		Number:      issue.Index,
-		PosterID:    issue.Poster.ID,
-		PosterName:  issue.Poster.Login,
-		PosterEmail: issue.Poster.Email,
-		Content:     issue.Body,
-		Milestone:   milestone,
-		State:       string(issue.State),
-		Created:     issue.Created,
-		Updated:     issue.Updated,
-		Labels:      labels,
-		Closed:      closed,
-		Context:     base.BasicIssueContext(issue.Index),
+		Title:        issue.Title,
+		Number:       issue.Index,
+		PosterID:     issue.Poster.ID,
+		PosterName:   issue.Poster.Login,
+		PosterEmail:  issue.Poster.Email,
+		Content:      issue.Body,
+		Milestone:    milestone,
+		State:        string(issue.State),
+		Created:      issue.Created,
+		Updated:      issue.Updated,
+		Labels:       labels,
+		Closed:       closed,
+		ForeignIndex: issue.Index,
 	}
 }
 

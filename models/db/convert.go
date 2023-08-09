@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package db
 
@@ -41,6 +40,33 @@ func ConvertUtf8ToUtf8mb4() error {
 	}
 
 	return nil
+}
+
+// ConvertVarcharToNVarchar converts database and tables from varchar to nvarchar if it's mssql
+func ConvertVarcharToNVarchar() error {
+	if x.Dialect().URI().DBType != schemas.MSSQL {
+		return nil
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+	res, err := sess.QuerySliceString(`SELECT 'ALTER TABLE ' + OBJECT_NAME(SC.object_id) + ' MODIFY SC.name NVARCHAR(' + CONVERT(VARCHAR(5),SC.max_length) + ')'
+FROM SYS.columns SC
+JOIN SYS.types ST
+ON SC.system_type_id = ST.system_type_id
+AND SC.user_type_id = ST.user_type_id
+WHERE ST.name ='varchar'`)
+	if err != nil {
+		return err
+	}
+	for _, row := range res {
+		if len(row) == 1 {
+			if _, err = sess.Exec(row[0]); err != nil {
+				return err
+			}
+		}
+	}
+	return err
 }
 
 // Cell2Int64 converts a xorm.Cell type to int64,

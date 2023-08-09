@@ -1,10 +1,10 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package asymkey
 
 import (
+	"context"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -29,21 +29,21 @@ import (
 // This file contains functions relating to adding GPG Keys
 
 // addGPGKey add key, import and subkeys to database
-func addGPGKey(e db.Engine, key *GPGKey, content string) (err error) {
+func addGPGKey(ctx context.Context, key *GPGKey, content string) (err error) {
 	// Add GPGKeyImport
-	if _, err = e.Insert(GPGKeyImport{
+	if err = db.Insert(ctx, &GPGKeyImport{
 		KeyID:   key.KeyID,
 		Content: content,
 	}); err != nil {
 		return err
 	}
 	// Save GPG primary key.
-	if _, err = e.Insert(key); err != nil {
+	if err = db.Insert(ctx, key); err != nil {
 		return err
 	}
 	// Save GPG subs key.
 	for _, subkey := range key.SubsKey {
-		if err := addGPGSubKey(e, subkey); err != nil {
+		if err := addGPGSubKey(ctx, subkey); err != nil {
 			return err
 		}
 	}
@@ -51,14 +51,14 @@ func addGPGKey(e db.Engine, key *GPGKey, content string) (err error) {
 }
 
 // addGPGSubKey add subkeys to database
-func addGPGSubKey(e db.Engine, key *GPGKey) (err error) {
+func addGPGSubKey(ctx context.Context, key *GPGKey) (err error) {
 	// Save GPG primary key.
-	if _, err = e.Insert(key); err != nil {
+	if err = db.Insert(ctx, key); err != nil {
 		return err
 	}
 	// Save GPG subs key.
 	for _, subkey := range key.SubsKey {
-		if err := addGPGSubKey(e, subkey); err != nil {
+		if err := addGPGSubKey(ctx, subkey); err != nil {
 			return err
 		}
 	}
@@ -72,7 +72,7 @@ func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, erro
 		return nil, err
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +158,7 @@ func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, erro
 			return nil, err
 		}
 
-		if err = addGPGKey(db.GetEngine(ctx), key, content); err != nil {
+		if err = addGPGKey(ctx, key, content); err != nil {
 			return nil, err
 		}
 		keys = append(keys, key)

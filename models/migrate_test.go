@@ -1,12 +1,13 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package models
 
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -17,35 +18,36 @@ import (
 func TestMigrate_InsertMilestones(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	reponame := "repo1"
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: reponame}).(*repo_model.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: reponame})
 	name := "milestonetest1"
-	ms := &Milestone{
+	ms := &issues_model.Milestone{
 		RepoID: repo.ID,
 		Name:   name,
 	}
 	err := InsertMilestones(ms)
 	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, ms)
-	repoModified := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID}).(*repo_model.Repository)
+	repoModified := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
 	assert.EqualValues(t, repo.NumMilestones+1, repoModified.NumMilestones)
 
-	unittest.CheckConsistencyFor(t, &Milestone{})
+	unittest.CheckConsistencyFor(t, &issues_model.Milestone{})
 }
 
-func assertCreateIssues(t *testing.T, reponame string, isPull bool) {
+func assertCreateIssues(t *testing.T, isPull bool) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: reponame}).(*repo_model.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
-	label := unittest.AssertExistsAndLoadBean(t, &Label{ID: 1}).(*Label)
-	milestone := unittest.AssertExistsAndLoadBean(t, &Milestone{ID: 1}).(*Milestone)
+	reponame := "repo1"
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: reponame})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1})
+	milestone := unittest.AssertExistsAndLoadBean(t, &issues_model.Milestone{ID: 1})
 	assert.EqualValues(t, milestone.ID, 1)
-	reaction := &Reaction{
+	reaction := &issues_model.Reaction{
 		Type:   "heart",
 		UserID: owner.ID,
 	}
 
 	title := "issuetitle1"
-	var is = &Issue{
+	is := &issues_model.Issue{
 		RepoID:      repo.ID,
 		MilestoneID: milestone.ID,
 		Repo:        repo,
@@ -55,82 +57,58 @@ func assertCreateIssues(t *testing.T, reponame string, isPull bool) {
 		PosterID:    owner.ID,
 		Poster:      owner,
 		IsClosed:    true,
-		Labels:      []*Label{label},
-		Reactions:   []*Reaction{reaction},
+		Labels:      []*issues_model.Label{label},
+		Reactions:   []*issues_model.Reaction{reaction},
 	}
 	err := InsertIssues(is)
 	assert.NoError(t, err)
 
-	i := unittest.AssertExistsAndLoadBean(t, &Issue{Title: title}).(*Issue)
-	unittest.AssertExistsAndLoadBean(t, &Reaction{Type: "heart", UserID: owner.ID, IssueID: i.ID})
-
-	labelModified := unittest.AssertExistsAndLoadBean(t, &Label{ID: 1}).(*Label)
-	assert.EqualValues(t, label.NumIssues+1, labelModified.NumIssues)
-	assert.EqualValues(t, label.NumClosedIssues+1, labelModified.NumClosedIssues)
-
-	milestoneModified := unittest.AssertExistsAndLoadBean(t, &Milestone{ID: milestone.ID}).(*Milestone)
-	assert.EqualValues(t, milestone.NumIssues+1, milestoneModified.NumIssues)
-	assert.EqualValues(t, milestone.NumClosedIssues+1, milestoneModified.NumClosedIssues)
+	i := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: title})
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Reaction{Type: "heart", UserID: owner.ID, IssueID: i.ID})
 }
 
 func TestMigrate_CreateIssuesIsPullFalse(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	reponame := "repo1"
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: reponame}).(*repo_model.Repository)
-
-	assertCreateIssues(t, reponame, false)
-
-	repoModified := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID}).(*repo_model.Repository)
-	assert.EqualValues(t, repo.NumIssues+1, repoModified.NumIssues)
-	assert.EqualValues(t, repo.NumClosedIssues+1, repoModified.NumClosedIssues)
+	assertCreateIssues(t, false)
 }
 
 func TestMigrate_CreateIssuesIsPullTrue(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	reponame := "repo1"
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: reponame}).(*repo_model.Repository)
-
-	assertCreateIssues(t, reponame, true)
-
-	repoModified := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID}).(*repo_model.Repository)
-	assert.EqualValues(t, repo.NumPulls+1, repoModified.NumPulls)
-	assert.EqualValues(t, repo.NumClosedPulls+1, repoModified.NumClosedPulls)
+	assertCreateIssues(t, true)
 }
 
 func TestMigrate_InsertIssueComments(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	issue := unittest.AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue)
-	_ = issue.LoadRepo()
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID}).(*user_model.User)
-	reaction := &Reaction{
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	_ = issue.LoadRepo(db.DefaultContext)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID})
+	reaction := &issues_model.Reaction{
 		Type:   "heart",
 		UserID: owner.ID,
 	}
 
-	comment := &Comment{
+	comment := &issues_model.Comment{
 		PosterID:  owner.ID,
 		Poster:    owner,
 		IssueID:   issue.ID,
 		Issue:     issue,
-		Reactions: []*Reaction{reaction},
+		Reactions: []*issues_model.Reaction{reaction},
 	}
 
-	err := InsertIssueComments([]*Comment{comment})
+	err := InsertIssueComments([]*issues_model.Comment{comment})
 	assert.NoError(t, err)
 
-	issueModified := unittest.AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue)
+	issueModified := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
 	assert.EqualValues(t, issue.NumComments+1, issueModified.NumComments)
 
-	unittest.CheckConsistencyFor(t, &Issue{})
+	unittest.CheckConsistencyFor(t, &issues_model.Issue{})
 }
 
 func TestMigrate_InsertPullRequests(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	reponame := "repo1"
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: reponame}).(*repo_model.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: reponame})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-	var i = &Issue{
+	i := &issues_model.Issue{
 		RepoID:   repo.ID,
 		Repo:     repo,
 		Title:    "title1",
@@ -140,16 +118,16 @@ func TestMigrate_InsertPullRequests(t *testing.T) {
 		Poster:   owner,
 	}
 
-	var p = &PullRequest{
+	p := &issues_model.PullRequest{
 		Issue: i,
 	}
 
-	err := InsertPullRequests(p)
+	err := InsertPullRequests(db.DefaultContext, p)
 	assert.NoError(t, err)
 
-	_ = unittest.AssertExistsAndLoadBean(t, &PullRequest{IssueID: i.ID}).(*PullRequest)
+	_ = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{IssueID: i.ID})
 
-	unittest.CheckConsistencyFor(t, &Issue{}, &PullRequest{})
+	unittest.CheckConsistencyFor(t, &issues_model.Issue{}, &issues_model.PullRequest{})
 }
 
 func TestMigrate_InsertReleases(t *testing.T) {
@@ -158,7 +136,7 @@ func TestMigrate_InsertReleases(t *testing.T) {
 	a := &repo_model.Attachment{
 		UUID: "a0eebc91-9c0c-4ef7-bb6e-6bb9bd380a12",
 	}
-	r := &Release{
+	r := &repo_model.Release{
 		Attachments: []*repo_model.Attachment{a},
 	}
 

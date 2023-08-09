@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -11,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -106,8 +106,7 @@ func handleMigrateError(ctx *context.Context, owner *user_model.User, err error,
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tpl, form)
 	default:
-		remoteAddr, _ := forms.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
-		err = util.NewStringURLSanitizedError(err, remoteAddr, true)
+		err = util.SanitizeErrorCredentialURLs(err)
 		if strings.Contains(err.Error(), "Authentication failed") ||
 			strings.Contains(err.Error(), "Bad credentials") ||
 			strings.Contains(err.Error(), "could not read Username") {
@@ -129,7 +128,7 @@ func handleMigrateRemoteAddrError(ctx *context.Context, err error, tpl base.TplN
 		case addrErr.IsProtocolInvalid:
 			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_protocol_invalid"), tpl, form)
 		case addrErr.IsURLError:
-			ctx.RenderWithErr(ctx.Tr("form.url_error"), tpl, form)
+			ctx.RenderWithErr(ctx.Tr("form.url_error", addrErr.Host), tpl, form)
 		case addrErr.IsPermissionDenied:
 			if addrErr.LocalPath {
 				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tpl, form)
@@ -140,11 +139,11 @@ func handleMigrateRemoteAddrError(ctx *context.Context, err error, tpl base.TplN
 			ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_local_path"), tpl, form)
 		default:
 			log.Error("Error whilst updating url: %v", err)
-			ctx.RenderWithErr(ctx.Tr("form.url_error"), tpl, form)
+			ctx.RenderWithErr(ctx.Tr("form.url_error", "unknown"), tpl, form)
 		}
 	} else {
 		log.Error("Error whilst updating url: %v", err)
-		ctx.RenderWithErr(ctx.Tr("form.url_error"), tpl, form)
+		ctx.RenderWithErr(ctx.Tr("form.url_error", "unknown"), tpl, form)
 	}
 }
 
@@ -178,7 +177,7 @@ func MigratePost(ctx *context.Context) {
 
 	remoteAddr, err := forms.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
 	if err == nil {
-		err = migrations.IsMigrateURLAllowed(remoteAddr, ctx.User)
+		err = migrations.IsMigrateURLAllowed(remoteAddr, ctx.Doer)
 	}
 	if err != nil {
 		ctx.Data["Err_CloneAddr"] = true
@@ -195,7 +194,7 @@ func MigratePost(ctx *context.Context) {
 			ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_lfs_endpoint"), tpl, &form)
 			return
 		}
-		err = migrations.IsMigrateURLAllowed(ep.String(), ctx.User)
+		err = migrations.IsMigrateURLAllowed(ep.String(), ctx.Doer)
 		if err != nil {
 			ctx.Data["Err_LFSEndpoint"] = true
 			handleMigrateRemoteAddrError(ctx, err, tpl, form)
@@ -203,7 +202,7 @@ func MigratePost(ctx *context.Context) {
 		}
 	}
 
-	var opts = migrations.MigrateOptions{
+	opts := migrations.MigrateOptions{
 		OriginalURL:    form.CloneAddr,
 		GitServiceType: form.Service,
 		CloneAddr:      remoteAddr,
@@ -233,13 +232,13 @@ func MigratePost(ctx *context.Context) {
 		opts.Releases = false
 	}
 
-	err = repo_model.CheckCreateRepository(ctx.User, ctxUser, opts.RepoName, false)
+	err = repo_model.CheckCreateRepository(ctx.Doer, ctxUser, opts.RepoName, false)
 	if err != nil {
 		handleMigrateError(ctx, ctxUser, err, "MigratePost", tpl, form)
 		return
 	}
 
-	err = task.MigrateRepository(ctx.User, ctxUser, opts)
+	err = task.MigrateRepository(ctx.Doer, ctxUser, opts)
 	if err == nil {
 		ctx.Redirect(ctxUser.HomeLink() + "/" + url.PathEscape(opts.RepoName))
 		return
@@ -258,4 +257,30 @@ func setMigrationContextData(ctx *context.Context, serviceType structs.GitServic
 	// Plain git should be first
 	ctx.Data["Services"] = append([]structs.GitServiceType{structs.PlainGitService}, structs.SupportedFullGitService...)
 	ctx.Data["service"] = serviceType
+}
+
+func MigrateRetryPost(ctx *context.Context) {
+	if err := task.RetryMigrateTask(ctx.Repo.Repository.ID); err != nil {
+		log.Error("Retry task failed: %v", err)
+		ctx.ServerError("task.RetryMigrateTask", err)
+		return
+	}
+	ctx.JSONOK()
+}
+
+func MigrateCancelPost(ctx *context.Context) {
+	migratingTask, err := admin_model.GetMigratingTask(ctx.Repo.Repository.ID)
+	if err != nil {
+		log.Error("GetMigratingTask: %v", err)
+		ctx.Redirect(ctx.Repo.Repository.Link())
+		return
+	}
+	if migratingTask.Status == structs.TaskStatusRunning {
+		taskUpdate := &admin_model.Task{ID: migratingTask.ID, Status: structs.TaskStatusFailed, Message: "canceled"}
+		if err = taskUpdate.UpdateCols("status", "message"); err != nil {
+			ctx.ServerError("task.UpdateCols", err)
+			return
+		}
+	}
+	ctx.Redirect(ctx.Repo.Repository.Link())
 }

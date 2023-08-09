@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repository
 
@@ -10,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -23,11 +23,9 @@ func SyncRepositoryHooks(ctx context.Context) error {
 	log.Trace("Doing: SyncRepositoryHooks")
 
 	if err := db.Iterate(
-		db.DefaultContext,
-		new(repo_model.Repository),
+		ctx,
 		builder.Gt{"id": 0},
-		func(idx int, bean interface{}) error {
-			repo := bean.(*repo_model.Repository)
+		func(ctx context.Context, repo *repo_model.Repository) error {
 			select {
 			case <-ctx.Done():
 				return db.ErrCancelledf("before sync repository hooks for %s", repo.FullName())
@@ -35,11 +33,11 @@ func SyncRepositoryHooks(ctx context.Context) error {
 			}
 
 			if err := repo_module.CreateDelegateHooks(repo.RepoPath()); err != nil {
-				return fmt.Errorf("SyncRepositoryHook: %v", err)
+				return fmt.Errorf("SyncRepositoryHook: %w", err)
 			}
 			if repo.HasWiki() {
 				if err := repo_module.CreateDelegateHooks(repo.WikiPath()); err != nil {
-					return fmt.Errorf("SyncRepositoryHook: %v", err)
+					return fmt.Errorf("SyncRepositoryHook: %w", err)
 				}
 			}
 			return nil
@@ -54,13 +52,13 @@ func SyncRepositoryHooks(ctx context.Context) error {
 
 // GenerateGitHooks generates git hooks from a template repository
 func GenerateGitHooks(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
-	generateGitRepo, err := git.OpenRepository(generateRepo.RepoPath())
+	generateGitRepo, err := git.OpenRepository(ctx, generateRepo.RepoPath())
 	if err != nil {
 		return err
 	}
 	defer generateGitRepo.Close()
 
-	templateGitRepo, err := git.OpenRepository(templateRepo.RepoPath())
+	templateGitRepo, err := git.OpenRepository(ctx, templateRepo.RepoPath())
 	if err != nil {
 		return err
 	}
@@ -83,4 +81,30 @@ func GenerateGitHooks(ctx context.Context, templateRepo, generateRepo *repo_mode
 		}
 	}
 	return nil
+}
+
+// GenerateWebhooks generates webhooks from a template repository
+func GenerateWebhooks(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
+	templateWebhooks, err := webhook.ListWebhooksByOpts(ctx, &webhook.ListWebhookOptions{RepoID: templateRepo.ID})
+	if err != nil {
+		return err
+	}
+
+	ws := make([]*webhook.Webhook, 0, len(templateWebhooks))
+	for _, templateWebhook := range templateWebhooks {
+		ws = append(ws, &webhook.Webhook{
+			RepoID:      generateRepo.ID,
+			URL:         templateWebhook.URL,
+			HTTPMethod:  templateWebhook.HTTPMethod,
+			ContentType: templateWebhook.ContentType,
+			Secret:      templateWebhook.Secret,
+			HookEvent:   templateWebhook.HookEvent,
+			IsActive:    templateWebhook.IsActive,
+			Type:        templateWebhook.Type,
+			OwnerID:     templateWebhook.OwnerID,
+			Events:      templateWebhook.Events,
+			Meta:        templateWebhook.Meta,
+		})
+	}
+	return webhook.CreateWebhooks(ctx, ws)
 }

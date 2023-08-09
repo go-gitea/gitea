@@ -1,16 +1,18 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/xorm"
 	"xorm.io/xorm/convert"
@@ -29,6 +31,10 @@ func IsErrUnitTypeNotExist(err error) bool {
 
 func (err ErrUnitTypeNotExist) Error() string {
 	return fmt.Sprintf("Unit type does not exist: %s", err.UT.String())
+}
+
+func (err ErrUnitTypeNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // RepoUnit describes all units of a repository
@@ -74,9 +80,10 @@ func (cfg *ExternalWikiConfig) ToDB() ([]byte, error) {
 
 // ExternalTrackerConfig describes external tracker config
 type ExternalTrackerConfig struct {
-	ExternalTrackerURL    string
-	ExternalTrackerFormat string
-	ExternalTrackerStyle  string
+	ExternalTrackerURL           string
+	ExternalTrackerFormat        string
+	ExternalTrackerStyle         string
+	ExternalTrackerRegexpPattern string
 }
 
 // FromDB fills up a ExternalTrackerConfig from serialized format.
@@ -115,12 +122,16 @@ type PullRequestsConfig struct {
 	AllowSquash                   bool
 	AllowManualMerge              bool
 	AutodetectManualMerge         bool
+	AllowRebaseUpdate             bool
 	DefaultDeleteBranchAfterMerge bool
 	DefaultMergeStyle             MergeStyle
+	DefaultAllowMaintainerEdit    bool
 }
 
 // FromDB fills up a PullRequestsConfig from serialized format.
 func (cfg *PullRequestsConfig) FromDB(bs []byte) error {
+	// AllowRebaseUpdate = true as default for existing PullRequestConfig in DB
+	cfg.AllowRebaseUpdate = true
 	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
 }
 
@@ -144,25 +155,11 @@ func (cfg *PullRequestsConfig) GetDefaultMergeStyle() MergeStyle {
 		return cfg.DefaultMergeStyle
 	}
 
-	return MergeStyleMerge
-}
+	if setting.Repository.PullRequest.DefaultMergeStyle != "" {
+		return MergeStyle(setting.Repository.PullRequest.DefaultMergeStyle)
+	}
 
-// AllowedMergeStyleCount returns the total count of allowed merge styles for the PullRequestsConfig
-func (cfg *PullRequestsConfig) AllowedMergeStyleCount() int {
-	count := 0
-	if cfg.AllowMerge {
-		count++
-	}
-	if cfg.AllowRebase {
-		count++
-	}
-	if cfg.AllowRebaseMerge {
-		count++
-	}
-	if cfg.AllowSquash {
-		count++
-	}
-	return count
+	return MergeStyleMerge
 }
 
 // BeforeSet is invoked from XORM before setting the value of a field of this object.
@@ -170,8 +167,6 @@ func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 	switch colName {
 	case "type":
 		switch unit.Type(db.Cell2Int64(val)) {
-		case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypeProjects:
-			r.Config = new(UnitConfig)
 		case unit.TypeExternalWiki:
 			r.Config = new(ExternalWikiConfig)
 		case unit.TypeExternalTracker:
@@ -180,8 +175,10 @@ func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 			r.Config = new(PullRequestsConfig)
 		case unit.TypeIssues:
 			r.Config = new(IssuesConfig)
+		case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypeProjects, unit.TypePackages, unit.TypeActions:
+			fallthrough
 		default:
-			panic(fmt.Sprintf("unrecognized repo unit type: %v", *val))
+			r.Config = new(UnitConfig)
 		}
 	}
 }
@@ -221,9 +218,9 @@ func (r *RepoUnit) ExternalTrackerConfig() *ExternalTrackerConfig {
 	return r.Config.(*ExternalTrackerConfig)
 }
 
-func getUnitsByRepoID(e db.Engine, repoID int64) (units []*RepoUnit, err error) {
+func getUnitsByRepoID(ctx context.Context, repoID int64) (units []*RepoUnit, err error) {
 	var tmpUnits []*RepoUnit
-	if err := e.Where("repo_id = ?", repoID).Find(&tmpUnits); err != nil {
+	if err := db.GetEngine(ctx).Where("repo_id = ?", repoID).Find(&tmpUnits); err != nil {
 		return nil, err
 	}
 
@@ -244,7 +241,7 @@ func UpdateRepoUnit(unit *RepoUnit) error {
 
 // UpdateRepositoryUnits updates a repository's units
 func UpdateRepositoryUnits(repo *Repository, units []RepoUnit, deleteUnitTypes []unit.Type) (err error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}

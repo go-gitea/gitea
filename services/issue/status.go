@@ -1,36 +1,36 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issue
 
 import (
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"context"
+
+	issues_model "code.gitea.io/gitea/models/issues"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 )
 
 // ChangeStatus changes issue status to open or closed.
-func ChangeStatus(issue *models.Issue, doer *user_model.User, closed bool) error {
-	comment, err := issue.ChangeStatus(doer, closed)
+func ChangeStatus(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, commitID string, closed bool) error {
+	comment, err := issues_model.ChangeIssueStatus(ctx, issue, doer, closed)
 	if err != nil {
-		// Don't return an error when dependencies are open as this would let the push fail
-		if models.IsErrDependenciesLeft(err) {
-			if closed {
-				return models.FinishIssueStopwatchIfPossible(db.DefaultContext, doer, issue)
+		if issues_model.IsErrDependenciesLeft(err) && closed {
+			if err := issues_model.FinishIssueStopwatchIfPossible(ctx, doer, issue); err != nil {
+				log.Error("Unable to stop stopwatch for issue[%d]#%d: %v", issue.ID, issue.Index, err)
 			}
 		}
 		return err
 	}
 
 	if closed {
-		if err := models.FinishIssueStopwatchIfPossible(db.DefaultContext, doer, issue); err != nil {
+		if err := issues_model.FinishIssueStopwatchIfPossible(ctx, doer, issue); err != nil {
 			return err
 		}
 	}
 
-	notification.NotifyIssueChangeStatus(doer, issue, comment, closed)
+	notification.NotifyIssueChangeStatus(ctx, doer, commitID, issue, comment, closed)
 
 	return nil
 }

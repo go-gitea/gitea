@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package lfs
 
@@ -117,7 +116,7 @@ func (a *BasicTransferAdapter) performRequest(ctx context.Context, method string
 func handleErrorResponse(resp *http.Response) error {
 	defer resp.Body.Close()
 
-	er, err := decodeReponseError(resp.Body)
+	er, err := decodeResponseError(resp.Body)
 	if err != nil {
 		return fmt.Errorf("Request failed with status %s", resp.Status)
 	}
@@ -125,7 +124,7 @@ func handleErrorResponse(resp *http.Response) error {
 	return errors.New(er.Message)
 }
 
-func decodeReponseError(r io.Reader) (ErrorResponse, error) {
+func decodeResponseError(r io.Reader) (ErrorResponse, error) {
 	var er ErrorResponse
 	err := json.NewDecoder(r).Decode(&er)
 	if err != nil {

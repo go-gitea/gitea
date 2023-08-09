@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cmd
 
@@ -12,17 +11,17 @@ import (
 	"code.gitea.io/gitea/services/auth/source/ldap"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 func TestAddLdapBindDn(t *testing.T) {
 	// Mock cli functions to do not exit on error
-	var osExiter = cli.OsExiter
+	osExiter := cli.OsExiter
 	defer func() { cli.OsExiter = osExiter }()
 	cli.OsExiter = func(code int) {}
 
 	// Test cases
-	var cases = []struct {
+	cases := []struct {
 		args   []string
 		source *auth.Source
 		errMsg string
@@ -243,12 +242,12 @@ func TestAddLdapBindDn(t *testing.T) {
 
 func TestAddLdapSimpleAuth(t *testing.T) {
 	// Mock cli functions to do not exit on error
-	var osExiter = cli.OsExiter
+	osExiter := cli.OsExiter
 	defer func() { cli.OsExiter = osExiter }()
 	cli.OsExiter = func(code int) {}
 
 	// Test cases
-	var cases = []struct {
+	cases := []struct {
 		args       []string
 		authSource *auth.Source
 		errMsg     string
@@ -474,12 +473,12 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 
 func TestUpdateLdapBindDn(t *testing.T) {
 	// Mock cli functions to do not exit on error
-	var osExiter = cli.OsExiter
+	osExiter := cli.OsExiter
 	defer func() { cli.OsExiter = osExiter }()
 	cli.OsExiter = func(code int) {}
 
 	// Test cases
-	var cases = []struct {
+	cases := []struct {
 		args               []string
 		id                 int64
 		existingAuthSource *auth.Source
@@ -858,6 +857,36 @@ func TestUpdateLdapBindDn(t *testing.T) {
 			},
 			errMsg: "Invalid authentication type. expected: LDAP (via BindDN), actual: OAuth2",
 		},
+		// case 24
+		{
+			args: []string{
+				"ldap-test",
+				"--id", "24",
+				"--name", "ldap (via Bind DN) flip 'active' and 'user sync' attributes",
+				"--active",
+				"--disable-synchronize-users",
+			},
+			id: 24,
+			existingAuthSource: &auth.Source{
+				Type:          auth.LDAP,
+				IsActive:      false,
+				IsSyncEnabled: true,
+				Cfg: &ldap.Source{
+					Name:    "ldap (via Bind DN) flip 'active' and 'user sync' attributes",
+					Enabled: true,
+				},
+			},
+			authSource: &auth.Source{
+				Type:          auth.LDAP,
+				Name:          "ldap (via Bind DN) flip 'active' and 'user sync' attributes",
+				IsActive:      true,
+				IsSyncEnabled: false,
+				Cfg: &ldap.Source{
+					Name:    "ldap (via Bind DN) flip 'active' and 'user sync' attributes",
+					Enabled: true,
+				},
+			},
+		},
 	}
 
 	for n, c := range cases {
@@ -907,12 +936,12 @@ func TestUpdateLdapBindDn(t *testing.T) {
 
 func TestUpdateLdapSimpleAuth(t *testing.T) {
 	// Mock cli functions to do not exit on error
-	var osExiter = cli.OsExiter
+	osExiter := cli.OsExiter
 	defer func() { cli.OsExiter = osExiter }()
 	cli.OsExiter = func(code int) {}
 
 	// Test cases
-	var cases = []struct {
+	cases := []struct {
 		args               []string
 		id                 int64
 		existingAuthSource *auth.Source
@@ -1161,7 +1190,6 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 			authSource: &auth.Source{
 				Type: auth.DLDAP,
 				Cfg: &ldap.Source{
-
 					AttributeMail: "mail",
 				},
 			},
@@ -1221,6 +1249,33 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				Cfg:  &ldap.Source{},
 			},
 			errMsg: "Invalid authentication type. expected: LDAP (simple auth), actual: PAM",
+		},
+		// case 20
+		{
+			args: []string{
+				"ldap-test",
+				"--id", "20",
+				"--name", "ldap (simple auth) flip 'active' attribute",
+				"--active",
+			},
+			id: 20,
+			existingAuthSource: &auth.Source{
+				Type:     auth.DLDAP,
+				IsActive: false,
+				Cfg: &ldap.Source{
+					Name:    "ldap (simple auth) flip 'active' attribute",
+					Enabled: true,
+				},
+			},
+			authSource: &auth.Source{
+				Type:     auth.DLDAP,
+				Name:     "ldap (simple auth) flip 'active' attribute",
+				IsActive: true,
+				Cfg: &ldap.Source{
+					Name:    "ldap (simple auth) flip 'active' attribute",
+					Enabled: true,
+				},
+			},
 		},
 	}
 

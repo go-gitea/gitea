@@ -1,7 +1,6 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // Copyright 2018 Jonas Franz. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migrations
 
@@ -18,7 +17,11 @@ import (
 
 func TestGitHubDownloadRepo(t *testing.T) {
 	GithubLimitRateRemaining = 3 // Wait at 3 remaining since we could have 3 CI in //
-	downloader := NewGithubDownloaderV3(context.Background(), "https://github.com", "", "", os.Getenv("GITHUB_READ_TOKEN"), "go-gitea", "test_repo")
+	token := os.Getenv("GITHUB_READ_TOKEN")
+	if token == "" {
+		t.Skip("Skipping GitHub migration test because GITHUB_READ_TOKEN is empty")
+	}
+	downloader := NewGithubDownloaderV3(context.Background(), "https://github.com", "", "", token, "go-gitea", "test_repo")
 	err := downloader.RefreshRate()
 	assert.NoError(t, err)
 
@@ -215,9 +218,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 	}, issues)
 
 	// downloader.GetComments()
-	comments, _, err := downloader.GetComments(base.GetCommentOptions{
-		Context: base.BasicIssueContext(2),
-	})
+	comments, _, err := downloader.GetComments(&base.Issue{Number: 2, ForeignIndex: 2})
 	assert.NoError(t, err)
 	assertCommentsEqual(t, []*base.Comment{
 		{
@@ -286,7 +287,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			Merged:         true,
 			MergedTime:     timePtr(time.Date(2019, 11, 12, 21, 39, 27, 0, time.UTC)),
 			MergeCommitSHA: "f32b0a9dfd09a60f616f29158f772cedd89942d2",
-			Context:        base.BasicIssueContext(3),
+			ForeignIndex:   3,
 		},
 		{
 			Number:     4,
@@ -333,11 +334,11 @@ func TestGitHubDownloadRepo(t *testing.T) {
 					Content:  "+1",
 				},
 			},
-			Context: base.BasicIssueContext(4),
+			ForeignIndex: 4,
 		},
 	}, prs)
 
-	reviews, err := downloader.GetReviews(base.BasicIssueContext(3))
+	reviews, err := downloader.GetReviews(&base.PullRequest{Number: 3, ForeignIndex: 3})
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{
@@ -369,7 +370,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 		},
 	}, reviews)
 
-	reviews, err = downloader.GetReviews(base.BasicIssueContext(4))
+	reviews, err = downloader.GetReviews(&base.PullRequest{Number: 4, ForeignIndex: 4})
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{

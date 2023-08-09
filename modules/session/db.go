@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package session
 
@@ -18,11 +17,11 @@ import (
 type DBStore struct {
 	sid  string
 	lock sync.RWMutex
-	data map[interface{}]interface{}
+	data map[any]any
 }
 
 // NewDBStore creates and returns a DB session store.
-func NewDBStore(sid string, kv map[interface{}]interface{}) *DBStore {
+func NewDBStore(sid string, kv map[any]any) *DBStore {
 	return &DBStore{
 		sid:  sid,
 		data: kv,
@@ -30,7 +29,7 @@ func NewDBStore(sid string, kv map[interface{}]interface{}) *DBStore {
 }
 
 // Set sets value to given key in session.
-func (s *DBStore) Set(key, val interface{}) error {
+func (s *DBStore) Set(key, val any) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -39,7 +38,7 @@ func (s *DBStore) Set(key, val interface{}) error {
 }
 
 // Get gets value by given key in session.
-func (s *DBStore) Get(key interface{}) interface{} {
+func (s *DBStore) Get(key any) any {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
@@ -47,7 +46,7 @@ func (s *DBStore) Get(key interface{}) interface{} {
 }
 
 // Delete delete a key from session.
-func (s *DBStore) Delete(key interface{}) error {
+func (s *DBStore) Delete(key any) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -80,7 +79,7 @@ func (s *DBStore) Flush() error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	s.data = make(map[interface{}]interface{})
+	s.data = make(map[any]any)
 	return nil
 }
 
@@ -103,9 +102,9 @@ func (p *DBProvider) Read(sid string) (session.RawStore, error) {
 		return nil, err
 	}
 
-	var kv map[interface{}]interface{}
+	var kv map[any]any
 	if len(s.Data) == 0 || s.Expiry.Add(p.maxLifetime) <= timeutil.TimeStampNow() {
-		kv = make(map[interface{}]interface{})
+		kv = make(map[any]any)
 	} else {
 		kv, err = session.DecodeGob(s.Data)
 		if err != nil {
@@ -135,12 +134,11 @@ func (p *DBProvider) Regenerate(oldsid, sid string) (_ session.RawStore, err err
 	s, err := auth.RegenerateSession(oldsid, sid)
 	if err != nil {
 		return nil, err
-
 	}
 
-	var kv map[interface{}]interface{}
+	var kv map[any]any
 	if len(s.Data) == 0 || s.Expiry.Add(p.maxLifetime) <= timeutil.TimeStampNow() {
-		kv = make(map[interface{}]interface{})
+		kv = make(map[any]any)
 	} else {
 		kv, err = session.DecodeGob(s.Data)
 		if err != nil {

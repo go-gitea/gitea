@@ -4,5 +4,5 @@ grep 'git' go.mod | grep '\.com' | grep -v indirect | grep -v replace | cut -f 2
   go get -u "$line"
   make vendor
   git add .
-  git commit -S -m "update $line"
+  git commit -m "update $line"
 done

@@ -1,9 +1,7 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 //go:build !gogit
-// +build !gogit
 
 package git
 
@@ -23,7 +21,11 @@ func (repo *Repository) GetRefsFiltered(pattern string) ([]*Reference, error) {
 
 	go func() {
 		stderrBuilder := &strings.Builder{}
-		err := NewCommandContext(repo.Ctx, "for-each-ref").RunInDirPipeline(repo.Path, stdoutWriter, stderrBuilder)
+		err := NewCommand(repo.Ctx, "for-each-ref").Run(&RunOpts{
+			Dir:    repo.Path,
+			Stdout: stdoutWriter,
+			Stderr: stderrBuilder,
+		})
 		if err != nil {
 			_ = stdoutWriter.CloseWithError(ConcatenateError(err, stderrBuilder.String()))
 		} else {

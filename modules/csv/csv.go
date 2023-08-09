@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package csv
 
@@ -17,8 +16,10 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-const maxLines = 10
-const guessSampleSize = 1e4 // 10k
+const (
+	maxLines        = 10
+	guessSampleSize = 1e4 // 10k
+)
 
 // CreateReader creates a csv.Reader with the given delimiter.
 func CreateReader(input io.Reader, delimiter rune) *stdcsv.Reader {
@@ -35,7 +36,7 @@ func CreateReader(input io.Reader, delimiter rune) *stdcsv.Reader {
 // CreateReaderAndDetermineDelimiter tries to guess the field delimiter from the content and creates a csv.Reader.
 // Reads at most guessSampleSize bytes.
 func CreateReaderAndDetermineDelimiter(ctx *markup.RenderContext, rd io.Reader) (*stdcsv.Reader, error) {
-	var data = make([]byte, guessSampleSize)
+	data := make([]byte, guessSampleSize)
 	size, err := util.ReadAtMost(rd, data)
 	if err != nil {
 		return nil, err
@@ -52,7 +53,7 @@ func CreateReaderAndDetermineDelimiter(ctx *markup.RenderContext, rd io.Reader) 
 func determineDelimiter(ctx *markup.RenderContext, data []byte) rune {
 	extension := ".csv"
 	if ctx != nil {
-		extension = strings.ToLower(filepath.Ext(ctx.Filename))
+		extension = strings.ToLower(filepath.Ext(ctx.RelativePath))
 	}
 
 	var delimiter rune

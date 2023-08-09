@@ -1,17 +1,17 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package gitgraph
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -89,9 +89,8 @@ func (graph *Graph) AddCommit(row, column int, flowID int64, data []byte) error 
 // LoadAndProcessCommits will load the git.Commits for each commit in the graph,
 // the associate the commit with the user author, and check the commit verification
 // before finally retrieving the latest status
-func (graph *Graph) LoadAndProcessCommits(repository *repo_model.Repository, gitRepo *git.Repository) error {
+func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_model.Repository, gitRepo *git.Repository) error {
 	var err error
-
 	var ok bool
 
 	emails := map[string]*user_model.User{}
@@ -109,22 +108,22 @@ func (graph *Graph) LoadAndProcessCommits(repository *repo_model.Repository, git
 		if c.Commit.Author != nil {
 			email := c.Commit.Author.Email
 			if c.User, ok = emails[email]; !ok {
-				c.User, _ = user_model.GetUserByEmail(email)
+				c.User, _ = user_model.GetUserByEmail(ctx, email)
 				emails[email] = c.User
 			}
 		}
 
-		c.Verification = asymkey_model.ParseCommitWithSignature(c.Commit)
+		c.Verification = asymkey_model.ParseCommitWithSignature(ctx, c.Commit)
 
 		_ = asymkey_model.CalculateTrustStatus(c.Verification, repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
-			return models.IsUserRepoAdmin(repository, user)
+			return repo_model.IsOwnerMemberCollaborator(repository, user.ID)
 		}, &keyMap)
 
-		statuses, _, err := models.GetLatestCommitStatus(repository.ID, c.Commit.ID.String(), db.ListOptions{})
+		statuses, _, err := git_model.GetLatestCommitStatus(db.DefaultContext, repository.ID, c.Commit.ID.String(), db.ListOptions{})
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		} else {
-			c.Status = models.CalcCommitStatus(statuses)
+			c.Status = git_model.CalcCommitStatus(statuses)
 		}
 	}
 	return nil
@@ -240,7 +239,7 @@ type Commit struct {
 	Commit       *git.Commit
 	User         *user_model.User
 	Verification *asymkey_model.CommitVerification
-	Status       *models.CommitStatus
+	Status       *git_model.CommitStatus
 	Flow         int64
 	Row          int
 	Column       int

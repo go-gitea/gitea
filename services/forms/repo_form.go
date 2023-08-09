@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package forms
 
@@ -11,11 +10,13 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
+	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/routers/utils"
+	"code.gitea.io/gitea/services/webhook"
 
 	"gitea.com/go-chi/binding"
 )
@@ -32,7 +33,7 @@ type CreateRepoForm struct {
 	UID           int64  `binding:"Required"`
 	RepoName      string `binding:"Required;AlphaDashDot;MaxSize(100)"`
 	Private       bool
-	Description   string `binding:"MaxSize(255)"`
+	Description   string `binding:"MaxSize(2048)"`
 	DefaultBranch string `binding:"GitRefName;MaxSize(100)"`
 	AutoInit      bool
 	Gitignores    string
@@ -41,19 +42,20 @@ type CreateRepoForm struct {
 	Readme        string
 	Template      bool
 
-	RepoTemplate int64
-	GitContent   bool
-	Topics       bool
-	GitHooks     bool
-	Webhooks     bool
-	Avatar       bool
-	Labels       bool
-	TrustModel   string
+	RepoTemplate    int64
+	GitContent      bool
+	Topics          bool
+	GitHooks        bool
+	Webhooks        bool
+	Avatar          bool
+	Labels          bool
+	ProtectedBranch bool
+	TrustModel      string
 }
 
 // Validate validates the fields
 func (f *CreateRepoForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -74,7 +76,7 @@ type MigrateRepoForm struct {
 	LFS            bool   `json:"lfs"`
 	LFSEndpoint    string `json:"lfs_endpoint"`
 	Private        bool   `json:"private"`
-	Description    string `json:"description" binding:"MaxSize(255)"`
+	Description    string `json:"description" binding:"MaxSize(2048)"`
 	Wiki           bool   `json:"wiki"`
 	Milestones     bool   `json:"milestones"`
 	Labels         bool   `json:"labels"`
@@ -86,7 +88,7 @@ type MigrateRepoForm struct {
 
 // Validate validates the fields
 func (f *MigrateRepoForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -100,7 +102,7 @@ func ParseRemoteAddr(remoteAddr, authUsername, authPassword string) (string, err
 		strings.HasPrefix(remoteAddr, "git://") {
 		u, err := url.Parse(remoteAddr)
 		if err != nil {
-			return "", &models.ErrInvalidCloneAddr{IsURLError: true}
+			return "", &models.ErrInvalidCloneAddr{IsURLError: true, Host: remoteAddr}
 		}
 		if len(authUsername)+len(authPassword) > 0 {
 			u.User = url.UserPassword(authUsername, authPassword)
@@ -113,25 +115,27 @@ func ParseRemoteAddr(remoteAddr, authUsername, authPassword string) (string, err
 
 // RepoSettingForm form for changing repository settings
 type RepoSettingForm struct {
-	RepoName           string `binding:"Required;AlphaDashDot;MaxSize(100)"`
-	Description        string `binding:"MaxSize(255)"`
-	Website            string `binding:"ValidUrl;MaxSize(255)"`
-	Interval           string
-	MirrorAddress      string
-	MirrorUsername     string
-	MirrorPassword     string
-	LFS                bool   `form:"mirror_lfs"`
-	LFSEndpoint        string `form:"mirror_lfs_endpoint"`
-	PushMirrorID       string
-	PushMirrorAddress  string
-	PushMirrorUsername string
-	PushMirrorPassword string
-	PushMirrorInterval string
-	Private            bool
-	Template           bool
-	EnablePrune        bool
+	RepoName               string `binding:"Required;AlphaDashDot;MaxSize(100)"`
+	Description            string `binding:"MaxSize(2048)"`
+	Website                string `binding:"ValidUrl;MaxSize(1024)"`
+	Interval               string
+	MirrorAddress          string
+	MirrorUsername         string
+	MirrorPassword         string
+	LFS                    bool   `form:"mirror_lfs"`
+	LFSEndpoint            string `form:"mirror_lfs_endpoint"`
+	PushMirrorID           string
+	PushMirrorAddress      string
+	PushMirrorUsername     string
+	PushMirrorPassword     string
+	PushMirrorSyncOnCommit bool
+	PushMirrorInterval     string
+	Private                bool
+	Template               bool
+	EnablePrune            bool
 
 	// Advanced settings
+	EnableCode                            bool
 	EnableWiki                            bool
 	EnableExternalWiki                    bool
 	ExternalWikiURL                       string
@@ -140,9 +144,13 @@ type RepoSettingForm struct {
 	ExternalTrackerURL                    string
 	TrackerURLFormat                      string
 	TrackerIssueStyle                     string
+	ExternalTrackerRegexpPattern          string
 	EnableCloseIssuesViaCommitInAnyBranch bool
 	EnableProjects                        bool
+	EnableReleases                        bool
+	EnablePackages                        bool
 	EnablePulls                           bool
+	EnableActions                         bool
 	PullsIgnoreWhitespace                 bool
 	PullsAllowMerge                       bool
 	PullsAllowRebase                      bool
@@ -151,7 +159,9 @@ type RepoSettingForm struct {
 	PullsAllowManualMerge                 bool
 	PullsDefaultMergeStyle                string
 	EnableAutodetectManualMerge           bool
+	PullsAllowRebaseUpdate                bool
 	DefaultDeleteBranchAfterMerge         bool
+	DefaultAllowMaintainerEdit            bool
 	EnableTimetracker                     bool
 	AllowOnlyContributorsToTrackTime      bool
 	EnableIssueDependencies               bool
@@ -167,7 +177,7 @@ type RepoSettingForm struct {
 
 // Validate validates the fields
 func (f *RepoSettingForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -180,7 +190,8 @@ func (f *RepoSettingForm) Validate(req *http.Request, errs binding.Errors) bindi
 
 // ProtectBranchForm form for changing protected branch settings
 type ProtectBranchForm struct {
-	Protected                     bool
+	RuleName                      string `binding:"Required"`
+	RuleID                        int64
 	EnablePush                    string
 	WhitelistUsers                string
 	WhitelistTeams                string
@@ -189,7 +200,7 @@ type ProtectBranchForm struct {
 	MergeWhitelistUsers           string
 	MergeWhitelistTeams           string
 	EnableStatusCheck             bool
-	StatusCheckContexts           []string
+	StatusCheckContexts           string
 	RequiredApprovals             int64
 	EnableApprovalsWhitelist      bool
 	ApprovalsWhitelistUsers       string
@@ -205,40 +216,44 @@ type ProtectBranchForm struct {
 
 // Validate validates the fields
 func (f *ProtectBranchForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-//  __      __      ___.   .__    .__            __
-// /  \    /  \ ____\_ |__ |  |__ |  |__   ____ |  | __
-// \   \/\/   // __ \| __ \|  |  \|  |  \ /  _ \|  |/ /
-//  \        /\  ___/| \_\ \   Y  \   Y  (  <_> )    <
-//   \__/\  /  \___  >___  /___|  /___|  /\____/|__|_ \
-//        \/       \/    \/     \/     \/            \/
+//  __      __      ___.   .__                   __
+// /  \    /  \ ____\_ |__ |  |__   ____   ____ |  | __
+// \   \/\/   // __ \| __ \|  |  \ /  _ \ /  _ \|  |/ /
+//  \        /\  ___/| \_\ \   Y  (  <_> |  <_> )    <
+//   \__/\  /  \___  >___  /___|  /\____/ \____/|__|_ \
+//        \/       \/    \/     \/                   \/
 
 // WebhookForm form for changing web hook
 type WebhookForm struct {
-	Events               string
-	Create               bool
-	Delete               bool
-	Fork                 bool
-	Issues               bool
-	IssueAssign          bool
-	IssueLabel           bool
-	IssueMilestone       bool
-	IssueComment         bool
-	Release              bool
-	Push                 bool
-	PullRequest          bool
-	PullRequestAssign    bool
-	PullRequestLabel     bool
-	PullRequestMilestone bool
-	PullRequestComment   bool
-	PullRequestReview    bool
-	PullRequestSync      bool
-	Repository           bool
-	Active               bool
-	BranchFilter         string `binding:"GlobPattern"`
+	Events                   string
+	Create                   bool
+	Delete                   bool
+	Fork                     bool
+	Issues                   bool
+	IssueAssign              bool
+	IssueLabel               bool
+	IssueMilestone           bool
+	IssueComment             bool
+	Release                  bool
+	Push                     bool
+	PullRequest              bool
+	PullRequestAssign        bool
+	PullRequestLabel         bool
+	PullRequestMilestone     bool
+	PullRequestComment       bool
+	PullRequestReview        bool
+	PullRequestSync          bool
+	PullRequestReviewRequest bool
+	Wiki                     bool
+	Repository               bool
+	Package                  bool
+	Active                   bool
+	BranchFilter             string `binding:"GlobPattern"`
+	AuthorizationHeader      string
 }
 
 // PushOnly if the hook will be triggered when push
@@ -267,7 +282,7 @@ type NewWebhookForm struct {
 
 // Validate validates the fields
 func (f *NewWebhookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -281,7 +296,7 @@ type NewGogshookForm struct {
 
 // Validate validates the fields
 func (f *NewGogshookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -297,13 +312,15 @@ type NewSlackHookForm struct {
 
 // Validate validates the fields
 func (f *NewSlackHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
+	if !webhook.IsValidSlackChannel(strings.TrimSpace(f.Channel)) {
+		errs = append(errs, binding.Error{
+			FieldNames:     []string{"Channel"},
+			Classification: "",
+			Message:        ctx.Tr("repo.settings.add_webhook.invalid_channel_name"),
+		})
+	}
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-// HasInvalidChannel validates the channel name is in the right format
-func (f NewSlackHookForm) HasInvalidChannel() bool {
-	return !utils.IsValidSlackChannel(f.Channel)
 }
 
 // NewDiscordHookForm form for creating discord hook
@@ -316,7 +333,7 @@ type NewDiscordHookForm struct {
 
 // Validate validates the fields
 func (f *NewDiscordHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -328,7 +345,7 @@ type NewDingtalkHookForm struct {
 
 // Validate validates the fields
 func (f *NewDingtalkHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -341,7 +358,7 @@ type NewTelegramHookForm struct {
 
 // Validate validates the fields
 func (f *NewTelegramHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -349,14 +366,13 @@ func (f *NewTelegramHookForm) Validate(req *http.Request, errs binding.Errors) b
 type NewMatrixHookForm struct {
 	HomeserverURL string `binding:"Required;ValidUrl"`
 	RoomID        string `binding:"Required"`
-	AccessToken   string `binding:"Required"`
 	MessageType   int
 	WebhookForm
 }
 
 // Validate validates the fields
 func (f *NewMatrixHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -368,7 +384,7 @@ type NewMSTeamsHookForm struct {
 
 // Validate validates the fields
 func (f *NewMSTeamsHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -380,7 +396,7 @@ type NewFeishuHookForm struct {
 
 // Validate validates the fields
 func (f *NewFeishuHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -392,7 +408,21 @@ type NewWechatWorkHookForm struct {
 
 // Validate validates the fields
 func (f *NewWechatWorkHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// NewPackagistHookForm form for creating packagist hook
+type NewPackagistHookForm struct {
+	Username   string `binding:"Required"`
+	APIToken   string `binding:"Required"`
+	PackageURL string `binding:"Required;ValidUrl"`
+	WebhookForm
+}
+
+// Validate validates the fields
+func (f *NewPackagistHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -405,20 +435,21 @@ func (f *NewWechatWorkHookForm) Validate(req *http.Request, errs binding.Errors)
 
 // CreateIssueForm form for creating issue
 type CreateIssueForm struct {
-	Title       string `binding:"Required;MaxSize(255)"`
-	LabelIDs    string `form:"label_ids"`
-	AssigneeIDs string `form:"assignee_ids"`
-	Ref         string `form:"ref"`
-	MilestoneID int64
-	ProjectID   int64
-	AssigneeID  int64
-	Content     string
-	Files       []string
+	Title               string `binding:"Required;MaxSize(255)"`
+	LabelIDs            string `form:"label_ids"`
+	AssigneeIDs         string `form:"assignee_ids"`
+	Ref                 string `form:"ref"`
+	MilestoneID         int64
+	ProjectID           int64
+	AssigneeID          int64
+	Content             string
+	Files               []string
+	AllowMaintainerEdit bool
 }
 
 // Validate validates the fields
 func (f *CreateIssueForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -431,7 +462,7 @@ type CreateCommentForm struct {
 
 // Validate validates the fields
 func (f *CreateCommentForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -442,7 +473,7 @@ type ReactionForm struct {
 
 // Validate validates the fields
 func (f *ReactionForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -453,7 +484,7 @@ type IssueLockForm struct {
 
 // Validate validates the fields
 func (i *IssueLockForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, i, ctx.Locale)
 }
 
@@ -484,7 +515,8 @@ func (i IssueLockForm) HasValidReason() bool {
 type CreateProjectForm struct {
 	Title     string `binding:"Required;MaxSize(100)"`
 	Content   string
-	BoardType models.ProjectBoardType
+	BoardType project_model.BoardType
+	CardType  project_model.CardType
 }
 
 // UserCreateProjectForm is a from for creating an individual or organization
@@ -492,7 +524,8 @@ type CreateProjectForm struct {
 type UserCreateProjectForm struct {
 	Title     string `binding:"Required;MaxSize(100)"`
 	Content   string
-	BoardType models.ProjectBoardType
+	BoardType project_model.BoardType
+	CardType  project_model.CardType
 	UID       int64 `binding:"Required"`
 }
 
@@ -519,7 +552,7 @@ type CreateMilestoneForm struct {
 
 // Validate validates the fields
 func (f *CreateMilestoneForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -534,13 +567,14 @@ func (f *CreateMilestoneForm) Validate(req *http.Request, errs binding.Errors) b
 type CreateLabelForm struct {
 	ID          int64
 	Title       string `binding:"Required;MaxSize(50)" locale:"repo.issues.label_title"`
+	Exclusive   bool   `form:"exclusive"`
 	Description string `binding:"MaxSize(200)" locale:"repo.issues.label_description"`
-	Color       string `binding:"Required;Size(7)" locale:"repo.issues.label_color"`
+	Color       string `binding:"Required;MaxSize(7)" locale:"repo.issues.label_color"`
 }
 
 // Validate validates the fields
 func (f *CreateLabelForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -551,7 +585,7 @@ type InitializeLabelsForm struct {
 
 // Validate validates the fields
 func (f *InitializeLabelsForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -572,13 +606,14 @@ type MergePullRequestForm struct {
 	MergeMessageField      string
 	MergeCommitID          string // only used for manually-merged
 	HeadCommitID           string `json:"head_commit_id,omitempty"`
-	ForceMerge             *bool  `json:"force_merge,omitempty"`
+	ForceMerge             bool   `json:"force_merge,omitempty"`
+	MergeWhenChecksSucceed bool   `json:"merge_when_checks_succeed,omitempty"`
 	DeleteBranchAfterMerge bool   `json:"delete_branch_after_merge,omitempty"`
 }
 
 // Validate validates the fields
 func (f *MergePullRequestForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -589,42 +624,44 @@ type CodeCommentForm struct {
 	Side           string `binding:"Required;In(previous,proposed)"`
 	Line           int64
 	TreePath       string `form:"path" binding:"Required"`
-	IsReview       bool   `form:"is_review"`
+	SingleReview   bool   `form:"single_review"`
 	Reply          int64  `form:"reply"`
 	LatestCommitID string
 }
 
 // Validate validates the fields
 func (f *CodeCommentForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // SubmitReviewForm for submitting a finished code review
 type SubmitReviewForm struct {
 	Content  string
-	Type     string `binding:"Required;In(approve,comment,reject)"`
+	Type     string
 	CommitID string
 	Files    []string
 }
 
 // Validate validates the fields
 func (f *SubmitReviewForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// ReviewType will return the corresponding reviewtype for type
-func (f SubmitReviewForm) ReviewType() models.ReviewType {
+// ReviewType will return the corresponding ReviewType for type
+func (f SubmitReviewForm) ReviewType() issues_model.ReviewType {
 	switch f.Type {
 	case "approve":
-		return models.ReviewTypeApprove
+		return issues_model.ReviewTypeApprove
 	case "comment":
-		return models.ReviewTypeComment
+		return issues_model.ReviewTypeComment
 	case "reject":
-		return models.ReviewTypeReject
+		return issues_model.ReviewTypeReject
+	case "":
+		return issues_model.ReviewTypeComment // default to comment when doing quick-submit (Ctrl+Enter) on the review form
 	default:
-		return models.ReviewTypeUnknown
+		return issues_model.ReviewTypeUnknown
 	}
 }
 
@@ -632,7 +669,7 @@ func (f SubmitReviewForm) ReviewType() models.ReviewType {
 func (f SubmitReviewForm) HasEmptyContent() bool {
 	reviewType := f.ReviewType()
 
-	return (reviewType == models.ReviewTypeComment || reviewType == models.ReviewTypeReject) &&
+	return (reviewType == issues_model.ReviewTypeComment || reviewType == issues_model.ReviewTypeReject) &&
 		len(strings.TrimSpace(f.Content)) == 0
 }
 
@@ -640,6 +677,11 @@ func (f SubmitReviewForm) HasEmptyContent() bool {
 type DismissReviewForm struct {
 	ReviewID int64 `binding:"Required"`
 	Message  string
+}
+
+// UpdateAllowEditsForm form for changing if PR allows edits from maintainers
+type UpdateAllowEditsForm struct {
+	AllowMaintainerEdit bool
 }
 
 // __________       .__
@@ -653,7 +695,7 @@ type DismissReviewForm struct {
 type NewReleaseForm struct {
 	TagName    string `binding:"Required;GitRefName;MaxSize(255)"`
 	Target     string `form:"tag_target" binding:"Required;MaxSize(255)"`
-	Title      string `binding:"Required;MaxSize(255)"`
+	Title      string `binding:"MaxSize(255)"`
 	Content    string
 	Draft      string
 	TagOnly    string
@@ -664,7 +706,7 @@ type NewReleaseForm struct {
 
 // Validate validates the fields
 func (f *NewReleaseForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -679,7 +721,7 @@ type EditReleaseForm struct {
 
 // Validate validates the fields
 func (f *EditReleaseForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -700,7 +742,7 @@ type NewWikiForm struct {
 // Validate validates the fields
 // FIXME: use code generation to generate this method.
 func (f *NewWikiForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -725,7 +767,7 @@ type EditRepoFileForm struct {
 
 // Validate validates the fields
 func (f *EditRepoFileForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -736,7 +778,31 @@ type EditPreviewDiffForm struct {
 
 // Validate validates the fields
 func (f *EditPreviewDiffForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// _________ .__                                 __________.__        __
+// \_   ___ \|  |__   __________________ ___.__. \______   \__| ____ |  | __
+// /    \  \/|  |  \_/ __ \_  __ \_  __ <   |  |  |     ___/  |/ ___\|  |/ /
+// \     \___|   Y  \  ___/|  | \/|  | \/\___  |  |    |   |  \  \___|    <
+//  \______  /___|  /\___  >__|   |__|   / ____|  |____|   |__|\___  >__|_ \
+//         \/     \/     \/              \/                        \/     \/
+
+// CherryPickForm form for changing repository file
+type CherryPickForm struct {
+	CommitSummary string `binding:"MaxSize(100)"`
+	CommitMessage string
+	CommitChoice  string `binding:"Required;MaxSize(50)"`
+	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
+	LastCommit    string
+	Revert        bool
+	Signoff       bool
+}
+
+// Validate validates the fields
+func (f *CherryPickForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -761,7 +827,7 @@ type UploadRepoFileForm struct {
 
 // Validate validates the fields
 func (f *UploadRepoFileForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -772,7 +838,7 @@ type RemoveUploadFileForm struct {
 
 // Validate validates the fields
 func (f *RemoveUploadFileForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -795,7 +861,7 @@ type DeleteRepoFileForm struct {
 
 // Validate validates the fields
 func (f *DeleteRepoFileForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -814,7 +880,7 @@ type AddTimeManuallyForm struct {
 
 // Validate validates the fields
 func (f *AddTimeManuallyForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -830,6 +896,6 @@ type DeadlineForm struct {
 
 // Validate validates the fields
 func (f *DeadlineForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package util
 
@@ -8,7 +7,7 @@ import "reflect"
 
 // PaginateSlice cut a slice as per pagination options
 // if page = 0 it do not paginate
-func PaginateSlice(list interface{}, page, pageSize int) interface{} {
+func PaginateSlice(list any, page, pageSize int) any {
 	if page <= 0 || pageSize <= 0 {
 		return list
 	}

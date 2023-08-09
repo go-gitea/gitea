@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
@@ -20,9 +19,9 @@ import (
 func TestChangePassword(t *testing.T) {
 	oldPassword := "password"
 	setting.MinPasswordLength = 6
-	var pcALL = []string{"lower", "upper", "digit", "spec"}
-	var pcLUN = []string{"lower", "upper", "digit"}
-	var pcLU = []string{"lower", "upper"}
+	pcALL := []string{"lower", "upper", "digit", "spec"}
+	pcLUN := []string{"lower", "upper", "digit"}
+	pcLU := []string{"lower", "upper"}
 
 	for _, req := range []struct {
 		OldPassword        string
@@ -81,19 +80,22 @@ func TestChangePassword(t *testing.T) {
 			PasswordComplexity: pcLU,
 		},
 	} {
-		unittest.PrepareTestEnv(t)
-		ctx := test.MockContext(t, "user/settings/security")
-		test.LoadUser(t, ctx, 2)
-		test.LoadRepo(t, ctx, 1)
+		t.Run(req.OldPassword+"__"+req.NewPassword, func(t *testing.T) {
+			unittest.PrepareTestEnv(t)
+			setting.PasswordComplexity = req.PasswordComplexity
+			ctx, _ := test.MockContext(t, "user/settings/security")
+			test.LoadUser(t, ctx, 2)
+			test.LoadRepo(t, ctx, 1)
 
-		web.SetForm(ctx, &forms.ChangePasswordForm{
-			OldPassword: req.OldPassword,
-			Password:    req.NewPassword,
-			Retype:      req.Retype,
+			web.SetForm(ctx, &forms.ChangePasswordForm{
+				OldPassword: req.OldPassword,
+				Password:    req.NewPassword,
+				Retype:      req.Retype,
+			})
+			AccountPost(ctx)
+
+			assert.Contains(t, ctx.Flash.ErrorMsg, req.Message)
+			assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
 		})
-		AccountPost(ctx)
-
-		assert.Contains(t, ctx.Flash.ErrorMsg, req.Message)
-		assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 	}
 }

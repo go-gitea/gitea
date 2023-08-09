@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package files
 
@@ -18,7 +17,7 @@ import (
 
 func TestGetDiffPreview(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1")
+	ctx, _ := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)
 	test.LoadRepoCommit(t, ctx)
@@ -37,6 +36,7 @@ func TestGetDiffPreview(t *testing.T) {
 			{
 				Name:        "README.md",
 				OldName:     "README.md",
+				NameHash:    "8ec9a00bfd09b3190ac6b22251dbb1aa95a0579d",
 				Index:       1,
 				Addition:    2,
 				Deletion:    1,
@@ -117,17 +117,17 @@ func TestGetDiffPreview(t *testing.T) {
 	expectedDiff.NumFiles = len(expectedDiff.Files)
 
 	t.Run("with given branch", func(t *testing.T) {
-		diff, err := GetDiffPreview(ctx.Repo.Repository, branch, treePath, content)
+		diff, err := GetDiffPreview(ctx, ctx.Repo.Repository, branch, treePath, content)
 		assert.NoError(t, err)
 		expectedBs, err := json.Marshal(expectedDiff)
 		assert.NoError(t, err)
 		bs, err := json.Marshal(diff)
 		assert.NoError(t, err)
-		assert.EqualValues(t, expectedBs, bs)
+		assert.EqualValues(t, string(expectedBs), string(bs))
 	})
 
 	t.Run("empty branch, same results", func(t *testing.T) {
-		diff, err := GetDiffPreview(ctx.Repo.Repository, "", treePath, content)
+		diff, err := GetDiffPreview(ctx, ctx.Repo.Repository, "", treePath, content)
 		assert.NoError(t, err)
 		expectedBs, err := json.Marshal(expectedDiff)
 		assert.NoError(t, err)
@@ -139,7 +139,7 @@ func TestGetDiffPreview(t *testing.T) {
 
 func TestGetDiffPreviewErrors(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1")
+	ctx, _ := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)
 	test.LoadRepoCommit(t, ctx)
@@ -152,20 +152,20 @@ func TestGetDiffPreviewErrors(t *testing.T) {
 	content := "# repo1\n\nDescription for repo1\nthis is a new line"
 
 	t.Run("empty repo", func(t *testing.T) {
-		diff, err := GetDiffPreview(&repo_model.Repository{}, branch, treePath, content)
+		diff, err := GetDiffPreview(ctx, &repo_model.Repository{}, branch, treePath, content)
 		assert.Nil(t, diff)
 		assert.EqualError(t, err, "repository does not exist [id: 0, uid: 0, owner_name: , name: ]")
 	})
 
 	t.Run("bad branch", func(t *testing.T) {
 		badBranch := "bad_branch"
-		diff, err := GetDiffPreview(ctx.Repo.Repository, badBranch, treePath, content)
+		diff, err := GetDiffPreview(ctx, ctx.Repo.Repository, badBranch, treePath, content)
 		assert.Nil(t, diff)
 		assert.EqualError(t, err, "branch does not exist [name: "+badBranch+"]")
 	})
 
 	t.Run("empty treePath", func(t *testing.T) {
-		diff, err := GetDiffPreview(ctx.Repo.Repository, branch, "", content)
+		diff, err := GetDiffPreview(ctx, ctx.Repo.Repository, branch, "", content)
 		assert.Nil(t, diff)
 		assert.EqualError(t, err, "path is invalid [path: ]")
 	})

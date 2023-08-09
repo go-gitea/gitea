@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package ldap
 
@@ -52,6 +51,8 @@ type Source struct {
 	GroupDN               string // Group Search Base
 	GroupFilter           string // Group Name Filter
 	GroupMemberUID        string // Group Attribute containing array of UserUID
+	GroupTeamMap          string // Map LDAP groups to teams
+	GroupTeamMapRemoval   bool   // Remove user from teams which are synchronized and user is not a member of the corresponding LDAP group
 	UserUID               string // User Attribute listed in Group
 	SkipLocalTwoFA        bool   `json:",omitempty"` // Skip Local 2fa for users authenticated with this source
 

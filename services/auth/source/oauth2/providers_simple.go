@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package oauth2
 
@@ -49,7 +48,7 @@ func NewSimpleProvider(name, displayName string, scopes []string, newFn SimplePr
 	}
 }
 
-var _ (GothProvider) = &SimpleProvider{}
+var _ GothProvider = &SimpleProvider{}
 
 func init() {
 	RegisterGothProvider(
@@ -107,5 +106,4 @@ func init() {
 			return microsoftonline.New(clientID, secret, callbackURL, scopes...)
 		},
 	))
-
 }

@@ -1,3 +1,6 @@
+import $ from 'jquery';
+import {hideElem, showElem} from '../utils/dom.js';
+
 const {appSubUrl} = window.config;
 
 export function initOrgTeamSettings() {
@@ -5,9 +8,9 @@ export function initOrgTeamSettings() {
   $('.organization.new.team input[name=permission]').on('change', () => {
     const val = $('input[name=permission]:checked', '.organization.new.team').val();
     if (val === 'admin') {
-      $('.organization.new.team .team-units').hide();
+      hideElem($('.organization.new.team .team-units'));
     } else {
-      $('.organization.new.team .team-units').show();
+      showElem($('.organization.new.team .team-units'));
     }
   });
 }
@@ -18,13 +21,13 @@ export function initOrgTeamSearchRepoBox() {
   $searchRepoBox.search({
     minCharacters: 2,
     apiSettings: {
-      url: `${appSubUrl}/api/v1/repos/search?q={query}&uid=${$searchRepoBox.data('uid')}`,
+      url: `${appSubUrl}/repo/search?q={query}&uid=${$searchRepoBox.data('uid')}`,
       onResponse(response) {
         const items = [];
         $.each(response.data, (_i, item) => {
           items.push({
-            title: item.full_name.split('/')[1],
-            description: item.full_name
+            title: item.repository.full_name.split('/')[1],
+            description: item.repository.full_name
           });
         });
 

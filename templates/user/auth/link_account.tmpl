@@ -1,17 +1,17 @@
 {{template "base/head" .}}
-<div class="page-content user link-account">
+<div role="main" aria-label="{{.Title}}" class="page-content user link-account">
 	<div class="ui secondary pointing tabular top attached borderless menu new-menu navbar">
 		<div class="new-menu-inner">
 			<!-- TODO handle .ShowRegistrationButton once other login bugs are fixed -->
 			{{if not .AllowOnlyInternalRegistration}}
 				<a class="item {{if not .user_exists}}active{{end}}"
 					data-tab="auth-link-signup-tab">
-					{{.i18n.Tr "auth.oauth_signup_tab"}}
+					{{.locale.Tr "auth.oauth_signup_tab"}}
 				</a>
 			{{end}}
 			<a class="item {{if .user_exists}}active{{end}}"
 				data-tab="auth-link-signin-tab">
-				{{.i18n.Tr "auth.oauth_signin_tab"}}
+				{{.locale.Tr "auth.oauth_signin_tab"}}
 			</a>
 		</div>
 	</div>

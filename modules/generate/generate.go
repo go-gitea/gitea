@@ -1,7 +1,6 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package generate
 
@@ -13,7 +12,7 @@ import (
 
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // NewInternalToken generate a new value intended to be used by INTERNAL_TOKEN.
@@ -60,7 +59,7 @@ func NewJwtSecretBase64() (string, error) {
 
 // NewSecretKey generate a new value intended to be used by SECRET_KEY.
 func NewSecretKey() (string, error) {
-	secretKey, err := util.RandomString(64)
+	secretKey, err := util.CryptoRandomString(64)
 	if err != nil {
 		return "", err
 	}

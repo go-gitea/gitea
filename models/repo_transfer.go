@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package models
 
@@ -10,6 +9,9 @@ import (
 	"os"
 
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -26,7 +28,7 @@ type RepoTransfer struct {
 	Recipient   *user_model.User `xorm:"-"`
 	RepoID      int64
 	TeamIDs     []int64
-	Teams       []*Team `xorm:"-"`
+	Teams       []*organization.Team `xorm:"-"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL updated"`
@@ -37,9 +39,9 @@ func init() {
 }
 
 // LoadAttributes fetches the transfer recipient from the database
-func (r *RepoTransfer) LoadAttributes() error {
+func (r *RepoTransfer) LoadAttributes(ctx context.Context) error {
 	if r.Recipient == nil {
-		u, err := user_model.GetUserByID(r.RecipientID)
+		u, err := user_model.GetUserByID(ctx, r.RecipientID)
 		if err != nil {
 			return err
 		}
@@ -49,7 +51,7 @@ func (r *RepoTransfer) LoadAttributes() error {
 
 	if r.Recipient.IsOrganization() && len(r.TeamIDs) != len(r.Teams) {
 		for _, v := range r.TeamIDs {
-			team, err := GetTeamByID(v)
+			team, err := organization.GetTeamByID(ctx, v)
 			if err != nil {
 				return err
 			}
@@ -63,7 +65,7 @@ func (r *RepoTransfer) LoadAttributes() error {
 	}
 
 	if r.Doer == nil {
-		u, err := user_model.GetUserByID(r.DoerID)
+		u, err := user_model.GetUserByID(ctx, r.DoerID)
 		if err != nil {
 			return err
 		}
@@ -78,7 +80,7 @@ func (r *RepoTransfer) LoadAttributes() error {
 // For user, it checks if it's himself
 // For organizations, it checks if the user is able to create repos
 func (r *RepoTransfer) CanUserAcceptTransfer(u *user_model.User) bool {
-	if err := r.LoadAttributes(); err != nil {
+	if err := r.LoadAttributes(db.DefaultContext); err != nil {
 		log.Error("LoadAttributes: %v", err)
 		return false
 	}
@@ -87,7 +89,7 @@ func (r *RepoTransfer) CanUserAcceptTransfer(u *user_model.User) bool {
 		return r.RecipientID == u.ID
 	}
 
-	allowed, err := CanCreateOrgRepo(r.RecipientID, u.ID)
+	allowed, err := organization.CanCreateOrgRepo(db.DefaultContext, r.RecipientID, u.ID)
 	if err != nil {
 		log.Error("CanCreateOrgRepo: %v", err)
 		return false
@@ -98,10 +100,10 @@ func (r *RepoTransfer) CanUserAcceptTransfer(u *user_model.User) bool {
 
 // GetPendingRepositoryTransfer fetches the most recent and ongoing transfer
 // process for the repository
-func GetPendingRepositoryTransfer(repo *repo_model.Repository) (*RepoTransfer, error) {
+func GetPendingRepositoryTransfer(ctx context.Context, repo *repo_model.Repository) (*RepoTransfer, error) {
 	transfer := new(RepoTransfer)
 
-	has, err := db.GetEngine(db.DefaultContext).Where("repo_id = ? ", repo.ID).Get(transfer)
+	has, err := db.GetEngine(ctx).Where("repo_id = ? ", repo.ID).Get(transfer)
 	if err != nil {
 		return nil, err
 	}
@@ -121,14 +123,14 @@ func deleteRepositoryTransfer(ctx context.Context, repoID int64) error {
 // CancelRepositoryTransfer marks the repository as ready and remove pending transfer entry,
 // thus cancel the transfer process.
 func CancelRepositoryTransfer(repo *repo_model.Repository) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
 	repo.Status = repo_model.RepositoryReady
-	if err := repo_model.UpdateRepositoryColsCtx(ctx, repo, "status"); err != nil {
+	if err := repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
 		return err
 	}
 
@@ -152,56 +154,48 @@ func TestRepositoryReadyForTransfer(status repo_model.RepositoryStatus) error {
 
 // CreatePendingRepositoryTransfer transfer a repo from one owner to a new one.
 // it marks the repository transfer as "pending"
-func CreatePendingRepositoryTransfer(doer, newOwner *user_model.User, repoID int64, teams []*Team) error {
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	repo, err := repo_model.GetRepositoryByIDCtx(ctx, repoID)
-	if err != nil {
-		return err
-	}
-
-	// Make sure repo is ready to transfer
-	if err := TestRepositoryReadyForTransfer(repo.Status); err != nil {
-		return err
-	}
-
-	repo.Status = repo_model.RepositoryPendingTransfer
-	if err := repo_model.UpdateRepositoryColsCtx(ctx, repo, "status"); err != nil {
-		return err
-	}
-
-	// Check if new owner has repository with same name.
-	if has, err := repo_model.IsRepositoryExistCtx(ctx, newOwner, repo.Name); err != nil {
-		return fmt.Errorf("IsRepositoryExist: %v", err)
-	} else if has {
-		return repo_model.ErrRepoAlreadyExist{
-			Uname: newOwner.LowerName,
-			Name:  repo.Name,
+func CreatePendingRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.User, repoID int64, teams []*organization.Team) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		repo, err := repo_model.GetRepositoryByID(ctx, repoID)
+		if err != nil {
+			return err
 		}
-	}
 
-	transfer := &RepoTransfer{
-		RepoID:      repo.ID,
-		RecipientID: newOwner.ID,
-		CreatedUnix: timeutil.TimeStampNow(),
-		UpdatedUnix: timeutil.TimeStampNow(),
-		DoerID:      doer.ID,
-		TeamIDs:     make([]int64, 0, len(teams)),
-	}
+		// Make sure repo is ready to transfer
+		if err := TestRepositoryReadyForTransfer(repo.Status); err != nil {
+			return err
+		}
 
-	for k := range teams {
-		transfer.TeamIDs = append(transfer.TeamIDs, teams[k].ID)
-	}
+		repo.Status = repo_model.RepositoryPendingTransfer
+		if err := repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
+			return err
+		}
 
-	if err := db.Insert(ctx, transfer); err != nil {
-		return err
-	}
+		// Check if new owner has repository with same name.
+		if has, err := repo_model.IsRepositoryModelExist(ctx, newOwner, repo.Name); err != nil {
+			return fmt.Errorf("IsRepositoryExist: %w", err)
+		} else if has {
+			return repo_model.ErrRepoAlreadyExist{
+				Uname: newOwner.LowerName,
+				Name:  repo.Name,
+			}
+		}
 
-	return committer.Commit()
+		transfer := &RepoTransfer{
+			RepoID:      repo.ID,
+			RecipientID: newOwner.ID,
+			CreatedUnix: timeutil.TimeStampNow(),
+			UpdatedUnix: timeutil.TimeStampNow(),
+			DoerID:      doer.ID,
+			TeamIDs:     make([]int64, 0, len(teams)),
+		}
+
+		for k := range teams {
+			transfer.TeamIDs = append(transfer.TeamIDs, teams[k].ID)
+		}
+
+		return db.Insert(ctx, transfer)
+	})
 }
 
 // TransferOwnership transfers all corresponding repository items from old user to new one.
@@ -240,7 +234,7 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 		}
 	}()
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -248,15 +242,15 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 
 	sess := db.GetEngine(ctx)
 
-	newOwner, err := user_model.GetUserByNameCtx(ctx, newOwnerName)
+	newOwner, err := user_model.GetUserByName(ctx, newOwnerName)
 	if err != nil {
-		return fmt.Errorf("get new owner '%s': %v", newOwnerName, err)
+		return fmt.Errorf("get new owner '%s': %w", newOwnerName, err)
 	}
 	newOwnerName = newOwner.Name // ensure capitalisation matches
 
 	// Check if new owner has repository with same name.
-	if has, err := repo_model.IsRepositoryExistCtx(ctx, newOwner, repo.Name); err != nil {
-		return fmt.Errorf("IsRepositoryExist: %v", err)
+	if has, err := repo_model.IsRepositoryModelOrDirExist(ctx, newOwner, repo.Name); err != nil {
+		return fmt.Errorf("IsRepositoryExist: %w", err)
 	} else if has {
 		return repo_model.ErrRepoAlreadyExist{
 			Uname: newOwnerName,
@@ -275,80 +269,80 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 
 	// Update repository.
 	if _, err := sess.ID(repo.ID).Update(repo); err != nil {
-		return fmt.Errorf("update owner: %v", err)
+		return fmt.Errorf("update owner: %w", err)
 	}
 
 	// Remove redundant collaborators.
-	collaborators, err := getCollaborators(sess, repo.ID, db.ListOptions{})
+	collaborators, err := repo_model.GetCollaborators(ctx, repo.ID, db.ListOptions{})
 	if err != nil {
-		return fmt.Errorf("getCollaborators: %v", err)
+		return fmt.Errorf("getCollaborators: %w", err)
 	}
 
 	// Dummy object.
-	collaboration := &Collaboration{RepoID: repo.ID}
+	collaboration := &repo_model.Collaboration{RepoID: repo.ID}
 	for _, c := range collaborators {
 		if c.IsGhost() {
 			collaboration.ID = c.Collaboration.ID
 			if _, err := sess.Delete(collaboration); err != nil {
-				return fmt.Errorf("remove collaborator '%d': %v", c.ID, err)
+				return fmt.Errorf("remove collaborator '%d': %w", c.ID, err)
 			}
 			collaboration.ID = 0
 		}
 
 		if c.ID != newOwner.ID {
-			isMember, err := isOrganizationMember(sess, newOwner.ID, c.ID)
+			isMember, err := organization.IsOrganizationMember(ctx, newOwner.ID, c.ID)
 			if err != nil {
-				return fmt.Errorf("IsOrgMember: %v", err)
+				return fmt.Errorf("IsOrgMember: %w", err)
 			} else if !isMember {
 				continue
 			}
 		}
 		collaboration.UserID = c.ID
 		if _, err := sess.Delete(collaboration); err != nil {
-			return fmt.Errorf("remove collaborator '%d': %v", c.ID, err)
+			return fmt.Errorf("remove collaborator '%d': %w", c.ID, err)
 		}
 		collaboration.UserID = 0
 	}
 
 	// Remove old team-repository relations.
 	if oldOwner.IsOrganization() {
-		if err := OrgFromUser(oldOwner).removeOrgRepo(sess, repo.ID); err != nil {
-			return fmt.Errorf("removeOrgRepo: %v", err)
+		if err := organization.RemoveOrgRepo(ctx, oldOwner.ID, repo.ID); err != nil {
+			return fmt.Errorf("removeOrgRepo: %w", err)
 		}
 	}
 
 	if newOwner.IsOrganization() {
-		teams, err := OrgFromUser(newOwner).loadTeams(sess)
+		teams, err := organization.FindOrgTeams(ctx, newOwner.ID)
 		if err != nil {
-			return fmt.Errorf("LoadTeams: %v", err)
+			return fmt.Errorf("LoadTeams: %w", err)
 		}
 		for _, t := range teams {
 			if t.IncludesAllRepositories {
-				if err := t.addRepository(ctx, repo); err != nil {
-					return fmt.Errorf("addRepository: %v", err)
+				if err := AddRepository(ctx, t, repo); err != nil {
+					return fmt.Errorf("AddRepository: %w", err)
 				}
 			}
 		}
-	} else if err := recalculateAccesses(ctx, repo); err != nil {
+	} else if err := access_model.RecalculateAccesses(ctx, repo); err != nil {
 		// Organization called this in addRepository method.
-		return fmt.Errorf("recalculateAccesses: %v", err)
+		return fmt.Errorf("recalculateAccesses: %w", err)
 	}
 
 	// Update repository count.
 	if _, err := sess.Exec("UPDATE `user` SET num_repos=num_repos+1 WHERE id=?", newOwner.ID); err != nil {
-		return fmt.Errorf("increase new owner repository count: %v", err)
+		return fmt.Errorf("increase new owner repository count: %w", err)
 	} else if _, err := sess.Exec("UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", oldOwner.ID); err != nil {
-		return fmt.Errorf("decrease old owner repository count: %v", err)
+		return fmt.Errorf("decrease old owner repository count: %w", err)
 	}
 
-	if err := repo_model.WatchRepoCtx(ctx, doer.ID, repo.ID, true); err != nil {
-		return fmt.Errorf("watchRepo: %v", err)
+	if err := repo_model.WatchRepo(ctx, doer.ID, repo.ID, true); err != nil {
+		return fmt.Errorf("watchRepo: %w", err)
 	}
 
 	// Remove watch for organization.
 	if oldOwner.IsOrganization() {
-		if err := repo_model.WatchRepoCtx(ctx, oldOwner.ID, repo.ID, false); err != nil {
-			return fmt.Errorf("watchRepo [false]: %v", err)
+		if err := repo_model.WatchRepo(ctx, oldOwner.ID, repo.ID, false); err != nil {
+			return fmt.Errorf("watchRepo [false]: %w", err)
 		}
 	}
 
@@ -363,7 +357,7 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 					WHERE
 						issue.repo_id = ? AND ((label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != ?))
 		) AS il_too )`, repo.ID, newOwner.ID); err != nil {
-			return fmt.Errorf("Unable to remove old org labels: %v", err)
+			return fmt.Errorf("Unable to remove old org labels: %w", err)
 		}
 
 		if _, err := sess.Exec(`DELETE FROM comment WHERE comment.id IN (
@@ -374,8 +368,8 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 						INNER JOIN issue ON issue.id = com.issue_id
 					WHERE
 						com.type = ? AND issue.repo_id = ? AND ((label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != ?))
-		) AS il_too)`, CommentTypeLabel, repo.ID, newOwner.ID); err != nil {
-			return fmt.Errorf("Unable to remove old org label comments: %v", err)
+		) AS il_too)`, issues_model.CommentTypeLabel, repo.ID, newOwner.ID); err != nil {
+			return fmt.Errorf("Unable to remove old org label comments: %w", err)
 		}
 	}
 
@@ -383,11 +377,11 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 	dir := user_model.UserPath(newOwner.Name)
 
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %v", dir, err)
+		return fmt.Errorf("Failed to create dir %s: %w", dir, err)
 	}
 
 	if err := util.Rename(repo_model.RepoPath(oldOwner.Name, repo.Name), repo_model.RepoPath(newOwner.Name, repo.Name)); err != nil {
-		return fmt.Errorf("rename repository directory: %v", err)
+		return fmt.Errorf("rename repository directory: %w", err)
 	}
 	repoRenamed = true
 
@@ -399,26 +393,26 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 		return err
 	} else if isExist {
 		if err := util.Rename(wikiPath, repo_model.WikiPath(newOwner.Name, repo.Name)); err != nil {
-			return fmt.Errorf("rename repository wiki: %v", err)
+			return fmt.Errorf("rename repository wiki: %w", err)
 		}
 		wikiRenamed = true
 	}
 
 	if err := deleteRepositoryTransfer(ctx, repo.ID); err != nil {
-		return fmt.Errorf("deleteRepositoryTransfer: %v", err)
+		return fmt.Errorf("deleteRepositoryTransfer: %w", err)
 	}
 	repo.Status = repo_model.RepositoryReady
-	if err := repo_model.UpdateRepositoryColsCtx(ctx, repo, "status"); err != nil {
+	if err := repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
 		return err
 	}
 
 	// If there was previously a redirect at this location, remove it.
 	if err := repo_model.DeleteRedirect(ctx, newOwner.ID, repo.Name); err != nil {
-		return fmt.Errorf("delete repo redirect: %v", err)
+		return fmt.Errorf("delete repo redirect: %w", err)
 	}
 
 	if err := repo_model.NewRedirect(ctx, oldOwner.ID, repo.ID, repo.Name, repo.Name); err != nil {
-		return fmt.Errorf("repo_model.NewRedirect: %v", err)
+		return fmt.Errorf("repo_model.NewRedirect: %w", err)
 	}
 
 	return committer.Commit()

@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package archiver
 
@@ -19,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -53,6 +53,21 @@ func (err ErrUnknownArchiveFormat) Error() string {
 // Is implements error
 func (ErrUnknownArchiveFormat) Is(err error) bool {
 	_, ok := err.(ErrUnknownArchiveFormat)
+	return ok
+}
+
+// RepoRefNotFoundError is returned when a requested reference (commit, tag) was not found.
+type RepoRefNotFoundError struct {
+	RefName string
+}
+
+// Error implements error.
+func (e RepoRefNotFoundError) Error() string {
+	return fmt.Sprintf("unrecognized repository reference: %s", e.RefName)
+}
+
+func (e RepoRefNotFoundError) Is(err error) bool {
+	_, ok := err.(RepoRefNotFoundError)
 	return ok
 }
 
@@ -102,7 +117,7 @@ func NewRequest(repoID int64, repo *git.Repository, uri string) (*ArchiveRequest
 			}
 		}
 	} else {
-		return nil, fmt.Errorf("Unknow ref %s type", r.refName)
+		return nil, RepoRefNotFoundError{RefName: r.refName}
 	}
 
 	return r, nil
@@ -114,12 +129,57 @@ func (aReq *ArchiveRequest) GetArchiveName() string {
 	return strings.ReplaceAll(aReq.refName, "/", "-") + "." + aReq.Type.String()
 }
 
+// Await awaits the completion of an ArchiveRequest. If the archive has
+// already been prepared the method returns immediately. Otherwise an archiver
+// process will be started and its completion awaited. On success the returned
+// RepoArchiver may be used to download the archive. Note that even if the
+// context is cancelled/times out a started archiver will still continue to run
+// in the background.
+func (aReq *ArchiveRequest) Await(ctx context.Context) (*repo_model.RepoArchiver, error) {
+	archiver, err := repo_model.GetRepoArchiver(ctx, aReq.RepoID, aReq.Type, aReq.CommitID)
+	if err != nil {
+		return nil, fmt.Errorf("models.GetRepoArchiver: %w", err)
+	}
+
+	if archiver != nil && archiver.Status == repo_model.ArchiverReady {
+		// Archive already generated, we're done.
+		return archiver, nil
+	}
+
+	if err := StartArchive(aReq); err != nil {
+		return nil, fmt.Errorf("archiver.StartArchive: %w", err)
+	}
+
+	poll := time.NewTicker(time.Second * 1)
+	defer poll.Stop()
+
+	for {
+		select {
+		case <-graceful.GetManager().HammerContext().Done():
+			// System stopped.
+			return nil, graceful.GetManager().HammerContext().Err()
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-poll.C:
+			archiver, err = repo_model.GetRepoArchiver(ctx, aReq.RepoID, aReq.Type, aReq.CommitID)
+			if err != nil {
+				return nil, fmt.Errorf("repo_model.GetRepoArchiver: %w", err)
+			}
+			if archiver != nil && archiver.Status == repo_model.ArchiverReady {
+				return archiver, nil
+			}
+		}
+	}
+}
+
 func doArchive(r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
-	ctx, committer, err := db.TxContext()
+	txCtx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}
 	defer committer.Close()
+	ctx, _, finished := process.GetManager().AddContext(txCtx, fmt.Sprintf("ArchiveRequest[%d]: %s", r.RepoID, r.GetArchiveName()))
+	defer finished()
 
 	archiver, err := repo_model.GetRepoArchiver(ctx, r.RepoID, r.Type, r.CommitID)
 	if err != nil {
@@ -144,11 +204,7 @@ func doArchive(r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
 		}
 	}
 
-	rPath, err := archiver.RelativePath()
-	if err != nil {
-		return nil, err
-	}
-
+	rPath := archiver.RelativePath()
 	_, err = storage.RepoArchives.Stat(rPath)
 	if err == nil {
 		if archiver.Status == repo_model.ArchiverGenerating {
@@ -161,7 +217,7 @@ func doArchive(r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
 	}
 
 	if !errors.Is(err, os.ErrNotExist) {
-		return nil, fmt.Errorf("unable to stat archive: %v", err)
+		return nil, fmt.Errorf("unable to stat archive: %w", err)
 	}
 
 	rd, w := io.Pipe()
@@ -169,13 +225,13 @@ func doArchive(r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
 		w.Close()
 		rd.Close()
 	}()
-	var done = make(chan error)
-	repo, err := repo_model.GetRepositoryByID(archiver.RepoID)
+	done := make(chan error, 1) // Ensure that there is some capacity which will ensure that the goroutine below can always finish
+	repo, err := repo_model.GetRepositoryByID(ctx, archiver.RepoID)
 	if err != nil {
-		return nil, fmt.Errorf("archiver.LoadRepo failed: %v", err)
+		return nil, fmt.Errorf("archiver.LoadRepo failed: %w", err)
 	}
 
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 	if err != nil {
 		return nil, err
 	}
@@ -190,13 +246,13 @@ func doArchive(r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
 
 		if archiver.Type == git.BUNDLE {
 			err = gitRepo.CreateBundle(
-				graceful.GetManager().ShutdownContext(),
+				ctx,
 				archiver.CommitID,
 				w,
 			)
 		} else {
 			err = gitRepo.CreateArchive(
-				graceful.GetManager().ShutdownContext(),
+				ctx,
 				archiver.Type,
 				w,
 				setting.Repository.PrefixArchiveFiles,
@@ -211,7 +267,7 @@ func doArchive(r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
 	// TODO: add submodule data to zip
 
 	if _, err := storage.RepoArchives.Save(rPath, rd, -1); err != nil {
-		return nil, fmt.Errorf("unable to write archive: %v", err)
+		return nil, fmt.Errorf("unable to write archive: %w", err)
 	}
 
 	err = <-done
@@ -239,30 +295,25 @@ func ArchiveRepository(request *ArchiveRequest) (*repo_model.RepoArchiver, error
 	return doArchive(request)
 }
 
-var archiverQueue queue.UniqueQueue
+var archiverQueue *queue.WorkerPoolQueue[*ArchiveRequest]
 
-// Init initlize archive
+// Init initializes archiver
 func Init() error {
-	handler := func(data ...queue.Data) {
-		for _, datum := range data {
-			archiveReq, ok := datum.(*ArchiveRequest)
-			if !ok {
-				log.Error("Unable to process provided datum: %v - not possible to cast to IndexerData", datum)
-				continue
-			}
+	handler := func(items ...*ArchiveRequest) []*ArchiveRequest {
+		for _, archiveReq := range items {
 			log.Trace("ArchiverData Process: %#v", archiveReq)
 			if _, err := doArchive(archiveReq); err != nil {
-				log.Error("Archive %v faild: %v", datum, err)
+				log.Error("Archive %v failed: %v", archiveReq, err)
 			}
 		}
+		return nil
 	}
 
-	archiverQueue = queue.CreateUniqueQueue("repo-archive", handler, new(ArchiveRequest))
+	archiverQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "repo-archive", handler)
 	if archiverQueue == nil {
-		return errors.New("unable to create codes indexer queue")
+		return errors.New("unable to create repo-archive queue")
 	}
-
-	go graceful.GetManager().RunWithShutdownFns(archiverQueue.Run)
+	go graceful.GetManager().RunWithCancel(archiverQueue)
 
 	return nil
 }
@@ -280,13 +331,10 @@ func StartArchive(request *ArchiveRequest) error {
 }
 
 func deleteOldRepoArchiver(ctx context.Context, archiver *repo_model.RepoArchiver) error {
-	p, err := archiver.RelativePath()
-	if err != nil {
-		return err
-	}
 	if err := repo_model.DeleteRepoArchiver(ctx, archiver); err != nil {
 		return err
 	}
+	p := archiver.RelativePath()
 	if err := storage.RepoArchives.Delete(p); err != nil {
 		log.Error("delete repo archive file failed: %v", err)
 	}

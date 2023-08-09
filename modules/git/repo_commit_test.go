@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -13,7 +12,7 @@ import (
 
 func TestRepository_GetCommitBranches(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepository(bareRepo1Path)
+	bareRepo1, err := openRepositoryWithDefaultContext(bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
@@ -40,21 +39,22 @@ func TestRepository_GetCommitBranches(t *testing.T) {
 
 func TestGetTagCommitWithSignature(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepository(bareRepo1Path)
+	bareRepo1, err := openRepositoryWithDefaultContext(bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
-	commit, err := bareRepo1.GetCommit("3ad28a9149a2864384548f3d17ed7f38014c9e8a")
+	// both the tag and the commit are signed here, this validates only the commit signature
+	commit, err := bareRepo1.GetCommit("28b55526e7100924d864dd89e35c1ea62e7a5a32")
 	assert.NoError(t, err)
 	assert.NotNil(t, commit)
 	assert.NotNil(t, commit.Signature)
 	// test that signature is not in message
-	assert.Equal(t, "tag", commit.CommitMessage)
+	assert.Equal(t, "signed-commit\n", commit.CommitMessage)
 }
 
 func TestGetCommitWithBadCommitID(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepository(bareRepo1Path)
+	bareRepo1, err := openRepositoryWithDefaultContext(bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
@@ -66,7 +66,7 @@ func TestGetCommitWithBadCommitID(t *testing.T) {
 
 func TestIsCommitInBranch(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepository(bareRepo1Path)
+	bareRepo1, err := openRepositoryWithDefaultContext(bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
@@ -81,7 +81,7 @@ func TestIsCommitInBranch(t *testing.T) {
 
 func TestRepository_CommitsBetweenIDs(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo4_commitsbetween")
-	bareRepo1, err := OpenRepository(bareRepo1Path)
+	bareRepo1, err := openRepositoryWithDefaultContext(bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
@@ -90,13 +90,13 @@ func TestRepository_CommitsBetweenIDs(t *testing.T) {
 		NewID           string
 		ExpectedCommits int
 	}{
-		{"fdc1b615bdcff0f0658b216df0c9209e5ecb7c78", "78a445db1eac62fe15e624e1137965969addf344", 1}, //com1 -> com2
-		{"78a445db1eac62fe15e624e1137965969addf344", "fdc1b615bdcff0f0658b216df0c9209e5ecb7c78", 0}, //reset HEAD~, com2 -> com1
-		{"78a445db1eac62fe15e624e1137965969addf344", "a78e5638b66ccfe7e1b4689d3d5684e42c97d7ca", 1}, //com2 -> com2_new
+		{"fdc1b615bdcff0f0658b216df0c9209e5ecb7c78", "78a445db1eac62fe15e624e1137965969addf344", 1}, // com1 -> com2
+		{"78a445db1eac62fe15e624e1137965969addf344", "fdc1b615bdcff0f0658b216df0c9209e5ecb7c78", 0}, // reset HEAD~, com2 -> com1
+		{"78a445db1eac62fe15e624e1137965969addf344", "a78e5638b66ccfe7e1b4689d3d5684e42c97d7ca", 1}, // com2 -> com2_new
 	}
 	for i, c := range cases {
 		commits, err := bareRepo1.CommitsBetweenIDs(c.NewID, c.OldID)
 		assert.NoError(t, err)
-		assert.Equal(t, c.ExpectedCommits, len(commits), "case %d", i)
+		assert.Len(t, commits, c.ExpectedCommits, "case %d", i)
 	}
 }

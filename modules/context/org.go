@@ -1,16 +1,18 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package context
 
 import (
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 )
 
 // Organization contains organization context
@@ -19,12 +21,43 @@ type Organization struct {
 	IsMember         bool
 	IsTeamMember     bool // Is member of team.
 	IsTeamAdmin      bool // In owner team or team that has admin permission level.
-	Organization     *models.Organization
+	Organization     *organization.Organization
 	OrgLink          string
 	CanCreateOrgRepo bool
 
-	Team  *models.Team
-	Teams []*models.Team
+	Team  *organization.Team
+	Teams []*organization.Team
+}
+
+func (org *Organization) CanWriteUnit(ctx *Context, unitType unit.Type) bool {
+	return org.Organization.UnitPermission(ctx, ctx.Doer, unitType) >= perm.AccessModeWrite
+}
+
+func (org *Organization) CanReadUnit(ctx *Context, unitType unit.Type) bool {
+	return org.Organization.UnitPermission(ctx, ctx.Doer, unitType) >= perm.AccessModeRead
+}
+
+func GetOrganizationByParams(ctx *Context) {
+	orgName := ctx.Params(":org")
+
+	var err error
+
+	ctx.Org.Organization, err = organization.GetOrgByName(ctx, orgName)
+	if err != nil {
+		if organization.IsErrOrgNotExist(err) {
+			redirectUserID, err := user_model.LookupUserRedirect(orgName)
+			if err == nil {
+				RedirectToUser(ctx.Base, orgName, redirectUserID)
+			} else if user_model.IsErrUserRedirectNotExist(err) {
+				ctx.NotFound("GetUserByName", err)
+			} else {
+				ctx.ServerError("LookupUserRedirect", err)
+			}
+		} else {
+			ctx.ServerError("GetUserByName", err)
+		}
+		return
+	}
 }
 
 // HandleOrgAssignment handles organization assignment
@@ -48,43 +81,53 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 		requireTeamAdmin = args[3]
 	}
 
-	orgName := ctx.Params(":org")
-
 	var err error
-	ctx.Org.Organization, err = models.GetOrgByName(orgName)
-	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			redirectUserID, err := user_model.LookupUserRedirect(orgName)
-			if err == nil {
-				RedirectToUser(ctx, orgName, redirectUserID)
-			} else if user_model.IsErrUserRedirectNotExist(err) {
-				ctx.NotFound("GetUserByName", err)
-			} else {
-				ctx.ServerError("LookupUserRedirect", err)
+
+	if ctx.ContextUser == nil {
+		// if Organization is not defined, get it from params
+		if ctx.Org.Organization == nil {
+			GetOrganizationByParams(ctx)
+			if ctx.Written() {
+				return
 			}
-		} else {
-			ctx.ServerError("GetUserByName", err)
 		}
+	} else if ctx.ContextUser.IsOrganization() {
+		if ctx.Org == nil {
+			ctx.Org = &Organization{}
+		}
+		ctx.Org.Organization = (*organization.Organization)(ctx.ContextUser)
+	} else {
+		// ContextUser is an individual User
 		return
 	}
+
 	org := ctx.Org.Organization
+
+	// Handle Visibility
+	if org.Visibility != structs.VisibleTypePublic && !ctx.IsSigned {
+		// We must be signed in to see limited or private organizations
+		ctx.NotFound("OrgAssignment", err)
+		return
+	}
+
+	if org.Visibility == structs.VisibleTypePrivate {
+		requireMember = true
+	} else if ctx.IsSigned && ctx.Doer.IsRestricted {
+		requireMember = true
+	}
+
+	ctx.ContextUser = org.AsUser()
 	ctx.Data["Org"] = org
 
-	teams, err := org.LoadTeams()
-	if err != nil {
-		ctx.ServerError("LoadTeams", err)
-	}
-	ctx.Data["OrgTeams"] = teams
-
 	// Admin has super access.
-	if ctx.IsSigned && ctx.User.IsAdmin {
+	if ctx.IsSigned && ctx.Doer.IsAdmin {
 		ctx.Org.IsOwner = true
 		ctx.Org.IsMember = true
 		ctx.Org.IsTeamMember = true
 		ctx.Org.IsTeamAdmin = true
 		ctx.Org.CanCreateOrgRepo = true
 	} else if ctx.IsSigned {
-		ctx.Org.IsOwner, err = org.IsOwnedBy(ctx.User.ID)
+		ctx.Org.IsOwner, err = org.IsOwnedBy(ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerError("IsOwnedBy", err)
 			return
@@ -96,12 +139,12 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 			ctx.Org.IsTeamAdmin = true
 			ctx.Org.CanCreateOrgRepo = true
 		} else {
-			ctx.Org.IsMember, err = org.IsOrgMember(ctx.User.ID)
+			ctx.Org.IsMember, err = org.IsOrgMember(ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("IsOrgMember", err)
 				return
 			}
-			ctx.Org.CanCreateOrgRepo, err = org.CanCreateOrgRepo(ctx.User.ID)
+			ctx.Org.CanCreateOrgRepo, err = org.CanCreateOrgRepo(ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("CanCreateOrgRepo", err)
 				return
@@ -118,8 +161,10 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	}
 	ctx.Data["IsOrganizationOwner"] = ctx.Org.IsOwner
 	ctx.Data["IsOrganizationMember"] = ctx.Org.IsMember
+	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["IsPublicMember"] = func(uid int64) bool {
-		is, _ := models.IsPublicMembership(ctx.Org.Organization.ID, uid)
+		is, _ := organization.IsPublicMembership(ctx.Org.Organization.ID, uid)
 		return is
 	}
 	ctx.Data["CanCreateOrgRepo"] = ctx.Org.CanCreateOrgRepo
@@ -129,14 +174,30 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 
 	// Team.
 	if ctx.Org.IsMember {
+		shouldSeeAllTeams := false
 		if ctx.Org.IsOwner {
+			shouldSeeAllTeams = true
+		} else {
+			teams, err := org.GetUserTeams(ctx.Doer.ID)
+			if err != nil {
+				ctx.ServerError("GetUserTeams", err)
+				return
+			}
+			for _, team := range teams {
+				if team.IncludesAllRepositories && team.AccessMode >= perm.AccessModeAdmin {
+					shouldSeeAllTeams = true
+					break
+				}
+			}
+		}
+		if shouldSeeAllTeams {
 			ctx.Org.Teams, err = org.LoadTeams()
 			if err != nil {
 				ctx.ServerError("LoadTeams", err)
 				return
 			}
 		} else {
-			ctx.Org.Teams, err = org.GetUserTeams(ctx.User.ID)
+			ctx.Org.Teams, err = org.GetUserTeams(ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("GetUserTeams", err)
 				return
@@ -175,6 +236,10 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 			return
 		}
 	}
+
+	ctx.Data["CanReadProjects"] = ctx.Org.CanReadUnit(ctx, unit.TypeProjects)
+	ctx.Data["CanReadPackages"] = ctx.Org.CanReadUnit(ctx, unit.TypePackages)
+	ctx.Data["CanReadCode"] = ctx.Org.CanReadUnit(ctx, unit.TypeCode)
 }
 
 // OrgAssignment returns a middleware to handle organization assignment

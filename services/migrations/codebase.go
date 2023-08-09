@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migrations
 
@@ -30,8 +29,7 @@ func init() {
 }
 
 // CodebaseDownloaderFactory defines a downloader factory
-type CodebaseDownloaderFactory struct {
-}
+type CodebaseDownloaderFactory struct{}
 
 // New returns a downloader related to this factory according MigrateOptions
 func (f *CodebaseDownloaderFactory) New(ctx context.Context, opts base.MigrateOptions) (base.Downloader, error) {
@@ -64,7 +62,7 @@ type codebaseUser struct {
 	Email string `json:"email"`
 }
 
-// CodebaseDownloader implements a Downloader interface to get repository informations
+// CodebaseDownloader implements a Downloader interface to get repository information
 // from Codebase
 type CodebaseDownloader struct {
 	base.NullDownloader
@@ -88,7 +86,7 @@ func (d *CodebaseDownloader) SetContext(ctx context.Context) {
 func NewCodebaseDownloader(ctx context.Context, projectURL *url.URL, project, repoName, username, password string) *CodebaseDownloader {
 	baseURL, _ := url.Parse("https://api3.codebasehq.com")
 
-	var downloader = &CodebaseDownloader{
+	downloader := &CodebaseDownloader{
 		ctx:        ctx,
 		baseURL:    baseURL,
 		projectURL: projectURL,
@@ -108,15 +106,28 @@ func NewCodebaseDownloader(ctx context.Context, projectURL *url.URL, project, re
 		commitMap: make(map[string]string),
 	}
 
+	log.Trace("Create Codebase downloader. BaseURL: %s Project: %s RepoName: %s", baseURL, project, repoName)
 	return downloader
 }
 
-// FormatCloneURL add authentification into remote URLs
+// String implements Stringer
+func (d *CodebaseDownloader) String() string {
+	return fmt.Sprintf("migration from codebase server %s %s/%s", d.baseURL, d.project, d.repoName)
+}
+
+func (d *CodebaseDownloader) LogString() string {
+	if d == nil {
+		return "<CodebaseDownloader nil>"
+	}
+	return fmt.Sprintf("<CodebaseDownloader %s %s/%s>", d.baseURL, d.project, d.repoName)
+}
+
+// FormatCloneURL add authentication into remote URLs
 func (d *CodebaseDownloader) FormatCloneURL(opts base.MigrateOptions, remoteAddr string) (string, error) {
 	return opts.CloneAddr, nil
 }
 
-func (d *CodebaseDownloader) callAPI(endpoint string, parameter map[string]string, result interface{}) error {
+func (d *CodebaseDownloader) callAPI(endpoint string, parameter map[string]string, result any) error {
 	u, err := d.baseURL.Parse(endpoint)
 	if err != nil {
 		return err
@@ -206,7 +217,7 @@ func (d *CodebaseDownloader) GetMilestones() ([]*base.Milestone, error) {
 		return nil, err
 	}
 
-	var milestones = make([]*base.Milestone, 0, len(rawMilestones.TicketingMilestone))
+	milestones := make([]*base.Milestone, 0, len(rawMilestones.TicketingMilestone))
 	for _, milestone := range rawMilestones.TicketingMilestone {
 		var deadline *time.Time
 		if len(milestone.Deadline.Value) > 0 {
@@ -256,7 +267,7 @@ func (d *CodebaseDownloader) GetLabels() ([]*base.Label, error) {
 		return nil, err
 	}
 
-	var labels = make([]*base.Label, 0, len(rawTypes.TicketingType))
+	labels := make([]*base.Label, 0, len(rawTypes.TicketingType))
 	for _, label := range rawTypes.TicketingType {
 		labels = append(labels, &base.Label{
 			Name:  label.Name,
@@ -267,17 +278,7 @@ func (d *CodebaseDownloader) GetLabels() ([]*base.Label, error) {
 }
 
 type codebaseIssueContext struct {
-	foreignID int64
-	localID   int64
-	Comments  []*base.Comment
-}
-
-func (c codebaseIssueContext) LocalID() int64 {
-	return c.localID
-}
-
-func (c codebaseIssueContext) ForeignID() int64 {
-	return c.foreignID
+	Comments []*base.Comment
 }
 
 // GetIssues returns issues, limits are not supported
@@ -372,6 +373,7 @@ func (d *CodebaseDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 			poster := d.tryGetUser(note.UserID.Value)
 			comments = append(comments, &base.Comment{
 				IssueIndex:  issue.TicketID.Value,
+				Index:       note.ID.Value,
 				PosterID:    poster.ID,
 				PosterName:  poster.Name,
 				PosterEmail: poster.Email,
@@ -400,11 +402,11 @@ func (d *CodebaseDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 			Created:     issue.CreatedAt.Value,
 			Updated:     issue.UpdatedAt.Value,
 			Labels: []*base.Label{
-				{Name: issue.Type.Name}},
+				{Name: issue.Type.Name},
+			},
+			ForeignIndex: issue.TicketID.Value,
 			Context: codebaseIssueContext{
-				foreignID: issue.TicketID.Value,
-				localID:   issue.TicketID.Value,
-				Comments:  comments[1:],
+				Comments: comments[1:],
 			},
 		})
 
@@ -417,10 +419,10 @@ func (d *CodebaseDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 }
 
 // GetComments returns comments
-func (d *CodebaseDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
-	context, ok := opts.Context.(codebaseIssueContext)
+func (d *CodebaseDownloader) GetComments(commentable base.Commentable) ([]*base.Comment, bool, error) {
+	context, ok := commentable.GetContext().(codebaseIssueContext)
 	if !ok {
-		return nil, false, fmt.Errorf("unexpected comment context: %+v", opts.Context)
+		return nil, false, fmt.Errorf("unexpected context: %+v", commentable.GetContext())
 	}
 
 	return context.Comments, true, nil
@@ -461,8 +463,8 @@ func (d *CodebaseDownloader) GetPullRequests(page, perPage int) ([]*base.PullReq
 				Value int64  `xml:",chardata"`
 				Type  string `xml:"type,attr"`
 			} `xml:"id"`
-			SourceRef string `xml:"source-ref"`
-			TargetRef string `xml:"target-ref"`
+			SourceRef string `xml:"source-ref"` // NOTE: from the documentation these are actually just branches NOT full refs
+			TargetRef string `xml:"target-ref"` // NOTE: from the documentation these are actually just branches NOT full refs
 			Subject   string `xml:"subject"`
 			Status    string `xml:"status"`
 			UserID    struct {
@@ -481,7 +483,11 @@ func (d *CodebaseDownloader) GetPullRequests(page, perPage int) ([]*base.PullReq
 				Type    string `xml:"type,attr"`
 				Comment []struct {
 					Content string `xml:"content"`
-					UserID  struct {
+					ID      struct {
+						Value int64  `xml:",chardata"`
+						Type  string `xml:"type,attr"`
+					} `xml:"id"`
+					UserID struct {
 						Value int64  `xml:",chardata"`
 						Type  string `xml:"type,attr"`
 					} `xml:"user-id"`
@@ -528,6 +534,7 @@ func (d *CodebaseDownloader) GetPullRequests(page, perPage int) ([]*base.PullReq
 			poster := d.tryGetUser(comment.UserID.Value)
 			comments = append(comments, &base.Comment{
 				IssueIndex:  number,
+				Index:       comment.ID.Value,
 				PosterID:    poster.ID,
 				PosterName:  poster.Name,
 				PosterEmail: poster.Email,
@@ -564,25 +571,17 @@ func (d *CodebaseDownloader) GetPullRequests(page, perPage int) ([]*base.PullReq
 				SHA:      d.getHeadCommit(rawMergeRequest.TargetRef),
 				RepoName: d.repoName,
 			},
+			ForeignIndex: rawMergeRequest.ID.Value,
 			Context: codebaseIssueContext{
-				foreignID: rawMergeRequest.ID.Value,
-				localID:   number,
-				Comments:  comments[1:],
+				Comments: comments[1:],
 			},
 		})
+
+		// SECURITY: Ensure that the PR is safe
+		_ = CheckAndEnsureSafePR(pullRequests[len(pullRequests)-1], d.baseURL.String(), d)
 	}
 
 	return pullRequests, true, nil
-}
-
-// GetReviews returns pull requests reviews
-func (d *CodebaseDownloader) GetReviews(context base.IssueContext) ([]*base.Review, error) {
-	return []*base.Review{}, nil
-}
-
-// GetTopics return repository topics
-func (d *CodebaseDownloader) GetTopics() ([]string, error) {
-	return []string{}, nil
 }
 
 func (d *CodebaseDownloader) tryGetUser(userID int64) *codebaseUser {

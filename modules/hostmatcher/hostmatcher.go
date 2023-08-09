@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package hostmatcher
 
@@ -8,8 +7,6 @@ import (
 	"net"
 	"path/filepath"
 	"strings"
-
-	"code.gitea.io/gitea/modules/util"
 )
 
 // HostMatchList is used to check if a host or IP is in a list.
@@ -80,6 +77,11 @@ func (hl *HostMatchList) AppendBuiltin(builtin string) {
 	hl.builtins = append(hl.builtins, builtin)
 }
 
+// AppendPattern appends more pattern to match
+func (hl *HostMatchList) AppendPattern(pattern string) {
+	hl.patterns = append(hl.patterns, pattern)
+}
+
 // IsEmpty checks if the checklist is empty
 func (hl *HostMatchList) IsEmpty() bool {
 	return hl == nil || (len(hl.builtins) == 0 && len(hl.patterns) == 0 && len(hl.ipNets) == 0)
@@ -104,11 +106,11 @@ func (hl *HostMatchList) checkIP(ip net.IP) bool {
 	for _, builtin := range hl.builtins {
 		switch builtin {
 		case MatchBuiltinExternal:
-			if ip.IsGlobalUnicast() && !util.IsIPPrivate(ip) {
+			if ip.IsGlobalUnicast() && !ip.IsPrivate() {
 				return true
 			}
 		case MatchBuiltinPrivate:
-			if util.IsIPPrivate(ip) {
+			if ip.IsPrivate() {
 				return true
 			}
 		case MatchBuiltinLoopback:
@@ -130,10 +132,15 @@ func (hl *HostMatchList) MatchHostName(host string) bool {
 	if hl == nil {
 		return false
 	}
-	if hl.checkPattern(host) {
+
+	hostname, _, err := net.SplitHostPort(host)
+	if err != nil {
+		hostname = host
+	}
+	if hl.checkPattern(hostname) {
 		return true
 	}
-	if ip := net.ParseIP(host); ip != nil {
+	if ip := net.ParseIP(hostname); ip != nil {
 		return hl.checkIP(ip)
 	}
 	return false

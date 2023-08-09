@@ -1,10 +1,10 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -62,8 +62,8 @@ func GetUnindexedRepos(indexerType RepoIndexerType, maxRepoID int64, page, pageS
 	return ids, err
 }
 
-// getIndexerStatus loads repo codes indxer status
-func getIndexerStatus(e db.Engine, repo *Repository, indexerType RepoIndexerType) (*RepoIndexerStatus, error) {
+// GetIndexerStatus loads repo codes indxer status
+func GetIndexerStatus(ctx context.Context, repo *Repository, indexerType RepoIndexerType) (*RepoIndexerStatus, error) {
 	switch indexerType {
 	case RepoIndexerTypeCode:
 		if repo.CodeIndexerStatus != nil {
@@ -75,7 +75,7 @@ func getIndexerStatus(e db.Engine, repo *Repository, indexerType RepoIndexerType
 		}
 	}
 	status := &RepoIndexerStatus{RepoID: repo.ID}
-	if has, err := e.Where("`indexer_type` = ?", indexerType).Get(status); err != nil {
+	if has, err := db.GetEngine(ctx).Where("`indexer_type` = ?", indexerType).Get(status); err != nil {
 		return nil, err
 	} else if !has {
 		status.IndexerType = indexerType
@@ -90,36 +90,25 @@ func getIndexerStatus(e db.Engine, repo *Repository, indexerType RepoIndexerType
 	return status, nil
 }
 
-// GetIndexerStatus loads repo codes indxer status
-func GetIndexerStatus(repo *Repository, indexerType RepoIndexerType) (*RepoIndexerStatus, error) {
-	return getIndexerStatus(db.GetEngine(db.DefaultContext), repo, indexerType)
-}
-
-// updateIndexerStatus updates indexer status
-func updateIndexerStatus(e db.Engine, repo *Repository, indexerType RepoIndexerType, sha string) error {
-	status, err := getIndexerStatus(e, repo, indexerType)
+// UpdateIndexerStatus updates indexer status
+func UpdateIndexerStatus(ctx context.Context, repo *Repository, indexerType RepoIndexerType, sha string) error {
+	status, err := GetIndexerStatus(ctx, repo, indexerType)
 	if err != nil {
-		return fmt.Errorf("UpdateIndexerStatus: Unable to getIndexerStatus for repo: %s Error: %v", repo.FullName(), err)
+		return fmt.Errorf("UpdateIndexerStatus: Unable to getIndexerStatus for repo: %s Error: %w", repo.FullName(), err)
 	}
 
 	if len(status.CommitSha) == 0 {
 		status.CommitSha = sha
-		_, err := e.Insert(status)
-		if err != nil {
-			return fmt.Errorf("UpdateIndexerStatus: Unable to insert repoIndexerStatus for repo: %s Sha: %s Error: %v", repo.FullName(), sha, err)
+		if err := db.Insert(ctx, status); err != nil {
+			return fmt.Errorf("UpdateIndexerStatus: Unable to insert repoIndexerStatus for repo: %s Sha: %s Error: %w", repo.FullName(), sha, err)
 		}
 		return nil
 	}
 	status.CommitSha = sha
-	_, err = e.ID(status.ID).Cols("commit_sha").
+	_, err = db.GetEngine(ctx).ID(status.ID).Cols("commit_sha").
 		Update(status)
 	if err != nil {
-		return fmt.Errorf("UpdateIndexerStatus: Unable to update repoIndexerStatus for repo: %s Sha: %s Error: %v", repo.FullName(), sha, err)
+		return fmt.Errorf("UpdateIndexerStatus: Unable to update repoIndexerStatus for repo: %s Sha: %s Error: %w", repo.FullName(), sha, err)
 	}
 	return nil
-}
-
-// UpdateIndexerStatus updates indexer status
-func UpdateIndexerStatus(repo *Repository, indexerType RepoIndexerType, sha string) error {
-	return updateIndexerStatus(db.GetEngine(db.DefaultContext), repo, indexerType, sha)
 }

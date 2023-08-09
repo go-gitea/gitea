@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package markup
 
@@ -8,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup"
 
 	"github.com/stretchr/testify/assert"
@@ -15,7 +15,7 @@ import (
 
 func TestRenderCSV(t *testing.T) {
 	var render Renderer
-	var kases = map[string]string{
+	kases := map[string]string{
 		"a":        "<table class=\"data-table\"><tr><th class=\"line-num\">1</th><th>a</th></tr></table>",
 		"1,2":      "<table class=\"data-table\"><tr><th class=\"line-num\">1</th><th>1</th><th>2</th></tr></table>",
 		"1;2\n3;4": "<table class=\"data-table\"><tr><th class=\"line-num\">1</th><th>1</th><th>2</th></tr><tr><td class=\"line-num\">2</td><td>3</td><td>4</td></tr></table>",
@@ -24,7 +24,8 @@ func TestRenderCSV(t *testing.T) {
 
 	for k, v := range kases {
 		var buf strings.Builder
-		err := render.Render(&markup.RenderContext{}, strings.NewReader(k), &buf)
+		err := render.Render(&markup.RenderContext{Ctx: git.DefaultContext},
+			strings.NewReader(k), &buf)
 		assert.NoError(t, err)
 		assert.EqualValues(t, v, buf.String())
 	}

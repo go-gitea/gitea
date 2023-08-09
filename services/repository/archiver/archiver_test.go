@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package archiver
 
@@ -17,13 +16,15 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, filepath.Join("..", "..", ".."))
+	unittest.MainTest(m, &unittest.TestOptions{
+		GiteaRootPath: filepath.Join("..", "..", ".."),
+	})
 }
 
 func TestArchive_Basic(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	ctx := test.MockContext(t, "user27/repo49")
+	ctx, _ := test.MockContext(t, "user27/repo49")
 	firstCommit, secondCommit := "51f84af23134", "aacbdfe9e1c4"
 
 	test.LoadRepo(t, ctx, 49)
@@ -128,6 +129,6 @@ func TestArchive_Basic(t *testing.T) {
 }
 
 func TestErrUnknownArchiveFormat(t *testing.T) {
-	var err = ErrUnknownArchiveFormat{RequestFormat: "master"}
+	err := ErrUnknownArchiveFormat{RequestFormat: "master"}
 	assert.True(t, errors.Is(err, ErrUnknownArchiveFormat{}))
 }

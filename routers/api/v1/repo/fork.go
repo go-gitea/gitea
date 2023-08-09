@@ -1,23 +1,25 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -58,12 +60,12 @@ func ListForks(ctx *context.APIContext) {
 	}
 	apiForks := make([]*api.Repository, len(forks))
 	for i, fork := range forks {
-		access, err := models.AccessLevel(ctx.User, fork)
+		permission, err := access_model.GetUserRepoPermission(ctx, fork, ctx.Doer)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
+			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 			return
 		}
-		apiForks[i] = convert.ToRepo(fork, access)
+		apiForks[i] = convert.ToRepo(ctx, fork, permission)
 	}
 
 	ctx.SetTotalCountHeader(int64(ctx.Repo.Repository.NumForks))
@@ -106,18 +108,18 @@ func CreateFork(ctx *context.APIContext) {
 	repo := ctx.Repo.Repository
 	var forker *user_model.User // user/org that will own the fork
 	if form.Organization == nil {
-		forker = ctx.User
+		forker = ctx.Doer
 	} else {
-		org, err := models.GetOrgByName(*form.Organization)
+		org, err := organization.GetOrgByName(ctx, *form.Organization)
 		if err != nil {
-			if models.IsErrOrgNotExist(err) {
+			if organization.IsErrOrgNotExist(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "", err)
 			} else {
 				ctx.Error(http.StatusInternalServerError, "GetOrgByName", err)
 			}
 			return
 		}
-		isMember, err := org.IsOrgMember(ctx.User.ID)
+		isMember, err := org.IsOrgMember(ctx.Doer.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
 			return
@@ -135,13 +137,13 @@ func CreateFork(ctx *context.APIContext) {
 		name = *form.Name
 	}
 
-	fork, err := repo_service.ForkRepository(ctx.User, forker, repo_service.ForkRepoOptions{
+	fork, err := repo_service.ForkRepository(ctx, ctx.Doer, forker, repo_service.ForkRepoOptions{
 		BaseRepo:    repo,
 		Name:        name,
 		Description: repo.Description,
 	})
 	if err != nil {
-		if repo_model.IsErrRepoAlreadyExist(err) {
+		if errors.Is(err, util.ErrAlreadyExist) || repo_model.IsErrReachLimitOfRepo(err) {
 			ctx.Error(http.StatusConflict, "ForkRepository", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "ForkRepository", err)
@@ -149,6 +151,6 @@ func CreateFork(ctx *context.APIContext) {
 		return
 	}
 
-	//TODO change back to 201
-	ctx.JSON(http.StatusAccepted, convert.ToRepo(fork, perm.AccessModeOwner))
+	// TODO change back to 201
+	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx, fork, access_model.Permission{AccessMode: perm.AccessModeOwner}))
 }

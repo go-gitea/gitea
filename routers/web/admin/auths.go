@@ -1,6 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package admin
 
@@ -46,7 +45,6 @@ var (
 // Authentications show authentication config page
 func Authentications(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.authentication")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
 
 	var err error
@@ -62,7 +60,7 @@ func Authentications(ctx *context.Context) {
 
 type dropdownItem struct {
 	Name string
-	Type interface{}
+	Type any
 }
 
 var (
@@ -90,10 +88,9 @@ var (
 // NewAuthSource render adding a new auth source page
 func NewAuthSource(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.auths.new")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
 
-	ctx.Data["type"] = auth.LDAP
+	ctx.Data["type"] = auth.LDAP.Int()
 	ctx.Data["CurrentTypeName"] = auth.Names[auth.LDAP]
 	ctx.Data["CurrentSecurityProtocol"] = ldap.SecurityProtocolNames[ldap.SecurityProtocolUnencrypted]
 	ctx.Data["smtp_auth"] = "PLAIN"
@@ -112,7 +109,7 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["SSPIDefaultLanguage"] = ""
 
 	// only the first as default
-	ctx.Data["oauth2_provider"] = oauth2providers[0]
+	ctx.Data["oauth2_provider"] = oauth2providers[0].Name()
 
 	ctx.HTML(http.StatusOK, tplAuthNew)
 }
@@ -145,6 +142,8 @@ func parseLDAPConfig(form forms.AuthenticationForm) *ldap.Source {
 		GroupDN:               form.GroupDN,
 		GroupFilter:           form.GroupFilter,
 		GroupMemberUID:        form.GroupMemberUID,
+		GroupTeamMap:          form.GroupTeamMap,
+		GroupTeamMapRemoval:   form.GroupTeamMapRemoval,
 		UserUID:               form.UserUID,
 		AdminFilter:           form.AdminFilter,
 		RestrictedFilter:      form.RestrictedFilter,
@@ -181,6 +180,14 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 	} else {
 		customURLMapping = nil
 	}
+	var scopes []string
+	for _, s := range strings.Split(form.Oauth2Scopes, ",") {
+		s = strings.TrimSpace(s)
+		if s != "" {
+			scopes = append(scopes, s)
+		}
+	}
+
 	return &oauth2.Source{
 		Provider:                      form.Oauth2Provider,
 		ClientID:                      form.Oauth2Key,
@@ -188,10 +195,15 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 		OpenIDConnectAutoDiscoveryURL: form.OpenIDConnectAutoDiscoveryURL,
 		CustomURLMapping:              customURLMapping,
 		IconURL:                       form.Oauth2IconURL,
-		Scopes:                        strings.Split(form.Oauth2Scopes, ","),
+		Scopes:                        scopes,
 		RequiredClaimName:             form.Oauth2RequiredClaimName,
 		RequiredClaimValue:            form.Oauth2RequiredClaimValue,
 		SkipLocalTwoFA:                form.SkipLocalTwoFA,
+		GroupClaimName:                form.Oauth2GroupClaimName,
+		RestrictedGroup:               form.Oauth2RestrictedGroup,
+		AdminGroup:                    form.Oauth2AdminGroup,
+		GroupTeamMap:                  form.Oauth2GroupTeamMap,
+		GroupTeamMapRemoval:           form.Oauth2GroupTeamMapRemoval,
 	}
 }
 
@@ -223,7 +235,6 @@ func parseSSPIConfig(ctx *context.Context, form forms.AuthenticationForm) (*sspi
 func NewAuthSourcePost(ctx *context.Context) {
 	form := *web.GetForm(ctx).(*forms.AuthenticationForm)
 	ctx.Data["Title"] = ctx.Tr("admin.auths.new")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
 
 	ctx.Data["CurrentTypeName"] = auth.Type(form.Type).String()
@@ -257,6 +268,15 @@ func NewAuthSourcePost(ctx *context.Context) {
 		}
 	case auth.OAuth2:
 		config = parseOAuth2Config(form)
+		oauth2Config := config.(*oauth2.Source)
+		if oauth2Config.Provider == "openidConnect" {
+			discoveryURL, err := url.Parse(oauth2Config.OpenIDConnectAutoDiscoveryURL)
+			if err != nil || (discoveryURL.Scheme != "http" && discoveryURL.Scheme != "https") {
+				ctx.Data["Err_DiscoveryURL"] = true
+				ctx.RenderWithErr(ctx.Tr("admin.auths.invalid_openIdConnectAutoDiscoveryURL"), tplAuthNew, form)
+				return
+			}
+		}
 	case auth.SSPI:
 		var err error
 		config, err = parseSSPIConfig(ctx, form)
@@ -291,13 +311,17 @@ func NewAuthSourcePost(ctx *context.Context) {
 		if auth.IsErrSourceAlreadyExist(err) {
 			ctx.Data["Err_Name"] = true
 			ctx.RenderWithErr(ctx.Tr("admin.auths.login_source_exist", err.(auth.ErrSourceAlreadyExist).Name), tplAuthNew, form)
+		} else if oauth2.IsErrOpenIDConnectInitialize(err) {
+			ctx.Data["Err_DiscoveryURL"] = true
+			unwrapped := err.(oauth2.ErrOpenIDConnectInitialize).Unwrap()
+			ctx.RenderWithErr(ctx.Tr("admin.auths.unable_to_initialize_openid", unwrapped), tplAuthNew, form)
 		} else {
 			ctx.ServerError("auth.CreateSource", err)
 		}
 		return
 	}
 
-	log.Trace("Authentication created by admin(%s): %s", ctx.User.Name, form.Name)
+	log.Trace("Authentication created by admin(%s): %s", ctx.Doer.Name, form.Name)
 
 	ctx.Flash.Success(ctx.Tr("admin.auths.new_success", form.Name))
 	ctx.Redirect(setting.AppSubURL + "/admin/auths")
@@ -306,7 +330,6 @@ func NewAuthSourcePost(ctx *context.Context) {
 // EditAuthSource render editing auth source page
 func EditAuthSource(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.auths.edit")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
 
 	ctx.Data["SecurityProtocols"] = securityProtocols
@@ -342,7 +365,6 @@ func EditAuthSource(ctx *context.Context) {
 func EditAuthSourcePost(ctx *context.Context) {
 	form := *web.GetForm(ctx).(*forms.AuthenticationForm)
 	ctx.Data["Title"] = ctx.Tr("admin.auths.edit")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
 
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
@@ -375,6 +397,15 @@ func EditAuthSourcePost(ctx *context.Context) {
 		}
 	case auth.OAuth2:
 		config = parseOAuth2Config(form)
+		oauth2Config := config.(*oauth2.Source)
+		if oauth2Config.Provider == "openidConnect" {
+			discoveryURL, err := url.Parse(oauth2Config.OpenIDConnectAutoDiscoveryURL)
+			if err != nil || (discoveryURL.Scheme != "http" && discoveryURL.Scheme != "https") {
+				ctx.Data["Err_DiscoveryURL"] = true
+				ctx.RenderWithErr(ctx.Tr("admin.auths.invalid_openIdConnectAutoDiscoveryURL"), tplAuthEdit, form)
+				return
+			}
+		}
 	case auth.SSPI:
 		config, err = parseSSPIConfig(ctx, form)
 		if err != nil {
@@ -391,15 +422,19 @@ func EditAuthSourcePost(ctx *context.Context) {
 	source.IsSyncEnabled = form.IsSyncEnabled
 	source.Cfg = config
 	if err := auth.UpdateSource(source); err != nil {
-		if oauth2.IsErrOpenIDConnectInitialize(err) {
+		if auth.IsErrSourceAlreadyExist(err) {
+			ctx.Data["Err_Name"] = true
+			ctx.RenderWithErr(ctx.Tr("admin.auths.login_source_exist", err.(auth.ErrSourceAlreadyExist).Name), tplAuthEdit, form)
+		} else if oauth2.IsErrOpenIDConnectInitialize(err) {
 			ctx.Flash.Error(err.Error(), true)
+			ctx.Data["Err_DiscoveryURL"] = true
 			ctx.HTML(http.StatusOK, tplAuthEdit)
 		} else {
 			ctx.ServerError("UpdateSource", err)
 		}
 		return
 	}
-	log.Trace("Authentication changed by admin(%s): %d", ctx.User.Name, source.ID)
+	log.Trace("Authentication changed by admin(%s): %d", ctx.Doer.Name, source.ID)
 
 	ctx.Flash.Success(ctx.Tr("admin.auths.update_success"))
 	ctx.Redirect(setting.AppSubURL + "/admin/auths/" + strconv.FormatInt(form.ID, 10))
@@ -419,15 +454,11 @@ func DeleteAuthSource(ctx *context.Context) {
 		} else {
 			ctx.Flash.Error(fmt.Sprintf("auth_service.DeleteSource: %v", err))
 		}
-		ctx.JSON(http.StatusOK, map[string]interface{}{
-			"redirect": setting.AppSubURL + "/admin/auths/" + url.PathEscape(ctx.Params(":authid")),
-		})
+		ctx.JSONRedirect(setting.AppSubURL + "/admin/auths/" + url.PathEscape(ctx.Params(":authid")))
 		return
 	}
-	log.Trace("Authentication deleted by admin(%s): %d", ctx.User.Name, source.ID)
+	log.Trace("Authentication deleted by admin(%s): %d", ctx.Doer.Name, source.ID)
 
 	ctx.Flash.Success(ctx.Tr("admin.auths.deletion_success"))
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/admin/auths",
-	})
+	ctx.JSONRedirect(setting.AppSubURL + "/admin/auths")
 }

@@ -1,14 +1,12 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package mailer
 
 import (
 	"bytes"
+	"context"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -24,20 +22,20 @@ const (
 	tplNewReleaseMail base.TplName = "release"
 )
 
-// MailNewRelease send new release notify to all all repo watchers.
-func MailNewRelease(rel *models.Release) {
+// MailNewRelease send new release notify to all repo watchers.
+func MailNewRelease(ctx context.Context, rel *repo_model.Release) {
 	if setting.MailService == nil {
 		// No mail service configured
 		return
 	}
 
-	watcherIDList, err := repo_model.GetRepoWatchersIDs(db.DefaultContext, rel.RepoID)
+	watcherIDList, err := repo_model.GetRepoWatchersIDs(ctx, rel.RepoID)
 	if err != nil {
 		log.Error("GetRepoWatchersIDs(%d): %v", rel.RepoID, err)
 		return
 	}
 
-	recipients, err := user_model.GetMaileableUsersByIDs(watcherIDList, false)
+	recipients, err := user_model.GetMaileableUsersByIDs(ctx, watcherIDList, false)
 	if err != nil {
 		log.Error("user_model.GetMaileableUsersByIDs: %v", err)
 		return
@@ -51,15 +49,16 @@ func MailNewRelease(rel *models.Release) {
 	}
 
 	for lang, tos := range langMap {
-		mailNewRelease(lang, tos, rel)
+		mailNewRelease(ctx, lang, tos, rel)
 	}
 }
 
-func mailNewRelease(lang string, tos []string, rel *models.Release) {
+func mailNewRelease(ctx context.Context, lang string, tos []string, rel *repo_model.Release) {
 	locale := translation.NewLocale(lang)
 
 	var err error
 	rel.RenderedNote, err = markdown.RenderString(&markup.RenderContext{
+		Ctx:       ctx,
 		URLPrefix: rel.Repo.Link(),
 		Metas:     rel.Repo.ComposeMetas(),
 	}, rel.Note)
@@ -69,13 +68,14 @@ func mailNewRelease(lang string, tos []string, rel *models.Release) {
 	}
 
 	subject := locale.Tr("mail.release.new.subject", rel.TagName, rel.Repo.FullName())
-	mailMeta := map[string]interface{}{
+	mailMeta := map[string]any{
 		"Release":  rel,
 		"Subject":  subject,
 		"Language": locale.Language(),
 		// helper
-		"i18n":     locale,
-		"Str2html": templates.Str2html,
+		"locale":    locale,
+		"Str2html":  templates.Str2html,
+		"DotEscape": templates.DotEscape,
 	}
 
 	var mailBody bytes.Buffer
@@ -89,7 +89,7 @@ func mailNewRelease(lang string, tos []string, rel *models.Release) {
 	publisherName := rel.Publisher.DisplayName()
 	relURL := "<" + rel.HTMLURL() + ">"
 	for _, to := range tos {
-		msg := NewMessageFrom([]string{to}, publisherName, setting.MailService.FromEmail, subject, mailBody.String())
+		msg := NewMessageFrom(to, publisherName, setting.MailService.FromEmail, subject, mailBody.String())
 		msg.Info = subject
 		msg.SetHeader("Message-ID", relURL)
 		msgs = append(msgs, msg)

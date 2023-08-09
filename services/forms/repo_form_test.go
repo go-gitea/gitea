@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package forms
 
@@ -13,7 +12,6 @@ import (
 )
 
 func TestSubmitReviewForm_IsEmpty(t *testing.T) {
-
 	cases := []struct {
 		form     SubmitReviewForm
 		expected bool
@@ -43,7 +41,6 @@ func TestSubmitReviewForm_IsEmpty(t *testing.T) {
 }
 
 func TestIssueLock_HasValidReason(t *testing.T) {
-
 	// Init settings
 	_ = setting.Repository
 

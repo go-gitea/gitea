@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -32,9 +31,12 @@ type WriteCloserError interface {
 // This is needed otherwise the git cat-file will hang for invalid repositories.
 func EnsureValidGitRepository(ctx context.Context, repoPath string) error {
 	stderr := strings.Builder{}
-	err := NewCommandContext(ctx, "rev-parse").
+	err := NewCommand(ctx, "rev-parse").
 		SetDescription(fmt.Sprintf("%s rev-parse [repo_path: %s]", GitExecutable, repoPath)).
-		RunInDirFullPipeline(repoPath, nil, &stderr, nil)
+		Run(&RunOpts{
+			Dir:    repoPath,
+			Stderr: &stderr,
+		})
 	if err != nil {
 		return ConcatenateError(err, (&stderr).String())
 	}
@@ -54,14 +56,27 @@ func CatFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, 
 		<-closed
 	}
 
+	// Ensure cancel is called as soon as the provided context is cancelled
+	go func() {
+		<-ctx.Done()
+		cancel()
+	}()
+
 	_, filename, line, _ := runtime.Caller(2)
 	filename = strings.TrimPrefix(filename, callerPrefix)
 
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommandContext(ctx, "cat-file", "--batch-check").
+		err := NewCommand(ctx, "cat-file", "--batch-check").
 			SetDescription(fmt.Sprintf("%s cat-file --batch-check [repo_path: %s] (%s:%d)", GitExecutable, repoPath, filename, line)).
-			RunInDirFullPipeline(repoPath, batchStdoutWriter, &stderr, batchStdinReader)
+			Run(&RunOpts{
+				Dir:    repoPath,
+				Stdin:  batchStdinReader,
+				Stdout: batchStdoutWriter,
+				Stderr: &stderr,
+
+				UseContextTimeout: true,
+			})
 		if err != nil {
 			_ = batchStdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
 			_ = batchStdinReader.CloseWithError(ConcatenateError(err, (&stderr).String()))
@@ -93,14 +108,27 @@ func CatFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufi
 		<-closed
 	}
 
+	// Ensure cancel is called as soon as the provided context is cancelled
+	go func() {
+		<-ctx.Done()
+		cancel()
+	}()
+
 	_, filename, line, _ := runtime.Caller(2)
 	filename = strings.TrimPrefix(filename, callerPrefix)
 
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommandContext(ctx, "cat-file", "--batch").
+		err := NewCommand(ctx, "cat-file", "--batch").
 			SetDescription(fmt.Sprintf("%s cat-file --batch [repo_path: %s] (%s:%d)", GitExecutable, repoPath, filename, line)).
-			RunInDirFullPipeline(repoPath, batchStdoutWriter, &stderr, batchStdinReader)
+			Run(&RunOpts{
+				Dir:    repoPath,
+				Stdin:  batchStdinReader,
+				Stdout: batchStdoutWriter,
+				Stderr: &stderr,
+
+				UseContextTimeout: true,
+			})
 		if err != nil {
 			_ = batchStdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
 			_ = batchStdinReader.CloseWithError(ConcatenateError(err, (&stderr).String()))
@@ -124,39 +152,37 @@ func CatFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufi
 func ReadBatchLine(rd *bufio.Reader) (sha []byte, typ string, size int64, err error) {
 	typ, err = rd.ReadString('\n')
 	if err != nil {
-		return
+		return sha, typ, size, err
 	}
 	if len(typ) == 1 {
 		typ, err = rd.ReadString('\n')
 		if err != nil {
-			return
+			return sha, typ, size, err
 		}
 	}
 	idx := strings.IndexByte(typ, ' ')
 	if idx < 0 {
 		log.Debug("missing space typ: %s", typ)
-		err = ErrNotExist{ID: string(sha)}
-		return
+		return sha, typ, size, ErrNotExist{ID: string(sha)}
 	}
 	sha = []byte(typ[:idx])
 	typ = typ[idx+1:]
 
 	idx = strings.IndexByte(typ, ' ')
 	if idx < 0 {
-		err = ErrNotExist{ID: string(sha)}
-		return
+		return sha, typ, size, ErrNotExist{ID: string(sha)}
 	}
 
 	sizeStr := typ[idx+1 : len(typ)-1]
 	typ = typ[:idx]
 
 	size, err = strconv.ParseInt(sizeStr, 10, 64)
-	return
+	return sha, typ, size, err
 }
 
 // ReadTagObjectID reads a tag object ID hash from a cat-file --batch stream, throwing away the rest of the stream.
 func ReadTagObjectID(rd *bufio.Reader, size int64) (string, error) {
-	id := ""
+	var id string
 	var n int64
 headerLoop:
 	for {
@@ -191,7 +217,7 @@ headerLoop:
 
 // ReadTreeID reads a tree ID from a cat-file --batch stream, throwing away the rest of the stream.
 func ReadTreeID(rd *bufio.Reader, size int64) (string, error) {
-	id := ""
+	var id string
 	var n int64
 headerLoop:
 	for {
@@ -261,14 +287,12 @@ func ParseTreeLine(rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fn
 	// Read the Mode & fname
 	readBytes, err = rd.ReadSlice('\x00')
 	if err != nil {
-		return
+		return mode, fname, sha, n, err
 	}
 	idx := bytes.IndexByte(readBytes, ' ')
 	if idx < 0 {
 		log.Debug("missing space in readBytes ParseTreeLine: %s", readBytes)
-
-		err = &ErrNotExist{}
-		return
+		return mode, fname, sha, n, &ErrNotExist{}
 	}
 
 	n += idx + 1
@@ -295,7 +319,7 @@ func ParseTreeLine(rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fn
 	}
 	n += len(fnameBuf)
 	if err != nil {
-		return
+		return mode, fname, sha, n, err
 	}
 	fnameBuf = fnameBuf[:len(fnameBuf)-1]
 	fname = fnameBuf
@@ -303,16 +327,16 @@ func ParseTreeLine(rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fn
 	// Deal with the 20-byte SHA
 	idx = 0
 	for idx < 20 {
-		read := 0
+		var read int
 		read, err = rd.Read(shaBuf[idx:20])
 		n += read
 		if err != nil {
-			return
+			return mode, fname, sha, n, err
 		}
 		idx += read
 	}
 	sha = shaBuf
-	return
+	return mode, fname, sha, n, err
 }
 
 var callerPrefix string

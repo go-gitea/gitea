@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -8,11 +7,10 @@ import (
 	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // StartIssueStopwatch creates a stopwatch for the given issue.
@@ -56,7 +54,7 @@ func StartIssueStopwatch(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.CreateIssueStopwatch(db.DefaultContext, ctx.User, issue); err != nil {
+	if err := issues_model.CreateIssueStopwatch(ctx, ctx.Doer, issue); err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateOrStopIssueStopwatch", err)
 		return
 	}
@@ -105,7 +103,7 @@ func StopIssueStopwatch(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.FinishIssueStopwatch(db.DefaultContext, ctx.User, issue); err != nil {
+	if err := issues_model.FinishIssueStopwatch(ctx, ctx.Doer, issue); err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateOrStopIssueStopwatch", err)
 		return
 	}
@@ -154,7 +152,7 @@ func DeleteIssueStopwatch(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.CancelStopwatch(ctx.User, issue); err != nil {
+	if err := issues_model.CancelStopwatch(ctx.Doer, issue); err != nil {
 		ctx.Error(http.StatusInternalServerError, "CancelStopwatch", err)
 		return
 	}
@@ -162,10 +160,10 @@ func DeleteIssueStopwatch(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-func prepareIssueStopwatch(ctx *context.APIContext, shouldExist bool) (*models.Issue, error) {
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+func prepareIssueStopwatch(ctx *context.APIContext, shouldExist bool) (*issues_model.Issue, error) {
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
-		if models.IsErrIssueNotExist(err) {
+		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
@@ -179,12 +177,12 @@ func prepareIssueStopwatch(ctx *context.APIContext, shouldExist bool) (*models.I
 		return nil, errors.New("Unable to write to PRs")
 	}
 
-	if !ctx.Repo.CanUseTimetracker(issue, ctx.User) {
+	if !ctx.Repo.CanUseTimetracker(issue, ctx.Doer) {
 		ctx.Status(http.StatusForbidden)
 		return nil, errors.New("Cannot use time tracker")
 	}
 
-	if models.StopwatchExists(ctx.User.ID, issue.ID) != shouldExist {
+	if issues_model.StopwatchExists(ctx.Doer.ID, issue.ID) != shouldExist {
 		if shouldExist {
 			ctx.Error(http.StatusConflict, "StopwatchExists", "cannot stop/cancel a non existent stopwatch")
 			err = errors.New("cannot stop/cancel a non existent stopwatch")
@@ -220,13 +218,13 @@ func GetStopwatches(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/StopWatchList"
 
-	sws, err := models.GetUserStopwatches(ctx.User.ID, utils.GetListOptions(ctx))
+	sws, err := issues_model.GetUserStopwatches(ctx.Doer.ID, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserStopwatches", err)
 		return
 	}
 
-	count, err := models.CountUserStopwatches(ctx.User.ID)
+	count, err := issues_model.CountUserStopwatches(ctx.Doer.ID)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

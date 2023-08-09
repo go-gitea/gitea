@@ -1,40 +1,40 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
 import (
+	std_ctx "context"
 	"net/http"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // appendPrivateInformation appends the owner and key type information to api.PublicKey
-func appendPrivateInformation(apiKey *api.PublicKey, key *asymkey_model.PublicKey, defaultUser *user_model.User) (*api.PublicKey, error) {
+func appendPrivateInformation(ctx std_ctx.Context, apiKey *api.PublicKey, key *asymkey_model.PublicKey, defaultUser *user_model.User) (*api.PublicKey, error) {
 	if key.Type == asymkey_model.KeyTypeDeploy {
 		apiKey.KeyType = "deploy"
 	} else if key.Type == asymkey_model.KeyTypeUser {
 		apiKey.KeyType = "user"
 
 		if defaultUser.ID == key.OwnerID {
-			apiKey.Owner = convert.ToUser(defaultUser, defaultUser)
+			apiKey.Owner = convert.ToUser(ctx, defaultUser, defaultUser)
 		} else {
-			user, err := user_model.GetUserByID(key.OwnerID)
+			user, err := user_model.GetUserByID(ctx, key.OwnerID)
 			if err != nil {
 				return apiKey, err
 			}
-			apiKey.Owner = convert.ToUser(user, user)
+			apiKey.Owner = convert.ToUser(ctx, user, user)
 		}
 	} else {
 		apiKey.KeyType = "unknown"
@@ -86,8 +86,8 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 	apiKeys := make([]*api.PublicKey, len(keys))
 	for i := range keys {
 		apiKeys[i] = convert.ToPublicKey(apiLink, keys[i])
-		if ctx.User.IsAdmin || ctx.User.ID == keys[i].OwnerID {
-			apiKeys[i], _ = appendPrivateInformation(apiKeys[i], keys[i], user)
+		if ctx.Doer.IsAdmin || ctx.Doer.ID == keys[i].OwnerID {
+			apiKeys[i], _ = appendPrivateInformation(ctx, apiKeys[i], keys[i], user)
 		}
 	}
 
@@ -119,7 +119,7 @@ func ListMyPublicKeys(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/PublicKeyList"
 
-	listPublicKeys(ctx, ctx.User)
+	listPublicKeys(ctx, ctx.Doer)
 }
 
 // ListPublicKeys list the given user's public keys
@@ -151,11 +151,7 @@ func ListPublicKeys(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/PublicKeyList"
 
-	user := GetUserByParams(ctx)
-	if ctx.Written() {
-		return
-	}
-	listPublicKeys(ctx, user)
+	listPublicKeys(ctx, ctx.ContextUser)
 }
 
 // GetPublicKey get a public key
@@ -190,8 +186,8 @@ func GetPublicKey(ctx *context.APIContext) {
 
 	apiLink := composePublicKeysAPILink()
 	apiKey := convert.ToPublicKey(apiLink, key)
-	if ctx.User.IsAdmin || ctx.User.ID == key.OwnerID {
-		apiKey, _ = appendPrivateInformation(apiKey, key, ctx.User)
+	if ctx.Doer.IsAdmin || ctx.Doer.ID == key.OwnerID {
+		apiKey, _ = appendPrivateInformation(ctx, apiKey, key, ctx.Doer)
 	}
 	ctx.JSON(http.StatusOK, apiKey)
 }
@@ -211,8 +207,8 @@ func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid 
 	}
 	apiLink := composePublicKeysAPILink()
 	apiKey := convert.ToPublicKey(apiLink, key)
-	if ctx.User.IsAdmin || ctx.User.ID == key.OwnerID {
-		apiKey, _ = appendPrivateInformation(apiKey, key, ctx.User)
+	if ctx.Doer.IsAdmin || ctx.Doer.ID == key.OwnerID {
+		apiKey, _ = appendPrivateInformation(ctx, apiKey, key, ctx.Doer)
 	}
 	ctx.JSON(http.StatusCreated, apiKey)
 }
@@ -238,7 +234,7 @@ func CreatePublicKey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	form := web.GetForm(ctx).(*api.CreateKeyOption)
-	CreateUserPublicKey(ctx, *form, ctx.User.ID)
+	CreateUserPublicKey(ctx, *form, ctx.Doer.ID)
 }
 
 // DeletePublicKey delete one public key
@@ -266,16 +262,21 @@ func DeletePublicKey(ctx *context.APIContext) {
 	id := ctx.ParamsInt64(":id")
 	externallyManaged, err := asymkey_model.PublicKeyIsExternallyManaged(id)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "PublicKeyIsExternallyManaged", err)
-	}
-	if externallyManaged {
-		ctx.Error(http.StatusForbidden, "", "SSH Key is externally managed for this user")
-	}
-
-	if err := asymkey_service.DeletePublicKey(ctx.User, id); err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
 			ctx.NotFound()
-		} else if asymkey_model.IsErrKeyAccessDenied(err) {
+		} else {
+			ctx.Error(http.StatusInternalServerError, "PublicKeyIsExternallyManaged", err)
+		}
+		return
+	}
+
+	if externallyManaged {
+		ctx.Error(http.StatusForbidden, "", "SSH Key is externally managed for this user")
+		return
+	}
+
+	if err := asymkey_service.DeletePublicKey(ctx.Doer, id); err != nil {
+		if asymkey_model.IsErrKeyAccessDenied(err) {
 			ctx.Error(http.StatusForbidden, "", "You do not have access to this key")
 		} else {
 			ctx.Error(http.StatusInternalServerError, "DeletePublicKey", err)

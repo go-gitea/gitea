@@ -1,3 +1,7 @@
+import $ from 'jquery';
+
+const preventListener = (e) => e.preventDefault();
+
 /**
  * Attaches `input` handlers to markdown rendered tasklist checkboxes in comments.
  *
@@ -5,9 +9,6 @@
  * is set accordingly and sent to the server. On success it updates the raw-content on
  * error it resets the checkbox to its original value.
  */
-
-const preventListener = (e) => e.preventDefault();
-
 export function initMarkupTasklist() {
   for (const el of document.querySelectorAll(`.markup[data-can-edit=true]`) || []) {
     const container = el.parentNode;
@@ -28,6 +29,14 @@ export function initMarkupTasklist() {
 
         const encoder = new TextEncoder();
         const buffer = encoder.encode(oldContent);
+        // Indexes may fall off the ends and return undefined.
+        if (buffer[position - 1] !== '['.codePointAt(0) ||
+          buffer[position] !== ' '.codePointAt(0) && buffer[position] !== 'x'.codePointAt(0) ||
+          buffer[position + 1] !== ']'.codePointAt(0)) {
+          // Position is probably wrong.  Revert and don't allow change.
+          checkbox.checked = !checkbox.checked;
+          throw new Error(`Expected position to be space or x and surrounded by brackets, but it's not: position=${position}`);
+        }
         buffer.set(encoder.encode(checkboxCharacter), position);
         const newContent = new TextDecoder().decode(buffer);
 

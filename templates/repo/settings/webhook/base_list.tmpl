@@ -1,38 +1,52 @@
 <h4 class="ui top attached header">
 	{{.Title}}
 	<div class="ui right">
-		<div class="ui floating1 jump dropdown">
-			<div class="ui blue tiny button">{{.i18n.Tr "repo.settings.add_webhook"}}</div>
+		<div class="ui jump dropdown">
+			<div class="ui primary tiny button">{{.locale.Tr "repo.settings.add_webhook"}}</div>
 			<div class="menu">
 				<a class="item" href="{{.BaseLinkNew}}/gitea/new">
-					<img width="20" height="20" src="{{AssetUrlPrefix}}/img/gitea.svg">Gitea
+					{{template "shared/webhook/icon" (dict "HookType" "gitea" "Size" 20)}}
+					{{.locale.Tr "repo.settings.web_hook_name_gitea"}}
 				</a>
 				<a class="item" href="{{.BaseLinkNew}}/gogs/new">
-					<img width="20" height="20" src="{{AssetUrlPrefix}}/img/gogs.ico">Gogs
+					{{template "shared/webhook/icon" (dict "HookType" "gogs" "Size" 20)}}
+					{{.locale.Tr "repo.settings.web_hook_name_gogs"}}
 				</a>
 				<a class="item" href="{{.BaseLinkNew}}/slack/new">
-					<img width="20" height="20" src="{{AssetUrlPrefix}}/img/slack.png">Slack
+					{{template "shared/webhook/icon" (dict "HookType" "slack" "Size" 20)}}
+					{{.locale.Tr "repo.settings.web_hook_name_slack"}}
 				</a>
 				<a class="item" href="{{.BaseLinkNew}}/discord/new">
-					<img width="20" height="20" src="{{AssetUrlPrefix}}/img/discord.png">Discord
+					{{template "shared/webhook/icon" (dict "HookType" "discord" "Size" 20)}}
+					{{.locale.Tr "repo.settings.web_hook_name_discord"}}
 				</a>
 				<a class="item" href="{{.BaseLinkNew}}/dingtalk/new">
-					<img width="20" height="20" src="{{AssetUrlPrefix}}/img/dingtalk.ico">Dingtalk
+					{{template "shared/webhook/icon" (dict "HookType" "dingtalk" "Size" 20)}}
+					{{.locale.Tr "repo.settings.web_hook_name_dingtalk"}}
 				</a>
 				<a class="item" href="{{.BaseLinkNew}}/telegram/new">
-					<img width="20" height="20" src="{{AssetUrlPrefix}}/img/telegram.png">Telegram
+					{{template "shared/webhook/icon" (dict "HookType" "telegram" "Size" 20)}}
+					{{.locale.Tr "repo.settings.web_hook_name_telegram"}}
 				</a>
 				<a class="item" href="{{.BaseLinkNew}}/msteams/new">
-					<img width="20" height="20" src="{{AssetUrlPrefix}}/img/msteams.png">Microsoft Teams
+					{{template "shared/webhook/icon" (dict "HookType" "msteams" "Size" 20)}}
+					{{.locale.Tr "repo.settings.web_hook_name_msteams"}}
 				</a>
 				<a class="item" href="{{.BaseLinkNew}}/feishu/new">
-					<img width="20" height="20" src="{{AssetUrlPrefix}}/img/feishu.png">Feishu
+					{{template "shared/webhook/icon" (dict "HookType" "feishu" "Size" 20)}}
+					{{.locale.Tr "repo.settings.web_hook_name_feishu_or_larksuite"}}
 				</a>
 				<a class="item" href="{{.BaseLinkNew}}/matrix/new">
-					<img width="20" height="20" src="{{AssetUrlPrefix}}/img/matrix.svg">Matrix
+					{{template "shared/webhook/icon" (dict "HookType" "matrix" "Size" 20)}}
+					{{.locale.Tr "repo.settings.web_hook_name_matrix"}}
 				</a>
 				<a class="item" href="{{.BaseLinkNew}}/wechatwork/new">
-					<img width="20" height="20" src="{{AssetUrlPrefix}}/img/wechatwork.png">Wechatwork
+					{{template "shared/webhook/icon" (dict "HookType" "wechatwork" "Size" 20)}}
+					{{.locale.Tr "repo.settings.web_hook_name_wechatwork"}}
+				</a>
+				<a class="item" href="{{.BaseLinkNew}}/packagist/new">
+					{{template "shared/webhook/icon" (dict "HookType" "packagist" "Size" 20)}}
+					{{.locale.Tr "repo.settings.web_hook_name_packagist"}}
 				</a>
 			</div>
 		</div>
@@ -45,18 +59,10 @@
 		</div>
 		{{range .Webhooks}}
 			<div class="item truncated-item-container">
-				{{if eq .LastStatus 1}}
-					<span class="text green mr-3">{{svg "octicon-check"}}</span>
-				{{else if eq .LastStatus 2}}
-					<span class="text red mr-3">{{svg "octicon-alert"}}</span>
-				{{else}}
-					<span class="text grey mr-3">{{svg "octicon-dot-fill"}}</span>
-				{{end}}
-				<a class="text truncate" title="{{.URL}}" href="{{$.BaseLink}}/{{.ID}}">{{.URL}}</a>
-				<div class="ui right" style="display: inline-flex">
-					<span class="text blue px-2"><a href="{{$.BaseLink}}/{{.ID}}">{{svg "octicon-pencil"}}</a></span>
-					<span class="text red px-2"><a class="delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trash"}}</a></span>
-				</div>
+				<span class="text {{if eq .LastStatus 1}}green{{else if eq .LastStatus 2}}red{{else}}grey{{end}} gt-mr-3">{{svg "octicon-dot-fill" 22}}</span>
+				<a class="text truncate gt-f1 gt-mr-3" title="{{.URL}}" href="{{$.BaseLink}}/{{.ID}}">{{.URL}}</a>
+				<a class="muted gt-p-3" href="{{$.BaseLink}}/{{.ID}}">{{svg "octicon-pencil"}}</a>
+				<a class="delete-button gt-p-3" data-url="{{$.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trash"}}</a>
 			</div>
 		{{end}}
 	</div>

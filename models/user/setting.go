@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -10,6 +9,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/cache"
+	setting_module "code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -29,6 +31,54 @@ func (s *Setting) TableName() string {
 
 func init() {
 	db.RegisterModel(new(Setting))
+}
+
+// ErrUserSettingIsNotExist represents an error that a setting is not exist with special key
+type ErrUserSettingIsNotExist struct {
+	Key string
+}
+
+// Error implements error
+func (err ErrUserSettingIsNotExist) Error() string {
+	return fmt.Sprintf("Setting[%s] is not exist", err.Key)
+}
+
+func (err ErrUserSettingIsNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
+// IsErrUserSettingIsNotExist return true if err is ErrSettingIsNotExist
+func IsErrUserSettingIsNotExist(err error) bool {
+	_, ok := err.(ErrUserSettingIsNotExist)
+	return ok
+}
+
+// genSettingCacheKey returns the cache key for some configuration
+func genSettingCacheKey(userID int64, key string) string {
+	return fmt.Sprintf("user_%d.setting.%s", userID, key)
+}
+
+// GetSetting returns the setting value via the key
+func GetSetting(uid int64, key string) (string, error) {
+	return cache.GetString(genSettingCacheKey(uid, key), func() (string, error) {
+		res, err := GetSettingNoCache(uid, key)
+		if err != nil {
+			return "", err
+		}
+		return res.SettingValue, nil
+	})
+}
+
+// GetSettingNoCache returns specific setting without using the cache
+func GetSettingNoCache(uid int64, key string) (*Setting, error) {
+	v, err := GetSettings(uid, []string{key})
+	if err != nil {
+		return nil, err
+	}
+	if len(v) == 0 {
+		return nil, ErrUserSettingIsNotExist{key}
+	}
+	return v[key], nil
 }
 
 // GetSettings returns specific settings from user
@@ -62,22 +112,68 @@ func GetUserAllSettings(uid int64) (map[string]*Setting, error) {
 	return settingsMap, nil
 }
 
-// DeleteSetting deletes a specific setting for a user
-func DeleteSetting(setting *Setting) error {
-	_, err := db.GetEngine(db.DefaultContext).Delete(setting)
+func validateUserSettingKey(key string) error {
+	if len(key) == 0 {
+		return fmt.Errorf("setting key must be set")
+	}
+	if strings.ToLower(key) != key {
+		return fmt.Errorf("setting key should be lowercase")
+	}
+	return nil
+}
+
+// GetUserSetting gets a specific setting for a user
+func GetUserSetting(userID int64, key string, def ...string) (string, error) {
+	if err := validateUserSettingKey(key); err != nil {
+		return "", err
+	}
+
+	setting := &Setting{UserID: userID, SettingKey: key}
+	has, err := db.GetEngine(db.DefaultContext).Get(setting)
+	if err != nil {
+		return "", err
+	}
+	if !has {
+		if len(def) == 1 {
+			return def[0], nil
+		}
+		return "", nil
+	}
+	return setting.SettingValue, nil
+}
+
+// DeleteUserSetting deletes a specific setting for a user
+func DeleteUserSetting(userID int64, key string) error {
+	if err := validateUserSettingKey(key); err != nil {
+		return err
+	}
+
+	cache.Remove(genSettingCacheKey(userID, key))
+	_, err := db.GetEngine(db.DefaultContext).Delete(&Setting{UserID: userID, SettingKey: key})
+
 	return err
 }
 
-// SetSetting updates a users' setting for a specific key
-func SetSetting(setting *Setting) error {
-	if strings.ToLower(setting.SettingKey) != setting.SettingKey {
-		return fmt.Errorf("setting key should be lowercase")
+// SetUserSetting updates a users' setting for a specific key
+func SetUserSetting(userID int64, key, value string) error {
+	if err := validateUserSettingKey(key); err != nil {
+		return err
 	}
-	return upsertSettingValue(setting.UserID, setting.SettingKey, setting.SettingValue)
+
+	if err := upsertUserSettingValue(userID, key, value); err != nil {
+		return err
+	}
+
+	cc := cache.GetCache()
+	if cc != nil {
+		return cc.Put(genSettingCacheKey(userID, key), value, setting_module.CacheService.TTLSeconds())
+	}
+
+	return nil
 }
 
-func upsertSettingValue(userID int64, key, value string) error {
-	return db.WithTx(func(ctx context.Context) error {
+func upsertUserSettingValue(userID int64, key, value string) error {
+	return db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		e := db.GetEngine(ctx)
 
 		// here we use a general method to do a safe upsert for different databases (and most transaction levels)

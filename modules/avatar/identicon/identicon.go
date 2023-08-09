@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 // Copied and modified from https://github.com/issue9/identicon/ (MIT License)
 // Generate pseudo-random avatars by IP, E-mail, etc.
@@ -8,10 +7,11 @@
 package identicon
 
 import (
-	"crypto/sha256"
 	"fmt"
 	"image"
 	"image/color"
+
+	"github.com/minio/sha256-simd"
 )
 
 const minImageSize = 16
@@ -84,7 +84,7 @@ Origin: An image is splitted into 9 areas
 
 Area 1/3/9/7 use a 90-degree rotating pattern.
 Area 1/3/9/7 use another 90-degree rotating pattern.
-Area 5 uses a random patter.
+Area 5 uses a random pattern.
 
 The Patched Fix: make the image left-right mirrored to get rid of something like "swastika"
 */

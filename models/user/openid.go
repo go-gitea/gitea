@@ -1,18 +1,18 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
 import (
-	"errors"
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrOpenIDNotExist openid is not known
-var ErrOpenIDNotExist = errors.New("OpenID is unknown")
+var ErrOpenIDNotExist = util.NewNotExistErrorf("OpenID is unknown")
 
 // UserOpenID is the list of all OpenID identities of a user.
 // Since this is a middle table, name it OpenID is not suitable, so we ignore the lint here
@@ -41,12 +41,12 @@ func GetUserOpenIDs(uid int64) ([]*UserOpenID, error) {
 }
 
 // isOpenIDUsed returns true if the openid has been used.
-func isOpenIDUsed(e db.Engine, uri string) (bool, error) {
+func isOpenIDUsed(ctx context.Context, uri string) (bool, error) {
 	if len(uri) == 0 {
 		return true, nil
 	}
 
-	return e.Get(&UserOpenID{URI: uri})
+	return db.GetEngine(ctx).Get(&UserOpenID{URI: uri})
 }
 
 // ErrOpenIDAlreadyUsed represents a "OpenIDAlreadyUsed" kind of error.
@@ -64,22 +64,21 @@ func (err ErrOpenIDAlreadyUsed) Error() string {
 	return fmt.Sprintf("OpenID already in use [oid: %s]", err.OpenID)
 }
 
+func (err ErrOpenIDAlreadyUsed) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
+// AddUserOpenID adds an pre-verified/normalized OpenID URI to given user.
 // NOTE: make sure openid.URI is normalized already
-func addUserOpenID(e db.Engine, openid *UserOpenID) error {
-	used, err := isOpenIDUsed(e, openid.URI)
+func AddUserOpenID(ctx context.Context, openid *UserOpenID) error {
+	used, err := isOpenIDUsed(ctx, openid.URI)
 	if err != nil {
 		return err
 	} else if used {
 		return ErrOpenIDAlreadyUsed{openid.URI}
 	}
 
-	_, err = e.Insert(openid)
-	return err
-}
-
-// AddUserOpenID adds an pre-verified/normalized OpenID URI to given user.
-func AddUserOpenID(openid *UserOpenID) error {
-	return addUserOpenID(db.GetEngine(db.DefaultContext), openid)
+	return db.Insert(ctx, openid)
 }
 
 // DeleteUserOpenID deletes an openid address of given user.

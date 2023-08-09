@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -13,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"code.gitea.io/gitea/modules/container"
 )
 
 // CodeActivityStats represents git statistics data
@@ -39,12 +40,12 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 
 	since := fromTime.Format(time.RFC3339)
 
-	stdout, err := NewCommandContext(repo.Ctx, "rev-list", "--count", "--no-merges", "--branches=*", "--date=iso", fmt.Sprintf("--since='%s'", since)).RunInDirBytes(repo.Path)
-	if err != nil {
-		return nil, err
+	stdout, _, runErr := NewCommand(repo.Ctx, "rev-list", "--count", "--no-merges", "--branches=*", "--date=iso").AddOptionFormat("--since='%s'", since).RunStdString(&RunOpts{Dir: repo.Path})
+	if runErr != nil {
+		return nil, runErr
 	}
 
-	c, err := strconv.ParseInt(strings.TrimSpace(string(stdout)), 10, 64)
+	c, err := strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
 	if err != nil {
 		return nil, err
 	}
@@ -59,27 +60,28 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 		_ = stdoutWriter.Close()
 	}()
 
-	args := []string{"log", "--numstat", "--no-merges", "--pretty=format:---%n%h%n%aN%n%aE%n", "--date=iso", fmt.Sprintf("--since='%s'", since)}
+	gitCmd := NewCommand(repo.Ctx, "log", "--numstat", "--no-merges", "--pretty=format:---%n%h%n%aN%n%aE%n", "--date=iso").AddOptionFormat("--since='%s'", since)
 	if len(branch) == 0 {
-		args = append(args, "--branches=*")
+		gitCmd.AddArguments("--branches=*")
 	} else {
-		args = append(args, "--first-parent", branch)
+		gitCmd.AddArguments("--first-parent").AddDynamicArguments(branch)
 	}
 
 	stderr := new(strings.Builder)
-	err = NewCommandContext(repo.Ctx, args...).RunInDirTimeoutEnvFullPipelineFunc(
-		nil, -1, repo.Path,
-		stdoutWriter, stderr, nil,
-		func(ctx context.Context, cancel context.CancelFunc) error {
+	err = gitCmd.Run(&RunOpts{
+		Env:    []string{},
+		Dir:    repo.Path,
+		Stdout: stdoutWriter,
+		Stderr: stderr,
+		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
-
 			scanner := bufio.NewScanner(stdoutReader)
 			scanner.Split(bufio.ScanLines)
 			stats.CommitCount = 0
 			stats.Additions = 0
 			stats.Deletions = 0
 			authors := make(map[string]*CodeActivityAuthor)
-			files := make(map[string]bool)
+			files := make(container.Set[string])
 			var author string
 			p := 0
 			for scanner.Scan() {
@@ -103,11 +105,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 				case 4: // E-mail
 					email := strings.ToLower(l)
 					if _, ok := authors[email]; !ok {
-						authors[email] = &CodeActivityAuthor{
-							Name:    author,
-							Email:   email,
-							Commits: 0,
-						}
+						authors[email] = &CodeActivityAuthor{Name: author, Email: email, Commits: 0}
 					}
 					authors[email].Commits++
 				default: // Changed file
@@ -122,13 +120,10 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 								stats.Deletions += c
 							}
 						}
-						if _, ok := files[parts[2]]; !ok {
-							files[parts[2]] = true
-						}
+						files.Add(parts[2])
 					}
 				}
 			}
-
 			a := make([]*CodeActivityAuthor, 0, len(authors))
 			for _, v := range authors {
 				a = append(a, v)
@@ -137,14 +132,13 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 			sort.Slice(a, func(i, j int) bool {
 				return a[i].Commits > a[j].Commits
 			})
-
 			stats.AuthorCount = int64(len(authors))
 			stats.ChangedFiles = int64(len(files))
 			stats.Authors = a
-
 			_ = stdoutReader.Close()
 			return nil
-		})
+		},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get GetCodeActivityStats for repository.\nError: %w\nStderr: %s", err, stderr)
 	}

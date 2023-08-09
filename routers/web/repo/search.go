@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -18,32 +17,46 @@ const tplSearch base.TplName = "repo/search"
 // Search render repository search page
 func Search(ctx *context.Context) {
 	if !setting.Indexer.RepoIndexerEnabled {
-		ctx.Redirect(ctx.Repo.RepoLink, 302)
+		ctx.Redirect(ctx.Repo.RepoLink)
 		return
 	}
+
 	language := ctx.FormTrim("l")
 	keyword := ctx.FormTrim("q")
+
+	queryType := ctx.FormTrim("t")
+	isMatch := queryType == "match"
+
+	ctx.Data["Keyword"] = keyword
+	ctx.Data["Language"] = language
+	ctx.Data["queryType"] = queryType
+	ctx.Data["PageIsViewCode"] = true
+
+	if keyword == "" {
+		ctx.HTML(http.StatusOK, tplSearch)
+		return
+	}
+
 	page := ctx.FormInt("page")
 	if page <= 0 {
 		page = 1
 	}
-	queryType := ctx.FormTrim("t")
-	isMatch := queryType == "match"
 
-	total, searchResults, searchResultLanguages, err := code_indexer.PerformSearch([]int64{ctx.Repo.Repository.ID},
+	total, searchResults, searchResultLanguages, err := code_indexer.PerformSearch(ctx, []int64{ctx.Repo.Repository.ID},
 		language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
 	if err != nil {
-		ctx.ServerError("SearchResults", err)
-		return
+		if code_indexer.IsAvailable(ctx) {
+			ctx.ServerError("SearchResults", err)
+			return
+		}
+		ctx.Data["CodeIndexerUnavailable"] = true
+	} else {
+		ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable(ctx)
 	}
-	ctx.Data["Keyword"] = keyword
-	ctx.Data["Language"] = language
-	ctx.Data["queryType"] = queryType
-	ctx.Data["SourcePath"] = ctx.Repo.Repository.HTMLURL()
+
+	ctx.Data["SourcePath"] = ctx.Repo.Repository.Link()
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["SearchResultLanguages"] = searchResultLanguages
-	ctx.Data["RequireHighlightJS"] = true
-	ctx.Data["PageIsViewCode"] = true
 
 	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)

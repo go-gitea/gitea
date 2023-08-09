@@ -1,9 +1,7 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 //go:build ignore
-// +build ignore
 
 package main
 
@@ -21,13 +19,13 @@ import (
 )
 
 // Windows has a limitation for command line arguments, the size can not exceed 32KB.
-// So we have to feed the files to some tools (like gofmt/misspell`) batch by batch
+// So we have to feed the files to some tools (like gofmt) batch by batch
 
-// We also introduce a `gitea-fmt` command, it does better import formatting than gofmt/goimports
+// We also introduce a `gitea-fmt` command, it does better import formatting than gofmt/goimports. `gitea-fmt` calls `gofmt` internally.
 
 var optionLogVerbose bool
 
-func logVerbose(msg string, args ...interface{}) {
+func logVerbose(msg string, args ...any) {
 	if optionLogVerbose {
 		log.Printf(msg, args...)
 	}
@@ -40,7 +38,7 @@ func passThroughCmd(cmd string, args []string) error {
 	}
 	c := exec.Cmd{
 		Path:   foundCmd,
-		Args:   args,
+		Args:   append([]string{cmd}, args...),
 		Stdin:  os.Stdin,
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
@@ -62,18 +60,17 @@ func newFileCollector(fileFilter string, batchSize int) (*fileCollector, error) 
 			"build",
 			"cmd",
 			"contrib",
-			"integrations",
+			"tests",
 			"models",
 			"modules",
 			"routers",
 			"services",
-			"tools",
 		}
 		co.includePatterns = append(co.includePatterns, regexp.MustCompile(`.*\.go$`))
 
 		co.excludePatterns = append(co.excludePatterns, regexp.MustCompile(`.*\bbindata\.go$`))
-		co.excludePatterns = append(co.excludePatterns, regexp.MustCompile(`integrations/gitea-repositories-meta`))
-		co.excludePatterns = append(co.excludePatterns, regexp.MustCompile(`integrations/migration-test`))
+		co.excludePatterns = append(co.excludePatterns, regexp.MustCompile(`tests/gitea-repositories-meta`))
+		co.excludePatterns = append(co.excludePatterns, regexp.MustCompile(`tests/integration/migration-test`))
 		co.excludePatterns = append(co.excludePatterns, regexp.MustCompile(`modules/git/tests`))
 		co.excludePatterns = append(co.excludePatterns, regexp.MustCompile(`models/fixtures`))
 		co.excludePatterns = append(co.excludePatterns, regexp.MustCompile(`models/migrations/fixtures`))
@@ -136,7 +133,7 @@ func (fc *fileCollector) collectFiles() (res [][]string, err error) {
 }
 
 // substArgFiles expands the {file-list} to a real file list for commands
-func substArgFiles(args []string, files []string) []string {
+func substArgFiles(args, files []string) []string {
 	for i, s := range args {
 		if s == "{file-list}" {
 			newArgs := append(args[:i], files...)
@@ -196,7 +193,6 @@ Options:
 
 Commands:
   %[1]s gofmt ...
-  %[1]s misspell ...
 
 Arguments:
   {file-list}     the file list
@@ -205,6 +201,17 @@ Example:
   %[1]s gofmt -s -d {file-list}
 
 `, "file-batch-exec")
+}
+
+func getGoVersion() string {
+	goModFile, err := os.ReadFile("go.mod")
+	if err != nil {
+		log.Fatalf(`Faild to read "go.mod": %v`, err)
+		os.Exit(1)
+	}
+	goModVersionRegex := regexp.MustCompile(`go \d+\.\d+`)
+	goModVersionLine := goModVersionRegex.Find(goModFile)
+	return string(goModVersionLine[3:])
 }
 
 func newFileCollectorFromMainOptions(mainOptions map[string]string) (fc *fileCollector, err error) {
@@ -229,9 +236,9 @@ func containsString(a []string, s string) bool {
 	return false
 }
 
-func giteaFormatGoImports(files []string) error {
+func giteaFormatGoImports(files []string, doWriteFile bool) error {
 	for _, file := range files {
-		if err := codeformat.FormatGoImports(file); err != nil {
+		if err := codeformat.FormatGoImports(file, doWriteFile); err != nil {
 			log.Printf("failed to format go imports: %s, err=%v", file, err)
 			return err
 		}
@@ -267,12 +274,11 @@ func main() {
 		logVerbose("batch cmd: %s %v", subCmd, substArgs)
 		switch subCmd {
 		case "gitea-fmt":
-			if containsString(subArgs, "-w") {
-				cmdErrors = append(cmdErrors, giteaFormatGoImports(files))
+			if containsString(subArgs, "-d") {
+				log.Print("the -d option is not supported by gitea-fmt")
 			}
-			cmdErrors = append(cmdErrors, passThroughCmd("gofmt", substArgs))
-		case "misspell":
-			cmdErrors = append(cmdErrors, passThroughCmd("misspell", substArgs))
+			cmdErrors = append(cmdErrors, giteaFormatGoImports(files, containsString(subArgs, "-w")))
+			cmdErrors = append(cmdErrors, passThroughCmd("go", append([]string{"run", os.Getenv("GOFUMPT_PACKAGE"), "-extra", "-lang", getGoVersion()}, substArgs...)))
 		default:
 			log.Fatalf("unknown cmd: %s %v", subCmd, subArgs)
 		}

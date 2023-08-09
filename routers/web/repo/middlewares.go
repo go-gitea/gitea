@@ -1,13 +1,13 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
 import (
 	"fmt"
+	"strconv"
 
-	admin_model "code.gitea.io/gitea/models/admin"
+	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -20,11 +20,11 @@ func SetEditorconfigIfExists(ctx *context.Context) {
 		return
 	}
 
-	ec, err := ctx.Repo.GetEditorconfig()
+	ec, _, err := ctx.Repo.GetEditorconfig()
 
 	if err != nil && !git.IsErrNotExist(err) {
 		description := fmt.Sprintf("Error while getting .editorconfig file: %v", err)
-		if err := admin_model.CreateRepositoryNotice(description); err != nil {
+		if err := system_model.CreateRepositoryNotice(description); err != nil {
 			ctx.ServerError("ErrCreatingReporitoryNotice", err)
 		}
 		return
@@ -43,7 +43,7 @@ func SetDiffViewStyle(ctx *context.Context) {
 	}
 
 	var (
-		userStyle = ctx.User.DiffViewStyle
+		userStyle = ctx.Doer.DiffViewStyle
 		style     string
 	)
 
@@ -56,18 +56,60 @@ func SetDiffViewStyle(ctx *context.Context) {
 	}
 
 	ctx.Data["IsSplitStyle"] = style == "split"
-	if err := user_model.UpdateUserDiffViewStyle(ctx.User, style); err != nil {
+	if err := user_model.UpdateUserDiffViewStyle(ctx.Doer, style); err != nil {
 		ctx.ServerError("ErrUpdateDiffViewStyle", err)
 	}
 }
 
 // SetWhitespaceBehavior set whitespace behavior as render variable
 func SetWhitespaceBehavior(ctx *context.Context) {
+	const defaultWhitespaceBehavior = "show-all"
 	whitespaceBehavior := ctx.FormString("whitespace")
 	switch whitespaceBehavior {
-	case "ignore-all", "ignore-eol", "ignore-change":
-		ctx.Data["WhitespaceBehavior"] = whitespaceBehavior
+	case "", "ignore-all", "ignore-eol", "ignore-change":
+		break
 	default:
-		ctx.Data["WhitespaceBehavior"] = ""
+		whitespaceBehavior = defaultWhitespaceBehavior
 	}
+	if ctx.IsSigned {
+		userWhitespaceBehavior, err := user_model.GetUserSetting(ctx.Doer.ID, user_model.SettingsKeyDiffWhitespaceBehavior, defaultWhitespaceBehavior)
+		if err == nil {
+			if whitespaceBehavior == "" {
+				whitespaceBehavior = userWhitespaceBehavior
+			} else if whitespaceBehavior != userWhitespaceBehavior {
+				_ = user_model.SetUserSetting(ctx.Doer.ID, user_model.SettingsKeyDiffWhitespaceBehavior, whitespaceBehavior)
+			}
+		} // else: we can ignore the error safely
+	}
+
+	// these behaviors are for gitdiff.GetWhitespaceFlag
+	if whitespaceBehavior == "" {
+		ctx.Data["WhitespaceBehavior"] = defaultWhitespaceBehavior
+	} else {
+		ctx.Data["WhitespaceBehavior"] = whitespaceBehavior
+	}
+}
+
+// SetShowOutdatedComments set the show outdated comments option as context variable
+func SetShowOutdatedComments(ctx *context.Context) {
+	showOutdatedCommentsValue := ctx.FormString("show-outdated")
+	// var showOutdatedCommentsValue string
+
+	if showOutdatedCommentsValue != "true" && showOutdatedCommentsValue != "false" {
+		// invalid or no value for this form string -> use default or stored user setting
+		if ctx.IsSigned {
+			showOutdatedCommentsValue, _ = user_model.GetUserSetting(ctx.Doer.ID, user_model.SettingsKeyShowOutdatedComments, "false")
+		} else {
+			// not logged in user -> use the default value
+			showOutdatedCommentsValue = "false"
+		}
+	} else {
+		// valid value -> update user setting if user is logged in
+		if ctx.IsSigned {
+			_ = user_model.SetUserSetting(ctx.Doer.ID, user_model.SettingsKeyShowOutdatedComments, showOutdatedCommentsValue)
+		}
+	}
+
+	showOutdatedComments, _ := strconv.ParseBool(showOutdatedCommentsValue)
+	ctx.Data["ShowOutdatedComments"] = showOutdatedComments
 }

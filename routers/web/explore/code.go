@@ -1,15 +1,12 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package explore
 
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
@@ -24,7 +21,7 @@ const (
 // Code render explore code page
 func Code(ctx *context.Context) {
 	if !setting.Indexer.RepoIndexerEnabled {
-		ctx.Redirect(setting.AppSubURL+"/explore", 302)
+		ctx.Redirect(setting.AppSubURL + "/explore")
 		return
 	}
 
@@ -36,28 +33,39 @@ func Code(ctx *context.Context) {
 
 	language := ctx.FormTrim("l")
 	keyword := ctx.FormTrim("q")
+
+	queryType := ctx.FormTrim("t")
+	isMatch := queryType == "match"
+
+	ctx.Data["Keyword"] = keyword
+	ctx.Data["Language"] = language
+	ctx.Data["queryType"] = queryType
+	ctx.Data["PageIsViewCode"] = true
+
+	if keyword == "" {
+		ctx.HTML(http.StatusOK, tplExploreCode)
+		return
+	}
+
 	page := ctx.FormInt("page")
 	if page <= 0 {
 		page = 1
 	}
-
-	queryType := ctx.FormTrim("t")
-	isMatch := queryType == "match"
 
 	var (
 		repoIDs []int64
 		err     error
 		isAdmin bool
 	)
-	if ctx.User != nil {
-		isAdmin = ctx.User.IsAdmin
+	if ctx.Doer != nil {
+		isAdmin = ctx.Doer.IsAdmin
 	}
 
 	// guest user or non-admin user
-	if ctx.User == nil || !isAdmin {
-		repoIDs, err = models.FindUserAccessibleRepoIDs(ctx.User)
+	if ctx.Doer == nil || !isAdmin {
+		repoIDs, err = repo_model.FindUserCodeAccessibleRepoIDs(ctx, ctx.Doer)
 		if err != nil {
-			ctx.ServerError("SearchResults", err)
+			ctx.ServerError("FindUserCodeAccessibleRepoIDs", err)
 			return
 		}
 	}
@@ -68,39 +76,19 @@ func Code(ctx *context.Context) {
 		searchResultLanguages []*code_indexer.SearchResultLanguages
 	)
 
-	// if non-admin login user, we need check UnitTypeCode at first
-	if ctx.User != nil && len(repoIDs) > 0 {
-		repoMaps, err := repo_model.GetRepositoriesMapByIDs(repoIDs)
+	if (len(repoIDs) > 0) || isAdmin {
+		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(ctx, repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
 		if err != nil {
-			ctx.ServerError("SearchResults", err)
-			return
-		}
-
-		var rightRepoMap = make(map[int64]*repo_model.Repository, len(repoMaps))
-		repoIDs = make([]int64, 0, len(repoMaps))
-		for id, repo := range repoMaps {
-			if models.CheckRepoUnitUser(repo, ctx.User, unit.TypeCode) {
-				rightRepoMap[id] = repo
-				repoIDs = append(repoIDs, id)
+			if code_indexer.IsAvailable(ctx) {
+				ctx.ServerError("SearchResults", err)
+				return
 			}
+			ctx.Data["CodeIndexerUnavailable"] = true
+		} else {
+			ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable(ctx)
 		}
 
-		ctx.Data["RepoMaps"] = rightRepoMap
-
-		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
-		if err != nil {
-			ctx.ServerError("SearchResults", err)
-			return
-		}
-		// if non-login user or isAdmin, no need to check UnitTypeCode
-	} else if (ctx.User == nil && len(repoIDs) > 0) || isAdmin {
-		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
-		if err != nil {
-			ctx.ServerError("SearchResults", err)
-			return
-		}
-
-		var loadRepoIDs = make([]int64, 0, len(searchResults))
+		loadRepoIDs := make([]int64, 0, len(searchResults))
 		for _, result := range searchResults {
 			var find bool
 			for _, id := range loadRepoIDs {
@@ -116,20 +104,27 @@ func Code(ctx *context.Context) {
 
 		repoMaps, err := repo_model.GetRepositoriesMapByIDs(loadRepoIDs)
 		if err != nil {
-			ctx.ServerError("SearchResults", err)
+			ctx.ServerError("GetRepositoriesMapByIDs", err)
 			return
 		}
 
 		ctx.Data["RepoMaps"] = repoMaps
+
+		if len(loadRepoIDs) != len(repoMaps) {
+			// Remove deleted repos from search results
+			cleanedSearchResults := make([]*code_indexer.Result, 0, len(repoMaps))
+			for _, sr := range searchResults {
+				if _, found := repoMaps[sr.RepoID]; found {
+					cleanedSearchResults = append(cleanedSearchResults, sr)
+				}
+			}
+
+			searchResults = cleanedSearchResults
+		}
 	}
 
-	ctx.Data["Keyword"] = keyword
-	ctx.Data["Language"] = language
-	ctx.Data["queryType"] = queryType
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["SearchResultLanguages"] = searchResultLanguages
-	ctx.Data["RequireHighlightJS"] = true
-	ctx.Data["PageIsViewCode"] = true
 
 	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)

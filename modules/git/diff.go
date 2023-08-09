@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -11,13 +10,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
 )
 
 // RawDiffType type of a raw diff.
@@ -30,19 +27,22 @@ const (
 )
 
 // GetRawDiff dumps diff results of repository in given commit ID to io.Writer.
-func GetRawDiff(repoPath, commitID string, diffType RawDiffType, writer io.Writer) error {
-	return GetRawDiffForFile(repoPath, "", commitID, diffType, "", writer)
+func GetRawDiff(repo *Repository, commitID string, diffType RawDiffType, writer io.Writer) error {
+	return GetRepoRawDiffForFile(repo, "", commitID, diffType, "", writer)
 }
 
-// GetRawDiffForFile dumps diff results of file in given commit ID to io.Writer.
-func GetRawDiffForFile(repoPath, startCommit, endCommit string, diffType RawDiffType, file string, writer io.Writer) error {
-	repo, err := OpenRepository(repoPath)
-	if err != nil {
-		return fmt.Errorf("OpenRepository: %v", err)
+// GetReverseRawDiff dumps the reverse diff results of repository in given commit ID to io.Writer.
+func GetReverseRawDiff(ctx context.Context, repoPath, commitID string, writer io.Writer) error {
+	stderr := new(bytes.Buffer)
+	cmd := NewCommand(ctx, "show", "--pretty=format:revert %H%n", "-R").AddDynamicArguments(commitID)
+	if err := cmd.Run(&RunOpts{
+		Dir:    repoPath,
+		Stdout: writer,
+		Stderr: stderr,
+	}); err != nil {
+		return fmt.Errorf("Run: %w - %s", err, stderr)
 	}
-	defer repo.Close()
-
-	return GetRepoRawDiffForFile(repo, startCommit, endCommit, diffType, file, writer)
+	return nil
 }
 
 // GetRepoRawDiffForFile dumps diff results of file in given commit ID to io.Writer according given repository
@@ -51,48 +51,44 @@ func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diff
 	if err != nil {
 		return err
 	}
-	fileArgs := make([]string, 0)
+	var files []string
 	if len(file) > 0 {
-		fileArgs = append(fileArgs, "--", file)
+		files = append(files, file)
 	}
-	// FIXME: graceful: These commands should have a timeout
-	ctx, _, finished := process.GetManager().AddContext(repo.Ctx, fmt.Sprintf("GetRawDiffForFile: [repo_path: %s]", repo.Path))
-	defer finished()
 
-	var cmd *exec.Cmd
+	cmd := NewCommand(repo.Ctx)
 	switch diffType {
 	case RawDiffNormal:
 		if len(startCommit) != 0 {
-			cmd = exec.CommandContext(ctx, GitExecutable, append([]string{"diff", "-M", startCommit, endCommit}, fileArgs...)...)
+			cmd.AddArguments("diff", "-M").AddDynamicArguments(startCommit, endCommit).AddDashesAndList(files...)
 		} else if commit.ParentCount() == 0 {
-			cmd = exec.CommandContext(ctx, GitExecutable, append([]string{"show", endCommit}, fileArgs...)...)
+			cmd.AddArguments("show").AddDynamicArguments(endCommit).AddDashesAndList(files...)
 		} else {
 			c, _ := commit.Parent(0)
-			cmd = exec.CommandContext(ctx, GitExecutable, append([]string{"diff", "-M", c.ID.String(), endCommit}, fileArgs...)...)
+			cmd.AddArguments("diff", "-M").AddDynamicArguments(c.ID.String(), endCommit).AddDashesAndList(files...)
 		}
 	case RawDiffPatch:
 		if len(startCommit) != 0 {
 			query := fmt.Sprintf("%s...%s", endCommit, startCommit)
-			cmd = exec.CommandContext(ctx, GitExecutable, append([]string{"format-patch", "--no-signature", "--stdout", "--root", query}, fileArgs...)...)
+			cmd.AddArguments("format-patch", "--no-signature", "--stdout", "--root").AddDynamicArguments(query).AddDashesAndList(files...)
 		} else if commit.ParentCount() == 0 {
-			cmd = exec.CommandContext(ctx, GitExecutable, append([]string{"format-patch", "--no-signature", "--stdout", "--root", endCommit}, fileArgs...)...)
+			cmd.AddArguments("format-patch", "--no-signature", "--stdout", "--root").AddDynamicArguments(endCommit).AddDashesAndList(files...)
 		} else {
 			c, _ := commit.Parent(0)
 			query := fmt.Sprintf("%s...%s", endCommit, c.ID.String())
-			cmd = exec.CommandContext(ctx, GitExecutable, append([]string{"format-patch", "--no-signature", "--stdout", query}, fileArgs...)...)
+			cmd.AddArguments("format-patch", "--no-signature", "--stdout").AddDynamicArguments(query).AddDashesAndList(files...)
 		}
 	default:
 		return fmt.Errorf("invalid diffType: %s", diffType)
 	}
 
 	stderr := new(bytes.Buffer)
-
-	cmd.Dir = repo.Path
-	cmd.Stdout = writer
-	cmd.Stderr = stderr
-
-	if err = cmd.Run(); err != nil {
-		return fmt.Errorf("Run: %v - %s", err, stderr)
+	if err = cmd.Run(&RunOpts{
+		Dir:    repo.Path,
+		Stdout: writer,
+		Stderr: stderr,
+	}); err != nil {
+		return fmt.Errorf("Run: %w - %s", err, stderr)
 	}
 	return nil
 }
@@ -117,7 +113,7 @@ func ParseDiffHunkString(diffhunk string) (leftLine, leftHunk, rightLine, righHu
 		rightLine = leftLine
 		righHunk = leftHunk
 	}
-	return
+	return leftLine, leftHunk, rightLine, righHunk
 }
 
 // Example: @@ -1,8 +1,9 @@ => [..., 1, 8, 1, 9]
@@ -225,8 +221,7 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 			}
 		}
 	}
-	err := scanner.Err()
-	if err != nil {
+	if err := scanner.Err(); err != nil {
 		return "", err
 	}
 
@@ -276,7 +271,7 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 }
 
 // GetAffectedFiles returns the affected files between two commits
-func GetAffectedFiles(oldCommitID, newCommitID string, env []string, repo *Repository) ([]string, error) {
+func GetAffectedFiles(repo *Repository, oldCommitID, newCommitID string, env []string) ([]string, error) {
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
 		log.Error("Unable to create os.Pipe for %s", repo.Path)
@@ -290,10 +285,12 @@ func GetAffectedFiles(oldCommitID, newCommitID string, env []string, repo *Repos
 	affectedFiles := make([]string, 0, 32)
 
 	// Run `git diff --name-only` to get the names of the changed files
-	err = NewCommand("diff", "--name-only", oldCommitID, newCommitID).
-		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
-			stdoutWriter, nil, nil,
-			func(ctx context.Context, cancel context.CancelFunc) error {
+	err = NewCommand(repo.Ctx, "diff", "--name-only").AddDynamicArguments(oldCommitID, newCommitID).
+		Run(&RunOpts{
+			Env:    env,
+			Dir:    repo.Path,
+			Stdout: stdoutWriter,
+			PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 				// Close the writer end of the pipe to begin processing
 				_ = stdoutWriter.Close()
 				defer func() {
@@ -310,7 +307,8 @@ func GetAffectedFiles(oldCommitID, newCommitID string, env []string, repo *Repos
 					affectedFiles = append(affectedFiles, path)
 				}
 				return scanner.Err()
-			})
+			},
+		})
 	if err != nil {
 		log.Error("Unable to get affected files for commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
 	}

@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migrations
 
@@ -10,9 +9,7 @@ import (
 	base "code.gitea.io/gitea/modules/migration"
 )
 
-var (
-	_ base.Downloader = &PlainGitDownloader{}
-)
+var _ base.Downloader = &PlainGitDownloader{}
 
 // PlainGitDownloader implements a Downloader interface to clone git from a http/https URL
 type PlainGitDownloader struct {

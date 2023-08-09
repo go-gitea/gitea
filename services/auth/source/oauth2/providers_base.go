@@ -1,8 +1,14 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package oauth2
+
+import (
+	"html/template"
+
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/svg"
+)
 
 // BaseProvider represents a common base for Provider
 type BaseProvider struct {
@@ -20,9 +26,21 @@ func (b *BaseProvider) DisplayName() string {
 	return b.displayName
 }
 
-// Image returns an image path for this provider
-func (b *BaseProvider) Image() string {
-	return "/assets/img/auth/" + b.name + ".png"
+// IconHTML returns icon HTML for this provider
+func (b *BaseProvider) IconHTML() template.HTML {
+	svgName := "gitea-" + b.name
+	switch b.name {
+	case "gplus":
+		svgName = "gitea-google"
+	case "github":
+		svgName = "octicon-mark-github"
+	}
+	svgHTML := svg.RenderHTML(svgName, 20, "gt-mr-3")
+	if svgHTML == "" {
+		log.Error("No SVG icon for oauth2 provider %q", b.name)
+		svgHTML = svg.RenderHTML("gitea-openid", 20, "gt-mr-3")
+	}
+	return svgHTML
 }
 
 // CustomURLSettings returns the custom url settings for this provider
@@ -30,4 +48,4 @@ func (b *BaseProvider) CustomURLSettings() *CustomURLSettings {
 	return nil
 }
 
-var _ (Provider) = &BaseProvider{}
+var _ Provider = &BaseProvider{}

@@ -1,7 +1,7 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
+//nolint:forbidigo
 package main
 
 import (
@@ -66,7 +66,7 @@ func generate(name string) error {
 				return err
 			}
 			path := filepath.Join(fixturesDir, name+".yml")
-			if err := os.WriteFile(path, []byte(data), 0644); err != nil {
+			if err := os.WriteFile(path, []byte(data), 0o644); err != nil {
 				return fmt.Errorf("%s: %+v", path, err)
 			}
 			fmt.Printf("%s created.\n", path)

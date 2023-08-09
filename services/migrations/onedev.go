@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migrations
 
@@ -29,8 +28,7 @@ func init() {
 }
 
 // OneDevDownloaderFactory defines a downloader factory
-type OneDevDownloaderFactory struct {
-}
+type OneDevDownloaderFactory struct{}
 
 // New returns a downloader related to this factory according MigrateOptions
 func (f *OneDevDownloaderFactory) New(ctx context.Context, opts base.MigrateOptions) (base.Downloader, error) {
@@ -39,7 +37,7 @@ func (f *OneDevDownloaderFactory) New(ctx context.Context, opts base.MigrateOpti
 		return nil, err
 	}
 
-	repoName := ""
+	var repoName string
 
 	fields := strings.Split(strings.Trim(u.Path, "/"), "/")
 	if len(fields) == 2 && fields[0] == "projects" {
@@ -69,7 +67,7 @@ type onedevUser struct {
 	Email string `json:"email"`
 }
 
-// OneDevDownloader implements a Downloader interface to get repository informations
+// OneDevDownloader implements a Downloader interface to get repository information
 // from OneDev
 type OneDevDownloader struct {
 	base.NullDownloader
@@ -90,7 +88,7 @@ func (d *OneDevDownloader) SetContext(ctx context.Context) {
 
 // NewOneDevDownloader creates a new downloader
 func NewOneDevDownloader(ctx context.Context, baseURL *url.URL, username, password, repoName string) *OneDevDownloader {
-	var downloader = &OneDevDownloader{
+	downloader := &OneDevDownloader{
 		ctx:      ctx,
 		baseURL:  baseURL,
 		repoName: repoName,
@@ -111,7 +109,19 @@ func NewOneDevDownloader(ctx context.Context, baseURL *url.URL, username, passwo
 	return downloader
 }
 
-func (d *OneDevDownloader) callAPI(endpoint string, parameter map[string]string, result interface{}) error {
+// String implements Stringer
+func (d *OneDevDownloader) String() string {
+	return fmt.Sprintf("migration from oneDev server %s [%d]/%s", d.baseURL, d.repoID, d.repoName)
+}
+
+func (d *OneDevDownloader) LogString() string {
+	if d == nil {
+		return "<OneDevDownloader nil>"
+	}
+	return fmt.Sprintf("<OneDevDownloader %s [%d]/%s>", d.baseURL, d.repoID, d.repoName)
+}
+
+func (d *OneDevDownloader) callAPI(endpoint string, parameter map[string]string, result any) error {
 	u, err := d.baseURL.Parse(endpoint)
 	if err != nil {
 		return err
@@ -195,7 +205,7 @@ func (d *OneDevDownloader) GetMilestones() ([]*base.Milestone, error) {
 
 	endpoint := fmt.Sprintf("/api/projects/%d/milestones", d.repoID)
 
-	var milestones = make([]*base.Milestone, 0, 100)
+	milestones := make([]*base.Milestone, 0, 100)
 	offset := 0
 	for {
 		err := d.callAPI(
@@ -263,17 +273,7 @@ func (d *OneDevDownloader) GetLabels() ([]*base.Label, error) {
 }
 
 type onedevIssueContext struct {
-	foreignID     int64
-	localID       int64
 	IsPullRequest bool
-}
-
-func (c onedevIssueContext) LocalID() int64 {
-	return c.localID
-}
-
-func (c onedevIssueContext) ForeignID() int64 {
-	return c.foreignID
 }
 
 // GetIssues returns issues
@@ -347,21 +347,18 @@ func (d *OneDevDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 		}
 		poster := d.tryGetUser(issue.SubmitterID)
 		issues = append(issues, &base.Issue{
-			Title:       issue.Title,
-			Number:      issue.Number,
-			PosterName:  poster.Name,
-			PosterEmail: poster.Email,
-			Content:     issue.Description,
-			Milestone:   d.milestoneMap[milestoneID],
-			State:       state,
-			Created:     issue.SubmitDate,
-			Updated:     issue.SubmitDate,
-			Labels:      []*base.Label{label},
-			Context: onedevIssueContext{
-				foreignID:     issue.ID,
-				localID:       issue.Number,
-				IsPullRequest: false,
-			},
+			Title:        issue.Title,
+			Number:       issue.Number,
+			PosterName:   poster.Name,
+			PosterEmail:  poster.Email,
+			Content:      issue.Description,
+			Milestone:    d.milestoneMap[milestoneID],
+			State:        state,
+			Created:      issue.SubmitDate,
+			Updated:      issue.SubmitDate,
+			Labels:       []*base.Label{label},
+			ForeignIndex: issue.ID,
+			Context:      onedevIssueContext{IsPullRequest: false},
 		})
 
 		if d.maxIssueIndex < issue.Number {
@@ -373,13 +370,14 @@ func (d *OneDevDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 }
 
 // GetComments returns comments
-func (d *OneDevDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
-	context, ok := opts.Context.(onedevIssueContext)
+func (d *OneDevDownloader) GetComments(commentable base.Commentable) ([]*base.Comment, bool, error) {
+	context, ok := commentable.GetContext().(onedevIssueContext)
 	if !ok {
-		return nil, false, fmt.Errorf("unexpected comment context: %+v", opts.Context)
+		return nil, false, fmt.Errorf("unexpected context: %+v", commentable.GetContext())
 	}
 
 	rawComments := make([]struct {
+		ID      int64     `json:"id"`
 		Date    time.Time `json:"date"`
 		UserID  int64     `json:"userId"`
 		Content string    `json:"content"`
@@ -387,9 +385,9 @@ func (d *OneDevDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Com
 
 	var endpoint string
 	if context.IsPullRequest {
-		endpoint = fmt.Sprintf("/api/pull-requests/%d/comments", context.ForeignID())
+		endpoint = fmt.Sprintf("/api/pull-requests/%d/comments", commentable.GetForeignIndex())
 	} else {
-		endpoint = fmt.Sprintf("/api/issues/%d/comments", context.ForeignID())
+		endpoint = fmt.Sprintf("/api/issues/%d/comments", commentable.GetForeignIndex())
 	}
 
 	err := d.callAPI(
@@ -402,15 +400,15 @@ func (d *OneDevDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Com
 	}
 
 	rawChanges := make([]struct {
-		Date   time.Time              `json:"date"`
-		UserID int64                  `json:"userId"`
-		Data   map[string]interface{} `json:"data"`
+		Date   time.Time      `json:"date"`
+		UserID int64          `json:"userId"`
+		Data   map[string]any `json:"data"`
 	}, 0, 100)
 
 	if context.IsPullRequest {
-		endpoint = fmt.Sprintf("/api/pull-requests/%d/changes", context.ForeignID())
+		endpoint = fmt.Sprintf("/api/pull-requests/%d/changes", commentable.GetForeignIndex())
 	} else {
-		endpoint = fmt.Sprintf("/api/issues/%d/changes", context.ForeignID())
+		endpoint = fmt.Sprintf("/api/issues/%d/changes", commentable.GetForeignIndex())
 	}
 
 	err = d.callAPI(
@@ -429,7 +427,8 @@ func (d *OneDevDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Com
 		}
 		poster := d.tryGetUser(comment.UserID)
 		comments = append(comments, &base.Comment{
-			IssueIndex:  context.LocalID(),
+			IssueIndex:  commentable.GetLocalIndex(),
+			Index:       comment.ID,
 			PosterID:    poster.ID,
 			PosterName:  poster.Name,
 			PosterEmail: poster.Email,
@@ -453,7 +452,7 @@ func (d *OneDevDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Com
 
 		poster := d.tryGetUser(change.UserID)
 		comments = append(comments, &base.Comment{
-			IssueIndex:  context.LocalID(),
+			IssueIndex:  commentable.GetLocalIndex(),
 			PosterID:    poster.ID,
 			PosterName:  poster.Name,
 			PosterEmail: poster.Email,
@@ -551,19 +550,19 @@ func (d *OneDevDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 				SHA:      mergePreview.TargetHeadCommitHash,
 				RepoName: d.repoName,
 			},
-			Context: onedevIssueContext{
-				foreignID:     pr.ID,
-				localID:       number,
-				IsPullRequest: true,
-			},
+			ForeignIndex: pr.ID,
+			Context:      onedevIssueContext{IsPullRequest: true},
 		})
+
+		// SECURITY: Ensure that the PR is safe
+		_ = CheckAndEnsureSafePR(pullRequests[len(pullRequests)-1], d.baseURL.String(), d)
 	}
 
 	return pullRequests, len(pullRequests) == 0, nil
 }
 
 // GetReviews returns pull requests reviews
-func (d *OneDevDownloader) GetReviews(context base.IssueContext) ([]*base.Review, error) {
+func (d *OneDevDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review, error) {
 	rawReviews := make([]struct {
 		ID     int64 `json:"id"`
 		UserID int64 `json:"userId"`
@@ -575,7 +574,7 @@ func (d *OneDevDownloader) GetReviews(context base.IssueContext) ([]*base.Review
 	}, 0, 100)
 
 	err := d.callAPI(
-		fmt.Sprintf("/api/pull-requests/%d/reviews", context.ForeignID()),
+		fmt.Sprintf("/api/pull-requests/%d/reviews", reviewable.GetForeignIndex()),
 		nil,
 		&rawReviews,
 	)
@@ -583,7 +582,7 @@ func (d *OneDevDownloader) GetReviews(context base.IssueContext) ([]*base.Review
 		return nil, err
 	}
 
-	var reviews = make([]*base.Review, 0, len(rawReviews))
+	reviews := make([]*base.Review, 0, len(rawReviews))
 	for _, review := range rawReviews {
 		state := base.ReviewStatePending
 		content := ""
@@ -599,7 +598,7 @@ func (d *OneDevDownloader) GetReviews(context base.IssueContext) ([]*base.Review
 
 		poster := d.tryGetUser(review.UserID)
 		reviews = append(reviews, &base.Review{
-			IssueIndex:   context.LocalID(),
+			IssueIndex:   reviewable.GetLocalIndex(),
 			ReviewerID:   poster.ID,
 			ReviewerName: poster.Name,
 			Content:      content,

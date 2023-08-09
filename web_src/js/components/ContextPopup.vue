@@ -1,9 +1,9 @@
 <template>
-  <div>
+  <div ref="root">
     <div v-if="loading" class="ui active centered inline loader"/>
     <div v-if="!loading && issue !== null">
       <p><small>{{ issue.repository.full_name }} on {{ createdAt }}</small></p>
-      <p><svg-icon :name="icon" :class="[color]" /> <strong>{{ issue.title }}</strong> #{{ issue.number }}</p>
+      <p><svg-icon :name="icon" :class="['text', color]"/> <strong>{{ issue.title }}</strong> #{{ issue.number }}</p>
       <p>{{ body }}</p>
       <div>
         <div
@@ -24,40 +24,21 @@
 </template>
 
 <script>
+import $ from 'jquery';
 import {SvgIcon} from '../svg.js';
+import {useLightTextOnBackground} from '../utils/color.js';
+import tinycolor from 'tinycolor2';
 
 const {appSubUrl, i18n} = window.config;
 
-// NOTE: see models/issue_label.go for similar implementation
-const srgbToLinear = (color) => {
-  color /= 255;
-  if (color <= 0.04045) {
-    return color / 12.92;
-  }
-  return ((color + 0.055) / 1.055) ** 2.4;
-};
-const luminance = (colorString) => {
-  const r = srgbToLinear(parseInt(colorString.substring(0, 2), 16));
-  const g = srgbToLinear(parseInt(colorString.substring(2, 4), 16));
-  const b = srgbToLinear(parseInt(colorString.substring(4, 6), 16));
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-};
-const luminanceThreshold = 0.179;
-
 export default {
-  name: 'ContextPopup',
-
-  components: {
-    SvgIcon,
-  },
-
+  components: {SvgIcon},
   data: () => ({
     loading: false,
     issue: null,
     i18nErrorOccurred: i18n.error_occurred,
     i18nErrorMessage: null,
   }),
-
   computed: {
     createdAt() {
       return new Date(this.issue.created_at).toLocaleDateString(undefined, {year: 'numeric', month: 'short', day: 'numeric'});
@@ -97,29 +78,29 @@ export default {
     labels() {
       return this.issue.labels.map((label) => {
         let textColor;
-        if (luminance(label.color) < luminanceThreshold) {
-          textColor = '#ffffff';
+        const {r, g, b} = tinycolor(label.color).toRgb();
+        if (useLightTextOnBackground(r, g, b)) {
+          textColor = '#eeeeee';
         } else {
-          textColor = '#000000';
+          textColor = '#111111';
         }
         return {name: label.name, color: `#${label.color}`, textColor};
       });
     }
   },
-
   mounted() {
-    this.$root.$on('load-context-popup', (data, callback) => {
+    this.$refs.root.addEventListener('ce-load-context-popup', (e) => {
+      const data = e.detail;
       if (!this.loading && this.issue === null) {
-        this.load(data, callback);
+        this.load(data);
       }
     });
   },
-
   methods: {
-    load(data, callback) {
+    load(data) {
       this.loading = true;
       this.i18nErrorMessage = null;
-      $.get(`${appSubUrl}/api/v1/repos/${data.owner}/${data.repo}/issues/${data.index}`).done((issue) => {
+      $.get(`${appSubUrl}/${data.owner}/${data.repo}/issues/${data.index}/info`).done((issue) => {
         this.issue = issue;
       }).fail((jqXHR) => {
         if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
@@ -129,9 +110,6 @@ export default {
         }
       }).always(() => {
         this.loading = false;
-        if (callback) {
-          this.$nextTick(callback);
-        }
       });
     }
   }

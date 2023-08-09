@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2020 The Gitea Authors.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package org
 
@@ -9,6 +8,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -31,21 +31,22 @@ func Members(ctx *context.Context) {
 		page = 1
 	}
 
-	var opts = &models.FindOrgMembersOpts{
+	opts := &organization.FindOrgMembersOpts{
 		OrgID:      org.ID,
 		PublicOnly: true,
 	}
 
-	if ctx.User != nil {
-		isMember, err := ctx.Org.Organization.IsOrgMember(ctx.User.ID)
+	if ctx.Doer != nil {
+		isMember, err := ctx.Org.Organization.IsOrgMember(ctx.Doer.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrgMember")
 			return
 		}
-		opts.PublicOnly = !isMember && !ctx.User.IsAdmin
+		opts.PublicOnly = !isMember && !ctx.Doer.IsAdmin
 	}
+	ctx.Data["PublicOnly"] = opts.PublicOnly
 
-	total, err := models.CountOrgMembers(opts)
+	total, err := organization.CountOrgMembers(opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CountOrgMembers")
 		return
@@ -54,15 +55,16 @@ func Members(ctx *context.Context) {
 	pager := context.NewPagination(int(total), setting.UI.MembersPagingNum, page, 5)
 	opts.ListOptions.Page = page
 	opts.ListOptions.PageSize = setting.UI.MembersPagingNum
-	members, membersIsPublic, err := models.FindOrgMembers(opts)
+	members, membersIsPublic, err := organization.FindOrgMembers(opts)
 	if err != nil {
 		ctx.ServerError("GetMembers", err)
 		return
 	}
 	ctx.Data["Page"] = pager
 	ctx.Data["Members"] = members
+	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["MembersIsPublicMember"] = membersIsPublic
-	ctx.Data["MembersIsUserOrgOwner"] = models.IsUserOrgOwner(members, org.ID)
+	ctx.Data["MembersIsUserOrgOwner"] = organization.IsUserOrgOwner(members, org.ID)
 	ctx.Data["MembersTwoFaStatus"] = members.GetTwoFaStatus()
 
 	ctx.HTML(http.StatusOK, tplMembers)
@@ -80,44 +82,47 @@ func MembersAction(ctx *context.Context) {
 	var err error
 	switch ctx.Params(":action") {
 	case "private":
-		if ctx.User.ID != uid && !ctx.Org.IsOwner {
+		if ctx.Doer.ID != uid && !ctx.Org.IsOwner {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		err = models.ChangeOrgUserStatus(org.ID, uid, false)
+		err = organization.ChangeOrgUserStatus(org.ID, uid, false)
 	case "public":
-		if ctx.User.ID != uid && !ctx.Org.IsOwner {
+		if ctx.Doer.ID != uid && !ctx.Org.IsOwner {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		err = models.ChangeOrgUserStatus(org.ID, uid, true)
+		err = organization.ChangeOrgUserStatus(org.ID, uid, true)
 	case "remove":
 		if !ctx.Org.IsOwner {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		err = org.RemoveMember(uid)
-		if models.IsErrLastOrgOwner(err) {
+		err = models.RemoveOrgUser(org.ID, uid)
+		if organization.IsErrLastOrgOwner(err) {
 			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
-			ctx.JSON(http.StatusOK, map[string]interface{}{
-				"redirect": ctx.Org.OrgLink + "/members",
-			})
+			ctx.JSONRedirect(ctx.Org.OrgLink + "/members")
 			return
 		}
 	case "leave":
-		err = org.RemoveMember(ctx.User.ID)
-		if models.IsErrLastOrgOwner(err) {
-			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
-			ctx.JSON(http.StatusOK, map[string]interface{}{
-				"redirect": ctx.Org.OrgLink + "/members",
+		err = models.RemoveOrgUser(org.ID, ctx.Doer.ID)
+		if err == nil {
+			ctx.Flash.Success(ctx.Tr("form.organization_leave_success", org.DisplayName()))
+			ctx.JSON(http.StatusOK, map[string]any{
+				"redirect": "", // keep the user stay on current page, in case they want to do other operations.
 			})
-			return
+		} else if organization.IsErrLastOrgOwner(err) {
+			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
+			ctx.JSONRedirect(ctx.Org.OrgLink + "/members")
+		} else {
+			log.Error("RemoveOrgUser(%d,%d): %v", org.ID, ctx.Doer.ID, err)
 		}
+		return
 	}
 
 	if err != nil {
 		log.Error("Action(%s): %v", ctx.Params(":action"), err)
-		ctx.JSON(http.StatusOK, map[string]interface{}{
+		ctx.JSON(http.StatusOK, map[string]any{
 			"ok":  false,
 			"err": err.Error(),
 		})
@@ -129,7 +134,5 @@ func MembersAction(ctx *context.Context) {
 		redirect = setting.AppSubURL + "/"
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": redirect,
-	})
+	ctx.JSONRedirect(redirect)
 }

@@ -1,4 +1,6 @@
+import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
+import {hideElem, showElem} from '../utils/dom.js';
 
 const {appSubUrl} = window.config;
 
@@ -8,11 +10,11 @@ export function initRepoTemplateSearch() {
     const $templateUnits = $('#template_units');
     const $nonTemplate = $('#non_template');
     if ($repoTemplate.val() !== '' && $repoTemplate.val() !== '0') {
-      $templateUnits.show();
-      $nonTemplate.hide();
+      showElem($templateUnits);
+      hideElem($nonTemplate);
     } else {
-      $templateUnits.hide();
-      $nonTemplate.show();
+      hideElem($templateUnits);
+      showElem($nonTemplate);
     }
   };
   $repoTemplate.on('change', checkTemplate);
@@ -22,7 +24,7 @@ export function initRepoTemplateSearch() {
     $('#repo_template_search')
       .dropdown({
         apiSettings: {
-          url: `${appSubUrl}/api/v1/repos/search?q={query}&template=true&priority_owner_id=${$('#uid').val()}`,
+          url: `${appSubUrl}/repo/search?q={query}&template=true&priority_owner_id=${$('#uid').val()}`,
           onResponse(response) {
             const filteredResponse = {success: true, results: []};
             filteredResponse.results.push({
@@ -32,8 +34,8 @@ export function initRepoTemplateSearch() {
             // Parse the response from the api to work with our dropdown
             $.each(response.data, (_r, repo) => {
               filteredResponse.results.push({
-                name: htmlEscape(repo.full_name),
-                value: repo.id
+                name: htmlEscape(repo.repository.full_name),
+                value: repo.repository.id
               });
             });
             return filteredResponse;

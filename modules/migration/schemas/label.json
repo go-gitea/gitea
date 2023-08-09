@@ -1,0 +1,28 @@
+{
+    "title": "Label",
+    "description": "Label associated to an issue.",
+
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+	"name": {
+	    "description": "Name of the label, unique within the repository.",
+	    "type": "string"
+	},
+	"color": {
+	    "description": "Color code of the label.",
+	    "type": "string"
+	},
+	"description": {
+	    "description": "Long, multiline, description.",
+	    "type": "string"
+	}
+    },
+    "required": [
+	"name"
+    ],
+
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "$id": "label.json",
+    "$$target": "label.json"
+}

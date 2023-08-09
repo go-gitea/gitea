@@ -1,9 +1,7 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 //go:build !gogit
-// +build !gogit
 
 package pipeline
 
@@ -53,7 +51,11 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 
 	go func() {
 		stderr := strings.Builder{}
-		err := git.NewCommand("rev-list", "--all").RunInDirPipeline(repo.Path, revListWriter, &stderr)
+		err := git.NewCommand(repo.Ctx, "rev-list", "--all").Run(&git.RunOpts{
+			Dir:    repo.Path,
+			Stdout: revListWriter,
+			Stderr: &stderr,
+		})
 		if err != nil {
 			_ = revListWriter.CloseWithError(git.ConcatenateError(err, (&stderr).String()))
 		} else {
@@ -113,7 +115,7 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 				continue
 			case "commit":
 				// Read in the commit to get its tree and in case this is one of the last used commits
-				curCommit, err = git.CommitFromReader(repo, git.MustIDFromString(string(commitID)), io.LimitReader(batchReader, int64(size)))
+				curCommit, err = git.CommitFromReader(repo, git.MustIDFromString(string(commitID)), io.LimitReader(batchReader, size))
 				if err != nil {
 					return nil, err
 				}
@@ -212,7 +214,7 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 			i++
 		}
 	}()
-	go NameRevStdin(shasToNameReader, nameRevStdinWriter, &wg, basePath)
+	go NameRevStdin(repo.Ctx, shasToNameReader, nameRevStdinWriter, &wg, basePath)
 	go func() {
 		defer wg.Done()
 		defer shasToNameWriter.Close()

@@ -1,6 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package admin
 
@@ -9,7 +8,6 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/repo"
-	"code.gitea.io/gitea/routers/api/v1/user"
 )
 
 // CreateRepo api for creating a repository
@@ -34,6 +32,8 @@ func CreateRepo(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Repository"
+	//   "400":
+	//     "$ref": "#/responses/error"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
@@ -42,11 +42,8 @@ func CreateRepo(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	form := web.GetForm(ctx).(*api.CreateRepoOption)
-	owner := user.GetUserByParams(ctx)
-	if ctx.Written() {
-		return
-	}
 
-	repo.CreateUserRepo(ctx, owner, *form)
+	form := web.GetForm(ctx).(*api.CreateRepoOption)
+
+	repo.CreateUserRepo(ctx, ctx.ContextUser, *form)
 }

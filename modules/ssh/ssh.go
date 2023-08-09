@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package ssh
 
@@ -11,6 +10,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -23,7 +23,9 @@ import (
 	"syscall"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -66,17 +68,26 @@ func sessionHandler(session ssh.Session) {
 
 	log.Trace("SSH: Payload: %v", command)
 
-	args := []string{"serv", "key-" + keyID, "--config=" + setting.CustomConf}
+	args := []string{"--config=" + setting.CustomConf, "serv", "key-" + keyID}
 	log.Trace("SSH: Arguments: %v", args)
 
 	ctx, cancel := context.WithCancel(session.Context())
 	defer cancel()
+
+	gitProtocol := ""
+	for _, env := range session.Environ() {
+		if strings.HasPrefix(env, "GIT_PROTOCOL=") {
+			_, gitProtocol, _ = strings.Cut(env, "=")
+			break
+		}
+	}
 
 	cmd := exec.CommandContext(ctx, setting.AppPath, args...)
 	cmd.Env = append(
 		os.Environ(),
 		"SSH_ORIGINAL_COMMAND="+command,
 		"SKIP_MINWINSVC=1",
+		"GIT_PROTOCOL="+gitProtocol,
 	)
 
 	stdout, err := cmd.StdoutPipe()
@@ -99,6 +110,8 @@ func sessionHandler(session ssh.Session) {
 		return
 	}
 	defer stdin.Close()
+
+	process.SetSysProcAttribute(cmd)
 
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
@@ -138,10 +151,14 @@ func sessionHandler(session ssh.Session) {
 	// Wait for the command to exit and log any errors we get
 	err = cmd.Wait()
 	if err != nil {
-		log.Error("SSH: Wait: %v", err)
+		// Cannot use errors.Is here because ExitError doesn't implement Is
+		// Thus errors.Is will do equality test NOT type comparison
+		if _, ok := err.(*exec.ExitError); !ok {
+			log.Error("SSH: Wait: %v", err)
+		}
 	}
 
-	if err := session.Exit(getExitStatusFromError(err)); err != nil {
+	if err := session.Exit(getExitStatusFromError(err)); err != nil && !errors.Is(err, io.EOF) {
 		log.Error("Session failed to exit. %s", err)
 	}
 }
@@ -172,7 +189,7 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 		// look for the exact principal
 	principalLoop:
 		for _, principal := range cert.ValidPrincipals {
-			pkey, err := asymkey_model.SearchPublicKeyByContentExact(principal)
+			pkey, err := asymkey_model.SearchPublicKeyByContentExact(ctx, principal)
 			if err != nil {
 				if asymkey_model.IsErrKeyNotExist(err) {
 					log.Debug("Principal Rejected: %s Unknown Principal: %s", ctx.RemoteAddr(), principal)
@@ -184,8 +201,9 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 
 			c := &gossh.CertChecker{
 				IsUserAuthority: func(auth gossh.PublicKey) bool {
+					marshaled := auth.Marshal()
 					for _, k := range setting.SSH.TrustedUserCAKeysParsed {
-						if bytes.Equal(auth.Marshal(), k.Marshal()) {
+						if bytes.Equal(marshaled, k.Marshal()) {
 							return true
 						}
 					}
@@ -205,9 +223,7 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 			// validate the cert for this principal
 			if err := c.CheckCert(principal, cert); err != nil {
 				// User is presenting an invalid certificate - STOP any further processing
-				if log.IsError() {
-					log.Error("Invalid Certificate KeyID %s with Signature Fingerprint %s presented for Principal: %s from %s", cert.KeyId, gossh.FingerprintSHA256(cert.SignatureKey), principal, ctx.RemoteAddr())
-				}
+				log.Error("Invalid Certificate KeyID %s with Signature Fingerprint %s presented for Principal: %s from %s", cert.KeyId, gossh.FingerprintSHA256(cert.SignatureKey), principal, ctx.RemoteAddr())
 				log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
 
 				return false
@@ -221,10 +237,8 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 			return true
 		}
 
-		if log.IsWarn() {
-			log.Warn("From %s Fingerprint: %s is a certificate, but no valid principals found", ctx.RemoteAddr(), gossh.FingerprintSHA256(key))
-			log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
-		}
+		log.Warn("From %s Fingerprint: %s is a certificate, but no valid principals found", ctx.RemoteAddr(), gossh.FingerprintSHA256(key))
+		log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
 		return false
 	}
 
@@ -232,13 +246,11 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 		log.Debug("Handle Public Key: %s Fingerprint: %s is not a certificate", ctx.RemoteAddr(), gossh.FingerprintSHA256(key))
 	}
 
-	pkey, err := asymkey_model.SearchPublicKeyByContent(strings.TrimSpace(string(gossh.MarshalAuthorizedKey(key))))
+	pkey, err := asymkey_model.SearchPublicKeyByContent(ctx, strings.TrimSpace(string(gossh.MarshalAuthorizedKey(key))))
 	if err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
-			if log.IsWarn() {
-				log.Warn("Unknown public key: %s from %s", gossh.FingerprintSHA256(key), ctx.RemoteAddr())
-				log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
-			}
+			log.Warn("Unknown public key: %s from %s", gossh.FingerprintSHA256(key), ctx.RemoteAddr())
+			log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
 			return false
 		}
 		log.Error("SearchPublicKeyByContent: %v", err)
@@ -317,64 +329,11 @@ func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 		}
 	}
 
-	// Workaround slightly broken behaviour in x/crypto/ssh/handshake.go:458-463
-	//
-	// Fundamentally the issue here is that HostKeyAlgos make the incorrect assumption
-	// that the PublicKey().Type() matches the signature algorithm.
-	//
-	// Therefore we need to add duplicates for the RSA with different signing algorithms.
-	signers := make([]ssh.Signer, 0, len(srv.HostSigners))
-	for _, signer := range srv.HostSigners {
-		if signer.PublicKey().Type() == "ssh-rsa" {
-			signers = append(signers,
-				&wrapSigner{
-					Signer:    signer,
-					algorithm: gossh.SigAlgoRSASHA2512,
-				},
-				&wrapSigner{
-					Signer:    signer,
-					algorithm: gossh.SigAlgoRSASHA2256,
-				},
-			)
-		}
-		signers = append(signers, signer)
-	}
-	srv.HostSigners = signers
-
-	go listen(&srv)
-
-}
-
-// wrapSigner wraps a signer and overrides its public key type with the provided algorithm
-type wrapSigner struct {
-	ssh.Signer
-	algorithm string
-}
-
-// PublicKey returns an associated PublicKey instance.
-func (s *wrapSigner) PublicKey() gossh.PublicKey {
-	return &wrapPublicKey{
-		PublicKey: s.Signer.PublicKey(),
-		algorithm: s.algorithm,
-	}
-}
-
-// Sign returns raw signature for the given data. This method
-// will apply the hash specified for the keytype to the data using
-// the algorithm assigned for this key
-func (s *wrapSigner) Sign(rand io.Reader, data []byte) (*gossh.Signature, error) {
-	return s.Signer.(gossh.AlgorithmSigner).SignWithAlgorithm(rand, data, s.algorithm)
-}
-
-// wrapPublicKey wraps a PublicKey and overrides its type
-type wrapPublicKey struct {
-	gossh.PublicKey
-	algorithm string
-}
-
-// Type returns the algorithm
-func (k *wrapPublicKey) Type() string {
-	return k.algorithm
+	go func() {
+		_, _, finished := process.GetManager().AddTypedContext(graceful.GetManager().HammerContext(), "Service: Built-in SSH server", process.SystemProcessType, true)
+		defer finished()
+		listen(&srv)
+	}()
 }
 
 // GenKeyPair make a pair of public and private keys for SSH access.
@@ -387,7 +346,7 @@ func GenKeyPair(keyPath string) error {
 	}
 
 	privateKeyPEM := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)}
-	f, err := os.OpenFile(keyPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	f, err := os.OpenFile(keyPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return err
 	}
@@ -408,7 +367,7 @@ func GenKeyPair(keyPath string) error {
 	}
 
 	public := gossh.MarshalAuthorizedKey(pub)
-	p, err := os.OpenFile(keyPath+".pub", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	p, err := os.OpenFile(keyPath+".pub", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return err
 	}

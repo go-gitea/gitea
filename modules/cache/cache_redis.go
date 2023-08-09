@@ -1,19 +1,18 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cache
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/nosql"
 
 	"gitea.com/go-chi/cache"
-	"github.com/go-redis/redis/v8"
-	"github.com/unknwon/com"
+	"github.com/redis/go-redis/v9"
 )
 
 // RedisCacher represents a redis cache adapter implementation.
@@ -24,20 +23,37 @@ type RedisCacher struct {
 	occupyMode bool
 }
 
-// Put puts value into cache with key and expire time.
+// toStr convert string/int/int64 interface to string. it's only used by the RedisCacher.Put internally
+func toStr(v any) string {
+	if v == nil {
+		return ""
+	}
+	switch v := v.(type) {
+	case string:
+		return v
+	case []byte:
+		return string(v)
+	case int:
+		return strconv.FormatInt(int64(v), 10)
+	case int64:
+		return strconv.FormatInt(v, 10)
+	default:
+		return fmt.Sprint(v) // as what the old com.ToStr does in most cases
+	}
+}
+
+// Put puts value (string type) into cache with key and expire time.
 // If expired is 0, it lives forever.
-func (c *RedisCacher) Put(key string, val interface{}, expire int64) error {
+func (c *RedisCacher) Put(key string, val any, expire int64) error {
+	// this function is not well-designed, it only puts string values into cache
 	key = c.prefix + key
 	if expire == 0 {
-		if err := c.c.Set(graceful.GetManager().HammerContext(), key, com.ToStr(val), 0).Err(); err != nil {
+		if err := c.c.Set(graceful.GetManager().HammerContext(), key, toStr(val), 0).Err(); err != nil {
 			return err
 		}
 	} else {
-		dur, err := time.ParseDuration(com.ToStr(expire) + "s")
-		if err != nil {
-			return err
-		}
-		if err = c.c.Set(graceful.GetManager().HammerContext(), key, com.ToStr(val), dur).Err(); err != nil {
+		dur := time.Duration(expire) * time.Second
+		if err := c.c.Set(graceful.GetManager().HammerContext(), key, toStr(val), dur).Err(); err != nil {
 			return err
 		}
 	}
@@ -49,7 +65,7 @@ func (c *RedisCacher) Put(key string, val interface{}, expire int64) error {
 }
 
 // Get gets cached value by given key.
-func (c *RedisCacher) Get(key string) interface{} {
+func (c *RedisCacher) Get(key string) any {
 	val, err := c.c.Get(graceful.GetManager().HammerContext(), c.prefix+key).Result()
 	if err != nil {
 		return nil
@@ -133,6 +149,11 @@ func (c *RedisCacher) StartAndGC(opts cache.Options) error {
 		}
 	}
 
+	return c.c.Ping(graceful.GetManager().HammerContext()).Err()
+}
+
+// Ping tests if the cache is alive.
+func (c *RedisCacher) Ping() error {
 	return c.c.Ping(graceful.GetManager().HammerContext()).Err()
 }
 

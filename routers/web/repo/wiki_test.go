@@ -1,12 +1,12 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
 import (
 	"io"
 	"net/http"
+	"net/url"
 	"testing"
 
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -20,11 +20,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const content = "Wiki contents for unit tests"
-const message = "Wiki commit message for unit tests"
+const (
+	content = "Wiki contents for unit tests"
+	message = "Wiki commit message for unit tests"
+)
 
-func wikiEntry(t *testing.T, repo *repo_model.Repository, wikiName string) *git.TreeEntry {
-	wikiRepo, err := git.OpenRepository(repo.WikiPath())
+func wikiEntry(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.WebPath) *git.TreeEntry {
+	wikiRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
 	assert.NoError(t, err)
 	defer wikiRepo.Close()
 	commit, err := wikiRepo.GetBranchCommit("master")
@@ -32,14 +34,14 @@ func wikiEntry(t *testing.T, repo *repo_model.Repository, wikiName string) *git.
 	entries, err := commit.ListEntries()
 	assert.NoError(t, err)
 	for _, entry := range entries {
-		if entry.Name() == wiki_service.NameToFilename(wikiName) {
+		if entry.Name() == wiki_service.WebPathToGitPath(wikiName) {
 			return entry
 		}
 	}
 	return nil
 }
 
-func wikiContent(t *testing.T, repo *repo_model.Repository, wikiName string) string {
+func wikiContent(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.WebPath) string {
 	entry := wikiEntry(t, repo, wikiName)
 	if !assert.NotNil(t, entry) {
 		return ""
@@ -52,15 +54,15 @@ func wikiContent(t *testing.T, repo *repo_model.Repository, wikiName string) str
 	return string(bytes)
 }
 
-func assertWikiExists(t *testing.T, repo *repo_model.Repository, wikiName string) {
+func assertWikiExists(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.WebPath) {
 	assert.NotNil(t, wikiEntry(t, repo, wikiName))
 }
 
-func assertWikiNotExists(t *testing.T, repo *repo_model.Repository, wikiName string) {
+func assertWikiNotExists(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.WebPath) {
 	assert.Nil(t, wikiEntry(t, repo, wikiName))
 }
 
-func assertPagesMetas(t *testing.T, expectedNames []string, metas interface{}) {
+func assertPagesMetas(t *testing.T, expectedNames []string, metas any) {
 	pageMetas, ok := metas.([]PageMeta)
 	if !assert.True(t, ok) {
 		return
@@ -76,7 +78,7 @@ func assertPagesMetas(t *testing.T, expectedNames []string, metas interface{}) {
 func TestWiki(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	ctx := test.MockContext(t, "user2/repo1/wiki/?action=_pages")
+	ctx, _ := test.MockContext(t, "user2/repo1/wiki/?action=_pages")
 	ctx.SetParams("*", "Home")
 	test.LoadRepo(t, ctx, 1)
 	Wiki(ctx)
@@ -88,7 +90,7 @@ func TestWiki(t *testing.T) {
 func TestWikiPages(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	ctx := test.MockContext(t, "user2/repo1/wiki/?action=_pages")
+	ctx, _ := test.MockContext(t, "user2/repo1/wiki/?action=_pages")
 	test.LoadRepo(t, ctx, 1)
 	WikiPages(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
@@ -98,7 +100,7 @@ func TestWikiPages(t *testing.T) {
 func TestNewWiki(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	ctx := test.MockContext(t, "user2/repo1/wiki/?action=_new")
+	ctx, _ := test.MockContext(t, "user2/repo1/wiki/?action=_new")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
 	NewWiki(ctx)
@@ -113,7 +115,7 @@ func TestNewWikiPost(t *testing.T) {
 	} {
 		unittest.PrepareTestEnv(t)
 
-		ctx := test.MockContext(t, "user2/repo1/wiki/?action=_new")
+		ctx, _ := test.MockContext(t, "user2/repo1/wiki/?action=_new")
 		test.LoadUser(t, ctx, 2)
 		test.LoadRepo(t, ctx, 1)
 		web.SetForm(ctx, &forms.NewWikiForm{
@@ -122,16 +124,16 @@ func TestNewWikiPost(t *testing.T) {
 			Message: message,
 		})
 		NewWikiPost(ctx)
-		assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
-		assertWikiExists(t, ctx.Repo.Repository, title)
-		assert.Equal(t, wikiContent(t, ctx.Repo.Repository, title), content)
+		assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
+		assertWikiExists(t, ctx.Repo.Repository, wiki_service.UserTitleToWebPath("", title))
+		assert.Equal(t, wikiContent(t, ctx.Repo.Repository, wiki_service.UserTitleToWebPath("", title)), content)
 	}
 }
 
 func TestNewWikiPost_ReservedName(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	ctx := test.MockContext(t, "user2/repo1/wiki/?action=_new")
+	ctx, _ := test.MockContext(t, "user2/repo1/wiki/?action=_new")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
 	web.SetForm(ctx, &forms.NewWikiForm{
@@ -148,7 +150,7 @@ func TestNewWikiPost_ReservedName(t *testing.T) {
 func TestEditWiki(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	ctx := test.MockContext(t, "user2/repo1/wiki/Home?action=_edit")
+	ctx, _ := test.MockContext(t, "user2/repo1/wiki/Home?action=_edit")
 	ctx.SetParams("*", "Home")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
@@ -164,7 +166,7 @@ func TestEditWikiPost(t *testing.T) {
 		"New/<page>",
 	} {
 		unittest.PrepareTestEnv(t)
-		ctx := test.MockContext(t, "user2/repo1/wiki/Home?action=_new")
+		ctx, _ := test.MockContext(t, "user2/repo1/wiki/Home?action=_new")
 		ctx.SetParams("*", "Home")
 		test.LoadUser(t, ctx, 2)
 		test.LoadRepo(t, ctx, 1)
@@ -174,9 +176,9 @@ func TestEditWikiPost(t *testing.T) {
 			Message: message,
 		})
 		EditWikiPost(ctx)
-		assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
-		assertWikiExists(t, ctx.Repo.Repository, title)
-		assert.Equal(t, wikiContent(t, ctx.Repo.Repository, title), content)
+		assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
+		assertWikiExists(t, ctx.Repo.Repository, wiki_service.UserTitleToWebPath("", title))
+		assert.Equal(t, wikiContent(t, ctx.Repo.Repository, wiki_service.UserTitleToWebPath("", title)), content)
 		if title != "Home" {
 			assertWikiNotExists(t, ctx.Repo.Repository, "Home")
 		}
@@ -186,7 +188,7 @@ func TestEditWikiPost(t *testing.T) {
 func TestDeleteWikiPagePost(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	ctx := test.MockContext(t, "user2/repo1/wiki/Home?action=_delete")
+	ctx, _ := test.MockContext(t, "user2/repo1/wiki/Home?action=_delete")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
 	DeleteWikiPagePost(ctx)
@@ -200,17 +202,21 @@ func TestWikiRaw(t *testing.T) {
 		"images/jpeg.jpg":          "image/jpeg",
 		"Page With Spaced Name":    "text/plain; charset=utf-8",
 		"Page-With-Spaced-Name":    "text/plain; charset=utf-8",
-		"Page With Spaced Name.md": "text/plain; charset=utf-8",
+		"Page With Spaced Name.md": "", // there is no "Page With Spaced Name.md" in repo
 		"Page-With-Spaced-Name.md": "text/plain; charset=utf-8",
 	} {
 		unittest.PrepareTestEnv(t)
 
-		ctx := test.MockContext(t, "user2/repo1/wiki/raw/"+filepath)
+		ctx, _ := test.MockContext(t, "user2/repo1/wiki/raw/"+url.PathEscape(filepath))
 		ctx.SetParams("*", filepath)
 		test.LoadUser(t, ctx, 2)
 		test.LoadRepo(t, ctx, 1)
 		WikiRaw(ctx)
-		assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
-		assert.EqualValues(t, filetype, ctx.Resp.Header().Get("Content-Type"))
+		if filetype == "" {
+			assert.EqualValues(t, http.StatusNotFound, ctx.Resp.Status(), "filepath: %s", filepath)
+		} else {
+			assert.EqualValues(t, http.StatusOK, ctx.Resp.Status(), "filepath: %s", filepath)
+			assert.EqualValues(t, filetype, ctx.Resp.Header().Get("Content-Type"), "filepath: %s", filepath)
+		}
 	}
 }

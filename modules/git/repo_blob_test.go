@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -15,7 +14,7 @@ import (
 
 func TestRepository_GetBlob_Found(t *testing.T) {
 	repoPath := filepath.Join(testReposDir, "repo1_bare")
-	r, err := OpenRepository(repoPath)
+	r, err := openRepositoryWithDefaultContext(repoPath)
 	assert.NoError(t, err)
 	defer r.Close()
 
@@ -43,7 +42,7 @@ func TestRepository_GetBlob_Found(t *testing.T) {
 
 func TestRepository_GetBlob_NotExist(t *testing.T) {
 	repoPath := filepath.Join(testReposDir, "repo1_bare")
-	r, err := OpenRepository(repoPath)
+	r, err := openRepositoryWithDefaultContext(repoPath)
 	assert.NoError(t, err)
 	defer r.Close()
 
@@ -57,7 +56,7 @@ func TestRepository_GetBlob_NotExist(t *testing.T) {
 
 func TestRepository_GetBlob_NoId(t *testing.T) {
 	repoPath := filepath.Join(testReposDir, "repo1_bare")
-	r, err := OpenRepository(repoPath)
+	r, err := openRepositoryWithDefaultContext(repoPath)
 	assert.NoError(t, err)
 	defer r.Close()
 

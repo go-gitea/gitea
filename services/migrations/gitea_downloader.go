@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migrations
 
@@ -14,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/structs"
@@ -32,8 +30,7 @@ func init() {
 }
 
 // GiteaDownloaderFactory defines a gitea downloader factory
-type GiteaDownloaderFactory struct {
-}
+type GiteaDownloaderFactory struct{}
 
 // New returns a Downloader related to this factory according MigrateOptions
 func (f *GiteaDownloaderFactory) New(ctx context.Context, opts base.MigrateOptions) (base.Downloader, error) {
@@ -72,6 +69,7 @@ type GiteaDownloader struct {
 	base.NullDownloader
 	ctx        context.Context
 	client     *gitea_sdk.Client
+	baseURL    string
 	repoOwner  string
 	repoName   string
 	pagination bool
@@ -79,8 +77,9 @@ type GiteaDownloader struct {
 }
 
 // NewGiteaDownloader creates a gitea Downloader via gitea API
-//   Use either a username/password or personal token. token is preferred
-//   Note: Public access only allows very basic access
+//
+//	Use either a username/password or personal token. token is preferred
+//	Note: Public access only allows very basic access
 func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, password, token string) (*GiteaDownloader, error) {
 	giteaClient, err := gitea_sdk.NewClient(
 		baseURL,
@@ -117,6 +116,7 @@ func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, passwo
 	return &GiteaDownloader{
 		ctx:        ctx,
 		client:     giteaClient,
+		baseURL:    baseURL,
 		repoOwner:  path[0],
 		repoName:   path[1],
 		pagination: paginationSupport,
@@ -127,6 +127,18 @@ func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, passwo
 // SetContext set context
 func (g *GiteaDownloader) SetContext(ctx context.Context) {
 	g.ctx = ctx
+}
+
+// String implements Stringer
+func (g *GiteaDownloader) String() string {
+	return fmt.Sprintf("migration from gitea server %s %s/%s", g.baseURL, g.repoOwner, g.repoName)
+}
+
+func (g *GiteaDownloader) LogString() string {
+	if g == nil {
+		return "<GiteaDownloader nil>"
+	}
+	return fmt.Sprintf("<GiteaDownloader %s %s/%s>", g.baseURL, g.repoOwner, g.repoName)
 }
 
 // GetRepoInfo returns a repository information
@@ -159,7 +171,7 @@ func (g *GiteaDownloader) GetTopics() ([]string, error) {
 
 // GetMilestones returns milestones
 func (g *GiteaDownloader) GetMilestones() ([]*base.Milestone, error) {
-	var milestones = make([]*base.Milestone, 0, g.maxPerPage)
+	milestones := make([]*base.Milestone, 0, g.maxPerPage)
 
 	for i := 1; ; i++ {
 		// make sure gitea can shutdown gracefully
@@ -224,7 +236,7 @@ func (g *GiteaDownloader) convertGiteaLabel(label *gitea_sdk.Label) *base.Label 
 
 // GetLabels returns labels
 func (g *GiteaDownloader) GetLabels() ([]*base.Label, error) {
-	var labels = make([]*base.Label, 0, g.maxPerPage)
+	labels := make([]*base.Label, 0, g.maxPerPage)
 
 	for i := 1; ; i++ {
 		// make sure gitea can shutdown gracefully
@@ -284,6 +296,12 @@ func (g *GiteaDownloader) convertGiteaRelease(rel *gitea_sdk.Release) *base.Rele
 				if err != nil {
 					return nil, err
 				}
+
+				if !hasBaseURL(asset.DownloadURL, g.baseURL) {
+					WarnAndNotice("Unexpected AssetURL for assetID[%d] in %s: %s", asset.ID, g, asset.DownloadURL)
+					return io.NopCloser(strings.NewReader(asset.DownloadURL)), nil
+				}
+
 				// FIXME: for a private download?
 				req, err := http.NewRequest("GET", asset.DownloadURL, nil)
 				if err != nil {
@@ -304,7 +322,7 @@ func (g *GiteaDownloader) convertGiteaRelease(rel *gitea_sdk.Release) *base.Rele
 
 // GetReleases returns releases
 func (g *GiteaDownloader) GetReleases() ([]*base.Release, error) {
-	var releases = make([]*base.Release, 0, g.maxPerPage)
+	releases := make([]*base.Release, 0, g.maxPerPage)
 
 	for i := 1; ; i++ {
 		// make sure gitea can shutdown gracefully
@@ -379,7 +397,7 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 	if perPage > g.maxPerPage {
 		perPage = g.maxPerPage
 	}
-	var allIssues = make([]*base.Issue, 0, perPage)
+	allIssues := make([]*base.Issue, 0, perPage)
 
 	issues, _, err := g.client.ListRepoIssues(g.repoOwner, g.repoName, gitea_sdk.ListIssueOption{
 		ListOptions: gitea_sdk.ListOptions{Page: page, PageSize: perPage},
@@ -387,11 +405,11 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 		Type:        gitea_sdk.IssueTypeIssue,
 	})
 	if err != nil {
-		return nil, false, fmt.Errorf("error while listing issues: %v", err)
+		return nil, false, fmt.Errorf("error while listing issues: %w", err)
 	}
 	for _, issue := range issues {
 
-		var labels = make([]*base.Label, 0, len(issue.Labels))
+		labels := make([]*base.Label, 0, len(issue.Labels))
 		for i := range issue.Labels {
 			labels = append(labels, g.convertGiteaLabel(issue.Labels[i]))
 		}
@@ -403,11 +421,7 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 
 		reactions, err := g.getIssueReactions(issue.Index)
 		if err != nil {
-			log.Warn("Unable to load reactions during migrating issue #%d to %s/%s. Error: %v", issue.Index, g.repoOwner, g.repoName, err)
-			if err2 := admin_model.CreateRepositoryNotice(
-				fmt.Sprintf("Unable to load reactions during migrating issue #%d to %s/%s. Error: %v", issue.Index, g.repoOwner, g.repoName, err)); err2 != nil {
-				log.Error("create repository notice failed: ", err2)
-			}
+			WarnAndNotice("Unable to load reactions during migrating issue #%d in %s. Error: %v", issue.Index, g, err)
 		}
 
 		var assignees []string
@@ -416,22 +430,22 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 		}
 
 		allIssues = append(allIssues, &base.Issue{
-			Title:       issue.Title,
-			Number:      issue.Index,
-			PosterID:    issue.Poster.ID,
-			PosterName:  issue.Poster.UserName,
-			PosterEmail: issue.Poster.Email,
-			Content:     issue.Body,
-			Milestone:   milestone,
-			State:       string(issue.State),
-			Created:     issue.Created,
-			Updated:     issue.Updated,
-			Closed:      issue.Closed,
-			Reactions:   reactions,
-			Labels:      labels,
-			Assignees:   assignees,
-			IsLocked:    issue.IsLocked,
-			Context:     base.BasicIssueContext(issue.Index),
+			Title:        issue.Title,
+			Number:       issue.Index,
+			PosterID:     issue.Poster.ID,
+			PosterName:   issue.Poster.UserName,
+			PosterEmail:  issue.Poster.Email,
+			Content:      issue.Body,
+			Milestone:    milestone,
+			State:        string(issue.State),
+			Created:      issue.Created,
+			Updated:      issue.Updated,
+			Closed:       issue.Closed,
+			Reactions:    reactions,
+			Labels:       labels,
+			Assignees:    assignees,
+			IsLocked:     issue.IsLocked,
+			ForeignIndex: issue.Index,
 		})
 	}
 
@@ -443,8 +457,8 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 }
 
 // GetComments returns comments according issueNumber
-func (g *GiteaDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
-	var allComments = make([]*base.Comment, 0, g.maxPerPage)
+func (g *GiteaDownloader) GetComments(commentable base.Commentable) ([]*base.Comment, bool, error) {
+	allComments := make([]*base.Comment, 0, g.maxPerPage)
 
 	for i := 1; ; i++ {
 		// make sure gitea can shutdown gracefully
@@ -454,26 +468,23 @@ func (g *GiteaDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Comm
 		default:
 		}
 
-		comments, _, err := g.client.ListIssueComments(g.repoOwner, g.repoName, opts.Context.ForeignID(), gitea_sdk.ListIssueCommentOptions{ListOptions: gitea_sdk.ListOptions{
+		comments, _, err := g.client.ListIssueComments(g.repoOwner, g.repoName, commentable.GetForeignIndex(), gitea_sdk.ListIssueCommentOptions{ListOptions: gitea_sdk.ListOptions{
 			PageSize: g.maxPerPage,
 			Page:     i,
 		}})
 		if err != nil {
-			return nil, false, fmt.Errorf("error while listing comments for issue #%d. Error: %v", opts.Context.ForeignID(), err)
+			return nil, false, fmt.Errorf("error while listing comments for issue #%d. Error: %w", commentable.GetForeignIndex(), err)
 		}
 
 		for _, comment := range comments {
 			reactions, err := g.getCommentReactions(comment.ID)
 			if err != nil {
-				log.Warn("Unable to load comment reactions during migrating issue #%d for comment %d to %s/%s. Error: %v", opts.Context.ForeignID(), comment.ID, g.repoOwner, g.repoName, err)
-				if err2 := admin_model.CreateRepositoryNotice(
-					fmt.Sprintf("Unable to load reactions during migrating issue #%d for comment %d to %s/%s. Error: %v", opts.Context.ForeignID(), comment.ID, g.repoOwner, g.repoName, err)); err2 != nil {
-					log.Error("create repository notice failed: ", err2)
-				}
+				WarnAndNotice("Unable to load comment reactions during migrating issue #%d for comment %d in %s. Error: %v", commentable.GetForeignIndex(), comment.ID, g, err)
 			}
 
 			allComments = append(allComments, &base.Comment{
-				IssueIndex:  opts.Context.LocalID(),
+				IssueIndex:  commentable.GetLocalIndex(),
+				Index:       comment.ID,
 				PosterID:    comment.Poster.ID,
 				PosterName:  comment.Poster.UserName,
 				PosterEmail: comment.Poster.Email,
@@ -496,7 +507,7 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 	if perPage > g.maxPerPage {
 		perPage = g.maxPerPage
 	}
-	var allPRs = make([]*base.PullRequest, 0, perPage)
+	allPRs := make([]*base.PullRequest, 0, perPage)
 
 	prs, _, err := g.client.ListRepoPullRequests(g.repoOwner, g.repoName, gitea_sdk.ListPullRequestsOptions{
 		ListOptions: gitea_sdk.ListOptions{
@@ -506,7 +517,7 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 		State: gitea_sdk.StateAll,
 	})
 	if err != nil {
-		return nil, false, fmt.Errorf("error while listing pull requests (page: %d, pagesize: %d). Error: %v", page, perPage, err)
+		return nil, false, fmt.Errorf("error while listing pull requests (page: %d, pagesize: %d). Error: %w", page, perPage, err)
 	}
 	for _, pr := range prs {
 		var milestone string
@@ -514,7 +525,7 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 			milestone = pr.Milestone.Title
 		}
 
-		var labels = make([]*base.Label, 0, len(pr.Labels))
+		labels := make([]*base.Label, 0, len(pr.Labels))
 		for i := range pr.Labels {
 			labels = append(labels, g.convertGiteaLabel(pr.Labels[i]))
 		}
@@ -543,11 +554,7 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 
 		reactions, err := g.getIssueReactions(pr.Index)
 		if err != nil {
-			log.Warn("Unable to load reactions during migrating pull #%d to %s/%s. Error: %v", pr.Index, g.repoOwner, g.repoName, err)
-			if err2 := admin_model.CreateRepositoryNotice(
-				fmt.Sprintf("Unable to load reactions during migrating pull #%d to %s/%s. Error: %v", pr.Index, g.repoOwner, g.repoName, err)); err2 != nil {
-				log.Error("create repository notice failed: ", err2)
-			}
+			WarnAndNotice("Unable to load reactions during migrating pull #%d in %s. Error: %v", pr.Index, g, err)
 		}
 
 		var assignees []string
@@ -602,8 +609,10 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 				RepoName:  g.repoName,
 				OwnerName: g.repoOwner,
 			},
-			Context: base.BasicIssueContext(pr.Index),
+			ForeignIndex: pr.Index,
 		})
+		// SECURITY: Ensure that the PR is safe
+		_ = CheckAndEnsureSafePR(allPRs[len(allPRs)-1], g.baseURL, g)
 	}
 
 	isEnd := len(prs) < perPage
@@ -614,13 +623,13 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 }
 
 // GetReviews returns pull requests review
-func (g *GiteaDownloader) GetReviews(context base.IssueContext) ([]*base.Review, error) {
+func (g *GiteaDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review, error) {
 	if err := g.client.CheckServerVersionConstraint(">=1.12"); err != nil {
 		log.Info("GiteaDownloader: instance to old, skip GetReviews")
 		return nil, nil
 	}
 
-	var allReviews = make([]*base.Review, 0, g.maxPerPage)
+	allReviews := make([]*base.Review, 0, g.maxPerPage)
 
 	for i := 1; ; i++ {
 		// make sure gitea can shutdown gracefully
@@ -630,7 +639,7 @@ func (g *GiteaDownloader) GetReviews(context base.IssueContext) ([]*base.Review,
 		default:
 		}
 
-		prl, _, err := g.client.ListPullReviews(g.repoOwner, g.repoName, context.ForeignID(), gitea_sdk.ListPullReviewsOptions{ListOptions: gitea_sdk.ListOptions{
+		prl, _, err := g.client.ListPullReviews(g.repoOwner, g.repoName, reviewable.GetForeignIndex(), gitea_sdk.ListPullReviewsOptions{ListOptions: gitea_sdk.ListOptions{
 			Page:     i,
 			PageSize: g.maxPerPage,
 		}})
@@ -639,8 +648,13 @@ func (g *GiteaDownloader) GetReviews(context base.IssueContext) ([]*base.Review,
 		}
 
 		for _, pr := range prl {
+			if pr.Reviewer == nil {
+				// Presumably this is a team review which we cannot migrate at present but we have to skip this review as otherwise the review will be mapped on to an incorrect user.
+				// TODO: handle team reviews
+				continue
+			}
 
-			rcl, _, err := g.client.ListPullReviewComments(g.repoOwner, g.repoName, context.ForeignID(), pr.ID)
+			rcl, _, err := g.client.ListPullReviewComments(g.repoOwner, g.repoName, reviewable.GetForeignIndex(), pr.ID)
 			if err != nil {
 				return nil, err
 			}
@@ -664,9 +678,9 @@ func (g *GiteaDownloader) GetReviews(context base.IssueContext) ([]*base.Review,
 				})
 			}
 
-			allReviews = append(allReviews, &base.Review{
+			review := &base.Review{
 				ID:           pr.ID,
-				IssueIndex:   context.LocalID(),
+				IssueIndex:   reviewable.GetLocalIndex(),
 				ReviewerID:   pr.Reviewer.ID,
 				ReviewerName: pr.Reviewer.UserName,
 				Official:     pr.Official,
@@ -675,7 +689,9 @@ func (g *GiteaDownloader) GetReviews(context base.IssueContext) ([]*base.Review,
 				CreatedAt:    pr.Submitted,
 				State:        string(pr.State),
 				Comments:     reviewComments,
-			})
+			}
+
+			allReviews = append(allReviews, review)
 		}
 
 		if len(prl) < g.maxPerPage {

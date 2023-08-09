@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -8,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -20,7 +19,7 @@ func IssueWatch(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (ctx.User.ID != issue.PosterID && !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull)) {
+	if !ctx.IsSigned || (ctx.Doer.ID != issue.PosterID && !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull)) {
 		if log.IsTrace() {
 			if ctx.IsSigned {
 				issueType := "issues"
@@ -29,8 +28,8 @@ func IssueWatch(ctx *context.Context) {
 				}
 				log.Trace("Permission Denied: User %-v not the Poster (ID: %d) and cannot read %s in Repo %-v.\n"+
 					"User in Repo has Permissions: %-+v",
-					ctx.User,
-					log.NewColoredIDValue(issue.PosterID),
+					ctx.Doer,
+					issue.PosterID,
 					issueType,
 					ctx.Repo.Repository,
 					ctx.Repo.Permission)
@@ -48,10 +47,10 @@ func IssueWatch(ctx *context.Context) {
 		return
 	}
 
-	if err := models.CreateOrUpdateIssueWatch(ctx.User.ID, issue.ID, watch); err != nil {
+	if err := issues_model.CreateOrUpdateIssueWatch(ctx.Doer.ID, issue.ID, watch); err != nil {
 		ctx.ServerError("CreateOrUpdateIssueWatch", err)
 		return
 	}
 
-	ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
+	ctx.Redirect(issue.Link())
 }

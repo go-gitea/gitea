@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package setting
 
@@ -10,30 +9,27 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-var (
-	// CORSConfig defines CORS settings
-	CORSConfig = struct {
-		Enabled          bool
-		Scheme           string
-		AllowDomain      []string
-		AllowSubdomain   bool
-		Methods          []string
-		MaxAge           time.Duration
-		AllowCredentials bool
-		XFrameOptions    string
-	}{
-		Enabled:       false,
-		MaxAge:        10 * time.Minute,
-		XFrameOptions: "SAMEORIGIN",
-	}
-)
+// CORSConfig defines CORS settings
+var CORSConfig = struct {
+	Enabled          bool
+	Scheme           string
+	AllowDomain      []string
+	AllowSubdomain   bool
+	Methods          []string
+	MaxAge           time.Duration
+	AllowCredentials bool
+	Headers          []string
+	XFrameOptions    string
+}{
+	AllowDomain:   []string{"*"},
+	Methods:       []string{"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+	Headers:       []string{"Content-Type", "User-Agent"},
+	MaxAge:        10 * time.Minute,
+	XFrameOptions: "SAMEORIGIN",
+}
 
-func newCORSService() {
-	sec := Cfg.Section("cors")
-	if err := sec.MapTo(&CORSConfig); err != nil {
-		log.Fatal("Failed to map cors settings: %v", err)
-	}
-
+func loadCorsFrom(rootCfg ConfigProvider) {
+	mustMapSetting(rootCfg, "cors", &CORSConfig)
 	if CORSConfig.Enabled {
 		log.Info("CORS Service Enabled")
 	}

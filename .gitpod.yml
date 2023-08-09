@@ -1,0 +1,42 @@
+tasks:
+  - name: Setup
+    init: |
+      cp -r contrib/ide/vscode .vscode
+      make deps
+      make build
+    command: |
+      gp sync-done setup
+      exit 0
+  - name: Run backend
+    command: |
+      gp sync-await setup
+      if [ ! -f custom/conf/app.ini ]
+      then
+        mkdir -p custom/conf/
+        echo -e "[server]\nROOT_URL=$(gp url 3000)/" > custom/conf/app.ini
+        echo -e "\n[database]\nDB_TYPE = sqlite3\nPATH = $GITPOD_REPO_ROOT/data/gitea.db" >> custom/conf/app.ini
+      fi
+      export TAGS="sqlite sqlite_unlock_notify"
+      make watch-backend
+  - name: Run frontend
+    command: |
+      gp sync-await setup
+      make watch-frontend
+    openMode: split-right
+
+vscode:
+  extensions:
+    - editorconfig.editorconfig
+    - dbaeumer.vscode-eslint
+    - golang.go
+    - stylelint.vscode-stylelint
+    - DavidAnson.vscode-markdownlint
+    - Vue.volar
+    - ms-azuretools.vscode-docker
+    - zixuanchen.vitest-explorer
+    - qwtel.sqlite-viewer
+    - GitHub.vscode-pull-request-github
+
+ports:
+  - name: Gitea
+    port: 3000

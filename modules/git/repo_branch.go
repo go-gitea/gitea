@@ -1,12 +1,12 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -14,17 +14,9 @@ import (
 // BranchPrefix base dir of the branch information file store on git
 const BranchPrefix = "refs/heads/"
 
-// AGit Flow
-
-// PullRequestPrefix sepcial ref to create a pull request: refs/for/<targe-branch>/<topic-branch>
-// or refs/for/<targe-branch> -o topic='<topic-branch>'
-const PullRequestPrefix = "refs/for/"
-
-// TODO: /refs/for-review for suggest change interface
-
 // IsReferenceExist returns true if given reference exists in the repository.
 func IsReferenceExist(ctx context.Context, repoPath, name string) bool {
-	_, err := NewCommandContext(ctx, "show-ref", "--verify", "--", name).RunInDir(repoPath)
+	_, _, err := NewCommand(ctx, "show-ref", "--verify").AddDashesAndList(name).RunStdString(&RunOpts{Dir: repoPath})
 	return err == nil
 }
 
@@ -46,7 +38,7 @@ func (repo *Repository) GetHEADBranch() (*Branch, error) {
 	if repo == nil {
 		return nil, fmt.Errorf("nil repo")
 	}
-	stdout, err := NewCommandContext(repo.Ctx, "symbolic-ref", "HEAD").RunInDir(repo.Path)
+	stdout, _, err := NewCommand(repo.Ctx, "symbolic-ref", "HEAD").RunStdString(&RunOpts{Dir: repo.Path})
 	if err != nil {
 		return nil, err
 	}
@@ -65,13 +57,21 @@ func (repo *Repository) GetHEADBranch() (*Branch, error) {
 
 // SetDefaultBranch sets default branch of repository.
 func (repo *Repository) SetDefaultBranch(name string) error {
-	_, err := NewCommandContext(repo.Ctx, "symbolic-ref", "HEAD", BranchPrefix+name).RunInDir(repo.Path)
+	_, _, err := NewCommand(repo.Ctx, "symbolic-ref", "HEAD").AddDynamicArguments(BranchPrefix + name).RunStdString(&RunOpts{Dir: repo.Path})
 	return err
 }
 
 // GetDefaultBranch gets default branch of repository.
 func (repo *Repository) GetDefaultBranch() (string, error) {
-	return NewCommandContext(repo.Ctx, "symbolic-ref", "HEAD").RunInDir(repo.Path)
+	stdout, _, err := NewCommand(repo.Ctx, "symbolic-ref", "HEAD").RunStdString(&RunOpts{Dir: repo.Path})
+	if err != nil {
+		return "", err
+	}
+	stdout = strings.TrimSpace(stdout)
+	if !strings.HasPrefix(stdout, BranchPrefix) {
+		return "", errors.New("the HEAD is not a branch: " + stdout)
+	}
+	return strings.TrimPrefix(stdout, BranchPrefix), nil
 }
 
 // GetBranch returns a branch by it's name
@@ -88,14 +88,25 @@ func (repo *Repository) GetBranch(branch string) (*Branch, error) {
 
 // GetBranchesByPath returns a branch by it's path
 // if limit = 0 it will not limit
-func GetBranchesByPath(path string, skip, limit int) ([]*Branch, int, error) {
-	gitRepo, err := OpenRepository(path)
+func GetBranchesByPath(ctx context.Context, path string, skip, limit int) ([]*Branch, int, error) {
+	gitRepo, err := OpenRepository(ctx, path)
 	if err != nil {
 		return nil, 0, err
 	}
 	defer gitRepo.Close()
 
 	return gitRepo.GetBranches(skip, limit)
+}
+
+// GetBranchCommitID returns a branch commit ID by its name
+func GetBranchCommitID(ctx context.Context, path, branch string) (string, error) {
+	gitRepo, err := OpenRepository(ctx, path)
+	if err != nil {
+		return "", err
+	}
+	defer gitRepo.Close()
+
+	return gitRepo.GetBranchCommitID(branch)
 }
 
 // GetBranches returns a slice of *git.Branch
@@ -124,7 +135,7 @@ type DeleteBranchOptions struct {
 
 // DeleteBranch delete a branch by name on repository.
 func (repo *Repository) DeleteBranch(name string, opts DeleteBranchOptions) error {
-	cmd := NewCommandContext(repo.Ctx, "branch")
+	cmd := NewCommand(repo.Ctx, "branch")
 
 	if opts.Force {
 		cmd.AddArguments("-D")
@@ -132,37 +143,37 @@ func (repo *Repository) DeleteBranch(name string, opts DeleteBranchOptions) erro
 		cmd.AddArguments("-d")
 	}
 
-	cmd.AddArguments("--", name)
-	_, err := cmd.RunInDir(repo.Path)
+	cmd.AddDashesAndList(name)
+	_, _, err := cmd.RunStdString(&RunOpts{Dir: repo.Path})
 
 	return err
 }
 
 // CreateBranch create a new branch
 func (repo *Repository) CreateBranch(branch, oldbranchOrCommit string) error {
-	cmd := NewCommandContext(repo.Ctx, "branch")
-	cmd.AddArguments("--", branch, oldbranchOrCommit)
+	cmd := NewCommand(repo.Ctx, "branch")
+	cmd.AddDashesAndList(branch, oldbranchOrCommit)
 
-	_, err := cmd.RunInDir(repo.Path)
+	_, _, err := cmd.RunStdString(&RunOpts{Dir: repo.Path})
 
 	return err
 }
 
 // AddRemote adds a new remote to repository.
 func (repo *Repository) AddRemote(name, url string, fetch bool) error {
-	cmd := NewCommandContext(repo.Ctx, "remote", "add")
+	cmd := NewCommand(repo.Ctx, "remote", "add")
 	if fetch {
 		cmd.AddArguments("-f")
 	}
-	cmd.AddArguments(name, url)
+	cmd.AddDynamicArguments(name, url)
 
-	_, err := cmd.RunInDir(repo.Path)
+	_, _, err := cmd.RunStdString(&RunOpts{Dir: repo.Path})
 	return err
 }
 
 // RemoveRemote removes a remote from repository.
 func (repo *Repository) RemoveRemote(name string) error {
-	_, err := NewCommandContext(repo.Ctx, "remote", "rm", name).RunInDir(repo.Path)
+	_, _, err := NewCommand(repo.Ctx, "remote", "rm").AddDynamicArguments(name).RunStdString(&RunOpts{Dir: repo.Path})
 	return err
 }
 
@@ -173,6 +184,6 @@ func (branch *Branch) GetCommit() (*Commit, error) {
 
 // RenameBranch rename a branch
 func (repo *Repository) RenameBranch(from, to string) error {
-	_, err := NewCommandContext(repo.Ctx, "branch", "-m", from, to).RunInDir(repo.Path)
+	_, _, err := NewCommand(repo.Ctx, "branch", "-m").AddDynamicArguments(from, to).RunStdString(&RunOpts{Dir: repo.Path})
 	return err
 }

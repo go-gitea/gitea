@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package csv
 
@@ -12,7 +11,9 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -31,7 +32,7 @@ func decodeSlashes(t *testing.T, s string) string {
 }
 
 func TestCreateReaderAndDetermineDelimiter(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		csv               string
 		expectedRows      [][]string
 		expectedDelimiter rune
@@ -135,7 +136,7 @@ func TestDetermineDelimiterReadAllError(t *testing.T) {
 }
 
 func TestDetermineDelimiter(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		csv               string
 		filename          string
 		expectedDelimiter rune
@@ -223,24 +224,27 @@ c;d;#`,
 		// case 13 - tab delimited with commas in values
 		{
 			csv: `name	email	note
-John Doe	john@doe.com	This,note,had,a,lot,of,commas,to,test,delimters`,
+John Doe	john@doe.com	This,note,had,a,lot,of,commas,to,test,delimiters`,
 			filename:          "",
 			expectedDelimiter: '\t',
 		},
 	}
 
 	for n, c := range cases {
-		delimiter := determineDelimiter(&markup.RenderContext{Filename: c.filename}, []byte(decodeSlashes(t, c.csv)))
+		delimiter := determineDelimiter(&markup.RenderContext{
+			Ctx:          git.DefaultContext,
+			RelativePath: c.filename,
+		}, []byte(decodeSlashes(t, c.csv)))
 		assert.EqualValues(t, c.expectedDelimiter, delimiter, "case %d: delimiter should be equal, expected '%c' got '%c'", n, c.expectedDelimiter, delimiter)
 	}
 }
 
 func TestRemoveQuotedString(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		text         string
 		expectedText string
 	}{
-		// case 0 - quoted text with escpaed quotes in 1st column
+		// case 0 - quoted text with escaped quotes in 1st column
 		{
 			text: `col1,col2,col3
 "quoted ""text"" with
@@ -249,7 +253,7 @@ in first column",b,c`,
 			expectedText: `col1,col2,col3
 ,b,c`,
 		},
-		// case 1 - quoted text with escpaed quotes in 2nd column
+		// case 1 - quoted text with escaped quotes in 2nd column
 		{
 			text: `col1,col2,col3
 a,"quoted ""text"" with
@@ -258,7 +262,7 @@ in second column",c`,
 			expectedText: `col1,col2,col3
 a,,c`,
 		},
-		// case 2 - quoted text with escpaed quotes in last column
+		// case 2 - quoted text with escaped quotes in last column
 		{
 			text: `col1,col2,col3
 a,b,"quoted ""text"" with
@@ -301,7 +305,7 @@ abc   | |123
 }
 
 func TestGuessDelimiter(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		csv               string
 		expectedDelimiter rune
 	}{
@@ -322,7 +326,7 @@ func TestGuessDelimiter(t *testing.T) {
 		},
 		// case 3 - tab delimited
 		{
-			csv: "1	2",
+			csv:               "1\t2",
 			expectedDelimiter: '\t',
 		},
 		// case 4 - pipe delimited
@@ -351,7 +355,7 @@ c;d`,
 		// case 8 - tab delimited with commas in value
 		{
 			csv: `name	email	note
-John Doe	john@doe.com	This,note,had,a,lot,of,commas,to,test,delimters`,
+John Doe	john@doe.com	This,note,had,a,lot,of,commas,to,test,delimiters`,
 			expectedDelimiter: '\t',
 		},
 		// case 9 - tab delimited with new lines in values, commas in values
@@ -431,7 +435,7 @@ skxg,t,vay,d,wug,d,xg,sexc	rt	g,ag,mjq,fjnyji,iwa,m,ml,b,ua,b,qjxeoc	be,s,sh,n,j
 			csv:               "col1@col2@col3\na@b@" + strings.Repeat("c", 6000) + "\nd,e," + strings.Repeat("f", 4000),
 			expectedDelimiter: '@',
 		},
-		// case 16 - has all delimters so should return comma
+		// case 16 - has all delimiters so should return comma
 		{
 			csv: `col1,col2;col3@col4|col5	col6
 a	b|c@d;e,f`,
@@ -456,7 +460,7 @@ jkl`,
 }
 
 func TestGuessFromBeforeAfterQuotes(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		csv               string
 		expectedDelimiter rune
 	}{
@@ -547,22 +551,8 @@ a|"he said, ""here I am"""`,
 	}
 }
 
-type mockLocale struct{}
-
-func (l mockLocale) Language() string {
-	return "en"
-}
-
-func (l mockLocale) Tr(s string, _ ...interface{}) string {
-	return s
-}
-
-func (l mockLocale) TrN(_cnt interface{}, key1, _keyN string, _args ...interface{}) string {
-	return key1
-}
-
 func TestFormatError(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		err             error
 		expectedMessage string
 		expectsError    bool
@@ -588,7 +578,7 @@ func TestFormatError(t *testing.T) {
 	}
 
 	for n, c := range cases {
-		message, err := FormatError(c.err, mockLocale{})
+		message, err := FormatError(c.err, &translation.MockLocale{})
 		if c.expectsError {
 			assert.Error(t, err, "case %d: expected an error to be returned", n)
 		} else {
