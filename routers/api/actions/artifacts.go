@@ -194,7 +194,6 @@ func (ar artifactRoutes) getUploadArtifactURL(ctx *ArtifactContext) {
 	}
 
 	// set retention days
-	req.RetentionDays = 17
 	retentionQuery := ""
 	if req.RetentionDays > 0 {
 		retentionQuery = fmt.Sprintf("?retentionDays=%d", req.RetentionDays)

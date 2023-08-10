@@ -14,7 +14,7 @@ import (
 
 // Cleanup removes expired actions logs, data and artifacts
 func Cleanup(taskCtx context.Context, olderThan time.Duration) error {
-	// clean up expired actions logs
+	// TODO: clean up expired actions logs
 
 	// clean up expired artifacts
 	return CleanupArtifacts(taskCtx)
