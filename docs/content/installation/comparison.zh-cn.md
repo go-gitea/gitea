@@ -126,7 +126,6 @@ _表格中的符号含义:_
 | 下载 Patch                           | ✓                                                  | ✘    | ✓         | ✓                                                                                 | ✓         | [/](https://jira.atlassian.com/plugins/servlet/mobile#issue/BCLOUD-8323) | ✘            |
 | Merge queues                                    | ✘                                                  | ✘    | ✓         | ✘         | ✓         | ✘         | ✘            |
 
-
 #### 第三方集成
 
 | 特性                       | Gitea                                              | Gogs                                          | GitHub EE | GitLab CE | GitLab EE | BitBucket | RhodeCode CE |
