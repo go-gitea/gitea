@@ -575,11 +575,11 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 }
 
 func DisableWorkflowFile(ctx *context_module.Context) {
-	disableOrEnableWorkflowFile(false, ctx)
+	disableOrEnableWorkflowFile(ctx, false)
 }
 
 func EnableWorkflowFile(ctx *context_module.Context) {
-	disableOrEnableWorkflowFile(true, ctx)
+	disableOrEnableWorkflowFile(ctx, true)
 }
 
 func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
