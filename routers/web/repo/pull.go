@@ -1433,7 +1433,6 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 				ctx.ServerError("CompareAndPullRequest.HTMLString", err)
 				return
 			}
-			ctx.Flash.Error(flashError)
 			ctx.JSONError(flashError)
 			return
 		}
