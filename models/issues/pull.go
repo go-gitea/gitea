@@ -531,13 +531,12 @@ func (pr *PullRequest) SetMerged(ctx context.Context) (bool, error) {
 }
 
 // NewPullRequest creates new pull request with labels for repository.
-func NewPullRequest(outerCtx context.Context, repo *repo_model.Repository, issue *Issue, labelIDs []int64, uuids []string, pr *PullRequest) (err error) {
-	ctx, committer, err := db.TxContext(outerCtx)
+func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *Issue, labelIDs []int64, uuids []string, pr *PullRequest) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
-	ctx.WithContext(outerCtx)
 
 	idx, err := db.GetNextResourceIndex(ctx, "issue_index", repo.ID)
 	if err != nil {
