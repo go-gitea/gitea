@@ -515,6 +515,14 @@ var migrations = []Migration{
 	NewMigration("Alter Actions Artifact table", v1_21.AlterActionArtifactTable),
 	// v266 -> v267
 	NewMigration("Reduce commit status", v1_21.ReduceCommitStatus),
+	// v267 -> v268
+	NewMigration("Add action_tasks_version table", v1_21.CreateActionTasksVersionTable),
+	// v268 -> v269
+	NewMigration("Update Action Ref", v1_21.UpdateActionsRefIndex),
+	// v269 -> v270
+	NewMigration("Drop deleted branch table", v1_21.DropDeletedBranchTable),
+	// v270 -> v271
+	NewMigration("Fix PackageProperty typo", v1_21.FixPackagePropertyTypo),
 }
 
 // GetCurrentDBVersion returns the current db version
