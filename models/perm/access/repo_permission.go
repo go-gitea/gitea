@@ -192,10 +192,7 @@ repoLoop:
 			continue
 		}
 
-		var isCollaborator bool
-		if user != nil {
-			isCollaborator = collaborations[repo.ID]
-		}
+		isCollaborator := user != nil && collaborations[repo.ID]
 
 		// TODO: This is a N+1 query
 		// Prevent strangers from checking out public repo of private organization/users
@@ -288,8 +285,7 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 	if err != nil {
 		return Permission{}, err
 	}
-	perm := *perms[repo.ID]
-	return perm, err
+	return *perms[repo.ID], err
 }
 
 // IsUserRealRepoAdmin check if this user is real repo admin
