@@ -12,7 +12,6 @@ import (
 	"path"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -44,8 +43,8 @@ func InitTest(requireGitea bool) {
 		exitf("Environment variable $GITEA_ROOT not set")
 	}
 
-	// Speedup tests that rely on the event source ticker.
-	setting.UI.Notification.EventSourceUpdateTime = time.Second
+	// TODO: Speedup tests that rely on the event source ticker, confirm whether there is any bug or failure.
+	// setting.UI.Notification.EventSourceUpdateTime = time.Second
 
 	setting.IsInTesting = true
 	setting.AppWorkPath = giteaRoot
