@@ -6,7 +6,7 @@ import {load} from 'js-yaml';
 // This code is shared for our own spec as well as user-defined specs via files in repo
 window.addEventListener('load', async () => {
   const url = parseUrl(document.getElementById('swagger-ui').getAttribute('data-source'));
-  const res = await fetch(url.toString());
+  const res = await fetch(url);
   const text = await res.text();
   const spec = /\.ya?ml$/i.test(url.pathname) ? load(text) : JSON.parse(text);
   const isOwnSpec = url.pathname.endsWith('/swagger.v1.json');
