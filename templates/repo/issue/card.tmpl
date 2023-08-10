@@ -58,7 +58,7 @@
 		{{end}}
 		<div class="right floated">
 			{{range .Assignees}}
-				<a target="_blank" href="{{.HomeLink}}" data-tooltip-content="{{ctx.Locale.Tr "repo.projects.column.assigned_to"}} {{.Name}}">{{avatar ctx . 28 "mini gt-mr-3"}}</a>
+				<a target="_blank" href="{{.HomeLink}}" data-tooltip-content="{{ctx.Locale.Tr "repo.projects.column.assigned_to"}} {{.Name}}">{{ctx.AvatarUtils.Avatar . 28 "mini gt-mr-3"}}</a>
 			{{end}}
 		</div>
 	</div>

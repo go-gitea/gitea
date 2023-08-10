@@ -5,7 +5,7 @@
 	{{if .OriginalAuthor}}
 		<span class="avatar"><img src="{{AppSubUrl}}/assets/img/avatar_default.png"></span>
 	{{else}}
-		{{template "shared/user/avatarlink" dict "Context" $.root.Context "user" .Poster}}
+		{{template "shared/user/avatarlink" dict "user" .Poster}}
 	{{end}}
 	<div class="content comment-container">
 		<div class="ui top attached header comment-header gt-df gt-ac gt-sb">

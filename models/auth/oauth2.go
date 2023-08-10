@@ -13,6 +13,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -44,6 +46,83 @@ func init() {
 	db.RegisterModel(new(OAuth2Application))
 	db.RegisterModel(new(OAuth2AuthorizationCode))
 	db.RegisterModel(new(OAuth2Grant))
+}
+
+type BuiltinOAuth2Application struct {
+	ConfigName   string
+	DisplayName  string
+	RedirectURIs []string
+}
+
+func BuiltinApplications() map[string]*BuiltinOAuth2Application {
+	m := make(map[string]*BuiltinOAuth2Application)
+	m["a4792ccc-144e-407e-86c9-5e7d8d9c3269"] = &BuiltinOAuth2Application{
+		ConfigName:   "git-credential-oauth",
+		DisplayName:  "git-credential-oauth",
+		RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
+	}
+	m["e90ee53c-94e2-48ac-9358-a874fb9e0662"] = &BuiltinOAuth2Application{
+		ConfigName:   "git-credential-manager",
+		DisplayName:  "Git Credential Manager",
+		RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
+	}
+	return m
+}
+
+func Init(ctx context.Context) error {
+	builtinApps := BuiltinApplications()
+	var builtinAllClientIDs []string
+	for clientID := range builtinApps {
+		builtinAllClientIDs = append(builtinAllClientIDs, clientID)
+	}
+
+	var registeredApps []*OAuth2Application
+	if err := db.GetEngine(ctx).In("client_id", builtinAllClientIDs).Find(&registeredApps); err != nil {
+		return err
+	}
+
+	clientIDsToAdd := container.Set[string]{}
+	for _, configName := range setting.OAuth2.DefaultApplications {
+		found := false
+		for clientID, builtinApp := range builtinApps {
+			if builtinApp.ConfigName == configName {
+				clientIDsToAdd.Add(clientID) // add all user-configured apps to the "add" list
+				found = true
+			}
+		}
+		if !found {
+			return fmt.Errorf("unknown oauth2 application: %q", configName)
+		}
+	}
+	clientIDsToDelete := container.Set[string]{}
+	for _, app := range registeredApps {
+		if !clientIDsToAdd.Contains(app.ClientID) {
+			clientIDsToDelete.Add(app.ClientID) // if a registered app is not in the "add" list, it should be deleted
+		}
+	}
+	for _, app := range registeredApps {
+		clientIDsToAdd.Remove(app.ClientID) // no need to re-add existing (registered) apps, so remove them from the set
+	}
+
+	for _, app := range registeredApps {
+		if clientIDsToDelete.Contains(app.ClientID) {
+			if err := deleteOAuth2Application(ctx, app.ID, 0); err != nil {
+				return err
+			}
+		}
+	}
+	for clientID := range clientIDsToAdd {
+		builtinApp := builtinApps[clientID]
+		if err := db.Insert(ctx, &OAuth2Application{
+			Name:         builtinApp.DisplayName,
+			ClientID:     clientID,
+			RedirectURIs: builtinApp.RedirectURIs,
+		}); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // TableName sets the table name to `oauth2_application`
@@ -205,6 +284,10 @@ func UpdateOAuth2Application(opts UpdateOAuth2ApplicationOptions) (*OAuth2Applic
 	if app.UID != opts.UserID {
 		return nil, fmt.Errorf("UID mismatch")
 	}
+	builtinApps := BuiltinApplications()
+	if _, builtin := builtinApps[app.ClientID]; builtin {
+		return nil, fmt.Errorf("failed to edit OAuth2 application: application is locked: %s", app.ClientID)
+	}
 
 	app.Name = opts.Name
 	app.RedirectURIs = opts.RedirectURIs
@@ -261,6 +344,14 @@ func DeleteOAuth2Application(id, userid int64) error {
 		return err
 	}
 	defer committer.Close()
+	app, err := GetOAuth2ApplicationByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	builtinApps := BuiltinApplications()
+	if _, builtin := builtinApps[app.ClientID]; builtin {
+		return fmt.Errorf("failed to delete OAuth2 application: application is locked: %s", app.ClientID)
+	}
 	if err := deleteOAuth2Application(ctx, id, userid); err != nil {
 		return err
 	}

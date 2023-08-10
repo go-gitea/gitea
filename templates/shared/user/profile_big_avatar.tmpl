@@ -3,11 +3,11 @@
 	{{if eq .SignedUserID .ContextUser.ID}}
 		<a class="image" href="{{AppSubUrl}}/user/settings" data-tooltip-content="{{.locale.Tr "user.change_avatar"}}">
 			{{/* the size doesn't take affect (and no need to take affect), image size(width) should be controlled by the parent container since this is not a flex layout*/}}
-			{{avatar $.Context .ContextUser 256}}
+			{{ctx.AvatarUtils.Avatar .ContextUser 256}}
 		</a>
 	{{else}}
 		<span class="image">
-			{{avatar $.Context .ContextUser 256}}
+			{{ctx.AvatarUtils.Avatar .ContextUser 256}}
 		</span>
 	{{end}}
 	</div>
@@ -86,7 +86,7 @@
 					{{if (or .Visibility.IsPublic (and ($.SignedUser) (or .Visibility.IsLimited (and (.HasMemberWithUserID $.SignedUserID) .Visibility.IsPrivate) ($.IsAdmin))))}}
 					<li>
 						<a href="{{.HomeLink}}" data-tooltip-content="{{.Name}}">
-							{{avatar $.Context .}}
+							{{ctx.AvatarUtils.Avatar .}}
 						</a>
 					</li>
 					{{end}}
