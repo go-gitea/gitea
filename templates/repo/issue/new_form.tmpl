@@ -8,7 +8,7 @@
 	<div class="issue-content-left">
 		<div class="ui comments">
 			<div class="comment">
-				{{avatar $.Context .SignedUser 40}}
+				{{ctx.AvatarUtils.Avatar .SignedUser 40}}
 				<div class="ui segment content gt-my-0">
 					<div class="field">
 						<input name="title" id="issue_title" placeholder="{{.locale.Tr "repo.milestones.title"}}" value="{{if .TitleQuery}}{{.TitleQuery}}{{else if .IssueTemplateTitle}}{{.IssueTemplateTitle}}{{else}}{{.title}}{{end}}" tabindex="3" autofocus required maxlength="255" autocomplete="off">
@@ -160,7 +160,7 @@
 						<a class="item muted" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
 							<span class="octicon-check invisible">{{svg "octicon-check"}}</span>
 							<span class="text">
-								{{avatar $.Context . 28 "gt-mr-3"}}{{template "repo/search_name" .}}
+								{{ctx.AvatarUtils.Avatar . 28 "gt-mr-3"}}{{template "repo/search_name" .}}
 							</span>
 						</a>
 					{{end}}
@@ -173,7 +173,7 @@
 				<div class="selected">
 				{{range .Assignees}}
 					<a class="item gt-p-2 muted gt-hidden" id="assignee_{{.ID}}" href="{{$.RepoLink}}/issues?assignee={{.ID}}">
-						{{avatar $.Context . 28 "gt-mr-3 gt-vm"}}{{.GetDisplayName}}
+						{{ctx.AvatarUtils.Avatar . 28 "gt-mr-3 gt-vm"}}{{.GetDisplayName}}
 					</a>
 				{{end}}
 				</div>
