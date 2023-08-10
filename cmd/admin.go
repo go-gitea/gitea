@@ -348,6 +348,10 @@ func runRepoSyncReleases(_ *cli.Context) error {
 		return err
 	}
 
+	if err := git.InitSimple(ctx); err != nil {
+		return err
+	}
+
 	log.Trace("Synchronizing repository releases (this may take a while)")
 	for page := 1; ; page++ {
 		repos, count, err := repo_model.SearchRepositoryByName(ctx, &repo_model.SearchRepoOptions{
