@@ -67,7 +67,9 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 	}
 
 	// don't support to read configuration from [actions]
-	Actions.LogStorage, err = getStorage(rootCfg, "actions_log", "", nil)
+	actionsLogSec, _ := rootCfg.GetSection("actions.log")
+
+	Actions.LogStorage, err = getStorage(rootCfg, "actions_log", "", actionsLogSec)
 	if err != nil {
 		return err
 	}

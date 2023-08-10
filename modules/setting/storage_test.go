@@ -249,3 +249,21 @@ PATH = /data/gitea/archives
 		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/appdata/repo-avatars"},
 	})
 }
+
+func Test_getStorageInheritStorageTypeLocalPathOverride60(t *testing.T) {
+	testLocalStoragePath(t, "/appdata", `
+[storage.actions_log]
+PATH = /data/gitea/other-actions-log
+`, []testLocalStoragePathCase{
+		{loadActionsFrom, &Actions.LogStorage, "/data/gitea/other-actions-log"},
+	})
+}
+
+func Test_getStorageInheritStorageTypeLocalPathOverride61(t *testing.T) {
+	testLocalStoragePath(t, "/appdata", `
+[actions.log]
+PATH = /data/gitea/other-actions-log
+`, []testLocalStoragePathCase{
+		{loadActionsFrom, &Actions.LogStorage, "/data/gitea/other-actions-log"},
+	})
+}
