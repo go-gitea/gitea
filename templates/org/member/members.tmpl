@@ -9,7 +9,7 @@
 				{{$isPublic := index $.MembersIsPublicMember .ID}}
 				<div class="flex-item {{if $.PublicOnly}}flex-item-center{{end}}">
 					<div class="flex-item-leading">
-						<a href="{{.HomeLink}}">{{avatar $.Context . 48}}</a>
+						<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 48}}</a>
 					</div>
 					<div class="flex-item-main">
 						<div class="flex-item-title">
