@@ -26,7 +26,7 @@
 						{{range .Team.Members}}
 							<div class="flex-item flex-item-center">
 								<div class="flex-item-leading">
-									<a href="{{.HomeLink}}">{{avatar $.Context . 32}}</a>
+									<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 32}}</a>
 								</div>
 								<div class="flex-item-main">
 									<div class="flex-item-title">
