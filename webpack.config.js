@@ -11,7 +11,6 @@ import webpack from 'webpack';
 import {fileURLToPath} from 'node:url';
 import {readFileSync} from 'node:fs';
 import {env} from 'node:process';
-import {LightningCssMinifyPlugin} from 'lightningcss-loader';
 
 const {EsbuildPlugin} = EsBuildLoader;
 const {SourceMapDevToolPlugin, DefinePlugin} = webpack;
@@ -51,6 +50,12 @@ const filterCssImport = (url, ...args) => {
 
   return true;
 };
+
+// in case lightningcss fails to load, fall back to esbuild for css minify
+let LightningCssMinifyPlugin;
+try {
+  ({LightningCssMinifyPlugin} = await import('lightningcss-loader'));
+} catch {}
 
 /** @type {import("webpack").Configuration} */
 export default {
@@ -97,10 +102,10 @@ export default {
       new EsbuildPlugin({
         target: 'es2015',
         minify: true,
-        css: false,
+        css: !LightningCssMinifyPlugin,
         legalComments: 'none',
       }),
-      new LightningCssMinifyPlugin(),
+      LightningCssMinifyPlugin && new LightningCssMinifyPlugin(),
     ],
     splitChunks: {
       chunks: 'async',
