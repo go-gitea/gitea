@@ -64,10 +64,10 @@
 							{{if $commit.User.FullName}}
 								{{$userName = $commit.User.FullName}}
 							{{end}}
-							<span class="gt-mr-2">{{avatar $.Context $commit.User}}</span>
+							<span class="gt-mr-2">{{ctx.AvatarUtils.Avatar $commit.User}}</span>
 							<a href="{{$commit.User.HomeLink}}">{{$userName}}</a>
 						{{else}}
-							<span class="gt-mr-2">{{avatarByEmail $.Context $commit.Commit.Author.Email $userName}}</span>
+							<span class="gt-mr-2">{{ctx.AvatarUtils.AvatarByEmail $commit.Commit.Author.Email $userName}}</span>
 							{{$userName}}
 						{{end}}
 					</span>
