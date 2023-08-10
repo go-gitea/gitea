@@ -582,7 +582,7 @@ func EnableWorkflowFile(ctx *context_module.Context) {
 	disableOrEnableWorkflowFile(true, ctx)
 }
 
-func disableOrEnableWorkflowFile(isEnable bool, ctx *context_module.Context) {
+func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
 	workflow := ctx.FormString("workflow")
 	if len(workflow) == 0 {
 		ctx.ServerError("workflow", nil)

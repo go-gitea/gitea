@@ -177,13 +177,7 @@ func (cfg *ActionsConfig) EnableWrokflow(file string) {
 }
 
 func (cfg *ActionsConfig) ToString() string {
-	result := ""
-
-	for _, workflow := range cfg.DisabledWorkflows {
-		result += workflow + ","
-	}
-
-	return strings.TrimSuffix(result, ",")
+	return strings.Join(cfg.DisabledWorkflows, ",")
 }
 
 func (cfg *ActionsConfig) IsWorkflowDisabled(file string) bool {
