@@ -174,7 +174,7 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 
 	// extra config section will be read SERVE_DIRECT, PATH, MINIO_BASE_PATH, MINIO_BUCKET to override the targetsec when possible
 	extraConfigSec := sec
-	if extraConfigSec == nil {
+	if extraConfigSec == nil && !targetSecIsStoragename {
 		extraConfigSec = storageNameSec
 	}
 
