@@ -115,7 +115,7 @@ func RenderUserHeader(ctx *context.Context) {
 func LoadHeaderCount(ctx *context.Context) error {
 	prepareContextForCommonProfile(ctx)
 
-	_, repoCount, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+	repoCount, err := repo_model.CountRepository(ctx, &repo_model.SearchRepoOptions{
 		Actor:              ctx.Doer,
 		OwnerID:            ctx.ContextUser.ID,
 		Private:            ctx.IsSigned,
