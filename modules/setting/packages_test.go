@@ -176,6 +176,7 @@ func Test_PackageStorage4(t *testing.T) {
 STORAGE_TYPE            = my_cfg
 MINIO_BASE_PATH = my_packages/
 SERVE_DIRECT = true
+
 [storage.my_cfg]
 STORAGE_TYPE            = minio
 MINIO_ENDPOINT          = s3.my-domain.net

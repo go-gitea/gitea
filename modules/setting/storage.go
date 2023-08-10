@@ -150,6 +150,7 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 				}
 			}
 		default:
+			targetSecIsStoragename = false
 			newTargetSec, _ := rootCfg.GetSection(storageSectionName + "." + targetType)
 			if newTargetSec == nil {
 				if !IsValidStorageType(StorageType(targetType)) {
