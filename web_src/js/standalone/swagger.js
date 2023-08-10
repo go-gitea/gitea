@@ -6,13 +6,17 @@ window.addEventListener('load', async () => {
   const res = await fetch(url);
   const spec = await res.json();
 
-  // Make the page's protocol be at the top of the schemes list
-  const proto = window.location.protocol.slice(0, -1);
-  spec.schemes.sort((a, b) => {
-    if (a === proto) return -1;
-    if (b === proto) return 1;
-    return 0;
-  });
+  // This code is shared for our own spec as well as user-defined specs, this
+  // section is for our own spec
+  if (url.endsWith('/swagger.v1.json')) {
+    // Make the page's protocol be at the top of the schemes list
+    const proto = window.location.protocol.slice(0, -1);
+    spec.schemes.sort((a, b) => {
+      if (a === proto) return -1;
+      if (b === proto) return 1;
+      return 0;
+    });
+  }
 
   const ui = SwaggerUI({
     spec,
