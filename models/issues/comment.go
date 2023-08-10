@@ -777,6 +777,12 @@ func (c *Comment) LoadPushCommits(ctx context.Context) (err error) {
 
 // CreateComment creates comment with context
 func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment, err error) {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer committer.Close()
+
 	e := db.GetEngine(ctx)
 	var LabelID int64
 	if opts.Label != nil {
@@ -832,7 +838,9 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 	if err = comment.AddCrossReferences(ctx, opts.Doer, false); err != nil {
 		return nil, err
 	}
-
+	if err = committer.Commit(); err != nil {
+		return nil, err
+	}
 	return comment, nil
 }
 

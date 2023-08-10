@@ -8,7 +8,7 @@
 			{{.locale.Tr "repo.commits.no_commits" $.BaseBranch $.HeadBranch}} {{if .RefName}}({{.RefName}}){{end}}
 		{{end}}
 	</div>
-	<div class="commits-table-right">
+	<div class="commits-table-right gt-whitespace-nowrap">
 		{{if .PageIsCommits}}
 			<form class="ignore-dirty" action="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/search">
 				<div class="ui tiny search input">

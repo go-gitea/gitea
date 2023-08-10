@@ -53,6 +53,11 @@ func Test_Sanitizer(t *testing.T) {
 		`<p style="bad-color: red">Hello World</p>`, `<p>Hello World</p>`,
 		`<code style="bad-color: red">Hello World</code>`, `<code>Hello World</code>`,
 
+		// Org mode status of list items.
+		`<li class="checked"></li>`, `<li class="checked"></li>`,
+		`<li class="unchecked"></li>`, `<li class="unchecked"></li>`,
+		`<li class="indeterminate"></li>`, `<li class="indeterminate"></li>`,
+
 		// URLs
 		`<a href="cbthunderlink://somebase64string)">my custom URL scheme</a>`, `<a href="cbthunderlink://somebase64string)" rel="nofollow">my custom URL scheme</a>`,
 		`<a href="matrix:roomid/psumPMeAfzgAeQpXMG:feneas.org?action=join">my custom URL scheme</a>`, `<a href="matrix:roomid/psumPMeAfzgAeQpXMG:feneas.org?action=join" rel="nofollow">my custom URL scheme</a>`,
