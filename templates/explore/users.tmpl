@@ -8,7 +8,7 @@
 			{{range .Users}}
 				<div class="flex-item flex-item-center">
 					<div class="flex-item-leading">
-						{{avatar $.Context . 48}}
+						{{ctx.AvatarUtils.Avatar . 48}}
 					</div>
 					<div class="flex-item-main">
 						<div class="flex-item-title">
