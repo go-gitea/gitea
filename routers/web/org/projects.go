@@ -378,7 +378,7 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)
 	ctx.Data["Project"] = project
 	ctx.Data["IssuesMap"] = issuesMap
-	ctx.Data["Columns"] = boards //TODO: rename boards to columns in backend
+	ctx.Data["Columns"] = boards // TODO: rename boards to columns in backend
 	shared_user.RenderUserHeader(ctx)
 
 	ctx.HTML(http.StatusOK, tplProjectsView)
