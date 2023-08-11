@@ -15,7 +15,7 @@
 							{{end}}
 
 							{{if $.ActionsConfig.IsWorkflowDisabled .Entry.Name}}
-								<div class="ui label">{{$.locale.Tr "disabled"}}</div>
+								<div class="ui red label">{{$.locale.Tr "disabled"}}</div>
 							{{end}}
 						</a>
 					{{end}}
@@ -63,12 +63,17 @@
 					</div>
 
 					{{if .AllowDisableOrEnableWorkflow}}
-						<form class="ui form ignore-dirty" action="{{$.Link}}/{{if .CurWorkflowDisabled}}enable{{else}}disable{{end}}?workflow={{$.CurWorkflow}}&actor={{.CurActor}}&status={{$.CurStatus}}" method="post">
+						<button class="ui small compact jump dropdown icon btn interact-bg gt-p-3">
+							{{svg "octicon-kebab-horizontal"}}
+							<div class="menu">
+								<div class="item" id="disable-workflow-btn">{{if .CurWorkflowDisabled}}{{.locale.Tr "actions.workflow.enable"}}{{else}}{{.locale.Tr "actions.workflow.disable"}}{{end}}</div>
+								</form>
+							</div>
+						</button>
+						<form id="disable-workflow-form" class="ui form ignore-dirty gt-hidden" action="{{$.Link}}/{{if .CurWorkflowDisabled}}enable{{else}}disable{{end}}?workflow={{$.CurWorkflow}}&actor={{.CurActor}}&status={{$.CurStatus}}" method="post">
 							{{.CsrfTokenHtml}}
-							<button class="ui tiny button">{{if .CurWorkflowDisabled}}{{.locale.Tr "enable"}}{{else}}{{.locale.Tr "disable"}}{{end}}</button>
 						</form>
 					{{end}}
-
 				</div>
 				{{template "repo/actions/runs_list" .}}
 			</div>

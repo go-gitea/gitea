@@ -58,6 +58,7 @@ import {initSshKeyFormParser} from './features/sshkey-helper.js';
 import {initUserSettings} from './features/user-settings.js';
 import {initRepoArchiveLinks} from './features/repo-common.js';
 import {initRepoMigrationStatusChecker} from './features/repo-migrate.js';
+import {initRepoActionList} from './features/repo-actions.js';
 import {
   initRepoSettingGitHook,
   initRepoSettingsCollaboration,
@@ -166,6 +167,7 @@ onDomReady(() => {
   initRepoSettingsCollaboration();
   initRepoTemplateSearch();
   initRepoTopicBar();
+  initRepoActionList();
   initRepoWikiForm();
   initRepository();
   initRepositoryActionView();
