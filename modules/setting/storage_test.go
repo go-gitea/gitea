@@ -293,3 +293,13 @@ PATH = /data/gitea/archives
 		{loadRepoAvatarFrom, &RepoAvatar.Storage, "/appdata/repo-avatars"},
 	})
 }
+
+func Test_getStorageInheritStorageTypeLocalPathOverride72(t *testing.T) {
+	testLocalStoragePath(t, "/appdata", `
+[repo-archive]
+STORAGE_TYPE = local
+PATH = archives
+`, []testLocalStoragePathCase{
+		{loadRepoArchiveFrom, &RepoArchive.Storage, "/appdata/archives"},
+	})
+}
