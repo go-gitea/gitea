@@ -29,7 +29,7 @@ and check whether the breaking changes affect your Gitea instance.
 
 Some configurations will be deprecated in future versions, you need to check them from admin panel's topbar.
 If these deprecated configurations are not resolved, Gitea may refuse to start. You can also get the correct
-configuration from this version documentation on https://docs.gitea.com
+configuration from this version documentation on https://docs.gitea.com .
 
 ## Backup for downgrade
 
