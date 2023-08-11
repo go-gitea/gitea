@@ -17,15 +17,19 @@ menu:
 
 # Upgrade from an old Gitea
 
-To update Gitea, download a newer version, stop the old one, perform a backup, and run the new one.
-Every time a Gitea instance starts up, it checks whether a database migration should be run.
-If a database migration is required, Gitea will take some time to complete the upgrade and then serve.
+Before upgrade to a new version of Gitea, you need to do some preparation.
 
 ## Check the Changelog for breaking changes
 
 To make Gitea better, some breaking changes are unavoidable, especially for big milestone releases.
-Before upgrade, please read the [Changelog on Gitea blog](https://blog.gitea.io/)
+Before upgrade, please read the [Changelog on Gitea blog](https://blog.gitea.com/)
 and check whether the breaking changes affect your Gitea instance.
+
+## Check Deprecated Configurations from admin panel
+
+Some configurations will be deprecated in future versions, you need to check them from admin panel's topbar.
+If these deprecated configurations are not resolved, Gitea may refuse to start. You can also get the correct
+configuration from this version documentation on https://docs.gitea.com
 
 ## Backup for downgrade
 
@@ -59,6 +63,10 @@ Backup steps:
 
 If you are using cloud services or filesystems with snapshot feature,
 a snapshot for the Gitea data volume and related object storage is more convenient.
+
+After all of those has been prepared, to update Gitea, download a newer version, stop the old one, perform a backup, and run the new one.
+Every time a Gitea instance starts up, it checks whether a database migration should be run.
+If a database migration is required, Gitea will take some time to complete the upgrade and then serve.
 
 ## Upgrade with Docker
 
