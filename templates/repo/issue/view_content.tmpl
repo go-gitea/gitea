@@ -16,7 +16,7 @@
 				</span>
 				{{else}}
 				<a class="timeline-avatar" {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>
-					{{avatar $.Context .Issue.Poster 40}}
+					{{ctx.AvatarUtils.Avatar .Issue.Poster 40}}
 				</a>
 				{{end}}
 				<div class="content comment-container">
@@ -35,7 +35,7 @@
 								</span>
 							{{else}}
 								<a class="inline-timeline-avatar" href="{{.Issue.Poster.HomeLink}}">
-									{{avatar $.Context .Issue.Poster 24}}
+									{{ctx.AvatarUtils.Avatar .Issue.Poster 24}}
 								</a>
 								<span class="text grey muted-links">
 									{{template "shared/user/authorlink" .Issue.Poster}}
@@ -93,7 +93,7 @@
 				{{if and (or .IsRepoAdmin .HasIssuesOrPullsWritePermission (not .Issue.IsLocked)) (not .Repository.IsArchived)}}
 				<div class="timeline-item comment form">
 					<a class="timeline-avatar" href="{{.SignedUser.HomeLink}}">
-						{{avatar $.Context .SignedUser 40}}
+						{{ctx.AvatarUtils.Avatar .SignedUser 40}}
 					</a>
 					<div class="content">
 						<form class="ui segment form form-fetch-action" id="comment-form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/comments" method="post">
