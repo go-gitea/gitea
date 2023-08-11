@@ -11,20 +11,20 @@ import (
 
 func TestActionsConfig(t *testing.T) {
 	cfg := &ActionsConfig{}
-	cfg.DisableWrokflow("test1.yaml")
+	cfg.DisableWorkflow("test1.yaml")
 	assert.EqualValues(t, []string{"test1.yaml"}, cfg.DisabledWorkflows)
 
-	cfg.DisableWrokflow("test1.yaml")
+	cfg.DisableWorkflow("test1.yaml")
 	assert.EqualValues(t, []string{"test1.yaml"}, cfg.DisabledWorkflows)
 
-	cfg.EnableWrokflow("test1.yaml")
+	cfg.EnableWorkflow("test1.yaml")
 	assert.EqualValues(t, []string{}, cfg.DisabledWorkflows)
 
-	cfg.EnableWrokflow("test1.yaml")
+	cfg.EnableWorkflow("test1.yaml")
 	assert.EqualValues(t, []string{}, cfg.DisabledWorkflows)
 
-	cfg.DisableWrokflow("test1.yaml")
-	cfg.DisableWrokflow("test2.yaml")
-	cfg.DisableWrokflow("test3.yaml")
+	cfg.DisableWorkflow("test1.yaml")
+	cfg.DisableWorkflow("test2.yaml")
+	cfg.DisableWorkflow("test3.yaml")
 	assert.EqualValues(t, "test1.yaml,test2.yaml,test3.yaml", cfg.ToString())
 }

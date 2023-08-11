@@ -167,7 +167,7 @@ type ActionsConfig struct {
 	DisabledWorkflows []string
 }
 
-func (cfg *ActionsConfig) EnableWrokflow(file string) {
+func (cfg *ActionsConfig) EnableWorkflow(file string) {
 	for i, workflow := range cfg.DisabledWorkflows {
 		if file == workflow {
 			cfg.DisabledWorkflows = append(cfg.DisabledWorkflows[:i], cfg.DisabledWorkflows[i+1:]...)
@@ -190,7 +190,7 @@ func (cfg *ActionsConfig) IsWorkflowDisabled(file string) bool {
 	return false
 }
 
-func (cfg *ActionsConfig) DisableWrokflow(file string) {
+func (cfg *ActionsConfig) DisableWorkflow(file string) {
 	for _, workflow := range cfg.DisabledWorkflows {
 		if file == workflow {
 			return

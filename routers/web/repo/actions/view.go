@@ -593,9 +593,9 @@ func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
 	cfg := cfgUnit.ActionsConfig()
 
 	if isEnable {
-		cfg.EnableWrokflow(workflow)
+		cfg.EnableWorkflow(workflow)
 	} else {
-		cfg.DisableWrokflow(workflow)
+		cfg.DisableWorkflow(workflow)
 	}
 
 	if err := repo_model.UpdateRepoUnit(cfgUnit); err != nil {
