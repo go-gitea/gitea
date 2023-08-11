@@ -58,15 +58,6 @@
   }
 }
 
-.user.profile .ui.repository.list {
-  margin-top: 25px;
-}
-
-.user.profile .ui.repository.list .repo-title .labels {
-  word-break: normal;
-  flex-shrink: 0;
-}
-
 .user.profile #loading-heatmap {
   margin-bottom: 1em;
 }
@@ -105,7 +96,6 @@
   display: flex;
   border-bottom: 0 !important;
   padding: 3px !important;
-  width: 20%;
   max-width: 60px;
 }
 

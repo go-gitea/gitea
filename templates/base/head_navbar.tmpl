@@ -57,7 +57,7 @@
 		{{if and .IsSigned .MustChangePassword}}
 			<div class="ui dropdown jump item" data-tooltip-content="{{.locale.Tr "user_profile_and_more"}}">
 				<span class="text gt-df gt-ac">
-					{{avatar $.Context .SignedUser 24 "gt-mr-2"}}
+					{{ctx.AvatarUtils.Avatar .SignedUser 24 "gt-mr-2"}}
 					<span class="mobile-only gt-ml-3">{{.SignedUser.Name}}</span>
 					<span class="not-mobile">{{svg "octicon-triangle-down"}}</span>
 				</span>
@@ -143,7 +143,7 @@
 
 			<div class="ui dropdown jump item gt-mx-0 gt-pr-3" data-tooltip-content="{{.locale.Tr "user_profile_and_more"}}">
 				<span class="text gt-df gt-ac">
-					{{avatar $.Context .SignedUser 24 "gt-mr-2"}}
+					{{ctx.AvatarUtils.Avatar .SignedUser 24 "gt-mr-2"}}
 					<span class="mobile-only gt-ml-3">{{.SignedUser.Name}}</span>
 					<span class="not-mobile">{{svg "octicon-triangle-down"}}</span>
 				</span>
