@@ -9,21 +9,21 @@
 				{{ctx.Locale.Tr "repo.issues.label_edit"}}
 			</a>
 			{{if .Project.IsClosed}}
-				<a class="item link-action" href="#" data-url="{{.Link}}/open">
+				<a class="item link-action" data-url="{{.Link}}/open">
 					{{svg "octicon-check"}}
 					{{ctx.Locale.Tr "repo.projects.open"}}
 				</a>
 			{{else}}
-				<a class="item link-action" href="#" data-url="{{.Link}}/close">
+				<a class="item link-action" data-url="{{.Link}}/close">
 					{{svg "octicon-skip"}}
 					{{ctx.Locale.Tr "repo.projects.close"}}
 				</a>
 			{{end}}
-			<a class="item delete-button" href="#" data-url="{{.Link}}/delete" data-id="{{.Project.ID}}">
+			<a class="item delete-button" data-url="{{.Link}}/delete" data-id="{{.Project.ID}}">
 				{{svg "octicon-trash"}}
 				{{ctx.Locale.Tr "repo.issues.label_delete"}}
 			</a>
-			<a class="item show-modal" href="#" data-modal="#new-project-column-item">
+			<a class="item show-modal" data-modal="#new-project-column-item">
 				{{svg "octicon-plus"}}
 				{{ctx.Locale.Tr "new_project_column"}}
 			</a>
