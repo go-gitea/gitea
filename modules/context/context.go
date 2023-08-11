@@ -141,6 +141,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			// TODO: "install.go" also shares the same logic, which should be refactored to a general function
 			ctx.TemplateContext = NewTemplateContext(ctx)
 			ctx.TemplateContext["Locale"] = ctx.Locale
+			ctx.TemplateContext["AvatarUtils"] = templates.NewAvatarUtils(ctx)
 
 			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
 			ctx.Data["Context"] = ctx // TODO: use "ctx" in template and remove this

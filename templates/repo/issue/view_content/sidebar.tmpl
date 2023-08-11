@@ -22,7 +22,7 @@
 							<a class="{{if not .CanChange}}ui{{end}} item {{if .Checked}}checked{{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_{{.ItemID}}" {{if not .CanChange}} data-tooltip-content="{{$.locale.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
 								<span class="octicon-check {{if not .Checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
 								<span class="text">
-									{{avatar $.Context .User 28 "gt-mr-3"}}{{template "repo/search_name" .User}}
+									{{ctx.AvatarUtils.Avatar .User 28 "gt-mr-3"}}{{template "repo/search_name" .User}}
 								</span>
 							</a>
 						{{end}}
@@ -51,7 +51,7 @@
 					<div class="item gt-df gt-ac gt-py-3">
 						<div class="gt-df gt-ac gt-f1">
 							{{if .User}}
-								<a class="muted sidebar-item-link" href="{{.User.HomeLink}}">{{avatar $.Context .User 20 "gt-mr-3"}}{{.User.GetDisplayName}}</a>
+								<a class="muted sidebar-item-link" href="{{.User.HomeLink}}">{{ctx.AvatarUtils.Avatar .User 20 "gt-mr-3"}}{{.User.GetDisplayName}}</a>
 							{{else if .Team}}
 								<span class="text">{{svg "octicon-people" 20 "gt-mr-3"}}{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}</span>
 							{{end}}
@@ -231,7 +231,7 @@
 					{{end}}
 					<span class="octicon-check {{if not $checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
 					<span class="text">
-						{{avatar $.Context . 20 "gt-mr-3"}}{{template "repo/search_name" .}}
+						{{ctx.AvatarUtils.Avatar . 20 "gt-mr-3"}}{{template "repo/search_name" .}}
 					</span>
 				</a>
 			{{end}}
@@ -243,7 +243,7 @@
 			{{range .Issue.Assignees}}
 				<div class="item">
 					<a class="muted sidebar-item-link" href="{{$.RepoLink}}/{{if $.Issue.IsPull}}pulls{{else}}issues{{end}}?assignee={{.ID}}">
-						{{avatar $.Context . 28 "gt-mr-3"}}
+						{{ctx.AvatarUtils.Avatar . 28 "gt-mr-3"}}
 						{{.GetDisplayName}}
 					</a>
 				</div>
@@ -258,7 +258,7 @@
 		<div class="ui list gt-df gt-fw">
 			{{range .Participants}}
 				<a {{if gt .ID 0}}href="{{.HomeLink}}"{{end}} data-tooltip-content="{{.GetDisplayName}}">
-					{{avatar $.Context . 28 "gt-my-1 gt-mr-2"}}
+					{{ctx.AvatarUtils.Avatar . 28 "gt-my-1 gt-mr-2"}}
 				</a>
 			{{end}}
 		</div>
@@ -347,7 +347,7 @@
 					{{range $user, $trackedtime := .WorkingUsers}}
 						<div class="comment gt-mt-3">
 							<a class="avatar">
-								{{avatar $.Context $user}}
+								{{ctx.AvatarUtils.Avatar $user}}
 							</a>
 							<div class="content">
 								{{template "shared/user/authorlink" $user}}
