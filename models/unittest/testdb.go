@@ -147,7 +147,7 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 	}
 
 	if err = git_storage.RemoveAll(""); err != nil {
-		fatalTestError("git_storage.RemoveAll: %v\n", err)
+		fatalTestError("git_storage.ReBuild: %v\n", err)
 	}
 	if err = git_storage.UploadDir(filepath.Join(testOpts.GiteaRootPath, "tests", "gitea-repositories-meta"), ""); err != nil {
 		fatalTestError("git_storage.UploadDir: %v\n", err)
@@ -186,8 +186,8 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 		}
 	}
 
-	if err = git_storage.RemoveAll(""); err != nil {
-		fatalTestError("util.RemoveAll: %v\n", err)
+	if err = git_storage.ReBuild(); err != nil {
+		fatalTestError("util.ReBuild: %v\n", err)
 	}
 	if err = util.RemoveAll(appDataPath); err != nil {
 		fatalTestError("util.RemoveAll: %v\n", err)

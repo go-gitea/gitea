@@ -82,8 +82,7 @@ func (l *LocalSingleStorage) MakeRepoDir(repoRelPath string) error {
 }
 
 func (l *LocalSingleStorage) RemoveAll(path string) error {
-	// TODO: removeAllWithRetry(l.absPath(path))
-	return os.RemoveAll(l.absPath(path))
+	return util.RemoveAll(l.absPath(path))
 }
 
 func (l *LocalSingleStorage) ReadDir(owner string) ([]fs.DirEntry, error) {
@@ -146,6 +145,13 @@ func UploadDir(source, target string) error {
 
 func Rename(oldPath, newPath string) error {
 	return getStorage().Rename(oldPath, newPath)
+}
+
+func ReBuild() error {
+	if err := getStorage().RemoveAll(""); err != nil {
+		return err
+	}
+	return getStorage().MakeDir("", os.ModePerm)
 }
 
 // UserRelPath returns the path relative path of user repositories.

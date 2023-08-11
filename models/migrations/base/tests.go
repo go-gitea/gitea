@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/testlogger"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"xorm.io/xorm"
@@ -158,10 +159,10 @@ func MainTest(m *testing.M) {
 
 	exitStatus := m.Run()
 
-	if err := storage.RemoveAll(""); err != nil {
+	if err := storage.ReBuild(); err != nil {
 		fmt.Fprintf(os.Stderr, "os.RemoveAll: %v\n", err)
 	}
-	if err := removeAllWithRetry(tmpDataPath); err != nil {
+	if err := util.RemoveAll(tmpDataPath); err != nil {
 		fmt.Fprintf(os.Stderr, "os.RemoveAll: %v\n", err)
 	}
 	os.Exit(exitStatus)
