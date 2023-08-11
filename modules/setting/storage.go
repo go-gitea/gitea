@@ -91,21 +91,14 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 		return nil, errors.New("no name for storage")
 	}
 
-	targetSec, tp, err := getStorageTargetSec(rootCfg, name, typ, sec)
+	targetSec, tp, err := getStorageTargetSection(rootCfg, name, typ, sec)
 	if err != nil {
 		return nil, err
 	}
+
+	overrideSec := getStorageOverrideSection(rootCfg, targetSec, sec, tp, name)
 
 	targetType := targetSec.Key("STORAGE_TYPE").String()
-	if !IsValidStorageType(StorageType(targetType)) {
-		return nil, fmt.Errorf("invalid storage type %q", targetType)
-	}
-
-	overrideSec, err := getOverrideSection(rootCfg, targetSec, sec, tp, name)
-	if err != nil {
-		return nil, err
-	}
-
 	switch targetType {
 	case string(LocalStorageType):
 		return getStorageForLocal(targetSec, overrideSec, tp, name)
@@ -124,7 +117,7 @@ const (
 	targetSecIsSec                    // target section is from the name seciont [name]
 )
 
-func getStorageByType(rootCfg ConfigProvider, typ string) (ConfigSection, int, error) {
+func getStorageSectionByType(rootCfg ConfigProvider, typ string) (ConfigSection, int, error) {
 	targetSec, err := rootCfg.GetSection(storageSectionName + "." + typ)
 	if err != nil {
 		if !IsValidStorageType(StorageType(typ)) {
@@ -148,7 +141,7 @@ func getStorageByType(rootCfg ConfigProvider, typ string) (ConfigSection, int, e
 	return targetSec, targetSecIsTyp, nil
 }
 
-func getStorageTargetSec(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (ConfigSection, int, error) {
+func getStorageTargetSection(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (ConfigSection, int, error) {
 	// check typ first
 	if typ == "" {
 		if sec != nil { // check sec's type secondly
@@ -162,7 +155,7 @@ func getStorageTargetSec(rootCfg ConfigProvider, name, typ string, sec ConfigSec
 	}
 
 	if typ != "" {
-		targetSec, tp, err := getStorageByType(rootCfg, typ)
+		targetSec, tp, err := getStorageSectionByType(rootCfg, typ)
 		if targetSec != nil || err != nil {
 			return targetSec, tp, err
 		}
@@ -180,7 +173,7 @@ func getStorageTargetSec(rootCfg ConfigProvider, name, typ string, sec ConfigSec
 
 			targetSec.Key("STORAGE_TYPE").SetValue("local")
 		default:
-			targetSec, tp, err := getStorageByType(rootCfg, targetType)
+			targetSec, tp, err := getStorageSectionByType(rootCfg, targetType)
 			if targetSec != nil || err != nil {
 				return targetSec, tp, err
 			}
@@ -192,21 +185,21 @@ func getStorageTargetSec(rootCfg ConfigProvider, name, typ string, sec ConfigSec
 	return getDefaultStorageSection(rootCfg), targetSecIsDefault, nil
 }
 
-// getOverrideSection override section will be read SERVE_DIRECT, PATH, MINIO_BASE_PATH, MINIO_BUCKET to override the targetsec when possible
-func getOverrideSection(rootConfig ConfigProvider, targetSec, sec ConfigSection, targetSecType int, name string) (ConfigSection, error) {
+// getStorageOverrideSection override section will be read SERVE_DIRECT, PATH, MINIO_BASE_PATH, MINIO_BUCKET to override the targetsec when possible
+func getStorageOverrideSection(rootConfig ConfigProvider, targetSec, sec ConfigSection, targetSecType int, name string) ConfigSection {
 	if targetSecType == targetSecIsSec {
-		return nil, nil
+		return nil
 	}
 
 	if sec != nil {
-		return sec, nil
+		return sec
 	}
 
 	if targetSecType != targetSecIsStorageWithName {
 		nameSec, _ := rootConfig.GetSection(storageSectionName + "." + name)
-		return nameSec, nil
+		return nameSec
 	}
-	return nil, nil
+	return nil
 }
 
 func getStorageForLocal(targetSec, overrideSec ConfigSection, tp int, name string) (*Storage, error) {

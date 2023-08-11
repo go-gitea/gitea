@@ -303,3 +303,91 @@ PATH = archives
 		{loadRepoArchiveFrom, &RepoArchive.Storage, "/appdata/archives"},
 	})
 }
+
+func Test_getStorageConfiguration20(t *testing.T) {
+	cfg, err := NewConfigProviderFromData(`
+[repo-archive]
+STORAGE_TYPE = my_storage
+PATH = archives
+`)
+	assert.NoError(t, err)
+
+	assert.Error(t, loadRepoArchiveFrom(cfg))
+}
+
+func Test_getStorageConfiguration21(t *testing.T) {
+	testLocalStoragePath(t, "/appdata", `
+[storage.repo-archive]
+`, []testLocalStoragePathCase{
+		{loadRepoArchiveFrom, &RepoArchive.Storage, "/appdata/repo-archive"},
+	})
+}
+
+func Test_getStorageConfiguration22(t *testing.T) {
+	testLocalStoragePath(t, "/appdata", `
+[storage.repo-archive]
+PATH = archives
+`, []testLocalStoragePathCase{
+		{loadRepoArchiveFrom, &RepoArchive.Storage, "/appdata/archives"},
+	})
+}
+
+func Test_getStorageConfiguration23(t *testing.T) {
+	cfg, err := NewConfigProviderFromData(`
+[repo-archive]
+STORAGE_TYPE = minio
+MINIO_ACCESS_KEY_ID = my_access_key
+MINIO_SECRET_ACCESS_KEY = my_secret_key
+`)
+	assert.NoError(t, err)
+
+	_, err = getStorage(cfg, "", "", nil)
+	assert.Error(t, err)
+
+	assert.NoError(t, loadRepoArchiveFrom(cfg))
+	cp := RepoArchive.Storage.ToShadowCopy()
+	assert.EqualValues(t, "******", cp.MinioConfig.AccessKeyID)
+	assert.EqualValues(t, "******", cp.MinioConfig.SecretAccessKey)
+}
+
+func Test_getStorageConfiguration24(t *testing.T) {
+	cfg, err := NewConfigProviderFromData(`
+[repo-archive]
+STORAGE_TYPE = my_archive
+
+[storage.my_archive]
+; unsupported, storage type should be defined explicitly
+PATH = archives
+`)
+	assert.NoError(t, err)
+	assert.Error(t, loadRepoArchiveFrom(cfg))
+}
+
+func Test_getStorageConfiguration25(t *testing.T) {
+	cfg, err := NewConfigProviderFromData(`
+[repo-archive]
+STORAGE_TYPE = my_archive
+
+[storage.my_archive]
+; unsupported, storage type should be known type
+STORAGE_TYPE = unknown // should be local or minio
+PATH = archives
+`)
+	assert.NoError(t, err)
+	assert.Error(t, loadRepoArchiveFrom(cfg))
+}
+
+func Test_getStorageConfiguration26(t *testing.T) {
+	cfg, err := NewConfigProviderFromData(`
+[repo-archive]
+STORAGE_TYPE = minio
+MINIO_ACCESS_KEY_ID = my_access_key
+MINIO_SECRET_ACCESS_KEY = my_secret_key
+; wrong configuration
+MINIO_USE_SSL = abc
+`)
+	assert.NoError(t, err)
+	// assert.Error(t, loadRepoArchiveFrom(cfg))
+	// FIXME: this should return error but now ini package's MapTo() doesn't check type
+	assert.NoError(t, loadRepoArchiveFrom(cfg))
+}
