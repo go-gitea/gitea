@@ -149,12 +149,12 @@ func HomeDir() string {
 
 // InitSimple initializes git module with a very simple step, no config changes, no global command arguments.
 // This method doesn't change anything to filesystem. At the moment, it is only used by some Gitea sub-commands.
-func InitSimple(ctx context.Context) error {
+func InitSimple(ctx context.Context, allowCreation bool) error {
 	if err := checkInit(); err != nil {
 		return err
 	}
 
-	if err := storage.Init(); err != nil {
+	if err := storage.Init(allowCreation); err != nil {
 		return err
 	}
 
@@ -171,7 +171,7 @@ func InitSimple(ctx context.Context) error {
 // InitFull initializes git module with version check and change global variables, sync gitconfig.
 // It should only be called once at the beginning of the program initialization (TestMain/GlobalInitInstalled) as this code makes unsynchronized changes to variables.
 func InitFull(ctx context.Context) (err error) {
-	if err = InitSimple(ctx); err != nil {
+	if err = InitSimple(ctx, true); err != nil {
 		return err
 	}
 

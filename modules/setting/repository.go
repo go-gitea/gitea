@@ -4,6 +4,7 @@
 package setting
 
 import (
+	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
@@ -282,6 +283,10 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 	} else {
 		RepoRootPath = filepath.Clean(RepoRootPath)
 	}
+	if err := os.MkdirAll(RepoRootPath, os.ModePerm); err != nil {
+		log.Fatal("Failed to create Repository root path: %v", err)
+	}
+
 	defaultDetectedCharsetsOrder := make([]string, 0, len(Repository.DetectedCharsetsOrder))
 	for _, charset := range Repository.DetectedCharsetsOrder {
 		defaultDetectedCharsetsOrder = append(defaultDetectedCharsetsOrder, strings.ToLower(strings.TrimSpace(charset)))

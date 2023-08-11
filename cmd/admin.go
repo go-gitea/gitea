@@ -355,7 +355,7 @@ func runRepoSyncReleases(_ *cli.Context) error {
 		return err
 	}
 
-	if err := git.InitSimple(ctx); err != nil {
+	if err := git.InitSimple(ctx, false); err != nil {
 		return err
 	}
 

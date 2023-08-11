@@ -88,7 +88,7 @@ func runDumpRepository(ctx *cli.Context) error {
 	}
 
 	// migrations.GiteaLocalUploader depends on git module
-	if err := git.InitSimple(context.Background()); err != nil {
+	if err := git.InitSimple(context.Background(), false); err != nil {
 		return err
 	}
 

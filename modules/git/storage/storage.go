@@ -17,10 +17,9 @@ import (
 
 type Storage interface {
 	Configuration() string // information for configuration, json format
-	CheckStats() error
+	Init(allowCreation bool) error
 	IsExist(path string) (bool, error)
 	IsDir(path string) (bool, error)
-	// MakeDir(repoRelPath string) error
 	MakeDir(dir string, perm os.FileMode) error
 	MakeRepoDir(repoRelPath string) error
 	RemoveAll(path string) error
@@ -41,16 +40,22 @@ func (l *LocalSingleStorage) absPath(relPath string) string {
 	return filepath.Join(l.repoRootPath, relPath)
 }
 
-func (l *LocalSingleStorage) CheckStats() error {
+func (l *LocalSingleStorage) Init(allowCreation bool) error {
 	// Check if l.repoRootPath exists. It could be the case that it doesn't exist, this can happen when
 	// `[repository]` `ROOT` is a relative path and $GITEA_WORK_DIR isn't passed to the SSH connection.
 	if _, err := os.Stat(l.repoRootPath); err != nil {
-		if os.IsNotExist(err) {
+		if !os.IsNotExist(err) {
+			return fmt.Errorf("directory `[repository].ROOT` %q is inaccessible. err: %v",
+				l.repoRootPath, err)
+		}
+
+		if !allowCreation {
 			return fmt.Errorf("directory `[repository].ROOT` %q was not found, please check if $GITEA_WORK_DIR is passed to the SSH connection or make `[repository].ROOT` an absolute value",
 				l.repoRootPath)
 		}
-		return fmt.Errorf("directory `[repository].ROOT` %q is inaccessible. err: %v",
-			l.repoRootPath, err)
+		if err := os.MkdirAll(l.repoRootPath, os.ModePerm); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -95,12 +100,12 @@ func (l *LocalSingleStorage) Rename(oldPath, newPath string) error {
 
 var storage Storage
 
-func Init() error {
+func Init(allowCreation bool) error {
 	storage = &LocalSingleStorage{
 		repoRootPath: setting.RepoRootPath,
 	}
 
-	return storage.CheckStats()
+	return storage.Init(allowCreation)
 }
 
 func getStorage() Storage {
@@ -109,10 +114,6 @@ func getStorage() Storage {
 
 func Configuration() string {
 	return getStorage().Configuration()
-}
-
-func CheckStats() error {
-	return getStorage().CheckStats()
 }
 
 func IsExist(path string) (bool, error) {

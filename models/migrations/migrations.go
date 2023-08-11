@@ -615,7 +615,7 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 
 	// Some migration tasks depend on the git command
 	if git.DefaultContext == nil {
-		if err = git.InitSimple(context.Background()); err != nil {
+		if err = git.InitSimple(context.Background(), true); err != nil {
 			return err
 		}
 	}

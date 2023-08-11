@@ -35,7 +35,7 @@ var localMetas = map[string]string{
 
 func TestMain(m *testing.M) {
 	unittest.InitSettings()
-	if err := git.InitSimple(context.Background()); err != nil {
+	if err := git.InitSimple(context.Background(), true); err != nil {
 		log.Fatal("git init failed, err: %v", err)
 	}
 	markup.Init(&markup.ProcessorHelper{

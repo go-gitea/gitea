@@ -24,6 +24,13 @@ func testRun(m *testing.M) error {
 	defer util.RemoveAll(gitHomePath)
 	setting.Git.HomePath = gitHomePath
 
+	gitReposPath, err := os.MkdirTemp(os.TempDir(), "git-repos")
+	if err != nil {
+		return fmt.Errorf("unable to create temp dir: %w", err)
+	}
+	defer util.RemoveAll(gitReposPath)
+	setting.RepoRootPath = gitReposPath
+
 	if err = InitFull(context.Background()); err != nil {
 		return fmt.Errorf("failed to call Init: %w", err)
 	}
