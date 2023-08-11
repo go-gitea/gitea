@@ -45,6 +45,8 @@ You can try it out using [the online demo](https://try.gitea.io/).
 
 - Multilingual Support: Gitea provides interfaces in multiple languages, catering to users globally and promoting internationalization and localization.
 
+Additional Features: For more detailed information, please refer to: https://docs.gitea.com/installation/comparison#general-features
+
 ## System Requirements
 
 - A Raspberry Pi 3 is powerful enough to run Gitea for small workloads.

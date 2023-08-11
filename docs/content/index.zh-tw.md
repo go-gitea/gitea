@@ -38,6 +38,8 @@ Gitea 是從 [Gogs](http://gogs.io) Fork 出來的，請閱讀部落格文章 [G
 
 - 多語言支援：Gitea 提供多種語言界面，適應全球範圍內的用戶，促進了國際化和本地化。
 
+更多功能特性：詳見：https://docs.gitea.com/installation/comparison#general-features
+
 ## 系統需求
 
 - Raspberry Pi 3 的效能足夠讓 Gitea 承擔小型工作負載。
