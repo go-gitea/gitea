@@ -9,24 +9,24 @@
 				{{ctx.Locale.Tr "repo.issues.label_edit"}}
 			</a>
 			{{if .Project.IsClosed}}
-				<div class="item link-action" data-url="{{.Link}}/open">
+				<button class="item btn link-action" data-url="{{.Link}}/open">
 					{{svg "octicon-check"}}
 					{{ctx.Locale.Tr "repo.projects.open"}}
-				</div>
+				</button>
 			{{else}}
-				<div class="item link-action" data-url="{{.Link}}/close">
+				<button class="item btn link-action" data-url="{{.Link}}/close">
 					{{svg "octicon-skip"}}
 					{{ctx.Locale.Tr "repo.projects.close"}}
-				</div>
+				</button>
 			{{end}}
-			<div class="item delete-button" data-url="{{.Link}}/delete" data-id="{{.Project.ID}}">
+			<button class="item btn delete-button" data-url="{{.Link}}/delete" data-id="{{.Project.ID}}">
 				{{svg "octicon-trash"}}
 				{{ctx.Locale.Tr "repo.issues.label_delete"}}
-			</div>
-			<div class="item show-modal" data-modal="#new-project-column-item">
+			</button>
+			<button class="item btn show-modal" data-modal="#new-project-column-item">
 				{{svg "octicon-plus"}}
 				{{ctx.Locale.Tr "new_project_column"}}
-			</div>
+			</button>
 		</div>
 		<div class="ui small modal new-project-column-modal" id="new-project-column-item">
 			<div class="header">
@@ -80,35 +80,35 @@
 								{{svg "octicon-kebab-horizontal"}}
 							</div>
 							<div class="menu user-menu" tabindex="-1">
-								<div class="item show-modal button" data-modal="#edit-project-column-modal-{{.ID}}">
+								<a class="item show-modal button" data-modal="#edit-project-column-modal-{{.ID}}">
 									{{svg "octicon-pencil"}}
 									{{ctx.Locale.Tr "repo.projects.column.edit"}}
-								</div>
+								</a>
 								{{if not .Default}}
-									<div class="item show-modal button default-project-column-show"
+									<a class="item show-modal button default-project-column-show"
 									data-modal="#default-project-column-modal-{{.ID}}"
 									data-modal-default-project-column-header="{{ctx.Locale.Tr "repo.projects.column.set_default"}}"
 									data-modal-default-project-column-content="{{ctx.Locale.Tr "repo.projects.column.set_default_desc"}}"
 									data-url="{{$.Link}}/{{.ID}}/default">
 										{{svg "octicon-pin"}}
 										{{ctx.Locale.Tr "repo.projects.column.set_default"}}
-									</div>
+									</a>
 								{{else}}
-									<div class="item show-modal button default-project-column-show"
+									<a class="item show-modal button default-project-column-show"
 									data-modal="#default-project-column-modal-{{.ID}}"
 									data-modal-default-project-column-header="{{ctx.Locale.Tr "repo.projects.column.unset_default"}}"
 									data-modal-default-project-column-content="{{ctx.Locale.Tr "repo.projects.column.unset_default_desc"}}"
 									data-url="{{$.Link}}/{{.ID}}/unsetdefault">
 										{{svg "octicon-pin-slash"}}
 										{{ctx.Locale.Tr "repo.projects.column.unset_default"}}
-									</div>
+									</a>
 								{{end}}
-								<div class="item show-modal button show-delete-project-column-modal"
+								<a class="item show-modal button show-delete-project-column-modal"
 									data-modal="#delete-project-column-modal-{{.ID}}"
 									data-url="{{$.Link}}/{{.ID}}">
 									{{svg "octicon-trash"}}
 									{{ctx.Locale.Tr "repo.projects.column.delete"}}
-								</div>
+								</a>
 
 								<div class="ui small modal edit-project-column-modal" id="edit-project-column-modal-{{.ID}}">
 									<div class="header">
