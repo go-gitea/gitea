@@ -22,7 +22,7 @@ Before upgrade to a new version of Gitea, you need to do some preparation.
 ## Check the Changelog for breaking changes
 
 To make Gitea better, some breaking changes are unavoidable, especially for big milestone releases.
-Before upgrade, please read the [Changelog on Gitea blog](https://blog.gitea.com/)
+Before upgrading, please read the [Changelog on Gitea blog](https://blog.gitea.com/)
 and check whether the breaking changes affect your Gitea instance.
 
 ## Check Deprecated Configurations from admin panel
@@ -64,7 +64,7 @@ Backup steps:
 If you are using cloud services or filesystems with snapshot feature,
 a snapshot for the Gitea data volume and related object storage is more convenient.
 
-After all of those has been prepared, to update Gitea, download a newer version, stop the old one, perform a backup, and run the new one.
+After all of those have been prepared, to update Gitea, download a newer version, stop the old one, perform a backup, and run the new one.
 Every time a Gitea instance starts up, it checks whether a database migration should be run.
 If a database migration is required, Gitea will take some time to complete the upgrade and then serve.
 
