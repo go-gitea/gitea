@@ -51,3 +51,12 @@
 .dropzone .dz-preview:hover .dz-image img {
   filter: opacity(0.5) !important;
 }
+
+.dropzone .dz-preview.dz-image-preview .dz-filename {
+  /* Don't use margin or padding, as that will mess with the dimensions
+   * of the details div and thereby making the 'Cancel upload' button
+   * inaccessible to use.
+  */
+  position: relative;
+  top: 2em;
+}
