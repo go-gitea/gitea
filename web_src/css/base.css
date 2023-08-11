@@ -2289,3 +2289,8 @@ table th[data-sortt-desc] .svg {
   flex-wrap: wrap;
   gap: .25rem;
 }
+
+.oauth-provider-icon {
+  max-height: 20px;
+  max-width: 20px;
+}
