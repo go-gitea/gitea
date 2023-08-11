@@ -235,6 +235,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 
 	var lexerName string
 
+	avatarUtils := templates.NewAvatarUtils(ctx)
 	i := 0
 	commitCnt := 0
 	for _, part := range blameParts {
@@ -257,9 +258,9 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 
 				var avatar string
 				if commit.User != nil {
-					avatar = string(templates.Avatar(ctx, commit.User, 18, "gt-mr-3"))
+					avatar = string(avatarUtils.Avatar(commit.User, 18, "gt-mr-3"))
 				} else {
-					avatar = string(templates.AvatarByEmail(ctx, commit.Author.Email, commit.Author.Name, 18, "gt-mr-3"))
+					avatar = string(avatarUtils.AvatarByEmail(commit.Author.Email, commit.Author.Name, 18, "gt-mr-3"))
 				}
 
 				br.Avatar = gotemplate.HTML(avatar)

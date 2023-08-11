@@ -56,7 +56,7 @@
 						{{end}}
 						<div class="right floated">
 							{{range .Assignees}}
-								<a href="{{.HomeLink}}" data-tooltip-content="{{$.locale.Tr "repo.projects.column.assigned_to"}} {{.Name}}">{{avatar $.Context . 28 "mini gt-mr-3"}}</a>
+								<a href="{{.HomeLink}}" data-tooltip-content="{{$.locale.Tr "repo.projects.column.assigned_to"}} {{.Name}}">{{ctx.AvatarUtils.Avatar . 28 "mini gt-mr-3"}}</a>
 							{{end}}
 						</div>
 					</div>
@@ -208,7 +208,7 @@
 							</div>
 							{{range .Assignees}}
 								<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/assignee">
-									{{avatar $.Context . 20}} {{.GetDisplayName}}
+									{{ctx.AvatarUtils.Avatar . 20}} {{.GetDisplayName}}
 								</div>
 							{{end}}
 						</div>
