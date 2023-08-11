@@ -70,7 +70,7 @@
 								</form>
 							</div>
 						</button>
-						<form id="disable-workflow-form" class="ui form ignore-dirty gt-hidden" action="{{$.Link}}/{{if .CurWorkflowDisabled}}enable{{else}}disable{{end}}?workflow={{$.CurWorkflow}}&actor={{.CurActor}}&status={{$.CurStatus}}" method="post">
+						<form id="disable-workflow-form" class="gt-hidden ignore-dirty" action="{{$.Link}}/{{if .CurWorkflowDisabled}}enable{{else}}disable{{end}}?workflow={{$.CurWorkflow}}&actor={{.CurActor}}&status={{$.CurStatus}}" method="post">
 							{{.CsrfTokenHtml}}
 						</form>
 					{{end}}
