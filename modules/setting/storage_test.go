@@ -27,12 +27,15 @@ MINIO_BUCKET = gitea-storage
 
 	assert.NoError(t, loadAttachmentFrom(cfg))
 	assert.EqualValues(t, "gitea-attachment", Attachment.Storage.MinioConfig.Bucket)
+	assert.EqualValues(t, "attachments/", Attachment.Storage.MinioConfig.BasePath)
 
 	assert.NoError(t, loadLFSFrom(cfg))
 	assert.EqualValues(t, "gitea-lfs", LFS.Storage.MinioConfig.Bucket)
+	assert.EqualValues(t, "lfs/", LFS.Storage.MinioConfig.BasePath)
 
 	assert.NoError(t, loadAvatarsFrom(cfg))
 	assert.EqualValues(t, "gitea-storage", Avatar.Storage.MinioConfig.Bucket)
+	assert.EqualValues(t, "avatars/", Avatar.Storage.MinioConfig.BasePath)
 }
 
 func Test_getStorageUseOtherNameAsType(t *testing.T) {
@@ -49,9 +52,11 @@ MINIO_BUCKET = gitea-storage
 
 	assert.NoError(t, loadAttachmentFrom(cfg))
 	assert.EqualValues(t, "gitea-storage", Attachment.Storage.MinioConfig.Bucket)
+	assert.EqualValues(t, "attachments/", Attachment.Storage.MinioConfig.BasePath)
 
 	assert.NoError(t, loadLFSFrom(cfg))
 	assert.EqualValues(t, "gitea-storage", LFS.Storage.MinioConfig.Bucket)
+	assert.EqualValues(t, "lfs/", LFS.Storage.MinioConfig.BasePath)
 }
 
 func Test_getStorageInheritStorageType(t *testing.T) {
@@ -390,4 +395,20 @@ MINIO_USE_SSL = abc
 	// assert.Error(t, loadRepoArchiveFrom(cfg))
 	// FIXME: this should return error but now ini package's MapTo() doesn't check type
 	assert.NoError(t, loadRepoArchiveFrom(cfg))
+}
+
+func Test_getStorageConfiguration27(t *testing.T) {
+	cfg, err := NewConfigProviderFromData(`
+[storage.repo-archive]
+STORAGE_TYPE = minio
+MINIO_ACCESS_KEY_ID = my_access_key
+MINIO_SECRET_ACCESS_KEY = my_secret_key
+MINIO_USE_SSL = true
+`)
+	assert.NoError(t, err)
+	assert.NoError(t, loadRepoArchiveFrom(cfg))
+	assert.EqualValues(t, "my_access_key", RepoArchive.Storage.MinioConfig.AccessKeyID)
+	assert.EqualValues(t, "my_secret_key", RepoArchive.Storage.MinioConfig.SecretAccessKey)
+	assert.EqualValues(t, true, RepoArchive.Storage.MinioConfig.UseSSL)
+	assert.EqualValues(t, "repo-archive/", RepoArchive.Storage.MinioConfig.BasePath)
 }
