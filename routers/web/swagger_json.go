@@ -13,7 +13,7 @@ const tplSwaggerV1Json base.TplName = "swagger/v1_json"
 
 // SwaggerV1Json render swagger v1 json
 func SwaggerV1Json(ctx *context.Context) {
-	t, err := ctx.Render.TemplateLookup(string(tplSwaggerV1Json))
+	t, err := ctx.Render.TemplateLookup(string(tplSwaggerV1Json), nil)
 	if err != nil {
 		ctx.ServerError("unable to find template", err)
 		return

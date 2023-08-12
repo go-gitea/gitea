@@ -32,7 +32,7 @@
 										<div class="menu">
 											{{range .Users}}
 												<div class="item" data-value="{{.ID}}">
-													{{avatar $.Context . 28 "mini"}}{{template "repo/search_name" .}}
+													{{ctx.AvatarUtils.Avatar . 28 "mini"}}{{template "repo/search_name" .}}
 												</div>
 											{{end}}
 										</div>
@@ -89,7 +89,7 @@
 												{{$userIDs := .AllowlistUserIDs}}
 												{{range $.Users}}
 													{{if SliceUtils.Contains $userIDs .ID}}
-														<a class="ui basic label" href="{{.HomeLink}}">{{avatar $.Context . 26}} {{.GetDisplayName}}</a>
+														<a class="ui basic label" href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 26}} {{.GetDisplayName}}</a>
 													{{end}}
 												{{end}}
 												{{if $.Owner.IsOrganization}}
