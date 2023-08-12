@@ -205,30 +205,29 @@ func getStorageOverrideSection(rootConfig ConfigProvider, targetSec, sec ConfigS
 }
 
 func getStorageForLocal(targetSec, overrideSec ConfigSection, tp targetSecType, name string) (*Storage, error) {
-	var storage Storage
-	storage.Type = StorageType(targetSec.Key("STORAGE_TYPE").String())
-
-	targetPath := ConfigSectionKeyString(targetSec, "PATH", "")
-	if targetPath == "" {
-		targetPath = AppDataPath
-	} else if !filepath.IsAbs(targetPath) {
-		targetPath = filepath.Join(AppDataPath, targetPath)
+	storage := Storage{
+		Type: StorageType(targetSec.Key("STORAGE_TYPE").String()),
 	}
 
+	targetPath := ConfigSectionKeyString(targetSec, "PATH", "")
 	var fallbackPath string
-	if tp == targetSecIsStorage || tp == targetSecIsDefault {
-		fallbackPath = filepath.Join(targetPath, name)
+	if targetPath == "" { // no path
+		fallbackPath = filepath.Join(AppDataPath, name)
 	} else {
-		fallbackPath = targetPath
+		if tp == targetSecIsStorage || tp == targetSecIsDefault {
+			fallbackPath = filepath.Join(targetPath, name)
+		} else {
+			fallbackPath = targetPath
+		}
 	}
 
 	if overrideSec == nil {
 		storage.Path = fallbackPath
 	} else {
 		storage.Path = ConfigSectionKeyString(overrideSec, "PATH", fallbackPath)
-		if !filepath.IsAbs(storage.Path) {
-			storage.Path = filepath.Join(targetPath, storage.Path)
-		}
+	}
+	if !filepath.IsAbs(storage.Path) {
+		storage.Path = filepath.Join(AppDataPath, storage.Path)
 	}
 	return &storage, nil
 }
