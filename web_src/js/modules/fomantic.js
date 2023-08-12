@@ -48,7 +48,6 @@ export function initGiteaFomantic() {
       ret = this.each((_, el) => {
         $(el).addClass('hidden');
         $(el).removeClass('visible');
-        if (isOut) $(el).removeClass('transition');
         arg?.onHidden?.(this);
       });
       arg?.onComplete?.(this);
