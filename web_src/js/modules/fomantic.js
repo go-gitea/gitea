@@ -48,6 +48,7 @@ export function initGiteaFomantic() {
       ret = this.each((_, el) => {
         $(el).addClass('hidden');
         $(el).removeClass('visible');
+        // don't remove the transition class because fomantic didn't do it either
         arg?.onHidden?.(this);
       });
       arg?.onComplete?.(this);
