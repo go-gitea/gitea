@@ -191,6 +191,9 @@
 				{{if .Permission.CanRead $.UnitTypePackages}}
 					<a href="{{.RepoLink}}/packages" class="{{if .IsPackagesPage}}active {{end}}item">
 						{{svg "octicon-package"}} {{.locale.Tr "packages.title"}}
+						{{if .NumPackages}}
+							<span class="ui small label">{{CountFmt .NumPackages}}</span>
+						{{end}}
 					</a>
 				{{end}}
 

@@ -20122,6 +20122,11 @@
           "type": "string",
           "x-go-name": "Name"
         },
+        "package_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Packages"
+        },
         "repo_admin_change_team_access": {
           "type": "boolean",
           "x-go-name": "RepoAdminChangeTeamAccess"
@@ -21176,6 +21181,11 @@
         "owner": {
           "$ref": "#/definitions/User"
         },
+        "package_counter": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Packages"
+        },
         "parent": {
           "$ref": "#/definitions/Repository"
         },
@@ -21846,6 +21856,11 @@
           "type": "string",
           "default": "empty",
           "x-go-name": "LoginName"
+        },
+        "packages_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Packages"
         },
         "prohibit_login": {
           "description": "Is user login prohibited",

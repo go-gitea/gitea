@@ -14,6 +14,9 @@
 		{{if and .IsPackageEnabled .CanReadPackages}}
 		<a class="item" href="{{$.Org.HomeLink}}/-/packages">
 			{{svg "octicon-package"}} {{.locale.Tr "packages.title"}}
+			{{if .PackageCount}}
+				<div class="ui small label">{{.PackageCount}}</div>
+			{{end}}
 		</a>
 		{{end}}
 		{{if and .IsRepoIndexerEnabled .CanReadCode}}

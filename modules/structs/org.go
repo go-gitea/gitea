@@ -15,6 +15,7 @@ type Organization struct {
 	Location                  string `json:"location"`
 	Visibility                string `json:"visibility"`
 	RepoAdminChangeTeamAccess bool   `json:"repo_admin_change_team_access"`
+	Packages                  int    `json:"package_count"`
 	// deprecated
 	UserName string `json:"username"`
 }

@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -217,4 +218,42 @@ func TestAPIOrgSearchEmptyTeam(t *testing.T) {
 			assert.EqualValues(t, "Empty", data.Data[0].Name)
 		}
 	})
+}
+
+func TestAPIOrgPackageCount(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	token := getUserToken(t, user.Name, auth_model.AccessTokenScopeWriteOrganization)
+	orgName := "PackageOrg"
+
+	req := NewRequestWithJSON(t, "POST", "/api/v1/orgs?token="+token, &api.CreateOrgOption{
+		UserName: orgName,
+	})
+	MakeRequest(t, req, http.StatusCreated)
+
+	orgUrl := "api/v1/orgs/" + orgName
+	req = NewRequest(t, "GET", orgUrl)
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	var orgInfo *api.Organization
+	DecodeJSON(t, resp, &orgInfo)
+
+	assert.Equal(t, 0, orgInfo.Packages)
+
+	packageName := "test-package"
+	packageVersion := "1.0.3"
+	filename := "file.bin"
+
+	url := fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", orgName, packageName, packageVersion, filename)
+	req = NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{}))
+	AddBasicAuthHeader(req, user.Name)
+	MakeRequest(t, req, http.StatusCreated)
+
+	req = NewRequest(t, "GET", orgUrl)
+	resp = MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &orgInfo)
+
+	assert.Equal(t, 1, orgInfo.Packages)
 }

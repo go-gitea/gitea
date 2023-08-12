@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // ErrDuplicatePackageVersion indicates a duplicated package version error
@@ -298,8 +299,7 @@ func SearchVersions(ctx context.Context, opts *PackageSearchOptions) ([]*Package
 	return pvs, count, err
 }
 
-// SearchLatestVersions gets the latest version of every package matching the search options
-func SearchLatestVersions(ctx context.Context, opts *PackageSearchOptions) ([]*PackageVersion, int64, error) {
+func getLatestVersions(ctx context.Context, opts *PackageSearchOptions) *xorm.Session {
 	cond := opts.toConds().
 		And(builder.Expr("pv2.id IS NULL"))
 
@@ -314,6 +314,13 @@ func SearchLatestVersions(ctx context.Context, opts *PackageSearchOptions) ([]*P
 		Join("INNER", "package", "package.id = package_version.package_id").
 		Where(cond)
 
+	return sess
+}
+
+// SearchLatestVersions gets the latest version of every package matching the search options
+func SearchLatestVersions(ctx context.Context, opts *PackageSearchOptions) ([]*PackageVersion, int64, error) {
+	sess := getLatestVersions(ctx, opts)
+
 	opts.configureOrderBy(sess)
 
 	if opts.Paginator != nil {
@@ -323,6 +330,12 @@ func SearchLatestVersions(ctx context.Context, opts *PackageSearchOptions) ([]*P
 	pvs := make([]*PackageVersion, 0, 10)
 	count, err := sess.FindAndCount(&pvs)
 	return pvs, count, err
+}
+
+// CountLatestVersions counts the latest version of every package matching the search options
+func CountLatestVersions(ctx context.Context, opts *PackageSearchOptions) (int64, error) {
+	sess := getLatestVersions(ctx, opts)
+	return sess.Count(new(PackageVersion))
 }
 
 // ExistVersion checks if a version matching the search options exist

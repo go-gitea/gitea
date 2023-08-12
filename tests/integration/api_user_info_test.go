@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"testing"
@@ -64,4 +65,35 @@ func TestAPIUserInfo(t *testing.T) {
 		DecodeJSON(t, resp, &u)
 		assert.Equal(t, user, u.UserName)
 	})
+}
+
+func TestAPIUserPackageCount(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	userUrl := "api/v1/users/" + user.Name
+	req := NewRequest(t, "GET", userUrl)
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	var userInfo *api.User
+	DecodeJSON(t, resp, &userInfo)
+
+	assert.Equal(t, 0, userInfo.Packages)
+
+	packageName := "test-package"
+	packageVersion := "1.0.3"
+	filename := "file.bin"
+
+	url := fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", user.Name, packageName, packageVersion, filename)
+	req = NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{}))
+	AddBasicAuthHeader(req, user.Name)
+	MakeRequest(t, req, http.StatusCreated)
+
+	req = NewRequest(t, "GET", userUrl)
+	resp = MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &userInfo)
+
+	assert.Equal(t, 1, userInfo.Packages)
 }

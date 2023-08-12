@@ -17,6 +17,7 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
+	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -283,6 +284,8 @@ func ToDeployKey(apiLink string, key *asymkey_model.DeployKey) *api.DeployKey {
 
 // ToOrganization convert user_model.User to api.Organization
 func ToOrganization(ctx context.Context, org *organization.Organization) *api.Organization {
+	numPackages, _ := packages_model.CountLatestVersions(ctx, &packages_model.PackageSearchOptions{OwnerID: org.ID, IsInternal: util.OptionalBoolFalse})
+
 	return &api.Organization{
 		ID:                        org.ID,
 		AvatarURL:                 org.AsUser().AvatarLink(ctx),
@@ -295,6 +298,7 @@ func ToOrganization(ctx context.Context, org *organization.Organization) *api.Or
 		Location:                  org.Location,
 		Visibility:                org.Visibility.String(),
 		RepoAdminChangeTeamAccess: org.RepoAdminChangeTeamAccess,
+		Packages:                  int(numPackages),
 	}
 }
 

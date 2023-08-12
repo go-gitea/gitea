@@ -6,6 +6,7 @@ package user
 import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -126,6 +127,15 @@ func LoadHeaderCount(ctx *context.Context) error {
 		return err
 	}
 	ctx.Data["RepoCount"] = repoCount
+
+	packageCount, err := packages_model.CountLatestVersions(ctx, &packages_model.PackageSearchOptions{
+		OwnerID:    ctx.ContextUser.ID,
+		IsInternal: util.OptionalBoolFalse,
+	})
+	if err != nil {
+		return err
+	}
+	ctx.Data["PackageCount"] = packageCount
 
 	return nil
 }

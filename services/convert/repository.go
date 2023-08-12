@@ -8,12 +8,14 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ToRepo converts a Repository to api.Repository
@@ -135,6 +137,12 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 
 	numReleases, _ := repo_model.GetReleaseCountByRepoID(ctx, repo.ID, repo_model.FindReleasesOptions{IncludeDrafts: false, IncludeTags: false})
 
+	numPackages, _ := packages_model.CountLatestVersions(ctx, &packages_model.PackageSearchOptions{
+		OwnerID:    repo.Owner.ID,
+		RepoID:     repo.ID,
+		IsInternal: util.OptionalBoolFalse,
+	})
+
 	mirrorInterval := ""
 	var mirrorUpdated time.Time
 	if repo.IsMirror {
@@ -193,6 +201,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		OpenIssues:                    repo.NumOpenIssues,
 		OpenPulls:                     repo.NumOpenPulls,
 		Releases:                      int(numReleases),
+		Packages:                      int(numPackages),
 		DefaultBranch:                 repo.DefaultBranch,
 		Created:                       repo.CreatedUnix.AsTime(),
 		Updated:                       repo.UpdatedUnix.AsTime(),

@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
+	packages_model "code.gitea.io/gitea/models/packages"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
@@ -547,6 +548,16 @@ func RepoAssignment(ctx *Context) context.CancelFunc {
 	ctx.Data["NumReleases"], err = repo_model.GetReleaseCountByRepoID(ctx, ctx.Repo.Repository.ID, repo_model.FindReleasesOptions{})
 	if err != nil {
 		ctx.ServerError("GetReleaseCountByRepoID", err)
+		return nil
+	}
+
+	ctx.Data["NumPackages"], err = packages_model.CountLatestVersions(ctx, &packages_model.PackageSearchOptions{
+		OwnerID:    ctx.ContextUser.ID,
+		RepoID:     ctx.Repo.Repository.ID,
+		IsInternal: util.OptionalBoolFalse,
+	})
+	if err != nil {
+		ctx.ServerError("CountLatestPackagesVersions", err)
 		return nil
 	}
 

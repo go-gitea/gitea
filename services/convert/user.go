@@ -6,9 +6,11 @@ package convert
 import (
 	"context"
 
+	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ToUser convert user_model.User to api.User
@@ -47,6 +49,8 @@ func ToUserWithAccessMode(ctx context.Context, user *user_model.User, accessMode
 // toUser convert user_model.User to api.User
 // signed shall only be set if requester is logged in. authed shall only be set if user is site admin or user himself
 func toUser(ctx context.Context, user *user_model.User, signed, authed bool) *api.User {
+	numPackages, _ := packages_model.CountLatestVersions(ctx, &packages_model.PackageSearchOptions{OwnerID: user.ID, IsInternal: util.OptionalBoolFalse})
+
 	result := &api.User{
 		ID:          user.ID,
 		UserName:    user.Name,
@@ -62,6 +66,7 @@ func toUser(ctx context.Context, user *user_model.User, signed, authed bool) *ap
 		Followers:    user.NumFollowers,
 		Following:    user.NumFollowing,
 		StarredRepos: user.NumStars,
+		Packages:     int(numPackages),
 	}
 
 	result.Visibility = user.Visibility.String()
