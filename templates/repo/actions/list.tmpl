@@ -63,7 +63,7 @@
 					</div>
 
 					{{if .AllowDisableOrEnableWorkflow}}
-						<button class="ui small compact jump dropdown icon btn interact-bg gt-p-3">
+						<button class="ui jump dropdown btn interact-bg gt-p-3">
 							{{svg "octicon-kebab-horizontal"}}
 							<div class="menu">
 								<a class="item" id="disable-workflow-btn">{{if .CurWorkflowDisabled}}{{.locale.Tr "actions.workflow.enable"}}{{else}}{{.locale.Tr "actions.workflow.disable"}}{{end}}</a>
