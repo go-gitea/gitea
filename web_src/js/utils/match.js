@@ -32,7 +32,7 @@ export function matchMention(queryText) {
 
   // results is a map of weights, lower is better
   const results = new Map();
-  for (const obj of window.config.tributeValues) {
+  for (const obj of window.config.tributeValues ?? []) {
     const index = obj.key.toLowerCase().indexOf(query);
     if (index === -1) continue;
     const existing = results.get(obj);
