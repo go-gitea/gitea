@@ -90,12 +90,16 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 		return nil, convertMinioErr(err)
 	}
 
-	if err := minioClient.MakeBucket(ctx, config.Bucket, minio.MakeBucketOptions{
-		Region: config.Location,
-	}); err != nil {
-		// Check to see if we already own this bucket (which happens if you run this twice)
-		exists, errBucketExists := minioClient.BucketExists(ctx, config.Bucket)
-		if !exists || errBucketExists != nil {
+	// Check to see if we already own this bucket
+	exists, errBucketExists := minioClient.BucketExists(ctx, config.Bucket)
+	if errBucketExists != nil {
+		return nil, convertMinioErr(err)
+	}
+
+	if !exists {
+		if err := minioClient.MakeBucket(ctx, config.Bucket, minio.MakeBucketOptions{
+			Region: config.Location,
+		}); err != nil {
 			return nil, convertMinioErr(err)
 		}
 	}
