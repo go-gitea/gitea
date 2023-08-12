@@ -653,6 +653,11 @@ a.label,
   color: var(--color-text);
 }
 
+.ui.secondary.menu {
+  margin-left: 0;
+  margin-right: 0;
+}
+
 .ui.secondary.menu .dropdown.item:hover,
 .ui.secondary.menu a.item:hover {
   color: var(--color-text);
