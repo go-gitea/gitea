@@ -219,16 +219,26 @@ func getStorageForLocal(targetSec, overrideSec ConfigSection, tp targetSecType, 
 		} else {
 			fallbackPath = targetPath
 		}
+		if !filepath.IsAbs(fallbackPath) {
+			fallbackPath = filepath.Join(AppDataPath, fallbackPath)
+		}
 	}
 
-	if overrideSec == nil {
+	if overrideSec == nil { // no override section
 		storage.Path = fallbackPath
 	} else {
-		storage.Path = ConfigSectionKeyString(overrideSec, "PATH", fallbackPath)
+		storage.Path = ConfigSectionKeyString(overrideSec, "PATH", "")
+		if storage.Path == "" { // overrideSec has no path
+			storage.Path = fallbackPath
+		} else if !filepath.IsAbs(storage.Path) {
+			if targetPath == "" {
+				storage.Path = filepath.Join(AppDataPath, storage.Path)
+			} else {
+				storage.Path = filepath.Join(targetPath, storage.Path)
+			}
+		}
 	}
-	if !filepath.IsAbs(storage.Path) {
-		storage.Path = filepath.Join(AppDataPath, storage.Path)
-	}
+
 	return &storage, nil
 }
 
