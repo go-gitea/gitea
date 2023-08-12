@@ -705,6 +705,16 @@ a.label,
   background: var(--color-active) !important;
 }
 
+.hidden.transition {
+  visibility: hidden;
+  display: none;
+}
+
+.visible.transition {
+  display: block !important;
+  visibility: visible !important;
+}
+
 .ui.message {
   background: var(--color-box-body);
   color: var(--color-text);
