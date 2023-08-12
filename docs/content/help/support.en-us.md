@@ -20,6 +20,8 @@ menu:
 - [Paid Commercial Support](https://about.gitea.com/)
 - [Discord](https://discord.gg/Gitea)
 - [Discourse Forum](https://discourse.gitea.io/)
+- [Matrix](https://matrix.to/#/#gitea-space:matrix.org)
+  - NOTE: Most of the Matrix channels are bridged with their counterpart in Discord and may experience some degree of flakiness with the bridge process.
 
 **NOTE:** When asking for support, it may be a good idea to have the following available so that the person helping has all the info they need:
 
