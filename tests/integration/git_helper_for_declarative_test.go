@@ -57,10 +57,8 @@ func createSSHUrl(gitPath string, u *url.URL) *url.URL {
 	return &u2
 }
 
-func onGiteaRun[T testing.TB](t T, callback func(T, *url.URL), prepare ...bool) {
-	if len(prepare) == 0 || prepare[0] {
-		defer tests.PrepareTestEnv(t, 1)()
-	}
+func onGiteaRun[T testing.TB](t T, callback func(T, *url.URL)) {
+	defer tests.PrepareTestEnv(t, 1)()
 	s := http.Server{
 		Handler: testWebRoutes,
 	}
