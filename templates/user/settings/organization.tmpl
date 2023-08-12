@@ -14,7 +14,7 @@
 					{{range .Orgs}}
 					<div class="flex-item">
 						<div class="flex-item-leading">
-							{{avatar $.Context . 28 "mini"}}
+							{{ctx.AvatarUtils.Avatar . 28 "mini"}}
 						</div>
 						<div class="flex-item-main">
 							<div class="flex-item-title">{{template "shared/user/name" .}}</div>
