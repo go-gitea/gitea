@@ -84,6 +84,7 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 		Creds:     credentials.NewStaticV4(config.AccessKeyID, config.SecretAccessKey, ""),
 		Secure:    config.UseSSL,
 		Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.InsecureSkipVerify}},
+		Region:    config.Location,
 	})
 	if err != nil {
 		return nil, convertMinioErr(err)
