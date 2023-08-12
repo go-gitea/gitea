@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package code
 
@@ -10,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/highlight"
+	"code.gitea.io/gitea/modules/indexer/code/internal"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -25,6 +25,8 @@ type Result struct {
 	LineNumbers    []int
 	FormattedLines string
 }
+
+type SearchResultLanguages = internal.SearchResultLanguages
 
 func indices(content string, selectionStartIndex, selectionEndIndex int) (int, int) {
 	startIndex := selectionStartIndex
@@ -62,7 +64,7 @@ func writeStrings(buf *bytes.Buffer, strs ...string) error {
 	return nil
 }
 
-func searchResult(result *SearchResult, startIndex, endIndex int) (*Result, error) {
+func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Result, error) {
 	startLineNum := 1 + strings.Count(result.Content[:startIndex], "\n")
 
 	var formattedLinesBuffer bytes.Buffer
@@ -94,6 +96,9 @@ func searchResult(result *SearchResult, startIndex, endIndex int) (*Result, erro
 		lineNumbers[i] = startLineNum + i
 		index += len(line)
 	}
+
+	highlighted, _ := highlight.Code(result.Filename, "", formattedLinesBuffer.String())
+
 	return &Result{
 		RepoID:         result.RepoID,
 		Filename:       result.Filename,
@@ -102,17 +107,17 @@ func searchResult(result *SearchResult, startIndex, endIndex int) (*Result, erro
 		Language:       result.Language,
 		Color:          result.Color,
 		LineNumbers:    lineNumbers,
-		FormattedLines: highlight.Code(result.Filename, "", formattedLinesBuffer.String()),
+		FormattedLines: highlighted,
 	}, nil
 }
 
 // PerformSearch perform a search on a repository
-func PerformSearch(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int, []*Result, []*SearchResultLanguages, error) {
+func PerformSearch(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int, []*Result, []*internal.SearchResultLanguages, error) {
 	if len(keyword) == 0 {
 		return 0, nil, nil, nil
 	}
 
-	total, results, resultLanguages, err := indexer.Search(ctx, repoIDs, language, keyword, page, pageSize, isMatch)
+	total, results, resultLanguages, err := (*globalIndexer.Load()).Search(ctx, repoIDs, language, keyword, page, pageSize, isMatch)
 	if err != nil {
 		return 0, nil, nil, err
 	}

@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -12,7 +11,7 @@ type MergeStyle string
 const (
 	// MergeStyleMerge create merge commit
 	MergeStyleMerge MergeStyle = "merge"
-	// MergeStyleRebase rebase before merging
+	// MergeStyleRebase rebase before merging, and fast-forward
 	MergeStyleRebase MergeStyle = "rebase"
 	// MergeStyleRebaseMerge rebase before merging with merge commit (--no-ff)
 	MergeStyleRebaseMerge MergeStyle = "rebase-merge"

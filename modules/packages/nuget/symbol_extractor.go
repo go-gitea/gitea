@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package nuget
 
@@ -8,7 +7,6 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"io"
 	"path"
@@ -16,13 +14,14 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/packages"
+	"code.gitea.io/gitea/modules/util"
 )
 
 var (
-	ErrMissingPdbFiles       = errors.New("Package does not contain PDB files")
-	ErrInvalidFiles          = errors.New("Package contains invalid files")
-	ErrInvalidPdbMagicNumber = errors.New("Invalid Portable PDB magic number")
-	ErrMissingPdbStream      = errors.New("Missing PDB stream")
+	ErrMissingPdbFiles       = util.NewInvalidArgumentErrorf("package does not contain PDB files")
+	ErrInvalidFiles          = util.NewInvalidArgumentErrorf("package contains invalid files")
+	ErrInvalidPdbMagicNumber = util.NewInvalidArgumentErrorf("invalid Portable PDB magic number")
+	ErrMissingPdbStream      = util.NewInvalidArgumentErrorf("missing PDB stream")
 )
 
 type PortablePdb struct {
@@ -64,7 +63,7 @@ func ExtractPortablePdb(r io.ReaderAt, size int64) (PortablePdbList, error) {
 					return err
 				}
 
-				buf, err := packages.CreateHashedBufferFromReader(f, 32*1024*1024)
+				buf, err := packages.CreateHashedBufferFromReader(f)
 
 				f.Close()
 
@@ -75,7 +74,7 @@ func ExtractPortablePdb(r io.ReaderAt, size int64) (PortablePdbList, error) {
 				id, err := ParseDebugHeaderID(buf)
 				if err != nil {
 					buf.Close()
-					return fmt.Errorf("Invalid PDB file: %v", err)
+					return fmt.Errorf("Invalid PDB file: %w", err)
 				}
 
 				if _, err := buf.Seek(0, io.SeekStart); err != nil {

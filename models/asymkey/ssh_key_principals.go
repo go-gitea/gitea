@@ -1,11 +1,9 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package asymkey
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -13,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // __________       .__              .__             .__
@@ -26,15 +25,14 @@ import (
 
 // AddPrincipalKey adds new principal to database and authorized_principals file.
 func AddPrincipalKey(ownerID int64, content string, authSourceID int64) (*PublicKey, error) {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}
 	defer committer.Close()
-	sess := db.GetEngine(ctx)
 
 	// Principals cannot be duplicated.
-	has, err := sess.
+	has, err := db.GetEngine(ctx).
 		Where("content = ? AND type = ?", content, KeyTypePrincipal).
 		Get(new(PublicKey))
 	if err != nil {
@@ -51,8 +49,8 @@ func AddPrincipalKey(ownerID int64, content string, authSourceID int64) (*Public
 		Type:          KeyTypePrincipal,
 		LoginSourceID: authSourceID,
 	}
-	if err = addPrincipalKey(sess, key); err != nil {
-		return nil, fmt.Errorf("addKey: %v", err)
+	if err = db.Insert(ctx, key); err != nil {
+		return nil, fmt.Errorf("addKey: %w", err)
 	}
 
 	if err = committer.Commit(); err != nil {
@@ -61,16 +59,7 @@ func AddPrincipalKey(ownerID int64, content string, authSourceID int64) (*Public
 
 	committer.Close()
 
-	return key, RewriteAllPrincipalKeys()
-}
-
-func addPrincipalKey(e db.Engine, key *PublicKey) (err error) {
-	// Save Key representing a principal.
-	if _, err = e.Insert(key); err != nil {
-		return err
-	}
-
-	return nil
+	return key, RewriteAllPrincipalKeys(db.DefaultContext)
 }
 
 // CheckPrincipalKeyString strips spaces and returns an error if the given principal contains newlines
@@ -81,7 +70,7 @@ func CheckPrincipalKeyString(user *user_model.User, content string) (_ string, e
 
 	content = strings.TrimSpace(content)
 	if strings.ContainsAny(content, "\r\n") {
-		return "", errors.New("only a single line with a single principal please")
+		return "", util.NewInvalidArgumentErrorf("only a single line with a single principal please")
 	}
 
 	// check all the allowed principals, email, username or anything

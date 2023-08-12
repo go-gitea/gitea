@@ -1,20 +1,20 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package db
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 	"strings"
 	"unicode/utf8"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 var (
 	// ErrNameEmpty name is empty error
-	ErrNameEmpty = errors.New("Name is empty")
+	ErrNameEmpty = util.SilentWrap{Message: "name is empty", Err: util.ErrInvalidArgument}
 
 	// AlphaDashDotPattern characters prohibited in a user name (anything except A-Za-z0-9_.-)
 	AlphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
@@ -35,6 +35,11 @@ func (err ErrNameReserved) Error() string {
 	return fmt.Sprintf("name is reserved [name: %s]", err.Name)
 }
 
+// Unwrap unwraps this as a ErrInvalid err
+func (err ErrNameReserved) Unwrap() error {
+	return util.ErrInvalidArgument
+}
+
 // ErrNamePatternNotAllowed represents a "pattern not allowed" error.
 type ErrNamePatternNotAllowed struct {
 	Pattern string
@@ -50,6 +55,11 @@ func (err ErrNamePatternNotAllowed) Error() string {
 	return fmt.Sprintf("name pattern is not allowed [pattern: %s]", err.Pattern)
 }
 
+// Unwrap unwraps this as a ErrInvalid err
+func (err ErrNamePatternNotAllowed) Unwrap() error {
+	return util.ErrInvalidArgument
+}
+
 // ErrNameCharsNotAllowed represents a "character not allowed in name" error.
 type ErrNameCharsNotAllowed struct {
 	Name string
@@ -62,7 +72,12 @@ func IsErrNameCharsNotAllowed(err error) bool {
 }
 
 func (err ErrNameCharsNotAllowed) Error() string {
-	return fmt.Sprintf("User name is invalid [%s]: must be valid alpha or numeric or dash(-_) or dot characters", err.Name)
+	return fmt.Sprintf("name is invalid [%s]: must be valid alpha or numeric or dash(-_) or dot characters", err.Name)
+}
+
+// Unwrap unwraps this as a ErrInvalid err
+func (err ErrNameCharsNotAllowed) Unwrap() error {
+	return util.ErrInvalidArgument
 }
 
 // IsUsableName checks if name is reserved or pattern of name is not allowed

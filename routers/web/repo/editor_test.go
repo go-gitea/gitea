@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -42,7 +41,7 @@ func TestCleanUploadName(t *testing.T) {
 
 func TestGetUniquePatchBranchName(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1")
+	ctx, _ := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)
 	test.LoadRepoCommit(t, ctx)
@@ -57,7 +56,7 @@ func TestGetUniquePatchBranchName(t *testing.T) {
 
 func TestGetClosestParentWithFiles(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1")
+	ctx, _ := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)
 	test.LoadRepoCommit(t, ctx)
@@ -70,9 +69,7 @@ func TestGetClosestParentWithFiles(t *testing.T) {
 	gitRepo, _ := git.OpenRepository(git.DefaultContext, repo.RepoPath())
 	defer gitRepo.Close()
 	commit, _ := gitRepo.GetBranchCommit(branch)
-	expectedTreePath := ""
-
-	expectedTreePath = "" // Should return the root dir, empty string, since there are no subdirs in this repo
+	var expectedTreePath string // Should return the root dir, empty string, since there are no subdirs in this repo
 	for _, deletedFile := range []string{
 		"dir1/dir2/dir3/file.txt",
 		"file.txt",

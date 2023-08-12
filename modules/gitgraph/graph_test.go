@@ -1,6 +1,5 @@
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package gitgraph
 
@@ -53,7 +52,7 @@ func BenchmarkParseGlyphs(b *testing.B) {
 	parser := &Parser{}
 	parser.Reset()
 	tgBytes := []byte(testglyphs)
-	tg := tgBytes
+	var tg []byte
 	for i := 0; i < b.N; i++ {
 		parser.Reset()
 		tg = tgBytes

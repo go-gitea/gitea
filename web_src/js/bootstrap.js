@@ -20,6 +20,12 @@ export function showGlobalErrorMessage(msg) {
  * @param {ErrorEvent} e
  */
 function processWindowErrorEvent(e) {
+  if (!e.error && e.lineno === 0 && e.colno === 0 && e.filename === '' && window.navigator.userAgent.includes('FxiOS/')) {
+    // At the moment, Firefox (iOS) (10x) has an engine bug. See https://github.com/go-gitea/gitea/issues/20240
+    // If a script inserts a newly created (and content changed) element into DOM, there will be a nonsense error event reporting: Script error: line 0, col 0.
+    return; // ignore such nonsense error event
+  }
+
   showGlobalErrorMessage(`JavaScript error: ${e.message} (${e.filename} @ ${e.lineno}:${e.colno}). Open browser console to see more details.`);
 }
 
@@ -27,7 +33,6 @@ function initGlobalErrorHandler() {
   if (!window.config) {
     showGlobalErrorMessage(`Gitea JavaScript code couldn't run correctly, please check your custom templates`);
   }
-
   // we added an event handler for window error at the very beginning of <script> of page head
   // the handler calls `_globalHandlerErrors.push` (array method) to record all errors occur before this init
   // then in this init, we can collect all error events and show them

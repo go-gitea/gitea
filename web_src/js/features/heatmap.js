@@ -1,7 +1,8 @@
-import Vue from 'vue';
+import {createApp} from 'vue';
 import ActivityHeatmap from '../components/ActivityHeatmap.vue';
+import {translateMonth, translateDay} from '../utils.js';
 
-export default function initHeatmap() {
+export function initHeatmap() {
   const el = document.getElementById('user-heatmap');
   if (!el) return;
 
@@ -17,11 +18,20 @@ export default function initHeatmap() {
       return {date: new Date(v), count: heatmap[v]};
     });
 
-    const View = Vue.extend({
-      render: (createElement) => createElement(ActivityHeatmap, {props: {values}}),
-    });
+    // last heatmap tooltip localization attempt https://github.com/go-gitea/gitea/pull/24131/commits/a83761cbbae3c2e3b4bced71e680f44432073ac8
+    const locale = {
+      months: new Array(12).fill().map((_, idx) => translateMonth(idx)),
+      days: new Array(7).fill().map((_, idx) => translateDay(idx)),
+      contributions: 'contributions',
+      contributions_in_the_last_12_months: el.getAttribute('data-locale-total-contributions'),
+      no_contributions: el.getAttribute('data-locale-no-contributions'),
+      more: el.getAttribute('data-locale-more'),
+      less: el.getAttribute('data-locale-less'),
+    };
 
-    new View().$mount(el);
+    const View = createApp(ActivityHeatmap, {values, locale});
+
+    View.mount(el);
   } catch (err) {
     console.error('Heatmap failed to load', err);
     el.textContent = 'Heatmap failed to load';

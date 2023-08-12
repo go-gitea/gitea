@@ -1,20 +1,21 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package ldap
 
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
+	auth_module "code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
+	source_service "code.gitea.io/gitea/services/auth/source"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
@@ -22,7 +23,6 @@ import (
 func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 	log.Trace("Doing: SyncExternalUsers[%s]", source.authSource.Name)
 
-	var existingUsers []int
 	isAttributeSSHPublicKeySet := len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
 	var sshKeysNeedUpdate bool
 
@@ -39,9 +39,14 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 	default:
 	}
 
-	sort.Slice(users, func(i, j int) bool {
-		return users[i].LowerName < users[j].LowerName
-	})
+	usernameUsers := make(map[string]*user_model.User, len(users))
+	mailUsers := make(map[string]*user_model.User, len(users))
+	keepActiveUsers := make(map[int64]struct{})
+
+	for _, u := range users {
+		usernameUsers[u.LowerName] = u
+		mailUsers[strings.ToLower(u.Email)] = u
+	}
 
 	sr, err := source.SearchEntries()
 	if err != nil {
@@ -57,13 +62,13 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 		log.Warn("LDAP search found no entries but did not report an error. All users will be deactivated as per settings")
 	}
 
-	sort.Slice(sr, func(i, j int) bool {
-		return sr[i].LowerName < sr[j].LowerName
-	})
-
-	userPos := 0
 	orgCache := make(map[string]*organization.Organization)
 	teamCache := make(map[string]*organization.Team)
+
+	groupTeamMapping, err := auth_module.UnmarshalGroupTeamMapping(source.GroupTeamMap)
+	if err != nil {
+		return err
+	}
 
 	for _, su := range sr {
 		select {
@@ -79,21 +84,27 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			return db.ErrCancelledf("During update of %s before completed update of users", source.authSource.Name)
 		default:
 		}
-		if len(su.Username) == 0 {
+		if len(su.Username) == 0 && len(su.Mail) == 0 {
+			continue
+		}
+
+		var usr *user_model.User
+		if len(su.Username) > 0 {
+			usr = usernameUsers[su.LowerName]
+		}
+		if usr == nil && len(su.Mail) > 0 {
+			usr = mailUsers[strings.ToLower(su.Mail)]
+		}
+
+		if usr != nil {
+			keepActiveUsers[usr.ID] = struct{}{}
+		} else if len(su.Username) == 0 {
+			// we cannot create the user if su.Username is empty
 			continue
 		}
 
 		if len(su.Mail) == 0 {
-			su.Mail = fmt.Sprintf("%s@localhost", su.Username)
-		}
-
-		var usr *user_model.User
-		for userPos < len(users) && users[userPos].LowerName < su.LowerName {
-			userPos++
-		}
-		if userPos < len(users) && users[userPos].LowerName == su.LowerName {
-			usr = users[userPos]
-			existingUsers = append(existingUsers, userPos)
+			su.Mail = fmt.Sprintf("%s@localhost.local", su.Username)
 		}
 
 		fullName := composeFullName(su.Name, su.Surname, su.Username)
@@ -102,20 +113,21 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			log.Trace("SyncExternalUsers[%s]: Creating user %s", source.authSource.Name, su.Username)
 
 			usr = &user_model.User{
-				LowerName:    su.LowerName,
-				Name:         su.Username,
-				FullName:     fullName,
-				LoginType:    source.authSource.Type,
-				LoginSource:  source.authSource.ID,
-				LoginName:    su.Username,
-				Email:        su.Mail,
-				IsAdmin:      su.IsAdmin,
-				IsRestricted: su.IsRestricted,
-				IsActive:     true,
+				LowerName:   su.LowerName,
+				Name:        su.Username,
+				FullName:    fullName,
+				LoginType:   source.authSource.Type,
+				LoginSource: source.authSource.ID,
+				LoginName:   su.Username,
+				Email:       su.Mail,
+				IsAdmin:     su.IsAdmin,
+			}
+			overwriteDefault := &user_model.CreateUserOverwriteOptions{
+				IsRestricted: util.OptionalBoolOf(su.IsRestricted),
+				IsActive:     util.OptionalBoolTrue,
 			}
 
-			err = user_model.CreateUser(usr)
-
+			err = user_model.CreateUser(usr, overwriteDefault)
 			if err != nil {
 				log.Error("SyncExternalUsers[%s]: Error creating user %s: %v", source.authSource.Name, su.Username, err)
 			}
@@ -158,7 +170,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				}
 				usr.IsActive = true
 
-				err = user_model.UpdateUser(usr, emailChanged, "full_name", "email", "is_admin", "is_restricted", "is_active")
+				err = user_model.UpdateUser(ctx, usr, emailChanged, "full_name", "email", "is_admin", "is_restricted", "is_active")
 				if err != nil {
 					log.Error("SyncExternalUsers[%s]: Error updating user %s: %v", source.authSource.Name, usr.Name, err)
 				}
@@ -172,7 +184,9 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 		}
 		// Synchronize LDAP groups with organization and team memberships
 		if source.GroupsEnabled && (source.GroupTeamMap != "" || source.GroupTeamMapRemoval) {
-			source.SyncLdapGroupsToTeams(usr, su.LdapTeamAdd, su.LdapTeamRemove, orgCache, teamCache)
+			if err := source_service.SyncGroupsToTeamsCached(ctx, usr, su.Groups, groupTeamMapping, source.GroupTeamMapRemoval, orgCache, teamCache); err != nil {
+				log.Error("SyncGroupsToTeamsCached: %v", err)
+			}
 		}
 	}
 
@@ -193,19 +207,17 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 	// Deactivate users not present in LDAP
 	if updateExisting {
-		existPos := 0
-		for i, usr := range users {
-			for existPos < len(existingUsers) && i > existingUsers[existPos] {
-				existPos++
+		for _, usr := range users {
+			if _, ok := keepActiveUsers[usr.ID]; ok {
+				continue
 			}
-			if usr.IsActive && (existPos >= len(existingUsers) || i < existingUsers[existPos]) {
-				log.Trace("SyncExternalUsers[%s]: Deactivating user %s", source.authSource.Name, usr.Name)
 
-				usr.IsActive = false
-				err = user_model.UpdateUserCols(ctx, usr, "is_active")
-				if err != nil {
-					log.Error("SyncExternalUsers[%s]: Error deactivating user %s: %v", source.authSource.Name, usr.Name, err)
-				}
+			log.Trace("SyncExternalUsers[%s]: Deactivating user %s", source.authSource.Name, usr.Name)
+
+			usr.IsActive = false
+			err = user_model.UpdateUserCols(ctx, usr, "is_active")
+			if err != nil {
+				log.Error("SyncExternalUsers[%s]: Error deactivating user %s: %v", source.authSource.Name, usr.Name, err)
 			}
 		}
 	}

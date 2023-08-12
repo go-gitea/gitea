@@ -1,0 +1,124 @@
+.board {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  margin: 0 0.5em;
+}
+
+.project-column {
+  background-color: var(--color-project-board-bg) !important;
+  border: 1px solid var(--color-secondary) !important;
+  margin: 0 0.5rem !important;
+  padding: 0.5rem !important;
+  width: 320px;
+  height: calc(100vh - 450px);
+  min-height: 60vh;
+  overflow-y: scroll;
+  flex: 0 0 auto;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+}
+
+.project-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.project-column-header.dark-label {
+  color: var(--color-project-board-dark-label) !important;
+}
+
+.project-column-header.dark-label .project-column-title {
+  color: var(--color-project-board-dark-label) !important;
+}
+
+.project-column-header.light-label {
+  color: var(--color-project-board-light-label) !important;
+}
+
+.project-column-header.light-label .project-column-title {
+  color: var(--color-project-board-light-label) !important;
+}
+
+.project-column-title {
+  background: none !important;
+  line-height: 1.25 !important;
+}
+
+.project-column > .cards {
+  flex: 1;
+  display: flex;
+  align-content: baseline;
+  margin: 0 !important;
+  padding: 0 !important;
+  flex-wrap: nowrap !important;
+  flex-direction: column;
+  overflow-x: auto;
+  gap: .25rem;
+}
+
+.project-column > .divider {
+  margin: 5px 0;
+}
+
+.project-column:first-child {
+  margin-left: auto !important;
+}
+
+.project-column:last-child {
+  margin-right: auto !important;
+}
+
+.card-attachment-images {
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-align: center;
+}
+
+.card-attachment-images img {
+  display: inline-block;
+  max-height: 50px;
+  border-radius: var(--border-radius);
+  margin-right: 2px;
+}
+
+.card-attachment-images img:only-child {
+  max-height: 90px;
+  margin: auto;
+}
+
+.card-ghost {
+  border-style: dashed !important;
+  background: none !important;
+}
+
+.card-ghost * {
+  opacity: 0;
+}
+
+.color-field .minicolors.minicolors-theme-default {
+  display: block;
+}
+
+.color-field .minicolors.minicolors-theme-default .minicolors-input {
+  height: 38px;
+  padding-left: 2rem;
+}
+
+.color-field .minicolors.minicolors-theme-default .minicolors-swatch {
+  top: 10px;
+}
+
+.edit-project-column-modal .color.picker.column,
+.new-project-column-modal .color.picker.column {
+  display: flex;
+}
+
+.edit-project-column-modal .color.picker.column .minicolors,
+.new-project-column-modal .color.picker.column .minicolors {
+  flex: 1;
+}

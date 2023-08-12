@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -8,6 +7,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -24,11 +24,9 @@ const (
 
 // NewDiffPatch render create patch page
 func NewDiffPatch(ctx *context.Context) {
-	ctx.Data["RequireHighlightJS"] = true
-
 	canCommit := renderCommitRights(ctx)
 
-	ctx.Data["TreePath"] = ""
+	ctx.Data["PageIsPatch"] = true
 
 	ctx.Data["commit_summary"] = ""
 	ctx.Data["commit_message"] = ""
@@ -54,8 +52,7 @@ func NewDiffPatchPost(ctx *context.Context) {
 	if form.CommitChoice == frmCommitChoiceNewBranch {
 		branchName = form.NewBranchName
 	}
-	ctx.Data["RequireHighlightJS"] = true
-	ctx.Data["TreePath"] = ""
+	ctx.Data["PageIsPatch"] = true
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
 	ctx.Data["FileContent"] = form.Content
 	ctx.Data["commit_summary"] = form.CommitSummary
@@ -90,16 +87,17 @@ func NewDiffPatchPost(ctx *context.Context) {
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if _, err := files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.Doer, &files.ApplyDiffPatchOptions{
+	fileResponse, err := files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.Doer, &files.ApplyDiffPatchOptions{
 		LastCommitID: form.LastCommit,
 		OldBranch:    ctx.Repo.BranchName,
 		NewBranch:    branchName,
 		Message:      message,
 		Content:      strings.ReplaceAll(form.Content, "\r", ""),
-	}); err != nil {
-		if models.IsErrBranchAlreadyExists(err) {
+	})
+	if err != nil {
+		if git_model.IsErrBranchAlreadyExists(err) {
 			// User has specified a branch that already exists
-			branchErr := err.(models.ErrBranchAlreadyExists)
+			branchErr := err.(git_model.ErrBranchAlreadyExists)
 			ctx.Data["Err_NewBranchName"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchErr.BranchName), tplEditFile, &form)
 			return
@@ -112,9 +110,9 @@ func NewDiffPatchPost(ctx *context.Context) {
 		}
 	}
 
-	if form.CommitChoice == frmCommitChoiceNewBranch && ctx.Repo.Repository.UnitEnabled(unit.TypePullRequests) {
+	if form.CommitChoice == frmCommitChoiceNewBranch && ctx.Repo.Repository.UnitEnabled(ctx, unit.TypePullRequests) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + util.PathEscapeSegments(ctx.Repo.BranchName) + "..." + util.PathEscapeSegments(form.NewBranchName))
 	} else {
-		ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(form.TreePath))
+		ctx.Redirect(ctx.Repo.RepoLink + "/commit/" + fileResponse.Commit.SHA)
 	}
 }

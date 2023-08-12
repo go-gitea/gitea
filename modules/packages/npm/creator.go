@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package npm
 
@@ -9,7 +8,6 @@ import (
 	"crypto/sha1"
 	"crypto/sha512"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"io"
 	"regexp"
@@ -17,6 +15,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 
 	"github.com/hashicorp/go-version"
@@ -24,15 +23,15 @@ import (
 
 var (
 	// ErrInvalidPackage indicates an invalid package
-	ErrInvalidPackage = errors.New("The package is invalid")
+	ErrInvalidPackage = util.NewInvalidArgumentErrorf("package is invalid")
 	// ErrInvalidPackageName indicates an invalid name
-	ErrInvalidPackageName = errors.New("The package name is invalid")
+	ErrInvalidPackageName = util.NewInvalidArgumentErrorf("package name is invalid")
 	// ErrInvalidPackageVersion indicates an invalid version
-	ErrInvalidPackageVersion = errors.New("The package version is invalid")
+	ErrInvalidPackageVersion = util.NewInvalidArgumentErrorf("package version is invalid")
 	// ErrInvalidAttachment indicates a invalid attachment
-	ErrInvalidAttachment = errors.New("The package attachment is invalid")
+	ErrInvalidAttachment = util.NewInvalidArgumentErrorf("package attachment is invalid")
 	// ErrInvalidIntegrity indicates an integrity validation error
-	ErrInvalidIntegrity = errors.New("Failed to validate integrity")
+	ErrInvalidIntegrity = util.NewInvalidArgumentErrorf("failed to validate integrity")
 )
 
 var nameMatch = regexp.MustCompile(`\A((@[^\s\/~'!\(\)\*]+?)[\/])?([^_.][^\s\/~'!\(\)\*]+)\z`)
@@ -66,7 +65,8 @@ type PackageMetadata struct {
 	License        string                             `json:"license,omitempty"`
 }
 
-// PackageMetadataVersion https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md#version
+// PackageMetadataVersion documentation: https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md#version
+// PackageMetadataVersion response: https://github.com/npm/registry/blob/master/docs/responses/package-metadata.md#abbreviated-version-object
 type PackageMetadataVersion struct {
 	ID                   string              `json:"_id"`
 	Name                 string              `json:"name"`
@@ -80,6 +80,7 @@ type PackageMetadataVersion struct {
 	Dependencies         map[string]string   `json:"dependencies,omitempty"`
 	DevDependencies      map[string]string   `json:"devDependencies,omitempty"`
 	PeerDependencies     map[string]string   `json:"peerDependencies,omitempty"`
+	Bin                  map[string]string   `json:"bin,omitempty"`
 	OptionalDependencies map[string]string   `json:"optionalDependencies,omitempty"`
 	Readme               string              `json:"readme,omitempty"`
 	Dist                 PackageDistribution `json:"dist"`
@@ -94,6 +95,34 @@ type PackageDistribution struct {
 	FileCount    int    `json:"fileCount,omitempty"`
 	UnpackedSize int    `json:"unpackedSize,omitempty"`
 	NpmSignature string `json:"npm-signature,omitempty"`
+}
+
+type PackageSearch struct {
+	Objects []*PackageSearchObject `json:"objects"`
+	Total   int64                  `json:"total"`
+}
+
+type PackageSearchObject struct {
+	Package *PackageSearchPackage `json:"package"`
+}
+
+type PackageSearchPackage struct {
+	Scope       string                     `json:"scope"`
+	Name        string                     `json:"name"`
+	Version     string                     `json:"version"`
+	Date        time.Time                  `json:"date"`
+	Description string                     `json:"description"`
+	Author      User                       `json:"author"`
+	Publisher   User                       `json:"publisher"`
+	Maintainers []User                     `json:"maintainers"`
+	Keywords    []string                   `json:"keywords,omitempty"`
+	Links       *PackageSearchPackageLinks `json:"links"`
+}
+
+type PackageSearchPackageLinks struct {
+	Registry   string `json:"npm"`
+	Homepage   string `json:"homepage,omitempty"`
+	Repository string `json:"repository,omitempty"`
 }
 
 // User https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md#package
@@ -192,7 +221,9 @@ func ParsePackage(r io.Reader) (*Package, error) {
 				DevelopmentDependencies: meta.DevDependencies,
 				PeerDependencies:        meta.PeerDependencies,
 				OptionalDependencies:    meta.OptionalDependencies,
+				Bin:                     meta.Bin,
 				Readme:                  meta.Readme,
+				Repository:              meta.Repository,
 			},
 		}
 

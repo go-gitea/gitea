@@ -1,10 +1,8 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 //go:build gogit
-// +build gogit
 
 package git
 
@@ -32,7 +30,8 @@ type Repository struct {
 	gogitStorage *filesystem.Storage
 	gpgSettings  *GPGSettings
 
-	Ctx context.Context
+	Ctx             context.Context
+	LastCommitCache *LastCommitCache
 }
 
 // openRepositoryWithDefaultContext opens the repository at the given path with DefaultContext.
@@ -80,6 +79,8 @@ func (repo *Repository) Close() (err error) {
 	if err := repo.gogitStorage.Close(); err != nil {
 		gitealog.Error("Error closing storage: %v", err)
 	}
+	repo.LastCommitCache = nil
+	repo.tagCache = nil
 	return
 }
 

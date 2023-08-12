@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package files
 
@@ -18,7 +17,7 @@ import (
 
 func TestGetDiffPreview(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1")
+	ctx, _ := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)
 	test.LoadRepoCommit(t, ctx)
@@ -37,6 +36,7 @@ func TestGetDiffPreview(t *testing.T) {
 			{
 				Name:        "README.md",
 				OldName:     "README.md",
+				NameHash:    "8ec9a00bfd09b3190ac6b22251dbb1aa95a0579d",
 				Index:       1,
 				Addition:    2,
 				Deletion:    1,
@@ -123,7 +123,7 @@ func TestGetDiffPreview(t *testing.T) {
 		assert.NoError(t, err)
 		bs, err := json.Marshal(diff)
 		assert.NoError(t, err)
-		assert.EqualValues(t, expectedBs, bs)
+		assert.EqualValues(t, string(expectedBs), string(bs))
 	})
 
 	t.Run("empty branch, same results", func(t *testing.T) {
@@ -139,7 +139,7 @@ func TestGetDiffPreview(t *testing.T) {
 
 func TestGetDiffPreviewErrors(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1")
+	ctx, _ := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)
 	test.LoadRepoCommit(t, ctx)

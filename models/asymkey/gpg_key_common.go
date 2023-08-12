@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package asymkey
 
@@ -112,7 +111,7 @@ func populateHash(hashFunc crypto.Hash, msg []byte) (hash.Hash, error) {
 func readArmoredSign(r io.Reader) (body io.Reader, err error) {
 	block, err := armor.Decode(r)
 	if err != nil {
-		return
+		return nil, err
 	}
 	if block.Type != openpgp.SignatureType {
 		return nil, fmt.Errorf("expected '" + openpgp.SignatureType + "', got: " + block.Type)

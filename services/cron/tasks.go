@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cron
 
@@ -8,10 +7,11 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 	"sync"
 
-	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
+	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -94,7 +94,7 @@ func (t *Task) RunWithUser(doer *user_model.User, config Config) {
 			doerName = doer.Name
 		}
 
-		ctx, _, finished := pm.AddContext(baseCtx, config.FormatMessage("en-US", t.Name, "process", doerName))
+		ctx, _, finished := pm.AddContext(baseCtx, config.FormatMessage(translation.NewLocale("en-US"), t.Name, "process", doerName))
 		defer finished()
 
 		if err := t.fun(ctx, doer, config); err != nil {
@@ -114,7 +114,7 @@ func (t *Task) RunWithUser(doer *user_model.User, config Config) {
 			t.LastDoer = doerName
 			t.lock.Unlock()
 
-			if err := admin_model.CreateNotice(ctx, admin_model.NoticeTask, config.FormatMessage("en-US", t.Name, "cancelled", doerName, message)); err != nil {
+			if err := system_model.CreateNotice(ctx, system_model.NoticeTask, config.FormatMessage(translation.NewLocale("en-US"), t.Name, "cancelled", doerName, message)); err != nil {
 				log.Error("CreateNotice: %v", err)
 			}
 			return
@@ -127,7 +127,7 @@ func (t *Task) RunWithUser(doer *user_model.User, config Config) {
 		t.lock.Unlock()
 
 		if config.DoNoticeOnSuccess() {
-			if err := admin_model.CreateNotice(ctx, admin_model.NoticeTask, config.FormatMessage("en-US", t.Name, "finished", doerName)); err != nil {
+			if err := system_model.CreateNotice(ctx, system_model.NoticeTask, config.FormatMessage(translation.NewLocale("en-US"), t.Name, "finished", doerName)); err != nil {
 				log.Error("CreateNotice: %v", err)
 			}
 		}
@@ -148,7 +148,7 @@ func RegisterTask(name string, config Config, fun func(context.Context, *user_mo
 	log.Debug("Registering task: %s", name)
 
 	i18nKey := "admin.dashboard." + name
-	if _, ok := translation.TryTr("en-US", i18nKey); !ok {
+	if value := translation.NewLocale("en-US").Tr(i18nKey); value == i18nKey {
 		return fmt.Errorf("translation is missing for task %q, please add translation for %q", name, i18nKey)
 	}
 
@@ -177,8 +177,7 @@ func RegisterTask(name string, config Config, fun func(context.Context, *user_mo
 
 	if config.IsEnabled() {
 		// We cannot use the entry return as there is no way to lock it
-		if _, err = c.AddJob(name, config.GetSchedule(), task); err != nil {
-			log.Error("Unable to register cron task with name: %s Error: %v", name, err)
+		if err := addTaskToScheduler(task); err != nil {
 			return err
 		}
 	}
@@ -199,4 +198,22 @@ func RegisterTaskFatal(name string, config Config, fun func(context.Context, *us
 	if err := RegisterTask(name, config, fun); err != nil {
 		log.Fatal("Unable to register cron task %s Error: %v", name, err)
 	}
+}
+
+func addTaskToScheduler(task *Task) error {
+	tags := []string{task.Name, task.config.GetSchedule()} // name and schedule can't be get from job, so we add them as tag
+	if scheduleHasSeconds(task.config.GetSchedule()) {
+		scheduler = scheduler.CronWithSeconds(task.config.GetSchedule())
+	} else {
+		scheduler = scheduler.Cron(task.config.GetSchedule())
+	}
+	if _, err := scheduler.Tag(tags...).Do(task.Run); err != nil {
+		log.Error("Unable to register cron task with name: %s Error: %v", task.Name, err)
+		return err
+	}
+	return nil
+}
+
+func scheduleHasSeconds(schedule string) bool {
+	return len(strings.Fields(schedule)) >= 6
 }

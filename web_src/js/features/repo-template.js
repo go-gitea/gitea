@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
+import {hideElem, showElem} from '../utils/dom.js';
 
 const {appSubUrl} = window.config;
 
@@ -9,11 +10,11 @@ export function initRepoTemplateSearch() {
     const $templateUnits = $('#template_units');
     const $nonTemplate = $('#non_template');
     if ($repoTemplate.val() !== '' && $repoTemplate.val() !== '0') {
-      $templateUnits.show();
-      $nonTemplate.hide();
+      showElem($templateUnits);
+      hideElem($nonTemplate);
     } else {
-      $templateUnits.hide();
-      $nonTemplate.show();
+      hideElem($templateUnits);
+      showElem($nonTemplate);
     }
   };
   $repoTemplate.on('change', checkTemplate);
@@ -33,8 +34,8 @@ export function initRepoTemplateSearch() {
             // Parse the response from the api to work with our dropdown
             $.each(response.data, (_r, repo) => {
               filteredResponse.results.push({
-                name: htmlEscape(repo.full_name),
-                value: repo.id
+                name: htmlEscape(repo.repository.full_name),
+                value: repo.repository.id
               });
             });
             return filteredResponse;

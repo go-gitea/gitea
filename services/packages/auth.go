@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package packages
 
@@ -11,9 +10,10 @@ import (
 	"time"
 
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type packageClaims struct {
@@ -42,12 +42,18 @@ func CreateAuthorizationToken(u *user_model.User) (string, error) {
 }
 
 func ParseAuthorizationToken(req *http.Request) (int64, error) {
-	parts := strings.SplitN(req.Header.Get("Authorization"), " ", 2)
-	if len(parts) != 2 {
-		return 0, fmt.Errorf("no token")
+	h := req.Header.Get("Authorization")
+	if h == "" {
+		return 0, nil
 	}
 
-	token, err := jwt.ParseWithClaims(parts[1], &packageClaims{}, func(t *jwt.Token) (interface{}, error) {
+	parts := strings.SplitN(h, " ", 2)
+	if len(parts) != 2 {
+		log.Error("split token failed: %s", h)
+		return 0, fmt.Errorf("split token failed")
+	}
+
+	token, err := jwt.ParseWithClaims(parts[1], &packageClaims{}, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}

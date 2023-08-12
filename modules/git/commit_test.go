@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -15,9 +14,28 @@ import (
 func TestCommitsCount(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 
-	commitsCount, err := CommitsCount(DefaultContext, bareRepo1Path, "8006ff9adbf0cb94da7dad9e537e53817f9fa5c0")
+	commitsCount, err := CommitsCount(DefaultContext,
+		CommitsCountOptions{
+			RepoPath: bareRepo1Path,
+			Revision: []string{"8006ff9adbf0cb94da7dad9e537e53817f9fa5c0"},
+		})
+
 	assert.NoError(t, err)
 	assert.Equal(t, int64(3), commitsCount)
+}
+
+func TestCommitsCountWithoutBase(t *testing.T) {
+	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
+
+	commitsCount, err := CommitsCount(DefaultContext,
+		CommitsCountOptions{
+			RepoPath: bareRepo1Path,
+			Not:      "master",
+			Revision: []string{"branch1"},
+		})
+
+	assert.NoError(t, err)
+	assert.Equal(t, int64(2), commitsCount)
 }
 
 func TestGetFullCommitID(t *testing.T) {
@@ -67,6 +85,7 @@ empty commit`
 	gitRepo, err := openRepositoryWithDefaultContext(filepath.Join(testReposDir, "repo1_bare"))
 	assert.NoError(t, err)
 	assert.NotNil(t, gitRepo)
+	defer gitRepo.Close()
 
 	commitFromReader, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString))
 	assert.NoError(t, err)
@@ -111,6 +130,7 @@ func TestHasPreviousCommit(t *testing.T) {
 
 	repo, err := openRepositoryWithDefaultContext(bareRepo1Path)
 	assert.NoError(t, err)
+	defer repo.Close()
 
 	commit, err := repo.GetCommit("8006ff9adbf0cb94da7dad9e537e53817f9fa5c0")
 	assert.NoError(t, err)

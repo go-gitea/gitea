@@ -1,0 +1,25 @@
+{{if .IsPull}}
+	{{if and .PullRequest .PullRequest.HasMerged}}
+		{{svg "octicon-git-merge" 16 "text purple"}}
+	{{else if and .GetPullRequest .GetPullRequest.HasMerged}}
+		{{svg "octicon-git-merge" 16 "text purple"}}
+	{{else}}
+		{{if .IsClosed}}
+			{{svg "octicon-git-pull-request" 16 "text red"}}
+		{{else}}
+			{{if and .PullRequest .PullRequest.IsWorkInProgress}}
+				{{svg "octicon-git-pull-request-draft" 16 "text grey"}}
+			{{else if and .GetPullRequest .GetPullRequest.IsWorkInProgress}}
+				{{svg "octicon-git-pull-request-draft" 16 "text grey"}}
+			{{else}}
+				{{svg "octicon-git-pull-request" 16 "text green"}}
+			{{end}}
+		{{end}}
+	{{end}}
+{{else}}
+	{{if .IsClosed}}
+		{{svg "octicon-issue-closed" 16 "text red"}}
+	{{else}}
+		{{svg "octicon-issue-opened" 16 "text green"}}
+	{{end}}
+{{end}}

@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package cron
 
@@ -13,11 +12,12 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/sync"
+	"code.gitea.io/gitea/modules/translation"
 
-	"github.com/gogs/cron"
+	"github.com/go-co-op/gocron"
 )
 
-var c = cron.New()
+var scheduler = gocron.NewScheduler(time.Local)
 
 // Prevent duplicate running tasks.
 var taskStatusTable = sync.NewStatusTable()
@@ -30,6 +30,7 @@ func NewContext(original context.Context) {
 	_, _, finished := process.GetManager().AddTypedContext(graceful.GetManager().ShutdownContext(), "Service: Cron", process.SystemProcessType, true)
 	initBasicTasks()
 	initExtendedTasks()
+	initActionsTasks()
 
 	lock.Lock()
 	for _, task := range tasks {
@@ -38,11 +39,11 @@ func NewContext(original context.Context) {
 		}
 	}
 
-	c.Start()
+	scheduler.StartAsync()
 	started = true
 	lock.Unlock()
 	graceful.GetManager().RunAtShutdown(context.Background(), func() {
-		c.Stop()
+		scheduler.Stop()
 		lock.Lock()
 		started = false
 		lock.Unlock()
@@ -63,7 +64,7 @@ type TaskTableRow struct {
 	task        *Task
 }
 
-func (t *TaskTableRow) FormatLastMessage(locale string) string {
+func (t *TaskTableRow) FormatLastMessage(locale translation.Locale) string {
 	if t.Status == "finished" {
 		return t.task.GetConfig().FormatMessage(locale, t.Name, t.Status, t.LastDoer)
 	}
@@ -76,13 +77,20 @@ type TaskTable []*TaskTableRow
 
 // ListTasks returns all running cron tasks.
 func ListTasks() TaskTable {
-	entries := c.Entries()
-	eMap := map[string]*cron.Entry{}
-	for _, e := range entries {
-		eMap[e.Description] = e
+	jobs := scheduler.Jobs()
+	jobMap := map[string]*gocron.Job{}
+	for _, job := range jobs {
+		// the first tag is the task name
+		tags := job.Tags()
+		if len(tags) == 0 { // should never happen
+			continue
+		}
+		jobMap[job.Tags()[0]] = job
 	}
+
 	lock.Lock()
 	defer lock.Unlock()
+
 	tTable := make([]*TaskTableRow, 0, len(tasks))
 	for _, task := range tasks {
 		spec := "-"
@@ -90,10 +98,13 @@ func ListTasks() TaskTable {
 			next time.Time
 			prev time.Time
 		)
-		if e, ok := eMap[task.Name]; ok {
-			spec = e.Spec
-			next = e.Next
-			prev = e.Prev
+		if e, ok := jobMap[task.Name]; ok {
+			tags := e.Tags()
+			if len(tags) > 1 {
+				spec = tags[1] // the second tag is the task spec
+			}
+			next = e.NextRun()
+			prev = e.PreviousRun()
 		}
 		task.lock.Lock()
 		tTable = append(tTable, &TaskTableRow{

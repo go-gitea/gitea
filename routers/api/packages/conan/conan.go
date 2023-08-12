@@ -1,10 +1,10 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package conan
 
 import (
+	std_ctx "context"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	conan_model "code.gitea.io/gitea/models/packages/conan"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -33,23 +34,21 @@ const (
 	packageReferenceKey = "PackageReference"
 )
 
-type stringSet map[string]struct{}
-
 var (
-	recipeFileList = stringSet{
-		conanfileFile:       struct{}{},
-		"conanmanifest.txt": struct{}{},
-		"conan_sources.tgz": struct{}{},
-		"conan_export.tgz":  struct{}{},
-	}
-	packageFileList = stringSet{
-		conaninfoFile:       struct{}{},
-		"conanmanifest.txt": struct{}{},
-		"conan_package.tgz": struct{}{},
-	}
+	recipeFileList = container.SetOf(
+		conanfileFile,
+		"conanmanifest.txt",
+		"conan_sources.tgz",
+		"conan_export.tgz",
+	)
+	packageFileList = container.SetOf(
+		conaninfoFile,
+		"conanmanifest.txt",
+		"conan_package.tgz",
+	)
 )
 
-func jsonResponse(ctx *context.Context, status int, obj interface{}) {
+func jsonResponse(ctx *context.Context, status int, obj any) {
 	// https://github.com/conan-io/conan/issues/6613
 	ctx.Resp.Header().Set("Content-Type", "application/json")
 	ctx.Status(status)
@@ -58,7 +57,7 @@ func jsonResponse(ctx *context.Context, status int, obj interface{}) {
 	}
 }
 
-func apiError(ctx *context.Context, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj any) {
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		jsonResponse(ctx, status, map[string]string{
 			"message": message,
@@ -268,7 +267,7 @@ func PackageUploadURLs(ctx *context.Context) {
 	)
 }
 
-func serveUploadURLs(ctx *context.Context, fileFilter stringSet, uploadURL string) {
+func serveUploadURLs(ctx *context.Context, fileFilter container.Set[string], uploadURL string) {
 	defer ctx.Req.Body.Close()
 
 	var files map[string]int64
@@ -279,7 +278,7 @@ func serveUploadURLs(ctx *context.Context, fileFilter stringSet, uploadURL strin
 
 	urls := make(map[string]string)
 	for file := range files {
-		if _, ok := fileFilter[file]; ok {
+		if fileFilter.Contains(file) {
 			urls[file] = fmt.Sprintf("%s/%s", uploadURL, file)
 		}
 	}
@@ -301,12 +300,12 @@ func UploadPackageFile(ctx *context.Context) {
 	uploadFile(ctx, packageFileList, pref.AsKey())
 }
 
-func uploadFile(ctx *context.Context, fileFilter stringSet, fileKey string) {
+func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey string) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 	pref := ctx.Data[packageReferenceKey].(*conan_module.PackageReference)
 
 	filename := ctx.Params("filename")
-	if _, ok := fileFilter[filename]; !ok {
+	if !fileFilter.Contains(filename) {
 		apiError(ctx, http.StatusBadRequest, nil)
 		return
 	}
@@ -320,7 +319,7 @@ func uploadFile(ctx *context.Context, fileFilter stringSet, fileKey string) {
 		defer upload.Close()
 	}
 
-	buf, err := packages_module.CreateHashedBufferFromReader(upload, 32*1024*1024)
+	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -342,16 +341,16 @@ func uploadFile(ctx *context.Context, fileFilter stringSet, fileKey string) {
 			Name:        rref.Name,
 			Version:     rref.Version,
 		},
-		SemverCompatible: true,
-		Creator:          ctx.Doer,
+		Creator: ctx.Doer,
 	}
 	pfci := &packages_service.PackageFileCreationInfo{
 		PackageFileInfo: packages_service.PackageFileInfo{
 			Filename:     strings.ToLower(filename),
 			CompositeKey: fileKey,
 		},
-		Data:   buf,
-		IsLead: isConanfileFile,
+		Creator: ctx.Doer,
+		Data:    buf,
+		IsLead:  isConanfileFile,
 		Properties: map[string]string{
 			conan_module.PropertyRecipeUser:     rref.User,
 			conan_module.PropertyRecipeChannel:  rref.Channel,
@@ -418,41 +417,44 @@ func uploadFile(ctx *context.Context, fileFilter stringSet, fileKey string) {
 		pfci,
 	)
 	if err != nil {
-		if err == packages_model.ErrDuplicatePackageFile {
+		switch err {
+		case packages_model.ErrDuplicatePackageFile:
 			apiError(ctx, http.StatusBadRequest, err)
-			return
+		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			apiError(ctx, http.StatusForbidden, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
 		}
-		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
 	ctx.Status(http.StatusCreated)
 }
 
-// DownloadRecipeFile serves the conent of the requested recipe file
+// DownloadRecipeFile serves the content of the requested recipe file
 func DownloadRecipeFile(ctx *context.Context) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
 	downloadFile(ctx, recipeFileList, rref.AsKey())
 }
 
-// DownloadPackageFile serves the conent of the requested package file
+// DownloadPackageFile serves the content of the requested package file
 func DownloadPackageFile(ctx *context.Context) {
 	pref := ctx.Data[packageReferenceKey].(*conan_module.PackageReference)
 
 	downloadFile(ctx, packageFileList, pref.AsKey())
 }
 
-func downloadFile(ctx *context.Context, fileFilter stringSet, fileKey string) {
+func downloadFile(ctx *context.Context, fileFilter container.Set[string], fileKey string) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
 	filename := ctx.Params("filename")
-	if _, ok := fileFilter[filename]; !ok {
+	if !fileFilter.Contains(filename) {
 		apiError(ctx, http.StatusBadRequest, nil)
 		return
 	}
 
-	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
@@ -473,9 +475,8 @@ func downloadFile(ctx *context.Context, fileFilter stringSet, fileKey string) {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	defer s.Close()
 
-	ctx.ServeStream(s, pf.Name)
+	helper.ServePackageFile(ctx, s, u, pf)
 }
 
 // DeleteRecipeV1 deletes the requested recipe(s)
@@ -602,79 +603,67 @@ func DeletePackageV2(ctx *context.Context) {
 }
 
 func deleteRecipeOrPackage(apictx *context.Context, rref *conan_module.RecipeReference, ignoreRecipeRevision bool, pref *conan_module.PackageReference, ignorePackageRevision bool) error {
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
+	var pd *packages_model.PackageDescriptor
+	versionDeleted := false
 
-	pv, err := packages_model.GetVersionByNameAndVersion(ctx, apictx.Package.Owner.ID, packages_model.TypeConan, rref.Name, rref.Version)
-	if err != nil {
-		return err
-	}
-
-	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
-	if err != nil {
-		return err
-	}
-
-	filter := map[string]string{
-		conan_module.PropertyRecipeUser:    rref.User,
-		conan_module.PropertyRecipeChannel: rref.Channel,
-	}
-	if !ignoreRecipeRevision {
-		filter[conan_module.PropertyRecipeRevision] = rref.RevisionOrDefault()
-	}
-	if pref != nil {
-		filter[conan_module.PropertyPackageReference] = pref.Reference
-		if !ignorePackageRevision {
-			filter[conan_module.PropertyPackageRevision] = pref.RevisionOrDefault()
+	err := db.WithTx(apictx, func(ctx std_ctx.Context) error {
+		pv, err := packages_model.GetVersionByNameAndVersion(ctx, apictx.Package.Owner.ID, packages_model.TypeConan, rref.Name, rref.Version)
+		if err != nil {
+			return err
 		}
-	}
 
-	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
-		VersionID:  pv.ID,
-		Properties: filter,
+		pd, err = packages_model.GetPackageDescriptor(ctx, pv)
+		if err != nil {
+			return err
+		}
+
+		filter := map[string]string{
+			conan_module.PropertyRecipeUser:    rref.User,
+			conan_module.PropertyRecipeChannel: rref.Channel,
+		}
+		if !ignoreRecipeRevision {
+			filter[conan_module.PropertyRecipeRevision] = rref.RevisionOrDefault()
+		}
+		if pref != nil {
+			filter[conan_module.PropertyPackageReference] = pref.Reference
+			if !ignorePackageRevision {
+				filter[conan_module.PropertyPackageRevision] = pref.RevisionOrDefault()
+			}
+		}
+
+		pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
+			VersionID:  pv.ID,
+			Properties: filter,
+		})
+		if err != nil {
+			return err
+		}
+		if len(pfs) == 0 {
+			return conan_model.ErrPackageReferenceNotExist
+		}
+
+		for _, pf := range pfs {
+			if err := packages_service.DeletePackageFile(ctx, pf); err != nil {
+				return err
+			}
+		}
+		has, err := packages_model.HasVersionFileReferences(ctx, pv.ID)
+		if err != nil {
+			return err
+		}
+		if !has {
+			versionDeleted = true
+
+			return packages_service.DeletePackageVersionAndReferences(ctx, pv)
+		}
+		return nil
 	})
 	if err != nil {
 		return err
 	}
-	if len(pfs) == 0 {
-		return conan_model.ErrPackageReferenceNotExist
-	}
-
-	for _, pf := range pfs {
-		if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeFile, pf.ID); err != nil {
-			return err
-		}
-		if err := packages_model.DeleteFileByID(ctx, pf.ID); err != nil {
-			return err
-		}
-	}
-
-	versionDeleted := false
-	has, err := packages_model.HasVersionFileReferences(ctx, pv.ID)
-	if err != nil {
-		return err
-	}
-	if !has {
-		versionDeleted = true
-
-		if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeVersion, pv.ID); err != nil {
-			return err
-		}
-
-		if err := packages_model.DeleteVersionByID(ctx, pv.ID); err != nil {
-			return err
-		}
-	}
-
-	if err := committer.Commit(); err != nil {
-		return err
-	}
 
 	if versionDeleted {
-		notification.NotifyPackageDelete(apictx.Doer, pd)
+		notification.NotifyPackageDelete(apictx, apictx.Doer, pd)
 	}
 
 	return nil
@@ -723,7 +712,7 @@ func listRevisions(ctx *context.Context, revisions []*conan_model.PropertyValue)
 
 	revs := make([]*revisionInfo, 0, len(revisions))
 	for _, rev := range revisions {
-		revs = append(revs, &revisionInfo{Revision: rev.Value, Time: time.Unix(int64(rev.CreatedUnix), 0)})
+		revs = append(revs, &revisionInfo{Revision: rev.Value, Time: rev.CreatedUnix.AsLocalTime()})
 	}
 
 	jsonResponse(ctx, http.StatusOK, &RevisionList{revs})
@@ -743,7 +732,7 @@ func LatestRecipeRevision(ctx *context.Context) {
 		return
 	}
 
-	jsonResponse(ctx, http.StatusOK, &revisionInfo{Revision: revision.Value, Time: time.Unix(int64(revision.CreatedUnix), 0)})
+	jsonResponse(ctx, http.StatusOK, &revisionInfo{Revision: revision.Value, Time: revision.CreatedUnix.AsLocalTime()})
 }
 
 // LatestPackageRevision gets the latest package revision
@@ -760,7 +749,7 @@ func LatestPackageRevision(ctx *context.Context) {
 		return
 	}
 
-	jsonResponse(ctx, http.StatusOK, &revisionInfo{Revision: revision.Value, Time: time.Unix(int64(revision.CreatedUnix), 0)})
+	jsonResponse(ctx, http.StatusOK, &revisionInfo{Revision: revision.Value, Time: revision.CreatedUnix.AsLocalTime()})
 }
 
 // ListRecipeRevisionFiles gets a list of all recipe revision files
@@ -803,13 +792,13 @@ func listRevisionFiles(ctx *context.Context, fileKey string) {
 		return
 	}
 
-	files := make(map[string]interface{})
+	files := make(map[string]any)
 	for _, pf := range pfs {
 		files[pf.Name] = nil
 	}
 
 	type FileList struct {
-		Files map[string]interface{} `json:"files"`
+		Files map[string]any `json:"files"`
 	}
 
 	jsonResponse(ctx, http.StatusOK, &FileList{

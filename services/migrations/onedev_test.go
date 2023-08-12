@@ -1,12 +1,10 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migrations
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 	"testing"
@@ -26,7 +24,7 @@ func TestOneDevDownloadRepo(t *testing.T) {
 	u, _ := url.Parse("https://code.onedev.io")
 	downloader := NewOneDevDownloader(context.Background(), u, "", "", "go-gitea-test_repo")
 	if err != nil {
-		t.Fatal(fmt.Sprintf("NewOneDevDownloader is nil: %v", err))
+		t.Fatalf("NewOneDevDownloader is nil: %v", err)
 	}
 	repo, err := downloader.GetRepoInfo()
 	assert.NoError(t, err)

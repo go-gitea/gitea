@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -15,10 +14,10 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -29,6 +28,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/migrations"
 )
@@ -65,9 +65,9 @@ func Migrate(ctx *context.APIContext) {
 		err       error
 	)
 	if len(form.RepoOwner) != 0 {
-		repoOwner, err = user_model.GetUserByName(form.RepoOwner)
+		repoOwner, err = user_model.GetUserByName(ctx, form.RepoOwner)
 	} else if form.RepoOwnerID != 0 {
-		repoOwner, err = user_model.GetUserByID(form.RepoOwnerID)
+		repoOwner, err = user_model.GetUserByID(ctx, form.RepoOwnerID)
 	} else {
 		repoOwner = ctx.Doer
 	}
@@ -80,7 +80,7 @@ func Migrate(ctx *context.APIContext) {
 		return
 	}
 
-	if ctx.HasError() {
+	if ctx.HasAPIError() {
 		ctx.Error(http.StatusUnprocessableEntity, "", ctx.GetErrMsg())
 		return
 	}
@@ -155,7 +155,7 @@ func Migrate(ctx *context.APIContext) {
 		Issues:         form.Issues,
 		Milestones:     form.Milestones,
 		Labels:         form.Labels,
-		Comments:       true,
+		Comments:       form.Issues || form.PullRequests,
 		PullRequests:   form.PullRequests,
 		Releases:       form.Releases,
 		GitServiceType: gitServiceType,
@@ -170,7 +170,7 @@ func Migrate(ctx *context.APIContext) {
 		opts.Releases = false
 	}
 
-	repo, err := repo_module.CreateRepository(ctx.Doer, repoOwner, models.CreateRepoOptions{
+	repo, err := repo_module.CreateRepository(ctx.Doer, repoOwner, repo_module.CreateRepoOptions{
 		Name:           opts.RepoName,
 		Description:    opts.Description,
 		OriginalURL:    form.CloneAddr,
@@ -195,7 +195,7 @@ func Migrate(ctx *context.APIContext) {
 		}
 
 		if err == nil {
-			notification.NotifyMigrateRepository(ctx.Doer, repoOwner, repo)
+			notification.NotifyMigrateRepository(ctx, ctx.Doer, repoOwner, repo)
 			return
 		}
 
@@ -212,7 +212,7 @@ func Migrate(ctx *context.APIContext) {
 	}
 
 	log.Trace("Repository migrated: %s/%s", repoOwner.Name, form.RepoName)
-	ctx.JSON(http.StatusCreated, convert.ToRepo(repo, perm.AccessModeAdmin))
+	ctx.JSON(http.StatusCreated, convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeAdmin}))
 }
 
 func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, remoteAddr string, err error) {

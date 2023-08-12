@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package pull
 
@@ -8,7 +7,9 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
+	issues_model "code.gitea.io/gitea/models/issues"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -17,89 +18,114 @@ import (
 )
 
 // Update updates pull request with base branch.
-func Update(ctx context.Context, pull *models.PullRequest, doer *user_model.User, message string, rebase bool) error {
-	var (
-		pr    *models.PullRequest
-		style repo_model.MergeStyle
-	)
-
-	if rebase {
-		pr = pull
-		style = repo_model.MergeStyleRebaseUpdate
-	} else {
-		// use merge functions but switch repo's and branch's
-		pr = &models.PullRequest{
-			HeadRepoID: pull.BaseRepoID,
-			BaseRepoID: pull.HeadRepoID,
-			HeadBranch: pull.BaseBranch,
-			BaseBranch: pull.HeadBranch,
-		}
-		style = repo_model.MergeStyleMerge
+func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, message string, rebase bool) error {
+	if pr.Flow == issues_model.PullRequestFlowAGit {
+		// TODO: update of agit flow pull request's head branch is unsupported
+		return fmt.Errorf("update of agit flow pull request's head branch is unsupported")
 	}
 
-	if pull.Flow == models.PullRequestFlowAGit {
-		// TODO: Not support update agit flow pull request's head branch
-		return fmt.Errorf("Not support update agit flow pull request's head branch")
-	}
+	pullWorkingPool.CheckIn(fmt.Sprint(pr.ID))
+	defer pullWorkingPool.CheckOut(fmt.Sprint(pr.ID))
 
-	if err := pr.LoadHeadRepo(); err != nil {
-		log.Error("LoadHeadRepo: %v", err)
-		return fmt.Errorf("LoadHeadRepo: %v", err)
-	} else if err = pr.LoadBaseRepo(); err != nil {
-		log.Error("LoadBaseRepo: %v", err)
-		return fmt.Errorf("LoadBaseRepo: %v", err)
-	}
-
-	diffCount, err := GetDiverging(ctx, pull)
+	diffCount, err := GetDiverging(ctx, pr)
 	if err != nil {
 		return err
 	} else if diffCount.Behind == 0 {
-		return fmt.Errorf("HeadBranch of PR %d is up to date", pull.Index)
+		return fmt.Errorf("HeadBranch of PR %d is up to date", pr.Index)
 	}
 
-	_, err = rawMerge(ctx, pr, doer, style, "", message)
+	if rebase {
+		defer func() {
+			go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false, "", "")
+		}()
+
+		return updateHeadByRebaseOnToBase(ctx, pr, doer, message)
+	}
+
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		log.Error("unable to load BaseRepo for %-v during update-by-merge: %v", pr, err)
+		return fmt.Errorf("unable to load BaseRepo for PR[%d] during update-by-merge: %w", pr.ID, err)
+	}
+	if err := pr.LoadHeadRepo(ctx); err != nil {
+		log.Error("unable to load HeadRepo for PR %-v during update-by-merge: %v", pr, err)
+		return fmt.Errorf("unable to load HeadRepo for PR[%d] during update-by-merge: %w", pr.ID, err)
+	}
+	if pr.HeadRepo == nil {
+		// LoadHeadRepo will swallow ErrRepoNotExist so if pr.HeadRepo is still nil recreate the error
+		err := repo_model.ErrRepoNotExist{
+			ID: pr.HeadRepoID,
+		}
+		log.Error("unable to load HeadRepo for PR %-v during update-by-merge: %v", pr, err)
+		return fmt.Errorf("unable to load HeadRepo for PR[%d] during update-by-merge: %w", pr.ID, err)
+	}
+
+	// use merge functions but switch repos and branches
+	reversePR := &issues_model.PullRequest{
+		ID: pr.ID,
+
+		HeadRepoID: pr.BaseRepoID,
+		HeadRepo:   pr.BaseRepo,
+		HeadBranch: pr.BaseBranch,
+
+		BaseRepoID: pr.HeadRepoID,
+		BaseRepo:   pr.HeadRepo,
+		BaseBranch: pr.HeadBranch,
+	}
+
+	_, err = doMergeAndPush(ctx, reversePR, doer, repo_model.MergeStyleMerge, "", message)
 
 	defer func() {
-		if rebase {
-			go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false, "", "")
-			return
-		}
-		go AddTestPullRequestTask(doer, pr.HeadRepo.ID, pr.HeadBranch, false, "", "")
+		go AddTestPullRequestTask(doer, reversePR.HeadRepo.ID, reversePR.HeadBranch, false, "", "")
 	}()
 
 	return err
 }
 
 // IsUserAllowedToUpdate check if user is allowed to update PR with given permissions and branch protections
-func IsUserAllowedToUpdate(pull *models.PullRequest, user *user_model.User) (mergeAllowed, rebaseAllowed bool, err error) {
-	if pull.Flow == models.PullRequestFlowAGit {
+func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, user *user_model.User) (mergeAllowed, rebaseAllowed bool, err error) {
+	if pull.Flow == issues_model.PullRequestFlowAGit {
 		return false, false, nil
 	}
 
 	if user == nil {
 		return false, false, nil
 	}
-	headRepoPerm, err := models.GetUserRepoPermission(pull.HeadRepo, user)
+	headRepoPerm, err := access_model.GetUserRepoPermission(ctx, pull.HeadRepo, user)
 	if err != nil {
+		if repo_model.IsErrUnitTypeNotExist(err) {
+			return false, false, nil
+		}
 		return false, false, err
 	}
 
-	pr := &models.PullRequest{
+	if err := pull.LoadBaseRepo(ctx); err != nil {
+		return false, false, err
+	}
+
+	pr := &issues_model.PullRequest{
 		HeadRepoID: pull.BaseRepoID,
+		HeadRepo:   pull.BaseRepo,
 		BaseRepoID: pull.HeadRepoID,
+		BaseRepo:   pull.HeadRepo,
 		HeadBranch: pull.BaseBranch,
 		BaseBranch: pull.HeadBranch,
 	}
 
-	err = pr.LoadProtectedBranch()
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
 	if err != nil {
 		return false, false, err
 	}
 
 	// can't do rebase on protected branch because need force push
-	if pr.ProtectedBranch == nil {
-		prUnit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests)
+	if pb == nil {
+		if err := pr.LoadBaseRepo(ctx); err != nil {
+			return false, false, err
+		}
+		prUnit, err := pr.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
 		if err != nil {
+			if repo_model.IsErrUnitTypeNotExist(err) {
+				return false, false, nil
+			}
 			log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
 			return false, false, err
 		}
@@ -107,41 +133,47 @@ func IsUserAllowedToUpdate(pull *models.PullRequest, user *user_model.User) (mer
 	}
 
 	// Update function need push permission
-	if pr.ProtectedBranch != nil && !pr.ProtectedBranch.CanUserPush(user.ID) {
-		return false, false, nil
+	if pb != nil {
+		pb.Repo = pull.BaseRepo
+		if !pb.CanUserPush(ctx, user) {
+			return false, false, nil
+		}
 	}
 
-	mergeAllowed, err = IsUserAllowedToMerge(pr, headRepoPerm, user)
+	baseRepoPerm, err := access_model.GetUserRepoPermission(ctx, pull.BaseRepo, user)
 	if err != nil {
 		return false, false, err
+	}
+
+	mergeAllowed, err = IsUserAllowedToMerge(ctx, pr, headRepoPerm, user)
+	if err != nil {
+		return false, false, err
+	}
+
+	if pull.AllowMaintainerEdit {
+		mergeAllowedMaintainer, err := IsUserAllowedToMerge(ctx, pr, baseRepoPerm, user)
+		if err != nil {
+			return false, false, err
+		}
+
+		mergeAllowed = mergeAllowed || mergeAllowedMaintainer
 	}
 
 	return mergeAllowed, rebaseAllowed, nil
 }
 
 // GetDiverging determines how many commits a PR is ahead or behind the PR base branch
-func GetDiverging(ctx context.Context, pr *models.PullRequest) (*git.DivergeObject, error) {
-	log.Trace("GetDiverging[%d]: compare commits", pr.ID)
-	if err := pr.LoadBaseRepo(); err != nil {
-		return nil, err
-	}
-	if err := pr.LoadHeadRepo(); err != nil {
-		return nil, err
-	}
-
-	tmpRepo, err := createTemporaryRepo(ctx, pr)
+func GetDiverging(ctx context.Context, pr *issues_model.PullRequest) (*git.DivergeObject, error) {
+	log.Trace("GetDiverging[%-v]: compare commits", pr)
+	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
 	if err != nil {
-		if !models.IsErrBranchDoesNotExist(err) {
-			log.Error("CreateTemporaryRepo: %v", err)
+		if !git_model.IsErrBranchNotExist(err) {
+			log.Error("CreateTemporaryRepoForPR %-v: %v", pr, err)
 		}
 		return nil, err
 	}
-	defer func() {
-		if err := models.RemoveTemporaryPath(tmpRepo); err != nil {
-			log.Error("Merge: RemoveTemporaryPath: %s", err)
-		}
-	}()
+	defer cancel()
 
-	diff, err := git.GetDivergingCommits(ctx, tmpRepo, "base", "tracking")
+	diff, err := git.GetDivergingCommits(ctx, prCtx.tmpBasePath, baseBranch, trackingBranch)
 	return &diff, err
 }

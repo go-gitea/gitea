@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package security
 
@@ -90,7 +89,7 @@ func settingsOpenIDVerify(ctx *context.Context) {
 	log.Trace("Verified ID: " + id)
 
 	oid := &user_model.UserOpenID{UID: ctx.Doer.ID, URI: id}
-	if err = user_model.AddUserOpenID(oid); err != nil {
+	if err = user_model.AddUserOpenID(ctx, oid); err != nil {
 		if user_model.IsErrOpenIDAlreadyUsed(err) {
 			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", id), tplSettingsSecurity, &forms.AddOpenIDForm{Openid: id})
 			return
@@ -113,9 +112,7 @@ func DeleteOpenID(ctx *context.Context) {
 	log.Trace("OpenID address deleted: %s", ctx.Doer.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.openid_deletion_success"))
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/user/settings/security",
-	})
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/security")
 }
 
 // ToggleOpenIDVisibility response for toggle visibility of user's openid

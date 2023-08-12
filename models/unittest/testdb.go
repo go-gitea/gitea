@@ -1,19 +1,22 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package unittest
 
 import (
 	"context"
 	"fmt"
-	"net/url"
+	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	system_model "code.gitea.io/gitea/models/system"
+	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
@@ -34,9 +37,27 @@ func FixturesDir() string {
 	return fixturesDir
 }
 
-func fatalTestError(fmtStr string, args ...interface{}) {
+func fatalTestError(fmtStr string, args ...any) {
 	_, _ = fmt.Fprintf(os.Stderr, fmtStr, args...)
 	os.Exit(1)
+}
+
+// InitSettings initializes config provider and load common settings for tests
+func InitSettings(extraConfigs ...string) {
+	if setting.CustomConf == "" {
+		setting.CustomConf = filepath.Join(setting.CustomPath, "conf/app-unittest-tmp.ini")
+		_ = os.Remove(setting.CustomConf)
+	}
+	setting.InitCfgProvider(setting.CustomConf, strings.Join(extraConfigs, "\n"))
+	setting.LoadCommonSettings()
+
+	if err := setting.PrepareAppDataPath(); err != nil {
+		log.Fatalf("Can not prepare APP_DATA_PATH: %v", err)
+	}
+	// register the dummy hash algorithm function used in the test fixtures
+	_ = hash.Register("dummy", hash.NewDummyHasher)
+
+	setting.PasswordHashAlgo, _ = hash.SetDefaultPasswordHashAlgorithm("dummy")
 }
 
 // TestOptions represents test options
@@ -50,6 +71,9 @@ type TestOptions struct {
 // MainTest a reusable TestMain(..) function for unit tests that need to use a
 // test database. Creates the test database, and sets necessary settings.
 func MainTest(m *testing.M, testOpts *TestOptions) {
+	setting.CustomPath = filepath.Join(testOpts.GiteaRootPath, "custom")
+	InitSettings()
+
 	var err error
 
 	giteaRoot = testOpts.GiteaRootPath
@@ -76,7 +100,7 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 	setting.SSH.BuiltinServerUser = "builtinuser"
 	setting.SSH.Port = 3000
 	setting.SSH.Domain = "try.gitea.io"
-	setting.Database.UseSQLite3 = true
+	setting.Database.Type = "sqlite3"
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 	repoRootPath, err := os.MkdirTemp(os.TempDir(), "repos")
 	if err != nil {
@@ -90,10 +114,8 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 	setting.AppDataPath = appDataPath
 	setting.AppWorkPath = testOpts.GiteaRootPath
 	setting.StaticRootPath = testOpts.GiteaRootPath
-	setting.GravatarSourceURL, err = url.Parse("https://secure.gravatar.com/avatar/")
-	if err != nil {
-		fatalTestError("url.Parse: %v\n", err)
-	}
+	setting.GravatarSource = "https://secure.gravatar.com/avatar/"
+
 	setting.Attachment.Storage.Path = filepath.Join(setting.AppDataPath, "attachments")
 
 	setting.LFS.Storage.Path = filepath.Join(setting.AppDataPath, "lfs")
@@ -106,17 +128,29 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 
 	setting.Packages.Storage.Path = filepath.Join(setting.AppDataPath, "packages")
 
+	setting.Actions.LogStorage.Path = filepath.Join(setting.AppDataPath, "actions_log")
+
+	setting.Git.HomePath = filepath.Join(setting.AppDataPath, "home")
+
+	setting.IncomingEmail.ReplyToAddress = "incoming+%{token}@localhost"
+
 	if err = storage.Init(); err != nil {
 		fatalTestError("storage.Init: %v\n", err)
+	}
+	if err = system_model.Init(db.DefaultContext); err != nil {
+		fatalTestError("models.Init: %v\n", err)
 	}
 
 	if err = util.RemoveAll(repoRootPath); err != nil {
 		fatalTestError("util.RemoveAll: %v\n", err)
 	}
-	if err = CopyDir(filepath.Join(testOpts.GiteaRootPath, "integrations", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
+	if err = CopyDir(filepath.Join(testOpts.GiteaRootPath, "tests", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
 		fatalTestError("util.CopyDir: %v\n", err)
 	}
 
+	if err = git.InitFull(context.Background()); err != nil {
+		fatalTestError("git.Init: %v\n", err)
+	}
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {
 		fatalTestError("unable to read the new repo root: %v\n", err)
@@ -170,6 +204,9 @@ type FixturesOptions struct {
 func CreateTestEngine(opts FixturesOptions) error {
 	x, err := xorm.NewEngine("sqlite3", "file::memory:?cache=shared&_txlock=immediate")
 	if err != nil {
+		if strings.Contains(err.Error(), "unknown driver") {
+			return fmt.Errorf(`sqlite3 requires: import _ "github.com/mattn/go-sqlite3" or -tags sqlite,sqlite_unlock_notify%s%w`, "\n", err)
+		}
 		return err
 	}
 	x.SetMapper(names.GonicMapper{})
@@ -196,9 +233,8 @@ func PrepareTestDatabase() error {
 func PrepareTestEnv(t testing.TB) {
 	assert.NoError(t, PrepareTestDatabase())
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
-	metaPath := filepath.Join(giteaRoot, "integrations", "gitea-repositories-meta")
+	metaPath := filepath.Join(giteaRoot, "tests", "gitea-repositories-meta")
 	assert.NoError(t, CopyDir(metaPath, setting.RepoRootPath))
-
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	assert.NoError(t, err)
 	for _, ownerDir := range ownerDirs {

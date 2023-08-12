@@ -1,18 +1,17 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package packages
 
 import (
 	"context"
-	"errors"
 	"strconv"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -23,9 +22,9 @@ func init() {
 
 var (
 	// ErrDuplicatePackageFile indicates a duplicated package file error
-	ErrDuplicatePackageFile = errors.New("Package file does exist already")
+	ErrDuplicatePackageFile = util.NewAlreadyExistErrorf("package file already exists")
 	// ErrPackageFileNotExist indicates a package file not exist error
-	ErrPackageFileNotExist = errors.New("Package file does not exist")
+	ErrPackageFileNotExist = util.NewNotExistErrorf("package file does not exist")
 )
 
 // EmptyFileKey is a named constant for an empty file key
@@ -118,13 +117,15 @@ func DeleteFileByID(ctx context.Context, fileID int64) error {
 
 // PackageFileSearchOptions are options for SearchXXX methods
 type PackageFileSearchOptions struct {
-	OwnerID      int64
-	PackageType  string
-	VersionID    int64
-	Query        string
-	CompositeKey string
-	Properties   map[string]string
-	OlderThan    time.Duration
+	OwnerID       int64
+	PackageType   Type
+	VersionID     int64
+	Query         string
+	CompositeKey  string
+	Properties    map[string]string
+	OlderThan     time.Duration
+	HashAlgorithm string
+	Hash          string
 	db.Paginator
 }
 
@@ -183,6 +184,26 @@ func (opts *PackageFileSearchOptions) toConds() builder.Cond {
 		cond = cond.And(builder.Lt{"package_file.created_unix": time.Now().Add(-opts.OlderThan).Unix()})
 	}
 
+	if opts.Hash != "" {
+		var field string
+		switch strings.ToLower(opts.HashAlgorithm) {
+		case "md5":
+			field = "package_blob.hash_md5"
+		case "sha1":
+			field = "package_blob.hash_sha1"
+		case "sha256":
+			field = "package_blob.hash_sha256"
+		case "sha512":
+			fallthrough
+		default: // default to SHA512 if not specified or unknown
+			field = "package_blob.hash_sha512"
+		}
+		innerCond := builder.
+			Expr("package_blob.id = package_file.blob_id").
+			And(builder.Eq{field: opts.Hash})
+		cond = cond.And(builder.Exists(builder.Select("package_blob.id").From("package_blob").Where(innerCond)))
+	}
+
 	return cond
 }
 
@@ -198,4 +219,14 @@ func SearchFiles(ctx context.Context, opts *PackageFileSearchOptions) ([]*Packag
 	pfs := make([]*PackageFile, 0, 10)
 	count, err := sess.FindAndCount(&pfs)
 	return pfs, count, err
+}
+
+// CalculateFileSize sums up all blob sizes matching the search options.
+// It does NOT respect the deduplication of blobs.
+func CalculateFileSize(ctx context.Context, opts *PackageFileSearchOptions) (int64, error) {
+	return db.GetEngine(ctx).
+		Table("package_file").
+		Where(opts.toConds()).
+		Join("INNER", "package_blob", "package_blob.id = package_file.blob_id").
+		SumInt(new(PackageBlob), "size")
 }

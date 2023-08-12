@@ -1,6 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package files
 
@@ -29,7 +28,7 @@ func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	tree.URL = repo.APIURL() + "/git/trees/" + url.PathEscape(tree.SHA)
 	var entries git.Entries
 	if recursive {
-		entries, err = gitTree.ListEntriesRecursive()
+		entries, err = gitTree.ListEntriesRecursiveWithSize()
 	} else {
 		entries, err = gitTree.ListEntries()
 	}
@@ -50,7 +49,7 @@ func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	copy(treeURL[apiURLLen:], "/git/trees/")
 
 	// 40 is the size of the sha1 hash in hexadecimal format.
-	copyPos := len(treeURL) - 40
+	copyPos := len(treeURL) - git.SHAFullLength
 
 	if perPage <= 0 || perPage > setting.API.DefaultGitTreesPerPage {
 		perPage = setting.API.DefaultGitTreesPerPage
@@ -86,6 +85,11 @@ func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		if entries[e].IsDir() {
 			copy(treeURL[copyPos:], entries[e].ID.String())
 			tree.Entries[i].URL = string(treeURL)
+		} else if entries[e].IsSubModule() {
+			// In Github Rest API Version=2022-11-28, if a tree entry is a submodule,
+			// its url will be returned as an empty string.
+			// So the URL will be set to "" here.
+			tree.Entries[i].URL = ""
 		} else {
 			copy(blobURL[copyPos:], entries[e].ID.String())
 			tree.Entries[i].URL = string(blobURL)

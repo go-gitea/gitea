@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -28,33 +27,22 @@ const (
 )
 
 // GetRawDiff dumps diff results of repository in given commit ID to io.Writer.
-func GetRawDiff(ctx context.Context, repoPath, commitID string, diffType RawDiffType, writer io.Writer) error {
-	return GetRawDiffForFile(ctx, repoPath, "", commitID, diffType, "", writer)
+func GetRawDiff(repo *Repository, commitID string, diffType RawDiffType, writer io.Writer) error {
+	return GetRepoRawDiffForFile(repo, "", commitID, diffType, "", writer)
 }
 
 // GetReverseRawDiff dumps the reverse diff results of repository in given commit ID to io.Writer.
 func GetReverseRawDiff(ctx context.Context, repoPath, commitID string, writer io.Writer) error {
 	stderr := new(bytes.Buffer)
-	cmd := NewCommand(ctx, "show", "--pretty=format:revert %H%n", "-R", commitID)
+	cmd := NewCommand(ctx, "show", "--pretty=format:revert %H%n", "-R").AddDynamicArguments(commitID)
 	if err := cmd.Run(&RunOpts{
 		Dir:    repoPath,
 		Stdout: writer,
 		Stderr: stderr,
 	}); err != nil {
-		return fmt.Errorf("Run: %v - %s", err, stderr)
+		return fmt.Errorf("Run: %w - %s", err, stderr)
 	}
 	return nil
-}
-
-// GetRawDiffForFile dumps diff results of file in given commit ID to io.Writer.
-func GetRawDiffForFile(ctx context.Context, repoPath, startCommit, endCommit string, diffType RawDiffType, file string, writer io.Writer) error {
-	repo, closer, err := RepositoryFromContextOrOpen(ctx, repoPath)
-	if err != nil {
-		return fmt.Errorf("RepositoryFromContextOrOpen: %v", err)
-	}
-	defer closer.Close()
-
-	return GetRepoRawDiffForFile(repo, startCommit, endCommit, diffType, file, writer)
 }
 
 // GetRepoRawDiffForFile dumps diff results of file in given commit ID to io.Writer according given repository
@@ -63,45 +51,44 @@ func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diff
 	if err != nil {
 		return err
 	}
-	fileArgs := make([]string, 0)
+	var files []string
 	if len(file) > 0 {
-		fileArgs = append(fileArgs, "--", file)
+		files = append(files, file)
 	}
 
-	var args []string
+	cmd := NewCommand(repo.Ctx)
 	switch diffType {
 	case RawDiffNormal:
 		if len(startCommit) != 0 {
-			args = append([]string{"diff", "-M", startCommit, endCommit}, fileArgs...)
+			cmd.AddArguments("diff", "-M").AddDynamicArguments(startCommit, endCommit).AddDashesAndList(files...)
 		} else if commit.ParentCount() == 0 {
-			args = append([]string{"show", endCommit}, fileArgs...)
+			cmd.AddArguments("show").AddDynamicArguments(endCommit).AddDashesAndList(files...)
 		} else {
 			c, _ := commit.Parent(0)
-			args = append([]string{"diff", "-M", c.ID.String(), endCommit}, fileArgs...)
+			cmd.AddArguments("diff", "-M").AddDynamicArguments(c.ID.String(), endCommit).AddDashesAndList(files...)
 		}
 	case RawDiffPatch:
 		if len(startCommit) != 0 {
 			query := fmt.Sprintf("%s...%s", endCommit, startCommit)
-			args = append([]string{"format-patch", "--no-signature", "--stdout", "--root", query}, fileArgs...)
+			cmd.AddArguments("format-patch", "--no-signature", "--stdout", "--root").AddDynamicArguments(query).AddDashesAndList(files...)
 		} else if commit.ParentCount() == 0 {
-			args = append([]string{"format-patch", "--no-signature", "--stdout", "--root", endCommit}, fileArgs...)
+			cmd.AddArguments("format-patch", "--no-signature", "--stdout", "--root").AddDynamicArguments(endCommit).AddDashesAndList(files...)
 		} else {
 			c, _ := commit.Parent(0)
 			query := fmt.Sprintf("%s...%s", endCommit, c.ID.String())
-			args = append([]string{"format-patch", "--no-signature", "--stdout", query}, fileArgs...)
+			cmd.AddArguments("format-patch", "--no-signature", "--stdout").AddDynamicArguments(query).AddDashesAndList(files...)
 		}
 	default:
 		return fmt.Errorf("invalid diffType: %s", diffType)
 	}
 
 	stderr := new(bytes.Buffer)
-	cmd := NewCommand(repo.Ctx, args...)
 	if err = cmd.Run(&RunOpts{
 		Dir:    repo.Path,
 		Stdout: writer,
 		Stderr: stderr,
 	}); err != nil {
-		return fmt.Errorf("Run: %v - %s", err, stderr)
+		return fmt.Errorf("Run: %w - %s", err, stderr)
 	}
 	return nil
 }
@@ -126,7 +113,7 @@ func ParseDiffHunkString(diffhunk string) (leftLine, leftHunk, rightLine, righHu
 		rightLine = leftLine
 		righHunk = leftHunk
 	}
-	return
+	return leftLine, leftHunk, rightLine, righHunk
 }
 
 // Example: @@ -1,8 +1,9 @@ => [..., 1, 8, 1, 9]
@@ -298,7 +285,7 @@ func GetAffectedFiles(repo *Repository, oldCommitID, newCommitID string, env []s
 	affectedFiles := make([]string, 0, 32)
 
 	// Run `git diff --name-only` to get the names of the changed files
-	err = NewCommand(repo.Ctx, "diff", "--name-only", oldCommitID, newCommitID).
+	err = NewCommand(repo.Ctx, "diff", "--name-only").AddDynamicArguments(oldCommitID, newCommitID).
 		Run(&RunOpts{
 			Env:    env,
 			Dir:    repo.Path,

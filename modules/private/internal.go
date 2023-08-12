@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package private
 
@@ -10,49 +9,88 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
+	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/proxyprotocol"
 	"code.gitea.io/gitea/modules/setting"
 )
 
-func newRequest(ctx context.Context, url, method string) *httplib.Request {
+// Response is used for internal request response (for user message and error message)
+type Response struct {
+	Err     string `json:"err,omitempty"`      // server-side error log message, it won't be exposed to end users
+	UserMsg string `json:"user_msg,omitempty"` // meaningful error message for end users, it will be shown in git client's output.
+}
+
+func getClientIP() string {
+	sshConnEnv := strings.TrimSpace(os.Getenv("SSH_CONNECTION"))
+	if len(sshConnEnv) == 0 {
+		return "127.0.0.1"
+	}
+	return strings.Fields(sshConnEnv)[0]
+}
+
+func newInternalRequest(ctx context.Context, url, method string, body ...any) *httplib.Request {
 	if setting.InternalToken == "" {
 		log.Fatal(`The INTERNAL_TOKEN setting is missing from the configuration file: %q.
 Ensure you are running in the correct environment or set the correct configuration file with -c.`, setting.CustomConf)
 	}
-	return httplib.NewRequest(url, method).
+
+	req := httplib.NewRequest(url, method).
 		SetContext(ctx).
-		Header("Authorization", fmt.Sprintf("Bearer %s", setting.InternalToken))
-}
+		Header("X-Real-IP", getClientIP()).
+		Header("Authorization", fmt.Sprintf("Bearer %s", setting.InternalToken)).
+		SetTLSClientConfig(&tls.Config{
+			InsecureSkipVerify: true,
+			ServerName:         setting.Domain,
+		})
 
-// Response internal request response
-type Response struct {
-	Err string `json:"err"`
-}
-
-func decodeJSONError(resp *http.Response) *Response {
-	var res Response
-	err := json.NewDecoder(resp.Body).Decode(&res)
-	if err != nil {
-		res.Err = err.Error()
-	}
-	return &res
-}
-
-func newInternalRequest(ctx context.Context, url, method string) *httplib.Request {
-	req := newRequest(ctx, url, method).SetTLSClientConfig(&tls.Config{
-		InsecureSkipVerify: true,
-		ServerName:         setting.Domain,
-	})
 	if setting.Protocol == setting.HTTPUnix {
 		req.SetTransport(&http.Transport{
 			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
 				var d net.Dialer
-				return d.DialContext(ctx, "unix", setting.HTTPAddr)
+				conn, err := d.DialContext(ctx, "unix", setting.HTTPAddr)
+				if err != nil {
+					return conn, err
+				}
+				if setting.LocalUseProxyProtocol {
+					if err = proxyprotocol.WriteLocalHeader(conn); err != nil {
+						_ = conn.Close()
+						return nil, err
+					}
+				}
+				return conn, err
+			},
+		})
+	} else if setting.LocalUseProxyProtocol {
+		req.SetTransport(&http.Transport{
+			DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
+				var d net.Dialer
+				conn, err := d.DialContext(ctx, network, address)
+				if err != nil {
+					return conn, err
+				}
+				if err = proxyprotocol.WriteLocalHeader(conn); err != nil {
+					_ = conn.Close()
+					return nil, err
+				}
+				return conn, err
 			},
 		})
 	}
+
+	if len(body) == 1 {
+		req.Header("Content-Type", "application/json")
+		jsonBytes, _ := json.Marshal(body[0])
+		req.Body(jsonBytes)
+	} else if len(body) > 1 {
+		log.Fatal("Too many arguments for newInternalRequest")
+	}
+
+	req.SetTimeout(10*time.Second, 60*time.Second)
 	return req
 }

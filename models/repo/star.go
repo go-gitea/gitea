@@ -1,10 +1,11 @@
 // Copyright 2016 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -24,12 +25,12 @@ func init() {
 
 // StarRepo or unstar repository.
 func StarRepo(userID, repoID int64, star bool) error {
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
-	staring := isStaring(db.GetEngine(ctx), userID, repoID)
+	staring := IsStaring(ctx, userID, repoID)
 
 	if star {
 		if staring {
@@ -65,12 +66,8 @@ func StarRepo(userID, repoID int64, star bool) error {
 }
 
 // IsStaring checks if user has starred given repository.
-func IsStaring(userID, repoID int64) bool {
-	return isStaring(db.GetEngine(db.DefaultContext), userID, repoID)
-}
-
-func isStaring(e db.Engine, userID, repoID int64) bool {
-	has, _ := e.Get(&Star{UID: userID, RepoID: repoID})
+func IsStaring(ctx context.Context, userID, repoID int64) bool {
+	has, _ := db.GetEngine(ctx).Get(&Star{UID: userID, RepoID: repoID})
 	return has
 }
 
@@ -87,4 +84,18 @@ func GetStargazers(repo *Repository, opts db.ListOptions) ([]*user_model.User, e
 
 	users := make([]*user_model.User, 0, 8)
 	return users, sess.Find(&users)
+}
+
+// ClearRepoStars clears all stars for a repository and from the user that starred it.
+// Used when a repository is set to private.
+func ClearRepoStars(ctx context.Context, repoID int64) error {
+	if _, err := db.Exec(ctx, "UPDATE `user` SET num_stars=num_stars-1 WHERE id IN (SELECT `uid` FROM `star` WHERE repo_id = ?)", repoID); err != nil {
+		return err
+	}
+
+	if _, err := db.Exec(ctx, "UPDATE `repository` SET num_stars = 0 WHERE id = ?", repoID); err != nil {
+		return err
+	}
+
+	return db.DeleteBeans(ctx, Star{RepoID: repoID})
 }

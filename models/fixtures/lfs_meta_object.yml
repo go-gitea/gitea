@@ -1,0 +1,32 @@
+# These are the LFS objects in user2/lfs.git
+-
+
+  id: 1
+  oid: 0b8d8b5f15046343fd32f451df93acc2bdd9e6373be478b968e4cad6b6647351
+  size: 107
+  repository_id: 54
+  created_unix: 1671607299
+
+-
+
+  id: 2
+  oid: 2eccdb43825d2a49d99d542daa20075cff1d97d9d2349a8977efe9c03661737c
+  size: 107
+  repository_id: 54
+  created_unix: 1671607299
+
+-
+
+  id: 3
+  oid: 7b6b2c88dba9f760a1a58469b67fee2b698ef7e9399c4ca4f34a14ccbe39f623
+  size: 27
+  repository_id: 54
+  created_unix: 1671607299
+
+-
+
+  id: 4
+  oid: 9d172e5c64b4f0024b9901ec6afe9ea052f3c9b6ff9f4b07956d8c48c86fca82
+  size: 25
+  repository_id: 54
+  created_unix: 1671607299

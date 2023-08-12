@@ -1,6 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -10,10 +9,10 @@ import (
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // ListEmails list all of the authenticated user's email addresses
@@ -47,11 +46,6 @@ func AddEmail(ctx *context.APIContext) {
 	// summary: Add email addresses
 	// produces:
 	// - application/json
-	// parameters:
-	// - name: options
-	//   in: body
-	//   schema:
-	//     "$ref": "#/definitions/CreateEmailOption"
 	// parameters:
 	// - name: body
 	//   in: body

@@ -1,12 +1,13 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package security
 
 import (
 	"errors"
 	"net/http"
+	"strconv"
+	"time"
 
 	"code.gitea.io/gitea/models/auth"
 	wa "code.gitea.io/gitea/modules/auth/webauthn"
@@ -16,16 +17,16 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
 
-	"github.com/duo-labs/webauthn/protocol"
-	"github.com/duo-labs/webauthn/webauthn"
+	"github.com/go-webauthn/webauthn/protocol"
+	"github.com/go-webauthn/webauthn/webauthn"
 )
 
 // WebAuthnRegister initializes the webauthn registration procedure
 func WebAuthnRegister(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.WebauthnRegistrationForm)
 	if form.Name == "" {
-		ctx.Error(http.StatusConflict)
-		return
+		// Set name to the hexadecimal of the current time
+		form.Name = strconv.FormatInt(time.Now().UnixNano(), 16)
 	}
 
 	cred, err := auth.GetWebAuthnCredentialByName(ctx.Doer.ID, form.Name)
@@ -115,7 +116,5 @@ func WebauthnDelete(ctx *context.Context) {
 		ctx.ServerError("GetWebAuthnCredentialByID", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/user/settings/security",
-	})
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/security")
 }

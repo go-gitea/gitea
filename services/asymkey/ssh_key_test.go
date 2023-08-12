@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package asymkey
 
@@ -18,7 +17,7 @@ import (
 func TestAddLdapSSHPublicKeys(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	s := &auth.Source{ID: 1}
 
 	testCases := []struct {

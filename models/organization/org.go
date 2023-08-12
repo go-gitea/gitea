@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package organization
 
@@ -13,11 +12,13 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
+	secret_model "code.gitea.io/gitea/models/secret"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -43,6 +44,10 @@ func IsErrOrgNotExist(err error) bool {
 
 func (err ErrOrgNotExist) Error() string {
 	return fmt.Sprintf("org does not exist [id: %d, name: %s]", err.ID, err.Name)
+}
+
+func (err ErrOrgNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // ErrLastOrgOwner represents a "LastOrgOwner" kind of error.
@@ -73,6 +78,10 @@ func (err ErrUserNotAllowedCreateOrg) Error() string {
 	return "user is not allowed to create organizations"
 }
 
+func (err ErrUserNotAllowedCreateOrg) Unwrap() error {
+	return util.ErrPermissionDenied
+}
+
 // Organization represents an organization
 type Organization user_model.User
 
@@ -91,6 +100,11 @@ func (org *Organization) IsOwnedBy(uid int64) (bool, error) {
 	return IsOrganizationOwner(db.DefaultContext, org.ID, uid)
 }
 
+// IsOrgAdmin returns true if given user is in the owner team or an admin team.
+func (org *Organization) IsOrgAdmin(uid int64) (bool, error) {
+	return IsOrganizationAdmin(db.DefaultContext, org.ID, uid)
+}
+
 // IsOrgMember returns true if given user is member of organization.
 func (org *Organization) IsOrgMember(uid int64) (bool, error) {
 	return IsOrganizationMember(db.DefaultContext, org.ID, uid)
@@ -98,25 +112,17 @@ func (org *Organization) IsOrgMember(uid int64) (bool, error) {
 
 // CanCreateOrgRepo returns true if given user can create repo in organization
 func (org *Organization) CanCreateOrgRepo(uid int64) (bool, error) {
-	return CanCreateOrgRepo(org.ID, uid)
-}
-
-func (org *Organization) getTeam(ctx context.Context, name string) (*Team, error) {
-	return getTeam(ctx, org.ID, name)
+	return CanCreateOrgRepo(db.DefaultContext, org.ID, uid)
 }
 
 // GetTeam returns named team of organization.
-func (org *Organization) GetTeam(name string) (*Team, error) {
-	return org.getTeam(db.DefaultContext, name)
-}
-
-func (org *Organization) getOwnerTeam(ctx context.Context) (*Team, error) {
-	return org.getTeam(ctx, OwnerTeamName)
+func (org *Organization) GetTeam(ctx context.Context, name string) (*Team, error) {
+	return GetTeam(ctx, org.ID, name)
 }
 
 // GetOwnerTeam returns owner team of organization.
-func (org *Organization) GetOwnerTeam() (*Team, error) {
-	return org.getOwnerTeam(db.DefaultContext)
+func (org *Organization) GetOwnerTeam(ctx context.Context) (*Team, error) {
+	return org.GetTeam(ctx, OwnerTeamName)
 }
 
 // FindOrgTeams returns all teams of a given organization
@@ -155,8 +161,8 @@ func (org *Organization) hasMemberWithUserID(ctx context.Context, userID int64) 
 }
 
 // AvatarLink returns the full avatar link with http host
-func (org *Organization) AvatarLink() string {
-	return org.AsUser().AvatarLink()
+func (org *Organization) AvatarLink(ctx context.Context) string {
+	return org.AsUser().AvatarLink(ctx)
 }
 
 // HTMLURL returns the organization's full link.
@@ -203,7 +209,7 @@ func CountOrgMembers(opts *FindOrgMembersOpts) (int64, error) {
 
 // FindOrgMembers loads organization members according conditions
 func FindOrgMembers(opts *FindOrgMembersOpts) (user_model.UserList, map[int64]bool, error) {
-	ous, err := GetOrgUsersByOrgID(opts)
+	ous, err := GetOrgUsersByOrgID(db.DefaultContext, opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -238,6 +244,32 @@ func (org *Organization) CustomAvatarRelativePath() string {
 	return org.Avatar
 }
 
+// UnitPermission returns unit permission
+func (org *Organization) UnitPermission(ctx context.Context, doer *user_model.User, unitType unit.Type) perm.AccessMode {
+	if doer != nil {
+		teams, err := GetUserOrgTeams(ctx, org.ID, doer.ID)
+		if err != nil {
+			log.Error("GetUserOrgTeams: %v", err)
+			return perm.AccessModeNone
+		}
+
+		if err := teams.LoadUnits(ctx); err != nil {
+			log.Error("LoadUnits: %v", err)
+			return perm.AccessModeNone
+		}
+
+		if len(teams) > 0 {
+			return teams.UnitMaxAccess(unitType)
+		}
+	}
+
+	if org.Visibility.IsPublic() {
+		return perm.AccessModeRead
+	}
+
+	return perm.AccessModeNone
+}
+
 // CreateOrganization creates record of a new organization.
 func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
 	if !owner.CanCreateOrganization() {
@@ -248,7 +280,7 @@ func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
 		return err
 	}
 
-	isExist, err := user_model.IsUserExist(0, org.Name)
+	isExist, err := user_model.IsUserExist(db.DefaultContext, 0, org.Name)
 	if err != nil {
 		return err
 	} else if isExist {
@@ -268,7 +300,7 @@ func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
 	org.NumMembers = 1
 	org.Type = user_model.UserTypeOrganization
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
@@ -279,10 +311,10 @@ func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
 	}
 
 	if err = db.Insert(ctx, org); err != nil {
-		return fmt.Errorf("insert organization: %v", err)
+		return fmt.Errorf("insert organization: %w", err)
 	}
-	if err = user_model.GenerateRandomAvatarCtx(ctx, org.AsUser()); err != nil {
-		return fmt.Errorf("generate random avatar: %v", err)
+	if err = user_model.GenerateRandomAvatar(ctx, org.AsUser()); err != nil {
+		return fmt.Errorf("generate random avatar: %w", err)
 	}
 
 	// Add initial creator to organization and owner team.
@@ -290,7 +322,7 @@ func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
 		UID:   owner.ID,
 		OrgID: org.ID,
 	}); err != nil {
-		return fmt.Errorf("insert org-user relation: %v", err)
+		return fmt.Errorf("insert org-user relation: %w", err)
 	}
 
 	// Create default owner team.
@@ -304,16 +336,21 @@ func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
 		CanCreateOrgRepo:        true,
 	}
 	if err = db.Insert(ctx, t); err != nil {
-		return fmt.Errorf("insert owner team: %v", err)
+		return fmt.Errorf("insert owner team: %w", err)
 	}
 
 	// insert units for team
 	units := make([]TeamUnit, 0, len(unit.AllRepoUnitTypes))
 	for _, tp := range unit.AllRepoUnitTypes {
+		up := perm.AccessModeOwner
+		if tp == unit.TypeExternalTracker || tp == unit.TypeExternalWiki {
+			up = perm.AccessModeRead
+		}
 		units = append(units, TeamUnit{
-			OrgID:  org.ID,
-			TeamID: t.ID,
-			Type:   tp,
+			OrgID:      org.ID,
+			TeamID:     t.ID,
+			Type:       tp,
+			AccessMode: up,
 		})
 	}
 
@@ -326,14 +363,14 @@ func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
 		OrgID:  org.ID,
 		TeamID: t.ID,
 	}); err != nil {
-		return fmt.Errorf("insert team-user relation: %v", err)
+		return fmt.Errorf("insert team-user relation: %w", err)
 	}
 
 	return committer.Commit()
 }
 
 // GetOrgByName returns organization by given name.
-func GetOrgByName(name string) (*Organization, error) {
+func GetOrgByName(ctx context.Context, name string) (*Organization, error) {
 	if len(name) == 0 {
 		return nil, ErrOrgNotExist{0, name}
 	}
@@ -341,21 +378,13 @@ func GetOrgByName(name string) (*Organization, error) {
 		LowerName: strings.ToLower(name),
 		Type:      user_model.UserTypeOrganization,
 	}
-	has, err := db.GetEngine(db.DefaultContext).Get(u)
+	has, err := db.GetEngine(ctx).Get(u)
 	if err != nil {
 		return nil, err
 	} else if !has {
 		return nil, ErrOrgNotExist{0, name}
 	}
 	return u, nil
-}
-
-// CountOrganizations returns number of organizations.
-func CountOrganizations() int64 {
-	count, _ := db.GetEngine(db.DefaultContext).
-		Where("type=1").
-		Count(new(Organization))
-	return count
 }
 
 // DeleteOrganization deletes models associated to an organization.
@@ -369,12 +398,14 @@ func DeleteOrganization(ctx context.Context, org *Organization) error {
 		&OrgUser{OrgID: org.ID},
 		&TeamUser{OrgID: org.ID},
 		&TeamUnit{OrgID: org.ID},
+		&TeamInvite{OrgID: org.ID},
+		&secret_model.Secret{OwnerID: org.ID},
 	); err != nil {
-		return fmt.Errorf("deleteBeans: %v", err)
+		return fmt.Errorf("DeleteBeans: %w", err)
 	}
 
 	if _, err := db.GetEngine(ctx).ID(org.ID).Delete(new(user_model.User)); err != nil {
-		return fmt.Errorf("Delete: %v", err)
+		return fmt.Errorf("Delete: %w", err)
 	}
 
 	return nil
@@ -394,13 +425,14 @@ func (org *Organization) GetOrgUserMaxAuthorizeLevel(uid int64) (perm.AccessMode
 }
 
 // GetUsersWhoCanCreateOrgRepo returns users which are able to create repo in organization
-func GetUsersWhoCanCreateOrgRepo(ctx context.Context, orgID int64) ([]*user_model.User, error) {
-	users := make([]*user_model.User, 0, 10)
+func GetUsersWhoCanCreateOrgRepo(ctx context.Context, orgID int64) (map[int64]*user_model.User, error) {
+	// Use a map, in order to de-duplicate users.
+	users := make(map[int64]*user_model.User)
 	return users, db.GetEngine(ctx).
 		Join("INNER", "`team_user`", "`team_user`.uid=`user`.id").
 		Join("INNER", "`team`", "`team`.id=`team_user`.team_id").
 		Where(builder.Eq{"team.can_create_org_repo": true}.Or(builder.Eq{"team.authorize": perm.AccessModeOwner})).
-		And("team_user.org_id = ?", orgID).Asc("`user`.name").Find(&users)
+		And("team_user.org_id = ?", orgID).Find(&users)
 }
 
 // SearchOrganizationsOptions options to filter organizations
@@ -425,7 +457,7 @@ func queryUserOrgIDs(userID int64, includePrivate bool) *builder.Builder {
 }
 
 func (opts FindOrgOptions) toConds() builder.Cond {
-	cond := builder.NewCond()
+	var cond builder.Cond = builder.Eq{"`user`.`type`": user_model.UserTypeOrganization}
 	if opts.UserID > 0 {
 		cond = cond.And(builder.In("`user`.`id`", queryUserOrgIDs(opts.UserID, opts.IncludePrivate)))
 	}
@@ -451,24 +483,14 @@ func FindOrgs(opts FindOrgOptions) ([]*Organization, error) {
 func CountOrgs(opts FindOrgOptions) (int64, error) {
 	return db.GetEngine(db.DefaultContext).
 		Where(opts.toConds()).
-		Count(new(user_model.User))
-}
-
-func getOwnedOrgsByUserID(sess db.Engine, userID int64) ([]*Organization, error) {
-	orgs := make([]*Organization, 0, 10)
-	return orgs, sess.
-		Join("INNER", "`team_user`", "`team_user`.org_id=`user`.id").
-		Join("INNER", "`team`", "`team`.id=`team_user`.team_id").
-		Where("`team_user`.uid=?", userID).
-		And("`team`.authorize=?", perm.AccessModeOwner).
-		Asc("`user`.name").
-		Find(&orgs)
+		Count(new(Organization))
 }
 
 // HasOrgOrUserVisible tells if the given user can see the given org or user
 func HasOrgOrUserVisible(ctx context.Context, orgOrUser, user *user_model.User) bool {
-	// Not SignedUser
-	if user == nil {
+	// If user is nil, it's an anonymous user/request.
+	// The Ghost user is handled like an anonymous user.
+	if user == nil || user.IsGhost() {
 		return orgOrUser.Visibility == structs.VisibleTypePublic
 	}
 
@@ -496,17 +518,6 @@ func HasOrgsVisible(orgs []*Organization, user *user_model.User) bool {
 	return false
 }
 
-// GetOwnedOrgsByUserID returns a list of organizations are owned by given user ID.
-func GetOwnedOrgsByUserID(userID int64) ([]*Organization, error) {
-	return getOwnedOrgsByUserID(db.GetEngine(db.DefaultContext), userID)
-}
-
-// GetOwnedOrgsByUserIDDesc returns a list of organizations are owned by
-// given user ID, ordered descending by the given condition.
-func GetOwnedOrgsByUserIDDesc(userID int64, desc string) ([]*Organization, error) {
-	return getOwnedOrgsByUserID(db.GetEngine(db.DefaultContext).Desc(desc), userID)
-}
-
 // GetOrgsCanCreateRepoByUserID returns a list of organizations where given user ID
 // are allowed to create repos.
 func GetOrgsCanCreateRepoByUserID(userID int64) ([]*Organization, error) {
@@ -521,34 +532,9 @@ func GetOrgsCanCreateRepoByUserID(userID int64) ([]*Organization, error) {
 		Find(&orgs)
 }
 
-// GetOrgUsersByUserID returns all organization-user relations by user ID.
-func GetOrgUsersByUserID(uid int64, opts *SearchOrganizationsOptions) ([]*OrgUser, error) {
-	ous := make([]*OrgUser, 0, 10)
-	sess := db.GetEngine(db.DefaultContext).
-		Join("LEFT", "`user`", "`org_user`.org_id=`user`.id").
-		Where("`org_user`.uid=?", uid)
-	if !opts.All {
-		// Only show public organizations
-		sess.And("is_public=?", true)
-	}
-
-	if opts.PageSize != 0 {
-		sess = db.SetSessionPagination(sess, opts)
-	}
-
-	err := sess.
-		Asc("`user`.name").
-		Find(&ous)
-	return ous, err
-}
-
 // GetOrgUsersByOrgID returns all organization-user relations by organization ID.
-func GetOrgUsersByOrgID(opts *FindOrgMembersOpts) ([]*OrgUser, error) {
-	return getOrgUsersByOrgID(db.GetEngine(db.DefaultContext), opts)
-}
-
-func getOrgUsersByOrgID(e db.Engine, opts *FindOrgMembersOpts) ([]*OrgUser, error) {
-	sess := e.Where("org_id=?", opts.OrgID)
+func GetOrgUsersByOrgID(ctx context.Context, opts *FindOrgMembersOpts) ([]*OrgUser, error) {
+	sess := db.GetEngine(ctx).Where("org_id=?", opts.OrgID)
 	if opts.PublicOnly {
 		sess.And("is_public = ?", true)
 	}
@@ -588,11 +574,17 @@ func AddOrgUser(orgID, uid int64) error {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
+
+	// check in transaction
+	isAlreadyMember, err = IsOrganizationMember(ctx, orgID, uid)
+	if err != nil || isAlreadyMember {
+		return err
+	}
 
 	ou := &OrgUser{
 		UID:      uid,
@@ -609,8 +601,8 @@ func AddOrgUser(orgID, uid int64) error {
 	return committer.Commit()
 }
 
-// GetOrgByIDCtx returns the user object by given ID if exists.
-func GetOrgByIDCtx(ctx context.Context, id int64) (*Organization, error) {
+// GetOrgByID returns the user object by given ID if exists.
+func GetOrgByID(ctx context.Context, id int64) (*Organization, error) {
 	u := new(Organization)
 	has, err := db.GetEngine(ctx).ID(id).Get(u)
 	if err != nil {
@@ -623,11 +615,6 @@ func GetOrgByIDCtx(ctx context.Context, id int64) (*Organization, error) {
 		}
 	}
 	return u, nil
-}
-
-// GetOrgByID returns the user object by given ID if exists.
-func GetOrgByID(id int64) (*Organization, error) {
-	return GetOrgByIDCtx(db.DefaultContext, id)
 }
 
 // RemoveOrgRepo removes all team-repository relations of organization.
@@ -658,9 +645,9 @@ func RemoveOrgRepo(ctx context.Context, orgID, repoID int64) error {
 	return err
 }
 
-func (org *Organization) getUserTeams(e db.Engine, userID int64, cols ...string) ([]*Team, error) {
+func (org *Organization) getUserTeams(ctx context.Context, userID int64, cols ...string) ([]*Team, error) {
 	teams := make([]*Team, 0, org.NumTeams)
-	return teams, e.
+	return teams, db.GetEngine(ctx).
 		Where("`team_user`.org_id = ?", org.ID).
 		Join("INNER", "team_user", "`team_user`.team_id = team.id").
 		Join("INNER", "`user`", "`user`.id=team_user.uid").
@@ -683,7 +670,7 @@ func (org *Organization) getUserTeamIDs(ctx context.Context, userID int64) ([]in
 
 // TeamsWithAccessToRepo returns all teams that have given access level to the repository.
 func (org *Organization) TeamsWithAccessToRepo(repoID int64, mode perm.AccessMode) ([]*Team, error) {
-	return GetTeamsWithAccessToRepo(org.ID, repoID, mode)
+	return GetTeamsWithAccessToRepo(db.DefaultContext, org.ID, repoID, mode)
 }
 
 // GetUserTeamIDs returns of all team IDs of the organization that user is member of.
@@ -694,7 +681,7 @@ func (org *Organization) GetUserTeamIDs(userID int64) ([]int64, error) {
 // GetUserTeams returns all teams that belong to user,
 // and that the user has joined.
 func (org *Organization) GetUserTeams(userID int64) ([]*Team, error) {
-	return org.getUserTeams(db.GetEngine(db.DefaultContext), userID)
+	return org.getUserTeams(db.DefaultContext, userID)
 }
 
 // AccessibleReposEnvironment operations involving the repositories that are
@@ -702,8 +689,8 @@ func (org *Organization) GetUserTeams(userID int64) ([]*Team, error) {
 type AccessibleReposEnvironment interface {
 	CountRepos() (int64, error)
 	RepoIDs(page, pageSize int) ([]int64, error)
-	Repos(page, pageSize int) ([]*repo_model.Repository, error)
-	MirrorRepos() ([]*repo_model.Repository, error)
+	Repos(page, pageSize int) (repo_model.RepositoryList, error)
+	MirrorRepos() (repo_model.RepositoryList, error)
 	AddKeyword(keyword string)
 	SetSort(db.SearchOrderBy)
 }
@@ -713,7 +700,7 @@ type accessibleReposEnv struct {
 	user    *user_model.User
 	team    *Team
 	teamIDs []int64
-	e       db.Engine
+	ctx     context.Context
 	keyword string
 	orderBy db.SearchOrderBy
 }
@@ -724,7 +711,7 @@ func AccessibleReposEnv(ctx context.Context, org *Organization, userID int64) (A
 	var user *user_model.User
 
 	if userID > 0 {
-		u, err := user_model.GetUserByIDCtx(ctx, userID)
+		u, err := user_model.GetUserByID(ctx, userID)
 		if err != nil {
 			return nil, err
 		}
@@ -739,7 +726,7 @@ func AccessibleReposEnv(ctx context.Context, org *Organization, userID int64) (A
 		org:     org,
 		user:    user,
 		teamIDs: teamIDs,
-		e:       db.GetEngine(ctx),
+		ctx:     ctx,
 		orderBy: db.SearchOrderByRecentUpdated,
 	}, nil
 }
@@ -750,7 +737,7 @@ func (org *Organization) AccessibleTeamReposEnv(team *Team) AccessibleReposEnvir
 	return &accessibleReposEnv{
 		org:     org,
 		team:    team,
-		e:       db.GetEngine(db.DefaultContext),
+		ctx:     db.DefaultContext,
 		orderBy: db.SearchOrderByRecentUpdated,
 	}
 }
@@ -777,13 +764,13 @@ func (env *accessibleReposEnv) cond() builder.Cond {
 }
 
 func (env *accessibleReposEnv) CountRepos() (int64, error) {
-	repoCount, err := env.e.
+	repoCount, err := db.GetEngine(env.ctx).
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id").
 		Where(env.cond()).
 		Distinct("`repository`.id").
 		Count(&repo_model.Repository{})
 	if err != nil {
-		return 0, fmt.Errorf("count user repositories in organization: %v", err)
+		return 0, fmt.Errorf("count user repositories in organization: %w", err)
 	}
 	return repoCount, nil
 }
@@ -794,7 +781,7 @@ func (env *accessibleReposEnv) RepoIDs(page, pageSize int) ([]int64, error) {
 	}
 
 	repoIDs := make([]int64, 0, pageSize)
-	return repoIDs, env.e.
+	return repoIDs, db.GetEngine(env.ctx).
 		Table("repository").
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id").
 		Where(env.cond()).
@@ -805,10 +792,10 @@ func (env *accessibleReposEnv) RepoIDs(page, pageSize int) ([]int64, error) {
 		Find(&repoIDs)
 }
 
-func (env *accessibleReposEnv) Repos(page, pageSize int) ([]*repo_model.Repository, error) {
+func (env *accessibleReposEnv) Repos(page, pageSize int) (repo_model.RepositoryList, error) {
 	repoIDs, err := env.RepoIDs(page, pageSize)
 	if err != nil {
-		return nil, fmt.Errorf("GetUserRepositoryIDs: %v", err)
+		return nil, fmt.Errorf("GetUserRepositoryIDs: %w", err)
 	}
 
 	repos := make([]*repo_model.Repository, 0, len(repoIDs))
@@ -816,7 +803,7 @@ func (env *accessibleReposEnv) Repos(page, pageSize int) ([]*repo_model.Reposito
 		return repos, nil
 	}
 
-	return repos, env.e.
+	return repos, db.GetEngine(env.ctx).
 		In("`repository`.id", repoIDs).
 		OrderBy(string(env.orderBy)).
 		Find(&repos)
@@ -824,7 +811,7 @@ func (env *accessibleReposEnv) Repos(page, pageSize int) ([]*repo_model.Reposito
 
 func (env *accessibleReposEnv) MirrorRepoIDs() ([]int64, error) {
 	repoIDs := make([]int64, 0, 10)
-	return repoIDs, env.e.
+	return repoIDs, db.GetEngine(env.ctx).
 		Table("repository").
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id AND `repository`.is_mirror=?", true).
 		Where(env.cond()).
@@ -834,10 +821,10 @@ func (env *accessibleReposEnv) MirrorRepoIDs() ([]int64, error) {
 		Find(&repoIDs)
 }
 
-func (env *accessibleReposEnv) MirrorRepos() ([]*repo_model.Repository, error) {
+func (env *accessibleReposEnv) MirrorRepos() (repo_model.RepositoryList, error) {
 	repoIDs, err := env.MirrorRepoIDs()
 	if err != nil {
-		return nil, fmt.Errorf("MirrorRepoIDs: %v", err)
+		return nil, fmt.Errorf("MirrorRepoIDs: %w", err)
 	}
 
 	repos := make([]*repo_model.Repository, 0, len(repoIDs))
@@ -845,7 +832,7 @@ func (env *accessibleReposEnv) MirrorRepos() ([]*repo_model.Repository, error) {
 		return repos, nil
 	}
 
-	return repos, env.e.
+	return repos, db.GetEngine(env.ctx).
 		In("`repository`.id", repoIDs).
 		Find(&repos)
 }

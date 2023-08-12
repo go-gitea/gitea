@@ -1,13 +1,13 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -15,7 +15,7 @@ import (
 // AddDependency adds new dependencies
 func AddDependency(ctx *context.Context) {
 	issueIndex := ctx.ParamsInt64("index")
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, issueIndex)
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, issueIndex)
 	if err != nil {
 		ctx.ServerError("GetIssueByIndex", err)
 		return
@@ -35,19 +35,35 @@ func AddDependency(ctx *context.Context) {
 	}
 
 	// Redirect
-	defer ctx.Redirect(issue.HTMLURL())
+	defer ctx.Redirect(issue.Link())
 
 	// Dependency
-	dep, err := models.GetIssueByID(depID)
+	dep, err := issues_model.GetIssueByID(ctx, depID)
 	if err != nil {
 		ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_issue_not_exist"))
 		return
 	}
 
 	// Check if both issues are in the same repo if cross repository dependencies is not enabled
-	if issue.RepoID != dep.RepoID && !setting.Service.AllowCrossRepositoryDependencies {
-		ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_not_same_repo"))
-		return
+	if issue.RepoID != dep.RepoID {
+		if !setting.Service.AllowCrossRepositoryDependencies {
+			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_not_same_repo"))
+			return
+		}
+		if err := dep.LoadRepo(ctx); err != nil {
+			ctx.ServerError("loadRepo", err)
+			return
+		}
+		// Can ctx.Doer read issues in the dep repo?
+		depRepoPerm, err := access_model.GetUserRepoPermission(ctx, dep.Repo, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("GetUserRepoPermission", err)
+			return
+		}
+		if !depRepoPerm.CanReadIssuesOrPulls(dep.IsPull) {
+			// you can't see this dependency
+			return
+		}
 	}
 
 	// Check if issue and dependency is the same
@@ -56,12 +72,12 @@ func AddDependency(ctx *context.Context) {
 		return
 	}
 
-	err = models.CreateIssueDependency(ctx.Doer, issue, dep)
+	err = issues_model.CreateIssueDependency(ctx.Doer, issue, dep)
 	if err != nil {
-		if models.IsErrDependencyExists(err) {
+		if issues_model.IsErrDependencyExists(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_exists"))
 			return
-		} else if models.IsErrCircularDependency(err) {
+		} else if issues_model.IsErrCircularDependency(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_cannot_create_circular"))
 			return
 		} else {
@@ -74,7 +90,7 @@ func AddDependency(ctx *context.Context) {
 // RemoveDependency removes the dependency
 func RemoveDependency(ctx *context.Context) {
 	issueIndex := ctx.ParamsInt64("index")
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, issueIndex)
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, issueIndex)
 	if err != nil {
 		ctx.ServerError("GetIssueByIndex", err)
 		return
@@ -96,27 +112,27 @@ func RemoveDependency(ctx *context.Context) {
 	// Dependency Type
 	depTypeStr := ctx.Req.PostForm.Get("dependencyType")
 
-	var depType models.DependencyType
+	var depType issues_model.DependencyType
 
 	switch depTypeStr {
 	case "blockedBy":
-		depType = models.DependencyTypeBlockedBy
+		depType = issues_model.DependencyTypeBlockedBy
 	case "blocking":
-		depType = models.DependencyTypeBlocking
+		depType = issues_model.DependencyTypeBlocking
 	default:
 		ctx.Error(http.StatusBadRequest, "GetDependecyType")
 		return
 	}
 
 	// Dependency
-	dep, err := models.GetIssueByID(depID)
+	dep, err := issues_model.GetIssueByID(ctx, depID)
 	if err != nil {
 		ctx.ServerError("GetIssueByID", err)
 		return
 	}
 
-	if err = models.RemoveIssueDependency(ctx.Doer, issue, dep, depType); err != nil {
-		if models.IsErrDependencyNotExists(err) {
+	if err = issues_model.RemoveIssueDependency(ctx.Doer, issue, dep, depType); err != nil {
+		if issues_model.IsErrDependencyNotExists(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_not_exist"))
 			return
 		}
@@ -125,5 +141,5 @@ func RemoveDependency(ctx *context.Context) {
 	}
 
 	// Redirect
-	ctx.Redirect(issue.HTMLURL())
+	ctx.Redirect(issue.Link())
 }

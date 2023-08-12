@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package asymkey
 
@@ -67,9 +66,9 @@ func init() {
 	db.RegisterModel(new(DeployKey))
 }
 
-func checkDeployKey(e db.Engine, keyID, repoID int64, name string) error {
+func checkDeployKey(ctx context.Context, keyID, repoID int64, name string) error {
 	// Note: We want error detail, not just true or false here.
-	has, err := e.
+	has, err := db.GetEngine(ctx).
 		Where("key_id = ? AND repo_id = ?", keyID, repoID).
 		Get(new(DeployKey))
 	if err != nil {
@@ -78,7 +77,7 @@ func checkDeployKey(e db.Engine, keyID, repoID int64, name string) error {
 		return ErrDeployKeyAlreadyExist{keyID, repoID}
 	}
 
-	has, err = e.
+	has, err = db.GetEngine(ctx).
 		Where("repo_id = ? AND name = ?", repoID, name).
 		Get(new(DeployKey))
 	if err != nil {
@@ -91,8 +90,8 @@ func checkDeployKey(e db.Engine, keyID, repoID int64, name string) error {
 }
 
 // addDeployKey adds new key-repo relation.
-func addDeployKey(e db.Engine, keyID, repoID int64, name, fingerprint string, mode perm.AccessMode) (*DeployKey, error) {
-	if err := checkDeployKey(e, keyID, repoID, name); err != nil {
+func addDeployKey(ctx context.Context, keyID, repoID int64, name, fingerprint string, mode perm.AccessMode) (*DeployKey, error) {
+	if err := checkDeployKey(ctx, keyID, repoID, name); err != nil {
 		return nil, err
 	}
 
@@ -103,8 +102,7 @@ func addDeployKey(e db.Engine, keyID, repoID int64, name, fingerprint string, mo
 		Fingerprint: fingerprint,
 		Mode:        mode,
 	}
-	_, err := e.Insert(key)
-	return key, err
+	return key, db.Insert(ctx, key)
 }
 
 // HasDeployKey returns true if public key is a deploy key of given repository.
@@ -117,7 +115,7 @@ func HasDeployKey(keyID, repoID int64) bool {
 
 // AddDeployKey add new deploy key to database and authorized_keys file.
 func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey, error) {
-	fingerprint, err := calcFingerprint(content)
+	fingerprint, err := CalcFingerprint(content)
 	if err != nil {
 		return nil, err
 	}
@@ -127,18 +125,16 @@ func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey
 		accessMode = perm.AccessModeWrite
 	}
 
-	ctx, committer, err := db.TxContext()
+	ctx, committer, err := db.TxContext(db.DefaultContext)
 	if err != nil {
 		return nil, err
 	}
 	defer committer.Close()
 
-	sess := db.GetEngine(ctx)
-
 	pkey := &PublicKey{
 		Fingerprint: fingerprint,
 	}
-	has, err := sess.Get(pkey)
+	has, err := db.GetByBean(ctx, pkey)
 	if err != nil {
 		return nil, err
 	}
@@ -153,12 +149,12 @@ func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey
 		pkey.Type = KeyTypeDeploy
 		pkey.Content = content
 		pkey.Name = name
-		if err = addKey(sess, pkey); err != nil {
-			return nil, fmt.Errorf("addKey: %v", err)
+		if err = addKey(ctx, pkey); err != nil {
+			return nil, fmt.Errorf("addKey: %w", err)
 		}
 	}
 
-	key, err := addDeployKey(sess, pkey.ID, repoID, name, pkey.Fingerprint, accessMode)
+	key, err := addDeployKey(ctx, pkey.ID, repoID, name, pkey.Fingerprint, accessMode)
 	if err != nil {
 		return nil, err
 	}
@@ -179,22 +175,25 @@ func GetDeployKeyByID(ctx context.Context, id int64) (*DeployKey, error) {
 }
 
 // GetDeployKeyByRepo returns deploy key by given public key ID and repository ID.
-func GetDeployKeyByRepo(keyID, repoID int64) (*DeployKey, error) {
-	return getDeployKeyByRepo(db.GetEngine(db.DefaultContext), keyID, repoID)
-}
-
-func getDeployKeyByRepo(e db.Engine, keyID, repoID int64) (*DeployKey, error) {
+func GetDeployKeyByRepo(ctx context.Context, keyID, repoID int64) (*DeployKey, error) {
 	key := &DeployKey{
 		KeyID:  keyID,
 		RepoID: repoID,
 	}
-	has, err := e.Get(key)
+	has, err := db.GetByBean(ctx, key)
 	if err != nil {
 		return nil, err
 	} else if !has {
 		return nil, ErrDeployKeyNotExist{0, keyID, repoID}
 	}
 	return key, nil
+}
+
+// IsDeployKeyExistByKeyID return true if there is at least one deploykey with the key id
+func IsDeployKeyExistByKeyID(ctx context.Context, keyID int64) (bool, error) {
+	return db.GetEngine(ctx).
+		Where("key_id = ?", keyID).
+		Get(new(DeployKey))
 }
 
 // UpdateDeployKeyCols updates deploy key information in the specified columns.

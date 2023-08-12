@@ -1,14 +1,15 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package issue
 
 import (
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"context"
+
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -16,11 +17,12 @@ import (
 )
 
 // DeleteNotPassedAssignee deletes all assignees who aren't passed via the "assignees" array
-func DeleteNotPassedAssignee(issue *models.Issue, doer *user_model.User, assignees []*user_model.User) (err error) {
+func DeleteNotPassedAssignee(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, assignees []*user_model.User) (err error) {
 	var found bool
+	oriAssignes := make([]*user_model.User, len(issue.Assignees))
+	_ = copy(oriAssignes, issue.Assignees)
 
-	for _, assignee := range issue.Assignees {
-
+	for _, assignee := range oriAssignes {
 		found = false
 		for _, alreadyAssignee := range assignees {
 			if assignee.ID == alreadyAssignee.ID {
@@ -31,7 +33,7 @@ func DeleteNotPassedAssignee(issue *models.Issue, doer *user_model.User, assigne
 
 		if !found {
 			// This function also does comments and hooks, which is why we call it separately instead of directly removing the assignees here
-			if _, _, err := ToggleAssignee(issue, doer, assignee.ID); err != nil {
+			if _, _, err := ToggleAssigneeWithNotify(ctx, issue, doer, assignee.ID); err != nil {
 				return err
 			}
 		}
@@ -40,30 +42,29 @@ func DeleteNotPassedAssignee(issue *models.Issue, doer *user_model.User, assigne
 	return nil
 }
 
-// ToggleAssignee changes a user between assigned and not assigned for this issue, and make issue comment for it.
-func ToggleAssignee(issue *models.Issue, doer *user_model.User, assigneeID int64) (removed bool, comment *models.Comment, err error) {
-	removed, comment, err = models.ToggleIssueAssignee(issue, doer, assigneeID)
+// ToggleAssigneeWithNoNotify changes a user between assigned and not assigned for this issue, and make issue comment for it.
+func ToggleAssigneeWithNotify(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, assigneeID int64) (removed bool, comment *issues_model.Comment, err error) {
+	removed, comment, err = issues_model.ToggleIssueAssignee(ctx, issue, doer, assigneeID)
 	if err != nil {
-		return
+		return false, nil, err
 	}
 
-	assignee, err1 := user_model.GetUserByID(assigneeID)
-	if err1 != nil {
-		err = err1
-		return
+	assignee, err := user_model.GetUserByID(ctx, assigneeID)
+	if err != nil {
+		return false, nil, err
 	}
 
-	notification.NotifyIssueChangeAssignee(doer, issue, assignee, removed, comment)
+	notification.NotifyIssueChangeAssignee(ctx, doer, issue, assignee, removed, comment)
 
-	return
+	return removed, comment, err
 }
 
 // ReviewRequest add or remove a review request from a user for this PR, and make comment for it.
-func ReviewRequest(issue *models.Issue, doer, reviewer *user_model.User, isAdd bool) (comment *models.Comment, err error) {
+func ReviewRequest(ctx context.Context, issue *issues_model.Issue, doer, reviewer *user_model.User, isAdd bool) (comment *issues_model.Comment, err error) {
 	if isAdd {
-		comment, err = models.AddReviewRequest(issue, reviewer, doer)
+		comment, err = issues_model.AddReviewRequest(ctx, issue, reviewer, doer)
 	} else {
-		comment, err = models.RemoveReviewRequest(issue, reviewer, doer)
+		comment, err = issues_model.RemoveReviewRequest(ctx, issue, reviewer, doer)
 	}
 
 	if err != nil {
@@ -71,44 +72,44 @@ func ReviewRequest(issue *models.Issue, doer, reviewer *user_model.User, isAdd b
 	}
 
 	if comment != nil {
-		notification.NotifyPullReviewRequest(doer, issue, reviewer, isAdd, comment)
+		notification.NotifyPullRequestReviewRequest(ctx, doer, issue, reviewer, isAdd, comment)
 	}
 
-	return
+	return comment, err
 }
 
 // IsValidReviewRequest Check permission for ReviewRequest
-func IsValidReviewRequest(reviewer, doer *user_model.User, isAdd bool, issue *models.Issue, permDoer *models.Permission) error {
+func IsValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, isAdd bool, issue *issues_model.Issue, permDoer *access_model.Permission) error {
 	if reviewer.IsOrganization() {
-		return models.ErrNotValidReviewRequest{
+		return issues_model.ErrNotValidReviewRequest{
 			Reason: "Organization can't be added as reviewer",
 			UserID: doer.ID,
 			RepoID: issue.Repo.ID,
 		}
 	}
 	if doer.IsOrganization() {
-		return models.ErrNotValidReviewRequest{
+		return issues_model.ErrNotValidReviewRequest{
 			Reason: "Organization can't be doer to add reviewer",
 			UserID: doer.ID,
 			RepoID: issue.Repo.ID,
 		}
 	}
 
-	permReviewer, err := models.GetUserRepoPermission(issue.Repo, reviewer)
+	permReviewer, err := access_model.GetUserRepoPermission(ctx, issue.Repo, reviewer)
 	if err != nil {
 		return err
 	}
 
 	if permDoer == nil {
-		permDoer = new(models.Permission)
-		*permDoer, err = models.GetUserRepoPermission(issue.Repo, doer)
+		permDoer = new(access_model.Permission)
+		*permDoer, err = access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
 		if err != nil {
 			return err
 		}
 	}
 
-	lastreview, err := models.GetReviewByIssueIDAndUserID(issue.ID, reviewer.ID)
-	if err != nil && !models.IsErrReviewNotExist(err) {
+	lastreview, err := issues_model.GetReviewByIssueIDAndUserID(ctx, issue.ID, reviewer.ID)
+	if err != nil && !issues_model.IsErrReviewNotExist(err) {
 		return err
 	}
 
@@ -116,25 +117,28 @@ func IsValidReviewRequest(reviewer, doer *user_model.User, isAdd bool, issue *mo
 	if isAdd {
 		pemResult = permReviewer.CanAccessAny(perm.AccessModeRead, unit.TypePullRequests)
 		if !pemResult {
-			return models.ErrNotValidReviewRequest{
+			return issues_model.ErrNotValidReviewRequest{
 				Reason: "Reviewer can't read",
 				UserID: doer.ID,
 				RepoID: issue.Repo.ID,
 			}
 		}
 
-		if doer.ID == issue.PosterID && issue.OriginalAuthorID == 0 && lastreview != nil && lastreview.Type != models.ReviewTypeRequest {
+		if doer.ID == issue.PosterID && issue.OriginalAuthorID == 0 && lastreview != nil && lastreview.Type != issues_model.ReviewTypeRequest {
 			return nil
 		}
 
-		pemResult = permDoer.CanAccessAny(perm.AccessModeWrite, unit.TypePullRequests)
+		pemResult = doer.ID == issue.PosterID
 		if !pemResult {
-			pemResult, err = models.IsOfficialReviewer(issue, doer)
+			pemResult = permDoer.CanAccessAny(perm.AccessModeWrite, unit.TypePullRequests)
+		}
+		if !pemResult {
+			pemResult, err = issues_model.IsOfficialReviewer(ctx, issue, doer)
 			if err != nil {
 				return err
 			}
 			if !pemResult {
-				return models.ErrNotValidReviewRequest{
+				return issues_model.ErrNotValidReviewRequest{
 					Reason: "Doer can't choose reviewer",
 					UserID: doer.ID,
 					RepoID: issue.Repo.ID,
@@ -143,20 +147,20 @@ func IsValidReviewRequest(reviewer, doer *user_model.User, isAdd bool, issue *mo
 		}
 
 		if reviewer.ID == issue.PosterID && issue.OriginalAuthorID == 0 {
-			return models.ErrNotValidReviewRequest{
+			return issues_model.ErrNotValidReviewRequest{
 				Reason: "poster of pr can't be reviewer",
 				UserID: doer.ID,
 				RepoID: issue.Repo.ID,
 			}
 		}
 	} else {
-		if lastreview != nil && lastreview.Type == models.ReviewTypeRequest && lastreview.ReviewerID == doer.ID {
+		if lastreview != nil && lastreview.Type == issues_model.ReviewTypeRequest && lastreview.ReviewerID == doer.ID {
 			return nil
 		}
 
 		pemResult = permDoer.IsAdmin()
 		if !pemResult {
-			return models.ErrNotValidReviewRequest{
+			return issues_model.ErrNotValidReviewRequest{
 				Reason: "Doer is not admin",
 				UserID: doer.ID,
 				RepoID: issue.Repo.ID,
@@ -168,16 +172,16 @@ func IsValidReviewRequest(reviewer, doer *user_model.User, isAdd bool, issue *mo
 }
 
 // IsValidTeamReviewRequest Check permission for ReviewRequest Team
-func IsValidTeamReviewRequest(reviewer *organization.Team, doer *user_model.User, isAdd bool, issue *models.Issue) error {
+func IsValidTeamReviewRequest(ctx context.Context, reviewer *organization.Team, doer *user_model.User, isAdd bool, issue *issues_model.Issue) error {
 	if doer.IsOrganization() {
-		return models.ErrNotValidReviewRequest{
+		return issues_model.ErrNotValidReviewRequest{
 			Reason: "Organization can't be doer to add reviewer",
 			UserID: doer.ID,
 			RepoID: issue.Repo.ID,
 		}
 	}
 
-	permission, err := models.GetUserRepoPermission(issue.Repo, doer)
+	permission, err := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
 	if err != nil {
 		log.Error("Unable to GetUserRepoPermission for %-v in %-v#%d", doer, issue.Repo, issue.Index)
 		return err
@@ -185,10 +189,10 @@ func IsValidTeamReviewRequest(reviewer *organization.Team, doer *user_model.User
 
 	if isAdd {
 		if issue.Repo.IsPrivate {
-			hasTeam := organization.HasTeamRepo(db.DefaultContext, reviewer.OrgID, reviewer.ID, issue.RepoID)
+			hasTeam := organization.HasTeamRepo(ctx, reviewer.OrgID, reviewer.ID, issue.RepoID)
 
 			if !hasTeam {
-				return models.ErrNotValidReviewRequest{
+				return issues_model.ErrNotValidReviewRequest{
 					Reason: "Reviewing team can't read repo",
 					UserID: doer.ID,
 					RepoID: issue.Repo.ID,
@@ -197,14 +201,14 @@ func IsValidTeamReviewRequest(reviewer *organization.Team, doer *user_model.User
 		}
 
 		doerCanWrite := permission.CanAccessAny(perm.AccessModeWrite, unit.TypePullRequests)
-		if !doerCanWrite {
-			official, err := models.IsOfficialReviewer(issue, doer)
+		if !doerCanWrite && doer.ID != issue.PosterID {
+			official, err := issues_model.IsOfficialReviewer(ctx, issue, doer)
 			if err != nil {
 				log.Error("Unable to Check if IsOfficialReviewer for %-v in %-v#%d", doer, issue.Repo, issue.Index)
 				return err
 			}
 			if !official {
-				return models.ErrNotValidReviewRequest{
+				return issues_model.ErrNotValidReviewRequest{
 					Reason: "Doer can't choose reviewer",
 					UserID: doer.ID,
 					RepoID: issue.Repo.ID,
@@ -212,7 +216,7 @@ func IsValidTeamReviewRequest(reviewer *organization.Team, doer *user_model.User
 			}
 		}
 	} else if !permission.IsAdmin() {
-		return models.ErrNotValidReviewRequest{
+		return issues_model.ErrNotValidReviewRequest{
 			Reason: "Only admin users can remove team requests. Doer is not admin",
 			UserID: doer.ID,
 			RepoID: issue.Repo.ID,
@@ -223,31 +227,31 @@ func IsValidTeamReviewRequest(reviewer *organization.Team, doer *user_model.User
 }
 
 // TeamReviewRequest add or remove a review request from a team for this PR, and make comment for it.
-func TeamReviewRequest(issue *models.Issue, doer *user_model.User, reviewer *organization.Team, isAdd bool) (comment *models.Comment, err error) {
+func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, reviewer *organization.Team, isAdd bool) (comment *issues_model.Comment, err error) {
 	if isAdd {
-		comment, err = models.AddTeamReviewRequest(issue, reviewer, doer)
+		comment, err = issues_model.AddTeamReviewRequest(ctx, issue, reviewer, doer)
 	} else {
-		comment, err = models.RemoveTeamReviewRequest(issue, reviewer, doer)
+		comment, err = issues_model.RemoveTeamReviewRequest(ctx, issue, reviewer, doer)
 	}
 
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	if comment == nil || !isAdd {
-		return
+		return nil, nil
 	}
 
 	// notify all user in this team
-	if err = comment.LoadIssue(); err != nil {
-		return
+	if err := comment.LoadIssue(ctx); err != nil {
+		return nil, err
 	}
 
-	members, err := organization.GetTeamMembers(db.DefaultContext, &organization.SearchMembersOptions{
+	members, err := organization.GetTeamMembers(ctx, &organization.SearchMembersOptions{
 		TeamID: reviewer.ID,
 	})
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	for _, member := range members {
@@ -255,8 +259,8 @@ func TeamReviewRequest(issue *models.Issue, doer *user_model.User, reviewer *org
 			continue
 		}
 		comment.AssigneeID = member.ID
-		notification.NotifyPullReviewRequest(doer, issue, member, isAdd, comment)
+		notification.NotifyPullRequestReviewRequest(ctx, doer, issue, member, isAdd, comment)
 	}
 
-	return
+	return comment, err
 }

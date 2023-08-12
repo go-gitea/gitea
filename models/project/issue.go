@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package project
 
@@ -9,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/log"
 )
 
 // ProjectIssue saves relation from issue to a project
@@ -19,14 +19,17 @@ type ProjectIssue struct { //revive:disable-line:exported
 
 	// If 0, then it has not been added to a specific board in the project
 	ProjectBoardID int64 `xorm:"INDEX"`
+
+	// the sorting order on the board
+	Sorting int64 `xorm:"NOT NULL DEFAULT 0"`
 }
 
 func init() {
 	db.RegisterModel(new(ProjectIssue))
 }
 
-func deleteProjectIssuesByProjectID(e db.Engine, projectID int64) error {
-	_, err := e.Where("project_id=?", projectID).Delete(&ProjectIssue{})
+func deleteProjectIssuesByProjectID(ctx context.Context, projectID int64) error {
+	_, err := db.GetEngine(ctx).Where("project_id=?", projectID).Delete(&ProjectIssue{})
 	return err
 }
 
@@ -38,6 +41,7 @@ func (p *Project) NumIssues() int {
 		Cols("issue_id").
 		Count()
 	if err != nil {
+		log.Error("NumIssues: %v", err)
 		return 0
 	}
 	return int(c)
@@ -51,6 +55,7 @@ func (p *Project) NumClosedIssues() int {
 		Cols("issue_id").
 		Count()
 	if err != nil {
+		log.Error("NumClosedIssues: %v", err)
 		return 0
 	}
 	return int(c)
@@ -60,8 +65,11 @@ func (p *Project) NumClosedIssues() int {
 func (p *Project) NumOpenIssues() int {
 	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
 		Join("INNER", "issue", "project_issue.issue_id=issue.id").
-		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, false).Count("issue.id")
+		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, false).
+		Cols("issue_id").
+		Count()
 	if err != nil {
+		log.Error("NumOpenIssues: %v", err)
 		return 0
 	}
 	return int(c)
@@ -69,7 +77,7 @@ func (p *Project) NumOpenIssues() int {
 
 // MoveIssuesOnProjectBoard moves or keeps issues in a column and sorts them inside that column
 func MoveIssuesOnProjectBoard(board *Board, sortedIssueIDs map[int64]int64) error {
-	return db.WithTx(func(ctx context.Context) error {
+	return db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		sess := db.GetEngine(ctx)
 
 		issueIDs := make([]int64, 0, len(sortedIssueIDs))
@@ -94,7 +102,7 @@ func MoveIssuesOnProjectBoard(board *Board, sortedIssueIDs map[int64]int64) erro
 	})
 }
 
-func (pb *Board) removeIssues(e db.Engine) error {
-	_, err := e.Exec("UPDATE `project_issue` SET project_board_id = 0 WHERE project_board_id = ? ", pb.ID)
+func (b *Board) removeIssues(ctx context.Context) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id = 0 WHERE project_board_id = ? ", b.ID)
 	return err
 }

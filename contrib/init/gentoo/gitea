@@ -2,14 +2,43 @@
 
 DIR=/var/lib/gitea
 USER=git
+HOME=/home/${USER}
+GITEA_WORK_DIR=${DIR}
+EXECUTABLE=/usr/local/bin/gitea
 
+export USER
+export HOME
+export GITEA_WORK_DIR
+
+name=$RC_SVCNAME
+cfgfile="/etc/$RC_SVCNAME/app.ini"
+command="${EXECUTABLE}"
+command_user="${USER}"
+command_args="web -c /etc/$RC_SVCNAME/app.ini"
+command_background="yes"
+pidfile="/run/$RC_SVCNAME/$RC_SVCNAME.pid"
 start_stop_daemon_args="--user ${USER} --chdir ${DIR}"
-command="/usr/local/bin/gitea"
-command_args="web -c /etc/gitea/app.ini"
-command_background=yes
-pidfile=/run/gitea.pid
 
 depend()
 {
     need net
+    ###
+    # Don't forget to add the database service requirements
+    ###
+    #after postgresql
+    #after mysql
+    #after mariadb
+    #after memcached
+    #after redis
+}
+
+start_pre()
+{
+        checkpath --directory --owner $command_user:$command_user --mode 0750 \
+                /run/$RC_SVCNAME /var/log/$RC_SVCNAME
+        ##
+        # If you want to bind Gitea to a port below 1024, uncomment
+        # the value below
+        ##
+        #setcap cap_net_bind_service=+ep "${EXECUTABLE}"
 }

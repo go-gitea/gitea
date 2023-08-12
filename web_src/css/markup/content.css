@@ -1,0 +1,581 @@
+.markup {
+  overflow: hidden;
+  font-size: 16px;
+  line-height: 1.5 !important;
+  word-wrap: break-word;
+}
+
+.markup > *:first-child {
+  margin-top: 0 !important;
+}
+
+.markup > *:last-child {
+  margin-bottom: 0 !important;
+}
+
+.markup a:not([href]) {
+  color: inherit;
+  text-decoration: none;
+}
+
+.markup .absent {
+  color: var(--color-red);
+}
+
+.markup .anchor {
+  float: left;
+  padding-right: 4px;
+  margin-left: -20px;
+  color: inherit;
+}
+
+.markup .anchor .svg {
+  vertical-align: middle;
+}
+
+.markup .anchor:focus {
+  outline: none;
+}
+
+.markup h1 .anchor {
+  margin-top: -2px; /* re-align to center */
+}
+
+.markup h1 .anchor .svg,
+.markup h2 .anchor .svg,
+.markup h3 .anchor .svg,
+.markup h4 .anchor .svg,
+.markup h5 .anchor .svg,
+.markup h6 .anchor .svg {
+  visibility: hidden;
+}
+
+.markup h1:hover .anchor .svg,
+.markup h2:hover .anchor .svg,
+.markup h3:hover .anchor .svg,
+.markup h4:hover .anchor .svg,
+.markup h5:hover .anchor .svg,
+.markup h6:hover .anchor .svg {
+  visibility: visible;
+}
+
+.markup h2 .anchor .svg,
+.markup h3 .anchor .svg,
+.markup h4 .anchor .svg {
+  position: relative;
+  top: -2px;
+}
+
+.markup h1,
+.markup h2,
+.markup h3,
+.markup h4,
+.markup h5,
+.markup h6 {
+  margin-top: 24px;
+  margin-bottom: 16px;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.25;
+}
+
+.markup h1 tt,
+.markup h1 code,
+.markup h2 tt,
+.markup h2 code,
+.markup h3 tt,
+.markup h3 code,
+.markup h4 tt,
+.markup h4 code,
+.markup h5 tt,
+.markup h5 code,
+.markup h6 tt,
+.markup h6 code {
+  font-size: inherit;
+}
+
+.markup h1 {
+  padding-bottom: 0.3em;
+  font-size: 2em;
+  border-bottom: 1px solid var(--color-secondary);
+}
+
+.markup h2 {
+  padding-bottom: 0.3em;
+  font-size: 1.5em;
+  border-bottom: 1px solid var(--color-secondary);
+}
+
+.markup h3 {
+  font-size: 1.25em;
+}
+
+.markup h4 {
+  font-size: 1em;
+}
+
+.markup h5 {
+  font-size: 0.875em;
+}
+
+.markup h6 {
+  font-size: 0.85em;
+  color: var(--color-text-light-2);
+}
+
+.markup p,
+.markup blockquote,
+.markup details,
+.markup ul,
+.markup ol,
+.markup dl,
+.markup table,
+.markup pre {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.markup hr {
+  height: 4px;
+  padding: 0;
+  margin: 16px 0;
+  background-color: var(--color-secondary);
+  border: 0;
+}
+
+.markup ul,
+.markup ol {
+  padding-left: 2em;
+}
+
+.markup ul.no-list,
+.markup ol.no-list {
+  padding: 0;
+  list-style-type: none;
+}
+
+.markup .task-list-item {
+  list-style-type: none;
+  position: relative;
+  line-height: 1.5rem;
+  min-height: 1.5rem; /* // to render a checkbox list without content `- [ ]`, we need this min-height to make sure the <li> can be visible */
+}
+
+.markup .task-list-item input[type="checkbox"] {
+  position: absolute;
+  top: 0.25em;
+  left: -1.6em;
+}
+
+.markup .task-list-item p {
+  line-height: 1.5rem;
+}
+
+.markup .task-list-item + .task-list-item {
+  margin-top: 3px;
+}
+
+.markup input[type="checkbox"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  position: relative;
+  border: 1px solid var(--color-secondary);
+  border-radius: 2px;
+  background: var(--color-input-background);
+  height: 14px;
+  width: 14px;
+  opacity: 1 !important; /* override fomantic on edit preview */
+  pointer-events: auto !important; /* override fomantic on edit preview */
+  vertical-align: middle !important; /* override fomantic on edit preview */
+  -webkit-print-color-adjust: exact;
+  color-adjust: exact;
+}
+
+.markup input[type="checkbox"]:not([disabled]):hover,
+.markup input[type="checkbox"]:not([disabled]):active {
+  border-color: var(--color-primary);
+}
+
+.markup input[type="checkbox"]::after {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  pointer-events: none;
+  background: var(--color-text);
+  mask-size: cover;
+  -webkit-mask-size: cover;
+}
+
+.markup input[type="checkbox"]:checked::after {
+  content: "";
+  mask-image: var(--checkbox-mask-checked);
+  -webkit-mask-image: var(--checkbox-mask-checked);
+  -webkit-print-color-adjust: exact;
+  color-adjust: exact;
+}
+
+.markup input[type="checkbox"]:indeterminate::after {
+  content: "";
+  mask-image: var(--checkbox-mask-indeterminate);
+  -webkit-mask-image: var(--checkbox-mask-indeterminate);
+}
+
+.markup ul ul,
+.markup ul ol,
+.markup ol ol,
+.markup ol ul {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.markup ol ol,
+.markup ul ol {
+  list-style-type: lower-roman;
+}
+
+.markup li > p {
+  margin-top: 16px;
+}
+
+.markup li + li {
+  margin-top: 0.25em;
+}
+
+.markup dl {
+  padding: 0;
+}
+
+.markup dl dt {
+  padding: 0;
+  margin-top: 16px;
+  font-size: 1em;
+  font-style: italic;
+  font-weight: var(--font-weight-semibold);
+}
+
+.markup dl dd {
+  padding: 0 16px;
+  margin-bottom: 16px;
+}
+
+.markup blockquote {
+  margin-left: 0;
+  padding: 0 15px;
+  color: var(--color-text-light-2);
+  border-left: 4px solid var(--color-secondary);
+}
+
+.markup blockquote > :first-child {
+  margin-top: 0;
+}
+
+.markup blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+.markup table {
+  display: block;
+  width: 100%;
+  width: max-content;
+  max-width: 100%;
+  overflow: auto;
+}
+
+.markup table th {
+  font-weight: var(--font-weight-semibold);
+}
+
+.markup table th,
+.markup table td {
+  padding: 6px 13px !important;
+  border: 1px solid var(--color-secondary) !important;
+}
+
+.markup table tr {
+  border-top: 1px solid var(--color-secondary);
+}
+
+.markup table tr:nth-child(2n) {
+  background-color: var(--color-markup-table-row);
+}
+
+.markup img,
+.markup video {
+  max-width: 100%;
+  box-sizing: initial;
+}
+
+/* this background ensures images can break <hr>. We can only do this on
+   cases where the background is known and not transparent. */
+.markup.file-view img,
+.markup.file-view video,
+.comment-body .markup img, /* regular comment */
+.comment-body .markup video,
+.comment-content .markup img, /* code comment */
+.comment-content .markup video,
+.wiki .markup img,
+.wiki .markup video {
+  background: var(--color-box-body);
+}
+
+.markup img[align="right"],
+.markup video[align="right"] {
+  padding-left: 20px;
+}
+
+.markup img[align="left"],
+.markup video[align="left"] {
+  padding-right: 20px;
+}
+
+.markup .emoji {
+  max-width: none;
+  vertical-align: text-top;
+}
+
+.markup span.frame {
+  display: block;
+  overflow: hidden;
+}
+
+.markup span.frame > span {
+  display: block;
+  float: left;
+  width: auto;
+  padding: 7px;
+  margin: 13px 0 0;
+  overflow: hidden;
+  border: 1px solid var(--color-secondary);
+}
+
+.markup span.frame span img,
+.markup span.frame span video {
+  display: block;
+  float: left;
+}
+
+.markup span.frame span span {
+  display: block;
+  padding: 5px 0 0;
+  clear: both;
+  color: var(--color-text);
+}
+
+.markup span.align-center {
+  display: block;
+  overflow: hidden;
+  clear: both;
+}
+
+.markup span.align-center > span {
+  display: block;
+  margin: 13px auto 0;
+  overflow: hidden;
+  text-align: center;
+}
+
+.markup span.align-center span img
+.markup span.align-center span video {
+  margin: 0 auto;
+  text-align: center;
+}
+
+.markup span.align-right {
+  display: block;
+  overflow: hidden;
+  clear: both;
+}
+
+.markup span.align-right > span {
+  display: block;
+  margin: 13px 0 0;
+  overflow: hidden;
+  text-align: right;
+}
+
+.markup span.align-right span img,
+.markup span.align-right span video {
+  margin: 0;
+  text-align: right;
+}
+
+.markup span.float-left {
+  display: block;
+  float: left;
+  margin-right: 13px;
+  overflow: hidden;
+}
+
+.markup span.float-left span {
+  margin: 13px 0 0;
+}
+
+.markup span.float-right {
+  display: block;
+  float: right;
+  margin-left: 13px;
+  overflow: hidden;
+}
+
+.markup span.float-right > span {
+  display: block;
+  margin: 13px auto 0;
+  overflow: hidden;
+  text-align: right;
+}
+
+.markup code,
+.markup tt {
+  padding: 0.2em 0.4em;
+  margin: 0;
+  font-size: 85%;
+  white-space: break-spaces;
+  background-color: var(--color-markup-code-block);
+  border-radius: 4px;
+}
+
+.markup code br,
+.markup tt br {
+  display: none;
+}
+
+.markup del code {
+  text-decoration: inherit;
+}
+
+.markup pre > code {
+  padding: 0;
+  margin: 0;
+  font-size: 100%;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-wrap: break-word;
+  background: transparent;
+  border: 0;
+}
+
+.markup .highlight {
+  margin-bottom: 16px;
+}
+
+.markup .highlight pre,
+.markup pre {
+  padding: 16px;
+  font-size: 85%;
+  line-height: 1.45;
+  background-color: var(--color-markup-code-block);
+  border-radius: 4px;
+}
+
+.markup .highlight pre {
+  margin-bottom: 0;
+  word-break: normal;
+}
+
+.markup pre {
+  word-wrap: normal;
+}
+
+.markup pre code,
+.markup pre tt {
+  display: inline;
+  padding: 0;
+  line-height: inherit;
+  word-wrap: normal;
+  background-color: transparent;
+  border: 0;
+}
+
+.markup pre code::before,
+.markup pre code::after,
+.markup pre tt::before,
+.markup pre tt::after {
+  content: normal;
+}
+
+.markup kbd {
+  display: inline-block;
+  padding: 3px 5px;
+  font-size: 11px;
+  line-height: 10px;
+  color: var(--color-text-light);
+  vertical-align: middle;
+  background-color: var(--color-markup-code-block);
+  border: 1px solid var(--color-secondary);
+  border-radius: 3px;
+  box-shadow: inset 0 -1px 0 var(--color-secondary);
+}
+
+.markup .ui.list .list,
+.markup ol.ui.list ol,
+.markup ul.ui.list ul {
+  padding-left: 2em;
+}
+
+.file-revisions-btn {
+  display: block;
+  float: left;
+  margin-bottom: 2px !important;
+  padding: 11px !important;
+  margin-right: 10px !important;
+}
+
+.file-revisions-btn i {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.markup-render {
+  display: block;
+  border: none;
+  width: 100%;
+  height: var(--height-loading); /* actual height is set in JS after loading */
+  overflow: hidden;
+  color-scheme: normal; /* match the value inside the iframe to allow it to become transparent */
+}
+
+.markup-block-error {
+  display: block !important; /* override fomantic .ui.form .error.message {display: none} */
+  border: none !important;
+  margin-bottom: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  box-shadow: none !important;
+  font-size: 85% !important;
+  white-space: pre-wrap !important;
+  padding: 0.5rem 1rem !important;
+  text-align: left !important;
+}
+
+.markup-block-error + pre {
+  border-top: none !important;
+  margin-top: 0 !important;
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+}
+
+.file-view.markup.orgmode li.unchecked::before {
+  content: "[ ] ";
+}
+
+.file-view.markup.orgmode li.checked::before {
+  content: "[x] ";
+}
+
+.file-view.markup.orgmode li.indeterminate::before {
+  content: "[-] ";
+}
+
+/* This is only needed for <p> because they are literally acting as paragraphs,
+ * and thus having an ::before on the same line would force the paragraph to
+ * move to the next line. This can be avoided by an inline-block display that
+ * avoids that property while still having the other properties of the block
+ * display. */
+.file-view.markup.orgmode li.unchecked > p,
+.file-view.markup.orgmode li.checked > p,
+.file-view.markup.orgmode li.indeterminate > p {
+  display: inline-block;
+}

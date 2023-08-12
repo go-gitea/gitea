@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -16,7 +15,7 @@ import (
 // TopicsPost response for creating repository
 func TopicsPost(ctx *context.Context) {
 	if ctx.Doer == nil {
-		ctx.JSON(http.StatusForbidden, map[string]interface{}{
+		ctx.JSON(http.StatusForbidden, map[string]any{
 			"message": "Only owners could change the topics.",
 		})
 		return
@@ -31,7 +30,7 @@ func TopicsPost(ctx *context.Context) {
 	validTopics, invalidTopics := repo_model.SanitizeAndValidateTopics(topics)
 
 	if len(validTopics) > 25 {
-		ctx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]any{
 			"invalidTopics": nil,
 			"message":       ctx.Tr("repo.topic.count_prompt"),
 		})
@@ -39,7 +38,7 @@ func TopicsPost(ctx *context.Context) {
 	}
 
 	if len(invalidTopics) > 0 {
-		ctx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]any{
 			"invalidTopics": invalidTopics,
 			"message":       ctx.Tr("repo.topic.format_prompt"),
 		})
@@ -49,13 +48,13 @@ func TopicsPost(ctx *context.Context) {
 	err := repo_model.SaveTopics(ctx.Repo.Repository.ID, validTopics...)
 	if err != nil {
 		log.Error("SaveTopics failed: %v", err)
-		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+		ctx.JSON(http.StatusInternalServerError, map[string]any{
 			"message": "Save topics failed.",
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"status": "ok",
 	})
 }

@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
@@ -75,6 +74,8 @@ func CatFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, 
 				Stdin:  batchStdinReader,
 				Stdout: batchStdoutWriter,
 				Stderr: &stderr,
+
+				UseContextTimeout: true,
 			})
 		if err != nil {
 			_ = batchStdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
@@ -125,6 +126,8 @@ func CatFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufi
 				Stdin:  batchStdinReader,
 				Stdout: batchStdoutWriter,
 				Stderr: &stderr,
+
+				UseContextTimeout: true,
 			})
 		if err != nil {
 			_ = batchStdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
@@ -149,39 +152,37 @@ func CatFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufi
 func ReadBatchLine(rd *bufio.Reader) (sha []byte, typ string, size int64, err error) {
 	typ, err = rd.ReadString('\n')
 	if err != nil {
-		return
+		return sha, typ, size, err
 	}
 	if len(typ) == 1 {
 		typ, err = rd.ReadString('\n')
 		if err != nil {
-			return
+			return sha, typ, size, err
 		}
 	}
 	idx := strings.IndexByte(typ, ' ')
 	if idx < 0 {
 		log.Debug("missing space typ: %s", typ)
-		err = ErrNotExist{ID: string(sha)}
-		return
+		return sha, typ, size, ErrNotExist{ID: string(sha)}
 	}
 	sha = []byte(typ[:idx])
 	typ = typ[idx+1:]
 
 	idx = strings.IndexByte(typ, ' ')
 	if idx < 0 {
-		err = ErrNotExist{ID: string(sha)}
-		return
+		return sha, typ, size, ErrNotExist{ID: string(sha)}
 	}
 
 	sizeStr := typ[idx+1 : len(typ)-1]
 	typ = typ[:idx]
 
 	size, err = strconv.ParseInt(sizeStr, 10, 64)
-	return
+	return sha, typ, size, err
 }
 
 // ReadTagObjectID reads a tag object ID hash from a cat-file --batch stream, throwing away the rest of the stream.
 func ReadTagObjectID(rd *bufio.Reader, size int64) (string, error) {
-	id := ""
+	var id string
 	var n int64
 headerLoop:
 	for {
@@ -216,7 +217,7 @@ headerLoop:
 
 // ReadTreeID reads a tree ID from a cat-file --batch stream, throwing away the rest of the stream.
 func ReadTreeID(rd *bufio.Reader, size int64) (string, error) {
-	id := ""
+	var id string
 	var n int64
 headerLoop:
 	for {
@@ -286,14 +287,12 @@ func ParseTreeLine(rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fn
 	// Read the Mode & fname
 	readBytes, err = rd.ReadSlice('\x00')
 	if err != nil {
-		return
+		return mode, fname, sha, n, err
 	}
 	idx := bytes.IndexByte(readBytes, ' ')
 	if idx < 0 {
 		log.Debug("missing space in readBytes ParseTreeLine: %s", readBytes)
-
-		err = &ErrNotExist{}
-		return
+		return mode, fname, sha, n, &ErrNotExist{}
 	}
 
 	n += idx + 1
@@ -320,7 +319,7 @@ func ParseTreeLine(rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fn
 	}
 	n += len(fnameBuf)
 	if err != nil {
-		return
+		return mode, fname, sha, n, err
 	}
 	fnameBuf = fnameBuf[:len(fnameBuf)-1]
 	fname = fnameBuf
@@ -328,16 +327,16 @@ func ParseTreeLine(rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fn
 	// Deal with the 20-byte SHA
 	idx = 0
 	for idx < 20 {
-		read := 0
+		var read int
 		read, err = rd.Read(shaBuf[idx:20])
 		n += read
 		if err != nil {
-			return
+			return mode, fname, sha, n, err
 		}
 		idx += read
 	}
 	sha = shaBuf
-	return
+	return mode, fname, sha, n, err
 }
 
 var callerPrefix string

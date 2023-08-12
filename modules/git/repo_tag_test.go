@@ -1,14 +1,11 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package git
 
 import (
 	"path/filepath"
 	"testing"
-
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,22 +25,24 @@ func TestRepository_GetTags(t *testing.T) {
 		assert.NoError(t, err)
 		return
 	}
-	assert.Len(t, tags, 1)
-	assert.Equal(t, len(tags), total)
-	assert.EqualValues(t, "test", tags[0].Name)
-	assert.EqualValues(t, "3ad28a9149a2864384548f3d17ed7f38014c9e8a", tags[0].ID.String())
+	assert.Len(t, tags, 2)
+	assert.Len(t, tags, total)
+	assert.EqualValues(t, "signed-tag", tags[0].Name)
+	assert.EqualValues(t, "36f97d9a96457e2bab511db30fe2db03893ebc64", tags[0].ID.String())
 	assert.EqualValues(t, "tag", tags[0].Type)
+	assert.EqualValues(t, "test", tags[1].Name)
+	assert.EqualValues(t, "3ad28a9149a2864384548f3d17ed7f38014c9e8a", tags[1].ID.String())
+	assert.EqualValues(t, "tag", tags[1].Type)
 }
 
 func TestRepository_GetTag(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 
-	clonedPath, err := cloneRepo(bareRepo1Path, "TestRepository_GetTag")
+	clonedPath, err := cloneRepo(t, bareRepo1Path)
 	if err != nil {
 		assert.NoError(t, err)
 		return
 	}
-	defer util.RemoveAll(clonedPath)
 
 	bareRepo1, err := openRepositoryWithDefaultContext(clonedPath)
 	if err != nil {
@@ -143,12 +142,11 @@ func TestRepository_GetTag(t *testing.T) {
 func TestRepository_GetAnnotatedTag(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 
-	clonedPath, err := cloneRepo(bareRepo1Path, "TestRepository_GetAnnotatedTag")
+	clonedPath, err := cloneRepo(t, bareRepo1Path)
 	if err != nil {
 		assert.NoError(t, err)
 		return
 	}
-	defer util.RemoveAll(clonedPath)
 
 	bareRepo1, err := openRepositoryWithDefaultContext(clonedPath)
 	if err != nil {

@@ -1,13 +1,11 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package codeformat
 
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"sort"
@@ -159,7 +157,7 @@ func formatGoImports(contentBytes []byte) ([]byte, error) {
 }
 
 // FormatGoImports format the imports by our rules (see unit tests)
-func FormatGoImports(file string, doChangedFiles, doWriteFile bool) error {
+func FormatGoImports(file string, doWriteFile bool) error {
 	f, err := os.Open(file)
 	if err != nil {
 		return err
@@ -181,10 +179,6 @@ func FormatGoImports(file string, doChangedFiles, doWriteFile bool) error {
 	}
 	if bytes.Equal(contentBytes, formattedBytes) {
 		return nil
-	}
-
-	if doChangedFiles {
-		fmt.Println(file)
 	}
 
 	if doWriteFile {

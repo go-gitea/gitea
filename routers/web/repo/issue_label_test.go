@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package repo
 
@@ -9,8 +8,9 @@ import (
 	"strconv"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
@@ -31,13 +31,14 @@ func int64SliceToCommaSeparated(a []int64) string {
 
 func TestInitializeLabels(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1/labels/initialize")
+	assert.NoError(t, repository.LoadRepoConfig())
+	ctx, _ := test.MockContext(t, "user2/repo1/labels/initialize")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 2)
 	web.SetForm(ctx, &forms.InitializeLabelsForm{TemplateName: "Default"})
 	InitializeLabels(ctx)
 	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
-	unittest.AssertExistsAndLoadBean(t, &models.Label{
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Label{
 		RepoID: 2,
 		Name:   "enhancement",
 		Color:  "#84b6eb",
@@ -56,13 +57,13 @@ func TestRetrieveLabels(t *testing.T) {
 		{1, "leastissues", []int64{2, 1}},
 		{2, "", []int64{}},
 	} {
-		ctx := test.MockContext(t, "user/repo/issues")
+		ctx, _ := test.MockContext(t, "user/repo/issues")
 		test.LoadUser(t, ctx, 2)
 		test.LoadRepo(t, ctx, testCase.RepoID)
 		ctx.Req.Form.Set("sort", testCase.Sort)
 		RetrieveLabels(ctx)
 		assert.False(t, ctx.Written())
-		labels, ok := ctx.Data["Labels"].([]*models.Label)
+		labels, ok := ctx.Data["Labels"].([]*issues_model.Label)
 		assert.True(t, ok)
 		if assert.Len(t, labels, len(testCase.ExpectedLabelIDs)) {
 			for i, label := range labels {
@@ -74,7 +75,7 @@ func TestRetrieveLabels(t *testing.T) {
 
 func TestNewLabel(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1/labels/edit")
+	ctx, _ := test.MockContext(t, "user2/repo1/labels/edit")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
 	web.SetForm(ctx, &forms.CreateLabelForm{
@@ -83,7 +84,7 @@ func TestNewLabel(t *testing.T) {
 	})
 	NewLabel(ctx)
 	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
-	unittest.AssertExistsAndLoadBean(t, &models.Label{
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Label{
 		Name:  "newlabel",
 		Color: "#abcdef",
 	})
@@ -92,7 +93,7 @@ func TestNewLabel(t *testing.T) {
 
 func TestUpdateLabel(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1/labels/edit")
+	ctx, _ := test.MockContext(t, "user2/repo1/labels/edit")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
 	web.SetForm(ctx, &forms.CreateLabelForm{
@@ -102,7 +103,7 @@ func TestUpdateLabel(t *testing.T) {
 	})
 	UpdateLabel(ctx)
 	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
-	unittest.AssertExistsAndLoadBean(t, &models.Label{
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Label{
 		ID:    2,
 		Name:  "newnameforlabel",
 		Color: "#abcdef",
@@ -112,29 +113,29 @@ func TestUpdateLabel(t *testing.T) {
 
 func TestDeleteLabel(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1/labels/delete")
+	ctx, _ := test.MockContext(t, "user2/repo1/labels/delete")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
 	ctx.Req.Form.Set("id", "2")
 	DeleteLabel(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
-	unittest.AssertNotExistsBean(t, &models.Label{ID: 2})
-	unittest.AssertNotExistsBean(t, &models.IssueLabel{LabelID: 2})
+	unittest.AssertNotExistsBean(t, &issues_model.Label{ID: 2})
+	unittest.AssertNotExistsBean(t, &issues_model.IssueLabel{LabelID: 2})
 	assert.Equal(t, ctx.Tr("repo.issues.label_deletion_success"), ctx.Flash.SuccessMsg)
 }
 
 func TestUpdateIssueLabel_Clear(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo1/issues/labels")
+	ctx, _ := test.MockContext(t, "user2/repo1/issues/labels")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
 	ctx.Req.Form.Set("issue_ids", "1,3")
 	ctx.Req.Form.Set("action", "clear")
 	UpdateIssueLabel(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
-	unittest.AssertNotExistsBean(t, &models.IssueLabel{IssueID: 1})
-	unittest.AssertNotExistsBean(t, &models.IssueLabel{IssueID: 3})
-	unittest.CheckConsistencyFor(t, &models.Label{})
+	unittest.AssertNotExistsBean(t, &issues_model.IssueLabel{IssueID: 1})
+	unittest.AssertNotExistsBean(t, &issues_model.IssueLabel{IssueID: 3})
+	unittest.CheckConsistencyFor(t, &issues_model.Label{})
 }
 
 func TestUpdateIssueLabel_Toggle(t *testing.T) {
@@ -150,7 +151,7 @@ func TestUpdateIssueLabel_Toggle(t *testing.T) {
 		{"toggle", []int64{1, 2}, 2, true},
 	} {
 		unittest.PrepareTestEnv(t)
-		ctx := test.MockContext(t, "user2/repo1/issues/labels")
+		ctx, _ := test.MockContext(t, "user2/repo1/issues/labels")
 		test.LoadUser(t, ctx, 2)
 		test.LoadRepo(t, ctx, 1)
 		ctx.Req.Form.Set("issue_ids", int64SliceToCommaSeparated(testCase.IssueIDs))
@@ -159,11 +160,11 @@ func TestUpdateIssueLabel_Toggle(t *testing.T) {
 		UpdateIssueLabel(ctx)
 		assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 		for _, issueID := range testCase.IssueIDs {
-			unittest.AssertExistsIf(t, testCase.ExpectedAdd, &models.IssueLabel{
+			unittest.AssertExistsIf(t, testCase.ExpectedAdd, &issues_model.IssueLabel{
 				IssueID: issueID,
 				LabelID: testCase.LabelID,
 			})
 		}
-		unittest.CheckConsistencyFor(t, &models.Label{})
+		unittest.CheckConsistencyFor(t, &issues_model.Label{})
 	}
 }

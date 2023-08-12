@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package container
 
@@ -11,11 +10,13 @@ import (
 
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/packages/container/helm"
-	"code.gitea.io/gitea/modules/packages/container/oci"
 	"code.gitea.io/gitea/modules/validation"
+
+	oci "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 const (
+	PropertyRepository        = "container.repository"
 	PropertyDigest            = "container.digest"
 	PropertyMediaType         = "container.mediatype"
 	PropertyManifestTagged    = "container.manifest.tagged"
@@ -61,12 +62,18 @@ type Metadata struct {
 	DocumentationURL string            `json:"documentation_url,omitempty"`
 	Labels           map[string]string `json:"labels,omitempty"`
 	ImageLayers      []string          `json:"layer_creation,omitempty"`
-	MultiArch        map[string]string `json:"multiarch,omitempty"`
+	Manifests        []*Manifest       `json:"manifests,omitempty"`
+}
+
+type Manifest struct {
+	Platform string `json:"platform"`
+	Digest   string `json:"digest"`
+	Size     int64  `json:"size"`
 }
 
 // ParseImageConfig parses the metadata of an image config
-func ParseImageConfig(mediaType oci.MediaType, r io.Reader) (*Metadata, error) {
-	if strings.EqualFold(string(mediaType), helm.ConfigMediaType) {
+func ParseImageConfig(mt string, r io.Reader) (*Metadata, error) {
+	if strings.EqualFold(mt, helm.ConfigMediaType) {
 		return parseHelmConfig(r)
 	}
 
@@ -94,7 +101,9 @@ func parseOCIImageConfig(r io.Reader) (*Metadata, error) {
 		if i := strings.Index(cmd, "#(nop) "); i != -1 {
 			cmd = strings.TrimSpace(cmd[i+7:])
 		}
-		imageLayers = append(imageLayers, cmd)
+		if cmd != "" {
+			imageLayers = append(imageLayers, cmd)
+		}
 	}
 
 	metadata := &Metadata{

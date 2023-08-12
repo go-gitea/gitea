@@ -1,13 +1,14 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package organization
 
 import (
 	"context"
+	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 
@@ -53,6 +54,20 @@ func IsOrganizationOwner(ctx context.Context, orgID, uid int64) (bool, error) {
 	return IsTeamMember(ctx, orgID, ownerTeam.ID, uid)
 }
 
+// IsOrganizationAdmin returns true if given user is in the owner team or an admin team.
+func IsOrganizationAdmin(ctx context.Context, orgID, uid int64) (bool, error) {
+	teams, err := GetUserOrgTeams(ctx, orgID, uid)
+	if err != nil {
+		return false, err
+	}
+	for _, t := range teams {
+		if t.AccessMode >= perm.AccessModeAdmin {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // IsOrganizationMember returns true if given user is member of organization.
 func IsOrganizationMember(ctx context.Context, orgID, uid int64) (bool, error) {
 	return db.GetEngine(ctx).
@@ -73,11 +88,51 @@ func IsPublicMembership(orgID, uid int64) (bool, error) {
 }
 
 // CanCreateOrgRepo returns true if user can create repo in organization
-func CanCreateOrgRepo(orgID, uid int64) (bool, error) {
-	return db.GetEngine(db.DefaultContext).
+func CanCreateOrgRepo(ctx context.Context, orgID, uid int64) (bool, error) {
+	return db.GetEngine(ctx).
 		Where(builder.Eq{"team.can_create_org_repo": true}).
 		Join("INNER", "team_user", "team_user.team_id = team.id").
 		And("team_user.uid = ?", uid).
 		And("team_user.org_id = ?", orgID).
 		Exist(new(Team))
+}
+
+// IsUserOrgOwner returns true if user is in the owner team of given organization.
+func IsUserOrgOwner(users user_model.UserList, orgID int64) map[int64]bool {
+	results := make(map[int64]bool, len(users))
+	for _, user := range users {
+		results[user.ID] = false // Set default to false
+	}
+	ownerMaps, err := loadOrganizationOwners(db.DefaultContext, users, orgID)
+	if err == nil {
+		for _, owner := range ownerMaps {
+			results[owner.UID] = true
+		}
+	}
+	return results
+}
+
+func loadOrganizationOwners(ctx context.Context, users user_model.UserList, orgID int64) (map[int64]*TeamUser, error) {
+	if len(users) == 0 {
+		return nil, nil
+	}
+	ownerTeam, err := GetOwnerTeam(ctx, orgID)
+	if err != nil {
+		if IsErrTeamNotExist(err) {
+			log.Error("Organization does not have owner team: %d", orgID)
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	userIDs := users.GetUserIDs()
+	ownerMaps := make(map[int64]*TeamUser)
+	err = db.GetEngine(ctx).In("uid", userIDs).
+		And("org_id=?", orgID).
+		And("team_id=?", ownerTeam.ID).
+		Find(&ownerMaps)
+	if err != nil {
+		return nil, fmt.Errorf("find team users: %w", err)
+	}
+	return ownerMaps, nil
 }

@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package csv
 
@@ -54,7 +53,7 @@ func CreateReaderAndDetermineDelimiter(ctx *markup.RenderContext, rd io.Reader) 
 func determineDelimiter(ctx *markup.RenderContext, data []byte) rune {
 	extension := ".csv"
 	if ctx != nil {
-		extension = strings.ToLower(filepath.Ext(ctx.Filename))
+		extension = strings.ToLower(filepath.Ext(ctx.RelativePath))
 	}
 
 	var delimiter rune

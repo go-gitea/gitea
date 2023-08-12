@@ -1,12 +1,10 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package migrations
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 	"os"
 	"testing"
@@ -40,7 +38,7 @@ func TestCodebaseDownloadRepo(t *testing.T) {
 		AuthPassword: apiPassword,
 	})
 	if err != nil {
-		t.Fatal(fmt.Sprintf("Error creating Codebase downloader: %v", err))
+		t.Fatalf("Error creating Codebase downloader: %v", err)
 	}
 	repo, err := downloader.GetRepoInfo()
 	assert.NoError(t, err)

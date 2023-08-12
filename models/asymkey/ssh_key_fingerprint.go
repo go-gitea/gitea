@@ -1,11 +1,10 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package asymkey
 
 import (
-	"errors"
+	"context"
 	"fmt"
 	"strings"
 
@@ -31,8 +30,8 @@ import (
 
 // checkKeyFingerprint only checks if key fingerprint has been used as public key,
 // it is OK to use same key as deploy key for multiple repositories/users.
-func checkKeyFingerprint(e db.Engine, fingerprint string) error {
-	has, err := e.Get(&PublicKey{
+func checkKeyFingerprint(ctx context.Context, fingerprint string) error {
+	has, err := db.GetByBean(ctx, &PublicKey{
 		Fingerprint: fingerprint,
 	})
 	if err != nil {
@@ -59,9 +58,9 @@ func calcFingerprintSSHKeygen(publicKeyContent string) (string, error) {
 		if strings.Contains(stderr, "is not a public key file") {
 			return "", ErrKeyUnableVerify{stderr}
 		}
-		return "", fmt.Errorf("'ssh-keygen -lf %s' failed with error '%s': %s", tmpPath, err, stderr)
+		return "", util.NewInvalidArgumentErrorf("'ssh-keygen -lf %s' failed with error '%s': %s", tmpPath, err, stderr)
 	} else if len(stdout) < 2 {
-		return "", errors.New("not enough output for calculating fingerprint: " + stdout)
+		return "", util.NewInvalidArgumentErrorf("not enough output for calculating fingerprint: %s", stdout)
 	}
 	return strings.Split(stdout, " ")[1], nil
 }
@@ -75,7 +74,8 @@ func calcFingerprintNative(publicKeyContent string) (string, error) {
 	return ssh.FingerprintSHA256(pk), nil
 }
 
-func calcFingerprint(publicKeyContent string) (string, error) {
+// CalcFingerprint calculate public key's fingerprint
+func CalcFingerprint(publicKeyContent string) (string, error) {
 	// Call the method based on configuration
 	var (
 		fnName, fp string
@@ -93,7 +93,7 @@ func calcFingerprint(publicKeyContent string) (string, error) {
 			log.Info("%s", publicKeyContent)
 			return "", err
 		}
-		return "", fmt.Errorf("%s: %v", fnName, err)
+		return "", fmt.Errorf("%s: %w", fnName, err)
 	}
 	return fp, nil
 }

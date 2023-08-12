@@ -1,16 +1,18 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package util
 
 import (
 	"bytes"
 	"crypto/rand"
-	"errors"
+	"fmt"
 	"math/big"
 	"strconv"
 	"strings"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // OptionalBool a boolean that can be "null"
@@ -114,29 +116,6 @@ func NormalizeEOL(input []byte) []byte {
 	return tmp[:pos]
 }
 
-// MergeInto merges pairs of values into a "dict"
-func MergeInto(dict map[string]interface{}, values ...interface{}) (map[string]interface{}, error) {
-	for i := 0; i < len(values); i++ {
-		switch key := values[i].(type) {
-		case string:
-			i++
-			if i == len(values) {
-				return nil, errors.New("specify the key for non array values")
-			}
-			dict[key] = values[i]
-		case map[string]interface{}:
-			m := values[i].(map[string]interface{})
-			for i, v := range m {
-				dict[i] = v
-			}
-		default:
-			return nil, errors.New("dict values must be maps")
-		}
-	}
-
-	return dict, nil
-}
-
 // CryptoRandomInt returns a crypto random integer between 0 and limit, inclusive
 func CryptoRandomInt(limit int64) (int64, error) {
 	rInt, err := rand.Int(rand.Reader, big.NewInt(limit))
@@ -180,4 +159,105 @@ func ToUpperASCII(s string) string {
 		}
 	}
 	return string(b)
+}
+
+// ToTitleCase returns s with all english words capitalized
+func ToTitleCase(s string) string {
+	// `cases.Title` is not thread-safe, do not use global shared variable for it
+	return cases.Title(language.English).String(s)
+}
+
+// ToTitleCaseNoLower returns s with all english words capitalized without lower-casing
+func ToTitleCaseNoLower(s string) string {
+	// `cases.Title` is not thread-safe, do not use global shared variable for it
+	return cases.Title(language.English, cases.NoLower).String(s)
+}
+
+// ToInt64 transform a given int into int64.
+func ToInt64(number any) (int64, error) {
+	var value int64
+	switch v := number.(type) {
+	case int:
+		value = int64(v)
+	case int8:
+		value = int64(v)
+	case int16:
+		value = int64(v)
+	case int32:
+		value = int64(v)
+	case int64:
+		value = v
+
+	case uint:
+		value = int64(v)
+	case uint8:
+		value = int64(v)
+	case uint16:
+		value = int64(v)
+	case uint32:
+		value = int64(v)
+	case uint64:
+		value = int64(v)
+
+	case float32:
+		value = int64(v)
+	case float64:
+		value = int64(v)
+
+	case string:
+		var err error
+		if value, err = strconv.ParseInt(v, 10, 64); err != nil {
+			return 0, err
+		}
+	default:
+		return 0, fmt.Errorf("unable to convert %v to int64", number)
+	}
+	return value, nil
+}
+
+// ToFloat64 transform a given int into float64.
+func ToFloat64(number any) (float64, error) {
+	var value float64
+	switch v := number.(type) {
+	case int:
+		value = float64(v)
+	case int8:
+		value = float64(v)
+	case int16:
+		value = float64(v)
+	case int32:
+		value = float64(v)
+	case int64:
+		value = float64(v)
+
+	case uint:
+		value = float64(v)
+	case uint8:
+		value = float64(v)
+	case uint16:
+		value = float64(v)
+	case uint32:
+		value = float64(v)
+	case uint64:
+		value = float64(v)
+
+	case float32:
+		value = float64(v)
+	case float64:
+		value = v
+
+	case string:
+		var err error
+		if value, err = strconv.ParseFloat(v, 64); err != nil {
+			return 0, err
+		}
+	default:
+		return 0, fmt.Errorf("unable to convert %v to float64", number)
+	}
+	return value, nil
+}
+
+// ToPointer returns the pointer of a copy of any given value
+func ToPointer[T any](val T) *T {
+	return &val
 }

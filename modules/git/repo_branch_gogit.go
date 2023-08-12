@@ -1,10 +1,8 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 //go:build gogit
-// +build gogit
 
 package git
 
@@ -52,8 +50,8 @@ func (repo *Repository) IsBranchExist(name string) bool {
 	return reference.Type() != plumbing.InvalidReference
 }
 
-// GetBranches returns branches from the repository, skipping skip initial branches and
-// returning at most limit branches, or all branches if limit is 0.
+// GetBranches returns branches from the repository, skipping "skip" initial branches and
+// returning at most "limit" branches, or all branches if "limit" is 0.
 func (repo *Repository) GetBranchNames(skip, limit int) ([]string, int, error) {
 	var branchNames []string
 
@@ -144,4 +142,20 @@ func (repo *Repository) WalkReferences(arg ObjectType, skip, limit int, walkfn f
 		return nil
 	})
 	return i, err
+}
+
+// GetRefsBySha returns all references filtered with prefix that belong to a sha commit hash
+func (repo *Repository) GetRefsBySha(sha, prefix string) ([]string, error) {
+	var revList []string
+	iter, err := repo.gogitRepo.References()
+	if err != nil {
+		return nil, err
+	}
+	err = iter.ForEach(func(ref *plumbing.Reference) error {
+		if ref.Hash().String() == sha && strings.HasPrefix(string(ref.Name()), prefix) {
+			revList = append(revList, string(ref.Name()))
+		}
+		return nil
+	})
+	return revList, err
 }

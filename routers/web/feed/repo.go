@@ -1,13 +1,12 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package feed
 
 import (
 	"time"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 
@@ -16,7 +15,7 @@ import (
 
 // ShowRepoFeed shows user activity on the repo as RSS / Atom feed
 func ShowRepoFeed(ctx *context.Context, repo *repo_model.Repository, formatType string) {
-	actions, err := models.GetFeeds(ctx, models.GetFeedsOptions{
+	actions, _, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
 		RequestedRepo:  repo,
 		Actor:          ctx.Doer,
 		IncludePrivate: true,

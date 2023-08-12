@@ -1,6 +1,5 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package util
 
@@ -219,4 +218,18 @@ func BenchmarkToUpper(b *testing.B) {
 			}
 		})
 	}
+}
+
+func TestToTitleCase(t *testing.T) {
+	assert.Equal(t, ToTitleCase(`foo bar baz`), `Foo Bar Baz`)
+	assert.Equal(t, ToTitleCase(`FOO BAR BAZ`), `Foo Bar Baz`)
+}
+
+func TestToPointer(t *testing.T) {
+	assert.Equal(t, "abc", *ToPointer("abc"))
+	assert.Equal(t, 123, *ToPointer(123))
+	abc := "abc"
+	assert.False(t, &abc == ToPointer(abc))
+	val123 := 123
+	assert.False(t, &val123 == ToPointer(val123))
 }

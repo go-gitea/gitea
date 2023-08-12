@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package auth
 
@@ -14,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/webauthn"
+	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
@@ -92,5 +92,7 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 	middleware.SetLocaleCookie(resp, user.Language, 0)
 
 	// Clear whatever CSRF has right now, force to generate a new one
-	middleware.DeleteCSRFCookie(resp)
+	if ctx := gitea_context.GetWebContext(req); ctx != nil {
+		ctx.Csrf.DeleteCookie(ctx)
+	}
 }

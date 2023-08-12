@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package user
 
@@ -10,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -31,6 +31,10 @@ func (err ErrExternalLoginUserAlreadyExist) Error() string {
 	return fmt.Sprintf("external login user already exists [externalID: %s, userID: %d, loginSourceID: %d]", err.ExternalID, err.UserID, err.LoginSourceID)
 }
 
+func (err ErrExternalLoginUserAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
 // ErrExternalLoginUserNotExist represents a "ExternalLoginUserNotExist" kind of error.
 type ErrExternalLoginUserNotExist struct {
 	UserID        int64
@@ -47,13 +51,17 @@ func (err ErrExternalLoginUserNotExist) Error() string {
 	return fmt.Sprintf("external login user link does not exists [userID: %d, loginSourceID: %d]", err.UserID, err.LoginSourceID)
 }
 
+func (err ErrExternalLoginUserNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ExternalLoginUser makes the connecting between some existing user and additional external login sources
 type ExternalLoginUser struct {
-	ExternalID        string                 `xorm:"pk NOT NULL"`
-	UserID            int64                  `xorm:"INDEX NOT NULL"`
-	LoginSourceID     int64                  `xorm:"pk NOT NULL"`
-	RawData           map[string]interface{} `xorm:"TEXT JSON"`
-	Provider          string                 `xorm:"index VARCHAR(25)"`
+	ExternalID        string         `xorm:"pk NOT NULL"`
+	UserID            int64          `xorm:"INDEX NOT NULL"`
+	LoginSourceID     int64          `xorm:"pk NOT NULL"`
+	RawData           map[string]any `xorm:"TEXT JSON"`
+	Provider          string         `xorm:"index VARCHAR(25)"`
 	Email             string
 	Name              string
 	FirstName         string

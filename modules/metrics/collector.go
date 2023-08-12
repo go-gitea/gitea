@@ -1,11 +1,13 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package metrics
 
 import (
-	"code.gitea.io/gitea/models"
+	"runtime"
+
+	activities_model "code.gitea.io/gitea/models/activities"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -16,8 +18,8 @@ const namespace = "gitea_"
 // exposes gitea metrics for prometheus
 type Collector struct {
 	Accesses           *prometheus.Desc
-	Actions            *prometheus.Desc
 	Attachments        *prometheus.Desc
+	BuildInfo          *prometheus.Desc
 	Comments           *prometheus.Desc
 	Follows            *prometheus.Desc
 	HookTasks          *prometheus.Desc
@@ -53,15 +55,20 @@ func NewCollector() Collector {
 			"Number of Accesses",
 			nil, nil,
 		),
-		Actions: prometheus.NewDesc(
-			namespace+"actions",
-			"Number of Actions",
-			nil, nil,
-		),
 		Attachments: prometheus.NewDesc(
 			namespace+"attachments",
 			"Number of Attachments",
 			nil, nil,
+		),
+		BuildInfo: prometheus.NewDesc(
+			namespace+"build_info",
+			"Build information",
+			[]string{
+				"goarch",
+				"goos",
+				"goversion",
+				"version",
+			}, nil,
 		),
 		Comments: prometheus.NewDesc(
 			namespace+"comments",
@@ -194,8 +201,8 @@ func NewCollector() Collector {
 // Describe returns all possible prometheus.Desc
 func (c Collector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.Accesses
-	ch <- c.Actions
 	ch <- c.Attachments
+	ch <- c.BuildInfo
 	ch <- c.Comments
 	ch <- c.Follows
 	ch <- c.HookTasks
@@ -225,7 +232,7 @@ func (c Collector) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect returns the metrics with values
 func (c Collector) Collect(ch chan<- prometheus.Metric) {
-	stats := models.GetStatistic()
+	stats := activities_model.GetStatistic()
 
 	ch <- prometheus.MustNewConstMetric(
 		c.Accesses,
@@ -233,14 +240,18 @@ func (c Collector) Collect(ch chan<- prometheus.Metric) {
 		float64(stats.Counter.Access),
 	)
 	ch <- prometheus.MustNewConstMetric(
-		c.Actions,
-		prometheus.GaugeValue,
-		float64(stats.Counter.Action),
-	)
-	ch <- prometheus.MustNewConstMetric(
 		c.Attachments,
 		prometheus.GaugeValue,
 		float64(stats.Counter.Attachment),
+	)
+	ch <- prometheus.MustNewConstMetric(
+		c.BuildInfo,
+		prometheus.GaugeValue,
+		1,
+		runtime.GOARCH,
+		runtime.GOOS,
+		runtime.Version(),
+		setting.AppVer,
 	)
 	ch <- prometheus.MustNewConstMetric(
 		c.Comments,

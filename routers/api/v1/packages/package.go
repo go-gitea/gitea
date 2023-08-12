@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package packages
 
@@ -9,9 +8,10 @@ import (
 
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/convert"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
@@ -40,7 +40,7 @@ func ListPackages(ctx *context.APIContext) {
 	//   in: query
 	//   description: package type filter
 	//   type: string
-	//   enum: [composer, conan, container, generic, helm, maven, npm, nuget, pypi, rubygems]
+	//   enum: [alpine, cargo, chef, composer, conan, conda, container, cran, debian, generic, go, helm, maven, npm, nuget, pub, pypi, rpm, rubygems, swift, vagrant]
 	// - name: q
 	//   in: query
 	//   description: name filter
@@ -55,10 +55,11 @@ func ListPackages(ctx *context.APIContext) {
 	query := ctx.FormTrim("q")
 
 	pvs, count, err := packages.SearchVersions(ctx, &packages.PackageSearchOptions{
-		OwnerID:   ctx.Package.Owner.ID,
-		Type:      packages.Type(packageType),
-		Name:      packages.SearchValue{Value: query},
-		Paginator: &listOptions,
+		OwnerID:    ctx.Package.Owner.ID,
+		Type:       packages.Type(packageType),
+		Name:       packages.SearchValue{Value: query},
+		IsInternal: util.OptionalBoolFalse,
+		Paginator:  &listOptions,
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "SearchVersions", err)
@@ -73,7 +74,12 @@ func ListPackages(ctx *context.APIContext) {
 
 	apiPackages := make([]*api.Package, 0, len(pds))
 	for _, pd := range pds {
-		apiPackages = append(apiPackages, convert.ToPackage(pd))
+		apiPackage, err := convert.ToPackage(ctx, pd, ctx.Doer)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "Error converting package for api", err)
+			return
+		}
+		apiPackages = append(apiPackages, apiPackage)
 	}
 
 	ctx.SetLinkHeader(int(count), listOptions.PageSize)
@@ -115,7 +121,13 @@ func GetPackage(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	ctx.JSON(http.StatusOK, convert.ToPackage(ctx.Package.Descriptor))
+	apiPackage, err := convert.ToPackage(ctx, ctx.Package.Descriptor, ctx.Doer)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "Error converting package for api", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, apiPackage)
 }
 
 // DeletePackage deletes a package

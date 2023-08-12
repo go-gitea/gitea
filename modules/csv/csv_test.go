@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package csv
 
@@ -12,7 +11,9 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -230,7 +231,10 @@ John Doe	john@doe.com	This,note,had,a,lot,of,commas,to,test,delimiters`,
 	}
 
 	for n, c := range cases {
-		delimiter := determineDelimiter(&markup.RenderContext{Filename: c.filename}, []byte(decodeSlashes(t, c.csv)))
+		delimiter := determineDelimiter(&markup.RenderContext{
+			Ctx:          git.DefaultContext,
+			RelativePath: c.filename,
+		}, []byte(decodeSlashes(t, c.csv)))
 		assert.EqualValues(t, c.expectedDelimiter, delimiter, "case %d: delimiter should be equal, expected '%c' got '%c'", n, c.expectedDelimiter, delimiter)
 	}
 }
@@ -322,7 +326,7 @@ func TestGuessDelimiter(t *testing.T) {
 		},
 		// case 3 - tab delimited
 		{
-			csv: "1	2",
+			csv:               "1\t2",
 			expectedDelimiter: '\t',
 		},
 		// case 4 - pipe delimited
@@ -547,20 +551,6 @@ a|"he said, ""here I am"""`,
 	}
 }
 
-type mockLocale struct{}
-
-func (l mockLocale) Language() string {
-	return "en"
-}
-
-func (l mockLocale) Tr(s string, _ ...interface{}) string {
-	return s
-}
-
-func (l mockLocale) TrN(_cnt interface{}, key1, _keyN string, _args ...interface{}) string {
-	return key1
-}
-
 func TestFormatError(t *testing.T) {
 	cases := []struct {
 		err             error
@@ -588,7 +578,7 @@ func TestFormatError(t *testing.T) {
 	}
 
 	for n, c := range cases {
-		message, err := FormatError(c.err, mockLocale{})
+		message, err := FormatError(c.err, &translation.MockLocale{})
 		if c.expectsError {
 			assert.Error(t, err, "case %d: expected an error to be returned", n)
 		} else {

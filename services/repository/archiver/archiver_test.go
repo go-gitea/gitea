@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package archiver
 
@@ -25,7 +24,7 @@ func TestMain(m *testing.M) {
 func TestArchive_Basic(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	ctx := test.MockContext(t, "user27/repo49")
+	ctx, _ := test.MockContext(t, "user27/repo49")
 	firstCommit, secondCommit := "51f84af23134", "aacbdfe9e1c4"
 
 	test.LoadRepo(t, ctx, 49)

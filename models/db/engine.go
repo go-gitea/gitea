@@ -1,7 +1,6 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Copyright 2018 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package db
 
@@ -26,7 +25,7 @@ import (
 
 var (
 	x         *xorm.Engine
-	tables    []interface{}
+	tables    []any
 	initFuncs []func() error
 
 	// HasEngine specifies if we have a xorm.Engine
@@ -35,41 +34,41 @@ var (
 
 // Engine represents a xorm engine or session.
 type Engine interface {
-	Table(tableNameOrBean interface{}) *xorm.Session
-	Count(...interface{}) (int64, error)
-	Decr(column string, arg ...interface{}) *xorm.Session
-	Delete(...interface{}) (int64, error)
-	Exec(...interface{}) (sql.Result, error)
-	Find(interface{}, ...interface{}) error
-	Get(interface{}) (bool, error)
-	ID(interface{}) *xorm.Session
-	In(string, ...interface{}) *xorm.Session
-	Incr(column string, arg ...interface{}) *xorm.Session
-	Insert(...interface{}) (int64, error)
-	InsertOne(interface{}) (int64, error)
-	Iterate(interface{}, xorm.IterFunc) error
-	Join(joinOperator string, tablename interface{}, condition string, args ...interface{}) *xorm.Session
-	SQL(interface{}, ...interface{}) *xorm.Session
-	Where(interface{}, ...interface{}) *xorm.Session
+	Table(tableNameOrBean any) *xorm.Session
+	Count(...any) (int64, error)
+	Decr(column string, arg ...any) *xorm.Session
+	Delete(...any) (int64, error)
+	Truncate(...any) (int64, error)
+	Exec(...any) (sql.Result, error)
+	Find(any, ...any) error
+	Get(beans ...any) (bool, error)
+	ID(any) *xorm.Session
+	In(string, ...any) *xorm.Session
+	Incr(column string, arg ...any) *xorm.Session
+	Insert(...any) (int64, error)
+	Iterate(any, xorm.IterFunc) error
+	Join(joinOperator string, tablename, condition any, args ...any) *xorm.Session
+	SQL(any, ...any) *xorm.Session
+	Where(any, ...any) *xorm.Session
 	Asc(colNames ...string) *xorm.Session
 	Desc(colNames ...string) *xorm.Session
 	Limit(limit int, start ...int) *xorm.Session
 	NoAutoTime() *xorm.Session
-	SumInt(bean interface{}, columnName string) (res int64, err error)
-	Sync2(...interface{}) error
+	SumInt(bean any, columnName string) (res int64, err error)
+	Sync2(...any) error
 	Select(string) *xorm.Session
-	NotIn(string, ...interface{}) *xorm.Session
-	OrderBy(string) *xorm.Session
-	Exist(...interface{}) (bool, error)
+	NotIn(string, ...any) *xorm.Session
+	OrderBy(any, ...any) *xorm.Session
+	Exist(...any) (bool, error)
 	Distinct(...string) *xorm.Session
-	Query(...interface{}) ([]map[string][]byte, error)
+	Query(...any) ([]map[string][]byte, error)
 	Cols(...string) *xorm.Session
 	Context(ctx context.Context) *xorm.Session
 	Ping() error
 }
 
 // TableInfo returns table's information via an object
-func TableInfo(v interface{}) (*schemas.Table, error) {
+func TableInfo(v any) (*schemas.Table, error) {
 	return x.TableInfo(v)
 }
 
@@ -79,7 +78,7 @@ func DumpTables(tables []*schemas.Table, w io.Writer, tp ...schemas.DBType) erro
 }
 
 // RegisterModel registers model, if initfunc provided, it will be invoked after data model sync
-func RegisterModel(bean interface{}, initFunc ...func() error) {
+func RegisterModel(bean any, initFunc ...func() error) {
 	tables = append(tables, bean)
 	if len(initFuncs) > 0 && initFunc[0] != nil {
 		initFuncs = append(initFuncs, initFunc[0])
@@ -102,12 +101,12 @@ func newXORMEngine() (*xorm.Engine, error) {
 
 	var engine *xorm.Engine
 
-	if setting.Database.UsePostgreSQL && len(setting.Database.Schema) > 0 {
+	if setting.Database.Type.IsPostgreSQL() && len(setting.Database.Schema) > 0 {
 		// OK whilst we sort out our schema issues - create a schema aware postgres
 		registerPostgresSchemaDriver()
 		engine, err = xorm.NewEngine("postgresschema", connStr)
 	} else {
-		engine, err = xorm.NewEngine(setting.Database.Type, connStr)
+		engine, err = xorm.NewEngine(setting.Database.Type.String(), connStr)
 	}
 
 	if err != nil {
@@ -124,14 +123,17 @@ func newXORMEngine() (*xorm.Engine, error) {
 
 // SyncAllTables sync the schemas of all tables, is required by unit test code
 func SyncAllTables() error {
-	return x.StoreEngine("InnoDB").Sync2(tables...)
+	_, err := x.StoreEngine("InnoDB").SyncWithOptions(xorm.SyncOptions{
+		WarnIfDatabaseColumnMissed: true,
+	}, tables...)
+	return err
 }
 
 // InitEngine initializes the xorm.Engine and sets it as db.DefaultContext
 func InitEngine(ctx context.Context) error {
 	xormEngine, err := newXORMEngine()
 	if err != nil {
-		return fmt.Errorf("failed to connect to database: %v", err)
+		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 
 	xormEngine.SetMapper(names.GonicMapper{})
@@ -190,16 +192,16 @@ func InitEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.Engine)
 	// However, we should think carefully about should we support re-install on an installed instance,
 	// as there may be other problems due to secret reinitialization.
 	if err = migrateFunc(x); err != nil {
-		return fmt.Errorf("migrate: %v", err)
+		return fmt.Errorf("migrate: %w", err)
 	}
 
 	if err = SyncAllTables(); err != nil {
-		return fmt.Errorf("sync database struct error: %v", err)
+		return fmt.Errorf("sync database struct error: %w", err)
 	}
 
 	for _, initFunc := range initFuncs {
 		if err := initFunc(); err != nil {
-			return fmt.Errorf("initFunc failed: %v", err)
+			return fmt.Errorf("initFunc failed: %w", err)
 		}
 	}
 
@@ -207,14 +209,14 @@ func InitEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.Engine)
 }
 
 // NamesToBean return a list of beans or an error
-func NamesToBean(names ...string) ([]interface{}, error) {
-	beans := []interface{}{}
+func NamesToBean(names ...string) ([]any, error) {
+	beans := []any{}
 	if len(names) == 0 {
 		beans = append(beans, tables...)
 		return beans, nil
 	}
 	// Need to map provided names to beans...
-	beanMap := make(map[string]interface{})
+	beanMap := make(map[string]any)
 	for _, bean := range tables {
 
 		beanMap[strings.ToLower(reflect.Indirect(reflect.ValueOf(bean)).Type().Name())] = bean
@@ -222,11 +224,11 @@ func NamesToBean(names ...string) ([]interface{}, error) {
 		beanMap[strings.ToLower(x.TableName(bean, true))] = bean
 	}
 
-	gotBean := make(map[interface{}]bool)
+	gotBean := make(map[any]bool)
 	for _, name := range names {
 		bean, ok := beanMap[strings.ToLower(strings.TrimSpace(name))]
 		if !ok {
-			return nil, fmt.Errorf("No table found that matches: %s", name)
+			return nil, fmt.Errorf("no table found that matches: %s", name)
 		}
 		if !gotBean[bean] {
 			beans = append(beans, bean)
@@ -264,17 +266,12 @@ func DumpDatabase(filePath, dbType string) error {
 }
 
 // MaxBatchInsertSize returns the table's max batch insert size
-func MaxBatchInsertSize(bean interface{}) int {
+func MaxBatchInsertSize(bean any) int {
 	t, err := x.TableInfo(bean)
 	if err != nil {
 		return 50
 	}
 	return 999 / len(t.ColumnsSeq())
-}
-
-// Count returns records number according struct's fields as database query conditions
-func Count(bean interface{}) (int64, error) {
-	return x.Count(bean)
 }
 
 // IsTableNotEmpty returns true if table has at least one record
@@ -289,7 +286,16 @@ func DeleteAllRecords(tableName string) error {
 }
 
 // GetMaxID will return max id of the table
-func GetMaxID(beanOrTableName interface{}) (maxID int64, err error) {
+func GetMaxID(beanOrTableName any) (maxID int64, err error) {
 	_, err = x.Select("MAX(id)").Table(beanOrTableName).Get(&maxID)
-	return
+	return maxID, err
+}
+
+func SetLogSQL(ctx context.Context, on bool) {
+	e := GetEngine(ctx)
+	if x, ok := e.(*xorm.Engine); ok {
+		x.ShowSQL(on)
+	} else if sess, ok := e.(*xorm.Session); ok {
+		sess.Engine().ShowSQL(on)
+	}
 }

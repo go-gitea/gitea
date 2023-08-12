@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package smtp
 
@@ -95,7 +94,7 @@ func Authenticate(a smtp.Auth, source *Source) error {
 	hasStartTLS, _ := client.Extension("STARTTLS")
 	if !source.UseTLS() && hasStartTLS {
 		if err = client.StartTLS(tlsConfig); err != nil {
-			return fmt.Errorf("failed to start StartTLS: %v", err)
+			return fmt.Errorf("failed to start StartTLS: %w", err)
 		}
 	}
 

@@ -1,6 +1,5 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package webhook
 
@@ -9,13 +8,13 @@ import (
 	"net/url"
 	"strings"
 
-	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 
-	dingtalk "github.com/lunny/dingtalk_webhook"
+	dingtalk "gitea.com/lunny/dingtalk_webhook"
 )
 
 type (
@@ -37,7 +36,7 @@ func (d *DingtalkPayload) JSONPayload() ([]byte, error) {
 // Create implements PayloadConvertor Create method
 func (d *DingtalkPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 	// created tag/branch
-	refName := git.RefEndName(p.Ref)
+	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf("[%s] %s %s created", p.Repo.FullName, p.RefType, refName)
 
 	return createDingtalkPayload(title, title, fmt.Sprintf("view ref %s", refName), p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName)), nil
@@ -46,7 +45,7 @@ func (d *DingtalkPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 // Delete implements PayloadConvertor Delete method
 func (d *DingtalkPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
 	// created tag/branch
-	refName := git.RefEndName(p.Ref)
+	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf("[%s] %s %s deleted", p.Repo.FullName, p.RefType, refName)
 
 	return createDingtalkPayload(title, title, fmt.Sprintf("view ref %s", refName), p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName)), nil
@@ -62,19 +61,19 @@ func (d *DingtalkPayload) Fork(p *api.ForkPayload) (api.Payloader, error) {
 // Push implements PayloadConvertor Push method
 func (d *DingtalkPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 	var (
-		branchName = git.RefEndName(p.Ref)
+		branchName = git.RefName(p.Ref).ShortName()
 		commitDesc string
 	)
 
 	var titleLink, linkText string
-	if len(p.Commits) == 1 {
+	if p.TotalCommits == 1 {
 		commitDesc = "1 new commit"
 		titleLink = p.Commits[0].URL
-		linkText = fmt.Sprintf("view commit %s", p.Commits[0].ID[:7])
+		linkText = "view commit"
 	} else {
-		commitDesc = fmt.Sprintf("%d new commits", len(p.Commits))
+		commitDesc = fmt.Sprintf("%d new commits", p.TotalCommits)
 		titleLink = p.CompareURL
-		linkText = fmt.Sprintf("view commit %s...%s", p.Commits[0].ID[:7], p.Commits[len(p.Commits)-1].ID[:7])
+		linkText = "view commits"
 	}
 	if titleLink == "" {
 		titleLink = p.Repo.HTMLURL + "/src/" + util.PathEscapeSegments(branchName)
@@ -107,6 +106,14 @@ func (d *DingtalkPayload) Issue(p *api.IssuePayload) (api.Payloader, error) {
 	return createDingtalkPayload(issueTitle, text+"\r\n\r\n"+attachmentText, "view issue", p.Issue.HTMLURL), nil
 }
 
+// Wiki implements PayloadConvertor Wiki method
+func (d *DingtalkPayload) Wiki(p *api.WikiPayload) (api.Payloader, error) {
+	text, _, _ := getWikiPayloadInfo(p, noneLinkFormatter, true)
+	url := p.Repository.HTMLURL + "/wiki/" + url.PathEscape(p.Page)
+
+	return createDingtalkPayload(text, text, "view wiki", url), nil
+}
+
 // IssueComment implements PayloadConvertor IssueComment method
 func (d *DingtalkPayload) IssueComment(p *api.IssueCommentPayload) (api.Payloader, error) {
 	text, issueTitle, _ := getIssueCommentPayloadInfo(p, noneLinkFormatter, true)
@@ -122,7 +129,7 @@ func (d *DingtalkPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader,
 }
 
 // Review implements PayloadConvertor Review method
-func (d *DingtalkPayload) Review(p *api.PullRequestPayload, event webhook_model.HookEventType) (api.Payloader, error) {
+func (d *DingtalkPayload) Review(p *api.PullRequestPayload, event webhook_module.HookEventType) (api.Payloader, error) {
 	var text, title string
 	switch p.Action {
 	case api.HookIssueReviewed:
@@ -183,6 +190,6 @@ func createDingtalkPayload(title, text, singleTitle, singleURL string) *Dingtalk
 }
 
 // GetDingtalkPayload converts a ding talk webhook into a DingtalkPayload
-func GetDingtalkPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
+func GetDingtalkPayload(p api.Payloader, event webhook_module.HookEventType, _ string) (api.Payloader, error) {
 	return convertPayloader(new(DingtalkPayload), p, event)
 }

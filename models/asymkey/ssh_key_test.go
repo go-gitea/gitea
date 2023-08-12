@@ -1,7 +1,6 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package asymkey
 
@@ -54,6 +53,14 @@ func Test_SSHParsePublicKey(t *testing.T) {
 					if !strings.Contains(err.Error(), "line 1 too long:") {
 						assert.Fail(t, "%v", err)
 					}
+				}
+				assert.Equal(t, tc.keyType, keyTypeK)
+				assert.EqualValues(t, tc.length, lengthK)
+			})
+			t.Run("SSHParseKeyNative", func(t *testing.T) {
+				keyTypeK, lengthK, err := SSHNativeParsePublicKey(tc.content)
+				if err != nil {
+					assert.Fail(t, "%v", err)
 				}
 				assert.Equal(t, tc.keyType, keyTypeK)
 				assert.EqualValues(t, tc.length, lengthK)
@@ -317,7 +324,7 @@ func TestFromOpenSSH(t *testing.T) {
 			td := t.TempDir()
 
 			data := []byte("hello, ssh world")
-			dataPath := write(t, []byte(data), td, "data")
+			dataPath := write(t, data, td, "data")
 
 			privPath := write(t, []byte(tt.priv), td, "id")
 			write(t, []byte(tt.pub), td, "id.pub")
@@ -372,14 +379,14 @@ func TestToOpenSSH(t *testing.T) {
 			td := t.TempDir()
 
 			data := []byte("hello, ssh world")
-			write(t, []byte(data), td, "data")
+			write(t, data, td, "data")
 
 			armored, err := sshsig.Sign([]byte(tt.priv), bytes.NewReader(data), "file")
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			sigPath := write(t, []byte(armored), td, "oursig")
+			sigPath := write(t, armored, td, "oursig")
 
 			// Create an allowed_signers file with two keys to check against.
 			allowedSigner := "test@rekor.dev " + tt.pub + "\n"

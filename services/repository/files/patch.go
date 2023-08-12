@@ -1,6 +1,5 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package files
 
@@ -10,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -58,7 +58,7 @@ func (opts *ApplyDiffPatchOptions) Validate(ctx context.Context, repo *repo_mode
 	if opts.NewBranch != opts.OldBranch {
 		existingBranch, err := gitRepo.GetBranch(opts.NewBranch)
 		if existingBranch != nil {
-			return models.ErrBranchAlreadyExists{
+			return git_model.ErrBranchAlreadyExists{
 				BranchName: opts.NewBranch,
 			}
 		}
@@ -66,13 +66,16 @@ func (opts *ApplyDiffPatchOptions) Validate(ctx context.Context, repo *repo_mode
 			return err
 		}
 	} else {
-		protectedBranch, err := models.GetProtectedBranchBy(repo.ID, opts.OldBranch)
+		protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, opts.OldBranch)
 		if err != nil {
 			return err
 		}
-		if protectedBranch != nil && !protectedBranch.CanUserPush(doer.ID) {
-			return models.ErrUserCannotCommit{
-				UserName: doer.LowerName,
+		if protectedBranch != nil {
+			protectedBranch.Repo = repo
+			if !protectedBranch.CanUserPush(ctx, doer) {
+				return models.ErrUserCannotCommit{
+					UserName: doer.LowerName,
+				}
 			}
 		}
 		if protectedBranch != nil && protectedBranch.RequireSignedCommits {
@@ -124,7 +127,7 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 	} else {
 		lastCommitID, err := t.gitRepo.ConvertToSHA1(opts.LastCommitID)
 		if err != nil {
-			return nil, fmt.Errorf("ApplyPatch: Invalid last commit ID: %v", err)
+			return nil, fmt.Errorf("ApplyPatch: Invalid last commit ID: %w", err)
 		}
 		opts.LastCommitID = lastCommitID.String()
 		if commit.ID.String() != opts.LastCommitID {
@@ -138,20 +141,18 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 	stdout := &strings.Builder{}
 	stderr := &strings.Builder{}
 
-	args := []string{"apply", "--index", "--recount", "--cached", "--ignore-whitespace", "--whitespace=fix", "--binary"}
-
+	cmdApply := git.NewCommand(ctx, "apply", "--index", "--recount", "--cached", "--ignore-whitespace", "--whitespace=fix", "--binary")
 	if git.CheckGitVersionAtLeast("2.32") == nil {
-		args = append(args, "-3")
+		cmdApply.AddArguments("-3")
 	}
 
-	cmd := git.NewCommand(ctx, args...)
-	if err := cmd.Run(&git.RunOpts{
+	if err := cmdApply.Run(&git.RunOpts{
 		Dir:    t.basePath,
 		Stdout: stdout,
 		Stderr: stderr,
 		Stdin:  strings.NewReader(opts.Content),
 	}); err != nil {
-		return nil, fmt.Errorf("Error: Stdout: %s\nStderr: %s\nErr: %v", stdout.String(), stderr.String(), err)
+		return nil, fmt.Errorf("Error: Stdout: %s\nStderr: %s\nErr: %w", stdout.String(), stderr.String(), err)
 	}
 
 	// Now write the tree
@@ -182,7 +183,7 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 	}
 
 	fileCommitResponse, _ := GetFileCommitResponse(repo, commit) // ok if fails, then will be nil
-	verification := GetPayloadCommitVerification(commit)
+	verification := GetPayloadCommitVerification(ctx, commit)
 	fileResponse := &structs.FileResponse{
 		Commit:       fileCommitResponse,
 		Verification: verification,

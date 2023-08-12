@@ -1,6 +1,5 @@
 // Copyright 2020 The Gitea Authors.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package admin
 
@@ -25,7 +24,6 @@ const (
 // Emails show all emails
 func Emails(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.emails")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminEmails"] = true
 
 	opts := &user_model.SearchEmailOptions{

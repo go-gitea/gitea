@@ -1,6 +1,5 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package util
 
@@ -17,13 +16,13 @@ func isSnakeCaseLowerOrNumber(c byte) bool {
 // ToSnakeCase convert the input string to snake_case format.
 //
 // Some samples.
-//     "FirstName"  => "first_name"
-//     "HTTPServer" => "http_server"
-//     "NoHTTPS"    => "no_https"
-//     "GO_PATH"    => "go_path"
-//     "GO PATH"    => "go_path"      // space is converted to underscore.
-//     "GO-PATH"    => "go_path"      // hyphen is converted to underscore.
 //
+//	"FirstName"  => "first_name"
+//	"HTTPServer" => "http_server"
+//	"NoHTTPS"    => "no_https"
+//	"GO_PATH"    => "go_path"
+//	"GO PATH"    => "go_path"      // space is converted to underscore.
+//	"GO-PATH"    => "go_path"      // hyphen is converted to underscore.
 func ToSnakeCase(input string) string {
 	if len(input) == 0 {
 		return ""
