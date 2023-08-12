@@ -47,6 +47,7 @@ func Projects(ctx *context.Context) {
 	sortType := ctx.FormTrim("sort")
 
 	isShowClosed := strings.ToLower(ctx.FormTrim("state")) == "closed"
+	keyword := ctx.FormTrim("q")
 	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
@@ -64,6 +65,7 @@ func Projects(ctx *context.Context) {
 		IsClosed: util.OptionalBoolOf(isShowClosed),
 		OrderBy:  project_model.GetSearchOrderByBySortType(sortType),
 		Type:     projectType,
+		Title:    keyword,
 	})
 	if err != nil {
 		ctx.ServerError("FindProjects", err)
@@ -395,7 +397,7 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)
 	ctx.Data["Project"] = project
 	ctx.Data["IssuesMap"] = issuesMap
-	ctx.Data["Boards"] = boards
+	ctx.Data["Columns"] = boards // TODO: rename boards to columns in backend
 	shared_user.RenderUserHeader(ctx)
 
 	err = shared_user.LoadHeaderCount(ctx)
