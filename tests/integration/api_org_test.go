@@ -232,8 +232,8 @@ func TestAPIOrgPackageCount(t *testing.T) {
 	})
 	MakeRequest(t, req, http.StatusCreated)
 
-	orgUrl := "api/v1/orgs/" + orgName
-	req = NewRequest(t, "GET", orgUrl)
+	orgURL := "api/v1/orgs/" + orgName
+	req = NewRequest(t, "GET", orgURL)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var orgInfo *api.Organization
@@ -250,7 +250,7 @@ func TestAPIOrgPackageCount(t *testing.T) {
 	AddBasicAuthHeader(req, user.Name)
 	MakeRequest(t, req, http.StatusCreated)
 
-	req = NewRequest(t, "GET", orgUrl)
+	req = NewRequest(t, "GET", orgURL)
 	resp = MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &orgInfo)

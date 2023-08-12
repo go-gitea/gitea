@@ -72,8 +72,8 @@ func TestAPIUserPackageCount(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
-	userUrl := "api/v1/users/" + user.Name
-	req := NewRequest(t, "GET", userUrl)
+	userURL := "api/v1/users/" + user.Name
+	req := NewRequest(t, "GET", userURL)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var userInfo *api.User
@@ -90,7 +90,7 @@ func TestAPIUserPackageCount(t *testing.T) {
 	AddBasicAuthHeader(req, user.Name)
 	MakeRequest(t, req, http.StatusCreated)
 
-	req = NewRequest(t, "GET", userUrl)
+	req = NewRequest(t, "GET", userURL)
 	resp = MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &userInfo)
