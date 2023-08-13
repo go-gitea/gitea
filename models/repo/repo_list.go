@@ -522,6 +522,11 @@ func SearchRepository(ctx context.Context, opts *SearchRepoOptions) (RepositoryL
 	return SearchRepositoryByCondition(ctx, opts, cond, true)
 }
 
+// CountRepository counts repositories based on search options,
+func CountRepository(ctx context.Context, opts *SearchRepoOptions) (int64, error) {
+	return db.GetEngine(ctx).Where(SearchRepositoryCondition(opts)).Count(new(Repository))
+}
+
 // SearchRepositoryByCondition search repositories by condition
 func SearchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, cond builder.Cond, loadAttributes bool) (RepositoryList, int64, error) {
 	sess, count, err := searchRepositoryByCondition(ctx, opts, cond)

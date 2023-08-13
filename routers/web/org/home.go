@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 )
 
 const (
@@ -157,6 +158,12 @@ func Home(ctx *context.Context) {
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["PageIsViewRepositories"] = true
 	ctx.Data["IsFollowing"] = isFollowing
+
+	err = shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
 
 	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)

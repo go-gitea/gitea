@@ -6,6 +6,7 @@ package admin
 import (
 	"net/http"
 	"net/url"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -14,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	packages_service "code.gitea.io/gitea/services/packages"
+	packages_cleanup_service "code.gitea.io/gitea/services/packages/cleanup"
 )
 
 const (
@@ -98,4 +100,14 @@ func DeletePackageVersion(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))
 	ctx.JSONRedirect(setting.AppSubURL + "/admin/packages?page=" + url.QueryEscape(ctx.FormString("page")) + "&q=" + url.QueryEscape(ctx.FormString("q")) + "&type=" + url.QueryEscape(ctx.FormString("type")))
+}
+
+func CleanupExpiredData(ctx *context.Context) {
+	if err := packages_cleanup_service.CleanupExpiredData(ctx, time.Duration(0)); err != nil {
+		ctx.ServerError("CleanupExpiredData", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("packages.cleanup.success"))
+	ctx.Redirect(setting.AppSubURL + "/admin/packages")
 }

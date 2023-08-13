@@ -24,7 +24,7 @@ test('Test Register Form', async ({page}, workerInfo) => {
   // Make sure we routed to the home page. Else login failed.
   await expect(page.url()).toBe(`${workerInfo.project.use.baseURL}/`);
   await expect(page.locator('.dashboard-navbar span>img.ui.avatar')).toBeVisible();
-  await expect(page.locator('.ui.positive.message.flash-success')).toHaveText('Account was successfully created.');
+  await expect(page.locator('.ui.positive.message.flash-success')).toHaveText('Account was successfully created. Welcome!');
 
   save_visual(page);
 });

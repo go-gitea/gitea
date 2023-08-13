@@ -2,7 +2,7 @@
 	{{range .Feeds}}
 		<div class="flex-item">
 			<div class="flex-item-leading">
-				{{avatarByAction $.Context .}}
+				{{ctx.AvatarUtils.AvatarByAction .}}
 			</div>
 			<div class="flex-item-main gt-gap-3">
 				<div>
