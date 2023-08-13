@@ -54,6 +54,10 @@ a.btn:hover {
 
 /* other button styles */
 
+.ui.buttons {
+  vertical-align: middle;
+}
+
 .ui.buttons .button:first-child {
   border-left: 1px solid var(--color-light-border);
 }
