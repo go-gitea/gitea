@@ -168,12 +168,7 @@ type ActionsConfig struct {
 }
 
 func (cfg *ActionsConfig) EnableWorkflow(file string) {
-	for i, workflow := range cfg.DisabledWorkflows {
-		if file == workflow {
-			cfg.DisabledWorkflows = append(cfg.DisabledWorkflows[:i], cfg.DisabledWorkflows[i+1:]...)
-			break
-		}
-	}
+	cfg.DisabledWorkflows = util.SliceRemoveAll(cfg.DisabledWorkflows, file)
 }
 
 func (cfg *ActionsConfig) ToString() string {
@@ -181,13 +176,7 @@ func (cfg *ActionsConfig) ToString() string {
 }
 
 func (cfg *ActionsConfig) IsWorkflowDisabled(file string) bool {
-	for _, workflow := range cfg.DisabledWorkflows {
-		if file == workflow {
-			return true
-		}
-	}
-
-	return false
+	return util.SliceContains(cfg.DisabledWorkflows, file)
 }
 
 func (cfg *ActionsConfig) DisableWorkflow(file string) {
