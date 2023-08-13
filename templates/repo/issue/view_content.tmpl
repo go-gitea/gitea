@@ -128,7 +128,7 @@
 													{{svg "octicon-triangle-down" 14 "icon"}}
 													<div class="menu">
 														{{range .IssueCloseBtnItems}}
-														<div class="item" data-value="{{.Value}}" data-status-and-comment="{{$.locale.Tr .StatusAndComment}}">
+														<div class="item" data-value="{{.Value}}" data-status="{{$.locale.Tr .Status}}" data-status-and-comment="{{$.locale.Tr .StatusAndComment}}">
 															{{$.locale.Tr .Status}}
 														</div>
 														{{end}}

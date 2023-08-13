@@ -646,8 +646,9 @@ export function initSingleCommentEditor($commentForm) {
   // update the status-button's text and value according to the selected dropdown's value (close status)
   const updateStatusButtonByDropdown = (val) => {
     if (!$statusButton.length) return;
-    const textStatusAndComment = $statusDropdown.dropdown('get item').attr('data-status-and-comment');
-    $statusButton.attr('data-status-and-comment', textStatusAndComment);
+    const $item = $statusDropdown.dropdown('get item');
+    $statusButton.attr('data-status', $item.attr('data-status'));
+    $statusButton.attr('data-status-and-comment', $item.attr('data-status-and-comment'));
     $statusButton.value = val === '-1' ? 'reopen' : 'close';
     const editor = getComboMarkdownEditor($('#comment-form .combo-markdown-editor'));
     updateStatusButtonByEditor(editor);
