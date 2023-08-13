@@ -1,5 +1,5 @@
 <div class="ui secondary filter menu gt-ac gt-mx-0">
-	<form class="ui form ignore-dirty gt-f1 gt-mr-2">
+	<form class="ui form ignore-dirty gt-f1 gt-mr-2 explore-form">
 		<input type="hidden" name="sort" value="{{$.SortType}}">
 		<input type="hidden" name="language" value="{{$.Language}}">
 		<div class="ui fluid action input">
@@ -13,9 +13,9 @@
 		</div>
 	</form>
 
-	<div>
+	<div class="explore-filters">
 		<!-- Sort -->
-		<div class="ui dropdown type jump item gt-mr-0">
+		<div class="ui dropdown type jump item gt-mr-0 explore-sort">
 			<span class="text">
 				{{.locale.Tr "repo.issues.filter_sort"}}
 					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -37,7 +37,7 @@
 		</div>
 
 		<!-- Language -->
-		<div class="ui right dropdown type jump item gt-mx-0">
+		<div class="ui right dropdown type jump item gt-mx-0 explore-lang">
 			<span class="text">
 				{{.locale.Tr "repo.repo_lang"}}
 					{{svg "octicon-triangle-down" 14 "dropdown icon"}}

@@ -10,12 +10,13 @@
   margin-right: 5px;
 }
 
-.explore .filter .ui.right .menu {
+.explore-lang .menu {
   max-height: 60vh;
   overflow-y: auto;
 }
 
-.explore .filter .ui.dropdown {
+.explore-lang,
+.explore-sort {
   float: right;
 }
 
@@ -23,10 +24,10 @@
   .explore .filter {
     flex-direction: column;
   }
-  .explore .filter form {
+  .explore-form {
     min-width: 100%;
   }
-  .explore .filter > div {
+  .explore-filters {
     align-self: end;
     margin-top: .25em;
   }
