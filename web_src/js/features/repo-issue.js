@@ -121,6 +121,7 @@ export function initRepoIssueSidebarList() {
 
       fullTextSearch: true,
     });
+
   function excludeLabel(item) {
     const href = $(item).attr('href');
     const id = $(item).data('label-id');
@@ -141,7 +142,7 @@ export function initRepoIssueSidebarList() {
   });
 
   $('.menu .ui.dropdown.label-filter').on('keydown', (e) => {
-    if (e.altKey && e.key === 'Enter') {
+    if (e.altKey && e.keyCode === 13) {
       const selectedItems = $('.menu .ui.dropdown.label-filter .menu .item.selected');
       if (selectedItems.length > 0) {
         excludeLabel($(selectedItems[0]));
