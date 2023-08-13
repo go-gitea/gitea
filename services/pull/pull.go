@@ -26,7 +26,6 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/process"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
@@ -38,73 +37,70 @@ import (
 var pullWorkingPool = sync.NewExclusivePool()
 
 // NewPullRequest creates new pull request with labels for repository.
-func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issues_model.Issue, labelIDs []int64, uuids []string, pr *issues_model.PullRequest, assigneeIDs []int64) error {
-	if err := TestPatch(pr); err != nil {
+func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, pr *issues_model.PullRequest, assigneeIDs []int64) error {
+	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
+	if err != nil {
+		if !git_model.IsErrBranchNotExist(err) {
+			log.Error("CreateTemporaryRepoForPR %-v: %v", pr, err)
+		}
+		return err
+	}
+	defer cancel()
+
+	if err := testPatch(ctx, prCtx, pr); err != nil {
 		return err
 	}
 
-	divergence, err := GetDiverging(ctx, pr)
+	divergence, err := git.GetDivergingCommits(ctx, prCtx.tmpBasePath, baseBranch, trackingBranch)
 	if err != nil {
 		return err
 	}
 	pr.CommitsAhead = divergence.Ahead
 	pr.CommitsBehind = divergence.Behind
 
-	if err := issues_model.NewPullRequest(ctx, repo, pull, labelIDs, uuids, pr); err != nil {
-		return err
-	}
-
-	for _, assigneeID := range assigneeIDs {
-		if err := issue_service.AddAssigneeIfNotAssigned(ctx, pull, pull.Poster, assigneeID); err != nil {
-			return err
-		}
-	}
-
-	pr.Issue = pull
-	pull.PullRequest = pr
-
-	// Now - even if the request context has been cancelled as the PR has been created
-	// in the db and there is no way to cancel that transaction we have to proceed - therefore
-	// create new context and work from there
-	prCtx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("NewPullRequest: %s:%d", repo.FullName(), pr.Index))
-	defer finished()
-
-	if pr.Flow == issues_model.PullRequestFlowGithub {
-		err = PushToBaseRepo(prCtx, pr)
-	} else {
-		err = UpdateRef(prCtx, pr)
-	}
-	if err != nil {
-		return err
-	}
-
-	mentions, err := issues_model.FindAndUpdateIssueMentions(ctx, pull, pull.Poster, pull.Content)
-	if err != nil {
-		return err
-	}
-
-	notification.NotifyNewPullRequest(prCtx, pr, mentions)
-	if len(pull.Labels) > 0 {
-		notification.NotifyIssueChangeLabels(prCtx, pull.Poster, pull, pull.Labels, nil)
-	}
-	if pull.Milestone != nil {
-		notification.NotifyIssueChangeMilestone(prCtx, pull.Poster, pull, 0)
-	}
+	assigneeCommentMap := make(map[int64]*issues_model.Comment)
 
 	// add first push codes comment
-	baseGitRepo, err := git.OpenRepository(prCtx, pr.BaseRepo.RepoPath())
+	baseGitRepo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
 	if err != nil {
 		return err
 	}
 	defer baseGitRepo.Close()
 
-	compareInfo, err := baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(),
-		git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName(), false, false)
-	if err != nil {
-		return err
-	}
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		if err := issues_model.NewPullRequest(ctx, repo, issue, labelIDs, uuids, pr); err != nil {
+			return err
+		}
 
-	if len(compareInfo.Commits) > 0 {
+		for _, assigneeID := range assigneeIDs {
+			comment, err := issue_service.AddAssigneeIfNotAssigned(ctx, issue, issue.Poster, assigneeID, false)
+			if err != nil {
+				return err
+			}
+			assigneeCommentMap[assigneeID] = comment
+		}
+
+		pr.Issue = issue
+		issue.PullRequest = pr
+
+		if pr.Flow == issues_model.PullRequestFlowGithub {
+			err = PushToBaseRepo(ctx, pr)
+		} else {
+			err = UpdateRef(ctx, pr)
+		}
+		if err != nil {
+			return err
+		}
+
+		compareInfo, err := baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(),
+			git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName(), false, false)
+		if err != nil {
+			return err
+		}
+		if len(compareInfo.Commits) == 0 {
+			return nil
+		}
+
 		data := issues_model.PushActionContent{IsForcePush: false}
 		data.CommitIDs = make([]string, 0, len(compareInfo.Commits))
 		for i := len(compareInfo.Commits) - 1; i >= 0; i-- {
@@ -118,21 +114,52 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *issu
 
 		ops := &issues_model.CreateCommentOptions{
 			Type:        issues_model.CommentTypePullRequestPush,
-			Doer:        pull.Poster,
+			Doer:        issue.Poster,
 			Repo:        repo,
 			Issue:       pr.Issue,
 			IsForcePush: false,
 			Content:     string(dataJSON),
 		}
 
-		_, _ = issues_model.CreateComment(ctx, ops)
+		if _, err = issues_model.CreateComment(ctx, ops); err != nil {
+			return err
+		}
 
 		if !pr.IsWorkInProgress() {
-			if err := issues_model.PullRequestCodeOwnersReview(ctx, pull, pr); err != nil {
+			if err := issues_model.PullRequestCodeOwnersReview(ctx, issue, pr); err != nil {
 				return err
 			}
 		}
+		return nil
+	}); err != nil {
+		// cleanup: this will only remove the reference, the real commit will be clean up when next GC
+		if err1 := baseGitRepo.RemoveReference(pr.GetGitRefName()); err1 != nil {
+			log.Error("RemoveReference: %v", err1)
+		}
+		return err
+	}
+	baseGitRepo.Close() // close immediately to avoid notifications will open the repository again
 
+	mentions, err := issues_model.FindAndUpdateIssueMentions(ctx, issue, issue.Poster, issue.Content)
+	if err != nil {
+		return err
+	}
+
+	notification.NotifyNewPullRequest(ctx, pr, mentions)
+	if len(issue.Labels) > 0 {
+		notification.NotifyIssueChangeLabels(ctx, issue.Poster, issue, issue.Labels, nil)
+	}
+	if issue.Milestone != nil {
+		notification.NotifyIssueChangeMilestone(ctx, issue.Poster, issue, 0)
+	}
+	if len(assigneeIDs) > 0 {
+		for _, assigneeID := range assigneeIDs {
+			assignee, err := user_model.GetUserByID(ctx, assigneeID)
+			if err != nil {
+				return ErrDependenciesLeft
+			}
+			notification.NotifyIssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assigneeID])
+		}
 	}
 
 	return nil

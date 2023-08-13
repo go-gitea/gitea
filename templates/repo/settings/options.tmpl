@@ -83,13 +83,15 @@
 					{{$.locale.Tr "repo.settings.mirror_settings.docs"}}
 					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pushing-to<ing-to-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br><br>
 					{{$.locale.Tr "repo.settings.mirror_settings.docs.pull_mirror_instructions"}}
-					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pulling-from-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br>
+					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pulling-from-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_pull_section"}}</a><br>
 				{{else if $onlyNewPushMirrorsEnabled}}
 					{{$.locale.Tr "repo.settings.mirror_settings.docs.disabled_pull_mirror.instructions"}}
+					{{$.locale.Tr "repo.settings.mirror_settings.docs.more_information_if_disabled"}}
 					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pulling-from-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br>
 				{{else if $onlyNewPullMirrorsEnabled}}
 					{{$.locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.instructions"}}
 					{{$.locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.pull_mirror_warning"}}
+					{{$.locale.Tr "repo.settings.mirror_settings.docs.more_information_if_disabled"}}
 					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pulling-from-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br><br>
 					{{$.locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.info"}}
 					{{if $existingPushMirror}}
