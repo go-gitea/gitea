@@ -633,40 +633,42 @@ export function initRepoIssueBranchSelect() {
 export function initSingleCommentEditor($commentForm) {
   // pages:
   // * normal new issue/pr page, no status-button
-  // * issue/pr view page, with comment form, has status button, and status dropdown
+  // * issue/pr view page, with comment form, has status button, and/or status dropdown
   const $statusButton = $commentForm.find('.status-button');
   const $statusDropdown = $commentForm.find('.status-dropdown');
+  let comboMarkdownEditor;
 
   // update the status-button's text according to the editor's content
-  const updateStatusButtonByEditor = (editor) => {
-    if (!editor || !$statusButton.length) return;
-    $statusButton.text($statusButton.attr(editor.value().trim() ? 'data-status-and-comment' : 'data-status'));
+  const updateStatusButtonText = () => {
+    if (!comboMarkdownEditor || !$statusButton.length) return;
+    $statusButton.text($statusButton.attr(comboMarkdownEditor.value().trim() ? 'data-status-and-comment' : 'data-status'));
   };
 
   // update the status-button's text and value according to the selected dropdown's value (close status)
-  const updateStatusButtonByDropdown = (val) => {
+  const updateStatusButtonByCloseStatus = (val) => {
     if (!$statusButton.length) return;
     const $item = $statusDropdown.dropdown('get item');
     $statusButton.attr('data-status', $item.attr('data-status'));
     $statusButton.attr('data-status-and-comment', $item.attr('data-status-and-comment'));
     $statusButton.value = val === '-1' ? 'reopen' : 'close';
-    const editor = getComboMarkdownEditor($('#comment-form .combo-markdown-editor'));
-    updateStatusButtonByEditor(editor);
+    updateStatusButtonText();
   };
 
   if ($statusDropdown.length) {
     $statusDropdown.dropdown('setting', {
       selectOnKeydown: false,
       allowReselection: true,
-      onChange: updateStatusButtonByDropdown,
+      onChange: updateStatusButtonByCloseStatus,
     });
     const selectedValue = $statusDropdown.find('input[type=hidden]').val();
     $statusDropdown.dropdown('set selected', selectedValue);
-    updateStatusButtonByDropdown(selectedValue);
+    updateStatusButtonByCloseStatus(selectedValue);
   }
 
-  const editorOpts = {onContentChanged: updateStatusButtonByEditor};
-  initComboMarkdownEditor($commentForm.find('.combo-markdown-editor'), editorOpts).then(updateStatusButtonByEditor);
+  const editorOpts = {onContentChanged: updateStatusButtonText};
+  initComboMarkdownEditor($commentForm.find('.combo-markdown-editor'), editorOpts).then((editor) => {
+    comboMarkdownEditor = editor;
+  });
 }
 
 export function initIssueTemplateCommentEditors($commentForm) {
