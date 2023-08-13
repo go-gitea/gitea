@@ -116,37 +116,28 @@
 											{{end}}
 										{{end}}
 										<div class="ui buttons">
-											<button id="status-button"
-												class="ui button"
-												name="status"
-												value="{{$statusValue}}"
+											<button class="ui button status-button" name="status" value="{{$statusValue}}"
 												data-status="{{$.locale.Tr $buttonTranslationKey}}"
 												data-status-and-comment="{{$.locale.Tr $buttonCommentTranslationKey}}"
 											>
-												<span class="button-text">
-													{{$.locale.Tr $buttonTranslationKey}}
-												</span>
+												{{$.locale.Tr $buttonTranslationKey}}
 											</button>
 											{{if not .Issue.IsPull}}
-												<div id="status-dropdown" class="ui dropdown button icon gt-ml-0">
+												<div class="ui dropdown button icon gt-ml-0 status-dropdown" role="button" tabindex="0">
 													<input type="hidden" name="closed_status" value="{{if eq $statusValue "reopen"}}-1{{else}}{{.Issue.ClosedStatus}}{{end}}">
 													{{svg "octicon-triangle-down" 14 "icon"}}
 													<div class="menu">
 														{{range .IssueCloseBtnItems}}
-															<div class="item"
-																data-value="{{.Value}}"
-																data-status="{{$.locale.Tr .Status}}"
-																data-status-and-comment="{{$.locale.Tr .StatusAndComment}}"
-															>
-																{{$.locale.Tr .Status}}
-															</div>
+														<div class="item" data-value="{{.Value}}" data-status-and-comment="{{$.locale.Tr .StatusAndComment}}">
+															{{$.locale.Tr .Status}}
+														</div>
 														{{end}}
 													</div>
 												</div>
 											{{end}}
 										</div>
 									{{end}}
-									<button class="ui green button comment-button" tabindex="5">
+									<button class="ui green button comment-button">
 										{{.locale.Tr "repo.issues.create_comment"}}
 									</button>
 								</div>

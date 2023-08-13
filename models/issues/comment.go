@@ -298,8 +298,6 @@ type Comment struct {
 	NewCommit   string                              `xorm:"-"`
 	CommitsNum  int64                               `xorm:"-"`
 	IsForcePush bool                                `xorm:"-"`
-
-	ClosedStatus IssueClosedStatus `xorm:"-"`
 }
 
 func init() {
