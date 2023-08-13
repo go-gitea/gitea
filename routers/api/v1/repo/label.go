@@ -159,11 +159,7 @@ func CreateLabel(ctx *context.APIContext) {
 		RepoID:      ctx.Repo.Repository.ID,
 		Description: form.Description,
 	}
-	if form.IsArchived {
-		l.ArchivedUnix = timeutil.TimeStampNow()
-	} else {
-		l.ArchivedUnix = timeutil.TimeStamp(0)
-	}
+	l.Archived(form.IsArchived)
 	if err := issues_model.NewLabel(ctx, l); err != nil {
 		ctx.Error(http.StatusInternalServerError, "NewLabel", err)
 		return
@@ -236,7 +232,7 @@ func EditLabel(ctx *context.APIContext) {
 	if form.Description != nil {
 		l.Description = *form.Description
 	}
-	if form.IsArchived != nil {
+	if form.IsArchived != nil && *form.IsArchived == true {
 		l.ArchivedUnix = timeutil.TimeStampNow()
 	} else {
 		l.ArchivedUnix = timeutil.TimeStamp(0)

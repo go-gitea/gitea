@@ -210,7 +210,7 @@ func EditLabel(ctx *context.APIContext) {
 	if form.Description != nil {
 		l.Description = *form.Description
 	}
-	if form.IsArchived != nil {
+	if form.IsArchived != nil && *form.IsArchived == true {
 		l.ArchivedUnix = timeutil.TimeStampNow()
 	} else {
 		l.ArchivedUnix = timeutil.TimeStamp(0)

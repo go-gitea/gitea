@@ -143,11 +143,8 @@ func UpdateLabel(ctx *context.Context) {
 	l.Exclusive = form.Exclusive
 	l.Description = form.Description
 	l.Color = form.Color
-	if form.IsArchived {
-		l.ArchivedUnix = timeutil.TimeStampNow()
-	} else {
-		l.ArchivedUnix = timeutil.TimeStamp(0)
-	}
+
+	l.Archived(form.IsArchived)
 	if err := issues_model.UpdateLabel(l); err != nil {
 		ctx.ServerError("UpdateLabel", err)
 		return

@@ -111,6 +111,15 @@ func (l *Label) CalOpenIssues() {
 	l.NumOpenIssues = l.NumIssues - l.NumClosedIssues
 }
 
+// Archived set the label as archived
+func (l *Label) Archived(isArchived bool) {
+	if isArchived {
+		l.ArchivedUnix = timeutil.TimeStampNow()
+	} else {
+		l.ArchivedUnix = timeutil.TimeStamp(0)
+	}
+}
+
 // CalOpenOrgIssues calculates the open issues of a label for a specific repo
 func (l *Label) CalOpenOrgIssues(ctx context.Context, repoID, labelID int64) {
 	counts, _ := CountIssuesByRepo(ctx, &IssuesOptions{
