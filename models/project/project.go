@@ -198,6 +198,7 @@ type SearchOptions struct {
 	IsClosed util.OptionalBool
 	OrderBy  db.SearchOrderBy
 	Type     Type
+	Title    string
 }
 
 func (opts *SearchOptions) toConds() builder.Cond {
@@ -217,6 +218,10 @@ func (opts *SearchOptions) toConds() builder.Cond {
 	}
 	if opts.OwnerID > 0 {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
+	}
+
+	if len(opts.Title) != 0 {
+		cond = cond.And(db.BuildCaseInsensitiveLike("title", opts.Title))
 	}
 	return cond
 }
@@ -241,7 +246,10 @@ func GetSearchOrderByBySortType(sortType string) db.SearchOrderBy {
 
 // FindProjects returns a list of all projects that have been created in the repository
 func FindProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, error) {
-	e := db.GetEngine(ctx).Where(opts.toConds()).OrderBy(opts.OrderBy.String())
+	e := db.GetEngine(ctx).Where(opts.toConds())
+	if opts.OrderBy.String() != "" {
+		e = e.OrderBy(opts.OrderBy.String())
+	}
 	projects := make([]*Project, 0, setting.UI.IssuePagingNum)
 
 	if opts.Page > 0 {

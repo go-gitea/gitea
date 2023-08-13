@@ -150,11 +150,11 @@ func LoadGitRepo(t *testing.T, ctx *context.Context) {
 
 type mockRender struct{}
 
-func (tr *mockRender) TemplateLookup(tmpl string) (templates.TemplateExecutor, error) {
+func (tr *mockRender) TemplateLookup(tmpl string, _ gocontext.Context) (templates.TemplateExecutor, error) {
 	return nil, nil
 }
 
-func (tr *mockRender) HTML(w io.Writer, status int, _ string, _ any) error {
+func (tr *mockRender) HTML(w io.Writer, status int, _ string, _ any, _ gocontext.Context) error {
 	if resp, ok := w.(http.ResponseWriter); ok {
 		resp.WriteHeader(status)
 	}

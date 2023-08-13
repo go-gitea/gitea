@@ -1,5 +1,6 @@
 import {htmlEscape} from 'escape-goat';
 import {svg} from '../svg.js';
+import Toastify from 'toastify-js';
 
 const levels = {
   info: {
@@ -23,7 +24,6 @@ const levels = {
 async function showToast(message, level, {gravity, position, duration, ...other} = {}) {
   if (!message) return;
 
-  const {default: Toastify} = await import(/* webpackChunkName: 'toastify' */'toastify-js');
   const {icon, background, duration: levelDuration} = levels[level ?? 'info'];
 
   const toast = Toastify({

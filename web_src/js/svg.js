@@ -29,6 +29,7 @@ import octiconFileDirectoryFill from '../../public/assets/img/svg/octicon-file-d
 import octiconFilter from '../../public/assets/img/svg/octicon-filter.svg';
 import octiconGear from '../../public/assets/img/svg/octicon-gear.svg';
 import octiconGitBranch from '../../public/assets/img/svg/octicon-git-branch.svg';
+import octiconGitCommit from '../../public/assets/img/svg/octicon-git-commit.svg';
 import octiconGitMerge from '../../public/assets/img/svg/octicon-git-merge.svg';
 import octiconGitPullRequest from '../../public/assets/img/svg/octicon-git-pull-request.svg';
 import octiconHeading from '../../public/assets/img/svg/octicon-heading.svg';
@@ -99,6 +100,7 @@ const svgs = {
   'octicon-filter': octiconFilter,
   'octicon-gear': octiconGear,
   'octicon-git-branch': octiconGitBranch,
+  'octicon-git-commit': octiconGitCommit,
   'octicon-git-merge': octiconGitMerge,
   'octicon-git-pull-request': octiconGitPullRequest,
   'octicon-heading': octiconHeading,
@@ -185,9 +187,10 @@ export const SvgIcon = {
     name: {type: String, required: true},
     size: {type: Number, default: 16},
     className: {type: String, default: ''},
+    symbolId: {type: String}
   },
   render() {
-    const {svgOuter, svgInnerHtml} = svgParseOuterInner(this.name);
+    let {svgOuter, svgInnerHtml} = svgParseOuterInner(this.name);
     // https://vuejs.org/guide/extras/render-function.html#creating-vnodes
     // the `^` is used for attr, set SVG attributes like 'width', `aria-hidden`, `viewBox`, etc
     const attrs = {};
@@ -207,7 +210,10 @@ export const SvgIcon = {
     if (this.className) {
       classes.push(...this.className.split(/\s+/).filter(Boolean));
     }
-
+    if (this.symbolId) {
+      classes.push('gt-hidden', 'svg-symbol-container');
+      svgInnerHtml = `<symbol id="${this.symbolId}" viewBox="${attrs['^viewBox']}">${svgInnerHtml}</symbol>`;
+    }
     // create VNode
     return h('svg', {
       ...attrs,

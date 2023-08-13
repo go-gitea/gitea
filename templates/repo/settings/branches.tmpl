@@ -38,26 +38,27 @@
 				</div>
 			</h4>
 
-			<div class="ui attached table segment">
-				<div class="ui grid padded">
-					<div class="sixteen wide column">
-						<table class="ui single line table padded">
-							<tbody>
-								{{range .ProtectedBranches}}
-									<tr>
-										<td><div class="ui basic primary label">{{.RuleName}}</div></td>
-										<td class="right aligned">
-										<a class="rm ui button" href="{{$.Repository.Link}}/settings/branches/edit?rule_name={{.RuleName}}">{{$.locale.Tr "repo.settings.edit_protected_branch"}}</a>
-										<button class="ui red tiny button delete-button" data-url="{{$.Repository.Link}}/settings/branches/{{.ID}}/delete" data-id="{{.ID}}">
-										{{$.locale.Tr "repo.settings.protected_branch.delete_rule"}}</button>
-										</td>
-									</tr>
-								{{else}}
-									<tr class="center aligned"><td>{{.locale.Tr "repo.settings.no_protected_branch"}}</td></tr>
-								{{end}}
-							</tbody>
-						</table>
-					</div>
+			<div class="ui attached segment">
+				<div class="flex-list">
+					{{range .ProtectedBranches}}
+						<div class="flex-item flex-item-center">
+							<div class="flex-item-main">
+								<div class="flex-item-title">
+									<div class="ui basic primary label">{{.RuleName}}</div>
+								</div>
+							</div>
+							<div class="flex-item-trailing">
+								<a class="rm ui tiny button" href="{{$.Repository.Link}}/settings/branches/edit?rule_name={{.RuleName}}">{{$.locale.Tr "repo.settings.edit_protected_branch"}}</a>
+								<button class="ui red tiny button delete-button" data-url="{{$.Repository.Link}}/settings/branches/{{.ID}}/delete" data-id="{{.ID}}">
+									{{$.locale.Tr "repo.settings.protected_branch.delete_rule"}}
+								</button>
+							</div>
+						</div>
+					{{else}}
+						<div class="flex-item center aligned">
+							{{.locale.Tr "repo.settings.no_protected_branch"}}
+						</div>
+					{{end}}
 				</div>
 			</div>
 		{{end}}

@@ -620,6 +620,9 @@
           "403": {
             "$ref": "#/responses/forbidden"
           },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
           "422": {
             "$ref": "#/responses/validationError"
           }
@@ -16399,6 +16402,10 @@
         "filename": {
           "type": "string",
           "x-go-name": "Filename"
+        },
+        "status": {
+          "type": "string",
+          "x-go-name": "Status"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -16507,7 +16514,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "CommitStatusState": {
-      "description": "CommitStatusState holds the state of a CommitStatus\nIt can be \"pending\", \"success\", \"error\", \"failure\", and \"warning\"",
+      "description": "CommitStatusState holds the state of a CommitStatus\nIt can be \"pending\", \"success\", \"error\" and \"failure\"",
       "type": "string",
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
@@ -17118,6 +17125,10 @@
           "type": "string",
           "x-go-name": "Description"
         },
+        "email": {
+          "type": "string",
+          "x-go-name": "Email"
+        },
         "full_name": {
           "type": "string",
           "x-go-name": "FullName"
@@ -17472,10 +17483,12 @@
           },
           "x-go-name": "Units",
           "example": [
+            "repo.actions",
             "repo.code",
             "repo.issues",
             "repo.ext_issues",
             "repo.wiki",
+            "repo.ext_wiki",
             "repo.pulls",
             "repo.releases",
             "repo.projects",
@@ -17488,16 +17501,7 @@
             "type": "string"
           },
           "x-go-name": "UnitsMap",
-          "example": {
-            "repo.code": "read",
-            "repo.ext_issues": "none",
-            "repo.ext_wiki": "none",
-            "repo.issues": "write",
-            "repo.projects": "none",
-            "repo.pulls": "owner",
-            "repo.releases": "none",
-            "repo.wiki": "admin"
-          }
+          "example": "{\"repo.actions\",\"repo.packages\",\"repo.code\":\"read\",\"repo.issues\":\"write\",\"repo.ext_issues\":\"none\",\"repo.wiki\":\"admin\",\"repo.pulls\":\"owner\",\"repo.releases\":\"none\",\"repo.projects\":\"none\",\"repo.ext_wiki\":\"none\"}"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -18035,6 +18039,10 @@
         "description": {
           "type": "string",
           "x-go-name": "Description"
+        },
+        "email": {
+          "type": "string",
+          "x-go-name": "Email"
         },
         "full_name": {
           "type": "string",
@@ -18902,6 +18910,11 @@
           "type": "boolean",
           "x-go-name": "Private"
         },
+        "protected_branch": {
+          "description": "include protected branches in template repo",
+          "type": "boolean",
+          "x-go-name": "ProtectedBranch"
+        },
         "topics": {
           "description": "include topics in template repo",
           "type": "boolean",
@@ -19727,7 +19740,11 @@
             "git",
             "github",
             "gitea",
-            "gitlab"
+            "gitlab",
+            "gogs",
+            "onedev",
+            "gitbucket",
+            "codebase"
           ],
           "x-go-name": "Service"
         },
@@ -20083,6 +20100,10 @@
         "description": {
           "type": "string",
           "x-go-name": "Description"
+        },
+        "email": {
+          "type": "string",
+          "x-go-name": "Email"
         },
         "full_name": {
           "type": "string",

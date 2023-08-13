@@ -42,14 +42,15 @@ type CreateRepoForm struct {
 	Readme        string
 	Template      bool
 
-	RepoTemplate int64
-	GitContent   bool
-	Topics       bool
-	GitHooks     bool
-	Webhooks     bool
-	Avatar       bool
-	Labels       bool
-	TrustModel   string
+	RepoTemplate    int64
+	GitContent      bool
+	Topics          bool
+	GitHooks        bool
+	Webhooks        bool
+	Avatar          bool
+	Labels          bool
+	ProtectedBranch bool
+	TrustModel      string
 }
 
 // Validate validates the fields
