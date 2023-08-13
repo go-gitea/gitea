@@ -220,7 +220,7 @@ func notify(ctx context.Context, input *notifyInput) error {
   }
 
 	var detectedWorkflows []*actions_module.DetectedWorkflow
-	workflows, err := actions_module.DetectWorkflows(commit, input.Event, input.Payload)
+	workflows, err := actions_module.DetectWorkflows(gitRepo, commit, input.Event, input.Payload)
 	if err != nil {
 		return fmt.Errorf("DetectWorkflows: %w", err)
 	}
@@ -241,7 +241,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		if err != nil {
 			return fmt.Errorf("gitRepo.GetCommit: %w", err)
 		}
-		baseWorkflows, err := actions_module.DetectWorkflows(baseCommit, input.Event, input.Payload)
+		baseWorkflows, err := actions_module.DetectWorkflows(gitRepo, baseCommit, input.Event, input.Payload)
 		if err != nil {
 			return fmt.Errorf("DetectWorkflows: %w", err)
 		}

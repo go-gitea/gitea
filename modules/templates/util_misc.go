@@ -5,10 +5,10 @@ package templates
 
 import (
 	"context"
-	"fmt"
 	"html/template"
 	"mime"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -174,23 +174,12 @@ func FilenameIsImage(filename string) bool {
 	return strings.HasPrefix(mimeType, "image/")
 }
 
-func TabSizeClass(ec any, filename string) string {
-	var (
-		value *editorconfig.Editorconfig
-		ok    bool
-	)
+func TabSizeClass(ec *editorconfig.Editorconfig, filename string) string {
 	if ec != nil {
-		if value, ok = ec.(*editorconfig.Editorconfig); !ok || value == nil {
-			return "tab-size-8"
-		}
-		def, err := value.GetDefinitionForFilename(filename)
-		if err != nil {
-			log.Error("tab size class: getting definition for filename: %v", err)
-			return "tab-size-8"
-		}
-		if def.TabWidth > 0 {
-			return fmt.Sprintf("tab-size-%d", def.TabWidth)
+		def, err := ec.GetDefinitionForFilename(filename)
+		if err == nil && def.TabWidth >= 1 && def.TabWidth <= 16 {
+			return "tab-size-" + strconv.Itoa(def.TabWidth)
 		}
 	}
-	return "tab-size-8"
+	return "tab-size-4"
 }

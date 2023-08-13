@@ -520,6 +520,10 @@ var migrations = []Migration{
 	// v268 -> v269
 	NewMigration("Update Action Ref", v1_21.UpdateActionsRefIndex),
 	// v269 -> v270
+	NewMigration("Drop deleted branch table", v1_21.DropDeletedBranchTable),
+	// v270 -> v271
+	NewMigration("Fix PackageProperty typo", v1_21.FixPackagePropertyTypo),
+	// v271 -> v272
 	NewMigration("Add Action Schedule Table", v1_21.AddActionScheduleTable),
 }
 

@@ -112,9 +112,7 @@ func DeleteOpenID(ctx *context.Context) {
 	log.Trace("OpenID address deleted: %s", ctx.Doer.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.openid_deletion_success"))
-	ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": setting.AppSubURL + "/user/settings/security",
-	})
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/security")
 }
 
 // ToggleOpenIDVisibility response for toggle visibility of user's openid
