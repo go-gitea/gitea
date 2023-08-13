@@ -61,12 +61,16 @@ func RetrieveLabels(ctx *context.Context) {
 		ctx.ServerError("RetrieveLabels.GetLabels", err)
 		return
 	}
-
+	numArchivedLabels := 0
 	for _, l := range labels {
 		l.CalOpenIssues()
+		if l.IsArchived() {
+			numArchivedLabels++
+		}
 	}
 
 	ctx.Data["Labels"] = labels
+	ctx.Data["NumArchivedLabels"] = numArchivedLabels
 
 	if ctx.Repo.Owner.IsOrganization() {
 		orgLabels, err := issues_model.GetLabelsByOrgID(ctx, ctx.Repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{})
