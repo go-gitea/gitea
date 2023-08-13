@@ -10,7 +10,7 @@ import (
 
 func AddArchivedUnixColumInLabelTable(x *xorm.Engine) error {
 	type Label struct {
-		ArchivedUnix timeutil.TimeStamp `xorm:"DEFAULT 0"`
+		ArchivedUnix timeutil.TimeStamp `xorm:"DEFAULT NULL"`
 	}
 
 	sess := x.NewSession()
@@ -20,13 +20,9 @@ func AddArchivedUnixColumInLabelTable(x *xorm.Engine) error {
 		return err
 	}
 
-	if err := sess.Sync2(new(Label)); err != nil {
-		return fmt.Errorf("Sync2: %w", err)
+	if err := sess.Sync(new(Label)); err != nil {
+		return fmt.Errorf("sync: %w", err)
 	}
 
-	_, err := sess.Exec("UPDATE label SET archived_unix=0")
-	if err != nil {
-		return err
-	}
 	return sess.Commit()
 }
