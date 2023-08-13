@@ -4,6 +4,7 @@
 package v1_21 //nolint
 import (
 	"code.gitea.io/gitea/modules/timeutil"
+
 	"xorm.io/xorm"
 )
 
@@ -12,5 +13,4 @@ func AddArchivedUnixColumInLabelTable(x *xorm.Engine) error {
 		ArchivedUnix timeutil.TimeStamp `xorm:"DEFAULT NULL"`
 	}
 	return x.Sync(new(Label))
-
 }
