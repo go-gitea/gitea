@@ -1294,12 +1294,12 @@ type IssueCloseBtnItem struct {
 
 var issueCloseBtnItems = []IssueCloseBtnItem{
 	{
-		Value:            issues_model.IssueClosedStatus(-1),
+		Value:            -1,
 		Status:           "repo.issues.close_as.reopen",
 		StatusAndComment: "repo.issues.comment_and_close_as.reopen",
 	},
 	{
-		Value:            issues_model.IssueClosedStatusCommonClose,
+		Value:            issues_model.IssueClosedStatusCommon,
 		Status:           "repo.issues.close_as.common",
 		StatusAndComment: "repo.issues.comment_and_close_as.common",
 	},
@@ -1384,7 +1384,7 @@ func ViewIssue(ctx *context.Context) {
 		// assemble data for close/reopen issue dropdown.
 		var btnItems []IssueCloseBtnItem
 		for _, item := range issueCloseBtnItems {
-			if !issue.IsClosed && item.Value == issues_model.IssueClosedStatus(-1) {
+			if !issue.IsClosed && item.Value == -1 {
 				// if issue is open, do not append "reopen" btn item.
 				continue
 			}
@@ -1747,13 +1747,6 @@ func ViewIssue(ctx *context.Context) {
 				} else {
 					// else it's just a duration in seconds to pass on to the frontend
 					comment.Content = comment.Content[1:]
-				}
-			}
-		} else if comment.Type == issues_model.CommentTypeClose {
-			if err = comment.LoadClosedIssueCommentContent(ctx); err != nil {
-				if !issues_model.IsErrIssueNotExist(err) {
-					ctx.ServerError("LoadClosedIssueCommentContent", err)
-					return
 				}
 			}
 		}

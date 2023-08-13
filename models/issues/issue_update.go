@@ -6,6 +6,7 @@ package issues
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -18,7 +19,6 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/references"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -108,14 +108,7 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 	cmtType := CommentTypeClose
 	var content string
 	if !issue.IsPull && issue.IsClosed {
-		c := &ClosedIssueCommentContent{
-			ClosedStatus: issue.ClosedStatus,
-		}
-		data, err := json.Marshal(c)
-		if err != nil {
-			return nil, err
-		}
-		content = string(data)
+		content = strconv.Itoa(int(issue.ClosedStatus))
 	}
 
 	if !issue.IsClosed {

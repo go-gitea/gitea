@@ -95,19 +95,11 @@ func (err ErrIssueWasClosed) Error() string {
 type IssueClosedStatus int8
 
 const (
-	// IssueClosedStatusCommonClose close issue without any state.
-	IssueClosedStatusCommonClose IssueClosedStatus = iota
-	// IssueClosedStatusArchived close issue as archived.
-	IssueClosedStatusArchived
-	// IssueClosedStatusResolved close issue as resolved.
-	IssueClosedStatusResolved
-	// IssueClosedStatusStale close issue as stale.
-	IssueClosedStatusStale
+	IssueClosedStatusCommon   IssueClosedStatus = iota // 0 close issue without any state.
+	IssueClosedStatusArchived                          // 1
+	IssueClosedStatusResolved                          // 2
+	IssueClosedStatusStale                             // 3
 )
-
-type ClosedIssueCommentContent struct {
-	ClosedStatus IssueClosedStatus `json:"closed_status"`
-}
 
 // Issue represents an issue or pull request of repository.
 type Issue struct {

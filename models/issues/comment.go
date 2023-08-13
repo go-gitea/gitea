@@ -1257,14 +1257,7 @@ func (c *Comment) HasOriginalAuthor() bool {
 	return c.OriginalAuthor != "" && c.OriginalAuthorID != 0
 }
 
-func (c *Comment) LoadClosedIssueCommentContent(ctx context.Context) (err error) {
-	if c.Type != CommentTypeClose || c.Content == "" {
-		return nil
-	}
-	var ctnt ClosedIssueCommentContent
-	if err = json.Unmarshal([]byte(c.Content), &ctnt); err != nil {
-		return err
-	}
-	c.ClosedStatus = ctnt.ClosedStatus
-	return nil
+func (c *Comment) GetIssueClosedStatus() int {
+	n, _ := strconv.Atoi(c.Content)
+	return n
 }

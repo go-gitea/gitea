@@ -1302,10 +1302,6 @@ img.ui.avatar,
   margin-right: 6px;
 }
 
-.ui.status.buttons .svg {
-  margin-right: 4px;
-}
-
 .ui.inline.delete-button {
   padding: 8px 15px;
   font-weight: var(--font-weight-normal);

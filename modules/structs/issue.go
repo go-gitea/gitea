@@ -25,12 +25,9 @@ const (
 )
 
 const (
-	// CloseStatusArchived close issue as archived.
 	ClosedStatusArchived = "archived"
-	// ClosedStatusResolved close issue as resolved.
 	ClosedStatusResolved = "resolved"
-	// ClosedStatusStale close issue as stale.
-	ClosedStatusStale = "stale"
+	ClosedStatusStale    = "stale"
 )
 
 // PullRequestMeta PR info if an issue is a PR

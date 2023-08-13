@@ -113,12 +113,13 @@
 					{{if .Issue.IsPull}}
 						{{$.locale.Tr "repo.pulls.closed_at" .EventTag $createdStr | Safe}}
 					{{else}}
+						{{$closedStatus := .GetIssueClosedStatus}}
 						{{$trans := "repo.issues.closed_at"}}
-						{{if eq .ClosedStatus 1}}
+						{{if eq $closedStatus 1}}
 							{{$trans = "repo.issues.closed_as_archived_at"}}
-						{{else if eq .ClosedStatus 2}}
+						{{else if eq $closedStatus 2}}
 							{{$trans = "repo.issues.closed_as_resolved_at"}}
-						{{else if eq .ClosedStatus 3}}
+						{{else if eq $closedStatus 3}}
 							{{$trans = "repo.issues.closed_as_stale_at"}}
 						{{end}}
 						{{$.locale.Tr $trans .EventTag $createdStr | Safe}}

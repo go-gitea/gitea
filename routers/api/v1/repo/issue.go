@@ -844,7 +844,7 @@ func EditIssue(ctx *context.APIContext) {
 			}
 		}
 		issue.IsClosed = api.StateClosed == api.StateType(*form.State)
-		issue.ClosedStatus = issues_model.IssueClosedStatusCommonClose
+		issue.ClosedStatus = issues_model.IssueClosedStatusCommon
 		if issue.IsClosed && form.ClosedStatus != nil {
 			switch *form.ClosedStatus {
 			case api.ClosedStatusArchived:
@@ -854,7 +854,7 @@ func EditIssue(ctx *context.APIContext) {
 			case api.ClosedStatusStale:
 				issue.ClosedStatus = issues_model.IssueClosedStatusStale
 			default:
-				issue.ClosedStatus = issues_model.IssueClosedStatusCommonClose
+				issue.ClosedStatus = issues_model.IssueClosedStatusCommon
 			}
 		}
 	}

@@ -115,9 +115,9 @@
 												{{$buttonCommentTranslationKey = "repo.issues.comment_and_close_as.common"}}
 											{{end}}
 										{{end}}
-										<div class="ui buttons gt-vm">
+										<div class="ui buttons">
 											<button id="status-button"
-												class="ui button dropdown-item"
+												class="ui button"
 												name="status"
 												value="{{$statusValue}}"
 												data-status="{{$.locale.Tr $buttonTranslationKey}}"
@@ -128,9 +128,9 @@
 												</span>
 											</button>
 											{{if not .Issue.IsPull}}
-												<div id="status-dropdown" class="ui dropdown icon button gt-ml-0 dropdown-item">
+												<div id="status-dropdown" class="ui dropdown button icon gt-ml-0">
 													<input type="hidden" name="closed_status" value="{{if eq $statusValue "reopen"}}-1{{else}}{{.Issue.ClosedStatus}}{{end}}">
-													{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+													{{svg "octicon-triangle-down" 14 "icon"}}
 													<div class="menu">
 														{{range .IssueCloseBtnItems}}
 															<div class="item"
