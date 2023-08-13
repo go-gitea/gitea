@@ -47,6 +47,7 @@ func startTasks(ctx context.Context) error {
 		for _, row := range specs {
 			if err := CreateScheduleTask(ctx, row.Schedule); err != nil {
 				log.Error("CreateScheduleTask: %v", err)
+				return err
 			}
 
 			// Parse the spec
@@ -61,6 +62,7 @@ func startTasks(ctx context.Context) error {
 			row.Next = timeutil.TimeStamp(schedule.Next(now.Add(1 * time.Minute)).Unix())
 			if err := actions_model.UpdateScheduleSpec(ctx, row, "prev", "next"); err != nil {
 				log.Error("UpdateScheduleSpec: %v", err)
+				return err
 			}
 		}
 
