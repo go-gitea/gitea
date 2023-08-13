@@ -65,7 +65,6 @@ type FindScheduleOptions struct {
 	db.ListOptions
 	RepoID  int64
 	OwnerID int64
-	GetAll  bool
 }
 
 func (opts FindScheduleOptions) toConds() builder.Cond {
@@ -82,7 +81,7 @@ func (opts FindScheduleOptions) toConds() builder.Cond {
 
 func FindSchedules(ctx context.Context, opts FindScheduleOptions) (ScheduleList, int64, error) {
 	e := db.GetEngine(ctx).Where(opts.toConds())
-	if !opts.GetAll && opts.PageSize > 0 && opts.Page >= 1 {
+	if !opts.ListAll && opts.PageSize > 0 && opts.Page >= 1 {
 		e.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 	}
 	var schedules ScheduleList

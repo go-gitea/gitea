@@ -105,76 +105,6 @@ func (input *notifyInput) Notify(ctx context.Context) {
 	}
 }
 
-func handleSchedules(
-	ctx context.Context,
-	schedules map[string][]byte,
-	commit *git.Commit,
-	input *notifyInput,
-) error {
-	if commit.Branch != input.Repo.DefaultBranch {
-		log.Trace("commit branch is not default branch in repo")
-		return nil
-	}
-
-	rows, _, err := actions_model.FindSchedules(ctx, actions_model.FindScheduleOptions{RepoID: input.Repo.ID})
-	if err != nil {
-		log.Error("FindCrons: %v", err)
-		return err
-	}
-
-	if len(rows) > 0 {
-		if err := actions_model.DeleteScheduleTaskByRepo(ctx, input.Repo.ID); err != nil {
-			log.Error("DeleteCronTaskByRepo: %v", err)
-		}
-	}
-
-	if len(schedules) == 0 {
-		log.Trace("repo %s with commit %s couldn't find schedules", input.Repo.RepoPath(), commit.ID)
-		return nil
-	}
-
-	p, err := json.Marshal(input.Payload)
-	if err != nil {
-		return fmt.Errorf("json.Marshal: %w", err)
-	}
-
-	crons := make([]*actions_model.ActionSchedule, 0, len(schedules))
-	for id, content := range schedules {
-		// Check cron job condition. Only working in default branch
-		workflow, err := model.ReadWorkflow(bytes.NewReader(content))
-		if err != nil {
-			log.Error("ReadWorkflow: %v", err)
-			continue
-		}
-		schedules := workflow.OnSchedule()
-		if len(schedules) == 0 {
-			log.Warn("no schedule event")
-			continue
-		}
-		log.Debug("schedules: %#v", schedules)
-
-		crons = append(crons, &actions_model.ActionSchedule{
-			Title:         strings.SplitN(commit.CommitMessage, "\n", 2)[0],
-			RepoID:        input.Repo.ID,
-			OwnerID:       input.Repo.OwnerID,
-			WorkflowID:    id,
-			TriggerUserID: input.Doer.ID,
-			Ref:           input.Ref,
-			CommitSHA:     commit.ID.String(),
-			Event:         input.Event,
-			EventPayload:  string(p),
-			Specs:         schedules,
-			Content:       content,
-		})
-	}
-
-	if len(crons) == 0 {
-		return nil
-	}
-
-	return actions_model.CreateScheduleTask(ctx, crons)
-}
-
 func notify(ctx context.Context, input *notifyInput) error {
 	if input.Doer.IsActions() {
 		// avoiding triggering cyclically, for example:
@@ -214,13 +144,8 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return fmt.Errorf("gitRepo.GetCommit: %w", err)
 	}
 
-	err = commit.LoadBranchName()
-	if err != nil {
-		return fmt.Errorf("commit.GetBranchName: %w", err)
-  }
-
 	var detectedWorkflows []*actions_module.DetectedWorkflow
-	workflows, err := actions_module.DetectWorkflows(gitRepo, commit, input.Event, input.Payload)
+	workflows, schedules, err := actions_module.DetectWorkflows(gitRepo, commit, input.Event, input.Payload)
 	if err != nil {
 		return fmt.Errorf("DetectWorkflows: %w", err)
 	}
@@ -241,7 +166,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		if err != nil {
 			return fmt.Errorf("gitRepo.GetCommit: %w", err)
 		}
-		baseWorkflows, err := actions_module.DetectWorkflows(gitRepo, baseCommit, input.Event, input.Payload)
+		baseWorkflows, _, err := actions_module.DetectWorkflows(gitRepo, baseCommit, input.Event, input.Payload)
 		if err != nil {
 			return fmt.Errorf("DetectWorkflows: %w", err)
 		}
@@ -256,76 +181,12 @@ func notify(ctx context.Context, input *notifyInput) error {
 		}
 	}
 
-	if len(detectedWorkflows) == 0 {
-		return nil
-	}
-
-	workflows, schedules, err := actions_module.DetectWorkflows(commit, input.Event, input.Payload)
-	if err != nil {
-		return fmt.Errorf("DetectWorkflows: %w", err)
-	}
-
 	if err := handleSchedules(ctx, schedules, commit, input); err != nil {
 		log.Error("handle schedules: %v", err)
 	}
 
-
-	if err := handleWorkflows(ctx, workflows, commit, input); err != nil {
+	if err := handleWorkflows(ctx, detectedWorkflows, commit, input); err != nil {
 		log.Error("handle workflows: %v", err)
-  }
-
-	for _, dwf := range detectedWorkflows {
-		run := &actions_model.ActionRun{
-			Title:             strings.SplitN(commit.CommitMessage, "\n", 2)[0],
-			RepoID:            input.Repo.ID,
-			OwnerID:           input.Repo.OwnerID,
-			WorkflowID:        dwf.EntryName,
-			TriggerUserID:     input.Doer.ID,
-			Ref:               ref,
-			CommitSHA:         commit.ID.String(),
-			IsForkPullRequest: isForkPullRequest,
-			Event:             input.Event,
-			EventPayload:      string(p),
-			TriggerEvent:      dwf.TriggerEvent,
-			Status:            actions_model.StatusWaiting,
-		}
-		if need, err := ifNeedApproval(ctx, run, input.Repo, input.Doer); err != nil {
-			log.Error("check if need approval for repo %d with user %d: %v", input.Repo.ID, input.Doer.ID, err)
-			continue
-		} else {
-			run.NeedApproval = need
-		}
-
-		jobs, err := jobparser.Parse(dwf.Content)
-		if err != nil {
-			log.Error("jobparser.Parse: %v", err)
-			continue
-		}
-
-		// cancel running jobs if the event is push
-		if run.Event == webhook_module.HookEventPush {
-			// cancel running jobs of the same workflow
-			if err := actions_model.CancelRunningJobs(
-				ctx,
-				run.RepoID,
-				run.Ref,
-				run.WorkflowID,
-			); err != nil {
-				log.Error("CancelRunningJobs: %v", err)
-			}
-		}
-
-		if err := actions_model.InsertRun(ctx, run, jobs); err != nil {
-			log.Error("InsertRun: %v", err)
-			continue
-		}
-
-		alljobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: run.ID})
-		if err != nil {
-			log.Error("FindRunJobs: %v", err)
-			continue
-		}
-		CreateCommitStatus(ctx, alljobs...)
 	}
 
 	return nil
@@ -418,11 +279,11 @@ func ifNeedApproval(ctx context.Context, run *actions_model.ActionRun, repo *rep
 
 func handleWorkflows(
 	ctx context.Context,
-	workflows map[string][]byte,
+	detectedWorkflows []*actions_module.DetectedWorkflow,
 	commit *git.Commit,
 	input *notifyInput,
 ) error {
-	if len(workflows) == 0 {
+	if len(detectedWorkflows) == 0 {
 		log.Trace("repo %s with commit %s couldn't find workflows", input.Repo.RepoPath(), commit.ID)
 		return nil
 	}
@@ -447,12 +308,12 @@ func handleWorkflows(
 		}
 	}
 
-	for id, content := range workflows {
+	for _, dwf := range detectedWorkflows {
 		run := &actions_model.ActionRun{
 			Title:             strings.SplitN(commit.CommitMessage, "\n", 2)[0],
 			RepoID:            input.Repo.ID,
 			OwnerID:           input.Repo.OwnerID,
-			WorkflowID:        id,
+			WorkflowID:        dwf.EntryName,
 			TriggerUserID:     input.Doer.ID,
 			Ref:               input.Ref,
 			CommitSHA:         commit.ID.String(),
@@ -468,26 +329,123 @@ func handleWorkflows(
 		}
 		run.NeedApproval = need
 
-		workflows, err := jobparser.Parse(content)
+		jobs, err := jobparser.Parse(dwf.Content)
 		if err != nil {
 			log.Error("jobparser.Parse: %v", err)
 			continue
 		}
-		if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
+
+		// cancel running jobs if the event is push
+		if run.Event == webhook_module.HookEventPush {
+			// cancel running jobs of the same workflow
+			if err := actions_model.CancelRunningJobs(
+				ctx,
+				run.RepoID,
+				run.Ref,
+				run.WorkflowID,
+			); err != nil {
+				log.Error("CancelRunningJobs: %v", err)
+			}
+		}
+
+		if err := actions_model.InsertRun(ctx, run, jobs); err != nil {
 			log.Error("InsertRun: %v", err)
 			continue
 		}
 
-		jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: run.ID})
+		alljobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: run.ID})
 		if err != nil {
 			log.Error("FindRunJobs: %v", err)
 			continue
 		}
-		for _, job := range jobs {
+		for _, job := range alljobs {
 			if err := createCommitStatus(ctx, job); err != nil {
 				log.Error("CreateCommitStatus: %v", err)
 			}
 		}
 	}
 	return nil
+}
+
+func handleSchedules(
+	ctx context.Context,
+	detectedWorkflows []*actions_module.DetectedWorkflow,
+	commit *git.Commit,
+	input *notifyInput,
+) error {
+	if len(detectedWorkflows) == 0 {
+		log.Trace("repo %s with commit %s couldn't find schedules", input.Repo.RepoPath(), commit.ID)
+		return nil
+	}
+
+	branch, err := commit.GetBranchName()
+	if err != nil {
+		return err
+	}
+	if branch != input.Repo.DefaultBranch {
+		log.Trace("commit branch is not default branch in repo")
+		return nil
+	}
+
+	rows, _, err := actions_model.FindSchedules(ctx, actions_model.FindScheduleOptions{RepoID: input.Repo.ID})
+	if err != nil {
+		log.Error("FindCrons: %v", err)
+		return err
+	}
+
+	if len(rows) > 0 {
+		if err := actions_model.DeleteScheduleTaskByRepo(ctx, input.Repo.ID); err != nil {
+			log.Error("DeleteCronTaskByRepo: %v", err)
+		}
+	}
+
+	p, err := json.Marshal(input.Payload)
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
+	}
+
+	crons := make([]*actions_model.ActionSchedule, 0, len(detectedWorkflows))
+	for _, dwf := range detectedWorkflows {
+		// Check cron job condition. Only working in default branch
+		workflow, err := model.ReadWorkflow(bytes.NewReader(dwf.Content))
+		if err != nil {
+			log.Error("ReadWorkflow: %v", err)
+			continue
+		}
+		schedules := workflow.OnSchedule()
+		if len(schedules) == 0 {
+			log.Warn("no schedule event")
+			continue
+		}
+
+		run := &actions_model.ActionSchedule{
+			Title:         strings.SplitN(commit.CommitMessage, "\n", 2)[0],
+			RepoID:        input.Repo.ID,
+			OwnerID:       input.Repo.OwnerID,
+			WorkflowID:    dwf.EntryName,
+			TriggerUserID: input.Doer.ID,
+			Ref:           input.Ref,
+			CommitSHA:     commit.ID.String(),
+			Event:         input.Event,
+			EventPayload:  string(p),
+			Specs:         schedules,
+			Content:       dwf.Content,
+		}
+
+		// cancel running jobs if the event is push
+		if run.Event == webhook_module.HookEventPush {
+			// cancel running jobs of the same workflow
+			if err := actions_model.CancelRunningJobs(
+				ctx,
+				run.RepoID,
+				run.Ref,
+				run.WorkflowID,
+			); err != nil {
+				log.Error("CancelRunningJobs: %v", err)
+			}
+		}
+		crons = append(crons)
+	}
+
+	return actions_model.CreateScheduleTask(ctx, crons)
 }
