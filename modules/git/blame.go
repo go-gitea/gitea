@@ -24,7 +24,6 @@ type BlamePart struct {
 
 // BlameReader returns part of file blame one by one
 type BlameReader struct {
-	cmd            *Command
 	output         io.WriteCloser
 	reader         io.ReadCloser
 	bufferedReader *bufio.Reader
@@ -115,16 +114,17 @@ func (r *BlameReader) Close() error {
 
 // CreateBlameReader creates reader for given repository, commit and file
 func CreateBlameReader(ctx context.Context, repoPath string, commit *Commit, file string, bypassBlameIgnore bool) (*BlameReader, error) {
-	cmd := NewCommandContextNoGlobals(ctx, "blame", "--porcelain")
-
 	var ignoreRevsFile *os.File
-	if !bypassBlameIgnore {
+	if CheckGitVersionAtLeast("2.23") == nil && !bypassBlameIgnore {
 		ignoreRevsFile = tryCreateBlameIgnoreRevsFile(commit)
-		if ignoreRevsFile != nil {
-			cmd.AddOptionValues("--ignore-revs-file", ignoreRevsFile.Name())
-		}
 	}
 
+	cmd := NewCommandContextNoGlobals(ctx, "blame", "--porcelain")
+	if ignoreRevsFile != nil {
+		// Possible improvement: use --ignore-revs-file /dev/stdin on unix
+		// There is no equivalent on Windows. May be implemented if Gitea uses an external git backend.
+		cmd.AddOptionValues("--ignore-revs-file", ignoreRevsFile.Name())
+	}
 	cmd.AddDynamicArguments(commit.ID.String()).
 		AddDashesAndList(file).
 		SetDescription(fmt.Sprintf("GetBlame [repo_path: %s]", repoPath))
@@ -138,12 +138,12 @@ func CreateBlameReader(ctx context.Context, repoPath string, commit *Commit, fil
 
 	done := make(chan error, 1)
 
-	go func(cmd *Command, dir string, stdout io.WriteCloser, done chan error) {
+	go func() {
 		stderr := bytes.Buffer{}
 		// TODO: it doesn't work for directories (the directories shouldn't be "blamed"), and the "err" should be returned by "Read" but not by "Close"
 		err := cmd.Run(&RunOpts{
 			UseContextTimeout: true,
-			Dir:               dir,
+			Dir:               repoPath,
 			Stdout:            stdout,
 			Stderr:            &stderr,
 		})
@@ -152,12 +152,11 @@ func CreateBlameReader(ctx context.Context, repoPath string, commit *Commit, fil
 		if err != nil {
 			log.Error("Error running git blame (dir: %v): %v, stderr: %v", repoPath, err, stderr.String())
 		}
-	}(cmd, repoPath, stdout, done)
+	}()
 
 	bufferedReader := bufio.NewReader(reader)
 
 	return &BlameReader{
-		cmd:            cmd,
 		output:         stdout,
 		reader:         reader,
 		bufferedReader: bufferedReader,
