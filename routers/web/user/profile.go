@@ -79,7 +79,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileGi
 	// if there is a profile readme, default to "overview" page, otherwise, default to "repositories" page
 	tab := ctx.FormString("tab")
 	if tab == "" {
-		if profileReadme != nil {
+		if profileReadme != nil && !(ctx.Req.Form.Has("q") || ctx.Req.Form.Has("sort") || ctx.Req.Form.Has("language")) {
 			tab = "overview"
 		} else {
 			tab = "repositories"
