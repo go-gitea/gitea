@@ -98,7 +98,7 @@ type Label struct {
 	IsSelected        bool   `xorm:"-"`
 	IsExcluded        bool   `xorm:"-"`
 
-	ArchivedUnix timeutil.TimeStamp `xorm:"DEFAULT 0"`
+	ArchivedUnix timeutil.TimeStamp `xorm:"DEFAULT NULL"`
 }
 
 func init() {
@@ -111,9 +111,9 @@ func (l *Label) CalOpenIssues() {
 	l.NumOpenIssues = l.NumIssues - l.NumClosedIssues
 }
 
-// Archived set the label as archived
-func (l *Label) Archived(isArchived bool) {
-	if isArchived {
+// SetArchived set the label as archived
+func (l *Label) SetArchived(isArchived bool) {
+	if isArchived && l.ArchivedUnix.IsZero() {
 		l.ArchivedUnix = timeutil.TimeStampNow()
 	} else {
 		l.ArchivedUnix = timeutil.TimeStamp(0)

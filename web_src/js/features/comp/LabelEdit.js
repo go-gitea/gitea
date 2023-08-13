@@ -49,8 +49,8 @@ export function initCompLabelEdit(selector) {
     const nameInput = $('.edit-label .label-name-input');
     nameInput.val($(this).data('title'));
 
-    const isArchivedCheckbox = $('.edit-label .label-is_archived-input');
-    isArchivedCheckbox.prop('checked', this.hasAttribute('data-is_archived'));
+    const isArchivedCheckbox = $('.edit-label .label-is-archived-input');
+    isArchivedCheckbox.prop('checked', this.hasAttribute('data-is-archived'));
 
     const exclusiveCheckbox = $('.edit-label .label-exclusive-input');
     exclusiveCheckbox.prop('checked', this.hasAttribute('data-exclusive'));

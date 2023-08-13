@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/label"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/convert"
@@ -159,7 +158,7 @@ func CreateLabel(ctx *context.APIContext) {
 		RepoID:      ctx.Repo.Repository.ID,
 		Description: form.Description,
 	}
-	l.Archived(form.IsArchived)
+	l.SetArchived(form.IsArchived)
 	if err := issues_model.NewLabel(ctx, l); err != nil {
 		ctx.Error(http.StatusInternalServerError, "NewLabel", err)
 		return
@@ -232,11 +231,7 @@ func EditLabel(ctx *context.APIContext) {
 	if form.Description != nil {
 		l.Description = *form.Description
 	}
-	if form.IsArchived != nil && *form.IsArchived == true {
-		l.ArchivedUnix = timeutil.TimeStampNow()
-	} else {
-		l.ArchivedUnix = timeutil.TimeStamp(0)
-	}
+	l.SetArchived(form.IsArchived != nil && *form.IsArchived)
 	if err := issues_model.UpdateLabel(l); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateLabel", err)
 		return
