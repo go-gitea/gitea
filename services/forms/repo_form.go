@@ -353,6 +353,7 @@ func (f *NewDingtalkHookForm) Validate(req *http.Request, errs binding.Errors) b
 type NewTelegramHookForm struct {
 	BotToken string `binding:"Required"`
 	ChatID   string `binding:"Required"`
+	ThreadID string
 	WebhookForm
 }
 
