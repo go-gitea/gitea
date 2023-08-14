@@ -89,7 +89,7 @@ func FindSecrets(ctx context.Context, opts FindSecretsOptions) ([]*Secret, error
 		Find(&secrets)
 }
 
-// CountSecrets counts the organization's secrets
+// CountSecrets counts the secrets
 func CountSecrets(ctx context.Context, opts *FindSecretsOptions) (int64, error) {
 	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(Secret))
 }

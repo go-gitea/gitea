@@ -58,7 +58,7 @@ func listActionsSecrets(ctx *context.APIContext) {
 		ListOptions: utils.GetListOptions(ctx),
 	}
 
-	count, err := secret.CountOrgSecrets(opts)
+	count, err := secret.CountSecrets(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
