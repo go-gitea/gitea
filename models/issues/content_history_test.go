@@ -46,7 +46,7 @@ func TestContentHistory(t *testing.T) {
 		Name     string
 		FullName string
 	}
-	_ = db.GetEngine(dbCtx).Sync2(&User{})
+	_ = db.GetEngine(dbCtx).Sync(&User{})
 
 	list1, _ := issues_model.FetchIssueContentHistoryList(dbCtx, 10, 0)
 	assert.Len(t, list1, 3)

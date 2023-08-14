@@ -6,7 +6,7 @@
 					<div class="ui active tiny slow centered inline">…</div>
 				{{else}}
 					{{if .LatestCommitUser}}
-						{{avatar $.Context .LatestCommitUser 24}}
+						{{ctx.AvatarUtils.Avatar .LatestCommitUser 24}}
 						{{if .LatestCommitUser.FullName}}
 							<a class="muted author-wrapper" title="{{.LatestCommitUser.FullName}}" href="{{.LatestCommitUser.HomeLink}}"><strong>{{.LatestCommitUser.FullName}}</strong></a>
 						{{else}}
@@ -14,7 +14,7 @@
 						{{end}}
 					{{else}}
 						{{if .LatestCommit.Author}}
-							{{avatarByEmail $.Context .LatestCommit.Author.Email .LatestCommit.Author.Name 24}}
+							{{ctx.AvatarUtils.AvatarByEmail .LatestCommit.Author.Email .LatestCommit.Author.Name 24}}
 							<span class="author-wrapper" title="{{.LatestCommit.Author.Name}}"><strong>{{.LatestCommit.Author.Name}}</strong></span>
 						{{end}}
 					{{end}}
