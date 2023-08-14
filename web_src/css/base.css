@@ -661,8 +661,8 @@ a.label,
   gap: .35714286em;
 }
 .ui.secondary.menu .item {
-  margin-left : 0;
-  margin-right : 0;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .ui.secondary.menu .dropdown.item:hover,
