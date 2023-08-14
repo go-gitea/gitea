@@ -37,20 +37,18 @@ export function initGiteaFomantic() {
     if (arg === 'show' || isIn) {
       arg?.onStart?.(this);
       ret = this.each((_, el) => {
-        $(el).removeClass('hidden');
-        $(el).addClass('visible');
-        if (isIn) $(el).addClass('transition');
-        if (arg?.displayType) {
-          el.style.setProperty("display", arg.displayType, "important");
-        }
+        el.classList.remove('hidden');
+        el.classList.add('visible');
+        if (isIn) el.classList.add('transition');
+        if (arg?.displayType) el.style.setProperty("display", arg.displayType, "important");
         arg?.onShow?.(this);
       });
       arg?.onComplete?.(this);
     } else if (arg === 'hide' || isOut) {
       arg?.onStart?.(this);
       ret = this.each((_, el) => {
-        $(el).addClass('hidden');
-        $(el).removeClass('visible');
+        el.classList.add('hidden');
+        el.classList.remove('visible');
         // don't remove the transition class because fomantic didn't do it either
         el.style.removeProperty("display");
         arg?.onHidden?.(this);
