@@ -77,10 +77,13 @@ import {SvgIcon} from '../svg.js';
 export default {
   components: {SvgIcon},
   data: () => {
+    const el = document.getElementById('diff-commit-select');
     return {
       menuVisible: false,
       isLoading: false,
-      locale: {},
+      locale: {
+        filter_changes_by_commit: el.getAttribute('data-filter_changes_by_commit'),
+      },
       commits: [],
       hoverActivated: false,
       lastReviewCommitSha: null
