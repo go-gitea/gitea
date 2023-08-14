@@ -11,5 +11,5 @@ type Secret struct {
 	// the secret's name
 	Name string `json:"name"`
 	// swagger:strfmt date-time
-	Created time.Time `json:"created,omitempty"`
+	Created time.Time `json:"created_at"`
 }
