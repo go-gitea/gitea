@@ -3302,25 +3302,6 @@ tbody.commit-list {
   }
 }
 
-.pinned-issue-card {
-  border-radius: var(--border-radius);
-  padding: 8px 10px;
-  border: 1px solid var(--color-secondary);
-  background: var(--color-card);
-}
-
-.pinned-issue-icon,
-.pinned-issue-unpin {
-  margin-top: 1px;
-  flex-shrink: 0;
-}
-
-.pinned-issue-title {
-  flex: 1;
-  font-size: 18px;
-  margin-left: 4px;
-}
-
 #cherry-pick-modal .scrolling.menu {
   max-height: 200px;
 }

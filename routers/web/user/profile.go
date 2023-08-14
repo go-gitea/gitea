@@ -269,6 +269,12 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileGi
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = total
 
+	err = shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	pager := context.NewPagination(total, pagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "tab", "TabName")
