@@ -16,7 +16,7 @@ import (
 func ListActionsSecrets(ctx *context.APIContext) {
 	// swagger:operation GET /orgs/{org}/actions/secrets organization orgListActionsSecrets
 	// ---
-	// summary: List an organization's  actions secrets
+	// summary: List an organization's actions secrets
 	// produces:
 	// - application/json
 	// parameters:

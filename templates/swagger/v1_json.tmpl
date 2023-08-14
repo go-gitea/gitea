@@ -1550,6 +1550,44 @@
         }
       }
     },
+    "/orgs/{org}/actions/secrets": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "List an organization's actions secrets",
+        "operationId": "orgListActionsSecrets",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/SecretList"
+          }
+        }
+      }
+    },
     "/orgs/{org}/activities/feeds": {
       "get": {
         "produces": [
