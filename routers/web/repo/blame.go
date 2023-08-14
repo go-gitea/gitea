@@ -143,23 +143,26 @@ func performBlame(ctx *context.Context, repoPath string, commit *git.Commit, fil
 	}
 
 	err = blameReader.Close()
-	if err != nil && len(r.Parts) == 0 && r.UsesIgnoreRevs {
-		// try again without ignored revs
-
-		blameReader, err = git.CreateBlameReader(ctx, repoPath, commit, file, true)
-		if err != nil {
-			return nil, err
+	if err != nil {
+		if len(r.Parts) == 0 && r.UsesIgnoreRevs {
+			// try again without ignored revs
+	
+			blameReader, err = git.CreateBlameReader(ctx, repoPath, commit, file, true)
+			if err != nil {
+				return nil, err
+			}
+	
+			r := &blameResult{
+				FaultyIgnoreRevsFile: true,
+			}
+			if err := fillBlameResult(blameReader, r); err != nil {
+				_ = blameReader.Close()
+				return nil, err
+			}
+	
+			return r, blameReader.Close()
 		}
-
-		r := &blameResult{
-			FaultyIgnoreRevsFile: true,
-		}
-		if err := fillBlameResult(blameReader, r); err != nil {
-			_ = blameReader.Close()
-			return nil, err
-		}
-
-		return r, blameReader.Close()
+		return nil, err
 	}
 	return r, nil
 }
