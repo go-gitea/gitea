@@ -82,6 +82,7 @@ func RetrieveLabels(ctx *context.Context) {
 
 	includeArchivedLabel := ctx.FormOptionalBool("archived_label")
 	if includeArchivedLabel.IsTrue() {
+		ctx.Data["IsPageArchivedLabels"] = true
 		ctx.Data["Labels"] = archivedLabels
 	} else {
 		ctx.Data["Labels"] = nonArchivedLabels

@@ -14,6 +14,14 @@
 			</i>
 		{{end}}
 	{{end}}
+
+	<div class="gt-dif gt-jc label-category">
+		{{if not .IsPageArchivedLabels}}
+			{{.locale.Tr "repo.issues.active_labels"}}
+		{{else}}
+			{{.locale.Tr "repo.issues.archived_labels"}}
+		{{end}}
+	</div>
 	<div class="ui right">
 		<div class="ui right floated secondary filter menu">
 			<!-- Sort -->

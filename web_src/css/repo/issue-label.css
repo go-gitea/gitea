@@ -42,3 +42,8 @@
 .issue-label-list .item.org-label {
   opacity: 0.7;
 }
+
+.label-category {
+  width: 55%;
+  margin-left: auto;
+}
