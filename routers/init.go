@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	authmodel "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/git"
@@ -138,6 +139,7 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(oauth2.Init)
 
 	mustInitCtx(ctx, models.Init)
+	mustInitCtx(ctx, authmodel.Init)
 	mustInit(repo_service.Init)
 
 	// Booting long running goroutines.

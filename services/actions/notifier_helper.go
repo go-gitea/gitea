@@ -150,7 +150,14 @@ func notify(ctx context.Context, input *notifyInput) error {
 	if len(workflows) == 0 {
 		log.Trace("repo %s with commit %s couldn't find workflows", input.Repo.RepoPath(), commit.ID)
 	} else {
+		actionsConfig := input.Repo.MustGetUnit(ctx, unit_model.TypeActions).ActionsConfig()
+
 		for _, wf := range workflows {
+			if actionsConfig.IsWorkflowDisabled(wf.EntryName) {
+				log.Trace("repo %s has disable workflows %s", input.Repo.RepoPath(), wf.EntryName)
+				continue
+			}
+
 			if wf.TriggerEvent != actions_module.GithubEventPullRequestTarget {
 				detectedWorkflows = append(detectedWorkflows, wf)
 			}
