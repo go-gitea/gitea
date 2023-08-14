@@ -73,13 +73,15 @@ func (t *Task) Run() {
 func (t *Task) RunWithUser(doer *user_model.User, config Config) {
 	// the same task can run only once at the same time
 	lock := sync_module.GetLock(fmt.Sprintf("cron_tasks_%s", t.Name))
-	if locked, err := lock.TryLock(); err != nil {
+	if success, err := lock.TryLock(); err != nil {
 		log.Error("Unable to lock cron task %s Error: %v", t.Name, err)
 		return
-	} else if locked {
+	} else if !success {
+		// get lock failed, so that there must be another task are running.
 		return
 	}
-	defer t.lock.Lock()
+
+	t.lock.Lock()
 	if config == nil {
 		config = t.config
 	}
