@@ -20,8 +20,8 @@ func CreateUserBadgesTable(x *xorm.Engine) error {
 		UserID  int64 `xorm:"INDEX"`
 	}
 
-	if err := x.Sync2(new(Badge)); err != nil {
+	if err := x.Sync(new(Badge)); err != nil {
 		return err
 	}
-	return x.Sync2(new(userBadge))
+	return x.Sync(new(userBadge))
 }
