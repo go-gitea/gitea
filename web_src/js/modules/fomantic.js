@@ -40,6 +40,9 @@ export function initGiteaFomantic() {
         $(el).removeClass('hidden');
         $(el).addClass('visible');
         if (isIn) $(el).addClass('transition');
+        if (arg?.displayType) {
+          el.style.setProperty("display", arg.displayType, "important");
+        }
         arg?.onShow?.(this);
       });
       arg?.onComplete?.(this);
@@ -49,6 +52,7 @@ export function initGiteaFomantic() {
         $(el).addClass('hidden');
         $(el).removeClass('visible');
         // don't remove the transition class because fomantic didn't do it either
+        el.style.removeProperty("display");
         arg?.onHidden?.(this);
       });
       arg?.onComplete?.(this);
