@@ -6,7 +6,6 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"os"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
@@ -87,7 +86,7 @@ func runCreateUser(c *cli.Context) error {
 		username = c.String("username")
 	} else {
 		username = c.String("name")
-		fmt.Fprintf(os.Stderr, "--name flag is deprecated. Use --username instead.\n")
+		_, _ = fmt.Fprintf(c.App.ErrWriter, "--name flag is deprecated. Use --username instead.\n")
 	}
 
 	ctx, cancel := installSignals()
