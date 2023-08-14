@@ -522,6 +522,8 @@ var migrations = []Migration{
 	NewMigration("Drop deleted branch table", v1_21.DropDeletedBranchTable),
 	// v270 -> v271
 	NewMigration("Fix PackageProperty typo", v1_21.FixPackagePropertyTypo),
+	// v271 -> v272
+	NewMigration("Allow archiving labels", v1_21.AddArchivedUnixColumInLabelTable),
 }
 
 // GetCurrentDBVersion returns the current db version
