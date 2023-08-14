@@ -71,7 +71,7 @@ func (ct SniffedType) IsRepresentableAsText() bool {
 	return ct.IsText() || ct.IsSvgImage()
 }
 
-// IsBrowsableBinaryType IsBrowsableType returns whether a non-text type can be displayed in a browser
+// IsBrowsableBinaryType returns whether a non-text type can be displayed in a browser
 func (ct SniffedType) IsBrowsableBinaryType() bool {
 	return ct.IsImage() || ct.IsSvgImage() || ct.IsPDF() || ct.IsVideo() || ct.IsAudio()
 }
