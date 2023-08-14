@@ -299,7 +299,7 @@ func SearchVersions(ctx context.Context, opts *PackageSearchOptions) ([]*Package
 	return pvs, count, err
 }
 
-func getLatestVersions(ctx context.Context, opts *PackageSearchOptions) *xorm.Session {
+func buildLatestVersionsSession(ctx context.Context, opts *PackageSearchOptions) *xorm.Session {
 	cond := opts.toConds().
 		And(builder.Expr("pv2.id IS NULL"))
 
@@ -319,7 +319,7 @@ func getLatestVersions(ctx context.Context, opts *PackageSearchOptions) *xorm.Se
 
 // SearchLatestVersions gets the latest version of every package matching the search options
 func SearchLatestVersions(ctx context.Context, opts *PackageSearchOptions) ([]*PackageVersion, int64, error) {
-	sess := getLatestVersions(ctx, opts)
+	sess := buildLatestVersionsSession(ctx, opts)
 
 	opts.configureOrderBy(sess)
 
@@ -334,7 +334,7 @@ func SearchLatestVersions(ctx context.Context, opts *PackageSearchOptions) ([]*P
 
 // CountLatestVersions counts the latest version of every package matching the search options
 func CountLatestVersions(ctx context.Context, opts *PackageSearchOptions) (int64, error) {
-	sess := getLatestVersions(ctx, opts)
+	sess := buildLatestVersionsSession(ctx, opts)
 	return sess.Count(new(PackageVersion))
 }
 
