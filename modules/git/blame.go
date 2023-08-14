@@ -5,11 +5,14 @@ package git
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"os"
 	"regexp"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // BlamePart represents block of blame - continuous lines with one sha
@@ -115,15 +118,19 @@ func CreateBlameReader(ctx context.Context, repoPath, commitID, file string) (*B
 	done := make(chan error, 1)
 
 	go func(cmd *Command, dir string, stdout io.WriteCloser, done chan error) {
-		if err := cmd.Run(&RunOpts{
+		stderr := bytes.Buffer{}
+		// TODO: it doesn't work for directories (the directories shouldn't be "blamed"), and the "err" should be returned by "Read" but not by "Close"
+		err := cmd.Run(&RunOpts{
 			UseContextTimeout: true,
 			Dir:               dir,
 			Stdout:            stdout,
-			Stderr:            os.Stderr,
-		}); err == nil {
-			stdout.Close()
-		}
+			Stderr:            &stderr,
+		})
 		done <- err
+		_ = stdout.Close()
+		if err != nil {
+			log.Error("Error running git blame (dir: %v): %v, stderr: %v", repoPath, err, stderr.String())
+		}
 	}(cmd, repoPath, stdout, done)
 
 	bufferedReader := bufio.NewReader(reader)
