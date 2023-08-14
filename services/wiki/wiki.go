@@ -21,9 +21,6 @@ import (
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
 
-// TODO: use clustered lock (unique queue? or *abuse* cache)
-var wikiWorkingPool = sync.NewExclusivePool()
-
 const (
 	DefaultRemote = "origin"
 	DefaultBranch = "master"
@@ -77,13 +74,24 @@ func prepareGitPath(gitRepo *git.Repository, wikiPath WebPath) (bool, string, er
 	return foundEscaped, gitPath, nil
 }
 
+func getWikiWorkingLockKey(repoID int64) string {
+	return fmt.Sprintf("wiki_working_%d", repoID)
+}
+
 // updateWikiPage adds a new page or edits an existing page in repository wiki.
 func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldWikiName, newWikiName WebPath, content, message string, isNew bool) (err error) {
 	if err = validateWebPath(newWikiName); err != nil {
 		return err
 	}
-	wikiWorkingPool.CheckIn(fmt.Sprint(repo.ID))
-	defer wikiWorkingPool.CheckOut(fmt.Sprint(repo.ID))
+	lock := sync.GetLock(getWikiWorkingLockKey(repo.ID))
+	if err := lock.Lock(); err != nil {
+		return err
+	}
+	defer func() {
+		if _, err := lock.Unlock(); err != nil {
+			log.Error("lock.Unlock: %v", err)
+		}
+	}()
 
 	if err = InitWiki(ctx, repo); err != nil {
 		return fmt.Errorf("InitWiki: %w", err)
@@ -238,8 +246,15 @@ func EditWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.R
 
 // DeleteWikiPage deletes a wiki page identified by its path.
 func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, wikiName WebPath) (err error) {
-	wikiWorkingPool.CheckIn(fmt.Sprint(repo.ID))
-	defer wikiWorkingPool.CheckOut(fmt.Sprint(repo.ID))
+	lock := sync.GetLock(getWikiWorkingLockKey(repo.ID))
+	if err := lock.Lock(); err != nil {
+		return err
+	}
+	defer func() {
+		if _, err := lock.Unlock(); err != nil {
+			log.Error("lock.Unlock: %v", err)
+		}
+	}()
 
 	if err = InitWiki(ctx, repo); err != nil {
 		return fmt.Errorf("InitWiki: %w", err)

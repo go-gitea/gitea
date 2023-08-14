@@ -1395,6 +1395,11 @@ However, later updates removed those options, and now the only options are `gith
 However, if you want to use actions from other git server, you can use a complete URL in `uses` field, it's supported by Gitea (but not GitHub).
 Like `uses: https://gitea.com/actions/checkout@v3` or `uses: http://your-git-server/actions/checkout@v3`.
 
+## Sync (`sync`)
+
+- `LOCK_SERVICE_TYPE`: **memory**: Lock service type, could be `memory` or `redis`
+- `LOCK_SERVICE_CONN_STR`: **\<empty\>**: Ignored when `LOCK_SERVICE_TYPE` is `memory` type, for `redis`, it likes `redis://127.0.0.1:6379/0`
+
 ## Other (`other`)
 
 - `SHOW_FOOTER_VERSION`: **true**: Show Gitea and Go version information in the footer.

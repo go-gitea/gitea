@@ -152,6 +152,7 @@ func loadCommonSettingsFrom(cfg ConfigProvider) error {
 	loadMirrorFrom(cfg)
 	loadMarkupFrom(cfg)
 	loadOtherFrom(cfg)
+	loadSyncFrom(cfg)
 	return nil
 }
 

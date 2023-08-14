@@ -1349,6 +1349,13 @@ PROXY_HOSTS = *.github.com
 但是，如果您想要使用其他 Git 服务器中的操作，您可以在 `uses` 字段中使用完整的 URL，Gitea 支持此功能（GitHub 不支持）。
 例如 `uses: https://gitea.com/actions/checkout@v3` 或 `uses: http://your-git-server/actions/checkout@v3`。
 
+## Sync (`sync`)
+
+- `LOCK_SERVICE_TYPE`: **memory**: 锁服务类型，可以是 `memory` 或 `redis`
+- `LOCK_SERVICE_CONN_STR`: **\<empty\>**: 如果 `LOCK_SERVICE_TYPE` 是 `memory`，则忽略，如果是 `redis`，则支持形式如 `redis://127.0.0.1:6379/0`
+
+## Other (`other`)
+
 ## 其他 (`other`)
 
 - `SHOW_FOOTER_VERSION`: **true**: 在页面底部显示Gitea的版本。

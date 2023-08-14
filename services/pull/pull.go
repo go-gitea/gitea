@@ -33,9 +33,6 @@ import (
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 
-// TODO: use clustered lock (unique queue? or *abuse* cache)
-var pullWorkingPool = sync.NewExclusivePool()
-
 // NewPullRequest creates new pull request with labels for repository.
 func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, pr *issues_model.PullRequest, assigneeIDs []int64) error {
 	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
@@ -167,8 +164,17 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 
 // ChangeTargetBranch changes the target branch of this pull request, as the given user.
 func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, targetBranch string) (err error) {
-	pullWorkingPool.CheckIn(fmt.Sprint(pr.ID))
-	defer pullWorkingPool.CheckOut(fmt.Sprint(pr.ID))
+	lock := sync.GetLock(getPullWorkingLockKey(pr.ID))
+	if err := lock.Lock(); err != nil {
+		log.Error("lock.Lock(): %v", err)
+		return fmt.Errorf("lock.Lock: %w", err)
+	}
+	defer func() {
+		_, err := lock.Unlock()
+		if err != nil {
+			log.Error("lock.Unlock(): %v", err)
+		}
+	}()
 
 	// Current target branch is already the same
 	if pr.BaseBranch == targetBranch {

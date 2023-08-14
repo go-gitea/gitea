@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
+	sync_module "code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/timeutil"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
@@ -330,9 +331,22 @@ func handler(items ...string) []string {
 	return nil
 }
 
+func getPullWorkingLockKey(prID int64) string {
+	return fmt.Sprintf("pull_working_%d", prID)
+}
+
 func testPR(id int64) {
-	pullWorkingPool.CheckIn(fmt.Sprint(id))
-	defer pullWorkingPool.CheckOut(fmt.Sprint(id))
+	lock := sync_module.GetLock(getPullWorkingLockKey(id))
+	if err := lock.Lock(); err != nil {
+		log.Error("lock.Lock(): %v", err)
+		return
+	}
+	defer func() {
+		if _, err := lock.Unlock(); err != nil {
+			log.Error("lock.Unlock: %v", err)
+		}
+	}()
+
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("Test PR[%d] from patch checking queue", id))
 	defer finished()
 
