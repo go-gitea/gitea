@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
+	nuget_model "code.gitea.io/gitea/models/packages/nuget"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
@@ -115,7 +116,7 @@ func SearchServiceV2(ctx *context.Context) {
 	skip, take := ctx.FormInt("$skip"), ctx.FormInt("$top")
 	paginator := db.NewAbsoluteListOptions(skip, take)
 
-	pvs, total, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
+	pvs, total, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
 		OwnerID: ctx.Package.Owner.ID,
 		Type:    packages_model.TypeNuGet,
 		Name: packages_model.SearchValue{
@@ -166,9 +167,8 @@ func SearchServiceV2(ctx *context.Context) {
 
 // http://docs.oasis-open.org/odata/odata/v4.0/errata03/os/complete/part2-url-conventions/odata-v4.0-errata03-os-part2-url-conventions-complete.html#_Toc453752351
 func SearchServiceV2Count(ctx *context.Context) {
-	count, err := packages_model.CountVersions(ctx, &packages_model.PackageSearchOptions{
+	count, err := nuget_model.CountPackages(ctx, &packages_model.PackageSearchOptions{
 		OwnerID: ctx.Package.Owner.ID,
-		Type:    packages_model.TypeNuGet,
 		Name: packages_model.SearchValue{
 			Value: getSearchTerm(ctx),
 		},
@@ -184,9 +184,8 @@ func SearchServiceV2Count(ctx *context.Context) {
 
 // https://docs.microsoft.com/en-us/nuget/api/search-query-service-resource#search-for-packages
 func SearchServiceV3(ctx *context.Context) {
-	pvs, count, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
+	pvs, count, err := nuget_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 		OwnerID:    ctx.Package.Owner.ID,
-		Type:       packages_model.TypeNuGet,
 		Name:       packages_model.SearchValue{Value: ctx.FormTrim("q")},
 		IsInternal: util.OptionalBoolFalse,
 		Paginator: db.NewAbsoluteListOptions(
