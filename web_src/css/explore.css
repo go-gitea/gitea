@@ -10,26 +10,20 @@
   margin-right: 5px;
 }
 
-.explore-lang .menu {
-  max-height: 60vh;
-  overflow-y: auto;
+.explore-menu {
+  display: flex;
+  gap: 4px;
 }
 
-.explore-lang,
-.explore-sort {
-  float: right;
-}
-
-@media (max-width: 600px) {
-  .explore .filter {
+@media (max-width: 767.98px) {
+  .explore-menu {
     flex-direction: column;
   }
   .explore-form {
-    min-width: 100%;
+    align-self: stretch;
   }
   .explore-filters {
-    align-self: end;
-    margin-top: .25em;
+    align-self: flex-end;
   }
 }
 
