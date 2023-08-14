@@ -40,7 +40,7 @@ export function initGiteaFomantic() {
         el.classList.remove('hidden');
         el.classList.add('visible');
         if (isIn) el.classList.add('transition');
-        if (arg?.displayType) el.style.setProperty("display", arg.displayType, "important");
+        if (arg?.displayType) el.style.setProperty('display', arg.displayType, 'important');
         arg?.onShow?.(this);
       });
       arg?.onComplete?.(this);
@@ -50,7 +50,7 @@ export function initGiteaFomantic() {
         el.classList.add('hidden');
         el.classList.remove('visible');
         // don't remove the transition class because fomantic didn't do it either
-        el.style.removeProperty("display");
+        el.style.removeProperty('display');
         arg?.onHidden?.(this);
       });
       arg?.onComplete?.(this);
