@@ -88,3 +88,9 @@ func FindSecrets(ctx context.Context, opts FindSecretsOptions) ([]*Secret, error
 		Where(opts.toConds()).
 		Find(&secrets)
 }
+
+// CountOrgSecrets counts the organization's secrets
+func CountOrgSecrets(opts *FindSecretsOptions) (int64, error) {
+	sess := db.GetEngine(db.DefaultContext).Where("owner_id=?", opts.OwnerID)
+	return sess.Count(new(Secret))
+}
