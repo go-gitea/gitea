@@ -15,17 +15,17 @@
 
 	<div class="explore-filters gt-df">
 		<!-- Language -->
-		<div class="ui dropdown type jump item gt-mx-0 explore-lang">
-			<span class="text">
-				{{.locale.Tr "repo.repo_lang"}}
-					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-			</span>
+		<div class="ui dropdown type jump item gt-mx-0">
+			<span class="text">{{.locale.Tr "repo.repo_lang"}}</span>
+			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			<div class="menu">
 				<div class="ui icon search input">
-					<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+					<i class="icon">{{svg "octicon-search" 16}}</i>
 					<input type="text" placeholder="{{.locale.Tr "repo.repo_lang"}}">
 				</div>
-				<a class="{{if not $.Language}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&sort={{$.SortType}}">Any</a>
+				<a class="{{if not $.Language}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&sort={{$.SortType}}">
+					<span class="gt-df gt-ac gt-gap-3"><i class="color-icon gt-border-secondary" style="background-color: inherit;"></i>Any</span>
+				</a>
 				{{range .ProgramLanguages}}
 				<a class="{{if eq $.Language .Language}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&language={{.Language}}&sort={{$.SortType}}">
 					<span class="gt-df gt-ac gt-gap-3"><i class="color-icon" style="background-color: {{.Color}}"></i>{{.Language}}</span>
@@ -35,11 +35,9 @@
 		</div>
 
 		<!-- Sort -->
-		<div class="ui dropdown type jump item gt-mr-0 explore-sort">
-			<span class="text">
-				{{.locale.Tr "repo.issues.filter_sort"}}
-					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-			</span>
+		<div class="ui dropdown type jump item gt-mr-0">
+			<span class="text">{{.locale.Tr "repo.issues.filter_sort"}}</span>
+			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			<div class="menu">
 				<a class="{{if eq .SortType "newest"}}active {{end}}item" href="{{$.Link}}?tab={{$.TabName}}&sort=newest&q={{$.Keyword}}&language={{$.Language}}">{{.locale.Tr "repo.issues.filter_sort.latest"}}</a>
 				<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="{{$.Link}}?tab={{$.TabName}}&sort=oldest&q={{$.Keyword}}&language={{$.Language}}">{{.locale.Tr "repo.issues.filter_sort.oldest"}}</a>
