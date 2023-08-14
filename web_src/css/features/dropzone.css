@@ -51,3 +51,9 @@
 .dropzone .dz-preview:hover .dz-image img {
   filter: opacity(0.5) !important;
 }
+
+.ui .field .dropzone .dz-preview .dz-progress {
+  /* by default the progress-bar is vertically centered (top: 50%), it's better to put it after the "details (size, filename)",
+  then the layout from top to bottom is: size, filename, progress */
+  top: 7em;
+}
