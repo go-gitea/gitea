@@ -183,7 +183,6 @@ func GetUserRepoPermissions(ctx context.Context, repos repo_model.RepositoryList
 		return nil, err
 	}
 
-repoLoop:
 	for _, repo := range repos {
 
 		// anonymous user visit private repo.
@@ -234,14 +233,17 @@ repoLoop:
 		}
 
 		teams := repoTeams[repo.ID]
-
-		// if user in an owner team
+		highestTeamAccessMode := perm_model.AccessModeNone
 		for _, team := range teams {
-			if team.AccessMode >= perm_model.AccessModeAdmin {
-				perms[repo.ID].AccessMode = perm_model.AccessModeOwner
-				perms[repo.ID].UnitsMode = nil
-				continue repoLoop
+			if team.AccessMode > highestTeamAccessMode {
+				highestTeamAccessMode = team.AccessMode
 			}
+		}
+
+		if highestTeamAccessMode > perm_model.AccessModeAdmin {
+			perms[repo.ID].AccessMode = perm_model.AccessModeOwner
+			perms[repo.ID].UnitsMode = nil
+			continue
 		}
 
 		for _, u := range repo.Units {
