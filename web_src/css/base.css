@@ -705,11 +705,11 @@ a.label,
   background: var(--color-active) !important;
 }
 
+/* styles from removed fomantic transition module */
 .hidden.transition {
   visibility: hidden;
   display: none;
 }
-
 .visible.transition {
   display: block !important;
   visibility: visible !important;
