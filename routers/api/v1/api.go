@@ -1299,7 +1299,7 @@ func Routes() *web.Route {
 					Delete(reqToken(), reqOrgOwnership(), org.DeleteMember)
 			})
 			m.Group("/actions/secrets", func() {
-				m.Get("", reqToken(), org.ListActionsSecrets)
+				m.Get("", reqToken(), reqOrgOwnership(), org.ListActionsSecrets)
 			})
 			m.Group("/public_members", func() {
 				m.Get("", org.ListPublicMembers)
