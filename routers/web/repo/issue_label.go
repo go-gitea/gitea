@@ -61,16 +61,31 @@ func RetrieveLabels(ctx *context.Context) {
 		ctx.ServerError("RetrieveLabels.GetLabels", err)
 		return
 	}
-	numArchivedLabels := 0
+	// total number of labels
+	ctx.Data["NumLabels"] = len(labels)
+
+	var archivedLabels []*issues_model.Label
+	var nonArchivedLabels []*issues_model.Label
 	for _, l := range labels {
 		l.CalOpenIssues()
 		if l.IsArchived() {
-			numArchivedLabels++
+			archivedLabels = append(archivedLabels, l)
+		} else {
+			nonArchivedLabels = append(nonArchivedLabels, l)
 		}
 	}
+	// archivedLabels
+	ctx.Data["NumArchivedLabels"] = len(archivedLabels)
 
-	ctx.Data["Labels"] = labels
-	ctx.Data["NumArchivedLabels"] = numArchivedLabels
+	// non archived label a.k.a. active labels
+	ctx.Data["NumNonArchivedLabels"] = len(nonArchivedLabels)
+
+	includeArchivedLabel := ctx.FormOptionalBool("archived_label")
+	if includeArchivedLabel.IsTrue() {
+		ctx.Data["Labels"] = archivedLabels
+	} else {
+		ctx.Data["Labels"] = nonArchivedLabels
+	}
 
 	if ctx.Repo.Owner.IsOrganization() {
 		orgLabels, err := issues_model.GetLabelsByOrgID(ctx, ctx.Repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{})
@@ -99,7 +114,6 @@ func RetrieveLabels(ctx *context.Context) {
 			ctx.Data["OrganizationLink"] = ctx.Org.OrgLink
 		}
 	}
-	ctx.Data["NumLabels"] = len(labels)
 	ctx.Data["SortType"] = ctx.FormString("sort")
 }
 

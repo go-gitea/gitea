@@ -1165,7 +1165,6 @@ func registerRoutes(m *web.Route) {
 				m.Get("/detail", repo.GetContentHistoryDetail)
 			})
 			m.Get("/labels", reqRepoIssuesOrPullsReader, repo.RetrieveLabels, repo.Labels)
-			m.Get("/labels/archived", reqRepoIssuesOrPullsReader, repo.RetrieveLabels, repo.Labels)
 			m.Get("/milestones", reqRepoIssuesOrPullsReader, repo.Milestones)
 		}, context.RepoRef())
 
