@@ -17,7 +17,7 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 		IsClosed:  opts.IsClosed,
 	}
 
-	if opts.ProjectID > 0 {
+	if opts.ProjectID != 0 {
 		searchOpt.ProjectID = &opts.ProjectID
 	}
 
