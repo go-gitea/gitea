@@ -37,17 +37,6 @@ func ListActionsSecrets(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/SecretList"
 
-	if ctx.Doer != nil {
-		isMember, err := ctx.Org.Organization.IsOrgMember(ctx.Doer.ID)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
-			return
-		}
-		if !isMember && !ctx.Doer.IsAdmin {
-			ctx.Error(http.StatusUnauthorized, "IsOrgMember", nil)
-			return
-		}
-	}
 	listActionsSecrets(ctx)
 }
 
