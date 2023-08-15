@@ -71,7 +71,7 @@
 						</td>
 						<td>{{if .LastOnline}}{{TimeSinceUnix .LastOnline $.locale}}{{else}}{{$.locale.Tr "never"}}{{end}}</td>
 						<td class="runner-ops">
-							{{if .Editable $.RunnerOnwerID $.RunnerRepoID}}
+							{{if .Editable $.RunnerOwnerID $.RunnerRepoID}}
 							<a href="{{$.Link}}/{{.ID}}">{{svg "octicon-pencil"}}</a>
 							{{end}}
 						</td>
