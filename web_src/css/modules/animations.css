@@ -109,4 +109,5 @@ code.language-math.is-loading::after {
 .ui.modal {
   animation-name: fadein;
   animation-duration: 300ms;
+  animation-timing-function: ease-in-out;
 }
