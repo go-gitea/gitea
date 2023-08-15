@@ -5,6 +5,8 @@ package internal
 
 import (
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -93,6 +95,10 @@ type SearchOptions struct {
 	db.Paginator
 
 	SortBy SortBy // sort by field
+
+	Org  *organization.Organization // issues permission scope
+	Team *organization.Team         // issues permission scope
+	User *user_model.User           // issues permission scope
 }
 
 type SortBy string

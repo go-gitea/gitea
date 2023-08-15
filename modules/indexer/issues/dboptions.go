@@ -15,6 +15,9 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 		AllPublic: false,
 		IsPull:    opts.IsPull,
 		IsClosed:  opts.IsClosed,
+		User:      opts.User,
+		Org:       opts.Org,
+		Team:      opts.Team,
 	}
 
 	if len(opts.LabelIDs) == 1 && opts.LabelIDs[0] == 0 {
