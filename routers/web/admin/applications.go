@@ -39,7 +39,7 @@ func Applications(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Applications"] = apps
-
+	ctx.Data["BuiltinApplications"] = auth.BuiltinApplications()
 	ctx.HTML(http.StatusOK, tplSettingsApplications)
 }
 
