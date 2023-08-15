@@ -38,7 +38,7 @@
 
 	<ul class="issue-label-list">
 		{{range .Labels}}
-		<li class="item" {{if not .ArchivedUnix.IsZero}}data-archived-label{{end}}>
+		<li class="item {{if not .ArchivedUnix.IsZero}}archived-label gt-hidden{{end}}">
 			<div class="label-title">
 				{{RenderLabel $.Context .}}
 				{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
