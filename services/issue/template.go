@@ -72,7 +72,7 @@ func GetTemplateConfig(gitRepo *git.Repository, path string, commit *git.Commit)
 		return GetDefaultTemplateConfig(), err
 	}
 
-	issueConfig := api.IssueConfig{}
+	issueConfig := GetDefaultTemplateConfig()
 	if err := yaml.Unmarshal(configContent, &issueConfig); err != nil {
 		return GetDefaultTemplateConfig(), err
 	}
