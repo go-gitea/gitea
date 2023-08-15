@@ -231,7 +231,7 @@ var uniquePaths = make(map[string]string)
 
 func fatalDuplicatedPath(name, p string) {
 	if targetName, ok := uniquePaths[p]; ok && targetName != name {
-		log.Fatal("storage path %q is being used by %q and %q and all storage paths must be unique to prevent data loss. Please set [storage.%s].PATH and [storage.%s].PATH to unique paths. For more information, see https://github.com/go-gitea/gitea/pull/26380", p, targetName, name, targetName, name)
+		log.Fatal("storage path %q is being used by %q and %q and all storage paths must be unique to prevent data loss.", p, targetName, name)
 	}
 	uniquePaths[p] = name
 }
