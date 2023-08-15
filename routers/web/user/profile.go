@@ -265,6 +265,13 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileGi
 		}
 
 		total = int(count)
+
+		programLanguages, err := repo_model.GetPrimaryRepoLanguageList(ctx)
+		if err != nil {
+			ctx.ServerError("GetPrimaryRepoLanguageList", err)
+			return
+		}
+		ctx.Data["ProgramLanguages"] = programLanguages
 	}
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = total

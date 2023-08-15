@@ -15,24 +15,26 @@
 
 	<div class="explore-filters gt-df">
 		<!-- Language -->
-		<div class="ui dropdown type jump item gt-mx-0">
-			<span class="text">{{.locale.Tr "repo.repo_lang"}}</span>
-			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-			<div class="menu">
-				<div class="ui icon search input">
-					<i class="icon">{{svg "octicon-search" 16}}</i>
-					<input type="text" placeholder="{{.locale.Tr "repo.repo_lang"}}">
+		{{if .ProgramLanguages}}
+			<div class="ui dropdown type jump item gt-mx-0">
+				<span class="text">{{.locale.Tr "repo.repo_lang"}}</span>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				<div class="menu">
+					<div class="ui icon search input">
+						<i class="icon">{{svg "octicon-search" 16}}</i>
+						<input type="text" placeholder="{{.locale.Tr "repo.repo_lang"}}">
+					</div>
+					<a class="{{if not $.Language}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&sort={{$.SortType}}">
+						<span class="gt-df gt-ac gt-gap-3"><i class="color-icon gt-border-secondary" style="background-color: inherit;"></i>Any</span>
+					</a>
+					{{range .ProgramLanguages}}
+					<a class="{{if eq $.Language .Language}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&language={{.Language}}&sort={{$.SortType}}">
+						<span class="gt-df gt-ac gt-gap-3"><i class="color-icon" style="background-color: {{.Color}}"></i>{{.Language}}</span>
+					</a>
+					{{end}}
 				</div>
-				<a class="{{if not $.Language}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&sort={{$.SortType}}">
-					<span class="gt-df gt-ac gt-gap-3"><i class="color-icon gt-border-secondary" style="background-color: inherit;"></i>Any</span>
-				</a>
-				{{range .ProgramLanguages}}
-				<a class="{{if eq $.Language .Language}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&language={{.Language}}&sort={{$.SortType}}">
-					<span class="gt-df gt-ac gt-gap-3"><i class="color-icon" style="background-color: {{.Color}}"></i>{{.Language}}</span>
-				</a>
-				{{end}}
 			</div>
-		</div>
+		{{end}}
 
 		<!-- Sort -->
 		<div class="ui dropdown type jump item gt-mr-0">
