@@ -25,7 +25,7 @@
 						<input type="text" placeholder="{{.locale.Tr "repo.repo_lang"}}">
 					</div>
 					<a class="{{if not $.Language}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&sort={{$.SortType}}">
-						<span class="gt-df gt-ac gt-gap-3"><i class="color-icon gt-border-secondary" style="background-color: inherit;"></i>Any</span>
+						<span class="gt-df gt-ac gt-gap-3"><i class="color-icon gt-border-secondary" style="background-color: inherit;"></i>{{.locale.Tr "all"}}</span>
 					</a>
 					{{range .ProgramLanguages}}
 					<a class="{{if eq $.Language .Language}}active {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&language={{.Language}}&sort={{$.SortType}}">
