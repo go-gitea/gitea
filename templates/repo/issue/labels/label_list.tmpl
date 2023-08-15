@@ -1,6 +1,14 @@
-<h4 class="ui top attached header">
-	{{.locale.Tr "repo.issues.label_count" .NumLabels}}
-	<div class="ui right">
+<h4 class="ui top attached header gt-df">
+	<span class="gt-f1">{{.locale.Tr "repo.issues.label_count" .NumLabels}}</span>
+	<label class="gt-f1" data-tooltip-content={{.locale.Tr "repo.issues.label_archive_tooltip"}}>
+		<input type="checkbox"
+			name="show_archived_labels"
+			class="show-archived-labels-checkbox"
+		>
+		{{.locale.Tr "repo.issues.show_archived_labels"}}
+	</label>
+
+	<div class="ui right gt-f1">
 		<div class="ui right floated secondary filter menu">
 			<!-- Sort -->
 			<div class="ui dropdown type jump item">
@@ -30,7 +38,7 @@
 
 	<ul class="issue-label-list">
 		{{range .Labels}}
-		<li class="item">
+		<li class="item" {{if gt .ArchivedUnix 0}}data-archived-label{{end}}>
 			<div class="label-title">
 				{{RenderLabel $.Context .}}
 				{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}

@@ -31,7 +31,7 @@ import {
   initRepoIssueWipTitle,
   initRepoPullRequestMergeInstruction,
   initRepoPullRequestAllowMaintainerEdit,
-  initRepoPullRequestReview, initRepoIssueSidebarList
+  initRepoPullRequestReview, initRepoIssueSidebarList,
 } from './features/repo-issue.js';
 import {
   initRepoEllipsisButton,
@@ -81,7 +81,7 @@ import {initRepositoryActionView} from './components/RepoActionView.vue';
 import {initGlobalTooltips} from './modules/tippy.js';
 import {initGiteaFomantic} from './modules/fomantic.js';
 import {onDomReady} from './utils/dom.js';
-import {initRepoIssueList} from './features/repo-issue-list.js';
+import {initRepoIssueList, initHighlightArchivedLabels} from './features/repo-issue-list.js';
 import {initCommonIssueListQuickGoto} from './features/common-issue-list.js';
 import {initRepoDiffCommitBranchesAndTags} from './features/repo-diff-commit.js';
 
@@ -149,6 +149,7 @@ onDomReady(() => {
   initRepoIssueContentHistory();
   initRepoIssueDue();
   initRepoIssueList();
+  initHighlightArchivedLabels();
   initRepoIssueSidebarList();
   initRepoIssueReferenceRepositorySearch();
   initRepoIssueTimeTracking();

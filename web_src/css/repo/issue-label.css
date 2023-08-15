@@ -42,3 +42,7 @@
 .issue-label-list .item.org-label {
   opacity: 0.7;
 }
+
+.archived-label {
+  border-right: 4px solid var(--color-yellow-badge);
+}

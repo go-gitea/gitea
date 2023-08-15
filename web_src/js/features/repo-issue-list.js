@@ -72,7 +72,7 @@ function initRepoIssueListCheckboxes() {
       url,
       action,
       issueIDs,
-      elementId
+      elementId,
     ).then(() => {
       window.location.reload();
     }).catch((reason) => {
@@ -202,4 +202,13 @@ export function initRepoIssueList() {
   initRepoIssueListCheckboxes();
   initRepoIssueListAuthorDropdown();
   initIssuePinSort();
+}
+
+export function initHighlightArchivedLabels() {
+  document.querySelector('.show-archived-labels-checkbox')
+    .addEventListener('input', () => {
+      for (const archivedLabel of document.querySelectorAll('[data-archived-label]')) {
+        archivedLabel.classList.toggle('archived-label');
+      }
+    });
 }
