@@ -248,7 +248,7 @@
   --color-accent: var(--color-primary-light-1);
   --color-small-accent: var(--color-primary-light-6);
   --color-active-line: #fffbdd;
-  --color-dialog-backdrop: #080808c0;
+  --color-overlay-backdrop: #080808c0;
   accent-color: var(--color-accent);
   color-scheme: light;
 }
@@ -1203,7 +1203,7 @@ img.ui.avatar,
 }
 
 .ui.dimmer {
-  background: var(--color-dialog-backdrop);
+  background: var(--color-overlay-backdrop);
 }
 
 /* Override semantic selector '.ui.menu:not(.vertical) .item > .button' */
