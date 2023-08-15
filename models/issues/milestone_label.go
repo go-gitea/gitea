@@ -44,8 +44,8 @@ func GetLabelsByMilestoneID(ctx context.Context, milestoneID int64) ([]*Label, e
 		Find(&labels)
 }
 
-// newMilestoneLabel this function creates a new label it does not check if the label is valid for the milestone
-// YOU MUST CHECK THIS BEFORE THIS FUNCTION
+// newMilestoneLabel creates a new label, but it does NOT check if the label is valid for the specified milestone
+// YOU MUST CHECK THIS BEFORE EXECUTING THIS FUNCTION
 func newMilestoneLabel(ctx context.Context, m *Milestone, label *Label, doer *user_model.User) (err error) {
 	if err = db.Insert(ctx, &MilestoneLabel{
 		MilestoneID: m.ID,

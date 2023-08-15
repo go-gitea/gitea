@@ -55,7 +55,7 @@ func ListMilestoneLabels(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, convert.ToLabelList(m.Labels, ctx.Repo.Repository, ctx.Repo.Owner))
 }
 
-// AddMilestoneLabels add labels for a milestone
+// AddMilestoneLabels adds labels to a milestone
 func AddMilestoneLabels(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/milestones/{id}/labels milestone milestoneAddLabel
 	// ---
@@ -111,7 +111,7 @@ func AddMilestoneLabels(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, convert.ToLabelList(selectLabels, ctx.Repo.Repository, ctx.Repo.Owner))
 }
 
-// DeleteMilestoneLabel delete a label for a milestone
+// DeleteMilestoneLabel removes a label from a milestone
 func DeleteMilestoneLabel(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/milestones/{id}/labels/{labelId} milestone milestoneRemoveLabel
 	// ---
@@ -177,7 +177,7 @@ func DeleteMilestoneLabel(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// ReplaceMilestoneLabels replace labels for a milestone
+// ReplaceMilestoneLabels replaces labels on a milestone
 func ReplaceMilestoneLabels(ctx *context.APIContext) {
 	// swagger:operation PUT /repos/{owner}/{repo}/milestones/{id}/labels milestone milestoneReplaceLabels
 	// ---
@@ -233,7 +233,7 @@ func ReplaceMilestoneLabels(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, convert.ToLabelList(selectLabels, ctx.Repo.Repository, ctx.Repo.Owner))
 }
 
-// ClearMilestoneLabels delete all the labels for a milestone
+// ClearMilestoneLabels removes all labels from a milestone
 func ClearMilestoneLabels(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/milestones/{id}/labels milestone milestoneClearLabels
 	// ---

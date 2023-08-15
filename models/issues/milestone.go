@@ -121,9 +121,7 @@ func NewMilestone(m *Milestone) (err error) {
 	}
 
 	if len(m.Labels) > 0 {
-		labels := m.Labels
-
-		for _, label := range labels {
+		for _, label := range m.Labels {
 			// Silently drop invalid labels.
 			if label.RepoID != m.RepoID && label.OrgID != m.Repo.OwnerID {
 				continue
@@ -201,7 +199,7 @@ func UpdateMilestone(m *Milestone, oldIsClosed bool) error {
 	if err != nil {
 		return err
 	}
-	// delete from db missing labels associated with repo and milestone
+	// delete missing labels associated with repo and milestone from db
 	for _, dbLabel := range dbLabels {
 		labelOnMilestone := false
 		for _, msLabel := range m.Labels {
@@ -216,7 +214,7 @@ func UpdateMilestone(m *Milestone, oldIsClosed bool) error {
 			}
 		}
 	}
-	// add to db new labels associated with repo and milestone
+	// add new labels associated with repo and milestone to db
 	for _, msLabel := range m.Labels {
 		labelInDatabase := false
 		for _, dbLabel := range dbLabels {
