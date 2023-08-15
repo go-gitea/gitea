@@ -374,6 +374,9 @@ func NotificationWatching(ctx *context.Context) {
 		orderBy = db.SearchOrderByRecentUpdated
 	}
 
+	language := ctx.FormTrim("language")
+	ctx.Data["Language"] = language
+
 	repos, count, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
@@ -386,6 +389,7 @@ func NotificationWatching(ctx *context.Context) {
 		WatchedByID:        ctx.Doer.ID,
 		Collaborate:        util.OptionalBoolFalse,
 		TopicOnly:          ctx.FormBool("topic"),
+		Language:           language,
 		IncludeDescription: setting.UI.SearchRepoDescription,
 	})
 	if err != nil {
