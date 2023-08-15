@@ -97,9 +97,10 @@ func TestUpdateLabel(t *testing.T) {
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
 	web.SetForm(ctx, &forms.CreateLabelForm{
-		ID:    2,
-		Title: "newnameforlabel",
-		Color: "#abcdef",
+		ID:         2,
+		Title:      "newnameforlabel",
+		Color:      "#abcdef",
+		IsArchived: true,
 	})
 	UpdateLabel(ctx)
 	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())

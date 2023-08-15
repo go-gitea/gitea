@@ -24,9 +24,7 @@ func StringWithCharset(length int, charset string) string {
 }
 
 func BenchmarkRepoBranchCommit(b *testing.B) {
-	onGiteaRunTB(b, func(t testing.TB, u *url.URL) {
-		b := t.(*testing.B)
-
+	onGiteaRun(b, func(b *testing.B, u *url.URL) {
 		samples := []int64{1, 2, 3}
 		b.ResetTimer()
 

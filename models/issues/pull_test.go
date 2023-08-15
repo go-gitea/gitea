@@ -88,14 +88,14 @@ func TestLoadRequestedReviewers(t *testing.T) {
 	user1, err := user_model.GetUserByID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 
-	comment, err := issues_model.AddReviewRequest(issue, user1, &user_model.User{})
+	comment, err := issues_model.AddReviewRequest(db.DefaultContext, issue, user1, &user_model.User{})
 	assert.NoError(t, err)
 	assert.NotNil(t, comment)
 
 	assert.NoError(t, pull.LoadRequestedReviewers(db.DefaultContext))
 	assert.Len(t, pull.RequestedReviewers, 1)
 
-	comment, err = issues_model.RemoveReviewRequest(issue, user1, &user_model.User{})
+	comment, err = issues_model.RemoveReviewRequest(db.DefaultContext, issue, user1, &user_model.User{})
 	assert.NoError(t, err)
 	assert.NotNil(t, comment)
 

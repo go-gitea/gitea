@@ -18,7 +18,7 @@ func UpdateMigrationServiceTypes(x *xorm.Engine) error {
 		OriginalURL         string `xorm:"VARCHAR(2048)"`
 	}
 
-	if err := x.Sync2(new(Repository)); err != nil {
+	if err := x.Sync(new(Repository)); err != nil {
 		return err
 	}
 
@@ -78,5 +78,5 @@ func UpdateMigrationServiceTypes(x *xorm.Engine) error {
 		ExpiresAt         time.Time
 	}
 
-	return x.Sync2(new(ExternalLoginUser))
+	return x.Sync(new(ExternalLoginUser))
 }
