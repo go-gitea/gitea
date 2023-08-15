@@ -206,10 +206,12 @@ export function initRepoIssueList() {
 
 export function initHighlightArchivedLabels() {
   if (!document.querySelectorAll('.show-archived-labels-checkbox').length) return;
+  const showArchivedLabelCheckBox = document.querySelector('.show-archived-labels-checkbox');
+  if (!showArchivedLabelCheckBox) return;
   document.querySelector('.show-archived-labels-checkbox')
-    .addEventListener('input', () => {
+    .addEventListener('input', (e) => {
       for (const archivedLabel of document.querySelectorAll('.archived-label')) {
-        archivedLabel.classList.toggle('gt-hidden');
+        toggleElem(archivedLabel, e.target.checked);
       }
     });
 }
