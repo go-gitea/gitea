@@ -60,6 +60,7 @@ Gitea's private styles use `g-` prefix.
 .gt-content-center { align-content: center !important; }
 .gt-cursor-default { cursor: default !important; }
 .gt-cursor-pointer { cursor: pointer !important; }
+.gt-cursor-grab { cursor: grab !important; }
 .gt-invisible { visibility: hidden !important; }
 .gt-items-start { align-items: flex-start !important; }
 .gt-pointer-events-none { pointer-events: none !important; }

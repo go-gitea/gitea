@@ -475,7 +475,7 @@ func TestPackageCleanup(t *testing.T) {
 		_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, "cleanup-test", container_model.UploadVersion)
 		assert.NoError(t, err)
 
-		err = packages_cleanup_service.Cleanup(db.DefaultContext, duration)
+		err = packages_cleanup_service.CleanupTask(db.DefaultContext, duration)
 		assert.NoError(t, err)
 
 		pbs, err = packages_model.FindExpiredUnreferencedBlobs(db.DefaultContext, duration)
@@ -610,7 +610,7 @@ func TestPackageCleanup(t *testing.T) {
 				pcr, err := packages_model.InsertCleanupRule(db.DefaultContext, c.Rule)
 				assert.NoError(t, err)
 
-				err = packages_cleanup_service.Cleanup(db.DefaultContext, duration)
+				err = packages_cleanup_service.CleanupTask(db.DefaultContext, duration)
 				assert.NoError(t, err)
 
 				for _, v := range c.Versions {

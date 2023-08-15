@@ -30,9 +30,9 @@ import (
 )
 
 func getIssuesSelection(t testing.TB, htmlDoc *HTMLDoc) *goquery.Selection {
-	issueList := htmlDoc.doc.Find(".issue.list")
+	issueList := htmlDoc.doc.Find("#issue-list")
 	assert.EqualValues(t, 1, issueList.Length())
-	return issueList.Find("li").Find(".title")
+	return issueList.Find(".flex-item").Find(".issue-title")
 }
 
 func getIssue(t *testing.T, repoID int64, issueSelection *goquery.Selection) *issues_model.Issue {
@@ -99,7 +99,7 @@ func TestViewIssuesKeyword(t *testing.T) {
 		RepoID: repo.ID,
 		Index:  1,
 	})
-	issues.UpdateIssueIndexer(issue)
+	issues.UpdateIssueIndexer(issue.ID)
 	time.Sleep(time.Second * 1)
 	const keyword = "first"
 	req := NewRequestf(t, "GET", "%s/issues?q=%s", repo.Link(), keyword)

@@ -133,3 +133,7 @@ A lot of legacy code already existed before this document's written. It's recomm
 ### Vue3 and JSX
 
 Gitea is using Vue3 now. We decided not to introduce JSX to keep the HTML and the JavaScript code separated.
+
+### UI Examples
+
+Gitea uses some self-made UI elements and customizes others to integrate them better into the general UI approach. When running Gitea in development mode (`RUN_MODE=dev`), a page with some standardized UI examples is available under `http(s)://your-gitea-url:port/devtest`.
