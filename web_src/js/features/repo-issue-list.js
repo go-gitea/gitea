@@ -205,6 +205,7 @@ export function initRepoIssueList() {
 }
 
 export function initHighlightArchivedLabels() {
+  if (!document.querySelectorAll('.show-archived-labels-checkbox').length) return;
   document.querySelector('.show-archived-labels-checkbox')
     .addEventListener('input', () => {
       for (const archivedLabel of document.querySelectorAll('[data-archived-label]')) {
