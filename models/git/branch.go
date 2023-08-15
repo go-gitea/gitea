@@ -404,7 +404,7 @@ type FindRecentlyPushedNewBranchesOptions struct {
 type RecentlyPushedNewBranch struct {
 	BranchName       string
 	BranchCompareURL string
-	UpdatedUnix      timeutil.TimeStamp
+	CommitTime       timeutil.TimeStamp
 }
 
 // FindRecentlyPushedNewBranches return at most 2 new branches pushed by the user in 6 hours which has no opened PRs created
@@ -485,7 +485,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, opts *FindRecentlyPushed
 		newBranches = append(newBranches, &RecentlyPushedNewBranch{
 			BranchName:       branchName,
 			BranchCompareURL: branch.Repo.ComposeBranchCompareURL(opts.BaseRepo, branch.Name),
-			UpdatedUnix:      branch.UpdatedUnix,
+			CommitTime:       branch.CommitTime,
 		})
 	}
 	return newBranches, nil
