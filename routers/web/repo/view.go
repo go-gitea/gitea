@@ -991,10 +991,14 @@ func renderCode(ctx *context.Context) {
 		if ctx.Repo.Repository.IsFork {
 			opts.BaseRepo = ctx.Repo.Repository.BaseRepo
 		}
-		ctx.Data["RecentlyPushedNewBranches"], err = git_model.FindRecentlyPushedNewBranches(ctx, opts)
-		if err != nil {
-			ctx.ServerError("FindRecentlyPushedNewBranches", err)
-			return
+
+		if !opts.Repo.IsMirror && !opts.BaseRepo.IsMirror &&
+			opts.BaseRepo.UnitEnabled(ctx, unit_model.TypePullRequests) {
+			ctx.Data["RecentlyPushedNewBranches"], err = git_model.FindRecentlyPushedNewBranches(ctx, opts)
+			if err != nil {
+				ctx.ServerError("FindRecentlyPushedNewBranches", err)
+				return
+			}
 		}
 	}
 
