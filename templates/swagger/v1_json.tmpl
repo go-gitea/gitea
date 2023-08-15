@@ -1550,6 +1550,44 @@
         }
       }
     },
+    "/orgs/{org}/actions/secrets": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "List an organization's actions secrets",
+        "operationId": "orgListActionsSecrets",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/SecretList"
+          }
+        }
+      }
+    },
     "/orgs/{org}/activities/feeds": {
       "get": {
         "produces": [
@@ -21291,6 +21329,23 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "Secret": {
+      "description": "User represents a secret",
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "name": {
+          "description": "the secret's name",
+          "type": "string",
+          "x-go-name": "Name"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "ServerVersion": {
       "description": "ServerVersion wraps the version of the server",
       "type": "object",
@@ -22860,6 +22915,15 @@
       "description": "SearchResults",
       "schema": {
         "$ref": "#/definitions/SearchResults"
+      }
+    },
+    "SecretList": {
+      "description": "SecretList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/Secret"
+        }
       }
     },
     "ServerVersion": {
