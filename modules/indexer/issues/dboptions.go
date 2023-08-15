@@ -13,9 +13,12 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 		Keyword:   keyword,
 		RepoIDs:   opts.RepoIDs,
 		AllPublic: false,
-		ProjectID: &opts.ProjectID,
 		IsPull:    opts.IsPull,
 		IsClosed:  opts.IsClosed,
+	}
+
+	if opts.ProjectID != 0 {
+		searchOpt.ProjectID = &opts.ProjectID
 	}
 
 	if len(opts.LabelIDs) == 1 && opts.LabelIDs[0] == 0 {
