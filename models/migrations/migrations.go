@@ -523,7 +523,10 @@ var migrations = []Migration{
 	// v270 -> v271
 	NewMigration("Fix PackageProperty typo", v1_21.FixPackagePropertyTypo),
 	// v271 -> v272
-	NewMigration("Migrate old rpm package index", v1_21.RebuildRpmPackage),
+	NewMigration("Allow archiving labels", v1_21.AddArchivedUnixColumInLabelTable),
+  // v272 -> v273
+  NewMigration("Migrate old rpm package index", v1_21.RebuildRpmPackage),
+
 }
 
 // GetCurrentDBVersion returns the current db version

@@ -653,6 +653,18 @@ a.label,
   color: var(--color-text);
 }
 
+/* replace item margin on secondary menu items with gap and remove both the
+   negative margins on the menu as well as margin on the items */
+.ui.secondary.menu {
+  margin-left: 0;
+  margin-right: 0;
+  gap: .35714286em;
+}
+.ui.secondary.menu .item {
+  margin-left: 0;
+  margin-right: 0;
+}
+
 .ui.secondary.menu .dropdown.item:hover,
 .ui.secondary.menu a.item:hover {
   color: var(--color-text);
@@ -668,6 +680,11 @@ a.label,
 .ui.secondary.menu.tight .item {
   padding-left: 0.85714286em;
   padding-right: 0.85714286em;
+}
+
+/* remove the menu clearfix so that it won't add undesired gaps when using "gap" */
+.ui.menu::after {
+  content: normal;
 }
 
 .ui.menu .dropdown.item .menu {

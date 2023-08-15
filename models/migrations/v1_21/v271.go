@@ -3,12 +3,18 @@
 
 package v1_21 //nolint
 
+
 import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/packages/rpm"
 
+import (
+	"code.gitea.io/gitea/modules/timeutil"
+
+
 	"xorm.io/xorm"
 )
+
 
 func RebuildRpmPackage(x *xorm.Engine) error {
 	sess := x.NewSession()
@@ -78,4 +84,11 @@ func RebuildRpmPackage(x *xorm.Engine) error {
 		return err
 	}
 	return nil
+
+func AddArchivedUnixColumInLabelTable(x *xorm.Engine) error {
+	type Label struct {
+		ArchivedUnix timeutil.TimeStamp `xorm:"DEFAULT NULL"`
+	}
+	return x.Sync(new(Label))
+
 }
