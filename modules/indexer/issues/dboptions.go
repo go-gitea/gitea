@@ -37,48 +37,26 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 		searchOpt.MilestoneIDs = opts.MilestoneIDs
 	}
 
-	zero := int64(0)
+	// See the comment of issues_model.SearchOptions for the reason why we need to convert
+	convertID := func(id int64) *int64 {
+		if id > 0 {
+			return &id
+		}
+		if id == db.NoConditionID {
+			var zero int64
+			return &zero
+		}
+		return nil
+	}
 
-	if opts.ProjectID > 0 {
-		searchOpt.ProjectID = &opts.ProjectID
-	} else if opts.ProjectID == db.NoConditionID {
-		searchOpt.ProjectID = &zero
-	}
-	if opts.ProjectBoardID > 0 {
-		searchOpt.ProjectBoardID = &opts.ProjectBoardID
-	} else if opts.ProjectBoardID == db.NoConditionID {
-		searchOpt.ProjectBoardID = &zero
-	}
-	if opts.AssigneeID > 0 {
-		searchOpt.AssigneeID = &opts.AssigneeID
-	} else if opts.AssigneeID == db.NoConditionID {
-		searchOpt.AssigneeID = &zero
-	}
-	if opts.PosterID > 0 {
-		searchOpt.PosterID = &opts.PosterID
-	} else if opts.PosterID == db.NoConditionID {
-		searchOpt.PosterID = &zero
-	}
-	if opts.MentionedID > 0 {
-		searchOpt.MentionID = &opts.MentionedID
-	} else if opts.MentionedID == db.NoConditionID {
-		searchOpt.MentionID = &zero
-	}
-	if opts.ReviewedID > 0 {
-		searchOpt.ReviewedID = &opts.ReviewedID
-	} else if opts.ReviewedID == db.NoConditionID {
-		searchOpt.ReviewedID = &zero
-	}
-	if opts.ReviewRequestedID > 0 {
-		searchOpt.ReviewRequestedID = &opts.ReviewRequestedID
-	} else if opts.ReviewRequestedID == db.NoConditionID {
-		searchOpt.ReviewRequestedID = &zero
-	}
-	if opts.SubscriberID > 0 {
-		searchOpt.SubscriberID = &opts.SubscriberID
-	} else if opts.SubscriberID == db.NoConditionID {
-		searchOpt.SubscriberID = &zero
-	}
+	searchOpt.ProjectID = convertID(opts.ProjectID)
+	searchOpt.ProjectBoardID = convertID(opts.ProjectBoardID)
+	searchOpt.PosterID = convertID(opts.PosterID)
+	searchOpt.AssigneeID = convertID(opts.AssigneeID)
+	searchOpt.MentionID = convertID(opts.MentionedID)
+	searchOpt.ReviewedID = convertID(opts.ReviewedID)
+	searchOpt.ReviewRequestedID = convertID(opts.ReviewRequestedID)
+	searchOpt.SubscriberID = convertID(opts.SubscriberID)
 
 	if opts.UpdatedAfterUnix > 0 {
 		searchOpt.UpdatedAfterUnix = &opts.UpdatedAfterUnix
