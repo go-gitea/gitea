@@ -127,5 +127,19 @@ func LoadHeaderCount(ctx *context.Context) error {
 	}
 	ctx.Data["RepoCount"] = repoCount
 
+	if !ctx.ContextUser.IsOrganization() {
+		starCount, err := repo_model.CountRepository(ctx, &repo_model.SearchRepoOptions{
+			Actor:              ctx.Doer,
+			Private:            ctx.IsSigned,
+			StarredByID:        ctx.ContextUser.ID,
+			Collaborate:        util.OptionalBoolFalse,
+			IncludeDescription: setting.UI.SearchRepoDescription,
+		})
+		if err != nil {
+			return err
+		}
+		ctx.Data["StarCount"] = starCount
+	}
+
 	return nil
 }

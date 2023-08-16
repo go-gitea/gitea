@@ -25,7 +25,7 @@ func ToNotificationThread(n *activities_model.Notification) *api.NotificationThr
 
 	// since user only get notifications when he has access to use minimal access mode
 	if n.Repository != nil {
-		result.Repository = ToRepo(db.DefaultContext, n.Repository, access_model.Permission{AccessMode: perm.AccessModeRead})
+		result.Repository = ToRepo(db.DefaultContext, n.Repository, nil, access_model.Permission{AccessMode: perm.AccessModeRead})
 
 		// This permission is not correct and we should not be reporting it
 		for repository := result.Repository; repository != nil; repository = repository.Parent {

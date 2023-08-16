@@ -32,7 +32,7 @@ func getStarredRepos(ctx std_context.Context, user *user_model.User, private boo
 		if err != nil {
 			return nil, err
 		}
-		repos[i] = convert.ToRepo(ctx, starred, permission)
+		repos[i] = convert.ToRepo(ctx, starred, nil, permission)
 	}
 	return repos, nil
 }

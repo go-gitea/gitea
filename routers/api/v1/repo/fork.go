@@ -65,7 +65,7 @@ func ListForks(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 			return
 		}
-		apiForks[i] = convert.ToRepo(ctx, fork, permission)
+		apiForks[i] = convert.ToRepo(ctx, fork, ctx.Doer, permission)
 	}
 
 	ctx.SetTotalCountHeader(int64(ctx.Repo.Repository.NumForks))
@@ -152,5 +152,5 @@ func CreateFork(ctx *context.APIContext) {
 	}
 
 	// TODO change back to 201
-	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx, fork, access_model.Permission{AccessMode: perm.AccessModeOwner}))
+	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx, fork, ctx.Doer, access_model.Permission{AccessMode: perm.AccessModeOwner}))
 }

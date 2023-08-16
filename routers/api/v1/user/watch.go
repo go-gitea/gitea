@@ -30,7 +30,7 @@ func getWatchedRepos(ctx std_context.Context, user *user_model.User, private boo
 		if err != nil {
 			return nil, 0, err
 		}
-		repos[i] = convert.ToRepo(ctx, watched, permission)
+		repos[i] = convert.ToRepo(ctx, watched, nil, permission)
 	}
 	return repos, total, nil
 }
