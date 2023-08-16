@@ -2,12 +2,7 @@
 	{{range .Repos}}
 		<div class="flex-item">
 			<div class="flex-item-leading">
-				{{$avatar := (repoAvatar . 32)}}
-				{{if $avatar}}
-					{{$avatar}}
-				{{else}}
-					{{template "repo/icon" .}}
-				{{end}}
+				{{template "repo/icon" .}}
 			</div>
 			<div class="flex-item-main">
 				<div class="flex-item-header">

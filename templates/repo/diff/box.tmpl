@@ -32,7 +32,7 @@
 			{{template "repo/diff/whitespace_dropdown" .}}
 			{{template "repo/diff/options_dropdown" .}}
 			{{if .PageIsPullFiles}}
-				<div id="diff-commit-select" data-issuelink="{{$.Issue.Link}}" data-queryparams="?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}">
+				<div id="diff-commit-select" data-issuelink="{{$.Issue.Link}}" data-queryparams="?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}" data-filter_changes_by_commit="{{.locale.Tr "repo.pulls.filter_changes_by_commit"}}">
 					{{/*
 						the following will be replaced by vue component
 						but this avoids any loading artifacts till the vue component is initialized
@@ -130,9 +130,11 @@
 									<span class="ui label">{{$.locale.Tr "repo.diff.vendored"}}</span>
 								{{end}}
 								{{if and $file.Mode $file.OldMode}}
-									<span class="gt-ml-4 gt-mono">{{$file.OldMode}} → {{$file.Mode}}</span>
+									{{$old := $.locale.Tr ($file.ModeTranslationKey $file.OldMode)}}
+									{{$new := $.locale.Tr ($file.ModeTranslationKey $file.Mode)}}
+									<span class="gt-ml-4 gt-mono">{{$.locale.Tr "git.filemode.changed_filemode" $old $new}}</span>
 								{{else if $file.Mode}}
-									<span class="gt-ml-4 gt-mono">{{$file.Mode}}</span>
+									<span class="gt-ml-4 gt-mono">{{$.locale.Tr ($file.ModeTranslationKey $file.Mode)}}</span>
 								{{end}}
 							</div>
 							<div class="diff-file-header-actions gt-df gt-ac gt-gap-2 gt-fw">

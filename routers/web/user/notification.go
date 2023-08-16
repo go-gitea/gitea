@@ -296,8 +296,7 @@ func NotificationSubscriptions(ctx *context.Context) {
 	}
 	ctx.Data["CommitStatus"] = commitStatus
 
-	issueList := issues_model.IssueList(issues)
-	approvalCounts, err := issueList.GetApprovalCounts(ctx)
+	approvalCounts, err := issues.GetApprovalCounts(ctx)
 	if err != nil {
 		ctx.ServerError("ApprovalCounts", err)
 		return

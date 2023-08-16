@@ -146,7 +146,7 @@
 					<div class="divider"></div>
 					{{range .Assignees}}
 						<a class="{{if eq $.AssigneeID .ID}}active selected{{end}} item gt-df" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{.ID}}&poster={{$.PosterID}}">
-							{{avatar $.Context . 20}}{{template "repo/search_name" .}}
+							{{ctx.AvatarUtils.Avatar . 20}}{{template "repo/search_name" .}}
 						</a>
 					{{end}}
 				</div>

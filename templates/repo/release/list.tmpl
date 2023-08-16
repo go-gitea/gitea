@@ -38,7 +38,7 @@
 							<p class="text grey">
 								{{if gt .Publisher.ID 0}}
 								<span class="author">
-									{{avatar $.Context .Publisher 20}}
+									{{ctx.AvatarUtils.Avatar .Publisher 20}}
 									<a href="{{.Publisher.HomeLink}}">{{.Publisher.Name}}</a>
 								</span>
 								<span class="released">
@@ -57,7 +57,7 @@
 								{{if .OriginalAuthor}}
 									{{svg "octicon-mark-github" 16 "gt-mr-2"}}{{.OriginalAuthor}}
 								{{else if .Publisher}}
-									{{avatar $.Context .Publisher 20}}
+									{{ctx.AvatarUtils.Avatar .Publisher 20}}
 									<a href="{{.Publisher.HomeLink}}">{{.Publisher.GetDisplayName}}</a>
 								{{else}}
 									Ghost
