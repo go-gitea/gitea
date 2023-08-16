@@ -225,7 +225,7 @@
   --color-button: #fafafa;
   --color-code-bg: #ffffff;
   --color-code-sidebar-bg: #f5f5f5;
-  --color-shadow: #00000030;
+  --color-shadow: #00000026;
   --color-secondary-bg: #f4f4f4;
   --color-expand-button: #d8efff;
   --color-placeholder-text: #aaa;
@@ -248,6 +248,7 @@
   --color-accent: var(--color-primary-light-1);
   --color-small-accent: var(--color-primary-light-6);
   --color-active-line: #fffbdd;
+  --color-overlay-backdrop: #080808c0;
   accent-color: var(--color-accent);
   color-scheme: light;
 }
@@ -705,6 +706,16 @@ a.label,
   background: var(--color-active) !important;
 }
 
+/* styles from removed fomantic transition module */
+.hidden.transition {
+  visibility: hidden;
+  display: none;
+}
+.visible.transition {
+  display: block !important;
+  visibility: visible !important;
+}
+
 .ui.message {
   background: var(--color-box-body);
   color: var(--color-text);
@@ -796,7 +807,7 @@ a.label,
 .ui.selection.active.dropdown:hover,
 .ui.selection.active.dropdown .menu,
 .ui.selection.active.dropdown:hover .menu {
-  border-color: var(--color-primary-light-2);
+  border-color: var(--color-primary);
 }
 
 .ui.selection.dropdown .menu {
@@ -1184,6 +1195,20 @@ img.ui.avatar,
 .ui.vertical.menu,
 .ui.segment {
   box-shadow: none;
+}
+
+.ui.dropdown .menu,
+.ui.upward.dropdown > .menu,
+.ui.menu .dropdown.item .menu,
+.ui.selection.active.dropdown .menu,
+.ui.upward.selection.dropdown .menu,
+.ui.selection.active.dropdown:hover .menu,
+.ui.upward.active.selection.dropdown:hover .menu {
+  box-shadow: 0 6px 18px var(--color-shadow);
+}
+
+.ui.dimmer {
+  background: var(--color-overlay-backdrop);
 }
 
 /* Override semantic selector '.ui.menu:not(.vertical) .item > .button' */
