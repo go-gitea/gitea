@@ -126,6 +126,7 @@ import {createApp} from 'vue';
 import {toggleElem} from '../utils/dom.js';
 import {getCurrentLocale} from '../utils.js';
 import {renderAnsi} from '../render/ansi.js';
+import {showErrorToast} from '../modules/toast.js';
 
 const {csrfToken} = window.config;
 
@@ -267,13 +268,11 @@ const sfc = {
     // rerun a job
     async rerunJob(idx) {
       const jobLink = `${this.run.link}/jobs/${idx}`;
-      await this.fetchPost(`${jobLink}/rerun`);
-      window.location.href = jobLink;
+      await this.fetchRerun(`${jobLink}/rerun`, jobLink);
     },
     // rerun workflow
     async rerun() {
-      await this.fetchPost(`${this.run.link}/rerun`);
-      window.location.href = this.run.link;
+      await this.fetchRerun(`${this.run.link}/rerun`, this.run.link);
     },
     // cancel a run
     cancelRun() {
@@ -340,6 +339,16 @@ const sfc = {
         JSON.stringify({logCursors}),
       );
       return await resp.json();
+    },
+
+    async fetchRerun(url, hrefURL) {
+      const resp = await this.fetchPost(url);
+      const results = await resp.json();
+      if (results.errorMessage) {
+        showErrorToast(`${results.errorMessage}`);
+      } else {
+        window.location.href = hrefURL;
+      }
     },
 
     async loadJob() {
