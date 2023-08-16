@@ -398,6 +398,11 @@ func SignUp(ctx *context.Context) {
 	// Show Disabled Registration message if DisableRegistration or AllowOnlyExternalRegistration options are true
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration
 
+	redirectTo := ctx.FormString("redirect_to")
+	if len(redirectTo) > 0 {
+		middleware.SetRedirectToCookie(ctx.Resp, redirectTo)
+	}
+
 	ctx.HTML(http.StatusOK, tplSignUp)
 }
 

@@ -33,6 +33,13 @@ func MailTeamInvite(ctx context.Context, inviter *user_model.User, team *org_mod
 
 	locale := translation.NewLocale(inviter.Language)
 
+	// check if a user with this email already exists
+	user, err := user_model.GetUserByEmail(ctx, invite.Email)
+	if err != nil && !user_model.IsErrUserNotExist(err) {
+		return err
+	}
+	userAccountExists := err == nil && user != nil
+
 	subject := locale.Tr("mail.team_invite.subject", inviter.DisplayName(), org.DisplayName())
 	mailMeta := map[string]any{
 		"Inviter":      inviter,
@@ -40,6 +47,8 @@ func MailTeamInvite(ctx context.Context, inviter *user_model.User, team *org_mod
 		"Team":         team,
 		"Invite":       invite,
 		"Subject":      subject,
+		// user to determine whether to link to sign-up or login
+		"UserAccountExists": userAccountExists,
 		// helper
 		"locale":    locale,
 		"Str2html":  templates.Str2html,
