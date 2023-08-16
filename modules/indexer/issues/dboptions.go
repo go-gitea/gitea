@@ -17,6 +17,10 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 		IsClosed:  opts.IsClosed,
 	}
 
+	if opts.ProjectID != 0 {
+		searchOpt.ProjectID = &opts.ProjectID
+	}
+
 	if len(opts.LabelIDs) == 1 && opts.LabelIDs[0] == 0 {
 		searchOpt.NoLabelOnly = true
 	} else {
