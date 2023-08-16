@@ -126,6 +126,16 @@ Apart from `extra_links.tmpl` and `extra_tabs.tmpl`, there are other useful temp
 - `body_outer_post.tmpl`, before the bottom `<footer>` element.
 - `footer.tmpl`, right before the end of the `<body>` tag, a good place for additional JavaScript.
 
+### Using Gitea variables
+
+It's possible to use various Gitea variables in your custom templates.
+
+First, *temporarily* enable development mode: in your `app.ini` change from `RUN_MODE = prod` to `RUN_MODE = dev`. Then add `{{ $ | DumpVar }}` to any of your templates, and restart Gitea; that will dump all available variables.
+
+Find the data that you need, and use the corresponding variable; for example, if you need the name of the repository then you'd use `{{.Repository.Name}}`.
+
+If you need to transform that data somehow, and aren't familiar with Go, an easy workaround is to add the data to the DOM and add a small JavaScript script block to manipulate the data.
+
 #### Example: PlantUML
 
 You can add [PlantUML](https://plantuml.com/) support to Gitea's markdown by using a PlantUML server.
