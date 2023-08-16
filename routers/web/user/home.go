@@ -618,6 +618,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	var issueStats *issues_model.IssueStats
 	{
 		statsOpts := issues_model.IssuesOptions{
+			RepoIDs:    repoIDs,
 			User:       ctx.Doer,
 			IsPull:     util.OptionalBoolOf(isPullList),
 			IsClosed:   util.OptionalBoolOf(isShowClosed),
@@ -755,7 +756,8 @@ func getRepoIDs(reposQuery string) []int64 {
 		return []int64{}
 	}
 	if !issueReposQueryPattern.MatchString(reposQuery) {
-		log.Warn("issueReposQueryPattern does not match query")
+		// FIXME: sometimes it could be "[W] issueReposQueryPattern [4%2C5%2C7%2C6%2C8%2C] does not match query"
+		log.Warn("issueReposQueryPattern %v does not match query", reposQuery)
 		return []int64{}
 	}
 
