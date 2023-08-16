@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/web/middleware"
 
 	"gitea.com/go-chi/binding"
+	"github.com/gobwas/glob"
 )
 
 // InstallForm form for installation page
@@ -26,7 +27,6 @@ type InstallForm struct {
 	DbPasswd string
 	DbName   string
 	SSLMode  string
-	Charset  string `binding:"Required;In(utf8,utf8mb4)"`
 	DbPath   string
 	DbSchema string
 
@@ -105,8 +105,8 @@ func (f *RegisterForm) Validate(req *http.Request, errs binding.Errors) binding.
 
 // IsEmailDomainListed checks whether the domain of an email address
 // matches a list of domains
-func IsEmailDomainListed(list []string, email string) bool {
-	if len(list) == 0 {
+func IsEmailDomainListed(globs []glob.Glob, email string) bool {
+	if len(globs) == 0 {
 		return false
 	}
 
@@ -117,8 +117,8 @@ func IsEmailDomainListed(list []string, email string) bool {
 
 	domain := strings.ToLower(email[n+1:])
 
-	for _, v := range list {
-		if strings.ToLower(v) == domain {
+	for _, g := range globs {
+		if g.Match(domain) {
 			return true
 		}
 	}
@@ -131,12 +131,12 @@ func IsEmailDomainListed(list []string, email string) bool {
 // The email is marked as allowed if it matches any of the
 // domains in the whitelist or if it doesn't match any of
 // domains in the blocklist, if any such list is not empty.
-func (f RegisterForm) IsEmailDomainAllowed() bool {
-	if len(setting.Service.EmailDomainWhitelist) == 0 {
-		return !IsEmailDomainListed(setting.Service.EmailDomainBlocklist, f.Email)
+func (f *RegisterForm) IsEmailDomainAllowed() bool {
+	if len(setting.Service.EmailDomainAllowList) == 0 {
+		return !IsEmailDomainListed(setting.Service.EmailDomainBlockList, f.Email)
 	}
 
-	return IsEmailDomainListed(setting.Service.EmailDomainWhitelist, f.Email)
+	return IsEmailDomainListed(setting.Service.EmailDomainAllowList, f.Email)
 }
 
 // MustChangePasswordForm form for updating your password after account creation
@@ -366,12 +366,22 @@ func (f *AddKeyForm) Validate(req *http.Request, errs binding.Errors) binding.Er
 
 // AddSecretForm for adding secrets
 type AddSecretForm struct {
-	Title   string `binding:"Required;MaxSize(50)"`
-	Content string `binding:"Required"`
+	Name string `binding:"Required;MaxSize(255)"`
+	Data string `binding:"Required;MaxSize(65535)"`
 }
 
 // Validate validates the fields
 func (f *AddSecretForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+type EditVariableForm struct {
+	Name string `binding:"Required;MaxSize(255)"`
+	Data string `binding:"Required;MaxSize(65535)"`
+}
+
+func (f *EditVariableForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
@@ -397,7 +407,7 @@ func (f *NewAccessTokenForm) GetScope() (auth_model.AccessTokenScope, error) {
 // EditOAuth2ApplicationForm form for editing oauth2 applications
 type EditOAuth2ApplicationForm struct {
 	Name               string `binding:"Required;MaxSize(255)" form:"application_name"`
-	RedirectURI        string `binding:"Required" form:"redirect_uri"`
+	RedirectURIs       string `binding:"Required" form:"redirect_uris"`
 	ConfidentialClient bool   `form:"confidential_client"`
 }
 

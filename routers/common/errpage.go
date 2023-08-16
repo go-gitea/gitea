@@ -26,7 +26,7 @@ func RenderPanicErrorPage(w http.ResponseWriter, req *http.Request, err any) {
 
 	defer func() {
 		if err := recover(); err != nil {
-			log.Error("Panic occurs again when rendering error page: %v", err)
+			log.Error("Panic occurs again when rendering error page: %v. Stack:\n%s", err, log.Stack(2))
 		}
 	}()
 
@@ -48,7 +48,7 @@ func RenderPanicErrorPage(w http.ResponseWriter, req *http.Request, err any) {
 		data["ErrorMsg"] = "PANIC: " + combinedErr
 	}
 
-	err = templates.HTMLRenderer().HTML(w, http.StatusInternalServerError, string(tplStatus500), data)
+	err = templates.HTMLRenderer().HTML(w, http.StatusInternalServerError, string(tplStatus500), data, nil)
 	if err != nil {
 		log.Error("Error occurs again when rendering error page: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)

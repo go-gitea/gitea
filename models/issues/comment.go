@@ -107,6 +107,8 @@ const (
 	CommentTypePRScheduledToAutoMerge   // 34 pr was scheduled to auto merge when checks succeed
 	CommentTypePRUnScheduledToAutoMerge // 35 pr was un scheduled to auto merge when checks succeed
 
+	CommentTypePin   // 36 pin Issue
+	CommentTypeUnpin // 37 unpin Issue
 )
 
 var commentStrings = []string{
@@ -146,6 +148,8 @@ var commentStrings = []string{
 	"change_issue_ref",
 	"pull_scheduled_merge",
 	"pull_cancel_scheduled_merge",
+	"pin",
+	"unpin",
 }
 
 func (t CommentType) String() string {
@@ -163,7 +167,7 @@ func AsCommentType(typeName string) CommentType {
 
 func (t CommentType) HasContentSupport() bool {
 	switch t {
-	case CommentTypeComment, CommentTypeCode, CommentTypeReview:
+	case CommentTypeComment, CommentTypeCode, CommentTypeReview, CommentTypeDismissReview:
 		return true
 	}
 	return false
@@ -745,7 +749,7 @@ func (c *Comment) LoadPushCommits(ctx context.Context) (err error) {
 
 	err = json.Unmarshal([]byte(c.Content), &data)
 	if err != nil {
-		return
+		return err
 	}
 
 	c.IsForcePush = data.IsForcePush
@@ -773,6 +777,12 @@ func (c *Comment) LoadPushCommits(ctx context.Context) (err error) {
 
 // CreateComment creates comment with context
 func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment, err error) {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer committer.Close()
+
 	e := db.GetEngine(ctx)
 	var LabelID int64
 	if opts.Label != nil {
@@ -828,7 +838,9 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 	if err = comment.AddCrossReferences(ctx, opts.Doer, false); err != nil {
 		return nil, err
 	}
-
+	if err = committer.Commit(); err != nil {
+		return nil, err
+	}
 	return comment, nil
 }
 
@@ -921,7 +933,7 @@ func createIssueDependencyComment(ctx context.Context, doer *user_model.User, is
 		cType = CommentTypeRemoveDependency
 	}
 	if err = issue.LoadRepo(ctx); err != nil {
-		return
+		return err
 	}
 
 	// Make two comments, one in each issue
@@ -933,7 +945,7 @@ func createIssueDependencyComment(ctx context.Context, doer *user_model.User, is
 		DependentIssueID: dependentIssue.ID,
 	}
 	if _, err = CreateComment(ctx, opts); err != nil {
-		return
+		return err
 	}
 
 	opts = &CreateCommentOptions{
@@ -1127,7 +1139,7 @@ func DeleteComment(ctx context.Context, comment *Comment) error {
 	}
 	if _, err := e.Table("action").
 		Where("comment_id = ?", comment.ID).
-		Update(map[string]interface{}{
+		Update(map[string]any{
 			"is_deleted": true,
 		}); err != nil {
 		return err
@@ -1152,7 +1164,7 @@ func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID 
 				}),
 		)).
 		And("comment.original_author_id = ?", originalAuthorID).
-		Update(map[string]interface{}{
+		Update(map[string]any{
 			"poster_id":          posterID,
 			"original_author":    "",
 			"original_author_id": 0,
@@ -1166,11 +1178,11 @@ func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullReques
 		return nil, fmt.Errorf("comment type %d cannot be used to create an auto merge comment", typ)
 	}
 	if err = pr.LoadIssue(ctx); err != nil {
-		return
+		return nil, err
 	}
 
 	if err = pr.LoadBaseRepo(ctx); err != nil {
-		return
+		return nil, err
 	}
 
 	comment, err = CreateComment(ctx, &CreateCommentOptions{

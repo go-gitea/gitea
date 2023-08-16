@@ -6,7 +6,7 @@
 
 .repository.releases #release-list .release-list-title {
   font-size: 2rem;
-  font-weight: normal;
+  font-weight: var(--font-weight-normal);
   margin-top: -4px;
   margin-bottom: 0;
 }
@@ -87,7 +87,7 @@
 
 .repository.tags #tags-table .release-tag-name {
   font-size: 18px;
-  font-weight: normal;
+  font-weight: var(--font-weight-normal);
 }
 
 .repository.new.release .target {
@@ -119,7 +119,7 @@
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .repository.new.release .field button {
     margin-bottom: 1em;
   }
@@ -131,4 +131,8 @@
 
 .repository.new.release .field .attachment_edit {
   width: 450px !important;
+}
+
+.repository.new.release .markup {
+  min-height: 240px;
 }

@@ -283,11 +283,11 @@ func Init() error {
 		},
 	}
 
-	hookQueue = queue.CreateUniqueQueue("webhook_sender", handler)
+	hookQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "webhook_sender", handler)
 	if hookQueue == nil {
-		return fmt.Errorf("Unable to create webhook_sender Queue")
+		return fmt.Errorf("unable to create webhook_sender queue")
 	}
-	go graceful.GetManager().RunWithShutdownFns(hookQueue.Run)
+	go graceful.GetManager().RunWithCancel(hookQueue)
 
 	go graceful.GetManager().RunWithShutdownContext(populateWebhookSendingQueue)
 

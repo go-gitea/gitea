@@ -1,6 +1,6 @@
 {{if .ctxData.IsSigned}}
 <div class="item action ui dropdown jump pointing top right context-dropdown">
-	<a class="context-menu">
+	<a class="context-menu muted">
 		{{svg "octicon-kebab-horizontal"}}
 	</a>
 	<div class="menu">
@@ -10,7 +10,7 @@
 		{{else}}
 			{{$referenceUrl = printf "%s/files#%s" .ctxData.Issue.Link .item.HashTag}}
 		{{end}}
-		<div class="item context js-aria-clickable" data-clipboard-text-type="url" data-clipboard-text="{{AppSubUrl}}{{$referenceUrl}}">{{.ctxData.locale.Tr "repo.issues.context.copy_link"}}</div>
+		<div class="item context js-aria-clickable" data-clipboard-text-type="url" data-clipboard-text="{{$referenceUrl}}">{{.ctxData.locale.Tr "repo.issues.context.copy_link"}}</div>
 		<div class="item context js-aria-clickable quote-reply {{if .diff}}quote-reply-diff{{end}}" data-target="{{.item.HashTag}}-raw">{{.ctxData.locale.Tr "repo.issues.context.quote_reply"}}</div>
 		{{if not .ctxData.UnitIssuesGlobalDisabled}}
 			<div class="item context js-aria-clickable reference-issue" data-target="{{.item.HashTag}}-raw" data-modal="#reference-issue-modal" data-poster="{{.item.Poster.GetDisplayName}}" data-poster-username="{{.item.Poster.Name}}" data-reference="{{$referenceUrl}}">{{.ctxData.locale.Tr "repo.issues.context.reference_issue"}}</div>

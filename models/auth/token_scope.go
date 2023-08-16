@@ -6,113 +6,122 @@ package auth
 import (
 	"fmt"
 	"strings"
+
+	"code.gitea.io/gitea/models/perm"
+)
+
+// AccessTokenScopeCategory represents the scope category for an access token
+type AccessTokenScopeCategory int
+
+const (
+	AccessTokenScopeCategoryActivityPub = iota
+	AccessTokenScopeCategoryAdmin
+	AccessTokenScopeCategoryMisc // WARN: this is now just a placeholder, don't remove it which will change the following values
+	AccessTokenScopeCategoryNotification
+	AccessTokenScopeCategoryOrganization
+	AccessTokenScopeCategoryPackage
+	AccessTokenScopeCategoryIssue
+	AccessTokenScopeCategoryRepository
+	AccessTokenScopeCategoryUser
+)
+
+// AllAccessTokenScopeCategories contains all access token scope categories
+var AllAccessTokenScopeCategories = []AccessTokenScopeCategory{
+	AccessTokenScopeCategoryActivityPub,
+	AccessTokenScopeCategoryAdmin,
+	AccessTokenScopeCategoryMisc,
+	AccessTokenScopeCategoryNotification,
+	AccessTokenScopeCategoryOrganization,
+	AccessTokenScopeCategoryPackage,
+	AccessTokenScopeCategoryIssue,
+	AccessTokenScopeCategoryRepository,
+	AccessTokenScopeCategoryUser,
+}
+
+// AccessTokenScopeLevel represents the access levels without a given scope category
+type AccessTokenScopeLevel int
+
+const (
+	NoAccess AccessTokenScopeLevel = iota
+	Read
+	Write
 )
 
 // AccessTokenScope represents the scope for an access token.
 type AccessTokenScope string
 
+// for all categories, write implies read
 const (
-	AccessTokenScopeAll AccessTokenScope = "all"
+	AccessTokenScopeAll        AccessTokenScope = "all"
+	AccessTokenScopePublicOnly AccessTokenScope = "public-only" // limited to public orgs/repos
 
-	AccessTokenScopeRepo       AccessTokenScope = "repo"
-	AccessTokenScopeRepoStatus AccessTokenScope = "repo:status"
-	AccessTokenScopePublicRepo AccessTokenScope = "public_repo"
+	AccessTokenScopeReadActivityPub  AccessTokenScope = "read:activitypub"
+	AccessTokenScopeWriteActivityPub AccessTokenScope = "write:activitypub"
 
-	AccessTokenScopeAdminOrg AccessTokenScope = "admin:org"
-	AccessTokenScopeWriteOrg AccessTokenScope = "write:org"
-	AccessTokenScopeReadOrg  AccessTokenScope = "read:org"
+	AccessTokenScopeReadAdmin  AccessTokenScope = "read:admin"
+	AccessTokenScopeWriteAdmin AccessTokenScope = "write:admin"
 
-	AccessTokenScopeAdminPublicKey AccessTokenScope = "admin:public_key"
-	AccessTokenScopeWritePublicKey AccessTokenScope = "write:public_key"
-	AccessTokenScopeReadPublicKey  AccessTokenScope = "read:public_key"
+	AccessTokenScopeReadMisc  AccessTokenScope = "read:misc"
+	AccessTokenScopeWriteMisc AccessTokenScope = "write:misc"
 
-	AccessTokenScopeAdminRepoHook AccessTokenScope = "admin:repo_hook"
-	AccessTokenScopeWriteRepoHook AccessTokenScope = "write:repo_hook"
-	AccessTokenScopeReadRepoHook  AccessTokenScope = "read:repo_hook"
+	AccessTokenScopeReadNotification  AccessTokenScope = "read:notification"
+	AccessTokenScopeWriteNotification AccessTokenScope = "write:notification"
 
-	AccessTokenScopeAdminOrgHook AccessTokenScope = "admin:org_hook"
+	AccessTokenScopeReadOrganization  AccessTokenScope = "read:organization"
+	AccessTokenScopeWriteOrganization AccessTokenScope = "write:organization"
 
-	AccessTokenScopeAdminUserHook AccessTokenScope = "admin:user_hook"
+	AccessTokenScopeReadPackage  AccessTokenScope = "read:package"
+	AccessTokenScopeWritePackage AccessTokenScope = "write:package"
 
-	AccessTokenScopeNotification AccessTokenScope = "notification"
+	AccessTokenScopeReadIssue  AccessTokenScope = "read:issue"
+	AccessTokenScopeWriteIssue AccessTokenScope = "write:issue"
 
-	AccessTokenScopeUser       AccessTokenScope = "user"
-	AccessTokenScopeReadUser   AccessTokenScope = "read:user"
-	AccessTokenScopeUserEmail  AccessTokenScope = "user:email"
-	AccessTokenScopeUserFollow AccessTokenScope = "user:follow"
+	AccessTokenScopeReadRepository  AccessTokenScope = "read:repository"
+	AccessTokenScopeWriteRepository AccessTokenScope = "write:repository"
 
-	AccessTokenScopeDeleteRepo AccessTokenScope = "delete_repo"
-
-	AccessTokenScopePackage       AccessTokenScope = "package"
-	AccessTokenScopeWritePackage  AccessTokenScope = "write:package"
-	AccessTokenScopeReadPackage   AccessTokenScope = "read:package"
-	AccessTokenScopeDeletePackage AccessTokenScope = "delete:package"
-
-	AccessTokenScopeAdminGPGKey AccessTokenScope = "admin:gpg_key"
-	AccessTokenScopeWriteGPGKey AccessTokenScope = "write:gpg_key"
-	AccessTokenScopeReadGPGKey  AccessTokenScope = "read:gpg_key"
-
-	AccessTokenScopeAdminApplication AccessTokenScope = "admin:application"
-	AccessTokenScopeWriteApplication AccessTokenScope = "write:application"
-	AccessTokenScopeReadApplication  AccessTokenScope = "read:application"
-
-	AccessTokenScopeSudo AccessTokenScope = "sudo"
+	AccessTokenScopeReadUser  AccessTokenScope = "read:user"
+	AccessTokenScopeWriteUser AccessTokenScope = "write:user"
 )
 
-// AccessTokenScopeBitmap represents a bitmap of access token scopes.
-type AccessTokenScopeBitmap uint64
+// accessTokenScopeBitmap represents a bitmap of access token scopes.
+type accessTokenScopeBitmap uint64
 
 // Bitmap of each scope, including the child scopes.
 const (
-	// AccessTokenScopeAllBits is the bitmap of all access token scopes, except `sudo`.
-	AccessTokenScopeAllBits AccessTokenScopeBitmap = AccessTokenScopeRepoBits |
-		AccessTokenScopeAdminOrgBits | AccessTokenScopeAdminPublicKeyBits | AccessTokenScopeAdminOrgHookBits | AccessTokenScopeAdminUserHookBits |
-		AccessTokenScopeNotificationBits | AccessTokenScopeUserBits | AccessTokenScopeDeleteRepoBits |
-		AccessTokenScopePackageBits | AccessTokenScopeAdminGPGKeyBits | AccessTokenScopeAdminApplicationBits
+	// AccessTokenScopeAllBits is the bitmap of all access token scopes
+	accessTokenScopeAllBits accessTokenScopeBitmap = accessTokenScopeWriteActivityPubBits |
+		accessTokenScopeWriteAdminBits | accessTokenScopeWriteMiscBits | accessTokenScopeWriteNotificationBits |
+		accessTokenScopeWriteOrganizationBits | accessTokenScopeWritePackageBits | accessTokenScopeWriteIssueBits |
+		accessTokenScopeWriteRepositoryBits | accessTokenScopeWriteUserBits
 
-	AccessTokenScopeRepoBits       AccessTokenScopeBitmap = 1<<iota | AccessTokenScopeRepoStatusBits | AccessTokenScopePublicRepoBits | AccessTokenScopeAdminRepoHookBits
-	AccessTokenScopeRepoStatusBits AccessTokenScopeBitmap = 1 << iota
-	AccessTokenScopePublicRepoBits AccessTokenScopeBitmap = 1 << iota
+	accessTokenScopePublicOnlyBits accessTokenScopeBitmap = 1 << iota
 
-	AccessTokenScopeAdminOrgBits AccessTokenScopeBitmap = 1<<iota | AccessTokenScopeWriteOrgBits
-	AccessTokenScopeWriteOrgBits AccessTokenScopeBitmap = 1<<iota | AccessTokenScopeReadOrgBits
-	AccessTokenScopeReadOrgBits  AccessTokenScopeBitmap = 1 << iota
+	accessTokenScopeReadActivityPubBits  accessTokenScopeBitmap = 1 << iota
+	accessTokenScopeWriteActivityPubBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadActivityPubBits
 
-	AccessTokenScopeAdminPublicKeyBits AccessTokenScopeBitmap = 1<<iota | AccessTokenScopeWritePublicKeyBits
-	AccessTokenScopeWritePublicKeyBits AccessTokenScopeBitmap = 1<<iota | AccessTokenScopeReadPublicKeyBits
-	AccessTokenScopeReadPublicKeyBits  AccessTokenScopeBitmap = 1 << iota
+	accessTokenScopeReadAdminBits  accessTokenScopeBitmap = 1 << iota
+	accessTokenScopeWriteAdminBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadAdminBits
 
-	AccessTokenScopeAdminRepoHookBits AccessTokenScopeBitmap = 1<<iota | AccessTokenScopeWriteRepoHookBits
-	AccessTokenScopeWriteRepoHookBits AccessTokenScopeBitmap = 1<<iota | AccessTokenScopeReadRepoHookBits
-	AccessTokenScopeReadRepoHookBits  AccessTokenScopeBitmap = 1 << iota
+	accessTokenScopeReadMiscBits  accessTokenScopeBitmap = 1 << iota
+	accessTokenScopeWriteMiscBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadMiscBits
 
-	AccessTokenScopeAdminOrgHookBits AccessTokenScopeBitmap = 1 << iota
+	accessTokenScopeReadNotificationBits  accessTokenScopeBitmap = 1 << iota
+	accessTokenScopeWriteNotificationBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadNotificationBits
 
-	AccessTokenScopeAdminUserHookBits AccessTokenScopeBitmap = 1 << iota
+	accessTokenScopeReadOrganizationBits  accessTokenScopeBitmap = 1 << iota
+	accessTokenScopeWriteOrganizationBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadOrganizationBits
 
-	AccessTokenScopeNotificationBits AccessTokenScopeBitmap = 1 << iota
+	accessTokenScopeReadPackageBits  accessTokenScopeBitmap = 1 << iota
+	accessTokenScopeWritePackageBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadPackageBits
 
-	AccessTokenScopeUserBits       AccessTokenScopeBitmap = 1<<iota | AccessTokenScopeReadUserBits | AccessTokenScopeUserEmailBits | AccessTokenScopeUserFollowBits
-	AccessTokenScopeReadUserBits   AccessTokenScopeBitmap = 1 << iota
-	AccessTokenScopeUserEmailBits  AccessTokenScopeBitmap = 1 << iota
-	AccessTokenScopeUserFollowBits AccessTokenScopeBitmap = 1 << iota
+	accessTokenScopeReadIssueBits  accessTokenScopeBitmap = 1 << iota
+	accessTokenScopeWriteIssueBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadIssueBits
 
-	AccessTokenScopeDeleteRepoBits AccessTokenScopeBitmap = 1 << iota
+	accessTokenScopeReadRepositoryBits  accessTokenScopeBitmap = 1 << iota
+	accessTokenScopeWriteRepositoryBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadRepositoryBits
 
-	AccessTokenScopePackageBits       AccessTokenScopeBitmap = 1<<iota | AccessTokenScopeWritePackageBits | AccessTokenScopeDeletePackageBits
-	AccessTokenScopeWritePackageBits  AccessTokenScopeBitmap = 1<<iota | AccessTokenScopeReadPackageBits
-	AccessTokenScopeReadPackageBits   AccessTokenScopeBitmap = 1 << iota
-	AccessTokenScopeDeletePackageBits AccessTokenScopeBitmap = 1 << iota
-
-	AccessTokenScopeAdminGPGKeyBits AccessTokenScopeBitmap = 1<<iota | AccessTokenScopeWriteGPGKeyBits
-	AccessTokenScopeWriteGPGKeyBits AccessTokenScopeBitmap = 1<<iota | AccessTokenScopeReadGPGKeyBits
-	AccessTokenScopeReadGPGKeyBits  AccessTokenScopeBitmap = 1 << iota
-
-	AccessTokenScopeAdminApplicationBits AccessTokenScopeBitmap = 1<<iota | AccessTokenScopeWriteApplicationBits
-	AccessTokenScopeWriteApplicationBits AccessTokenScopeBitmap = 1<<iota | AccessTokenScopeReadApplicationBits
-	AccessTokenScopeReadApplicationBits  AccessTokenScopeBitmap = 1 << iota
-
-	AccessTokenScopeSudoBits AccessTokenScopeBitmap = 1 << iota
+	accessTokenScopeReadUserBits  accessTokenScopeBitmap = 1 << iota
+	accessTokenScopeWriteUserBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadUserBits
 
 	// The current implementation only supports up to 64 token scopes.
 	// If we need to support > 64 scopes,
@@ -120,61 +129,110 @@ const (
 )
 
 // allAccessTokenScopes contains all access token scopes.
-// The order is important: parent scope must precedes child scopes.
+// The order is important: parent scope must precede child scopes.
 var allAccessTokenScopes = []AccessTokenScope{
-	AccessTokenScopeRepo, AccessTokenScopeRepoStatus, AccessTokenScopePublicRepo,
-	AccessTokenScopeAdminOrg, AccessTokenScopeWriteOrg, AccessTokenScopeReadOrg,
-	AccessTokenScopeAdminPublicKey, AccessTokenScopeWritePublicKey, AccessTokenScopeReadPublicKey,
-	AccessTokenScopeAdminRepoHook, AccessTokenScopeWriteRepoHook, AccessTokenScopeReadRepoHook,
-	AccessTokenScopeAdminOrgHook,
-	AccessTokenScopeAdminUserHook,
-	AccessTokenScopeNotification,
-	AccessTokenScopeUser, AccessTokenScopeReadUser, AccessTokenScopeUserEmail, AccessTokenScopeUserFollow,
-	AccessTokenScopeDeleteRepo,
-	AccessTokenScopePackage, AccessTokenScopeWritePackage, AccessTokenScopeReadPackage, AccessTokenScopeDeletePackage,
-	AccessTokenScopeAdminGPGKey, AccessTokenScopeWriteGPGKey, AccessTokenScopeReadGPGKey,
-	AccessTokenScopeAdminApplication, AccessTokenScopeWriteApplication, AccessTokenScopeReadApplication,
-	AccessTokenScopeSudo,
+	AccessTokenScopePublicOnly,
+	AccessTokenScopeWriteActivityPub, AccessTokenScopeReadActivityPub,
+	AccessTokenScopeWriteAdmin, AccessTokenScopeReadAdmin,
+	AccessTokenScopeWriteMisc, AccessTokenScopeReadMisc,
+	AccessTokenScopeWriteNotification, AccessTokenScopeReadNotification,
+	AccessTokenScopeWriteOrganization, AccessTokenScopeReadOrganization,
+	AccessTokenScopeWritePackage, AccessTokenScopeReadPackage,
+	AccessTokenScopeWriteIssue, AccessTokenScopeReadIssue,
+	AccessTokenScopeWriteRepository, AccessTokenScopeReadRepository,
+	AccessTokenScopeWriteUser, AccessTokenScopeReadUser,
 }
 
 // allAccessTokenScopeBits contains all access token scopes.
-var allAccessTokenScopeBits = map[AccessTokenScope]AccessTokenScopeBitmap{
-	AccessTokenScopeRepo:             AccessTokenScopeRepoBits,
-	AccessTokenScopeRepoStatus:       AccessTokenScopeRepoStatusBits,
-	AccessTokenScopePublicRepo:       AccessTokenScopePublicRepoBits,
-	AccessTokenScopeAdminOrg:         AccessTokenScopeAdminOrgBits,
-	AccessTokenScopeWriteOrg:         AccessTokenScopeWriteOrgBits,
-	AccessTokenScopeReadOrg:          AccessTokenScopeReadOrgBits,
-	AccessTokenScopeAdminPublicKey:   AccessTokenScopeAdminPublicKeyBits,
-	AccessTokenScopeWritePublicKey:   AccessTokenScopeWritePublicKeyBits,
-	AccessTokenScopeReadPublicKey:    AccessTokenScopeReadPublicKeyBits,
-	AccessTokenScopeAdminRepoHook:    AccessTokenScopeAdminRepoHookBits,
-	AccessTokenScopeWriteRepoHook:    AccessTokenScopeWriteRepoHookBits,
-	AccessTokenScopeReadRepoHook:     AccessTokenScopeReadRepoHookBits,
-	AccessTokenScopeAdminOrgHook:     AccessTokenScopeAdminOrgHookBits,
-	AccessTokenScopeAdminUserHook:    AccessTokenScopeAdminUserHookBits,
-	AccessTokenScopeNotification:     AccessTokenScopeNotificationBits,
-	AccessTokenScopeUser:             AccessTokenScopeUserBits,
-	AccessTokenScopeReadUser:         AccessTokenScopeReadUserBits,
-	AccessTokenScopeUserEmail:        AccessTokenScopeUserEmailBits,
-	AccessTokenScopeUserFollow:       AccessTokenScopeUserFollowBits,
-	AccessTokenScopeDeleteRepo:       AccessTokenScopeDeleteRepoBits,
-	AccessTokenScopePackage:          AccessTokenScopePackageBits,
-	AccessTokenScopeWritePackage:     AccessTokenScopeWritePackageBits,
-	AccessTokenScopeReadPackage:      AccessTokenScopeReadPackageBits,
-	AccessTokenScopeDeletePackage:    AccessTokenScopeDeletePackageBits,
-	AccessTokenScopeAdminGPGKey:      AccessTokenScopeAdminGPGKeyBits,
-	AccessTokenScopeWriteGPGKey:      AccessTokenScopeWriteGPGKeyBits,
-	AccessTokenScopeReadGPGKey:       AccessTokenScopeReadGPGKeyBits,
-	AccessTokenScopeAdminApplication: AccessTokenScopeAdminApplicationBits,
-	AccessTokenScopeWriteApplication: AccessTokenScopeWriteApplicationBits,
-	AccessTokenScopeReadApplication:  AccessTokenScopeReadApplicationBits,
-	AccessTokenScopeSudo:             AccessTokenScopeSudoBits,
+var allAccessTokenScopeBits = map[AccessTokenScope]accessTokenScopeBitmap{
+	AccessTokenScopeAll:               accessTokenScopeAllBits,
+	AccessTokenScopePublicOnly:        accessTokenScopePublicOnlyBits,
+	AccessTokenScopeReadActivityPub:   accessTokenScopeReadActivityPubBits,
+	AccessTokenScopeWriteActivityPub:  accessTokenScopeWriteActivityPubBits,
+	AccessTokenScopeReadAdmin:         accessTokenScopeReadAdminBits,
+	AccessTokenScopeWriteAdmin:        accessTokenScopeWriteAdminBits,
+	AccessTokenScopeReadMisc:          accessTokenScopeReadMiscBits,
+	AccessTokenScopeWriteMisc:         accessTokenScopeWriteMiscBits,
+	AccessTokenScopeReadNotification:  accessTokenScopeReadNotificationBits,
+	AccessTokenScopeWriteNotification: accessTokenScopeWriteNotificationBits,
+	AccessTokenScopeReadOrganization:  accessTokenScopeReadOrganizationBits,
+	AccessTokenScopeWriteOrganization: accessTokenScopeWriteOrganizationBits,
+	AccessTokenScopeReadPackage:       accessTokenScopeReadPackageBits,
+	AccessTokenScopeWritePackage:      accessTokenScopeWritePackageBits,
+	AccessTokenScopeReadIssue:         accessTokenScopeReadIssueBits,
+	AccessTokenScopeWriteIssue:        accessTokenScopeWriteIssueBits,
+	AccessTokenScopeReadRepository:    accessTokenScopeReadRepositoryBits,
+	AccessTokenScopeWriteRepository:   accessTokenScopeWriteRepositoryBits,
+	AccessTokenScopeReadUser:          accessTokenScopeReadUserBits,
+	AccessTokenScopeWriteUser:         accessTokenScopeWriteUserBits,
 }
 
-// Parse parses the scope string into a bitmap, thus removing possible duplicates.
-func (s AccessTokenScope) Parse() (AccessTokenScopeBitmap, error) {
-	var bitmap AccessTokenScopeBitmap
+// readAccessTokenScopes maps a scope category to the read permission scope
+var accessTokenScopes = map[AccessTokenScopeLevel]map[AccessTokenScopeCategory]AccessTokenScope{
+	Read: {
+		AccessTokenScopeCategoryActivityPub:  AccessTokenScopeReadActivityPub,
+		AccessTokenScopeCategoryAdmin:        AccessTokenScopeReadAdmin,
+		AccessTokenScopeCategoryMisc:         AccessTokenScopeReadMisc,
+		AccessTokenScopeCategoryNotification: AccessTokenScopeReadNotification,
+		AccessTokenScopeCategoryOrganization: AccessTokenScopeReadOrganization,
+		AccessTokenScopeCategoryPackage:      AccessTokenScopeReadPackage,
+		AccessTokenScopeCategoryIssue:        AccessTokenScopeReadIssue,
+		AccessTokenScopeCategoryRepository:   AccessTokenScopeReadRepository,
+		AccessTokenScopeCategoryUser:         AccessTokenScopeReadUser,
+	},
+	Write: {
+		AccessTokenScopeCategoryActivityPub:  AccessTokenScopeWriteActivityPub,
+		AccessTokenScopeCategoryAdmin:        AccessTokenScopeWriteAdmin,
+		AccessTokenScopeCategoryMisc:         AccessTokenScopeWriteMisc,
+		AccessTokenScopeCategoryNotification: AccessTokenScopeWriteNotification,
+		AccessTokenScopeCategoryOrganization: AccessTokenScopeWriteOrganization,
+		AccessTokenScopeCategoryPackage:      AccessTokenScopeWritePackage,
+		AccessTokenScopeCategoryIssue:        AccessTokenScopeWriteIssue,
+		AccessTokenScopeCategoryRepository:   AccessTokenScopeWriteRepository,
+		AccessTokenScopeCategoryUser:         AccessTokenScopeWriteUser,
+	},
+}
+
+// GetRequiredScopes gets the specific scopes for a given level and categories
+func GetRequiredScopes(level AccessTokenScopeLevel, scopeCategories ...AccessTokenScopeCategory) []AccessTokenScope {
+	scopes := make([]AccessTokenScope, 0, len(scopeCategories))
+	for _, cat := range scopeCategories {
+		scopes = append(scopes, accessTokenScopes[level][cat])
+	}
+	return scopes
+}
+
+// ContainsCategory checks if a list of categories contains a specific category
+func ContainsCategory(categories []AccessTokenScopeCategory, category AccessTokenScopeCategory) bool {
+	for _, c := range categories {
+		if c == category {
+			return true
+		}
+	}
+	return false
+}
+
+// GetScopeLevelFromAccessMode converts permission access mode to scope level
+func GetScopeLevelFromAccessMode(mode perm.AccessMode) AccessTokenScopeLevel {
+	switch mode {
+	case perm.AccessModeNone:
+		return NoAccess
+	case perm.AccessModeRead:
+		return Read
+	case perm.AccessModeWrite:
+		return Write
+	case perm.AccessModeAdmin:
+		return Write
+	case perm.AccessModeOwner:
+		return Write
+	default:
+		return NoAccess
+	}
+}
+
+// parse the scope string into a bitmap, thus removing possible duplicates.
+func (s AccessTokenScope) parse() (accessTokenScopeBitmap, error) {
+	var bitmap accessTokenScopeBitmap
 
 	// The following is the more performant equivalent of 'for _, v := range strings.Split(remainingScope, ",")' as this is hot code
 	remainingScopes := string(s)
@@ -196,7 +254,7 @@ func (s AccessTokenScope) Parse() (AccessTokenScopeBitmap, error) {
 			continue
 		}
 		if singleScope == AccessTokenScopeAll {
-			bitmap |= AccessTokenScopeAllBits
+			bitmap |= accessTokenScopeAllBits
 			continue
 		}
 
@@ -217,26 +275,42 @@ func (s AccessTokenScope) StringSlice() []string {
 
 // Normalize returns a normalized scope string without any duplicates.
 func (s AccessTokenScope) Normalize() (AccessTokenScope, error) {
-	bitmap, err := s.Parse()
+	bitmap, err := s.parse()
 	if err != nil {
 		return "", err
 	}
 
-	return bitmap.ToScope(), nil
+	return bitmap.toScope(), nil
 }
 
-// HasScope returns true if the string has the given scope
-func (s AccessTokenScope) HasScope(scope AccessTokenScope) (bool, error) {
-	bitmap, err := s.Parse()
+// PublicOnly checks if this token scope is limited to public resources
+func (s AccessTokenScope) PublicOnly() (bool, error) {
+	bitmap, err := s.parse()
 	if err != nil {
 		return false, err
 	}
 
-	return bitmap.HasScope(scope)
+	return bitmap.hasScope(AccessTokenScopePublicOnly)
 }
 
 // HasScope returns true if the string has the given scope
-func (bitmap AccessTokenScopeBitmap) HasScope(scope AccessTokenScope) (bool, error) {
+func (s AccessTokenScope) HasScope(scopes ...AccessTokenScope) (bool, error) {
+	bitmap, err := s.parse()
+	if err != nil {
+		return false, err
+	}
+
+	for _, s := range scopes {
+		if has, err := bitmap.hasScope(s); !has || err != nil {
+			return has, err
+		}
+	}
+
+	return true, nil
+}
+
+// hasScope returns true if the string has the given scope
+func (bitmap accessTokenScopeBitmap) hasScope(scope AccessTokenScope) (bool, error) {
 	expectedBits, ok := allAccessTokenScopeBits[scope]
 	if !ok {
 		return false, fmt.Errorf("invalid access token scope: %s", scope)
@@ -245,17 +319,17 @@ func (bitmap AccessTokenScopeBitmap) HasScope(scope AccessTokenScope) (bool, err
 	return bitmap&expectedBits == expectedBits, nil
 }
 
-// ToScope returns a normalized scope string without any duplicates.
-func (bitmap AccessTokenScopeBitmap) ToScope() AccessTokenScope {
+// toScope returns a normalized scope string without any duplicates.
+func (bitmap accessTokenScopeBitmap) toScope() AccessTokenScope {
 	var scopes []string
 
 	// iterate over all scopes, and reconstruct the bitmap
 	// if the reconstructed bitmap doesn't change, then the scope is already included
-	var reconstruct AccessTokenScopeBitmap
+	var reconstruct accessTokenScopeBitmap
 
 	for _, singleScope := range allAccessTokenScopes {
 		// no need for error checking here, since we know the scope is valid
-		if ok, _ := bitmap.HasScope(singleScope); ok {
+		if ok, _ := bitmap.hasScope(singleScope); ok {
 			current := reconstruct | allAccessTokenScopeBits[singleScope]
 			if current == reconstruct {
 				continue
@@ -269,7 +343,7 @@ func (bitmap AccessTokenScopeBitmap) ToScope() AccessTokenScope {
 	scope := AccessTokenScope(strings.Join(scopes, ","))
 	scope = AccessTokenScope(strings.ReplaceAll(
 		string(scope),
-		"repo,admin:org,admin:public_key,admin:org_hook,admin:user_hook,notification,user,delete_repo,package,admin:gpg_key,admin:application",
+		"write:activitypub,write:admin,write:misc,write:notification,write:organization,write:package,write:issue,write:repository,write:user",
 		"all",
 	))
 	return scope

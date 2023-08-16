@@ -53,7 +53,7 @@ func TestHTTPSigPubKey(t *testing.T) {
 	// Add our public key to user1
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user1")
-	token := url.QueryEscape(getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAdminPublicKey, auth_model.AccessTokenScopeSudo))
+	token := url.QueryEscape(getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser))
 	keysURL := fmt.Sprintf("/api/v1/user/keys?token=%s", token)
 	keyType := "ssh-rsa"
 	keyContent := "AAAAB3NzaC1yc2EAAAADAQABAAABAQCqOZB5vkRvXFXups1/0StDRdG8plbNSwsWEnNnP4Bvurxa0+z3W9B8GLKnDiLw5MbpbMNyBlpXw13GfuIeciy10DWTz0xUbiy3J3KabCaT36asIw2y7k6Z0jL0UBnrVENwq5/lUbZYqSZ4rRU744wkhh8TULpzM14npQCZwg6aEbG+MwjzddQ72fR+3BPBrKn5dTmmu8rH99O+U+Nuto81Tg7PA+NUupcHOmhdiEGq49plgVFXK98Vks5tiybL4GuzFyWgyX73Dg/QBMn2eMHt1EMv5Gs3i6GFhKKGo4rjDi9qI6PX5oDR4LTNe6cR8td8YhVD8WFZwLLl/vaYyIqd"
@@ -69,7 +69,8 @@ func TestHTTPSigPubKey(t *testing.T) {
 	keyID := ssh.FingerprintSHA256(sshSigner.PublicKey())
 
 	// create the request
-	req = NewRequest(t, "GET", "/api/v1/admin/users")
+	token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadAdmin)
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/admin/users?token=%s", token))
 
 	signer, _, err := httpsig.NewSSHSigner(sshSigner, httpsig.DigestSha512, []string{httpsig.RequestTarget, "(created)", "(expires)"}, httpsig.Signature, 10)
 	if err != nil {

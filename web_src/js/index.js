@@ -2,6 +2,7 @@
 import './bootstrap.js';
 
 import {initRepoActivityTopAuthorsChart} from './components/RepoActivityTopAuthors.vue';
+import {initScopedAccessTokenCategories} from './components/ScopedAccessTokenSelector.vue';
 import {initDashboardRepoList} from './components/DashboardRepoList.vue';
 
 import {initGlobalCopyToClipboardListener} from './features/clipboard.js';
@@ -11,7 +12,6 @@ import {initHeatmap} from './features/heatmap.js';
 import {initImageDiff} from './features/imagediff.js';
 import {initRepoMigration} from './features/repo-migration.js';
 import {initRepoProject} from './features/repo-projects.js';
-import {initServiceWorker} from './features/serviceworker.js';
 import {initTableSort} from './features/tablesort.js';
 import {initAdminUserListSearchForm} from './features/admin/users.js';
 import {initAdminConfigs} from './features/admin/config.js';
@@ -21,6 +21,7 @@ import {initRepoIssueContentHistory} from './features/repo-issue-content.js';
 import {initStopwatch} from './features/stopwatch.js';
 import {initFindFileInRepo} from './features/repo-findfile.js';
 import {initCommentContent, initMarkupContent} from './markup/content.js';
+import {initPdfViewer} from './render/pdf.js';
 
 import {initUserAuthLinkAccountView, initUserAuthOauth2} from './features/user-auth.js';
 import {
@@ -82,6 +83,7 @@ import {initGiteaFomantic} from './modules/fomantic.js';
 import {onDomReady} from './utils/dom.js';
 import {initRepoIssueList} from './features/repo-issue-list.js';
 import {initCommonIssueListQuickGoto} from './features/common-issue-list.js';
+import {initRepoDiffCommitBranchesAndTags} from './features/repo-diff-commit.js';
 
 // Init Gitea's Fomantic settings
 initGiteaFomantic();
@@ -115,7 +117,6 @@ onDomReady(() => {
   initImageDiff();
   initMarkupAnchors();
   initMarkupContent();
-  initServiceWorker();
   initSshKeyFormParser();
   initStopwatch();
   initTableSort();
@@ -141,6 +142,7 @@ onDomReady(() => {
   initRepoCodeView();
   initRepoCommentForm();
   initRepoEllipsisButton();
+  initRepoDiffCommitBranchesAndTags();
   initRepoCommitLastCommitLoader();
   initRepoEditor();
   initRepoGraphGit();
@@ -177,4 +179,6 @@ onDomReady(() => {
   initUserAuthWebAuthnRegister();
   initUserSettings();
   initRepoDiffView();
+  initPdfViewer();
+  initScopedAccessTokenCategories();
 });

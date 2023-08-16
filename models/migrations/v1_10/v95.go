@@ -15,5 +15,5 @@ func AddCrossReferenceColumns(x *xorm.Engine) error {
 		RefIsPull    bool
 	}
 
-	return x.Sync2(new(Comment))
+	return x.Sync(new(Comment))
 }

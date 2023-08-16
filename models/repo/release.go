@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -336,10 +337,21 @@ func (s releaseMetaSearch) Less(i, j int) bool {
 	return s.ID[i] < s.ID[j]
 }
 
+func hasDuplicateName(attaches []*Attachment) bool {
+	attachSet := container.Set[string]{}
+	for _, attachment := range attaches {
+		if attachSet.Contains(attachment.Name) {
+			return true
+		}
+		attachSet.Add(attachment.Name)
+	}
+	return false
+}
+
 // GetReleaseAttachments retrieves the attachments for releases
 func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 	if len(rels) == 0 {
-		return
+		return nil
 	}
 
 	// To keep this efficient as possible sort all releases by id,
@@ -360,7 +372,7 @@ func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 	err = db.GetEngine(ctx).
 		Asc("release_id", "name").
 		In("release_id", sortedRels.ID).
-		Find(&attachments, Attachment{})
+		Find(&attachments)
 	if err != nil {
 		return err
 	}
@@ -381,21 +393,8 @@ func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 			continue
 		}
 
-		// Check if there are two or more attachments with the same name
-		hasDuplicates := false
-		foundNames := make(map[string]bool)
-		for _, attachment := range release.Attachments {
-			_, found := foundNames[attachment.Name]
-			if found {
-				hasDuplicates = true
-				break
-			} else {
-				foundNames[attachment.Name] = true
-			}
-		}
-
 		// If the names unique, use the URL with the Name instead of the UUID
-		if !hasDuplicates {
+		if !hasDuplicateName(release.Attachments) {
 			for _, attachment := range release.Attachments {
 				attachment.CustomDownloadURL = release.Repo.HTMLURL() + "/releases/download/" + url.PathEscape(release.TagName) + "/" + url.PathEscape(attachment.Name)
 			}
@@ -442,7 +441,7 @@ func UpdateReleasesMigrationsByType(gitServiceType structs.GitServiceType, origi
 	_, err := db.GetEngine(db.DefaultContext).Table("release").
 		Where("repo_id IN (SELECT id FROM repository WHERE original_service_type = ?)", gitServiceType).
 		And("original_author_id = ?", originalAuthorID).
-		Update(map[string]interface{}{
+		Update(map[string]any{
 			"publisher_id":       posterID,
 			"original_author":    "",
 			"original_author_id": 0,

@@ -10,7 +10,7 @@
 				</div>
 			{{end}}
 		</div>
-		<div class="ui divider"></div>
+		<div class="divider"></div>
 		<h2 class="ui dividing header">
 			{{if .PageIsEditMilestone}}
 				{{.locale.Tr "repo.milestones.edit"}}
@@ -21,9 +21,8 @@
 			{{end}}
 		</h2>
 		{{template "base/alert" .}}
-		<form class="ui comment form grid" action="{{.Link}}" method="post">
+		<form class="ui comment form" action="{{.Link}}" method="post">
 			{{.CsrfTokenHtml}}
-			<div class="twelve wide column">
 				<div class="field {{if .Err_Title}}error{{end}}">
 					<label>{{.locale.Tr "repo.milestones.title"}}</label>
 					<input name="title" placeholder="{{.locale.Tr "repo.milestones.title"}}" value="{{.title}}" autofocus required maxlength="50">
@@ -73,10 +72,8 @@
 					</div>
 					{{template "repo/issue/labels/labels_sidebar" dict "root" $ "ctx" .}}
 				</div>
-			</div>
-			<div class="ui container">
-				<div class="ui divider"></div>
-				<div class="ui right">
+				<div class="divider"></div>
+				<div class="gt-text-right">
 					{{if .PageIsEditMilestone}}
 						<a class="ui primary basic button" href="{{.RepoLink}}/milestones">
 							{{.locale.Tr "repo.milestones.cancel"}}
@@ -89,7 +86,6 @@
 							{{.locale.Tr "repo.milestones.create"}}
 						</button>
 					{{end}}
-				</div>
 			</div>
 		</form>
 	</div>

@@ -3,29 +3,7 @@
 				<h4 class="ui top attached header">
 					{{if .PageIsSettingsHooksNew}}{{.locale.Tr "repo.settings.add_webhook"}}{{else}}{{.locale.Tr "repo.settings.update_webhook"}}{{end}}
 					<div class="ui right">
-						{{if eq .HookType "gitea"}}
-							<img width="26" height="26" src="{{AssetUrlPrefix}}/img/gitea.svg">
-						{{else if eq .HookType "gogs"}}
-							<img width="26" height="26" src="{{AssetUrlPrefix}}/img/gogs.ico">
-						{{else if eq .HookType "slack"}}
-							<img width="26" height="26" src="{{AssetUrlPrefix}}/img/slack.png">
-						{{else if eq .HookType "discord"}}
-							<img width="26" height="26" src="{{AssetUrlPrefix}}/img/discord.png">
-						{{else if eq .HookType "dingtalk"}}
-							<img width="26" height="26" src="{{AssetUrlPrefix}}/img/dingtalk.ico">
-						{{else if eq .HookType "telegram"}}
-							<img width="26" height="26" src="{{AssetUrlPrefix}}/img/telegram.png">
-						{{else if eq .HookType "msteams"}}
-							<img width="26" height="26" src="{{AssetUrlPrefix}}/img/msteams.png">
-						{{else if eq .HookType "feishu"}}
-							<img width="26" height="26" src="{{AssetUrlPrefix}}/img/feishu.png">
-						{{else if eq .HookType "matrix"}}
-							{{svg "gitea-matrix" 26}}
-						{{else if eq .HookType "wechatwork"}}
-							<img width="26" height="26" src="{{AssetUrlPrefix}}/img/wechatwork.png">
-						{{else if eq .HookType "packagist"}}
-							<img width="26" height="26" src="{{AssetUrlPrefix}}/img/packagist.png">
-						{{end}}
+						{{template "shared/webhook/icon" .}}
 					</div>
 				</h4>
 				<div class="ui attached segment">

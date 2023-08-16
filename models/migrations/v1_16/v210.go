@@ -34,7 +34,7 @@ func RemigrateU2FCredentials(x *xorm.Engine) error {
 		CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
 		UpdatedUnix     timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
-	if err := x.Sync2(&webauthnCredential{}); err != nil {
+	if err := x.Sync(&webauthnCredential{}); err != nil {
 		return err
 	}
 

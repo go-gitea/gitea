@@ -37,14 +37,11 @@ func Run(t *admin_model.Task) error {
 
 // Init will start the service to get all unfinished tasks and run them
 func Init() error {
-	taskQueue = queue.CreateSimpleQueue("task", handler)
-
+	taskQueue = queue.CreateSimpleQueue(graceful.GetManager().ShutdownContext(), "task", handler)
 	if taskQueue == nil {
-		return fmt.Errorf("Unable to create Task Queue")
+		return fmt.Errorf("unable to create task queue")
 	}
-
-	go graceful.GetManager().RunWithShutdownFns(taskQueue.Run)
-
+	go graceful.GetManager().RunWithCancel(taskQueue)
 	return nil
 }
 
@@ -128,4 +125,28 @@ func CreateMigrateTask(doer, u *user_model.User, opts base.MigrateOptions) (*adm
 	}
 
 	return task, nil
+}
+
+// RetryMigrateTask retry a migrate task
+func RetryMigrateTask(repoID int64) error {
+	migratingTask, err := admin_model.GetMigratingTask(repoID)
+	if err != nil {
+		log.Error("GetMigratingTask: %v", err)
+		return err
+	}
+	if migratingTask.Status == structs.TaskStatusQueued || migratingTask.Status == structs.TaskStatusRunning {
+		return nil
+	}
+
+	// TODO Need to removing the storage/database garbage brought by the failed task
+
+	// Reset task status and messages
+	migratingTask.Status = structs.TaskStatusQueued
+	migratingTask.Message = ""
+	if err = migratingTask.UpdateCols("status", "message"); err != nil {
+		log.Error("task.UpdateCols failed: %v", err)
+		return err
+	}
+
+	return taskQueue.Push(migratingTask)
 }

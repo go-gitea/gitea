@@ -76,7 +76,7 @@ func TestAPIListIssueComments(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-	token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeRepo)
+	token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeReadIssue)
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/comments?token=%s",
 		repoOwner.Name, repo.Name, issue.Index, token)
 	resp := MakeRequest(t, req, http.StatusOK)
@@ -96,7 +96,7 @@ func TestAPICreateComment(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-	token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeRepo)
+	token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeWriteIssue)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/comments?token=%s",
 		repoOwner.Name, repo.Name, issue.Index, token)
 	req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
@@ -118,7 +118,7 @@ func TestAPIGetComment(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: comment.Issue.RepoID})
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-	token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeRepo)
+	token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeReadIssue)
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d", repoOwner.Name, repo.Name, comment.ID)
 	MakeRequest(t, req, http.StatusOK)
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d?token=%s", repoOwner.Name, repo.Name, comment.ID, token)
@@ -128,7 +128,7 @@ func TestAPIGetComment(t *testing.T) {
 	DecodeJSON(t, resp, &apiComment)
 
 	assert.NoError(t, comment.LoadPoster(db.DefaultContext))
-	expect := convert.ToComment(db.DefaultContext, comment)
+	expect := convert.ToAPIComment(db.DefaultContext, repo, comment)
 
 	assert.Equal(t, expect.ID, apiComment.ID)
 	assert.Equal(t, expect.Poster.FullName, apiComment.Poster.FullName)
@@ -146,7 +146,7 @@ func TestAPIEditComment(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-	token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeRepo)
+	token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeWriteIssue)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d?token=%s",
 		repoOwner.Name, repo.Name, comment.ID, token)
 	req := NewRequestWithValues(t, "PATCH", urlStr, map[string]string{
@@ -170,7 +170,7 @@ func TestAPIDeleteComment(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-	token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeRepo)
+	token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeWriteIssue)
 	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/comments/%d?token=%s",
 		repoOwner.Name, repo.Name, comment.ID, token)
 	MakeRequest(t, req, http.StatusNoContent)

@@ -4,7 +4,6 @@
 package install
 
 import (
-	goctx "context"
 	"fmt"
 	"html"
 	"net/http"
@@ -18,10 +17,10 @@ import (
 )
 
 // Routes registers the installation routes
-func Routes(ctx goctx.Context) *web.Route {
+func Routes() *web.Route {
 	base := web.NewRoute()
 	base.Use(common.ProtocolMiddlewares()...)
-	base.RouteMethods("/assets/*", "GET, HEAD", public.AssetsHandlerFunc("/assets/"))
+	base.Methods("GET, HEAD", "/assets/*", public.FileHandlerFunc())
 
 	r := web.NewRoute()
 	r.Use(common.Sessioner(), Contexter())

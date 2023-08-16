@@ -181,7 +181,7 @@ func Create(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplCreate)
 }
 
-func handleCreateError(ctx *context.Context, owner *user_model.User, err error, name string, tpl base.TplName, form interface{}) {
+func handleCreateError(ctx *context.Context, owner *user_model.User, err error, name string, tpl base.TplName, form any) {
 	switch {
 	case repo_model.IsErrReachLimitOfRepo(err):
 		maxCreationLimit := owner.MaxCreationLimit()
@@ -241,15 +241,16 @@ func CreatePost(ctx *context.Context) {
 	var err error
 	if form.RepoTemplate > 0 {
 		opts := repo_module.GenerateRepoOptions{
-			Name:        form.RepoName,
-			Description: form.Description,
-			Private:     form.Private,
-			GitContent:  form.GitContent,
-			Topics:      form.Topics,
-			GitHooks:    form.GitHooks,
-			Webhooks:    form.Webhooks,
-			Avatar:      form.Avatar,
-			IssueLabels: form.Labels,
+			Name:            form.RepoName,
+			Description:     form.Description,
+			Private:         form.Private,
+			GitContent:      form.GitContent,
+			Topics:          form.Topics,
+			GitHooks:        form.GitHooks,
+			Webhooks:        form.Webhooks,
+			Avatar:          form.Avatar,
+			IssueLabels:     form.Labels,
+			ProtectedBranch: form.ProtectedBranch,
 		}
 
 		if !opts.IsValid() {
@@ -427,7 +428,7 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 	downloadName := ctx.Repo.Repository.Name + "-" + archiveName
 
 	rPath := archiver.RelativePath()
-	if setting.RepoArchive.ServeDirect {
+	if setting.RepoArchive.Storage.MinioConfig.ServeDirect {
 		// If we have a signed url (S3, object storage), redirect to this directly.
 		u, err := storage.RepoArchives.URL(rPath, downloadName)
 		if u != nil && err == nil {
@@ -482,7 +483,7 @@ func InitiateDownload(ctx *context.Context) {
 		completed = true
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"complete": completed,
 	})
 }
@@ -579,13 +580,15 @@ func SearchRepo(ctx *context.Context) {
 
 	// collect the latest commit of each repo
 	// at most there are dozens of repos (limited by MaxResponseItems), so it's not a big problem at the moment
-	repoIDsToLatestCommitSHAs := make(map[int64]string, len(repos))
+	repoBranchNames := make(map[int64]string, len(repos))
 	for _, repo := range repos {
-		commitID, err := repo_service.GetBranchCommitID(ctx, repo, repo.DefaultBranch)
-		if err != nil {
-			continue
-		}
-		repoIDsToLatestCommitSHAs[repo.ID] = commitID
+		repoBranchNames[repo.ID] = repo.DefaultBranch
+	}
+
+	repoIDsToLatestCommitSHAs, err := git_model.FindBranchesByRepoAndBranchName(ctx, repoBranchNames)
+	if err != nil {
+		log.Error("FindBranchesByRepoAndBranchName: %v", err)
+		return
 	}
 
 	// call the database O(1) times to get the commit statuses for all repos
@@ -618,4 +621,65 @@ func SearchRepo(ctx *context.Context) {
 		OK:   true,
 		Data: results,
 	})
+}
+
+type branchTagSearchResponse struct {
+	Results []string `json:"results"`
+}
+
+// GetBranchesList get branches for current repo'
+func GetBranchesList(ctx *context.Context) {
+	branchOpts := git_model.FindBranchOptions{
+		RepoID:          ctx.Repo.Repository.ID,
+		IsDeletedBranch: util.OptionalBoolFalse,
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+	}
+	branches, err := git_model.FindBranchNames(ctx, branchOpts)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+	resp := &branchTagSearchResponse{}
+	// always put default branch on the top if it exists
+	if util.SliceContains(branches, ctx.Repo.Repository.DefaultBranch) {
+		branches = util.SliceRemoveAll(branches, ctx.Repo.Repository.DefaultBranch)
+		branches = append([]string{ctx.Repo.Repository.DefaultBranch}, branches...)
+	}
+	resp.Results = branches
+	ctx.JSON(http.StatusOK, resp)
+}
+
+// GetTagList get tag list for current repo
+func GetTagList(ctx *context.Context) {
+	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+	resp := &branchTagSearchResponse{}
+	resp.Results = tags
+	ctx.JSON(http.StatusOK, resp)
+}
+
+func PrepareBranchList(ctx *context.Context) {
+	branchOpts := git_model.FindBranchOptions{
+		RepoID:          ctx.Repo.Repository.ID,
+		IsDeletedBranch: util.OptionalBoolFalse,
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+	}
+	brs, err := git_model.FindBranchNames(ctx, branchOpts)
+	if err != nil {
+		ctx.ServerError("GetBranches", err)
+		return
+	}
+	// always put default branch on the top if it exists
+	if util.SliceContains(brs, ctx.Repo.Repository.DefaultBranch) {
+		brs = util.SliceRemoveAll(brs, ctx.Repo.Repository.DefaultBranch)
+		brs = append([]string{ctx.Repo.Repository.DefaultBranch}, brs...)
+	}
+	ctx.Data["Branches"] = brs
 }

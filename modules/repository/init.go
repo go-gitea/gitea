@@ -351,6 +351,12 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 		if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
 			return fmt.Errorf("setDefaultBranch: %w", err)
 		}
+
+		if !repo.IsEmpty {
+			if _, err := SyncRepoBranches(ctx, repo.ID, u.ID); err != nil {
+				return fmt.Errorf("SyncRepoBranches: %w", err)
+			}
+		}
 	}
 
 	if err = UpdateRepository(ctx, repo, false); err != nil {

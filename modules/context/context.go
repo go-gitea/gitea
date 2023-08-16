@@ -5,6 +5,7 @@
 package context
 
 import (
+	"context"
 	"html"
 	"html/template"
 	"io"
@@ -21,7 +22,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
+	web_types "code.gitea.io/gitea/modules/web/types"
 
 	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
@@ -29,13 +32,15 @@ import (
 
 // Render represents a template render
 type Render interface {
-	TemplateLookup(tmpl string) (templates.TemplateExecutor, error)
-	HTML(w io.Writer, status int, name string, data interface{}) error
+	TemplateLookup(tmpl string, templateCtx context.Context) (templates.TemplateExecutor, error)
+	HTML(w io.Writer, status int, name string, data any, templateCtx context.Context) error
 }
 
 // Context represents context of a request.
 type Context struct {
 	*Base
+
+	TemplateContext TemplateContext
 
 	Render   Render
 	PageData map[string]any // data used by JavaScript modules in one page, it's `window.config.pageData`
@@ -58,22 +63,30 @@ type Context struct {
 	Package *Package
 }
 
+type TemplateContext map[string]any
+
+func init() {
+	web.RegisterResponseStatusProvider[*Context](func(req *http.Request) web_types.ResponseStatusProvider {
+		return req.Context().Value(WebContextKey).(*Context)
+	})
+}
+
 // TrHTMLEscapeArgs runs ".Locale.Tr()" but pre-escapes all arguments with html.EscapeString.
 // This is useful if the locale message is intended to only produce HTML content.
 func (ctx *Context) TrHTMLEscapeArgs(msg string, args ...string) string {
-	trArgs := make([]interface{}, len(args))
+	trArgs := make([]any, len(args))
 	for i, arg := range args {
 		trArgs[i] = html.EscapeString(arg)
 	}
 	return ctx.Locale.Tr(msg, trArgs...)
 }
 
-type contextKeyType struct{}
+type webContextKeyType struct{}
 
-var contextKey interface{} = contextKeyType{}
+var WebContextKey = webContextKeyType{}
 
-func GetContext(req *http.Request) *Context {
-	ctx, _ := req.Context().Value(contextKey).(*Context)
+func GetWebContext(req *http.Request) *Context {
+	ctx, _ := req.Context().Value(WebContextKey).(*Context)
 	return ctx
 }
 
@@ -86,7 +99,7 @@ type ValidateContext struct {
 func GetValidateContext(req *http.Request) (ctx *ValidateContext) {
 	if ctxAPI, ok := req.Context().Value(apiContextKey).(*APIContext); ok {
 		ctx = &ValidateContext{Base: ctxAPI.Base}
-	} else if ctxWeb, ok := req.Context().Value(contextKey).(*Context); ok {
+	} else if ctxWeb, ok := req.Context().Value(WebContextKey).(*Context); ok {
 		ctx = &ValidateContext{Base: ctxWeb.Base}
 	} else {
 		panic("invalid context, expect either APIContext or Context")
@@ -125,8 +138,13 @@ func Contexter() func(next http.Handler) http.Handler {
 			}
 			defer baseCleanUp()
 
+			// TODO: "install.go" also shares the same logic, which should be refactored to a general function
+			ctx.TemplateContext = NewTemplateContext(ctx)
+			ctx.TemplateContext["Locale"] = ctx.Locale
+			ctx.TemplateContext["AvatarUtils"] = templates.NewAvatarUtils(ctx)
+
 			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
-			ctx.Data["Context"] = &ctx
+			ctx.Data["Context"] = ctx // TODO: use "ctx" in template and remove this
 			ctx.Data["CurrentURL"] = setting.AppSubURL + req.URL.RequestURI()
 			ctx.Data["Link"] = ctx.Link
 			ctx.Data["locale"] = ctx.Locale
@@ -135,7 +153,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.PageData = map[string]any{}
 			ctx.Data["PageData"] = ctx.PageData
 
-			ctx.Base.AppendContextValue(contextKey, ctx)
+			ctx.Base.AppendContextValue(WebContextKey, ctx)
 			ctx.Base.AppendContextValueFunc(git.RepositoryContextKey, func() any { return ctx.Repo.GitRepo })
 
 			ctx.Csrf = PrepareCSRFProtector(csrfOpts, ctx)
@@ -217,4 +235,16 @@ func (ctx *Context) GetErrMsg() string {
 		msg = "invalid form data"
 	}
 	return msg
+}
+
+func (ctx *Context) JSONRedirect(redirect string) {
+	ctx.JSON(http.StatusOK, map[string]any{"redirect": redirect})
+}
+
+func (ctx *Context) JSONOK() {
+	ctx.JSON(http.StatusOK, map[string]any{"ok": true}) // this is only a dummy response, frontend seldom uses it
+}
+
+func (ctx *Context) JSONError(msg string) {
+	ctx.JSON(http.StatusBadRequest, map[string]any{"errorMessage": msg})
 }

@@ -14,7 +14,7 @@
 		</h1>
 		<div class="issue-title-buttons">
 			{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
-				<button id="edit-title" class="ui small basic button secondary edit-button not-in-edit{{if .Issue.IsPull}} gt-mr-0{{end}}">{{.locale.Tr "repo.issues.edit"}}</button>
+				<button id="edit-title" class="ui small basic button edit-button not-in-edit{{if .Issue.IsPull}} gt-mr-0{{end}}">{{.locale.Tr "repo.issues.edit"}}</button>
 			{{end}}
 			{{if not .Issue.IsPull}}
 				<a role="button" class="ui small green button new-issue-button gt-mr-0" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{.locale.Tr "repo.issues.new"}}</a>
@@ -22,7 +22,7 @@
 		</div>
 		{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
 			<div class="edit-buttons">
-				<button id="cancel-edit-title" class="ui small basic button secondary in-edit gt-hidden">{{.locale.Tr "repo.issues.cancel"}}</button>
+				<button id="cancel-edit-title" class="ui small basic button in-edit gt-hidden">{{.locale.Tr "repo.issues.cancel"}}</button>
 				<button id="save-edit-title" class="ui small primary button in-edit gt-hidden gt-mr-0" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title" {{if .Issue.IsPull}}data-target-update-url="{{$.RepoLink}}/pull/{{.Issue.Index}}/target_branch"{{end}}>{{.locale.Tr "repo.issues.save"}}</button>
 			</div>
 		{{end}}
@@ -45,12 +45,12 @@
 			{{if .Issue.IsPull}}
 				{{$headHref := .HeadTarget|Escape}}
 				{{if .HeadBranchLink}}
-					{{$headHref = printf "<a href=\"%s\">%s</a>" (.HeadBranchLink | Escape) $headHref}}
+					{{$headHref = printf `<a href="%s">%s</a>` (.HeadBranchLink | Escape) $headHref}}
 				{{end}}
-				{{$headHref = printf "%s <a data-tooltip-content=\"%s\" data-clipboard-text=\"%s\">%s</a>" $headHref (.locale.Tr "copy_branch") (.HeadTarget | Escape) (svg "octicon-copy" 14)}}
+				{{$headHref = printf `%s <button class="btn interact-fg" data-tooltip-content="%s" data-clipboard-text="%s">%s</button>` $headHref (.locale.Tr "copy_branch") (.HeadTarget | Escape) (svg "octicon-copy" 14)}}
 				{{$baseHref := .BaseTarget|Escape}}
 				{{if .BaseBranchLink}}
-					{{$baseHref = printf "<a href=\"%s\">%s</a>" (.BaseBranchLink | Escape) $baseHref}}
+					{{$baseHref = printf `<a href="%s">%s</a>` (.BaseBranchLink | Escape) $baseHref}}
 				{{end}}
 				{{if .Issue.PullRequest.HasMerged}}
 					{{$mergedStr:= TimeSinceUnix .Issue.PullRequest.MergedUnix $.locale}}
@@ -70,9 +70,9 @@
 							{{$.locale.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref | Safe}}
 						</span>
 					{{end}}
-					<span id="pull-desc-edit" class="gt-hidden">
+					<span id="pull-desc-edit" class="gt-hidden flex-text-block">
 						<div class="ui floating filter dropdown">
-							<div class="ui basic small button">
+							<div class="ui basic small button gt-mr-0">
 								<span class="text">{{.locale.Tr "repo.pulls.compare_compare"}}: {{$.HeadTarget}}</span>
 							</div>
 						</div>
@@ -84,7 +84,7 @@
 							</div>
 							<div class="menu">
 								<div class="ui icon search input">
-									<i class="icon gt-df gt-ac gt-jc gt-m-0">{{svg "octicon-filter" 16}}</i>
+									<i class="icon">{{svg "octicon-filter" 16}}</i>
 									<input name="search" placeholder="{{.locale.Tr "repo.pulls.filter_branch"}}...">
 								</div>
 								<div class="scrolling menu" id="branch-select">
@@ -111,7 +111,7 @@
 						{{$.locale.Tr "repo.issues.opened_by_fake" $createdStr (.Issue.Poster.GetDisplayName|Escape) | Safe}}
 					{{end}}
 					·
-					{{$.locale.Tr "repo.issues.num_comments" .Issue.NumComments}}
+					{{$.locale.TrN .Issue.NumComments "repo.issues.num_comments_1" "repo.issues.num_comments" .Issue.NumComments}}
 				</span>
 			{{end}}
 		</div>

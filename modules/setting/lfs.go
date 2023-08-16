@@ -5,10 +5,11 @@ package setting
 
 import (
 	"encoding/base64"
+	"fmt"
 	"time"
 
 	"code.gitea.io/gitea/modules/generate"
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // LFS represents the configuration for Git LFS
@@ -20,25 +21,34 @@ var LFS = struct {
 	MaxFileSize     int64         `ini:"LFS_MAX_FILE_SIZE"`
 	LocksPagingNum  int           `ini:"LFS_LOCKS_PAGING_NUM"`
 
-	Storage
+	Storage *Storage
 }{}
 
-func loadLFSFrom(rootCfg ConfigProvider) {
+func loadLFSFrom(rootCfg ConfigProvider) error {
 	sec := rootCfg.Section("server")
 	if err := sec.MapTo(&LFS); err != nil {
-		log.Fatal("Failed to map LFS settings: %v", err)
+		return fmt.Errorf("failed to map LFS settings: %v", err)
 	}
 
-	lfsSec := rootCfg.Section("lfs")
-	storageType := lfsSec.Key("STORAGE_TYPE").MustString("")
+	lfsSec, _ := rootCfg.GetSection("lfs")
 
 	// Specifically default PATH to LFS_CONTENT_PATH
 	// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
 	// if these are removed, the warning will not be shown
 	deprecatedSetting(rootCfg, "server", "LFS_CONTENT_PATH", "lfs", "PATH", "v1.19.0")
-	lfsSec.Key("PATH").MustString(sec.Key("LFS_CONTENT_PATH").String())
 
-	LFS.Storage = getStorage(rootCfg, "lfs", storageType, lfsSec)
+	if val := sec.Key("LFS_CONTENT_PATH").String(); val != "" {
+		if lfsSec == nil {
+			lfsSec = rootCfg.Section("lfs")
+		}
+		lfsSec.Key("PATH").MustString(val)
+	}
+
+	var err error
+	LFS.Storage, err = getStorage(rootCfg, "lfs", "", lfsSec)
+	if err != nil {
+		return err
+	}
 
 	// Rest of LFS service settings
 	if LFS.LocksPagingNum == 0 {
@@ -47,23 +57,29 @@ func loadLFSFrom(rootCfg ConfigProvider) {
 
 	LFS.HTTPAuthExpiry = sec.Key("LFS_HTTP_AUTH_EXPIRY").MustDuration(24 * time.Hour)
 
-	if LFS.StartServer {
-		LFS.JWTSecretBytes = make([]byte, 32)
-		n, err := base64.RawURLEncoding.Decode(LFS.JWTSecretBytes, []byte(LFS.JWTSecretBase64))
+	if !LFS.StartServer || !InstallLock {
+		return nil
+	}
 
-		if err != nil || n != 32 {
-			LFS.JWTSecretBase64, err = generate.NewJwtSecretBase64()
-			if err != nil {
-				log.Fatal("Error generating JWT Secret for custom config: %v", err)
-				return
-			}
+	LFS.JWTSecretBase64 = loadSecret(rootCfg.Section("server"), "LFS_JWT_SECRET_URI", "LFS_JWT_SECRET")
+	LFS.JWTSecretBytes, err = util.Base64FixedDecode(base64.RawURLEncoding, []byte(LFS.JWTSecretBase64), 32)
+	if err != nil {
+		LFS.JWTSecretBytes, LFS.JWTSecretBase64, err = generate.NewJwtSecretBase64()
+		if err != nil {
+			return fmt.Errorf("error generating JWT Secret for custom config: %v", err)
+		}
 
-			// Save secret
-			sec.Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
-			if err := rootCfg.Save(); err != nil {
-				log.Fatal("Error saving JWT Secret for custom config: %v", err)
-				return
-			}
+		// Save secret
+		saveCfg, err := rootCfg.PrepareSaving()
+		if err != nil {
+			return fmt.Errorf("error saving JWT Secret for custom config: %v", err)
+		}
+		rootCfg.Section("server").Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
+		saveCfg.Section("server").Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
+		if err := saveCfg.Save(); err != nil {
+			return fmt.Errorf("error saving JWT Secret for custom config: %v", err)
 		}
 	}
+
+	return nil
 }
