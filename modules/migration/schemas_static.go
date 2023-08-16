@@ -7,8 +7,11 @@ package migration
 
 import (
 	"io"
+	"io/fs"
 	"path"
 )
+
+var Assets fs.FS
 
 func openSchema(filename string) (io.ReadCloser, error) {
 	return Assets.Open(path.Base(filename))

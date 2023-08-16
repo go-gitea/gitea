@@ -6,8 +6,12 @@
 package options
 
 import (
+	"io/fs"
+
 	"code.gitea.io/gitea/modules/assetfs"
 )
+
+var Assets fs.FS
 
 func BuiltinAssets() *assetfs.Layer {
 	return assetfs.Bindata("builtin(bindata)", Assets)
