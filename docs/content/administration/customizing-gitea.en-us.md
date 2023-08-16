@@ -136,7 +136,7 @@ Find the data that you need, and use the corresponding variable; for example, if
 
 If you need to transform that data somehow, and aren't familiar with Go, an easy workaround is to add the data to the DOM and add a small JavaScript script block to manipulate the data.
 
-#### Example: PlantUML
+### Example: PlantUML
 
 You can add [PlantUML](https://plantuml.com/) support to Gitea's markdown by using a PlantUML server.
 The data is encoded and sent to the PlantUML server which generates the picture. There is an online
@@ -172,7 +172,7 @@ Alice <-- Bob: Another authentication Response
 
 The script will detect tags with `class="language-plantuml"`, but you can change this by providing a second argument to `parsePlantumlCodeBlocks`.
 
-#### Example: STL Preview
+### Example: STL Preview
 
 You can display STL file directly in Gitea by adding:
 
