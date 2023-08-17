@@ -31,7 +31,6 @@
 				{{end}}
 			</span>
 		</div>
-		
 		{{if .MilestoneID}}
 		<div class="ft-df gt-my-2">
 			<a class="sidebar-item-link muted" href="{{$.Page.RepoLink}}/milestone/{{.MilestoneID}}">
@@ -40,7 +39,6 @@
 			</a>
 		</div>
 		{{end}}
-
 		{{if $.Page.LinkedPRs}}
 		{{range index $.Page.LinkedPRs .ID}}
 		<div class="gt-my-2">
@@ -60,7 +58,6 @@
 		{{end}}
 	</div>
 	{{end}}
-
 	{{if .Assignees}}
 	<div class="issue-card-content gt-df">
 		{{range .Assignees}}
