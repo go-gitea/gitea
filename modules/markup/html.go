@@ -409,7 +409,7 @@ func visitNode(ctx *RenderContext, procs, textProcs []processor, node *html.Node
 					if ctx.IsWiki {
 						prefix = util.URLJoin(prefix, "wiki", "raw")
 					}
-					prefix = strings.Replace(prefix, "/src/", "/media/", 1)
+					prefix = strings.Replace(prefix, "/src/branch/", "/media/branch/", 1)
 
 					attr.Val = util.URLJoin(prefix, attr.Val)
 				}

@@ -174,7 +174,7 @@ func getMediaURL(l []byte) string {
 
 	// Check if link is valid
 	if len(srcURL) > 0 && !markup.IsLink(l) {
-		srcURL = strings.Replace(srcURL, "/src/", "/media/", 1)
+		srcURL = strings.Replace(srcURL, "/src/branch/", "/media/branch/", 1)
 	}
 
 	return srcURL
