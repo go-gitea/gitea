@@ -136,11 +136,10 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		if err != nil {
 			return 0, err
 		}
-		runStatus := aggregateJobStatus(jobs)
-		if runStatus.IsDone() {
+		run.Status = aggregateJobStatus(jobs)
+		if run.Status.IsDone() {
 			run.Stopped = timeutil.TimeStampNow()
 		}
-		run.Status = runStatus
 		if err := UpdateRun(ctx, run); err != nil {
 			return 0, fmt.Errorf("update run %d: %w", run.ID, err)
 		}
