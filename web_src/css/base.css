@@ -521,6 +521,8 @@ a.label,
   color: var(--color-text);
   user-select: auto;
   line-height: var(--line-height-default); /* fomantic uses "1" which causes overflow problems because "1" doesn't consider the descent part */
+  padding-top: 11px; /* counteract line-height change */
+  padding-bottom: 11px; /* counteract line-height change */
 }
 
 .ui.menu .item > .svg {
@@ -667,6 +669,8 @@ a.label,
 .ui.secondary.menu .item {
   margin-left: 0;
   margin-right: 0;
+  padding-top: 10px; /* counteract line-height change */
+  padding-bottom: 10px; /* counteract line-height change */
 }
 
 .ui.secondary.menu .dropdown.item:hover,

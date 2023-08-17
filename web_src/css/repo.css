@@ -391,7 +391,7 @@
 
 .repository.file.list .non-diff-file-content .header .file-actions .btn-octicon {
   line-height: var(--line-height-default);
-  padding: 10px 8px;
+  padding: 8px;
   vertical-align: middle;
   color: var(--color-text);
 }
