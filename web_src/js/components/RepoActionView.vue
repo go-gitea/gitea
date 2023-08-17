@@ -345,7 +345,7 @@ const sfc = {
       const resp = await this.fetchPost(url);
       const results = await resp.json();
       if (results.errorMessage) {
-        showErrorToast(`${results.errorMessage}`);
+        showErrorToast(results.errorMessage);
       } else {
         window.location.href = hrefURL;
       }
