@@ -8,7 +8,7 @@ import (
 
 func AddVersionToActionRunTable(x *xorm.Engine) error {
 	type ActionRun struct {
-		Version int `xorm:"version"`
+		Version int `xorm:"version default 0"`
 	}
 	return x.Sync(new(ActionRun))
 }
