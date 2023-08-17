@@ -116,7 +116,7 @@ func Projects(ctx *context.Context) {
 
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 	ctx.Data["IsShowClosed"] = isShowClosed
-	ctx.Data["IsProjectsPage"] = true
+	ctx.Data["PageIsProjects"] = true
 	ctx.Data["SortType"] = sortType
 
 	ctx.HTML(http.StatusOK, tplProjects)
@@ -362,7 +362,7 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["IsProjectsPage"] = true
+	ctx.Data["PageIsProjects"] = true
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 	ctx.Data["Project"] = project
 	ctx.Data["IssuesMap"] = issuesMap

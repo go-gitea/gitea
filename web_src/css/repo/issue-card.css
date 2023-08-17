@@ -8,6 +8,14 @@
   background: var(--color-card);
 }
 
+.issue-card .issue-card-content {
+  width: 100%;
+}
+
+.issue-card .issue-card-content:not(:first-child) {
+  padding-top: 0.25rem;
+}
+
 .issue-card-icon,
 .issue-card-unpin {
   margin-top: 1px;

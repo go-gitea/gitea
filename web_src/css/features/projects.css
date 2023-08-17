@@ -73,7 +73,8 @@
 }
 
 .card-attachment-images {
-  display: inline-block;
+  display: flex;
+  flex-wrap: wrap;
   white-space: nowrap;
   overflow: hidden;
   text-align: center;
@@ -82,12 +83,18 @@
 .card-attachment-images img {
   display: inline-block;
   max-height: 50px;
+  max-width: 100%;
   border-radius: var(--border-radius);
   margin-right: 2px;
 }
 
+.card-attachment-images img:not(:first-child) {
+  padding-top: 0.25rem;
+}
+
 .card-attachment-images img:only-child {
   max-height: 90px;
+  max-width: 100%;
   margin: auto;
 }
 
