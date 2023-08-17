@@ -17,10 +17,6 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 		IsClosed:  opts.IsClosed,
 	}
 
-	if opts.ProjectID != 0 {
-		searchOpt.ProjectID = &opts.ProjectID
-	}
-
 	if len(opts.LabelIDs) == 1 && opts.LabelIDs[0] == 0 {
 		searchOpt.NoLabelOnly = true
 	} else {
@@ -41,24 +37,26 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 		searchOpt.MilestoneIDs = opts.MilestoneIDs
 	}
 
-	if opts.AssigneeID > 0 {
-		searchOpt.AssigneeID = &opts.AssigneeID
+	// See the comment of issues_model.SearchOptions for the reason why we need to convert
+	convertID := func(id int64) *int64 {
+		if id > 0 {
+			return &id
+		}
+		if id == db.NoConditionID {
+			var zero int64
+			return &zero
+		}
+		return nil
 	}
-	if opts.PosterID > 0 {
-		searchOpt.PosterID = &opts.PosterID
-	}
-	if opts.MentionedID > 0 {
-		searchOpt.MentionID = &opts.MentionedID
-	}
-	if opts.ReviewedID > 0 {
-		searchOpt.ReviewedID = &opts.ReviewedID
-	}
-	if opts.ReviewRequestedID > 0 {
-		searchOpt.ReviewRequestedID = &opts.ReviewRequestedID
-	}
-	if opts.SubscriberID > 0 {
-		searchOpt.SubscriberID = &opts.SubscriberID
-	}
+
+	searchOpt.ProjectID = convertID(opts.ProjectID)
+	searchOpt.ProjectBoardID = convertID(opts.ProjectBoardID)
+	searchOpt.PosterID = convertID(opts.PosterID)
+	searchOpt.AssigneeID = convertID(opts.AssigneeID)
+	searchOpt.MentionID = convertID(opts.MentionedID)
+	searchOpt.ReviewedID = convertID(opts.ReviewedID)
+	searchOpt.ReviewRequestedID = convertID(opts.ReviewRequestedID)
+	searchOpt.SubscriberID = convertID(opts.SubscriberID)
 
 	if opts.UpdatedAfterUnix > 0 {
 		searchOpt.UpdatedAfterUnix = &opts.UpdatedAfterUnix
