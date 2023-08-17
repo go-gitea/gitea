@@ -69,9 +69,17 @@
 		{{end}}
 		<div class="file-view{{if .IsMarkup}} markup {{.MarkupType}}{{else if .IsPlainText}} plain-text{{else if .IsTextSource}} code-view{{end}}">
 			{{if .IsMarkup}}
-				{{if .FileContent}}{{.FileContent | Safe}}{{end}}
+				{{if .FileContent}}
+					{{.FileContent | Safe}}
+				{{else}}
+					<div class="gt-df gt-jc">{{.locale.Tr "empty_file"}}</div>
+				{{end}}
 			{{else if .IsPlainText}}
-				<pre>{{if .FileContent}}{{.FileContent | Safe}}{{end}}</pre>
+				{{if .FileContent}}
+					<pre>{{.FileContent | Safe}}</pre>
+				{{else}}
+					<div class="gt-df gt-jc">{{.locale.Tr "empty_file"}}</div>
+				{{end}}
 			{{else if not .IsTextSource}}
 				<div class="view-raw">
 					{{if .IsImageFile}}
@@ -122,6 +130,8 @@
 					<a class="item copy-line-permalink" data-url="{{.Repository.Link}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}{{if $.HasSourceRenderedToggle}}?display=source{{end}}">{{.locale.Tr "repo.file_copy_permalink"}}</a>
 				</div>
 				{{end}}
+			{{else if not .FileSize}}
+				<div class="gt-df gt-jc gt-py-4">{{.locale.Tr "empty_file"}}</div>
 			{{end}}
 		</div>
 	</div>

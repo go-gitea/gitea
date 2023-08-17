@@ -15,9 +15,17 @@
 				{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus "root" $}}
 				<div class="file-view{{if .IsMarkup}} markup {{.MarkupType}}{{else if .IsPlainText}} plain-text{{else if .IsTextFile}} code-view{{end}}">
 					{{if .IsMarkup}}
-						{{if .FileContent}}{{.FileContent | Safe}}{{end}}
+						{{if .FileContent}}
+							{{.FileContent | Safe}}
+						{{else}}
+							<div class="gt-df gt-jc">{{.locale.Tr "empty_file"}}</div>
+						{{end}}
 					{{else if .IsPlainText}}
-						<pre>{{if .FileContent}}{{.FileContent | Safe}}{{end}}</pre>
+						{{if .FileContent}}
+							<pre>{{.FileContent | Safe}}</pre>
+						{{else}}
+							<div class="gt-df gt-jc">{{.locale.Tr "empty_file"}}</div>
+						{{end}}
 					{{else if not .IsTextFile}}
 						<div class="view-raw">
 							{{if .IsImageFile}}
@@ -49,6 +57,8 @@
 								</tr>
 							</tbody>
 						</table>
+					{{else if not .FileSize}}
+						<div class="gt-df gt-jc gt-py-4">{{.locale.Tr "empty_file"}}</div>
 					{{end}}
 				</div>
 			</div>

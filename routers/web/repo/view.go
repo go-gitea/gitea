@@ -462,6 +462,16 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			ctx.Data["HasSourceRenderedToggle"] = true
 		}
 
+		buf, _ := io.ReadAll(rd)
+
+		// empty: 0 lines; "a": one line; "a\n": two lines; "a\nb": two lines;
+		// the NumLines is only used for the display on the UI: "xxx lines"
+		if len(buf) == 0 {
+			ctx.Data["NumLines"] = 0
+		} else {
+			ctx.Data["NumLines"] = bytes.Count(buf, []byte{'\n'}) + 1
+		}
+
 		if markupType != "" && !shouldRenderSource {
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
@@ -485,17 +495,6 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			// to prevent iframe load third-party url
 			ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'")
 		} else {
-			buf, _ := io.ReadAll(rd)
-
-			// empty: 0 lines; "a": one line; "a\n": two lines; "a\nb": two lines;
-			// the NumLines is only used for the display on the UI: "xxx lines"
-			if len(buf) == 0 {
-				ctx.Data["NumLines"] = 0
-			} else {
-				ctx.Data["NumLines"] = bytes.Count(buf, []byte{'\n'}) + 1
-			}
-			ctx.Data["NumLinesSet"] = true
-
 			language := ""
 
 			indexFilename, worktree, deleteTemporaryFile, err := ctx.Repo.GitRepo.ReadTreeToTemporaryIndex(ctx.Repo.CommitID)
