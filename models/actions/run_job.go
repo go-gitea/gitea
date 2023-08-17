@@ -114,32 +114,39 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 	if affected != 0 && util.SliceContains(cols, "status") && job.Status.IsWaiting() {
 		// if the status of job changes to waiting again, increase tasks version.
 		if err := IncreaseTaskVersion(ctx, job.OwnerID, job.RepoID); err != nil {
-			return affected, err
+			return 0, err
 		}
 	}
 
 	if job.RunID == 0 {
 		var err error
 		if job, err = GetRunJobByID(ctx, job.ID); err != nil {
-			return affected, err
+			return 0, err
 		}
 	}
 
-	jobs, err := GetRunJobsByRunID(ctx, job.RunID)
-	if err != nil {
-		return affected, err
+	{
+		// Other goroutines may aggregate the status of the run and update it too.
+		// So we need load the run and its jobs before updating the run.
+		run, err := GetRunByID(ctx, job.RunID)
+		if err != nil {
+			return 0, err
+		}
+		jobs, err := GetRunJobsByRunID(ctx, job.RunID)
+		if err != nil {
+			return 0, err
+		}
+		runStatus := aggregateJobStatus(jobs)
+		if runStatus.IsDone() {
+			run.Stopped = timeutil.TimeStampNow()
+		}
+		run.Status = runStatus
+		if err := UpdateRun(ctx, run); err != nil {
+			return 0, fmt.Errorf("update run %d: %w", run.ID, err)
+		}
 	}
 
-	runStatus := aggregateJobStatus(jobs)
-
-	run := &ActionRun{
-		ID:     job.RunID,
-		Status: runStatus,
-	}
-	if runStatus.IsDone() {
-		run.Stopped = timeutil.TimeStampNow()
-	}
-	return affected, UpdateRun(ctx, run)
+	return affected, nil
 }
 
 func aggregateJobStatus(jobs []*ActionRunJob) Status {
