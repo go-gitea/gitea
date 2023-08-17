@@ -5,7 +5,7 @@ package structs
 
 import "time"
 
-// User represents a secret
+// Secret represents a secret
 // swagger:model
 type Secret struct {
 	ID int64 `json:"id"`
