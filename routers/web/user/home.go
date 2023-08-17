@@ -756,8 +756,7 @@ func getRepoIDs(reposQuery string) []int64 {
 		return []int64{}
 	}
 	if !issueReposQueryPattern.MatchString(reposQuery) {
-		// FIXME: sometimes it could be "[W] issueReposQueryPattern [4%2C5%2C7%2C6%2C8%2C] does not match query"
-		log.Warn("issueReposQueryPattern %v does not match query", reposQuery)
+		log.Warn("issueReposQueryPattern does not match query")
 		return []int64{}
 	}
 
