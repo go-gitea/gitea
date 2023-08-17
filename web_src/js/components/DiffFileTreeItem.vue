@@ -45,7 +45,7 @@ export default {
         2: {name: 'octicon-diff-modified', classes: ['text', 'yellow']},
         3: {name: 'octicon-diff-removed', classes: ['text', 'red']},
         4: {name: 'octicon-diff-renamed', classes: ['text', 'teal']},
-        5: {name: 'octicon-diff-modified', classes: ['text', 'green']}, // there is no octicon for copied, so modified should be ok
+        5: {name: 'octicon-diff-renamed', classes: ['text', 'green']}, // there is no octicon for copied, so renamed should be ok
       };
       return diffTypes[pType];
     },
