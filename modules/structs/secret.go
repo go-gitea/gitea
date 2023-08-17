@@ -8,6 +8,7 @@ import "time"
 // User represents a secret
 // swagger:model
 type Secret struct {
+	ID int64 `json:"id"`
 	// the secret's name
 	Name string `json:"name"`
 	// swagger:strfmt date-time

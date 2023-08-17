@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/routers/web/shared/actions"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // ListActionsSecrets list an organization's actions secrets
@@ -103,7 +104,7 @@ func CreateOrgSecret(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	opt := web.GetForm(ctx).(*api.CreateSecretOption)
-	_, err := secret_model.InsertEncryptedSecret(
+	secret, err := secret_model.InsertEncryptedSecret(
 		ctx, ctx.Org.Organization.ID, 0, opt.Name, actions.ReserveLineBreakForTextarea(opt.Data),
 	)
 	if err != nil {
@@ -111,5 +112,5 @@ func CreateOrgSecret(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.Status(http.StatusCreated)
+	ctx.JSON(http.StatusCreated, convert.ToSecret(secret))
 }
