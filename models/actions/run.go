@@ -333,6 +333,9 @@ func GetRunByIndex(ctx context.Context, repoID, index int64) (*ActionRun, error)
 	return run, nil
 }
 
+// UpdateRun updates a run.
+// It requires the inputted run has Version set.
+// It will return error if the version is not matched (it means the run has been changed after loaded).
 func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 	sess := db.GetEngine(ctx).ID(run.ID)
 	if len(cols) > 0 {
