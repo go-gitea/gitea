@@ -22,6 +22,43 @@ export function initGiteaFomantic() {
     return escape(text, preserveHTML) + svg('octicon-x', 16, `${className.delete} icon`);
   };
 
+  // stand-in for removed transition module
+  $.fn.transition = function (arg) {
+    if (arg === 'is supported') return true;
+    if (arg === 'is animating') return false;
+    if (arg === 'is inward') return false;
+    if (arg === 'is outward') return false;
+    if (arg === 'stop all') return;
+
+    const isIn = arg?.animation?.endsWith(' in');
+    const isOut = arg?.animation?.endsWith(' out');
+
+    let ret;
+    if (arg === 'show' || isIn) {
+      arg?.onStart?.(this);
+      ret = this.each((_, el) => {
+        el.classList.remove('hidden');
+        el.classList.add('visible');
+        if (isIn) el.classList.add('transition');
+        if (arg?.displayType) el.style.setProperty('display', arg.displayType, 'important');
+        arg?.onShow?.(this);
+      });
+      arg?.onComplete?.(this);
+    } else if (arg === 'hide' || isOut) {
+      arg?.onStart?.(this);
+      ret = this.each((_, el) => {
+        el.classList.add('hidden');
+        el.classList.remove('visible');
+        // don't remove the transition class because fomantic didn't do it either
+        el.style.removeProperty('display');
+        arg?.onHidden?.(this);
+      });
+      arg?.onComplete?.(this);
+    }
+
+    return ret;
+  };
+
   initFomanticApiPatch();
 
   // Use the patches to improve accessibility, these patches are designed to be as independent as possible, make it easy to modify or remove in the future.

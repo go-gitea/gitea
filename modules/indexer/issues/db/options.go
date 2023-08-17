@@ -14,6 +14,7 @@ import (
 )
 
 func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_model.IssuesOptions, error) {
+	// See the comment of issues_model.SearchOptions for the reason why we need to convert
 	convertID := func(id *int64) int64 {
 		if id == nil {
 			return 0

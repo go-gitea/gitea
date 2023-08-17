@@ -45,7 +45,7 @@
 .chroma .nf { color: #fabd2f; } /* NameFunction */
 .chroma .ni { color: #fabd2f; } /* NameEntity */
 .chroma .nl { color: #ff7540; } /* NameLabel */
-.chroma .nn { color: #ffaa10; } /* NameNamespace */
+.chroma .nn { color: #c9d1d9; } /* NameNamespace */
 .chroma .no { color: #649bc4; } /* NameConstant */
 .chroma .nt { color: #ff7540; } /* NameTag */
 .chroma .nv { color: #ebdbb2; } /* NameVariable */
