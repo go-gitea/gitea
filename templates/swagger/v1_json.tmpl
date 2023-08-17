@@ -21,7 +21,7 @@
     },
     "version": "{{AppVer | JSEscape | Safe}}"
   },
-  "basePath": "{{AppSubUrl | JSEscape | Safe}}/api/v1",
+  "basePath": "/api/v1",
   "paths": {
     "/activitypub/user-id/{user-id}": {
       "get": {
@@ -1584,6 +1584,49 @@
         "responses": {
           "200": {
             "$ref": "#/responses/SecretList"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Create a secret in an organization",
+        "operationId": "createOrgSecret",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateSecretOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Secret"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
