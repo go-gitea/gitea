@@ -17,7 +17,7 @@
     <span class="gt-ellipsis">{{ item.name }}</span>
   </div>
 
-  <div v-show="!collapsed" class="sub-items">
+  <div v-if="item.children?.length" v-show="!collapsed" class="sub-items">
     <DiffFileTreeItem v-for="childItem in item.children" :key="childItem.name" :item="childItem"/>
   </div>
 </template>
