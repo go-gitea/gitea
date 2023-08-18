@@ -127,7 +127,6 @@ func Get(ctx *context.Context) {
 		arch   = ctx.Params("arch")
 	)
 
-	// Packages are loaded directly from object storage.
 	if strings.HasSuffix(file, ".pkg.tar.zst") {
 		pkg, err := arch_service.GetFileObject(ctx, distro, file)
 		if err != nil {
@@ -141,7 +140,6 @@ func Get(ctx *context.Context) {
 		return
 	}
 
-	// Signatures are loaded from package file properties in SQL db.
 	if strings.HasSuffix(file, ".pkg.tar.zst.sig") {
 		p, err := pkg_model.GetPropertieWithUniqueName(ctx, distro+"-"+file)
 		if err != nil {
@@ -161,9 +159,6 @@ func Get(ctx *context.Context) {
 		return
 	}
 
-	// Pacman databases is not stored in gitea storage and created 'on-request'
-	// for user/organization scope with accordance to requested architecture
-	// and distribution.
 	if strings.HasSuffix(file, ".db.tar.gz") || strings.HasSuffix(file, ".db") {
 		db, err := arch_service.CreatePacmanDb(ctx, &arch_service.DbParams{
 			Owner:        owner,
@@ -184,7 +179,7 @@ func Get(ctx *context.Context) {
 	ctx.Status(http.StatusNotFound)
 }
 
-// Remove specific package version, related files and pacman database entry.
+// Remove specific package version, related files with properties.
 func Remove(ctx *context.Context) {
 	var (
 		pkg = ctx.Params("package")
