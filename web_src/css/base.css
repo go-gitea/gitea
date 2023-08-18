@@ -9,6 +9,8 @@
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
+  /* line-height: use the default value as "modules/normalize.css" */
+  --line-height-default: 1.15;
   /* backgrounds */
   --checkbox-mask-checked: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 18 18" width="16" height="16"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg>');
   --checkbox-mask-indeterminate: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M2 7.75A.75.75 0 012.75 7h10a.75.75 0 010 1.5h-10A.75.75 0 012 7.75z"></path></svg>');
@@ -225,7 +227,7 @@
   --color-button: #fafafa;
   --color-code-bg: #ffffff;
   --color-code-sidebar-bg: #f5f5f5;
-  --color-shadow: #00000030;
+  --color-shadow: #00000026;
   --color-secondary-bg: #f4f4f4;
   --color-expand-button: #d8efff;
   --color-placeholder-text: #aaa;
@@ -248,6 +250,7 @@
   --color-accent: var(--color-primary-light-1);
   --color-small-accent: var(--color-primary-light-6);
   --color-active-line: #fffbdd;
+  --color-overlay-backdrop: #080808c0;
   accent-color: var(--color-accent);
   color-scheme: light;
 }
@@ -517,6 +520,9 @@ a.label,
 .ui.menu .item {
   color: var(--color-text);
   user-select: auto;
+  line-height: var(--line-height-default); /* fomantic uses "1" which causes overflow problems because "1" doesn't consider the descent part */
+  padding-top: 11px; /* counteract line-height change */
+  padding-bottom: 11px; /* counteract line-height change */
 }
 
 .ui.menu .item > .svg {
@@ -653,6 +659,20 @@ a.label,
   color: var(--color-text);
 }
 
+/* replace item margin on secondary menu items with gap and remove both the
+   negative margins on the menu as well as margin on the items */
+.ui.secondary.menu {
+  margin-left: 0;
+  margin-right: 0;
+  gap: .35714286em;
+}
+.ui.secondary.menu .item {
+  margin-left: 0;
+  margin-right: 0;
+  padding-top: 10px; /* counteract line-height change */
+  padding-bottom: 10px; /* counteract line-height change */
+}
+
 .ui.secondary.menu .dropdown.item:hover,
 .ui.secondary.menu a.item:hover {
   color: var(--color-text);
@@ -668,6 +688,11 @@ a.label,
 .ui.secondary.menu.tight .item {
   padding-left: 0.85714286em;
   padding-right: 0.85714286em;
+}
+
+/* remove the menu clearfix so that it won't add undesired gaps when using "gap" */
+.ui.menu::after {
+  content: normal;
 }
 
 .ui.menu .dropdown.item .menu {
@@ -686,6 +711,16 @@ a.label,
 .ui.menu .ui.dropdown .menu > .active.item {
   color: var(--color-text) !important;
   background: var(--color-active) !important;
+}
+
+/* styles from removed fomantic transition module */
+.hidden.transition {
+  visibility: hidden;
+  display: none;
+}
+.visible.transition {
+  display: block !important;
+  visibility: visible !important;
 }
 
 .ui.message {
@@ -779,7 +814,7 @@ a.label,
 .ui.selection.active.dropdown:hover,
 .ui.selection.active.dropdown .menu,
 .ui.selection.active.dropdown:hover .menu {
-  border-color: var(--color-primary-light-2);
+  border-color: var(--color-primary);
 }
 
 .ui.selection.dropdown .menu {
@@ -1169,6 +1204,20 @@ img.ui.avatar,
   box-shadow: none;
 }
 
+.ui.dropdown .menu,
+.ui.upward.dropdown > .menu,
+.ui.menu .dropdown.item .menu,
+.ui.selection.active.dropdown .menu,
+.ui.upward.selection.dropdown .menu,
+.ui.selection.active.dropdown:hover .menu,
+.ui.upward.active.selection.dropdown:hover .menu {
+  box-shadow: 0 6px 18px var(--color-shadow);
+}
+
+.ui.dimmer {
+  background: var(--color-overlay-backdrop);
+}
+
 /* Override semantic selector '.ui.menu:not(.vertical) .item > .button' */
 /* This fixes the commit graph button on the commits page */
 /* modal svg icons, copied from fomantic except width and height */
@@ -1218,7 +1267,7 @@ img.ui.avatar,
 }
 
 .ui .text.truncate {
-  overflow-x: clip;
+  overflow-x: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   display: inline-block;
@@ -1434,7 +1483,7 @@ img.ui.avatar,
   height: 3em;
   float: none;
   display: block;
-  line-height: 1;
+  line-height: var(--line-height-default);
   padding: 0;
   margin: 0 auto 0.5rem;
   opacity: 1;
@@ -2082,7 +2131,7 @@ table th[data-sortt-desc] .svg {
 .emoji,
 .reaction {
   font-size: 1.25em;
-  line-height: 1;
+  line-height: var(--line-height-default);
   font-style: normal !important;
   font-weight: var(--font-weight-normal) !important;
   vertical-align: -0.075em;
@@ -2205,7 +2254,7 @@ table th[data-sortt-desc] .svg {
 }
 
 .ui.dropdown {
-  line-height: 1; /* the dropdown doesn't have default line-height, use this to make the dropdown icon align with plain dropdown */
+  line-height: var(--line-height-default); /* the dropdown doesn't have default line-height, use this to make the dropdown icon align with plain dropdown */
 }
 
 /* dropdown has some kinds of icons:

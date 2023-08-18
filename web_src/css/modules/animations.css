@@ -105,3 +105,9 @@ code.language-math.is-loading::after {
 .pulse {
   animation: pulse 2s linear;
 }
+
+.ui.modal {
+  animation-name: fadein;
+  animation-duration: 300ms;
+  animation-timing-function: ease-in-out;
+}

@@ -208,8 +208,8 @@ func serveInstalled(ctx *cli.Context) error {
 	}
 
 	// Set up Chi routes
-	c := routers.NormalRoutes()
-	err := listen(c, true)
+	webRoutes := routers.NormalRoutes()
+	err := listen(webRoutes, true)
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())
 	log.GetManager().Close()
