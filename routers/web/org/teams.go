@@ -86,18 +86,7 @@ func TeamsAction(ctx *context.Context) {
 				return
 			}
 		}
-
-		redirect := ctx.Org.OrgLink + "/teams/"
-		if isOrgMember, err := org_model.IsOrganizationMember(ctx, ctx.Org.Organization.ID, ctx.Doer.ID); err != nil {
-			ctx.ServerError("IsOrganizationMember", err)
-			return
-		} else if !isOrgMember {
-			redirect = setting.AppSubURL + "/"
-		}
-		ctx.JSON(http.StatusOK,
-			map[string]any{
-				"redirect": redirect,
-			})
+		checkIsOrgMemberAndRedirect(ctx, ctx.Org.OrgLink+"/teams/")
 		return
 	case "remove":
 		if !ctx.Org.IsOwner {
@@ -124,10 +113,7 @@ func TeamsAction(ctx *context.Context) {
 				return
 			}
 		}
-		ctx.JSON(http.StatusOK,
-			map[string]any{
-				"redirect": ctx.Org.OrgLink + "/teams/" + url.PathEscape(ctx.Org.Team.LowerName),
-			})
+		checkIsOrgMemberAndRedirect(ctx, ctx.Org.OrgLink+"/teams/"+url.PathEscape(ctx.Org.Team.LowerName))
 		return
 	case "add":
 		if !ctx.Org.IsOwner {
@@ -215,6 +201,20 @@ func TeamsAction(ctx *context.Context) {
 	default:
 		ctx.Redirect(ctx.Org.OrgLink + "/teams")
 	}
+}
+
+func checkIsOrgMemberAndRedirect(ctx *context.Context, defaultRedirect string) {
+	if isOrgMember, err := org_model.IsOrganizationMember(ctx, ctx.Org.Organization.ID, ctx.Doer.ID); err != nil {
+		ctx.ServerError("IsOrganizationMember", err)
+		return
+	} else if !isOrgMember {
+		if ctx.Org.Organization.Visibility.IsPrivate() {
+			defaultRedirect = setting.AppSubURL + "/"
+		} else {
+			defaultRedirect = ctx.Org.Organization.HomeLink()
+		}
+	}
+	ctx.JSONRedirect(defaultRedirect)
 }
 
 // TeamsRepoAction operate team's repository

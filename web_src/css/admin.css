@@ -13,7 +13,7 @@
 
 .admin dl.admin-dl-horizontal dt,
 .admin dl.admin-dl-horizontal dd {
-  line-height: 1;
+  line-height: var(--line-height-default);
   padding: 5px 0;
 }
 
