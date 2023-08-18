@@ -74,7 +74,7 @@
 					<form class="list-header-search ui form ignore-dirty">
 						<div class="ui small search fluid action input">
 							<input type="hidden" name="type" value="{{$.ViewType}}">
-							<input type="hidden" name="repos" value="[{{range $.RepoIDs}}{{.}}%2C{{end}}]">
+							<input type="hidden" name="repos" value="[{{range $.RepoIDs}}{{.}},{{end}}]">
 							<input type="hidden" name="sort" value="{{$.SortType}}">
 							<input type="hidden" name="state" value="{{$.State}}">
 							{{template "shared/searchinput" dict "locale" .locale "Value" $.Keyword}}
