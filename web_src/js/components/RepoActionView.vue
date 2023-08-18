@@ -14,7 +14,7 @@
         <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
           {{ locale.cancel }}
         </button>
-        <button class="ui basic small compact button gt-mr-0" @click="rerun()" v-else-if="run.canRerun">
+        <button class="ui basic small compact button gt-mr-0 link-action" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
           {{ locale.rerun_all }}
         </button>
       </div>
@@ -38,7 +38,7 @@
                 <span class="job-brief-name gt-mx-3 gt-ellipsis">{{ job.name }}</span>
               </div>
               <span class="job-brief-item-right">
-                <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun gt-mx-3" @click="rerunJob(index)" v-if="job.canRerun && onHoverRerunIndex === job.id"/>
+                <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun gt-mx-3 link-action" :data-url="`${run.link}/jobs/${index}/rerun`" v-if="job.canRerun && onHoverRerunIndex === job.id"/>
                 <span class="step-summary-duration">{{ job.duration }}</span>
               </span>
             </a>
@@ -126,7 +126,6 @@ import {createApp} from 'vue';
 import {toggleElem} from '../utils/dom.js';
 import {getCurrentLocale} from '../utils.js';
 import {renderAnsi} from '../render/ansi.js';
-import {showErrorToast} from '../modules/toast.js';
 
 const {csrfToken} = window.config;
 
@@ -265,15 +264,6 @@ const sfc = {
         this.loadJob(); // try to load the data immediately instead of waiting for next timer interval
       }
     },
-    // rerun a job
-    async rerunJob(idx) {
-      const jobLink = `${this.run.link}/jobs/${idx}`;
-      await this.fetchRerun(`${jobLink}/rerun`, jobLink);
-    },
-    // rerun workflow
-    async rerun() {
-      await this.fetchRerun(`${this.run.link}/rerun`, this.run.link);
-    },
     // cancel a run
     cancelRun() {
       this.fetchPost(`${this.run.link}/cancel`);
@@ -339,16 +329,6 @@ const sfc = {
         JSON.stringify({logCursors}),
       );
       return await resp.json();
-    },
-
-    async fetchRerun(url, hrefURL) {
-      const resp = await this.fetchPost(url);
-      const results = await resp.json();
-      if (results.errorMessage) {
-        showErrorToast(results.errorMessage);
-      } else {
-        window.location.href = hrefURL;
-      }
     },
 
     async loadJob() {
