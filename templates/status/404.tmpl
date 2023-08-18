@@ -5,8 +5,13 @@
 		<p style="margin-top: 100px"><img src="{{AssetUrlPrefix}}/img/404.png" alt="404"></p>
 		<div class="divider"></div>
 		<br>
+		{{if and .IsRepo .IsTreeNotFound}}
+		<p>{{.locale.Tr "repo.tree_not_found" .BranchName .RepoName .TreePath | Safe}}</p>
+		<a class="ui button green" href="{{.Repository.Link}}/src/branch/{{.BranchName | PathEscape}}">{{.locale.Tr "repo.return_to_repository"}}</a>
+		{{else}}
 		<p>{{.locale.Tr "error404" | Safe}}</p>
 		{{if .ShowFooterVersion}}<p>{{.locale.Tr "admin.config.app_ver"}}: {{AppVer}}</p>{{end}}
+		{{end}}
 	</div>
 </div>
 {{template "base/footer" .}}
