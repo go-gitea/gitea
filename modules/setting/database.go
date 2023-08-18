@@ -44,6 +44,7 @@ var (
 		ConnMaxLifetime   time.Duration
 		IterateBufferSize int
 		AutoMigration     bool
+		SlowQueryTreshold time.Duration
 	}{
 		Timeout:           500,
 		IterateBufferSize: 50,
@@ -86,6 +87,7 @@ func loadDBSetting(rootCfg ConfigProvider) {
 	Database.DBConnectRetries = sec.Key("DB_RETRIES").MustInt(10)
 	Database.DBConnectBackoff = sec.Key("DB_RETRY_BACKOFF").MustDuration(3 * time.Second)
 	Database.AutoMigration = sec.Key("AUTO_MIGRATION").MustBool(true)
+	Database.SlowQueryTreshold = sec.Key("SLOW_QUERY_TRESHOLD").MustDuration(5 * time.Second)
 }
 
 // DBConnStr returns database connection string

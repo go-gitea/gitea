@@ -6,15 +6,19 @@ package db_test
 import (
 	"path/filepath"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 
 	_ "code.gitea.io/gitea/cmd" // for TestPrimaryKeys
 
 	"github.com/stretchr/testify/assert"
+	"xorm.io/xorm"
 )
 
 func TestDumpDatabase(t *testing.T) {
@@ -83,4 +87,38 @@ func TestPrimaryKeys(t *testing.T) {
 			t.Errorf("table %q has no primary key", table.Name)
 		}
 	}
+}
+
+func TestSlowQuery(t *testing.T) {
+	lc, cleanup := test.NewLogChecker("slow-query")
+	lc.StopMark("[Slow SQL Query]")
+	defer cleanup()
+
+	e := db.GetEngine(db.DefaultContext)
+	engine, ok := e.(*xorm.Engine)
+	assert.True(t, ok)
+
+	// It's not possible to clean this up with XORM, but it's luckily not harmful
+	// to leave around.
+	engine.AddHook(&db.SlowQueryHook{
+		Treshold: time.Second * 10,
+		Logger:   log.GetLogger("slow-query"),
+	})
+
+	// NOOP query.
+	e.Exec("SELECT 1 WHERE false;")
+
+	_, stopped := lc.Check(100 * time.Millisecond)
+	assert.False(t, stopped)
+
+	engine.AddHook(&db.SlowQueryHook{
+		Treshold: 0, // Every query should be logged.
+		Logger:   log.GetLogger("slow-query"),
+	})
+
+	// NOOP query.
+	e.Exec("SELECT 1 WHERE false;")
+
+	_, stopped = lc.Check(100 * time.Millisecond)
+	assert.True(t, stopped)
 }

@@ -11,10 +11,13 @@ import (
 	"io"
 	"reflect"
 	"strings"
+	"time"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
+	"xorm.io/xorm/contexts"
 	"xorm.io/xorm/names"
 	"xorm.io/xorm/schemas"
 
@@ -145,6 +148,13 @@ func InitEngine(ctx context.Context) error {
 	xormEngine.SetMaxIdleConns(setting.Database.MaxIdleConns)
 	xormEngine.SetConnMaxLifetime(setting.Database.ConnMaxLifetime)
 	xormEngine.SetDefaultContext(ctx)
+
+	if setting.Database.SlowQueryTreshold > 0 {
+		xormEngine.AddHook(&SlowQueryHook{
+			Treshold: setting.Database.SlowQueryTreshold,
+			Logger:   log.GetLogger("xorm"),
+		})
+	}
 
 	SetDefaultEngine(ctx, xormEngine)
 	return nil
@@ -298,4 +308,22 @@ func SetLogSQL(ctx context.Context, on bool) {
 	} else if sess, ok := e.(*xorm.Session); ok {
 		sess.Engine().ShowSQL(on)
 	}
+}
+
+type SlowQueryHook struct {
+	Treshold time.Duration
+	Logger   log.Logger
+}
+
+var _ contexts.Hook = &SlowQueryHook{}
+
+func (SlowQueryHook) BeforeProcess(c *contexts.ContextHook) (context.Context, error) {
+	return c.Ctx, nil
+}
+
+func (h *SlowQueryHook) AfterProcess(c *contexts.ContextHook) error {
+	if c.ExecuteTime >= h.Treshold {
+		h.Logger.Log(8, log.WARN, "[Slow SQL Query] %s %v - %v", c.SQL, c.Args, c.ExecuteTime)
+	}
+	return nil
 }
