@@ -444,3 +444,107 @@ func TestGeneratedSourceLink(t *testing.T) {
 		assert.Equal(t, "/user27/repo49/src/commit/aacbdfe9e1c4b47f60abe81849045fa4e96f1d75/test/test.txt", dataURL)
 	})
 }
+
+func TestRepoHTMLTitle(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	t.Run("Repository homepage", func(t *testing.T) {
+		t.Run("Without description", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			htmlTitle := GetHTMLTitle(t, nil, "/user2/repo1")
+			assert.EqualValues(t, "user2/repo1 - Gitea: Git with a cup of tea", htmlTitle)
+		})
+		t.Run("With description", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			htmlTitle := GetHTMLTitle(t, nil, "/user27/repo49")
+			assert.EqualValues(t, "user27/repo49: A wonderful repository with more than just a README.md - Gitea: Git with a cup of tea", htmlTitle)
+		})
+	})
+
+	t.Run("Code view", func(t *testing.T) {
+		t.Run("Directory", func(t *testing.T) {
+			t.Run("Default branch", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				htmlTitle := GetHTMLTitle(t, nil, "/user2/repo59/src/branch/master/deep/nesting")
+				assert.EqualValues(t, "repo59/deep/nesting at master - user2/repo59 - Gitea: Git with a cup of tea", htmlTitle)
+			})
+			t.Run("Non-default branch", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				htmlTitle := GetHTMLTitle(t, nil, "/user2/repo59/src/branch/cake-recipe/deep/nesting")
+				assert.EqualValues(t, "repo59/deep/nesting at cake-recipe - user2/repo59 - Gitea: Git with a cup of tea", htmlTitle)
+			})
+			t.Run("Commit", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				htmlTitle := GetHTMLTitle(t, nil, "/user2/repo59/src/commit/d8f53dfb33f6ccf4169c34970b5e747511c18beb/deep/nesting/")
+				assert.EqualValues(t, "repo59/deep/nesting at d8f53dfb33f6ccf4169c34970b5e747511c18beb - user2/repo59 - Gitea: Git with a cup of tea", htmlTitle)
+			})
+			t.Run("Tag", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				htmlTitle := GetHTMLTitle(t, nil, "/user2/repo59/src/tag/v1.0/deep/nesting/")
+				assert.EqualValues(t, "repo59/deep/nesting at v1.0 - user2/repo59 - Gitea: Git with a cup of tea", htmlTitle)
+			})
+		})
+		t.Run("File", func(t *testing.T) {
+			t.Run("Default branch", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				htmlTitle := GetHTMLTitle(t, nil, "/user2/repo59/src/branch/master/deep/nesting/folder/secret_sauce_recipe.txt")
+				assert.EqualValues(t, "repo59/deep/nesting/folder/secret_sauce_recipe.txt at master - user2/repo59 - Gitea: Git with a cup of tea", htmlTitle)
+			})
+			t.Run("Non-default branch", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				htmlTitle := GetHTMLTitle(t, nil, "/user2/repo59/src/branch/cake-recipe/deep/nesting/folder/secret_sauce_recipe.txt")
+				assert.EqualValues(t, "repo59/deep/nesting/folder/secret_sauce_recipe.txt at cake-recipe - user2/repo59 - Gitea: Git with a cup of tea", htmlTitle)
+			})
+			t.Run("Commit", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				htmlTitle := GetHTMLTitle(t, nil, "/user2/repo59/src/commit/d8f53dfb33f6ccf4169c34970b5e747511c18beb/deep/nesting/folder/secret_sauce_recipe.txt")
+				assert.EqualValues(t, "repo59/deep/nesting/folder/secret_sauce_recipe.txt at d8f53dfb33f6ccf4169c34970b5e747511c18beb - user2/repo59 - Gitea: Git with a cup of tea", htmlTitle)
+			})
+			t.Run("Tag", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+
+				htmlTitle := GetHTMLTitle(t, nil, "/user2/repo59/src/tag/v1.0/deep/nesting/folder/secret_sauce_recipe.txt")
+				assert.EqualValues(t, "repo59/deep/nesting/folder/secret_sauce_recipe.txt at v1.0 - user2/repo59 - Gitea: Git with a cup of tea", htmlTitle)
+			})
+		})
+	})
+
+	t.Run("Issues view", func(t *testing.T) {
+		t.Run("Overview page", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			htmlTitle := GetHTMLTitle(t, nil, "/user2/repo1/issues")
+			assert.EqualValues(t, "Issues - user2/repo1 - Gitea: Git with a cup of tea", htmlTitle)
+		})
+		t.Run("View issue page", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			htmlTitle := GetHTMLTitle(t, nil, "/user2/repo1/issues/1")
+			assert.EqualValues(t, "#1 - issue1 - user2/repo1 - Gitea: Git with a cup of tea", htmlTitle)
+		})
+	})
+
+	t.Run("Pull requests view", func(t *testing.T) {
+		t.Run("Overview page", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			htmlTitle := GetHTMLTitle(t, nil, "/user2/repo1/pulls")
+			assert.EqualValues(t, "Pull Requests - user2/repo1 - Gitea: Git with a cup of tea", htmlTitle)
+		})
+		t.Run("View pull request", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			htmlTitle := GetHTMLTitle(t, nil, "/user2/repo1/pulls/2")
+			assert.EqualValues(t, "#2 - issue2 - user2/repo1 - Gitea: Git with a cup of tea", htmlTitle)
+		})
+	})
+}

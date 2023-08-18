@@ -468,3 +468,18 @@ func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
 	doc := NewHTMLParser(t, resp.Body)
 	return doc.GetCSRF()
 }
+
+func GetHTMLTitle(t testing.TB, session *TestSession, urlStr string) string {
+	t.Helper()
+
+	req := NewRequest(t, "GET", urlStr)
+	var resp *httptest.ResponseRecorder
+	if session == nil {
+		resp = MakeRequest(t, req, http.StatusOK)
+	} else {
+		resp = session.MakeRequest(t, req, http.StatusOK)
+	}
+
+	doc := NewHTMLParser(t, resp.Body)
+	return doc.Find("head title").Text()
+}

@@ -2,7 +2,8 @@
 <html lang="{{ctx.Locale.Lang}}" class="theme-{{if .SignedUser.Theme}}{{.SignedUser.Theme}}{{else}}{{DefaultTheme}}{{end}}">
 <head>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>{{if .Title}}{{.Title | RenderEmojiPlain}} - {{end}}{{if .Repository.Name}}{{.Repository.Name}} - {{end}}{{AppName}}</title>
+	{{/* Display `- .Repsository.FullName` only if `.Title` does not already start with that. */}}
+	<title>{{if .Title}}{{.Title | RenderEmojiPlain}} - {{end}}{{if and (.Repository.Name) (not (StringUtils.HasPrefix .Title .Repository.FullName))}}{{.Repository.FullName}} - {{end}}{{AppName}}</title>
 	{{if .ManifestData}}<link rel="manifest" href="data:{{.ManifestData}}">{{end}}
 	<meta name="author" content="{{if .Repository}}{{.Owner.Name}}{{else}}{{MetaAuthor}}{{end}}">
 	<meta name="description" content="{{if .Repository}}{{.Repository.Name}}{{if .Repository.Description}} - {{.Repository.Description}}{{end}}{{else}}{{MetaDescription}}{{end}}">

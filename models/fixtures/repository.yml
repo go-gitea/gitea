@@ -1467,6 +1467,7 @@
   owner_name: user27
   lower_name: repo49
   name: repo49
+  description: A wonderful repository with more than just a README.md
   default_branch: master
   num_watches: 0
   num_stars: 0
@@ -1693,3 +1694,16 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+
+-
+  id: 59
+  owner_id: 2
+  owner_name: user2
+  lower_name: repo59
+  name: repo59
+  default_branch: master
+  is_empty: false
+  is_archived: false
+  is_private: false
+  status: 0
+  num_issues: 0

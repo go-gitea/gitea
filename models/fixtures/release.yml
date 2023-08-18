@@ -136,3 +136,17 @@
   is_prerelease: false
   is_tag: false
   created_unix: 946684803
+
+- id: 11
+  repo_id: 59
+  publisher_id: 2
+  tag_name: "v1.0"
+  lower_tag_name: "v1.0"
+  target: "main"
+  title: "v1.0"
+  sha1: "d8f53dfb33f6ccf4169c34970b5e747511c18beb"
+  num_commits: 1
+  is_draft: false
+  is_prerelease: false
+  is_tag: false
+  created_unix: 946684803
