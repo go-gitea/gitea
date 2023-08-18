@@ -1204,6 +1204,7 @@ img.ui.avatar,
   box-shadow: none;
 }
 
+/* replace fomantic popover box shadows */
 .ui.dropdown .menu,
 .ui.upward.dropdown > .menu,
 .ui.menu .dropdown.item .menu,
@@ -1212,6 +1213,9 @@ img.ui.avatar,
 .ui.selection.active.dropdown:hover .menu,
 .ui.upward.active.selection.dropdown:hover .menu {
   box-shadow: 0 6px 18px var(--color-shadow);
+}
+.ui.floating.dropdown .menu {
+  box-shadow: 0 6px 18px var(--color-shadow) !important;
 }
 
 .ui.dimmer {
