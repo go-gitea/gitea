@@ -176,8 +176,8 @@
 		</div>
 	</div>
 
-	{{if .IsNothingToCompare}}
-		{{if and .PageIsComparePull $.IsSigned $.AllowEmptyPr (not .Repository.IsArchived)}}
+	{{if and .PageIsComparePull .IsNothingToCompare}}
+		{{if and $.IsSigned $.AllowEmptyPr (not .Repository.IsArchived)}}
 			<div class="ui segment">{{.locale.Tr "repo.pulls.nothing_to_compare_and_allow_empty_pr"}}</div>
 			<div class="ui info message show-form-container {{if .Flash}}gt-hidden{{end}}">
 				<button class="ui button green show-form">{{.locale.Tr "repo.pulls.new"}}</button>
@@ -229,7 +229,7 @@
 			{{end}}
 			{{$showDiffBox = true}}
 		{{end}}
-	{{else}}
+	{{else if not .IsNothingToCompare}}
 		{{$showDiffBox = true}}
 	{{end}}
 	</div>
