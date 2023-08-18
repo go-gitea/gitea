@@ -21,13 +21,13 @@
           <div class="ui grid">
             <div class="two column row">
               <a class="reference column" href="#" @click="handleTabSwitch('branches')">
-                <span class="text" :class="{black: mode === 'branches'}">
+                <span class="text" :class="{black: mode !== 'branches'}">
                   <svg-icon name="octicon-git-branch" :size="16" class-name="gt-mr-2"/>{{ textBranches }}
                 </span>
               </a>
               <template v-if="!noTag">
                 <a class="reference column" href="#" @click="handleTabSwitch('tags')">
-                  <span class="text" :class="{black: mode === 'tags'}">
+                  <span class="text" :class="{black: mode !== 'tags'}">
                     <svg-icon name="octicon-tag" :size="16" class-name="gt-mr-2"/>{{ textTags }}
                   </span>
                 </a>
