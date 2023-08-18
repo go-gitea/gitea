@@ -139,7 +139,7 @@ func (ctx *Context) notFoundInternal(logMsg string, logErr error) {
 	ctx.Data["Title"] = "Page Not Found"
 
 	if git.IsErrNotExist(logErr) {
-		ctx.Data["NotFoundPrompt"] = ctx.Locale.Tr("repo.tree_not_found", ctx.Repo.BranchName, ctx.Repo.Repository.Name, ctx.Repo.TreePath)
+		ctx.Data["NotFoundPrompt"] = ctx.Locale.Tr("repo.tree_path_not_found", ctx.Repo.BranchName, ctx.Repo.Repository.Name, ctx.Repo.TreePath)
 		ctx.Data["NotFoundGoBackURL"] = ctx.Repo.RepoLink + "/src/branch/" + url.PathEscape(ctx.Repo.BranchName)
 	}
 	ctx.HTML(http.StatusNotFound, base.TplName("status/404"))
