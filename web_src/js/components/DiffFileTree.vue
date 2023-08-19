@@ -1,9 +1,7 @@
 <template>
   <div v-if="store.fileTreeIsVisible" class="gt-mr-3 gt-mt-3 diff-detail-box">
     <!-- only render the tree if we're visible. in many cases this is something that doesn't change very often -->
-    <div class="ui list">
-      <DiffFileTreeItem v-for="item in fileTree" :key="item.name" :item="item"/>
-    </div>
+    <DiffFileTreeItem v-for="item in fileTree" :key="item.name" :item="item"/>
     <div v-if="store.isIncomplete" class="gt-pt-2">
       <a :class="['ui', 'basic', 'tiny', 'button', store.isLoadingNewData ? 'disabled' : '']" @click.stop="loadMoreData">{{ store.showMoreMessage }}</a>
     </div>
