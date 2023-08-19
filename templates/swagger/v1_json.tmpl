@@ -21,7 +21,7 @@
     },
     "version": "{{AppVer | JSEscape | Safe}}"
   },
-  "basePath": "/api/v1",
+  "basePath": "{{AppSubUrl | JSEscape | Safe}}/api/v1",
   "paths": {
     "/activitypub/user-id/{user-id}": {
       "get": {
@@ -17486,6 +17486,27 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "CreateSecretOption": {
+      "description": "CreateSecretOption options when creating secret",
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "data": {
+          "description": "Data of the secret to create",
+          "type": "string",
+          "x-go-name": "Data"
+        },
+        "name": {
+          "description": "Name of the secret to create",
+          "type": "string",
+          "uniqueItems": true,
+          "x-go-name": "Name"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "CreateStatusOption": {
       "description": "CreateStatusOption holds the information needed to create a new CommitStatus for a Commit",
       "type": "object",
@@ -22965,6 +22986,12 @@
         "$ref": "#/definitions/SearchResults"
       }
     },
+    "Secret": {
+      "description": "Secret",
+      "schema": {
+        "$ref": "#/definitions/Secret"
+      }
+    },
     "SecretList": {
       "description": "SecretList",
       "schema": {
@@ -23181,7 +23208,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/UpdateRepoAvatarOption"
+        "$ref": "#/definitions/CreateSecretOption"
       }
     },
     "redirect": {
