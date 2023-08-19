@@ -77,6 +77,7 @@ func TestParsePackage(t *testing.T) {
 		test(t, "te'st")
 		test(t, "te!st")
 		test(t, "te*st")
+		test(t, "te~st")
 		test(t, "invalid/scope")
 		test(t, "@invalid/_name")
 		test(t, "@invalid/.name")
