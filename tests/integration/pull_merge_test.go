@@ -520,7 +520,7 @@ func TestConflictChecking(t *testing.T) {
 			BaseRepo:   baseRepo,
 			Type:       issues_model.PullRequestGitea,
 		}
-		err = pull.NewPullRequest(git.DefaultContext, baseRepo, pullIssue, nil, nil, pullRequest, nil)
+		err = pull.NewPullRequest(git.DefaultContext, baseRepo, pullIssue, nil, nil, pullRequest, nil, nil)
 		assert.NoError(t, err)
 
 		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "PR with conflict!"})

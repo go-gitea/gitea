@@ -554,7 +554,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 		}
 	}
 
-	if err := pull_service.NewPullRequest(ctx, repo, prIssue, labelIDs, []string{}, pr, assigneeIDs); err != nil {
+	if err := pull_service.NewPullRequest(ctx, repo, prIssue, labelIDs, []string{}, pr, assigneeIDs, []int64{}); err != nil {
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err)
 		} else if errors.Is(err, user_model.ErrBlockedUser) {

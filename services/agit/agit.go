@@ -138,7 +138,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 				Flow:         issues_model.PullRequestFlowAGit,
 			}
 
-			if err := pull_service.NewPullRequest(ctx, repo, prIssue, []int64{}, []string{}, pr, []int64{}); err != nil {
+			if err := pull_service.NewPullRequest(ctx, repo, prIssue, []int64{}, []string{}, pr, []int64{}, []int64{}); err != nil {
 				return nil, err
 			}
 
