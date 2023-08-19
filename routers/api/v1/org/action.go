@@ -6,7 +6,6 @@ package org
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models/secret"
 	secret_model "code.gitea.io/gitea/models/secret"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
@@ -46,18 +45,18 @@ func ListActionsSecrets(ctx *context.APIContext) {
 
 // listActionsSecrets list an organization's actions secrets
 func listActionsSecrets(ctx *context.APIContext) {
-	opts := &secret.FindSecretsOptions{
+	opts := &secret_model.FindSecretsOptions{
 		OwnerID:     ctx.Org.Organization.ID,
 		ListOptions: utils.GetListOptions(ctx),
 	}
 
-	count, err := secret.CountSecrets(ctx, opts)
+	count, err := secret_model.CountSecrets(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
 
-	secrets, err := secret.FindSecrets(ctx, *opts)
+	secrets, err := secret_model.FindSecrets(ctx, *opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -104,7 +103,7 @@ func CreateOrgSecret(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	opt := web.GetForm(ctx).(*api.CreateSecretOption)
-	secret, err := secret_model.InsertEncryptedSecret(
+	s, err := secret_model.InsertEncryptedSecret(
 		ctx, ctx.Org.Organization.ID, 0, opt.Name, actions.ReserveLineBreakForTextarea(opt.Data),
 	)
 	if err != nil {
@@ -112,5 +111,5 @@ func CreateOrgSecret(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToSecret(secret))
+	ctx.JSON(http.StatusCreated, convert.ToSecret(s))
 }
