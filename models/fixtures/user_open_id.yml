@@ -1,17 +1,12 @@
--
-  id: 1
+- id: 1
+  show: 0
   uid: 1
   uri: https://user1.domain1.tld/
-  show: false
-
--
-  id: 2
+- id: 2
+  show: 1
   uid: 1
   uri: http://user1.domain2.tld/
-  show: true
-
--
-  id: 3
+- id: 3
+  show: 1
   uid: 2
   uri: https://domain1.tld/user2/
-  show: true

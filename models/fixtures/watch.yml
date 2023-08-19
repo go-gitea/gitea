@@ -1,29 +1,30 @@
--
+- created_unix: null
   id: 1
+  mode: 1
+  repo_id: 1
+  updated_unix: null
   user_id: 1
-  repo_id: 1
-  mode: 1 # normal
-
--
+- created_unix: null
   id: 2
+  mode: 1
+  repo_id: 1
+  updated_unix: null
   user_id: 4
-  repo_id: 1
-  mode: 1 # normal
-
--
+- created_unix: null
   id: 3
+  mode: 1
+  repo_id: 1
+  updated_unix: null
   user_id: 9
-  repo_id: 1
-  mode: 1 # normal
-
--
+- created_unix: null
   id: 4
+  mode: 2
+  repo_id: 1
+  updated_unix: null
   user_id: 8
-  repo_id: 1
-  mode: 2 # don't watch
-
--
+- created_unix: null
   id: 5
-  user_id: 11
+  mode: 3
   repo_id: 1
-  mode: 3 # auto 
+  updated_unix: null
+  user_id: 11

@@ -1,54 +1,60 @@
--
-  id: 1
-  repo_id: 1
-  name: milestone1
+- closed_date_unix: null
+  completeness: 0
   content: content1
-  is_closed: false
-  num_issues: 1
-  num_closed_issues: 0
-  completeness: 0
+  created_unix: null
   deadline_unix: 253370764800
-
--
-  id: 2
+  id: 1
+  is_closed: 0
+  name: milestone1
+  num_closed_issues: 0
+  num_issues: 1
   repo_id: 1
-  name: milestone2
+  updated_unix: null
+- closed_date_unix: null
+  completeness: 0
   content: content2
-  is_closed: false
-  num_issues: 0
-  num_closed_issues: 0
-  completeness: 0
+  created_unix: null
   deadline_unix: 253370764800
-
--
-  id: 3
+  id: 2
+  is_closed: 0
+  name: milestone2
+  num_closed_issues: 0
+  num_issues: 0
   repo_id: 1
-  name: milestone3
+  updated_unix: null
+- closed_date_unix: null
+  completeness: 0
   content: content3
-  is_closed: true
+  created_unix: null
+  deadline_unix: 253370764800
+  id: 3
+  is_closed: 1
+  name: milestone3
+  num_closed_issues: 0
   num_issues: 1
-  num_closed_issues: 0
+  repo_id: 1
+  updated_unix: null
+- closed_date_unix: null
   completeness: 0
-  deadline_unix: 253370764800
-
--
-  id: 4
-  repo_id: 42
-  name: milestone of repo42
   content: content random
-  is_closed: false
-  num_issues: 0
-  num_closed_issues: 0
-  completeness: 0
+  created_unix: null
   deadline_unix: 253370764800
-
--
-  id: 5
-  repo_id: 10
-  name: milestone of repo 10
+  id: 4
+  is_closed: 0
+  name: milestone of repo42
+  num_closed_issues: 0
+  num_issues: 0
+  repo_id: 42
+  updated_unix: null
+- closed_date_unix: null
+  completeness: 0
   content: for testing with PRs
-  is_closed: false
-  num_issues: 0
-  num_closed_issues: 0
-  completeness: 0
+  created_unix: null
   deadline_unix: 253370764800
+  id: 5
+  is_closed: 0
+  name: milestone of repo 10
+  num_closed_issues: 0
+  num_issues: 0
+  repo_id: 10
+  updated_unix: null

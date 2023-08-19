@@ -1,5 +1,4 @@
--
-  id: 1
-  owner_id: 2
+- id: 1
   lower_name: oldrepo1
+  owner_id: 2
   redirect_repo_id: 1

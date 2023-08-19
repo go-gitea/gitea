@@ -1,31 +1,36 @@
--
+- color: null
+  created_unix: 1588117528
+  creator_id: 2
+  default: 0
   id: 1
   project_id: 1
+  sorting: 0
   title: To Do
-  creator_id: 2
-  created_unix: 1588117528
   updated_unix: 1588117528
-
--
+- color: null
+  created_unix: 1588117528
+  creator_id: 2
+  default: 0
   id: 2
   project_id: 1
+  sorting: 0
   title: In Progress
-  creator_id: 2
-  created_unix: 1588117528
   updated_unix: 1588117528
-
--
+- color: null
+  created_unix: 1588117528
+  creator_id: 2
+  default: 0
   id: 3
   project_id: 1
+  sorting: 0
   title: Done
-  creator_id: 2
-  created_unix: 1588117528
   updated_unix: 1588117528
-
--
+- color: null
+  created_unix: 1588117528
+  creator_id: 2
+  default: 0
   id: 4
   project_id: 4
+  sorting: 0
   title: Done
-  creator_id: 2
-  created_unix: 1588117528
   updated_unix: 1588117528

@@ -1,20 +1,15 @@
--
-  id: 1
+- id: 1
+  is_mentioned: 0
+  is_read: 1
+  issue_id: 1
   uid: 1
+- id: 2
+  is_mentioned: 0
+  is_read: 1
   issue_id: 1
-  is_read: true
-  is_mentioned: false
-
--
-  id: 2
   uid: 2
+- id: 3
+  is_mentioned: 1
+  is_read: 0
   issue_id: 1
-  is_read: true
-  is_mentioned: false
-
--
-  id: 3
   uid: 4
-  issue_id: 1
-  is_read: false
-  is_mentioned: true

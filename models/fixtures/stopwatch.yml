@@ -1,11 +1,8 @@
--
+- created_unix: 1500988001
   id: 1
-  user_id: 1
   issue_id: 1
-  created_unix: 1500988001
-
--
+  user_id: 1
+- created_unix: 1500988002
   id: 2
-  user_id: 2
   issue_id: 2
-  created_unix: 1500988002
+  user_id: 2

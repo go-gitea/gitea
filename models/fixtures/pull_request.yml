@@ -1,91 +1,140 @@
--
+- allow_maintainer_edit: 0
+  base_branch: master
+  base_repo_id: 1
+  changed_protected_files: null
+  commits_ahead: null
+  commits_behind: null
+  conflicted_files: null
+  flow: 0
+  has_merged: 1
+  head_branch: branch1
+  head_repo_id: 1
   id: 1
-  type: 0 # gitea pull request
-  status: 2 # mergable
+  index: 2
   issue_id: 2
-  index: 2
-  head_repo_id: 1
-  base_repo_id: 1
-  head_branch: branch1
-  base_branch: master
   merge_base: 4a357436d925b5c974181ff12a994538ddc5a269
-  has_merged: true
+  merged_commit_id: null
+  merged_unix: null
   merger_id: 2
-
--
+  status: 2
+  type: 0
+- allow_maintainer_edit: 0
+  base_branch: master
+  base_repo_id: 1
+  changed_protected_files: null
+  commits_ahead: null
+  commits_behind: null
+  conflicted_files: null
+  flow: 0
+  has_merged: 0
+  head_branch: branch2
+  head_repo_id: 1
   id: 2
-  type: 0 # gitea pull request
-  status: 2 # mergable
-  issue_id: 3
   index: 3
-  head_repo_id: 1
-  base_repo_id: 1
-  head_branch: branch2
-  base_branch: master
+  issue_id: 3
   merge_base: 4a357436d925b5c974181ff12a994538ddc5a269
-  has_merged: false
-
--
-  id: 3
-  type: 0 # gitea pull request
-  status: 2 # mergable
-  issue_id: 8
-  index: 1
-  head_repo_id: 11
+  merged_commit_id: null
+  merged_unix: null
+  merger_id: null
+  status: 2
+  type: 0
+- allow_maintainer_edit: 0
+  base_branch: master
   base_repo_id: 10
+  changed_protected_files: null
+  commits_ahead: null
+  commits_behind: null
+  conflicted_files: null
+  flow: 0
+  has_merged: 0
   head_branch: branch2
-  base_branch: master
+  head_repo_id: 11
+  id: 3
+  index: 1
+  issue_id: 8
   merge_base: 0abcb056019adb83
-  has_merged: false
-
--
-  id: 4
-  type: 0 # gitea pull request
-  status: 2 # mergable
-  issue_id: 9
-  index: 1
-  head_repo_id: 48
+  merged_commit_id: null
+  merged_unix: null
+  merger_id: null
+  status: 2
+  type: 0
+- allow_maintainer_edit: 0
+  base_branch: master
   base_repo_id: 48
+  changed_protected_files: null
+  commits_ahead: null
+  commits_behind: null
+  conflicted_files: null
+  flow: 0
+  has_merged: 0
   head_branch: branch1
-  base_branch: master
-  merge_base: abcdef1234567890
-  has_merged: false
-
--
-  id: 5 # this PR is outdated (one commit behind branch1 )
-  type: 0 # gitea pull request
-  status: 2 # mergable
-  issue_id: 11
-  index: 5
-  head_repo_id: 1
-  base_repo_id: 1
-  head_branch: pr-to-update
-  base_branch: branch2
-  merge_base: 985f0301dba5e7b34be866819cd15ad3d8f508ee
-  has_merged: false
-
--
-  id: 6
-  type: 0 # gitea pull request
-  status: 2 # mergable
-  issue_id: 12
-  index: 2
-  head_repo_id: 3
-  base_repo_id: 3
-  head_branch: test_branch
-  base_branch: master
-  merge_base: 2a47ca4b614a9f5a
-  has_merged: false
-
--
-  id: 7
-  type: 0 # gitea pull request
-  status: 2 # mergable
-  issue_id: 19
+  head_repo_id: 48
+  id: 4
   index: 1
-  head_repo_id: 58
-  base_repo_id: 58
-  head_branch: branch1
+  issue_id: 9
+  merge_base: abcdef1234567890
+  merged_commit_id: null
+  merged_unix: null
+  merger_id: null
+  status: 2
+  type: 0
+- allow_maintainer_edit: 0
+  base_branch: branch2
+  base_repo_id: 1
+  changed_protected_files: null
+  commits_ahead: null
+  commits_behind: null
+  conflicted_files: null
+  flow: 0
+  has_merged: 0
+  head_branch: pr-to-update
+  head_repo_id: 1
+  id: 5
+  index: 5
+  issue_id: 11
+  merge_base: 985f0301dba5e7b34be866819cd15ad3d8f508ee
+  merged_commit_id: null
+  merged_unix: null
+  merger_id: null
+  status: 2
+  type: 0
+- allow_maintainer_edit: 0
+  base_branch: master
+  base_repo_id: 3
+  changed_protected_files: null
+  commits_ahead: null
+  commits_behind: null
+  conflicted_files: null
+  flow: 0
+  has_merged: 0
+  head_branch: test_branch
+  head_repo_id: 3
+  id: 6
+  index: 2
+  issue_id: 12
+  merge_base: 2a47ca4b614a9f5a
+  merged_commit_id: null
+  merged_unix: null
+  merger_id: null
+  status: 2
+  type: 0
+- allow_maintainer_edit: 0
   base_branch: main
+  base_repo_id: 58
+  changed_protected_files: null
+  commits_ahead: null
+  commits_behind: null
+  conflicted_files: null
+  flow: 0
+  has_merged: 0
+  head_branch: branch1
+  head_repo_id: 58
+  id: 7
+  index: 1
+  issue_id: 19
   merge_base: cbff181af4c9c7fee3cf6c106699e07d9a3f54e6
-  has_merged: false
+  merged_commit_id: null
+  merged_unix: null
+  merger_id: null
+  status: 2
+  type: 0

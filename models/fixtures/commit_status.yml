@@ -1,54 +1,60 @@
--
+- context: ci/awesomeness
+  context_hash: null
+  created_unix: null
+  creator_id: 2
+  description: My awesome CI-service
   id: 1
   index: 1
   repo_id: 1
-  state: "pending"
   sha: "1234123412341234123412341234123412341234"
+  state: pending
   target_url: https://example.com/builds/
-  description: My awesome CI-service
-  context: ci/awesomeness
+  updated_unix: null
+- context: cov/awesomeness
+  context_hash: null
+  created_unix: null
   creator_id: 2
-
--
+  description: My awesome Coverage service
   id: 2
   index: 2
   repo_id: 1
-  state: "warning"
   sha: "1234123412341234123412341234123412341234"
+  state: warning
   target_url: https://example.com/converage/
-  description: My awesome Coverage service
-  context: cov/awesomeness
+  updated_unix: null
+- context: cov/awesomeness
+  context_hash: null
+  created_unix: null
   creator_id: 2
-
--
+  description: My awesome Coverage service
   id: 3
   index: 3
   repo_id: 1
-  state: "success"
   sha: "1234123412341234123412341234123412341234"
+  state: success
   target_url: https://example.com/converage/
-  description: My awesome Coverage service
-  context: cov/awesomeness
+  updated_unix: null
+- context: ci/awesomeness
+  context_hash: null
+  created_unix: null
   creator_id: 2
-
--
+  description: My awesome CI-service
   id: 4
   index: 4
   repo_id: 1
-  state: "failure"
   sha: "1234123412341234123412341234123412341234"
+  state: failure
   target_url: https://example.com/builds/
-  description: My awesome CI-service
-  context: ci/awesomeness
+  updated_unix: null
+- context: deploy/awesomeness
+  context_hash: null
+  created_unix: null
   creator_id: 2
-
--
+  description: My awesome deploy service
   id: 5
   index: 5
   repo_id: 1
-  state: "error"
   sha: "1234123412341234123412341234123412341234"
+  state: error
   target_url: https://example.com/builds/
-  description: My awesome deploy service
-  context: deploy/awesomeness
-  creator_id: 2
+  updated_unix: null
