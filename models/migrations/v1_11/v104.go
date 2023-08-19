@@ -15,7 +15,7 @@ func RemoveLabelUneededCols(x *xorm.Engine) error {
 		QueryString string
 		IsSelected  bool
 	}
-	if err := x.Sync2(new(Label)); err != nil {
+	if err := x.Sync(new(Label)); err != nil {
 		return err
 	}
 

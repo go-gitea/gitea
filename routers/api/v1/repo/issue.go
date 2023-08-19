@@ -193,6 +193,10 @@ func SearchIssues(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "SearchRepositoryIDs", err)
 			return
 		}
+		if len(repoIDs) == 0 {
+			// no repos found, don't let the indexer return all repos
+			repoIDs = []int64{0}
+		}
 	}
 
 	keyword := ctx.FormTrim("q")

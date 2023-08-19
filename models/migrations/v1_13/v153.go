@@ -16,9 +16,9 @@ func AddTeamReviewRequestSupport(x *xorm.Engine) error {
 		AssigneeTeamID int64 `xorm:"NOT NULL DEFAULT 0"`
 	}
 
-	if err := x.Sync2(new(Review)); err != nil {
+	if err := x.Sync(new(Review)); err != nil {
 		return err
 	}
 
-	return x.Sync2(new(Comment))
+	return x.Sync(new(Comment))
 }

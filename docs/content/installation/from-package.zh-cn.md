@@ -52,6 +52,14 @@ pacman -S gitea
 pacman -S gitea
 ```
 
+## Gentoo Linux
+
+滚动发布的发行版在其官方社区软件仓库中提供了 [Gitea](https://packages.gentoo.org/packages/www-apps/gitea)，并且会随着新的 Gitea 发布提供软件包更新。
+
+```sh
+emerge gitea -va
+```
+
 ## Canonical Snap
 
 目前 Gitea 已在 Snap Store 中发布，名称为 [gitea](https://snapcraft.io/gitea)。
