@@ -177,7 +177,8 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		ctx.Data["AllLabels"] = true
 	} else if selectLabels == "0" {
 		ctx.Data["NoLabel"] = true
-	} else if len(selectLabels) > 0 {
+	}
+	if len(selectLabels) > 0 {
 		labelIDs, err = base.StringsToInt64s(strings.Split(selectLabels, ","))
 		if err != nil {
 			ctx.ServerError("StringsToInt64s", err)
@@ -2501,6 +2502,10 @@ func SearchIssues(ctx *context.Context) {
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "SearchRepositoryIDs", err.Error())
 			return
+		}
+		if len(repoIDs) == 0 {
+			// no repos found, don't let the indexer return all repos
+			repoIDs = []int64{0}
 		}
 	}
 
