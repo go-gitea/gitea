@@ -127,6 +127,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 				if err != nil {
 					return err
 				}
+				continue
 			}
 
 			reviewer, err := user_model.GetUserByID(ctx, reviewerID)
