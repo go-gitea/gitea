@@ -22,9 +22,21 @@ type getUploadArtifactRequest struct {
 	Name string
 }
 
-func TestActionsArtifactUploadSingleFile(t *testing.T) {
+func TestActionsArtifactSingleFile(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
+	t.Run("Upload", testActionsArtifactUploadSingleFile)
+	t.Run("Download", testActionsArtifactDownload)
+}
+
+func TestActionsArtifactMultiFiles(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	t.Run("Upload", testActionsArtifactUploadMultipleFile)
+	t.Run("Download", testActionsArtifactDownloadMultiFiles)
+}
+
+func testActionsArtifactUploadSingleFile(t *testing.T) {
 	// acquire artifact upload url
 	req := NewRequestWithJSON(t, "POST", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts", getUploadArtifactRequest{
 		Type: "actions_storage",
@@ -107,9 +119,7 @@ type (
 	}
 )
 
-func TestActionsArtifactDownload(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testActionsArtifactDownload(t *testing.T) {
 	req := NewRequest(t, "GET", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
 	req = addTokenAuthHeader(req, "Bearer 8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp := MakeRequest(t, req, http.StatusOK)
@@ -140,9 +150,7 @@ func TestActionsArtifactDownload(t *testing.T) {
 	assert.Equal(t, resp.Body.String(), body)
 }
 
-func TestActionsArtifactUploadMultipleFile(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testActionsArtifactUploadMultipleFile(t *testing.T) {
 	const testArtifactName = "multi-files"
 
 	// acquire artifact upload url
@@ -197,9 +205,7 @@ func TestActionsArtifactUploadMultipleFile(t *testing.T) {
 	MakeRequest(t, req, http.StatusOK)
 }
 
-func TestActionsArtifactDownloadMultiFiles(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testActionsArtifactDownloadMultiFiles(t *testing.T) {
 	const testArtifactName = "multi-files"
 
 	req := NewRequest(t, "GET", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")

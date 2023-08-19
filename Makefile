@@ -513,6 +513,13 @@ generate-ini-sqlite:
 		-e 's|{{TEST_TYPE}}|$(or $(TEST_TYPE),integration)|g' \
 			tests/sqlite.ini.tmpl > tests/sqlite.ini
 
+generate-ini-dev:
+	sed -e 's|{{GITEA_ROOT}}|${CURDIR}|g' tests/dev.ini.tmpl > tests/dev.ini
+
+.PHONY: test-dev
+test-dev: generate-ini-dev
+	GITEA_ROOT="$(CURDIR)" $(GO) run -tags 'sqlite sqlite_unlock_notify' contrib/dev/dev.go || true
+
 .PHONY: test-sqlite
 test-sqlite: integrations.sqlite.test generate-ini-sqlite
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/sqlite.ini ./integrations.sqlite.test

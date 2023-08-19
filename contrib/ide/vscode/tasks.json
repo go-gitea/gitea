@@ -44,6 +44,11 @@
         "args": ["build", "-tags=\"sqlite sqlite_unlock_notify\"", "-o", "gitea.exe", "\"${workspaceRoot}\\main.go\""]
       },
       "problemMatcher": ["$go"]
+    },
+    {
+      "label": "generate-ini-dev",
+      "type": "shell",
+      "command": "make generate-ini-dev"
     }
   ]
 }

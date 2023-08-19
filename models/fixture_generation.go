@@ -35,12 +35,10 @@ func GetYamlFixturesAccess() (string, error) {
 	}
 
 	for i, a := range accesses {
-		fmt.Fprintf(&b, "-\n")
-		fmt.Fprintf(&b, "  id: %d\n", i+1)
-		fmt.Fprintf(&b, "  user_id: %d\n", a.UserID)
-		fmt.Fprintf(&b, "  repo_id: %d\n", a.RepoID)
+		fmt.Fprintf(&b, "- id: %d\n", i+1)
 		fmt.Fprintf(&b, "  mode: %d\n", a.Mode)
-		fmt.Fprintf(&b, "\n")
+		fmt.Fprintf(&b, "  repo_id: %d\n", a.RepoID)
+		fmt.Fprintf(&b, "  user_id: %d\n", a.UserID)
 	}
 
 	return b.String(), nil

@@ -5,6 +5,7 @@
 package unittest
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -18,7 +19,10 @@ import (
 	"xorm.io/xorm/schemas"
 )
 
-var fixturesLoader *testfixtures.Loader
+var (
+	fixturesLoader *testfixtures.Loader
+	fixturesDumper *testfixtures.Dumper
+)
 
 // GetXORMEngine gets the XORM engine
 func GetXORMEngine(engine ...*xorm.Engine) (x *xorm.Engine) {
@@ -72,7 +76,23 @@ func InitFixtures(opts FixturesOptions, engine ...*xorm.Engine) (err error) {
 
 	setting.PasswordHashAlgo, _ = hash.SetDefaultPasswordHashAlgorithm("dummy")
 
+	if !opts.InitDumper {
+		return err
+	}
+
+	fixturesDumper, err = testfixtures.NewDumper(testfixtures.DumpDatabase(e.DB().DB),
+		testfixtures.DumpDialect(dialect),
+		testfixtures.DumpDirectory(opts.Dir))
+
 	return err
+}
+
+func DumpAllFixtures() error {
+	if fixturesDumper == nil {
+		return errors.New("no fixturesDumper")
+	}
+
+	return fixturesDumper.Dump()
 }
 
 // LoadFixtures load fixtures for a test database

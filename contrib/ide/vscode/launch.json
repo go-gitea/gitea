@@ -26,6 +26,21 @@
       },
       "args": ["web"],
       "showLog": true
+    },
+    {
+      "name": "Launch dev (with SQLite3)",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "buildFlags": "-tags='sqlite sqlite_unlock_notify'",
+      "program": "${workspaceRoot}/contrib/dev/dev.go",
+      "env": {
+        "GITEA_ROOT": "${workspaceRoot}",
+        "GITEA_WORK_DIR": "${workspaceRoot}"
+      },
+      "args": ["web"],
+      "showLog": true,
+      "preLaunchTask": "generate-ini-dev"
     }
   ]
 }
