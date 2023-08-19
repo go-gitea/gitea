@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -35,6 +36,7 @@ import (
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
@@ -788,6 +790,47 @@ func CompareDiff(ctx *context.Context) {
 		if !nothingToCompare {
 			// Setup information for new form.
 			RetrieveRepoMetas(ctx, ctx.Repo.Repository, true)
+			if ctx.Written() {
+				return
+			}
+
+			// Get reviewer info for pr
+			var (
+				reviewers       []*user_model.User
+				teamReviewers   []*organization.Team
+				reviewersResult []*repoReviewerSelection
+			)
+			reviewers, err = repo_model.GetReviewers(ctx, ctx.Repo.Repository, ctx.Doer.ID, ctx.Doer.ID)
+			if err != nil {
+				ctx.ServerError("GetReviewers", err)
+				return
+			}
+
+			teamReviewers, err = repo_service.GetReviewerTeams(ctx, ctx.Repo.Repository)
+			if err != nil {
+				ctx.ServerError("GetReviewerTeams", err)
+				return
+			}
+
+			for _, user := range reviewers {
+				reviewersResult = append(reviewersResult, &repoReviewerSelection{
+					IsTeam:    false,
+					CanChange: true,
+					User:      user,
+					ItemID:    user.ID,
+				})
+			}
+
+			// negative reviewIDs represent team requests
+			for _, team := range teamReviewers {
+				reviewersResult = append(reviewersResult, &repoReviewerSelection{
+					IsTeam:    true,
+					CanChange: true,
+					Team:      team,
+					ItemID:    -team.ID,
+				})
+			}
+			ctx.Data["Reviewers"] = reviewersResult
 			if ctx.Written() {
 				return
 			}

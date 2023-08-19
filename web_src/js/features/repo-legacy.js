@@ -233,7 +233,8 @@ export function initRepoCommentForm() {
   initListSubmits('select-label', 'labels');
   initListSubmits('select-assignees', 'assignees');
   initListSubmits('select-assignees-modify', 'assignees');
-  initListSubmits('select-reviewers-modify', 'assignees');
+  initListSubmits('select-reviewers', 'reviewers');
+  initListSubmits('select-reviewers-modify', 'reviewers');
 
   function selectItem(select_id, input_id) {
     const $menu = $(`${select_id} .menu`);
@@ -261,6 +262,8 @@ export function initRepoCommentForm() {
       } else if (input_id === '#project_id') {
         icon = svg('octicon-project', 18, 'gt-mr-3');
       } else if (input_id === '#assignee_id') {
+        icon = `<img class="ui avatar image gt-mr-3" alt="avatar" src=${$(this).data('avatar')}>`;
+      } else if (input_id === '#reviewer_id') {
         icon = `<img class="ui avatar image gt-mr-3" alt="avatar" src=${$(this).data('avatar')}>`;
       }
 
@@ -298,6 +301,7 @@ export function initRepoCommentForm() {
   selectItem('.select-project', '#project_id');
   selectItem('.select-milestone', '#milestone_id');
   selectItem('.select-assignee', '#assignee_id');
+  selectItem('.select-reviewer', '#reviewer_id');
 }
 
 
