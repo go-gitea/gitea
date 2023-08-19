@@ -740,7 +740,6 @@ export function initRepositoryActionView() {
   padding: 5px 10px;
   display: flex;
   align-items: center;
-  user-select: none;
   border-radius: var(--border-radius);
 }
 
