@@ -20,28 +20,28 @@
       </div>
       <div class="action-commit-summary">
         {{ run.commit.localeCommit }}
-        <a :href="run.commit.link">{{ run.commit.shortSHA }}</a>
+        <a class="muted" :href="run.commit.link">{{ run.commit.shortSHA }}</a>
+        {{ run.commit.localePushedBy }}
+        <a class="muted" :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
         <span class="ui label" v-if="run.commit.shortSHA">
           <a :href="run.commit.branch.link">{{ run.commit.branch.name }}</a>
         </span>
-        {{ run.commit.localePushedBy }}
-        <a :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
       </div>
     </div>
     <div class="action-view-body">
       <div class="action-view-left">
         <div class="job-group-section">
           <div class="job-brief-list">
-            <div class="job-brief-item" :class="parseInt(jobIndex) === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id" @mouseenter="onHoverRerunIndex = job.id" @mouseleave="onHoverRerunIndex = -1">
-              <a class="job-brief-link" :href="run.link+'/jobs/'+index">
+            <a class="job-brief-item" :href="run.link+'/jobs/'+index" :class="parseInt(jobIndex) === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id" @mouseenter="onHoverRerunIndex = job.id" @mouseleave="onHoverRerunIndex = -1">
+              <div class="job-brief-item-left">
                 <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
                 <span class="job-brief-name gt-mx-3 gt-ellipsis">{{ job.name }}</span>
-              </a>
-              <span class="job-brief-info">
+              </div>
+              <span class="job-brief-item-right">
                 <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun gt-mx-3" @click="rerunJob(index)" v-if="job.canRerun && onHoverRerunIndex === job.id"/>
                 <span class="step-summary-duration">{{ job.duration }}</span>
               </span>
-            </div>
+            </a>
           </div>
         </div>
         <div class="job-artifacts" v-if="artifacts.length > 0">
@@ -49,8 +49,8 @@
             {{ locale.artifactsTitle }}
           </div>
           <ul class="job-artifacts-list">
-            <li class="job-artifacts-item" v-for="artifact in artifacts" :key="artifact.id">
-              <a class="job-artifacts-link" target="_blank" :href="run.link+'/artifacts/'+artifact.id">
+            <li class="job-artifacts-item" v-for="artifact in artifacts" :key="artifact.name">
+              <a class="job-artifacts-link" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
                 <SvgIcon name="octicon-file" class="ui text black job-artifacts-icon"/>{{ artifact.name }}
               </a>
             </li>
@@ -74,22 +74,22 @@
                 <SvgIcon name="octicon-gear" :size="18"/>
               </button>
               <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
-                <a class="item" :href="run.link+'/jobs/'+jobIndex+'/logs'" target="_blank">
-                  <i class="icon"><SvgIcon name="octicon-download"/></i>
-                  {{ locale.downloadLogs }}
-                </a>
                 <a class="item" @click="toggleTimeDisplay('seconds')">
-                  <i class="icon"><SvgIcon v-show="timeVisible['log-time-seconds']" name="octicon-check"/></i>
+                  <i class="icon"><SvgIcon :name="timeVisible['log-time-seconds'] ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
                   {{ locale.showLogSeconds }}
                 </a>
                 <a class="item" @click="toggleTimeDisplay('stamp')">
-                  <i class="icon"><SvgIcon v-show="timeVisible['log-time-stamp']" name="octicon-check"/></i>
+                  <i class="icon"><SvgIcon :name="timeVisible['log-time-stamp'] ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
                   {{ locale.showTimeStamps }}
                 </a>
-                <div class="divider"/>
                 <a class="item" @click="toggleFullScreen()">
-                  <i class="icon"><SvgIcon v-show="isFullScreen" name="octicon-check"/></i>
+                  <i class="icon"><SvgIcon :name="isFullScreen ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
                   {{ locale.showFullScreen }}
+                </a>
+                <div class="divider"/>
+                <a :class="['item', currentJob.steps.length === 0 ? 'disabled' : '']" :href="run.link+'/jobs/'+jobIndex+'/logs'" target="_blank">
+                  <i class="icon"><SvgIcon name="octicon-download"/></i>
+                  {{ locale.downloadLogs }}
                 </a>
               </div>
             </div>
@@ -204,15 +204,19 @@ const sfc = {
     };
   },
 
-  mounted() {
+  async mounted() {
     // load job data and then auto-reload periodically
-    this.loadJob();
+    // need to await first loadJob so this.currentJobStepsStates is initialized and can be used in hashChangeListener
+    await this.loadJob();
     this.intervalID = setInterval(this.loadJob, 1000);
     document.body.addEventListener('click', this.closeDropdown);
+    this.hashChangeListener();
+    window.addEventListener('hashchange', this.hashChangeListener);
   },
 
   beforeUnmount() {
     document.body.removeEventListener('click', this.closeDropdown);
+    window.removeEventListener('hashchange', this.hashChangeListener);
   },
 
   unmounted() {
@@ -280,14 +284,16 @@ const sfc = {
       this.fetchPost(`${this.run.link}/approve`);
     },
 
-    createLogLine(line, startTime) {
+    createLogLine(line, startTime, stepIndex) {
       const div = document.createElement('div');
       div.classList.add('job-log-line');
+      div.setAttribute('id', `jobstep-${stepIndex}-${line.index}`);
       div._jobLogTime = line.timestamp;
 
-      const lineNumber = document.createElement('div');
-      lineNumber.className = 'line-num';
+      const lineNumber = document.createElement('a');
+      lineNumber.classList.add('line-num', 'muted');
       lineNumber.textContent = line.index;
+      lineNumber.setAttribute('href', `#jobstep-${stepIndex}-${line.index}`);
       div.append(lineNumber);
 
       // for "Show timestamps"
@@ -318,7 +324,7 @@ const sfc = {
       for (const line of logLines) {
         // TODO: group support: ##[group]GroupTitle , ##[endgroup]
         const el = this.getLogsContainer(stepIndex);
-        el.append(this.createLogLine(line, startTime));
+        el.append(this.createLogLine(line, startTime, stepIndex));
       }
     },
 
@@ -395,20 +401,10 @@ const sfc = {
       if (this.menuVisible) this.menuVisible = false;
     },
 
-    // show at most one of log seconds and timestamp (can be both invisible)
     toggleTimeDisplay(type) {
-      const toToggleTypes = [];
-      const other = type === 'seconds' ? 'stamp' : 'seconds';
       this.timeVisible[`log-time-${type}`] = !this.timeVisible[`log-time-${type}`];
-      toToggleTypes.push(type);
-      if (this.timeVisible[`log-time-${type}`] && this.timeVisible[`log-time-${other}`]) {
-        this.timeVisible[`log-time-${other}`] = false;
-        toToggleTypes.push(other);
-      }
-      for (const toToggle of toToggleTypes) {
-        for (const el of this.$refs.steps.querySelectorAll(`.log-time-${toToggle}`)) {
-          toggleElem(el, this.timeVisible[`log-time-${toToggle}`]);
-        }
+      for (const el of this.$refs.steps.querySelectorAll(`.log-time-${type}`)) {
+        toggleElem(el, this.timeVisible[`log-time-${type}`]);
       }
     },
 
@@ -429,6 +425,21 @@ const sfc = {
       } else {
         actionBodyEl.append(fullScreenEl);
       }
+    },
+    async hashChangeListener() {
+      const selectedLogStep = window.location.hash;
+      if (!selectedLogStep) return;
+      const [_, step, _line] = selectedLogStep.split('-');
+      if (!this.currentJobStepsStates[step]) return;
+      if (!this.currentJobStepsStates[step].expanded && this.currentJobStepsStates[step].cursor === null) {
+        this.currentJobStepsStates[step].expanded = true;
+        // need to await for load job if the step log is loaded for the first time
+        // so logline can be selected by querySelector
+        await this.loadJob();
+      }
+      const logLine = this.$refs.steps.querySelector(selectedLogStep);
+      if (!logLine) return;
+      logLine.querySelector('.line-num').click();
     }
   },
 };
@@ -477,6 +488,8 @@ export function initRepositoryActionView() {
 
 <style scoped>
 .action-view-body {
+  padding-top: 12px;
+  padding-bottom: 12px;
   display: flex;
   gap: 12px;
 }
@@ -486,7 +499,6 @@ export function initRepositoryActionView() {
 
 .action-view-header {
   margin-top: 8px;
-  margin-bottom: 4px;
 }
 
 .action-info-summary {
@@ -501,19 +513,14 @@ export function initRepositoryActionView() {
 
 .action-info-summary-title-text {
   font-size: 20px;
-  margin: 0 0 0 5px;
+  margin: 0 0 0 8px;
   flex: 1;
 }
 
 .action-commit-summary {
   display: flex;
   gap: 5px;
-  margin: 5px 0 0 25px;
-}
-
-.action-view-left, .action-view-right {
-  padding-top: 12px;
-  padding-bottom: 12px;
+  margin: 0 0 0 28px;
 }
 
 /* ================ */
@@ -568,6 +575,7 @@ export function initRepositoryActionView() {
   flex-wrap: nowrap;
   justify-content: space-between;
   align-items: center;
+  color: var(--color-text);
 }
 
 .job-brief-item:hover {
@@ -592,28 +600,23 @@ export function initRepositoryActionView() {
   transform: scale(130%);
 }
 
-.job-brief-item .job-brief-link {
+.job-brief-item .job-brief-item-left {
   display: flex;
   width: 100%;
   min-width: 0;
 }
 
-.job-brief-item .job-brief-link span {
+.job-brief-item .job-brief-item-left span {
   display: flex;
   align-items: center;
 }
 
-.job-brief-item .job-brief-link .job-brief-name {
+.job-brief-item .job-brief-item-left .job-brief-name {
   display: block;
   width: 70%;
-  color: var(--color-text);
 }
 
-.job-brief-item .job-brief-link:hover {
-  text-decoration: none;
-}
-
-.job-brief-item .job-brief-info {
+.job-brief-item .job-brief-item-right {
   display: flex;
   align-items: center;
 }
@@ -729,6 +732,7 @@ export function initRepositoryActionView() {
   background-color: var(--color-console-bg);
   max-height: 100%;
   border-radius: 0 0 var(--border-radius) var(--border-radius);
+  z-index: 0;
 }
 
 .job-step-container .job-step-summary {
@@ -736,7 +740,6 @@ export function initRepositoryActionView() {
   padding: 5px 10px;
   display: flex;
   align-items: center;
-  user-select: none;
   border-radius: var(--border-radius);
 }
 
@@ -802,8 +805,13 @@ export function initRepositoryActionView() {
   display: flex;
 }
 
-.job-step-section .job-step-logs .job-log-line:hover {
+.job-log-line:hover,
+.job-log-line:target {
   background-color: var(--color-console-hover-bg);
+}
+
+.job-log-line:target {
+  scroll-margin-top: 95px;
 }
 
 /* class names 'log-time-seconds' and 'log-time-stamp' are used in the method toggleTimeDisplay */
@@ -812,6 +820,11 @@ export function initRepositoryActionView() {
   color: var(--color-grey-light);
   text-align: right;
   user-select: none;
+}
+
+.job-log-line:target > .line-num {
+  color: var(--color-primary);
+  text-decoration: underline;
 }
 
 .log-time-seconds {

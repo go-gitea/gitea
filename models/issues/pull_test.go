@@ -88,14 +88,14 @@ func TestLoadRequestedReviewers(t *testing.T) {
 	user1, err := user_model.GetUserByID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 
-	comment, err := issues_model.AddReviewRequest(issue, user1, &user_model.User{})
+	comment, err := issues_model.AddReviewRequest(db.DefaultContext, issue, user1, &user_model.User{})
 	assert.NoError(t, err)
 	assert.NotNil(t, comment)
 
 	assert.NoError(t, pull.LoadRequestedReviewers(db.DefaultContext))
 	assert.Len(t, pull.RequestedReviewers, 1)
 
-	comment, err = issues_model.RemoveReviewRequest(issue, user1, &user_model.User{})
+	comment, err = issues_model.RemoveReviewRequest(db.DefaultContext, issue, user1, &user_model.User{})
 	assert.NoError(t, err)
 	assert.NotNil(t, comment)
 
@@ -148,7 +148,7 @@ func TestHasUnmergedPullRequestsByHeadInfo(t *testing.T) {
 
 func TestGetUnmergedPullRequestsByHeadInfo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(1, "branch2")
+	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(db.DefaultContext, 1, "branch2")
 	assert.NoError(t, err)
 	assert.Len(t, prs, 1)
 	for _, pr := range prs {
@@ -159,7 +159,7 @@ func TestGetUnmergedPullRequestsByHeadInfo(t *testing.T) {
 
 func TestGetUnmergedPullRequestsByBaseInfo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	prs, err := issues_model.GetUnmergedPullRequestsByBaseInfo(1, "master")
+	prs, err := issues_model.GetUnmergedPullRequestsByBaseInfo(db.DefaultContext, 1, "master")
 	assert.NoError(t, err)
 	assert.Len(t, prs, 1)
 	pr := prs[0]
@@ -242,13 +242,13 @@ func TestPullRequestList_LoadAttributes(t *testing.T) {
 		unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1}),
 		unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2}),
 	}
-	assert.NoError(t, issues_model.PullRequestList(prs).LoadAttributes())
+	assert.NoError(t, issues_model.PullRequestList(prs).LoadAttributes(db.DefaultContext))
 	for _, pr := range prs {
 		assert.NotNil(t, pr.Issue)
 		assert.Equal(t, pr.IssueID, pr.Issue.ID)
 	}
 
-	assert.NoError(t, issues_model.PullRequestList([]*issues_model.PullRequest{}).LoadAttributes())
+	assert.NoError(t, issues_model.PullRequestList([]*issues_model.PullRequest{}).LoadAttributes(db.DefaultContext))
 }
 
 // TODO TestAddTestPullRequestTask

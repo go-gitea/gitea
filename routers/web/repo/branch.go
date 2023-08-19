@@ -57,7 +57,25 @@ func Branches(ctx *context.Context) {
 		return
 	}
 
+	commitIDs := []string{defaultBranch.DBBranch.CommitID}
+	for _, branch := range branches {
+		commitIDs = append(commitIDs, branch.DBBranch.CommitID)
+	}
+
+	commitStatuses, err := git_model.GetLatestCommitStatusForRepoCommitIDs(ctx, ctx.Repo.Repository.ID, commitIDs)
+	if err != nil {
+		ctx.ServerError("LoadBranches", err)
+		return
+	}
+
+	commitStatus := make(map[string]*git_model.CommitStatus)
+	for commitID, cs := range commitStatuses {
+		commitStatus[commitID] = git_model.CalcCommitStatus(cs)
+	}
+
 	ctx.Data["Branches"] = branches
+	ctx.Data["CommitStatus"] = commitStatus
+	ctx.Data["CommitStatuses"] = commitStatuses
 	ctx.Data["DefaultBranchBranch"] = defaultBranch
 	pager := context.NewPagination(int(branchesCount), pageSize, page, 5)
 	pager.SetDefaultParams(ctx)
@@ -144,9 +162,7 @@ func RestoreBranchPost(ctx *context.Context) {
 }
 
 func redirect(ctx *context.Context) {
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": ctx.Repo.RepoLink + "/branches?page=" + url.QueryEscape(ctx.FormString("page")),
-	})
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/branches?page=" + url.QueryEscape(ctx.FormString("page")))
 }
 
 // CreateBranch creates new branch in repository
@@ -205,7 +221,7 @@ func CreateBranch(ctx *context.Context) {
 			if len(e.Message) == 0 {
 				ctx.Flash.Error(ctx.Tr("repo.editor.push_rejected_no_message"))
 			} else {
-				flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
+				flashError, err := ctx.RenderToString(tplAlertDetails, map[string]any{
 					"Message": ctx.Tr("repo.editor.push_rejected"),
 					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
 					"Details": utils.SanitizeFlashErrorString(e.Message),

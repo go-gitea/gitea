@@ -133,10 +133,7 @@ func getIssueStatsChunk(opts *IssuesOptions, issueIDs []int64) (*IssueStats, err
 
 		applyMilestoneCondition(sess, opts)
 
-		if opts.ProjectID > 0 {
-			sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
-				And("project_issue.project_id=?", opts.ProjectID)
-		}
+		applyProjectCondition(sess, opts)
 
 		if opts.AssigneeID > 0 {
 			applyAssigneeCondition(sess, opts.AssigneeID)

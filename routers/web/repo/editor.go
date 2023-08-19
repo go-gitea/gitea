@@ -191,7 +191,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	ctx.Data["last_commit"] = ctx.Repo.CommitID
 	ctx.Data["PreviewableExtensions"] = strings.Join(markup.PreviewableExtensions(), ",")
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
-	ctx.Data["Editorconfig"] = GetEditorConfig(ctx, treePath)
+	ctx.Data["EditorconfigJson"] = GetEditorConfig(ctx, treePath)
 
 	ctx.HTML(http.StatusOK, tplEditFile)
 }
@@ -242,7 +242,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 	ctx.Data["last_commit"] = ctx.Repo.CommitID
 	ctx.Data["PreviewableExtensions"] = strings.Join(markup.PreviewableExtensions(), ",")
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
-	ctx.Data["Editorconfig"] = GetEditorConfig(ctx, form.TreePath)
+	ctx.Data["EditorconfigJson"] = GetEditorConfig(ctx, form.TreePath)
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplEditFile)
@@ -284,10 +284,10 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 		Message:      message,
 		Files: []*files_service.ChangeRepoFile{
 			{
-				Operation:    operation,
-				FromTreePath: ctx.Repo.TreePath,
-				TreePath:     form.TreePath,
-				Content:      strings.ReplaceAll(form.Content, "\r", ""),
+				Operation:     operation,
+				FromTreePath:  ctx.Repo.TreePath,
+				TreePath:      form.TreePath,
+				ContentReader: strings.NewReader(strings.ReplaceAll(form.Content, "\r", "")),
 			},
 		},
 		Signoff: form.Signoff,
@@ -344,7 +344,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 			if len(errPushRej.Message) == 0 {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected_no_message"), tplEditFile, &form)
 			} else {
-				flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
+				flashError, err := ctx.RenderToString(tplAlertDetails, map[string]any{
 					"Message": ctx.Tr("repo.editor.push_rejected"),
 					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
 					"Details": utils.SanitizeFlashErrorString(errPushRej.Message),
@@ -356,7 +356,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 				ctx.RenderWithErr(flashError, tplEditFile, &form)
 			}
 		} else {
-			flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
+			flashError, err := ctx.RenderToString(tplAlertDetails, map[string]any{
 				"Message": ctx.Tr("repo.editor.fail_to_update_file", form.TreePath),
 				"Summary": ctx.Tr("repo.editor.fail_to_update_file_summary"),
 				"Details": utils.SanitizeFlashErrorString(err.Error()),
@@ -370,7 +370,9 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 	}
 
 	if ctx.Repo.Repository.IsEmpty {
-		_ = repo_model.UpdateRepositoryCols(ctx, &repo_model.Repository{ID: ctx.Repo.Repository.ID, IsEmpty: false}, "is_empty")
+		if isEmpty, err := ctx.Repo.GitRepo.IsEmpty(); err == nil && !isEmpty {
+			_ = repo_model.UpdateRepositoryCols(ctx, &repo_model.Repository{ID: ctx.Repo.Repository.ID, IsEmpty: false}, "is_empty")
+		}
 	}
 
 	redirectForCommitChoice(ctx, form.CommitChoice, branchName, form.TreePath)
@@ -543,7 +545,7 @@ func DeleteFilePost(ctx *context.Context) {
 			if len(errPushRej.Message) == 0 {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected_no_message"), tplDeleteFile, &form)
 			} else {
-				flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
+				flashError, err := ctx.RenderToString(tplAlertDetails, map[string]any{
 					"Message": ctx.Tr("repo.editor.push_rejected"),
 					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
 					"Details": utils.SanitizeFlashErrorString(errPushRej.Message),
@@ -743,7 +745,7 @@ func UploadFilePost(ctx *context.Context) {
 			if len(errPushRej.Message) == 0 {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected_no_message"), tplUploadFile, &form)
 			} else {
-				flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
+				flashError, err := ctx.RenderToString(tplAlertDetails, map[string]any{
 					"Message": ctx.Tr("repo.editor.push_rejected"),
 					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
 					"Details": utils.SanitizeFlashErrorString(errPushRej.Message),
@@ -763,7 +765,9 @@ func UploadFilePost(ctx *context.Context) {
 	}
 
 	if ctx.Repo.Repository.IsEmpty {
-		_ = repo_model.UpdateRepositoryCols(ctx, &repo_model.Repository{ID: ctx.Repo.Repository.ID, IsEmpty: false}, "is_empty")
+		if isEmpty, err := ctx.Repo.GitRepo.IsEmpty(); err == nil && !isEmpty {
+			_ = repo_model.UpdateRepositoryCols(ctx, &repo_model.Repository{ID: ctx.Repo.Repository.ID, IsEmpty: false}, "is_empty")
+		}
 	}
 
 	redirectForCommitChoice(ctx, form.CommitChoice, branchName, form.TreePath)

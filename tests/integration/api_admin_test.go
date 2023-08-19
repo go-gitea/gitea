@@ -207,7 +207,7 @@ func TestAPIEditUser(t *testing.T) {
 	})
 	resp := MakeRequest(t, req, http.StatusUnprocessableEntity)
 
-	errMap := make(map[string]interface{})
+	errMap := make(map[string]any)
 	json.Unmarshal(resp.Body.Bytes(), &errMap)
 	assert.EqualValues(t, "email is not allowed to be empty string", errMap["message"].(string))
 

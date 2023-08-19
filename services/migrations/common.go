@@ -14,7 +14,7 @@ import (
 )
 
 // WarnAndNotice will log the provided message and send a repository notice
-func WarnAndNotice(fmtStr string, args ...interface{}) {
+func WarnAndNotice(fmtStr string, args ...any) {
 	log.Warn(fmtStr, args...)
 	if err := system_model.CreateRepositoryNotice(fmt.Sprintf(fmtStr, args...)); err != nil {
 		log.Error("create repository notice failed: ", err)

@@ -4,6 +4,7 @@
 package util
 
 import (
+	"encoding/base64"
 	"regexp"
 	"strings"
 	"testing"
@@ -223,4 +224,26 @@ func BenchmarkToUpper(b *testing.B) {
 func TestToTitleCase(t *testing.T) {
 	assert.Equal(t, ToTitleCase(`foo bar baz`), `Foo Bar Baz`)
 	assert.Equal(t, ToTitleCase(`FOO BAR BAZ`), `Foo Bar Baz`)
+}
+
+func TestToPointer(t *testing.T) {
+	assert.Equal(t, "abc", *ToPointer("abc"))
+	assert.Equal(t, 123, *ToPointer(123))
+	abc := "abc"
+	assert.False(t, &abc == ToPointer(abc))
+	val123 := 123
+	assert.False(t, &val123 == ToPointer(val123))
+}
+
+func TestBase64FixedDecode(t *testing.T) {
+	_, err := Base64FixedDecode(base64.RawURLEncoding, []byte("abcd"), 32)
+	assert.ErrorContains(t, err, "invalid base64 decoded length")
+	_, err = Base64FixedDecode(base64.RawURLEncoding, []byte(strings.Repeat("a", 64)), 32)
+	assert.ErrorContains(t, err, "invalid base64 decoded length")
+
+	str32 := strings.Repeat("x", 32)
+	encoded32 := base64.RawURLEncoding.EncodeToString([]byte(str32))
+	decoded32, err := Base64FixedDecode(base64.RawURLEncoding, []byte(encoded32), 32)
+	assert.NoError(t, err)
+	assert.Equal(t, str32, string(decoded32))
 }

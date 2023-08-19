@@ -1,5 +1,5 @@
 <div class="ui attached table segment commit-table">
-		<table class="ui very basic striped table unstackable fixed" id="commits-table">
+		<table class="ui very basic striped table unstackable" id="commits-table">
 			<thead>
 				<tr>
 					<th class="three wide">{{.locale.Tr "repo.commits.author"}}</th>
@@ -18,9 +18,9 @@
 								{{if .User.FullName}}
 									{{$userName = .User.FullName}}
 								{{end}}
-								{{avatar $.Context .User 28 "gt-mr-2"}}<a href="{{.User.HomeLink}}">{{$userName}}</a>
+								{{ctx.AvatarUtils.Avatar .User 28 "gt-mr-2"}}<a href="{{.User.HomeLink}}">{{$userName}}</a>
 							{{else}}
-								{{avatarByEmail $.Context .Author.Email .Author.Name 28 "gt-mr-2"}}
+								{{ctx.AvatarUtils.AvatarByEmail .Author.Email .Author.Name 28 "gt-mr-2"}}
 								{{$userName}}
 							{{end}}
 						</td>
@@ -43,6 +43,8 @@
 							{{end}}
 							{{if $.PageIsWiki}}
 								<a href="{{$commitRepoLink}}/wiki/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
+							{{else if $.PageIsPullCommits}}
+								<a href="{{$commitRepoLink}}/pulls/{{$.Issue.Index}}/commits/{{.ID}}" rel="nofollow" class="{{$class}}">
 							{{else if $.Reponame}}
 								<a href="{{$commitRepoLink}}/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
 							{{else}}
@@ -53,6 +55,8 @@
 									{{template "repo/shabox_badge" dict "root" $ "verification" .Verification}}
 								{{end}}
 							{{if $.PageIsWiki}}
+								</a>
+							{{else if $.PageIsPullCommits}}
 								</a>
 							{{else if $.Reponame}}
 								</a>
@@ -70,7 +74,7 @@
 							{{end}}
 							</span>
 							{{if IsMultilineCommitMessage .Message}}
-							<button class="ui button ellipsis-button" aria-expanded="false">...</button>
+							<button class="ui button js-toggle-commit-body ellipsis-button" aria-expanded="false">...</button>
 							{{end}}
 							{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses "root" $}}
 							{{if IsMultilineCommitMessage .Message}}

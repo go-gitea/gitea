@@ -15,6 +15,9 @@ import (
 // IssuePinOrUnpin pin or unpin a Issue
 func IssuePinOrUnpin(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
+	if ctx.Written() {
+		return
+	}
 
 	// If we don't do this, it will crash when trying to add the pin event to the comment history
 	err := issue.LoadRepo(ctx)
@@ -36,7 +39,7 @@ func IssuePinOrUnpin(ctx *context.Context) {
 
 // IssueUnpin unpins a Issue
 func IssueUnpin(ctx *context.Context) {
-	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		ctx.Status(http.StatusInternalServerError)
 		log.Error(err.Error())

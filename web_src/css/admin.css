@@ -4,10 +4,6 @@
   margin: 12px -1rem -1rem;
 }
 
-.admin.user table.table .email {
-  max-width: 200px;
-}
-
 .admin dl.admin-dl-horizontal {
   padding: 1em;
   margin: 0;
@@ -17,7 +13,7 @@
 
 .admin dl.admin-dl-horizontal dt,
 .admin dl.admin-dl-horizontal dd {
-  line-height: 1;
+  line-height: var(--line-height-default);
   padding: 5px 0;
 }
 
@@ -41,4 +37,8 @@
 
 .admin .ui.table.segment {
   overflow-x: auto; /* if the screen width is small, many wide tables (eg: user list) need scroll bars */
+}
+
+.admin .table th {
+  white-space: nowrap;
 }

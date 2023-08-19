@@ -1,70 +1,66 @@
-<div class="ui container">
-	<h2 class="ui dividing header">
-		{{if .PageIsEditProjects}}
-		{{.locale.Tr "repo.projects.edit"}}
-		<div class="sub header">{{.locale.Tr "repo.projects.edit_subheader"}}</div>
-		{{else}}
-			{{.locale.Tr "repo.projects.new"}}
-			<div class="sub header">{{.locale.Tr "repo.projects.new_subheader"}}</div>
-			{{end}}
-	</h2>
-	{{template "base/alert" .}}
-	<form class="ui form grid" action="{{.Link}}" method="post">
-		{{.CsrfTokenHtml}}
-		<div class="eleven wide column">
-			<input type="hidden" id="redirect" name="redirect" value="{{.redirect}}">
-			<div class="field {{if .Err_Title}}error{{end}}">
-				<label>{{.locale.Tr "repo.projects.title"}}</label>
-				<input name="title" placeholder="{{.locale.Tr "repo.projects.title"}}" value="{{.title}}" autofocus required>
-			</div>
-			<div class="field">
-				<label>{{.locale.Tr "repo.projects.description"}}</label>
-				<textarea name="content" placeholder="{{.locale.Tr "repo.projects.description_placeholder"}}">{{.content}}</textarea>
-			</div>
+<h2 class="ui dividing header">
+	{{if .PageIsEditProjects}}
+		{{ctx.Locale.Tr "repo.projects.edit"}}
+		<div class="sub header">{{ctx.Locale.Tr "repo.projects.edit_subheader"}}</div>
+	{{else}}
+		{{ctx.Locale.Tr "repo.projects.new"}}
+		<div class="sub header">{{ctx.Locale.Tr "repo.projects.new_subheader"}}</div>
+	{{end}}
+</h2>
+{{template "base/alert" .}}
+<form class="ui form" action="{{.Link}}" method="post">
+	{{.CsrfTokenHtml}}
+	<div>
+		<input type="hidden" id="redirect" name="redirect" value="{{.redirect}}">
+		<div class="field {{if .Err_Title}}error{{end}}">
+			<label>{{ctx.Locale.Tr "repo.projects.title"}}</label>
+			<input name="title" placeholder="{{ctx.Locale.Tr "repo.projects.title"}}" value="{{.title}}" autofocus required>
+		</div>
+		<div class="field">
+			<label>{{ctx.Locale.Tr "repo.projects.description"}}</label>
+			<textarea name="content" placeholder="{{ctx.Locale.Tr "repo.projects.description_placeholder"}}">{{.content}}</textarea>
+		</div>
 
-			{{if not .PageIsEditProjects}}
-				<div class="field">
-					<label>{{.locale.Tr "repo.projects.template.desc"}}</label>
-					<div class="ui selection dropdown">
-						<input type="hidden" name="board_type" value="{{.type}}">
-						<div class="default text">{{.locale.Tr "repo.projects.template.desc_helper"}}</div>
-						<div class="menu">
-							{{range $element := .BoardTypes}}
-								<div class="item" data-id="{{$element.BoardType}}" data-value="{{$element.BoardType}}">{{$.locale.Tr $element.Translation}}</div>
-							{{end}}
-						</div>
-					</div>
-				</div>
-			{{end}}
-
+		{{if not .PageIsEditProjects}}
 			<div class="field">
-				<label>{{.locale.Tr "repo.projects.card_type.desc"}}</label>
+				<label>{{ctx.Locale.Tr "repo.projects.template.desc"}}</label>
 				<div class="ui selection dropdown">
-					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-					{{range $element := .CardTypes}}
-						{{if or (eq $.card_type $element.CardType) (and (not $.PageIsEditProjects) (eq $element.CardType 1))}}
-							<input type="hidden" name="card_type" value="{{$element.CardType}}">
-							<div class="default text">{{$.locale.Tr $element.Translation}}</div>
-						{{end}}
-					{{end}}
+					<input type="hidden" name="board_type" value="{{.type}}">
+					<div class="default text">{{ctx.Locale.Tr "repo.projects.template.desc_helper"}}</div>
 					<div class="menu">
-						{{range $element := .CardTypes}}
-							<div class="item" data-id="{{$element.CardType}}" data-value="{{$element.CardType}}">{{$.locale.Tr $element.Translation}}</div>
+						{{range $element := .BoardTypes}}
+							<div class="item" data-id="{{$element.BoardType}}" data-value="{{$element.BoardType}}">{{ctx.Locale.Tr $element.Translation}}</div>
 						{{end}}
 					</div>
 				</div>
 			</div>
-		</div>
-		<div class="ui container">
-			<div class="divider"></div>
-			<div class="ui left">
-				<a class="ui cancel button" href="{{$.CancelLink}}">
-					{{.locale.Tr "repo.milestones.cancel"}}
-				</a>
-				<button class="ui primary button">
-					{{if .PageIsEditProjects}}{{.locale.Tr "repo.projects.modify"}}{{else}}{{.locale.Tr "repo.projects.create"}}{{end}}
-				</button>
+		{{end}}
+
+		<div class="field">
+			<label>{{ctx.Locale.Tr "repo.projects.card_type.desc"}}</label>
+			<div class="ui selection dropdown">
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				{{range $element := .CardTypes}}
+					{{if or (eq $.card_type $element.CardType) (and (not $.PageIsEditProjects) (eq $element.CardType 1))}}
+						<input type="hidden" name="card_type" value="{{$element.CardType}}">
+						<div class="default text">{{ctx.Locale.Tr $element.Translation}}</div>
+					{{end}}
+				{{end}}
+				<div class="menu">
+					{{range $element := .CardTypes}}
+						<div class="item" data-id="{{$element.CardType}}" data-value="{{$element.CardType}}">{{ctx.Locale.Tr $element.Translation}}</div>
+					{{end}}
+				</div>
 			</div>
 		</div>
-	</form>
-</div>
+	</div>
+	<div class="divider"></div>
+	<div class="gt-text-right">
+		<a class="ui cancel button" href="{{$.CancelLink}}">
+			{{ctx.Locale.Tr "repo.milestones.cancel"}}
+		</a>
+		<button class="ui primary button">
+			{{if .PageIsEditProjects}}{{ctx.Locale.Tr "repo.projects.modify"}}{{else}}{{ctx.Locale.Tr "repo.projects.create"}}{{end}}
+		</button>
+	</div>
+</form>
