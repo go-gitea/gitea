@@ -15,8 +15,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func testRepoMigrate(t testing.TB, session *TestSession, cloneAddr, repoName string) *httptest.ResponseRecorder {
-	req := NewRequest(t, "GET", fmt.Sprintf("/repo/migrate?service_type=%d", structs.PlainGitService)) // render plain git migration page
+func testRepoMigrate(t testing.TB, session *TestSession, cloneAddr, repoName string, service structs.GitServiceType) *httptest.ResponseRecorder {
+	req := NewRequest(t, "GET", fmt.Sprintf("/repo/migrate?service_type=%d", service)) // render plain git migration page
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
@@ -31,7 +31,7 @@ func testRepoMigrate(t testing.TB, session *TestSession, cloneAddr, repoName str
 		"clone_addr": cloneAddr,
 		"uid":        uid,
 		"repo_name":  repoName,
-		"service":    fmt.Sprintf("%d", structs.PlainGitService),
+		"service":    fmt.Sprintf("%d", service),
 	})
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 
@@ -41,5 +41,17 @@ func testRepoMigrate(t testing.TB, session *TestSession, cloneAddr, repoName str
 func TestRepoMigrate(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
-	testRepoMigrate(t, session, "https://github.com/go-gitea/test_repo.git", "git")
+	for _, s := range []struct {
+		testName  string
+		cloneAddr string
+		repoName  string
+		service   structs.GitServiceType
+	}{
+		{"TestMigrateGithub", "https://github.com/go-gitea/test_repo.git", "git", structs.PlainGitService},
+		{"TestMigrateGithub", "https://github.com/go-gitea/test_repo.git", "github", structs.GithubService},
+	} {
+		t.Run(s.testName, func(t *testing.T) {
+			testRepoMigrate(t, session, s.cloneAddr, s.repoName, s.service)
+		})
+	}
 }
