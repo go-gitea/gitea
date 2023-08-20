@@ -113,7 +113,7 @@
 					<span class="breadcrumb repo-path gt-ml-2">
 						<a class="section" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}" title="{{.Repository.Name}}">{{StringUtils.EllipsisString .Repository.Name 30}}</a>
 						{{- range $i, $v := .TreeNames -}}
-							<span class="divider">/</span>
+							<span class="breadcrumb-divider">/</span>
 							{{- if eq $i $l -}}
 								<span class="active section" title="{{$v}}">{{StringUtils.EllipsisString $v 30}}</span>
 							{{- else -}}

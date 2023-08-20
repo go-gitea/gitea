@@ -73,6 +73,7 @@ var Service = struct {
 	AllowCrossRepositoryDependencies        bool
 	DefaultAllowOnlyContributorsToTrackTime bool
 	NoReplyAddress                          string
+	UserLocationMapURL                      string
 	EnableUserHeatmap                       bool
 	AutoWatchNewRepos                       bool
 	AutoWatchOnChanges                      bool
@@ -185,18 +186,37 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	Service.AllowCrossRepositoryDependencies = sec.Key("ALLOW_CROSS_REPOSITORY_DEPENDENCIES").MustBool(true)
 	Service.DefaultAllowOnlyContributorsToTrackTime = sec.Key("DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME").MustBool(true)
 	Service.NoReplyAddress = sec.Key("NO_REPLY_ADDRESS").MustString("noreply." + Domain)
+	Service.UserLocationMapURL = sec.Key("USER_LOCATION_MAP_URL").String()
 	Service.EnableUserHeatmap = sec.Key("ENABLE_USER_HEATMAP").MustBool(true)
 	Service.AutoWatchNewRepos = sec.Key("AUTO_WATCH_NEW_REPOS").MustBool(true)
 	Service.AutoWatchOnChanges = sec.Key("AUTO_WATCH_ON_CHANGES").MustBool(false)
-	Service.DefaultUserVisibility = sec.Key("DEFAULT_USER_VISIBILITY").In("public", structs.ExtractKeysFromMapString(structs.VisibilityModes))
-	Service.DefaultUserVisibilityMode = structs.VisibilityModes[Service.DefaultUserVisibility]
-	Service.AllowedUserVisibilityModes = sec.Key("ALLOWED_USER_VISIBILITY_MODES").Strings(",")
-	if len(Service.AllowedUserVisibilityModes) != 0 {
+	modes := sec.Key("ALLOWED_USER_VISIBILITY_MODES").Strings(",")
+	if len(modes) != 0 {
+		Service.AllowedUserVisibilityModes = []string{}
 		Service.AllowedUserVisibilityModesSlice = []bool{false, false, false}
-		for _, sMode := range Service.AllowedUserVisibilityModes {
-			Service.AllowedUserVisibilityModesSlice[structs.VisibilityModes[sMode]] = true
+		for _, sMode := range modes {
+			if tp, ok := structs.VisibilityModes[sMode]; ok { // remove unsupported modes
+				Service.AllowedUserVisibilityModes = append(Service.AllowedUserVisibilityModes, sMode)
+				Service.AllowedUserVisibilityModesSlice[tp] = true
+			} else {
+				log.Warn("ALLOWED_USER_VISIBILITY_MODES %s is unsupported", sMode)
+			}
 		}
 	}
+
+	if len(Service.AllowedUserVisibilityModes) == 0 {
+		Service.AllowedUserVisibilityModes = []string{"public", "limited", "private"}
+		Service.AllowedUserVisibilityModesSlice = []bool{true, true, true}
+	}
+
+	Service.DefaultUserVisibility = sec.Key("DEFAULT_USER_VISIBILITY").String()
+	if Service.DefaultUserVisibility == "" {
+		Service.DefaultUserVisibility = Service.AllowedUserVisibilityModes[0]
+	} else if !Service.AllowedUserVisibilityModesSlice[structs.VisibilityModes[Service.DefaultUserVisibility]] {
+		log.Warn("DEFAULT_USER_VISIBILITY %s is wrong or not in ALLOWED_USER_VISIBILITY_MODES, using first allowed", Service.DefaultUserVisibility)
+		Service.DefaultUserVisibility = Service.AllowedUserVisibilityModes[0]
+	}
+	Service.DefaultUserVisibilityMode = structs.VisibilityModes[Service.DefaultUserVisibility]
 	Service.DefaultOrgVisibility = sec.Key("DEFAULT_ORG_VISIBILITY").In("public", structs.ExtractKeysFromMapString(structs.VisibilityModes))
 	Service.DefaultOrgVisibilityMode = structs.VisibilityModes[Service.DefaultOrgVisibility]
 	Service.DefaultOrgMemberVisible = sec.Key("DEFAULT_ORG_MEMBER_VISIBLE").MustBool()

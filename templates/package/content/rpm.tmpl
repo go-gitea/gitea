@@ -4,12 +4,20 @@
 		<div class="ui form">
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.rpm.registry"}}</label>
-				<div class="markup"><pre class="code-block"><code>dnf config-manager --add-repo <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm.repo"></gitea-origin-url></code></pre></div>
+				<div class="markup"><pre class="code-block"><code># {{.locale.Tr "packages.rpm.distro.redhat"}}
+dnf config-manager --add-repo <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm.repo"></gitea-origin-url>
+
+# {{.locale.Tr "packages.rpm.distro.suse"}}
+zypper addrepo <gitea-origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm.repo"></gitea-origin-url></code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.rpm.install"}}</label>
 				<div class="markup">
-					<pre class="code-block"><code>dnf install {{$.PackageDescriptor.Package.Name}}</code></pre>
+					<pre class="code-block"><code># {{.locale.Tr "packages.rpm.distro.redhat"}}
+dnf install {{$.PackageDescriptor.Package.Name}}
+
+# {{.locale.Tr "packages.rpm.distro.suse"}}
+zypper install {{$.PackageDescriptor.Package.Name}}</code></pre>
 				</div>
 			</div>
 			<div class="field">

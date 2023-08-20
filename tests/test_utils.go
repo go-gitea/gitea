@@ -43,6 +43,9 @@ func InitTest(requireGitea bool) {
 		exitf("Environment variable $GITEA_ROOT not set")
 	}
 
+	// TODO: Speedup tests that rely on the event source ticker, confirm whether there is any bug or failure.
+	// setting.UI.Notification.EventSourceUpdateTime = time.Second
+
 	setting.IsInTesting = true
 	setting.AppWorkPath = giteaRoot
 	setting.CustomPath = filepath.Join(setting.AppWorkPath, "custom")
@@ -178,7 +181,7 @@ func InitTest(requireGitea bool) {
 
 func PrepareTestEnv(t testing.TB, skip ...int) func() {
 	t.Helper()
-	ourSkip := 2
+	ourSkip := 1
 	if len(skip) > 0 {
 		ourSkip += skip[0]
 	}

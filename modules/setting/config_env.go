@@ -4,6 +4,7 @@
 package setting
 
 import (
+	"bytes"
 	"os"
 	"regexp"
 	"strconv"
@@ -86,7 +87,7 @@ func decodeEnvSectionKey(encoded string) (ok bool, section, key string) {
 		key += remaining
 	}
 	section = strings.ToLower(section)
-	ok = section != "" && key != ""
+	ok = key != ""
 	if !ok {
 		section = ""
 		key = ""
@@ -130,6 +131,11 @@ func EnvironmentToConfig(cfg ConfigProvider, envs []string) (changed bool) {
 			if err != nil {
 				log.Error("Error reading file for %s : %v", envKey, envValue, err)
 				continue
+			}
+			if bytes.HasSuffix(fileContent, []byte("\r\n")) {
+				fileContent = fileContent[:len(fileContent)-2]
+			} else if bytes.HasSuffix(fileContent, []byte("\n")) {
+				fileContent = fileContent[:len(fileContent)-1]
 			}
 			keyValue = string(fileContent)
 		}

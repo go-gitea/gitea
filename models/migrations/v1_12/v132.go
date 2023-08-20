@@ -14,8 +14,8 @@ func AddBranchProtectionProtectedFilesColumn(x *xorm.Engine) error {
 		ProtectedFilePatterns string `xorm:"TEXT"`
 	}
 
-	if err := x.Sync2(new(ProtectedBranch)); err != nil {
-		return fmt.Errorf("Sync2: %w", err)
+	if err := x.Sync(new(ProtectedBranch)); err != nil {
+		return fmt.Errorf("Sync: %w", err)
 	}
 	return nil
 }
