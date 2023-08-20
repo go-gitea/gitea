@@ -35,7 +35,7 @@ jobs:
       - uses: dorny/paths-filter@v2
         id: changes
         with:
-          # used for `act_runner exec`
+          # should uncomment the next line when using `act_runner exec`.
           # base: HEAD
           filters: |
             backend:
