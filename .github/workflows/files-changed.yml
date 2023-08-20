@@ -35,8 +35,8 @@ jobs:
       - uses: dorny/paths-filter@v2
         id: changes
         with:
-          # should uncomment the next line when using `act_runner exec`.
-          # base: HEAD
+          # needed for `act_runner exec`, is ignored for pull_request event
+          base: HEAD
           filters: |
             backend:
               - "**/*.go"
