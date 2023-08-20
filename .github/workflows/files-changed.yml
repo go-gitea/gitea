@@ -35,8 +35,8 @@ jobs:
       - uses: dorny/paths-filter@v2
         id: changes
         with:
-          # needed for `act_runner exec`, is ignored for pull_request event
-          # base: HEAD
+          # needed for `act_runner exec`
+          ref: ${{ env.ACT_EXEC == 'true' && 'HEAD' || env.GITHUB_REF }}
           filters: |
             backend:
               - "**/*.go"
