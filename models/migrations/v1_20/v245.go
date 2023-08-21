@@ -40,7 +40,7 @@ func RenameWebhookOrgToOwner(x *xorm.Engine) error {
 		return err
 	}
 
-	if err := sess.Sync2(new(Webhook)); err != nil {
+	if err := sess.Sync(new(Webhook)); err != nil {
 		return err
 	}
 
