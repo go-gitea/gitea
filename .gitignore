@@ -92,6 +92,7 @@ cpu.out
 /VERSION
 /.air
 /.go-licenses
+/vscode/*
 
 # Snapcraft
 snap/.snapcraft/
