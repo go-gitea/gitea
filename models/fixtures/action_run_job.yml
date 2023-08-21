@@ -1,18 +1,14 @@
-- attempt: 1
-  commit_sha: c2d72f548424103f01ee1dc02889c1e2bff816b0
-  created: null
+-
   id: 192
-  is_fork_pull_request: 0
-  job_id: job_2
-  name: job_2
-  needs: null
-  owner_id: 1
-  repo_id: 4
   run_id: 791
-  runs_on: null
-  started: 1683636528
-  status: 1
-  stopped: 1683636626
+  repo_id: 4
+  owner_id: 1
+  commit_sha: c2d72f548424103f01ee1dc02889c1e2bff816b0
+  is_fork_pull_request: 0
+  name: job_2
+  attempt: 1
+  job_id: job_2
   task_id: 47
-  updated: null
-  workflow_payload: null
+  status: 1
+  started: 1683636528
+  stopped: 1683636626

@@ -1,64 +1,31 @@
-- content_type: 1
-  created_unix: null
-  events: '{"push_only":true,"send_everything":false,"choose_events":false,"events":{"create":false,"push":true,"pull_request":false}}'
-  header_authorization_encrypted: null
-  http_method: null
+-
   id: 1
-  is_active: 1
-  is_system_webhook: null
-  last_status: null
-  meta: null
-  owner_id: null
   repo_id: 1
-  secret: null
-  type: null
-  updated_unix: null
   url: www.example.com/url1
-- content_type: 1
-  created_unix: null
-  events: '{"push_only":false,"send_everything":false,"choose_events":false,"events":{"create":false,"push":true,"pull_request":true}}'
-  header_authorization_encrypted: null
-  http_method: null
+  content_type: 1 # json
+  events: '{"push_only":true,"send_everything":false,"choose_events":false,"events":{"create":false,"push":true,"pull_request":false}}'
+  is_active: true
+
+-
   id: 2
-  is_active: 0
-  is_system_webhook: null
-  last_status: null
-  meta: null
-  owner_id: null
   repo_id: 1
-  secret: null
-  type: null
-  updated_unix: null
   url: www.example.com/url2
-- content_type: 1
-  created_unix: null
+  content_type: 1 # json
   events: '{"push_only":false,"send_everything":false,"choose_events":false,"events":{"create":false,"push":true,"pull_request":true}}'
-  header_authorization_encrypted: null
-  http_method: null
+  is_active: false
+
+-
   id: 3
-  is_active: 1
-  is_system_webhook: null
-  last_status: null
-  meta: null
   owner_id: 3
   repo_id: 3
-  secret: null
-  type: null
-  updated_unix: null
   url: www.example.com/url3
-- content_type: 1
-  created_unix: null
-  events: '{"push_only":true,"branch_filter":"{master,feature*}"}'
-  header_authorization_encrypted: null
-  http_method: null
+  content_type: 1 # json
+  events: '{"push_only":false,"send_everything":false,"choose_events":false,"events":{"create":false,"push":true,"pull_request":true}}'
+  is_active: true
+-
   id: 4
-  is_active: 1
-  is_system_webhook: null
-  last_status: null
-  meta: null
-  owner_id: null
   repo_id: 2
-  secret: null
-  type: null
-  updated_unix: null
   url: www.example.com/url4
+  content_type: 1 # json
+  events: '{"push_only":true,"branch_filter":"{master,feature*}"}'
+  is_active: true

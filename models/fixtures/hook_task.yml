@@ -1,10 +1,5 @@
-- delivered: null
-  event_type: null
-  hook_id: 1
+-
   id: 1
-  is_delivered: 1
-  is_succeed: null
-  payload_content: null
-  request_content: null
-  response_content: null
+  hook_id: 1
   uuid: uuid1
+  is_delivered: true

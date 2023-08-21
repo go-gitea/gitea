@@ -1,12 +1,14 @@
-- created_unix: null
-  description: description1
+-
   id: 1
-  type: 1
-- created_unix: null
-  description: description2
+  type: 1 # NoticeRepository
+  description: description1
+
+-
   id: 2
-  type: 1
-- created_unix: null
-  description: description3
+  type: 1 # NoticeRepository
+  description: description2
+
+-
   id: 3
-  type: 1
+  type: 1 # NoticeRepository
+  description: description3

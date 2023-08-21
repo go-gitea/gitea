@@ -1,48 +1,47 @@
-- commit_id: 65f1bf27bc3bf70f64657658635e66094edbcb4d
-  commit_message: first commit
+-
+  id: 1
+  repo_id: 1
+  name: 'foo'
+  commit_id: '65f1bf27bc3bf70f64657658635e66094edbcb4d'
+  commit_message: 'first commit'
   commit_time: 978307100
-  created_unix: null
+  pusher_id: 1
+  is_deleted: true
   deleted_by_id: 1
   deleted_unix: 978307200
-  id: 1
-  is_deleted: 1
-  name: foo
-  pusher_id: 1
+
+-
+  id: 2
   repo_id: 1
-  updated_unix: null
-- commit_id: 62fb502a7172d4453f0322a2cc85bddffa57f07a
-  commit_message: second commit
+  name: 'bar'
+  commit_id: '62fb502a7172d4453f0322a2cc85bddffa57f07a'
+  commit_message: 'second commit'
   commit_time: 978307100
-  created_unix: null
+  pusher_id: 1
+  is_deleted: true
   deleted_by_id: 99
   deleted_unix: 978307200
-  id: 2
-  is_deleted: 1
-  name: bar
-  pusher_id: 1
-  repo_id: 1
-  updated_unix: null
-- commit_id: 985f0301dba5e7b34be866819cd15ad3d8f508ee
-  commit_message: make pull5 outdated
-  commit_time: 1579166279
-  created_unix: null
-  deleted_by_id: 0
-  deleted_unix: 0
+
+-
   id: 3
-  is_deleted: 0
-  name: branch2
-  pusher_id: 1
   repo_id: 1
-  updated_unix: null
-- commit_id: 65f1bf27bc3bf70f64657658635e66094edbcb4d
-  commit_message: Initial commit
-  commit_time: 1489927679
-  created_unix: null
+  name: 'branch2'
+  commit_id: '985f0301dba5e7b34be866819cd15ad3d8f508ee'
+  commit_message: 'make pull5 outdated'
+  commit_time: 1579166279
+  pusher_id: 1
+  is_deleted: false
   deleted_by_id: 0
   deleted_unix: 0
+
+-
   id: 4
-  is_deleted: 0
-  name: master
-  pusher_id: 1
   repo_id: 1
-  updated_unix: null
+  name: 'master'
+  commit_id: '65f1bf27bc3bf70f64657658635e66094edbcb4d'
+  commit_message: 'Initial commit'
+  commit_time: 1489927679
+  pusher_id: 1
+  is_deleted: false
+  deleted_by_id: 0
+  deleted_unix: 0

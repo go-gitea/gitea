@@ -1,252 +1,68 @@
-- assignee_id: null
-  assignee_team_id: 0
-  commit_id: null
-  commit_sha: null
+-
+  id: 1
+  type: 7 # label
+  poster_id: 2
+  issue_id: 1 # in repo_id 1
+  label_id: 1
   content: "1"
   created_unix: 946684810
-  dependent_issue_id: null
-  id: 1
-  invalidated: null
-  issue_id: 1
-  label_id: 1
-  line: null
-  milestone_id: null
-  new_ref: null
-  new_title: null
-  old_milestone_id: null
-  old_project_id: null
-  old_ref: null
-  old_title: null
-  original_author: null
-  original_author_id: null
-  patch: null
-  poster_id: 2
-  project_id: null
-  ref_action: null
-  ref_comment_id: null
-  ref_is_pull: null
-  ref_issue_id: null
-  ref_repo_id: null
-  removed_assignee: null
-  resolve_doer_id: null
-  review_id: null
-  time_id: null
-  tree_path: null
-  type: 7
-  updated_unix: null
-- assignee_id: null
-  assignee_team_id: 0
-  commit_id: null
-  commit_sha: null
-  content: good work!
-  created_unix: 946684811
-  dependent_issue_id: null
+-
   id: 2
-  invalidated: null
-  issue_id: 1
-  label_id: null
-  line: null
-  milestone_id: null
-  new_ref: null
-  new_title: null
-  old_milestone_id: null
-  old_project_id: null
-  old_ref: null
-  old_title: null
-  original_author: null
-  original_author_id: null
-  patch: null
-  poster_id: 3
-  project_id: null
-  ref_action: null
-  ref_comment_id: null
-  ref_is_pull: null
-  ref_issue_id: null
-  ref_repo_id: null
-  removed_assignee: null
-  resolve_doer_id: null
-  review_id: null
-  time_id: null
-  tree_path: null
-  type: 0
+  type: 0 # comment
+  poster_id: 3 # user not watching (see watch.yml)
+  issue_id: 1 # in repo_id 1
+  content: "good work!"
+  created_unix: 946684811
   updated_unix: 946684811
-- assignee_id: null
-  assignee_team_id: 0
-  commit_id: null
-  commit_sha: null
-  content: meh...
-  created_unix: 946684812
-  dependent_issue_id: null
+-
   id: 3
-  invalidated: null
-  issue_id: 1
-  label_id: null
-  line: null
-  milestone_id: null
-  new_ref: null
-  new_title: null
-  old_milestone_id: null
-  old_project_id: null
-  old_ref: null
-  old_title: null
-  original_author: null
-  original_author_id: null
-  patch: null
-  poster_id: 5
-  project_id: null
-  ref_action: null
-  ref_comment_id: null
-  ref_is_pull: null
-  ref_issue_id: null
-  ref_repo_id: null
-  removed_assignee: null
-  resolve_doer_id: null
-  review_id: null
-  time_id: null
-  tree_path: null
-  type: 0
+  type: 0 # comment
+  poster_id: 5 # user not watching (see watch.yml)
+  issue_id: 1 # in repo_id 1
+  content: "meh..."
+  created_unix: 946684812
   updated_unix: 946684812
-- assignee_id: null
-  assignee_team_id: 0
-  commit_id: null
-  commit_sha: null
-  content: meh...
-  created_unix: 946684812
-  dependent_issue_id: null
+-
   id: 4
-  invalidated: 0
-  issue_id: 2
-  label_id: null
-  line: 4
-  milestone_id: null
-  new_ref: null
-  new_title: null
-  old_milestone_id: null
-  old_project_id: null
-  old_ref: null
-  old_title: null
-  original_author: null
-  original_author_id: null
-  patch: null
+  type: 21 # code comment
   poster_id: 1
-  project_id: null
-  ref_action: null
-  ref_comment_id: null
-  ref_is_pull: null
-  ref_issue_id: null
-  ref_repo_id: null
-  removed_assignee: null
-  resolve_doer_id: null
+  issue_id: 2
+  content: "meh..."
   review_id: 4
-  time_id: null
-  tree_path: README.md
-  type: 21
-  updated_unix: null
-- assignee_id: null
-  assignee_team_id: 0
-  commit_id: null
-  commit_sha: null
-  content: meh...
+  line: 4
+  tree_path: "README.md"
   created_unix: 946684812
-  dependent_issue_id: null
+  invalidated: false
+-
   id: 5
-  invalidated: 0
-  issue_id: 2
-  label_id: null
-  line: -4
-  milestone_id: null
-  new_ref: null
-  new_title: null
-  old_milestone_id: null
-  old_project_id: null
-  old_ref: null
-  old_title: null
-  original_author: null
-  original_author_id: null
-  patch: null
+  type: 21 # code comment
   poster_id: 1
-  project_id: null
-  ref_action: null
-  ref_comment_id: null
-  ref_is_pull: null
-  ref_issue_id: null
-  ref_repo_id: null
-  removed_assignee: null
-  resolve_doer_id: null
-  review_id: null
-  time_id: null
-  tree_path: README.md
-  type: 21
-  updated_unix: null
-- assignee_id: null
-  assignee_team_id: 0
-  commit_id: null
-  commit_sha: null
-  content: it's already invalidated. boring...
+  issue_id: 2
+  content: "meh..."
+  line: -4
+  tree_path: "README.md"
   created_unix: 946684812
-  dependent_issue_id: null
+  invalidated: false
+
+-
   id: 6
-  invalidated: 1
-  issue_id: 2
-  label_id: null
-  line: -4
-  milestone_id: null
-  new_ref: null
-  new_title: null
-  old_milestone_id: null
-  old_project_id: null
-  old_ref: null
-  old_title: null
-  original_author: null
-  original_author_id: null
-  patch: null
+  type: 21 # code comment
   poster_id: 1
-  project_id: null
-  ref_action: null
-  ref_comment_id: null
-  ref_is_pull: null
-  ref_issue_id: null
-  ref_repo_id: null
-  removed_assignee: null
-  resolve_doer_id: null
-  review_id: null
-  time_id: null
-  tree_path: README.md
-  type: 21
-  updated_unix: null
-- assignee_id: null
-  assignee_team_id: 0
-  commit_id: null
-  commit_sha: null
-  content: a review from a deleted user
-  created_unix: 946684812
-  dependent_issue_id: null
-  id: 7
-  invalidated: 1
-  issue_id: 3
-  label_id: null
+  issue_id: 2
+  content: "it's already invalidated. boring..."
   line: -4
-  milestone_id: null
-  new_ref: null
-  new_title: null
-  old_milestone_id: null
-  old_project_id: null
-  old_ref: null
-  old_title: null
-  original_author: null
-  original_author_id: null
-  patch: null
+  tree_path: "README.md"
+  created_unix: 946684812
+  invalidated: true
+
+-
+  id: 7
+  type: 21 # code comment
   poster_id: 100
-  project_id: null
-  ref_action: null
-  ref_comment_id: null
-  ref_is_pull: null
-  ref_issue_id: null
-  ref_repo_id: null
-  removed_assignee: null
-  resolve_doer_id: null
+  issue_id: 3
+  content: "a review from a deleted user"
+  line: -4
   review_id: 10
-  time_id: null
-  tree_path: README.md
-  type: 21
-  updated_unix: null
+  tree_path: "README.md"
+  created_unix: 946684812
+  invalidated: true

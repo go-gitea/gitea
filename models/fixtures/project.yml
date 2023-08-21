@@ -1,52 +1,47 @@
-- board_type: 1
-  card_type: null
-  closed_date_unix: null
-  created_unix: 1688973030
-  creator_id: 2
-  description: null
+-
   id: 1
-  is_closed: 0
+  title: First project
   owner_id: 0
   repo_id: 1
-  title: First project
+  is_closed: false
+  creator_id: 2
+  board_type: 1
   type: 2
+  created_unix: 1688973030
   updated_unix: 1688973030
-- board_type: 1
-  card_type: null
-  closed_date_unix: null
-  created_unix: 1688973010
-  creator_id: 3
-  description: null
+
+-
   id: 2
-  is_closed: 0
+  title: second project
   owner_id: 0
   repo_id: 3
-  title: second project
+  is_closed: false
+  creator_id: 3
+  board_type: 1
   type: 2
+  created_unix: 1688973010
   updated_unix: 1688973010
-- board_type: 1
-  card_type: null
-  closed_date_unix: null
-  created_unix: 1688973020
-  creator_id: 5
-  description: null
+
+-
   id: 3
-  is_closed: 1
+  title: project on repo with disabled project
   owner_id: 0
   repo_id: 4
-  title: project on repo with disabled project
+  is_closed: true
+  creator_id: 5
+  board_type: 1
   type: 2
+  created_unix: 1688973020
   updated_unix: 1688973020
-- board_type: 1
-  card_type: null
-  closed_date_unix: null
-  created_unix: 1688973000
-  creator_id: 2
-  description: null
+
+-
   id: 4
-  is_closed: 0
+  title: project on user2
   owner_id: 2
   repo_id: 0
-  title: project on user2
+  is_closed: false
+  creator_id: 2
+  board_type: 1
   type: 2
+  created_unix: 1688973000
   updated_unix: 1688973000

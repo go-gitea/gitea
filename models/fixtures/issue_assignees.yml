@@ -1,12 +1,16 @@
-- assignee_id: 1
+-
   id: 1
+  assignee_id: 1
   issue_id: 1
-- assignee_id: 1
+-
   id: 2
+  assignee_id: 1
   issue_id: 6
-- assignee_id: 2
+-
   id: 3
+  assignee_id: 2
   issue_id: 6
-- assignee_id: 2
+-
   id: 4
+  assignee_id: 2
   issue_id: 17

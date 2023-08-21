@@ -1,30 +1,29 @@
-- created_unix: null
+-
   id: 1
   name: golang
   repo_count: 2
-  updated_unix: null
-- created_unix: null
+
+-
   id: 2
   name: database
   repo_count: 1
-  updated_unix: null
-- created_unix: null
+
+-
   id: 3
   name: SQL
   repo_count: 1
-  updated_unix: null
-- created_unix: null
+
+-
   id: 4
   name: graphql
   repo_count: 1
-  updated_unix: null
-- created_unix: null
+
+-
   id: 5
   name: topicname1
   repo_count: 1
-  updated_unix: null
-- created_unix: null
+
+-
   id: 6
   name: topicname2
   repo_count: 2
-  updated_unix: null

@@ -1,210 +1,279 @@
-- email: user11@example.com
+-
   id: 1
-  is_activated: 0
-  is_primary: 1
-  lower_email: user11@example.com
   uid: 11
-- email: user12@example.com
+  email: user11@example.com
+  lower_email: user11@example.com
+  is_activated: false
+  is_primary: true
+
+-
   id: 2
-  is_activated: 1
-  is_primary: 1
-  lower_email: user12@example.com
   uid: 12
-- email: user2@example.com
+  email: user12@example.com
+  lower_email: user12@example.com
+  is_activated: true
+  is_primary: true
+
+-
   id: 3
-  is_activated: 1
-  is_primary: 1
+  uid: 2
+  email: user2@example.com
   lower_email: user2@example.com
-  uid: 2
-- email: user21@example.com
+  is_activated: true
+  is_primary: true
+
+-
   id: 4
-  is_activated: 1
-  is_primary: 1
-  lower_email: user21@example.com
   uid: 21
-- email: user9999999@example.com
+  email: user21@example.com
+  lower_email: user21@example.com
+  is_activated: true
+  is_primary: true
+
+-
   id: 5
-  is_activated: 1
-  is_primary: 0
-  lower_email: user9999999@example.com
   uid: 9999999
-- email: user10@example.com
+  email: user9999999@example.com
+  lower_email: user9999999@example.com
+  is_activated: true
+  is_primary: false
+
+-
   id: 6
-  is_activated: 1
-  is_primary: 1
+  uid: 10
+  email: user10@example.com
   lower_email: user10@example.com
-  uid: 10
-- email: user101@example.com
+  is_activated: true
+  is_primary: true
+
+-
   id: 7
-  is_activated: 1
-  is_primary: 0
-  lower_email: user101@example.com
   uid: 10
-- email: user9@example.com
+  email: user101@example.com
+  lower_email: user101@example.com
+  is_activated: true
+  is_primary: false
+
+-
   id: 8
-  is_activated: 0
-  is_primary: 1
-  lower_email: user9@example.com
   uid: 9
-- email: user1@example.com
+  email: user9@example.com
+  lower_email: user9@example.com
+  is_activated: false
+  is_primary: true
+
+-
   id: 9
-  is_activated: 1
-  is_primary: 1
+  uid: 1
+  email: user1@example.com
   lower_email: user1@example.com
-  uid: 1
-- email: user3@example.com
+  is_activated: true
+  is_primary: true
+
+-
   id: 10
-  is_activated: 1
-  is_primary: 1
-  lower_email: user3@example.com
   uid: 3
-- email: user4@example.com
+  email: user3@example.com
+  lower_email: user3@example.com
+  is_activated: true
+  is_primary: true
+
+-
   id: 11
-  is_activated: 1
-  is_primary: 1
-  lower_email: user4@example.com
   uid: 4
-- email: user5@example.com
+  email: user4@example.com
+  lower_email: user4@example.com
+  is_activated: true
+  is_primary: true
+
+-
   id: 12
-  is_activated: 1
-  is_primary: 1
-  lower_email: user5@example.com
   uid: 5
-- email: user6@example.com
+  email: user5@example.com
+  lower_email: user5@example.com
+  is_activated: true
+  is_primary: true
+
+-
   id: 13
-  is_activated: 1
-  is_primary: 1
-  lower_email: user6@example.com
   uid: 6
-- email: user7@example.com
+  email: user6@example.com
+  lower_email: user6@example.com
+  is_activated: true
+  is_primary: true
+
+-
   id: 14
-  is_activated: 1
-  is_primary: 1
-  lower_email: user7@example.com
   uid: 7
-- email: user8@example.com
+  email: user7@example.com
+  lower_email: user7@example.com
+  is_activated: true
+  is_primary: true
+
+-
   id: 15
-  is_activated: 1
-  is_primary: 1
-  lower_email: user8@example.com
   uid: 8
-- email: user13@example.com
+  email: user8@example.com
+  lower_email: user8@example.com
+  is_activated: true
+  is_primary: true
+
+-
   id: 16
-  is_activated: 1
-  is_primary: 1
-  lower_email: user13@example.com
   uid: 13
-- email: user14@example.com
+  email: user13@example.com
+  lower_email: user13@example.com
+  is_activated: true
+  is_primary: true
+
+-
   id: 17
-  is_activated: 1
-  is_primary: 1
-  lower_email: user14@example.com
   uid: 14
-- email: user15@example.com
+  email: user14@example.com
+  lower_email: user14@example.com
+  is_activated: true
+  is_primary: true
+
+-
   id: 18
-  is_activated: 1
-  is_primary: 1
-  lower_email: user15@example.com
   uid: 15
-- email: user16@example.com
+  email: user15@example.com
+  lower_email: user15@example.com
+  is_activated: true
+  is_primary: true
+
+-
   id: 19
-  is_activated: 1
-  is_primary: 1
-  lower_email: user16@example.com
   uid: 16
-- email: user17@example.com
+  email: user16@example.com
+  lower_email: user16@example.com
+  is_activated: true
+  is_primary: true
+
+-
   id: 20
-  is_activated: 1
-  is_primary: 1
-  lower_email: user17@example.com
   uid: 17
-- email: user18@example.com
+  email: user17@example.com
+  lower_email: user17@example.com
+  is_activated: true
+  is_primary: true
+
+-
   id: 21
-  is_activated: 1
-  is_primary: 1
-  lower_email: user18@example.com
   uid: 18
-- email: user19@example.com
+  email: user18@example.com
+  lower_email: user18@example.com
+  is_activated: true
+  is_primary: true
+
+-
   id: 22
-  is_activated: 1
-  is_primary: 1
-  lower_email: user19@example.com
   uid: 19
-- email: user20@example.com
+  email: user19@example.com
+  lower_email: user19@example.com
+  is_activated: true
+  is_primary: true
+
+-
   id: 23
-  is_activated: 1
-  is_primary: 1
-  lower_email: user20@example.com
   uid: 20
-- email: limited_org@example.com
+  email: user20@example.com
+  lower_email: user20@example.com
+  is_activated: true
+  is_primary: true
+
+-
   id: 24
-  is_activated: 1
-  is_primary: 1
-  lower_email: limited_org@example.com
   uid: 22
-- email: privated_org@example.com
+  email: limited_org@example.com
+  lower_email: limited_org@example.com
+  is_activated: true
+  is_primary: true
+
+-
   id: 25
-  is_activated: 1
-  is_primary: 1
-  lower_email: privated_org@example.com
   uid: 23
-- email: user24@example.com
+  email: privated_org@example.com
+  lower_email: privated_org@example.com
+  is_activated: true
+  is_primary: true
+
+-
   id: 26
-  is_activated: 1
-  is_primary: 1
-  lower_email: user24@example.com
   uid: 24
-- email: org25@example.com
+  email: user24@example.com
+  lower_email: user24@example.com
+  is_activated: true
+  is_primary: true
+
+-
   id: 27
-  is_activated: 1
-  is_primary: 1
-  lower_email: org25@example.com
   uid: 25
-- email: org26@example.com
+  email: org25@example.com
+  lower_email: org25@example.com
+  is_activated: true
+  is_primary: true
+
+-
   id: 28
-  is_activated: 1
-  is_primary: 1
-  lower_email: org26@example.com
   uid: 26
-- email: user27@example.com
+  email: org26@example.com
+  lower_email: org26@example.com
+  is_activated: true
+  is_primary: true
+
+-
   id: 29
-  is_activated: 1
-  is_primary: 1
-  lower_email: user27@example.com
   uid: 27
-- email: user28@example.com
+  email: user27@example.com
+  lower_email: user27@example.com
+  is_activated: true
+  is_primary: true
+
+-
   id: 30
-  is_activated: 1
-  is_primary: 1
-  lower_email: user28@example.com
   uid: 28
-- email: user29@example.com
+  email: user28@example.com
+  lower_email: user28@example.com
+  is_activated: true
+  is_primary: true
+
+-
   id: 31
-  is_activated: 1
-  is_primary: 1
-  lower_email: user29@example.com
   uid: 29
-- email: user30@example.com
+  email: user29@example.com
+  lower_email: user29@example.com
+  is_activated: true
+  is_primary: true
+
+-
   id: 32
-  is_activated: 1
-  is_primary: 1
-  lower_email: user30@example.com
   uid: 30
-- email: user1-2@example.com
+  email: user30@example.com
+  lower_email: user30@example.com
+  is_activated: true
+  is_primary: true
+
+-
   id: 33
-  is_activated: 1
-  is_primary: 0
+  uid: 1
+  email: user1-2@example.com
   lower_email: user1-2@example.com
-  uid: 1
-- email: user1-3@example.com
+  is_activated: true
+  is_primary: false
+
+-
   id: 34
-  is_activated: 1
-  is_primary: 0
-  lower_email: user1-3@example.com
   uid: 1
-- email: user2-2@example.com
+  email: user1-3@example.com
+  lower_email: user1-3@example.com
+  is_activated: true
+  is_primary: false
+
+-
   id: 35
-  is_activated: 0
-  is_primary: 0
-  lower_email: user2-2@example.com
   uid: 2
+  email: user2-2@example.com
+  lower_email: user2-2@example.com
+  is_activated: false
+  is_primary: false
