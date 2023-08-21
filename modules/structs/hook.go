@@ -19,6 +19,7 @@ var ErrInvalidReceiveHook = errors.New("Invalid JSON payload received over webho
 type Hook struct {
 	ID                  int64             `json:"id"`
 	Type                string            `json:"type"`
+	BranchFilter        string            `json:"branch_filter"`
 	URL                 string            `json:"-"`
 	Config              map[string]string `json:"config"`
 	Events              []string          `json:"events"`
