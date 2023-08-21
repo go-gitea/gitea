@@ -11,7 +11,6 @@ import (
 // ToSecret converts Secret to API format
 func ToSecret(secret *secret_model.Secret) *api.Secret {
 	result := &api.Secret{
-		ID:   secret.ID,
 		Name: secret.Name,
 	}
 
