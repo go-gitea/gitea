@@ -1255,8 +1255,8 @@
   color: var(--color-text-light-2);
 }
 
-.repository .filter.dropdown .menu {
-  margin-top: 1px !important;
+.repository .ui.dropdown.filter > .menu {
+  margin-top: 1px;
 }
 
 .repository.branches .commit-divergence .bar-group {
