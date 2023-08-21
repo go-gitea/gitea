@@ -425,12 +425,13 @@ func telegramHookParams(ctx *context.Context) webhookParams {
 
 	return webhookParams{
 		Type:        webhook_module.TELEGRAM,
-		URL:         fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s", url.PathEscape(form.BotToken), url.QueryEscape(form.ChatID)),
+		URL:         fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s&message_thread_id=%s", url.PathEscape(form.BotToken), url.QueryEscape(form.ChatID), url.QueryEscape(form.ThreadID)),
 		ContentType: webhook.ContentTypeJSON,
 		WebhookForm: form.WebhookForm,
 		Meta: &webhook_service.TelegramMeta{
 			BotToken: form.BotToken,
 			ChatID:   form.ChatID,
+			ThreadID: form.ThreadID,
 		},
 	}
 }
@@ -729,7 +730,5 @@ func DeleteWebhook(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": ctx.Repo.RepoLink + "/settings/hooks",
-	})
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/hooks")
 }

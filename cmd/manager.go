@@ -9,16 +9,16 @@ import (
 
 	"code.gitea.io/gitea/modules/private"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 var (
 	// CmdManager represents the manager command
-	CmdManager = cli.Command{
+	CmdManager = &cli.Command{
 		Name:        "manager",
 		Usage:       "Manage the running gitea process",
 		Description: "This is a command for managing the running gitea process",
-		Subcommands: []cli.Command{
+		Subcommands: []*cli.Command{
 			subcmdShutdown,
 			subcmdRestart,
 			subcmdReloadTemplates,
@@ -27,80 +27,80 @@ var (
 			subCmdProcesses,
 		},
 	}
-	subcmdShutdown = cli.Command{
+	subcmdShutdown = &cli.Command{
 		Name:  "shutdown",
 		Usage: "Gracefully shutdown the running process",
 		Flags: []cli.Flag{
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name: "debug",
 			},
 		},
 		Action: runShutdown,
 	}
-	subcmdRestart = cli.Command{
+	subcmdRestart = &cli.Command{
 		Name:  "restart",
 		Usage: "Gracefully restart the running process - (not implemented for windows servers)",
 		Flags: []cli.Flag{
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name: "debug",
 			},
 		},
 		Action: runRestart,
 	}
-	subcmdReloadTemplates = cli.Command{
+	subcmdReloadTemplates = &cli.Command{
 		Name:  "reload-templates",
 		Usage: "Reload template files in the running process",
 		Flags: []cli.Flag{
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name: "debug",
 			},
 		},
 		Action: runReloadTemplates,
 	}
-	subcmdFlushQueues = cli.Command{
+	subcmdFlushQueues = &cli.Command{
 		Name:   "flush-queues",
 		Usage:  "Flush queues in the running process",
 		Action: runFlushQueues,
 		Flags: []cli.Flag{
-			cli.DurationFlag{
+			&cli.DurationFlag{
 				Name:  "timeout",
 				Value: 60 * time.Second,
 				Usage: "Timeout for the flushing process",
 			},
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name:  "non-blocking",
 				Usage: "Set to true to not wait for flush to complete before returning",
 			},
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name: "debug",
 			},
 		},
 	}
-	subCmdProcesses = cli.Command{
+	subCmdProcesses = &cli.Command{
 		Name:   "processes",
 		Usage:  "Display running processes within the current process",
 		Action: runProcesses,
 		Flags: []cli.Flag{
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name: "debug",
 			},
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name:  "flat",
 				Usage: "Show processes as flat table rather than as tree",
 			},
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name:  "no-system",
 				Usage: "Do not show system processes",
 			},
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name:  "stacktraces",
 				Usage: "Show stacktraces",
 			},
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name:  "json",
 				Usage: "Output as json",
 			},
-			cli.StringFlag{
+			&cli.StringFlag{
 				Name:  "cancel",
 				Usage: "Process PID to cancel. (Only available for non-system processes.)",
 			},

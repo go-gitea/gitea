@@ -33,6 +33,14 @@ var (
 	PerWriteWriteTimeoutKbTime = 10 * time.Second
 )
 
+// GetListener returns a listener from a GetListener function, which must have the
+// signature: `func FunctioName(network, address string) (net.Listener, error)`.
+// This determines the implementation of net.Listener which the server will use.`
+// It is implemented in this way so that downstreams may specify the type of listener
+// they want to provide Gitea on by default, such as with a hidden service or a p2p network
+// No need to worry about "breaking" if there would be a refactoring for the Listeners. No compatibility-guarantee for this mechanism
+var GetListener = DefaultGetListener
+
 func init() {
 	DefaultMaxHeaderBytes = 0 // use http.DefaultMaxHeaderBytes - which currently is 1 << 20 (1MB)
 }

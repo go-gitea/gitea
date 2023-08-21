@@ -76,18 +76,18 @@
 						<div class="ui selection owner dropdown">
 							<input type="hidden" id="uid" name="uid" value="{{.ContextUser.ID}}" required>
 							<span class="text truncated-item-container" title="{{.ContextUser.Name}}">
-								{{avatar $.Context .ContextUser}}
+								{{ctx.AvatarUtils.Avatar .ContextUser}}
 								<span class="truncated-item-name">{{.ContextUser.ShortName 40}}</span>
 							</span>
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu" title="{{.SignedUser.Name}}">
 								<div class="item truncated-item-container" data-value="{{.SignedUser.ID}}">
-									{{avatar $.Context .SignedUser}}
+									{{ctx.AvatarUtils.Avatar .SignedUser}}
 									<span class="truncated-item-name">{{.SignedUser.ShortName 40}}</span>
 								</div>
 								{{range .Orgs}}
 								<div class="item truncated-item-container" data-value="{{.ID}}" title="{{.Name}}">
-									{{avatar $.Context .}}
+									{{ctx.AvatarUtils.Avatar .}}
 									<span class="truncated-item-name">{{.ShortName 40}}</span>
 								</div>
 								{{end}}
