@@ -260,5 +260,6 @@ func ToHook(repoLink string, w *webhook_model.Webhook) (*api.Hook, error) {
 		AuthorizationHeader: authorizationHeader,
 		Updated:             w.UpdatedUnix.AsTime(),
 		Created:             w.CreatedUnix.AsTime(),
+		BranchFilter:        w.BranchFilter,
 	}, nil
 }
