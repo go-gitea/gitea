@@ -5,7 +5,7 @@
 	{{if .OriginalAuthor}}
 		<span class="avatar"><img src="{{AppSubUrl}}/assets/img/avatar_default.png"></span>
 	{{else}}
-		{{template "shared/user/avatarlink" dict "Context" $.root.Context "user" .Poster}}
+		{{template "shared/user/avatarlink" dict "user" .Poster}}
 	{{end}}
 	<div class="content comment-container">
 		<div class="ui top attached header comment-header gt-df gt-ac gt-sb">
@@ -31,6 +31,12 @@
 				{{end}}
 			</div>
 			<div class="comment-header-right actions gt-df gt-ac">
+				{{if .Invalidated}}
+					{{$referenceUrl := printf "%s#%s" $.root.Issue.Link .HashTag}}
+					<a href="{{AppSubUrl}}{{$referenceUrl}}" class="ui label basic small" data-tooltip-content="{{$.root.locale.Tr "repo.issues.review.outdated_description"}}">
+						{{$.root.locale.Tr "repo.issues.review.outdated"}}
+					</a>
+				{{end}}
 				{{if and .Review}}
 					{{if eq .Review.Type 0}}
 						<div class="ui label basic small yellow pending-label" data-tooltip-content="{{$.root.locale.Tr "repo.issues.review.pending.tooltip" ($.root.locale.Tr "repo.diff.review") ($.root.locale.Tr "repo.diff.review.approve") ($.root.locale.Tr "repo.diff.review.comment") ($.root.locale.Tr "repo.diff.review.reject")}}">

@@ -522,6 +522,11 @@ func SearchRepository(ctx context.Context, opts *SearchRepoOptions) (RepositoryL
 	return SearchRepositoryByCondition(ctx, opts, cond, true)
 }
 
+// CountRepository counts repositories based on search options,
+func CountRepository(ctx context.Context, opts *SearchRepoOptions) (int64, error) {
+	return db.GetEngine(ctx).Where(SearchRepositoryCondition(opts)).Count(new(Repository))
+}
+
 // SearchRepositoryByCondition search repositories by condition
 func SearchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, cond builder.Cond, loadAttributes bool) (RepositoryList, int64, error) {
 	sess, count, err := searchRepositoryByCondition(ctx, opts, cond)
@@ -560,7 +565,7 @@ func searchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, c
 		opts.OrderBy = db.SearchOrderByAlphabetically
 	}
 
-	args := make([]interface{}, 0)
+	args := make([]any, 0)
 	if opts.PriorityOwnerID > 0 {
 		opts.OrderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN owner_id = ? THEN 0 ELSE owner_id END, %s", opts.OrderBy))
 		args = append(args, opts.PriorityOwnerID)

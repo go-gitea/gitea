@@ -81,16 +81,16 @@ func RenderCommitMessageLinkSubject(ctx context.Context, msg, urlPrefix, urlDefa
 
 // RenderCommitBody extracts the body of a commit message without its title.
 func RenderCommitBody(ctx context.Context, msg, urlPrefix string, metas map[string]string) template.HTML {
-	msgLine := strings.TrimRightFunc(msg, unicode.IsSpace)
+	msgLine := strings.TrimSpace(msg)
 	lineEnd := strings.IndexByte(msgLine, '\n')
 	if lineEnd > 0 {
 		msgLine = msgLine[lineEnd+1:]
 	} else {
-		return template.HTML("")
+		return ""
 	}
 	msgLine = strings.TrimLeftFunc(msgLine, unicode.IsSpace)
 	if len(msgLine) == 0 {
-		return template.HTML("")
+		return ""
 	}
 
 	renderedMessage, err := markup.RenderCommitMessage(&markup.RenderContext{

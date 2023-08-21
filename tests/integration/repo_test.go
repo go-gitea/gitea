@@ -170,7 +170,7 @@ func TestViewRepoWithSymlinks(t *testing.T) {
 	})
 	assert.Len(t, items, 5)
 	assert.Equal(t, "a: svg octicon-file-directory-fill", items[0])
-	assert.Equal(t, "link_b: svg octicon-file-submodule", items[1])
+	assert.Equal(t, "link_b: svg octicon-file-directory-symlink", items[1])
 	assert.Equal(t, "link_d: svg octicon-file-symlink-file", items[2])
 	assert.Equal(t, "link_hi: svg octicon-file-symlink-file", items[3])
 	assert.Equal(t, "link_link: svg octicon-file-symlink-file", items[4])
@@ -407,4 +407,40 @@ func TestMarkDownReadmeImageSubfolder(t *testing.T) {
 	src, exists = htmlDoc.doc.Find(`.markdown img`).Attr("src")
 	assert.True(t, exists, "Image not found in markdown file")
 	assert.Equal(t, "/user2/repo1/media/branch/sub-home-md-img-check/docs/test-fake-img.jpg", src)
+}
+
+func TestGeneratedSourceLink(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	t.Run("Rendered file", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		req := NewRequest(t, "GET", "/user2/repo1/src/branch/master/README.md?display=source")
+		resp := MakeRequest(t, req, http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
+
+		dataURL, exists := doc.doc.Find(".copy-line-permalink").Attr("data-url")
+		assert.True(t, exists)
+		assert.Equal(t, "/user2/repo1/src/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d/README.md?display=source", dataURL)
+
+		dataURL, exists = doc.doc.Find(".ref-in-new-issue").Attr("data-url-param-body-link")
+		assert.True(t, exists)
+		assert.Equal(t, "/user2/repo1/src/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d/README.md?display=source", dataURL)
+	})
+
+	t.Run("Non-Rendered file", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		session := loginUser(t, "user27")
+		req := NewRequest(t, "GET", "/user27/repo49/src/branch/master/test/test.txt")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
+
+		dataURL, exists := doc.doc.Find(".copy-line-permalink").Attr("data-url")
+		assert.True(t, exists)
+		assert.Equal(t, "/user27/repo49/src/commit/aacbdfe9e1c4b47f60abe81849045fa4e96f1d75/test/test.txt", dataURL)
+
+		dataURL, exists = doc.doc.Find(".ref-in-new-issue").Attr("data-url-param-body-link")
+		assert.True(t, exists)
+		assert.Equal(t, "/user27/repo49/src/commit/aacbdfe9e1c4b47f60abe81849045fa4e96f1d75/test/test.txt", dataURL)
+	})
 }

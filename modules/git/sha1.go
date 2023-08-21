@@ -11,10 +11,10 @@ import (
 	"strings"
 )
 
-// EmptySHA defines empty git SHA
+// EmptySHA defines empty git SHA (undefined, non-existent)
 const EmptySHA = "0000000000000000000000000000000000000000"
 
-// EmptyTreeSHA is the SHA of an empty tree
+// EmptyTreeSHA is the SHA of an empty tree, the root of all git repositories
 const EmptyTreeSHA = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 
 // SHAFullLength is the full length of a git SHA
@@ -26,6 +26,14 @@ var shaPattern = regexp.MustCompile(`^[0-9a-f]{4,40}$`)
 // IsValidSHAPattern will check if the provided string matches the SHA Pattern
 func IsValidSHAPattern(sha string) bool {
 	return shaPattern.MatchString(sha)
+}
+
+type ErrInvalidSHA struct {
+	SHA string
+}
+
+func (err ErrInvalidSHA) Error() string {
+	return fmt.Sprintf("invalid sha: %s", err.SHA)
 }
 
 // MustID always creates a new SHA1 from a [20]byte array with no validation of input.

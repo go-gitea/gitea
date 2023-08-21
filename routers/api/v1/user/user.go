@@ -62,7 +62,7 @@ func Search(ctx *context.APIContext) {
 		ListOptions: listOptions,
 	})
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+		ctx.JSON(http.StatusInternalServerError, map[string]any{
 			"ok":    false,
 			"error": err.Error(),
 		})
@@ -72,7 +72,7 @@ func Search(ctx *context.APIContext) {
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
 	ctx.SetTotalCountHeader(maxResults)
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"ok":   true,
 		"data": convert.ToUsers(ctx, ctx.Doer, users),
 	})

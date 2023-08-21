@@ -41,6 +41,17 @@ func TestAPIUserReposNotLogin(t *testing.T) {
 	}
 }
 
+func TestAPIUserReposWithWrongToken(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	wrongToken := fmt.Sprintf("Bearer %s", "wrong_token")
+	req := NewRequestf(t, "GET", "/api/v1/users/%s/repos", user.Name)
+	req = addTokenAuthHeader(req, wrongToken)
+	resp := MakeRequest(t, req, http.StatusUnauthorized)
+
+	assert.Contains(t, resp.Body.String(), "user does not exist")
+}
+
 func TestAPISearchRepo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	const keyword = "test"
@@ -82,9 +93,9 @@ func TestAPISearchRepo(t *testing.T) {
 	}{
 		{
 			name: "RepositoriesMax50", requestURL: "/api/v1/repos/search?limit=50&private=false", expectedResults: expectedResults{
-				nil:   {count: 32},
-				user:  {count: 32},
-				user2: {count: 32},
+				nil:   {count: 33},
+				user:  {count: 33},
+				user2: {count: 33},
 			},
 		},
 		{

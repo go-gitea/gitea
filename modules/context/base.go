@@ -96,7 +96,11 @@ func (b *Base) SetTotalCountHeader(total int64) {
 
 // Written returns true if there are something sent to web browser
 func (b *Base) Written() bool {
-	return b.Resp.Status() > 0
+	return b.Resp.WrittenStatus() != 0
+}
+
+func (b *Base) WrittenStatus() int {
+	return b.Resp.WrittenStatus()
 }
 
 // Status writes status code
@@ -124,7 +128,7 @@ func (b *Base) Error(status int, contents ...string) {
 }
 
 // JSON render content as JSON
-func (b *Base) JSON(status int, content interface{}) {
+func (b *Base) JSON(status int, content any) {
 	b.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
 	b.Resp.WriteHeader(status)
 	if err := json.NewEncoder(b.Resp).Encode(content); err != nil {
@@ -141,6 +145,10 @@ func (b *Base) RemoteAddr() string {
 func (b *Base) Params(p string) string {
 	s, _ := url.PathUnescape(chi.URLParam(b.Req, strings.TrimPrefix(p, ":")))
 	return s
+}
+
+func (b *Base) PathParamRaw(p string) string {
+	return chi.URLParam(b.Req, strings.TrimPrefix(p, ":"))
 }
 
 // ParamsInt64 returns the param on route as int64

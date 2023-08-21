@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/minio/minio-go/v7"
@@ -41,25 +42,9 @@ func (m *minioObject) Stat() (os.FileInfo, error) {
 	return &minioFileInfo{oi}, nil
 }
 
-// MinioStorageType is the type descriptor for minio storage
-const MinioStorageType Type = "minio"
-
-// MinioStorageConfig represents the configuration for a minio storage
-type MinioStorageConfig struct {
-	Endpoint           string `ini:"MINIO_ENDPOINT"`
-	AccessKeyID        string `ini:"MINIO_ACCESS_KEY_ID"`
-	SecretAccessKey    string `ini:"MINIO_SECRET_ACCESS_KEY"`
-	Bucket             string `ini:"MINIO_BUCKET"`
-	Location           string `ini:"MINIO_LOCATION"`
-	BasePath           string `ini:"MINIO_BASE_PATH"`
-	UseSSL             bool   `ini:"MINIO_USE_SSL"`
-	InsecureSkipVerify bool   `ini:"MINIO_INSECURE_SKIP_VERIFY"`
-	ChecksumAlgorithm  string `ini:"MINIO_CHECKSUM_ALGORITHM"`
-}
-
 // MinioStorage returns a minio bucket storage
 type MinioStorage struct {
-	cfg      *MinioStorageConfig
+	cfg      *setting.MinioStorageConfig
 	ctx      context.Context
 	client   *minio.Client
 	bucket   string
@@ -87,13 +72,8 @@ func convertMinioErr(err error) error {
 }
 
 // NewMinioStorage returns a minio storage
-func NewMinioStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error) {
-	configInterface, err := toConfig(MinioStorageConfig{}, cfg)
-	if err != nil {
-		return nil, convertMinioErr(err)
-	}
-	config := configInterface.(MinioStorageConfig)
-
+func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, error) {
+	config := cfg.MinioConfig
 	if config.ChecksumAlgorithm != "" && config.ChecksumAlgorithm != "default" && config.ChecksumAlgorithm != "md5" {
 		return nil, fmt.Errorf("invalid minio checksum algorithm: %s", config.ChecksumAlgorithm)
 	}
@@ -104,17 +84,22 @@ func NewMinioStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error
 		Creds:     credentials.NewStaticV4(config.AccessKeyID, config.SecretAccessKey, ""),
 		Secure:    config.UseSSL,
 		Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.InsecureSkipVerify}},
+		Region:    config.Location,
 	})
 	if err != nil {
 		return nil, convertMinioErr(err)
 	}
 
-	if err := minioClient.MakeBucket(ctx, config.Bucket, minio.MakeBucketOptions{
-		Region: config.Location,
-	}); err != nil {
-		// Check to see if we already own this bucket (which happens if you run this twice)
-		exists, errBucketExists := minioClient.BucketExists(ctx, config.Bucket)
-		if !exists || errBucketExists != nil {
+	// Check to see if we already own this bucket
+	exists, err := minioClient.BucketExists(ctx, config.Bucket)
+	if err != nil {
+		return nil, convertMinioErr(err)
+	}
+
+	if !exists {
+		if err := minioClient.MakeBucket(ctx, config.Bucket, minio.MakeBucketOptions{
+			Region: config.Location,
+		}); err != nil {
 			return nil, convertMinioErr(err)
 		}
 	}
@@ -193,7 +178,7 @@ func (m minioFileInfo) Mode() os.FileMode {
 	return os.ModePerm
 }
 
-func (m minioFileInfo) Sys() interface{} {
+func (m minioFileInfo) Sys() any {
 	return nil
 }
 
@@ -258,5 +243,5 @@ func (m *MinioStorage) IterateObjects(dirName string, fn func(path string, obj O
 }
 
 func init() {
-	RegisterStorageType(MinioStorageType, NewMinioStorage)
+	RegisterStorageType(setting.MinioStorageType, NewMinioStorage)
 }

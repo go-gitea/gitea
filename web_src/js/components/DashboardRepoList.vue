@@ -12,15 +12,14 @@
         </div>
         <a class="gt-df gt-ac muted" :href="subUrl + '/repo/create' + (isOrganization ? '?org=' + organizationId : '')" :data-tooltip-content="textNewRepo">
           <svg-icon name="octicon-plus"/>
-          <span class="sr-only">{{ textNewRepo }}</span>
         </a>
       </h4>
       <div class="ui attached segment repos-search">
         <div class="ui fluid right action left icon input" :class="{loading: isLoading}">
-          <input @input="changeReposFilter(reposFilter)" v-model="searchQuery" ref="search" @keydown="reposFilterKeyControl" :placeholder="textSearchRepos">
+          <input type="search" spellcheck="false" maxlength="255" @input="changeReposFilter(reposFilter)" v-model="searchQuery" ref="search" @keydown="reposFilterKeyControl" :placeholder="textSearchRepos">
           <i class="icon gt-df gt-ac gt-jc"><svg-icon name="octicon-search" :size="16"/></i>
           <div class="ui dropdown icon button" :title="textFilter">
-            <i class="icon gt-df gt-ac gt-jc gt-m-0"><svg-icon name="octicon-filter" :size="16"/></i>
+            <svg-icon name="octicon-filter" :size="16"/>
             <div class="menu">
               <a class="item" @click="toggleArchivedFilter()">
                 <div class="ui checkbox" ref="checkboxArchivedFilter" :title="checkboxArchivedFilterTitle">
@@ -70,16 +69,18 @@
       </div>
       <div v-if="repos.length" class="ui attached table segment gt-rounded-bottom">
         <ul class="repo-owner-name-list">
-          <li class="gt-df gt-ac" v-for="repo, index in repos" :class="{'active': index === activeIndex}" :key="repo.id">
-            <a class="repo-list-link muted gt-df gt-ac gt-f1" :href="repo.link">
+          <li class="gt-df gt-ac gt-py-3" v-for="repo, index in repos" :class="{'active': index === activeIndex}" :key="repo.id">
+            <a class="repo-list-link muted gt-df gt-ac gt-f1 gt-gap-3" :href="repo.link">
               <svg-icon :name="repoIcon(repo)" :size="16" class-name="repo-list-icon"/>
               <div class="text truncate">{{ repo.full_name }}</div>
               <div v-if="repo.archived">
                 <svg-icon name="octicon-archive" :size="16"/>
               </div>
             </a>
-            <!-- the commit status icon logic is taken from templates/repo/commit_status.tmpl -->
-            <svg-icon v-if="repo.latest_commit_status_state" :name="statusIcon(repo.latest_commit_status_state)" :class-name="'gt-ml-3 commit-status icon text ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
+            <a class="gt-df gt-ac" v-if="repo.latest_commit_status_state" :href="repo.latest_commit_status_state_link" :data-tooltip-content="repo.locale_latest_commit_status_state">
+              <!-- the commit status icon logic is taken from templates/repo/commit_status.tmpl -->
+              <svg-icon :name="statusIcon(repo.latest_commit_status_state)" :class-name="'gt-ml-3 commit-status icon text ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
+            </a>
           </li>
         </ul>
         <div v-if="showMoreReposLink" class="center gt-py-3 gt-border-secondary-top">
@@ -121,7 +122,6 @@
         </div>
         <a class="gt-df gt-ac muted" v-if="canCreateOrganization" :href="subUrl + '/org/create'" :data-tooltip-content="textNewOrg">
           <svg-icon name="octicon-plus"/>
-          <span class="sr-only">{{ textNewOrg }}</span>
         </a>
       </h4>
       <div v-if="organizations.length" class="ui attached table segment gt-rounded-bottom">
@@ -154,13 +154,12 @@ import {SvgIcon} from '../svg.js';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
 
+// make sure this matches templates/repo/commit_status.tmpl
 const commitStatus = {
-  pending: {name: 'octicon-dot-fill', color: 'grey'},
-  running: {name: 'octicon-dot-fill', color: 'yellow'},
+  pending: {name: 'octicon-dot-fill', color: 'yellow'},
   success: {name: 'octicon-check', color: 'green'},
   error: {name: 'gitea-exclamation', color: 'red'},
   failure: {name: 'octicon-x', color: 'red'},
-  warning: {name: 'gitea-exclamation', color: 'yellow'},
 };
 
 const sfc = {
@@ -397,7 +396,14 @@ const sfc = {
       }
 
       if (searchedURL === this.searchURL) {
-        this.repos = json.data.map((webSearchRepo) => {return {...webSearchRepo.repository, latest_commit_status_state: webSearchRepo.latest_commit_status.State}});
+        this.repos = json.data.map((webSearchRepo) => {
+          return {
+            ...webSearchRepo.repository,
+            latest_commit_status_state: webSearchRepo.latest_commit_status.State,
+            locale_latest_commit_status_state: webSearchRepo.locale_latest_commit_status,
+            latest_commit_status_state_link: webSearchRepo.latest_commit_status.TargetURL
+          };
+        });
         const count = response.headers.get('X-Total-Count');
         if (searchedQuery === '' && searchedMode === '' && this.archivedFilter === 'both') {
           this.reposTotalCount = count;
@@ -497,8 +503,6 @@ ul li:not(:last-child) {
 }
 
 .repo-list-link {
-  padding: 6px 0;
-  gap: 6px;
   min-width: 0; /* for text truncation */
 }
 

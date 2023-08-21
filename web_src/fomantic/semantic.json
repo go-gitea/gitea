@@ -26,7 +26,6 @@
     "checkbox",
     "container",
     "dimmer",
-    "divider",
     "dropdown",
     "form",
     "grid",
@@ -44,7 +43,6 @@
     "site",
     "tab",
     "table",
-    "text",
-    "transition"
+    "text"
   ]
 }

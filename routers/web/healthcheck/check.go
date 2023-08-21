@@ -4,6 +4,7 @@
 package healthcheck
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"time"
@@ -72,7 +73,7 @@ func Check(w http.ResponseWriter, r *http.Request) {
 
 	statuses := make([]status, 0)
 	if setting.InstallLock {
-		statuses = append(statuses, checkDatabase(rsp.Checks))
+		statuses = append(statuses, checkDatabase(r.Context(), rsp.Checks))
 		statuses = append(statuses, checkCache(rsp.Checks))
 	}
 	for _, s := range statuses {
@@ -89,9 +90,9 @@ func Check(w http.ResponseWriter, r *http.Request) {
 }
 
 // database checks gitea database status
-func checkDatabase(checks checks) status {
+func checkDatabase(ctx context.Context, checks checks) status {
 	st := componentStatus{}
-	if err := db.GetEngine(db.DefaultContext).Ping(); err != nil {
+	if err := db.GetEngine(ctx).Ping(); err != nil {
 		st.Status = fail
 		st.Time = getCheckTime()
 		log.Error("database ping failed with error: %v", err)

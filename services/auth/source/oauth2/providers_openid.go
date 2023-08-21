@@ -4,8 +4,11 @@
 package oauth2
 
 import (
+	"html/template"
+
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/svg"
 
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/providers/openidConnect"
@@ -24,9 +27,9 @@ func (o *OpenIDProvider) DisplayName() string {
 	return "OpenID Connect"
 }
 
-// IconURL returns an icon path for this provider
-func (o *OpenIDProvider) IconURL() string {
-	return setting.AppSubURL + "/assets/img/svg/gitea-openid.svg"
+// IconHTML returns icon HTML for this provider
+func (o *OpenIDProvider) IconHTML() template.HTML {
+	return svg.RenderHTML("gitea-openid", 20, "gt-mr-3")
 }
 
 // CreateGothProvider creates a GothProvider from this Provider

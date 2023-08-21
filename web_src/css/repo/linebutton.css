@@ -16,7 +16,7 @@
   position: absolute;
   font-family: var(--fonts-regular);
   left: 0;
-  transform: translateX(-70%);
+  transform: translateX(-50%);
   cursor: pointer;
 }
 

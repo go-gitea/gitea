@@ -1,6 +1,6 @@
-<form class="ui form ignore-dirty" style="max-width: 100%">
+<form class="ui form ignore-dirty">
 	<div class="ui fluid action input">
-		<input name="q" value="{{.Keyword}}"{{if .CodeIndexerUnavailable}} disabled{{end}} placeholder="{{.locale.Tr "explore.search"}}…" autofocus>
+		{{template "shared/searchinput" dict "locale" .locale "Value" .Keyword "AutoFocus" true "Disabled" .CodeIndexerUnavailable}}
 		<div class="ui dropdown selection {{if .CodeIndexerUnavailable}} disabled{{end}}" data-tooltip-content="{{.locale.Tr "explore.search.type.tooltip"}}">
 			<input name="t" type="hidden" value="{{.queryType}}"{{if .CodeIndexerUnavailable}} disabled{{end}}>{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			<div class="text">{{.locale.Tr (printf "explore.search.%s" (or .queryType "fuzzy"))}}</div>

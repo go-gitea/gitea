@@ -1,6 +1,6 @@
-<div class="four wide column">
+<div class="flex-container-nav">
 	<div class="ui fluid vertical menu">
-		<div class="header item">{{.locale.Tr "org.settings"}}</div>
+		<div class="header item">{{.locale.Tr "user.settings"}}</div>
 		<a class="{{if .PageIsSettingsProfile}}active {{end}}item" href="{{AppSubUrl}}/user/settings">
 			{{.locale.Tr "settings.profile"}}
 		</a>
@@ -20,7 +20,7 @@
 			{{.locale.Tr "settings.ssh_gpg_keys"}}
 		</a>
 		{{if .EnableActions}}
-		<details class="item toggleable-item" {{if or .PageIsSharedSettingsRunners .PageIsSharedSettingsSecrets}}open{{end}}>
+		<details class="item toggleable-item" {{if or .PageIsSharedSettingsRunners .PageIsSharedSettingsSecrets .PageIsSharedSettingsVariables}}open{{end}}>
 			<summary>{{.locale.Tr "actions.actions"}}</summary>
 			<div class="menu">
 				<a class="{{if .PageIsSharedSettingsRunners}}active {{end}}item" href="{{AppSubUrl}}/user/settings/actions/runners">
@@ -28,6 +28,9 @@
 				</a>
 				<a class="{{if .PageIsSharedSettingsSecrets}}active {{end}}item" href="{{AppSubUrl}}/user/settings/actions/secrets">
 					{{.locale.Tr "secrets.secrets"}}
+				</a>
+				<a class="{{if .PageIsSharedSettingsVariables}}active {{end}}item" href="{{AppSubUrl}}/user/settings/actions/variables">
+					{{.locale.Tr "actions.variables"}}
 				</a>
 			</div>
 		</details>

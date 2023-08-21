@@ -26,11 +26,11 @@ func getWatchedRepos(ctx std_context.Context, user *user_model.User, private boo
 
 	repos := make([]*api.Repository, len(watchedRepos))
 	for i, watched := range watchedRepos {
-		access, err := access_model.AccessLevel(ctx, user, watched)
+		permission, err := access_model.GetUserRepoPermission(ctx, watched, user)
 		if err != nil {
 			return nil, 0, err
 		}
-		repos[i] = convert.ToRepo(ctx, watched, access)
+		repos[i] = convert.ToRepo(ctx, watched, permission)
 	}
 	return repos, total, nil
 }

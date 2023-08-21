@@ -29,24 +29,9 @@ type Method interface {
 	Verify(http *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error)
 }
 
-// Initializable represents a structure that requires initialization
-// It usually should only be called once before anything else is called
-type Initializable interface {
-	// Init should be called exactly once before using any of the other methods,
-	// in order to allow the plugin to allocate necessary resources
-	Init(ctx context.Context) error
-}
-
 // Named represents a named thing
 type Named interface {
 	Name() string
-}
-
-// Freeable represents a structure that is required to be freed
-type Freeable interface {
-	// Free should be called exactly once before application closes, in order to
-	// give chance to the plugin to free any allocated resources
-	Free() error
 }
 
 // PasswordAuthenticator represents a source of authentication

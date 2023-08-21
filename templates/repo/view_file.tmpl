@@ -107,7 +107,7 @@
 						<tr>
 							<td id="L{{$line}}" class="lines-num"><span id="L{{$line}}" data-line-number="{{$line}}"></span></td>
 							{{if $.EscapeStatus.Escaped}}
-								<td class="lines-escape">{{if (index $.LineEscapeStatus $idx).Escaped}}<button class="toggle-escape-button button button-ghost" title="{{if (index $.LineEscapeStatus $idx).HasInvisible}}{{$.locale.Tr "repo.invisible_runes_line"}} {{end}}{{if (index $.LineEscapeStatus $idx).HasAmbiguous}}{{$.locale.Tr "repo.ambiguous_runes_line"}}{{end}}"></button>{{end}}</td>
+								<td class="lines-escape">{{if (index $.LineEscapeStatus $idx).Escaped}}<button class="toggle-escape-button btn interact-bg" title="{{if (index $.LineEscapeStatus $idx).HasInvisible}}{{$.locale.Tr "repo.invisible_runes_line"}} {{end}}{{if (index $.LineEscapeStatus $idx).HasAmbiguous}}{{$.locale.Tr "repo.ambiguous_runes_line"}}{{end}}"></button>{{end}}</td>
 							{{end}}
 							<td rel="L{{$line}}" class="lines-code chroma"><code class="code-inner">{{$code | Safe}}</code></td>
 						</tr>
@@ -116,10 +116,10 @@
 				</table>
 				<div class="code-line-menu ui vertical pointing menu tippy-target">
 					{{if $.Permission.CanRead $.UnitTypeIssues}}
-						<a class="item ref-in-new-issue" data-url-issue-new="{{.RepoLink}}/issues/new" data-url-param-body-link="{{.Repository.Link}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}" rel="nofollow noindex">{{.locale.Tr "repo.issues.context.reference_issue"}}</a>
+						<a class="item ref-in-new-issue" data-url-issue-new="{{.RepoLink}}/issues/new" data-url-param-body-link="{{.Repository.Link}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}{{if $.HasSourceRenderedToggle}}?display=source{{end}}" rel="nofollow noindex">{{.locale.Tr "repo.issues.context.reference_issue"}}</a>
 					{{end}}
 					<a class="item view_git_blame" href="{{.Repository.Link}}/blame/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}">{{.locale.Tr "repo.view_git_blame"}}</a>
-					<a class="item copy-line-permalink" data-url="{{.Repository.Link}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}">{{.locale.Tr "repo.file_copy_permalink"}}</a>
+					<a class="item copy-line-permalink" data-url="{{.Repository.Link}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}{{if $.HasSourceRenderedToggle}}?display=source{{end}}">{{.locale.Tr "repo.file_copy_permalink"}}</a>
 				</div>
 				{{end}}
 			{{end}}

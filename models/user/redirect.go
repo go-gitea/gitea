@@ -64,6 +64,10 @@ func NewUserRedirect(ctx context.Context, ID int64, oldUserName, newUserName str
 	oldUserName = strings.ToLower(oldUserName)
 	newUserName = strings.ToLower(newUserName)
 
+	if err := DeleteUserRedirect(ctx, oldUserName); err != nil {
+		return err
+	}
+
 	if err := DeleteUserRedirect(ctx, newUserName); err != nil {
 		return err
 	}

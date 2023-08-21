@@ -76,7 +76,7 @@ func loadSecret(sec ConfigSection, uriKey, verbatimKey string) string {
 
 	// only file URIs are allowed
 	default:
-		log.Fatal("Unsupported URI-Scheme %q (INTERNAL_TOKEN_URI = %q)", tempURI.Scheme, uri)
+		log.Fatal("Unsupported URI-Scheme %q (%q = %q)", tempURI.Scheme, uriKey, uri)
 		return ""
 	}
 }
@@ -89,15 +89,20 @@ func generateSaveInternalToken(rootCfg ConfigProvider) {
 	}
 
 	InternalToken = token
+	saveCfg, err := rootCfg.PrepareSaving()
+	if err != nil {
+		log.Fatal("Error saving internal token: %v", err)
+	}
 	rootCfg.Section("security").Key("INTERNAL_TOKEN").SetValue(token)
-	if err := rootCfg.Save(); err != nil {
+	saveCfg.Section("security").Key("INTERNAL_TOKEN").SetValue(token)
+	if err = saveCfg.Save(); err != nil {
 		log.Fatal("Error saving internal token: %v", err)
 	}
 }
 
 func loadSecurityFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("security")
-	InstallLock = sec.Key("INSTALL_LOCK").MustBool(false)
+	InstallLock = HasInstallLock(rootCfg)
 	LogInRememberDays = sec.Key("LOGIN_REMEMBER_DAYS").MustInt(7)
 	CookieUserName = sec.Key("COOKIE_USERNAME").MustString("gitea_awesome")
 	SecretKey = loadSecret(sec, "SECRET_KEY_URI", "SECRET_KEY")
@@ -119,7 +124,7 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 		ReverseProxyTrustedProxies = []string{"127.0.0.0/8", "::1/128"}
 	}
 
-	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
+	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(8)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(true)
 	DisableWebhooks = sec.Key("DISABLE_WEBHOOKS").MustBool(false)

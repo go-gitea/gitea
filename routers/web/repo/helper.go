@@ -10,7 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 )
 
-func makeSelfOnTop(ctx *context.Context, users []*user.User) []*user.User {
+func MakeSelfOnTop(ctx *context.Context, users []*user.User) []*user.User {
 	if ctx.Doer != nil {
 		sort.Slice(users, func(i, j int) bool {
 			if users[i].ID == users[j].ID {
