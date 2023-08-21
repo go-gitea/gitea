@@ -17,7 +17,7 @@ import (
 )
 
 func TestKeygen(t *testing.T) {
-	priv, pub, err := GenerateKeyPair(2048)
+	priv, pub, err := GenerateKeyPair(3072)
 	assert.NoError(t, err)
 
 	assert.NotEmpty(t, priv)
@@ -28,7 +28,7 @@ func TestKeygen(t *testing.T) {
 }
 
 func TestSignUsingKeys(t *testing.T) {
-	priv, pub, err := GenerateKeyPair(2048)
+	priv, pub, err := GenerateKeyPair(3072)
 	assert.NoError(t, err)
 
 	privPem, _ := pem.Decode([]byte(priv))
