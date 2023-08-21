@@ -1,7 +1,7 @@
 import {expect} from '@playwright/test';
 
 const ARTIFACTS_PATH = `tests/e2e/test-artifacts`;
-const LOGIN_PASSWORD = 'password';
+const LOGIN_PASSWORD = 'passwordpassword';
 
 // log in user and store session info. This should generally be
 //  run in test.beforeAll(), then the session can be loaded in tests.
