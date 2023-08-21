@@ -34,7 +34,7 @@ test('Test Login Form', async ({page}, workerInfo) => {
   await expect(response?.status()).toBe(200); // Status OK
 
   await page.type('input[name=user_name]', `user2`);
-  await page.type('input[name=password]', `passwordpassword`);
+  await page.type('input[name=password]', `password`);
   await page.click('form button.ui.green.button:visible');
 
   await page.waitForLoadState('networkidle');

@@ -45,7 +45,7 @@
   email: user2@example.com
   keep_email_private: true
   email_notifications_preference: enabled
-  passwd: ZogKvWdyEx:passwordpassword
+  passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
   login_source: 0
