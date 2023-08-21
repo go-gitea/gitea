@@ -3581,6 +3581,11 @@ func IssuePosters(ctx *context.Context) {
 	issuePosters(ctx, false)
 }
 
+// IssuePostersWithoutRepo clone of IssuePosters but without repo
+func IssuePostersWithoutRepo(ctx *context.Context) {
+	issuePostersWithoutRepo(ctx)
+}
+
 func PullPosters(ctx *context.Context) {
 	issuePosters(ctx, true)
 }
@@ -3589,6 +3594,35 @@ func issuePosters(ctx *context.Context, isPullList bool) {
 	repo := ctx.Repo.Repository
 	search := strings.TrimSpace(ctx.FormString("q"))
 	posters, err := repo_model.GetIssuePostersWithSearch(ctx, repo, isPullList, search, setting.UI.DefaultShowFullName)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+
+	if search == "" && ctx.Doer != nil {
+		// the returned posters slice only contains limited number of users,
+		// to make the current user (doer) can quickly filter their own issues, always add doer to the posters slice
+		if !util.SliceContainsFunc(posters, func(user *user_model.User) bool { return user.ID == ctx.Doer.ID }) {
+			posters = append(posters, ctx.Doer)
+		}
+	}
+
+	posters = MakeSelfOnTop(ctx, posters)
+
+	resp := &userSearchResponse{}
+	resp.Results = make([]*userSearchInfo, len(posters))
+	for i, user := range posters {
+		resp.Results[i] = &userSearchInfo{UserID: user.ID, UserName: user.Name, AvatarLink: user.AvatarLink(ctx)}
+		if setting.UI.DefaultShowFullName {
+			resp.Results[i].FullName = user.FullName
+		}
+	}
+	ctx.JSON(http.StatusOK, resp)
+}
+
+func issuePostersWithoutRepo(ctx *context.Context) {
+	search := strings.TrimSpace(ctx.FormString("q"))
+	posters, err := repo_model.GetIssuePostersWithSearchWithoutRepo(ctx, search, setting.UI.DefaultShowFullName)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err)
 		return

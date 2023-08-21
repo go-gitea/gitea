@@ -485,6 +485,18 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		opts.ReviewedID = ctx.Doer.ID
 	}
 
+	// Get filter by author id
+	filterByAuthorID, errorParsingAuthorID := strconv.ParseInt(ctx.FormString("author"), 10, 64)
+	if errorParsingAuthorID == nil {
+		opts.PosterID = filterByAuthorID
+	}
+
+	// Get filter by assignee id
+	filterByAssigneeID, errorParsingAssigneeID := strconv.ParseInt(ctx.FormString("assignee"), 10, 64)
+	if errorParsingAssigneeID == nil {
+		opts.AssigneeID = filterByAssigneeID
+	}
+
 	// keyword holds the search term entered into the search field.
 	keyword := strings.Trim(ctx.FormString("q"), " ")
 	ctx.Data["Keyword"] = keyword
@@ -746,6 +758,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	pager.AddParam(ctx, "labels", "SelectLabels")
 	pager.AddParam(ctx, "milestone", "MilestoneID")
 	pager.AddParam(ctx, "assignee", "AssigneeID")
+	pager.AddParam(ctx, "author", "AuthorID")
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplIssues)

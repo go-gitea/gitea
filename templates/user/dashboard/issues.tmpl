@@ -1,7 +1,8 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content dashboard issues">
 	{{template "user/dashboard/navbar" .}}
-	<div class="ui container">
+
+	<div class="ui container filteredIssues" >
 		<div class="ui stackable grid">
 			<div class="four wide column">
 				<div class="ui secondary vertical filter menu gt-bg-transparent">
@@ -106,6 +107,50 @@
 							<a class="ui green button gt-ml-4" href="{{.SingleRepoLink}}/compare">{{.locale.Tr "repo.pulls.new"}}</a>
 						{{end}}
 					{{end}}
+				</div>
+
+				<div id="issue-filters" class="issue-list-toolbar">
+					<div></div>
+					<div class="issue-list-toolbar-right">
+						<div class="ui secondary filter menu labels">
+							<!-- Author -->
+							<div id="authorDropdown" class="ui dropdown jump item user-remote-search" data-tooltip-content="{{.locale.Tr "repo.author_search_tooltip"}}"
+								data-search-url="{{$.Link}}/posters"
+								data-selected-user-id="{{$.PosterID}}"
+								data-action-jump-url="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&assignee={{$.AssigneeID}}&author={user_id}"
+							>
+								<span class="text">
+									{{.locale.Tr "repo.issues.filter_poster"}}
+									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+								</span>
+								<div class="menu">
+									<div class="ui icon search input">
+										<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+										<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_poster"}}">
+									</div>
+									<a class="item" data-value="0">{{.locale.Tr "repo.issues.filter_poster_no_select"}}</a>
+								</div>
+							</div>
+							<!-- Assignee -->
+							<div id="assigneeDropdown" class="ui dropdown jump item user-remote-search" data-tooltip-content="{{.locale.Tr "repo.author_search_tooltip"}}"
+								data-search-url="{{$.Link}}/posters"
+								data-selected-user-id="{{$.PosterID}}"
+								data-action-jump-url="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&assignee={user_id}&author={{$.AuthorID}}"
+							>
+								<span class="text">
+									{{.locale.Tr "repo.issues.filter_assignee"}}
+									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+								</span>
+								<div class="menu">
+									<div class="ui icon search input">
+										<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+										<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_assignee"}}">
+									</div>
+									<a class="item" data-value="0">{{.locale.Tr "repo.issues.filter_assginee_no_select"}}</a>
+								</div>
+							</div>
+						</div>
+					</div>
 				</div>
 				{{template "shared/issuelist" dict "." . "listType" "dashboard"}}
 			</div>

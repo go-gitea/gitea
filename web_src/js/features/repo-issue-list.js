@@ -81,8 +81,8 @@ function initRepoIssueListCheckboxes() {
   });
 }
 
-function initRepoIssueListAuthorDropdown() {
-  const $searchDropdown = $('.user-remote-search');
+function initRepoIssueListUserDropdown(which) {
+  const $searchDropdown = $(`${which}.user-remote-search`);
   if (!$searchDropdown.length) return;
 
   let searchUrl = $searchDropdown.attr('data-search-url');
@@ -198,8 +198,9 @@ async function initIssuePinSort() {
 }
 
 export function initRepoIssueList() {
-  if (!document.querySelectorAll('.page-content.repository.issue-list, .page-content.repository.milestone-issue-list').length) return;
+  if (!document.querySelectorAll('.page-content.repository.issue-list, .page-content.repository.milestone-issue-list, .page-content.dashboard.issues').length) return;
   initRepoIssueListCheckboxes();
-  initRepoIssueListAuthorDropdown();
+  initRepoIssueListUserDropdown('#authorDropdown');
+  initRepoIssueListUserDropdown('#assigneeDropdown');
   initIssuePinSort();
 }

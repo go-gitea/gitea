@@ -177,3 +177,22 @@ func GetIssuePostersWithSearch(ctx context.Context, repo *Repository, isPull boo
 		Limit(30).
 		Find(&users)
 }
+
+// GetIssuePostersWithSearchWithoutRepo clone of GetIssuePostersWithSearch without repo
+func GetIssuePostersWithSearchWithoutRepo(ctx context.Context, search string, isShowFullName bool) ([]*user_model.User, error) {
+	users := make([]*user_model.User, 0, 30)
+	var prefixCond builder.Cond = builder.Like{"name", search + "%"}
+	if isShowFullName {
+		prefixCond = prefixCond.Or(builder.Like{"full_name", "%" + search + "%"})
+	}
+
+	cond := builder.In("`user`.id",
+		builder.Select("poster_id").From("issue").GroupBy("poster_id")).And(prefixCond)
+
+	return users, db.GetEngine(ctx).
+		Where(cond).
+		Cols("id", "name", "full_name", "avatar", "avatar_email", "use_custom_avatar").
+		OrderBy("name").
+		Limit(30).
+		Find(&users)
+}

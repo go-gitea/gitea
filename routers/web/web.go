@@ -368,6 +368,8 @@ func registerRoutes(m *web.Route) {
 	}, ignExploreSignIn)
 	m.Group("/issues", func() {
 		m.Get("", user.Issues)
+		m.Get("/posters", repo.IssuePostersWithoutRepo)
+		m.Get("/filter", user.Issues)
 		m.Get("/search", repo.SearchIssues)
 	}, reqSignIn)
 
