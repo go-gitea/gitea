@@ -1142,10 +1142,16 @@
 .repository.view.issue .comment-list .event .detail {
   margin-top: 4px;
   margin-left: 14px;
+  display: flex;
+  align-items: center;
 }
 
 .repository.view.issue .comment-list .event .detail .svg {
   margin-right: 2px;
+}
+
+.repository.view.issue .comment-list .event .detail span{
+  display: flex;
 }
 
 .repository.view.issue .comment-list .event .segments {
