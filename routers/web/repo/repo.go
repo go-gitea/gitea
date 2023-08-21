@@ -600,6 +600,8 @@ func SearchRepo(ctx *context.Context) {
 
 	results := make([]*repo_service.WebSearchRepository, len(repos))
 	for i, repo := range repos {
+		latestCommitStatus := git_model.CalcCommitStatus(repoToItsLatestCommitStatuses[repo.ID])
+
 		results[i] = &repo_service.WebSearchRepository{
 			Repository: &api.Repository{
 				ID:       repo.ID,
@@ -613,7 +615,8 @@ func SearchRepo(ctx *context.Context) {
 				Link:     repo.Link(),
 				Internal: !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
 			},
-			LatestCommitStatus: git_model.CalcCommitStatus(repoToItsLatestCommitStatuses[repo.ID]),
+			LatestCommitStatus:       latestCommitStatus,
+			LocaleLatestCommitStatus: latestCommitStatus.LocaleString(ctx.Locale),
 		}
 	}
 
