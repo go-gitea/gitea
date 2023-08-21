@@ -43,6 +43,7 @@ type ActionRun struct {
 	EventPayload      string                       `xorm:"LONGTEXT"`
 	TriggerEvent      string                       // the trigger event defined in the `on` configuration of the triggered workflow
 	Status            Status                       `xorm:"index"`
+	Version           int                          `xorm:"version default 0"` // Status could be updated concomitantly, so an optimistic lock is needed
 	Started           timeutil.TimeStamp
 	Stopped           timeutil.TimeStamp
 	Created           timeutil.TimeStamp `xorm:"created"`
@@ -332,12 +333,22 @@ func GetRunByIndex(ctx context.Context, repoID, index int64) (*ActionRun, error)
 	return run, nil
 }
 
+// UpdateRun updates a run.
+// It requires the inputted run has Version set.
+// It will return error if the version is not matched (it means the run has been changed after loaded).
 func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 	sess := db.GetEngine(ctx).ID(run.ID)
 	if len(cols) > 0 {
 		sess.Cols(cols...)
 	}
-	_, err := sess.Update(run)
+	affected, err := sess.Update(run)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return fmt.Errorf("run has changed")
+		// It's impossible that the run is not found, since Gitea never deletes runs.
+	}
 
 	if run.Status != 0 || util.SliceContains(cols, "status") {
 		if run.RepoID == 0 {
@@ -358,7 +369,7 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 		}
 	}
 
-	return err
+	return nil
 }
 
 type ActionRunIndex db.ResourceIndex
