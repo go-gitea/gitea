@@ -240,6 +240,16 @@ func ToLabelList(labels []*issues_model.Label, repo *repo_model.Repository, org 
 
 // ToAPIMilestone converts Milestone into API Format
 func ToAPIMilestone(m *issues_model.Milestone) *api.Milestone {
+	var repo *repo_model.Repository
+	var user *user_model.User
+	if m.Repo != nil {
+		repo = m.Repo
+		user = m.Repo.Owner
+	}
+	if err := m.LoadLabels(db.DefaultContext); err != nil {
+		log.Error("ToAPIMilestone cannot LoadLabels for milestone with id '%d': %v", m.ID, err)
+		return nil
+	}
 	apiMilestone := &api.Milestone{
 		ID:           m.ID,
 		State:        m.State(),
@@ -247,6 +257,7 @@ func ToAPIMilestone(m *issues_model.Milestone) *api.Milestone {
 		Description:  m.Content,
 		OpenIssues:   m.NumOpenIssues,
 		ClosedIssues: m.NumClosedIssues,
+		Labels:       ToLabelList(m.Labels, repo, user),
 		Created:      m.CreatedUnix.AsTime(),
 		Updated:      m.UpdatedUnix.AsTimePtr(),
 	}

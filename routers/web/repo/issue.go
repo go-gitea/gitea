@@ -1926,6 +1926,12 @@ func ViewIssue(ctx *context.Context) {
 
 	ctx.Data["Participants"] = participants
 	ctx.Data["NumParticipants"] = len(participants)
+	if issue.Milestone != nil {
+		if err = issue.Milestone.LoadLabels(db.DefaultContext); err != nil {
+			ctx.ServerError("issue.Milestone.LoadLabels", err)
+			return
+		}
+	}
 	ctx.Data["Issue"] = issue
 	ctx.Data["Reference"] = issue.Ref
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login?redirect_to=" + url.QueryEscape(ctx.Data["Link"].(string))

@@ -1265,6 +1265,13 @@ func Routes() *web.Route {
 					m.Combo("/{id}").Get(repo.GetMilestone).
 						Patch(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.EditMilestoneOption{}), repo.EditMilestone).
 						Delete(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), repo.DeleteMilestone)
+					m.Group("/labels", func() {
+						m.Combo("").Get(repo.ListMilestoneLabels).
+							Post(reqToken(), bind(api.MilestoneLabelsOption{}), repo.AddMilestoneLabels).
+							Put(reqToken(), bind(api.MilestoneLabelsOption{}), repo.ReplaceMilestoneLabels).
+							Delete(reqToken(), repo.ClearMilestoneLabels)
+						m.Delete("/{labelId}", reqToken(), repo.DeleteMilestoneLabel)
+					})
 				})
 			}, repoAssignment())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryIssue))

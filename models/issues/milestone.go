@@ -10,6 +10,8 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -47,6 +49,7 @@ type Milestone struct {
 	ID              int64                  `xorm:"pk autoincr"`
 	RepoID          int64                  `xorm:"INDEX"`
 	Repo            *repo_model.Repository `xorm:"-"`
+	Labels          []*Label               `xorm:"-"`
 	Name            string
 	Content         string `xorm:"TEXT"`
 	RenderedContent string `xorm:"-"`
@@ -117,6 +120,19 @@ func NewMilestone(m *Milestone) (err error) {
 		return err
 	}
 
+	if len(m.Labels) > 0 {
+		for _, label := range m.Labels {
+			// Silently drop invalid labels.
+			if label.RepoID != m.RepoID && label.OrgID != m.Repo.OwnerID {
+				continue
+			}
+
+			if err = m.addLabel(ctx, label, nil); err != nil {
+				return fmt.Errorf("addLabel [id: %d]: %v", label.ID, err)
+			}
+		}
+	}
+
 	if _, err = db.Exec(ctx, "UPDATE `repository` SET num_milestones = num_milestones + 1 WHERE id = ?", m.RepoID); err != nil {
 		return err
 	}
@@ -142,15 +158,15 @@ func GetMilestoneByRepoID(ctx context.Context, repoID, id int64) (*Milestone, er
 
 // GetMilestoneByRepoIDANDName return a milestone if one exist by name and repo
 func GetMilestoneByRepoIDANDName(repoID int64, name string) (*Milestone, error) {
-	var mile Milestone
-	has, err := db.GetEngine(db.DefaultContext).Where("repo_id=? AND name=?", repoID, name).Get(&mile)
+	var m Milestone
+	has, err := db.GetEngine(db.DefaultContext).Where("repo_id=? AND name=?", repoID, name).Get(&m)
 	if err != nil {
 		return nil, err
 	}
 	if !has {
 		return nil, ErrMilestoneNotExist{Name: name, RepoID: repoID}
 	}
-	return &mile, nil
+	return &m, nil
 }
 
 // UpdateMilestone updates information of given milestone.
@@ -173,6 +189,44 @@ func UpdateMilestone(m *Milestone, oldIsClosed bool) error {
 	if oldIsClosed != m.IsClosed {
 		if err := updateRepoMilestoneNum(ctx, m.RepoID); err != nil {
 			return err
+		}
+	}
+
+	if err = m.LoadLabels(ctx); err != nil {
+		return err
+	}
+	dbLabels, err := GetLabelsByMilestoneID(ctx, m.ID)
+	if err != nil {
+		return err
+	}
+	// delete missing labels associated with repo and milestone from db
+	for _, dbLabel := range dbLabels {
+		labelOnMilestone := false
+		for _, msLabel := range m.Labels {
+			if msLabel.ID == dbLabel.ID {
+				labelOnMilestone = true
+				break
+			}
+		}
+		if !labelOnMilestone {
+			if err = deleteMilestoneLabel(ctx, m, dbLabel, nil); err != nil {
+				return fmt.Errorf("deleteMilestoneLabel [id: %d]: %v", dbLabel.ID, err)
+			}
+		}
+	}
+	// add new labels associated with repo and milestone to db
+	for _, msLabel := range m.Labels {
+		labelInDatabase := false
+		for _, dbLabel := range dbLabels {
+			if msLabel.ID == dbLabel.ID {
+				labelInDatabase = true
+				break
+			}
+		}
+		if !labelInDatabase {
+			if err = m.addLabel(ctx, msLabel, nil); err != nil {
+				return fmt.Errorf("addLabel [id: %d]: %v", msLabel.ID, err)
+			}
 		}
 	}
 
@@ -269,7 +323,7 @@ func changeMilestoneStatus(ctx context.Context, m *Milestone, isClosed bool) err
 	return updateRepoMilestoneNum(ctx, m.RepoID)
 }
 
-// DeleteMilestoneByRepoID deletes a milestone from a repository.
+// DeleteMilestoneByRepoID deletes a milestone and associated labels from a repository.
 func DeleteMilestoneByRepoID(repoID, id int64) error {
 	m, err := GetMilestoneByRepoID(db.DefaultContext, repoID, id)
 	if err != nil {
@@ -320,6 +374,15 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 	if _, err = db.Exec(ctx, "UPDATE `issue` SET milestone_id = 0 WHERE milestone_id = ?", m.ID); err != nil {
 		return err
 	}
+
+	if err = m.LoadLabels(ctx); err != nil {
+		return err
+	}
+	for _, label := range m.Labels {
+		if err = deleteMilestoneLabel(ctx, m, label, nil); err != nil {
+			return err
+		}
+	}
 	return committer.Commit()
 }
 
@@ -341,6 +404,7 @@ type GetMilestonesOption struct {
 	State    api.StateType
 	Name     string
 	SortType string
+	Labels   string
 }
 
 func (opts GetMilestonesOption) toCond() builder.Cond {
@@ -374,6 +438,22 @@ func GetMilestones(opts GetMilestonesOption) (MilestoneList, int64, error) {
 		sess = db.SetSessionPagination(sess, &opts)
 	}
 
+	if len(opts.Labels) > 0 && opts.Labels != "0" {
+		labelIDs, err := base.StringsToInt64s(strings.Split(opts.Labels, ","))
+		if err != nil {
+			log.Warn("Malformed Labels argument: %s", opts.Labels)
+		} else {
+			for i, labelID := range labelIDs {
+				if labelID > 0 {
+					sess.Join("INNER", fmt.Sprintf("milestone_label il%d", i),
+						fmt.Sprintf("milestone.id = il%[1]d.milestone_id AND il%[1]d.label_id = %[2]d", i, labelID))
+				} else {
+					sess.Where("milestone.id NOT IN (SELECT milestone_id FROM milestone_label WHERE milestone_id = ?)", -labelID)
+				}
+			}
+		}
+	}
+
 	switch opts.SortType {
 	case "furthestduedate":
 		sess.Desc("deadline_unix")
@@ -393,6 +473,7 @@ func GetMilestones(opts GetMilestonesOption) (MilestoneList, int64, error) {
 
 	miles := make([]*Milestone, 0, opts.PageSize)
 	total, err := sess.FindAndCount(&miles)
+
 	return miles, total, err
 }
 

@@ -2342,3 +2342,11 @@ table th[data-sortt-desc] .svg {
   flex-wrap: wrap;
   gap: .25rem;
 }
+
+.milestone-label-color {
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+  border-radius: var(--border-radius);
+  margin: 0 10px;
+}

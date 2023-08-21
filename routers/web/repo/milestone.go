@@ -6,11 +6,14 @@ package repo
 import (
 	"net/http"
 	"net/url"
+	"strconv"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -50,6 +53,8 @@ func Milestones(ctx *context.Context) {
 		state = structs.StateClosed
 	}
 
+	selectLabels := ctx.FormString("labels")
+
 	miles, total, err := issues_model.GetMilestones(issues_model.GetMilestonesOption{
 		ListOptions: db.ListOptions{
 			Page:     page,
@@ -59,6 +64,7 @@ func Milestones(ctx *context.Context) {
 		State:    state,
 		SortType: sortType,
 		Name:     keyword,
+		Labels:   selectLabels,
 	})
 	if err != nil {
 		ctx.ServerError("GetMilestones", err)
@@ -90,6 +96,9 @@ func Milestones(ctx *context.Context) {
 			ctx.ServerError("RenderString", err)
 			return
 		}
+		if err = m.LoadLabels(db.DefaultContext); err != nil {
+			return
+		}
 	}
 	ctx.Data["Milestones"] = miles
 
@@ -111,11 +120,69 @@ func Milestones(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplMilestone)
 }
 
+// GetLabels returns labels, labelIDs, labelExclusiveScopes
+func GetLabels(ctx *context.Context) (labels []*issues_model.Label, labelIDs []int64, selectLabels string) {
+	var labelExclusiveScopes []string
+	var err error
+	selectLabels = ctx.FormString("labels")
+	labels, err = issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, "", db.ListOptions{})
+	if err != nil {
+		ctx.ServerError("GetLabelsByRepoID", err)
+		return
+	}
+
+	if len(selectLabels) > 0 && selectLabels != "0" {
+		labelIDs, err = base.StringsToInt64s(strings.Split(selectLabels, ","))
+		if err != nil {
+			ctx.ServerError("StringsToInt64s", err)
+			return
+		}
+		// Get the exclusive scope for every label ID
+		labelExclusiveScopes = make([]string, 0, len(labelIDs))
+		for _, labelID := range labelIDs {
+			foundExclusiveScope := false
+			for _, label := range labels {
+				if label.ID == labelID || label.ID == -labelID {
+					labelExclusiveScopes = append(labelExclusiveScopes, label.ExclusiveScope())
+					foundExclusiveScope = true
+					break
+				}
+			}
+			if !foundExclusiveScope {
+				labelExclusiveScopes = append(labelExclusiveScopes, "")
+			}
+		}
+	}
+
+	if ctx.Repo.Owner.IsOrganization() {
+		orgLabels, err := issues_model.GetLabelsByOrgID(ctx, ctx.Repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{})
+		if err != nil {
+			ctx.ServerError("GetLabelsByOrgID", err)
+			return
+		}
+
+		ctx.Data["OrgLabels"] = orgLabels
+		labels = append(labels, orgLabels...)
+	}
+
+	for _, l := range labels {
+		l.LoadSelectedLabelsAfterClick(labelIDs, labelExclusiveScopes)
+	}
+	return labels, labelIDs, selectLabels
+}
+
 // NewMilestone render creating milestone page
 func NewMilestone(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.milestones.new")
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["PageIsMilestones"] = true
+
+	labels, labelIDs, selectLabels := GetLabels(ctx)
+
+	ctx.Data["Labels"] = labels
+	ctx.Data["NumLabels"] = len(labels)
+	ctx.Data["SelectLabels"] = selectLabels
+	ctx.Data["HasSelectedLabel"] = len(labelIDs) > 0
 	ctx.HTML(http.StatusOK, tplMilestoneNew)
 }
 
@@ -141,11 +208,43 @@ func NewMilestonePost(ctx *context.Context) {
 		return
 	}
 
+	labels := RetrieveRepoMetas(ctx, ctx.Repo.Repository, true)
+	if ctx.Written() {
+		return
+	}
+	var labelIDs []int64
+	var selectLabels []*issues_model.Label
+	hasSelected := false
+	// Check labels.
+	if len(form.LabelIDs) > 0 {
+		labelIDs, err = base.StringsToInt64s(strings.Split(form.LabelIDs, ","))
+		if err != nil {
+			return
+		}
+		labelIDMark := make(container.Set[int64], len(labelIDs))
+		for _, labelID := range labelIDs {
+			labelIDMark.Add(labelID)
+		}
+
+		for i := range labels {
+			if labelIDMark.Contains(labels[i].ID) {
+				labels[i].IsChecked = true
+				hasSelected = true
+				selectLabels = append(selectLabels, labels[i])
+			}
+		}
+	}
+
+	ctx.Data["Labels"] = labels
+	ctx.Data["HasSelectedLabel"] = hasSelected
+	ctx.Data["label_ids"] = form.LabelIDs
+
 	deadline = time.Date(deadline.Year(), deadline.Month(), deadline.Day(), 23, 59, 59, 0, deadline.Location())
 	if err = issues_model.NewMilestone(&issues_model.Milestone{
 		RepoID:       ctx.Repo.Repository.ID,
 		Name:         form.Title,
 		Content:      form.Content,
+		Labels:       selectLabels,
 		DeadlineUnix: timeutil.TimeStamp(deadline.Unix()),
 	}); err != nil {
 		ctx.ServerError("NewMilestone", err)
@@ -173,6 +272,34 @@ func EditMilestone(ctx *context.Context) {
 	}
 	ctx.Data["title"] = m.Name
 	ctx.Data["content"] = m.Content
+
+	labels, labelIDs, selectLabels := GetLabels(ctx)
+	hasSelected := len(labelIDs) > 0
+
+	labelIDsString := ""
+	if err = m.LoadLabels(db.DefaultContext); err != nil {
+		return
+	}
+	for index, selectL := range m.Labels {
+		if index > 0 {
+			labelIDsString += ","
+		}
+		labelIDsString += strconv.FormatInt(selectL.ID, 10)
+
+		for _, l := range labels {
+			if l.ID == selectL.ID {
+				l.IsChecked = true
+				hasSelected = true
+			}
+		}
+	}
+
+	ctx.Data["Labels"] = labels
+	ctx.Data["NumLabels"] = len(labels)
+	ctx.Data["SelectLabels"] = selectLabels
+	ctx.Data["HasSelectedLabel"] = hasSelected
+	ctx.Data["label_ids"] = labelIDsString
+
 	if len(m.DeadlineString) > 0 {
 		ctx.Data["deadline"] = m.DeadlineString
 	}
@@ -190,6 +317,39 @@ func EditMilestonePost(ctx *context.Context) {
 		ctx.HTML(http.StatusOK, tplMilestoneNew)
 		return
 	}
+
+	labels := RetrieveRepoMetas(ctx, ctx.Repo.Repository, true)
+	if ctx.Written() {
+		return
+	}
+	var labelIDs []int64
+	var selectLabels []*issues_model.Label
+	var err error
+	hasSelected := false
+	// Check labels.
+	if len(form.LabelIDs) > 0 {
+		labelIDs, err = base.StringsToInt64s(strings.Split(form.LabelIDs, ","))
+		if err != nil {
+			return
+		}
+		labelIDMark := make(container.Set[int64], len(labelIDs))
+		for _, labelID := range labelIDs {
+			labelIDMark.Add(labelID)
+		}
+
+		for i := range labels {
+			if labelIDMark.Contains(labels[i].ID) {
+				labels[i].IsChecked = true
+				hasSelected = true
+				selectLabels = append(selectLabels, labels[i])
+			}
+		}
+	}
+
+	ctx.Data["Labels"] = labels
+	ctx.Data["HasSelectedLabel"] = hasSelected
+	ctx.Data["SelectLabels"] = selectLabels
+	ctx.Data["label_ids"] = form.LabelIDs
 
 	if len(form.Deadline) == 0 {
 		form.Deadline = "9999-12-31"
@@ -211,6 +371,7 @@ func EditMilestonePost(ctx *context.Context) {
 		}
 		return
 	}
+	m.Labels = selectLabels
 	m.Name = form.Title
 	m.Content = form.Content
 	m.DeadlineUnix = timeutil.TimeStamp(deadline.Unix())
@@ -280,6 +441,10 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 		Ctx:       ctx,
 	}, milestone.Content)
 	if err != nil {
+		ctx.ServerError("RenderString", err)
+		return
+	}
+	if err = milestone.LoadLabels(ctx); err != nil {
 		ctx.ServerError("RenderString", err)
 		return
 	}

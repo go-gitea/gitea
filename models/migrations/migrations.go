@@ -524,6 +524,8 @@ var migrations = []Migration{
 	NewMigration("Fix PackageProperty typo", v1_21.FixPackagePropertyTypo),
 	// v271 -> v272
 	NewMigration("Allow archiving labels", v1_21.AddArchivedUnixColumInLabelTable),
+	// v272 -> v273
+	NewMigration("Add milestone labels", v1_21.AddMilestoneLabels),
 }
 
 // GetCurrentDBVersion returns the current db version

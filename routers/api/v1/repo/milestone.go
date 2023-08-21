@@ -147,6 +147,7 @@ func CreateMilestone(ctx *context.APIContext) {
 
 	milestone := &issues_model.Milestone{
 		RepoID:       ctx.Repo.Repository.ID,
+		Repo:         ctx.Repo.Repository,
 		Name:         form.Title,
 		Content:      form.Description,
 		DeadlineUnix: timeutil.TimeStamp(form.Deadline.Unix()),

@@ -46,6 +46,14 @@
 					{{end}}
 				</div>
 				<div class="gt-mr-3">{{.locale.Tr "repo.milestones.completeness" .Milestone.Completeness | Safe}}</div>
+				&nbsp;&nbsp;
+				{{if .Milestone.Labels}}
+					<span class="labels-list">
+						{{range .Milestone.Labels}}
+							{{RenderLabel $.Context .}}
+						{{end}}
+					</span>
+				{{end}}
 			</div>
 		</div>
 		<div class="divider"></div>

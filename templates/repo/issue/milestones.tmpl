@@ -60,6 +60,13 @@
 						<h3 class="flex-text-block gt-m-0">
 							{{svg "octicon-milestone" 16}}
 							<a class="muted" href="{{$.RepoLink}}/milestone/{{.ID}}">{{.Name}}</a>
+							{{if .Labels}}
+								<span class="gt-ml-2 labels-list">
+									{{range .Labels}}
+										{{RenderLabel $.Context .}}
+									{{end}}
+								</span>
+							{{end}}
 						</h3>
 						<div class="gt-df gt-ac">
 							<span class="gt-mr-3">{{.Completeness}}%</span>
