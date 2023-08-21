@@ -36,7 +36,7 @@ jobs:
         id: changes
         with:
           # needed for `act_runner exec`
-          ref: ${{ env.ACT_EXEC == 'true' && 'HEAD' || env.GITHUB_REF }}
+          base: ${{ env.ACT_EXEC == 'true' && 'HEAD' || '' }}
           filters: |
             backend:
               - "**/*.go"

@@ -456,7 +456,10 @@ test-frontend: node_modules
 test-check:
 	@echo "Running test-check...";
 	@diff=$$(git status -s); \
-	if [ -n "$$diff" ]; then \
+	if [ "$(ACT_EXEC)" = "true" ]; then \
+		echo "skip 'test-check' when using 'act_runner exec', please check it manually!"; \
+		exit 0; \
+	elif [ -n "$$diff" ]; then \
 		echo "make test-backend has changed files in the source tree:"; \
 		echo "$${diff}"; \
 		echo "You should change the tests to create these files in a temporary directory."; \
