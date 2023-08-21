@@ -150,6 +150,8 @@ func main() {
 		log.GetManager().Close()
 		os.Exit(code)
 	}
+	app.ErrWriter = os.Stderr
+
 	_ = cmd.RunMainApp(app, os.Args...) // all errors should have been handled by the RunMainApp
 	log.GetManager().Close()
 }
