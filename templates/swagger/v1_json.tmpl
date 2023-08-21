@@ -2825,6 +2825,35 @@
         }
       }
     },
+    "/repos/languages": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get primary languages and their color",
+        "operationId": "repoGetPrimaryLanguages",
+        "parameters": [
+          {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "collectionFormat": "multi",
+            "description": "Comma seperated list of Repo IDs (empty for all)",
+            "name": "ids",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PrimaryLanguageList"
+          }
+        }
+      }
+    },
     "/repos/migrate": {
       "post": {
         "consumes": [
@@ -22694,6 +22723,15 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/Package"
+        }
+      }
+    },
+    "PrimaryLanguageList": {
+      "description": "PrimaryLanguageList",
+      "schema": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
         }
       }
     },

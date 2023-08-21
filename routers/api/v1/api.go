@@ -919,6 +919,7 @@ func Routes() *web.Route {
 		// Repos (requires repo scope)
 		m.Group("/repos", func() {
 			m.Get("/search", repo.Search)
+			m.Get("/languages", repo.GetPrimaryLanguageList)
 
 			// (repo scope)
 			m.Post("/migrate", reqToken(), bind(api.MigrateRepoOptions{}), repo.Migrate)

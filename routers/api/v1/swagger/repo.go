@@ -345,6 +345,13 @@ type swaggerLanguageStatistics struct {
 	Body map[string]int64 `json:"body"`
 }
 
+// PrimaryLanguageList
+// swagger:response PrimaryLanguageList
+type swaggerPrimaryLanguageList struct {
+	// in: body
+	Body map[string]string `json:"body"`
+}
+
 // CombinedStatus
 // swagger:response CombinedStatus
 type swaggerCombinedStatus struct {
