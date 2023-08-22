@@ -181,6 +181,7 @@ func getIssueStatsChunk(opts *IssuesOptions, issueIDs []int64) (*IssueStats, err
 }
 
 // GetUserIssueStats returns issue statistic information for dashboard by given conditions.
+// TBC: remove it
 func GetUserIssueStats(filterMode int, opts IssuesOptions) (*IssueStats, error) {
 	if opts.User == nil {
 		return nil, errors.New("issue stats without user")

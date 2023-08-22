@@ -507,22 +507,10 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	// Filter repos and count issues in them. Count will be used later.
 	// USING NON-FINAL STATE OF opts FOR A QUERY.
-	var issueCountByRepo map[int64]int64
-	{
-		issueIDs, err := issueIDsFromSearch(ctx, keyword, opts)
-		if err != nil {
-			ctx.ServerError("issueIDsFromSearch", err)
-			return
-		}
-		if len(issueIDs) > 0 { // else, no issues found, just leave issueCountByRepo empty
-			opts.IssueIDs = issueIDs
-			issueCountByRepo, err = issues_model.CountIssuesByRepo(ctx, opts)
-			if err != nil {
-				ctx.ServerError("CountIssuesByRepo", err)
-				return
-			}
-			opts.IssueIDs = nil // reset, the opts will be used later
-		}
+	issueCountByRepo, err := issue_indexer.CountIssuesByRepo(ctx, issue_indexer.ToSearchOptions(keyword, opts))
+	if err != nil {
+		ctx.ServerError("CountIssuesByRepo", err)
+		return
 	}
 
 	// Make sure page number is at least 1. Will be posted to ctx.Data.
@@ -615,44 +603,10 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// -------------------------------
 	// Fill stats to post to ctx.Data.
 	// -------------------------------
-	var issueStats *issues_model.IssueStats
-	{
-		statsOpts := issues_model.IssuesOptions{
-			RepoIDs:    repoIDs,
-			User:       ctx.Doer,
-			IsPull:     util.OptionalBoolOf(isPullList),
-			IsClosed:   util.OptionalBoolOf(isShowClosed),
-			IssueIDs:   nil,
-			IsArchived: util.OptionalBoolFalse,
-			LabelIDs:   opts.LabelIDs,
-			Org:        org,
-			Team:       team,
-			RepoCond:   opts.RepoCond,
-		}
-
-		if keyword != "" {
-			statsOpts.RepoIDs = opts.RepoIDs
-			allIssueIDs, err := issueIDsFromSearch(ctx, keyword, &statsOpts)
-			if err != nil {
-				ctx.ServerError("issueIDsFromSearch", err)
-				return
-			}
-			statsOpts.IssueIDs = allIssueIDs
-		}
-
-		if keyword != "" && len(statsOpts.IssueIDs) == 0 {
-			// So it did search with the keyword, but no issue found.
-			// Just set issueStats to empty.
-			issueStats = &issues_model.IssueStats{}
-		} else {
-			// So it did search with the keyword, and found some issues. It needs to get issueStats of these issues.
-			// Or the keyword is empty, so it doesn't need issueIDs as filter, just get issueStats with statsOpts.
-			issueStats, err = issues_model.GetUserIssueStats(filterMode, statsOpts)
-			if err != nil {
-				ctx.ServerError("GetUserIssueStats", err)
-				return
-			}
-		}
+	issueStats, err := getUserIssueStats(ctx, issue_indexer.ToSearchOptions(keyword, opts), ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("getUserIssueStats", err)
+		return
 	}
 
 	// Will be posted to ctx.Data.
@@ -777,6 +731,7 @@ func getRepoIDs(reposQuery string) []int64 {
 	return repoIDs
 }
 
+// TBC: remove it
 func issueIDsFromSearch(ctx *context.Context, keyword string, opts *issues_model.IssuesOptions) ([]int64, error) {
 	ids, _, err := issue_indexer.SearchIssues(ctx, issue_indexer.ToSearchOptions(keyword, opts))
 	if err != nil {
@@ -912,4 +867,96 @@ func UsernameSubRoute(ctx *context.Context) {
 			OwnerProfile(ctx)
 		}
 	}
+}
+
+func getUserIssueStats(ctx *context.Context, opts *issue_indexer.SearchOptions, doerID int64) (*issues_model.IssueStats, error) {
+	isClosed := opts.IsClosed
+	assigneeID := opts.AssigneeID
+	posterID := opts.PosterID
+	mentionID := opts.MentionID
+	reviewRequestedID := opts.ReviewRequestedID
+	reviewedID := opts.ReviewedID
+	defer func() {
+		opts.IsClosed = isClosed
+		opts.AssigneeID = assigneeID
+		opts.PosterID = posterID
+		opts.MentionID = mentionID
+		opts.ReviewRequestedID = reviewRequestedID
+		opts.ReviewedID = reviewedID
+	}()
+	opts.IsClosed = util.OptionalBoolNone
+	opts.AssigneeID = nil
+	opts.PosterID = nil
+	opts.MentionID = nil
+	opts.ReviewRequestedID = nil
+	opts.ReviewedID = nil
+
+	var (
+		err error
+		ret = &issues_model.IssueStats{}
+	)
+
+	{
+		opts.IsClosed = util.OptionalBoolFalse
+		ret.OpenCount, err = issue_indexer.CountIssues(ctx, opts)
+		if err != nil {
+			return nil, err
+		}
+		opts.IsClosed = util.OptionalBoolNone
+	}
+	{
+		opts.IsClosed = util.OptionalBoolTrue
+		ret.ClosedCount, err = issue_indexer.CountIssues(ctx, opts)
+		if err != nil {
+			return nil, err
+		}
+		opts.IsClosed = util.OptionalBoolNone
+	}
+	{
+		ret.YourRepositoriesCount, err = issue_indexer.CountIssues(ctx, opts)
+		if err != nil {
+			return nil, err
+		}
+	}
+	{
+		opts.AssigneeID = &doerID
+		ret.AssignCount, err = issue_indexer.CountIssues(ctx, opts)
+		if err != nil {
+			return nil, err
+		}
+		opts.AssigneeID = nil
+	}
+	{
+		opts.PosterID = &doerID
+		ret.CreateCount, err = issue_indexer.CountIssues(ctx, opts)
+		if err != nil {
+			return nil, err
+		}
+		opts.PosterID = nil
+	}
+	{
+		opts.MentionID = &doerID
+		ret.MentionCount, err = issue_indexer.CountIssues(ctx, opts)
+		if err != nil {
+			return nil, err
+		}
+		opts.MentionID = nil
+	}
+	{
+		opts.ReviewRequestedID = &doerID
+		ret.ReviewRequestedCount, err = issue_indexer.CountIssues(ctx, opts)
+		if err != nil {
+			return nil, err
+		}
+		opts.ReviewRequestedID = nil
+	}
+	{
+		opts.ReviewedID = &doerID
+		ret.ReviewedCount, err = issue_indexer.CountIssues(ctx, opts)
+		if err != nil {
+			return nil, err
+		}
+		opts.ReviewedID = nil
+	}
+	return ret, nil
 }

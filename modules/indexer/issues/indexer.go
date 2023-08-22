@@ -291,7 +291,6 @@ const (
 )
 
 // SearchIssues search issues by options.
-// It returns issue ids and a bool value indicates if the result is imprecise.
 func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, int64, error) {
 	indexer := *globalIndexer.Load()
 
@@ -316,4 +315,50 @@ func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, int64, err
 	}
 
 	return ret, result.Total, nil
+}
+
+// CountIssues counts issues by options. It is a shortcut of SearchIssues(ctx, opts) but only returns the total count.
+func CountIssues(ctx context.Context, opts *SearchOptions) (int64, error) {
+	paginator := opts.Paginator
+	opts.Paginator = &db_model.ListOptions{
+		PageSize: 0,
+	}
+	defer func() {
+		opts.Paginator = paginator
+	}()
+
+	_, total, err := SearchIssues(ctx, opts)
+	return total, err
+}
+
+// CountIssuesByRepo counts issues by options and group by repo id.
+// It's not a complete implementation, since it requires the caller should provide the repo ids.
+// That means opts.RepoIDs must be specified, and opts.AllPublic must be false.
+// It's good enough for the current usage, and it can be improved if needed.
+// TODO: use "group by" of the indexer engines to implement it.
+func CountIssuesByRepo(ctx context.Context, opts *SearchOptions) (map[int64]int64, error) {
+	if len(opts.RepoIDs) == 0 {
+		return nil, fmt.Errorf("opts.RepoIDs must be specified")
+	}
+	if opts.AllPublic {
+		return nil, fmt.Errorf("opts.AllPublic must be false")
+	}
+
+	resoIDs := opts.RepoIDs
+	defer func() {
+		opts.RepoIDs = resoIDs
+	}()
+
+	ret := make(map[int64]int64, len(opts.RepoIDs))
+	// TODO: it could be faster if do it in parallel for some indexer engines. Improve it if users report it's slow.
+	for _, repoID := range resoIDs {
+		opts.RepoIDs = []int64{repoID}
+		count, err := CountIssues(ctx, opts)
+		if err != nil {
+			return nil, err
+		}
+		ret[repoID] = count
+	}
+
+	return ret, nil
 }
