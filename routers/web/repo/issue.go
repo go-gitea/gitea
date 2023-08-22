@@ -1253,16 +1253,16 @@ func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *use
 		if !poster.IsAdmin {
 			roleDescriptor = roleDescriptor.WithRole(issues_model.RoleDescriptorOwner)
 			return roleDescriptor, nil
-		} else {
-			// Otherwise check if poster is the real repo admin.
-			ok, err := access_model.IsUserRealRepoAdmin(repo, poster)
-			if err != nil {
-				return issues_model.RoleDescriptorNone, err
-			}
-			if ok {
-				roleDescriptor = roleDescriptor.WithRole(issues_model.RoleDescriptorOwner)
-				return roleDescriptor, nil
-			}
+		}
+
+		// Otherwise check if poster is the real repo admin.
+		ok, err := access_model.IsUserRealRepoAdmin(repo, poster)
+		if err != nil {
+			return issues_model.RoleDescriptorNone, err
+		}
+		if ok {
+			roleDescriptor = roleDescriptor.WithRole(issues_model.RoleDescriptorOwner)
+			return roleDescriptor, nil
 		}
 	}
 
@@ -1280,7 +1280,7 @@ func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *use
 	}
 
 	// If the poster is the collaborator of the repo
-	if isCollaborator, err := repo_model.IsCollaborator(ctx, repo.ID, poster.ID); err != err {
+	if isCollaborator, err := repo_model.IsCollaborator(ctx, repo.ID, poster.ID); err != nil {
 		return issues_model.RoleDescriptorNone, err
 	} else if isCollaborator {
 		roleDescriptor = roleDescriptor.WithRole(issues_model.RoleDescriptorCollaborator)
