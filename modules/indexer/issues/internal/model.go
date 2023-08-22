@@ -109,6 +109,8 @@ type SearchOptions struct {
 	SortBy SortBy // sort by field
 }
 
+// Copy returns a copy of the options.
+// Be careful, it's not a deep copy, so `SearchOptions.RepoIDs = {...}` is OK while `SearchOptions.RepoIDs[0] = ...` is not.
 func (o *SearchOptions) Copy(edit ...func(options *SearchOptions)) *SearchOptions {
 	if o == nil {
 		return nil
