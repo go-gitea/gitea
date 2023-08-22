@@ -2,6 +2,10 @@
   min-height: 140px;
 }
 
+.user.profile #user-heatmap-container {
+  min-height: 170px;
+}
+
 #user-heatmap {
   width: 100%;
   font-size: 9px;
