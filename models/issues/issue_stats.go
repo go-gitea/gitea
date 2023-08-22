@@ -5,6 +5,7 @@ package issues
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -177,6 +178,167 @@ func getIssueStatsChunk(opts *IssuesOptions, issueIDs []int64) (*IssueStats, err
 		And("issue.is_closed = ?", true).
 		Count(new(Issue))
 	return stats, err
+}
+
+// GetUserIssueStats returns issue statistic information for dashboard by given conditions.
+// TBC: remove it
+func GetUserIssueStats(filterMode int, opts IssuesOptions) (*IssueStats, error) {
+	if opts.User == nil {
+		return nil, errors.New("issue stats without user")
+	}
+	if opts.IsPull.IsNone() {
+		return nil, errors.New("unaccepted ispull option")
+	}
+
+	var err error
+	stats := &IssueStats{}
+
+	cond := builder.NewCond()
+
+	cond = cond.And(builder.Eq{"issue.is_pull": opts.IsPull.IsTrue()})
+
+	if len(opts.RepoIDs) > 0 {
+		cond = cond.And(builder.In("issue.repo_id", opts.RepoIDs))
+	}
+	if len(opts.IssueIDs) > 0 {
+		cond = cond.And(builder.In("issue.id", opts.IssueIDs))
+	}
+	if opts.RepoCond != nil {
+		cond = cond.And(opts.RepoCond)
+	}
+
+	if opts.User != nil {
+		cond = cond.And(issuePullAccessibleRepoCond("issue.repo_id", opts.User.ID, opts.Org, opts.Team, opts.IsPull.IsTrue()))
+	}
+
+	sess := func(cond builder.Cond) *xorm.Session {
+		s := db.GetEngine(db.DefaultContext).
+			Join("INNER", "repository", "`issue`.repo_id = `repository`.id").
+			Where(cond)
+		if len(opts.LabelIDs) > 0 {
+			s.Join("INNER", "issue_label", "issue_label.issue_id = issue.id").
+				In("issue_label.label_id", opts.LabelIDs)
+		}
+
+		if opts.IsArchived != util.OptionalBoolNone {
+			s.And(builder.Eq{"repository.is_archived": opts.IsArchived.IsTrue()})
+		}
+		return s
+	}
+
+	switch filterMode {
+	case FilterModeAll, FilterModeYourRepositories:
+		stats.OpenCount, err = sess(cond).
+			And("issue.is_closed = ?", false).
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
+		stats.ClosedCount, err = sess(cond).
+			And("issue.is_closed = ?", true).
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
+	case FilterModeAssign:
+		stats.OpenCount, err = applyAssigneeCondition(sess(cond), opts.User.ID).
+			And("issue.is_closed = ?", false).
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
+		stats.ClosedCount, err = applyAssigneeCondition(sess(cond), opts.User.ID).
+			And("issue.is_closed = ?", true).
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
+	case FilterModeCreate:
+		stats.OpenCount, err = applyPosterCondition(sess(cond), opts.User.ID).
+			And("issue.is_closed = ?", false).
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
+		stats.ClosedCount, err = applyPosterCondition(sess(cond), opts.User.ID).
+			And("issue.is_closed = ?", true).
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
+	case FilterModeMention:
+		stats.OpenCount, err = applyMentionedCondition(sess(cond), opts.User.ID).
+			And("issue.is_closed = ?", false).
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
+		stats.ClosedCount, err = applyMentionedCondition(sess(cond), opts.User.ID).
+			And("issue.is_closed = ?", true).
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
+	case FilterModeReviewRequested:
+		stats.OpenCount, err = applyReviewRequestedCondition(sess(cond), opts.User.ID).
+			And("issue.is_closed = ?", false).
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
+		stats.ClosedCount, err = applyReviewRequestedCondition(sess(cond), opts.User.ID).
+			And("issue.is_closed = ?", true).
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
+	case FilterModeReviewed:
+		stats.OpenCount, err = applyReviewedCondition(sess(cond), opts.User.ID).
+			And("issue.is_closed = ?", false).
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
+		stats.ClosedCount, err = applyReviewedCondition(sess(cond), opts.User.ID).
+			And("issue.is_closed = ?", true).
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	cond = cond.And(builder.Eq{"issue.is_closed": opts.IsClosed.IsTrue()})
+	stats.AssignCount, err = applyAssigneeCondition(sess(cond), opts.User.ID).Count(new(Issue))
+	if err != nil {
+		return nil, err
+	}
+
+	stats.CreateCount, err = applyPosterCondition(sess(cond), opts.User.ID).Count(new(Issue))
+	if err != nil {
+		return nil, err
+	}
+
+	stats.MentionCount, err = applyMentionedCondition(sess(cond), opts.User.ID).Count(new(Issue))
+	if err != nil {
+		return nil, err
+	}
+
+	stats.YourRepositoriesCount, err = sess(cond).Count(new(Issue))
+	if err != nil {
+		return nil, err
+	}
+
+	stats.ReviewRequestedCount, err = applyReviewRequestedCondition(sess(cond), opts.User.ID).Count(new(Issue))
+	if err != nil {
+		return nil, err
+	}
+
+	stats.ReviewedCount, err = applyReviewedCondition(sess(cond), opts.User.ID).Count(new(Issue))
+	if err != nil {
+		return nil, err
+	}
+
+	return stats, nil
 }
 
 // GetRepoIssueStats returns number of open and closed repository issues by given filter mode.
