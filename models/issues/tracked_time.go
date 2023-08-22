@@ -360,11 +360,7 @@ func getIssueTotalTrackedTimeChunk(opts *IssuesOptions, isClosed bool, issueIDs 
 			Where("tracked_time.deleted = ?", false).
 			Join("INNER", "issue", "tracked_time.issue_id = issue.id")
 
-		if len(issueIDs) > 0 {
-			sess.In("issue.id", issueIDs)
-		}
-
-		return applyIssueStatsOptions(sess, opts, nil)
+		return applyIssuesOptions(sess, opts, issueIDs)
 	}
 
 	type trackedTime struct {
