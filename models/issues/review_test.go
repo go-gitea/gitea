@@ -142,6 +142,11 @@ func TestGetReviewersByIssueID(t *testing.T) {
 			Reviewer:    user2,
 			Type:        issues_model.ReviewTypeReject,
 			UpdatedUnix: 946684814,
+		},
+		&issues_model.Review{
+			Reviewer:    user_model.NewGhostUser(),
+			Type:        issues_model.ReviewTypeReject,
+			UpdatedUnix: 946684815,
 		})
 
 	allReviews, err := issues_model.GetReviewsByIssueID(issue.ID)
@@ -149,7 +154,7 @@ func TestGetReviewersByIssueID(t *testing.T) {
 	for _, review := range allReviews {
 		assert.NoError(t, review.LoadReviewer(db.DefaultContext))
 	}
-	if assert.Len(t, allReviews, 3) {
+	if assert.Len(t, allReviews, 4) {
 		for i, review := range allReviews {
 			assert.Equal(t, expectedReviews[i].Reviewer, review.Reviewer)
 			assert.Equal(t, expectedReviews[i].Type, review.Type)
@@ -160,7 +165,7 @@ func TestGetReviewersByIssueID(t *testing.T) {
 	allReviews, err = issues_model.GetReviewsByIssueID(issue.ID)
 	assert.NoError(t, err)
 	assert.NoError(t, allReviews.LoadReviewers(db.DefaultContext))
-	if assert.Len(t, allReviews, 3) {
+	if assert.Len(t, allReviews, 4) {
 		for i, review := range allReviews {
 			assert.Equal(t, expectedReviews[i].Reviewer, review.Reviewer)
 			assert.Equal(t, expectedReviews[i].Type, review.Type)

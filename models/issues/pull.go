@@ -320,6 +320,10 @@ func (pr *PullRequest) LoadRequestedReviewers(ctx context.Context) error {
 		return err
 	}
 	for _, review := range reviews {
+		if review.Type != ReviewTypeRequest {
+			continue
+		}
+
 		pr.RequestedReviewers = append(pr.RequestedReviewers, review.Reviewer)
 	}
 

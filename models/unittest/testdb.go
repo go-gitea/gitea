@@ -196,9 +196,8 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 
 // FixturesOptions fixtures needs to be loaded options
 type FixturesOptions struct {
-	Dir        string
-	Files      []string
-	InitDumper bool
+	Dir   string
+	Files []string
 }
 
 // CreateTestEngine creates a memory database and loads the fixture data from fixturesDir

@@ -299,3 +299,24 @@ func SetLogSQL(ctx context.Context, on bool) {
 		sess.Engine().ShowSQL(on)
 	}
 }
+
+func AllTablesForEach(hanle func(info *schemas.Table, bean any) error) error {
+	for _, table := range tables {
+		info, err := TableInfo(table)
+		if err != nil {
+			return err
+		}
+
+		err = hanle(info, table)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// FixtureDumper custom interface to generate a fixture file
+type FixtureDumper interface {
+	FixtureDumper(dbCtx context.Context, fd io.Writer) error
+}

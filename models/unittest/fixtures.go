@@ -5,24 +5,29 @@
 package unittest
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
+	"path"
+	"reflect"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/go-testfixtures/testfixtures/v3"
 	"xorm.io/xorm"
+	"xorm.io/xorm/convert"
+	"xorm.io/xorm/names"
 	"xorm.io/xorm/schemas"
 )
 
-var (
-	fixturesLoader *testfixtures.Loader
-	fixturesDumper *testfixtures.Dumper
-)
+var fixturesLoader *testfixtures.Loader
 
 // GetXORMEngine gets the XORM engine
 func GetXORMEngine(engine ...*xorm.Engine) (x *xorm.Engine) {
@@ -76,23 +81,31 @@ func InitFixtures(opts FixturesOptions, engine ...*xorm.Engine) (err error) {
 
 	setting.PasswordHashAlgo, _ = hash.SetDefaultPasswordHashAlgorithm("dummy")
 
-	if !opts.InitDumper {
-		return err
-	}
-
-	fixturesDumper, err = testfixtures.NewDumper(testfixtures.DumpDatabase(e.DB().DB),
-		testfixtures.DumpDialect(dialect),
-		testfixtures.DumpDirectory(opts.Dir))
-
 	return err
 }
 
-func DumpAllFixtures() error {
-	if fixturesDumper == nil {
-		return errors.New("no fixturesDumper")
-	}
+func DumpAllFixtures(dir string) error {
+	return db.AllTablesForEach(func(info *schemas.Table, bean any) error {
+		pth := path.Join(dir, info.Name+".yml")
+		fd, err := os.OpenFile(pth, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o644)
+		if err != nil {
+			return err
+		}
+		defer fd.Close()
 
-	return fixturesDumper.Dump()
+		sum, err := db.GetEngine(db.DefaultContext).Count(bean)
+		if err != nil {
+			return err
+		}
+		if sum == 0 {
+			_, err = fd.WriteString("[] # empty\n")
+			return err
+		}
+
+		return db.GetEngine(db.DefaultContext).Iterate(bean, func(idx int, data interface{}) error {
+			return DefaultFixtureDumper(data, fd)
+		})
+	})
 }
 
 // LoadFixtures load fixtures for a test database
@@ -145,4 +158,350 @@ func LoadFixtures(engine ...*xorm.Engine) error {
 	setting.PasswordHashAlgo, _ = hash.SetDefaultPasswordHashAlgorithm("dummy")
 
 	return err
+}
+
+func isFieldNil(field reflect.Value) bool {
+	if !field.IsValid() {
+		return true
+	}
+
+	switch field.Kind() {
+	case reflect.Ptr, reflect.Interface, reflect.Slice, reflect.Map, reflect.Chan, reflect.Func:
+		return field.IsNil()
+	default:
+		return false
+	}
+}
+
+func isFieldPrivate(field reflect.StructField) bool {
+	return field.PkgPath != ""
+}
+
+func defaultFixtureDumperVerbs(tableName string, actualValue reflect.Value, typeOfactualValue reflect.Type, fd io.Writer, mapper names.Mapper) error {
+	for i := 0; i < actualValue.NumField(); i++ {
+		field := actualValue.Field(i)
+
+		fieldName := mapper.Obj2Table(actualValue.Type().Field(i).Name)
+		fieldType := typeOfactualValue.Field(i)
+		if isFieldPrivate(fieldType) {
+			continue
+		}
+		xormTags, err := splitXormTag(fieldType.Tag.Get("xorm"))
+		if err != nil {
+			return err
+		}
+
+		if xormTags.HasTag("-") {
+			continue
+		}
+
+		fieldValue := field.Interface()
+		isText := xormTags.HasTag("TEXT")
+		isJson := xormTags.HasTag("JSON")
+		conversion, hasconversion := fieldValue.(convert.Conversion)
+		if (!hasconversion) && isFieldNil(field) {
+			continue
+		}
+
+		if !isText {
+			if strValue, ok := fieldValue.(string); ok {
+				if len(strValue) == 0 {
+					continue
+				}
+			}
+		}
+
+		if xormTags.HasTag("EXTENDS") {
+			var actualValue2 reflect.Value
+
+			if field.Kind() == reflect.Ptr {
+				actualValue2 = field.Elem()
+			} else {
+				actualValue2 = field
+			}
+
+			typeOfactualValue2 := actualValue2.Type()
+			err = defaultFixtureDumperVerbs(tableName, actualValue2, typeOfactualValue2, fd, mapper)
+			if err != nil {
+				return err
+			}
+
+			continue
+		}
+
+		int64Type := reflect.TypeOf(int64(0))
+		isInt64 := field.Type().ConvertibleTo(int64Type)
+		if fieldType.Type.Kind() == reflect.Struct && !isInt64 && !isText && !isJson {
+			return fmt.Errorf("%s: '%s' is a struct whcih can't be convert to a table field", tableName, xormTags.GetFieldName(fieldName))
+		}
+
+		_, err = fd.Write([]byte(fmt.Sprintf("  %s: ", xormTags.GetFieldName(fieldName))))
+		if err != nil {
+			return err
+		}
+
+		if isJson {
+			result, err := json.Marshal(fieldValue)
+			if err != nil {
+				return err
+			}
+			result2 := []byte{'\''}
+			result2 = append(result2, result...)
+			result2 = append(result2, []byte{'\'', '\n'}...)
+
+			_, err = fd.Write(result2)
+			if err != nil {
+				return err
+			}
+
+			continue
+		}
+
+		var strValue []byte
+		if hasconversion {
+			strValue, err = conversion.ToDB()
+			if err != nil {
+				return err
+			}
+		} else if isInt64 {
+			intValue := field.Convert(int64Type).Int()
+			strValue = []byte(fmt.Sprintf("%d", intValue))
+		} else {
+			strValue = []byte(fmt.Sprintf("%v", fieldValue))
+		}
+
+		isAllNumber := true
+		strValue2 := make([]byte, 0, len(strValue))
+		for _, v := range strValue {
+			if v == '\'' {
+				isText = true
+				strValue2 = append(strValue2, v)
+			}
+
+			if v == '#' {
+				isText = true
+			}
+
+			if v < '0' || v > '9' {
+				isAllNumber = false
+			}
+
+			strValue2 = append(strValue2, v)
+		}
+
+		if isAllNumber && !isInt64 {
+			isText = true
+		}
+
+		if isText {
+			strValue = []byte{'\''}
+			strValue = append(strValue, strValue2...)
+			strValue = append(strValue, '\'')
+		} else {
+			strValue = strValue2
+		}
+		strValue = append(strValue, '\n')
+
+		_, err = fd.Write(strValue)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func DefaultFixtureDumper(data any, fd io.Writer) error {
+	if data == nil {
+		return nil
+	}
+
+	reflectedValue := reflect.ValueOf(data)
+
+	if reflectedValue.Kind() != reflect.Ptr {
+		return errors.New("expected a pointer")
+	}
+
+	actualValue := reflectedValue.Elem()
+	typeOfactualValue := actualValue.Type()
+	mapper := names.GonicMapper{}
+
+	_, err := fd.Write([]byte("-\n"))
+	if err != nil {
+		return err
+	}
+
+	err = defaultFixtureDumperVerbs(typeOfactualValue.Name(), actualValue, typeOfactualValue, fd, mapper)
+	if err != nil {
+		return err
+	}
+
+	_, err = fd.Write([]byte("\n"))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type xormTag struct {
+	name   string
+	params []string
+}
+
+type xormTagList []xormTag
+
+func (l xormTagList) HasTag(name string) bool {
+	for _, tag := range l {
+		name2 := strings.ToUpper(tag.name)
+		if name2 == name {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (l xormTagList) GetFieldName(defaultName string) string {
+	var reservedNames = []string{
+		"TRUE",
+		"FALSE",
+		"BIT",
+		"TINYINT",
+		"SMALLINT",
+		"MEDIUMINT",
+		"INT",
+		"INTEGER",
+		"BIGINT",
+		"CHAR",
+		"VARCHAR",
+		"TINYTEXT",
+		"TEXT",
+		"MEDIUMTEXT",
+		"LONGTEXT",
+		"BINARY",
+		"VARBINARY",
+		"DATE",
+		"DATETIME",
+		"TIME",
+		"TIMESTAMP",
+		"TIMESTAMPZ",
+		"REAL",
+		"FLOAT",
+		"DOUBLE",
+		"DECIMAL",
+		"NUMERIC",
+		"TINYBLOB",
+		"BLOB",
+		"MEDIUMBLOB	",
+		"LONGBLOB",
+		"BYTEA",
+		"BOOL",
+		"SERIAL",
+		"BIGSERIAL",
+		"-",
+		"<-",
+		"->",
+		"PK",
+		"NULL",
+		"NOT",
+		"AUTOINCR",
+		"DEFAULT",
+		"CREATED",
+		"UPDATED",
+		"DELETED",
+		"VERSION",
+		"UTC",
+		"LOCAL",
+		"NOTNULL",
+		"INDEX",
+		"UNIQUE",
+		"CACHE",
+		"NOCACHE",
+		"COMMENT",
+		"EXTENDS",
+		"UNSIGNED",
+		"COLLATE",
+		"JSON",
+	}
+
+	preTag := ""
+	for _, tag := range l {
+		if len(tag.params) > 0 {
+			continue
+		}
+
+		if preTag == "DEFAULT" {
+			preTag = ""
+			continue
+		}
+		preTag = strings.ToUpper(tag.name)
+
+		if util.SliceContains(reservedNames, strings.ToUpper(tag.name)) {
+			continue
+		}
+
+		return tag.name
+	}
+
+	return defaultName
+}
+
+func splitXormTag(tagStr string) (xormTagList, error) {
+	tagStr = strings.TrimSpace(tagStr)
+	var (
+		inQuote    bool
+		inBigQuote bool
+		lastIdx    int
+		curTag     xormTag
+		paramStart int
+		tags       []xormTag
+	)
+	for i, t := range tagStr {
+		switch t {
+		case '\'':
+			inQuote = !inQuote
+		case ' ':
+			if !inQuote && !inBigQuote {
+				if lastIdx < i {
+					if curTag.name == "" {
+						curTag.name = tagStr[lastIdx:i]
+					}
+					tags = append(tags, curTag)
+					lastIdx = i + 1
+					curTag = xormTag{}
+				} else if lastIdx == i {
+					lastIdx = i + 1
+				}
+			} else if inBigQuote && !inQuote {
+				paramStart = i + 1
+			}
+		case ',':
+			if !inQuote && !inBigQuote {
+				return nil, fmt.Errorf("comma[%d] of %s should be in quote or big quote", i, tagStr)
+			}
+			if !inQuote && inBigQuote {
+				curTag.params = append(curTag.params, strings.TrimSpace(tagStr[paramStart:i]))
+				paramStart = i + 1
+			}
+		case '(':
+			inBigQuote = true
+			if !inQuote {
+				curTag.name = tagStr[lastIdx:i]
+				paramStart = i + 1
+			}
+		case ')':
+			inBigQuote = false
+			if !inQuote {
+				curTag.params = append(curTag.params, tagStr[paramStart:i])
+			}
+		}
+	}
+	if lastIdx < len(tagStr) {
+		if curTag.name == "" {
+			curTag.name = tagStr[lastIdx:]
+		}
+		tags = append(tags, curTag)
+	}
+	return tags, nil
 }

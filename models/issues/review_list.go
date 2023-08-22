@@ -33,6 +33,9 @@ func (reviews ReviewList) LoadReviewers(ctx context.Context) error {
 	}
 	for _, review := range reviews {
 		review.Reviewer = userMap[review.ReviewerID]
+		if review.Reviewer == nil {
+			review.Reviewer = user_model.NewGhostUser()
+		}
 	}
 	return nil
 }

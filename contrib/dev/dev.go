@@ -5,11 +5,13 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io/fs"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	_ "code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
@@ -19,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
+	"code.gitea.io/gitea/routers/common"
 	"gopkg.in/yaml.v3"
 )
 
@@ -50,13 +53,80 @@ func main() {
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())
 	fixGitReops()
-	err = unittest.DumpAllFixtures()
+
+	ctxDb, cancel := context.WithCancel(context.Background())
+	err = common.InitDBEngine(ctxDb)
+	if err != nil {
+		log.Fatal("common.InitDBEngine: %v", err)
+	}
+	err = unittest.DumpAllFixtures(filepath.Join(pwd, "models", "fixtures"))
+	cancel()
+
 	if err != nil {
 		log.Fatal("unittest.DumpAllFixtures: %v", err)
 	}
 	removeNotNeededFixtures(pwd)
+	recheckFixtures(pwd)
 
 	log.GetManager().Close()
+}
+
+func buildInterfacesSlice(records interface{}) ([]interface{}, error) {
+	switch records := records.(type) {
+	case []interface{}:
+		return records, nil
+	case map[string]interface{}:
+		var result []interface{}
+		for _, record := range records {
+			result = append(result, record)
+		}
+		return result, nil
+	}
+
+	return nil, fmt.Errorf("testfixtures: fixture is not a slice or map")
+}
+
+func recheckFixtures(pathToGiteaRoot string) {
+	err := filepath.Walk(path.Join(pathToGiteaRoot, "models", "fixtures"), func(pth string, info fs.FileInfo, _ error) error {
+		if info.IsDir() {
+			return nil
+		}
+
+		fileName := path.Base(pth)
+		if !strings.HasSuffix(fileName, ".yml") {
+			return nil
+		}
+
+		log.Info("recheck %s", fileName)
+
+		content, err := os.ReadFile(pth)
+		if err != nil {
+			return err
+		}
+
+		var records interface{}
+		if err := yaml.Unmarshal(content, &records); err != nil {
+			return fmt.Errorf("could not unmarshal YAML: %w", err)
+		}
+
+		result, err := buildInterfacesSlice(records)
+		if err != nil {
+			return err
+		}
+
+		for _, record := range result {
+			_, ok := record.(map[string]interface{})
+			if !ok {
+				return fmt.Errorf("testfixtures: could not cast record: not a map[interface{}]interface{}")
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		log.Fatal("recheckFixtures: %v", err)
+	}
 }
 
 func listSubDir(dirname string, onDir func(path, name string) error) error {
@@ -228,8 +298,7 @@ func initDev(pathToGiteaRoot string) {
 
 	fixturesDir := filepath.Join(pathToGiteaRoot, "models", "fixtures")
 	if err := unittest.InitFixtures(unittest.FixturesOptions{
-		Dir:        fixturesDir,
-		InitDumper: true,
+		Dir: fixturesDir,
 	}); err != nil {
 		log.Fatal("CreateTestEngine: %+v", err)
 	}
@@ -271,6 +340,10 @@ func removeNotNeededFixtures(pathToGiteaRoot string) {
 		}
 
 		fileName := path.Base(pth)
+		if !strings.HasSuffix(fileName, ".yml") {
+			return nil
+		}
+
 		if util.SliceContains(nootNeededFixtures, fileName) {
 			return os.Remove(pth)
 		}
