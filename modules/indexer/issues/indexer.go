@@ -13,6 +13,7 @@ import (
 
 	db_model "code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/indexer/issues/bleve"
 	"code.gitea.io/gitea/modules/indexer/issues/db"
@@ -338,9 +339,10 @@ func CountIssuesByRepo(ctx context.Context, opts *SearchOptions) (map[int64]int6
 		return nil, fmt.Errorf("opts.AllPublic must be false")
 	}
 
-	ret := make(map[int64]int64, len(opts.RepoIDs))
+	repoIDs := container.SetOf(opts.RepoIDs...).Values()
+	ret := make(map[int64]int64, len(repoIDs))
 	// TODO: it could be faster if do it in parallel for some indexer engines. Improve it if users report it's slow.
-	for _, repoID := range opts.RepoIDs {
+	for _, repoID := range repoIDs {
 		count, err := CountIssues(ctx, opts.Copy(func(o *internal.SearchOptions) { o.RepoIDs = []int64{repoID} }))
 		if err != nil {
 			return nil, err
