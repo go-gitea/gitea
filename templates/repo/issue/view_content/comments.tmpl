@@ -50,21 +50,7 @@
 							{{end}}
 						</div>
 						<div class="comment-header-right actions gt-df gt-ac">
-							{{if (.ShowRole.HasRole "Poster")}}
-								<div class="ui basic label">
-									{{$.locale.Tr "repo.issues.poster"}}
-								</div>
-							{{end}}
-							{{if (.ShowRole.HasRole "Writer")}}
-								<div class="ui basic label">
-									{{$.locale.Tr "repo.issues.collaborator"}}
-								</div>
-							{{end}}
-							{{if (.ShowRole.HasRole "Owner")}}
-								<div class="ui basic label">
-									{{$.locale.Tr "repo.issues.owner"}}
-								</div>
-							{{end}}
+							{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
 							{{if not $.Repository.IsArchived}}
 								{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
 								{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" . "delete" true "issue" true "diff" false "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
@@ -442,25 +428,11 @@
 								</span>
 							</div>
 							<div class="comment-header-right actions gt-df gt-ac">
-									{{if (.ShowRole.HasRole "Poster")}}
-										<div class="ui basic label">
-												{{$.locale.Tr "repo.issues.poster"}}
-										</div>
-									{{end}}
-									{{if (.ShowRole.HasRole "Writer")}}
-										<div class="ui basic label">
-												{{$.locale.Tr "repo.issues.collaborator"}}
-										</div>
-									{{end}}
-									{{if (.ShowRole.HasRole "Owner")}}
-										<div class="ui basic label">
-												{{$.locale.Tr "repo.issues.owner"}}
-										</div>
-									{{end}}
-									{{if not $.Repository.IsArchived}}
-											{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
-											{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" . "delete" false "issue" true "diff" false "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
-									{{end}}
+								{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
+								{{if not $.Repository.IsArchived}}
+									{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
+									{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" . "delete" false "issue" true "diff" false "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
+								{{end}}
 							</div>
 						</div>
 						<div class="ui attached segment comment-body">
@@ -567,21 +539,7 @@
 																</span>
 															</div>
 															<div class="comment-header-right actions gt-df gt-ac">
-																{{if (.ShowRole.HasRole "Poster")}}
-																	<div class="ui basic label">
-																		{{$.locale.Tr "repo.issues.poster"}}
-																	</div>
-																{{end}}
-																{{if (.ShowRole.HasRole "Writer")}}
-																	<div class="ui basic label">
-																		{{$.locale.Tr "repo.issues.collaborator"}}
-																	</div>
-																{{end}}
-																{{if (.ShowRole.HasRole "Owner")}}
-																	<div class="ui basic label">
-																		{{$.locale.Tr "repo.issues.owner"}}
-																	</div>
-																{{end}}
+																{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
 																{{if not $.Repository.IsArchived}}
 																	{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
 																	{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" . "delete" true "issue" true "diff" true "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
