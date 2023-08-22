@@ -852,7 +852,6 @@ func UsernameSubRoute(ctx *context.Context) {
 
 func getUserIssueStats(ctx *context.Context, filterMode int, opts *issue_indexer.SearchOptions, doerID int64) (*issues_model.IssueStats, error) {
 	opts = opts.Copy(func(o *issue_indexer.SearchOptions) {
-		o.IsClosed = util.OptionalBoolNone
 		o.AssigneeID = nil
 		o.PosterID = nil
 		o.MentionID = nil
@@ -891,8 +890,6 @@ func getUserIssueStats(ctx *context.Context, filterMode int, opts *issue_indexer
 			return nil, err
 		}
 	}
-
-	opts.IsClosed = util.OptionalBoolFalse
 
 	ret.YourRepositoriesCount, err = issue_indexer.CountIssues(ctx, opts)
 	if err != nil {
