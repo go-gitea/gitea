@@ -457,12 +457,14 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	if team != nil {
 		repoOpts.TeamID = team.ID
 	}
+	accessibleRepos := container.Set[int64]{}
 	{
 		ids, _, err := repo_model.SearchRepositoryIDs(repoOpts)
 		if err != nil {
 			ctx.ServerError("SearchRepositoryIDs", err)
 			return
 		}
+		accessibleRepos.AddMultiple(ids...)
 		opts.RepoIDs = ids
 		if len(opts.RepoIDs) == 0 {
 			// no repos found, don't let the indexer return all repos
@@ -488,18 +490,6 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// keyword holds the search term entered into the search field.
 	keyword := strings.Trim(ctx.FormString("q"), " ")
 	ctx.Data["Keyword"] = keyword
-
-	accessibleRepos := container.Set[int64]{}
-	{
-		ids, err := issues_model.GetRepoIDsForIssuesOptions(opts, ctxUser)
-		if err != nil {
-			ctx.ServerError("GetRepoIDsForIssuesOptions", err)
-			return
-		}
-		for _, id := range ids {
-			accessibleRepos.Add(id)
-		}
-	}
 
 	// Educated guess: Do or don't show closed issues.
 	isShowClosed := ctx.FormString("state") == "closed"
@@ -539,13 +529,13 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	// Parse ctx.FormString("repos") and remember matched repo IDs for later.
 	// Gets set when clicking filters on the issues overview page.
-	repoIDs := getRepoIDs(ctx.FormString("repos"))
-	if len(repoIDs) > 0 {
+	selectedRepoIDs := getRepoIDs(ctx.FormString("repos"))
+	if len(selectedRepoIDs) > 0 {
 		// Remove repo IDs that are not accessible to the user.
-		repoIDs = util.SliceRemoveAllFunc(repoIDs, func(v int64) bool {
+		selectedRepoIDs = util.SliceRemoveAllFunc(selectedRepoIDs, func(v int64) bool {
 			return !accessibleRepos.Contains(v)
 		})
-		opts.RepoIDs = repoIDs
+		opts.RepoIDs = selectedRepoIDs
 	}
 
 	// ------------------------------
@@ -676,7 +666,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
-	ctx.Data["RepoIDs"] = opts.RepoIDs
+	ctx.Data["RepoIDs"] = selectedRepoIDs
 	ctx.Data["IsShowClosed"] = isShowClosed
 	ctx.Data["SelectLabels"] = selectedLabels
 
