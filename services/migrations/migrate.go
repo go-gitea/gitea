@@ -314,9 +314,9 @@ func migrateRepository(doer *user_model.User, downloader base.Downloader, upload
 		}
 
 		// Once all releases (if any) are inserted, sync any remaining non-release tags
-		// if err = uploader.SyncTags(); err != nil {
-		// 	return err
-		// }
+		if err = uploader.SyncTags(); err != nil {
+			return err
+		}
 	}
 
 	var (
@@ -611,9 +611,9 @@ func syncRepository(downloader base.Downloader, uploader base.Uploader, opts bas
 		}
 
 		// Once all releases (if any) are inserted, sync any remaining non-release tags
-		// if err = uploader.SyncTags(); err != nil {
-		// 	return err
-		// }
+		if err = uploader.SyncTags(); err != nil {
+			return err
+		}
 	}
 
 	var (

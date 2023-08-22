@@ -292,9 +292,9 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) 
 
 	// optimized procedure for pull-mirrors which saves a lot of time (in
 	// particular for repos with many tags).
-	if repo.IsMirror {
-		return pullMirrorReleaseSync(repo, gitRepo)
-	}
+	// if repo.IsMirror {
+	// 	return pullMirrorReleaseSync(repo, gitRepo)
+	// }
 
 	existingRelTags := make(container.Set[string])
 	opts := repo_model.FindReleasesOptions{
