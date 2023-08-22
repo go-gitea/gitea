@@ -319,13 +319,7 @@ func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, int64, err
 
 // CountIssues counts issues by options. It is a shortcut of SearchIssues(ctx, opts) but only returns the total count.
 func CountIssues(ctx context.Context, opts *SearchOptions) (int64, error) {
-	paginator := opts.Paginator
-	opts.Paginator = &db_model.ListOptions{
-		PageSize: 0,
-	}
-	defer func() {
-		opts.Paginator = paginator
-	}()
+	opts = opts.Copy(func(options *SearchOptions) { opts.Paginator = &db_model.ListOptions{PageSize: 0} })
 
 	_, total, err := SearchIssues(ctx, opts)
 	return total, err
