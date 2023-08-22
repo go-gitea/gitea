@@ -530,11 +530,11 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// Parse ctx.FormString("repos") and remember matched repo IDs for later.
 	// Gets set when clicking filters on the issues overview page.
 	selectedRepoIDs := getRepoIDs(ctx.FormString("repos"))
+	// Remove repo IDs that are not accessible to the user.
+	selectedRepoIDs = util.SliceRemoveAllFunc(selectedRepoIDs, func(v int64) bool {
+		return !accessibleRepos.Contains(v)
+	})
 	if len(selectedRepoIDs) > 0 {
-		// Remove repo IDs that are not accessible to the user.
-		selectedRepoIDs = util.SliceRemoveAllFunc(selectedRepoIDs, func(v int64) bool {
-			return !accessibleRepos.Contains(v)
-		})
 		opts.RepoIDs = selectedRepoIDs
 	}
 
