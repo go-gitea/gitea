@@ -1,8 +1,11 @@
+#user-heatmap-container {
+  min-height: 140px;
+}
+
 #user-heatmap {
   width: 100%;
   font-size: 9px;
   position: relative;
-  min-height: 125px;
 }
 
 #user-heatmap text {

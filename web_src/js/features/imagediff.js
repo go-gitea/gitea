@@ -131,7 +131,7 @@ export function initImageDiff() {
       }
 
       $container.find('> .gt-hidden').removeClass('gt-hidden');
-      hideElem($container.find('.ui.loader'));
+      $container.find('.img-diff-spinner').remove();
     }
 
     function initSideBySide(sizes) {

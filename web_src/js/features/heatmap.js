@@ -3,7 +3,7 @@ import ActivityHeatmap from '../components/ActivityHeatmap.vue';
 import {translateMonth, translateDay} from '../utils.js';
 
 export function initHeatmap() {
-  const el = document.getElementById('user-heatmap');
+  const el = document.getElementById('user-heatmap-container');
   if (!el) return;
 
   try {
@@ -30,8 +30,8 @@ export function initHeatmap() {
     };
 
     const View = createApp(ActivityHeatmap, {values, locale});
-
     View.mount(el);
+    el.classList.remove('is-loading');
   } catch (err) {
     console.error('Heatmap failed to load', err);
     el.textContent = 'Heatmap failed to load';
