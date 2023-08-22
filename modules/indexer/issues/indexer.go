@@ -338,16 +338,10 @@ func CountIssuesByRepo(ctx context.Context, opts *SearchOptions) (map[int64]int6
 		return nil, fmt.Errorf("opts.AllPublic must be false")
 	}
 
-	resoIDs := opts.RepoIDs
-	defer func() {
-		opts.RepoIDs = resoIDs
-	}()
-
 	ret := make(map[int64]int64, len(opts.RepoIDs))
 	// TODO: it could be faster if do it in parallel for some indexer engines. Improve it if users report it's slow.
-	for _, repoID := range resoIDs {
-		opts.RepoIDs = []int64{repoID}
-		count, err := CountIssues(ctx, opts)
+	for _, repoID := range opts.RepoIDs {
+		count, err := CountIssues(ctx, opts.Copy(func(o *internal.SearchOptions) { o.RepoIDs = []int64{repoID} }))
 		if err != nil {
 			return nil, err
 		}
