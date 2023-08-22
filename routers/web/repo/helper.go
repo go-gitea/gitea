@@ -28,6 +28,8 @@ func HandleGitError(ctx *context.Context, msg string, err error) {
 	if git.IsErrNotExist(err) {
 		ctx.Data["NotFoundPrompt"] = ctx.Locale.Tr("repo.tree_path_not_found", ctx.Repo.TreePath, ctx.Repo.BranchName)
 		ctx.Data["NotFoundGoBackURL"] = ctx.Repo.RepoLink + "/src/branch/" + url.PathEscape(ctx.Repo.BranchName)
+		ctx.NotFound(msg, err)
+	} else {
+		ctx.ServerError(msg, err)
 	}
-	ctx.NotFoundOrServerError(msg, git.IsErrNotExist, err)
 }
