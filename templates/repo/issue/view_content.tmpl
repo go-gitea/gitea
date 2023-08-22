@@ -44,7 +44,7 @@
 							{{end}}
 						</div>
 						<div class="comment-header-right actions gt-df gt-ac">
-							{{template "repo/issue/view_content/show_role" dict "ShowRole" .Issue.ShowRole "locale" $.locale "IgnorePoster" true}}
+							{{template "repo/issue/view_content/show_role" dict "ShowRole" .Issue.ShowRole "IgnorePoster" true}}
 							{{if not $.Repository.IsArchived}}
 								{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index)}}
 								{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" .Issue "delete" false "issue" true "diff" false "IsCommentPoster" $.IsIssuePoster}}
