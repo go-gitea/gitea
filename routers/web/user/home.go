@@ -564,6 +564,18 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// Add repository pointers to Issues.
 	// ----------------------------------
 
+	// Remove repositories that should not be shown,
+	// which are repositories that have no issues and are not selected by the user.
+	selectedReposMap := make(map[int64]struct{}, len(selectedRepoIDs))
+	for _, repoID := range selectedRepoIDs {
+		selectedReposMap[repoID] = struct{}{}
+	}
+	for k, v := range issueCountByRepo {
+		if _, ok := selectedReposMap[k]; !ok && v == 0 {
+			delete(issueCountByRepo, k)
+		}
+	}
+
 	// showReposMap maps repository IDs to their Repository pointers.
 	showReposMap, err := loadRepoByIDs(ctxUser, issueCountByRepo, unitType)
 	if err != nil {
