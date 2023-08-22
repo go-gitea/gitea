@@ -12313,6 +12313,51 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/actions/tasks": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List a repository's actions tasks",
+        "operationId": "ListActionTasks",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, default maximum page size is 50",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TasksList"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/teams": {
       "get": {
         "produces": [
@@ -21414,6 +21459,51 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "Task": {
+      "description": "Task represents a task",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "x-go-name": "ID"
+        },
+        "job_name": {
+          "type": "string",
+          "x-go-name": "JobName"
+        },
+        "workflow_id": {
+          "type": "string",
+          "x-go-name": "WorkflowID"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        },
+        "status": {
+          "type": "string",
+          "x-go-name": "Status"
+        },
+        "commit": {
+          "type": "string",
+          "x-go-name": "Commit"
+        },
+        "duration": {
+          "type": "string",
+          "x-go-name": "Duration"
+        },
+        "started": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Started"
+        },
+        "stopped": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Stopped"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "ServerVersion": {
       "description": "ServerVersion wraps the version of the server",
       "type": "object",
@@ -22997,6 +23087,15 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/Secret"
+        }
+      }
+    },
+    "TasksList": {
+      "description": "TasksList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/Task"
         }
       }
     },

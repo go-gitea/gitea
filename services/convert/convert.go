@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
@@ -176,6 +177,24 @@ func ToTag(repo *repo_model.Repository, t *git.Tag) *api.Tag {
 		Commit:     ToCommitMeta(repo, t),
 		ZipballURL: util.URLJoin(repo.HTMLURL(), "archive", t.Name+".zip"),
 		TarballURL: util.URLJoin(repo.HTMLURL(), "archive", t.Name+".tar.gz"),
+	}
+}
+
+// ToActionTask convert a actions_model.ActionTask to an api.ActionTask
+func ToActionTask(ctx context.Context, repo *repo_model.Repository, t *actions_model.ActionTask) *api.ActionTask {
+	if err := t.LoadAttributes(ctx); err != nil {
+		log.Warn("LoadAttributes of ActionTask: %v", err)
+	}
+	return &api.ActionTask{
+		ID:         t.ID,
+		JobName:    t.Job.Name,
+		WorkflowID: t.Job.Run.WorkflowID,
+		Title:      t.Job.Run.Title,
+		Status:     t.Status.String(),
+		Commit:     t.CommitSHA,
+		Duration:   t.Duration().String(),
+		Started:    t.Started.AsLocalTime(),
+		Stopped:    t.Stopped.AsLocalTime(),
 	}
 }
 
