@@ -215,12 +215,11 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, erro
 }
 
 func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask, bool, error) {
-	dbCtx, commiter, err := db.TxContext(ctx)
+	ctx, commiter, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, false, err
 	}
 	defer commiter.Close()
-	ctx = dbCtx.WithContext(ctx)
 
 	e := db.GetEngine(ctx)
 
@@ -279,7 +278,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	if gots, err := jobparser.Parse(job.WorkflowPayload); err != nil {
 		return nil, false, fmt.Errorf("parse workflow of job %d: %w", job.ID, err)
 	} else if len(gots) != 1 {
-		return nil, false, fmt.Errorf("workflow of job %d: not signle workflow", job.ID)
+		return nil, false, fmt.Errorf("workflow of job %d: not single workflow", job.ID)
 	} else {
 		_, workflowJob = gots[0].Job()
 	}
@@ -316,14 +315,6 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 		return nil, false, err
 	} else if n != 1 {
 		return nil, false, nil
-	}
-
-	if job.Run.Status.IsWaiting() {
-		job.Run.Status = StatusRunning
-		job.Run.Started = now
-		if err := UpdateRun(ctx, job.Run, "status", "started"); err != nil {
-			return nil, false, err
-		}
 	}
 
 	task.Job = job

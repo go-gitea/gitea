@@ -1,8 +1,8 @@
 {{template "base/head" .ctxData}}
 <div role="main" aria-label="{{.ctxData.Title}}" class="page-content {{.pageClass}}">
-	<div class="ui container stackable grid">
+	<div class="ui container flex-container">
 		{{template "user/settings/navbar" .ctxData}}
-		<div class="twelve wide column">
+		<div class="flex-container-main">
 			{{template "base/alert" .ctxData}}
 			{{/* block: user-setting-content */}}
 

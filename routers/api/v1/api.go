@@ -751,7 +751,7 @@ func Routes() *web.Route {
 			}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryActivityPub))
 		}
 
-		// Misc (requires 'misc' scope)
+		// Misc (public accessible)
 		m.Group("", func() {
 			m.Get("/version", misc.Version)
 			m.Get("/signing-key.gpg", misc.SigningKey)
@@ -771,7 +771,7 @@ func Routes() *web.Route {
 				m.Get("/attachment", settings.GetGeneralAttachmentSettings)
 				m.Get("/repository", settings.GetGeneralRepoSettings)
 			})
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryMisc))
+		})
 
 		// Notifications (requires 'notifications' scope)
 		m.Group("/notifications", func() {
@@ -1297,6 +1297,10 @@ func Routes() *web.Route {
 				m.Get("", reqToken(), org.ListMembers)
 				m.Combo("/{username}").Get(reqToken(), org.IsMember).
 					Delete(reqToken(), reqOrgOwnership(), org.DeleteMember)
+			})
+			m.Group("/actions/secrets", func() {
+				m.Get("", reqToken(), reqOrgOwnership(), org.ListActionsSecrets)
+				m.Post("", reqToken(), reqOrgOwnership(), bind(api.CreateSecretOption{}), org.CreateOrgSecret)
 			})
 			m.Group("/public_members", func() {
 				m.Get("", org.ListPublicMembers)

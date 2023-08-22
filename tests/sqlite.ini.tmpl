@@ -55,7 +55,7 @@ PATH = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-sqlite/data/attachments
 
 [mailer]
 ENABLED     = true
-MAILER_TYPE = dummy
+PROTOCOL = dummy
 FROM        = sqlite-{{TEST_TYPE}}-test@gitea.io
 
 [service]
@@ -82,9 +82,8 @@ PROVIDER_CONFIG = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-sqlite/data/sessions
 [log]
 MODE                 = {{TEST_LOGGER}}
 ROOT_PATH            = {{REPO_TEST_DIR}}sqlite-log
-ROUTER               = ,
-XORM                 = file
 ENABLE_SSH_LOG       = true
+logger.xorm.MODE     = file
 
 [log.test]
 LEVEL                = Info

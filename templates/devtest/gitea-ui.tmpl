@@ -130,9 +130,13 @@
 		<h2>Text with SVG</h2>
 		<div class="flex-text-block">{{svg "octicon-alert"}} {{svg "octicon-x"}} text (block)</div>
 		<div><div class="flex-text-inline">{{svg "octicon-alert"}} {{svg "octicon-x"}} text</div> (inline)</div>
+
+		<div class="flex-text-block">{{svg "octicon-alert"}} flex item with very very very very very very very very long content</div>
+
 		<div class="flex-items-block">
 			<div class="item">{{svg "octicon-alert"}} flex every line</div>
 			<div class="item">{{svg "octicon-alert"}} flex every item</div>
+			<div class="item">{{svg "octicon-alert"}} flex item with very very very very very very very very long content</div>
 		</div>
 
 		<h2>Button with SVG</h2>
@@ -142,6 +146,7 @@
 				<button class="ui basic button">labeled button</button>
 				<a class="ui basic label">123</a>
 			</div>
+			<button class="ui yellow button">{{svg "octicon-x" 16}} button with very very very very very very very very long text</button>
 		</div>
 
 		<h2>Input with SVG</h2>

@@ -11,8 +11,8 @@
 		</div>
 		<div class="ui bottom attached active tab segment">
 			{{if eq .Status 1}}
-				<div class="ui stackable grid">
-					<div class="six wide column">
+				<div class="gt-df gt-sb">
+					<div class="gt-df">
 						<div class="small-menu-items ui compact tiny menu">
 							<a class="{{if eq .State "all"}}active {{end}}item" href="{{$.Link}}?sort={{$.SortType}}&state=all&issueType={{$.IssueType}}&labels={{$.Labels}}">
 								{{.locale.Tr "all"}}
@@ -27,8 +27,8 @@
 							</a>
 						</div>
 					</div>
-					<div class="seven wide right aligned right floated column">
-						<div class="ui right aligned secondary filter stackable menu labels">
+					<div class="gt-df gt-sb">
+						<div class="ui right aligned secondary filter menu labels">
 							<!-- Type -->
 								<div class="ui dropdown type jump item">
 									<span class="text">

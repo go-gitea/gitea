@@ -13,6 +13,7 @@ import (
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -550,9 +551,30 @@ func GetIssueWithAttrsByID(id int64) (*Issue, error) {
 }
 
 // GetIssuesByIDs return issues with the given IDs.
-func GetIssuesByIDs(ctx context.Context, issueIDs []int64) (IssueList, error) {
+// If keepOrder is true, the order of the returned issues will be the same as the given IDs.
+func GetIssuesByIDs(ctx context.Context, issueIDs []int64, keepOrder ...bool) (IssueList, error) {
 	issues := make([]*Issue, 0, len(issueIDs))
-	return issues, db.GetEngine(ctx).In("id", issueIDs).Find(&issues)
+
+	if err := db.GetEngine(ctx).In("id", issueIDs).Find(&issues); err != nil {
+		return nil, err
+	}
+
+	if len(keepOrder) > 0 && keepOrder[0] {
+		m := make(map[int64]*Issue, len(issues))
+		appended := container.Set[int64]{}
+		for _, issue := range issues {
+			m[issue.ID] = issue
+		}
+		issues = issues[:0]
+		for _, id := range issueIDs {
+			if issue, ok := m[id]; ok && !appended.Contains(id) { // make sure the id is existed and not appended
+				appended.Add(id)
+				issues = append(issues, issue)
+			}
+		}
+	}
+
+	return issues, nil
 }
 
 // GetIssueIDsByRepoID returns all issue ids by repo id
@@ -832,8 +854,8 @@ func (issue *Issue) MovePin(ctx context.Context, newPosition int) error {
 }
 
 // GetPinnedIssues returns the pinned Issues for the given Repo and type
-func GetPinnedIssues(ctx context.Context, repoID int64, isPull bool) ([]*Issue, error) {
-	issues := make([]*Issue, 0)
+func GetPinnedIssues(ctx context.Context, repoID int64, isPull bool) (IssueList, error) {
+	issues := make(IssueList, 0)
 
 	err := db.GetEngine(ctx).
 		Table("issue").
@@ -846,7 +868,7 @@ func GetPinnedIssues(ctx context.Context, repoID int64, isPull bool) ([]*Issue, 
 		return nil, err
 	}
 
-	err = IssueList(issues).LoadAttributes(ctx)
+	err = issues.LoadAttributes(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -87,18 +87,6 @@
   }
 }
 
-.projects-header {
-  margin-bottom: 1rem;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.projects-toolbar {
-  display: flex;
-  justify-content: space-between;
-  padding-left: 4px;
-}
-
 .repository .issue-content-right .menu {
   overflow-x: auto;
   max-height: 500px;
@@ -402,8 +390,8 @@
 }
 
 .repository.file.list .non-diff-file-content .header .file-actions .btn-octicon {
-  line-height: 1;
-  padding: 10px 8px;
+  line-height: var(--line-height-default);
+  padding: 8px;
   vertical-align: middle;
   color: var(--color-text);
 }
@@ -582,15 +570,6 @@
 .repository.options #interval {
   width: 100px !important;
   min-width: 100px;
-}
-
-.repository.options .danger .item {
-  padding: 20px 15px;
-}
-
-.repository.options .danger .ui.divider {
-  margin: 0;
-  border-color: var(--color-error-border);
 }
 
 .repository.new.issue .comment.form .comment .avatar {
@@ -1276,8 +1255,8 @@
   color: var(--color-text-light-2);
 }
 
-.repository .filter.dropdown .menu {
-  margin-top: 1px !important;
+.repository .ui.dropdown.filter > .menu {
+  margin-top: 1px;
 }
 
 .repository.branches .commit-divergence .bar-group {
@@ -1594,7 +1573,7 @@
 
 @media (max-width: 991.98px) {
   .repository .diff-detail-box {
-    flex-direction: column;
+    flex-direction: row;
     align-items: flex-start;
   }
 }
@@ -1925,15 +1904,6 @@
   justify-content: space-between;
   gap: 8px;
   flex-wrap: wrap;
-}
-
-.repository.settings.collaboration .collaborator.list {
-  padding: 0;
-}
-
-.repository.settings.collaboration .collaborator.list > .item {
-  margin: 0;
-  line-height: 2;
 }
 
 .repository.settings.collaboration #repo-collab-form #search-user-box .results {
@@ -2387,15 +2357,6 @@
 .settings .list > .item .info .tab.segment {
   border: 0;
   padding: 10px 0 0;
-}
-
-.settings .list.key .meta {
-  padding-top: 5px;
-  color: var(--color-text-light-2);
-}
-
-.settings .list.collaborator > .item {
-  padding: 0;
 }
 
 .ui.vertical.menu .header.item {
@@ -3339,25 +3300,6 @@ tbody.commit-list {
   #issue-pins {
     grid-template-columns: repeat(1, 1fr);
   }
-}
-
-.pinned-issue-card {
-  border-radius: var(--border-radius);
-  padding: 8px 10px;
-  border: 1px solid var(--color-secondary);
-  background: var(--color-card);
-}
-
-.pinned-issue-icon,
-.pinned-issue-unpin {
-  margin-top: 1px;
-  flex-shrink: 0;
-}
-
-.pinned-issue-title {
-  flex: 1;
-  font-size: 18px;
-  margin-left: 4px;
 }
 
 #cherry-pick-modal .scrolling.menu {

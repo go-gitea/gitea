@@ -1,66 +1,67 @@
-<div class="ui repository list">
+<div class="flex-list">
 	{{range .Repos}}
-		<div class="item">
-			<div class="ui header gt-df gt-ac">
-				<div class="repo-title">
-					{{$avatar := (repoAvatar . 32 "gt-mr-3")}}
-					{{if $avatar}}
-						{{$avatar}}
-					{{end}}
-					<a class="name" href="{{.Link}}">
-						{{if or $.PageIsExplore $.PageIsProfileStarList}}{{if .Owner}}{{.Owner.Name}} / {{end}}{{end}}{{.Name}}
-					</a>
-					<div class="labels gt-df gt-ac gt-fw gt-mr-3">
-						{{if .IsArchived}}
-							<span class="ui basic label">{{$.locale.Tr "repo.desc.archived"}}</span>
-						{{end}}
-						{{if .IsTemplate}}
-							{{if .IsPrivate}}
-								<span class="ui basic label">{{$.locale.Tr "repo.desc.private_template"}}</span>
+		<div class="flex-item">
+			<div class="flex-item-leading">
+				{{template "repo/icon" .}}
+			</div>
+			<div class="flex-item-main">
+				<div class="flex-item-header">
+					<div class="flex-item-title">
+						<a class="text primary name" href="{{.Link}}">
+							{{if or $.PageIsExplore $.PageIsProfileStarList}}{{if .Owner}}{{.Owner.Name}} / {{end}}{{end}}{{.Name}}
+						</a>
+						<span class="label-list">
+							{{if .IsArchived}}
+								<span class="ui basic label">{{$.locale.Tr "repo.desc.archived"}}</span>
+							{{end}}
+							{{if .IsTemplate}}
+								{{if .IsPrivate}}
+									<span class="ui basic label">{{$.locale.Tr "repo.desc.private_template"}}</span>
+								{{else}}
+									{{if .Owner.Visibility.IsPrivate}}
+										<span class="ui basic label">{{$.locale.Tr "repo.desc.internal_template"}}</span>
+									{{end}}
+								{{end}}
 							{{else}}
-								{{if .Owner.Visibility.IsPrivate}}
-									<span class="ui basic label">{{$.locale.Tr "repo.desc.internal_template"}}</span>
+								{{if .IsPrivate}}
+									<span class="ui basic label">{{$.locale.Tr "repo.desc.private"}}</span>
+								{{else}}
+									{{if .Owner.Visibility.IsPrivate}}
+										<span class="ui basic label">{{$.locale.Tr "repo.desc.internal"}}</span>
+									{{end}}
 								{{end}}
 							{{end}}
-						{{else}}
-							{{if .IsPrivate}}
-								<span class="ui basic label">{{$.locale.Tr "repo.desc.private"}}</span>
-							{{else}}
-								{{if .Owner.Visibility.IsPrivate}}
-									<span class="ui basic label">{{$.locale.Tr "repo.desc.internal"}}</span>
-								{{end}}
-							{{end}}
-						{{end}}
+						</span>
 						{{if .IsFork}}
-							<span class="gt-df" data-tooltip-content="{{$.locale.Tr "repo.fork"}}">{{svg "octicon-repo-forked"}}</span>
+							<span data-tooltip-content="{{$.locale.Tr "repo.fork"}}">{{svg "octicon-repo-forked"}}</span>
 						{{else if .IsMirror}}
-							<span class="gt-df" data-tooltip-content="{{$.locale.Tr "mirror"}}">{{svg "octicon-mirror"}}</span>
+							<span data-tooltip-content="{{$.locale.Tr "mirror"}}">{{svg "octicon-mirror"}}</span>
 						{{end}}
 					</div>
+					<div class="flex-item-trailing">
+						{{if .PrimaryLanguage}}
+							<a class="muted" href="{{$.Link}}?q={{$.Keyword}}&sort={{$.SortType}}&language={{.PrimaryLanguage.Language}}">
+								<span class="flex-text-inline"><i class="color-icon gt-mr-3" style="background-color: {{.PrimaryLanguage.Color}}"></i>{{.PrimaryLanguage.Language}}</span>
+							</a>
+						{{end}}
+						{{if not $.DisableStars}}
+							<a class="text grey flex-text-inline" href="{{.Link}}/stars">{{svg "octicon-star" 16}}{{.NumStars}}</a>
+						{{end}}
+						<a class="text grey flex-text-inline" href="{{.Link}}/forks">{{svg "octicon-git-branch" 16}}{{.NumForks}}</a>
+					</div>
 				</div>
-				<div class="gt-font-13 gt-df gt-ac text grey">
-					{{if .PrimaryLanguage}}
-						<a class="muted" href="{{$.Link}}?q={{$.Keyword}}&sort={{$.SortType}}&language={{.PrimaryLanguage.Language}}">
-							<span class="gt-df gt-ac gt-mr-3"><i class="color-icon gt-mr-3" style="background-color: {{.PrimaryLanguage.Color}}"></i>{{.PrimaryLanguage.Language}}</span>
-						</a>
-					{{end}}
-					{{if not $.DisableStars}}
-						<a class="text grey gt-df gt-ac gt-mr-3" href="{{.Link}}/stars">{{svg "octicon-star" 16 "gt-mr-3"}}{{.NumStars}}</a>
-					{{end}}
-					<a class="text grey gt-df gt-ac gt-mr-3" href="{{.Link}}/forks">{{svg "octicon-git-branch" 16 "gt-mr-3"}}{{.NumForks}}</a>
-				</div>
-			</div>
-			<div class="description">
 				{{$description := .DescriptionHTML $.Context}}
-				{{if $description}}<p>{{$description}}</p>{{end}}
+				{{if $description}}
+					<div class="flex-item-body">{{$description}}</div>
+				{{end}}
 				{{if .Topics}}
-					<div class="gt-df gt-fw gt-gap-2 gt-mb-3">
+					<div class="label-list">
 					{{range .Topics}}
 						{{if ne . ""}}<a class="ui label" href="{{AppSubUrl}}/explore/repos?q={{.}}&topic=1">{{.}}</a>{{end}}
 					{{end}}
 					</div>
 				{{end}}
-				<p class="time">{{$.locale.Tr "org.repo_updated"}} {{TimeSinceUnix .UpdatedUnix $.locale}}</p>
+				<div class="flex-item-body">{{$.locale.Tr "org.repo_updated"}} {{TimeSinceUnix .UpdatedUnix $.locale}}</div>
 			</div>
 		</div>
 	{{else}}
