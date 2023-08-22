@@ -29,7 +29,6 @@
   display: flex;
   flex-direction: column;
   flex-grow: 1;
-  min-width: 0;
 }
 
 .flex-item-header {
@@ -54,7 +53,7 @@
   flex-grow: 0;
   flex-wrap: wrap;
   justify-content: end;
-  flex-shrink: 2;
+  min-width: calc(min(40%, 200px));
 }
 
 .flex-item .flex-item-title {
