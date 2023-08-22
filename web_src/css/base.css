@@ -2311,7 +2311,6 @@ table th[data-sortt-desc] .svg {
 .flex-text-inline {
   display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: .25rem;
   vertical-align: middle;
 }
@@ -2339,6 +2338,5 @@ table th[data-sortt-desc] .svg {
 .flex-text-block {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: .25rem;
 }
