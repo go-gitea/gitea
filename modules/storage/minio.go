@@ -50,7 +50,6 @@ type MinioStorage struct {
 	client   *minio.Client
 	bucket   string
 	basePath string
-	config   *MinioStorageConfig
 }
 
 func convertMinioErr(err error) error {
@@ -112,7 +111,6 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 		client:   minioClient,
 		bucket:   config.Bucket,
 		basePath: config.BasePath,
-		config:   &config,
 	}, nil
 }
 
@@ -137,14 +135,16 @@ func (m *MinioStorage) Open(path string) (Object, error) {
 // Save saves a file to minio
 func (m *MinioStorage) Save(path string, r io.Reader, size int64) (int64, error) {
 	disableSignature, disableMultipart := false, false
-	if m.config != nil {
-		disableSignature, disableMultipart = m.config.DisableSignature, m.config.DisableMultipart
+	if m.cfg != nil {
+		disableSignature, disableMultipart = m.cfg.DisableSignature, m.cfg.DisableMultipart
 	}
 
 	if disableMultipart && size < 0 {
 		// Attempts to read everything from the source into memory. This can take a big toll on memory, and it can become a potential DoS source
 		// but since we have disabled multipart upload this mean we can't really stream write anymore...
 		// well, unless we have a better way to estimate the stream size, this would be a workaround
+
+		// another alternative: we can use mmap instead, but this would be very dangerous as it is platform-specific
 
 		buf := &bytes.Buffer{}
 		n, err := io.Copy(buf, r)
@@ -171,8 +171,8 @@ func (m *MinioStorage) Save(path string, r io.Reader, size int64) (int64, error)
 			// * https://www.backblaze.com/b2/docs/s3_compatible_api.html
 			// do not support "x-amz-checksum-algorithm" header, so use legacy MD5 checksum
 			SendContentMd5: m.cfg.ChecksumAlgorithm == "md5",
-      DisableContentSha256: m.cfg.DisableSignature, 
-      DisableMultipart: m.cfg.DisableMultipart
+      DisableContentSha256: disableSignature, 
+      DisableMultipart: disableMultipart
 		},
 	)
 	if err != nil {
