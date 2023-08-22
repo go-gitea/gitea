@@ -40,7 +40,7 @@
 		{{range .Labels}}
 		<li class="item {{if not .ArchivedUnix.IsZero}}archived-label gt-hidden{{end}}">
 			<div class="label-title">
-				{{RenderLabel $.Context .}}
+				{{RenderLabel $.Context .}} {{if not .ArchivedUnix.IsZero}}<i class="gt-ml-3"> {{$.locale.Tr "home.show_archived"}}</i>{{end}}
 				{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
 			</div>
 			<div class="label-issues">
