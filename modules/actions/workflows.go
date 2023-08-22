@@ -106,8 +106,8 @@ func DetectWorkflows(
 		return nil, nil, err
 	}
 
-	workflows := make([]*DetectedWorkflow, len(entries))
-	schedules := make([]*DetectedWorkflow, len(entries))
+	workflows := make([]*DetectedWorkflow, 0, len(entries))
+	schedules := make([]*DetectedWorkflow, 0, len(entries))
 	for _, entry := range entries {
 		content, err := GetContentFromEntry(entry)
 		if err != nil {
