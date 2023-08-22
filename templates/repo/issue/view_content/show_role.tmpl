@@ -1,15 +1,27 @@
 {{if and (.ShowRole.HasRole "Poster") (not .IgnorePoster)}}
-	<div class="ui basic label role-label">
-		{{ctx.Locale.Tr "repo.issues.poster"}}
+	<div class="ui basic label role-label" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.author_helper"}}">
+		{{ctx.Locale.Tr "repo.issues.author"}}
 	</div>
 {{end}}
-{{if (.ShowRole.HasRole "Writer")}}
-	<div class="ui basic label role-label">
+
+{{if (.ShowRole.HasRole "Owner")}}
+	<div class="ui basic label role-label" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.owner_helper"}}">
+		{{ctx.Locale.Tr "repo.issues.owner"}}
+	</div>
+{{else if (.ShowRole.HasRole "Member")}}
+	<div class="ui basic label role-label" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.member_helper"}}">
+		{{ctx.Locale.Tr "repo.issues.member"}}
+	</div>
+{{else if (.ShowRole.HasRole "Collaborator")}}
+	<div class="ui basic label role-label" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.collaborator_helper"}}">
 		{{ctx.Locale.Tr "repo.issues.collaborator"}}
 	</div>
-{{end}}
-{{if (.ShowRole.HasRole "Owner")}}
-	<div class="ui basic label role-label">
-		{{ctx.Locale.Tr "repo.issues.owner"}}
+{{else if and (.ShowRole.HasRole "First-time contributor") (.ShowRole.HasRole "Poster")}}
+	<div class="ui basic label role-label" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.first_time_contributor_helper"}}">
+		{{ctx.Locale.Tr "repo.issues.first_time_contributor"}}
+	</div>
+{{else if (.ShowRole.HasRole "Contributor")}}
+	<div class="ui basic label role-label" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.contributor_helper"}}">
+		{{ctx.Locale.Tr "repo.issues.contributor"}}
 	</div>
 {{end}}

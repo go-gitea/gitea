@@ -1229,7 +1229,7 @@ func NewIssuePost(ctx *context.Context) {
 }
 
 // roleDescriptor returns the Role Descriptor for a comment in/with the given repo, poster and issue
-func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *user_model.User, issue *issues_model.Issue, hasOriginalAuthor bool) (issues_model.RoleDescriptor, error) {
+func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *user_model.User, issue *issues_model.Issue, gitRepo *git.Repository, hasOriginalAuthor bool) (issues_model.RoleDescriptor, error) {
 	if hasOriginalAuthor {
 		return issues_model.RoleDescriptorNone, nil
 	}
@@ -1242,13 +1242,18 @@ func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *use
 	// By default the poster has no roles on the comment.
 	roleDescriptor := issues_model.RoleDescriptorNone
 
+	// If the poster is the actual poster of the issue, enable Poster role.
+	if issue.IsPoster(poster.ID) {
+		roleDescriptor = roleDescriptor.WithRole(issues_model.RoleDescriptorPoster)
+	}
+
 	// Check if the poster is owner of the repo.
 	if perm.IsOwner() {
 		// If the poster isn't a admin, enable the owner role.
 		if !poster.IsAdmin {
 			roleDescriptor = roleDescriptor.WithRole(issues_model.RoleDescriptorOwner)
+			return roleDescriptor, nil
 		} else {
-
 			// Otherwise check if poster is the real repo admin.
 			ok, err := access_model.IsUserRealRepoAdmin(repo, poster)
 			if err != nil {
@@ -1256,19 +1261,42 @@ func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *use
 			}
 			if ok {
 				roleDescriptor = roleDescriptor.WithRole(issues_model.RoleDescriptorOwner)
+				return roleDescriptor, nil
 			}
 		}
 	}
 
-	// Is the poster can write issues or pulls to the repo, enable the Writer role.
-	// Only enable this if the poster doesn't have the owner role already.
-	if !roleDescriptor.HasRole("Owner") && perm.CanWriteIssuesOrPulls(issue.IsPull) {
-		roleDescriptor = roleDescriptor.WithRole(issues_model.RoleDescriptorWriter)
+	// If repo is organization, check Member role
+	if err := repo.LoadOwner(ctx); err != nil {
+		return issues_model.RoleDescriptorNone, err
+	}
+	if repo.Owner.IsOrganization() {
+		if isMember, err := organization.IsOrganizationMember(ctx, repo.Owner.ID, poster.ID); err != nil {
+			return issues_model.RoleDescriptorNone, err
+		} else if isMember {
+			roleDescriptor = roleDescriptor.WithRole(issues_model.RoleDescriptorMember)
+			return roleDescriptor, nil
+		}
 	}
 
-	// If the poster is the actual poster of the issue, enable Poster role.
-	if issue.IsPoster(poster.ID) {
-		roleDescriptor = roleDescriptor.WithRole(issues_model.RoleDescriptorPoster)
+	// If the poster is the collaborator of the repo
+	if isCollaborator, err := repo_model.IsCollaborator(ctx, repo.ID, poster.ID); err != err {
+		return issues_model.RoleDescriptorNone, err
+	} else if isCollaborator {
+		roleDescriptor = roleDescriptor.WithRole(issues_model.RoleDescriptorCollaborator)
+		return roleDescriptor, nil
+	}
+
+	if commits, err := gitRepo.SearchCommits(git.SearchCommitsOptions{
+		Authors: []string{poster.Name},
+		All:     true,
+		Limit:   2,
+	}); err != nil {
+		return issues_model.RoleDescriptorNone, err
+	} else if len(commits) == 1 {
+		roleDescriptor = roleDescriptor.WithRole(issues_model.RoleDescriptorContributor)
+	} else if len(commits) > 1 {
+		roleDescriptor = roleDescriptor.WithRole(issues_model.RoleDescriptorFirstTimeContributor)
 	}
 
 	return roleDescriptor, nil
@@ -1526,7 +1554,7 @@ func ViewIssue(ctx *context.Context) {
 	// check if dependencies can be created across repositories
 	ctx.Data["AllowCrossRepositoryDependencies"] = setting.Service.AllowCrossRepositoryDependencies
 
-	if issue.ShowRole, err = roleDescriptor(ctx, repo, issue.Poster, issue, issue.HasOriginalAuthor()); err != nil {
+	if issue.ShowRole, err = roleDescriptor(ctx, repo, issue.Poster, issue, ctx.Repo.GitRepo, issue.HasOriginalAuthor()); err != nil {
 		ctx.ServerError("roleDescriptor", err)
 		return
 	}
@@ -1565,7 +1593,7 @@ func ViewIssue(ctx *context.Context) {
 				continue
 			}
 
-			comment.ShowRole, err = roleDescriptor(ctx, repo, comment.Poster, issue, comment.HasOriginalAuthor())
+			comment.ShowRole, err = roleDescriptor(ctx, repo, comment.Poster, issue, ctx.Repo.GitRepo, comment.HasOriginalAuthor())
 			if err != nil {
 				ctx.ServerError("roleDescriptor", err)
 				return
@@ -1664,7 +1692,7 @@ func ViewIssue(ctx *context.Context) {
 							continue
 						}
 
-						c.ShowRole, err = roleDescriptor(ctx, repo, c.Poster, issue, c.HasOriginalAuthor())
+						c.ShowRole, err = roleDescriptor(ctx, repo, c.Poster, issue, ctx.Repo.GitRepo, c.HasOriginalAuthor())
 						if err != nil {
 							ctx.ServerError("roleDescriptor", err)
 							return

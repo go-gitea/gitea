@@ -188,8 +188,11 @@ type RoleDescriptor int
 const (
 	RoleDescriptorNone RoleDescriptor = iota
 	RoleDescriptorPoster
-	RoleDescriptorWriter
 	RoleDescriptorOwner
+	RoleDescriptorMember
+	RoleDescriptorCollaborator
+	RoleDescriptorFirstTimeContributor
+	RoleDescriptorContributor
 )
 
 // WithRole enable a specific tag on the RoleDescriptor.
@@ -201,10 +204,16 @@ func stringToRoleDescriptor(role string) RoleDescriptor {
 	switch role {
 	case "Poster":
 		return RoleDescriptorPoster
-	case "Writer":
-		return RoleDescriptorWriter
 	case "Owner":
 		return RoleDescriptorOwner
+	case "Member":
+		return RoleDescriptorMember
+	case "Collaborator":
+		return RoleDescriptorCollaborator
+	case "First-time contributor":
+		return RoleDescriptorFirstTimeContributor
+	case "Contributor":
+		return RoleDescriptorContributor
 	default:
 		return RoleDescriptorNone
 	}
