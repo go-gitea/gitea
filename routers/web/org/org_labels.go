@@ -75,6 +75,7 @@ func UpdateLabel(ctx *context.Context) {
 	l.Exclusive = form.Exclusive
 	l.Description = form.Description
 	l.Color = form.Color
+	l.SetArchived(form.IsArchived)
 	if err := issues_model.UpdateLabel(l); err != nil {
 		ctx.ServerError("UpdateLabel", err)
 		return
