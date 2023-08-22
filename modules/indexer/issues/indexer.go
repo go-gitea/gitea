@@ -277,7 +277,7 @@ func IsAvailable(ctx context.Context) bool {
 }
 
 // SearchOptions indicates the options for searching issues
-type SearchOptions internal.SearchOptions
+type SearchOptions = internal.SearchOptions
 
 const (
 	SortByCreatedDesc  = internal.SortByCreatedDesc
@@ -304,7 +304,7 @@ func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, int64, err
 		indexer = db.NewIndexer()
 	}
 
-	result, err := indexer.Search(ctx, (*internal.SearchOptions)(opts))
+	result, err := indexer.Search(ctx, opts)
 	if err != nil {
 		return nil, 0, err
 	}

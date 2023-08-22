@@ -603,7 +603,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// -------------------------------
 	// Fill stats to post to ctx.Data.
 	// -------------------------------
-	issueStats, err := getUserIssueStats(ctx, issue_indexer.ToSearchOptions(keyword, opts), ctx.Doer.ID)
+	issueStats, err := getUserIssueStats(ctx, filterMode, issue_indexer.ToSearchOptions(keyword, opts), ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("getUserIssueStats", err)
 		return
@@ -860,27 +860,15 @@ func UsernameSubRoute(ctx *context.Context) {
 	}
 }
 
-func getUserIssueStats(ctx *context.Context, opts *issue_indexer.SearchOptions, doerID int64) (*issues_model.IssueStats, error) {
-	isClosed := opts.IsClosed
-	assigneeID := opts.AssigneeID
-	posterID := opts.PosterID
-	mentionID := opts.MentionID
-	reviewRequestedID := opts.ReviewRequestedID
-	reviewedID := opts.ReviewedID
-	defer func() {
-		opts.IsClosed = isClosed
-		opts.AssigneeID = assigneeID
-		opts.PosterID = posterID
-		opts.MentionID = mentionID
-		opts.ReviewRequestedID = reviewRequestedID
-		opts.ReviewedID = reviewedID
-	}()
-	opts.IsClosed = util.OptionalBoolNone
-	opts.AssigneeID = nil
-	opts.PosterID = nil
-	opts.MentionID = nil
-	opts.ReviewRequestedID = nil
-	opts.ReviewedID = nil
+func getUserIssueStats(ctx *context.Context, filterMode int, opts *issue_indexer.SearchOptions, doerID int64) (*issues_model.IssueStats, error) {
+	opts = opts.Copy(func(o *issue_indexer.SearchOptions) {
+		o.IsClosed = util.OptionalBoolNone
+		o.AssigneeID = nil
+		o.PosterID = nil
+		o.MentionID = nil
+		o.ReviewRequestedID = nil
+		o.ReviewedID = nil
+	})
 
 	var (
 		err error
@@ -888,66 +876,57 @@ func getUserIssueStats(ctx *context.Context, opts *issue_indexer.SearchOptions, 
 	)
 
 	{
-		opts.IsClosed = util.OptionalBoolFalse
+		openClosedOpts := opts.Copy()
+		switch filterMode {
+		case issues_model.FilterModeAll, issues_model.FilterModeYourRepositories:
+		case issues_model.FilterModeAssign:
+			openClosedOpts.AssigneeID = &doerID
+		case issues_model.FilterModeCreate:
+			openClosedOpts.PosterID = &doerID
+		case issues_model.FilterModeMention:
+			openClosedOpts.MentionID = &doerID
+		case issues_model.FilterModeReviewRequested:
+			openClosedOpts.ReviewRequestedID = &doerID
+		case issues_model.FilterModeReviewed:
+			openClosedOpts.ReviewedID = &doerID
+		}
+		openClosedOpts.IsClosed = util.OptionalBoolFalse
 		ret.OpenCount, err = issue_indexer.CountIssues(ctx, opts)
 		if err != nil {
 			return nil, err
 		}
-		opts.IsClosed = util.OptionalBoolNone
-	}
-	{
-		opts.IsClosed = util.OptionalBoolTrue
+		openClosedOpts.IsClosed = util.OptionalBoolTrue
 		ret.ClosedCount, err = issue_indexer.CountIssues(ctx, opts)
 		if err != nil {
 			return nil, err
 		}
-		opts.IsClosed = util.OptionalBoolNone
 	}
-	{
-		ret.YourRepositoriesCount, err = issue_indexer.CountIssues(ctx, opts)
-		if err != nil {
-			return nil, err
-		}
+
+	opts.IsClosed = util.OptionalBoolFalse
+
+	ret.YourRepositoriesCount, err = issue_indexer.CountIssues(ctx, opts)
+	if err != nil {
+		return nil, err
 	}
-	{
-		opts.AssigneeID = &doerID
-		ret.AssignCount, err = issue_indexer.CountIssues(ctx, opts)
-		if err != nil {
-			return nil, err
-		}
-		opts.AssigneeID = nil
+	ret.AssignCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.AssigneeID = &doerID }))
+	if err != nil {
+		return nil, err
 	}
-	{
-		opts.PosterID = &doerID
-		ret.CreateCount, err = issue_indexer.CountIssues(ctx, opts)
-		if err != nil {
-			return nil, err
-		}
-		opts.PosterID = nil
+	ret.CreateCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.PosterID = &doerID }))
+	if err != nil {
+		return nil, err
 	}
-	{
-		opts.MentionID = &doerID
-		ret.MentionCount, err = issue_indexer.CountIssues(ctx, opts)
-		if err != nil {
-			return nil, err
-		}
-		opts.MentionID = nil
+	ret.MentionCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.MentionID = &doerID }))
+	if err != nil {
+		return nil, err
 	}
-	{
-		opts.ReviewRequestedID = &doerID
-		ret.ReviewRequestedCount, err = issue_indexer.CountIssues(ctx, opts)
-		if err != nil {
-			return nil, err
-		}
-		opts.ReviewRequestedID = nil
+	ret.ReviewRequestedCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.ReviewRequestedID = &doerID }))
+	if err != nil {
+		return nil, err
 	}
-	{
-		opts.ReviewedID = &doerID
-		ret.ReviewedCount, err = issue_indexer.CountIssues(ctx, opts)
-		if err != nil {
-			return nil, err
-		}
-		opts.ReviewedID = nil
+	ret.ReviewedCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.ReviewedID = &doerID }))
+	if err != nil {
+		return nil, err
 	}
 	return ret, nil
 }
