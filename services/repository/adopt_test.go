@@ -30,7 +30,7 @@ func TestCheckUnadoptedRepositories_Add(t *testing.T) {
 	}
 
 	assert.Equal(t, total, unadopted.index)
-	assert.Equal(t, end-start, len(unadopted.repositories))
+	assert.Len(t, unadopted.repositories, end-start)
 }
 
 func TestCheckUnadoptedRepositories(t *testing.T) {
@@ -41,7 +41,7 @@ func TestCheckUnadoptedRepositories(t *testing.T) {
 	unadopted := &unadoptedRepositories{start: 0, end: 100}
 	err := checkUnadoptedRepositories(db.DefaultContext, "notauser", []string{"repo"}, unadopted)
 	assert.NoError(t, err)
-	assert.Equal(t, 0, len(unadopted.repositories))
+	assert.Empty(t, unadopted.repositories)
 	//
 	// Unadopted repository is returned
 	// Existing (adopted) repository is not returned
@@ -59,7 +59,7 @@ func TestCheckUnadoptedRepositories(t *testing.T) {
 	unadopted = &unadoptedRepositories{start: 0, end: 100}
 	err = checkUnadoptedRepositories(db.DefaultContext, userName, []string{repoName}, unadopted)
 	assert.NoError(t, err)
-	assert.Equal(t, 0, len(unadopted.repositories))
+	assert.Empty(t, unadopted.repositories)
 	assert.Equal(t, 0, unadopted.index)
 }
 

@@ -15,7 +15,7 @@ REPO_INDEXER_ENABLED = true
 REPO_INDEXER_PATH = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-pgsql/indexers/repos.bleve
 
 [queue.issue_indexer]
-PATH = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-pgsql/indexers/issues.bleve
+TYPE = level
 DATADIR = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-pgsql/indexers/issues.queue
 
 [queue]
@@ -59,7 +59,7 @@ PATH = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-pgsql/data/attachments
 
 [mailer]
 ENABLED = true
-MAILER_TYPE = dummy
+PROTOCOL = dummy
 FROM = pgsql-{{TEST_TYPE}}-test@gitea.io
 
 [service]
@@ -87,9 +87,8 @@ PROVIDER_CONFIG = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-pgsql/data/sessions
 [log]
 MODE                 = {{TEST_LOGGER}}
 ROOT_PATH            = {{REPO_TEST_DIR}}pgsql-log
-ROUTER               = ,
-XORM                 = file
 ENABLE_SSH_LOG       = true
+logger.xorm.MODE     = file
 
 [log.test]
 LEVEL                = Info
@@ -125,6 +124,10 @@ MINIO_SECRET_ACCESS_KEY = 12345678
 MINIO_BUCKET = gitea
 MINIO_LOCATION = us-east-1
 MINIO_USE_SSL = false
+MINIO_CHECKSUM_ALGORITHM = md5
 
 [packages]
+ENABLED = true
+
+[actions]
 ENABLED = true

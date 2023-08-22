@@ -71,10 +71,60 @@ func postgresGetNextResourceIndex(ctx context.Context, tableName string, groupID
 	return strconv.ParseInt(string(res[0]["max_index"]), 10, 64)
 }
 
+func mysqlGetNextResourceIndex(ctx context.Context, tableName string, groupID int64) (int64, error) {
+	if _, err := GetEngine(ctx).Exec(fmt.Sprintf("INSERT INTO %s (group_id, max_index) "+
+		"VALUES (?,1) ON DUPLICATE KEY UPDATE max_index = max_index+1",
+		tableName), groupID); err != nil {
+		return 0, err
+	}
+
+	var idx int64
+	_, err := GetEngine(ctx).SQL(fmt.Sprintf("SELECT max_index FROM %s WHERE group_id = ?", tableName), groupID).Get(&idx)
+	if err != nil {
+		return 0, err
+	}
+	if idx == 0 {
+		return 0, errors.New("cannot get the correct index")
+	}
+	return idx, nil
+}
+
+func mssqlGetNextResourceIndex(ctx context.Context, tableName string, groupID int64) (int64, error) {
+	if _, err := GetEngine(ctx).Exec(fmt.Sprintf(`
+MERGE INTO %s WITH (HOLDLOCK) AS target
+USING (SELECT %d AS group_id) AS source
+(group_id)
+ON target.group_id = source.group_id
+WHEN MATCHED
+	THEN UPDATE
+			SET max_index = max_index + 1
+WHEN NOT MATCHED
+	THEN INSERT (group_id, max_index)
+			VALUES (%d, 1);
+`, tableName, groupID, groupID)); err != nil {
+		return 0, err
+	}
+
+	var idx int64
+	_, err := GetEngine(ctx).SQL(fmt.Sprintf("SELECT max_index FROM %s WHERE group_id = ?", tableName), groupID).Get(&idx)
+	if err != nil {
+		return 0, err
+	}
+	if idx == 0 {
+		return 0, errors.New("cannot get the correct index")
+	}
+	return idx, nil
+}
+
 // GetNextResourceIndex generates a resource index, it must run in the same transaction where the resource is created
 func GetNextResourceIndex(ctx context.Context, tableName string, groupID int64) (int64, error) {
-	if setting.Database.Type.IsPostgreSQL() {
+	switch {
+	case setting.Database.Type.IsPostgreSQL():
 		return postgresGetNextResourceIndex(ctx, tableName, groupID)
+	case setting.Database.Type.IsMySQL():
+		return mysqlGetNextResourceIndex(ctx, tableName, groupID)
+	case setting.Database.Type.IsMSSQL():
+		return mssqlGetNextResourceIndex(ctx, tableName, groupID)
 	}
 
 	e := GetEngine(ctx)

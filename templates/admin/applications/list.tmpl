@@ -1,14 +1,8 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content admin config">
-	{{template "admin/navbar" .}}
-	<div class="ui container">
-		<div class="twelve wide column content">
-			{{template "base/alert" .}}
-			<h4 class="ui top attached header">
-					{{.locale.Tr "settings.applications"}}
-			</h4>
-			{{template "user/settings/applications_oauth2_list" .}}
-		</div>
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin config")}}
+	<div class="admin-setting-content">
+		<h4 class="ui top attached header">
+				{{.locale.Tr "settings.applications"}}
+		</h4>
+		{{template "user/settings/applications_oauth2_list" .}}
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "admin/layout_footer" .}}

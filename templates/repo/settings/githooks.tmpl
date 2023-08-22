@@ -1,9 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository settings githooks">
-	{{template "repo/header" .}}
-	{{template "repo/settings/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings githooks")}}
+	<div class="repo-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "repo.settings.githooks"}}
 		</h4>
@@ -24,5 +20,4 @@
 			</div>
 		</div>
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "repo/settings/layout_footer" .}}

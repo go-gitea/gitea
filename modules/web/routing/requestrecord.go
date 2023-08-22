@@ -24,5 +24,5 @@ type requestRecord struct {
 	// mutable fields
 	isLongPolling bool
 	funcInfo      *FuncInfo
-	panicError    interface{}
+	panicError    any
 }

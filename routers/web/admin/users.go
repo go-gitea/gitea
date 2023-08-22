@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/base"
@@ -37,7 +38,6 @@ const (
 // Users show all the users
 func Users(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 
 	extraParamStrings := map[string]string{}
@@ -54,9 +54,10 @@ func Users(ctx *context.Context) {
 
 	sortType := ctx.FormString("sort")
 	if sortType == "" {
-		sortType = explore.UserSearchDefaultSortType
+		sortType = explore.UserSearchDefaultAdminSort
+		ctx.SetFormString("sort", sortType)
 	}
-	ctx.PageData["adminUserListSearchForm"] = map[string]interface{}{
+	ctx.PageData["adminUserListSearchForm"] = map[string]any{
 		"StatusFilterMap": statusFilterMap,
 		"SortType":        sortType,
 	}
@@ -80,7 +81,6 @@ func Users(ctx *context.Context) {
 // NewUser render adding a new user page
 func NewUser(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users.new_account")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DefaultUserVisibilityMode"] = setting.Service.DefaultUserVisibilityMode
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
@@ -102,9 +102,9 @@ func NewUser(ctx *context.Context) {
 func NewUserPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AdminCreateUserForm)
 	ctx.Data["Title"] = ctx.Tr("admin.users.new_account")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DefaultUserVisibilityMode"] = setting.Service.DefaultUserVisibilityMode
+	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
 	sources, err := auth.Sources()
 	if err != nil {
@@ -149,7 +149,7 @@ func NewUserPost(ctx *context.Context) {
 		}
 		if !password.IsComplexEnough(form.Password) {
 			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErr(password.BuildComplexityError(ctx), tplUserNew, &form)
+			ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplUserNew, &form)
 			return
 		}
 		pwned, err := password.IsPwned(ctx, form.Password)
@@ -252,11 +252,11 @@ func prepareUserInfo(ctx *context.Context) *user_model.User {
 // EditUser show editing user page
 func EditUser(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users.edit_account")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DisableRegularOrgCreation"] = setting.Admin.DisableRegularOrgCreation
 	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
+	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar)
 
 	prepareUserInfo(ctx)
 	if ctx.Written() {
@@ -270,9 +270,10 @@ func EditUser(ctx *context.Context) {
 func EditUserPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AdminEditUserForm)
 	ctx.Data["Title"] = ctx.Tr("admin.users.edit_account")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
+	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
+	ctx.Data["DisableGravatar"] = system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar)
 
 	u := prepareUserInfo(ctx)
 	if ctx.Written() {
@@ -303,7 +304,7 @@ func EditUserPost(ctx *context.Context) {
 			return
 		}
 		if !password.IsComplexEnough(form.Password) {
-			ctx.RenderWithErr(password.BuildComplexityError(ctx), tplUserEdit, &form)
+			ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplUserEdit, &form)
 			return
 		}
 		pwned, err := password.IsPwned(ctx, form.Password)
@@ -314,13 +315,13 @@ func EditUserPost(ctx *context.Context) {
 				log.Error(err.Error())
 				errMsg = ctx.Tr("auth.password_pwned_err")
 			}
-			ctx.RenderWithErr(errMsg, tplUserNew, &form)
+			ctx.RenderWithErr(errMsg, tplUserEdit, &form)
 			return
 		}
 
 		if err := user_model.ValidateEmail(form.Email); err != nil {
 			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErr(ctx.Tr("form.email_error"), tplUserNew, &form)
+			ctx.RenderWithErr(ctx.Tr("form.email_error"), tplUserEdit, &form)
 			return
 		}
 
@@ -336,7 +337,10 @@ func EditUserPost(ctx *context.Context) {
 
 	if len(form.UserName) != 0 && u.Name != form.UserName {
 		if err := user_setting.HandleUsernameChange(ctx, u, form.UserName); err != nil {
-			ctx.Redirect(setting.AppSubURL + "/admin/users")
+			if ctx.Written() {
+				return
+			}
+			ctx.RenderWithErr(ctx.Flash.ErrorMsg, tplUserEdit, &form)
 			return
 		}
 		u.Name = form.UserName

@@ -26,7 +26,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 	"xorm.io/xorm/schemas"
@@ -66,6 +65,67 @@ const (
 	ActionAutoMergePullRequest                            // 27
 )
 
+func (at ActionType) String() string {
+	switch at {
+	case ActionCreateRepo:
+		return "create_repo"
+	case ActionRenameRepo:
+		return "rename_repo"
+	case ActionStarRepo:
+		return "star_repo"
+	case ActionWatchRepo:
+		return "watch_repo"
+	case ActionCommitRepo:
+		return "commit_repo"
+	case ActionCreateIssue:
+		return "create_issue"
+	case ActionCreatePullRequest:
+		return "create_pull_request"
+	case ActionTransferRepo:
+		return "transfer_repo"
+	case ActionPushTag:
+		return "push_tag"
+	case ActionCommentIssue:
+		return "comment_issue"
+	case ActionMergePullRequest:
+		return "merge_pull_request"
+	case ActionCloseIssue:
+		return "close_issue"
+	case ActionReopenIssue:
+		return "reopen_issue"
+	case ActionClosePullRequest:
+		return "close_pull_request"
+	case ActionReopenPullRequest:
+		return "reopen_pull_request"
+	case ActionDeleteTag:
+		return "delete_tag"
+	case ActionDeleteBranch:
+		return "delete_branch"
+	case ActionMirrorSyncPush:
+		return "mirror_sync_push"
+	case ActionMirrorSyncCreate:
+		return "mirror_sync_create"
+	case ActionMirrorSyncDelete:
+		return "mirror_sync_delete"
+	case ActionApprovePullRequest:
+		return "approve_pull_request"
+	case ActionRejectPullRequest:
+		return "reject_pull_request"
+	case ActionCommentPull:
+		return "comment_pull"
+	case ActionPublishRelease:
+		return "publish_release"
+	case ActionPullReviewDismissed:
+		return "pull_review_dismissed"
+	case ActionPullRequestReadyForReview:
+		return "pull_request_ready_for_review"
+	case ActionAutoMergePullRequest:
+		return "auto_merge_pull_request"
+	default:
+		return "action-" + strconv.Itoa(int(at))
+	}
+}
+
 // Action represents user operation type and other information to
 // repository. It implemented interface base.Actioner so that can be
 // used in template render.
@@ -98,12 +158,10 @@ func (a *Action) TableIndices() []*schemas.Index {
 	actUserIndex := schemas.NewIndex("au_r_c_u_d", schemas.IndexType)
 	actUserIndex.AddColumn("act_user_id", "repo_id", "created_unix", "user_id", "is_deleted")
 
-	indices := []*schemas.Index{actUserIndex, repoIndex}
-	if setting.Database.Type.IsPostgreSQL() {
-		cudIndex := schemas.NewIndex("c_u_d", schemas.IndexType)
-		cudIndex.AddColumn("created_unix", "user_id", "is_deleted")
-		indices = append(indices, cudIndex)
-	}
+	cudIndex := schemas.NewIndex("c_u_d", schemas.IndexType)
+	cudIndex.AddColumn("created_unix", "user_id", "is_deleted")
+
+	indices := []*schemas.Index{actUserIndex, repoIndex, cudIndex}
 
 	return indices
 }
@@ -308,17 +366,7 @@ func (a *Action) GetBranch() string {
 
 // GetRefLink returns the action's ref link.
 func (a *Action) GetRefLink() string {
-	switch {
-	case strings.HasPrefix(a.RefName, git.BranchPrefix):
-		return a.GetRepoLink() + "/src/branch/" + util.PathEscapeSegments(strings.TrimPrefix(a.RefName, git.BranchPrefix))
-	case strings.HasPrefix(a.RefName, git.TagPrefix):
-		return a.GetRepoLink() + "/src/tag/" + util.PathEscapeSegments(strings.TrimPrefix(a.RefName, git.TagPrefix))
-	case len(a.RefName) == git.SHAFullLength && git.IsValidSHAPattern(a.RefName):
-		return a.GetRepoLink() + "/src/commit/" + a.RefName
-	default:
-		// FIXME: we will just assume it's a branch - this was the old way - at some point we may want to enforce that there is always a ref here.
-		return a.GetRepoLink() + "/src/branch/" + util.PathEscapeSegments(strings.TrimPrefix(a.RefName, git.BranchPrefix))
-	}
+	return git.RefURL(a.GetRepoLink(), a.RefName)
 }
 
 // GetTag returns the action's repository tag.
@@ -343,10 +391,10 @@ func (a *Action) GetIssueInfos() []string {
 }
 
 // GetIssueTitle returns the title of first issue associated
-// with the action.
+// with the action. This function will be invoked in template so keep db.DefaultContext here
 func (a *Action) GetIssueTitle() string {
 	index, _ := strconv.ParseInt(a.GetIssueInfos()[0], 10, 64)
-	issue, err := issues_model.GetIssueByIndex(a.RepoID, index)
+	issue, err := issues_model.GetIssueByIndex(db.DefaultContext, a.RepoID, index)
 	if err != nil {
 		log.Error("GetIssueByIndex: %v", err)
 		return "500 when get issue"
@@ -356,9 +404,9 @@ func (a *Action) GetIssueTitle() string {
 
 // GetIssueContent returns the content of first issue associated with
 // this action.
-func (a *Action) GetIssueContent() string {
+func (a *Action) GetIssueContent(ctx context.Context) string {
 	index, _ := strconv.ParseInt(a.GetIssueInfos()[0], 10, 64)
-	issue, err := issues_model.GetIssueByIndex(a.RepoID, index)
+	issue, err := issues_model.GetIssueByIndex(ctx, a.RepoID, index)
 	if err != nil {
 		log.Error("GetIssueByIndex: %v", err)
 		return "500 when get issue"
@@ -435,12 +483,27 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 			).From("`user`"),
 		))
 	} else if !opts.Actor.IsAdmin {
-		cond = cond.And(builder.In("act_user_id",
-			builder.Select("`user`.id").Where(
-				builder.Eq{"keep_activity_private": false}.
-					And(builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))).
-				Or(builder.Eq{"id": opts.Actor.ID}).From("`user`"),
-		))
+		uidCond := builder.Select("`user`.id").From("`user`").Where(
+			builder.Eq{"keep_activity_private": false}.
+				And(builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))).
+			Or(builder.Eq{"id": opts.Actor.ID})
+
+		if opts.RequestedUser != nil {
+			if opts.RequestedUser.IsOrganization() {
+				// An organization can always see the activities whose `act_user_id` is the same as its id.
+				uidCond = uidCond.Or(builder.Eq{"id": opts.RequestedUser.ID})
+			} else {
+				// A user can always see the activities of the organizations to which the user belongs.
+				uidCond = uidCond.Or(
+					builder.Eq{"type": user_model.UserTypeOrganization}.
+						And(builder.In("`user`.id", builder.Select("org_id").
+							Where(builder.Eq{"uid": opts.RequestedUser.ID}).
+							From("team_user"))),
+				)
+			}
+		}
+
+		cond = cond.And(builder.In("act_user_id", uidCond))
 	}
 
 	// check readable repositories by doer/actor
@@ -622,18 +685,34 @@ func NotifyWatchersActions(acts []*Action) error {
 }
 
 // DeleteIssueActions delete all actions related with issueID
-func DeleteIssueActions(ctx context.Context, repoID, issueID int64) error {
+func DeleteIssueActions(ctx context.Context, repoID, issueID, issueIndex int64) error {
 	// delete actions assigned to this issue
-	subQuery := builder.Select("`id`").
-		From("`comment`").
-		Where(builder.Eq{"`issue_id`": issueID})
-	if _, err := db.GetEngine(ctx).In("comment_id", subQuery).Delete(&Action{}); err != nil {
-		return err
+	e := db.GetEngine(ctx)
+
+	// MariaDB has a performance bug: https://jira.mariadb.org/browse/MDEV-16289
+	// so here it uses "DELETE ... WHERE IN" with pre-queried IDs.
+	var lastCommentID int64
+	commentIDs := make([]int64, 0, db.DefaultMaxInSize)
+	for {
+		commentIDs = commentIDs[:0]
+		err := e.Select("`id`").Table(&issues_model.Comment{}).
+			Where(builder.Eq{"issue_id": issueID}).And("`id` > ?", lastCommentID).
+			OrderBy("`id`").Limit(db.DefaultMaxInSize).
+			Find(&commentIDs)
+		if err != nil {
+			return err
+		} else if len(commentIDs) == 0 {
+			break
+		} else if _, err = db.GetEngine(ctx).In("comment_id", commentIDs).Delete(&Action{}); err != nil {
+			return err
+		} else {
+			lastCommentID = commentIDs[len(commentIDs)-1]
+		}
 	}
 
-	_, err := db.GetEngine(ctx).Table("action").Where("repo_id = ?", repoID).
+	_, err := e.Where("repo_id = ?", repoID).
 		In("op_type", ActionCreateIssue, ActionCreatePullRequest).
-		Where("content LIKE ?", strconv.FormatInt(issueID, 10)+"|%").
+		Where("content LIKE ?", strconv.FormatInt(issueIndex, 10)+"|%"). // "IssueIndex|content..."
 		Delete(&Action{})
 	return err
 }

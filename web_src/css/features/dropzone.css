@@ -52,12 +52,8 @@
   filter: opacity(0.5) !important;
 }
 
-.dropzone-attachments .divider {
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-}
-
-.dropzone-attachments .grid,
-.dropzone-attachments .thumbnails {
-  padding: .5rem 1rem;
+.ui .field .dropzone .dz-preview .dz-progress {
+  /* by default the progress-bar is vertically centered (top: 50%), it's better to put it after the "details (size, filename)",
+  then the layout from top to bottom is: size, filename, progress */
+  top: 7em;
 }

@@ -13,6 +13,7 @@ import (
 
 func ProcessorHelper() *markup.ProcessorHelper {
 	return &markup.ProcessorHelper{
+		ElementDir: "auto", // set dir="auto" for necessary (eg: <p>, <h?>, etc) tags
 		IsUsernameMentionable: func(ctx context.Context, username string) bool {
 			mentionedUser, err := user.GetUserByName(ctx, username)
 			if err != nil {

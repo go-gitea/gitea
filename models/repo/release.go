@@ -7,12 +7,14 @@ package repo
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"sort"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -71,6 +73,7 @@ type Release struct {
 	OriginalAuthorID int64 `xorm:"index"`
 	LowerTagName     string
 	Target           string
+	TargetBehind     string `xorm:"-"` // to handle non-existing or empty target
 	Title            string
 	Sha1             string `xorm:"VARCHAR(40)"`
 	NumCommits       int64
@@ -79,7 +82,7 @@ type Release struct {
 	RenderedNote     string             `xorm:"-"`
 	IsDraft          bool               `xorm:"NOT NULL DEFAULT false"`
 	IsPrerelease     bool               `xorm:"NOT NULL DEFAULT false"`
-	IsTag            bool               `xorm:"NOT NULL DEFAULT false"`
+	IsTag            bool               `xorm:"NOT NULL DEFAULT false"` // will be true only if the record is a tag and has no related releases
 	Attachments      []*Attachment      `xorm:"-"`
 	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX"`
 }
@@ -334,10 +337,21 @@ func (s releaseMetaSearch) Less(i, j int) bool {
 	return s.ID[i] < s.ID[j]
 }
 
+func hasDuplicateName(attaches []*Attachment) bool {
+	attachSet := container.Set[string]{}
+	for _, attachment := range attaches {
+		if attachSet.Contains(attachment.Name) {
+			return true
+		}
+		attachSet.Add(attachment.Name)
+	}
+	return false
+}
+
 // GetReleaseAttachments retrieves the attachments for releases
 func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 	if len(rels) == 0 {
-		return
+		return nil
 	}
 
 	// To keep this efficient as possible sort all releases by id,
@@ -358,7 +372,7 @@ func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 	err = db.GetEngine(ctx).
 		Asc("release_id", "name").
 		In("release_id", sortedRels.ID).
-		Find(&attachments, Attachment{})
+		Find(&attachments)
 	if err != nil {
 		return err
 	}
@@ -370,6 +384,21 @@ func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 			currentIndex++
 		}
 		sortedRels.Rel[currentIndex].Attachments = append(sortedRels.Rel[currentIndex].Attachments, attachment)
+	}
+
+	// Makes URL's predictable
+	for _, release := range rels {
+		// If we have no Repo, we don't need to execute this loop
+		if release.Repo == nil {
+			continue
+		}
+
+		// If the names unique, use the URL with the Name instead of the UUID
+		if !hasDuplicateName(release.Attachments) {
+			for _, attachment := range release.Attachments {
+				attachment.CustomDownloadURL = release.Repo.HTMLURL() + "/releases/download/" + url.PathEscape(release.TagName) + "/" + url.PathEscape(attachment.Name)
+			}
+		}
 	}
 
 	return err
@@ -412,7 +441,7 @@ func UpdateReleasesMigrationsByType(gitServiceType structs.GitServiceType, origi
 	_, err := db.GetEngine(db.DefaultContext).Table("release").
 		Where("repo_id IN (SELECT id FROM repository WHERE original_service_type = ?)", gitServiceType).
 		And("original_author_id = ?", originalAuthorID).
-		Update(map[string]interface{}{
+		Update(map[string]any{
 			"publisher_id":       posterID,
 			"original_author":    "",
 			"original_author_id": 0,

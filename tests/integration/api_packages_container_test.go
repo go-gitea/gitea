@@ -34,6 +34,7 @@ func TestPackageContainer(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadPackage)
+	privateUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 31})
 
 	has := func(l packages_model.PackagePropertyList, name string) bool {
 		for _, pp := range l {
@@ -262,7 +263,16 @@ func TestPackageContainer(t *testing.T) {
 			t.Run("UploadBlob/Mount", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				req := NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads?mount=%s", url, unknownDigest))
+				privateBlobDigest := "sha256:6ccce4863b70f258d691f59609d31b4502e1ba5199942d3bc5d35d17a4ce771d"
+				req := NewRequestWithBody(t, "POST", fmt.Sprintf("%sv2/%s/%s/blobs/uploads?digest=%s", setting.AppURL, privateUser.Name, image, privateBlobDigest), strings.NewReader("gitea"))
+				req = AddBasicAuthHeader(req, privateUser.Name)
+				MakeRequest(t, req, http.StatusCreated)
+
+				req = NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads?mount=%s", url, unknownDigest))
+				addTokenAuthHeader(req, userToken)
+				MakeRequest(t, req, http.StatusAccepted)
+
+				req = NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads?mount=%s", url, privateBlobDigest))
 				addTokenAuthHeader(req, userToken)
 				MakeRequest(t, req, http.StatusAccepted)
 
@@ -321,7 +331,7 @@ func TestPackageContainer(t *testing.T) {
 						metadata := pd.Metadata.(*container_module.Metadata)
 						assert.Equal(t, container_module.TypeOCI, metadata.Type)
 						assert.Len(t, metadata.ImageLayers, 2)
-						assert.Empty(t, metadata.MultiArch)
+						assert.Empty(t, metadata.Manifests)
 
 						assert.Len(t, pd.Files, 3)
 						for _, pfd := range pd.Files {
@@ -462,10 +472,22 @@ func TestPackageContainer(t *testing.T) {
 				assert.IsType(t, &container_module.Metadata{}, pd.Metadata)
 				metadata := pd.Metadata.(*container_module.Metadata)
 				assert.Equal(t, container_module.TypeOCI, metadata.Type)
-				assert.Contains(t, metadata.MultiArch, "linux/arm/v7")
-				assert.Equal(t, manifestDigest, metadata.MultiArch["linux/arm/v7"])
-				assert.Contains(t, metadata.MultiArch, "linux/arm64/v8")
-				assert.Equal(t, untaggedManifestDigest, metadata.MultiArch["linux/arm64/v8"])
+				assert.Len(t, metadata.Manifests, 2)
+				assert.Condition(t, func() bool {
+					for _, m := range metadata.Manifests {
+						switch m.Platform {
+						case "linux/arm/v7":
+							assert.Equal(t, manifestDigest, m.Digest)
+							assert.EqualValues(t, 1524, m.Size)
+						case "linux/arm64/v8":
+							assert.Equal(t, untaggedManifestDigest, m.Digest)
+							assert.EqualValues(t, 1514, m.Size)
+						default:
+							return false
+						}
+					}
+					return true
+				})
 
 				assert.Len(t, pd.Files, 1)
 				assert.True(t, pd.Files[0].File.IsLead)

@@ -1,0 +1,90 @@
+/* These are the remnants of the fomantic comment module */
+/* TODO: remove all of these rules */
+
+.ui.comments {
+  margin: 1.5em 0;
+}
+
+.ui.comments:first-child {
+  margin-top: 0;
+}
+
+.ui.comments:last-child {
+  margin-bottom: 0;
+}
+
+.ui.comments .comment {
+  position: relative;
+  background: none;
+  margin: 0.5em 0 0;
+  padding: 0.5em 0 0;
+  border: none;
+  border-top: none;
+  line-height: 1.2;
+}
+
+.ui.comments .comment:first-child {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.ui.comments .comment > .comments {
+  margin: 0 0 0.5em 0.5em;
+  padding: 1em 0 1em 1em;
+}
+
+.ui.comments .comment > .comments::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.ui.comments .comment > .comments .comment {
+  border: none;
+  border-top: none;
+  background: none;
+}
+
+.ui.comments .comment .avatar {
+  float: left;
+  width: 2.5em;
+}
+
+.ui.comments .comment > .content {
+  display: block;
+}
+
+.ui.comments .comment > .avatar ~ .content {
+  margin-left: 3.5em;
+}
+
+.ui.comments .comment .author {
+  font-size: 1em;
+  font-weight: var(--font-weight-medium);
+}
+
+.ui.comments .comment a.author {
+  cursor: pointer;
+}
+
+.ui.comments .comment .metadata {
+  display: inline-block;
+  margin-left: 0.5em;
+  font-size: 0.875em;
+}
+
+.ui.comments .comment .metadata > * {
+  display: inline-block;
+  margin: 0 0.5em 0 0;
+}
+
+.ui.comments .comment .metadata > :last-child {
+  margin-right: 0;
+}
+
+.ui.comments .comment .text {
+  margin: 0.25em 0 0.5em;
+  font-size: 1em;
+  word-wrap: break-word;
+  line-height: 1.3;
+}

@@ -10,6 +10,7 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/repository"
 )
 
@@ -119,8 +120,8 @@ func (*NullNotifier) NotifyIssueChangeContent(ctx context.Context, doer *user_mo
 func (*NullNotifier) NotifyIssueChangeAssignee(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, assignee *user_model.User, removed bool, comment *issues_model.Comment) {
 }
 
-// NotifyPullReviewRequest places a place holder function
-func (*NullNotifier) NotifyPullReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
+// NotifyPullRequestReviewRequest places a place holder function
+func (*NullNotifier) NotifyPullRequestReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
 }
 
 // NotifyIssueClearLabels places a place holder function
@@ -144,6 +145,10 @@ func (*NullNotifier) NotifyIssueChangeLabels(ctx context.Context, doer *user_mod
 func (*NullNotifier) NotifyCreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
 }
 
+// NotifyAdoptRepository places a place holder function
+func (*NullNotifier) NotifyAdoptRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
+}
+
 // NotifyDeleteRepository places a place holder function
 func (*NullNotifier) NotifyDeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository) {
 }
@@ -161,11 +166,11 @@ func (*NullNotifier) NotifyPushCommits(ctx context.Context, pusher *user_model.U
 }
 
 // NotifyCreateRef notifies branch or tag creation to notifiers
-func (*NullNotifier) NotifyCreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
+func (*NullNotifier) NotifyCreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string) {
 }
 
 // NotifyDeleteRef notifies branch or tag deletion to notifiers
-func (*NullNotifier) NotifyDeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
+func (*NullNotifier) NotifyDeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName) {
 }
 
 // NotifyRenameRepository places a place holder function
@@ -181,11 +186,11 @@ func (*NullNotifier) NotifySyncPushCommits(ctx context.Context, pusher *user_mod
 }
 
 // NotifySyncCreateRef places a place holder function
-func (*NullNotifier) NotifySyncCreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
+func (*NullNotifier) NotifySyncCreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string) {
 }
 
 // NotifySyncDeleteRef places a place holder function
-func (*NullNotifier) NotifySyncDeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
+func (*NullNotifier) NotifySyncDeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName) {
 }
 
 // NotifyRepoPendingTransfer places a place holder function

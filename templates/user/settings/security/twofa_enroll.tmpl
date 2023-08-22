@@ -1,16 +1,13 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content user settings twofa">
-	{{template "user/settings/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings twofa")}}
+	<div class="user-setting-content">
 		<h4 class="ui top attached header">
 			{{.locale.Tr "settings.twofa_enroll"}}
 		</h4>
 		<div class="ui attached segment">
 			<p>{{.locale.Tr "settings.scan_this_image"}}</p>
 			<img src="{{.QrUri}}" alt="{{.TwofaSecret}}">
-			<p>{{.locale.Tr "settings.or_enter_secret" .TwofaSecret}}
-			<p>{{.locale.Tr "settings.then_enter_passcode"}}
+			<p>{{.locale.Tr "settings.or_enter_secret" .TwofaSecret}}</p>
+			<p>{{.locale.Tr "settings.then_enter_passcode"}}</p>
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<div class="inline required field {{if .Err_Passcode}}error{{end}}">
@@ -24,6 +21,5 @@
 			</form>
 		</div>
 	</div>
-</div>
 
-{{template "base/footer" .}}
+{{template "user/settings/layout_footer" .}}

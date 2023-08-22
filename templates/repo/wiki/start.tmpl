@@ -2,8 +2,8 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository wiki start">
 	{{template "repo/header" .}}
 	<div class="ui container">
-		<div class="ui center segment">
-			{{svg "octicon-book" 32}}
+		<div class="ui center segment gt-py-5">
+			{{svg "octicon-book" 48}}
 			<h2>{{.locale.Tr "repo.wiki.welcome"}}</h2>
 			<p>{{.locale.Tr "repo.wiki.welcome_desc"}}</p>
 			{{if and .CanWriteWiki (not .Repository.IsMirror)}}

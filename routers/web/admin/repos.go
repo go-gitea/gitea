@@ -29,7 +29,6 @@ const (
 // Repos show all the repositories
 func Repos(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.repositories")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminRepositories"] = true
 
 	explore.RenderRepoSearch(ctx, &explore.RepoSearchOptions{
@@ -59,15 +58,12 @@ func DeleteRepo(ctx *context.Context) {
 	log.Trace("Repository deleted: %s", repo.FullName())
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.deletion_success"))
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/admin/repos?page=" + url.QueryEscape(ctx.FormString("page")) + "&sort=" + url.QueryEscape(ctx.FormString("sort")),
-	})
+	ctx.JSONRedirect(setting.AppSubURL + "/admin/repos?page=" + url.QueryEscape(ctx.FormString("page")) + "&sort=" + url.QueryEscape(ctx.FormString("sort")))
 }
 
 // UnadoptedRepos lists the unadopted repositories
 func UnadoptedRepos(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.repositories")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminRepositories"] = true
 
 	opts := db.ListOptions{
@@ -135,7 +131,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	repoName := dirSplit[1]
 
 	// check not a repo
-	has, err := repo_model.IsRepositoryExist(ctx, ctxUser, repoName)
+	has, err := repo_model.IsRepositoryModelExist(ctx, ctxUser, repoName)
 	if err != nil {
 		ctx.ServerError("IsRepositoryExist", err)
 		return

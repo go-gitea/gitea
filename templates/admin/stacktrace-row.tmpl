@@ -13,7 +13,7 @@
 		</div>
 		<div class="content gt-f1">
 			<div class="header">{{.Process.Description}}</div>
-			<div class="description">{{if ne .Process.Type "none"}}<span title="{{DateFmtLong .Process.Start}}">{{TimeSince .Process.Start .root.locale}}</span>{{end}}</div>
+			<div class="description">{{if ne .Process.Type "none"}}{{TimeSince .Process.Start .root.locale}}{{end}}</div>
 		</div>
 		<div>
 			{{if or (eq .Process.Type "request") (eq .Process.Type "normal")}}

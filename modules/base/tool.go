@@ -22,7 +22,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/dustin/go-humanize"
 	"github.com/minio/sha256-simd"
@@ -108,7 +107,7 @@ const TimeLimitCodeLength = 12 + 6 + 40
 
 // CreateTimeLimitCode create a time limit code
 // code format: 12 length date time string + 6 minutes string + 40 sha1 encoded string
-func CreateTimeLimitCode(data string, minutes int, startInf interface{}) string {
+func CreateTimeLimitCode(data string, minutes int, startInf any) string {
 	format := "200601021504"
 
 	var start, end time.Time
@@ -140,61 +139,6 @@ func CreateTimeLimitCode(data string, minutes int, startInf interface{}) string 
 // FileSize calculates the file size and generate user-friendly string.
 func FileSize(s int64) string {
 	return humanize.IBytes(uint64(s))
-}
-
-// PrettyNumber produces a string form of the given number in base 10 with
-// commas after every three orders of magnitude
-func PrettyNumber(i interface{}) string {
-	return humanize.Comma(util.NumberIntoInt64(i))
-}
-
-// Subtract deals with subtraction of all types of number.
-func Subtract(left, right interface{}) interface{} {
-	var rleft, rright int64
-	var fleft, fright float64
-	isInt := true
-	switch v := left.(type) {
-	case int:
-		rleft = int64(v)
-	case int8:
-		rleft = int64(v)
-	case int16:
-		rleft = int64(v)
-	case int32:
-		rleft = int64(v)
-	case int64:
-		rleft = v
-	case float32:
-		fleft = float64(v)
-		isInt = false
-	case float64:
-		fleft = v
-		isInt = false
-	}
-
-	switch v := right.(type) {
-	case int:
-		rright = int64(v)
-	case int8:
-		rright = int64(v)
-	case int16:
-		rright = int64(v)
-	case int32:
-		rright = int64(v)
-	case int64:
-		rright = v
-	case float32:
-		fright = float64(v)
-		isInt = false
-	case float64:
-		fright = v
-		isInt = false
-	}
-
-	if isInt {
-		return rleft - rright
-	}
-	return fleft + float64(rleft) - (fright + float64(rright))
 }
 
 // EllipsisString returns a truncated short string,
@@ -266,7 +210,7 @@ func EntryIcon(entry *git.TreeEntry) string {
 			return "file-symlink-file"
 		}
 		if te.IsDir() {
-			return "file-submodule"
+			return "file-directory-symlink"
 		}
 		return "file-symlink-file"
 	case entry.IsDir():
@@ -301,7 +245,7 @@ func SetupGiteaRoot() string {
 }
 
 // FormatNumberSI format a number
-func FormatNumberSI(data interface{}) string {
+func FormatNumberSI(data any) string {
 	var num int64
 	if num1, ok := data.(int64); ok {
 		num = num1

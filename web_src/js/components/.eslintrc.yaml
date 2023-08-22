@@ -3,14 +3,12 @@ plugins:
 
 extends:
   - ../../../.eslintrc.yaml
-  - plugin:vue/recommended
+  - plugin:vue/vue3-recommended
 
 env:
   browser: true
 
 rules:
   vue/attributes-order: [0]
-  vue/component-definition-name-casing: [0]
-  vue/html-closing-bracket-spacing: [0]
+  vue/html-closing-bracket-spacing: [2, {startTag: never, endTag: never, selfClosingTag: never}]
   vue/max-attributes-per-line: [0]
-  vue/one-component-per-file: [0]

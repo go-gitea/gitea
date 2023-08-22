@@ -41,6 +41,8 @@ type swaggerParameterBodies struct {
 	CreateIssueCommentOption api.CreateIssueCommentOption
 	// in:body
 	EditIssueCommentOption api.EditIssueCommentOption
+	// in:body
+	IssueMeta api.IssueMeta
 
 	// in:body
 	IssueLabelsOption api.IssueLabelsOption
@@ -56,6 +58,8 @@ type swaggerParameterBodies struct {
 	// in:body
 	EditLabelOption api.EditLabelOption
 
+	// in:body
+	MarkupOption api.MarkupOption
 	// in:body
 	MarkdownOption api.MarkdownOption
 
@@ -111,6 +115,9 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	EditAttachmentOptions api.EditAttachmentOptions
+
+	// in:body
+	ChangeFilesOptions api.ChangeFilesOptions
 
 	// in:body
 	CreateFileOptions api.CreateFileOptions
@@ -174,4 +181,13 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	CreatePushMirrorOption api.CreatePushMirrorOption
+
+	// in:body
+	UpdateUserAvatarOptions api.UpdateUserAvatarOption
+
+	// in:body
+	UpdateRepoAvatarOptions api.UpdateRepoAvatarOption
+
+	// in:body
+	CreateSecretOption api.CreateSecretOption
 }

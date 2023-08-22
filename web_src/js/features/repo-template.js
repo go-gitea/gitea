@@ -34,8 +34,8 @@ export function initRepoTemplateSearch() {
             // Parse the response from the api to work with our dropdown
             $.each(response.data, (_r, repo) => {
               filteredResponse.results.push({
-                name: htmlEscape(repo.full_name),
-                value: repo.id
+                name: htmlEscape(repo.repository.full_name),
+                value: repo.repository.id
               });
             });
             return filteredResponse;

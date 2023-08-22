@@ -1,12 +1,12 @@
-<div class="ui small basic delete modal">
-	<div class="ui icon header">
+<div class="ui g-modal-confirm delete modal">
+	<div class="header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "repo.issues.label_deletion"}}
 	</div>
 	<div class="content">
 		<p>{{.locale.Tr "repo.issues.label_deletion_desc"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	{{template "base/modal_actions_confirm" .}}
 </div>
 
 <div class="ui small edit-label modal">
@@ -20,7 +20,7 @@
 			<div class="required field">
 				<label for="name">{{.locale.Tr "repo.issues.label_title"}}</label>
 				<div class="ui small input">
-					<input class="label-name-input emoji-input" name="title" placeholder="{{.locale.Tr "repo.issues.new_label_placeholder"}}" autofocus required maxlength="50">
+					<input class="label-name-input" name="title" placeholder="{{.locale.Tr "repo.issues.new_label_placeholder"}}" autofocus required maxlength="50">
 				</div>
 			</div>
 			<div class="field label-exclusive-input-field">
@@ -28,11 +28,21 @@
 					<input class="label-exclusive-input" name="exclusive" type="checkbox">
 					<label>{{.locale.Tr "repo.issues.label_exclusive"}}</label>
 				</div>
-				<br/>
+				<br>
 				<small class="desc">{{.locale.Tr "repo.issues.label_exclusive_desc" | Safe}}</small>
 				<div class="desc gt-ml-2 gt-mt-3 gt-hidden label-exclusive-warning">
 					{{svg "octicon-alert"}} {{.locale.Tr "repo.issues.label_exclusive_warning" | Safe}}
 				</div>
+				<br>
+			</div>
+			<div class="field label-is-archived-input-field">
+				<div class="ui checkbox">
+					<input class="label-is-archived-input" name="is_archived" type="checkbox">
+					<label>{{.locale.Tr "repo.issues.label_archive"}}</label>
+				</div>
+				<i class="gt-ml-2" data-tooltip-content={{.locale.Tr "repo.issues.label_archive_tooltip"}}>
+					{{svg "octicon-info"}}
+				</i>
 			</div>
 			<div class="field">
 				<label for="description">{{.locale.Tr "repo.issues.label_description"}}</label>
@@ -52,12 +62,12 @@
 		</form>
 	</div>
 	<div class="actions">
-		<button class="ui secondary small basic cancel button">
+		<button class="ui small basic cancel button">
 			{{svg "octicon-x"}}
 			{{.locale.Tr "cancel"}}
 		</button>
 		<button class="ui primary small approve button">
-			<i class="save icon"></i>
+			{{svg "fontawesome-save"}}
 			{{.locale.Tr "save"}}
 		</button>
 	</div>

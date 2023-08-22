@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/shared/types"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
@@ -28,7 +29,7 @@ type ActionRunner struct {
 	Version     string                 `xorm:"VARCHAR(64)"`
 	OwnerID     int64                  `xorm:"index"` // org level runner, 0 means system
 	Owner       *user_model.User       `xorm:"-"`
-	RepoID      int64                  `xorm:"index"` // repo level runner, if orgid also is zero, then it's a global
+	RepoID      int64                  `xorm:"index"` // repo level runner, if OwnerID also is zero, then it's a global
 	Repo        *repo_model.Repository `xorm:"-"`
 	Description string                 `xorm:"TEXT"`
 	Base        int                    // 0 native 1 docker 2 virtual machine
@@ -42,24 +43,37 @@ type ActionRunner struct {
 	LastOnline timeutil.TimeStamp `xorm:"index"`
 	LastActive timeutil.TimeStamp `xorm:"index"`
 
-	// Store OS and Artch.
-	AgentLabels []string
-	// Store custom labes use defined.
-	CustomLabels []string
+	// Store labels defined in state file (default: .runner file) of `act_runner`
+	AgentLabels []string `xorm:"TEXT"`
 
 	Created timeutil.TimeStamp `xorm:"created"`
 	Updated timeutil.TimeStamp `xorm:"updated"`
 	Deleted timeutil.TimeStamp `xorm:"deleted"`
 }
 
-func (r *ActionRunner) OwnType() string {
+// BelongsToOwnerName before calling, should guarantee that all attributes are loaded
+func (r *ActionRunner) BelongsToOwnerName() string {
 	if r.RepoID != 0 {
-		return fmt.Sprintf("Repo(%s)", r.Repo.FullName())
+		return r.Repo.FullName()
 	}
 	if r.OwnerID != 0 {
-		return fmt.Sprintf("Org(%s)", r.Owner.Name)
+		return r.Owner.Name
 	}
-	return "Global"
+	return ""
+}
+
+func (r *ActionRunner) BelongsToOwnerType() types.OwnerType {
+	if r.RepoID != 0 {
+		return types.OwnerTypeRepository
+	}
+	if r.OwnerID != 0 {
+		if r.Owner.Type == user_model.UserTypeOrganization {
+			return types.OwnerTypeOrganization
+		} else if r.Owner.Type == user_model.UserTypeIndividual {
+			return types.OwnerTypeIndividual
+		}
+	}
+	return types.OwnerTypeSystemGlobal
 }
 
 func (r *ActionRunner) Status() runnerv1.RunnerStatus {
@@ -86,11 +100,6 @@ func (r *ActionRunner) IsOnline() bool {
 		return true
 	}
 	return false
-}
-
-// AllLabels returns agent and custom labels
-func (r *ActionRunner) AllLabels() []string {
-	return append(r.AgentLabels, r.CustomLabels...)
 }
 
 // Editable checks if the runner is editable by the user

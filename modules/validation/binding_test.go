@@ -20,7 +20,7 @@ const (
 type (
 	validationTestCase struct {
 		description    string
-		data           interface{}
+		data           any
 		expectedErrors binding.Errors
 	}
 

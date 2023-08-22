@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -22,7 +23,7 @@ func testPullCreate(t *testing.T, session *TestSession, user, repo, branch, titl
 
 	// Click the PR button to create a pull
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find("#new-pull-request").Parent().Attr("href")
+	link, exists := htmlDoc.doc.Find("#new-pull-request").Attr("href")
 	assert.True(t, exists, "The template has changed")
 	if branch != "master" {
 		link = strings.Replace(link, ":master", ":"+branch, 1)
@@ -39,8 +40,7 @@ func testPullCreate(t *testing.T, session *TestSession, user, repo, branch, titl
 		"_csrf": htmlDoc.GetCSRF(),
 		"title": title,
 	})
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
-
+	resp = session.MakeRequest(t, req, http.StatusOK)
 	return resp
 }
 
@@ -52,7 +52,7 @@ func TestPullCreate(t *testing.T) {
 		resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
 
 		// check the redirected URL
-		url := resp.Header().Get("Location")
+		url := test.RedirectURL(resp)
 		assert.Regexp(t, "^/user2/repo1/pulls/[0-9]*$", url)
 
 		// check .diff can be accessed and matches performed change
@@ -67,7 +67,7 @@ func TestPullCreate(t *testing.T) {
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		assert.Regexp(t, `\+Hello, World \(Edited\)`, resp.Body)
 		assert.Regexp(t, "diff", resp.Body)
-		assert.Regexp(t, `Subject: \[PATCH\] Update 'README.md'`, resp.Body)
+		assert.Regexp(t, `Subject: \[PATCH\] Update README.md`, resp.Body)
 		assert.NotRegexp(t, "diff.*diff", resp.Body) // not two diffs, just one
 	})
 }
@@ -80,7 +80,7 @@ func TestPullCreate_TitleEscape(t *testing.T) {
 		resp := testPullCreate(t, session, "user1", "repo1", "master", "<i>XSS PR</i>")
 
 		// check the redirected URL
-		url := resp.Header().Get("Location")
+		url := test.RedirectURL(resp)
 		assert.Regexp(t, "^/user2/repo1/pulls/[0-9]*$", url)
 
 		// Edit title
@@ -145,7 +145,7 @@ func TestPullBranchDelete(t *testing.T) {
 		resp := testPullCreate(t, session, "user1", "repo1", "master1", "This is a pull title")
 
 		// check the redirected URL
-		url := resp.Header().Get("Location")
+		url := test.RedirectURL(resp)
 		assert.Regexp(t, "^/user2/repo1/pulls/[0-9]*$", url)
 		req := NewRequest(t, "GET", url)
 		session.MakeRequest(t, req, http.StatusOK)

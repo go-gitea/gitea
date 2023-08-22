@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div class="page-content user settings webhooks">
-	{{template "user/settings/navbar" .}}
-	<div class="ui container">
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings webhooks")}}
+	<div class="user-setting-content">
 		{{template "repo/settings/webhook/list" .}}
 	</div>
-</div>
-{{template "base/footer" .}}
+{{template "user/settings/layout_footer" .}}

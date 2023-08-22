@@ -4,12 +4,13 @@
 package setting
 
 import (
+	"encoding/base64"
 	"math"
 	"path/filepath"
 
+	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
-
-	"gopkg.in/ini.v1"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // OAuth2UsernameType is enum describing the way gitea 'name' should be generated from oauth2 data
@@ -80,7 +81,7 @@ func loadOAuth2ClientFrom(rootCfg ConfigProvider) {
 	}
 }
 
-func parseScopes(sec *ini.Section, name string) []string {
+func parseScopes(sec ConfigSection, name string) []string {
 	parts := sec.Key(name).Strings(" ")
 	scopes := make([]string, 0, len(parts))
 	for _, scope := range parts {
@@ -100,6 +101,7 @@ var OAuth2 = struct {
 	JWTSecretBase64            string `ini:"JWT_SECRET"`
 	JWTSigningPrivateKeyFile   string `ini:"JWT_SIGNING_PRIVATE_KEY_FILE"`
 	MaxTokenLength             int
+	DefaultApplications        []string
 }{
 	Enable:                     true,
 	AccessTokenExpirationTime:  3600,
@@ -108,6 +110,7 @@ var OAuth2 = struct {
 	JWTSigningAlgorithm:        "RS256",
 	JWTSigningPrivateKeyFile:   "jwt/private.pem",
 	MaxTokenLength:             math.MaxInt16,
+	DefaultApplications:        []string{"git-credential-oauth", "git-credential-manager"},
 }
 
 func loadOAuth2From(rootCfg ConfigProvider) {
@@ -116,7 +119,33 @@ func loadOAuth2From(rootCfg ConfigProvider) {
 		return
 	}
 
+	if !OAuth2.Enable {
+		return
+	}
+
+	OAuth2.JWTSecretBase64 = loadSecret(rootCfg.Section("oauth2"), "JWT_SECRET_URI", "JWT_SECRET")
+
 	if !filepath.IsAbs(OAuth2.JWTSigningPrivateKeyFile) {
 		OAuth2.JWTSigningPrivateKeyFile = filepath.Join(AppDataPath, OAuth2.JWTSigningPrivateKeyFile)
+	}
+
+	if InstallLock {
+		if _, err := util.Base64FixedDecode(base64.RawURLEncoding, []byte(OAuth2.JWTSecretBase64), 32); err != nil {
+			key, err := generate.NewJwtSecret()
+			if err != nil {
+				log.Fatal("error generating JWT secret: %v", err)
+			}
+
+			OAuth2.JWTSecretBase64 = base64.RawURLEncoding.EncodeToString(key)
+			saveCfg, err := rootCfg.PrepareSaving()
+			if err != nil {
+				log.Fatal("save oauth2.JWT_SECRET failed: %v", err)
+			}
+			rootCfg.Section("oauth2").Key("JWT_SECRET").SetValue(OAuth2.JWTSecretBase64)
+			saveCfg.Section("oauth2").Key("JWT_SECRET").SetValue(OAuth2.JWTSecretBase64)
+			if err := saveCfg.Save(); err != nil {
+				log.Fatal("save oauth2.JWT_SECRET failed: %v", err)
+			}
+		}
 	}
 }

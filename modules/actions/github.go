@@ -5,37 +5,71 @@ package actions
 
 import (
 	webhook_module "code.gitea.io/gitea/modules/webhook"
-
-	"github.com/nektos/act/pkg/jobparser"
 )
 
 const (
-	githubEventPullRequest              = "pull_request"
-	githubEventPullRequestTarget        = "pull_request_target"
-	githubEventPullRequestReviewComment = "pull_request_review_comment"
-	githubEventPullRequestReview        = "pull_request_review"
-	githubEventRegistryPackage          = "registry_package"
-	githubEventCreate                   = "create"
-	githubEventDelete                   = "delete"
-	githubEventFork                     = "fork"
-	githubEventPush                     = "push"
-	githubEventIssues                   = "issues"
-	githubEventIssueComment             = "issue_comment"
-	githubEventRelease                  = "release"
-	githubEventPullRequestComment       = "pull_request_comment"
+	GithubEventPullRequest              = "pull_request"
+	GithubEventPullRequestTarget        = "pull_request_target"
+	GithubEventPullRequestReviewComment = "pull_request_review_comment"
+	GithubEventPullRequestReview        = "pull_request_review"
+	GithubEventRegistryPackage          = "registry_package"
+	GithubEventCreate                   = "create"
+	GithubEventDelete                   = "delete"
+	GithubEventFork                     = "fork"
+	GithubEventPush                     = "push"
+	GithubEventIssues                   = "issues"
+	GithubEventIssueComment             = "issue_comment"
+	GithubEventRelease                  = "release"
+	GithubEventPullRequestComment       = "pull_request_comment"
+	GithubEventGollum                   = "gollum"
 )
 
-func convertFromGithubEvent(evt *jobparser.Event) string {
-	switch evt.Name {
-	case githubEventPullRequest, githubEventPullRequestTarget, githubEventPullRequestReview,
-		githubEventPullRequestReviewComment:
-		return string(webhook_module.HookEventPullRequest)
-	case githubEventRegistryPackage:
-		return string(webhook_module.HookEventPackage)
-	case githubEventCreate, githubEventDelete, githubEventFork, githubEventPush,
-		githubEventIssues, githubEventIssueComment, githubEventRelease, githubEventPullRequestComment:
-		fallthrough
+// canGithubEventMatch check if the input Github event can match any Gitea event.
+func canGithubEventMatch(eventName string, triggedEvent webhook_module.HookEventType) bool {
+	switch eventName {
+	case GithubEventRegistryPackage:
+		return triggedEvent == webhook_module.HookEventPackage
+
+	// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#gollum
+	case GithubEventGollum:
+		return triggedEvent == webhook_module.HookEventWiki
+
+	case GithubEventIssues:
+		switch triggedEvent {
+		case webhook_module.HookEventIssues,
+			webhook_module.HookEventIssueAssign,
+			webhook_module.HookEventIssueLabel,
+			webhook_module.HookEventIssueMilestone:
+			return true
+
+		default:
+			return false
+		}
+
+	case GithubEventPullRequest, GithubEventPullRequestTarget:
+		switch triggedEvent {
+		case webhook_module.HookEventPullRequest,
+			webhook_module.HookEventPullRequestSync,
+			webhook_module.HookEventPullRequestAssign,
+			webhook_module.HookEventPullRequestLabel:
+			return true
+
+		default:
+			return false
+		}
+
+	case GithubEventPullRequestReview:
+		switch triggedEvent {
+		case webhook_module.HookEventPullRequestReviewApproved,
+			webhook_module.HookEventPullRequestReviewComment,
+			webhook_module.HookEventPullRequestReviewRejected:
+			return true
+
+		default:
+			return false
+		}
+
 	default:
-		return evt.Name
+		return eventName == string(triggedEvent)
 	}
 }

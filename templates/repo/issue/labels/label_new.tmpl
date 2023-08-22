@@ -8,7 +8,7 @@
 			<div class="required field">
 				<label for="name">{{.locale.Tr "repo.issues.label_title"}}</label>
 				<div class="ui small input">
-					<input class="label-name-input emoji-input" name="title" placeholder="{{.locale.Tr "repo.issues.new_label_placeholder"}}" autofocus required maxlength="50">
+					<input class="label-name-input" name="title" placeholder="{{.locale.Tr "repo.issues.new_label_placeholder"}}" autofocus required maxlength="50">
 				</div>
 			</div>
 			<div class="field label-exclusive-input-field">
@@ -16,7 +16,7 @@
 					<input class="label-exclusive-input" name="exclusive" type="checkbox">
 					<label>{{.locale.Tr "repo.issues.label_exclusive"}}</label>
 				</div>
-				<br/>
+				<br>
 				<small class="desc">{{.locale.Tr "repo.issues.label_exclusive_desc" | Safe}}</small>
 			</div>
 			<div class="field">
@@ -38,11 +38,11 @@
 	</div>
 
 	<div class="actions">
-		<button class="ui red basic inverted cancel button">
+		<button class="ui red basic cancel button">
 			{{svg "octicon-x"}}
 			{{.locale.Tr "cancel"}}
 		</button>
-		<button class="ui green basic inverted ok button">
+		<button class="ui green basic ok button">
 			{{svg "octicon-check"}}
 			{{.locale.Tr "repo.issues.create_label"}}
 		</button>

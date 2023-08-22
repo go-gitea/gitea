@@ -1,24 +1,41 @@
 import $ from 'jquery';
-import {useLightTextOnBackground} from '../utils.js';
+import {useLightTextOnBackground} from '../utils/color.js';
+import tinycolor from 'tinycolor2';
+import {createSortable} from '../modules/sortable.js';
 
 const {csrfToken} = window.config;
 
 function updateIssueCount(cards) {
   const parent = cards.parentElement;
-  const cnt = parent.getElementsByClassName('board-card').length;
-  parent.getElementsByClassName('board-card-cnt')[0].innerText = cnt;
+  const cnt = parent.getElementsByClassName('issue-card').length;
+  parent.getElementsByClassName('project-column-issue-count')[0].textContent = cnt;
+}
+
+function createNewColumn(url, columnTitle, projectColorInput) {
+  $.ajax({
+    url,
+    data: JSON.stringify({title: columnTitle.val(), color: projectColorInput.val()}),
+    headers: {
+      'X-Csrf-Token': csrfToken,
+    },
+    contentType: 'application/json',
+    method: 'POST',
+  }).done(() => {
+    columnTitle.closest('form').removeClass('dirty');
+    window.location.reload();
+  });
 }
 
 function moveIssue({item, from, to, oldIndex}) {
-  const columnCards = to.getElementsByClassName('board-card');
+  const columnCards = to.getElementsByClassName('issue-card');
   updateIssueCount(from);
   updateIssueCount(to);
 
   const columnSorting = {
-    issues: [...columnCards].map((card, i) => ({
+    issues: Array.from(columnCards, (card, i) => ({
       issueID: parseInt($(card).attr('data-issue')),
-      sorting: i
-    }))
+      sorting: i,
+    })),
   };
 
   $.ajax({
@@ -31,29 +48,27 @@ function moveIssue({item, from, to, oldIndex}) {
     type: 'POST',
     error: () => {
       from.insertBefore(item, from.children[oldIndex]);
-    }
+    },
   });
 }
 
 async function initRepoProjectSortable() {
-  const els = document.querySelectorAll('#project-board > .board');
+  const els = document.querySelectorAll('#project-board > .board.sortable');
   if (!els.length) return;
 
-  const {Sortable} = await import(/* webpackChunkName: "sortable" */'sortablejs');
-
-  // the HTML layout is: #project-board > .board > .board-column .board.cards > .board-card.card .content
+  // the HTML layout is: #project-board > .board > .project-column .cards > .issue-card
   const mainBoard = els[0];
-  let boardColumns = mainBoard.getElementsByClassName('board-column');
-  new Sortable(mainBoard, {
-    group: 'board-column',
-    draggable: '.board-column',
+  let boardColumns = mainBoard.getElementsByClassName('project-column');
+  createSortable(mainBoard, {
+    group: 'project-column',
+    draggable: '.project-column',
     filter: '[data-id="0"]',
     animation: 150,
     ghostClass: 'card-ghost',
     delayOnTouchOnly: true,
     delay: 500,
     onSort: () => {
-      boardColumns = mainBoard.getElementsByClassName('board-column');
+      boardColumns = mainBoard.getElementsByClassName('project-column');
       for (let i = 0; i < boardColumns.length; i++) {
         const column = boardColumns[i];
         if (parseInt($(column).data('sorting')) !== i) {
@@ -72,8 +87,8 @@ async function initRepoProjectSortable() {
   });
 
   for (const boardColumn of boardColumns) {
-    const boardCardList = boardColumn.getElementsByClassName('board')[0];
-    new Sortable(boardCardList, {
+    const boardCardList = boardColumn.getElementsByClassName('cards')[0];
+    createSortable(boardCardList, {
       group: 'shared',
       animation: 150,
       ghostClass: 'card-ghost',
@@ -92,18 +107,18 @@ export function initRepoProject() {
 
   const _promise = initRepoProjectSortable();
 
-  $('.edit-project-board').each(function () {
-    const projectHeader = $(this).closest('.board-column-header');
-    const projectTitleLabel = projectHeader.find('.board-label');
-    const projectTitleInput = $(this).find('.project-board-title');
-    const projectColorInput = $(this).find('#new_board_color');
-    const boardColumn = $(this).closest('.board-column');
+  $('.edit-project-column-modal').each(function () {
+    const projectHeader = $(this).closest('.project-column-header');
+    const projectTitleLabel = projectHeader.find('.project-column-title');
+    const projectTitleInput = $(this).find('.project-column-title-input');
+    const projectColorInput = $(this).find('#new_project_column_color');
+    const boardColumn = $(this).closest('.project-column');
 
     if (boardColumn.css('backgroundColor')) {
       setLabelColor(projectHeader, rgbToHex(boardColumn.css('backgroundColor')));
     }
 
-    $(this).find('.edit-column-button').on('click', function (e) {
+    $(this).find('.edit-project-column-button').on('click', function (e) {
       e.preventDefault();
 
       $.ajax({
@@ -126,27 +141,37 @@ export function initRepoProject() {
     });
   });
 
-  $(document).on('click', '.set-default-project-board', async function (e) {
-    e.preventDefault();
+  $('.default-project-column-modal').each(function () {
+    const boardColumn = $(this).closest('.project-column');
+    const showButton = $(boardColumn).find('.default-project-column-show');
+    const commitButton = $(this).find('.actions > .ok.button');
 
-    await $.ajax({
-      method: 'POST',
-      url: $(this).data('url'),
-      headers: {
-        'X-Csrf-Token': csrfToken,
-      },
-      contentType: 'application/json',
-    });
-
-    window.location.reload();
-  });
-
-  $('.delete-project-board').each(function () {
-    $(this).click(function (e) {
+    $(commitButton).on('click', (e) => {
       e.preventDefault();
 
       $.ajax({
-        url: $(this).data('url'),
+        method: 'POST',
+        url: $(showButton).data('url'),
+        headers: {
+          'X-Csrf-Token': csrfToken,
+        },
+        contentType: 'application/json',
+      }).done(() => {
+        window.location.reload();
+      });
+    });
+  });
+
+  $('.show-delete-project-column-modal').each(function () {
+    const deleteColumnModal = $(`${$(this).attr('data-modal')}`);
+    const deleteColumnButton = deleteColumnModal.find('.actions > .ok.button');
+    const deleteUrl = $(this).attr('data-url');
+
+    deleteColumnButton.on('click', (e) => {
+      e.preventDefault();
+
+      $.ajax({
+        url: deleteUrl,
         headers: {
           'X-Csrf-Token': csrfToken,
         },
@@ -158,29 +183,35 @@ export function initRepoProject() {
     });
   });
 
-  $('#new_board_submit').click(function (e) {
+  $('#new_project_column_submit').on('click', (e) => {
     e.preventDefault();
+    const columnTitle = $('#new_project_column');
+    const projectColorInput = $('#new_project_column_color_picker');
+    if (!columnTitle.val()) {
+      return;
+    }
+    const url = $(this).data('url');
+    createNewColumn(url, columnTitle, projectColorInput);
+  });
 
-    const boardTitle = $('#new_board');
-    const projectColorInput = $('#new_board_color_picker');
-
-    $.ajax({
-      url: $(this).data('url'),
-      data: JSON.stringify({title: boardTitle.val(), color: projectColorInput.val()}),
-      headers: {
-        'X-Csrf-Token': csrfToken,
-      },
-      contentType: 'application/json',
-      method: 'POST',
-    }).done(() => {
-      boardTitle.closest('form').removeClass('dirty');
-      window.location.reload();
-    });
+  $('.new-project-column').on('input keyup', (e) => {
+    const columnTitle = $('#new_project_column');
+    const projectColorInput = $('#new_project_column_color_picker');
+    if (!columnTitle.val()) {
+      $('#new_project_column_submit').addClass('disabled');
+      return;
+    }
+    $('#new_project_column_submit').removeClass('disabled');
+    if (e.key === 'Enter') {
+      const url = $(this).data('url');
+      createNewColumn(url, columnTitle, projectColorInput);
+    }
   });
 }
 
 function setLabelColor(label, color) {
-  if (useLightTextOnBackground(color)) {
+  const {r, g, b} = tinycolor(color).toRgb();
+  if (useLightTextOnBackground(r, g, b)) {
     label.removeClass('dark-label').addClass('light-label');
   } else {
     label.removeClass('light-label').addClass('dark-label');

@@ -21,18 +21,18 @@
 						<div class="ui selection owner dropdown">
 							<input type="hidden" id="uid" name="uid" value="{{.ContextUser.ID}}" required>
 							<span class="text truncated-item-container" title="{{.ContextUser.Name}}">
-								{{avatar $.Context .ContextUser 28 "mini"}}
+								{{ctx.AvatarUtils.Avatar .ContextUser 28 "mini"}}
 								<span class="truncated-item-name">{{.ContextUser.ShortName 40}}</span>
 							</span>
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
 								<div class="item truncated-item-container" data-value="{{.SignedUser.ID}}" title="{{.SignedUser.Name}}">
-									{{avatar $.Context .SignedUser 28 "mini"}}
+									{{ctx.AvatarUtils.Avatar .SignedUser 28 "mini"}}
 									<span class="truncated-item-name">{{.SignedUser.ShortName 40}}</span>
 								</div>
 								{{range .Orgs}}
 									<div class="item truncated-item-container" data-value="{{.ID}}" title="{{.Name}}">
-										{{avatar $.Context . 28 "mini"}}
+										{{ctx.AvatarUtils.Avatar . 28 "mini"}}
 										<span class="truncated-item-name">{{.ShortName 40}}</span>
 									</div>
 								{{end}}
@@ -43,7 +43,7 @@
 
 					<div class="inline required field {{if .Err_RepoName}}error{{end}}">
 						<label for="repo_name">{{.locale.Tr "repo.repo_name"}}</label>
-						<input id="repo_name" name="repo_name" value="{{.repo_name}}" autofocus required>
+						<input id="repo_name" name="repo_name" value="{{.repo_name}}" autofocus required maxlength="100">
 						<span class="help">{{.locale.Tr "repo.repo_name_helper"}}</span>
 					</div>
 					<div class="inline field">
@@ -61,7 +61,7 @@
 					</div>
 					<div class="inline field {{if .Err_Description}}error{{end}}">
 						<label for="description">{{.locale.Tr "repo.repo_desc"}}</label>
-						<textarea id="description" name="description" placeholder="{{.locale.Tr "repo.repo_desc_helper"}}">{{.description}}</textarea>
+						<textarea id="description" name="description" placeholder="{{.locale.Tr "repo.repo_desc_helper"}}" maxlength="2048">{{.description}}</textarea>
 					</div>
 					<div class="inline field">
 						<label>{{.locale.Tr "repo.template"}}</label>
@@ -80,7 +80,7 @@
 								<input name="git_content" type="checkbox" tabindex="0" {{if .git_content}}checked{{end}}>
 								<label>{{.locale.Tr "repo.template.git_content"}}</label>
 							</div>
-							<div class="ui checkbox{{if not .SignedUser.CanEditGitHook}} tooltip{{end}}"{{if not .SignedUser.CanEditGitHook}} data-content="{{.locale.Tr "repo.template.git_hooks_tooltip"}}"{{end}}>
+							<div class="ui checkbox" {{if not .SignedUser.CanEditGitHook}}data-tooltip-content="{{.locale.Tr "repo.template.git_hooks_tooltip"}}"{{end}}>
 								<input name="git_hooks" type="checkbox" tabindex="0" {{if .git_hooks}}checked{{end}}>
 								<label>{{.locale.Tr "repo.template.git_hooks"}}</label>
 							</div>
@@ -107,6 +107,13 @@
 								<label>{{.locale.Tr "repo.template.issue_labels"}}</label>
 							</div>
 						</div>
+						<div class="inline field">
+							<label></label>
+							<div class="ui checkbox">
+								<input name="protected_branch" type="checkbox" tabindex="0" {{if .protected_branch}}checked{{end}}>
+								<label>{{.locale.Tr "repo.settings.protected_branch"}}</label>
+							</div>
+						</div>
 					</div>
 
 					<div id="non_template">
@@ -117,14 +124,14 @@
 								<div class="default text">{{.locale.Tr "repo.issue_labels_helper"}}</div>
 								<div class="menu">
 									<div class="item" data-value="">{{.locale.Tr "repo.issue_labels_helper"}}</div>
-									{{range $template, $labels := .LabelTemplates}}
-										<div class="item" data-value="{{$template}}">{{$template}}<br/><i>({{$labels}})</i></div>
+									{{range .LabelTemplateFiles}}
+										<div class="item" data-value="{{.DisplayName}}">{{.DisplayName}}<br><i>({{.Description}})</i></div>
 									{{end}}
 								</div>
 							</div>
 						</div>
 
-						<div class="ui divider"></div>
+						<div class="divider"></div>
 
 						<div class="inline field">
 							<label>.gitignore</label>
@@ -210,7 +217,7 @@
 						</div>
 					</div>
 
-					<br/>
+					<br>
 					<div class="inline field">
 						<label></label>
 						<button class="ui green button{{if not .CanCreateRepo}} disabled{{end}}">

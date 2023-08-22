@@ -51,7 +51,7 @@ export function initCitationFileCopyContent() {
   });
 
   $inputContent.on('click', () => {
-    $inputContent.select();
+    $inputContent.trigger('select');
   });
 
   $('#cite-repo-button').on('click', () => {
