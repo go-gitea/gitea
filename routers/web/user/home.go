@@ -455,6 +455,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		AllLimited:  false,
 		Collaborate: util.OptionalBoolNone,
 		UnitType:    unitType,
+		Archived:    util.OptionalBoolFalse,
 	}
 	if team != nil {
 		repoOpts.TeamID = team.ID
