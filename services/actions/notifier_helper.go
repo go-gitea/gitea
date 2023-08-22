@@ -451,7 +451,7 @@ func handleSchedules(
 				log.Error("CancelRunningJobs: %v", err)
 			}
 		}
-		crons = append(crons)
+		crons = append(crons, run)
 	}
 
 	return actions_model.CreateScheduleTask(ctx, crons)
