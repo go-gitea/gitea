@@ -286,15 +286,22 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 	return repo, UpdateRepository(ctx, repo, false)
 }
 
-// SyncReleasesWithTags synchronizes release table with repository tags
-func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) error {
-	log.Debug("SyncReleasesWithTags: in Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
+// SyncReleases synchronizes release table with repository tags
+func SyncReleases(repo *repo_model.Repository, gitRepo *git.Repository, hasNonTagReleases bool) error {
+	log.Debug("SyncReleases: in Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
 
 	// optimized procedure for pull-mirrors which saves a lot of time (in
 	// particular for repos with many tags).
-	// if repo.IsMirror {
-	// 	return pullMirrorReleaseSync(repo, gitRepo)
-	// }
+	if repo.IsMirror && !hasNonTagReleases {
+		return recreateMirrorReleaseFromTags(repo, gitRepo)
+	}
+
+	return SyncReleasesWithTags(repo, gitRepo)
+}
+
+// SyncReleasesWithTags synchronizes release table with repository tags for each of the releases
+func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) error {
+	log.Debug("SyncReleasesWithTags: in Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
 
 	existingRelTags := make(container.Set[string])
 	opts := repo_model.FindReleasesOptions{
@@ -493,14 +500,14 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 	return nil
 }
 
-// pullMirrorReleaseSync is a pull-mirror specific tag<->release table
+// recreateMirrorReleaseFromTags is a pull-mirror specific tag<->release table
 // synchronization which overwrites all Releases from the repository tags. This
 // can be relied on since a pull-mirror is always identical to its
 // upstream. Hence, after each sync we want the pull-mirror release set to be
 // identical to the upstream tag set. This is much more efficient for
 // repositories like https://github.com/vim/vim (with over 13000 tags).
-func pullMirrorReleaseSync(repo *repo_model.Repository, gitRepo *git.Repository) error {
-	log.Trace("pullMirrorReleaseSync: rebuilding releases for pull-mirror Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
+func recreateMirrorReleaseFromTags(repo *repo_model.Repository, gitRepo *git.Repository) error {
+	log.Trace("recreateMirrorReleaseFromTags: rebuilding releases for pull-mirror Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
 	tags, numTags, err := gitRepo.GetTagInfos(0, 0)
 	if err != nil {
 		return fmt.Errorf("unable to GetTagInfos in pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
@@ -538,6 +545,6 @@ func pullMirrorReleaseSync(repo *repo_model.Repository, gitRepo *git.Repository)
 		return fmt.Errorf("unable to rebuild release table for pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 	}
 
-	log.Trace("pullMirrorReleaseSync: done rebuilding %d releases", numTags)
+	log.Trace("recreateMirrorReleaseFromTags: done rebuilding %d releases", numTags)
 	return nil
 }
