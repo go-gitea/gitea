@@ -13,12 +13,10 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"xorm.io/builder"
@@ -201,128 +199,6 @@ func TestIssues(t *testing.T) {
 				assert.EqualValues(t, test.ExpectedIssueIDs[i], issue.ID)
 			}
 		}
-	}
-}
-
-func TestGetUserIssueStats(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	for _, test := range []struct {
-		FilterMode         int
-		Opts               issues_model.IssuesOptions
-		ExpectedIssueStats issues_model.IssueStats
-	}{
-		{
-			issues_model.FilterModeAll,
-			issues_model.IssuesOptions{
-				User:    unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}),
-				RepoIDs: []int64{1},
-				IsPull:  util.OptionalBoolFalse,
-			},
-			issues_model.IssueStats{
-				YourRepositoriesCount: 1, // 6
-				AssignCount:           1, // 6
-				CreateCount:           1, // 6
-				OpenCount:             1, // 6
-				ClosedCount:           1, // 1
-			},
-		},
-		{
-			issues_model.FilterModeAll,
-			issues_model.IssuesOptions{
-				User:     unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}),
-				RepoIDs:  []int64{1},
-				IsPull:   util.OptionalBoolFalse,
-				IsClosed: util.OptionalBoolTrue,
-			},
-			issues_model.IssueStats{
-				YourRepositoriesCount: 1, // 6
-				AssignCount:           0,
-				CreateCount:           0,
-				OpenCount:             1, // 6
-				ClosedCount:           1, // 1
-			},
-		},
-		{
-			issues_model.FilterModeAssign,
-			issues_model.IssuesOptions{
-				User:   unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}),
-				IsPull: util.OptionalBoolFalse,
-			},
-			issues_model.IssueStats{
-				YourRepositoriesCount: 1, // 6
-				AssignCount:           1, // 6
-				CreateCount:           1, // 6
-				OpenCount:             1, // 6
-				ClosedCount:           0,
-			},
-		},
-		{
-			issues_model.FilterModeCreate,
-			issues_model.IssuesOptions{
-				User:   unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}),
-				IsPull: util.OptionalBoolFalse,
-			},
-			issues_model.IssueStats{
-				YourRepositoriesCount: 1, // 6
-				AssignCount:           1, // 6
-				CreateCount:           1, // 6
-				OpenCount:             1, // 6
-				ClosedCount:           0,
-			},
-		},
-		{
-			issues_model.FilterModeMention,
-			issues_model.IssuesOptions{
-				User:   unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}),
-				IsPull: util.OptionalBoolFalse,
-			},
-			issues_model.IssueStats{
-				YourRepositoriesCount: 1, // 6
-				AssignCount:           1, // 6
-				CreateCount:           1, // 6
-				MentionCount:          0,
-				OpenCount:             0,
-				ClosedCount:           0,
-			},
-		},
-		{
-			issues_model.FilterModeCreate,
-			issues_model.IssuesOptions{
-				User:     unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}),
-				IssueIDs: []int64{1},
-				IsPull:   util.OptionalBoolFalse,
-			},
-			issues_model.IssueStats{
-				YourRepositoriesCount: 1, // 1
-				AssignCount:           1, // 1
-				CreateCount:           1, // 1
-				OpenCount:             1, // 1
-				ClosedCount:           0,
-			},
-		},
-		{
-			issues_model.FilterModeAll,
-			issues_model.IssuesOptions{
-				User:   unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}),
-				Org:    unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3}),
-				Team:   unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 7}),
-				IsPull: util.OptionalBoolFalse,
-			},
-			issues_model.IssueStats{
-				YourRepositoriesCount: 2,
-				AssignCount:           1,
-				CreateCount:           1,
-				OpenCount:             2,
-			},
-		},
-	} {
-		t.Run(fmt.Sprintf("%#v", test.Opts), func(t *testing.T) {
-			stats, err := issues_model.GetUserIssueStats(test.FilterMode, test.Opts)
-			if !assert.NoError(t, err) {
-				return
-			}
-			assert.Equal(t, test.ExpectedIssueStats, *stats)
-		})
 	}
 }
 

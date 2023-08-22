@@ -556,9 +556,9 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// USING FINAL STATE OF opts FOR A QUERY.
 	var issues issues_model.IssueList
 	{
-		issueIDs, err := issueIDsFromSearch(ctx, keyword, opts)
+		issueIDs, _, err := issue_indexer.SearchIssues(ctx, issue_indexer.ToSearchOptions(keyword, opts))
 		if err != nil {
-			ctx.ServerError("issueIDsFromSearch", err)
+			ctx.ServerError("SearchIssues", err)
 			return
 		}
 		issues, err = issues_model.GetIssuesByIDs(ctx, issueIDs, true)
@@ -729,15 +729,6 @@ func getRepoIDs(reposQuery string) []int64 {
 	}
 
 	return repoIDs
-}
-
-// TBC: remove it
-func issueIDsFromSearch(ctx *context.Context, keyword string, opts *issues_model.IssuesOptions) ([]int64, error) {
-	ids, _, err := issue_indexer.SearchIssues(ctx, issue_indexer.ToSearchOptions(keyword, opts))
-	if err != nil {
-		return nil, fmt.Errorf("SearchIssues: %w", err)
-	}
-	return ids, nil
 }
 
 func loadRepoByIDs(ctxUser *user_model.User, issueCountByRepo map[int64]int64, unitType unit.Type) (map[int64]*repo_model.Repository, error) {
