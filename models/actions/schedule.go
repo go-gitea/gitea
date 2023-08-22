@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
-	"github.com/gogs/cron"
+	"github.com/robfig/cron/v3"
 )
 
 // ActionSchedule represents a schedule of a workflow file
@@ -75,9 +75,10 @@ func CreateScheduleTask(ctx context.Context, rows []*ActionSchedule) error {
 
 		// Loop through each schedule spec and create a new spec row
 		now := time.Now()
+		p := cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 		for _, spec := range row.Specs {
 			// Parse the spec and check for errors
-			schedule, err := cron.Parse(spec)
+			schedule, err := p.Parse(spec)
 			if err != nil {
 				continue // skip to the next spec if there's an error
 			}

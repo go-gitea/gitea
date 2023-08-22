@@ -10,7 +10,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/gogs/cron"
+	"github.com/robfig/cron/v3"
 )
 
 // ActionScheduleSpec represents a schedule spec of a workflow file
@@ -33,7 +33,8 @@ type ActionScheduleSpec struct {
 }
 
 func (s *ActionScheduleSpec) Parse() (cron.Schedule, error) {
-	return cron.Parse(s.Spec)
+	p := cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
+	return p.Parse(s.Spec)
 }
 
 func init() {
