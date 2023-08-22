@@ -375,7 +375,7 @@ AuthorizedKeysCommand /path/to/gitea keys -e git -u %u -t %t -k %k
 有时，在迁移时，旧的列和默认值可能会在数据库模式中保持不变。这可能会导致警告，如下所示:
 
 ```
-2020/08/02 11:32:29 ...rm/session_schema.go:360:Sync2() [W] Table user Column keep_activity_private db default is , struct default is 0
+2020/08/02 11:32:29 ...rm/session_schema.go:360:Sync() [W] Table user Column keep_activity_private db default is , struct default is 0
 ```
 
 您可以通过以下方式让 Gitea 重新创建这些表，并将旧数据复制到新表中，并适当设置默认值：

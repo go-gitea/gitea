@@ -11,6 +11,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -259,11 +260,12 @@ func TestUpdateLabel(t *testing.T) {
 	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1})
 	// make sure update wont overwrite it
 	update := &issues_model.Label{
-		ID:          label.ID,
-		Color:       "#ffff00",
-		Name:        "newLabelName",
-		Description: label.Description,
-		Exclusive:   false,
+		ID:           label.ID,
+		Color:        "#ffff00",
+		Name:         "newLabelName",
+		Description:  label.Description,
+		Exclusive:    false,
+		ArchivedUnix: timeutil.TimeStamp(0),
 	}
 	label.Color = update.Color
 	label.Name = update.Name
@@ -273,6 +275,7 @@ func TestUpdateLabel(t *testing.T) {
 	assert.EqualValues(t, label.Color, newLabel.Color)
 	assert.EqualValues(t, label.Name, newLabel.Name)
 	assert.EqualValues(t, label.Description, newLabel.Description)
+	assert.EqualValues(t, newLabel.ArchivedUnix, 0)
 	unittest.CheckConsistencyFor(t, &issues_model.Label{}, &repo_model.Repository{})
 }
 

@@ -126,7 +126,17 @@ Apart from `extra_links.tmpl` and `extra_tabs.tmpl`, there are other useful temp
 - `body_outer_post.tmpl`, before the bottom `<footer>` element.
 - `footer.tmpl`, right before the end of the `<body>` tag, a good place for additional JavaScript.
 
-#### Example: PlantUML
+### Using Gitea variables
+
+It's possible to use various Gitea variables in your custom templates.
+
+First, _temporarily_ enable development mode: in your `app.ini` change from `RUN_MODE = prod` to `RUN_MODE = dev`. Then add `{{ $ | DumpVar }}` to any of your templates, restart Gitea and refresh that page; that will dump all available variables.
+
+Find the data that you need, and use the corresponding variable; for example, if you need the name of the repository then you'd use `{{.Repository.Name}}`.
+
+If you need to transform that data somehow, and aren't familiar with Go, an easy workaround is to add the data to the DOM and add a small JavaScript script block to manipulate the data.
+
+### Example: PlantUML
 
 You can add [PlantUML](https://plantuml.com/) support to Gitea's markdown by using a PlantUML server.
 The data is encoded and sent to the PlantUML server which generates the picture. There is an online
@@ -162,7 +172,7 @@ Alice <-- Bob: Another authentication Response
 
 The script will detect tags with `class="language-plantuml"`, but you can change this by providing a second argument to `parsePlantumlCodeBlocks`.
 
-#### Example: STL Preview
+### Example: STL Preview
 
 You can display STL file directly in Gitea by adding:
 
