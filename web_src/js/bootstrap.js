@@ -20,6 +20,10 @@ export function showGlobalErrorMessage(msg) {
  * @param {ErrorEvent} e
  */
 function processWindowErrorEvent(e) {
+  if (e.type === 'unhandledrejection') {
+    showGlobalErrorMessage(`JavaScript promise rejection: ${e.reason}. Open browser console to see more details.`);
+    return;
+  }
   if (!e.error && e.lineno === 0 && e.colno === 0 && e.filename === '' && window.navigator.userAgent.includes('FxiOS/')) {
     // At the moment, Firefox (iOS) (10x) has an engine bug. See https://github.com/go-gitea/gitea/issues/20240
     // If a script inserts a newly created (and content changed) element into DOM, there will be a nonsense error event reporting: Script error: line 0, col 0.
@@ -30,6 +34,10 @@ function processWindowErrorEvent(e) {
 }
 
 function initGlobalErrorHandler() {
+  if (window._globalHandlerErrors?._inited) {
+    showGlobalErrorMessage(`The global error handler has been initialized, do not initialize it again`);
+    return;
+  }
   if (!window.config) {
     showGlobalErrorMessage(`Gitea JavaScript code couldn't run correctly, please check your custom templates`);
   }
@@ -40,7 +48,7 @@ function initGlobalErrorHandler() {
     processWindowErrorEvent(e);
   }
   // then, change _globalHandlerErrors to an object with push method, to process further error events directly
-  window._globalHandlerErrors = {'push': (e) => processWindowErrorEvent(e)};
+  window._globalHandlerErrors = {_inited: true, push: (e) => processWindowErrorEvent(e)};
 }
 
 initGlobalErrorHandler();

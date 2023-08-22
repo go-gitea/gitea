@@ -6,10 +6,13 @@ package org
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models/secret"
+	secret_model "code.gitea.io/gitea/models/secret"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/routers/web/shared/actions"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // ListActionsSecrets list an organization's actions secrets
@@ -42,18 +45,18 @@ func ListActionsSecrets(ctx *context.APIContext) {
 
 // listActionsSecrets list an organization's actions secrets
 func listActionsSecrets(ctx *context.APIContext) {
-	opts := &secret.FindSecretsOptions{
+	opts := &secret_model.FindSecretsOptions{
 		OwnerID:     ctx.Org.Organization.ID,
 		ListOptions: utils.GetListOptions(ctx),
 	}
 
-	count, err := secret.CountSecrets(ctx, opts)
+	count, err := secret_model.CountSecrets(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
 
-	secrets, err := secret.FindSecrets(ctx, *opts)
+	secrets, err := secret_model.FindSecrets(ctx, *opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -69,4 +72,44 @@ func listActionsSecrets(ctx *context.APIContext) {
 
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiSecrets)
+}
+
+// CreateOrgSecret create one secret of the organization
+func CreateOrgSecret(ctx *context.APIContext) {
+	// swagger:operation POST /orgs/{org}/actions/secrets organization createOrgSecret
+	// ---
+	// summary: Create a secret in an organization
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of organization
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateSecretOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/Secret"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	opt := web.GetForm(ctx).(*api.CreateSecretOption)
+	s, err := secret_model.InsertEncryptedSecret(
+		ctx, ctx.Org.Organization.ID, 0, opt.Name, actions.ReserveLineBreakForTextarea(opt.Data),
+	)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "InsertEncryptedSecret", err)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, convert.ToSecret(s))
 }
