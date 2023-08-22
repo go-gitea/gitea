@@ -84,17 +84,22 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 		Creds:     credentials.NewStaticV4(config.AccessKeyID, config.SecretAccessKey, ""),
 		Secure:    config.UseSSL,
 		Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.InsecureSkipVerify}},
+		Region:    config.Location,
 	})
 	if err != nil {
 		return nil, convertMinioErr(err)
 	}
 
-	if err := minioClient.MakeBucket(ctx, config.Bucket, minio.MakeBucketOptions{
-		Region: config.Location,
-	}); err != nil {
-		// Check to see if we already own this bucket (which happens if you run this twice)
-		exists, errBucketExists := minioClient.BucketExists(ctx, config.Bucket)
-		if !exists || errBucketExists != nil {
+	// Check to see if we already own this bucket
+	exists, err := minioClient.BucketExists(ctx, config.Bucket)
+	if err != nil {
+		return nil, convertMinioErr(err)
+	}
+
+	if !exists {
+		if err := minioClient.MakeBucket(ctx, config.Bucket, minio.MakeBucketOptions{
+			Region: config.Location,
+		}); err != nil {
 			return nil, convertMinioErr(err)
 		}
 	}
@@ -173,7 +178,7 @@ func (m minioFileInfo) Mode() os.FileMode {
 	return os.ModePerm
 }
 
-func (m minioFileInfo) Sys() interface{} {
+func (m minioFileInfo) Sys() any {
 	return nil
 }
 

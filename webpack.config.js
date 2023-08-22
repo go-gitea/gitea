@@ -51,6 +51,12 @@ const filterCssImport = (url, ...args) => {
   return true;
 };
 
+// in case lightningcss fails to load, fall back to esbuild for css minify
+let LightningCssMinifyPlugin;
+try {
+  ({LightningCssMinifyPlugin} = await import('lightningcss-loader'));
+} catch {}
+
 /** @type {import("webpack").Configuration} */
 export default {
   mode: isProduction ? 'production' : 'development',
@@ -73,11 +79,17 @@ export default {
     'eventsource.sharedworker': [
       fileURLToPath(new URL('web_src/js/features/eventsource.sharedworker.js', import.meta.url)),
     ],
+    ...(!isProduction && {
+      devtest: [
+        fileURLToPath(new URL('web_src/js/standalone/devtest.js', import.meta.url)),
+        fileURLToPath(new URL('web_src/css/standalone/devtest.css', import.meta.url)),
+      ],
+    }),
     ...themes,
   },
   devtool: false,
   output: {
-    path: fileURLToPath(new URL('public', import.meta.url)),
+    path: fileURLToPath(new URL('public/assets', import.meta.url)),
     filename: () => 'js/[name].js',
     chunkFilename: ({chunk}) => {
       const language = (/monaco.*languages?_.+?_(.+?)_/.exec(chunk.id) || [])[1];
@@ -90,9 +102,10 @@ export default {
       new EsbuildPlugin({
         target: 'es2015',
         minify: true,
-        css: true,
+        css: !LightningCssMinifyPlugin,
         legalComments: 'none',
       }),
+      LightningCssMinifyPlugin && new LightningCssMinifyPlugin(),
     ],
     splitChunks: {
       chunks: 'async',
@@ -139,7 +152,7 @@ export default {
       },
       {
         test: /\.svg$/,
-        include: fileURLToPath(new URL('public/img/svg', import.meta.url)),
+        include: fileURLToPath(new URL('public/assets/img/svg', import.meta.url)),
         type: 'asset/source',
       },
       {

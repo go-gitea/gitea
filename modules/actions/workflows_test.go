@@ -58,6 +58,25 @@ func TestDetectMatched(t *testing.T) {
 			expected:     false,
 		},
 		{
+			desc:         "HookEventPullRequest(pull_request) `closed` action doesn't match GithubEventPullRequest(pull_request) with no activity type",
+			triggedEvent: webhook_module.HookEventPullRequest,
+			payload:      &api.PullRequestPayload{Action: api.HookIssueClosed},
+			yamlOn:       "on: pull_request",
+			expected:     false,
+		},
+		{
+			desc:         "HookEventPullRequest(pull_request) `closed` action doesn't match GithubEventPullRequest(pull_request) with branches",
+			triggedEvent: webhook_module.HookEventPullRequest,
+			payload: &api.PullRequestPayload{
+				Action: api.HookIssueClosed,
+				PullRequest: &api.PullRequest{
+					Base: &api.PRBranchInfo{},
+				},
+			},
+			yamlOn:   "on:\n  pull_request:\n    branches: [main]",
+			expected: false,
+		},
+		{
 			desc:         "HookEventPullRequest(pull_request) `label_updated` action matches GithubEventPullRequest(pull_request) with `label` activity type",
 			triggedEvent: webhook_module.HookEventPullRequest,
 			payload:      &api.PullRequestPayload{Action: api.HookIssueLabelUpdated},
@@ -106,7 +125,7 @@ func TestDetectMatched(t *testing.T) {
 			evts, err := GetEventsFromContent([]byte(tc.yamlOn))
 			assert.NoError(t, err)
 			assert.Len(t, evts, 1)
-			assert.Equal(t, tc.expected, detectMatched(tc.commit, tc.triggedEvent, tc.payload, evts[0]))
+			assert.Equal(t, tc.expected, detectMatched(nil, tc.commit, tc.triggedEvent, tc.payload, evts[0]))
 		})
 	}
 }

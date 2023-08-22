@@ -2,7 +2,7 @@
 {{/* Then the merge box will not be displayed because this page already contains enough information */}}
 {{else}}
 <div class="timeline-item comment merge box">
-	<a class="timeline-avatar text {{if .Issue.PullRequest.HasMerged}}purple
+	<div class="timeline-avatar text {{if .Issue.PullRequest.HasMerged}}purple
 	{{- else if .Issue.IsClosed}}grey
 	{{- else if .IsPullWorkInProgress}}grey
 	{{- else if .IsFilesConflicted}}grey
@@ -13,12 +13,12 @@
 	{{- else if .IsBlockedByOutdatedBranch}}red
 	{{- else if .IsBlockedByChangedProtectedFiles}}red
 	{{- else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsFailure .RequiredStatusCheckState.IsError)}}red
-	{{- else if and .EnableStatusCheck (or (not $.LatestCommitStatus) .RequiredStatusCheckState.IsPending .RequiredStatusCheckState.IsWarning)}}yellow
+	{{- else if and .EnableStatusCheck (or (not $.LatestCommitStatus) .RequiredStatusCheckState.IsPending)}}yellow
 	{{- else if and .AllowMerge .RequireSigned (not .WillSign)}}red
 	{{- else if .Issue.PullRequest.IsChecking}}yellow
 	{{- else if .Issue.PullRequest.IsEmpty}}grey
 	{{- else if .Issue.PullRequest.CanAutoMerge}}green
-	{{- else}}red{{end}}">{{svg "octicon-git-merge" 40}}</a>
+	{{- else}}red{{end}}">{{svg "octicon-git-merge" 40}}</div>
 	<div class="content">
 		{{template "repo/pulls/status" .}}
 		{{$showGeneralMergeForm := false}}
@@ -179,7 +179,7 @@
 				{{end}}
 				{{template "repo/issue/view_content/update_branch_by_merge" $}}
 				{{if .Issue.PullRequest.IsEmpty}}
-					<div class="ui divider"></div>
+					<div class="divider"></div>
 
 					<div class="item">
 						{{svg "octicon-alert"}}
@@ -196,7 +196,7 @@
 							{{$createdPRMergeStr := TimeSinceUnix .PendingPullRequestMerge.CreatedUnix $.locale}}
 							{{$hasPendingPullRequestMergeTip = $.locale.Tr "repo.pulls.auto_merge_has_pending_schedule" .PendingPullRequestMerge.Doer.Name $createdPRMergeStr}}
 						{{end}}
-						<div class="ui divider"></div>
+						<div class="divider"></div>
 						<script type="module">
 							const issueUrl = window.location.origin + {{$.Issue.Link}};
 							const defaultMergeTitle = {{.DefaultMergeMessage}};
@@ -276,7 +276,7 @@
 						<div id="pull-request-merge-form"></div>
 					{{else}}
 						{{/* no merge style was set in repo setting: not or ($prUnit.PullRequestsConfig.AllowMerge ...) */}}
-						<div class="ui divider"></div>
+						<div class="divider"></div>
 						<div class="item text red">
 							{{svg "octicon-x"}}
 							{{$.locale.Tr "repo.pulls.no_merge_desc"}}
@@ -288,7 +288,7 @@
 					{{end}} {{/* end if the repo was set to use any merge style */}}
 				{{else}}
 					{{/* user is not allowed to merge */}}
-					<div class="ui divider"></div>
+					<div class="divider"></div>
 					<div class="item">
 						{{svg "octicon-info"}}
 						{{$.locale.Tr "repo.pulls.no_merge_access"}}
@@ -358,7 +358,7 @@
 			* Then the Manually Merged form will be shown to repo admin users
 			*/}}
 			{{if and $.StillCanManualMerge (not $showGeneralMergeForm)}}
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 				<div class="ui form">
 					<form action="{{.Link}}/merge" method="post">
 						{{.CsrfTokenHtml}}

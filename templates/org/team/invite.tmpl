@@ -4,7 +4,7 @@
 		{{template "base/alert" .}}
 		<div class="ui centered card">
 			<div class="image">
-				{{avatar $.Context .Organization 140}}
+				{{ctx.AvatarUtils.Avatar .Organization 140}}
 			</div>
 			<div class="content">
 				<div class="header">{{.locale.Tr "org.teams.invite.title" .Team.Name .Organization.Name | Str2html}}</div>

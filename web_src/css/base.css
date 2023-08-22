@@ -9,6 +9,8 @@
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
+  /* line-height: use the default value as "modules/normalize.css" */
+  --line-height-default: normal;
   /* backgrounds */
   --checkbox-mask-checked: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 18 18" width="16" height="16"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg>');
   --checkbox-mask-indeterminate: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M2 7.75A.75.75 0 012.75 7h10a.75.75 0 010 1.5h-10A.75.75 0 012 7.75z"></path></svg>');
@@ -137,6 +139,23 @@
   --color-pink-dark-2: #c21e7b;
   --color-brown-dark-2: #845232;
   --color-black-dark-2: #161617;
+  /* ansi colors used for actions console and console files */
+  --color-ansi-black: var(--color-black);
+  --color-ansi-red: var(--color-red);
+  --color-ansi-green: var(--color-green);
+  --color-ansi-yellow: var(--color-yellow);
+  --color-ansi-blue: var(--color-blue);
+  --color-ansi-magenta: var(--color-pink);
+  --color-ansi-cyan: var(--color-teal);
+  --color-ansi-white: var(--color-console-fg-subtle);
+  --color-ansi-bright-black: var(--color-black-light);
+  --color-ansi-bright-red: var(--color-red-light);
+  --color-ansi-bright-green: var(--color-green-light);
+  --color-ansi-bright-yellow: var(--color-yellow-light);
+  --color-ansi-bright-blue: var(--color-blue-light);
+  --color-ansi-bright-magenta: var(--color-pink-light);
+  --color-ansi-bright-cyan: var(--color-teal-light);
+  --color-ansi-bright-white: var(--color-console-fg);
   /* other colors */
   --color-grey: #707070;
   --color-grey-light: #838383;
@@ -208,7 +227,7 @@
   --color-button: #fafafa;
   --color-code-bg: #ffffff;
   --color-code-sidebar-bg: #f5f5f5;
-  --color-shadow: #00000030;
+  --color-shadow: #00000026;
   --color-secondary-bg: #f4f4f4;
   --color-expand-button: #d8efff;
   --color-placeholder-text: #aaa;
@@ -231,6 +250,7 @@
   --color-accent: var(--color-primary-light-1);
   --color-small-accent: var(--color-primary-light-6);
   --color-active-line: #fffbdd;
+  --color-overlay-backdrop: #080808c0;
   accent-color: var(--color-accent);
   color-scheme: light;
 }
@@ -358,16 +378,6 @@ progress::-moz-progress-bar {
   opacity: 1 !important;
 }
 
-.svg {
-  display: inline-block;
-  vertical-align: text-top;
-  fill: currentcolor;
-}
-
-.middle .svg {
-  vertical-align: middle;
-}
-
 .unselectable,
 .button,
 .lines-num,
@@ -448,15 +458,6 @@ a.label,
   background-color: var(--color-markup-code-block);
 }
 
-.ui.divider {
-  color: var(--color-text);
-}
-
-.ui.divider:not(.vertical,.horizontal) {
-  border-top-color: var(--color-secondary) !important;
-  border-bottom: none !important;
-}
-
 .ui.dividing.header {
   border-bottom-color: var(--color-secondary);
 }
@@ -469,6 +470,11 @@ a.label,
 .page-content .new-menu {
   margin-top: -15px !important;
   padding-top: 15px !important;
+}
+
+/* fix Fomantic's line-height cutting off "g" on Windows Chrome with Segoe UI */
+.ui.input > input {
+  line-height: 1.3;
 }
 
 .ui.input.focus > input,
@@ -514,6 +520,7 @@ a.label,
 .ui.menu .item {
   color: var(--color-text);
   user-select: auto;
+  line-height: var(--line-height-default); /* fomantic uses "1" which causes overflow problems because "1" doesn't consider the descent part */
 }
 
 .ui.menu .item > .svg {
@@ -630,6 +637,11 @@ a.label,
   color: var(--color-text-light-2);
 }
 
+.ui.dropdown > .text > .description,
+.ui.dropdown .menu > .item > .description {
+  color: var(--color-text-light-2);
+}
+
 .ui.list .list > .item .header,
 .ui.list > .item .header {
   color: var(--color-text-dark);
@@ -643,6 +655,18 @@ a.label,
 .ui.list .list > .item .description,
 .ui.list > .item .description {
   color: var(--color-text);
+}
+
+/* replace item margin on secondary menu items with gap and remove both the
+   negative margins on the menu as well as margin on the items */
+.ui.secondary.menu {
+  margin-left: 0;
+  margin-right: 0;
+  gap: .35714286em;
+}
+.ui.secondary.menu .item {
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .ui.secondary.menu .dropdown.item:hover,
@@ -662,6 +686,11 @@ a.label,
   padding-right: 0.85714286em;
 }
 
+/* remove the menu clearfix so that it won't add undesired gaps when using "gap" */
+.ui.menu::after {
+  content: normal;
+}
+
 .ui.menu .dropdown.item .menu {
   background: var(--color-body);
 }
@@ -678,6 +707,16 @@ a.label,
 .ui.menu .ui.dropdown .menu > .active.item {
   color: var(--color-text) !important;
   background: var(--color-active) !important;
+}
+
+/* styles from removed fomantic transition module */
+.hidden.transition {
+  visibility: hidden;
+  display: none;
+}
+.visible.transition {
+  display: block !important;
+  visibility: visible !important;
 }
 
 .ui.message {
@@ -771,7 +810,7 @@ a.label,
 .ui.selection.active.dropdown:hover,
 .ui.selection.active.dropdown .menu,
 .ui.selection.active.dropdown:hover .menu {
-  border-color: var(--color-primary-light-2);
+  border-color: var(--color-primary);
 }
 
 .ui.selection.dropdown .menu {
@@ -874,6 +913,24 @@ a.label,
   border-color: var(--color-secondary);
   background: var(--color-box-body);
   color: var(--color-text);
+}
+
+/* reduce table padding, needed especially for dense admin tables */
+.ui.table > thead > tr > th,
+.ui.table > tbody > tr > td,
+.ui.table > tr > td {
+  padding: 6px 5px;
+}
+/* use more horizontal padding on first and last items for visuals */
+.ui.table > thead > tr > th:first-of-type,
+.ui.table > tbody > tr > td:first-of-type,
+.ui.table > tr > td:first-of-type {
+  padding-left: 10px;
+}
+.ui.table > thead > tr > th:last-of-type,
+.ui.table > tbody > tr > td:last-of-type,
+.ui.table > tr > td:last-of-type {
+  padding-right: 10px;
 }
 
 img.ui.avatar,
@@ -1143,6 +1200,24 @@ img.ui.avatar,
   box-shadow: none;
 }
 
+/* replace fomantic popover box shadows */
+.ui.dropdown .menu,
+.ui.upward.dropdown > .menu,
+.ui.menu .dropdown.item .menu,
+.ui.selection.active.dropdown .menu,
+.ui.upward.selection.dropdown .menu,
+.ui.selection.active.dropdown:hover .menu,
+.ui.upward.active.selection.dropdown:hover .menu {
+  box-shadow: 0 6px 18px var(--color-shadow);
+}
+.ui.floating.dropdown .menu {
+  box-shadow: 0 6px 18px var(--color-shadow) !important;
+}
+
+.ui.dimmer {
+  background: var(--color-overlay-backdrop);
+}
+
 /* Override semantic selector '.ui.menu:not(.vertical) .item > .button' */
 /* This fixes the commit graph button on the commits page */
 /* modal svg icons, copied from fomantic except width and height */
@@ -1192,7 +1267,7 @@ img.ui.avatar,
 }
 
 .ui .text.truncate {
-  overflow: hidden;
+  overflow-x: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   display: inline-block;
@@ -1408,7 +1483,7 @@ img.ui.avatar,
   height: 3em;
   float: none;
   display: block;
-  line-height: 1;
+  line-height: var(--line-height-default);
   padding: 0;
   margin: 0 auto 0.5rem;
   opacity: 1;
@@ -1612,6 +1687,7 @@ i.icon.centerlock {
 
 .ui.label {
   padding: 0.3em 0.5em;
+  transition: none;
 }
 
 .ui.label,
@@ -2043,11 +2119,6 @@ table th[data-sortt-desc] .svg {
   border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
-.ui.dropdown .menu > .divider {
-  border-top: 1px solid var(--color-secondary);
-  margin: 4px 0;
-}
-
 .ui.multiple.dropdown > .label {
   box-shadow: 0 0 0 1px var(--color-secondary) inset;
 }
@@ -2060,7 +2131,7 @@ table th[data-sortt-desc] .svg {
 .emoji,
 .reaction {
   font-size: 1.25em;
-  line-height: 1;
+  line-height: var(--line-height-default);
   font-style: normal !important;
   font-weight: var(--font-weight-normal) !important;
   vertical-align: -0.075em;
@@ -2161,7 +2232,7 @@ table th[data-sortt-desc] .svg {
 }
 
 .truncated-item-name {
-  line-height: 2em;
+  line-height: 2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2183,7 +2254,7 @@ table th[data-sortt-desc] .svg {
 }
 
 .ui.dropdown {
-  line-height: 1em; /* the dropdown doesn't have default line-height, use this to make the dropdown icon align with plain dropdown */
+  line-height: var(--line-height-default); /* the dropdown doesn't have default line-height, use this to make the dropdown icon align with plain dropdown */
 }
 
 /* dropdown has some kinds of icons:
@@ -2236,7 +2307,6 @@ table th[data-sortt-desc] .svg {
 .flex-text-inline {
   display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: .25rem;
   vertical-align: middle;
 }
@@ -2264,6 +2334,5 @@ table th[data-sortt-desc] .svg {
 .flex-text-block {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: .25rem;
 }

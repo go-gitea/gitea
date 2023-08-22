@@ -1,4 +1,5 @@
 {{template "base/head" .}}
+<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/devtest.css?v={{AssetVersion}}">
 <div class="page-content devtest ui container">
 	<div>
 		<h1>Button</h1>
@@ -14,11 +15,6 @@
 			<label><input type="checkbox" name="button-state-disabled" value="disabled">disabled</label>
 		</div>
 		<div id="devtest-button-samples">
-			<style>
-				.button-sample-groups { margin: 0; padding: 0; }
-				.button-sample-groups .sample-group { list-style: none; margin: 0; padding: 0; }
-				.button-sample-groups .sample-group .ui.button { margin-bottom: 5px; }
-			</style>
 			<ul class="button-sample-groups">
 				<li class="sample-group">
 					<h2>General purpose:</h2>
@@ -134,9 +130,13 @@
 		<h2>Text with SVG</h2>
 		<div class="flex-text-block">{{svg "octicon-alert"}} {{svg "octicon-x"}} text (block)</div>
 		<div><div class="flex-text-inline">{{svg "octicon-alert"}} {{svg "octicon-x"}} text</div> (inline)</div>
+
+		<div class="flex-text-block">{{svg "octicon-alert"}} flex item with very very very very very very very very long content</div>
+
 		<div class="flex-items-block">
 			<div class="item">{{svg "octicon-alert"}} flex every line</div>
 			<div class="item">{{svg "octicon-alert"}} flex every item</div>
+			<div class="item">{{svg "octicon-alert"}} flex item with very very very very very very very very long content</div>
 		</div>
 
 		<h2>Button with SVG</h2>
@@ -146,6 +146,7 @@
 				<button class="ui basic button">labeled button</button>
 				<a class="ui basic label">123</a>
 			</div>
+			<button class="ui yellow button">{{svg "octicon-x" 16}} button with very very very very very very very very long text</button>
 		</div>
 
 		<h2>Input with SVG</h2>
@@ -243,16 +244,19 @@
 	</div>
 
 	<div>
+		<h1>Toast</h1>
+		<div>
+			<button class="ui button" id="info-toast">Show Info Toast</button>
+			<button class="ui button" id="warning-toast">Show Warning Toast</button>
+			<button class="ui button" id="error-toast">Show Error Toast</button>
+		</div>
+	</div>
+
+	<div>
 		<h1>ComboMarkdownEditor</h1>
 		<div>ps: no JS code attached, so just a layout</div>
 		{{template "shared/combomarkdowneditor" .}}
 	</div>
-
-	<style>
-		h1, h2 {
-			margin: 0;
-			padding: 10px 0;
-		}
-	</style>
+	<script src="{{AssetUrlPrefix}}/js/devtest.js?v={{AssetVersion}}"></script>
 </div>
 {{template "base/footer" .}}

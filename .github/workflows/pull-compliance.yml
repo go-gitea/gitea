@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
         with:
-          go-version: ">=1.20"
+          go-version: "~1.21"
           check-latest: true
       - run: make deps-backend deps-tools
       - run: make lint-backend
@@ -39,6 +39,18 @@ jobs:
       - run: make deps-py
       - run: make lint-templates
 
+  lint-swagger:
+    if: needs.files-changed.outputs.swagger == 'true'
+    needs: files-changed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 20
+      - run: make deps-frontend
+      - run: make lint-swagger
+
   lint-go-windows:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
@@ -47,7 +59,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
         with:
-          go-version: ">=1.20"
+          go-version: "~1.21"
           check-latest: true
       - run: make deps-backend deps-tools
       - run: make lint-go-windows lint-go-vet
@@ -64,7 +76,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
         with:
-          go-version: ">=1.20"
+          go-version: "~1.21"
           check-latest: true
       - run: make deps-backend deps-tools
       - run: make lint-go
@@ -79,7 +91,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
         with:
-          go-version: ">=1.20"
+          go-version: "~1.21"
           check-latest: true
       - run: make deps-backend deps-tools
       - run: make --always-make checks-backend # ensure the "go-licenses" make target runs
@@ -107,7 +119,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
         with:
-          go-version: ">=1.20"
+          go-version: "~1.21"
           check-latest: true
       # no frontend build here as backend should be able to build
       # even without any frontend files
@@ -142,7 +154,7 @@ jobs:
           node-version: 20
       - run: make deps-frontend
       - run: make lint-md
-      - run: make docs # test if build could succeed
+      - run: make docs
 
   actions:
     if: needs.files-changed.outputs.actions == 'true' || needs.files-changed.outputs.actions == 'true'

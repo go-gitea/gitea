@@ -23,19 +23,19 @@ SHASUM ?= shasum -a 256
 HAS_GO := $(shell hash $(GO) > /dev/null 2>&1 && echo yes)
 COMMA := ,
 
-XGO_VERSION := go-1.20.x
+XGO_VERSION := go-1.21.x
 
-AIR_PACKAGE ?= github.com/cosmtrek/air@v1.43.0
+AIR_PACKAGE ?= github.com/cosmtrek/air@v1.44.0
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.7.0
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.5.0
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.52.2
-GXZ_PAGAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.11
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.54.1
+GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.11
 MISSPELL_PACKAGE ?= github.com/client9/misspell/cmd/misspell@v0.3.4
-SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.30.4
+SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.30.5
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1.6.0
-GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@latest
-ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@latest
+GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1.0.1
+ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.6.25
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -116,15 +116,15 @@ FOMANTIC_WORK_DIR := web_src/fomantic
 
 WEBPACK_SOURCES := $(shell find web_src/js web_src/css -type f)
 WEBPACK_CONFIGS := webpack.config.js
-WEBPACK_DEST := public/js/index.js public/css/index.css
-WEBPACK_DEST_ENTRIES := public/js public/css public/fonts public/img/webpack
+WEBPACK_DEST := public/assets/js/index.js public/assets/css/index.css
+WEBPACK_DEST_ENTRIES := public/assets/js public/assets/css public/assets/fonts public/assets/img/webpack
 
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
 BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
 
 GENERATED_GO_DEST := modules/charset/invisible_gen.go modules/charset/ambiguous_gen.go
 
-SVG_DEST_DIR := public/img/svg
+SVG_DEST_DIR := public/assets/img/svg
 
 AIR_TMP_DIR := .air
 
@@ -197,7 +197,6 @@ help:
 	@echo " - clean                            delete backend and integration files"
 	@echo " - clean-all                        delete backend, frontend and integration files"
 	@echo " - deps                             install dependencies"
-	@echo " - deps-docs                        install docs dependencies"
 	@echo " - deps-frontend                    install frontend dependencies"
 	@echo " - deps-backend                     install backend dependencies"
 	@echo " - deps-tools                       install tool dependencies"
@@ -226,6 +225,8 @@ help:
 	@echo " - test-frontend                    test frontend files"
 	@echo " - test-backend                     test backend files"
 	@echo " - test-e2e[\#TestSpecificName]     test end to end using playwright"
+	@echo " - update-js                        update js dependencies"
+	@echo " - update-py                        update py dependencies"
 	@echo " - webpack                          build webpack files"
 	@echo " - svg                              build svg files"
 	@echo " - fomantic                         build fomantic files"
@@ -358,10 +359,10 @@ lint: lint-frontend lint-backend
 lint-fix: lint-frontend-fix lint-backend-fix
 
 .PHONY: lint-frontend
-lint-frontend: lint-js lint-css lint-md lint-swagger
+lint-frontend: lint-js lint-css
 
 .PHONY: lint-frontend-fix
-lint-frontend-fix: lint-js-fix lint-css-fix lint-md lint-swagger
+lint-frontend-fix: lint-js-fix lint-css-fix
 
 .PHONY: lint-backend
 lint-backend: lint-go lint-go-vet lint-editorconfig
@@ -371,11 +372,11 @@ lint-backend-fix: lint-go-fix lint-go-vet lint-editorconfig
 
 .PHONY: lint-js
 lint-js: node_modules
-	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js docs/assets/js tests/e2e
+	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js tests/e2e
 
 .PHONY: lint-js-fix
 lint-js-fix: node_modules
-	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js docs/assets/js tests/e2e --fix
+	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js tests/e2e --fix
 
 .PHONY: lint-css
 lint-css: node_modules
@@ -863,7 +864,7 @@ release-check: | $(DIST_DIRS)
 
 .PHONY: release-compress
 release-compress: | $(DIST_DIRS)
-	cd $(DIST)/release/; for file in `find . -type f -name "*"`; do echo "compressing $${file}" && $(GO) run $(GXZ_PAGAGE) -k -9 $${file}; done;
+	cd $(DIST)/release/; for file in `find . -type f -name "*"`; do echo "compressing $${file}" && $(GO) run $(GXZ_PACKAGE) -k -9 $${file}; done;
 
 .PHONY: release-sources
 release-sources: | $(DIST_DIRS)
@@ -877,20 +878,14 @@ release-sources: | $(DIST_DIRS)
 
 .PHONY: release-docs
 release-docs: | $(DIST_DIRS) docs
-	tar -czf $(DIST)/release/gitea-docs-$(VERSION).tar.gz -C ./docs/public .
+	tar -czf $(DIST)/release/gitea-docs-$(VERSION).tar.gz -C ./docs .
 
 .PHONY: docs
-docs: deps-docs
-	cd docs; make trans-copy clean build-offline;
-
-.PHONY: deps-docs
-deps-docs:
-	@hash hugo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		curl -sL https://github.com/gohugoio/hugo/releases/download/v$(HUGO_VERSION)/hugo_$(HUGO_VERSION)_Linux-64bit.tar.gz | tar zxf - -C /tmp && mkdir -p ~/go/bin && mv /tmp/hugo ~/go/bin/hugo && chmod +x ~/go/bin/hugo; \
-	fi
+docs:
+	cd docs; bash scripts/trans-copy.sh;
 
 .PHONY: deps
-deps: deps-frontend deps-backend deps-tools deps-docs deps-py
+deps: deps-frontend deps-backend deps-tools deps-py
 
 .PHONY: deps-py
 deps-py: .venv
@@ -908,7 +903,7 @@ deps-tools:
 	$(GO) install $(EDITORCONFIG_CHECKER_PACKAGE)
 	$(GO) install $(GOFUMPT_PACKAGE)
 	$(GO) install $(GOLANGCI_LINT_PACKAGE)
-	$(GO) install $(GXZ_PAGAGE)
+	$(GO) install $(GXZ_PACKAGE)
 	$(GO) install $(MISSPELL_PACKAGE)
 	$(GO) install $(SWAGGER_PACKAGE)
 	$(GO) install $(XGO_PACKAGE)
@@ -924,12 +919,19 @@ node_modules: package-lock.json
 	poetry install
 	@touch .venv
 
-.PHONY: npm-update
-npm-update: node-check | node_modules
-	npx updates -cu
+.PHONY: update-js
+update-js: node-check | node_modules
+	npx updates -u -f package.json
 	rm -rf node_modules package-lock.json
 	npm install --package-lock
 	@touch node_modules
+
+.PHONY: update-py
+update-py: node-check | node_modules
+	npx updates -u -f pyproject.toml
+	rm -rf .venv poetry.lock
+	poetry install
+	@touch .venv
 
 .PHONY: fomantic
 fomantic:

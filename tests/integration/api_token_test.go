@@ -142,26 +142,6 @@ func TestAPIDeniesPermissionBasedOnTokenScope(t *testing.T) {
 			},
 		},
 		{
-			"/api/v1/markdown",
-			"POST",
-			[]permission{
-				{
-					auth_model.AccessTokenScopeCategoryMisc,
-					auth_model.Write,
-				},
-			},
-		},
-		{
-			"/api/v1/markdown/raw",
-			"POST",
-			[]permission{
-				{
-					auth_model.AccessTokenScopeCategoryMisc,
-					auth_model.Write,
-				},
-			},
-		},
-		{
 			"/api/v1/notifications",
 			"GET",
 			[]permission{
@@ -348,16 +328,6 @@ func TestAPIDeniesPermissionBasedOnTokenScope(t *testing.T) {
 			},
 		},
 		{
-			"/api/v1/settings/api",
-			"GET",
-			[]permission{
-				{
-					auth_model.AccessTokenScopeCategoryMisc,
-					auth_model.Read,
-				},
-			},
-		},
-		{
 			"/api/v1/user",
 			"GET",
 			[]permission{
@@ -519,7 +489,7 @@ func runTestCase(t *testing.T, testCase *requiredScopeTestCase, user *user_model
 // createAPIAccessTokenWithoutCleanUp Create an API access token and assert that
 // creation succeeded.  The caller is responsible for deleting the token.
 func createAPIAccessTokenWithoutCleanUp(t *testing.T, tokenName string, user *user_model.User, scopes *[]auth_model.AccessTokenScope) api.AccessToken {
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"name": tokenName,
 	}
 	if scopes != nil {

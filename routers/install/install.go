@@ -56,6 +56,7 @@ func getSupportedDbTypeNames() (dbTypeNames []map[string]string) {
 func Contexter() func(next http.Handler) http.Handler {
 	rnd := templates.HTMLRenderer()
 	dbTypeNames := getSupportedDbTypeNames()
+	envConfigKeys := setting.CollectEnvConfigKeys()
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			base, baseCleanUp := context.NewBaseContext(resp, req)
@@ -67,14 +68,20 @@ func Contexter() func(next http.Handler) http.Handler {
 			}
 			defer baseCleanUp()
 
+			ctx.TemplateContext = context.NewTemplateContext(ctx)
+			ctx.TemplateContext["Locale"] = ctx.Locale
+
 			ctx.AppendContextValue(context.WebContextKey, ctx)
 			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
 			ctx.Data.MergeFrom(middleware.ContextData{
-				"locale":        ctx.Locale,
-				"Title":         ctx.Locale.Tr("install.install"),
-				"PageIsInstall": true,
-				"DbTypeNames":   dbTypeNames,
-				"AllLangs":      translation.AllLangs(),
+				"Context":        ctx, // TODO: use "ctx" in template and remove this
+				"locale":         ctx.Locale,
+				"Title":          ctx.Locale.Tr("install.install"),
+				"PageIsInstall":  true,
+				"DbTypeNames":    dbTypeNames,
+				"EnvConfigKeys":  envConfigKeys,
+				"CustomConfFile": setting.CustomConf,
+				"AllLangs":       translation.AllLangs(),
 
 				"PasswordHashAlgorithms": hash.RecommendedHashAlgorithms,
 			})
@@ -99,6 +106,7 @@ func Install(ctx *context.Context) {
 	form.DbName = setting.Database.Name
 	form.DbPath = setting.Database.Path
 	form.DbSchema = setting.Database.Schema
+	form.SSLMode = setting.Database.SSLMode
 
 	curDBType := setting.Database.Type.String()
 	var isCurDBTypeSupported bool
@@ -218,7 +226,7 @@ func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
 			return false
 		}
 
-		log.Info("User confirmed reinstallation of Gitea into a pre-existing database")
+		log.Info("User confirmed re-installation of Gitea into a pre-existing database")
 	}
 
 	if hasPostInstallationUser || dbMigrationVersion > 0 {
@@ -407,7 +415,7 @@ func SubmitInstall(ctx *context.Context) {
 		cfg.Section("server").Key("LFS_START_SERVER").SetValue("true")
 		cfg.Section("lfs").Key("PATH").SetValue(form.LFSRootPath)
 		var lfsJwtSecret string
-		if lfsJwtSecret, err = generate.NewJwtSecretBase64(); err != nil {
+		if _, lfsJwtSecret, err = generate.NewJwtSecretBase64(); err != nil {
 			ctx.RenderWithErr(ctx.Tr("install.lfs_jwt_secret_failed", err), tplInstall, &form)
 			return
 		}
@@ -502,6 +510,8 @@ func SubmitInstall(ctx *context.Context) {
 		return
 	}
 
+	setting.EnvironmentToConfig(cfg, os.Environ())
+
 	if err = cfg.SaveTo(setting.CustomConf); err != nil {
 		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 		return
@@ -568,6 +578,7 @@ func SubmitInstall(ctx *context.Context) {
 		}
 	}
 
+	setting.ClearEnvConfigKeys()
 	log.Info("First-time run install finished!")
 	InstallDone(ctx)
 

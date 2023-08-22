@@ -13,9 +13,9 @@
 					{{$n := len .TreeNames}}
 					{{$l := Eval $n "-" 1}}
 					{{range $i, $v := .TreeNames}}
-						<div class="divider"> / </div>
+						<div class="breadcrumb-divider">/</div>
 						{{if eq $i $l}}
-							<input id="file-name" value="{{$v}}" placeholder="{{$.locale.Tr "repo.editor.name_your_file"}}" data-editorconfig="{{$.Editorconfig}}" required autofocus>
+							<input id="file-name" value="{{$v}}" placeholder="{{$.locale.Tr "repo.editor.name_your_file"}}" data-editorconfig="{{$.EditorconfigJson}}" required autofocus>
 							<span data-tooltip-content="{{$.locale.Tr "repo.editor.filename_help"}}">{{svg "octicon-info"}}</span>
 						{{else}}
 							<span class="section"><a href="{{$.BranchLink}}/{{index $.TreePaths $i | PathEscapeSegments}}">{{$v}}</a></span>
@@ -52,8 +52,6 @@
 			{{template "repo/editor/commit_form" .}}
 		</form>
 	</div>
-
-
 	<div class="ui g-modal-confirm modal" id="edit-empty-content-modal">
 		<div class="header">
 			{{svg "octicon-file"}}
@@ -73,6 +71,5 @@
 			</button>
 		</div>
 	</div>
-
 </div>
 {{template "base/footer" .}}

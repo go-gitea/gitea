@@ -11,7 +11,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
-	issue_service "code.gitea.io/gitea/services/issue"
 )
 
 // getCommitIDsFromRepo get commit IDs from repo in between oldCommitID and newCommitID
@@ -90,7 +89,7 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 
 	ops.Content = string(dataJSON)
 
-	comment, err = issue_service.CreateComment(ctx, ops)
+	comment, err = issues_model.CreateComment(ctx, ops)
 
 	return comment, err
 }

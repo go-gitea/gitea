@@ -2,8 +2,9 @@ import $ from 'jquery';
 import {updateIssuesMeta} from './repo-issue.js';
 import {toggleElem} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
-import {Sortable} from 'sortablejs';
 import {confirmModal} from './comp/ConfirmModal.js';
+import {showErrorToast} from '../modules/toast.js';
+import {createSortable} from '../modules/sortable.js';
 
 function initRepoIssueListCheckboxes() {
   const $issueSelectAll = $('.issue-checkbox-all');
@@ -75,7 +76,7 @@ function initRepoIssueListCheckboxes() {
     ).then(() => {
       window.location.reload();
     }).catch((reason) => {
-      window.alert(reason.responseJSON.error);
+      showErrorToast(reason.responseJSON.error);
     });
   });
 }
@@ -127,7 +128,7 @@ function initRepoIssueListAuthorDropdown() {
     if (newMenuHtml) {
       const $newMenuItems = $(newMenuHtml);
       $newMenuItems.addClass('dynamic-item');
-      $menu.append('<div class="ui divider dynamic-item"></div>', ...$newMenuItems);
+      $menu.append('<div class="divider dynamic-item"></div>', ...$newMenuItems);
     }
     $searchDropdown.dropdown('refresh');
     // defer our selection to the next tick, because dropdown will set the selection item after this `menu` function
@@ -139,7 +140,7 @@ function initRepoIssueListAuthorDropdown() {
 }
 
 function initPinRemoveButton() {
-  for (const button of document.getElementsByClassName('pinned-issue-unpin')) {
+  for (const button of document.getElementsByClassName('issue-card-unpin')) {
     button.addEventListener('click', async (event) => {
       const el = event.currentTarget;
       const id = Number(el.getAttribute('data-issue-id'));
@@ -156,7 +157,7 @@ function initPinRemoveButton() {
         // Delete the tooltip
         el._tippy.destroy();
         // Remove the Card
-        el.closest(`div.pinned-issue-card[data-issue-id="${id}"]`).remove();
+        el.closest(`div.issue-card[data-issue-id="${id}"]`).remove();
       }
     });
   }
@@ -175,7 +176,7 @@ async function pinMoveEnd(e) {
   });
 }
 
-function initIssuePinSort() {
+async function initIssuePinSort() {
   const pinDiv = document.getElementById('issue-pins');
 
   if (pinDiv === null) return;
@@ -188,7 +189,7 @@ function initIssuePinSort() {
   // If only one issue pinned, we don't need to make this Sortable
   if (pinDiv.children.length < 2) return;
 
-  new Sortable(pinDiv, {
+  createSortable(pinDiv, {
     group: 'shared',
     animation: 150,
     ghostClass: 'card-ghost',

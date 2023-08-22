@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/generate"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // LFS represents the configuration for Git LFS
@@ -34,7 +35,14 @@ func loadLFSFrom(rootCfg ConfigProvider) error {
 	// Specifically default PATH to LFS_CONTENT_PATH
 	// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
 	// if these are removed, the warning will not be shown
-	deprecatedSettingFatal(rootCfg, "server", "LFS_CONTENT_PATH", "lfs", "PATH", "v1.19.0")
+	deprecatedSetting(rootCfg, "server", "LFS_CONTENT_PATH", "lfs", "PATH", "v1.19.0")
+
+	if val := sec.Key("LFS_CONTENT_PATH").String(); val != "" {
+		if lfsSec == nil {
+			lfsSec = rootCfg.Section("lfs")
+		}
+		lfsSec.Key("PATH").MustString(val)
+	}
 
 	var err error
 	LFS.Storage, err = getStorage(rootCfg, "lfs", "", lfsSec)
@@ -49,17 +57,14 @@ func loadLFSFrom(rootCfg ConfigProvider) error {
 
 	LFS.HTTPAuthExpiry = sec.Key("LFS_HTTP_AUTH_EXPIRY").MustDuration(24 * time.Hour)
 
-	if !LFS.StartServer {
+	if !LFS.StartServer || !InstallLock {
 		return nil
 	}
 
-	LFS.JWTSecretBase64 = loadSecret(rootCfg.Section("lfs"), "LFS_JWT_SECRET_URI", "LFS_JWT_SECRET")
-
-	LFS.JWTSecretBytes = make([]byte, 32)
-	n, err := base64.RawURLEncoding.Decode(LFS.JWTSecretBytes, []byte(LFS.JWTSecretBase64))
-
-	if err != nil || n != 32 {
-		LFS.JWTSecretBase64, err = generate.NewJwtSecretBase64()
+	LFS.JWTSecretBase64 = loadSecret(rootCfg.Section("server"), "LFS_JWT_SECRET_URI", "LFS_JWT_SECRET")
+	LFS.JWTSecretBytes, err = util.Base64FixedDecode(base64.RawURLEncoding, []byte(LFS.JWTSecretBase64), 32)
+	if err != nil {
+		LFS.JWTSecretBytes, LFS.JWTSecretBase64, err = generate.NewJwtSecretBase64()
 		if err != nil {
 			return fmt.Errorf("error generating JWT Secret for custom config: %v", err)
 		}

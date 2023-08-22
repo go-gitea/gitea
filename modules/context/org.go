@@ -24,6 +24,7 @@ type Organization struct {
 	Organization     *organization.Organization
 	OrgLink          string
 	CanCreateOrgRepo bool
+	PublicMemberOnly bool // Only display public members
 
 	Team  *organization.Team
 	Teams []*organization.Team
@@ -161,7 +162,6 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	}
 	ctx.Data["IsOrganizationOwner"] = ctx.Org.IsOwner
 	ctx.Data["IsOrganizationMember"] = ctx.Org.IsMember
-	ctx.Data["IsProjectEnabled"] = true
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["IsPublicMember"] = func(uid int64) bool {
@@ -172,6 +172,18 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 
 	ctx.Org.OrgLink = org.AsUser().OrganisationLink()
 	ctx.Data["OrgLink"] = ctx.Org.OrgLink
+
+	// Member
+	ctx.Org.PublicMemberOnly = ctx.Doer == nil || !ctx.Org.IsMember && !ctx.Doer.IsAdmin
+	opts := &organization.FindOrgMembersOpts{
+		OrgID:      org.ID,
+		PublicOnly: ctx.Org.PublicMemberOnly,
+	}
+	ctx.Data["NumMembers"], err = organization.CountOrgMembers(opts)
+	if err != nil {
+		ctx.ServerError("CountOrgMembers", err)
+		return
+	}
 
 	// Team.
 	if ctx.Org.IsMember {
@@ -204,6 +216,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 				return
 			}
 		}
+		ctx.Data["NumTeams"] = len(ctx.Org.Teams)
 	}
 
 	teamName := ctx.Params(":team")

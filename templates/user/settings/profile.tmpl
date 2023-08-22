@@ -35,10 +35,10 @@
 				</div>
 				<div class="field">
 					<label for="location">{{.locale.Tr "settings.location"}}</label>
-					<input id="location" name="location"  value="{{.SignedUser.Location}}" maxlength="50">
+					<input id="location" name="location" placeholder="{{.locale.Tr "settings.location_placeholder"}}" value="{{.SignedUser.Location}}" maxlength="50">
 				</div>
 
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 				<!-- private block -->
 
 				<div class="field" id="privacy-user-settings">
@@ -85,7 +85,7 @@
 					</div>
 				</div>
 
-				<div class="ui divider"></div>
+				<div class="divider"></div>
 
 				<div class="field">
 					<button class="ui green button">{{$.locale.Tr "settings.update_profile"}}</button>
@@ -99,7 +99,7 @@
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
 				{{.CsrfTokenHtml}}
-				{{if not (DisableGravatar $.Context)}}
+				{{if not .DisableGravatar}}
 				<div class="inline field">
 					<div class="ui radio checkbox">
 						<input name="source" value="lookup" type="radio" {{if not .SignedUser.UseCustomAvatar}}checked{{end}}>
