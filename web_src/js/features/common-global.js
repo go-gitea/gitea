@@ -8,7 +8,7 @@ import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
 import {svg} from '../svg.js';
 import {hideElem, showElem, toggleElem} from '../utils/dom.js';
 import {htmlEscape} from 'escape-goat';
-import {createTippy, showTemporaryTooltip} from '../modules/tippy.js';
+import {showTemporaryTooltip} from '../modules/tippy.js';
 import {confirmModal} from './comp/ConfirmModal.js';
 import {showErrorToast} from '../modules/toast.js';
 
@@ -64,9 +64,9 @@ export function initGlobalButtonClickOnEnter() {
   });
 }
 
-// doRedirect does real redirection to bypass the browser's limitations of "location"
+// fetchActionDoRedirect does real redirection to bypass the browser's limitations of "location"
 // more details are in the backend's fetch-redirect handler
-function doRedirect(redirect) {
+function fetchActionDoRedirect(redirect) {
   const form = document.createElement('form');
   const input = document.createElement('input');
   form.method = 'post';
@@ -77,6 +77,33 @@ function doRedirect(redirect) {
   form.append(input);
   document.body.append(form);
   form.submit();
+}
+
+async function fetchActionDoRequest(actionElem, url, opt) {
+  try {
+    const resp = await fetch(url, opt);
+    if (resp.status === 200) {
+      let {redirect} = await resp.json();
+      redirect = redirect || actionElem.getAttribute('data-redirect');
+      actionElem.classList.remove('dirty'); // remove the areYouSure check before reloading
+      if (redirect) {
+        fetchActionDoRedirect(redirect);
+      } else {
+        window.location.reload();
+      }
+    } else if (resp.status >= 400 && resp.status < 500) {
+      const data = await resp.json();
+      // the code was quite messy, sometimes the backend uses "err", sometimes it uses "error", and even "user_error"
+      // but at the moment, as a new approach, we only use "errorMessage" here, backend can use JSONError() to respond.
+      await showErrorToast(data.errorMessage || `server error: ${resp.status}`);
+    } else {
+      await showErrorToast(`server error: ${resp.status}`);
+    }
+  } catch (e) {
+    console.error('error when doRequest', e);
+    actionElem.classList.remove('is-loading', 'small-loading-icon');
+    await showErrorToast(i18n.network_error);
+  }
 }
 
 async function formFetchAction(e) {
@@ -115,50 +142,7 @@ async function formFetchAction(e) {
     reqOpt.body = formData;
   }
 
-  let errorTippy;
-  const onError = (msg) => {
-    formEl.classList.remove('is-loading', 'small-loading-icon');
-    if (errorTippy) errorTippy.destroy();
-    // TODO: use a better toast UI instead of the tippy. If the form height is large, the tippy position is not good
-    errorTippy = createTippy(formEl, {
-      content: msg,
-      interactive: true,
-      showOnCreate: true,
-      hideOnClick: true,
-      role: 'alert',
-      theme: 'form-fetch-error',
-      trigger: 'manual',
-      arrow: false,
-    });
-  };
-
-  const doRequest = async () => {
-    try {
-      const resp = await fetch(reqUrl, reqOpt);
-      if (resp.status === 200) {
-        const {redirect} = await resp.json();
-        formEl.classList.remove('dirty'); // remove the areYouSure check before reloading
-        if (redirect) {
-          doRedirect(redirect);
-        } else {
-          window.location.reload();
-        }
-      } else if (resp.status >= 400 && resp.status < 500) {
-        const data = await resp.json();
-        // the code was quite messy, sometimes the backend uses "err", sometimes it uses "error", and even "user_error"
-        // but at the moment, as a new approach, we only use "errorMessage" here, backend can use JSONError() to respond.
-        onError(data.errorMessage || `server error: ${resp.status}`);
-      } else {
-        onError(`server error: ${resp.status}`);
-      }
-    } catch (e) {
-      console.error('error when doRequest', e);
-      onError(i18n.network_error);
-    }
-  };
-
-  // TODO: add "confirm" support like "link-action" in the future
-  await doRequest();
+  await fetchActionDoRequest(formEl, reqUrl, reqOpt);
 }
 
 export function initGlobalCommon() {
@@ -209,6 +193,7 @@ export function initGlobalCommon() {
   $('.tabular.menu .item').tab();
 
   document.addEventListener('submit', formFetchAction);
+  document.addEventListener('click', linkAction);
 }
 
 export function initGlobalDropzone() {
@@ -269,41 +254,29 @@ export function initGlobalDropzone() {
 }
 
 async function linkAction(e) {
-  e.preventDefault();
-
   // A "link-action" can post AJAX request to its "data-url"
   // Then the browser is redirected to: the "redirect" in response, or "data-redirect" attribute, or current URL by reloading.
   // If the "link-action" has "data-modal-confirm" attribute, a confirm modal dialog will be shown before taking action.
+  const el = e.target.closest('.link-action');
+  if (!el) return;
 
-  const $this = $(this);
-  const redirect = $this.attr('data-redirect');
-
-  const doRequest = () => {
-    $this.prop('disabled', true);
-    $.post($this.attr('data-url'), {
-      _csrf: csrfToken
-    }).done((data) => {
-      if (data && data.redirect) {
-        window.location.href = data.redirect;
-      } else if (redirect) {
-        window.location.href = redirect;
-      } else {
-        window.location.reload();
-      }
-    }).always(() => {
-      $this.prop('disabled', false);
-    });
+  e.preventDefault();
+  const url = el.getAttribute('data-url');
+  const doRequest = async () => {
+    el.disabled = true;
+    await fetchActionDoRequest(el, url, {method: 'POST', headers: {'X-Csrf-Token': csrfToken}});
+    el.disabled = false;
   };
 
-  const modalConfirmContent = htmlEscape($this.attr('data-modal-confirm') || '');
+  const modalConfirmContent = htmlEscape(el.getAttribute('data-modal-confirm') || '');
   if (!modalConfirmContent) {
-    doRequest();
+    await doRequest();
     return;
   }
 
-  const isRisky = $this.hasClass('red') || $this.hasClass('yellow') || $this.hasClass('orange') || $this.hasClass('negative');
+  const isRisky = el.classList.contains('red') || el.classList.contains('yellow') || el.classList.contains('orange') || el.classList.contains('negative');
   if (await confirmModal({content: modalConfirmContent, buttonColor: isRisky ? 'orange' : 'green'})) {
-    doRequest();
+    await doRequest();
   }
 }
 
@@ -354,7 +327,6 @@ export function initGlobalLinkActions() {
 
   // Helpers.
   $('.delete-button').on('click', showDeletePopup);
-  $('.link-action').on('click', linkAction);
 }
 
 function initGlobalShowModal() {
