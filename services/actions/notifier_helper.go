@@ -145,15 +145,15 @@ func notify(ctx context.Context, input *notifyInput) error {
 	}
 
 	var detectedWorkflows []*actions_module.DetectedWorkflow
+	actionsConfig := input.Repo.MustGetUnit(ctx, unit_model.TypeActions).ActionsConfig()
 	workflows, schedules, err := actions_module.DetectWorkflows(gitRepo, commit, input.Event, input.Payload)
 	if err != nil {
 		return fmt.Errorf("DetectWorkflows: %w", err)
 	}
+
 	if len(workflows) == 0 {
 		log.Trace("repo %s with commit %s couldn't find workflows", input.Repo.RepoPath(), commit.ID)
 	} else {
-		actionsConfig := input.Repo.MustGetUnit(ctx, unit_model.TypeActions).ActionsConfig()
-
 		for _, wf := range workflows {
 			if actionsConfig.IsWorkflowDisabled(wf.EntryName) {
 				log.Trace("repo %s has disable workflows %s", input.Repo.RepoPath(), wf.EntryName)
@@ -192,7 +192,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		log.Error("handle schedules: %v", err)
 	}
 
-	if err := handleWorkflows(ctx, detectedWorkflows, commit, input); err != nil {
+	if err := handleWorkflows(ctx, detectedWorkflows, commit, input, ref); err != nil {
 		log.Error("handle workflows: %v", err)
 	}
 
@@ -289,6 +289,7 @@ func handleWorkflows(
 	detectedWorkflows []*actions_module.DetectedWorkflow,
 	commit *git.Commit,
 	input *notifyInput,
+	ref string,
 ) error {
 	if len(detectedWorkflows) == 0 {
 		log.Trace("repo %s with commit %s couldn't find workflows", input.Repo.RepoPath(), commit.ID)
@@ -322,7 +323,7 @@ func handleWorkflows(
 			OwnerID:           input.Repo.OwnerID,
 			WorkflowID:        dwf.EntryName,
 			TriggerUserID:     input.Doer.ID,
-			Ref:               input.Ref,
+			Ref:               ref,
 			CommitSHA:         commit.ID.String(),
 			IsForkPullRequest: isForkPullRequest,
 			Event:             input.Event,
@@ -365,11 +366,7 @@ func handleWorkflows(
 			log.Error("FindRunJobs: %v", err)
 			continue
 		}
-		for _, job := range alljobs {
-			if err := createCommitStatus(ctx, job); err != nil {
-				log.Error("CreateCommitStatus: %v", err)
-			}
-		}
+		CreateCommitStatus(ctx, alljobs...)
 	}
 	return nil
 }
