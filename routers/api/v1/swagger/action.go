@@ -11,3 +11,10 @@ type swaggerResponseSecretList struct {
 	// in:body
 	Body []api.Secret `json:"body"`
 }
+
+// Secret
+// swagger:response Secret
+type swaggerResponseSecret struct {
+	// in:body
+	Body api.Secret `json:"body"`
+}
