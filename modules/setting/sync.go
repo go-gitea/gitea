@@ -28,7 +28,7 @@ func loadSyncFrom(rootCfg ConfigProvider) {
 		}
 		u := nosql.ToRedisURI(connStr)
 		if u == nil {
-			log.Fatal("LOCK_SERVICE_CONN_STR %s is not right for redis", connStr)
+			log.Fatal("LOCK_SERVICE_CONN_STR %s is not a valid redis connection string", connStr)
 		}
 		Sync.LockServiceConnStr = connStr
 	default:
