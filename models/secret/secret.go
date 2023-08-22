@@ -6,6 +6,7 @@ package secret
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -92,4 +93,49 @@ func FindSecrets(ctx context.Context, opts FindSecretsOptions) ([]*Secret, error
 // CountSecrets counts the secrets
 func CountSecrets(ctx context.Context, opts *FindSecretsOptions) (int64, error) {
 	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(Secret))
+}
+
+// ChangeSecret changes org or user reop secret.
+func ChangeSecret(ctx context.Context, orgID, repoID int64, name, data string) error {
+	sc := new(Secret)
+	has, err := db.GetEngine(ctx).
+		Where("owner_id=?", orgID).
+		And("repo_id=?", repoID).
+		And("name=?", strings.ToUpper(name)).
+		Get(sc)
+	if err != nil {
+		return err
+	} else if !has {
+		return errors.New("secret not found")
+	}
+
+	encrypted, err := secret_module.EncryptSecret(setting.SecretKey, data)
+	if err != nil {
+		return err
+	}
+
+	sc.Data = encrypted
+	_, err = db.GetEngine(ctx).ID(sc.ID).Cols("data").Update(sc)
+	return err
+}
+
+// DeleteSecret deletes secret from an organization.
+func DeleteSecret(ctx context.Context, orgID, repoID int64, name string) error {
+	sc := new(Secret)
+	has, err := db.GetEngine(ctx).
+		Where("owner_id=?", orgID).
+		And("repo_id=?", repoID).
+		And("name=?", strings.ToUpper(name)).
+		Get(sc)
+	if err != nil {
+		return err
+	} else if !has {
+		return errors.New("secret not found")
+	}
+
+	if _, err := db.GetEngine(ctx).ID(sc.ID).Delete(new(Secret)); err != nil {
+		return fmt.Errorf("Delete: %w", err)
+	}
+
+	return nil
 }

@@ -113,3 +113,82 @@ func CreateOrgSecret(ctx *context.APIContext) {
 
 	ctx.JSON(http.StatusCreated, convert.ToSecret(s))
 }
+
+// UpdateOrgSecret update one secret of the organization
+func UpdateOrgSecret(ctx *context.APIContext) {
+	// swagger:operation PUT /orgs/{org}/actions/secrets/{secretname} organization updateOrgSecret
+	// ---
+	// summary: Update a secret in an organization
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of organization
+	//   type: string
+	//   required: true
+	// - name: secretname
+	//   in: path
+	//   description: name of the secret
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/UpdateSecretOption"
+	// responses:
+	//   "204":
+	//     description: membership publicized
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	secretName := ctx.Params(":secretname")
+	opt := web.GetForm(ctx).(*api.UpdateSecretOption)
+	err := secret_model.ChangeSecret(
+		ctx, ctx.Org.Organization.ID, 0, secretName, opt.Data,
+	)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "ChangeSecret", err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
+}
+
+// DeleteOrgSecret delete one secret of the organization
+func DeleteOrgSecret(ctx *context.APIContext) {
+	// swagger:operation DELETE /orgs/{org}/actions/secrets/{secretname} organization deleteOrgSecret
+	// ---
+	// summary: Delete a secret in an organization
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of organization
+	//   type: string
+	//   required: true
+	// - name: secretname
+	//   in: path
+	//   description: name of the secret
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     description: membership publicized
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	secretName := ctx.Params(":secretname")
+	err := secret_model.DeleteSecret(
+		ctx, ctx.Org.Organization.ID, 0, secretName,
+	)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "DeleteSecret", err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
+}
