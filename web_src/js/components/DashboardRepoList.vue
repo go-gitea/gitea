@@ -126,8 +126,8 @@
       </h4>
       <div v-if="organizations.length" class="ui attached table segment gt-rounded-bottom">
         <ul class="repo-owner-name-list">
-          <li class="gt-df gt-ac" v-for="org in organizations" :key="org.name">
-            <a class="repo-list-link muted gt-df gt-ac gt-f1" :href="subUrl + '/' + encodeURIComponent(org.name)">
+          <li class="gt-df gt-ac gt-py-3" v-for="org in organizations" :key="org.name">
+            <a class="repo-list-link muted gt-df gt-ac gt-f1 gt-gap-3" :href="subUrl + '/' + encodeURIComponent(org.name)">
               <svg-icon name="octicon-organization" :size="16" class-name="repo-list-icon"/>
               <div class="text truncate">{{ org.name }}</div>
               <div><!-- div to prevent underline of label on hover -->
