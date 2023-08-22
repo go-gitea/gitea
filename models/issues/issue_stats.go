@@ -120,19 +120,19 @@ func getIssueStatsChunk(opts *IssuesOptions, issueIDs []int64) (*IssueStats, err
 		Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 
 	var err error
-	stats.OpenCount, err = applyIssueStatsOptions(sess, opts, issueIDs).
+	stats.OpenCount, err = applyIssuesOptions(sess, opts, issueIDs).
 		And("issue.is_closed = ?", false).
 		Count(new(Issue))
 	if err != nil {
 		return stats, err
 	}
-	stats.ClosedCount, err = applyIssueStatsOptions(sess, opts, issueIDs).
+	stats.ClosedCount, err = applyIssuesOptions(sess, opts, issueIDs).
 		And("issue.is_closed = ?", true).
 		Count(new(Issue))
 	return stats, err
 }
 
-func applyIssueStatsOptions(sess *xorm.Session, opts *IssuesOptions, issueIDs []int64) *xorm.Session {
+func applyIssuesOptions(sess *xorm.Session, opts *IssuesOptions, issueIDs []int64) *xorm.Session {
 	if len(opts.RepoIDs) > 1 {
 		sess.In("issue.repo_id", opts.RepoIDs)
 	} else if len(opts.RepoIDs) == 1 {
