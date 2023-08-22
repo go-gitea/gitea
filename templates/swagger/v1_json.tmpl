@@ -2880,8 +2880,14 @@
               "type": "integer"
             },
             "collectionFormat": "multi",
-            "description": "Comma seperated list of Repo IDs (empty for all)",
+            "description": "Filter by Repo IDs (empty for all repos)",
             "name": "ids",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "Filter by the the recent languages used by a user/org (ignored if filtered by Repo IDs)",
+            "name": "ownerId",
             "in": "query"
           }
         ],
