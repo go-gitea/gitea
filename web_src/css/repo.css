@@ -1144,13 +1144,14 @@
   margin-left: 14px;
   display: flex;
   align-items: center;
+  gap: 0.25rem;
 }
 
 .repository.view.issue .comment-list .event .detail .svg {
   margin-right: 2px;
 }
 
-.repository.view.issue .comment-list .event .detail span{
+.repository.view.issue .comment-list .event .detail .muted-links{
   display: flex;
 }
 
