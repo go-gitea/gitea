@@ -891,12 +891,12 @@ func getUserIssueStats(ctx *context.Context, filterMode int, opts *issue_indexer
 			openClosedOpts.ReviewedID = &doerID
 		}
 		openClosedOpts.IsClosed = util.OptionalBoolFalse
-		ret.OpenCount, err = issue_indexer.CountIssues(ctx, opts)
+		ret.OpenCount, err = issue_indexer.CountIssues(ctx, openClosedOpts)
 		if err != nil {
 			return nil, err
 		}
 		openClosedOpts.IsClosed = util.OptionalBoolTrue
-		ret.ClosedCount, err = issue_indexer.CountIssues(ctx, opts)
+		ret.ClosedCount, err = issue_indexer.CountIssues(ctx, openClosedOpts)
 		if err != nil {
 			return nil, err
 		}
