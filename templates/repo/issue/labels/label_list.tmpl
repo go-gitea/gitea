@@ -1,14 +1,14 @@
-<h4 class="ui top attached header gt-df">
-	<span class="gt-f1">{{.locale.Tr "repo.issues.label_count" .NumLabels}}</span>
-	<label class="gt-f1" data-tooltip-content={{.locale.Tr "repo.issues.label_archive_tooltip"}}>
+<h4 class="ui top attached header gt-df label-count">
+	<span class="gt-df">{{.locale.Tr "repo.issues.label_count" .NumLabels}}</span>
+	<label class="gt-df gt-ml-4" data-tooltip-content={{.locale.Tr "repo.issues.label_archive_tooltip"}}>
 		<input type="checkbox"
 			name="show_archived_labels"
-			class="show-archived-labels-checkbox"
+			class="show-archived-labels-checkbox gt-mt-0 gt-mr-2"
 		>
 		{{.locale.Tr "repo.issues.show_archived_labels"}}
 	</label>
 
-	<div class="ui right gt-f1">
+	<div class="gt-df">
 		<div class="ui right floated secondary filter menu">
 			<!-- Sort -->
 			<div class="ui dropdown type jump item">

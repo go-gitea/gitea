@@ -205,13 +205,11 @@ export function initRepoIssueList() {
 }
 
 export function initHighlightArchivedLabels() {
-  if (!document.querySelectorAll('.show-archived-labels-checkbox').length) return;
-  const showArchivedLabelCheckBox = document.querySelector('.show-archived-labels-checkbox');
-  if (!showArchivedLabelCheckBox) return;
-  document.querySelector('.show-archived-labels-checkbox')
-    .addEventListener('input', (e) => {
-      for (const archivedLabel of document.querySelectorAll('.archived-label')) {
-        toggleElem(archivedLabel, e.target.checked);
-      }
-    });
+  const showArchivedLabel = document.querySelector('.show-archived-labels-checkbox');
+  if (!showArchivedLabel) return;
+  showArchivedLabel.addEventListener('input', (e) => {
+    for (const archivedLabel of document.querySelectorAll('.archived-label')) {
+      toggleElem(archivedLabel, e.target.checked);
+    }
+  });
 }
