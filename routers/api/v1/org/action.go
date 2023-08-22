@@ -140,7 +140,7 @@ func UpdateOrgSecret(ctx *context.APIContext) {
 	//     "$ref": "#/definitions/UpdateSecretOption"
 	// responses:
 	//   "204":
-	//     description: membership publicized
+	//     description: update one secret of the organization
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	secretName := ctx.Params(":secretname")
@@ -178,7 +178,7 @@ func DeleteOrgSecret(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "204":
-	//     description: membership publicized
+	//     description: delete one secret of the organization
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	secretName := ctx.Params(":secretname")
