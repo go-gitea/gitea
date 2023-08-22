@@ -1586,6 +1586,49 @@
             "$ref": "#/responses/SecretList"
           }
         }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Create a secret in an organization",
+        "operationId": "createOrgSecret",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateSecretOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Secret"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
       }
     },
     "/orgs/{org}/activities/feeds": {
@@ -17443,6 +17486,27 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "CreateSecretOption": {
+      "description": "CreateSecretOption options when creating secret",
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "data": {
+          "description": "Data of the secret to create",
+          "type": "string",
+          "x-go-name": "Data"
+        },
+        "name": {
+          "description": "Name of the secret to create",
+          "type": "string",
+          "uniqueItems": true,
+          "x-go-name": "Name"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "CreateStatusOption": {
       "description": "CreateStatusOption holds the information needed to create a new CommitStatus for a Commit",
       "type": "object",
@@ -21334,7 +21398,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "Secret": {
-      "description": "User represents a secret",
+      "description": "Secret represents a secret",
       "type": "object",
       "properties": {
         "created_at": {
@@ -22921,6 +22985,12 @@
         "$ref": "#/definitions/SearchResults"
       }
     },
+    "Secret": {
+      "description": "Secret",
+      "schema": {
+        "$ref": "#/definitions/Secret"
+      }
+    },
     "SecretList": {
       "description": "SecretList",
       "schema": {
@@ -23137,7 +23207,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/UpdateRepoAvatarOption"
+        "$ref": "#/definitions/CreateSecretOption"
       }
     },
     "redirect": {

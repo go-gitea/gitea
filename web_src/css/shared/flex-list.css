@@ -29,7 +29,7 @@
   display: flex;
   flex-direction: column;
   flex-grow: 1;
-  min-width: 0;
+  flex-basis: 60%;
 }
 
 .flex-item-header {
@@ -54,7 +54,6 @@
   flex-grow: 0;
   flex-wrap: wrap;
   justify-content: end;
-  flex-shrink: 2;
 }
 
 .flex-item .flex-item-title {
@@ -65,8 +64,8 @@
   max-width: 100%;
   color: var(--color-text);
   font-size: 16px;
-  min-width: 0;
   font-weight: var(--font-weight-semibold);
+  word-break: break-word;
 }
 
 .flex-item .flex-item-title a {
@@ -81,6 +80,7 @@
   flex-wrap: wrap;
   gap: .25rem;
   color: var(--color-text-light-2);
+  word-break: break-word;
 }
 
 .flex-item .flex-item-body a {
