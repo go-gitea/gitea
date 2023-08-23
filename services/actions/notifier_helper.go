@@ -189,14 +189,10 @@ func notify(ctx context.Context, input *notifyInput) error {
 	}
 
 	if err := handleSchedules(ctx, schedules, commit, input); err != nil {
-		log.Error("handle schedules: %v", err)
+		return err
 	}
 
-	if err := handleWorkflows(ctx, detectedWorkflows, commit, input, ref); err != nil {
-		log.Error("handle workflows: %v", err)
-	}
-
-	return nil
+	return handleWorkflows(ctx, detectedWorkflows, commit, input, ref)
 }
 
 func newNotifyInputFromIssue(issue *issues_model.Issue, event webhook_module.HookEventType) *notifyInput {
@@ -328,14 +324,15 @@ func handleWorkflows(
 			IsForkPullRequest: isForkPullRequest,
 			Event:             input.Event,
 			EventPayload:      string(p),
+			TriggerEvent:      dwf.TriggerEvent,
 			Status:            actions_model.StatusWaiting,
 		}
-		need, err := ifNeedApproval(ctx, run, input.Repo, input.Doer)
-		if err != nil {
+		if need, err := ifNeedApproval(ctx, run, input.Repo, input.Doer); err != nil {
 			log.Error("check if need approval for repo %d with user %d: %v", input.Repo.ID, input.Doer.ID, err)
 			continue
+		} else {
+			run.NeedApproval = need
 		}
-		run.NeedApproval = need
 
 		jobs, err := jobparser.Parse(dwf.Content)
 		if err != nil {
