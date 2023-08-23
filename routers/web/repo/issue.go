@@ -1284,12 +1284,12 @@ func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *use
 		return roleDescriptor, nil
 	}
 
-	total, err := issues_model.CountMergedPullRequestInRepo(ctx, repo.ID, poster.ID)
+	hasMergedPR, err := issues_model.HasMergedPullRequestInRepo(ctx, repo.ID, poster.ID)
 	if err != nil {
 		return roleDescriptor, err
-	} else if total > 0 {
+	} else if hasMergedPR {
 		roleDescriptor.RoleInRepo = issues_model.RoleRepoContributor
-	} else if total == 0 {
+	} else {
 		// only display first time contributor in the first opening pull request
 		roleDescriptor.RoleInRepo = issues_model.RoleRepoFirstTimeContributor
 	}

@@ -200,13 +200,15 @@ func (prs PullRequestList) GetIssueIDs() []int64 {
 	return issueIDs
 }
 
-// CountMergedPullRequestInRepo return the count the user merged into the repository via pull request
-func CountMergedPullRequestInRepo(ctx context.Context, repoID, posterID int64) (int64, error) {
+// HasMergedPullRequestInRepo returns whether the user(poster) has merged pull-request in the repo
+func HasMergedPullRequestInRepo(ctx context.Context, repoID, posterID int64) (bool, error) {
 	return db.GetEngine(ctx).
-		Join("INNER", "pull", "pull.issue_id = issue.id").
+		Join("INNER", "pull_request", "pull_request.issue_id = issue.id").
 		Where("repo_id=?", repoID).
 		And("poster_id=?", posterID).
 		And("is_pull=?", true).
-		And("pull.has_merged=?", true).
-		Count(new(Issue))
+		And("pull_request.has_merged=?", true).
+		Select("issue.id").
+		Limit(1).
+		Get(new(Issue))
 }
