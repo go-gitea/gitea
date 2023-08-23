@@ -200,12 +200,12 @@ const (
 	RoleRepoContributor          RoleInRepo = "contributor"
 )
 
-// LocaleString returns the locale string name of the Status
+// LocaleString returns the locale string name of the role
 func (r RoleInRepo) LocaleString(lang translation.Locale) string {
 	return lang.Tr("repo.issues.role." + string(r))
 }
 
-// LocaleHelper returns the locale string name of the Status
+// LocaleHelper returns the locale string name of the role
 func (r RoleInRepo) LocaleHelper(lang translation.Locale) string {
 	return lang.Tr("repo.issues.role." + string(r) + "_helper")
 }
