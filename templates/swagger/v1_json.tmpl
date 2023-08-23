@@ -21527,6 +21527,68 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "Task": {
+      "description": "Task represents a task",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "x-go-name": "Id"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "head_branch": {
+          "type": "string",
+          "x-go-name": "HeadBranch"
+        },
+        "head_sha": {
+          "type": "string",
+          "x-go-name": "HeadSha"
+        },
+        "run_number": {
+          "type": "integer",
+          "x-go-name": "RunNumber"
+        },
+        "event": {
+          "type": "string",
+          "x-go-name": "Event"
+        },
+        "display_title": {
+          "type": "string",
+          "x-go-name": "DisplayTitle"
+        },
+        "status": {
+          "type": "string",
+          "x-go-name": "Status"
+        },
+        "workflow_id": {
+          "type": "string",
+          "x-go-name": "WorkflowID"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "Url"
+        },
+        "created_at":{
+          "type": "string",
+          "format": "date-time",
+          "x-go-name":"CreatedAt"
+        },
+        "updated_at":{
+          "type": "string",
+          "format": "date-time",
+          "x-go-name":"UpdatedAt"
+        },
+        "run_started_at":{
+          "type": "string",
+          "format": "date-time",
+          "x-go-name":"RunStartedAt"
+        } 
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Tag": {
       "description": "Tag represents a repository tag",
       "type": "object",
@@ -23072,6 +23134,15 @@
         "type": "array",
         "items": {
           "type": "string"
+        }
+      }
+    },
+    "TasksList": {
+      "description": "TasksList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/Task"
         }
       }
     },
