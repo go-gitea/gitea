@@ -148,8 +148,12 @@ func UpdateOrgSecret(ctx *context.APIContext) {
 	err := secret_model.UpdateSecret(
 		ctx, ctx.Org.Organization.ID, 0, secretName, opt.Data,
 	)
+	if secret_model.IsErrSecretNotFound(err) {
+		ctx.NotFound(err)
+		return
+	}
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ChangeSecret", err)
+		ctx.Error(http.StatusInternalServerError, "UpdateSecret", err)
 		return
 	}
 
@@ -185,6 +189,10 @@ func DeleteOrgSecret(ctx *context.APIContext) {
 	err := secret_model.DeleteSecret(
 		ctx, ctx.Org.Organization.ID, 0, secretName,
 	)
+	if secret_model.IsErrSecretNotFound(err) {
+		ctx.NotFound(err)
+		return
+	}
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteSecret", err)
 		return

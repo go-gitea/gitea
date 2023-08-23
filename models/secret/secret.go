@@ -13,6 +13,7 @@ import (
 	secret_module "code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -25,6 +26,25 @@ type Secret struct {
 	Name        string             `xorm:"UNIQUE(owner_repo_name) NOT NULL"`
 	Data        string             `xorm:"LONGTEXT"` // encrypted data
 	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
+}
+
+// ErrSecretNotFound represents a "secret not found" error.
+type ErrSecretNotFound struct {
+	Name string
+}
+
+// IsErrSecretNotFound checks if an error is a ErrSecretNotFound.
+func IsErrSecretNotFound(err error) bool {
+	_, ok := err.(ErrSecretNotFound)
+	return ok
+}
+
+func (err ErrSecretNotFound) Error() string {
+	return fmt.Sprintf("secret was not found [name: %s]", err.Name)
+}
+
+func (err ErrSecretNotFound) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // newSecret Creates a new already encrypted secret
@@ -98,15 +118,16 @@ func CountSecrets(ctx context.Context, opts *FindSecretsOptions) (int64, error) 
 // UpdateSecret changes org or user reop secret.
 func UpdateSecret(ctx context.Context, orgID, repoID int64, name, data string) error {
 	sc := new(Secret)
+	name = strings.ToUpper(name)
 	has, err := db.GetEngine(ctx).
 		Where("owner_id=?", orgID).
 		And("repo_id=?", repoID).
-		And("name=?", strings.ToUpper(name)).
+		And("name=?", name).
 		Get(sc)
 	if err != nil {
 		return err
 	} else if !has {
-		return errors.New("secret not found")
+		return ErrSecretNotFound{Name: name}
 	}
 
 	encrypted, err := secret_module.EncryptSecret(setting.SecretKey, data)
@@ -130,7 +151,7 @@ func DeleteSecret(ctx context.Context, orgID, repoID int64, name string) error {
 	if err != nil {
 		return err
 	} else if !has {
-		return errors.New("secret not found")
+		return ErrSecretNotFound{Name: name}
 	}
 
 	if _, err := db.GetEngine(ctx).ID(sc.ID).Delete(new(Secret)); err != nil {
