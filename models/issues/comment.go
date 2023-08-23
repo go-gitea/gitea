@@ -205,7 +205,7 @@ func (r RoleInRepo) LocaleString(lang translation.Locale) string {
 	return lang.Tr("repo.issues.role." + string(r))
 }
 
-// LocaleHelper returns the locale string name of the role
+// LocaleHelper returns the locale tooltip of the role
 func (r RoleInRepo) LocaleHelper(lang translation.Locale) string {
 	return lang.Tr("repo.issues.role." + string(r) + "_helper")
 }
