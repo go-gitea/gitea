@@ -38,7 +38,7 @@ func MailTeamInvite(ctx context.Context, inviter *user_model.User, team *org_mod
 	user, err := user_model.GetUserByEmail(ctx, invite.Email)
 	if err != nil && !user_model.IsErrUserNotExist(err) {
 		return err
-	} else if user.ProhibitLogin {
+	} else if user != nil && user.ProhibitLogin {
 		return fmt.Errorf("login is prohibited for the invited user")
 	}
 
