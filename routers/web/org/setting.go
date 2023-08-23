@@ -156,7 +156,7 @@ func SettingsDeleteAvatar(ctx *context.Context) {
 		ctx.Flash.Error(err.Error())
 	}
 
-	ctx.Redirect(ctx.Org.OrgLink + "/settings")
+	ctx.JSONRedirect(ctx.Org.OrgLink + "/settings")
 }
 
 // SettingsDelete response for deleting an organization
