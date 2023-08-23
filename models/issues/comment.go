@@ -201,21 +201,17 @@ const (
 
 // HasRole returns if a role is not none
 func (r Role) HasRole() bool {
-	return r.String() != ""
-}
-
-func (r Role) String() string {
-	return string(r)
+	return r.Role != ""
 }
 
 // LocaleString returns the locale string name of the Status
 func (r Role) LocaleString(lang translation.Locale) string {
-	return lang.Tr("repo.issues.role." + r.String())
+	return lang.Tr("repo.issues.role." + r.Role)
 }
 
 // LocaleHelper returns the locale string name of the Status
 func (r Role) LocaleHelper(lang translation.Locale) string {
-	return lang.Tr("repo.issues.role." + r.String() + "_helper")
+	return lang.Tr("repo.issues.role." + r.Role + "_helper")
 }
 
 // Comment represents a comment in commit and issue page.
