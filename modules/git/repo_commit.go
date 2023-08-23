@@ -109,7 +109,7 @@ func (repo *Repository) commitsByRange(id SHA1, page, pageSize int, not string) 
 	return repo.parsePrettyFormatLogToList(stdout)
 }
 
-func (repo *Repository) SearchCommits(opts SearchCommitsOptions) ([]*Commit, error) {
+func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) ([]*Commit, error) {
 	// add common arguments to git command
 	addCommonSearchArgs := func(c *Command) {
 		// ignore case
@@ -138,19 +138,8 @@ func (repo *Repository) SearchCommits(opts SearchCommitsOptions) ([]*Commit, err
 		}
 	}
 
-	// create new git log command
-	cmd := NewCommand(repo.Ctx, "log")
-
-	// By default, limit 100 commits
-	limit := 100
-	if opts.Limit > 0 {
-		limit = opts.Limit
-	}
-	cmd = cmd.AddOptionFormat("-%d", limit).AddArguments(prettyLogFormat)
-
-	if !opts.CommitID.IsZero() {
-		cmd = cmd.AddDynamicArguments(opts.CommitID.String())
-	}
+	// create new git log command with limit of 100 commits
+	cmd := NewCommand(repo.Ctx, "log", "-100", prettyLogFormat).AddDynamicArguments(id.String())
 
 	// pretend that all refs along with HEAD were listed on command line as <commis>
 	// https://git-scm.com/docs/git-log#Documentation/git-log.txt---all

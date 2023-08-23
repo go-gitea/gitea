@@ -258,12 +258,10 @@ func (c *Commit) CommitsBeforeUntil(commitID string) ([]*Commit, error) {
 
 // SearchCommitsOptions specify the parameters for SearchCommits
 type SearchCommitsOptions struct {
-	CommitID            SHA1
 	Keywords            []string
 	Authors, Committers []string
 	After, Before       string
 	All                 bool
-	Limit               int
 }
 
 // NewSearchCommitsOptions construct a SearchCommitsOption from a space-delimited search string
@@ -299,8 +297,7 @@ func NewSearchCommitsOptions(searchString string, forAllRefs bool) SearchCommits
 
 // SearchCommits returns the commits match the keyword before current revision
 func (c *Commit) SearchCommits(opts SearchCommitsOptions) ([]*Commit, error) {
-	opts.CommitID = c.ID
-	return c.repo.SearchCommits(opts)
+	return c.repo.searchCommits(c.ID, opts)
 }
 
 // GetFilesChangedSinceCommit get all changed file names between pastCommit to current revision
