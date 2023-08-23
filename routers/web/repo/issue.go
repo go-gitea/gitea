@@ -1294,9 +1294,9 @@ func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *use
 	}); err != nil {
 		return issues_model.RoleDescriptorNone, err
 	} else if len(commits) == 1 {
-		roleDescriptor = roleDescriptor.WithRole(issues_model.RoleDescriptorContributor)
-	} else if len(commits) > 1 {
 		roleDescriptor = roleDescriptor.WithRole(issues_model.RoleDescriptorFirstTimeContributor)
+	} else if len(commits) > 1 {
+		roleDescriptor = roleDescriptor.WithRole(issues_model.RoleDescriptorContributor)
 	}
 
 	return roleDescriptor, nil
