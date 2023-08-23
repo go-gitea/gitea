@@ -1284,22 +1284,12 @@ func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *use
 		return roleDescriptor, nil
 	}
 
-	// If the poster is the contributor of the repo
-	searchOpt := &issue_indexer.SearchOptions{
-		Paginator: &db.ListOptions{
-			Page:     1,
-			PageSize: 1,
-		},
-		RepoIDs:  []int64{repo.ID},
-		IsClosed: util.OptionalBoolTrue,
-		IsPull:   util.OptionalBoolTrue,
-		PosterID: &poster.ID,
-	}
-	if _, total, err := issue_indexer.SearchIssues(ctx, searchOpt); err != nil {
+	total, err := issues_model.CountMergedPullRequestInRepo(ctx, repo.ID, poster.ID)
+	if err != nil {
 		return roleDescriptor, err
 	} else if total > 0 {
 		roleDescriptor.RoleInRepo = issues_model.RoleRepoContributor
-	} else if total == 0 && issue.IsPull && !issue.IsClosed {
+	} else if total == 0 {
 		// only display first time contributor in the first opening pull request
 		roleDescriptor.RoleInRepo = issues_model.RoleRepoFirstTimeContributor
 	}
