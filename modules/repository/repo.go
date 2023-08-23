@@ -159,7 +159,8 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			// note: this will greatly improve release (tag) sync
 			// for pull-mirrors with many tags
 			repo.IsMirror = opts.Mirror
-			if err = SyncReleasesWithTags(repo, gitRepo, false); err != nil {
+			tagOnlyReleases := true
+			if err = SyncReleasesWithTags(repo, gitRepo, tagOnlyReleases); err != nil {
 				log.Error("Failed to synchronize tags to releases for repository: %v", err)
 			}
 		}
@@ -286,13 +287,15 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 	return repo, UpdateRepository(ctx, repo, false)
 }
 
-// SyncReleasesWithTags synchronizes release table with repository tags for each of the releases
-func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository, hasNonTagReleases bool) error {
+// SyncReleasesWithTags synchronizes release table with repository tags for each of the releases.
+//
+// If tagOnlyReleases is true, then it is assumed all releases come from tags.
+func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository, tagOnlyReleases bool) error {
 	log.Debug("SyncReleasesWithTags: in Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
 
 	// optimized procedure for pull-mirrors which saves a lot of time (in
 	// particular for repos with many tags).
-	if repo.IsMirror && !hasNonTagReleases {
+	if repo.IsMirror && tagOnlyReleases {
 		return recreateMirrorReleaseFromTags(repo, gitRepo)
 	}
 

@@ -383,7 +383,8 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 
 // SyncTags syncs releases with tags in the databases
 func (g *GiteaLocalUploader) SyncTags() error {
-	return repo_module.SyncReleasesWithTags(g.repo, g.gitRepo, true)
+	tagOnlyReleases := false
+	return repo_module.SyncReleasesWithTags(g.repo, g.gitRepo, tagOnlyReleases)
 }
 
 func (g *GiteaLocalUploader) prepareIssues(issues ...*base.Issue) ([]*issues_model.Issue, error) {
