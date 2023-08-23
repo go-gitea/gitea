@@ -185,16 +185,21 @@ func ToActionTask(ctx context.Context, repo *repo_model.Repository, t *actions_m
 	if err := t.LoadAttributes(ctx); err != nil {
 		log.Warn("LoadAttributes of ActionTask: %v", err)
 	}
+
 	return &api.ActionTask{
-		ID:         t.Job.Run.Index,
-		JobName:    t.Job.Name,
-		WorkflowID: t.Job.Run.WorkflowID,
-		Title:      t.Job.Run.Title,
-		Status:     t.Status.String(),
-		Commit:     t.CommitSHA,
-		Duration:   t.Duration().String(),
-		Started:    t.Started.AsLocalTime(),
-		Stopped:    t.Stopped.AsLocalTime(),
+		Id:           t.ID,
+		Name:         t.Job.Name,
+		HeadBranch:   t.Job.Run.PrettyRef(),
+		HeadSha:      t.Job.CommitSHA,
+		RunNumber:    t.Job.Run.Index,
+		Event:        t.Job.Run.TriggerEvent,
+		DisplayTitle: t.Job.Run.Title,
+		Status:       t.Status.String(),
+		WorkflowID:   t.Job.Run.WorkflowID,
+		Url:          t.GetRunLink(),
+		CreatedAt:    t.Created.AsLocalTime(),
+		UpdatedAt:    t.Updated.AsLocalTime(),
+		RunStartedAt: t.Started.AsLocalTime(),
 	}
 }
 

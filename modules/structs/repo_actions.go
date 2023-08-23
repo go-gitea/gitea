@@ -7,17 +7,28 @@ import (
 	"time"
 )
 
-// Tag represents a repository tag
+// ActionTask represents a ActionTask
 type ActionTask struct {
-	ID         int64  `json:"id"`
-	JobName    string `json:"job_name"`
-	WorkflowID string `json:"workflow_id"`
-	Title      string `json:"title"`
-	Status     string `json:"status"`
-	Commit     string `json:"commit"`
-	Duration   string `json:"duration"`
+	Id           int64  `json:"id"`
+	Name         string `json:"name"`
+	HeadBranch   string `json:"head_branch"`
+	HeadSha      string `json:"head_sha"`
+	RunNumber    int64  `json:"run_number"`
+	Event        string `json:"event"`
+	DisplayTitle string `json:"display_title"`
+	Status       string `json:"status"`
+	WorkflowID   string `json:"workflow_id"`
+	Url          string `json:"url"`
 	// swagger:strfmt date-time
-	Started time.Time `json:"started,omitempty"`
+	CreatedAt time.Time `json:"created_at,omitempty"`
 	// swagger:strfmt date-time
-	Stopped time.Time `json:"stopped,omitempty"`
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// swagger:strfmt date-time
+	RunStartedAt time.Time `json:"run_started_at,omitempty"`
+}
+
+// ActionTaskResponse returns a ActionTask
+type ActionTaskResponse struct {
+	Entries    []*ActionTask `json:"workflow_runs"`
+	TotalCount int64         `json:"total_count"`
 }
