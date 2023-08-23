@@ -95,14 +95,14 @@ async function fetchActionDoRequest(actionElem, url, opt) {
       const data = await resp.json();
       // the code was quite messy, sometimes the backend uses "err", sometimes it uses "error", and even "user_error"
       // but at the moment, as a new approach, we only use "errorMessage" here, backend can use JSONError() to respond.
-      await showErrorToast(data.errorMessage || `server error: ${resp.status}`);
+      showErrorToast(data.errorMessage || `server error: ${resp.status}`);
     } else {
-      await showErrorToast(`server error: ${resp.status}`);
+      showErrorToast(`server error: ${resp.status}`);
     }
   } catch (e) {
     console.error('error when doRequest', e);
     actionElem.classList.remove('is-loading', 'small-loading-icon');
-    await showErrorToast(i18n.network_error);
+    showErrorToast(i18n.network_error);
   }
 }
 
