@@ -67,7 +67,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 
 	var err error
 	if err = util.RemoveAll(repoPath); err != nil {
-		return repo, fmt.Errorf("Failed to remove %s: %w", repoPath, err)
+		return repo, fmt.Errorf("failed to remove %s: %w", repoPath, err)
 	}
 
 	if err = git.Clone(ctx, opts.CloneAddr, repoPath, git.CloneRepoOptions{
@@ -77,9 +77,9 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 	}); err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			return repo, fmt.Errorf("Clone timed out. Consider increasing [git.timeout] MIGRATE in app.ini. Underlying Error: %w", err)
+			return repo, fmt.Errorf("clone timed out. Consider increasing [git.timeout] MIGRATE in app.ini. Underlying Error: %w", err)
 		}
-		return repo, fmt.Errorf("Clone: %w", err)
+		return repo, fmt.Errorf("clone: %w", err)
 	}
 
 	if err := git.WriteCommitGraph(ctx, repoPath); err != nil {
@@ -91,7 +91,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		wikiRemotePath := WikiRemoteURL(ctx, opts.CloneAddr)
 		if len(wikiRemotePath) > 0 {
 			if err := util.RemoveAll(wikiPath); err != nil {
-				return repo, fmt.Errorf("Failed to remove %s: %w", wikiPath, err)
+				return repo, fmt.Errorf("failed to remove %s: %w", wikiPath, err)
 			}
 
 			if err := git.Clone(ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
@@ -103,7 +103,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			}); err != nil {
 				log.Warn("Clone wiki: %v", err)
 				if err := util.RemoveAll(wikiPath); err != nil {
-					return repo, fmt.Errorf("Failed to remove %s: %w", wikiPath, err)
+					return repo, fmt.Errorf("failed to remove %s: %w", wikiPath, err)
 				}
 			} else {
 				if err := git.WriteCommitGraph(ctx, wikiPath); err != nil {
