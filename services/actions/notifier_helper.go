@@ -195,91 +195,6 @@ func notify(ctx context.Context, input *notifyInput) error {
 	return handleWorkflows(ctx, detectedWorkflows, commit, input, ref)
 }
 
-func newNotifyInputFromIssue(issue *issues_model.Issue, event webhook_module.HookEventType) *notifyInput {
-	return newNotifyInput(issue.Repo, issue.Poster, event)
-}
-
-func notifyRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release, action api.HookReleaseAction) {
-	if err := rel.LoadAttributes(ctx); err != nil {
-		log.Error("LoadAttributes: %v", err)
-		return
-	}
-
-	permission, _ := access_model.GetUserRepoPermission(ctx, rel.Repo, doer)
-
-	newNotifyInput(rel.Repo, doer, webhook_module.HookEventRelease).
-		WithRef(git.RefNameFromTag(rel.TagName).String()).
-		WithPayload(&api.ReleasePayload{
-			Action:     action,
-			Release:    convert.ToAPIRelease(ctx, rel.Repo, rel),
-			Repository: convert.ToRepo(ctx, rel.Repo, permission),
-			Sender:     convert.ToUser(ctx, doer, nil),
-		}).
-		Notify(ctx)
-}
-
-func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_model.PackageDescriptor, action api.HookPackageAction) {
-	if pd.Repository == nil {
-		// When a package is uploaded to an organization, it could trigger an event to notify.
-		// So the repository could be nil, however, actions can't support that yet.
-		// See https://github.com/go-gitea/gitea/pull/17940
-		return
-	}
-
-	apiPackage, err := convert.ToPackage(ctx, pd, sender)
-	if err != nil {
-		log.Error("Error converting package: %v", err)
-		return
-	}
-
-	newNotifyInput(pd.Repository, sender, webhook_module.HookEventPackage).
-		WithPayload(&api.PackagePayload{
-			Action:  action,
-			Package: apiPackage,
-			Sender:  convert.ToUser(ctx, sender, nil),
-		}).
-		Notify(ctx)
-}
-
-func ifNeedApproval(ctx context.Context, run *actions_model.ActionRun, repo *repo_model.Repository, user *user_model.User) (bool, error) {
-	// 1. don't need approval if it's not a fork PR
-	// 2. don't need approval if the event is `pull_request_target` since the workflow will run in the context of base branch
-	// 		see https://docs.github.com/en/actions/managing-workflow-runs/approving-workflow-runs-from-public-forks#about-workflow-runs-from-public-forks
-	if !run.IsForkPullRequest || run.TriggerEvent == actions_module.GithubEventPullRequestTarget {
-		return false, nil
-	}
-
-	// always need approval if the user is restricted
-	if user.IsRestricted {
-		log.Trace("need approval because user %d is restricted", user.ID)
-		return true, nil
-	}
-
-	// don't need approval if the user can write
-	if perm, err := access_model.GetUserRepoPermission(ctx, repo, user); err != nil {
-		return false, fmt.Errorf("GetUserRepoPermission: %w", err)
-	} else if perm.CanWrite(unit_model.TypeActions) {
-		log.Trace("do not need approval because user %d can write", user.ID)
-		return false, nil
-	}
-
-	// don't need approval if the user has been approved before
-	if count, err := actions_model.CountRuns(ctx, actions_model.FindRunOptions{
-		RepoID:        repo.ID,
-		TriggerUserID: user.ID,
-		Approved:      true,
-	}); err != nil {
-		return false, fmt.Errorf("CountRuns: %w", err)
-	} else if count > 0 {
-		log.Trace("do not need approval because user %d has been approved before", user.ID)
-		return false, nil
-	}
-
-	// otherwise, need approval
-	log.Trace("need approval because it's the first time user %d triggered actions", user.ID)
-	return true, nil
-}
-
 func handleWorkflows(
 	ctx context.Context,
 	detectedWorkflows []*actions_module.DetectedWorkflow,
@@ -366,6 +281,91 @@ func handleWorkflows(
 		CreateCommitStatus(ctx, alljobs...)
 	}
 	return nil
+}
+
+func newNotifyInputFromIssue(issue *issues_model.Issue, event webhook_module.HookEventType) *notifyInput {
+	return newNotifyInput(issue.Repo, issue.Poster, event)
+}
+
+func notifyRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release, action api.HookReleaseAction) {
+	if err := rel.LoadAttributes(ctx); err != nil {
+		log.Error("LoadAttributes: %v", err)
+		return
+	}
+
+	permission, _ := access_model.GetUserRepoPermission(ctx, rel.Repo, doer)
+
+	newNotifyInput(rel.Repo, doer, webhook_module.HookEventRelease).
+		WithRef(git.RefNameFromTag(rel.TagName).String()).
+		WithPayload(&api.ReleasePayload{
+			Action:     action,
+			Release:    convert.ToAPIRelease(ctx, rel.Repo, rel),
+			Repository: convert.ToRepo(ctx, rel.Repo, permission),
+			Sender:     convert.ToUser(ctx, doer, nil),
+		}).
+		Notify(ctx)
+}
+
+func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_model.PackageDescriptor, action api.HookPackageAction) {
+	if pd.Repository == nil {
+		// When a package is uploaded to an organization, it could trigger an event to notify.
+		// So the repository could be nil, however, actions can't support that yet.
+		// See https://github.com/go-gitea/gitea/pull/17940
+		return
+	}
+
+	apiPackage, err := convert.ToPackage(ctx, pd, sender)
+	if err != nil {
+		log.Error("Error converting package: %v", err)
+		return
+	}
+
+	newNotifyInput(pd.Repository, sender, webhook_module.HookEventPackage).
+		WithPayload(&api.PackagePayload{
+			Action:  action,
+			Package: apiPackage,
+			Sender:  convert.ToUser(ctx, sender, nil),
+		}).
+		Notify(ctx)
+}
+
+func ifNeedApproval(ctx context.Context, run *actions_model.ActionRun, repo *repo_model.Repository, user *user_model.User) (bool, error) {
+	// 1. don't need approval if it's not a fork PR
+	// 2. don't need approval if the event is `pull_request_target` since the workflow will run in the context of base branch
+	// 		see https://docs.github.com/en/actions/managing-workflow-runs/approving-workflow-runs-from-public-forks#about-workflow-runs-from-public-forks
+	if !run.IsForkPullRequest || run.TriggerEvent == actions_module.GithubEventPullRequestTarget {
+		return false, nil
+	}
+
+	// always need approval if the user is restricted
+	if user.IsRestricted {
+		log.Trace("need approval because user %d is restricted", user.ID)
+		return true, nil
+	}
+
+	// don't need approval if the user can write
+	if perm, err := access_model.GetUserRepoPermission(ctx, repo, user); err != nil {
+		return false, fmt.Errorf("GetUserRepoPermission: %w", err)
+	} else if perm.CanWrite(unit_model.TypeActions) {
+		log.Trace("do not need approval because user %d can write", user.ID)
+		return false, nil
+	}
+
+	// don't need approval if the user has been approved before
+	if count, err := actions_model.CountRuns(ctx, actions_model.FindRunOptions{
+		RepoID:        repo.ID,
+		TriggerUserID: user.ID,
+		Approved:      true,
+	}); err != nil {
+		return false, fmt.Errorf("CountRuns: %w", err)
+	} else if count > 0 {
+		log.Trace("do not need approval because user %d has been approved before", user.ID)
+		return false, nil
+	}
+
+	// otherwise, need approval
+	log.Trace("need approval because it's the first time user %d triggered actions", user.ID)
+	return true, nil
 }
 
 func handleSchedules(
