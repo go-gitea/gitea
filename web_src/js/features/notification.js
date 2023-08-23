@@ -7,6 +7,13 @@ export function initNotificationsTable() {
   const table = document.getElementById('notification_table');
   if (!table) return;
 
+  const url = 'ws://' + window.location.host + '/ws';
+  const ws = new WebSocket(url);
+  ws.addEventListener('message', (msg) => {
+    const line = now() + ' ' + msg.data + '\n';
+    console.info(line);
+  });
+
   // when page restores from bfcache, delete previously clicked items
   window.addEventListener('pageshow', (e) => {
     if (e.persisted) { // page was restored from bfcache
