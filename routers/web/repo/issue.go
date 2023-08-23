@@ -1230,60 +1230,59 @@ func NewIssuePost(ctx *context.Context) {
 
 // roleDescriptor returns the Role Descriptor for a comment in/with the given repo, poster and issue
 func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *user_model.User, issue *issues_model.Issue, hasOriginalAuthor bool) (issues_model.RoleDescriptor, error) {
+	roleDescriptor := issues_model.RoleDescriptor{}
+
 	if hasOriginalAuthor {
-		return issues_model.RoleDescriptorNone, nil
+		return roleDescriptor, nil
 	}
 
 	perm, err := access_model.GetUserRepoPermission(ctx, repo, poster)
 	if err != nil {
-		return issues_model.RoleDescriptorNone, err
+		return roleDescriptor, err
 	}
-
-	// By default the poster has no roles on the comment.
-	roleDescriptor := issues_model.RoleDescriptorNone
 
 	// If the poster is the actual poster of the issue, enable Poster role.
 	if issue.IsPoster(poster.ID) {
-		roleDescriptor = roleDescriptor.WithRole(issues_model.RoleDescriptorPoster)
+		roleDescriptor.IsPoster = util.OptionalBoolTrue
 	}
 
 	// Check if the poster is owner of the repo.
 	if perm.IsOwner() {
 		// If the poster isn't a admin, enable the owner role.
 		if !poster.IsAdmin {
-			roleDescriptor = roleDescriptor.WithRole(issues_model.RoleDescriptorOwner)
+			roleDescriptor.Role = issues_model.RoleDescriptorOwner
 			return roleDescriptor, nil
 		}
 
 		// Otherwise check if poster is the real repo admin.
 		ok, err := access_model.IsUserRealRepoAdmin(repo, poster)
 		if err != nil {
-			return issues_model.RoleDescriptorNone, err
+			return roleDescriptor, err
 		}
 		if ok {
-			roleDescriptor = roleDescriptor.WithRole(issues_model.RoleDescriptorOwner)
+			roleDescriptor.Role = issues_model.RoleDescriptorOwner
 			return roleDescriptor, nil
 		}
 	}
 
 	// If repo is organization, check Member role
 	if err := repo.LoadOwner(ctx); err != nil {
-		return issues_model.RoleDescriptorNone, err
+		return roleDescriptor, err
 	}
 	if repo.Owner.IsOrganization() {
 		if isMember, err := organization.IsOrganizationMember(ctx, repo.Owner.ID, poster.ID); err != nil {
-			return issues_model.RoleDescriptorNone, err
+			return roleDescriptor, err
 		} else if isMember {
-			roleDescriptor = roleDescriptor.WithRole(issues_model.RoleDescriptorMember)
+			roleDescriptor.Role = issues_model.RoleDescriptorMember
 			return roleDescriptor, nil
 		}
 	}
 
 	// If the poster is the collaborator of the repo
 	if isCollaborator, err := repo_model.IsCollaborator(ctx, repo.ID, poster.ID); err != nil {
-		return issues_model.RoleDescriptorNone, err
+		return roleDescriptor, err
 	} else if isCollaborator {
-		roleDescriptor = roleDescriptor.WithRole(issues_model.RoleDescriptorCollaborator)
+		roleDescriptor.Role = issues_model.RoleDescriptorCollaborator
 		return roleDescriptor, nil
 	}
 
@@ -1291,18 +1290,20 @@ func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *use
 	searchOpt := &issue_indexer.SearchOptions{
 		Paginator: &db.ListOptions{
 			Page:     1,
-			PageSize: 2,
+			PageSize: 1,
 		},
 		RepoIDs:  []int64{repo.ID},
+		IsClosed: util.OptionalBoolTrue,
 		IsPull:   util.OptionalBoolTrue,
 		PosterID: &poster.ID,
 	}
 	if _, total, err := issue_indexer.SearchIssues(ctx, searchOpt); err != nil {
-		return issues_model.RoleDescriptorNone, err
-	} else if total == 1 {
-		roleDescriptor = roleDescriptor.WithRole(issues_model.RoleDescriptorFirstTimeContributor)
-	} else if total > 1 {
-		roleDescriptor = roleDescriptor.WithRole(issues_model.RoleDescriptorContributor)
+		return roleDescriptor, err
+	} else if total > 0 {
+		roleDescriptor.Role = issues_model.RoleDescriptorContributor
+	} else if total == 0 && issue.IsPull && !issue.IsClosed {
+		// only display first time contributor in the first opening pull request
+		roleDescriptor.Role = issues_model.RoleDescriptorFirstTimeContributor
 	}
 
 	return roleDescriptor, nil

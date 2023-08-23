@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
@@ -181,49 +182,40 @@ func (t CommentType) HasAttachmentSupport() bool {
 	return false
 }
 
+type Role string
+
 // RoleDescriptor defines comment tag type
-type RoleDescriptor int
+type RoleDescriptor struct {
+	IsPoster util.OptionalBool
+	Role     Role
+}
 
 // Enumerate all the role tags.
 const (
-	RoleDescriptorNone RoleDescriptor = iota
-	RoleDescriptorPoster
-	RoleDescriptorOwner
-	RoleDescriptorMember
-	RoleDescriptorCollaborator
-	RoleDescriptorFirstTimeContributor
-	RoleDescriptorContributor
+	RoleDescriptorOwner                Role = "owner"
+	RoleDescriptorMember               Role = "member"
+	RoleDescriptorCollaborator         Role = "collaborator"
+	RoleDescriptorFirstTimeContributor Role = "first_time_contributor"
+	RoleDescriptorContributor          Role = "contributor"
 )
 
-// WithRole enable a specific tag on the RoleDescriptor.
-func (rd RoleDescriptor) WithRole(role RoleDescriptor) RoleDescriptor {
-	return rd | (1 << role)
+// HasRole returns if a role is not none
+func (r Role) HasRole() bool {
+	return r.String() != ""
 }
 
-func stringToRoleDescriptor(role string) RoleDescriptor {
-	switch role {
-	case "Poster":
-		return RoleDescriptorPoster
-	case "Owner":
-		return RoleDescriptorOwner
-	case "Member":
-		return RoleDescriptorMember
-	case "Collaborator":
-		return RoleDescriptorCollaborator
-	case "First-time contributor":
-		return RoleDescriptorFirstTimeContributor
-	case "Contributor":
-		return RoleDescriptorContributor
-	default:
-		return RoleDescriptorNone
-	}
+func (r Role) String() string {
+	return string(r)
 }
 
-// HasRole returns if a certain role is enabled on the RoleDescriptor.
-func (rd RoleDescriptor) HasRole(role string) bool {
-	roleDescriptor := stringToRoleDescriptor(role)
-	bitValue := rd & (1 << roleDescriptor)
-	return (bitValue > 0)
+// LocaleString returns the locale string name of the Status
+func (r Role) LocaleString(lang translation.Locale) string {
+	return lang.Tr("repo.issues." + r.String())
+}
+
+// LocaleHelper returns the locale string name of the Status
+func (r Role) LocaleHelper(lang translation.Locale) string {
+	return lang.Tr("repo.issues." + r.String() + "_helper")
 }
 
 // Comment represents a comment in commit and issue page.
