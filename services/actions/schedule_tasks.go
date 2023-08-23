@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/nektos/act/pkg/jobparser"
 )
@@ -45,6 +46,19 @@ func startTasks(ctx context.Context) error {
 
 		// Loop through each spec and create a schedule task for it
 		for _, row := range specs {
+			// cancel running jobs if the event is push
+			if row.Schedule.Event == webhook_module.HookEventPush {
+				// cancel running jobs of the same workflow
+				if err := actions_model.CancelRunningJobs(
+					ctx,
+					row.RepoID,
+					row.Schedule.Ref,
+					row.Schedule.WorkflowID,
+				); err != nil {
+					log.Error("CancelRunningJobs: %v", err)
+				}
+			}
+
 			if err := CreateScheduleTask(ctx, row.Schedule); err != nil {
 				log.Error("CreateScheduleTask: %v", err)
 				return err

@@ -33,8 +33,7 @@ type ActionScheduleSpec struct {
 }
 
 func (s *ActionScheduleSpec) Parse() (cron.Schedule, error) {
-	p := cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
-	return p.Parse(s.Spec)
+	return cronParser.Parse(s.Spec)
 }
 
 func init() {

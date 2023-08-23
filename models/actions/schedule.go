@@ -52,6 +52,8 @@ func GetReposMapByIDs(ids []int64) (map[int64]*repo_model.Repository, error) {
 	return repos, db.GetEngine(db.DefaultContext).In("id", ids).Find(&repos)
 }
 
+var cronParser = cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
+
 // CreateScheduleTask creates new schedule task.
 func CreateScheduleTask(ctx context.Context, rows []*ActionSchedule) error {
 	// Return early if there are no rows to insert
@@ -75,10 +77,10 @@ func CreateScheduleTask(ctx context.Context, rows []*ActionSchedule) error {
 
 		// Loop through each schedule spec and create a new spec row
 		now := time.Now()
-		p := cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
+
 		for _, spec := range row.Specs {
 			// Parse the spec and check for errors
-			schedule, err := p.Parse(spec)
+			schedule, err := cronParser.Parse(spec)
 			if err != nil {
 				continue // skip to the next spec if there's an error
 			}
