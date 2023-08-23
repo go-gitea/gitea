@@ -996,7 +996,7 @@ func Routes() *web.Route {
 				}, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true))
 				m.Group("/actions", func() {
 					m.Get("/tasks", repo.ListActionTasks)
-				}, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true))
+				}, reqRepoReader(unit.TypeActions), context.ReferencesGitRepo(true))
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
 						Post(bind(api.CreateKeyOption{}), repo.CreateDeployKey)
