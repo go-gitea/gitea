@@ -315,7 +315,7 @@ func runSyncGit(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult,
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: syncing releases with tags...", m.Repo)
-	if err = repo_module.SyncReleasesWithTags(m.Repo, gitRepo); err != nil {
+	if err = repo_module.SyncReleasesWithTags(m.Repo, gitRepo, false); err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to synchronize tags to releases: %v", m.Repo, err)
 	}
 

@@ -159,7 +159,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			// note: this will greatly improve release (tag) sync
 			// for pull-mirrors with many tags
 			repo.IsMirror = opts.Mirror
-			if err = SyncReleasesWithTags(repo, gitRepo); err != nil {
+			if err = SyncReleasesWithTags(repo, gitRepo, false); err != nil {
 				log.Error("Failed to synchronize tags to releases for repository: %v", err)
 			}
 		}
@@ -286,22 +286,15 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 	return repo, UpdateRepository(ctx, repo, false)
 }
 
-// SyncReleases synchronizes release table with repository tags
-func SyncReleases(repo *repo_model.Repository, gitRepo *git.Repository, hasNonTagReleases bool) error {
-	log.Debug("SyncReleases: in Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
+// SyncReleasesWithTags synchronizes release table with repository tags for each of the releases
+func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository, hasNonTagReleases bool) error {
+	log.Debug("SyncReleasesWithTags: in Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
 
 	// optimized procedure for pull-mirrors which saves a lot of time (in
 	// particular for repos with many tags).
 	if repo.IsMirror && !hasNonTagReleases {
 		return recreateMirrorReleaseFromTags(repo, gitRepo)
 	}
-
-	return SyncReleasesWithTags(repo, gitRepo)
-}
-
-// SyncReleasesWithTags synchronizes release table with repository tags for each of the releases
-func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) error {
-	log.Debug("SyncReleasesWithTags: in Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
 
 	existingRelTags := make(container.Set[string])
 	opts := repo_model.FindReleasesOptions{
