@@ -6,6 +6,7 @@ package mailer
 import (
 	"bytes"
 	"context"
+	"fmt"
 
 	org_model "code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
@@ -37,7 +38,10 @@ func MailTeamInvite(ctx context.Context, inviter *user_model.User, team *org_mod
 	user, err := user_model.GetUserByEmail(ctx, invite.Email)
 	if err != nil && !user_model.IsErrUserNotExist(err) {
 		return err
+	} else if user.ProhibitLogin {
+		return fmt.Errorf("login is prohibited for the invited user")
 	}
+
 	userAccountExists := err == nil && user != nil
 
 	subject := locale.Tr("mail.team_invite.subject", inviter.DisplayName(), org.DisplayName())
