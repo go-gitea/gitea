@@ -30,9 +30,6 @@ func htmlLinkFormatter(url, text string) string {
 
 // getPullRequestInfo gets the information for a pull request
 func getPullRequestInfo(p *api.PullRequestPayload) (title, link, by, operator, operateResult, assignees string) {
-	if p.PullRequest.HasMerged {
-		p.Action = "merged"
-	}
 	title = fmt.Sprintf("[PullRequest-%s #%d]: %s\n%s", p.Repository.FullName, p.PullRequest.Index, p.Action, p.PullRequest.Title)
 	assignList := p.PullRequest.Assignees
 	assignStringList := make([]string, len(assignList))
