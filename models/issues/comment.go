@@ -186,7 +186,7 @@ type Role string
 
 // RoleDescriptor defines comment tag type
 type RoleDescriptor struct {
-	IsPoster util.OptionalBool
+	IsPoster bool
 	Role     Role
 }
 
@@ -210,12 +210,12 @@ func (r Role) String() string {
 
 // LocaleString returns the locale string name of the Status
 func (r Role) LocaleString(lang translation.Locale) string {
-	return lang.Tr("repo.issues." + r.String())
+	return lang.Tr("repo.issues.role." + r.String())
 }
 
 // LocaleHelper returns the locale string name of the Status
 func (r Role) LocaleHelper(lang translation.Locale) string {
-	return lang.Tr("repo.issues." + r.String() + "_helper")
+	return lang.Tr("repo.issues.role." + r.String() + "_helper")
 }
 
 // Comment represents a comment in commit and issue page.

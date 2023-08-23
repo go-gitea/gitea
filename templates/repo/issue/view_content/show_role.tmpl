@@ -1,4 +1,4 @@
-{{if and .ShowRole.IsPoster.IsTrue (not .IgnorePoster)}}
+{{if and .ShowRole.IsPoster (not .IgnorePoster)}}
 	<div class="ui basic label role-label" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.author_helper"}}">
 		{{ctx.Locale.Tr "repo.issues.author"}}
 	</div>

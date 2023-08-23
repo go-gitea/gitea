@@ -1243,7 +1243,7 @@ func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *use
 
 	// If the poster is the actual poster of the issue, enable Poster role.
 	if issue.IsPoster(poster.ID) {
-		roleDescriptor.IsPoster = util.OptionalBoolTrue
+		roleDescriptor.IsPoster = true
 	}
 
 	// Check if the poster is owner of the repo.
