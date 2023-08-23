@@ -80,25 +80,21 @@
 					{{end}}
 				</div>
 				{{if or (eq .GetOpType 5) (eq .GetOpType 18)}}
-					<div class="gt-pl-5">
-						{{$push := ActionContent2Commits .}}
-						{{$repoLink := .GetRepoLink}}
-						{{range $push.Commits}}
-							{{$commitLink := printf "%s/commit/%s" $repoLink .Sha1}}
-							<div class="flex-item">
-								<img class="ui avatar" src="{{$push.AvatarLink $.Context .AuthorEmail}}" title="{{.AuthorName}}" width="16" height="16">
-								<a class="commit-id" href="{{$commitLink}}">{{ShortSha .Sha1}}</a>
-								<span class="text truncate light grey">
-									{{RenderCommitMessage $.Context .Message $repoLink $.ComposeMetas}}
-								</span>
-							</div>
-						{{end}}
-						{{if and (gt $push.Len 1) $push.CompareURL}}
-							<div class="flex-item">
-								<a href="{{AppSubUrl}}/{{$push.CompareURL}}">{{$.locale.Tr "action.compare_commits" $push.Len}} »</a>
-							</div>
-						{{end}}
-					</div>
+					{{$push := ActionContent2Commits .}}
+					{{$repoLink := .GetRepoLink}}
+					{{range $push.Commits}}
+						{{$commitLink := printf "%s/commit/%s" $repoLink .Sha1}}
+						<div class="flex-text-block">
+							<img class="ui avatar" src="{{$push.AvatarLink $.Context .AuthorEmail}}" title="{{.AuthorName}}" width="16" height="16">
+							<a class="gt-mono" href="{{$commitLink}}">{{ShortSha .Sha1}}</a>
+							<span class="text truncate light grey">
+								{{RenderCommitMessage $.Context .Message $repoLink $.ComposeMetas}}
+							</span>
+						</div>
+					{{end}}
+					{{if and (gt $push.Len 1) $push.CompareURL}}
+						<a href="{{AppSubUrl}}/{{$push.CompareURL}}">{{$.locale.Tr "action.compare_commits" $push.Len}} »</a>
+					{{end}}
 				{{else if eq .GetOpType 6}}
 					<span class="text truncate issue title">{{index .GetIssueInfos 1 | RenderEmoji $.Context | RenderCodeBlock}}</span>
 				{{else if eq .GetOpType 7}}
