@@ -1151,10 +1151,6 @@
   margin-right: 2px;
 }
 
-.repository.view.issue .comment-list .event .detail .muted-links {
-  display: flex;
-}
-
 .repository.view.issue .comment-list .event .segments {
   box-shadow: none;
 }
