@@ -83,9 +83,8 @@ PROVIDER_CONFIG = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql8/data/sessions
 [log]
 MODE                 = {{TEST_LOGGER}}
 ROOT_PATH            = {{REPO_TEST_DIR}}mysql8-log
-ROUTER               = ,
-XORM                 = file
 ENABLE_SSH_LOG       = true
+logger.xorm.MODE     = file
 
 [log.test]
 LEVEL                = Info

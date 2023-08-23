@@ -57,12 +57,10 @@ func createSSHUrl(gitPath string, u *url.URL) *url.URL {
 	return &u2
 }
 
-func onGiteaRunTB(t testing.TB, callback func(testing.TB, *url.URL), prepare ...bool) {
-	if len(prepare) == 0 || prepare[0] {
-		defer tests.PrepareTestEnv(t, 1)()
-	}
+func onGiteaRun[T testing.TB](t T, callback func(T, *url.URL)) {
+	defer tests.PrepareTestEnv(t, 1)()
 	s := http.Server{
-		Handler: c,
+		Handler: testWebRoutes,
 	}
 
 	u, err := url.Parse(setting.AppURL)
@@ -87,12 +85,6 @@ func onGiteaRunTB(t testing.TB, callback func(testing.TB, *url.URL), prepare ...
 	// Started by config go ssh.Listen(setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
 
 	callback(t, u)
-}
-
-func onGiteaRun(t *testing.T, callback func(*testing.T, *url.URL), prepare ...bool) {
-	onGiteaRunTB(t, func(t testing.TB, u *url.URL) {
-		callback(t.(*testing.T), u)
-	}, prepare...)
 }
 
 func doGitClone(dstLocalPath string, u *url.URL) func(*testing.T) {

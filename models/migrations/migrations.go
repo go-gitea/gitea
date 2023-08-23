@@ -7,7 +7,6 @@ package migrations
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"code.gitea.io/gitea/models/migrations/v1_10"
 	"code.gitea.io/gitea/models/migrations/v1_11"
@@ -521,6 +520,12 @@ var migrations = []Migration{
 	NewMigration("Update Action Ref", v1_21.UpdateActionsRefIndex),
 	// v269 -> v270
 	NewMigration("Drop deleted branch table", v1_21.DropDeletedBranchTable),
+	// v270 -> v271
+	NewMigration("Fix PackageProperty typo", v1_21.FixPackagePropertyTypo),
+	// v271 -> v272
+	NewMigration("Allow archiving labels", v1_21.AddArchivedUnixColumInLabelTable),
+	// v272 -> v273
+	NewMigration("Add Version to ActionRun table", v1_21.AddVersionToActionRunTable),
 	// to modify later
 	NewMigration("Add size limit on repository", v1_21.AddSizeLimitOnRepo),
 }
@@ -608,8 +613,7 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 		if !setting.IsProd {
 			msg += fmt.Sprintf("\nIf you are in development and really know what you're doing, you can force changing the migration version by executing: UPDATE version SET version=%d WHERE id=1;", minDBVersion+len(migrations))
 		}
-		_, _ = fmt.Fprintln(os.Stderr, msg)
-		log.Fatal(msg)
+		log.Fatal("Migration Error: %s", msg)
 		return nil
 	}
 

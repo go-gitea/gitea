@@ -578,7 +578,7 @@ func GrantApplicationOAuth(ctx *context.Context) {
 
 // OIDCWellKnown generates JSON so OIDC clients know Gitea's capabilities
 func OIDCWellKnown(ctx *context.Context) {
-	t, err := ctx.Render.TemplateLookup("user/auth/oidc_wellknown")
+	t, err := ctx.Render.TemplateLookup("user/auth/oidc_wellknown", nil)
 	if err != nil {
 		ctx.ServerError("unable to find template", err)
 		return

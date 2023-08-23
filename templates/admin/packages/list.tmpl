@@ -4,6 +4,12 @@
 			{{.locale.Tr "admin.packages.package_manage_panel"}} ({{.locale.Tr "admin.total" .TotalCount}},
 			{{.locale.Tr "admin.packages.total_size" (FileSize .TotalBlobSize)}},
 			{{.locale.Tr "admin.packages.unreferenced_size" (FileSize .TotalUnreferencedBlobSize)}})
+			<div class="ui right">
+				<form method="post" action="/admin/packages/cleanup">
+					{{.CsrfTokenHtml}}
+					<button class="ui primary tiny button">{{.locale.Tr "admin.packages.cleanup"}}</button>
+				</form>
+			</div>
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form ignore-dirty">
