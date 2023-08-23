@@ -16,8 +16,8 @@ menu:
 # Multi-factor Authentication (MFA)
 
 Multi-factor Authentication (also referred to as MFA or 2FA) enhances security by requiring a time-sensitive set of credentials in addition to a password.
-If a password were later to be compromised, Gitea would still not allow a successful login and the account would remain secure.
-Gitea supports both TOTP (Time-based One-Time Password) tokens and FIDO-based hardware keys.
+If a password were later to be compromised, logging into Gitea will not be possible without the additional credentials and the account would remain secure.
+Gitea supports both TOTP (Time-based One-Time Password) tokens and FIDO-based hardware keys using the Webauthn API.
 
 MFA can be configured within the "Security" tab of the user settings page.
 
