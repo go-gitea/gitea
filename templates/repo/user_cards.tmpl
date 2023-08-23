@@ -8,7 +8,7 @@
 		{{range .Cards}}
 			<li class="item ui segment">
 				<a href="{{.HomeLink}}">
-					{{avatar $.Context .}}
+					{{ctx.AvatarUtils.Avatar .}}
 				</a>
 				<h3 class="name"><a href="{{.HomeLink}}">{{.DisplayName}}</a></h3>
 

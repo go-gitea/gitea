@@ -133,6 +133,14 @@ export GITEA_WORK_DIR=/var/lib/gitea/
 cp gitea /usr/local/bin/gitea
 ```
 
+### 添加 bash/zsh 自动补全（从 1.19 版本开始）
+
+可以在 [`contrib/autocompletion/bash_autocomplete`](https://raw.githubusercontent.com/go-gitea/gitea/main/contrib/autocompletion/bash_autocomplete) 找到启用 bash 自动补全的脚本。可以将其复制到 `/usr/share/bash-completion/completions/gitea`，或在 `.bashrc` 中引用。
+
+同样地，zsh 自动补全的脚本可以在 [`contrib/autocompletion/zsh_autocomplete`](https://raw.githubusercontent.com/go-gitea/gitea/main/contrib/autocompletion/zsh_autocomplete) 找到。您可以将其复制到 `/usr/share/zsh/_gitea`，或在您的 `.zshrc` 中引用。
+
+具体情况可能会有所不同，这些脚本可能需要进一步的改进。
+
 ## 运行 Gitea
 
 完成以上步骤后，可以通过两种方式运行 Gitea：
@@ -153,6 +161,8 @@ GITEA_WORK_DIR=/var/lib/gitea/ /usr/local/bin/gitea web -c /etc/gitea/app.ini
 
 建议您在更新之前进行[备份](administration/backup-and-restore.md)。
 
+如果您按照上述描述执行了安装步骤，二进制文件的通用名称应为 gitea。请勿更改此名称，即不要包含版本号。
+
 ### 1. 使用 systemd 重新启动 Gitea（推荐）
 
 我们建议使用 systemd 作为服务管理器，使用 `systemctl restart gitea` 安全地重启程序。
@@ -168,6 +178,36 @@ GITEA_WORK_DIR=/var/lib/gitea/ /usr/local/bin/gitea web -c /etc/gitea/app.ini
 请参阅下面的疑难解答说明，以在Gitea版本更新后修复损坏的仓库。
 
 ## 排查故障
+
+### 旧版 glibc
+
+旧版 Linux 发行版（例如 Debian 7 和 CentOS 6）可能无法加载 Gitea 二进制文件，通常会产生类似于 `./gitea: /lib/x86_64-linux-gnu/libc.so.6:
+version 'GLIBC\_2.14' not found (required by ./gitea)` 的错误。这是由于 dl.gitea.com 提供的二进制文件中集成了 SQLite 支持。在这种情况下，通常可以选择[从源代码安装](installation/from-source.md)，而不包括 SQLite 支持。
+
+### 在另一个端口上运行 Gitea
+
+对于出现类似于 `702 runWeb()] [E] Failed to start server: listen tcp 0.0.0.0:3000:
+bind: address already in use` 的错误，需要将 Gitea 启动在另一个空闲端口上。您可以使用 `./gitea web -p $PORT` 来实现。可能已经有另一个 Gitea 实例在运行。
+
+### 在 Raspbian 上运行 Gitea
+
+从 v1.8 版本开始，arm7 版本的 Gitea 存在问题，无法在树莓派和类似设备上运行。
+
+建议切换到 arm6 版本，该版本经过测试并已被证明可以在树莓派和类似设备上运行。
+
+### 更新到新版本的 Gitea 后出现的 Git 错误
+
+如果在更新过程中，二进制文件的名称已更改为新版本的 Gitea，则现有仓库中的 Git 钩子将不再起作用。在这种情况下，当推送到仓库时，会显示 Git 错误。
+
+```
+remote: ./hooks/pre-receive.d/gitea: line 2: [...]: No such file or directory
+```
+
+错误信息中的 `[...]` 部分将包含您先前 Gitea 二进制文件的路径。
+
+要解决此问题，请转到管理选项，并运行任务 `Resynchronize pre-receive, update and post-receive hooks of all repositories`，以将所有钩子更新为包含新的二进制文件路径。请注意，这将覆盖所有 Git 钩子，包括自定义的钩子。
+
+如果您没有使用 Gitea 内置的 SSH 服务器，您还需要通过在管理选项中运行任务 `Update the '.ssh/authorized_keys' file with Gitea SSH keys.` 来重新编写授权密钥文件。
 
 > 更多经验总结，请参考英文版 [Troubleshooting](/en-us/install-from-binary/#troubleshooting)
 

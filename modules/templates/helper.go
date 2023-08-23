@@ -52,14 +52,10 @@ func NewFuncMap() template.FuncMap {
 
 		// -----------------------------------------------------------------
 		// svg / avatar / icon
-		"svg":            svg.RenderHTML,
-		"avatar":         Avatar,
-		"avatarHTML":     AvatarHTML,
-		"avatarByAction": AvatarByAction,
-		"avatarByEmail":  AvatarByEmail,
-		"EntryIcon":      base.EntryIcon,
-		"MigrationIcon":  MigrationIcon,
-		"ActionIcon":     ActionIcon,
+		"svg":           svg.RenderHTML,
+		"EntryIcon":     base.EntryIcon,
+		"MigrationIcon": MigrationIcon,
+		"ActionIcon":    ActionIcon,
 
 		"SortArrow": SortArrow,
 

@@ -7,6 +7,7 @@
   exclusive: false
   num_issues: 2
   num_closed_issues: 0
+  archived_unix: 0
 
 -
   id: 2
@@ -17,6 +18,7 @@
   exclusive: false
   num_issues: 1
   num_closed_issues: 1
+  archived_unix: 0
 
 -
   id: 3
@@ -27,6 +29,7 @@
   exclusive: false
   num_issues: 0
   num_closed_issues: 0
+  archived_unix: 0
 
 -
   id: 4
@@ -37,6 +40,7 @@
   exclusive: false
   num_issues: 1
   num_closed_issues: 0
+  archived_unix: 0
 
 -
   id: 5
@@ -47,6 +51,7 @@
   exclusive: false
   num_issues: 0
   num_closed_issues: 0
+  archived_unix: 0
 
 -
   id: 6
@@ -57,6 +62,7 @@
   exclusive: false
   num_issues: 0
   num_closed_issues: 0
+  archived_unix: 0
 
 -
   id: 7
@@ -67,6 +73,7 @@
   exclusive: true
   num_issues: 0
   num_closed_issues: 0
+  archived_unix: 0
 
 -
   id: 8
@@ -77,6 +84,7 @@
   exclusive: true
   num_issues: 0
   num_closed_issues: 0
+  archived_unix: 0
 
 -
   id: 9
@@ -87,3 +95,4 @@
   exclusive: true
   num_issues: 0
   num_closed_issues: 0
+  archived_unix: 0
