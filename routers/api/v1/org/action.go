@@ -103,6 +103,10 @@ func CreateOrgSecret(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	opt := web.GetForm(ctx).(*api.CreateSecretOption)
+	if err := actions.NameRegexMatch(opt.Name); err != nil {
+		ctx.Error(http.StatusBadRequest, "CreateOrgSecret", err)
+		return
+	}
 	s, err := secret_model.InsertEncryptedSecret(
 		ctx, ctx.Org.Organization.ID, 0, opt.Name, actions.ReserveLineBreakForTextarea(opt.Data),
 	)
