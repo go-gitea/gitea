@@ -182,30 +182,31 @@ func (t CommentType) HasAttachmentSupport() bool {
 	return false
 }
 
-type Role string
+// RoleInRepo presents the user's participation in the repo
+type RoleInRepo string
 
-// RoleDescriptor defines comment tag type
+// RoleDescriptor defines comment "role" tags
 type RoleDescriptor struct {
-	IsPoster bool
-	Role     Role
+	IsPoster   bool
+	RoleInRepo RoleInRepo
 }
 
 // Enumerate all the role tags.
 const (
-	RoleDescriptorOwner                Role = "owner"
-	RoleDescriptorMember               Role = "member"
-	RoleDescriptorCollaborator         Role = "collaborator"
-	RoleDescriptorFirstTimeContributor Role = "first_time_contributor"
-	RoleDescriptorContributor          Role = "contributor"
+	RoleRepoOwner                RoleInRepo = "owner"
+	RoleRepoMember               RoleInRepo = "member"
+	RoleRepoCollaborator         RoleInRepo = "collaborator"
+	RoleRepoFirstTimeContributor RoleInRepo = "first_time_contributor"
+	RoleRepoContributor          RoleInRepo = "contributor"
 )
 
 // LocaleString returns the locale string name of the Status
-func (r Role) LocaleString(lang translation.Locale) string {
+func (r RoleInRepo) LocaleString(lang translation.Locale) string {
 	return lang.Tr("repo.issues.role." + string(r))
 }
 
 // LocaleHelper returns the locale string name of the Status
-func (r Role) LocaleHelper(lang translation.Locale) string {
+func (r RoleInRepo) LocaleHelper(lang translation.Locale) string {
 	return lang.Tr("repo.issues.role." + string(r) + "_helper")
 }
 
