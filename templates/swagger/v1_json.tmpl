@@ -1642,7 +1642,7 @@
         "tags": [
           "organization"
         ],
-        "summary": "Update a secret in an organization",
+        "summary": "Update a secret value in an organization",
         "operationId": "updateOrgSecret",
         "parameters": [
           {
@@ -1669,7 +1669,7 @@
         ],
         "responses": {
           "204": {
-            "description": "membership publicized"
+            "description": "update one secret of the organization"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -1706,7 +1706,7 @@
         ],
         "responses": {
           "204": {
-            "description": "membership publicized"
+            "description": "delete one secret of the organization"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -21982,7 +21982,7 @@
       ],
       "properties": {
         "data": {
-          "description": "Data of the secret to create",
+          "description": "Data of the secret to update",
           "type": "string",
           "x-go-name": "Data"
         }

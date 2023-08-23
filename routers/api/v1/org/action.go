@@ -118,7 +118,7 @@ func CreateOrgSecret(ctx *context.APIContext) {
 func UpdateOrgSecret(ctx *context.APIContext) {
 	// swagger:operation PUT /orgs/{org}/actions/secrets/{secretname} organization updateOrgSecret
 	// ---
-	// summary: Update a secret in an organization
+	// summary: Update a secret value in an organization
 	// consumes:
 	// - application/json
 	// produces:
