@@ -4,20 +4,20 @@
 		<div class="ui two horizontal center list">
 			{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo)}}
 				<div class="item{{if .PageIsCommits}} active{{end}}">
-					<a href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}">{{svg "octicon-history"}} <b>{{.locale.PrettyNumber .CommitsCount}}</b> {{.locale.TrN .CommitsCount "repo.commit" "repo.commits"}}</a>
+					<a class="flex-text-inline" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}">{{svg "octicon-history"}} <b>{{.locale.PrettyNumber .CommitsCount}}</b> {{.locale.TrN .CommitsCount "repo.commit" "repo.commits"}}</a>
 				</div>
 				<div class="item{{if .PageIsBranches}} active{{end}}">
-					<a href="{{.RepoLink}}/branches">{{svg "octicon-git-branch"}} <b>{{.locale.PrettyNumber .BranchesCount}}</b> {{.locale.TrN .BranchesCount "repo.branch" "repo.branches"}}</a>
+					<a class="flex-text-inline" href="{{.RepoLink}}/branches">{{svg "octicon-git-branch"}} <b>{{.locale.PrettyNumber .BranchesCount}}</b> {{.locale.TrN .BranchesCount "repo.branch" "repo.branches"}}</a>
 				</div>
 				{{if $.Permission.CanRead $.UnitTypeCode}}
 					<div class="item{{if .PageIsTagList}} active{{end}}">
-						<a href="{{.RepoLink}}/tags">{{svg "octicon-tag"}} <b>{{.locale.PrettyNumber .NumTags}}</b> {{.locale.TrN .NumTags "repo.tag" "repo.tags"}}</a>
+						<a class="flex-text-inline" href="{{.RepoLink}}/tags">{{svg "octicon-tag"}} <b>{{.locale.PrettyNumber .NumTags}}</b> {{.locale.TrN .NumTags "repo.tag" "repo.tags"}}</a>
 					</div>
 				{{end}}
 				<div class="item" {{if not (eq .Repository.Size 0)}}data-tooltip-content="{{.Repository.SizeDetailsString}}"{{end}}>
 					{{$fileSizeFormatted := FileSize .Repository.Size}}{{/* the formatted string is always "{val} {unit}" */}}
 					{{$fileSizeFields := StringUtils.Split $fileSizeFormatted " "}}
-					<span>{{svg "octicon-database"}} <b>{{.locale.PrettyNumber (index $fileSizeFields 0)}}</b> {{index $fileSizeFields 1}}</span>
+					<span class="flex-text-inline">{{svg "octicon-database"}} <b>{{.locale.PrettyNumber (index $fileSizeFields 0)}}</b> {{index $fileSizeFields 1}}</span>
 				</div>
 			{{end}}
 		</div>
