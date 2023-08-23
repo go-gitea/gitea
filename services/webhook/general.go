@@ -194,6 +194,10 @@ func getPullRequestPayloadInfo(p *api.PullRequestPayload, linkFormatter linkForm
 	case api.HookIssueReviewed:
 		text = fmt.Sprintf("[%s] Pull request reviewed: %s", repoLink, titleLink)
 		attachmentText = p.Review.Content
+	case api.HookIssueReviewRequested:
+		text = fmt.Sprintf("[%s] Pull request review requested: %s", repoLink, titleLink)
+	case api.HookIssueReviewRequestRemoved:
+		text = fmt.Sprintf("[%s] Pull request review request removed: %s", repoLink, titleLink)
 	}
 	if withSender {
 		text += fmt.Sprintf(" by %s", linkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName))
@@ -319,5 +323,6 @@ func ToHook(repoLink string, w *webhook_model.Webhook) (*api.Hook, error) {
 		AuthorizationHeader: authorizationHeader,
 		Updated:             w.UpdatedUnix.AsTime(),
 		Created:             w.CreatedUnix.AsTime(),
+		BranchFilter:        w.BranchFilter,
 	}, nil
 }

@@ -340,6 +340,7 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 				return
 			}
 			ctx.Repo.Commit = commit
+			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
 			ctx.Repo.TreePath = ctx.Params("*")
 			next.ServeHTTP(w, req)
 			return

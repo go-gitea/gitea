@@ -97,6 +97,8 @@ type Label struct {
 	QueryString       string `xorm:"-"`
 	IsSelected        bool   `xorm:"-"`
 	IsExcluded        bool   `xorm:"-"`
+
+	ArchivedUnix timeutil.TimeStamp `xorm:"DEFAULT NULL"`
 }
 
 func init() {
@@ -107,6 +109,15 @@ func init() {
 // CalOpenIssues sets the number of open issues of a label based on the already stored number of closed issues.
 func (l *Label) CalOpenIssues() {
 	l.NumOpenIssues = l.NumIssues - l.NumClosedIssues
+}
+
+// SetArchived set the label as archived
+func (l *Label) SetArchived(isArchived bool) {
+	if isArchived && l.ArchivedUnix.IsZero() {
+		l.ArchivedUnix = timeutil.TimeStampNow()
+	} else {
+		l.ArchivedUnix = timeutil.TimeStamp(0)
+	}
 }
 
 // CalOpenOrgIssues calculates the open issues of a label for a specific repo
@@ -151,6 +162,11 @@ func (l *Label) LoadSelectedLabelsAfterClick(currentSelectedLabels []int64, curr
 // BelongsToOrg returns true if label is an organization label
 func (l *Label) BelongsToOrg() bool {
 	return l.OrgID > 0
+}
+
+// IsArchived returns true if label is an archived
+func (l *Label) IsArchived() bool {
+	return l.ArchivedUnix > 0
 }
 
 // BelongsToRepo returns true if label is a repository label
@@ -211,7 +227,7 @@ func UpdateLabel(l *Label) error {
 	}
 	l.Color = color
 
-	return updateLabelCols(db.DefaultContext, l, "name", "description", "color", "exclusive")
+	return updateLabelCols(db.DefaultContext, l, "name", "description", "color", "exclusive", "archived_unix")
 }
 
 // DeleteLabel delete a label
@@ -272,12 +288,12 @@ func GetLabelByID(ctx context.Context, labelID int64) (*Label, error) {
 }
 
 // GetLabelsByIDs returns a list of labels by IDs
-func GetLabelsByIDs(labelIDs []int64) ([]*Label, error) {
+func GetLabelsByIDs(labelIDs []int64, cols ...string) ([]*Label, error) {
 	labels := make([]*Label, 0, len(labelIDs))
 	return labels, db.GetEngine(db.DefaultContext).Table("label").
 		In("id", labelIDs).
 		Asc("name").
-		Cols("id", "repo_id", "org_id").
+		Cols(cols...).
 		Find(&labels)
 }
 
@@ -474,6 +490,18 @@ func GetLabelsByOrgID(ctx context.Context, orgID int64, sortType string, listOpt
 	}
 
 	return labels, sess.Find(&labels)
+}
+
+// GetLabelIDsByNames returns a list of labelIDs by names.
+// It doesn't filter them by repo or org, so it could return labels belonging to different repos/orgs.
+// It's used for filtering issues via indexer, otherwise it would be useless.
+// Since it could return labels with the same name, so the length of returned ids could be more than the length of names.
+func GetLabelIDsByNames(ctx context.Context, labelNames []string) ([]int64, error) {
+	labelIDs := make([]int64, 0, len(labelNames))
+	return labelIDs, db.GetEngine(ctx).Table("label").
+		In("name", labelNames).
+		Cols("id").
+		Find(&labelIDs)
 }
 
 // CountLabelsByOrgID count all labels that belong to given organization by ID.

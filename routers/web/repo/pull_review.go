@@ -259,8 +259,8 @@ type viewedFilesUpdate struct {
 
 func UpdateViewedFiles(ctx *context.Context) {
 	// Find corresponding PR
-	issue := checkPullInfo(ctx)
-	if ctx.Written() {
+	issue, ok := getPullInfo(ctx)
+	if !ok {
 		return
 	}
 	pull := issue.PullRequest

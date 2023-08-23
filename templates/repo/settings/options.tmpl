@@ -58,7 +58,7 @@
 				</div>
 				<div class="field">
 					<button class="ui green button">{{$.locale.Tr "settings.update_avatar"}}</button>
-					<button class="ui red button link-action" data-url="{{.Link}}/avatar/delete" data-redirect="{{.Link}}">{{$.locale.Tr "settings.delete_current_avatar"}}</button>
+					<button class="ui red button link-action" data-url="{{.Link}}/avatar/delete">{{$.locale.Tr "settings.delete_current_avatar"}}</button>
 				</div>
 			</form>
 		</div>
@@ -83,13 +83,15 @@
 					{{$.locale.Tr "repo.settings.mirror_settings.docs"}}
 					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pushing-to<ing-to-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br><br>
 					{{$.locale.Tr "repo.settings.mirror_settings.docs.pull_mirror_instructions"}}
-					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pulling-from-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br>
+					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pulling-from-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_pull_section"}}</a><br>
 				{{else if $onlyNewPushMirrorsEnabled}}
 					{{$.locale.Tr "repo.settings.mirror_settings.docs.disabled_pull_mirror.instructions"}}
+					{{$.locale.Tr "repo.settings.mirror_settings.docs.more_information_if_disabled"}}
 					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pulling-from-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br>
 				{{else if $onlyNewPullMirrorsEnabled}}
 					{{$.locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.instructions"}}
 					{{$.locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.pull_mirror_warning"}}
+					{{$.locale.Tr "repo.settings.mirror_settings.docs.more_information_if_disabled"}}
 					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pulling-from-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br><br>
 					{{$.locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.info"}}
 					{{if $existingPushMirror}}
@@ -203,17 +205,27 @@
 							<td>{{$.locale.Tr "repo.settings.mirror_settings.direction.push"}}</td>
 							<td>{{if .LastUpdateUnix}}{{DateTime "full" .LastUpdateUnix}}{{else}}{{$.locale.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label" data-tooltip-content="{{.LastError}}">{{$.locale.Tr "error"}}</div>{{end}}</td>
 							<td class="right aligned">
-								<form method="post" class="gt-dib">
-									{{$.CsrfTokenHtml}}
-									<input type="hidden" name="action" value="push-mirror-remove">
-									<input type="hidden" name="push_mirror_id" value="{{.ID}}">
-									<button class="ui basic red tiny button inline text-thin">{{$.locale.Tr "remove"}}</button>
-								</form>
+								<button
+									class="ui tiny button show-modal"
+									data-modal="#push-mirror-edit-modal"
+									data-tooltip-content="{{$.locale.Tr "repo.settings.mirror_settings.push_mirror.edit_sync_time"}}"
+									data-modal-push-mirror-edit-id="{{.ID}}"
+									data-modal-push-mirror-edit-interval="{{.Interval}}"
+									data-modal-push-mirror-edit-address="{{$address.Address}}"
+								>
+									{{svg "octicon-pencil" 14}}
+								</button>
 								<form method="post" class="gt-dib">
 									{{$.CsrfTokenHtml}}
 									<input type="hidden" name="action" value="push-mirror-sync">
 									<input type="hidden" name="push_mirror_id" value="{{.ID}}">
-									<button class="ui primary tiny button inline text-thin">{{$.locale.Tr "repo.settings.sync_mirror"}}</button>
+									<button class="ui primary tiny button" data-tooltip-content="{{$.locale.Tr "repo.settings.sync_mirror"}}">{{svg "octicon-sync" 14}}</button>
+								</form>
+								<form method="post" class="gt-dib">
+									{{$.CsrfTokenHtml}}
+									<input type="hidden" name="action" value="push-mirror-remove">
+									<input type="hidden" name="push_mirror_id" value="{{.ID}}">
+									<button class="ui basic red tiny button" data-tooltip-content="{{$.locale.Tr "remove"}}">{{svg "octicon-trash" 14}}</button>
 								</form>
 							</td>
 						</tr>
@@ -670,9 +682,11 @@
 				{{end}}
 				<h4 class="ui header">{{.locale.Tr "repo.settings.admin_stats_indexer"}}</h4>
 				<div class="inline fields">
-					<label>{{.locale.Tr "repo.settings.admin_indexer_commit_sha"}}</label>
+					{{if and .StatsIndexerStatus .StatsIndexerStatus.CommitSha}}
+						<label>{{.locale.Tr "repo.settings.admin_indexer_commit_sha"}}</label>
+					{{end}}
 					<span class="field">
-						{{if .StatsIndexerStatus}}
+						{{if and .StatsIndexerStatus .StatsIndexerStatus.CommitSha}}
 							<a rel="nofollow" class="ui sha label" href="{{.RepoLink}}/commit/{{.StatsIndexerStatus.CommitSha}}">
 								<span class="shortsha">{{ShortSha .StatsIndexerStatus.CommitSha}}</span>
 							</a>
@@ -692,103 +706,96 @@
 		<h4 class="ui top attached error header">
 			{{.locale.Tr "repo.settings.danger_zone"}}
 		</h4>
-		<div class="ui attached error table danger segment">
-			{{if .Repository.IsMirror}}
-				<div class="item">
-					<div class="ui right">
-						<button class="ui basic red show-modal button" data-modal="#convert-mirror-repo-modal">{{.locale.Tr "repo.settings.convert"}}</button>
+		<div class="ui attached error danger segment">
+			<div class="flex-list">
+				{{if .Repository.IsMirror}}
+					<div class="flex-item">
+						<div class="flex-item-main">
+							<div class="flex-item-title">{{.locale.Tr "repo.settings.convert"}}</div>
+							<div class="flex-item-body">{{.locale.Tr "repo.settings.convert_desc"}}</div>
+						</div>
+						<div class="flex-item-trailing">
+							<button class="ui basic red show-modal button" data-modal="#convert-mirror-repo-modal">{{.locale.Tr "repo.settings.convert"}}</button>
+						</div>
 					</div>
-					<div>
-						<h5>{{.locale.Tr "repo.settings.convert"}}</h5>
-						<p>{{.locale.Tr "repo.settings.convert_desc"}}</p>
+				{{end}}
+				{{if and .Repository.IsFork .Repository.Owner.CanCreateRepo}}
+					<div class="flex-item">
+						<div class="flex-item-main">
+							<div class="flex-item-title">{{.locale.Tr "repo.settings.convert_fork"}}</div>
+							<div class="flex-item-body">{{.locale.Tr "repo.settings.convert_fork_desc"}}</div>
+						</div>
+						<div class="flex-item-trailing">
+							<button class="ui basic red show-modal button" data-modal="#convert-fork-repo-modal">{{.locale.Tr "repo.settings.convert_fork"}}</button>
+						</div>
 					</div>
-				</div>
-				<div class="divider"></div>
-			{{end}}
-			{{if and .Repository.IsFork .Repository.Owner.CanCreateRepo}}
-				<div class="item">
-					<div class="ui right">
-						<button class="ui basic red show-modal button" data-modal="#convert-fork-repo-modal">{{.locale.Tr "repo.settings.convert_fork"}}</button>
-					</div>
-					<div>
-						<h5>{{.locale.Tr "repo.settings.convert_fork"}}</h5>
-						<p>{{.locale.Tr "repo.settings.convert_fork_desc"}}</p>
-					</div>
-				</div>
-				<div class="divider"></div>
-			{{end}}
-			<div class="item">
-				<div class="ui right">
-					{{if .RepoTransfer}}
-						<form class="ui form" action="{{.Link}}" method="post">
-							{{.CsrfTokenHtml}}
-							<input type="hidden" name="action" value="cancel_transfer">
-							<button class="ui red button">{{.locale.Tr "repo.settings.transfer_abort"}}</button>
-						</form>
-					{{else}}
-						<button class="ui basic red show-modal button" data-modal="#transfer-repo-modal">{{.locale.Tr "repo.settings.transfer"}}</button>
-					{{end}}
-				</div>
-				<div>
-					<h5>{{.locale.Tr "repo.settings.transfer"}}</h5>
-					{{if .RepoTransfer}}
-						<p>{{.locale.Tr "repo.settings.transfer_started" .RepoTransfer.Recipient.DisplayName}}</p>
-					{{else}}
-						<p>{{.locale.Tr "repo.settings.transfer_desc"}}</p>
-					{{end}}
-				</div>
-			</div>
-
-			{{if .Permission.CanRead $.UnitTypeWiki}}
-				<div class="divider"></div>
-
-				<div class="item">
-					<div class="ui right">
-						<button class="ui basic red show-modal button" data-modal="#delete-wiki-modal">{{.locale.Tr "repo.settings.wiki_delete"}}</button>
-					</div>
-					<div>
-						<h5>{{.locale.Tr "repo.settings.wiki_delete"}}</h5>
-						<p>{{.locale.Tr "repo.settings.wiki_delete_desc"}}</p>
-					</div>
-				</div>
-			{{end}}
-
-			<div class="divider"></div>
-
-			<div class="item">
-				<div class="ui right">
-					<button class="ui basic red show-modal button" data-modal="#delete-repo-modal">{{.locale.Tr "repo.settings.delete"}}</button>
-				</div>
-				<div>
-					<h5>{{.locale.Tr "repo.settings.delete"}}</h5>
-					<p>{{.locale.Tr "repo.settings.delete_desc"}}</p>
-				</div>
-			</div>
-
-			{{if not .Repository.IsMirror}}
-				<div class="divider"></div>
-
-				<div class="item">
-					<div class="ui right">
-						<button class="ui basic red show-modal button" data-modal="#archive-repo-modal">
-							{{if .Repository.IsArchived}}
-								{{.locale.Tr "repo.settings.unarchive.button"}}
+				{{end}}
+				<div class="flex-item">
+					<div class="flex-item-main">
+						<div class="flex-item-title">{{.locale.Tr "repo.settings.transfer"}}</div>
+						<div class="flex-item-body">
+							{{if .RepoTransfer}}
+								{{.locale.Tr "repo.settings.transfer_started" .RepoTransfer.Recipient.DisplayName}}
 							{{else}}
-								{{.locale.Tr "repo.settings.archive.button"}}
+								{{.locale.Tr "repo.settings.transfer_desc"}}
 							{{end}}
-						</button>
+						</div>
 					</div>
-					<div>
-						{{if .Repository.IsArchived}}
-							<h5>{{.locale.Tr "repo.settings.unarchive.header"}}</h5>
-							<p>{{.locale.Tr "repo.settings.unarchive.text"}}</p>
+					<div class="flex-item-trailing">
+						{{if .RepoTransfer}}
+							<form class="ui form" action="{{.Link}}" method="post">
+								{{.CsrfTokenHtml}}
+								<input type="hidden" name="action" value="cancel_transfer">
+								<button class="ui red button">{{.locale.Tr "repo.settings.transfer_abort"}}</button>
+							</form>
 						{{else}}
-							<h5>{{.locale.Tr "repo.settings.archive.header"}}</h5>
-							<p>{{.locale.Tr "repo.settings.archive.text"}}</p>
+							<button class="ui basic red show-modal button" data-modal="#transfer-repo-modal">{{.locale.Tr "repo.settings.transfer"}}</button>
 						{{end}}
 					</div>
 				</div>
-			{{end}}
+				{{if .Permission.CanRead $.UnitTypeWiki}}
+					<div class="flex-item">
+						<div class="flex-item-main">
+							<div class="flex-item-title">{{.locale.Tr "repo.settings.wiki_delete"}}</div>
+							<div class="flex-item-body">{{.locale.Tr "repo.settings.wiki_delete_desc"}}</div>
+						</div>
+						<div class="flex-item-trailing">
+							<button class="ui basic red show-modal button" data-modal="#delete-wiki-modal">{{.locale.Tr "repo.settings.wiki_delete"}}</button>
+						</div>
+					</div>
+				{{end}}
+				<div class="flex-item">
+					<div class="flex-item-main">
+						<div class="flex-item-title">{{.locale.Tr "repo.settings.delete"}}</div>
+						<div class="flex-item-body">{{.locale.Tr "repo.settings.delete_desc"}}</div>
+					</div>
+					<div class="flex-item-trailing">
+						<button class="ui basic red show-modal button" data-modal="#delete-repo-modal">{{.locale.Tr "repo.settings.delete"}}</button>
+					</div>
+				</div>
+				{{if not .Repository.IsMirror}}
+					<div class="flex-item flex-item-center">
+						<div class="flex-item-main">
+							{{if .Repository.IsArchived}}
+								<div class="flex-item-title">{{.locale.Tr "repo.settings.unarchive.header"}}</div>
+								<div class="flex-item-body">{{.locale.Tr "repo.settings.unarchive.text"}}</div>
+							{{else}}
+								<div class="flex-item-title">{{.locale.Tr "repo.settings.archive.header"}}</div>
+								<div class="flex-item-body">{{.locale.Tr "repo.settings.archive.text"}}</div>
+							{{end}}
+						</div>
+						<div class="flex-item-trailing">
+							<button class="ui basic red show-modal button" data-modal="#archive-repo-modal">
+								{{if .Repository.IsArchived}}
+									{{.locale.Tr "repo.settings.unarchive.button"}}
+								{{else}}
+									{{.locale.Tr "repo.settings.archive.button"}}
+								{{end}}
+							</button>
+						</div>
+					</div>
+				{{end}}
+			</div>
 		</div>
 		{{end}}
 	</div>
@@ -987,3 +994,5 @@
 		</div>
 	{{end}}
 {{end}}
+
+{{template "repo/settings/push_mirror_sync_modal" .}}
