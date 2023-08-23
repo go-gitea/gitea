@@ -145,7 +145,7 @@ func UpdateOrgSecret(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	secretName := ctx.Params(":secretname")
 	opt := web.GetForm(ctx).(*api.UpdateSecretOption)
-	err := secret_model.ChangeSecret(
+	err := secret_model.UpdateSecret(
 		ctx, ctx.Org.Organization.ID, 0, secretName, opt.Data,
 	)
 	if err != nil {

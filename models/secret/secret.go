@@ -95,8 +95,8 @@ func CountSecrets(ctx context.Context, opts *FindSecretsOptions) (int64, error) 
 	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(Secret))
 }
 
-// ChangeSecret changes org or user reop secret.
-func ChangeSecret(ctx context.Context, orgID, repoID int64, name, data string) error {
+// UpdateSecret changes org or user reop secret.
+func UpdateSecret(ctx context.Context, orgID, repoID int64, name, data string) error {
 	sc := new(Secret)
 	has, err := db.GetEngine(ctx).
 		Where("owner_id=?", orgID).
