@@ -54,7 +54,7 @@ func startTasks(ctx context.Context) error {
 			schedule, err := row.Parse()
 			if err != nil {
 				log.Error("Parse: %v", err)
-				continue
+				return err
 			}
 
 			// Update the spec's next run time and previous run time
