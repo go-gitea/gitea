@@ -200,8 +200,8 @@ const (
 )
 
 // HasRole returns if a role is not none
-func (r Role) HasRole() bool {
-	return r.Role != ""
+func (rd RoleDescriptor) HasRole() bool {
+	return rd.Role != ""
 }
 
 // LocaleString returns the locale string name of the Status
