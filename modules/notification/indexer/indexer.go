@@ -36,18 +36,7 @@ func (r *indexerNotifier) NotifyAdoptRepository(ctx context.Context, doer, u *us
 func (r *indexerNotifier) NotifyCreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,
 	issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User,
 ) {
-	if comment.Type == issues_model.CommentTypeComment {
-		if issue.Comments == nil {
-			if err := issue.LoadDiscussComments(ctx); err != nil {
-				log.Error("LoadDiscussComments failed: %v", err)
-				return
-			}
-		} else {
-			issue.Comments = append(issue.Comments, comment)
-		}
-
-		issue_indexer.UpdateIssueIndexer(issue.ID)
-	}
+	issue_indexer.UpdateIssueIndexer(issue.ID)
 }
 
 func (r *indexerNotifier) NotifyNewIssue(ctx context.Context, issue *issues_model.Issue, mentions []*user_model.User) {
@@ -55,42 +44,27 @@ func (r *indexerNotifier) NotifyNewIssue(ctx context.Context, issue *issues_mode
 }
 
 func (r *indexerNotifier) NotifyNewPullRequest(ctx context.Context, pr *issues_model.PullRequest, mentions []*user_model.User) {
+	if err := pr.LoadIssue(ctx); err != nil {
+		log.Error("LoadIssue: %v", err)
+		return
+	}
 	issue_indexer.UpdateIssueIndexer(pr.Issue.ID)
 }
 
 func (r *indexerNotifier) NotifyUpdateComment(ctx context.Context, doer *user_model.User, c *issues_model.Comment, oldContent string) {
-	// Whatever the comment type is, just update the issue indexer.
-	// So that the issue indexer will be updated when Status/Assignee/Label and so on changed.
+	if err := c.LoadIssue(ctx); err != nil {
+		log.Error("LoadIssue: %v", err)
+		return
+	}
 	issue_indexer.UpdateIssueIndexer(c.Issue.ID)
 }
 
 func (r *indexerNotifier) NotifyDeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) {
-	if comment.Type == issues_model.CommentTypeComment {
-		if err := comment.LoadIssue(ctx); err != nil {
-			log.Error("LoadIssue: %v", err)
-			return
-		}
-
-		var found bool
-		if comment.Issue.Comments != nil {
-			for i := 0; i < len(comment.Issue.Comments); i++ {
-				if comment.Issue.Comments[i].ID == comment.ID {
-					comment.Issue.Comments = append(comment.Issue.Comments[:i], comment.Issue.Comments[i+1:]...)
-					found = true
-					break
-				}
-			}
-		}
-
-		if !found {
-			if err := comment.Issue.LoadDiscussComments(ctx); err != nil {
-				log.Error("LoadDiscussComments failed: %v", err)
-				return
-			}
-		}
-		// reload comments to delete the old comment
-		issue_indexer.UpdateIssueIndexer(comment.Issue.ID)
+	if err := comment.LoadIssue(ctx); err != nil {
+		log.Error("LoadIssue: %v", err)
+		return
 	}
+	issue_indexer.UpdateIssueIndexer(comment.Issue.ID)
 }
 
 func (r *indexerNotifier) NotifyDeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository) {

@@ -559,7 +559,7 @@ And the following unique queues:
     - `scrypt`:    `scrypt$65536$16$2$50`
   - Adjusting the algorithm parameters using this functionality is done at your own risk.
 - `CSRF_COOKIE_HTTP_ONLY`: **true**: Set false to allow JavaScript to read CSRF cookie.
-- `MIN_PASSWORD_LENGTH`: **6**: Minimum password length for new users.
+- `MIN_PASSWORD_LENGTH`: **8**: Minimum password length for new users.
 - `PASSWORD_COMPLEXITY`: **off**: Comma separated list of character classes required to pass minimum complexity. If left empty or no valid values are specified, checking is disabled (off):
   - lower - use one or more lower latin characters
   - upper - use one or more upper latin characters
@@ -1100,6 +1100,7 @@ This section only does "set" config, a removed config key from this section won'
 - `JWT_SECRET_URI`: **_empty_**: Instead of defining JWT_SECRET in the configuration, this configuration option can be used to give Gitea a path to a file that contains the secret (example value: `file:/etc/gitea/oauth2_jwt_secret`)
 - `JWT_SIGNING_PRIVATE_KEY_FILE`: **jwt/private.pem**: Private key file path used to sign OAuth2 tokens. The path is relative to `APP_DATA_PATH`. This setting is only needed if `JWT_SIGNING_ALGORITHM` is set to `RS256`, `RS384`, `RS512`, `ES256`, `ES384` or `ES512`. The file must contain a RSA or ECDSA private key in the PKCS8 format. If no key exists a 4096 bit key will be created for you.
 - `MAX_TOKEN_LENGTH`: **32767**: Maximum length of token/cookie to accept from OAuth2 provider
+- `DEFAULT_APPLICATIONS`: **git-credential-oauth, git-credential-manager**: Pre-register OAuth applications for some services on startup. See the [OAuth2 documentation](/development/oauth2-provider.md) for the list of available options.
 
 ## i18n (`i18n`)
 

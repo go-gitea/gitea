@@ -17,8 +17,8 @@ func AddCreatedAndUpdatedToMilestones(x *xorm.Engine) error {
 		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
 
-	if err := x.Sync2(new(Milestone)); err != nil {
-		return fmt.Errorf("Sync2: %w", err)
+	if err := x.Sync(new(Milestone)); err != nil {
+		return fmt.Errorf("Sync: %w", err)
 	}
 	return nil
 }
