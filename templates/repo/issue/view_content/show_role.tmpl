@@ -3,8 +3,7 @@
 		{{ctx.Locale.Tr "repo.issues.author"}}
 	</div>
 {{end}}
-
-{{if (.ShowRole.Role.HasRole)}}
+{{if .ShowRole.Role}}
 	<div class="ui basic label role-label" data-tooltip-content="{{.ShowRole.Role.LocaleHelper ctx.Locale}}">
 		{{.ShowRole.Role.LocaleString ctx.Locale}}
 	</div>

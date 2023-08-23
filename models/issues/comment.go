@@ -199,19 +199,14 @@ const (
 	RoleDescriptorContributor          Role = "contributor"
 )
 
-// HasRole returns if a role is not none
-func (rd RoleDescriptor) HasRole() bool {
-	return rd.Role != ""
-}
-
 // LocaleString returns the locale string name of the Status
 func (r Role) LocaleString(lang translation.Locale) string {
-	return lang.Tr("repo.issues.role." + r.Role)
+	return lang.Tr("repo.issues.role." + string(r))
 }
 
 // LocaleHelper returns the locale string name of the Status
 func (r Role) LocaleHelper(lang translation.Locale) string {
-	return lang.Tr("repo.issues.role." + r.Role + "_helper")
+	return lang.Tr("repo.issues.role." + string(r) + "_helper")
 }
 
 // Comment represents a comment in commit and issue page.
