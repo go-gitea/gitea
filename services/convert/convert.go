@@ -186,7 +186,7 @@ func ToActionTask(ctx context.Context, repo *repo_model.Repository, t *actions_m
 		log.Warn("LoadAttributes of ActionTask: %v", err)
 	}
 	return &api.ActionTask{
-		ID:         t.Job.RunID,
+		ID:         t.Job.Run.Index,
 		JobName:    t.Job.Name,
 		WorkflowID: t.Job.Run.WorkflowID,
 		Title:      t.Job.Run.Title,
