@@ -1,29 +1,37 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin view user")}}
 
 <div class="admin-setting-content">
-	<div class="ui two column stackable grid">
+	<div class="admin-responsive-columns">
 		<div class="column">
 			<h4 class="ui top attached header">
 				{{.Title}}
 				<div class="ui right">
-					<a class="ui primary tiny button" href="{{.Link}}/edit">{{.locale.Tr "admin.users.edit"}}</a>
+					<a class="ui primary tiny button" href="{{.Link}}/edit">{{ctx.Locale.Tr "admin.users.edit"}}</a>
 				</div>
 			</h4>
 			<div class="ui attached segment">
 				<div class="flex-list">
 					<div class="flex-item">
 						<div class="flex-item-leading">
-							{{avatar $.Context .User 48}}
+							{{ctx.AvatarUtils.Avatar .User 48}}
 						</div>
 						<div class="flex-item-main">
 							<div class="flex-item-title">
 								{{template "shared/user/name" .User}}
 								{{if .User.IsAdmin}}
-									<span class="ui basic label">{{.locale.Tr "admin.users.admin"}}</span>
+									<span class="ui basic label">{{ctx.Locale.Tr "admin.users.admin"}}</span>
 								{{end}}
 							</div>
 							<div class="flex-item-body">
-								{{$.locale.Tr "admin.users.activated"}}
+								<b>{{ctx.Locale.Tr "admin.users.auth_source"}}:</b>
+								{{if eq .LoginSource.ID 0 }}
+									{{ctx.Locale.Tr "admin.users.local"}}
+								{{else}}
+									{{.LoginSource.Name}}
+								{{end}}
+							</div>
+							<div class="flex-item-body">
+								<b>{{ctx.Locale.Tr "admin.users.activated"}}:</b>
 								<strong>
 									{{if .User.IsActive}}
 										{{svg "octicon-check"}}
@@ -33,7 +41,7 @@
 								</strong>
 							</div>
 							<div class="flex-item-body">
-								{{$.locale.Tr "admin.users.restricted"}}
+								<b>{{ctx.Locale.Tr "admin.users.restricted"}}:</b>
 								<strong>
 									{{if .User.IsRestricted}}
 										{{svg "octicon-check"}}
@@ -43,7 +51,12 @@
 								</strong>
 							</div>
 							<div class="flex-item-body">
-								{{$.locale.Tr "admin.users.2fa"}}
+								<b>{{ctx.Locale.Tr "settings.visibility"}}:</b>
+								{{if .User.Visibility.IsLimited}}{{ctx.Locale.Tr "settings.visibility.limited"}}{{end}}
+								{{if .User.Visibility.IsPrivate}}{{ctx.Locale.Tr "settings.visibility.private"}}{{end}}
+							</div>
+							<div class="flex-item-body">
+								<b>{{ctx.Locale.Tr "admin.users.2fa"}}:</b>
 								<strong>
 									{{if .TwoFactorEnabled}}
 										<span class="text green">{{svg "octicon-check"}}</span>
@@ -52,6 +65,19 @@
 									{{end}}
 								</strong>
 							</div>
+							{{if .User.Location}}
+								<div class="flex-item-body">
+									<span class="flex-text-inline">{{svg "octicon-location"}}{{.User.Location}}</span>
+								</div>
+							{{end}}
+							{{if .User.Website}}
+								<div class="flex-item-body">
+									<span class="flex-text-inline">
+										{{svg "octicon-link"}}
+										<a target="_blank" rel="noopener noreferrer me" href="{{.User.Website}}">{{.User.Website}}</a>
+									</span>
+								</div>
+							{{end}}
 						</div>
 					</div>
 				</div>
@@ -59,7 +85,7 @@
 		</div>
 		<div class="column">
 			<h4 class="ui top attached header">
-				{{.locale.Tr "admin.emails"}}
+				{{ctx.Locale.Tr "admin.emails"}}
 				<div class="ui right">
 					{{.EmailsTotal}}
 				</div>
@@ -72,12 +98,12 @@
 								<div class="flex-text-block">
 									{{.Email}}
 									{{if .IsPrimary}}
-										<div class="ui primary label">{{$.locale.Tr "settings.primary"}}</div>
+										<div class="ui primary label">{{ctx.Locale.Tr "settings.primary"}}</div>
 									{{end}}
 									{{if .IsActivated}}
-										<div class="ui green label">{{$.locale.Tr "settings.activated"}}</div>
+										<div class="ui green label">{{ctx.Locale.Tr "settings.activated"}}</div>
 									{{else}}
-										<div class="ui label">{{$.locale.Tr "settings.requires_activation"}}</div>
+										<div class="ui label">{{ctx.Locale.Tr "settings.requires_activation"}}</div>
 									{{end}}
 								</div>
 							</div>
@@ -88,13 +114,22 @@
 		</div>
 	</div>
 	<h4 class="ui top attached header">
-		{{.locale.Tr "admin.repositories"}}
+		{{ctx.Locale.Tr "admin.repositories"}}
 		<div class="ui right">
 			{{.ReposTotal}}
 		</div>
 	</h4>
 	<div class="ui attached segment">
 		{{template "explore/repo_list" .}}
+	</div>
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "settings.organization"}}
+		<div class="ui right">
+			{{.OrgsTotal}}
+		</div>
+	</h4>
+	<div class="ui attached segment">
+		{{template "explore/user_list" .}}
 	</div>
 </div>
 

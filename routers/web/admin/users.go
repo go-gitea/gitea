@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	org_model "code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
@@ -267,9 +268,10 @@ func ViewUser(ctx *context.Context) {
 		ListOptions: db.ListOptions{
 			ListAll: true,
 		},
-		OwnerID: u.ID,
-		OrderBy: db.SearchOrderByAlphabetically,
-		Private: true,
+		OwnerID:     u.ID,
+		OrderBy:     db.SearchOrderByAlphabetically,
+		Private:     true,
+		Collaborate: util.OptionalBoolFalse,
 	})
 	if err != nil {
 		ctx.ServerError("SearchRepository", err)
@@ -286,6 +288,21 @@ func ViewUser(ctx *context.Context) {
 	}
 	ctx.Data["Emails"] = emails
 	ctx.Data["EmailsTotal"] = len(emails)
+
+	orgs, err := org_model.FindOrgs(org_model.FindOrgOptions{
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		UserID:         u.ID,
+		IncludePrivate: true,
+	})
+	if err != nil {
+		ctx.ServerError("FindOrgs", err)
+		return
+	}
+
+	ctx.Data["Users"] = orgs // needed to be able to use explore/user_list template
+	ctx.Data["OrgsTotal"] = len(orgs)
 
 	ctx.HTML(http.StatusOK, tplUserView)
 }
