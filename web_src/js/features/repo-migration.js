@@ -11,6 +11,9 @@ const $lfsSettings = $('#lfs_settings');
 const $lfsEndpoint = $('#lfs_endpoint');
 const $items = $('#migrate_items').find('input[type=checkbox]');
 
+// services that supports migration items with mirroring
+const allowedServiceTypes = [2]; // 2 = GitHub service type
+
 export function initRepoMigration() {
   checkAuth();
   setLFSSettingsVisibility();
@@ -45,8 +48,7 @@ function checkItems(tokenAuth) {
     enableItems = $user.val() !== '' || $pass.val() !== '';
   }
   if (enableItems && $service.val() > 1) {
-    const allowedServices = [2]; // services that supports migration items with mirroring
-    if ($mirror.is(':checked') && !allowedServices.includes(Number($service.val()))) {
+    if ($mirror.is(':checked') && !allowedServiceTypes.includes(Number($service.val()))) {
       $items.not('[name="wiki"]').attr('disabled', true);
       $items.filter('[name="wiki"]').attr('disabled', false);
       return;
