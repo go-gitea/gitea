@@ -71,3 +71,4 @@ jobs:
 
             swagger:
               - "templates/swagger/v1_json.tmpl"
+              - "Makefile"

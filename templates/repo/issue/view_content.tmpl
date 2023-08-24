@@ -44,18 +44,7 @@
 							{{end}}
 						</div>
 						<div class="comment-header-right actions gt-df gt-ac">
-							{{if gt .Issue.ShowRole 0}}
-								{{if (.Issue.ShowRole.HasRole "Writer")}}
-									<div class="ui basic label role-label">
-										{{$.locale.Tr "repo.issues.collaborator"}}
-									</div>
-								{{end}}
-								{{if (.Issue.ShowRole.HasRole "Owner")}}
-									<div class="ui basic label role-label">
-										{{$.locale.Tr "repo.issues.owner"}}
-									</div>
-								{{end}}
-							{{end}}
+							{{template "repo/issue/view_content/show_role" dict "ShowRole" .Issue.ShowRole "IgnorePoster" true}}
 							{{if not $.Repository.IsArchived}}
 								{{template "repo/issue/view_content/add_reaction" dict "ctxData" $ "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index)}}
 								{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" .Issue "delete" false "issue" true "diff" false "IsCommentPoster" $.IsIssuePoster}}

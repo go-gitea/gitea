@@ -17,6 +17,7 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/base"
@@ -258,29 +259,33 @@ func ViewPost(ctx *context_module.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func RerunOne(ctx *context_module.Context) {
+// Rerun will rerun jobs in the given run
+// jobIndex = 0 means rerun all jobs
+func Rerun(ctx *context_module.Context) {
 	runIndex := ctx.ParamsInt64("run")
 	jobIndex := ctx.ParamsInt64("job")
 
-	job, _ := getRunJobs(ctx, runIndex, jobIndex)
-	if ctx.Written() {
-		return
-	}
-
-	if err := rerunJob(ctx, job); err != nil {
+	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
+	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusOK, struct{}{})
-}
+	// can not rerun job when workflow is disabled
+	cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
+	cfg := cfgUnit.ActionsConfig()
+	if cfg.IsWorkflowDisabled(run.WorkflowID) {
+		ctx.JSONError(ctx.Locale.Tr("actions.workflow.disabled"))
+		return
+	}
 
-func RerunAll(ctx *context_module.Context) {
-	runIndex := ctx.ParamsInt64("run")
-
-	_, jobs := getRunJobs(ctx, runIndex, 0)
+	job, jobs := getRunJobs(ctx, runIndex, jobIndex)
 	if ctx.Written() {
 		return
+	}
+
+	if jobIndex != 0 {
+		jobs = []*actions_model.ActionRunJob{job}
 	}
 
 	for _, j := range jobs {
@@ -571,4 +576,44 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 			return
 		}
 	}
+}
+
+func DisableWorkflowFile(ctx *context_module.Context) {
+	disableOrEnableWorkflowFile(ctx, false)
+}
+
+func EnableWorkflowFile(ctx *context_module.Context) {
+	disableOrEnableWorkflowFile(ctx, true)
+}
+
+func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
+	workflow := ctx.FormString("workflow")
+	if len(workflow) == 0 {
+		ctx.ServerError("workflow", nil)
+		return
+	}
+
+	cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
+	cfg := cfgUnit.ActionsConfig()
+
+	if isEnable {
+		cfg.EnableWorkflow(workflow)
+	} else {
+		cfg.DisableWorkflow(workflow)
+	}
+
+	if err := repo_model.UpdateRepoUnit(cfgUnit); err != nil {
+		ctx.ServerError("UpdateRepoUnit", err)
+		return
+	}
+
+	if isEnable {
+		ctx.Flash.Success(ctx.Tr("actions.workflow.enable_success", workflow))
+	} else {
+		ctx.Flash.Success(ctx.Tr("actions.workflow.disable_success", workflow))
+	}
+
+	redirectURL := fmt.Sprintf("%s/actions?workflow=%s&actor=%s&status=%s", ctx.Repo.RepoLink, url.QueryEscape(workflow),
+		url.QueryEscape(ctx.FormString("actor")), url.QueryEscape(ctx.FormString("status")))
+	ctx.JSONRedirect(redirectURL)
 }
