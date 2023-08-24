@@ -4,7 +4,7 @@ Why we need to disable form autofill:
 2. We have `areYouSure` confirm dialog if a user leaves a pages without submit.
 Autofill will make the form changed even if the user didn't input anything. Then the user keeps seeing annoying confirm dialog.
 
-In history, Gitea put `<input dir="auto" class="fake" type="password">` in forms to bypass the autofill,
+In history, Gitea put `<input class="fake" type="password">` in forms to bypass the autofill,
 but there were still many forms suffered the autofill problem.
 
 Now we improve it.
