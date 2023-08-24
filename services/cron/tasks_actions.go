@@ -18,6 +18,7 @@ func initActionsTasks() {
 	registerStopZombieTasks()
 	registerStopEndlessTasks()
 	registerCancelAbandonedJobs()
+	registerScheduleTasks()
 }
 
 func registerStopZombieTasks() {
@@ -47,5 +48,18 @@ func registerCancelAbandonedJobs() {
 		Schedule:   "@every 6h",
 	}, func(ctx context.Context, _ *user_model.User, cfg Config) error {
 		return actions_service.CancelAbandonedJobs(ctx)
+	})
+}
+
+// registerScheduleTasks registers a scheduled task that runs every minute to start any due schedule tasks.
+func registerScheduleTasks() {
+	// Register the task with a unique name, enabled status, and schedule for every minute.
+	RegisterTaskFatal("start_schedule_tasks", &BaseConfig{
+		Enabled:    true,
+		RunAtStart: false,
+		Schedule:   "@every 1m",
+	}, func(ctx context.Context, _ *user_model.User, cfg Config) error {
+		// Call the function to start schedule tasks and pass the context.
+		return actions_service.StartScheduleTasks(ctx)
 	})
 }

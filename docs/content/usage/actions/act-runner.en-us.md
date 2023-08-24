@@ -81,7 +81,7 @@ docker run --entrypoint="" --rm -it gitea/act_runner:latest act_runner generate-
 When you are using the docker image, you can specify the configuration file by using the `CONFIG_FILE` environment variable. Make sure that the file is mounted into the container as a volume:
 
 ```bash
-docker run -v $(pwd)/config.yaml:/config.yaml -e CONFIG_FILE=/config.yaml ...
+docker run -v $PWD/config.yaml:/config.yaml -e CONFIG_FILE=/config.yaml ...
 ```
 
 You may notice the commands above are both incomplete, because it is not the time to run the act runner yet.
@@ -157,8 +157,8 @@ If you are using the docker image, behaviour will be slightly different. Registr
 
 ```bash
 docker run \
-    -v $(pwd)/config.yaml:/config.yaml \
-    -v $(pwd)/data:/data \
+    -v $PWD/config.yaml:/config.yaml \
+    -v $PWD/data:/data \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -e CONFIG_FILE=/config.yaml \
     -e GITEA_INSTANCE_URL=<instance_url> \
@@ -245,8 +245,8 @@ You can find more useful images on [act images](https://github.com/nektos/act/bl
 If you want to run jobs in the host directly, you can change it to `ubuntu-22.04:host` or just `ubuntu-22.04`, the `:host` is optional.
 However, we suggest you to use a special name like `linux_amd64:host` or `windows:host` to avoid misusing it.
 
-One more thing is that it is recommended to register the runner if you want to change the labels.
-It may be annoying to do this, so we may provide a better way to do it in the future.
+Starting with Gitea 1.21, you can change labels by modifying `container.labels` in the runner configuration file (if you don't have a configuration file, please refer to [configuration tutorials](#configuration)).
+The runner will use these new labels as soon as you restart it, i.e., by calling `./act_runner daemon --config config.yaml`.
 
 ## Running
 
@@ -261,3 +261,34 @@ After you have registered the runner, you can run it by running the following co
 The runner will fetch jobs from the Gitea instance and run them automatically.
 
 Since act runner is still in development, it is recommended to check the latest version and upgrade it regularly.
+
+## Configuration variable
+
+You can create configuration variables on the user, organization and repository level.
+The level of the variable depends on where you created it.
+
+### Naming conventions
+
+The following rules apply to variable names:
+
+- Variable names can only contain alphanumeric characters (`[a-z]`, `[A-Z]`, `[0-9]`) or underscores (`_`). Spaces are not allowed.
+
+- Variable names must not start with the `GITHUB_` and `GITEA_` prefix.
+
+- Variable names must not start with a number.
+
+- Variable names are case-insensitive.
+
+- Variable names must be unique at the level they are created at.
+
+- Variable names must not be `CI`.
+
+### Using variable
+
+After creating configuration variables, they will be automatically filled in the `vars` context.
+They can be accessed through expressions like `{{ vars.VARIABLE_NAME }}` in the workflow.
+
+### Precedence
+
+If a variable with the same name exists at multiple levels, the variable at the lowest level takes precedence:
+A repository variable will always be chosen over an organization/user variable.

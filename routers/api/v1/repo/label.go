@@ -151,7 +151,6 @@ func CreateLabel(ctx *context.APIContext) {
 		return
 	}
 	form.Color = color
-
 	l := &issues_model.Label{
 		Name:        form.Name,
 		Exclusive:   form.Exclusive,
@@ -159,6 +158,7 @@ func CreateLabel(ctx *context.APIContext) {
 		RepoID:      ctx.Repo.Repository.ID,
 		Description: form.Description,
 	}
+	l.SetArchived(form.IsArchived)
 	if err := issues_model.NewLabel(ctx, l); err != nil {
 		ctx.Error(http.StatusInternalServerError, "NewLabel", err)
 		return
@@ -231,6 +231,7 @@ func EditLabel(ctx *context.APIContext) {
 	if form.Description != nil {
 		l.Description = *form.Description
 	}
+	l.SetArchived(form.IsArchived != nil && *form.IsArchived)
 	if err := issues_model.UpdateLabel(l); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateLabel", err)
 		return

@@ -30,12 +30,7 @@
 						{{range .Team.Repos}}
 							<div class="flex-item flex-item-center">
 								<div class="flex-item-leading">
-									{{$avatar := (repoAvatar . 32)}}
-									{{if $avatar}}
-										{{$avatar}}
-									{{else}}
-										{{template "repo/icon" .}}
-									{{end}}
+									{{template "repo/icon" .}}
 								</div>
 								<div class="flex-item-main">
 									<a class="flex-item-title text primary" href="{{$.Org.HomeLink}}/{{.Name | PathEscape}}">

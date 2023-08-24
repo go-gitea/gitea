@@ -6,8 +6,8 @@
 	{{end}}
 	<a class="{{if eq .TabName "repositories"}}active {{end}} item" href="{{.ContextUser.HomeLink}}?tab=repositories">
 		{{svg "octicon-repo"}} {{.locale.Tr "user.repositories"}}
-		{{if .ContextUser.NumRepos}}
-			<div class="ui small label">{{.ContextUser.NumRepos}}</div>
+		{{if .RepoCount}}
+			<div class="ui small label">{{.RepoCount}}</div>
 		{{end}}
 	</a>
 	{{if or .ContextUser.IsIndividual (and .ContextUser.IsOrganization .CanReadProjects)}}
