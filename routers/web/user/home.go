@@ -281,6 +281,19 @@ func Milestones(ctx *context.Context) {
 		}
 	}
 
+	showRepoIds := make(container.Set[int64], len(showRepos))
+	for _, repo := range showRepos {
+		if repo.ID > 0 {
+			showRepoIds.Add(repo.ID)
+		}
+	}
+	if len(repoIDs) == 0 {
+		repoIDs = showRepoIds.Values()
+	}
+	repoIDs = util.SliceRemoveAllFunc(repoIDs, func(v int64) bool {
+		return !showRepoIds.Contains(v)
+	})
+
 	var pagerCount int
 	if isShowClosed {
 		ctx.Data["State"] = "closed"
@@ -298,9 +311,7 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["MilestoneStats"] = milestoneStats
 	ctx.Data["SortType"] = sortType
 	ctx.Data["Keyword"] = keyword
-	if milestoneStats.Total() != totalMilestoneStats.Total() {
-		ctx.Data["RepoIDs"] = repoIDs
-	}
+	ctx.Data["RepoIDs"] = repoIDs
 	ctx.Data["IsShowClosed"] = isShowClosed
 
 	pager := context.NewPagination(pagerCount, setting.UI.IssuePagingNum, page, 5)
@@ -443,9 +454,20 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		AllPublic:  false,
 		AllLimited: false,
 	}
-
 	if team != nil {
 		repoOpts.TeamID = team.ID
+	}
+	{
+		ids, _, err := repo_model.SearchRepositoryIDs(repoOpts)
+		if err != nil {
+			ctx.ServerError("SearchRepositoryIDs", err)
+			return
+		}
+		opts.RepoIDs = ids
+		if len(opts.RepoIDs) == 0 {
+			// no repos found, don't let the indexer return all repos
+			opts.RepoIDs = []int64{0}
+		}
 	}
 
 	switch filterMode {
@@ -530,15 +552,13 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// Parse ctx.FormString("repos") and remember matched repo IDs for later.
 	// Gets set when clicking filters on the issues overview page.
 	repoIDs := getRepoIDs(ctx.FormString("repos"))
-	if len(repoIDs) == 0 {
-		repoIDs = accessibleRepos.Values()
-	} else {
+	if len(repoIDs) > 0 {
 		// Remove repo IDs that are not accessible to the user.
 		repoIDs = util.SliceRemoveAllFunc(repoIDs, func(v int64) bool {
 			return !accessibleRepos.Contains(v)
 		})
+		opts.RepoIDs = repoIDs
 	}
-	opts.RepoIDs = repoIDs
 
 	// ------------------------------
 	// Get issues as defined by opts.
@@ -598,6 +618,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	var issueStats *issues_model.IssueStats
 	{
 		statsOpts := issues_model.IssuesOptions{
+			RepoIDs:    repoIDs,
 			User:       ctx.Doer,
 			IsPull:     util.OptionalBoolOf(isPullList),
 			IsClosed:   util.OptionalBoolOf(isShowClosed),
@@ -735,7 +756,7 @@ func getRepoIDs(reposQuery string) []int64 {
 		return []int64{}
 	}
 	if !issueReposQueryPattern.MatchString(reposQuery) {
-		log.Warn("issueReposQueryPattern does not match query")
+		log.Warn("issueReposQueryPattern does not match query: %q", reposQuery)
 		return []int64{}
 	}
 

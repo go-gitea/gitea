@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/generate"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // LFS represents the configuration for Git LFS
@@ -56,17 +57,14 @@ func loadLFSFrom(rootCfg ConfigProvider) error {
 
 	LFS.HTTPAuthExpiry = sec.Key("LFS_HTTP_AUTH_EXPIRY").MustDuration(24 * time.Hour)
 
-	if !LFS.StartServer {
+	if !LFS.StartServer || !InstallLock {
 		return nil
 	}
 
 	LFS.JWTSecretBase64 = loadSecret(rootCfg.Section("server"), "LFS_JWT_SECRET_URI", "LFS_JWT_SECRET")
-
-	LFS.JWTSecretBytes = make([]byte, 32)
-	n, err := base64.RawURLEncoding.Decode(LFS.JWTSecretBytes, []byte(LFS.JWTSecretBase64))
-
-	if (err != nil || n != 32) && InstallLock {
-		LFS.JWTSecretBase64, err = generate.NewJwtSecretBase64()
+	LFS.JWTSecretBytes, err = util.Base64FixedDecode(base64.RawURLEncoding, []byte(LFS.JWTSecretBase64), 32)
+	if err != nil {
+		LFS.JWTSecretBytes, LFS.JWTSecretBase64, err = generate.NewJwtSecretBase64()
 		if err != nil {
 			return fmt.Errorf("error generating JWT Secret for custom config: %v", err)
 		}

@@ -77,14 +77,14 @@ func SetDefaultPasswordToArgon2(x *xorm.Engine) error {
 		type User struct {
 			PasswdHashAlgo string `xorm:"NOT NULL DEFAULT 'argon2'"`
 		}
-		return x.Sync2(new(User))
+		return x.Sync(new(User))
 	}
 	column := table.GetColumn("passwd_hash_algo")
 	if column == nil {
 		type User struct {
 			PasswdHashAlgo string `xorm:"NOT NULL DEFAULT 'argon2'"`
 		}
-		return x.Sync2(new(User))
+		return x.Sync(new(User))
 	}
 
 	tempTableName := "tmp_recreate__user"

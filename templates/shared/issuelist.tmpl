@@ -37,7 +37,7 @@
 						<div class="text grey">
 							{{range .Assignees}}
 								<a class="ui assignee gt-no-underline" href="{{.HomeLink}}" data-tooltip-content="{{.GetDisplayName}}">
-									{{avatar $.Context . 20}}
+									{{ctx.AvatarUtils.Avatar . 20}}
 								</a>
 							{{end}}
 						</div>

@@ -55,8 +55,8 @@ func NewIssueUsers(ctx context.Context, repo *repo_model.Repository, issue *Issu
 }
 
 // UpdateIssueUserByRead updates issue-user relation for reading.
-func UpdateIssueUserByRead(uid, issueID int64) error {
-	_, err := db.GetEngine(db.DefaultContext).Exec("UPDATE `issue_user` SET is_read=? WHERE uid=? AND issue_id=?", true, uid, issueID)
+func UpdateIssueUserByRead(ctx context.Context, uid, issueID int64) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `issue_user` SET is_read=? WHERE uid=? AND issue_id=?", true, uid, issueID)
 	return err
 }
 

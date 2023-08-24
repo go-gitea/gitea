@@ -25,244 +25,27 @@ You can try it out using [the online demo](https://try.gitea.io/).
 
 ## Features
 
-- User Dashboard
-  - Context switcher (organization or current user)
-  - Activity timeline
-    - Commits
-    - Issues
-    - Pull requests
-    - Repository creation
-  - Searchable repository list
-  - List of organizations
-  - A list of mirror repositories
-- Issues dashboard
-  - Context switcher (organization or current user)
-  - Filter by
-    - Open
-    - Closed
-    - Your repositories
-    - Assigned issues
-    - Your issues
-    - Repository
-  - Sort by
-    - Oldest
-    - Last updated
-    - Number of comments
-- Pull request dashboard
-  - Same as issue dashboard
-- Repository types
-  - Mirror
-  - Normal
-  - Migrated
-- Notifications (email and web)
-  - Read
-  - Unread
-  - Pin
-- Explore page
-  - Users
-  - Repos
-  - Organizations
-  - Search
-- Custom templates
-- Override public files (logo, css, etc)
-- CSRF and XSS protection
-- HTTPS support
-- Set allowed upload sizes and types
-- Logging
-- Configuration
-  - Databases
-    - MySQL (>=5.7)
-    - PostgreSQL (>=10)
-    - SQLite3
-    - MSSQL (>=2008R2 SP3)
-    - TiDB (MySQL protocol)
-  - Configuration file
-    - [app.ini](https://github.com/go-gitea/gitea/blob/main/custom/conf/app.example.ini)
-  - Admin panel
-    - Statistics
-    - Actions
-      - Delete inactive accounts
-      - Delete cached repository archives
-      - Delete repositories records which are missing their files
-      - Run garbage collection on repositories
-      - Rewrite SSH keys
-      - Resync hooks
-      - Recreate repositories which are missing
-    - Server status
-      - Uptime
-      - Memory
-      - Current # of goroutines
-      - And more
-    - User management
-      - Search
-      - Sort
-      - Last login
-      - Authentication source
-      - Maximum repositories
-      - Disable account
-      - Admin permissions
-      - Permission to create Git Hooks
-      - Permission to create organizations
-      - Permission to import repositories
-    - Organization management
-      - Members
-      - Teams
-      - Avatar
-      - Hooks
-    - Repository management
-      - See all repository information and manage repositories
-    - Authentication sources
-      - OAuth
-      - PAM
-      - LDAP
-      - SMTP
-    - Configuration viewer
-      - Everything in config file
-    - System notices
-      - When something unexpected happens
-    - Monitoring
-      - Current processes
-      - Cron jobs
-        - Update mirrors
-        - Repository health check
-        - Check repository statistics
-        - Clean up old archives
-  - Environment variables
-  - Command line options
-- Multi-language support ([21 languages](https://github.com/go-gitea/gitea/tree/main/options/locale))
-- [Mermaid](https://mermaidjs.github.io/) diagrams in Markdown
-- Math syntax in Markdown
-- Mail service
-  - Notifications
-  - Registration confirmation
-  - Password reset
-- Reverse proxy support
-  - Includes subpaths
-- Users
-  - Profile
-    - Name
-    - Username
-    - Email
-    - Website
-    - Join date
-    - Followers and following
-    - Organizations
-    - Repositories
-    - Activity
-    - Starred repositories
-  - Settings
-    - Same as profile and more below
-    - Keep email private
-    - Avatar
-      - Gravatar
-      - Libravatar
-      - Custom
-    - Password
-    - Multiple email addresses
-    - SSH Keys
-    - Connected applications
-    - Two factor authentication
-    - Linked OAuth2 sources
-    - Delete account
-- Repositories
-  - Clone with SSH/HTTP/HTTPS
-  - Git LFS
-  - Watch, Star, Fork
-  - View watchers, stars, and forks
-  - Code
-    - Branch browser
-    - Web based file upload and creation
-    - Clone urls
-    - Download
-      - ZIP
-      - TAR.GZ
-    - Web based editor
-      - Markdown editor
-      - Plain text editor
-        - Syntax highlighting
-      - Diff preview
-      - Preview
-      - Choose where to commit to
-    - View file history
-    - Delete file
-    - View raw
-  - Issues
-    - Issue templates
-    - Milestones
-    - Labels
-    - Assign issues
-    - Track time
-    - Reactions
-    - Filter
-      - Open
-      - Closed
-      - Assigned person
-      - Created by you
-      - Mentioning you
-    - Sort
-      - Oldest
-      - Last updated
-      - Number of comments
-    - Search
-    - Comments
-    - Attachments
-  - Pull requests
-    - Same features as issues
-  - Commits
-    - Commit graph
-    - Commits by branch
-    - Search
-    - Search in all branches
-    - View diff
-    - View SHA
-    - View author
-    - Browse files in commit
-  - Releases
-    - Attachments
-    - Title
-    - Content
-    - Delete
-    - Mark as pre-release
-    - Choose branch
-  - Wiki
-    - Import
-    - Markdown editor
-  - Settings
-    - Options
-      - Name
-      - Description
-      - Private/Public
-      - Website
-      - Wiki
-        - Enabled/disabled
-        - Internal/external
-      - Issues
-        - Enabled/disabled
-        - Internal/external
-        - External supports url rewriting for better integration
-      - Enable/disable pull requests
-      - Transfer repository
-      - Delete wiki
-      - Delete repository
-    - Collaboration
-      - Read/write/admin
-    - Branches
-      - Default branch
-      - Branch protection
-    - Webhooks
-    - Git Hooks
-    - Deploy keys
-- Package Registries
-  - Composer
-  - Conan
-  - Container
-  - Generic
-  - Helm
-  - Maven
-  - NPM
-  - Nuget
-  - PyPI
-  - RubyGems
+- Code Hosting: Gitea supports creating and managing repositories, browsing commit history and code files, reviewing and merging code submissions, managing collaborators, handling branches, and more. It also supports many common Git features such as tags, Cherry-pick, hooks, integrated collaboration tools, and more.
+
+- Lightweight and Fast: One of Gitea's design goals is to be lightweight and fast in response. Unlike some large code hosting platforms, it remains lean, performing well in terms of speed, and is suitable for resource-limited server environments. Due to its lightweight design, Gitea has relatively low resource consumption and performs well in resource-constrained environments.
+
+- Easy Deployment and Maintenance: It can be easily deployed on various servers without complex configurations or dependencies. This makes it convenient for individual developers or small teams to set up and manage their own Git services.
+
+- Security: Gitea places a strong emphasis on security, offering features such as user permission management, access control lists, and more to ensure the security of code and data.
+
+- Code Review: Code review supports both the Pull Request workflow and AGit workflow. Reviewers can browse code online and provide review comments or feedback. Submitters can receive review comments and respond or modify code online. Code reviews can help individuals and organizations enhance code quality.
+
+- CI/CD: Gitea Actions supports CI/CD functionality, compatible with GitHub Actions. Users can write workflows in familiar YAML format and reuse a variety of existing Actions plugins. Actions plugins support downloading from any Git website.
+
+- Project Management: Gitea tracks project requirements, features, and bugs through boards and issues. Issues support features like branches, tags, milestones, assignments, time tracking, due dates, dependencies, and more.
+
+- Artifact Repository: Gitea supports over 20 different types of public or private software package management, including Cargo, Chef, Composer, Conan, Conda, Container, Helm, Maven, npm, NuGet, Pub, PyPI, RubyGems, Vagrant, and more.
+
+- Open Source Community Support: Gitea is an open-source project based on the MIT license. It has an active open-source community that continuously develops and improves the platform. The project also actively welcomes community contributions, ensuring updates and innovation.
+
+- Multilingual Support: Gitea provides interfaces in multiple languages, catering to users globally and promoting internationalization and localization.
+
+Additional Features: For more detailed information, please refer to: https://docs.gitea.com/installation/comparison#general-features
 
 ## System Requirements
 
