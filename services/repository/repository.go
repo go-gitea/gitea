@@ -28,8 +28,9 @@ import (
 
 // WebSearchRepository represents a repository returned by web search
 type WebSearchRepository struct {
-	Repository         *structs.Repository `json:"repository"`
-	LatestCommitStatus *git.CommitStatus   `json:"latest_commit_status"`
+	Repository               *structs.Repository `json:"repository"`
+	LatestCommitStatus       *git.CommitStatus   `json:"latest_commit_status"`
+	LocaleLatestCommitStatus string              `json:"locale_latest_commit_status"`
 }
 
 // WebSearchResults results of a successful web search

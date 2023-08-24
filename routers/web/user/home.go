@@ -448,21 +448,26 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// - Team org's owns the repository.
 	// - Team has read permission to repository.
 	repoOpts := &repo_model.SearchRepoOptions{
-		Actor:      ctx.Doer,
-		OwnerID:    ctx.Doer.ID,
-		Private:    true,
-		AllPublic:  false,
-		AllLimited: false,
+		Actor:       ctx.Doer,
+		OwnerID:     ctx.Doer.ID,
+		Private:     true,
+		AllPublic:   false,
+		AllLimited:  false,
+		Collaborate: util.OptionalBoolNone,
+		UnitType:    unitType,
+		Archived:    util.OptionalBoolFalse,
 	}
 	if team != nil {
 		repoOpts.TeamID = team.ID
 	}
+	accessibleRepos := container.Set[int64]{}
 	{
 		ids, _, err := repo_model.SearchRepositoryIDs(repoOpts)
 		if err != nil {
 			ctx.ServerError("SearchRepositoryIDs", err)
 			return
 		}
+		accessibleRepos.AddMultiple(ids...)
 		opts.RepoIDs = ids
 		if len(opts.RepoIDs) == 0 {
 			// no repos found, don't let the indexer return all repos
@@ -489,40 +494,16 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	keyword := strings.Trim(ctx.FormString("q"), " ")
 	ctx.Data["Keyword"] = keyword
 
-	accessibleRepos := container.Set[int64]{}
-	{
-		ids, err := issues_model.GetRepoIDsForIssuesOptions(opts, ctxUser)
-		if err != nil {
-			ctx.ServerError("GetRepoIDsForIssuesOptions", err)
-			return
-		}
-		for _, id := range ids {
-			accessibleRepos.Add(id)
-		}
-	}
-
 	// Educated guess: Do or don't show closed issues.
 	isShowClosed := ctx.FormString("state") == "closed"
 	opts.IsClosed = util.OptionalBoolOf(isShowClosed)
 
 	// Filter repos and count issues in them. Count will be used later.
 	// USING NON-FINAL STATE OF opts FOR A QUERY.
-	var issueCountByRepo map[int64]int64
-	{
-		issueIDs, err := issueIDsFromSearch(ctx, keyword, opts)
-		if err != nil {
-			ctx.ServerError("issueIDsFromSearch", err)
-			return
-		}
-		if len(issueIDs) > 0 { // else, no issues found, just leave issueCountByRepo empty
-			opts.IssueIDs = issueIDs
-			issueCountByRepo, err = issues_model.CountIssuesByRepo(ctx, opts)
-			if err != nil {
-				ctx.ServerError("CountIssuesByRepo", err)
-				return
-			}
-			opts.IssueIDs = nil // reset, the opts will be used later
-		}
+	issueCountByRepo, err := issue_indexer.CountIssuesByRepo(ctx, issue_indexer.ToSearchOptions(keyword, opts))
+	if err != nil {
+		ctx.ServerError("CountIssuesByRepo", err)
+		return
 	}
 
 	// Make sure page number is at least 1. Will be posted to ctx.Data.
@@ -551,13 +532,13 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	// Parse ctx.FormString("repos") and remember matched repo IDs for later.
 	// Gets set when clicking filters on the issues overview page.
-	repoIDs := getRepoIDs(ctx.FormString("repos"))
-	if len(repoIDs) > 0 {
-		// Remove repo IDs that are not accessible to the user.
-		repoIDs = util.SliceRemoveAllFunc(repoIDs, func(v int64) bool {
-			return !accessibleRepos.Contains(v)
-		})
-		opts.RepoIDs = repoIDs
+	selectedRepoIDs := getRepoIDs(ctx.FormString("repos"))
+	// Remove repo IDs that are not accessible to the user.
+	selectedRepoIDs = util.SliceRemoveAllFunc(selectedRepoIDs, func(v int64) bool {
+		return !accessibleRepos.Contains(v)
+	})
+	if len(selectedRepoIDs) > 0 {
+		opts.RepoIDs = selectedRepoIDs
 	}
 
 	// ------------------------------
@@ -568,7 +549,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// USING FINAL STATE OF opts FOR A QUERY.
 	var issues issues_model.IssueList
 	{
-		issueIDs, err := issueIDsFromSearch(ctx, keyword, opts)
+		issueIDs, _, err := issue_indexer.SearchIssues(ctx, issue_indexer.ToSearchOptions(keyword, opts))
 		if err != nil {
 			ctx.ServerError("issueIDsFromSearch", err)
 			return
@@ -583,6 +564,18 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// ----------------------------------
 	// Add repository pointers to Issues.
 	// ----------------------------------
+
+	// Remove repositories that should not be shown,
+	// which are repositories that have no issues and are not selected by the user.
+	selectedReposMap := make(map[int64]struct{}, len(selectedRepoIDs))
+	for _, repoID := range selectedRepoIDs {
+		selectedReposMap[repoID] = struct{}{}
+	}
+	for k, v := range issueCountByRepo {
+		if _, ok := selectedReposMap[k]; !ok && v == 0 {
+			delete(issueCountByRepo, k)
+		}
+	}
 
 	// showReposMap maps repository IDs to their Repository pointers.
 	showReposMap, err := loadRepoByIDs(ctxUser, issueCountByRepo, unitType)
@@ -615,44 +608,10 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// -------------------------------
 	// Fill stats to post to ctx.Data.
 	// -------------------------------
-	var issueStats *issues_model.IssueStats
-	{
-		statsOpts := issues_model.IssuesOptions{
-			RepoIDs:    repoIDs,
-			User:       ctx.Doer,
-			IsPull:     util.OptionalBoolOf(isPullList),
-			IsClosed:   util.OptionalBoolOf(isShowClosed),
-			IssueIDs:   nil,
-			IsArchived: util.OptionalBoolFalse,
-			LabelIDs:   opts.LabelIDs,
-			Org:        org,
-			Team:       team,
-			RepoCond:   opts.RepoCond,
-		}
-
-		if keyword != "" {
-			statsOpts.RepoIDs = opts.RepoIDs
-			allIssueIDs, err := issueIDsFromSearch(ctx, keyword, &statsOpts)
-			if err != nil {
-				ctx.ServerError("issueIDsFromSearch", err)
-				return
-			}
-			statsOpts.IssueIDs = allIssueIDs
-		}
-
-		if keyword != "" && len(statsOpts.IssueIDs) == 0 {
-			// So it did search with the keyword, but no issue found.
-			// Just set issueStats to empty.
-			issueStats = &issues_model.IssueStats{}
-		} else {
-			// So it did search with the keyword, and found some issues. It needs to get issueStats of these issues.
-			// Or the keyword is empty, so it doesn't need issueIDs as filter, just get issueStats with statsOpts.
-			issueStats, err = issues_model.GetUserIssueStats(filterMode, statsOpts)
-			if err != nil {
-				ctx.ServerError("GetUserIssueStats", err)
-				return
-			}
-		}
+	issueStats, err := getUserIssueStats(ctx, filterMode, issue_indexer.ToSearchOptions(keyword, opts), ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("getUserIssueStats", err)
+		return
 	}
 
 	// Will be posted to ctx.Data.
@@ -722,7 +681,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
-	ctx.Data["RepoIDs"] = opts.RepoIDs
+	ctx.Data["RepoIDs"] = selectedRepoIDs
 	ctx.Data["IsShowClosed"] = isShowClosed
 	ctx.Data["SelectLabels"] = selectedLabels
 
@@ -775,14 +734,6 @@ func getRepoIDs(reposQuery string) []int64 {
 	}
 
 	return repoIDs
-}
-
-func issueIDsFromSearch(ctx *context.Context, keyword string, opts *issues_model.IssuesOptions) ([]int64, error) {
-	ids, _, err := issue_indexer.SearchIssues(ctx, issue_indexer.ToSearchOptions(keyword, opts))
-	if err != nil {
-		return nil, fmt.Errorf("SearchIssues: %w", err)
-	}
-	return ids, nil
 }
 
 func loadRepoByIDs(ctxUser *user_model.User, issueCountByRepo map[int64]int64, unitType unit.Type) (map[int64]*repo_model.Repository, error) {
@@ -912,4 +863,72 @@ func UsernameSubRoute(ctx *context.Context) {
 			OwnerProfile(ctx)
 		}
 	}
+}
+
+func getUserIssueStats(ctx *context.Context, filterMode int, opts *issue_indexer.SearchOptions, doerID int64) (*issues_model.IssueStats, error) {
+	opts = opts.Copy(func(o *issue_indexer.SearchOptions) {
+		o.AssigneeID = nil
+		o.PosterID = nil
+		o.MentionID = nil
+		o.ReviewRequestedID = nil
+		o.ReviewedID = nil
+	})
+
+	var (
+		err error
+		ret = &issues_model.IssueStats{}
+	)
+
+	{
+		openClosedOpts := opts.Copy()
+		switch filterMode {
+		case issues_model.FilterModeAll, issues_model.FilterModeYourRepositories:
+		case issues_model.FilterModeAssign:
+			openClosedOpts.AssigneeID = &doerID
+		case issues_model.FilterModeCreate:
+			openClosedOpts.PosterID = &doerID
+		case issues_model.FilterModeMention:
+			openClosedOpts.MentionID = &doerID
+		case issues_model.FilterModeReviewRequested:
+			openClosedOpts.ReviewRequestedID = &doerID
+		case issues_model.FilterModeReviewed:
+			openClosedOpts.ReviewedID = &doerID
+		}
+		openClosedOpts.IsClosed = util.OptionalBoolFalse
+		ret.OpenCount, err = issue_indexer.CountIssues(ctx, openClosedOpts)
+		if err != nil {
+			return nil, err
+		}
+		openClosedOpts.IsClosed = util.OptionalBoolTrue
+		ret.ClosedCount, err = issue_indexer.CountIssues(ctx, openClosedOpts)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	ret.YourRepositoriesCount, err = issue_indexer.CountIssues(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	ret.AssignCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.AssigneeID = &doerID }))
+	if err != nil {
+		return nil, err
+	}
+	ret.CreateCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.PosterID = &doerID }))
+	if err != nil {
+		return nil, err
+	}
+	ret.MentionCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.MentionID = &doerID }))
+	if err != nil {
+		return nil, err
+	}
+	ret.ReviewRequestedCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.ReviewRequestedID = &doerID }))
+	if err != nil {
+		return nil, err
+	}
+	ret.ReviewedCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.ReviewedID = &doerID }))
+	if err != nil {
+		return nil, err
+	}
+	return ret, nil
 }
