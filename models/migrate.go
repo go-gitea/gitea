@@ -302,8 +302,8 @@ func UpsertIssueComments(ctx context.Context, comments []*issues_model.Comment) 
 		sess := db.GetEngine(ctx)
 		for _, comment := range comments {
 			exists, err := sess.Exist(&issues_model.Comment{
-				IssueID:     comment.IssueID,
-				CreatedUnix: comment.CreatedUnix,
+				IssueID:    comment.IssueID,
+				OriginalID: comment.OriginalID,
 			})
 			if err != nil {
 				return err
@@ -383,6 +383,10 @@ func InsertPullRequests(ctx context.Context, prs ...*issues_model.PullRequest) e
 
 // UpsertPullRequests inserts new pull requests and updates existing pull requests in database
 func UpsertPullRequests(ctx context.Context, prs ...*issues_model.PullRequest) error {
+	if len(prs) == 0 {
+		return nil
+	}
+
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		sess := db.GetEngine(ctx)
 		for _, pr := range prs {
