@@ -2,9 +2,69 @@
 
 This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
-been added to each release, please refer to the [blog](https://blog.gitea.io).
+been added to each release, please refer to the [blog](https://blog.gitea.com).
 
-## [1.20.2](https://github.com/go-gitea/gitea/releases/tag/1.20.2) - 2023-07-29
+## [1.20.3](https://github.com/go-gitea/gitea/releases/tag/v1.20.3) - 2023-08-20
+
+* BREAKING
+  * Fix the wrong derive path (#26271) (#26318)
+* SECURITY
+  * Fix API leaking Usermail if not logged in (#25097) (#26350)
+* FEATURES
+  * Add ThreadID parameter for Telegram webhooks (#25996) (#26480)
+* ENHANCEMENTS
+  * Add minimum polyfill to support "relative-time-element" in PaleMoon (#26575) (#26578)
+  * Fix dark theme highlight for "NameNamespace" (#26519) (#26527)
+  * Detect ogg mime-type as audio or video (#26494) (#26505)
+  * Use `object-fit: contain` for oauth2 custom icons (#26493) (#26498)
+  * Move dropzone progress bar to bottom to show filename when uploading (#26492) (#26497)
+  * Remove last newline from config file (#26468) (#26471)
+  * Minio: add missing region on client initialization (#26412) (#26438)
+  * Add pull request review request webhook event (#26401) (#26407)
+  * Fix text truncate (#26354) (#26384)
+  * Fix incorrect color of selected assignees when create issue (#26324) (#26372)
+  * Display human-readable text instead of cryptic filemodes (#26352) (#26358)
+  * Hide `last indexed SHA` when a repo could not be indexed yet (#26340) (#26345)
+  * Fix the topic validation rule and suport dots (#26286) (#26303)
+  * Fix due date rendering the wrong date in issue (#26268) (#26274)
+  * Don't autosize textarea in diff view (#26233) (#26244)
+  * Fix commit compare style (#26209) (#26226)
+  * Warn instead of reporting an error when a webhook cannot be found (#26039) (#26211)
+* BUGFIXES
+  * Use "input" event instead of "keyup" event for migration form (#26602) (#26605)
+  * Do not use deprecated log config options by default (#26592) (#26600)
+  * Fix "issueReposQueryPattern does not match query" (#26556) (#26564)
+  * Sync repo's IsEmpty status correctly (#26517) (#26560)
+  * Fix project filter bugs (#26490) (#26558)
+  * Use `hidden` over `clip` for text truncation (#26520) (#26522)
+  * Set "type=button" for editor's toolbar buttons (#26510) (#26518)
+  * Fix NuGet search endpoints (#25613) (#26499)
+  * Fix storage path logic especially for relative paths (#26441) (#26481)
+  * Close stdout correctly for "git blame" (#26470) (#26473)
+  * Check first if minio bucket exists before trying to create it (#26420) (#26465)
+  * Avoiding accessing undefined tributeValues #26461 (#26462)
+  * Call git.InitSimple for runRepoSyncReleases (#26396) (#26450)
+  * Add transaction when creating pull request created dirty data (#26259) (#26437)
+  * Fix wrong middleware sequence (#26428) (#26436)
+  * Fix admin queue page title and fix CI failures (#26409) (#26421)
+  * Introduce ctx.PathParamRaw to avoid incorrect unescaping (#26392) (#26405)
+  * Bypass MariaDB performance bug of the "IN" sub-query, fix incorrect IssueIndex (#26279) (#26368)
+  * Fix incorrect CLI exit code and duplicate error message (#26346) (#26347)
+  * Prevent newline errors with Debian packages (#26332) (#26342)
+  * Fix bug with sqlite load read (#26305) (#26339)
+  * Make git batch operations use parent context timeout instead of default timeout (#26325) (#26330)
+  * Support getting changed files when commit ID is `EmptySHA` (#26290) (#26316)
+  * Clarify the logger's MODE config option (#26267) (#26281)
+  * Use shared template for webhook icons (#26242) (#26246)
+  * Fix pull request check list is limited (#26179) (#26245)
+  * Fix attachment clipboard copy on insecure origin (#26224) (#26231)
+  * Fix access check for org-level project (#26182) (#26223)
+* MISC
+  * Improve profile readme rendering (#25988) (#26453)
+  * [docs] Add missing backtick in quickstart.zh-cn.md (#26349) (#26357)
+  * Upgrade x/net to 0.13.0 (#26301)
+
+## [1.20.2](https://github.com/go-gitea/gitea/releases/tag/v1.20.2) - 2023-07-29
 
 * ENHANCEMENTS
   * Calculate MAX_WORKERS default value by CPU number (#26177) (#26183)
@@ -32,7 +92,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix wrong workflow status when rerun a job in an already finished workflow (#26119) (#26124)
   * Fix duplicated url prefix on issue context menu (#26066) (#26067)
 
-## [1.20.1](https://github.com/go-gitea/gitea/releases/tag/1.20.1) - 2023-07-22
+## [1.20.1](https://github.com/go-gitea/gitea/releases/tag/v1.20.1) - 2023-07-22
 
 * SECURITY
   * Disallow dangerous URL schemes (#25960) (#25964)
