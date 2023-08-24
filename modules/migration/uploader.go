@@ -8,7 +8,7 @@ package migration
 type Uploader interface {
 	MaxBatchInsertSize(tp string) int
 	CreateRepo(repo *Repository, opts MigrateOptions) error
-	CreateTopics(topic ...string) error
+	CreateTopics(topics ...string) error
 	CreateMilestones(milestones ...*Milestone) error
 	CreateReleases(releases ...*Release) error
 	SyncTags() error
@@ -17,7 +17,7 @@ type Uploader interface {
 	CreateComments(comments ...*Comment) error
 	CreatePullRequests(prs ...*PullRequest) error
 	CreateReviews(reviews ...*Review) error
-	UpdateTopics(topic ...string) error              // update topics of a repository, and delete those that are not in the list
+	UpdateTopics(topics ...string) error             // update topics of a repository, and delete those that are not in the list
 	UpdateMilestones(milestones ...*Milestone) error // update milestones of a repository, and delete those that are not in the list
 	UpdateLabels(labels ...*Label) error             // rewrite all issue labels and delete those that are not in the list
 	PatchReleases(releases ...*Release) error        // add or update releases (no deletes)
