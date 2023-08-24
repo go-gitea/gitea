@@ -455,28 +455,26 @@ func runSyncMisc(ctx context.Context, m *repo_model.Mirror, lastSynced time.Time
 
 	_, err := migrations.SyncRepository(ctx, m.Repo.MustOwner(ctx), repo, opts, nil, lastSynced)
 	if err != nil {
-		log.Error("SyncMirrors [repo: %-v]: failed to sync repository: %v", m.Repo, err)
-		return false
+		log.Error("runSyncMisc [repo: %-v]: failed to run SyncRepository: %v", m.Repo, err)
 	}
-
-	return true
+	return err == nil
 }
 
 // SyncPullMirror starts the sync of the pull mirror and schedules the next run.
 func SyncPullMirror(ctx context.Context, repoID int64) bool {
-	log.Trace("SyncMirrors [repo_id: %v]", repoID)
+	log.Trace("SyncPullMirror [repo_id: %v]", repoID)
 	defer func() {
 		err := recover()
 		if err == nil {
 			return
 		}
 		// There was a panic whilst syncMirrors...
-		log.Error("PANIC whilst SyncMirrors[repo_id: %d] Panic: %v\nStacktrace: %s", repoID, err, log.Stack(2))
+		log.Error("PANIC whilst SyncPullMirror[repo_id: %d] Panic: %v\nStacktrace: %s", repoID, err, log.Stack(2))
 	}()
 
 	m, err := repo_model.GetMirrorByRepoID(ctx, repoID)
 	if err != nil {
-		log.Error("SyncMirrors [repo_id: %v]: unable to GetMirrorByRepoID: %v", repoID, err)
+		log.Error("SyncPullMirror [repo_id: %v]: unable to GetMirrorByRepoID: %v", repoID, err)
 		return false
 	}
 	_ = m.GetRepository() // force load repository of mirror
@@ -487,37 +485,37 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("Syncing Mirror %s/%s", m.Repo.OwnerName, m.Repo.Name))
 	defer finished()
 
-	log.Trace("SyncMirrors [repo: %-v]: Running Sync Git", m.Repo)
+	log.Trace("SyncPullMirror [repo: %-v]: Running Sync Git", m.Repo)
 	results, ok := runSyncGit(ctx, m)
 	if !ok {
 		if err = repo_model.TouchMirror(ctx, m); err != nil {
-			log.Error("SyncMirrors [repo: %-v]: failed to TouchMirror: %v", m.Repo, err)
+			log.Error("SyncPullMirror [repo: %-v]: failed to TouchMirror: %v", m.Repo, err)
 		}
 		return false
 	}
 
 	if ok := runSyncMisc(ctx, m, lastSynced); !ok {
 		if err = repo_model.TouchMirror(ctx, m); err != nil {
-			log.Error("SyncMirrors [repo: %-v]: failed to TouchMirror: %v", m.Repo, err)
+			log.Error("SyncPullMirror [repo: %-v]: failed to TouchMirror: %v", m.Repo, err)
 		}
 		return false
 	}
 
-	log.Trace("SyncMirrors [repo: %-v]: Scheduling next update", m.Repo)
+	log.Trace("SyncPullMirror [repo: %-v]: Scheduling next update", m.Repo)
 	m.ScheduleNextUpdate()
 	if err = repo_model.UpdateMirror(ctx, m); err != nil {
-		log.Error("SyncMirrors [repo: %-v]: failed to UpdateMirror with next update date: %v", m.Repo, err)
+		log.Error("SyncPullMirror [repo: %-v]: failed to UpdateMirror with next update date: %v", m.Repo, err)
 		return false
 	}
 
 	var gitRepo *git.Repository
 	if len(results) == 0 {
-		log.Trace("SyncMirrors [repo: %-v]: no branches updated", m.Repo)
+		log.Trace("SyncPullMirror [repo: %-v]: no branches updated", m.Repo)
 	} else {
-		log.Trace("SyncMirrors [repo: %-v]: %d branches updated", m.Repo, len(results))
+		log.Trace("SyncPullMirror [repo: %-v]: %d branches updated", m.Repo, len(results))
 		gitRepo, err = git.OpenRepository(ctx, m.Repo.RepoPath())
 		if err != nil {
-			log.Error("SyncMirrors [repo: %-v]: unable to OpenRepository: %v", m.Repo, err)
+			log.Error("SyncPullMirror [repo: %-v]: unable to OpenRepository: %v", m.Repo, err)
 			return false
 		}
 		defer gitRepo.Close()
@@ -537,7 +535,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		if result.oldCommitID == gitShortEmptySha {
 			commitID, err := gitRepo.GetRefCommitID(result.refName.String())
 			if err != nil {
-				log.Error("SyncMirrors [repo: %-v]: unable to GetRefCommitID [ref_name: %s]: %v", m.Repo, result.refName, err)
+				log.Error("SyncPullMirror [repo: %-v]: unable to GetRefCommitID [ref_name: %s]: %v", m.Repo, result.refName, err)
 				continue
 			}
 			notification.NotifySyncPushCommits(ctx, m.Repo.MustOwner(ctx), m.Repo, &repo_module.PushUpdateOptions{
@@ -558,17 +556,17 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		// Push commits
 		oldCommitID, err := git.GetFullCommitID(gitRepo.Ctx, gitRepo.Path, result.oldCommitID)
 		if err != nil {
-			log.Error("SyncMirrors [repo: %-v]: unable to get GetFullCommitID[%s]: %v", m.Repo, result.oldCommitID, err)
+			log.Error("SyncPullMirror [repo: %-v]: unable to get GetFullCommitID[%s]: %v", m.Repo, result.oldCommitID, err)
 			continue
 		}
 		newCommitID, err := git.GetFullCommitID(gitRepo.Ctx, gitRepo.Path, result.newCommitID)
 		if err != nil {
-			log.Error("SyncMirrors [repo: %-v]: unable to get GetFullCommitID [%s]: %v", m.Repo, result.newCommitID, err)
+			log.Error("SyncPullMirror [repo: %-v]: unable to get GetFullCommitID [%s]: %v", m.Repo, result.newCommitID, err)
 			continue
 		}
 		commits, err := gitRepo.CommitsBetweenIDs(newCommitID, oldCommitID)
 		if err != nil {
-			log.Error("SyncMirrors [repo: %-v]: unable to get CommitsBetweenIDs [new_commit_id: %s, old_commit_id: %s]: %v", m.Repo, newCommitID, oldCommitID, err)
+			log.Error("SyncPullMirror [repo: %-v]: unable to get CommitsBetweenIDs [new_commit_id: %s, old_commit_id: %s]: %v", m.Repo, newCommitID, oldCommitID, err)
 			continue
 		}
 
@@ -578,7 +576,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		}
 
 		if newCommit, err := gitRepo.GetCommit(newCommitID); err != nil {
-			log.Error("SyncMirrors [repo: %-v]: unable to get commit %s: %v", m.Repo, newCommitID, err)
+			log.Error("SyncPullMirror [repo: %-v]: unable to get commit %s: %v", m.Repo, newCommitID, err)
 			continue
 		} else {
 			theCommits.HeadCommit = repo_module.CommitToPushCommit(newCommit)
@@ -592,21 +590,21 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 			NewCommitID: newCommitID,
 		}, theCommits)
 	}
-	log.Trace("SyncMirrors [repo: %-v]: done notifying updated branches/tags - now updating last commit time", m.Repo)
+	log.Trace("SyncPullMirror [repo: %-v]: done notifying updated branches/tags - now updating last commit time", m.Repo)
 
 	// Get latest commit date and update to current repository updated time
 	commitDate, err := git.GetLatestCommitTime(ctx, m.Repo.RepoPath())
 	if err != nil {
-		log.Error("SyncMirrors [repo: %-v]: unable to GetLatestCommitDate: %v", m.Repo, err)
+		log.Error("SyncPullMirror [repo: %-v]: unable to GetLatestCommitDate: %v", m.Repo, err)
 		return false
 	}
 
 	if err = repo_model.UpdateRepositoryUpdatedTime(m.RepoID, commitDate); err != nil {
-		log.Error("SyncMirrors [repo: %-v]: unable to update repository 'updated_unix': %v", m.Repo, err)
+		log.Error("SyncPullMirror [repo: %-v]: unable to update repository 'updated_unix': %v", m.Repo, err)
 		return false
 	}
 
-	log.Trace("SyncMirrors [repo: %-v]: Successfully updated", m.Repo)
+	log.Trace("SyncPullMirror [repo: %-v]: Successfully updated", m.Repo)
 
 	return true
 }
