@@ -156,8 +156,8 @@ func ListArtifactsByRunIDAndName(ctx context.Context, runID int64, name string) 
 	return arts, db.GetEngine(ctx).Where("run_id=? AND artifact_name=?", runID, name).Find(&arts)
 }
 
-// ListExpiredArtifacts returns all expired artifacts but not deleted
-func ListExpiredArtifacts(ctx context.Context) ([]*ActionArtifact, error) {
+// ListNeedExpiredArtifacts returns all need expired artifacts but not deleted
+func ListNeedExpiredArtifacts(ctx context.Context) ([]*ActionArtifact, error) {
 	arts := make([]*ActionArtifact, 0, 10)
 	return arts, db.GetEngine(ctx).
 		Where("expired_unix < ? AND status = ?", timeutil.TimeStamp(time.Now().Unix()), ArtifactStatusUploadConfirmed).Find(&arts)
@@ -165,6 +165,6 @@ func ListExpiredArtifacts(ctx context.Context) ([]*ActionArtifact, error) {
 
 // SetArtifactExpired sets an artifact to expired
 func SetArtifactExpired(ctx context.Context, artifactID int64) error {
-	_, err := db.GetEngine(ctx).Where("id=?", artifactID).Cols("status").Update(&ActionArtifact{Status: ArtifactStatusExpired})
+	_, err := db.GetEngine(ctx).Where("id=? AND status = ?", artifactID, ArtifactStatusUploadConfirmed).Cols("status").Update(&ActionArtifact{Status: ArtifactStatusExpired})
 	return err
 }

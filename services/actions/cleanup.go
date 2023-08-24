@@ -22,7 +22,7 @@ func Cleanup(taskCtx context.Context, olderThan time.Duration) error {
 
 // CleanupArtifacts removes expired artifacts and set records expired status
 func CleanupArtifacts(taskCtx context.Context) error {
-	artifacts, err := actions.ListExpiredArtifacts(taskCtx)
+	artifacts, err := actions.ListNeedExpiredArtifacts(taskCtx)
 	if err != nil {
 		return err
 	}
