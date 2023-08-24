@@ -3,7 +3,7 @@ import ActivityHeatmap from '../components/ActivityHeatmap.vue';
 import {translateMonth, translateDay} from '../utils.js';
 
 export function initHeatmap() {
-  const el = document.getElementById('user-heatmap-container');
+  const el = document.getElementById('user-heatmap');
   if (!el) return;
 
   try {
