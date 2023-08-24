@@ -25,3 +25,12 @@ type CreateSecretOption struct {
 	// Data of the secret to create
 	Data string `json:"data" binding:"Required"`
 }
+
+// UpdateSecretOption options when updating secret
+// swagger:model
+type UpdateSecretOption struct {
+	// Data of the secret to update
+	//
+	// required: true
+	Data string `json:"data" binding:"Required"`
+}
