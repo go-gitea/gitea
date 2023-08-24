@@ -11,7 +11,7 @@
 				<p>{{.locale.Tr "webauthn_sign_in"}}</p>
 			</div>
 			<div class="ui attached segment gt-df gt-ac gt-jc gt-gap-2 gt-py-3">
-				{{template "shared/spinner" dict "Size" 40}}
+				<div class="is-loading" style="width: 40px; height: 40px"></div>
 				{{.locale.Tr "webauthn_press_button"}}
 			</div>
 			<div class="ui attached segment">
