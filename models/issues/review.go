@@ -552,90 +552,86 @@ func InsertReviews(reviews []*Review) error {
 
 // UpsertReviews inserts new reviews and updates existing ones.
 // This function is used for syncing from the pull mirror.
-func UpsertReviews(reviews []*Review) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-	sess := db.GetEngine(ctx)
+func UpsertReviews(ctx context.Context, reviews []*Review) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		sess := db.GetEngine(ctx)
 
-	for _, review := range reviews {
-		exists, err := sess.Where("original_id = ?", review.OriginalID).Exist(&Review{})
-		if err != nil {
-			return err
-		}
-
-		if !exists {
-			if _, err := sess.NoAutoTime().Insert(review); err != nil {
-				return err
-			}
-
-			if _, err := sess.NoAutoTime().Insert(generateCommentFromReview(review)); err != nil {
-				return err
-			}
-
-			for _, c := range review.Comments {
-				c.ReviewID = review.ID
-			}
-
-			if len(review.Comments) > 0 {
-				if _, err := sess.NoAutoTime().Insert(review.Comments); err != nil {
-					return err
-				}
-			}
-		} else {
-			if _, err = sess.NoAutoTime().Where("original_id = ?", review.OriginalID).Update(review); err != nil {
-				return err
-			}
-
-			// Get id of the review
-			if err = sess.NoAutoTime().Where("original_id = ?", review.OriginalID).Find(review); err != nil {
-				return err
-			}
-
-			comment := generateCommentFromReview(review)
-			exists, err := existsCommentByReviewIDAndCreatedUnix(sess, comment)
+		for _, review := range reviews {
+			exists, err := sess.Where("original_id = ?", review.OriginalID).Exist(&Review{})
 			if err != nil {
 				return err
 			}
 
 			if !exists {
-				if _, err := sess.NoAutoTime().Insert(comment); err != nil {
+				if _, err := sess.NoAutoTime().Insert(review); err != nil {
 					return err
 				}
-			} else {
-				if _, err := sess.NoAutoTime().Where("original_id = ?", comment.OriginalID).Update(comment); err != nil {
+
+				if _, err := sess.NoAutoTime().Insert(generateCommentFromReview(review)); err != nil {
 					return err
 				}
-			}
 
-			for _, c := range review.Comments {
-				c.ReviewID = review.ID
-			}
+				for _, c := range review.Comments {
+					c.ReviewID = review.ID
+				}
 
-			if len(review.Comments) > 0 {
-				for _, comment := range review.Comments {
-					exists, err := existsCommentByReviewIDAndCreatedUnix(sess, comment)
-					if err != nil {
+				if len(review.Comments) > 0 {
+					if _, err := sess.NoAutoTime().Insert(review.Comments); err != nil {
 						return err
 					}
+				}
+			} else {
+				if _, err = sess.NoAutoTime().Where("original_id = ?", review.OriginalID).Update(review); err != nil {
+					return err
+				}
 
-					if !exists {
-						if _, err := sess.NoAutoTime().Insert(comment); err != nil {
+				// Get id of the review
+				if err = sess.NoAutoTime().Where("original_id = ?", review.OriginalID).Find(review); err != nil {
+					return err
+				}
+
+				comment := generateCommentFromReview(review)
+				exists, err := existsCommentByReviewIDAndCreatedUnix(sess, comment)
+				if err != nil {
+					return err
+				}
+
+				if !exists {
+					if _, err := sess.NoAutoTime().Insert(comment); err != nil {
+						return err
+					}
+				} else {
+					if _, err := sess.NoAutoTime().Where("original_id = ?", comment.OriginalID).Update(comment); err != nil {
+						return err
+					}
+				}
+
+				for _, c := range review.Comments {
+					c.ReviewID = review.ID
+				}
+
+				if len(review.Comments) > 0 {
+					for _, comment := range review.Comments {
+						exists, err := existsCommentByReviewIDAndCreatedUnix(sess, comment)
+						if err != nil {
 							return err
 						}
-					} else {
-						if _, err := sess.NoAutoTime().Where("original_id = ?", comment.OriginalID).Update(comment); err != nil {
-							return err
+
+						if !exists {
+							if _, err := sess.NoAutoTime().Insert(comment); err != nil {
+								return err
+							}
+						} else {
+							if _, err := sess.NoAutoTime().Where("original_id = ?", comment.OriginalID).Update(comment); err != nil {
+								return err
+							}
 						}
 					}
 				}
 			}
 		}
-	}
-
-	return committer.Commit()
+		return nil
+	})
 }
 
 func existsCommentByReviewIDAndCreatedUnix(sess db.Engine, comment *Comment) (bool, error) {

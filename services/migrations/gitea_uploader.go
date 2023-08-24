@@ -996,7 +996,8 @@ func (g *GiteaLocalUploader) UpdateTopics(topics ...string) error {
 
 func (g *GiteaLocalUploader) UpdateMilestones(milestones ...*base.Milestone) error {
 	mss := g.prepareMilestones(milestones...)
-	err := models.UpdateMilestones(mss...)
+	ctx := db.DefaultContext
+	err := models.UpdateMilestones(ctx, mss...)
 	if err != nil {
 		return err
 	}
@@ -1038,7 +1039,8 @@ func (g *GiteaLocalUploader) PatchIssues(issues ...*base.Issue) error {
 		return nil
 	}
 
-	if err := models.UpsertIssues(iss...); err != nil {
+	ctx := db.DefaultContext
+	if err := models.UpsertIssues(ctx, iss...); err != nil {
 		return err
 	}
 
@@ -1057,7 +1059,8 @@ func (g *GiteaLocalUploader) PatchComments(comments ...*base.Comment) error {
 	if len(cms) == 0 {
 		return nil
 	}
-	return models.UpsertIssueComments(cms)
+	ctx := db.DefaultContext
+	return models.UpsertIssueComments(ctx, cms)
 }
 
 func (g *GiteaLocalUploader) PatchPullRequests(prs ...*base.PullRequest) error {
@@ -1066,7 +1069,7 @@ func (g *GiteaLocalUploader) PatchPullRequests(prs ...*base.PullRequest) error {
 	if err != nil {
 		return err
 	}
-	if err := models.UpsertPullRequests(gprs...); err != nil {
+	if err := models.UpsertPullRequests(ctx, gprs...); err != nil {
 		return err
 	}
 	for _, pr := range gprs {
@@ -1082,7 +1085,8 @@ func (g *GiteaLocalUploader) PatchReviews(reviews ...*base.Review) error {
 		return err
 	}
 
-	return issues_model.UpsertReviews(cms)
+	ctx := db.DefaultContext
+	return issues_model.UpsertReviews(ctx, cms)
 }
 
 // Rollback when migrating failed, this will rollback all the changes.

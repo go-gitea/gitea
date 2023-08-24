@@ -41,89 +41,85 @@ func InsertMilestones(ms ...*issues_model.Milestone) (err error) {
 }
 
 // UpdateMilestones updates milestones of repository.
-func UpdateMilestones(ms ...*issues_model.Milestone) (err error) {
+func UpdateMilestones(ctx context.Context, ms ...*issues_model.Milestone) (err error) {
 	if len(ms) == 0 {
 		return nil
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-	sess := db.GetEngine(ctx)
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		sess := db.GetEngine(ctx)
 
-	// get existing milestones
-	existingMilestones := make([]*issues_model.Milestone, 0)
-	if err = sess.Where("repo_id = ?", ms[0].RepoID).Find(&existingMilestones); err != nil {
-		return err
-	}
+		// get existing milestones
+		existingMilestones := make([]*issues_model.Milestone, 0)
+		if err = sess.Where("repo_id = ?", ms[0].RepoID).Find(&existingMilestones); err != nil {
+			return err
+		}
 
-	milestonesToAdd := make([]*issues_model.Milestone, 0)
-	milestonesToUpdate := make([]*issues_model.Milestone, 0)
-	milestonesToDelete := make([]*issues_model.Milestone, 0)
-	foundMap := make(map[int64]bool)
+		milestonesToAdd := make([]*issues_model.Milestone, 0)
+		milestonesToUpdate := make([]*issues_model.Milestone, 0)
+		milestonesToDelete := make([]*issues_model.Milestone, 0)
+		foundMap := make(map[int64]bool)
 
-	openCount := 0
-	closedCount := 0
+		openCount := 0
+		closedCount := 0
 
-	for _, m := range ms {
-		var foundMilestone *issues_model.Milestone
-		for _, existingMilestone := range existingMilestones {
-			if existingMilestone.OriginalID == m.OriginalID {
-				foundMilestone = existingMilestone
-				foundMap[existingMilestone.ID] = true
-				break
+		for _, m := range ms {
+			var foundMilestone *issues_model.Milestone
+			for _, existingMilestone := range existingMilestones {
+				if existingMilestone.OriginalID == m.OriginalID {
+					foundMilestone = existingMilestone
+					foundMap[existingMilestone.ID] = true
+					break
+				}
+			}
+
+			if foundMilestone == nil {
+				milestonesToAdd = append(milestonesToAdd, m)
+			} else if foundMilestone.OriginalID != m.OriginalID {
+				m.ID = foundMilestone.ID
+				milestonesToUpdate = append(milestonesToUpdate, m)
+			}
+
+			if m.IsClosed {
+				closedCount++
+			} else {
+				openCount++
 			}
 		}
 
-		if foundMilestone == nil {
-			milestonesToAdd = append(milestonesToAdd, m)
-		} else if foundMilestone.OriginalID != m.OriginalID {
-			m.ID = foundMilestone.ID
-			milestonesToUpdate = append(milestonesToUpdate, m)
+		for _, existingMilestone := range existingMilestones {
+			if _, exist := foundMap[existingMilestone.ID]; !exist {
+				milestonesToDelete = append(milestonesToDelete, existingMilestone)
+			}
 		}
 
-		if m.IsClosed {
-			closedCount++
-		} else {
-			openCount++
+		if len(milestonesToAdd) > 0 {
+			if _, err = sess.Insert(milestonesToAdd); err != nil {
+				return err
+			}
 		}
-	}
 
-	for _, existingMilestone := range existingMilestones {
-		if _, exist := foundMap[existingMilestone.ID]; !exist {
-			milestonesToDelete = append(milestonesToDelete, existingMilestone)
+		for _, m := range milestonesToUpdate {
+			if _, err = sess.ID(m.ID).AllCols().Update(m); err != nil {
+				return err
+			}
 		}
-	}
 
-	if len(milestonesToAdd) > 0 {
-		if _, err = sess.Insert(milestonesToAdd); err != nil {
+		for _, m := range milestonesToDelete {
+			if _, err = sess.ID(m.ID).Delete(m); err != nil {
+				return err
+			}
+		}
+
+		if _, err = sess.ID(ms[0].RepoID).Update(&repo_model.Repository{
+			NumMilestones:       len(ms),
+			NumOpenMilestones:   openCount,
+			NumClosedMilestones: closedCount,
+		}); err != nil {
 			return err
 		}
-	}
-
-	for _, m := range milestonesToUpdate {
-		if _, err = sess.ID(m.ID).AllCols().Update(m); err != nil {
-			return err
-		}
-	}
-
-	for _, m := range milestonesToDelete {
-		if _, err = sess.ID(m.ID).Delete(m); err != nil {
-			return err
-		}
-	}
-
-	if _, err = sess.ID(ms[0].RepoID).Update(&repo_model.Repository{
-		NumMilestones:       len(ms),
-		NumOpenMilestones:   openCount,
-		NumClosedMilestones: closedCount,
-	}); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+		return nil
+	})
 }
 
 // InsertIssues insert issues to database
@@ -179,19 +175,15 @@ func insertIssue(ctx context.Context, issue *issues_model.Issue) error {
 }
 
 // UpsertIssues creates new issues and updates existing issues in database
-func UpsertIssues(issues ...*issues_model.Issue) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	for _, issue := range issues {
-		if _, err := upsertIssue(ctx, issue); err != nil {
-			return err
+func UpsertIssues(ctx context.Context, issues ...*issues_model.Issue) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		for _, issue := range issues {
+			if _, err := upsertIssue(ctx, issue); err != nil {
+				return err
+			}
 		}
-	}
-	return committer.Commit()
+		return nil
+	})
 }
 
 func updateIssue(ctx context.Context, issue *issues_model.Issue) error {
@@ -296,7 +288,7 @@ func InsertIssueComments(comments []*issues_model.Comment) error {
 }
 
 // UpsertIssueComments inserts many comments of issues.
-func UpsertIssueComments(comments []*issues_model.Comment) error {
+func UpsertIssueComments(ctx context.Context, comments []*issues_model.Comment) error {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -306,71 +298,67 @@ func UpsertIssueComments(comments []*issues_model.Comment) error {
 		issueIDs[comment.IssueID] = true
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	sess := db.GetEngine(ctx)
-	for _, comment := range comments {
-		exists, err := sess.Exist(&issues_model.Comment{
-			IssueID:     comment.IssueID,
-			CreatedUnix: comment.CreatedUnix,
-		})
-		if err != nil {
-			return err
-		}
-		if !exists {
-			if _, err := sess.NoAutoTime().Insert(comment); err != nil {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		sess := db.GetEngine(ctx)
+		for _, comment := range comments {
+			exists, err := sess.Exist(&issues_model.Comment{
+				IssueID:     comment.IssueID,
+				CreatedUnix: comment.CreatedUnix,
+			})
+			if err != nil {
 				return err
 			}
-		} else {
-			if _, err := sess.NoAutoTime().Where(
-				"original_id = ?", comment.IssueID, comment.OriginalID,
-			).AllCols().Update(comment); err != nil {
-				return err
-			}
-		}
-
-		for _, reaction := range comment.Reactions {
-			reaction.IssueID = comment.IssueID
-			reaction.CommentID = comment.ID
-		}
-		if len(comment.Reactions) > 0 {
-			for _, reaction := range comment.Reactions {
-				// issue is uniquely identified by issue_id, comment_id and type
-				exists, err := sess.Exist(&issues_model.Reaction{
-					IssueID:   reaction.IssueID,
-					CommentID: reaction.CommentID,
-					Type:      reaction.Type,
-				})
-				if err != nil {
+			if !exists {
+				if _, err := sess.NoAutoTime().Insert(comment); err != nil {
 					return err
 				}
-				if exists {
-					if _, err := sess.Where(
-						"issue_id = ? AND comment_id = ? AND type = ?",
-						reaction.IssueID, reaction.CommentID, reaction.Type,
-					).AllCols().Update(&reaction); err != nil {
+			} else {
+				if _, err := sess.NoAutoTime().Where(
+					"original_id = ?", comment.IssueID, comment.OriginalID,
+				).AllCols().Update(comment); err != nil {
+					return err
+				}
+			}
+
+			for _, reaction := range comment.Reactions {
+				reaction.IssueID = comment.IssueID
+				reaction.CommentID = comment.ID
+			}
+			if len(comment.Reactions) > 0 {
+				for _, reaction := range comment.Reactions {
+					// issue comment rection is uniquely identified by issue_id, comment_id and type
+					exists, err := sess.Exist(&issues_model.Reaction{
+						IssueID:   reaction.IssueID,
+						CommentID: reaction.CommentID,
+						Type:      reaction.Type,
+					})
+					if err != nil {
 						return err
 					}
-				} else {
-					if _, err := sess.Insert(&reaction); err != nil {
-						return err
+					if exists {
+						if _, err := sess.Where(
+							"issue_id = ? AND comment_id = ? AND type = ?",
+							reaction.IssueID, reaction.CommentID, reaction.Type,
+						).AllCols().Update(&reaction); err != nil {
+							return err
+						}
+					} else {
+						if _, err := sess.Insert(&reaction); err != nil {
+							return err
+						}
 					}
 				}
 			}
 		}
-	}
 
-	for issueID := range issueIDs {
-		if _, err := db.Exec(ctx, "UPDATE issue SET num_comments = (SELECT count(*) FROM comment WHERE issue_id = ? AND `type`=?) WHERE id = ?",
-			issueID, issues_model.CommentTypeComment, issueID); err != nil {
-			return err
+		for issueID := range issueIDs {
+			if _, err := db.Exec(ctx, "UPDATE issue SET num_comments = (SELECT count(*) FROM comment WHERE issue_id = ? AND `type`=?) WHERE id = ?",
+				issueID, issues_model.CommentTypeComment, issueID); err != nil {
+				return err
+			}
 		}
-	}
-	return committer.Commit()
+		return nil
+	})
 }
 
 // InsertPullRequests inserted pull requests
@@ -394,31 +382,28 @@ func InsertPullRequests(ctx context.Context, prs ...*issues_model.PullRequest) e
 }
 
 // UpsertPullRequests inserts new pull requests and updates existing pull requests in database
-func UpsertPullRequests(prs ...*issues_model.PullRequest) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-	sess := db.GetEngine(ctx)
-	for _, pr := range prs {
-		isInsert, err := upsertIssue(ctx, pr.Issue)
-		if err != nil {
-			return err
-		}
-		pr.IssueID = pr.Issue.ID
+func UpsertPullRequests(ctx context.Context, prs ...*issues_model.PullRequest) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		sess := db.GetEngine(ctx)
+		for _, pr := range prs {
+			isInsert, err := upsertIssue(ctx, pr.Issue)
+			if err != nil {
+				return err
+			}
+			pr.IssueID = pr.Issue.ID
 
-		if isInsert {
-			if _, err := sess.NoAutoTime().Insert(pr); err != nil {
-				return err
-			}
-		} else {
-			if _, err := sess.NoAutoTime().ID(pr.ID).AllCols().Update(pr); err != nil {
-				return err
+			if isInsert {
+				if _, err := sess.NoAutoTime().Insert(pr); err != nil {
+					return err
+				}
+			} else {
+				if _, err := sess.NoAutoTime().ID(pr.ID).AllCols().Update(pr); err != nil {
+					return err
+				}
 			}
 		}
-	}
-	return committer.Commit()
+		return nil
+	})
 }
 
 // InsertReleases migrates release
