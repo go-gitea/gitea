@@ -768,7 +768,8 @@ func EditBranchProtection(ctx *context.APIContext) {
 	if form.EnableStatusCheck != nil {
 		protectBranch.EnableStatusCheck = *form.EnableStatusCheck
 	}
-	if protectBranch.EnableStatusCheck {
+
+	if form.StatusCheckContexts != nil {
 		protectBranch.StatusCheckContexts = form.StatusCheckContexts
 	}
 

@@ -1631,6 +1631,89 @@
         }
       }
     },
+    "/orgs/{org}/actions/secrets/{secretname}": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Update a secret value in an organization",
+        "operationId": "updateOrgSecret",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the secret",
+            "name": "secretname",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/UpdateSecretOption"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "update one secret of the organization"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Delete a secret in an organization",
+        "operationId": "deleteOrgSecret",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the secret",
+            "name": "secretname",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "delete one secret of the organization"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
     "/orgs/{org}/activities/feeds": {
       "get": {
         "produces": [
@@ -21891,6 +21974,21 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "UpdateSecretOption": {
+      "description": "UpdateSecretOption options when updating secret",
+      "type": "object",
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "description": "Data of the secret to update",
+          "type": "string",
+          "x-go-name": "Data"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "UpdateUserAvatarOption": {
       "description": "UpdateUserAvatarUserOption options when updating the user avatar",
       "type": "object",
@@ -23207,7 +23305,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/CreateSecretOption"
+        "$ref": "#/definitions/UpdateSecretOption"
       }
     },
     "redirect": {
