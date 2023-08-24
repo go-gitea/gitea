@@ -210,7 +210,7 @@ func EditLabel(ctx *context.APIContext) {
 		l.Description = *form.Description
 	}
 	l.SetArchived(form.IsArchived != nil && *form.IsArchived)
-	if err := issues_model.UpdateLabel(l); err != nil {
+	if err := issues_model.UpdateLabel(ctx, l); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateLabel", err)
 		return
 	}
@@ -239,7 +239,7 @@ func DeleteLabel(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	if err := issues_model.DeleteLabel(ctx.Org.Organization.ID, ctx.ParamsInt64(":id")); err != nil {
+	if err := issues_model.DeleteLabel(ctx, ctx.Org.Organization.ID, ctx.ParamsInt64(":id")); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteLabel", err)
 		return
 	}

@@ -222,11 +222,7 @@ func NewLabels(labels ...*Label) error {
 }
 
 // UpdateLabel updates label information.
-func UpdateLabel(l *Label) error {
-	return updateLabel(db.DefaultContext, l)
-}
-
-func updateLabel(ctx context.Context, l *Label) error {
+func UpdateLabel(ctx context.Context, l *Label) error {
 	color, err := label.NormalizeColor(l.Color)
 	if err != nil {
 		return err
@@ -237,54 +233,42 @@ func updateLabel(ctx context.Context, l *Label) error {
 }
 
 // DeleteLabel delete a label
-func DeleteLabel(id, labelID int64) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
+func DeleteLabel(ctx context.Context, id, labelID int64) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		l, err := GetLabelByID(ctx, labelID)
+		if err != nil {
+			if IsErrLabelNotExist(err) {
+				return nil
+			}
+			return err
+		}
 
-	if err = deleteLabel(ctx, id, labelID); err != nil {
-		return err
-	}
+		sess := db.GetEngine(ctx)
 
-	return committer.Commit()
-}
-
-func deleteLabel(ctx context.Context, id, labelID int64) error {
-	l, err := GetLabelByID(ctx, labelID)
-	if err != nil {
-		if IsErrLabelNotExist(err) {
+		if l.BelongsToOrg() && l.OrgID != id {
 			return nil
 		}
-		return err
-	}
+		if l.BelongsToRepo() && l.RepoID != id {
+			return nil
+		}
 
-	sess := db.GetEngine(ctx)
+		if _, err = sess.ID(labelID).Delete(new(Label)); err != nil {
+			return err
+		}
 
-	if l.BelongsToOrg() && l.OrgID != id {
+		if _, err = sess.
+			Where("label_id = ?", labelID).
+			Delete(new(IssueLabel)); err != nil {
+			return err
+		}
+
+		// delete comments about now deleted label_id
+		if _, err = sess.Where("label_id = ?", labelID).Cols("label_id").Delete(&Comment{}); err != nil {
+			return err
+		}
+
 		return nil
-	}
-	if l.BelongsToRepo() && l.RepoID != id {
-		return nil
-	}
-
-	if _, err = sess.ID(labelID).Delete(new(Label)); err != nil {
-		return err
-	}
-
-	if _, err = sess.
-		Where("label_id = ?", labelID).
-		Delete(new(IssueLabel)); err != nil {
-		return err
-	}
-
-	// delete comments about now deleted label_id
-	if _, err = sess.Where("label_id = ?", labelID).Cols("label_id").Delete(&Comment{}); err != nil {
-		return err
-	}
-
-	return nil
+	})
 }
 
 // GetLabelByID returns a label by given ID.
@@ -466,13 +450,13 @@ func UpdateLabelsByRepoID(repoID int64, labels ...*Label) error {
 	}
 
 	for _, l := range labelsToUpdate {
-		if err = updateLabel(ctx, l); err != nil {
+		if err = UpdateLabel(ctx, l); err != nil {
 			return err
 		}
 	}
 
 	for _, l := range labelsToDelete {
-		if err = deleteLabel(ctx, repoID, l.ID); err != nil {
+		if err = DeleteLabel(ctx, repoID, l.ID); err != nil {
 			return err
 		}
 	}

@@ -269,7 +269,7 @@ func TestUpdateLabel(t *testing.T) {
 	}
 	label.Color = update.Color
 	label.Name = update.Name
-	assert.NoError(t, issues_model.UpdateLabel(update))
+	assert.NoError(t, issues_model.UpdateLabel(db.DefaultContext, update))
 	newLabel := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1})
 	assert.EqualValues(t, label.ID, newLabel.ID)
 	assert.EqualValues(t, label.Color, newLabel.Color)
@@ -282,13 +282,13 @@ func TestUpdateLabel(t *testing.T) {
 func TestDeleteLabel(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1})
-	assert.NoError(t, issues_model.DeleteLabel(label.RepoID, label.ID))
+	assert.NoError(t, issues_model.DeleteLabel(db.DefaultContext, label.RepoID, label.ID))
 	unittest.AssertNotExistsBean(t, &issues_model.Label{ID: label.ID, RepoID: label.RepoID})
 
-	assert.NoError(t, issues_model.DeleteLabel(label.RepoID, label.ID))
+	assert.NoError(t, issues_model.DeleteLabel(db.DefaultContext, label.RepoID, label.ID))
 	unittest.AssertNotExistsBean(t, &issues_model.Label{ID: label.ID})
 
-	assert.NoError(t, issues_model.DeleteLabel(unittest.NonexistentID, unittest.NonexistentID))
+	assert.NoError(t, issues_model.DeleteLabel(db.DefaultContext, unittest.NonexistentID, unittest.NonexistentID))
 	unittest.CheckConsistencyFor(t, &issues_model.Label{}, &repo_model.Repository{})
 }
 
