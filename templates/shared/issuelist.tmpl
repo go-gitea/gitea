@@ -4,7 +4,7 @@
 		<div class="flex-item flex-item-baseline">
 			<div class="flex-item-leading gt-ac">
 				{{if $.CanWriteIssuesOrPulls}}
-					<input type="checkbox" autocomplete="off" class="issue-checkbox gt-mr-4" data-issue-id={{.ID}} aria-label="{{$.locale.Tr "repo.issues.action_check"}} &quot;{{.Title}}&quot;">
+					<input dir="auto" type="checkbox" autocomplete="off" class="issue-checkbox gt-mr-4" data-issue-id={{.ID}} aria-label="{{$.locale.Tr "repo.issues.action_check"}} &quot;{{.Title}}&quot;">
 				{{end}}
 				<div class="flex-item-icon">
 					{{template "shared/issueicon" .}}

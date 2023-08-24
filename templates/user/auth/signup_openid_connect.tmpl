@@ -14,15 +14,15 @@
 					{{.CsrfTokenHtml}}
 					<div class="required inline field {{if .Err_UserName}}error{{end}}">
 						<label for="user_name">{{.locale.Tr "home.uname_holder"}}</label>
-						<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required>
+						<input dir="auto" id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required>
 					</div>
 					<div class="required inline field {{if .Err_Password}}error{{end}}">
 						<label for="password">{{.locale.Tr "password"}}</label>
-						<input id="password" name="password" type="password" value="{{.password}}" autocomplete="off" required>
+						<input dir="auto" id="password" name="password" type="password" value="{{.password}}" autocomplete="off" required>
 					</div>
 					<div class="inline field">
 						<label for="openid">OpenID URI</label>
-						<input id="openid" value="{{.OpenID}}" readonly>
+						<input dir="auto" id="openid" value="{{.OpenID}}" readonly>
 					</div>
 					<div class="inline field">
 						<label></label>

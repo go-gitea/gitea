@@ -12,11 +12,11 @@
 		{{if .PageIsCommits}}
 			<form class="ignore-dirty" action="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/search">
 				<div class="ui tiny search input">
-					<input name="q" placeholder="{{.locale.Tr "repo.commits.search"}}" value="{{.Keyword}}" autofocus>
+					<input dir="auto" name="q" placeholder="{{.locale.Tr "repo.commits.search"}}" value="{{.Keyword}}" autofocus>
 				</div>
 
 				<div class="ui tiny checkbox">
-					<input type="checkbox" name="all" value="true" {{.All}}>
+					<input dir="auto" type="checkbox" name="all" value="true" {{.All}}>
 					<label>{{.locale.Tr "repo.commits.search_all"}}</label>
 				</div>
 				<button class="ui primary tiny button gt-mr-0" data-panel="#add-deploy-key-panel" data-tooltip-content={{.locale.Tr "repo.commits.search.tooltip"}}>{{.locale.Tr "repo.commits.find"}}</button>

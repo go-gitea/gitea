@@ -57,16 +57,16 @@
 				{{.CsrfTokenHtml}}
 				<div class="field {{if .Err_Name}}error{{end}}">
 					<label for="name">{{.locale.Tr "settings.token_name"}}</label>
-					<input id="name" name="name" value="{{.name}}" autofocus required maxlength="255">
+					<input dir="auto" id="name" name="name" value="{{.name}}" autofocus required maxlength="255">
 				</div>
 				<div class="field">
 					<label>{{.locale.Tr "settings.repo_and_org_access"}}</label>
 					<label class="gt-cursor-pointer">
-						<input class="enable-system gt-mt-2 gt-mr-2" type="radio" name="scope" value="{{$.AccessTokenScopePublicOnly}}">
+						<input dir="auto" class="enable-system gt-mt-2 gt-mr-2" type="radio" name="scope" value="{{$.AccessTokenScopePublicOnly}}">
 						{{.locale.Tr "settings.permissions_public_only"}}
 					</label>
 					<label class="gt-cursor-pointer">
-						<input class="enable-system gt-mt-2 gt-mr-2" type="radio" name="scope" value="" checked>
+						<input dir="auto" class="enable-system gt-mt-2 gt-mr-2" type="radio" name="scope" value="" checked>
 						{{.locale.Tr "settings.permissions_access_all"}}
 					</label>
 				</div>

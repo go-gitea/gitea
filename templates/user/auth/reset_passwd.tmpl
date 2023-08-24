@@ -4,7 +4,7 @@
 		<div class="column">
 			<form class="ui form ignore-dirty" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
-				<input name="code" type="hidden" value="{{.Code}}">
+				<input dir="auto" name="code" type="hidden" value="{{.Code}}">
 				<h2 class="ui top attached header">
 					{{.locale.Tr "auth.reset_password"}}
 				</h2>
@@ -13,20 +13,20 @@
 					{{if .user_email}}
 						<div class="inline field">
 							<label for="user_name">{{.locale.Tr "email"}}</label>
-							<input id="user_name" type="text" value="{{.user_email}}" disabled>
+							<input dir="auto" id="user_name" type="text" value="{{.user_email}}" disabled>
 						</div>
 					{{end}}
 					{{if .IsResetForm}}
 						<div class="required inline field {{if .Err_Password}}error{{end}}">
 							<label for="password">{{.locale.Tr "settings.new_password"}}</label>
-							<input id="password" name="password" type="password"  value="{{.password}}" autocomplete="new-password" autofocus required>
+							<input dir="auto" id="password" name="password" type="password"  value="{{.password}}" autocomplete="new-password" autofocus required>
 						</div>
 						{{if not .user_signed_in}}
 						<div class="inline field">
 							<label></label>
 							<div class="ui checkbox">
 								<label>{{.locale.Tr "auth.remember_me"}}</label>
-								<input name="remember" type="checkbox">
+								<input dir="auto" name="remember" type="checkbox">
 							</div>
 						</div>
 						{{end}}
@@ -38,13 +38,13 @@
 						{{if .scratch_code}}
 						<div class="required inline field {{if .Err_Token}}error{{end}}">
 							<label for="token">{{.locale.Tr "auth.scratch_code"}}</label>
-							<input id="token" name="token" type="text" autocomplete="off" autofocus required>
+							<input dir="auto" id="token" name="token" type="text" autocomplete="off" autofocus required>
 						</div>
-						<input type="hidden" name="scratch_code" value="true">
+						<input dir="auto" type="hidden" name="scratch_code" value="true">
 						{{else}}
 						<div class="required inline field {{if .Err_Passcode}}error{{end}}">
 							<label for="passcode">{{.locale.Tr "passcode"}}</label>
-							<input id="passcode" name="passcode" type="number" autocomplete="off" autofocus required>
+							<input dir="auto" id="passcode" name="passcode" type="number" autocomplete="off" autofocus required>
 						</div>
 						{{end}}
 						{{end}}

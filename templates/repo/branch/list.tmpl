@@ -222,7 +222,7 @@
 			</div>
 			<div class="required field">
 				<label for="new_branch_name">{{.locale.Tr "repo.branch.name"}}</label>
-				<input id="new_branch_name" name="new_branch_name" required>
+				<input dir="auto" id="new_branch_name" name="new_branch_name" required>
 			</div>
 		</div>
 		{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonTypes" "confirm")}}
@@ -242,9 +242,9 @@
 			<div class="field">
 				<span class="text" data-rename-branch-to="{{.locale.Tr "repo.branch.rename_branch_to"}}"></span>
 			</div>
-			<input name="from" type="hidden" required>
+			<input dir="auto" name="from" type="hidden" required>
 			<div class="required field">
-				<input name="to" required>
+				<input dir="auto" name="to" required>
 			</div>
 		</div>
 		{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonTypes" "confirm")}}

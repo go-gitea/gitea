@@ -363,7 +363,7 @@
 					<form action="{{.Link}}/merge" method="post">
 						{{.CsrfTokenHtml}}
 						<div class="field">
-							<input type="text" name="merge_commit_id" placeholder="{{$.locale.Tr "repo.pulls.merge_commit_id"}}">
+							<input dir="auto" type="text" name="merge_commit_id" placeholder="{{$.locale.Tr "repo.pulls.merge_commit_id"}}">
 						</div>
 						<button class="ui red button" type="submit" name="do" value="manually-merged">
 							{{$.locale.Tr "repo.pulls.merge_manually"}}

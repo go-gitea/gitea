@@ -9,7 +9,7 @@
 			<span id="issue-title">{{RenderIssueTitle $.Context .Issue.Title $.RepoLink $.Repository.ComposeMetas | RenderCodeBlock}} <span class="index">#{{.Issue.Index}}</span>
 </span>
 			<div id="edit-title-input" class="ui input gt-f1 gt-hidden">
-				<input value="{{.Issue.Title}}" maxlength="255" autocomplete="off">
+				<input dir="auto" value="{{.Issue.Title}}" maxlength="255" autocomplete="off">
 			</div>
 		</h1>
 		<div class="issue-title-buttons">
@@ -85,7 +85,7 @@
 							<div class="menu">
 								<div class="ui icon search input">
 									<i class="icon">{{svg "octicon-filter" 16}}</i>
-									<input name="search" placeholder="{{.locale.Tr "repo.pulls.filter_branch"}}...">
+									<input dir="auto" name="search" placeholder="{{.locale.Tr "repo.pulls.filter_branch"}}...">
 								</div>
 								<div class="scrolling menu" id="branch-select">
 									{{range .Branches}}

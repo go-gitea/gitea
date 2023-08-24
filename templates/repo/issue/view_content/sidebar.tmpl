@@ -1,7 +1,7 @@
 <div class="issue-content-right ui segment">
 	{{template "repo/issue/branch_selector_field" .}}
 	{{if .Issue.IsPull}}
-		<input id="reviewer_id" name="reviewer_id" type="hidden" value="{{.reviewer_id}}">
+		<input dir="auto" id="reviewer_id" name="reviewer_id" type="hidden" value="{{.reviewer_id}}">
 		<div class="ui {{if or (not .Reviewers) (not .CanChooseReviewer) .Repository.IsArchived}}disabled{{end}} floating jump select-reviewers-modify dropdown">
 			<a class="text gt-df gt-ac muted">
 				<strong>{{.locale.Tr "repo.issues.review.reviewers"}}</strong>
@@ -13,7 +13,7 @@
 				{{if .Reviewers}}
 					<div class="ui icon search input">
 						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_reviewers"}}">
+						<input dir="auto" type="text" placeholder="{{.locale.Tr "repo.issues.filter_reviewers"}}">
 					</div>
 				{{end}}
 				{{if .Reviewers}}
@@ -71,10 +71,10 @@
 										</div>
 										<form class="ui form dismiss-review-form" id="dismiss-review-{{.Review.ID}}" action="{{$.RepoLink}}/issues/dismiss_review" method="post">
 											{{$.CsrfTokenHtml}}
-											<input type="hidden" name="review_id" value="{{.Review.ID}}">
+											<input dir="auto" type="hidden" name="review_id" value="{{.Review.ID}}">
 											<div class="field">
 												<label for="message">{{$.locale.Tr "action.review_dismissed_reason"}}</label>
-												<input id="message" name="message">
+												<input dir="auto" id="message" name="message">
 											</div>
 											<div class="text right actions">
 												<button class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</button>
@@ -163,7 +163,7 @@
 				{{if or .OpenProjects .ClosedProjects}}
 				<div class="ui icon search input">
 					<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-					<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_projects"}}">
+					<input dir="auto" type="text" placeholder="{{.locale.Tr "repo.issues.filter_projects"}}">
 				</div>
 				{{end}}
 				<div class="no-select item">{{.locale.Tr "repo.issues.new.clear_projects"}}</div>
@@ -205,7 +205,7 @@
 
 	<div class="divider"></div>
 
-	<input id="assignee_id" name="assignee_id" type="hidden" value="{{.assignee_id}}">
+	<input dir="auto" id="assignee_id" name="assignee_id" type="hidden" value="{{.assignee_id}}">
 	<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-assignees-modify dropdown">
 		<a class="text muted flex-text-block">
 			<strong>{{.locale.Tr "repo.issues.new.assignees"}}</strong>
@@ -216,7 +216,7 @@
 		<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/assignee">
 			<div class="ui icon search input">
 				<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-				<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_assignees"}}">
+				<input dir="auto" type="text" placeholder="{{.locale.Tr "repo.issues.filter_assignees"}}">
 			</div>
 			<div class="no-select item">{{.locale.Tr "repo.issues.new.clear_assignees"}}</div>
 			{{range .Assignees}}
@@ -271,7 +271,7 @@
 			<span class="text"><strong>{{.locale.Tr "notification.notifications"}}</strong></span>
 			<div class="gt-mt-3">
 				<form method="post" action="{{.Issue.Link}}/watch">
-					<input type="hidden" name="watch" value="{{if $.IssueWatch.IsWatching}}0{{else}}1{{end}}">
+					<input dir="auto" type="hidden" name="watch" value="{{if $.IssueWatch.IsWatching}}0{{else}}1{{end}}">
 					{{$.CsrfTokenHtml}}
 					<button class="fluid ui button">
 						{{if $.IssueWatch.IsWatching}}
@@ -322,8 +322,8 @@
 							<div class="content">
 								<form method="post" id="add_time_manual_form" action="{{.Issue.Link}}/times/add" class="ui input fluid gt-gap-3">
 									{{$.CsrfTokenHtml}}
-									<input placeholder='{{.locale.Tr "repo.issues.add_time_hours"}}' type="number" name="hours">
-									<input placeholder='{{.locale.Tr "repo.issues.add_time_minutes"}}' type="number" name="minutes" class="ui compact">
+									<input dir="auto" placeholder='{{.locale.Tr "repo.issues.add_time_hours"}}' type="number" name="hours">
+									<input dir="auto" placeholder='{{.locale.Tr "repo.issues.add_time_minutes"}}' type="number" name="minutes" class="ui compact">
 								</form>
 							</div>
 							<div class="actions">
@@ -392,7 +392,7 @@
 			<div {{if ne .Issue.DeadlineUnix 0}} class="gt-hidden"{{end}} id="deadlineForm">
 				<form class="ui fluid action input issue-due-form" action="{{AppSubUrl}}/{{PathEscape .Repository.Owner.Name}}/{{PathEscape .Repository.Name}}/issues/{{.Issue.Index}}/deadline" method="post" id="update-issue-deadline-form">
 					{{$.CsrfTokenHtml}}
-					<input required placeholder="{{.locale.Tr "repo.issues.due_date_form"}}" {{if gt .Issue.DeadlineUnix 0}}value="{{.Issue.DeadlineUnix.Format "2006-01-02"}}"{{end}} type="date" name="deadlineDate" id="deadlineDate">
+					<input dir="auto" required placeholder="{{.locale.Tr "repo.issues.due_date_form"}}" {{if gt .Issue.DeadlineUnix 0}}value="{{.Issue.DeadlineUnix.Format "2006-01-02"}}"{{end}} type="date" name="deadlineDate" id="deadlineDate">
 					<button class="ui icon button">
 						{{if ne .Issue.DeadlineUnix 0}}
 							{{svg "octicon-pencil"}}
@@ -514,9 +514,9 @@
 						{{$.CsrfTokenHtml}}
 						<div class="ui fluid action input">
 							<div class="ui search selection dropdown" id="new-dependency-drop-list" data-issue-id="{{.Issue.ID}}">
-								<input name="newDependency" type="hidden">
+								<input dir="auto" name="newDependency" type="hidden">
 								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-								<input type="text" class="search">
+								<input dir="auto" type="text" class="search">
 								<div class="default text">{{.locale.Tr "repo.issues.dependency.add"}}</div>
 							</div>
 							<button class="ui icon button">
@@ -529,7 +529,7 @@
 		</div>
 
 		{{if and .CanCreateIssueDependencies (not .Repository.IsArchived)}}
-			<input type="hidden" id="crossRepoSearch" value="{{.AllowCrossRepositoryDependencies}}">
+			<input dir="auto" type="hidden" id="crossRepoSearch" value="{{.AllowCrossRepositoryDependencies}}">
 
 			<div class="ui g-modal-confirm modal remove-dependency">
 				<div class="header">
@@ -539,8 +539,8 @@
 				<div class="content">
 					<form method="post" action="{{.Issue.Link}}/dependency/delete" id="removeDependencyForm">
 						{{$.CsrfTokenHtml}}
-						<input type="hidden" value="" name="removeDependencyID" id="removeDependencyID">
-						<input type="hidden" value="" name="dependencyType" id="dependencyType">
+						<input dir="auto" type="hidden" value="" name="removeDependencyID" id="removeDependencyID">
+						<input dir="auto" type="hidden" value="" name="dependencyType" id="dependencyType">
 					</form>
 					<p>{{if .Issue.IsPull}}
 						{{.locale.Tr "repo.issues.dependency.pr_remove_text"}}
@@ -693,7 +693,7 @@
 						data-prompt-error="{{.locale.Tr "repo.pulls.allow_edits_from_maintainers_err"}}"
 					>
 					<label><strong>{{.locale.Tr "repo.pulls.allow_edits_from_maintainers"}}</strong></label>
-					<input type="checkbox" {{if .Issue.PullRequest.AllowMaintainerEdit}}checked{{end}}>
+					<input dir="auto" type="checkbox" {{if .Issue.PullRequest.AllowMaintainerEdit}}checked{{end}}>
 				</div>
 			</div>
 		{{end}}

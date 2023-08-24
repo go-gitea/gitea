@@ -218,7 +218,7 @@ export function initGlobalDropzone() {
       init() {
         this.on('success', (file, data) => {
           file.uuid = data.uuid;
-          const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
+          const input = $(`<input dir="auto" id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
           $dropzone.find('.files').append(input);
           // Create a "Copy Link" element, to conveniently copy the image
           // or file link as Markdown to the clipboard

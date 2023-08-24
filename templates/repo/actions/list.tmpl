@@ -32,7 +32,7 @@
 						<div class="menu">
 							<div class="ui icon search input">
 								<i class="icon">{{svg "octicon-search"}}</i>
-								<input type="text" placeholder="{{.locale.Tr "actions.runs.actor"}}">
+								<input dir="auto" type="text" placeholder="{{.locale.Tr "actions.runs.actor"}}">
 							</div>
 							<a class="item{{if not $.CurActor}} active{{end}}" href="{{$.Link}}?workflow={{$.CurWorkflow}}&status={{$.CurStatus}}&actor=0">
 								{{.locale.Tr "actions.runs.actors_no_select"}}
@@ -51,7 +51,7 @@
 						<div class="menu">
 							<div class="ui icon search input">
 								<i class="icon">{{svg "octicon-search"}}</i>
-								<input type="text" placeholder="{{.locale.Tr "actions.runs.status"}}">
+								<input dir="auto" type="text" placeholder="{{.locale.Tr "actions.runs.status"}}">
 							</div>
 							<a class="item{{if not $.CurStatus}} active{{end}}" href="{{$.Link}}?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status=0">
 								{{.locale.Tr "actions.runs.status_no_select"}}

@@ -25,18 +25,18 @@
 			{{.CsrfTokenHtml}}
 				<div class="field {{if .Err_Title}}error{{end}}">
 					<label>{{.locale.Tr "repo.milestones.title"}}</label>
-					<input name="title" placeholder="{{.locale.Tr "repo.milestones.title"}}" value="{{.title}}" autofocus required maxlength="50">
+					<input dir="auto" name="title" placeholder="{{.locale.Tr "repo.milestones.title"}}" value="{{.title}}" autofocus required maxlength="50">
 				</div>
 				<div class="field {{if .Err_Deadline}}error{{end}}">
 					<label>
 						{{.locale.Tr "repo.milestones.due_date"}}
 						<a id="clear-date">{{.locale.Tr "repo.milestones.clear"}}</a>
 					</label>
-					<input type="date" id="deadline" name="deadline" value="{{.deadline}}" placeholder="{{.locale.Tr "repo.issues.due_date_form"}}">
+					<input dir="auto" type="date" id="deadline" name="deadline" value="{{.deadline}}" placeholder="{{.locale.Tr "repo.issues.due_date_form"}}">
 				</div>
 				<div class="field">
 					<label>{{.locale.Tr "repo.milestones.desc"}}</label>
-					<textarea name="content">{{.content}}</textarea>
+					<textarea dir="auto" name="content">{{.content}}</textarea>
 				</div>
 				<div class="divider"></div>
 				<div class="gt-text-right">

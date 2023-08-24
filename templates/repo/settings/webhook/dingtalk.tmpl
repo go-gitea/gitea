@@ -4,7 +4,7 @@
 		{{.CsrfTokenHtml}}
 		<div class="required field {{if .Err_PayloadURL}}error{{end}}">
 			<label for="payload_url">{{.locale.Tr "repo.settings.payload_url"}}</label>
-			<input id="payload_url" name="payload_url" type="url" value="{{.Webhook.URL}}" autofocus required>
+			<input dir="auto" id="payload_url" name="payload_url" type="url" value="{{.Webhook.URL}}" autofocus required>
 		</div>
 		{{template "repo/settings/webhook/settings" .}}
 	</form>

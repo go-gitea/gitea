@@ -21,13 +21,13 @@
 						{{if .NeedsPassword}}
 							<div class="required inline field">
 								<label for="password">{{.locale.Tr "password"}}</label>
-								<input id="password" name="password" type="password" autocomplete="off" required>
+								<input dir="auto" id="password" name="password" type="password" autocomplete="off" required>
 							</div>
 							<div class="inline field">
 								<label></label>
 								<button class="ui green button">{{.locale.Tr "install.confirm_password"}}</button>
 							</div>
-							<input id="code" name="code" type="hidden" value="{{.Code}}">
+							<input dir="auto" id="code" name="code" type="hidden" value="{{.Code}}">
 						{{else if .IsSendRegisterMail}}
 							<p>{{.locale.Tr "auth.confirmation_mail_sent_prompt" (.Email|Escape) .ActiveCodeLives | Str2html}}</p>
 						{{else if .IsCodeInvalid}}

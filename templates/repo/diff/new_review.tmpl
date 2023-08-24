@@ -9,7 +9,7 @@
 		<div class="ui segment">
 			<form class="ui form form-fetch-action" action="{{.Link}}/reviews/submit" method="post">
 				{{.CsrfTokenHtml}}
-				<input type="hidden" name="commit_id" value="{{.AfterCommitID}}">
+				<input dir="auto" type="hidden" name="commit_id" value="{{.AfterCommitID}}">
 				<div class="field gt-df gt-ac">
 					<div class="gt-f1">{{$.locale.Tr "repo.diff.review.header"}}</div>
 					<a class="muted close">{{svg "octicon-x" 16}}</a>

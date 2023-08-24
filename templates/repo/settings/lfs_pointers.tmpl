@@ -8,7 +8,7 @@
 						{{.CsrfTokenHtml}}
 						{{range .Pointers}}
 							{{if .Associatable}}
-								<input type="hidden" name="oid" value="{{.Oid}} {{.Size}}">
+								<input dir="auto" type="hidden" name="oid" value="{{.Oid}} {{.Size}}">
 							{{end}}
 						{{end}}
 						<button class="ui green button">{{$.locale.Tr "repo.settings.lfs_pointers.associateAccessible" $.NumAssociatable}}</button>

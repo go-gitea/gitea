@@ -9,8 +9,8 @@
 		<div class="ui attached segment">
 			<form class="ui form ignore-dirty">
 				<div class="ui fluid action input">
-				<input name="search" value="true" type="hidden">
-				<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "repo.adopt_search"}}" autofocus>
+				<input dir="auto" name="search" value="true" type="hidden">
+				<input dir="auto" name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "repo.adopt_search"}}" autofocus>
 				<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
 				</div>
 			</form>
@@ -33,10 +33,10 @@
 										</div>
 										<form class="ui form" method="post" action="{{AppSubUrl}}/admin/repos/unadopted">
 											{{$.CsrfTokenHtml}}
-											<input type="hidden" name="id" value="{{$dir}}">
-											<input type="hidden" name="action" value="adopt">
-											<input type="hidden" name="q" value="{{$.Keyword}}">
-											<input type="hidden" name="page" value="{{$.CurrentPage}}">
+											<input dir="auto" type="hidden" name="id" value="{{$dir}}">
+											<input dir="auto" type="hidden" name="action" value="adopt">
+											<input dir="auto" type="hidden" name="q" value="{{$.Keyword}}">
+											<input dir="auto" type="hidden" name="page" value="{{$.CurrentPage}}">
 											{{template "base/modal_actions_confirm" (dict "locale" $.locale)}}
 										</form>
 									</div>
@@ -50,10 +50,10 @@
 										</div>
 										<form class="ui form" method="post" action="{{AppSubUrl}}/admin/repos/unadopted">
 											{{$.CsrfTokenHtml}}
-											<input type="hidden" name="id" value="{{$dir}}">
-											<input type="hidden" name="action" value="delete">
-											<input type="hidden" name="q" value="{{$.Keyword}}">
-											<input type="hidden" name="page" value="{{$.CurrentPage}}">
+											<input dir="auto" type="hidden" name="id" value="{{$dir}}">
+											<input dir="auto" type="hidden" name="action" value="delete">
+											<input dir="auto" type="hidden" name="q" value="{{$.Keyword}}">
+											<input dir="auto" type="hidden" name="page" value="{{$.CurrentPage}}">
 											{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonColors" "yellow")}}
 										</form>
 									</div>

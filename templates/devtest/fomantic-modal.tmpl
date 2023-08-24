@@ -6,7 +6,7 @@
 	<div id="test-modal-form" class="ui mini modal">
 		<div class="header">Form dialog</div>
 		<form class="content" method="post">
-			<div class="ui input"><input name="user_input"></div>
+			<div class="ui input"><input dir="auto" name="user_input"></div>
 			{{template "base/modal_actions_confirm" (dict "locale" $.locale "ModalButtonTypes" "confirm")}}
 		</form>
 	</div>

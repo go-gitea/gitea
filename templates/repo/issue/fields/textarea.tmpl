@@ -3,7 +3,7 @@
 	{{template "repo/issue/fields/header" .}}
 
 	{{/* the real form element to provide the value */}}
-	<textarea class="form-field-real" name="form-field-{{.item.ID}}" placeholder="{{.item.Attributes.placeholder}}" {{if and .item.Validations.required}}required{{end}}>{{.item.Attributes.value}}</textarea>
+	<textarea dir="auto" class="form-field-real" name="form-field-{{.item.ID}}" placeholder="{{.item.Attributes.placeholder}}" {{if and .item.Validations.required}}required{{end}}>{{.item.Attributes.value}}</textarea>
 
 	{{if $useMarkdownEditor}}
 		{{template "shared/combomarkdowneditor" (dict

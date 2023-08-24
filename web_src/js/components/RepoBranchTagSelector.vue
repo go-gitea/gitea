@@ -14,7 +14,7 @@
     <div class="menu transition" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak>
       <div class="ui icon search input">
         <i class="icon"><svg-icon name="octicon-filter" :size="16"/></i>
-        <input name="search" ref="searchField" autocomplete="off" v-model="searchTerm" @keydown="keydown($event)" :placeholder="searchFieldPlaceholder">
+        <input dir="auto" name="search" ref="searchField" autocomplete="off" v-model="searchTerm" @keydown="keydown($event)" :placeholder="searchFieldPlaceholder">
       </div>
       <div v-if="showBranchesInDropdown" class="branch-tag-tab">
         <a class="branch-tag-item muted" :class="{active: mode === 'branches'}" href="#" @click="handleTabSwitch('branches')">
@@ -54,10 +54,10 @@
             </div>
           </a>
           <form ref="newBranchForm" :action="formActionUrl" method="post">
-            <input type="hidden" name="_csrf" :value="csrfToken">
-            <input type="hidden" name="new_branch_name" v-model="searchTerm">
-            <input type="hidden" name="create_tag" v-model="shouldCreateTag">
-            <input type="hidden" name="current_path" v-model="treePath" v-if="treePath">
+            <input dir="auto" type="hidden" name="_csrf" :value="csrfToken">
+            <input dir="auto" type="hidden" name="new_branch_name" v-model="searchTerm">
+            <input dir="auto" type="hidden" name="create_tag" v-model="shouldCreateTag">
+            <input dir="auto" type="hidden" name="current_path" v-model="treePath" v-if="treePath">
           </form>
         </div>
       </div>

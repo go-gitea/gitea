@@ -11,13 +11,13 @@
 				{{ctx.AvatarUtils.Avatar .SignedUser 40}}
 				<div class="ui segment content gt-my-0">
 					<div class="field">
-						<input name="title" id="issue_title" placeholder="{{.locale.Tr "repo.milestones.title"}}" value="{{if .TitleQuery}}{{.TitleQuery}}{{else if .IssueTemplateTitle}}{{.IssueTemplateTitle}}{{else}}{{.title}}{{end}}" tabindex="3" autofocus required maxlength="255" autocomplete="off">
+						<input dir="auto" name="title" id="issue_title" placeholder="{{.locale.Tr "repo.milestones.title"}}" value="{{if .TitleQuery}}{{.TitleQuery}}{{else if .IssueTemplateTitle}}{{.IssueTemplateTitle}}{{else}}{{.title}}{{end}}" tabindex="3" autofocus required maxlength="255" autocomplete="off">
 						{{if .PageIsComparePull}}
 							<div class="title_wip_desc" data-wip-prefixes="{{JsonUtils.EncodeToString .PullRequestWorkInProgressPrefixes}}">{{.locale.Tr "repo.pulls.title_wip_desc" (index .PullRequestWorkInProgressPrefixes 0| Escape) | Safe}}</div>
 						{{end}}
 					</div>
 					{{if .Fields}}
-						<input type="hidden" name="template-file" value="{{.TemplateFile}}">
+						<input dir="auto" type="hidden" name="template-file" value="{{.TemplateFile}}">
 						{{range .Fields}}
 							{{if eq .Type "input"}}
 								{{template "repo/issue/fields/input" dict "Context" $.Context "item" .}}
@@ -51,13 +51,13 @@
 	<div class="issue-content-right ui segment">
 		{{template "repo/issue/branch_selector_field" .}}
 
-		<input id="label_ids" name="label_ids" type="hidden" value="{{.label_ids}}">
+		<input dir="auto" id="label_ids" name="label_ids" type="hidden" value="{{.label_ids}}">
 		{{template "repo/issue/labels/labels_selector_field" .}}
 		{{template "repo/issue/labels/labels_sidebar" dict "root" $}}
 
 		<div class="divider"></div>
 
-		<input id="milestone_id" name="milestone_id" type="hidden" value="{{.milestone_id}}">
+		<input dir="auto" id="milestone_id" name="milestone_id" type="hidden" value="{{.milestone_id}}">
 		<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating jump select-milestone dropdown">
 			<span class="text flex-text-block">
 				<strong>{{.locale.Tr "repo.issues.new.milestone"}}</strong>
@@ -84,7 +84,7 @@
 		{{if .IsProjectsEnabled}}
 		<div class="divider"></div>
 
-		<input id="project_id" name="project_id" type="hidden" value="{{.project_id}}">
+		<input dir="auto" id="project_id" name="project_id" type="hidden" value="{{.project_id}}">
 		<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating jump select-project dropdown">
 			<span class="text flex-text-block">
 				<strong>{{.locale.Tr "repo.issues.new.projects"}}</strong>
@@ -96,7 +96,7 @@
 				{{if or .OpenProjects .ClosedProjects}}
 				<div class="ui icon search input">
 					<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-					<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_projects"}}">
+					<input dir="auto" type="text" placeholder="{{.locale.Tr "repo.issues.filter_projects"}}">
 				</div>
 				{{end}}
 				<div class="no-select item">{{.locale.Tr "repo.issues.new.clear_projects"}}</div>
@@ -142,7 +142,7 @@
 		</div>
 		{{end}}
 		<div class="divider"></div>
-			<input id="assignee_ids" name="assignee_ids" type="hidden" value="{{.assignee_ids}}">
+			<input dir="auto" id="assignee_ids" name="assignee_ids" type="hidden" value="{{.assignee_ids}}">
 			<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating jump select-assignees dropdown">
 				<span class="text flex-text-block">
 					<strong>{{.locale.Tr "repo.issues.new.assignees"}}</strong>
@@ -153,7 +153,7 @@
 				<div class="filter menu" data-id="#assignee_ids">
 					<div class="ui icon search input">
 						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_assignees"}}">
+						<input dir="auto" type="text" placeholder="{{.locale.Tr "repo.issues.filter_assignees"}}">
 					</div>
 					<div class="no-select item">{{.locale.Tr "repo.issues.new.clear_assignees"}}</div>
 					{{range .Assignees}}
@@ -183,10 +183,10 @@
 			<div class="inline field">
 				<div class="ui checkbox">
 					<label data-tooltip-content="{{.locale.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"><strong>{{.locale.Tr "repo.pulls.allow_edits_from_maintainers"}}</strong></label>
-					<input name="allow_maintainer_edit" type="checkbox" {{if .AllowMaintainerEdit}}checked{{end}}>
+					<input dir="auto" name="allow_maintainer_edit" type="checkbox" {{if .AllowMaintainerEdit}}checked{{end}}>
 				</div>
 			</div>
 		{{end}}
 	</div>
-	<input type="hidden" name="redirect_after_creation" value="{{.redirect_after_creation}}">
+	<input dir="auto" type="hidden" name="redirect_after_creation" value="{{.redirect_after_creation}}">
 </form>

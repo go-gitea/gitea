@@ -13,17 +13,17 @@
 					{{.CsrfTokenHtml}}
 					<div class="required inline field {{if .Err_UserName}}error{{end}}">
 						<label for="user_name">{{.locale.Tr "home.uname_holder"}}</label>
-						<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required>
+						<input dir="auto" id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required>
 					</div>
 					<div class="required inline field {{if .Err_Password}}error{{end}}">
 						<label for="password">{{.locale.Tr "password"}}</label>
-						<input id="password" name="password" type="password" value="{{.password}}" autocomplete="off" required>
+						<input dir="auto" id="password" name="password" type="password" value="{{.password}}" autocomplete="off" required>
 					</div>
 					<div class="inline field">
 						<label></label>
 						<div class="ui checkbox">
 							<label>{{.locale.Tr "auth.remember_me"}}</label>
-							<input name="remember" type="checkbox">
+							<input dir="auto" name="remember" type="checkbox">
 						</div>
 					</div>
 

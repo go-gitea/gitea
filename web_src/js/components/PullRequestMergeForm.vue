@@ -15,17 +15,17 @@
 
     <div class="ui form" v-if="showActionForm">
       <form :action="mergeForm.baseLink+'/merge'" method="post">
-        <input type="hidden" name="_csrf" :value="csrfToken">
-        <input type="hidden" name="head_commit_id" v-model="mergeForm.pullHeadCommitID">
-        <input type="hidden" name="merge_when_checks_succeed" v-model="autoMergeWhenSucceed">
-        <input type="hidden" name="force_merge" v-model="forceMerge">
+        <input dir="auto" type="hidden" name="_csrf" :value="csrfToken">
+        <input dir="auto" type="hidden" name="head_commit_id" v-model="mergeForm.pullHeadCommitID">
+        <input dir="auto" type="hidden" name="merge_when_checks_succeed" v-model="autoMergeWhenSucceed">
+        <input dir="auto" type="hidden" name="force_merge" v-model="forceMerge">
 
         <template v-if="!mergeStyleDetail.hideMergeMessageTexts">
           <div class="field">
-            <input type="text" name="merge_title_field" v-model="mergeTitleFieldValue">
+            <input dir="auto" type="text" name="merge_title_field" v-model="mergeTitleFieldValue">
           </div>
           <div class="field">
-            <textarea name="merge_message_field" rows="5" :placeholder="mergeForm.mergeMessageFieldPlaceHolder" v-model="mergeMessageFieldValue"/>
+            <textarea dir="auto" name="merge_message_field" rows="5" :placeholder="mergeForm.mergeMessageFieldPlaceHolder" v-model="mergeMessageFieldValue"/>
             <template v-if="mergeMessageFieldValue !== mergeForm.defaultMergeMessage">
               <button @click.prevent="clearMergeMessage" class="btn gt-mt-2 gt-p-2 interact-fg" :data-tooltip-content="mergeForm.textClearMergeMessageHint">
                 {{ mergeForm.textClearMergeMessage }}
@@ -35,7 +35,7 @@
         </template>
 
         <div class="field" v-if="mergeStyle === 'manually-merged'">
-          <input type="text" name="merge_commit_id" :placeholder="mergeForm.textMergeCommitId">
+          <input dir="auto" type="text" name="merge_commit_id" :placeholder="mergeForm.textMergeCommitId">
         </div>
 
         <button class="ui button" :class="mergeButtonStyleClass" type="submit" name="do" :value="mergeStyle">
@@ -50,7 +50,7 @@
         </button>
 
         <div class="ui checkbox gt-ml-2" v-if="mergeForm.isPullBranchDeletable && !autoMergeWhenSucceed">
-          <input name="delete_branch_after_merge" type="checkbox" v-model="deleteBranchAfterMerge" id="delete-branch-after-merge">
+          <input dir="auto" name="delete_branch_after_merge" type="checkbox" v-model="deleteBranchAfterMerge" id="delete-branch-after-merge">
           <label for="delete-branch-after-merge">{{ mergeForm.textDeleteBranch }}</label>
         </div>
       </form>
@@ -98,7 +98,7 @@
 
       <!-- the cancel auto merge button -->
       <form v-if="mergeForm.hasPendingPullRequestMerge" :action="mergeForm.baseLink+'/cancel_auto_merge'" method="post" class="gt-ml-4">
-        <input type="hidden" name="_csrf" :value="csrfToken">
+        <input dir="auto" type="hidden" name="_csrf" :value="csrfToken">
         <button class="ui button">
           {{ mergeForm.textAutoMergeCancelSchedule }}
         </button>

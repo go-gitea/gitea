@@ -11,21 +11,21 @@
 <form class="ui form" action="{{.Link}}" method="post">
 	{{.CsrfTokenHtml}}
 	<div>
-		<input type="hidden" id="redirect" name="redirect" value="{{.redirect}}">
+		<input dir="auto" type="hidden" id="redirect" name="redirect" value="{{.redirect}}">
 		<div class="field {{if .Err_Title}}error{{end}}">
 			<label>{{ctx.Locale.Tr "repo.projects.title"}}</label>
-			<input name="title" placeholder="{{ctx.Locale.Tr "repo.projects.title"}}" value="{{.title}}" autofocus required>
+			<input dir="auto" name="title" placeholder="{{ctx.Locale.Tr "repo.projects.title"}}" value="{{.title}}" autofocus required>
 		</div>
 		<div class="field">
 			<label>{{ctx.Locale.Tr "repo.projects.description"}}</label>
-			<textarea name="content" placeholder="{{ctx.Locale.Tr "repo.projects.description_placeholder"}}">{{.content}}</textarea>
+			<textarea dir="auto" name="content" placeholder="{{ctx.Locale.Tr "repo.projects.description_placeholder"}}">{{.content}}</textarea>
 		</div>
 
 		{{if not .PageIsEditProjects}}
 			<div class="field">
 				<label>{{ctx.Locale.Tr "repo.projects.template.desc"}}</label>
 				<div class="ui selection dropdown">
-					<input type="hidden" name="board_type" value="{{.type}}">
+					<input dir="auto" type="hidden" name="board_type" value="{{.type}}">
 					<div class="default text">{{ctx.Locale.Tr "repo.projects.template.desc_helper"}}</div>
 					<div class="menu">
 						{{range $element := .BoardTypes}}
@@ -42,7 +42,7 @@
 				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				{{range $element := .CardTypes}}
 					{{if or (eq $.card_type $element.CardType) (and (not $.PageIsEditProjects) (eq $element.CardType 1))}}
-						<input type="hidden" name="card_type" value="{{$element.CardType}}">
+						<input dir="auto" type="hidden" name="card_type" value="{{$element.CardType}}">
 						<div class="default text">{{ctx.Locale.Tr $element.Translation}}</div>
 					{{end}}
 				{{end}}

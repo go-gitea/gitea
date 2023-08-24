@@ -2,11 +2,11 @@
 <div class="ui attached segment">
 	<form class="ui form" action="{{.Link}}" method="post">
 		{{.CsrfTokenHtml}}
-		<input name="id" type="hidden" value="{{.CleanupRule.ID}}">
+		<input dir="auto" name="id" type="hidden" value="{{.CleanupRule.ID}}">
 		<div class="field">
 			<div class="ui checkbox">
 				<label>{{.locale.Tr "enabled"}}</label>
-				<input type="checkbox" name="enabled" {{if .CleanupRule.Enabled}}checked{{end}}>
+				<input dir="auto" type="checkbox" name="enabled" {{if .CleanupRule.Enabled}}checked{{end}}>
 			</div>
 		</div>
 		<div class="{{if .IsEditRule}}disabled {{end}}field {{if .Err_Type}}error{{end}}">
@@ -20,7 +20,7 @@
 		<div class="field">
 			<div class="ui checkbox">
 				<label>{{.locale.Tr "packages.owner.settings.cleanuprules.pattern_full_match"}}</label>
-				<input type="checkbox" name="match_full_name" {{if .CleanupRule.MatchFullName}}checked{{end}}>
+				<input dir="auto" type="checkbox" name="match_full_name" {{if .CleanupRule.MatchFullName}}checked{{end}}>
 			</div>
 		</div>
 		<div class="divider"></div>
@@ -39,7 +39,7 @@
 		</div>
 		<div class="field {{if .Err_KeepPattern}}error{{end}}">
 			<label>{{.locale.Tr "packages.owner.settings.cleanuprules.keep.pattern"}}:</label>
-			<input name="keep_pattern" type="text" value="{{.CleanupRule.KeepPattern}}">
+			<input dir="auto" name="keep_pattern" type="text" value="{{.CleanupRule.KeepPattern}}">
 			<p>{{.locale.Tr "packages.owner.settings.cleanuprules.keep.pattern.container" | Safe}}</p>
 		</div>
 		<div class="divider"></div>
@@ -58,7 +58,7 @@
 		</div>
 		<div class="field {{if .Err_RemovePattern}}error{{end}}">
 			<label>{{.locale.Tr "packages.owner.settings.cleanuprules.remove.pattern"}}:</label>
-			<input name="remove_pattern" type="text" value="{{.CleanupRule.RemovePattern}}">
+			<input dir="auto" name="remove_pattern" type="text" value="{{.CleanupRule.RemovePattern}}">
 		</div>
 		<div class="field">
 			{{if .IsEditRule}}

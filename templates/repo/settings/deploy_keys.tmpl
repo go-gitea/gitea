@@ -19,15 +19,15 @@
 					</div>
 					<div class="field {{if .Err_Title}}error{{end}}">
 						<label for="title">{{.locale.Tr "repo.settings.title"}}</label>
-						<input id="ssh-key-title" name="title" value="{{.title}}" autofocus required>
+						<input dir="auto" id="ssh-key-title" name="title" value="{{.title}}" autofocus required>
 					</div>
 					<div class="field {{if .Err_Content}}error{{end}}">
 						<label for="content">{{.locale.Tr "repo.settings.deploy_key_content"}}</label>
-						<textarea id="ssh-key-content" name="content" placeholder="{{.locale.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
+						<textarea dir="auto" id="ssh-key-content" name="content" placeholder="{{.locale.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
 					</div>
 					<div class="field">
 						<div class="ui checkbox {{if .Err_IsWritable}}error{{end}}">
-							<input id="ssh-key-is-writable" name="is_writable" type="checkbox" value="1">
+							<input dir="auto" id="ssh-key-is-writable" name="is_writable" type="checkbox" value="1">
 							<label for="is_writable">
 								{{.locale.Tr "repo.settings.is_writable"}}
 							</label>

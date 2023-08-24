@@ -236,7 +236,7 @@
 						<form class="ui form ignore-dirty" action="{{AppSubUrl}}/admin/config/test_mail" method="post">
 							{{.CsrfTokenHtml}}
 							<div class="ui tiny input">
-								<input type="email" name="email" placeholder="{{.locale.Tr "admin.config.test_email_placeholder"}}" size="29" required>
+								<input dir="auto" type="email" name="email" placeholder="{{.locale.Tr "admin.config.test_email_placeholder"}}" size="29" required>
 							</div>
 							<button class="ui tiny green button">{{.locale.Tr "admin.config.send_test_mail_submit"}}</button>
 						</form>
@@ -293,14 +293,14 @@
 				<dt>{{.locale.Tr "admin.config.disable_gravatar"}}</dt>
 				<dd>
 					<div class="ui toggle checkbox">
-						<input type="checkbox" name="picture.disable_gravatar" version="{{.SystemSettings.GetVersion "picture.disable_gravatar"}}"{{if .SystemSettings.GetBool "picture.disable_gravatar"}} checked{{end}} title="{{.locale.Tr "admin.config.disable_gravatar"}}">
+						<input dir="auto" type="checkbox" name="picture.disable_gravatar" version="{{.SystemSettings.GetVersion "picture.disable_gravatar"}}"{{if .SystemSettings.GetBool "picture.disable_gravatar"}} checked{{end}} title="{{.locale.Tr "admin.config.disable_gravatar"}}">
 					</div>
 				</dd>
 				<div class="divider"></div>
 				<dt>{{.locale.Tr "admin.config.enable_federated_avatar"}}</dt>
 				<dd>
 					<div class="ui toggle checkbox">
-						<input type="checkbox" name="picture.enable_federated_avatar" version="{{.SystemSettings.GetVersion "picture.enable_federated_avatar"}}"{{if .SystemSettings.GetBool "picture.enable_federated_avatar"}} checked{{end}} title="{{.locale.Tr "admin.config.enable_federated_avatar"}}">
+						<input dir="auto" type="checkbox" name="picture.enable_federated_avatar" version="{{.SystemSettings.GetVersion "picture.enable_federated_avatar"}}"{{if .SystemSettings.GetBool "picture.enable_federated_avatar"}} checked{{end}} title="{{.locale.Tr "admin.config.enable_federated_avatar"}}">
 					</div>
 				</dd>
 			</dl>

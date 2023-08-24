@@ -9,7 +9,7 @@
 		{{if or .Labels .OrgLabels}}
 			<div class="ui icon search input">
 				<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-				<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_labels"}}">
+				<input dir="auto" type="text" placeholder="{{.locale.Tr "repo.issues.filter_labels"}}">
 			</div>
 		{{end}}
 		<a class="no-select item" href="#">{{.locale.Tr "repo.issues.new.clear_labels"}}</a>

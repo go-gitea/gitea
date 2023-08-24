@@ -12,13 +12,13 @@
 			{{.CsrfTokenHtml}}
 			<div class="field {{if .Err_Title}}error{{end}}">
 				<label for="title">{{.locale.Tr "settings.key_name"}}</label>
-				<input id="ssh-key-title" name="title" value="{{.title}}" autofocus required maxlength="50">
+				<input dir="auto" id="ssh-key-title" name="title" value="{{.title}}" autofocus required maxlength="50">
 			</div>
 			<div class="field {{if .Err_Content}}error{{end}}">
 				<label for="content">{{.locale.Tr "settings.key_content"}}</label>
-				<textarea id="ssh-key-content" name="content" class="js-quick-submit" placeholder="{{.locale.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
+				<textarea dir="auto" id="ssh-key-content" name="content" class="js-quick-submit" placeholder="{{.locale.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
 			</div>
-			<input name="type" type="hidden" value="ssh">
+			<input dir="auto" name="type" type="hidden" value="ssh">
 			<button class="ui green button">
 				{{.locale.Tr "settings.add_key"}}
 			</button>
@@ -67,12 +67,12 @@
 					<h4>{{$.locale.Tr "settings.ssh_token_required"}}</h4>
 					<form class="ui form{{if $.HasSSHVerifyError}} error{{end}}" action="{{$.Link}}" method="post">
 						{{$.CsrfTokenHtml}}
-						<input type="hidden" name="title" value="none">
-						<input type="hidden" name="content" value="{{.Content}}">
-						<input type="hidden" name="fingerprint" value="{{.Fingerprint}}">
+						<input dir="auto" type="hidden" name="title" value="none">
+						<input dir="auto" type="hidden" name="content" value="{{.Content}}">
+						<input dir="auto" type="hidden" name="fingerprint" value="{{.Fingerprint}}">
 						<div class="field">
 							<label for="token">{{$.locale.Tr "settings.ssh_token"}}</label>
-							<input readonly="" value="{{$.TokenToSign}}">
+							<input dir="auto" readonly="" value="{{$.TokenToSign}}">
 							<div class="help">
 								<p>{{$.locale.Tr "settings.ssh_token_help"}}</p>
 								<p><code>{{printf "echo -n '%s' | ssh-keygen -Y sign -n gitea -f /path_to_your_privkey" $.TokenToSign}}</code></p>
@@ -81,9 +81,9 @@
 						</div>
 						<div class="field">
 							<label for="signature">{{$.locale.Tr "settings.ssh_token_signature"}}</label>
-							<textarea id="ssh-key-signature" name="signature" class="js-quick-submit" placeholder="{{$.locale.Tr "settings.key_signature_ssh_placeholder"}}" required>{{$.signature}}</textarea>
+							<textarea dir="auto" id="ssh-key-signature" name="signature" class="js-quick-submit" placeholder="{{$.locale.Tr "settings.key_signature_ssh_placeholder"}}" required>{{$.signature}}</textarea>
 						</div>
-						<input name="type" type="hidden" value="verify_ssh">
+						<input dir="auto" name="type" type="hidden" value="verify_ssh">
 						<button class="ui green button">
 							{{$.locale.Tr "settings.ssh_key_verify"}}
 						</button>

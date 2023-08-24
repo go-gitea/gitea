@@ -36,13 +36,13 @@
 				<form class="ui form">
 					<div class="required field">
 						<label for="new_project_column">{{ctx.Locale.Tr "repo.projects.column.new_title"}}</label>
-						<input class="new-project-column" id="new_project_column" name="title" required>
+						<input dir="auto" class="new-project-column" id="new_project_column" name="title" required>
 					</div>
 
 					<div class="field color-field">
 						<label for="new_project_column_color">{{ctx.Locale.Tr "repo.projects.column.color"}}</label>
 						<div class="color picker column">
-							<input class="color-picker" maxlength="7" placeholder="#c320f6" id="new_project_column_color_picker" name="color">
+							<input dir="auto" class="color-picker" maxlength="7" placeholder="#c320f6" id="new_project_column_color_picker" name="color">
 							<div class="column precolors">
 								{{template "repo/issue/label_precolors"}}
 							</div>
@@ -118,13 +118,13 @@
 										<form class="ui form">
 											<div class="required field">
 												<label for="new_project_column_title">{{ctx.Locale.Tr "repo.projects.column.edit_title"}}</label>
-												<input class="project-column-title-input" id="new_project_column_title" name="title" value="{{.Title}}" required>
+												<input dir="auto" class="project-column-title-input" id="new_project_column_title" name="title" value="{{.Title}}" required>
 											</div>
 
 											<div class="field color-field">
 												<label for="new_project_column_color">{{ctx.Locale.Tr "repo.projects.column.color"}}</label>
 												<div class="color picker column">
-													<input class="color-picker" maxlength="7" placeholder="#c320f6" id="new_project_column_color" name="color" value="{{.Color}}">
+													<input dir="auto" class="color-picker" maxlength="7" placeholder="#c320f6" id="new_project_column_color" name="color" value="{{.Color}}">
 													<div class="column precolors">
 														{{template "repo/issue/label_precolors"}}
 													</div>

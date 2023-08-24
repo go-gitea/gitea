@@ -12,14 +12,14 @@
 						<span class="text red gt-hidden" id="name-change-prompt"> {{.locale.Tr "settings.change_username_prompt"}}</span>
 						<span class="text red gt-hidden" id="name-change-redirect-prompt"> {{.locale.Tr "settings.change_username_redirect_prompt"}}</span>
 					</label>
-					<input id="username" name="name" value="{{.SignedUser.Name}}" data-name="{{.SignedUser.Name}}" autofocus required {{if or (not .SignedUser.IsLocal) .IsReverseProxy}}disabled{{end}} maxlength="40">
+					<input dir="auto" id="username" name="name" value="{{.SignedUser.Name}}" data-name="{{.SignedUser.Name}}" autofocus required {{if or (not .SignedUser.IsLocal) .IsReverseProxy}}disabled{{end}} maxlength="40">
 					{{if or (not .SignedUser.IsLocal) .IsReverseProxy}}
 					<p class="help text blue">{{$.locale.Tr "settings.password_username_disabled"}}</p>
 					{{end}}
 				</div>
 				<div class="field {{if .Err_FullName}}error{{end}}">
 					<label for="full_name">{{.locale.Tr "settings.full_name"}}</label>
-					<input id="full_name" name="full_name" value="{{.SignedUser.FullName}}" maxlength="100">
+					<input dir="auto" id="full_name" name="full_name" value="{{.SignedUser.FullName}}" maxlength="100">
 				</div>
 				<div class="field {{if .Err_Email}}error{{end}}">
 					<label for="email">{{.locale.Tr "email"}}</label>
@@ -27,15 +27,15 @@
 				</div>
 				<div class="field {{if .Err_Description}}error{{end}}">
 					<label for="description">{{$.locale.Tr "user.user_bio"}}</label>
-					<textarea id="description" name="description" rows="2" placeholder="{{.locale.Tr "settings.biography_placeholder"}}" maxlength="255">{{.SignedUser.Description}}</textarea>
+					<textarea dir="auto" id="description" name="description" rows="2" placeholder="{{.locale.Tr "settings.biography_placeholder"}}" maxlength="255">{{.SignedUser.Description}}</textarea>
 				</div>
 				<div class="field {{if .Err_Website}}error{{end}}">
 					<label for="website">{{.locale.Tr "settings.website"}}</label>
-					<input id="website" name="website" type="url" value="{{.SignedUser.Website}}" maxlength="255">
+					<input dir="auto" id="website" name="website" type="url" value="{{.SignedUser.Website}}" maxlength="255">
 				</div>
 				<div class="field">
 					<label for="location">{{.locale.Tr "settings.location"}}</label>
-					<input id="location" name="location" placeholder="{{.locale.Tr "settings.location_placeholder"}}" value="{{.SignedUser.Location}}" maxlength="50">
+					<input dir="auto" id="location" name="location" placeholder="{{.locale.Tr "settings.location_placeholder"}}" value="{{.SignedUser.Location}}" maxlength="50">
 				</div>
 
 				<div class="divider"></div>
@@ -48,9 +48,9 @@
 				<div class="inline field {{if .Err_Visibility}}error{{end}}">
 					<span class="inline required field"><label for="visibility">{{.locale.Tr "settings.visibility"}}</label></span>
 					<div class="ui selection type dropdown">
-						{{if .SignedUser.Visibility.IsPublic}}<input type="hidden" id="visibility" name="visibility" value="0">{{end}}
-						{{if .SignedUser.Visibility.IsLimited}}<input type="hidden" id="visibility" name="visibility" value="1">{{end}}
-						{{if .SignedUser.Visibility.IsPrivate}}<input type="hidden" id="visibility" name="visibility" value="2">{{end}}
+						{{if .SignedUser.Visibility.IsPublic}}<input dir="auto" type="hidden" id="visibility" name="visibility" value="0">{{end}}
+						{{if .SignedUser.Visibility.IsLimited}}<input dir="auto" type="hidden" id="visibility" name="visibility" value="1">{{end}}
+						{{if .SignedUser.Visibility.IsPrivate}}<input dir="auto" type="hidden" id="visibility" name="visibility" value="2">{{end}}
 						<div class="text">
 							{{if .SignedUser.Visibility.IsPublic}}{{.locale.Tr "settings.visibility.public"}}{{end}}
 							{{if .SignedUser.Visibility.IsLimited}}{{.locale.Tr "settings.visibility.limited"}}{{end}}
@@ -74,14 +74,14 @@
 				<div class="field">
 					<div class="ui checkbox">
 						<label data-tooltip-content="{{.locale.Tr "settings.keep_email_private_popup"}}"><strong>{{.locale.Tr "settings.keep_email_private"}}</strong></label>
-						<input name="keep_email_private" type="checkbox" {{if .SignedUser.KeepEmailPrivate}}checked{{end}}>
+						<input dir="auto" name="keep_email_private" type="checkbox" {{if .SignedUser.KeepEmailPrivate}}checked{{end}}>
 					</div>
 				</div>
 
 				<div class="field">
 					<div class="ui checkbox" id="keep-activity-private">
 						<label data-tooltip-content="{{.locale.Tr "settings.keep_activity_private_popup"}}"><strong>{{.locale.Tr "settings.keep_activity_private"}}</strong></label>
-						<input name="keep_activity_private" type="checkbox" {{if .SignedUser.KeepActivityPrivate}}checked{{end}}>
+						<input dir="auto" name="keep_activity_private" type="checkbox" {{if .SignedUser.KeepActivityPrivate}}checked{{end}}>
 					</div>
 				</div>
 
@@ -102,26 +102,26 @@
 				{{if not .DisableGravatar}}
 				<div class="inline field">
 					<div class="ui radio checkbox">
-						<input name="source" value="lookup" type="radio" {{if not .SignedUser.UseCustomAvatar}}checked{{end}}>
+						<input dir="auto" name="source" value="lookup" type="radio" {{if not .SignedUser.UseCustomAvatar}}checked{{end}}>
 						<label>{{.locale.Tr "settings.lookup_avatar_by_mail"}}</label>
 					</div>
 				</div>
 				<div class="field gt-pl-4 {{if .Err_Gravatar}}error{{end}}">
 					<label for="gravatar">Avatar {{.locale.Tr "email"}}</label>
-					<input id="gravatar" name="gravatar" value="{{.SignedUser.AvatarEmail}}">
+					<input dir="auto" id="gravatar" name="gravatar" value="{{.SignedUser.AvatarEmail}}">
 				</div>
 				{{end}}
 
 				<div class="inline field">
 					<div class="ui radio checkbox">
-						<input name="source" value="local" type="radio" {{if .SignedUser.UseCustomAvatar}}checked{{end}}>
+						<input dir="auto" name="source" value="local" type="radio" {{if .SignedUser.UseCustomAvatar}}checked{{end}}>
 						<label>{{.locale.Tr "settings.enable_custom_avatar"}}</label>
 					</div>
 				</div>
 
 				<div class="inline field gt-pl-4">
 					<label for="avatar">{{.locale.Tr "settings.choose_new_avatar"}}</label>
-					<input name="avatar" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
+					<input dir="auto" name="avatar" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
 				</div>
 
 				<div class="field">

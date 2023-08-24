@@ -11,16 +11,16 @@
 				{{if .SignedUser.IsPasswordSet}}
 				<div class="required field {{if .Err_OldPassword}}error{{end}}">
 					<label for="old_password">{{.locale.Tr "settings.old_password"}}</label>
-					<input id="old_password" name="old_password" type="password" autocomplete="current-password" autofocus required>
+					<input dir="auto" id="old_password" name="old_password" type="password" autocomplete="current-password" autofocus required>
 				</div>
 				{{end}}
 				<div class="required field {{if .Err_Password}}error{{end}}">
 					<label for="password">{{.locale.Tr "settings.new_password"}}</label>
-					<input id="password" name="password" type="password" autocomplete="new-password" required>
+					<input dir="auto" id="password" name="password" type="password" autocomplete="new-password" required>
 				</div>
 				<div class="required field {{if .Err_Password}}error{{end}}">
 					<label for="retype">{{.locale.Tr "settings.retype_new_password"}}</label>
-					<input id="retype" name="retype" type="password" autocomplete="new-password" required>
+					<input dir="auto" id="retype" name="retype" type="password" autocomplete="new-password" required>
 				</div>
 
 				<div class="field">
@@ -45,10 +45,10 @@
 					<div class="gt-mb-3">{{.locale.Tr "settings.email_desc"}}</div>
 					<form action="{{AppSubUrl}}/user/settings/account/email" class="ui form" method="post">
 						{{$.CsrfTokenHtml}}
-						<input name="_method" type="hidden" value="NOTIFICATION">
+						<input dir="auto" name="_method" type="hidden" value="NOTIFICATION">
 						<div class="gt-df gt-fw gt-gap-3">
 							<div class="ui selection dropdown">
-								<input name="preference" type="hidden" value="{{.EmailNotificationsPreference}}">
+								<input dir="auto" name="preference" type="hidden" value="{{.EmailNotificationsPreference}}">
 								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 								<div class="text"></div>
 								<div class="menu">
@@ -75,8 +75,8 @@
 								<div class="right floated content">
 									<form action="{{AppSubUrl}}/user/settings/account/email" method="post">
 										{{$.CsrfTokenHtml}}
-										<input name="_method" type="hidden" value="PRIMARY">
-										<input name="id" type="hidden" value="{{.ID}}">
+										<input dir="auto" name="_method" type="hidden" value="PRIMARY">
+										<input dir="auto" name="id" type="hidden" value="{{.ID}}">
 										<button class="ui primary tiny button">{{$.locale.Tr "settings.primary_email"}}</button>
 									</form>
 								</div>
@@ -86,8 +86,8 @@
 							<div class="right floated content">
 								<form action="{{AppSubUrl}}/user/settings/account/email" method="post">
 									{{$.CsrfTokenHtml}}
-									<input name="_method" type="hidden" value="SENDACTIVATION">
-									<input name="id" type="hidden" value="{{.ID}}">
+									<input dir="auto" name="_method" type="hidden" value="SENDACTIVATION">
+									<input dir="auto" name="id" type="hidden" value="{{.ID}}">
 									{{if $.ActivationsPending}}
 										<button disabled class="ui primary tiny button">{{$.locale.Tr "settings.activations_pending"}}</button>
 									{{else}}
@@ -116,7 +116,7 @@
 				{{.CsrfTokenHtml}}
 				<div class="required field {{if .Err_Email}}error{{end}}">
 					<label for="email">{{.locale.Tr "settings.add_new_email"}}</label>
-					<input id="email" name="email" type="email" required {{if not .CanAddEmails}}disabled{{end}}>
+					<input dir="auto" id="email" name="email" type="email" required {{if not .CanAddEmails}}disabled{{end}}>
 				</div>
 				<button class="ui green button" {{if not .CanAddEmails}}disabled{{end}}>
 					{{.locale.Tr "settings.add_email"}}
@@ -143,7 +143,7 @@
 				{{.CsrfTokenHtml}}
 				<div class="required field {{if .Err_Password}}error{{end}}">
 					<label for="password-confirmation">{{.locale.Tr "password"}}</label>
-					<input id="password-confirmation" name="password" type="password" autocomplete="off" required>
+					<input dir="auto" id="password-confirmation" name="password" type="password" autocomplete="off" required>
 				</div>
 				<div class="field">
 					<button class="ui red button delete-button" data-modal-id="delete-account" data-type="form" data-form="#delete-form">

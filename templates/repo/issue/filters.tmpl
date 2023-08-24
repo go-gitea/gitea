@@ -1,7 +1,7 @@
 <div id="issue-filters" class="issue-list-toolbar">
 	<div class="issue-list-toolbar-left">
 		{{if and ($.CanWriteIssuesOrPulls) (gt (len .Issues) 0)}}
-			<input type="checkbox" autocomplete="off" class="issue-checkbox-all gt-mr-4" title="{{.locale.Tr "repo.issues.action_check_all"}}">
+			<input dir="auto" type="checkbox" autocomplete="off" class="issue-checkbox-all gt-mr-4" title="{{.locale.Tr "repo.issues.action_check_all"}}">
 		{{end}}
 		{{template "repo/issue/openclose" .}}
 	</div>
@@ -16,7 +16,7 @@
 				<div class="menu">
 					<div class="ui icon search input">
 						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_label"}}">
+						<input dir="auto" type="text" placeholder="{{.locale.Tr "repo.issues.filter_label"}}">
 					</div>
 					<span class="info">{{.locale.Tr "repo.issues.filter_label_exclude" | Safe}}</span>
 					<div class="divider"></div>
@@ -44,7 +44,7 @@
 				<div class="menu">
 					<div class="ui icon search input">
 						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_milestone"}}">
+						<input dir="auto" type="text" placeholder="{{.locale.Tr "repo.issues.filter_milestone"}}">
 					</div>
 					<div class="divider"></div>
 					<a class="{{if not $.MilestoneID}}active selected {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone=0&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_milestone_all"}}</a>
@@ -82,7 +82,7 @@
 				<div class="menu">
 					<div class="ui icon search input">
 						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_project"}}">
+						<input dir="auto" type="text" placeholder="{{.locale.Tr "repo.issues.filter_project"}}">
 					</div>
 					<a class="{{if not .ProjectID}}active selected {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_project_all"}}</a>
 					<a class="{{if eq .ProjectID -1}}active selected {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&project=-1&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_project_none"}}</a>
@@ -124,7 +124,7 @@
 				<div class="menu">
 					<div class="ui icon search input">
 						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_poster"}}">
+						<input dir="auto" type="text" placeholder="{{.locale.Tr "repo.issues.filter_poster"}}">
 					</div>
 					<a class="item" data-value="0">{{.locale.Tr "repo.issues.filter_poster_no_select"}}</a>
 				</div>
@@ -139,7 +139,7 @@
 				<div class="menu">
 					<div class="ui icon search input">
 						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
-						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_assignee"}}">
+						<input dir="auto" type="text" placeholder="{{.locale.Tr "repo.issues.filter_assignee"}}">
 					</div>
 					<a class="{{if not .AssigneeID}}active selected {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_assginee_no_select"}}</a>
 					<a class="{{if eq .AssigneeID -1}}active selected {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee=-1&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_assginee_no_assignee"}}</a>

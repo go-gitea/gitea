@@ -336,7 +336,7 @@ async function onEditContent(event) {
         this.on('success', (file, data) => {
           file.uuid = data.uuid;
           fileUuidDict[file.uuid] = {submitted: false};
-          const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
+          const input = $(`<input dir="auto" id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
           $dropzone.find('.files').append(input);
         });
         this.on('removedfile', (file) => {
@@ -371,7 +371,7 @@ async function onEditContent(event) {
               dz.files.push(attachment);
               fileUuidDict[attachment.uuid] = {submitted: true};
               $dropzone.find(`img[src='${imgSrc}']`).css('max-width', '100%');
-              const input = $(`<input id="${attachment.uuid}" name="files" type="hidden">`).val(attachment.uuid);
+              const input = $(`<input dir="auto" id="${attachment.uuid}" name="files" type="hidden">`).val(attachment.uuid);
               $dropzone.find('.files').append(input);
             }
           });

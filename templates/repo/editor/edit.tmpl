@@ -5,8 +5,8 @@
 		{{template "base/alert" .}}
 		<form class="ui edit form" method="post">
 			{{.CsrfTokenHtml}}
-			<input type="hidden" name="last_commit" value="{{.last_commit}}">
-			<input type="hidden" name="page_has_posted" value="{{.PageHasPosted}}">
+			<input dir="auto" type="hidden" name="last_commit" value="{{.last_commit}}">
+			<input dir="auto" type="hidden" name="page_has_posted" value="{{.PageHasPosted}}">
 			<div class="repo-editor-header">
 				<div class="ui breadcrumb field{{if .Err_TreePath}} error{{end}}">
 					<a class="section" href="{{$.BranchLink}}">{{.Repository.Name}}</a>
@@ -15,14 +15,14 @@
 					{{range $i, $v := .TreeNames}}
 						<div class="breadcrumb-divider">/</div>
 						{{if eq $i $l}}
-							<input id="file-name" value="{{$v}}" placeholder="{{$.locale.Tr "repo.editor.name_your_file"}}" data-editorconfig="{{$.EditorconfigJson}}" required autofocus>
+							<input dir="auto" id="file-name" value="{{$v}}" placeholder="{{$.locale.Tr "repo.editor.name_your_file"}}" data-editorconfig="{{$.EditorconfigJson}}" required autofocus>
 							<span data-tooltip-content="{{$.locale.Tr "repo.editor.filename_help"}}">{{svg "octicon-info"}}</span>
 						{{else}}
 							<span class="section"><a href="{{$.BranchLink}}/{{index $.TreePaths $i | PathEscapeSegments}}">{{$v}}</a></span>
 						{{end}}
 					{{end}}
 					<span>{{.locale.Tr "repo.editor.or"}} <a href="{{$.BranchLink}}{{if not .IsNewFile}}/{{PathEscapeSegments .TreePath}}{{end}}">{{.locale.Tr "repo.editor.cancel_lower"}}</a></span>
-					<input type="hidden" id="tree_path" name="tree_path" value="{{.TreePath}}" required>
+					<input dir="auto" type="hidden" id="tree_path" name="tree_path" value="{{.TreePath}}" required>
 				</div>
 			</div>
 			<div class="field">
@@ -34,7 +34,7 @@
 					{{end}}
 				</div>
 				<div class="ui bottom attached active tab segment" data-tab="write">
-					<textarea id="edit_area" name="content" class="gt-hidden" data-id="repo-{{.Repository.Name}}-{{.TreePath}}"
+					<textarea dir="auto" id="edit_area" name="content" class="gt-hidden" data-id="repo-{{.Repository.Name}}-{{.TreePath}}"
 						data-url="{{.Repository.Link}}/markup"
 						data-context="{{.RepoLink}}"
 						data-previewable-extensions="{{.PreviewableExtensions}}"

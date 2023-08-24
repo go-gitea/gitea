@@ -65,7 +65,7 @@
 		</div>
 		<form class="ui form" action="{{.Link}}/settings" method="post">
 			{{.CsrfTokenHtml}}
-			<input type="hidden" name="action" value="delete">
+			<input dir="auto" type="hidden" name="action" value="delete">
 			<div class="field">
 				<label>
 					{{.locale.Tr "repo.settings.transfer_form_title"}}
@@ -74,7 +74,7 @@
 			</div>
 			<div class="required field">
 				<label for="repo_name">{{.locale.Tr "repo.repo_name"}}</label>
-				<input id="repo_name" name="repo_name" required>
+				<input dir="auto" id="repo_name" name="repo_name" required>
 			</div>
 
 			<div class="text right actions">
