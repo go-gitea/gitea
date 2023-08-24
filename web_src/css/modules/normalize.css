@@ -25,7 +25,7 @@ Use a better box model (opinionated).
 }
 
 html {
-  line-height: 1.15; /* 1. Correct the line height in all browsers. */
+  line-height: normal; /* 1. (not following the "modern-normalize") Do not change the browser's default line-height, the default value is font-dependent and roughly 1.2 */
   -webkit-text-size-adjust: 100%; /* 2. Prevent adjustments of font size after orientation changes in iOS. */
 }
 
