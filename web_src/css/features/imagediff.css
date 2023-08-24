@@ -8,7 +8,7 @@
 
 .image-diff-container {
   text-align: center;
-  padding: 0.5em 0 1em 0;
+  padding: 0.5em 0 1em;
 }
 
 .image-diff-container img {
@@ -98,7 +98,7 @@
 }
 
 .image-diff-container .diff-overlay .overlay-frame {
-  margin: 1em auto 0 auto;
+  margin: 1em auto 0;
   position: relative;
 }
 
