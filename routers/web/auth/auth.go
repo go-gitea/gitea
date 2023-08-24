@@ -734,6 +734,12 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("auth.account_activated"))
+	if redirectTo := ctx.GetSiteCookie("redirect_to"); len(redirectTo) > 0 {
+		middleware.DeleteRedirectToCookie(ctx.Resp)
+		ctx.RedirectToFirst(redirectTo)
+		return
+	}
+
 	ctx.Redirect(setting.AppSubURL + "/")
 }
 
