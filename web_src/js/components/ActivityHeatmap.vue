@@ -1,6 +1,6 @@
 <template>
   <div class="total-contributions">
-      {{ locale.contributions_in_the_last_12_months }}
+    {{ locale.contributions_in_the_last_12_months }}
   </div>
   <calendar-heatmap
     :locale="locale"
