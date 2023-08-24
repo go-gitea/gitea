@@ -397,72 +397,67 @@ func GetLabelsByRepoID(ctx context.Context, repoID int64, sortType string, listO
 	return labels, sess.Find(&labels)
 }
 
-// UpdateLabels adds, updates, and deletes relevant labels for the given repository.
-func UpdateLabelsByRepoID(repoID int64, labels ...*Label) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
+// UpdateLabelsByRepoID adds, updates, and deletes relevant labels for the given repository.
+func UpdateLabelsByRepoID(ctx context.Context, repoID int64, labels ...*Label) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		existingLabels, err := GetLabelsByRepoID(ctx, repoID, "", db.ListOptions{})
+		if err != nil {
+			return err
+		}
+		labelsToAdd := make([]*Label, 0)
+		labelsToUpdate := make([]*Label, 0)
+		labelsToDelete := make([]*Label, 0)
 
-	existingLabels, err := GetLabelsByRepoID(ctx, repoID, "", db.ListOptions{})
-	if err != nil {
-		return err
-	}
-	labelsToAdd := make([]*Label, 0)
-	labelsToUpdate := make([]*Label, 0)
-	labelsToDelete := make([]*Label, 0)
+		for _, l := range labels {
+			var foundLabel *Label
+			for _, existingLabel := range existingLabels {
+				if existingLabel.OriginalID == l.OriginalID {
+					foundLabel = existingLabel
+					break
+				}
+			}
 
-	for _, l := range labels {
-		var foundLabel *Label
+			if foundLabel == nil {
+				labelsToAdd = append(labelsToAdd, l)
+			} else if foundLabel.Name != l.Name || foundLabel.Description != l.Description ||
+				foundLabel.Color != l.Color {
+				l.RepoID = repoID
+				labelsToUpdate = append(labelsToUpdate, l)
+			}
+		}
+
 		for _, existingLabel := range existingLabels {
-			if existingLabel.OriginalID == l.OriginalID {
-				foundLabel = existingLabel
-				break
+			found := false
+			for _, label := range labels {
+				if label.OriginalID == existingLabel.OriginalID {
+					found = true
+					break
+				}
+			}
+			if !found {
+				labelsToDelete = append(labelsToDelete, existingLabel)
 			}
 		}
 
-		if foundLabel == nil {
-			labelsToAdd = append(labelsToAdd, l)
-		} else if foundLabel.Name != l.Name || foundLabel.Description != l.Description ||
-			foundLabel.Color != l.Color {
-			l.RepoID = repoID
-			labelsToUpdate = append(labelsToUpdate, l)
-		}
-	}
-
-	for _, existingLabel := range existingLabels {
-		found := false
-		for _, label := range labels {
-			if label.OriginalID == existingLabel.OriginalID {
-				found = true
-				break
+		for _, l := range labelsToAdd {
+			if err = NewLabel(ctx, l); err != nil {
+				return err
 			}
 		}
-		if !found {
-			labelsToDelete = append(labelsToDelete, existingLabel)
-		}
-	}
 
-	for _, l := range labelsToAdd {
-		if err = NewLabel(ctx, l); err != nil {
-			return err
+		for _, l := range labelsToUpdate {
+			if err = UpdateLabel(ctx, l); err != nil {
+				return err
+			}
 		}
-	}
 
-	for _, l := range labelsToUpdate {
-		if err = UpdateLabel(ctx, l); err != nil {
-			return err
+		for _, l := range labelsToDelete {
+			if err = DeleteLabel(ctx, repoID, l.ID); err != nil {
+				return err
+			}
 		}
-	}
-
-	for _, l := range labelsToDelete {
-		if err = DeleteLabel(ctx, repoID, l.ID); err != nil {
-			return err
-		}
-	}
-
-	return committer.Commit()
+		return nil
+	})
 }
 
 // CountLabelsByRepoID count number of all labels that belong to given repository by ID.

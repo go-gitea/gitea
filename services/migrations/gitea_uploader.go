@@ -1009,7 +1009,8 @@ func (g *GiteaLocalUploader) UpdateMilestones(milestones ...*base.Milestone) err
 
 func (g *GiteaLocalUploader) UpdateLabels(labels ...*base.Label) error {
 	lbs := g.convertLabels(labels...)
-	if err := issues_model.UpdateLabelsByRepoID(g.repo.ID, lbs...); err != nil {
+	ctx := db.DefaultContext
+	if err := issues_model.UpdateLabelsByRepoID(ctx, g.repo.ID, lbs...); err != nil {
 		return err
 	}
 	for _, lb := range lbs {
