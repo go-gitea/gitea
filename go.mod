@@ -90,6 +90,7 @@ require (
 	github.com/prometheus/client_golang v1.16.0
 	github.com/quasoft/websspi v1.1.2
 	github.com/redis/go-redis/v9 v9.0.5
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	github.com/sassoftware/go-rpmutils v0.2.0
 	github.com/sergi/go-diff v1.3.1
@@ -254,7 +255,6 @@ require (
 	github.com/rhysd/actionlint v1.6.25 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/robfig/cron v1.2.0 // indirect
-	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/rs/xid v1.5.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
