@@ -335,7 +335,7 @@ func runSyncGit(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult,
 		log.Error("SyncMirrors [repo: %-v]: failed to update size for mirror repository: %v", m.Repo, err)
 	}
 
-	if m.Repo.HasWiki() && m.SyncWiki {
+	if m.Repo.HasWiki() {
 		log.Trace("SyncMirrors [repo: %-v Wiki]: running git remote update...", m.Repo)
 		stderrBuilder.Reset()
 		stdoutBuilder.Reset()
