@@ -111,7 +111,7 @@ type Review struct {
 	ReviewerTeam     *organization.Team `xorm:"-"`
 	OriginalAuthor   string
 	OriginalAuthorID int64
-	OriginalID       int64
+	OriginalID       int64  // ID from the upstream syncing source
 	Issue            *Issue `xorm:"-"`
 	IssueID          int64  `xorm:"index"`
 	Content          string `xorm:"TEXT"`

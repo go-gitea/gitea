@@ -42,7 +42,7 @@ type Review struct {
 	CreatedAt    time.Time `yaml:"created_at"`
 	State        string    // PENDING, APPROVED, REQUEST_CHANGES, or COMMENT
 	Comments     []*ReviewComment
-	OriginalID   int64
+	OriginalID   int64 // ID from the upstream syncing source
 }
 
 // GetExternalName ExternalUserMigrated interface
@@ -65,5 +65,5 @@ type ReviewComment struct {
 	Reactions  []*Reaction
 	CreatedAt  time.Time `yaml:"created_at"`
 	UpdatedAt  time.Time `yaml:"updated_at"`
-	OriginalID int64
+	OriginalID int64     // ID from the upstream syncing source
 }
