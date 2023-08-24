@@ -2,7 +2,7 @@
 <tr>
 	<td colspan="2">
 		<div class="image-diff" data-path-before="{{.root.BeforeRawPath}}/{{PathEscapeSegments .file.OldName}}" data-path-after="{{.root.RawPath}}/{{PathEscapeSegments .file.Name}}">
-			<div class="ui secondary pointing tabular top attached borderless menu new-menu gt-mb-0">
+			<div class="ui secondary pointing tabular top attached borderless menu new-menu">
 				<div class="new-menu-inner">
 					<a class="item active" data-tab="diff-side-by-side-{{.file.Index}}">{{.root.locale.Tr "repo.diff.image.side_by_side"}}</a>
 					{{if and .blobBase .blobHead}}
@@ -11,7 +11,7 @@
 					{{end}}
 				</div>
 			</div>
-			<div class="gt-hidden">
+			<div class="image-diff-tabs is-loading">
 				<div class="ui bottom attached tab image-diff-container active" data-tab="diff-side-by-side-{{.file.Index}}">
 					<div class="diff-side-by-side">
 						{{if .blobBase}}
@@ -63,19 +63,14 @@
 				</div>
 				<div class="ui bottom attached tab image-diff-container" data-tab="diff-overlay-{{.file.Index}}">
 					<div class="diff-overlay">
+						<input type="range" min="0" max="100" value="50">
 						<div class="overlay-frame">
-							<div class="ui centered">
-								<input type="range" min="0" max="100" value="50">
-							</div>
 							<span class="before-container"><img class="image-before"></span>
 							<span class="after-container"><img class="image-after"></span>
 						</div>
 					</div>
 				</div>
 				{{end}}
-			</div>
-			<div class="img-diff-spinner gt-df gt-jc gt-py-4">
-				{{template "shared/spinner" dict "Size" 64}}
 			</div>
 		</div>
 	</td>

@@ -255,3 +255,26 @@ func TestParseCommitFileStatus(t *testing.T) {
 		assert.Equal(t, kase.modified, fileStatus.Modified)
 	}
 }
+
+func TestGetCommitFileStatusMerges(t *testing.T) {
+	bareRepo1Path := filepath.Join(testReposDir, "repo6_merge")
+
+	commitFileStatus, err := GetCommitFileStatus(DefaultContext, bareRepo1Path, "022f4ce6214973e018f02bf363bf8a2e3691f699")
+	assert.NoError(t, err)
+
+	expected := CommitFileStatus{
+		[]string{
+			"add_file.txt",
+		},
+		[]string{
+			"to_remove.txt",
+		},
+		[]string{
+			"to_modify.txt",
+		},
+	}
+
+	assert.Equal(t, commitFileStatus.Added, expected.Added)
+	assert.Equal(t, commitFileStatus.Removed, expected.Removed)
+	assert.Equal(t, commitFileStatus.Modified, expected.Modified)
+}

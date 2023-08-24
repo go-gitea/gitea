@@ -29,7 +29,8 @@
   display: flex;
   flex-direction: column;
   flex-grow: 1;
-  flex-basis: 60%;
+  flex-basis: 60%; /* avoid wrapping the "flex-item-trailing" too aggressively */
+  min-width: 0; /* make the "text truncate" work, otherwise the flex axis is not limited and the text just overflows */
 }
 
 .flex-item-header {
@@ -66,6 +67,7 @@
   font-size: 16px;
   font-weight: var(--font-weight-semibold);
   word-break: break-word;
+  min-width: 0;
 }
 
 .flex-item .flex-item-title a {

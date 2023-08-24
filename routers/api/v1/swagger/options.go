@@ -190,4 +190,7 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	CreateSecretOption api.CreateSecretOption
+
+	// in:body
+	UpdateSecretOption api.UpdateSecretOption
 }
