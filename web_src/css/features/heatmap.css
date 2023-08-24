@@ -6,7 +6,8 @@
 
 #user-heatmap.is-loading {
   /* before the Vue component is mounted, show a loading indicator with dummy size */
-  aspect-ratio: 5.448; /* the size is about 790 x 145 */
+  /* the ratio is guesswork, see https://github.com/razorness/vue3-calendar-heatmap/issues/26 */
+  aspect-ratio: 5.415; /* the size is about 790 x 145 */
 }
 
 #user-heatmap text {
