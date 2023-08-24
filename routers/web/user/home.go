@@ -448,8 +448,8 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// - Team org's owns the repository.
 	// - Team has read permission to repository.
 	repoOpts := &repo_model.SearchRepoOptions{
-		Actor:       ctx.Doer,
-		OwnerID:     ctx.Doer.ID,
+		Actor:       ctxUser,
+		OwnerID:     ctxUser.ID,
 		Private:     true,
 		AllPublic:   false,
 		AllLimited:  false,
