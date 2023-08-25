@@ -559,7 +559,7 @@ And the following unique queues:
     - `scrypt`:    `scrypt$65536$16$2$50`
   - Adjusting the algorithm parameters using this functionality is done at your own risk.
 - `CSRF_COOKIE_HTTP_ONLY`: **true**: Set false to allow JavaScript to read CSRF cookie.
-- `MIN_PASSWORD_LENGTH`: **6**: Minimum password length for new users.
+- `MIN_PASSWORD_LENGTH`: **8**: Minimum password length for new users.
 - `PASSWORD_COMPLEXITY`: **off**: Comma separated list of character classes required to pass minimum complexity. If left empty or no valid values are specified, checking is disabled (off):
   - lower - use one or more lower latin characters
   - upper - use one or more upper latin characters
