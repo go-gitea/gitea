@@ -26,14 +26,14 @@
 				<h5 class="ui dividing header">{{.locale.Tr "repo.settings.event_push"}}</h5>
 				<div class="field">
 					<div class="ui radio checkbox">
-						<input type="radio" name="enable_push" value="none" class="toggle-target-disabled" data-target="#whitelist_box" {{if not .Rule.CanPush}}checked{{end}}>
+						<input dir="auto" name="enable_push" type="radio" value="none" class="toggle-target-disabled" data-target="#whitelist_box" {{if not .Rule.CanPush}}checked{{end}}>
 						<label>{{.locale.Tr "repo.settings.protect_disable_push"}}</label>
 						<p class="help">{{.locale.Tr "repo.settings.protect_disable_push_desc"}}</p>
 					</div>
 				</div>
 				<div class="field">
 					<div class="ui radio checkbox">
-						<input type="radio" name="enable_push" value="all" class="toggle-target-disabled" data-target="#whitelist_box" {{if and (.Rule.CanPush) (not .Rule.EnableWhitelist)}}checked{{end}}>
+						<input dir="auto" name="enable_push" type="radio" value="all" class="toggle-target-disabled" data-target="#whitelist_box" {{if and (.Rule.CanPush) (not .Rule.EnableWhitelist)}}checked{{end}}>
 						<label>{{.locale.Tr "repo.settings.protect_enable_push"}}</label>
 						<p class="help">{{.locale.Tr "repo.settings.protect_enable_push_desc"}}</p>
 					</div>
@@ -41,7 +41,7 @@
 				<div class="grouped fields">
 					<div class="field">
 						<div class="ui radio checkbox">
-							<input type="radio" name="enable_push" value="whitelist" class="toggle-target-enabled" data-target="#whitelist_box" {{if and (.Rule.CanPush) (.Rule.EnableWhitelist)}}checked{{end}}>
+							<input dir="auto" name="enable_push" type="radio" value="whitelist" class="toggle-target-enabled" data-target="#whitelist_box" {{if and (.Rule.CanPush) (.Rule.EnableWhitelist)}}checked{{end}}>
 							<label>{{.locale.Tr "repo.settings.protect_whitelist_committers"}}</label>
 							<p class="help">{{.locale.Tr "repo.settings.protect_whitelist_committers_desc"}}</p>
 						</div>
@@ -185,14 +185,14 @@
 				<div class="grouped fields">
 					<div class="field">
 						<div class="ui radio checkbox">
-							<input type="radio" name="enable_merge_whitelist" value="false" class="toggle-target-disabled" data-target="#merge_whitelist_box" {{if not .Rule.EnableMergeWhitelist}}checked{{end}}>
+							<input dir="auto" name="enable_merge_whitelist" type="radio" value="false" class="toggle-target-disabled" data-target="#merge_whitelist_box" {{if not .Rule.EnableMergeWhitelist}}checked{{end}}>
 							<label>{{.locale.Tr "repo.settings.protect_enable_merge"}}</label>
 							<p class="help">{{.locale.Tr "repo.settings.protect_enable_merge_desc"}}</p>
 						</div>
 					</div>
 					<div class="field">
 						<div class="ui radio checkbox">
-							<input type="radio" name="enable_merge_whitelist" value="true" class="toggle-target-enabled" data-target="#merge_whitelist_box" {{if .Rule.EnableMergeWhitelist}}checked{{end}}>
+							<input dir="auto" name="enable_merge_whitelist" type="radio" value="true" class="toggle-target-enabled" data-target="#merge_whitelist_box" {{if .Rule.EnableMergeWhitelist}}checked{{end}}>
 							<label>{{.locale.Tr "repo.settings.protect_merge_whitelist_committers"}}</label>
 							<p class="help">{{.locale.Tr "repo.settings.protect_merge_whitelist_committers_desc"}}</p>
 						</div>
