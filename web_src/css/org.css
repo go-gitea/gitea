@@ -13,8 +13,7 @@
   #create-page-form form .header {
     padding-left: 280px !important;
   }
-  #create-page-form form .inline.field > label,
-  #create-page-form form .inline.field.captcha-field > span {
+  #create-page-form form .inline.field > label {
     text-align: right;
     width: 250px !important;
     word-wrap: break-word;
@@ -59,8 +58,7 @@
   .organization.new.org form .header {
     padding-left: 280px !important;
   }
-  .organization.new.org form .inline.field > label,
-  .organization.new.org form .inline.field.captcha-field > span {
+  .organization.new.org form .inline.field > label {
     text-align: right;
     width: 250px !important;
     word-wrap: break-word;
