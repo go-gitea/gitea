@@ -92,44 +92,44 @@
 				<div class="inline field">
 					<div class="ui checkbox">
 						<label><strong>{{.locale.Tr "admin.users.is_activated"}}</strong></label>
-						<input dir="auto" name="active" type="checkbox" {{if .User.IsActive}}checked{{end}}>
+						<input id="active" type="checkbox" {{if .User.IsActive}}checked{{end}}>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
 						<label><strong>{{.locale.Tr "admin.users.prohibit_login"}}</strong></label>
-						<input dir="auto" name="prohibit_login" type="checkbox" {{if .User.ProhibitLogin}}checked{{end}} {{if (eq .User.ID .SignedUserID)}}disabled{{end}}>
+						<input id="prohibit_login" type="checkbox" {{if .User.ProhibitLogin}}checked{{end}} {{if (eq .User.ID .SignedUserID)}}disabled{{end}}>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
 						<label><strong>{{.locale.Tr "admin.users.is_admin"}}</strong></label>
-						<input dir="auto" name="admin" type="checkbox" {{if .User.IsAdmin}}checked{{end}}>
+						<input id="admin" type="checkbox" {{if .User.IsAdmin}}checked{{end}}>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
 						<label><strong>{{.locale.Tr "admin.users.is_restricted"}}</strong></label>
-						<input dir="auto" name="restricted" type="checkbox" {{if .User.IsRestricted}}checked{{end}}>
+						<input id="restricted" type="checkbox" {{if .User.IsRestricted}}checked{{end}}>
 					</div>
 				</div>
 				<div class="inline field {{if DisableGitHooks}}gt-hidden{{end}}">
 					<div class="ui checkbox" data-tooltip-content="{{.locale.Tr "admin.users.allow_git_hook_tooltip"}}">
 						<label><strong>{{.locale.Tr "admin.users.allow_git_hook"}}</strong></label>
-						<input dir="auto" name="allow_git_hook" type="checkbox" {{if .User.CanEditGitHook}}checked{{end}} {{if DisableGitHooks}}disabled{{end}}>
+						<input id="allow_git_hook" type="checkbox" {{if .User.CanEditGitHook}}checked{{end}} {{if DisableGitHooks}}disabled{{end}}>
 					</div>
 				</div>
 				<div class="inline field {{if or (DisableImportLocal) (.DisableMigrations)}}gt-hidden{{end}}">
 					<div class="ui checkbox">
 						<label><strong>{{.locale.Tr "admin.users.allow_import_local"}}</strong></label>
-						<input dir="auto" name="allow_import_local" type="checkbox" {{if .User.CanImportLocal}}checked{{end}} {{if DisableImportLocal}}disabled{{end}}>
+						<input id="allow_import_local" type="checkbox" {{if .User.CanImportLocal}}checked{{end}} {{if DisableImportLocal}}disabled{{end}}>
 					</div>
 				</div>
 				{{if not .DisableRegularOrgCreation}}
 				<div class="inline field">
 					<div class="ui checkbox">
 						<label><strong>{{.locale.Tr "admin.users.allow_create_organization"}}</strong></label>
-						<input dir="auto" name="allow_create_organization" type="checkbox" {{if .User.CanCreateOrganization}}checked{{end}}>
+						<input id="allow_create_organization" type="checkbox" {{if .User.CanCreateOrganization}}checked{{end}}>
 					</div>
 				</div>
 				{{end}}
@@ -139,7 +139,7 @@
 				<div class="inline field">
 					<div class="ui checkbox">
 						<label><strong>{{.locale.Tr "admin.users.reset_2fa"}}</strong></label>
-						<input dir="auto" name="reset_2fa" type="checkbox">
+						<input id="reset_2fa" type="checkbox">
 					</div>
 				</div>
 				{{end}}
@@ -204,7 +204,7 @@
 			<div class="field">
 				<div class="ui checkbox">
 					<label for="purge">{{.locale.Tr "admin.users.purge"}}</label>
-					<input dir="auto" name="purge" type="checkbox">
+					<input id="purge" type="checkbox">
 				</div>
 				<p class="help">{{.locale.Tr "admin.users.purge_help"}}</p>
 			</div>

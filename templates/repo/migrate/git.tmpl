@@ -63,10 +63,10 @@
 						<label>{{.locale.Tr "repo.visibility"}}</label>
 						<div class="ui checkbox">
 							{{if .IsForcedPrivate}}
-								<input dir="auto" name="private" type="checkbox" checked readonly>
+								<input id="private" type="checkbox" checked readonly>
 								<label>{{.locale.Tr "repo.visibility_helper_forced" | Safe}}</label>
 							{{else}}
-								<input dir="auto" name="private" type="checkbox" {{if .private}}checked{{end}}>
+								<input id="private" type="checkbox" {{if .private}}checked{{end}}>
 								<label>{{.locale.Tr "repo.visibility_helper" | Safe}}</label>
 							{{end}}
 						</div>

@@ -42,7 +42,7 @@
 				<div class="pam optional field {{if not (eq .type 4)}}gt-hidden{{end}}">
 					<div class="ui checkbox">
 						<label for="skip_local_two_fa"><strong>{{.locale.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
-						<input dir="auto" id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if .skip_local_two_fa}}checked{{end}}>
+						<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if .skip_local_two_fa}}checked{{end}}>
 						<p class="help">{{.locale.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
 					</div>
 				</div>
@@ -56,19 +56,19 @@
 				<div class="ldap field">
 					<div class="ui checkbox">
 						<label><strong>{{.locale.Tr "admin.auths.attributes_in_bind"}}</strong></label>
-						<input dir="auto" name="attributes_in_bind" type="checkbox" {{if .attributes_in_bind}}checked{{end}}>
+						<input id="attributes_in_bind" type="checkbox" {{if .attributes_in_bind}}checked{{end}}>
 					</div>
 				</div>
 				<div class="ldap inline field {{if not (eq .type 2)}}gt-hidden{{end}}">
 					<div class="ui checkbox">
 						<label><strong>{{.locale.Tr "admin.auths.syncenabled"}}</strong></label>
-						<input dir="auto" name="is_sync_enabled" type="checkbox" {{if .is_sync_enabled}}checked{{end}}>
+						<input id="is_sync_enabled" type="checkbox" {{if .is_sync_enabled}}checked{{end}}>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
 						<label><strong>{{.locale.Tr "admin.auths.activated"}}</strong></label>
-						<input dir="auto" name="is_active" type="checkbox" {{if .is_active}}checked{{end}}>
+						<input id="is_active" type="checkbox" {{if .is_active}}checked{{end}}>
 					</div>
 				</div>
 

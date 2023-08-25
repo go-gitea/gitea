@@ -23,14 +23,14 @@
 	<div class="inline field">
 		<div class="ui checkbox">
 			<label for="force_smtps"><strong>{{.locale.Tr "admin.auths.force_smtps"}}</strong></label>
-			<input dir="auto" id="force_smtps" name="force_smtps" type="checkbox" {{if .force_smtps}}checked{{end}}>
+			<input id="force_smtps" name="force_smtps" type="checkbox" {{if .force_smtps}}checked{{end}}>
 			<p class="help">{{.locale.Tr "admin.auths.force_smtps_helper"}}</p>
 		</div>
 	</div>
 	<div class="inline field">
 		<div class="ui checkbox">
 			<label><strong>{{.locale.Tr "admin.auths.skip_tls_verify"}}</strong></label>
-			<input dir="auto" name="skip_verify" type="checkbox" {{if .skip_verify}}checked{{end}}>
+			<input id="skip_verify" type="checkbox" {{if .skip_verify}}checked{{end}}>
 		</div>
 	</div>
 	<div class="field">
@@ -41,7 +41,7 @@
 	<div class="inline field">
 		<div class="ui checkbox">
 			<label for="disable_helo"><strong>{{.locale.Tr "admin.auths.disable_helo"}}</strong></label>
-			<input dir="auto" id="disable_helo" name="disable_helo" type="checkbox" {{if .disable_helo}}checked{{end}}>
+			<input id="disable_helo" name="disable_helo" type="checkbox" {{if .disable_helo}}checked{{end}}>
 		</div>
 	</div>
 	<div class="field">
@@ -52,7 +52,7 @@
 	<div class="optional field">
 		<div class="ui checkbox">
 			<label for="skip_local_two_fa"><strong>{{.locale.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
-			<input dir="auto" id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if .skip_local_two_fa}}checked{{end}}>
+			<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if .skip_local_two_fa}}checked{{end}}>
 			<p class="help">{{.locale.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
 		</div>
 	</div>

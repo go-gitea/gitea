@@ -32,7 +32,7 @@
 					<div class="inline field">
 						<label>{{.locale.Tr "repo.migrate_items"}}</label>
 						<div class="ui checkbox">
-							<input dir="auto" name="wiki" type="checkbox" {{if .wiki}}checked{{end}}>
+							<input id="wiki" type="checkbox" {{if .wiki}}checked{{end}}>
 							<label>{{.locale.Tr "repo.migrate_items_wiki" | Safe}}</label>
 						</div>
 					</div>
@@ -41,29 +41,29 @@
 						<div class="inline field">
 							<label></label>
 							<div class="ui checkbox">
-								<input dir="auto" name="labels" type="checkbox" {{if .labels}}checked{{end}}>
+								<input id="labels" type="checkbox" {{if .labels}}checked{{end}}>
 								<label>{{.locale.Tr "repo.migrate_items_labels" | Safe}}</label>
 							</div>
 							<div class="ui checkbox">
-								<input dir="auto" name="issues" type="checkbox" {{if .issues}}checked{{end}}>
+								<input id="issues" type="checkbox" {{if .issues}}checked{{end}}>
 								<label>{{.locale.Tr "repo.migrate_items_issues" | Safe}}</label>
 							</div>
 						</div>
 						<div class="inline field">
 							<label></label>
 							<div class="ui checkbox">
-								<input dir="auto" name="pull_requests" type="checkbox" {{if .pull_requests}}checked{{end}}>
+								<input id="pull_requests" type="checkbox" {{if .pull_requests}}checked{{end}}>
 								<label>{{.locale.Tr "repo.migrate_items_pullrequests" | Safe}}</label>
 							</div>
 							<div class="ui checkbox">
-								<input dir="auto" name="releases" type="checkbox" {{if .releases}}checked{{end}}>
+								<input id="releases" type="checkbox" {{if .releases}}checked{{end}}>
 								<label>{{.locale.Tr "repo.migrate_items_releases" | Safe}}</label>
 							</div>
 						</div>
 						<div class="inline field">
 							<label></label>
 							<div class="ui checkbox">
-								<input dir="auto" name="milestones" type="checkbox" {{if .milestones}}checked{{end}}>
+								<input id="milestones" type="checkbox" {{if .milestones}}checked{{end}}>
 								<label>{{.locale.Tr "repo.migrate_items_milestones" | Safe}}</label>
 							</div>
 						</div>
@@ -103,10 +103,10 @@
 						<label>{{.locale.Tr "repo.visibility"}}</label>
 						<div class="ui checkbox">
 							{{if .IsForcedPrivate}}
-								<input dir="auto" name="private" type="checkbox" checked readonly>
+								<input id="private" type="checkbox" checked readonly>
 								<label>{{.locale.Tr "repo.visibility_helper_forced" | Safe}}</label>
 							{{else}}
-								<input dir="auto" name="private" type="checkbox" {{if .private}}checked{{end}}>
+								<input id="private" type="checkbox" {{if .private}}checked{{end}}>
 								<label>{{.locale.Tr "repo.visibility_helper" | Safe}}</label>
 							{{end}}
 						</div>

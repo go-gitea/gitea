@@ -50,10 +50,10 @@
 						<label>{{.locale.Tr "repo.visibility"}}</label>
 						<div class="ui checkbox">
 							{{if .IsForcedPrivate}}
-								<input dir="auto" name="private" type="checkbox" checked readonly>
+								<input id="private" type="checkbox" checked readonly>
 								<label>{{.locale.Tr "repo.visibility_helper_forced" | Safe}}</label>
 							{{else}}
-								<input dir="auto" name="private" type="checkbox" {{if .private}}checked{{end}}>
+								<input id="private" type="checkbox" {{if .private}}checked{{end}}>
 								<label>{{.locale.Tr "repo.visibility_helper" | Safe}}</label>
 							{{end}}
 						</div>
@@ -77,40 +77,40 @@
 						<div class="inline field">
 							<label>{{.locale.Tr "repo.template.items"}}</label>
 							<div class="ui checkbox">
-								<input dir="auto" name="git_content" type="checkbox" tabindex="0" {{if .git_content}}checked{{end}}>
+								<input id="git_content" type="checkbox" tabindex="0" {{if .git_content}}checked{{end}}>
 								<label>{{.locale.Tr "repo.template.git_content"}}</label>
 							</div>
 							<div class="ui checkbox" {{if not .SignedUser.CanEditGitHook}}data-tooltip-content="{{.locale.Tr "repo.template.git_hooks_tooltip"}}"{{end}}>
-								<input dir="auto" name="git_hooks" type="checkbox" tabindex="0" {{if .git_hooks}}checked{{end}}>
+								<input id="git_hooks" type="checkbox" tabindex="0" {{if .git_hooks}}checked{{end}}>
 								<label>{{.locale.Tr "repo.template.git_hooks"}}</label>
 							</div>
 						</div>
 						<div class="inline field">
 							<label></label>
 							<div class="ui checkbox">
-								<input dir="auto" name="webhooks" type="checkbox" tabindex="0" {{if .webhooks}}checked{{end}}>
+								<input id="webhooks" type="checkbox" tabindex="0" {{if .webhooks}}checked{{end}}>
 								<label>{{.locale.Tr "repo.template.webhooks"}}</label>
 							</div>
 							<div class="ui checkbox">
-								<input dir="auto" name="topics" type="checkbox" tabindex="0" {{if .topics}}checked{{end}}>
+								<input id="topics" type="checkbox" tabindex="0" {{if .topics}}checked{{end}}>
 								<label>{{.locale.Tr "repo.template.topics"}}</label>
 							</div>
 						</div>
 						<div class="inline field">
 							<label></label>
 							<div class="ui checkbox">
-								<input dir="auto" name="avatar" type="checkbox" tabindex="0" {{if .avatar}}checked{{end}}>
+								<input id="avatar" type="checkbox" tabindex="0" {{if .avatar}}checked{{end}}>
 								<label>{{.locale.Tr "repo.template.avatar"}}</label>
 							</div>
 							<div class="ui checkbox">
-								<input dir="auto" name="labels" type="checkbox" tabindex="0" {{if .labels}}checked{{end}}>
+								<input id="labels" type="checkbox" tabindex="0" {{if .labels}}checked{{end}}>
 								<label>{{.locale.Tr "repo.template.issue_labels"}}</label>
 							</div>
 						</div>
 						<div class="inline field">
 							<label></label>
 							<div class="ui checkbox">
-								<input dir="auto" name="protected_branch" type="checkbox" tabindex="0" {{if .protected_branch}}checked{{end}}>
+								<input id="protected_branch" type="checkbox" tabindex="0" {{if .protected_branch}}checked{{end}}>
 								<label>{{.locale.Tr "repo.settings.protected_branch"}}</label>
 							</div>
 						</div>
@@ -176,7 +176,7 @@
 						</div>
 						<div class="inline field">
 							<div class="ui checkbox" id="auto-init">
-								<input dir="auto" name="auto_init" type="checkbox" tabindex="0" {{if .auto_init}}checked{{end}}>
+								<input id="auto_init" type="checkbox" tabindex="0" {{if .auto_init}}checked{{end}}>
 								<label>{{.locale.Tr "repo.auto_init"}}</label>
 							</div>
 						</div>
@@ -211,7 +211,7 @@
 						<div class="inline field">
 							<label>{{.locale.Tr "repo.template"}}</label>
 							<div class="ui checkbox">
-								<input dir="auto" name="template" type="checkbox" tabindex="0">
+								<input id="template" type="checkbox" tabindex="0">
 								<label>{{.locale.Tr "repo.template_helper"}}</label>
 							</div>
 						</div>

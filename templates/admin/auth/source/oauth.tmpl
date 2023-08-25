@@ -31,7 +31,7 @@
 	<div class="optional field">
 		<div class="ui checkbox">
 			<label for="skip_local_two_fa"><strong>{{.locale.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
-			<input dir="auto" id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if .skip_local_two_fa}}checked{{end}}>
+			<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if .skip_local_two_fa}}checked{{end}}>
 			<p class="help">{{.locale.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
 		</div>
 	</div>
@@ -39,7 +39,7 @@
 	<div class="oauth2_use_custom_url inline field">
 		<div class="ui checkbox">
 			<label><strong>{{.locale.Tr "admin.auths.oauth2_use_custom_url"}}</strong></label>
-			<input dir="auto" id="oauth2_use_custom_url" name="oauth2_use_custom_url" type="checkbox">
+			<input id="oauth2_use_custom_url" name="oauth2_use_custom_url" type="checkbox">
 		</div>
 	</div>
 	<div class="oauth2_use_custom_url_field oauth2_auth_url required field">
@@ -104,6 +104,6 @@
 	</div>
 	<div class="ui checkbox">
 		<label>{{.locale.Tr "admin.auths.oauth2_map_group_to_team_removal"}}</label>
-		<input dir="auto" name="oauth2_group_team_map_removal" type="checkbox" {{if .oauth2_group_team_map_removal}}checked{{end}}>
+		<input id="oauth2_group_team_map_removal" type="checkbox" {{if .oauth2_group_team_map_removal}}checked{{end}}>
 	</div>
 </div>
