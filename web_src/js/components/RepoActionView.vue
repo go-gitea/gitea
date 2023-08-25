@@ -669,8 +669,6 @@ export function initRepositoryActionView() {
 
 /* end fomantic dropdown menu overrides */
 
-/* selectors here are intentionally exact to only match fullscreen */
-
 .job-info-header {
   display: flex;
   justify-content: space-between;
@@ -812,6 +810,8 @@ export function initRepositoryActionView() {
   white-space: break-spaces;
   margin-left: 10px;
 }
+
+/* selectors here are intentionally exact to only match fullscreen */
 
 .full.height > .action-view-right {
   width: 100%;
