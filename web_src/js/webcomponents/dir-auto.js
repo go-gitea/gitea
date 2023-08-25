@@ -8,6 +8,7 @@ const observer = new MutationObserver((mutationList) => {
   for (const mutation of mutationList) {
     for (const el of mutation.addedNodes) {
       if (!includeNodeTypes.has(el.nodeType)) continue;
+      if (!el.querySelector('input, textarea')) continue;
       for (const child of el.querySelectorAll('input, textarea')) {
         if (excludeInputTypes.has(child.type)) continue;
         child.dir = 'auto';
