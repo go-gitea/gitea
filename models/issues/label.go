@@ -113,10 +113,11 @@ func (l *Label) CalOpenIssues() {
 
 // SetArchived set the label as archived
 func (l *Label) SetArchived(isArchived bool) {
-	if isArchived && l.ArchivedUnix.IsZero() {
-		l.ArchivedUnix = timeutil.TimeStampNow()
-	} else {
+	if !isArchived {
 		l.ArchivedUnix = timeutil.TimeStamp(0)
+	} else if isArchived && l.ArchivedUnix.IsZero() {
+		// Only change the date when it is newly archived.
+		l.ArchivedUnix = timeutil.TimeStampNow()
 	}
 }
 

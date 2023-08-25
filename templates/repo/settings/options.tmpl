@@ -58,7 +58,7 @@
 				</div>
 				<div class="field">
 					<button class="ui green button">{{$.locale.Tr "settings.update_avatar"}}</button>
-					<button class="ui red button link-action" data-url="{{.Link}}/avatar/delete" data-redirect="{{.Link}}">{{$.locale.Tr "settings.delete_current_avatar"}}</button>
+					<button class="ui red button link-action" data-url="{{.Link}}/avatar/delete">{{$.locale.Tr "settings.delete_current_avatar"}}</button>
 				</div>
 			</form>
 		</div>
@@ -81,7 +81,7 @@
 			<div class="ui attached segment">
 				{{if $newMirrorsEntirelyEnabled}}
 					{{$.locale.Tr "repo.settings.mirror_settings.docs"}}
-					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pushing-to<ing-to-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br><br>
+					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pushing-to-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br><br>
 					{{$.locale.Tr "repo.settings.mirror_settings.docs.pull_mirror_instructions"}}
 					<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io/en-us/usage/repo-mirror/#pulling-from-a-remote-repository">{{$.locale.Tr "repo.settings.mirror_settings.docs.doc_link_pull_section"}}</a><br>
 				{{else if $onlyNewPushMirrorsEnabled}}
