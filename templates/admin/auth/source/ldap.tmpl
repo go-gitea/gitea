@@ -23,7 +23,7 @@
 	<div class="has-tls inline field {{if not .HasTLS}}gt-hidden{{end}}">
 		<div class="ui checkbox">
 			<label><strong>{{.locale.Tr "admin.auths.skip_tls_verify"}}</strong></label>
-			<input id="skip_verify" type="checkbox" {{if .skip_verify}}checked{{end}}>
+			<input dir="auto" name="skip_verify" type="checkbox" {{if .skip_verify}}checked{{end}}>
 		</div>
 	</div>
 	<div class="ldap field {{if not (eq .type 2)}}gt-hidden{{end}}">
@@ -110,7 +110,7 @@
 		</div>
 		<div class="ui checkbox">
 			<label>{{.locale.Tr "admin.auths.map_group_to_team_removal"}}</label>
-			<input id="group_team_map_removal" type="checkbox" {{if .group_team_map_removal}}checked{{end}}>
+			<input dir="auto" name="group_team_map_removal" type="checkbox" {{if .group_team_map_removal}}checked{{end}}>
 		</div>
 	</div>
 	<!-- ldap group end -->
@@ -118,7 +118,7 @@
 	<div class="ldap inline field {{if not (eq .type 2)}}gt-hidden{{end}}">
 		<div class="ui checkbox">
 			<label for="use_paged_search"><strong>{{.locale.Tr "admin.auths.use_paged_search"}}</strong></label>
-			<input id="use_paged_search" name="use_paged_search" class="use-paged-search" type="checkbox" {{if .use_paged_search}}checked{{end}}>
+			<input dir="auto" id="use_paged_search" name="use_paged_search" class="use-paged-search" type="checkbox" {{if .use_paged_search}}checked{{end}}>
 		</div>
 	</div>
 	<div class="ldap field search-page-size required {{if or (not (eq .type 2)) (not .use_paged_search)}}gt-hidden{{end}}">
@@ -128,14 +128,14 @@
 	<div class="optional field">
 		<div class="ui checkbox">
 			<label for="skip_local_two_fa"><strong>{{.locale.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
-			<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if .skip_local_two_fa}}checked{{end}}>
+			<input dir="auto" id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if .skip_local_two_fa}}checked{{end}}>
 			<p class="help">{{.locale.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
 		</div>
 	</div>
 	<div class="inline field">
 		<div class="ui checkbox">
 			<label for="allow_deactivate_all"><strong>{{.locale.Tr "admin.auths.allow_deactivate_all"}}</strong></label>
-			<input id="allow_deactivate_all" name="allow_deactivate_all" type="checkbox" {{if .allow_deactivate_all}}checked{{end}}>
+			<input dir="auto" id="allow_deactivate_all" name="allow_deactivate_all" type="checkbox" {{if .allow_deactivate_all}}checked{{end}}>
 		</div>
 	</div>
 </div>

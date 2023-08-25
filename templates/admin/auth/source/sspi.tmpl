@@ -2,21 +2,21 @@
 	<div class="field">
 		<div class="ui checkbox">
 			<label for="sspi_auto_create_users"><strong>{{.locale.Tr "admin.auths.sspi_auto_create_users"}}</strong></label>
-			<input id="sspi_auto_create_users" name="sspi_auto_create_users" class="sspi-auto-create-users" type="checkbox" {{if .SSPIAutoCreateUsers}}checked{{end}}>
+			<input dir="auto" id="sspi_auto_create_users" name="sspi_auto_create_users" class="sspi-auto-create-users" type="checkbox" {{if .SSPIAutoCreateUsers}}checked{{end}}>
 			<p class="help">{{.locale.Tr "admin.auths.sspi_auto_create_users_helper"}}</p>
 		</div>
 	</div>
 	<div class="field">
 		<div class="ui checkbox">
 			<label for="sspi_auto_activate_users"><strong>{{.locale.Tr "admin.auths.sspi_auto_activate_users"}}</strong></label>
-			<input id="sspi_auto_activate_users" name="sspi_auto_activate_users" class="sspi-auto-activate-users" type="checkbox" {{if .SSPIAutoActivateUsers}}checked{{end}}>
+			<input dir="auto" id="sspi_auto_activate_users" name="sspi_auto_activate_users" class="sspi-auto-activate-users" type="checkbox" {{if .SSPIAutoActivateUsers}}checked{{end}}>
 			<p class="help">{{.locale.Tr "admin.auths.sspi_auto_activate_users_helper"}}</p>
 		</div>
 	</div>
 	<div class="field">
 		<div class="ui checkbox">
 			<label for="sspi_strip_domain_names"><strong>{{.locale.Tr "admin.auths.sspi_strip_domain_names"}}</strong></label>
-			<input id="sspi_strip_domain_names" name="sspi_strip_domain_names" class="sspi-strip-domain-names" type="checkbox" {{if .SSPIStripDomainNames}}checked{{end}}>
+			<input dir="auto" id="sspi_strip_domain_names" name="sspi_strip_domain_names" class="sspi-strip-domain-names" type="checkbox" {{if .SSPIStripDomainNames}}checked{{end}}>
 			<p class="help">{{.locale.Tr "admin.auths.sspi_strip_domain_names_helper"}}</p>
 		</div>
 	</div>
