@@ -4,18 +4,16 @@
 package private
 
 import (
-	"code.gitea.io/gitea/models/unittest"
 	"context"
 	"testing"
 
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 
 	"github.com/stretchr/testify/assert"
 )
 
-var (
-	testReposDir = "tests/repos/"
-)
+var testReposDir = "tests/repos/"
 
 func TestVerifyCommits(t *testing.T) {
 	unittest.PrepareTestEnv(t)
