@@ -2,7 +2,7 @@
 <div class="inline field">
 	<label>{{.locale.Tr "repo.migrate_options"}}</label>
 	<div class="ui checkbox">
-		<input dir="auto" id="mirror" name="mirror" type="checkbox" {{if .mirror}} checked{{end}}>
+		<input id="mirror" name="mirror" type="checkbox" {{if .mirror}} checked{{end}}>
 		<label>{{.locale.Tr "repo.migrate_options_mirror_helper"}}</label>
 	</div>
 </div>
@@ -11,7 +11,7 @@
 <div class="inline field">
 	<label></label>
 	<div class="ui checkbox">
-		<input dir="auto" id="lfs" name="lfs" type="checkbox" {{if .lfs}} checked{{end}}>
+		<input id="lfs" name="lfs" type="checkbox" {{if .lfs}} checked{{end}}>
 		<label>{{.locale.Tr "repo.migrate_options_lfs"}}</label>
 	</div>
 	<span id="lfs_settings" class="gt-hidden">(<a id="lfs_settings_show" href="#">{{.locale.Tr "repo.settings.advanced_settings"}}</a>)</span>

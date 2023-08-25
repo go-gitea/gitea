@@ -67,7 +67,7 @@
 				<div class="inline field local {{if ne .login_type "0-0"}}gt-hidden{{end}}">
 					<div class="ui checkbox">
 						<label><strong>{{.locale.Tr "auth.allow_password_change"}}</strong></label>
-						<input dir="auto" name="must_change_password" type="checkbox" checked>
+						<input name="must_change_password" type="checkbox" checked>
 					</div>
 				</div>
 
@@ -76,7 +76,7 @@
 					<div class="inline field">
 						<div class="ui checkbox">
 							<label><strong>{{.locale.Tr "admin.users.send_register_notify"}}</strong></label>
-							<input dir="auto" name="send_notify" type="checkbox" {{if .send_notify}}checked{{end}}>
+							<input name="send_notify" type="checkbox" {{if .send_notify}}checked{{end}}>
 						</div>
 					</div>
 				{{end}}
