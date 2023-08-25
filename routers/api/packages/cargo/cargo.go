@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/services/convert"
 	packages_service "code.gitea.io/gitea/services/packages"
 	cargo_service "code.gitea.io/gitea/services/packages/cargo"
+	"code.gitea.io/gitea/models/perm"
 )
 
 // https://doc.rust-lang.org/cargo/reference/registries.html#web-api
@@ -48,7 +49,7 @@ func apiError(ctx *context.Context, status int, obj any) {
 
 // https://rust-lang.github.io/rfcs/2789-sparse-index.html
 func RepositoryConfig(ctx *context.Context) {
-	ctx.JSON(http.StatusOK, cargo_service.BuildConfig(ctx.Package.Owner))
+	ctx.JSON(http.StatusOK, cargo_service.BuildConfig(ctx.Package.Owner, ctx.Package.AccessMode != perm.AccessModeNone))
 }
 
 func EnumeratePackageVersions(ctx *context.Context) {
