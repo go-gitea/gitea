@@ -19,6 +19,7 @@ func TestVerifyCommits(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
 	gitRepo, err := git.OpenRepository(context.Background(), testReposDir+"repo1_hook_verification")
+	defer gitRepo.Close()
 	assert.NoError(t, err)
 
 	testCases := []struct {
