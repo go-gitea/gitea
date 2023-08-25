@@ -62,11 +62,11 @@
 				<div class="field">
 					<label>{{.locale.Tr "settings.repo_and_org_access"}}</label>
 					<label class="gt-cursor-pointer">
-						<input type="radio class="enable-system gt-mt-2 gt-mr-2" name="scope" value="{{$.AccessTokenScopePublicOnly}}">
+						<input dir="auto" class="enable-system gt-mt-2 gt-mr-2" type="radio" name="scope" value="{{$.AccessTokenScopePublicOnly}}">
 						{{.locale.Tr "settings.permissions_public_only"}}
 					</label>
 					<label class="gt-cursor-pointer">
-						<input type="radio class="enable-system gt-mt-2 gt-mr-2" name="scope" value="" checked>
+						<input dir="auto" class="enable-system gt-mt-2 gt-mr-2" type="radio" name="scope" value="" checked>
 						{{.locale.Tr "settings.permissions_access_all"}}
 					</label>
 				</div>
