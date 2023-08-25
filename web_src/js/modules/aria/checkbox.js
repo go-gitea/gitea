@@ -23,8 +23,8 @@ function ariaCheckboxFn(...args) {
 }
 
 function attachInit(el) {
-  // Fomantic UI checkbox needs to be something like: <div class="ui checkbox"><label /><input/></div>
-  // It doesn't work well with <label><input/>...</label>
+  // Fomantic UI checkbox needs to be something like: <div class="ui checkbox"><label /><input /></div>
+  // It doesn't work well with <label><input />...</label>
   // To make it work with aria, the "id"/"for" attributes are necessary, so add them automatically if missing.
   // In the future, refactor to use native checkbox directly, then this patch could be removed.
   el[ariaPatchKey] = {}; // record that this element has been patched
