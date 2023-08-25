@@ -162,6 +162,11 @@
   left: 0;
 }
 
+.repository .filter.menu .ui.dropdown .menu .item {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .repository .select-label .desc {
   padding-left: 23px;
 }
