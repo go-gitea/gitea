@@ -24,7 +24,7 @@
 							</div>
 							<div class="flex-item-body">
 								<b>{{ctx.Locale.Tr "admin.users.auth_source"}}:</b>
-								{{if eq .LoginSource.ID 0 }}
+								{{if eq .LoginSource.ID 0}}
 									{{ctx.Locale.Tr "admin.users.local"}}
 								{{else}}
 									{{.LoginSource.Name}}

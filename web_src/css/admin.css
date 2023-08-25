@@ -51,6 +51,5 @@
 }
 
 .admin-responsive-columns > .column {
-  flex-grow: 1;
-  flex-basis: calc(50% - .5rem);
+  flex: 1;
 }
