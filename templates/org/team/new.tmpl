@@ -14,7 +14,7 @@
 						<div class="required field {{if .Err_TeamName}}error{{end}}">
 							<label for="team_name">{{.locale.Tr "org.team_name"}}</label>
 							{{if eq .Team.LowerName "owners"}}
-								<input dir="auto" type="hidden" name="team_name" value="{{.Team.Name}}">
+								<input type="hidden" name="team_name" value="{{.Team.Name}}">
 							{{end}}
 							<input dir="auto" id="team_name" name="team_name" value="{{.Team.Name}}" required {{if eq .Team.LowerName "owners"}}disabled{{end}} autofocus>
 							<span class="help">{{.locale.Tr "org.team_name_helper"}}</span>
@@ -121,7 +121,7 @@
 									{{if lt $unit.MaxPerm 2}}
 										<div {{if $unit.Type.UnitGlobalDisabled}}class="field" data-tooltip-content="{{$.locale.Tr "repo.unit_disabled"}}"{{else}}class="field"{{end}}>
 											<div class="ui checkbox">
-												<input dir="auto" type="checkbox" name="unit_{{$unit.Type.Value}}" value="1"{{if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $.Context $unit.Type) 1)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}}>
+												<input type="checkbox" name="unit_{{$unit.Type.Value}}" value="1"{{if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $.Context $unit.Type) 1)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}}>
 												<label>{{$.locale.Tr $unit.NameKey}}{{if $unit.Type.UnitGlobalDisabled}} {{$.locale.Tr "org.team_unit_disabled"}}{{end}}</label>
 												<span class="help">{{$.locale.Tr $unit.DescKey}}</span>
 											</div>

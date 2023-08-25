@@ -11,7 +11,7 @@
 <form class="ui form" action="{{.Link}}" method="post">
 	{{.CsrfTokenHtml}}
 	<div>
-		<input dir="auto" type="hidden" id="redirect" name="redirect" value="{{.redirect}}">
+		<input type="hidden" id="redirect" name="redirect" value="{{.redirect}}">
 		<div class="field {{if .Err_Title}}error{{end}}">
 			<label>{{ctx.Locale.Tr "repo.projects.title"}}</label>
 			<input dir="auto" name="title" placeholder="{{ctx.Locale.Tr "repo.projects.title"}}" value="{{.title}}" autofocus required>
@@ -25,7 +25,7 @@
 			<div class="field">
 				<label>{{ctx.Locale.Tr "repo.projects.template.desc"}}</label>
 				<div class="ui selection dropdown">
-					<input dir="auto" type="hidden" name="board_type" value="{{.type}}">
+					<input type="hidden" name="board_type" value="{{.type}}">
 					<div class="default text">{{ctx.Locale.Tr "repo.projects.template.desc_helper"}}</div>
 					<div class="menu">
 						{{range $element := .BoardTypes}}
@@ -42,7 +42,7 @@
 				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				{{range $element := .CardTypes}}
 					{{if or (eq $.card_type $element.CardType) (and (not $.PageIsEditProjects) (eq $element.CardType 1))}}
-						<input dir="auto" type="hidden" name="card_type" value="{{$element.CardType}}">
+						<input type="hidden" name="card_type" value="{{$element.CardType}}">
 						<div class="default text">{{ctx.Locale.Tr $element.Translation}}</div>
 					{{end}}
 				{{end}}

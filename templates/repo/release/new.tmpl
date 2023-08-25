@@ -24,7 +24,7 @@
 						<div id="tag-target-selector" class="gt-dib">
 							<span class="at">@</span>
 							<div class="ui selection dropdown">
-								<input dir="auto" type="hidden" name="tag_target" value="{{.tag_target}}">
+								<input type="hidden" name="tag_target" value="{{.tag_target}}">
 								{{svg "octicon-git-branch"}}
 								<div class="text">
 									{{.locale.Tr "repo.release.target"}} :
@@ -89,16 +89,16 @@
 					{{if not .PageIsEditRelease}}
 						<div class="tag-message field">
 							<div class="ui checkbox">
-								<input dir="auto" type="checkbox" name="add_tag_msg">
+								<input type="checkbox" name="add_tag_msg">
 								<label><strong>{{.locale.Tr "repo.release.add_tag_msg"}}</strong></label>
 							</div>
 						</div>
 					{{else}}
-						<input dir="auto" type="hidden" name="add_tag_msg" value="false">
+						<input type="hidden" name="add_tag_msg" value="false">
 					{{end}}
 					<div class="prerelease field">
 						<div class="ui checkbox">
-							<input dir="auto" type="checkbox" name="prerelease" {{if .prerelease}}checked{{end}}>
+							<input type="checkbox" name="prerelease" {{if .prerelease}}checked{{end}}>
 							<label><strong>{{.locale.Tr "repo.release.prerelease_desc"}}</strong></label>
 						</div>
 					</div>

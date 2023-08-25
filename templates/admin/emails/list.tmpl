@@ -80,15 +80,15 @@
 				<form class="ui form" id="email-action-form" action="{{AppSubUrl}}/admin/emails/activate" method="post">
 					{{$.CsrfTokenHtml}}
 
-					<input dir="auto" type="hidden" id="query-sort" name="sort" value="{{.SortType}}">
-					<input dir="auto" type="hidden" id="query-keyword" name="q" value="{{.Keyword}}">
-					<input dir="auto" type="hidden" id="query-primary" name="is_primary" value="{{.IsPrimary}}" required>
-					<input dir="auto" type="hidden" id="query-activated" name="is_activated" value="{{.IsActivated}}" required>
+					<input type="hidden" id="query-sort" name="sort" value="{{.SortType}}">
+					<input type="hidden" id="query-keyword" name="q" value="{{.Keyword}}">
+					<input type="hidden" id="query-primary" name="is_primary" value="{{.IsPrimary}}" required>
+					<input type="hidden" id="query-activated" name="is_activated" value="{{.IsActivated}}" required>
 
-					<input dir="auto" type="hidden" id="form-uid" name="uid" value="" required>
-					<input dir="auto" type="hidden" id="form-email" name="email" value="" required>
-					<input dir="auto" type="hidden" id="form-primary" name="primary" value="" required>
-					<input dir="auto" type="hidden" id="form-activate" name="activate" value="" required>
+					<input type="hidden" id="form-uid" name="uid" value="" required>
+					<input type="hidden" id="form-email" name="email" value="" required>
+					<input type="hidden" id="form-primary" name="primary" value="" required>
+					<input type="hidden" id="form-activate" name="activate" value="" required>
 
 					<div class="center">
 						{{template "base/modal_actions_confirm" .}}

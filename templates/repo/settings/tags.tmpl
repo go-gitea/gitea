@@ -27,7 +27,7 @@
 								<div class="whitelist field">
 									<label>{{.locale.Tr "repo.settings.tags.protection.allowed.users"}}</label>
 									<div class="ui multiple search selection dropdown">
-										<input dir="auto" type="hidden" name="allowlist_users" value="{{.allowlist_users}}">
+										<input type="hidden" name="allowlist_users" value="{{.allowlist_users}}">
 										<div class="default text">{{.locale.Tr "repo.settings.protect_whitelist_search_users"}}</div>
 										<div class="menu">
 											{{range .Users}}
@@ -42,7 +42,7 @@
 									<div class="whitelist field">
 										<label>{{.locale.Tr "repo.settings.tags.protection.allowed.teams"}}</label>
 										<div class="ui multiple search selection dropdown">
-											<input dir="auto" type="hidden" name="allowlist_teams" value="{{.allowlist_teams}}">
+											<input type="hidden" name="allowlist_teams" value="{{.allowlist_teams}}">
 											<div class="default text">{{.locale.Tr "repo.settings.protect_whitelist_search_teams"}}</div>
 											<div class="menu">
 												{{range .Teams}}
@@ -108,7 +108,7 @@
 											<a class="ui tiny primary button" href="{{$.RepoLink}}/settings/tags/{{.ID}}">{{$.locale.Tr "edit"}}</a>
 											<form class="gt-dib" action="{{$.RepoLink}}/settings/tags/delete" method="post">
 												{{$.CsrfTokenHtml}}
-												<input dir="auto" type="hidden" name="id" value="{{.ID}}">
+												<input type="hidden" name="id" value="{{.ID}}">
 												<button class="ui tiny red button">{{$.locale.Tr "remove"}}</button>
 											</form>
 										</td>

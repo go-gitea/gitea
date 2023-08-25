@@ -40,7 +40,7 @@
 							<label for="token">{{.locale.Tr "auth.scratch_code"}}</label>
 							<input dir="auto" id="token" name="token" type="text" autocomplete="off" autofocus required>
 						</div>
-						<input dir="auto" type="hidden" name="scratch_code" value="true">
+						<input type="hidden" name="scratch_code" value="true">
 						{{else}}
 						<div class="required inline field {{if .Err_Passcode}}error{{end}}">
 							<label for="passcode">{{.locale.Tr "passcode"}}</label>

@@ -54,10 +54,10 @@
             </div>
           </a>
           <form ref="newBranchForm" :action="formActionUrl" method="post">
-            <input dir="auto" type="hidden" name="_csrf" :value="csrfToken">
-            <input dir="auto" type="hidden" name="new_branch_name" v-model="searchTerm">
-            <input dir="auto" type="hidden" name="create_tag" v-model="shouldCreateTag">
-            <input dir="auto" type="hidden" name="current_path" v-model="treePath" v-if="treePath">
+            <input type="hidden" name="_csrf" :value="csrfToken">
+            <input type="hidden" name="new_branch_name" v-model="searchTerm">
+            <input type="hidden" name="create_tag" v-model="shouldCreateTag">
+            <input type="hidden" name="current_path" v-model="treePath" v-if="treePath">
           </form>
         </div>
       </div>

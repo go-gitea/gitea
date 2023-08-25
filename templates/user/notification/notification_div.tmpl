@@ -72,8 +72,8 @@
 								{{if ne .Status 3}}
 									<form action="{{AppSubUrl}}/notifications/status" method="post">
 										{{$.CsrfTokenHtml}}
-										<input dir="auto" type="hidden" name="notification_id" value="{{.ID}}">
-										<input dir="auto" type="hidden" name="status" value="pinned">
+										<input type="hidden" name="notification_id" value="{{.ID}}">
+										<input type="hidden" name="status" value="pinned">
 										<button class="btn interact-bg gt-p-3" title='{{$.locale.Tr "notification.pin"}}'
 											data-url="{{AppSubUrl}}/notifications/status"
 											data-status="pinned"
@@ -87,9 +87,9 @@
 								{{if or (eq .Status 1) (eq .Status 3)}}
 									<form action="{{AppSubUrl}}/notifications/status" method="post">
 										{{$.CsrfTokenHtml}}
-										<input dir="auto" type="hidden" name="notification_id" value="{{.ID}}">
-										<input dir="auto" type="hidden" name="status" value="read">
-										<input dir="auto" type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
+										<input type="hidden" name="notification_id" value="{{.ID}}">
+										<input type="hidden" name="status" value="read">
+										<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
 										<button class="btn interact-bg gt-p-3" title='{{$.locale.Tr "notification.mark_as_read"}}'
 											data-url="{{AppSubUrl}}/notifications/status"
 											data-status="read"
@@ -102,9 +102,9 @@
 								{{else if eq .Status 2}}
 									<form action="{{AppSubUrl}}/notifications/status" method="post">
 										{{$.CsrfTokenHtml}}
-										<input dir="auto" type="hidden" name="notification_id" value="{{.ID}}">
-										<input dir="auto" type="hidden" name="status" value="unread">
-										<input dir="auto" type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
+										<input type="hidden" name="notification_id" value="{{.ID}}">
+										<input type="hidden" name="status" value="unread">
+										<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}">
 										<button class="btn interact-bg gt-p-3" title='{{$.locale.Tr "notification.mark_as_unread"}}'
 											data-url="{{AppSubUrl}}/notifications/status"
 											data-status="unread"

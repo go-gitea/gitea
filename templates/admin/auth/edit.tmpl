@@ -7,10 +7,10 @@
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
-				<input dir="auto" type="hidden" name="id" value="{{.Source.ID}}">
+				<input type="hidden" name="id" value="{{.Source.ID}}">
 				<div class="inline field">
 					<label>{{$.locale.Tr "admin.auths.auth_type"}}</label>
-					<input dir="auto" type="hidden" id="auth_type" name="type" value="{{.Source.Type.Int}}">
+					<input type="hidden" id="auth_type" name="type" value="{{.Source.Type.Int}}">
 					<span>{{.Source.TypeName}}</span>
 				</div>
 				<div class="required inline field {{if .Err_Name}}error{{end}}">
@@ -24,7 +24,7 @@
 					<div class="inline required field {{if .Err_SecurityProtocol}}error{{end}}">
 						<label>{{.locale.Tr "admin.auths.security_protocol"}}</label>
 						<div class="ui selection security-protocol dropdown">
-							<input dir="auto" type="hidden" id="security_protocol" name="security_protocol" value="{{$cfg.SecurityProtocol.Int}}">
+							<input type="hidden" id="security_protocol" name="security_protocol" value="{{$cfg.SecurityProtocol.Int}}">
 							<div class="text">{{$cfg.SecurityProtocolName}}</div>
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
@@ -110,7 +110,7 @@
 					<div class="inline field">
 						<div class="ui checkbox">
 							<label><strong>{{.locale.Tr "admin.auths.enable_ldap_groups"}}</strong></label>
-							<input dir="auto" type="checkbox" name="groups_enabled" class="js-ldap-group-toggle" {{if $cfg.GroupsEnabled}}checked{{end}}>
+							<input type="checkbox" name="groups_enabled" class="js-ldap-group-toggle" {{if $cfg.GroupsEnabled}}checked{{end}}>
 						</div>
 					</div>
 					<div id="ldap-group-options" class="ui segment secondary {{if not $cfg.GroupsEnabled}}gt-hidden{{end}}">
@@ -180,7 +180,7 @@
 					<div class="inline required field">
 						<label>{{.locale.Tr "admin.auths.smtp_auth"}}</label>
 						<div class="ui selection type dropdown">
-							<input dir="auto" type="hidden" id="smtp_auth" name="smtp_auth" value="{{$cfg.Auth}}" required>
+							<input type="hidden" id="smtp_auth" name="smtp_auth" value="{{$cfg.Auth}}" required>
 							<div class="text">{{$cfg.Auth}}</div>
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
@@ -262,7 +262,7 @@
 					<div class="inline required field">
 						<label>{{.locale.Tr "admin.auths.oauth2_provider"}}</label>
 						<div class="ui selection type dropdown">
-							<input dir="auto" type="hidden" id="oauth2_provider" name="oauth2_provider" value="{{$cfg.Provider}}" required>
+							<input type="hidden" id="oauth2_provider" name="oauth2_provider" value="{{$cfg.Provider}}" required>
 							<div class="text">{{.CurrentOAuth2Provider.DisplayName}}</div>
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">

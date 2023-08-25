@@ -7,7 +7,7 @@
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
-				<input dir="auto" type="hidden" name="action" value="update">
+				<input type="hidden" name="action" value="update">
 				<div class="required field {{if .Err_RepoName}}error{{end}}">
 					<label for="repo_name">{{.locale.Tr "repo.repo_name"}}</label>
 					<input dir="auto" id="repo_name" name="repo_name" value="{{.Repository.Name}}" data-repo-name="{{.Repository.Name}}" autofocus required>
@@ -129,7 +129,7 @@
 							<td class="right aligned">
 								<form method="post" class="gt-dib">
 									{{.CsrfTokenHtml}}
-									<input dir="auto" type="hidden" name="action" value="mirror-sync">
+									<input type="hidden" name="action" value="mirror-sync">
 									<button class="ui primary tiny button inline text-thin">{{$.locale.Tr "repo.settings.sync_mirror"}}</button>
 								</form>
 							</td>
@@ -139,7 +139,7 @@
 								<form class="ui form" method="post">
 									{{template "base/disable_form_autofill"}}
 									{{.CsrfTokenHtml}}
-									<input dir="auto" type="hidden" name="action" value="mirror">
+									<input type="hidden" name="action" value="mirror">
 									<div class="inline field {{if .Err_EnablePrune}}error{{end}}">
 										<label>{{.locale.Tr "repo.mirror_prune"}}</label>
 										<div class="ui checkbox">
@@ -217,14 +217,14 @@
 								</button>
 								<form method="post" class="gt-dib">
 									{{$.CsrfTokenHtml}}
-									<input dir="auto" type="hidden" name="action" value="push-mirror-sync">
-									<input dir="auto" type="hidden" name="push_mirror_id" value="{{.ID}}">
+									<input type="hidden" name="action" value="push-mirror-sync">
+									<input type="hidden" name="push_mirror_id" value="{{.ID}}">
 									<button class="ui primary tiny button" data-tooltip-content="{{$.locale.Tr "repo.settings.sync_mirror"}}">{{svg "octicon-sync" 14}}</button>
 								</form>
 								<form method="post" class="gt-dib">
 									{{$.CsrfTokenHtml}}
-									<input dir="auto" type="hidden" name="action" value="push-mirror-remove">
-									<input dir="auto" type="hidden" name="push_mirror_id" value="{{.ID}}">
+									<input type="hidden" name="action" value="push-mirror-remove">
+									<input type="hidden" name="push_mirror_id" value="{{.ID}}">
 									<button class="ui basic red tiny button" data-tooltip-content="{{$.locale.Tr "remove"}}">{{svg "octicon-trash" 14}}</button>
 								</form>
 							</td>
@@ -240,7 +240,7 @@
 									<form class="ui form" method="post">
 										{{template "base/disable_form_autofill"}}
 										{{.CsrfTokenHtml}}
-										<input dir="auto" type="hidden" name="action" value="push-mirror-add">
+										<input type="hidden" name="action" value="push-mirror-add">
 										<div class="field {{if .Err_PushMirrorAddress}}error{{end}}">
 											<label for="push_mirror_address">{{.locale.Tr "repo.settings.mirror_settings.push_mirror.remote_url"}}</label>
 											<input dir="auto" id="push_mirror_address" name="push_mirror_address" value="{{.push_mirror_address}}" required>
@@ -289,7 +289,7 @@
 		<div class="ui attached segment">
 			<form class="ui form" method="post">
 				{{.CsrfTokenHtml}}
-				<input dir="auto" type="hidden" name="action" value="advanced">
+				<input type="hidden" name="action" value="advanced">
 
 				{{$isCodeEnabled := .Repository.UnitEnabled $.Context $.UnitTypeCode}}
 				{{$isCodeGlobalDisabled := .UnitTypeCode.UnitGlobalDisabled}}
@@ -598,7 +598,7 @@
 		<div class="ui attached segment">
 			<form class="ui form" method="post">
 				{{.CsrfTokenHtml}}
-				<input dir="auto" type="hidden" name="action" value="signing">
+				<input type="hidden" name="action" value="signing">
 				<div class="field">
 					<label>{{.locale.Tr "repo.settings.trust_model"}}</label><br>
 					<div class="field">
@@ -645,7 +645,7 @@
 		<div class="ui attached segment">
 			<form class="ui form" method="post">
 				{{.CsrfTokenHtml}}
-				<input dir="auto" type="hidden" name="action" value="admin">
+				<input type="hidden" name="action" value="admin">
 				<div class="field">
 					<div class="ui checkbox">
 						<input dir="auto" name="enable_health_check" type="checkbox" {{if .Repository.IsFsckEnabled}}checked{{end}}>
@@ -661,7 +661,7 @@
 			<div class="divider"></div>
 			<form class="ui form" method="post">
 				{{.CsrfTokenHtml}}
-				<input dir="auto" type="hidden" name="action" value="admin_index">
+				<input type="hidden" name="action" value="admin_index">
 				{{if .CodeIndexerEnabled}}
 					<h4 class="ui header">{{.locale.Tr "repo.settings.admin_code_indexer"}}</h4>
 					<div class="inline fields">
@@ -745,7 +745,7 @@
 						{{if .RepoTransfer}}
 							<form class="ui form" action="{{.Link}}" method="post">
 								{{.CsrfTokenHtml}}
-								<input dir="auto" type="hidden" name="action" value="cancel_transfer">
+								<input type="hidden" name="action" value="cancel_transfer">
 								<button class="ui red button">{{.locale.Tr "repo.settings.transfer_abort"}}</button>
 							</form>
 						{{else}}
@@ -813,7 +813,7 @@
 				</div>
 				<form class="ui form" action="{{.Link}}" method="post">
 					{{.CsrfTokenHtml}}
-					<input dir="auto" type="hidden" name="action" value="convert">
+					<input type="hidden" name="action" value="convert">
 					<div class="field">
 						<label>
 							{{.locale.Tr "repo.settings.transfer_form_title"}}
@@ -844,7 +844,7 @@
 				</div>
 				<form class="ui form" action="{{.Link}}" method="post">
 					{{.CsrfTokenHtml}}
-					<input dir="auto" type="hidden" name="action" value="convert_fork">
+					<input type="hidden" name="action" value="convert_fork">
 					<div class="field">
 						<label>
 							{{.locale.Tr "repo.settings.transfer_form_title"}}
@@ -876,7 +876,7 @@
 			</div>
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
-				<input dir="auto" type="hidden" name="action" value="transfer">
+				<input type="hidden" name="action" value="transfer">
 				<div class="field">
 					<label>
 						{{.locale.Tr "repo.settings.transfer_form_title"}}
@@ -914,7 +914,7 @@
 			</div>
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
-				<input dir="auto" type="hidden" name="action" value="delete">
+				<input type="hidden" name="action" value="delete">
 				<div class="field">
 					<label>
 						{{.locale.Tr "repo.settings.transfer_form_title"}}
@@ -946,7 +946,7 @@
 			</div>
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
-				<input dir="auto" type="hidden" name="action" value="delete-wiki">
+				<input type="hidden" name="action" value="delete-wiki">
 				<div class="field">
 					<label>
 						{{.locale.Tr "repo.settings.transfer_form_title"}}
@@ -987,8 +987,8 @@
 			</div>
 			<form action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
-				<input dir="auto" type="hidden" name="action" value="{{if .Repository.IsArchived}}unarchive{{else}}archive{{end}}">
-				<input dir="auto" type="hidden" name="repo_id" value="{{.Repository.ID}}">
+				<input type="hidden" name="action" value="{{if .Repository.IsArchived}}unarchive{{else}}archive{{end}}">
+				<input type="hidden" name="repo_id" value="{{.Repository.ID}}">
 				{{template "base/modal_actions_confirm" .}}
 			</form>
 		</div>

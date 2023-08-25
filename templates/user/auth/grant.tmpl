@@ -18,11 +18,11 @@
 			<div class="ui attached segment">
 				<form method="post" action="{{AppSubUrl}}/login/oauth/grant">
 					{{.CsrfTokenHtml}}
-					<input dir="auto" type="hidden" name="client_id" value="{{.Application.ClientID}}">
-					<input dir="auto" type="hidden" name="state" value="{{.State}}">
-					<input dir="auto" type="hidden" name="scope" value="{{.Scope}}">
-					<input dir="auto" type="hidden" name="nonce" value="{{.Nonce}}">
-					<input dir="auto" type="hidden" name="redirect_uri" value="{{.RedirectURI}}">
+					<input type="hidden" name="client_id" value="{{.Application.ClientID}}">
+					<input type="hidden" name="state" value="{{.State}}">
+					<input type="hidden" name="scope" value="{{.Scope}}">
+					<input type="hidden" name="nonce" value="{{.Nonce}}">
+					<input type="hidden" name="redirect_uri" value="{{.RedirectURI}}">
 					<button type="submit" id="authorize-app" value="{{.locale.Tr "auth.authorize_application"}}" class="ui red inline button">{{.locale.Tr "auth.authorize_application"}}</button>
 					<a href="{{.RedirectURI}}" class="ui basic primary inline button">Cancel</a>
 				</form>

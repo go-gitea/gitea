@@ -6,7 +6,7 @@
 		<div class="field">
 			<div class="ui checkbox">
 				<label>{{.locale.Tr "enabled"}}</label>
-				<input dir="auto" type="checkbox" name="enabled" {{if .CleanupRule.Enabled}}checked{{end}}>
+				<input type="checkbox" name="enabled" {{if .CleanupRule.Enabled}}checked{{end}}>
 			</div>
 		</div>
 		<div class="{{if .IsEditRule}}disabled {{end}}field {{if .Err_Type}}error{{end}}">
@@ -20,7 +20,7 @@
 		<div class="field">
 			<div class="ui checkbox">
 				<label>{{.locale.Tr "packages.owner.settings.cleanuprules.pattern_full_match"}}</label>
-				<input dir="auto" type="checkbox" name="match_full_name" {{if .CleanupRule.MatchFullName}}checked{{end}}>
+				<input type="checkbox" name="match_full_name" {{if .CleanupRule.MatchFullName}}checked{{end}}>
 			</div>
 		</div>
 		<div class="divider"></div>

@@ -8,7 +8,7 @@
 	<div class="{{if not .HasGPGError}}gt-hidden{{end}} gt-mb-4" id="add-gpg-key-panel">
 		<form class="ui form{{if .HasGPGError}} error{{end}}" action="{{.Link}}" method="post">
 			{{.CsrfTokenHtml}}
-			<input dir="auto" type="hidden" name="title" value="none">
+			<input type="hidden" name="title" value="none">
 			<div class="field {{if .Err_Content}}error{{end}}">
 				<label for="content">{{.locale.Tr "settings.key_content"}}</label>
 				<textarea dir="auto" id="gpg-key-content" name="content" placeholder="{{.locale.Tr "settings.key_content_gpg_placeholder"}}" required>{{.content}}</textarea>
@@ -79,9 +79,9 @@
 					<h4>{{$.locale.Tr "settings.gpg_token_required"}}</h4>
 					<form class="ui form{{if $.HasGPGVerifyError}} error{{end}}" action="{{$.Link}}" method="post">
 						{{$.CsrfTokenHtml}}
-						<input dir="auto" type="hidden" name="title" value="none">
-						<input dir="auto" type="hidden" name="content" value="{{.KeyID}}">
-						<input dir="auto" type="hidden" name="key_id" value="{{.KeyID}}">
+						<input type="hidden" name="title" value="none">
+						<input type="hidden" name="content" value="{{.KeyID}}">
+						<input type="hidden" name="key_id" value="{{.KeyID}}">
 						<div class="field">
 							<label for="token">{{$.locale.Tr "settings.gpg_token"}}</label>
 							<input dir="auto" readonly="" value="{{$.TokenToSign}}">

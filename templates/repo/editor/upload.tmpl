@@ -20,7 +20,7 @@
 						{{end}}
 					{{end}}
 					<span>{{.locale.Tr "repo.editor.or"}} <a href="{{$.BranchLink}}{{if not .IsNewFile}}/{{.TreePath | PathEscapeSegments}}{{end}}">{{.locale.Tr "repo.editor.cancel_lower"}}</a></span>
-					<input dir="auto" type="hidden" id="tree_path" name="tree_path" value="{{.TreePath}}" required>
+					<input type="hidden" id="tree_path" name="tree_path" value="{{.TreePath}}" required>
 				</div>
 			</div>
 			<div class="field">

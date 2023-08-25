@@ -25,7 +25,7 @@
                 <div class="ui checkbox" ref="checkboxArchivedFilter" :title="checkboxArchivedFilterTitle">
                   <!--the "hidden" is necessary to make the checkbox work without Fomantic UI js,
                       otherwise if the "input" handles click event for intermediate status, it breaks the internal state-->
-                  <input dir="auto" type="checkbox" class="hidden" v-bind.prop="checkboxArchivedFilterProps">
+                  <input type="checkbox" class="hidden" v-bind.prop="checkboxArchivedFilterProps">
                   <label>
                     <svg-icon name="octicon-archive" :size="16" class-name="gt-mr-2"/>
                     {{ textShowArchived }}
@@ -34,7 +34,7 @@
               </a>
               <a class="item" @click="togglePrivateFilter()">
                 <div class="ui checkbox" ref="checkboxPrivateFilter" :title="checkboxPrivateFilterTitle">
-                  <input dir="auto" type="checkbox" class="hidden" v-bind.prop="checkboxPrivateFilterProps">
+                  <input type="checkbox" class="hidden" v-bind.prop="checkboxPrivateFilterProps">
                   <label>
                     <svg-icon name="octicon-lock" :size="16" class-name="gt-mr-2"/>
                     {{ textShowPrivate }}

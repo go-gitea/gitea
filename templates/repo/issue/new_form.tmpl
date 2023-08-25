@@ -17,7 +17,7 @@
 						{{end}}
 					</div>
 					{{if .Fields}}
-						<input dir="auto" type="hidden" name="template-file" value="{{.TemplateFile}}">
+						<input type="hidden" name="template-file" value="{{.TemplateFile}}">
 						{{range .Fields}}
 							{{if eq .Type "input"}}
 								{{template "repo/issue/fields/input" dict "Context" $.Context "item" .}}
@@ -188,5 +188,5 @@
 			</div>
 		{{end}}
 	</div>
-	<input dir="auto" type="hidden" name="redirect_after_creation" value="{{.redirect_after_creation}}">
+	<input type="hidden" name="redirect_after_creation" value="{{.redirect_after_creation}}">
 </form>

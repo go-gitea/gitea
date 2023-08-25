@@ -50,7 +50,7 @@
 						<div class="checkbox-sub-item field">
 							<label>{{.locale.Tr "repo.settings.protect_whitelist_users"}}</label>
 							<div class="ui multiple search selection dropdown">
-								<input dir="auto" type="hidden" name="whitelist_users" value="{{.whitelist_users}}">
+								<input type="hidden" name="whitelist_users" value="{{.whitelist_users}}">
 								<div class="default text">{{.locale.Tr "repo.settings.protect_whitelist_search_users"}}</div>
 								<div class="menu">
 									{{range .Users}}
@@ -65,7 +65,7 @@
 							<div class="checkbox-sub-item field">
 								<label>{{.locale.Tr "repo.settings.protect_whitelist_teams"}}</label>
 								<div class="ui multiple search selection dropdown">
-									<input dir="auto" type="hidden" name="whitelist_teams" value="{{.whitelist_teams}}">
+									<input type="hidden" name="whitelist_teams" value="{{.whitelist_teams}}">
 									<div class="default text">{{.locale.Tr "repo.settings.protect_whitelist_search_teams"}}</div>
 									<div class="menu">
 										{{range .Teams}}
@@ -80,7 +80,7 @@
 						{{end}}
 						<div class="checkbox-sub-item field">
 							<div class="ui checkbox">
-								<input dir="auto" type="checkbox" name="whitelist_deploy_keys" {{if .Rule.WhitelistDeployKeys}}checked{{end}}>
+								<input type="checkbox" name="whitelist_deploy_keys" {{if .Rule.WhitelistDeployKeys}}checked{{end}}>
 								<label>{{.locale.Tr "repo.settings.protect_whitelist_deploy_keys"}}</label>
 							</div>
 						</div>
@@ -111,7 +111,7 @@
 						<div class="checkbox-sub-item field">
 							<label>{{.locale.Tr "repo.settings.protect_approvals_whitelist_users"}}</label>
 							<div class="ui multiple search selection dropdown">
-								<input dir="auto" type="hidden" name="approvals_whitelist_users" value="{{.approvals_whitelist_users}}">
+								<input type="hidden" name="approvals_whitelist_users" value="{{.approvals_whitelist_users}}">
 								<div class="default text">{{.locale.Tr "repo.settings.protect_whitelist_search_users"}}</div>
 								<div class="menu">
 								{{range .Users}}
@@ -126,7 +126,7 @@
 							<div class="checkbox-sub-item field">
 								<label>{{.locale.Tr "repo.settings.protect_approvals_whitelist_teams"}}</label>
 								<div class="ui multiple search selection dropdown">
-									<input dir="auto" type="hidden" name="approvals_whitelist_teams" value="{{.approvals_whitelist_teams}}">
+									<input type="hidden" name="approvals_whitelist_teams" value="{{.approvals_whitelist_teams}}">
 									<div class="default text">{{.locale.Tr "repo.settings.protect_whitelist_search_teams"}}</div>
 									<div class="menu">
 									{{range .Teams}}
@@ -201,7 +201,7 @@
 						<div class="checkbox-sub-item field">
 							<label>{{.locale.Tr "repo.settings.protect_merge_whitelist_users"}}</label>
 							<div class="ui multiple search selection dropdown">
-								<input dir="auto" type="hidden" name="merge_whitelist_users" value="{{.merge_whitelist_users}}">
+								<input type="hidden" name="merge_whitelist_users" value="{{.merge_whitelist_users}}">
 								<div class="default text">{{.locale.Tr "repo.settings.protect_whitelist_search_users"}}</div>
 								<div class="menu">
 								{{range .Users}}
@@ -216,7 +216,7 @@
 						<div class="checkbox-sub-item field">
 							<label>{{.locale.Tr "repo.settings.protect_merge_whitelist_teams"}}</label>
 							<div class="ui multiple search selection dropdown">
-								<input dir="auto" type="hidden" name="merge_whitelist_teams" value="{{.merge_whitelist_teams}}">
+								<input type="hidden" name="merge_whitelist_teams" value="{{.merge_whitelist_teams}}">
 								<div class="default text">{{.locale.Tr "repo.settings.protect_whitelist_search_teams"}}</div>
 								<div class="menu">
 								{{range .Teams}}

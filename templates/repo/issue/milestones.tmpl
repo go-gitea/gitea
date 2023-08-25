@@ -27,7 +27,7 @@
 			<!-- Search -->
 			<form class="list-header-search ui form ignore-dirty">
 				<div class="ui small search fluid action input">
-					<input dir="auto" type="hidden" name="state" value="{{$.State}}">
+					<input type="hidden" name="state" value="{{$.State}}">
 					{{template "shared/searchinput" dict "locale" .locale "Value" .Keyword}}
 					<button class="ui small icon button" type="submit" aria-label="{{.locale.Tr "explore.search"}}">
 						{{svg "octicon-search"}}

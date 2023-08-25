@@ -17,7 +17,7 @@
 					<div class="inline required field {{if .Err_DbType}}error{{end}}">
 						<label>{{.locale.Tr "install.db_type"}}</label>
 						<div class="ui selection database type dropdown">
-							<input dir="auto" type="hidden" id="db_type" name="db_type" value="{{.CurDbType}}">
+							<input type="hidden" id="db_type" name="db_type" value="{{.CurDbType}}">
 							<div class="text">{{.CurDbType}}</div>
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
@@ -51,7 +51,7 @@
 						<div class="inline required field">
 							<label>{{.locale.Tr "install.ssl_mode"}}</label>
 							<div class="ui selection database type dropdown">
-								<input dir="auto" type="hidden" name="ssl_mode" value="{{if .ssl_mode}}{{.ssl_mode}}{{else}}disable{{end}}">
+								<input type="hidden" name="ssl_mode" value="{{if .ssl_mode}}{{.ssl_mode}}{{else}}disable{{end}}">
 								<div class="default text">disable</div>
 								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 								<div class="menu">

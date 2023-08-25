@@ -44,8 +44,8 @@
 													</div>
 													<form class="ui form" method="post" action="{{AppSubUrl}}/user/settings/repos/unadopted">
 														{{$.CsrfTokenHtml}}
-														<input dir="auto" type="hidden" name="id" value="{{$dir}}">
-														<input dir="auto" type="hidden" name="action" value="adopt">
+														<input type="hidden" name="id" value="{{$dir}}">
+														<input type="hidden" name="action" value="adopt">
 														{{template "base/modal_actions_confirm" $}}
 													</form>
 												</div>
@@ -61,8 +61,8 @@
 													</div>
 													<form class="ui form" method="post" action="{{AppSubUrl}}/user/settings/repos/unadopted">
 														{{$.CsrfTokenHtml}}
-														<input dir="auto" type="hidden" name="id" value="{{$dir}}">
-														<input dir="auto" type="hidden" name="action" value="delete">
+														<input type="hidden" name="id" value="{{$dir}}">
+														<input type="hidden" name="action" value="delete">
 														{{template "base/modal_actions_confirm" $}}
 													</form>
 												</div>

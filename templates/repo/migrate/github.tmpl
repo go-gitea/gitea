@@ -74,7 +74,7 @@
 					<div class="inline required field {{if .Err_Owner}}error{{end}}">
 						<label>{{.locale.Tr "repo.owner"}}</label>
 						<div class="ui selection owner dropdown">
-							<input dir="auto" type="hidden" id="uid" name="uid" value="{{.ContextUser.ID}}" required>
+							<input type="hidden" id="uid" name="uid" value="{{.ContextUser.ID}}" required>
 							<span class="text truncated-item-container" title="{{.ContextUser.Name}}">
 								{{ctx.AvatarUtils.Avatar .ContextUser 28 "mini"}}
 								<span class="truncated-item-name">{{.ContextUser.ShortName 40}}</span>

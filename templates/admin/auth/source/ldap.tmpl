@@ -2,7 +2,7 @@
 	<div class="inline required field {{if .Err_SecurityProtocol}}error{{end}}">
 		<label>{{.locale.Tr "admin.auths.security_protocol"}}</label>
 		<div class="ui selection security-protocol dropdown">
-			<input dir="auto" type="hidden" id="security_protocol" name="security_protocol" value="{{.security_protocol}}">
+			<input type="hidden" id="security_protocol" name="security_protocol" value="{{.security_protocol}}">
 			<div class="text">{{.CurrentSecurityProtocol}}</div>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			<div class="menu">
@@ -84,7 +84,7 @@
 	<div class="inline field">
 		<div class="ui checkbox">
 			<label><strong>{{.locale.Tr "admin.auths.enable_ldap_groups"}}</strong></label>
-			<input dir="auto" type="checkbox" name="groups_enabled" class="js-ldap-group-toggle" {{if .groups_enabled}}checked{{end}}>
+			<input type="checkbox" name="groups_enabled" class="js-ldap-group-toggle" {{if .groups_enabled}}checked{{end}}>
 		</div>
 	</div>
 	<div id="ldap-group-options" class="ui segment secondary">

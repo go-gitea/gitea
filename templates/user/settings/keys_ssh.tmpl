@@ -67,9 +67,9 @@
 					<h4>{{$.locale.Tr "settings.ssh_token_required"}}</h4>
 					<form class="ui form{{if $.HasSSHVerifyError}} error{{end}}" action="{{$.Link}}" method="post">
 						{{$.CsrfTokenHtml}}
-						<input dir="auto" type="hidden" name="title" value="none">
-						<input dir="auto" type="hidden" name="content" value="{{.Content}}">
-						<input dir="auto" type="hidden" name="fingerprint" value="{{.Fingerprint}}">
+						<input type="hidden" name="title" value="none">
+						<input type="hidden" name="content" value="{{.Content}}">
+						<input type="hidden" name="fingerprint" value="{{.Fingerprint}}">
 						<div class="field">
 							<label for="token">{{$.locale.Tr "settings.ssh_token"}}</label>
 							<input dir="auto" readonly="" value="{{$.TokenToSign}}">

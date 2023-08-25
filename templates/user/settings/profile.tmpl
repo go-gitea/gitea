@@ -48,9 +48,9 @@
 				<div class="inline field {{if .Err_Visibility}}error{{end}}">
 					<span class="inline required field"><label for="visibility">{{.locale.Tr "settings.visibility"}}</label></span>
 					<div class="ui selection type dropdown">
-						{{if .SignedUser.Visibility.IsPublic}}<input dir="auto" type="hidden" id="visibility" name="visibility" value="0">{{end}}
-						{{if .SignedUser.Visibility.IsLimited}}<input dir="auto" type="hidden" id="visibility" name="visibility" value="1">{{end}}
-						{{if .SignedUser.Visibility.IsPrivate}}<input dir="auto" type="hidden" id="visibility" name="visibility" value="2">{{end}}
+						{{if .SignedUser.Visibility.IsPublic}}<input type="hidden" id="visibility" name="visibility" value="0">{{end}}
+						{{if .SignedUser.Visibility.IsLimited}}<input type="hidden" id="visibility" name="visibility" value="1">{{end}}
+						{{if .SignedUser.Visibility.IsPrivate}}<input type="hidden" id="visibility" name="visibility" value="2">{{end}}
 						<div class="text">
 							{{if .SignedUser.Visibility.IsPublic}}{{.locale.Tr "settings.visibility.public"}}{{end}}
 							{{if .SignedUser.Visibility.IsLimited}}{{.locale.Tr "settings.visibility.limited"}}{{end}}

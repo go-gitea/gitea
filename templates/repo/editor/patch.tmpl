@@ -5,8 +5,8 @@
 		{{template "base/alert" .}}
 		<form class="ui edit form" method="post" action="{{.RepoLink}}/_diffpatch/{{.BranchName | PathEscapeSegments}}">
 			{{.CsrfTokenHtml}}
-			<input dir="auto" type="hidden" name="last_commit" value="{{.last_commit}}">
-			<input dir="auto" type="hidden" name="page_has_posted" value="{{.PageHasPosted}}">
+			<input type="hidden" name="last_commit" value="{{.last_commit}}">
+			<input type="hidden" name="page_has_posted" value="{{.PageHasPosted}}">
 			<div class="repo-editor-header">
 				<div class="ui breadcrumb field {{if .Err_TreePath}}error{{end}}">
 					{{.locale.Tr "repo.editor.patching"}}
@@ -14,7 +14,7 @@
 					<div class="breadcrumb-divider">:</div>
 					<a class="section" href="{{$.BranchLink}}">{{.BranchName}}</a>
 					<span>{{.locale.Tr "repo.editor.or"}} <a href="{{$.BranchLink}}">{{.locale.Tr "repo.editor.cancel_lower"}}</a></span>
-					<input dir="auto" type="hidden" id="tree_path" name="tree_path" value="" required>
+					<input type="hidden" id="tree_path" name="tree_path" value="" required>
 					<input dir="auto" id="file-name" type="hidden" value="diff.patch">
 				</div>
 			</div>

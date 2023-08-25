@@ -71,7 +71,7 @@
 										</div>
 										<form class="ui form dismiss-review-form" id="dismiss-review-{{.Review.ID}}" action="{{$.RepoLink}}/issues/dismiss_review" method="post">
 											{{$.CsrfTokenHtml}}
-											<input dir="auto" type="hidden" name="review_id" value="{{.Review.ID}}">
+											<input type="hidden" name="review_id" value="{{.Review.ID}}">
 											<div class="field">
 												<label for="message">{{$.locale.Tr "action.review_dismissed_reason"}}</label>
 												<input dir="auto" id="message" name="message">
@@ -271,7 +271,7 @@
 			<span class="text"><strong>{{.locale.Tr "notification.notifications"}}</strong></span>
 			<div class="gt-mt-3">
 				<form method="post" action="{{.Issue.Link}}/watch">
-					<input dir="auto" type="hidden" name="watch" value="{{if $.IssueWatch.IsWatching}}0{{else}}1{{end}}">
+					<input type="hidden" name="watch" value="{{if $.IssueWatch.IsWatching}}0{{else}}1{{end}}">
 					{{$.CsrfTokenHtml}}
 					<button class="fluid ui button">
 						{{if $.IssueWatch.IsWatching}}
@@ -529,7 +529,7 @@
 		</div>
 
 		{{if and .CanCreateIssueDependencies (not .Repository.IsArchived)}}
-			<input dir="auto" type="hidden" id="crossRepoSearch" value="{{.AllowCrossRepositoryDependencies}}">
+			<input type="hidden" id="crossRepoSearch" value="{{.AllowCrossRepositoryDependencies}}">
 
 			<div class="ui g-modal-confirm modal remove-dependency">
 				<div class="header">
@@ -539,8 +539,8 @@
 				<div class="content">
 					<form method="post" action="{{.Issue.Link}}/dependency/delete" id="removeDependencyForm">
 						{{$.CsrfTokenHtml}}
-						<input dir="auto" type="hidden" value="" name="removeDependencyID" id="removeDependencyID">
-						<input dir="auto" type="hidden" value="" name="dependencyType" id="dependencyType">
+						<input type="hidden" value="" name="removeDependencyID" id="removeDependencyID">
+						<input type="hidden" value="" name="dependencyType" id="dependencyType">
 					</form>
 					<p>{{if .Issue.IsPull}}
 						{{.locale.Tr "repo.issues.dependency.pr_remove_text"}}
@@ -693,7 +693,7 @@
 						data-prompt-error="{{.locale.Tr "repo.pulls.allow_edits_from_maintainers_err"}}"
 					>
 					<label><strong>{{.locale.Tr "repo.pulls.allow_edits_from_maintainers"}}</strong></label>
-					<input dir="auto" type="checkbox" {{if .Issue.PullRequest.AllowMaintainerEdit}}checked{{end}}>
+					<input type="checkbox" {{if .Issue.PullRequest.AllowMaintainerEdit}}checked{{end}}>
 				</div>
 			</div>
 		{{end}}

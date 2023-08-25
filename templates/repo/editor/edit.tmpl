@@ -5,8 +5,8 @@
 		{{template "base/alert" .}}
 		<form class="ui edit form" method="post">
 			{{.CsrfTokenHtml}}
-			<input dir="auto" type="hidden" name="last_commit" value="{{.last_commit}}">
-			<input dir="auto" type="hidden" name="page_has_posted" value="{{.PageHasPosted}}">
+			<input type="hidden" name="last_commit" value="{{.last_commit}}">
+			<input type="hidden" name="page_has_posted" value="{{.PageHasPosted}}">
 			<div class="repo-editor-header">
 				<div class="ui breadcrumb field{{if .Err_TreePath}} error{{end}}">
 					<a class="section" href="{{$.BranchLink}}">{{.Repository.Name}}</a>
@@ -22,7 +22,7 @@
 						{{end}}
 					{{end}}
 					<span>{{.locale.Tr "repo.editor.or"}} <a href="{{$.BranchLink}}{{if not .IsNewFile}}/{{PathEscapeSegments .TreePath}}{{end}}">{{.locale.Tr "repo.editor.cancel_lower"}}</a></span>
-					<input dir="auto" type="hidden" id="tree_path" name="tree_path" value="{{.TreePath}}" required>
+					<input type="hidden" id="tree_path" name="tree_path" value="{{.TreePath}}" required>
 				</div>
 			</div>
 			<div class="field">
