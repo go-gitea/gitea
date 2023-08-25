@@ -331,7 +331,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	ctx.Data["Assignees"] = MakeSelfOnTop(ctx, assigneeUsers)
+	ctx.Data["Assignees"] = MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
 	handleTeamMentions(ctx)
 	if ctx.Written() {
@@ -535,7 +535,7 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	ctx.Data["Assignees"] = MakeSelfOnTop(ctx, assigneeUsers)
+	ctx.Data["Assignees"] = MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
 	handleTeamMentions(ctx)
 }
@@ -3625,7 +3625,7 @@ func issuePosters(ctx *context.Context, isPullList bool) {
 		}
 	}
 
-	posters = MakeSelfOnTop(ctx, posters)
+	posters = MakeSelfOnTop(ctx.Doer, posters)
 
 	resp := &userSearchResponse{}
 	resp.Results = make([]*userSearchInfo, len(posters))

@@ -956,7 +956,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	ctx.Data["Assignees"] = MakeSelfOnTop(ctx, assigneeUsers)
+	ctx.Data["Assignees"] = MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
 	handleTeamMentions(ctx)
 	if ctx.Written() {
