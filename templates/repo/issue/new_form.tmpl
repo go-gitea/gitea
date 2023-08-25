@@ -95,7 +95,7 @@
 			<div class="menu">
 				{{if or .OpenProjects .ClosedProjects}}
 				<div class="ui icon search input">
-					<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+					<i class="icon">{{svg "octicon-search" 16}}</i>
 					<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_projects"}}">
 				</div>
 				{{end}}
@@ -152,7 +152,7 @@
 				</span>
 				<div class="filter menu" data-id="#assignee_ids">
 					<div class="ui icon search input">
-						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+						<i class="icon">{{svg "octicon-search" 16}}</i>
 						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_assignees"}}">
 					</div>
 					<div class="no-select item">{{.locale.Tr "repo.issues.new.clear_assignees"}}</div>
