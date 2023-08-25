@@ -60,17 +60,9 @@ func Contexter() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			base, baseCleanUp := context.NewBaseContext(resp, req)
-			ctx := &context.Context{
-				Base:    base,
-				Flash:   &middleware.Flash{},
-				Render:  rnd,
-				Session: session.GetSession(req),
-			}
 			defer baseCleanUp()
 
-			ctx.TemplateContext = context.NewTemplateContext(ctx)
-			ctx.TemplateContext["Locale"] = ctx.Locale
-
+			ctx := context.NewWebContext(base, rnd, session.GetSession(req))
 			ctx.AppendContextValue(context.WebContextKey, ctx)
 			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
 			ctx.Data.MergeFrom(middleware.ContextData{

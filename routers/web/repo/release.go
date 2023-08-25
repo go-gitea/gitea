@@ -349,7 +349,7 @@ func NewRelease(ctx *context.Context) {
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	ctx.Data["Assignees"] = MakeSelfOnTop(ctx, assigneeUsers)
+	ctx.Data["Assignees"] = MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
 	upload.AddUploadContext(ctx, "release")
 
@@ -538,7 +538,7 @@ func EditRelease(ctx *context.Context) {
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	ctx.Data["Assignees"] = MakeSelfOnTop(ctx, assigneeUsers)
+	ctx.Data["Assignees"] = MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
 	ctx.HTML(http.StatusOK, tplReleaseNew)
 }
