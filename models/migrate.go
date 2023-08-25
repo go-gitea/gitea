@@ -314,7 +314,7 @@ func UpsertIssueComments(ctx context.Context, comments []*issues_model.Comment) 
 				}
 			} else {
 				if _, err := sess.NoAutoTime().Where(
-					"original_id = ?", comment.IssueID, comment.OriginalID,
+					"issue_id = ? AND original_id = ?", comment.IssueID, comment.OriginalID,
 				).AllCols().Update(comment); err != nil {
 					return err
 				}
@@ -326,7 +326,7 @@ func UpsertIssueComments(ctx context.Context, comments []*issues_model.Comment) 
 			}
 			if len(comment.Reactions) > 0 {
 				for _, reaction := range comment.Reactions {
-					// issue comment rection is uniquely identified by issue_id, comment_id and type
+					// issue comment reaction is uniquely identified by issue_id, comment_id and type
 					exists, err := sess.Exist(&issues_model.Reaction{
 						IssueID:   reaction.IssueID,
 						CommentID: reaction.CommentID,
