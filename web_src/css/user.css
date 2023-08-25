@@ -58,10 +58,6 @@
   }
 }
 
-.user.profile #loading-heatmap {
-  margin-bottom: 1em;
-}
-
 .user.profile .ui.secondary.stackable.pointing.menu {
   flex-wrap: wrap;
 }
