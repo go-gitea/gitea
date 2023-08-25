@@ -2,7 +2,7 @@
 	<div class="ui fluid action input">
 		{{template "shared/searchinput" dict "locale" .locale "Value" .Keyword "AutoFocus" true "Disabled" .CodeIndexerUnavailable}}
 		<div class="ui dropdown selection {{if .CodeIndexerUnavailable}} disabled{{end}}" data-tooltip-content="{{.locale.Tr "explore.search.type.tooltip"}}">
-			<input dir="auto" name="t" type="hidden" value="{{.queryType}}"{{if .CodeIndexerUnavailable}} disabled{{end}}>{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			<input name="t" type="hidden" value="{{.queryType}}"{{if .CodeIndexerUnavailable}} disabled{{end}}>{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			<div class="text">{{.locale.Tr (printf "explore.search.%s" (or .queryType "fuzzy"))}}</div>
 			<div class="menu">
 				<div class="item" data-value="" data-tooltip-content="{{.locale.Tr "explore.search.fuzzy.tooltip"}}">{{.locale.Tr "explore.search.fuzzy"}}</div>

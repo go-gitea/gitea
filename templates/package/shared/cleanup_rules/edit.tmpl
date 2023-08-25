@@ -2,7 +2,7 @@
 <div class="ui attached segment">
 	<form class="ui form" action="{{.Link}}" method="post">
 		{{.CsrfTokenHtml}}
-		<input dir="auto" name="id" type="hidden" value="{{.CleanupRule.ID}}">
+		<input name="id" type="hidden" value="{{.CleanupRule.ID}}">
 		<div class="field">
 			<div class="ui checkbox">
 				<label>{{.locale.Tr "enabled"}}</label>

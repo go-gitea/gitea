@@ -51,13 +51,13 @@
 	<div class="issue-content-right ui segment">
 		{{template "repo/issue/branch_selector_field" .}}
 
-		<input dir="auto" id="label_ids" name="label_ids" type="hidden" value="{{.label_ids}}">
+		<input id="label_ids" name="label_ids" type="hidden" value="{{.label_ids}}">
 		{{template "repo/issue/labels/labels_selector_field" .}}
 		{{template "repo/issue/labels/labels_sidebar" dict "root" $}}
 
 		<div class="divider"></div>
 
-		<input dir="auto" id="milestone_id" name="milestone_id" type="hidden" value="{{.milestone_id}}">
+		<input id="milestone_id" name="milestone_id" type="hidden" value="{{.milestone_id}}">
 		<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating jump select-milestone dropdown">
 			<span class="text flex-text-block">
 				<strong>{{.locale.Tr "repo.issues.new.milestone"}}</strong>
@@ -84,7 +84,7 @@
 		{{if .IsProjectsEnabled}}
 		<div class="divider"></div>
 
-		<input dir="auto" id="project_id" name="project_id" type="hidden" value="{{.project_id}}">
+		<input id="project_id" name="project_id" type="hidden" value="{{.project_id}}">
 		<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating jump select-project dropdown">
 			<span class="text flex-text-block">
 				<strong>{{.locale.Tr "repo.issues.new.projects"}}</strong>
@@ -142,7 +142,7 @@
 		</div>
 		{{end}}
 		<div class="divider"></div>
-			<input dir="auto" id="assignee_ids" name="assignee_ids" type="hidden" value="{{.assignee_ids}}">
+			<input id="assignee_ids" name="assignee_ids" type="hidden" value="{{.assignee_ids}}">
 			<div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating jump select-assignees dropdown">
 				<span class="text flex-text-block">
 					<strong>{{.locale.Tr "repo.issues.new.assignees"}}</strong>

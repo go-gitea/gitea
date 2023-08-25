@@ -1,7 +1,7 @@
 <div class="issue-content-right ui segment">
 	{{template "repo/issue/branch_selector_field" .}}
 	{{if .Issue.IsPull}}
-		<input dir="auto" id="reviewer_id" name="reviewer_id" type="hidden" value="{{.reviewer_id}}">
+		<input id="reviewer_id" name="reviewer_id" type="hidden" value="{{.reviewer_id}}">
 		<div class="ui {{if or (not .Reviewers) (not .CanChooseReviewer) .Repository.IsArchived}}disabled{{end}} floating jump select-reviewers-modify dropdown">
 			<a class="text gt-df gt-ac muted">
 				<strong>{{.locale.Tr "repo.issues.review.reviewers"}}</strong>
@@ -205,7 +205,7 @@
 
 	<div class="divider"></div>
 
-	<input dir="auto" id="assignee_id" name="assignee_id" type="hidden" value="{{.assignee_id}}">
+	<input id="assignee_id" name="assignee_id" type="hidden" value="{{.assignee_id}}">
 	<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-assignees-modify dropdown">
 		<a class="text muted flex-text-block">
 			<strong>{{.locale.Tr "repo.issues.new.assignees"}}</strong>
@@ -514,7 +514,7 @@
 						{{$.CsrfTokenHtml}}
 						<div class="ui fluid action input">
 							<div class="ui search selection dropdown" id="new-dependency-drop-list" data-issue-id="{{.Issue.ID}}">
-								<input dir="auto" name="newDependency" type="hidden">
+								<input name="newDependency" type="hidden">
 								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 								<input dir="auto" type="text" class="search">
 								<div class="default text">{{.locale.Tr "repo.issues.dependency.add"}}</div>

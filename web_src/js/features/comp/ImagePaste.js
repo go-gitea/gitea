@@ -118,7 +118,7 @@ const uploadClipboardImage = async (editor, dropzone, e) => {
     const data = await uploadFile(img, uploadUrl);
     editor.replacePlaceholder(placeholder, `![${name}](/attachments/${data.uuid})`);
 
-    const $input = $(`<input dir="auto" name="files" type="hidden">`).attr('id', data.uuid).val(data.uuid);
+    const $input = $(`<input name="files" type="hidden">`).attr('id', data.uuid).val(data.uuid);
     $files.append($input);
   }
 };

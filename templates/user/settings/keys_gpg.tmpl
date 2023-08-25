@@ -30,7 +30,7 @@
 					<textarea dir="auto" id="gpg-key-signature" name="signature" placeholder="{{.locale.Tr "settings.key_signature_gpg_placeholder"}}" required>{{.signature}}</textarea>
 				</div>
 			{{end}}
-			<input dir="auto" name="type" type="hidden" value="gpg">
+			<input name="type" type="hidden" value="gpg">
 			<button class="ui green button">
 				{{.locale.Tr "settings.add_key"}}
 			</button>
@@ -95,7 +95,7 @@
 							<label for="signature">{{$.locale.Tr "settings.gpg_token_signature"}}</label>
 							<textarea dir="auto" id="gpg-key-signature" name="signature" placeholder="{{$.locale.Tr "settings.key_signature_gpg_placeholder"}}" required>{{$.signature}}</textarea>
 						</div>
-						<input dir="auto" name="type" type="hidden" value="verify_gpg">
+						<input name="type" type="hidden" value="verify_gpg">
 						<button class="ui green button">
 							{{$.locale.Tr "settings.gpg_key_verify"}}
 						</button>

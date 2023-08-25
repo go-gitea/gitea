@@ -45,10 +45,10 @@
 					<div class="gt-mb-3">{{.locale.Tr "settings.email_desc"}}</div>
 					<form action="{{AppSubUrl}}/user/settings/account/email" class="ui form" method="post">
 						{{$.CsrfTokenHtml}}
-						<input dir="auto" name="_method" type="hidden" value="NOTIFICATION">
+						<input name="_method" type="hidden" value="NOTIFICATION">
 						<div class="gt-df gt-fw gt-gap-3">
 							<div class="ui selection dropdown">
-								<input dir="auto" name="preference" type="hidden" value="{{.EmailNotificationsPreference}}">
+								<input name="preference" type="hidden" value="{{.EmailNotificationsPreference}}">
 								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 								<div class="text"></div>
 								<div class="menu">
@@ -75,8 +75,8 @@
 								<div class="right floated content">
 									<form action="{{AppSubUrl}}/user/settings/account/email" method="post">
 										{{$.CsrfTokenHtml}}
-										<input dir="auto" name="_method" type="hidden" value="PRIMARY">
-										<input dir="auto" name="id" type="hidden" value="{{.ID}}">
+										<input name="_method" type="hidden" value="PRIMARY">
+										<input name="id" type="hidden" value="{{.ID}}">
 										<button class="ui primary tiny button">{{$.locale.Tr "settings.primary_email"}}</button>
 									</form>
 								</div>
@@ -86,8 +86,8 @@
 							<div class="right floated content">
 								<form action="{{AppSubUrl}}/user/settings/account/email" method="post">
 									{{$.CsrfTokenHtml}}
-									<input dir="auto" name="_method" type="hidden" value="SENDACTIVATION">
-									<input dir="auto" name="id" type="hidden" value="{{.ID}}">
+									<input name="_method" type="hidden" value="SENDACTIVATION">
+									<input name="id" type="hidden" value="{{.ID}}">
 									{{if $.ActivationsPending}}
 										<button disabled class="ui primary tiny button">{{$.locale.Tr "settings.activations_pending"}}</button>
 									{{else}}

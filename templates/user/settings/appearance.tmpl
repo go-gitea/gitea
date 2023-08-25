@@ -16,7 +16,7 @@
 					<div class="field">
 						<label for="ui">{{.locale.Tr "settings.ui"}}</label>
 						<div class="ui selection dropdown" id="ui">
-							<input dir="auto" name="theme" type="hidden" value="{{.SignedUser.Theme}}">
+							<input name="theme" type="hidden" value="{{.SignedUser.Theme}}">
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="text">
 								{{range $i,$a := .AllThemes}}
@@ -50,7 +50,7 @@
 				{{.CsrfTokenHtml}}
 				<div class="field">
 					<div class="ui language selection dropdown" id="language">
-						<input dir="auto" name="language" type="hidden" value="{{.SignedUser.Language}}">
+						<input name="language" type="hidden" value="{{.SignedUser.Language}}">
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="text">{{range .AllLangs}}{{if eq $.SignedUser.Language .Lang}}{{.Name}}{{end}}{{end}}</div>
 						<div class="menu">

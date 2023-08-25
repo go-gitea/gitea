@@ -27,7 +27,7 @@
 								<label></label>
 								<button class="ui green button">{{.locale.Tr "install.confirm_password"}}</button>
 							</div>
-							<input dir="auto" id="code" name="code" type="hidden" value="{{.Code}}">
+							<input id="code" name="code" type="hidden" value="{{.Code}}">
 						{{else if .IsSendRegisterMail}}
 							<p>{{.locale.Tr "auth.confirmation_mail_sent_prompt" (.Email|Escape) .ActiveCodeLives | Str2html}}</p>
 						{{else if .IsCodeInvalid}}
