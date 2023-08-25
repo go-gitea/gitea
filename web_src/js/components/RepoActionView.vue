@@ -524,11 +524,6 @@ export function initRepositoryActionView() {
   overflow-y: auto;
 }
 
-.job-group-section .job-group-summary {
-  margin: 5px 0;
-  padding: 10px;
-}
-
 .job-artifacts-title {
   font-size: 18px;
   margin-top: 16px;
@@ -674,24 +669,6 @@ export function initRepositoryActionView() {
 
 /* end fomantic dropdown menu overrides */
 
-/* selectors here are intentionally exact to only match fullscreen */
-
-.full.height > .action-view-right {
-  width: 100%;
-  height: 100%;
-  padding: 0;
-  border-radius: 0;
-}
-
-.full.height > .action-view-right > .job-info-header {
-  border-radius: 0;
-}
-
-.full.height > .action-view-right > .job-step-container {
-  height: calc(100% - 60px);
-  border-radius: 0;
-}
-
 .job-info-header {
   display: flex;
   justify-content: space-between;
@@ -832,6 +809,24 @@ export function initRepositoryActionView() {
   word-break: break-all;
   white-space: break-spaces;
   margin-left: 10px;
+}
+
+/* selectors here are intentionally exact to only match fullscreen */
+
+.full.height > .action-view-right {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border-radius: 0;
+}
+
+.full.height > .action-view-right > .job-info-header {
+  border-radius: 0;
+}
+
+.full.height > .action-view-right > .job-step-container {
+  height: calc(100% - 60px);
+  border-radius: 0;
 }
 
 /* TODO: group support
