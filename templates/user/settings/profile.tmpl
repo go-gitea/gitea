@@ -102,7 +102,7 @@
 				{{if not .DisableGravatar}}
 				<div class="inline field">
 					<div class="ui radio checkbox">
-						<input dir="auto" name="source" value="lookup" type="radio" {{if not .SignedUser.UseCustomAvatar}}checked{{end}}>
+						<input type="radio" name="source" value="lookup" {{if not .SignedUser.UseCustomAvatar}}checked{{end}}>
 						<label>{{.locale.Tr "settings.lookup_avatar_by_mail"}}</label>
 					</div>
 				</div>
@@ -114,7 +114,7 @@
 
 				<div class="inline field">
 					<div class="ui radio checkbox">
-						<input dir="auto" name="source" value="local" type="radio" {{if .SignedUser.UseCustomAvatar}}checked{{end}}>
+						<input type="radio" name="source" value="local" {{if .SignedUser.UseCustomAvatar}}checked{{end}}>
 						<label>{{.locale.Tr "settings.enable_custom_avatar"}}</label>
 					</div>
 				</div>

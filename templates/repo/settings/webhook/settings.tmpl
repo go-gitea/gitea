@@ -4,19 +4,19 @@
 	<div class="grouped event type fields">
 		<div class="field">
 			<div class="ui radio non-events checkbox">
-				<input dir="auto" name="events" type="radio" value="push_only" {{if or $isNew .Webhook.PushOnly}}checked{{end}}>
+				<input type="radio" name="events" value="push_only" {{if or $isNew .Webhook.PushOnly}}checked{{end}}>
 				<label>{{.locale.Tr "repo.settings.event_push_only" | Str2html}}</label>
 			</div>
 		</div>
 		<div class="field">
 			<div class="ui radio non-events checkbox">
-				<input dir="auto" name="events" type="radio" value="send_everything" {{if .Webhook.SendEverything}}checked{{end}}>
+				<input type="radio" name="events" value="send_everything" {{if .Webhook.SendEverything}}checked{{end}}>
 				<label>{{.locale.Tr "repo.settings.event_send_everything" | Str2html}}</label>
 			</div>
 		</div>
 		<div class="field">
 			<div class="ui radio events checkbox">
-				<input dir="auto" name="events" type="radio" value="choose_events" {{if .Webhook.ChooseEvents}}checked{{end}}>
+				<input type="radio" name="events" value="choose_events" {{if .Webhook.ChooseEvents}}checked{{end}}>
 				<label>{{.locale.Tr "repo.settings.event_choose" | Str2html}}</label>
 			</div>
 		</div>
