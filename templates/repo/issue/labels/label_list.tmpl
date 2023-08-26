@@ -34,9 +34,9 @@
 			<div class="label-title">
 				{{RenderLabel $.Context .}}
 				{{if not .ArchivedUnix.IsZero}}
-					<i class="gt-ml-3 gt-cursor-default" data-tooltip-content="{{$.locale.Tr "repo.issues.label_archive_tooltip"}}">
+					<span class="gt-ml-3 gt-cursor-default gt-italic" data-tooltip-content="{{$.locale.Tr "repo.issues.label_archive_tooltip"}}">
 						{{$.locale.Tr "home.show_archived"}}
-					</i>
+					</span>
 				{{end}}
 				{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
 			</div>
