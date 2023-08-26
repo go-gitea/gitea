@@ -175,10 +175,12 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 		}
 
 		r.Note, err = markdown.RenderString(&markup.RenderContext{
-			URLPrefix: ctx.Repo.RepoLink,
-			Metas:     ctx.Repo.Repository.ComposeMetas(),
-			GitRepo:   ctx.Repo.GitRepo,
-			Ctx:       ctx,
+			Links: markup.Links{
+				Base: ctx.Repo.RepoLink,
+			},
+			Metas:   ctx.Repo.Repository.ComposeMetas(),
+			GitRepo: ctx.Repo.GitRepo,
+			Ctx:     ctx,
 		}, r.Note)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
@@ -281,10 +283,12 @@ func SingleRelease(ctx *context.Context) {
 		}
 	}
 	release.Note, err = markdown.RenderString(&markup.RenderContext{
-		URLPrefix: ctx.Repo.RepoLink,
-		Metas:     ctx.Repo.Repository.ComposeMetas(),
-		GitRepo:   ctx.Repo.GitRepo,
-		Ctx:       ctx,
+		Links: markup.Links{
+			Base: ctx.Repo.RepoLink,
+		},
+		Metas:   ctx.Repo.Repository.ComposeMetas(),
+		GitRepo: ctx.Repo.GitRepo,
+		Ctx:     ctx,
 	}, release.Note)
 	if err != nil {
 		ctx.ServerError("RenderString", err)

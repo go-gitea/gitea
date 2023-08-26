@@ -1383,12 +1383,13 @@ func ViewIssue(ctx *context.Context) {
 		}
 	}
 	ctx.Data["IssueWatch"] = iw
-
 	issue.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-		URLPrefix: ctx.Repo.RepoLink,
-		Metas:     ctx.Repo.Repository.ComposeMetas(),
-		GitRepo:   ctx.Repo.GitRepo,
-		Ctx:       ctx,
+		Links: markup.Links{
+			Base: ctx.Repo.RepoLink,
+		},
+		Metas:   ctx.Repo.Repository.ComposeMetas(),
+		GitRepo: ctx.Repo.GitRepo,
+		Ctx:     ctx,
 	}, issue.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
@@ -1548,10 +1549,12 @@ func ViewIssue(ctx *context.Context) {
 			}
 
 			comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-				URLPrefix: ctx.Repo.RepoLink,
-				Metas:     ctx.Repo.Repository.ComposeMetas(),
-				GitRepo:   ctx.Repo.GitRepo,
-				Ctx:       ctx,
+				Links: markup.Links{
+					Base: ctx.Repo.RepoLink,
+				},
+				Metas:   ctx.Repo.Repository.ComposeMetas(),
+				GitRepo: ctx.Repo.GitRepo,
+				Ctx:     ctx,
 			}, comment.Content)
 			if err != nil {
 				ctx.ServerError("RenderString", err)
@@ -1625,10 +1628,12 @@ func ViewIssue(ctx *context.Context) {
 			}
 		} else if comment.Type.HasContentSupport() {
 			comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-				URLPrefix: ctx.Repo.RepoLink,
-				Metas:     ctx.Repo.Repository.ComposeMetas(),
-				GitRepo:   ctx.Repo.GitRepo,
-				Ctx:       ctx,
+				Links: markup.Links{
+					Base: ctx.Repo.RepoLink,
+				},
+				Metas:   ctx.Repo.Repository.ComposeMetas(),
+				GitRepo: ctx.Repo.GitRepo,
+				Ctx:     ctx,
 			}, comment.Content)
 			if err != nil {
 				ctx.ServerError("RenderString", err)
@@ -2183,10 +2188,12 @@ func UpdateIssueContent(ctx *context.Context) {
 	}
 
 	content, err := markdown.RenderString(&markup.RenderContext{
-		URLPrefix: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
-		Metas:     ctx.Repo.Repository.ComposeMetas(),
-		GitRepo:   ctx.Repo.GitRepo,
-		Ctx:       ctx,
+		Links: markup.Links{
+			Base: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
+		},
+		Metas:   ctx.Repo.Repository.ComposeMetas(),
+		GitRepo: ctx.Repo.GitRepo,
+		Ctx:     ctx,
 	}, issue.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
@@ -3081,10 +3088,12 @@ func UpdateCommentContent(ctx *context.Context) {
 	}
 
 	content, err := markdown.RenderString(&markup.RenderContext{
-		URLPrefix: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
-		Metas:     ctx.Repo.Repository.ComposeMetas(),
-		GitRepo:   ctx.Repo.GitRepo,
-		Ctx:       ctx,
+		Links: markup.Links{
+			Base: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
+		},
+		Metas:   ctx.Repo.Repository.ComposeMetas(),
+		GitRepo: ctx.Repo.GitRepo,
+		Ctx:     ctx,
 	}, comment.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)

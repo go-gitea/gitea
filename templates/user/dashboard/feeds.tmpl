@@ -89,7 +89,7 @@
 								{{avatarHTML ($push.AvatarLink $.Context .AuthorEmail) 16 "" .AuthorName}}
 								<a class="commit-id" href="{{$commitLink}}">{{ShortSha .Sha1}}</a>
 								<span class="text truncate light grey">
-									{{RenderCommitMessage $.Context .Message $repoLink $.ComposeMetas}}
+									{{RenderCommitMessage $.Context .Message $.ComposeMetas}}
 								</span>
 							</div>
 						{{end}}

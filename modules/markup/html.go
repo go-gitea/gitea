@@ -80,15 +80,10 @@ const keywordClass = "issue-keyword"
 
 // IsLink reports whether link fits valid format.
 func IsLink(link []byte) bool {
-	return isLink(link)
-}
-
-// isLink reports whether link fits valid format.
-func isLink(link []byte) bool {
 	return validLinksPattern.Match(link)
 }
 
-func isLinkStr(link string) bool {
+func IsLinkStr(link string) bool {
 	return validLinksPattern.MatchString(link)
 }
 
@@ -344,7 +339,7 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 		node = node.FirstChild
 	}
 
-	visitNode(ctx, procs, procs, node)
+	visitNode(ctx, procs, node)
 
 	newNodes := make([]*html.Node, 0, 5)
 
@@ -375,7 +370,7 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 	return nil
 }
 
-func visitNode(ctx *RenderContext, procs, textProcs []processor, node *html.Node) {
+func visitNode(ctx *RenderContext, procs []processor, node *html.Node) {
 	// Add user-content- to IDs and "#" links if they don't already have them
 	for idx, attr := range node.Attr {
 		val := strings.TrimPrefix(attr.Val, "#")
@@ -390,35 +385,38 @@ func visitNode(ctx *RenderContext, procs, textProcs []processor, node *html.Node
 		}
 
 		if attr.Key == "class" && attr.Val == "emoji" {
-			textProcs = nil
+			procs = nil
 		}
 	}
 
 	// We ignore code and pre.
 	switch node.Type {
 	case html.TextNode:
-		textNode(ctx, textProcs, node)
+		textNode(ctx, procs, node)
 	case html.ElementNode:
 		if node.Data == "img" {
 			for i, attr := range node.Attr {
 				if attr.Key != "src" {
 					continue
 				}
-				if len(attr.Val) > 0 && !isLinkStr(attr.Val) && !strings.HasPrefix(attr.Val, "data:image/") {
-					prefix := ctx.URLPrefix
+				if len(attr.Val) > 0 && !IsLinkStr(attr.Val) && !strings.HasPrefix(attr.Val, "data:image/") {
+					var base string
 					if ctx.IsWiki {
-						prefix = util.URLJoin(prefix, "wiki", "raw")
+						base = ctx.Links.WikiRawLink()
+					} else if ctx.Links.HasBranchInfo() {
+						base = ctx.Links.MediaLink()
+					} else {
+						base = ctx.Links.Base
 					}
-					prefix = strings.Replace(prefix, "/src/", "/media/", 1)
 
-					attr.Val = util.URLJoin(prefix, attr.Val)
+					attr.Val = util.URLJoin(base, attr.Val)
 				}
 				attr.Val = camoHandleLink(attr.Val)
 				node.Attr[i] = attr
 			}
 		} else if node.Data == "a" {
 			// Restrict text in links to emojis
-			textProcs = emojiProcessors
+			procs = emojiProcessors
 		} else if node.Data == "code" || node.Data == "pre" {
 			return
 		} else if node.Data == "i" {
@@ -444,7 +442,7 @@ func visitNode(ctx *RenderContext, procs, textProcs []processor, node *html.Node
 			}
 		}
 		for n := node.FirstChild; n != nil; n = n.NextSibling {
-			visitNode(ctx, procs, textProcs, n)
+			visitNode(ctx, procs, n)
 		}
 	}
 	// ignore everything else
@@ -641,10 +639,6 @@ func mentionProcessor(ctx *RenderContext, node *html.Node) {
 }
 
 func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
-	shortLinkProcessorFull(ctx, node, false)
-}
-
-func shortLinkProcessorFull(ctx *RenderContext, node *html.Node, noLink bool) {
 	next := node.NextSibling
 	for node != nil && node != next {
 		m := shortLinkPattern.FindStringSubmatchIndex(node.Data)
@@ -665,7 +659,7 @@ func shortLinkProcessorFull(ctx *RenderContext, node *html.Node, noLink bool) {
 			if equalPos := strings.IndexByte(v, '='); equalPos == -1 {
 				// There is no equal in this argument; this is a mandatory arg
 				if props["name"] == "" {
-					if isLinkStr(v) {
+					if IsLinkStr(v) {
 						// If we clearly see it is a link, we save it so
 
 						// But first we need to ensure, that if both mandatory args provided
@@ -740,7 +734,7 @@ func shortLinkProcessorFull(ctx *RenderContext, node *html.Node, noLink bool) {
 			DataAtom:   atom.A,
 		}
 		childNode.Parent = linkNode
-		absoluteLink := isLinkStr(link)
+		absoluteLink := IsLinkStr(link)
 		if !absoluteLink {
 			if image {
 				link = strings.ReplaceAll(link, " ", "+")
@@ -751,16 +745,18 @@ func shortLinkProcessorFull(ctx *RenderContext, node *html.Node, noLink bool) {
 				link = url.PathEscape(link)
 			}
 		}
-		urlPrefix := ctx.URLPrefix
 		if image {
+			var base string
+			if ctx.IsWiki {
+				base = ctx.Links.WikiRawLink()
+			} else if ctx.Links.HasBranchInfo() {
+				base = ctx.Links.RawLink()
+			} else {
+				base = ctx.Links.Base
+			}
+
 			if !absoluteLink {
-				if IsSameDomain(urlPrefix) {
-					urlPrefix = strings.Replace(urlPrefix, "/src/", "/raw/", 1)
-				}
-				if ctx.IsWiki {
-					link = util.URLJoin("wiki", "raw", link)
-				}
-				link = util.URLJoin(urlPrefix, link)
+				link = util.URLJoin(base, link)
 			}
 			title := props["title"]
 			if title == "" {
@@ -789,18 +785,15 @@ func shortLinkProcessorFull(ctx *RenderContext, node *html.Node, noLink bool) {
 		} else {
 			if !absoluteLink {
 				if ctx.IsWiki {
-					link = util.URLJoin("wiki", link)
+					link = util.URLJoin(ctx.Links.WikiLink(), link)
+				} else {
+					link = util.URLJoin(ctx.Links.SrcLink(), link)
 				}
-				link = util.URLJoin(urlPrefix, link)
 			}
 			childNode.Type = html.TextNode
 			childNode.Data = name
 		}
-		if noLink {
-			linkNode = childNode
-		} else {
-			linkNode.Attr = []html.Attribute{{Key: "href", Val: link}}
-		}
+		linkNode.Attr = []html.Attribute{{Key: "href", Val: link}}
 		replaceContent(node, m[0], m[1], linkNode)
 		node = node.NextSibling.NextSibling
 	}
