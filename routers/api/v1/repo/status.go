@@ -171,8 +171,15 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 	//   "400":
 	//     "$ref": "#/responses/error"
 
-	filter := git_service.ResolveRefOrSha(ctx, ctx.Params("ref"))
-	if ctx.Written() {
+	ref := ctx.Params("ref")
+	if len(ref) == 0 {
+		ctx.Error(http.StatusBadRequest, "ref not given", nil)
+		return
+	}
+
+	filter, lastMethodName, err := git_service.ResolveRefOrSha(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, ref)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, lastMethodName, err)
 		return
 	}
 
@@ -184,8 +191,8 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 		ctx.Error(http.StatusBadRequest, "ref/sha not given", nil)
 		return
 	}
-	sha = git_service.MustConvertToSHA1(ctx.Base, ctx.Repo, sha)
 	repo := ctx.Repo.Repository
+	sha = git_service.MustConvertToSHA1(ctx.Base, repo, sha)
 
 	listOptions := api_service.GetListOptions(ctx)
 
@@ -247,8 +254,15 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	//   "400":
 	//     "$ref": "#/responses/error"
 
-	sha := git_service.ResolveRefOrSha(ctx, ctx.Params("ref"))
-	if ctx.Written() {
+	ref := ctx.Params("ref")
+	if len(ref) == 0 {
+		ctx.Error(http.StatusBadRequest, "ref not given", nil)
+		return
+	}
+
+	sha, lastMethodName, err := git_service.ResolveRefOrSha(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, ref)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, lastMethodName, err)
 		return
 	}
 
