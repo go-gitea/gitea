@@ -39,11 +39,17 @@ func ListHooks(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/HookList"
 
-	webhook_service.ListOwnerHooks(
+	apiHooks, count, err := webhook_service.ListOwnerHooks(
 		ctx,
 		param.GetListOptions(ctx),
 		ctx.ContextUser,
 	)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	ctx.SetTotalCountHeader(count)
+	ctx.JSON(http.StatusOK, apiHooks)
 }
 
 // GetHook get an organization's hook by id
@@ -111,11 +117,17 @@ func CreateHook(ctx *context.APIContext) {
 	//   "201":
 	//     "$ref": "#/responses/Hook"
 
-	webhook_service.AddOwnerHook(
+	webhook, status, logTitle, err := webhook_service.AddOwnerHook(
 		ctx,
 		ctx.ContextUser,
 		web.GetForm(ctx).(*api.CreateHookOption),
 	)
+	if err != nil {
+		ctx.Error(status, logTitle, err)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, webhook)
 }
 
 // EditHook modify a hook of an organization

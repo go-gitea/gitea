@@ -139,12 +139,18 @@ func EditHook(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Hook"
 
-	webhook_service.EditOwnerHook(
+	webhook, status, logTitle, err := webhook_service.EditOwnerHook(
 		ctx,
 		ctx.Doer,
 		web.GetForm(ctx).(*api.EditHookOption),
 		ctx.ParamsInt64("id"),
 	)
+	if err != nil {
+		ctx.Error(status, logTitle, err)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, webhook)
 }
 
 // DeleteHook delete a hook of the authenticated user

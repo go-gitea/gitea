@@ -10,7 +10,6 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/webhook"
-	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
@@ -114,9 +113,9 @@ func GetHook(ctx *context.APIContext) {
 
 	repo := ctx.Repo
 	hookID := ctx.ParamsInt64(":id")
-	hook, err := webhook_model.GetWebhookByRepoID(repo.Repository.ID, hookID)
+	hook, err := webhook.GetWebhookByRepoID(repo.Repository.ID, hookID)
 	if err != nil {
-		if webhook_model.IsErrWebhookNotExist(err) {
+		if webhook.IsErrWebhookNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetWebhookByRepoID", err)
@@ -176,9 +175,9 @@ func TestHook(ctx *context.APIContext) {
 	}
 
 	hookID := ctx.ParamsInt64(":id")
-	hook, err := webhook_model.GetWebhookByRepoID(ctx.Repo.Repository.ID, hookID)
+	hook, err := webhook.GetWebhookByRepoID(ctx.Repo.Repository.ID, hookID)
 	if err != nil {
-		if webhook_model.IsErrWebhookNotExist(err) {
+		if webhook.IsErrWebhookNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetWebhookByRepoID", err)
