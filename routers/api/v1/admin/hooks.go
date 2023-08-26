@@ -110,7 +110,13 @@ func CreateHook(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.CreateHookOption)
 
-	webhook_service.AddSystemHook(ctx, form)
+	webhook, status, logTitle, err := webhook_service.AddSystemHook(ctx, form)
+	if err != nil {
+		ctx.Error(status, logTitle, err)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, webhook)
 }
 
 // EditHook modify a hook of a repository
@@ -141,7 +147,13 @@ func EditHook(ctx *context.APIContext) {
 
 	// TODO in body params
 	hookID := ctx.ParamsInt64(":id")
-	webhook_service.EditSystemHook(ctx, form, hookID)
+	webhook, status, logTitle, err := webhook_service.EditSystemHook(ctx, form, hookID)
+	if err != nil {
+		ctx.Error(status, logTitle, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, webhook)
 }
 
 // DeleteHook delete a system hook

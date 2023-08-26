@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/webhook"
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
@@ -113,8 +114,13 @@ func GetHook(ctx *context.APIContext) {
 
 	repo := ctx.Repo
 	hookID := ctx.ParamsInt64(":id")
-	hook, err := webhook_service.GetRepoHook(ctx, repo.Repository.ID, hookID)
+	hook, err := webhook_service.GetRepoHook(repo.Repository.ID, hookID)
 	if err != nil {
+		if webhook_model.IsErrWebhookNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetRepoHook", err)
+		}
 		return
 	}
 	apiHook, err := webhook_service.ToHook(repo.RepoLink, hook)
@@ -170,8 +176,13 @@ func TestHook(ctx *context.APIContext) {
 	}
 
 	hookID := ctx.ParamsInt64(":id")
-	hook, err := webhook_service.GetRepoHook(ctx, ctx.Repo.Repository.ID, hookID)
+	hook, err := webhook_service.GetRepoHook(ctx.Repo.Repository.ID, hookID)
 	if err != nil {
+		if webhook_model.IsErrWebhookNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetWebhookByID", err)
+		}
 		return
 	}
 
@@ -225,7 +236,15 @@ func CreateHook(ctx *context.APIContext) {
 	//   "201":
 	//     "$ref": "#/responses/Hook"
 
-	webhook_service.AddRepoHook(ctx, web.GetForm(ctx).(*api.CreateHookOption))
+	repoID := ctx.Repo.Repository.ID
+	repoLink := ctx.Repo.RepoLink
+	webhook, status, logTitle, err := webhook_service.AddRepoHook(ctx, repoID, repoLink, web.GetForm(ctx).(*api.CreateHookOption))
+	if err != nil {
+		ctx.Error(status, logTitle, err)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, webhook)
 }
 
 // EditHook modify a hook of a repository
@@ -260,8 +279,16 @@ func EditHook(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Hook"
 	form := web.GetForm(ctx).(*api.EditHookOption)
+	repoID := ctx.Repo.Repository.ID
+	repoLink := ctx.Repo.RepoLink
 	hookID := ctx.ParamsInt64(":id")
-	webhook_service.EditRepoHook(ctx, form, hookID)
+	webhook, status, logTitle, err := webhook_service.EditRepoHook(ctx, form, repoID, repoLink, hookID)
+	if err != nil {
+		ctx.Error(status, logTitle, err)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, webhook)
 }
 
 // DeleteHook delete a hook of a repository

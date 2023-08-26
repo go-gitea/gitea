@@ -6,9 +6,11 @@ package user
 import (
 	"net/http"
 
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/v1/param"
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
@@ -32,10 +34,17 @@ func ListHooks(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/HookList"
 
-	webhook_service.ListOwnerHooks(
+	apiHooks, count, err := webhook_service.ListOwnerHooks(
 		ctx,
+		param.GetListOptions(ctx),
 		ctx.Doer,
 	)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	ctx.SetTotalCountHeader(count)
+	ctx.JSON(http.StatusOK, apiHooks)
 }
 
 // GetHook get the authenticated user's hook by id
@@ -56,8 +65,13 @@ func GetHook(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Hook"
 
-	hook, err := webhook_service.GetOwnerHook(ctx, ctx.Doer.ID, ctx.ParamsInt64("id"))
+	hook, err := webhook_service.GetOwnerHook(ctx.Doer.ID, ctx.ParamsInt64("id"))
 	if err != nil {
+		if webhook_model.IsErrWebhookNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetOwnerHook", err)
+		}
 		return
 	}
 
@@ -88,11 +102,17 @@ func CreateHook(ctx *context.APIContext) {
 	//   "201":
 	//     "$ref": "#/responses/Hook"
 
-	webhook_service.AddOwnerHook(
+	webhook, status, logTitle, err := webhook_service.AddOwnerHook(
 		ctx,
 		ctx.Doer,
 		web.GetForm(ctx).(*api.CreateHookOption),
 	)
+	if err != nil {
+		ctx.Error(status, logTitle, err)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, webhook)
 }
 
 // EditHook modify a hook of the authenticated user
@@ -145,9 +165,18 @@ func DeleteHook(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	webhook_service.DeleteOwnerHook(
-		ctx,
-		ctx.Doer,
+	err := webhook_model.DeleteWebhookByOwnerID(
+		ctx.Doer.ID,
 		ctx.ParamsInt64("id"),
 	)
+	if err != nil {
+		if webhook_model.IsErrWebhookNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(http.StatusInternalServerError, "DeleteWebhookByOwnerID", err)
+		}
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
 }

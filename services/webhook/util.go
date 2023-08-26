@@ -4,151 +4,124 @@
 package webhook
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	webhook_model "code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
-	"code.gitea.io/gitea/routers/api/v1/param"
 )
 
 // ListOwnerHooks lists the webhooks of the provided owner
-func ListOwnerHooks(ctx *context.APIContext, owner *user_model.User) {
+func ListOwnerHooks(ctx context.Context, listOptions db.ListOptions, owner *user_model.User) ([]*api.Hook, int64, error) {
 	opts := &webhook_model.ListWebhookOptions{
-		ListOptions: param.GetListOptions(ctx),
+		ListOptions: listOptions,
 		OwnerID:     owner.ID,
 	}
 
 	count, err := webhook_model.CountWebhooksByOpts(opts)
 	if err != nil {
-		ctx.InternalServerError(err)
-		return
+		return nil, 0, err
 	}
 
 	hooks, err := webhook_model.ListWebhooksByOpts(ctx, opts)
 	if err != nil {
-		ctx.InternalServerError(err)
-		return
+		return nil, 0, err
 	}
 
 	apiHooks := make([]*api.Hook, len(hooks))
 	for i, hook := range hooks {
 		apiHooks[i], err = ToHook(owner.HomeLink(), hook)
 		if err != nil {
-			ctx.InternalServerError(err)
-			return
+			return nil, 0, err
 		}
 	}
 
-	ctx.SetTotalCountHeader(count)
-	ctx.JSON(http.StatusOK, apiHooks)
+	return apiHooks, count, nil
 }
 
-// GetOwnerHook gets an user or organization webhook. Errors are written to ctx.
-func GetOwnerHook(ctx *context.APIContext, ownerID, hookID int64) (*webhook_model.Webhook, error) {
-	w, err := webhook_model.GetWebhookByOwnerID(ownerID, hookID)
+// GetOwnerHook gets an user or organization webhook.
+func GetOwnerHook(ownerID, hookID int64) (*webhook_model.Webhook, error) {
+	webhook, err := webhook_model.GetWebhookByOwnerID(ownerID, hookID)
 	if err != nil {
-		if webhook_model.IsErrWebhookNotExist(err) {
-			ctx.NotFound()
-		} else {
-			ctx.Error(http.StatusInternalServerError, "GetWebhookByOwnerID", err)
-		}
 		return nil, err
 	}
-	return w, nil
+	return webhook, nil
 }
 
-// GetRepoHook get a repo's webhook. If there is an error, write to `ctx`
-// accordingly and return the error
-func GetRepoHook(ctx *context.APIContext, repoID, hookID int64) (*webhook_model.Webhook, error) {
-	w, err := webhook_model.GetWebhookByRepoID(repoID, hookID)
+// GetRepoHook get a repo's webhook.
+func GetRepoHook(repoID, hookID int64) (*webhook_model.Webhook, error) {
+	webhook, err := webhook_model.GetWebhookByRepoID(repoID, hookID)
 	if err != nil {
-		if webhook_model.IsErrWebhookNotExist(err) {
-			ctx.NotFound()
-		} else {
-			ctx.Error(http.StatusInternalServerError, "GetWebhookByID", err)
-		}
 		return nil, err
 	}
-	return w, nil
+	return webhook, nil
 }
 
-// checkCreateHookOption check if a CreateHookOption form is valid. If invalid,
-// write the appropriate error to `ctx`. Return whether the form is valid
-func checkCreateHookOption(ctx *context.APIContext, form *api.CreateHookOption) bool {
+// checkCreateHookOption check if a CreateHookOption form is valid.
+func checkCreateHookOption(form *api.CreateHookOption) error {
 	if !IsValidHookTaskType(form.Type) {
-		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("Invalid hook type: %s", form.Type))
-		return false
+		return fmt.Errorf("invalid hook type: %s", form.Type)
 	}
 	for _, name := range []string{"url", "content_type"} {
 		if _, ok := form.Config[name]; !ok {
-			ctx.Error(http.StatusUnprocessableEntity, "", "Missing config option: "+name)
-			return false
+			return fmt.Errorf("missing config option: %s", name)
 		}
 	}
 	if !webhook_model.IsValidHookContentType(form.Config["content_type"]) {
-		ctx.Error(http.StatusUnprocessableEntity, "", "Invalid content type")
-		return false
+		return fmt.Errorf("invalid content type: %s", form.Config["content_type"])
 	}
-	return true
+	return nil
 }
 
 // AddSystemHook add a system hook
-func AddSystemHook(ctx *context.APIContext, form *api.CreateHookOption) {
-	hook, ok := addHook(ctx, form, 0, 0)
-	if ok {
-		h, err := ToHook(setting.AppSubURL+"/admin", hook)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "convert.ToHook", err)
-			return
-		}
-		ctx.JSON(http.StatusCreated, h)
+func AddSystemHook(ctx context.Context, form *api.CreateHookOption) (apiHook *api.Hook, httpStatus int, logTitle string, err error) {
+	hook, httpStatus, logTitle, err := addHook(ctx, form, 0, 0)
+	if err != nil {
+		return nil, httpStatus, logTitle, err
 	}
+
+	apiHook, err = ToHook(setting.AppSubURL+"/admin", hook)
+	if err != nil {
+		return nil, http.StatusInternalServerError, "ToHook", err
+	}
+	return apiHook, http.StatusCreated, "", nil
 }
 
 // AddOwnerHook adds a hook to an user or organization
-func AddOwnerHook(ctx *context.APIContext, owner *user_model.User, form *api.CreateHookOption) {
-	hook, ok := addHook(ctx, form, owner.ID, 0)
-	if !ok {
-		return
-	}
-	apiHook, ok := toAPIHook(ctx, owner.HomeLink(), hook)
-	if !ok {
-		return
-	}
-	ctx.JSON(http.StatusCreated, apiHook)
-}
-
-// AddRepoHook add a hook to a repo. Writes to `ctx` accordingly
-func AddRepoHook(ctx *context.APIContext, form *api.CreateHookOption) {
-	repo := ctx.Repo
-	hook, ok := addHook(ctx, form, 0, repo.Repository.ID)
-	if !ok {
-		return
-	}
-	apiHook, ok := toAPIHook(ctx, repo.RepoLink, hook)
-	if !ok {
-		return
-	}
-	ctx.JSON(http.StatusCreated, apiHook)
-}
-
-// toAPIHook converts the hook to its API representation.
-// If there is an error, write to `ctx` accordingly. Return (hook, ok)
-func toAPIHook(ctx *context.APIContext, repoLink string, hook *webhook_model.Webhook) (*api.Hook, bool) {
-	apiHook, err := ToHook(repoLink, hook)
+func AddOwnerHook(ctx context.Context, owner *user_model.User, form *api.CreateHookOption) (apiHook *api.Hook, httpStatus int, logTitle string, err error) {
+	hook, httpStatus, logTitle, err := addHook(ctx, form, owner.ID, 0)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ToHook", err)
-		return nil, false
+		return nil, httpStatus, logTitle, err
 	}
-	return apiHook, true
+
+	apiHook, err = ToHook(owner.HomeLink(), hook)
+	if err != nil {
+		return nil, http.StatusInternalServerError, "ToHook", err
+	}
+	return apiHook, http.StatusCreated, "", nil
+}
+
+// AddRepoHook add a hook to a repo.
+func AddRepoHook(ctx context.Context, repoID int64, repoLink string, form *api.CreateHookOption) (apiHook *api.Hook, httpStatus int, logTitle string, err error) {
+	hook, httpStatus, logTitle, err := addHook(ctx, form, 0, repoID)
+	if err != nil {
+		return nil, httpStatus, logTitle, err
+	}
+
+	apiHook, err = ToHook(repoLink, hook)
+	if err != nil {
+		return nil, http.StatusInternalServerError, "ToHook", err
+	}
+	return apiHook, http.StatusCreated, "", nil
 }
 
 func issuesHook(events []string, event string) bool {
@@ -159,11 +132,10 @@ func pullHook(events []string, event string) bool {
 	return util.SliceContainsString(events, event, true) || util.SliceContainsString(events, string(webhook_module.HookEventPullRequest), true)
 }
 
-// addHook add the hook specified by `form`, `ownerID` and `repoID`. If there is
-// an error, write to `ctx` accordingly. Return (webhook, ok)
-func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoID int64) (*webhook_model.Webhook, bool) {
-	if !checkCreateHookOption(ctx, form) {
-		return nil, false
+// addHook add the hook specified by `form`, `ownerID` and `repoID`.
+func addHook(ctx context.Context, form *api.CreateHookOption, ownerID, repoID int64) (hook *webhook_model.Webhook, httpStatus int, logTitle string, err error) {
+	if err = checkCreateHookOption(form); err != nil {
+		return nil, http.StatusUnprocessableEntity, "", err
 	}
 
 	if len(form.Events) == 0 {
@@ -205,22 +177,19 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 		IsActive: form.Active,
 		Type:     form.Type,
 	}
-	err := w.SetHeaderAuthorization(form.AuthorizationHeader)
+	err = w.SetHeaderAuthorization(form.AuthorizationHeader)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "SetHeaderAuthorization", err)
-		return nil, false
+		return nil, http.StatusInternalServerError, "SetHeaderAuthorization", err
 	}
 	if w.Type == webhook_module.SLACK {
 		channel, ok := form.Config["channel"]
 		if !ok {
-			ctx.Error(http.StatusUnprocessableEntity, "", "Missing config option: channel")
-			return nil, false
+			return nil, http.StatusUnprocessableEntity, "", errors.New("missing config option: channel")
 		}
 		channel = strings.TrimSpace(channel)
 
 		if !IsValidSlackChannel(channel) {
-			ctx.Error(http.StatusBadRequest, "", "Invalid slack channel name")
-			return nil, false
+			return nil, http.StatusBadRequest, "", errors.New("invalid slack channel name")
 		}
 
 		meta, err := json.Marshal(&SlackMeta{
@@ -230,98 +199,91 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 			Color:    form.Config["color"],
 		})
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "slack: JSON marshal failed", err)
-			return nil, false
+			return nil, http.StatusInternalServerError, "slack: JSON marshal failed", err
 		}
 		w.Meta = string(meta)
 	}
 
 	if err := w.UpdateEvent(); err != nil {
-		ctx.Error(http.StatusInternalServerError, "UpdateEvent", err)
-		return nil, false
+		return nil, http.StatusInternalServerError, "UpdateEvent", err
 	} else if err := webhook_model.CreateWebhook(ctx, w); err != nil {
-		ctx.Error(http.StatusInternalServerError, "CreateWebhook", err)
-		return nil, false
+		return nil, http.StatusInternalServerError, "CreateWebhook", err
 	}
-	return w, true
+	return w, http.StatusOK, "", nil
 }
 
-// EditSystemHook edit system webhook `w` according to `form`. Writes to `ctx` accordingly
-func EditSystemHook(ctx *context.APIContext, form *api.EditHookOption, hookID int64) {
+// EditSystemHook edit system webhook according to `form`.
+func EditSystemHook(ctx context.Context, form *api.EditHookOption, hookID int64) (apiHook *api.Hook, httpStatus int, logTitle string, err error) {
 	hook, err := webhook_model.GetSystemOrDefaultWebhook(ctx, hookID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetSystemOrDefaultWebhook", err)
-		return
+		return nil, http.StatusInternalServerError, "GetSystemOrDefaultWebhook", err
 	}
-	if !editHook(ctx, form, hook) {
-		ctx.Error(http.StatusInternalServerError, "editHook", err)
-		return
+	httpStatus, logTitle, err = editHook(form, hook)
+	if err != nil {
+		return nil, httpStatus, logTitle, err
 	}
 	updated, err := webhook_model.GetSystemOrDefaultWebhook(ctx, hookID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetSystemOrDefaultWebhook", err)
-		return
+		return nil, http.StatusInternalServerError, "GetSystemOrDefaultWebhook", err
 	}
-	h, err := ToHook(setting.AppURL+"/admin", updated)
+	apiHook, err = ToHook(setting.AppURL+"/admin", updated)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "convert.ToHook", err)
-		return
+		return nil, http.StatusInternalServerError, "ToHook", err
 	}
-	ctx.JSON(http.StatusOK, h)
+	return apiHook, http.StatusOK, "", nil
 }
 
 // EditOwnerHook updates a webhook of an user or organization
-func EditOwnerHook(ctx *context.APIContext, owner *user_model.User, form *api.EditHookOption, hookID int64) {
-	hook, err := GetOwnerHook(ctx, owner.ID, hookID)
+func EditOwnerHook(ctx context.Context, owner *user_model.User, form *api.EditHookOption, hookID int64) (apiHook *api.Hook, httpStatus int, logTitle string, err error) {
+	hook, err := GetOwnerHook(owner.ID, hookID)
+	if err != nil {
+		return nil, http.StatusInternalServerError, "GetOwnerHook", err
+	}
+	httpStatus, logTitle, err = editHook(form, hook)
+	if err != nil {
+		return nil, httpStatus, logTitle, err
+	}
+	updated, err := GetOwnerHook(owner.ID, hookID)
 	if err != nil {
 		return
 	}
-	if !editHook(ctx, form, hook) {
-		return
-	}
-	updated, err := GetOwnerHook(ctx, owner.ID, hookID)
+	apiHook, err = ToHook(owner.HomeLink(), updated)
 	if err != nil {
-		return
+		return nil, http.StatusInternalServerError, "ToHook", err
 	}
-	apiHook, ok := toAPIHook(ctx, owner.HomeLink(), updated)
-	if !ok {
-		return
-	}
-	ctx.JSON(http.StatusOK, apiHook)
+	return apiHook, http.StatusOK, "", nil
 }
 
 // EditRepoHook edit webhook `w` according to `form`. Writes to `ctx` accordingly
-func EditRepoHook(ctx *context.APIContext, form *api.EditHookOption, hookID int64) {
-	repo := ctx.Repo
-	hook, err := GetRepoHook(ctx, repo.Repository.ID, hookID)
+func EditRepoHook(ctx context.Context, form *api.EditHookOption, repoID int64, repoLink string, hookID int64) (apiHook *api.Hook, httpStatus int, logTitle string, err error) {
+	hook, err := GetRepoHook(repoID, hookID)
 	if err != nil {
 		return
 	}
-	if !editHook(ctx, form, hook) {
-		return
+	httpStatus, logTitle, err = editHook(form, hook)
+	if err != nil {
+		return nil, httpStatus, logTitle, err
 	}
-	updated, err := GetRepoHook(ctx, repo.Repository.ID, hookID)
+	updated, err := GetRepoHook(repoID, hookID)
 	if err != nil {
 		return
 	}
-	apiHook, ok := toAPIHook(ctx, repo.RepoLink, updated)
-	if !ok {
-		return
+	apiHook, err = ToHook(repoLink, updated)
+	if err != nil {
+		return nil, http.StatusInternalServerError, "ToHook", err
 	}
-	ctx.JSON(http.StatusOK, apiHook)
+	return apiHook, http.StatusOK, "", nil
 }
 
-// editHook edit the webhook `w` according to `form`. If an error occurs, write
-// to `ctx` accordingly and return the error. Return whether successful
-func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook_model.Webhook) bool {
+// editHook edit the webhook `w` according to `form`.
+func editHook(form *api.EditHookOption, w *webhook_model.Webhook) (httpStatus int, logTitle string, err error) {
 	if form.Config != nil {
 		if url, ok := form.Config["url"]; ok {
 			w.URL = url
 		}
 		if ct, ok := form.Config["content_type"]; ok {
 			if !webhook_model.IsValidHookContentType(ct) {
-				ctx.Error(http.StatusUnprocessableEntity, "", "Invalid content type")
-				return false
+				return http.StatusUnprocessableEntity, "", errors.New("invalid content type")
 			}
 			w.ContentType = webhook_model.ToHookContentType(ct)
 		}
@@ -335,8 +297,7 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook_mode
 					Color:    form.Config["color"],
 				})
 				if err != nil {
-					ctx.Error(http.StatusInternalServerError, "slack: JSON marshal failed", err)
-					return false
+					return http.StatusInternalServerError, "slack: JSON marshal failed", err
 				}
 				w.Meta = string(meta)
 			}
@@ -360,10 +321,9 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook_mode
 	w.Release = util.SliceContainsString(form.Events, string(webhook_module.HookEventRelease), true)
 	w.BranchFilter = form.BranchFilter
 
-	err := w.SetHeaderAuthorization(form.AuthorizationHeader)
+	err = w.SetHeaderAuthorization(form.AuthorizationHeader)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "SetHeaderAuthorization", err)
-		return false
+		return http.StatusInternalServerError, "SetHeaderAuthorization", err
 	}
 
 	// Issues
@@ -384,8 +344,7 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook_mode
 	w.PullRequestSync = pullHook(form.Events, string(webhook_module.HookEventPullRequestSync))
 
 	if err := w.UpdateEvent(); err != nil {
-		ctx.Error(http.StatusInternalServerError, "UpdateEvent", err)
-		return false
+		return http.StatusInternalServerError, "UpdateEvent", err
 	}
 
 	if form.Active != nil {
@@ -393,21 +352,7 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook_mode
 	}
 
 	if err := webhook_model.UpdateWebhook(w); err != nil {
-		ctx.Error(http.StatusInternalServerError, "UpdateWebhook", err)
-		return false
+		return http.StatusInternalServerError, "UpdateWebhook", err
 	}
-	return true
-}
-
-// DeleteOwnerHook deletes the hook owned by the owner.
-func DeleteOwnerHook(ctx *context.APIContext, owner *user_model.User, hookID int64) {
-	if err := webhook_model.DeleteWebhookByOwnerID(owner.ID, hookID); err != nil {
-		if webhook_model.IsErrWebhookNotExist(err) {
-			ctx.NotFound()
-		} else {
-			ctx.Error(http.StatusInternalServerError, "DeleteWebhookByOwnerID", err)
-		}
-		return
-	}
-	ctx.Status(http.StatusNoContent)
+	return http.StatusOK, "", nil
 }

@@ -6,9 +6,11 @@ package org
 import (
 	"net/http"
 
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/v1/param"
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
@@ -39,6 +41,7 @@ func ListHooks(ctx *context.APIContext) {
 
 	webhook_service.ListOwnerHooks(
 		ctx,
+		param.GetListOptions(ctx),
 		ctx.ContextUser,
 	)
 }
@@ -66,7 +69,7 @@ func GetHook(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Hook"
 
-	hook, err := webhook_service.GetOwnerHook(ctx, ctx.ContextUser.ID, ctx.ParamsInt64("id"))
+	hook, err := webhook_service.GetOwnerHook(ctx.ContextUser.ID, ctx.ParamsInt64("id"))
 	if err != nil {
 		return
 	}
@@ -139,12 +142,18 @@ func EditHook(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Hook"
 
-	webhook_service.EditOwnerHook(
+	webhook, status, logTitle, err := webhook_service.EditOwnerHook(
 		ctx,
 		ctx.ContextUser,
 		web.GetForm(ctx).(*api.EditHookOption),
 		ctx.ParamsInt64("id"),
 	)
+	if err != nil {
+		ctx.Error(status, logTitle, err)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, webhook)
 }
 
 // DeleteHook delete a hook of an organization
@@ -170,9 +179,19 @@ func DeleteHook(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	webhook_service.DeleteOwnerHook(
-		ctx,
-		ctx.ContextUser,
-		ctx.ParamsInt64("id"),
+	hookID := ctx.ParamsInt64("id")
+	err := webhook_model.DeleteWebhookByOwnerID(
+		ctx.ContextUser.ID,
+		hookID,
 	)
+	if err != nil {
+		if webhook_model.IsErrWebhookNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(http.StatusInternalServerError, "DeleteWebhookByOwnerID", err)
+		}
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
 }
