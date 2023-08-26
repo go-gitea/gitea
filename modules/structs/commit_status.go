@@ -25,6 +25,10 @@ var commitStatusPriorities = map[CommitStatusState]int{
 	CommitStatusSuccess: 3,
 }
 
+func (css CommitStatusState) String() string {
+	return string(css)
+}
+
 // NoBetterThan returns true if this State is no better than the given State
 // This function only handles the states defined in CommitStatusPriorities
 func (css CommitStatusState) NoBetterThan(css2 CommitStatusState) bool {

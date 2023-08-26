@@ -53,7 +53,6 @@ func NewFuncMap() template.FuncMap {
 		// -----------------------------------------------------------------
 		// svg / avatar / icon
 		"svg":           svg.RenderHTML,
-		"avatarHTML":    AvatarHTML,
 		"EntryIcon":     base.EntryIcon,
 		"MigrationIcon": MigrationIcon,
 		"ActionIcon":    ActionIcon,
