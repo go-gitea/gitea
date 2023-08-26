@@ -48,7 +48,7 @@ func apiError(ctx *context.Context, status int, obj any) {
 
 // https://rust-lang.github.io/rfcs/2789-sparse-index.html
 func RepositoryConfig(ctx *context.Context) {
-	ctx.JSON(http.StatusOK, cargo_service.BuildConfig(ctx.Package.Owner, ctx.Data["IsApiToken"] == true))
+	ctx.JSON(http.StatusOK, cargo_service.BuildConfig(ctx.Package.Owner, ctx.Package.Descriptor.Repository.IsPrivate))
 }
 
 func EnumeratePackageVersions(ctx *context.Context) {
