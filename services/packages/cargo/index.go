@@ -220,15 +220,15 @@ func getOrCreateIndexRepository(ctx context.Context, doer, owner *user_model.Use
 }
 
 type Config struct {
-	DownloadURL string `json:"dl"`
-	APIURL      string `json:"api"`
-	AuthRequired bool `json:"auth-required"`
+	DownloadURL  string `json:"dl"`
+	APIURL       string `json:"api"`
+	AuthRequired bool   `json:"auth-required"`
 }
 
 func BuildConfig(owner *user_model.User, isPrivate bool) *Config {
 	return &Config{
-		DownloadURL: setting.AppURL + "api/packages/" + owner.Name + "/cargo/api/v1/crates",
-		APIURL:      setting.AppURL + "api/packages/" + owner.Name + "/cargo",
+		DownloadURL:  setting.AppURL + "api/packages/" + owner.Name + "/cargo/api/v1/crates",
+		APIURL:       setting.AppURL + "api/packages/" + owner.Name + "/cargo",
 		AuthRequired: isPrivate,
 	}
 }
