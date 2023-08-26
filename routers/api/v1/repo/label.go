@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/label"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
-	api_service "code.gitea.io/gitea/services/api"
+	"code.gitea.io/gitea/routers/api/v1/param"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -47,7 +47,7 @@ func ListLabels(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/LabelList"
 
-	labels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormString("sort"), api_service.GetListOptions(ctx))
+	labels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormString("sort"), param.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetLabelsByRepoID", err)
 		return

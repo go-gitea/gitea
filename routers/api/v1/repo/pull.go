@@ -29,7 +29,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
-	api_service "code.gitea.io/gitea/services/api"
+	"code.gitea.io/gitea/routers/api/v1/param"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/convert"
@@ -93,7 +93,7 @@ func ListPullRequests(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/PullRequestList"
 
-	listOptions := api_service.GetListOptions(ctx)
+	listOptions := param.GetListOptions(ctx)
 
 	prs, maxResults, err := issues_model.PullRequests(ctx.Repo.Repository.ID, &issues_model.PullRequestsOptions{
 		ListOptions: listOptions,
@@ -1303,7 +1303,7 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	}
 	commits := prInfo.Commits
 
-	listOptions := api_service.GetListOptions(ctx)
+	listOptions := param.GetListOptions(ctx)
 
 	totalNumberOfCommits := len(commits)
 	totalNumberOfPages := int(math.Ceil(float64(totalNumberOfCommits) / float64(listOptions.PageSize)))
@@ -1445,7 +1445,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 		return
 	}
 
-	listOptions := api_service.GetListOptions(ctx)
+	listOptions := param.GetListOptions(ctx)
 
 	totalNumberOfFiles := diff.NumFiles
 	totalNumberOfPages := int(math.Ceil(float64(totalNumberOfFiles) / float64(listOptions.PageSize)))

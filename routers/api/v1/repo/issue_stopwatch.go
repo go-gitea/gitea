@@ -9,7 +9,7 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/context"
-	api_service "code.gitea.io/gitea/services/api"
+	"code.gitea.io/gitea/routers/api/v1/param"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -218,7 +218,7 @@ func GetStopwatches(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/StopWatchList"
 
-	sws, err := issues_model.GetUserStopwatches(ctx.Doer.ID, api_service.GetListOptions(ctx))
+	sws, err := issues_model.GetUserStopwatches(ctx.Doer.ID, param.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserStopwatches", err)
 		return

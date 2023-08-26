@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
-	api_service "code.gitea.io/gitea/services/api"
+	"code.gitea.io/gitea/routers/api/v1/param"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -284,7 +284,7 @@ func GetIssueReactions(ctx *context.APIContext) {
 		return
 	}
 
-	reactions, count, err := issues_model.FindIssueReactions(issue.ID, api_service.GetListOptions(ctx))
+	reactions, count, err := issues_model.FindIssueReactions(issue.ID, param.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindIssueReactions", err)
 		return

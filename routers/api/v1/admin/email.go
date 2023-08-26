@@ -9,7 +9,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
-	api_service "code.gitea.io/gitea/services/api"
+	"code.gitea.io/gitea/routers/api/v1/param"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -35,7 +35,7 @@ func GetAllEmails(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	listOptions := api_service.GetListOptions(ctx)
+	listOptions := param.GetListOptions(ctx)
 
 	emails, maxResults, err := user_model.SearchEmails(&user_model.SearchEmailOptions{
 		Keyword:     ctx.Params(":email"),

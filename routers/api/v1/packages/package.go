@@ -10,7 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	api_service "code.gitea.io/gitea/services/api"
+	"code.gitea.io/gitea/routers/api/v1/param"
 	"code.gitea.io/gitea/services/convert"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
@@ -49,7 +49,7 @@ func ListPackages(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/PackageList"
 
-	listOptions := api_service.GetListOptions(ctx)
+	listOptions := param.GetListOptions(ctx)
 
 	packageType := ctx.FormTrim("type")
 	query := ctx.FormTrim("q")

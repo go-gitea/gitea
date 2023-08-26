@@ -13,7 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
-	api_service "code.gitea.io/gitea/services/api"
+	"code.gitea.io/gitea/routers/api/v1/param"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -61,7 +61,7 @@ func GetWatchedRepos(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepositoryList"
 
 	private := ctx.ContextUser.ID == ctx.Doer.ID
-	repos, total, err := getWatchedRepos(ctx, ctx.ContextUser, private, api_service.GetListOptions(ctx))
+	repos, total, err := getWatchedRepos(ctx, ctx.ContextUser, private, param.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "getWatchedRepos", err)
 	}
@@ -90,7 +90,7 @@ func GetMyWatchedRepos(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	repos, total, err := getWatchedRepos(ctx, ctx.Doer, true, api_service.GetListOptions(ctx))
+	repos, total, err := getWatchedRepos(ctx, ctx.Doer, true, param.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "getWatchedRepos", err)
 	}

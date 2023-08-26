@@ -14,7 +14,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
-	api_service "code.gitea.io/gitea/services/api"
+	"code.gitea.io/gitea/routers/api/v1/param"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -57,7 +57,7 @@ func ListMilestones(ctx *context.APIContext) {
 	//     "$ref": "#/responses/MilestoneList"
 
 	milestones, total, err := issues_model.GetMilestones(issues_model.GetMilestonesOption{
-		ListOptions: api_service.GetListOptions(ctx),
+		ListOptions: param.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
 		State:       api.StateType(ctx.FormString("state")),
 		Name:        ctx.FormString("name"),

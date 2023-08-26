@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
-	api_service "code.gitea.io/gitea/services/api"
+	"code.gitea.io/gitea/routers/api/v1/param"
 	"code.gitea.io/gitea/services/convert"
 	git_service "code.gitea.io/gitea/services/git"
 	files_service "code.gitea.io/gitea/services/repository/files"
@@ -194,7 +194,7 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 	repo := ctx.Repo.Repository
 	sha = git_service.MustConvertToSHA1(ctx.Base, repo, sha)
 
-	listOptions := api_service.GetListOptions(ctx)
+	listOptions := param.GetListOptions(ctx)
 
 	statuses, maxResults, err := git_model.GetCommitStatuses(ctx, repo, sha, &git_model.CommitStatusOptions{
 		ListOptions: listOptions,
@@ -268,7 +268,7 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 
 	repo := ctx.Repo.Repository
 
-	statuses, count, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, api_service.GetListOptions(ctx))
+	statuses, count, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, param.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetLatestCommitStatus", fmt.Errorf("GetLatestCommitStatus[%s, %s]: %w", repo.FullName(), sha, err))
 		return

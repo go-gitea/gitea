@@ -10,7 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	api_service "code.gitea.io/gitea/services/api"
+	"code.gitea.io/gitea/routers/api/v1/param"
 	"code.gitea.io/gitea/services/cron"
 )
 
@@ -38,7 +38,7 @@ func ListCronTasks(ctx *context.APIContext) {
 	tasks := cron.ListTasks()
 	count := len(tasks)
 
-	listOpts := api_service.GetListOptions(ctx)
+	listOpts := param.GetListOptions(ctx)
 	tasks = util.PaginateSlice(tasks, listOpts.Page, listOpts.PageSize).(cron.TaskTable)
 
 	res := make([]structs.Cron, len(tasks))

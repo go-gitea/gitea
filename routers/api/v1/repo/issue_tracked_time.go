@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
-	api_service "code.gitea.io/gitea/services/api"
+	"code.gitea.io/gitea/routers/api/v1/param"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -86,7 +86,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	}
 
 	opts := &issues_model.FindTrackedTimesOptions{
-		ListOptions:  api_service.GetListOptions(ctx),
+		ListOptions:  param.GetListOptions(ctx),
 		RepositoryID: ctx.Repo.Repository.ID,
 		IssueID:      issue.ID,
 	}
@@ -504,7 +504,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	}
 
 	opts := &issues_model.FindTrackedTimesOptions{
-		ListOptions:  api_service.GetListOptions(ctx),
+		ListOptions:  param.GetListOptions(ctx),
 		RepositoryID: ctx.Repo.Repository.ID,
 	}
 
@@ -591,7 +591,7 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 	//     "$ref": "#/responses/TrackedTimeList"
 
 	opts := &issues_model.FindTrackedTimesOptions{
-		ListOptions: api_service.GetListOptions(ctx),
+		ListOptions: param.GetListOptions(ctx),
 		UserID:      ctx.Doer.ID,
 	}
 

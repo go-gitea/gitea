@@ -28,7 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
-	api_service "code.gitea.io/gitea/services/api"
+	"code.gitea.io/gitea/routers/api/v1/param"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/issue"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -125,7 +125,7 @@ func Search(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	opts := &repo_model.SearchRepoOptions{
-		ListOptions:        api_service.GetListOptions(ctx),
+		ListOptions:        param.GetListOptions(ctx),
 		Actor:              ctx.Doer,
 		Keyword:            ctx.FormTrim("q"),
 		OwnerID:            ctx.FormInt64("uid"),
@@ -1245,7 +1245,7 @@ func ListRepoActivityFeeds(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	listOptions := api_service.GetListOptions(ctx)
+	listOptions := param.GetListOptions(ctx)
 
 	opts := activities_model.GetFeedsOptions{
 		RequestedRepo:  ctx.Repo.Repository,

@@ -17,7 +17,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
-	api_service "code.gitea.io/gitea/services/api"
+	"code.gitea.io/gitea/routers/api/v1/param"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -57,7 +57,7 @@ func ListCollaborators(ctx *context.APIContext) {
 		return
 	}
 
-	collaborators, err := repo_model.GetCollaborators(ctx, ctx.Repo.Repository.ID, api_service.GetListOptions(ctx))
+	collaborators, err := repo_model.GetCollaborators(ctx, ctx.Repo.Repository.ID, param.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListCollaborators", err)
 		return

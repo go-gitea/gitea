@@ -9,7 +9,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
-	api_service "code.gitea.io/gitea/services/api"
+	"code.gitea.io/gitea/routers/api/v1/param"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -43,7 +43,7 @@ func ListSubscribers(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/UserList"
 
-	subscribers, err := repo_model.GetRepoWatchers(ctx.Repo.Repository.ID, api_service.GetListOptions(ctx))
+	subscribers, err := repo_model.GetRepoWatchers(ctx.Repo.Repository.ID, param.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetRepoWatchers", err)
 		return

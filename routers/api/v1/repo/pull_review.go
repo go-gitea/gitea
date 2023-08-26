@@ -16,7 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
-	api_service "code.gitea.io/gitea/services/api"
+	"code.gitea.io/gitea/routers/api/v1/param"
 	"code.gitea.io/gitea/services/convert"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -81,7 +81,7 @@ func ListPullReviews(ctx *context.APIContext) {
 	}
 
 	opts := issues_model.FindReviewOptions{
-		ListOptions: api_service.GetListOptions(ctx),
+		ListOptions: param.GetListOptions(ctx),
 		Type:        issues_model.ReviewTypeUnknown,
 		IssueID:     pr.IssueID,
 	}

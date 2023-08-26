@@ -10,7 +10,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
-	api_service "code.gitea.io/gitea/services/api"
+	"code.gitea.io/gitea/routers/api/v1/param"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -23,7 +23,7 @@ func responseAPIUsers(ctx *context.APIContext, users []*user_model.User) {
 }
 
 func listUserFollowers(ctx *context.APIContext, u *user_model.User) {
-	users, count, err := user_model.GetUserFollowers(ctx, u, ctx.Doer, api_service.GetListOptions(ctx))
+	users, count, err := user_model.GetUserFollowers(ctx, u, ctx.Doer, param.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserFollowers", err)
 		return
@@ -85,7 +85,7 @@ func ListFollowers(ctx *context.APIContext) {
 }
 
 func listUserFollowing(ctx *context.APIContext, u *user_model.User) {
-	users, count, err := user_model.GetUserFollowing(ctx, u, ctx.Doer, api_service.GetListOptions(ctx))
+	users, count, err := user_model.GetUserFollowing(ctx, u, ctx.Doer, param.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserFollowing", err)
 		return

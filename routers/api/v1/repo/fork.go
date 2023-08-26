@@ -18,7 +18,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
-	api_service "code.gitea.io/gitea/services/api"
+	"code.gitea.io/gitea/routers/api/v1/param"
 	"code.gitea.io/gitea/services/convert"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -53,7 +53,7 @@ func ListForks(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	forks, err := repo_model.GetForks(ctx.Repo.Repository, api_service.GetListOptions(ctx))
+	forks, err := repo_model.GetForks(ctx.Repo.Repository, param.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetForks", err)
 		return

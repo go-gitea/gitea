@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
-	api_service "code.gitea.io/gitea/services/api"
+	"code.gitea.io/gitea/routers/api/v1/param"
 	"code.gitea.io/gitea/services/convert"
 	release_service "code.gitea.io/gitea/services/release"
 )
@@ -150,7 +150,7 @@ func ListReleases(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ReleaseList"
-	listOptions := api_service.GetListOptions(ctx)
+	listOptions := param.GetListOptions(ctx)
 	if listOptions.PageSize == 0 && ctx.FormInt("per_page") != 0 {
 		listOptions.PageSize = ctx.FormInt("per_page")
 	}

@@ -13,13 +13,13 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
-	api_service "code.gitea.io/gitea/services/api"
+	"code.gitea.io/gitea/routers/api/v1/param"
 	"code.gitea.io/gitea/services/convert"
 )
 
 // listUserRepos - List the repositories owned by the given user.
 func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
-	opts := api_service.GetListOptions(ctx)
+	opts := param.GetListOptions(ctx)
 
 	repos, count, err := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
 		Actor:       u,
@@ -104,7 +104,7 @@ func ListMyRepos(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepositoryList"
 
 	opts := &repo_model.SearchRepoOptions{
-		ListOptions:        api_service.GetListOptions(ctx),
+		ListOptions:        param.GetListOptions(ctx),
 		Actor:              ctx.Doer,
 		OwnerID:            ctx.Doer.ID,
 		Private:            ctx.IsSigned,

@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
-	api_service "code.gitea.io/gitea/services/api"
+	"code.gitea.io/gitea/routers/api/v1/param"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -44,7 +44,7 @@ func ListAccessTokens(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/AccessTokenList"
 
-	opts := auth_model.ListAccessTokensOptions{UserID: ctx.Doer.ID, ListOptions: api_service.GetListOptions(ctx)}
+	opts := auth_model.ListAccessTokensOptions{UserID: ctx.Doer.ID, ListOptions: param.GetListOptions(ctx)}
 
 	count, err := auth_model.CountAccessTokens(opts)
 	if err != nil {
@@ -260,7 +260,7 @@ func ListOauth2Applications(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/OAuth2ApplicationList"
 
-	apps, total, err := auth_model.ListOAuth2Applications(ctx.Doer.ID, api_service.GetListOptions(ctx))
+	apps, total, err := auth_model.ListOAuth2Applications(ctx.Doer.ID, param.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListOAuth2Applications", err)
 		return

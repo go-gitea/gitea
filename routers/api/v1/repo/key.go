@@ -19,7 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
-	api_service "code.gitea.io/gitea/services/api"
+	"code.gitea.io/gitea/routers/api/v1/param"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/convert"
 )
@@ -82,7 +82,7 @@ func ListDeployKeys(ctx *context.APIContext) {
 	//     "$ref": "#/responses/DeployKeyList"
 
 	opts := &asymkey_model.ListDeployKeysOptions{
-		ListOptions: api_service.GetListOptions(ctx),
+		ListOptions: param.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
 		KeyID:       ctx.FormInt64("key_id"),
 		Fingerprint: ctx.FormString("fingerprint"),

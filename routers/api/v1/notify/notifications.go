@@ -10,7 +10,7 @@ import (
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
-	api_service "code.gitea.io/gitea/services/api"
+	"code.gitea.io/gitea/routers/api/v1/param"
 )
 
 // NewAvailable check if unread notifications exist
@@ -31,7 +31,7 @@ func getFindNotificationOptions(ctx *context.APIContext) *activities_model.FindN
 		return nil
 	}
 	opts := &activities_model.FindNotificationOptions{
-		ListOptions:       api_service.GetListOptions(ctx),
+		ListOptions:       param.GetListOptions(ctx),
 		UserID:            ctx.Doer.ID,
 		UpdatedBeforeUnix: before,
 		UpdatedAfterUnix:  since,

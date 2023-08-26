@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
-	api_service "code.gitea.io/gitea/services/api"
+	"code.gitea.io/gitea/routers/api/v1/param"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -41,7 +41,7 @@ func ListUnadoptedRepositories(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	listOptions := api_service.GetListOptions(ctx)
+	listOptions := param.GetListOptions(ctx)
 	if listOptions.Page == 0 {
 		listOptions.Page = 1
 	}

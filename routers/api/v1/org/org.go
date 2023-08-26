@@ -15,14 +15,14 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/v1/param"
 	"code.gitea.io/gitea/routers/api/v1/user"
-	api_service "code.gitea.io/gitea/services/api"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/org"
 )
 
 func listUserOrgs(ctx *context.APIContext, u *user_model.User) {
-	listOptions := api_service.GetListOptions(ctx)
+	listOptions := param.GetListOptions(ctx)
 	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == u.ID)
 
 	opts := organization.FindOrgOptions{
@@ -197,7 +197,7 @@ func GetAll(ctx *context.APIContext) {
 		}
 	}
 
-	listOptions := api_service.GetListOptions(ctx)
+	listOptions := param.GetListOptions(ctx)
 
 	publicOrgs, maxResults, err := user_model.SearchUsers(&user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
@@ -428,7 +428,7 @@ func ListOrgActivityFeeds(ctx *context.APIContext) {
 		}
 	}
 
-	listOptions := api_service.GetListOptions(ctx)
+	listOptions := param.GetListOptions(ctx)
 
 	opts := activities_model.GetFeedsOptions{
 		RequestedUser:  ctx.ContextUser,

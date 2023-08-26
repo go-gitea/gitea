@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
-	api_service "code.gitea.io/gitea/services/api"
+	"code.gitea.io/gitea/routers/api/v1/param"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -64,7 +64,7 @@ func ListGPGKeys(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/GPGKeyList"
 
-	listGPGKeys(ctx, ctx.ContextUser.ID, api_service.GetListOptions(ctx))
+	listGPGKeys(ctx, ctx.ContextUser.ID, param.GetListOptions(ctx))
 }
 
 // ListMyGPGKeys get the GPG key list of the authenticated user
@@ -87,7 +87,7 @@ func ListMyGPGKeys(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/GPGKeyList"
 
-	listGPGKeys(ctx, ctx.Doer.ID, api_service.GetListOptions(ctx))
+	listGPGKeys(ctx, ctx.Doer.ID, param.GetListOptions(ctx))
 }
 
 // GetGPGKey get the GPG key based on a id

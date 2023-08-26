@@ -19,7 +19,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
-	api_service "code.gitea.io/gitea/services/api"
+	"code.gitea.io/gitea/routers/api/v1/param"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/migrations"
@@ -163,7 +163,7 @@ func ListPushMirrors(ctx *context.APIContext) {
 
 	repo := ctx.Repo.Repository
 	// Get all push mirrors for the specified repository.
-	pushMirrors, count, err := repo_model.GetPushMirrorsByRepoID(ctx, repo.ID, api_service.GetListOptions(ctx))
+	pushMirrors, count, err := repo_model.GetPushMirrorsByRepoID(ctx, repo.ID, param.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusNotFound, "GetPushMirrorsByRepoID", err)
 		return
@@ -177,7 +177,7 @@ func ListPushMirrors(ctx *context.APIContext) {
 		}
 
 	}
-	ctx.SetLinkHeader(len(responsePushMirrors), api_service.GetListOptions(ctx).PageSize)
+	ctx.SetLinkHeader(len(responsePushMirrors), param.GetListOptions(ctx).PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, responsePushMirrors)
 }
