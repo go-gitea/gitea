@@ -11,7 +11,7 @@
 				{{ctx.AvatarUtils.Avatar .SignedUser 40}}
 				<div class="ui segment content gt-my-0">
 					<div class="field">
-						<input name="title" id="issue_title" placeholder="{{.locale.Tr "repo.milestones.title"}}" value="{{if .TitleQuery}}{{.TitleQuery}}{{else if .IssueTemplateTitle}}{{.IssueTemplateTitle}}{{else}}{{.title}}{{end}}" tabindex="3" autofocus required maxlength="255" autocomplete="off">
+						<input name="title" id="issue_title" placeholder="{{.locale.Tr "repo.milestones.title"}}" value="{{if .TitleQuery}}{{.TitleQuery}}{{else if .IssueTemplateTitle}}{{.IssueTemplateTitle}}{{else}}{{.title}}{{end}}" autofocus required maxlength="255" autocomplete="off">
 						{{if .PageIsComparePull}}
 							<div class="title_wip_desc" data-wip-prefixes="{{JsonUtils.EncodeToString .PullRequestWorkInProgressPrefixes}}">{{.locale.Tr "repo.pulls.title_wip_desc" (index .PullRequestWorkInProgressPrefixes 0| Escape) | Safe}}</div>
 						{{end}}
@@ -35,7 +35,7 @@
 						{{template "repo/issue/comment_tab" .}}
 					{{end}}
 					<div class="text right">
-						<button class="ui green button" tabindex="6">
+						<button class="ui green button">
 							{{if .PageIsComparePull}}
 								{{.locale.Tr "repo.pulls.create"}}
 							{{else}}
