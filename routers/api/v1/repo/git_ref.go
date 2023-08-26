@@ -75,7 +75,7 @@ func GetGitRefs(ctx *context.APIContext) {
 }
 
 func getGitRefsInternal(ctx *context.APIContext, filter string) {
-	refs, lastMethodName, err := git_service.GetGitRefs(ctx, filter)
+	refs, lastMethodName, err := git_service.GetGitRefs(ctx.Repo.GitRepo, filter)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, lastMethodName, err)
 		return
