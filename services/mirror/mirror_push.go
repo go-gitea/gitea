@@ -254,7 +254,7 @@ func pushAllLFSObjects(ctx context.Context, gitRepo *git.Repository, lfsClient l
 	return nil
 }
 
-func SyncPushMirrorWithSyncOnCommit(ctx context.Context, repoID int64) {
+func syncPushMirrorWithSyncOnCommit(ctx context.Context, repoID int64) {
 	pushMirrors, err := repo_model.GetPushMirrorsSyncedOnCommit(ctx, repoID)
 	if err != nil {
 		log.Error("repo_model.GetPushMirrorsSyncedOnCommit failed: %v", err)

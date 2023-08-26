@@ -24,9 +24,9 @@ type mirrorNotifier struct {
 var _ base.Notifier = &mirrorNotifier{}
 
 func (m *mirrorNotifier) NotifyPushCommits(ctx context.Context, _ *user_model.User, repo *repo_model.Repository, _ *repository.PushUpdateOptions, _ *repository.PushCommits) {
-	SyncPushMirrorWithSyncOnCommit(ctx, repo.ID)
+	syncPushMirrorWithSyncOnCommit(ctx, repo.ID)
 }
 
 func (m *mirrorNotifier) NotifySyncPushCommits(ctx context.Context, _ *user_model.User, repo *repo_model.Repository, _ *repository.PushUpdateOptions, _ *repository.PushCommits) {
-	SyncPushMirrorWithSyncOnCommit(ctx, repo.ID)
+	syncPushMirrorWithSyncOnCommit(ctx, repo.ID)
 }
