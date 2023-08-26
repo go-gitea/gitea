@@ -35,7 +35,7 @@
 				{{RenderLabel $.Context .}}
 				{{if not .ArchivedUnix.IsZero}}
 					<span class="gt-ml-3 gt-cursor-default gt-italic" data-tooltip-content="{{$.locale.Tr "repo.issues.label_archive_tooltip"}}">
-						{{$.locale.Tr "home.show_archived"}}
+						{{$.locale.Tr "home.archived"}}
 					</span>
 				{{end}}
 				{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
