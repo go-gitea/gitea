@@ -1,5 +1,5 @@
 <p><a href="{{.PackageDescriptor.PackageWebLink}}">{{.PackageDescriptor.Package.Name}}</a> / <strong>{{.locale.Tr "packages.versions"}}</strong></p>
-<form class="ui form ignore-dirty">
+<form class="ui form">
 	<div class="ui fluid action input">
 		{{template "shared/searchinput" dict "locale" .locale "Value" .Query "AutoFocus" true}}
 		<select class="ui dropdown" name="sort">

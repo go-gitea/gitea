@@ -5,7 +5,7 @@
 				<a href="{{.LFSFilesLink}}">{{.locale.Tr "repo.settings.lfs"}}</a> / {{.locale.Tr "repo.settings.lfs_locks"}} ({{.locale.Tr "admin.total" .Total}})
 			</h4>
 			<div class="ui attached segment">
-				<form class="ui form ignore-dirty" method="post">
+				<form class="ui form" method="post">
 					{{$.CsrfTokenHtml}}
 					<div class="ui fluid action input">
 						<input name="path" value="" placeholder="{{.locale.Tr "repo.settings.lfs_lock_path"}}" autofocus>

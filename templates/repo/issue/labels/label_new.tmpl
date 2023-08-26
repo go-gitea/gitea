@@ -3,7 +3,7 @@
 		{{.locale.Tr "repo.issues.new_label"}}
 	</div>
 	<div class="content">
-		<form class="ui new-label form ignore-dirty" action="{{$.Link}}/new" method="post">
+		<form class="ui new-label form" action="{{$.Link}}/new" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="required field">
 				<label for="name">{{.locale.Tr "repo.issues.label_title"}}</label>

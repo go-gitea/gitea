@@ -115,7 +115,6 @@ export async function createMonaco(textarea, filename, editorOpts) {
   const model = editor.getModel();
   model.onDidChangeContent(() => {
     textarea.value = editor.getValue();
-    textarea.dispatchEvent(new Event('change')); // seems to be needed for jquery-are-you-sure
   });
 
   exportEditor(editor);

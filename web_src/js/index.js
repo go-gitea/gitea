@@ -22,6 +22,7 @@ import {initStopwatch} from './features/stopwatch.js';
 import {initFindFileInRepo} from './features/repo-findfile.js';
 import {initCommentContent, initMarkupContent} from './markup/content.js';
 import {initPdfViewer} from './render/pdf.js';
+import {initGlobalFormResume} from './modules/formresume.js';
 
 import {initUserAuthLinkAccountView, initUserAuthOauth2} from './features/user-auth.js';
 import {
@@ -45,7 +46,6 @@ import {
   initGlobalCommon,
   initGlobalDropzone,
   initGlobalEnterQuickSubmit,
-  initGlobalFormDirtyLeaveConfirm,
   initGlobalLinkActions,
   initHeadNavbarContentToggle,
 } from './features/common-global.js';
@@ -97,7 +97,7 @@ onDomReady(() => {
   initGlobalCopyToClipboardListener();
   initGlobalDropzone();
   initGlobalEnterQuickSubmit();
-  initGlobalFormDirtyLeaveConfirm();
+  initGlobalFormResume();
   initGlobalLinkActions();
 
   initCommonOrganization();

@@ -45,7 +45,7 @@
 							{{.locale.PrettyNumber .MilestoneStats.ClosedCount}}&nbsp;{{.locale.Tr "repo.issues.closed_title"}}
 						</a>
 					</div>
-					<form class="list-header-search ui form ignore-dirty">
+					<form class="list-header-search ui form">
 						<div class="ui small search fluid action input">
 							<input type="hidden" name="type" value="{{$.ViewType}}">
 							<input type="hidden" name="repos" value="[{{range $.RepoIDs}}{{.}},{{end}}]">

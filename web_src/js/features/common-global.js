@@ -1,5 +1,4 @@
 import $ from 'jquery';
-import 'jquery.are-you-sure';
 import {clippie} from 'clippie';
 import {createDropzone} from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
@@ -13,14 +12,6 @@ import {confirmModal} from './comp/ConfirmModal.js';
 import {showErrorToast} from '../modules/toast.js';
 
 const {appUrl, appSubUrl, csrfToken, i18n} = window.config;
-
-export function initGlobalFormDirtyLeaveConfirm() {
-  // Warn users that try to leave a page after entering data into a form.
-  // Except on sign-in pages, and for forms marked as 'ignore-dirty'.
-  if ($('.user.signin').length === 0) {
-    $('form:not(.ignore-dirty)').areYouSure();
-  }
-}
 
 export function initHeadNavbarContentToggle() {
   const navbar = document.getElementById('navbar');

@@ -3,7 +3,7 @@
 		{{$.locale.Tr "repo.settings.mirror_settings.push_mirror.edit_sync_time"}}
 	</div>
 	<div class="content">
-		<form class="ui form ignore-dirty" method="post">
+		<form class="ui form" method="post">
 			{{.CsrfTokenHtml}}
 			<input type="hidden" name="action" value="push-mirror-update">
 			<input type="hidden" name="push_mirror_id" id="push-mirror-edit-id">
