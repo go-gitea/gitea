@@ -69,6 +69,7 @@
     "eslint-plugin-sonarjs": "0.20.0",
     "eslint-plugin-unicorn": "48.0.1",
     "eslint-plugin-vue": "9.17.0",
+    "eslint-plugin-vue-scoped-css": "2.5.0",
     "eslint-plugin-wc": "1.5.0",
     "jsdom": "22.1.0",
     "markdownlint-cli": "0.35.0",

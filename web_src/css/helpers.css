@@ -2,14 +2,10 @@
 Gitea's tailwind-style CSS helper classes have `gt-` prefix.
 Gitea's private styles use `g-` prefix.
 */
-.gt-db { display: block !important; }
 .gt-df { display: flex !important; }
-.gt-di { display: inline !important; }
-.gt-dif { display: inline-flex !important; }
 .gt-dib { display: inline-block !important; }
 .gt-ac { align-items: center !important; }
 .gt-jc { justify-content: center !important; }
-.gt-js { justify-content: flex-start !important; }
 .gt-je { justify-content: flex-end !important; }
 .gt-sb { justify-content: space-between !important; }
 .gt-fc { flex-direction: column !important; }
@@ -272,12 +268,6 @@ Gitea's private styles use `g-` prefix.
 .gt-font-16 { font-size: 16px !important }
 .gt-font-17 { font-size: 17px !important }
 .gt-font-18 { font-size: 18px !important }
-
-@media (max-width: 767.98px) {
-  .gt-db-small { display: block !important; }
-  .gt-w-100-small { width: 100% !important; }
-  .gt-js-small { justify-content: flex-start !important; }
-}
 
 /*
 gt-hidden must be placed after all other "display: xxx !important" classes to win the chance
