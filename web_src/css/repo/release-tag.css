@@ -23,8 +23,11 @@
 
 .repository.releases #release-list > li .meta {
   margin-top: 4px;
-  text-align: right;
   position: relative;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
 }
 
 .repository.releases #release-list > li .detail {

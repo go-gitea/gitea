@@ -2,14 +2,10 @@
 Gitea's tailwind-style CSS helper classes have `gt-` prefix.
 Gitea's private styles use `g-` prefix.
 */
-.gt-db { display: block !important; }
 .gt-df { display: flex !important; }
-.gt-di { display: inline !important; }
-.gt-dif { display: inline-flex !important; }
 .gt-dib { display: inline-block !important; }
 .gt-ac { align-items: center !important; }
 .gt-jc { justify-content: center !important; }
-.gt-js { justify-content: flex-start !important; }
 .gt-je { justify-content: flex-end !important; }
 .gt-sb { justify-content: space-between !important; }
 .gt-fc { flex-direction: column !important; }
