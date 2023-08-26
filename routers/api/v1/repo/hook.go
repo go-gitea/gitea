@@ -114,12 +114,12 @@ func GetHook(ctx *context.APIContext) {
 
 	repo := ctx.Repo
 	hookID := ctx.ParamsInt64(":id")
-	hook, err := webhook_service.GetRepoHook(repo.Repository.ID, hookID)
+	hook, err := webhook_model.GetWebhookByRepoID(repo.Repository.ID, hookID)
 	if err != nil {
 		if webhook_model.IsErrWebhookNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetRepoHook", err)
+			ctx.Error(http.StatusInternalServerError, "GetWebhookByRepoID", err)
 		}
 		return
 	}
@@ -176,12 +176,12 @@ func TestHook(ctx *context.APIContext) {
 	}
 
 	hookID := ctx.ParamsInt64(":id")
-	hook, err := webhook_service.GetRepoHook(ctx.Repo.Repository.ID, hookID)
+	hook, err := webhook_model.GetWebhookByRepoID(ctx.Repo.Repository.ID, hookID)
 	if err != nil {
 		if webhook_model.IsErrWebhookNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetWebhookByID", err)
+			ctx.Error(http.StatusInternalServerError, "GetWebhookByRepoID", err)
 		}
 		return
 	}

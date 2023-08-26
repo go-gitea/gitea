@@ -65,12 +65,12 @@ func GetHook(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Hook"
 
-	hook, err := webhook_service.GetOwnerHook(ctx.Doer.ID, ctx.ParamsInt64("id"))
+	hook, err := webhook_model.GetWebhookByOwnerID(ctx.Doer.ID, ctx.ParamsInt64("id"))
 	if err != nil {
 		if webhook_model.IsErrWebhookNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetOwnerHook", err)
+			ctx.Error(http.StatusInternalServerError, "GetWebhookByOwnerID", err)
 		}
 		return
 	}

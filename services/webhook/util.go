@@ -48,24 +48,6 @@ func ListOwnerHooks(ctx context.Context, listOptions db.ListOptions, owner *user
 	return apiHooks, count, nil
 }
 
-// GetOwnerHook gets an user or organization webhook.
-func GetOwnerHook(ownerID, hookID int64) (*webhook_model.Webhook, error) {
-	webhook, err := webhook_model.GetWebhookByOwnerID(ownerID, hookID)
-	if err != nil {
-		return nil, err
-	}
-	return webhook, nil
-}
-
-// GetRepoHook get a repo's webhook.
-func GetRepoHook(repoID, hookID int64) (*webhook_model.Webhook, error) {
-	webhook, err := webhook_model.GetWebhookByRepoID(repoID, hookID)
-	if err != nil {
-		return nil, err
-	}
-	return webhook, nil
-}
-
 // checkCreateHookOption check if a CreateHookOption form is valid.
 func checkCreateHookOption(form *api.CreateHookOption) error {
 	if !IsValidHookTaskType(form.Type) {
@@ -235,17 +217,17 @@ func EditSystemHook(ctx context.Context, form *api.EditHookOption, hookID int64)
 
 // EditOwnerHook updates a webhook of an user or organization
 func EditOwnerHook(ctx context.Context, owner *user_model.User, form *api.EditHookOption, hookID int64) (apiHook *api.Hook, httpStatus int, logTitle string, err error) {
-	hook, err := GetOwnerHook(owner.ID, hookID)
+	hook, err := webhook_model.GetWebhookByOwnerID(owner.ID, hookID)
 	if err != nil {
-		return nil, http.StatusInternalServerError, "GetOwnerHook", err
+		return nil, http.StatusInternalServerError, "GetWebhookByOwnerID", err
 	}
 	httpStatus, logTitle, err = editHook(form, hook)
 	if err != nil {
 		return nil, httpStatus, logTitle, err
 	}
-	updated, err := GetOwnerHook(owner.ID, hookID)
+	updated, err := webhook_model.GetWebhookByOwnerID(owner.ID, hookID)
 	if err != nil {
-		return nil, http.StatusInternalServerError, "GetOwnerHook", err
+		return nil, http.StatusInternalServerError, "GetWebhookByOwnerID", err
 	}
 	apiHook, err = ToHook(owner.HomeLink(), updated)
 	if err != nil {
@@ -256,17 +238,17 @@ func EditOwnerHook(ctx context.Context, owner *user_model.User, form *api.EditHo
 
 // EditRepoHook edit webhook `w` according to `form`. Writes to `ctx` accordingly
 func EditRepoHook(ctx context.Context, form *api.EditHookOption, repoID int64, repoLink string, hookID int64) (apiHook *api.Hook, httpStatus int, logTitle string, err error) {
-	hook, err := GetRepoHook(repoID, hookID)
+	hook, err := webhook_model.GetWebhookByRepoID(repoID, hookID)
 	if err != nil {
-		return nil, http.StatusInternalServerError, "GetRepoHook", err
+		return nil, http.StatusInternalServerError, "GetWebhookByRepoID", err
 	}
 	httpStatus, logTitle, err = editHook(form, hook)
 	if err != nil {
 		return nil, httpStatus, logTitle, err
 	}
-	updated, err := GetRepoHook(repoID, hookID)
+	updated, err := webhook_model.GetWebhookByRepoID(repoID, hookID)
 	if err != nil {
-		return nil, http.StatusInternalServerError, "GetRepoHook", err
+		return nil, http.StatusInternalServerError, "GetWebhookByRepoID", err
 	}
 	apiHook, err = ToHook(repoLink, updated)
 	if err != nil {
