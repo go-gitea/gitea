@@ -10,7 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/api/v1/utils"
+	git_service "code.gitea.io/gitea/services/git"
 )
 
 // GetGitAllRefs get ref or an list all the refs of a repository
@@ -75,7 +75,7 @@ func GetGitRefs(ctx *context.APIContext) {
 }
 
 func getGitRefsInternal(ctx *context.APIContext, filter string) {
-	refs, lastMethodName, err := utils.GetGitRefs(ctx, filter)
+	refs, lastMethodName, err := git_service.GetGitRefs(ctx, filter)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, lastMethodName, err)
 		return

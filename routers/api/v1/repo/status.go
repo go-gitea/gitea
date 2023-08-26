@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/convert"
+	git_service "code.gitea.io/gitea/services/git"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
@@ -170,7 +171,7 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 	//   "400":
 	//     "$ref": "#/responses/error"
 
-	filter := utils.ResolveRefOrSha(ctx, ctx.Params("ref"))
+	filter := git_service.ResolveRefOrSha(ctx, ctx.Params("ref"))
 	if ctx.Written() {
 		return
 	}
@@ -183,7 +184,7 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 		ctx.Error(http.StatusBadRequest, "ref/sha not given", nil)
 		return
 	}
-	sha = utils.MustConvertToSHA1(ctx.Base, ctx.Repo, sha)
+	sha = git_service.MustConvertToSHA1(ctx.Base, ctx.Repo, sha)
 	repo := ctx.Repo.Repository
 
 	listOptions := utils.GetListOptions(ctx)
@@ -246,7 +247,7 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	//   "400":
 	//     "$ref": "#/responses/error"
 
-	sha := utils.ResolveRefOrSha(ctx, ctx.Params("ref"))
+	sha := git_service.ResolveRefOrSha(ctx, ctx.Params("ref"))
 	if ctx.Written() {
 		return
 	}
