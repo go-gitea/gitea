@@ -10,7 +10,7 @@ import (
 	activities_model "code.gitea.io/gitea/models/activities"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/routers/api/v1/utils"
+	api_service "code.gitea.io/gitea/services/api"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -52,7 +52,7 @@ func Search(ctx *context.APIContext) {
 	//           items:
 	//             "$ref": "#/definitions/User"
 
-	listOptions := utils.GetListOptions(ctx)
+	listOptions := api_service.GetListOptions(ctx)
 
 	users, maxResults, err := user_model.SearchUsers(&user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
@@ -182,7 +182,7 @@ func ListUserActivityFeeds(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	includePrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
-	listOptions := utils.GetListOptions(ctx)
+	listOptions := api_service.GetListOptions(ctx)
 
 	opts := activities_model.GetFeedsOptions{
 		RequestedUser:   ctx.ContextUser,

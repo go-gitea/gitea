@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/utils"
+	api_service "code.gitea.io/gitea/services/api"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -47,7 +47,7 @@ func ListTopics(ctx *context.APIContext) {
 	//     "$ref": "#/responses/TopicNames"
 
 	opts := &repo_model.FindTopicOptions{
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: api_service.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
 	}
 
@@ -274,7 +274,7 @@ func TopicSearch(ctx *context.APIContext) {
 
 	opts := &repo_model.FindTopicOptions{
 		Keyword:     ctx.FormString("q"),
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: api_service.GetListOptions(ctx),
 	}
 
 	topics, total, err := repo_model.FindTopics(opts)

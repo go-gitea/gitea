@@ -15,7 +15,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/repo"
-	"code.gitea.io/gitea/routers/api/v1/utils"
+	api_service "code.gitea.io/gitea/services/api"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/convert"
 )
@@ -74,7 +74,7 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 		count = int(total)
 
 		// Use ListPublicKeys
-		keys, err = asymkey_model.ListPublicKeys(user.ID, utils.GetListOptions(ctx))
+		keys, err = asymkey_model.ListPublicKeys(user.ID, api_service.GetListOptions(ctx))
 	}
 
 	if err != nil {

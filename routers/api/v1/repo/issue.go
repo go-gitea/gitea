@@ -26,7 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/utils"
+	api_service "code.gitea.io/gitea/services/api"
 	"code.gitea.io/gitea/services/convert"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
@@ -448,7 +448,7 @@ func ListIssues(ctx *context.APIContext) {
 		}
 	}
 
-	listOptions := utils.GetListOptions(ctx)
+	listOptions := api_service.GetListOptions(ctx)
 
 	var isPull util.OptionalBool
 	switch ctx.FormString("type") {

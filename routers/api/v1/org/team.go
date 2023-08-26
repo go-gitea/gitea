@@ -20,7 +20,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
-	"code.gitea.io/gitea/routers/api/v1/utils"
+	api_service "code.gitea.io/gitea/services/api"
 	"code.gitea.io/gitea/services/convert"
 	org_service "code.gitea.io/gitea/services/org"
 )
@@ -51,7 +51,7 @@ func ListTeams(ctx *context.APIContext) {
 	//     "$ref": "#/responses/TeamList"
 
 	teams, count, err := organization.SearchTeam(&organization.SearchTeamOptions{
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: api_service.GetListOptions(ctx),
 		OrgID:       ctx.Org.Organization.ID,
 	})
 	if err != nil {
@@ -90,7 +90,7 @@ func ListUserTeams(ctx *context.APIContext) {
 	//     "$ref": "#/responses/TeamList"
 
 	teams, count, err := organization.SearchTeam(&organization.SearchTeamOptions{
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: api_service.GetListOptions(ctx),
 		UserID:      ctx.Doer.ID,
 	})
 	if err != nil {
@@ -393,7 +393,7 @@ func GetTeamMembers(ctx *context.APIContext) {
 	}
 
 	teamMembers, err := organization.GetTeamMembers(ctx, &organization.SearchMembersOptions{
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: api_service.GetListOptions(ctx),
 		TeamID:      ctx.Org.Team.ID,
 	})
 	if err != nil {
@@ -552,7 +552,7 @@ func GetTeamRepos(ctx *context.APIContext) {
 
 	team := ctx.Org.Team
 	teamRepos, err := organization.GetTeamRepositories(ctx, &organization.SearchTeamRepoOptions{
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: api_service.GetListOptions(ctx),
 		TeamID:      team.ID,
 	})
 	if err != nil {
@@ -775,7 +775,7 @@ func SearchTeam(ctx *context.APIContext) {
 	//           items:
 	//             "$ref": "#/definitions/Team"
 
-	listOptions := utils.GetListOptions(ctx)
+	listOptions := api_service.GetListOptions(ctx)
 
 	opts := &organization.SearchTeamOptions{
 		Keyword:     ctx.FormTrim("q"),
@@ -845,7 +845,7 @@ func ListTeamActivityFeeds(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	listOptions := utils.GetListOptions(ctx)
+	listOptions := api_service.GetListOptions(ctx)
 
 	opts := activities_model.GetFeedsOptions{
 		RequestedTeam:  ctx.Org.Team,

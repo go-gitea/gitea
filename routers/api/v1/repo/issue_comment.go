@@ -16,7 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/utils"
+	api_service "code.gitea.io/gitea/services/api"
 	"code.gitea.io/gitea/services/convert"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
@@ -169,7 +169,7 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 	issue.Repo = ctx.Repo.Repository
 
 	opts := &issues_model.FindCommentsOptions{
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: api_service.GetListOptions(ctx),
 		IssueID:     issue.ID,
 		Since:       since,
 		Before:      before,
@@ -266,7 +266,7 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	}
 
 	opts := &issues_model.FindCommentsOptions{
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: api_service.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
 		Type:        issues_model.CommentTypeComment,
 		Since:       since,

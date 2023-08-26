@@ -16,7 +16,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
-	"code.gitea.io/gitea/routers/api/v1/utils"
+	api_service "code.gitea.io/gitea/services/api"
 	"code.gitea.io/gitea/services/convert"
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
@@ -52,7 +52,7 @@ func ListHooks(ctx *context.APIContext) {
 	//     "$ref": "#/responses/HookList"
 
 	opts := &webhook.ListWebhookOptions{
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: api_service.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
 	}
 

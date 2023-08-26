@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/user"
-	"code.gitea.io/gitea/routers/api/v1/utils"
+	api_service "code.gitea.io/gitea/services/api"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -22,7 +22,7 @@ func listMembers(ctx *context.APIContext, publicOnly bool) {
 	opts := &organization.FindOrgMembersOpts{
 		OrgID:       ctx.Org.Organization.ID,
 		PublicOnly:  publicOnly,
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: api_service.GetListOptions(ctx),
 	}
 
 	count, err := organization.CountOrgMembers(opts)

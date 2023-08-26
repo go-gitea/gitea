@@ -10,8 +10,8 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/routers/web/shared/actions"
+	api_service "code.gitea.io/gitea/services/api"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -47,7 +47,7 @@ func ListActionsSecrets(ctx *context.APIContext) {
 func listActionsSecrets(ctx *context.APIContext) {
 	opts := &secret_model.FindSecretsOptions{
 		OwnerID:     ctx.Org.Organization.ID,
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: api_service.GetListOptions(ctx),
 	}
 
 	count, err := secret_model.CountSecrets(ctx, opts)
