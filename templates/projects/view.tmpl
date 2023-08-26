@@ -76,10 +76,10 @@
 					</div>
 					{{if and $canWriteProject (ne .ID 0)}}
 						<div class="ui dropdown jump item">
-							<div class="gt-px-3" tabindex="-1">
+							<div class="gt-px-3">
 								{{svg "octicon-kebab-horizontal"}}
 							</div>
-							<div class="menu user-menu" tabindex="-1">
+							<div class="menu user-menu">
 								<a class="item show-modal button" data-modal="#edit-project-column-modal-{{.ID}}">
 									{{svg "octicon-pencil"}}
 									{{ctx.Locale.Tr "repo.projects.column.edit"}}

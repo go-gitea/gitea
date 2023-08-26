@@ -162,6 +162,11 @@
   left: 0;
 }
 
+.repository .filter.menu .ui.dropdown .menu .item {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .repository .select-label .desc {
   padding-left: 23px;
 }
@@ -1255,8 +1260,8 @@
   color: var(--color-text-light-2);
 }
 
-.repository .filter.dropdown .menu {
-  margin-top: 1px !important;
+.repository .ui.dropdown.filter > .menu {
+  margin-top: 1px;
 }
 
 .repository.branches .commit-divergence .bar-group {
@@ -1625,10 +1630,11 @@
 }
 
 .diff-detail-actions {
-  /* prevent font-size from increasing element height so that .diff-detail-box comes
-     out with height of 47px (one line) and 77px (two lines), which is important for
-     position: sticky */
-  height: 33px;
+  display: flex;
+  align-items: center;
+  gap: 0.25em;
+  flex-wrap: wrap;
+  justify-content: end;
 }
 
 .diff-detail-actions > *,
@@ -1642,12 +1648,7 @@
     padding-top: 0.25rem;
   }
   .repository .diff-detail-box .diff-detail-actions .ui.button:not(.btn-submit) {
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    text-align: center;
+    padding: 0 0.5rem;
   }
 }
 
