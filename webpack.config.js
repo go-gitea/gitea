@@ -190,6 +190,7 @@ export default {
     new BannerPlugin({
       banner: `'use strict';`,
       raw: true,
+      test: /\.js$/,
     }),
     isProduction ? new LicenseCheckerWebpackPlugin({
       outputFilename: 'js/licenses.txt',
