@@ -14,13 +14,11 @@ import (
 
 // ResolveRefOrSha resolve ref to sha if exist
 func ResolveRefOrSha(ctx context.Context, repo *repo.Repository, gitRepo *git.Repository, ref string) (sha, lastMethodName string, err error) {
-
 	sha = ref
 	// Search branches and tags
 	for _, refType := range []string{"heads", "tags"} {
 		refSHA, lastMethodName, err := searchRefCommitByType(gitRepo, refType, ref)
 		if err != nil {
-
 			return "", lastMethodName, err
 		}
 		if refSHA != "" {

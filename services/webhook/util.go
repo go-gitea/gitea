@@ -245,7 +245,7 @@ func EditOwnerHook(ctx context.Context, owner *user_model.User, form *api.EditHo
 	}
 	updated, err := GetOwnerHook(owner.ID, hookID)
 	if err != nil {
-		return
+		return nil, http.StatusInternalServerError, "GetOwnerHook", err
 	}
 	apiHook, err = ToHook(owner.HomeLink(), updated)
 	if err != nil {
@@ -258,7 +258,7 @@ func EditOwnerHook(ctx context.Context, owner *user_model.User, form *api.EditHo
 func EditRepoHook(ctx context.Context, form *api.EditHookOption, repoID int64, repoLink string, hookID int64) (apiHook *api.Hook, httpStatus int, logTitle string, err error) {
 	hook, err := GetRepoHook(repoID, hookID)
 	if err != nil {
-		return
+		return nil, http.StatusInternalServerError, "GetRepoHook", err
 	}
 	httpStatus, logTitle, err = editHook(form, hook)
 	if err != nil {
@@ -266,7 +266,7 @@ func EditRepoHook(ctx context.Context, form *api.EditHookOption, repoID int64, r
 	}
 	updated, err := GetRepoHook(repoID, hookID)
 	if err != nil {
-		return
+		return nil, http.StatusInternalServerError, "GetRepoHook", err
 	}
 	apiHook, err = ToHook(repoLink, updated)
 	if err != nil {
