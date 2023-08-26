@@ -36,7 +36,7 @@ Application settings can be found in file `CustomConf` which is by default,
 Again `gitea help` will allow you review this variable and you can override it using the
 `--config` option on the `gitea` binary.
 
-- [Quick Cheat Sheet](https://docs.gitea.com/administration/config-cheat-sheet)
+- [Quick Cheat Sheet](administration/config-cheat-sheet.md)
 - [Complete List](https://github.com/go-gitea/gitea/blob/main/custom/conf/app.example.ini)
 
 If the `CustomPath` folder can't be found despite checking `gitea help`, check the `GITEA_CUSTOM`
@@ -44,7 +44,7 @@ environment variable; this can be used to override the default path to something
 `GITEA_CUSTOM` might, for example, be set by an init script. You can check whether the value
 is set under the "Configuration" tab on the site administration page.
 
-- [List of Environment Variables](https://docs.gitea.com/administration/environment-variables)
+- [List of Environment Variables](administration/environment-variables.md)
 
 **Note:** Gitea must perform a full restart to see configuration changes.
 
@@ -380,7 +380,7 @@ To make a custom theme available to all users:
 
 1. Add a CSS file to `$GITEA_CUSTOM/public/assets/css/theme-<theme-name>.css`.
   The value of `$GITEA_CUSTOM` of your instance can be queried by calling `gitea help` and looking up the value of "CustomPath".
-1. Add `<theme-name>` to the comma-separated list of setting `THEMES` in `app.ini`
+2. Add `<theme-name>` to the comma-separated list of setting `THEMES` in `app.ini`
 
 Community themes are listed in [gitea/awesome-gitea#themes](https://gitea.com/gitea/awesome-gitea#themes).
 
