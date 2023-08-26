@@ -113,7 +113,7 @@ func GetHook(ctx *context.APIContext) {
 
 	repo := ctx.Repo
 	hookID := ctx.ParamsInt64(":id")
-	hook, err := utils.GetRepoHook(ctx, repo.Repository.ID, hookID)
+	hook, err := webhook_service.GetRepoHook(ctx, repo.Repository.ID, hookID)
 	if err != nil {
 		return
 	}
@@ -170,7 +170,7 @@ func TestHook(ctx *context.APIContext) {
 	}
 
 	hookID := ctx.ParamsInt64(":id")
-	hook, err := utils.GetRepoHook(ctx, ctx.Repo.Repository.ID, hookID)
+	hook, err := webhook_service.GetRepoHook(ctx, ctx.Repo.Repository.ID, hookID)
 	if err != nil {
 		return
 	}
@@ -225,7 +225,7 @@ func CreateHook(ctx *context.APIContext) {
 	//   "201":
 	//     "$ref": "#/responses/Hook"
 
-	utils.AddRepoHook(ctx, web.GetForm(ctx).(*api.CreateHookOption))
+	webhook_service.AddRepoHook(ctx, web.GetForm(ctx).(*api.CreateHookOption))
 }
 
 // EditHook modify a hook of a repository
@@ -261,7 +261,7 @@ func EditHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Hook"
 	form := web.GetForm(ctx).(*api.EditHookOption)
 	hookID := ctx.ParamsInt64(":id")
-	utils.EditRepoHook(ctx, form, hookID)
+	webhook_service.EditRepoHook(ctx, form, hookID)
 }
 
 // DeleteHook delete a hook of a repository

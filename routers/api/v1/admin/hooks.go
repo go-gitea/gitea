@@ -13,7 +13,6 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/utils"
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
@@ -111,7 +110,7 @@ func CreateHook(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.CreateHookOption)
 
-	utils.AddSystemHook(ctx, form)
+	webhook_service.AddSystemHook(ctx, form)
 }
 
 // EditHook modify a hook of a repository
@@ -142,7 +141,7 @@ func EditHook(ctx *context.APIContext) {
 
 	// TODO in body params
 	hookID := ctx.ParamsInt64(":id")
-	utils.EditSystemHook(ctx, form, hookID)
+	webhook_service.EditSystemHook(ctx, form, hookID)
 }
 
 // DeleteHook delete a system hook

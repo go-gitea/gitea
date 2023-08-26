@@ -9,7 +9,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/utils"
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
@@ -33,7 +32,7 @@ func ListHooks(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/HookList"
 
-	utils.ListOwnerHooks(
+	webhook_service.ListOwnerHooks(
 		ctx,
 		ctx.Doer,
 	)
@@ -57,7 +56,7 @@ func GetHook(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Hook"
 
-	hook, err := utils.GetOwnerHook(ctx, ctx.Doer.ID, ctx.ParamsInt64("id"))
+	hook, err := webhook_service.GetOwnerHook(ctx, ctx.Doer.ID, ctx.ParamsInt64("id"))
 	if err != nil {
 		return
 	}
@@ -89,7 +88,7 @@ func CreateHook(ctx *context.APIContext) {
 	//   "201":
 	//     "$ref": "#/responses/Hook"
 
-	utils.AddOwnerHook(
+	webhook_service.AddOwnerHook(
 		ctx,
 		ctx.Doer,
 		web.GetForm(ctx).(*api.CreateHookOption),
@@ -120,7 +119,7 @@ func EditHook(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Hook"
 
-	utils.EditOwnerHook(
+	webhook_service.EditOwnerHook(
 		ctx,
 		ctx.Doer,
 		web.GetForm(ctx).(*api.EditHookOption),
@@ -146,7 +145,7 @@ func DeleteHook(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	utils.DeleteOwnerHook(
+	webhook_service.DeleteOwnerHook(
 		ctx,
 		ctx.Doer,
 		ctx.ParamsInt64("id"),
