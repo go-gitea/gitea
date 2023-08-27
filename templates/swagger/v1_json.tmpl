@@ -1586,49 +1586,6 @@
             "$ref": "#/responses/SecretList"
           }
         }
-      },
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "organization"
-        ],
-        "summary": "Create a secret in an organization",
-        "operationId": "createOrgSecret",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "name of organization",
-            "name": "org",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/CreateSecretOption"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "$ref": "#/responses/Secret"
-          },
-          "400": {
-            "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          }
-        }
       }
     },
     "/orgs/{org}/actions/secrets/{secretname}": {
@@ -1642,7 +1599,7 @@
         "tags": [
           "organization"
         ],
-        "summary": "Update a secret value in an organization",
+        "summary": "Create or Update a secret value in an organization",
         "operationId": "updateOrgSecret",
         "parameters": [
           {
@@ -1663,13 +1620,19 @@
             "name": "body",
             "in": "body",
             "schema": {
-              "$ref": "#/definitions/UpdateSecretOption"
+              "$ref": "#/definitions/CreateOrUpdateSecretOption"
             }
           }
         ],
         "responses": {
+          "201": {
+            "description": "response when creating a secret"
+          },
           "204": {
-            "description": "update one secret of the organization"
+            "description": "response when updating a secret"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -17283,6 +17246,21 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "CreateOrUpdateSecretOption": {
+      "description": "CreateOrUpdateSecretOption options when creating or updating secret",
+      "type": "object",
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "description": "Data of the secret to update",
+          "type": "string",
+          "x-go-name": "Data"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "CreateOrgOption": {
       "description": "CreateOrgOption options for creating an organization",
       "type": "object",
@@ -17565,27 +17543,6 @@
             "collaboratorcommitter"
           ],
           "x-go-name": "TrustModel"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
-    "CreateSecretOption": {
-      "description": "CreateSecretOption options when creating secret",
-      "type": "object",
-      "required": [
-        "name"
-      ],
-      "properties": {
-        "data": {
-          "description": "Data of the secret to create",
-          "type": "string",
-          "x-go-name": "Data"
-        },
-        "name": {
-          "description": "Name of the secret to create",
-          "type": "string",
-          "uniqueItems": true,
-          "x-go-name": "Name"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -21978,21 +21935,6 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "UpdateSecretOption": {
-      "description": "UpdateSecretOption options when updating secret",
-      "type": "object",
-      "required": [
-        "data"
-      ],
-      "properties": {
-        "data": {
-          "description": "Data of the secret to update",
-          "type": "string",
-          "x-go-name": "Data"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
     "UpdateUserAvatarOption": {
       "description": "UpdateUserAvatarUserOption options when updating the user avatar",
       "type": "object",
@@ -23309,7 +23251,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/UpdateSecretOption"
+        "$ref": "#/definitions/CreateOrUpdateSecretOption"
       }
     },
     "redirect": {
