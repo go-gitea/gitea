@@ -15,7 +15,7 @@ Gitea's private styles use `g-` prefix.
 .gt-w-100 { width: 100% !important; }
 .gt-h-100 { height: 100% !important; }
 
-.gt-italic { font-style: italic !important;}
+.gt-italic { font-style: italic !important; }
 
 .gt-mono {
   font-family: var(--fonts-monospace) !important;
