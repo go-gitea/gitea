@@ -19,7 +19,7 @@ menu:
 
 ## 设置仓库索引器
 
-通过在您的 [`app.ini`](https://docs.gitea.io/en-us/config-cheat-sheet/) 中启用此功能，Gitea 可以通过仓库的文件进行搜索：
+通过在您的 [`app.ini`](administration/config-cheat-sheet.md) 中启用此功能，Gitea 可以通过仓库的文件进行搜索：
 
 ```ini
 [indexer]

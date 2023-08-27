@@ -86,7 +86,7 @@ When building from the official source tarballs which include pre-built frontend
 
 Parallelism (`make -j <num>`) is not supported.
 
-More info: https://docs.gitea.io/en-us/install-from-source/
+More info: https://docs.gitea.com/installation/install-from-source
 
 ## Using
 
