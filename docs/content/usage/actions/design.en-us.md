@@ -112,7 +112,7 @@ You can configure your Gitea instance to fetch actions or images from your intra
 
 In fact, your Gitea instance can serve as both the actions marketplace and the image registry.
 You can mirror actions repositories from GitHub to your Gitea instance, and use them as normal.
-And [Gitea Container Registry](https://docs.gitea.io/en-us/usage/packages/container/) can be used as a Docker image registry.
+And [Gitea Container Registry](usage/packages/container.md) can be used as a Docker image registry.
 
 ### Connection 4, job containers to internet
 
