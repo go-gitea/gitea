@@ -349,7 +349,7 @@ type swaggerLanguageStatistics struct {
 // swagger:response PrimaryLanguageList
 type swaggerPrimaryLanguageList struct {
 	// in: body
-	Body map[string]string `json:"body"`
+	Body []api.LanguageInfo `json:"body"`
 }
 
 // CombinedStatus

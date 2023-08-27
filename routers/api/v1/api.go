@@ -795,6 +795,7 @@ func Routes() *web.Route {
 					m.Get("/heatmap", user.GetUserHeatmapData)
 				}
 
+				m.Get("/languages", repo.GetUserPrimaryLanguageList)
 				m.Get("/repos", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), reqExploreSignIn(), user.ListUserRepos)
 				m.Group("/tokens", func() {
 					m.Combo("").Get(user.ListAccessTokens).
@@ -919,7 +920,7 @@ func Routes() *web.Route {
 		// Repos (requires repo scope)
 		m.Group("/repos", func() {
 			m.Get("/search", repo.Search)
-			m.Get("/languages", repo.GetPrimaryLanguageList)
+			m.Get("/languages", repo.ListPrimaryLanguages)
 
 			// (repo scope)
 			m.Post("/migrate", reqToken(), bind(api.MigrateRepoOptions{}), repo.Migrate)
@@ -1299,6 +1300,7 @@ func Routes() *web.Route {
 				m.Combo("/{username}").Get(reqToken(), org.IsMember).
 					Delete(reqToken(), reqOrgOwnership(), org.DeleteMember)
 			})
+			m.Get("/languages", repo.GetOrgPrimaryLanguageList)
 			m.Group("/actions/secrets", func() {
 				m.Get("", reqToken(), reqOrgOwnership(), org.ListActionsSecrets)
 				m.Post("", reqToken(), reqOrgOwnership(), bind(api.CreateSecretOption{}), org.CreateOrgSecret)

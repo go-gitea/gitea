@@ -266,7 +266,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileGi
 
 		total = int(count)
 
-		programLanguages, err := repo_model.GetPrimaryRepoLanguageList(ctx, repos)
+		programLanguages, err := repo_model.GetPrimaryRepoLanguageList(ctx, ctx.ContextUser.ID, ctx.IsSigned)
 		if err != nil {
 			ctx.ServerError("GetPrimaryRepoLanguageList", err)
 			return

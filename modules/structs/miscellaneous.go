@@ -94,6 +94,12 @@ type LicenseTemplateInfo struct {
 	Body           string `json:"body"`
 }
 
+// LanguagesInfo contains information about a Language
+type LanguageInfo struct {
+	Name  string `json:"name"`
+	Color string `json:"color"`
+}
+
 // APIError is an api error with a message
 type APIError struct {
 	Message string `json:"message"`

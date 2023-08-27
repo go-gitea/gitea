@@ -198,20 +198,6 @@ func (b *Base) FormInt64(key string) int64 {
 	return v
 }
 
-// FormInt64s returns a int64 slice for the provided key from the form
-func (b *Base) FormInt64s(key string) (v []int64) {
-	str := b.FormStrings(key)
-	if str == nil {
-		return nil
-	}
-
-	for _, s := range str {
-		i, _ := strconv.ParseInt(s, 10, 64)
-		v = append(v, i)
-	}
-	return v
-}
-
 // FormBool returns true if the value for the provided key in the form is "1", "true" or "on"
 func (b *Base) FormBool(key string) bool {
 	s := b.Req.FormValue(key)

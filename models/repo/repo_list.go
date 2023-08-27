@@ -746,7 +746,7 @@ func GetUserRepositories(opts *SearchRepoOptions) (RepositoryList, int64, error)
 	return repos, count, db.SetSessionPagination(sess, opts).Find(&repos)
 }
 
-func GetPrimaryRepoLanguageList(ctx context.Context, repos RepositoryList) (LanguageStatList, error) {
+func GetPrimaryRepoLanguageList(ctx context.Context, ownerID int64, private bool) (LanguageStatList, error) {
 	languageList := make(LanguageStatList, 0)
 
 	q := db.GetEngine(ctx).
@@ -754,13 +754,16 @@ func GetPrimaryRepoLanguageList(ctx context.Context, repos RepositoryList) (Lang
 		Cols("language").
 		Where(builder.Eq{"is_primary": true})
 
-	if repos != nil {
-		repoIDs := make([]int64, len(repos))
-		for i := range repos {
-			repoIDs[i] = repos[i].ID
+	if ownerID > 0 {
+		ids, err := SearchRepositoryIDsByCondition(ctx, builder.NewCond().And(
+			builder.Eq{"owner_id": ownerID},
+			builder.Eq{"is_private": private},
+		))
+		if err != nil {
+			return nil, err
 		}
 
-		q = q.In("repo_id", repoIDs)
+		q = q.In("repo_id", ids)
 	}
 
 	err := q.Distinct("language").

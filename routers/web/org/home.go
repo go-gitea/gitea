@@ -134,7 +134,7 @@ func Home(ctx *context.Context) {
 		isFollowing = user_model.IsFollowing(ctx.Doer.ID, ctx.ContextUser.ID)
 	}
 
-	programLanguages, err := repo_model.GetPrimaryRepoLanguageList(ctx, repos)
+	programLanguages, err := repo_model.GetPrimaryRepoLanguageList(ctx, org.ID, ctx.IsSigned)
 	if err != nil {
 		ctx.ServerError("GetPrimaryRepoLanguageList", err)
 		return
