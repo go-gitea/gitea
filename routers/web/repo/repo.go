@@ -374,11 +374,9 @@ func RedirectDownload(ctx *context.Context) {
 		vTag     = ctx.Params("vTag")
 		fileName = ctx.Params("fileName")
 	)
-
 	tagNames := []string{vTag}
 	curRepo := ctx.Repo.Repository
 	releases, err := repo_model.GetReleasesByRepoIDAndNames(ctx, curRepo.ID, tagNames)
-	
 	if err != nil {
 		if repo_model.IsErrAttachmentNotExist(err) {
 			ctx.Error(http.StatusNotFound)
