@@ -60,7 +60,7 @@
 ## Introduction
 
 This document explains how to contribute changes to the Gitea project. \
-It assumes you have followed the [installation instructions](https://docs.gitea.io/en-us/). \
+It assumes you have followed the [installation instructions](https://docs.gitea.com/category/installation). \
 Sensitive security-related issues should be reported to [security@gitea.io](mailto:security@gitea.io).
 
 For configuring IDEs for Gitea development, see the [contributed IDE configurations](contrib/ide/).
