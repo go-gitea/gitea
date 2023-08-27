@@ -26,10 +26,10 @@ func TestVerifyCommits(t *testing.T) {
 		base, head string
 		verified   bool
 	}{
-		{"7d92f8f0cf7b989acf2c56a9a4387f5b39a92c41", "64e643f86a640d97f95820b43aeb28631042c629", true},
-		{git.EmptySHA, "451c1608ab9c5277fdc73ea68aea711c046ac7ac", true}, // New branch with verified commit
-		{"e05ec071e40a53cd4785345a99fd12f5dbb6a777", "7d92f8f0cf7b989acf2c56a9a4387f5b39a92c41", false},
-		{git.EmptySHA, "1128cd8e82948ea10b4932b2481210610604ce7e", false}, // New branch with unverified commit
+		{"72920278f2f999e3005801e5d5b8ab8139d3641c", "d766f2917716d45be24bfa968b8409544941be32", true},
+		{git.EmptySHA, "93eac826f6188f34646cea81bf426aa5ba7d3bfe", true}, // New branch with verified commit
+		{"9779d17a04f1e2640583d35703c62460b2d86e0a", "72920278f2f999e3005801e5d5b8ab8139d3641c", false},
+		{git.EmptySHA, "9ce3f779ae33f31fce17fac3c512047b75d7498b", false}, // New branch with unverified commit
 	}
 
 	for _, tc := range testCases {
