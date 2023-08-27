@@ -3689,6 +3689,11 @@ body.dimmable > .dimmer {
   will-change: transform, opacity;
 }
 
+.ui.dropdown .menu.short {
+  max-width: 60vh;
+  overflow-y: auto;
+}
+
 .ui.dropdown .menu > * {
   white-space: nowrap;
 }
