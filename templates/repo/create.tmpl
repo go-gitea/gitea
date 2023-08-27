@@ -21,18 +21,15 @@
 						<div class="ui selection owner dropdown">
 							<input type="hidden" id="uid" name="uid" value="{{.ContextUser.ID}}" required>
 							<span class="text truncated-item-container" title="{{.ContextUser.Name}}">
-								{{ctx.AvatarUtils.Avatar .ContextUser 28 "mini"}}
 								<span class="truncated-item-name">{{.ContextUser.ShortName 40}}</span>
 							</span>
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
 								<div class="item truncated-item-container" data-value="{{.SignedUser.ID}}" title="{{.SignedUser.Name}}">
-									{{ctx.AvatarUtils.Avatar .SignedUser 28 "mini"}}
 									<span class="truncated-item-name">{{.SignedUser.ShortName 40}}</span>
 								</div>
 								{{range .Orgs}}
 									<div class="item truncated-item-container" data-value="{{.ID}}" title="{{.Name}}">
-										{{ctx.AvatarUtils.Avatar . 28 "mini"}}
 										<span class="truncated-item-name">{{.ShortName 40}}</span>
 									</div>
 								{{end}}
@@ -41,11 +38,43 @@
 						<span class="help">{{.locale.Tr "repo.owner_helper"}}</span>
 					</div>
 
+					<style>
+#info_bubble {
+/* DO NOT TOUCH THOSE 2 LINES */
+	display: none;
+	width: 50%;
+
+/* and now you can customize it */
+	padding: 0.5em;
+	font-size: 0.8em;
+	color: #fff;
+	font-weight: bold;
+	margin-top: -3em;
+}
+					</style>
+					<div class="inline field" style="margin-bottom:0; gap: 0">
+						<label></label>
+						<div id="info_bubble"></div>
+					</div>
 					<div class="inline required field {{if .Err_RepoName}}error{{end}}">
 						<label for="repo_name">{{.locale.Tr "repo.repo_name"}}</label>
 						<input id="repo_name" name="repo_name" value="{{.repo_name}}" autofocus required maxlength="100">
 						<span class="help">{{.locale.Tr "repo.repo_name_helper"}}</span>
 					</div>
+						<script>
+							const char_in_repo_name = '-'
+							document.getElementById("repo_name").addEventListener("input", function(event) {
+								var repo_name = this.value;
+								var bubble = document.getElementById("info_bubble");
+								if ( repo_name.includes(' ') ) {
+									repo_name = repo_name.replace(/ /g, char_in_repo_name);
+									bubble.style.display = "inline-block";
+									bubble.innerHTML = {{.locale.Tr "repo.repo_renamed_as"}}+`: "${repo_name}"`
+								} else {
+									bubble.style.display = "none";
+								}
+							});
+						</script>
 					<div class="inline field">
 						<label>{{.locale.Tr "repo.visibility"}}</label>
 						<div class="ui checkbox">
@@ -220,9 +249,16 @@
 					<br>
 					<div class="inline field">
 						<label></label>
-						<button class="ui green button{{if not .CanCreateRepo}} disabled{{end}}">
+						<button id="submit_button" class="ui green button{{if not .CanCreateRepo}} disabled{{end}}">
 							{{.locale.Tr "repo.create_repo"}}
 						</button>
+						<script>
+						var input = document.getElementById("repo_name");
+						document.getElementById("submit_button").addEventListener("click", function() {
+							// remove last space and replace all spaces with char_in_repo_name
+								input.value = input.value.replace(/\s/g, char_in_repo_name);
+									});
+							</script>
 					</div>
 				</div>
 			</form>
