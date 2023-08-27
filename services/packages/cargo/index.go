@@ -21,9 +21,9 @@ import (
 	cargo_module "code.gitea.io/gitea/modules/packages/cargo"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	files_service "code.gitea.io/gitea/services/repository/files"
-	"code.gitea.io/gitea/modules/structs"
 )
 
 const (
