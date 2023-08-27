@@ -373,22 +373,14 @@ func RedirectDownload(ctx *context.Context) {
 	var (
 		vTag     = ctx.Params("vTag")
 		fileName = ctx.Params("fileName")
-		releases []*repo_model.Release
-		err      error
 	)
-	
-	// GitHub supports the alias "latest" for the latest release
-	if vTag == "latest" {
-		release, err := repo_model.GetLatestReleaseByRepoID(ctx, ctx.Repo.Repository.ID)
-		releases = []*repo_model.Release{release}
-	} else {
-		tagNames := []string{vTag}
-		curRepo := ctx.Repo.Repository
-		releases, err = repo_model.GetReleasesByRepoIDAndNames(ctx, curRepo.ID, tagNames)
-	}
+
+	tagNames := []string{vTag}
+	curRepo := ctx.Repo.Repository
+	releases, err := repo_model.GetReleasesByRepoIDAndNames(ctx, curRepo.ID, tagNames)
 	
 	if err != nil {
-		if repo_model.IsErrAttachmentNotExist(err) || repo_model.IsErrReleaseNotExist(err) {
+		if repo_model.IsErrAttachmentNotExist(err) {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
@@ -397,6 +389,23 @@ func RedirectDownload(ctx *context.Context) {
 	}
 	if len(releases) == 1 {
 		release := releases[0]
+		att, err := repo_model.GetAttachmentByReleaseIDFileName(ctx, release.ID, fileName)
+		if err != nil {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+		if att != nil {
+			ServeAttachment(ctx, att.UUID)
+			return
+		}
+	} else if vTag == "latest" {
+		// GitHub supports the alias "latest" for the latest release
+		// We only fetch the latest release if the tag is "latest" and no release with the tag "latest" exists
+		release, err := repo_model.GetLatestReleaseByRepoID(ctx, ctx.Repo.Repository.ID)
+		if err != nil {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
 		att, err := repo_model.GetAttachmentByReleaseIDFileName(ctx, release.ID, fileName)
 		if err != nil {
 			ctx.Error(http.StatusNotFound)
