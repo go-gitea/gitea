@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	files_service "code.gitea.io/gitea/services/repository/files"
+	"code.gitea.io/gitea/modules/structs"
 )
 
 const (

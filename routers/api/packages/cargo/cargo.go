@@ -21,6 +21,8 @@ import (
 	"code.gitea.io/gitea/services/convert"
 	packages_service "code.gitea.io/gitea/services/packages"
 	cargo_service "code.gitea.io/gitea/services/packages/cargo"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 )
 
 // https://doc.rust-lang.org/cargo/reference/registries.html#web-api
