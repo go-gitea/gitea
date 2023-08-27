@@ -281,7 +281,7 @@
 -
   id: 36
   uid: 36
-  email: 1290147055@qq.com
-  lower_email: 1290147055@qq.com
+  email: abcde@gitea.com
+  lower_email: abcde@gitea.com
   is_activated: true
   is_primary: false
