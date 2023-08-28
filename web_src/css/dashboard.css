@@ -96,10 +96,6 @@
   }
 }
 
-.feeds .commit-id {
-  font-family: var(--fonts-monospace);
-}
-
 .feeds code {
   padding: 2px 4px;
   border-radius: 3px;

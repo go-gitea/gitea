@@ -1,9 +1,11 @@
 plugins:
   - eslint-plugin-vue
+  - eslint-plugin-vue-scoped-css
 
 extends:
   - ../../../.eslintrc.yaml
   - plugin:vue/vue3-recommended
+  - plugin:vue-scoped-css/vue3-recommended
 
 env:
   browser: true
@@ -12,3 +14,4 @@ rules:
   vue/attributes-order: [0]
   vue/html-closing-bracket-spacing: [2, {startTag: never, endTag: never, selfClosingTag: never}]
   vue/max-attributes-per-line: [0]
+  vue-scoped-css/enforce-style-type: [0]

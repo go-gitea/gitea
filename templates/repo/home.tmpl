@@ -18,7 +18,7 @@
 							<div class="ui small action input{{if .CodeIndexerUnavailable}} disabled left icon{{end}}"{{if .CodeIndexerUnavailable}} data-tooltip-content="{{.locale.Tr "repo.search.code_search_unavailable"}}"{{end}}>
 								<input name="q" value="{{.Keyword}}"{{if .CodeIndexerUnavailable}} disabled{{end}} placeholder="{{.locale.Tr "repo.search.search_repo"}}">
 								{{if .CodeIndexerUnavailable}}
-									<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-alert"}}</i>
+									<i class="icon">{{svg "octicon-alert"}}</i>
 								{{end}}
 								<button class="ui small icon button"{{if .CodeIndexerUnavailable}} disabled{{end}} type="submit">
 									{{svg "octicon-search"}}

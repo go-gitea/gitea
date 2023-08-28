@@ -4,9 +4,13 @@
 package integration
 
 import (
+	"bytes"
 	"fmt"
+	"io"
+	"mime/multipart"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -38,12 +42,15 @@ func TestAPIListReleases(t *testing.T) {
 			case 1:
 				assert.False(t, release.IsDraft)
 				assert.False(t, release.IsPrerelease)
+				assert.True(t, strings.HasSuffix(release.UploadURL, "/api/v1/repos/user2/repo1/releases/1/assets"), release.UploadURL)
 			case 4:
 				assert.True(t, release.IsDraft)
 				assert.False(t, release.IsPrerelease)
+				assert.True(t, strings.HasSuffix(release.UploadURL, "/api/v1/repos/user2/repo1/releases/4/assets"), release.UploadURL)
 			case 5:
 				assert.False(t, release.IsDraft)
 				assert.True(t, release.IsPrerelease)
+				assert.True(t, strings.HasSuffix(release.UploadURL, "/api/v1/repos/user2/repo1/releases/5/assets"), release.UploadURL)
 			default:
 				assert.NoError(t, fmt.Errorf("unexpected release: %v", release))
 			}
@@ -247,4 +254,37 @@ func TestAPIDeleteReleaseByTagName(t *testing.T) {
 	// delete release tag too
 	req = NewRequestf(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/tags/release-tag?token=%s", owner.Name, repo.Name, token))
 	_ = MakeRequest(t, req, http.StatusNoContent)
+}
+
+func TestAPIUploadAssetRelease(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, owner.LowerName)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	r := createNewReleaseUsingAPI(t, session, token, owner, repo, "release-tag", "", "Release Tag", "test")
+
+	filename := "image.png"
+	buff := generateImg()
+	body := &bytes.Buffer{}
+
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("attachment", filename)
+	assert.NoError(t, err)
+	_, err = io.Copy(part, &buff)
+	assert.NoError(t, err)
+	err = writer.Close()
+	assert.NoError(t, err)
+
+	req := NewRequestWithBody(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/releases/%d/assets?name=test-asset&token=%s", owner.Name, repo.Name, r.ID, token), body)
+	req.Header.Add("Content-Type", writer.FormDataContentType())
+	resp := MakeRequest(t, req, http.StatusCreated)
+
+	var attachment *api.Attachment
+	DecodeJSON(t, resp, &attachment)
+
+	assert.EqualValues(t, "test-asset", attachment.Name)
+	assert.EqualValues(t, 104, attachment.Size)
 }

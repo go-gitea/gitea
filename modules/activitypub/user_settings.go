@@ -8,7 +8,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-const rsaBits = 2048
+const rsaBits = 3072
 
 // GetKeyPair function returns a user's private and public keys
 func GetKeyPair(user *user_model.User) (pub, priv string, err error) {

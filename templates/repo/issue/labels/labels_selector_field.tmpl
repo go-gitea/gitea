@@ -8,7 +8,7 @@
 	<div class="filter menu" {{if .Issue}}data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/labels"{{else}}data-id="#label_ids"{{end}}>
 		{{if or .Labels .OrgLabels}}
 			<div class="ui icon search input">
-				<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+				<i class="icon">{{svg "octicon-search" 16}}</i>
 				<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_labels"}}">
 			</div>
 		{{end}}

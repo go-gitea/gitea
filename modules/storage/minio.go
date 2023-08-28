@@ -91,8 +91,8 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 	}
 
 	// Check to see if we already own this bucket
-	exists, errBucketExists := minioClient.BucketExists(ctx, config.Bucket)
-	if errBucketExists != nil {
+	exists, err := minioClient.BucketExists(ctx, config.Bucket)
+	if err != nil {
 		return nil, convertMinioErr(err)
 	}
 
