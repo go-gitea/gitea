@@ -99,8 +99,9 @@ code.language-math.is-loading::after {
   animation: pulse 2s linear;
 }
 
-.ui.modal {
+.ui.modal,
+.ui.dimmer.transition {
   animation-name: fadein;
-  animation-duration: 300ms;
+  animation-duration: 100ms;
   animation-timing-function: ease-in-out;
 }
