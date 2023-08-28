@@ -157,7 +157,7 @@ func Milestones(ctx *context.Context) {
 	}
 
 	repoOpts := repo_model.SearchRepoOptions{
-		Actor:         ctxUser,
+		Actor:         ctx.Doer,
 		OwnerID:       ctxUser.ID,
 		Private:       true,
 		AllPublic:     false, // Include also all public repositories of users and public organisations
@@ -448,7 +448,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// - Team org's owns the repository.
 	// - Team has read permission to repository.
 	repoOpts := &repo_model.SearchRepoOptions{
-		Actor:       ctxUser,
+		Actor:       ctx.Doer,
 		OwnerID:     ctxUser.ID,
 		Private:     true,
 		AllPublic:   false,
