@@ -9,7 +9,7 @@
 }
 
 .flex-item:not(:last-child) {
-  padding-bottom: 8px;
+  padding-bottom: 1rem;
 }
 
 .flex-item-baseline {
@@ -92,5 +92,5 @@
 
 .flex-list > .flex-item + .flex-item {
   border-top: 1px solid var(--color-secondary);
-  padding-top: 8px;
+  padding-top: 1rem;
 }
