@@ -134,7 +134,7 @@
   top: -9px;
   min-width: 17px;
   min-height: 17px;
-  border-radius: 17px;
+  border-radius: var(--circle-border);
   display: flex;
   align-items: center;
   justify-content: center;
