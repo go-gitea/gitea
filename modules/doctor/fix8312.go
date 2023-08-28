@@ -15,7 +15,7 @@ import (
 	"xorm.io/builder"
 )
 
-func fixIncorrectCreateOrgRepoPermission(ctx context.Context, logger log.Logger, autofix bool) error {
+func fixOwnerTeamCreateOrgRepo(ctx context.Context, logger log.Logger, autofix bool) error {
 	count := 0
 
 	err := db.Iterate(
@@ -53,9 +53,9 @@ func fixIncorrectCreateOrgRepoPermission(ctx context.Context, logger log.Logger,
 func init() {
 	Register(&Check{
 		Title:     "Check for incorrect can_create_org_repo for org owner teams",
-		Name:      "fix-owner-team-create-org",
+		Name:      "fix-owner-team-create-org-repo",
 		IsDefault: false,
-		Run:       fixIncorrectCreateOrgRepoPermission,
+		Run:       fixOwnerTeamCreateOrgRepo,
 		Priority:  7,
 	})
 }
