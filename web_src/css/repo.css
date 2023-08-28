@@ -835,7 +835,7 @@
   width: 34px;
   height: 34px;
   background-color: var(--color-timeline);
-  border-radius: var(--circle-border);
+  border-radius: var(--border-radius-circle);
   display: flex;
   float: left;
   margin-left: -33px;

@@ -78,7 +78,7 @@
   position: absolute;
   left: -5.5px;
   top: 40px;
-  border-radius: var(--circle-border);
+  border-radius: var(--border-radius-circle);
   border: 2.5px solid var(--color-body);
 }
 
