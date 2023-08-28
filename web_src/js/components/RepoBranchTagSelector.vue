@@ -30,8 +30,7 @@
         <div class="loading-indicator is-loading" v-if="isLoading"/>
         <div v-for="(item, index) in filteredItems" :key="item.name" class="item" :class="{selected: item.selected, active: active === index}" @click="selectItem(item)" :ref="'listItem' + index">
           {{ item.name }}
-          <!-- in backend, we put default branch as the first item, so just check item index is enought here -->
-          <div class="ui label" v-if="index===0 && mode === 'branches'">
+          <div class="ui label" v-if="item.name===defaultBranch && mode === 'branches'">
             {{ textDefault }}
           </div>
           <a v-show="enableFeed && mode === 'branches'" role="button" class="rss-icon ui compact right" :href="rssURLPrefix + item.url" target="_blank" @click.stop>
