@@ -16,7 +16,9 @@
   --checkbox-mask-indeterminate: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M2 7.75A.75.75 0 012.75 7h10a.75.75 0 010 1.5h-10A.75.75 0 012 7.75z"></path></svg>');
   --octicon-chevron-right: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg>');
   /* non-color variables */
-  --border-radius: 0.28571429rem;
+  --border-radius: 4px;
+  --border-radius-medium: 6px;
+  --border-radius-circle: 100%;
   --opacity-disabled: 0.55;
   --height-loading: 16rem;
   --tab-size: 4;
@@ -309,7 +311,7 @@ details summary > * {
 
 progress {
   background: var(--color-secondary-dark-1);
-  border-radius: 6px;
+  border-radius: var(--border-radius);
   border: none;
   overflow: hidden;
 }
@@ -339,7 +341,7 @@ progress::-moz-progress-bar {
 ::-webkit-scrollbar-thumb {
   box-shadow: inset 0 0 0 6px var(--color-primary);
   border: 2px solid transparent;
-  border-radius: 5px !important;
+  border-radius: var(--border-radius);
 }
 
 ::-webkit-scrollbar-thumb:window-inactive {
@@ -454,7 +456,7 @@ a.label,
 
 .issue-title code {
   padding: 2px 4px;
-  border-radius: 6px;
+  border-radius: var(--border-radius-medium);
   background-color: var(--color-markup-code-block);
 }
 
@@ -1510,7 +1512,7 @@ img.ui.avatar,
   margin-left: 0.4em;
   height: 0.67em;
   width: 0.67em;
-  border-radius: 0.15em;
+  border-radius: var(--border-radius);
 }
 
 .attention-icon {
@@ -2013,7 +2015,7 @@ a.ui.basic.label:hover {
 
 .color-icon {
   display: inline-block;
-  border-radius: 100%;
+  border-radius: var(--border-radius-circle);
   height: 14px;
   width: 14px;
 }
