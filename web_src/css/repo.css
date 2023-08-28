@@ -709,7 +709,7 @@
   align-items: center !important;
   font-size: 14px !important;
   padding: 7px 10px !important;
-  border-radius: var(--border-radius-large) !important;
+  border-radius: var(--border-radius-medium) !important;
 }
 
 .issue-state-label .svg {
