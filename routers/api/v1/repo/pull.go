@@ -326,11 +326,9 @@ func CreatePullRequest(ctx *context.APIContext) {
 			return
 		}
 
-		labelIDs = make([]int64, len(form.Labels))
-		orgLabelIDs := make([]int64, len(form.Labels))
-
-		for i := range labels {
-			labelIDs[i] = labels[i].ID
+		labelIDs = make([]int64, 0, len(form.Labels))
+		for _, label := range labels {
+			labelIDs = append(labelIDs, label.ID)
 		}
 
 		if ctx.Repo.Owner.IsOrganization() {
@@ -340,12 +338,12 @@ func CreatePullRequest(ctx *context.APIContext) {
 				return
 			}
 
-			for i := range orgLabels {
-				orgLabelIDs[i] = orgLabels[i].ID
+			orgLabelIDs := make([]int64, len(form.Labels))
+			for i, orgLabel := range orgLabels {
+				orgLabelIDs[i] = orgLabel.ID
 			}
+			labelIDs = append(labelIDs, orgLabelIDs...)
 		}
-
-		labelIDs = append(labelIDs, orgLabelIDs...)
 	}
 
 	if form.Milestone > 0 {
