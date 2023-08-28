@@ -273,7 +273,7 @@
   border: 1px solid transparent;
   padding: 4px 8px;
   margin: -8px 0; /* just like other buttons in the diff box header */
-  border-radius: 0.285rem; /* just like .ui.tiny.button */
+  border-radius: var(--border-radius);
   font-size: 0.857rem; /* just like .ui.tiny.button */
 }
 

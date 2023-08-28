@@ -44,5 +44,5 @@
   position: absolute !important;
   resize: none !important;
   overflow: hidden !important;
-  border-radius: 4px !important;
+  border-radius: var(--border-radius-medium) !important;
 }
