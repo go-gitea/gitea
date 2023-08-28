@@ -430,7 +430,7 @@ func TestSearchIssues(t *testing.T) {
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 11)
+	assert.Len(t, apiIssues, 8)
 
 	query = url.Values{"owner": {"user3"}} // organization
 	link.RawQuery = query.Encode()

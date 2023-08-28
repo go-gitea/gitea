@@ -324,9 +324,9 @@
 
 -
   id: 20
-  repo_id: 59
-  index: 1
-  poster_id: 39
+  repo_id: 10
+  index: 2
+  poster_id: 12
   original_author_id: 0
   name: opening pr for recently new branch search test 
   content: content
@@ -341,9 +341,9 @@
 
 -
   id: 21
-  repo_id: 59
-  index: 2
-  poster_id: 39
+  repo_id: 10
+  index: 3
+  poster_id: 12
   original_author_id: 0
   name: closed pr for recently new branch search test 
   content: content
@@ -358,9 +358,9 @@
 
 -
   id: 22
-  repo_id: 59
-  index: 3
-  poster_id: 39
+  repo_id: 10
+  index: 4
+  poster_id: 12
   original_author_id: 0
   name: merged pr for recently new branch search test 
   content: content
@@ -375,9 +375,9 @@
 
 -
   id: 23
-  repo_id: 59
-  index: 4
-  poster_id: 39
+  repo_id: 10
+  index: 5
+  poster_id: 12
   original_author_id: 0
   name: closed pr with deleted branch for recently new branch search test 
   content: content
@@ -392,9 +392,9 @@
 
 -
   id: 24
-  repo_id: 59
-  index: 5
-  poster_id: 39
+  repo_id: 10
+  index: 6
+  poster_id: 12
   original_author_id: 0
   name: merged pr with deleted branch for recently new branch search test 
   content: content
@@ -409,9 +409,9 @@
 
 -
   id: 25
-  repo_id: 60
+  repo_id: 11
   index: 1
-  poster_id: 40
+  poster_id: 13
   original_author_id: 0
   name: pr with same branch name for recently new branch search test 
   content: content

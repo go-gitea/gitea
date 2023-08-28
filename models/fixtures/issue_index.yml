@@ -12,7 +12,7 @@
 
 -
   group_id: 10
-  max_index: 1
+  max_index: 6
 
 -
   group_id: 32
@@ -32,12 +32,4 @@
 
 -
   group_id: 51
-  max_index: 1
-
--
-  group_id: 58
-  max_index: 5
-
--
-  group_id: 59
   max_index: 1

@@ -188,11 +188,11 @@ func TestOnlyGetDeletedBranchOnCorrectRepo(t *testing.T) {
 func TestFindRecentlyPushedNewBranches(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 59})
-	user39 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 39})
-	user40 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 40})
-	user41 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 41})
-	user42 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 42})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	user12 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 12})
+	user13 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 13})
 
 	tests := []struct {
 		name  string
@@ -200,12 +200,12 @@ func TestFindRecentlyPushedNewBranches(t *testing.T) {
 		count int
 		want  []string
 	}{
-		// user39 is the owner of the repo and the organization
-		// in repo58, user39 has opening/closed/merged pr and closed/merged pr with deleted branch
+		// user12 is the owner of the repo10 and the organization org25
+		// in repo10, user12 has opening/closed/merged pr and closed/merged pr with deleted branch
 		{
 			name: "new branch of the repo, org fork repo, pr branches and deleted branch",
 			opts: &git_model.FindRecentlyPushedNewBranchesOptions{
-				Actor:           user39,
+				Actor:           user12,
 				CommitAfterUnix: 1489927670,
 				ListOptions: db.ListOptions{
 					PageSize: 10,
@@ -213,15 +213,15 @@ func TestFindRecentlyPushedNewBranches(t *testing.T) {
 				},
 			},
 			count: 2,
-			want:  []string{"new-commit", "org37/org_fork_repo61:org-fork-new-commit"},
+			want:  []string{"new-commit", "org25/org_fork_repo59:org-fork-new-commit"},
 		},
-		// we have 2 branches with the same name in repo59 and repo60
-		// and repo60's branch has a pr, but repo59's branch doesn't
-		// in this case, we should get repo59's branch but not repo60's branch
+		// user13 pushed 2 branches with the same name in repo10 and repo11
+		// and repo11's branch has a pr, but repo10's branch doesn't
+		// in this case, we should get repo10's branch but not repo11's branch
 		{
 			name: "new branch from user fork repo and same name branch",
 			opts: &git_model.FindRecentlyPushedNewBranchesOptions{
-				Actor:           user40,
+				Actor:           user13,
 				CommitAfterUnix: 1489927670,
 				ListOptions: db.ListOptions{
 					PageSize: 10,
@@ -229,21 +229,23 @@ func TestFindRecentlyPushedNewBranches(t *testing.T) {
 				},
 			},
 			count: 2,
-			want:  []string{"user40/user_fork_repo60:user-fork-new-commit", "same-name-branch-in-pr"},
+			want:  []string{"user13/repo11:user-fork-new-commit", "same-name-branch-in-pr"},
 		},
+		// user1 is the owner of private_org35
 		{
-			name: "new branch from private org with code permisstion repo",
+			name: "new branch from private org with code permission repo",
 			opts: &git_model.FindRecentlyPushedNewBranchesOptions{
-				Actor:           user41,
+				Actor:           user1,
 				CommitAfterUnix: 1489927670,
 			},
 			count: 1,
-			want:  []string{"private_org38/private_org_fork_repo62:private-org-fork-new-commit"},
+			want:  []string{"private_org35/private_org_fork_repo60:private-org-fork-new-commit"},
 		},
+		// user2 does not have code permission in private_org35
 		{
-			name: "new branch from private org with no code permisstion repo",
+			name: "new branch from private org with no code permission repo",
 			opts: &git_model.FindRecentlyPushedNewBranchesOptions{
-				Actor:           user42,
+				Actor:           user2,
 				CommitAfterUnix: 1489927670,
 			},
 			count: 0,
@@ -252,11 +254,11 @@ func TestFindRecentlyPushedNewBranches(t *testing.T) {
 		{
 			name: "test commitAfterUnix option",
 			opts: &git_model.FindRecentlyPushedNewBranchesOptions{
-				Actor:           user39,
+				Actor:           user12,
 				CommitAfterUnix: 1489927690,
 			},
 			count: 1,
-			want:  []string{"org37/org_fork_repo61:org-fork-new-commit"},
+			want:  []string{"org25/org_fork_repo59:org-fork-new-commit"},
 		},
 	}
 

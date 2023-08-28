@@ -191,7 +191,7 @@
   lower_name: owners
   name: Owners
   authorize: 4 # owner
-  num_repos: 0
+  num_repos: 1
   num_members: 1
   includes_all_repositories: false
   can_create_org_repo: true
@@ -220,10 +220,10 @@
 
 -
   id: 21
-  org_id: 37
+  org_id: 25
   lower_name: owners
   name: Owners
-  authorize: 4 # owner
+  authorize: 4 # read
   num_repos: 0
   num_members: 1
   includes_all_repositories: false
@@ -231,33 +231,11 @@
 
 -
   id: 22
-  org_id: 38
-  lower_name: owners
-  name: Owners
-  authorize: 4 # owner
-  num_repos: 0
-  num_members: 0
-  includes_all_repositories: false
-  can_create_org_repo: true
-
--
-  id: 23
-  org_id: 38
-  lower_name: team23readcode
-  name: team23readcode
-  authorize: 1 # read
-  num_repos: 1
-  num_members: 1
-  includes_all_repositories: false
-  can_create_org_repo: true
-
--
-  id: 24
-  org_id: 38
-  lower_name: team24noreadcode
-  name: team24noreadcode
+  org_id: 35
+  lower_name: team22noreadcode
+  name: team22noreadcode
   authorize: 0 # no access
   num_repos: 1
   num_members: 1
   includes_all_repositories: false
-  can_create_org_repo: true
+  can_create_org_repo: false

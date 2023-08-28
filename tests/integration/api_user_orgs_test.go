@@ -29,8 +29,21 @@ func TestUserOrgs(t *testing.T) {
 
 	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user3"})
 	user17 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user17"})
+	user35 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "private_org35"})
 
 	assert.Equal(t, []*api.Organization{
+		{
+			ID:          35,
+			Name:        user35.Name,
+			UserName:    user35.Name,
+			FullName:    user35.FullName,
+			Email:       user35.Email,
+			AvatarURL:   user35.AvatarLink(db.DefaultContext),
+			Description: "",
+			Website:     "",
+			Location:    "",
+			Visibility:  "private",
+		},
 		{
 			ID:          17,
 			Name:        user17.Name,
@@ -101,8 +114,21 @@ func TestMyOrgs(t *testing.T) {
 	DecodeJSON(t, resp, &orgs)
 	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user3"})
 	user17 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user17"})
+	user35 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "private_org35"})
 
 	assert.Equal(t, []*api.Organization{
+		{
+			ID:          35,
+			Name:        user35.Name,
+			UserName:    user35.Name,
+			FullName:    user35.FullName,
+			Email:       user35.Email,
+			AvatarURL:   user35.AvatarLink(db.DefaultContext),
+			Description: "",
+			Website:     "",
+			Location:    "",
+			Visibility:  "private",
+		},
 		{
 			ID:          17,
 			Name:        user17.Name,

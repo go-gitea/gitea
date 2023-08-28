@@ -102,7 +102,7 @@
 
 -
   id: 18
-  uid: 39
+  uid: 12
   org_id: 37
   is_public: false
 
@@ -117,3 +117,15 @@
   uid: 42
   org_id: 38
   is_public: false
+
+-
+  id: 21
+  uid: 12
+  org_id: 25
+  is_public: true
+
+-
+  id: 22
+  uid: 2
+  org_id: 35
+  is_public: true

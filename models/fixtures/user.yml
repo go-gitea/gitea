@@ -66,7 +66,7 @@
   num_followers: 2
   num_following: 1
   num_stars: 2
-  num_repos: 15
+  num_repos: 14
   num_teams: 0
   num_members: 0
   visibility: 0
@@ -917,9 +917,9 @@
   num_followers: 0
   num_following: 0
   num_stars: 0
-  num_repos: 0
-  num_teams: 1
-  num_members: 1
+  num_repos: 1
+  num_teams: 2
+  num_members: 2
   visibility: 0
   repo_admin_change_team_access: false
   theme: ""
@@ -1288,9 +1288,9 @@
   num_followers: 0
   num_following: 0
   num_stars: 0
-  num_repos: 0
-  num_teams: 1
-  num_members: 1
+  num_repos: 1
+  num_teams: 2
+  num_members: 2
   visibility: 2
   repo_admin_change_team_access: false
   theme: ""
@@ -1329,228 +1329,6 @@
   num_teams: 2
   num_members: 2
   visibility: 1
-  repo_admin_change_team_access: false
-  theme: ""
-  keep_activity_private: false
-
--
-  id: 37
-  lower_name: org37
-  name: org37
-  full_name: Org 37
-  email: org37@example.com
-  keep_email_private: false
-  email_notifications_preference: enabled
-  passwd: ZogKvWdyEx:password
-  passwd_hash_algo: dummy
-  must_change_password: false
-  login_source: 0
-  login_name: org37
-  type: 1
-  salt: ZogKvWdyEx
-  max_repo_creation: -1
-  is_active: true
-  is_admin: false
-  is_restricted: false
-  allow_git_hook: false
-  allow_import_local: false
-  allow_create_organization: true
-  prohibit_login: false
-  avatar: avatar37
-  avatar_email: org37@example.com
-  use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
-  num_stars: 0
-  num_repos: 1
-  num_teams: 1
-  num_members: 1
-  visibility: 0
-  repo_admin_change_team_access: false
-  theme: ""
-  keep_activity_private: false
-
--
-  id: 38
-  lower_name: private_org38
-  name: private_org38
-  full_name: Private Org 38
-  email: private_org38@example.com
-  keep_email_private: false
-  email_notifications_preference: enabled
-  passwd: ZogKvWdyEx:password
-  passwd_hash_algo: dummy
-  must_change_password: false
-  login_source: 0
-  login_name: private_org38
-  type: 1
-  salt: ZogKvWdyEx
-  max_repo_creation: -1
-  is_active: true
-  is_admin: false
-  is_restricted: false
-  allow_git_hook: false
-  allow_import_local: false
-  allow_create_organization: true
-  prohibit_login: false
-  avatar: avatar38
-  avatar_email: private_org38@example.com
-  use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
-  num_stars: 0
-  num_repos: 1
-  num_teams: 3
-  num_members: 2
-  visibility: 2
-  repo_admin_change_team_access: false
-  theme: ""
-  keep_activity_private: false
-
--
-  id: 39
-  lower_name: user39
-  name: user39
-  full_name: user39
-  email: user39@example.com
-  keep_email_private: true
-  email_notifications_preference: enabled
-  passwd: ZogKvWdyEx:password
-  passwd_hash_algo: dummy
-  must_change_password: false
-  login_source: 0
-  login_name: user39
-  type: 0
-  salt: ZogKvWdyEx
-  max_repo_creation: -1
-  is_active: true
-  is_admin: false
-  is_restricted: false
-  allow_git_hook: false
-  allow_import_local: false
-  allow_create_organization: true
-  prohibit_login: false
-  avatar: avatar39
-  avatar_email: user39@example.com
-  use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
-  num_stars: 0
-  num_repos: 0
-  num_teams: 0
-  num_members: 0
-  visibility: 0
-  repo_admin_change_team_access: false
-  theme: ""
-  keep_activity_private: false
-
--
-  id: 40
-  lower_name: user40
-  name: user40
-  full_name: user40
-  email: user40@example.com
-  keep_email_private: true
-  email_notifications_preference: enabled
-  passwd: ZogKvWdyEx:password
-  passwd_hash_algo: dummy
-  must_change_password: false
-  login_source: 0
-  login_name: user40
-  type: 0
-  salt: ZogKvWdyEx
-  max_repo_creation: -1
-  is_active: true
-  is_admin: false
-  is_restricted: false
-  allow_git_hook: false
-  allow_import_local: false
-  allow_create_organization: true
-  prohibit_login: false
-  avatar: avatar40
-  avatar_email: user40@example.com
-  use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
-  num_stars: 0
-  num_repos: 1
-  num_teams: 0
-  num_members: 0
-  visibility: 0
-  repo_admin_change_team_access: false
-  theme: ""
-  keep_activity_private: false
-
--
-  id: 41
-  lower_name: user41
-  name: user41
-  full_name: user41
-  email: user41@example.com
-  keep_email_private: true
-  email_notifications_preference: enabled
-  passwd: ZogKvWdyEx:password
-  passwd_hash_algo: dummy
-  must_change_password: false
-  login_source: 0
-  login_name: user41
-  type: 0
-  salt: ZogKvWdyEx
-  max_repo_creation: -1
-  is_active: true
-  is_admin: false
-  is_restricted: false
-  allow_git_hook: false
-  allow_import_local: false
-  allow_create_organization: true
-  prohibit_login: false
-  avatar: avatar41
-  avatar_email: user41@example.com
-  use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
-  num_stars: 0
-  num_repos: 0
-  num_teams: 0
-  num_members: 0
-  visibility: 0
-  repo_admin_change_team_access: false
-  theme: ""
-  keep_activity_private: false
-
--
-  id: 42
-  lower_name: user42
-  name: user42
-  full_name: user42
-  email: user42@example.com
-  keep_email_private: true
-  email_notifications_preference: enabled
-  passwd: ZogKvWdyEx:password
-  passwd_hash_algo: dummy
-  must_change_password: false
-  login_source: 0
-  login_name: user42
-  type: 0
-  salt: ZogKvWdyEx
-  max_repo_creation: -1
-  is_active: true
-  is_admin: false
-  is_restricted: false
-  allow_git_hook: false
-  allow_import_local: false
-  allow_create_organization: true
-  prohibit_login: false
-  avatar: avatar42
-  avatar_email: user42@example.com
-  use_custom_avatar: false
-  num_followers: 0
-  num_following: 0
-  num_stars: 0
-  num_repos: 0
-  num_teams: 0
-  num_members: 0
-  visibility: 0
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
