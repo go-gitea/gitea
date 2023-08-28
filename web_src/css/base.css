@@ -2301,6 +2301,10 @@ table th[data-sortt-desc] .svg {
   vertical-align: middle;
 }
 
+.ui.ui.circular.label {
+  justify-content: center;
+}
+
 .ui.ui.labeled.button {
   gap: 0;
   align-items: stretch;
