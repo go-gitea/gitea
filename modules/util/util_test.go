@@ -13,35 +13,148 @@ import (
 )
 
 func TestURLJoin(t *testing.T) {
-	type test struct {
-		Expected string
+	cases := []struct {
 		Base     string
-		Elements []string
+		Elems    []string
+		Expected string
+	}{
+		{
+			Base:     "https://try.gitea.io",
+			Elems:    []string{"a/b", "c"},
+			Expected: "https://try.gitea.io/a/b/c",
+		},
+		{
+			Base:     "https://try.gitea.io/",
+			Elems:    []string{"a/b", "c"},
+			Expected: "https://try.gitea.io/a/b/c",
+		},
+		{
+			Base:     "https://try.gitea.io/",
+			Elems:    []string{"/a/b/", "/c/"},
+			Expected: "https://try.gitea.io/a/b/c",
+		},
+		{
+			Base:     "https://try.gitea.io/",
+			Elems:    []string{"/a/./b/", "../c/"},
+			Expected: "https://try.gitea.io/a/c",
+		},
+		{
+			Base:     "a",
+			Elems:    []string{"b/c/"},
+			Expected: "a/b/c",
+		},
+		{
+			Base:     "a/",
+			Elems:    []string{"b/c/", "/../d/"},
+			Expected: "a/b/d",
+		},
+		{
+			Base:     "https://try.gitea.io",
+			Elems:    []string{"a/b", "c#d"},
+			Expected: "https://try.gitea.io/a/b/c#d",
+		},
+		{
+			Base:     "/a/",
+			Elems:    []string{"b/c/", "/../d/"},
+			Expected: "/a/b/d",
+		},
+		{
+			Base:     "/a",
+			Elems:    []string{"b/c/"},
+			Expected: "/a/b/c",
+		},
+		{
+			Base:     "/a",
+			Elems:    []string{"b/c#hash"},
+			Expected: "/a/b/c#hash",
+		},
+		{
+			Base:     "\x7f", // invalid url
+			Expected: "",
+		},
+		{
+			Base:     "path",
+			Expected: "path/",
+		},
+		{
+			Base:     "/path",
+			Expected: "/path/",
+		},
+		{
+			Base:     "path/",
+			Expected: "path/",
+		},
+		{
+			Base:     "/path/",
+			Expected: "/path/",
+		},
+		{
+			Base:     "path",
+			Elems:    []string{"sub"},
+			Expected: "path/sub",
+		},
+		{
+			Base:     "/path",
+			Elems:    []string{"sub"},
+			Expected: "/path/sub",
+		},
+		{
+			Base:     "https://gitea.com",
+			Expected: "https://gitea.com/",
+		},
+		{
+			Base:     "https://gitea.com/",
+			Expected: "https://gitea.com/",
+		},
+		{
+			Base:     "https://gitea.com",
+			Elems:    []string{"sub/path"},
+			Expected: "https://gitea.com/sub/path",
+		},
+		{
+			Base:     "https://gitea.com/",
+			Elems:    []string{"sub", "path"},
+			Expected: "https://gitea.com/sub/path",
+		},
+		{
+			Base:     "https://gitea.com/",
+			Elems:    []string{"sub", "..", "path"},
+			Expected: "https://gitea.com/path",
+		},
+		{
+			Base:     "https://gitea.com/",
+			Elems:    []string{"sub/..", "path"},
+			Expected: "https://gitea.com/path",
+		},
+		{
+			Base:     "https://gitea.com/",
+			Elems:    []string{"sub", "../path"},
+			Expected: "https://gitea.com/path",
+		},
+		{
+			Base:     "https://gitea.com/",
+			Elems:    []string{"sub/../path"},
+			Expected: "https://gitea.com/path",
+		},
+		{
+			Base:     "https://gitea.com/",
+			Elems:    []string{"sub", ".", "path"},
+			Expected: "https://gitea.com/sub/path",
+		},
+		{
+			Base:     "https://gitea.com/",
+			Elems:    []string{"sub", "/", "path"},
+			Expected: "https://gitea.com/sub/path",
+		},
+		{ // https://github.com/go-gitea/gitea/issues/25632
+			Base:     "/owner/repo/media/branch/main",
+			Elems:    []string{"/../other/image.png"},
+			Expected: "/owner/repo/media/branch/other/image.png",
+		},
 	}
-	newTest := func(expected, base string, elements ...string) test {
-		return test{Expected: expected, Base: base, Elements: elements}
-	}
-	for _, test := range []test{
-		newTest("https://try.gitea.io/a/b/c",
-			"https://try.gitea.io", "a/b", "c"),
-		newTest("https://try.gitea.io/a/b/c",
-			"https://try.gitea.io/", "/a/b/", "/c/"),
-		newTest("https://try.gitea.io/a/c",
-			"https://try.gitea.io/", "/a/./b/", "../c/"),
-		newTest("a/b/c",
-			"a", "b/c/"),
-		newTest("a/b/d",
-			"a/", "b/c/", "/../d/"),
-		newTest("https://try.gitea.io/a/b/c#d",
-			"https://try.gitea.io", "a/b", "c#d"),
-		newTest("/a/b/d",
-			"/a/", "b/c/", "/../d/"),
-		newTest("/a/b/c",
-			"/a", "b/c/"),
-		newTest("/a/b/c#hash",
-			"/a", "b/c#hash"),
-	} {
-		assert.Equal(t, test.Expected, URLJoin(test.Base, test.Elements...))
+
+	for i, c := range cases {
+		assert.Equal(t, c.Expected, URLJoin(c.Base, c.Elems...), "Unexpected result in test case %v", i)
 	}
 }
 

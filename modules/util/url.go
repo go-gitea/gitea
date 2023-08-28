@@ -5,7 +5,6 @@ package util
 
 import (
 	"net/url"
-	"path"
 	"strings"
 )
 
@@ -28,14 +27,21 @@ func URLJoin(base string, elems ...string) string {
 	if err != nil {
 		return ""
 	}
-	joinedPath := path.Join(elems...)
-	argURL, err := url.Parse(joinedPath)
-	if err != nil {
-		return ""
+
+	var fragment string
+	last := len(elems) - 1
+	if len(elems) > 0 {
+		if strings.Contains(elems[last], "#") {
+			elems[last], fragment, _ = strings.Cut(elems[last], "#")
+		}
+		elems[last] = strings.TrimSuffix(elems[last], "/") // keep old behaviour
 	}
-	joinedURL := baseURL.ResolveReference(argURL).String()
+
+	joinedURL := baseURL.JoinPath(elems...)
+	joinedURL.Fragment = fragment
+
 	if !baseURL.IsAbs() && !strings.HasPrefix(base, "/") {
-		return joinedURL[1:] // Removing leading '/' if needed
+		return strings.TrimPrefix(joinedURL.String(), "/") // Removing leading '/' if needed
 	}
-	return joinedURL
+	return joinedURL.String()
 }
