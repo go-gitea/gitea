@@ -746,7 +746,7 @@ func GetUserRepositories(opts *SearchRepoOptions) (RepositoryList, int64, error)
 	return repos, count, db.SetSessionPagination(sess, opts).Find(&repos)
 }
 
-func GetPrimaryRepoLanguageList(ctx context.Context, ownerID int64, private bool) (LanguageStatList, error) {
+func GetPrimaryRepoLanguageList(ctx context.Context, ownerID int64, user *user_model.User) (LanguageStatList, error) {
 	languageList := make(LanguageStatList, 0)
 
 	q := db.GetEngine(ctx).
@@ -755,15 +755,12 @@ func GetPrimaryRepoLanguageList(ctx context.Context, ownerID int64, private bool
 		Where(builder.Eq{"is_primary": true})
 
 	if ownerID > 0 {
-		ids, err := SearchRepositoryIDsByCondition(ctx, builder.NewCond().And(
-			builder.Eq{"owner_id": ownerID},
-			builder.Eq{"is_private": private},
-		))
+		ownerIDs, err := FindUserCodeAccessibleOwnerRepoIDs(ctx, ownerID, user)
 		if err != nil {
 			return nil, err
 		}
 
-		q = q.In("repo_id", ids)
+		q = q.In("repo_id", ownerIDs)
 	}
 
 	err := q.Distinct("language").

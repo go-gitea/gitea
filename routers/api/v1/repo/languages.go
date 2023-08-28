@@ -12,7 +12,7 @@ import (
 )
 
 func SendPrimaryLanguageList(ctx *context.APIContext, ownerID int64) {
-	langs, err := repo_model.GetPrimaryRepoLanguageList(ctx, ownerID, ctx.IsSigned)
+	langs, err := repo_model.GetPrimaryRepoLanguageList(ctx, ownerID, ctx.Doer)
 	if err != nil {
 		ctx.InternalServerError(err)
 	}
