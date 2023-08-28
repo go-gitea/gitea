@@ -326,7 +326,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 			return
 		}
 
-		labelIDs = make([]int64, 0, len(form.Labels))
+		labelIDs = make([]int64, 0, len(labels))
 		for _, label := range labels {
 			labelIDs = append(labelIDs, label.ID)
 		}
@@ -338,9 +338,9 @@ func CreatePullRequest(ctx *context.APIContext) {
 				return
 			}
 
-			orgLabelIDs := make([]int64, len(form.Labels))
-			for i, orgLabel := range orgLabels {
-				orgLabelIDs[i] = orgLabel.ID
+			orgLabelIDs := make([]int64, 0, len(orgLabels))
+			for _, orgLabel := range orgLabels {
+				orgLabelIDs = append(orgLabelIDs, orgLabel.ID)
 			}
 			labelIDs = append(labelIDs, orgLabelIDs...)
 		}
