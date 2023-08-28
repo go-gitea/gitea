@@ -185,10 +185,10 @@
 			<div class="pullrequest-form {{if not .Flash}}gt-hidden{{end}}">
 				{{template "repo/issue/new_form" .}}
 			</div>
-		{{else if .PageIsComparePull}}
+		{{else if and .HeadIsBranch .BaseIsBranch}}
 			<div class="ui segment">{{.locale.Tr "repo.pulls.nothing_to_compare"}}</div>
 		{{else}}
-			<div class="ui segment">{{.locale.Tr "repo.pulls.nothing_to_compare_bewtween_branch_and_tag"}}</div>
+			<div class="ui segment">{{.locale.Tr "repo.pulls.nothing_to_compare_have_tag"}}</div>
 		{{end}}
 	{{else if and .PageIsComparePull (gt .CommitCount 0)}}
 		{{if .HasPullRequest}}
