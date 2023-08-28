@@ -6,7 +6,6 @@
       @click.stop="toggleMenu()"
       :data-tooltip-content="locale.filter_changes_by_commit"
       aria-haspopup="true"
-      tabindex="0"
       aria-controls="diff-commit-selector-menu"
       :aria-label="locale.filter_changes_by_commit"
       aria-activedescendant="diff-commit-list-show-all"
@@ -15,7 +14,7 @@
     </button>
     <div class="menu left transition" id="diff-commit-selector-menu" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak :aria-expanded="menuVisible ? 'true': 'false'">
       <div class="loading-indicator is-loading" v-if="isLoading"/>
-      <div v-if="!isLoading" class="vertical item gt-df gt-fc gt-gap-2" id="diff-commit-list-show-all" role="menuitem" tabindex="-1" @keydown.enter="showAllChanges()" @click="showAllChanges()">
+      <div v-if="!isLoading" class="vertical item gt-df gt-fc gt-gap-2" id="diff-commit-list-show-all" role="menuitem" @keydown.enter="showAllChanges()" @click="showAllChanges()">
         <div class="gt-ellipsis">
           {{ locale.show_all_commits }}
         </div>
@@ -25,7 +24,7 @@
       </div>
       <!-- only show the show changes since last review if there is a review AND we are commits ahead of the last review -->
       <div
-        v-if="lastReviewCommitSha != null" role="menuitem" tabindex="-1"
+        v-if="lastReviewCommitSha != null" role="menuitem"
         class="vertical item gt-df gt-fc gt-gap-2 gt-border-secondary-top"
         :class="{disabled: commitsSinceLastReview === 0}"
         @keydown.enter="changesSinceLastReviewClick()"
@@ -41,7 +40,7 @@
       <span v-if="!isLoading" class="info gt-border-secondary-top text light-2">{{ locale.select_commit_hold_shift_for_range }}</span>
       <template v-for="commit in commits" :key="commit.id">
         <div
-          class="vertical item gt-df gt-gap-2 gt-border-secondary-top" role="menuitem" tabindex="-1"
+          class="vertical item gt-df gt-gap-2 gt-border-secondary-top" role="menuitem"
           :class="{selection: commit.selected, hovered: commit.hovered}"
           @keydown.enter.exact="commitClicked(commit.id)"
           @keydown.enter.shift.exact="commitClickedShift(commit)"

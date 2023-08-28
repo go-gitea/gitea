@@ -61,7 +61,7 @@ DEFAULT_REPO_UNITS = ...,repo.actions
 注意，`https://`或`http://`前缀是必需的！
 
 另外，如果您希望您的Runner默认从GitHub或您自己的Gitea实例下载Actions，可以通过设置 `[actions].DEFAULT_ACTIONS_URL`进行配置。
-参见[配置速查表](https://docs.gitea.io/en-us/config-cheat-sheet/#actions-actions)。
+参见[配置速查表](administration/config-cheat-sheet.md#actions-actions)。
 
 这是与GitHub Actions的一个区别，但它应该允许用户以更灵活的方式运行Actions。
 
@@ -69,7 +69,7 @@ DEFAULT_REPO_UNITS = ...,repo.actions
 
 Runner仅具有连接到您的Gitea实例的权限。
 当任何Runner接收到要运行的Job时，它将临时获得与Job关联的仓库的有限权限。
-如果您想为Runner提供更多权限，允许它访问更多私有仓库或外部系统，您可以向其传递[密钥](https://docs.gitea.io/en-us/usage/secrets/)。
+如果您想为Runner提供更多权限，允许它访问更多私有仓库或外部系统，您可以向其传递[密钥](usage/secrets.md)。
 
 对于 Actions 的细粒度权限控制是一项复杂的工作。
 在未来，我们将添加更多选项以使Gitea更可配置，例如允许对仓库进行更多写访问或对同一组织中的所有仓库进行读访问。
