@@ -474,7 +474,7 @@ a.label,
 
 /* fix Fomantic's line-height cutting off "g" on Windows Chrome with Segoe UI */
 .ui.input > input {
-  line-height: 1.3;
+  line-height: var(--line-height-default);
 }
 
 .ui.input.focus > input,
@@ -951,6 +951,7 @@ img.ui.avatar,
   filter: saturate(2);
 }
 
+/* TODO: use gt-word-break instead */
 .dont-break-out {
   overflow-wrap: break-word;
   word-wrap: break-word;
@@ -1456,10 +1457,6 @@ img.ui.avatar,
   border-color: var(--color-gold) !important;
 }
 
-.ui .branch-tag-choice {
-  line-height: 20px;
-}
-
 @media (max-width: 767.98px) {
   .ui.pagination.menu .item:not(.active,.navigation),
   .ui.pagination.menu .item.navigation span.navigation_label {
@@ -1640,10 +1637,6 @@ img.ui.avatar,
   margin-left: 0.5rem;
 }
 
-.repo-icon {
-  display: inline-block;
-}
-
 .activity-bar-graph {
   background-color: var(--color-primary);
   color: var(--color-primary-contrast);
@@ -1679,10 +1672,6 @@ img.ui.avatar,
 
 i.icons .icon:first-child {
   margin-right: 0;
-}
-
-i.icon.centerlock {
-  top: 1em;
 }
 
 .ui.label {
@@ -1879,10 +1868,6 @@ a.ui.active.label:hover {
   width: 100%;
 }
 
-.octicon-tiny {
-  font-size: 0.85714286rem;
-}
-
 .ui.primary.label,
 .ui.primary.labels .label,
 .ui.ui.ui.primary.label {
@@ -2037,6 +2022,7 @@ a.ui.basic.label:hover {
   margin-left: 0;
 }
 
+/* TODO: replace it with gt-invisible */
 .invisible {
   visibility: hidden;
 }
@@ -2121,11 +2107,6 @@ table th[data-sortt-desc] .svg {
 
 .ui.multiple.dropdown > .label {
   box-shadow: 0 0 0 1px var(--color-secondary) inset;
-}
-
-.text-label {
-  display: inline-flex !important;
-  align-items: center !important;
 }
 
 .emoji,
@@ -2241,14 +2222,14 @@ table th[data-sortt-desc] .svg {
 }
 
 .precolors {
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-  margin: 3px 10px auto !important;
-  width: 120px !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-left: 1em;
 }
 
 .precolors .color {
-  float: left;
+  display: inline-block;
   width: 15px;
   height: 15px;
 }
@@ -2303,6 +2284,7 @@ table th[data-sortt-desc] .svg {
 
 .ui.ui.button,
 .ui.ui.dropdown,
+.ui.ui.label,
 .flex-items-inline > .item,
 .flex-text-inline {
   display: inline-flex;
@@ -2317,6 +2299,10 @@ table th[data-sortt-desc] .svg {
 
 .ui.dropdown .ui.label .svg {
   vertical-align: middle;
+}
+
+.ui.ui.circular.label {
+  justify-content: center;
 }
 
 .ui.ui.labeled.button {
