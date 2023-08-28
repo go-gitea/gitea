@@ -45,14 +45,12 @@ func MockContext(t *testing.T, reqPath string) (*context.Context, *httptest.Resp
 	resp := httptest.NewRecorder()
 	req := mockRequest(t, reqPath)
 	base, baseCleanUp := context.NewBaseContext(resp, req)
+	_ = baseCleanUp // during test, it doesn't need to do clean up. TODO: this can be improved later
 	base.Data = middleware.GetContextData(req.Context())
 	base.Locale = &translation.MockLocale{}
-	ctx := &context.Context{
-		Base:   base,
-		Render: &mockRender{},
-		Flash:  &middleware.Flash{Values: url.Values{}},
-	}
-	_ = baseCleanUp // during test, it doesn't need to do clean up. TODO: this can be improved later
+
+	ctx := context.NewWebContext(base, &MockRender{}, nil)
+	ctx.Flash = &middleware.Flash{Values: url.Values{}}
 
 	chiCtx := chi.NewRouteContext()
 	ctx.Base.AppendContextValue(chi.RouteCtxKey, chiCtx)
@@ -148,13 +146,13 @@ func LoadGitRepo(t *testing.T, ctx *context.Context) {
 	assert.NoError(t, err)
 }
 
-type mockRender struct{}
+type MockRender struct{}
 
-func (tr *mockRender) TemplateLookup(tmpl string, _ gocontext.Context) (templates.TemplateExecutor, error) {
+func (tr *MockRender) TemplateLookup(tmpl string, _ gocontext.Context) (templates.TemplateExecutor, error) {
 	return nil, nil
 }
 
-func (tr *mockRender) HTML(w io.Writer, status int, _ string, _ any, _ gocontext.Context) error {
+func (tr *MockRender) HTML(w io.Writer, status int, _ string, _ any, _ gocontext.Context) error {
 	if resp, ok := w.(http.ResponseWriter); ok {
 		resp.WriteHeader(status)
 	}

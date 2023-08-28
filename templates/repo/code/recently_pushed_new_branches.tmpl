@@ -4,7 +4,7 @@
 			{{$timeSince := TimeSince .CommitTime.AsTime $.locale}}
 			{{$.locale.Tr "repo.pulls.recently_pushed_new_branches" .BranchName $timeSince | Safe}}
 		</div>
-		<a aria-role="button" class="ui compact positive button gt-m-0" href="{{.BranchCompareURL}}">
+		<a role="button" class="ui compact positive button gt-m-0" href="{{.BranchCompareURL}}">
 			{{$.locale.Tr "repo.pulls.compare_changes"}}
 		</a>
 	</div>
