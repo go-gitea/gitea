@@ -18,7 +18,7 @@ menu:
 # Mail templates
 
 To craft the e-mail subject and contents for certain operations, Gitea can be customized by using templates. The templates
-for these functions are located under the [`custom` directory](https://docs.gitea.io/en-us/customizing-gitea/).
+for these functions are located under the [`custom` directory](administration/customizing-gitea.md).
 Gitea has an internal template that serves as default in case there's no custom alternative.
 
 Custom templates are loaded when Gitea starts. Changes made to them are not recognized until Gitea is restarted again.
@@ -165,7 +165,7 @@ If the template fails to render, it will be noticed only at the moment the mail 
 A default subject is used if the subject template fails, and whatever was rendered successfully
 from the the _mail body_ is used, disregarding the rest.
 
-Please check [Gitea's logs](https://docs.gitea.io/en-us/logging-configuration/) for error messages in case of trouble.
+Please check [Gitea's logs](administration/logging-config.md) for error messages in case of trouble.
 
 ## Example
 
