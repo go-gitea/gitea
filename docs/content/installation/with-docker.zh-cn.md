@@ -260,7 +260,7 @@ MySQL 或 PostgreSQL 容器将需要分别创建。
 
 ## 自定义
 
-[此处](https://docs.gitea.io/zh-cn/customizing-gitea/)描述的定制文件应放在 `/data/gitea` 目录中。如果使用主机卷，则访问这些文件非常容易；对于命名卷，可以通过另一个容器或通过直接访问 `/var/lib/docker/volumes/gitea_gitea/_data` 来完成。安装后，配置文件将保存在 `/data/gitea/conf/app.ini` 中。
+[此处](administration/customizing-gitea.md)描述的定制文件应放在 `/data/gitea` 目录中。如果使用主机卷，则访问这些文件非常容易；对于命名卷，可以通过另一个容器或通过直接访问 `/var/lib/docker/volumes/gitea_gitea/_data` 来完成。安装后，配置文件将保存在 `/data/gitea/conf/app.ini` 中。
 
 ## 升级
 
@@ -293,7 +293,7 @@ services:
       - GITEA__mailer__PASSWD="""${GITEA__mailer__PASSWD:?GITEA__mailer__PASSWD not set}"""
 ```
 
-Gitea 将为每次新安装自动生成新的 `SECRET_KEY` 并将它们写入 `app.ini`。 如果您想手动设置 `SECRET_KEY`，您可以使用以下 docker 命令来使用 Gitea 内置的[方法](https://docs.gitea.io/en-us/command-line/#generate)生成 `SECRET_KEY`。 安装后请妥善保管您的 `SECRET_KEY`，如若丢失则无法解密已加密的数据。
+Gitea 将为每次新安装自动生成新的 `SECRET_KEY` 并将它们写入 `app.ini`。 如果您想手动设置 `SECRET_KEY`，您可以使用以下 docker 命令来使用 Gitea 内置的[方法](administration/command-line.md#generate)生成 `SECRET_KEY`。 安装后请妥善保管您的 `SECRET_KEY`，如若丢失则无法解密已加密的数据。
 
 以下命令将向 `stdout` 输出一个新的 `SECRET_KEY` 和 `INTERNAL_TOKEN`，然后您可以将其放入环境变量中。
 

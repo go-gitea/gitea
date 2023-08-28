@@ -19,7 +19,7 @@
 				<div class="markup"><pre class="code-block"><code>{{range .PackageDescriptor.Files}}{{if eq .File.LowerName "manifest.json"}}{{.Properties.GetByName "container.digest"}}{{end}}{{end}}</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{.locale.Tr "packages.container.documentation" "https://docs.gitea.io/en-us/usage/packages/container/" | Safe}}</label>
+				<label>{{.locale.Tr "packages.container.documentation" "https://docs.gitea.com/usage/packages/container/" | Safe}}</label>
 			</div>
 		</div>
 	</div>
