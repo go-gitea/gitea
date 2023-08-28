@@ -219,7 +219,7 @@ func (m *MinioStorage) IterateObjects(dirName string, fn func(path string, obj O
 	defer cancel()
 
 	basePath := m.basePath
-	if dirName != "" {
+	if dirName != "" && dirName != "/" {
 		// ending slash is required for avoiding matching like "foo/" and "foobar/" with prefix "foo"
 		basePath = m.buildMinioPath(dirName) + "/"
 	}
