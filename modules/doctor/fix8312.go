@@ -53,7 +53,7 @@ func fixIncorrectCreateOrgRepoPermission(ctx context.Context, logger log.Logger,
 func init() {
 	Register(&Check{
 		Title:     "Check for incorrect can_create_org_repo for org owner teams",
-		Name:      "fix-incorrect-create-org-repo-permission",
+		Name:      "fix-owner-team-create-org",
 		IsDefault: false,
 		Run:       fixIncorrectCreateOrgRepoPermission,
 		Priority:  7,
