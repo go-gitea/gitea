@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/routers/web/shared/actions"
-	"code.gitea.io/gitea/services/convert"
 )
 
 // ListActionsSecrets list an organization's actions secrets
@@ -74,55 +73,11 @@ func listActionsSecrets(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, apiSecrets)
 }
 
-// CreateOrgSecret create one secret of the organization
-func CreateOrgSecret(ctx *context.APIContext) {
-	// swagger:operation POST /orgs/{org}/actions/secrets organization createOrgSecret
-	// ---
-	// summary: Create a secret in an organization
-	// consumes:
-	// - application/json
-	// produces:
-	// - application/json
-	// parameters:
-	// - name: org
-	//   in: path
-	//   description: name of organization
-	//   type: string
-	//   required: true
-	// - name: body
-	//   in: body
-	//   schema:
-	//     "$ref": "#/definitions/CreateSecretOption"
-	// responses:
-	//   "201":
-	//     "$ref": "#/responses/Secret"
-	//   "400":
-	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	opt := web.GetForm(ctx).(*api.CreateSecretOption)
-	if err := actions.NameRegexMatch(opt.Name); err != nil {
-		ctx.Error(http.StatusBadRequest, "CreateOrgSecret", err)
-		return
-	}
-	s, err := secret_model.InsertEncryptedSecret(
-		ctx, ctx.Org.Organization.ID, 0, opt.Name, actions.ReserveLineBreakForTextarea(opt.Data),
-	)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "InsertEncryptedSecret", err)
-		return
-	}
-
-	ctx.JSON(http.StatusCreated, convert.ToSecret(s))
-}
-
-// UpdateOrgSecret update one secret of the organization
-func UpdateOrgSecret(ctx *context.APIContext) {
+// create or update one secret of the organization
+func CreateOrUpdateOrgSecret(ctx *context.APIContext) {
 	// swagger:operation PUT /orgs/{org}/actions/secrets/{secretname} organization updateOrgSecret
 	// ---
-	// summary: Update a secret value in an organization
+	// summary: Create or Update a secret value in an organization
 	// consumes:
 	// - application/json
 	// produces:
@@ -141,19 +96,34 @@ func UpdateOrgSecret(ctx *context.APIContext) {
 	// - name: body
 	//   in: body
 	//   schema:
-	//     "$ref": "#/definitions/UpdateSecretOption"
+	//     "$ref": "#/definitions/CreateOrUpdateSecretOption"
 	// responses:
+	//   "201":
+	//     description: response when creating a secret
 	//   "204":
-	//     description: update one secret of the organization
+	//     description: response when updating a secret
+	//   "400":
+	//     "$ref": "#/responses/error"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	secretName := ctx.Params(":secretname")
-	opt := web.GetForm(ctx).(*api.UpdateSecretOption)
+	if err := actions.NameRegexMatch(secretName); err != nil {
+		ctx.Error(http.StatusBadRequest, "CreateOrUpdateOrgSecret", err)
+		return
+	}
+	opt := web.GetForm(ctx).(*api.CreateOrUpdateSecretOption)
 	err := secret_model.UpdateSecret(
 		ctx, ctx.Org.Organization.ID, 0, secretName, opt.Data,
 	)
 	if secret_model.IsErrSecretNotFound(err) {
-		ctx.NotFound(err)
+		_, err := secret_model.InsertEncryptedSecret(
+			ctx, ctx.Org.Organization.ID, 0, secretName, actions.ReserveLineBreakForTextarea(opt.Data),
+		)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "InsertEncryptedSecret", err)
+			return
+		}
+		ctx.Status(http.StatusCreated)
 		return
 	}
 	if err != nil {

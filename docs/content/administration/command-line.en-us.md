@@ -313,7 +313,7 @@ directory and will overwrite any existing files.
   - `--ecdsa-curve value`: ECDSA curve to use to generate a key. Optional. Valid options
     are P224, P256, P384, P521.
   - `--rsa-bits value`: Size of RSA key to generate. Optional. Ignored if --ecdsa-curve is
-    set. (default: 2048).
+    set. (default: 3072).
   - `--start-date value`: Creation date. Optional. (format: `Jan 1 15:04:05 2011`).
   - `--duration value`: Duration which the certificate is valid for. Optional. (default: 8760h0m0s)
   - `--ca`: If provided, this cert generates it's own certificate authority. Optional.
