@@ -223,7 +223,7 @@
   org_id: 25
   lower_name: owners
   name: Owners
-  authorize: 4 # read
+  authorize: 4 # owner
   num_repos: 0
   num_members: 1
   includes_all_repositories: false
