@@ -44,7 +44,6 @@ jobs:
               - "go.sum"
               - "Makefile"
               - ".golangci.yml"
-              - ".stylelintrc.yaml"
               - ".editorconfig"
 
             frontend:
@@ -55,6 +54,7 @@ jobs:
               - "package-lock.json"
               - "Makefile"
               - ".eslintrc.yml"
+              - ".stylelintrc.yaml"
               - ".npmrc"
 
             docs:
