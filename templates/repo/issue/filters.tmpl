@@ -15,7 +15,7 @@
 				</span>
 				<div class="menu">
 					<div class="ui icon search input">
-						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+						<i class="icon">{{svg "octicon-search" 16}}</i>
 						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_label"}}">
 					</div>
 					<span class="info">{{.locale.Tr "repo.issues.filter_label_exclude" | Safe}}</span>
@@ -43,7 +43,7 @@
 				</span>
 				<div class="menu">
 					<div class="ui icon search input">
-						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+						<i class="icon">{{svg "octicon-search" 16}}</i>
 						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_milestone"}}">
 					</div>
 					<div class="divider"></div>
@@ -81,7 +81,7 @@
 				</span>
 				<div class="menu">
 					<div class="ui icon search input">
-						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+						<i class="icon">{{svg "octicon-search" 16}}</i>
 						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_project"}}">
 					</div>
 					<a class="{{if not .ProjectID}}active selected {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_project_all"}}</a>
@@ -123,7 +123,7 @@
 				</span>
 				<div class="menu">
 					<div class="ui icon search input">
-						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+						<i class="icon">{{svg "octicon-search" 16}}</i>
 						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_poster"}}">
 					</div>
 					<a class="item" data-value="0">{{.locale.Tr "repo.issues.filter_poster_no_select"}}</a>
@@ -138,7 +138,7 @@
 				</span>
 				<div class="menu">
 					<div class="ui icon search input">
-						<i class="icon gt-df gt-ac gt-jc">{{svg "octicon-search" 16}}</i>
+						<i class="icon">{{svg "octicon-search" 16}}</i>
 						<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_assignee"}}">
 					</div>
 					<a class="{{if not .AssigneeID}}active selected {{end}}item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_assginee_no_select"}}</a>

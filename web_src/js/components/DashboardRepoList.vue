@@ -17,7 +17,7 @@
       <div class="ui attached segment repos-search">
         <div class="ui fluid right action left icon input" :class="{loading: isLoading}">
           <input type="search" spellcheck="false" maxlength="255" @input="changeReposFilter(reposFilter)" v-model="searchQuery" ref="search" @keydown="reposFilterKeyControl" :placeholder="textSearchRepos">
-          <i class="icon gt-df gt-ac gt-jc"><svg-icon name="octicon-search" :size="16"/></i>
+          <i class="icon"><svg-icon name="octicon-search" :size="16"/></i>
           <div class="ui dropdown icon button" :title="textFilter">
             <svg-icon name="octicon-filter" :size="16"/>
             <div class="menu">
@@ -70,7 +70,7 @@
       <div v-if="repos.length" class="ui attached table segment gt-rounded-bottom">
         <ul class="repo-owner-name-list">
           <li class="gt-df gt-ac gt-py-3" v-for="repo, index in repos" :class="{'active': index === activeIndex}" :key="repo.id">
-            <a class="repo-list-link muted gt-df gt-ac gt-f1 gt-gap-3" :href="repo.link">
+            <a class="repo-list-link muted" :href="repo.link">
               <svg-icon :name="repoIcon(repo)" :size="16" class-name="repo-list-icon"/>
               <div class="text truncate">{{ repo.full_name }}</div>
               <div v-if="repo.archived">
@@ -126,8 +126,8 @@
       </h4>
       <div v-if="organizations.length" class="ui attached table segment gt-rounded-bottom">
         <ul class="repo-owner-name-list">
-          <li class="gt-df gt-ac" v-for="org in organizations" :key="org.name">
-            <a class="repo-list-link muted gt-df gt-ac gt-f1" :href="subUrl + '/' + encodeURIComponent(org.name)">
+          <li class="gt-df gt-ac gt-py-3" v-for="org in organizations" :key="org.name">
+            <a class="repo-list-link muted" :href="subUrl + '/' + encodeURIComponent(org.name)">
               <svg-icon name="octicon-organization" :size="16" class-name="repo-list-icon"/>
               <div class="text truncate">{{ org.name }}</div>
               <div><!-- div to prevent underline of label on hover -->
@@ -504,6 +504,10 @@ ul li:not(:last-child) {
 
 .repo-list-link {
   min-width: 0; /* for text truncation */
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 0.5rem;
 }
 
 .repo-list-link .svg {
