@@ -27,8 +27,8 @@ var ErrUnexpectedEOF = errors.New("unexpected EOF in response")
 type HTTPClient struct {
 	client        *http.Client
 	endpoint      string
-	transfers     []string
-	activeAdapter TransferAdapter
+	transfers     map[string]TransferAdapter
+	transferNames []string
 }
 
 // BatchSize returns the preferred size of batchs to process
@@ -49,10 +49,12 @@ func newHTTPClient(endpoint *url.URL, httpTransport *http.Transport) *HTTPClient
 
 	basic := &BasicTransferAdapter{hc}
 	client := &HTTPClient{
-		client:        hc,
-		endpoint:      strings.TrimSuffix(endpoint.String(), "/"),
-		transfers:     []string{basic.Name()},
-		activeAdapter: basic,
+		client:   hc,
+		endpoint: strings.TrimSuffix(endpoint.String(), "/"),
+		transfers: map[string]TransferAdapter{
+			basic.Name(): basic,
+		},
+		transferNames: []string{basic.Name()},
 	}
 
 	return client
@@ -63,7 +65,7 @@ func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Poin
 
 	url := fmt.Sprintf("%s/objects/batch", c.endpoint)
 
-	request := &BatchRequest{operation, c.transfers, nil, objects}
+	request := &BatchRequest{operation, c.transferNames, nil, objects}
 	payload := new(bytes.Buffer)
 	err := json.NewEncoder(payload).Encode(request)
 	if err != nil {
@@ -121,6 +123,11 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 		return err
 	}
 
+	transferAdapter, ok := c.transfers[result.Transfer]
+	if !ok {
+		return fmt.Errorf("TransferAdapter not found: %s", result.Transfer)
+	}
+
 	for _, object := range result.Objects {
 		if object.Error != nil {
 			objectError := errors.New(object.Error.Message)
@@ -154,7 +161,7 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 				return err
 			}
 
-			err = c.activeAdapter.Upload(ctx, link, object.Pointer, content)
+			err = transferAdapter.Upload(ctx, link, object.Pointer, content)
 
 			if err != nil {
 				return err
@@ -162,7 +169,7 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 
 			link, ok = object.Actions["verify"]
 			if ok {
-				if err := c.activeAdapter.Verify(ctx, link, object.Pointer); err != nil {
+				if err := transferAdapter.Verify(ctx, link, object.Pointer); err != nil {
 					return err
 				}
 			}
@@ -173,7 +180,7 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 				return errors.New("missing action 'download'")
 			}
 
-			content, err := c.activeAdapter.Download(ctx, link)
+			content, err := transferAdapter.Download(ctx, link)
 			if err != nil {
 				return err
 			}
