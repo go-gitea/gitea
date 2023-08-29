@@ -57,7 +57,7 @@ func CreateOrUpdateSecret(ctx *context.APIContext) {
 
 	secretName := ctx.Params(":secretname")
 	if err := actions.NameRegexMatch(secretName); err != nil {
-		ctx.Error(http.StatusBadRequest, "CreateOrUpdateOrgSecret", err)
+		ctx.Error(http.StatusBadRequest, "CreateOrUpdateSecret", err)
 		return
 	}
 	opt := web.GetForm(ctx).(*api.CreateOrUpdateSecretOption)
