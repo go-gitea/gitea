@@ -117,7 +117,7 @@
 
 .repository .issue-content-right #deadlineForm input {
   width: 12.8rem;
-  border-radius: 4px 0 0 4px;
+  border-radius: var(--border-radius) 0 0 var(--border-radius);
   border-right: 0;
   white-space: nowrap;
 }
@@ -141,7 +141,7 @@
 
 .repository .filter.menu.labels .label-filter .menu .info code {
   border: 1px solid var(--color-secondary);
-  border-radius: 3px;
+  border-radius: var(--border-radius);
   padding: 1px 2px;
   font-size: 11px;
 }
@@ -518,7 +518,7 @@
   margin-bottom: 10px;
   border: 1px solid var(--color-secondary);
   background: var(--color-box-body);
-  border-radius: 3px;
+  border-radius: var(--border-radius);
 }
 
 .repository.file.editor .commit-form-wrapper .commit-form::before,
@@ -551,7 +551,7 @@
   font: 12px var(--fonts-monospace);
   color: var(--color-text);
   background: var(--color-secondary);
-  border-radius: 3px;
+  border-radius: var(--border-radius);
   margin: 0 2px;
 }
 
@@ -709,7 +709,7 @@
   align-items: center !important;
   font-size: 14px !important;
   padding: 7px 10px !important;
-  border-radius: 6px !important;
+  border-radius: var(--border-radius-medium) !important;
 }
 
 .issue-state-label .svg {
@@ -835,7 +835,7 @@
   width: 34px;
   height: 34px;
   background-color: var(--color-timeline);
-  border-radius: 50%;
+  border-radius: var(--border-radius-circle);
   display: flex;
   float: left;
   margin-left: -33px;
@@ -1049,7 +1049,7 @@
 
 .merge-section-info code {
   border: 1px solid var(--color-light-border);
-  border-radius: 4px;
+  border-radius: var(--border-radius);
   padding: 2px 4px;
   background: var(--color-light);
 }
@@ -2093,7 +2093,7 @@
   width: 34px;
   height: 34px;
   min-height: 0 !important;
-  border-radius: 6px;
+  border-radius: var(--border-radius);
   display: flex !important;
   align-items: center;
   justify-content: center;
@@ -2753,7 +2753,7 @@ tbody.commit-list {
 #new-dependency-drop-list.ui.selection.dropdown {
   min-width: 0;
   width: 100%;
-  border-radius: 4px 0 0 4px;
+  border-radius: var(--border-radius) 0 0 var(--border-radius);
   border-right: 0;
   white-space: nowrap;
 }
@@ -2949,7 +2949,7 @@ tbody.commit-list {
   margin: 10px 0;
   background-color: var(--color-markup-code-block);
   border: 1px solid var(--color-secondary);
-  border-radius: 3px;
+  border-radius: var(--border-radius);
   font-size: 13px;
   line-height: 1.5;
   overflow: auto;
