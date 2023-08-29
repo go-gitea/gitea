@@ -57,7 +57,7 @@
 				{{if .NumMembers}}
 					<h4 class="ui top attached header gt-df">
 						<strong class="gt-f1">{{.locale.Tr "org.members"}}</strong>
-						<a class="text grey gt-dif gt-ac" href="{{.OrgLink}}/members"><span>{{.NumMembers}}</span> {{svg "octicon-chevron-right"}}</a>
+						<a class="text grey gt-df gt-ac" href="{{.OrgLink}}/members"><span>{{.NumMembers}}</span> {{svg "octicon-chevron-right"}}</a>
 					</h4>
 					<div class="ui attached segment members">
 						{{$isMember := .IsOrganizationMember}}
@@ -71,7 +71,7 @@
 				{{if .IsOrganizationMember}}
 					<div class="ui top attached header gt-df">
 						<strong class="gt-f1">{{.locale.Tr "org.teams"}}</strong>
-						<a class="text grey gt-dif gt-ac" href="{{.OrgLink}}/teams"><span>{{.Org.NumTeams}}</span> {{svg "octicon-chevron-right"}}</a>
+						<a class="text grey gt-df gt-ac" href="{{.OrgLink}}/teams"><span>{{.Org.NumTeams}}</span> {{svg "octicon-chevron-right"}}</a>
 					</div>
 					<div class="ui attached table segment teams">
 						{{range .Teams}}

@@ -55,8 +55,12 @@ func pickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 
 func getSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) map[string]string {
 	secrets := map[string]string{}
+
+	secrets["GITHUB_TOKEN"] = task.Token
+	secrets["GITEA_TOKEN"] = task.Token
+
 	if task.Job.Run.IsForkPullRequest && task.Job.Run.TriggerEvent != actions_module.GithubEventPullRequestTarget {
-		// ignore secrets for fork pull request
+		// ignore secrets for fork pull request, except GITHUB_TOKEN and GITEA_TOKEN which are automatically generated.
 		// for the tasks triggered by pull_request_target event, they could access the secrets because they will run in the context of the base branch
 		// see the documentation: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_target
 		return secrets
@@ -80,13 +84,6 @@ func getSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) map[s
 		} else {
 			secrets[secret.Name] = v
 		}
-	}
-
-	if _, ok := secrets["GITHUB_TOKEN"]; !ok {
-		secrets["GITHUB_TOKEN"] = task.Token
-	}
-	if _, ok := secrets["GITEA_TOKEN"]; !ok {
-		secrets["GITEA_TOKEN"] = task.Token
 	}
 
 	return secrets
