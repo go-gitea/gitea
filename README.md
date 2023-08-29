@@ -79,10 +79,10 @@ or if SQLite support is required:
 
 The `build` target is split into two sub-targets:
 
-- `make backend` which requires [Go Stable](https://go.dev/dl/), required version is defined in [go.mod](/go.mod).
-- `make frontend` which requires [Node.js LTS](https://nodejs.org/en/download/) or greater and Internet connectivity to download npm dependencies.
+- `make backend` which requires [Go Stable](https://go.dev/dl/), the required version is defined in [go.mod](/go.mod).
+- `make frontend` which requires [Node.js LTS](https://nodejs.org/en/download/) or greater.
 
-When building from the official source tarballs which include pre-built frontend files, the `frontend` target will not be triggered, making it possible to build without Node.js and Internet connectivity.
+Internet connectivity is required to download the go and npm modules. When building from the official source tarballs which include pre-built frontend files, the `frontend` target will not be triggered, making it possible to build without Node.js.
 
 Parallelism (`make -j <num>`) is not supported.
 
