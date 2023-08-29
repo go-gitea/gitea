@@ -26,7 +26,7 @@
   border-width: 4px;
   border-style: solid;
   border-color: var(--color-secondary) var(--color-secondary) var(--color-secondary-dark-8) var(--color-secondary-dark-8);
-  border-radius: 100%;
+  border-radius: var(--border-radius-circle);
 }
 
 .is-loading.small-loading-icon::after {
@@ -99,8 +99,9 @@ code.language-math.is-loading::after {
   animation: pulse 2s linear;
 }
 
-.ui.modal {
+.ui.modal,
+.ui.dimmer.transition {
   animation-name: fadein;
-  animation-duration: 300ms;
+  animation-duration: 100ms;
   animation-timing-function: ease-in-out;
 }
