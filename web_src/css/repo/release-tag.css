@@ -75,12 +75,10 @@
   width: 10px;
   height: 10px;
   background-color: var(--color-secondary-dark-3);
-  z-index: 9;
   position: absolute;
-  display: block;
   left: -5.5px;
   top: 40px;
-  border-radius: 100%;
+  border-radius: var(--border-radius-circle);
   border: 2.5px solid var(--color-body);
 }
 
