@@ -526,7 +526,7 @@ var migrations = []Migration{
 	NewMigration("Allow archiving labels", v1_21.AddArchivedUnixColumInLabelTable),
 	// v272 -> v273
 	NewMigration("Add Version to ActionRun table", v1_21.AddVersionToActionRunTable),
-	// v273 -> v274
+	// v274 -> v275
 	NewMigration("Add Repository Licenses", v1_21.AddRepositoryLicenses),
 }
 
