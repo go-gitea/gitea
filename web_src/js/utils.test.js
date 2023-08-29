@@ -135,7 +135,7 @@ test('toAbsoluteUrl', () => {
 
 test('encodeURLEncodedBase64, decodeURLEncodedBase64', () => {
   // TextEncoder is Node.js API while Uint8Array is jsdom API and their outputs are not
-  // structurally comparable, so we convert to array to compare. The conversation
+  // structurally comparable, so we convert to array to compare. The conversion
   // can be removed once https://github.com/jsdom/jsdom/issues/2524 is resolved.
   const encoder = new TextEncoder();
   const uint8array = encoder.encode.bind(encoder);
