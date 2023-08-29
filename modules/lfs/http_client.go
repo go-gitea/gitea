@@ -74,7 +74,6 @@ func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Poin
 	url := fmt.Sprintf("%s/objects/batch", c.endpoint)
 
 	request := &BatchRequest{operation, c.transferNames(), nil, objects}
-
 	payload := new(bytes.Buffer)
 	err := json.NewEncoder(payload).Encode(request)
 	if err != nil {
@@ -171,8 +170,6 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 			}
 
 			err = transferAdapter.Upload(ctx, link, object.Pointer, content)
-
-			content.Close()
 
 			if err != nil {
 				return err
