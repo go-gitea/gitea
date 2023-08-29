@@ -30,6 +30,9 @@
         <div class="loading-indicator is-loading" v-if="isLoading"/>
         <div v-for="(item, index) in filteredItems" :key="item.name" class="item" :class="{selected: item.selected, active: active === index}" @click="selectItem(item)" :ref="'listItem' + index">
           {{ item.name }}
+          <div class="ui label" v-if="item.name===defaultBranch && mode === 'branches'">
+            {{ textDefaultBranchLabel }}
+          </div>
           <a v-show="enableFeed && mode === 'branches'" role="button" class="rss-icon ui compact right" :href="rssURLPrefix + item.url" target="_blank" @click.stop>
             <!-- creating a lot of Vue component is pretty slow, so we use a static SVG here -->
             <svg width="14" height="14" class="svg octicon-rss"><use href="#svg-symbol-octicon-rss"/></svg>
