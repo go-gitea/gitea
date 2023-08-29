@@ -105,7 +105,7 @@ func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Poin
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Unexpected server response: %s", res.Status)
+		return nil, fmt.Errorf("unexpected server response: %s", res.Status)
 	}
 
 	var response BatchResponse
@@ -177,7 +177,7 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 			link, ok := object.Actions["upload"]
 			if !ok {
 				log.Debug("%+v", object)
-				return errors.New("Missing action 'upload'")
+				return errors.New("missing action 'upload'")
 			}
 
 			content, err := uc(object.Pointer, nil)
@@ -203,7 +203,7 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 			link, ok := object.Actions["download"]
 			if !ok {
 				log.Debug("%+v", object)
-				return errors.New("Missing action 'download'")
+				return errors.New("missing action 'download'")
 			}
 
 			content, err := transferAdapter.Download(ctx, link)

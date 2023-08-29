@@ -44,7 +44,7 @@ func (a *BasicTransferAdapter) Download(ctx context.Context, l *Link) (io.ReadCl
 
 // Upload sends the content to the LFS server
 func (a *BasicTransferAdapter) Upload(ctx context.Context, l *Link, p Pointer, r io.Reader) error {
-	_, err := a.performRequest(ctx, "PUT", l, r, func(req *http.Request) {
+	res, err := a.performRequest(ctx, "PUT", l, r, func(req *http.Request) {
 		if len(req.Header.Get("Content-Type")) == 0 {
 			req.Header.Set("Content-Type", "application/octet-stream")
 		}
@@ -58,6 +58,7 @@ func (a *BasicTransferAdapter) Upload(ctx context.Context, l *Link, p Pointer, r
 	if err != nil {
 		return err
 	}
+	defer res.Body.Close()
 	return nil
 }
 
@@ -69,15 +70,19 @@ func (a *BasicTransferAdapter) Verify(ctx context.Context, l *Link, p Pointer) e
 		return err
 	}
 
-	_, err = a.performRequest(ctx, "POST", l, bytes.NewReader(b), func(req *http.Request) {
+	res, err := a.performRequest(ctx, "POST", l, bytes.NewReader(b), func(req *http.Request) {
 		req.Header.Set("Content-Type", MediaType)
 	})
 	if err != nil {
 		return err
 	}
+	defer res.Body.Close()
 	return nil
 }
 
+// performRequest sends a request, optionally performs a callback on the request and returns the response.
+// If the status code is 200, the response is returned, and it will contain a non-nil Body.
+// Otherwise, it will return an error, and the Body will be nil or closed.
 func (a *BasicTransferAdapter) performRequest(ctx context.Context, method string, l *Link, body io.Reader, callback func(*http.Request)) (*http.Response, error) {
 	log.Trace("Calling: %s %s", method, l.Href)
 
@@ -118,7 +123,7 @@ func handleErrorResponse(resp *http.Response) error {
 
 	er, err := decodeResponseError(resp.Body)
 	if err != nil {
-		return fmt.Errorf("Request failed with status %s", resp.Status)
+		return fmt.Errorf("request failed with status %s", resp.Status)
 	}
 	log.Trace("ErrorRespone: %v", er)
 	return errors.New(er.Message)
