@@ -480,7 +480,7 @@ func IssueIDs(ctx context.Context, opts *IssuesOptions, otherConds ...builder.Co
 	applySorts(sess, opts.SortType, opts.PriorityRepoID)
 
 	var res []int64
-	total, err := sess.Select("`issue`.id").Table(&Issue{}).FindAndCount(&res)
+	total, err := sess.Select("`issue`.id").Table(&Issue{}).Distinct("`issue`.id").FindAndCount(&res)
 	if err != nil {
 		return nil, 0, err
 	}
