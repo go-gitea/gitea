@@ -74,7 +74,7 @@ func listActionsSecrets(ctx *context.APIContext) {
 }
 
 // create or update one secret of the organization
-func CreateOrUpdateOrgSecret(ctx *context.APIContext) {
+func CreateOrUpdateSecret(ctx *context.APIContext) {
 	// swagger:operation PUT /orgs/{org}/actions/secrets/{secretname} organization updateOrgSecret
 	// ---
 	// summary: Create or Update a secret value in an organization
@@ -108,26 +108,17 @@ func CreateOrUpdateOrgSecret(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	secretName := ctx.Params(":secretname")
 	if err := actions.NameRegexMatch(secretName); err != nil {
-		ctx.Error(http.StatusBadRequest, "CreateOrUpdateOrgSecret", err)
+		ctx.Error(http.StatusBadRequest, "CreateOrUpdateSecret", err)
 		return
 	}
 	opt := web.GetForm(ctx).(*api.CreateOrUpdateSecretOption)
-	err := secret_model.UpdateSecret(
-		ctx, ctx.Org.Organization.ID, 0, secretName, opt.Data,
-	)
-	if secret_model.IsErrSecretNotFound(err) {
-		_, err := secret_model.InsertEncryptedSecret(
-			ctx, ctx.Org.Organization.ID, 0, secretName, actions.ReserveLineBreakForTextarea(opt.Data),
-		)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "InsertEncryptedSecret", err)
-			return
-		}
-		ctx.Status(http.StatusCreated)
+	isCreated, err := secret_model.CreateOrUpdateSecret(ctx, ctx.Org.Organization.ID, 0, secretName, opt.Data)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "CreateOrUpdateSecret", err)
 		return
 	}
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "UpdateSecret", err)
+	if isCreated {
+		ctx.Status(http.StatusCreated)
 		return
 	}
 
