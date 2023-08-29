@@ -177,7 +177,7 @@ func TestHTTPClientDownload(t *testing.T) {
 		// case 0
 		{
 			endpoint:      "https://status-not-ok.io",
-			expectederror: "Unexpected server response: ",
+			expectederror: ErrUnexpectedEOF.Error(),
 		},
 		// case 1
 		{
@@ -196,48 +196,43 @@ func TestHTTPClientDownload(t *testing.T) {
 		},
 		// case 4
 		{
-			endpoint:      "https://unknown-transfer-adapter.io",
-			expectederror: "TransferAdapter not found: ",
-		},
-		// case 5
-		{
 			endpoint:      "https://error-in-response-objects.io",
 			expectederror: "Object not found",
 		},
-		// case 6
+		// case 5
 		{
 			endpoint:      "https://empty-actions-map.io",
-			expectederror: "Missing action 'download'",
+			expectederror: "missing action 'download'",
 		},
-		// case 7
+		// case 6
 		{
 			endpoint:      "https://download-actions-map.io",
 			expectederror: "",
 		},
-		// case 8
+		// case 7
 		{
 			endpoint:      "https://upload-actions-map.io",
-			expectederror: "Missing action 'download'",
+			expectederror: "missing action 'download'",
+		},
+		// case 8
+		{
+			endpoint:      "https://verify-actions-map.io",
+			expectederror: "missing action 'download'",
 		},
 		// case 9
 		{
-			endpoint:      "https://verify-actions-map.io",
-			expectederror: "Missing action 'download'",
-		},
-		// case 10
-		{
 			endpoint:      "https://unknown-actions-map.io",
-			expectederror: "Missing action 'download'",
+			expectederror: "missing action 'download'",
 		},
 	}
 
 	for n, c := range cases {
 		client := &HTTPClient{
-			client:    hc,
-			endpoint:  c.endpoint,
-			transfers: make(map[string]TransferAdapter),
+			client:        hc,
+			endpoint:      c.endpoint,
+			transfers:     []string{"dummy"},
+			activeAdapter: dummy,
 		}
-		client.transfers["dummy"] = dummy
 
 		err := client.Download(context.Background(), []Pointer{p}, func(p Pointer, content io.ReadCloser, objectError error) error {
 			if objectError != nil {
@@ -284,7 +279,7 @@ func TestHTTPClientUpload(t *testing.T) {
 		// case 0
 		{
 			endpoint:      "https://status-not-ok.io",
-			expectederror: "Unexpected server response: ",
+			expectederror: ErrUnexpectedEOF.Error(),
 		},
 		// case 1
 		{
@@ -303,48 +298,43 @@ func TestHTTPClientUpload(t *testing.T) {
 		},
 		// case 4
 		{
-			endpoint:      "https://unknown-transfer-adapter.io",
-			expectederror: "TransferAdapter not found: ",
-		},
-		// case 5
-		{
 			endpoint:      "https://error-in-response-objects.io",
 			expectederror: "Object not found",
 		},
-		// case 6
+		// case 5
 		{
 			endpoint:      "https://empty-actions-map.io",
 			expectederror: "",
 		},
-		// case 7
+		// case 6
 		{
 			endpoint:      "https://download-actions-map.io",
-			expectederror: "Missing action 'upload'",
+			expectederror: "missing action 'upload'",
 		},
-		// case 8
+		// case 7
 		{
 			endpoint:      "https://upload-actions-map.io",
 			expectederror: "",
 		},
-		// case 9
+		// case 8
 		{
 			endpoint:      "https://verify-actions-map.io",
-			expectederror: "Missing action 'upload'",
+			expectederror: "missing action 'upload'",
 		},
-		// case 10
+		// case 9
 		{
 			endpoint:      "https://unknown-actions-map.io",
-			expectederror: "Missing action 'upload'",
+			expectederror: "missing action 'upload'",
 		},
 	}
 
 	for n, c := range cases {
 		client := &HTTPClient{
-			client:    hc,
-			endpoint:  c.endpoint,
-			transfers: make(map[string]TransferAdapter),
+			client:        hc,
+			endpoint:      c.endpoint,
+			transfers:     []string{"dummy"},
+			activeAdapter: dummy,
 		}
-		client.transfers["dummy"] = dummy
 
 		err := client.Upload(context.Background(), []Pointer{p}, func(p Pointer, objectError error) (io.ReadCloser, error) {
 			return io.NopCloser(new(bytes.Buffer)), objectError

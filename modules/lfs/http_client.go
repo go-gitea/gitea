@@ -20,12 +20,17 @@ import (
 
 const httpBatchSize = 20
 
+var (
+	ErrUnexpectedEOF = errors.New("unexpected EOF in response")
+)
+
 // HTTPClient is used to communicate with the LFS server
 // https://github.com/git-lfs/git-lfs/blob/main/docs/api/batch.md
 type HTTPClient struct {
-	client    *http.Client
-	endpoint  string
-	transfers map[string]TransferAdapter
+	client        *http.Client
+	endpoint      string
+	transfers     []string
+	activeAdapter TransferAdapter
 }
 
 // BatchSize returns the preferred size of batchs to process
@@ -44,28 +49,15 @@ func newHTTPClient(endpoint *url.URL, httpTransport *http.Transport) *HTTPClient
 		Transport: httpTransport,
 	}
 
-	client := &HTTPClient{
-		client:    hc,
-		endpoint:  strings.TrimSuffix(endpoint.String(), "/"),
-		transfers: make(map[string]TransferAdapter),
-	}
-
 	basic := &BasicTransferAdapter{hc}
-	client.transfers[basic.Name()] = basic
+	client := &HTTPClient{
+		client:        hc,
+		endpoint:      strings.TrimSuffix(endpoint.String(), "/"),
+		transfers:     []string{basic.Name()},
+		activeAdapter: basic,
+	}
 
 	return client
-}
-
-func (c *HTTPClient) transferNames() []string {
-	keys := make([]string, len(c.transfers))
-
-	i := 0
-	for k := range c.transfers {
-		keys[i] = k
-		i++
-	}
-
-	return keys
 }
 
 func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Pointer) (*BatchResponse, error) {
@@ -73,7 +65,7 @@ func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Poin
 
 	url := fmt.Sprintf("%s/objects/batch", c.endpoint)
 
-	request := &BatchRequest{operation, c.transferNames(), nil, objects}
+	request := &BatchRequest{operation, c.transfers, nil, objects}
 	payload := new(bytes.Buffer)
 	err := json.NewEncoder(payload).Encode(request)
 	if err != nil {
@@ -131,11 +123,6 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 		return err
 	}
 
-	transferAdapter, ok := c.transfers[result.Transfer]
-	if !ok {
-		return fmt.Errorf("TransferAdapter not found: %s", result.Transfer)
-	}
-
 	for _, object := range result.Objects {
 		if object.Error != nil {
 			objectError := errors.New(object.Error.Message)
@@ -169,7 +156,7 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 				return err
 			}
 
-			err = transferAdapter.Upload(ctx, link, object.Pointer, content)
+			err = c.activeAdapter.Upload(ctx, link, object.Pointer, content)
 
 			if err != nil {
 				return err
@@ -177,7 +164,7 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 
 			link, ok = object.Actions["verify"]
 			if ok {
-				if err := transferAdapter.Verify(ctx, link, object.Pointer); err != nil {
+				if err := c.activeAdapter.Verify(ctx, link, object.Pointer); err != nil {
 					return err
 				}
 			}
@@ -188,7 +175,7 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 				return errors.New("missing action 'download'")
 			}
 
-			content, err := transferAdapter.Download(ctx, link)
+			content, err := c.activeAdapter.Download(ctx, link)
 			if err != nil {
 				return err
 			}
@@ -250,6 +237,9 @@ func handleErrorResponse(resp *http.Response) error {
 	var er ErrorResponse
 	err := json.NewDecoder(resp.Body).Decode(&er)
 	if err != nil {
+		if err == io.EOF {
+			return ErrUnexpectedEOF
+		}
 		log.Error("Error decoding json: %v", err)
 		return err
 	}
