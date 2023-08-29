@@ -97,20 +97,35 @@ func GetIssueWatchersIDs(ctx context.Context, issueID int64, watching bool) ([]i
 }
 
 // GetIssueWatchers returns watchers/unwatchers of a given issue
-func GetIssueWatchers(ctx context.Context, issueID int64, listOptions db.ListOptions) (IssueWatchList, error) {
-	sess := db.GetEngine(ctx).
-		Where("`issue_watch`.issue_id = ?", issueID).
-		And("`issue_watch`.is_watching = ?", true).
-		And("`user`.is_active = ?", true).
-		And("`user`.prohibit_login = ?", false).
-		Join("INNER", "`user`", "`user`.id = `issue_watch`.user_id")
+func GetIssueWatchers(ctx context.Context, issueID int64, listOptions db.ListOptions) ([]int64, error) {
+	sess := db.GetEngine(ctx).SQL(
+		"select `user`.id  "+
+			"from issue_watch "+
+			"inner join user on `user`.id = `issue_watch`.user_id "+
+			"where `issue_watch`.issue_id = ? "+
+			"and `issue_watch`.is_watching = true "+
+			"and `user`.is_active = true "+
+			"and `user`.prohibit_login = false "+
+			" union "+
+			"select `comment`.poster_id as id  "+
+			"from comment inner join user on `user`.id = `comment`.poster_id "+
+			"where `comment`.issue_id = ? "+
+			"and `comment`.type in (?,?,?) "+
+			"and `user`.is_active = true  "+
+			"and `user`.prohibit_login = false "+
+			"and NOT exists( "+
+			"select 1 "+
+			"from issue_watch "+
+			"where `issue_watch`.issue_id = ? and `issue_watch`.is_watching = false)",
+		issueID, issueID, CommentTypeComment, CommentTypeCode, CommentTypeReview, issueID,
+	)
 
 	if listOptions.Page != 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
-		watches := make([]*IssueWatch, 0, listOptions.PageSize)
+		watches := make([]int64, 0, listOptions.PageSize)
 		return watches, sess.Find(&watches)
 	}
-	watches := make([]*IssueWatch, 0, 8)
+	watches := make([]int64, 0, 8)
 	return watches, sess.Find(&watches)
 }
 
