@@ -143,7 +143,7 @@ test('encodeURLEncodedBase64, decodeURLEncodedBase64', () => {
   expect(decodeURLEncodedBase64('QUE_')).deep.equal(uint8array('AA?'));
   expect(decodeURLEncodedBase64('QUF-')).deep.equal(uint8array('AA~'));
 
-  expect(encodeURLEncodedBase64(uint8array('a'))).deep.equal('YQ'); // standard base64: "YQ=="
+  expect(encodeURLEncodedBase64(uint8array('a'))).toEqual('YQ'); // standard base64: "YQ=="
   expect(decodeURLEncodedBase64('YQ')).deep.equal(uint8array('a'));
   expect(decodeURLEncodedBase64('YQ==')).deep.equal(uint8array('a'));
 });
