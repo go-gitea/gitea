@@ -21,6 +21,7 @@ import (
 	cargo_module "code.gitea.io/gitea/modules/packages/cargo"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
@@ -220,14 +221,16 @@ func getOrCreateIndexRepository(ctx context.Context, doer, owner *user_model.Use
 }
 
 type Config struct {
-	DownloadURL string `json:"dl"`
-	APIURL      string `json:"api"`
+	DownloadURL  string `json:"dl"`
+	APIURL       string `json:"api"`
+	AuthRequired bool   `json:"auth-required"`
 }
 
-func BuildConfig(owner *user_model.User) *Config {
+func BuildConfig(owner *user_model.User, isPrivate bool) *Config {
 	return &Config{
-		DownloadURL: setting.AppURL + "api/packages/" + owner.Name + "/cargo/api/v1/crates",
-		APIURL:      setting.AppURL + "api/packages/" + owner.Name + "/cargo",
+		DownloadURL:  setting.AppURL + "api/packages/" + owner.Name + "/cargo/api/v1/crates",
+		APIURL:       setting.AppURL + "api/packages/" + owner.Name + "/cargo",
+		AuthRequired: isPrivate,
 	}
 }
 
@@ -239,7 +242,7 @@ func createOrUpdateConfigFile(ctx context.Context, repo *repo_model.Repository, 
 		"Initialize Cargo Config",
 		func(t *files_service.TemporaryUploadRepository) error {
 			var b bytes.Buffer
-			err := json.NewEncoder(&b).Encode(BuildConfig(owner))
+			err := json.NewEncoder(&b).Encode(BuildConfig(owner, setting.Service.RequireSignInView || owner.Visibility != structs.VisibleTypePublic || repo.IsPrivate))
 			if err != nil {
 				return err
 			}

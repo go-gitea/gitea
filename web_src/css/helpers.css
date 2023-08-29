@@ -105,8 +105,6 @@ Gitea's private styles use `g-` prefix.
 .gt-border-secondary-left { border-left: 1px solid var(--color-secondary) !important; }
 .gt-border-secondary-right { border-right: 1px solid var(--color-secondary) !important; }
 
-.gt-no-transition { transition: none !important; }
-
 .gt-bg-red { background: var(--color-red) !important; }
 .gt-bg-orange { background: var(--color-orange) !important; }
 .gt-bg-yellow { background: var(--color-yellow) !important; }
