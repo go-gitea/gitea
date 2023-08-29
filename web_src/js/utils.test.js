@@ -138,12 +138,12 @@ test('encodeURLEncodedBase64, decodeURLEncodedBase64', () => {
   expect(encodeURLEncodedBase64(uint8array('AA?'))).toEqual('QUE_'); // standard base64: "QUE/"
   expect(encodeURLEncodedBase64(uint8array('AA~'))).toEqual('QUF-'); // standard base64: "QUF+"
 
-  expect(decodeURLEncodedBase64('QUE/')).toEqual(uint8array('AA?'));
-  expect(decodeURLEncodedBase64('QUF+')).toEqual(uint8array('AA~'));
-  expect(decodeURLEncodedBase64('QUE_')).toEqual(uint8array('AA?'));
-  expect(decodeURLEncodedBase64('QUF-')).toEqual(uint8array('AA~'));
+  expect(decodeURLEncodedBase64('QUE/')).deep.equal(uint8array('AA?'));
+  expect(decodeURLEncodedBase64('QUF+')).deep.equal(uint8array('AA~'));
+  expect(decodeURLEncodedBase64('QUE_')).deep.equal(uint8array('AA?'));
+  expect(decodeURLEncodedBase64('QUF-')).deep.equal(uint8array('AA~'));
 
-  expect(encodeURLEncodedBase64(uint8array('a'))).toEqual('YQ'); // standard base64: "YQ=="
-  expect(decodeURLEncodedBase64('YQ')).toEqual(uint8array('a'));
-  expect(decodeURLEncodedBase64('YQ==')).toEqual(uint8array('a'));
+  expect(encodeURLEncodedBase64(uint8array('a'))).deep.equal('YQ'); // standard base64: "YQ=="
+  expect(decodeURLEncodedBase64('YQ')).deep.equal(uint8array('a'));
+  expect(decodeURLEncodedBase64('YQ==')).deep.equal(uint8array('a'));
 });
