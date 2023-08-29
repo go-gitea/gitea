@@ -20,9 +20,7 @@ import (
 
 const httpBatchSize = 20
 
-var (
-	ErrUnexpectedEOF = errors.New("unexpected EOF in response")
-)
+var ErrUnexpectedEOF = errors.New("unexpected EOF in response")
 
 // HTTPClient is used to communicate with the LFS server
 // https://github.com/git-lfs/git-lfs/blob/main/docs/api/batch.md
