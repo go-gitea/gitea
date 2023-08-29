@@ -116,68 +116,69 @@ func GetIssueStats(opts *IssuesOptions) (*IssueStats, error) {
 func getIssueStatsChunk(opts *IssuesOptions, issueIDs []int64) (*IssueStats, error) {
 	stats := &IssueStats{}
 
-	countSession := func(opts *IssuesOptions, issueIDs []int64) *xorm.Session {
-		sess := db.GetEngine(db.DefaultContext).
-			Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
-		if len(opts.RepoIDs) > 1 {
-			sess.In("issue.repo_id", opts.RepoIDs)
-		} else if len(opts.RepoIDs) == 1 {
-			sess.And("issue.repo_id = ?", opts.RepoIDs[0])
-		}
-
-		if len(issueIDs) > 0 {
-			sess.In("issue.id", issueIDs)
-		}
-
-		applyLabelsCondition(sess, opts)
-
-		applyMilestoneCondition(sess, opts)
-
-		applyProjectCondition(sess, opts)
-
-		if opts.AssigneeID > 0 {
-			applyAssigneeCondition(sess, opts.AssigneeID)
-		} else if opts.AssigneeID == db.NoConditionID {
-			sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_assignees)")
-		}
-
-		if opts.PosterID > 0 {
-			applyPosterCondition(sess, opts.PosterID)
-		}
-
-		if opts.MentionedID > 0 {
-			applyMentionedCondition(sess, opts.MentionedID)
-		}
-
-		if opts.ReviewRequestedID > 0 {
-			applyReviewRequestedCondition(sess, opts.ReviewRequestedID)
-		}
-
-		if opts.ReviewedID > 0 {
-			applyReviewedCondition(sess, opts.ReviewedID)
-		}
-
-		switch opts.IsPull {
-		case util.OptionalBoolTrue:
-			sess.And("issue.is_pull=?", true)
-		case util.OptionalBoolFalse:
-			sess.And("issue.is_pull=?", false)
-		}
-
-		return sess
-	}
+	sess := db.GetEngine(db.DefaultContext).
+		Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 
 	var err error
-	stats.OpenCount, err = countSession(opts, issueIDs).
+	stats.OpenCount, err = applyIssuesOptions(sess, opts, issueIDs).
 		And("issue.is_closed = ?", false).
 		Count(new(Issue))
 	if err != nil {
 		return stats, err
 	}
-	stats.ClosedCount, err = countSession(opts, issueIDs).
+	stats.ClosedCount, err = applyIssuesOptions(sess, opts, issueIDs).
 		And("issue.is_closed = ?", true).
 		Count(new(Issue))
 	return stats, err
+}
+
+func applyIssuesOptions(sess *xorm.Session, opts *IssuesOptions, issueIDs []int64) *xorm.Session {
+	if len(opts.RepoIDs) > 1 {
+		sess.In("issue.repo_id", opts.RepoIDs)
+	} else if len(opts.RepoIDs) == 1 {
+		sess.And("issue.repo_id = ?", opts.RepoIDs[0])
+	}
+
+	if len(issueIDs) > 0 {
+		sess.In("issue.id", issueIDs)
+	}
+
+	applyLabelsCondition(sess, opts)
+
+	applyMilestoneCondition(sess, opts)
+
+	applyProjectCondition(sess, opts)
+
+	if opts.AssigneeID > 0 {
+		applyAssigneeCondition(sess, opts.AssigneeID)
+	} else if opts.AssigneeID == db.NoConditionID {
+		sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_assignees)")
+	}
+
+	if opts.PosterID > 0 {
+		applyPosterCondition(sess, opts.PosterID)
+	}
+
+	if opts.MentionedID > 0 {
+		applyMentionedCondition(sess, opts.MentionedID)
+	}
+
+	if opts.ReviewRequestedID > 0 {
+		applyReviewRequestedCondition(sess, opts.ReviewRequestedID)
+	}
+
+	if opts.ReviewedID > 0 {
+		applyReviewedCondition(sess, opts.ReviewedID)
+	}
+
+	switch opts.IsPull {
+	case util.OptionalBoolTrue:
+		sess.And("issue.is_pull=?", true)
+	case util.OptionalBoolFalse:
+		sess.And("issue.is_pull=?", false)
+	}
+
+	return sess
 }
 
 // GetUserIssueStats returns issue statistic information for dashboard by given conditions.
