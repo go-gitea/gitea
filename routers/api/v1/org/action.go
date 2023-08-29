@@ -74,7 +74,7 @@ func listActionsSecrets(ctx *context.APIContext) {
 }
 
 // create or update one secret of the organization
-func CreateOrUpdateOrgSecret(ctx *context.APIContext) {
+func CreateOrUpdateSecret(ctx *context.APIContext) {
 	// swagger:operation PUT /orgs/{org}/actions/secrets/{secretname} organization updateOrgSecret
 	// ---
 	// summary: Create or Update a secret value in an organization
@@ -108,7 +108,7 @@ func CreateOrUpdateOrgSecret(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	secretName := ctx.Params(":secretname")
 	if err := actions.NameRegexMatch(secretName); err != nil {
-		ctx.Error(http.StatusBadRequest, "CreateOrUpdateOrgSecret", err)
+		ctx.Error(http.StatusBadRequest, "CreateOrUpdateSecret", err)
 		return
 	}
 	opt := web.GetForm(ctx).(*api.CreateOrUpdateSecretOption)
