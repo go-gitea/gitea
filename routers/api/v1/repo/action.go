@@ -61,22 +61,13 @@ func CreateOrUpdateSecret(ctx *context.APIContext) {
 		return
 	}
 	opt := web.GetForm(ctx).(*api.CreateOrUpdateSecretOption)
-	err := secret_model.UpdateSecret(
-		ctx, owner.ID, repo.ID, secretName, opt.Data,
-	)
-	if secret_model.IsErrSecretNotFound(err) {
-		_, err := secret_model.InsertEncryptedSecret(
-			ctx, owner.ID, repo.ID, secretName, actions.ReserveLineBreakForTextarea(opt.Data),
-		)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "InsertEncryptedSecret", err)
-			return
-		}
-		ctx.Status(http.StatusCreated)
+	isCreated, err := secret_model.CreateOrUpdateSecret(ctx, owner.ID, repo.ID, secretName, opt.Data)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "CreateOrUpdateSecret", err)
 		return
 	}
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "UpdateSecret", err)
+	if isCreated {
+		ctx.Status(http.StatusCreated)
 		return
 	}
 
