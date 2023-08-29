@@ -333,16 +333,12 @@ func (err ErrUnsupportedRenderFile) Error() string {
 }
 
 func renderButton(ctx *RenderContext, output io.Writer) error {
-	_, err := io.WriteString(output, fmt.Sprintf(`
-<div>
-<a href="%s/%s/%s/render/%s/%s">%s</a>
-</div>`,
+	_, err := io.WriteString(output, fmt.Sprintf(`<iframe src="%s/%s/%s/render/%s/%s" sandbox="allow-same-origin allow-scripts"></iframe>`,
 		setting.AppSubURL,
 		url.PathEscape(ctx.Metas["user"]),
 		url.PathEscape(ctx.Metas["repo"]),
 		ctx.Metas["BranchNameSubURL"],
 		url.PathEscape(ctx.RelativePath),
-		"View in New Page", // TODO: how to get to know the i18n here?
 	))
 	return err
 }

@@ -440,7 +440,7 @@
 
 .pdf-content {
   width: 100%;
-  height: 600px;
+  height: var(--render-height);
   border: none !important;
   display: flex;
   align-items: center;
@@ -1900,6 +1900,17 @@
 .file-view.markup {
   padding: 1em 2em;
 }
+
+.file-view.openapi {
+  padding: 0;
+}
+
+.file-view.openapi iframe {
+  width: 100%;
+  height: var(--render-height);
+  border: none;
+}
+
 .repository .activity-header {
   display: flex;
   justify-content: space-between;

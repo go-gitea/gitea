@@ -22,6 +22,7 @@
   --opacity-disabled: 0.55;
   --height-loading: 16rem;
   --tab-size: 4;
+  --render-height: 600px;
   /* base colors */
   --color-primary: #4183c4;
   --color-primary-contrast: #ffffff;
