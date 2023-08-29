@@ -20,7 +20,7 @@
 				</div>
 			{{end}}
 		</div>
-		<div class="diff-detail-actions gt-df gt-ac gt-gap-2 gt-fw">
+		<div class="diff-detail-actions">
 			{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived) (not .DiffNotAvailable)}}
 				<div class="gt-df gt-ac gt-fc gt-whitespace-nowrap gt-mr-2">
 					<label for="viewed-files-summary" id="viewed-files-summary-label" data-text-changed-template="{{.locale.Tr "repo.pulls.viewed_files_label"}}">
