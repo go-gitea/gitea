@@ -189,5 +189,5 @@ type swaggerParameterBodies struct {
 	UpdateRepoAvatarOptions api.UpdateRepoAvatarOption
 
 	// in:body
-	CreateSecretOption api.CreateSecretOption
+	CreateOrUpdateSecretOption api.CreateOrUpdateSecretOption
 }

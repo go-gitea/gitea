@@ -98,7 +98,7 @@
 
 .feeds code {
   padding: 2px 4px;
-  border-radius: 3px;
+  border-radius: var(--border-radius);
   background-color: var(--color-markup-code-block);
   word-break: break-all;
 }
