@@ -53,7 +53,7 @@ jobs:
               - "package.json"
               - "package-lock.json"
               - "Makefile"
-              - ".eslintrc.yml"
+              - ".eslintrc.yaml"
               - ".stylelintrc.yaml"
               - ".npmrc"
 
