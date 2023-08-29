@@ -1265,10 +1265,6 @@ img.ui.avatar,
   text-align: right !important;
 }
 
-.ui .text.small {
-  font-size: 0.75em;
-}
-
 .ui .text.normal {
   font-weight: var(--font-weight-normal);
 }
