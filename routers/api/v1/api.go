@@ -1298,6 +1298,12 @@ func Routes() *web.Route {
 				m.Combo("/{username}").Get(reqToken(), org.IsMember).
 					Delete(reqToken(), reqOrgOwnership(), org.DeleteMember)
 			})
+			m.Group("/actions/secrets", func() {
+				m.Get("", reqToken(), reqOrgOwnership(), org.ListActionsSecrets)
+				m.Combo("/{secretname}").
+					Put(reqToken(), reqOrgOwnership(), bind(api.CreateOrUpdateSecretOption{}), org.CreateOrUpdateOrgSecret).
+					Delete(reqToken(), reqOrgOwnership(), org.DeleteOrgSecret)
+			})
 			m.Group("/public_members", func() {
 				m.Get("", org.ListPublicMembers)
 				m.Combo("/{username}").Get(org.IsPublicMember).

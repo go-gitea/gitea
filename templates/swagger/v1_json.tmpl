@@ -1550,6 +1550,133 @@
         }
       }
     },
+    "/orgs/{org}/actions/secrets": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "List an organization's actions secrets",
+        "operationId": "orgListActionsSecrets",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/SecretList"
+          }
+        }
+      }
+    },
+    "/orgs/{org}/actions/secrets/{secretname}": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Create or Update a secret value in an organization",
+        "operationId": "updateOrgSecret",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the secret",
+            "name": "secretname",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateOrUpdateSecretOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "response when creating a secret"
+          },
+          "204": {
+            "description": "response when updating a secret"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Delete a secret in an organization",
+        "operationId": "deleteOrgSecret",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the secret",
+            "name": "secretname",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "delete one secret of the organization"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
     "/orgs/{org}/activities/feeds": {
       "get": {
         "produces": [
@@ -17057,6 +17184,11 @@
           "x-go-name": "Exclusive",
           "example": false
         },
+        "is_archived": {
+          "type": "boolean",
+          "x-go-name": "IsArchived",
+          "example": false
+        },
         "name": {
           "type": "string",
           "x-go-name": "Name"
@@ -17110,6 +17242,21 @@
             "type": "string"
           },
           "x-go-name": "RedirectURIs"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CreateOrUpdateSecretOption": {
+      "description": "CreateOrUpdateSecretOption options when creating or updating secret",
+      "type": "object",
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "description": "Data of the secret to update",
+          "type": "string",
+          "x-go-name": "Data"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -17999,6 +18146,11 @@
         "exclusive": {
           "type": "boolean",
           "x-go-name": "Exclusive",
+          "example": false
+        },
+        "is_archived": {
+          "type": "boolean",
+          "x-go-name": "IsArchived",
           "example": false
         },
         "name": {
@@ -19089,6 +19241,10 @@
           "type": "string",
           "x-go-name": "AuthorizationHeader"
         },
+        "branch_filter": {
+          "type": "string",
+          "x-go-name": "BranchFilter"
+        },
         "config": {
           "type": "object",
           "additionalProperties": {
@@ -19478,6 +19634,11 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
+        },
+        "is_archived": {
+          "type": "boolean",
+          "x-go-name": "IsArchived",
+          "example": false
         },
         "name": {
           "type": "string",
@@ -20886,6 +21047,10 @@
           "type": "string",
           "x-go-name": "Target"
         },
+        "upload_url": {
+          "type": "string",
+          "x-go-name": "UploadURL"
+        },
         "url": {
           "type": "string",
           "x-go-name": "URL"
@@ -21272,6 +21437,23 @@
         "ok": {
           "type": "boolean",
           "x-go-name": "OK"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "Secret": {
+      "description": "Secret represents a secret",
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "name": {
+          "description": "the secret's name",
+          "type": "string",
+          "x-go-name": "Name"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -22847,6 +23029,21 @@
         "$ref": "#/definitions/SearchResults"
       }
     },
+    "Secret": {
+      "description": "Secret",
+      "schema": {
+        "$ref": "#/definitions/Secret"
+      }
+    },
+    "SecretList": {
+      "description": "SecretList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/Secret"
+        }
+      }
+    },
     "ServerVersion": {
       "description": "ServerVersion",
       "schema": {
@@ -23054,7 +23251,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/UpdateRepoAvatarOption"
+        "$ref": "#/definitions/CreateOrUpdateSecretOption"
       }
     },
     "redirect": {

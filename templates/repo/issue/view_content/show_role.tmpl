@@ -1,0 +1,10 @@
+{{if and .ShowRole.IsPoster (not .IgnorePoster)}}
+	<div class="ui basic label role-label" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.author_helper"}}">
+		{{ctx.Locale.Tr "repo.issues.author"}}
+	</div>
+{{end}}
+{{if .ShowRole.RoleInRepo}}
+	<div class="ui basic label role-label" data-tooltip-content="{{.ShowRole.RoleInRepo.LocaleHelper ctx.Locale}}">
+		{{.ShowRole.RoleInRepo.LocaleString ctx.Locale}}
+	</div>
+{{end}}

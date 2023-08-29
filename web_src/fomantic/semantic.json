@@ -31,10 +31,8 @@
     "grid",
     "header",
     "input",
-    "item",
     "label",
     "list",
-    "loader",
     "menu",
     "message",
     "modal",
@@ -43,7 +41,6 @@
     "site",
     "tab",
     "table",
-    "text",
-    "transition"
+    "text"
   ]
 }

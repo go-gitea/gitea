@@ -30,6 +30,7 @@
 		'textCreateBranchFrom': {{.root.locale.Tr "repo.branch.create_from"}},
 		'textBranches': {{.root.locale.Tr "repo.branches"}},
 		'textTags': {{.root.locale.Tr "repo.tags"}},
+		'textDefaultBranchLabel': {{.root.locale.Tr "repo.default_branch_label"}},
 
 		'mode': '{{if or .root.IsViewTag .isTag}}tags{{else}}branches{{end}}',
 		'showBranchesInDropdown': {{$showBranchesInDropdown}},
@@ -67,7 +68,7 @@
 
 <div class="js-branch-tag-selector {{if .ContainerClasses}}{{.ContainerClasses}}{{end}}">
 	{{/* show dummy elements before Vue componment is mounted, this code must match the code in BranchTagSelector.vue */}}
-	<div class="ui floating filter dropdown custom">
+	<div class="ui dropdown custom">
 		<button class="branch-dropdown-button gt-ellipsis ui basic small compact button gt-df gt-m-0">
 			<span class="text gt-df gt-ac gt-mr-2">
 				{{if .release}}
