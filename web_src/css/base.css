@@ -1175,10 +1175,6 @@ img.ui.avatar,
   color: var(--color-gold) !important;
 }
 
-.text.disabled {
-  opacity: var(--opacity-disabled);
-}
-
 .text.small {
   font-size: 0.75em;
 }
