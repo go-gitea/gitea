@@ -11,7 +11,7 @@
 					{{$n := len .TreeNames}}
 					{{$l := Eval $n "-" 1}}
 					{{range $i, $v := .TreeNames}}
-						<div class="divider"> / </div>
+						<div class="breadcrumb-divider">/</div>
 						{{if eq $i $l}}
 							<input type="text" id="file-name" value="{{$v}}" placeholder="{{$.locale.Tr "repo.editor.add_subdir"}}" autofocus>
 							<span data-tooltip-content="{{$.locale.Tr "repo.editor.filename_help"}}">{{svg "octicon-info"}}</span>

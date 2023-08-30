@@ -14,7 +14,7 @@
         <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
           {{ locale.cancel }}
         </button>
-        <button class="ui basic small compact button gt-mr-0" @click="rerun()" v-else-if="run.canRerun">
+        <button class="ui basic small compact button gt-mr-0 link-action" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
           {{ locale.rerun_all }}
         </button>
       </div>
@@ -32,16 +32,16 @@
       <div class="action-view-left">
         <div class="job-group-section">
           <div class="job-brief-list">
-            <div class="job-brief-item" :class="parseInt(jobIndex) === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id" @mouseenter="onHoverRerunIndex = job.id" @mouseleave="onHoverRerunIndex = -1">
-              <a class="job-brief-link" :href="run.link+'/jobs/'+index">
+            <a class="job-brief-item" :href="run.link+'/jobs/'+index" :class="parseInt(jobIndex) === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id" @mouseenter="onHoverRerunIndex = job.id" @mouseleave="onHoverRerunIndex = -1">
+              <div class="job-brief-item-left">
                 <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
                 <span class="job-brief-name gt-mx-3 gt-ellipsis">{{ job.name }}</span>
-              </a>
-              <span class="job-brief-info">
-                <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun gt-mx-3" @click="rerunJob(index)" v-if="job.canRerun && onHoverRerunIndex === job.id"/>
+              </div>
+              <span class="job-brief-item-right">
+                <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun gt-mx-3 link-action" :data-url="`${run.link}/jobs/${index}/rerun`" v-if="job.canRerun && onHoverRerunIndex === job.id"/>
                 <span class="step-summary-duration">{{ job.duration }}</span>
               </span>
-            </div>
+            </a>
           </div>
         </div>
         <div class="job-artifacts" v-if="artifacts.length > 0">
@@ -263,17 +263,6 @@ const sfc = {
       if (this.currentJobStepsStates[idx].expanded) {
         this.loadJob(); // try to load the data immediately instead of waiting for next timer interval
       }
-    },
-    // rerun a job
-    async rerunJob(idx) {
-      const jobLink = `${this.run.link}/jobs/${idx}`;
-      await this.fetchPost(`${jobLink}/rerun`);
-      window.location.href = jobLink;
-    },
-    // rerun workflow
-    async rerun() {
-      await this.fetchPost(`${this.run.link}/rerun`);
-      window.location.href = this.run.link;
     },
     // cancel a run
     cancelRun() {
@@ -535,11 +524,6 @@ export function initRepositoryActionView() {
   overflow-y: auto;
 }
 
-.job-group-section .job-group-summary {
-  margin: 5px 0;
-  padding: 10px;
-}
-
 .job-artifacts-title {
   font-size: 18px;
   margin-top: 16px;
@@ -575,6 +559,7 @@ export function initRepositoryActionView() {
   flex-wrap: nowrap;
   justify-content: space-between;
   align-items: center;
+  color: var(--color-text);
 }
 
 .job-brief-item:hover {
@@ -599,28 +584,23 @@ export function initRepositoryActionView() {
   transform: scale(130%);
 }
 
-.job-brief-item .job-brief-link {
+.job-brief-item .job-brief-item-left {
   display: flex;
   width: 100%;
   min-width: 0;
 }
 
-.job-brief-item .job-brief-link span {
+.job-brief-item .job-brief-item-left span {
   display: flex;
   align-items: center;
 }
 
-.job-brief-item .job-brief-link .job-brief-name {
+.job-brief-item .job-brief-item-left .job-brief-name {
   display: block;
   width: 70%;
-  color: var(--color-text);
 }
 
-.job-brief-item .job-brief-link:hover {
-  text-decoration: none;
-}
-
-.job-brief-item .job-brief-info {
+.job-brief-item .job-brief-item-right {
   display: flex;
   align-items: center;
 }
@@ -689,24 +669,6 @@ export function initRepositoryActionView() {
 
 /* end fomantic dropdown menu overrides */
 
-/* selectors here are intentionally exact to only match fullscreen */
-
-.full.height > .action-view-right {
-  width: 100%;
-  height: 100%;
-  padding: 0;
-  border-radius: 0;
-}
-
-.full.height > .action-view-right > .job-info-header {
-  border-radius: 0;
-}
-
-.full.height > .action-view-right > .job-step-container {
-  height: calc(100% - 60px);
-  border-radius: 0;
-}
-
 .job-info-header {
   display: flex;
   justify-content: space-between;
@@ -744,7 +706,6 @@ export function initRepositoryActionView() {
   padding: 5px 10px;
   display: flex;
   align-items: center;
-  user-select: none;
   border-radius: var(--border-radius);
 }
 
@@ -848,6 +809,24 @@ export function initRepositoryActionView() {
   word-break: break-all;
   white-space: break-spaces;
   margin-left: 10px;
+}
+
+/* selectors here are intentionally exact to only match fullscreen */
+
+.full.height > .action-view-right {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border-radius: 0;
+}
+
+.full.height > .action-view-right > .job-info-header {
+  border-radius: 0;
+}
+
+.full.height > .action-view-right > .job-step-container {
+  height: calc(100% - 60px);
+  border-radius: 0;
 }
 
 /* TODO: group support

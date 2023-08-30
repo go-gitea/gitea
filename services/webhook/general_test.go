@@ -123,6 +123,10 @@ func issueTestPayload() *api.IssuePayload {
 			HTMLURL: "http://localhost:3000/test/repo/issues/2",
 			Title:   "crash",
 			Body:    "issue body",
+			Poster: &api.User{
+				UserName:  "user1",
+				AvatarURL: "http://localhost:3000/user1/avatar",
+			},
 			Assignees: []*api.User{
 				{
 					UserName:  "user1",
@@ -161,7 +165,11 @@ func issueCommentTestPayload() *api.IssueCommentPayload {
 			URL:     "http://localhost:3000/api/v1/repos/test/repo/issues/2",
 			HTMLURL: "http://localhost:3000/test/repo/issues/2",
 			Title:   "crash",
-			Body:    "this happened",
+			Poster: &api.User{
+				UserName:  "user1",
+				AvatarURL: "http://localhost:3000/user1/avatar",
+			},
+			Body: "this happened",
 		},
 	}
 }
@@ -190,6 +198,10 @@ func pullRequestCommentTestPayload() *api.IssueCommentPayload {
 			HTMLURL: "http://localhost:3000/test/repo/pulls/12",
 			Title:   "Fix bug",
 			Body:    "fixes bug #2",
+			Poster: &api.User{
+				UserName:  "user1",
+				AvatarURL: "http://localhost:3000/user1/avatar",
+			},
 		},
 		IsPull: true,
 	}
@@ -254,6 +266,10 @@ func pullRequestTestPayload() *api.PullRequestPayload {
 			Title:     "Fix bug",
 			Body:      "fixes bug #2",
 			Mergeable: true,
+			Poster: &api.User{
+				UserName:  "user1",
+				AvatarURL: "http://localhost:3000/user1/avatar",
+			},
 			Assignees: []*api.User{
 				{
 					UserName:  "user1",

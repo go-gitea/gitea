@@ -114,7 +114,7 @@ export function initRepoEditor() {
         if (i < parts.length - 1) {
           if (value.length) {
             $(`<span class="section"><a href="#">${htmlEscape(value)}</a></span>`).insertBefore($(this));
-            $('<div class="divider"> / </div>').insertBefore($(this));
+            $('<div class="breadcrumb-divider">/</div>').insertBefore($(this));
           }
         } else {
           $(this).val(value);
@@ -132,7 +132,7 @@ export function initRepoEditor() {
     // Jump back to last directory once the filename is empty
     if (e.code === 'Backspace' && getCursorPosition($(this)) === 0 && $section.length > 0) {
       e.preventDefault();
-      const $divider = $('.breadcrumb div.divider');
+      const $divider = $('.breadcrumb .breadcrumb-divider');
       const value = $section.last().find('a').text();
       $(this).val(value + $(this).val());
       this.setSelectionRange(value.length, value.length);

@@ -199,3 +199,16 @@ func (prs PullRequestList) GetIssueIDs() []int64 {
 	}
 	return issueIDs
 }
+
+// HasMergedPullRequestInRepo returns whether the user(poster) has merged pull-request in the repo
+func HasMergedPullRequestInRepo(ctx context.Context, repoID, posterID int64) (bool, error) {
+	return db.GetEngine(ctx).
+		Join("INNER", "pull_request", "pull_request.issue_id = issue.id").
+		Where("repo_id=?", repoID).
+		And("poster_id=?", posterID).
+		And("is_pull=?", true).
+		And("pull_request.has_merged=?", true).
+		Select("issue.id").
+		Limit(1).
+		Get(new(Issue))
+}
