@@ -209,9 +209,6 @@ func TestOrgTeamEmailInviteRedirectsNewUser(t *testing.T) {
 	session.jar.SetCookies(baseURL, cr.Cookies())
 
 	// make the redirected request
-	req = NewRequest(t, "GET", test.RedirectURL(resp))
-	session.MakeRequest(t, req, http.StatusOK)
-
 	req = NewRequestWithValues(t, "POST", test.RedirectURL(resp), map[string]string{
 		"_csrf": GetCSRF(t, session, test.RedirectURL(resp)),
 	})
@@ -235,6 +232,10 @@ func TestOrgTeamEmailInviteRedirectsNewUserWithActivation(t *testing.T) {
 		return
 	}
 
+	// enable email confirmation temporarily
+	defer func(prevVal bool) {
+		setting.Service.RegisterEmailConfirm = prevVal
+	}(setting.Service.RegisterEmailConfirm)
 	setting.Service.RegisterEmailConfirm = true
 
 	defer tests.PrepareTestEnv(t)()
