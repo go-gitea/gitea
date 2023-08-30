@@ -6,10 +6,7 @@
   display: flex;
   gap: 8px;
   align-items: flex-start;
-}
-
-.flex-item:not(:last-child) {
-  padding-bottom: 8px;
+  padding: 1em 0;
 }
 
 .flex-item-baseline {
@@ -92,5 +89,13 @@
 
 .flex-list > .flex-item + .flex-item {
   border-top: 1px solid var(--color-secondary);
-  padding-top: 8px;
+}
+
+/* Fomantic UI segment has default "padding: 1em", so here it removes the padding-top and padding-bottom accordingly */
+.ui.segment > .flex-list:first-child > .flex-item:first-child {
+  padding-top: 0;
+}
+
+.ui.segment > .flex-list:last-child > .flex-item:last-child {
+  padding-bottom: 0;
 }
