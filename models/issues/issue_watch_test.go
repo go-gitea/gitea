@@ -47,13 +47,17 @@ func TestGetIssueWatchers(t *testing.T) {
 
 	iws, err := issues_model.GetIssueWatchers(db.DefaultContext, 1, db.ListOptions{})
 	assert.NoError(t, err)
-	// Watcher is inactive, thus 0
-	assert.Len(t, iws, 0)
+	// user 9 watch it ,but user status is inactive, thus 0
+	// user 5 participates and is not explicitly not watching , thus 1
+	// total 1
+	assert.Len(t, iws, 1)
 
 	iws, err = issues_model.GetIssueWatchers(db.DefaultContext, 2, db.ListOptions{})
 	assert.NoError(t, err)
-	// Watcher is explicit not watching
-	assert.Len(t, iws, 0)
+	// user 2 in Watcher is explicitly not watching, thus 0
+	// user 1 participates and is not explicitly not watching , thus 1
+	// total 1
+	assert.Len(t, iws, 1)
 
 	iws, err = issues_model.GetIssueWatchers(db.DefaultContext, 5, db.ListOptions{})
 	assert.NoError(t, err)
