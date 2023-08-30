@@ -5,6 +5,7 @@ package issues
 
 import (
 	"context"
+	"xorm.io/builder"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -98,27 +99,25 @@ func GetIssueWatchersIDs(ctx context.Context, issueID int64, watching bool) ([]i
 
 // GetIssueWatchers returns watchers/unwatchers of a given issue
 func GetIssueWatchers(ctx context.Context, issueID int64, listOptions db.ListOptions) ([]int64, error) {
-	sess := db.GetEngine(ctx).SQL(
-		"select `user`.id  "+
-			"from issue_watch "+
-			"inner join user on `user`.id = `issue_watch`.user_id "+
-			"where `issue_watch`.issue_id = ? "+
-			"and `issue_watch`.is_watching = true "+
-			"and `user`.is_active = true "+
-			"and `user`.prohibit_login = false "+
-			" union "+
-			"select `comment`.poster_id as id  "+
-			"from comment inner join user on `user`.id = `comment`.poster_id "+
-			"where `comment`.issue_id = ? "+
-			"and `comment`.type in (?,?,?) "+
-			"and `user`.is_active = true  "+
-			"and `user`.prohibit_login = false "+
-			"and NOT exists( "+
-			"select 1 "+
-			"from issue_watch "+
-			"where `issue_watch`.issue_id = ? and `issue_watch`.is_watching = false)",
-		issueID, issueID, CommentTypeComment, CommentTypeCode, CommentTypeReview, issueID,
-	)
+	subscribeWatchers := builder.Select("`issue_watch`.user_id").
+		From("issue_watch").
+		Where(builder.Eq{"`issue_watch`.issue_id": issueID}).
+		And(builder.Eq{"`issue_watch`.is_watching": true})
+
+	participantsWatchers := builder.Select("`comment`.poster_id").
+		From("comment").
+		Where(builder.Eq{"`comment`.issue_id": issueID}).
+		And(builder.In("`comment`.type", CommentTypeComment, CommentTypeCode, CommentTypeReview)).
+		And(builder.NotIn("`comment`.poster_id",
+			builder.Select("`issue_watch`.user_id").
+				From("issue_watch").
+				Where(builder.Eq{"`issue_watch`.issue_id": issueID}).
+				And(builder.Eq{"`issue_watch`.is_watching": false})))
+
+	sess := db.GetEngine(ctx).Select("id").Table("user").
+		Where(builder.Or(builder.In("id", participantsWatchers), builder.In("id", subscribeWatchers))).
+		And(builder.Eq{"`user`.is_active": true}).
+		And(builder.Eq{"`user`.prohibit_login": false})
 
 	if listOptions.Page != 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
