@@ -168,8 +168,9 @@ func ValidateEmail(email string) error {
 		return ErrEmailInvalid{email}
 	}
 
-	// check email address against allow list
-	if !validation.IsEmailDomainListed(setting.Service.EmailDomainAllowList, email) {
+	// if there is an allow list, then check email against allow list
+	if len(setting.Service.EmailDomainAllowList) > 0 &&
+		!validation.IsEmailDomainListed(setting.Service.EmailDomainAllowList, email) {
 		return ErrEmailInvalid{email}
 	}
 
