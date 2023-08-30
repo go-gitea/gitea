@@ -71,7 +71,7 @@ Gitea's private styles use `g-` prefix.
 .gt-no-underline { text-decoration-line: none !important; }
 .gt-w-auto { width: auto !important; }
 .gt-normal-case { text-transform: none !important; }
-
+.gt-italic { font-style: italic !important; }
 .gt-overflow-x-auto { overflow-x: auto !important; }
 .gt-overflow-x-scroll { overflow-x: scroll !important; }
 .gt-overflow-y-hidden { overflow-y: hidden !important; }
@@ -104,8 +104,6 @@ Gitea's private styles use `g-` prefix.
 .gt-border-secondary-bottom { border-bottom: 1px solid var(--color-secondary) !important; }
 .gt-border-secondary-left { border-left: 1px solid var(--color-secondary) !important; }
 .gt-border-secondary-right { border-right: 1px solid var(--color-secondary) !important; }
-
-.gt-no-transition { transition: none !important; }
 
 .gt-bg-red { background: var(--color-red) !important; }
 .gt-bg-orange { background: var(--color-orange) !important; }
