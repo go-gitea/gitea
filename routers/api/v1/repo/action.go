@@ -76,7 +76,7 @@ func CreateOrUpdateSecret(ctx *context.APIContext) {
 
 // DeleteSecret delete one secret of the repository
 func DeleteSecret(ctx *context.APIContext) {
-	// swagger:operation DELETE /repos/{owner}/{repo}/actions/secrets/{secretname} repository deleteSecret
+	// swagger:operation DELETE /repos/{owner}/{repo}/actions/secrets/{secretname} repository deleteRepoSecret
 	// ---
 	// summary: Delete a secret in a repository
 	// consumes:

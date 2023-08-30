@@ -127,7 +127,7 @@ func CreateOrUpdateSecret(ctx *context.APIContext) {
 
 // DeleteSecret delete one secret of the organization
 func DeleteSecret(ctx *context.APIContext) {
-	// swagger:operation DELETE /orgs/{org}/actions/secrets/{secretname} organization deleteSecret
+	// swagger:operation DELETE /orgs/{org}/actions/secrets/{secretname} organization deleteOrgSecret
 	// ---
 	// summary: Delete a secret in an organization
 	// consumes:
