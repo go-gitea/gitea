@@ -4,44 +4,67 @@
 package integration
 
 import (
+	"net/url"
 	"net/http"
 	"testing"
 
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func testLanguageList(t *testing.T, uri string) {
+func testLanguageList(t *testing.T, uri string, exp []map[string]string) {
 	req := NewRequest(t, "GET", uri)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var langs []api.LanguageInfo
 	DecodeJSON(t, resp, &langs)
 
-	for _, lang := range langs {
-		assert.NotEqual(t, lang.Name, "")
-		assert.NotEqual(t, lang.Color, "")
+	assert.Equal(t, len(langs), len(exp))
+
+	for i, lang := range langs {
+		assert.Equal(t, lang.Name, exp[i]["name"])
+		assert.Equal(t, lang.Color, exp[i]["color"])
 	}
 }
 
 func TestAPIListLanguages(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	testLanguageList(t, "/api/v1/repos/languages")
+	onGiteaRun(t, func (t *testing.T, u *url.URL) {
+		testLanguageList(t,
+			"/api/v1/repos/languages",
+			[]map[string]string{
+				map[string]string{
+					"name": "Markdown",
+					"color": "#083fa1",
+				},
+				map[string]string{
+					"name": "Text",
+					"color": "#cccccc",
+				},
+			},
+		)
+	})
 }
 
 func TestAPIListUserLanguages(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	loginUser(t, "user2")
-	testLanguageList(t, "/api/v1/users/user2/languages")
+	onGiteaRun(t, func (t *testing.T, u *url.URL) {
+		testLanguageList(t,
+			"/api/v1/users/user2/languages",
+			[]map[string]string{
+				map[string]string{
+					"name": "Text",
+					"color": "#cccccc",
+				},
+			},
+		)
+	})
 }
 
 func TestAPIListOrgLanguages(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	loginUser(t, "user2")
-	testLanguageList(t, "/api/v1/orgs/user3/languages")
+	onGiteaRun(t, func (t *testing.T, u *url.URL) {
+		testLanguageList(t,
+			"/api/v1/orgs/user3/languages",
+			[]map[string]string{},
+		)
+	})
 }
