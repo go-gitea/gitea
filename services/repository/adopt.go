@@ -196,7 +196,7 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 	}
 
 	if err = repo_module.SyncReleasesWithTags(repo, gitRepo); err != nil {
-		return fmt.Errorf("syncReleasesWithTags: %w", err)
+		return fmt.Errorf("SyncReleasesWithTags: %w", err)
 	}
 
 	return nil
