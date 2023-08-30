@@ -207,6 +207,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 
 	if !w.IsActive {
 		log.Trace("Webhook %s in Webhook Task[%d] is not active", w.URL, t.ID)
+		t.ResponseInfo.Body = "Hook delivery skipped as webhook is inactive."
 		return nil
 	}
 
