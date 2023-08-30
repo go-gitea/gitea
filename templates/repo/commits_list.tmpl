@@ -78,7 +78,11 @@
 							{{end}}
 							{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses "root" $}}
 							{{if IsMultilineCommitMessage .Message}}
-							<pre class="commit-body gt-hidden">{{RenderCommitBody $.Context .Message $commitRepoLink $.Repository.ComposeMetas}}</pre>
+								{{if eq $.BaseRepo.ID $.Repository.ID}}
+								<pre class="commit-body gt-hidden">{{RenderCommitBody $.Context .Message $commitRepoLink $.Repository.ComposeMetas}}</pre>
+								{{else}}
+								<pre class="commit-body gt-hidden">{{RenderCommitBody $.Context .Message (print "/" $.BaseRepo.OwnerName "/" $.BaseRepo.Name) $.BaseRepo.ComposeMetas}}</pre>
+								{{end}}
 							{{end}}
 						</td>
 						{{if .Committer}}
