@@ -92,7 +92,7 @@
 }
 
 /* remove padding on first and last child so it better fits into .ui.segment or
-   when preceded by a .ui.divider */
+   when preceded or followed by a .ui.divider */
 .flex-list > .flex-item:first-child {
   padding-top: 0;
 }
