@@ -223,7 +223,7 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	Service.UserDeleteWithCommentsMaxTime = sec.Key("USER_DELETE_WITH_COMMENTS_MAX_TIME").MustDuration(0)
 	sec.Key("VALID_SITE_URL_SCHEMES").MustString("http,https")
 	Service.ValidSiteURLSchemes = sec.Key("VALID_SITE_URL_SCHEMES").Strings(",")
-	schemes := make([]string, len(Service.ValidSiteURLSchemes))
+	schemes := make([]string, 0, len(Service.ValidSiteURLSchemes))
 	for _, scheme := range Service.ValidSiteURLSchemes {
 		scheme = strings.ToLower(strings.TrimSpace(scheme))
 		if scheme != "" {

@@ -133,6 +133,11 @@ func (r *Release) HTMLURL() string {
 	return r.Repo.HTMLURL() + "/releases/tag/" + util.PathEscapeSegments(r.TagName)
 }
 
+// APIUploadURL the api url to upload assets to a release. release must have attributes loaded
+func (r *Release) APIUploadURL() string {
+	return r.APIURL() + "/assets"
+}
+
 // Link the relative url for a release on the web UI. release must have attributes loaded
 func (r *Release) Link() string {
 	return r.Repo.Link() + "/releases/tag/" + util.PathEscapeSegments(r.TagName)
