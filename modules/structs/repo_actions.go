@@ -9,7 +9,7 @@ import (
 
 // ActionTask represents a ActionTask
 type ActionTask struct {
-	Id           int64  `json:"id"`
+	ID           int64  `json:"id"`
 	Name         string `json:"name"`
 	HeadBranch   string `json:"head_branch"`
 	HeadSha      string `json:"head_sha"`
@@ -18,7 +18,7 @@ type ActionTask struct {
 	DisplayTitle string `json:"display_title"`
 	Status       string `json:"status"`
 	WorkflowID   string `json:"workflow_id"`
-	Url          string `json:"url"`
+	URL          string `json:"url"`
 	// swagger:strfmt date-time
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// swagger:strfmt date-time

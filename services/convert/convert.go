@@ -187,7 +187,7 @@ func ToActionTask(ctx context.Context, repo *repo_model.Repository, t *actions_m
 	}
 
 	return &api.ActionTask{
-		Id:           t.ID,
+		ID:           t.ID,
 		Name:         t.Job.Name,
 		HeadBranch:   t.Job.Run.PrettyRef(),
 		HeadSha:      t.Job.CommitSHA,
@@ -196,7 +196,7 @@ func ToActionTask(ctx context.Context, repo *repo_model.Repository, t *actions_m
 		DisplayTitle: t.Job.Run.Title,
 		Status:       t.Status.String(),
 		WorkflowID:   t.Job.Run.WorkflowID,
-		Url:          t.GetRunLink(),
+		URL:          t.GetRunLink(),
 		CreatedAt:    t.Created.AsLocalTime(),
 		UpdatedAt:    t.Updated.AsLocalTime(),
 		RunStartedAt: t.Started.AsLocalTime(),
