@@ -6,6 +6,8 @@ package integration
 import (
 	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -66,6 +68,167 @@ func TestOrgTeamEmailInvite(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 
 	isMember, err = organization.IsTeamMember(db.DefaultContext, team.OrgID, team.ID, user.ID)
+	assert.NoError(t, err)
+	assert.True(t, isMember)
+}
+
+func TestOrgTeamEmailInviteRedirectsExistingUser(t *testing.T) {
+	if setting.MailService == nil {
+		t.Skip()
+		return
+	}
+
+	defer tests.PrepareTestEnv(t)()
+
+	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
+	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+
+	isMember, err := organization.IsTeamMember(db.DefaultContext, team.OrgID, team.ID, user.ID)
+	assert.NoError(t, err)
+	assert.False(t, isMember)
+
+	// create the invite
+	session := loginUser(t, "user1")
+
+	teamUrl := fmt.Sprintf("/org/%s/teams/%s", org.Name, team.Name)
+	csrf := GetCSRF(t, session, teamUrl)
+	req := NewRequestWithValues(t, "POST", teamUrl+"/action/add", map[string]string{
+		"_csrf": csrf,
+		"uid":   "1",
+		"uname": user.Email,
+	})
+	resp := session.MakeRequest(t, req, http.StatusSeeOther)
+	req = NewRequest(t, "GET", test.RedirectURL(resp))
+	session.MakeRequest(t, req, http.StatusOK)
+
+	// get the invite token
+	invites, err := organization.GetInvitesByTeamID(db.DefaultContext, team.ID)
+	assert.NoError(t, err)
+	assert.Len(t, invites, 1)
+
+	// accept the invite
+	inviteUrl := fmt.Sprintf("/org/invite/%s", invites[0].Token)
+	req = NewRequest(t, "GET", fmt.Sprintf("/user/login?redirect_to=%s", url.QueryEscape(inviteUrl)))
+	resp = MakeRequest(t, req, http.StatusOK)
+
+	doc := NewHTMLParser(t, resp.Body)
+	req = NewRequestWithValues(t, "POST", "/user/login", map[string]string{
+		"_csrf":     doc.GetCSRF(),
+		"user_name": "user5",
+		"password":  "password",
+	})
+	for _, c := range resp.Result().Cookies() {
+		req.AddCookie(c)
+	}
+
+	resp = MakeRequest(t, req, http.StatusSeeOther)
+	assert.Equal(t, inviteUrl, test.RedirectURL(resp))
+
+	// complete the login process
+	ch := http.Header{}
+	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
+	cr := http.Request{Header: ch}
+
+	session = emptyTestSession(t)
+	baseURL, err := url.Parse(setting.AppURL)
+	assert.NoError(t, err)
+	session.jar.SetCookies(baseURL, cr.Cookies())
+
+	// make the request
+	req = NewRequest(t, "GET", test.RedirectURL(resp))
+	session.MakeRequest(t, req, http.StatusOK)
+
+	csrf = GetCSRF(t, session, test.RedirectURL(resp))
+	req = NewRequestWithValues(t, "POST", test.RedirectURL(resp), map[string]string{
+		"_csrf": csrf,
+	})
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	req = NewRequest(t, "GET", test.RedirectURL(resp))
+	session.MakeRequest(t, req, http.StatusOK)
+
+	isMember, err = organization.IsTeamMember(db.DefaultContext, team.OrgID, team.ID, user.ID)
+	assert.NoError(t, err)
+	assert.True(t, isMember)
+}
+
+func TestOrgTeamEmailInviteRedirectsNewUser(t *testing.T) {
+	if setting.MailService == nil {
+		t.Skip()
+		return
+	}
+
+	defer tests.PrepareTestEnv(t)()
+
+	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
+	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
+
+	// create the invite
+	session := loginUser(t, "user1")
+
+	teamUrl := fmt.Sprintf("/org/%s/teams/%s", org.Name, team.Name)
+	csrf := GetCSRF(t, session, teamUrl)
+	req := NewRequestWithValues(t, "POST", teamUrl+"/action/add", map[string]string{
+		"_csrf": csrf,
+		"uid":   "1",
+		"uname": "doesnotexist@example.com",
+	})
+	resp := session.MakeRequest(t, req, http.StatusSeeOther)
+	req = NewRequest(t, "GET", test.RedirectURL(resp))
+	session.MakeRequest(t, req, http.StatusOK)
+
+	// get the invite token
+	invites, err := organization.GetInvitesByTeamID(db.DefaultContext, team.ID)
+	assert.NoError(t, err)
+	assert.Len(t, invites, 1)
+
+	// accept the invite
+	inviteUrl := fmt.Sprintf("/org/invite/%s", invites[0].Token)
+	req = NewRequest(t, "GET", fmt.Sprintf("/user/sign_up?redirect_to=%s", url.QueryEscape(inviteUrl)))
+	resp = MakeRequest(t, req, http.StatusOK)
+
+	doc := NewHTMLParser(t, resp.Body)
+	req = NewRequestWithValues(t, "POST", "/user/sign_up", map[string]string{
+		"_csrf":     doc.GetCSRF(),
+		"user_name": "doesnotexist",
+		"email":     "doesnotexist@example.com",
+		"password":  "examplePassword!1",
+		"retype":    "examplePassword!1",
+	})
+	for _, c := range resp.Result().Cookies() {
+		req.AddCookie(c)
+	}
+
+	resp = MakeRequest(t, req, http.StatusSeeOther)
+	assert.Equal(t, inviteUrl, test.RedirectURL(resp))
+
+	// complete the signup process
+	ch := http.Header{}
+	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
+	cr := http.Request{Header: ch}
+
+	session = emptyTestSession(t)
+	baseURL, err := url.Parse(setting.AppURL)
+	assert.NoError(t, err)
+	session.jar.SetCookies(baseURL, cr.Cookies())
+
+	// make the redirected request
+	req = NewRequest(t, "GET", test.RedirectURL(resp))
+	session.MakeRequest(t, req, http.StatusOK)
+
+	csrf = GetCSRF(t, session, test.RedirectURL(resp))
+	req = NewRequestWithValues(t, "POST", test.RedirectURL(resp), map[string]string{
+		"_csrf": csrf,
+	})
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	req = NewRequest(t, "GET", test.RedirectURL(resp))
+	session.MakeRequest(t, req, http.StatusOK)
+
+	// get the new user
+	newUser, err := user_model.GetUserByName(db.DefaultContext, "doesnotexist")
+	assert.NoError(t, err)
+
+	isMember, err := organization.IsTeamMember(db.DefaultContext, team.OrgID, team.ID, newUser.ID)
 	assert.NoError(t, err)
 	assert.True(t, isMember)
 }
