@@ -43,6 +43,8 @@ jobs:
               - "go.mod"
               - "go.sum"
               - "Makefile"
+              - ".golangci.yml"
+              - ".editorconfig"
 
             frontend:
               - "**/*.js"
@@ -51,16 +53,21 @@ jobs:
               - "package.json"
               - "package-lock.json"
               - "Makefile"
+              - ".eslintrc.yaml"
+              - ".stylelintrc.yaml"
+              - ".npmrc"
 
             docs:
               - "**/*.md"
               - "docs/**"
+              - ".markdownlint.yaml"
 
             actions:
               - ".github/workflows/*"
 
             templates:
               - "templates/**/*.tmpl"
+              - "pyproject.toml"
               - "poetry.lock"
 
             docker:
@@ -72,3 +79,6 @@ jobs:
             swagger:
               - "templates/swagger/v1_json.tmpl"
               - "Makefile"
+              - "package.json"
+              - "package-lock.json"
+              - ".spectral.yml"

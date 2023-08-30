@@ -333,9 +333,9 @@ func DismissApprovalReviews(ctx context.Context, doer *user_model.User, pull *is
 		return err
 	}
 
-	return db.WithTx(ctx, func(subCtx context.Context) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
 		for _, review := range reviews {
-			if err := issues_model.DismissReview(subCtx, review, true); err != nil {
+			if err := issues_model.DismissReview(ctx, review, true); err != nil {
 				return err
 			}
 

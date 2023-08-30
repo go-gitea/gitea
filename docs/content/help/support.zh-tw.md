@@ -28,7 +28,7 @@ menu:
 3. 您看到的任何錯誤訊息
 4. 儘可能地在 [try.gitea.io](https://try.gitea.io) 觸發您的問題並記下步驟，以便其他人能重現那個問題。
     - 這將讓我們更有機會快速地找出問題的根源並解決它。
-5. 堆棧跟踪，[請參考英文文檔](https://docs.gitea.io/en-us/seek-help/)
+5. 堆棧跟踪，[請參考英文文檔](https://docs.gitea.com/help/support)
 
 ## 錯誤回報
 

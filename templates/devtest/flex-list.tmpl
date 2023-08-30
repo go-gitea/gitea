@@ -1,8 +1,8 @@
 {{template "base/head" .}}
 <link rel="stylesheet" href="{{AssetUrlPrefix}}/css/devtest.css?v={{AssetVersion}}">
-<div class="page-content devtest ui container">
-	<div>
-		<h1>Flex List</h1>
+<div class="page-content devtest">
+	<div class="ui container">
+		<h1 class="gt-border-secondary-bottom">Flex List (standalone)</h1>
 		<div class="flex-list">
 			<div class="flex-item">
 				<div class="flex-item-leading">
@@ -82,6 +82,23 @@
 						when inside header, the trailing part will wrap below the title
 					</div>
 				</div>
+			</div>
+		</div>
+
+		<div class="divider gt-my-0"></div>
+
+		<h1>Flex List (with "ui segment")</h1>
+		<div class="ui attached segment">
+			<div class="flex-list">
+				<div class="flex-item">item 1</div>
+				<div class="flex-item">item 2</div>
+			</div>
+		</div>
+		<div class="ui attached segment">
+			<h1>Flex List (with "ui segment")</h1>
+			<div class="flex-list">
+				<div class="flex-item">item 1</div>
+				<div class="flex-item">item 2</div>
 			</div>
 		</div>
 	</div>

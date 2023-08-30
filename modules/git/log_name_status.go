@@ -374,27 +374,25 @@ heaploop:
 			break heaploop
 		}
 		parentRemaining.Remove(current.CommitID)
-		if current.Paths != nil {
-			for i, found := range current.Paths {
-				if !found {
-					continue
+		for i, found := range current.Paths {
+			if !found {
+				continue
+			}
+			changed[i] = false
+			if results[i] == "" {
+				results[i] = current.CommitID
+				if err := repo.LastCommitCache.Put(headRef, path.Join(treepath, paths[i]), current.CommitID); err != nil {
+					return nil, err
 				}
-				changed[i] = false
-				if results[i] == "" {
-					results[i] = current.CommitID
-					if err := repo.LastCommitCache.Put(headRef, path.Join(treepath, paths[i]), current.CommitID); err != nil {
+				delete(path2idx, paths[i])
+				remaining--
+				if results[0] == "" {
+					results[0] = current.CommitID
+					if err := repo.LastCommitCache.Put(headRef, treepath, current.CommitID); err != nil {
 						return nil, err
 					}
-					delete(path2idx, paths[i])
+					delete(path2idx, "")
 					remaining--
-					if results[0] == "" {
-						results[0] = current.CommitID
-						if err := repo.LastCommitCache.Put(headRef, treepath, current.CommitID); err != nil {
-							return nil, err
-						}
-						delete(path2idx, "")
-						remaining--
-					}
 				}
 			}
 		}

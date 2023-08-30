@@ -128,7 +128,7 @@ func GetPushMirrorsByRepoID(ctx context.Context, repoID int64, listOptions db.Li
 func GetPushMirrorsSyncedOnCommit(ctx context.Context, repoID int64) ([]*PushMirror, error) {
 	mirrors := make([]*PushMirror, 0, 10)
 	return mirrors, db.GetEngine(ctx).
-		Where("repo_id=? AND sync_on_commit=?", repoID, true).
+		Where("repo_id = ? AND sync_on_commit = ?", repoID, true).
 		Find(&mirrors)
 }
 
