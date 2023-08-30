@@ -236,8 +236,8 @@
   }
 }
 
-.repository.file.list #repo-desc {
-  font-size: 1.2em;
+#repo-desc {
+  font-size: 16px;
 }
 
 .repository.file.list .repo-path {
