@@ -157,7 +157,7 @@ func Milestones(ctx *context.Context) {
 	}
 
 	repoOpts := repo_model.SearchRepoOptions{
-		Actor:         ctxUser,
+		Actor:         ctx.Doer,
 		OwnerID:       ctxUser.ID,
 		Private:       true,
 		AllPublic:     false, // Include also all public repositories of users and public organisations
@@ -449,7 +449,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// - Team has read permission to repository.
 	repoOpts := &repo_model.SearchRepoOptions{
 		Actor:       ctx.Doer,
-		OwnerID:     ctx.Doer.ID,
+		OwnerID:     ctxUser.ID,
 		Private:     true,
 		AllPublic:   false,
 		AllLimited:  false,
@@ -567,12 +567,9 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	// Remove repositories that should not be shown,
 	// which are repositories that have no issues and are not selected by the user.
-	selectedReposMap := make(map[int64]struct{}, len(selectedRepoIDs))
-	for _, repoID := range selectedRepoIDs {
-		selectedReposMap[repoID] = struct{}{}
-	}
+	selectedRepos := container.SetOf(selectedRepoIDs...)
 	for k, v := range issueCountByRepo {
-		if _, ok := selectedReposMap[k]; !ok && v == 0 {
+		if v == 0 && !selectedRepos.Contains(k) {
 			delete(issueCountByRepo, k)
 		}
 	}
