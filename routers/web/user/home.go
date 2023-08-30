@@ -567,12 +567,9 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	// Remove repositories that should not be shown,
 	// which are repositories that have no issues and are not selected by the user.
-	selectedReposMap := make(map[int64]struct{}, len(selectedRepoIDs))
-	for _, repoID := range selectedRepoIDs {
-		selectedReposMap[repoID] = struct{}{}
-	}
+	selectedRepos := container.SetOf(selectedRepoIDs...)
 	for k, v := range issueCountByRepo {
-		if _, ok := selectedReposMap[k]; !ok && v == 0 {
+		if v == 0 && !selectedRepos.Contains(k) {
 			delete(issueCountByRepo, k)
 		}
 	}
