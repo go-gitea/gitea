@@ -1907,24 +1907,6 @@
   flex-wrap: wrap;
 }
 
-.repository.settings.collaboration #repo-collab-form #search-user-box .results {
-  left: 7px;
-}
-
-.repository.settings.collaboration #repo-collab-form .ui.button {
-  margin-left: 5px;
-  margin-top: -3px;
-}
-
-.repository.settings.collaboration #repo-collab-team-form #search-team-box .results {
-  left: 7px;
-}
-
-.repository.settings.collaboration #repo-collab-team-form .ui.button {
-  margin-left: 5px;
-  margin-top: -3px;
-}
-
 /* if the element is for a checkbox, then it should have a padding-left to align to the checkbox's text */
 .repository.settings.branches .branch-protection .ui.checkbox .help,
 .repository.settings.branches .branch-protection .checkbox-sub-item {
