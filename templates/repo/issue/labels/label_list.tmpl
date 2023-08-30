@@ -75,10 +75,15 @@
 			<li class="item org-label">
 				<div class="label-title">
 					{{RenderLabel $.Context .}}
+					{{if not .ArchivedUnix.IsZero}}
+						<span class="gt-ml-3 gt-cursor-default gt-italic" data-tooltip-content="{{$.locale.Tr "repo.issues.label_archive_tooltip"}}">
+							{{$.locale.Tr "home.archived"}}
+						</span>
+					{{end}}
 					{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji $.Context}}</small>{{end}}
 				</div>
 				<div class="label-issues">
-					<a class="open-issues" href="{{$.RepoLink}}/issues?labels={{.ID}}">{{svg "octicon-issue-opened"}} {{$.locale.Tr "repo.issues.label_open_issues" .NumOpenRepoIssues}}</a>
+					<a class="open-issues" {{if not .ArchivedUnix.IsZero}}data-is-archived{{end}} href="{{$.RepoLink}}/issues?labels={{.ID}}">{{svg "octicon-issue-opened"}} {{$.locale.Tr "repo.issues.label_open_issues" .NumOpenRepoIssues}}</a>
 				</div>
 				<div class="label-operation"></div>
 			</li>
