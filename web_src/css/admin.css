@@ -49,7 +49,3 @@
   gap: 1rem;
   margin-bottom: 1rem;
 }
-
-.admin-responsive-columns > .column {
-  flex: 1;
-}

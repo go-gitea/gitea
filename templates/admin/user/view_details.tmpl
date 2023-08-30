@@ -20,23 +20,19 @@
 			</div>
 			<div class="flex-item-body">
 				<b>{{ctx.Locale.Tr "admin.users.activated"}}:</b>
-				<strong>
-					{{if .User.IsActive}}
-						{{svg "octicon-check"}}
-					{{else}}
-						{{svg "octicon-x"}}
-					{{end}}
-				</strong>
+				{{if .User.IsActive}}
+					{{svg "octicon-check"}}
+				{{else}}
+					{{svg "octicon-x"}}
+				{{end}}
 			</div>
 			<div class="flex-item-body">
 				<b>{{ctx.Locale.Tr "admin.users.restricted"}}:</b>
-				<strong>
-					{{if .User.IsRestricted}}
-						{{svg "octicon-check"}}
-					{{else}}
-						{{svg "octicon-x"}}
-					{{end}}
-				</strong>
+				{{if .User.IsRestricted}}
+					{{svg "octicon-check"}}
+				{{else}}
+					{{svg "octicon-x"}}
+				{{end}}
 			</div>
 			<div class="flex-item-body">
 				<b>{{ctx.Locale.Tr "settings.visibility"}}:</b>
@@ -45,13 +41,11 @@
 			</div>
 			<div class="flex-item-body">
 				<b>{{ctx.Locale.Tr "admin.users.2fa"}}:</b>
-				<strong>
-					{{if .TwoFactorEnabled}}
-						<span class="text green">{{svg "octicon-check"}}</span>
-					{{else}}
-						{{svg "octicon-x"}}
-					{{end}}
-				</strong>
+				{{if .TwoFactorEnabled}}
+					<span class="text green">{{svg "octicon-check"}}</span>
+				{{else}}
+					{{svg "octicon-x"}}
+				{{end}}
 			</div>
 			{{if .User.Location}}
 				<div class="flex-item-body">
@@ -62,7 +56,7 @@
 				<div class="flex-item-body">
 					<span class="flex-text-inline">
 						{{svg "octicon-link"}}
-						<a target="_blank" rel="noopener noreferrer me" href="{{.User.Website}}">{{.User.Website}}</a>
+						<a target="_blank" href="{{.User.Website}}">{{.User.Website}}</a>
 					</span>
 				</div>
 			{{end}}

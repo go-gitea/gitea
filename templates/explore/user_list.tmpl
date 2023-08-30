@@ -15,10 +15,10 @@
 					{{if .Location}}
 						<span class="flex-text-inline">{{svg "octicon-location"}}{{.Location}}</span>
 					{{end}}
-					{{if and $.ShowUserEmail .Email $.IsSigned (not .KeepEmailPrivate)}}
+					{{if and .Email (or (and $.ShowUserEmail $.IsSigned (not .KeepEmailPrivate)) $.PageIsAdminUsers)}}
 						<span class="flex-text-inline">
 							{{svg "octicon-mail"}}
-							<a href="mailto:{{.Email}}" rel="nofollow">{{.Email}}</a>
+							<a href="mailto:{{.Email}}">{{.Email}}</a>
 						</span>
 					{{end}}
 					<span class="flex-text-inline">{{svg "octicon-calendar"}}{{ctx.Locale.Tr "user.joined_on" (DateTime "short" .CreatedUnix) | Safe}}</span>
