@@ -1175,6 +1175,10 @@ img.ui.avatar,
   color: var(--color-gold) !important;
 }
 
+.text.small {
+  font-size: 0.75em;
+}
+
 /* FIXME: this is a serious pollution, do not use this for "float: right" anymore */
 .ui.right:not(.action) {
   float: right;
@@ -1250,10 +1254,6 @@ img.ui.avatar,
 
 .ui .text.right {
   text-align: right !important;
-}
-
-.ui .text.small {
-  font-size: 0.75em;
 }
 
 .ui .text.normal {
