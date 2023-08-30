@@ -528,8 +528,8 @@ var migrations = []Migration{
 	NewMigration("Add Version to ActionRun table", v1_21.AddVersionToActionRunTable),
 	// v273 -> v274
 	NewMigration("Add Action Schedule Table", v1_21.AddActionScheduleTable),
-  // v274 -> v275
-  NewMigration("Migrate old rpm package index", v1_21.RebuildRpmPackage),
+	// v274 -> v275
+	NewMigration("Migrate old rpm package index", v1_21.RebuildRpmPackage),
 }
 
 // GetCurrentDBVersion returns the current db version
