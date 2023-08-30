@@ -8,7 +8,7 @@
 		<div class="ui repo-description">
 			<div id="repo-desc">
 				{{$description := .Repository.DescriptionHTML $.Context}}
-				{{if $description}}<span class="description">{{$description}}</span>{{else if .IsRepositoryAdmin}}<span class="no-description text-italic">{{.locale.Tr "repo.no_desc"}}</span>{{end}}
+				{{if $description}}<span class="description">{{$description | RenderCodeBlock}}</span>{{else if .IsRepositoryAdmin}}<span class="no-description text-italic">{{.locale.Tr "repo.no_desc"}}</span>{{end}}
 				<a class="link" href="{{.Repository.Website}}">{{.Repository.Website}}</a>
 			</div>
 			{{if .RepoSearchEnabled}}
