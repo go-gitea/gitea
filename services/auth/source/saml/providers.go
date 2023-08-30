@@ -93,7 +93,7 @@ func createProvider(ctx context.Context, source *Source) (*Source, error) {
 		IdentityProviderIssuer:      metadata.EntityID,
 		AudienceURI:                 setting.AppURL + "user/saml/" + url.PathEscape(source.authSource.Name) + "/metadata",
 		AssertionConsumerServiceURL: source.CallbackURL,
-		SignAuthnRequests:           !source.InsecureSkipAssertionSignatureValidation,
+		SkipSignatureValidation:     source.InsecureSkipAssertionSignatureValidation,
 		NameIdFormat:                source.NameIDFormat.String(),
 		IDPCertificateStore:         &certStore,
 		SPKeyStore:                  keyStore,

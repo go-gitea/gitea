@@ -33,8 +33,18 @@ func SignInSAML(ctx *context.Context) {
 
 // SignInSAMLCallback
 func SignInSAMLCallback(ctx *context.Context) {
-	// provider := ctx.Params(":provider")
-	// TODO: complete SAML Callback
+	provider := ctx.Params(":provider")
+	loginSource, err := auth.GetActiveSAMLLoginSourceByName(provider)
+	if err != nil || loginSource == nil {
+		ctx.NotFound("SignInSAMLCallback", err)
+		return
+	}
+
+	// TODO: use ret value to login or create user
+	if _, err = loginSource.Cfg.(*saml.Source).Callback(ctx.Req, ctx.Resp); err != nil {
+		ctx.ServerError("SignInSAMLCallback", err)
+	}
+
 }
 
 // SAMLMetadata
