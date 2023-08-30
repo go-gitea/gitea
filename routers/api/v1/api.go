@@ -935,7 +935,8 @@ func Routes() *web.Route {
 				}, reqToken())
 				m.Group("/actions/secrets", func() {
 					m.Combo("/{secretname}").
-						Put(reqToken(), reqOwner(), bind(api.CreateOrUpdateSecretOption{}), repo.CreateOrUpdateSecret)
+						Put(reqToken(), reqOwner(), bind(api.CreateOrUpdateSecretOption{}), repo.CreateOrUpdateSecret).
+						Delete(reqToken(), reqOwner(), repo.DeleteSecret)
 				})
 				m.Group("/hooks/git", func() {
 					m.Combo("").Get(repo.ListGitHooks)
@@ -1306,7 +1307,7 @@ func Routes() *web.Route {
 				m.Get("", reqToken(), reqOrgOwnership(), org.ListActionsSecrets)
 				m.Combo("/{secretname}").
 					Put(reqToken(), reqOrgOwnership(), bind(api.CreateOrUpdateSecretOption{}), org.CreateOrUpdateSecret).
-					Delete(reqToken(), reqOrgOwnership(), org.DeleteOrgSecret)
+					Delete(reqToken(), reqOrgOwnership(), org.DeleteSecret)
 			})
 			m.Group("/public_members", func() {
 				m.Get("", org.ListPublicMembers)
