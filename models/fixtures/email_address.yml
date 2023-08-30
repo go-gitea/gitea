@@ -277,3 +277,11 @@
   lower_email: user2-2@example.com
   is_activated: false
   is_primary: false
+
+-
+  id: 36
+  uid: 36
+  email: abcde@gitea.com
+  lower_email: abcde@gitea.com
+  is_activated: true
+  is_primary: false
