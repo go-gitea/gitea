@@ -54,9 +54,7 @@
 				<label for="color">{{$.locale.Tr "repo.issues.label_color"}}</label>
 				<div class="color picker column">
 					<input class="color-picker" name="color" value="#70c24a" required maxlength="7">
-					<div class="column precolors">
-						{{template "repo/issue/label_precolors"}}
-					</div>
+					{{template "repo/issue/label_precolors"}}
 				</div>
 			</div>
 		</form>

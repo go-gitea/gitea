@@ -11,7 +11,9 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/go-fed/httpsig"
@@ -52,6 +54,7 @@ fhTNAzWwZoQ91aHdAAAAFHUwMDIyMTQ2QGljdHMtcC1ueC03AQIDBAUG
 func TestHTTPSigPubKey(t *testing.T) {
 	// Add our public key to user1
 	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.SSH.MinimumKeySizeCheck, false)()
 	session := loginUser(t, "user1")
 	token := url.QueryEscape(getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser))
 	keysURL := fmt.Sprintf("/api/v1/user/keys?token=%s", token)
