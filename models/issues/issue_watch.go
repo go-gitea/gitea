@@ -100,25 +100,20 @@ func GetIssueWatchersIDs(ctx context.Context, issueID int64, watching bool) ([]i
 
 // GetIssueWatchers returns watchers/unwatchers of a given issue
 func GetIssueWatchers(ctx context.Context, issueID int64, listOptions db.ListOptions) ([]int64, error) {
-	subscribeWatchers := builder.Select("`issue_watch`.user_id").
-		From("issue_watch").
-		Where(builder.Eq{"`issue_watch`.issue_id": issueID}).
-		And(builder.Eq{"`issue_watch`.is_watching": true})
+	issueWatchers := builder.Select("`issue_watch`.user_id").From("issue_watch").
+		Where(builder.Eq{"`issue_watch`.issue_id": issueID})
 
-	participantsWatchers := builder.Select("`comment`.poster_id").
-		From("comment").
-		Where(builder.Eq{"`comment`.issue_id": issueID}).
-		And(builder.In("`comment`.type", CommentTypeComment, CommentTypeCode, CommentTypeReview)).
-		And(builder.NotIn("`comment`.poster_id",
-			builder.Select("`issue_watch`.user_id").
-				From("issue_watch").
-				Where(builder.Eq{"`issue_watch`.issue_id": issueID}).
-				And(builder.Eq{"`issue_watch`.is_watching": false})))
+	participantsWatchers := builder.Select("`comment`.poster_id").From("comment").
+		Where(builder.And(
+			builder.Eq{"`comment`.issue_id": issueID}),
+			builder.In("`comment`.type", CommentTypeComment, CommentTypeCode, CommentTypeReview),
+			builder.NotIn("`comment`.poster_id", issueWatchers.And(builder.Eq{"`issue_watch`.is_watching": false}),
+		)
 
-	sess := db.GetEngine(ctx).Select("id").Table("user").
-		Where(builder.Or(builder.In("id", participantsWatchers), builder.In("id", subscribeWatchers))).
-		And(builder.Eq{"`user`.is_active": true}).
-		And(builder.Eq{"`user`.prohibit_login": false})
+	sess := db.GetEngine(ctx).Select("`user`.id").Table("user").
+		Where(builder.And(
+			builder.Or(builder.In("`user`.id", participantsWatchers), builder.In("`user`.id", issueWatchers.And(builder.Eq{"`issue_watch`.is_watching": true})))),
+			builder.Eq{"`user`.is_active": true, "`user`.prohibit_login": false})
 
 	if listOptions.Page != 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
