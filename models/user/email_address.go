@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/validation"
 
 	"xorm.io/builder"
 )
@@ -161,7 +162,17 @@ func ValidateEmail(email string) error {
 		return ErrEmailInvalid{email}
 	}
 
-	// TODO: add an email allow/block list
+	// if there is no allow list, then check email against block list
+	if len(setting.Service.EmailDomainAllowList) == 0 &&
+		validation.IsEmailDomainListed(setting.Service.EmailDomainBlockList, email) {
+		return ErrEmailInvalid{email}
+	}
+
+	// if there is an allow list, then check email against allow list
+	if len(setting.Service.EmailDomainAllowList) > 0 &&
+		!validation.IsEmailDomainListed(setting.Service.EmailDomainAllowList, email) {
+		return ErrEmailInvalid{email}
+	}
 
 	return nil
 }
