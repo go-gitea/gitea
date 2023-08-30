@@ -5,12 +5,13 @@ package issues
 
 import (
 	"context"
-	"xorm.io/builder"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
+
+	"xorm.io/builder"
 )
 
 // IssueWatch is connection request for receiving issue notification.
