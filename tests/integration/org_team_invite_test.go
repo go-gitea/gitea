@@ -91,9 +91,9 @@ func TestOrgTeamEmailInviteRedirectsExistingUser(t *testing.T) {
 	// create the invite
 	session := loginUser(t, "user1")
 
-	teamUrl := fmt.Sprintf("/org/%s/teams/%s", org.Name, team.Name)
-	csrf := GetCSRF(t, session, teamUrl)
-	req := NewRequestWithValues(t, "POST", teamUrl+"/action/add", map[string]string{
+	teamURL := fmt.Sprintf("/org/%s/teams/%s", org.Name, team.Name)
+	csrf := GetCSRF(t, session, teamURL)
+	req := NewRequestWithValues(t, "POST", teamURL+"/action/add", map[string]string{
 		"_csrf": csrf,
 		"uid":   "1",
 		"uname": user.Email,
@@ -108,8 +108,8 @@ func TestOrgTeamEmailInviteRedirectsExistingUser(t *testing.T) {
 	assert.Len(t, invites, 1)
 
 	// accept the invite
-	inviteUrl := fmt.Sprintf("/org/invite/%s", invites[0].Token)
-	req = NewRequest(t, "GET", fmt.Sprintf("/user/login?redirect_to=%s", url.QueryEscape(inviteUrl)))
+	inviteURL := fmt.Sprintf("/org/invite/%s", invites[0].Token)
+	req = NewRequest(t, "GET", fmt.Sprintf("/user/login?redirect_to=%s", url.QueryEscape(inviteURL)))
 	resp = MakeRequest(t, req, http.StatusOK)
 
 	doc := NewHTMLParser(t, resp.Body)
@@ -123,7 +123,7 @@ func TestOrgTeamEmailInviteRedirectsExistingUser(t *testing.T) {
 	}
 
 	resp = MakeRequest(t, req, http.StatusSeeOther)
-	assert.Equal(t, inviteUrl, test.RedirectURL(resp))
+	assert.Equal(t, inviteURL, test.RedirectURL(resp))
 
 	// complete the login process
 	ch := http.Header{}
@@ -166,9 +166,9 @@ func TestOrgTeamEmailInviteRedirectsNewUser(t *testing.T) {
 	// create the invite
 	session := loginUser(t, "user1")
 
-	teamUrl := fmt.Sprintf("/org/%s/teams/%s", org.Name, team.Name)
-	csrf := GetCSRF(t, session, teamUrl)
-	req := NewRequestWithValues(t, "POST", teamUrl+"/action/add", map[string]string{
+	teamURL := fmt.Sprintf("/org/%s/teams/%s", org.Name, team.Name)
+	csrf := GetCSRF(t, session, teamURL)
+	req := NewRequestWithValues(t, "POST", teamURL+"/action/add", map[string]string{
 		"_csrf": csrf,
 		"uid":   "1",
 		"uname": "doesnotexist@example.com",
@@ -183,8 +183,8 @@ func TestOrgTeamEmailInviteRedirectsNewUser(t *testing.T) {
 	assert.Len(t, invites, 1)
 
 	// accept the invite
-	inviteUrl := fmt.Sprintf("/org/invite/%s", invites[0].Token)
-	req = NewRequest(t, "GET", fmt.Sprintf("/user/sign_up?redirect_to=%s", url.QueryEscape(inviteUrl)))
+	inviteURL := fmt.Sprintf("/org/invite/%s", invites[0].Token)
+	req = NewRequest(t, "GET", fmt.Sprintf("/user/sign_up?redirect_to=%s", url.QueryEscape(inviteURL)))
 	resp = MakeRequest(t, req, http.StatusOK)
 
 	doc := NewHTMLParser(t, resp.Body)
@@ -200,7 +200,7 @@ func TestOrgTeamEmailInviteRedirectsNewUser(t *testing.T) {
 	}
 
 	resp = MakeRequest(t, req, http.StatusSeeOther)
-	assert.Equal(t, inviteUrl, test.RedirectURL(resp))
+	assert.Equal(t, inviteURL, test.RedirectURL(resp))
 
 	// complete the signup process
 	ch := http.Header{}
