@@ -181,13 +181,10 @@ func tryCreateBlameIgnoreRevsFile(commit *Commit) *os.File {
 	if err != nil {
 		return nil
 	}
-	defer f.Close()
-
 	_, err = io.Copy(f, r)
+	_ = f.Close()
 	if err != nil {
-		defer func() {
-			_ = util.Remove(f.Name())
-		}()
+		_ = util.Remove(f.Name())
 		return nil
 	}
 
