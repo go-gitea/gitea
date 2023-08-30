@@ -18,7 +18,7 @@
   /* non-color variables */
   --border-radius: 4px;
   --border-radius-medium: 6px;
-  --border-radius-circle: 100%;
+  --border-radius-circle: 50%;
   --opacity-disabled: 0.55;
   --height-loading: 16rem;
   --tab-size: 4;
