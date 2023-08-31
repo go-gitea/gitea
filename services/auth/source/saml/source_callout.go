@@ -6,6 +6,7 @@ package saml
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/markbates/goth"
 )
@@ -40,6 +41,41 @@ func (source *Source) Callback(request *http.Request, response http.ResponseWrit
 	if warningInfo := assertions.WarningInfo; warningInfo != nil {
 		return user, fmt.Errorf("SAML response contains warnings: %v", warningInfo)
 	}
+
+	samlMap := make(map[string]string) // Global.
+	for key, value := range assertions.Values {
+		var (
+			keyParsed   string
+			valueParsed string
+		)
+
+		keyParsed = strings.ToLower(key[strings.LastIndex(key, "/")+1:]) // Uses the trailing slug as the key name.
+		valueParsed = value.Values[0].Value
+		samlMap[keyParsed] = valueParsed
+
+	}
+
+	user.UserID = assertions.NameID
+	if user.UserID == "" {
+		return user, fmt.Errorf("no nameID found in SAML response")
+	}
+
+	// TODO: rather than hardcoding assertion keys, we should allow setting them in the UI
+
+	// email
+	if _, ok := samlMap["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddres"]; !ok {
+		user.Email = samlMap["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddres"]
+	}
+	// name
+	if _, ok := samlMap["http://schemas.xmlsoap.org/claims/CommonName"]; !ok {
+		user.NickName = samlMap["http://schemas.xmlsoap.org/claims/CommonName"]
+	}
+	// username
+	if _, ok := samlMap["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]; !ok {
+		user.Name = samlMap["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]
+	}
+
+	// TODO: utilize groups later on
 
 	return user, nil
 }
