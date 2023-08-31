@@ -160,3 +160,31 @@ func DeleteSecret(ctx context.Context, orgID, repoID int64, name string) error {
 
 	return nil
 }
+
+// CreateOrUpdateSecret creates or updates a secret and returns true if it was created
+func CreateOrUpdateSecret(ctx context.Context, orgID, repoID int64, name, data string) (bool, error) {
+	sc := new(Secret)
+	name = strings.ToUpper(name)
+	has, err := db.GetEngine(ctx).
+		Where("owner_id=?", orgID).
+		And("repo_id=?", repoID).
+		And("name=?", name).
+		Get(sc)
+	if err != nil {
+		return false, err
+	}
+
+	if !has {
+		_, err = InsertEncryptedSecret(ctx, orgID, repoID, name, data)
+		if err != nil {
+			return false, err
+		}
+		return true, nil
+	}
+
+	if err := UpdateSecret(ctx, orgID, repoID, name, data); err != nil {
+		return false, err
+	}
+
+	return false, nil
+}

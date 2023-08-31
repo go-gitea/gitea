@@ -5,9 +5,7 @@
 		<div class="navbar gt-mb-4">
 			{{template "repo/issue/navbar" .}}
 			{{if and (or .CanWriteIssues .CanWritePulls) (not .Repository.IsArchived)}}
-				<div class="ui right">
-					<a class="ui small green button" href="{{$.Link}}/new">{{.locale.Tr "repo.milestones.new"}}</a>
-				</div>
+				<a class="ui small green button" href="{{$.Link}}/new">{{.locale.Tr "repo.milestones.new"}}</a>
 			{{end}}
 		</div>
 		{{template "base/alert" .}}
