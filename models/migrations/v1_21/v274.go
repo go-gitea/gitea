@@ -27,8 +27,8 @@ func updateArtifactsExpiredUnixTo90Days(x *xorm.Engine) error {
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	expired_time := time.Now().AddDate(0, 0, 90).Unix()
-	if _, err := sess.Exec(`UPDATE action_artifact SET expired_unix=? WHERE status='2' AND expired_unix is NULL`, expired_time); err != nil {
+	expiredTime := time.Now().AddDate(0, 0, 90).Unix()
+	if _, err := sess.Exec(`UPDATE action_artifact SET expired_unix=? WHERE status='2' AND expired_unix is NULL`, expiredTime); err != nil {
 		return err
 	}
 
