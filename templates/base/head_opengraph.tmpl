@@ -13,6 +13,12 @@
 		{{if .Issue.Content}}
 			<meta property="og:description" content="{{.Issue.Content}}">
 		{{end}}
+	{{else if or .PageIsDiff .IsViewFile}}
+		<meta property="og:title" content="{{.Title}}">
+		<meta property="og:url" content="{{AppUrl}}{{.Link}}">
+		{{if and .PageIsDiff (IsMultilineCommitMessage .Commit.Message)}}
+			<meta property="og:description" content="{{RenderCommitBody $.Context .Commit.Message $.RepoLink $.Repository.ComposeMetas}}">
+		{{end}}
 	{{else}}
 		<meta property="og:title" content="{{.Repository.Name}}">
 		<meta property="og:url" content="{{.Repository.HTMLURL}}">
