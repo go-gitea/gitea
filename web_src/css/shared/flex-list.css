@@ -91,11 +91,23 @@
   border-top: 1px solid var(--color-secondary);
 }
 
-/* remove padding on first and last child so it better fits into .ui.segment or
-   when preceded or followed by a .ui.divider */
-.flex-list > .flex-item:first-child {
+/* Fomantic UI segment has default "padding: 1em", so here it removes the padding-top and padding-bottom accordingly.
+Developers could also use "flex-space-fitted" class to remove the first item's padding-top and the last item's padding-bottom */
+.flex-list.flex-space-fitted > .flex-item:first-child,
+.ui.segment > .flex-list:first-child > .flex-item:first-child {
   padding-top: 0;
 }
-.flex-list > .flex-item:last-child {
+
+.flex-list.flex-space-fitted > .flex-item:last-child,
+.ui.segment > .flex-list:last-child > .flex-item:last-child {
   padding-bottom: 0;
+}
+
+/* If there is a divider besides the flex-list, some padding/margin are not needs */
+.divider + .flex-list > .flex-item:first-child {
+  padding-top: 0;
+}
+
+.flex-list + .divider {
+  margin-top: 0;
 }
