@@ -24,7 +24,6 @@ import (
 	"code.gitea.io/gitea/modules/indexer/stats"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
-	mirror_module "code.gitea.io/gitea/modules/mirror"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -277,7 +276,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		mirror_module.AddPullMirrorToQueue(repo.ID)
+		mirror_service.AddPullMirrorToQueue(repo.ID)
 
 		ctx.Flash.Info(ctx.Tr("repo.settings.mirror_sync_in_progress"))
 		ctx.Redirect(repo.Link() + "/settings")
@@ -294,7 +293,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		mirror_module.AddPushMirrorToQueue(m.ID)
+		mirror_service.AddPushMirrorToQueue(m.ID)
 
 		ctx.Flash.Info(ctx.Tr("repo.settings.mirror_sync_in_progress"))
 		ctx.Redirect(repo.Link() + "/settings")
@@ -332,7 +331,7 @@ func SettingsPost(ctx *context.Context) {
 		// If we observed its implementation in the context of `push-mirror-sync` where it
 		// is evident that pushing to the queue is necessary for updates.
 		// So, there are updates within the given interval, it is necessary to update the queue accordingly.
-		mirror_module.AddPushMirrorToQueue(m.ID)
+		mirror_service.AddPushMirrorToQueue(m.ID)
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(repo.Link() + "/settings")
 

@@ -41,12 +41,8 @@
 		<div class="ui bottom attached segment">
 			<form class="ui form" id="repo-collab-form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
-				<div class="inline field ui left">
-					<div id="search-user-box" class="ui search">
-						<div class="ui input">
-							<input class="prompt" name="collaborator" placeholder="{{.locale.Tr "repo.settings.search_user_placeholder"}}" autocomplete="off" autofocus required>
-						</div>
-					</div>
+				<div id="search-user-box" class="ui search input gt-vm">
+					<input class="prompt" name="collaborator" placeholder="{{.locale.Tr "repo.settings.search_user_placeholder"}}" autocomplete="off" autofocus required>
 				</div>
 				<button class="ui green button">{{.locale.Tr "repo.settings.add_collaborator"}}</button>
 			</form>
@@ -93,12 +89,8 @@
 			{{if $allowedToChangeTeams}}
 				<form class="ui form" id="repo-collab-team-form" action="{{.Link}}/team" method="post">
 					{{.CsrfTokenHtml}}
-					<div class="inline field ui left">
-						<div id="search-team-box" class="ui search" data-org="{{.OrgName}}">
-							<div class="ui input">
-								<input class="prompt" name="team" placeholder="{{$.locale.Tr "repo.settings.search_team"}}" autocomplete="off" autofocus required>
-							</div>
-						</div>
+					<div id="search-team-box" class="ui search input gt-vm">
+						<input class="prompt" name="team" placeholder="{{$.locale.Tr "repo.settings.search_team"}}" autocomplete="off" autofocus required>
 					</div>
 					<button class="ui green button">{{$.locale.Tr "repo.settings.add_team"}}</button>
 				</form>

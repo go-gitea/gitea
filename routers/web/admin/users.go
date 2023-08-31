@@ -480,5 +480,5 @@ func DeleteAvatar(ctx *context.Context) {
 		ctx.Flash.Error(err.Error())
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/admin/users/" + strconv.FormatInt(u.ID, 10))
+	ctx.JSONRedirect(setting.AppSubURL + "/admin/users/" + strconv.FormatInt(u.ID, 10))
 }
