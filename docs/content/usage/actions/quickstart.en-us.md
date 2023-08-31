@@ -62,7 +62,7 @@ If you are unsure which address to use, the LAN address is usually the right cho
 
 `token` is used for authentication and identification, such as `P2U1U0oB4XaRCi8azcngmPCLbRpUGapalhmddh23`.
 It is one-time use only and cannot be used to register multiple runners.
-You can obtain tokens from `<your_gitea.com>/admin/runners`.
+You can obtain tokens from `<your_gitea.com>/admin/actions/runners`.
 
 ![register runner](/images/usage/actions/register-runner.png)
 
