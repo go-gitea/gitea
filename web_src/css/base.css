@@ -506,13 +506,6 @@ a.label,
   border-right-color: var(--color-primary);
 }
 
-/* fix button enlarged vertically by svg icon */
-/* TODO: change to just `.small.button:has(svg)` but may have global side effects */
-.ui.action.input .small.button:has(svg) {
-  padding-top: 7px !important;
-  padding-bottom: 7px !important;
-}
-
 .ui.menu,
 .ui.vertical.menu {
   background: var(--color-menu);
@@ -951,14 +944,6 @@ img.ui.avatar,
 .ui.warning.message .header {
   color: inherit;
   filter: saturate(2);
-}
-
-/* TODO: use gt-word-break instead */
-.dont-break-out {
-  overflow-wrap: break-word;
-  word-wrap: break-word;
-  word-break: break-all;
-  hyphens: auto;
 }
 
 .full.height {
@@ -2012,11 +1997,6 @@ a.ui.basic.label:hover {
 
 .ui.label > .color-icon {
   margin-left: 0;
-}
-
-/* TODO: replace it with gt-invisible */
-.invisible {
-  visibility: hidden;
 }
 
 .ui.segment,
