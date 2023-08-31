@@ -1,4 +1,4 @@
-import AnsiUp from 'ansi_up';
+import {AnsiUp} from 'ansi_up';
 
 const replacements = [
   [/\x1b\[\d+[A-H]/g, ''], // Move cursor, treat them as no-op
@@ -10,7 +10,7 @@ export function renderAnsi(line) {
   // create a fresh ansi_up instance because otherwise previous renders can influence
   // the output of future renders, because ansi_up is stateful and remembers things like
   // unclosed opening tags for colors.
-  const ansi_up = new (AnsiUp.default || AnsiUp)();
+  const ansi_up = new AnsiUp();
   ansi_up.use_classes = true;
 
   if (line.endsWith('\r\n')) {

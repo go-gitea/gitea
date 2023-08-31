@@ -190,7 +190,7 @@ type PackageSearchOptions struct {
 	db.Paginator
 }
 
-func (opts *PackageSearchOptions) toConds() builder.Cond {
+func (opts *PackageSearchOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if !opts.IsInternal.IsNone() {
 		cond = builder.Eq{
@@ -284,7 +284,7 @@ func (opts *PackageSearchOptions) configureOrderBy(e db.Engine) {
 // SearchVersions gets all versions of packages matching the search options
 func SearchVersions(ctx context.Context, opts *PackageSearchOptions) ([]*PackageVersion, int64, error) {
 	sess := db.GetEngine(ctx).
-		Where(opts.toConds()).
+		Where(opts.ToConds()).
 		Table("package_version").
 		Join("INNER", "package", "package.id = package_version.package_id")
 
@@ -299,8 +299,13 @@ func SearchVersions(ctx context.Context, opts *PackageSearchOptions) ([]*Package
 	return pvs, count, err
 }
 
+
 func buildLatestVersionsSession(ctx context.Context, opts *PackageSearchOptions) *xorm.Session {
-	cond := opts.toConds().
+	cond := opts.ToConds().
+
+// SearchLatestVersions gets the latest version of every package matching the search options
+func SearchLatestVersions(ctx context.Context, opts *PackageSearchOptions) ([]*PackageVersion, int64, error) {
+	cond := opts.ToConds().
 		And(builder.Expr("pv2.id IS NULL"))
 
 	joinCond := builder.Expr("package_version.package_id = pv2.package_id AND (package_version.created_unix < pv2.created_unix OR (package_version.created_unix = pv2.created_unix AND package_version.id < pv2.id))")
@@ -341,7 +346,7 @@ func CountLatestVersions(ctx context.Context, opts *PackageSearchOptions) (int64
 // ExistVersion checks if a version matching the search options exist
 func ExistVersion(ctx context.Context, opts *PackageSearchOptions) (bool, error) {
 	return db.GetEngine(ctx).
-		Where(opts.toConds()).
+		Where(opts.ToConds()).
 		Table("package_version").
 		Join("INNER", "package", "package.id = package_version.package_id").
 		Exist(new(PackageVersion))
@@ -350,7 +355,7 @@ func ExistVersion(ctx context.Context, opts *PackageSearchOptions) (bool, error)
 // CountVersions counts all versions of packages matching the search options
 func CountVersions(ctx context.Context, opts *PackageSearchOptions) (int64, error) {
 	return db.GetEngine(ctx).
-		Where(opts.toConds()).
+		Where(opts.ToConds()).
 		Table("package_version").
 		Join("INNER", "package", "package.id = package_version.package_id").
 		Count(new(PackageVersion))

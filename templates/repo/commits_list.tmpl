@@ -43,6 +43,8 @@
 							{{end}}
 							{{if $.PageIsWiki}}
 								<a href="{{$commitRepoLink}}/wiki/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
+							{{else if $.PageIsPullCommits}}
+								<a href="{{$commitRepoLink}}/pulls/{{$.Issue.Index}}/commits/{{.ID}}" rel="nofollow" class="{{$class}}">
 							{{else if $.Reponame}}
 								<a href="{{$commitRepoLink}}/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
 							{{else}}
@@ -53,6 +55,8 @@
 									{{template "repo/shabox_badge" dict "root" $ "verification" .Verification}}
 								{{end}}
 							{{if $.PageIsWiki}}
+								</a>
+							{{else if $.PageIsPullCommits}}
 								</a>
 							{{else if $.Reponame}}
 								</a>

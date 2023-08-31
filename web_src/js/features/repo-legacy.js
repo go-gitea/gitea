@@ -54,9 +54,10 @@ export function initRepoCommentForm() {
   }
 
   if ($commentForm.find('.field.combo-editor-dropzone').length) {
-    // at the moment, if a form has multiple combo-markdown-editors, it must be a issue template form
+    // at the moment, if a form has multiple combo-markdown-editors, it must be an issue template form
     initIssueTemplateCommentEditors($commentForm);
-  } else {
+  } else if ($commentForm.find('.combo-markdown-editor').length) {
+    // it's quite unclear about the "comment form" elements, sometimes it's for issue comment, sometimes it's for file editor/uploader message
     initSingleCommentEditor($commentForm);
   }
 

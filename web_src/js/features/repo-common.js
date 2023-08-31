@@ -53,12 +53,6 @@ export function initRepoCloneLink() {
     return;
   }
 
-  // restore animation after first init
-  setTimeout(() => {
-    $repoCloneSsh.removeClass('gt-no-transition');
-    $repoCloneHttps.removeClass('gt-no-transition');
-  }, 100);
-
   $repoCloneSsh.on('click', () => {
     localStorage.setItem('repo-clone-protocol', 'ssh');
     window.updateCloneStates();
