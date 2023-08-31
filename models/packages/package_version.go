@@ -299,12 +299,7 @@ func SearchVersions(ctx context.Context, opts *PackageSearchOptions) ([]*Package
 	return pvs, count, err
 }
 
-
 func buildLatestVersionsSession(ctx context.Context, opts *PackageSearchOptions) *xorm.Session {
-	cond := opts.ToConds().
-
-// SearchLatestVersions gets the latest version of every package matching the search options
-func SearchLatestVersions(ctx context.Context, opts *PackageSearchOptions) ([]*PackageVersion, int64, error) {
 	cond := opts.ToConds().
 		And(builder.Expr("pv2.id IS NULL"))
 
