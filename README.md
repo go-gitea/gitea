@@ -121,8 +121,6 @@ If you have questions that are not covered by the documentation, you can get in 
 
 We maintain a list of Gitea-related projects at [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea).
 
-The Hugo-based documentation theme is hosted at [gitea/theme](https://gitea.com/gitea/theme).
-
 The official Gitea CLI is developed at [gitea/tea](https://gitea.com/gitea/tea).
 
 ## Authors

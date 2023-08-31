@@ -454,7 +454,7 @@ a.label,
   background: var(--color-hover);
 }
 
-.issue-title code {
+.inline-code-block {
   padding: 2px 4px;
   border-radius: var(--border-radius-medium);
   background-color: var(--color-markup-code-block);
@@ -1177,11 +1177,6 @@ img.ui.avatar,
 
 .text.small {
   font-size: 0.75em;
-}
-
-/* FIXME: this is a serious pollution, do not use this for "float: right" anymore */
-.ui.right:not(.action) {
-  float: right;
 }
 
 .ui.form .ui.button {
