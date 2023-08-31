@@ -29,11 +29,11 @@
 							<div class="divider"></div>
 						{{end}}
 						{{$previousExclusiveScope = $exclusiveScope}}
-						<a class="item label-filter-item" {{if not .ArchivedUnix.IsZero}}data-is-archived{{end}} href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}" data-label-id="{{.ID}}">{{if .IsExcluded}}{{svg "octicon-circle-slash"}}{{else if .IsSelected}}{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}}
+						<a class="item label-filter-item gt-df gt-ac" {{if .IsArchived}}data-is-archived{{end}} href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}" data-label-id="{{.ID}}">{{if .IsExcluded}}{{svg "octicon-circle-slash"}}{{else if .IsSelected}}{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}}
 							{{RenderLabel $.Context .}}
-							{{if not .ArchivedUnix.IsZero}}
-								<span class="gt-italic">
-									{{$.locale.Tr "home.archived"}}
+							{{if .IsArchived}}
+								<span class="gt-ml-auto" data-tooltip-content="{{$.locale.Tr "repo.issues.filter.archived_label_msg"}}">
+									{{svg "octicon-archive"}}
 								</span>
 							{{end}}
 						</a>
