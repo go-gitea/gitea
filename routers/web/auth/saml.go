@@ -44,7 +44,6 @@ func SignInSAMLCallback(ctx *context.Context) {
 	if _, err = loginSource.Cfg.(*saml.Source).Callback(ctx.Req, ctx.Resp); err != nil {
 		ctx.ServerError("SignInSAMLCallback", err)
 	}
-
 }
 
 // SAMLMetadata
