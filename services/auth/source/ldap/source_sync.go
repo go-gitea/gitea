@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	auth_module "code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 	source_service "code.gitea.io/gitea/services/auth/source"
@@ -41,7 +42,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 	usernameUsers := make(map[string]*user_model.User, len(users))
 	mailUsers := make(map[string]*user_model.User, len(users))
-	keepActiveUsers := make(map[int64]struct{})
+	keepActiveUsers := make(container.Set[int64])
 
 	for _, u := range users {
 		usernameUsers[u.LowerName] = u
@@ -97,7 +98,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 		}
 
 		if usr != nil {
-			keepActiveUsers[usr.ID] = struct{}{}
+			keepActiveUsers.Add(usr.ID)
 		} else if len(su.Username) == 0 {
 			// we cannot create the user if su.Username is empty
 			continue
@@ -208,7 +209,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 	// Deactivate users not present in LDAP
 	if updateExisting {
 		for _, usr := range users {
-			if _, ok := keepActiveUsers[usr.ID]; ok {
+			if keepActiveUsers.Contains(usr.ID) {
 				continue
 			}
 
