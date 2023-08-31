@@ -41,7 +41,7 @@
 									{{if $canAddRemove}}
 										<form method="post" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/remove">
 											{{$.CsrfTokenHtml}}
-											<button type="submit" class="ui red small button right" name="repoid" value="{{.ID}}">{{$.locale.Tr "remove"}}</button>
+											<button type="submit" class="ui red small button" name="repoid" value="{{.ID}}">{{$.locale.Tr "remove"}}</button>
 										</form>
 									{{end}}
 								</div>

@@ -81,4 +81,4 @@ jobs:
               - "Makefile"
               - "package.json"
               - "package-lock.json"
-              - ".spectral.yml"
+              - ".spectral.yaml"
