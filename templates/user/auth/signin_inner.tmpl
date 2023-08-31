@@ -78,8 +78,8 @@
 		<div class="gt-df gt-fc gt-jc">
 			<div id="saml-login-navigator-inner" class="gt-df gt-fc gt-fw gt-ac gt-gap-3">
 				{{range .SAMLProviders}}
-					<a class="{{.Name}} ui button gt-df gt-ac gt-jc gt-py-3 oauth-login-link" href="{{AppSubUrl}}/user/saml/{{ .Name }}">
-						{{$.locale.Tr "sign_in_with_provider" .Name }}
+					<a class="{{.Name}} ui button gt-df gt-ac gt-jc gt-py-3 oauth-login-link" href="{{AppSubUrl}}/user/saml/{{.Name}}">
+						{{$.locale.Tr "sign_in_with_provider" .Name}}
 					</a>
 				{{end}}
 			</div>
