@@ -153,6 +153,14 @@ func SignIn(ctx *context.Context) {
 	}
 	ctx.Data["OrderedOAuth2Names"] = orderedOAuth2Names
 	ctx.Data["OAuth2Providers"] = oauth2Providers
+
+	samlProviders, err := auth.GetActiveSAMLProviderLoginSources()
+	if err != nil {
+		ctx.ServerError("UserSignIn", err)
+		return
+	}
+	ctx.Data["SAMLProviders"] = samlProviders
+
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
 	ctx.Data["PageIsSignIn"] = true
