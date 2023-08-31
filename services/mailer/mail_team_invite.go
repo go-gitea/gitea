@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net/url"
 
 	org_model "code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
@@ -42,7 +43,13 @@ func MailTeamInvite(ctx context.Context, inviter *user_model.User, team *org_mod
 		return fmt.Errorf("login is prohibited for the invited user")
 	}
 
-	userAccountExists := err == nil && user != nil
+	inviteRedirect := url.QueryEscape(fmt.Sprintf("/org/invite/%s", invite.Token))
+	inviteURL := fmt.Sprintf("%suser/sign_up?redirect_to=%s", setting.AppURL, inviteRedirect)
+
+	if err == nil && user != nil {
+		// user account exists
+		inviteURL = fmt.Sprintf("%suser/login?redirect_to=%s", setting.AppURL, inviteRedirect)
+	}
 
 	subject := locale.Tr("mail.team_invite.subject", inviter.DisplayName(), org.DisplayName())
 	mailMeta := map[string]any{
@@ -51,8 +58,7 @@ func MailTeamInvite(ctx context.Context, inviter *user_model.User, team *org_mod
 		"Team":         team,
 		"Invite":       invite,
 		"Subject":      subject,
-		// user to determine whether to link to sign-up or login
-		"UserAccountExists": userAccountExists,
+		"InviteURL":    inviteURL,
 		// helper
 		"locale":    locale,
 		"Str2html":  templates.Str2html,

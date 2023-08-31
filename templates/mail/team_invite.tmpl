@@ -6,13 +6,7 @@
 </head>
 <body>
 	<p>{{.locale.Tr "mail.team_invite.text_1" (DotEscape .Inviter.DisplayName) (DotEscape .Team.Name) (DotEscape .Organization.DisplayName) | Str2html}}</p>
-	{{if .UserAccountExists}}
-		{{$login_url := printf "%suser/login?redirect_to=%s" AppUrl (QueryEscape (printf "/org/invite/%s" .Invite.Token))}}
-		<p>{{.locale.Tr "mail.team_invite.text_2"}}</p><p><a href="{{$login_url}}">{{$login_url}}</a></p>
-	{{else}}
-		{{$signup_url := printf "%suser/sign_up?redirect_to=%s" AppUrl (QueryEscape (printf "/org/invite/%s" .Invite.Token))}}
-		<p>{{.locale.Tr "mail.team_invite.text_2"}}</p><p><a href="{{$signup_url}}">{{$signup_url}}</a></p>
-	{{end}}
+	<p>{{.locale.Tr "mail.team_invite.text_2"}}</p><p><a href="{{.InviteURL}}">{{.InviteURL}}</a></p>
 	<p>{{.locale.Tr "mail.link_not_working_do_paste"}}</p>
 	<p>{{.locale.Tr "mail.team_invite.text_3" .Invite.Email}}</p>
 
