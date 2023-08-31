@@ -5,6 +5,7 @@ package audit
 
 import (
 	"context"
+	"io"
 
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -47,7 +48,7 @@ func NewFileAppender(filename string, opts *rotatingfilewriter.Options) (*FileAp
 }
 
 func (a *FileAppender) Record(ctx context.Context, e *Event) {
-	if err := json.NewEncoder(a.rfw).Encode(e); err != nil {
+	if err := WriteEventAsJSON(a.rfw, e); err != nil {
 		log.Error("encoding event to file failed: %v", err)
 	}
 }
@@ -58,4 +59,8 @@ func (a *FileAppender) Close() error {
 
 func (a *FileAppender) ReleaseReopen() error {
 	return a.rfw.ReleaseReopen()
+}
+
+func WriteEventAsJSON(w io.Writer, e *Event) error {
+	return json.NewEncoder(w).Encode(e)
 }

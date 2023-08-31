@@ -47,6 +47,21 @@ var (
 	auditQueue *queue.WorkerPoolQueue[*Event]
 )
 
+func TestingOnly_AddAppender(a Appender) {
+	appenders = append(appenders, a)
+}
+
+func TestingOnly_RemoveAppender(a Appender) {
+	for i, app := range appenders {
+		if app == a {
+			last := len(appenders) - 1
+			appenders[last], appenders[i] = nil, appenders[last]
+			appenders = appenders[:last]
+			return
+		}
+	}
+}
+
 func Init() {
 	if !setting.Audit.Enabled {
 		return
@@ -100,22 +115,26 @@ func Init() {
 	go graceful.GetManager().RunWithCancel(auditQueue)
 }
 
-func Record(action Action, doer *user_model.User, scope, target any, format string, v ...interface{}) {
+func Record(action Action, doer *user_model.User, scope, target any, format string, v ...any) {
 	if !setting.Audit.Enabled {
 		return
 	}
 
-	e := &Event{
+	e := BuildEvent(action, doer, scope, target, format, v...)
+
+	if err := auditQueue.Push(e); err != nil {
+		log.Error("Error pushing audit event to queue: %v", err)
+	}
+}
+
+func BuildEvent(action Action, doer *user_model.User, scope, target any, format string, v ...any) *Event {
+	return &Event{
 		Action:  action,
 		Doer:    typeToDescription(doer),
 		Scope:   scopeToDescription(scope),
 		Target:  typeToDescription(target),
 		Message: fmt.Sprintf(format, v...),
 		Time:    time.Now(),
-	}
-
-	if err := auditQueue.Push(e); err != nil {
-		log.Error("Error pushing audit event to queue: %v", err)
 	}
 }
 
