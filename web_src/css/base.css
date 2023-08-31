@@ -454,7 +454,7 @@ a.label,
   background: var(--color-hover);
 }
 
-.issue-title code {
+.inline-code-block {
   padding: 2px 4px;
   border-radius: var(--border-radius-medium);
   background-color: var(--color-markup-code-block);

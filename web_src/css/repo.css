@@ -236,10 +236,6 @@
   }
 }
 
-.repository.file.list #repo-desc {
-  font-size: 1.2em;
-}
-
 .repository.file.list .repo-path {
   word-break: break-word;
 }
