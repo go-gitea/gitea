@@ -133,8 +133,8 @@
   left: 6px;
   top: -9px;
   min-width: 17px;
-  min-height: 17px;
-  border-radius: var(--border-radius-circle);
+  height: 17px;
+  border-radius: 11px; /* (height + 2 * borderThickness) / 2 */
   display: flex;
   align-items: center;
   justify-content: center;
