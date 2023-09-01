@@ -50,7 +50,6 @@ func MockContext(t *testing.T, reqPath string) (*context.Context, *httptest.Resp
 	base.Locale = &translation.MockLocale{}
 
 	ctx := context.NewWebContext(base, &MockRender{}, nil)
-	ctx.Flash = &middleware.Flash{Values: url.Values{}}
 
 	chiCtx := chi.NewRouteContext()
 	ctx.Base.AppendContextValue(chi.RouteCtxKey, chiCtx)
