@@ -117,12 +117,12 @@ export default {
   module: {
     rules: [
       {
-        test: /\.vue$/,
+        test: /\.vue$/i,
         exclude: /node_modules/,
         loader: 'vue-loader',
       },
       {
-        test: /\.js$/,
+        test: /\.js$/i,
         exclude: /node_modules/,
         use: [
           {
@@ -151,12 +151,12 @@ export default {
         ],
       },
       {
-        test: /\.svg$/,
+        test: /\.svg$/i,
         include: fileURLToPath(new URL('public/assets/img/svg', import.meta.url)),
         type: 'asset/source',
       },
       {
-        test: /\.(ttf|woff2?)$/,
+        test: /\.(ttf|woff2?)$/i,
         type: 'asset/resource',
         generator: {
           filename: 'fonts/[name].[contenthash:8][ext]',
