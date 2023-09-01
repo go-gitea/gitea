@@ -5,7 +5,6 @@ package files
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	git_model "code.gitea.io/gitea/models/git"
@@ -36,7 +35,6 @@ func Test_checkTreePathProtected(t *testing.T) {
 	}
 
 	for _, kase := range kases {
-		fmt.Println(kase.TreePath)
 		err := checkTreePathProtected(context.Background(), pb, user2, []string{kase.TreePath})
 		if kase.CanPush {
 			assert.Nil(t, err)
