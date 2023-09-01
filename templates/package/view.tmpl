@@ -87,7 +87,7 @@
 				{{end}}
 				<div class="divider"></div>
 				<strong>{{.locale.Tr "packages.versions"}} ({{.TotalVersionCount}})</strong>
-				<a class="ui right" href="{{$.PackageDescriptor.PackageWebLink}}/versions">{{.locale.Tr "packages.versions.view_all"}}</a>
+				<a class="gt-float-right" href="{{$.PackageDescriptor.PackageWebLink}}/versions">{{.locale.Tr "packages.versions.view_all"}}</a>
 				<div class="ui relaxed list">
 				{{range .LatestVersions}}
 					<div class="item gt-df">

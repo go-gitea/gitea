@@ -93,7 +93,7 @@
 									{{if .Attachments}}
 										{{range .Attachments}}
 											<li>
-												<span class="ui text middle aligned right">
+												<span class="gt-float-right">
 													<span class="ui text grey">{{.Size | FileSize}}</span>
 													<span data-tooltip-content="{{$.locale.Tr "repo.release.download_count" ($.locale.PrettyNumber .DownloadCount)}}">
 														{{svg "octicon-info"}}
