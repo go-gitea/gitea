@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/contexttest"
 	"code.gitea.io/gitea/routers/web/org"
 
 	"github.com/stretchr/testify/assert"
@@ -15,8 +15,8 @@ import (
 
 func TestCheckProjectBoardChangePermissions(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := test.MockContext(t, "user2/-/projects/4/4")
-	test.LoadUser(t, ctx, 2)
+	ctx, _ := contexttest.MockContext(t, "user2/-/projects/4/4")
+	contexttest.LoadUser(t, ctx, 2)
 	ctx.ContextUser = ctx.Doer // user2
 	ctx.SetParams(":id", "4")
 	ctx.SetParams(":boardID", "4")

@@ -11,8 +11,8 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/contexttest"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
 	wiki_service "code.gitea.io/gitea/services/wiki"
@@ -78,9 +78,9 @@ func assertPagesMetas(t *testing.T, expectedNames []string, metas any) {
 func TestWiki(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	ctx, _ := test.MockContext(t, "user2/repo1/wiki/?action=_pages")
+	ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki/?action=_pages")
 	ctx.SetParams("*", "Home")
-	test.LoadRepo(t, ctx, 1)
+	contexttest.LoadRepo(t, ctx, 1)
 	Wiki(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 	assert.EqualValues(t, "Home", ctx.Data["Title"])
@@ -90,8 +90,8 @@ func TestWiki(t *testing.T) {
 func TestWikiPages(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	ctx, _ := test.MockContext(t, "user2/repo1/wiki/?action=_pages")
-	test.LoadRepo(t, ctx, 1)
+	ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki/?action=_pages")
+	contexttest.LoadRepo(t, ctx, 1)
 	WikiPages(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 	assertPagesMetas(t, []string{"Home", "Page With Image", "Page With Spaced Name", "Unescaped File"}, ctx.Data["Pages"])
@@ -100,9 +100,9 @@ func TestWikiPages(t *testing.T) {
 func TestNewWiki(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	ctx, _ := test.MockContext(t, "user2/repo1/wiki/?action=_new")
-	test.LoadUser(t, ctx, 2)
-	test.LoadRepo(t, ctx, 1)
+	ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki/?action=_new")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 1)
 	NewWiki(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 	assert.EqualValues(t, ctx.Tr("repo.wiki.new_page"), ctx.Data["Title"])
@@ -115,9 +115,9 @@ func TestNewWikiPost(t *testing.T) {
 	} {
 		unittest.PrepareTestEnv(t)
 
-		ctx, _ := test.MockContext(t, "user2/repo1/wiki/?action=_new")
-		test.LoadUser(t, ctx, 2)
-		test.LoadRepo(t, ctx, 1)
+		ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki/?action=_new")
+		contexttest.LoadUser(t, ctx, 2)
+		contexttest.LoadRepo(t, ctx, 1)
 		web.SetForm(ctx, &forms.NewWikiForm{
 			Title:   title,
 			Content: content,
@@ -133,9 +133,9 @@ func TestNewWikiPost(t *testing.T) {
 func TestNewWikiPost_ReservedName(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	ctx, _ := test.MockContext(t, "user2/repo1/wiki/?action=_new")
-	test.LoadUser(t, ctx, 2)
-	test.LoadRepo(t, ctx, 1)
+	ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki/?action=_new")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 1)
 	web.SetForm(ctx, &forms.NewWikiForm{
 		Title:   "_edit",
 		Content: content,
@@ -150,10 +150,10 @@ func TestNewWikiPost_ReservedName(t *testing.T) {
 func TestEditWiki(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	ctx, _ := test.MockContext(t, "user2/repo1/wiki/Home?action=_edit")
+	ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki/Home?action=_edit")
 	ctx.SetParams("*", "Home")
-	test.LoadUser(t, ctx, 2)
-	test.LoadRepo(t, ctx, 1)
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 1)
 	EditWiki(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 	assert.EqualValues(t, "Home", ctx.Data["Title"])
@@ -166,10 +166,10 @@ func TestEditWikiPost(t *testing.T) {
 		"New/<page>",
 	} {
 		unittest.PrepareTestEnv(t)
-		ctx, _ := test.MockContext(t, "user2/repo1/wiki/Home?action=_new")
+		ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki/Home?action=_new")
 		ctx.SetParams("*", "Home")
-		test.LoadUser(t, ctx, 2)
-		test.LoadRepo(t, ctx, 1)
+		contexttest.LoadUser(t, ctx, 2)
+		contexttest.LoadRepo(t, ctx, 1)
 		web.SetForm(ctx, &forms.NewWikiForm{
 			Title:   title,
 			Content: content,
@@ -188,9 +188,9 @@ func TestEditWikiPost(t *testing.T) {
 func TestDeleteWikiPagePost(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	ctx, _ := test.MockContext(t, "user2/repo1/wiki/Home?action=_delete")
-	test.LoadUser(t, ctx, 2)
-	test.LoadRepo(t, ctx, 1)
+	ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki/Home?action=_delete")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 1)
 	DeleteWikiPagePost(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 	assertWikiNotExists(t, ctx.Repo.Repository, "Home")
@@ -207,10 +207,10 @@ func TestWikiRaw(t *testing.T) {
 	} {
 		unittest.PrepareTestEnv(t)
 
-		ctx, _ := test.MockContext(t, "user2/repo1/wiki/raw/"+url.PathEscape(filepath))
+		ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki/raw/"+url.PathEscape(filepath))
 		ctx.SetParams("*", filepath)
-		test.LoadUser(t, ctx, 2)
-		test.LoadRepo(t, ctx, 1)
+		contexttest.LoadUser(t, ctx, 2)
+		contexttest.LoadRepo(t, ctx, 1)
 		WikiRaw(ctx)
 		if filetype == "" {
 			assert.EqualValues(t, http.StatusNotFound, ctx.Resp.Status(), "filepath: %s", filepath)
