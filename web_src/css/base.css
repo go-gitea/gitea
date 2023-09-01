@@ -1647,10 +1647,6 @@ img.ui.avatar,
   margin-top: 1px;
 }
 
-i.icons .icon:first-child {
-  margin-right: 0;
-}
-
 .ui.label {
   padding: 0.3em 0.5em;
   transition: none;
@@ -1684,14 +1680,6 @@ a.ui.active.label:hover {
   background: var(--color-label-active-bg);
   border-color: var(--color-label-active-bg);
   color: var(--color-label-text);
-}
-
-.ui.label > .detail .icons {
-  margin-right: 0.25em;
-}
-
-.ui.label > .detail .icons .icon {
-  margin-right: 0;
 }
 
 .lines-blame-btn {
@@ -2099,6 +2087,7 @@ table th[data-sortt-desc] .svg {
   vertical-align: -0.15em;
 }
 
+/* for the jquery.minicolors plugin */
 .minicolors-panel {
   background: var(--color-secondary-dark-1) !important;
 }
