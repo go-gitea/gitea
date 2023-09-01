@@ -236,10 +236,6 @@
   }
 }
 
-.repository.file.list #repo-desc {
-  font-size: 1.2em;
-}
-
 .repository.file.list .repo-path {
   word-break: break-word;
 }
@@ -1905,24 +1901,6 @@
   justify-content: space-between;
   gap: 8px;
   flex-wrap: wrap;
-}
-
-.repository.settings.collaboration #repo-collab-form #search-user-box .results {
-  left: 7px;
-}
-
-.repository.settings.collaboration #repo-collab-form .ui.button {
-  margin-left: 5px;
-  margin-top: -3px;
-}
-
-.repository.settings.collaboration #repo-collab-team-form #search-team-box .results {
-  left: 7px;
-}
-
-.repository.settings.collaboration #repo-collab-team-form .ui.button {
-  margin-left: 5px;
-  margin-top: -3px;
 }
 
 /* if the element is for a checkbox, then it should have a padding-left to align to the checkbox's text */
