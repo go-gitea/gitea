@@ -17,6 +17,7 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -38,7 +39,7 @@ import (
 var pullWorkingPool = sync.NewExclusivePool()
 
 // NewPullRequest creates new pull request with labels for repository.
-func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, pr *issues_model.PullRequest, assigneeIDs []int64, reviewerIDs []int64) error {
+func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, pr *issues_model.PullRequest, assigneeIDs, reviewerIDs []int64) error {
 	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
 	if err != nil {
 		if !git_model.IsErrBranchNotExist(err) {
@@ -82,8 +83,13 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 		}
 
 		for _, reviewerID := range reviewerIDs {
+			// negative reviewIDs represent team requests
 			if reviewerID < 0 {
 				team, err := organization.GetTeamByID(ctx, -reviewerID)
+				if err != nil {
+					return err
+				}
+				err = issue_service.IsValidTeamReviewRequest(ctx, team, issue.Poster, true, issue)
 				if err != nil {
 					return err
 				}
@@ -95,6 +101,14 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 			}
 
 			reviewer, err := user_model.GetUserByID(ctx, reviewerID)
+			if err != nil {
+				return err
+			}
+			permDoer, err := access_model.GetUserRepoPermission(ctx, issue.Repo, issue.Poster)
+			if err != nil {
+				return err
+			}
+			err = issue_service.IsValidReviewRequest(ctx, reviewer, issue.Poster, true, issue, &permDoer)
 			if err != nil {
 				return err
 			}
