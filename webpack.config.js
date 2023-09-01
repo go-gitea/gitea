@@ -41,10 +41,10 @@ const filterCssImport = (url, ...args) => {
 
   if (cssFile.includes('fomantic')) {
     if (/brand-icons/.test(importedFile)) return false;
-    if (/(eot|ttf|otf|woff|svg)$/.test(importedFile)) return false;
+    if (/(eot|ttf|otf|woff|svg)$/i.test(importedFile)) return false;
   }
 
-  if (cssFile.includes('katex') && /(ttf|woff)$/.test(importedFile)) {
+  if (cssFile.includes('katex') && /(ttf|woff)$/i.test(importedFile)) {
     return false;
   }
 
