@@ -13,6 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/convert"
 )
@@ -157,6 +158,46 @@ func Watch(ctx *context.APIContext) {
 	//     "$ref": "#/responses/WatchInfo"
 
 	err := repo_model.WatchRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, true)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "WatchRepo", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, api.WatchInfo{
+		Subscribed:    true,
+		Ignored:       false,
+		Reason:        nil,
+		CreatedAt:     ctx.Repo.Repository.CreatedUnix.AsTime(),
+		URL:           subscriptionURL(ctx.Repo.Repository),
+		RepositoryURL: ctx.Repo.Repository.APIURL(),
+	})
+}
+
+// Watch the repo specified in ctx, as the authenticated user
+func WatchCustom(ctx *context.APIContext) {
+	// swagger:operation PUT /repos/{owner}/{repo}/subscription/custom repository userCurrentPutSubscriptionCustom
+	// ---
+	// summary: Watch a repo
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/RepoCustomWatchOptions"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/WatchInfo"
+	opts := *web.GetForm(ctx).(*api.RepoCustomWatchOptions)
+
+	err := repo_model.WatchRepoCustom(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "WatchRepo", err)
 		return
