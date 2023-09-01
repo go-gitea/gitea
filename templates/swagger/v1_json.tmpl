@@ -1634,8 +1634,8 @@
           "400": {
             "$ref": "#/responses/error"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -1671,8 +1671,11 @@
           "204": {
             "description": "delete one secret of the organization"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -3283,8 +3286,8 @@
           "400": {
             "$ref": "#/responses/error"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -3327,8 +3330,11 @@
           "204": {
             "description": "delete one secret of the organization"
           },
-          "403": {
-            "$ref": "#/responses/forbidden"
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
