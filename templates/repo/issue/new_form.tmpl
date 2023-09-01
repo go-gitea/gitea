@@ -69,7 +69,11 @@
 									{{ctx.AvatarUtils.Avatar .User 28 "gt-mr-3"}}{{template "repo/search_name" .User}}
 								</span>
 							</a>
-						{{else if .Team}}
+						{{end}}
+					{{end}}
+					<div class="divider"></div>
+					{{range .Reviewers}}
+						{{if .Team}}
 							<a class="item muted" data-id="{{.ItemID}}" data-id-selector="#reviewer_{{.ItemID}}">
 								<span class="octicon-check invisible">{{svg "octicon-check" 16}}</span>
 								<span class="text">

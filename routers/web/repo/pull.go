@@ -1268,7 +1268,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		return
 	}
 
-	labelIDs, assigneeIDs, reviewerIDs, milestoneID, _ := ValidateRepoMetas(ctx, *form, true)
+	labelIDs, assigneeIDs, reviewerIDs, milestoneID, projectID := ValidateRepoMetas(ctx, *form, true)
 	if ctx.Written() {
 		return
 	}

@@ -1225,8 +1225,9 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 			return nil, nil, nil, 0, 0
 		}
 
-		// Check if the passed reviewers actually exist
+		// Check if the passed reviewers (user/team) actually exist
 		for _, rID := range reviewerIDs {
+			// negative reviewIDs represent team requests
 			if rID < 0 {
 				_, err := organization.GetTeamByID(ctx, -rID)
 				if err != nil {
