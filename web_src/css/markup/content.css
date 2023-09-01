@@ -144,7 +144,7 @@
 
 .markup ul,
 .markup ol {
-  padding-left: 2em;
+  padding-left: 0;
 }
 
 .markup ul.no-list,
