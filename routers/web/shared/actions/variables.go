@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
 	secret_service "code.gitea.io/gitea/services/secrets"
@@ -36,8 +35,6 @@ func SetVariablesContext(ctx *context.Context, ownerID, repoID int64) {
 // https://docs.github.com/en/actions/security-guides/encrypted-secrets#naming-your-secrets
 var (
 	forbiddenEnvNameCIRx = regexp.MustCompile("(?i)^CI")
-
-	ErrInvalidName = util.NewInvalidArgumentErrorf("invalid secret name")
 )
 
 func envNameCIRegexMatch(name string) error {
