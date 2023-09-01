@@ -188,7 +188,7 @@ export default {
       filename: 'js/monaco-[name].[contenthash:8].worker.js',
     }),
     isProduction ? new LicenseCheckerWebpackPlugin({
-      outputFilename: 'js/licenses.txt',
+      outputFilename: 'licenses.txt',
       outputWriter: ({dependencies}) => {
         const line = '-'.repeat(80);
         const goJson = readFileSync('assets/go-licenses.json', 'utf8');
@@ -211,7 +211,7 @@ export default {
       },
       emitError: true,
       allow: '(Apache-2.0 OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC OR CPAL-1.0 OR Unlicense OR EPL-1.0 OR EPL-2.0)',
-    }) : new AddAssetPlugin('js/licenses.txt', `Licenses are disabled during development`),
+    }) : new AddAssetPlugin('licenses.txt', `Licenses are disabled during development`),
   ],
   performance: {
     hints: false,
@@ -239,7 +239,7 @@ export default {
     entrypoints: false,
     excludeAssets: [
       /^js\/monaco-language-.+\.js$/,
-      !isProduction && /^js\/licenses.txt$/,
+      !isProduction && /^licenses.txt$/,
     ].filter(Boolean),
     groupAssetsByChunk: false,
     groupAssetsByEmitStatus: false,
