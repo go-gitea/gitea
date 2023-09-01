@@ -42,8 +42,10 @@
   opacity: 0.7;
 }
 
-.ui.archived-label {
+.archived-label {
+  display: inline-flex;
   width: fit-content;
   height: fit-content;
-  text-transform: lowercase;
+  color: var(--color-text-light);
+  background: var(--color-button);
 }
