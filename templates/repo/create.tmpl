@@ -66,7 +66,7 @@
 							document.getElementById("repo_name").addEventListener("input", function(event) {
 								var repo_name = this.value;
 								var bubble = document.getElementById("info_bubble");
-								if ( repo_name.includes(' ') ) {
+								if (repo_name.includes(' ')) {
 									repo_name = repo_name.replace(/ /g, char_in_repo_name);
 									bubble.style.display = "inline-block";
 									bubble.innerHTML = {{.locale.Tr "repo.repo_renamed_as"}}+`: "${repo_name}"`
