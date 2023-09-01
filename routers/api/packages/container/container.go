@@ -117,7 +117,19 @@ func apiErrorDefined(ctx *context.Context, err *namedError) {
 // ReqContainerAccess is a middleware which checks the current user valid (real user or ghost for anonymous access)
 func ReqContainerAccess(ctx *context.Context) {
 	if ctx.Doer == nil {
-		ctx.Resp.Header().Add("WWW-Authenticate", `Bearer realm="`+setting.AppURL+`v2/token",service="container_registry",scope="*"`)
+
+		// using x-forwarded headers
+		realmUrl, err := url.Parse(fmt.Sprintf("%v://%v/", ctx.Req.Header.Get("X-Forwarded-Proto"), ctx.Req.Header.Get("X-Forwarded-Host")))
+		if err != nil {
+			// using host header
+			realmUrl, err = url.Parse(fmt.Sprintf("%v://%v/", "http", ctx.Req.Host))
+		}
+		if err != nil {
+			// fallback
+			realmUrl, err = url.Parse(setting.AppURL)
+		}
+
+		ctx.Resp.Header().Add("WWW-Authenticate", `Bearer realm="`+realmUrl.String()+`v2/token",service="container_registry",scope="*"`)
 		apiErrorDefined(ctx, errUnauthorized)
 	}
 }
