@@ -158,12 +158,13 @@
   position: relative;
   line-height: 1.5rem;
   min-height: 1.5rem; /* // to render a checkbox list without content `- [ ]`, we need this min-height to make sure the <li> can be visible */
+  display: flex;
+  align-items: center;
 }
 
 .markup .task-list-item input[type="checkbox"] {
-  position: absolute;
-  top: 0.25em;
-  left: -1.6em;
+  flex: 0 0 auto;
+  margin-right: .6em;
 }
 
 .markup .task-list-item p {
