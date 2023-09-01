@@ -1,7 +1,8 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package test
+// Package contexttest provides utilities for testing Web/API contexts with models.
+package contexttest
 
 import (
 	gocontext "context"
@@ -22,7 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web/middleware"
 
-	chi "github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -40,7 +41,6 @@ func mockRequest(t *testing.T, reqPath string) *http.Request {
 }
 
 // MockContext mock context for unit tests
-// TODO: move this function to other packages, because it depends on "models" package
 func MockContext(t *testing.T, reqPath string) (*context.Context, *httptest.ResponseRecorder) {
 	resp := httptest.NewRecorder()
 	req := mockRequest(t, reqPath)
@@ -50,7 +50,6 @@ func MockContext(t *testing.T, reqPath string) (*context.Context, *httptest.Resp
 	base.Locale = &translation.MockLocale{}
 
 	ctx := context.NewWebContext(base, &MockRender{}, nil)
-	ctx.Flash = &middleware.Flash{Values: url.Values{}}
 
 	chiCtx := chi.NewRouteContext()
 	ctx.Base.AppendContextValue(chi.RouteCtxKey, chiCtx)
@@ -58,7 +57,6 @@ func MockContext(t *testing.T, reqPath string) (*context.Context, *httptest.Resp
 }
 
 // MockAPIContext mock context for unit tests
-// TODO: move this function to other packages, because it depends on "models" package
 func MockAPIContext(t *testing.T, reqPath string) (*context.APIContext, *httptest.ResponseRecorder) {
 	resp := httptest.NewRecorder()
 	req := mockRequest(t, reqPath)
@@ -123,7 +121,7 @@ func LoadRepoCommit(t *testing.T, ctx gocontext.Context) {
 	}
 }
 
-// LoadUser load a user into a test context.
+// LoadUser load a user into a test context
 func LoadUser(t *testing.T, ctx gocontext.Context, userID int64) {
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID})
 	switch ctx := ctx.(type) {
