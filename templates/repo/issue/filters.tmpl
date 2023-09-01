@@ -31,11 +31,11 @@
 						{{$previousExclusiveScope = $exclusiveScope}}
 						<a class="item label-filter-item gt-df gt-ac" {{if .IsArchived}}data-is-archived{{end}} href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}" data-label-id="{{.ID}}">{{if .IsExcluded}}{{svg "octicon-circle-slash"}}{{else if .IsSelected}}{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}}
 							{{RenderLabel $.Context .}}
-							{{if .IsArchived}}
-								<span class="archived-label gt-ml-auto gt-font-12 gt-p-2 gt-border-secondary gt-rounded gt-jc gt-cursor-default">
-									{{$.locale.Tr "archived"}}
-								</span>
-							{{end}}
+							  {{if .IsArchived}}
+								  <span class="archived-label gt-ml-auto gt-font-12 gt-p-2 gt-border-secondary gt-rounded gt-jc gt-cursor-default">
+									  {{$.locale.Tr "archived"}}
+								  </span>
+							  {{end}}
 						</a>
 					{{end}}
 				</div>
