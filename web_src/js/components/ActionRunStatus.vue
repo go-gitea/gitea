@@ -1,7 +1,8 @@
+<!-- This vue should be kept the same as templates/repo/actions/status.tmpl
+    Please also update the template file above if this vue is modified.
+    action status accepted: success, skipped, waiting, blocked, running, failure, cancelled, unknown
+-->
 <script>
-// This vue should be kept the same as templates/repo/actions/status.tmpl
-// Please also update the template file above if this vue is modified.
-// action status accepted: success, skipped, waiting, blocked, running, failure, cancelled, unknown
 import {SvgIcon} from '../svg.js';
 
 export default {
