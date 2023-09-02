@@ -526,7 +526,7 @@ a.label,
   line-height: var(--line-height-default); /* fomantic uses "1" which causes overflow problems because "1" doesn't consider the descent part */
 }
 
-#navbar .item {
+#navbar > .menu > .item {
   color: var(--color-nav-text);
 }
 
