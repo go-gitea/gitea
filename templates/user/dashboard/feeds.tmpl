@@ -27,14 +27,14 @@
 					{{else if  .GetOpType.IsActionCreatePullRequest}}
 						{{$index := index .GetIssueInfos 0}}
 						{{$.locale.Tr "action.create_pull_request" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
-					{{else if  .GetOpType.IsActionTransferRepo}}
+					{{else if .GetOpType.IsActionTransferRepo}}
 						{{$.locale.Tr "action.transfer_repo" .GetContent (.GetRepoLink|Escape) (.ShortRepoPath|Escape) | Str2html}}
-					{{else if  .GetOpType.IsActionPushTag}}
+					{{else if .GetOpType.IsActionPushTag}}
 						{{$.locale.Tr "action.push_tag" (.GetRepoLink|Escape) (.GetRefLink|Escape) (.GetTag|Escape) (.ShortRepoPath|Escape) | Str2html}}
-					{{else if  .GetOpType.IsActionCommentIssue}}
+					{{else if .GetOpType.IsActionCommentIssue}}
 						{{$index := index .GetIssueInfos 0}}
 						{{$.locale.Tr "action.comment_issue" ((printf "%s/issues/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
-					{{else if  .GetOpType.IsActionMergePullRequest}}
+					{{else if .GetOpType.IsActionMergePullRequest}}
 						{{$index := index .GetIssueInfos 0}}
 						{{$.locale.Tr "action.merge_pull_request" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 					{{else if .GetOpType.IsActionCloseIssue}}
@@ -49,19 +49,19 @@
 					{{else if .GetOpType.IsActionReopenPullRequest}}
 						{{$index := index .GetIssueInfos 0}}
 						{{$.locale.Tr "action.reopen_pull_request" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
-					{{else if  .GetOpType.IsActionDeleteTag}}
+					{{else if .GetOpType.IsActionDeleteTag}}
 						{{$index := index .GetIssueInfos 0}}
 						{{$.locale.Tr "action.delete_tag" (.GetRepoLink|Escape) (.GetTag|Escape) (.ShortRepoPath|Escape) | Str2html}}
-					{{else if  .GetOpType.IsActionDeleteBranch}}
+					{{else if .GetOpType.IsActionDeleteBranch}}
 						{{$index := index .GetIssueInfos 0}}
 						{{$.locale.Tr "action.delete_branch" (.GetRepoLink|Escape) (.GetBranch|Escape) (.ShortRepoPath|Escape) | Str2html}}
-					{{else if  .GetOpType.IsActionMirrorSyncPush}}
+					{{else if .GetOpType.IsActionMirrorSyncPush}}
 						{{$.locale.Tr "action.mirror_sync_push" (.GetRepoLink|Escape) (.GetRefLink|Escape) (.GetBranch|Escape) (.ShortRepoPath|Escape) | Str2html}}
-					{{else if  .GetOpType.IsActionMirrorSyncCreate}}
+					{{else if .GetOpType.IsActionMirrorSyncCreate}}
 						{{$.locale.Tr "action.mirror_sync_create" (.GetRepoLink|Escape) (.GetRefLink|Escape) (.GetBranch|Escape) (.ShortRepoPath|Escape) | Str2html}}
-					{{else if  .GetOpType.IsActionMirrorSyncDelete}}
+					{{else if .GetOpType.IsActionMirrorSyncDelete}}
 						{{$.locale.Tr "action.mirror_sync_delete" (.GetRepoLink|Escape) (.GetBranch|Escape) (.ShortRepoPath|Escape) | Str2html}}
-					{{else if  .GetOpType.IsActionApprovePullRequest}}
+					{{else if .GetOpType.IsActionApprovePullRequest}}
 						{{$index := index .GetIssueInfos 0}}
 						{{$.locale.Tr "action.approve_pull_request" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 					{{else if .GetOpType.IsActionRejectPullRequest}}
@@ -70,16 +70,16 @@
 					{{else if .GetOpType.IsActionCommentPull}}
 						{{$index := index .GetIssueInfos 0}}
 						{{$.locale.Tr "action.comment_pull" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
-					{{else if  .GetOpType.IsActionPublishRelease}}
+					{{else if .GetOpType.IsActionPublishRelease}}
 						{{$linkText := .Content | RenderEmoji $.Context}}
 						{{$.locale.Tr "action.publish_release" (.GetRepoLink|Escape) ((printf "%s/releases/tag/%s" .GetRepoLink .GetTag)|Escape) (.ShortRepoPath|Escape) $linkText | Str2html}}
-					{{else if  .GetOpType.IsActionPullReviewDismissed}}
+					{{else if .GetOpType.IsActionPullReviewDismissed}}
 						{{$index := index .GetIssueInfos 0}}
 						{{$reviewer := index .GetIssueInfos 1}}
 						{{$.locale.Tr "action.review_dismissed" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) $reviewer | Str2html}}
 					{{end}}
 				</div>
-				{{if or .GetOpType.ActionCommitRepo .GetOpType.IsActionMirrorSyncPush}}
+				{{if or .GetOpType.IsActionCommitRepo .GetOpType.IsActionMirrorSyncPush}}
 					{{$push := ActionContent2Commits .}}
 					{{$repoLink := .GetRepoLink}}
 					{{range $push.Commits}}
@@ -107,7 +107,7 @@
 					{{end}}
 				{{else if .GetOpType.IsActionMergePullRequest}}
 					<div class="flex-item-body">{{index .GetIssueInfos 1}}</div>
-				{{else if or .GetOpType.IsActionCloseIssue  .GetOpType.ActionReopenIssue .GetOpType.IsActionClosePullRequest .GetOpType.IsActionReopenPullRequest}}
+				{{else if or .GetOpType.IsActionCloseIssue  .GetOpType.IsActionReopenIssue .GetOpType.IsActionClosePullRequest .GetOpType.IsActionReopenPullRequest}}
 					<span class="text truncate issue title">{{.GetIssueTitle | RenderEmoji $.Context | RenderCodeBlock}}</span>
 				{{else if .GetOpType.IsActionPullReviewDismissed}}
 				<div class="flex-item-body">{{$.locale.Tr "action.review_dismissed_reason"}}</div>
