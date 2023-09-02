@@ -125,8 +125,8 @@ func CreateOrUpdateSecret(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// DeleteOrgSecret delete one secret of the organization
-func DeleteOrgSecret(ctx *context.APIContext) {
+// DeleteSecret delete one secret of the organization
+func DeleteSecret(ctx *context.APIContext) {
 	// swagger:operation DELETE /orgs/{org}/actions/secrets/{secretname} organization deleteOrgSecret
 	// ---
 	// summary: Delete a secret in an organization
@@ -151,6 +151,10 @@ func DeleteOrgSecret(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	secretName := ctx.Params(":secretname")
+	if err := actions.NameRegexMatch(secretName); err != nil {
+		ctx.Error(http.StatusBadRequest, "DeleteSecret", err)
+		return
+	}
 	err := secret_model.DeleteSecret(
 		ctx, ctx.Org.Organization.ID, 0, secretName,
 	)
