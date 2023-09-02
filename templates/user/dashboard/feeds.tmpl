@@ -15,13 +15,13 @@
 						{{$.locale.Tr "action.create_repo" (.GetRepoLink|Escape) (.ShortRepoPath|Escape) | Str2html}}
 					{{else if .GetOpType.IsActionRenameRepo}}
 						{{$.locale.Tr "action.rename_repo" (.GetContent|Escape) (.GetRepoLink|Escape) (.ShortRepoPath|Escape) | Str2html}}
-					{{else if .GetOpType.IsActionCommitRepo }}
+					{{else if .GetOpType.IsActionCommitRepo}}
 						{{if .Content}}
 							{{$.locale.Tr "action.commit_repo" (.GetRepoLink|Escape) (.GetRefLink|Escape) (Escape .GetBranch) (.ShortRepoPath|Escape) | Str2html}}
 						{{else}}
 							{{$.locale.Tr "action.create_branch" (.GetRepoLink|Escape) (.GetRefLink|Escape) (Escape .GetBranch) (.ShortRepoPath|Escape) | Str2html}}
 						{{end}}
-					{{else if .GetOpType.IsActionCreateIssue }}
+					{{else if .GetOpType.IsActionCreateIssue}}
 						{{$index := index .GetIssueInfos 0}}
 						{{$.locale.Tr "action.create_issue" ((printf "%s/issues/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 					{{else if .GetOpType.IsActionCreatePullRequest}}
