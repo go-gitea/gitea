@@ -49,7 +49,7 @@
 							{{else if $.Reponame}}
 								{{$commitShaLink = (printf "%s/commit/%s" $commitRepoLink (PathEscape .ID.String))}}
 							{{end}}
-							<a href="{{$commitShaLink}}" class="{{$class}}">
+							<a {{if $commitShaLink}}href="{{$commitShaLink}}"{{end}} class="{{$class}}">
 								<span class="shortsha">{{ShortSha .ID.String}}</span>
 								{{if .Signature}}{{template "repo/shabox_badge" dict "root" $ "verification" .Verification}}{{end}}
 							</a>
