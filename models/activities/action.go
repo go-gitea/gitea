@@ -65,6 +65,114 @@ const (
 	ActionAutoMergePullRequest                            // 27
 )
 
+func (at ActionType) IsActionCreateRepo() bool {
+	return at == ActionCreateRepo
+}
+
+func (at ActionType) IsActionRenameRepo() bool {
+	return at == ActionRenameRepo
+}
+
+func (at ActionType) IsActionStarRepo() bool {
+	return at == ActionStarRepo
+}
+
+func (at ActionType) IsActionWatchRepo() bool {
+	return at == ActionWatchRepo
+}
+
+func (at ActionType) IsActionCommitRepo() bool {
+	return at == ActionCommitRepo
+}
+
+func (at ActionType) IsActionCreateIssue() bool {
+	return at == ActionCreateIssue
+}
+
+func (at ActionType) IsActionCreatePullRequest() bool {
+	return at == ActionCreatePullRequest
+}
+
+func (at ActionType) IsActionTransferRepo() bool {
+	return at == ActionTransferRepo
+}
+
+func (at ActionType) IsActionPushTag() bool {
+	return at == ActionPushTag
+}
+
+func (at ActionType) IsActionCommentIssue() bool {
+	return at == ActionCommentIssue
+}
+
+func (at ActionType) IsActionMergePullRequest() bool {
+	return at == ActionMergePullRequest
+}
+
+func (at ActionType) IsActionCloseIssue() bool {
+	return at == ActionCloseIssue
+}
+
+func (at ActionType) IsActionReopenIssue() bool {
+	return at == ActionReopenIssue
+}
+
+func (at ActionType) IsActionClosePullRequest() bool {
+	return at == ActionClosePullRequest
+}
+
+func (at ActionType) IsActionReopenPullRequest() bool {
+	return at == ActionReopenPullRequest
+}
+
+func (at ActionType) IsActionDeleteTag() bool {
+	return at == ActionDeleteTag
+}
+
+func (at ActionType) IsActionDeleteBranch() bool {
+	return at == ActionDeleteBranch
+}
+
+func (at ActionType) IsActionMirrorSyncPush() bool {
+	return at == ActionMirrorSyncPush
+}
+
+func (at ActionType) IsActionMirrorSyncCreate() bool {
+	return at == ActionMirrorSyncCreate
+}
+
+func (at ActionType) IsActionMirrorSyncDelete() bool {
+	return at == ActionMirrorSyncDelete
+}
+
+func (at ActionType) IsActionApprovePullRequest() bool {
+	return at == ActionApprovePullRequest
+}
+
+func (at ActionType) IsActionRejectPullRequest() bool {
+	return at == ActionRejectPullRequest
+}
+
+func (at ActionType) IsActionCommentPull() bool {
+	return at == ActionCommentPull
+}
+
+func (at ActionType) IsActionPublishRelease() bool {
+	return at == ActionPublishRelease
+}
+
+func (at ActionType) IsActionPullReviewDismissed() bool {
+	return at == ActionPullReviewDismissed
+}
+
+func (at ActionType) IsActionPullRequestReadyForReview() bool {
+	return at == ActionPullRequestReadyForReview
+}
+
+func (at ActionType) IsActionAutoMergePullRequest() bool {
+	return at == ActionAutoMergePullRequest
+}
+
 func (at ActionType) String() string {
 	switch at {
 	case ActionCreateRepo:
