@@ -13,6 +13,8 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	org_model "code.gitea.io/gitea/models/organization"
+	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
@@ -32,6 +34,7 @@ import (
 const (
 	tplUsers    base.TplName = "admin/user/list"
 	tplUserNew  base.TplName = "admin/user/new"
+	tplUserView base.TplName = "admin/user/view"
 	tplUserEdit base.TplName = "admin/user/edit"
 )
 
@@ -247,6 +250,61 @@ func prepareUserInfo(ctx *context.Context) *user_model.User {
 	ctx.Data["TwoFactorEnabled"] = hasTOTP || hasWebAuthn
 
 	return u
+}
+
+func ViewUser(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("admin.users.details")
+	ctx.Data["PageIsAdminUsers"] = true
+	ctx.Data["DisableRegularOrgCreation"] = setting.Admin.DisableRegularOrgCreation
+	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
+	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
+
+	u := prepareUserInfo(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	repos, count, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		OwnerID:     u.ID,
+		OrderBy:     db.SearchOrderByAlphabetically,
+		Private:     true,
+		Collaborate: util.OptionalBoolFalse,
+	})
+	if err != nil {
+		ctx.ServerError("SearchRepository", err)
+		return
+	}
+
+	ctx.Data["Repos"] = repos
+	ctx.Data["ReposTotal"] = int(count)
+
+	emails, err := user_model.GetEmailAddresses(ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("GetEmailAddresses", err)
+		return
+	}
+	ctx.Data["Emails"] = emails
+	ctx.Data["EmailsTotal"] = len(emails)
+
+	orgs, err := org_model.FindOrgs(org_model.FindOrgOptions{
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		UserID:         u.ID,
+		IncludePrivate: true,
+	})
+	if err != nil {
+		ctx.ServerError("FindOrgs", err)
+		return
+	}
+
+	ctx.Data["Users"] = orgs // needed to be able to use explore/user_list template
+	ctx.Data["OrgsTotal"] = len(orgs)
+
+	ctx.HTML(http.StatusOK, tplUserView)
 }
 
 // EditUser show editing user page

@@ -10,6 +10,7 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	secret_model "code.gitea.io/gitea/models/secret"
 	actions_module "code.gitea.io/gitea/modules/actions"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -197,10 +198,7 @@ func findTaskNeeds(ctx context.Context, task *actions_model.ActionTask) (map[str
 	if len(task.Job.Needs) == 0 {
 		return nil, nil
 	}
-	needs := map[string]struct{}{}
-	for _, v := range task.Job.Needs {
-		needs[v] = struct{}{}
-	}
+	needs := container.SetOf(task.Job.Needs...)
 
 	jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: task.Job.RunID})
 	if err != nil {
@@ -209,7 +207,7 @@ func findTaskNeeds(ctx context.Context, task *actions_model.ActionTask) (map[str
 
 	ret := make(map[string]*runnerv1.TaskNeed, len(needs))
 	for _, job := range jobs {
-		if _, ok := needs[job.JobID]; !ok {
+		if !needs.Contains(job.JobID) {
 			continue
 		}
 		if job.TaskID == 0 || !job.Status.IsDone() {

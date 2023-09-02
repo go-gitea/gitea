@@ -126,12 +126,8 @@
   }
 }
 
-.repository.new.release .field .wrap_remove {
-  height: 38px;
-}
-
 .repository.new.release .field .attachment_edit {
-  width: 450px !important;
+  max-width: 48em;
 }
 
 .repository.new.release .markup {

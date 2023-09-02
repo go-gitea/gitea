@@ -3287,6 +3287,50 @@
             "$ref": "#/responses/forbidden"
           }
         }
+      },
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a secret in a repository",
+        "operationId": "deleteRepoSecret",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repository",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the secret",
+            "name": "secretname",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "delete one secret of the organization"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
       }
     },
     "/repos/{owner}/{repo}/activities/feeds": {
