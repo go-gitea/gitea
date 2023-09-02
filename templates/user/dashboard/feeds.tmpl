@@ -98,15 +98,15 @@
 				{{else if .GetOpType.IsActionCreateIssue}}
 					<span class="text truncate issue title">{{.GetIssueTitle | RenderEmoji $.Context | RenderCodeBlock}}</span>
 				{{else if .GetOpType.IsActionCreatePullRequest}}
-					<span class="text truncate issue title">{{index .GetIssueInfos 1 | RenderEmoji $.Context | RenderCodeBlock}}</span>
+					<span class="text truncate issue title">{{.GetIssueTitle | RenderEmoji $.Context | RenderCodeBlock}}</span>
 				{{else if or .GetOpType.IsActionCommentIssue .GetOpType.IsActionApprovePullRequest .GetOpType.IsActionRejectPullRequest .GetOpType.IsActionCommentPull}}
 					<a href="{{.GetCommentLink}}" class="text truncate issue title">{{.GetIssueTitle | RenderEmoji $.Context | RenderCodeBlock}}</a>
-					{{$comment := index .GetIssueInfos 1}}
+					{{$comment := .GetCommentContent}}
 					{{if gt (len $comment) 0}}
 						<div class="flex-item-body">{{$comment | RenderEmoji $.Context | RenderCodeBlock}}</div>
 					{{end}}
 				{{else if .GetOpType.IsActionMergePullRequest}}
-					<div class="flex-item-body">{{index .GetIssueInfos 1}}</div>
+					<div class="flex-item-body">{{.GetIssueTitle}}</div>
 				{{else if or .GetOpType.IsActionCloseIssue .GetOpType.IsActionReopenIssue .GetOpType.IsActionClosePullRequest .GetOpType.IsActionReopenPullRequest}}
 					<span class="text truncate issue title">{{.GetIssueTitle | RenderEmoji $.Context | RenderCodeBlock}}</span>
 				{{else if .GetOpType.IsActionPullReviewDismissed}}

@@ -394,6 +394,11 @@ func (a *Action) GetCommentHTMLURL() string {
 	return a.getCommentHTMLURL(db.DefaultContext)
 }
 
+func (a *Action) GetCommentContent() string {
+	_ = a.loadComment(db.DefaultContext)
+	return a.Comment.Content
+}
+
 func (a *Action) loadComment(ctx context.Context) (err error) {
 	if a.CommentID == 0 || a.Comment != nil {
 		return nil
