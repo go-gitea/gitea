@@ -1,27 +1,3 @@
-<template>
-  <!--title instead of tooltip above as the tooltip needs too much work with the current methods, i.e. not being loaded or staying open for "too long"-->
-  <a
-    v-if="item.isFile" class="item-file"
-    :class="{'selected': store.selectedItem === '#diff-' + item.file.NameHash, 'viewed': item.file.IsViewed}"
-    :title="item.name" :href="'#diff-' + item.file.NameHash"
-  >
-    <!-- file -->
-    <SvgIcon name="octicon-file"/>
-    <span class="gt-ellipsis gt-f1">{{ item.name }}</span>
-    <SvgIcon :name="getIconForDiffType(item.file.Type).name" :class="getIconForDiffType(item.file.Type).classes"/>
-  </a>
-  <div v-else class="item-directory" :title="item.name" @click.stop="collapsed = !collapsed">
-    <!-- directory -->
-    <SvgIcon :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'"/>
-    <SvgIcon class="text primary" name="octicon-file-directory-fill"/>
-    <span class="gt-ellipsis">{{ item.name }}</span>
-  </div>
-
-  <div v-if="item.children?.length" v-show="!collapsed" class="sub-items">
-    <DiffFileTreeItem v-for="childItem in item.children" :key="childItem.name" :item="childItem"/>
-  </div>
-</template>
-
 <script>
 import {SvgIcon} from '../svg.js';
 import {diffTreeStore} from '../modules/stores.js';
@@ -52,7 +28,29 @@ export default {
   },
 };
 </script>
+<template>
+  <!--title instead of tooltip above as the tooltip needs too much work with the current methods, i.e. not being loaded or staying open for "too long"-->
+  <a
+    v-if="item.isFile" class="item-file"
+    :class="{'selected': store.selectedItem === '#diff-' + item.file.NameHash, 'viewed': item.file.IsViewed}"
+    :title="item.name" :href="'#diff-' + item.file.NameHash"
+  >
+    <!-- file -->
+    <SvgIcon name="octicon-file"/>
+    <span class="gt-ellipsis gt-f1">{{ item.name }}</span>
+    <SvgIcon :name="getIconForDiffType(item.file.Type).name" :class="getIconForDiffType(item.file.Type).classes"/>
+  </a>
+  <div v-else class="item-directory" :title="item.name" @click.stop="collapsed = !collapsed">
+    <!-- directory -->
+    <SvgIcon :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'"/>
+    <SvgIcon class="text primary" name="octicon-file-directory-fill"/>
+    <span class="gt-ellipsis">{{ item.name }}</span>
+  </div>
 
+  <div v-if="item.children?.length" v-show="!collapsed" class="sub-items">
+    <DiffFileTreeItem v-for="childItem in item.children" :key="childItem.name" :item="childItem"/>
+  </div>
+</template>
 <style scoped>
 a, a:hover {
   text-decoration: none;
