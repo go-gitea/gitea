@@ -24,7 +24,7 @@
 					{{else if .GetOpType.IsActionCreateIssue }}
 						{{$index := index .GetIssueInfos 0}}
 						{{$.locale.Tr "action.create_issue" ((printf "%s/issues/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
-					{{else if  .GetOpType.IsActionCreatePullRequest}}
+					{{else if .GetOpType.IsActionCreatePullRequest}}
 						{{$index := index .GetIssueInfos 0}}
 						{{$.locale.Tr "action.create_pull_request" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 					{{else if .GetOpType.IsActionTransferRepo}}
@@ -107,7 +107,7 @@
 					{{end}}
 				{{else if .GetOpType.IsActionMergePullRequest}}
 					<div class="flex-item-body">{{index .GetIssueInfos 1}}</div>
-				{{else if or .GetOpType.IsActionCloseIssue  .GetOpType.IsActionReopenIssue .GetOpType.IsActionClosePullRequest .GetOpType.IsActionReopenPullRequest}}
+				{{else if or .GetOpType.IsActionCloseIssue .GetOpType.IsActionReopenIssue .GetOpType.IsActionClosePullRequest .GetOpType.IsActionReopenPullRequest}}
 					<span class="text truncate issue title">{{.GetIssueTitle | RenderEmoji $.Context | RenderCodeBlock}}</span>
 				{{else if .GetOpType.IsActionPullReviewDismissed}}
 				<div class="flex-item-body">{{$.locale.Tr "action.review_dismissed_reason"}}</div>
