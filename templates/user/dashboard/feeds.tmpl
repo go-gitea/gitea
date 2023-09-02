@@ -96,7 +96,7 @@
 						<a href="{{AppSubUrl}}/{{$push.CompareURL}}">{{$.locale.Tr "action.compare_commits" $push.Len}} »</a>
 					{{end}}
 				{{else if eq .GetOpType 6}}
-					<span class="text truncate issue title">{{index .GetIssueInfos 1 | RenderEmoji $.Context | RenderCodeBlock}}</span>
+					<span class="text truncate issue title">{{.GetIssueTitle | RenderEmoji $.Context | RenderCodeBlock}}</span>
 				{{else if eq .GetOpType 7}}
 					<span class="text truncate issue title">{{index .GetIssueInfos 1 | RenderEmoji $.Context | RenderCodeBlock}}</span>
 				{{else if or (eq .GetOpType 10) (eq .GetOpType 21) (eq .GetOpType 22) (eq .GetOpType 23)}}
