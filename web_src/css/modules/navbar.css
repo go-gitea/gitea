@@ -34,6 +34,10 @@
   justify-content: center;
 }
 
+#navbar > .menu > .item {
+  color: var(--color-nav-text);
+}
+
 #navbar .dropdown .item {
   justify-content: stretch;
 }
