@@ -17,12 +17,12 @@ func (t testSub2) String() string {
 	return "unknow"
 }
 
-type testSubConversion struct {
-}
+type testSubConversion struct{}
 
 func (c *testSubConversion) FromDB([]byte) error {
 	return nil
 }
+
 func (c *testSubConversion) ToDB() ([]byte, error) {
 	return []byte("testSubConversion"), nil
 }

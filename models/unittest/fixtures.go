@@ -5,7 +5,6 @@
 package unittest
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -17,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/auth/password/hash"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -197,7 +197,7 @@ func defaultFixtureDumperVerbs(tableName string, actualValue reflect.Value, type
 
 		fieldValue := field.Interface()
 		isText := xormTags.HasTag("TEXT")
-		isJson := xormTags.HasTag("JSON")
+		isJSON := xormTags.HasTag("JSON")
 		conversion, hasconversion := fieldValue.(convert.Conversion)
 		if (!hasconversion) && isFieldNil(field) {
 			continue
@@ -231,7 +231,7 @@ func defaultFixtureDumperVerbs(tableName string, actualValue reflect.Value, type
 
 		int64Type := reflect.TypeOf(int64(0))
 		isInt64 := field.Type().ConvertibleTo(int64Type)
-		if fieldType.Type.Kind() == reflect.Struct && !isInt64 && !isText && !isJson {
+		if fieldType.Type.Kind() == reflect.Struct && !isInt64 && !isText && !isJSON {
 			return fmt.Errorf("%s: '%s' is a struct whcih can't be convert to a table field", tableName, xormTags.GetFieldName(fieldName))
 		}
 
@@ -240,7 +240,7 @@ func defaultFixtureDumperVerbs(tableName string, actualValue reflect.Value, type
 			return err
 		}
 
-		if isJson {
+		if isJSON {
 			result, err := json.Marshal(fieldValue)
 			if err != nil {
 				return err
@@ -363,7 +363,7 @@ func (l xormTagList) HasTag(name string) bool {
 }
 
 func (l xormTagList) GetFieldName(defaultName string) string {
-	var reservedNames = []string{
+	reservedNames := []string{
 		"TRUE",
 		"FALSE",
 		"BIT",

@@ -5,7 +5,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"io/fs"
 	"net/http"
 	"os"
@@ -13,7 +12,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	_ "code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/graceful"
@@ -22,6 +20,9 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/common"
+
+	_ "code.gitea.io/gitea/models"
+
 	"gopkg.in/yaml.v3"
 )
 
@@ -68,21 +69,6 @@ func main() {
 	removeNotNeededFixtures(pwd)
 
 	log.GetManager().Close()
-}
-
-func buildInterfacesSlice(records interface{}) ([]interface{}, error) {
-	switch records := records.(type) {
-	case []interface{}:
-		return records, nil
-	case map[string]interface{}:
-		var result []interface{}
-		for _, record := range records {
-			result = append(result, record)
-		}
-		return result, nil
-	}
-
-	return nil, fmt.Errorf("testfixtures: fixture is not a slice or map")
 }
 
 func listSubDir(dirname string, onDir func(path, name string) error) error {
