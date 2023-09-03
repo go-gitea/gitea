@@ -230,7 +230,7 @@ menu:
 - `MAX_SIZE`: 附件最大限制，单位 MB，比如： `4`。
 - `MAX_FILES`: 一次最多上传的附件数量，比如： `5`。
 - `STORAGE_TYPE`: **local**: 附件存储类型，`local` 将存储到本地文件夹， `minio` 将存储到 s3 兼容的对象存储服务中。
-- `PATH`: **data/attachments**: 附件存储路径，仅当 `STORAGE_TYPE` 为 `local` 时有效。
+- `PATH`: **attachments**: 存储附件的路径，仅当 STORAGE_TYPE 为 `local` 时可用。如果是相对路径，将会被解析为 `${AppDataPath}/${attachment.PATH}`.
 - `MINIO_ENDPOINT`: **localhost:9000**: Minio 终端，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
 - `MINIO_ACCESS_KEY_ID`: Minio accessKeyID ，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
 - `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey，仅当 `STORAGE_TYPE` 是 `minio` 时有效。
