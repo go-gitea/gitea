@@ -180,6 +180,7 @@ TEST_MSSQL_HOST ?= mssql:1433
 TEST_MSSQL_DBNAME ?= gitea
 TEST_MSSQL_USERNAME ?= sa
 TEST_MSSQL_PASSWORD ?= MwantsaSecurePassword1
+TEST_DEV_ADDR ?= localhost
 
 .PHONY: all
 all: build
@@ -514,7 +515,7 @@ generate-ini-sqlite:
 			tests/sqlite.ini.tmpl > tests/sqlite.ini
 
 generate-ini-dev:
-	sed -e 's|{{GITEA_ROOT}}|${CURDIR}|g' tests/dev.ini.tmpl > tests/dev.ini
+	sed -e 's|{{GITEA_ROOT}}|${CURDIR}|g' -e 's|{{GITEA_DEV_ADDR}}|${TEST_DEV_ADDR}|g' tests/dev.ini.tmpl > tests/dev.ini
 
 .PHONY: test-dev
 test-dev: generate-ini-dev

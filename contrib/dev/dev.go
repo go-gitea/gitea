@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"code.gitea.io/gitea/cmd"
+	_ "code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/graceful"
@@ -20,9 +22,9 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/common"
+	repo_service "code.gitea.io/gitea/services/repository"
 
-	_ "code.gitea.io/gitea/models"
-
+	"github.com/urfave/cli/v2"
 	"gopkg.in/yaml.v3"
 )
 
@@ -30,6 +32,18 @@ import (
 // GITEA_ROOT=`pwd` go run -tags 'sqlite sqlite_unlock_notify' contrib/dev/dev.go
 
 func main() {
+	app := cmd.NewMainApp("dev", "")
+	for _, command := range app.Commands {
+		if command.Name == app.DefaultCommand {
+			command.Action = devEntry
+			break
+		}
+	}
+
+	_ = cmd.RunMainApp(app, os.Args...)
+}
+
+func devEntry(_ *cli.Context) error {
 	pwd := os.Getenv("GITEA_ROOT")
 	if len(pwd) == 0 {
 		panic(pwd)
@@ -70,6 +84,8 @@ func main() {
 	removeTmpFiles(pwd)
 
 	log.GetManager().Close()
+
+	return nil
 }
 
 func removeTmpFiles(pwd string) {
@@ -165,6 +181,7 @@ func fixGitReops() {
 		"privated_org/public_repo_on_private_org.git",
 		"user3/repo5.git",
 		"user3/repo3.git",
+		"user3/action_test.git",
 		"user13/repo11.git",
 		"user27/template1.git",
 		"user27/repo49.git",
@@ -257,6 +274,10 @@ func initDev(pathToGiteaRoot string) {
 
 	if err := setting.PrepareAppDataPath(); err != nil {
 		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
+	}
+
+	if err := repo_service.SyncRepositoryHooks(db.DefaultContext); err != nil {
+		log.Fatal("repo_service.SyncRepositoryHooks: %v", err)
 	}
 }
 

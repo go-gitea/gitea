@@ -35,11 +35,11 @@ TEMP_PATH = {{GITEA_ROOT}}/tests/dev/tmp/uploads
 SIGNING_KEY = none
 
 [server]
-SSH_DOMAIN       = localhost
-HTTP_PORT        = 3003
-ROOT_URL         = http://localhost:3000/
+SSH_DOMAIN       = {{GITEA_DEV_ADDR}}
+HTTP_PORT        = 3000
+ROOT_URL         = http://{{GITEA_DEV_ADDR}}:3000/
 DISABLE_SSH      = false
-SSH_LISTEN_HOST  = localhost
+SSH_LISTEN_HOST  = {{GITEA_DEV_ADDR}}
 SSH_PORT         = 2203
 START_SSH_SERVER = true
 LFS_START_SERVER = true
