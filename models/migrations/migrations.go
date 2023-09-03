@@ -528,6 +528,8 @@ var migrations = []Migration{
 	NewMigration("Add Version to ActionRun table", v1_21.AddVersionToActionRunTable),
 	// v273 -> v274
 	NewMigration("Add Action Schedule Table", v1_21.AddActionScheduleTable),
+	// v274 -> v275
+	NewMigration("Adjust index order of issue_watch table ", v1_21.AdjustIssueWatchIndexOrder),
 }
 
 // GetCurrentDBVersion returns the current db version
