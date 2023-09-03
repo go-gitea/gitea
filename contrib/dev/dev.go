@@ -67,8 +67,13 @@ func main() {
 		log.Fatal("unittest.DumpAllFixtures: %v", err)
 	}
 	removeNotNeededFixtures(pwd)
+	removeTmpFiles(pwd)
 
 	log.GetManager().Close()
+}
+
+func removeTmpFiles(pwd string) {
+	_ = util.RemoveAll(path.Join(pwd, "tests", "dev"))
 }
 
 func listSubDir(dirname string, onDir func(path, name string) error) error {

@@ -30,7 +30,7 @@
   is_template: false
   template_id: 0
   size: 7320
-  git_size: 0
+  git_size: 7320
   lfs_size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
@@ -70,8 +70,8 @@
   fork_id: 0
   is_template: false
   template_id: 0
-  size: 0
-  git_size: 0
+  size: 7576
+  git_size: 7576
   lfs_size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: true
@@ -111,8 +111,8 @@
   fork_id: 0
   is_template: false
   template_id: 0
-  size: 0
-  git_size: 0
+  size: 3288
+  git_size: 3288
   lfs_size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
@@ -152,8 +152,8 @@
   fork_id: 0
   is_template: false
   template_id: 0
-  size: 0
-  git_size: 0
+  size: 2164
+  git_size: 2164
   lfs_size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
@@ -192,8 +192,8 @@
   fork_id: 0
   is_template: false
   template_id: 0
-  size: 0
-  git_size: 0
+  size: 3288
+  git_size: 3288
   lfs_size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
@@ -393,8 +393,8 @@
   fork_id: 0
   is_template: false
   template_id: 0
-  size: 0
-  git_size: 0
+  size: 1738
+  git_size: 1738
   lfs_size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
@@ -434,8 +434,8 @@
   fork_id: 10
   is_template: false
   template_id: 0
-  size: 0
-  git_size: 0
+  size: 2695
+  git_size: 2695
   lfs_size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
@@ -595,8 +595,8 @@
   fork_id: 0
   is_template: false
   template_id: 0
-  size: 0
-  git_size: 0
+  size: 1227
+  git_size: 1227
   lfs_size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
@@ -636,8 +636,8 @@
   fork_id: 0
   is_template: false
   template_id: 0
-  size: 0
-  git_size: 0
+  size: 3573
+  git_size: 3573
   lfs_size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
@@ -1237,8 +1237,8 @@
   fork_id: 0
   is_template: false
   template_id: 0
-  size: 0
-  git_size: 0
+  size: 3368
+  git_size: 3368
   lfs_size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
@@ -1318,8 +1318,8 @@
   fork_id: 0
   is_template: false
   template_id: 0
-  size: 0
-  git_size: 0
+  size: 4936
+  git_size: 4936
   lfs_size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
@@ -1439,8 +1439,8 @@
   fork_id: 0
   is_template: false
   template_id: 0
-  size: 0
-  git_size: 0
+  size: 2682
+  git_size: 2682
   lfs_size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
@@ -1480,8 +1480,8 @@
   fork_id: 0
   is_template: false
   template_id: 0
-  size: 0
-  git_size: 0
+  size: 1770
+  git_size: 1770
   lfs_size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
@@ -1521,8 +1521,8 @@
   fork_id: 0
   is_template: false
   template_id: 0
-  size: 0
-  git_size: 0
+  size: 2193
+  git_size: 2193
   lfs_size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
@@ -1562,8 +1562,8 @@
   fork_id: 0
   is_template: false
   template_id: 0
-  size: 0
-  git_size: 0
+  size: 2192
+  git_size: 2192
   lfs_size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
@@ -1603,8 +1603,8 @@
   fork_id: 0
   is_template: false
   template_id: 0
-  size: 0
-  git_size: 0
+  size: 2194
+  git_size: 2194
   lfs_size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
@@ -1644,8 +1644,8 @@
   fork_id: 0
   is_template: false
   template_id: 0
-  size: 0
-  git_size: 0
+  size: 2195
+  git_size: 2195
   lfs_size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
@@ -1685,8 +1685,8 @@
   fork_id: 0
   is_template: false
   template_id: 0
-  size: 0
-  git_size: 0
+  size: 1861
+  git_size: 1861
   lfs_size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
@@ -1766,8 +1766,8 @@
   fork_id: 0
   is_template: true
   template_id: 0
-  size: 0
-  git_size: 0
+  size: 2596
+  git_size: 2596
   lfs_size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
@@ -1847,8 +1847,8 @@
   fork_id: 0
   is_template: false
   template_id: 0
-  size: 0
-  git_size: 0
+  size: 2620
+  git_size: 2620
   lfs_size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
@@ -1888,8 +1888,8 @@
   fork_id: 0
   is_template: false
   template_id: 0
-  size: 0
-  git_size: 0
+  size: 2620
+  git_size: 2620
   lfs_size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
@@ -1929,8 +1929,8 @@
   fork_id: 0
   is_template: false
   template_id: 0
-  size: 0
-  git_size: 0
+  size: 2620
+  git_size: 2620
   lfs_size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
@@ -1970,8 +1970,8 @@
   fork_id: 0
   is_template: false
   template_id: 0
-  size: 0
-  git_size: 0
+  size: 1930
+  git_size: 1930
   lfs_size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
@@ -2093,8 +2093,8 @@
   fork_id: 0
   is_template: false
   template_id: 0
-  size: 0
-  git_size: 0
+  size: 125
+  git_size: 125
   lfs_size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
@@ -2134,8 +2134,8 @@
   fork_id: 0
   is_template: false
   template_id: 0
-  size: 0
-  git_size: 0
+  size: 2286
+  git_size: 2286
   lfs_size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
@@ -2175,9 +2175,9 @@
   fork_id: 0
   is_template: false
   template_id: 0
-  size: 0
-  git_size: 0
-  lfs_size: 0
+  size: 2331
+  git_size: 2065
+  lfs_size: 266
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
   trust_model: 0
@@ -2256,8 +2256,8 @@
   fork_id: 0
   is_template: false
   template_id: 0
-  size: 0
-  git_size: 0
+  size: 24149
+  git_size: 24149
   lfs_size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
@@ -2297,8 +2297,8 @@
   fork_id: 0
   is_template: false
   template_id: 0
-  size: 0
-  git_size: 0
+  size: 3480
+  git_size: 3480
   lfs_size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
@@ -2338,8 +2338,8 @@
   fork_id: 0
   is_template: false
   template_id: 0
-  size: 0
-  git_size: 0
+  size: 6169
+  git_size: 6169
   lfs_size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false

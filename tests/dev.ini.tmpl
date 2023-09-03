@@ -82,9 +82,8 @@ PROVIDER_CONFIG = {{GITEA_ROOT}}/tests/dev/data/sessions
 [log]
 MODE                 = console,file
 ROOT_PATH            = {{GITEA_ROOT}}/tests/dev/log
-ROUTER               = ,
-XORM                 = file
 ENABLE_SSH_LOG       = true
+logger.xorm.MODE     = file
 
 [log.file]
 LEVEL                = Debug
@@ -99,7 +98,7 @@ INTERNAL_TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE0OTI3OTU5ODN9.O
 JWT_SECRET = KZb_QLUd4fYVyxetjxC4eZkrBgWM2SndOOWDNtgUUko
 
 [lfs]
-PATH = {{GITEA_ROOT}}/tests/gitea-repositories-meta
+PATH = {{GITEA_ROOT}}/tests/gitea-lfs-meta
 
 [packages]
 ENABLED = true
