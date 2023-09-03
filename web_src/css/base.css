@@ -245,6 +245,7 @@
   --color-tooltip-bg: #000000f0;
   --color-nav-bg: #ffffff;
   --color-nav-hover-bg: #ebebeb;
+  --color-nav-text: var(--color-text);
   --color-label-text: #232323;
   --color-label-bg: #cacaca5b;
   --color-label-hover-bg: #cacacaa0;
@@ -1307,9 +1308,13 @@ img.ui.avatar,
 .ui .sha.label {
   font-family: var(--fonts-monospace);
   font-size: 13px;
-  padding: 6px 10px 4px;
   font-weight: var(--font-weight-normal);
   margin: 0 6px;
+  padding: 5px 10px;
+}
+
+.ui .sha.label .shortsha {
+  display: inline-block; /* not sure whether it is still needed */
 }
 
 .ui .button.copy-commit-sha {
@@ -1647,10 +1652,6 @@ img.ui.avatar,
   margin-top: 1px;
 }
 
-i.icons .icon:first-child {
-  margin-right: 0;
-}
-
 .ui.label {
   padding: 0.3em 0.5em;
   transition: none;
@@ -1684,14 +1685,6 @@ a.ui.active.label:hover {
   background: var(--color-label-active-bg);
   border-color: var(--color-label-active-bg);
   color: var(--color-label-text);
-}
-
-.ui.label > .detail .icons {
-  margin-right: 0.25em;
-}
-
-.ui.label > .detail .icons .icon {
-  margin-right: 0;
 }
 
 .lines-blame-btn {
@@ -2099,6 +2092,7 @@ table th[data-sortt-desc] .svg {
   vertical-align: -0.15em;
 }
 
+/* for the jquery.minicolors plugin */
 .minicolors-panel {
   background: var(--color-secondary-dark-1) !important;
 }

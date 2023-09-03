@@ -8,8 +8,8 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/contexttest"
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/services/gitdiff"
 
 	"github.com/stretchr/testify/assert"
@@ -17,12 +17,12 @@ import (
 
 func TestGetDiffPreview(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := test.MockContext(t, "user2/repo1")
+	ctx, _ := contexttest.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
-	test.LoadRepo(t, ctx, 1)
-	test.LoadRepoCommit(t, ctx)
-	test.LoadUser(t, ctx, 2)
-	test.LoadGitRepo(t, ctx)
+	contexttest.LoadRepo(t, ctx, 1)
+	contexttest.LoadRepoCommit(t, ctx)
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadGitRepo(t, ctx)
 	defer ctx.Repo.GitRepo.Close()
 
 	branch := ctx.Repo.Repository.DefaultBranch
@@ -139,12 +139,12 @@ func TestGetDiffPreview(t *testing.T) {
 
 func TestGetDiffPreviewErrors(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := test.MockContext(t, "user2/repo1")
+	ctx, _ := contexttest.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
-	test.LoadRepo(t, ctx, 1)
-	test.LoadRepoCommit(t, ctx)
-	test.LoadUser(t, ctx, 2)
-	test.LoadGitRepo(t, ctx)
+	contexttest.LoadRepo(t, ctx, 1)
+	contexttest.LoadRepoCommit(t, ctx)
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadGitRepo(t, ctx)
 	defer ctx.Repo.GitRepo.Close()
 
 	branch := ctx.Repo.Repository.DefaultBranch

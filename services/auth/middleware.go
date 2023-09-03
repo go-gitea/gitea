@@ -120,9 +120,9 @@ func VerifyAuthWithOptions(options *VerifyOptions) func(ctx *context.Context) {
 			}
 		}
 
-		// Redirect to dashboard if user tries to visit any non-login page.
+		// Redirect to dashboard (or alternate location) if user tries to visit any non-login page.
 		if options.SignOutRequired && ctx.IsSigned && ctx.Req.URL.RequestURI() != "/" {
-			ctx.Redirect(setting.AppSubURL + "/")
+			ctx.RedirectToFirst(ctx.FormString("redirect_to"))
 			return
 		}
 
