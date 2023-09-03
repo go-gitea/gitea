@@ -39,7 +39,8 @@ func GetYamlFixturesAccess() (string, error) {
 		fmt.Fprintf(&b, "  id: %d\n", i+1)
 		fmt.Fprintf(&b, "  user_id: %d\n", a.UserID)
 		fmt.Fprintf(&b, "  repo_id: %d\n", a.RepoID)
-		fmt.Fprintf(&b, "  mode: %d\n\n", a.Mode)
+		fmt.Fprintf(&b, "  mode: %d\n", a.Mode)
+		fmt.Fprintf(&b, "\n")
 	}
 
 	return b.String(), nil

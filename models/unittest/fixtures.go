@@ -103,6 +103,10 @@ func DumpAllFixtures(dir string) error {
 		}
 
 		return db.GetEngine(db.DefaultContext).Iterate(bean, func(idx int, data interface{}) error {
+			if dumper, ok := data.(db.FixtureDumper); ok {
+				return dumper.FixtureDumper(fd)
+			}
+
 			return DefaultFixtureDumper(data, fd)
 		})
 	})

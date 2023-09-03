@@ -318,5 +318,5 @@ func AllTablesForEach(hanle func(info *schemas.Table, bean any) error) error {
 
 // FixtureDumper custom interface to generate a fixture file
 type FixtureDumper interface {
-	FixtureDumper(dbCtx context.Context, fd io.Writer) error
+	FixtureDumper(fd io.Writer) error
 }
