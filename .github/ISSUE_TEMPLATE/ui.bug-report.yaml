@@ -13,12 +13,12 @@ body:
       2. Please ask questions or configuration/deploy problems on our Discord
          server (https://discord.gg/gitea) or forum (https://discourse.gitea.io).
       3. Please take a moment to check that your issue doesn't already exist.
-      4. Make sure it's not mentioned in the FAQ (https://docs.gitea.io/en-us/faq)
+      4. Make sure it's not mentioned in the FAQ (https://docs.gitea.com/help/faq)
       5. Please give all relevant information below for bug reports, because
          incomplete details will be handled as an invalid report.
       6. In particular it's really important to provide pertinent logs. If you are certain that this is a javascript
          error, show us the javascript console. If the error appears to relate to Gitea the server you must also give us
-         DEBUG level logs. (See https://docs.gitea.io/en-us/logging-configuration/#debugging-problems)
+         DEBUG level logs. (See https://docs.gitea.com/administration/logging-config#collecting-logs-for-help)
 - type: textarea
   id: description
   attributes:

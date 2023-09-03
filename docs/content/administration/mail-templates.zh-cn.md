@@ -17,7 +17,7 @@ menu:
 
 # 邮件模板
 
-为了定制特定操作的电子邮件主题和内容，可以使用模板来自定义 Gitea。这些功能的模板位于 [`custom` 目录](https://docs.gitea.io/en-us/customizing-gitea/) 下。
+为了定制特定操作的电子邮件主题和内容，可以使用模板来自定义 Gitea。这些功能的模板位于 [`custom` 目录](administration/customizing-gitea.md) 下。
 如果没有自定义的替代方案，Gitea 将使用内部模板作为默认模板。
 
 自定义模板在 Gitea 启动时加载。对它们的更改在 Gitea 重新启动之前不会被识别。
@@ -148,7 +148,7 @@ _主题_ 和 _邮件正文_ 由 [Golang的模板引擎](https://golang.org/pkg/t
 如果模板无法呈现，则只有在发送邮件时才会注意到。
 如果主题模板失败，将使用默认主题，如果从 _邮件正文_ 中成功呈现了任何内容，则将使用该内容，忽略其他内容。
 
-如果遇到问题，请检查 [Gitea的日志](https://docs.gitea.io/en-us/logging-configuration/) 以获取错误消息。
+如果遇到问题，请检查 [Gitea的日志](administration/logging-config.md) 以获取错误消息。
 
 ## 示例
 

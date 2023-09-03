@@ -4,7 +4,7 @@
   opacity: 0;
   transition: all .2s ease;
   z-index: 500;
-  border-radius: 4px;
+  border-radius: var(--border-radius);
   box-shadow: 0 8px 24px var(--color-shadow);
   display: flex;
   max-width: 50vw;
@@ -25,10 +25,9 @@
 .toast-close,
 .toast-icon {
   color: currentcolor;
-  border-radius: 3px;
+  border-radius: var(--border-radius);
   background: transparent;
   border: none;
-  display: inline-block;
   display: flex;
   width: 30px;
   height: 30px;

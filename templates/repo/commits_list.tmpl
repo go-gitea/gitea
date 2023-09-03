@@ -41,28 +41,18 @@
 									{{$class = (printf "%s%s" $class " isWarning")}}
 								{{end}}
 							{{end}}
+							{{$commitShaLink := ""}}
 							{{if $.PageIsWiki}}
-								<a href="{{$commitRepoLink}}/wiki/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
+								{{$commitShaLink = (printf "%s/wiki/commit/%s" $commitRepoLink (PathEscape .ID.String))}}
 							{{else if $.PageIsPullCommits}}
-								<a href="{{$commitRepoLink}}/pulls/{{$.Issue.Index}}/commits/{{.ID}}" rel="nofollow" class="{{$class}}">
+								{{$commitShaLink = (printf "%s/pulls/%d/commits/%s" $commitRepoLink $.Issue.Index (PathEscape .ID.String))}}
 							{{else if $.Reponame}}
-								<a href="{{$commitRepoLink}}/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
-							{{else}}
-								<span class="{{$class}}">
+								{{$commitShaLink = (printf "%s/commit/%s" $commitRepoLink (PathEscape .ID.String))}}
 							{{end}}
+							<a {{if $commitShaLink}}href="{{$commitShaLink}}"{{end}} class="{{$class}}">
 								<span class="shortsha">{{ShortSha .ID.String}}</span>
-								{{if .Signature}}
-									{{template "repo/shabox_badge" dict "root" $ "verification" .Verification}}
-								{{end}}
-							{{if $.PageIsWiki}}
-								</a>
-							{{else if $.PageIsPullCommits}}
-								</a>
-							{{else if $.Reponame}}
-								</a>
-							{{else}}
-								</span>
-							{{end}}
+								{{if .Signature}}{{template "repo/shabox_badge" dict "root" $ "verification" .Verification}}{{end}}
+							</a>
 						</td>
 						<td class="message">
 							<span class="message-wrapper">
@@ -78,7 +68,7 @@
 							{{end}}
 							{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses "root" $}}
 							{{if IsMultilineCommitMessage .Message}}
-							<pre class="commit-body gt-hidden">{{RenderCommitBody $.Context .Message $commitRepoLink $.Repository.ComposeMetas}}</pre>
+							<pre class="commit-body gt-m-0 gt-hidden">{{RenderCommitBody $.Context .Message $commitRepoLink $.Repository.ComposeMetas}}</pre>
 							{{end}}
 						</td>
 						{{if .Committer}}

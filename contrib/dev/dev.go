@@ -66,7 +66,6 @@ func main() {
 		log.Fatal("unittest.DumpAllFixtures: %v", err)
 	}
 	removeNotNeededFixtures(pwd)
-	recheckFixtures(pwd)
 
 	log.GetManager().Close()
 }
@@ -84,49 +83,6 @@ func buildInterfacesSlice(records interface{}) ([]interface{}, error) {
 	}
 
 	return nil, fmt.Errorf("testfixtures: fixture is not a slice or map")
-}
-
-func recheckFixtures(pathToGiteaRoot string) {
-	err := filepath.Walk(path.Join(pathToGiteaRoot, "models", "fixtures"), func(pth string, info fs.FileInfo, _ error) error {
-		if info.IsDir() {
-			return nil
-		}
-
-		fileName := path.Base(pth)
-		if !strings.HasSuffix(fileName, ".yml") {
-			return nil
-		}
-
-		log.Info("recheck %s", fileName)
-
-		content, err := os.ReadFile(pth)
-		if err != nil {
-			return err
-		}
-
-		var records interface{}
-		if err := yaml.Unmarshal(content, &records); err != nil {
-			return fmt.Errorf("could not unmarshal YAML: %w", err)
-		}
-
-		result, err := buildInterfacesSlice(records)
-		if err != nil {
-			return err
-		}
-
-		for _, record := range result {
-			_, ok := record.(map[string]interface{})
-			if !ok {
-				return fmt.Errorf("testfixtures: could not cast record: not a map[interface{}]interface{}")
-			}
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		log.Fatal("recheckFixtures: %v", err)
-	}
 }
 
 func listSubDir(dirname string, onDir func(path, name string) error) error {
