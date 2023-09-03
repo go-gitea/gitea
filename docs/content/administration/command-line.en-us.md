@@ -334,7 +334,7 @@ in the current directory.
   - `--skip-attachment-data`: Skip dumping of attachment data. Optional.
   - `--skip-package-data`: Skip dumping of package data. Optional.
   - `--skip-log`: Skip dumping of log data. Optional.
-  - `--database`, `-d`: Specify the database SQL syntax. Optional (supported arguements: sqlite3, mysql, mssql, postgres).
+  - `--database`, `-d`: Specify the database SQL syntax. Optional (supported arguments: sqlite3, mysql, mssql, postgres).
   - `--verbose`, `-V`: If provided, shows additional details. Optional.
   - `--type`: Set the dump output format. Optional. (formats: zip, tar, tar.sz, tar.gz, tar.xz, tar.bz2, tar.br, tar.lz4, tar.zst default: zip).
 - Examples:
