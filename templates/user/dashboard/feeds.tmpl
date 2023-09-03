@@ -116,7 +116,7 @@
 				<div class="flex-item-body">{{TimeSince .GetCreate $.locale}}</div>
 			</div>
 			<div class="flex-item-trailing">
-				{{svg (printf "octicon-%s" (ActionIcon .GetOpType)) 32}}
+				{{svg (printf "octicon-%s" (ActionIcon .GetOpType)) 32 "text grey gt-mr-2"}}
 			</div>
 		</div>
 	{{end}}

@@ -117,7 +117,7 @@
 
 .repository .issue-content-right #deadlineForm input {
   width: 12.8rem;
-  border-radius: 4px 0 0 4px;
+  border-radius: var(--border-radius) 0 0 var(--border-radius);
   border-right: 0;
   white-space: nowrap;
 }
@@ -141,7 +141,7 @@
 
 .repository .filter.menu.labels .label-filter .menu .info code {
   border: 1px solid var(--color-secondary);
-  border-radius: 3px;
+  border-radius: var(--border-radius);
   padding: 1px 2px;
   font-size: 11px;
 }
@@ -236,10 +236,6 @@
   }
 }
 
-.repository.file.list #repo-desc {
-  font-size: 1.2em;
-}
-
 .repository.file.list .repo-path {
   word-break: break-word;
 }
@@ -249,13 +245,7 @@
 }
 
 .repository.file.list #repo-files-table thead th {
-  padding-top: 8px;
-  padding-bottom: 5px;
   font-weight: var(--font-weight-normal);
-}
-
-.repository.file.list #repo-files-table thead .ui.avatar {
-  margin-bottom: 5px;
 }
 
 .repository.file.list #repo-files-table tbody .svg {
@@ -518,7 +508,7 @@
   margin-bottom: 10px;
   border: 1px solid var(--color-secondary);
   background: var(--color-box-body);
-  border-radius: 3px;
+  border-radius: var(--border-radius);
 }
 
 .repository.file.editor .commit-form-wrapper .commit-form::before,
@@ -551,7 +541,7 @@
   font: 12px var(--fonts-monospace);
   color: var(--color-text);
   background: var(--color-secondary);
-  border-radius: 3px;
+  border-radius: var(--border-radius);
   margin: 0 2px;
 }
 
@@ -709,7 +699,7 @@
   align-items: center !important;
   font-size: 14px !important;
   padding: 7px 10px !important;
-  border-radius: 6px !important;
+  border-radius: var(--border-radius-medium) !important;
 }
 
 .issue-state-label .svg {
@@ -835,7 +825,7 @@
   width: 34px;
   height: 34px;
   background-color: var(--color-timeline);
-  border-radius: 50%;
+  border-radius: var(--border-radius-circle);
   display: flex;
   float: left;
   margin-left: -33px;
@@ -895,11 +885,6 @@
   background: var(--color-red-badge-bg);
 }
 
-.repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label.isSigned.isWarning .shortsha {
-  display: inline-block;
-  padding-top: 1px;
-}
-
 .repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label.isSigned.isWarning:hover {
   background: var(--color-red-badge-hover-bg) !important;
 }
@@ -907,11 +892,6 @@
 .repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label.isSigned.isVerified {
   border: 1px solid var(--color-green-badge);
   background: var(--color-green-badge-bg);
-}
-
-.repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label.isSigned.isVerified .shortsha {
-  display: inline-block;
-  padding-top: 1px;
 }
 
 .repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label.isSigned.isVerified:hover {
@@ -923,11 +903,6 @@
   background: var(--color-yellow-badge-bg);
 }
 
-.repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label.isSigned.isVerifiedUntrusted .shortsha {
-  display: inline-block;
-  padding-top: 1px;
-}
-
 .repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label.isSigned.isVerifiedUntrusted:hover {
   background: var(--color-yellow-badge-hover-bg) !important;
 }
@@ -935,11 +910,6 @@
 .repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label.isSigned.isVerifiedUnmatched {
   border: 1px solid var(--color-orange-badge);
   background: var(--color-orange-badge-bg);
-}
-
-.repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label.isSigned.isVerifiedUnmatched .shortsha {
-  display: inline-block;
-  padding-top: 1px;
 }
 
 .repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label.isSigned.isVerifiedUnmatched:hover {
@@ -1049,7 +1019,7 @@
 
 .merge-section-info code {
   border: 1px solid var(--color-light-border);
-  border-radius: 4px;
+  border-radius: var(--border-radius);
   padding: 2px 4px;
   background: var(--color-light);
 }
@@ -1391,14 +1361,6 @@
   background: var(--color-red-badge-bg);
 }
 
-.repository #commits-table td.sha .sha.label.isSigned.isWarning .shortsha,
-.repository #repo-files-table .sha.label.isSigned.isWarning .shortsha,
-.repository #rev-list .sha.label.isSigned.isWarning .shortsha,
-.repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isWarning .shortsha {
-  display: inline-block;
-  padding-top: 1px;
-}
-
 .repository #commits-table td.sha .sha.label.isSigned.isWarning .detail.icon,
 .repository #repo-files-table .sha.label.isSigned.isWarning .detail.icon,
 .repository #rev-list .sha.label.isSigned.isWarning .detail.icon,
@@ -1420,14 +1382,6 @@
 .repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isVerified {
   border: 1px solid var(--color-green-badge);
   background: var(--color-green-badge-bg);
-}
-
-.repository #commits-table td.sha .sha.label.isSigned.isVerified .shortsha,
-.repository #repo-files-table .sha.label.isSigned.isVerified .shortsha,
-.repository #rev-list .sha.label.isSigned.isVerified .shortsha,
-.repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isVerified .shortsha {
-  display: inline-block;
-  padding-top: 1px;
 }
 
 .repository #commits-table td.sha .sha.label.isSigned.isVerified .detail.icon,
@@ -1453,14 +1407,6 @@
   background: var(--color-yellow-badge-bg);
 }
 
-.repository #commits-table td.sha .sha.label.isSigned.isVerifiedUntrusted .shortsha,
-.repository #repo-files-table .sha.label.isSigned.isVerifiedUntrusted .shortsha,
-.repository #rev-list .sha.label.isSigned.isVerifiedUntrusted .shortsha,
-.repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isVerifiedUntrusted .shortsha {
-  display: inline-block;
-  padding-top: 1px;
-}
-
 .repository #commits-table td.sha .sha.label.isSigned.isVerifiedUntrusted .detail.icon,
 .repository #repo-files-table .sha.label.isSigned.isVerifiedUntrusted .detail.icon,
 .repository #rev-list .sha.label.isSigned.isVerifiedUntrusted .detail.icon,
@@ -1482,14 +1428,6 @@
 .repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isVerifiedUnmatched {
   border: 1px solid var(--color-orange-badge);
   background: var(--color-orange-badge-bg);
-}
-
-.repository #commits-table td.sha .sha.label.isSigned.isVerifiedUnmatched .shortsha,
-.repository #repo-files-table .sha.label.isSigned.isVerifiedUnmatched .shortsha,
-.repository #rev-list .sha.label.isSigned.isVerifiedUnmatched .shortsha,
-.repository .timeline-item.commits-list .singular-commit .sha.label.isSigned.isVerifiedUnmatched .shortsha {
-  display: inline-block;
-  padding-top: 1px;
 }
 
 .repository #commits-table td.sha .sha.label.isSigned.isVerifiedUnmatched .detail.icon,
@@ -1907,24 +1845,6 @@
   flex-wrap: wrap;
 }
 
-.repository.settings.collaboration #repo-collab-form #search-user-box .results {
-  left: 7px;
-}
-
-.repository.settings.collaboration #repo-collab-form .ui.button {
-  margin-left: 5px;
-  margin-top: -3px;
-}
-
-.repository.settings.collaboration #repo-collab-team-form #search-team-box .results {
-  left: 7px;
-}
-
-.repository.settings.collaboration #repo-collab-team-form .ui.button {
-  margin-left: 5px;
-  margin-top: -3px;
-}
-
 /* if the element is for a checkbox, then it should have a padding-left to align to the checkbox's text */
 .repository.settings.branches .branch-protection .ui.checkbox .help,
 .repository.settings.branches .branch-protection .checkbox-sub-item {
@@ -2093,7 +2013,7 @@
   width: 34px;
   height: 34px;
   min-height: 0 !important;
-  border-radius: 6px;
+  border-radius: var(--border-radius);
   display: flex !important;
   align-items: center;
   justify-content: center;
@@ -2713,11 +2633,6 @@ tbody.commit-list {
   line-height: initial;
 }
 
-/* commit history list */
-.repository:not(.diff) .commit-body {
-  margin: 0;
-}
-
 /* PR-comment */
 .repository:not(.diff) .timeline-item .commit-body {
   margin-left: 40px;
@@ -2753,7 +2668,7 @@ tbody.commit-list {
 #new-dependency-drop-list.ui.selection.dropdown {
   min-width: 0;
   width: 100%;
-  border-radius: 4px 0 0 4px;
+  border-radius: var(--border-radius) 0 0 var(--border-radius);
   border-right: 0;
   white-space: nowrap;
 }
@@ -2949,7 +2864,7 @@ tbody.commit-list {
   margin: 10px 0;
   background-color: var(--color-markup-code-block);
   border: 1px solid var(--color-secondary);
-  border-radius: 3px;
+  border-radius: var(--border-radius);
   font-size: 13px;
   line-height: 1.5;
   overflow: auto;

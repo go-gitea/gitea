@@ -933,6 +933,11 @@ func Routes() *web.Route {
 					m.Post("/accept", repo.AcceptTransfer)
 					m.Post("/reject", repo.RejectTransfer)
 				}, reqToken())
+				m.Group("/actions/secrets", func() {
+					m.Combo("/{secretname}").
+						Put(reqToken(), reqOwner(), bind(api.CreateOrUpdateSecretOption{}), repo.CreateOrUpdateSecret).
+						Delete(reqToken(), reqOwner(), repo.DeleteSecret)
+				})
 				m.Group("/hooks/git", func() {
 					m.Combo("").Get(repo.ListGitHooks)
 					m.Group("/{id}", func() {
@@ -1300,10 +1305,9 @@ func Routes() *web.Route {
 			})
 			m.Group("/actions/secrets", func() {
 				m.Get("", reqToken(), reqOrgOwnership(), org.ListActionsSecrets)
-				m.Post("", reqToken(), reqOrgOwnership(), bind(api.CreateSecretOption{}), org.CreateOrgSecret)
 				m.Combo("/{secretname}").
-					Put(reqToken(), reqOrgOwnership(), bind(api.UpdateSecretOption{}), org.UpdateOrgSecret).
-					Delete(reqToken(), reqOrgOwnership(), org.DeleteOrgSecret)
+					Put(reqToken(), reqOrgOwnership(), bind(api.CreateOrUpdateSecretOption{}), org.CreateOrUpdateSecret).
+					Delete(reqToken(), reqOrgOwnership(), org.DeleteSecret)
 			})
 			m.Group("/public_members", func() {
 				m.Get("", org.ListPublicMembers)

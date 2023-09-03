@@ -24,7 +24,7 @@
 						<a href="{{$.RepoLink}}/commit/{{$commit.Rev|PathEscape}}" rel="nofollow" class="{{$class}}">
 							<span class="shortsha">{{ShortSha $commit.Commit.ID.String}}</span>
 							{{- if $commit.Commit.Signature -}}
-								<span class="shortsha-pad"></span>{{template "repo/shabox_badge" dict "root" $ "verification" $commit.Verification}}
+								{{template "repo/shabox_badge" dict "root" $ "verification" $commit.Verification}}
 							{{- end -}}
 						</a>
 					</span>
