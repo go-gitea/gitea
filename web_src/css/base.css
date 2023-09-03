@@ -1308,9 +1308,13 @@ img.ui.avatar,
 .ui .sha.label {
   font-family: var(--fonts-monospace);
   font-size: 13px;
-  padding: 6px 10px 4px;
   font-weight: var(--font-weight-normal);
   margin: 0 6px;
+  padding: 5px 10px;
+}
+
+.ui .sha.label .shortsha {
+  display: inline-block; /* not sure whether it is still needed */
 }
 
 .ui .button.copy-commit-sha {
