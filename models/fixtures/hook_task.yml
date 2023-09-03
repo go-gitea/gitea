@@ -2,4 +2,8 @@
   id: 1
   hook_id: 1
   uuid: uuid1
+  event_type: ''
   is_delivered: true
+  delivered: 0
+  is_succeed: false
+

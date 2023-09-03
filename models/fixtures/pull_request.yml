@@ -1,7 +1,9 @@
 -
   id: 1
-  type: 0 # gitea pull request
-  status: 2 # mergable
+  type: 0
+  status: 2
+  commits_ahead: 0
+  commits_behind: 0
   issue_id: 2
   index: 2
   head_repo_id: 1
@@ -9,13 +11,18 @@
   head_branch: branch1
   base_branch: master
   merge_base: 4a357436d925b5c974181ff12a994538ddc5a269
+  allow_maintainer_edit: false
   has_merged: true
   merger_id: 2
+  merged_unix: 0
+  flow: 0
 
 -
   id: 2
-  type: 0 # gitea pull request
-  status: 2 # mergable
+  type: 0
+  status: 2
+  commits_ahead: 0
+  commits_behind: 0
   issue_id: 3
   index: 3
   head_repo_id: 1
@@ -23,12 +30,18 @@
   head_branch: branch2
   base_branch: master
   merge_base: 4a357436d925b5c974181ff12a994538ddc5a269
+  allow_maintainer_edit: false
   has_merged: false
+  merger_id: 0
+  merged_unix: 0
+  flow: 0
 
 -
   id: 3
-  type: 0 # gitea pull request
-  status: 2 # mergable
+  type: 0
+  status: 2
+  commits_ahead: 0
+  commits_behind: 0
   issue_id: 8
   index: 1
   head_repo_id: 11
@@ -36,12 +49,18 @@
   head_branch: branch2
   base_branch: master
   merge_base: 0abcb056019adb83
+  allow_maintainer_edit: false
   has_merged: false
+  merger_id: 0
+  merged_unix: 0
+  flow: 0
 
 -
   id: 4
-  type: 0 # gitea pull request
-  status: 2 # mergable
+  type: 0
+  status: 2
+  commits_ahead: 0
+  commits_behind: 0
   issue_id: 9
   index: 1
   head_repo_id: 48
@@ -49,12 +68,18 @@
   head_branch: branch1
   base_branch: master
   merge_base: abcdef1234567890
+  allow_maintainer_edit: false
   has_merged: false
+  merger_id: 0
+  merged_unix: 0
+  flow: 0
 
 -
-  id: 5 # this PR is outdated (one commit behind branch1 )
-  type: 0 # gitea pull request
-  status: 2 # mergable
+  id: 5
+  type: 0
+  status: 2
+  commits_ahead: 0
+  commits_behind: 0
   issue_id: 11
   index: 5
   head_repo_id: 1
@@ -62,12 +87,18 @@
   head_branch: pr-to-update
   base_branch: branch2
   merge_base: 985f0301dba5e7b34be866819cd15ad3d8f508ee
+  allow_maintainer_edit: false
   has_merged: false
+  merger_id: 0
+  merged_unix: 0
+  flow: 0
 
 -
   id: 6
-  type: 0 # gitea pull request
-  status: 2 # mergable
+  type: 0
+  status: 2
+  commits_ahead: 0
+  commits_behind: 0
   issue_id: 12
   index: 2
   head_repo_id: 3
@@ -75,12 +106,18 @@
   head_branch: test_branch
   base_branch: master
   merge_base: 2a47ca4b614a9f5a
+  allow_maintainer_edit: false
   has_merged: false
+  merger_id: 0
+  merged_unix: 0
+  flow: 0
 
 -
   id: 7
-  type: 0 # gitea pull request
-  status: 2 # mergable
+  type: 0
+  status: 2
+  commits_ahead: 0
+  commits_behind: 0
   issue_id: 19
   index: 1
   head_repo_id: 58
@@ -88,4 +125,9 @@
   head_branch: branch1
   base_branch: main
   merge_base: cbff181af4c9c7fee3cf6c106699e07d9a3f54e6
+  allow_maintainer_edit: false
   has_merged: false
+  merger_id: 0
+  merged_unix: 0
+  flow: 0
+

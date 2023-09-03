@@ -6,7 +6,7 @@
   updated_unix: 0
   next_update_unix: 0
   lfs_enabled: false
-  lfs_endpoint: ""
+  lfs_endpoint: ''
 
 -
   id: 2
@@ -16,7 +16,7 @@
   updated_unix: 0
   next_update_unix: 0
   lfs_enabled: false
-  lfs_endpoint: ""
+  lfs_endpoint: ''
 
 -
   id: 3
@@ -26,7 +26,7 @@
   updated_unix: 0
   next_update_unix: 0
   lfs_enabled: false
-  lfs_endpoint: ""
+  lfs_endpoint: ''
 
 -
   id: 4
@@ -36,7 +36,7 @@
   updated_unix: 0
   next_update_unix: 0
   lfs_enabled: false
-  lfs_endpoint: ""
+  lfs_endpoint: ''
 
 -
   id: 5
@@ -46,4 +46,5 @@
   updated_unix: 0
   next_update_unix: 0
   lfs_enabled: false
-  lfs_endpoint: ""
+  lfs_endpoint: ''
+

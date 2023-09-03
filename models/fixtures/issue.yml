@@ -11,8 +11,11 @@
   is_closed: false
   is_pull: false
   num_comments: 2
+  pin_order: 0
+  deadline_unix: 0
   created_unix: 946684800
   updated_unix: 978307200
+  closed_unix: 0
   is_locked: false
 
 -
@@ -28,8 +31,11 @@
   is_closed: false
   is_pull: true
   num_comments: 0
+  pin_order: 0
+  deadline_unix: 0
   created_unix: 946684810
   updated_unix: 978307190
+  closed_unix: 0
   is_locked: false
 
 -
@@ -45,8 +51,11 @@
   is_closed: false
   is_pull: true
   num_comments: 0
+  pin_order: 0
+  deadline_unix: 0
   created_unix: 946684820
   updated_unix: 978307180
+  closed_unix: 0
   is_locked: false
 
 -
@@ -62,8 +71,11 @@
   is_closed: true
   is_pull: false
   num_comments: 0
+  pin_order: 0
+  deadline_unix: 0
   created_unix: 946684830
   updated_unix: 978307200
+  closed_unix: 0
   is_locked: false
 
 -
@@ -79,8 +91,11 @@
   is_closed: true
   is_pull: false
   num_comments: 0
+  pin_order: 0
+  deadline_unix: 0
   created_unix: 946684840
   updated_unix: 978307200
+  closed_unix: 0
   is_locked: false
 
 -
@@ -96,8 +111,11 @@
   is_closed: false
   is_pull: false
   num_comments: 0
+  pin_order: 0
+  deadline_unix: 0
   created_unix: 946684850
   updated_unix: 978307200
+  closed_unix: 0
   is_locked: false
 
 -
@@ -113,8 +131,11 @@
   is_closed: false
   is_pull: false
   num_comments: 0
+  pin_order: 0
+  deadline_unix: 0
   created_unix: 946684830
   updated_unix: 978307200
+  closed_unix: 0
   is_locked: false
 
 -
@@ -130,8 +151,11 @@
   is_closed: false
   is_pull: true
   num_comments: 0
+  pin_order: 0
+  deadline_unix: 0
   created_unix: 946684820
   updated_unix: 978307180
+  closed_unix: 0
   is_locked: false
 
 -
@@ -147,8 +171,11 @@
   is_closed: false
   is_pull: true
   num_comments: 0
+  pin_order: 0
+  deadline_unix: 0
   created_unix: 946684820
   updated_unix: 978307180
+  closed_unix: 0
   is_locked: false
 
 -
@@ -164,9 +191,11 @@
   is_closed: false
   is_pull: false
   num_comments: 0
+  pin_order: 0
   deadline_unix: 1019307200
   created_unix: 946684830
   updated_unix: 999307200
+  closed_unix: 0
   is_locked: false
 
 -
@@ -182,8 +211,11 @@
   is_closed: false
   is_pull: true
   num_comments: 0
+  pin_order: 0
+  deadline_unix: 0
   created_unix: 1579194806
   updated_unix: 1579194806
+  closed_unix: 0
   is_locked: false
 
 -
@@ -199,8 +231,11 @@
   is_closed: false
   is_pull: true
   num_comments: 0
+  pin_order: 0
+  deadline_unix: 0
   created_unix: 1602935696
   updated_unix: 1602935696
+  closed_unix: 0
   is_locked: false
 
 -
@@ -210,14 +245,17 @@
   poster_id: 2
   original_author_id: 0
   name: issue in active repo
-  content: we'll be testing github issue 13171 with this.
+  content: 'we''ll be testing github issue 13171 with this.'
   milestone_id: 0
   priority: 0
   is_closed: false
   is_pull: false
   num_comments: 0
+  pin_order: 0
+  deadline_unix: 0
   created_unix: 1602935696
   updated_unix: 1602935696
+  closed_unix: 0
   is_locked: false
 
 -
@@ -227,14 +265,17 @@
   poster_id: 2
   original_author_id: 0
   name: issue in archived repo
-  content: we'll be testing github issue 13171 with this.
+  content: 'we''ll be testing github issue 13171 with this.'
   milestone_id: 0
   priority: 0
   is_closed: false
   is_pull: false
   num_comments: 0
+  pin_order: 0
+  deadline_unix: 0
   created_unix: 1602935696
   updated_unix: 1602935696
+  closed_unix: 0
   is_locked: false
 
 -
@@ -250,8 +291,11 @@
   is_closed: false
   is_pull: false
   num_comments: 0
+  pin_order: 0
+  deadline_unix: 0
   created_unix: 1602935696
   updated_unix: 1602935696
+  closed_unix: 0
   is_locked: false
 
 -
@@ -267,8 +311,11 @@
   is_closed: false
   is_pull: false
   num_comments: 0
+  pin_order: 0
+  deadline_unix: 0
   created_unix: 1602935696
   updated_unix: 1602935696
+  closed_unix: 0
   is_locked: false
 
 -
@@ -284,8 +331,11 @@
   is_closed: false
   is_pull: false
   num_comments: 0
+  pin_order: 0
+  deadline_unix: 0
   created_unix: 1602935696
   updated_unix: 1602935696
+  closed_unix: 0
   is_locked: false
 
 -
@@ -301,8 +351,11 @@
   is_closed: false
   is_pull: false
   num_comments: 0
+  pin_order: 0
+  deadline_unix: 0
   created_unix: 946684830
   updated_unix: 978307200
+  closed_unix: 0
   is_locked: false
 
 -
@@ -318,6 +371,10 @@
   is_closed: false
   is_pull: true
   num_comments: 0
+  pin_order: 0
+  deadline_unix: 0
   created_unix: 946684830
   updated_unix: 978307200
+  closed_unix: 0
   is_locked: false
+

@@ -2,10 +2,11 @@
   id: 1
   user_id: 1
   repo_id: 1
-  status: 1 # unread
-  source: 1 # issue
-  updated_by: 2
+  status: 1
+  source: 1
   issue_id: 1
+  comment_id: 0
+  updated_by: 2
   created_unix: 946684800
   updated_unix: 946684820
 
@@ -13,10 +14,11 @@
   id: 2
   user_id: 2
   repo_id: 1
-  status: 2 # read
-  source: 1 # issue
-  updated_by: 1
+  status: 2
+  source: 1
   issue_id: 2
+  comment_id: 0
+  updated_by: 1
   created_unix: 946685800
   updated_unix: 946685820
 
@@ -24,10 +26,11 @@
   id: 3
   user_id: 2
   repo_id: 1
-  status: 3 # pinned
-  source: 1 # issue
-  updated_by: 1
+  status: 3
+  source: 1
   issue_id: 3
+  comment_id: 0
+  updated_by: 1
   created_unix: 946686800
   updated_unix: 946686800
 
@@ -35,10 +38,11 @@
   id: 4
   user_id: 2
   repo_id: 1
-  status: 1 # unread
-  source: 1 # issue
-  updated_by: 1
+  status: 1
+  source: 1
   issue_id: 5
+  comment_id: 0
+  updated_by: 1
   created_unix: 946687800
   updated_unix: 946687800
 
@@ -46,9 +50,11 @@
   id: 5
   user_id: 2
   repo_id: 2
-  status: 1 # unread
-  source: 1 # issue
-  updated_by: 5
+  status: 1
+  source: 1
   issue_id: 4
+  comment_id: 0
+  updated_by: 5
   created_unix: 946688800
   updated_unix: 946688820
+

@@ -4,7 +4,7 @@
   repo_id: 4
   owner_id: 1
   commit_sha: c2d72f548424103f01ee1dc02889c1e2bff816b0
-  is_fork_pull_request: 0
+  is_fork_pull_request: false
   name: job_2
   attempt: 1
   job_id: job_2
@@ -12,3 +12,6 @@
   status: 1
   started: 1683636528
   stopped: 1683636626
+  created: 0
+  updated: 0
+

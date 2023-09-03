@@ -1,31 +1,40 @@
 -
   id: 1
-  project_id: 1
   title: To Do
+  default: false
+  sorting: 0
+  project_id: 1
   creator_id: 2
   created_unix: 1588117528
   updated_unix: 1588117528
 
 -
   id: 2
-  project_id: 1
   title: In Progress
+  default: false
+  sorting: 0
+  project_id: 1
   creator_id: 2
   created_unix: 1588117528
   updated_unix: 1588117528
 
 -
   id: 3
-  project_id: 1
   title: Done
+  default: false
+  sorting: 0
+  project_id: 1
   creator_id: 2
   created_unix: 1588117528
   updated_unix: 1588117528
 
 -
   id: 4
-  project_id: 4
   title: Done
+  default: false
+  sorting: 0
+  project_id: 4
   creator_id: 2
   created_unix: 1588117528
   updated_unix: 1588117528
+

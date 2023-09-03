@@ -1,14 +1,18 @@
 -
   id: 1
-  type: 1 # NoticeRepository
-  description: description1
+  type: 1
+  description: 'description1'
+  created_unix: 0
 
 -
   id: 2
-  type: 1 # NoticeRepository
-  description: description2
+  type: 1
+  description: 'description2'
+  created_unix: 0
 
 -
   id: 3
-  type: 1 # NoticeRepository
-  description: description3
+  type: 1
+  description: 'description3'
+  created_unix: 0
+

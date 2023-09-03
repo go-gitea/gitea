@@ -1,19 +1,21 @@
 -
   id: 791
-  title: "update actions"
+  title: update actions
   repo_id: 4
   owner_id: 1
-  workflow_id: "artifact.yaml"
+  workflow_id: artifact.yaml
   index: 187
   trigger_user_id: 1
-  ref: "refs/heads/master"
-  commit_sha: "c2d72f548424103f01ee1dc02889c1e2bff816b0"
-  event: "push"
-  is_fork_pull_request: 0
+  ref: refs/heads/master
+  commit_sha: c2d72f548424103f01ee1dc02889c1e2bff816b0
+  is_fork_pull_request: false
+  need_approval: false
+  approved_by: 0
+  event: push
   status: 1
+  version: 0
   started: 1683636528
   stopped: 1683636626
   created: 1683636108
   updated: 1683636626
-  need_approval: 0
-  approved_by: 0
+

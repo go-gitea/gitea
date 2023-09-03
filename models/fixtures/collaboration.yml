@@ -2,46 +2,63 @@
   id: 1
   repo_id: 3
   user_id: 2
-  mode: 2 # write
+  mode: 2
+  created_unix: 0
+  updated_unix: 0
 
 -
   id: 2
   repo_id: 4
   user_id: 4
-  mode: 2 # write
+  mode: 2
+  created_unix: 0
+  updated_unix: 0
 
 -
   id: 3
   repo_id: 40
   user_id: 4
-  mode: 2 # write
+  mode: 2
+  created_unix: 0
+  updated_unix: 0
 
 -
   id: 4
   repo_id: 4
   user_id: 29
-  mode: 2 # write
+  mode: 2
+  created_unix: 0
+  updated_unix: 0
 
 -
   id: 5
   repo_id: 21
   user_id: 15
-  mode: 2 # write
+  mode: 2
+  created_unix: 0
+  updated_unix: 0
 
 -
   id: 6
   repo_id: 21
   user_id: 18
-  mode: 2 # write
+  mode: 2
+  created_unix: 0
+  updated_unix: 0
 
 -
   id: 7
   repo_id: 22
   user_id: 15
-  mode: 2 # write
+  mode: 2
+  created_unix: 0
+  updated_unix: 0
 
 -
   id: 8
   repo_id: 22
   user_id: 18
-  mode: 2 # write
+  mode: 2
+  created_unix: 0
+  updated_unix: 0
+

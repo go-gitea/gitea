@@ -1,71 +1,72 @@
 -
   id: 1
-  user_id: 1
   issue_id: 1
-  time: 400
+  user_id: 1
   created_unix: 946684800
+  time: 400
   deleted: false
 
 -
   id: 2
-  user_id: 2
   issue_id: 2
-  time: 3661
+  user_id: 2
   created_unix: 946684801
+  time: 3661
   deleted: false
 
 -
   id: 3
-  user_id: 2
   issue_id: 2
-  time: 1
+  user_id: 2
   created_unix: 946684802
+  time: 1
   deleted: false
 
 -
   id: 4
-  user_id: -1
   issue_id: 4
-  time: 1
+  user_id: -1
   created_unix: 946684803
+  time: 1
   deleted: false
 
 -
   id: 5
-  user_id: 2
   issue_id: 5
-  time: 1
+  user_id: 2
   created_unix: 946684804
+  time: 1
   deleted: false
 
 -
   id: 6
-  user_id: 1
   issue_id: 2
-  time: 20
+  user_id: 1
   created_unix: 946684812
+  time: 20
   deleted: false
 
 -
   id: 7
-  user_id: 2
   issue_id: 4
-  time: 3
+  user_id: 2
   created_unix: 946684813
+  time: 3
   deleted: false
 
 -
   id: 8
-  user_id: 1
   issue_id: 4
-  time: 71
+  user_id: 1
   created_unix: 947688814
+  time: 71
   deleted: false
 
 -
   id: 9
-  user_id: 2
   issue_id: 2
-  time: 100000
+  user_id: 2
   created_unix: 947688815
+  time: 100000
   deleted: true
+

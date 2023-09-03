@@ -1,6 +1,4 @@
-# NOTE: all users should have a password of "password"
-
-- # NOTE: this user (id=1) is the admin
+-
   id: 1
   lower_name: user1
   name: user1
@@ -11,10 +9,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: user1
   type: 0
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: true
@@ -34,24 +37,29 @@
   num_members: 0
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
   id: 2
   lower_name: user2
   name: user2
-  full_name: '   < U<se>r Tw<o > ><  '
+  full_name: < U<se>r Tw<o > ><
   email: user2@example.com
   keep_email_private: true
   email_notifications_preference: enabled
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: user2
   type: 0
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: false
@@ -71,24 +79,29 @@
   num_members: 0
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
   id: 3
   lower_name: user3
   name: user3
-  full_name: ' <<<< >> >> > >> > >>> >> '
+  full_name: <<<< >> >> > >> > >>> >>
   email: user3@example.com
   keep_email_private: false
   email_notifications_preference: onmention
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: user3
   type: 1
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: false
   is_admin: false
@@ -108,24 +121,28 @@
   num_members: 3
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
   id: 4
   lower_name: user4
   name: user4
-  full_name: '          '
   email: user4@example.com
   keep_email_private: false
   email_notifications_preference: onmention
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: user4
   type: 0
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: false
@@ -145,7 +162,7 @@
   num_members: 0
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -159,10 +176,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: user5
   type: 0
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: false
@@ -182,7 +204,7 @@
   num_members: 0
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -196,10 +218,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: user6
   type: 1
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: false
   is_admin: false
@@ -219,7 +246,7 @@
   num_members: 2
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -233,10 +260,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: user7
   type: 1
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: false
   is_admin: false
@@ -256,7 +288,7 @@
   num_members: 1
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -270,10 +302,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: user8
   type: 0
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: false
@@ -293,7 +330,7 @@
   num_members: 0
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -307,10 +344,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: user9
   type: 0
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: false
   is_admin: false
@@ -330,7 +372,7 @@
   num_members: 0
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -344,10 +386,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: user10
   type: 0
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: false
@@ -367,7 +414,7 @@
   num_members: 0
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -381,10 +428,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: user11
   type: 0
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: false
@@ -404,7 +456,7 @@
   num_members: 0
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -418,10 +470,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: user12
   type: 0
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: false
@@ -441,7 +498,7 @@
   num_members: 0
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -455,10 +512,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: user13
   type: 0
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: false
@@ -478,7 +540,7 @@
   num_members: 0
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -492,10 +554,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: user14
   type: 0
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: false
@@ -515,7 +582,7 @@
   num_members: 0
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -529,10 +596,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: user15
   type: 0
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: false
@@ -552,7 +624,7 @@
   num_members: 0
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -566,10 +638,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: user16
   type: 0
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: false
@@ -589,7 +666,7 @@
   num_members: 0
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -603,10 +680,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: user17
   type: 1
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: false
@@ -626,7 +708,7 @@
   num_members: 4
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -640,10 +722,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: user18
   type: 0
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: false
@@ -663,7 +750,7 @@
   num_members: 0
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -677,10 +764,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: user19
   type: 1
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: false
@@ -700,7 +792,7 @@
   num_members: 2
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -714,10 +806,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: user20
   type: 0
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: false
@@ -737,7 +834,7 @@
   num_members: 0
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -751,10 +848,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: user21
   type: 0
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: false
@@ -774,7 +876,7 @@
   num_members: 0
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -788,10 +890,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: limited_org
   type: 1
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: false
@@ -811,7 +918,7 @@
   num_members: 0
   visibility: 1
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -825,10 +932,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: privated_org
   type: 1
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: false
@@ -848,7 +960,7 @@
   num_members: 1
   visibility: 2
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -862,10 +974,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: user24
   type: 0
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: false
@@ -885,7 +1002,7 @@
   num_members: 0
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -899,10 +1016,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: org25
   type: 1
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: false
   is_admin: false
@@ -922,7 +1044,7 @@
   num_members: 1
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -936,10 +1058,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: org26
   type: 1
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: false
   is_admin: false
@@ -959,7 +1086,7 @@
   num_members: 0
   visibility: 0
   repo_admin_change_team_access: true
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -973,10 +1100,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: user27
   type: 0
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: false
@@ -996,7 +1128,7 @@
   num_members: 0
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -1010,10 +1142,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: user28
   type: 0
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: false
@@ -1033,7 +1170,7 @@
   num_members: 0
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -1047,10 +1184,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: user29
   type: 0
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: false
@@ -1070,7 +1212,7 @@
   num_members: 0
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -1084,10 +1226,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: user30
   type: 0
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: false
@@ -1107,7 +1254,7 @@
   num_members: 0
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -1121,10 +1268,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: user31
   type: 0
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: false
@@ -1144,7 +1296,7 @@
   num_members: 0
   visibility: 2
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -1158,10 +1310,15 @@
   passwd: ZogKvWdyEx:notpassword
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: user32
   type: 0
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: false
@@ -1181,7 +1338,7 @@
   num_members: 0
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -1195,10 +1352,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: user33
   type: 0
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: false
@@ -1218,7 +1380,7 @@
   num_members: 0
   visibility: 1
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -1226,17 +1388,22 @@
   lower_name: the_34-user.with.all.allowedchars
   name: the_34-user.with.all.allowedChars
   full_name: the_1-user.with.all.allowedChars
-  description: 'some [commonmark](https://commonmark.org/)!'
   email: user34@example.com
   keep_email_private: false
   email_notifications_preference: enabled
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: the_34-user.with.all.allowedchars
   type: 0
   salt: ZogKvWdyEx
+  description: some [commonmark](https://commonmark.org/)!
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: false
@@ -1256,7 +1423,7 @@
   num_members: 0
   visibility: 0
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -1270,10 +1437,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: private_org35
   type: 1
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: false
@@ -1293,7 +1465,7 @@
   num_members: 1
   visibility: 2
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
 
 -
@@ -1307,10 +1479,15 @@
   passwd: ZogKvWdyEx:password
   passwd_hash_algo: dummy
   must_change_password: false
+  login_type: 0
   login_source: 0
   login_name: limited_org36
   type: 1
   salt: ZogKvWdyEx
+  created_unix: 0
+  updated_unix: 0
+  last_login_unix: 0
+  last_repo_visibility: false
   max_repo_creation: -1
   is_active: true
   is_admin: false
@@ -1330,5 +1507,6 @@
   num_members: 2
   visibility: 1
   repo_admin_change_team_access: false
-  theme: ""
+  theme: auto
   keep_activity_private: false
+

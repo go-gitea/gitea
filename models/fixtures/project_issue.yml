@@ -3,21 +3,26 @@
   issue_id: 1
   project_id: 1
   project_board_id: 1
+  sorting: 0
 
 -
   id: 2
   issue_id: 2
   project_id: 1
-  project_board_id: 0 # no board assigned
+  project_board_id: 0
+  sorting: 0
 
 -
   id: 3
   issue_id: 3
   project_id: 1
   project_board_id: 2
+  sorting: 0
 
 -
   id: 4
   issue_id: 5
   project_id: 1
   project_board_id: 3
+  sorting: 0
+

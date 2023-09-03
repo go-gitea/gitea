@@ -1,68 +1,214 @@
 -
   id: 1
-  type: 7 # label
+  type: 7
   poster_id: 2
-  issue_id: 1 # in repo_id 1
+  original_author_id: 0
+  issue_id: 1
   label_id: 1
-  content: "1"
+  old_project_id: 0
+  project_id: 0
+  old_milestone_id: 0
+  milestone_id: 0
+  time_id: 0
+  assignee_id: 0
+  removed_assignee: false
+  assignee_team_id: 0
+  resolve_doer_id: 0
+  dependent_issue_id: 0
+  commit_id: 0
+  line: 0
+  content: '1'
   created_unix: 946684810
+  updated_unix: 0
+  review_id: 0
+  invalidated: false
+  ref_repo_id: 0
+  ref_issue_id: 0
+  ref_comment_id: 0
+  ref_action: 0
+  ref_is_pull: false
+
 -
   id: 2
-  type: 0 # comment
-  poster_id: 3 # user not watching (see watch.yml)
-  issue_id: 1 # in repo_id 1
-  content: "good work!"
+  type: 0
+  poster_id: 3
+  original_author_id: 0
+  issue_id: 1
+  label_id: 0
+  old_project_id: 0
+  project_id: 0
+  old_milestone_id: 0
+  milestone_id: 0
+  time_id: 0
+  assignee_id: 0
+  removed_assignee: false
+  assignee_team_id: 0
+  resolve_doer_id: 0
+  dependent_issue_id: 0
+  commit_id: 0
+  line: 0
+  content: good work!
   created_unix: 946684811
   updated_unix: 946684811
+  review_id: 0
+  invalidated: false
+  ref_repo_id: 0
+  ref_issue_id: 0
+  ref_comment_id: 0
+  ref_action: 0
+  ref_is_pull: false
+
 -
   id: 3
-  type: 0 # comment
-  poster_id: 5 # user not watching (see watch.yml)
-  issue_id: 1 # in repo_id 1
-  content: "meh..."
+  type: 0
+  poster_id: 5
+  original_author_id: 0
+  issue_id: 1
+  label_id: 0
+  old_project_id: 0
+  project_id: 0
+  old_milestone_id: 0
+  milestone_id: 0
+  time_id: 0
+  assignee_id: 0
+  removed_assignee: false
+  assignee_team_id: 0
+  resolve_doer_id: 0
+  dependent_issue_id: 0
+  commit_id: 0
+  line: 0
+  content: meh...
   created_unix: 946684812
   updated_unix: 946684812
+  review_id: 0
+  invalidated: false
+  ref_repo_id: 0
+  ref_issue_id: 0
+  ref_comment_id: 0
+  ref_action: 0
+  ref_is_pull: false
+
 -
   id: 4
-  type: 21 # code comment
+  type: 21
   poster_id: 1
+  original_author_id: 0
   issue_id: 2
-  content: "meh..."
-  review_id: 4
+  label_id: 0
+  old_project_id: 0
+  project_id: 0
+  old_milestone_id: 0
+  milestone_id: 0
+  time_id: 0
+  assignee_id: 0
+  removed_assignee: false
+  assignee_team_id: 0
+  resolve_doer_id: 0
+  dependent_issue_id: 0
+  commit_id: 0
   line: 4
-  tree_path: "README.md"
+  tree_path: README.md
+  content: meh...
   created_unix: 946684812
+  updated_unix: 0
+  review_id: 4
   invalidated: false
+  ref_repo_id: 0
+  ref_issue_id: 0
+  ref_comment_id: 0
+  ref_action: 0
+  ref_is_pull: false
+
 -
   id: 5
-  type: 21 # code comment
+  type: 21
   poster_id: 1
+  original_author_id: 0
   issue_id: 2
-  content: "meh..."
+  label_id: 0
+  old_project_id: 0
+  project_id: 0
+  old_milestone_id: 0
+  milestone_id: 0
+  time_id: 0
+  assignee_id: 0
+  removed_assignee: false
+  assignee_team_id: 0
+  resolve_doer_id: 0
+  dependent_issue_id: 0
+  commit_id: 0
   line: -4
-  tree_path: "README.md"
+  tree_path: README.md
+  content: meh...
   created_unix: 946684812
+  updated_unix: 0
+  review_id: 0
   invalidated: false
+  ref_repo_id: 0
+  ref_issue_id: 0
+  ref_comment_id: 0
+  ref_action: 0
+  ref_is_pull: false
 
 -
   id: 6
-  type: 21 # code comment
+  type: 21
   poster_id: 1
+  original_author_id: 0
   issue_id: 2
-  content: "it's already invalidated. boring..."
+  label_id: 0
+  old_project_id: 0
+  project_id: 0
+  old_milestone_id: 0
+  milestone_id: 0
+  time_id: 0
+  assignee_id: 0
+  removed_assignee: false
+  assignee_team_id: 0
+  resolve_doer_id: 0
+  dependent_issue_id: 0
+  commit_id: 0
   line: -4
-  tree_path: "README.md"
+  tree_path: README.md
+  content: 'it''s already invalidated. boring...'
   created_unix: 946684812
+  updated_unix: 0
+  review_id: 0
   invalidated: true
+  ref_repo_id: 0
+  ref_issue_id: 0
+  ref_comment_id: 0
+  ref_action: 0
+  ref_is_pull: false
 
 -
   id: 7
-  type: 21 # code comment
+  type: 21
   poster_id: 100
+  original_author_id: 0
   issue_id: 3
-  content: "a review from a deleted user"
+  label_id: 0
+  old_project_id: 0
+  project_id: 0
+  old_milestone_id: 0
+  milestone_id: 0
+  time_id: 0
+  assignee_id: 0
+  removed_assignee: false
+  assignee_team_id: 0
+  resolve_doer_id: 0
+  dependent_issue_id: 0
+  commit_id: 0
   line: -4
-  review_id: 10
-  tree_path: "README.md"
+  tree_path: README.md
+  content: a review from a deleted user
   created_unix: 946684812
+  updated_unix: 0
+  review_id: 10
   invalidated: true
+  ref_repo_id: 0
+  ref_issue_id: 0
+  ref_comment_id: 0
+  ref_action: 0
+  ref_is_pull: false
+

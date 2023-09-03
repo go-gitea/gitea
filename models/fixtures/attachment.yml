@@ -118,7 +118,7 @@
 -
   id: 10
   uuid: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a20
-  repo_id: 0 # TestGetAttachment/NotLinked
+  repo_id: 0
   issue_id: 0
   release_id: 0
   uploader_id: 8
@@ -140,3 +140,4 @@
   download_count: 0
   size: 0
   created_unix: 946684800
+
