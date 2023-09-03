@@ -232,7 +232,7 @@ func defaultFixtureDumperVerbs(tableName string, actualValue reflect.Value, type
 		int64Type := reflect.TypeOf(int64(0))
 		isInt64 := field.Type().ConvertibleTo(int64Type)
 		if fieldType.Type.Kind() == reflect.Struct && !isInt64 && !isText && !isJSON {
-			return fmt.Errorf("%s: '%s' is a struct whcih can't be convert to a table field", tableName, xormTags.GetFieldName(fieldName))
+			return fmt.Errorf("%s: '%s' is a struct which can't be convert to a table field", tableName, xormTags.GetFieldName(fieldName))
 		}
 
 		_, err = fd.Write([]byte(fmt.Sprintf("  %s: ", xormTags.GetFieldName(fieldName))))
