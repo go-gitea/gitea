@@ -437,8 +437,8 @@
   justify-content: center;
 }
 
-.pdf-content:has(.pdf-fallback-button) {
-  height: 100px;
+.pdf-content .pdf-fallback-button {
+  margin: 50px auto;
 }
 
 .repository.file.list .non-diff-file-content .plain-text {
@@ -1054,11 +1054,6 @@
   margin: 0;
 }
 
-/* fix fomantic's border-radius via :first-child with hidden elements */
-.collapsible-comment-box:has(.gt-hidden) {
-  border-radius: var(--border-radius) !important;
-}
-
 .repository.view.issue .comment-list .code-comment .comment-header {
   background: transparent;
   border-bottom: 0 !important;
@@ -1637,14 +1632,10 @@
 }
 
 .repository .diff-box .header:not(.resolved-placeholder) .button {
-  padding: 8px 12px;
+  padding: 0 12px;
   flex: 0 0 auto;
   margin-right: 0;
-}
-
-.repository .diff-box .header:not(.resolved-placeholder) .button:has(svg) {
-  padding-top: 6px;
-  padding-bottom: 6px;
+  height: 30px;
 }
 
 .repository .diff-box .resolved-placeholder {
