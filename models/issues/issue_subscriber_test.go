@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
+
 	"github.com/stretchr/testify/assert"
 )
 
