@@ -270,6 +270,17 @@ func defaultFixtureDumperVerbs(tableName string, actualValue reflect.Value, type
 		} else if isInt64 {
 			intValue := field.Convert(int64Type).Int()
 			strValue = []byte(fmt.Sprintf("%d", intValue))
+		} else if bytes, ok := fieldValue.([]byte); ok && !isJSON {
+			isText = false
+			strValue = []byte{'0', 'x'}
+			vStrBuilder := strings.Builder{}
+
+			for _, b := range bytes {
+				fmt.Fprintf(&vStrBuilder, "%02x", b)
+			}
+
+			strValue = append(strValue, []byte(vStrBuilder.String())...)
+
 		} else {
 			strValue = []byte(fmt.Sprintf("%v", fieldValue))
 		}

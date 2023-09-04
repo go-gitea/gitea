@@ -56,6 +56,7 @@ func TestDefaultFixtureDumper(t *testing.T) {
 		ExternVerb  TestExtern `xorm:"extends"`
 		NumStr      string
 		JJ          *testSubConversion
+		FF          []byte
 	}
 
 	buffer := bytes.NewBuffer(nil)
@@ -76,6 +77,7 @@ func TestDefaultFixtureDumper(t *testing.T) {
 			BB: 15,
 		},
 		NumStr: "1234123412341234123412341234123412341234",
+		FF:     []byte("hello world"),
 	}, buffer)
 
 	assert.NoError(t, err)
@@ -94,6 +96,7 @@ func TestDefaultFixtureDumper(t *testing.T) {
   bb: 15
   num_str: '1234123412341234123412341234123412341234'
   jj: testSubConversion
+  ff: 0x68656c6c6f20776f726c64
 
 `, buffer.String())
 
