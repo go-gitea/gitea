@@ -273,9 +273,9 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 		apiUsers = append(apiUsers, convert.ToUser(ctx, v, ctx.Doer))
 	}
 
-	count, err := issues_model.CountIssueWatchers(ctx, issue.ID)
+	count, err := issues_model.CountIssueSubscribers(ctx, issue.ID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "CountIssueWatchers", err)
+		ctx.Error(http.StatusInternalServerError, "CountIssueSubscribers", err)
 		return
 	}
 

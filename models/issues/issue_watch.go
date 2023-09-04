@@ -126,14 +126,25 @@ func GetIssueSubscribers(ctx context.Context, issueID int64, listOptions db.List
 	return users, sess.Find(&users)
 }
 
-// CountIssueWatchers count watchers/unwatchers of a given issue
-func CountIssueWatchers(ctx context.Context, issueID int64) (int64, error) {
-	return db.GetEngine(ctx).
-		Where("`issue_watch`.issue_id = ?", issueID).
-		And("`issue_watch`.is_watching = ?", true).
-		And("`user`.is_active = ?", true).
-		And("`user`.prohibit_login = ?", false).
-		Join("INNER", "`user`", "`user`.id = `issue_watch`.user_id").Count(new(IssueWatch))
+// CountIssueSubscribers count watchers of a given issue
+func CountIssueSubscribers(ctx context.Context, issueID int64) (int64, error) {
+	subscribeWatchers := builder.Select("`issue_watch`.user_id").
+		From("issue_watch").
+		Where(builder.Eq{"`issue_watch`.issue_id": issueID, "`issue_watch`.is_watching": true})
+
+	participantsWatchers := builder.Select("`comment`.poster_id").
+		From("comment").
+		Where(builder.Eq{"`comment`.issue_id": issueID}).
+		And(builder.In("`comment`.type", CommentTypeComment, CommentTypeCode, CommentTypeReview)).
+		And(builder.NotIn("`comment`.poster_id",
+			builder.Select("`issue_watch`.user_id").
+				From("issue_watch").
+				Where(builder.Eq{"`issue_watch`.issue_id": issueID, "`issue_watch`.is_watching": false})))
+
+	sess := db.GetEngine(ctx).Table("user").
+		Where(builder.Or(builder.In("id", participantsWatchers), builder.In("id", subscribeWatchers))).
+		And(builder.Eq{"`user`.is_active": true, "`user`.prohibit_login": false})
+	return sess.Count(new(user_model.User))
 }
 
 // RemoveIssueWatchersByRepoID remove issue watchers by repoID
