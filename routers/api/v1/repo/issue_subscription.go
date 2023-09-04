@@ -132,7 +132,7 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 		return
 	}
 
-	current, err := issues_model.CheckIssueWatch(user, issue)
+	current, err := issues_model.CheckIssueSubscriber(user, issue)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CheckIssueWatch", err)
 		return
@@ -196,14 +196,14 @@ func CheckIssueSubscription(ctx *context.APIContext) {
 		return
 	}
 
-	watching, err := issues_model.CheckIssueWatch(ctx.Doer, issue)
+	subscribed, err := issues_model.CheckIssueSubscriber(ctx.Doer, issue)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, api.WatchInfo{
-		Subscribed:    watching,
-		Ignored:       !watching,
+		Subscribed:    subscribed,
+		Ignored:       !subscribed,
 		Reason:        nil,
 		CreatedAt:     issue.CreatedUnix.AsTime(),
 		URL:           issue.APIURL() + "/subscriptions",
@@ -262,7 +262,7 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 		return
 	}
 
-	users, err := issues_model.GetIssueSubscribers(ctx, issue.ID, utils.GetListOptions(ctx))
+	users, err := issues_model.GetIssueSubscribers(ctx, issue, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetIssueSubscribers", err)
 		return
@@ -273,7 +273,7 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 		apiUsers = append(apiUsers, convert.ToUser(ctx, v, ctx.Doer))
 	}
 
-	count, err := issues_model.CountIssueSubscribers(ctx, issue.ID)
+	count, err := issues_model.CountIssueSubscribers(ctx, issue)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CountIssueSubscribers", err)
 		return

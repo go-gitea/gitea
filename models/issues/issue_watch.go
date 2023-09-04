@@ -7,11 +7,7 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/builder"
 )
 
 // IssueWatch is connection request for receiving issue notification.
@@ -69,23 +65,6 @@ func GetIssueWatch(ctx context.Context, userID, issueID int64) (iw *IssueWatch, 
 	return iw, exists, err
 }
 
-// CheckIssueWatch check if an user is watching an issue
-// it takes participants and repo watch into account
-func CheckIssueWatch(user *user_model.User, issue *Issue) (bool, error) {
-	iw, exist, err := GetIssueWatch(db.DefaultContext, user.ID, issue.ID)
-	if err != nil {
-		return false, err
-	}
-	if exist {
-		return iw.IsWatching, nil
-	}
-	w, err := repo_model.GetWatch(db.DefaultContext, user.ID, issue.RepoID)
-	if err != nil {
-		return false, err
-	}
-	return repo_model.IsWatchMode(w.Mode) || IsUserParticipantsOfIssue(user, issue), nil
-}
-
 // GetIssueWatchersIDs returns IDs of subscribers or explicit unsubscribers to a given issue id
 // but avoids joining with `user` for performance reasons
 // User permissions must be verified elsewhere if required
@@ -96,55 +75,6 @@ func GetIssueWatchersIDs(ctx context.Context, issueID int64, watching bool) ([]i
 		And("is_watching = ?", watching).
 		Select("user_id").
 		Find(&ids)
-}
-
-// GetIssueSubscribers returns subscribers of a given issue
-func GetIssueSubscribers(ctx context.Context, issueID int64, listOptions db.ListOptions) (user_model.UserList, error) {
-	subscribeWatchers := builder.Select("`issue_watch`.user_id").
-		From("issue_watch").
-		Where(builder.Eq{"`issue_watch`.issue_id": issueID, "`issue_watch`.is_watching": true})
-
-	participantsWatchers := builder.Select("`comment`.poster_id").
-		From("comment").
-		Where(builder.Eq{"`comment`.issue_id": issueID}).
-		And(builder.In("`comment`.type", CommentTypeComment, CommentTypeCode, CommentTypeReview)).
-		And(builder.NotIn("`comment`.poster_id",
-			builder.Select("`issue_watch`.user_id").
-				From("issue_watch").
-				Where(builder.Eq{"`issue_watch`.issue_id": issueID, "`issue_watch`.is_watching": false})))
-
-	sess := db.GetEngine(ctx).Table("user").
-		Where(builder.Or(builder.In("id", participantsWatchers), builder.In("id", subscribeWatchers))).
-		And(builder.Eq{"`user`.is_active": true, "`user`.prohibit_login": false})
-
-	if listOptions.Page != 0 {
-		sess = db.SetSessionPagination(sess, &listOptions)
-		users := make(user_model.UserList, 0, listOptions.PageSize)
-		return users, sess.Find(&users)
-	}
-	users := make(user_model.UserList, 0, 8)
-	return users, sess.Find(&users)
-}
-
-// CountIssueSubscribers count watchers of a given issue
-func CountIssueSubscribers(ctx context.Context, issueID int64) (int64, error) {
-	subscribeWatchers := builder.Select("`issue_watch`.user_id").
-		From("issue_watch").
-		Where(builder.Eq{"`issue_watch`.issue_id": issueID, "`issue_watch`.is_watching": true})
-
-	participantsWatchers := builder.Select("`comment`.poster_id").
-		From("comment").
-		Where(builder.Eq{"`comment`.issue_id": issueID}).
-		And(builder.In("`comment`.type", CommentTypeComment, CommentTypeCode, CommentTypeReview)).
-		And(builder.NotIn("`comment`.poster_id",
-			builder.Select("`issue_watch`.user_id").
-				From("issue_watch").
-				Where(builder.Eq{"`issue_watch`.issue_id": issueID, "`issue_watch`.is_watching": false})))
-
-	sess := db.GetEngine(ctx).Table("user").
-		Where(builder.Or(builder.In("id", participantsWatchers), builder.In("id", subscribeWatchers))).
-		And(builder.Eq{"`user`.is_active": true, "`user`.prohibit_login": false})
-	return sess.Count(new(user_model.User))
 }
 
 // RemoveIssueWatchersByRepoID remove issue watchers by repoID

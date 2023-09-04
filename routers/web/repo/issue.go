@@ -1408,7 +1408,7 @@ func ViewIssue(ctx *context.Context) {
 	if ctx.Doer != nil {
 		iw.UserID = ctx.Doer.ID
 		iw.IssueID = issue.ID
-		iw.IsWatching, err = issues_model.CheckIssueWatch(ctx.Doer, issue)
+		iw.IsWatching, err = issues_model.CheckIssueSubscriber(ctx.Doer, issue)
 		if err != nil {
 			ctx.ServerError("CheckIssueWatch", err)
 			return
