@@ -122,7 +122,11 @@ func ReqContainerAccess(ctx *context.Context) {
 		realmUrl, err := url.Parse(fmt.Sprintf("%v://%v/", ctx.Req.Header.Get("X-Forwarded-Proto"), ctx.Req.Header.Get("X-Forwarded-Host")))
 		if err != nil {
 			// using host header
-			realmUrl, err = url.Parse(fmt.Sprintf("%v://%v/", "http", ctx.Req.Host))
+			proto := "http"
+			if ctx.Req.TLS != nil {
+				proto = "https"
+			}
+			realmUrl, err = url.Parse(fmt.Sprintf("%v://%v/", proto, ctx.Req.Host))
 		}
 		if err != nil {
 			// fallback
