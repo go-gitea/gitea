@@ -246,7 +246,7 @@ func getRepoWatchEventCond(event WatchEventType) builder.Cond {
 		cond = cond.And(builder.Eq{"`watch`.mode": WatchModeCustom}, builder.Eq{"`watch`.custom_releases": true})
 	}
 
-	return builder.Or(builder.Eq{"`watch`.mode": WatchModeNormal}, cond)
+	return builder.Or(builder.Eq{"`watch`.mode": WatchModeNormal}, builder.Eq{"`watch`.mode": WatchModeAuto}, cond)
 }
 
 // GetRepoWatchers returns range of users watching the given event in the given repository.
