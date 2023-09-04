@@ -98,8 +98,8 @@ func GetIssueWatchersIDs(ctx context.Context, issueID int64, watching bool) ([]i
 		Find(&ids)
 }
 
-// GetIssueWatchers returns watchers/unwatchers of a given issue
-func GetIssueWatchers(ctx context.Context, issueID int64, listOptions db.ListOptions) ([]int64, error) {
+// GetIssueSubscribers returns subscribers of a given issue
+func GetIssueSubscribers(ctx context.Context, issueID int64, listOptions db.ListOptions) (user_model.UserList, error) {
 	subscribeWatchers := builder.Select("`issue_watch`.user_id").
 		From("issue_watch").
 		Where(builder.Eq{"`issue_watch`.issue_id": issueID, "`issue_watch`.is_watching": true})
@@ -113,17 +113,17 @@ func GetIssueWatchers(ctx context.Context, issueID int64, listOptions db.ListOpt
 				From("issue_watch").
 				Where(builder.Eq{"`issue_watch`.issue_id": issueID, "`issue_watch`.is_watching": false})))
 
-	sess := db.GetEngine(ctx).Select("id").Table("user").
+	sess := db.GetEngine(ctx).Table("user").
 		Where(builder.Or(builder.In("id", participantsWatchers), builder.In("id", subscribeWatchers))).
 		And(builder.Eq{"`user`.is_active": true, "`user`.prohibit_login": false})
 
 	if listOptions.Page != 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
-		watches := make([]int64, 0, listOptions.PageSize)
-		return watches, sess.Find(&watches)
+		users := make(user_model.UserList, 0, listOptions.PageSize)
+		return users, sess.Find(&users)
 	}
-	watches := make([]int64, 0, 8)
-	return watches, sess.Find(&watches)
+	users := make(user_model.UserList, 0, 8)
+	return users, sess.Find(&users)
 }
 
 // CountIssueWatchers count watchers/unwatchers of a given issue

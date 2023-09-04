@@ -262,17 +262,12 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 		return
 	}
 
-	userIDs, err := issues_model.GetIssueWatchers(ctx, issue.ID, utils.GetListOptions(ctx))
+	users, err := issues_model.GetIssueSubscribers(ctx, issue.ID, utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetIssueWatchers", err)
+		ctx.Error(http.StatusInternalServerError, "GetIssueSubscribers", err)
 		return
 	}
 
-	users, err := user_model.GetUsersByIDs(userIDs)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetUsersByIDs", err)
-		return
-	}
 	apiUsers := make([]*api.User, 0, len(users))
 	for _, v := range users {
 		apiUsers = append(apiUsers, convert.ToUser(ctx, v, ctx.Doer))
