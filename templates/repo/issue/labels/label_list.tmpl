@@ -43,11 +43,11 @@
 				{{end}}
 			</div>
 			<div class="label-operation gt-df">
-			  {{if .IsArchived}}
+				{{if .IsArchived}}
 					<span class="archived-label" data-tooltip-content="{{$.locale.Tr "repo.issues.label_archive_tooltip"}}">
-				  	{{$.locale.Tr "archived"}}
+						{{$.locale.Tr "archived"}}
 					</span>
-			  {{end}}
+				{{end}}
 				<div class="gt-df gt-ml-auto">
 					{{if and (not $.PageIsOrgSettingsLabels) (not $.Repository.IsArchived) (or $.CanWriteIssues $.CanWritePulls)}}
 						<a class="edit-label-button" href="#" data-id="{{.ID}}" data-title="{{.Name}}" {{if .Exclusive}}data-exclusive{{end}} {{if gt .ArchivedUnix 0}}data-is-archived{{end}} data-num-issues="{{.NumIssues}}" data-description="{{.Description}}" data-color={{.Color}}>{{svg "octicon-pencil"}} {{$.locale.Tr "repo.issues.label_edit"}}</a>
