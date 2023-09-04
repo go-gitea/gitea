@@ -1,8 +1,9 @@
 {{template "base/head" .}}
 <link rel="stylesheet" href="{{AssetUrlPrefix}}/css/devtest.css?v={{AssetVersion}}">
-<div class="page-content devtest ui container">
-	<div>
-		<h1>Flex List</h1>
+<div class="page-content devtest">
+	<div class="ui container">
+		<h1>Flex List (standalone)</h1>
+		<div class="divider"></div>
 		<div class="flex-list">
 			<div class="flex-item">
 				<div class="flex-item-leading">
@@ -82,6 +83,31 @@
 						when inside header, the trailing part will wrap below the title
 					</div>
 				</div>
+			</div>
+		</div>
+
+		<div class="divider"></div>
+
+		<h1>Flex List (with "ui segment")</h1>
+		<div class="ui attached segment">
+			<div class="flex-list">
+				<div class="flex-item">item 1</div>
+				<div class="flex-item">item 2</div>
+			</div>
+		</div>
+		<div class="ui attached segment">
+			<h1>Flex List (with "ui segment")</h1>
+			<div class="flex-list">
+				<div class="flex-item">item 1</div>
+				<div class="flex-item">item 2</div>
+			</div>
+		</div>
+
+		<h1>If parent provides the padding/margin space:</h1>
+		<div class="gt-border-secondary gt-py-4">
+			<div class="flex-list flex-space-fitted">
+				<div class="flex-item">item 1 (no padding top)</div>
+				<div class="flex-item">item 2 (no padding bottom)</div>
 			</div>
 		</div>
 	</div>

@@ -102,8 +102,7 @@ func GetIssueWatchersIDs(ctx context.Context, issueID int64, watching bool) ([]i
 func GetIssueWatchers(ctx context.Context, issueID int64, listOptions db.ListOptions) ([]int64, error) {
 	subscribeWatchers := builder.Select("`issue_watch`.user_id").
 		From("issue_watch").
-		Where(builder.Eq{"`issue_watch`.issue_id": issueID}).
-		And(builder.Eq{"`issue_watch`.is_watching": true})
+		Where(builder.Eq{"`issue_watch`.issue_id": issueID, "`issue_watch`.is_watching": true})
 
 	participantsWatchers := builder.Select("`comment`.poster_id").
 		From("comment").
@@ -112,13 +111,11 @@ func GetIssueWatchers(ctx context.Context, issueID int64, listOptions db.ListOpt
 		And(builder.NotIn("`comment`.poster_id",
 			builder.Select("`issue_watch`.user_id").
 				From("issue_watch").
-				Where(builder.Eq{"`issue_watch`.issue_id": issueID}).
-				And(builder.Eq{"`issue_watch`.is_watching": false})))
+				Where(builder.Eq{"`issue_watch`.issue_id": issueID, "`issue_watch`.is_watching": false})))
 
 	sess := db.GetEngine(ctx).Select("id").Table("user").
 		Where(builder.Or(builder.In("id", participantsWatchers), builder.In("id", subscribeWatchers))).
-		And(builder.Eq{"`user`.is_active": true}).
-		And(builder.Eq{"`user`.prohibit_login": false})
+		And(builder.Eq{"`user`.is_active": true, "`user`.prohibit_login": false})
 
 	if listOptions.Page != 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
