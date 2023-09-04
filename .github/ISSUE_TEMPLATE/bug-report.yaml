@@ -1,6 +1,6 @@
 name: Bug Report
 description: Found something you weren't expecting? Report it here!
-labels: kind/bug
+labels: ["kind/bug"]
 body:
 - type: markdown
   attributes:
@@ -14,12 +14,9 @@ body:
          server (https://discord.gg/gitea) or forum (https://discourse.gitea.io).
       3. Make sure you are using the latest release and
          take a moment to check that your issue hasn't been reported before.
-      4. Make sure it's not mentioned in the FAQ (https://docs.gitea.io/en-us/faq)
-      5. Please give all relevant information below for bug reports, because
+      4. Make sure it's not mentioned in the FAQ (https://docs.gitea.com/help/faq)
+      5. It's really important to provide pertinent details and logs (https://docs.gitea.com/help/support),
          incomplete details will be handled as an invalid report.
-      6. In particular it's really important to provide pertinent logs. You must give us DEBUG level logs.
-         Please read https://docs.gitea.io/en-us/logging-configuration/#debugging-problems
-         In addition, if your problem relates to git commands set `RUN_MODE=dev` at the top of app.ini
 - type: textarea
   id: description
   attributes:
@@ -50,7 +47,7 @@ body:
   attributes:
     value: |
       It's really important to provide pertinent logs
-      Please read https://docs.gitea.io/en-us/logging-configuration/#debugging-problems
+      Please read https://docs.gitea.com/administration/logging-config#collecting-logs-for-help
       In addition, if your problem relates to git commands set `RUN_MODE=dev` at the top of app.ini
 - type: input
   id: logs
@@ -89,6 +86,6 @@ body:
     description: What database system are you running?
     options:
     - PostgreSQL
-    - MySQL
+    - MySQL/MariaDB
     - MSSQL
     - SQLite

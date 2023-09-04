@@ -119,7 +119,7 @@ proxy_set_header X-Real-IP $remote_addr;
 
 The security options in `app.ini` need to be adjusted to allow the interpretation of the headers
 as well as the list of IP addresses and networks that describe trusted proxy servers
-(See the [configuration cheat sheet](https://docs.gitea.io/en-us/config-cheat-sheet/#security-security) for more information).
+(See the [configuration cheat sheet](administration/config-cheat-sheet.md#security-security) for more information).
 
 ```
 REVERSE_PROXY_LIMIT = 1
