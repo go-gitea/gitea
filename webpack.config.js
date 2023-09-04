@@ -206,7 +206,6 @@ export default {
         }).join('\n');
       },
       override: {
-        'jquery.are-you-sure@*': {licenseName: 'MIT'}, // https://github.com/codedance/jquery.AreYouSure/pull/147
         'khroma@*': {licenseName: 'MIT'}, // https://github.com/fabiospampinato/khroma/pull/33
       },
       emitError: true,
