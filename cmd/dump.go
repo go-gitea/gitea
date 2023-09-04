@@ -128,7 +128,7 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 		&cli.StringFlag{
 			Name:    "database",
 			Aliases: []string{"d"},
-			Usage:   "Specify the database SQL syntax",
+			Usage:   "Specify the database SQL syntax: sqlite3, mysql, mssql, postgres",
 		},
 		&cli.BoolFlag{
 			Name:    "skip-repository",

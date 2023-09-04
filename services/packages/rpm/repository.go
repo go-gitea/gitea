@@ -232,7 +232,7 @@ func buildRepomd(pv *packages_model.PackageVersion, ownerID int64, data []*repoD
 	}
 
 	var buf bytes.Buffer
-	buf.Write([]byte(xml.Header))
+	buf.WriteString(xml.Header)
 	if err := xml.NewEncoder(&buf).Encode(&Repomd{
 		Xmlns:    "http://linux.duke.edu/metadata/repo",
 		XmlnsRpm: "http://linux.duke.edu/metadata/rpm",
