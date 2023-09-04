@@ -512,7 +512,7 @@ func ArtifactsView(ctx *context_module.Context) {
 	}
 	for _, art := range artifacts {
 		status := "completed"
-		if art.Status == actions_model.ArtifactStatusExpired {
+		if art.Status == int64(actions_model.ArtifactStatusExpired) {
 			status = "expired"
 		}
 		artifactsResponse.Artifacts = append(artifactsResponse.Artifacts, &ArtifactsViewItem{

@@ -529,7 +529,7 @@ var migrations = []Migration{
 	// v273 -> v274
 	NewMigration("Add Action Schedule Table", v1_21.AddActionScheduleTable),
 	// v274 -> v275
-	NewMigration("Add ExpiredUnix Column to Artifact Table", v1_21.AddExpiredUnixColumnInActionArtifactTable),
+	NewMigration("Add Actions artifacts expiration date", v1_21.AddExpiredUnixColumnInActionArtifactTable),
 }
 
 // GetCurrentDBVersion returns the current db version
