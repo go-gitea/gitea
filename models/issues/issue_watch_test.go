@@ -45,26 +45,26 @@ func TestGetIssueWatch(t *testing.T) {
 func TestGetIssueWatchers(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	iws, err := issues_model.GetIssueWatchers(db.DefaultContext, 1, db.ListOptions{})
+	iws, err := issues_model.GetIssueSubscribers(db.DefaultContext, 1, db.ListOptions{})
 	assert.NoError(t, err)
 	// user 9 watch it ,but user status is inactive, thus 0
 	// user 5 participates and is not explicitly not watching , thus 1
 	// total 1
 	assert.Len(t, iws, 1)
 
-	iws, err = issues_model.GetIssueWatchers(db.DefaultContext, 2, db.ListOptions{})
+	iws, err = issues_model.GetIssueSubscribers(db.DefaultContext, 2, db.ListOptions{})
 	assert.NoError(t, err)
 	// user 2 in Watcher is explicitly not watching, thus 0
 	// user 1 participates and is not explicitly not watching , thus 1
 	// total 1
 	assert.Len(t, iws, 1)
 
-	iws, err = issues_model.GetIssueWatchers(db.DefaultContext, 5, db.ListOptions{})
+	iws, err = issues_model.GetIssueSubscribers(db.DefaultContext, 5, db.ListOptions{})
 	assert.NoError(t, err)
 	// Issue has no Watchers
 	assert.Len(t, iws, 0)
 
-	iws, err = issues_model.GetIssueWatchers(db.DefaultContext, 7, db.ListOptions{})
+	iws, err = issues_model.GetIssueSubscribers(db.DefaultContext, 7, db.ListOptions{})
 	assert.NoError(t, err)
 	// Issue has one watcher
 	assert.Len(t, iws, 1)
