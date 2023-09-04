@@ -1,6 +1,6 @@
 /* this contains override styles for buttons and related elements */
 
-/* these styles changes (pollutes) the Fomantic UI's rules, Fomantic UI expects only "basic" buttons have borders */
+/* these styles changed the Fomantic UI's rules, Fomantic UI expects only "basic" buttons have borders */
 .ui.button,
 .ui.button:focus {
   background: var(--color-button);
@@ -53,9 +53,9 @@ a.btn:hover {
   color: inherit;
 }
 
-/* By default, Fomantic UI doesn't support "bordered" buttons group, but Gitea would like to use it ....
-And the default buttons always have borders now (not the same as Fomantic UI's default buttons).
-It's difficult to tweak the left/right borders with active state */
+/* By default, Fomantic UI doesn't support "bordered" buttons group, but Gitea would like to use it.
+And the default buttons always have borders now (not the same as Fomantic UI's default buttons, see above).
+It needs some tricks to tweak the left/right borders with active state */
 
 .ui.buttons .button {
   border-right: none;

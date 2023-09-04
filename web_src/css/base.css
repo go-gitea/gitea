@@ -2028,8 +2028,8 @@ a.ui.basic.label:hover {
 
 .ui.attached.header > .ui.right > .button,
 .ui.attached.header > .ui.right > .dropdown > .button {
-    padding: 8px 10px;
-    font-weight: var(--font-weight-normal);
+  padding: 8px 10px;
+  font-weight: var(--font-weight-normal);
 }
 
 /* if a .top.attached.header is followed by a .segment, add some margin */
