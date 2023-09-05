@@ -1,4 +1,4 @@
-// Fork of the upstream module. The only changes are the addtion of `const` on
+// Fork of the upstream module. The only changes are the addition of `const` on
 // lines 93 and 161 to make it strict-mode compatible.
 
 /*!
