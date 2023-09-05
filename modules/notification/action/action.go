@@ -5,7 +5,6 @@ package action
 
 import (
 	"context"
-	"fmt"
 	"path"
 	"strings"
 
@@ -301,15 +300,16 @@ func (*actionNotifier) NotifyPullRevieweDismiss(ctx context.Context, doer *user_
 		reviewerName = review.OriginalAuthor
 	}
 	if err := activities_model.NotifyWatchers(ctx, &activities_model.Action{
-		ActUserID: doer.ID,
-		ActUser:   doer,
-		OpType:    activities_model.ActionPullReviewDismissed,
-		Content:   fmt.Sprintf("%d|%s|%s", review.Issue.Index, reviewerName, comment.Content),
-		RepoID:    review.Issue.Repo.ID,
-		Repo:      review.Issue.Repo,
-		IsPrivate: review.Issue.Repo.IsPrivate,
-		CommentID: comment.ID,
-		Comment:   comment,
+		ActUserID:  doer.ID,
+		ActUser:    doer,
+		OpType:     activities_model.ActionPullReviewDismissed,
+		IssueIndex: review.Issue.Index,
+		Content:    reviewerName,
+		RepoID:     review.Issue.Repo.ID,
+		Repo:       review.Issue.Repo,
+		IsPrivate:  review.Issue.Repo.IsPrivate,
+		CommentID:  comment.ID,
+		Comment:    comment,
 	}); err != nil {
 		log.Error("NotifyWatchers [%d]: %v", review.Issue.ID, err)
 	}

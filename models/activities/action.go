@@ -193,8 +193,15 @@ func (a *Action) GetCommentHTMLURL() string {
 	return a.getCommentHTMLURL(db.DefaultContext)
 }
 
-func (a *Action) GetIssueIndexName() string {
+// GetIssueIndex returns the string representation of the issue index.
+func (a *Action) GetIssueIndex() string {
 	return strconv.FormatInt(a.IssueIndex, 10)
+}
+
+// GetCommentContent returns the content of the action comment.
+func (a *Action) GetCommentContent() string {
+	_ = a.loadComment(db.DefaultContext)
+	return a.Comment.Content
 }
 
 func (a *Action) loadComment(ctx context.Context) (err error) {
@@ -202,6 +209,14 @@ func (a *Action) loadComment(ctx context.Context) (err error) {
 		return nil
 	}
 	a.Comment, err = issues_model.GetCommentByID(ctx, a.CommentID)
+	return err
+}
+
+func (a *Action) loadIssue(ctx context.Context) (err error) {
+	if a.IssueIndex == 0 || a.Issue != nil {
+		return nil
+	}
+	a.Issue, err = issues_model.GetIssueByID(ctx, a.IssueIndex)
 	return err
 }
 
@@ -213,17 +228,11 @@ func (a *Action) getCommentHTMLURL(ctx context.Context) string {
 	if a.Comment != nil {
 		return a.Comment.HTMLURL()
 	}
-	if len(a.GetIssueInfos()) == 0 {
+	if a.IssueIndex == 0 {
 		return "#"
 	}
 	// Return link to issue
-	issueIDString := a.GetIssueInfos()[0]
-	issueID, err := strconv.ParseInt(issueIDString, 10, 64)
-	if err != nil {
-		return "#"
-	}
-
-	issue, err := issues_model.GetIssueByID(ctx, issueID)
+	issue, err := issues_model.GetIssueByID(ctx, a.IssueIndex)
 	if err != nil {
 		return "#"
 	}
@@ -248,17 +257,11 @@ func (a *Action) getCommentLink(ctx context.Context) string {
 	if a.Comment != nil {
 		return a.Comment.Link()
 	}
-	if len(a.GetIssueInfos()) == 0 {
+	if a.IssueIndex == 0 {
 		return "#"
 	}
 	// Return link to issue
-	issueIDString := a.GetIssueInfos()[0]
-	issueID, err := strconv.ParseInt(issueIDString, 10, 64)
-	if err != nil {
-		return "#"
-	}
-
-	issue, err := issues_model.GetIssueByID(ctx, issueID)
+	issue, err := issues_model.GetIssueByIndex(ctx, a.RepoID, a.IssueIndex)
 	if err != nil {
 		return "#"
 	}
@@ -285,11 +288,6 @@ func (a *Action) GetTag() string {
 	return strings.TrimPrefix(a.RefName, git.TagPrefix)
 }
 
-// GetContent returns the action's content.
-func (a *Action) GetContent() string {
-	return a.Content
-}
-
 // GetCreate returns the action creation time.
 func (a *Action) GetCreate() time.Time {
 	return a.CreatedUnix.AsTime()
@@ -304,8 +302,7 @@ func (a *Action) GetIssueInfos() []string {
 // GetIssueTitle returns the title of first issue associated
 // with the action. This function will be invoked in template so keep db.DefaultContext here
 func (a *Action) GetIssueTitle() string {
-	index, _ := strconv.ParseInt(a.GetIssueInfos()[0], 10, 64)
-	issue, err := issues_model.GetIssueByIndex(db.DefaultContext, a.RepoID, index)
+	issue, err := issues_model.GetIssueByIndex(db.DefaultContext, a.RepoID, a.IssueIndex)
 	if err != nil {
 		log.Error("GetIssueByIndex: %v", err)
 		return "500 when get issue"
@@ -316,8 +313,7 @@ func (a *Action) GetIssueTitle() string {
 // GetIssueContent returns the content of first issue associated with
 // this action.
 func (a *Action) GetIssueContent(ctx context.Context) string {
-	index, _ := strconv.ParseInt(a.GetIssueInfos()[0], 10, 64)
-	issue, err := issues_model.GetIssueByIndex(ctx, a.RepoID, index)
+	issue, err := issues_model.GetIssueByIndex(ctx, a.RepoID, a.IssueIndex)
 	if err != nil {
 		log.Error("GetIssueByIndex: %v", err)
 		return "500 when get issue"
@@ -373,6 +369,11 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 func ActivityReadable(user, doer *user_model.User) bool {
 	return !user.KeepActivityPrivate ||
 		doer != nil && (doer.IsAdmin || user.ID == doer.ID)
+}
+
+// GetContent returns the action's content.
+func (a *Action) GetContent() string {
+	return a.Content
 }
 
 func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
