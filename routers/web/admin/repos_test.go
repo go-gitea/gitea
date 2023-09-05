@@ -7,15 +7,15 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestUpdateRepoPost(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := test.MockContext(t, "admin/repos")
-	test.LoadUser(t, ctx, 1)
+	ctx, _ := contexttest.MockContext(t, "admin/repos")
+	contexttest.LoadUser(t, ctx, 1)
 
 	ctx.Req.Form.Set("enable_size_limit", "on")
 	ctx.Req.Form.Set("repo_size_limit", "222 kcmcm")
