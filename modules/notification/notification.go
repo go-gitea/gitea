@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
-	"code.gitea.io/gitea/modules/notification/ui"
 	"code.gitea.io/gitea/modules/repository"
 )
 
@@ -23,11 +22,6 @@ var notifiers []base.Notifier
 func RegisterNotifier(notifier base.Notifier) {
 	go notifier.Run()
 	notifiers = append(notifiers, notifier)
-}
-
-// NewContext registers notification handlers
-func NewContext() {
-	RegisterNotifier(ui.NewNotifier())
 }
 
 // NotifyNewWikiPage notifies creating new wiki pages to notifiers
