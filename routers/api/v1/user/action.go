@@ -78,7 +78,7 @@ func DeleteSecret(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "204":
-	//     description: delete one secret of the organization
+	//     description: delete one secret of the user
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
