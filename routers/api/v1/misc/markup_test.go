@@ -134,7 +134,7 @@ Here are some links to the most important topics. You can find the full list of 
 		testRenderMarkup(t, "file", "path/test.md", text, response, http.StatusOK)
 	}
 
-	testRenderMarkup(t, "file", "path/test.unknown", "## Test", "Unsupported render extension: .unknown\n", http.StatusUnprocessableEntity)
+	testRenderMarkup(t, "file", "path/test.unknown", "## Test", "Unsupported render file: path/test.unknown\n", http.StatusUnprocessableEntity)
 	testRenderMarkup(t, "unknown", "", "## Test", "Unknown mode: unknown\n", http.StatusUnprocessableEntity)
 }
 

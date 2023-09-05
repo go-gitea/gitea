@@ -121,19 +121,32 @@ type PostProcessRenderer interface {
 	NeedPostProcess() bool
 }
 
-// PostProcessRenderer defines an interface for external renderers
-type ExternalRenderer interface {
+type SanitizerDisabledRenderer interface {
 	// SanitizerDisabled disabled sanitize if return true
 	SanitizerDisabled() bool
+}
+
+// PostProcessRenderer defines an interface for external renderers
+type ExternalRenderer interface {
+	SanitizerDisabledRenderer
 
 	// DisplayInIFrame represents whether render the content with an iframe
 	DisplayInIFrame() bool
+}
+
+type NewPageRenderer interface {
+	DisplayInNewPage() bool
 }
 
 // RendererContentDetector detects if the content can be rendered
 // by specified renderer
 type RendererContentDetector interface {
 	CanRender(filename string, input io.Reader) bool
+}
+
+// RendererRelativePathDetector detects if the content can be rendered according relative file path
+type RendererRelativePathDetector interface {
+	CanRenderRelativePath(relativePath string) bool
 }
 
 var (
@@ -152,7 +165,21 @@ func RegisterRenderer(renderer Renderer) {
 // GetRendererByFileName get renderer by filename
 func GetRendererByFileName(filename string) Renderer {
 	extension := strings.ToLower(filepath.Ext(filename))
-	return extRenderers[extension]
+	renderer := extRenderers[extension]
+	if renderer != nil {
+		return renderer
+	}
+	return GetRendererByRelativePathInterface(filename)
+}
+
+// GetRendererByRelativePathInterface returns a renderer according relative file path
+func GetRendererByRelativePathInterface(relativePath string) Renderer {
+	for _, renderer := range renderers {
+		if detector, ok := renderer.(RendererRelativePathDetector); ok && detector.CanRenderRelativePath(relativePath) {
+			return renderer
+		}
+	}
+	return nil
 }
 
 // GetRendererByType returns a renderer according type
@@ -233,7 +260,7 @@ func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Wr
 	var pw2 io.WriteCloser
 
 	var sanitizerDisabled bool
-	if r, ok := renderer.(ExternalRenderer); ok {
+	if r, ok := renderer.(SanitizerDisabledRenderer); ok {
 		sanitizerDisabled = r.SanitizerDisabled()
 	}
 
@@ -291,33 +318,51 @@ func renderByType(ctx *RenderContext, input io.Reader, output io.Writer) error {
 	return ErrUnsupportedRenderType{ctx.Type}
 }
 
-// ErrUnsupportedRenderExtension represents the error when extension doesn't supported to render
-type ErrUnsupportedRenderExtension struct {
-	Extension string
+// ErrUnsupportedRenderFile represents the error when extension or filename doesn't supported to render
+type ErrUnsupportedRenderFile struct {
+	RelativePath string
 }
 
-func IsErrUnsupportedRenderExtension(err error) bool {
-	_, ok := err.(ErrUnsupportedRenderExtension)
+func IsErrUnsupportedRenderFile(err error) bool {
+	_, ok := err.(ErrUnsupportedRenderFile)
 	return ok
 }
 
-func (err ErrUnsupportedRenderExtension) Error() string {
-	return fmt.Sprintf("Unsupported render extension: %s", err.Extension)
+func (err ErrUnsupportedRenderFile) Error() string {
+	return fmt.Sprintf("Unsupported render file: %s", err.RelativePath)
+}
+
+func renderButton(ctx *RenderContext, output io.Writer) error {
+	_, err := io.WriteString(output, fmt.Sprintf(`<iframe src="%s/%s/%s/render/%s/%s" sandbox="allow-same-origin allow-scripts"></iframe>`,
+		setting.AppSubURL,
+		url.PathEscape(ctx.Metas["user"]),
+		url.PathEscape(ctx.Metas["repo"]),
+		ctx.Metas["BranchNameSubURL"],
+		url.PathEscape(ctx.RelativePath),
+	))
+	return err
 }
 
 func renderFile(ctx *RenderContext, input io.Reader, output io.Writer) error {
-	extension := strings.ToLower(filepath.Ext(ctx.RelativePath))
-	if renderer, ok := extRenderers[extension]; ok {
-		if r, ok := renderer.(ExternalRenderer); ok && r.DisplayInIFrame() {
-			if !ctx.InStandalonePage {
-				// for an external render, it could only output its content in a standalone page
-				// otherwise, a <iframe> should be outputted to embed the external rendered page
-				return renderIFrame(ctx, output)
-			}
-		}
-		return render(ctx, renderer, input, output)
+	renderer := GetRendererByFileName(ctx.RelativePath)
+	if renderer == nil {
+		return ErrUnsupportedRenderFile{ctx.RelativePath}
 	}
-	return ErrUnsupportedRenderExtension{extension}
+
+	if r, ok := renderer.(NewPageRenderer); ok && r.DisplayInNewPage() {
+		if !ctx.InStandalonePage {
+			return renderButton(ctx, output)
+		}
+	}
+
+	if r, ok := renderer.(ExternalRenderer); ok && r.DisplayInIFrame() {
+		if !ctx.InStandalonePage {
+			// for an external render, it could only output its content in a standalone page
+			// otherwise, a <iframe> should be outputted to embed the external rendered page
+			return renderIFrame(ctx, output)
+		}
+	}
+	return render(ctx, renderer, input, output)
 }
 
 // Type returns if markup format via the filename
