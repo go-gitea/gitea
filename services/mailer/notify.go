@@ -1,7 +1,7 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package mail
+package mailer
 
 import (
 	"context"
@@ -13,7 +13,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
-	"code.gitea.io/gitea/services/mailer"
 )
 
 type mailNotifier struct {
@@ -43,13 +42,13 @@ func (m *mailNotifier) NotifyCreateIssueComment(ctx context.Context, doer *user_
 		act = 0
 	}
 
-	if err := mailer.MailParticipantsComment(ctx, comment, act, issue, mentions); err != nil {
+	if err := MailParticipantsComment(ctx, comment, act, issue, mentions); err != nil {
 		log.Error("MailParticipantsComment: %v", err)
 	}
 }
 
 func (m *mailNotifier) NotifyNewIssue(ctx context.Context, issue *issues_model.Issue, mentions []*user_model.User) {
-	if err := mailer.MailParticipants(ctx, issue, issue.Poster, activities_model.ActionCreateIssue, mentions); err != nil {
+	if err := MailParticipants(ctx, issue, issue.Poster, activities_model.ActionCreateIssue, mentions); err != nil {
 		log.Error("MailParticipants: %v", err)
 	}
 }
@@ -70,7 +69,7 @@ func (m *mailNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *user_m
 		}
 	}
 
-	if err := mailer.MailParticipants(ctx, issue, doer, actionType, nil); err != nil {
+	if err := MailParticipants(ctx, issue, doer, actionType, nil); err != nil {
 		log.Error("MailParticipants: %v", err)
 	}
 }
@@ -81,14 +80,14 @@ func (m *mailNotifier) NotifyIssueChangeTitle(ctx context.Context, doer *user_mo
 		return
 	}
 	if issue.IsPull && issues_model.HasWorkInProgressPrefix(oldTitle) && !issue.PullRequest.IsWorkInProgress() {
-		if err := mailer.MailParticipants(ctx, issue, doer, activities_model.ActionPullRequestReadyForReview, nil); err != nil {
+		if err := MailParticipants(ctx, issue, doer, activities_model.ActionPullRequestReadyForReview, nil); err != nil {
 			log.Error("MailParticipants: %v", err)
 		}
 	}
 }
 
 func (m *mailNotifier) NotifyNewPullRequest(ctx context.Context, pr *issues_model.PullRequest, mentions []*user_model.User) {
-	if err := mailer.MailParticipants(ctx, pr.Issue, pr.Issue.Poster, activities_model.ActionCreatePullRequest, mentions); err != nil {
+	if err := MailParticipants(ctx, pr.Issue, pr.Issue.Poster, activities_model.ActionCreatePullRequest, mentions); err != nil {
 		log.Error("MailParticipants: %v", err)
 	}
 }
@@ -102,13 +101,13 @@ func (m *mailNotifier) NotifyPullRequestReview(ctx context.Context, pr *issues_m
 	} else if comment.Type == issues_model.CommentTypeComment {
 		act = activities_model.ActionCommentPull
 	}
-	if err := mailer.MailParticipantsComment(ctx, comment, act, pr.Issue, mentions); err != nil {
+	if err := MailParticipantsComment(ctx, comment, act, pr.Issue, mentions); err != nil {
 		log.Error("MailParticipantsComment: %v", err)
 	}
 }
 
 func (m *mailNotifier) NotifyPullRequestCodeComment(ctx context.Context, pr *issues_model.PullRequest, comment *issues_model.Comment, mentions []*user_model.User) {
-	if err := mailer.MailMentionsComment(ctx, pr, comment, mentions); err != nil {
+	if err := MailMentionsComment(ctx, pr, comment, mentions); err != nil {
 		log.Error("MailMentionsComment: %v", err)
 	}
 }
@@ -117,7 +116,7 @@ func (m *mailNotifier) NotifyIssueChangeAssignee(ctx context.Context, doer *user
 	// mail only sent to added assignees and not self-assignee
 	if !removed && doer.ID != assignee.ID && assignee.EmailNotifications() != user_model.EmailNotificationsDisabled {
 		ct := fmt.Sprintf("Assigned #%d.", issue.Index)
-		if err := mailer.SendIssueAssignedMail(ctx, issue, doer, ct, comment, []*user_model.User{assignee}); err != nil {
+		if err := SendIssueAssignedMail(ctx, issue, doer, ct, comment, []*user_model.User{assignee}); err != nil {
 			log.Error("Error in SendIssueAssignedMail for issue[%d] to assignee[%d]: %v", issue.ID, assignee.ID, err)
 		}
 	}
@@ -126,7 +125,7 @@ func (m *mailNotifier) NotifyIssueChangeAssignee(ctx context.Context, doer *user
 func (m *mailNotifier) NotifyPullRequestReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
 	if isRequest && doer.ID != reviewer.ID && reviewer.EmailNotifications() != user_model.EmailNotificationsDisabled {
 		ct := fmt.Sprintf("Requested to review %s.", issue.HTMLURL())
-		if err := mailer.SendIssueAssignedMail(ctx, issue, doer, ct, comment, []*user_model.User{reviewer}); err != nil {
+		if err := SendIssueAssignedMail(ctx, issue, doer, ct, comment, []*user_model.User{reviewer}); err != nil {
 			log.Error("Error in SendIssueAssignedMail for issue[%d] to reviewer[%d]: %v", issue.ID, reviewer.ID, err)
 		}
 	}
@@ -137,7 +136,7 @@ func (m *mailNotifier) NotifyMergePullRequest(ctx context.Context, doer *user_mo
 		log.Error("LoadIssue: %v", err)
 		return
 	}
-	if err := mailer.MailParticipants(ctx, pr.Issue, doer, activities_model.ActionMergePullRequest, nil); err != nil {
+	if err := MailParticipants(ctx, pr.Issue, doer, activities_model.ActionMergePullRequest, nil); err != nil {
 		log.Error("MailParticipants: %v", err)
 	}
 }
@@ -147,7 +146,7 @@ func (m *mailNotifier) NotifyAutoMergePullRequest(ctx context.Context, doer *use
 		log.Error("pr.LoadIssue: %v", err)
 		return
 	}
-	if err := mailer.MailParticipants(ctx, pr.Issue, doer, activities_model.ActionAutoMergePullRequest, nil); err != nil {
+	if err := MailParticipants(ctx, pr.Issue, doer, activities_model.ActionAutoMergePullRequest, nil); err != nil {
 		log.Error("MailParticipants: %v", err)
 	}
 }
@@ -177,7 +176,7 @@ func (m *mailNotifier) NotifyPullRequestPushCommits(ctx context.Context, doer *u
 }
 
 func (m *mailNotifier) NotifyPullReviewDismiss(ctx context.Context, doer *user_model.User, review *issues_model.Review, comment *issues_model.Comment) {
-	if err := mailer.MailParticipantsComment(ctx, comment, activities_model.ActionPullReviewDismissed, review.Issue, nil); err != nil {
+	if err := MailParticipantsComment(ctx, comment, activities_model.ActionPullReviewDismissed, review.Issue, nil); err != nil {
 		log.Error("MailParticipantsComment: %v", err)
 	}
 }
@@ -192,11 +191,11 @@ func (m *mailNotifier) NotifyNewRelease(ctx context.Context, rel *repo_model.Rel
 		return
 	}
 
-	mailer.MailNewRelease(ctx, rel)
+	MailNewRelease(ctx, rel)
 }
 
 func (m *mailNotifier) NotifyRepoPendingTransfer(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) {
-	if err := mailer.SendRepoTransferNotifyMail(ctx, doer, newOwner, repo); err != nil {
+	if err := SendRepoTransferNotifyMail(ctx, doer, newOwner, repo); err != nil {
 		log.Error("SendRepoTransferNotifyMail: %v", err)
 	}
 }
