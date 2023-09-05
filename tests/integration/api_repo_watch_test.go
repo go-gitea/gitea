@@ -140,8 +140,15 @@ func TestAPIRepoCustomWatch(t *testing.T) {
 
 		notifications := getNotifications(t, token)
 		assert.Len(t, notifications, 2)
-		assert.Equal(t, "issue1", notifications[0].Subject.Title)
-		assert.Equal(t, "pull5", notifications[1].Subject.Title)
+
+		// The notifications are not always in the same order
+		if notifications[0].Subject.Title == "issue1" {
+			assert.Equal(t, "issue1", notifications[0].Subject.Title)
+			assert.Equal(t, "pull5", notifications[1].Subject.Title)
+		} else {
+			assert.Equal(t, "pull5", notifications[0].Subject.Title)
+			assert.Equal(t, "issue1", notifications[1].Subject.Title)
+		}
 	})
 
 	t.Run("Releases", func(t *testing.T) {
