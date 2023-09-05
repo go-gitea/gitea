@@ -281,7 +281,7 @@ func ViewUser(ctx *context.Context) {
 	ctx.Data["Repos"] = repos
 	ctx.Data["ReposTotal"] = int(count)
 
-	emails, err := user_model.GetEmailAddresses(ctx.Doer.ID)
+	emails, err := user_model.GetEmailAddresses(u.ID)
 	if err != nil {
 		ctx.ServerError("GetEmailAddresses", err)
 		return
