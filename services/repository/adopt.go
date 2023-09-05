@@ -18,10 +18,10 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/gobwas/glob"
 )
@@ -104,7 +104,7 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts repo_mo
 		return nil, err
 	}
 
-	notification.NotifyAdoptRepository(ctx, doer, u, repo)
+	notify_service.AdoptRepository(ctx, doer, u, repo)
 
 	return repo, nil
 }

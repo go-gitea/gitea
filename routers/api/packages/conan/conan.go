@@ -18,11 +18,11 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	conan_module "code.gitea.io/gitea/modules/packages/conan"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	notify_service "code.gitea.io/gitea/services/notify"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
@@ -663,7 +663,7 @@ func deleteRecipeOrPackage(apictx *context.Context, rref *conan_module.RecipeRef
 	}
 
 	if versionDeleted {
-		notification.NotifyPackageDelete(apictx, apictx.Doer, pd)
+		notify_service.PackageDelete(apictx, apictx.Doer, pd)
 	}
 
 	return nil
