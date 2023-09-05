@@ -135,7 +135,7 @@
 				{{end}}
 			</div>
 			{{if IsMultilineCommitMessage .Commit.Message}}
-				<pre class="commit-body gt-mt-0">{{RenderCommitBody $.Context .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
+				<pre class="commit-body">{{RenderCommitBody $.Context .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
 			{{end}}
 			{{template "repo/commit_load_branches_and_tags" .}}
 		</div>

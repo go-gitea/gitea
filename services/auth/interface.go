@@ -27,10 +27,7 @@ type Method interface {
 	// Second argument returns err if verification fails, otherwise
 	// First return argument returns nil if no matched verification condition
 	Verify(http *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error)
-}
 
-// Named represents a named thing
-type Named interface {
 	Name() string
 }
 
