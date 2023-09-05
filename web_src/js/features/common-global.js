@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import '../vendor/ays.js';
+import '../vendor/jquery.are-you-sure.js';
 import {clippie} from 'clippie';
 import {createDropzone} from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
