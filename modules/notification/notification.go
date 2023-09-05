@@ -12,7 +12,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification/action"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/notification/indexer"
 	"code.gitea.io/gitea/modules/notification/mail"
@@ -36,7 +35,6 @@ func NewContext() {
 		RegisterNotifier(mail.NewNotifier())
 	}
 	RegisterNotifier(indexer.NewNotifier())
-	RegisterNotifier(action.NewNotifier())
 }
 
 // NotifyNewWikiPage notifies creating new wiki pages to notifiers

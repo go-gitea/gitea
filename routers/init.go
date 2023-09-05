@@ -41,6 +41,7 @@ import (
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/cron"
+	feed_service "code.gitea.io/gitea/services/feed"
 	"code.gitea.io/gitea/services/mailer"
 	mailer_incoming "code.gitea.io/gitea/services/mailer/incoming"
 	markup_service "code.gitea.io/gitea/services/markup"
@@ -121,6 +122,7 @@ func InitWebInstalled(ctx context.Context) {
 	mailer.NewContext(ctx)
 	mustInit(cache.NewContext)
 	notification.NewContext()
+	mustInit(feed_service.Init)
 	mustInit(archiver.Init)
 
 	highlight.NewContext()
