@@ -1,7 +1,7 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package action
+package feed
 
 import (
 	"context"
@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
@@ -26,6 +27,12 @@ type actionNotifier struct {
 }
 
 var _ base.Notifier = &actionNotifier{}
+
+func Init() error {
+	notification.RegisterNotifier(NewNotifier())
+
+	return nil
+}
 
 // NewNotifier create a new actionNotifier notifier
 func NewNotifier() base.Notifier {
