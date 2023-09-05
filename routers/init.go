@@ -48,6 +48,7 @@ import (
 	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/services/repository/archiver"
 	"code.gitea.io/gitea/services/task"
+	"code.gitea.io/gitea/services/uinotification"
 	"code.gitea.io/gitea/services/webhook"
 )
 
@@ -119,6 +120,7 @@ func InitWebInstalled(ctx context.Context) {
 	mailer.NewContext(ctx)
 	mustInit(cache.NewContext)
 	notification.NewContext()
+	mustInit(uinotification.Init)
 	mustInit(archiver.Init)
 
 	highlight.NewContext()
