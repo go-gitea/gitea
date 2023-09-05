@@ -1,7 +1,7 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package action
+package feed
 
 import (
 	"path/filepath"
@@ -19,7 +19,7 @@ import (
 
 func TestMain(m *testing.M) {
 	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", "..", ".."),
+		GiteaRootPath: filepath.Join("..", ".."),
 	})
 }
 
