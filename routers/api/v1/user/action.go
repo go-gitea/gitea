@@ -39,8 +39,8 @@ func CreateOrUpdateSecret(ctx *context.APIContext) {
 	//     description: response when updating a secret
 	//   "400":
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	secretName := ctx.Params(":secretname")
 	if err := actions.NameRegexMatch(secretName); err != nil {
@@ -79,8 +79,10 @@ func DeleteSecret(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: delete one secret of the organization
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	secretName := ctx.Params(":secretname")
 	if err := actions.NameRegexMatch(secretName); err != nil {
