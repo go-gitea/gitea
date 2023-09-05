@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/action"
 	"code.gitea.io/gitea/modules/notification/base"
-	"code.gitea.io/gitea/modules/notification/indexer"
 	"code.gitea.io/gitea/modules/notification/mail"
 	"code.gitea.io/gitea/modules/notification/ui"
 	"code.gitea.io/gitea/modules/repository"
@@ -35,7 +34,6 @@ func NewContext() {
 	if setting.Service.EnableNotifyMail {
 		RegisterNotifier(mail.NewNotifier())
 	}
-	RegisterNotifier(indexer.NewNotifier())
 	RegisterNotifier(action.NewNotifier())
 }
 
