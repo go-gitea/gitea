@@ -44,13 +44,13 @@ func (a *actionNotifier) NotifyNewIssue(ctx context.Context, issue *issues_model
 	repo := issue.Repo
 
 	if err := activities_model.NotifyWatchers(ctx, &activities_model.Action{
-		ActUserID: issue.Poster.ID,
-		ActUser:   issue.Poster,
-		OpType:    activities_model.ActionCreateIssue,
-		Content:   fmt.Sprintf("%d|%s", issue.Index, issue.Title),
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
+		ActUserID:  issue.Poster.ID,
+		ActUser:    issue.Poster,
+		OpType:     activities_model.ActionCreateIssue,
+		IssueIndex: issue.Index,
+		RepoID:     repo.ID,
+		Repo:       repo,
+		IsPrivate:  repo.IsPrivate,
 	}); err != nil {
 		log.Error("NotifyWatchers: %v", err)
 	}
@@ -61,14 +61,14 @@ func (a *actionNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *user
 	// Compose comment action, could be plain comment, close or reopen issue/pull request.
 	// This object will be used to notify watchers in the end of function.
 	act := &activities_model.Action{
-		ActUserID: doer.ID,
-		ActUser:   doer,
-		Content:   fmt.Sprintf("%d|%s", issue.Index, ""),
-		RepoID:    issue.Repo.ID,
-		Repo:      issue.Repo,
-		Comment:   actionComment,
-		CommentID: actionComment.ID,
-		IsPrivate: issue.Repo.IsPrivate,
+		ActUserID:  doer.ID,
+		ActUser:    doer,
+		IssueIndex: issue.Index,
+		RepoID:     issue.Repo.ID,
+		Repo:       issue.Repo,
+		Comment:    actionComment,
+		CommentID:  actionComment.ID,
+		IsPrivate:  issue.Repo.IsPrivate,
 	}
 	// Check comment type.
 	if closeOrReopen {
@@ -94,13 +94,14 @@ func (a *actionNotifier) NotifyCreateIssueComment(ctx context.Context, doer *use
 	issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User,
 ) {
 	act := &activities_model.Action{
-		ActUserID: doer.ID,
-		ActUser:   doer,
-		RepoID:    issue.Repo.ID,
-		Repo:      issue.Repo,
-		Comment:   comment,
-		CommentID: comment.ID,
-		IsPrivate: issue.Repo.IsPrivate,
+		ActUserID:  doer.ID,
+		ActUser:    doer,
+		RepoID:     issue.Repo.ID,
+		Repo:       issue.Repo,
+		Comment:    comment,
+		CommentID:  comment.ID,
+		IssueIndex: issue.Index,
+		IsPrivate:  issue.Repo.IsPrivate,
 	}
 
 	truncatedContent, truncatedRight := util.SplitStringAtByteN(comment.Content, 200)
@@ -111,7 +112,7 @@ func (a *actionNotifier) NotifyCreateIssueComment(ctx context.Context, doer *use
 			truncatedContent = truncatedContent[:lastSpaceIdx] + "…"
 		}
 	}
-	act.Content = fmt.Sprintf("%d|%s", issue.Index, truncatedContent)
+	act.Content = truncatedContent
 
 	if issue.IsPull {
 		act.OpType = activities_model.ActionCommentPull
@@ -140,13 +141,13 @@ func (a *actionNotifier) NotifyNewPullRequest(ctx context.Context, pull *issues_
 	}
 
 	if err := activities_model.NotifyWatchers(ctx, &activities_model.Action{
-		ActUserID: pull.Issue.Poster.ID,
-		ActUser:   pull.Issue.Poster,
-		OpType:    activities_model.ActionCreatePullRequest,
-		Content:   fmt.Sprintf("%d|%s", pull.Issue.Index, pull.Issue.Title),
-		RepoID:    pull.Issue.Repo.ID,
-		Repo:      pull.Issue.Repo,
-		IsPrivate: pull.Issue.Repo.IsPrivate,
+		ActUserID:  pull.Issue.Poster.ID,
+		ActUser:    pull.Issue.Poster,
+		OpType:     activities_model.ActionCreatePullRequest,
+		IssueIndex: pull.Issue.Index,
+		RepoID:     pull.Issue.Repo.ID,
+		Repo:       pull.Issue.Repo,
+		IsPrivate:  pull.Issue.Repo.IsPrivate,
 	}); err != nil {
 		log.Error("NotifyWatchers: %v", err)
 	}
@@ -221,15 +222,16 @@ func (a *actionNotifier) NotifyPullRequestReview(ctx context.Context, pr *issues
 		for _, comments := range lines {
 			for _, comm := range comments {
 				actions = append(actions, &activities_model.Action{
-					ActUserID: review.Reviewer.ID,
-					ActUser:   review.Reviewer,
-					Content:   fmt.Sprintf("%d|%s", review.Issue.Index, strings.Split(comm.Content, "\n")[0]),
-					OpType:    activities_model.ActionCommentPull,
-					RepoID:    review.Issue.RepoID,
-					Repo:      review.Issue.Repo,
-					IsPrivate: review.Issue.Repo.IsPrivate,
-					Comment:   comm,
-					CommentID: comm.ID,
+					ActUserID:  review.Reviewer.ID,
+					ActUser:    review.Reviewer,
+					IssueIndex: review.Issue.Index,
+					Content:    strings.Split(comm.Content, "\n")[0],
+					OpType:     activities_model.ActionCommentPull,
+					RepoID:     review.Issue.RepoID,
+					Repo:       review.Issue.Repo,
+					IsPrivate:  review.Issue.Repo.IsPrivate,
+					Comment:    comm,
+					CommentID:  comm.ID,
 				})
 			}
 		}
@@ -237,14 +239,15 @@ func (a *actionNotifier) NotifyPullRequestReview(ctx context.Context, pr *issues
 
 	if review.Type != issues_model.ReviewTypeComment || strings.TrimSpace(comment.Content) != "" {
 		action := &activities_model.Action{
-			ActUserID: review.Reviewer.ID,
-			ActUser:   review.Reviewer,
-			Content:   fmt.Sprintf("%d|%s", review.Issue.Index, strings.Split(comment.Content, "\n")[0]),
-			RepoID:    review.Issue.RepoID,
-			Repo:      review.Issue.Repo,
-			IsPrivate: review.Issue.Repo.IsPrivate,
-			Comment:   comment,
-			CommentID: comment.ID,
+			ActUserID:  review.Reviewer.ID,
+			ActUser:    review.Reviewer,
+			IssueIndex: review.Issue.Index,
+			Content:    strings.Split(comment.Content, "\n")[0],
+			RepoID:     review.Issue.RepoID,
+			Repo:       review.Issue.Repo,
+			IsPrivate:  review.Issue.Repo.IsPrivate,
+			Comment:    comment,
+			CommentID:  comment.ID,
 		}
 
 		switch review.Type {
@@ -266,13 +269,13 @@ func (a *actionNotifier) NotifyPullRequestReview(ctx context.Context, pr *issues
 
 func (*actionNotifier) NotifyMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
 	if err := activities_model.NotifyWatchers(ctx, &activities_model.Action{
-		ActUserID: doer.ID,
-		ActUser:   doer,
-		OpType:    activities_model.ActionMergePullRequest,
-		Content:   fmt.Sprintf("%d|%s", pr.Issue.Index, pr.Issue.Title),
-		RepoID:    pr.Issue.Repo.ID,
-		Repo:      pr.Issue.Repo,
-		IsPrivate: pr.Issue.Repo.IsPrivate,
+		ActUserID:  doer.ID,
+		ActUser:    doer,
+		OpType:     activities_model.ActionMergePullRequest,
+		IssueIndex: pr.Issue.Index,
+		RepoID:     pr.Issue.Repo.ID,
+		Repo:       pr.Issue.Repo,
+		IsPrivate:  pr.Issue.Repo.IsPrivate,
 	}); err != nil {
 		log.Error("NotifyWatchers [%d]: %v", pr.ID, err)
 	}
@@ -280,13 +283,13 @@ func (*actionNotifier) NotifyMergePullRequest(ctx context.Context, doer *user_mo
 
 func (*actionNotifier) NotifyAutoMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
 	if err := activities_model.NotifyWatchers(ctx, &activities_model.Action{
-		ActUserID: doer.ID,
-		ActUser:   doer,
-		OpType:    activities_model.ActionAutoMergePullRequest,
-		Content:   fmt.Sprintf("%d|%s", pr.Issue.Index, pr.Issue.Title),
-		RepoID:    pr.Issue.Repo.ID,
-		Repo:      pr.Issue.Repo,
-		IsPrivate: pr.Issue.Repo.IsPrivate,
+		ActUserID:  doer.ID,
+		ActUser:    doer,
+		OpType:     activities_model.ActionAutoMergePullRequest,
+		IssueIndex: pr.Issue.Index,
+		RepoID:     pr.Issue.Repo.ID,
+		Repo:       pr.Issue.Repo,
+		IsPrivate:  pr.Issue.Repo.IsPrivate,
 	}); err != nil {
 		log.Error("NotifyWatchers [%d]: %v", pr.ID, err)
 	}

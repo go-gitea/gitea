@@ -44,7 +44,9 @@ type Action struct {
 	Repo        *repo_model.Repository `xorm:"-"`
 	CommentID   int64                  `xorm:"INDEX"`
 	Comment     *issues_model.Comment  `xorm:"-"`
-	IsDeleted   bool                   `xorm:"NOT NULL DEFAULT false"`
+	IssueIndex  int64
+	Issue       *issues_model.Issue `xorm:"-"`
+	IsDeleted   bool                `xorm:"NOT NULL DEFAULT false"`
 	RefName     string
 	IsPrivate   bool               `xorm:"NOT NULL DEFAULT false"`
 	Content     string             `xorm:"TEXT"`
@@ -191,8 +193,8 @@ func (a *Action) GetCommentHTMLURL() string {
 	return a.getCommentHTMLURL(db.DefaultContext)
 }
 
-func (a *Action) GetCommentContent() string {
-	return a.GetIssueInfos()[1]
+func (a *Action) GetIssueIndexName() string {
+	return strconv.FormatInt(a.IssueIndex, 10)
 }
 
 func (a *Action) loadComment(ctx context.Context) (err error) {
