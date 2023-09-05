@@ -76,4 +76,26 @@ func TestAPIWatch(t *testing.T) {
 		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/subscription?token=%s", repo, tokenWithRepoScope))
 		MakeRequest(t, req, http.StatusNoContent)
 	})
+
+	t.Run("Custom", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/subscription/custom?token=%s", repo, tokenWithRepoScope)
+		req := NewRequestWithJSON(t, "PUT", urlStr, api.RepoCustomWatchOptions{Issues: true, PullRequests: true})
+		MakeRequest(t, req, http.StatusOK)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/subscription?token=%s", repo, tokenWithRepoScope))
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		var info api.WatchInfo
+		DecodeJSON(t, resp, &info)
+
+		assert.True(t, info.Subscribed)
+		assert.False(t, info.Ignored)
+		assert.True(t, info.IsCustom)
+
+		assert.True(t, info.CustomWatchOptions.Issues)
+		assert.True(t, info.CustomWatchOptions.PullRequests)
+		assert.False(t, info.CustomWatchOptions.Releases)
+	})
 }

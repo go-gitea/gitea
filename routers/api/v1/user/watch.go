@@ -36,6 +36,29 @@ func getWatchedRepos(ctx std_context.Context, user *user_model.User, private boo
 	return repos, total, nil
 }
 
+// getWatchInfo returns the WatchInfo
+func getWatchInfo(ctx *context.APIContext) (*api.WatchInfo, error) {
+	watch, err := repo_model.GetWatch(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &api.WatchInfo{
+		Subscribed:    watch.IsWatching(),
+		Ignored:       watch.Mode.IsWatchModeDont(),
+		IsCustom:      watch.Mode.IsWatchModeCustom(),
+		Reason:        nil,
+		CreatedAt:     ctx.Repo.Repository.CreatedUnix.AsTime(),
+		URL:           subscriptionURL(ctx.Repo.Repository),
+		RepositoryURL: ctx.Repo.Repository.APIURL(),
+		CustomWatchOptions: api.RepoCustomWatchOptions{
+			Issues:       watch.CustomIssues,
+			PullRequests: watch.CustomPullRequests,
+			Releases:     watch.CustomReleases,
+		},
+	}, nil
+}
+
 // GetWatchedRepos returns the repos that the user specified in ctx is watching
 func GetWatchedRepos(ctx *context.APIContext) {
 	// swagger:operation GET /users/{username}/subscriptions user userListSubscriptions
@@ -123,18 +146,18 @@ func IsWatching(ctx *context.APIContext) {
 	//   "404":
 	//     description: User is not watching this repo or repo do not exist
 
-	if repo_model.IsWatching(ctx.Doer.ID, ctx.Repo.Repository.ID) {
-		ctx.JSON(http.StatusOK, api.WatchInfo{
-			Subscribed:    true,
-			Ignored:       false,
-			Reason:        nil,
-			CreatedAt:     ctx.Repo.Repository.CreatedUnix.AsTime(),
-			URL:           subscriptionURL(ctx.Repo.Repository),
-			RepositoryURL: ctx.Repo.Repository.APIURL(),
-		})
-	} else {
+	if !repo_model.IsWatching(ctx.Doer.ID, ctx.Repo.Repository.ID) {
 		ctx.NotFound()
+		return
 	}
+
+	info, err := getWatchInfo(ctx)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetWatchInfo", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, info)
 }
 
 // Watch the repo specified in ctx, as the authenticated user
@@ -162,14 +185,14 @@ func Watch(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "WatchRepo", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, api.WatchInfo{
-		Subscribed:    true,
-		Ignored:       false,
-		Reason:        nil,
-		CreatedAt:     ctx.Repo.Repository.CreatedUnix.AsTime(),
-		URL:           subscriptionURL(ctx.Repo.Repository),
-		RepositoryURL: ctx.Repo.Repository.APIURL(),
-	})
+
+	info, err := getWatchInfo(ctx)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetWatchInfo", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, info)
 }
 
 // Watch the repo specified in ctx, as the authenticated user
@@ -202,14 +225,14 @@ func WatchCustom(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "WatchRepo", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, api.WatchInfo{
-		Subscribed:    true,
-		Ignored:       false,
-		Reason:        nil,
-		CreatedAt:     ctx.Repo.Repository.CreatedUnix.AsTime(),
-		URL:           subscriptionURL(ctx.Repo.Repository),
-		RepositoryURL: ctx.Repo.Repository.APIURL(),
-	})
+
+	info, err := getWatchInfo(ctx)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetWatchInfo", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, info)
 }
 
 // Unwatch the repo specified in ctx, as the authenticated user

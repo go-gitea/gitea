@@ -388,10 +388,3 @@ type UpdateRepoAvatarOption struct {
 	// image must be base64 encoded
 	Image string `json:"image" binding:"Required"`
 }
-
-// RepoCustomWatchOptions options when wtaching custom events of a repo
-type RepoCustomWatchOptions struct {
-	Issues       bool `json:"issues"`
-	PullRequests bool `json:"pull_requests"`
-	Releases     bool `json:"releases"`
-}

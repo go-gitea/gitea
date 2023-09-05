@@ -21277,7 +21277,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "RepoCustomWatchOptions": {
-      "description": "RepoCustomWatchOptions options when wtaching custom events of a repo",
+      "description": "RepoCustomWatchOptions options when watching custom events of a repo",
       "type": "object",
       "properties": {
         "issues": {
@@ -22341,9 +22341,16 @@
           "format": "date-time",
           "x-go-name": "CreatedAt"
         },
+        "custom_watch_options": {
+          "$ref": "#/definitions/RepoCustomWatchOptions"
+        },
         "ignored": {
           "type": "boolean",
           "x-go-name": "Ignored"
+        },
+        "is_custom": {
+          "type": "boolean",
+          "x-go-name": "IsCustom"
         },
         "reason": {
           "x-go-name": "Reason"
