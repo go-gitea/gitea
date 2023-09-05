@@ -20,7 +20,6 @@ import (
 // Ensure the struct implements the interface.
 var (
 	_ Method = &ReverseProxy{}
-	_ Named  = &ReverseProxy{}
 )
 
 // ReverseProxyMethodName is the constant name of the ReverseProxy authentication method
