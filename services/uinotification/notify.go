@@ -1,7 +1,7 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package ui
+package uinotification
 
 import (
 	"context"
@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/queue"
 )
@@ -31,6 +32,12 @@ type (
 		ReceiverID           int64 // 0 -- ALL Watcher
 	}
 )
+
+func Init() error {
+	notification.RegisterNotifier(NewNotifier())
+
+	return nil
+}
 
 var _ base.Notifier = &notificationService{}
 
