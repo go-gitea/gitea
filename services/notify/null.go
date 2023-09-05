@@ -23,184 +23,184 @@ var _ Notifier = &NullNotifier{}
 func (*NullNotifier) Run() {
 }
 
-// NotifyCreateIssueComment places a place holder function
-func (*NullNotifier) NotifyCreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,
+// CreateIssueComment places a place holder function
+func (*NullNotifier) CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository,
 	issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User) {
 }
 
-// NotifyNewIssue places a place holder function
-func (*NullNotifier) NotifyNewIssue(ctx context.Context, issue *issues_model.Issue, mentions []*user_model.User) {
+// NewIssue places a place holder function
+func (*NullNotifier) NewIssue(ctx context.Context, issue *issues_model.Issue, mentions []*user_model.User) {
 }
 
-// NotifyIssueChangeStatus places a place holder function
-func (*NullNotifier) NotifyIssueChangeStatus(ctx context.Context, doer *user_model.User, commitID string, issue *issues_model.Issue, actionComment *issues_model.Comment, isClosed bool) {
+// IssueChangeStatus places a place holder function
+func (*NullNotifier) IssueChangeStatus(ctx context.Context, doer *user_model.User, commitID string, issue *issues_model.Issue, actionComment *issues_model.Comment, isClosed bool) {
 }
 
-// NotifyDeleteIssue notify when some issue deleted
-func (*NullNotifier) NotifyDeleteIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) {
+// DeleteIssue notify when some issue deleted
+func (*NullNotifier) DeleteIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) {
 }
 
-// NotifyNewPullRequest places a place holder function
-func (*NullNotifier) NotifyNewPullRequest(ctx context.Context, pr *issues_model.PullRequest, mentions []*user_model.User) {
+// NewPullRequest places a place holder function
+func (*NullNotifier) NewPullRequest(ctx context.Context, pr *issues_model.PullRequest, mentions []*user_model.User) {
 }
 
-// NotifyPullRequestReview places a place holder function
-func (*NullNotifier) NotifyPullRequestReview(ctx context.Context, pr *issues_model.PullRequest, r *issues_model.Review, comment *issues_model.Comment, mentions []*user_model.User) {
+// PullRequestReview places a place holder function
+func (*NullNotifier) PullRequestReview(ctx context.Context, pr *issues_model.PullRequest, r *issues_model.Review, comment *issues_model.Comment, mentions []*user_model.User) {
 }
 
-// NotifyPullRequestCodeComment places a place holder function
-func (*NullNotifier) NotifyPullRequestCodeComment(ctx context.Context, pr *issues_model.PullRequest, comment *issues_model.Comment, mentions []*user_model.User) {
+// PullRequestCodeComment places a place holder function
+func (*NullNotifier) PullRequestCodeComment(ctx context.Context, pr *issues_model.PullRequest, comment *issues_model.Comment, mentions []*user_model.User) {
 }
 
-// NotifyMergePullRequest places a place holder function
-func (*NullNotifier) NotifyMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
+// MergePullRequest places a place holder function
+func (*NullNotifier) MergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
 }
 
-// NotifyAutoMergePullRequest places a place holder function
-func (*NullNotifier) NotifyAutoMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
+// AutoMergePullRequest places a place holder function
+func (*NullNotifier) AutoMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
 }
 
-// NotifyPullRequestSynchronized places a place holder function
-func (*NullNotifier) NotifyPullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
+// PullRequestSynchronized places a place holder function
+func (*NullNotifier) PullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
 }
 
-// NotifyPullRequestChangeTargetBranch places a place holder function
-func (*NullNotifier) NotifyPullRequestChangeTargetBranch(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, oldBranch string) {
+// PullRequestChangeTargetBranch places a place holder function
+func (*NullNotifier) PullRequestChangeTargetBranch(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, oldBranch string) {
 }
 
-// NotifyPullRequestPushCommits notifies when push commits to pull request's head branch
-func (*NullNotifier) NotifyPullRequestPushCommits(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, comment *issues_model.Comment) {
+// PullRequestPushCommits notifies when push commits to pull request's head branch
+func (*NullNotifier) PullRequestPushCommits(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, comment *issues_model.Comment) {
 }
 
-// NotifyPullReviewDismiss notifies when a review was dismissed by repo admin
-func (*NullNotifier) NotifyPullReviewDismiss(ctx context.Context, doer *user_model.User, review *issues_model.Review, comment *issues_model.Comment) {
+// PullReviewDismiss notifies when a review was dismissed by repo admin
+func (*NullNotifier) PullReviewDismiss(ctx context.Context, doer *user_model.User, review *issues_model.Review, comment *issues_model.Comment) {
 }
 
-// NotifyUpdateComment places a place holder function
-func (*NullNotifier) NotifyUpdateComment(ctx context.Context, doer *user_model.User, c *issues_model.Comment, oldContent string) {
+// UpdateComment places a place holder function
+func (*NullNotifier) UpdateComment(ctx context.Context, doer *user_model.User, c *issues_model.Comment, oldContent string) {
 }
 
-// NotifyDeleteComment places a place holder function
-func (*NullNotifier) NotifyDeleteComment(ctx context.Context, doer *user_model.User, c *issues_model.Comment) {
+// DeleteComment places a place holder function
+func (*NullNotifier) DeleteComment(ctx context.Context, doer *user_model.User, c *issues_model.Comment) {
 }
 
-// NotifyNewWikiPage places a place holder function
-func (*NullNotifier) NotifyNewWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page, comment string) {
+// NewWikiPage places a place holder function
+func (*NullNotifier) NewWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page, comment string) {
 }
 
-// NotifyEditWikiPage places a place holder function
-func (*NullNotifier) NotifyEditWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page, comment string) {
+// EditWikiPage places a place holder function
+func (*NullNotifier) EditWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page, comment string) {
 }
 
-// NotifyDeleteWikiPage places a place holder function
-func (*NullNotifier) NotifyDeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page string) {
+// DeleteWikiPage places a place holder function
+func (*NullNotifier) DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, page string) {
 }
 
-// NotifyNewRelease places a place holder function
-func (*NullNotifier) NotifyNewRelease(ctx context.Context, rel *repo_model.Release) {
+// NewRelease places a place holder function
+func (*NullNotifier) NewRelease(ctx context.Context, rel *repo_model.Release) {
 }
 
-// NotifyUpdateRelease places a place holder function
-func (*NullNotifier) NotifyUpdateRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
+// UpdateRelease places a place holder function
+func (*NullNotifier) UpdateRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
 }
 
-// NotifyDeleteRelease places a place holder function
-func (*NullNotifier) NotifyDeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
+// DeleteRelease places a place holder function
+func (*NullNotifier) DeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
 }
 
-// NotifyIssueChangeMilestone places a place holder function
-func (*NullNotifier) NotifyIssueChangeMilestone(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldMilestoneID int64) {
+// IssueChangeMilestone places a place holder function
+func (*NullNotifier) IssueChangeMilestone(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldMilestoneID int64) {
 }
 
-// NotifyIssueChangeContent places a place holder function
-func (*NullNotifier) NotifyIssueChangeContent(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldContent string) {
+// IssueChangeContent places a place holder function
+func (*NullNotifier) IssueChangeContent(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldContent string) {
 }
 
-// NotifyIssueChangeAssignee places a place holder function
-func (*NullNotifier) NotifyIssueChangeAssignee(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, assignee *user_model.User, removed bool, comment *issues_model.Comment) {
+// IssueChangeAssignee places a place holder function
+func (*NullNotifier) IssueChangeAssignee(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, assignee *user_model.User, removed bool, comment *issues_model.Comment) {
 }
 
-// NotifyPullRequestReviewRequest places a place holder function
-func (*NullNotifier) NotifyPullRequestReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
+// PullRequestReviewRequest places a place holder function
+func (*NullNotifier) PullRequestReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
 }
 
-// NotifyIssueClearLabels places a place holder function
-func (*NullNotifier) NotifyIssueClearLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) {
+// IssueClearLabels places a place holder function
+func (*NullNotifier) IssueClearLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) {
 }
 
-// NotifyIssueChangeTitle places a place holder function
-func (*NullNotifier) NotifyIssueChangeTitle(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
+// IssueChangeTitle places a place holder function
+func (*NullNotifier) IssueChangeTitle(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
 }
 
-// NotifyIssueChangeRef places a place holder function
-func (*NullNotifier) NotifyIssueChangeRef(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
+// IssueChangeRef places a place holder function
+func (*NullNotifier) IssueChangeRef(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
 }
 
-// NotifyIssueChangeLabels places a place holder function
-func (*NullNotifier) NotifyIssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue,
+// IssueChangeLabels places a place holder function
+func (*NullNotifier) IssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue,
 	addedLabels, removedLabels []*issues_model.Label) {
 }
 
-// NotifyCreateRepository places a place holder function
-func (*NullNotifier) NotifyCreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
+// CreateRepository places a place holder function
+func (*NullNotifier) CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
 }
 
-// NotifyAdoptRepository places a place holder function
-func (*NullNotifier) NotifyAdoptRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
+// AdoptRepository places a place holder function
+func (*NullNotifier) AdoptRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
 }
 
-// NotifyDeleteRepository places a place holder function
-func (*NullNotifier) NotifyDeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository) {
+// DeleteRepository places a place holder function
+func (*NullNotifier) DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository) {
 }
 
-// NotifyForkRepository places a place holder function
-func (*NullNotifier) NotifyForkRepository(ctx context.Context, doer *user_model.User, oldRepo, repo *repo_model.Repository) {
+// ForkRepository places a place holder function
+func (*NullNotifier) ForkRepository(ctx context.Context, doer *user_model.User, oldRepo, repo *repo_model.Repository) {
 }
 
-// NotifyMigrateRepository places a place holder function
-func (*NullNotifier) NotifyMigrateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
+// MigrateRepository places a place holder function
+func (*NullNotifier) MigrateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
 }
 
-// NotifyPushCommits notifies commits pushed to notifiers
-func (*NullNotifier) NotifyPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+// PushCommits notifies commits pushed to notifiers
+func (*NullNotifier) PushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 }
 
-// NotifyCreateRef notifies branch or tag creation to notifiers
-func (*NullNotifier) NotifyCreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string) {
+// CreateRef notifies branch or tag creation to notifiers
+func (*NullNotifier) CreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string) {
 }
 
-// NotifyDeleteRef notifies branch or tag deletion to notifiers
-func (*NullNotifier) NotifyDeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName) {
+// DeleteRef notifies branch or tag deletion to notifiers
+func (*NullNotifier) DeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName) {
 }
 
-// NotifyRenameRepository places a place holder function
-func (*NullNotifier) NotifyRenameRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldRepoName string) {
+// RenameRepository places a place holder function
+func (*NullNotifier) RenameRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldRepoName string) {
 }
 
-// NotifyTransferRepository places a place holder function
-func (*NullNotifier) NotifyTransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwnerName string) {
+// TransferRepository places a place holder function
+func (*NullNotifier) TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwnerName string) {
 }
 
-// NotifySyncPushCommits places a place holder function
-func (*NullNotifier) NotifySyncPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+// SyncPushCommits places a place holder function
+func (*NullNotifier) SyncPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 }
 
-// NotifySyncCreateRef places a place holder function
-func (*NullNotifier) NotifySyncCreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string) {
+// SyncCreateRef places a place holder function
+func (*NullNotifier) SyncCreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string) {
 }
 
-// NotifySyncDeleteRef places a place holder function
-func (*NullNotifier) NotifySyncDeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName) {
+// SyncDeleteRef places a place holder function
+func (*NullNotifier) SyncDeleteRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName) {
 }
 
-// NotifyRepoPendingTransfer places a place holder function
-func (*NullNotifier) NotifyRepoPendingTransfer(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) {
+// RepoPendingTransfer places a place holder function
+func (*NullNotifier) RepoPendingTransfer(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) {
 }
 
-// NotifyPackageCreate places a place holder function
-func (*NullNotifier) NotifyPackageCreate(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor) {
+// PackageCreate places a place holder function
+func (*NullNotifier) PackageCreate(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor) {
 }
 
-// NotifyPackageDelete places a place holder function
-func (*NullNotifier) NotifyPackageDelete(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor) {
+// PackageDelete places a place holder function
+func (*NullNotifier) PackageDelete(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor) {
 }

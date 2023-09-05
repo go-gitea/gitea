@@ -113,7 +113,7 @@ func createPackageAndAddFile(pvci *PackageCreationInfo, pfci *PackageFileCreatio
 			return nil, nil, err
 		}
 
-		notify_service.NotifyPackageCreate(db.DefaultContext, pvci.Creator, pd)
+		notify_service.PackageCreate(db.DefaultContext, pvci.Creator, pd)
 	}
 
 	return pv, pf, nil
@@ -489,7 +489,7 @@ func RemovePackageVersion(doer *user_model.User, pv *packages_model.PackageVersi
 		return err
 	}
 
-	notify_service.NotifyPackageDelete(db.DefaultContext, doer, pd)
+	notify_service.PackageDelete(db.DefaultContext, doer, pd)
 
 	return nil
 }
@@ -529,7 +529,7 @@ func RemovePackageFileAndVersionIfUnreferenced(doer *user_model.User, pf *packag
 	}
 
 	if pd != nil {
-		notify_service.NotifyPackageDelete(db.DefaultContext, doer, pd)
+		notify_service.PackageDelete(db.DefaultContext, doer, pd)
 	}
 
 	return nil

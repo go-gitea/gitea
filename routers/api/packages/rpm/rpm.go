@@ -247,7 +247,7 @@ func DeletePackageFile(webctx *context.Context) {
 	}
 
 	if pd != nil {
-		notify_service.NotifyPackageDelete(webctx, webctx.Doer, pd)
+		notify_service.PackageDelete(webctx, webctx.Doer, pd)
 	}
 
 	if err := rpm_service.BuildRepositoryFiles(webctx, webctx.Package.Owner.ID); err != nil {

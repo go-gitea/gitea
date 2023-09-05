@@ -594,11 +594,11 @@ func EditPullRequest(ctx *context.APIContext) {
 	}
 
 	if titleChanged {
-		notify_service.NotifyIssueChangeTitle(ctx, ctx.Doer, issue, oldTitle)
+		notify_service.IssueChangeTitle(ctx, ctx.Doer, issue, oldTitle)
 	}
 
 	if statusChangeComment != nil {
-		notify_service.NotifyIssueChangeStatus(ctx, ctx.Doer, "", issue, statusChangeComment, issue.IsClosed)
+		notify_service.IssueChangeStatus(ctx, ctx.Doer, "", issue, statusChangeComment, issue.IsClosed)
 	}
 
 	// change pull target branch
@@ -622,7 +622,7 @@ func EditPullRequest(ctx *context.APIContext) {
 			}
 			return
 		}
-		notify_service.NotifyPullRequestChangeTargetBranch(ctx, ctx.Doer, pr, form.Base)
+		notify_service.PullRequestChangeTargetBranch(ctx, ctx.Doer, pr, form.Base)
 	}
 
 	// update allow edits

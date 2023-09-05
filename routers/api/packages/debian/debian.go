@@ -18,9 +18,9 @@ import (
 	debian_module "code.gitea.io/gitea/modules/packages/debian"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	notify_service "code.gitea.io/gitea/services/notify"
 	packages_service "code.gitea.io/gitea/services/packages"
 	debian_service "code.gitea.io/gitea/services/packages/debian"
-	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
@@ -296,7 +296,7 @@ func DeletePackageFile(ctx *context.Context) {
 	}
 
 	if pd != nil {
-		notify_service.NotifyPackageDelete(ctx, ctx.Doer, pd)
+		notify_service.PackageDelete(ctx, ctx.Doer, pd)
 	}
 
 	if err := debian_service.BuildSpecificRepositoryFiles(ctx, ctx.Package.Owner.ID, distribution, component, architecture); err != nil {

@@ -50,7 +50,7 @@ func runMigrateTask(t *admin_model.Task) (err error) {
 		if err == nil {
 			err = admin_model.FinishMigrateTask(t)
 			if err == nil {
-				notify_service.NotifyMigrateRepository(db.DefaultContext, t.Doer, t.Owner, t.Repo)
+				notify_service.MigrateRepository(db.DefaultContext, t.Doer, t.Owner, t.Repo)
 				return
 			}
 

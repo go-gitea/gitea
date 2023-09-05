@@ -727,7 +727,7 @@ func NewWikiPost(ctx *context.Context) {
 		return
 	}
 
-	notify_service.NotifyNewWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(wikiName), form.Message)
+	notify_service.NewWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(wikiName), form.Message)
 
 	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/" + wiki_service.WebPathToURLPath(wikiName))
 }
@@ -771,7 +771,7 @@ func EditWikiPost(ctx *context.Context) {
 		return
 	}
 
-	notify_service.NotifyEditWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(newWikiName), form.Message)
+	notify_service.EditWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(newWikiName), form.Message)
 
 	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/" + wiki_service.WebPathToURLPath(newWikiName))
 }
@@ -788,7 +788,7 @@ func DeleteWikiPagePost(ctx *context.Context) {
 		return
 	}
 
-	notify_service.NotifyDeleteWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(wikiName))
+	notify_service.DeleteWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(wikiName))
 
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/wiki/")
 }

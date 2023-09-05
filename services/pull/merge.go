@@ -206,9 +206,9 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	}
 
 	if wasAutoMerged {
-		notify_service.NotifyAutoMergePullRequest(ctx, doer, pr)
+		notify_service.AutoMergePullRequest(ctx, doer, pr)
 	} else {
-		notify_service.NotifyMergePullRequest(ctx, doer, pr)
+		notify_service.MergePullRequest(ctx, doer, pr)
 	}
 
 	// Reset cached commit count
@@ -521,7 +521,7 @@ func MergedManually(pr *issues_model.PullRequest, doer *user_model.User, baseGit
 		return err
 	}
 
-	notify_service.NotifyMergePullRequest(baseGitRepo.Ctx, doer, pr)
+	notify_service.MergePullRequest(baseGitRepo.Ctx, doer, pr)
 	log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commitID)
 	return nil
 }

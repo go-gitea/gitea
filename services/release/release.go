@@ -81,14 +81,14 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 			commits.CompareURL = rel.Repo.ComposeCompareURL(git.EmptySHA, commit.ID.String())
 
 			refFullName := git.RefNameFromTag(rel.TagName)
-			notify_service.NotifyPushCommits(
+			notify_service.PushCommits(
 				ctx, rel.Publisher, rel.Repo,
 				&repository.PushUpdateOptions{
 					RefFullName: refFullName,
 					OldCommitID: git.EmptySHA,
 					NewCommitID: commit.ID.String(),
 				}, commits)
-			notify_service.NotifyCreateRef(ctx, rel.Publisher, rel.Repo, refFullName, commit.ID.String())
+			notify_service.CreateRef(ctx, rel.Publisher, rel.Repo, refFullName, commit.ID.String())
 			rel.CreatedUnix = timeutil.TimeStampNow()
 		}
 		commit, err := gitRepo.GetTagCommit(rel.TagName)
@@ -139,7 +139,7 @@ func CreateRelease(gitRepo *git.Repository, rel *repo_model.Release, attachmentU
 	}
 
 	if !rel.IsDraft {
-		notify_service.NotifyNewRelease(gitRepo.Ctx, rel)
+		notify_service.NewRelease(gitRepo.Ctx, rel)
 	}
 
 	return nil
@@ -279,12 +279,12 @@ func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *repo_mod
 	}
 
 	if !isCreated {
-		notify_service.NotifyUpdateRelease(gitRepo.Ctx, doer, rel)
+		notify_service.UpdateRelease(gitRepo.Ctx, doer, rel)
 		return nil
 	}
 
 	if !rel.IsDraft {
-		notify_service.NotifyNewRelease(gitRepo.Ctx, rel)
+		notify_service.NewRelease(gitRepo.Ctx, rel)
 	}
 
 	return nil
@@ -325,14 +325,14 @@ func DeleteReleaseByID(ctx context.Context, id int64, doer *user_model.User, del
 		}
 
 		refName := git.RefNameFromTag(rel.TagName)
-		notify_service.NotifyPushCommits(
+		notify_service.PushCommits(
 			ctx, doer, repo,
 			&repository.PushUpdateOptions{
 				RefFullName: refName,
 				OldCommitID: rel.Sha1,
 				NewCommitID: git.EmptySHA,
 			}, repository.NewPushCommits())
-		notify_service.NotifyDeleteRef(ctx, doer, repo, refName)
+		notify_service.DeleteRef(ctx, doer, repo, refName)
 
 		if err := repo_model.DeleteReleaseByID(ctx, id); err != nil {
 			return fmt.Errorf("DeleteReleaseByID: %w", err)
@@ -361,7 +361,7 @@ func DeleteReleaseByID(ctx context.Context, id int64, doer *user_model.User, del
 		}
 	}
 
-	notify_service.NotifyDeleteRelease(ctx, doer, rel)
+	notify_service.DeleteRelease(ctx, doer, rel)
 
 	return nil
 }

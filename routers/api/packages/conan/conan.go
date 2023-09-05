@@ -663,7 +663,7 @@ func deleteRecipeOrPackage(apictx *context.Context, rref *conan_module.RecipeRef
 	}
 
 	if versionDeleted {
-		notify_service.NotifyPackageDelete(apictx, apictx.Doer, pd)
+		notify_service.PackageDelete(apictx, apictx.Doer, pd)
 	}
 
 	return nil

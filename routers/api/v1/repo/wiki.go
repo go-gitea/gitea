@@ -85,7 +85,7 @@ func NewWikiPage(ctx *context.APIContext) {
 	wikiPage := getWikiPage(ctx, wikiName)
 
 	if !ctx.Written() {
-		notify_service.NotifyNewWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(wikiName), form.Message)
+		notify_service.NewWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(wikiName), form.Message)
 		ctx.JSON(http.StatusCreated, wikiPage)
 	}
 }
@@ -153,7 +153,7 @@ func EditWikiPage(ctx *context.APIContext) {
 	wikiPage := getWikiPage(ctx, newWikiName)
 
 	if !ctx.Written() {
-		notify_service.NotifyEditWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(newWikiName), form.Message)
+		notify_service.EditWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(newWikiName), form.Message)
 		ctx.JSON(http.StatusOK, wikiPage)
 	}
 }
@@ -242,7 +242,7 @@ func DeleteWikiPage(ctx *context.APIContext) {
 		return
 	}
 
-	notify_service.NotifyDeleteWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(wikiName))
+	notify_service.DeleteWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(wikiName))
 
 	ctx.Status(http.StatusNoContent)
 }

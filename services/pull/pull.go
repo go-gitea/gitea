@@ -145,12 +145,12 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 		return err
 	}
 
-	notify_service.NotifyNewPullRequest(ctx, pr, mentions)
+	notify_service.NewPullRequest(ctx, pr, mentions)
 	if len(issue.Labels) > 0 {
-		notify_service.NotifyIssueChangeLabels(ctx, issue.Poster, issue, issue.Labels, nil)
+		notify_service.IssueChangeLabels(ctx, issue.Poster, issue, issue.Labels, nil)
 	}
 	if issue.Milestone != nil {
-		notify_service.NotifyIssueChangeMilestone(ctx, issue.Poster, issue, 0)
+		notify_service.IssueChangeMilestone(ctx, issue.Poster, issue, 0)
 	}
 	if len(assigneeIDs) > 0 {
 		for _, assigneeID := range assigneeIDs {
@@ -158,7 +158,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *iss
 			if err != nil {
 				return ErrDependenciesLeft
 			}
-			notify_service.NotifyIssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assigneeID])
+			notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assigneeID])
 		}
 	}
 
@@ -315,7 +315,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 			AddToTaskQueue(ctx, pr)
 			comment, err := CreatePushPullComment(ctx, doer, pr, oldCommitID, newCommitID)
 			if err == nil && comment != nil {
-				notify_service.NotifyPullRequestPushCommits(ctx, doer, pr, comment)
+				notify_service.PullRequestPushCommits(ctx, doer, pr, comment)
 			}
 		}
 
@@ -365,7 +365,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 						}
 					}
 
-					notify_service.NotifyPullRequestSynchronized(ctx, doer, pr)
+					notify_service.PullRequestSynchronized(ctx, doer, pr)
 				}
 			}
 		}

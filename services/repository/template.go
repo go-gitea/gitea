@@ -130,7 +130,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		return nil, err
 	}
 
-	notify_service.NotifyCreateRepository(ctx, doer, owner, generateRepo)
+	notify_service.CreateRepository(ctx, doer, owner, generateRepo)
 
 	return generateRepo, nil
 }

@@ -301,8 +301,8 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 		return "", err
 	}
 
-	notify_service.NotifyDeleteRef(ctx, doer, repo, git.RefNameFromBranch(from))
-	notify_service.NotifyCreateRef(ctx, doer, repo, refNameTo, refID)
+	notify_service.DeleteRef(ctx, doer, repo, git.RefNameFromBranch(from))
+	notify_service.CreateRef(ctx, doer, repo, refNameTo, refID)
 
 	return "", nil
 }

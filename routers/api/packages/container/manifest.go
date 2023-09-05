@@ -181,7 +181,7 @@ func processImageManifest(ctx context.Context, mci *manifestCreationInfo, buf *p
 			return err
 		}
 
-		if err := notifyPackageCreate(ctx, mci.Creator, pv); err != nil {
+		if err := PackageCreate(ctx, mci.Creator, pv); err != nil {
 			return err
 		}
 
@@ -285,7 +285,7 @@ func processImageManifestIndex(ctx context.Context, mci *manifestCreationInfo, b
 			return err
 		}
 
-		if err := notifyPackageCreate(ctx, mci.Creator, pv); err != nil {
+		if err := PackageCreate(ctx, mci.Creator, pv); err != nil {
 			return err
 		}
 
@@ -300,13 +300,13 @@ func processImageManifestIndex(ctx context.Context, mci *manifestCreationInfo, b
 	return manifestDigest, nil
 }
 
-func notifyPackageCreate(ctx context.Context, doer *user_model.User, pv *packages_model.PackageVersion) error {
+func PackageCreate(ctx context.Context, doer *user_model.User, pv *packages_model.PackageVersion) error {
 	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
 	if err != nil {
 		return err
 	}
 
-	notify_service.NotifyPackageCreate(ctx, doer, pd)
+	notify_service.PackageCreate(ctx, doer, pd)
 
 	return nil
 }

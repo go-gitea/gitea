@@ -113,7 +113,7 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 			return nil, err
 		}
 
-		notify_service.NotifyCreateIssueComment(ctx, doer, issue.Repo, issue, comment, mentions)
+		notify_service.CreateIssueComment(ctx, doer, issue.Repo, issue, comment, mentions)
 
 		return comment, nil
 	}
@@ -298,7 +298,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 		return nil, nil, err
 	}
 
-	notify_service.NotifyPullRequestReview(ctx, pr, review, comm, mentions)
+	notify_service.PullRequestReview(ctx, pr, review, comm, mentions)
 
 	for _, lines := range review.CodeComments {
 		for _, comments := range lines {
@@ -307,7 +307,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 				if err != nil {
 					return nil, nil, err
 				}
-				notify_service.NotifyPullRequestCodeComment(ctx, pr, codeComment, mentions)
+				notify_service.PullRequestCodeComment(ctx, pr, codeComment, mentions)
 			}
 		}
 	}
@@ -355,7 +355,7 @@ func DismissApprovalReviews(ctx context.Context, doer *user_model.User, pull *is
 			comment.Poster = doer
 			comment.Issue = review.Issue
 
-			notify_service.NotifyPullReviewDismiss(ctx, doer, review, comment)
+			notify_service.PullReviewDismiss(ctx, doer, review, comment)
 		}
 		return nil
 	})
@@ -426,7 +426,7 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 	comment.Poster = doer
 	comment.Issue = review.Issue
 
-	notify_service.NotifyPullReviewDismiss(ctx, doer, review, comment)
+	notify_service.PullReviewDismiss(ctx, doer, review, comment)
 
 	return comment, nil
 }

@@ -54,7 +54,7 @@ func ToggleAssigneeWithNotify(ctx context.Context, issue *issues_model.Issue, do
 		return false, nil, err
 	}
 
-	notify_service.NotifyIssueChangeAssignee(ctx, doer, issue, assignee, removed, comment)
+	notify_service.IssueChangeAssignee(ctx, doer, issue, assignee, removed, comment)
 
 	return removed, comment, err
 }
@@ -72,7 +72,7 @@ func ReviewRequest(ctx context.Context, issue *issues_model.Issue, doer, reviewe
 	}
 
 	if comment != nil {
-		notify_service.NotifyPullRequestReviewRequest(ctx, doer, issue, reviewer, isAdd, comment)
+		notify_service.PullRequestReviewRequest(ctx, doer, issue, reviewer, isAdd, comment)
 	}
 
 	return comment, err
@@ -259,7 +259,7 @@ func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *use
 			continue
 		}
 		comment.AssigneeID = member.ID
-		notify_service.NotifyPullRequestReviewRequest(ctx, doer, issue, member, isAdd, comment)
+		notify_service.PullRequestReviewRequest(ctx, doer, issue, member, isAdd, comment)
 	}
 
 	return comment, err

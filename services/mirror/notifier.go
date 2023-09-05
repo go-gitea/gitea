@@ -22,10 +22,10 @@ type mirrorNotifier struct {
 
 var _ notify_service.Notifier = &mirrorNotifier{}
 
-func (m *mirrorNotifier) NotifyPushCommits(ctx context.Context, _ *user_model.User, repo *repo_model.Repository, _ *repository.PushUpdateOptions, _ *repository.PushCommits) {
+func (m *mirrorNotifier) PushCommits(ctx context.Context, _ *user_model.User, repo *repo_model.Repository, _ *repository.PushUpdateOptions, _ *repository.PushCommits) {
 	syncPushMirrorWithSyncOnCommit(ctx, repo.ID)
 }
 
-func (m *mirrorNotifier) NotifySyncPushCommits(ctx context.Context, _ *user_model.User, repo *repo_model.Repository, _ *repository.PushUpdateOptions, _ *repository.PushCommits) {
+func (m *mirrorNotifier) SyncPushCommits(ctx context.Context, _ *user_model.User, repo *repo_model.Repository, _ *repository.PushUpdateOptions, _ *repository.PushCommits) {
 	syncPushMirrorWithSyncOnCommit(ctx, repo.ID)
 }

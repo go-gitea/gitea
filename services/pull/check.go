@@ -295,7 +295,7 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 		return false
 	}
 
-	notify_service.NotifyMergePullRequest(ctx, merger, pr)
+	notify_service.MergePullRequest(ctx, merger, pr)
 
 	log.Info("manuallyMerged[%-v]: Marked as manually merged into %s/%s by commit id: %s", pr, pr.BaseRepo.Name, pr.BaseBranch, commit.ID.String())
 	return true
