@@ -15,9 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
-	code_indexer "code.gitea.io/gitea/modules/indexer/code"
-	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
-	stats_indexer "code.gitea.io/gitea/modules/indexer/stats"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
@@ -41,6 +38,7 @@ import (
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/cron"
+	indexer_service "code.gitea.io/gitea/services/indexer"
 	"code.gitea.io/gitea/services/mailer"
 	mailer_incoming "code.gitea.io/gitea/services/mailer/incoming"
 	markup_service "code.gitea.io/gitea/services/markup"
@@ -50,6 +48,7 @@ import (
 	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/services/repository/archiver"
 	"code.gitea.io/gitea/services/task"
+	"code.gitea.io/gitea/services/uinotification"
 	"code.gitea.io/gitea/services/webhook"
 )
 
@@ -121,6 +120,7 @@ func InitWebInstalled(ctx context.Context) {
 	mailer.NewContext(ctx)
 	mustInit(cache.NewContext)
 	notification.NewContext()
+	mustInit(uinotification.Init)
 	mustInit(archiver.Init)
 
 	highlight.NewContext()
@@ -143,9 +143,7 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(repo_service.Init)
 
 	// Booting long running goroutines.
-	issue_indexer.InitIssueIndexer(false)
-	code_indexer.Init()
-	mustInit(stats_indexer.Init)
+	mustInit(indexer_service.Init)
 
 	mirror_service.InitSyncMirrors()
 	mustInit(webhook.Init)
