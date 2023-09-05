@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
@@ -390,6 +391,10 @@ func NewContext(ctx context.Context) {
 	// while mail queue is already processing tasks, and produces a race condition.
 	if setting.MailService == nil || mailQueue != nil {
 		return
+	}
+
+	if setting.Service.EnableNotifyMail {
+		notification.RegisterNotifier(NewNotifier())
 	}
 
 	switch setting.MailService.Protocol {
