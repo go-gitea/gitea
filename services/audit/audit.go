@@ -47,11 +47,11 @@ var (
 	auditQueue *queue.WorkerPoolQueue[*Event]
 )
 
-func TestingOnly_AddAppender(a Appender) {
+func TestingOnlyAddAppender(a Appender) {
 	appenders = append(appenders, a)
 }
 
-func TestingOnly_RemoveAppender(a Appender) {
+func TestingOnlyRemoveAppender(a Appender) {
 	for i, app := range appenders {
 		if app == a {
 			last := len(appenders) - 1
