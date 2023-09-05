@@ -4,13 +4,14 @@
 package user
 
 import (
+	"errors"
 	"net/http"
 
-	secret_model "code.gitea.io/gitea/models/secret"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/web/shared/actions"
+	secret_service "code.gitea.io/gitea/services/secrets"
 )
 
 // create or update one secret of the user scope
