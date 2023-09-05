@@ -78,6 +78,7 @@ Audit events are grouped by `user`, `organization`, `repository` and `system`.
 | `user:key:gpg:add` | Added GPG key |
 | `user:key:gpg:remove` | Added GPG key |
 | `user:secret:add` | Added secret |
+| `user:secret:update` | Updated secret |
 | `user:secret:remove` | Removed secret |
 | `user:webhook:add` | Added webhook |
 | `user:webhook:update` | Updated webhook |
@@ -103,6 +104,7 @@ Audit events are grouped by `user`, `organization`, `repository` and `system`.
 | `organization:oauth2application:secret` | Regenerated secret for OAuth2 application |
 | `organization:oauth2application:remove` | Removed OAuth2 application |
 | `organization:secret:add` | Added secret |
+| `organization:secret:update` | Updated secret |
 | `organization:secret:remove` | Removed secret |
 | `organization:webhook:add` | Added webhook |
 | `organization:webhook:update` | Updated webhook |
@@ -113,6 +115,7 @@ Audit events are grouped by `user`, `organization`, `repository` and `system`.
 | Event | Description |
 | - | - |
 | `repository:create` | Repository was created |
+| `repository:create:fork` | Fork of repository was created |
 | `repository:update` | Updated settings of repository |
 | `repository:archive` | Archived repository |
 | `repository:unarchive` | Unarchived repository |
@@ -146,6 +149,7 @@ Audit events are grouped by `user`, `organization`, `repository` and `system`.
 | `repository:deploykey:add` | Added deploy key |
 | `repository:deploykey:remove` | Removed deploy key |
 | `repository:secret:add` | Added secret |
+| `repository:secret:update` | Updated secret |
 | `repository:secret:remove` | Removed secret |
 
 ### System Events

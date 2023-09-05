@@ -780,11 +780,11 @@ func Routes() *web.Route {
 		// Notifications (requires 'notifications' scope)
 		m.Group("/notifications", func() {
 			m.Combo("").
-				Get(notify.ListNotifications).
+				Get(reqToken(), notify.ListNotifications).
 				Put(reqToken(), notify.ReadNotifications)
-			m.Get("/new", notify.NewAvailable)
+			m.Get("/new", reqToken(), notify.NewAvailable)
 			m.Combo("/threads/{id}").
-				Get(notify.GetThread).
+				Get(reqToken(), notify.GetThread).
 				Patch(reqToken(), notify.ReadThread)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryNotification))
 
@@ -839,6 +839,13 @@ func Routes() *web.Route {
 				Get(user.ListEmails).
 				Post(bind(api.CreateEmailOption{}), user.AddEmail).
 				Delete(bind(api.DeleteEmailOption{}), user.DeleteEmail)
+
+			// create or update a user's actions secrets
+			m.Group("/actions/secrets", func() {
+				m.Combo("/{secretname}").
+					Put(bind(api.CreateOrUpdateSecretOption{}), user.CreateOrUpdateSecret).
+					Delete(repo.DeleteSecret)
+			})
 
 			m.Get("/followers", user.ListMyFollowers)
 			m.Group("/following", func() {
@@ -939,7 +946,8 @@ func Routes() *web.Route {
 				}, reqToken())
 				m.Group("/actions/secrets", func() {
 					m.Combo("/{secretname}").
-						Put(reqToken(), reqOwner(), bind(api.CreateOrUpdateSecretOption{}), repo.CreateOrUpdateSecret)
+						Put(reqToken(), reqOwner(), bind(api.CreateOrUpdateSecretOption{}), repo.CreateOrUpdateSecret).
+						Delete(reqToken(), reqOwner(), repo.DeleteSecret)
 				})
 				m.Group("/hooks/git", func() {
 					m.Combo("").Get(repo.ListGitHooks)
@@ -1310,7 +1318,7 @@ func Routes() *web.Route {
 				m.Get("", reqToken(), reqOrgOwnership(), org.ListActionsSecrets)
 				m.Combo("/{secretname}").
 					Put(reqToken(), reqOrgOwnership(), bind(api.CreateOrUpdateSecretOption{}), org.CreateOrUpdateSecret).
-					Delete(reqToken(), reqOrgOwnership(), org.DeleteOrgSecret)
+					Delete(reqToken(), reqOrgOwnership(), org.DeleteSecret)
 			})
 			m.Group("/public_members", func() {
 				m.Get("", org.ListPublicMembers)

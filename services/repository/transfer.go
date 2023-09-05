@@ -14,10 +14,10 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/services/audit"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 // repoWorkingPool represents a working pool to order the parallel changes to the same repository
@@ -59,7 +59,7 @@ func TransferOwnership(ctx context.Context, doer, newOwner *user_model.User, rep
 		audit.Record(audit.RepositoryCollaboratorTeamAdd, doer, newRepo, team, "Added team %s as collaborator for %s.", team.Name, newRepo.FullName())
 	}
 
-	notification.NotifyTransferRepository(ctx, doer, repo, oldOwner.Name)
+	notify_service.TransferRepository(ctx, doer, repo, oldOwner.Name)
 
 	return nil
 }
@@ -85,7 +85,7 @@ func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo
 
 	audit.Record(audit.RepositoryName, doer, repo, repo, "Repository name changed from %s to %s.", oldRepoName, newRepoName)
 
-	notification.NotifyRenameRepository(ctx, doer, repo, oldRepoName)
+	notify_service.RenameRepository(ctx, doer, repo, oldRepoName)
 
 	return nil
 }
@@ -136,7 +136,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 	audit.Record(audit.RepositoryTransferStart, doer, repo, repo, "Started repository transfer from %s to %s.", repo.OwnerName, newOwner.Name)
 
 	// notify users who are able to accept / reject transfer
-	notification.NotifyRepoPendingTransfer(ctx, doer, newOwner, repo)
+	notify_service.RepoPendingTransfer(ctx, doer, newOwner, repo)
 
 	return nil
 }
