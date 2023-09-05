@@ -14,27 +14,26 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/convert"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 func init() {
-	notification.RegisterNotifier(&webhookNotifier{})
+	notify_service.RegisterNotifier(&webhookNotifier{})
 }
 
 type webhookNotifier struct {
-	base.NullNotifier
+	notify_service.NullNotifier
 }
 
-var _ base.Notifier = &webhookNotifier{}
+var _ notify_service.Notifier = &webhookNotifier{}
 
 // NewNotifier create a new webhookNotifier notifier
-func NewNotifier() base.Notifier {
+func NewNotifier() notify_service.Notifier {
 	return &webhookNotifier{}
 }
 

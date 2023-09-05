@@ -1,7 +1,7 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package notification
+package notify
 
 import (
 	"context"
@@ -12,14 +12,13 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/repository"
 )
 
-var notifiers []base.Notifier
+var notifiers []Notifier
 
 // RegisterNotifier providers method to receive notify messages
-func RegisterNotifier(notifier base.Notifier) {
+func RegisterNotifier(notifier Notifier) {
 	go notifier.Run()
 	notifiers = append(notifiers, notifier)
 }

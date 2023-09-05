@@ -13,19 +13,19 @@ import (
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	stats_indexer "code.gitea.io/gitea/modules/indexer/stats"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 type indexerNotifier struct {
-	base.NullNotifier
+	notify_service.NullNotifier
 }
 
-var _ base.Notifier = &indexerNotifier{}
+var _ notify_service.Notifier = &indexerNotifier{}
 
 // NewNotifier create a new indexerNotifier notifier
-func NewNotifier() base.Notifier {
+func NewNotifier() notify_service.Notifier {
 	return &indexerNotifier{}
 }
 

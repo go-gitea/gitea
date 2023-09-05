@@ -7,12 +7,12 @@ import (
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	stats_indexer "code.gitea.io/gitea/modules/indexer/stats"
-	"code.gitea.io/gitea/modules/notification"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 // Init initialize the repo indexer
 func Init() error {
-	notification.RegisterNotifier(NewNotifier())
+	notify_service.RegisterNotifier(NewNotifier())
 
 	issue_indexer.InitIssueIndexer(false)
 	code_indexer.Init()
