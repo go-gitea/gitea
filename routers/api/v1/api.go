@@ -836,6 +836,13 @@ func Routes() *web.Route {
 				Post(bind(api.CreateEmailOption{}), user.AddEmail).
 				Delete(bind(api.DeleteEmailOption{}), user.DeleteEmail)
 
+			// create or update a user's actions secrets
+			m.Group("/actions/secrets", func() {
+				m.Combo("/{secretname}").
+					Put(bind(api.CreateOrUpdateSecretOption{}), user.CreateOrUpdateSecret).
+					Delete(repo.DeleteSecret)
+			})
+
 			m.Get("/followers", user.ListMyFollowers)
 			m.Group("/following", func() {
 				m.Get("", user.ListMyFollowing)

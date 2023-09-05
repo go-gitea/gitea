@@ -13998,6 +13998,81 @@
         }
       }
     },
+    "/user/actions/secrets/{secretname}": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Create or Update a secret value in a user scope",
+        "operationId": "updateUserSecret",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the secret",
+            "name": "secretname",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateOrUpdateSecretOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "response when creating a secret"
+          },
+          "204": {
+            "description": "response when updating a secret"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Delete a secret in a user scope",
+        "operationId": "deleteUserSecret",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the secret",
+            "name": "secretname",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "delete one secret of the organization"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
     "/user/applications/oauth2": {
       "get": {
         "produces": [
