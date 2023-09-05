@@ -1,5 +1,5 @@
 // Fork of the upstream module. The only changes are the addition of `const` on
-// lines 93 and 161 to make it strict-mode compatible.
+// lines 93 and 161 to make it strict mode compatible.
 
 /*!
  * jQuery Plugin: Are-You-Sure (Dirty Form Detection)
