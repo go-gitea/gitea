@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -73,7 +73,7 @@ func Init() {
 		case "log":
 			a = &LogAppender{}
 		case "file":
-			if err := os.MkdirAll(path.Dir(opts.Filename), os.ModePerm); err != nil {
+			if err := os.MkdirAll(filepath.Dir(opts.Filename), os.ModePerm); err != nil {
 				panic(err.Error())
 			}
 
