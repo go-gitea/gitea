@@ -1,7 +1,7 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package action
+package feed
 
 import (
 	"path/filepath"
@@ -19,7 +19,7 @@ import (
 
 func TestMain(m *testing.M) {
 	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", "..", ".."),
+		GiteaRootPath: filepath.Join("..", ".."),
 	})
 }
 
@@ -46,7 +46,7 @@ func TestRenameRepoAction(t *testing.T) {
 	}
 	unittest.AssertNotExistsBean(t, actionBean)
 
-	NewNotifier().NotifyRenameRepository(db.DefaultContext, user, repo, oldRepoName)
+	NewNotifier().RenameRepository(db.DefaultContext, user, repo, oldRepoName)
 
 	unittest.AssertExistsAndLoadBean(t, actionBean)
 	unittest.CheckConsistencyFor(t, &activities_model.Action{})
