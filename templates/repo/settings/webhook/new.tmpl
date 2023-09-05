@@ -1,25 +1,5 @@
 {{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings new webhook")}}
 	<div class="repo-setting-content">
-		<h4 class="ui top attached header">
-			{{if .PageIsSettingsHooksNew}}{{.locale.Tr "repo.settings.add_webhook"}}{{else}}{{.locale.Tr "repo.settings.update_webhook"}}{{end}}
-			<div class="ui right">
-				{{template "shared/webhook/icon" .}}
-			</div>
-		</h4>
-		<div class="ui attached segment">
-			{{template "repo/settings/webhook/gitea" .}}
-			{{template "repo/settings/webhook/gogs" .}}
-			{{template "repo/settings/webhook/slack" .}}
-			{{template "repo/settings/webhook/discord" .}}
-			{{template "repo/settings/webhook/dingtalk" .}}
-			{{template "repo/settings/webhook/telegram" .}}
-			{{template "repo/settings/webhook/msteams" .}}
-			{{template "repo/settings/webhook/feishu" .}}
-			{{template "repo/settings/webhook/matrix" .}}
-			{{template "repo/settings/webhook/wechatwork" .}}
-			{{template "repo/settings/webhook/packagist" .}}
-		</div>
-
-		{{template "repo/settings/webhook/history" .}}
+		{{template "webhook/new" .}}
 	</div>
 {{template "repo/settings/layout_footer" .}}
