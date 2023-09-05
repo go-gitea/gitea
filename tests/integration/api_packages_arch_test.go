@@ -233,7 +233,7 @@ H/p7XvruIemeWh6SgfsOAIv9+grBts8v3TfVdrMpvpQIQhkyOtfaAOBNsf5UfCz3CE17aLundn7z
 	t.Run("GetSecondDatabase", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", rootURL+"/archlinux/any/test2.db")
+		req := NewRequest(t, "GET", rootURL+"/archlinux/any/localhost.db")
 
 		resp := MakeRequest(t, req, http.StatusOK)
 

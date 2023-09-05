@@ -128,7 +128,7 @@ func Get(ctx *context.Context) {
 	)
 
 	if strings.HasSuffix(file, ".pkg.tar.zst") {
-		pkg, err := arch_service.GetFileObject(ctx, distro, file)
+		pkg, err := arch_service.GetPackageFile(ctx, distro, file)
 		if err != nil {
 			apiError(ctx, http.StatusNotFound, err)
 			return
@@ -141,19 +141,13 @@ func Get(ctx *context.Context) {
 	}
 
 	if strings.HasSuffix(file, ".pkg.tar.zst.sig") {
-		p, err := pkg_model.GetPropertieWithUniqueName(ctx, distro+"-"+file)
+		sig, err := arch_service.GetPackageSignature(ctx, distro, file)
 		if err != nil {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
 
-		b, err := hex.DecodeString(p.Value)
-		if err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
-
-		ctx.ServeContent(bytes.NewReader(b), &context.ServeHeaderOptions{
+		ctx.ServeContent(sig, &context.ServeHeaderOptions{
 			Filename: file,
 		})
 		return
