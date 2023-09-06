@@ -2024,6 +2024,7 @@ a.ui.basic.label:hover {
   top: 0;
   bottom: 0;
   display: flex;
+  align-items: center;
 }
 
 .ui.attached.header > .ui.right > .button,
