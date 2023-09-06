@@ -57,7 +57,6 @@ func Teams(ctx *context.Context) {
 		}
 	}
 	ctx.Data["Teams"] = ctx.Org.Teams
-	ctx.Data["ContextUser"] = ctx.ContextUser
 
 	err := shared_user.LoadHeaderCount(ctx)
 	if err != nil {
