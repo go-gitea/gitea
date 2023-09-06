@@ -50,8 +50,8 @@ Add the following text to the configuration file located in the current users ho
 default = "gitea"
 
 [registries.gitea]
-index = "https://gitea.example.com/{owner}/_cargo-index.git" # Git
-# index = "sparse+https://gitea.example.com/api/packages/{owner}/cargo/" # Sparse index
+index = "sparse+https://gitea.example.com/api/packages/{owner}/cargo/" # Sparse index
+# index = "https://gitea.example.com/{owner}/_cargo-index.git" # Git
 
 
 
