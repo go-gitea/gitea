@@ -142,12 +142,10 @@ func (b *Branch) LoadPusher(ctx context.Context) (err error) {
 }
 
 func (b *Branch) LoadRepo(ctx context.Context) (err error) {
-	if b.Repo == nil && b.RepoID > 0 {
-		b.Repo, err = repo_model.GetRepositoryByID(ctx, b.RepoID)
-		if repo_model.IsErrRepoNotExist(err) {
-			err = nil
-		}
+	if b.Repo != nil && b.RepoID == 0 {
+		return nil
 	}
+	b.Repo, err = repo_model.GetRepositoryByID(ctx, b.RepoID)
 	return err
 }
 
