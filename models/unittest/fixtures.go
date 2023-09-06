@@ -207,6 +207,12 @@ func defaultFixtureDumperVerbs(tableName string, actualValue reflect.Value, type
 			continue
 		}
 
+		if isText {
+			if _, ok := fieldValue.([]string); ok {
+				isJSON = true
+			}
+		}
+
 		if !isText {
 			if strValue, ok := fieldValue.(string); ok {
 				if len(strValue) == 0 {
