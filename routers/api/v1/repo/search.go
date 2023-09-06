@@ -42,7 +42,7 @@ func CodeSearch(ctx *context.APIContext) {
 	//   type: string
 	// - name: match
 	//   in: query
-	//   description: only excact match
+	//   description: only exact match (defaults to true)
 	//   type: boolean
 	// - name: page
 	//   in: query

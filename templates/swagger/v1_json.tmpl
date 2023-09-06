@@ -3983,7 +3983,7 @@
           },
           {
             "type": "boolean",
-            "description": "only excact match",
+            "description": "only exact match (defaults to true)",
             "name": "match",
             "in": "query"
           },
@@ -21377,6 +21377,22 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "RenameUserOption": {
+      "description": "RenameUserOption options when renaming a user",
+      "type": "object",
+      "required": [
+        "new_username"
+      ],
+      "properties": {
+        "new_username": {
+          "description": "New username for this user. This name cannot be in use yet by any other user.",
+          "type": "string",
+          "uniqueItems": true,
+          "x-go-name": "NewName"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "RepoCodeSearchAPIResponse": {
       "description": "RepoCodeSearchAPIResponse represents the resposne of the code_search API endpoint",
       "type": "object",
@@ -21399,18 +21415,6 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "Total"
-    "RenameUserOption": {
-      "description": "RenameUserOption options when renaming a user",
-      "type": "object",
-      "required": [
-        "new_username"
-      ],
-      "properties": {
-        "new_username": {
-          "description": "New username for this user. This name cannot be in use yet by any other user.",
-          "type": "string",
-          "uniqueItems": true,
-          "x-go-name": "NewName"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
