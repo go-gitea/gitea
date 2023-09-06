@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 )
 
 const (
@@ -49,6 +50,12 @@ func Members(ctx *context.Context) {
 	total, err := organization.CountOrgMembers(opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CountOrgMembers")
+		return
+	}
+
+	err = shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
 		return
 	}
 
