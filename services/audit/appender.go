@@ -22,7 +22,7 @@ type Appender interface {
 type LogAppender struct{}
 
 func (a *LogAppender) Record(ctx context.Context, e *Event) {
-	log.Info(e.Message)
+	log.Info("%s", e.Message)
 }
 
 func (a *LogAppender) Close() error {
