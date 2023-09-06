@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -303,7 +302,7 @@ func CreateRepositoryDirectly(doer, u *user_model.User, opts CreateRepoOptions) 
 		return nil
 	}); err != nil {
 		if rollbackRepo != nil {
-			if errDelete := models.DeleteRepository(doer, rollbackRepo.OwnerID, rollbackRepo.ID); errDelete != nil {
+			if errDelete := DeleteRepositoryDirectly(doer, rollbackRepo.OwnerID, rollbackRepo.ID); errDelete != nil {
 				log.Error("Rollback deleteRepository: %v", errDelete)
 			}
 		}
