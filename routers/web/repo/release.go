@@ -360,7 +360,7 @@ func NewRelease(ctx *context.Context) {
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	ctx.Data["Assignees"] = MakeSelfOnTop(ctx, assigneeUsers)
+	ctx.Data["Assignees"] = MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
 	upload.AddUploadContext(ctx, "release")
 
@@ -549,7 +549,7 @@ func EditRelease(ctx *context.Context) {
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	ctx.Data["Assignees"] = MakeSelfOnTop(ctx, assigneeUsers)
+	ctx.Data["Assignees"] = MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
 	ctx.HTML(http.StatusOK, tplReleaseNew)
 }
@@ -639,13 +639,9 @@ func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
 	}
 
 	if isDelTag {
-		ctx.JSON(http.StatusOK, map[string]any{
-			"redirect": ctx.Repo.RepoLink + "/tags",
-		})
+		ctx.JSONRedirect(ctx.Repo.RepoLink + "/tags")
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": ctx.Repo.RepoLink + "/releases",
-	})
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/releases")
 }

@@ -1,0 +1,47 @@
+{{- /* og:description - a one to two sentence description of your object, maybe it only needs at most 300 bytes */ -}}
+{{if .PageIsUserProfile}}
+	<meta property="og:title" content="{{.ContextUser.DisplayName}}">
+	<meta property="og:type" content="profile">
+	<meta property="og:image" content="{{.ContextUser.AvatarLink ctx}}">
+	<meta property="og:url" content="{{.ContextUser.HTMLURL}}">
+	{{if .ContextUser.Description}}
+		<meta property="og:description" content="{{StringUtils.EllipsisString .ContextUser.Description 300}}">
+	{{end}}
+{{else if .Repository}}
+	{{if .Issue}}
+		<meta property="og:title" content="{{.Issue.Title}}">
+		<meta property="og:url" content="{{.Issue.HTMLURL}}">
+		{{if .Issue.Content}}
+			<meta property="og:description" content="{{StringUtils.EllipsisString .Issue.Content 300}}">
+		{{end}}
+	{{else if or .PageIsDiff .IsViewFile}}
+		<meta property="og:title" content="{{.Title}}">
+		<meta property="og:url" content="{{AppUrl}}{{.Link}}">
+		{{if .PageIsDiff}}
+			{{- $commitMessageParts := StringUtils.Cut .Commit.Message "\n" -}}
+			{{- $commitMessageBody := index $commitMessageParts 1 -}}
+			{{- if $commitMessageBody -}}
+				<meta property="og:description" content="{{StringUtils.EllipsisString $commitMessageBody 300}}">
+			{{- end -}}
+		{{end}}
+	{{else}}
+		<meta property="og:title" content="{{.Repository.Name}}">
+		<meta property="og:url" content="{{.Repository.HTMLURL}}">
+		{{if .Repository.Description}}
+			<meta property="og:description" content="{{StringUtils.EllipsisString .Repository.Description 300}}">
+		{{end}}
+	{{end}}
+	<meta property="og:type" content="object">
+	{{if (.Repository.AvatarLink ctx)}}
+		<meta property="og:image" content="{{.Repository.AvatarLink ctx}}">
+	{{else}}
+		<meta property="og:image" content="{{.Repository.Owner.AvatarLink ctx}}">
+	{{end}}
+{{else}}
+	<meta property="og:title" content="{{AppName}}">
+	<meta property="og:type" content="website">
+	<meta property="og:image" content="{{AssetUrlPrefix}}/img/logo.png">
+	<meta property="og:url" content="{{AppUrl}}">
+	<meta property="og:description" content="{{MetaDescription}}">
+{{end}}
+<meta property="og:site_name" content="{{AppName}}">

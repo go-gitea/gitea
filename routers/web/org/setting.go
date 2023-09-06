@@ -45,7 +45,6 @@ func Settings(ctx *context.Context) {
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
 	ctx.Data["RepoAdminChangeTeamAccess"] = ctx.Org.Organization.RepoAdminChangeTeamAccess
-	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.HTML(http.StatusOK, tplSettingsOptions)
 }
 
@@ -100,6 +99,7 @@ func SettingsPost(ctx *context.Context) {
 	}
 
 	org.FullName = form.FullName
+	org.Email = form.Email
 	org.Description = form.Description
 	org.Website = form.Website
 	org.Location = form.Location
@@ -155,7 +155,7 @@ func SettingsDeleteAvatar(ctx *context.Context) {
 		ctx.Flash.Error(err.Error())
 	}
 
-	ctx.Redirect(ctx.Org.OrgLink + "/settings")
+	ctx.JSONRedirect(ctx.Org.OrgLink + "/settings")
 }
 
 // SettingsDelete response for deleting an organization
@@ -218,9 +218,7 @@ func DeleteWebhook(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"redirect": ctx.Org.OrgLink + "/settings/hooks",
-	})
+	ctx.JSONRedirect(ctx.Org.OrgLink + "/settings/hooks")
 }
 
 // Labels render organization labels page

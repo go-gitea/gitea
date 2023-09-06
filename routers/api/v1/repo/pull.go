@@ -24,7 +24,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -36,6 +35,7 @@ import (
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/gitdiff"
 	issue_service "code.gitea.io/gitea/services/issue"
+	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -326,11 +326,9 @@ func CreatePullRequest(ctx *context.APIContext) {
 			return
 		}
 
-		labelIDs = make([]int64, len(form.Labels))
-		orgLabelIDs := make([]int64, len(form.Labels))
-
-		for i := range labels {
-			labelIDs[i] = labels[i].ID
+		labelIDs = make([]int64, 0, len(labels))
+		for _, label := range labels {
+			labelIDs = append(labelIDs, label.ID)
 		}
 
 		if ctx.Repo.Owner.IsOrganization() {
@@ -340,12 +338,12 @@ func CreatePullRequest(ctx *context.APIContext) {
 				return
 			}
 
-			for i := range orgLabels {
-				orgLabelIDs[i] = orgLabels[i].ID
+			orgLabelIDs := make([]int64, 0, len(orgLabels))
+			for _, orgLabel := range orgLabels {
+				orgLabelIDs = append(orgLabelIDs, orgLabel.ID)
 			}
+			labelIDs = append(labelIDs, orgLabelIDs...)
 		}
-
-		labelIDs = append(labelIDs, orgLabelIDs...)
 	}
 
 	if form.Milestone > 0 {
@@ -596,11 +594,11 @@ func EditPullRequest(ctx *context.APIContext) {
 	}
 
 	if titleChanged {
-		notification.NotifyIssueChangeTitle(ctx, ctx.Doer, issue, oldTitle)
+		notify_service.IssueChangeTitle(ctx, ctx.Doer, issue, oldTitle)
 	}
 
 	if statusChangeComment != nil {
-		notification.NotifyIssueChangeStatus(ctx, ctx.Doer, "", issue, statusChangeComment, issue.IsClosed)
+		notify_service.IssueChangeStatus(ctx, ctx.Doer, "", issue, statusChangeComment, issue.IsClosed)
 	}
 
 	// change pull target branch
@@ -624,7 +622,7 @@ func EditPullRequest(ctx *context.APIContext) {
 			}
 			return
 		}
-		notification.NotifyPullRequestChangeTargetBranch(ctx, ctx.Doer, pr, form.Base)
+		notify_service.PullRequestChangeTargetBranch(ctx, ctx.Doer, pr, form.Base)
 	}
 
 	// update allow edits

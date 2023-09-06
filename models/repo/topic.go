@@ -22,7 +22,7 @@ func init() {
 	db.RegisterModel(new(RepoTopic))
 }
 
-var topicPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
+var topicPattern = regexp.MustCompile(`^[a-z0-9][-.a-z0-9]*$`)
 
 // Topic represents a topic of repositories
 type Topic struct {

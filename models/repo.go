@@ -170,6 +170,8 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		&actions_model.ActionRunJob{RepoID: repoID},
 		&actions_model.ActionRun{RepoID: repoID},
 		&actions_model.ActionRunner{RepoID: repoID},
+		&actions_model.ActionScheduleSpec{RepoID: repoID},
+		&actions_model.ActionSchedule{RepoID: repoID},
 		&actions_model.ActionArtifact{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %w", err)

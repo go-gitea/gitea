@@ -156,9 +156,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 		renderConversation(ctx, comment)
 		return
 	}
-	ctx.JSON(http.StatusOK, map[string]any{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }
 
 func renderConversation(ctx *context.Context, comment *issues_model.Comment) {
@@ -261,8 +259,8 @@ type viewedFilesUpdate struct {
 
 func UpdateViewedFiles(ctx *context.Context) {
 	// Find corresponding PR
-	issue := checkPullInfo(ctx)
-	if ctx.Written() {
+	issue, ok := getPullInfo(ctx)
+	if !ok {
 		return
 	}
 	pull := issue.PullRequest

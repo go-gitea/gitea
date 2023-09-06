@@ -137,6 +137,15 @@ func List(ctx *context.Context) {
 	actorID := ctx.FormInt64("actor")
 	status := ctx.FormInt("status")
 	ctx.Data["CurWorkflow"] = workflow
+
+	actionsConfig := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
+	ctx.Data["ActionsConfig"] = actionsConfig
+
+	if len(workflow) > 0 && ctx.Repo.IsAdmin() {
+		ctx.Data["AllowDisableOrEnableWorkflow"] = true
+		ctx.Data["CurWorkflowDisabled"] = actionsConfig.IsWorkflowDisabled(workflow)
+	}
+
 	// if status or actor query param is not given to frontend href, (href="/<repoLink>/actions")
 	// they will be 0 by default, which indicates get all status or actors
 	ctx.Data["CurActor"] = actorID
@@ -150,10 +159,14 @@ func List(ctx *context.Context) {
 			Page:     page,
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 		},
-		RepoID:           ctx.Repo.Repository.ID,
-		WorkflowFileName: workflow,
-		TriggerUserID:    actorID,
-		Status:           actions_model.Status(status),
+		RepoID:        ctx.Repo.Repository.ID,
+		WorkflowID:    workflow,
+		TriggerUserID: actorID,
+	}
+
+	// if status is not StatusUnknown, it means user has selected a status filter
+	if actions_model.Status(status) != actions_model.StatusUnknown {
+		opts.Status = []actions_model.Status{actions_model.Status(status)}
 	}
 
 	runs, total, err := actions_model.FindRuns(ctx, opts)
@@ -178,7 +191,7 @@ func List(ctx *context.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
-	ctx.Data["Actors"] = repo.MakeSelfOnTop(ctx, actors)
+	ctx.Data["Actors"] = repo.MakeSelfOnTop(ctx.Doer, actors)
 
 	ctx.Data["StatusInfoList"] = actions_model.GetStatusInfoList(ctx)
 
