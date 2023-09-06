@@ -56,7 +56,6 @@ func Teams(ctx *context.Context) {
 		}
 	}
 	ctx.Data["Teams"] = ctx.Org.Teams
-	ctx.Data["ContextUser"] = ctx.ContextUser
 
 	ctx.HTML(http.StatusOK, tplTeams)
 }
