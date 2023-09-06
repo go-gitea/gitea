@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 )
 
@@ -40,6 +41,12 @@ func Applications(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Applications"] = apps
+
+	err = shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
 
 	ctx.HTML(http.StatusOK, tplSettingsApplications)
 }
