@@ -955,6 +955,12 @@ Default templates for project boards:
 - `SCHEDULE`: **@midnight** : Interval as a duration between each synchronization, it will always attempt synchronization when the instance starts.
 - `UPDATE_EXISTING`: **true**: Create new users, update existing user data and disable users that are not in external source anymore (default) or only create new users if UPDATE_EXISTING is set to false.
 
+## Cron - Cleanup Expired Actions Assets (`cron.cleanup_actions`)
+
+- `ENABLED`: **true**: Enable cleanup expired actions assets job.
+- `RUN_AT_START`: **true**: Run job at start time (if ENABLED).
+- `SCHEDULE`: **@midnight** : Cron syntax for the job.
+
 ### Extended cron tasks (not enabled by default)
 
 #### Cron - Garbage collect all repositories (`cron.git_gc_repos`)
@@ -1381,6 +1387,7 @@ PROXY_HOSTS = *.github.com
 - `DEFAULT_ACTIONS_URL`: **github**: Default platform to get action plugins, `github` for `https://github.com`, `self` for the current Gitea instance.
 - `STORAGE_TYPE`: **local**: Storage type for actions logs, `local` for local disk or `minio` for s3 compatible object storage service, default is `local` or other name defined with `[storage.xxx]`
 - `MINIO_BASE_PATH`: **actions_log/**: Minio base path on the bucket only available when STORAGE_TYPE is `minio`
+- `ARTIFACT_RETENTION_DAYS`: **90**: Number of days to keep artifacts. Set to 0 to disable artifact retention. Default is 90 days if not set.
 
 `DEFAULT_ACTIONS_URL` indicates where the Gitea Actions runners should find the actions with relative path.
 For example, `uses: actions/checkout@v3` means `https://github.com/actions/checkout@v3` since the value of `DEFAULT_ACTIONS_URL` is `github`.
