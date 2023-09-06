@@ -36,7 +36,7 @@ func GetSiteCookie(req *http.Request, name string) string {
 func GetCookieSecure(req *http.Request) bool {
 	forwardedProto := req.Header.Get("x-forwarded-proto")
 	if forwardedProto != "" {
-		return forwardedProto == "https"
+		return forwardedProto == "https" || forwardedProto == "wss"
 	}
 	return req.TLS != nil
 }
