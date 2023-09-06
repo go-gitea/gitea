@@ -9,33 +9,29 @@ function attachDirAuto(el) {
 }
 
 export function initDirAuto() {
-  let timeSpent = 0;
-
   const observer = new MutationObserver((mutationList) => {
-    const start = performance.now();
-    for (let i = 0; i < mutationList.length; i++) {
+    const len = mutationList.length;
+    for (let i = 0; i < len; i++) {
       const mutation = mutationList[i];
-      for (let addedNodeIdx = 0; addedNodeIdx < mutation.addedNodes.length; addedNodeIdx++) {
+      const len = mutation.addedNodes.length;
+      for (let addedNodeIdx = 0; addedNodeIdx < len; addedNodeIdx++) {
         const addedNode = mutation.addedNodes[addedNodeIdx];
         if (addedNode.nodeType !== Node.ELEMENT_NODE && addedNode.nodeType !== Node.DOCUMENT_FRAGMENT_NODE) continue;
         attachDirAuto(addedNode);
         const children = addedNode.querySelectorAll('input, textarea');
-        for (let childIdx = 0; childIdx < children.length; childIdx++) {
+        const len = children.length;
+        for (let childIdx = 0; childIdx < len; childIdx++) {
           attachDirAuto(children[childIdx]);
         }
       }
     }
-    timeSpent += performance.now() - start;
   });
 
-  const start = performance.now();
   const docNodes = document.querySelectorAll('input, textarea');
-  for (let i = 0; i < docNodes.length; i++) {
+  const len = docNodes.length;
+  for (let i = 0; i < len; i++) {
     attachDirAuto(docNodes[i]);
   }
-  timeSpent += performance.now() - start;
-
-  setTimeout(() => console.log(timeSpent), 2000);
 
   observer.observe(document, {subtree: true, childList: true});
 }
