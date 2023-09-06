@@ -13,10 +13,11 @@ import (
 // Actions settings
 var (
 	Actions = struct {
-		LogStorage        *Storage // how the created logs should be stored
-		ArtifactStorage   *Storage // how the created artifacts should be stored
-		Enabled           bool
-		DefaultActionsURL defaultActionsURL `ini:"DEFAULT_ACTIONS_URL"`
+		LogStorage            *Storage // how the created logs should be stored
+		ArtifactStorage       *Storage // how the created artifacts should be stored
+		ArtifactRetentionDays int64    `ini:"ARTIFACT_RETENTION_DAYS"`
+		Enabled               bool
+		DefaultActionsURL     defaultActionsURL `ini:"DEFAULT_ACTIONS_URL"`
 	}{
 		Enabled:           false,
 		DefaultActionsURL: defaultActionsURLGitHub,
@@ -75,6 +76,11 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 	actionsSec, _ := rootCfg.GetSection("actions.artifacts")
 
 	Actions.ArtifactStorage, err = getStorage(rootCfg, "actions_artifacts", "", actionsSec)
+
+	// default to 90 days in Github Actions
+	if Actions.ArtifactRetentionDays <= 0 {
+		Actions.ArtifactRetentionDays = 90
+	}
 
 	return err
 }
