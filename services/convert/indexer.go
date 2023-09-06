@@ -42,9 +42,9 @@ func ToIndexerSearchResultList(results []*code_indexer.Result) []*api.IndexerRes
 
 // ToIndexerSearchResultLanguagesList convert list of *code_indexer.SearchResultLanguages to list of *api.IndexerSearchResultLanguages
 func ToIndexerSearchResultLanguagesList(results []*code_indexer.SearchResultLanguages) []*api.IndexerSearchResultLanguages {
-	converted_results := make([]*api.IndexerSearchResultLanguages, len(results))
+	convertedResults := make([]*api.IndexerSearchResultLanguages, len(results))
 	for i := range results {
-		converted_results[i] = ToIndexerSearchResultLanguages(results[i])
+		convertedResults[i] = ToIndexerSearchResultLanguages(results[i])
 	}
-	return converted_results
+	return convertedResults
 }
