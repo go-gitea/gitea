@@ -74,6 +74,7 @@ token = "Bearer {token}"
 | `token`   | Your [personal access token](development/api-usage.md#authentication) |
 
 ## Git vs Sparse
+
 Currently, cargo supports two ways for fetching crates in a registry: Git index & sparse index.
 Sparse index is the newest method and offers better performance when updating crates compared to git.
 Since Rust 1.68, sparse is the default method for crates.io.
