@@ -43,7 +43,6 @@ func GetCookieSecure(req *http.Request) bool {
 
 // SetSiteCookie returns given cookie value from request header.
 func SetSiteCookie(resp http.ResponseWriter, req *http.Request, name, value string, maxAge int) {
-
 	cookie := &http.Cookie{
 		Name:     name,
 		Value:    url.QueryEscape(value),
