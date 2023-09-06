@@ -179,7 +179,7 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 	// save storage path to artifact
 	log.Debug("[artifact] merge chunks to artifact: %d, %s", artifact.ID, storagePath)
 	artifact.StoragePath = storagePath
-	artifact.Status = actions.ArtifactStatusUploadConfirmed
+	artifact.Status = int64(actions.ArtifactStatusUploadConfirmed)
 	if err := actions.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
 		return fmt.Errorf("update artifact error: %v", err)
 	}
