@@ -53,8 +53,6 @@ default = "gitea"
 index = "sparse+https://gitea.example.com/api/packages/{owner}/cargo/" # Sparse index
 # index = "https://gitea.example.com/{owner}/_cargo-index.git" # Git
 
-
-
 [net]
 git-fetch-with-cli = true
 ```
