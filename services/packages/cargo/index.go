@@ -19,10 +19,10 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	cargo_module "code.gitea.io/gitea/modules/packages/cargo"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
@@ -206,7 +206,7 @@ func getOrCreateIndexRepository(ctx context.Context, doer, owner *user_model.Use
 	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, owner.Name, IndexRepositoryName)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			repo, err = repo_module.CreateRepository(doer, owner, repo_module.CreateRepoOptions{
+			repo, err = repo_service.CreateRepositoryDirectly(doer, owner, repo_service.CreateRepoOptions{
 				Name: IndexRepositoryName,
 			})
 			if err != nil {
