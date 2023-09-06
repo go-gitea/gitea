@@ -124,30 +124,6 @@ func LoadRepoConfig() error {
 	return nil
 }
 
-func CheckInitRepository(ctx context.Context, owner, name string) (err error) {
-	// Somehow the directory could exist.
-	repoPath := repo_model.RepoPath(owner, name)
-	isExist, err := util.IsExist(repoPath)
-	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
-		return err
-	}
-	if isExist {
-		return repo_model.ErrRepoFilesAlreadyExist{
-			Uname: owner,
-			Name:  name,
-		}
-	}
-
-	// Init git bare new repository.
-	if err = git.InitRepository(ctx, repoPath, true); err != nil {
-		return fmt.Errorf("git.InitRepository: %w", err)
-	} else if err = CreateDelegateHooks(repoPath); err != nil {
-		return fmt.Errorf("createDelegateHooks: %w", err)
-	}
-	return nil
-}
-
 // InitRepoCommit temporarily changes with work directory.
 func InitRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Repository, u *user_model.User, defaultBranch string) (err error) {
 	commitTimeStr := time.Now().Format(time.RFC3339)
@@ -209,6 +185,30 @@ func InitRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 		return fmt.Errorf("git push: %w", err)
 	}
 
+	return nil
+}
+
+func CheckInitRepository(ctx context.Context, owner, name string) (err error) {
+	// Somehow the directory could exist.
+	repoPath := repo_model.RepoPath(owner, name)
+	isExist, err := util.IsExist(repoPath)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+		return err
+	}
+	if isExist {
+		return repo_model.ErrRepoFilesAlreadyExist{
+			Uname: owner,
+			Name:  name,
+		}
+	}
+
+	// Init git bare new repository.
+	if err = git.InitRepository(ctx, repoPath, true); err != nil {
+		return fmt.Errorf("git.InitRepository: %w", err)
+	} else if err = CreateDelegateHooks(repoPath); err != nil {
+		return fmt.Errorf("createDelegateHooks: %w", err)
+	}
 	return nil
 }
 
