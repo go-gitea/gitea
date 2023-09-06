@@ -40,8 +40,8 @@ type WebSearchResults struct {
 }
 
 // CreateRepository creates a repository for the user/organization.
-func CreateRepository(ctx context.Context, doer, owner *user_model.User, opts repo_module.CreateRepoOptions) (*repo_model.Repository, error) {
-	repo, err := repo_module.CreateRepository(doer, owner, opts)
+func CreateRepository(ctx context.Context, doer, owner *user_model.User, opts CreateRepoOptions) (*repo_model.Repository, error) {
+	repo, err := CreateRepositoryDirectly(doer, owner, opts)
 	if err != nil {
 		// No need to rollback here we should do this in CreateRepository...
 		return nil, err
@@ -84,7 +84,7 @@ func PushCreateRepo(ctx context.Context, authUser, owner *user_model.User, repoN
 		}
 	}
 
-	repo, err := CreateRepository(ctx, authUser, owner, repo_module.CreateRepoOptions{
+	repo, err := CreateRepository(ctx, authUser, owner, CreateRepoOptions{
 		Name:      repoName,
 		IsPrivate: setting.Repository.DefaultPushCreatePrivate,
 	})
