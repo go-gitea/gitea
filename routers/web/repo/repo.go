@@ -378,15 +378,28 @@ func RedirectDownload(ctx *context.Context) {
 	curRepo := ctx.Repo.Repository
 	releases, err := repo_model.GetReleasesByRepoIDAndNames(ctx, curRepo.ID, tagNames)
 	if err != nil {
-		if repo_model.IsErrAttachmentNotExist(err) {
-			ctx.Error(http.StatusNotFound)
-			return
-		}
 		ctx.ServerError("RedirectDownload", err)
 		return
 	}
 	if len(releases) == 1 {
 		release := releases[0]
+		att, err := repo_model.GetAttachmentByReleaseIDFileName(ctx, release.ID, fileName)
+		if err != nil {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+		if att != nil {
+			ServeAttachment(ctx, att.UUID)
+			return
+		}
+	} else if len(releases) == 0 && vTag == "latest" {
+		// GitHub supports the alias "latest" for the latest release
+		// We only fetch the latest release if the tag is "latest" and no release with the tag "latest" exists
+		release, err := repo_model.GetLatestReleaseByRepoID(ctx.Repo.Repository.ID)
+		if err != nil {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
 		att, err := repo_model.GetAttachmentByReleaseIDFileName(ctx, release.ID, fileName)
 		if err != nil {
 			ctx.Error(http.StatusNotFound)
