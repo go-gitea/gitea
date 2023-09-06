@@ -788,7 +788,7 @@ Gitea 创建以下非唯一队列：
 - `MAX_FILES`: **5**: 一次最多上传的附件数量。
 - `STORAGE_TYPE`: **local**: 附件的存储类型，`local` 表示本地磁盘，`minio` 表示兼容 S3 的对象存储服务，如果未设置将使用默认值 `local` 或其他在 `[storage.xxx]` 中定义的名称。
 - `SERVE_DIRECT`: **false**: 允许存储驱动器重定向到经过身份验证的 URL 以直接提供文件。目前，只支持 Minio/S3 通过签名 URL 提供支持，local 不会执行任何操作。
-- `PATH`: **data/attachments**: 存储附件的路径，仅当 STORAGE_TYPE 为 `local` 时可用。
+- `PATH`: **attachments**: 存储附件的路径，仅当 STORAGE_TYPE 为 `local` 时可用。如果是相对路径，将会被解析为 `${AppDataPath}/${attachment.PATH}`.
 - `MINIO_ENDPOINT`: **localhost:9000**: Minio 端点以连接，仅当 STORAGE_TYPE 为 `minio` 时可用。
 - `MINIO_ACCESS_KEY_ID`: Minio accessKeyID 以连接，仅当 STORAGE_TYPE 为 `minio` 时可用。
 - `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey 以连接，仅当 STORAGE_TYPE 为 `minio` 时可用。

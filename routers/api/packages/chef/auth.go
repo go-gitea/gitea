@@ -36,6 +36,8 @@ var (
 	algorithmPattern     = regexp.MustCompile(`algorithm=(\w+)`)
 	versionPattern       = regexp.MustCompile(`version=(\d+\.\d+)`)
 	authorizationPattern = regexp.MustCompile(`\AX-Ops-Authorization-(\d+)`)
+
+	_ auth.Method = &Auth{}
 )
 
 // Documentation:

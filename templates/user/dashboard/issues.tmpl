@@ -7,29 +7,29 @@
 				<div class="ui secondary vertical filter menu gt-bg-transparent">
 					<a class="{{if eq .ViewType "your_repositories"}}active{{end}} item" href="{{.Link}}?type=your_repositories&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
 						{{.locale.Tr "home.issues.in_your_repos"}}
-						<strong class="ui right">{{CountFmt .IssueStats.YourRepositoriesCount}}</strong>
+						<strong>{{CountFmt .IssueStats.YourRepositoriesCount}}</strong>
 					</a>
 					<a class="{{if eq .ViewType "assigned"}}active{{end}} item" href="{{.Link}}?type=assigned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
 						{{.locale.Tr "repo.issues.filter_type.assigned_to_you"}}
-						<strong class="ui right">{{CountFmt .IssueStats.AssignCount}}</strong>
+						<strong>{{CountFmt .IssueStats.AssignCount}}</strong>
 					</a>
 					<a class="{{if eq .ViewType "created_by"}}active{{end}} item" href="{{.Link}}?type=created_by&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
 						{{.locale.Tr "repo.issues.filter_type.created_by_you"}}
-						<strong class="ui right">{{CountFmt .IssueStats.CreateCount}}</strong>
+						<strong>{{CountFmt .IssueStats.CreateCount}}</strong>
 					</a>
 					{{if .PageIsPulls}}
 						<a class="{{if eq .ViewType "review_requested"}}active{{end}} item" href="{{.Link}}?type=review_requested&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
 							{{.locale.Tr "repo.issues.filter_type.review_requested"}}
-							<strong class="ui right">{{CountFmt .IssueStats.ReviewRequestedCount}}</strong>
+							<strong>{{CountFmt .IssueStats.ReviewRequestedCount}}</strong>
 						</a>
 						<a class="{{if eq .ViewType "reviewed_by"}}active{{end}} item" href="{{.Link}}?type=reviewed_by&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
 							{{.locale.Tr "repo.issues.filter_type.reviewed_by_you"}}
-							<strong class="ui right">{{CountFmt .IssueStats.ReviewedCount}}</strong>
+							<strong>{{CountFmt .IssueStats.ReviewedCount}}</strong>
 						</a>
 					{{end}}
 					<a class="{{if eq .ViewType "mentioned"}}active{{end}} item" href="{{.Link}}?type=mentioned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
 						{{.locale.Tr "repo.issues.filter_type.mentioning_you"}}
-						<strong class="ui right">{{CountFmt .IssueStats.MentionCount}}</strong>
+						<strong>{{CountFmt .IssueStats.MentionCount}}</strong>
 					</a>
 					<div class="divider"></div>
 					<a class="{{if not $.RepoIDs}}active{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&q={{$.Keyword}}">

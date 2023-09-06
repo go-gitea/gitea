@@ -1301,7 +1301,7 @@
   lower_name: limited_org36
   name: limited_org36
   full_name: Limited Org 36
-  email: limited_org36@example.com
+  email: abcde@gitea.com
   keep_email_private: false
   email_notifications_preference: enabled
   passwd: ZogKvWdyEx:password
@@ -1320,7 +1320,7 @@
   allow_create_organization: true
   prohibit_login: false
   avatar: avatar22
-  avatar_email: limited_org36@example.com
+  avatar_email: abcde@gitea.com
   use_custom_avatar: false
   num_followers: 0
   num_following: 0
