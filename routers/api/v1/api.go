@@ -776,11 +776,11 @@ func Routes() *web.Route {
 		// Notifications (requires 'notifications' scope)
 		m.Group("/notifications", func() {
 			m.Combo("").
-				Get(notify.ListNotifications).
+				Get(reqToken(), notify.ListNotifications).
 				Put(reqToken(), notify.ReadNotifications)
-			m.Get("/new", notify.NewAvailable)
+			m.Get("/new", reqToken(), notify.NewAvailable)
 			m.Combo("/threads/{id}").
-				Get(notify.GetThread).
+				Get(reqToken(), notify.GetThread).
 				Patch(reqToken(), notify.ReadThread)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryNotification))
 
@@ -835,6 +835,13 @@ func Routes() *web.Route {
 				Get(user.ListEmails).
 				Post(bind(api.CreateEmailOption{}), user.AddEmail).
 				Delete(bind(api.DeleteEmailOption{}), user.DeleteEmail)
+
+			// create or update a user's actions secrets
+			m.Group("/actions/secrets", func() {
+				m.Combo("/{secretname}").
+					Put(bind(api.CreateOrUpdateSecretOption{}), user.CreateOrUpdateSecret).
+					Delete(repo.DeleteSecret)
+			})
 
 			m.Get("/followers", user.ListMyFollowers)
 			m.Group("/following", func() {

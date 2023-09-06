@@ -2620,13 +2620,14 @@ tbody.commit-list {
 }
 
 .commit-body {
+  margin: 0.25em 0;
   white-space: pre-wrap;
   line-height: initial;
 }
 
 /* PR-comment */
-.repository:not(.diff) .timeline-item .commit-body {
-  margin-left: 40px;
+.repository .timeline-item .commit-body {
+  margin-left: 45px;
 }
 
 .git-notes.top {
