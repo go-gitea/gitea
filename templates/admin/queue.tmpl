@@ -11,6 +11,7 @@
 				<th>{{.locale.Tr "admin.monitor.queue.type"}}</th>
 				<th>{{.locale.Tr "admin.monitor.queue.exemplar"}}</th>
 				<th>{{.locale.Tr "admin.monitor.queue.numberworkers"}}</th>
+				<th>{{.locale.Tr "admin.monitor.queue.activeworkers"}}</th>
 				<th>{{.locale.Tr "admin.monitor.queue.numberinqueue"}}</th>
 				<th></th>
 			</tr>
@@ -21,9 +22,10 @@
 				<td>{{$q.GetName}}</td>
 				<td>{{$q.GetType}}</td>
 				<td>{{$q.GetItemTypeName}}</td>
-				<td>{{$sum := $q.GetWorkerNumber}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
-				<td>{{$sum = $q.GetQueueItemNumber}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
-				<td><a href="{{$.Link}}/{{$qid}}" class="button">{{if lt $sum 0}}{{$.locale.Tr "admin.monitor.queue.review"}}{{else}}{{$.locale.Tr "admin.monitor.queue.review_add"}}{{end}}</a></td>
+				<td>{{$q.GetWorkerNumber}}</td>
+				<td>{{$q.GetWorkerActiveNumber}}</td>
+				<td>{{$sum := $q.GetQueueItemNumber}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
+				<td><a href="{{$.Link}}/{{$qid}}" class="button">{{$.locale.Tr "admin.monitor.queue.review_add"}}</a></td>
 			</tr>
 			{{end}}
 			</tbody>
