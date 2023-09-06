@@ -15,8 +15,8 @@ export function initDirAuto() {
 
   const observer = new MutationObserver((mutationList) => {
     const start = performance.now();
-    for (let mutationIdx = 0; mutationIdx < mutationList.length; mutationIdx++) {
-      const mutation = mutationList[mutationIdx];
+    for (let i = 0; i < mutationList.length; i++) {
+      const mutation = mutationList[i];
       for (let addedNodeIdx = 0; addedNodeIdx < mutation.addedNodes.length; addedNodeIdx++) {
         const addedNode = mutation.addedNodes[addedNodeIdx];
         if (addedNode.nodeType !== Node.ELEMENT_NODE && addedNode.nodeType !== Node.DOCUMENT_FRAGMENT_NODE) continue;
