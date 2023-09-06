@@ -17,12 +17,12 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migration"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/migrations"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 func handleCreateError(owner *user_model.User, err error) error {
@@ -50,7 +50,7 @@ func runMigrateTask(t *admin_model.Task) (err error) {
 		if err == nil {
 			err = admin_model.FinishMigrateTask(t)
 			if err == nil {
-				notification.NotifyMigrateRepository(db.DefaultContext, t.Doer, t.Owner, t.Repo)
+				notify_service.MigrateRepository(db.DefaultContext, t.Doer, t.Owner, t.Repo)
 				return
 			}
 
