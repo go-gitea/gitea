@@ -30,7 +30,6 @@ func CodeSearch(ctx *context.Context) {
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["Title"] = ctx.Tr("explore.code")
-	ctx.Data["ContextUser"] = ctx.ContextUser
 
 	language := ctx.FormTrim("l")
 	keyword := ctx.FormTrim("q")
