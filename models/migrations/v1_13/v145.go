@@ -17,11 +17,11 @@ func IncreaseLanguageField(x *xorm.Engine) error {
 		Language string `xorm:"VARCHAR(50) UNIQUE(s) INDEX NOT NULL"`
 	}
 
-	if err := x.Sync2(new(LanguageStat)); err != nil {
+	if err := x.Sync(new(LanguageStat)); err != nil {
 		return err
 	}
 
-	if setting.Database.UseSQLite3 {
+	if setting.Database.Type.IsSQLite3() {
 		// SQLite maps VARCHAR to TEXT without size so we're done
 		return nil
 	}
@@ -41,11 +41,11 @@ func IncreaseLanguageField(x *xorm.Engine) error {
 	}
 
 	switch {
-	case setting.Database.UseMySQL:
+	case setting.Database.Type.IsMySQL():
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE language_stat MODIFY COLUMN language %s", sqlType)); err != nil {
 			return err
 		}
-	case setting.Database.UseMSSQL:
+	case setting.Database.Type.IsMSSQL():
 		// Yet again MSSQL just has to be awkward.
 		// Here we have to drop the constraints first and then rebuild them
 		constraints := make([]string, 0)
@@ -71,7 +71,7 @@ func IncreaseLanguageField(x *xorm.Engine) error {
 		if err := sess.CreateUniques(new(LanguageStat)); err != nil {
 			return err
 		}
-	case setting.Database.UsePostgreSQL:
+	case setting.Database.Type.IsPostgreSQL():
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE language_stat ALTER COLUMN language TYPE %s", sqlType)); err != nil {
 			return err
 		}

@@ -61,6 +61,7 @@ var (
 	AssetVersion string
 
 	// Server settings
+
 	Protocol                   Scheme
 	UseProxyProtocol           bool // `ini:"USE_PROXY_PROTOCOL"`
 	ProxyProtocolTLSBridging   bool //`ini:"PROXY_PROTOCOL_TLS_BRIDGING"`
@@ -178,38 +179,40 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	switch protocolCfg {
 	case "https":
 		Protocol = HTTPS
-		// FIXME: DEPRECATED to be removed in v1.18.0
+
+		// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
+		// if these are removed, the warning will not be shown
 		if sec.HasKey("ENABLE_ACME") {
 			EnableAcme = sec.Key("ENABLE_ACME").MustBool(false)
 		} else {
-			deprecatedSetting(rootCfg, "server", "ENABLE_LETSENCRYPT", "server", "ENABLE_ACME")
+			deprecatedSetting(rootCfg, "server", "ENABLE_LETSENCRYPT", "server", "ENABLE_ACME", "v1.19.0")
 			EnableAcme = sec.Key("ENABLE_LETSENCRYPT").MustBool(false)
 		}
 		if EnableAcme {
 			AcmeURL = sec.Key("ACME_URL").MustString("")
 			AcmeCARoot = sec.Key("ACME_CA_ROOT").MustString("")
-			// FIXME: DEPRECATED to be removed in v1.18.0
+
 			if sec.HasKey("ACME_ACCEPTTOS") {
 				AcmeTOS = sec.Key("ACME_ACCEPTTOS").MustBool(false)
 			} else {
-				deprecatedSetting(rootCfg, "server", "LETSENCRYPT_ACCEPTTOS", "server", "ACME_ACCEPTTOS")
+				deprecatedSetting(rootCfg, "server", "LETSENCRYPT_ACCEPTTOS", "server", "ACME_ACCEPTTOS", "v1.19.0")
 				AcmeTOS = sec.Key("LETSENCRYPT_ACCEPTTOS").MustBool(false)
 			}
 			if !AcmeTOS {
 				log.Fatal("ACME TOS is not accepted (ACME_ACCEPTTOS).")
 			}
-			// FIXME: DEPRECATED to be removed in v1.18.0
+
 			if sec.HasKey("ACME_DIRECTORY") {
 				AcmeLiveDirectory = sec.Key("ACME_DIRECTORY").MustString("https")
 			} else {
-				deprecatedSetting(rootCfg, "server", "LETSENCRYPT_DIRECTORY", "server", "ACME_DIRECTORY")
+				deprecatedSetting(rootCfg, "server", "LETSENCRYPT_DIRECTORY", "server", "ACME_DIRECTORY", "v1.19.0")
 				AcmeLiveDirectory = sec.Key("LETSENCRYPT_DIRECTORY").MustString("https")
 			}
-			// FIXME: DEPRECATED to be removed in v1.18.0
+
 			if sec.HasKey("ACME_EMAIL") {
 				AcmeEmail = sec.Key("ACME_EMAIL").MustString("")
 			} else {
-				deprecatedSetting(rootCfg, "server", "LETSENCRYPT_EMAIL", "server", "ACME_EMAIL")
+				deprecatedSetting(rootCfg, "server", "LETSENCRYPT_EMAIL", "server", "ACME_EMAIL", "v1.19.0")
 				AcmeEmail = sec.Key("LETSENCRYPT_EMAIL").MustString("")
 			}
 		} else {
@@ -315,7 +318,6 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
 	RedirectorUseProxyProtocol = sec.Key("REDIRECTOR_USE_PROXY_PROTOCOL").MustBool(UseProxyProtocol)
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
-	Log.DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool()
 	if len(StaticRootPath) == 0 {
 		StaticRootPath = AppWorkPath
 	}
@@ -323,7 +325,6 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
 	if !filepath.IsAbs(AppDataPath) {
-		log.Info("The provided APP_DATA_PATH: %s is not absolute - it will be made absolute against the work path: %s", AppDataPath, AppWorkPath)
 		AppDataPath = filepath.ToSlash(filepath.Join(AppWorkPath, AppDataPath))
 	}
 
@@ -347,10 +348,5 @@ func loadServerFrom(rootCfg ConfigProvider) {
 		LandingPageURL = LandingPageHome
 	default:
 		LandingPageURL = LandingPage(landingPage)
-	}
-
-	HasRobotsTxt, err = util.IsFile(path.Join(CustomPath, "robots.txt"))
-	if err != nil {
-		log.Error("Unable to check if %s is a file. Error: %v", path.Join(CustomPath, "robots.txt"), err)
 	}
 }

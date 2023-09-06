@@ -11,8 +11,10 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
@@ -27,8 +29,7 @@ func Labels(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.labels")
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["PageIsLabels"] = true
-	ctx.Data["RequireTribute"] = true
-	ctx.Data["LabelTemplates"] = repo_module.LabelTemplates
+	ctx.Data["LabelTemplateFiles"] = repo_module.LabelTemplateFiles
 	ctx.HTML(http.StatusOK, tplLabels)
 }
 
@@ -41,8 +42,8 @@ func InitializeLabels(ctx *context.Context) {
 	}
 
 	if err := repo_module.InitializeLabels(ctx, ctx.Repo.Repository.ID, form.TemplateName, false); err != nil {
-		if repo_module.IsErrIssueLabelTemplateLoad(err) {
-			originalErr := err.(repo_module.ErrIssueLabelTemplateLoad).OriginalError
+		if label.IsErrTemplateLoad(err) {
+			originalErr := err.(label.ErrTemplateLoad).OriginalError
 			ctx.Flash.Error(ctx.Tr("repo.issues.label_templates.fail_to_load_file", form.TemplateName, originalErr))
 			ctx.Redirect(ctx.Repo.RepoLink + "/labels")
 			return
@@ -111,11 +112,12 @@ func NewLabel(ctx *context.Context) {
 	}
 
 	l := &issues_model.Label{
-		RepoID:      ctx.Repo.Repository.ID,
-		Name:        form.Title,
-		Exclusive:   form.Exclusive,
-		Description: form.Description,
-		Color:       form.Color,
+		RepoID:       ctx.Repo.Repository.ID,
+		Name:         form.Title,
+		Exclusive:    form.Exclusive,
+		Description:  form.Description,
+		Color:        form.Color,
+		ArchivedUnix: timeutil.TimeStamp(0),
 	}
 	if err := issues_model.NewLabel(ctx, l); err != nil {
 		ctx.ServerError("NewLabel", err)
@@ -137,11 +139,12 @@ func UpdateLabel(ctx *context.Context) {
 		}
 		return
 	}
-
 	l.Name = form.Title
 	l.Exclusive = form.Exclusive
 	l.Description = form.Description
 	l.Color = form.Color
+
+	l.SetArchived(form.IsArchived)
 	if err := issues_model.UpdateLabel(l); err != nil {
 		ctx.ServerError("UpdateLabel", err)
 		return
@@ -157,9 +160,7 @@ func DeleteLabel(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.issues.label_deletion_success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": ctx.Repo.RepoLink + "/labels",
-	})
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/labels")
 }
 
 // UpdateIssueLabel change issue's labels
@@ -226,7 +227,5 @@ func UpdateIssueLabel(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"ok": true,
-	})
+	ctx.JSONOK()
 }

@@ -1,7 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content organization settings options">
-	{{template "org/header" .}}
-
-	{{template "user/settings/applications_oauth2_edit_form" .}}
-</div>
-{{template "base/footer" .}}
+{{template "org/settings/layout_head" (dict "ctxData" . "pageClass" "organization settings options")}}
+			<div class="org-setting-content">
+				{{template "user/settings/applications_oauth2_edit_form" .}}
+			</div>
+{{template "org/settings/layout_footer" .}}

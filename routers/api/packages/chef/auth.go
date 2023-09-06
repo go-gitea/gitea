@@ -7,7 +7,6 @@ import (
 	"crypto"
 	"crypto/rsa"
 	"crypto/sha1"
-	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
@@ -25,6 +24,8 @@ import (
 	chef_module "code.gitea.io/gitea/modules/packages/chef"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/auth"
+
+	"github.com/minio/sha256-simd"
 )
 
 const (
@@ -35,6 +36,8 @@ var (
 	algorithmPattern     = regexp.MustCompile(`algorithm=(\w+)`)
 	versionPattern       = regexp.MustCompile(`version=(\d+\.\d+)`)
 	authorizationPattern = regexp.MustCompile(`\AX-Ops-Authorization-(\d+)`)
+
+	_ auth.Method = &Auth{}
 )
 
 // Documentation:

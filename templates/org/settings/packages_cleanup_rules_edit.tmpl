@@ -1,14 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content organization settings packages">
-	{{template "org/header" .}}
-	<div class="ui container">
-		<div class="ui grid">
-			{{template "org/settings/navbar" .}}
-			<div class="twelve wide column content">
-				{{template "base/alert" .}}
+{{template "org/settings/layout_head" (dict "ctxData" . "pageClass" "organization settings packages")}}
+			<div class="org-setting-content">
 				{{template "package/shared/cleanup_rules/edit" .}}
 			</div>
-		</div>
-	</div>
-</div>
-{{template "base/footer" .}}
+{{template "org/settings/layout_footer" .}}

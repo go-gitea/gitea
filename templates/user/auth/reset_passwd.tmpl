@@ -48,7 +48,7 @@
 						</div>
 						{{end}}
 						{{end}}
-						<div class="ui divider"></div>
+						<div class="divider"></div>
 						<div class="inline field">
 							<label></label>
 							<button class="ui primary button">{{.locale.Tr "auth.reset_password_helper"}}</button>
@@ -57,7 +57,7 @@
 							{{end}}
 						</div>
 					{{else}}
-						<p class="center">{{.locale.Tr "auth.invalid_code"}}</p>
+						<p class="center">{{.locale.Tr "auth.invalid_code_forgot_password" (printf "%s/user/forgot_password" AppSubUrl) | Str2html}}</p>
 					{{end}}
 				</div>
 			</form>

@@ -117,7 +117,7 @@ func getNotifications(ctx *context.Context) {
 		return
 	}
 	notifications = notifications.Without(failures)
-	if err := repos.LoadAttributes(); err != nil { // TODO
+	if err := repos.LoadAttributes(ctx); err != nil {
 		ctx.ServerError("LoadAttributes", err)
 		return
 	}
@@ -186,7 +186,7 @@ func NotificationStatusPost(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	ctx.Data["Link"] = setting.AppURL + "notifications"
+	ctx.Data["Link"] = setting.AppSubURL + "/notifications"
 	ctx.Data["SequenceNumber"] = ctx.Req.PostFormValue("sequence-number")
 
 	ctx.HTML(http.StatusOK, tplNotificationDiv)
@@ -263,7 +263,7 @@ func NotificationSubscriptions(ctx *context.Context) {
 		return
 	}
 	issues, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{
-		ListOptions: db.ListOptions{
+		Paginator: &db.ListOptions{
 			PageSize: setting.UI.IssuePagingNum,
 			Page:     page,
 		},
@@ -296,8 +296,7 @@ func NotificationSubscriptions(ctx *context.Context) {
 	}
 	ctx.Data["CommitStatus"] = commitStatus
 
-	issueList := issues_model.IssueList(issues)
-	approvalCounts, err := issueList.GetApprovalCounts(ctx)
+	approvalCounts, err := issues.GetApprovalCounts(ctx)
 	if err != nil {
 		ctx.ServerError("ApprovalCounts", err)
 		return
@@ -344,6 +343,9 @@ func NotificationWatching(ctx *context.Context) {
 		page = 1
 	}
 
+	keyword := ctx.FormTrim("q")
+	ctx.Data["Keyword"] = keyword
+
 	var orderBy db.SearchOrderBy
 	ctx.Data["SortType"] = ctx.FormString("sort")
 	switch ctx.FormString("sort") {
@@ -378,7 +380,7 @@ func NotificationWatching(ctx *context.Context) {
 			Page:     page,
 		},
 		Actor:              ctx.Doer,
-		Keyword:            ctx.FormTrim("q"),
+		Keyword:            keyword,
 		OrderBy:            orderBy,
 		Private:            ctx.IsSigned,
 		WatchedByID:        ctx.Doer.ID,

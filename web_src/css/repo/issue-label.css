@@ -1,0 +1,44 @@
+.issue-label-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.issue-label-list .item {
+  border-bottom: 1px solid var(--color-secondary);
+  display: flex;
+  padding: 1em 0;
+  margin: 0;
+}
+
+.issue-label-list .item:first-child {
+  padding-top: 0;
+}
+
+.issue-label-list .item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.issue-label-list .item .label-title {
+  width: 33%;
+}
+
+.issue-label-list .item .label-issues {
+  width: 33%;
+}
+
+.issue-label-list .item .label-operation {
+  width: 33%;
+  text-align: right;
+}
+
+.issue-label-list .item a {
+  font-size: 12px;
+  padding-right: 10px;
+  color: var(--color-text-light);
+}
+
+.issue-label-list .item.org-label {
+  opacity: 0.7;
+}

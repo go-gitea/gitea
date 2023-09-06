@@ -1,0 +1,44 @@
+{{template "base/head" .}}
+<div class="page-content devtest ui container">
+	{{template "base/alert" .}}
+	<div>
+		<h1>link-action</h1>
+		<div>
+			Use "window.fetch" to send a request to backend, the request is defined in an "A" or "BUTTON" element.
+			It might be renamed to "link-fetch-action" to match the "form-fetch-action".
+		</div>
+		<div>
+			<button class="link-action" data-url="fetch-action-test?k=1">test action</button>
+			<button class="link-action" data-url="fetch-action-test?k=1" data-modal-confirm="confirm?">test with confirm</button>
+			<button class="ui red button link-action" data-url="fetch-action-test?k=1" data-modal-confirm="confirm?">test with risky confirm</button>
+		</div>
+	</div>
+	<div>
+		<h1>form-fetch-action</h1>
+		<div>Use "window.fetch" to send a form request to backend</div>
+		<div>
+			<form method="get" action="fetch-action-test?k=1" class="form-fetch-action">
+				<button name="btn">submit get</button>
+			</form>
+			<form method="post" action="fetch-action-test?k=1" class="form-fetch-action">
+				<div><textarea name="text" rows="3" class="js-quick-submit"></textarea></div>
+				<div><label><input name="check" type="checkbox"> check</label></div>
+				<div><button name="btn">submit post</button></div>
+			</form>
+			<form method="post" action="/no-such-uri" class="form-fetch-action">
+				<div class="gt-py-5">bad action url</div>
+				<div><button name="btn">submit test</button></div>
+			</form>
+		</div>
+	</div>
+</div>
+<style>
+	.ui.message.flash-message {
+		text-align: left;
+	}
+	.form-fetch-action {
+		margin-bottom: 1em;
+		border: 1px red dashed; /* show the border for demo purpose */
+	}
+</style>
+{{template "base/footer" .}}

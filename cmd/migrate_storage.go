@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/migrations"
@@ -19,64 +20,76 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 // CmdMigrateStorage represents the available migrate storage sub-command.
-var CmdMigrateStorage = cli.Command{
+var CmdMigrateStorage = &cli.Command{
 	Name:        "migrate-storage",
 	Usage:       "Migrate the storage",
 	Description: "Copies stored files from storage configured in app.ini to parameter-configured storage",
 	Action:      runMigrateStorage,
 	Flags: []cli.Flag{
-		cli.StringFlag{
-			Name:  "type, t",
-			Value: "",
-			Usage: "Type of stored files to copy.  Allowed types: 'attachments', 'lfs', 'avatars', 'repo-avatars', 'repo-archivers', 'packages'",
+		&cli.StringFlag{
+			Name:    "type",
+			Aliases: []string{"t"},
+			Value:   "",
+			Usage:   "Type of stored files to copy.  Allowed types: 'attachments', 'lfs', 'avatars', 'repo-avatars', 'repo-archivers', 'packages', 'actions-log'",
 		},
-		cli.StringFlag{
-			Name:  "storage, s",
-			Value: "",
-			Usage: "New storage type: local (default) or minio",
+		&cli.StringFlag{
+			Name:    "storage",
+			Aliases: []string{"s"},
+			Value:   "",
+			Usage:   "New storage type: local (default) or minio",
 		},
-		cli.StringFlag{
-			Name:  "path, p",
-			Value: "",
-			Usage: "New storage placement if store is local (leave blank for default)",
+		&cli.StringFlag{
+			Name:    "path",
+			Aliases: []string{"p"},
+			Value:   "",
+			Usage:   "New storage placement if store is local (leave blank for default)",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "minio-endpoint",
 			Value: "",
 			Usage: "Minio storage endpoint",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "minio-access-key-id",
 			Value: "",
 			Usage: "Minio storage accessKeyID",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "minio-secret-access-key",
 			Value: "",
 			Usage: "Minio storage secretAccessKey",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "minio-bucket",
 			Value: "",
 			Usage: "Minio storage bucket",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "minio-location",
 			Value: "",
 			Usage: "Minio storage location to create bucket",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "minio-base-path",
 			Value: "",
-			Usage: "Minio storage basepath on the bucket",
+			Usage: "Minio storage base path on the bucket",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "minio-use-ssl",
 			Usage: "Enable SSL for minio",
+		},
+		&cli.BoolFlag{
+			Name:  "minio-insecure-skip-verify",
+			Usage: "Skip SSL verification",
+		},
+		&cli.StringFlag{
+			Name:  "minio-checksum-algorithm",
+			Value: "",
+			Usage: "Minio checksum algorithm (default/md5)",
 		},
 	},
 }
@@ -125,6 +138,22 @@ func migratePackages(ctx context.Context, dstStorage storage.ObjectStorage) erro
 	})
 }
 
+func migrateActionsLog(ctx context.Context, dstStorage storage.ObjectStorage) error {
+	return db.Iterate(ctx, nil, func(ctx context.Context, task *actions_model.ActionTask) error {
+		if task.LogExpired {
+			// the log has been cleared
+			return nil
+		}
+		if !task.LogInStorage {
+			// running tasks store logs in DBFS
+			return nil
+		}
+		p := task.LogFilename
+		_, err := storage.Copy(dstStorage, p, storage.Actions, p)
+		return err
+	})
+}
+
 func runMigrateStorage(ctx *cli.Context) error {
 	stdCtx, cancel := installSignals()
 	defer cancel()
@@ -153,7 +182,7 @@ func runMigrateStorage(ctx *cli.Context) error {
 	switch strings.ToLower(ctx.String("storage")) {
 	case "":
 		fallthrough
-	case string(storage.LocalStorageType):
+	case string(setting.LocalStorageType):
 		p := ctx.String("path")
 		if p == "" {
 			log.Fatal("Path must be given when storage is loal")
@@ -161,20 +190,24 @@ func runMigrateStorage(ctx *cli.Context) error {
 		}
 		dstStorage, err = storage.NewLocalStorage(
 			stdCtx,
-			storage.LocalStorageConfig{
+			&setting.Storage{
 				Path: p,
 			})
-	case string(storage.MinioStorageType):
+	case string(setting.MinioStorageType):
 		dstStorage, err = storage.NewMinioStorage(
 			stdCtx,
-			storage.MinioStorageConfig{
-				Endpoint:        ctx.String("minio-endpoint"),
-				AccessKeyID:     ctx.String("minio-access-key-id"),
-				SecretAccessKey: ctx.String("minio-secret-access-key"),
-				Bucket:          ctx.String("minio-bucket"),
-				Location:        ctx.String("minio-location"),
-				BasePath:        ctx.String("minio-base-path"),
-				UseSSL:          ctx.Bool("minio-use-ssl"),
+			&setting.Storage{
+				MinioConfig: setting.MinioStorageConfig{
+					Endpoint:           ctx.String("minio-endpoint"),
+					AccessKeyID:        ctx.String("minio-access-key-id"),
+					SecretAccessKey:    ctx.String("minio-secret-access-key"),
+					Bucket:             ctx.String("minio-bucket"),
+					Location:           ctx.String("minio-location"),
+					BasePath:           ctx.String("minio-base-path"),
+					UseSSL:             ctx.Bool("minio-use-ssl"),
+					InsecureSkipVerify: ctx.Bool("minio-insecure-skip-verify"),
+					ChecksumAlgorithm:  ctx.String("minio-checksum-algorithm"),
+				},
 			})
 	default:
 		return fmt.Errorf("unsupported storage type: %s", ctx.String("storage"))
@@ -190,6 +223,7 @@ func runMigrateStorage(ctx *cli.Context) error {
 		"repo-avatars":   migrateRepoAvatars,
 		"repo-archivers": migrateRepoArchivers,
 		"packages":       migratePackages,
+		"actions-log":    migrateActionsLog,
 	}
 
 	tp := strings.ToLower(ctx.String("type"))

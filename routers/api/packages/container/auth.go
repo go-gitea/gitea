@@ -12,6 +12,8 @@ import (
 	"code.gitea.io/gitea/services/packages"
 )
 
+var _ auth.Method = &Auth{}
+
 type Auth struct{}
 
 func (a *Auth) Name() string {
@@ -30,13 +32,10 @@ func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataS
 	if uid == 0 {
 		return nil, nil
 	}
-	if uid == -1 {
-		return user_model.NewGhostUser(), nil
-	}
 
-	u, err := user_model.GetUserByID(req.Context(), uid)
+	u, err := user_model.GetPossibleUserByID(req.Context(), uid)
 	if err != nil {
-		log.Error("GetUserByID:  %v", err)
+		log.Error("GetPossibleUserByID:  %v", err)
 		return nil, err
 	}
 

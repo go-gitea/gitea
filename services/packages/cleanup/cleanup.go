@@ -17,11 +17,20 @@ import (
 	packages_service "code.gitea.io/gitea/services/packages"
 	cargo_service "code.gitea.io/gitea/services/packages/cargo"
 	container_service "code.gitea.io/gitea/services/packages/container"
+	debian_service "code.gitea.io/gitea/services/packages/debian"
 )
 
-// Cleanup removes expired package data
-func Cleanup(taskCtx context.Context, olderThan time.Duration) error {
-	ctx, committer, err := db.TxContext(taskCtx)
+// Task method to execute cleanup rules and cleanup expired package data
+func CleanupTask(ctx context.Context, olderThan time.Duration) error {
+	if err := ExecuteCleanupRules(ctx); err != nil {
+		return err
+	}
+
+	return CleanupExpiredData(ctx, olderThan)
+}
+
+func ExecuteCleanupRules(outerCtx context.Context) error {
+	ctx, committer, err := db.TxContext(outerCtx)
 	if err != nil {
 		return err
 	}
@@ -29,7 +38,7 @@ func Cleanup(taskCtx context.Context, olderThan time.Duration) error {
 
 	err = packages_model.IterateEnabledCleanupRules(ctx, func(ctx context.Context, pcr *packages_model.PackageCleanupRule) error {
 		select {
-		case <-taskCtx.Done():
+		case <-outerCtx.Done():
 			return db.ErrCancelledf("While processing package cleanup rules")
 		default:
 		}
@@ -45,6 +54,7 @@ func Cleanup(taskCtx context.Context, olderThan time.Duration) error {
 			return fmt.Errorf("CleanupRule [%d]: GetPackagesByType failed: %w", pcr.ID, err)
 		}
 
+		anyVersionDeleted := false
 		for _, p := range packages {
 			pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 				PackageID:  p.ID,
@@ -91,6 +101,7 @@ func Cleanup(taskCtx context.Context, olderThan time.Duration) error {
 				}
 
 				versionDeleted = true
+				anyVersionDeleted = true
 			}
 
 			if versionDeleted {
@@ -105,11 +116,29 @@ func Cleanup(taskCtx context.Context, olderThan time.Duration) error {
 				}
 			}
 		}
+
+		if anyVersionDeleted {
+			if pcr.Type == packages_model.TypeDebian {
+				if err := debian_service.BuildAllRepositoryFiles(ctx, pcr.OwnerID); err != nil {
+					return fmt.Errorf("CleanupRule [%d]: debian.BuildAllRepositoryFiles failed: %w", pcr.ID, err)
+				}
+			}
+		}
 		return nil
 	})
 	if err != nil {
 		return err
 	}
+
+	return committer.Commit()
+}
+
+func CleanupExpiredData(outerCtx context.Context, olderThan time.Duration) error {
+	ctx, committer, err := db.TxContext(outerCtx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
 
 	if err := container_service.Cleanup(ctx, olderThan); err != nil {
 		return err

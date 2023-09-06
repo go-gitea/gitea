@@ -86,25 +86,13 @@ func GetActiveStopwatch(ctx *context.Context) {
 		return
 	}
 
-	_, sw, err := issues_model.HasUserStopwatch(ctx, ctx.Doer.ID)
+	_, sw, issue, err := issues_model.HasUserStopwatch(ctx, ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("HasUserStopwatch", err)
 		return
 	}
 
 	if sw == nil || sw.ID == 0 {
-		return
-	}
-
-	issue, err := issues_model.GetIssueByID(ctx, sw.IssueID)
-	if err != nil || issue == nil {
-		if !issues_model.IsErrIssueNotExist(err) {
-			ctx.ServerError("GetIssueByID", err)
-		}
-		return
-	}
-	if err = issue.LoadRepo(ctx); err != nil {
-		ctx.ServerError("LoadRepo", err)
 		return
 	}
 

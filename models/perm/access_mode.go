@@ -5,8 +5,6 @@ package perm
 
 import (
 	"fmt"
-
-	"code.gitea.io/gitea/modules/log"
 )
 
 // AccessMode specifies the users access mode
@@ -40,11 +38,8 @@ func (mode AccessMode) String() string {
 	}
 }
 
-// ColorFormat provides a ColorFormatted version of this AccessMode
-func (mode AccessMode) ColorFormat(s fmt.State) {
-	log.ColorFprintf(s, "%d:%s",
-		log.NewColoredIDValue(mode),
-		mode)
+func (mode AccessMode) LogString() string {
+	return fmt.Sprintf("<AccessMode:%d:%s>", mode, mode.String())
 }
 
 // ParseAccessMode returns corresponding access mode to given permission string.

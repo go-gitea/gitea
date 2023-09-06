@@ -46,7 +46,7 @@ func getCreateFileOptions() api.CreateFileOptions {
 				Committer: time.Unix(978307190, 0),
 			},
 		},
-		Content: contentEncoded,
+		ContentBase64: contentEncoded,
 	}
 }
 
@@ -110,14 +110,14 @@ func getExpectedFileResponseForCreate(repoFullName, commitID, treePath, latestCo
 }
 
 func BenchmarkAPICreateFileSmall(b *testing.B) {
-	onGiteaRunTB(b, func(t testing.TB, u *url.URL) {
-		b := t.(*testing.B)
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})       // owner of the repo1 & repo16
-		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}) // public repo
+	onGiteaRun(b, func(b *testing.B, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(b, &user_model.User{ID: 2})       // owner of the repo1 & repo16
+		repo1 := unittest.AssertExistsAndLoadBean(b, &repo_model.Repository{ID: 1}) // public repo
 
+		b.ResetTimer()
 		for n := 0; n < b.N; n++ {
 			treePath := fmt.Sprintf("update/file%d.txt", n)
-			createFileInBranch(user2, repo1, treePath, repo1.DefaultBranch, treePath)
+			_, _ = createFileInBranch(user2, repo1, treePath, repo1.DefaultBranch, treePath)
 		}
 	})
 }
@@ -125,16 +125,15 @@ func BenchmarkAPICreateFileSmall(b *testing.B) {
 func BenchmarkAPICreateFileMedium(b *testing.B) {
 	data := make([]byte, 10*1024*1024)
 
-	onGiteaRunTB(b, func(t testing.TB, u *url.URL) {
-		b := t.(*testing.B)
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})       // owner of the repo1 & repo16
-		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}) // public repo
+	onGiteaRun(b, func(b *testing.B, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(b, &user_model.User{ID: 2})       // owner of the repo1 & repo16
+		repo1 := unittest.AssertExistsAndLoadBean(b, &repo_model.Repository{ID: 1}) // public repo
 
 		b.ResetTimer()
 		for n := 0; n < b.N; n++ {
 			treePath := fmt.Sprintf("update/file%d.txt", n)
 			copy(data, treePath)
-			createFileInBranch(user2, repo1, treePath, repo1.DefaultBranch, treePath)
+			_, _ = createFileInBranch(user2, repo1, treePath, repo1.DefaultBranch, treePath)
 		}
 	})
 }
@@ -151,10 +150,10 @@ func TestAPICreateFile(t *testing.T) {
 
 		// Get user2's token
 		session := loginUser(t, user2.Name)
-		token2 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+		token2 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 		// Get user4's token
 		session = loginUser(t, user4.Name)
-		token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
+		token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
 		// Test creating a file in repo1 which user2 owns, try both with branch and empty branch
 		for _, branch := range [...]string{
@@ -214,7 +213,7 @@ func TestAPICreateFile(t *testing.T) {
 		req = NewRequestWithJSON(t, "POST", url, &createFileOptions)
 		resp = MakeRequest(t, req, http.StatusCreated)
 		DecodeJSON(t, resp, &fileResponse)
-		expectedMessage := "Add '" + treePath + "'\n"
+		expectedMessage := "Add " + treePath + "\n"
 		assert.EqualValues(t, expectedMessage, fileResponse.Commit.Message)
 
 		// Test trying to create a file that already exists, should fail
@@ -280,7 +279,7 @@ func TestAPICreateFile(t *testing.T) {
 		MakeRequest(t, req, http.StatusForbidden)
 
 		// Test creating a file in an empty repository
-		doAPICreateRepository(NewAPITestContext(t, "user2", "empty-repo", auth_model.AccessTokenScopeRepo), true)(t)
+		doAPICreateRepository(NewAPITestContext(t, "user2", "empty-repo", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser), true)(t)
 		createFileOptions = getCreateFileOptions()
 		fileID++
 		treePath = fmt.Sprintf("new/file%d.txt", fileID)

@@ -4,19 +4,20 @@
 package git
 
 import (
-	"crypto/sha256"
 	"fmt"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/minio/sha256-simd"
 )
 
 // Cache represents a caching interface
 type Cache interface {
 	// Put puts value into cache with key and expire time.
-	Put(key string, val interface{}, timeout int64) error
+	Put(key string, val any, timeout int64) error
 	// Get gets cached value by given key.
-	Get(key string) interface{}
+	Get(key string) any
 }
 
 func getCacheKey(repoPath, commitID, entryPath string) string {

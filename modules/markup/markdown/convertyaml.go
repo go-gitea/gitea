@@ -34,7 +34,7 @@ func nodeToTable(meta *yaml.Node) ast.Node {
 
 func mappingNodeToTable(meta *yaml.Node) ast.Node {
 	table := east.NewTable()
-	alignments := []east.Alignment{}
+	alignments := make([]east.Alignment, 0, len(meta.Content)/2)
 	for i := 0; i < len(meta.Content); i += 2 {
 		alignments = append(alignments, east.AlignNone)
 	}

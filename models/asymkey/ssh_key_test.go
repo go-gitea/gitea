@@ -57,6 +57,14 @@ func Test_SSHParsePublicKey(t *testing.T) {
 				assert.Equal(t, tc.keyType, keyTypeK)
 				assert.EqualValues(t, tc.length, lengthK)
 			})
+			t.Run("SSHParseKeyNative", func(t *testing.T) {
+				keyTypeK, lengthK, err := SSHNativeParsePublicKey(tc.content)
+				if err != nil {
+					assert.Fail(t, "%v", err)
+				}
+				assert.Equal(t, tc.keyType, keyTypeK)
+				assert.EqualValues(t, tc.length, lengthK)
+			})
 		})
 	}
 }

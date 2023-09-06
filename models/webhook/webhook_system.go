@@ -15,7 +15,7 @@ import (
 func GetDefaultWebhooks(ctx context.Context) ([]*Webhook, error) {
 	webhooks := make([]*Webhook, 0, 5)
 	return webhooks, db.GetEngine(ctx).
-		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, false).
+		Where("repo_id=? AND owner_id=? AND is_system_webhook=?", 0, 0, false).
 		Find(&webhooks)
 }
 
@@ -23,7 +23,7 @@ func GetDefaultWebhooks(ctx context.Context) ([]*Webhook, error) {
 func GetSystemOrDefaultWebhook(ctx context.Context, id int64) (*Webhook, error) {
 	webhook := &Webhook{ID: id}
 	has, err := db.GetEngine(ctx).
-		Where("repo_id=? AND org_id=?", 0, 0).
+		Where("repo_id=? AND owner_id=?", 0, 0).
 		Get(webhook)
 	if err != nil {
 		return nil, err
@@ -38,11 +38,11 @@ func GetSystemWebhooks(ctx context.Context, isActive util.OptionalBool) ([]*Webh
 	webhooks := make([]*Webhook, 0, 5)
 	if isActive.IsNone() {
 		return webhooks, db.GetEngine(ctx).
-			Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, true).
+			Where("repo_id=? AND owner_id=? AND is_system_webhook=?", 0, 0, true).
 			Find(&webhooks)
 	}
 	return webhooks, db.GetEngine(ctx).
-		Where("repo_id=? AND org_id=? AND is_system_webhook=? AND is_active = ?", 0, 0, true, isActive.IsTrue()).
+		Where("repo_id=? AND owner_id=? AND is_system_webhook=? AND is_active = ?", 0, 0, true, isActive.IsTrue()).
 		Find(&webhooks)
 }
 
@@ -50,7 +50,7 @@ func GetSystemWebhooks(ctx context.Context, isActive util.OptionalBool) ([]*Webh
 func DeleteDefaultSystemWebhook(ctx context.Context, id int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		count, err := db.GetEngine(ctx).
-			Where("repo_id=? AND org_id=?", 0, 0).
+			Where("repo_id=? AND owner_id=?", 0, 0).
 			Delete(&Webhook{ID: id})
 		if err != nil {
 			return err

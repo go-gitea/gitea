@@ -2,7 +2,15 @@
 
 if [ ! -d /data/git/.ssh ]; then
     mkdir -p /data/git/.ssh
-    chmod 700 /data/git/.ssh
+fi
+
+# Set the correct permissions on the .ssh directory and authorized_keys file,
+# or sshd will refuse to use them and lead to clone/push/pull failures.
+# It could happen when users have copied their data to a new volume and changed the file permission by accident,
+# and it would be very hard to troubleshoot unless users know how to check the logs of sshd which is started by s6.
+chmod 700 /data/git/.ssh
+if [ -f /data/git/.ssh/authorized_keys ]; then
+    chmod 600 /data/git/.ssh/authorized_keys
 fi
 
 if [ ! -f /data/git/.ssh/environment ]; then

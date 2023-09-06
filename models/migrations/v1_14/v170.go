@@ -14,8 +14,8 @@ func AddDismissedReviewColumn(x *xorm.Engine) error {
 		Dismissed bool `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	if err := x.Sync2(new(Review)); err != nil {
-		return fmt.Errorf("Sync2: %w", err)
+	if err := x.Sync(new(Review)); err != nil {
+		return fmt.Errorf("Sync: %w", err)
 	}
 	return nil
 }

@@ -24,7 +24,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -36,6 +35,7 @@ import (
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/gitdiff"
 	issue_service "code.gitea.io/gitea/services/issue"
+	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -326,11 +326,9 @@ func CreatePullRequest(ctx *context.APIContext) {
 			return
 		}
 
-		labelIDs = make([]int64, len(form.Labels))
-		orgLabelIDs := make([]int64, len(form.Labels))
-
-		for i := range labels {
-			labelIDs[i] = labels[i].ID
+		labelIDs = make([]int64, 0, len(labels))
+		for _, label := range labels {
+			labelIDs = append(labelIDs, label.ID)
 		}
 
 		if ctx.Repo.Owner.IsOrganization() {
@@ -340,12 +338,12 @@ func CreatePullRequest(ctx *context.APIContext) {
 				return
 			}
 
-			for i := range orgLabels {
-				orgLabelIDs[i] = orgLabels[i].ID
+			orgLabelIDs := make([]int64, 0, len(orgLabels))
+			for _, orgLabel := range orgLabels {
+				orgLabelIDs = append(orgLabelIDs, orgLabel.ID)
 			}
+			labelIDs = append(labelIDs, orgLabelIDs...)
 		}
-
-		labelIDs = append(labelIDs, orgLabelIDs...)
 	}
 
 	if form.Milestone > 0 {
@@ -534,7 +532,7 @@ func EditPullRequest(ctx *context.APIContext) {
 	// Send an empty array ([]) to clear all assignees from the Issue.
 
 	if ctx.Repo.CanWrite(unit.TypePullRequests) && (form.Assignees != nil || len(form.Assignee) > 0) {
-		err = issue_service.UpdateAssignees(issue, form.Assignee, form.Assignees, ctx.Doer)
+		err = issue_service.UpdateAssignees(ctx, issue, form.Assignee, form.Assignees, ctx.Doer)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("Assignee does not exist: [name: %s]", err))
@@ -596,11 +594,11 @@ func EditPullRequest(ctx *context.APIContext) {
 	}
 
 	if titleChanged {
-		notification.NotifyIssueChangeTitle(ctx, ctx.Doer, issue, oldTitle)
+		notify_service.IssueChangeTitle(ctx, ctx.Doer, issue, oldTitle)
 	}
 
 	if statusChangeComment != nil {
-		notification.NotifyIssueChangeStatus(ctx, ctx.Doer, "", issue, statusChangeComment, issue.IsClosed)
+		notify_service.IssueChangeStatus(ctx, ctx.Doer, "", issue, statusChangeComment, issue.IsClosed)
 	}
 
 	// change pull target branch
@@ -624,7 +622,7 @@ func EditPullRequest(ctx *context.APIContext) {
 			}
 			return
 		}
-		notification.NotifyPullRequestChangeTargetBranch(ctx, ctx.Doer, pr, form.Base)
+		notify_service.PullRequestChangeTargetBranch(ctx, ctx.Doer, pr, form.Base)
 	}
 
 	// update allow edits
@@ -767,11 +765,18 @@ func MergePullRequest(ctx *context.APIContext) {
 		}
 	}
 
-	manuallMerge := repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged
-	force := form.ForceMerge != nil && *form.ForceMerge
+	manuallyMerged := repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged
+
+	mergeCheckType := pull_service.MergeCheckTypeGeneral
+	if form.MergeWhenChecksSucceed {
+		mergeCheckType = pull_service.MergeCheckTypeAuto
+	}
+	if manuallyMerged {
+		mergeCheckType = pull_service.MergeCheckTypeManually
+	}
 
 	// start with merging by checking
-	if err := pull_service.CheckPullMergable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, manuallMerge, force); err != nil {
+	if err := pull_service.CheckPullMergable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, mergeCheckType, form.ForceMerge); err != nil {
 		if errors.Is(err, pull_service.ErrIsClosed) {
 			ctx.NotFound()
 		} else if errors.Is(err, pull_service.ErrUserNotAllowedToMerge) {
@@ -793,7 +798,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	// handle manually-merged mark
-	if manuallMerge {
+	if manuallyMerged {
 		if err := pull_service.MergedManually(pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
 			if models.IsErrInvalidMergeStyle(err) {
 				ctx.Error(http.StatusMethodNotAllowed, "Invalid merge style", fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
@@ -897,7 +902,7 @@ func MergePullRequest(ctx *context.APIContext) {
 			}
 			defer headRepo.Close()
 		}
-		if err := repo_service.DeleteBranch(ctx.Doer, pr.HeadRepo, headRepo, pr.HeadBranch); err != nil {
+		if err := repo_service.DeleteBranch(ctx, ctx.Doer, pr.HeadRepo, headRepo, pr.HeadBranch); err != nil {
 			switch {
 			case git.IsErrBranchNotExist(err):
 				ctx.NotFound(err)
@@ -1311,7 +1316,7 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 
 	apiCommits := make([]*api.Commit, 0, end-start)
 	for i := start; i < end; i++ {
-		apiCommit, err := convert.ToCommit(ctx, ctx.Repo.Repository, baseGitRepo, commits[i], userCache, true)
+		apiCommit, err := convert.ToCommit(ctx, ctx.Repo.Repository, baseGitRepo, commits[i], userCache, convert.ToCommitOptions{Stat: true})
 		if err != nil {
 			ctx.ServerError("toCommit", err)
 			return
@@ -1420,8 +1425,9 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 	startCommitID := prInfo.MergeBase
 	endCommitID := headCommitID
 
-	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
+	maxLines := setting.Git.MaxGitDiffLines
 
+	// FIXME: If there are too many files in the repo, may cause some unpredictable issues.
 	diff, err := gitdiff.GetDiff(baseGitRepo,
 		&gitdiff.DiffOptions{
 			BeforeCommitID:     startCommitID,
@@ -1429,7 +1435,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 			SkipTo:             ctx.FormString("skip-to"),
 			MaxLines:           maxLines,
 			MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
-			MaxFiles:           maxFiles,
+			MaxFiles:           -1, // GetDiff() will return all files
 			WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.FormString("whitespace")),
 		})
 	if err != nil {
@@ -1452,6 +1458,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 	if lenFiles < 0 {
 		lenFiles = 0
 	}
+
 	apiFiles := make([]*api.ChangedFile, 0, lenFiles)
 	for i := start; i < end; i++ {
 		apiFiles = append(apiFiles, convert.ToChangedFile(diff.Files[i], pr.HeadRepo, endCommitID))

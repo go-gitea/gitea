@@ -1,19 +1,3 @@
-<template>
-  <div id="user-heatmap">
-    <div class="total-contributions">
-      {{ sum }} contributions in the last 12 months
-    </div>
-    <calendar-heatmap
-      :locale="locale"
-      :no-data-text="locale.no_contributions"
-      :tooltip-unit="locale.contributions"
-      :end-date="endDate"
-      :values="values"
-      :range-color="colorRange"
-      @day-click="handleDayClick($event)"
-    />
-  </div>
-</template>
 <script>
 import {CalendarHeatmap} from 'vue3-calendar-heatmap';
 
@@ -31,8 +15,8 @@ export default {
   },
   data: () => ({
     colorRange: [
-      'var(--color-secondary-alpha-70)',
-      'var(--color-secondary-alpha-70)',
+      'var(--color-secondary-alpha-60)',
+      'var(--color-secondary-alpha-60)',
       'var(--color-primary-light-4)',
       'var(--color-primary-light-2)',
       'var(--color-primary)',
@@ -41,15 +25,6 @@ export default {
     ],
     endDate: new Date(),
   }),
-  computed: {
-    sum() {
-      let s = 0;
-      for (let i = 0; i < this.values.length; i++) {
-        s += this.values[i].count;
-      }
-      return s;
-    }
-  },
   mounted() {
     // work around issue with first legend color being rendered twice and legend cut off
     const legend = document.querySelector('.vch__external-legend-wrapper');
@@ -70,9 +45,25 @@ export default {
         params.set('date', clickedDate);
       }
 
+      params.delete('page');
+
       const newSearch = params.toString();
       window.location.search = newSearch.length ? `?${newSearch}` : '';
     }
   },
 };
 </script>
+<template>
+  <div class="total-contributions">
+    {{ locale.contributions_in_the_last_12_months }}
+  </div>
+  <calendar-heatmap
+    :locale="locale"
+    :no-data-text="locale.no_contributions"
+    :tooltip-unit="locale.contributions"
+    :end-date="endDate"
+    :values="values"
+    :range-color="colorRange"
+    @day-click="handleDayClick($event)"
+  />
+</template>

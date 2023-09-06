@@ -144,8 +144,19 @@ func (p *Project) Link() string {
 	return ""
 }
 
+func (p *Project) IconName() string {
+	if p.IsRepositoryProject() {
+		return "octicon-project"
+	}
+	return "octicon-project-symlink"
+}
+
 func (p *Project) IsOrganizationProject() bool {
 	return p.Type == TypeOrganization
+}
+
+func (p *Project) IsRepositoryProject() bool {
+	return p.Type == TypeRepository
 }
 
 func init() {
@@ -172,7 +183,7 @@ func GetCardConfig() []CardConfig {
 // IsTypeValid checks if a project type is valid
 func IsTypeValid(p Type) bool {
 	switch p {
-	case TypeRepository, TypeOrganization:
+	case TypeIndividual, TypeRepository, TypeOrganization:
 		return true
 	default:
 		return false
@@ -185,8 +196,9 @@ type SearchOptions struct {
 	RepoID   int64
 	Page     int
 	IsClosed util.OptionalBool
-	SortType string
+	OrderBy  db.SearchOrderBy
 	Type     Type
+	Title    string
 }
 
 func (opts *SearchOptions) toConds() builder.Cond {
@@ -207,6 +219,10 @@ func (opts *SearchOptions) toConds() builder.Cond {
 	if opts.OwnerID > 0 {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
 	}
+
+	if len(opts.Title) != 0 {
+		cond = cond.And(db.BuildCaseInsensitiveLike("title", opts.Title))
+	}
 	return cond
 }
 
@@ -215,35 +231,33 @@ func CountProjects(ctx context.Context, opts SearchOptions) (int64, error) {
 	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(Project))
 }
 
+func GetSearchOrderByBySortType(sortType string) db.SearchOrderBy {
+	switch sortType {
+	case "oldest":
+		return db.SearchOrderByOldest
+	case "recentupdate":
+		return db.SearchOrderByRecentUpdated
+	case "leastupdate":
+		return db.SearchOrderByLeastUpdated
+	default:
+		return db.SearchOrderByNewest
+	}
+}
+
 // FindProjects returns a list of all projects that have been created in the repository
 func FindProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, error) {
-	e := db.GetEngine(ctx)
-	projects := make([]*Project, 0, setting.UI.IssuePagingNum)
-	cond := opts.toConds()
-
-	count, err := e.Where(cond).Count(new(Project))
-	if err != nil {
-		return nil, 0, fmt.Errorf("Count: %w", err)
+	e := db.GetEngine(ctx).Where(opts.toConds())
+	if opts.OrderBy.String() != "" {
+		e = e.OrderBy(opts.OrderBy.String())
 	}
-
-	e = e.Where(cond)
+	projects := make([]*Project, 0, setting.UI.IssuePagingNum)
 
 	if opts.Page > 0 {
 		e = e.Limit(setting.UI.IssuePagingNum, (opts.Page-1)*setting.UI.IssuePagingNum)
 	}
 
-	switch opts.SortType {
-	case "oldest":
-		e.Desc("created_unix")
-	case "recentupdate":
-		e.Desc("updated_unix")
-	case "leastupdate":
-		e.Asc("updated_unix")
-	default:
-		e.Asc("created_unix")
-	}
-
-	return projects, count, e.Find(&projects)
+	count, err := e.FindAndCount(&projects)
+	return projects, count, err
 }
 
 // NewProject creates a new Project
@@ -416,7 +430,7 @@ func DeleteProjectByID(ctx context.Context, id int64) error {
 
 func DeleteProjectByRepoID(ctx context.Context, repoID int64) error {
 	switch {
-	case setting.Database.UseSQLite3:
+	case setting.Database.Type.IsSQLite3():
 		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_issue WHERE project_issue.id IN (SELECT project_issue.id FROM project_issue INNER JOIN project WHERE project.id = project_issue.project_id AND project.repo_id = ?)", repoID); err != nil {
 			return err
 		}
@@ -426,7 +440,7 @@ func DeleteProjectByRepoID(ctx context.Context, repoID int64) error {
 		if _, err := db.GetEngine(ctx).Table("project").Where("repo_id = ? ", repoID).Delete(&Project{}); err != nil {
 			return err
 		}
-	case setting.Database.UsePostgreSQL:
+	case setting.Database.Type.IsPostgreSQL():
 		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_issue USING project WHERE project.id = project_issue.project_id AND project.repo_id = ? ", repoID); err != nil {
 			return err
 		}

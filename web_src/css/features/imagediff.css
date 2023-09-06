@@ -1,0 +1,112 @@
+.image-diff-tabs {
+  min-height: 60px;
+
+}
+.image-diff-tabs.is-loading .tab {
+  display: none;
+}
+
+.image-diff-container {
+  text-align: center;
+  padding: 0.5em 0 1em;
+}
+
+.image-diff-container img {
+  border: 1px solid var(--color-primary-light-7);
+  background: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAG0lEQVQYlWN4+vTpf3SMDTAMBYXYBLFpHgoKAeiOf0SGE9kbAAAAAElFTkSuQmCC") right bottom var(--color-primary-light-7);
+}
+
+.image-diff-container .before-container {
+  border: 1px solid var(--color-red);
+  display: block;
+}
+
+.image-diff-container .after-container {
+  border: 1px solid var(--color-green);
+  display: block;
+}
+
+.image-diff-container .diff-side-by-side .side {
+  display: inline-block;
+  line-height: 0;
+  vertical-align: top;
+  margin: 0 1em;
+}
+
+.image-diff-container .diff-side-by-side .side .side-header {
+  font-weight: var(--font-weight-semibold);
+}
+
+.image-diff-container .diff-swipe {
+  margin: auto;
+  padding: 1em 0;
+}
+
+.image-diff-container .diff-swipe .swipe-frame {
+  position: absolute;
+}
+
+.image-diff-container .diff-swipe .swipe-frame .before-container {
+  position: absolute;
+}
+
+.image-diff-container .diff-swipe .swipe-frame .swipe-container {
+  position: absolute;
+  right: 0;
+  display: block;
+  border-left: 2px solid var(--color-secondary-dark-8);
+  height: 100%;
+  overflow: hidden;
+}
+
+.image-diff-container .diff-swipe .swipe-frame .swipe-container .after-container {
+  position: absolute;
+  right: 0;
+}
+
+.image-diff-container .diff-swipe .swipe-frame .swipe-bar {
+  position: absolute;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+
+.image-diff-container .diff-swipe .swipe-frame .swipe-bar .handle {
+  background: var(--color-secondary-dark-8);
+  left: -5px;
+  height: 12px;
+  width: 12px;
+  position: absolute;
+  transform: rotate(45deg);
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+
+.image-diff-container .diff-swipe .swipe-frame .swipe-bar .top-handle {
+  top: -12px;
+}
+
+.image-diff-container .diff-swipe .swipe-frame .swipe-bar .bottom-handle {
+  bottom: -14px;
+}
+
+.image-diff-container .diff-overlay {
+  margin: 0 auto;
+}
+
+.image-diff-container .diff-overlay .overlay-frame {
+  margin: 1em auto 0;
+  position: relative;
+}
+
+.image-diff-container .diff-overlay .before-container,
+.image-diff-container .diff-overlay .after-container {
+  position: absolute;
+}
+
+.image-diff-container .diff-overlay input {
+  max-width: 300px;
+}

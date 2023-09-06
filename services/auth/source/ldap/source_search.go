@@ -208,7 +208,7 @@ func (source *Source) listLdapGroupMemberships(l *ldap.Conn, uid string, applyGr
 	}
 
 	var searchFilter string
-	if applyGroupFilter {
+	if applyGroupFilter && groupFilter != "" {
 		searchFilter = fmt.Sprintf("(&(%s)(%s=%s))", groupFilter, source.GroupMemberUID, ldap.EscapeFilter(uid))
 	} else {
 		searchFilter = fmt.Sprintf("(%s=%s)", source.GroupMemberUID, ldap.EscapeFilter(uid))

@@ -45,6 +45,7 @@ func createPackageMetadataResponse(registryURL string, pds []*packages_model.Pac
 		Author:      npm_module.User{Name: metadata.Author},
 		License:     metadata.License,
 		Versions:    versions,
+		Repository:  metadata.Repository,
 	}
 }
 

@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
@@ -72,7 +73,7 @@ func TestWebhook_EventsArray(t *testing.T) {
 		"pull_request", "pull_request_assign", "pull_request_label", "pull_request_milestone",
 		"pull_request_comment", "pull_request_review_approved", "pull_request_review_rejected",
 		"pull_request_review_comment", "pull_request_sync", "wiki", "repository", "release",
-		"package",
+		"package", "pull_request_review_request",
 	},
 		(&Webhook{
 			HookEvent: &webhook_module.HookEvent{SendEverything: true},
@@ -109,13 +110,13 @@ func TestGetWebhookByRepoID(t *testing.T) {
 	assert.True(t, IsErrWebhookNotExist(err))
 }
 
-func TestGetWebhookByOrgID(t *testing.T) {
+func TestGetWebhookByOwnerID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	hook, err := GetWebhookByOrgID(3, 3)
+	hook, err := GetWebhookByOwnerID(3, 3)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(3), hook.ID)
 
-	_, err = GetWebhookByOrgID(unittest.NonexistentID, unittest.NonexistentID)
+	_, err = GetWebhookByOwnerID(unittest.NonexistentID, unittest.NonexistentID)
 	assert.Error(t, err)
 	assert.True(t, IsErrWebhookNotExist(err))
 }
@@ -140,9 +141,9 @@ func TestGetWebhooksByRepoID(t *testing.T) {
 	}
 }
 
-func TestGetActiveWebhooksByOrgID(t *testing.T) {
+func TestGetActiveWebhooksByOwnerID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	hooks, err := ListWebhooksByOpts(db.DefaultContext, &ListWebhookOptions{OrgID: 3, IsActive: util.OptionalBoolTrue})
+	hooks, err := ListWebhooksByOpts(db.DefaultContext, &ListWebhookOptions{OwnerID: 3, IsActive: util.OptionalBoolTrue})
 	assert.NoError(t, err)
 	if assert.Len(t, hooks, 1) {
 		assert.Equal(t, int64(3), hooks[0].ID)
@@ -150,9 +151,9 @@ func TestGetActiveWebhooksByOrgID(t *testing.T) {
 	}
 }
 
-func TestGetWebhooksByOrgID(t *testing.T) {
+func TestGetWebhooksByOwnerID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	hooks, err := ListWebhooksByOpts(db.DefaultContext, &ListWebhookOptions{OrgID: 3})
+	hooks, err := ListWebhooksByOpts(db.DefaultContext, &ListWebhookOptions{OwnerID: 3})
 	assert.NoError(t, err)
 	if assert.Len(t, hooks, 1) {
 		assert.Equal(t, int64(3), hooks[0].ID)
@@ -181,13 +182,13 @@ func TestDeleteWebhookByRepoID(t *testing.T) {
 	assert.True(t, IsErrWebhookNotExist(err))
 }
 
-func TestDeleteWebhookByOrgID(t *testing.T) {
+func TestDeleteWebhookByOwnerID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	unittest.AssertExistsAndLoadBean(t, &Webhook{ID: 3, OrgID: 3})
-	assert.NoError(t, DeleteWebhookByOrgID(3, 3))
-	unittest.AssertNotExistsBean(t, &Webhook{ID: 3, OrgID: 3})
+	unittest.AssertExistsAndLoadBean(t, &Webhook{ID: 3, OwnerID: 3})
+	assert.NoError(t, DeleteWebhookByOwnerID(3, 3))
+	unittest.AssertNotExistsBean(t, &Webhook{ID: 3, OwnerID: 3})
 
-	err := DeleteWebhookByOrgID(unittest.NonexistentID, unittest.NonexistentID)
+	err := DeleteWebhookByOwnerID(unittest.NonexistentID, unittest.NonexistentID)
 	assert.Error(t, err)
 	assert.True(t, IsErrWebhookNotExist(err))
 }
@@ -222,7 +223,6 @@ func TestUpdateHookTask(t *testing.T) {
 
 	hook := unittest.AssertExistsAndLoadBean(t, &HookTask{ID: 1})
 	hook.PayloadContent = "new payload content"
-	hook.DeliveredString = "new delivered string"
 	hook.IsDelivered = true
 	unittest.AssertNotExistsBean(t, hook)
 	assert.NoError(t, UpdateHookTask(hook))
@@ -235,7 +235,7 @@ func TestCleanupHookTaskTable_PerWebhook_DeletesDelivered(t *testing.T) {
 		HookID:      3,
 		Payloader:   &api.PushPayload{},
 		IsDelivered: true,
-		Delivered:   time.Now().UnixNano(),
+		Delivered:   timeutil.TimeStampNanoNow(),
 	}
 	unittest.AssertNotExistsBean(t, hookTask)
 	_, err := CreateHookTask(db.DefaultContext, hookTask)
@@ -268,7 +268,7 @@ func TestCleanupHookTaskTable_PerWebhook_LeavesMostRecentTask(t *testing.T) {
 		HookID:      4,
 		Payloader:   &api.PushPayload{},
 		IsDelivered: true,
-		Delivered:   time.Now().UnixNano(),
+		Delivered:   timeutil.TimeStampNanoNow(),
 	}
 	unittest.AssertNotExistsBean(t, hookTask)
 	_, err := CreateHookTask(db.DefaultContext, hookTask)
@@ -285,7 +285,7 @@ func TestCleanupHookTaskTable_OlderThan_DeletesDelivered(t *testing.T) {
 		HookID:      3,
 		Payloader:   &api.PushPayload{},
 		IsDelivered: true,
-		Delivered:   time.Now().AddDate(0, 0, -8).UnixNano(),
+		Delivered:   timeutil.TimeStampNano(time.Now().AddDate(0, 0, -8).UnixNano()),
 	}
 	unittest.AssertNotExistsBean(t, hookTask)
 	_, err := CreateHookTask(db.DefaultContext, hookTask)
@@ -318,7 +318,7 @@ func TestCleanupHookTaskTable_OlderThan_LeavesTaskEarlierThanAgeToDelete(t *test
 		HookID:      4,
 		Payloader:   &api.PushPayload{},
 		IsDelivered: true,
-		Delivered:   time.Now().AddDate(0, 0, -6).UnixNano(),
+		Delivered:   timeutil.TimeStampNano(time.Now().AddDate(0, 0, -6).UnixNano()),
 	}
 	unittest.AssertNotExistsBean(t, hookTask)
 	_, err := CreateHookTask(db.DefaultContext, hookTask)

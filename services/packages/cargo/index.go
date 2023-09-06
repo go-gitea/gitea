@@ -21,6 +21,7 @@ import (
 	cargo_module "code.gitea.io/gitea/modules/packages/cargo"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
@@ -137,21 +138,21 @@ type IndexVersionEntry struct {
 	Links        string                     `json:"links,omitempty"`
 }
 
-func addOrUpdatePackageIndex(ctx context.Context, t *files_service.TemporaryUploadRepository, p *packages_model.Package) error {
+func BuildPackageIndex(ctx context.Context, p *packages_model.Package) (*bytes.Buffer, error) {
 	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 		PackageID: p.ID,
 		Sort:      packages_model.SortVersionAsc,
 	})
 	if err != nil {
-		return fmt.Errorf("SearchVersions[%s]: %w", p.Name, err)
+		return nil, fmt.Errorf("SearchVersions[%s]: %w", p.Name, err)
 	}
 	if len(pvs) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
-		return fmt.Errorf("GetPackageDescriptors[%s]: %w", p.Name, err)
+		return nil, fmt.Errorf("GetPackageDescriptors[%s]: %w", p.Name, err)
 	}
 
 	var b bytes.Buffer
@@ -179,14 +180,26 @@ func addOrUpdatePackageIndex(ctx context.Context, t *files_service.TemporaryUplo
 			Links:        metadata.Links,
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		b.Write(entry)
 		b.WriteString("\n")
 	}
 
-	return writeObjectToIndex(t, BuildPackagePath(pds[0].Package.LowerName), &b)
+	return &b, nil
+}
+
+func addOrUpdatePackageIndex(ctx context.Context, t *files_service.TemporaryUploadRepository, p *packages_model.Package) error {
+	b, err := BuildPackageIndex(ctx, p)
+	if err != nil {
+		return err
+	}
+	if b == nil {
+		return nil
+	}
+
+	return writeObjectToIndex(t, BuildPackagePath(p.LowerName), b)
 }
 
 func getOrCreateIndexRepository(ctx context.Context, doer, owner *user_model.User) (*repo_model.Repository, error) {
@@ -208,8 +221,17 @@ func getOrCreateIndexRepository(ctx context.Context, doer, owner *user_model.Use
 }
 
 type Config struct {
-	DownloadURL string `json:"dl"`
-	APIURL      string `json:"api"`
+	DownloadURL  string `json:"dl"`
+	APIURL       string `json:"api"`
+	AuthRequired bool   `json:"auth-required"`
+}
+
+func BuildConfig(owner *user_model.User, isPrivate bool) *Config {
+	return &Config{
+		DownloadURL:  setting.AppURL + "api/packages/" + owner.Name + "/cargo/api/v1/crates",
+		APIURL:       setting.AppURL + "api/packages/" + owner.Name + "/cargo",
+		AuthRequired: isPrivate,
+	}
 }
 
 func createOrUpdateConfigFile(ctx context.Context, repo *repo_model.Repository, doer, owner *user_model.User) error {
@@ -220,10 +242,7 @@ func createOrUpdateConfigFile(ctx context.Context, repo *repo_model.Repository, 
 		"Initialize Cargo Config",
 		func(t *files_service.TemporaryUploadRepository) error {
 			var b bytes.Buffer
-			err := json.NewEncoder(&b).Encode(Config{
-				DownloadURL: setting.AppURL + "api/packages/" + owner.Name + "/cargo/api/v1/crates",
-				APIURL:      setting.AppURL + "api/packages/" + owner.Name + "/cargo",
-			})
+			err := json.NewEncoder(&b).Encode(BuildConfig(owner, setting.Service.RequireSignInView || owner.Visibility != structs.VisibleTypePublic || repo.IsPrivate))
 			if err != nil {
 				return err
 			}

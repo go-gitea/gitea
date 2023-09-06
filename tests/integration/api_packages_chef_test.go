@@ -11,7 +11,6 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha1"
-	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
@@ -34,6 +33,7 @@ import (
 	chef_router "code.gitea.io/gitea/routers/api/packages/chef"
 	"code.gitea.io/gitea/tests"
 
+	"github.com/minio/sha256-simd"
 	"github.com/stretchr/testify/assert"
 )
 

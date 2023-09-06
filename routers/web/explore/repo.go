@@ -4,6 +4,7 @@
 package explore
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models/db"
@@ -18,19 +19,21 @@ import (
 const (
 	// tplExploreRepos explore repositories page template
 	tplExploreRepos        base.TplName = "explore/repos"
-	relevantReposOnlyParam string       = "no_filter"
+	relevantReposOnlyParam string       = "only_show_relevant"
 )
 
 // RepoSearchOptions when calling search repositories
 type RepoSearchOptions struct {
-	OwnerID    int64
-	Private    bool
-	Restricted bool
-	PageSize   int
-	TplName    base.TplName
+	OwnerID          int64
+	Private          bool
+	Restricted       bool
+	PageSize         int
+	OnlyShowRelevant bool
+	TplName          base.TplName
 }
 
 // RenderRepoSearch render repositories search page
+// This function is also used to render the Admin Repository Management page.
 func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	// Sitemap index for sitemap paths
 	page := int(ctx.ParamsInt64("idx"))
@@ -48,11 +51,10 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	}
 
 	var (
-		repos            []*repo_model.Repository
-		count            int64
-		err              error
-		orderBy          db.SearchOrderBy
-		onlyShowRelevant bool
+		repos   []*repo_model.Repository
+		count   int64
+		err     error
+		orderBy db.SearchOrderBy
 	)
 
 	ctx.Data["SortType"] = ctx.FormString("sort")
@@ -71,6 +73,14 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		orderBy = db.SearchOrderBySizeReverse
 	case "size":
 		orderBy = db.SearchOrderBySize
+	case "reversegitsize":
+		orderBy = db.SearchOrderByGitSizeReverse
+	case "gitsize":
+		orderBy = db.SearchOrderByGitSize
+	case "reverselfssize":
+		orderBy = db.SearchOrderByLFSSizeReverse
+	case "lfssize":
+		orderBy = db.SearchOrderByLFSSize
 	case "moststars":
 		orderBy = db.SearchOrderByStarsReverse
 	case "feweststars":
@@ -84,11 +94,9 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		orderBy = db.SearchOrderByRecentUpdated
 	}
 
-	onlyShowRelevant = !ctx.FormBool(relevantReposOnlyParam)
-
 	keyword := ctx.FormTrim("q")
 
-	ctx.Data["OnlyShowRelevant"] = onlyShowRelevant
+	ctx.Data["OnlyShowRelevant"] = opts.OnlyShowRelevant
 
 	topicOnly := ctx.FormBool("topic")
 	ctx.Data["TopicOnly"] = topicOnly
@@ -111,7 +119,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		TopicOnly:          topicOnly,
 		Language:           language,
 		IncludeDescription: setting.UI.SearchRepoDescription,
-		OnlyShowRelevant:   onlyShowRelevant,
+		OnlyShowRelevant:   opts.OnlyShowRelevant,
 	})
 	if err != nil {
 		ctx.ServerError("SearchRepository", err)
@@ -138,7 +146,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "topic", "TopicOnly")
 	pager.AddParam(ctx, "language", "Language")
-	pager.AddParamString(relevantReposOnlyParam, ctx.FormString(relevantReposOnlyParam))
+	pager.AddParamString(relevantReposOnlyParam, fmt.Sprint(opts.OnlyShowRelevant))
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, opts.TplName)
@@ -157,10 +165,18 @@ func Repos(ctx *context.Context) {
 		ownerID = ctx.Doer.ID
 	}
 
+	onlyShowRelevant := setting.UI.OnlyShowRelevantRepos
+
+	_ = ctx.Req.ParseForm() // parse the form first, to prepare the ctx.Req.Form field
+	if len(ctx.Req.Form[relevantReposOnlyParam]) != 0 {
+		onlyShowRelevant = ctx.FormBool(relevantReposOnlyParam)
+	}
+
 	RenderRepoSearch(ctx, &RepoSearchOptions{
-		PageSize: setting.UI.ExplorePagingNum,
-		OwnerID:  ownerID,
-		Private:  ctx.Doer != nil,
-		TplName:  tplExploreRepos,
+		PageSize:         setting.UI.ExplorePagingNum,
+		OwnerID:          ownerID,
+		Private:          ctx.Doer != nil,
+		TplName:          tplExploreRepos,
+		OnlyShowRelevant: onlyShowRelevant,
 	})
 }

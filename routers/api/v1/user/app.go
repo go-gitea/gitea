@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/context"
@@ -62,6 +63,7 @@ func ListAccessTokens(ctx *context.APIContext) {
 			ID:             tokens[i].ID,
 			Name:           tokens[i].Name,
 			TokenLastEight: tokens[i].TokenLastEight,
+			Scopes:         tokens[i].Scope.StringSlice(),
 		}
 	}
 
@@ -82,9 +84,9 @@ func CreateAccessToken(ctx *context.APIContext) {
 	// - name: username
 	//   in: path
 	//   description: username of user
-	//   type: string
 	//   required: true
-	// - name: userCreateToken
+	//   type: string
+	// - name: body
 	//   in: body
 	//   schema:
 	//     "$ref": "#/definitions/CreateAccessTokenOption"
@@ -110,6 +112,13 @@ func CreateAccessToken(ctx *context.APIContext) {
 		ctx.Error(http.StatusBadRequest, "AccessTokenByNameExists", errors.New("access token name has been used already"))
 		return
 	}
+
+	scope, err := auth_model.AccessTokenScope(strings.Join(form.Scopes, ",")).Normalize()
+	if err != nil {
+		ctx.Error(http.StatusBadRequest, "AccessTokenScope.Normalize", fmt.Errorf("invalid access token scope provided: %w", err))
+		return
+	}
+	t.Scope = scope
 
 	if err := auth_model.NewAccessToken(t); err != nil {
 		ctx.Error(http.StatusInternalServerError, "NewAccessToken", err)

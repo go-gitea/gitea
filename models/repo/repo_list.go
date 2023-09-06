@@ -62,7 +62,8 @@ func RepositoryListOfMap(repoMap map[int64]*Repository) RepositoryList {
 	return RepositoryList(ValuesRepository(repoMap))
 }
 
-func (repos RepositoryList) loadAttributes(ctx context.Context) error {
+// LoadAttributes loads the attributes for the given RepositoryList
+func (repos RepositoryList) LoadAttributes(ctx context.Context) error {
 	if len(repos) == 0 {
 		return nil
 	}
@@ -107,11 +108,6 @@ func (repos RepositoryList) loadAttributes(ctx context.Context) error {
 	return nil
 }
 
-// LoadAttributes loads the attributes for the given RepositoryList
-func (repos RepositoryList) LoadAttributes() error {
-	return repos.loadAttributes(db.DefaultContext)
-}
-
 // SearchRepoOptions holds the search options
 type SearchRepoOptions struct {
 	db.ListOptions
@@ -134,6 +130,10 @@ type SearchRepoOptions struct {
 	// True -> include just collaborative
 	// False -> include just non-collaborative
 	Collaborate util.OptionalBool
+	// What type of unit the user can be collaborative in,
+	// it is ignored if Collaborate is False.
+	// TypeInvalid means any unit type.
+	UnitType unit.Type
 	// None -> include forks AND non-forks
 	// True -> include just forks
 	// False -> include just non-forks
@@ -386,19 +386,25 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 
 		if opts.Collaborate != util.OptionalBoolFalse {
 			// A Collaboration is:
-			collaborateCond := builder.And(
-				// 1. Repository we don't own
-				builder.Neq{"owner_id": opts.OwnerID},
-				// 2. But we can see because of:
-				builder.Or(
-					// A. We have unit independent access
-					UserAccessRepoCond("`repository`.id", opts.OwnerID),
-					// B. We are in a team for
-					UserOrgTeamRepoCond("`repository`.id", opts.OwnerID),
-					// C. Public repositories in organizations that we are member of
-					userOrgPublicRepoCondPrivate(opts.OwnerID),
-				),
-			)
+
+			collaborateCond := builder.NewCond()
+			// 1. Repository we don't own
+			collaborateCond = collaborateCond.And(builder.Neq{"owner_id": opts.OwnerID})
+			// 2. But we can see because of:
+			{
+				userAccessCond := builder.NewCond()
+				// A. We have unit independent access
+				userAccessCond = userAccessCond.Or(UserAccessRepoCond("`repository`.id", opts.OwnerID))
+				// B. We are in a team for
+				if opts.UnitType == unit.TypeInvalid {
+					userAccessCond = userAccessCond.Or(UserOrgTeamRepoCond("`repository`.id", opts.OwnerID))
+				} else {
+					userAccessCond = userAccessCond.Or(userOrgTeamUnitRepoCond("`repository`.id", opts.OwnerID, opts.UnitType))
+				}
+				// C. Public repositories in organizations that we are member of
+				userAccessCond = userAccessCond.Or(userOrgPublicRepoCondPrivate(opts.OwnerID))
+				collaborateCond = collaborateCond.And(userAccessCond)
+			}
 			if !opts.Private {
 				collaborateCond = collaborateCond.And(builder.Expr("owner_id NOT IN (SELECT org_id FROM org_user WHERE org_user.uid = ? AND org_user.is_public = ?)", opts.OwnerID, false))
 			}
@@ -498,7 +504,7 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 		subQueryCond := builder.NewCond()
 
 		// Topic checking. Topics are present.
-		if setting.Database.UsePostgreSQL { // postgres stores the topics as json and not as text
+		if setting.Database.Type.IsPostgreSQL() { // postgres stores the topics as json and not as text
 			subQueryCond = subQueryCond.Or(builder.And(builder.NotNull{"topics"}, builder.Neq{"(topics)::text": "[]"}))
 		} else {
 			subQueryCond = subQueryCond.Or(builder.And(builder.Neq{"topics": "null"}, builder.Neq{"topics": "[]"}))
@@ -526,6 +532,11 @@ func SearchRepository(ctx context.Context, opts *SearchRepoOptions) (RepositoryL
 	return SearchRepositoryByCondition(ctx, opts, cond, true)
 }
 
+// CountRepository counts repositories based on search options,
+func CountRepository(ctx context.Context, opts *SearchRepoOptions) (int64, error) {
+	return db.GetEngine(ctx).Where(SearchRepositoryCondition(opts)).Count(new(Repository))
+}
+
 // SearchRepositoryByCondition search repositories by condition
 func SearchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, cond builder.Cond, loadAttributes bool) (RepositoryList, int64, error) {
 	sess, count, err := searchRepositoryByCondition(ctx, opts, cond)
@@ -547,7 +558,7 @@ func SearchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, c
 	}
 
 	if loadAttributes {
-		if err := repos.loadAttributes(ctx); err != nil {
+		if err := repos.LoadAttributes(ctx); err != nil {
 			return nil, 0, fmt.Errorf("LoadAttributes: %w", err)
 		}
 	}
@@ -564,7 +575,7 @@ func searchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, c
 		opts.OrderBy = db.SearchOrderByAlphabetically
 	}
 
-	args := make([]interface{}, 0)
+	args := make([]any, 0)
 	if opts.PriorityOwnerID > 0 {
 		opts.OrderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN owner_id = ? THEN 0 ELSE owner_id END, %s", opts.OrderBy))
 		args = append(args, opts.PriorityOwnerID)

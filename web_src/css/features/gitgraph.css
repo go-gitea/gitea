@@ -1,0 +1,310 @@
+#git-graph-container {
+  overflow-x: auto;
+  width: 100%;
+  min-height: 350px;
+}
+
+#git-graph-container > .ui.segment.loading {
+  border: 0;
+  z-index: 1;
+  min-height: 246px;
+}
+
+#git-graph-container h2 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#git-graph-container .color-buttons {
+  margin-right: 0;
+}
+
+#git-graph-container .ui.header.dividing {
+  padding-bottom: 10px;
+}
+
+#git-graph-container #flow-select-refs-dropdown {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  min-width: 250px;
+  border-right: none;
+}
+
+#git-graph-container #flow-select-refs-dropdown .ui.label {
+  max-width: 180px;
+  display: inline-flex !important;
+  align-items: center;
+}
+
+#git-graph-container #flow-select-refs-dropdown .ui.label .truncate {
+  display: inline-block;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+#git-graph-container #flow-select-refs-dropdown .default.text {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#git-graph-container #flow-select-refs-dropdown input.search {
+  position: relative;
+  top: 1px;
+}
+
+#git-graph-container li {
+  list-style-type: none;
+  height: 24px;
+  line-height: 24px;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+}
+
+#git-graph-container li .node-relation {
+  font-family: var(--fonts-monospace);
+}
+
+#git-graph-container li .author {
+  color: var(--color-text-light);
+}
+
+#git-graph-container li .time {
+  color: var(--color-text-light-3);
+  font-size: 80%;
+}
+
+#git-graph-container li a:not(.ui):hover {
+  text-decoration: underline;
+}
+
+#git-graph-container li a em {
+  color: var(--color-red);
+  border-bottom: 1px dotted var(--color-secondary);
+  text-decoration: none;
+  font-style: normal;
+}
+
+#git-graph-container #rel-container {
+  max-width: 30%;
+  overflow-x: auto;
+  float: left;
+}
+
+#git-graph-container #rev-container {
+  width: 100%;
+}
+
+#git-graph-container #rev-list {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+#git-graph-container #rev-list li.highlight.hover {
+  background-color: var(--color-secondary-alpha-30);
+}
+
+#git-graph-container #rev-list .commit-refs .button {
+  padding: 2px 4px;
+  margin-right: 0.25em;
+  display: inline-block;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#git-graph-container #rev-list .sha.label {
+  padding-top: 5px;
+  padding-bottom: 3px;
+}
+
+#git-graph-container #rev-list .sha.label .ui.detail.icon.button {
+  padding-top: 3px;
+  margin-top: -5px;
+  padding-bottom: 1px;
+}
+
+#git-graph-container #rev-list .author img.ui.avatar {
+  width: auto;
+  height: 18px;
+  max-width: none;
+}
+
+#git-graph-container #graph-raw-list {
+  margin: 0;
+}
+
+#git-graph-container.monochrome #rel-container .flow-group {
+  stroke: var(--color-secondary-dark-5);
+  fill: var(--color-secondary-dark-5);
+}
+
+#git-graph-container.monochrome #rel-container .flow-group.highlight {
+  stroke: var(--color-secondary-dark-12);
+  fill: var(--color-secondary-dark-12);
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-1 {
+  stroke: #499a37;
+  fill: #499a37;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-2 {
+  stroke: #ce4751;
+  fill: #ce4751;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-3 {
+  stroke: #8f9121;
+  fill: #8f9121;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-4 {
+  stroke: #ac32a6;
+  fill: #ac32a6;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-5 {
+  stroke: #7445e9;
+  fill: #7445e9;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-6 {
+  stroke: #c67d28;
+  fill: #c67d28;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-7 {
+  stroke: #4db392;
+  fill: #4db392;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-8 {
+  stroke: #aa4d30;
+  fill: #aa4d30;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-9 {
+  stroke: #2a6f84;
+  fill: #2a6f84;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-10 {
+  stroke: #c45327;
+  fill: #c45327;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-11 {
+  stroke: #3d965c;
+  fill: #3d965c;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-12 {
+  stroke: #792a93;
+  fill: #792a93;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-13 {
+  stroke: #439d73;
+  fill: #439d73;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-14 {
+  stroke: #103aad;
+  fill: #103aad;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-15 {
+  stroke: #982e85;
+  fill: #982e85;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-0 {
+  stroke: #7db233;
+  fill: #7db233;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-1 {
+  stroke: #5ac144;
+  fill: #5ac144;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-2 {
+  stroke: #ed5a8b;
+  fill: #ed5a8b;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-3 {
+  stroke: #ced049;
+  fill: #ced048;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-4 {
+  stroke: #db61d7;
+  fill: #db62d6;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-5 {
+  stroke: #8455f9;
+  fill: #8455f9;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-6 {
+  stroke: #e6a151;
+  fill: #e6a151;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-7 {
+  stroke: #44daaa;
+  fill: #44daaa;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-8 {
+  stroke: #dd7a5c;
+  fill: #dd7a5c;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-9 {
+  stroke: #38859c;
+  fill: #38859c;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-10 {
+  stroke: #d95520;
+  fill: #d95520;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-11 {
+  stroke: #42ae68;
+  fill: #42ae68;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-12 {
+  stroke: #9126b5;
+  fill: #9126b5;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-13 {
+  stroke: #4ab080;
+  fill: #4ab080;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-14 {
+  stroke: #284fb8;
+  fill: #284fb8;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-15 {
+  stroke: #971c80;
+  fill: #971c80;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight.flow-color-16-0 {
+  stroke: #87ca28;
+  fill: #87ca28;
+}

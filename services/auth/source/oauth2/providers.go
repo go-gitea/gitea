@@ -5,6 +5,9 @@ package oauth2
 
 import (
 	"errors"
+	"fmt"
+	"html"
+	"html/template"
 	"net/url"
 	"sort"
 
@@ -19,7 +22,7 @@ import (
 type Provider interface {
 	Name() string
 	DisplayName() string
-	Image() string
+	IconHTML() template.HTML
 	CustomURLSettings() *CustomURLSettings
 }
 
@@ -34,23 +37,31 @@ type GothProvider interface {
 	GothProviderCreator
 }
 
-// ImagedProvider provide an overridden image setting for the provider
-type ImagedProvider struct {
+// AuthSourceProvider provides a provider for an AuthSource. Multiple auth sources could use the same registered GothProvider
+// So each auth source should have its own DisplayName and IconHTML for display.
+// The Name is the GothProvider's name, to help to find the GothProvider to sign in.
+// The DisplayName is the auth source config's name, site admin set it on the admin page, the IconURL can also be set there.
+type AuthSourceProvider struct {
 	GothProvider
-	image string
+	sourceName, iconURL string
 }
 
-// Image returns the image path for this provider
-func (i *ImagedProvider) Image() string {
-	return i.image
+func (p *AuthSourceProvider) Name() string {
+	return p.GothProvider.Name()
 }
 
-// NewImagedProvider is a constructor function for the ImagedProvider
-func NewImagedProvider(image string, provider GothProvider) *ImagedProvider {
-	return &ImagedProvider{
-		GothProvider: provider,
-		image:        image,
+func (p *AuthSourceProvider) DisplayName() string {
+	return p.sourceName
+}
+
+func (p *AuthSourceProvider) IconHTML() template.HTML {
+	if p.iconURL != "" {
+		img := fmt.Sprintf(`<img class="gt-object-contain gt-mr-3" width="20" height="20" src="%s" alt="%s">`,
+			html.EscapeString(p.iconURL), html.EscapeString(p.DisplayName()),
+		)
+		return template.HTML(img)
 	}
+	return p.GothProvider.IconHTML()
 }
 
 // Providers contains the map of registered OAuth2 providers in Gitea (based on goth)
@@ -95,11 +106,13 @@ func GetActiveOAuth2Providers() ([]string, map[string]Provider, error) {
 	var orderedKeys []string
 	providers := make(map[string]Provider)
 	for _, source := range authSources {
-		prov := gothProviders[source.Cfg.(*Source).Provider]
-		if source.Cfg.(*Source).IconURL != "" {
-			prov = &ImagedProvider{prov, source.Cfg.(*Source).IconURL}
+		oauth2Cfg, ok := source.Cfg.(*Source)
+		if !ok {
+			log.Error("Invalid OAuth2 source config: %v", oauth2Cfg)
+			continue
 		}
-		providers[source.Name] = prov
+		gothProv := gothProviders[oauth2Cfg.Provider]
+		providers[source.Name] = &AuthSourceProvider{GothProvider: gothProv, sourceName: source.Name, iconURL: oauth2Cfg.IconURL}
 		orderedKeys = append(orderedKeys, source.Name)
 	}
 
@@ -138,8 +151,7 @@ func ClearProviders() {
 	goth.ClearProviders()
 }
 
-// ErrAuthSourceNotActived login source is not actived error
-var ErrAuthSourceNotActived = errors.New("auth source is not actived")
+var ErrAuthSourceNotActivated = errors.New("auth source is not activated")
 
 // used to create different types of goth providers
 func createProvider(providerName string, source *Source) (goth.Provider, error) {
@@ -150,7 +162,7 @@ func createProvider(providerName string, source *Source) (goth.Provider, error) 
 
 	p, ok := gothProviders[source.Provider]
 	if !ok {
-		return nil, ErrAuthSourceNotActived
+		return nil, ErrAuthSourceNotActivated
 	}
 
 	provider, err = p.CreateGothProvider(providerName, callbackURL, source)

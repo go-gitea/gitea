@@ -14,9 +14,28 @@ import (
 func TestCommitsCount(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 
-	commitsCount, err := CommitsCount(DefaultContext, bareRepo1Path, "8006ff9adbf0cb94da7dad9e537e53817f9fa5c0")
+	commitsCount, err := CommitsCount(DefaultContext,
+		CommitsCountOptions{
+			RepoPath: bareRepo1Path,
+			Revision: []string{"8006ff9adbf0cb94da7dad9e537e53817f9fa5c0"},
+		})
+
 	assert.NoError(t, err)
 	assert.Equal(t, int64(3), commitsCount)
+}
+
+func TestCommitsCountWithoutBase(t *testing.T) {
+	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
+
+	commitsCount, err := CommitsCount(DefaultContext,
+		CommitsCountOptions{
+			RepoPath: bareRepo1Path,
+			Not:      "master",
+			Revision: []string{"branch1"},
+		})
+
+	assert.NoError(t, err)
+	assert.Equal(t, int64(2), commitsCount)
 }
 
 func TestGetFullCommitID(t *testing.T) {
@@ -235,4 +254,27 @@ func TestParseCommitFileStatus(t *testing.T) {
 		assert.Equal(t, kase.removed, fileStatus.Removed)
 		assert.Equal(t, kase.modified, fileStatus.Modified)
 	}
+}
+
+func TestGetCommitFileStatusMerges(t *testing.T) {
+	bareRepo1Path := filepath.Join(testReposDir, "repo6_merge")
+
+	commitFileStatus, err := GetCommitFileStatus(DefaultContext, bareRepo1Path, "022f4ce6214973e018f02bf363bf8a2e3691f699")
+	assert.NoError(t, err)
+
+	expected := CommitFileStatus{
+		[]string{
+			"add_file.txt",
+		},
+		[]string{
+			"to_remove.txt",
+		},
+		[]string{
+			"to_modify.txt",
+		},
+	}
+
+	assert.Equal(t, commitFileStatus.Added, expected.Added)
+	assert.Equal(t, commitFileStatus.Removed, expected.Removed)
+	assert.Equal(t, commitFileStatus.Modified, expected.Modified)
 }

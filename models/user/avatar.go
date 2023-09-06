@@ -67,7 +67,7 @@ func (u *User) AvatarLinkWithSize(ctx context.Context, size int) string {
 	useLocalAvatar := false
 	autoGenerateAvatar := false
 
-	disableGravatar := system_model.GetSettingBool(ctx, system_model.KeyPictureDisableGravatar)
+	disableGravatar := system_model.GetSettingWithCacheBool(ctx, system_model.KeyPictureDisableGravatar)
 
 	switch {
 	case u.UseCustomAvatar:

@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -551,7 +552,11 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		ctx.ServerError("GetCompareInfo", err)
 		return nil
 	}
-	ctx.Data["BeforeCommitID"] = ci.CompareInfo.MergeBase
+	if ci.DirectComparison {
+		ctx.Data["BeforeCommitID"] = ci.CompareInfo.BaseCommitID
+	} else {
+		ctx.Data["BeforeCommitID"] = ci.CompareInfo.MergeBase
+	}
 
 	return ci
 }
@@ -679,7 +684,13 @@ func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repositor
 	}
 	defer gitRepo.Close()
 
-	branches, _, err = gitRepo.GetBranchNames(0, 0)
+	branches, err = git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
+		RepoID: repo.ID,
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		IsDeletedBranch: util.OptionalBoolFalse,
+	})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -717,10 +728,9 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 
-	baseGitRepo := ctx.Repo.GitRepo
-	baseTags, err := baseGitRepo.GetTags(0, 0)
+	baseTags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.ServerError("GetTags", err)
+		ctx.ServerError("GetTagNamesByRepoID", err)
 		return
 	}
 	ctx.Data["Tags"] = baseTags
@@ -731,16 +741,28 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 
-	headBranches, _, err := ci.HeadGitRepo.GetBranchNames(0, 0)
+	headBranches, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
+		RepoID: ci.HeadRepo.ID,
+		ListOptions: db.ListOptions{
+			ListAll: true,
+		},
+		IsDeletedBranch: util.OptionalBoolFalse,
+	})
 	if err != nil {
 		ctx.ServerError("GetBranches", err)
 		return
 	}
 	ctx.Data["HeadBranches"] = headBranches
 
-	headTags, err := ci.HeadGitRepo.GetTags(0, 0)
+	// For compare repo branches
+	PrepareBranchList(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	headTags, err := repo_model.GetTagNamesByRepoID(ctx, ci.HeadRepo.ID)
 	if err != nil {
-		ctx.ServerError("GetTags", err)
+		ctx.ServerError("GetTagNamesByRepoID", err)
 		return
 	}
 	ctx.Data["HeadTags"] = headTags
@@ -782,7 +804,6 @@ func CompareDiff(ctx *context.Context) {
 
 	ctx.Data["IsRepoToolbarCommits"] = true
 	ctx.Data["IsDiffCompare"] = true
-	ctx.Data["RequireTribute"] = true
 	templateErrs := setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates)
 
 	if len(templateErrs) > 0 {

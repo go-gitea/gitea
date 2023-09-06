@@ -1,8 +1,5 @@
-{{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content user settings sshkeys">
-	{{template "user/settings/navbar" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings sshkeys")}}
+	<div class="user-setting-content">
 
 		<!-- Theme -->
 		<h4 class="ui top attached header">
@@ -74,10 +71,13 @@
 			{{.locale.Tr "settings.hidden_comment_types"}}
 		</h4>
 		<div class="ui attached segment">
+			<p class="help">
+				{{.locale.Tr "settings.hidden_comment_types_description"}}
+			</p>
 			<form class="ui form" action="{{.Link}}/hidden_comments" method="post">
 				{{.CsrfTokenHtml}}
 				<div class="inline field">
-					<div class="ui checkbox">
+					<div class="ui checkbox" data-tooltip-content="{{.locale.Tr "settings.hidden_comment_types.ref_tooltip"}}">
 						<input name="reference" type="checkbox" {{if(call .IsCommentTypeGroupChecked "reference")}}checked{{end}}>
 						<label>{{.locale.Tr "settings.comment_type_group_reference"}}</label>
 					</div>
@@ -156,7 +156,7 @@
 					</div>
 				</div>
 				<div class="inline field">
-					<div class="ui checkbox">
+					<div class="ui checkbox" data-tooltip-content="{{.locale.Tr "settings.hidden_comment_types.issue_ref_tooltip"}}">
 						<input name="issue_ref" type="checkbox" {{if (call .IsCommentTypeGroupChecked "issue_ref")}}checked{{end}}>
 						<label>{{.locale.Tr "settings.comment_type_group_issue_ref"}}</label>
 					</div>
@@ -167,6 +167,4 @@
 			</form>
 		</div>
 	</div>
-</div>
-
-{{template "base/footer" .}}
+{{template "user/settings/layout_footer" .}}
