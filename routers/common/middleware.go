@@ -114,7 +114,7 @@ func Sessioner() func(next http.Handler) http.Handler {
 				SameSite:       setting.SessionConfig.SameSite,
 				Domain:         setting.SessionConfig.Domain,
 			})
-			handler.ServeHTTP(resp, req) // handler.ServeHTTP undefined
+			handler(next).ServeHTTP(resp, req)
 		})
 	}
 }
