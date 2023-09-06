@@ -160,10 +160,10 @@ func Contexter() func(next http.Handler) http.Handler {
 				Cookie:         setting.CSRFCookieName,
 				SetCookie:      true,
 				Secure:         middleware.GetCookieSecure(ctx.Req),
+				CookieHTTPOnly: setting.CSRFCookieHTTPOnly,
 				Header:         "X-Csrf-Token",
 				CookieDomain:   setting.SessionConfig.Domain,
 				CookiePath:     setting.SessionConfig.CookiePath,
-				CookieHTTPOnly: setting.CSRFCookieHTTPOnly,
 				SameSite:       setting.SessionConfig.SameSite,
 			}
 			ctx.Csrf = PrepareCSRFProtector(csrfOpts, ctx)
