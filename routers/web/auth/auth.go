@@ -390,6 +390,13 @@ func SignOut(ctx *context.Context) {
 func SignUp(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("sign_up")
 
+	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers()
+	if err != nil {
+		ctx.ServerError("SignUp", err)
+		return
+	}
+	ctx.Data["OrderedOAuth2Names"] = orderedOAuth2Names
+	ctx.Data["OAuth2Providers"] = oauth2Providers
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 
 	context.SetCaptchaData(ctx)
@@ -411,6 +418,13 @@ func SignUpPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RegisterForm)
 	ctx.Data["Title"] = ctx.Tr("sign_up")
 
+	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers()
+	if err != nil {
+		ctx.ServerError("SignUpPost", err)
+		return
+	}
+	ctx.Data["OrderedOAuth2Names"] = orderedOAuth2Names
+	ctx.Data["OAuth2Providers"] = oauth2Providers
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 
 	context.SetCaptchaData(ctx)
