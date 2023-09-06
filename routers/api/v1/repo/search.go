@@ -48,8 +48,8 @@ func CodeSearch(ctx *context.APIContext) {
 	//   in: query
 	//   description: page number of results to return (1-based)
 	//   type: integer
-	// - name: keyword
-	//   in: limit
+	// - name: limit
+	//   in: query
 	//   description: page size of results
 	//   type: string
 	// responses:
