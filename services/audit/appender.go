@@ -5,6 +5,7 @@ package audit
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"code.gitea.io/gitea/modules/json"
@@ -22,7 +23,14 @@ type Appender interface {
 type LogAppender struct{}
 
 func (a *LogAppender) Record(ctx context.Context, e *Event) {
-	log.Info("%s", e.Message)
+	log.Info("Audit: %s (%s %s %s)", e.Message, formatDescriptor(e.Doer), formatDescriptor(e.Scope), formatDescriptor(e.Target))
+}
+
+func formatDescriptor(desc TypeDescriptor) string {
+	if desc.FriendlyName == "" {
+		return fmt.Sprintf("[%s: %v]", desc.Type, desc.PrimaryKey)
+	}
+	return fmt.Sprintf("[%s: %v, %s]", desc.Type, desc.PrimaryKey, desc.FriendlyName)
 }
 
 func (a *LogAppender) Close() error {
