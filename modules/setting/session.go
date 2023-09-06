@@ -27,8 +27,6 @@ var SessionConfig = struct {
 	Gclifetime int64
 	// Max life time in seconds. Default is whatever GC interval time is.
 	Maxlifetime int64
-	// Use HTTPS only. Default is false.
-	Secure bool
 	// Cookie domain name. Default is empty.
 	Domain string
 	// SameSite declares if your cookie should be restricted to a first-party or same-site context. Valid strings are "none", "lax", "strict". Default is "lax"
@@ -50,7 +48,6 @@ func loadSessionFrom(rootCfg ConfigProvider) {
 	}
 	SessionConfig.CookieName = sec.Key("COOKIE_NAME").MustString("i_like_gitea")
 	SessionConfig.CookiePath = AppSubURL + "/" // there was a bug, old code only set CookePath=AppSubURL, no trailing slash
-	SessionConfig.Secure = sec.Key("COOKIE_SECURE").MustBool(false)
 	SessionConfig.Gclifetime = sec.Key("GC_INTERVAL_TIME").MustInt64(86400)
 	SessionConfig.Maxlifetime = sec.Key("SESSION_LIFE_TIME").MustInt64(86400)
 	SessionConfig.Domain = sec.Key("DOMAIN").String()

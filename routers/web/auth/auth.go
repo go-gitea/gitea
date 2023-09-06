@@ -104,7 +104,7 @@ func resetLocale(ctx *context.Context, u *user_model.User) error {
 		}
 	}
 
-	middleware.SetLocaleCookie(ctx.Resp, u.Language, 0)
+	middleware.SetLocaleCookie(ctx.Resp, ctx.Req, u.Language, 0)
 
 	if ctx.Locale.Language() != u.Language {
 		ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
@@ -123,13 +123,13 @@ func checkAutoLogin(ctx *context.Context) bool {
 
 	redirectTo := ctx.FormString("redirect_to")
 	if len(redirectTo) > 0 {
-		middleware.SetRedirectToCookie(ctx.Resp, redirectTo)
+		middleware.SetRedirectToCookie(ctx.Resp, ctx.Req, redirectTo)
 	} else {
 		redirectTo = ctx.GetSiteCookie("redirect_to")
 	}
 
 	if isSucceed {
-		middleware.DeleteRedirectToCookie(ctx.Resp)
+		middleware.DeleteRedirectToCookie(ctx.Resp, ctx.Req)
 		ctx.RedirectToFirst(redirectTo, setting.AppSubURL+string(setting.LandingPageURL))
 		return true
 	}
@@ -323,7 +323,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 		}
 	}
 
-	middleware.SetLocaleCookie(ctx.Resp, u.Language, 0)
+	middleware.SetLocaleCookie(ctx.Resp, ctx.Req, u.Language, 0)
 
 	if ctx.Locale.Language() != u.Language {
 		ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
@@ -340,7 +340,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 	}
 
 	if redirectTo := ctx.GetSiteCookie("redirect_to"); len(redirectTo) > 0 && !utils.IsExternalURL(redirectTo) {
-		middleware.DeleteRedirectToCookie(ctx.Resp)
+		middleware.DeleteRedirectToCookie(ctx.Resp, ctx.Req)
 		if obeyRedirect {
 			ctx.RedirectToFirst(redirectTo)
 		}
@@ -371,7 +371,7 @@ func HandleSignOut(ctx *context.Context) {
 	ctx.DeleteSiteCookie(setting.CookieUserName)
 	ctx.DeleteSiteCookie(setting.CookieRememberName)
 	ctx.Csrf.DeleteCookie(ctx)
-	middleware.DeleteRedirectToCookie(ctx.Resp)
+	middleware.DeleteRedirectToCookie(ctx.Resp, ctx.Req)
 }
 
 // SignOut sign out from login status
@@ -400,7 +400,7 @@ func SignUp(ctx *context.Context) {
 
 	redirectTo := ctx.FormString("redirect_to")
 	if len(redirectTo) > 0 {
-		middleware.SetRedirectToCookie(ctx.Resp, redirectTo)
+		middleware.SetRedirectToCookie(ctx.Resp, ctx.Req, redirectTo)
 	}
 
 	ctx.HTML(http.StatusOK, tplSignUp)
@@ -735,7 +735,7 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 
 	ctx.Flash.Success(ctx.Tr("auth.account_activated"))
 	if redirectTo := ctx.GetSiteCookie("redirect_to"); len(redirectTo) > 0 {
-		middleware.DeleteRedirectToCookie(ctx.Resp)
+		middleware.DeleteRedirectToCookie(ctx.Resp, ctx.Req)
 		ctx.RedirectToFirst(redirectTo)
 		return
 	}

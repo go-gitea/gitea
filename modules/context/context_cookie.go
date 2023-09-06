@@ -32,13 +32,13 @@ func removeSessionCookieHeader(w http.ResponseWriter) {
 // SetSiteCookie convenience function to set most cookies consistently
 // CSRF and a few others are the exception here
 func (ctx *Context) SetSiteCookie(name, value string, maxAge int) {
-	middleware.SetSiteCookie(ctx.Resp, name, value, maxAge)
+	middleware.SetSiteCookie(ctx.Resp, ctx.Req, name, value, maxAge)
 }
 
 // DeleteSiteCookie convenience function to delete most cookies consistently
 // CSRF and a few others are the exception here
 func (ctx *Context) DeleteSiteCookie(name string) {
-	middleware.SetSiteCookie(ctx.Resp, name, "", -1)
+	middleware.SetSiteCookie(ctx.Resp, ctx.Req, name, "", -1)
 }
 
 // GetSiteCookie returns given cookie value from request header.

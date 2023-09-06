@@ -101,15 +101,20 @@ func stripSlashesMiddleware(next http.Handler) http.Handler {
 }
 
 func Sessioner() func(next http.Handler) http.Handler {
-	return session.Sessioner(session.Options{
-		Provider:       setting.SessionConfig.Provider,
-		ProviderConfig: setting.SessionConfig.ProviderConfig,
-		CookieName:     setting.SessionConfig.CookieName,
-		CookiePath:     setting.SessionConfig.CookiePath,
-		Gclifetime:     setting.SessionConfig.Gclifetime,
-		Maxlifetime:    setting.SessionConfig.Maxlifetime,
-		Secure:         setting.SessionConfig.Secure,
-		SameSite:       setting.SessionConfig.SameSite,
-		Domain:         setting.SessionConfig.Domain,
-	})
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			handler := session.Sessioner(session.Options{
+				Provider:       setting.SessionConfig.Provider,
+				ProviderConfig: setting.SessionConfig.ProviderConfig,
+				CookieName:     setting.SessionConfig.CookieName,
+				CookiePath:     setting.SessionConfig.CookiePath,
+				Gclifetime:     setting.SessionConfig.Gclifetime,
+				Maxlifetime:    setting.SessionConfig.Maxlifetime,
+				Secure:         middleware.GetCookieSecure(req),
+				SameSite:       setting.SessionConfig.SameSite,
+				Domain:         setting.SessionConfig.Domain,
+			})
+			handler.ServeHTTP(resp, req) // handler.ServeHTTP undefined
+		})
+	}
 }

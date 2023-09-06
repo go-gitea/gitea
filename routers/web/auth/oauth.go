@@ -855,7 +855,7 @@ func SignInOAuth(ctx *context.Context) {
 
 	redirectTo := ctx.FormString("redirect_to")
 	if len(redirectTo) > 0 {
-		middleware.SetRedirectToCookie(ctx.Resp, redirectTo)
+		middleware.SetRedirectToCookie(ctx.Resp, ctx.Req, redirectTo)
 	}
 
 	// try to do a direct callback flow, so we don't authenticate the user again but use the valid accesstoken to get the user
@@ -1163,7 +1163,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		}
 
 		if redirectTo := ctx.GetSiteCookie("redirect_to"); len(redirectTo) > 0 {
-			middleware.DeleteRedirectToCookie(ctx.Resp)
+			middleware.DeleteRedirectToCookie(ctx.Resp, ctx.Req)
 			ctx.RedirectToFirst(redirectTo)
 			return
 		}

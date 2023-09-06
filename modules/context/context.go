@@ -133,17 +133,6 @@ func NewWebContext(base *Base, render Render, session session.Store) *Context {
 // Contexter initializes a classic context for a request.
 func Contexter() func(next http.Handler) http.Handler {
 	rnd := templates.HTMLRenderer()
-	csrfOpts := CsrfOptions{
-		Secret:         setting.SecretKey,
-		Cookie:         setting.CSRFCookieName,
-		SetCookie:      true,
-		Secure:         setting.SessionConfig.Secure,
-		CookieHTTPOnly: setting.CSRFCookieHTTPOnly,
-		Header:         "X-Csrf-Token",
-		CookieDomain:   setting.SessionConfig.Domain,
-		CookiePath:     setting.SessionConfig.CookiePath,
-		SameSite:       setting.SessionConfig.SameSite,
-	}
 	if !setting.IsProd {
 		CsrfTokenRegenerationInterval = 5 * time.Second // in dev, re-generate the tokens more aggressively for debug purpose
 	}
@@ -166,6 +155,17 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Base.AppendContextValue(WebContextKey, ctx)
 			ctx.Base.AppendContextValueFunc(git.RepositoryContextKey, func() any { return ctx.Repo.GitRepo })
 
+			csrfOpts := CsrfOptions{
+				Secret:         setting.SecretKey,
+				Cookie:         setting.CSRFCookieName,
+				SetCookie:      true,
+				Secure:         middleware.GetCookieSecure(ctx.Req),
+				Header:         "X-Csrf-Token",
+				CookieDomain:   setting.SessionConfig.Domain,
+				CookiePath:     setting.SessionConfig.CookiePath,
+				CookieHTTPOnly: setting.CSRFCookieHTTPOnly,
+				SameSite:       setting.SessionConfig.SameSite,
+			}
 			ctx.Csrf = PrepareCSRFProtector(csrfOpts, ctx)
 
 			// Get the last flash message from cookie
@@ -185,9 +185,9 @@ func Contexter() func(next http.Handler) http.Handler {
 			// if there are new messages in the ctx.Flash, write them into cookie
 			ctx.Resp.Before(func(resp ResponseWriter) {
 				if val := ctx.Flash.Encode(); val != "" {
-					middleware.SetSiteCookie(ctx.Resp, CookieNameFlash, val, 0)
+					middleware.SetSiteCookie(ctx.Resp, ctx.Req, CookieNameFlash, val, 0)
 				} else if lastFlashCookie != "" {
-					middleware.SetSiteCookie(ctx.Resp, CookieNameFlash, "", -1)
+					middleware.SetSiteCookie(ctx.Resp, ctx.Req, CookieNameFlash, "", -1)
 				}
 			})
 

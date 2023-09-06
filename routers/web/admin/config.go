@@ -159,7 +159,6 @@ func Config(ctx *context.Context) {
 		sessionCfg.CookiePath = realSession.CookiePath
 		sessionCfg.Gclifetime = realSession.Gclifetime
 		sessionCfg.Maxlifetime = realSession.Maxlifetime
-		sessionCfg.Secure = realSession.Secure
 		sessionCfg.Domain = realSession.Domain
 	}
 	sessionCfg.ProviderConfig = shadowPassword(sessionCfg.Provider, sessionCfg.ProviderConfig)

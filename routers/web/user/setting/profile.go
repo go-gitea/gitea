@@ -407,7 +407,7 @@ func UpdateUserLang(ctx *context.Context) {
 	}
 
 	// Update the language to the one we just set
-	middleware.SetLocaleCookie(ctx.Resp, ctx.Doer.Language, 0)
+	middleware.SetLocaleCookie(ctx.Resp, ctx.Req, ctx.Doer.Language, 0)
 
 	log.Trace("User settings updated: %s", ctx.Doer.Name)
 	ctx.Flash.Success(translation.NewLocale(ctx.Doer.Language).Tr("settings.update_language_success"))

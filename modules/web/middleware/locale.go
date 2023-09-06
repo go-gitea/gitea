@@ -41,19 +41,19 @@ func Locale(resp http.ResponseWriter, req *http.Request) translation.Locale {
 	}
 
 	if changeLang {
-		SetLocaleCookie(resp, lang, 1<<31-1)
+		SetLocaleCookie(resp, req, lang, 1<<31-1)
 	}
 
 	return translation.NewLocale(lang)
 }
 
 // SetLocaleCookie convenience function to set the locale cookie consistently
-func SetLocaleCookie(resp http.ResponseWriter, lang string, maxAge int) {
-	SetSiteCookie(resp, "lang", lang, maxAge)
+func SetLocaleCookie(resp http.ResponseWriter, req *http.Request, lang string, maxAge int) {
+	SetSiteCookie(resp, req, "lang", lang, maxAge)
 }
 
 // DeleteLocaleCookie convenience function to delete the locale cookie consistently
 // Setting the lang cookie will trigger the middleware to reset the language to previous state.
-func DeleteLocaleCookie(resp http.ResponseWriter) {
-	SetSiteCookie(resp, "lang", "", -1)
+func DeleteLocaleCookie(resp http.ResponseWriter, req *http.Request) {
+	SetSiteCookie(resp, req, "lang", "", -1)
 }
