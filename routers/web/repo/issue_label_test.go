@@ -10,6 +10,7 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/contexttest"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
@@ -32,9 +33,9 @@ func int64SliceToCommaSeparated(a []int64) string {
 func TestInitializeLabels(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	assert.NoError(t, repository.LoadRepoConfig())
-	ctx, _ := test.MockContext(t, "user2/repo1/labels/initialize")
-	test.LoadUser(t, ctx, 2)
-	test.LoadRepo(t, ctx, 2)
+	ctx, _ := contexttest.MockContext(t, "user2/repo1/labels/initialize")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 2)
 	web.SetForm(ctx, &forms.InitializeLabelsForm{TemplateName: "Default"})
 	InitializeLabels(ctx)
 	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
@@ -57,9 +58,9 @@ func TestRetrieveLabels(t *testing.T) {
 		{1, "leastissues", []int64{2, 1}},
 		{2, "", []int64{}},
 	} {
-		ctx, _ := test.MockContext(t, "user/repo/issues")
-		test.LoadUser(t, ctx, 2)
-		test.LoadRepo(t, ctx, testCase.RepoID)
+		ctx, _ := contexttest.MockContext(t, "user/repo/issues")
+		contexttest.LoadUser(t, ctx, 2)
+		contexttest.LoadRepo(t, ctx, testCase.RepoID)
 		ctx.Req.Form.Set("sort", testCase.Sort)
 		RetrieveLabels(ctx)
 		assert.False(t, ctx.Written())
@@ -75,9 +76,9 @@ func TestRetrieveLabels(t *testing.T) {
 
 func TestNewLabel(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := test.MockContext(t, "user2/repo1/labels/edit")
-	test.LoadUser(t, ctx, 2)
-	test.LoadRepo(t, ctx, 1)
+	ctx, _ := contexttest.MockContext(t, "user2/repo1/labels/edit")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 1)
 	web.SetForm(ctx, &forms.CreateLabelForm{
 		Title: "newlabel",
 		Color: "#abcdef",
@@ -93,13 +94,14 @@ func TestNewLabel(t *testing.T) {
 
 func TestUpdateLabel(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := test.MockContext(t, "user2/repo1/labels/edit")
-	test.LoadUser(t, ctx, 2)
-	test.LoadRepo(t, ctx, 1)
+	ctx, _ := contexttest.MockContext(t, "user2/repo1/labels/edit")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 1)
 	web.SetForm(ctx, &forms.CreateLabelForm{
-		ID:    2,
-		Title: "newnameforlabel",
-		Color: "#abcdef",
+		ID:         2,
+		Title:      "newnameforlabel",
+		Color:      "#abcdef",
+		IsArchived: true,
 	})
 	UpdateLabel(ctx)
 	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
@@ -113,9 +115,9 @@ func TestUpdateLabel(t *testing.T) {
 
 func TestDeleteLabel(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := test.MockContext(t, "user2/repo1/labels/delete")
-	test.LoadUser(t, ctx, 2)
-	test.LoadRepo(t, ctx, 1)
+	ctx, _ := contexttest.MockContext(t, "user2/repo1/labels/delete")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 1)
 	ctx.Req.Form.Set("id", "2")
 	DeleteLabel(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
@@ -126,9 +128,9 @@ func TestDeleteLabel(t *testing.T) {
 
 func TestUpdateIssueLabel_Clear(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := test.MockContext(t, "user2/repo1/issues/labels")
-	test.LoadUser(t, ctx, 2)
-	test.LoadRepo(t, ctx, 1)
+	ctx, _ := contexttest.MockContext(t, "user2/repo1/issues/labels")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 1)
 	ctx.Req.Form.Set("issue_ids", "1,3")
 	ctx.Req.Form.Set("action", "clear")
 	UpdateIssueLabel(ctx)
@@ -151,9 +153,9 @@ func TestUpdateIssueLabel_Toggle(t *testing.T) {
 		{"toggle", []int64{1, 2}, 2, true},
 	} {
 		unittest.PrepareTestEnv(t)
-		ctx, _ := test.MockContext(t, "user2/repo1/issues/labels")
-		test.LoadUser(t, ctx, 2)
-		test.LoadRepo(t, ctx, 1)
+		ctx, _ := contexttest.MockContext(t, "user2/repo1/issues/labels")
+		contexttest.LoadUser(t, ctx, 2)
+		contexttest.LoadRepo(t, ctx, 1)
 		ctx.Req.Form.Set("issue_ids", int64SliceToCommaSeparated(testCase.IssueIDs))
 		ctx.Req.Form.Set("action", testCase.Action)
 		ctx.Req.Form.Set("id", strconv.Itoa(int(testCase.LabelID)))

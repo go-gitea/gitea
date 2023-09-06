@@ -19,17 +19,18 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
 // WebSearchRepository represents a repository returned by web search
 type WebSearchRepository struct {
-	Repository         *structs.Repository `json:"repository"`
-	LatestCommitStatus *git.CommitStatus   `json:"latest_commit_status"`
+	Repository               *structs.Repository `json:"repository"`
+	LatestCommitStatus       *git.CommitStatus   `json:"latest_commit_status"`
+	LocaleLatestCommitStatus string              `json:"locale_latest_commit_status"`
 }
 
 // WebSearchResults results of a successful web search
@@ -46,7 +47,7 @@ func CreateRepository(ctx context.Context, doer, owner *user_model.User, opts re
 		return nil, err
 	}
 
-	notification.NotifyCreateRepository(ctx, doer, owner, repo)
+	notify_service.CreateRepository(ctx, doer, owner, repo)
 
 	return repo, nil
 }
@@ -59,7 +60,7 @@ func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_mod
 
 	if notify {
 		// If the repo itself has webhooks, we need to trigger them before deleting it...
-		notification.NotifyDeleteRepository(ctx, doer, repo)
+		notify_service.DeleteRepository(ctx, doer, repo)
 	}
 
 	if err := models.DeleteRepository(doer, repo.OwnerID, repo.ID); err != nil {
