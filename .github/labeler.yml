@@ -11,7 +11,7 @@ kind/api:
 kind/build:
   - Makefile
   - Dockerfile
-  - Dockerfile.*
+  - Dockerfile.rootless
   - webpack.config.js
 
 dependencies:
