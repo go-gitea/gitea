@@ -55,6 +55,10 @@ func CodeSearch(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepoCodeSearch"
+	//   "422":
+	//     description: "The keyword is empty"
+	//     schema:
+	//       type: string
 	if !setting.Indexer.RepoIndexerEnabled {
 		ctx.Error(http.StatusInternalServerError, "IndexerNotEnabled", "The Code Indexer is not enabled on this server")
 		return

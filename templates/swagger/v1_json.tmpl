@@ -4003,6 +4003,12 @@
         "responses": {
           "200": {
             "$ref": "#/responses/RepoCodeSearch"
+          },
+          "422": {
+            "description": "The keyword is empty",
+            "schema": {
+              "type": "string"
+            }
           }
         }
       }
