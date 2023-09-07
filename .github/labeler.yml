@@ -7,3 +7,24 @@ kind/ui:
 
 kind/api:
   - templates/swagger/v1_json.tmpl
+
+kind/build:
+  - Makefile
+  - Dockerfile
+  - Dockerfile.*
+  - webpack.config.js
+
+kind/dependencies:
+  - go.mod
+  - go.sum
+  - package.json
+  - package-lock.json
+  - pyproject.toml
+  - poetry.lock
+
+kind/lint:
+  - .eslintrc.yaml
+  - .golangci.yml
+  - .markdownlint.yaml
+  - .spectral.yaml
+  - .stylelintrc.yaml
