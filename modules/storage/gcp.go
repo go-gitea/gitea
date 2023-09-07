@@ -147,7 +147,10 @@ func NewGoogleStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage,
 		return nil, convertGoogleErr(err)
 	}
 	if !exists {
-		createBucket(ctx, googleClient, config.ProjectID, config.Bucket, config.Location)
+		err = createBucket(ctx, googleClient, config.ProjectID, config.Bucket, config.Location)
+		if err != nil {
+			return nil, convertGoogleErr(err)
+		}
 	}
 
 	return &GoogleStorage{
@@ -177,10 +180,7 @@ func createBucket(ctx context.Context, client *storage.Client, projectID, bucket
 	bucketAttrs := &storage.BucketAttrs{
 		Location: location, // Set the bucket location (region)
 	}
-	if err := bkt.Create(ctx, projectID, bucketAttrs); err != nil {
-		return err
-	}
-	return nil
+	return bkt.Create(ctx, projectID, bucketAttrs)
 }
 
 func (g *GoogleStorage) buildGooglePath(p string) string {
@@ -292,10 +292,7 @@ func (g *GoogleStorage) Stat(path string) (os.FileInfo, error) {
 func (g *GoogleStorage) Delete(path string) error {
 	bkt := g.client.Bucket(g.bucket)
 	obj := bkt.Object(path)
-	if err := obj.Delete(g.ctx); err != nil {
-		return err
-	}
-	return nil
+	return obj.Delete(g.ctx)
 }
 
 // URL gets the redirect URL to a file. The presigned link is valid for 5 minutes.
