@@ -621,7 +621,8 @@ And the following unique queues:
    BASIC and the user's password. Please note if you disable this you will not be able to access the
    tokens API endpoints using a password. Further, this only disables BASIC authentication using the
    password - not tokens or OAuth Basic.
-- `ENABLE_REVERSE_PROXY_AUTHENTICATION`: **false**: Enable this to allow reverse proxy authentication.
+- `ENABLE_REVERSE_PROXY_AUTHENTICATION`: **false**: Enable this to allow reverse proxy authentication for web requests
+- `ENABLE_REVERSE_PROXY_AUTHENTICATION_API`: **false**: Enable this to allow reverse proxy authentication for API requests, the reverse proxy is responsible for ensuring that no CSRF is possible.
 - `ENABLE_REVERSE_PROXY_AUTO_REGISTRATION`: **false**: Enable this to allow auto-registration
    for reverse authentication.
 - `ENABLE_REVERSE_PROXY_EMAIL`: **false**: Enable this to allow to auto-registration with a
