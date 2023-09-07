@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"github.com/go-testfixtures/testfixtures/v3"
-
 	"xorm.io/xorm/schemas"
 )
 
