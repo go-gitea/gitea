@@ -18,10 +18,10 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/queue"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
+	notify_service "code.gitea.io/gitea/services/notify"
 	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"xorm.io/builder"
@@ -301,8 +301,8 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 		return "", err
 	}
 
-	notification.NotifyDeleteRef(ctx, doer, repo, git.RefNameFromBranch(from))
-	notification.NotifyCreateRef(ctx, doer, repo, refNameTo, refID)
+	notify_service.DeleteRef(ctx, doer, repo, git.RefNameFromBranch(from))
+	notify_service.CreateRef(ctx, doer, repo, refNameTo, refID)
 
 	return "", nil
 }

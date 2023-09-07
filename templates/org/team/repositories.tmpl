@@ -10,7 +10,7 @@
 				{{$canAddRemove := and $.IsOrganizationOwner (not $.Team.IncludesAllRepositories)}}
 				{{if $canAddRemove}}
 					<div class="ui attached segment gt-df gt-fw gt-gap-3">
-						<form class="ui form ignore-dirty gt-f1 gt-dif" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/add" method="post">
+						<form class="ui form ignore-dirty gt-f1 gt-df" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/add" method="post">
 							{{.CsrfTokenHtml}}
 							<div id="search-repo-box" data-uid="{{.Org.ID}}" class="ui search">
 								<div class="ui input">
@@ -30,12 +30,7 @@
 						{{range .Team.Repos}}
 							<div class="flex-item flex-item-center">
 								<div class="flex-item-leading">
-									{{$avatar := (repoAvatar . 32)}}
-									{{if $avatar}}
-										{{$avatar}}
-									{{else}}
-										{{template "repo/icon" .}}
-									{{end}}
+									{{template "repo/icon" .}}
 								</div>
 								<div class="flex-item-main">
 									<a class="flex-item-title text primary" href="{{$.Org.HomeLink}}/{{.Name | PathEscape}}">
@@ -46,7 +41,7 @@
 									{{if $canAddRemove}}
 										<form method="post" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/remove">
 											{{$.CsrfTokenHtml}}
-											<button type="submit" class="ui red small button right" name="repoid" value="{{.ID}}">{{$.locale.Tr "remove"}}</button>
+											<button type="submit" class="ui red small button" name="repoid" value="{{.ID}}">{{$.locale.Tr "remove"}}</button>
 										</form>
 									{{end}}
 								</div>

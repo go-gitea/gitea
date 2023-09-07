@@ -39,7 +39,7 @@
 
 #issue-list .flex-item-body .branches .branch {
   background-color: var(--color-secondary-alpha-40);
-  border-radius: 3px;
+  border-radius: var(--border-radius);
   padding: 0 4px;
 }
 
@@ -55,7 +55,6 @@
   width: 80px;
   height: 6px;
   display: inline-block;
-  border-radius: 3px;
 }
 
 #issue-list .flex-item-body .checklist progress::-webkit-progress-value {
