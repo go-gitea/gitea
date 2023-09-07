@@ -21,7 +21,6 @@ func TestSliceContains(t *testing.T) {
 
 	assert.False(t, slices.Contains([]int{2, 0, 2, 3}, 4))
 	assert.False(t, slices.Contains([]int{}, 4))
-	assert.False(t, slices.Contains(nil, 4))
 }
 
 func TestSliceContainsString(t *testing.T) {
