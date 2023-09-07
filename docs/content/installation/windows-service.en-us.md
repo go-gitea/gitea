@@ -51,6 +51,15 @@ Open "Windows Services", search for the service named "gitea", right-click it an
 "Run". If everything is OK, Gitea will be reachable on `http://localhost:3000` (or the port
 that was configured).
 
+## Service startup type
+
+It was observed that on loaded systems during boot Gitea service may fail to start with timeout records in Windows Event Log.
+In that case change startup type to `Automatic-Delayed`. This can be done during service creation, or by running config command
+
+```
+sc.exe config gitea start= delayed-auto
+```
+
 ## Adding startup dependencies
 
 To add a startup dependency to the Gitea Windows service (eg Mysql, Mariadb), as an Administrator, then run the following command:
