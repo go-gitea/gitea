@@ -16,8 +16,8 @@ export function initDirAuto() {
     for (let i = 0; i < len; i++) {
       const mutation = mutationList[i];
       const len = mutation.addedNodes.length;
-      for (let addedNodeIdx = 0; addedNodeIdx < len; addedNodeIdx++) {
-        const addedNode = mutation.addedNodes[addedNodeIdx];
+      for (let i = 0; i < len; i++) {
+        const addedNode = mutation.addedNodes[i];
         if (addedNode.nodeType !== Node.ELEMENT_NODE && addedNode.nodeType !== Node.DOCUMENT_FRAGMENT_NODE) continue;
         attachDirAuto(addedNode);
         const children = addedNode.querySelectorAll('input, textarea');
