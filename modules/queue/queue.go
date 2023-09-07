@@ -6,10 +6,9 @@
 // Terminology:
 //
 //  1. Item:
-//     - An item can be a simple value, such as an integer, or a more complex structure that has multiple fields and
-//     methods. Usually a item serves as a unit of work, sets of items will be sent to a handler to be processed.
-//     - It's represented as a binary slice on the queue
-//     - When an item serve as a unit of work generally it will be referred as a task
+//     - An item can be a simple value, such as an integer, or a more complex structure that has multiple fields.
+//     Usually a item serves as a task or a message. Sets of items will be sent to a queue handler to be processed.
+//     - It's represented as a JSON-marshaled binary slice in the queue
 //
 //  2. Batch:
 //     - A collection of items that are grouped together for processing. Each worker receives a batch of items.
@@ -21,8 +20,8 @@
 //
 //  4. Handler (represented by HandlerFuncT type):
 //     - It's the function responsible for processing items. Each active worker will call it.
-//     - When processing batches, there might be instances where certain items remain unprocessed or "unhandled".
-//     In such scenarios, the Handler ensures these unhandled items are returned to the base queue after a brief delay.
+//     - If an item or some items are not psuccessfully rocessed, the handler could return them as "unhandled items".
+//     In such scenarios, the queue system ensures these unhandled items are returned to the base queue after a brief delay.
 //     This mechanism is particularly beneficial in cases where the processing entity (like a document indexer) is
 //     temporarily unavailable. It ensures that no item is skipped or lost due to transient failures in the processing
 //     mechanism.
@@ -42,7 +41,7 @@
 //
 // 7. Manager:
 //   - The purpose of it is to serve as a centralized manager for multiple WorkerPoolQueue instances. Whenever we want
-//     to create a new queue, flush, or get a specific queue, we have to use it.
+//     to create a new queue, flush, or get a specific queue, we could use it.
 //
 // A queue can be "simple" or "unique". A unique queue will try to avoid duplicate items.
 // Unique queue's "Has" function can be used to check whether an item is already in the queue,
@@ -54,12 +53,10 @@
 // with a different handler that works with this new type of item. As an example of this:
 //
 //	 func Init() error {
-//		 itemQueue = queue.CreateSimpleQueue(graceful.GetManager().ShutdownContext(), "item", handler)
+//		 itemQueue = queue.CreateSimpleQueue(graceful.GetManager().ShutdownContext(), "queue-name", handler)
 //		 ...
 //	 }
-//	 func handler(items ...*admin_model.Item) []*admin_model.Item { ... }
-//
-// As you can see, the handler defined the admin_model.Item type for the queue
+//	 func handler(items ...*mypkg.QueueItem) []*mypkg.QueueItem { ... }
 package queue
 
 import "code.gitea.io/gitea/modules/util"
