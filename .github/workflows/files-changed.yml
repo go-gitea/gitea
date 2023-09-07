@@ -89,3 +89,4 @@ jobs:
             yaml:
               - "**/*.yml"
               - "**/*.yaml"
+              - ".yamllint.yaml"
