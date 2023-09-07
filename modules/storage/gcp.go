@@ -5,6 +5,7 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -18,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"cloud.google.com/go/storage"
+	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 )
 
@@ -26,13 +28,69 @@ var (
 )
 
 type googleObject struct {
-	Client  *stoarge.Client
+	Client  *storage.Client
+	Object  *storage.ObjectHandle
 	Context *context.Context
 	Name    string
 	Size    int64
 	ModTime *time.Time
 
 	Offset int64
+}
+
+func (g *googleObject) downloadStream(p []byte) (int, error) {
+	if g.Offset > g.Size {
+		return 0, io.EOF
+	}
+	count := g.Size - g.Offset
+	pl := int64(len(p))
+	if pl > count {
+		p = p[0:count]
+	} else {
+		count = pl
+	}
+	// Create a new Reader for the Object, that reads from Offset and for Count bytes.
+	reader, err := g.Object.NewRangeReader(*g.Context, g.Offset, count)
+	if err != nil {
+		return 0, err // or convert to your error format
+	}
+	defer reader.Close()
+
+	n, err := reader.Read(p)
+	if err != nil && err != io.EOF {
+		return n, err // or convert to your error format
+	}
+
+	g.Offset += int64(n)
+
+	return n, err
+}
+
+func (g *googleObject) Close() error {
+	return nil
+}
+
+func (g *googleObject) Read(p []byte) (int, error) {
+	c, err := g.downloadStream(p)
+	return c, err
+}
+
+func (g *googleObject) Seek(offset int64, whence int) (int64, error) {
+	switch whence {
+	default:
+		return 0, errors.New("Seek: invalid whence")
+	case io.SeekStart:
+		offset += 0
+	case io.SeekCurrent:
+		offset += g.Offset
+	case io.SeekEnd:
+		offset += g.Size
+	}
+	if offset < 0 {
+		return 0, errors.New("Seek: invalid offset")
+	}
+	g.Offset = offset
+	return offset, nil
 }
 
 func (g *googleObject) Stat() (os.FileInfo, error) {
@@ -76,14 +134,17 @@ func NewGoogleStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage,
 
 	opts := []option.ClientOption{}
 	if config.ApplicationCredentials != "" {
-		opts = append(opts, option.WithCredentialsFile(config.ApplicationCredentials), ...)
+		opts = append(opts, option.WithCredentialsFile(config.ApplicationCredentials))
+		// Add more options here as needed
+		// For example:
+		// opts = append(opts, option.WithHTTPClient(yourHTTPClient))
 	}
-	googleClient, err := storage.NewClient(ctx, opts)
+	googleClient, err := storage.NewClient(ctx, opts...)
 
 	if err != nil {
 		return nil, convertGoogleErr(err)
 	}
-	defer client.Close()
+	defer googleClient.Close()
 
 	exists, err := bucketExists(ctx, googleClient, config.Bucket)
 	if err != nil {
@@ -141,15 +202,15 @@ func (g *GoogleStorage) getObjectNameFromPath(path string) string {
 
 // Open opens a file
 func (g *GoogleStorage) Open(path string) (Object, error) {
-	bkt := client.Bucket(g.bucket)
-	obj := bkt.Object(path)
+	bkt := g.client.Bucket(g.bucket)
+	obj := bkt.Object(g.buildGooglePath(path))
 	attrs, err := obj.Attrs(g.ctx)
 	if err != nil {
 		return nil, err
 	}
 	return &googleObject{
 		Context: &g.ctx,
-		Bucket:  g.bucket,
+		Object:  obj,
 		Name:    g.getObjectNameFromPath(path),
 		Size:    attrs.Size,
 		ModTime: &attrs.Updated,
@@ -159,11 +220,28 @@ func (g *GoogleStorage) Open(path string) (Object, error) {
 // Save saves a file to gcpstorage
 func (g *GoogleStorage) Save(path string, r io.Reader, size int64) (int64, error) {
 	g.client.Bucket(g.bucket).Object(path).NewWriter(g.ctx)
-	if _, err := io.Copy(wc, file); err != nil {
-		return 0, fmt.Errorf("io.Copy: %v", err)
+
+	// Open the file that you want to upload
+	f, err := os.Open(path)
+	if err != nil {
+		return 0, fmt.Errorf("failed to open file: %v", err)
 	}
-	if err := wc.Close(); err != nil {
-		return 0, fmt.Errorf("Writer.Close: %v", err)
+	defer f.Close()
+
+	// Obtain the bucket handle
+	bucket := g.client.Bucket(g.bucket)
+
+	// Create a new object (file) in the bucket
+	obj := bucket.Object(path).NewWriter(g.ctx)
+
+	// Write the contents of the local file to GCS
+	if _, err := io.Copy(obj, f); err != nil {
+		return 0, fmt.Errorf("failed to write data: %v", err)
+	}
+
+	// Close the object, writing any buffered data to GCS before finalizing the object
+	if err := obj.Close(); err != nil {
+		return 0, fmt.Errorf("failed to close object: %v", err)
 	}
 
 	return size, nil
@@ -201,7 +279,7 @@ func (g googleFileInfo) Sys() any {
 
 // Stat returns the stat information of the object
 func (g *GoogleStorage) Stat(path string) (os.FileInfo, error) {
-	bkt := client.Bucket(g.bucket)
+	bkt := g.client.Bucket(g.bucket)
 	obj := bkt.Object(path)
 	attrs, err := obj.Attrs(g.ctx)
 	if err != nil {
@@ -210,13 +288,13 @@ func (g *GoogleStorage) Stat(path string) (os.FileInfo, error) {
 	return &googleFileInfo{
 		name:    g.getObjectNameFromPath(path),
 		size:    attrs.Size,
-		modTime: &attrs.Updated,
+		modTime: attrs.Updated,
 	}, nil
 }
 
 // Delete delete a file
 func (g *GoogleStorage) Delete(path string) error {
-	bkt := client.Bucket(g.bucket)
+	bkt := g.client.Bucket(g.bucket)
 	obj := bkt.Object(path)
 	if err := obj.Delete(g.ctx); err != nil {
 		return err
@@ -238,7 +316,7 @@ func (g *GoogleStorage) IterateObjects(dirName string, fn func(path string, obj 
 	}
 
 	// Get bucket handle
-	bkt := g.client.Bucket(bucketName)
+	bkt := g.client.Bucket(g.bucket)
 
 	// Initialize the query to fetch the objects.
 	query := &storage.Query{Prefix: dirName}
@@ -257,11 +335,11 @@ func (g *GoogleStorage) IterateObjects(dirName string, fn func(path string, obj 
 		object := googleObject{
 			Name:    objAttrs.Name,
 			Size:    objAttrs.Size,
-			ModTime: objAttrs.Updated.String(), // Replace with objAttrs.Updated as needed
+			ModTime: &objAttrs.Updated,
 		}
 
 		// Call the provided function
-		if err := fn(objAttrs.Name, object); err != nil {
+		if err := fn(objAttrs.Name, &object); err != nil {
 			return err
 		}
 	}
