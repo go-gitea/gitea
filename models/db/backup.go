@@ -46,14 +46,24 @@ func backupTableFixtures(bean interface{}, dirPath string) error {
 			break
 		}
 
-		data, err := yaml.Marshal(objs)
-		if err != nil {
-			return err
+		for _, obj := range objs {
+			for k, v := range obj {
+				if vv, ok := v.([]byte); ok {
+					obj[k] = string(vv)
+				}
+			}
+			bs, err := yaml.Marshal([]any{obj})
+			if err != nil {
+				return err
+			}
+			if _, err := f.Write(bs); err != nil {
+				return err
+			}
+			if _, err := f.Write([]byte{'\n'}); err != nil {
+				return err
+			}
 		}
-		_, err = f.Write(data)
-		if err != nil {
-			return err
-		}
+
 		if len(objs) < bufferSize {
 			break
 		}

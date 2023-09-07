@@ -7,12 +7,13 @@ import (
 	"fmt"
 
 	"github.com/go-testfixtures/testfixtures/v3"
+
 	"xorm.io/xorm/schemas"
 )
 
 func RestoreDatabase(dirPath string) error {
 	testfiles := testfixtures.Directory(dirPath)
-	dialect := "unknown"
+	var dialect string
 	switch x.Dialect().URI().DBType {
 	case schemas.POSTGRES:
 		dialect = "postgres"
