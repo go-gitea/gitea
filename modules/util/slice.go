@@ -45,20 +45,6 @@ func SliceSortedEqual[T comparable](s1, s2 []T) bool {
 	return true
 }
 
-// SliceEqual returns true if the two slices are equal.
-func SliceEqual[T comparable](s1, s2 []T) bool {
-	if len(s1) != len(s2) {
-		return false
-	}
-
-	for i, v := range s1 {
-		if s2[i] != v {
-			return false
-		}
-	}
-	return true
-}
-
 // SliceRemoveAll removes all the target elements from the slice.
 func SliceRemoveAll[T comparable](slice []T, target T) []T {
 	return SliceRemoveAllFunc(slice, func(t T) bool { return t == target })
