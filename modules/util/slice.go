@@ -1,10 +1,6 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-// Most of the functions in this file can have better implementations with "golang.org/x/exp/slices".
-// However, "golang.org/x/exp" is experimental and unreliable, we shouldn't use it.
-// So lets waiting for the "slices" has be promoted to the main repository one day.
-
 package util
 
 import (
