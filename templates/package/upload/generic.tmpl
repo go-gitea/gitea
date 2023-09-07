@@ -1,4 +1,5 @@
 <div class="ui">
+	<h1>Upload Generic Package</h1>
 	{{template "base/alert" .}}
 	<form class="ui form" action="{{.Link}}/upload" method="post" enctype="multipart/form-data">
 		{{.CsrfTokenHtml}}
@@ -17,11 +18,11 @@
 
 		<div class="field">
 			<label for="package_filename">Filename:</label>
-			<input id="package_filename" name="package_filename" placeholder="The filename" maxlength="50" required>
+			<input id="package_filename" name="package_filename" placeholder="The filename (leave empty to use name from uploaded file)" maxlength="50">
 		</div>
 
-		<div class="inline field gt-pl-4">
-			<label for="package_file">The Package</label>
+		<div class="field">
+			<label for="package_file">The Package:</label>
 			<input name="package_file" type="file" required>
 		</div>
 

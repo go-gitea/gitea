@@ -36,10 +36,10 @@ func addRepoToUploadedPackage(ctx *context.Context, packageType, repoName string
 		if repo_model.IsErrRepoNotExist(err) {
 			servePackageUploadError(ctx, fmt.Errorf("repo not found"), packageType, repoName)
 			return false
-		} else {
-			ctx.ServerError("GetRepositoryByOwnerAndName", err)
-			return false
 		}
+
+		ctx.ServerError("GetRepositoryByOwnerAndName", err)
+		return false
 	}
 
 	err = packages_model.SetRepositoryLink(ctx, packageID, repo.ID)
@@ -66,6 +66,13 @@ func UploadGenericPackagePost(ctx *context.Context) {
 	}
 	defer buf.Close()
 
+	var filename string
+	if form.PackageFilename == "" {
+		filename = form.PackageFile.Filename
+	} else {
+		filename = form.PackageFilename
+	}
+
 	pv, _, err := packages_service.CreatePackageOrAddFileToExisting(
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
@@ -78,7 +85,7 @@ func UploadGenericPackagePost(ctx *context.Context) {
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: form.PackageFilename,
+				Filename: filename,
 			},
 			Creator: ctx.Doer,
 			Data:    buf,
