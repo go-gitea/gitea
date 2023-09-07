@@ -1,24 +1,24 @@
 kind/docs:
-  - **/*.md
-  - docs/**/*
+  - "**/*.md"
+  - "docs/**/*"
 
 kind/ui:
-  - web_src/**/*
+  - "web_src/**/*"
   - all: ["templates/**/*", "!templates/swagger/v1_json.tmpl"]
 
 kind/api:
-  - templates/swagger/v1_json.tmpl
+  - "templates/swagger/v1_json.tmpl"
 
 kind/build:
-  - Makefile
-  - Dockerfile
-  - Dockerfile.rootless
-  - docker/**
-  - webpack.config.js
+  - "Makefile"
+  - "Dockerfile"
+  - "Dockerfile.rootless"
+  - "docker/**"
+  - "webpack.config.js"
 
 kind/lint:
-  - .eslintrc.yaml
-  - .golangci.yml
-  - .markdownlint.yaml
-  - .spectral.yaml
-  - .stylelintrc.yaml
+  - ".eslintrc.yaml"
+  - ".golangci.yml"
+  - ".markdownlint.yaml"
+  - ".spectral.yaml"
+  - ".stylelintrc.yaml"
