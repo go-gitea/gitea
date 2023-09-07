@@ -1,0 +1,32 @@
+<div class="ui">
+	{{template "base/alert" .}}
+	<form class="ui form" action="{{.Link}}/upload" method="post" enctype="multipart/form-data">
+		{{.CsrfTokenHtml}}
+
+		<input name="package_repo" type="hidden" value="{{.PackageUploadRepo}}">
+
+		<div class="field">
+			<label for="package_name">Name:</label>
+			<input id="package_name" name="package_name" placeholder="The Name" maxlength="50" required>
+		</div>
+
+		<div class="field">
+			<label for="package_version">Version:</label>
+			<input id="package_version" name="package_version" placeholder="The Version" maxlength="50" required>
+		</div>
+
+		<div class="field">
+			<label for="package_filename">Filename:</label>
+			<input id="package_filename" name="package_filename" placeholder="The filename" maxlength="50" required>
+		</div>
+
+		<div class="inline field gt-pl-4">
+			<label for="package_file">The Package</label>
+			<input name="package_file" type="file" required>
+		</div>
+
+		<div class="field">
+			<button class="ui green button">Upload</button>
+		</div>
+	</form>
+</div>

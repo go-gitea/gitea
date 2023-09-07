@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models/db"
@@ -64,6 +65,9 @@ func Packages(ctx *context.Context) {
 	ctx.Data["HasPackages"] = hasPackages
 	if ctx.Repo != nil {
 		ctx.Data["CanWritePackages"] = ctx.IsUserRepoWriter([]unit.Type{unit.TypePackages}) || ctx.IsUserSiteAdmin()
+		ctx.Data["ShowPackageUploadButton"] = ctx.Data["CanWritePackages"]
+		ctx.Data["PackageUploadUrl"] = fmt.Sprintf("%s/-/packages/upload", ctx.Repo.Owner.HTMLURL())
+		ctx.Data["PackageUploadRepo"] = ctx.Repo.Repository.Name
 	}
 	ctx.Data["PackageDescriptors"] = pds
 	ctx.Data["Total"] = total

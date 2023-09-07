@@ -1,0 +1,7 @@
+{{if eq $.PackageUploadPage "choose"}}
+  {{template "package/upload/choose" .}}
+{{else if eq $.PackageUploadPage "generic"}}
+  {{template "package/upload/generic" .}}
+{{else if eq $.PackageUploadPage "debian"}}
+  {{template "package/upload/debian" .}}
+{{end}}

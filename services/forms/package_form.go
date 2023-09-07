@@ -4,6 +4,7 @@
 package forms
 
 import (
+	"mime/multipart"
 	"net/http"
 
 	"code.gitea.io/gitea/modules/context"
@@ -27,4 +28,19 @@ type PackageCleanupRuleForm struct {
 func (f *PackageCleanupRuleForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+type PackageUploadGenericForm struct {
+	PackageRepo     string
+	PackageName     string
+	PackageVersion  string
+	PackageFilename string
+	PackageFile     *multipart.FileHeader
+}
+
+type PackageUploadDebianForm struct {
+	PackageRepo         string
+	PackageDistribution string
+	PackageComponent    string
+	PackageFile         *multipart.FileHeader
 }

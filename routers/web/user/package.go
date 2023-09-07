@@ -4,7 +4,9 @@
 package user
 
 import (
+	"fmt"
 	"net/http"
+	"slices"
 
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
@@ -33,6 +35,7 @@ const (
 	tplPackagesView       base.TplName = "package/view"
 	tplPackageVersionList base.TplName = "user/overview/package_versions"
 	tplPackagesSettings   base.TplName = "package/settings"
+	tplPackageUpload      base.TplName = "user/overview/package_upload"
 )
 
 // ListPackages displays a list of all packages of the context user
@@ -100,6 +103,7 @@ func ListPackages(ctx *context.Context) {
 	ctx.Data["PackageDescriptors"] = pds
 	ctx.Data["Total"] = total
 	ctx.Data["RepositoryAccessMap"] = repositoryAccessMap
+	ctx.Data["PackageUploadUrl"] = fmt.Sprintf("%s/-/packages/upload", ctx.ContextUser.HTMLURL())
 
 	err = shared_user.LoadHeaderCount(ctx)
 	if err != nil {
@@ -116,10 +120,16 @@ func ListPackages(ctx *context.Context) {
 		if ctx.Doer != nil {
 			ctx.Data["IsOrganizationMember"], _ = org_model.IsOrganizationMember(ctx, org.ID, ctx.Doer.ID)
 			ctx.Data["IsOrganizationOwner"], _ = org_model.IsOrganizationOwner(ctx, org.ID, ctx.Doer.ID)
+			ctx.Data["ShowPackageUploadButton"] = ctx.Data["IsOrganizationMember"]
 		} else {
 			ctx.Data["IsOrganizationMember"] = false
 			ctx.Data["IsOrganizationOwner"] = false
+			ctx.Data["ShowPackageUploadButton"] = false
 		}
+	} else if ctx.Doer != nil {
+		ctx.Data["ShowPackageUploadButton"] = ctx.Doer.ID == ctx.ContextUser.ID
+	} else {
+		ctx.Data["ShowPackageUploadButton"] = false
 	}
 
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
@@ -477,4 +487,45 @@ func DownloadPackageFile(ctx *context.Context) {
 	}
 
 	packages_helper.ServePackageFile(ctx, s, u, pf)
+}
+
+func UploadPackageChoose(ctx *context.Context) {
+	shared_user.PrepareContextForProfileBigAvatar(ctx)
+
+	ctx.Data["IsPackagesPage"] = true
+	ctx.Data["PackageUploadPage"] = "choose"
+	ctx.Data["PackageUploadRepo"] = ctx.FormString("repo")
+
+	err := shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
+	ctx.HTML(http.StatusOK, tplPackageUpload)
+}
+
+func UploadPackagePage(ctx *context.Context) {
+	shared_user.PrepareContextForProfileBigAvatar(ctx)
+
+	packageType := ctx.Params("upload_type")
+
+	allowdTypes := []string{"generic", "debian"}
+
+	if !slices.Contains(allowdTypes, packageType) {
+		ctx.NotFound("", nil)
+		return
+	}
+
+	ctx.Data["IsPackagesPage"] = true
+	ctx.Data["PackageUploadPage"] = packageType
+	ctx.Data["PackageUploadRepo"] = ctx.FormString("repo")
+
+	err := shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
+	ctx.HTML(http.StatusOK, tplPackageUpload)
 }

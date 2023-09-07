@@ -10,6 +10,9 @@
 			{{end}}
 		</select>
 		<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
+		{{if .ShowPackageUploadButton}}
+			<a class="ui green button" href="{{.PackageUploadUrl}}{{if .PackageUploadRepo}}?repo={{.PackageUploadRepo}}{{end}}">Upload</a>
+		{{end}}
 	</div>
 </form>
 <div>
