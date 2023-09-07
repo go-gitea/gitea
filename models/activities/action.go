@@ -126,6 +126,15 @@ func (at ActionType) String() string {
 	}
 }
 
+func (at ActionType) InActions(actions ...string) bool {
+	for _, action := range actions {
+		if action == at.String() {
+			return true
+		}
+	}
+	return false
+}
+
 // Action represents user operation type and other information to
 // repository. It implemented interface base.Actioner so that can be
 // used in template render.
