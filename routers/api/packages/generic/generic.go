@@ -11,10 +11,9 @@ import (
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/log"
-	packages_module "code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
+	packages_upload_service "code.gitea.io/gitea/services/packages/upload"
 )
 
 var (
@@ -80,42 +79,9 @@ func UploadPackage(ctx *context.Context) {
 		defer upload.Close()
 	}
 
-	buf, err := packages_module.CreateHashedBufferFromReader(upload)
+	statusCode, _, err := packages_upload_service.UploadGenericPackage(ctx, upload, packageName, packageVersion, filename)
 	if err != nil {
-		log.Error("Error creating hashed buffer: %v", err)
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	defer buf.Close()
-
-	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
-		&packages_service.PackageCreationInfo{
-			PackageInfo: packages_service.PackageInfo{
-				Owner:       ctx.Package.Owner,
-				PackageType: packages_model.TypeGeneric,
-				Name:        packageName,
-				Version:     packageVersion,
-			},
-			Creator: ctx.Doer,
-		},
-		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: filename,
-			},
-			Creator: ctx.Doer,
-			Data:    buf,
-			IsLead:  true,
-		},
-	)
-	if err != nil {
-		switch err {
-		case packages_model.ErrDuplicatePackageFile:
-			apiError(ctx, http.StatusConflict, err)
-		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
-			apiError(ctx, http.StatusForbidden, err)
-		default:
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
+		apiError(ctx, statusCode, err)
 		return
 	}
 

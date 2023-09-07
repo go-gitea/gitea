@@ -4,20 +4,16 @@
 package packages
 
 import (
-	"errors"
 	"fmt"
-	"io"
+	"net/http"
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	packages_module "code.gitea.io/gitea/modules/packages"
-	debian_module "code.gitea.io/gitea/modules/packages/debian"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
-	packages_service "code.gitea.io/gitea/services/packages"
-	debian_service "code.gitea.io/gitea/services/packages/debian"
+	packages_upload_service "code.gitea.io/gitea/services/packages/upload"
 )
 
 func servePackageUploadError(ctx *context.Context, err error, packageType, repo string) {
@@ -73,35 +69,14 @@ func UploadGenericPackagePost(ctx *context.Context) {
 		filename = form.PackageFilename
 	}
 
-	pv, _, err := packages_service.CreatePackageOrAddFileToExisting(
-		&packages_service.PackageCreationInfo{
-			PackageInfo: packages_service.PackageInfo{
-				Owner:       ctx.Package.Owner,
-				PackageType: packages_model.TypeGeneric,
-				Name:        form.PackageName,
-				Version:     form.PackageVersion,
-			},
-			Creator: ctx.Doer,
-		},
-		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: filename,
-			},
-			Creator: ctx.Doer,
-			Data:    buf,
-			IsLead:  true,
-		},
-	)
+	statusCode, pv, err := packages_upload_service.UploadGenericPackage(ctx, upload, form.PackageName, form.PackageVersion, filename)
 	if err != nil {
-		switch err {
-		case packages_model.ErrDuplicatePackageFile:
+		if statusCode == http.StatusInternalServerError {
+			ctx.ServerError("UploadGenericPackage", err)
+		} else {
 			servePackageUploadError(ctx, err, "generic", form.PackageRepo)
-		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
-			servePackageUploadError(ctx, err, "generic", form.PackageRepo)
-		default:
-			ctx.ServerError("CreatePackageOrAddFileToExisting", err)
+			return
 		}
-		return
 	}
 
 	if form.PackageRepo != "" {
@@ -127,70 +102,14 @@ func UploadDebianPackagePost(ctx *context.Context) {
 		return
 	}
 
-	buf, err := packages_module.CreateHashedBufferFromReader(upload)
+	statusCode, pv, err := packages_upload_service.UploadDebianPackage(ctx, upload, form.PackageDistribution, form.PackageComponent)
 	if err != nil {
-		ctx.ServerError("GetGenericPackageFile", err)
-		return
-	}
-	defer buf.Close()
-
-	pck, err := debian_module.ParsePackage(buf)
-	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			servePackageUploadError(ctx, err, "debian", form.PackageRepo)
+		if statusCode == http.StatusInternalServerError {
+			ctx.ServerError("UploadGenericPackage", err)
 		} else {
-			ctx.ServerError("ParsePackage", err)
+			servePackageUploadError(ctx, err, "generic", form.PackageRepo)
+			return
 		}
-		return
-	}
-
-	if _, err := buf.Seek(0, io.SeekStart); err != nil {
-		ctx.ServerError("SeekBuffer", err)
-		return
-	}
-
-	pv, _, err := packages_service.CreatePackageOrAddFileToExisting(
-		&packages_service.PackageCreationInfo{
-			PackageInfo: packages_service.PackageInfo{
-				Owner:       ctx.Package.Owner,
-				PackageType: packages_model.TypeDebian,
-				Name:        pck.Name,
-				Version:     pck.Version,
-			},
-			Creator:  ctx.Doer,
-			Metadata: pck.Metadata,
-		},
-		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename:     fmt.Sprintf("%s_%s_%s.deb", pck.Name, pck.Version, pck.Architecture),
-				CompositeKey: fmt.Sprintf("%s|%s", form.PackageDistribution, form.PackageComponent),
-			},
-			Creator: ctx.Doer,
-			Data:    buf,
-			IsLead:  true,
-			Properties: map[string]string{
-				debian_module.PropertyDistribution: form.PackageDistribution,
-				debian_module.PropertyComponent:    form.PackageComponent,
-				debian_module.PropertyArchitecture: pck.Architecture,
-				debian_module.PropertyControl:      pck.Control,
-			},
-		},
-	)
-	if err != nil {
-		switch err {
-		case packages_model.ErrDuplicatePackageVersion, packages_model.ErrDuplicatePackageFile:
-			servePackageUploadError(ctx, err, "debian", form.PackageRepo)
-		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
-			servePackageUploadError(ctx, err, "debian", form.PackageRepo)
-		default:
-			ctx.ServerError("CreatePackageOrAddFileToExisting", err)
-		}
-		return
-	}
-
-	if err := debian_service.BuildSpecificRepositoryFiles(ctx, ctx.Package.Owner.ID, form.PackageDistribution, form.PackageComponent, pck.Architecture); err != nil {
-		ctx.ServerError("BuildSpecificRepositoryFiles", err)
-		return
 	}
 
 	if form.PackageRepo != "" {
