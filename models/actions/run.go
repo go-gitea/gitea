@@ -6,6 +6,7 @@ package actions
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -350,7 +351,7 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 		// It's impossible that the run is not found, since Gitea never deletes runs.
 	}
 
-	if run.Status != 0 || util.SliceContains(cols, "status") {
+	if run.Status != 0 || slices.Contains(cols, "status") {
 		if run.RepoID == 0 {
 			run, err = GetRunByID(ctx, run.ID)
 			if err != nil {
