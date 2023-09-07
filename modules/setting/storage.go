@@ -17,11 +17,14 @@ const (
 	LocalStorageType StorageType = "local"
 	// MinioStorageType is the type descriptor for minio storage
 	MinioStorageType StorageType = "minio"
+	// GoogleStorageType is the type descriptor for google cloud storage
+	GoogleStorageType StorageType = "gcp"
 )
 
 var storageTypes = []StorageType{
 	LocalStorageType,
 	MinioStorageType,
+	GoogleStorageType,
 }
 
 // IsValidStorageType returns true if the given storage type is valid
@@ -48,12 +51,23 @@ type MinioStorageConfig struct {
 	ServeDirect        bool   `ini:"SERVE_DIRECT"`
 }
 
+// MinioStorageConfig represents the configuration for a minio storage
+type GoogleStorageConfig struct {
+	Endpoint               string `ini:"GOOGLE_ENDPOINT" json:",omitempty"`
+	ProjectID              string `ini:"GOOGLE_PROJECT_ID" json:",omitempty"`
+	Bucket                 string `ini:"GOOGLE_BUCKET" json:",omitempty"`
+	Location               string `ini:"GOOGLE_LOCATION" json:",omitempty"`
+	BasePath               string `ini:"GOOGLE_BASE_PATH" json:",omitempty"`
+	ApplicationCredentials string `ini:"GOOGLE_APPLICATION_CREDENTIALS" json:",omitempty"` // path to JSON file
+}
+
 // Storage represents configuration of storages
 type Storage struct {
-	Type          StorageType        // local or minio
-	Path          string             `json:",omitempty"` // for local type
-	TemporaryPath string             `json:",omitempty"`
-	MinioConfig   MinioStorageConfig // for minio type
+	Type          StorageType         // local or minio
+	Path          string              `json:",omitempty"` // for local type
+	TemporaryPath string              `json:",omitempty"`
+	MinioConfig   MinioStorageConfig  // for minio type
+	GoogleConfig  GoogleStorageConfig // for gcp type
 }
 
 func (storage *Storage) ToShadowCopy() Storage {
@@ -104,6 +118,8 @@ func getStorage(rootCfg ConfigProvider, name, typ string, sec ConfigSection) (*S
 		return getStorageForLocal(targetSec, overrideSec, tp, name)
 	case string(MinioStorageType):
 		return getStorageForMinio(targetSec, overrideSec, tp, name)
+	case string(GoogleStorageType):
+		return getStorageForGoogle(targetSec, overrideSec, tp, name)
 	default:
 		return nil, fmt.Errorf("unsupported storage type %q", targetType)
 	}
@@ -257,6 +273,24 @@ func getStorageForMinio(targetSec, overrideSec ConfigSection, tp targetSecType, 
 		storage.MinioConfig.ServeDirect = ConfigSectionKeyBool(overrideSec, "SERVE_DIRECT", storage.MinioConfig.ServeDirect)
 		storage.MinioConfig.BasePath = ConfigSectionKeyString(overrideSec, "MINIO_BASE_PATH", storage.MinioConfig.BasePath)
 		storage.MinioConfig.Bucket = ConfigSectionKeyString(overrideSec, "MINIO_BUCKET", storage.MinioConfig.Bucket)
+	}
+	return &storage, nil
+}
+
+func getStorageForGoogle(targetSec, overrideSec ConfigSection, tp targetSecType, name string) (*Storage, error) {
+	var storage Storage
+	storage.Type = StorageType(targetSec.Key("STORAGE_TYPE").String())
+	if err := targetSec.MapTo(&storage.GoogleConfig); err != nil {
+		return nil, fmt.Errorf("map google config failed: %v", err)
+	}
+
+	if storage.GoogleConfig.BasePath == "" {
+		storage.GoogleConfig.BasePath = name + "/"
+	}
+
+	if overrideSec != nil {
+		storage.GoogleConfig.BasePath = ConfigSectionKeyString(overrideSec, "GOOGLE_BASE_PATH", storage.GoogleConfig.BasePath)
+		storage.GoogleConfig.Bucket = ConfigSectionKeyString(overrideSec, "GOOGLE_BUCKET", storage.GoogleConfig.Bucket)
 	}
 	return &storage, nil
 }
