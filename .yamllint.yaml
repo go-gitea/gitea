@@ -21,14 +21,14 @@ rules:
   comments-indentation:
     level: error
 
-  document-end:
-    present: false
-
   document-start:
     level: error
     present: false
     ignore: |
       /.drone.yml
+
+  document-end:
+    present: false
 
   empty-lines:
     max: 1
