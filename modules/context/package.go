@@ -154,12 +154,10 @@ func PackageContexter() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			base, baseCleanUp := NewBaseContext(resp, req)
-			ctx := &Context{
-				Base:   base,
-				Render: renderer, // it is still needed when rendering 500 page in a package handler
-			}
 			defer baseCleanUp()
 
+			// it is still needed when rendering 500 page in a package handler
+			ctx := NewWebContext(base, renderer, nil)
 			ctx.Base.AppendContextValue(WebContextKey, ctx)
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})

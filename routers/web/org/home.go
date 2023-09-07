@@ -152,7 +152,6 @@ func Home(ctx *context.Context) {
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "language", "Language")
 	ctx.Data["Page"] = pager
-	ctx.Data["ContextUser"] = ctx.ContextUser
 
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
 

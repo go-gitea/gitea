@@ -573,7 +573,8 @@ func registerRoutes(m *web.Route) {
 		m.Group("/users", func() {
 			m.Get("", admin.Users)
 			m.Combo("/new").Get(admin.NewUser).Post(web.Bind(forms.AdminCreateUserForm{}), admin.NewUserPost)
-			m.Combo("/{userid}").Get(admin.EditUser).Post(web.Bind(forms.AdminEditUserForm{}), admin.EditUserPost)
+			m.Get("/{userid}", admin.ViewUser)
+			m.Combo("/{userid}/edit").Get(admin.EditUser).Post(web.Bind(forms.AdminEditUserForm{}), admin.EditUserPost)
 			m.Post("/{userid}/delete", admin.DeleteUser)
 			m.Post("/{userid}/avatar", web.Bind(forms.AvatarForm{}), admin.AvatarPost)
 			m.Post("/{userid}/avatar/delete", admin.DeleteAvatar)
@@ -1211,14 +1212,14 @@ func registerRoutes(m *web.Route) {
 					m.Combo("").
 						Get(actions.View).
 						Post(web.Bind(actions.ViewRequest{}), actions.ViewPost)
-					m.Post("/rerun", reqRepoActionsWriter, actions.RerunOne)
+					m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
 					m.Get("/logs", actions.Logs)
 				})
 				m.Post("/cancel", reqRepoActionsWriter, actions.Cancel)
 				m.Post("/approve", reqRepoActionsWriter, actions.Approve)
 				m.Post("/artifacts", actions.ArtifactsView)
 				m.Get("/artifacts/{artifact_name}", actions.ArtifactsDownloadView)
-				m.Post("/rerun", reqRepoActionsWriter, actions.RerunAll)
+				m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
 			})
 		}, reqRepoActionsReader, actions.MustEnableActions)
 

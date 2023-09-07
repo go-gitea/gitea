@@ -86,13 +86,13 @@
 						></scoped-access-token-selector>
 					</div>
 				</details>
-				<div id="scoped-access-warning" class="ui warning message center gt-db gt-hidden">
-					{{.locale.Tr "settings.at_least_one_permission"}}
-				</div>
 				<button id="scoped-access-submit" class="ui green button">
 					{{.locale.Tr "settings.generate_token"}}
 				</button>
-			</form>
+			</form>{{/* Fomantic ".ui.form .warning.message" is hidden by default, so put the warning message out of the form*/}}
+			<div id="scoped-access-warning" class="ui warning message center gt-hidden">
+				{{.locale.Tr "settings.at_least_one_permission"}}
+			</div>
 		</div>
 
 		{{if .EnableOAuth2}}

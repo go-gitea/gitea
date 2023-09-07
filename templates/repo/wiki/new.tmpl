@@ -3,12 +3,10 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
-		<div class="ui header">
+		<div class="ui header flex-text-block gt-sb">
 			{{.locale.Tr "repo.wiki.new_page"}}
 			{{if .PageIsWikiEdit}}
-				<div class="ui right gt-mb-3">
-					<a class="ui green tiny button" href="{{.RepoLink}}/wiki?action=_new">{{.locale.Tr "repo.wiki.new_page_button"}}</a>
-				</div>
+				<a class="ui green tiny button" href="{{.RepoLink}}/wiki?action=_new">{{.locale.Tr "repo.wiki.new_page_button"}}</a>
 			{{end}}
 		</div>
 		<form class="ui form" action="{{.Link}}?action={{if .PageIsWikiEdit}}_edit{{else}}_new{{end}}" method="post">

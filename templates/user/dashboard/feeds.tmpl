@@ -11,116 +11,112 @@
 					{{else}}
 						{{.ShortActUserName}}
 					{{end}}
-					{{if eq .GetOpType 1}}
+					{{if .GetOpType.InActions "create_repo"}}
 						{{$.locale.Tr "action.create_repo" (.GetRepoLink|Escape) (.ShortRepoPath|Escape) | Str2html}}
-					{{else if eq .GetOpType 2}}
+					{{else if .GetOpType.InActions "rename_repo"}}
 						{{$.locale.Tr "action.rename_repo" (.GetContent|Escape) (.GetRepoLink|Escape) (.ShortRepoPath|Escape) | Str2html}}
-					{{else if eq .GetOpType 5}}
+					{{else if .GetOpType.InActions "commit_repo"}}
 						{{if .Content}}
 							{{$.locale.Tr "action.commit_repo" (.GetRepoLink|Escape) (.GetRefLink|Escape) (Escape .GetBranch) (.ShortRepoPath|Escape) | Str2html}}
 						{{else}}
 							{{$.locale.Tr "action.create_branch" (.GetRepoLink|Escape) (.GetRefLink|Escape) (Escape .GetBranch) (.ShortRepoPath|Escape) | Str2html}}
 						{{end}}
-					{{else if eq .GetOpType 6}}
+					{{else if .GetOpType.InActions "create_issue"}}
 						{{$index := index .GetIssueInfos 0}}
 						{{$.locale.Tr "action.create_issue" ((printf "%s/issues/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
-					{{else if eq .GetOpType 7}}
+					{{else if .GetOpType.InActions "create_pull_request"}}
 						{{$index := index .GetIssueInfos 0}}
 						{{$.locale.Tr "action.create_pull_request" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
-					{{else if eq .GetOpType 8}}
+					{{else if .GetOpType.InActions "transfer_repo"}}
 						{{$.locale.Tr "action.transfer_repo" .GetContent (.GetRepoLink|Escape) (.ShortRepoPath|Escape) | Str2html}}
-					{{else if eq .GetOpType 9}}
+					{{else if .GetOpType.InActions "push_tag"}}
 						{{$.locale.Tr "action.push_tag" (.GetRepoLink|Escape) (.GetRefLink|Escape) (.GetTag|Escape) (.ShortRepoPath|Escape) | Str2html}}
-					{{else if eq .GetOpType 10}}
+					{{else if .GetOpType.InActions "comment_issue"}}
 						{{$index := index .GetIssueInfos 0}}
 						{{$.locale.Tr "action.comment_issue" ((printf "%s/issues/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
-					{{else if eq .GetOpType 11}}
+					{{else if .GetOpType.InActions "merge_pull_request"}}
 						{{$index := index .GetIssueInfos 0}}
 						{{$.locale.Tr "action.merge_pull_request" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
-					{{else if eq .GetOpType 12}}
+					{{else if .GetOpType.InActions "close_issue"}}
 						{{$index := index .GetIssueInfos 0}}
 						{{$.locale.Tr "action.close_issue" ((printf "%s/issues/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
-					{{else if eq .GetOpType 13}}
+					{{else if .GetOpType.InActions "reopen_issue"}}
 						{{$index := index .GetIssueInfos 0}}
 						{{$.locale.Tr "action.reopen_issue" ((printf "%s/issues/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
-					{{else if eq .GetOpType 14}}
+					{{else if .GetOpType.InActions "close_pull_request"}}
 						{{$index := index .GetIssueInfos 0}}
 						{{$.locale.Tr "action.close_pull_request" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
-					{{else if eq .GetOpType 15}}
+					{{else if .GetOpType.InActions "reopen_pull_request"}}
 						{{$index := index .GetIssueInfos 0}}
 						{{$.locale.Tr "action.reopen_pull_request" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
-					{{else if eq .GetOpType 16}}
+					{{else if .GetOpType.InActions "delete_tag"}}
 						{{$index := index .GetIssueInfos 0}}
 						{{$.locale.Tr "action.delete_tag" (.GetRepoLink|Escape) (.GetTag|Escape) (.ShortRepoPath|Escape) | Str2html}}
-					{{else if eq .GetOpType 17}}
+					{{else if .GetOpType.InActions "delete_branch"}}
 						{{$index := index .GetIssueInfos 0}}
 						{{$.locale.Tr "action.delete_branch" (.GetRepoLink|Escape) (.GetBranch|Escape) (.ShortRepoPath|Escape) | Str2html}}
-					{{else if eq .GetOpType 18}}
+					{{else if .GetOpType.InActions "mirror_sync_push"}}
 						{{$.locale.Tr "action.mirror_sync_push" (.GetRepoLink|Escape) (.GetRefLink|Escape) (.GetBranch|Escape) (.ShortRepoPath|Escape) | Str2html}}
-					{{else if eq .GetOpType 19}}
+					{{else if .GetOpType.InActions "mirror_sync_create"}}
 						{{$.locale.Tr "action.mirror_sync_create" (.GetRepoLink|Escape) (.GetRefLink|Escape) (.GetBranch|Escape) (.ShortRepoPath|Escape) | Str2html}}
-					{{else if eq .GetOpType 20}}
+					{{else if .GetOpType.InActions "mirror_sync_delete"}}
 						{{$.locale.Tr "action.mirror_sync_delete" (.GetRepoLink|Escape) (.GetBranch|Escape) (.ShortRepoPath|Escape) | Str2html}}
-					{{else if eq .GetOpType 21}}
+					{{else if .GetOpType.InActions "approve_pull_request"}}
 						{{$index := index .GetIssueInfos 0}}
 						{{$.locale.Tr "action.approve_pull_request" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
-					{{else if eq .GetOpType 22}}
+					{{else if .GetOpType.InActions "reject_pull_request"}}
 						{{$index := index .GetIssueInfos 0}}
 						{{$.locale.Tr "action.reject_pull_request" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
-					{{else if eq .GetOpType 23}}
+					{{else if .GetOpType.InActions "comment_pull"}}
 						{{$index := index .GetIssueInfos 0}}
 						{{$.locale.Tr "action.comment_pull" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
-					{{else if eq .GetOpType 24}}
+					{{else if .GetOpType.InActions "publish_release"}}
 						{{$linkText := .Content | RenderEmoji $.Context}}
 						{{$.locale.Tr "action.publish_release" (.GetRepoLink|Escape) ((printf "%s/releases/tag/%s" .GetRepoLink .GetTag)|Escape) (.ShortRepoPath|Escape) $linkText | Str2html}}
-					{{else if eq .GetOpType 25}}
+					{{else if .GetOpType.InActions "review_dismissed"}}
 						{{$index := index .GetIssueInfos 0}}
 						{{$reviewer := index .GetIssueInfos 1}}
 						{{$.locale.Tr "action.review_dismissed" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) $reviewer | Str2html}}
 					{{end}}
 				</div>
-				{{if or (eq .GetOpType 5) (eq .GetOpType 18)}}
-					<div class="gt-pl-5">
-						{{$push := ActionContent2Commits .}}
-						{{$repoLink := .GetRepoLink}}
-						{{range $push.Commits}}
-							{{$commitLink := printf "%s/commit/%s" $repoLink .Sha1}}
-							<div class="flex-item">
-								{{avatarHTML ($push.AvatarLink $.Context .AuthorEmail) 16 "" .AuthorName}}
-								<a class="commit-id" href="{{$commitLink}}">{{ShortSha .Sha1}}</a>
-								<span class="text truncate light grey">
-									{{RenderCommitMessage $.Context .Message $repoLink $.ComposeMetas}}
-								</span>
-							</div>
-						{{end}}
-						{{if and (gt $push.Len 1) $push.CompareURL}}
-							<div class="flex-item">
-								<a href="{{AppSubUrl}}/{{$push.CompareURL}}">{{$.locale.Tr "action.compare_commits" $push.Len}} »</a>
-							</div>
-						{{end}}
-					</div>
-				{{else if eq .GetOpType 6}}
+				{{if .GetOpType.InActions "commit_repo" "mirror_sync_push"}}
+					{{$push := ActionContent2Commits .}}
+					{{$repoLink := .GetRepoLink}}
+					{{range $push.Commits}}
+						{{$commitLink := printf "%s/commit/%s" $repoLink .Sha1}}
+						<div class="flex-text-block">
+							<img class="ui avatar" src="{{$push.AvatarLink $.Context .AuthorEmail}}" title="{{.AuthorName}}" width="16" height="16">
+							<a class="gt-mono" href="{{$commitLink}}">{{ShortSha .Sha1}}</a>
+							<span class="text truncate light grey">
+								{{RenderCommitMessage $.Context .Message $repoLink $.ComposeMetas}}
+							</span>
+						</div>
+					{{end}}
+					{{if and (gt $push.Len 1) $push.CompareURL}}
+						<a href="{{AppSubUrl}}/{{$push.CompareURL}}">{{$.locale.Tr "action.compare_commits" $push.Len}} »</a>
+					{{end}}
+				{{else if .GetOpType.InActions "create_issue"}}
 					<span class="text truncate issue title">{{index .GetIssueInfos 1 | RenderEmoji $.Context | RenderCodeBlock}}</span>
-				{{else if eq .GetOpType 7}}
+				{{else if .GetOpType.InActions "create_pull_request"}}
 					<span class="text truncate issue title">{{index .GetIssueInfos 1 | RenderEmoji $.Context | RenderCodeBlock}}</span>
-				{{else if or (eq .GetOpType 10) (eq .GetOpType 21) (eq .GetOpType 22) (eq .GetOpType 23)}}
+				{{else if .GetOpType.InActions "comment_issue" "approve_pull_request" "reject_pull_request" "comment_pull"}}
 					<a href="{{.GetCommentLink}}" class="text truncate issue title">{{.GetIssueTitle | RenderEmoji $.Context | RenderCodeBlock}}</a>
 					{{$comment := index .GetIssueInfos 1}}
 					{{if gt (len $comment) 0}}
 						<div class="flex-item-body">{{$comment | RenderEmoji $.Context | RenderCodeBlock}}</div>
 					{{end}}
-				{{else if eq .GetOpType 11}}
+				{{else if .GetOpType.InActions "merge_pull_request"}}
 					<div class="flex-item-body">{{index .GetIssueInfos 1}}</div>
-				{{else if or (eq .GetOpType 12) (eq .GetOpType 13) (eq .GetOpType 14) (eq .GetOpType 15)}}
+				{{else if .GetOpType.InActions "close_issue" "reopen_issue" "close_pull_request" "reopen_pull_request"}}
 					<span class="text truncate issue title">{{.GetIssueTitle | RenderEmoji $.Context | RenderCodeBlock}}</span>
-				{{else if eq .GetOpType 25}}
+				{{else if .GetOpType.InActions "pull_review_dismissed"}}
 				<div class="flex-item-body">{{$.locale.Tr "action.review_dismissed_reason"}}</div>
 				<div class="flex-item-body">{{index .GetIssueInfos 2 | RenderEmoji $.Context}}</div>
 				{{end}}
 				<div class="flex-item-body">{{TimeSince .GetCreate $.locale}}</div>
 			</div>
 			<div class="flex-item-trailing">
-				{{svg (printf "octicon-%s" (ActionIcon .GetOpType)) 32}}
+				{{svg (printf "octicon-%s" (ActionIcon .GetOpType)) 32 "text grey gt-mr-2"}}
 			</div>
 		</div>
 	{{end}}

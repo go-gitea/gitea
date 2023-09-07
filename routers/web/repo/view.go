@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"slices"
 	"strings"
 	"time"
 
@@ -370,7 +371,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		if workFlowErr != nil {
 			ctx.Data["FileError"] = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", workFlowErr.Error())
 		}
-	} else if util.SliceContains([]string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}, ctx.Repo.TreePath) {
+	} else if slices.Contains([]string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}, ctx.Repo.TreePath) {
 		if data, err := blob.GetBlobContent(setting.UI.MaxDisplayFileSize); err == nil {
 			_, warnings := issue_model.GetCodeOwnersFromContent(ctx, data)
 			if len(warnings) > 0 {
