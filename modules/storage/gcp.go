@@ -5,7 +5,6 @@ package storage
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -78,7 +77,7 @@ func (g *googleObject) Read(p []byte) (int, error) {
 func (g *googleObject) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	default:
-		return 0, errors.New("Seek: invalid whence")
+		return 0, fmt.Errorf("Seek: invalid whence")
 	case io.SeekStart:
 		offset += 0
 	case io.SeekCurrent:
@@ -87,7 +86,7 @@ func (g *googleObject) Seek(offset int64, whence int) (int64, error) {
 		offset += g.Size
 	}
 	if offset < 0 {
-		return 0, errors.New("Seek: invalid offset")
+		return 0, fmt.Errorf("Seek: invalid offset")
 	}
 	g.Offset = offset
 	return offset, nil
