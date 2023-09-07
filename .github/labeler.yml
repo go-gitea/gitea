@@ -14,7 +14,7 @@ kind/build:
   - Dockerfile.*
   - webpack.config.js
 
-kind/dependencies:
+dependencies:
   - go.mod
   - go.sum
   - package.json
