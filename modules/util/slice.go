@@ -12,11 +12,6 @@ import (
 	"strings"
 )
 
-// SliceContains returns true if the target exists in the slice.
-func SliceContains[T comparable](slice []T, target T) bool {
-	return slices.ContainsFunc(slice, func(t T) bool { return t == target })
-}
-
 // SliceContainsString sequential searches if string exists in slice.
 func SliceContainsString(slice []string, target string, insensitive ...bool) bool {
 	if len(insensitive) != 0 && insensitive[0] {
@@ -24,7 +19,7 @@ func SliceContainsString(slice []string, target string, insensitive ...bool) boo
 		return slices.ContainsFunc(slice, func(t string) bool { return strings.ToLower(t) == target })
 	}
 
-	return SliceContains(slice, target)
+	return slices.Contains(slice, target)
 }
 
 // SliceSortedEqual returns true if the two slices will be equal when they get sorted.

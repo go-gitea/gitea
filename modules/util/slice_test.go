@@ -4,23 +4,24 @@
 package util
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSliceContains(t *testing.T) {
-	assert.True(t, SliceContains([]int{2, 0, 2, 3}, 2))
-	assert.True(t, SliceContains([]int{2, 0, 2, 3}, 0))
-	assert.True(t, SliceContains([]int{2, 0, 2, 3}, 3))
+	assert.True(t, slices.Contains([]int{2, 0, 2, 3}, 2))
+	assert.True(t, slices.Contains([]int{2, 0, 2, 3}, 0))
+	assert.True(t, slices.Contains([]int{2, 0, 2, 3}, 3))
 
-	assert.True(t, SliceContains([]string{"2", "0", "2", "3"}, "0"))
-	assert.True(t, SliceContains([]float64{2, 0, 2, 3}, 0))
-	assert.True(t, SliceContains([]bool{false, true, false}, true))
+	assert.True(t, slices.Contains([]string{"2", "0", "2", "3"}, "0"))
+	assert.True(t, slices.Contains([]float64{2, 0, 2, 3}, 0))
+	assert.True(t, slices.Contains([]bool{false, true, false}, true))
 
-	assert.False(t, SliceContains([]int{2, 0, 2, 3}, 4))
-	assert.False(t, SliceContains([]int{}, 4))
-	assert.False(t, SliceContains(nil, 4))
+	assert.False(t, slices.Contains([]int{2, 0, 2, 3}, 4))
+	assert.False(t, slices.Contains([]int{}, 4))
+	assert.False(t, slices.Contains(nil, 4))
 }
 
 func TestSliceContainsString(t *testing.T) {
