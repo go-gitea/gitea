@@ -1,5 +1,5 @@
-kind/docs:
-  - docs/**/*
-
 kind/ui:
   - web_src/**/*
+
+kind/docs:
+  - docs/**/*
