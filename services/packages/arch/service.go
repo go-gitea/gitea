@@ -150,7 +150,7 @@ func CreatePacmanDb(ctx *context.Context, p *DbParams) ([]byte, error) {
 					pkg.Name, version.Version,
 				)
 				file, err = pkg_model.GetFileForVersionByName(
-					ctx, version.ID, filename, p.Distribution+filename,
+					ctx, version.ID, filename, p.Distribution+"-"+filename,
 				)
 				if err != nil {
 					return nil, err
