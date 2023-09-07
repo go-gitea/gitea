@@ -6,6 +6,7 @@ package repository
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -33,7 +34,7 @@ func TestTeam_RemoveRepository(t *testing.T) {
 
 	testSuccess := func(teamID, repoID int64) {
 		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-		assert.NoError(t, RemoveRepository(team, repoID))
+		assert.NoError(t, RemoveRepositoryFromTeam(db.DefaultContext, team, repoID))
 		unittest.AssertNotExistsBean(t, &organization.TeamRepo{TeamID: teamID, RepoID: repoID})
 		unittest.CheckConsistencyFor(t, &organization.Team{ID: teamID}, &repo_model.Repository{ID: repoID})
 	}

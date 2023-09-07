@@ -727,7 +727,7 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 		ctx.Error(http.StatusForbidden, "", "Must have admin-level access to the repository")
 		return
 	}
-	if err := repo_service.RemoveRepository(ctx.Org.Team, repo.ID); err != nil {
+	if err := repo_service.RemoveRepositoryFromTeam(ctx, ctx.Org.Team, repo.ID); err != nil {
 		ctx.Error(http.StatusInternalServerError, "RemoveRepository", err)
 		return
 	}

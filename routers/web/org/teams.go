@@ -249,7 +249,7 @@ func TeamsRepoAction(ctx *context.Context) {
 		}
 		err = org_service.TeamAddRepository(ctx.Org.Team, repo)
 	case "remove":
-		err = repo_service.RemoveRepository(ctx.Org.Team, ctx.FormInt64("repoid"))
+		err = repo_service.RemoveRepositoryFromTeam(ctx, ctx.Org.Team, ctx.FormInt64("repoid"))
 	case "addall":
 		err = models.AddAllRepositories(ctx.Org.Team)
 	case "removeall":

@@ -205,7 +205,7 @@ func changeRepoTeam(ctx *context.APIContext, add bool) {
 			ctx.Error(http.StatusUnprocessableEntity, "notAdded", fmt.Errorf("team '%s' was not added to repo", team.Name))
 			return
 		}
-		err = repo_service.RemoveRepository(team, ctx.Repo.Repository.ID)
+		err = repo_service.RemoveRepositoryFromTeam(ctx, team, ctx.Repo.Repository.ID)
 	}
 	if err != nil {
 		ctx.InternalServerError(err)

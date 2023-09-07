@@ -33,8 +33,8 @@ import (
 
 // DeleteRepository deletes a repository for a user or organization.
 // make sure if you call this func to close open sessions (sqlite will otherwise get a deadlock)
-func DeleteRepositoryDirectly(doer *user_model.User, uid, repoID int64) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, uid, repoID int64) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -103,7 +103,7 @@ func DeleteRepositoryDirectly(doer *user_model.User, uid, repoID int64) error {
 		for _, t := range teams {
 			if !organization.HasTeamRepo(ctx, t.OrgID, t.ID, repoID) {
 				continue
-			} else if err = removeRepository(ctx, t, repo, false); err != nil {
+			} else if err = removeRepositoryFromTeam(ctx, t, repo, false); err != nil {
 				return err
 			}
 		}
@@ -344,9 +344,9 @@ func DeleteRepositoryDirectly(doer *user_model.User, uid, repoID int64) error {
 	return nil
 }
 
-// removeRepository removes a repository from a team and recalculates access
+// removeRepositoryFromTeam removes a repository from a team and recalculates access
 // Note: Repository shall not be removed from team if it includes all repositories (unless the repository is deleted)
-func removeRepository(ctx context.Context, t *organization.Team, repo *repo_model.Repository, recalculate bool) (err error) {
+func removeRepositoryFromTeam(ctx context.Context, t *organization.Team, repo *repo_model.Repository, recalculate bool) (err error) {
 	e := db.GetEngine(ctx)
 	if err = organization.RemoveTeamRepo(ctx, t.ID, repo.ID); err != nil {
 		return err
@@ -394,9 +394,9 @@ func HasRepository(t *organization.Team, repoID int64) bool {
 	return organization.HasTeamRepo(db.DefaultContext, t.OrgID, t.ID, repoID)
 }
 
-// RemoveRepository removes repository from team of organization.
+// RemoveRepositoryFromTeam removes repository from team of organization.
 // If the team shall include all repositories the request is ignored.
-func RemoveRepository(t *organization.Team, repoID int64) error {
+func RemoveRepositoryFromTeam(ctx context.Context, t *organization.Team, repoID int64) error {
 	if !HasRepository(t, repoID) {
 		return nil
 	}
@@ -405,18 +405,18 @@ func RemoveRepository(t *organization.Team, repoID int64) error {
 		return nil
 	}
 
-	repo, err := repo_model.GetRepositoryByID(db.DefaultContext, repoID)
+	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 	if err != nil {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	if err = removeRepository(ctx, t, repo, true); err != nil {
+	if err = removeRepositoryFromTeam(ctx, t, repo, true); err != nil {
 		return err
 	}
 
