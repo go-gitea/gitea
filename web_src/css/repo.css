@@ -2507,9 +2507,10 @@
 }
 
 /* Scoped labels with different colors on left and right */
-.scope-parent {
+.ui.label.scope-parent {
   background: none !important;
   padding: 0 !important;
+  gap: 0 !important;
 }
 
 .ui.label.scope-left {

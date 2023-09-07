@@ -26,7 +26,6 @@
     "escape-goat": "4.0.0",
     "fast-glob": "3.3.1",
     "jquery": "3.7.1",
-    "jquery.are-you-sure": "1.9.0",
     "katex": "0.16.8",
     "license-checker-webpack-plugin": "0.2.1",
     "lightningcss-loader": "2.1.0",

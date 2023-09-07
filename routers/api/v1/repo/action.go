@@ -4,13 +4,14 @@
 package repo
 
 import (
+	"errors"
 	"net/http"
 
-	secret_model "code.gitea.io/gitea/models/secret"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/web/shared/actions"
+	secret_service "code.gitea.io/gitea/services/secrets"
 )
 
 // create or update one secret of the repository
@@ -49,29 +50,31 @@ func CreateOrUpdateSecret(ctx *context.APIContext) {
 	//     description: response when updating a secret
 	//   "400":
 	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 
-	secretName := ctx.Params(":secretname")
-	if err := actions.NameRegexMatch(secretName); err != nil {
-		ctx.Error(http.StatusBadRequest, "CreateOrUpdateSecret", err)
-		return
-	}
 	opt := web.GetForm(ctx).(*api.CreateOrUpdateSecretOption)
-	isCreated, err := secret_model.CreateOrUpdateSecret(ctx, owner.ID, repo.ID, secretName, opt.Data)
+
+	_, created, err := secret_service.CreateOrUpdateSecret(ctx, owner.ID, repo.ID, ctx.Params("secretname"), opt.Data)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "CreateOrUpdateSecret", err)
-		return
-	}
-	if isCreated {
-		ctx.Status(http.StatusCreated)
+		if errors.Is(err, util.ErrInvalidArgument) {
+			ctx.Error(http.StatusBadRequest, "CreateOrUpdateSecret", err)
+		} else if errors.Is(err, util.ErrNotExist) {
+			ctx.Error(http.StatusNotFound, "CreateOrUpdateSecret", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "CreateOrUpdateSecret", err)
+		}
 		return
 	}
 
-	ctx.Status(http.StatusNoContent)
+	if created {
+		ctx.Status(http.StatusCreated)
+	} else {
+		ctx.Status(http.StatusNoContent)
+	}
 }
 
 // DeleteSecret delete one secret of the repository
@@ -102,26 +105,23 @@ func DeleteSecret(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: delete one secret of the organization
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 
-	secretName := ctx.Params(":secretname")
-	if err := actions.NameRegexMatch(secretName); err != nil {
-		ctx.Error(http.StatusBadRequest, "DeleteSecret", err)
-		return
-	}
-	err := secret_model.DeleteSecret(
-		ctx, owner.ID, repo.ID, secretName,
-	)
-	if secret_model.IsErrSecretNotFound(err) {
-		ctx.NotFound(err)
-		return
-	}
+	err := secret_service.DeleteSecretByName(ctx, owner.ID, repo.ID, ctx.Params("secretname"))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "DeleteSecret", err)
+		if errors.Is(err, util.ErrInvalidArgument) {
+			ctx.Error(http.StatusBadRequest, "DeleteSecret", err)
+		} else if errors.Is(err, util.ErrNotExist) {
+			ctx.Error(http.StatusNotFound, "DeleteSecret", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "DeleteSecret", err)
+		}
 		return
 	}
 

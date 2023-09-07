@@ -37,7 +37,6 @@ var (
 
 	// Ensure the struct implements the interface.
 	_ Method = &SSPI{}
-	_ Named  = &SSPI{}
 )
 
 // SSPI implements the SingleSignOn interface and authenticates requests
