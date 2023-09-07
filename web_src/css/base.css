@@ -1249,7 +1249,7 @@ img.ui.avatar,
 }
 
 .ui .text.truncate {
-  overflow-x: hidden;
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   display: inline-block;
@@ -2166,6 +2166,7 @@ table th[data-sortt-desc] .svg {
 .truncated-item-container {
   display: flex !important;
   align-items: center;
+  overflow-x: hidden;
 }
 
 .ellipsis-button {
