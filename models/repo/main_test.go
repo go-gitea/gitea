@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 
 	_ "code.gitea.io/gitea/models" // register table model
+	_ "code.gitea.io/gitea/models/actions"
 	_ "code.gitea.io/gitea/models/activities"
 	_ "code.gitea.io/gitea/models/perm/access" // register table model
 	_ "code.gitea.io/gitea/models/repo"        // register table model

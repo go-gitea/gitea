@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 
 	_ "code.gitea.io/gitea/models"
+	_ "code.gitea.io/gitea/models/actions"
 	_ "code.gitea.io/gitea/models/activities"
 	_ "code.gitea.io/gitea/models/repo"
 	_ "code.gitea.io/gitea/models/user"
