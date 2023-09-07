@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"gopkg.in/yaml.v3"
+	"xorm.io/xorm"
 )
 
 // BackupDatabaseAsFixtures backup all data from database to fixtures files on dirPath
@@ -17,15 +18,15 @@ func BackupDatabaseAsFixtures(dirPath string) error {
 	}
 
 	for _, t := range tables {
-		if err := backupTableFixtures(t, dirPath); err != nil {
+		if err := backupTableFixtures(x, t, dirPath); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func backupTableFixtures(bean interface{}, dirPath string) error {
-	table, err := x.TableInfo(bean)
+func backupTableFixtures(e *xorm.Engine, bean interface{}, dirPath string) error {
+	table, err := e.TableInfo(bean)
 	if err != nil {
 		return err
 	}
@@ -38,7 +39,7 @@ func backupTableFixtures(bean interface{}, dirPath string) error {
 	const bufferSize = 100
 	start := 0
 	for {
-		objs, err := x.Table(table.Name).Limit(bufferSize, start).QueryInterface()
+		objs, err := e.Table(table.Name).Limit(bufferSize, start).QueryInterface()
 		if err != nil {
 			return err
 		}
@@ -48,18 +49,19 @@ func backupTableFixtures(bean interface{}, dirPath string) error {
 
 		for _, obj := range objs {
 			for k, v := range obj {
+				// convert bytes to string
 				if vv, ok := v.([]byte); ok {
 					obj[k] = string(vv)
 				}
 			}
-			bs, err := yaml.Marshal([]any{obj})
+			bs, err := yaml.Marshal([]any{obj}) // with []any{} to ensure generated a list
 			if err != nil {
 				return err
 			}
 			if _, err := f.Write(bs); err != nil {
 				return err
 			}
-			if _, err := f.Write([]byte{'\n'}); err != nil {
+			if _, err := f.Write([]byte{'\n'}); err != nil { // generate a blank line for human readable
 				return err
 			}
 		}
