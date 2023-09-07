@@ -47,18 +47,5 @@ func SliceSortedEqual[T comparable](s1, s2 []T) bool {
 
 // SliceRemoveAll removes all the target elements from the slice.
 func SliceRemoveAll[T comparable](slice []T, target T) []T {
-	return SliceRemoveAllFunc(slice, func(t T) bool { return t == target })
-}
-
-// SliceRemoveAllFunc removes all elements which satisfy the targetFunc from the slice.
-func SliceRemoveAllFunc[T comparable](slice []T, targetFunc func(T) bool) []T {
-	idx := 0
-	for _, v := range slice {
-		if targetFunc(v) {
-			continue
-		}
-		slice[idx] = v
-		idx++
-	}
-	return slice[:idx]
+	return slices.DeleteFunc(slice, func(t T) bool { return t == target })
 }
