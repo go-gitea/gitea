@@ -7,28 +7,21 @@
 
 package util
 
-import "strings"
+import (
+	"slices"
+	"strings"
+)
 
 // SliceContains returns true if the target exists in the slice.
 func SliceContains[T comparable](slice []T, target T) bool {
-	return SliceContainsFunc(slice, func(t T) bool { return t == target })
-}
-
-// SliceContainsFunc returns true if any element in the slice satisfies the targetFunc.
-func SliceContainsFunc[T any](slice []T, targetFunc func(T) bool) bool {
-	for _, v := range slice {
-		if targetFunc(v) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(slice, func(t T) bool { return t == target })
 }
 
 // SliceContainsString sequential searches if string exists in slice.
 func SliceContainsString(slice []string, target string, insensitive ...bool) bool {
 	if len(insensitive) != 0 && insensitive[0] {
 		target = strings.ToLower(target)
-		return SliceContainsFunc(slice, func(t string) bool { return strings.ToLower(t) == target })
+		return slices.ContainsFunc(slice, func(t string) bool { return strings.ToLower(t) == target })
 	}
 
 	return SliceContains(slice, target)
