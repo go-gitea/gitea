@@ -4,4 +4,6 @@
 	{{template "package/upload/generic" .}}
 {{else if eq $.PackageUploadPage "debian"}}
 	{{template "package/upload/debian" .}}
+{{else if eq $.PackageUploadPage "rpm"}}
+	{{template "package/upload/rpm" .}}
 {{end}}

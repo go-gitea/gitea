@@ -10,7 +10,6 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
-	packages_module "code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
 	packages_upload_service "code.gitea.io/gitea/services/packages/upload"
@@ -55,13 +54,6 @@ func UploadGenericPackagePost(ctx *context.Context) {
 		return
 	}
 
-	buf, err := packages_module.CreateHashedBufferFromReader(upload)
-	if err != nil {
-		ctx.ServerError("CreateHashedBufferFromReader", err)
-		return
-	}
-	defer buf.Close()
-
 	var filename string
 	if form.PackageFilename == "" {
 		filename = form.PackageFile.Filename
@@ -73,6 +65,7 @@ func UploadGenericPackagePost(ctx *context.Context) {
 	if err != nil {
 		if statusCode == http.StatusInternalServerError {
 			ctx.ServerError("UploadGenericPackage", err)
+			return
 		} else {
 			servePackageUploadError(ctx, err, "generic", form.PackageRepo)
 			return
@@ -106,6 +99,7 @@ func UploadDebianPackagePost(ctx *context.Context) {
 	if err != nil {
 		if statusCode == http.StatusInternalServerError {
 			ctx.ServerError("UploadGenericPackage", err)
+			return
 		} else {
 			servePackageUploadError(ctx, err, "generic", form.PackageRepo)
 			return
@@ -114,6 +108,40 @@ func UploadDebianPackagePost(ctx *context.Context) {
 
 	if form.PackageRepo != "" {
 		if !addRepoToUploadedPackage(ctx, "debian", form.PackageRepo, pv.PackageID) {
+			return
+		}
+	}
+
+	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
+	if err != nil {
+		ctx.ServerError("GetPackageDescriptor", err)
+		return
+	}
+
+	ctx.Redirect(pd.FullWebLink())
+}
+
+func UploadRpmPackagePost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.PackageUploadRpmForm)
+	upload, err := form.PackageFile.Open()
+	if err != nil {
+		ctx.ServerError("GetPackageFile", err)
+		return
+	}
+
+	statusCode, pv, err := packages_upload_service.UploadRpmPackage(ctx, upload)
+	if err != nil {
+		if statusCode == http.StatusInternalServerError {
+			ctx.ServerError("UploadRpmPackage", err)
+			return
+		} else {
+			servePackageUploadError(ctx, err, "rpm", form.PackageRepo)
+			return
+		}
+	}
+
+	if form.PackageRepo != "" {
+		if !addRepoToUploadedPackage(ctx, "rpm", form.PackageRepo, pv.PackageID) {
 			return
 		}
 	}

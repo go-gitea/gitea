@@ -510,7 +510,7 @@ func UploadPackagePage(ctx *context.Context) {
 
 	packageType := ctx.Params("upload_type")
 
-	allowdTypes := []string{"generic", "debian"}
+	allowdTypes := []string{"generic", "debian", "rpm"}
 
 	if !slices.Contains(allowdTypes, packageType) {
 		ctx.NotFound("", nil)

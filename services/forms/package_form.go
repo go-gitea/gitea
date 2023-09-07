@@ -44,3 +44,8 @@ type PackageUploadDebianForm struct {
 	PackageComponent    string
 	PackageFile         *multipart.FileHeader
 }
+
+type PackageUploadRpmForm struct {
+	PackageRepo string
+	PackageFile *multipart.FileHeader
+}
