@@ -11,6 +11,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/cmd"
 	_ "code.gitea.io/gitea/models"
@@ -36,6 +37,10 @@ func main() {
 	for _, command := range app.Commands {
 		if command.Name == app.DefaultCommand {
 			command.Action = devEntry
+			command.Flags = append(command.Flags, &cli.BoolFlag{
+				Name:  "ci",
+				Usage: "will auto quit in 10 secodes after dev service, wich is used in ci check",
+			})
 			break
 		}
 	}
@@ -43,7 +48,7 @@ func main() {
 	_ = cmd.RunMainApp(app, os.Args...)
 }
 
-func devEntry(_ *cli.Context) error {
+func devEntry(ctx *cli.Context) error {
 	pwd := os.Getenv("GITEA_ROOT")
 	if len(pwd) == 0 {
 		panic(pwd)
@@ -57,6 +62,15 @@ func devEntry(_ *cli.Context) error {
 	defer cancel()
 
 	initDev(pwd)
+
+	if ctx.Bool("ci") {
+		log.Info("ci: will auto stop in 10 seconds")
+		go func() {
+			time.Sleep(10 * time.Second)
+			log.Info("ci: will shutdown soon")
+			graceful.GetManager().DoGracefulShutdown()
+		}()
+	}
 
 	// Set up Chi routes
 	webRoutes := routers.NormalRoutes()

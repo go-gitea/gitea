@@ -519,7 +519,14 @@ generate-ini-dev:
 
 .PHONY: test-dev
 test-dev: generate-ini-dev
-	GITEA_ROOT="$(CURDIR)" $(GO) run -tags 'sqlite sqlite_unlock_notify' contrib/dev/dev.go || true
+	GITEA_ROOT="$(CURDIR)" $(GO) run -tags 'sqlite sqlite_unlock_notify' contrib/dev/dev.go
+
+.PHONY: test-dev-ci
+test-dev-ci: generate-ini-dev
+	GITEA_ROOT="$(CURDIR)" $(GO) run -tags 'sqlite sqlite_unlock_notify' contrib/dev/dev.go web --ci
+
+.PHONY: test-dev-ci-check
+test-dev-ci-check: test-dev-ci test-check
 
 .PHONY: test-sqlite
 test-sqlite: integrations.sqlite.test generate-ini-sqlite
