@@ -10,6 +10,7 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
@@ -44,6 +45,10 @@ func startTasks(ctx context.Context) error {
 			return fmt.Errorf("find specs: %w", err)
 		}
 
+		if err := specs.LoadRepos(); err != nil {
+			return fmt.Errorf("LoadRepos: %w", err)
+		}
+
 		// Loop through each spec and create a schedule task for it
 		for _, row := range specs {
 			// cancel running jobs if the event is push
@@ -57,6 +62,11 @@ func startTasks(ctx context.Context) error {
 				); err != nil {
 					log.Error("CancelRunningJobs: %v", err)
 				}
+			}
+
+			cfg := row.Repo.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
+			if cfg.IsWorkflowDisabled(row.Schedule.WorkflowID) {
+				continue
 			}
 
 			if err := CreateScheduleTask(ctx, row.Schedule); err != nil {
