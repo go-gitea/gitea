@@ -1,5 +1,9 @@
-kind/ui:
-  - web_src/**/*
-
 kind/docs:
   - docs/**/*
+
+kind/ui:
+  - web_src/**/*
+  - all: ["templates/**/*", "!templates/swagger/v1_json.tmpl"]
+
+kind/api:
+  - templates/swagger/v1_json.tmpl
