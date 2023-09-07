@@ -22,9 +22,7 @@ import (
 	"google.golang.org/api/option"
 )
 
-var (
-	_ ObjectStorage = &GoogleStorage{}
-)
+var _ ObjectStorage = &GoogleStorage{}
 
 type googleObject struct {
 	Client  *storage.Client
@@ -139,7 +137,6 @@ func NewGoogleStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage,
 		// opts = append(opts, option.WithHTTPClient(yourHTTPClient))
 	}
 	googleClient, err := storage.NewClient(ctx, opts...)
-
 	if err != nil {
 		return nil, convertGoogleErr(err)
 	}
@@ -343,7 +340,6 @@ func (g *GoogleStorage) IterateObjects(dirName string, fn func(path string, obj 
 		}
 	}
 	return nil
-
 }
 
 func init() {
