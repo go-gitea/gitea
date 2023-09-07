@@ -14,14 +14,6 @@ kind/build:
   - Dockerfile.rootless
   - webpack.config.js
 
-dependencies:
-  - go.mod
-  - go.sum
-  - package.json
-  - package-lock.json
-  - pyproject.toml
-  - poetry.lock
-
 kind/lint:
   - .eslintrc.yaml
   - .golangci.yml
