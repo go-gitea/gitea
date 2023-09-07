@@ -1,9 +1,11 @@
 // for performance considerations, it only uses performant syntax
 
-const excludeTypes = new Set(['hidden', 'checkbox', 'radio', 'range', 'color']);
-
 function attachDirAuto(el) {
-  if (!excludeTypes.has(el.type)) {
+  if (el.type !== 'hidden' &&
+      el.type !== 'checkbox' &&
+      el.type !== 'radio' &&
+      el.type !== 'range' &&
+      el.type !== 'color') {
     el.dir = 'auto';
   }
 }
