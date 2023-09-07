@@ -1,4 +1,5 @@
 kind/docs:
+  - **/*.md
   - docs/**/*
 
 kind/ui:
