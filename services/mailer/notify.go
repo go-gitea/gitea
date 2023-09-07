@@ -202,3 +202,7 @@ func (m *mailNotifier) RepoPendingTransfer(ctx context.Context, doer, newOwner *
 		log.Error("SendRepoTransferNotifyMail: %v", err)
 	}
 }
+
+func (m *mailNotifier) NewUserSignUp(ctx context.Context, newUser *user_model.User) {
+	MailNewUser(ctx, newUser)
+}

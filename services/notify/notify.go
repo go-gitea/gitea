@@ -347,6 +347,13 @@ func RepoPendingTransfer(ctx context.Context, doer, newOwner *user_model.User, r
 	}
 }
 
+// NewUserSignUp notifies deletion of a package to notifiers
+func NewUserSignUp(ctx context.Context, newUser *user_model.User) {
+	for _, notifier := range notifiers {
+		notifier.NewUserSignUp(ctx, newUser)
+	}
+}
+
 // PackageCreate notifies creation of a package to notifiers
 func PackageCreate(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor) {
 	for _, notifier := range notifiers {

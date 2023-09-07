@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
+	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/markbates/goth"
 )
@@ -586,6 +587,7 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.
 		}
 	}
 
+	notify_service.NewUserSignUp(ctx, u)
 	// update external user information
 	if gothUser != nil {
 		if err := externalaccount.UpdateExternalUser(u, *gothUser); err != nil {
@@ -609,7 +611,6 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.
 		ctx.Data["Email"] = u.Email
 		ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)
 		ctx.HTML(http.StatusOK, TplActivate)
-
 		if setting.CacheService.Enabled {
 			if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
 				log.Error("Set cache(MailResendLimit) fail: %v", err)

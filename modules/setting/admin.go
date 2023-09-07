@@ -7,6 +7,7 @@ package setting
 var Admin struct {
 	DisableRegularOrgCreation bool
 	DefaultEmailNotification  string
+	NotifyNewSignUps          bool
 }
 
 func loadAdminFrom(rootCfg ConfigProvider) {
