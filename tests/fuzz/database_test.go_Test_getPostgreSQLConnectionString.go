@@ -1,16 +1,11 @@
-package setting
+package fuzz
 
 import (
-	 "secsys/gout-transformation/pkg/transstruct"
-)
-import (
-	 "os"
-)
-import (
-	 "github.com/stretchr/testify/assert"
-)
-import (
-	 "testing"
+	"os"
+	"testing"
+
+	"secsys/gout-transformation/pkg/transstruct"
+	"github.com/stretchr/testify/assert"
 )
 
 func FuzzTest_getPostgreSQLConnectionString(XVl []byte) int {
