@@ -13,6 +13,7 @@ kind/build:
   - Makefile
   - Dockerfile
   - Dockerfile.rootless
+  - docker/**
   - webpack.config.js
 
 kind/lint:
