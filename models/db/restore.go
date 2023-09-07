@@ -12,7 +12,6 @@ import (
 )
 
 func RestoreDatabase(dirPath string) error {
-	testfiles := testfixtures.Directory(dirPath)
 	var dialect string
 	switch x.Dialect().URI().DBType {
 	case schemas.POSTGRES:
@@ -24,14 +23,14 @@ func RestoreDatabase(dirPath string) error {
 	case schemas.SQLITE:
 		dialect = "sqlite3"
 	default:
-		return fmt.Errorf("Unsupported RDBMS for integration tests")
+		return fmt.Errorf("unsupported RDBMS for integration tests")
 	}
 
 	loaderOptions := []func(loader *testfixtures.Loader) error{
 		testfixtures.Database(x.DB().DB),
 		testfixtures.Dialect(dialect),
 		testfixtures.DangerousSkipTestDatabaseCheck(),
-		testfiles,
+		testfixtures.Directory(dirPath),
 	}
 
 	if x.Dialect().URI().DBType == schemas.POSTGRES {
