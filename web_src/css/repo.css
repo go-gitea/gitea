@@ -2070,12 +2070,6 @@
   overflow: hidden;
 }
 
-@media (max-width: 767.98px) {
-  .repository .repository-summary .segment.language-stats {
-    display: none;
-  }
-}
-
 #cite-repo-modal #citation-panel {
   width: 500px;
 }
