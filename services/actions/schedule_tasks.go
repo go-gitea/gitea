@@ -127,19 +127,6 @@ func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule)
 		return err
 	}
 
-	// Retrieve the jobs for the newly created action run
-	jobs, _, err := actions_model.FindRunJobs(ctx, actions_model.FindRunJobOptions{RunID: run.ID})
-	if err != nil {
-		return err
-	}
-
-	// Create commit statuses for each job
-	for _, job := range jobs {
-		if err := createCommitStatus(ctx, job); err != nil {
-			return err
-		}
-	}
-
 	// Return nil if no errors occurred
 	return nil
 }
