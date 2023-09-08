@@ -113,6 +113,7 @@ func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule)
 		CommitSHA:     cron.CommitSHA,
 		Event:         cron.Event,
 		EventPayload:  cron.EventPayload,
+		ScheduleID:    cron.ID,
 		Status:        actions_model.StatusWaiting,
 	}
 
