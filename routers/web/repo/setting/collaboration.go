@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/mailer"
 	org_service "code.gitea.io/gitea/services/org"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // Collaboration render a repository's collaboration page
@@ -196,7 +197,7 @@ func DeleteTeam(ctx *context.Context) {
 		return
 	}
 
-	if err = models.RemoveRepository(team, ctx.Repo.Repository.ID); err != nil {
+	if err = repo_service.RemoveRepositoryFromTeam(ctx, team, ctx.Repo.Repository.ID); err != nil {
 		ctx.ServerError("team.RemoveRepositorys", err)
 		return
 	}

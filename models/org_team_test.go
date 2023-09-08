@@ -51,36 +51,6 @@ func TestTeam_RemoveMember(t *testing.T) {
 	assert.True(t, organization.IsErrLastOrgOwner(err))
 }
 
-func TestTeam_HasRepository(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	test := func(teamID, repoID int64, expected bool) {
-		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-		assert.Equal(t, expected, HasRepository(team, repoID))
-	}
-	test(1, 1, false)
-	test(1, 3, true)
-	test(1, 5, true)
-	test(1, unittest.NonexistentID, false)
-
-	test(2, 3, true)
-	test(2, 5, false)
-}
-
-func TestTeam_RemoveRepository(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	testSuccess := func(teamID, repoID int64) {
-		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-		assert.NoError(t, RemoveRepository(team, repoID))
-		unittest.AssertNotExistsBean(t, &organization.TeamRepo{TeamID: teamID, RepoID: repoID})
-		unittest.CheckConsistencyFor(t, &organization.Team{ID: teamID}, &repo_model.Repository{ID: repoID})
-	}
-	testSuccess(2, 3)
-	testSuccess(2, 5)
-	testSuccess(1, unittest.NonexistentID)
-}
-
 func TestIsUsableTeamName(t *testing.T) {
 	assert.NoError(t, organization.IsUsableTeamName("usable"))
 	assert.True(t, db.IsErrNameReserved(organization.IsUsableTeamName("new")))
