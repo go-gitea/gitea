@@ -28,6 +28,13 @@ func BackupDatabaseAsFixtures(dirPath string) error {
 }
 
 func toNode(tableName, col string, v interface{}) *yaml.Node {
+	if v == nil {
+		return &yaml.Node{
+			Kind:  yaml.ScalarNode,
+			Tag:   "!!str",
+			Value: "",
+		}
+	}
 	switch vv := v.(type) {
 	case string:
 		if tableName == "action_task" && col == "log_indexes" {
