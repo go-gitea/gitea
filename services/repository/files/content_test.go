@@ -13,6 +13,8 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 
+	_ "code.gitea.io/gitea/models/actions"
+
 	"github.com/stretchr/testify/assert"
 )
 

@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	admin_model "code.gitea.io/gitea/models/admin"
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
@@ -100,7 +101,7 @@ func CreateMigrateTask(doer, u *user_model.User, opts base.MigrateOptions) (*adm
 		return nil, err
 	}
 
-	repo, err := repo_service.CreateRepositoryDirectly(doer, u, repo_service.CreateRepoOptions{
+	repo, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, doer, u, repo_service.CreateRepoOptions{
 		Name:           opts.RepoName,
 		Description:    opts.Description,
 		OriginalURL:    opts.OriginalURL,
