@@ -36,7 +36,7 @@
 .flex-item .flex-item-icon {
   display: flex;
   align-items: center;
-  height: 20px; /* match the default flex-item-title height*/
+  height: 20px; /* match the default flex-item-title height */
 }
 
 .flex-item .flex-item-trailing {
