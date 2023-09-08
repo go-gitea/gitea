@@ -2066,7 +2066,7 @@
   padding: 0;
   height: 10px;
   white-space: nowrap;
-  border-radius: 0 0 3.25px 3.25px !important;
+  border-radius: 0 0 3px 3px !important;
   overflow: hidden;
 }
 
