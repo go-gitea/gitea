@@ -95,10 +95,3 @@
     position: static;
   }
 }
-
-.feeds code {
-  padding: 2px 4px;
-  border-radius: 3px;
-  background-color: var(--color-markup-code-block);
-  word-break: break-all;
-}

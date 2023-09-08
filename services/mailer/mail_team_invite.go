@@ -6,6 +6,8 @@ package mailer
 import (
 	"bytes"
 	"context"
+	"fmt"
+	"net/url"
 
 	org_model "code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
@@ -33,6 +35,22 @@ func MailTeamInvite(ctx context.Context, inviter *user_model.User, team *org_mod
 
 	locale := translation.NewLocale(inviter.Language)
 
+	// check if a user with this email already exists
+	user, err := user_model.GetUserByEmail(ctx, invite.Email)
+	if err != nil && !user_model.IsErrUserNotExist(err) {
+		return err
+	} else if user != nil && user.ProhibitLogin {
+		return fmt.Errorf("login is prohibited for the invited user")
+	}
+
+	inviteRedirect := url.QueryEscape(fmt.Sprintf("/org/invite/%s", invite.Token))
+	inviteURL := fmt.Sprintf("%suser/sign_up?redirect_to=%s", setting.AppURL, inviteRedirect)
+
+	if (err == nil && user != nil) || setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration {
+		// user account exists or registration disabled
+		inviteURL = fmt.Sprintf("%suser/login?redirect_to=%s", setting.AppURL, inviteRedirect)
+	}
+
 	subject := locale.Tr("mail.team_invite.subject", inviter.DisplayName(), org.DisplayName())
 	mailMeta := map[string]any{
 		"Inviter":      inviter,
@@ -40,6 +58,7 @@ func MailTeamInvite(ctx context.Context, inviter *user_model.User, team *org_mod
 		"Team":         team,
 		"Invite":       invite,
 		"Subject":      subject,
+		"InviteURL":    inviteURL,
 		// helper
 		"locale":    locale,
 		"Str2html":  templates.Str2html,
