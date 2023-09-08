@@ -7,6 +7,7 @@ import (
 	"context"
 	"os"
 	"runtime/pprof"
+	"slices"
 	"sync/atomic"
 	"time"
 
@@ -20,7 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 )
 
 var (
@@ -54,22 +54,22 @@ func index(ctx context.Context, indexer internal.Indexer, repoID int64) error {
 	}
 
 	// skip forks from being indexed if unit is not present
-	if !util.SliceContains(repoTypes, "forks") && repo.IsFork {
+	if !slices.Contains(repoTypes, "forks") && repo.IsFork {
 		return nil
 	}
 
 	// skip mirrors from being indexed if unit is not present
-	if !util.SliceContains(repoTypes, "mirrors") && repo.IsMirror {
+	if !slices.Contains(repoTypes, "mirrors") && repo.IsMirror {
 		return nil
 	}
 
 	// skip templates from being indexed if unit is not present
-	if !util.SliceContains(repoTypes, "templates") && repo.IsTemplate {
+	if !slices.Contains(repoTypes, "templates") && repo.IsTemplate {
 		return nil
 	}
 
 	// skip regular repos from being indexed if unit is not present
-	if !util.SliceContains(repoTypes, "sources") && !repo.IsFork && !repo.IsMirror && !repo.IsTemplate {
+	if !slices.Contains(repoTypes, "sources") && !repo.IsFork && !repo.IsMirror && !repo.IsTemplate {
 		return nil
 	}
 

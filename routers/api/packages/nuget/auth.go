@@ -13,6 +13,8 @@ import (
 	"code.gitea.io/gitea/services/auth"
 )
 
+var _ auth.Method = &Auth{}
+
 type Auth struct{}
 
 func (a *Auth) Name() string {

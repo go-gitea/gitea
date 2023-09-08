@@ -18,7 +18,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/git"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
@@ -32,7 +31,7 @@ func TestPullRequestTargetEvent(t *testing.T) {
 		user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}) // owner of the forked repo
 
 		// create the base repo
-		baseRepo, err := repo_service.CreateRepository(db.DefaultContext, user2, user2, repo_module.CreateRepoOptions{
+		baseRepo, err := repo_service.CreateRepository(db.DefaultContext, user2, user2, repo_service.CreateRepoOptions{
 			Name:          "repo-pull-request-target",
 			Description:   "test pull-request-target event",
 			AutoInit:      true,

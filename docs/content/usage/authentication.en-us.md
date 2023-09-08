@@ -157,12 +157,13 @@ Uses the following fields:
 
 - User Attribute in Group (optional)
 
-  - Which user LDAP attribute is listed in the group.
-  - Example: `uid`
+  - The user attribute that is used to reference a user in the group object.
+  - Example: `uid` if the group objects contains a `member: bender` and the user object contains a `uid: bender`.
+  - Example: `dn` if the group object contains a `member: uid=bender,ou=users,dc=planetexpress,dc=com`.
 
 - Group Attribute for User (optional)
-  - Which group LDAP attribute contains an array above user attribute names.
-  - Example: `memberUid`
+  - The attribute of the group object that lists/contains the group members.
+  - Example: `memberUid` or `member`
 
 ## PAM (Pluggable Authentication Module)
 
