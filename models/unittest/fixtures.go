@@ -458,7 +458,7 @@ func (l xormTagList) GetFieldName(defaultName string) string {
 		}
 		preTag = strings.ToUpper(tag.name)
 
-		if util.SliceContains(reservedNames, strings.ToUpper(tag.name)) {
+		if util.SliceContainsString(reservedNames, strings.ToUpper(tag.name)) {
 			continue
 		}
 

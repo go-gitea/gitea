@@ -234,11 +234,11 @@ func fixGitReops() {
 		return listSubDir(dir, func(dir, repoName string) error {
 			fullName := path.Join(userName, repoName)
 
-			if !util.SliceContains(neededReops, fullName) {
+			if !util.SliceContainsString(neededReops, fullName) {
 				return util.RemoveAll(dir)
 			}
 
-			if util.SliceContains(reposNotneededHooks, fullName) {
+			if util.SliceContainsString(reposNotneededHooks, fullName) {
 				return util.RemoveAll(path.Join(dir, "hooks"))
 			}
 
@@ -326,11 +326,11 @@ func removeNotNeededFixtures(pathToGiteaRoot string) {
 			return nil
 		}
 
-		if util.SliceContains(nootNeededFixtures, fileName) {
+		if util.SliceContainsString(nootNeededFixtures, fileName) {
 			return os.Remove(pth)
 		}
 
-		if util.SliceContains(keptFiles, fileName) {
+		if util.SliceContainsString(keptFiles, fileName) {
 			return nil
 		}
 
