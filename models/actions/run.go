@@ -35,7 +35,8 @@ type ActionRun struct {
 	Index             int64                  `xorm:"index unique(repo_index)"` // a unique number for each run of a repository
 	TriggerUserID     int64                  `xorm:"index"`
 	TriggerUser       *user_model.User       `xorm:"-"`
-	Ref               string                 `xorm:"index"` // the commit/tag/… that caused the run
+	ScheduleID        int64
+	Ref               string `xorm:"index"` // the commit/tag/… that caused the run
 	CommitSHA         string
 	IsForkPullRequest bool                         // If this is triggered by a PR from a forked repository or an untrusted user, we need to check if it is approved and limit permissions when running the workflow.
 	NeedApproval      bool                         // may need approval if it's a fork pull request
