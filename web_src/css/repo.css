@@ -2066,6 +2066,8 @@
   padding: 0;
   height: 10px;
   white-space: nowrap;
+  border-radius: 0 0 3px 3px !important;
+  overflow: hidden;
 }
 
 @media (max-width: 767.98px) {
