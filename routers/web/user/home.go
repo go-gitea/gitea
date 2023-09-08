@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -290,7 +291,7 @@ func Milestones(ctx *context.Context) {
 	if len(repoIDs) == 0 {
 		repoIDs = showRepoIds.Values()
 	}
-	repoIDs = util.SliceRemoveAllFunc(repoIDs, func(v int64) bool {
+	repoIDs = slices.DeleteFunc(repoIDs, func(v int64) bool {
 		return !showRepoIds.Contains(v)
 	})
 
@@ -534,7 +535,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// Gets set when clicking filters on the issues overview page.
 	selectedRepoIDs := getRepoIDs(ctx.FormString("repos"))
 	// Remove repo IDs that are not accessible to the user.
-	selectedRepoIDs = util.SliceRemoveAllFunc(selectedRepoIDs, func(v int64) bool {
+	selectedRepoIDs = slices.DeleteFunc(selectedRepoIDs, func(v int64) bool {
 		return !accessibleRepos.Contains(v)
 	})
 	if len(selectedRepoIDs) > 0 {

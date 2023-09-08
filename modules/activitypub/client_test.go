@@ -15,8 +15,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 
-	_ "code.gitea.io/gitea/models" // https://discourse.gitea.io/t/testfixtures-could-not-clean-table-access-no-such-table-access/4137/4
-
 	"github.com/stretchr/testify/assert"
 )
 

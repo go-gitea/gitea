@@ -9,14 +9,6 @@
   padding: 1em 0;
 }
 
-.flex-item-baseline {
-  align-items: baseline;
-}
-
-.flex-item-center {
-  align-items: center;
-}
-
 .flex-item .flex-item-leading {
   display: flex;
   align-items: flex-start;
@@ -41,8 +33,10 @@
   color: var(--color-primary) !important;
 }
 
-.flex-item .flex-item-icon svg {
-  margin-top: 1px;
+.flex-item .flex-item-icon {
+  display: flex;
+  align-items: center;
+  height: 20px; /* match the default flex-item-title height */
 }
 
 .flex-item .flex-item-trailing {
@@ -65,6 +59,7 @@
   font-weight: var(--font-weight-semibold);
   word-break: break-word;
   min-width: 0;
+  min-height: 20px;
 }
 
 .flex-item .flex-item-title a {

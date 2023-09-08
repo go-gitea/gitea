@@ -17,7 +17,7 @@ import (
 func TeamAddRepository(t *organization.Team, repo *repo_model.Repository) (err error) {
 	if repo.OwnerID != t.OrgID {
 		return errors.New("repository does not belong to organization")
-	} else if models.HasRepository(t, repo.ID) {
+	} else if organization.HasTeamRepo(db.DefaultContext, t.OrgID, t.ID, repo.ID) {
 		return nil
 	}
 
