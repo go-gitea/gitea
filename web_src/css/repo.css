@@ -2042,9 +2042,10 @@
 
 .repository .repository-summary .segment.sub-menu {
   border: none;
-  padding: 0;
   display: flex;
   align-items: center;
+  padding: 0 0.5em; /* make the UI look better for narrow (mobile) view */
+  overflow: hidden;
 }
 
 .repository .repository-summary .sub-menu .item {
@@ -2055,6 +2056,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.25em;
+  padding: 0 0.25em;
 }
 
 .repository .repository-summary .sub-menu .item.active {
